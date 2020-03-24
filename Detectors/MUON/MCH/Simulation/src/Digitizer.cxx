@@ -152,18 +152,16 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     auto ymin = (localY - seg.padPositionY(padid)) - dy;
     auto ymax = ymin + dy;
     auto q = resp.chargePadfraction(xmin, xmax, ymin, ymax);
-    if(resp.aboveThreshold(q)) {
+    if(resp.aboveThreshold(q)) {//checked: not relevant for cluster size
       if (seg.isBendingPad(padid)) {
 	q *= chargebend;
       } else {
 	q *= chargenon;
       }
-      std::cout <<"q " << q << std::endl;
-      auto signal = (unsigned long)q;
-      std::cout <<"signal " << signal << std::endl;
+      auto signal = (unsigned long)q; //this cuts most
       if(signal>0) {
-	  digits.emplace_back(time, detID, padid, signal);
-	  ++ndigits;
+	digits.emplace_back(time, detID, padid, signal);
+	++ndigits;
       }
     }
     });
@@ -215,7 +213,7 @@ void Digitizer::mergeDigits()
         }
       }
     }
-    adc = resp.response(adc);//doesn't work like this
+    //    adc = resp.response(adc);
     mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
     i = j;
     ++count;

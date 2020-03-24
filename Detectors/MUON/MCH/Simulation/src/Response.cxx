@@ -31,9 +31,9 @@ Response::Response(Station station) : mStation(station)
     mSqrtK3y = 0.7550;
     mK4y = 0.38658194;
     mInversePitch = 1. / 0.21; // ^cm-1
-    mChargeSlope = 25.;//confirmed 20.03. from AliMUONResponseFactory
-    mQspreadX = 0.144;//confirmed 20.03. from AliMUONResponseFactory
-    mQspreadY = 0.144;//confirmed 20.03. from AliMUONResponseFactory
+    mChargeSlope = 25.;//from AliMUONResponsefactory, 1 in AliMUONConstants
+    mQspreadX = 0.144;
+    mQspreadY = 0.144;
     mSigmaIntegration = 10.;
   } else {
     mK2x = 1.010729;
@@ -43,9 +43,9 @@ Response::Response(Station station) : mStation(station)
     mSqrtK3y = 0.7642;
     mK4y = 0.38312571;
     mInversePitch = 1. / 0.25; // cm^-1
-    mChargeSlope = 10.;//confirmed 20.03. from AliMUONResponseFactory
-    mQspreadX = 0.18;//confirmed 20.03. from AliMUONResponseFactory
-    mQspreadY = 0.18;//confirmed 20.03. from AliMUONResponseFactory
+    mChargeSlope = 10.;
+    mQspreadX = 0.18;
+    mQspreadY = 0.18;
     mSigmaIntegration = 10.;
   }
 
@@ -73,10 +73,7 @@ float Response::etocharge(float edepos)
       arg = gRandom->Rndm();
     charge -= mChargeSlope * TMath::Log(arg);
   }
-  //translate to fC roughly,
-  //equivalent to AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa() multiplication in aliroot
-  //TODO: find factor from where?
-  //  charge *= mADC2toFC; //TODO: to be verified precisely!
+  //no translation to fC, as in Aliroot
   return charge;
 }
 //_____________________________________________________________________
@@ -104,29 +101,25 @@ double Response::chargefrac1d(float min, float max, double k2, double sqrtk3, do
 //______________________________________________________________________
 unsigned long Response::response(unsigned long adc)
 {
-  //equivalent of DecalibrateTrackerDigit in
+  //DecalibrateTrackerDigit functionality from
   //AliMuonDigitizerV3 in aliroot
-  //int fgNSigma = 5.0; //aliroot not used in aliroo
-
-  //TODO: need to have channel-by-channel noise map 
-  float pedestalSigma = 0.5;//channnel noise
-  float adc_out = adc; // /(mChargeTransition);//devision seems to be already in place somehow... makes no sense at all...to do this forth and back
-  float pedestalMean = 2;//channel 0 //arbitrary number, need to get it from aliroot
-  float adcNoise = 0.0; //arbitrary number need to get it from aliroot
-  //TODO: need to introduce switch for O2 vs. Aliroot
-  //TODO: tune first matching of aliroot response w.r.t. O2 aliroot imitation
-  //2nd step perform playing with a0, capa, adc2mv, noise and pedestal to reproduce O2
+  int fgNSigma = 5.0; //aliroot no
+  //no channel-by-channel noise map as in aliroot
+  float pedestalSigma = 0.0;//channnel noise 0.5 aliroot
+  float adc_out = adc;
+  float pedestalMean = 0;
+  float adcNoise = 0.0;
+  //TODO: parameter choices for match with aliroot
   
   adc = TMath::Nint(adc_out + pedestalMean + adcNoise + 0.5);
   
-  if ( adc_out < TMath::Nint(pedestalMean +/* fgNSigma*pedestalSigma */+ 0.5) ) adc = 0;
+  if ( adc_out < TMath::Nint(pedestalMean + fgNSigma*pedestalSigma + 0.5) ) adc = 0;
   if(adc>mMaxADC) adc = mMaxADC;
-  
   return adc;
 }
 //______________________________________________________________________
 float Response::getAnod(float x)
-{//verified 20.03. MW w.r.t. AliMUONResponseV0, in Aliroot mInversePitch is Pitch()
+{
   int n = Int_t(x * mInversePitch);//is it wrong?
   float wire = (x > 0) ? n + 0.5 : n - 0.5;
   return  wire/mInversePitch;//fixed 20.03.

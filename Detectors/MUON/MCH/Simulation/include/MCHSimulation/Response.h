@@ -57,19 +57,21 @@ class Response
   float mQspreadY = 0.0;
 
   //ChargeSlope for Station 2-5
-  float mChargeSlope = 0.0;  //why float in Aliroot?
+  float mChargeSlope = 0.0;
   const float mChargeCorr = 0.11; // number from line 122
   //of AliMUONResponseFactory.cxx
   //AliMUONResponseV0.h: amplitude of charge correlation on 2 cathods, is RMS of ln(q1/q2)
   
-  float mChargeThreshold = 1e-4; //10-4 is in Aliroot fraction of charge
+  float mChargeThreshold = 1e-4;
   //AliMUONResponseV0.cxx constr.
-  //aliroot "charges below this threshold are 0"
+  //"charges below this threshold are 0"
   float mFCtoADC = 1/(0.61 * 1.25 * 0.2);
   float mADCtoFC = 0.61 * 1.25 * 0.2;
-  // this is the transition between fc and ACD in principle... so this is already done...
+  //transitions between fc and ADD
   //from AliMUONResponseV0.cxx
   //equals (for Aliroo) AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa()
+  //for the moment not used since directly transition into ADC
+  
   //Mathieson parameter: NIM A270 (1988) 602-603
   //should be a common place for MCH
   // Mathieson parameters from L.Kharmandarian's thesis, page 190
@@ -91,7 +93,8 @@ class Response
   float mInversePitch = 0.0;
 
   //maximal bit number
-  int mMaxADC = (1<<12)-1;//Aliroto
+  int mMaxADC = (1<<12)-1;
+  //TODO: introduce equivalent for O2
   
 };
 } // namespace mch
