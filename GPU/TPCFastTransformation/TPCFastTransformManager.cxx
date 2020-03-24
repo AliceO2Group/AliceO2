@@ -14,36 +14,43 @@
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
 #include "TPCFastTransformManager.h"
-#include "AliTPCTransform.h"
+#include "AliHLTTPCGeometry.h"
 #include "AliTPCParam.h"
 #include "AliTPCRecoParam.h"
+#include "AliTPCTransform.h"
 #include "AliTPCcalibDB.h"
-#include "AliHLTTPCGeometry.h"
 #include "TPCFastTransform.h"
+#include "SplineHelper2D.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-TPCFastTransformManager::TPCFastTransformManager() : mError(), mOrigTransform(nullptr), fLastTimeBin(0) {}
+TPCFastTransformManager::TPCFastTransformManager()
+  : mError(), mOrigTransform(nullptr), fLastTimeBin(0) {}
 
-int TPCFastTransformManager::create(TPCFastTransform& fastTransform, AliTPCTransform* transform, Long_t TimeStamp)
+int TPCFastTransformManager::create(TPCFastTransform& fastTransform,
+                                    AliTPCTransform* transform,
+                                    Long_t TimeStamp)
 {
   /// Initializes TPCFastTransform object
 
   AliTPCcalibDB* pCalib = AliTPCcalibDB::Instance();
   if (!pCalib) {
-    return storeError(-1, "TPCFastTransformManager::Init: No TPC calibration instance found");
+    return storeError(
+      -1, "TPCFastTransformManager::Init: No TPC calibration instance found");
   }
 
   AliTPCParam* tpcParam = pCalib->GetParameters();
   if (!tpcParam) {
-    return storeError(-2, "TPCFastTransformManager::Init: No TPCParam object found");
+    return storeError(
+      -2, "TPCFastTransformManager::Init: No TPCParam object found");
   }
 
   if (!transform) {
     transform = pCalib->GetTransform();
   }
   if (!transform) {
-    return storeError(-3, "TPCFastTransformManager::Init: No TPC transformation found");
+    return storeError(
+      -3, "TPCFastTransformManager::Init: No TPC transformation found");
   }
 
   mOrigTransform = transform;
@@ -53,13 +60,18 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform, AliTPCTrans
 
   const AliTPCRecoParam* rec = transform->GetCurrentRecoParam();
   if (!rec) {
-    return storeError(-5, "TPCFastTransformManager::Init: No TPC Reco Param set in transformation");
+    return storeError(-5,
+                      "TPCFastTransformManager::Init: No TPC Reco Param "
+                      "set in transformation");
   }
 
   bool useCorrectionMap = rec->GetUseCorrectionMap();
 
   if (useCorrectionMap) {
-    transform->SetCorrectionMapMode(kTRUE); // If the simulation set this to false to simulate distortions, we need to reverse it for the transformation
+    transform->SetCorrectionMapMode(kTRUE); // If the simulation set this to
+                                            // false to simulate corrections, we
+                                            // need to reverse it for the
+                                            // transformation
   }
   // find last calibrated time bin
 
@@ -73,7 +85,8 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform, AliTPCTrans
     geo.startConstruction(nRows);
 
     float tpcZlengthSideA = tpcParam->GetZLength(0);
-    float tpcZlengthSideC = tpcParam->GetZLength(TPCFastTransformGeo::getNumberOfSlices() / 2);
+    float tpcZlengthSideC =
+      tpcParam->GetZLength(TPCFastTransformGeo::getNumberOfSlices() / 2);
 
     geo.setTPCzLength(tpcZlengthSideA, tpcZlengthSideC);
     geo.setTPCalignmentZ(-mOrigTransform->GetDeltaZCorrTime());
@@ -92,68 +105,36 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform, AliTPCTrans
     geo.finishConstruction();
   }
 
-  TPCDistortionIRS distortion;
+  TPCFastSpaceChargeCorrection correction;
 
-  { // create the distortion map
+  { // create the correction map
 
     const int nDistortionScenarios = 1;
 
-    distortion.startConstruction(geo, nDistortionScenarios);
+    correction.startConstruction(geo, nDistortionScenarios);
 
-    IrregularSpline2D3D spline;
-
-    { // adjust the number of knots and the knot positions for the TPC distortion splines
-      // make bining similar to old HLT transformation
-      // TODO: use IrregularSpline2D3DCaibrator similar to O2 code
-
-      int nKnotsU = 15;
-      int nAxisTicksU = tpcParam->GetNPads(0, 10);
-      int nKnotsV = 20;
-      int nAxisTicksV = fLastTimeBin + 1;
-      float knotsU[nKnotsU];
-      float knotsV[nKnotsV];
-      for (int i = 0; i < nKnotsU; i++) {
-        knotsU[i] = 1. / (nKnotsU - 1) * i;
-      }
-      for (int i = 0; i < nKnotsV; i++) {
-        knotsV[i] = 1. / (nKnotsV - 1) * i;
-      }
-
-      double d1 = 0.6;
-      double d2 = 0.9 - d1;
-      double d3 = 1. - d2 - d1;
-
-      for (int i = 0; i < 5; i++) { // 5 bins in first 6% of drift
-        knotsV[i] = i / 4. * d1;
-      }
-      for (int i = 0; i < 10; i++) { // 10 bins for 6% <-> 90%
-        knotsV[4 + i] = d1 + i / 9. * d2;
-      }
-      for (int i = 0; i < 5; i++) { // 5 bins for last 90% <-> 100%
-        knotsV[13 + i] = d1 + d2 + i / 4. * d3;
-      }
-
-      spline.construct(nKnotsU, knotsU, nAxisTicksU, nKnotsV, knotsV, nAxisTicksV);
-    } // spline
+    Spline2D spline;
+    spline.constructKnotsRegular(8, 20);
 
     int scenario = 0;
-    distortion.setSplineScenario(scenario, spline);
+    correction.setSplineScenario(scenario, spline);
 
     for (int row = 0; row < geo.getNumberOfRows(); row++) {
-      distortion.setRowScenarioID(row, scenario);
+      correction.setRowScenarioID(row, scenario);
     }
 
-    distortion.finishConstruction();
-  } // .. create the distortion map
+    correction.finishConstruction();
+  } // .. create the correction map
 
   { // create the fast transform object
 
-    fastTransform.startConstruction(distortion);
+    fastTransform.startConstruction(correction);
 
-    // tell the transformation to apply the space charge distortions
-    fastTransform.setApplyDistortionOn();
+    // tell the transformation to apply the space charge corrections
+    fastTransform.setApplyCorrectionOn();
 
-    // set some initial calibration values, will be reinitialised later int updateCalibration()
+    // set some initial calibration values, will be reinitialised later int
+    // updateCalibration()
     const float t0 = 0.;
     const float vDrift = 0.f;
     const float vdCorrY = 0.;
@@ -161,7 +142,8 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform, AliTPCTrans
     const float tofCorr = 0.;
     const float primVtxZ = 0.;
     const long int initTimeStamp = -1;
-    fastTransform.setCalibration(initTimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
+    fastTransform.setCalibration(initTimeStamp, t0, vDrift, vdCorrY, ldCorr,
+                                 tofCorr, primVtxZ);
 
     fastTransform.finishConstruction();
   }
@@ -169,7 +151,8 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform, AliTPCTrans
   return updateCalibration(fastTransform, TimeStamp);
 }
 
-int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, Long_t TimeStamp)
+int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
+                                               Long_t TimeStamp)
 {
   // Update the calibration with the new time stamp
 
@@ -186,22 +169,30 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
   // search for the calibration database
 
   if (!mOrigTransform) {
-    return storeError(-1, "TPCFastTransformManager::SetCurrentTimeStamp: TPC transformation has not been set properly");
+    return storeError(-1,
+                      "TPCFastTransformManager::SetCurrentTimeStamp: TPC "
+                      "transformation has not been set properly");
   }
 
   AliTPCcalibDB* pCalib = AliTPCcalibDB::Instance();
   if (!pCalib) {
-    return storeError(-2, "TPCFastTransformManager::SetCurrentTimeStamp: No TPC calibration found");
+    return storeError(-2,
+                      "TPCFastTransformManager::SetCurrentTimeStamp: No "
+                      "TPC calibration found");
   }
 
   AliTPCParam* tpcParam = pCalib->GetParameters();
   if (!tpcParam) {
-    return storeError(-3, "TPCFastTransformManager::SetCurrentTimeStamp: No TPCParam object found");
+    return storeError(-3,
+                      "TPCFastTransformManager::SetCurrentTimeStamp: No "
+                      "TPCParam object found");
   }
 
   AliTPCRecoParam* recoParam = mOrigTransform->GetCurrentRecoParamNonConst();
   if (!recoParam) {
-    return storeError(-5, "TPCFastTransformManager::Init: No TPC Reco Param set in transformation");
+    return storeError(-5,
+                      "TPCFastTransformManager::Init: No TPC Reco Param "
+                      "set in transformation");
   }
 
   // calibration found, set the initialized status back
@@ -219,8 +210,9 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
   bool useCorrectionMap = recoParam->GetUseCorrectionMap();
 
   if (useCorrectionMap) {
-    // If the simulation set this to false to simulate distortions, we need to reverse it for the transformation
-    // This is a design feature. Historically HLT code runs as a part of simulation, not reconstruction.
+    // If the simulation set this to false to simulate corrections, we need to
+    // reverse it for the transformation This is a design feature. Historically
+    // HLT code runs as a part of simulation, not reconstruction.
     mOrigTransform->SetCorrectionMapMode(kTRUE);
   }
 
@@ -240,15 +232,15 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
   double time0CorrTime = mOrigTransform->GetTime0CorrTime();
 
   // original formula:
-  // L = (t-t0)*ZWidth*driftCorrPT*vdCorrectionTime*( 1 + yLab*vdCorrectionTimeGY )  -  time0CorrTime + 3.*tpcParam->GetZSigma();
-  // Z = Z(L) - fDeltaZCorrTime
-  // chebyshev distortions for xyz
-  // Time-of-flight correction: ldrift += dist-to-vtx*tofCorr
+  // L = (t-t0)*ZWidth*driftCorrPT*vdCorrectionTime*( 1 +
+  // yLab*vdCorrectionTimeGY )  -  time0CorrTime + 3.*tpcParam->GetZSigma(); Z =
+  // Z(L) - fDeltaZCorrTime chebyshev corrections for xyz Time-of-flight
+  // correction: ldrift += dist-to-vtx*tofCorr
 
   // fast transform formula:
   // L = (t-t0)*(mVdrift + mVdriftCorrY*yLab ) + mLdriftCorr
   // Z = Z(L) +  tpcAlignmentZ
-  // spline distortions for xyz
+  // spline corrections for xyz
   // Time-of-flight correction: ldrift += dist-to-vtx*tofCorr
 
   double vDrift = tpcParam->GetZWidth() * driftCorrPT * vdCorrectionTime;
@@ -264,13 +256,16 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
     tofCorr = 0;
   }
 
-  fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
+  fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr,
+                               primVtxZ);
 
-  // now calculate the distortion map: dx,du,dv = ( origTransform() -> x,u,v) - fastTransformNominal:x,u,v
+  // now calculate the correction map: dx,du,dv = ( origTransform() -> x,u,v) -
+  // fastTransformNominal:x,u,v
 
   const TPCFastTransformGeo& geo = fastTransform.getGeometry();
 
-  TPCDistortionIRS& distortion = fastTransform.getDistortionNonConst();
+  TPCFastSpaceChargeCorrection& correction =
+    fastTransform.getCorrectionNonConst();
 
   // switch TOF correction off for a while
 
@@ -282,24 +277,15 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
 
       const TPCFastTransformGeo::RowInfo& rowInfo = geo.getRowInfo(row);
 
-      const IrregularSpline2D3D& spline = distortion.getSpline(slice, row);
+      const Spline2D& spline = correction.getSpline(slice, row);
+      float* data = correction.getSplineDataNonConst(slice, row);
 
-      float* data = distortion.getSplineDataNonConst(slice, row);
-
-      for (int knot = 0; knot < spline.getNumberOfKnots(); knot++) {
-
-        data[3 * knot + 0] = 0.f;
-        data[3 * knot + 1] = 0.f;
-        data[3 * knot + 2] = 0.f;
-
-        // x cordinate of the knot
+      SplineHelper2D helper;
+      helper.setSpline(spline, 3, 3);
+      auto F = [&](float su, float sv, float dxuv[3]) {
         float x = rowInfo.x;
-
-        // spline (su,sv) cordinates of the knot (su,sv) in (0,1)x(0,1)
-        float su = 0, sv = 0;
-        spline.getKnotUV(knot, su, sv);
-
-        // x, u, v cordinates of the knot (local cartesian coord. of slice towards central electrode )
+        // x, u, v cordinates of the knot (local cartesian coord. of slice
+        // towards central electrode )
         float u = 0, v = 0;
         geo.convScaledUVtoUV(slice, row, su, sv, u, v);
 
@@ -308,11 +294,13 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
         float pad = 0.f, time = 0.f;
         fastTransform.convUVtoPadTime(slice, row, u, v, pad, time, vertexTime);
 
-        // nominal x,y,z coordinates of the knot (without distortions and time-of-flight correction)
+        // nominal x,y,z coordinates of the knot (without corrections and
+        // time-of-flight correction)
         float y = 0, z = 0;
         geo.convUVtoLocal(slice, u, v, y, z);
 
-        // original TPC transformation (row,pad,time) -> (x,y,z) without time-of-flight correction
+        // original TPC transformation (row,pad,time) -> (x,y,z) without
+        // time-of-flight correction
         float ox = 0, oy = 0, oz = 0;
         {
           int sector = 0, secrow = 0;
@@ -328,16 +316,19 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform, 
         float ou = 0, ov = 0;
         geo.convLocalToUV(slice, oy, oz, ou, ov);
 
-        // distortions in x,u,v:
-        float dx = ox - x;
-        float du = ou - u;
-        float dv = ov - v;
-        data[3 * knot + 0] = dx;
-        data[3 * knot + 1] = du;
-        data[3 * knot + 2] = dv;
-      } // knots
+        // corrections in x,u,v:
+        dxuv[0] = ox - x;
+        dxuv[1] = ou - u;
+        dxuv[2] = ov - v;
+      };
 
-      spline.correctEdges(data);
+      std::unique_ptr<float[]> par =
+        helper.constructParameters(3, F, 0., 1., 0., 1.);
+
+      for (int i = 0; i < spline.getNumberOfParameters(3); i++) {
+        data[i] = par[i];
+      }
+
     } // row
   }   // slice
 
