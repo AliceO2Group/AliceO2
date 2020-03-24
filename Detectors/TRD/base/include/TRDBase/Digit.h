@@ -35,8 +35,8 @@ class Digit : public TimeStamp
  public:
   Digit() = default;
   ~Digit() = default;
-  Digit(const int det, const int row, const int pad, const ArrayADC adc, const size_t idx, double t)
-    : mDetector(det), mRow(row), mPad(pad), mADC(adc), mLabelIdx(idx), TimeStamp(t) {}
+  Digit(const int det, const int row, const int pad, const ArrayADC adc, double t)
+    : mDetector(det), mRow(row), mPad(pad), mADC(adc), TimeStamp(t) {}
   // Copy
   Digit(const Digit&) = default;
   // Assignment
@@ -51,14 +51,12 @@ class Digit : public TimeStamp
   int getRow() const { return mRow; }
   int getPad() const { return mPad; }
   ArrayADC const& getADC() const { return mADC; }
-  size_t getLabelIndex() const { return mLabelIdx; }
 
  private:
   std::uint16_t mDetector{0}; // TRD detector number, 0-539
   std::uint8_t mRow{0};       // pad row, 0-15
   std::uint8_t mPad{0};       // pad within pad row, 0-143
   ArrayADC mADC{};            // ADC vector (30 time-bins)
-  size_t mLabelIdx{0};        // index for mc label
   ClassDefNV(Digit, 1);
 };
 
