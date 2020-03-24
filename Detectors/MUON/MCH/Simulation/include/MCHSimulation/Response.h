@@ -41,15 +41,14 @@ class Response
   float getAnod(float x);
   float chargeCorr();
   bool aboveThreshold(float charge) { return charge > mChargeThreshold; };
-  float getSigmaIntegration() {return mSigmaIntegration; };
+  float getSigmaIntegration() { return mSigmaIntegration; };
   bool getIsSampa() { return mSampa; };
   void setIsSampa(bool isSampa = true) { mSampa = isSampa; };
-  
 
  private:
   //setter to get Aliroot-readout-chain or Run 3 (Sampa) one
   bool mSampa = true;
-  
+
   //parameter for station number
   Station mStation;
   //proper parameter in aliroot in AliMUONResponseFactory.cxx
@@ -61,17 +60,17 @@ class Response
   const float mChargeCorr = 0.11; // number from line 122
   //of AliMUONResponseFactory.cxx
   //AliMUONResponseV0.h: amplitude of charge correlation on 2 cathods, is RMS of ln(q1/q2)
-  
+
   float mChargeThreshold = 1e-4;
   //AliMUONResponseV0.cxx constr.
   //"charges below this threshold are 0"
-  float mFCtoADC = 1/(0.61 * 1.25 * 0.2);
+  float mFCtoADC = 1 / (0.61 * 1.25 * 0.2);
   float mADCtoFC = 0.61 * 1.25 * 0.2;
   //transitions between fc and ADD
   //from AliMUONResponseV0.cxx
   //equals (for Aliroo) AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa()
   //for the moment not used since directly transition into ADC
-  
+
   //Mathieson parameter: NIM A270 (1988) 602-603
   //should be a common place for MCH
   // Mathieson parameters from L.Kharmandarian's thesis, page 190
@@ -81,7 +80,7 @@ class Response
   //why this multiplicitation before again division? any number small compared to Float precision?
 
   float mSigmaIntegration = 10.0;
-  
+
   double mK2x = 0.0;
   double mSqrtK3x = 0.0;
   double mK4x = 0.0;
@@ -93,9 +92,8 @@ class Response
   float mInversePitch = 0.0;
 
   //maximal bit number
-  int mMaxADC = (1<<12)-1;
+  int mMaxADC = (1 << 12) - 1;
   //TODO: introduce equivalent for O2
-  
 };
 } // namespace mch
 } // namespace o2

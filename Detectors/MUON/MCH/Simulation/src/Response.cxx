@@ -31,7 +31,7 @@ Response::Response(Station station) : mStation(station)
     mSqrtK3y = 0.7550;
     mK4y = 0.38658194;
     mInversePitch = 1. / 0.21; // ^cm-1
-    mChargeSlope = 25.;//from AliMUONResponsefactory, 1 in AliMUONConstants
+    mChargeSlope = 25.;        //from AliMUONResponsefactory, 1 in AliMUONConstants
     mQspreadX = 0.144;
     mQspreadY = 0.144;
     mSigmaIntegration = 10.;
@@ -49,10 +49,10 @@ Response::Response(Station station) : mStation(station)
     mSigmaIntegration = 10.;
   }
 
-  if (mSampa){
-    mChargeThreshold = 1e-4;// 1e-4 refers to charge fraction in aliroot
+  if (mSampa) {
+    mChargeThreshold = 1e-4; // 1e-4 refers to charge fraction in aliroot
     //not actual charge, hence normalise
-    mFCtoADC =1/( 0.61 * 1.25 * 0.2);
+    mFCtoADC = 1 / (0.61 * 1.25 * 0.2);
     mADCtoFC = 0.61 * 1.25 * 0.2;
     //TODO: potentially other parameters e.g. for gain
   }
@@ -60,7 +60,7 @@ Response::Response(Station station) : mStation(station)
 
 //_____________________________________________________________________
 float Response::etocharge(float edepos)
-{// AliMUONResponseV0::IntPH(Float_t eloss) const
+{ // AliMUONResponseV0::IntPH(Float_t eloss) const
   //confirmed 20.03.2020
   //expression in PH, i.e. ADC!
   int nel = int(edepos * 1.e9 / 27.4);
@@ -105,24 +105,26 @@ unsigned long Response::response(unsigned long adc)
   //AliMuonDigitizerV3 in aliroot
   int fgNSigma = 5.0; //aliroot no
   //no channel-by-channel noise map as in aliroot
-  float pedestalSigma = 0.0;//channnel noise 0.5 aliroot
+  float pedestalSigma = 0.0; //channnel noise 0.5 aliroot
   float adc_out = adc;
   float pedestalMean = 0;
   float adcNoise = 0.0;
   //TODO: parameter choices for match with aliroot
-  
+
   adc = TMath::Nint(adc_out + pedestalMean + adcNoise + 0.5);
-  
-  if ( adc_out < TMath::Nint(pedestalMean + fgNSigma*pedestalSigma + 0.5) ) adc = 0;
-  if(adc>mMaxADC) adc = mMaxADC;
+
+  if (adc_out < TMath::Nint(pedestalMean + fgNSigma * pedestalSigma + 0.5))
+    adc = 0;
+  if (adc > mMaxADC)
+    adc = mMaxADC;
   return adc;
 }
 //______________________________________________________________________
 float Response::getAnod(float x)
 {
-  int n = Int_t(x * mInversePitch);//is it wrong?
+  int n = Int_t(x * mInversePitch); //is it wrong?
   float wire = (x > 0) ? n + 0.5 : n - 0.5;
-  return  wire/mInversePitch;//fixed 20.03.
+  return wire / mInversePitch; //fixed 20.03.
 }
 //______________________________________________________________________
 float Response::chargeCorr()
