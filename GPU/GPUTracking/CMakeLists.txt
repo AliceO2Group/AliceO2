@@ -55,7 +55,7 @@ set(SRCS
     TRDTracking/GPUTRDTrack.cxx
     TRDTracking/GPUTRDTracker.cxx
     TRDTracking/GPUTRDTrackletWord.cxx
-    TRDTracking/GPUTRDTrackerGPU.cxx
+    TRDTracking/GPUTRDTrackerKernels.cxx
     Base/GPUParam.cxx)
 
 set(SRCS_NO_CINT

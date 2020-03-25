@@ -43,7 +43,7 @@ class GPUTRDGeometry : public AliTRDgeometry
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#elif defined(HAVE_O2HEADERS)
+#elif defined(HAVE_O2HEADERS) //&& defined(GPUCA_GPUCODE)
 
 class TObjArray;
 #include "GPUDef.h"
@@ -103,7 +103,7 @@ class GPUTRDGeometry : private o2::trd::TRDGeometryFlat
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#else
+#else // below are dummy definitions to enable building the standalone version with AliRoot
 
 #include "GPUDef.h"
 
@@ -162,7 +162,7 @@ class GPUTRDGeometry
   GPUd() int GetStack(float z, int layer) const { return 0; }
   GPUd() float GetAlpha() const { return 0; }
   GPUd() bool IsHole(int la, int st, int se) const { return false; }
-  GPUd() int GetRowMax(int layer, int stack, int /*sector*/) const { return 0; }
+  GPUd() int GetRowMax(int layer, int stack, int /* sector */) const { return 0; }
   GPUd() bool ChamberInGeometry(int det) const { return false; }
 
   static CONSTEXPR int kNstack = 0;

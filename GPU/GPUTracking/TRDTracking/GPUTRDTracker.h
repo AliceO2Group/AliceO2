@@ -49,14 +49,15 @@ class GPUTRDGeometry;
 class GPUChainTracking;
 
 //-------------------------------------------------------------------------
-class GPUTRDTracker : public GPUProcessor
+template <class TRDTRK, class PROP>
+class GPUTRDTracker_t : public GPUProcessor
 {
  public:
 #ifndef GPUCA_GPUCODE
-  GPUTRDTracker();
-  GPUTRDTracker(const GPUTRDTracker& tracker) CON_DELETE;
-  GPUTRDTracker& operator=(const GPUTRDTracker& tracker) CON_DELETE;
-  ~GPUTRDTracker();
+  GPUTRDTracker_t();
+  GPUTRDTracker_t(const GPUTRDTracker_t& tracker) CON_DELETE;
+  GPUTRDTracker_t& operator=(const GPUTRDTracker_t& tracker) CON_DELETE;
+  ~GPUTRDTracker_t();
 
   void SetMaxData(const GPUTrackingInOutPointers& io);
   void RegisterMemoryAllocation();
@@ -110,8 +111,8 @@ class GPUTRDTracker : public GPUProcessor
   GPUhd() void SetGeometry(TRD_GEOMETRY_CONST GPUTRDGeometry* geo) { mGeo = geo; }
   void Reset(bool fast = false);
   GPUd() int LoadTracklet(const GPUTRDTrackletWord& tracklet, const int* labels = nullptr);
-  template <class T>
-  GPUd() int LoadTrack(const T& trk, const int label = -1, const int* nTrkltsOffline = nullptr, const int labelOffline = -1)
+  //template <class T>
+  GPUd() int LoadTrack(const TRDTRK& trk, const int label = -1, const int* nTrkltsOffline = nullptr, const int labelOffline = -1)
   {
     if (mNTracks >= mNMaxTracks) {
 #ifndef GPUCA_GPUCODE
@@ -129,7 +130,7 @@ class GPUTRDTracker : public GPUProcessor
       return (0);
     }
 #ifdef GPUCA_ALIROOT_LIB
-    new (&mTracks[mNTracks]) GPUTRDTrack(trk); // We need placement new, since the class is virtual
+    new (&mTracks[mNTracks]) TRDTRK(trk); // We need placement new, since the class is virtual
 #else
     mTracks[mNTracks] = trk;
 #endif
@@ -148,10 +149,10 @@ class GPUTRDTracker : public GPUProcessor
   }
   GPUd() void DoTrackingThread(int iTrk, int threadId = 0);
   GPUd() bool CalculateSpacePoints();
-  GPUd() bool FollowProlongation(GPUTRDPropagator* prop, GPUTRDTrack* t, int threadId);
+  GPUd() bool FollowProlongation(PROP* prop, TRDTRK* t, int threadId);
   GPUd() float GetPredictedChi2(const My_Float* pTRD, const My_Float* covTRD, const My_Float* pTrk, const My_Float* covTrk) const;
   GPUd() int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
-  GPUd() bool AdjustSector(GPUTRDPropagator* prop, GPUTRDTrack* t, const int layer) const;
+  GPUd() bool AdjustSector(PROP* prop, TRDTRK* t, const int layer) const;
   GPUd() int GetSector(float alpha) const;
   GPUd() float GetAlphaOfSector(const int sec) const;
   // TODO all parametrizations depend on B-field -> need to find correct description.. To be put in CCDB in the future?
@@ -169,8 +170,8 @@ class GPUTRDTracker : public GPUProcessor
   GPUd() float GetAngularPull(float dYtracklet, float snp) const;
   GPUd() void RecalcTrkltCov(const float tilt, const float snp, const float rowSize, My_Float (&cov)[3]);
   GPUd() void CheckTrackRefs(const int trackID, bool* findableMC) const;
-  GPUd() void FindChambersInRoad(const GPUTRDTrack* t, const float roadY, const float roadZ, const int iLayer, int* det, const float zMax, const float alpha) const;
-  GPUd() bool IsGeoFindable(const GPUTRDTrack* t, const int layer, const float alpha) const;
+  GPUd() void FindChambersInRoad(const TRDTRK* t, const float roadY, const float roadZ, const int iLayer, int* det, const float zMax, const float alpha) const;
+  GPUd() bool IsGeoFindable(const TRDTRK* t, const int layer, const float alpha) const;
   GPUd() void SwapTracklets(const int left, const int right);
   GPUd() int PartitionTracklets(const int left, const int right);
   GPUd() void Quicksort(const int left, const int right, const int size);
@@ -200,7 +201,7 @@ class GPUTRDTracker : public GPUProcessor
 
   // output
   GPUd() int NTracks() const { return mNTracks; }
-  GPUd() GPUTRDTrack* Tracks() const { return mTracks; }
+  GPUd() TRDTRK* Tracks() const { return mTracks; }
   GPUd() int NTracklets() const { return mNTracklets; }
   GPUd() GPUTRDSpacePointInternal* SpacePoints() const { return mSpacePoints; }
   GPUd() GPUTRDTrackletWord* Tracklets() const { return mTracklets; }
@@ -214,7 +215,7 @@ class GPUTRDTracker : public GPUProcessor
   short mMemoryTracks;                     // size of memory for tracks (used for i/o)
   int mNMaxTracks;                         // max number of tracks the tracker can handle (per event)
   int mNMaxSpacePoints;                    // max number of space points hold by the tracker (per event)
-  GPUTRDTrack* mTracks;                    // array of trd-updated tracks
+  TRDTRK* mTracks;                         // array of trd-updated tracks
   int mNCandidates;                        // max. track hypothesis per layer
   int mNTracks;                            // number of TPC tracks to be matched
   int mNEvents;                            // number of processed events
@@ -224,7 +225,7 @@ class GPUTRDTracker : public GPUProcessor
   int* mNTrackletsInChamber;               // number of tracklets in each chamber
   int* mTrackletIndexArray;                // index of first tracklet for each chamber
   Hypothesis* mHypothesis;                 // array with multiple track hypothesis
-  GPUTRDTrack* mCandidates;                // array of tracks for multiple hypothesis tracking
+  TRDTRK* mCandidates;                     // array of tracks for multiple hypothesis tracking
   GPUTRDSpacePointInternal* mSpacePoints;  // array with tracklet coordinates in global tracking frame
   int* mTrackletLabels;                    // array with MC tracklet labels
   TRD_GEOMETRY_CONST GPUTRDGeometry* mGeo; // TRD geometry
@@ -239,7 +240,7 @@ class GPUTRDTracker : public GPUProcessor
   float mChi2Penalty;                      // chi2 added to the track for no update
   float mZCorrCoefNRC;                     // tracklet z-position depends linearly on track dip angle
   AliMCEvent* mMCEvent;                    //! externaly supplied optional MC event
-  GPUTRDTrackerDebug* mDebug;              // debug output
+  GPUTRDTrackerDebug<TRDTRK>* mDebug;      // debug output
   GPUChainTracking* mChainTracking;        // Tracking chain with access to input data / parameters
 };
 } // namespace gpu

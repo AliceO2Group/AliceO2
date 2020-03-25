@@ -27,11 +27,11 @@
 class TH1F;
 class TList;
 
+#include "GPUTRDDef.h"
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-class GPUTRDTracker;
 class GPUTRDGeometry;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

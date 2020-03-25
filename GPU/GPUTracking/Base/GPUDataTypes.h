@@ -229,7 +229,7 @@ struct GPUTrackingInOutPointers {
   unsigned int nTRDTracklets = 0;
   const GPUTRDTrackletLabels* trdTrackletsMC = nullptr;
   unsigned int nTRDTrackletsMC = 0;
-  const GPUTRDTrack* trdTracks = nullptr;
+  const GPUTRDTrackGPU* trdTracks = nullptr;
   unsigned int nTRDTracks = 0;
 };
 #else

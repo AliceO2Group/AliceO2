@@ -49,7 +49,7 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-class GPUTRDTracker;
+//class GPUTRDTrackerGPU;
 class GPUTPCGPUTracker;
 class GPUDisplay;
 class GPUQA;
@@ -96,7 +96,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     std::unique_ptr<GPUTPCGMMergedTrackHit[]> mergedTrackHits;
     std::unique_ptr<GPUTRDTrackletWord[]> trdTracklets;
     std::unique_ptr<GPUTRDTrackletLabels[]> trdTrackletsMC;
-    std::unique_ptr<GPUTRDTrack[]> trdTracks;
+    std::unique_ptr<GPUTRDTrackGPU[]> trdTracks;
   } mIOMem;
 
   // Read / Dump / Clear Data
@@ -117,7 +117,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void ConvertZSFilter(bool zs12bit);
 
   // Getters for external usage of tracker classes
-  GPUTRDTracker* GetTRDTracker() { return &processors()->trdTracker; }
+  GPUTRDTrackerGPU* GetTRDTracker() { return &processors()->trdTracker; }
   GPUTPCTracker* GetTPCSliceTrackers() { return processors()->tpcTrackers; }
   const GPUTPCTracker* GetTPCSliceTrackers() const { return processors()->tpcTrackers; }
   const GPUTPCGMMerger& GetTPCMerger() const { return processors()->tpcMerger; }

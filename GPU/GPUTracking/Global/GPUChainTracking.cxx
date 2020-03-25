@@ -1560,9 +1560,9 @@ int GPUChainTracking::RunTRDTracking()
   if (!processors()->trdTracker.IsInitialized()) {
     return 1;
   }
-  std::vector<GPUTRDTrack> tracksTPC;
+  std::vector<GPUTRDTrackGPU> tracksTPC;
   std::vector<int> tracksTPCLab;
-  GPUTRDTracker& Tracker = processors()->trdTracker;
+  GPUTRDTrackerGPU& Tracker = processors()->trdTracker;
   mRec->SetThreadCounts(RecoStep::TRDTracking);
 
   for (unsigned int i = 0; i < mIOPtrs.nMergedTracks; i++) {
@@ -1614,8 +1614,8 @@ int GPUChainTracking::DoTRDGPUTracking()
 {
 #ifdef HAVE_O2HEADERS
   bool doGPU = GetRecoStepsGPU() & RecoStep::TRDTracking;
-  GPUTRDTracker& Tracker = processors()->trdTracker;
-  GPUTRDTracker& TrackerShadow = doGPU ? processorsShadow()->trdTracker : Tracker;
+  GPUTRDTrackerGPU& Tracker = processors()->trdTracker;
+  GPUTRDTrackerGPU& TrackerShadow = doGPU ? processorsShadow()->trdTracker : Tracker;
 
   const auto& threadContext = GetThreadContext();
   SetupGPUProcessor(&Tracker, false);
@@ -1624,7 +1624,7 @@ int GPUChainTracking::DoTRDGPUTracking()
   WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->trdTracker - (char*)processors(), &TrackerShadow, sizeof(TrackerShadow), 0);
   TransferMemoryResourcesToGPU(RecoStep::TRDTracking, &Tracker);
 
-  runKernel<GPUTRDTrackerGPU>({BlockCount(), TRDThreadCount(), 0}, krnlRunRangeNone);
+  runKernel<GPUTRDTrackerKernels>({BlockCount(), TRDThreadCount(), 0}, krnlRunRangeNone);
   SynchronizeGPU();
 
   TransferMemoryResourcesToHost(RecoStep::TRDTracking, &Tracker);

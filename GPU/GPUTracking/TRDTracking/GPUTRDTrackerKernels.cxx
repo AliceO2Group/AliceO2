@@ -8,10 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUTRDTrackerGPU.cxx
+/// \file GPUTRDTrackerKernels.cxx
 /// \author David Rohr
 
-#include "GPUTRDTrackerGPU.h"
+#include "GPUTRDTrackerKernels.h"
 #include "GPUTRDGeometry.h"
 #include "GPUConstantMem.h"
 #if defined(WITH_OPENMP) && !defined(GPUCA_GPUCODE)
@@ -21,7 +21,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUTRDTrackerGPU::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
+GPUdii() void GPUTRDTrackerKernels::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
 {
 #if defined(WITH_OPENMP) && !defined(GPUCA_GPUCODE)
 #pragma omp parallel for num_threads(processors.trdTracker.GetRec().GetDeviceProcessingSettings().nThreads)
