@@ -113,37 +113,43 @@ struct Remap64Bit<uint64_t> {
   using type = ULong64_t;
 };
 
+template <int N>
+struct Remap64Bit<int64_t[N]> {
+  using type = Long64_t[N];
+};
+
+template <int N>
+struct Remap64Bit<uint64_t[N]> {
+  using type = ULong64_t[N];
+};
+
+template <typename T>
+using Remap64Bit_t = typename Remap64Bit<T>::type;
+
 template <typename T>
 struct HolderMaker {
-  static decltype(auto) make(TTreeReader& reader, char const* branchName)
+  static auto make(TTreeReader& reader, char const* branchName)
   {
     using Reader = TTreeReaderValue<T>;
-    return ReaderHolder<T>{std::move(std::make_unique<Reader>(reader, branchName))};
+    return std::move(ReaderHolder<T>{std::move(std::make_unique<Reader>(reader, branchName))});
   }
 };
 
 template <typename T, int N>
 struct HolderMaker<T[N]> {
-  static decltype(auto) make(TTreeReader& reader, char const* branchName)
+  static auto make(TTreeReader& reader, char const* branchName)
   {
     using Reader = TTreeReaderArray<T>;
-    return ReaderHolder<T[N]>{std::move(std::make_unique<Reader>(reader, branchName))};
+    return std::move(ReaderHolder<T[N]>{std::move(std::make_unique<Reader>(reader, branchName))});
   }
 };
 
-//template <typename T>
-//decltype(auto) makeHolder(TTreeReader &reader, char const*branchName) {
-//  using Reader = TTreeArrayReader<T>;
-//  return ReaderHolder<Reader, N>{std::move(std::make_unique<Reader>(reader, branchName))};
-//}
-
 template <typename C>
 struct ColumnReaderTrait {
-  using Reader = TTreeReaderValue<typename Remap64Bit<typename C::type>::type>;
-  static std::unique_ptr<Reader> createReader(TTreeReader& reader)
+  static auto createReader(TTreeReader& reader)
   {
-    return std::make_unique<Reader>(reader, C::base::label());
-  };
+    return std::move(HolderMaker<Remap64Bit_t<typename C::type>>::make(reader, C::base::label()));
+  }
 };
 
 struct RootTableBuilderHelpers {
@@ -163,7 +169,7 @@ struct RootTableBuilderHelpers {
   template <typename... TTREEREADERVALUE>
   static void convertTTree(TableBuilder& builder,
                            TTreeReader& reader,
-                           ReaderHolder<TTREEREADERVALUE>&... holders)
+                           ReaderHolder<TTREEREADERVALUE>... holders)
   {
     std::vector<std::string> branchNames = {holders.reader->GetBranchName()...};
     auto filler = builder.preallocatedPersist<typename std::decay_t<decltype(holders)>::Type...>(branchNames, reader.GetEntries(true));
@@ -176,7 +182,7 @@ struct RootTableBuilderHelpers {
   template <typename... C>
   static void convertASoAColumns(TableBuilder& builder, TTreeReader& reader, pack<C...>)
   {
-    return convertTTree(builder, reader, *ColumnReaderTrait<C>::createReader(reader)...);
+    return convertTTree(builder, reader, ColumnReaderTrait<C>::createReader(reader)...);
   }
 
   template <typename T>
