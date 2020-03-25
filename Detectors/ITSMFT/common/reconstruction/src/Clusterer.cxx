@@ -308,7 +308,12 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
         rowMin += round(xCOG);
         colMin += round(zCOG);
         if (mPatterns) {
-          mPatterns->emplace_back(rowSpan, colSpan, patt);
+          mPatterns->emplace_back((unsigned char)rowSpan);
+          mPatterns->emplace_back((unsigned char)colSpan);
+          int nBytes = rowSpan * colSpan / 8;
+          if (((rowSpan * colSpan) % 8) != 0)
+            nBytes++;
+          mPatterns->insert(mPatterns->end(), std::begin(patt), std::begin(patt) + nBytes);
         }
       }
       compClus->emplace_back(rowMin, colMin, pattID, mChipData->getChipID());

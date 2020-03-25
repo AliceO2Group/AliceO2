@@ -18,7 +18,6 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/ClusterWriterSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/ClusterPattern.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -47,7 +46,7 @@ void ClusterWriter::run(ProcessingContext& pc)
     return;
 
   auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
-  auto patterns = pc.inputs().get<const std::vector<o2::itsmft::ClusterPattern>>("patterns");
+  auto pspan = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
   auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
   auto* rofsPtr = &rofs;
@@ -61,6 +60,7 @@ void ClusterWriter::run(ProcessingContext& pc)
 
   TTree tree("o2sim", "Tree with ITS clusters");
   tree.Branch("ITSClusterComp", &compClusters);
+  std::vector<unsigned char> patterns(pspan.begin(), pspan.end());
   tree.Branch("ITSClusterPatt", &patterns);
   tree.Branch("ITSCluster", &clusters);
   tree.Branch("ITSClustersROF", &rofsPtr);
