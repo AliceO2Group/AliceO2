@@ -111,14 +111,14 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
         hTotalX->Fill(dx);
         hTotalZ->Fill(dz);
 
-        fOut << Form("is group: %o\n", dict.IsGroup(pattID));
-        fOut << Form("x_full: %.4f x_comp: %.4f dx: %.4f x_shift: %.4f\n", locC.X(), xComp, dx / 10000, dict.GetXcog(pattID));
-        fOut << Form("z_full: %.4f z_comp: %.4f dZ: %.4f z_shift: %.4f\n", locC.Z(), zComp, dz / 10000, dict.GetZcog(pattID));
-        fOut << dict.GetPattern(pattID);
-        fOut << Form("***************************************\n");
-      }
+      fOut << Form("groupID: %d\n", cComp.getPatternID());
+      fOut << Form("is group: %o\n", dict.isGroup(cComp.getPatternID()));
+      fOut << Form("x_full: %.4f x_comp: %.4f dx: %.4f x_shift: %.4f\n", locC.X(), xComp, dx / 10000, dict.getXCOG(cComp.getPatternID()));
+      fOut << Form("z_full: %.4f z_comp: %.4f dZ: %.4f z_shift: %.4f\n", locC.Z(), zComp, dz / 10000, dict.getZCOG(cComp.getPatternID()));
+      fOut << dict.getPattern(cComp.getPatternID());
+      fOut << Form("***************************************\n");
 
-      if (pattID == CompCluster::InvalidPatternID || dict.IsGroup(pattID)) {
+      if (dict.isGroup(cComp.getPatternID())) {
         if (patternsPtr) { // Restore the full pixel pattern information from the auxiliary branch
           o2::itsmft::ClusterPattern patt(pattIdx);
           auto locCl = dict.getClusterCoordinates(cComp, patt);
