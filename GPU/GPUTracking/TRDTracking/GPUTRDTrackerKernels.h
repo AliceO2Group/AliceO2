@@ -8,11 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUTRDTrackerGPU.h
+/// \file GPUTRDTrackerKernels.h
 /// \author David Rohr
 
-#ifndef GPUTRDTRACKERGPUCA_H
-#define GPUTRDTRACKERGPUCA_H
+#ifndef GPUTRDTRACKERKERNELSCA_H
+#define GPUTRDTRACKERKERNELSCA_H
 
 #include "GPUGeneralKernels.h"
 
@@ -21,7 +21,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-class GPUTRDTrackerGPU : public GPUKernelTemplate
+class GPUTRDTrackerKernels : public GPUKernelTemplate
 {
  public:
   GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TRDTracking; }
@@ -31,4 +31,4 @@ class GPUTRDTrackerGPU : public GPUKernelTemplate
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#endif // GPUTRDTRACKERGPUCA_H
+#endif // GPUTRDTRACKERKERNELSCA_H
