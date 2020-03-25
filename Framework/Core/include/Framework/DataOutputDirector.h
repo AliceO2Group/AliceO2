@@ -17,6 +17,10 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/InputSpec.h"
 
+#include "rapidjson/document.h"
+#include "rapidjson/filereadstream.h"
+
+#include <cstdio>
 #include <regex>
 
 namespace o2
@@ -33,7 +37,6 @@ struct DataOutputDescriptor {
 
   std::string tablename = "";
   std::string treename = "";
-  std::string filename = "";
   std::vector<std::string> colnames;
   std::unique_ptr<DataDescriptorMatcher> matcher;
 
@@ -43,7 +46,6 @@ struct DataOutputDescriptor {
     // "origin/description/subSpec:treename:col1/col2/col3:filename"
     // the 1st part is used to create a DataDescriptorMatcher
     // the other parts are used to fill treename, colnames, and filename
-
     // remove all spaces
     auto s = remove_ws(sin);
 
@@ -106,14 +108,25 @@ struct DataOutputDescriptor {
   }
 
   void setFilename(std::string fn) { filename = fn; }
+  void setFilename(std::string* fnptr) { dfnptr = fnptr; }
+  std::string getFilename()
+  {
+    if (filename.empty() && dfnptr)
+      return (std::string)*dfnptr;
+    else
+      return filename;
+  }
 
   void printOut()
   {
     LOG(INFO) << "DataOutputDescriptor";
     LOG(INFO) << "  table name: " << tablename.c_str();
-    LOG(INFO) << "  file name : " << filename.c_str();
+    LOG(INFO) << "  file name : " << getFilename().c_str();
     LOG(INFO) << "  tree name : " << treename.c_str();
-    LOG(INFO) << "  columns   : " << colnames.size();
+    if (colnames.size() == 0)
+      LOG(INFO) << "  columns   : all";
+    else
+      LOG(INFO) << "  columns   : " << colnames.size();
     for (auto cn : colnames)
       LOG(INFO) << "  " << cn.c_str();
   }
@@ -126,12 +139,17 @@ struct DataOutputDescriptor {
         s_wns += c;
     return s_wns;
   }
+
+ private:
+  std::string filename;
+  std::string* dfnptr = nullptr;
 };
 
 struct DataOutputDirector {
 
   int ndod = 0;
   std::string defaultfname;
+  std::string* dfnptr;
   std::vector<DataOutputDescriptor*> dodescrs;
 
   std::vector<std::string> tnfns;
@@ -152,7 +170,7 @@ struct DataOutputDirector {
   void readSpecs(std::vector<InputSpec> inputs);
 
   // fill the DataOutputDirector with information from a json file
-  //readJson (std::string const& fnjson) {};
+  std::tuple<std::string, std::string, int> readJson(std::string const& fnjson);
 
   // get matching DataOutputDescriptors
   std::vector<DataOutputDescriptor*> getDataOutputDescriptors(header::DataHeader dh);
@@ -163,7 +181,7 @@ struct DataOutputDirector {
                            int ntf, int ntfmerge, std::string filemode);
   void closeDataOutputFiles();
 
-  void setDefaultfname(std::string dfn) { defaultfname = dfn; }
+  void setDefaultfname(std::string dfn);
 
   void printOut();
 };

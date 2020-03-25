@@ -18,16 +18,19 @@ namespace data_matcher
 
 DataOutputDirector::DataOutputDirector()
 {
-  defaultfname = std::string("AnalysisResults");
+  defaultfname = std::string("");
+  dfnptr = &defaultfname;
 }
 
 void DataOutputDirector::reset()
 {
   dodescrs.clear();
   fnames.clear();
+  tnfns.clear();
   closeDataOutputFiles();
   fouts.clear();
   fcnts.clear();
+  defaultfname = std::string("");
   ndod = 0;
 };
 
@@ -35,7 +38,6 @@ void DataOutputDirector::readString(std::string const& keepString)
 {
   // the keep-string keepString consists of ','-separated items
   // create for each item a corresponding DataOutputDescriptor
-
   static const std::regex delim(",");
   std::sregex_token_iterator end;
   std::sregex_token_iterator iter(keepString.begin(),
@@ -49,12 +51,11 @@ void DataOutputDirector::readString(std::string const& keepString)
 
     // create a new DataOutputDescriptor and add it to the list
     auto dod = new DataOutputDescriptor(s);
-    if (dod->filename.empty())
-      dod->setFilename(defaultfname);
-
+    if (dod->getFilename().empty())
+      dod->setFilename(dfnptr);
     dodescrs.emplace_back(dod);
-    fnames.emplace_back(dod->filename);
-    tnfns.emplace_back(dod->treename + dod->filename);
+    fnames.emplace_back(dod->getFilename());
+    tnfns.emplace_back(dod->treename + dod->getFilename());
   }
 
   // the combination [tree name/file name] must be unique
@@ -96,11 +97,109 @@ std::string SpectoString(InputSpec input)
 
 void DataOutputDirector::readSpecs(std::vector<InputSpec> inputs)
 {
-
   for (auto input : inputs) {
     auto s = SpectoString(input);
     readString(s);
   }
+}
+
+std::tuple<std::string, std::string, int> DataOutputDirector::readJson(std::string const& fnjson)
+{
+  using namespace rapidjson;
+  std::string smc(":");
+  std::string slh("/");
+
+  // initialisations
+  std::string dfn("");
+  std::string fmode("");
+  int ntfm = -1;
+
+  // open the file
+  FILE* f = fopen(fnjson.c_str(), "r");
+  if (!f) {
+    LOG(INFO) << "Could not open JSON file " << fnjson;
+    return std::make_tuple(dfn, fmode, ntfm);
+  }
+
+  // create streamer
+  char readBuffer[65536];
+  FileReadStream is(f, readBuffer, sizeof(readBuffer));
+
+  // parse the json file
+  Document doc;
+  doc.ParseStream(is);
+  if (!doc.HasParseError()) {
+
+    // OutputDirector
+    const Value& dod = doc["OutputDirector"];
+    if (dod.IsObject()) {
+
+      // loop over the dod members
+      for (auto item = dod.MemberBegin(); item != dod.MemberEnd(); ++item) {
+
+        // get item name and value
+        auto itemname = item->name.GetString();
+        const Value& v = dod[itemname];
+
+        // check possible items
+        if (std::strcmp(itemname, "resfile") == 0) {
+          // default result file name
+          if (v.IsString())
+            dfn = v.GetString();
+        } else if (std::strcmp(itemname, "resfilemode") == 0) {
+          // open mode for result file
+          if (v.IsString())
+            fmode = v.GetString();
+        } else if (std::strcmp(itemname, "ntfmerge") == 0) {
+          // number of time frames to merge
+          if (v.IsNumber())
+            ntfm = v.GetInt();
+        } else if (std::strcmp(itemname, "OutputDescriptions") == 0) {
+          // array of DataOutputDescriptions
+          if (v.IsArray()) {
+            for (auto& od : v.GetArray()) {
+              if (od.IsObject()) {
+                // DataOutputDescription
+                std::string s = "";
+                if (od.HasMember("table"))
+                  s += od["table"].GetString();
+                s += smc;
+                if (od.HasMember("treename"))
+                  s += od["treename"].GetString();
+                s += smc;
+                if (od.HasMember("columns")) {
+                  if (od["columns"].IsArray()) {
+                    auto cs = od["columns"].GetArray();
+                    for (auto& c : cs) {
+                      if (c == cs[0])
+                        s += c.GetString();
+                      else
+                        s += slh + c.GetString();
+                    }
+                  }
+                }
+                s += smc;
+                if (od.HasMember("filename"))
+                  s += od["filename"].GetString();
+
+                // convert s to DataOutputDescription object
+                readString(s);
+              }
+            }
+          }
+        }
+      }
+    } else {
+      LOG(INFO) << "Couldn't find an OutputDirector in " << fnjson;
+    }
+  } else {
+    LOG(INFO) << "Problem with JSON file " << fnjson;
+  }
+
+  // clean up
+  fclose(f);
+
+  return std::make_tuple(dfn, fmode, ntfm);
 }
 
 std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(header::DataHeader dh)
@@ -142,7 +241,7 @@ TFile* DataOutputDirector::getDataOutputFile(DataOutputDescriptor* dod,
   TFile* fout = nullptr;
 
   // search dod->filename in fnames and return corresponding fout
-  auto it = std::find(fnames.begin(), fnames.end(), dod->filename);
+  auto it = std::find(fnames.begin(), fnames.end(), dod->getFilename());
   if (it != fnames.end()) {
     int ind = std::distance(fnames.begin(), it);
 
@@ -183,6 +282,43 @@ void DataOutputDirector::printOut()
   LOG(INFO) << "  File names:";
   for (auto const& fb : fnames)
     LOG(INFO) << fb;
+}
+
+void DataOutputDirector::setDefaultfname(std::string dfn)
+{
+  // reset
+  defaultfname = dfn;
+
+  fnames.clear();
+  tnfns.clear();
+  closeDataOutputFiles();
+  fouts.clear();
+  fcnts.clear();
+
+  // loop over DataOutputDescritors
+  for (auto dod : dodescrs) {
+    fnames.emplace_back(dod->getFilename());
+    tnfns.emplace_back(dod->treename + dod->getFilename());
+  }
+
+  // the combination [tree name/file name] must be unique
+  // throw exception if this is not the case
+  auto it = std::unique(tnfns.begin(), tnfns.end());
+  if (it != tnfns.end()) {
+    printOut();
+    LOG(FATAL) << "Dublicate tree names in a file!";
+  }
+
+  // make unique/sorted list of fnames
+  std::sort(fnames.begin(), fnames.end());
+  auto last = std::unique(fnames.begin(), fnames.end());
+  fnames.erase(last, fnames.end());
+
+  // prepare list fouts of TFile and fcnts
+  for (auto fn : fnames) {
+    fouts.emplace_back(new TFile());
+    fcnts.emplace_back(-1);
+  }
 }
 
 } // namespace data_matcher
