@@ -46,7 +46,7 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
   clusTree->SetBranchAddress("ITSCluster", &clusArr);
   std::vector<CompClusterExt>* compclusArr = nullptr;
   clusTree->SetBranchAddress("ITSClusterComp", &compclusArr);
-  std::vector<o2::itsmft::ClusterPattern>* patternsPtr = nullptr;
+  std::vector<unsigned char>* patternsPtr = nullptr;
   auto pattBranch = clusTree->GetBranch("ITSClusterPatt");
   if (pattBranch) {
     pattBranch->SetAddress(&patternsPtr);
@@ -80,7 +80,7 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
     }
     printf("processing cluster event %d\n", ievC);
 
-    int pattIdx = 0;
+    auto pattIdx = patternsPtr->begin();
     for (int i = 0; i < nc; i++) {
       // cluster is in tracking coordinates always
       Cluster& c = (*clusArr)[i];
@@ -107,7 +107,17 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
 
       if (dict.IsGroup(cComp.getPatternID())) {
         if (patternsPtr) { // Restore the full pixel pattern information from the auxiliary branch
-          auto patt = (*patternsPtr)[pattIdx++];
+          auto rowSpan = *pattIdx++;
+          auto colSpan = *pattIdx++;
+
+          int nBytes = rowSpan * colSpan / 8;
+          if (((rowSpan * colSpan) % 8) != 0)
+            nBytes++;
+          unsigned char tmp[Cluster::kMaxPatternBytes];
+          for (int i = 0; i < nBytes; i++)
+            tmp[i] = *pattIdx++;
+
+          o2::itsmft::ClusterPattern patt(rowSpan, colSpan, tmp);
           auto locCl = dict.getClusterCoordinates(cComp, patt);
           dx = (locC.X() - locCl.X()) * 10000;
           dz = (locC.Z() - locCl.Z()) * 10000;

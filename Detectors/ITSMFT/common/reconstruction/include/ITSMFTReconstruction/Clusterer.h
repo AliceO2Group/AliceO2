@@ -106,8 +106,8 @@ class Clusterer
     mPattIdConverter.loadDictionary(fileName);
   }
 
-  void setPatterns(std::vector<o2::itsmft::ClusterPattern>* patt) { mPatterns = patt; }
-  std::vector<o2::itsmft::ClusterPattern>* getPatterns() const { return mPatterns; }
+  void setPatterns(std::vector<unsigned char>* patt) { mPatterns = patt; }
+  std::vector<unsigned char>* getPatterns() const { return mPatterns; }
 
  private:
   void initChip(UInt_t first);
@@ -235,7 +235,7 @@ class Clusterer
 
   LookUp mPattIdConverter; //! Convert the cluster topology to the corresponding entry in the dictionary.
 
-  std::vector<o2::itsmft::ClusterPattern>* mPatterns = nullptr; // Not owned
+  std::vector<unsigned char>* mPatterns = nullptr; // Not owned
 
 #ifdef _PERFORM_TIMING_
   TStopwatch mTimer;
