@@ -666,8 +666,6 @@ struct DataMatcherId {
 
 std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::analyzeOutputs(WorkflowSpec const& workflow)
 {
-  LOG(DEBUG) << "Analyzing OutputSpecs";
-
   // compute total number of input/output
   size_t totalInputs = 0;
   size_t totalOutputs = 0;
@@ -732,24 +730,6 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
 
     outputtypes.emplace_back(outputtype);
   }
-
-  /* can be used for debuging
-  int ndang = 0;
-  int naod = 0;
-  int ndangother = 0;
-  for (auto ot : outputtypes) {
-    if ((ot & 1) == 1)
-      ndang++;
-    if ((ot & 2) == 2)
-      naod++;
-    if ((ot & 1) == 1 && (ot & 2) == 0)
-      ndangother++;
-  }
-  LOG(INFO) << "Number of outputs  " << results.size();
-  LOG(INFO) << " dangling          " << ndang;
-  LOG(INFO) << " AOD               " << naod;
-  LOG(INFO) << " dangling, not AOD " << ndangother;
-  */
 
   return std::make_tuple(results, outputtypes);
 }
