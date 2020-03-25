@@ -430,7 +430,7 @@ struct IndexPolicyBase {
 };
 
 struct RowViewSentinel {
-  int64_t const index;
+  uint64_t const index;
 };
 
 struct DefaultIndexPolicy : IndexPolicyBase {
@@ -873,7 +873,7 @@ class Table
         std::pair<C*, arrow::Column*>{nullptr,
                                       lookupColumn<C>()}...},
       mBegin(mColumnIndex, {table->num_rows(), offset}),
-      mEnd{static_cast<int64_t>(table->num_rows())},
+      mEnd{static_cast<uint64_t>(table->num_rows())},
       mOffset(offset)
   {
   }
@@ -907,7 +907,7 @@ class Table
 
   RowViewSentinel filtered_end(SelectionVector selection)
   {
-    return RowViewSentinel{static_cast<int64_t>(selection.size())};
+    return RowViewSentinel{selection.size()};
   }
 
   unfiltered_const_iterator begin() const
@@ -1282,7 +1282,7 @@ class Filtered : public T
     : T{std::move(tables), offset},
       mSelectedRows{std::forward<SelectionVector>(selection)},
       mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
-      mFilteredEnd{mSelectedRows}
+      mFilteredEnd{mSelectedRows.size()}
   {
   }
 
@@ -1290,7 +1290,7 @@ class Filtered : public T
     : T{std::move(tables), offset},
       mSelectedRows{copySelection(selection)},
       mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
-      mFilteredEnd{mSelectedRows}
+      mFilteredEnd{mSelectedRows.size()}
   {
   }
 
@@ -1300,7 +1300,7 @@ class Filtered : public T
                                                                           framework::expressions::createFilter(this->asArrowTable()->schema(),
                                                                                                                framework::expressions::createCondition(tree))))},
       mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
-      mFilteredEnd{mSelectedRows}
+      mFilteredEnd{mSelectedRows.size()}
   {
   }
 
