@@ -110,7 +110,7 @@ void ClustererDPL::run(ProcessingContext& pc)
   std::vector<o2::itsmft::CompClusterExt> compClusters;
   std::vector<o2::itsmft::Cluster> clusters;
   std::vector<o2::itsmft::ROFRecord> clusterROframes; // To be filled in future
-  std::vector<o2::itsmft::ClusterPattern> patterns;
+  std::vector<unsigned char> patterns;
 
   if (mCompactClusters) {
     LOG(INFO) << "Will produce compact clusters";
