@@ -20,6 +20,7 @@
 namespace o2::soa
 {
 
+// Functions to enable looping over tuples
 template <std::size_t V>
 struct num {
   static const constexpr auto value = V;
@@ -38,12 +39,24 @@ void for_(F func)
   for_(func, std::make_index_sequence<N>());
 }
 
+// Creating tuple of given size and type
+template <typename T, unsigned N, typename... REST>
+struct generate_tuple_type {
+  typedef typename generate_tuple_type<T, N - 1, T, REST...>::type type;
+};
+
+template <typename T, typename... REST>
+struct generate_tuple_type<T, 0, REST...> {
+  typedef std::tuple<REST...> type;
+};
+
 template <typename... Ts>
 struct CombinationsIndexPolicyBase {
   using CombinationType = std::tuple<typename Ts::iterator...>;
+  using MaxOffsetType = typename generate_tuple_type<uint64_t, sizeof...(Ts)>::type;
 
   CombinationsIndexPolicyBase(const Ts&... tables) : mIsEnd(false),
-                                                     mMaxOffset(tables.end()...),
+                                                     mMaxOffset(tables.end().index...),
                                                      mCurrent(tables.begin()...)
   {
     constexpr auto k = sizeof...(Ts);
@@ -56,8 +69,8 @@ struct CombinationsIndexPolicyBase {
   void addOne() {}
 
   CombinationType mCurrent;
-  CombinationType mMaxOffset; // one position past maximum acceptable position for each element of combination
-  bool mIsEnd;                // whether there are any more tuples available
+  MaxOffsetType mMaxOffset; // one position past maximum acceptable position for each element of combination
+  bool mIsEnd;              // whether there are any more tuples available
 };
 
 template <typename... Ts>
@@ -66,7 +79,7 @@ struct CombinationsUpperIndexPolicy : public CombinationsIndexPolicyBase<Ts...> 
   {
     constexpr auto k = sizeof...(Ts);
     for_<k>([&, this](auto i) {
-      std::get<i.value>(this->mMaxOffset).moveByIndex(-k + i.value + 1);
+      std::get<i.value>(this->mMaxOffset) += i.value + 1 - k;
     });
   }
 
@@ -74,7 +87,7 @@ struct CombinationsUpperIndexPolicy : public CombinationsIndexPolicyBase<Ts...> 
   {
     constexpr auto k = sizeof...(Ts);
     for_<k>([&, this](auto i) {
-      std::get<i.value>(this->mCurrent).setCursor(*std::get<1>(std::get<i.value>(this->mMaxOffset).getIndices()));
+      std::get<i.value>(this->mCurrent).setCursor(std::get<i.value>(this->mMaxOffset));
     });
     std::get<k - 1>(this->mCurrent).moveToEnd();
     this->mIsEnd = true;
@@ -88,7 +101,7 @@ struct CombinationsUpperIndexPolicy : public CombinationsIndexPolicyBase<Ts...> 
       if (modify) {
         constexpr auto curInd = k - i.value - 1;
         std::get<curInd>(this->mCurrent)++;
-        if (std::get<curInd>(this->mCurrent) != std::get<curInd>(this->mMaxOffset)) {
+        if (*std::get<1>(std::get<curInd>(this->mCurrent).getIndices()) != std::get<curInd>(this->mMaxOffset)) {
           for_<i.value>([&, this](auto j) {
             constexpr auto curJ = k - i.value + j.value;
             std::get<curJ>(this->mCurrent).setCursor(*std::get<1>(std::get<curJ - 1>(this->mCurrent).getIndices()));
@@ -107,7 +120,7 @@ struct CombinationsStrictlyUpperIndexPolicy : public CombinationsIndexPolicyBase
   {
     constexpr auto k = sizeof...(Ts);
     for_<k>([&, this](auto i) {
-      std::get<i.value>(this->mMaxOffset).moveByIndex(-k + i.value + 1);
+      std::get<i.value>(this->mMaxOffset) += i.value + 1 - k;
       std::get<i.value>(this->mCurrent).moveByIndex(i.value);
     });
   }
@@ -116,7 +129,7 @@ struct CombinationsStrictlyUpperIndexPolicy : public CombinationsIndexPolicyBase
   {
     constexpr auto k = sizeof...(Ts);
     for_<k>([&, this](auto i) {
-      std::get<i.value>(this->mCurrent).setCursor(*std::get<1>(std::get<i.value>(this->mMaxOffset).getIndices()));
+      std::get<i.value>(this->mCurrent).setCursor(std::get<i.value>(this->mMaxOffset));
     });
     std::get<k - 1>(this->mCurrent).moveToEnd();
     this->mIsEnd = true;
@@ -130,7 +143,7 @@ struct CombinationsStrictlyUpperIndexPolicy : public CombinationsIndexPolicyBase
       if (modify) {
         constexpr auto curInd = k - i.value - 1;
         std::get<curInd>(this->mCurrent)++;
-        if (std::get<curInd>(this->mCurrent) != std::get<curInd>(this->mMaxOffset)) {
+        if (*std::get<1>(std::get<curInd>(this->mCurrent).getIndices()) != std::get<curInd>(this->mMaxOffset)) {
           for_<i.value>([&, this](auto j) {
             constexpr auto curJ = k - i.value + j.value;
             std::get<curJ>(this->mCurrent).setCursor(*std::get<1>(std::get<curJ - 1>(this->mCurrent).getIndices()) + 1);
@@ -164,7 +177,7 @@ struct CombinationsFullIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
       if (modify) {
         constexpr auto curInd = k - i.value - 1;
         std::get<curInd>(this->mCurrent)++;
-        if (std::get<curInd>(this->mCurrent) != std::get<curInd>(this->mMaxOffset)) {
+        if (*std::get<1>(std::get<curInd>(this->mCurrent).getIndices()) != std::get<curInd>(this->mMaxOffset)) {
           for_<i.value>([&, this](auto j) {
             constexpr auto curJ = k - i.value + j.value;
             std::get<curJ>(this->mCurrent).setCursor(0);
