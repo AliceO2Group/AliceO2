@@ -67,15 +67,15 @@ BOOST_AUTO_TEST_CASE(RootTree2Table)
   // Create an arrow table from this.
   TableBuilder builder;
   TTreeReader reader(&t1);
-  auto xyzReader = HolderMaker<float[3]>::make(reader, "xyz");
-  auto ijkReader = HolderMaker<int[2]>::make(reader, "ij");
-  auto pxReader = HolderMaker<float>::make(reader, "px");
-  auto pyReader = HolderMaker<float>::make(reader, "py");
-  auto pzReader = HolderMaker<float>::make(reader, "pz");
-  auto randomReader = HolderMaker<double>::make(reader, "random");
-  auto evReader = HolderMaker<int>::make(reader, "ev");
+  auto&& xyzReader = HolderMaker<float[3]>::make(reader, "xyz");
+  auto&& ijkReader = HolderMaker<int[2]>::make(reader, "ij");
+  auto&& pxReader = HolderMaker<float>::make(reader, "px");
+  auto&& pyReader = HolderMaker<float>::make(reader, "py");
+  auto&& pzReader = HolderMaker<float>::make(reader, "pz");
+  auto&& randomReader = HolderMaker<double>::make(reader, "random");
+  auto&& evReader = HolderMaker<int>::make(reader, "ev");
 
-  RootTableBuilderHelpers::convertTTree(builder, reader, xyzReader, ijkReader, pxReader, pyReader, pzReader, randomReader, evReader);
+  RootTableBuilderHelpers::convertTTree(builder, reader, std::move(xyzReader), std::move(ijkReader), std::move(pxReader), std::move(pyReader), std::move(pzReader), std::move(randomReader), std::move(evReader));
   auto table = builder.finalize();
   BOOST_REQUIRE_EQUAL(table->num_rows(), 1000);
   BOOST_REQUIRE_EQUAL(table->num_columns(), 7);
@@ -111,12 +111,14 @@ namespace test
 DECLARE_SOA_COLUMN(Px, px, float, "px");
 DECLARE_SOA_COLUMN(Py, py, float, "py");
 DECLARE_SOA_COLUMN(Pz, pz, float, "pz");
+DECLARE_SOA_COLUMN(Xyz, xyz, float[3], "xyz");
+DECLARE_SOA_COLUMN(Ij, ij, int[2], "ij");
 DECLARE_SOA_COLUMN(Random, random, double, "random");
 DECLARE_SOA_COLUMN(Ev, ev, int, "ev");
 } // namespace test
 
 DECLARE_SOA_TABLE(Test, "AOD", "ETAPHI",
-                  test::Px, test::Py, test::Pz,
+                  test::Px, test::Py, test::Pz, test::Xyz, test::Ij,
                   test::Random, test::Ev);
 } // namespace o2::aod
 
@@ -158,33 +160,18 @@ BOOST_AUTO_TEST_CASE(RootTree2TableViaASoA)
   RootTableBuilderHelpers::convertASoA<o2::aod::Test>(builder, reader);
   auto table = builder.finalize();
   BOOST_REQUIRE_EQUAL(table->num_rows(), 1000);
-  BOOST_REQUIRE_EQUAL(table->num_columns(), 5);
-  // FIXME: Arrays not yet implemented
-  //BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::list(arrow::float32())->id());
-  //BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::list(arrow::int32())->id());
+  BOOST_REQUIRE_EQUAL(table->num_columns(), 7);
   BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::float32()->id());
   BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::float32()->id());
   BOOST_REQUIRE_EQUAL(table->column(2)->type()->id(), arrow::float32()->id());
-  BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::float64()->id());
-  BOOST_REQUIRE_EQUAL(table->column(4)->type()->id(), arrow::int32()->id());
+  BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::fixed_size_binary(sizeof(float[3]))->id());
+  BOOST_REQUIRE_EQUAL(table->column(4)->type()->id(), arrow::fixed_size_binary(sizeof(int[2]))->id());
+  BOOST_REQUIRE_EQUAL(table->column(5)->type()->id(), arrow::float64()->id());
+  BOOST_REQUIRE_EQUAL(table->column(6)->type()->id(), arrow::int32()->id());
 
-  // FIXME: Arrays not yet implemented
-  //{
-  //  auto array = std::static_pointer_cast<arrow::ListArray>(table->column(0)->data()->chunk(0));
-  //  BOOST_CHECK_EQUAL(array->value_length(0), 3);
-  //}
-  //{
-  //  auto array = std::static_pointer_cast<arrow::ListArray>(table->column(1)->data()->chunk(0));
-  //  auto values = std::static_pointer_cast<arrow::Int32Array>(array->values());
-  //  BOOST_CHECK_EQUAL(array->value_length(0), 2);
-  //  const int* ptr = values->raw_values() + values->offset();
-  //  for (size_t i = 0; i < 1000; i++) {
-  //    auto offset = array->value_offset(i);
-  //    auto length = array->value_length(i);
-  //    BOOST_CHECK_EQUAL(offset, i * 2);
-  //    BOOST_CHECK_EQUAL(length, 2);
-  //    BOOST_CHECK_EQUAL(*(ptr + offset), i);
-  //    BOOST_CHECK_EQUAL(*(ptr + offset + 1), i + 1);
-  //  }
-  //}
+  o2::aod::Test testTable{table};
+  for (auto& row : testTable) {
+    BOOST_REQUIRE_EQUAL(row.ij()[0], row.ij()[1] - 1);
+    BOOST_REQUIRE_EQUAL(row.ij()[1], row.ev());
+  }
 }
