@@ -41,6 +41,8 @@ class ClusterPattern
   ClusterPattern();
   /// Standard constructor
   ClusterPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  /// Constructor from a vector with cluster patterns
+  ClusterPattern(std::vector<unsigned char>::iterator& patternIter);
   /// Maximum number of bytes for the cluster puttern + 2 bytes respectively for the number of rows and columns of the bounding box
   static constexpr int kExtendedPatternBytes = Cluster::kMaxPatternBytes + 2;
   /// Returns the pattern

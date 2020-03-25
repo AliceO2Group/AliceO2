@@ -107,17 +107,7 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
 
       if (dict.IsGroup(cComp.getPatternID())) {
         if (patternsPtr) { // Restore the full pixel pattern information from the auxiliary branch
-          auto rowSpan = *pattIdx++;
-          auto colSpan = *pattIdx++;
-
-          int nBytes = rowSpan * colSpan / 8;
-          if (((rowSpan * colSpan) % 8) != 0)
-            nBytes++;
-          unsigned char tmp[Cluster::kMaxPatternBytes];
-          for (int i = 0; i < nBytes; i++)
-            tmp[i] = *pattIdx++;
-
-          o2::itsmft::ClusterPattern patt(rowSpan, colSpan, tmp);
+          o2::itsmft::ClusterPattern patt(pattIdx);
           auto locCl = dict.getClusterCoordinates(cComp, patt);
           dx = (locC.X() - locCl.X()) * 10000;
           dz = (locC.Z() - locCl.Z()) * 10000;
