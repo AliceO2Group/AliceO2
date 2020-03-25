@@ -52,6 +52,16 @@ template <typename T>
 struct ConversionTraits {
 };
 
+template <typename T, int N>
+struct ConversionTraits<T (&)[N]> {
+  using ArrowType = ::arrow::FixedSizeBinaryType;
+};
+
+template <typename T, int N>
+struct ConversionTraits<T[N]> {
+  using ArrowType = ::arrow::FixedSizeBinaryType;
+};
+
 #define O2_ARROW_STL_CONVERSION(c_type, ArrowType_) \
   template <>                                       \
   struct ConversionTraits<c_type> {                 \
@@ -108,6 +118,12 @@ struct BuilderUtils {
   static void unsafeAppend(BuilderType& builder, T value)
   {
     return builder->UnsafeAppend(value);
+  }
+
+  template <typename BuilderType, typename T>
+  static void unsafeAppend(BuilderType& builder, T* value)
+  {
+    return builder->UnsafeAppend(reinterpret_cast<const uint8_t*>(value));
   }
 
   template <typename BuilderType, typename PTR>
@@ -189,6 +205,23 @@ struct BuilderMaker<std::pair<ITERATOR, ITERATOR>> {
   static std::shared_ptr<arrow::DataType> make_datatype()
   {
     return arrow::list(arrow::TypeTraits<ValueType>::type_singleton());
+  }
+};
+
+template <typename T, int N>
+struct BuilderMaker<T (&)[N]> {
+  using FillType = T*;
+  using BuilderType = arrow::FixedSizeBinaryBuilder;
+  using ArrowType = arrow::FixedSizeBinaryType;
+
+  static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
+  {
+    return std::make_unique<BuilderType>(arrow::fixed_size_binary(sizeof(T[N])), pool);
+  }
+
+  static std::shared_ptr<arrow::DataType> make_datatype()
+  {
+    return arrow::fixed_size_binary(sizeof(T[N]));
   }
 };
 

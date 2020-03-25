@@ -50,7 +50,10 @@ BOOST_AUTO_TEST_CASE(RootTree2Table)
   t1.Branch("ij", ij, "ij[2]/I");
   //fill the tree
   for (Int_t i = 0; i < 1000; i++) {
-    gRandom->Rannor(xyz[0], xyz[1]);
+    //gRandom->Rannor(xyz[0], xyz[1]);
+    xyz[0] = 1;
+    xyz[1] = 2;
+    xyz[2] = 3;
     gRandom->Rannor(px, py);
     pz = px * px + py * py;
     xyz[2] = i + 1;
@@ -64,20 +67,20 @@ BOOST_AUTO_TEST_CASE(RootTree2Table)
   // Create an arrow table from this.
   TableBuilder builder;
   TTreeReader reader(&t1);
-  TTreeReaderArray<float> xyzReader(reader, "xyz");
-  TTreeReaderArray<int> ijkReader(reader, "ij");
-  TTreeReaderValue<float> pxReader(reader, "px");
-  TTreeReaderValue<float> pyReader(reader, "py");
-  TTreeReaderValue<float> pzReader(reader, "pz");
-  TTreeReaderValue<double> randomReader(reader, "random");
-  TTreeReaderValue<int> evReader(reader, "ev");
+  auto xyzReader = HolderMaker<float[3]>::make(reader, "xyz");
+  auto ijkReader = HolderMaker<int[2]>::make(reader, "ij");
+  auto pxReader = HolderMaker<float>::make(reader, "px");
+  auto pyReader = HolderMaker<float>::make(reader, "py");
+  auto pzReader = HolderMaker<float>::make(reader, "pz");
+  auto randomReader = HolderMaker<double>::make(reader, "random");
+  auto evReader = HolderMaker<int>::make(reader, "ev");
 
   RootTableBuilderHelpers::convertTTree(builder, reader, xyzReader, ijkReader, pxReader, pyReader, pzReader, randomReader, evReader);
   auto table = builder.finalize();
   BOOST_REQUIRE_EQUAL(table->num_rows(), 1000);
   BOOST_REQUIRE_EQUAL(table->num_columns(), 7);
-  BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::list(arrow::float32())->id());
-  BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::list(arrow::int32())->id());
+  BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::fixed_size_binary(sizeof(float[3]))->id());
+  BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::fixed_size_binary(sizeof(int[2]))->id());
   BOOST_REQUIRE_EQUAL(table->column(2)->type()->id(), arrow::float32()->id());
   BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::float32()->id());
   BOOST_REQUIRE_EQUAL(table->column(4)->type()->id(), arrow::float32()->id());
@@ -85,21 +88,17 @@ BOOST_AUTO_TEST_CASE(RootTree2Table)
   BOOST_REQUIRE_EQUAL(table->column(6)->type()->id(), arrow::int32()->id());
 
   {
-    auto array = std::static_pointer_cast<arrow::ListArray>(table->column(0)->data()->chunk(0));
-    BOOST_CHECK_EQUAL(array->value_length(0), 3);
+    auto array = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(table->column(0)->data()->chunk(0));
+    BOOST_CHECK_EQUAL(array->byte_width(), sizeof(float[3]));
+    const float* c = reinterpret_cast<float const*>(array->Value(0));
+    BOOST_CHECK_EQUAL(c[0], 1);
   }
   {
-    auto array = std::static_pointer_cast<arrow::ListArray>(table->column(1)->data()->chunk(0));
-    auto values = std::static_pointer_cast<arrow::Int32Array>(array->values());
-    BOOST_CHECK_EQUAL(array->value_length(0), 2);
-    const int* ptr = values->raw_values() + values->offset();
+    auto values = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(table->column(1)->data()->chunk(0));
     for (size_t i = 0; i < 1000; i++) {
-      auto offset = array->value_offset(i);
-      auto length = array->value_length(i);
-      BOOST_CHECK_EQUAL(offset, i * 2);
-      BOOST_CHECK_EQUAL(length, 2);
-      BOOST_CHECK_EQUAL(*(ptr + offset), i);
-      BOOST_CHECK_EQUAL(*(ptr + offset + 1), i + 1);
+      const int* ptr = reinterpret_cast<int const*>(values->Value(i));
+      BOOST_CHECK_EQUAL(ptr[0], i);
+      BOOST_CHECK_EQUAL(ptr[1], i + 1);
     }
   }
 }
