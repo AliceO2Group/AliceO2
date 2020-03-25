@@ -47,7 +47,7 @@ struct CombinationsIndexPolicyBase {
                                                      mCurrent(tables.begin()...)
   {
     constexpr auto k = sizeof...(Ts);
-    if (((tables.size() <= k) || ...)) {
+    if (((tables.size() < k) || ...)) {
       mIsEnd = true;
     }
   }
