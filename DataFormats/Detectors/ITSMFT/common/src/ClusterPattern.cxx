@@ -29,6 +29,18 @@ ClusterPattern::ClusterPattern(int nRow, int nCol, const unsigned char patt[Clus
   setPattern(nRow, nCol, patt);
 }
 
+ClusterPattern::ClusterPattern(std::vector<unsigned char>::iterator& pattIt)
+{
+  mBitmap[0] = *pattIt++;
+  mBitmap[1] = *pattIt++;
+  int nbits = mBitmap[0] * mBitmap[1];
+  int nBytes = nbits / 8;
+  if (((nbits) % 8) != 0)
+    nBytes++;
+  memcpy(&mBitmap[2], &(*pattIt), nBytes);
+  pattIt += nBytes;
+}
+
 unsigned char ClusterPattern::getByte(int n) const
 {
   if (n < 0 || n > Cluster::kMaxPatternBytes + 1) {
