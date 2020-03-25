@@ -30,7 +30,7 @@ std::unique_ptr<ConfigContext> makeEmptyConfigContext()
   //        either owns or shares ownership of the registry.
   static std::unique_ptr<ParamRetriever> retriever(new SimpleOptionsRetriever);
   static ConfigParamRegistry registry{std::move(retriever)};
-  auto context = std::make_unique<ConfigContext>(registry);
+  auto context = std::make_unique<ConfigContext>(registry, 0, nullptr);
   return context;
 }
 

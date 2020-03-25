@@ -303,12 +303,30 @@ DetFilterer blacklister(std::string optionVal, std::string unsetValue, char sepa
   return DetFilterer(optionVal, unsetValue, separator, false);
 }
 
+bool helpOnCommandLine(ConfigContext const& configcontext)
+{
+  int argc = configcontext.argc();
+  auto argv = configcontext.argv();
+  bool helpasked = false;
+  for (int argi = 0; argi < argc; ++argi) {
+    if (strcmp(argv[argi], "--help") == 0 || (strcmp(argv[argi], "-h") == 0)) {
+      helpasked = true;
+      break;
+    }
+  }
+  return helpasked;
+}
+
 // ------------------------------------------------------------------
 
 /// This function is required to be implemented to define the workflow
 /// specifications
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
+  // check if we merely construct the topology to create help options
+  // if this is the case we don't need to read from GRP
+  bool helpasked = helpOnCommandLine(configcontext);
+
   // Reserve one entry which fill be filled with the SimReaderSpec
   // at the end. This places the processor at the beginning of the
   // workflow in the upper left corner of the GUI.
@@ -326,15 +344,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // which sim productions to overlay and digitize
   auto simPrefixes = splitString(configcontext.options().get<std::string>("sims"), ',');
-  for (const auto& p : simPrefixes) {
-    LOG(INFO) << "PREFIX " << p;
-  }
 
   // First, read the GRP to detect which components need instantiations
   auto grpfile = o2::base::NameConf::getGRPFileName(simPrefixes[0]);
-  const auto grp = readGRP(grpfile.c_str());
-  if (!grp) {
-    return WorkflowSpec{};
+  std::shared_ptr<o2::parameters::GRPObject const> grp(nullptr);
+  if (!helpasked) {
+    grp = readGRP(grpfile.c_str());
+    if (!grp) {
+      return WorkflowSpec{};
+    }
   }
 
   // onlyDet takes precedence on skipDet
@@ -355,7 +373,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // lambda to extract detectors which are enabled in the workflow
   // will complain if user gave wrong input in construction of DetID
-  auto isEnabled = [&configcontext, &filterers, accept, grp](o2::detectors::DetID id) {
+  auto isEnabled = [&configcontext, &filterers, accept, grp, helpasked](o2::detectors::DetID id) {
+    if (helpasked) {
+      return true;
+    }
     auto accepted = accept(id);
     bool is_ingrp = grp->isDetReadOut(id);
     LOG(INFO) << id.getName()
@@ -372,7 +393,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // the TPC part
   // we need to init this anyway since TPC is treated a bit special (for the moment)
-  initTPC();
+  if (!helpasked) {
+    initTPC();
+  }
+
   // keeps track of which subchannels correspond to tpc channels
   auto tpclanes = std::make_shared<std::vector<int>>();
   // keeps track of which tpc sectors to process

@@ -137,7 +137,7 @@ int main(int argc, char** argv)
 
     std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(workflowOptions, true, argc, argv)};
     ConfigParamRegistry workflowOptionsRegistry(std::move(retriever));
-    ConfigContext configContext{workflowOptionsRegistry};
+    ConfigContext configContext(workflowOptionsRegistry, argc, argv);
     o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
     overridePipeline(configContext, specs);
     result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, workflowOptions, configContext);

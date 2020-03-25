@@ -24,12 +24,17 @@ namespace framework
 class ConfigContext
 {
  public:
-  ConfigContext(ConfigParamRegistry& options) : mOptions{options} {}
+  ConfigContext(ConfigParamRegistry& options, int argc, char** argv) : mOptions{options}, mArgc{argc}, mArgv{argv} {}
 
   ConfigParamRegistry& options() const { return mOptions; }
+  int argc() const { return mArgc; }
+  char* const* const argv() const { return mArgv; }
 
  private:
   ConfigParamRegistry& mOptions;
+  // additionaly keep information about the original command line
+  int mArgc = 0;
+  char** mArgv = nullptr;
 };
 
 } // namespace framework

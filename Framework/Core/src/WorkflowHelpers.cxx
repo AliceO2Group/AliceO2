@@ -666,7 +666,7 @@ struct DataMatcherId {
 
 std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::analyzeOutputs(WorkflowSpec const& workflow)
 {
-  LOG(INFO) << "Analyzing OutputSpecs";
+  LOG(DEBUG) << "Analyzing OutputSpecs";
 
   // compute total number of input/output
   size_t totalInputs = 0;

@@ -345,7 +345,7 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP)
   outputs.emplace_back("TPC", "COMMONMODE", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   if (writeGRP) {
     outputs.emplace_back("TPC", "ROMode", 0, Lifetime::Timeframe);
-    LOG(INFO) << "TPC: Channel " << channel << " will supply ROMode";
+    LOG(DEBUG) << "TPC: Channel " << channel << " will supply ROMode";
   }
 
   return DataProcessorSpec{
