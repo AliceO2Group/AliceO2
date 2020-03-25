@@ -294,7 +294,7 @@ void BuildTopologyDictionary::printDictionary(std::string fname)
 void BuildTopologyDictionary::printDictionaryBinary(std::string fname)
 {
   std::ofstream out(fname);
-  mDictionary.WriteBinaryFile(fname);
+  mDictionary.writeBinaryFile(fname);
   out.close();
 }
 

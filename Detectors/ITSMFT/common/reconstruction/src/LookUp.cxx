@@ -33,7 +33,7 @@ LookUp::LookUp(std::string fileName)
 
 void LookUp::loadDictionary(std::string fileName)
 {
-  mDictionary.ReadBinaryFile(fileName);
+  mDictionary.readBinaryFile(fileName);
   mTopologiesOverThreshold = mDictionary.mFinalMap.size();
 }
 
@@ -78,9 +78,9 @@ int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kM
   }
 }
 
-bool LookUp::IsGroup(int id) const
+bool LookUp::isGroup(int id) const
 {
-  return mDictionary.IsGroup(id);
+  return mDictionary.isGroup(id);
 }
 
 } // namespace itsmft

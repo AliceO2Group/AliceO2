@@ -35,7 +35,7 @@ TopologyDictionary::TopologyDictionary() : mSmallTopologiesLUT{-1} {}
 
 TopologyDictionary::TopologyDictionary(std::string fileName)
 {
-  ReadBinaryFile(fileName);
+  readBinaryFile(fileName);
 }
 
 std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dict)
@@ -50,7 +50,7 @@ std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dict)
   return os;
 }
 
-void TopologyDictionary::WriteBinaryFile(string outputfile)
+void TopologyDictionary::writeBinaryFile(string outputfile)
 {
   std::ofstream file_output(outputfile, std::ios::out | std::ios::binary);
   for (auto& p : mVectorOfGroupIDs) {
@@ -68,7 +68,7 @@ void TopologyDictionary::WriteBinaryFile(string outputfile)
   file_output.close();
 }
 
-int TopologyDictionary::ReadBinaryFile(string fname)
+int TopologyDictionary::readBinaryFile(string fname)
 {
   mVectorOfGroupIDs.clear();
   mFinalMap.clear();
@@ -102,7 +102,7 @@ int TopologyDictionary::ReadBinaryFile(string fname)
   return 0;
 }
 
-float TopologyDictionary::GetXcog(int n) const
+float TopologyDictionary::getXCOG(int n) const
 {
   if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
     LOG(ERROR) << "Index out of bounds";
@@ -110,7 +110,7 @@ float TopologyDictionary::GetXcog(int n) const
   } else
     return mVectorOfGroupIDs[n].mXCOG;
 }
-float TopologyDictionary::GetErrX(int n) const
+float TopologyDictionary::getErrX(int n) const
 {
   if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
     LOG(ERROR) << "Index out of bounds";
@@ -119,7 +119,7 @@ float TopologyDictionary::GetErrX(int n) const
     return mVectorOfGroupIDs[n].mErrX;
 }
 
-float TopologyDictionary::GetZcog(int n) const
+float TopologyDictionary::getZCOG(int n) const
 {
   if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
     LOG(ERROR) << "Index out of bounds";
@@ -128,7 +128,7 @@ float TopologyDictionary::GetZcog(int n) const
     return mVectorOfGroupIDs[n].mZCOG;
 }
 
-float TopologyDictionary::GetErrZ(int n) const
+float TopologyDictionary::getErrZ(int n) const
 {
   if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
     LOG(ERROR) << "Index out of bounds";
@@ -137,7 +137,7 @@ float TopologyDictionary::GetErrZ(int n) const
     return mVectorOfGroupIDs[n].mErrZ;
 }
 
-unsigned long TopologyDictionary::GetHash(int n) const
+unsigned long TopologyDictionary::getHash(int n) const
 {
   if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
     LOG(ERROR) << "Index out of bounds";
@@ -146,7 +146,7 @@ unsigned long TopologyDictionary::GetHash(int n) const
     return mVectorOfGroupIDs[n].mHash;
 }
 
-int TopologyDictionary::GetNpixels(int n) const
+int TopologyDictionary::getNpixels(int n) const
 {
   if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
     LOG(ERROR) << "Index out of bounds";
@@ -155,7 +155,7 @@ int TopologyDictionary::GetNpixels(int n) const
     return mVectorOfGroupIDs[n].mNpixels;
 }
 
-ClusterPattern TopologyDictionary::GetPattern(int n) const
+ClusterPattern TopologyDictionary::getPattern(int n) const
 {
   if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
     LOG(ERROR) << "Index out of bounds";
@@ -164,7 +164,7 @@ ClusterPattern TopologyDictionary::GetPattern(int n) const
     return mVectorOfGroupIDs[n].mPattern;
 }
 
-double TopologyDictionary::GetFrequency(int n) const
+double TopologyDictionary::getFrequency(int n) const
 {
   if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
     LOG(ERROR) << "Index out of bounds";
@@ -180,8 +180,8 @@ Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl) 
 {
   Point3D<float> locCl;
   o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
-  locCl.SetX(locCl.X() + this->GetXcog(cl.getPatternID()));
-  locCl.SetZ(locCl.Z() + this->GetZcog(cl.getPatternID()));
+  locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()));
+  locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()));
   return locCl;
 }
 
