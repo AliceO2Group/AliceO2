@@ -32,7 +32,7 @@ Response::Response(Station station) : mStation(station)
     mK4y = 0.38658194;
     mInversePitch = 1. / 0.21; // ^cm-1
     mPitch = 0.21;
-    mChargeSlope = 25.;        //from AliMUONResponsefactory, 1 in AliMUONConstants
+    mChargeSlope = 25.; //from AliMUONResponsefactory, 1 in AliMUONConstants
     mQspreadX = 0.144;
     mQspreadY = 0.144;
     mSigmaIntegration = 10.;
