@@ -156,19 +156,6 @@ struct RootTableBuilderHelpers {
   template <typename... TTREEREADERVALUE>
   static void convertTTree(TableBuilder& builder,
                            TTreeReader& reader,
-                           TTREEREADERVALUE&... values)
-  {
-    std::vector<std::string> branchNames = {values.GetBranchName()...};
-    auto filler = builder.preallocatedPersist<typename TreeReaderValueTraits<std::decay_t<TTREEREADERVALUE>>::Type...>(branchNames, reader.GetEntries(true));
-    reader.Restart();
-    while (reader.Next()) {
-      filler(0, ValueExtractor::deref(values)...);
-    }
-  }
-
-  template <typename... TTREEREADERVALUE>
-  static void convertTTree(TableBuilder& builder,
-                           TTreeReader& reader,
                            ReaderHolder<TTREEREADERVALUE>... holders)
   {
     std::vector<std::string> branchNames = {holders.reader->GetBranchName()...};

@@ -102,7 +102,6 @@ enum AODTypeMask : uint64_t {
   Trigger = 1 << 7,
   Collisions = 1 << 8,
   Timeframe = 1 << 9,
-  DZeroFlagged = 1 << 10,
   Unknown = 1 << 11
 };
 
@@ -129,8 +128,6 @@ uint64_t getMask(header::DataDescription description)
     return AODTypeMask::Collisions;
   } else if (description == header::DataDescription{"TIMEFRAME"}) {
     return AODTypeMask::Timeframe;
-  } else if (description == header::DataDescription{"DZEROFLAGGED"}) {
-    return AODTypeMask::DZeroFlagged;
   } else {
     LOG(DEBUG) << "This is a tree of unknown type! " << description.str;
     return AODTypeMask::Unknown;
@@ -393,39 +390,6 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         std::unique_ptr<TTreeReader> triggerReader = std::make_unique<TTreeReader>("O2trigger", infile.get());
         auto& triggerBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRIGGER"});
         RootTableBuilderHelpers::convertASoA<o2::aod::Trigger>(triggerBuilder, *triggerReader);
-      }
-
-      // Candidates as described by Gianmichele example
-      if (readMask & AODTypeMask::DZeroFlagged) {
-        std::unique_ptr<TTreeReader> dzReader = std::make_unique<TTreeReader>("fTreeDzeroFlagged", infile.get());
-
-        TTreeReaderValue<float> c0(*dzReader, "d_len_ML");
-        TTreeReaderValue<int> c1(*dzReader, "cand_type_ML");
-        TTreeReaderValue<float> c2(*dzReader, "cos_p_ML");
-        TTreeReaderValue<float> c3(*dzReader, "cos_p_xy_ML");
-        TTreeReaderValue<float> c4(*dzReader, "d_len_xy_ML");
-        TTreeReaderValue<float> c5(*dzReader, "eta_prong0_ML");
-        TTreeReaderValue<float> c6(*dzReader, "eta_prong1_ML");
-        TTreeReaderValue<float> c7(*dzReader, "imp_par_prong0_ML");
-        TTreeReaderValue<float> c8(*dzReader, "imp_par_prong1_ML");
-        TTreeReaderValue<float> c9(*dzReader, "imp_par_xy_ML");
-        TTreeReaderValue<float> c10(*dzReader, "inv_mass_ML");
-        TTreeReaderValue<float> c11(*dzReader, "max_norm_d0d0exp_ML");
-        TTreeReaderValue<float> c12(*dzReader, "norm_dl_xy_ML");
-        TTreeReaderValue<float> c13(*dzReader, "pt_cand_ML");
-        TTreeReaderValue<float> c14(*dzReader, "pt_prong0_ML");
-        TTreeReaderValue<float> c15(*dzReader, "pt_prong1_ML");
-        TTreeReaderValue<float> c16(*dzReader, "y_cand_ML");
-        TTreeReaderValue<float> c17(*dzReader, "phi_cand_ML");
-        TTreeReaderValue<float> c18(*dzReader, "eta_cand_ML");
-        TTreeReaderValue<int> c19(*dzReader, "cand_evtID_ML");
-        TTreeReaderValue<int> c20(*dzReader, "cand_fileID_ML");
-
-        auto& dzBuilder = outputs.make<TableBuilder>(Output{"AOD", "DZEROFLAGGED"});
-        RootTableBuilderHelpers::convertTTree(dzBuilder, *dzReader,
-                                              c0, c1, c2, c3, c4, c5, c6, c7,
-                                              c8, c9, c10, c11, c12, c13, c14,
-                                              c15, c16, c17, c18, c19, c20);
       }
 
       // tables not included in the DataModel
