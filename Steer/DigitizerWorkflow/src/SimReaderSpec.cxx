@@ -63,7 +63,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<std::string
     if (size < tpcinvocations) {
       for (int k = 0; k < tpcinvocations - size; ++k) {
         tpcsectormessages->operator[](i).emplace_back(-2); // -2 is NOP
-        LOG(INFO) << "ADDING NOP TO CHANNEL " << i << "\n";
+        LOG(DEBUG) << "ADDING NOP TO CHANNEL " << i;
       }
       assert(tpcsectormessages->operator[](i).size() == tpcinvocations);
     }
