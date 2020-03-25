@@ -519,7 +519,6 @@ class TableBuilder
     return std::apply(visitAll, *builders);
   }
 
-
   /// Actually creates the arrow::Table from the builders
   std::shared_ptr<arrow::Table> finalize();
 
