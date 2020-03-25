@@ -24,7 +24,7 @@ namespace o2
   {
   TopologyFastSimulation::TopologyFastSimulation(std::string fileName, unsigned seed)
   {
-    mDictionary.ReadBinaryFile(fileName);
+    mDictionary.readBinaryFile(fileName);
     mGenerator = std::mt19937(seed);
     mDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
   }

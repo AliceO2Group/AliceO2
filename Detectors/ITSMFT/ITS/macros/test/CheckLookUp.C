@@ -36,7 +36,7 @@ void CheckLookUp(std::string clusfile = "o2clus_its.root", std::string dictfile 
 
   LookUp finder("complete_dictionary.bin");
   TopologyDictionary dict;
-  dict.ReadBinaryFile(dictfile.c_str());
+  dict.readBinaryFile(dictfile.c_str());
   ofstream check_output("checkLU.txt");
   ofstream mist("mist.txt");
   TFile outroot("checkLU.root", "RECREATE");
@@ -84,10 +84,10 @@ void CheckLookUp(std::string clusfile = "o2clus_its.root", std::string dictfile 
       }
       int out_index = finder.findGroupID(rowSpan, columnSpan, patt); // Find ID in the dictionary
       std::array<unsigned char, Cluster::kMaxPatternBytes + 2> out_patt =
-        dict.GetPattern(out_index).getPattern(); // Get the pattern corresponding to the ID
+        dict.getPattern(out_index).getPattern(); // Get the pattern corresponding to the ID
       hDistribution->Fill(out_index);
       if (verbose) {
-        check_output << dict.GetPattern(out_index) << endl;
+        check_output << dict.getPattern(out_index) << endl;
         check_output
           << "********************************************************"
           << endl;
@@ -100,7 +100,7 @@ void CheckLookUp(std::string clusfile = "o2clus_its.root", std::string dictfile 
           mist << topology << endl;
           mist << "output:" << endl
                << endl;
-          mist << dict.GetPattern(finder.findGroupID(rowSpan, columnSpan, patt))
+          mist << dict.getPattern(finder.findGroupID(rowSpan, columnSpan, patt))
                << endl;
           mist << "********************************************************"
                << endl;

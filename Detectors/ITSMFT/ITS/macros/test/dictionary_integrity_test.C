@@ -20,34 +20,34 @@ void dictionary_integrity_test(string intput_name = "complete_dictionary.bin", s
 {
 
   TopologyDictionary dict;
-  dict.ReadBinaryFile(intput_name.c_str());
+  dict.readBinaryFile(intput_name.c_str());
   LookUp finder(intput_name.c_str());
 
   int mistake_counter = 0;
 
   std::ofstream output_file(output_name.c_str());
 
-  int dict_size = dict.GetSize();
+  int dict_size = dict.getSize();
   for (int ID_input = 0; ID_input < dict_size; ID_input++) {
 
     //***************** input **************************
 
-    ClusterPattern cp_input = dict.GetPattern(ID_input);
+    ClusterPattern cp_input = dict.getPattern(ID_input);
     unsigned char patt_input[Cluster::kMaxPatternBytes];
     memcpy(&patt_input[0], &cp_input.getPattern()[2], Cluster::kMaxPatternBytes);
     int nRow_input = cp_input.getRowSpan();
     int nCol_input = cp_input.getColumnSpan();
-    unsigned long input_hash = dict.GetHash(ID_input);
+    unsigned long input_hash = dict.getHash(ID_input);
     if (input_hash == 0)
       continue;
 
     //**************** output **************************
 
     int ID_output = finder.findGroupID(nRow_input, nCol_input, patt_input);
-    ClusterPattern cp_output = dict.GetPattern(ID_output);
+    ClusterPattern cp_output = dict.getPattern(ID_output);
     int nRow_output = cp_input.getRowSpan();
     int nCol_output = cp_input.getColumnSpan();
-    unsigned long output_hash = dict.GetHash(ID_output);
+    unsigned long output_hash = dict.getHash(ID_output);
 
     if (ID_output != ID_input) {
       output_file << "*****************************************" << std::endl;

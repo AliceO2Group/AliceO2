@@ -78,23 +78,23 @@ class TopologyDictionary
   /// Prints the dictionary
   friend std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dictionary);
   /// Prints the dictionary in a binary file
-  void WriteBinaryFile(std::string outputFile);
+  void writeBinaryFile(std::string outputFile);
   /// Reads the dictionary from a binary file
-  int ReadBinaryFile(std::string fileName);
+  int readBinaryFile(std::string fileName);
   /// Returns the x position of the COG for the n_th element
-  float GetXcog(int n) const;
+  float getXCOG(int n) const;
   /// Returns the error on the x position of the COG for the n_th element
-  float GetErrX(int n) const;
+  float getErrX(int n) const;
   /// Returns the z position of the COG for the n_th element
-  float GetZcog(int n) const;
+  float getZCOG(int n) const;
   /// Returns the error on the z position of the COG for the n_th element
-  float GetErrZ(int n) const;
+  float getErrZ(int n) const;
   /// Returns the hash of the n_th element
-  unsigned long GetHash(int n) const;
+  unsigned long getHash(int n) const;
   /// Returns the number of fired pixels of the n_th element
-  int GetNpixels(int n) const;
+  int getNpixels(int n) const;
   /// Returns true if the element corresponds to a group of rare topologies
-  inline bool IsGroup(int n) const
+  inline bool isGroup(int n) const
   {
     if (n >= (int)mVectorOfGroupIDs.size()) {
       if (mVectorOfGroupIDs.size()) { // produce error only if there is a real overflow
@@ -107,11 +107,11 @@ class TopologyDictionary
 
   /// Returns the pattern of the topology
   ClusterPattern
-    GetPattern(int n) const;
+    getPattern(int n) const;
   /// Returns the frequency of the n_th element;
-  double GetFrequency(int n) const;
+  double getFrequency(int n) const;
   /// Returns the number of elements in the dicionary;
-  int GetSize() const { return (int)mVectorOfGroupIDs.size(); }
+  int getSize() const { return (int)mVectorOfGroupIDs.size(); }
   ///Returns the local position of a compact cluster
   Point3D<float> getClusterCoordinates(const CompCluster& cl) const;
   ///Returns the local position of a compact cluster
