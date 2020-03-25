@@ -38,7 +38,9 @@ o2_target_root_dictionary(MCHSimulation
                                   include/MCHSimulation/Hit.h
                                   include/MCHSimulation/Response.h)
 
-o2_data_file(COPY data DESTINATION Detectors/MCH/simulation)
+INSTALL(DIRECTORY data DESTINATION share/Detectors/MCH/simulation)
+				
+#o2_data_file(COPY data DESTINATION Detectors/MCH/simulation)
 
 if(BUILD_TESTING)
   add_subdirectory(test)
