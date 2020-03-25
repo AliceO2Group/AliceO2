@@ -30,10 +30,10 @@ class Response
   Response(Station station);
   ~Response() = default;
 
-  float getQspreadX() { return mQspreadX; };
-  float getQspreadY() { return mQspreadY; };
-  float getFCtoADC() { return mFCtoADC; };
-  float getChargeThreshold() { return mChargeThreshold; };
+  const float getQspreadX() { return mQspreadX; };
+  const float getQspreadY() { return mQspreadY; };
+  const float getFCtoADC() { return mFCtoADC; };
+  const float getChargeThreshold() { return mChargeThreshold; };
   float etocharge(float edepos);
   double chargePadfraction(float xmin, float xmax, float ymin, float ymax);
   double chargefrac1d(float min, float max, double k2, double sqrtk3, double k4);
@@ -90,7 +90,8 @@ class Response
 
   //anode-cathode Pitch in 1/cm
   float mInversePitch = 0.0;
-
+  float mPitch =0.0;
+  
   //maximal bit number
   int mMaxADC = (1 << 12) - 1;
   //TODO: introduce equivalent for O2

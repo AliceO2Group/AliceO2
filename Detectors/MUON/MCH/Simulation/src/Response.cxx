@@ -31,6 +31,7 @@ Response::Response(Station station) : mStation(station)
     mSqrtK3y = 0.7550;
     mK4y = 0.38658194;
     mInversePitch = 1. / 0.21; // ^cm-1
+    mPitch = 0.21;
     mChargeSlope = 25.;        //from AliMUONResponsefactory, 1 in AliMUONConstants
     mQspreadX = 0.144;
     mQspreadY = 0.144;
@@ -43,6 +44,7 @@ Response::Response(Station station) : mStation(station)
     mSqrtK3y = 0.7642;
     mK4y = 0.38312571;
     mInversePitch = 1. / 0.25; // cm^-1
+    mPitch = 0.25;
     mChargeSlope = 10.;
     mQspreadX = 0.18;
     mQspreadY = 0.18;
@@ -73,7 +75,7 @@ float Response::etocharge(float edepos)
       arg = gRandom->Rndm();
     charge -= mChargeSlope * TMath::Log(arg);
   }
-  //no translation to fC, as in Aliroot
+  //no translation to fC as in Aliroot
   return charge;
 }
 //_____________________________________________________________________
@@ -122,9 +124,9 @@ unsigned long Response::response(unsigned long adc)
 //______________________________________________________________________
 float Response::getAnod(float x)
 {
-  int n = Int_t(x * mInversePitch); //is it wrong?
+  int n = Int_t(x * mInversePitch);
   float wire = (x > 0) ? n + 0.5 : n - 0.5;
-  return wire / mInversePitch; //fixed 20.03.
+  return wire * mPitch;
 }
 //______________________________________________________________________
 float Response::chargeCorr()

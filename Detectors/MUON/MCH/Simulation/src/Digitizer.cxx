@@ -62,7 +62,7 @@ bool isStation1(int detID)
 
 Response& response(bool isStation1)
 {
-  static std::array<Response, 2> resp = {Response(Station::Type1), Response(Station::Type2345)};
+  static std::array<Response, 2> resp = {Response(Station::Type2345), Response(Station::Type1)};
   return resp[isStation1];
 }
 
