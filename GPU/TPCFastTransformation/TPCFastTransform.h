@@ -149,6 +149,8 @@ class TPCFastTransform : public FlatObject
 
   GPUd() float convTimeToZinTimeFrame(int slice, float time, float maxTimeBin) const;
   GPUd() float convZtoTimeInTimeFrame(float z, float maxTimeBin) const;
+  GPUd() float convDeltaTimeToDeltaZinTimeFrame(int slice, float deltaTime) const;
+  GPUd() float convDeltaZtoDeltaTimeInTimeFrame(int slice, float deltaZ) const;
 
   GPUd() void getTOFcorrection(int slice, int row, float x, float y, float z, float& dz) const;
 
@@ -408,6 +410,18 @@ GPUdi() float TPCFastTransform::convZtoTimeInTimeFrame(float z, float maxTimeBin
   z = z - getGeometry().getTPCalignmentZ(); // global TPC alignment
   float v = fabs(z);
   return mT0 + maxTimeBin + (v - mLdriftCorr) / mVdrift;
+}
+
+GPUdi() float TPCFastTransform::convDeltaTimeToDeltaZinTimeFrame(int slice, float deltaTime) const
+{
+  float deltaZ = deltaTime * mVdrift;
+  return slice < getGeometry().getNumberOfSlicesA() ? -deltaZ : deltaZ;
+}
+
+GPUdi() float TPCFastTransform::convDeltaZtoDeltaTimeInTimeFrame(int slice, float deltaZ) const
+{
+  float deltaT = deltaZ / mVdrift;
+  return slice < getGeometry().getNumberOfSlicesA() ? -deltaT : deltaT;
 }
 
 GPUdi() float TPCFastTransform::getLastCalibratedTimeBin(int slice) const
