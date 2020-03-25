@@ -14,6 +14,7 @@
 #define O2_ITS_CLUSTERWRITER
 
 #include "TFile.h"
+#include "TTree.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -37,6 +38,7 @@ class ClusterWriter : public Task
   int mState = 0;
   bool mUseMC = true;
   std::unique_ptr<TFile> mFile = nullptr;
+  std::unique_ptr<TTree> mTree = nullptr;
 };
 
 /// create a processor spec
