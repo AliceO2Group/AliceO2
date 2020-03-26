@@ -98,6 +98,7 @@ namespace gpu
 ///
 ///  --- See also Spline1D::test();
 ///
+template<class Tfloat>
 class Spline1D : public FlatObject
 {
  public:
@@ -109,19 +110,25 @@ class Spline1D : public FlatObject
     float Li; ///< inverse length of the [knot_i, knot_{i+1}] segment ( == 1.f/ a (small) integer number)
   };
 
+  enum 
+
   /// _____________  Version control __________________________
 
   /// Version number
   GPUhd() static constexpr int getVersion() { return 1; }
 
-  /// _____________  Constructors / destructors __________________________
+    /// _____________  Constructors / destructors __________________________
 
 #if !defined(GPUCA_GPUCODE)
   /// Default constructor. Creates a spline with 2 knots.
   Spline1D() : FlatObject() { constructKnotsRegular(2); }
 
   /// Constructor for an irregular spline.
-  Spline1D(int numberOfKnots, const int knots[]) : FlatObject() { constructKnots(numberOfKnots, knots); }
+  Spline1D(int numberOfKnots, const int knots[], bool useExternalParameters = 0)
+    : FlatObject()
+  {
+    constructKnots(numberOfKnots, knots);
+  }
 
   /// Constructor for a regular spline.
   Spline1D(int numberOfKnots) : FlatObject() { constructKnotsRegular(numberOfKnots); }
@@ -284,6 +291,7 @@ class Spline1D : public FlatObject
   float mXmin;        ///< X of the first knot
   float mXtoUscale;   ///< a scaling factor to convert X to U
   int* mUtoKnotMap;   ///< pointer to (integer U -> knot index) map inside the mFlatBufferPtr array
+  float* mParameters; ///< parameters of the spline
 };
 
 ///
