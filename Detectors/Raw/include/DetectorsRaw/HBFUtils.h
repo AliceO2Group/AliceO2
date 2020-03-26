@@ -152,13 +152,16 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   static bool checkRDH(const o2::header::RAWDataHeaderV4& rdh, bool verbose = true);
   static bool checkRDH(const o2::header::RAWDataHeaderV5& rdh, bool verbose = true);
 
-  static LinkSubSpec_t getSubSpec(uint16_t cru, uint8_t link, uint8_t endpoint);
-  static LinkSubSpec_t getSubSpec(const o2::header::RAWDataHeaderV4& rdh) { return getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID); }
-  static LinkSubSpec_t getSubSpec(const o2::header::RAWDataHeaderV5& rdh) { return getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID); }
+  static LinkSubSpec_t getSubSpec(uint16_t cru, uint8_t link, uint8_t endpoint, uint16_t feeId);
+  static LinkSubSpec_t getSubSpec(const o2::header::RAWDataHeaderV4& rdh) { return getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID, rdh.feeId); }
+  static LinkSubSpec_t getSubSpec(const o2::header::RAWDataHeaderV5& rdh) { return getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID, rdh.feeId); }
 
   int nHBFPerTF = 1 + 0xff; // number of orbits per BC
   uint16_t bcFirst = 0;     ///< BC of 1st TF
   uint32_t orbitFirst = 0;  ///< orbit of 1st TF
+
+ private:
+  static uint32_t fletcher32(const uint16_t* data, int len);
 
   O2ParamDef(HBFUtils, "HBFUtils");
 };
@@ -217,11 +220,17 @@ inline o2::header::RAWDataHeaderV5 HBFUtils::createRDH<o2::header::RAWDataHeader
 }
 
 //_____________________________________________________________________
-inline LinkSubSpec_t HBFUtils::getSubSpec(uint16_t cru, uint8_t link, uint8_t endpoint)
+inline LinkSubSpec_t HBFUtils::getSubSpec(uint16_t cru, uint8_t link, uint8_t endpoint, uint16_t feeId)
 {
+  /*
+  // RS Temporarily suppress this way since such a subspec does not define the TOF/TPC links in a unique way
   // define subspecification as in DataDistribution
   int linkValue = (LinkSubSpec_t(link) + 1) << (endpoint == 1 ? 8 : 0);
   return (LinkSubSpec_t(cru) << 16) | linkValue;
+  */
+  // RS Temporarily suppress this way since such a link is ambiguous
+  uint16_t seq[3] = {cru, uint16_t((uint16_t(link) << 8) | endpoint), feeId};
+  return fletcher32(seq, 3);
 }
 
 } // namespace raw
