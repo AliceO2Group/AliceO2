@@ -9,5 +9,24 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include <sys/stat.h>
 
-O2ParamImpl(o2::base::NameConf);
+bool pathExists(const std::string_view p)
+{
+  struct stat buffer;
+  return (stat(p.data(), &buffer) == 0);
+}
+
+using namespace o2::base;
+
+// Filename to store geometry file
+std::string NameConf::getGeomFileName(const std::string_view prefix)
+{
+  // check if the prefix is an existing path
+  const bool prefixispath = pathExists(prefix);
+  if (prefixispath) {
+    return o2::utils::concat_string(prefix, "/", STANDARDSIMPREFIX, "_", GEOM_STRING, ".root");
+  } else {
+    return o2::utils::concat_string(prefix.empty() ? STANDARDSIMPREFIX : prefix, "_", GEOM_STRING, ".root");
+  }
+}

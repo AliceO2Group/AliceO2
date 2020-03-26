@@ -9,9 +9,9 @@
 
 int initFieldFromGRP(const o2::parameters::GRPObject* grp);
 int initFieldFromGRP(const std::string grpFileName = "o2sim_grp.root", std::string grpName = "GRP");
-int initSimGeom(std::string geomFileName = "O2geometry.root", std::string geomName = "FAIRGeom");
+int initSimGeom(std::string geomFileName = "o2sim_geometry.root", std::string geomName = "FAIRGeom");
 
-int initSimGeomAndField(std::string geomFileName = "O2geometry.root", std::string grpFileName = "o2sim_grp.root",
+int initSimGeomAndField(std::string geomFileName = "o2sim_geometry.root", std::string grpFileName = "o2sim_grp.root",
                         std::string geomName = "FAIRGeom", std::string grpName = "GRP")
 {
   int res = 0;
