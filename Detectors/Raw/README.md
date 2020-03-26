@@ -128,6 +128,11 @@ This `SubSpecification` is used to define the DPL InputSpecs (and match the Outp
 An `exception` will be thrown if 2 different link (i.e. with different RDH.feeId) of the same detector will be found to have the same SubSpec (i.e. the same cruID, linkID and PCIe EndPoint).
 Also, an `exception` is thrown if the block expected to be a RDH fails to be recognized as RDH.
 
+TEMPORARY UPDATE: given that some detectors (e.g. TOF, TPC) at the moment cannot guarantee a unique (within a given run) mapping FEEID <-> {cruID, linkID, EndPoint},
+the `SubSpecification` defined by the DataDistribution may mix data of different links (FEEDs) to single DPL input.
+To avoid this, the `SubSpecification` definition is temporarily changed to a 32 bit hash code (Fletcher32). When the new RDHv6 (with source ID) will be put in production, both
+DataDistribution and RawFileReader will be able to assign the `SubSpecification` in a consistent way, as a combination of FEEID and SourceID.
+
 Since the raw data (RDH) does not contain any explicit information equivalent to `o2::header::DataOrigin` and `o2::header::DataDescription` needed to create a valid DPL `OutputSpec`,
 for every raw data file provided to the `RawFileReader` the user can attach either explicitly needed origin and/or description, or to use default ones (which also can be modified by the user).
 By default, `RawFileReader` assumes `o2::header::gDataOriginFLP` and `o2::header::gDataDescriptionRawData` (leading to `FLP/RAWDATA` OutputSpec).

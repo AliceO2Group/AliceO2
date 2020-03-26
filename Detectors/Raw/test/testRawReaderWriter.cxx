@@ -95,7 +95,7 @@ struct SimpleRawWriter { // simple class to create detector payload for multiple
           } else {
             buffer.clear();
           }
-          writer.addData(icru, il, 0, ir, buffer);
+          writer.addData((icru << 8) + il, icru, il, 0, ir, buffer);
         }
       }
     }
