@@ -16,10 +16,105 @@ namespace framework
 namespace data_matcher
 {
 
+DataOutputDescriptor::DataOutputDescriptor(std::string sin)
+{
+  // sin is an item consisting of 4 parts which are separated by a ':'
+  // "origin/description/subSpec:treename:col1/col2/col3:filename"
+  // the 1st part is used to create a DataDescriptorMatcher
+  // the other parts are used to fill treename, colnames, and filename
+  // remove all spaces
+  auto s = remove_ws(sin);
+
+  // reset
+  treename = "";
+  colnames.clear();
+  filename = "";
+
+  // analyze the  parts of the input string
+  static const std::regex delim1(":");
+  std::sregex_token_iterator end;
+  std::sregex_token_iterator iter1(s.begin(),
+                                   s.end(),
+                                   delim1,
+                                   -1);
+
+  // create the DataDescriptorMatcher
+  if (iter1 == end)
+    return;
+  auto a = iter1->str();
+  matcher = DataDescriptorQueryBuilder::buildNode(a);
+
+  // get the table name
+  auto m = DataDescriptorQueryBuilder::getTokens(a);
+  if (!std::string(m[2]).empty())
+    tablename = m[2];
+
+  // get the tree name
+  // defaul tree name is the table name
+  treename = tablename;
+  ++iter1;
+  if (iter1 == end)
+    return;
+  if (!iter1->str().empty())
+    treename = iter1->str();
+
+  // get column names
+  ++iter1;
+  if (iter1 == end)
+    return;
+  if (!iter1->str().empty()) {
+    auto cns = iter1->str();
+
+    static const std::regex delim2("/");
+    std::sregex_token_iterator iter2(cns.begin(),
+                                     cns.end(),
+                                     delim2,
+                                     -1);
+    for (; iter2 != end; ++iter2)
+      if (!iter2->str().empty())
+        colnames.emplace_back(iter2->str());
+  }
+
+  // get the filename
+  ++iter1;
+  if (iter1 == end)
+    return;
+  if (!iter1->str().empty())
+    filename = iter1->str();
+}
+
+std::string DataOutputDescriptor::getFilename()
+{
+  return (filename.empty() && dfnptr) ? (std::string)*dfnptr : filename;
+}
+
+void DataOutputDescriptor::printOut()
+{
+  LOG(INFO) << "DataOutputDescriptor";
+  LOG(INFO) << "  table name: " << tablename;
+  LOG(INFO) << "  file name : " << getFilename();
+  LOG(INFO) << "  tree name : " << treename;
+  if (colnames.empty()) {
+    LOG(INFO) << "  columns   : all";
+  } else {
+    LOG(INFO) << "  columns   : " << colnames.size();
+  }
+  for (auto cn : colnames)
+    LOG(INFO) << "  " << cn;
+}
+
+std::string DataOutputDescriptor::remove_ws(const std::string& s)
+{
+  std::string s_wns;
+  for (auto c : s)
+    if (!std::isspace(c))
+      s_wns += c;
+  return s_wns;
+}
+
 DataOutputDirector::DataOutputDirector()
 {
   defaultfname = std::string("");
-  dfnptr = &defaultfname;
 }
 
 void DataOutputDirector::reset()
@@ -105,20 +200,11 @@ void DataOutputDirector::readSpecs(std::vector<InputSpec> inputs)
 
 std::tuple<std::string, std::string, int> DataOutputDirector::readJson(std::string const& fnjson)
 {
-  using namespace rapidjson;
-  std::string smc(":");
-  std::string slh("/");
-
-  // initialisations
-  std::string dfn("");
-  std::string fmode("");
-  int ntfm = -1;
-
   // open the file
   FILE* f = fopen(fnjson.c_str(), "r");
   if (!f) {
     LOG(INFO) << "Could not open JSON file " << fnjson;
-    return std::make_tuple(dfn, fmode, ntfm);
+    return std::make_tuple(std::string(""), std::string(""), -1);
   }
 
   // create streamer
@@ -128,10 +214,39 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJson(std::stri
   // parse the json file
   Document doc;
   doc.ParseStream(is);
-  if (!doc.HasParseError()) {
+  auto [dfn, fmode, ntfm] = readJsonDocument(&doc);
+
+  // clean up
+  fclose(f);
+
+  return std::make_tuple(dfn, fmode, ntfm);
+}
+
+std::tuple<std::string, std::string, int> DataOutputDirector::readJsonString(std::string const& stjson)
+{
+  // parse the json string
+  Document doc;
+  doc.Parse(stjson.c_str());
+  auto [dfn, fmode, ntfm] = readJsonDocument(&doc);
+
+  return std::make_tuple(dfn, fmode, ntfm);
+}
+
+std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(Document* doc)
+{
+  std::string smc(":");
+  std::string slh("/");
+
+  // initialisations
+  std::string dfn("");
+  std::string fmode("");
+  int ntfm = -1;
+
+  // is it a proper json document?
+  if (!doc->HasParseError()) {
 
     // OutputDirector
-    const Value& dod = doc["OutputDirector"];
+    const Value& dod = (*doc)["OutputDirector"];
     if (dod.IsObject()) {
 
       // loop over the dod members
@@ -144,8 +259,10 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJson(std::stri
         // check possible items
         if (std::strcmp(itemname, "resfile") == 0) {
           // default result file name
-          if (v.IsString())
+          if (v.IsString()) {
             dfn = v.GetString();
+            setDefaultfname(dfn);
+          }
         } else if (std::strcmp(itemname, "resfilemode") == 0) {
           // open mode for result file
           if (v.IsString())
@@ -170,12 +287,8 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJson(std::stri
                 if (od.HasMember("columns")) {
                   if (od["columns"].IsArray()) {
                     auto cs = od["columns"].GetArray();
-                    for (auto& c : cs) {
-                      if (c == cs[0])
-                        s += c.GetString();
-                      else
-                        s += slh + c.GetString();
-                    }
+                    for (auto& c : cs)
+                      s += (c == cs[0]) ? c.GetString() : slh + c.GetString();
                   }
                 }
                 s += smc;
@@ -190,14 +303,11 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJson(std::stri
         }
       }
     } else {
-      LOG(INFO) << "Couldn't find an OutputDirector in " << fnjson;
+      LOG(INFO) << "Couldn't find an OutputDirector in JSON document";
     }
   } else {
-    LOG(INFO) << "Problem with JSON file " << fnjson;
+    LOG(INFO) << "Problem with JSON document";
   }
-
-  // clean up
-  fclose(f);
 
   return std::make_tuple(dfn, fmode, ntfm);
 }

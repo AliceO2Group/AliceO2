@@ -40,123 +40,26 @@ struct DataOutputDescriptor {
   std::vector<std::string> colnames;
   std::unique_ptr<DataDescriptorMatcher> matcher;
 
-  DataOutputDescriptor(std::string sin)
-  {
-    // sin is an item consisting of 4 parts which are separated by a ':'
-    // "origin/description/subSpec:treename:col1/col2/col3:filename"
-    // the 1st part is used to create a DataDescriptorMatcher
-    // the other parts are used to fill treename, colnames, and filename
-    // remove all spaces
-    auto s = remove_ws(sin);
-
-    // reset
-    treename = "";
-    colnames.clear();
-    filename = "";
-
-    // analyze the  parts of the input string
-    static const std::regex delim1(":");
-    std::sregex_token_iterator end;
-    std::sregex_token_iterator iter1(s.begin(),
-                                     s.end(),
-                                     delim1,
-                                     -1);
-
-    // create the DataDescriptorMatcher
-    if (iter1 == end)
-      return;
-    auto a = iter1->str();
-    matcher = DataDescriptorQueryBuilder::buildNode(a);
-
-    // get the table name
-    auto m = DataDescriptorQueryBuilder::getTokens(a);
-    if (!std::string(m[2]).empty())
-      tablename = m[2];
-
-    // get the tree name
-    // defaul tree name is the table name
-    treename = tablename;
-    ++iter1;
-    if (iter1 == end)
-      return;
-    if (!iter1->str().empty())
-      treename = iter1->str();
-
-    // get column names
-    ++iter1;
-    if (iter1 == end)
-      return;
-    if (!iter1->str().empty()) {
-      auto cns = iter1->str();
-
-      static const std::regex delim2("/");
-      std::sregex_token_iterator iter2(cns.begin(),
-                                       cns.end(),
-                                       delim2,
-                                       -1);
-      for (; iter2 != end; ++iter2)
-        if (!iter2->str().empty())
-          colnames.emplace_back(iter2->str());
-    }
-
-    // get the filename
-    ++iter1;
-    if (iter1 == end)
-      return;
-    if (!iter1->str().empty())
-      filename = iter1->str();
-  }
+  DataOutputDescriptor(std::string sin);
 
   void setFilename(std::string fn) { filename = fn; }
   void setFilename(std::string* fnptr) { dfnptr = fnptr; }
-  std::string getFilename()
-  {
-    if (filename.empty() && dfnptr)
-      return (std::string)*dfnptr;
-    else
-      return filename;
-  }
+  std::string getFilename();
 
-  void printOut()
-  {
-    LOG(INFO) << "DataOutputDescriptor";
-    LOG(INFO) << "  table name: " << tablename.c_str();
-    LOG(INFO) << "  file name : " << getFilename().c_str();
-    LOG(INFO) << "  tree name : " << treename.c_str();
-    if (colnames.size() == 0)
-      LOG(INFO) << "  columns   : all";
-    else
-      LOG(INFO) << "  columns   : " << colnames.size();
-    for (auto cn : colnames)
-      LOG(INFO) << "  " << cn.c_str();
-  }
-
-  std::string remove_ws(const std::string& s)
-  {
-    std::string s_wns;
-    for (auto c : s)
-      if (!std::isspace(c))
-        s_wns += c;
-    return s_wns;
-  }
+  void printOut();
 
  private:
   std::string filename;
   std::string* dfnptr = nullptr;
+  
+  std::string remove_ws(const std::string& s);
 };
 
+using namespace rapidjson;
 struct DataOutputDirector {
-
-  int ndod = 0;
-  std::string defaultfname;
-  std::string* dfnptr;
-  std::vector<DataOutputDescriptor*> dodescrs;
-
-  std::vector<std::string> tnfns;
-
-  std::vector<std::string> fnames;
-  std::vector<int> fcnts;
-  std::vector<TFile*> fouts;
+  /// Holds a list of DataOutputDescriptor and a list of output files
+  /// Provides functionality to access the matching DataOutputDescriptor
+  /// and the related output file
 
   DataOutputDirector();
   void reset();
@@ -171,6 +74,7 @@ struct DataOutputDirector {
 
   // fill the DataOutputDirector with information from a json file
   std::tuple<std::string, std::string, int> readJson(std::string const& fnjson);
+  std::tuple<std::string, std::string, int> readJsonString(std::string const& stjson);
 
   // get matching DataOutputDescriptors
   std::vector<DataOutputDescriptor*> getDataOutputDescriptors(header::DataHeader dh);
@@ -184,6 +88,19 @@ struct DataOutputDirector {
   void setDefaultfname(std::string dfn);
 
   void printOut();
+  
+  private:
+  int ndod = 0;
+  std::string defaultfname;
+  std::string* const dfnptr = &defaultfname;
+  std::vector<DataOutputDescriptor*> dodescrs;
+  std::vector<std::string> tnfns;
+  std::vector<std::string> fnames;
+  std::vector<int> fcnts;
+  std::vector<TFile*> fouts;
+
+  std::tuple<std::string, std::string, int> readJsonDocument(Document* doc);
+
 };
 
 } // namespace data_matcher
