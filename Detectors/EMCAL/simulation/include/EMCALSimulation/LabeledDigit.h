@@ -36,7 +36,7 @@ class LabeledDigit
   LabeledDigit() = default;
 
   LabeledDigit(Digit digit, o2::emcal::MCLabel label);
-  LabeledDigit(Short_t tower, Double_t energy, Double_t time, o2::emcal::MCLabel label);
+  LabeledDigit(Short_t tower, Double_t amplitudeGeV, Double_t time, o2::emcal::MCLabel label, ChannelType_t ctype = ChannelType_t::HIGH_GAIN);
   ~LabeledDigit() = default; // override
 
   void setDigit(Digit d) { mDigit = d; }
@@ -68,8 +68,29 @@ class LabeledDigit
   void setTower(Short_t tower) { mDigit.setTower(tower); }
   Short_t getTower() const { return mDigit.getTower(); }
 
-  void setEnergy(Double_t energy) { mDigit.setEnergy(energy); }
-  Double_t getEnergy() const { return mDigit.getEnergy(); }
+  void setAmplitude(Double_t amplitude) { mDigit.setAmplitude(amplitude); } // GeV
+  Double_t getAmplitude() const { return mDigit.getAmplitude(); }
+
+  void setEnergy(Double_t energy) { setAmplitude(energy); }
+  Double_t getEnergy() { return getAmplitude(); }
+
+  void setAmplitudeADC(Short_t amplitude, ChannelType_t ctype = ChannelType_t::HIGH_GAIN) { mDigit.setAmplitudeADC(amplitude, ctype); }
+  Int_t getAmplitudeADC(ChannelType_t ctype = ChannelType_t::HIGH_GAIN) const { return mDigit.getAmplitudeADC(ctype); }
+
+  void setType(ChannelType_t ctype) { mDigit.setType(ctype); }
+  ChannelType_t getType() const { return mDigit.getType(); }
+
+  void setHighGain() { mDigit.setHighGain(); }
+  Bool_t getHighGain() const { return mDigit.getHighGain(); }
+
+  void setLowGain() { mDigit.setLowGain(); }
+  Bool_t getLowGain() const { return mDigit.getLowGain(); }
+
+  void setTRU() { mDigit.setTRU(); }
+  Bool_t getTRU() const { return mDigit.getTRU(); }
+
+  void setLEDMon() { mDigit.setLEDMon(); }
+  Bool_t getLEDMon() const { return mDigit.getLEDMon(); }
 
   void PrintStream(std::ostream& stream) const;
 
