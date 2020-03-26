@@ -116,9 +116,9 @@ class Digitizer : public TObject
   std::vector<int> mTimeBinOffset;                            // offset of first time bin
   std::vector<std::vector<double>> mAmplitudeInTimeBins;      // amplitude of signal for each time bin
 
-  float mLiveTime = 1500; // EMCal live time (ns)
-  float mBusyTime = 0;    // EMCal busy time (ns)
-  int mDelay = 0;         // number of (full) time bins corresponding to the signal time delay
+  float mLiveTime = 1500;  // EMCal live time (ns)
+  float mBusyTime = 35000; // EMCal busy time (ns)
+  int mDelay = 7;          // number of (full) time bins corresponding to the signal time delay
 
   ClassDefOverride(Digitizer, 1);
 };
