@@ -51,7 +51,7 @@ struct DataOutputDescriptor {
  private:
   std::string filename;
   std::string* dfnptr = nullptr;
-  
+
   std::string remove_ws(const std::string& s);
 };
 
@@ -88,8 +88,8 @@ struct DataOutputDirector {
   void setDefaultfname(std::string dfn);
 
   void printOut();
-  
-  private:
+
+ private:
   int ndod = 0;
   std::string defaultfname;
   std::string* const dfnptr = &defaultfname;
@@ -100,7 +100,6 @@ struct DataOutputDirector {
   std::vector<TFile*> fouts;
 
   std::tuple<std::string, std::string, int> readJsonDocument(Document* doc);
-
 };
 
 } // namespace data_matcher
