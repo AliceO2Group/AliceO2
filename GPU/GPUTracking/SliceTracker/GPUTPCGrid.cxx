@@ -28,9 +28,9 @@ void MEM_LG(GPUTPCGrid)::CreateEmpty()
   mZMin = 0.f;
   mZMax = 1.f;
 
-  mNy = 0;
-  mNz = 0;
-  mN = 0;
+  mNy = 1;
+  mNz = 1;
+  mN = 1;
 
   mStepYInv = 1.f;
   mStepZInv = 1.f;
@@ -75,12 +75,12 @@ GPUd() int MEM_LG(GPUTPCGrid)::GetBinBounded(float Y, float Z) const
   //* get the bin pointer
   const int yBin = static_cast<int>((Y - mYMin) * mStepYInv);
   const int zBin = static_cast<int>((Z - mZMin) * mStepZInv);
-  const int bin = zBin * mNy + yBin;
-  if (bin < 0) {
-    return 0;
-  }
+  int bin = zBin * mNy + yBin;
   if (bin >= static_cast<int>(mN)) {
-    return mN - 1;
+    bin = mN - 1;
+  }
+  if (bin < 0) {
+    bin = 0;
   }
   return bin;
 }
@@ -93,16 +93,19 @@ GPUd() void MEM_LG(GPUTPCGrid)::GetBin(float Y, float Z, int* const bY, int* con
   int bbY = (int)((Y - mYMin) * mStepYInv);
   int bbZ = (int)((Z - mZMin) * mStepZInv);
 
+  if (bbY >= (int)mNy) {
+    bbY = mNy - 1;
+  }
   if (bbY < 0) {
     bbY = 0;
-  } else if (bbY >= (int)mNy) {
-    bbY = mNy - 1;
+  }
+  if (bbZ >= (int)mNz) {
+    bbZ = mNz - 1;
   }
   if (bbZ < 0) {
     bbZ = 0;
-  } else if (bbZ >= (int)mNz) {
-    bbZ = mNz - 1;
   }
+
   *bY = (unsigned int)bbY;
   *bZ = (unsigned int)bbZ;
 }
@@ -116,15 +119,17 @@ GPUd() void MEM_LG(GPUTPCGrid)::GetBinArea(float Y, float Z, float dy, float dz,
   Z -= mZMin;
   int bz = (int)((Z - dz) * mStepZInv);
   nz = (int)((Z + dz) * mStepZInv) - bz;
+  if (by >= (int)mNy) {
+    by = mNy - 1;
+  }
   if (by < 0) {
     by = 0;
-  } else if (by >= (int)mNy) {
-    by = mNy - 1;
+  }
+  if (bz >= (int)mNz) {
+    bz = mNz - 1;
   }
   if (bz < 0) {
     bz = 0;
-  } else if (bz >= (int)mNz) {
-    bz = mNz - 1;
   }
   if (by + ny >= (int)mNy) {
     ny = mNy - 1 - by;
