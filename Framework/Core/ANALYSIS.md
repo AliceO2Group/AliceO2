@@ -386,7 +386,7 @@ combinations(filter, tracks, covs); // equivalent to combinations(CombinationsFu
 
 ### Saving tables to file
 
-Produced tables can be saved to file as TTrees. This process is customized by various command line options of the internal-dpl-AOD-writer. The options allow to specify which columns of which table are saved to which tree in which file.
+Produced tables can be saved to file as TTrees. This process is customized by various command line options of the internal-dpl-aod-writer. The options allow to specify which columns of which table are saved to which tree in which file.
 
 **Please be aware, that the functionality of these options is preliminary and might be changed in future.**
 
@@ -413,7 +413,7 @@ Each `DataOuputDescription` is a colon-separated list of 4 items
 ```csh
 table:tree:columns:file
 ```
-and instructs the internal-dpl-AOD-writer, to save the columns `columns` of table `table` as TTree `tree` into files `file_x.root`, where `x` is an incremental number. The selected columns are saved as separate TBranches of TTree `tree`.
+and instructs the internal-dpl-aod-writer, to save the columns `columns` of table `table` as TTree `tree` into files `file_x.root`, where `x` is an incremental number. The selected columns are saved as separate TBranches of TTree `tree`.
 
 By default `x` is incremented with every time frame. This behavior can be modified with the command line option `--ntfmerge`. The value of `ntfmerge` specifies the number of time frames to merge into one file. 
 
@@ -454,11 +454,11 @@ this case all dangling output tables are saved. For the parameters `tree`, `colu
 
 #### --json-file
 
-`json-file` specifies the name of a json-file which contains the full information needed to customize the behavior of the internal-dpl-AOD-writer. It can replace the other three options completely. Nevertheless, currently all options are supported ([see also discussion below](#redundancy)).
+`json-file` specifies the name of a json-file which contains the full information needed to customize the behavior of the internal-dpl-aod-writer. It can replace the other three options completely. Nevertheless, currently all options are supported ([see also discussion below](#redundancy)).
 
-An example file is shown in the highlighted field below. The relevant information is
-contained in an json object `OutputDirector`. The `OutputDirector` can include three
-different items:
+An example file is shown in the highlighted field below. The relevant
+information is contained in an json object `OutputDirector`. The
+`OutputDirector` can include three different items:
 
   1. `resfile` is a string and corresponds to the `res-file` command line option  
   2.`ntfmerge` is an integer and corresponds to the `ntfmerge` command line option  

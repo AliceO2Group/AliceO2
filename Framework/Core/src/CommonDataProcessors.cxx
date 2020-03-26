@@ -347,12 +347,12 @@ DataProcessorSpec
   }; // end of writerFunction
 
   DataProcessorSpec spec{
-    "internal-dpl-AOD-writer",
+    "internal-dpl-aod-writer",
     OutputInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),
     {{"json-file", VariantType::String, "", {"Name of the json configuration file"}},
-     {"res-file", VariantType::String, "", {"Name of the output file"}},
+     {"res-file", VariantType::String, "", {"Default name of the output file"}},
      {"res-mode", VariantType::String, "", {"Creation mode of the result files: NEW, CREATE, RECREATE, UPDATE"}},
      {"ntfmerge", VariantType::Int, -1, {"Number of time frames to merge into one file"}},
      {"keep", VariantType::String, "", {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION:treename:col1/col2/..:filename"}}}};
