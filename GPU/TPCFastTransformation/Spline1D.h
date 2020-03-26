@@ -281,6 +281,8 @@ class Spline1D : public FlatObject
 
   int mNumberOfKnots; ///< n knots on the grid
   int mUmax;          ///< U of the last knot
+  float mXmin;        ///< X of the first knot
+  float mXtoUscale;   ///< a scaling factor to convert X to U
   int* mUtoKnotMap;   ///< pointer to (integer U -> knot index) map inside the mFlatBufferPtr array
 };
 
