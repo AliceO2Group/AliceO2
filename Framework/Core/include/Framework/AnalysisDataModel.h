@@ -287,9 +287,10 @@ DECLARE_SOA_COLUMN(Fired, fired, uint8_t, "fFired");
 } // namespace zdc
 
 DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", zdc::CollisionId,
+                  zdc::ZEM1Energy, zdc::ZEM2Energy,
                   zdc::ZNCTowerEnergy, zdc::ZNATowerEnergy, zdc::ZPCTowerEnergy, zdc::ZPATowerEnergy,
                   zdc::ZNCTowerEnergyLR, zdc::ZNATowerEnergyLR, zdc::ZPCTowerEnergyLR, zdc::ZPATowerEnergyLR,
-                  zdc::ZEM1Energy, zdc::ZEM2Energy, zdc::Fired);
+                  zdc::Fired);
 using Zdc = Zdcs::iterator;
 
 namespace vzero
