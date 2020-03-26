@@ -148,9 +148,9 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
     auto xmin = (localX - seg.padPositionX(padid)) - dx;
-    auto xmax = xmin + dx;
+    auto xmax = xmin + 2 * dx;
     auto ymin = (localY - seg.padPositionY(padid)) - dy;
-    auto ymax = ymin + dy;
+    auto ymax = ymin + 2 * dy;
     auto q = resp.chargePadfraction(xmin, xmax, ymin, ymax);
     if (resp.aboveThreshold(q)) {
       if (seg.isBendingPad(padid)) {
