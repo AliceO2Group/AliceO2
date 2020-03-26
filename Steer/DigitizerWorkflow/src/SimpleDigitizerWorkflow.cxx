@@ -326,7 +326,6 @@ bool isMasterWorkflowDefinition(ConfigContext const& configcontext)
   auto argv = configcontext.argv();
   bool ismaster = true;
   for (int argi = 0; argi < argc; ++argi) {
-    LOG(INFO) << argi << " " << argv[argi];
     // when channel-config is present it means that this is started as
     // as FairMQDevice which means it is already a forked process
     if (strcmp(argv[argi], "--channel-config")) {
@@ -377,7 +376,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // update the digitization configuration with the right geometry file
   // we take the geometry from the first simPrefix (could actually check if they are
   // all compatible)
-  auto geomfilename = o2::conf::NameConf::getGeomFileName(simPrefixes[0]);
+  auto geomfilename = o2::base::NameConf::getGeomFileName(simPrefixes[0]);
   ConfigurableParam::setValue("DigiParams.digitizationgeometry", geomfilename);
 
   // write the configuration used for the digitizer workflow

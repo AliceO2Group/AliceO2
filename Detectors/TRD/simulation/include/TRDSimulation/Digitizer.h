@@ -44,8 +44,10 @@ using SignalContainer = std::unordered_map<int, SignalArray>;
 class Digitizer
 {
  public:
-  Digitizer();
+  Digitizer() = default;
   ~Digitizer() = default;
+  void init(); // setup everything
+
   void process(std::vector<HitType> const&, DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
   void setEventTime(double timeNS) { mTime = timeNS; }
   void setEventID(int entryID) { mEventID = entryID; }
