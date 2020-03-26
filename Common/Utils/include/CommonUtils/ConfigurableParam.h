@@ -180,13 +180,17 @@ class ConfigurableParam
   template <typename T>
   static void setValue(std::string const& mainkey, std::string const& subkey, T x)
   {
-    auto key = mainkey + "." + subkey;
-    if (sPtree->get_optional<std::string>(key).is_initialized()) {
-      sPtree->put(key, x);
-      auto changed = updateThroughStorageMap(mainkey, subkey, typeid(T), (void*)&x);
-      if (changed) {
-        sValueProvenanceMap->find(key)->second = kRT; // set to runtime
+    try {
+      auto key = mainkey + "." + subkey;
+      if (sPtree->get_optional<std::string>(key).is_initialized()) {
+        sPtree->put(key, x);
+        auto changed = updateThroughStorageMap(mainkey, subkey, typeid(T), (void*)&x);
+        if (changed) {
+          sValueProvenanceMap->find(key)->second = kRT; // set to runtime
+        }
       }
+    } catch (std::exception const& e) {
+      std::cerr << "Error in setValue (T) " << e.what() << "\n";
     }
   }
 
@@ -194,12 +198,16 @@ class ConfigurableParam
   // which means that the type will be converted internally
   static void setValue(std::string const& key, std::string const& valuestring)
   {
-    if (sPtree->get_optional<std::string>(key).is_initialized()) {
-      sPtree->put(key, valuestring);
-      auto changed = updateThroughStorageMapWithConversion(key, valuestring);
-      if (changed) {
-        sValueProvenanceMap->find(key)->second = kRT; // set to runtime
+    try {
+      if (sPtree->get_optional<std::string>(key).is_initialized()) {
+        sPtree->put(key, valuestring);
+        auto changed = updateThroughStorageMapWithConversion(key, valuestring);
+        if (changed) {
+          sValueProvenanceMap->find(key)->second = kRT; // set to runtime
+        }
       }
+    } catch (std::exception const& e) {
+      std::cerr << "Error in setValue (string) " << e.what() << "\n";
     }
   }
 
@@ -207,7 +215,7 @@ class ConfigurableParam
   static void setArrayValue(const std::string&, const std::string&);
 
   // update the storagemap from a vector of key/value pairs, calling setValue for each pair
-  static void setValues(std::vector<std::pair<std::string, std::string>> keyValues);
+  static void setValues(std::vector<std::pair<std::string, std::string>> const& keyValues);
 
   // initializes the parameter database
   static void initialize();

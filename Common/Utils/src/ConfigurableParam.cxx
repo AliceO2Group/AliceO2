@@ -96,7 +96,16 @@ std::vector<std::string> splitString(const std::string& src, char delim, bool tr
 // Does the given key exist in the boost property tree?
 bool keyInTree(boost::property_tree::ptree* pt, std::string key)
 {
-  return pt->get_optional<std::string>(key).is_initialized();
+  if (key.size() == 0 || pt == nullptr) {
+    return false;
+  }
+  bool reply = false;
+  try {
+    reply = pt->get_optional<std::string>(key).is_initialized();
+  } catch (std::exception const& e) {
+    LOG(ERROR) << "ConfigurableParam: Exception when checking for key " << key << " : " << e.what();
+  }
+  return reply;
 }
 
 // ------------------------------------------------------------------
@@ -237,6 +246,8 @@ boost::property_tree::ptree ConfigurableParam::readINI(std::string const& filepa
     boost::property_tree::read_ini(filepath, pt);
   } catch (const boost::property_tree::ptree_error& e) {
     LOG(FATAL) << "Failed to read INI config file " << filepath << " (" << e.what() << ")";
+  } catch (...) {
+    LOG(FATAL) << "Unknown error when reading INI config file ";
   }
 
   return pt;
@@ -397,19 +408,28 @@ void ConfigurableParam::updateFromFile(std::string const& configFile)
 
   std::vector<std::pair<std::string, std::string>> keyValPairs;
 
-  for (auto& section : pt) {
-    std::string mainKey = section.first;
-    for (auto& subKey : section.second) {
-      auto name = subKey.first;
-      auto value = subKey.second.get_value<std::string>();
-      std::string key = mainKey + "." + name;
-
-      std::pair<std::string, std::string> pair = std::make_pair(key, trimSpace(value));
-      keyValPairs.push_back(pair);
+  try {
+    for (auto& section : pt) {
+      std::string mainKey = section.first;
+      for (auto& subKey : section.second) {
+        auto name = subKey.first;
+        auto value = subKey.second.get_value<std::string>();
+        std::string key = mainKey + "." + name;
+        std::pair<std::string, std::string> pair = std::make_pair(key, trimSpace(value));
+        keyValPairs.push_back(pair);
+      }
     }
+  } catch (std::exception const& error) {
+    LOG(ERROR) << "Error while updating params " << error.what();
+  } catch (...) {
+    LOG(ERROR) << "Unknown while updating params ";
   }
 
-  setValues(keyValPairs);
+  try {
+    setValues(keyValPairs);
+  } catch (std::exception const& error) {
+    LOG(ERROR) << "Error while setting values " << error.what();
+  }
 }
 
 // ------------------------------------------------------------------
@@ -475,10 +495,10 @@ void ConfigurableParam::updateFromString(std::string const& configString)
 
 // setValues takes a vector of pairs where each pair is a key and value
 // to be set in the storage map
-void ConfigurableParam::setValues(std::vector<std::pair<std::string, std::string>> keyValues)
+void ConfigurableParam::setValues(std::vector<std::pair<std::string, std::string>> const& keyValues)
 {
   auto isArray = [](std::string& el) {
-    return (el.at(0) == '[') && (el.at(el.size() - 1) == ']');
+    return el.size() > 0 && (el.at(0) == '[') && (el.at(el.size() - 1) == ']');
   };
 
   // Take a vector of param key/value pairs
