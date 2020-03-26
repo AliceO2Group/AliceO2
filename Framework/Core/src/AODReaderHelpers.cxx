@@ -336,61 +336,27 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         LOG(ERROR) << "File not found: " + f;
         return;
       }
-
-      /// FIXME: Substitute here the actual data you want to convert for the AODReader
-      if (readMask & AODTypeMask::Collisions) {
-        std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2collisions", infile.get());
-        auto& collisionBuilder = outputs.make<TableBuilder>(Output{"AOD", "COLLISION"});
-        RootTableBuilderHelpers::convertASoA<o2::aod::Collisions>(collisionBuilder, *reader);
-      }
-
-      if (readMask & AODTypeMask::Tracks) {
-        std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2tracks", infile.get());
-        auto& trackParBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKPAR"});
-        RootTableBuilderHelpers::convertASoA<o2::aod::Tracks>(trackParBuilder, *reader);
-      }
-
-      if (readMask & AODTypeMask::TracksCov) {
-        std::unique_ptr<TTreeReader> covReader = std::make_unique<TTreeReader>("O2tracks", infile.get());
-        auto& trackParCovBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKPARCOV"});
-        RootTableBuilderHelpers::convertASoA<o2::aod::TracksCov>(trackParCovBuilder, *covReader);
-      }
-
-      if (readMask & AODTypeMask::TracksExtra) {
-        std::unique_ptr<TTreeReader> extraReader = std::make_unique<TTreeReader>("O2tracks", infile.get());
-        auto& extraBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKEXTRA"});
-        RootTableBuilderHelpers::convertASoA<o2::aod::TracksExtra>(extraBuilder, *extraReader);
-      }
-
-      if (readMask & AODTypeMask::Calo) {
-        std::unique_ptr<TTreeReader> extraReader = std::make_unique<TTreeReader>("O2calo", infile.get());
-        auto& extraBuilder = outputs.make<TableBuilder>(Output{"AOD", "CALO"});
-        RootTableBuilderHelpers::convertASoA<o2::aod::Calos>(extraBuilder, *extraReader);
-      }
-
-      if (readMask & AODTypeMask::Muon) {
-        std::unique_ptr<TTreeReader> muReader = std::make_unique<TTreeReader>("O2muon", infile.get());
-        auto& muBuilder = outputs.make<TableBuilder>(Output{"AOD", "MUON"});
-        RootTableBuilderHelpers::convertASoA<o2::aod::Muons>(muBuilder, *muReader);
-      }
-
-      if (readMask & AODTypeMask::VZero) {
-        std::unique_ptr<TTreeReader> vzReader = std::make_unique<TTreeReader>("O2vzero", infile.get());
-        auto& vzBuilder = outputs.make<TableBuilder>(Output{"AOD", "VZERO"});
-        RootTableBuilderHelpers::convertASoA<o2::aod::VZeros>(vzBuilder, *vzReader);
-      }
-
-      if (readMask & AODTypeMask::Zdc) {
-        std::unique_ptr<TTreeReader> zdcReader = std::make_unique<TTreeReader>("O2zdc", infile.get());
-        auto& zdcBuilder = outputs.make<TableBuilder>(Output{"AOD", "ZDC"});
-        RootTableBuilderHelpers::convertASoA<o2::aod::Zdc>(zdcBuilder, *zdcReader);
-      }
-
-      if (readMask & AODTypeMask::Trigger) {
-        std::unique_ptr<TTreeReader> triggerReader = std::make_unique<TTreeReader>("O2trigger", infile.get());
-        auto& triggerBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRIGGER"});
-        RootTableBuilderHelpers::convertASoA<o2::aod::Trigger>(triggerBuilder, *triggerReader);
-      }
+      auto tableMaker = [&infile, &readMask, &outputs, &f](auto metadata, AODTypeMask mask, char const* treeName) {
+        if (readMask & mask) {
+          using table_t = typename decltype(metadata)::table_t;
+          std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>(treeName, infile.get());
+          if (reader->IsInvalid()) {
+            LOGP(ERROR, "Requested {} tree not found in file {}", treeName, f);
+          } else {
+            auto& builder = outputs.make<TableBuilder>(Output{decltype(metadata)::origin(), decltype(metadata)::description()});
+            RootTableBuilderHelpers::convertASoA<table_t>(builder, *reader);
+          }
+        }
+      };
+      tableMaker(o2::aod::CollisionsMetadata{}, AODTypeMask::Collisions, "O2collisions");
+      tableMaker(o2::aod::TracksMetadata{}, AODTypeMask::Tracks, "O2tracks");
+      tableMaker(o2::aod::TracksCovMetadata{}, AODTypeMask::TracksCov, "O2tracks");
+      tableMaker(o2::aod::TracksExtraMetadata{}, AODTypeMask::TracksExtra, "O2tracks");
+      tableMaker(o2::aod::CalosMetadata{}, AODTypeMask::Calo, "O2calo");
+      tableMaker(o2::aod::MuonsMetadata{}, AODTypeMask::Muon, "O2muon");
+      tableMaker(o2::aod::VZerosMetadata{}, AODTypeMask::VZero, "O2vzero");
+      tableMaker(o2::aod::ZdcsMetadata{}, AODTypeMask::Zdc, "O2zdc");
+      tableMaker(o2::aod::TriggersMetadata{}, AODTypeMask::Trigger, "O2trigger");
 
       // tables not included in the DataModel
       if (readMask & AODTypeMask::Unknown) {
