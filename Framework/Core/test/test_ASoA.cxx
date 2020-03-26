@@ -457,9 +457,9 @@ BOOST_AUTO_TEST_CASE(TestDereference)
 
   TableBuilder builderA2;
   auto infoWriter = builderA2.cursor<Infos>();
-  infoWriter(0, 0, 1);
-  infoWriter(0, 1, 0);
-  infoWriter(0, 4, 1);
+  infoWriter(0, 0, true);
+  infoWriter(0, 1, false);
+  infoWriter(0, 4, true);
   auto infosT = builderA2.finalize();
   Infos infos{infosT};
   BOOST_REQUIRE_EQUAL(infos.begin().someBool(), true);
