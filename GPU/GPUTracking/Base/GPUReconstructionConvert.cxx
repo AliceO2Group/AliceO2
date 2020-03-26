@@ -306,6 +306,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
         if (page && (k >= tmpBuffer.size() || endpoint != lastEndpoint)) {
 #ifdef GPUCA_O2_LIB
           if (raw) {
+            const int rawfeeid = (rawcru << 7) | (rawendpoint << 6) | rawlnk;
             raw->addData(rawfeeid, rawcru, rawlnk, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + TPCZSHDR::TPC_ZS_PAGE_SIZE), true);
           } else
 #endif
