@@ -49,11 +49,11 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,         
                                     int caClusterer = 0                           //
 );
 
-framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,           //
-                                    bool propagateMC = true, unsigned nLanes = 1, //
-                                    std::string const& cfgInput = "digitizer",    //
-                                    std::string const& cfgOutput = "tracks",      //
-                                    int caClusterer = 0                           //
+static inline framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,           //
+                                                  bool propagateMC = true, unsigned nLanes = 1, //
+                                                  std::string const& cfgInput = "digitizer",    //
+                                                  std::string const& cfgOutput = "tracks",      //
+                                                  int caClusterer = 0                           //
 )
 {
   // create a default lane configuration with ids [0, nLanes-1]
@@ -62,10 +62,10 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,         
   return getWorkflow(tpcSectors, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer);
 }
 
-framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1, //
-                                    std::string const& cfgInput = "digitizer",    //
-                                    std::string const& cfgOutput = "tracks",      //
-                                    int caClusterer = 0                           //
+static inline framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1, //
+                                                  std::string const& cfgInput = "digitizer",    //
+                                                  std::string const& cfgOutput = "tracks",      //
+                                                  int caClusterer = 0                           //
 )
 {
   // create a default lane configuration with ids [0, nLanes-1]
