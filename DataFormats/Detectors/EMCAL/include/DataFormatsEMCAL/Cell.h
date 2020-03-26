@@ -48,6 +48,9 @@ class Cell
   void setEnergy(Double_t energy);
   Double_t getEnergy() const;
 
+  void setAmplitude(Double_t energy) { setEnergy(energy); }
+  Double_t getAmplitude() const { return getEnergy(); }
+
   void setType(ChannelType_t ctype);
   ChannelType_t getType() const;
 

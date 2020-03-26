@@ -121,8 +121,8 @@ void Digitizer::process(const std::vector<Hit>& hits)
         }
 
         MCLabel label(hit.GetTrackID(), mCurrEvID, mCurrSrcID, false, 1.0);
-        if (digit.getEnergy() == 0)
-          label.setEnergyFraction(0);
+        if (digit.getAmplitude() == 0)
+          label.setAmplitudeFraction(0);
         LabeledDigit d(digit, label);
         mDigits[id].push_back(d);
       }
@@ -194,9 +194,9 @@ void Digitizer::setEventTime(double t)
 //_______________________________________________________________________
 void Digitizer::addNoiseDigits(LabeledDigit& d1)
 {
-  double energy = d1.getEnergy();
+  double amplitude = d1.getAmplitude();
   double sigma = mSimParam->getPinNoise();
-  if (energy > constants::EMCAL_HGLGTRANSITION * constants::EMCAL_ADCENERGY) {
+  if (amplitude > constants::EMCAL_HGLGTRANSITION * constants::EMCAL_ADCENERGY) {
     sigma = mSimParam->getPinNoiseLG();
   }
 
@@ -235,9 +235,9 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits, o2::dataformats:
         addNoiseDigits(ld1);
       }
 
-      if (mRemoveDigitsBelowThreshold && (ld1.getEnergy() < mSimParam->getDigitThreshold() * (constants::EMCAL_ADCENERGY)))
+      if (mRemoveDigitsBelowThreshold && (ld1.getAmplitude() < mSimParam->getDigitThreshold() * (constants::EMCAL_ADCENERGY)))
         continue;
-      if (ld1.getEnergy() < 0)
+      if (ld1.getAmplitude() < 0)
         continue;
       if (ld1.getTimeStamp() >= mSimParam->getLiveTime())
         continue;

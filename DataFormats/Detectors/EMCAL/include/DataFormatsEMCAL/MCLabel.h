@@ -26,14 +26,14 @@ namespace emcal
 class MCLabel : public o2::MCCompLabel
 {
  private:
-  Double_t mEnergyFraction;
+  Double_t mAmplitudeFraction;
 
  public:
   MCLabel() = default;
-  MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, Bool_t fake, Double_t efraction) : o2::MCCompLabel(trackID, eventID, srcID, fake), mEnergyFraction(efraction) {}
-  MCLabel(Bool_t noise, Double_t efraction) : o2::MCCompLabel(noise), mEnergyFraction(efraction) {}
-  void setEnergyFraction(Double_t efraction) { mEnergyFraction = efraction; }
-  Double_t getEnergyFraction() const { return mEnergyFraction; }
+  MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, Bool_t fake, Double_t afraction) : o2::MCCompLabel(trackID, eventID, srcID, fake), mAmplitudeFraction(afraction) {}
+  MCLabel(Bool_t noise, Double_t afraction) : o2::MCCompLabel(noise), mAmplitudeFraction(afraction) {}
+  void setAmplitudeFraction(Double_t afraction) { mAmplitudeFraction = afraction; }
+  Double_t getAmplitudeFraction() const { return mAmplitudeFraction; }
 
   ClassDefNV(MCLabel, 1);
 };
