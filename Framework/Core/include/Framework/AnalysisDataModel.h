@@ -274,34 +274,38 @@ namespace zdc
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(ZEM1Energy, zem1Energy, float, "fZEM1Energy");
 DECLARE_SOA_COLUMN(ZEM2Energy, zem2Energy, float, "fZEM2Energy");
-// FIXME: arrays...
-// DECLARE_SOA_COLUMN(ZNCTowerEnergy, zncTowerEnergy, float[5], "fZNCTowerEnergy");
-// DECLARE_SOA_COLUMN(ZNATowerEnergy, znaTowerEnergy, float[5], "fZNATowerEnergy");
-// DECLARE_SOA_COLUMN(ZPCTowerEnergy, zpcTowerEnergy, float[5], "fZPCTowerEnergy");
-// DECLARE_SOA_COLUMN(ZPATowerEnergy, zpaTowerEnergy, float[5], "fZPATowerEnergy");
-// DECLARE_SOA_COLUMN(ZNCTowerEnergyLR, zncTowerEnergyLR, float[5], "fZNCTowerEnergyLR");
-// DECLARE_SOA_COLUMN(ZNATowerEnergyLR, znaTowerEnergyLR, float[5], "fZNATowerEnergyLR");
-// DECLARE_SOA_COLUMN(ZPCTowerEnergyLR, zpcTowerEnergyLR, float[5], "fZPCTowerEnergyLR");
-// DECLARE_SOA_COLUMN(ZPATowerEnergyLR, zpaTowerEnergyLR, float[5], "fZPATowerEnergyLR");
-// DECLARE_SOA_COLUMN(fZDCTDCCorrected, fZDCTDCCorrected, float[32][4], "fZDCTDCCorrected");
+DECLARE_SOA_COLUMN(ZNCTowerEnergy, zncTowerEnergy, float[5], "fZNCTowerEnergy");
+DECLARE_SOA_COLUMN(ZNATowerEnergy, znaTowerEnergy, float[5], "fZNATowerEnergy");
+DECLARE_SOA_COLUMN(ZPCTowerEnergy, zpcTowerEnergy, float[5], "fZPCTowerEnergy");
+DECLARE_SOA_COLUMN(ZPATowerEnergy, zpaTowerEnergy, float[5], "fZPATowerEnergy");
+DECLARE_SOA_COLUMN(ZNCTowerEnergyLR, zncTowerEnergyLR, float[5], "fZNCTowerEnergyLR");
+DECLARE_SOA_COLUMN(ZNATowerEnergyLR, znaTowerEnergyLR, float[5], "fZNATowerEnergyLR");
+DECLARE_SOA_COLUMN(ZPCTowerEnergyLR, zpcTowerEnergyLR, float[5], "fZPCTowerEnergyLR");
+DECLARE_SOA_COLUMN(ZPATowerEnergyLR, zpaTowerEnergyLR, float[5], "fZPATowerEnergyLR");
+//DECLARE_SOA_COLUMN(fZDCTDCCorrected, fZDCTDCCorrected, float[32][4], "fZDCTDCCorrected");
 DECLARE_SOA_COLUMN(Fired, fired, uint8_t, "fFired");
 } // namespace zdc
 
-DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", zdc::CollisionId, zdc::ZEM1Energy, zdc::ZEM2Energy, zdc::Fired);
+DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", zdc::CollisionId,
+                  zdc::ZEM1Energy, zdc::ZEM2Energy,
+                  zdc::ZNCTowerEnergy, zdc::ZNATowerEnergy, zdc::ZPCTowerEnergy, zdc::ZPATowerEnergy,
+                  zdc::ZNCTowerEnergyLR, zdc::ZNATowerEnergyLR, zdc::ZPCTowerEnergyLR, zdc::ZPATowerEnergyLR,
+                  zdc::Fired);
 using Zdc = Zdcs::iterator;
 
 namespace vzero
 {
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-// FIXME: add missing arrays...
-// DECLARE_SOA_COLUMN(Adc, adc, float[64], "fAdc");
-// DECLARE_SOA_COLUMN(Time, time, float[64], "fTime");
-// DECLARE_SOA_COLUMN(Width, width, float[64], "fWidth");
+DECLARE_SOA_COLUMN(Adc, adc, float[64], "fAdc");
+DECLARE_SOA_COLUMN(Time, time, float[64], "fTime");
+DECLARE_SOA_COLUMN(Width, width, float[64], "fWidth");
 DECLARE_SOA_COLUMN(BBFlag, bbFlag, uint64_t, "fBBFlag");
 DECLARE_SOA_COLUMN(BGFlag, bgFlag, uint64_t, "fBGFlag");
 } // namespace vzero
 
-DECLARE_SOA_TABLE(VZeros, "AOD", "VZERO", vzero::CollisionId, vzero::BBFlag, vzero::BGFlag);
+DECLARE_SOA_TABLE(VZeros, "AOD", "VZERO", vzero::CollisionId,
+                  vzero::Adc, vzero::Time, vzero::Width,
+                  vzero::BBFlag, vzero::BGFlag);
 using VZero = VZeros::iterator;
 
 namespace v0
