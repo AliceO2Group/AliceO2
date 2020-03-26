@@ -196,7 +196,7 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderMore)
   BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::int32()->id());
   BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::float32()->id());
   BOOST_REQUIRE_EQUAL(table->column(2)->type()->id(), arrow::utf8()->id());
-  BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::int8()->id());
+  BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::boolean()->id());
 }
 
 // Use RDataFrame to build the table

@@ -69,7 +69,7 @@ struct ConversionTraits<T[N]> {
   };
 
 // FIXME: for now we use Int8 to store booleans
-O2_ARROW_STL_CONVERSION(bool, Int8Type)
+O2_ARROW_STL_CONVERSION(bool, BooleanType)
 O2_ARROW_STL_CONVERSION(int8_t, Int8Type)
 O2_ARROW_STL_CONVERSION(int16_t, Int16Type)
 O2_ARROW_STL_CONVERSION(int32_t, Int32Type)
@@ -183,6 +183,28 @@ struct BuilderMaker {
 
   template <int N>
   static arrow::Status append(BuilderType& builder, std::array<T, N>& value)
+  {
+    return builder.Append(value);
+  }
+};
+
+template <>
+struct BuilderMaker<bool> {
+  using FillType = bool;
+  using ArrowType = typename detail::ConversionTraits<bool>::ArrowType;
+  using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
+
+  static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
+  {
+    return std::make_unique<BuilderType>(pool);
+  }
+
+  static std::shared_ptr<arrow::DataType> make_datatype()
+  {
+    return arrow::TypeTraits<ArrowType>::type_singleton();
+  }
+
+  static arrow::Status append(BuilderType& builder, bool value)
   {
     return builder.Append(value);
   }
