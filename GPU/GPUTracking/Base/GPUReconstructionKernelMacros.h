@@ -34,11 +34,16 @@
 #ifndef GPUCA_KRNL_REG
 #define GPUCA_KRNL_REG(...)
 #endif
+#ifndef GPUCA_KRNL_CUSTOM
+#define GPUCA_KRNL_CUSTOM(...)
+#endif
 #ifndef GPUCA_KRNL_BACKEND_XARGS
 #define GPUCA_KRNL_BACKEND_XARGS
 #endif
 #define GPUCA_ATTRRES_REG(reg, num, ...) GPUCA_KRNL_REG(num) GPUCA_ATTRRES2(__VA_ARGS__)
 #define GPUCA_ATTRRES2_REG(reg, num, ...) GPUCA_KRNL_REG(num) GPUCA_ATTRRES3(__VA_ARGS__)
+#define GPUCA_ATTRRES_CUSTOM(custom, args, ...) GPUCA_KRNL_CUSTOM(args) GPUCA_ATTRRES2(__VA_ARGS__)
+#define GPUCA_ATTRRES2_CUSTOM(custom, args, ...) GPUCA_KRNL_CUSTOM(args) GPUCA_ATTRRES3(__VA_ARGS__)
 #define GPUCA_ATTRRES_NONE(...)
 #define GPUCA_ATTRRES2_NONE(...)
 #define GPUCA_ATTRRES_(...)
