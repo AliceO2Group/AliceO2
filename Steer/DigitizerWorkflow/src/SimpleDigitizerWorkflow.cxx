@@ -317,6 +317,26 @@ bool helpOnCommandLine(ConfigContext const& configcontext)
   return helpasked;
 }
 
+// Finding out if the current process is the master DPL driver process,
+// first setting up the topology. Might be important to know when we write
+// files (to prevent that multiple processes write the same file)
+bool isMasterWorkflowDefinition(ConfigContext const& configcontext)
+{
+  int argc = configcontext.argc();
+  auto argv = configcontext.argv();
+  bool ismaster = true;
+  for (int argi = 0; argi < argc; ++argi) {
+    LOG(INFO) << argi << " " << argv[argi];
+    // when channel-config is present it means that this is started as
+    // as FairMQDevice which means it is already a forked process
+    if (strcmp(argv[argi], "--channel-config")) {
+      ismaster = false;
+      break;
+    }
+  }
+  return ismaster;
+}
+
 // ------------------------------------------------------------------
 
 /// This function is required to be implemented to define the workflow
@@ -326,21 +346,20 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // check if we merely construct the topology to create help options
   // if this is the case we don't need to read from GRP
   bool helpasked = helpOnCommandLine(configcontext);
+  bool ismaster = isMasterWorkflowDefinition(configcontext);
 
   // Reserve one entry which fill be filled with the SimReaderSpec
   // at the end. This places the processor at the beginning of the
   // workflow in the upper left corner of the GUI.
   WorkflowSpec specs(1);
 
-  o2::conf::ConfigurableParam::updateFromFile(configcontext.options().get<std::string>("configFile"));
+  using namespace o2::conf;
+  ConfigurableParam::updateFromFile(configcontext.options().get<std::string>("configFile"));
 
   // Update the (declared) parameters if changed from the command line
   // Note: In the future this should be done only on a dedicated processor managing
   // the parameters and then propagated automatically to all devices
-  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-
-  // write the configuration used for the digitizer workflow
-  o2::conf::ConfigurableParam::writeINI("o2digitizerworkflow_configuration.ini");
+  ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   // which sim productions to overlay and digitize
   auto simPrefixes = splitString(configcontext.options().get<std::string>("sims"), ',');
@@ -353,6 +372,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (!grp) {
       return WorkflowSpec{};
     }
+  }
+
+  // update the digitization configuration with the right geometry file
+  // we take the geometry from the first simPrefix (could actually check if they are
+  // all compatible)
+  auto geomfilename = o2::conf::NameConf::getGeomFileName(simPrefixes[0]);
+  ConfigurableParam::setValue("DigiParams.digitizationgeometry", geomfilename);
+
+  // write the configuration used for the digitizer workflow
+  if (ismaster) {
+    o2::conf::ConfigurableParam::writeINI(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE));
   }
 
   // onlyDet takes precedence on skipDet
@@ -393,7 +423,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // the TPC part
   // we need to init this anyway since TPC is treated a bit special (for the moment)
-  if (!helpasked) {
+  if (!helpasked && ismaster) {
     initTPC();
   }
 

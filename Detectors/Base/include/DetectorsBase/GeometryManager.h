@@ -48,7 +48,7 @@ class GeometryManager : public TObject
 {
  public:
   ///< load geometry from file
-  static void loadGeometry(std::string geomFileName = "O2geometry.root", std::string geomName = "FAIRGeom");
+  static void loadGeometry(std::string geomFileName = "", std::string geomName = "FAIRGeom");
 
   ///< Get the global transformation matrix (ideal geometry) for a given alignable volume
   ///< The alignable volume is identified by 'symname' which has to be either a valid symbolic

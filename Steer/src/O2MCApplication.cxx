@@ -25,6 +25,7 @@
 #include <TGeoManager.h>
 #include <fstream>
 #include <FairVolume.h>
+#include <DetectorsCommonDataFormats/NameConf.h>
 
 namespace o2
 {
@@ -126,9 +127,9 @@ bool O2MCApplicationBase::MisalignGeometry()
   // we use this moment to stream our geometry (before other
   // VMC engine dependent modifications are done)
 
-  std::stringstream geomss;
-  geomss << "O2geometry.root";
-  gGeoManager->Export(geomss.str().c_str());
+  auto& confref = o2::conf::SimConfig::Instance();
+  auto geomfile = o2::base::NameConf::getGeomFileName(confref.getOutPrefix());
+  gGeoManager->Export(geomfile.c_str());
 
   // return original return value of misalignment procedure
   return b;
