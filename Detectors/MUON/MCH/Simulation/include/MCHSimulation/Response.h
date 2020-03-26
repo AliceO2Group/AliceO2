@@ -30,11 +30,11 @@ class Response
   Response(Station station);
   ~Response() = default;
 
-  const float getQspreadX() { return mQspreadX; };
-  const float getQspreadY() { return mQspreadY; };
-  const float getFCtoADC() { return mFCtoADC; };
-  const float getChargeThreshold() { return mChargeThreshold; };
-  const float getInverseChargeThreshold() { return mInverseChargeThreshold; };
+  float getQspreadX() const { return mQspreadX; };
+  float getQspreadY() const { return mQspreadY; };
+  float getFCtoADC() const { return mFCtoADC; };
+  float getChargeThreshold() const { return mChargeThreshold; };
+  float getInverseChargeThreshold() const { return mInverseChargeThreshold; };
   float etocharge(float edepos);
   double chargePadfraction(float xmin, float xmax, float ymin, float ymax);
   double chargefrac1d(float min, float max, double k2, double sqrtk3, double k4);
@@ -42,7 +42,7 @@ class Response
   float getAnod(float x);
   float chargeCorr();
   bool aboveThreshold(float charge) { return charge > mChargeThreshold; };
-  float getSigmaIntegration() { return mSigmaIntegration; };
+  float getSigmaIntegration() const { return mSigmaIntegration; };
   bool getIsSampa() { return mSampa; };
   void setIsSampa(bool isSampa = true) { mSampa = isSampa; };
 
