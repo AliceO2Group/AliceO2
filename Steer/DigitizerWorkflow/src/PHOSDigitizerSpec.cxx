@@ -26,6 +26,7 @@
 #include "DataFormatsPHOS/MCLabel.h"
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "DetectorsBase/GeometryManager.h"
+#include <SimConfig/DigiParams.h>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -39,7 +40,7 @@ void DigitizerSpec::init(framework::InitContext& ic)
 {
   // make sure that the geometry is loaded (TODO will this be done centrally?)
   if (!gGeoManager) {
-    o2::base::GeometryManager::loadGeometry();
+    o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
   }
   // run 3 geometry == run 2 geometry for PHOS
   // create singleton geometry
