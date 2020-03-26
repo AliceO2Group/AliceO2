@@ -19,8 +19,8 @@ LabeledDigit::LabeledDigit(Digit digit, o2::emcal::MCLabel label)
   mLabels.push_back(label);
 }
 
-LabeledDigit::LabeledDigit(Short_t tower, Double_t energy, Double_t time, o2::emcal::MCLabel label)
-  : mDigit(tower, energy, time)
+LabeledDigit::LabeledDigit(Short_t tower, Double_t amplitudeGeV, Double_t time, o2::emcal::MCLabel label, ChannelType_t ctype)
+  : mDigit(tower, amplitudeGeV, time, ctype)
 {
   mLabels.push_back(label);
 }
@@ -28,27 +28,27 @@ LabeledDigit::LabeledDigit(Short_t tower, Double_t energy, Double_t time, o2::em
 LabeledDigit& LabeledDigit::operator+=(const LabeledDigit& other)
 {
   if (canAdd(other)) {
-    Double_t e1 = getEnergy();
-    Double_t e2 = other.getEnergy();
-    Double_t r = (e1 + e2 != 0) ? 1 / (e1 + e2) : 0;
+    Int_t a1 = getAmplitudeADC();
+    Int_t a2 = other.getAmplitudeADC();
+    Double_t r = ((a1 + a2) != 0) ? 1.0 / (a1 + a2) : 0.0;
     mDigit += other.getDigit();
 
     for (int j = 0; j < mLabels.size(); j++) {
-      mLabels.at(j).setEnergyFraction(mLabels.at(j).getEnergyFraction() * e1 * r);
+      mLabels.at(j).setAmplitudeFraction(mLabels.at(j).getAmplitudeFraction() * a1 * r);
     }
 
     for (auto label : other.getLabels()) {
-      label.setEnergyFraction(label.getEnergyFraction() * e2 * r);
+      label.setAmplitudeFraction(label.getAmplitudeFraction() * a2 * r);
       mLabels.push_back(label);
     }
   }
-  // Does nothing if the digits are in different towers.
+  // Does nothing if the digits are in different towers or have incompatible times.
   return *this;
 }
 
 void LabeledDigit::PrintStream(std::ostream& stream) const
 {
-  stream << "EMCAL LabeledDigit: Tower " << getTower() << ", Time " << getTimeStamp() << ", Energy " << getEnergy() << ", Labels ( ";
+  stream << "EMCAL LabeledDigit: Tower " << getTower() << ", Time " << getTimeStamp() << ", Amplitude " << getAmplitude() << " GeV, Type " << getType() << ", Labels ( ";
   for (auto label : mLabels) {
     stream << label.getRawValue() << " ";
   }
