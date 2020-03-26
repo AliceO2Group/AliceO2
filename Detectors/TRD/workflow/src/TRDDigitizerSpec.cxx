@@ -28,6 +28,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/Calibrations.h"
 #include "DataFormatsTRD/TriggerRecord.h"
+#include "SimConfig/DigiParams.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -44,9 +45,10 @@ class TRDDPLDigitizerTask
   {
     LOG(INFO) << "initializing TRD digitization";
     if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
     }
-    LOG(INFO) << "initialed TRD digitization";
+    mDigitizer.init();
+    LOG(INFO) << "initialized TRD digitization";
   }
 
   void run(framework::ProcessingContext& pc)

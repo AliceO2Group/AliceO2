@@ -29,6 +29,7 @@
 #include "MIDSimulation/ChamberEfficiencyResponse.h"
 #include "MIDSimulation/Geometry.h"
 #include "MIDSimulation/MCLabel.h"
+#include <SimConfig/DigiParams.h>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -51,7 +52,7 @@ class MIDDPLDigitizerTask
     LOG(INFO) << "initializing MID digitization";
 
     if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
     }
 
     mDigitizer = std::make_unique<Digitizer>(createDefaultChamberResponse(), createDefaultChamberEfficiencyResponse(), createTransformationFromManager(gGeoManager));

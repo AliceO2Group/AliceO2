@@ -31,6 +31,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "TPCSimulation/SAMPAProcessing.h"
+#include "SimConfig/DigiParams.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -138,7 +139,7 @@ class TPCDPLDigitizerTask
     mDigitizer.setContinuousReadout(!triggeredMode);
 
     if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
     }
   }
 

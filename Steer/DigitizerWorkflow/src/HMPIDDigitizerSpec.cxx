@@ -27,6 +27,7 @@
 #include "HMPIDSimulation/Detector.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include <SimConfig/DigiParams.h>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -44,7 +45,7 @@ class HMPIDDPLDigitizerTask
   {
     LOG(INFO) << "initializing HMPID digitization";
     if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
     }
   }
 

@@ -30,9 +30,9 @@
 using namespace o2::trd;
 using namespace o2::math_utils;
 
-Digitizer::Digitizer()
+// init method for late initialization
+void Digitizer::init()
 {
-  o2::base::GeometryManager::loadGeometry();
   mGeo = TRDGeometry::instance();
   mGeo->createClusterMatrixArray();          // Requiered for chamberInGeometry()
   mPRF = new PadResponse();                  // Pad response function initialization

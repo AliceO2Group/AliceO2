@@ -19,7 +19,6 @@
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
 #include "DetectorsBase/GeometryManager.h"
-
 #include "TOFSimulation/Digitizer.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include <SimulationDataFormat/MCCompLabel.h>
@@ -27,6 +26,7 @@
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
 #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
 #include "TOFCalibration/CalibTOFapi.h"
+#include "SimConfig/DigiParams.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -197,7 +197,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
   auto initIt = [simChains, process, digitizer, labels](InitContext& ctx) {
     // make sure that the geometry is loaded (TODO will this be done centrally?)
     if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
     }
 
     // init digitizer
