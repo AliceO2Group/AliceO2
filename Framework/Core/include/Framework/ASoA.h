@@ -90,7 +90,7 @@ struct arrow_array_for {
 };
 template <>
 struct arrow_array_for<bool> {
-  using type = arrow::Int8Array;
+  using type = arrow::BooleanArray;
 };
 template <>
 struct arrow_array_for<int8_t> {
@@ -168,6 +168,8 @@ struct Flat {
 template <typename T, typename ChunkingPolicy = Chunked>
 class ColumnIterator : ChunkingPolicy
 {
+  static constexpr char SCALE_FACTOR = std::is_same_v<std::decay_t<T>, bool> ? 3 : 0;
+
  public:
   /// Constructor of the column iterator. Notice how it takes a pointer
   /// to the arrow::Column (for the data store) and to the index inside
@@ -200,8 +202,8 @@ class ColumnIterator : ChunkingPolicy
     mFirstIndex += previousArray->length();
     mCurrentChunk++;
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - mFirstIndex;
-    mLast = mCurrent + array->length() + mFirstIndex;
+    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
+    mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
   void prevChunk() const
@@ -211,8 +213,8 @@ class ColumnIterator : ChunkingPolicy
     mFirstIndex -= previousArray->length();
     mCurrentChunk--;
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - mFirstIndex;
-    mLast = mCurrent + array->length() + mFirstIndex;
+    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
+    mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
   void moveToChunk(int chunk)
@@ -236,18 +238,25 @@ class ColumnIterator : ChunkingPolicy
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
     assert(array.get());
     mFirstIndex = mColumn->length() - array->length();
-    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - mFirstIndex;
-    mLast = mCurrent + array->length() + mFirstIndex;
+    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
+    mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
-  T const& operator*() const
+  decltype(auto) operator*() const
   {
     if constexpr (ChunkingPolicy::chunked) {
-      if (O2_BUILTIN_UNLIKELY(((mCurrent + *mCurrentPos) >= mLast))) {
+      if (O2_BUILTIN_UNLIKELY(((mCurrent + (*mCurrentPos >> SCALE_FACTOR)) >= mLast))) {
         nextChunk();
       }
     }
-    return *(mCurrent + *mCurrentPos);
+    if constexpr (std::is_same_v<bool, std::decay_t<T>>) {
+      // FIXME: notice that due to the type punning we cannot simply convert the
+      //        masked char to a bool, because it's undefined behavior.
+      // FIXME: check if shifting the masked bit to the first position is better than != 0
+      return (*((char*)mCurrent + (*mCurrentPos >> SCALE_FACTOR)) & (1 << (*mCurrentPos & 0x7))) != 0;
+    } else {
+      return *(mCurrent + (*mCurrentPos >> SCALE_FACTOR));
+    }
   }
 
   // Move to the chunk which containts element pos
@@ -255,7 +264,7 @@ class ColumnIterator : ChunkingPolicy
   {
     // If we get outside range of the current chunk, go to the next.
     if constexpr (ChunkingPolicy::chunked) {
-      while (O2_BUILTIN_UNLIKELY((mCurrent + *mCurrentPos) >= mLast)) {
+      while (O2_BUILTIN_UNLIKELY((mCurrent + (*mCurrentPos >> SCALE_FACTOR)) >= mLast)) {
         nextChunk();
       }
     }
@@ -266,7 +275,7 @@ class ColumnIterator : ChunkingPolicy
   ColumnIterator<T>& checkNextChunk()
   {
     if constexpr (ChunkingPolicy::chunked) {
-      if (O2_BUILTIN_LIKELY((mCurrent + *mCurrentPos) <= mLast)) {
+      if (O2_BUILTIN_LIKELY((mCurrent + (*mCurrentPos >> SCALE_FACTOR)) <= mLast)) {
         return *this;
       }
       nextChunk();
@@ -975,7 +984,7 @@ template <typename INHERIT>
 class TableMetadata
 {
  public:
-  static constexpr char const* label() { return INHERIT::mLabel; }
+  static constexpr char const* const label() { return INHERIT::mLabel; }
   static constexpr char const (&origin())[4] { return INHERIT::mOrigin; }
   static constexpr char const (&description())[16] { return INHERIT::mDescription; }
 };
