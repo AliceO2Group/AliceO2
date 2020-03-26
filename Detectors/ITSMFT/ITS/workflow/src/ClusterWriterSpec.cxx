@@ -11,15 +11,11 @@
 /// @file   ClusterWriterSpec.cxx
 
 #include <vector>
-#include <map>
-
-#include "TTree.h"
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/ClusterWriterSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/ClusterTopology.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -39,6 +35,7 @@ void ClusterWriter::init(InitContext& ic)
     mState = 0;
     return;
   }
+  mTree = std::make_unique<TTree>("o2sim", "Tree with ITS clusters");
   mState = 1;
 }
 
@@ -48,7 +45,7 @@ void ClusterWriter::run(ProcessingContext& pc)
     return;
 
   auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
-  auto patterns = pc.inputs().get<const std::vector<o2::itsmft::ClusterTopology>>("patterns");
+  auto pspan = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
   auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
   auto* rofsPtr = &rofs;
@@ -60,20 +57,16 @@ void ClusterWriter::run(ProcessingContext& pc)
   LOG(INFO) << "ITSClusterWriter pulled " << clusters.size() << " clusters, in "
             << rofs.size() << " RO frames";
 
-  // This conversion vector -> map is just for the convenience of "offline" analyses
-  std::map<int, o2::itsmft::ClusterPattern> map;
-  o2::itsmft::ClusterTopology::makeRareTopologyMap(patterns, map);
-
-  TTree tree("o2sim", "Tree with ITS clusters");
-  tree.Branch("ITSClusterComp", &compClusters);
-  tree.Branch("ITSClusterPatt", &map);
-  tree.Branch("ITSCluster", &clusters);
-  tree.Branch("ITSClustersROF", &rofsPtr);
+  mTree->Branch("ITSClusterComp", &compClusters);
+  std::vector<unsigned char> patterns(pspan.begin(), pspan.end());
+  mTree->Branch("ITSClusterPatt", &patterns);
+  mTree->Branch("ITSCluster", &clusters);
+  mTree->Branch("ITSClustersROF", &rofsPtr);
 
   if (mUseMC) {
     labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
     plabels = labels.get();
-    tree.Branch("ITSClusterMCTruth", &plabels);
+    mTree->Branch("ITSClusterMCTruth", &plabels);
   }
 
   if (mUseMC) {
@@ -83,11 +76,12 @@ void ClusterWriter::run(ProcessingContext& pc)
     for (const auto& m2rv : m2rvec) {
       mc2rofs.push_back(m2rv);
     }
-    tree.Branch("ITSClustersMC2ROF", &mc2rofsPtr);
+    mTree->Branch("ITSClustersMC2ROF", &mc2rofsPtr);
   }
 
-  tree.Fill();
-  tree.Write();
+  mTree->Fill();
+  mTree->Write();
+  mTree.release()->Delete();
   mFile->Close();
 
   mState = 2;

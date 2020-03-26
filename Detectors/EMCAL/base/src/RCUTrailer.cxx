@@ -7,8 +7,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include <cfloat>
+#include <cmath>
 #include <iostream>
-#include <boost/format.hpp>
+#include <fmt/format.h>
 #include "CommonConstants/LHCConstants.h"
 #include "EMCALBase/RCUTrailer.h"
 
@@ -44,7 +46,7 @@ void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payload
   int trailerSize = (word & 0x7F);
 
   if (trailerSize < 2)
-    throw Error(Error::ErrorType_t::SIZE_INVALID, (boost::format("Invalid trailer size found (%d bytes) !") % (trailerSize * 4)).str().data());
+    throw Error(Error::ErrorType_t::SIZE_INVALID, fmt::format("Invalid trailer size found (%d bytes) !", trailerSize * 4).data());
   mTrailerSize = trailerSize;
 
   for (; trailerSize > 0; trailerSize--) {
@@ -112,10 +114,24 @@ double RCUTrailer::getTimeSample() const
       tSample = 8.;
       break;
     default:
-      throw Error(Error::ErrorType_t::SAMPLINGFREQ_INVALID, (boost::format("Invalid sampling frequency value %d !") % int(fq)).str().data());
+      throw Error(Error::ErrorType_t::SAMPLINGFREQ_INVALID, fmt::format("Invalid sampling frequency value %d !", int(fq)).data());
   }
 
   return tSample * o2::constants::lhc::LHCBunchSpacingNS * 1.e-9;
+}
+
+void RCUTrailer::setTimeSample(double timesample)
+{
+  int fq = 0;
+  if (std::abs(timesample - 50) < DBL_EPSILON)
+    fq = 0;
+  else if (std::abs(timesample - 100) < DBL_EPSILON)
+    fq = 1;
+  else if (std::abs(timesample - 200) < DBL_EPSILON)
+    fq = 2;
+  else
+    throw Error(Error::ErrorType_t::SAMPLINGFREQ_INVALID, fmt::format("invalid time sample: %f", timesample).data());
+  mAltroCFG2 = (mAltroCFG2 & 0x1F) | fq << 5;
 }
 
 double RCUTrailer::getL1Phase() const
@@ -123,9 +139,32 @@ double RCUTrailer::getL1Phase() const
   double tSample = getTimeSample(),
          phase = ((double)(mAltroCFG2 & 0x1F)) * o2::constants::lhc::LHCBunchSpacingNS * 1.e-9;
   if (phase >= tSample) {
-    throw Error(Error::ErrorType_t::L1PHASE_INVALID, (boost::format("Invalid L1 trigger phase (%e s (phase) >= %e s (sampling time)) !") % phase % tSample).str().data());
+    throw Error(Error::ErrorType_t::L1PHASE_INVALID, fmt::format("Invalid L1 trigger phase (%e s (phase) >= %e s (sampling time)) !", phase, tSample).data());
   }
   return phase;
+}
+
+void RCUTrailer::setL1Phase(double l1phase)
+{
+  int phase = l1phase / 25.;
+  mAltroCFG2 = (mAltroCFG2 & 0x1E0) | phase;
+}
+
+std::vector<uint32_t> RCUTrailer::encode() const
+{
+  std::vector<uint32_t> encoded;
+  encoded.emplace_back(mAltroCFG2 | 7 << 26);
+  encoded.emplace_back(mAltroCFG1 | 6 << 26);
+  encoded.emplace_back(mActiveFECsB | 5 << 26);
+  encoded.emplace_back(mActiveFECsA | 4 << 26);
+  encoded.emplace_back(mERRREG3 | 3 << 26);
+  encoded.emplace_back(mERRREG2 | 2 << 26);
+  encoded.emplace_back(mFECERRB >> 7 | (mFECERRA >> 7) << 13 | 1 << 26);
+
+  uint32_t lasttrailerword = 3 << 30 | mFirmwareVersion << 16 | mRCUId << 7 | encoded.size();
+  encoded.emplace_back(lasttrailerword);
+
+  return encoded;
 }
 
 void RCUTrailer::printStream(std::ostream& stream) const
