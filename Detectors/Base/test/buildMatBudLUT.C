@@ -15,6 +15,7 @@
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "DetectorsBase/MatLayerCyl.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include <TFile.h>
 #include <TSystem.h>
 #endif
@@ -27,7 +28,7 @@ bool testMBLUT(std::string lutName = "MatBud", std::string lutFile = "matbud.roo
 
 bool buildMatBudLUT(int nTst = 30, int maxLr = -1,
                     std::string outName = "MatBud", std::string outFile = "matbud.root",
-                    std::string geomName = "O2geometry.root");
+                    std::string geomName = "");
 
 struct LrData {
   float rMin = 0.f;
@@ -42,13 +43,13 @@ struct LrData {
 std::vector<LrData> lrData;
 void configLayers();
 
-bool buildMatBudLUT(int nTst, int maxLr, std::string outName, std::string outFile, std::string geomName)
+bool buildMatBudLUT(int nTst, int maxLr, std::string outName, std::string outFile, std::string geomNameInput)
 {
-
+  auto geomName = geomNameInput.empty() ? o2::base::NameConf::getGeomFileName() : geomNameInput;
   if (gSystem->AccessPathName(geomName.c_str())) { // if needed, create geometry
     std::cout << geomName << " does not exist. Will create it\n";
     gSystem->Exec("$O2_ROOT/bin/o2-sim -n 0");
-    geomName = "./O2geometry.root";
+    geomName = o2::base::NameConf::getGeomFileName();
   }
   o2::base::GeometryManager::loadGeometry(geomName);
   configLayers();

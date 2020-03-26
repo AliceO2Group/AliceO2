@@ -16,6 +16,8 @@
 #ifndef ALICEO2_STRINGUTILS_H
 #define ALICEO2_STRINGUTILS_H
 
+#include <sstream>
+
 namespace o2
 {
 namespace utils

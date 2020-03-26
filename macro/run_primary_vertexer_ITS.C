@@ -34,7 +34,7 @@ int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes
                              const std::string inputClustersITS = "o2clus_its.root",
                              const std::string inputGRP = "o2sim_grp.root",
                              const std::string simfilename = "o2sim_Kine.root",
-                             const std::string paramfilename = "O2geometry.root",
+                             const std::string paramfilename = "o2sim_geometry.root",
                              const std::string path = "./")
 {
   std::string gpuName;

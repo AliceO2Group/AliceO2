@@ -12,21 +12,18 @@
 #define ALICEO2_NAME_GENERATOR_H_
 
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "CommonUtils/ConfigurableParam.h"
-#include "CommonUtils/ConfigurableParamHelper.h"
 #include "CommonUtils/StringUtils.h"
 #include <string_view>
 
 /// \file NameConf.h
 /// \brief Definition of the Names Generator class
-
 namespace o2
 {
 namespace base
 {
-// class for book-keeping of the names for output files and trees
 
-class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
+// Class for standardization of the names for output files and trees
+class NameConf
 {
 
  public:
@@ -54,14 +51,23 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
     return o2::utils::concat_string(prefix, "_", KINE_STRING, ".root");
   }
 
+  // Filename to store geometry file
+  static std::string getGeomFileName(const std::string_view prefix = "");
+
+  // public standard TTree key (for MC ) -- not a function
+  static constexpr std::string_view MCTTREENAME = "o2sim"; // hardcoded
+
+  // standard name for digitization configuration output
+  static constexpr std::string_view DIGITIZATIONCONFIGFILE = "o2simdigitizerworkflow_configuration.ini";
+
  private:
+  // unmodifiable constants used to construct filenames etc
   static constexpr std::string_view STANDARDSIMPREFIX = "o2sim";
   static constexpr std::string_view HITS_STRING = "Hits";     // hardcoded
   static constexpr std::string_view DIGITS_STRING = "Digits"; // hardcoded
   static constexpr std::string_view GRP_STRING = "grp";       // hardcoded
   static constexpr std::string_view KINE_STRING = "Kine";     // hardcoded
-
-  O2ParamDef(NameConf, "NameConf");
+  static constexpr std::string_view GEOM_STRING = "geometry";
 };
 
 } // namespace base

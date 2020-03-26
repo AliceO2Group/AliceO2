@@ -25,6 +25,7 @@
 
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
+#include <DetectorsCommonDataFormats/NameConf.h>
 
 using namespace o2::detectors;
 using namespace o2::base;
@@ -444,8 +445,9 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
 void GeometryManager::loadGeometry(std::string geomFileName, std::string geomName)
 {
   ///< load geometry from file
-  LOG(INFO) << "Loading geometry " << geomName << " from " << geomFileName;
-  TFile flGeom(geomFileName.data());
+  auto fname = geomFileName.empty() ? o2::base::NameConf::getGeomFileName() : geomFileName;
+  LOG(INFO) << "Loading geometry " << geomName << " from " << fname;
+  TFile flGeom(fname.data());
   if (flGeom.IsZombie()) {
     LOG(FATAL) << "Failed to open file " << geomFileName;
   }

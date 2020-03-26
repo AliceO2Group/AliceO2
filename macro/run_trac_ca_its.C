@@ -53,7 +53,7 @@ using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 void run_trac_ca_its(std::string path = "./",
                      std::string outputfile = "o2trac_its.root",
-                     std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "O2geometry.root",
+                     std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "o2sim_geometry.root",
                      std::string inputGRP = "o2sim_grp.root")
 {
 

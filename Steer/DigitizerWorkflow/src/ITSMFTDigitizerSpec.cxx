@@ -29,6 +29,7 @@
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "MFTBase/GeometryTGeo.h"
+#include "SimConfig/DigiParams.h"
 #include <TGeoManager.h>
 #include <TChain.h>
 #include <TStopwatch.h>
@@ -65,7 +66,7 @@ class ITSMFTDPLDigitizerTask
 
     // make sure that the geometry is loaded (TODO will this be done centrally?)
     if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
     }
 
     // configure digitizer

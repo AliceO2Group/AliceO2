@@ -18,7 +18,7 @@ clsTPCNatFile='"o2clus_tpc_Native.root"'
 trcITSFile='"o2track_its.root"'
 trcTPCFile='"o2track_tpc.root"'
 matchFile='"o2match_itstpc.root"'
-geomFile='"O2geometry.root"'
+geomFile='"o2sim_geometry.root"'
 
 root -l -b -q $preload "$macroPath"/run_digi_all.C+\($rate,$digFile,$simFile,$parFile,$grpFile\) >& dig.log
 root -l -b -q $preload "$macroPath"/run_clus_its.C+\($clsITSFile,$digFile,$parFile\) >& clus_its.log

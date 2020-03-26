@@ -21,11 +21,13 @@ namespace o2
 {
 namespace conf
 {
-// Global parameters for digitization
 
+// Global parameters for digitization
 struct DigiParams : public o2::conf::ConfigurableParamHelper<DigiParams> {
 
   std::string ccdb = "http://ccdb-test.cern.ch:8080"; // URL for CCDB acces
+  std::string digitizationgeometry = "";              // with with geometry file to digitize -> leave empty as this needs to be filled by the digitizer workflow
+  std::string grpfile = "";                           // which GRP file to use --> leave empty as this needs to be filled by the digitizer workflow
 
   O2ParamDef(DigiParams, "DigiParams");
 };
