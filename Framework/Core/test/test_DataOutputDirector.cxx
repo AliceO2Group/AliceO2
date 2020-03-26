@@ -55,7 +55,9 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
   dh = DataHeader(DataDescription{"DUE"},
                   DataOrigin{"AOD"},
                   DataHeader::SubSpecificationType{0});
-  std::string jsonString("{\"OutputDirector\": {\"resfile\": \"defresults\", \"resfilemode\": \"RECREATE\", \"ntfmerge\": 10, \"OutputDescriptions\": [{\"table\": \"AOD/UNO/0\", \"columns\": [\"fEta1\",\"fMom1\"], \"treename\": \"uno\", \"filename\": \"unoresults\"}, {\"table\": \"AOD/DUE/0\", \"columns\": [\"fPhi2\"], \"treename\": \"due\"}]}}");
+  std::string jsonString(R"({"OutputDirector": {"resfile": "defresults", "resfilemode": "RECREATE", "ntfmerge": 10, "OutputDescriptions": [{"table": "AOD/UNO/0", "columns": ["fEta1","fMom1"], "treename": "uno", "filename": "unoresults"}, {"table": "AOD/DUE/0", "columns": ["fPhi2"], "treename": "due"}]}})");
+
+
 
   dod.reset();
   std::tie(dfn, fmode, ntf) = dod.readJsonString(jsonString);
@@ -75,32 +77,32 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
   // test json file reader
   std::string jsonFile("testO2config.json");
   std::ofstream jf(jsonFile, std::ofstream::out);
-  jf << "{" << std::endl;
-  jf << "  \"OutputDirector\": {" << std::endl;
-  jf << "    \"resfile\": \"defresults\"," << std::endl;
-  jf << "    \"resfilemode\": \"NEW\"," << std::endl;
-  jf << "    \"ntfmerge\": 10," << std::endl;
-  jf << "    \"OutputDescriptions\": [" << std::endl;
-  jf << "      {" << std::endl;
-  jf << "        \"table\": \"AOD/DUE/0\"," << std::endl;
-  jf << "        \"columns\": [" << std::endl;
-  jf << "          \"fEta1\"," << std::endl;
-  jf << "          \"fMom1\"" << std::endl;
-  jf << "        ]," << std::endl;
-  jf << "        \"treename\": \"uno\"," << std::endl;
-  jf << "        \"filename\": \"unoresults\"" << std::endl;
-  jf << "      }," << std::endl;
-  jf << "      {" << std::endl;
-  jf << "        \"table\": \"AOD/DUE/0\"," << std::endl;
-  jf << "        \"columns\": [" << std::endl;
-  jf << "          \"fPhi2\"" << std::endl;
-  jf << "        ]," << std::endl;
-  jf << "        \"treename\": \"due\"," << std::endl;
-  jf << "        \"filename\": \"dueresults\"" << std::endl;
-  jf << "      }" << std::endl;
-  jf << "    ]" << std::endl;
-  jf << "  }" << std::endl;
-  jf << "}" << std::endl;
+  jf << R"({)" << std::endl;
+  jf << R"(  "OutputDirector": {)" << std::endl;
+  jf << R"(    "resfile": "defresults",)" << std::endl;
+  jf << R"(    "resfilemode": "NEW",)" << std::endl;
+  jf << R"(    "ntfmerge": 10,)" << std::endl;
+  jf << R"(    "OutputDescriptions": [)" << std::endl;
+  jf << R"(      {)" << std::endl;
+  jf << R"(        "table": "AOD/DUE/0",)" << std::endl;
+  jf << R"(        "columns": [)" << std::endl;
+  jf << R"(          "fEta1",)" << std::endl;
+  jf << R"(          "fMom1")" << std::endl;
+  jf << R"(        ],)" << std::endl;
+  jf << R"(        "treename": "uno",)" << std::endl;
+  jf << R"(        "filename": "unoresults")" << std::endl;
+  jf << R"(      },)" << std::endl;
+  jf << R"(      {)" << std::endl;
+  jf << R"(        "table": "AOD/DUE/0",)" << std::endl;
+  jf << R"(        "columns": [)" << std::endl;
+  jf << R"(          "fPhi2")" << std::endl;
+  jf << R"(        ],)" << std::endl;
+  jf << R"(        "treename": "due",)" << std::endl;
+  jf << R"(        "filename": "dueresults")" << std::endl;
+  jf << R"(      })" << std::endl;
+  jf << R"(    ])" << std::endl;
+  jf << R"(  })" << std::endl;
+  jf << R"(})" << std::endl;
   jf.close();
 
   dod.reset();
