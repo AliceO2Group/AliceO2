@@ -432,9 +432,15 @@ class InputRecord
     }
   }
 
+  template <typename U>
+  struct GetType {
+    static InputRecord instance{{}, {[](size_t) {return DataRef{nullptr, nullptr, nullptr};}, 0}};
+    using type = decltype(instance.get<U>(DataRef{nullptr, nullptr, nullptr}));
+  };
+  
   /// Helper definition for the return type of get() for a requested type
   template <typename U>
-  using ReturnType = decltype(std::declval<InputRecord>().get<U>(DataRef{nullptr, nullptr, nullptr}));
+  using ReturnType = typename GetType<U>::type;
 
   template <typename T>
   T get_boost(char const* binding) const
