@@ -206,7 +206,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
     HBFUtils::dumpRDH(rdhl);
     LOGF(ERROR, "new RDH assigned SubSpec=0x%-8d:", subspec);
     HBFUtils::dumpRDH(rdh);
-    throw std::runtime_error("Confliting SubSpecs are provided");
+    throw std::runtime_error("Conflicting SubSpecs are provided");
     ok = false;
     nErrors++;
   }

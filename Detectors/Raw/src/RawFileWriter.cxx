@@ -56,7 +56,7 @@ void RawFileWriter::registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8
 {
   // register the GBT link and its output file
 
-  auto sspec = HBFUtils::getSubSpec(cru, link, endpoint);
+  auto sspec = HBFUtils::getSubSpec(cru, link, endpoint, fee);
   auto& linkData = getLinkWithSubSpec(sspec);
   auto* file = mFName2File[outFileName];
   if (!file) {
@@ -99,16 +99,16 @@ void RawFileWriter::registerLink(const RDH& rdh, const std::string& outFileName)
 }
 
 //_____________________________________________________________________
-void RawFileWriter::addData(uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data)
+void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data)
 {
   // add payload to relevant links
   if (data.size() % HBFUtils::GBTWord) {
     LOG(ERROR) << "provided payload size " << data.size() << " is not multiple of GBT word size";
     throw std::runtime_error("payload size is not mutiple of GBT word size");
   }
-  auto sspec = HBFUtils::getSubSpec(cru, lnk, endpoint);
+  auto sspec = HBFUtils::getSubSpec(cru, lnk, endpoint, feeid);
   if (!isLinkRegistered(sspec)) {
-    LOGF(ERROR, "The link for SubSpec=0x%ux(%u:%u:%u) was not registered", sspec, cru, lnk, endpoint);
+    LOGF(ERROR, "The link for SubSpec=0x%ux(%u:%u:%u:%u) was not registered", sspec, cru, lnk, endpoint, feeid);
     throw std::runtime_error("data for non-registered GBT link supplied");
   }
   auto& link = getLinkWithSubSpec(sspec);
@@ -340,7 +340,7 @@ std::string RawFileWriter::LinkData::describe() const
 {
   std::stringstream ss;
   ss << "Link SubSpec=0x" << std::hex << std::setw(8) << std::setfill('0')
-     << HBFUtils::getSubSpec(rdhCopy.cruID, rdhCopy.linkID, rdhCopy.endPointID) << std::dec
+     << HBFUtils::getSubSpec(rdhCopy.cruID, rdhCopy.linkID, rdhCopy.endPointID, rdhCopy.feeId) << std::dec
      << '(' << std::setw(3) << int(rdhCopy.cruID) << ':' << std::setw(2) << int(rdhCopy.linkID) << ':'
      << int(rdhCopy.endPointID) << ") feeID=0x" << std::hex << std::setw(4) << std::setfill('0') << rdhCopy.feeId;
   return ss.str();

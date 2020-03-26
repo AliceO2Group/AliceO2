@@ -240,3 +240,23 @@ bool HBFUtils::checkRDH(const o2::header::RAWDataHeaderV5& rdh, bool verbose)
   }
   return ok;
 }
+
+/// temporary: provide a hashcode (checksum) for RDH fields to be used as susbspec
+/// until unique soureID / FeeID is implemented
+/// Source: https://en.wikipedia.org/wiki/Fletcher%27s_checksum
+uint32_t HBFUtils::fletcher32(const uint16_t* data, int len)
+{
+  uint32_t c0, c1;
+  // We similarly solve for n > 0 and n * (n+1) / 2 * (2^16-1) < (2^32-1) here.
+  // On modern computers, using a 64-bit c0/c1 could allow a group size of 23726746.
+  for (c0 = c1 = 0; len > 0; len -= 360) {
+    int blocklen = len < 360 ? len : 360;
+    for (int i = 0; i < blocklen; ++i) {
+      c0 = c0 + *data++;
+      c1 = c1 + c0;
+    }
+    c0 = c0 % 65535;
+    c1 = c1 % 65535;
+  }
+  return (c1 << 16 | c0);
+}
