@@ -181,7 +181,7 @@ class ColumnIterator : ChunkingPolicy
   {
     auto chunks = mColumn->data();
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mCurrent = reinterpret_cast<T const*>(array->raw_values());
+    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset();
     mLast = mCurrent + array->length();
   }
 
@@ -200,7 +200,7 @@ class ColumnIterator : ChunkingPolicy
     mFirstIndex += previousArray->length();
     mCurrentChunk++;
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mCurrent = reinterpret_cast<T const*>(array->raw_values() - mFirstIndex);
+    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - mFirstIndex;
     mLast = mCurrent + array->length() + mFirstIndex;
   }
 
@@ -211,7 +211,7 @@ class ColumnIterator : ChunkingPolicy
     mFirstIndex -= previousArray->length();
     mCurrentChunk--;
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mCurrent = reinterpret_cast<T const*>(array->raw_values() - mFirstIndex);
+    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - mFirstIndex;
     mLast = mCurrent + array->length() + mFirstIndex;
   }
 
@@ -236,7 +236,7 @@ class ColumnIterator : ChunkingPolicy
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
     assert(array.get());
     mFirstIndex = mColumn->length() - array->length();
-    mCurrent = reinterpret_cast<T const*>(array->raw_values() - mFirstIndex);
+    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - mFirstIndex;
     mLast = mCurrent + array->length() + mFirstIndex;
   }
 
