@@ -26,6 +26,7 @@
 #include <FairMQLogger.h>
 #include <memory> // for make_shared
 #include <vector>
+#include <map>
 #include <numeric>   // std::accumulate
 #include <algorithm> // std::copy
 
@@ -143,15 +144,23 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       };
       // loop over all inputs and their parts and associate data with corresponding mc truth data
       // by the subspecification
-      std::map<o2::header::DataHeader::SubSpecificationType, SectorInputDesc> inputs;
+      std::map<int, SectorInputDesc> inputs;
+      std::vector<InputSpec> filter = {
+        {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}, Lifetime::Timeframe},
+        {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITSMCTR"}, Lifetime::Timeframe},
+      };
       for (auto const& inputRef : InputRecordWalker(pc.inputs())) {
-        auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
-        assert(dataHeader);
+        auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(inputRef);
+        if (sectorHeader == nullptr) {
+          LOG(ERROR) << "sector header missing on header stack for input on " << inputRef.spec->binding;
+          continue;
+        }
+        const int sector = sectorHeader->sector;
         if (DataRefUtils::match(inputRef, {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}})) {
-          inputs[dataHeader->subSpecification].dataref = inputRef;
+          inputs[sector].dataref = inputRef;
         }
         if (DataRefUtils::match(inputRef, {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITSMCTR"}})) {
-          inputs[dataHeader->subSpecification].mclabelref = inputRef;
+          inputs[sector].mclabelref = inputRef;
         }
       }
       for (auto const& input : inputs) {
