@@ -33,12 +33,17 @@ using namespace o2::raw;
 using RDH = o2::header::RAWDataHeaderV4;
 using IR = o2::InteractionRecord;
 
-constexpr int NCRU = 3;        // number of CRUs
+constexpr int NCRU = 3 + 1;    // number of CRUs, the last one is a special CRU with preformatted data filled
 constexpr int NLinkPerCRU = 4; // number of links per CRU
+// sizes for preformatted pages filling (RDH size will be subtracted from the payload) in the last special CRU
+constexpr std::array<int, NLinkPerCRU> SpecSize = {512, 1024, 8192, 8192};
+constexpr int NPreformHBFPerTF = 32; // number of HBFs with preformatted input per HBF for special last CRU
 const std::string PLHeader = "HEADER          ";
 const std::string PLTrailer = "TRAILER         ";
 const std::string HBFEmpty = "EMPTY_HBF       ";
 const std::string CFGName = "test_RawReadWrite_.cfg";
+
+int nPreformatPages = 0;
 
 //
 // ========================= simple detector data writer ================================
@@ -58,9 +63,11 @@ struct SimpleRawWriter { // simple class to create detector payload for multiple
     for (int icru = 0; icru < NCRU; icru++) {
       std::string outFileName = "testdata_cru" + std::to_string(icru) + ".raw";
       for (int il = 0; il < NLinkPerCRU; il++) {
-        writer.registerLink((icru << 8) + il, icru, il, 0, outFileName);
+        auto& link = writer.registerLink((icru << 8) + il, icru, il, 0, outFileName);
+        link.rdhCopy.detectorField = 0xff << icru; // if needed, set extra link info, will be copied to all RDHs
       }
     }
+
     writer.setContinuousReadout();     // in case we want to issue StartOfContinuous trigger in the beginning
     writer.setCarryOverCallBack(this); // we want that writer to ask the detector code how to split large payloads
     writer.setEmptyPageCallBack(this); // we want the writer to ask the detector code what to put in empty HBFs
@@ -82,22 +89,36 @@ struct SimpleRawWriter { // simple class to create detector payload for multiple
 
     // create payload for every interaction and push it to writer
     for (const auto& ir : irs) {
-      for (int icru = 0; icru < NCRU; icru++) {
+      for (int icru = 0; icru < NCRU - 1; icru++) {
         // we will create non-0 payload for all but 1st link of every CRU, the writer should take care
         // of creating empty HBFs for the links w/o data
         for (int il = 0; il < NLinkPerCRU; il++) {
+          buffer.clear();
           int nGBT = gRandom->Poisson(HBFUtils::MAXCRUPage / HBFUtils::GBTWord * (il));
           if (nGBT) {
-            buffer.resize((nGBT + 2) * HBFUtils::GBTWord); // reserve 16B words accounting for the Header and Trailer
+            buffer.resize((nGBT + 2) * HBFUtils::GBTWord, icru * NLinkPerCRU + il); // reserve 16B words accounting for the Header and Trailer
             std::memcpy(buffer.data(), PLHeader.c_str(), HBFUtils::GBTWord);
             std::memcpy(buffer.data() + buffer.size() - HBFUtils::GBTWord, PLTrailer.c_str(), HBFUtils::GBTWord);
             // we don't care here about the content of the payload, except the presence of header and trailer
-          } else {
-            buffer.clear();
           }
           writer.addData((icru << 8) + il, icru, il, 0, ir, buffer);
         }
       }
+    }
+    // fill special CRU with preformatted pages
+    auto irHB = HBFUtils::Instance().getFirstIR(); // IR of the TF0/HBF0
+    int cruID = NCRU - 1;
+    while (irHB < irs.back()) {
+      for (int il = 0; il < NLinkPerCRU; il++) {
+        buffer.clear();
+        int pgSize = SpecSize[il] - sizeof(RDH);
+        buffer.resize(pgSize);
+        for (int ipg = 2 * (NLinkPerCRU - il); ipg--;) {                       // just to enforce writing multiple pages per selected HBFs
+          writer.addData((cruID << 8) + il, cruID, il, 0, irHB, buffer, true); // last argument is there to enforce a special "preformatted" mode
+          nPreformatPages++;
+        }
+      }
+      irHB.orbit += HBFUtils::Instance().getNOrbitsPerTF() / NPreformHBFPerTF; // we will write 32 such HBFs per TF
     }
 
     // for further use we write the configuration file for the output
@@ -185,7 +206,7 @@ struct SimpleRawReader { // simple class to read detector raw data for multiple 
     buffers.resize(nLinks); // 1 buffer per link
     firstHBF.resize(nLinks, true);
 
-    int nLinksRead = 0;
+    int nLinksRead = 0, nPreformatRead = 0;
     do {
       nLinksRead = 0;
       for (int il = 0; il < nLinks; il++) {
@@ -220,17 +241,26 @@ struct SimpleRawReader { // simple class to read detector raw data for multiple 
             if (rdhi.stop) {                                                   // closing page must be empty
               BOOST_CHECK(rdhi.memorySize == rdhi.headerSize);
             } else {
-              BOOST_CHECK(rdhi.memorySize > rdhi.headerSize);               // in this model all non-closing pages must contain something
-              if (rdhi.memorySize - rdhi.headerSize == HBFUtils::GBTWord) { // empty HBF will contain just a status word
-                testStr.assign(ptr + rdhi.headerSize, HBFUtils::GBTWord);
-                BOOST_CHECK(testStr == HBFEmpty);
-              } else {
-                // pages with real payload should have at least header + trailer + some payload
-                BOOST_CHECK(rdhi.memorySize - rdhi.headerSize > 2 * HBFUtils::GBTWord);
-                testStr.assign(ptr + rdhi.headerSize, HBFUtils::GBTWord);
-                BOOST_CHECK(testStr == PLHeader);
-                testStr.assign(ptr + rdhi.memorySize - HBFUtils::GBTWord, HBFUtils::GBTWord);
-                BOOST_CHECK(testStr == PLTrailer);
+              if (rdhi.cruID < NCRU - 1) {                                    // these are not special CRUs
+                BOOST_CHECK(rdhi.memorySize > rdhi.headerSize);               // in this model all non-closing pages must contain something
+                if (rdhi.memorySize - rdhi.headerSize == HBFUtils::GBTWord) { // empty HBF will contain just a status word
+                  testStr.assign(ptr + rdhi.headerSize, HBFUtils::GBTWord);
+                  BOOST_CHECK(testStr == HBFEmpty);
+                } else {
+                  // pages with real payload should have at least header + trailer + some payload
+                  BOOST_CHECK(rdhi.memorySize - rdhi.headerSize > 2 * HBFUtils::GBTWord);
+                  testStr.assign(ptr + rdhi.headerSize, HBFUtils::GBTWord);
+                  BOOST_CHECK(testStr == PLHeader);
+                  testStr.assign(ptr + rdhi.memorySize - HBFUtils::GBTWord, HBFUtils::GBTWord);
+                  BOOST_CHECK(testStr == PLTrailer);
+                }
+              } else { // for the special CRU with preformatted data make sure the page sizes were not modified
+                if (rdhi.memorySize > sizeof(RDH) + HBFUtils::GBTWord) {
+                  auto tfhb = HBFUtils::Instance().getTFandHBinTF({HBFUtils::getHBBC(rdhi), HBFUtils::getHBOrbit(rdhi)}); // TF and HBF relative to TF
+                  BOOST_CHECK(tfhb.second % (HBFUtils::Instance().getNOrbitsPerTF() / NPreformHBFPerTF) == 0);            // we were filling only every NPreformHBFPerTF-th HBF
+                  BOOST_CHECK(rdhi.memorySize == SpecSize[rdhi.linkID]);                                                  // check if the size is correct
+                  nPreformatRead++;
+                }
               }
             }
             ptr += rdhi.offsetToNext;
@@ -239,7 +269,10 @@ struct SimpleRawReader { // simple class to read detector raw data for multiple 
         }
       }
     } while (nLinksRead); // read until there is something to read
-  }                       // run
+
+    BOOST_CHECK(nPreformatRead == nPreformatPages); // make sure no preformatted page was lost
+
+  } // run
 };
 
 BOOST_AUTO_TEST_CASE(RawReaderWriter)

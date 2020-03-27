@@ -127,7 +127,7 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
 
   // some fields of the same meaning have different names in the RDH of different versions
   static uint32_t getHBOrbit(const void* rdhP);
-  static uint32_t getHBBC(const void* rdhP);
+  static uint16_t getHBBC(const void* rdhP);
   static IR getHBIR(const void* rdhP);
 
   static void printRDH(const void* rdhP);
@@ -138,8 +138,8 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   static uint32_t getHBOrbit(const o2::header::RAWDataHeaderV4& rdh) { return rdh.heartbeatOrbit; }
   static uint32_t getHBOrbit(const o2::header::RAWDataHeaderV5& rdh) { return rdh.orbit; }
 
-  static uint32_t getHBBC(const o2::header::RAWDataHeaderV4& rdh) { return rdh.heartbeatBC; }
-  static uint32_t getHBBC(const o2::header::RAWDataHeaderV5& rdh) { return rdh.bunchCrossing; }
+  static uint16_t getHBBC(const o2::header::RAWDataHeaderV4& rdh) { return rdh.heartbeatBC; }
+  static uint16_t getHBBC(const o2::header::RAWDataHeaderV5& rdh) { return rdh.bunchCrossing; }
 
   static IR getHBIR(const o2::header::RAWDataHeaderV4& rdh) { return {uint16_t(rdh.heartbeatBC), uint32_t(rdh.heartbeatOrbit)}; }
   static IR getHBIR(const o2::header::RAWDataHeaderV5& rdh) { return {uint16_t(rdh.bunchCrossing), uint32_t(rdh.orbit)}; }

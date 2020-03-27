@@ -35,8 +35,8 @@ write their data to the same file:
 ```cpp
 using namespace o2::raw;
 RawFileWriter writer;
-writer.registerLink(fee_0, cru_0, link_0, endpoint_0, "outfile_0.raw");
-writer.registerLink(fee_1, cru_0, link_1, endpoint_0, "outfile_0.raw");
+auto& lnkA = writer.registerLink(fee_0, cru_0, link_0, endpoint_0, "outfile_0.raw");
+auto& lnkB = writer.registerLink(fee_1, cru_0, link_1, endpoint_0, "outfile_0.raw");
 ..
 // or
 o2::header::RawDataHeader rdh; // by default, v4 is used currently.
@@ -44,16 +44,18 @@ rdh.feeId = feeX;
 rdh.cruID = cruY;
 rdh.linkID = linkZ;
 rdh.endPointID = endpointQ;
-writer.registerLink( rdh, "outfile_f.raw");
+auto& lnkC = writer.registerLink( rdh, "outfile_f.raw");
 ```
+If needed, user may set manually the non-mutable (for given link) fields of the link RAWDataHeader via direct access to `lnkC.rdhCopy`. This fields will be cloned to all RDHs written for this link.
+
 *   add raw data payload to the `RawFileWriter`, providing the link information and the `o2::InteractionRecord` corresponding to payload.
 The data must be provided as a `gsl::span<char>`` and contain only detector GBT (16 bytes words) payload. The annotation by RDH,
 formatting to CRU pages and eventual splitting of the large payload to multiple pages will be done by the `RawFileWriter`.
 ```cpp
-writer.addData(cru_0, link_0, endpoint_0, {bc, orbit}, gsl::span( (char*)payload_0, payload_0_size ) );
+writer.addData(cru_0, link_0, endpoint_0, {bc, orbit}, gsl::span( (char*)payload_0, payload_0_size) );
 ...
 o2::InteractionRecord ir{bc, orbit};
-writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ) );
+writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ));
 ```
 
 The `RawFileWriter` will take care of writing created CRU data to file in `super-pages` whose size can be set using
@@ -114,8 +116,20 @@ toAdd   : a vector (supplied empty) to be filled to a size multipe of 16 bytes
 
 The data `toAdd` will be inserted between the star/stop RDHs of the empty HBF.
 
+The behaviour descibed above can be modified by providing an extra argument in the `addData` method
+```cpp
+bool preformatted = true;
+writer.addData(cru_0, link_0, endpoint_0, {bc, orbit}, gsl::span( (char*)payload_0, payload_0_size ), preformatted );
+...
+o2::InteractionRecord ir{bc, orbit};
+writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ), preformatted );
+```
+
+In this case provided span is interpretted as a fully formatted CRU page payload (i.e. it lacks the RDH which will be added by the writer) of the maximum size `8192-sizeof(RDH) = 8128` bytes.
+The writer will create a new CRU page with provided payload equipping it with the proper RDH: copying already stored RDH of the current HBF, if the interaction record `ir` belongs to the same HBF or generating new RDH for new HBF otherwise (and filling all missing HBFs in-between). In case the payload size exceeds maximum, an exception will be thrown w/o any attempt to split the page.
+
 For further details see  ``ITSMFT/common/simulation/MC2RawEncoder`` class and the macro
-`Detectors/ITSMFT/ITS/macros/test/run_digi2rawVarPage_its.C` to steed the MC to raw data conversion.
+`Detectors/ITSMFT/ITS/macros/test/run_digi2rawVarPage_its.C` to steer the MC to raw data conversion.
 
 ## RawFileReader
 
