@@ -29,6 +29,7 @@
 /DataFormats                   @AliceO2Group/framework-admins
 #/DataFormats/Detectors
 /DataFormats/Detectors/TPC     @davidrohr
+/DataFormats/Detectors/EMCAL   @mfasDa
 #/DataFormats/Headers
 #/DataFormats/Legacy
 #/DataFormats/MemoryResources
