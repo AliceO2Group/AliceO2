@@ -11,6 +11,11 @@
 /// \file GPUReconstructionConvert.cxx
 /// \author David Rohr
 
+#ifdef GPUCA_O2_LIB
+#include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RawFileWriter.h"
+#endif
+
 #include "GPUReconstructionConvert.h"
 #include "TPCFastTransform.h"
 #include "GPUTPCClusterData.h"
@@ -24,7 +29,9 @@
 #ifdef HAVE_O2HEADERS
 #include "Digit.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
+#include "DataFormatsTPC/Constants.h"
 #include "Headers/RAWDataHeader.h"
+#include "CommonConstants/LHCConstants.h"
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -180,8 +187,13 @@ void GPUReconstructionConvert::ZSstreamOut(unsigned short* bufIn, unsigned int& 
   lenIn = 0;
 }
 
-void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, std::unique_ptr<unsigned long long int[]>& outBuffer, unsigned int* outSizes, const GPUParam& param, bool zs12bit, bool verify)
+void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, std::unique_ptr<unsigned long long int[]>* outBuffer, unsigned int* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, const GPUParam& param, bool zs12bit, bool verify)
 {
+  // Pass in either outBuffer / outSizes, to fill standalone output buffers, or raw / ir to use RawFileWriter
+  // ir is the interaction record for time bin 0
+  if (((outBuffer == nullptr) ^ (outSizes == nullptr)) || ((raw == nullptr) ^ (ir == nullptr)) || !((outBuffer == nullptr) ^ (raw == nullptr)) || (raw && verify)) {
+    throw std::runtime_error("Invalid parameters");
+  }
 #ifdef GPUCA_TPC_GEOMETRY_O2
   std::vector<std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)>> buffer[NSLICES][GPUTrackingInOutZS::NENDPOINTS];
   unsigned int totalPages = 0;
@@ -192,6 +204,17 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
 #pragma omp parallel for reduction(+ : totalPages) reduction(+ : nErrors)
   // clang-format on
   for (unsigned int i = 0; i < NSLICES; i++) {
+    std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)> singleBuffer;
+#ifdef GPUCA_O2_LIB
+    int rawlnk = 15;
+    int bcShiftInFirstHBF = ir ? ir->bc : 0;
+#else
+    int bcShiftInFirstHBF = 0;
+#endif
+    int rawcru = 0;
+    int rawendpoint = 0;
+    (void)(rawcru + rawendpoint); // avoid compiler warning
+
     std::vector<deprecated::PackedDigit> tmpBuffer;
     std::array<unsigned short, TPCZSHDR::TPC_ZS_PAGE_SIZE> streamBuffer;
     std::array<unsigned char, TPCZSHDR::TPC_ZS_PAGE_SIZE> streamBuffer8;
@@ -214,6 +237,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
       return a.pad <= b.pad;
     });
     int lastEndpoint = -1, lastRow = GPUCA_ROW_COUNT, lastTime = -1;
+    long long int hbf = -1, nexthbf = 0;
     std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)>* page = nullptr;
     TPCZSHDR* hdr = nullptr;
     TPCZSTBHDR* tbHdr = nullptr;
@@ -259,6 +283,12 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
         }
         //sizeChk += ((seqLen + streamSizeChk) * encodeBits + 7) / 8;
         //printf("Endpoint %d (%d), Pos %d, Chk %d, Len %d, rows %d, StreamSize %d %d, time %d (%d), row %d (%d), pad %d\n", endpoint, lastEndpoint, (int) (pagePtr - reinterpret_cast<unsigned char*>(page)), sizeChk, seqLen, nRowsInTB, streamSize8, streamSize, (int) tmpBuffer[k].time, lastTime, (int) tmpBuffer[k].row, lastRow, tmpBuffer[k].pad);
+        if (tmpBuffer[k].time != lastTime) {
+          nexthbf = (bcShiftInFirstHBF + tmpBuffer[k].time * Constants::LHCBCPERTIMEBIN) / o2::constants::lhc::LHCMaxBunches;
+          if (hbf != nexthbf) {
+            lastEndpoint = -1;
+          }
+        }
       }
       if (k >= tmpBuffer.size() || endpoint != lastEndpoint || tmpBuffer[k].time != lastTime) {
         if (pagePtr != reinterpret_cast<unsigned char*>(page)) {
@@ -273,14 +303,30 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
             tbHdr->rowAddr1()[l - 1] += 2 * nRowsInTB;
           }
         }
+        if (page && (k >= tmpBuffer.size() || endpoint != lastEndpoint)) {
+#ifdef GPUCA_O2_LIB
+          if (raw) {
+            raw->addData(rawfeeid, rawcru, rawlnk, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + TPCZSHDR::TPC_ZS_PAGE_SIZE), true);
+          } else
+#endif
+          {
+            o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)page;
+            rdh->heartbeatBC = bcShiftInFirstHBF;
+            rdh->heartbeatOrbit = hbf;
+          }
+        }
         if (k >= tmpBuffer.size()) {
           break;
         }
       }
       if (endpoint != lastEndpoint) {
-        buffer[i][endpoint].emplace_back();
-        totalPages++;
-        page = &buffer[i][endpoint].back();
+        if (raw) {
+          page = &singleBuffer;
+        } else {
+          buffer[i][endpoint].emplace_back();
+          page = &buffer[i][endpoint].back();
+        }
+        hbf = nexthbf;
         pagePtr = reinterpret_cast<unsigned char*>(page);
         std::fill(page->begin(), page->end(), 0);
         pagePtr += sizeof(o2::header::RAWDataHeader);
@@ -288,10 +334,13 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
         pagePtr += sizeof(*hdr);
         hdr->version = zs12bit ? 2 : 1;
         hdr->cruID = i * 10 + region;
-        hdr->timeOffset = tmpBuffer[k].time;
+        rawcru = i * 10 + region;
+        rawendpoint = endpoint & 1;
+        hdr->timeOffset = tmpBuffer[k].time - (hbf * o2::constants::lhc::LHCMaxBunches + Constants::LHCBCPERTIMEBIN - 1 - bcShiftInFirstHBF) / Constants::LHCBCPERTIMEBIN;
         lastTime = -1;
         tbHdr = nullptr;
         lastEndpoint = endpoint;
+        totalPages++;
       }
       if (tmpBuffer[k].time != lastTime) {
         if (lastTime != -1) {
@@ -337,6 +386,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
         for (unsigned int k = 0; k < buffer[i][j].size(); k++) {
           page = &buffer[i][j][k];
           pagePtr = reinterpret_cast<unsigned char*>(page);
+          const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)pagePtr;
           pagePtr += sizeof(o2::header::RAWDataHeader);
           hdr = reinterpret_cast<TPCZSHDR*>(pagePtr);
           pagePtr += sizeof(*hdr);
@@ -359,6 +409,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
           int nRowsRegion = param.tpcGeometry.GetRegionRows(region);
 
           int timeBin = hdr->timeOffset;
+          timeBin += (rdh->heartbeatOrbit * o2::constants::lhc::LHCMaxBunches + Constants::LHCBCPERTIMEBIN - 1 - bcShiftInFirstHBF) / Constants::LHCBCPERTIMEBIN;
           for (int l = 0; l < hdr->nTimeBins; l++) {
             if ((pagePtr - reinterpret_cast<unsigned char*>(page)) & 1) {
               pagePtr++;
@@ -419,13 +470,15 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
     }
   }
 
-  outBuffer.reset(new unsigned long long int[totalPages * TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(unsigned long long int)]);
-  unsigned long long int offset = 0;
-  for (unsigned int i = 0; i < NSLICES; i++) {
-    for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-      memcpy((char*)outBuffer.get() + offset, buffer[i][j].data(), buffer[i][j].size() * TPCZSHDR::TPC_ZS_PAGE_SIZE);
-      offset += buffer[i][j].size() * TPCZSHDR::TPC_ZS_PAGE_SIZE;
-      outSizes[i * GPUTrackingInOutZS::NENDPOINTS + j] = buffer[i][j].size();
+  if (outBuffer) {
+    outBuffer->reset(new unsigned long long int[totalPages * TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(unsigned long long int)]);
+    unsigned long long int offset = 0;
+    for (unsigned int i = 0; i < NSLICES; i++) {
+      for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+        memcpy((char*)outBuffer->get() + offset, buffer[i][j].data(), buffer[i][j].size() * TPCZSHDR::TPC_ZS_PAGE_SIZE);
+        offset += buffer[i][j].size() * TPCZSHDR::TPC_ZS_PAGE_SIZE;
+        outSizes[i * GPUTrackingInOutZS::NENDPOINTS + j] = buffer[i][j].size();
+      }
     }
   }
   if (nErrors) {

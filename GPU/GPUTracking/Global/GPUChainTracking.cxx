@@ -11,6 +11,9 @@
 /// \file GPUChainTracking.cxx
 /// \author David Rohr
 
+#ifdef GPUCA_O2_LIB
+#include "CommonDataFormat/InteractionRecord.h"
+#endif
 #ifdef HAVE_O2HEADERS
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -572,7 +575,7 @@ void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
   mTPCZSSizes.reset(new unsigned int[NSLICES * GPUTrackingInOutZS::NENDPOINTS]);
   mTPCZSPtrs.reset(new void*[NSLICES * GPUTrackingInOutZS::NENDPOINTS]);
   mTPCZS.reset(new GPUTrackingInOutZS);
-  GPUReconstructionConvert::RunZSEncoder(mIOPtrs.tpcPackedDigits, mTPCZSBuffer, mTPCZSSizes.get(), param(), zs12bit, true);
+  GPUReconstructionConvert::RunZSEncoder(mIOPtrs.tpcPackedDigits, &mTPCZSBuffer, mTPCZSSizes.get(), nullptr, nullptr, param(), zs12bit, true);
   GPUReconstructionConvert::RunZSEncoderCreateMeta(mTPCZSBuffer.get(), mTPCZSSizes.get(), mTPCZSPtrs.get(), mTPCZS.get());
   mIOPtrs.tpcZS = mTPCZS.get();
   if (GetDeviceProcessingSettings().registerStandaloneInputMemory) {
@@ -871,7 +874,12 @@ int GPUChainTracking::RunTPCClusterizer()
       }
 
       if (mIOPtrs.tpcZS) {
-        runKernel<GPUTPCCFDecodeZS, GPUTPCCFDecodeZS::decodeZS>({doGPU ? clusterer.mPmemory->counters.nPages : GPUTrackingInOutZS::NENDPOINTS, CFDecodeThreadCount(), lane}, {iSlice}, {});
+#ifdef GPUCA_O2_LIB
+        int bcShiftInFirstHBF = mIOPtrs.tpcZS->ir ? mIOPtrs.tpcZS->ir->bc : 0;
+#else
+        int bcShiftInFirstHBF = 0;
+#endif
+        runKernel<GPUTPCCFDecodeZS, GPUTPCCFDecodeZS::decodeZS>({doGPU ? clusterer.mPmemory->counters.nPages : GPUTrackingInOutZS::NENDPOINTS, CFDecodeThreadCount(), lane}, {iSlice}, {}, bcShiftInFirstHBF);
         TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
         SynchronizeStream(lane);
       } else {
