@@ -13,20 +13,6 @@
 /// @since  2019-12-18
 /// @brief  TOF raw data format
 
-#ifndef O2_TOF_RAWDATAFORMAT
-#define O2_TOF_RAWDATAFORMAT
-
-#include <cstdint>
-
-#ifndef O2_TOF_RAWDATAFORMAT_NONAMESPACE
-namespace o2
-{
-namespace tof
-{
-namespace raw
-{
-#endif
-
 /*
 
    ALICE TOF Raw Data description: master file
@@ -38,8 +24,50 @@ namespace raw
    March 2006
 
    Dec. 2019 moved old CDH to new TDH, updated format for RUN3: new DRM2, new TRM format
+   Dec. 2019 agreed O2 format
+   20200324 fixed error on LTM_EVSIZE macro, use of __cplusplus directive
+   20200325 detField description
+   ToDo:
+   -- insert new fw upgrades in DRMH
 
 */
+
+#ifndef O2_TOF_RAWDATAFORMAT
+#define O2_TOF_RAWDATAFORMAT
+
+#ifdef __cplusplus
+#include <cstdint>
+#else
+#include <stdint.h>
+#endif
+
+#ifdef __cplusplus
+namespace o2
+{
+namespace tof
+{
+namespace raw
+{
+#endif
+
+#define TOF_MAGIC 0x70F   // 12 bits pattern inserted in some key data to flag TOF data
+#define TOF_SOURCE_ID 0x5 // sourceId assigned to TOF (must match value in RDH sourceId field)
+
+/* TOF detField description RDH Word3 bit 0-31 
+        |31|30|29|28|27|26|25|24|23|22|21|20|19|18|17|16|15|14|13|12|11|10|09|08|07|06|05|04|03|02|01|00|
+        -------------------------------------------------------------------------------------------------
+        |    Served Triggers    |  Received Triggers    |    0      |             70F                   |
+        -------------------------------------------------------------------------------------------------
+*/
+typedef struct {
+  uint32_t TOFmagic : 12;
+  uint32_t mbz : 4;
+  uint32_t triggerRecvInOrbit : 8;
+  uint32_t triggerServInOrbit : 8;
+} __attribute__((__packed__)) TOFDetField_t;
+#define TOF_DETFIELD_MAGIC(x) (x & FFF)
+#define TOF_DETFIELD_RECVTRIGGER(x) ((x >> 16) & 0xFF)
+#define TOF_DETFIELD_SERVTRIGGER(x) ((x >> 24) & 0xFF)
 
 /* GEO Ad assigned to TOF modules */
 #define DRM_GEOAD 1
@@ -374,7 +402,7 @@ typedef struct {
   //                       34 words + 2 words = 36 words
   LTMDataTrailer_t trailer;
 } __attribute__((__packed__)) LTMPackedEvent_t;
-#define LTM_EVSIZE sizeof(ltmPackedEvent_t) // fixed expected event size
+#define LTM_EVSIZE sizeof(LTMPackedEvent_t) // fixed expected event size
 #define LTM_PDL_FIELD(x, n) (((x) >> ((n)*8)) & 0xFF)
 #define LTM_V_FIELD(x, n) (((x) >> ((n)*10)) & 0x3FF)
 #define LTM_T_FIELD(x, n) (((x) >> ((n)*10)) & 0x3FF)
@@ -420,7 +448,7 @@ typedef union {
   TRMDataHit_t trmDataHit;
 } Union_t;
 
-#ifndef O2_TOF_RAWDATAFORMAT_NONAMESPACE
+#ifdef __cplusplus
 } // namespace raw
 } // namespace tof
 } // namespace o2
