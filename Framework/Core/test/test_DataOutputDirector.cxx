@@ -19,7 +19,7 @@
 BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
 {
   using namespace o2::header;
-  using namespace o2::framework::data_matcher;
+  using namespace o2::framework;
 
   DataOutputDirector dod;
   auto dh = DataHeader(DataDescription{"UNO"},

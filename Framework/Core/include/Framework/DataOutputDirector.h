@@ -18,17 +18,12 @@
 #include "Framework/InputSpec.h"
 
 #include "rapidjson/document.h"
-#include "rapidjson/filereadstream.h"
-
-#include <cstdio>
-#include <regex>
 
 namespace o2
 {
 namespace framework
 {
-namespace data_matcher
-{
+using namespace rapidjson;
 
 struct DataOutputDescriptor {
   /// Holds information concerning the writing of aod tables.
@@ -38,7 +33,7 @@ struct DataOutputDescriptor {
   std::string tablename = "";
   std::string treename = "";
   std::vector<std::string> colnames;
-  std::unique_ptr<DataDescriptorMatcher> matcher;
+  std::unique_ptr<data_matcher::DataDescriptorMatcher> matcher;
 
   DataOutputDescriptor(std::string sin);
 
@@ -55,7 +50,6 @@ struct DataOutputDescriptor {
   std::string remove_ws(const std::string& s);
 };
 
-using namespace rapidjson;
 struct DataOutputDirector {
   /// Holds a list of DataOutputDescriptor and a list of output files
   /// Provides functionality to access the matching DataOutputDescriptor
@@ -102,7 +96,6 @@ struct DataOutputDirector {
   std::tuple<std::string, std::string, int> readJsonDocument(Document* doc);
 };
 
-} // namespace data_matcher
 } // namespace framework
 } // namespace o2
 

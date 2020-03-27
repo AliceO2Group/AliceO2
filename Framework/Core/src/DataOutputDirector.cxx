@@ -9,12 +9,13 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataOutputDirector.h"
 
+#include "rapidjson/filereadstream.h"
+
 namespace o2
 {
 namespace framework
 {
-namespace data_matcher
-{
+using namespace rapidjson;
 
 DataOutputDescriptor::DataOutputDescriptor(std::string sin)
 {
@@ -317,7 +318,7 @@ std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(
   std::vector<DataOutputDescriptor*> result;
 
   // compute list of matching outputs
-  VariableContext context;
+  data_matcher::VariableContext context;
 
   for (auto dodescr : dodescrs) {
     if (dodescr->matcher->match(dh, context))
@@ -332,7 +333,7 @@ std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(
   std::vector<DataOutputDescriptor*> result;
 
   // compute list of matching outputs
-  VariableContext context;
+  data_matcher::VariableContext context;
   auto concrete = std::get<ConcreteDataMatcher>(spec.matcher);
 
   for (auto dodescr : dodescrs) {
@@ -431,6 +432,5 @@ void DataOutputDirector::setDefaultfname(std::string dfn)
   }
 }
 
-} // namespace data_matcher
 } // namespace framework
 } // namespace o2
