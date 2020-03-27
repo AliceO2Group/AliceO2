@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef TOF_CALIBWORKFLOW_H_
-#define TOF_CALIBWORKFLOW_H_
+#ifndef TOF_LHCPHASE_CALIBRATION_H_
+#define TOF_LHCPHASE_CALIBRATION_H_
 
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
@@ -86,4 +86,4 @@ class LHCClockCalibrator : public o2::calibration::TimeSlotCalibration<o2::dataf
 } // end namespace tof
 } // end namespace o2
 
-#endif /* TOF_CALIBWORKFLOW_H_ */
+#endif /* TOF_LHCPHASE_CALIBRATION_H_ */
