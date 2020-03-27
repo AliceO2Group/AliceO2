@@ -73,7 +73,7 @@ class RawFileWriter
     ~LinkData();
     void close(const IR& ir);
     void print() const;
-    void addData(const IR& ir, const gsl::span<char> data);
+    void addData(const IR& ir, const gsl::span<char> data, bool preformatted = false);
     RDH* getLastRDH() { return lastRDHoffset < 0 ? nullptr : reinterpret_cast<RDH*>(&buffer[lastRDHoffset]); }
     std::string describe() const;
 
@@ -83,8 +83,9 @@ class RawFileWriter
     void closeHBFPage() { addHBFPage(true); }
     void flushSuperPage(bool keepLastPage = false);
     void fillEmptyHBHs(const IR& ir);
+    void addPreformattedCRUPage(const gsl::span<char> data);
 
-    // expand buffer by positive increment and return old size
+    /// expand buffer by positive increment and return old size
     size_t expandBufferBy(size_t by)
     {
       auto offs = buffer.size();
@@ -92,7 +93,7 @@ class RawFileWriter
       return offs;
     }
 
-    // append to the end of the buffer and return the point where appended to
+    /// append to the end of the buffer and return the point where appended to
     size_t pushBack(const char* ptr, size_t sz, bool keepLastOnFlash = true)
     {
       if (!sz) {
@@ -107,8 +108,8 @@ class RawFileWriter
       memmove(&buffer[offs], ptr, sz);
       return offs;
     }
-    // add RDH to buffer. In case this requires flushing of the superpage
-    // do not keep the previous page
+
+    /// add RDH to buffer. In case this requires flushing of the superpage, do not keep the previous page
     size_t pushBack(const RDH& rdh)
     {
       nRDHWritten++;
@@ -127,14 +128,17 @@ class RawFileWriter
   ~RawFileWriter();
   void close();
 
-  void registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8_t endpoint, const std::string& outFileName);
-  void registerLink(const RDH& rdh, const std::string& outFileName);
+  LinkData& registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8_t endpoint, const std::string& outFileName);
+  LinkData& registerLink(const RDH& rdh, const std::string& outFileName);
 
   LinkData& getLinkWithSubSpec(LinkSubSpec_t ss) { return mSSpec2Link[ss]; }
   LinkData& getLinkWithSubSpec(const RDH& rdh) { return mSSpec2Link[HBFUtils::getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID, rdh.feeId)]; }
 
-  void addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data);
-  void addData(const RDH& rdh, const IR& ir, const gsl::span<char> data) { addData(rdh.feeId, rdh.cruID, rdh.linkID, rdh.endPointID, ir, data); }
+  void addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data, bool preformatted = false);
+  void addData(const RDH& rdh, const IR& ir, const gsl::span<char> data, bool preformatted = false)
+  {
+    addData(rdh.feeId, rdh.cruID, rdh.linkID, rdh.endPointID, ir, data);
+  }
 
   void setContinuousReadout() { mROMode = Continuous; }
   void setTriggeredReadout() { mROMode = Triggered; }
@@ -160,10 +164,10 @@ class RawFileWriter
   }
 
   int getSuperPageSize() const { return mSuperPageSize; }
-  void setSuperPageSize(int nbytes)
-  {
-    mSuperPageSize = nbytes < 16 * HBFUtils::MAXCRUPage ? HBFUtils::MAXCRUPage : nbytes;
-  }
+  void setSuperPageSize(int nbytes);
+
+  /// get highest IR seen so far
+  const IR& getIRMax() const { return mIRMax; }
 
   const HBFUtils& getHBFUtils() const { return mHBFUtils; }
 

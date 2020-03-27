@@ -156,7 +156,7 @@ uint32_t HBFUtils::getHBOrbit(const void* rdhP)
 }
 
 //_________________________________________________
-uint32_t HBFUtils::getHBBC(const void* rdhP)
+uint16_t HBFUtils::getHBBC(const void* rdhP)
 {
   int version = (reinterpret_cast<const char*>(rdhP))[0];
   if (version == 4) {

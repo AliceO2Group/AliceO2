@@ -16,6 +16,7 @@
 #include <iostream>
 #include <sstream>
 #include <functional>
+#include <cassert>
 #include "DetectorsRaw/RawFileWriter.h"
 #include "CommonConstants/Triggers.h"
 #include "Framework/Logger.h"
@@ -38,7 +39,6 @@ void RawFileWriter::close()
   }
   mIRMax--; // mIRMax is pointing to the beginning of latest (among all links) HBF to open, we want just to close the last one
   for (auto& lnk : mSSpec2Link) {
-    lnk.second.updateIR = mIRMax;
     lnk.second.close(mIRMax);
     lnk.second.print();
   }
@@ -52,7 +52,7 @@ void RawFileWriter::close()
 }
 
 //_____________________________________________________________________
-void RawFileWriter::registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8_t endpoint, const std::string& outFileName)
+RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8_t endpoint, const std::string& outFileName)
 {
   // register the GBT link and its output file
 
@@ -70,7 +70,7 @@ void RawFileWriter::registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8
   if (linkData.file) { // this link was already declared and associated with a file
     if (linkData.file == file) {
       LOGF(INFO, "Link 0x%ux was already declared with same output, do nothing", sspec);
-      return;
+      return linkData;
     } else {
       LOGF(ERROR, "Link 0x%ux was already connected to different output file %s", sspec, linkData.fileName);
       throw std::runtime_error("redifinition of the link output file");
@@ -87,19 +87,20 @@ void RawFileWriter::registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8
   linkData.updateIR = mHBFUtils.getFirstIR();
   linkData.buffer.reserve(mSuperPageSize);
   LOGF(INFO, "Registered %s with output to %s", linkData.describe(), outFileName);
+  return linkData;
 }
 
 //_____________________________________________________________________
-void RawFileWriter::registerLink(const RDH& rdh, const std::string& outFileName)
+RawFileWriter::LinkData& RawFileWriter::registerLink(const RDH& rdh, const std::string& outFileName)
 {
   // register the GBT link and its output file
-  registerLink(rdh.feeId, rdh.cruID, rdh.linkID, rdh.endPointID, outFileName);
-  auto& linkData = getLinkWithSubSpec(rdh);
+  auto& linkData = registerLink(rdh.feeId, rdh.cruID, rdh.linkID, rdh.endPointID, outFileName);
   linkData.rdhCopy.detectorField = rdh.detectorField;
+  return linkData;
 }
 
 //_____________________________________________________________________
-void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data)
+void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data, bool preformatted)
 {
   // add payload to relevant links
   if (data.size() % HBFUtils::GBTWord) {
@@ -112,11 +113,18 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
     throw std::runtime_error("data for non-registered GBT link supplied");
   }
   auto& link = getLinkWithSubSpec(sspec);
-  link.addData(ir, data);
+  link.addData(ir, data, preformatted);
 
   if (mIRMax < link.updateIR) { // remember highest IR seen
     mIRMax = link.updateIR;
   }
+}
+
+//_____________________________________________________________________
+void RawFileWriter::setSuperPageSize(int nbytes)
+{
+  mSuperPageSize = nbytes < 16 * HBFUtils::MAXCRUPage ? HBFUtils::MAXCRUPage : nbytes;
+  assert((mSuperPageSize % HBFUtils::MAXCRUPage) == 0); // make sure it is multiple of 8KB
 }
 
 //===================================================================================
@@ -132,7 +140,7 @@ RawFileWriter::LinkData::~LinkData()
 }
 
 //___________________________________________________________________________________
-void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data)
+void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, bool preformatted)
 {
   // add payload corresponding to IR
   LOG(DEBUG) << "Adding " << data.size() << " bytes in IR " << ir << " to " << describe();
@@ -145,6 +153,11 @@ void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data)
   if (!dataSize) {
     return;
   }
+  if (preformatted) { // in case detectors wants to add new CRU page of predefined size
+    addPreformattedCRUPage(data);
+    return;
+  }
+
   const char* ptr = &data[0];
   // in case particular detector CRU pages need to be self-consistent, when carrying-over
   // large payload to new CRU page we may need to write optional trailer and header before
@@ -191,6 +204,27 @@ void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data)
       sCarryOverTrailer.clear();
     }
   }
+}
+
+//___________________________________________________________________________________
+void RawFileWriter::LinkData::addPreformattedCRUPage(const gsl::span<char> data)
+{
+  // add preformatted CRU page w/o any attempt of splitting
+
+  // we are guaranteed to have a page with RDH open
+  int sizeLeftSupPage = writer->mSuperPageSize - buffer.size();
+  if (sizeLeftSupPage < data.size()) { // we are not allowed to split this payload
+    flushSuperPage(true);              // flush all but the last added RDH
+  }
+  if (data.size() > HBFUtils::MAXCRUPage - sizeof(RDH)) {
+    LOG(ERROR) << "Preformatted payload size of " << data.size() << " bytes for " << describe()
+               << " exceeds max. size " << HBFUtils::MAXCRUPage - sizeof(RDH);
+    throw std::runtime_error("preformatted payload exceeds max size");
+  }
+  if (int(buffer.size()) - lastRDHoffset > sizeof(RDH)) { // we must start from empty page
+    addHBFPage();                                         // start new CRU page
+  }
+  pushBack(&data[0], data.size());
 }
 
 //___________________________________________________________________________________
@@ -275,7 +309,7 @@ void RawFileWriter::LinkData::openHBFPage(const RDH& rdhn)
 //___________________________________________________________________________________
 void RawFileWriter::LinkData::flushSuperPage(bool keepLastPage)
 {
-  // write link superpage data to file
+  // write link superpage data to file (if requested, only up to the last page)
   size_t pgSize = (lastRDHoffset < 0 || !keepLastPage) ? buffer.size() : lastRDHoffset;
   if (writer->mVerbosity) {
     LOGF(INFO, "Flushing super page of %u bytes for %s", pgSize, describe());
