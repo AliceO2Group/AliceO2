@@ -24,13 +24,18 @@ using namespace o2::mch;
 Response::Response(Station station) : mStation(station)
 {
   if (mStation == Station::Type1) {
-    mK2x = 1.021026;
+    mK2x = 1.021017612;
     mSqrtK3x = 0.7000;
     mK4x = 0.40934890;
     mK2y = 0.9778207;
     mSqrtK3y = 0.7550;
     mK4y = 0.38658194;
     mInversePitch = 1. / 0.21; // ^cm-1
+    mPitch = 0.21;
+    mChargeSlope = 25.; //from AliMUONResponsefactory, 1 in AliMUONConstants
+    mQspreadX = 0.144;
+    mQspreadY = 0.144;
+    mSigmaIntegration = 10.;
   } else {
     mK2x = 1.010729;
     mSqrtK3x = 0.7131;
@@ -39,12 +44,29 @@ Response::Response(Station station) : mStation(station)
     mSqrtK3y = 0.7642;
     mK4y = 0.38312571;
     mInversePitch = 1. / 0.25; // cm^-1
+    mPitch = 0.25;
+    mChargeSlope = 10.;
+    mQspreadX = 0.18;
+    mQspreadY = 0.18;
+    mSigmaIntegration = 10.;
+  }
+
+  if (mSampa) {
+    mChargeThreshold = 1e-4; // 1e-4 refers to charge fraction in aliroot
+    mInverseChargeThreshold = 10000.;
+    //not actual charge, hence normalise
+    mMaxADC = (1 << 20) - 1;
+    mFCtoADC = 1 / (0.61 * 1.25 * 0.2);
+    mADCtoFC = 0.61 * 1.25 * 0.2;
+    //TODO: potentially other parameters e.g. for gain
   }
 }
 
 //_____________________________________________________________________
 float Response::etocharge(float edepos)
-{
+{ // AliMUONResponseV0::IntPH(Float_t eloss) const
+  //confirmed 20.03.2020
+  //expression in PH, i.e. ADC!
   int nel = int(edepos * 1.e9 / 27.4);
   float charge = 0;
   if (nel == 0)
@@ -55,9 +77,7 @@ float Response::etocharge(float edepos)
       arg = gRandom->Rndm();
     charge -= mChargeSlope * TMath::Log(arg);
   }
-  //translate to fC roughly,
-  //equivalent to AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa() multiplication in aliroot
-  charge *= 0.61 * 1.25 * 0.2;
+  //no translation to fC, as in Aliroot
   return charge;
 }
 //_____________________________________________________________________
@@ -83,17 +103,32 @@ double Response::chargefrac1d(float min, float max, double k2, double sqrtk3, do
   return 2. * k4 * (TMath::ATan(u2) - TMath::ATan(u1));
 }
 //______________________________________________________________________
-unsigned long Response::response(float charge)
+unsigned long Response::response(unsigned long adc)
 {
-  //FEE effects
-  return (unsigned long)charge;
+  //DecalibrateTrackerDigit functionality from
+  //AliMuonDigitizerV3 in aliroot
+  int fgNSigma = 5.0; //aliroot no
+  //no channel-by-channel noise map as in aliroot
+  float pedestalSigma = 0.0; //channnel noise 0.5 aliroot
+  float adc_out = adc;
+  float pedestalMean = 0;
+  float adcNoise = 0.0;
+  //TODO: parameter choices for match with aliroot
+
+  adc = TMath::Nint(adc_out + pedestalMean + adcNoise + 0.5);
+
+  if (adc_out < TMath::Nint(pedestalMean + fgNSigma * pedestalSigma + 0.5))
+    adc = 0;
+  if (adc > mMaxADC)
+    adc = mMaxADC;
+  return adc;
 }
 //______________________________________________________________________
 float Response::getAnod(float x)
 {
-  int n = Int_t(x / mInversePitch);
+  int n = Int_t(x * mInversePitch);
   float wire = (x > 0) ? n + 0.5 : n - 0.5;
-  return mInversePitch * wire;
+  return wire * mPitch;
 }
 //______________________________________________________________________
 float Response::chargeCorr()
