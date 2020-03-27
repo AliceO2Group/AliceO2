@@ -62,8 +62,8 @@ bool sameCategory(std::pair<uint64_t, uint64_t> const& a, std::pair<uint64_t, ui
   return a.first < b.first;
 }
 
-template <typename T2, typename ARRAY>
-std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const auto& inTable, const std::string& categoryColumnName, int minCatSize)
+template <typename T2, typename ARRAY, typename T>
+std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const T& inTable, const std::string& categoryColumnName, int minCatSize)
 {
   auto arrowTable = inTable.asArrowTable();
   auto columnIndex = arrowTable->schema()->GetFieldIndex(categoryColumnName);
@@ -101,7 +101,8 @@ std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const auto& inTable, con
   return groupedIndices;
 }
 
-auto groupTable(const auto& inTable, const std::string& categoryColumnName, int minCatSize)
+template <typename T>
+auto groupTable(const T& inTable, const std::string& categoryColumnName, int minCatSize)
 {
   auto arrowTable = inTable.asArrowTable();
   auto columnIndex = arrowTable->schema()->GetFieldIndex(categoryColumnName);
@@ -118,6 +119,8 @@ auto groupTable(const auto& inTable, const std::string& categoryColumnName, int 
   if (dataType->id() == arrow::Type::INT32) {
     return doGroupTable<int32_t, arrow::Int32Array>(inTable, categoryColumnName, minCatSize);
   }
+  // FIXME: Should we support other types as well?
+  throw std::runtime_error("Combinations: category column must be of integral type");
 }
 
 // Synchronize categories so as groupedIndices contain elements only of categories common to all tables
