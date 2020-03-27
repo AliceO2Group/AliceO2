@@ -26,10 +26,22 @@
 #/Common/Utils
 #/Common/maps
 
-/DataFormats                   @AliceO2Group/framework-admins
-#/DataFormats/Detectors
-/DataFormats/Detectors/TPC     @davidrohr
-/DataFormats/Detectors/EMCAL   @mfasDa
+/DataFormats                                   @AliceO2Group/framework-admins
+/DataFormats/Detectors/CPV                     @peressounko @kharlov
+/DataFormats/Detectors/EMCAL                   @mfasDa
+/DataFormats/Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
+/DataFormats/Detectors/GlobalTracking          @shahor02
+/DataFormats/Detectors/GlobalTrackingWorkflow  @shahor02
+/DataFormats/Detectors/HMPID                   @gvolpe79
+/DataFormats/Detectors/ITSMFT                  @iouribelikov @bovulpes
+/DataFormats/Detectors/MUON                    @aphecetche
+/DataFormats/Detectors/PHOS                    @peressounko @kharlov
+/DataFormats/Detectors/Passive                 @sawenzel
+/DataFormats/Detectors/TOF                     @noferini 
+/DataFormats/Detectors/TPC                     @davidrohr @wiechula @shahor02
+/DataFormats/Detectors/TRD                     @jolopezl @bazinski @tdietel
+/DataFormats/Detectors/ZDC                     @coppedis
+
 #/DataFormats/Headers
 #/DataFormats/Legacy
 #/DataFormats/MemoryResources
