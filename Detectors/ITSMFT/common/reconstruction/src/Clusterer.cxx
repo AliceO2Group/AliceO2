@@ -253,7 +253,6 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
     Cluster clus;
     clus.setSensorID(mChipData->getChipID());
     clus.setNxNzN(rowSpan, colSpan, npix);
-#ifdef _ClusterTopology_
     UShort_t colSpanW = colSpan, rowSpanW = rowSpan;
     if (colSpan * rowSpan > Cluster::kMaxPatternBits) { // need to store partial info
       // will curtail largest dimension
@@ -269,6 +268,7 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
         }
       }
     }
+#ifdef _ClusterTopology_
     clus.setPatternRowSpan(rowSpanW, rowSpanW < rowSpan);
     clus.setPatternColSpan(colSpanW, colSpanW < colSpan);
     clus.setPatternRowMin(rowMin);
@@ -297,21 +297,26 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
     }
 
     if (compClus) { // store compact clusters
-      auto rowSpan = clus.getPatternRowSpan();
-      auto colSpan = clus.getPatternColSpan();
-      unsigned char patt[Cluster::kMaxPatternBytes];
-      clus.getPattern(&patt[0], Cluster::kMaxPatternBytes);
-      UShort_t pattID = mPattIdConverter.findGroupID(rowSpan, colSpan, patt);
-      if (mPattIdConverter.IsGroup(pattID)) {
+      unsigned char patt[Cluster::kMaxPatternBytes] = {0};
+      for (int i = 0; i < npix; i++) {
+        const auto pix = mPixArrBuff[i];
+        unsigned short ir = pix.getRowDirect() - rowMin, ic = pix.getCol() - colMin;
+        if (ir < rowSpanW && ic < colSpanW) {
+          int nbits = ir * colSpanW + ic;
+          patt[nbits >> 3] |= (0x1 << (7 - (nbits % 8)));
+        }
+      }
+      UShort_t pattID = (mPattIdConverter.size() == 0) ? CompCluster::InvalidPatternID : mPattIdConverter.findGroupID(rowSpanW, colSpanW, patt);
+      if (pattID == CompCluster::InvalidPatternID || mPattIdConverter.IsGroup(pattID)) {
         float xCOG = 0., zCOG = 0.;
-        ClusterPattern::getCOG(rowSpan, colSpan, patt, xCOG, zCOG);
+        ClusterPattern::getCOG(rowSpanW, colSpanW, patt, xCOG, zCOG);
         rowMin += round(xCOG);
         colMin += round(zCOG);
         if (mPatterns) {
-          mPatterns->emplace_back((unsigned char)rowSpan);
-          mPatterns->emplace_back((unsigned char)colSpan);
-          int nBytes = rowSpan * colSpan / 8;
-          if (((rowSpan * colSpan) % 8) != 0)
+          mPatterns->emplace_back((unsigned char)rowSpanW);
+          mPatterns->emplace_back((unsigned char)colSpanW);
+          int nBytes = rowSpanW * colSpanW / 8;
+          if (((rowSpanW * colSpanW) % 8) != 0)
             nBytes++;
           mPatterns->insert(mPatterns->end(), std::begin(patt), std::begin(patt) + nBytes);
         }
