@@ -57,8 +57,6 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
                   DataHeader::SubSpecificationType{0});
   std::string jsonString(R"({"OutputDirector": {"resfile": "defresults", "resfilemode": "RECREATE", "ntfmerge": 10, "OutputDescriptions": [{"table": "AOD/UNO/0", "columns": ["fEta1","fMom1"], "treename": "uno", "filename": "unoresults"}, {"table": "AOD/DUE/0", "columns": ["fPhi2"], "treename": "due"}]}})");
 
-
-
   dod.reset();
   std::tie(dfn, fmode, ntf) = dod.readJsonString(jsonString);
   // dod.printOut(); printf("\n\n");
