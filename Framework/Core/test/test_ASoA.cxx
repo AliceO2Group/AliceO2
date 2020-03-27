@@ -126,7 +126,6 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
     value++;
   }
 
-  // FIXME: Was there sth supposed to be inside the loop?
   for (auto t1 = tests2.begin(); t1 != tests2.end(); ++t1) {
     for (auto t2 = t1 + 1; t2 != tests2.end(); ++t2) {
     }

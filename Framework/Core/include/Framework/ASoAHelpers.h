@@ -48,12 +48,12 @@ void for_(F func)
 // Creating tuple of given size and type
 template <typename T, unsigned N, typename... REST>
 struct generate_tuple_type {
-  typedef typename generate_tuple_type<T, N - 1, T, REST...>::type type;
+  using type = typename generate_tuple_type<T, N - 1, T, REST...>::type;
 };
 
 template <typename T, typename... REST>
 struct generate_tuple_type<T, 0, REST...> {
-  typedef std::tuple<REST...> type;
+  using type = std::tuple<REST...>;
 };
 
 // Group table (C++ vector of indices)
