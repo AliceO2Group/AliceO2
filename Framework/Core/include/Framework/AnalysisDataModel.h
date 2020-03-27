@@ -22,6 +22,24 @@ namespace aod
 // the o2::aod namespace.
 DECLARE_SOA_STORE();
 
+template <typename... Tables>
+struct MetadataTrait<soa::Join<Tables...>> {
+  using type = soa::Join<Tables...>;
+  using metadata = typename MetadataTrait<typename framework::pack_element_t<0, typename type::originals>>::metadata;
+};
+
+template <typename... Tables>
+struct MetadataTrait<soa::Concat<Tables...>> {
+  using type = soa::Concat<Tables...>;
+  using metadata = typename MetadataTrait<typename framework::pack_element_t<0, typename type::originals>>::metadata;
+};
+
+template <typename... Tables>
+struct MetadataTrait<soa::Filtered<soa::Join<Tables...>>> {
+  using type = soa::Filtered<soa::Join<Tables...>>;
+  using metadata = typename MetadataTrait<typename framework::pack_element_t<0, typename type::originals>>::metadata;
+};
+
 namespace collision
 {
 // DECLARE_SOA_COLUMN(TimeframeId, timeframeId, uint64_t, "timeframeID");
