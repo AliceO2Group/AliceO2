@@ -58,7 +58,6 @@ void ClustererDPL::init(InitContext& ic)
   }
 
   mFullClusters = !ic.options().get<bool>("no-full-clusters");
-  mCompactClusters = !ic.options().get<bool>("no-compact-clusters");
   mPatterns = !ic.options().get<bool>("no-patterns");
 
   // settings for the fired pixel overflow masking
@@ -71,10 +70,6 @@ void ClustererDPL::init(InitContext& ic)
     mClusterer->loadDictionary(filename);
     LOG(INFO) << "ITSClusterer running with a provided dictionary: " << filename.c_str();
     mState = 1;
-  } else {
-    LOG(ERROR) << "Cannot open the " << filename.c_str() << " file, compact clusters cannot be produced";
-    mState = 0;
-    mCompactClusters = false;
   }
 
   mClusterer->print();
@@ -112,20 +107,16 @@ void ClustererDPL::run(ProcessingContext& pc)
   std::vector<o2::itsmft::ROFRecord> clusterROframes; // To be filled in future
   std::vector<unsigned char> patterns;
 
-  if (mCompactClusters) {
-    LOG(INFO) << "Will produce compact clusters";
-    if (mPatterns) {
-      LOG(INFO) << "Will save rare cluster patterns";
-      mClusterer->setPatterns(&patterns);
-    }
+  if (mPatterns) {
+    LOG(INFO) << "Will save rare cluster patterns";
+    mClusterer->setPatterns(&patterns);
   }
 
   std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> clusterLabels;
   if (mUseMC) {
     clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
   }
-  mClusterer->process(reader, mFullClusters ? &clusters : nullptr, mCompactClusters ? &compClusters : nullptr,
-                      clusterLabels.get(), &clusterROframes);
+  mClusterer->process(reader, mFullClusters ? &clusters : nullptr, &compClusters, clusterLabels.get(), &clusterROframes);
   // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
   // -> consider recalculationg maxROF
 
@@ -176,7 +167,6 @@ DataProcessorSpec getClustererSpec(bool useMC)
       {"its-dictionary-file", VariantType::String, "complete_dictionary.bin", {"Name of the cluster-topology dictionary file"}},
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
       {"no-full-clusters", o2::framework::VariantType::Bool, false, {"Ignore full clusters"}},
-      {"no-compact-clusters", o2::framework::VariantType::Bool, false, {"Ignore compact clusters"}},
       {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}}}};
 }
 

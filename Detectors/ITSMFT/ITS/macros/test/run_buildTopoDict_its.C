@@ -19,7 +19,7 @@
 #include "MathUtils/Utils.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/BuildTopologyDictionary.h"
-#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ClusterTopology.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTSimulation/Hit.h"
@@ -43,8 +43,8 @@ void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
   using namespace o2::its;
 
   using o2::itsmft::BuildTopologyDictionary;
-  using o2::itsmft::Cluster;
   using o2::itsmft::ClusterTopology;
+  using o2::itsmft::CompClusterExt;
   using o2::itsmft::Hit;
   using ROFRec = o2::itsmft::ROFRecord;
   using MC2ROF = o2::itsmft::MC2ROFRecord;
@@ -77,8 +77,13 @@ void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
   // Clusters
   TFile* fileCl = TFile::Open(clusfile.data());
   TTree* clusTree = (TTree*)fileCl->Get("o2sim");
-  std::vector<Cluster>* clusArr = nullptr;
-  clusTree->SetBranchAddress("ITSCluster", &clusArr);
+  std::vector<CompClusterExt>* clusArr = nullptr;
+  clusTree->SetBranchAddress("ITSClusterComp", &clusArr);
+  std::vector<unsigned char>* patternsPtr = nullptr;
+  auto pattBranch = clusTree->GetBranch("ITSClusterPatt");
+  if (pattBranch) {
+    pattBranch->SetAddress(&patternsPtr);
+  }
 
   // ROFrecords
   std::vector<ROFRec> rofRecVec, *rofRecVecP = &rofRecVec;
@@ -116,6 +121,7 @@ void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
     }
   } // << build min and max MC events used by each ROF
 
+  auto pattIdx = patternsPtr->cbegin();
   for (int irof = 0; irof < nROFRec; irof++) {
     const auto& rofRec = rofRecVec[irof];
 
@@ -143,15 +149,9 @@ void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
 
       const auto& cluster = (*clusArr)[clEntry];
 
-      int rowSpan = cluster.getPatternRowSpan();
-      int columnSpan = cluster.getPatternColSpan();
-      int nBytes = (rowSpan * columnSpan) >> 3;
-      if (((rowSpan * columnSpan) % 8) != 0) {
-        nBytes++;
-      }
-      unsigned char patt[Cluster::kMaxPatternBytes];
-      cluster.getPattern(&patt[0], nBytes);
-      ClusterTopology topology(rowSpan, columnSpan, patt);
+      ClusterTopology topology;
+      o2::itsmft::ClusterPattern pattern(pattIdx);
+      topology.setPattern(pattern);
       //
       // do we need to account for the bias of cluster COG wrt MC hit center?
       float dX = BuildTopologyDictionary::IgnoreVal, dZ = BuildTopologyDictionary::IgnoreVal;
@@ -170,7 +170,7 @@ void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
             auto locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
             auto locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
             locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
-            const auto locC = cluster.getXYZLoc(*gman); // convert from tracking to local frame
+            const auto locC = o2::itsmft::TopologyDictionary::getClusterCoordinates(cluster, pattern);
             dX = locH.X() - locC.X();
             dZ = locH.Z() - locC.Z();
           } else {
