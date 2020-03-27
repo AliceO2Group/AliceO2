@@ -11,6 +11,7 @@
 #ifndef DETECTOR_CALIB_TIMESLOT_H_
 #define DETECTOR_CALIB_TIMESLOT_H_
 
+#include <memory>
 #include <Rtypes.h>
 #include "Framework/Logger.h"
 
