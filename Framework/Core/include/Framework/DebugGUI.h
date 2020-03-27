@@ -17,9 +17,21 @@ namespace o2
 namespace framework
 {
 
-void* initGUI(const char* name);
-bool pollGUI(void* context, std::function<void(void)> guiCallback);
-void disposeGUI();
+// The DebugGUI has been moved to a separate package, this is a dummy header file
+// included when the DebugGUI package is not found or disabled.
+void* initGUI(const char* name)
+{
+  return nullptr;
+}
+
+bool pollGUI(void* context, std::function<void(void)> guiCallback)
+{
+  // returns whether quit is requested, we return 'no'
+  return false;
+}
+void disposeGUI()
+{
+}
 
 } // namespace framework
 } // namespace o2
