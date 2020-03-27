@@ -14,6 +14,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
+#include "Framework/Task.h"
 #include "Headers/DataHeader.h"
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
@@ -36,23 +37,39 @@ namespace o2
 namespace tof
 {
 
-DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
+class TOFDPLDigitizerTask
 {
-  // setup of some data structures shared between init and processing functions
-  // (a shared pointer is used since then automatic cleanup is guaranteed with a lifetime beyond
-  //  one process call)
-  auto simChains = std::make_shared<std::vector<TChain*>>();
+ public:
+  TOFDPLDigitizerTask(bool useCCDB) : mUseCCDB{useCCDB} {};
 
-  // the instance of the actual digitizer
-  auto digitizer = std::make_shared<o2::tof::Digitizer>();
+  void init(framework::InitContext& ic)
+  {
+    LOG(INFO) << "Initializing TOF digitization";
 
-  // containers for digits and labels
-  auto digits = std::make_shared<std::vector<o2::tof::Digit>>();
-  //  auto digitsAccum = std::make_shared<o2::tof::Digit>(); // accumulator for all digits
-  auto labels = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
+    // make sure that the geometry is loaded (TODO will this be done centrally?)
+    if (!gGeoManager) {
+      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
+    }
 
-  // the actual processing function which get called whenever new data is incoming
-  auto process = [simChains, digitizer, digits, /*digitsAccum,*/ labels, channel, useCCDB](ProcessingContext& pc) {
+    mSimChains = std::move(std::make_unique<std::vector<TChain*>>());
+
+    // the instance of the actual digitizer
+    mDigitizer = std::move(std::make_unique<o2::tof::Digitizer>());
+    // containers for digits and labels
+    mDigits = std::move(std::make_unique<std::vector<o2::tof::Digit>>());
+    mLabels = std::move(std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>());
+
+    // init digitizer
+    mDigitizer->init();
+    const bool isContinuous = ic.options().get<int>("pileup");
+    LOG(INFO) << "CONTINUOUS " << isContinuous;
+    mDigitizer->setContinuous(isContinuous);
+    mDigitizer->setMCTruthContainer(mLabels.get());
+    LOG(INFO) << "TOF initialization done";
+  }
+
+  void run(framework::ProcessingContext& pc)
+  {
     static bool finished = false;
     if (finished) {
       return;
@@ -65,7 +82,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
     auto& timesview = context->getEventRecords();
     LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
 
-    context->initSimChains(o2::detectors::DetID::TOF, *simChains.get());
+    context->initSimChains(o2::detectors::DetID::TOF, *mSimChains.get());
 
     // if there is nothing to do ... return
     if (timesview.size() == 0) {
@@ -79,7 +96,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
     o2::dataformats::CalibLHCphaseTOF lhcPhaseObj;
     o2::dataformats::CalibTimeSlewingParamTOF channelCalibObj;
 
-    if (useCCDB) { // read calibration objects from ccdb
+    if (mUseCCDB) { // read calibration objects from ccdb
       // check LHC phase
       auto lhcPhase = pc.inputs().get<o2::dataformats::CalibLHCphaseTOF*>("tofccdbLHCphase");
       auto channelCalib = pc.inputs().get<o2::dataformats::CalibTimeSlewingParamTOF*>("tofccdbChannelCalib");
@@ -103,76 +120,43 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
     }
 
     o2::tof::CalibTOFapi calibapi(long(0), &lhcPhaseObj, &channelCalibObj);
-    digitizer->setCalibApi(&calibapi);
+    mDigitizer->setCalibApi(&calibapi);
 
     static std::vector<o2::tof::HitType> hits;
-    //    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
 
     auto& eventParts = context->getEventParts();
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
-      digitizer->setEventTime(timesview[collID].timeNS);
+      mDigitizer->setEventTime(timesview[collID].timeNS);
 
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
-        digitizer->setEventID(part.entryID);
-        digitizer->setSrcID(part.sourceID);
+        mDigitizer->setEventID(part.entryID);
+        mDigitizer->setSrcID(part.sourceID);
 
         // get the hits for this event and this source
         hits.clear();
-        context->retrieveHits(*simChains.get(), "TOFHit", part.sourceID, part.entryID, &hits);
+        context->retrieveHits(*mSimChains.get(), "TOFHit", part.sourceID, part.entryID, &hits);
 
         //        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
-        labels->clear();
-        digits->clear();
-        digitizer->process(&hits, digits.get());
-        // if (digitizer->process(&hits, digits.get())) {
-        //   // Post Data
-        //   if (digitizer->isContinuous()) {
-        //     digits->clear();
-        //     labels->clear();
-        //     digitizer->flushOutputContainer(*digits.get());
-        //   }
-
-        //   std::vector<Digit>* digitsVector = digitizer->getDigitPerTimeFrame();
-        //   std::vector<ReadoutWindowData>* readoutwindow = digitizer->getReadoutWindowData();
-        //   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcLabVecOfVec = digitizer->getMCTruthPerTimeFrame();
-
-        //   LOG(INFO) << "Post " << digitsVector->size() << " digits in " << readoutwindow->size() << " RO windows";
-
-        //   // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-        //   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *digitsVector);
-        //   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, *mcLabVecOfVec);
-        //   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *readoutwindow);
-        //   LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
-        //   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
-
-        //   // go to new TF
-        //   digitizer->newTF();
-
-        //   digitizer->setEventTime(timesview[collID].timeNS);
-
-        //   digitizer->process(&hits, digits.get());
-        // }
-        // copy digits into accumulator
-        //std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
-        //labelAccum.mergeAtBack(*labels);
-        //        LOG(INFO) << "Have " << digits->size() << " digits ";
+        mLabels->clear();
+        mDigits->clear();
+        mDigitizer->process(&hits, mDigits.get());
       }
     }
-    if (digitizer->isContinuous()) {
-      digits->clear();
-      labels->clear();
-      digitizer->flushOutputContainer(*digits.get());
+    if (mDigitizer->isContinuous()) {
+      mDigits->clear();
+      mLabels->clear();
+      mDigitizer->flushOutputContainer(*mDigits.get());
     }
 
-    std::vector<Digit>* digitsVector = digitizer->getDigitPerTimeFrame();
-    std::vector<ReadoutWindowData>* readoutwindow = digitizer->getReadoutWindowData();
-    std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcLabVecOfVec = digitizer->getMCTruthPerTimeFrame();
+    std::vector<Digit>* digitsVector = mDigitizer->getDigitPerTimeFrame();
+    std::vector<ReadoutWindowData>* readoutwindow = mDigitizer->getReadoutWindowData();
+    std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcLabVecOfVec = mDigitizer->getMCTruthPerTimeFrame();
 
     LOG(INFO) << "Post " << digitsVector->size() << " digits in " << readoutwindow->size() << " RO windows";
 
@@ -188,29 +172,20 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().endOfStream();
-    //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 
     finished = true;
-  };
+  }
 
-  // init function returning the lambda taking a ProcessingContext
-  auto initIt = [simChains, process, digitizer, labels](InitContext& ctx) {
-    // make sure that the geometry is loaded (TODO will this be done centrally?)
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
-    }
+ private:
+  std::unique_ptr<std::vector<TChain*>> mSimChains;
+  std::unique_ptr<o2::tof::Digitizer> mDigitizer;
+  std::unique_ptr<std::vector<o2::tof::Digit>> mDigits;
+  std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabels;
+  bool mUseCCDB = false;
+};
 
-    // init digitizer
-    digitizer->init();
-    const bool isContinuous = ctx.options().get<int>("pileup");
-    LOG(INFO) << "CONTINUOUS " << isContinuous;
-    digitizer->setContinuous(isContinuous);
-    digitizer->setMCTruthContainer(labels.get());
-
-    // return the actual processing function which is now setup/configured
-    return process;
-  };
-
+DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
+{
   // create the full data processor spec using
   //  a name identifier
   //  input description
@@ -229,7 +204,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
             OutputSpec{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe},
             OutputSpec{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe},
             OutputSpec{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{initIt},
+    AlgorithmSpec{adaptFromTask<TOFDPLDigitizerTask>(useCCDB)},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
     // I can't use VariantType::Bool as it seems to have a problem
   };
