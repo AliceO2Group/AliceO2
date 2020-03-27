@@ -13,6 +13,7 @@ o2_add_library(TOFCalibration
 	               src/CalibTOF.cxx
 		       src/CollectCalibInfoTOF.cxx
                        src/LHCClockCalibrator.cxx
+		       src/TOFChannelCalibrator.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF O2::TOFBase
                                      O2::CCDB
 	                             O2::DetectorsCalibration
@@ -24,6 +25,7 @@ o2_target_root_dictionary(TOFCalibration
                           HEADERS include/TOFCalibration/CalibTOFapi.h
                                   include/TOFCalibration/CalibTOF.h
                                   include/TOFCalibration/LHCClockCalibrator.h
+                                  include/TOFCalibration/TOFChannelCalibrator.h
                                   include/TOFCalibration/CollectCalibInfoTOF.h)
 
 
