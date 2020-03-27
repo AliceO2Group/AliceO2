@@ -31,6 +31,7 @@
 #include "TPCBase/Digit.h"
 #include "TPCFastTransform.h"
 #include "DetectorsBase/MatLayerCylSet.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUDisplayBackend.h"
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
@@ -463,8 +464,10 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
       ptrs.outputTracks = &tracks;
       ptrs.outputClusRefs = &clusRefs;
       ptrs.outputTracksMCTruth = (processMC ? &tracksMCTruth : nullptr);
+      o2::InteractionRecord ir = raw::HBFUtils::Instance().getFirstIR();
       if (caClusterer) {
         // Todo: If we have zero-suppressed input, we have to fill this pointer instead: ptrs.tpcZS
+        // ptrs.tpcZS->ir = &ir;
         ptrs.o2Digits = &inputDigits; // TODO: We will also create ClusterNative as output stored in ptrs. Should be added to the output
         if (processMC) {
           ptrs.o2DigitsMC = &inputDigitsMC;

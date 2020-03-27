@@ -44,7 +44,7 @@ class GPUTPCCFDecodeZS : public GPUKernelTemplate
     decodeZS,
   };
 
-  static GPUd() void decode(GPUTPCClusterFinder& clusterer, GPUSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread);
+  static GPUd() void decode(GPUTPCClusterFinder& clusterer, GPUSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread, int bcShiftInFirstHBF);
 
 #ifdef HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
