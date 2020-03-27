@@ -18,7 +18,9 @@
 #if __has_include(<DebugGUI/DebugGUI.h>)
 #include "DebugGUI/DebugGUI.h"
 #else
-#pragma message "Old DebugGUI.h included. Update alidist."
+// the DebugGUI is in a separate package and is optional for O2,
+// we include a header implementing GUI interface dummy methods
+#pragma message "Building DPL without Debug GUI"
 #include "Framework/DebugGUI.h"
 #endif
 #include "Framework/DeviceControl.h"
