@@ -107,19 +107,10 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
     }
 
     auto compClusPtr = &mCompClus;
-    if (mClusterer.getWantCompactClusters()) {
-      outTree.Branch("ITSClusterComp", &compClusPtr);
-    } else {
-      LOG(INFO) << Class()->GetName() << " output of compact clusters is not requested";
-    }
+    outTree.Branch("ITSClusterComp", &compClusPtr);
 
     auto rofRecVecPtr = &mROFRecVec;
     outTree.Branch("ITSClustersROF", &rofRecVecPtr);
-
-    if (mUseMCTruth && !(mClusterer.getWantFullClusters() || mClusterer.getWantCompactClusters())) {
-      mUseMCTruth = false;
-      LOG(WARNING) << "ITS clusters storage is not requested, suppressing MCTruth storage";
-    }
 
     auto clsLabelsPtr = &mClsLabels;
     if (mUseMCTruth && mReaderMC->getDigitsMCTruth()) {
@@ -185,12 +176,8 @@ void ClustererTask::writeTree(std::string basename, int i)
   }
 
   std::vector<CompClusterExt> compClusBuffer, *compClusPtr = &compClusBuffer;
-  if (mClusterer.getWantCompactClusters()) {
-    compClusBuffer.assign(&mCompClus[first], &mCompClus[last]);
-    outTree.Branch("ITSClusterComp", &compClusPtr);
-  } else {
-    LOG(INFO) << Class()->GetName() << " output of compact clusters is not requested";
-  }
+  compClusBuffer.assign(&mCompClus[first], &mCompClus[last]);
+  outTree.Branch("ITSClusterComp", &compClusPtr);
 
   if (mClusterer.getPatterns()) {
     outTree.Branch("ITSClusterPatt", &mPatterns);

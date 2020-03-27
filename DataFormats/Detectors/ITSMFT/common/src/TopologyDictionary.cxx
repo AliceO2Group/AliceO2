@@ -185,7 +185,7 @@ Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl) 
   return locCl;
 }
 
-Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt) const
+Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt)
 {
   float xCOG = 0, zCOG = 0;
   patt.getCOG(xCOG, zCOG);

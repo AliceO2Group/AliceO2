@@ -114,7 +114,8 @@ class TopologyDictionary
   int GetSize() const { return (int)mVectorOfGroupIDs.size(); }
   ///Returns the local position of a compact cluster
   Point3D<float> getClusterCoordinates(const CompCluster& cl) const;
-  Point3D<float> getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt) const;
+  ///Returns the local position of a compact cluster
+  static Point3D<float> getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt);
 
   friend BuildTopologyDictionary;
   friend LookUp;

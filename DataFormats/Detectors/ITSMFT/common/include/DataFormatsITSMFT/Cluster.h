@@ -16,7 +16,7 @@
 #include "ReconstructionDataFormats/BaseCluster.h"
 
 // uncomment this to have cluster topology stored
-#define _ClusterTopology_
+//#define _ClusterTopology_
 
 #define CLUSTER_VERSION 4
 
