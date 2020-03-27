@@ -228,10 +228,10 @@ string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS_NO_CINT}")
 set(HDRS_INSTALL ${HDRS_INSTALL} ${HDRS_TMP})
 unset(HDRS_TMP)
 
+# the internal copy of ImgGUI has been removed in commit 64a93f3f and there is
+# only the optional external package
 if (TARGET AliceO2::DebugGUI)
   set(DEBUGGUI_TARGET AliceO2::DebugGUI)
-else()
-  set(DEBUGGUI_TARGET O2::DebugGUI)
 endif()
 # Main CMake part for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
