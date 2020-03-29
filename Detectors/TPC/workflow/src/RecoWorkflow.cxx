@@ -56,13 +56,13 @@ using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 const std::unordered_map<std::string, InputType> InputMap{
   {"digitizer", InputType::Digitizer},
   {"digits", InputType::Digits},
-  {"raw", InputType::Raw},
+  {"clustershardware", InputType::ClustersHardware},
   {"clusters", InputType::Clusters},
 };
 
 const std::unordered_map<std::string, OutputType> OutputMap{
   {"digits", OutputType::Digits},
-  {"raw", OutputType::Raw},
+  {"clustershardware", OutputType::ClustersHardware},
   {"clusters", OutputType::Clusters},
   {"tracks", OutputType::Tracks},
   {"disable-writer", OutputType::DisableWriter},
@@ -89,18 +89,18 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     return std::find(outputTypes.begin(), outputTypes.end(), type) != outputTypes.end();
   };
 
-  if (inputType == InputType::Raw && isEnabled(OutputType::Digits)) { // TODO: We should rename Raw to
-    throw std::invalid_argument("input/output type mismatch, can not produce 'digits' from 'raw'");
+  if (inputType == InputType::ClustersHardware && isEnabled(OutputType::Digits)) {
+    throw std::invalid_argument("input/output type mismatch, can not produce 'digits' from 'clustershardware'");
   }
-  if (inputType == InputType::Clusters && (isEnabled(OutputType::Digits) || isEnabled(OutputType::Raw))) {
-    throw std::invalid_argument("input/output type mismatch, can not produce 'digits', nor 'raw' from 'clusters'");
+  if (inputType == InputType::Clusters && (isEnabled(OutputType::Digits) || isEnabled(OutputType::ClustersHardware))) {
+    throw std::invalid_argument("input/output type mismatch, can not produce 'digits', nor 'clustershardware' from 'clusters'");
   }
 
-  if (caClusterer && (inputType == InputType::Clusters || inputType == InputType::Raw)) {
+  if (caClusterer && (inputType == InputType::Clusters || inputType == InputType::ClustersHardware)) {
     throw std::invalid_argument("ca-clusterer requires digits as input");
   }
-  if (caClusterer && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Raw))) {
-    throw std::invalid_argument("ca-clusterer cannot produce Clusters or Raw output");
+  if (caClusterer && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::ClustersHardware))) {
+    throw std::invalid_argument("ca-clusterer cannot produce clusters or clustershardware output");
   }
 
   WorkflowSpec specs;
@@ -122,11 +122,11 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                          laneConfiguration,
                                                        },
                                                        propagateMC));
-  } else if (inputType == InputType::Raw) {
+  } else if (inputType == InputType::ClustersHardware) {
     specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
-                                                   "tpc-raw-cluster-reader",
-                                                   "tpcraw",
-                                                   {"databranch", "TPCClusterHw", "Branch with TPC raw clusters"},
+                                                   "tpc-clusterhardware-reader",
+                                                   "tpcclustershardware",
+                                                   {"databranch", "TPCClusterHw", "Branch with TPC ClustersHardware"},
                                                    {"mcbranch", "TPCClusterHwMCTruth", "MC label branch"},
                                                    OutputSpec{"TPC", "CLUSTERHW"},
                                                    OutputSpec{"TPC", "CLUSTERHWMCLBL"},
@@ -151,11 +151,11 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   // output matrix
   bool runTracker = isEnabled(OutputType::Tracks);
   bool runDecoder = !caClusterer && (runTracker || isEnabled(OutputType::Clusters));
-  bool runClusterer = !caClusterer && (runDecoder || isEnabled(OutputType::Raw));
+  bool runClusterer = !caClusterer && (runDecoder || isEnabled(OutputType::ClustersHardware));
 
   // input matrix
   runClusterer &= inputType == InputType::Digitizer || inputType == InputType::Digits;
-  runDecoder &= runClusterer || inputType == InputType::Raw;
+  runDecoder &= runClusterer || inputType == InputType::ClustersHardware;
   runTracker &= caClusterer || (runDecoder || inputType == InputType::Clusters);
 
   WorkflowSpec parallelProcessors;
@@ -299,14 +299,14 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
 
   //////////////////////////////////////////////////////////////////////////////////////////////
   //
-  // a writer process for raw hardware clusters
+  // a writer process for hardware clusters
   //
-  // selected by output type 'raw'
-  if (isEnabled(OutputType::Raw) && !isEnabled(OutputType::DisableWriter)) {
+  // selected by output type 'clustershardware'
+  if (isEnabled(OutputType::ClustersHardware) && !isEnabled(OutputType::DisableWriter)) {
     using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-    specs.push_back(makeWriterSpec("tpc-raw-cluster-writer",
-                                   inputType == InputType::Raw ? "tpc-filtered-raw-clusters.root" : "tpc-raw-clusters.root",
-                                   "tpcraw",
+    specs.push_back(makeWriterSpec("tpc-clusterhardware-writer",
+                                   inputType == InputType::ClustersHardware ? "tpc-filtered-clustershardware.root" : "tpc-clustershardware.root",
+                                   "tpcclustershardware",
                                    BranchDefinition<const char*>{InputSpec{"data", "TPC", "CLUSTERHW", 0},
                                                                  "TPCClusterHw",
                                                                  "databranch"},

@@ -40,8 +40,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   using namespace o2::framework;
 
   std::vector<ConfigParamSpec> options{
-    {"input-type", VariantType::String, "digits", {"digitizer, digits, raw, clusters"}},
-    {"output-type", VariantType::String, "tracks", {"digits, raw, clusters, tracks, disable-writer"}},
+    {"input-type", VariantType::String, "digits", {"digitizer, digits, clustershw, clustersnative"}},
+    {"output-type", VariantType::String, "tracks", {"digits, clustershw, clustersnative, tracks, disable-writer"}},
     {"ca-clusterer", VariantType::Bool, false, {"Use clusterer of GPUCATracking"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
     {"tpc-sectors", VariantType::String, "0-35", {"TPC sector range, e.g. 5-7,8,9"}},
@@ -90,11 +90,11 @@ using namespace o2::framework;
 /// and contains the following default processors
 /// - digit reader
 /// - clusterer
-/// - cluster raw decoder
+/// - ClusterHardware Decoder
 /// - CA tracker
 ///
 /// The default workflow can be customized by specifying input and output types
-/// e.g. digits, raw, tracks.
+/// e.g. digits, clustershw, tracks.
 ///
 /// MC info is processed by default, disabled by using command line option `--disable-mc`
 ///
@@ -123,9 +123,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     // trigger and all messages will be sent out together at end of computation
   } else if (inputType == "digits") {
     gDispatchTrigger = o2::framework::Output{"TPC", "DIGITS"};
-  } else if (inputType == "raw") {
+  } else if (inputType == "clustershw") {
     gDispatchTrigger = o2::framework::Output{"TPC", "CLUSTERHW"};
-  } else if (inputType == "clusters") {
+  } else if (inputType == "clustersnative") {
     gDispatchTrigger = o2::framework::Output{"TPC", "CLUSTERNATIVE"};
   }
   // set up configuration
