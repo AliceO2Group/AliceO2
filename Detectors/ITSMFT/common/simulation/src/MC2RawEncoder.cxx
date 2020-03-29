@@ -10,7 +10,7 @@
 
 #include "ITSMFTSimulation/MC2RawEncoder.h"
 #include "CommonConstants/Triggers.h"
-#include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "Framework/Logger.h"
 
 using namespace o2::itsmft;
@@ -33,7 +33,7 @@ void MC2RawEncoder<Mapping>::init()
     int nLinks = 0;
     for (int il = 0; il < MaxLinksPerRU; il++) {
       if (ruData.links[il]) {
-        auto subspec = o2::raw::HBFUtils::getSubSpec(ruData.links[il]->cruID, ruData.links[il]->id, ruData.links[il]->endPointID, ruData.links[il]->feeID);
+        auto subspec = o2::raw::RDHUtils::getSubSpec(ruData.links[il]->cruID, ruData.links[il]->id, ruData.links[il]->endPointID, ruData.links[il]->feeID);
         if (!mWriter.isLinkRegistered(subspec)) {
           LOGF(INFO, "RU%3d FEEId 0x%04x Link %02d of CRU=0x%94x will be writing to default sink %s",
                int(ru), ruData.links[il]->feeID, ruData.links[il]->id, ruData.links[il]->cruID, mDefaultSinkName);

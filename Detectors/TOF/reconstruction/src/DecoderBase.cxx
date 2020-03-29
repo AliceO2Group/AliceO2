@@ -15,6 +15,7 @@
 
 #include "TOFReconstruction/DecoderBase.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 #include <cstring>
 #include <iostream>
@@ -66,7 +67,7 @@ bool DecoderBase::processHBF()
                 << "--- RDH open/continue detected"
                 << colorReset
                 << std::endl;
-      o2::raw::HBFUtils::printRDH(*rdh);
+      o2::raw::RDHUtils::printRDH(*rdh);
     }
 #endif
 
@@ -99,7 +100,7 @@ bool DecoderBase::processHBF()
               << "--- RDH close detected"
               << colorReset
               << std::endl;
-    o2::raw::HBFUtils::printRDH(*rdh);
+    o2::raw::RDHUtils::printRDH(*rdh);
   }
 #endif
 

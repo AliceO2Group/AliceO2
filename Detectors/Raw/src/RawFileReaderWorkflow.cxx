@@ -20,7 +20,7 @@
 #include "Framework/Logger.h"
 
 #include "DetectorsRaw/RawFileReader.h"
-#include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
@@ -134,7 +134,7 @@ class rawReaderSpecs : public o2f::Task
         // check if the RDH to send corresponds to expected orbit
         if (hdrTmpl.splitPayloadIndex == 0) {
           uint32_t hbOrbExpected = mReader->getOrbitMin() + tfID * mReader->getNominalHBFperTF();
-          uint32_t hbOrbRead = o2::raw::HBFUtils::getHBOrbit(plMessage->GetData());
+          uint32_t hbOrbRead = o2::raw::RDHUtils::getHBOrbit(plMessage->GetData());
           if (hbOrbExpected != hbOrbRead) {
             LOGF(ERROR, "Expected orbit=%u but got %u for %d-th HBF in TF#%d of %s/%s/0x%u",
                  hbOrbExpected, hbOrbRead, hdrTmpl.splitPayloadIndex, tfID,
