@@ -40,7 +40,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   using namespace o2::framework;
 
   std::vector<ConfigParamSpec> options{
-    {"input-type", VariantType::String, "digits", {"digitizer, digits, clustershw, clustersnative"}},
+    {"input-type", VariantType::String, "digits", {"digitizer, digits, clustershw, clustersnative, zsraw"}},
     {"output-type", VariantType::String, "tracks", {"digits, clustershw, clustersnative, tracks, disable-writer"}},
     {"ca-clusterer", VariantType::Bool, false, {"Use clusterer of GPUCATracking"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
@@ -127,6 +127,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     gDispatchTrigger = o2::framework::Output{"TPC", "CLUSTERHW"};
   } else if (inputType == "clustersnative") {
     gDispatchTrigger = o2::framework::Output{"TPC", "CLUSTERNATIVE"};
+  } else if (inputType == "zsraw") {
+    gDispatchTrigger = o2::framework::Output{"TPC", "RAWDATA"};
   }
   // set up configuration
   o2::conf::ConfigurableParam::updateFromFile(cfgc.options().get<std::string>("configFile"));
