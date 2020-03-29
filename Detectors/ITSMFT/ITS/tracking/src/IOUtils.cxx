@@ -158,11 +158,11 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
     Point3D<float> locXYZ;
     float sigmaY2 = 0.0015 * 0.0015, sigmaZ2 = sigmaY2, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaY2 = dict.GetErrX(pattID);
+      sigmaY2 = dict.getErrX(pattID);
       sigmaY2 *= sigmaY2;
-      sigmaZ2 = dict.GetErrZ(pattID);
+      sigmaZ2 = dict.getErrZ(pattID);
       sigmaZ2 *= sigmaZ2;
-      if (!dict.IsGroup(pattID)) {
+      if (!dict.isGroup(pattID)) {
         locXYZ = dict.getClusterCoordinates(c);
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
@@ -239,11 +239,11 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     Point3D<float> locXYZ;
     float sigmaY2 = 0.0015 * 0.0015, sigmaZ2 = sigmaY2, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaY2 = dict.GetErrX(pattID);
+      sigmaY2 = dict.getErrX(pattID);
       sigmaY2 *= sigmaY2;
-      sigmaZ2 = dict.GetErrZ(pattID);
+      sigmaZ2 = dict.getErrZ(pattID);
       sigmaZ2 *= sigmaZ2;
-      if (!dict.IsGroup(pattID)) {
+      if (!dict.isGroup(pattID)) {
         locXYZ = dict.getClusterCoordinates(c);
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);

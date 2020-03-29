@@ -283,7 +283,7 @@ TEveElement* Data::getEveChipClusters(int chip)
       continue;
     ncl++;
 
-    auto pattern = dict.GetPattern(c.getPatternID());
+    auto pattern = dict.getPattern(c.getPatternID());
     int row = c.getRow();
     int col = c.getCol();
     int len = pattern.getColumnSpan();
@@ -429,7 +429,7 @@ void init(int entry = 0, int chip = 13,
           std::string tracfile = "o2trac_its.root",
           std::string inputGeom = "")
 {
-  dict.ReadBinaryFile("complete_dictionary.bin");
+  dict.readBinaryFile("complete_dictionary.bin");
 
   TEveManager::Create(kTRUE, "V");
   TEveBrowser* browser = gEve->GetBrowser();
