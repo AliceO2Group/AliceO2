@@ -417,7 +417,7 @@ struct AnalysisDataProcessorBuilder {
 
       GroupSlicerIterator(G& gt, std::tuple<A...>& at)
         : mAt{&at},
-          groupingElement{gt.begin()},
+          mGroupingElement{gt.begin()},
           position{0}
       {
         using groupingMetadata = typename aod::MetadataTrait<G>::metadata;
@@ -445,10 +445,12 @@ struct AnalysisDataProcessorBuilder {
           at);
         /// extract selections from filtered associated tables
         auto extractor = [&](auto&& x) {
-          if constexpr (soa::is_soa_filtered_t<std::decay_t<decltype(x)>>::value) {
-            selections[framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{})] = &x.getSelectedRows();
-            starts[framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{})] = selections[framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{})]->begin();
-            offsets[framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{})].push_back(std::get<std::decay_t<decltype(x)>>(at).tableSize());
+          using xt = std::decay_t<decltype(x)>;
+          if constexpr (soa::is_soa_filtered_t<xt>::value) {
+            constexpr auto index = framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{});
+            selections[index] = &x.getSelectedRows();
+            starts[index] = selections[index]->begin();
+            offsets[index].push_back(std::get<xt>(at).tableSize());
           }
         };
         std::apply(
@@ -469,16 +471,14 @@ struct AnalysisDataProcessorBuilder {
       {
         if constexpr (soa::is_type_with_binding_v<C>) {
           return std::is_same_v<typename C::binding_t, B>;
-        } else {
-          return false;
         }
-        O2_BUILTIN_UNREACHABLE();
+        return false;
       }
 
       GroupSlicerIterator operator++()
       {
         ++position;
-        ++groupingElement;
+        ++mGroupingElement;
         return *this;
       }
 
@@ -492,9 +492,9 @@ struct AnalysisDataProcessorBuilder {
         return O2_BUILTIN_LIKELY(position != other.position);
       }
 
-      auto& GroupingElement()
+      auto& groupingElement()
       {
-        return groupingElement;
+        return mGroupingElement;
       }
 
       GroupSlicerIterator& operator*()
@@ -502,7 +502,7 @@ struct AnalysisDataProcessorBuilder {
         return *this;
       }
 
-      auto AssociatedTables()
+      auto associatedTables()
       {
         return std::make_tuple(prepareArgument<A>()...);
       }
@@ -539,7 +539,7 @@ struct AnalysisDataProcessorBuilder {
       }
 
       std::tuple<A...>* mAt;
-      typename grouping_t::iterator groupingElement;
+      typename grouping_t::iterator mGroupingElement;
       uint64_t position = 0;
 
       std::array<std::vector<arrow::compute::Datum>, sizeof...(A)> groups;
@@ -586,7 +586,7 @@ struct AnalysisDataProcessorBuilder {
         // grouping case
         auto slicer = GroupSlicer(groupingTable, associatedTables);
         for (auto& slice : slicer) {
-          auto associatedSlices = slice.AssociatedTables();
+          auto associatedSlices = slice.associatedTables();
           (std::get<std::decay_t<Associated>>(associatedSlices).bindExternalIndices(&groupingTable), ...);
           (groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedSlices)), ...);
           auto binder = [&](auto&& x) {
@@ -598,7 +598,7 @@ struct AnalysisDataProcessorBuilder {
             },
             associatedSlices);
 
-          invokeProcessWithArgs(task, slice.GroupingElement(), associatedSlices);
+          invokeProcessWithArgs(task, slice.groupingElement(), associatedSlices);
         }
       } else {
         // non-grouping case
