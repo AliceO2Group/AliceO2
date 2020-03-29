@@ -27,7 +27,7 @@ usageAndExit() {
 
 # ===| default variable values |================================================
 fileInfo=
-outputFile="./"
+outputDir="./"
 minADC=2
 sigmaNoise=3
 

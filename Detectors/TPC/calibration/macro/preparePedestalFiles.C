@@ -47,18 +47,28 @@ using DataMap = std::map<LinkInfo, ValueArray>;
 void writeValues(const std::string_view fileName, const DataMap& map);
 int getHWChannel(int sampa, int channel, int regionIter);
 
+/// convert float to integer with fixed precision and max number of digits
 template <uint32_t DataBitSizeT = 12, uint32_t SignificantBitsT = 2>
-uint32_t getADCValue(float value)
+constexpr uint32_t floatToFixedSize(float value)
 {
-  static constexpr uint32_t DataBitSize = DataBitSizeT;                       ///< number of bits of the data representation
-  static constexpr uint32_t SignificantBits = SignificantBitsT;               ///< number of bits used for floating point precision
-  static constexpr uint64_t BitMask = ((uint64_t(1) << DataBitSize) - 1);     ///< mask for bits
-  static constexpr float FloatConversion = 1.f / float(1 << SignificantBits); ///< conversion factor from integer representation to float
+  constexpr uint32_t DataBitSize = DataBitSizeT;                       ///< number of bits of the data representation
+  constexpr uint32_t SignificantBits = SignificantBitsT;               ///< number of bits used for floating point precision
+  constexpr uint64_t BitMask = ((uint64_t(1) << DataBitSize) - 1);     ///< mask for bits
+  constexpr float FloatConversion = 1.f / float(1 << SignificantBits); ///< conversion factor from integer representation to float
 
   const auto adc = uint32_t((value + 0.5f * FloatConversion) / FloatConversion) & BitMask;
-  assert(std::abs(value - adc * FloatConversion) < FloatConversion);
+  assert(std::abs(value - adc * FloatConversion) <= 0.5f * FloatConversion);
 
   return adc;
+}
+
+template <uint32_t SignificantBitsT = 2>
+constexpr float fixedSizeToFloat(uint32_t value)
+{
+  constexpr uint32_t SignificantBits = SignificantBitsT;               ///< number of bits used for floating point precision
+  constexpr float FloatConversion = 1.f / float(1 << SignificantBits); ///< conversion factor from integer representation to float
+
+  return float(value) * FloatConversion;
 }
 
 void preparePedestalFiles(const std::string_view pedestalFileName, const std::string_view outputDir = "./", float sigmaNoise = 3, float minADC = 2, float pedestalOffset = 0)
@@ -103,6 +113,8 @@ void preparePedestalFiles(const std::string_view pedestalFileName, const std::st
       const CRU cru = mapper.getCRU(roc.getSector(), globalPad);
       const uint32_t region = cru.region();
       const int cruID = cru.number();
+      const int sampa = fecInfo.getSampaChip();
+      const int sampaChannel = fecInfo.getSampaChannel();
       //int globalLinkID = fecInfo.getIndex();
 
       const PartitionInfo& partInfo = mapper.getMapPartitionInfo()[cru.partition()];
@@ -112,34 +124,32 @@ void preparePedestalFiles(const std::string_view pedestalFileName, const std::st
       const int dataWrapperID = fecInPartition >= fecOffset;
       const int globalLinkID = (fecInPartition % fecOffset) + dataWrapperID * 12;
 
-      const float pedestal = rocPedestal.getValue(ipad);
-      const float noise = rocNoise.getValue(ipad);
+      float pedestal = rocPedestal.getValue(ipad);
+      float noise = std::abs(rocNoise.getValue(ipad)); // it seems with the new fitting procedure, the noise can also be negative, since in gaus sigma is quadratic
+      if ((pedestal < 0) || (pedestal > 1023) || (noise < 0) || (noise > 1023)) {
+        printf("Bad pedestal or noise value in ROC %2zu, CRU %3d, fec in CRU: %2d, SAMPA: %d, channel: %2d, pedestal: %.4f, noise %.4f, setting both to 0\n", iroc, cruID, fecInPartition, sampa, sampaChannel, pedestal, noise);
+        pedestal = 0;
+        noise = 0;
+      }
       const float threshold = std::max(sigmaNoise * noise, minADC);
 
-      const int hwChannel = getHWChannel(fecInfo.getSampaChip(), fecInfo.getSampaChannel(), region % 2);
+      const int hwChannel = getHWChannel(sampa, sampaChannel, region % 2);
+      // for debugging
       //printf("%4d %4d %4d %4d %4d: %u\n", cru.number(), globalLinkID, hwChannel, fecInfo.getSampaChip(), fecInfo.getSampaChannel(), getADCValue(pedestal));
 
-      const auto adcPedestal = getADCValue(pedestal);
-      const auto adcThreshold = getADCValue(threshold);
+      const auto adcPedestal = floatToFixedSize(pedestal);
+      const auto adcThreshold = floatToFixedSize(threshold);
       pedestalValues[LinkInfo(cruID, globalLinkID)][hwChannel] = adcPedestal;
       thresholdlValues[LinkInfo(cruID, globalLinkID)][hwChannel] = adcThreshold;
-      rocOut.setValue(ipad, adcPedestal * FloatConversion);
-      //if ((iroc == 1) && (ipad < 10)) {
-        //const auto val = pedestalValues[LinkInfo(cruID, globalLinkID)][hwChannel];
-        //printf("%4d %4d %4d %4d %4d %4d: %u (%u)\n", cru.number(), globalLinkID, ipad, hwChannel, fecInfo.getSampaChip(), fecInfo.getSampaChannel(), adcPedestal, val);
-      //}
-      //if ((cruID == 11) && (globalLinkID == 0)) {
-      //const auto val = pedestalValues[LinkInfo(cruID, globalLinkID)][hwChannel];
-      //printf("%4d %4d %4d %4d %4d: %u (%u)\n", cru.number(), globalLinkID, hwChannel, fecInfo.getSampaChip(), fecInfo.getSampaChannel(), getADCValue(pedestal), val);
+      // for debugging
+      //if(!(std::abs(pedestal - fixedSizeToFloat(adcPedestal)) <= 0.5 * 0.25)) {
+      //printf("%4d %4d %4d %4d %4d: %u %.2f %.4f %.4f\n", cru.number(), globalLinkID, hwChannel, sampa, sampaChannel, adcPedestal, fixedSizeToFloat(adcPedestal), pedestal, pedestal - fixedSizeToFloat(adcPedestal));
       //}
     }
   }
 
   writeValues((outputDir + "/pedestal_values.txt").Data(), pedestalValues);
   writeValues((outputDir + "/threshold_values.txt").Data(), thresholdlValues);
-
-  TFile fout("/tmp/outPed.direct.root", "recreate");
-  fout.WriteObject(&output, "Pedestals");
 }
 
 /// return the hardware channel number as mapped in the CRU
@@ -155,25 +165,19 @@ int getHWChannel(int sampa, int channel, int regionIter)
 }
 
 /// write values of map to fileName
-//
+///
 void writeValues(const std::string_view fileName, const DataMap& map)
 {
   std::ofstream str(fileName.data(), std::ofstream::out);
 
-  static constexpr float FloatConversion = 1.f / float(1 << 2);
   for (const auto& [linkInfo, data] : map) {
-    int iter = 0;
     std::string values;
     for (const auto& val : data) {
       if (values.size()) {
         values += ",";
       }
       values += std::to_string(val);
-      //printf("%3d: %4d (%.2f),\n", iter, val, val * FloatConversion);
-      ++iter;
     }
-    //printf("%4d %4d %s\n", linkInfo.cru, linkInfo.globalLinkID, values.data());
-    //printf("\n\n");
 
     str << linkInfo.cru << " "
         << linkInfo.globalLinkID << " "
@@ -181,6 +185,7 @@ void writeValues(const std::string_view fileName, const DataMap& map)
   }
 }
 
+/// convert HW mapping to sampa and channel number
 std::tuple<int, int> getSampaInfo(int hwChannel, int cruID)
 {
   static constexpr int sampaMapping[10] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 2};
@@ -197,6 +202,8 @@ std::tuple<int, int> getSampaInfo(int hwChannel, int cruID)
 }
 
 /// Test input channel mapping vs output channel mapping
+///
+/// Consistency check of mapping
 void testChannelMapping(int cruID = 0)
 {
   const int sampaMapping[10] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 2};
@@ -215,7 +222,11 @@ void testChannelMapping(int cruID = 0)
   }
 }
 
-o2::tpc::CalDet<float> getCalPad(const std::string_view fileName, const std::string_view outFile = "", std::string_view outName = "")
+/// create cal pad object from HW value file
+///
+/// if outputFile is set, write the object to file
+/// if calPadName is set use it for the object name in the file. Otherwise the basename of the fileName is used
+o2::tpc::CalDet<float> getCalPad(const std::string_view fileName, const std::string_view outputFile = "", std::string_view calPadName = "")
 {
   using namespace o2::tpc;
   const auto& mapper = Mapper::instance();
@@ -245,30 +256,28 @@ o2::tpc::CalDet<float> getCalPad(const std::string_view fileName, const std::str
     const int nFECs = partInfo.getNumberOfFECs();
     const int fecOffset = (nFECs + 1) / 2;
     const int fecInPartition = (globalLinkID < fecOffset) ? globalLinkID : fecOffset + globalLinkID % 12;
-    //printf("%4d, %4d, %4d : %s\n", cruID, globalLinkID, fecInPartition, values.data());
-    //printf("%4d, %4d, %4d\n", cruID, globalLinkID, fecInPartition);
 
     int hwChannel{0};
     for (const auto& val : utils::tokenize(values, ",")) {
       std::tie(sampaOnFEC, channelOnSAMPA) = getSampaInfo(hwChannel, cru);
       const PadROCPos padROCPos = mapper.padROCPos(cru, fecInPartition, sampaOnFEC, channelOnSAMPA);
-      const float set = FloatConversion * std::stof(val);
+      const float set = fixedSizeToFloat(uint32_t(std::stoi(val)));
       calPad.getCalArray(padROCPos.getROC()).setValue(padROCPos.getRow(), padROCPos.getPad(), set);
-      //printf("%3d, %3d, %3d (%3d, %3d, %3d): %3d (%.2f)\n", hwChannel, sampaOnFEC, channelOnSAMPA, int(padROCPos.getROC()), padROCPos.getRow(), padROCPos.getPad(), std::stoi(val), set);
       ++hwChannel;
     }
   }
 
-  if (outFile.size()) {
-    TFile f(outFile.data(), "recreate");
-    if (!outName.size()) {
-      outName = calPad.getName();
+  if (outputFile.size()) {
+    TFile f(outputFile.data(), "recreate");
+    if (!calPadName.size()) {
+      calPadName = calPad.getName();
     }
-    f.WriteObject(&calPad, outName.data());
+    f.WriteObject(&calPad, calPadName.data());
   }
   return calPad;
 }
 
+/// debug differences between two cal pad objects
 void debugDiff(std::string_view file1, std::string_view file2, std::string_view objName)
 {
   using namespace o2::tpc;
@@ -301,4 +310,3 @@ void debugDiff(std::string_view file1, std::string_view file2, std::string_view 
     }
   }
 }
-
