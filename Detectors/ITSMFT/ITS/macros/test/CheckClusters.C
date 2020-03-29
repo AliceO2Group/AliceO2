@@ -71,7 +71,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
     LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
-    dict.ReadBinaryFile(dictfile);
+    dict.readBinaryFile(dictfile);
   } else {
     LOG(INFO) << "Running without dictionary !";
   }
@@ -145,12 +145,12 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
       int npix = 0;
       auto pattID = cluster.getPatternID();
       Point3D<float> locC;
-      if (pattID == o2::itsmft::CompCluster::InvalidPatternID || dict.IsGroup(pattID)) {
+      if (pattID == o2::itsmft::CompCluster::InvalidPatternID || dict.isGroup(pattID)) {
         o2::itsmft::ClusterPattern patt(pattIt);
         locC = dict.getClusterCoordinates(cluster, patt);
       } else {
         locC = dict.getClusterCoordinates(cluster);
-        npix = dict.GetNpixels(pattID);
+        npix = dict.getNpixels(pattID);
       }
       auto chipID = cluster.getSensorID();
       // Transformation to the local --> global

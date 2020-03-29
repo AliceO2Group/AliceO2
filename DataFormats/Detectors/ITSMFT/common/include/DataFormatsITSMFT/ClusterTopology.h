@@ -35,6 +35,8 @@ class ClusterTopology
   ClusterTopology();
   /// Standard constructor
   ClusterTopology(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  /// Constructor
+  ClusterTopology(const ClusterPattern& patt);
 
   /// Returns a specific byte of the pattern
   unsigned char getByte(int n) const { return mPattern.getByte(n); }
@@ -61,11 +63,7 @@ class ClusterTopology
   /// Sets the pattern
   void setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
   /// Sets the pattern
-  void setPattern(const ClusterPattern& patt)
-  {
-    mPattern = patt;
-    mHash = getCompleteHash(*this);
-  }
+  void setPattern(const ClusterPattern& patt);
 
   ///Helper function useful for analyses with topologies stored on a separate branch
   static void makeRareTopologyMap(const std::vector<ClusterTopology>& vec, std::map<int, ClusterPattern>& map)

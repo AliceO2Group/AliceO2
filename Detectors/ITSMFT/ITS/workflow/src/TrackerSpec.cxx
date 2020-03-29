@@ -76,7 +76,7 @@ void TrackerDPL::init(InitContext& ic)
   std::ifstream file(filename.c_str());
   if (file.good()) {
     LOG(INFO) << "Running with dictionary: " << filename.c_str();
-    mDict.ReadBinaryFile(filename);
+    mDict.readBinaryFile(filename);
   } else {
     LOG(INFO) << "Running without dictionary !";
   }

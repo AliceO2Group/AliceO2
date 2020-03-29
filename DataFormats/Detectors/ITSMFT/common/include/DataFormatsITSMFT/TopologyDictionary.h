@@ -36,6 +36,7 @@
 #include <vector>
 #include "MathUtils/Cartesian3D.h"
 #include "DataFormatsITSMFT/CompCluster.h"
+#include "TH1F.h"
 
 namespace o2
 {
@@ -82,36 +83,63 @@ class TopologyDictionary
   /// Reads the dictionary from a binary file
   int readBinaryFile(std::string fileName);
   /// Returns the x position of the COG for the n_th element
-  float getXCOG(int n) const;
+  inline float getXCOG(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mXCOG;
+  }
   /// Returns the error on the x position of the COG for the n_th element
-  float getErrX(int n) const;
+  inline float getErrX(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mErrX;
+  }
   /// Returns the z position of the COG for the n_th element
-  float getZCOG(int n) const;
+  inline float getZCOG(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mZCOG;
+  }
   /// Returns the error on the z position of the COG for the n_th element
-  float getErrZ(int n) const;
+  inline float getErrZ(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mErrZ;
+  }
   /// Returns the hash of the n_th element
-  unsigned long getHash(int n) const;
+  inline unsigned long getHash(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mHash;
+  }
   /// Returns the number of fired pixels of the n_th element
-  int getNpixels(int n) const;
+  inline int getNpixels(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mNpixels;
+  }
+  /// Returns the frequency of the n_th element;
+  inline double getFrequency(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mFrequency;
+  }
   /// Returns true if the element corresponds to a group of rare topologies
   inline bool isGroup(int n) const
   {
-    if (n >= (int)mVectorOfGroupIDs.size()) {
-      if (mVectorOfGroupIDs.size()) { // produce error only if there is a real overflow
-        LOG(ERROR) << "Index out of bounds";
-      }
-      return false;
-    } else
-      return mVectorOfGroupIDs[n].mIsGroup;
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mIsGroup;
   }
-
   /// Returns the pattern of the topology
-  ClusterPattern
-    getPattern(int n) const;
-  /// Returns the frequency of the n_th element;
-  double getFrequency(int n) const;
+  inline ClusterPattern getPattern(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mPattern;
+  }
+  /// Fills a hostogram with the distribution of the IDs
+  static void getTopologyDistribution(const TopologyDictionary& dict, TH1F*& histo, const char* histName);
   /// Returns the number of elements in the dicionary;
-  int getSize() const { return (int)mVectorOfGroupIDs.size(); }
+  int getSize() const { return (int)mVectorOfIDs.size(); }
   ///Returns the local position of a compact cluster
   Point3D<float> getClusterCoordinates(const CompCluster& cl) const;
   ///Returns the local position of a compact cluster
@@ -122,9 +150,10 @@ class TopologyDictionary
   friend TopologyFastSimulation;
 
  private:
-  std::unordered_map<unsigned long, int> mFinalMap; ///< Map of pair <hash, position in mVectorOfGroupIDs>
-  int mSmallTopologiesLUT[8 * 255 + 1];             ///< Look-Up Table for the topologies with 1-byte linearised matrix
-  std::vector<GroupStruct> mVectorOfGroupIDs;       ///< Vector of topologies and groups
+  std::unordered_map<unsigned long, int> mCommonMap; ///< Map of pair <hash, position in mVectorOfIDs>
+  std::unordered_map<int, int> mGroupMap;            ///< Map of pair <groudID, position in mVectorOfIDs>
+  int mSmallTopologiesLUT[8 * 255 + 1];              ///< Look-Up Table for the topologies with 1-byte linearised matrix
+  std::vector<GroupStruct> mVectorOfIDs;             ///< Vector of topologies and groups
 
   ClassDefNV(TopologyDictionary, 3);
 }; // namespace itsmft

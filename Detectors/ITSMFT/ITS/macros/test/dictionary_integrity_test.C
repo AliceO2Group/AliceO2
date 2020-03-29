@@ -38,8 +38,7 @@ void dictionary_integrity_test(string intput_name = "complete_dictionary.bin", s
     int nRow_input = cp_input.getRowSpan();
     int nCol_input = cp_input.getColumnSpan();
     unsigned long input_hash = dict.getHash(ID_input);
-    if (input_hash == 0)
-      continue;
+    bool isGroup_input = dict.isGroup(ID_input);
 
     //**************** output **************************
 
@@ -48,6 +47,7 @@ void dictionary_integrity_test(string intput_name = "complete_dictionary.bin", s
     int nRow_output = cp_input.getRowSpan();
     int nCol_output = cp_input.getColumnSpan();
     unsigned long output_hash = dict.getHash(ID_output);
+    bool isGroup_output = dict.isGroup(ID_output);
 
     if (ID_output != ID_input) {
       output_file << "*****************************************" << std::endl;
@@ -56,12 +56,14 @@ void dictionary_integrity_test(string intput_name = "complete_dictionary.bin", s
       output_file << "nRow : " << nRow_input << std::endl;
       output_file << "nCol : " << nCol_input << std::endl;
       output_file << "Hash : " << input_hash << std::endl;
+      output_file << "IsGroup : " << isGroup_input << std::endl;
       output_file << cp_input << std::endl;
       output_file << "                 OUTPUT" << std::endl;
       output_file << "ID : " << ID_output << std::endl;
       output_file << "nRow : " << nRow_output << std::endl;
       output_file << "nCol : " << nCol_output << std::endl;
       output_file << "Hash : " << output_hash << std::endl;
+      output_file << "IsGroup : " << isGroup_output << std::endl;
       output_file << cp_output << std::endl;
 
       mistake_counter++;

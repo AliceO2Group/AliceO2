@@ -20,21 +20,28 @@ ClassImp(o2::itsmft::TopologyFastSimulation);
 
 namespace o2
 {
-  namespace itsmft
-  {
-  TopologyFastSimulation::TopologyFastSimulation(std::string fileName, unsigned seed)
-  {
-    mDictionary.readBinaryFile(fileName);
-    mGenerator = std::mt19937(seed);
-    mDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
+namespace itsmft
+{
+TopologyFastSimulation::TopologyFastSimulation(std::string fileName, unsigned seed)
+{
+  mDictionary.readBinaryFile(fileName);
+  double tot_freq = 0.;
+  int dictSize = mDictionary.getSize();
+  mFreqArray.reserve(dictSize);
+  for (int iKey = 0; iKey < dictSize; iKey++) {
+    tot_freq += mDictionary.getFrequency(iKey);
+    mFreqArray[iKey] = tot_freq;
   }
-
-  int TopologyFastSimulation::getRandom()
-  {
-    double rnd = mDistribution(mGenerator);
-    auto ind = std::upper_bound(mDictionary.mVectorOfGroupIDs.begin(), mDictionary.mVectorOfGroupIDs.end(), rnd,
-                                [](const double& comp1, const GroupStruct& comp2) { return comp1 < comp2.mFrequency; });
-    return std::distance(mDictionary.mVectorOfGroupIDs.begin(), ind);
-  }
-  } // namespace itsmft
+  mGenerator = std::mt19937(seed);
+  mDistribution = std::uniform_real_distribution<double>(0.0, 1.0);
 }
+
+int TopologyFastSimulation::getRandom()
+{
+  double rnd = mDistribution(mGenerator);
+  auto ind = std::upper_bound(mFreqArray.begin(), mFreqArray.end(), rnd,
+                              [](const double& comp1, const double& comp2) { return comp1 < comp2; });
+  return std::distance(mFreqArray.begin(), ind);
+}
+} // namespace itsmft
+} // namespace o2

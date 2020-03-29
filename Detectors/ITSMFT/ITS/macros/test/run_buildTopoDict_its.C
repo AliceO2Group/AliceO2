@@ -202,12 +202,9 @@ void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
   TCanvas* cComplete = new TCanvas("cComplete", "Distribution of all the topologies");
   cComplete->cd();
   cComplete->SetLogy();
-  TH1F* hComplete = (TH1F*)dict.mHdist.Clone("hDict");
+  TH1F* hComplete = nullptr;
+  o2::itsmft::TopologyDictionary::getTopologyDistribution(dict.getDictionary(), hComplete, "hComplete");
   hComplete->SetDirectory(0);
-  hComplete->SetTitle("Topology distribution");
-  hComplete->GetXaxis()->SetTitle("Topology ID");
-  hComplete->SetFillColor(kRed);
-  hComplete->SetFillStyle(3005);
   hComplete->Draw("hist");
   cComplete->Print("dictHisto.pdf");
   cComplete->Write();

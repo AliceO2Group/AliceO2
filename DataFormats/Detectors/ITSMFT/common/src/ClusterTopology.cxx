@@ -31,9 +31,20 @@ ClusterTopology::ClusterTopology(int nRow, int nCol, const unsigned char patt[Cl
   setPattern(nRow, nCol, patt);
 }
 
+ClusterTopology::ClusterTopology(const ClusterPattern& patt)
+{
+  setPattern(patt);
+}
+
 void ClusterTopology::setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes])
 {
   mPattern.setPattern(nRow, nCol, patt);
+  mHash = getCompleteHash(*this);
+}
+
+void ClusterTopology::setPattern(const ClusterPattern& patt)
+{
+  mPattern = patt;
   mHash = getCompleteHash(*this);
 }
 

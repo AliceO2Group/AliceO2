@@ -129,7 +129,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
     LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
-    dict.ReadBinaryFile(dictfile);
+    dict.readBinaryFile(dictfile);
   } else {
     LOG(INFO) << "Running without dictionary !";
   }
