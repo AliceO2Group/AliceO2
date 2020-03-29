@@ -11,20 +11,22 @@
 o2_add_library(DetectorsRaw
                SOURCES src/RawFileReader.cxx
                        src/RawFileWriter.cxx
-	                   src/HBFUtils.cxx
-	                   src/RDHUtils.cxx
+	       	       src/SimpleRawReader.cxx
+	               src/HBFUtils.cxx
+	               src/RDHUtils.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
 		                     O2::Headers
 		                     O2::CommonDataFormat  
-                             O2::DetectorsCommonDataFormats
+                                     O2::DetectorsCommonDataFormats
 				     O2::Framework
 				     FairMQ::FairMQ)
 
 o2_target_root_dictionary(DetectorsRaw
                           HEADERS include/DetectorsRaw/RawFileReader.h
                                   include/DetectorsRaw/RawFileWriter.h
-				         	      include/DetectorsRaw/HBFUtils.h
-				         	      include/DetectorsRaw/RDHUtils.h)
+			          include/DetectorsRaw/SimpleRawReader.h
+				  include/DetectorsRaw/HBFUtils.h
+				  include/DetectorsRaw/RDHUtils.h)
 
 
 			

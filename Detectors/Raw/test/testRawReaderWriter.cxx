@@ -49,7 +49,7 @@ int nPreformatPages = 0;
 //
 // ========================= simple detector data writer ================================
 //
-struct SimpleRawWriter { // simple class to create detector payload for multiple links
+struct TestRawWriter { // simple class to create detector payload for multiple links
 
   // suppose detector puts in front and end of every trigger payload some header and trailer
 
@@ -170,7 +170,7 @@ struct SimpleRawWriter { // simple class to create detector payload for multiple
   }
 };
 
-struct SimpleRawReader { // simple class to read detector raw data for multiple links
+struct TestRawReader { // simple class to read detector raw data for multiple links
 
   std::unique_ptr<RawFileReader> reader;
 
@@ -278,11 +278,11 @@ struct SimpleRawReader { // simple class to read detector raw data for multiple 
 
 BOOST_AUTO_TEST_CASE(RawReaderWriter)
 {
-  SimpleRawWriter dw;
+  TestRawWriter dw;
   dw.init();
   dw.run(); // write output
   //
-  SimpleRawReader dr;
+  TestRawReader dr;
   dr.init();
   dr.run(); // read back and check
 }
