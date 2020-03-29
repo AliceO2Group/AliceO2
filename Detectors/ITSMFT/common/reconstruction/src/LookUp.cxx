@@ -34,7 +34,7 @@ LookUp::LookUp(std::string fileName)
 void LookUp::loadDictionary(std::string fileName)
 {
   mDictionary.readBinaryFile(fileName);
-  mTopologiesOverThreshold = mDictionary.mFinalMap.size();
+  mTopologiesOverThreshold = mDictionary.mCommonMap.size();
 }
 
 int LookUp::groupFinder(int nRow, int nCol)
@@ -64,17 +64,17 @@ int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kM
       return ID;
     else { //small rare topology (inside groups)
       int index = groupFinder(nRow, nCol);
-      return (mTopologiesOverThreshold + index);
+      return mDictionary.mGroupMap[index];
     }
   }
   // Big topology
   unsigned long hash = ClusterTopology::getCompleteHash(nRow, nCol, patt);
-  auto ret = mDictionary.mFinalMap.find(hash);
-  if (ret != mDictionary.mFinalMap.end())
+  auto ret = mDictionary.mCommonMap.find(hash);
+  if (ret != mDictionary.mCommonMap.end())
     return ret->second;
   else { // Big rare topology (inside groups)
     int index = groupFinder(nRow, nCol);
-    return (mTopologiesOverThreshold + index);
+    return mDictionary.mGroupMap[index];
   }
 }
 

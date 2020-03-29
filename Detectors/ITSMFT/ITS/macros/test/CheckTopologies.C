@@ -19,6 +19,7 @@
 #include "ITSMFTReconstruction/BuildTopologyDictionary.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ClusterTopology.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "MathUtils/Cartesian3D.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -35,6 +36,8 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
   using o2::itsmft::ClusterTopology;
   using o2::itsmft::CompClusterExt;
   using o2::itsmft::Hit;
+
+  std::ofstream output_check("check_topologies.txt");
 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom);
@@ -86,9 +89,11 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
 
       auto lab = (clusLabArr->getLabels(i))[0];
 
-      ClusterTopology topology;
       o2::itsmft::ClusterPattern pattern(pattIdx);
-      topology.setPattern(pattern);
+      ClusterTopology topology(pattern);
+      output_check << "iEv: " << ievC << " / " << nevCl << " iCl: " << i << " / " << nc << std::endl;
+      output_check << topology << std::endl;
+
       const auto locC = o2::itsmft::TopologyDictionary::getClusterCoordinates(c, pattern);
 
       float dx = 0, dz = 0;
@@ -134,6 +139,7 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
   completeDictionary.printDictionaryBinary("complete_dictionary.bin");
   completeDictionary.printDictionary("complete_dictionary.txt");
   completeDictionary.saveDictionaryRoot("complete_dictionary.root");
+
   noiseDictionary.setThreshold(0.0001);
   noiseDictionary.groupRareTopologies();
   noiseDictionary.printDictionaryBinary("noise_dictionary.bin");
@@ -149,36 +155,27 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
   TCanvas* cComplete = new TCanvas("cComplete", "Distribution of all the topologies");
   cComplete->cd();
   cComplete->SetLogy();
-  TH1F* hComplete = (TH1F*)completeDictionary.mHdist.Clone("hComplete");
+  TH1F* hComplete = nullptr;
+  o2::itsmft::TopologyDictionary::getTopologyDistribution(completeDictionary.getDictionary(), hComplete, "hComplete");
   hComplete->SetDirectory(0);
-  hComplete->SetTitle("Topology distribution");
-  hComplete->GetXaxis()->SetTitle("Topology ID");
-  hComplete->SetFillColor(kRed);
-  hComplete->SetFillStyle(3005);
   hComplete->Draw("hist");
   hComplete->Write();
   cComplete->Write();
   TCanvas* cNoise = new TCanvas("cNoise", "Distribution of noise topologies");
   cNoise->cd();
   cNoise->SetLogy();
-  TH1F* hNoise = (TH1F*)noiseDictionary.mHdist.Clone("hNoise");
+  TH1F* hNoise = nullptr;
+  o2::itsmft::TopologyDictionary::getTopologyDistribution(noiseDictionary.getDictionary(), hNoise, "hNoise");
   hNoise->SetDirectory(0);
-  hNoise->SetTitle("Topology distribution");
-  hNoise->GetXaxis()->SetTitle("Topology ID");
-  hNoise->SetFillColor(kRed);
-  hNoise->SetFillStyle(3005);
   hNoise->Draw("hist");
   hNoise->Write();
   cNoise->Write();
   TCanvas* cProper = new TCanvas("cProper", "cProper");
   cProper->cd();
   cProper->SetLogy();
-  TH1F* hProper = (TH1F*)signalDictionary.mHdist.Clone("hProper");
+  TH1F* hProper = nullptr;
+  o2::itsmft::TopologyDictionary::getTopologyDistribution(signalDictionary.getDictionary(), hProper, "hProper");
   hProper->SetDirectory(0);
-  hProper->SetTitle("Topology distribution");
-  hProper->GetXaxis()->SetTitle("Topology ID");
-  hProper->SetFillColor(kRed);
-  hProper->SetFillStyle(3005);
   hProper->Draw("hist");
   hProper->Write();
   cProper->Write();
