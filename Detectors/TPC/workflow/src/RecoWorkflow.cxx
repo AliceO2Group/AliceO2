@@ -58,6 +58,7 @@ const std::unordered_map<std::string, InputType> InputMap{
   {"digits", InputType::Digits},
   {"clustershardware", InputType::ClustersHardware},
   {"clusters", InputType::Clusters},
+  {"zsraw", InputType::ZSRaw},
 };
 
 const std::unordered_map<std::string, OutputType> OutputMap{
@@ -95,7 +96,13 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   if (inputType == InputType::Clusters && (isEnabled(OutputType::Digits) || isEnabled(OutputType::ClustersHardware))) {
     throw std::invalid_argument("input/output type mismatch, can not produce 'digits', nor 'clustershardware' from 'clusters'");
   }
+  if (inputType == InputType::ZSRaw && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Digits) || isEnabled(OutputType::ClustersHardware))) {
+    throw std::invalid_argument("input/output type mismatch, can not produce 'digits', 'clusters' nor 'clustershardware' from 'zsraw'");
+  }
 
+  if (inputType == InputType::ZSRaw && !caClusterer) {
+    throw std::invalid_argument("zsraw input needs caclusterer");
+  }
   if (caClusterer && (inputType == InputType::Clusters || inputType == InputType::ClustersHardware)) {
     throw std::invalid_argument("ca-clusterer requires digits as input");
   }
@@ -152,6 +159,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   bool runTracker = isEnabled(OutputType::Tracks);
   bool runDecoder = !caClusterer && (runTracker || isEnabled(OutputType::Clusters));
   bool runClusterer = !caClusterer && (runDecoder || isEnabled(OutputType::ClustersHardware));
+  bool zsDecoder = inputType == InputType::ZSRaw;
 
   // input matrix
   runClusterer &= inputType == InputType::Digitizer || inputType == InputType::Digits;
@@ -339,7 +347,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   //
   // selected by output type 'tracks'
   if (runTracker) {
-    specs.emplace_back(o2::tpc::getCATrackerSpec(propagateMC, caClusterer, laneConfiguration));
+    specs.emplace_back(o2::tpc::getCATrackerSpec(propagateMC, caClusterer, zsDecoder, laneConfiguration));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////

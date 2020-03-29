@@ -32,6 +32,7 @@ enum struct InputType { Digitizer,        // directly read digits from channel {
                         Digits,           // read digits from file
                         ClustersHardware, // read hardware clusters in raw page format from file
                         Clusters,         // read native clusters from file
+                        ZSRaw,
 };
 enum struct OutputType { Digits,
                          ClustersHardware,
