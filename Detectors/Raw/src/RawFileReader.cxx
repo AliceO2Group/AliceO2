@@ -20,7 +20,7 @@
 #include <iostream>
 #include "DetectorsRaw/RawFileReader.h"
 #include "CommonConstants/Triggers.h"
-#include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "Framework/Logger.h"
 
 #include <Common/Configuration.h>
@@ -203,9 +203,9 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
   if (rdh.feeId != rdhl.feeId) { // make sure links with different FEEID were not assigned same subspec
     LOGF(ERROR, "Same SubSpec is found for %s with different RDH.feeId", describe());
     LOGF(ERROR, "old RDH assigned SubSpec=0x%-8d:", subspec);
-    HBFUtils::dumpRDH(rdhl);
+    RDHUtils::dumpRDH(rdhl);
     LOGF(ERROR, "new RDH assigned SubSpec=0x%-8d:", subspec);
-    HBFUtils::dumpRDH(rdh);
+    RDHUtils::dumpRDH(rdh);
     throw std::runtime_error("Conflicting SubSpecs are provided");
     ok = false;
     nErrors++;
@@ -271,12 +271,12 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
       }
       if ((reader->mCheckErrors & (0x1 << ErrHBFJump)) &&
           (nCRUPages && // skip this check for the very 1st RDH
-           !(HBFUtils::getHBBC(rdh) == HBFUtils::getHBBC(rdhl) &&
-             HBFUtils::getHBOrbit(rdh) == HBFUtils::getHBOrbit(rdhl) + 1))) {
+           !(RDHUtils::getHBBC(rdh) == RDHUtils::getHBBC(rdhl) &&
+             RDHUtils::getHBOrbit(rdh) == RDHUtils::getHBOrbit(rdhl) + 1))) {
         LOG(ERROR) << ErrNames[ErrHBFJump] << " @ HBF#" << nHBFrames << " New HB orbit/bc="
-                   << HBFUtils::getHBOrbit(rdh) << '/' << int(HBFUtils::getHBBC(rdh))
+                   << RDHUtils::getHBOrbit(rdh) << '/' << int(RDHUtils::getHBBC(rdh))
                    << " is not incremented by 1 orbit wrt Old HB orbit/bc="
-                   << HBFUtils::getHBOrbit(rdhl) << '/' << int(HBFUtils::getHBBC(rdhl));
+                   << RDHUtils::getHBOrbit(rdhl) << '/' << int(RDHUtils::getHBBC(rdhl));
         ok = false;
         nErrors++;
       }
@@ -301,7 +301,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
         }
       } // end of check errors
     }
-    bl.orbit = HBFUtils::getHBOrbit(rdh);
+    bl.orbit = RDHUtils::getHBOrbit(rdh);
     bl.tfID = nTimeFrames - 1;
 
     if (newSPage) {
@@ -318,12 +318,12 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
   nCRUPages++;
   if (!ok) {
     LOG(ERROR) << " ^^^Problem(s) was encountered at offset " << reader->mPosInFile << " of file " << reader->mCurrentFileID;
-    HBFUtils::printRDH(rdh);
+    RDHUtils::printRDH(rdh);
   } else if (reader->mVerbosity > 1) {
     if (reader->mVerbosity > 2) {
-      HBFUtils::dumpRDH(rdh);
+      RDHUtils::dumpRDH(rdh);
     } else {
-      HBFUtils::printRDH(rdh);
+      RDHUtils::printRDH(rdh);
     }
   }
   return true;
@@ -344,7 +344,7 @@ RawFileReader::RawFileReader(const std::string& config, int verbosity) : mVerbos
 int RawFileReader::getLinkLocalID(const RDH& rdh, const o2::header::DataOrigin orig)
 {
   // get id of the link subspec. in the parser (create entry if new)
-  LinkSubSpec_t subspec = HBFUtils::getSubSpec(rdh);
+  LinkSubSpec_t subspec = RDHUtils::getSubSpec(rdh);
   LinkSpec_t spec = createSpec(orig, subspec);
   auto entryMap = mLinkEntries.find(spec);
   if (entryMap == mLinkEntries.end()) { // need to register a new link
@@ -383,11 +383,11 @@ bool RawFileReader::preprocessFile(int ifl)
       ok = false;
       break;
     }
-    if (!(ok = HBFUtils::checkRDH(rdh))) {
+    if (!(ok = RDHUtils::checkRDH(rdh))) {
       break;
     }
     nRDHread++;
-    LinkSpec_t spec = createSpec(mDataSpecs[mCurrentFileID].first, HBFUtils::getSubSpec(rdh));
+    LinkSpec_t spec = createSpec(mDataSpecs[mCurrentFileID].first, RDHUtils::getSubSpec(rdh));
     int lID = lIDPrev;
     if (spec != specPrev) { // link has changed
       specPrev = spec;

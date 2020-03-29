@@ -24,6 +24,7 @@
 #include <Rtypes.h>
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 /*
 #include <cstdio>
@@ -132,7 +133,7 @@ class RawFileWriter
   LinkData& registerLink(const RDH& rdh, const std::string& outFileName);
 
   LinkData& getLinkWithSubSpec(LinkSubSpec_t ss) { return mSSpec2Link[ss]; }
-  LinkData& getLinkWithSubSpec(const RDH& rdh) { return mSSpec2Link[HBFUtils::getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID, rdh.feeId)]; }
+  LinkData& getLinkWithSubSpec(const RDH& rdh) { return mSSpec2Link[RDHUtils::getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID, rdh.feeId)]; }
 
   void addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data, bool preformatted = false);
   void addData(const RDH& rdh, const IR& ir, const gsl::span<char> data, bool preformatted = false)
