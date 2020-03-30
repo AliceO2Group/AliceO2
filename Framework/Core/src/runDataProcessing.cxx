@@ -16,12 +16,12 @@
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessorSpec.h"
 #if __has_include(<DebugGUI/DebugGUI.h>)
-#include "DebugGUI/DebugGUI.h"
+#include <DebugGUI/DebugGUI.h>
 #else
 // the DebugGUI is in a separate package and is optional for O2,
 // we include a header implementing GUI interface dummy methods
 #pragma message "Building DPL without Debug GUI"
-#include "Framework/DebugGUI.h"
+#include "Framework/NoDebugGUI.h"
 #endif
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceExecution.h"
