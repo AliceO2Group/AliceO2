@@ -51,8 +51,8 @@
 /DataFormats/common            @shahor02
 /DataFormats/simulation        @sawenzel
 
-/Detectors/Base                    @AliceO2Group/framework-admins
-/Detectors/Geometry                @AliceO2Group/framework-admins
+/Detectors/Base                    @sawenzel @shahor02
+/Detectors/Geometry                @sawenzel @shahor02
 /Detectors/CPV                     @peressounko @kharlov
 /Detectors/EMCAL                   @mfasDa
 /Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
