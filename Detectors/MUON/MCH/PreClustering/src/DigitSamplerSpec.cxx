@@ -21,6 +21,8 @@
 #include <string>
 #include <stdexcept>
 
+#include <gsl/span>
+
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -72,30 +74,23 @@ class DigitSamplerTask
     /// send the digits of the current event
 
     int nDigits(0);
-    mInputFile.read(reinterpret_cast<char*>(&nDigits), SSizeOfInt);
+    mInputFile.read(reinterpret_cast<char*>(&nDigits), sizeof(int));
     if (mInputFile.fail()) {
       pc.services().get<ControlService>().endOfStream();
       return; // probably reached eof
     }
 
     // create the output message
-    auto size = nDigits * SSizeOfDigit;
-    auto msgOut = pc.outputs().make<char>(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, SSizeOfInt + size);
-    if (msgOut.size() != SSizeOfInt + size) {
+    auto digits = pc.outputs().make<Digit>(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, nDigits);
+    if (digits.size() != nDigits) {
       throw length_error("incorrect message payload");
     }
 
-    auto bufferPtr = msgOut.data();
-
-    // fill number of digits
-    memcpy(bufferPtr, &nDigits, SSizeOfInt);
-    bufferPtr += SSizeOfInt;
-
     // fill digits in O2 format, if any
-    if (size > 0) {
-      mInputFile.read(bufferPtr, size);
+    if (nDigits > 0) {
+      mInputFile.read(reinterpret_cast<char*>(digits.data()), digits.size_bytes());
       if (mUseRun2DigitUID) {
-        convertDigitUID2PadID(reinterpret_cast<Digit*>(bufferPtr), nDigits);
+        convertDigitUID2PadID(digits);
       }
     } else {
       LOG(INFO) << "event is empty";
@@ -104,14 +99,14 @@ class DigitSamplerTask
 
  private:
   //_________________________________________________________________________________________________
-  void convertDigitUID2PadID(Digit* digits, int nDigits)
+  void convertDigitUID2PadID(gsl::span<Digit> digits)
   {
     /// convert the digit UID in run2 format into a pad ID (i.e. index) in O2 mapping
 
-    for (int iDigit = 0; iDigit < nDigits; ++iDigit) {
+    for (auto& digit : digits) {
 
-      int deID = digits[iDigit].getDetID();
-      int digitID = digits[iDigit].getPadID();
+      int deID = digit.getDetID();
+      int digitID = digit.getPadID();
       int manuID = (digitID & 0xFFF000) >> 12;
       int manuCh = (digitID & 0x3F000000) >> 24;
 
@@ -120,12 +115,9 @@ class DigitSamplerTask
         throw runtime_error(std::string("digitID ") + digitID + " does not exist in the mapping");
       }
 
-      digits[iDigit].setPadID(padID);
+      digit.setPadID(padID);
     }
   }
-
-  static constexpr uint32_t SSizeOfInt = sizeof(int);
-  static constexpr uint32_t SSizeOfDigit = sizeof(Digit);
 
   std::ifstream mInputFile{};    ///< input file
   bool mUseRun2DigitUID = false; ///< true if Digit.mPadID = digit UID in run2 format
