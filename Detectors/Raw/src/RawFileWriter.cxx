@@ -23,7 +23,7 @@
 #include "Framework/Logger.h"
 
 using namespace o2::raw;
-namespace o2h = o2::header;
+using IR = o2::InteractionRecord;
 
 //_____________________________________________________________________
 RawFileWriter::~RawFileWriter()
@@ -38,18 +38,46 @@ void RawFileWriter::close()
   if (mFName2File.empty()) {
     return;
   }
-  mIRMax--; // mIRMax is pointing to the beginning of latest (among all links) HBF to open, we want just to close the last one
+  auto irmax = getIRMax();
+  irmax--; // latest (among all links) HBF to open, we want just to close the last one
   for (auto& lnk : mSSpec2Link) {
-    lnk.second.close(mIRMax);
+    lnk.second.close(irmax);
     lnk.second.print();
   }
   //
   // close all files
   for (auto& flh : mFName2File) {
     LOG(INFO) << "Closing output file " << flh.first;
-    fclose(flh.second);
+    fclose(flh.second.handler);
+    flh.second.handler = nullptr;
   }
   mFName2File.clear();
+}
+
+//_____________________________________________________________________
+RawFileWriter::LinkData::LinkData(const LinkData& src) : rdhCopy(src.rdhCopy), updateIR(src.updateIR), lastRDHoffset(src.lastRDHoffset), startOfRun(src.startOfRun), packetCounter(src.packetCounter), pageCnt(src.pageCnt), subspec(src.subspec), nTFWritten(src.nTFWritten), nRDHWritten(src.nRDHWritten), nBytesWritten(src.nBytesWritten), fileName(src.fileName), buffer(src.buffer), writer(src.writer)
+{
+}
+
+//_____________________________________________________________________
+RawFileWriter::LinkData& RawFileWriter::LinkData::operator=(const LinkData& src)
+{
+  if (this != &src) {
+    rdhCopy = src.rdhCopy;
+    updateIR = src.updateIR;
+    lastRDHoffset = src.lastRDHoffset;
+    startOfRun = src.startOfRun;
+    packetCounter = src.packetCounter;
+    pageCnt = src.pageCnt;
+    subspec = src.subspec;
+    nTFWritten = src.nTFWritten;
+    nRDHWritten = src.nRDHWritten;
+    nBytesWritten = src.nBytesWritten;
+    fileName = src.fileName;
+    buffer = src.buffer;
+    writer = src.writer;
+  }
+  return *this;
 }
 
 //_____________________________________________________________________
@@ -58,18 +86,16 @@ RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru,
   // register the GBT link and its output file
 
   auto sspec = RDHUtils::getSubSpec(cru, link, endpoint, fee);
-  auto& linkData = getLinkWithSubSpec(sspec);
-  auto* file = mFName2File[outFileName];
-  if (!file) {
-    if ((file = fopen(outFileName.c_str(), "wb"))) { // if file does not exist, create it
-      mFName2File[outFileName] = file;
-    } else {
+  auto& linkData = mSSpec2Link[sspec];
+  auto& file = mFName2File[outFileName];
+  if (!file.handler) {
+    if (!(file.handler = fopen(outFileName.c_str(), "wb"))) { // if file does not exist, create it
       LOG(ERROR) << "Failed to open output file " << outFileName;
       throw std::runtime_error(std::string("cannot open link output file ") + outFileName);
     }
   }
-  if (linkData.file) { // this link was already declared and associated with a file
-    if (linkData.file == file) {
+  if (!linkData.fileName.empty()) { // this link was already declared and associated with a file
+    if (linkData.fileName == outFileName) {
       LOGF(INFO, "Link 0x%ux was already declared with same output, do nothing", sspec);
       return linkData;
     } else {
@@ -78,7 +104,6 @@ RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru,
     }
   }
   linkData.fileName = outFileName;
-  linkData.file = file;
   linkData.subspec = sspec;
   linkData.rdhCopy.feeId = fee;
   linkData.rdhCopy.cruID = cru;
@@ -109,16 +134,8 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
     throw std::runtime_error("payload size is not mutiple of GBT word size");
   }
   auto sspec = RDHUtils::getSubSpec(cru, lnk, endpoint, feeid);
-  if (!isLinkRegistered(sspec)) {
-    LOGF(ERROR, "The link for SubSpec=0x%ux(%u:%u:%u:%u) was not registered", sspec, cru, lnk, endpoint, feeid);
-    throw std::runtime_error("data for non-registered GBT link supplied");
-  }
   auto& link = getLinkWithSubSpec(sspec);
   link.addData(ir, data, preformatted);
-
-  if (mIRMax < link.updateIR) { // remember highest IR seen
-    mIRMax = link.updateIR;
-  }
 }
 
 //_____________________________________________________________________
@@ -128,24 +145,55 @@ void RawFileWriter::setSuperPageSize(int nbytes)
   assert((mSuperPageSize % RDHUtils::MAXCRUPage) == 0); // make sure it is multiple of 8KB
 }
 
-//===================================================================================
-std::vector<char> RawFileWriter::LinkData::sCarryOverTrailer;
-std::vector<char> RawFileWriter::LinkData::sCarryOverHeader;
-std::vector<char> RawFileWriter::LinkData::sEmptyHBFFiller;
-std::vector<o2::InteractionRecord> RawFileWriter::LinkData::sIRWork;
-
-RawFileWriter::LinkData::~LinkData()
+//_____________________________________________________________________
+IR RawFileWriter::getIRMax() const
 {
-  // updateIR is pointing to the beginning of next HBF to open, we want just to close the last one
-  close(--updateIR);
+  // highest IR seen so far
+  IR irmax{0, 0};
+  for (auto& lnk : mSSpec2Link) {
+    if (irmax < lnk.second.updateIR) {
+      irmax = lnk.second.updateIR;
+    }
+  }
+  return irmax;
 }
+
+//_____________________________________________________________________
+RawFileWriter::LinkData& RawFileWriter::getLinkWithSubSpec(LinkSubSpec_t ss)
+{
+  auto lnkIt = mSSpec2Link.find(ss);
+  if (lnkIt == mSSpec2Link.end()) {
+    LOGF(ERROR, "The link for SubSpec=0x%u was not registered", ss);
+    throw std::runtime_error("data for non-registered GBT link supplied");
+  }
+  return lnkIt->second;
+}
+
+//_____________________________________________________________________
+void RawFileWriter::writeConfFile(const std::string& origin, const std::string& description, const std::string& cfgname) const
+{
+  // write configuration file for generated data
+  std::ofstream cfgfile;
+  cfgfile.open(cfgname);
+  cfgfile << "[defaults]" << std::endl;
+  cfgfile << "dataOrigin = " << origin << std::endl;
+  cfgfile << "dataDescription = " << description << std::endl;
+  for (int i = 0; i < getNOutputFiles(); i++) {
+    cfgfile << std::endl
+            << "[input-" << i << "]" << std::endl;
+    cfgfile << "filePath = " << getOutputFileName(i) << std::endl;
+  }
+  cfgfile.close();
+}
+
+//===================================================================================
 
 //___________________________________________________________________________________
 void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, bool preformatted)
 {
   // add payload corresponding to IR
   LOG(DEBUG) << "Adding " << data.size() << " bytes in IR " << ir << " to " << describe();
-
+  std::lock_guard<std::mutex> lock(mtx);
   if (ir >= updateIR) { // new IR exceeds or equal IR of next HBF to open, insert missed HBFs if needed
     fillEmptyHBHs(ir);
   }
@@ -158,21 +206,21 @@ void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, 
     addPreformattedCRUPage(data);
     return;
   }
-
   const char* ptr = &data[0];
   // in case particular detector CRU pages need to be self-consistent, when carrying-over
   // large payload to new CRU page we may need to write optional trailer and header before
   // and after the new RDH.
   bool carryOver = false;
   int splitID = 0;
+  std::vector<char> carryOverHeader;
   while (dataSize > 0) {
     if (carryOver) { // check if there is carry-over header to write in the buffer
       addHBFPage();  // start new CRU page, if needed, the completed superpage is flushed
       // for sure after the carryOver we have space on the CRU page, no need to check
-      LOG(DEBUG) << "Adding carryOverHeader " << sCarryOverHeader.size()
+      LOG(DEBUG) << "Adding carryOverHeader " << carryOverHeader.size()
                  << " bytes in IR " << ir << " to " << describe();
-      pushBack(sCarryOverHeader.data(), sCarryOverHeader.size());
-      sCarryOverHeader.clear();
+      pushBack(carryOverHeader.data(), carryOverHeader.size());
+      carryOverHeader.clear();
       carryOver = false;
     }
     int sizeLeftSupPage = writer->mSuperPageSize - buffer.size();
@@ -189,20 +237,20 @@ void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, 
     } else { // need to carryOver payload, determine 1st wsize bytes to write starting from ptr
       carryOver = true;
       int sizeActual = sizeLeft;
+      std::vector<char> carryOverTrailer;
       if (writer->carryOverFunc) {
-        sizeActual = writer->carryOverFunc(rdhCopy, data, ptr, sizeLeft, splitID++, sCarryOverTrailer, sCarryOverHeader);
+        sizeActual = writer->carryOverFunc(rdhCopy, data, ptr, sizeLeft, splitID++, carryOverTrailer, carryOverHeader);
       }
       LOG(DEBUG) << "Adding carry-over " << splitID - 1 << " fitted payload " << sizeActual << " bytes in IR " << ir << " to " << describe();
-      if (sizeActual < 0 || sizeActual + sCarryOverTrailer.size() > sizeLeft) {
+      if (sizeActual < 0 || sizeActual + carryOverTrailer.size() > sizeLeft) {
         throw std::runtime_error(std::string("wrong carry-over data size provided by carryOverMethod") + std::to_string(sizeActual));
       }
       pushBack(ptr, sizeActual); // write payload fitting to this page
       dataSize -= sizeActual;
       ptr += sizeActual;
-      LOG(DEBUG) << "Adding carryOverTrailer " << sCarryOverTrailer.size() << " bytes in IR "
+      LOG(DEBUG) << "Adding carryOverTrailer " << carryOverTrailer.size() << " bytes in IR "
                  << ir << " to " << describe();
-      pushBack(sCarryOverTrailer.data(), sCarryOverTrailer.size());
-      sCarryOverTrailer.clear();
+      pushBack(carryOverTrailer.data(), carryOverTrailer.size());
     }
   }
 }
@@ -241,12 +289,12 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
   auto* lastRDH = getLastRDH();
   int psize = buffer.size() - lastRDHoffset;                  // set the size for the previous header RDH
   if (stop && psize == sizeof(RDH) && writer->emptyHBFFunc) { // we are closing an empty page, does detector want to add something?
-    writer->emptyHBFFunc(*lastRDH, sEmptyHBFFiller);
-    if (sEmptyHBFFiller.size()) {
-      LOG(DEBUG) << "Adding empty HBF filler of size " << sEmptyHBFFiller.size() << " for " << describe();
-      pushBack(sEmptyHBFFiller.data(), sEmptyHBFFiller.size());
-      psize += sEmptyHBFFiller.size();
-      sEmptyHBFFiller.clear();
+    std::vector<char> emtyHBFFiller;                          // working space for optional empty HBF filler
+    writer->emptyHBFFunc(*lastRDH, emtyHBFFiller);
+    if (emtyHBFFiller.size()) {
+      LOG(DEBUG) << "Adding empty HBF filler of size " << emtyHBFFiller.size() << " for " << describe();
+      pushBack(emtyHBFFiller.data(), emtyHBFFiller.size());
+      psize += emtyHBFFiller.size();
     }
   }
   lastRDH->offsetToNext = lastRDH->memorySize = psize;
@@ -315,7 +363,7 @@ void RawFileWriter::LinkData::flushSuperPage(bool keepLastPage)
   if (writer->mVerbosity) {
     LOGF(INFO, "Flushing super page of %u bytes for %s", pgSize, describe());
   }
-  fwrite(buffer.data(), 1, pgSize, file); // write to file
+  writer->mFName2File.find(fileName)->second.write(buffer.data(), pgSize);
   auto toMove = buffer.size() - pgSize;
   if (toMove) { // is there something left in the buffer, move it to the beginning of the buffer
     if (toMove > pgSize) {
@@ -336,7 +384,7 @@ void RawFileWriter::LinkData::close(const IR& irf)
 {
   // finalize link data
   // close open HBF, write empty HBFs until the end of the TF corresponding to irfin and detach from the stream
-  if (!file) {
+  if (writer->mFName2File.find(fileName) == writer->mFName2File.end()) {
     return; // already closed
   }
   auto irfin = irf;
@@ -348,17 +396,17 @@ void RawFileWriter::LinkData::close(const IR& irf)
   fillEmptyHBHs(finalIR);
   closeHBFPage(); // close last HBF
   flushSuperPage();
-  file = nullptr;
 }
 
 //___________________________________________________________________________________
 void RawFileWriter::LinkData::fillEmptyHBHs(const IR& ir)
 {
   // fill HBFs from last processed one to requested ir
-  if (!writer->mHBFUtils.fillHBIRvector(sIRWork, updateIR, ir)) {
+  std::vector<o2::InteractionRecord> irw;
+  if (!writer->mHBFUtils.fillHBIRvector(irw, updateIR, ir)) {
     return;
   }
-  for (const auto& irdummy : sIRWork) {
+  for (const auto& irdummy : irw) {
     if (writer->mVerbosity > 2) {
       LOG(INFO) << "Adding HBF " << irdummy << " for " << describe();
     }
@@ -367,7 +415,7 @@ void RawFileWriter::LinkData::fillEmptyHBHs(const IR& ir)
     writer->mHBFUtils.updateRDH<RDH>(rdhCopy, irdummy); // update HBF orbit/bc and trigger flags
     openHBFPage(rdhCopy);                               // open new HBF
   }
-  updateIR = sIRWork.back() + o2::constants::lhc::LHCMaxBunches; // new HBF will be generated at >= this IR
+  updateIR = irw.back() + o2::constants::lhc::LHCMaxBunches; // new HBF will be generated at >= this IR
 }
 
 //____________________________________________
@@ -385,4 +433,12 @@ std::string RawFileWriter::LinkData::describe() const
 void RawFileWriter::LinkData::print() const
 {
   LOGF(INFO, "Summary for %s : NTF: %u NRDH: %u Nbytes: %u", describe(), nTFWritten, nRDHWritten, nBytesWritten);
+}
+
+//================================================
+
+void RawFileWriter::OutputFile::write(const char* data, size_t sz)
+{
+  std::lock_guard<std::mutex> lock(fileMtx);
+  fwrite(data, 1, sz, handler); // flush to file
 }

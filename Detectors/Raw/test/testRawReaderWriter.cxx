@@ -122,20 +122,7 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
       irHB.orbit += HBFUtils::Instance().getNOrbitsPerTF() / NPreformHBFPerTF; // we will write 32 such HBFs per TF
     }
 
-    // for further use we write the configuration file for the output
-    {
-      std::ofstream cfgfile;
-      cfgfile.open(CFGName);
-      cfgfile << "[defaults]" << std::endl;
-      cfgfile << "dataOrigin = FLP" << std::endl;
-      cfgfile << "dataDescription = RAWDATA" << std::endl;
-      for (int i = 0; i < writer.getNOutputFiles(); i++) {
-        cfgfile << "[input-cru" << i << "]" << std::endl;
-        cfgfile << "filePath = " << writer.getOutputFileName(i) << std::endl;
-      }
-      cfgfile.close();
-    }
-
+    writer.writeConfFile("FLP", "RAWDATA", CFGName); // for further use we write the configuration file
     writer.close(); // flush buffers and close outputs
   }
 
