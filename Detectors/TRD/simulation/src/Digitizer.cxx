@@ -83,9 +83,17 @@ void Digitizer::clearCollections()
 
 void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
-  // Convert Signals to Digits
+  // Convert Signals to Digits over all TRD detectors (in a parallel fashion)
+#ifdef WITH_OPENMP
+  omp_set_num_threads(mNumThreads);
+#pragma omp parallel for schedule(dynamic)
+#endif
   for (int det = 0; det < kNdet; ++det) {
+#ifdef WITH_OPENMP
+    const int threadid = omp_get_thread_num();
+#else
     const int threadid = 0;
+#endif
     if (signalsMapCollection[det].size() == 0) {
       continue;
     }
@@ -95,6 +103,7 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
       continue; // go to the next chamber
     }
   }
+
   // Finalize
   for (int det = 0; det < kNdet; ++det) {
     std::move(digitsCollection[det].begin(), digitsCollection[det].end(), std::back_inserter(digits));
