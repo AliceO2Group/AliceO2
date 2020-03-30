@@ -18,7 +18,6 @@
 #include "Framework/DeviceSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "SimReaderSpec.h"
-#include "CollisionTimePrinter.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "CommonUtils/ConfigurableParam.h"
@@ -100,6 +99,10 @@
 
 using namespace o2::framework;
 
+bool gIsMaster = false; // a global variable indicating if this is the master workflow process
+                        // (an individual DPL processor will still build the workflow but is not
+                        //  considered master)
+
 // ------------------------------------------------------------------
 
 // customize the completion policy
@@ -168,7 +171,9 @@ int getNumTPCLanes(std::vector<int> const& sectors, ConfigContext const& configc
 {
   auto lanes = configcontext.options().get<int>("tpc-lanes");
   if (lanes < 0) {
-    LOG(FATAL) << "tpc-lanes needs to be positive\n";
+    if (gIsMaster) {
+      LOG(FATAL) << "tpc-lanes needs to be positive\n";
+    }
     return 0;
   }
   // crosscheck with sectors
@@ -206,25 +211,18 @@ void initTPC()
 
 // ------------------------------------------------------------------
 
-bool wantCollisionTimePrinter()
-{
-  if (const char* f = std::getenv("DPL_COLLISION_TIME_PRINTER")) {
-    return true;
-  }
-  return false;
-}
-
-// ------------------------------------------------------------------
-
 std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP)
 {
-  // init magnetic field
-  o2::base::Propagator::initFieldFromGRP(inputGRP);
-
   auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
   if (!grp) {
     LOG(ERROR) << "This workflow needs a valid GRP file to start";
+    return nullptr;
   }
+  if (gIsMaster) {
+    grp->print();
+  }
+  // init magnetic field
+  o2::base::Propagator::initFieldFromGRP(grp, gIsMaster);
   return std::shared_ptr<o2::parameters::GRPObject>(grp);
 }
 
@@ -328,7 +326,7 @@ bool isMasterWorkflowDefinition(ConfigContext const& configcontext)
   for (int argi = 0; argi < argc; ++argi) {
     // when channel-config is present it means that this is started as
     // as FairMQDevice which means it is already a forked process
-    if (strcmp(argv[argi], "--channel-config")) {
+    if (strcmp(argv[argi], "--channel-config") == 0) {
       ismaster = false;
       break;
     }
@@ -346,6 +344,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // if this is the case we don't need to read from GRP
   bool helpasked = helpOnCommandLine(configcontext);
   bool ismaster = isMasterWorkflowDefinition(configcontext);
+  gIsMaster = ismaster;
 
   // Reserve one entry which fill be filled with the SimReaderSpec
   // at the end. This places the processor at the beginning of the
@@ -408,17 +407,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
     auto accepted = accept(id);
     bool is_ingrp = grp->isDetReadOut(id);
-    LOG(INFO) << id.getName()
-              << " is in grp? " << (is_ingrp ? "yes" : "no") << ";"
-              << " is skipped? " << (!accepted ? "yes" : "no");
+    if (gIsMaster) {
+      LOG(INFO) << id.getName()
+                << " is in grp? " << (is_ingrp ? "yes" : "no") << ";"
+                << " is skipped? " << (!accepted ? "yes" : "no");
+    }
     return accepted && is_ingrp;
   };
 
   std::vector<o2::detectors::DetID> detList; // list of participating detectors
   int fanoutsize = 0;
-  if (wantCollisionTimePrinter()) {
-    specs.emplace_back(o2::steer::getCollisionTimePrinter(fanoutsize++));
-  }
 
   // the TPC part
   // we need to init this anyway since TPC is treated a bit special (for the moment)

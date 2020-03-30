@@ -71,8 +71,8 @@ class Propagator
   void setMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
   const o2::base::MatLayerCylSet* getMatLUT() const { return mMatLUT; }
 
-  static int initFieldFromGRP(const o2::parameters::GRPObject* grp);
-  static int initFieldFromGRP(const std::string grpFileName, std::string grpName = "GRP");
+  static int initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verbose = false);
+  static int initFieldFromGRP(const std::string grpFileName, std::string grpName = "GRP", bool verbose = false);
 
  private:
   Propagator();

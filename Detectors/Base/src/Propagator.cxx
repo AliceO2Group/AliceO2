@@ -209,21 +209,25 @@ bool Propagator::propagateToDCA(const Point3D<float>& vtx, o2::track::TrackParCo
 }
 
 //____________________________________________________________
-int Propagator::initFieldFromGRP(const std::string grpFileName, std::string grpName)
+int Propagator::initFieldFromGRP(const std::string grpFileName, std::string grpName, bool verbose)
 {
   /// load grp and init magnetic field
-  LOG(INFO) << "Loading field from GRP of " << grpFileName;
+  if (verbose) {
+    LOG(INFO) << "Loading field from GRP of " << grpFileName;
+  }
   const auto grp = o2::parameters::GRPObject::loadFrom(grpFileName, grpName);
   if (!grp) {
     return -1;
   }
-  grp->print();
+  if (verbose) {
+    grp->print();
+  }
 
   return initFieldFromGRP(grp);
 }
 
 //____________________________________________________________
-int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp)
+int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verbose)
 {
   /// init mag field from GRP data and attach it to TGeoGlobalMagField
 
@@ -240,10 +244,11 @@ int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp)
   auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent());
   TGeoGlobalMagField::Instance()->SetField(fld);
   TGeoGlobalMagField::Instance()->Lock();
-  LOG(INFO) << "Running with the B field constructed out of GRP";
-  LOG(INFO) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via";
-  LOG(INFO) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
-
+  if (verbose) {
+    LOG(INFO) << "Running with the B field constructed out of GRP";
+    LOG(INFO) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via";
+    LOG(INFO) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
+  }
   return 0;
 }
 
