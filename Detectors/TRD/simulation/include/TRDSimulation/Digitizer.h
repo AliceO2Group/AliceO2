@@ -37,7 +37,7 @@ struct SignalArray {
   std::array<float, kTimeBins> signals{};            // signals
   double firstTBtime;                                // first TB time
   std::unordered_map<int, int> trackIds;             // tracks Ids associated to the signal
-  o2::dataformats::MCTruthContainer<MCLabel> labels; // labels associated to the signal
+  std::vector<MCLabel> labels;                       // labels associated to the signal
 };
 
 using DigitContainer = std::vector<Digit>;
@@ -79,13 +79,14 @@ class Digitizer
   std::vector<TRDDiffusionAndTimeStructEstimator> mDriftEstimators;
 
   double mTime = 0.;
+  int mLabelIndex = 0;
   double mLastTime = 1.0e10; // starts in the future
   int mEventID = 0;
   int mSrcID = 0;
 
   bool mSDigits{false};               // true: convert signals to summable digits, false by defaults
   std::vector<HitType> mHitContainer; // the container of hits in a given detector
-
+  std::vector<MCLabel> mMergedLabels; // temporary label container
   std::array<SignalContainer, kNdet> signalsMapCollection; // container for caching signals over a timeframe
   std::array<DigitContainer, kNdet> digitsCollection;      // container for caching digits for paralellization
 

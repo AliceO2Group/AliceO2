@@ -78,22 +78,14 @@ void Digitizer::clearCollections()
     signalsMapCollection[det].clear();
     digitsCollection[det].clear();
   }
+  mMergedLabels.clear();
 }
 
 void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
   // Convert Signals to Digits
-#ifdef WITH_OPENMP
-  omp_set_num_threads(mNumThreads);
-// Loop over all TRD detectors (in a parallel fashion)
-#pragma omp parallel for schedule(dynamic)
-#endif
   for (int det = 0; det < kNdet; ++det) {
-#ifdef WITH_OPENMP
-    const int threadid = omp_get_thread_num();
-#else
     const int threadid = 0;
-#endif
     if (signalsMapCollection[det].size() == 0) {
       continue;
     }
@@ -103,16 +95,14 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
       continue; // go to the next chamber
     }
   }
-
   // Finalize
   for (int det = 0; det < kNdet; ++det) {
     std::move(digitsCollection[det].begin(), digitsCollection[det].end(), std::back_inserter(digits));
-
     for (const auto& it : signalsMapCollection[det]) {
-      labels.mergeAtBack(it.second.labels);
+      std::move(it.second.labels.begin(), it.second.labels.end(), std::back_inserter(mMergedLabels));
     }
   }
-
+  labels.addElements(labels.getIndexedSize(), mMergedLabels);
   clearCollections();
 }
 
@@ -374,7 +364,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
         if (trackIds[hit.GetTrackID()] == 0) {
           trackIds[hit.GetTrackID()] = 1;
           MCLabel label(hit.GetTrackID(), getEventID(), getSrcID());
-          labels.addElement(labels.getIndexedSize(), label);
+          labels.push_back(label);
         }
 
         for (int tb = firstTimeBin; tb < lastTimeBin; ++tb) {
@@ -402,6 +392,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       }   // end of loop over pads
     }     // end of loop over electrons
   }       // end of loop over hits
+  mLabelIndex++;
   return true;
 }
 
