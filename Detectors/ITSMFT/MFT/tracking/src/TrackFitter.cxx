@@ -196,7 +196,7 @@ void TrackFitter::addCluster(const TrackParamMFT& startingParam, const o2::itsmf
   /// Throw an exception in case of failure
 
   if (cl.getZ() <= startingParam.getZ()) {
-    LOG(INFO) << "AddCluster ERROR: The new cluster must be upstream! ********************* ";
+    LOG(ERROR) << "AddCluster ERROR: The new cluster must be upstream! ********************* ";
     // FIXME! This should throw an error. Skiping due to bug on track finding.
     //throw std::runtime_error("The new cluster must be upstream");
   }
