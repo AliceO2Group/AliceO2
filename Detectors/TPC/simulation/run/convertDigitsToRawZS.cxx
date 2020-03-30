@@ -90,24 +90,31 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   const unsigned int defaultLink = 15;
 
   // set up raw writer
+  std::string outDir{outputPath};
+  if (outDir.empty()) {
+    outDir = "./";
+  }
+  if (outDir.back() != '/') {
+    outDir += '/';
+  }
   for (unsigned int i = 0; i < NSectors; i++) {
     for (unsigned int j = 0; j < NEndpoints; j++) {
       const unsigned int cruInSector = j / 2;
       const unsigned int cruID = i * 10 + cruInSector;
       const unsigned int feeid = (cruID << 7) | ((j & 1) << 6) | (defaultLink & 0x3F);
-      writer.registerLink(feeid, cruID, defaultLink, j % 2, fmt::format("cru{}.raw", cruID));
+      writer.registerLink(feeid, cruID, defaultLink, j % 2, fmt::format("{}cru{}.raw", outDir, cruID));
     }
   }
-
   for (Long64_t ievent = 0; ievent < treeSim->GetEntries(); ++ievent) {
     treeSim->GetEntry(ievent);
 
     for (int iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
       inputDigits[iSec] = *vDigitsPerSectorCollection[iSec]; //????
     }
-
     convert(inputDigits, &attr, writer);
   }
+  // for further use we write the configuration file for the output
+  writer.writeConfFile("TPC", "RAWDATA", fmt::format("{}tpcraw.cfg", outDir));
 }
 
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer)
