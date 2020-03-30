@@ -100,7 +100,8 @@ o2_add_library(Framework
                        src/ExternalFairMQDeviceProxy.cxx
                        test/TestClasses.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
-               PUBLIC_LINK_LIBRARIES AliceO2::Common
+               PUBLIC_LINK_LIBRARIES ${DEBUGGUI_TARGET}
+                                     AliceO2::Common
                                      AliceO2::Configuration
                                      AliceO2::InfoLogger
                                      AliceO2::Monitoring
@@ -116,7 +117,6 @@ o2_add_library(Framework
                                      arrow::arrow_shared
                                      ms_gsl::ms_gsl
                                      ROOT::ROOTDataFrame
-                                     ${DEBUGGUI_TARGET}
                                      O2::FrameworkLogger
                                      Boost::serialization
                                      arrow::gandiva_shared

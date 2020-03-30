@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DEBUGGUI_H
-#define FRAMEWORK_DEBUGGUI_H
+#ifndef FRAMEWORK_NODEBUGGUI_H
+#define FRAMEWORK_NODEBUGGUI_H
 
 #include <functional>
 
@@ -19,21 +19,21 @@ namespace framework
 
 // The DebugGUI has been moved to a separate package, this is a dummy header file
 // included when the DebugGUI package is not found or disabled.
-void* initGUI(const char* name)
+static inline void* initGUI(const char* name)
 {
   return nullptr;
 }
 
-bool pollGUI(void* context, std::function<void(void)> guiCallback)
+static inline bool pollGUI(void* context, std::function<void(void)> guiCallback)
 {
   // returns whether quit is requested, we return 'no'
   return false;
 }
-void disposeGUI()
+static inline void disposeGUI()
 {
 }
 
 } // namespace framework
 } // namespace o2
 
-#endif // FRAMEWORK_DEBUGGUI_H
+#endif // FRAMEWORK_NODEBUGGUI_H
