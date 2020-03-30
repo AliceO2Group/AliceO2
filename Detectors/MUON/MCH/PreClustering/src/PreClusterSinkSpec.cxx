@@ -30,7 +30,7 @@
 #include "Framework/Task.h"
 
 #include "MCHBase/Digit.h"
-#include "MCHBase/PreClusterBlock.h"
+#include "MCHBase/PreCluster.h"
 
 #include "MCHMappingFactory/CreateSegmentation.h"
 
@@ -70,24 +70,36 @@ class PreClusterSinkTask
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
-    /// dump the tracks with attached clusters of the current event
+    /// dump the preclusters with associated digits of the current event
 
-    auto msgIn = pc.inputs().get<gsl::span<char>>("preclusters");
+    // get the input preclusters and associated digits
+    auto preClusters = pc.inputs().get<gsl::span<PreCluster>>("preclusters");
+    auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
 
+    // write the number of preclusters
+    int nPreClusters = preClusters.size();
+    mOutputFile.write(reinterpret_cast<char*>(&nPreClusters), sizeof(int));
+
+    // write the total number of digits in these preclusters
+    int nDigits = digits.size();
+    mOutputFile.write(reinterpret_cast<char*>(&nDigits), sizeof(int));
+
+    // write the preclusters
+    mOutputFile.write(reinterpret_cast<const char*>(preClusters.data()), preClusters.size_bytes());
+
+    // write the digits (after converting the pad ID into a digit UID if requested)
     if (mUseRun2DigitUID) {
-      char* bufferCopy = static_cast<char*>(malloc(msgIn.size()));
-      memcpy(bufferCopy, msgIn.data(), msgIn.size());
-      convertPadID2DigitUID(bufferCopy, msgIn.size());
-      mOutputFile.write(bufferCopy, msgIn.size());
-      free(bufferCopy);
+      std::vector<Digit> digitsCopy(digits.begin(), digits.end());
+      convertPadID2DigitUID(digitsCopy);
+      mOutputFile.write(reinterpret_cast<char*>(digitsCopy.data()), digitsCopy.size() * sizeof(Digit));
     } else {
-      mOutputFile.write(msgIn.data(), msgIn.size());
+      mOutputFile.write(reinterpret_cast<const char*>(digits.data()), digits.size_bytes());
     }
   }
 
  private:
   //_________________________________________________________________________________________________
-  void convertPadID2DigitUID(char* buffer, uint32_t size)
+  void convertPadID2DigitUID(std::vector<Digit>& digits)
   {
     /// convert the pad ID (i.e. index) in O2 mapping into a digit UID in run2 format
 
@@ -104,56 +116,22 @@ class PreClusterSinkTask
        {0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1},
        {0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1}}};
 
-    PreClusterBlock preClusterBlock{};
+    for (auto& digit : digits) {
 
-    // get the number of DE with preclusters
-    if (size < SSizeOfInt) {
-      throw length_error("cannot retrieve the number of DE with preclusters");
-    }
-    auto& nDEWithPreClusters(*reinterpret_cast<const int*>(buffer));
-    buffer += SSizeOfInt;
-    size -= SSizeOfInt;
-
-    for (int iDE = 0; iDE < nDEWithPreClusters; ++iDE) {
-
-      // get the DE ID and the size of the precluster block
-      if (size < 2 * SSizeOfInt) {
-        throw length_error("cannot retrieve the DE ID and the size of the precluster block");
-      }
-      auto& deID(*reinterpret_cast<const int*>(buffer));
-      buffer += SSizeOfInt;
-      auto& blockSize(*reinterpret_cast<const int*>(buffer));
-      buffer += SSizeOfInt;
-      size -= 2 * SSizeOfInt;
-
-      // get the preclusters
-      if (size < blockSize || preClusterBlock.reset(buffer, blockSize, false) < 0) {
-        throw length_error("cannot retrieve the preclusters");
-      }
-      buffer += blockSize;
-      size -= blockSize;
-
+      int deID = digit.getDetID();
       auto& segmentation = mapping::segmentation(deID);
-      int bendingCathode = bendingCathodes[deID / 100 - 1][deID % 100];
-      int nonBendingCathode = 1 - bendingCathode;
-
-      for (const auto& precluster : preClusterBlock.getPreClusters()) {
-        for (uint16_t iDigit = 0; iDigit < precluster.nDigits; ++iDigit) {
-
-          int padID = precluster.digits[iDigit].getPadID();
-          bool isBending = segmentation.isBendingPad(padID);
-          int cathode = isBending ? bendingCathode : nonBendingCathode;
-          int manuID = segmentation.padDualSampaId(padID);
-          int manuCh = segmentation.padDualSampaChannel(padID);
-
-          int digitID = (deID) | (manuID << 12) | (manuCh << 24) | (cathode << 30);
-          precluster.digits[iDigit].setPadID(digitID);
-        }
+      int padID = digit.getPadID();
+      int cathode = bendingCathodes[deID / 100 - 1][deID % 100];
+      if (!segmentation.isBendingPad(padID)) {
+        cathode = 1 - cathode;
       }
+      int manuID = segmentation.padDualSampaId(padID);
+      int manuCh = segmentation.padDualSampaChannel(padID);
+
+      int digitID = (deID) | (manuID << 12) | (manuCh << 24) | (cathode << 30);
+      digit.setPadID(digitID);
     }
   }
-
-  static constexpr uint32_t SSizeOfInt = sizeof(int);
 
   std::ofstream mOutputFile{};   ///< output file
   bool mUseRun2DigitUID = false; ///< true if Digit.mPadID = digit UID in run2 format
@@ -164,7 +142,8 @@ o2::framework::DataProcessorSpec getPreClusterSinkSpec()
 {
   return DataProcessorSpec{
     "PreClusterSink",
-    Inputs{InputSpec{"preclusters", "MCH", "PRECLUSTERS", 0, Lifetime::Timeframe}},
+    Inputs{InputSpec{"preclusters", "MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
+           InputSpec{"digits", "MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
     Outputs{},
     AlgorithmSpec{adaptFromTask<PreClusterSinkTask>()},
     Options{{"outfile", VariantType::String, "preclusters.out", {"output filename"}},
