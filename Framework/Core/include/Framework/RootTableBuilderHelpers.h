@@ -163,7 +163,7 @@ struct RootTableBuilderHelpers {
     LOG(INFO) << "Branch names";
     for (auto bn : branchNames)
       LOG(INFO) << "  " << bn;
-    
+
     auto filler = builder.preallocatedPersist<typename std::decay_t<decltype(holders)>::Type...>(branchNames, reader.GetEntries(true));
     reader.Restart();
     while (reader.Next()) {
