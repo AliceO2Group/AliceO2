@@ -54,11 +54,16 @@ class Digitizer
   void setInteractionRecord(const o2::InteractionTimeRecord& src) { mIntRecord = src; }
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
+  int getEvent() const { return mEventID; }
   double measure_amplitude(const std::vector<double>& times);
   void init();
   void finish();
 
-  std::optional<double> get_time(const std::vector<double>& times);
+  struct CFDOutput {
+    std::optional<double> particle;
+    double deadTime;
+  };
+  CFDOutput get_time(const std::vector<double>& times, double deadTime);
 
   void setContinuous(bool v = true) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
@@ -75,6 +80,10 @@ class Digitizer
     std::vector<particle> hits;
     std::set<ft0::MCLabel> labels;
   };
+  struct GoodInteractionTimeRecord {
+    o2::InteractionRecord intrec;
+    double deadTime;
+  };
 
  private:
   // digit info
@@ -87,6 +96,7 @@ class Digitizer
 
   o2::InteractionRecord firstBCinDeque = 0;
   std::deque<BCCache> mCache;
+  std::array<GoodInteractionTimeRecord, 208> mDeadTimes;
 
   DigitizationParameters parameters;
 

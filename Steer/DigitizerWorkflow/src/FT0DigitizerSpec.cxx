@@ -87,6 +87,7 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
       mDigitizer.setInteractionRecord(timesview[collID]);
+      LOG(INFO) << " setInteractionRecord " << timesview[collID] << " bc " << mDigitizer.getBC() << " orbit " << mDigitizer.getOrbit();
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
@@ -98,7 +99,6 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
         // call actual digitization procedure
         mDigitizer.setEventID(part.entryID);
         mDigitizer.setSrcID(part.sourceID);
-        LOG(INFO) << "srcId " << part.sourceID << ", event " << part.entryID;
         mDigitizer.process(&hits, mDigitsBC, mDigitsCh, labels);
       }
     }

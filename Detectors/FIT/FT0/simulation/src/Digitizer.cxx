@@ -25,9 +25,10 @@ using namespace o2::ft0;
 
 ClassImp(Digitizer);
 
-std::optional<double> Digitizer::get_time(const std::vector<double>& times)
+auto Digitizer::get_time(const std::vector<double>& times, double deadTime) -> CFDOutput
 {
-  double min_time = *std::min_element(begin(times), end(times));
+  double min_time = std::max(deadTime, *std::min_element(begin(times),
+                                                         end(times)));
   assert(std::is_sorted(begin(times), end(times)));
   std::vector<double> noise(std::ceil(parameters.bunchWidth / parameters.mNoisePeriod));
   for (auto& n : noise)
@@ -43,17 +44,26 @@ std::optional<double> Digitizer::get_time(const std::vector<double>& times)
     return val;
   };
   //  for (double time = min_time; time < 0.5 * parameters.bunchWidth; time += 0.001 * parameters.channelWidth) {
+  CFDOutput result{std::nullopt, -12.5};
   for (double time = min_time; time < 0.5 * parameters.bunchWidth; time += 0.005) {
     double val = value_at(time);
     double cfd_val = 5 * value_at(time - parameters.mCFDShiftPos) - val;
-    if (std::abs(val) > parameters.mCFD_trsh && !is_positive && cfd_val > 0)
-      return time;
-    is_positive = cfd_val > 0;
+    if (std::abs(val) > parameters.mCFD_trsh && !is_positive && cfd_val > 0) {
+      if (!result.particle) {
+        result.particle = time;
+      }
+      result.deadTime = time + 15.6;
+      time += 15.6 - 0.005;
+      is_positive = false;
+    } else
+      is_positive = cfd_val > 0;
   }
-  LOG(DEBUG) << "CFD failed to find peak ";
-  for (double t : times)
-    LOG(DEBUG) << t << " size " << times.size();
-  return std::nullopt;
+  if (!result.particle) {
+    LOG(INFO) << "CFD failed to find peak ";
+    for (double t : times)
+      LOG(DEBUG) << t << ", ";
+  }
+  return result;
 }
 
 double Digitizer::measure_amplitude(const std::vector<double>& times)
@@ -75,6 +85,7 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
   ;
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
   flush(digitsBC, digitsCh, label);
+  Int_t parent = -10;
   for (auto const& hit : *hits) {
     if (hit.GetEnergyLoss() > 0)
       continue;
@@ -91,7 +102,9 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
 
     //charge particles in MCLabel
     Int_t parentID = hit.GetTrackID();
-    mCache[relBC.bc].labels.emplace(parentID, mEventID, mSrcID, hit_ch);
+    if (parentID != parent)
+      mCache[relBC.bc].labels.emplace(parentID, mEventID, mSrcID, hit_ch);
+    parent = parentID;
   }
 }
 
@@ -121,17 +134,24 @@ void Digitizer::storeBC(BCCache& bc,
     std::transform(channel_begin, channel_end, channel_times.begin(), [](BCCache::particle const& p) { return p.hit_time; });
     // auto out = channel_times.begin();
     // while (channel_begin != channel_end) {
+
     //   *out++ = channel_begin++->hit_time;
     // }
     int chain = (std::rand() % 2) ? 1 : 0;
-    auto cfd = get_time(channel_times);
-    if (!cfd)
+    auto cfd = get_time(channel_times, (mDeadTimes[ipmt].intrec ==
+                                        firstBCinDeque)
+                                         ? mDeadTimes[ipmt].deadTime - 25.
+                                         : -25.);
+    mDeadTimes[ipmt].intrec = firstBCinDeque;
+    mDeadTimes[ipmt].deadTime = cfd.deadTime;
+
+    if (!cfd.particle)
       continue;
-    int smeared_time = 1000. * (*cfd - parameters.mCfdShift) * parameters.ChannelWidthInverse;
-    bool is_time_in_signal_gate = (abs(smeared_time) < parameters.mSignalWidth * 0.5);
+    int smeared_time = 1000. * (*cfd.particle - parameters.mCfdShift) * parameters.ChannelWidthInverse;
+    bool is_time_in_signal_gate = (smeared_time > -parameters.mTime_trg_gate && smeared_time < parameters.mTime_trg_gate);
     Float_t charge = measure_amplitude(channel_times) * parameters.charge2amp;
     float amp = is_time_in_signal_gate ? charge : 0;
-    LOG(INFO) << "bc " << firstBCinDeque.bc << ", ipmt " << ipmt << ", smeared_time " << smeared_time;
+    LOG(DEBUG) << "bc " << firstBCinDeque.bc << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored;
     digitsCh.emplace_back(ipmt, smeared_time, int(parameters.mV_2_Nchannels * amp), chain);
     nStored++;
 
@@ -157,7 +177,7 @@ void Digitizer::storeBC(BCCache& bc,
   is_Central = summ_ampl_A + summ_ampl_C >= parameters.mtrg_central_trh;
   is_SemiCentral = summ_ampl_A + summ_ampl_C >= parameters.mtrg_semicentral_trh;
   vertex_time = (mean_time_A - mean_time_C) * 0.5;
-  isVertex = is_A && is_C && (std::abs(vertex_time) < parameters.mtrg_vertex);
+  isVertex = is_A && is_C && (vertex_time > -parameters.mTime_trg_gate && vertex_time < parameters.mTime_trg_gate);
   uint16_t amplA = is_A ? summ_ampl_A : 0;           // sum amplitude A side
   uint16_t amplC = is_C ? summ_ampl_C : 0;           // sum amplitude C side
   uint16_t timeA = is_A ? mean_time_A / n_hit_A : 0; // average time A side
@@ -165,10 +185,9 @@ void Digitizer::storeBC(BCCache& bc,
 
   Triggers triggers;
   triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, n_hit_A, n_hit_C,
-                       amplA, amplC, timeA, timeC);
+                       int(parameters.mV_2_Nchannels * amplA), int(parameters.mV_2_Nchannels * amplC), timeA, timeC);
 
-  digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers);
-
+  digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers, mEventID);
   size_t const nBC = digitsBC.size();
   for (auto const& lbl : bc.labels)
     labels.addElement(nBC - 1, lbl);
@@ -188,7 +207,7 @@ void Digitizer::flush(std::vector<o2::ft0::Digit>& digitsBC,
                       std::vector<o2::ft0::ChannelData>& digitsCh,
                       o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
 {
-  LOG(INFO) << "firstBCinDeque " << firstBCinDeque << " mIntRecord " << mIntRecord;
+  LOG(DEBUG) << "firstBCinDeque " << firstBCinDeque << " mIntRecord " << mIntRecord;
   assert(firstBCinDeque <= mIntRecord);
   while (firstBCinDeque < mIntRecord && !mCache.empty()) {
     storeBC(mCache.front(), digitsBC, digitsCh, labels);
