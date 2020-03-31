@@ -23,6 +23,8 @@
 #include <utility>
 
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITStracking/Constants.h"
 #include "MathUtils/Utils.h"
@@ -136,6 +138,60 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::Cluster> clu
   }
 }
 
+void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters,
+                            gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
+                            const dataformats::MCTruthContainer<MCCompLabel>* clsLabels)
+{
+  if (clusters.empty()) {
+    std::cerr << "Missing clusters." << std::endl;
+    return;
+  }
+  event.clear();
+  GeometryTGeo* geom = GeometryTGeo::Instance();
+  geom->fillMatrixCache(utils::bit2Mask(TransformType::T2L, TransformType::L2G));
+  int clusterId{0};
+
+  for (auto& c : clusters) {
+    int layer = geom->getLayer(c.getSensorID());
+
+    auto pattID = c.getPatternID();
+    Point3D<float> locXYZ;
+    float sigmaY2 = 0.0015 * 0.0015, sigmaZ2 = sigmaY2, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
+    if (pattID != itsmft::CompCluster::InvalidPatternID) {
+      sigmaY2 = dict.GetErrX(pattID);
+      sigmaY2 *= sigmaY2;
+      sigmaZ2 = dict.GetErrZ(pattID);
+      sigmaZ2 *= sigmaZ2;
+      if (!dict.IsGroup(pattID)) {
+        locXYZ = dict.getClusterCoordinates(c);
+      } else {
+        o2::itsmft::ClusterPattern patt(pattIt);
+        locXYZ = dict.getClusterCoordinates(c, patt);
+      }
+    } else {
+      o2::itsmft::ClusterPattern patt(pattIt);
+      locXYZ = dict.getClusterCoordinates(c, patt);
+    }
+    auto sensorID = c.getSensorID();
+    // Inverse transformation to the local --> tracking
+    auto trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
+    // Transformation to the local --> global
+    auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
+
+    event.addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), geom->getSensorRefAlpha(sensorID),
+                                      std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
+                                      std::array<float, 3>{sigmaY2, sigmaYZ, sigmaZ2});
+
+    /// Rotate to the global frame
+    event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), event.getClustersOnLayer(layer).size());
+    if (clsLabels) {
+      event.addClusterLabelToLayer(layer, *(clsLabels->getLabels(clusterId).begin()));
+    }
+    event.addClusterExternalIndexToLayer(layer, clusterId);
+    clusterId++;
+  }
+}
+
 int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::Cluster> clusters,
                              const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
@@ -157,6 +213,58 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
 
     /// Rotate to the global frame
     event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
+    if (mcLabels) {
+      event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
+    }
+    event.addClusterExternalIndexToLayer(layer, first + clusterId);
+    clusterId++;
+  }
+  return clusters_in_frame.size();
+}
+
+int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
+                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
+{
+  event.clear();
+  GeometryTGeo* geom = GeometryTGeo::Instance();
+  geom->fillMatrixCache(utils::bit2Mask(TransformType::T2L, TransformType::L2G));
+  int clusterId{0};
+
+  auto first = rof.getFirstEntry();
+  auto clusters_in_frame = rof.getROFData(clusters);
+  for (auto& c : clusters_in_frame) {
+    int layer = geom->getLayer(c.getSensorID());
+
+    auto pattID = c.getPatternID();
+    Point3D<float> locXYZ;
+    float sigmaY2 = 0.0015 * 0.0015, sigmaZ2 = sigmaY2, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
+    if (pattID != itsmft::CompCluster::InvalidPatternID) {
+      sigmaY2 = dict.GetErrX(pattID);
+      sigmaY2 *= sigmaY2;
+      sigmaZ2 = dict.GetErrZ(pattID);
+      sigmaZ2 *= sigmaZ2;
+      if (!dict.IsGroup(pattID)) {
+        locXYZ = dict.getClusterCoordinates(c);
+      } else {
+        o2::itsmft::ClusterPattern patt(pattIt);
+        locXYZ = dict.getClusterCoordinates(c, patt);
+      }
+    } else {
+      o2::itsmft::ClusterPattern patt(pattIt);
+      locXYZ = dict.getClusterCoordinates(c, patt);
+    }
+    auto sensorID = c.getSensorID();
+    // Inverse transformation to the local --> tracking
+    auto trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
+    // Transformation to the local --> global
+    auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
+
+    event.addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), geom->getSensorRefAlpha(sensorID),
+                                      std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
+                                      std::array<float, 3>{sigmaY2, sigmaYZ, sigmaZ2});
+
+    /// Rotate to the global frame
+    event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), event.getClustersOnLayer(layer).size());
     if (mcLabels) {
       event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
     }
