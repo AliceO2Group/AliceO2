@@ -41,29 +41,34 @@ DataOutputDescriptor::DataOutputDescriptor(std::string sin)
                                    -1);
 
   // create the DataDescriptorMatcher
-  if (iter1 == end)
+  if (iter1 == end) {
     return;
+  }
   auto a = iter1->str();
   matcher = DataDescriptorQueryBuilder::buildNode(a);
 
   // get the table name
   auto m = DataDescriptorQueryBuilder::getTokens(a);
-  if (!std::string(m[2]).empty())
+  if (!std::string(m[2]).empty()) {
     tablename = m[2];
+  }
 
   // get the tree name
   // defaul tree name is the table name
   treename = tablename;
   ++iter1;
-  if (iter1 == end)
+  if (iter1 == end) {
     return;
-  if (!iter1->str().empty())
+  }
+  if (!iter1->str().empty()) {
     treename = iter1->str();
+  }
 
   // get column names
   ++iter1;
-  if (iter1 == end)
+  if (iter1 == end) {
     return;
+  }
   if (!iter1->str().empty()) {
     auto cns = iter1->str();
 
@@ -72,17 +77,21 @@ DataOutputDescriptor::DataOutputDescriptor(std::string sin)
                                      cns.end(),
                                      delim2,
                                      -1);
-    for (; iter2 != end; ++iter2)
-      if (!iter2->str().empty())
+    for (; iter2 != end; ++iter2) {
+      if (!iter2->str().empty()) {
         colnames.emplace_back(iter2->str());
+      }
+    }
   }
 
   // get the filename
   ++iter1;
-  if (iter1 == end)
+  if (iter1 == end) {
     return;
-  if (!iter1->str().empty())
+  }
+  if (!iter1->str().empty()) {
     filename = iter1->str();
+  }
 }
 
 std::string DataOutputDescriptor::getFilename()
@@ -108,9 +117,11 @@ void DataOutputDescriptor::printOut()
 std::string DataOutputDescriptor::remove_ws(const std::string& s)
 {
   std::string s_wns;
-  for (auto c : s)
-    if (!std::isspace(c))
+  for (auto c : s) {
+    if (!std::isspace(c)) {
       s_wns += c;
+    }
+  }
   return s_wns;
 }
 
@@ -148,8 +159,9 @@ void DataOutputDirector::readString(std::string const& keepString)
 
     // create a new DataOutputDescriptor and add it to the list
     auto dod = new DataOutputDescriptor(s);
-    if (dod->getFilename().empty())
+    if (dod->getFilename().empty()) {
       dod->setFilename(dfnptr);
+    }
     dodescrs.emplace_back(dod);
     fnames.emplace_back(dod->getFilename());
     tnfns.emplace_back(dod->treename + dod->getFilename());
@@ -267,12 +279,14 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
           }
         } else if (std::strcmp(itemname, "resfilemode") == 0) {
           // open mode for result file
-          if (v.IsString())
+          if (v.IsString()) {
             fmode = v.GetString();
+          }
         } else if (std::strcmp(itemname, "ntfmerge") == 0) {
           // number of time frames to merge
-          if (v.IsNumber())
+          if (v.IsNumber()) {
             ntfm = v.GetInt();
+          }
         } else if (std::strcmp(itemname, "OutputDescriptions") == 0) {
           // array of DataOutputDescriptions
           if (v.IsArray()) {
@@ -280,11 +294,13 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
               if (od.IsObject()) {
                 // DataOutputDescription
                 std::string s = "";
-                if (od.HasMember("table"))
+                if (od.HasMember("table")) {
                   s += od["table"].GetString();
+                }
                 s += smc;
-                if (od.HasMember("treename"))
+                if (od.HasMember("treename")) {
                   s += od["treename"].GetString();
+                }
                 s += smc;
                 if (od.HasMember("columns")) {
                   if (od["columns"].IsArray()) {
@@ -294,8 +310,9 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
                   }
                 }
                 s += smc;
-                if (od.HasMember("filename"))
+                if (od.HasMember("filename")) {
                   s += od["filename"].GetString();
+                }
 
                 // convert s to DataOutputDescription object
                 readString(s);
@@ -322,8 +339,9 @@ std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(
   data_matcher::VariableContext context;
 
   for (auto dodescr : dodescrs) {
-    if (dodescr->matcher->match(dh, context))
+    if (dodescr->matcher->match(dh, context)) {
       result.emplace_back(dodescr);
+    }
   }
 
   return result;
@@ -338,8 +356,9 @@ std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(
   auto concrete = std::get<ConcreteDataMatcher>(spec.matcher);
 
   for (auto dodescr : dodescrs) {
-    if (dodescr->matcher->match(concrete, context))
+    if (dodescr->matcher->match(concrete, context)) {
       result.emplace_back(dodescr);
+    }
   }
 
   return result;
@@ -360,8 +379,9 @@ TFile* DataOutputDirector::getDataOutputFile(DataOutputDescriptor* dod,
     // check if new version of file needs to be opened
     int fcnt = (int)(ntf / ntfmerge);
     if ((ntf % ntfmerge) == 0 && fcnt > fcnts[ind]) {
-      if (fouts[ind])
+      if (fouts[ind]) {
         fouts[ind]->Close();
+      }
 
       fcnts[ind] = fcnt;
       auto fn = fnames[ind] + "_" + std::to_string(fcnts[ind]) + ".root";
@@ -376,8 +396,9 @@ TFile* DataOutputDirector::getDataOutputFile(DataOutputDescriptor* dod,
 void DataOutputDirector::closeDataOutputFiles()
 {
   for (auto fout : fouts)
-    if (fout)
+    if (fout) {
       fout->Close();
+    }
 }
 
 void DataOutputDirector::printOut()

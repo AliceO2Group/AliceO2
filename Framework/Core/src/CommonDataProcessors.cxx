@@ -219,24 +219,30 @@ DataProcessorSpec
     auto fnjson = ic.options().get<std::string>("json-file");
     if (!fnjson.empty()) {
       auto [fnb, fmo, ntfm] = dod->readJson(fnjson);
-      if (!fnb.empty())
+      if (!fnb.empty()) {
         fnbase = fnb;
-      if (!fmo.empty())
+      }
+      if (!fmo.empty()) {
         filemode = fmo;
-      if (ntfm > 0)
+      }
+      if (ntfm > 0) {
         ntfmerge = ntfm;
+      }
     }
 
     // values from command line options, information from json is overwritten
     auto fnb = ic.options().get<std::string>("res-file");
-    if (!fnb.empty())
+    if (!fnb.empty()) {
       fnbase = fnb;
+    }
     auto fmo = ic.options().get<std::string>("res-mode");
-    if (!fmo.empty())
+    if (!fmo.empty()) {
       filemode = fmo;
+    }
     auto ntfm = ic.options().get<Int_t>("ntfmerge");
-    if (ntfm > 0)
+    if (ntfm > 0) {
       ntfmerge = ntfm;
+    }
 
     // parse the keepString
     auto keepString = ic.options().get<std::string>("keep");
@@ -249,8 +255,9 @@ DataProcessorSpec
         // use the dangling outputs
         std::vector<InputSpec> danglingOutputs;
         for (auto ii = 0; ii < OutputInputs.size(); ii++) {
-          if (isdangling[ii])
+          if (isdangling[ii]) {
             danglingOutputs.emplace_back(OutputInputs[ii]);
+          }
         }
         dod->readSpecs(danglingOutputs);
 
@@ -333,8 +340,9 @@ DataProcessorSpec
             if (d->colnames.size() > 0) {
               for (auto cn : d->colnames) {
                 auto col = table->GetColumnByName(cn);
-                if (col)
+                if (col) {
                   ta2tr.AddBranch(col);
+                }
               }
             } else {
               ta2tr.AddAllBranches();
