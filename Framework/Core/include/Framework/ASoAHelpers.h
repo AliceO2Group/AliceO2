@@ -12,6 +12,12 @@
 #define O2_FRAMEWORK_ASOAHELPERS_H_
 
 #include "Framework/ASoA.h"
+#include "Framework/Kernels.h"
+
+#include <arrow/compute/context.h>
+
+// arrow 15.0
+//#include <arrow/compute/kernels/sort_to_indices.h>
 
 #include <iterator>
 #include <tuple>
@@ -20,6 +26,7 @@
 namespace o2::soa
 {
 
+// Functions to enable looping over tuples
 template <std::size_t V>
 struct num {
   static const constexpr auto value = V;
@@ -38,16 +45,125 @@ void for_(F func)
   for_(func, std::make_index_sequence<N>());
 }
 
+// Creating tuple of given size and type
+template <typename T, unsigned N, typename... REST>
+struct generate_tuple_type {
+  using type = typename generate_tuple_type<T, N - 1, T, REST...>::type;
+};
+
+template <typename T, typename... REST>
+struct generate_tuple_type<T, 0, REST...> {
+  using type = std::tuple<REST...>;
+};
+
+// Group table (C++ vector of indices)
+bool sameCategory(std::pair<uint64_t, uint64_t> const& a, std::pair<uint64_t, uint64_t> const& b)
+{
+  return a.first < b.first;
+}
+
+template <typename T2, typename ARRAY, typename T>
+std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const T& inTable, const std::string& categoryColumnName, int minCatSize)
+{
+  auto arrowTable = inTable.asArrowTable();
+  auto columnIndex = arrowTable->schema()->GetFieldIndex(categoryColumnName);
+  auto chunkedArray = arrowTable->column(columnIndex)->data();
+
+  uint64_t ind = 0;
+  std::vector<std::pair<uint64_t, uint64_t>> groupedIndices;
+  groupedIndices.reserve(arrowTable->num_rows());
+  for (uint64_t ci = 0; ci < chunkedArray->num_chunks(); ++ci) {
+    auto chunk = chunkedArray->chunk(ci);
+    // Note: assuming that the table is not empty
+    T2 const* data = std::static_pointer_cast<ARRAY>(chunk)->raw_values();
+    for (uint64_t ai = 0; ai < chunk->length(); ++ai) {
+      groupedIndices.emplace_back(data[ai], ind);
+      ind++;
+    }
+  }
+
+  // Do a stable sort so that same categories entries are
+  // grouped together.
+  std::stable_sort(groupedIndices.begin(), groupedIndices.end());
+
+  // Remove categories of too small size
+  if (minCatSize > 1) {
+    auto catBegin = groupedIndices.begin();
+    while (catBegin != groupedIndices.end()) {
+      auto catEnd = std::upper_bound(catBegin, groupedIndices.end(), *catBegin, sameCategory);
+      if (std::distance(catBegin, catEnd) < minCatSize) {
+        catEnd = groupedIndices.erase(catBegin, catEnd);
+      }
+      catBegin = catEnd;
+    }
+  }
+
+  return groupedIndices;
+}
+
+template <typename T>
+auto groupTable(const T& inTable, const std::string& categoryColumnName, int minCatSize)
+{
+  auto arrowTable = inTable.asArrowTable();
+  auto columnIndex = arrowTable->schema()->GetFieldIndex(categoryColumnName);
+  auto dataType = arrowTable->column(columnIndex)->type();
+  if (dataType->id() == arrow::Type::UINT64) {
+    return doGroupTable<uint64_t, arrow::UInt64Array>(inTable, categoryColumnName, minCatSize);
+  }
+  if (dataType->id() == arrow::Type::INT64) {
+    return doGroupTable<int64_t, arrow::Int64Array>(inTable, categoryColumnName, minCatSize);
+  }
+  if (dataType->id() == arrow::Type::UINT32) {
+    return doGroupTable<uint32_t, arrow::UInt32Array>(inTable, categoryColumnName, minCatSize);
+  }
+  if (dataType->id() == arrow::Type::INT32) {
+    return doGroupTable<int32_t, arrow::Int32Array>(inTable, categoryColumnName, minCatSize);
+  }
+  // FIXME: Should we support other types as well?
+  throw std::runtime_error("Combinations: category column must be of integral type");
+}
+
+// Synchronize categories so as groupedIndices contain elements only of categories common to all tables
+template <std::size_t K>
+void syncCategories(std::array<std::vector<std::pair<uint64_t, uint64_t>>, K>& groupedIndices)
+{
+  std::vector<std::pair<uint64_t, uint64_t>> firstCategories;
+  std::vector<std::pair<uint64_t, uint64_t>> commonCategories;
+  std::unique_copy(groupedIndices[0].begin(), groupedIndices[0].end(), std::back_inserter(firstCategories), sameCategory);
+
+  for (auto& cat : firstCategories) {
+    bool isCommon = true;
+    for (int i = 1; i < K; i++) {
+      if (!std::binary_search(groupedIndices[i].begin(), groupedIndices[i].end(), cat, sameCategory)) {
+        isCommon = false;
+        break;
+      }
+    }
+    if (isCommon) {
+      commonCategories.push_back(cat);
+    }
+  }
+
+  for (int i = 0; i < K; i++) {
+    auto nonCatBegin = groupedIndices[i].begin();
+    for (auto& cat : commonCategories) {
+      auto nonCatEnd = std::lower_bound(nonCatBegin, groupedIndices[i].end(), cat, sameCategory);
+      nonCatEnd = groupedIndices[i].erase(nonCatBegin, nonCatEnd);
+      nonCatBegin = std::upper_bound(nonCatEnd, groupedIndices[i].end(), cat, sameCategory);
+    }
+  }
+}
+
 template <typename... Ts>
 struct CombinationsIndexPolicyBase {
   using CombinationType = std::tuple<typename Ts::iterator...>;
+  using IndicesType = typename generate_tuple_type<uint64_t, sizeof...(Ts)>::type;
 
   CombinationsIndexPolicyBase(const Ts&... tables) : mIsEnd(false),
-                                                     mMaxOffset(tables.end()...),
+                                                     mMaxOffset(tables.end().index...),
                                                      mCurrent(tables.begin()...)
   {
-    constexpr auto k = sizeof...(Ts);
-    if (((tables.size() < k) || ...)) {
+    if (((tables.size() == 0) || ...)) {
       mIsEnd = true;
     }
   }
@@ -56,27 +172,20 @@ struct CombinationsIndexPolicyBase {
   void addOne() {}
 
   CombinationType mCurrent;
-  CombinationType mMaxOffset; // one position past maximum acceptable position for each element of combination
-  bool mIsEnd;                // whether there are any more tuples available
+  IndicesType mMaxOffset; // one position past maximum acceptable position for each element of combination
+  bool mIsEnd;            // whether there are any more tuples available
 };
 
 template <typename... Ts>
 struct CombinationsUpperIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
-  CombinationsUpperIndexPolicy(const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...)
-  {
-    constexpr auto k = sizeof...(Ts);
-    for_<k>([&, this](auto i) {
-      std::get<i.value>(this->mMaxOffset).moveByIndex(-k + i.value + 1);
-    });
-  }
+  CombinationsUpperIndexPolicy(const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...) {}
 
   void moveToEnd()
   {
     constexpr auto k = sizeof...(Ts);
     for_<k>([&, this](auto i) {
-      std::get<i.value>(this->mCurrent).setCursor(*std::get<1>(std::get<i.value>(this->mMaxOffset).getIndices()));
+      std::get<i.value>(this->mCurrent).moveToEnd();
     });
-    std::get<k - 1>(this->mCurrent).moveToEnd();
     this->mIsEnd = true;
   }
 
@@ -88,7 +197,7 @@ struct CombinationsUpperIndexPolicy : public CombinationsIndexPolicyBase<Ts...> 
       if (modify) {
         constexpr auto curInd = k - i.value - 1;
         std::get<curInd>(this->mCurrent)++;
-        if (std::get<curInd>(this->mCurrent) != std::get<curInd>(this->mMaxOffset)) {
+        if (*std::get<1>(std::get<curInd>(this->mCurrent).getIndices()) != std::get<curInd>(this->mMaxOffset)) {
           for_<i.value>([&, this](auto j) {
             constexpr auto curJ = k - i.value + j.value;
             std::get<curJ>(this->mCurrent).setCursor(*std::get<1>(std::get<curJ - 1>(this->mCurrent).getIndices()));
@@ -106,8 +215,11 @@ struct CombinationsStrictlyUpperIndexPolicy : public CombinationsIndexPolicyBase
   CombinationsStrictlyUpperIndexPolicy(const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...)
   {
     constexpr auto k = sizeof...(Ts);
+    if (((tables.size() < k) || ...)) {
+      this->mIsEnd = true;
+    }
     for_<k>([&, this](auto i) {
-      std::get<i.value>(this->mMaxOffset).moveByIndex(-k + i.value + 1);
+      std::get<i.value>(this->mMaxOffset) += i.value + 1 - k;
       std::get<i.value>(this->mCurrent).moveByIndex(i.value);
     });
   }
@@ -115,9 +227,10 @@ struct CombinationsStrictlyUpperIndexPolicy : public CombinationsIndexPolicyBase
   void moveToEnd()
   {
     constexpr auto k = sizeof...(Ts);
-    for_<k>([&, this](auto i) {
-      std::get<i.value>(this->mCurrent).setCursor(*std::get<1>(std::get<i.value>(this->mMaxOffset).getIndices()));
+    for_<k - 1>([&, this](auto i) {
+      std::get<i.value>(this->mCurrent).setCursor(std::get<i.value>(this->mMaxOffset));
     });
+    // Hack for Filtered
     std::get<k - 1>(this->mCurrent).moveToEnd();
     this->mIsEnd = true;
   }
@@ -130,7 +243,7 @@ struct CombinationsStrictlyUpperIndexPolicy : public CombinationsIndexPolicyBase
       if (modify) {
         constexpr auto curInd = k - i.value - 1;
         std::get<curInd>(this->mCurrent)++;
-        if (std::get<curInd>(this->mCurrent) != std::get<curInd>(this->mMaxOffset)) {
+        if (*std::get<1>(std::get<curInd>(this->mCurrent).getIndices()) != std::get<curInd>(this->mMaxOffset)) {
           for_<i.value>([&, this](auto j) {
             constexpr auto curJ = k - i.value + j.value;
             std::get<curJ>(this->mCurrent).setCursor(*std::get<1>(std::get<curJ - 1>(this->mCurrent).getIndices()) + 1);
@@ -164,7 +277,7 @@ struct CombinationsFullIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
       if (modify) {
         constexpr auto curInd = k - i.value - 1;
         std::get<curInd>(this->mCurrent)++;
-        if (std::get<curInd>(this->mCurrent) != std::get<curInd>(this->mMaxOffset)) {
+        if (*std::get<1>(std::get<curInd>(this->mCurrent).getIndices()) != std::get<curInd>(this->mMaxOffset)) {
           for_<i.value>([&, this](auto j) {
             constexpr auto curJ = k - i.value + j.value;
             std::get<curJ>(this->mCurrent).setCursor(0);
@@ -175,6 +288,298 @@ struct CombinationsFullIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
     });
     this->mIsEnd = modify;
   }
+};
+
+template <typename... Ts>
+struct CombinationsBlockUpperIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
+  using IndicesType = typename generate_tuple_type<uint64_t, sizeof...(Ts)>::type;
+
+  CombinationsBlockUpperIndexPolicy(const std::string& categoryColumnName, const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...)
+  {
+    constexpr auto k = sizeof...(Ts);
+    if (this->mIsEnd) {
+      return;
+    }
+
+    int tableIndex = 0;
+    ((this->mGroupedIndices[tableIndex++] = groupTable(tables, categoryColumnName, 1)), ...);
+
+    // Synchronize categories across tables
+    // FIXME: This wouldn't be necessary if tables were always the same, are they?
+    syncCategories(this->mGroupedIndices);
+
+    for_<k>([this](auto i) {
+      std::get<i.value>(this->mCurrentIndices) = 0;
+    });
+
+    setRanges();
+  }
+
+  void setRanges()
+  {
+    constexpr auto k = sizeof...(Ts);
+    for_<k>([&, this](auto i) {
+      auto catBegin = this->mGroupedIndices[i.value].begin() + std::get<i.value>(this->mCurrentIndices);
+      auto range = std::equal_range(catBegin, this->mGroupedIndices[i.value].end(), *catBegin, sameCategory);
+      std::get<i.value>(this->mMaxOffset) = std::distance(this->mGroupedIndices[i.value].begin(), range.second);
+      std::get<i.value>(this->mCurrent).setCursor(range.first->second);
+    });
+  }
+
+  void moveToEnd()
+  {
+    constexpr auto k = sizeof...(Ts);
+    for_<k>([&, this](auto i) {
+      std::get<i.value>(this->mCurrent).moveToEnd();
+    });
+    this->mIsEnd = true;
+  }
+
+  void addOne()
+  {
+    constexpr auto k = sizeof...(Ts);
+    bool modify = true;
+    bool nextCatAvailable = true;
+    for_<k>([&, this](auto i) {
+      if (modify) {
+        constexpr auto curInd = k - i.value - 1;
+        std::get<curInd>(this->mCurrentIndices)++;
+        uint64_t curGroupedInd = std::get<curInd>(this->mCurrentIndices);
+        std::get<curInd>(this->mCurrent).setCursor(this->mGroupedIndices[curInd][curGroupedInd].second);
+
+        // If we remain within the same category
+        if (std::get<curInd>(this->mCurrentIndices) < std::get<curInd>(this->mMaxOffset)) {
+          for_<i.value>([&, this](auto j) {
+            constexpr auto curJ = k - i.value + j.value;
+            std::get<curJ>(this->mCurrentIndices) = std::get<curJ - 1>(this->mCurrentIndices);
+            uint64_t curGroupedJ = std::get<curJ>(this->mCurrentIndices);
+            std::get<curJ>(this->mCurrent).setCursor(this->mGroupedIndices[curJ][curGroupedJ].second);
+          });
+          modify = false;
+        }
+      }
+    });
+
+    // No more combinations within this category - move to the next category, if possible
+    if (modify) {
+      for_<k>([&, this](auto m) {
+        if (std::get<m.value>(this->mCurrentIndices) == this->mGroupedIndices[m.value].size()) {
+          nextCatAvailable = false;
+        }
+      });
+      if (nextCatAvailable) {
+        setRanges();
+      }
+    }
+
+    this->mIsEnd = modify && !nextCatAvailable;
+  }
+
+  std::array<std::vector<std::pair<uint64_t, uint64_t>>, sizeof...(Ts)> mGroupedIndices;
+  IndicesType mCurrentIndices;
+};
+
+template <typename... Ts>
+struct CombinationsBlockStrictlyUpperIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
+  using IndicesType = typename generate_tuple_type<uint64_t, sizeof...(Ts)>::type;
+
+  CombinationsBlockStrictlyUpperIndexPolicy(const std::string& categoryColumnName, const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...)
+  {
+    constexpr auto k = sizeof...(Ts);
+    if (((tables.size() < k) || ...)) {
+      this->mIsEnd = true;
+      return;
+    }
+
+    int tableIndex = 0;
+    ((this->mGroupedIndices[tableIndex++] = groupTable(tables, categoryColumnName, k)), ...);
+
+    // Synchronize categories across tables
+    // FIXME: This wouldn't be necessary if tables were always the same, are they?
+    syncCategories(this->mGroupedIndices);
+
+    for_<k>([this](auto i) {
+      std::get<i.value>(this->mCurrentIndices) = i.value;
+    });
+
+    setRanges();
+  }
+
+  void setRanges()
+  {
+    constexpr auto k = sizeof...(Ts);
+    for_<k>([&, this](auto i) {
+      auto catBegin = this->mGroupedIndices[i.value].begin() + std::get<i.value>(this->mCurrentIndices);
+      auto range = std::equal_range(catBegin, this->mGroupedIndices[i.value].end(), *catBegin, sameCategory);
+      std::get<i.value>(this->mCurrent).setCursor(range.first->second);
+      std::get<i.value>(this->mMaxOffset) = std::distance(this->mGroupedIndices[i.value].begin(), range.second - k + i.value + 1);
+    });
+  }
+
+  void moveToEnd()
+  {
+    constexpr auto k = sizeof...(Ts);
+    for_<k - 1>([&, this](auto i) {
+      std::get<i.value>(this->mCurrent).setCursor(std::get<i.value>(this->mMaxOffset));
+    });
+    // Hack for Filtered
+    std::get<k - 1>(this->mCurrent).moveToEnd();
+    this->mIsEnd = true;
+  }
+
+  void addOne()
+  {
+    constexpr auto k = sizeof...(Ts);
+    bool modify = true;
+    bool nextCatAvailable = true;
+    for_<k>([&, this](auto i) {
+      if (modify) {
+        constexpr auto curInd = k - i.value - 1;
+        std::get<curInd>(this->mCurrentIndices)++;
+        uint64_t curGroupedInd = std::get<curInd>(this->mCurrentIndices);
+        std::get<curInd>(this->mCurrent).setCursor(this->mGroupedIndices[curInd][curGroupedInd].second);
+
+        // If we remain within the same category
+        if (std::get<curInd>(this->mCurrentIndices) < std::get<curInd>(this->mMaxOffset)) {
+          for_<i.value>([&, this](auto j) {
+            constexpr auto curJ = k - i.value + j.value;
+            std::get<curJ>(this->mCurrentIndices) = std::get<curJ - 1>(this->mCurrentIndices) + 1;
+            uint64_t curGroupedJ = std::get<curJ>(this->mCurrentIndices);
+            std::get<curJ>(this->mCurrent).setCursor(this->mGroupedIndices[curJ][curGroupedJ].second);
+          });
+          modify = false;
+        }
+      }
+    });
+
+    // No more combinations within this category - move to the next category, if possible
+    if (modify) {
+      for_<k>([&, this](auto m) {
+        if (std::get<m.value>(this->mCurrentIndices) == this->mGroupedIndices[m.value].size()) {
+          nextCatAvailable = false;
+        } else {
+          std::get<m.value>(this->mCurrentIndices) = std::get<m.value>(this->mMaxOffset) + k - 1;
+        }
+      });
+      if (nextCatAvailable) {
+        setRanges();
+      }
+    }
+
+    this->mIsEnd = modify && !nextCatAvailable;
+  }
+
+  std::array<std::vector<std::pair<uint64_t, uint64_t>>, sizeof...(Ts)> mGroupedIndices;
+  IndicesType mCurrentIndices;
+};
+
+template <typename... Ts>
+struct CombinationsBlockFullIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
+  using IndicesType = typename generate_tuple_type<uint64_t, sizeof...(Ts)>::type;
+
+  CombinationsBlockFullIndexPolicy(const std::string& categoryColumnName, const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...)
+  {
+    if (this->mIsEnd) {
+      return;
+    }
+
+    constexpr auto k = sizeof...(Ts);
+
+    // FIXME: What is preferred from DPL/Framework internals point-of-view?
+    // grouping arrow tables directly vs C++ vectors / tuples / ...
+
+    // Grouping with arrow
+    // Note: this expects the input table to be already sorted by category
+    // Could use arrow's SortToIndices from arrow 15.0 for sorting (or sth based on that)
+    //std::vector<arrow::Table> ranges;
+    //ranges.reserve(k);
+    //auto groupTableArrow = [&] (const auto& inputTable) {
+    //  arrow::compute::FunctionContext ctx;
+    //  arrow::compute::Datum outRanges;
+    //  SortedGroupByKernel groupBy{{categoryColumnName}};
+    //  auto result = groupBy.Call(&ctx, arrow::compute::Datum(inputTable.asArrowTable()), &outRanges);
+    //  if (result.ok() == false) {
+    //    throw std::runtime_error("Combinations: cannot slice table for grouping");
+    //  }
+    //  ranges.emplace_back(arrow::util::get<std::shared_ptr<arrow::Table>>(outRanges.value));
+    //};
+
+    // Grouping with C++ containers - based on RCombinedDS
+    int tableIndex = 0;
+    ((this->mGroupedIndices[tableIndex++] = groupTable(tables, categoryColumnName, 1)), ...);
+    for_<k>([this](auto i) {
+      std::get<i.value>(this->mCurrentIndices) = 0;
+    });
+
+    setRanges();
+  }
+
+  void setRanges()
+  {
+    constexpr auto k = sizeof...(Ts);
+    for_<k>([&, this](auto i) {
+      auto catBegin = this->mGroupedIndices[i.value].begin() + std::get<i.value>(this->mCurrentIndices);
+      auto range = std::equal_range(catBegin, this->mGroupedIndices[i.value].end(), *catBegin, sameCategory);
+      std::get<i.value>(this->mBeginIndices) = std::distance(this->mGroupedIndices[i.value].begin(), range.first);
+      std::get<i.value>(this->mMaxOffset) = std::distance(this->mGroupedIndices[i.value].begin(), range.second);
+      std::get<i.value>(this->mCurrent).setCursor(range.first->second);
+    });
+  }
+
+  void moveToEnd()
+  {
+    constexpr auto k = sizeof...(Ts);
+    for_<k>([&, this](auto i) {
+      std::get<i.value>(this->mCurrent).moveToEnd();
+    });
+    this->mIsEnd = true;
+  }
+
+  void addOne()
+  {
+    constexpr auto k = sizeof...(Ts);
+    bool modify = true;
+    bool nextCatAvailable = true;
+    for_<k>([&, this](auto i) {
+      if (modify) {
+        constexpr auto curInd = k - i.value - 1;
+        std::get<curInd>(this->mCurrentIndices)++;
+        uint64_t curGroupedInd = std::get<curInd>(this->mCurrentIndices);
+        std::get<curInd>(this->mCurrent).setCursor(this->mGroupedIndices[curInd][curGroupedInd].second);
+
+        // If we remain within the same category
+        if (std::get<curInd>(this->mCurrentIndices) < std::get<curInd>(this->mMaxOffset)) {
+          for_<i.value>([&, this](auto j) {
+            constexpr auto curJ = k - i.value + j.value;
+            std::get<curJ>(this->mCurrentIndices) = std::get<curJ>(this->mBeginIndices);
+            uint64_t curGroupedJ = std::get<curJ>(this->mCurrentIndices);
+            std::get<curJ>(this->mCurrent).setCursor(this->mGroupedIndices[curJ][curGroupedJ].second);
+          });
+          modify = false;
+        }
+      }
+    });
+
+    // No more combinations within this category - move to the next category, if possible
+    if (modify) {
+      for_<k>([&, this](auto m) {
+        if (std::get<m.value>(this->mCurrentIndices) == this->mGroupedIndices[m.value].size()) {
+          nextCatAvailable = false;
+        }
+      });
+      if (nextCatAvailable) {
+        setRanges();
+      }
+    }
+
+    this->mIsEnd = modify && !nextCatAvailable;
+  }
+
+  // FIXME: Could it be simplified? E.g. by assuming that all input tables are the same table?
+  // Or calculating grouped indices on-fly? (How?)
+  std::array<std::vector<std::pair<uint64_t, uint64_t>>, sizeof...(Ts)> mGroupedIndices;
+  IndicesType mCurrentIndices;
+  IndicesType mBeginIndices;
 };
 
 /// @return next combination of rows of tables.
