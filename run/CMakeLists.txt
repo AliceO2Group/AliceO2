@@ -57,7 +57,11 @@ o2_add_executable(sim
 o2_add_executable(primary-server-device-runner
                   COMPONENT_NAME sim
                   SOURCES O2PrimaryServerDeviceRunner.cxx
-                  PUBLIC_LINK_LIBRARIES internal::allsim)
+                  PUBLIC_LINK_LIBRARIES internal::allsim
+                  TARGETVARNAME simexe)
+if(NOT APPLE)
+  set_property(TARGET ${simexe} PROPERTY LINK_WHAT_YOU_USE ON)
+endif()
 
 o2_add_executable(hit-merger-runner
                   COMPONENT_NAME sim
