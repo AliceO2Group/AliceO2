@@ -25,10 +25,9 @@
 #include "TRDBase/Digit.h" // for the Digit type
 #include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/Detector.h" // for the Hit type
-#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include "TRDBase/Calibrations.h"
 #include "DataFormatsTRD/TriggerRecord.h"
-#include "SimConfig/DigiParams.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -38,17 +37,15 @@ namespace o2
 namespace trd
 {
 
-class TRDDPLDigitizerTask
+class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  void init(framework::InitContext& ic)
+  TRDDPLDigitizerTask() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM | o2::base::InitServices::FIELD) {}
+
+  void initDigitizerTask(framework::InitContext& ic) override
   {
     LOG(INFO) << "initializing TRD digitization";
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
-    }
     mDigitizer.init();
-    LOG(INFO) << "initialized TRD digitization";
   }
 
   void run(framework::ProcessingContext& pc)

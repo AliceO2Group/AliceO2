@@ -19,7 +19,7 @@
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/SimTraits.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -29,8 +29,6 @@
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "MFTBase/GeometryTGeo.h"
-#include "SimConfig/DigiParams.h"
-#include <TGeoManager.h>
 #include <TChain.h>
 #include <TStopwatch.h>
 #include <string>
@@ -43,11 +41,12 @@ namespace o2
 namespace itsmft
 {
 
-class ITSMFTDPLDigitizerTask
+using namespace o2::base;
+class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
 {
-
  public:
-  void init(framework::InitContext& ic)
+  using BaseDPLDigitizer::init;
+  void initDigitizerTask(framework::InitContext& ic) override
   {
     // init optional QED chain
     auto qedfilename = ic.options().get<std::string>("simFileQED");
@@ -63,11 +62,6 @@ class ITSMFTDPLDigitizerTask
     LOG(INFO) << mID.getName() << " simulated in "
               << ((mROMode == o2::parameters::GRPObject::CONTINUOUS) ? "CONTINUOUS" : "TRIGGERED")
               << " RO mode";
-
-    // make sure that the geometry is loaded (TODO will this be done centrally?)
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
-    }
 
     // configure digitizer
     o2::itsmft::GeometryTGeo* geom = nullptr;
@@ -164,7 +158,7 @@ class ITSMFTDPLDigitizerTask
   }
 
  protected:
-  ITSMFTDPLDigitizerTask() = default;
+  ITSMFTDPLDigitizerTask() : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM) {}
 
   void processQED(double tMax)
   {

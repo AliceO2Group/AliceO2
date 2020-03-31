@@ -25,8 +25,7 @@
 #include "MCHBase/Digit.h"
 #include "MCHSimulation/Digitizer.h"
 #include "MCHSimulation/Detector.h"
-#include "DetectorsBase/GeometryManager.h"
-#include <SimConfig/DigiParams.h>
+#include "DetectorsBase/BaseDPLDigitizer.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -36,15 +35,14 @@ namespace o2
 namespace mch
 {
 
-class MCHDPLDigitizerTask
+class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  void init(framework::InitContext& ic)
+  MCHDPLDigitizerTask() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM) {}
+
+  void initDigitizerTask(framework::InitContext& ic) override
   {
-    LOG(DEBUG) << "initializing MCH digitization";
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
-    }
+    // nothing specific do to
   }
 
   void run(framework::ProcessingContext& pc)

@@ -28,7 +28,7 @@
 #include "TPCBase/Digit.h"
 #include "TPCSimulation/Digitizer.h"
 #include "TPCSimulation/Detector.h"
-#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 #include "SimConfig/DigiParams.h"
@@ -56,16 +56,17 @@ std::string getBranchNameRight(int sector)
   return branchnamestreamright.str();
 }
 
-class TPCDPLDigitizerTask
+using namespace o2::base;
+class TPCDPLDigitizerTask : public BaseDPLDigitizer
 {
  public:
-  TPCDPLDigitizerTask(int channel, bool writeGRP)
+  TPCDPLDigitizerTask(int channel, bool writeGRP) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM)
   {
     mChannel = channel;
     mWriteGRP = writeGRP;
   };
 
-  void init(framework::InitContext& ic)
+  void initDigitizerTask(framework::InitContext& ic) override
   {
     LOG(INFO) << "Initializing TPC digitization";
 
@@ -137,10 +138,6 @@ class TPCDPLDigitizerTask
       }
     }
     mDigitizer.setContinuousReadout(!triggeredMode);
-
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
-    }
   }
 
   void run(framework::ProcessingContext& pc)

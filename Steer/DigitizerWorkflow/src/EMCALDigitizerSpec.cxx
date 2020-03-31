@@ -22,8 +22,6 @@
 #include "CommonDataFormat/EvIndex.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
-#include "DetectorsBase/GeometryManager.h"
-#include <SimConfig/DigiParams.h>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -33,11 +31,10 @@ namespace o2
 namespace emcal
 {
 
-void DigitizerSpec::init(framework::InitContext& ctx)
+void DigitizerSpec::initDigitizerTask(framework::InitContext& ctx)
 {
-  // make sure that the geometry is loaded (TODO will this be done centrally?)
   if (!gGeoManager) {
-    o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
+    LOG(ERROR) << "Geometry needs to be loaded before";
   }
   // run 3 geometry == run 2 geometry for EMCAL
   // to be adapted with run numbers at a later stage
