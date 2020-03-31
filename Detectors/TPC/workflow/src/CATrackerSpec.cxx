@@ -76,6 +76,13 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, bool zsDeco
     std::unique_ptr<o2::tpc::GPUCATracking> tracker;
     std::unique_ptr<o2::gpu::GPUDisplayBackend> displayBackend;
     std::unique_ptr<TPCFastTransform> fastTransform;
+    std::vector<std::unique_ptr<unsigned char[]>> bufferCache;
+    unsigned int tpcZSmessagesReceived = 0;
+    o2::gpu::GPUTrackingInOutZS tpcZS;
+    std::vector<const void*> tpcZSmetaPointers[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
+    std::vector<unsigned int> tpcZSmetaSizes[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
+    const void** tpcZSmetaPointers2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
+    const unsigned int* tpcZSmetaSizes2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
     int verbosity = 1;
     std::vector<int> inputIds;
     bool readyToQuit = false;
@@ -271,11 +278,6 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, bool zsDeco
       auto& validMcInputs = processAttributes->validMcInputs;
       auto& mcInputs = processAttributes->mcInputs;
       std::array<gsl::span<const char>, NSectors> inputs;
-      o2::gpu::GPUTrackingInOutZS tpcZS;
-      std::vector<const void*> tpcZSmetaPointers[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
-      std::vector<unsigned int> tpcZSmetaSizes[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
-      const void** tpcZSmetaPointers2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
-      const unsigned int* tpcZSmetaSizes2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
       std::array<gsl::span<const o2::tpc::Digit>, NSectors> inputDigits;
       std::array<std::unique_ptr<const MCLabelContainer>, NSectors> inputDigitsMC;
       if (processMC) {
@@ -376,12 +378,6 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, bool zsDeco
       }
 
       if (zsDecoder) {
-        for (unsigned int i = 0;i < GPUTrackingInOutZS::NSLICES;i++) {
-          for (unsigned int j = 0;j < GPUTrackingInOutZS::NENDPOINTS;j++) {
-            tpcZSmetaPointers[i][j].clear();
-            tpcZSmetaSizes[i][j].clear();
-          }
-        }
         std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
         for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
           const o2::header::DataHeader* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
@@ -399,8 +395,10 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, bool zsDeco
             const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)current;
             if (current == nullptr || it.size() == 0 || (current - ptr) % TPCZSHDR::TPC_ZS_PAGE_SIZE || rdh->feeId != lastFEE) {
               if (count) {
-                tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
-                tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
+                unsigned char* cache = processAttributes->bufferCache.emplace_back(new unsigned char[totalSize]).get();
+                memcpy(cache, ptr, totalSize);
+                processAttributes->tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(cache);
+                processAttributes->tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
               }
               count = 0;
               if (it.size() == 0) {
@@ -412,24 +410,31 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, bool zsDeco
               rawendpoint = (lastFEE & 64) >> 6;
               ptr = current;
             }
+            totalSize = current - ptr + sizeof(o2::header::RAWDataHeader) + it.size();
             count++;
           }
           if (count) {
-            tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
-            tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
+            unsigned char* cache = processAttributes->bufferCache.emplace_back(new unsigned char[totalSize]).get();
+            memcpy(cache, ptr, totalSize);
+            processAttributes->tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(cache);
+            processAttributes->tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
           }
+        }
+        if (++(processAttributes->tpcZSmessagesReceived) != GPUTrackingInOutZS::NSLICES * GPUTrackingInOutZS::NENDPOINTS) {
+          return; // Didn't receive the full TF and all links yet, continue caching
         }
         int totalCount = 0;
-        for (unsigned int i = 0;i < GPUTrackingInOutZS::NSLICES;i++) {
-          for (unsigned int j = 0;j < GPUTrackingInOutZS::NENDPOINTS;j++) {
-            tpcZSmetaPointers2[i][j] = tpcZSmetaPointers[i][j].data();
-            tpcZSmetaSizes2[i][j] = tpcZSmetaSizes[i][j].data();
-            tpcZS.slice[i].zsPtr[j] = tpcZSmetaPointers2[i][j];
-            tpcZS.slice[i].nZSPtr[j] = tpcZSmetaSizes2[i][j];
-            tpcZS.slice[i].count[j] = tpcZSmetaPointers[i][j].size();
-            totalCount += tpcZSmetaPointers[i][j].size();
+        for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
+          for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+            processAttributes->tpcZSmetaPointers2[i][j] = processAttributes->tpcZSmetaPointers[i][j].data();
+            processAttributes->tpcZSmetaSizes2[i][j] = processAttributes->tpcZSmetaSizes[i][j].data();
+            processAttributes->tpcZS.slice[i].zsPtr[j] = processAttributes->tpcZSmetaPointers2[i][j];
+            processAttributes->tpcZS.slice[i].nZSPtr[j] = processAttributes->tpcZSmetaSizes2[i][j];
+            processAttributes->tpcZS.slice[i].count[j] = processAttributes->tpcZSmetaPointers[i][j].size();
+            totalCount += processAttributes->tpcZSmetaPointers[i][j].size();
           }
         }
+
         /*DPLRawParser parser(pc.inputs(), filter);
         for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
           // retrieving RDH v4
@@ -551,9 +556,8 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, bool zsDeco
       o2::InteractionRecord ir = raw::HBFUtils::Instance().getFirstIR();
       if (caClusterer) {
         if (zsDecoder) {
-          return;
-          tpcZS.ir = &ir;
-          ptrs.tpcZS = &tpcZS;
+          processAttributes->tpcZS.ir = &ir;
+          ptrs.tpcZS = &processAttributes->tpcZS;
           if (processMC) {
             throw std::runtime_error("Cannot process MC information, none available"); // In fact, passing in MC data with ZS TPC Raw is not yet available
           }
@@ -589,6 +593,14 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, bool zsDeco
       //std::vector<o2::tpc::ClusterNative> clusterBuffer; // std::vector that will hold the actual clusters, clustersNativeDecoded will point inside here
       //mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param); // Run decompressor
 
+      processAttributes->bufferCache.clear();
+      processAttributes->tpcZSmessagesReceived = 0;
+      for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
+        for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+          processAttributes->tpcZSmetaPointers[i][j].clear();
+          processAttributes->tpcZSmetaSizes[i][j].clear();
+        }
+      }
       validInputs.reset();
       if (processMC) {
         validMcInputs.reset();
