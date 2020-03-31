@@ -27,6 +27,7 @@
 #include "FV0Simulation/DigitizationConstant.h"
 #include "FV0Simulation/MCLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include <TFile.h>
 
 using namespace o2::framework;
@@ -37,16 +38,15 @@ namespace o2
 namespace fv0
 {
 
-class FV0DPLDigitizerTask
+class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
   using GRP = o2::parameters::GRPObject;
 
  public:
-  FV0DPLDigitizerTask()
-    : mDigitizer(), mSimChains(), mDigitsCh(), mDigitsBC(), mLabels() {}
-  ~FV0DPLDigitizerTask() = default;
+  FV0DPLDigitizerTask() : o2::base::BaseDPLDigitizer(), mDigitizer(), mSimChains(), mDigitsCh(), mDigitsBC(), mLabels() {}
+  ~FV0DPLDigitizerTask() override = default;
 
-  void init(framework::InitContext& ic)
+  void initDigitizerTask(framework::InitContext& ic) override
   {
     LOG(INFO) << "FV0DPLDigitizerTask:init";
     mDigitizer.init();

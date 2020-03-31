@@ -25,7 +25,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include "SimConfig/DigiParams.h"
 
 using namespace o2::framework;
@@ -36,12 +36,8 @@ namespace o2
 namespace cpv
 {
 
-void DigitizerSpec::init(framework::InitContext& ic)
+void DigitizerSpec::initDigitizerTask(framework::InitContext& ic)
 {
-  // make sure that the geometry is loaded (TODO will this be done centrally?)
-  if (!gGeoManager) {
-    o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
-  }
   // init digitizer
   mDigitizer.init();
 

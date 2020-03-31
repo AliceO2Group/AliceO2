@@ -9,8 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include <boost/program_options.hpp>
-
-#include "DetectorsBase/Propagator.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicy.h"
@@ -221,8 +219,6 @@ std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP)
   if (gIsMaster) {
     grp->print();
   }
-  // init magnetic field
-  o2::base::Propagator::initFieldFromGRP(grp, gIsMaster);
   return std::shared_ptr<o2::parameters::GRPObject>(grp);
 }
 
@@ -377,6 +373,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // all compatible)
   auto geomfilename = o2::base::NameConf::getGeomFileName(simPrefixes[0]);
   ConfigurableParam::setValue("DigiParams.digitizationgeometry", geomfilename);
+  ConfigurableParam::setValue("DigiParams.grpfile", grpfile);
 
   // write the configuration used for the digitizer workflow
   if (ismaster) {

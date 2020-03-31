@@ -28,6 +28,7 @@
 #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
 #include "TOFCalibration/CalibTOFapi.h"
 #include "SimConfig/DigiParams.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -37,19 +38,15 @@ namespace o2
 namespace tof
 {
 
-class TOFDPLDigitizerTask
+class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  TOFDPLDigitizerTask(bool useCCDB) : mUseCCDB{useCCDB} {};
+  TOFDPLDigitizerTask(bool useCCDB) : mUseCCDB{useCCDB},
+                                      o2::base::BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM){};
 
-  void init(framework::InitContext& ic)
+  void initDigitizerTask(framework::InitContext& ic) override
   {
     LOG(INFO) << "Initializing TOF digitization";
-
-    // make sure that the geometry is loaded (TODO will this be done centrally?)
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
-    }
 
     mSimChains = std::move(std::make_unique<std::vector<TChain*>>());
 

@@ -17,7 +17,7 @@
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
-#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -37,12 +37,12 @@ namespace o2
 namespace fdd
 {
 
-class FDDDPLDigitizerTask
+class FDDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
   using GRP = o2::parameters::GRPObject;
 
  public:
-  void init(framework::InitContext& ic)
+  void initDigitizerTask(framework::InitContext& ic) override
   {
     LOG(INFO) << "initializing FDD digitization";
 

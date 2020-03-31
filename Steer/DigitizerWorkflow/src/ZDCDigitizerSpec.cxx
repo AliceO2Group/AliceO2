@@ -26,7 +26,7 @@
 #include "ZDCSimulation/Digitizer.h"
 #include "ZDCSimulation/Detector.h"
 #include "ZDCSimulation/MCLabel.h"
-#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include "SimConfig/DigiParams.h"
 
 using namespace o2::framework;
@@ -37,12 +37,14 @@ namespace o2
 namespace zdc
 {
 
-class ZDCDPLDigitizerTask
+class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
   using GRP = o2::parameters::GRPObject;
 
  public:
-  void init(framework::InitContext& ic)
+  ZDCDPLDigitizerTask() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM) {}
+
+  void initDigitizerTask(framework::InitContext& ic) override
   {
     LOG(INFO) << "Initializing ZDC digitization";
 

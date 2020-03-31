@@ -25,7 +25,7 @@
 #include "HMPIDBase/Digit.h"
 #include "HMPIDSimulation/HMPIDDigitizer.h"
 #include "HMPIDSimulation/Detector.h"
-#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include <SimConfig/DigiParams.h>
 
@@ -38,15 +38,13 @@ namespace o2
 namespace hmpid
 {
 
-class HMPIDDPLDigitizerTask
+class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  void init(framework::InitContext& ic)
+  HMPIDDPLDigitizerTask() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM) {}
+
+  void initDigitizerTask(framework::InitContext& ic) override
   {
-    LOG(INFO) << "initializing HMPID digitization";
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
-    }
   }
 
   void run(framework::ProcessingContext& pc)
