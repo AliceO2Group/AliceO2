@@ -19,6 +19,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/SerializationMethods.h"
 #include "Framework/OutputRoute.h"
+#include "Framework/ConcreteDataMatcher.h"
 #include "Headers/DataHeader.h"
 #include "TestClasses.h"
 #include "Framework/Logger.h"
@@ -142,6 +143,10 @@ DataProcessorSpec getSourceSpec()
     pc.outputs().adoptContainer(pmrOutputSpec, std::move(pmrvec));
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+
+    ASSERT_ERROR(pc.outputs().isAllowed({"TST", "MESSAGEABLE", 0}) == true);
+    ASSERT_ERROR(pc.outputs().isAllowed({"TST", "MESSAGEABLE", 1}) == false);
+    ASSERT_ERROR(pc.outputs().isAllowed({"TST", "NOWAY", 0}) == false);
   };
 
   return DataProcessorSpec{"source", // name of the processor
