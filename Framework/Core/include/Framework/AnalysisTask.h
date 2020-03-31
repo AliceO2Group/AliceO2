@@ -349,7 +349,7 @@ struct AnalysisDataProcessorBuilder {
   static auto extractFilteredFromRecord(InputRecord& record, ExpressionInfo const& info, pack<Os...> const&)
   {
     if constexpr (soa::is_soa_iterator_t<T>::value) {
-      return soa::Filtered<typename T::table_t>(std::vector<std::shared_ptr<arrow::Table>>{extractTableFromRecord<Os>(record)...}, info.tree);
+      return typename T::parent_t(std::vector<std::shared_ptr<arrow::Table>>{extractTableFromRecord<Os>(record)...}, info.tree);
     } else {
       return T(std::vector<std::shared_ptr<arrow::Table>>{extractTableFromRecord<Os>(record)...}, info.tree);
     }
@@ -359,7 +359,8 @@ struct AnalysisDataProcessorBuilder {
   static auto extractSomethingFromRecord(InputRecord& record, std::vector<ExpressionInfo> const infos)
   {
     using decayed = std::decay_t<T>;
-    if constexpr (is_specialization<decayed, soa::Filtered>::value) {
+
+    if constexpr (soa::is_soa_filtered_t<decayed>::value) {
       for (auto& info : infos) {
         if (info.index == At)
           return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
@@ -392,145 +393,235 @@ struct AnalysisDataProcessorBuilder {
     return std::tuple<>{};
   }
 
+  template <typename G, typename... A>
+  struct GroupSlicer {
+    using grouping_t = std::decay_t<G>;
+    GroupSlicer(G& gt, std::tuple<A...>& at)
+      : max{gt.size()},
+        mBegin{GroupSlicerIterator(gt, at)}
+    {
+    }
+
+    struct GroupSlicerSentinel {
+      int64_t position;
+    };
+
+    struct GroupSlicerIterator {
+      using associated_pack_t = framework::pack<A...>;
+
+      GroupSlicerIterator() = default;
+      GroupSlicerIterator(GroupSlicerIterator const&) = default;
+      GroupSlicerIterator(GroupSlicerIterator&&) = default;
+      GroupSlicerIterator& operator=(GroupSlicerIterator const&) = default;
+      GroupSlicerIterator& operator=(GroupSlicerIterator&&) = default;
+
+      GroupSlicerIterator(G& gt, std::tuple<A...>& at)
+        : mAt{&at},
+          mGroupingElement{gt.begin()},
+          position{0}
+      {
+        using groupingMetadata = typename aod::MetadataTrait<G>::metadata;
+        auto indexColumnName = std::string("f") + groupingMetadata::label() + "ID";
+        arrow::compute::FunctionContext ctx;
+        /// prepare slices and offsets for all associated tables that have index
+        /// to grouping table
+        ///
+        auto splitter = [&](auto&& x) {
+          if (hasIndexTo<std::decay_t<G>>(typename std::decay_t<decltype(x)>::persistent_columns_t{})) {
+            auto result = o2::framework::sliceByColumn(&ctx, indexColumnName,
+                                                       x.asArrowTable(),
+                                                       &groups[framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{})],
+                                                       &offsets[framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{})]);
+            if (result.ok() == false) {
+              throw std::runtime_error("Cannot split collection");
+            }
+          }
+        };
+
+        std::apply(
+          [&](auto&&... x) -> void {
+            (splitter(x), ...);
+          },
+          at);
+        /// extract selections from filtered associated tables
+        auto extractor = [&](auto&& x) {
+          using xt = std::decay_t<decltype(x)>;
+          if constexpr (soa::is_soa_filtered_t<xt>::value) {
+            constexpr auto index = framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{});
+            selections[index] = &x.getSelectedRows();
+            starts[index] = selections[index]->begin();
+            offsets[index].push_back(std::get<xt>(at).tableSize());
+          }
+        };
+        std::apply(
+          [&](auto&&... x) -> void {
+            (extractor(x), ...);
+          },
+          at);
+      }
+
+      template <typename B, typename... C>
+      constexpr bool hasIndexTo(framework::pack<C...>&&)
+      {
+        return (isIndexTo<B, C>() || ...);
+      }
+
+      template <typename B, typename C>
+      constexpr bool isIndexTo()
+      {
+        if constexpr (soa::is_type_with_binding_v<C>) {
+          return std::is_same_v<typename C::binding_t, B>;
+        }
+        return false;
+      }
+
+      GroupSlicerIterator operator++()
+      {
+        ++position;
+        ++mGroupingElement;
+        return *this;
+      }
+
+      bool operator==(GroupSlicerSentinel const& other)
+      {
+        return O2_BUILTIN_UNLIKELY(position == other.position);
+      }
+
+      bool operator!=(GroupSlicerSentinel const& other)
+      {
+        return O2_BUILTIN_LIKELY(position != other.position);
+      }
+
+      auto& groupingElement()
+      {
+        return mGroupingElement;
+      }
+
+      GroupSlicerIterator& operator*()
+      {
+        return *this;
+      }
+
+      auto associatedTables()
+      {
+        return std::make_tuple(prepareArgument<A>()...);
+      }
+
+      template <typename A1>
+      auto prepareArgument()
+      {
+        constexpr auto index = framework::has_type_at<A1>(associated_pack_t{});
+        if (hasIndexTo<G>(typename std::decay_t<A1>::persistent_columns_t{})) {
+          if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
+            auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[position]).value);
+
+            // for each grouping element we need to slice the selection vector
+            auto start_iterator = std::lower_bound(starts[index], selections[index]->end(), (offsets[index])[position]);
+            auto stop_iterator = std::lower_bound(start_iterator, selections[index]->end(), (offsets[index])[position + 1]);
+            starts[index] = stop_iterator;
+            soa::SelectionVector slicedSelection{start_iterator, stop_iterator};
+            std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
+                           [&](int64_t idx) {
+                             return idx - static_cast<int64_t>((offsets[index])[position]);
+                           });
+
+            std::decay_t<A1> typedTable{{groupedElementsTable}, std::move(slicedSelection), (offsets[index])[position]};
+            return typedTable;
+          } else {
+            auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[position]).value);
+            std::decay_t<A1> typedTable{{groupedElementsTable}, (offsets[index])[position]};
+            return typedTable;
+          }
+        } else {
+          return std::get<A1>(*mAt);
+        }
+        O2_BUILTIN_UNREACHABLE();
+      }
+
+      std::tuple<A...>* mAt;
+      typename grouping_t::iterator mGroupingElement;
+      uint64_t position = 0;
+
+      std::array<std::vector<arrow::compute::Datum>, sizeof...(A)> groups;
+      std::array<std::vector<uint64_t>, sizeof...(A)> offsets;
+      std::array<soa::SelectionVector const*, sizeof...(A)> selections;
+      std::array<soa::SelectionVector::const_iterator, sizeof...(A)> starts;
+    };
+
+    GroupSlicerIterator& begin()
+    {
+      return mBegin;
+    }
+
+    GroupSlicerSentinel end()
+    {
+      return GroupSlicerSentinel{max};
+    }
+    int64_t max;
+    GroupSlicerIterator mBegin;
+  };
+
   template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
   static void invokeProcess(Task& task, InputRecord& inputs, R (C::*)(Grouping, Associated...), std::vector<ExpressionInfo> const& infos)
   {
+    using G = std::decay_t<Grouping>;
     auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, &C::process, infos);
-    auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, &C::process, infos);
-
     if constexpr (sizeof...(Associated) == 0) {
-      // No extra tables: we need to either iterate over the contents of
-      // grouping or pass the whole grouping table, depending on whether Grouping
-      // is a o2::soa::Table or a o2::soa::RowView
-      if constexpr (soa::is_soa_table_t<std::decay_t<Grouping>>::value) {
-        task.process(groupingTable);
-      } else if constexpr (soa::is_soa_iterator_t<std::decay_t<Grouping>>::value) {
-        for (auto& groupedElement : groupingTable) {
-          task.process(groupedElement);
-        }
-      } else if constexpr (soa::is_soa_join_t<std::decay_t<Grouping>>::value) {
-        task.process(groupingTable);
-      } else if constexpr (soa::is_soa_filtered_t<std::decay_t<Grouping>>::value) {
-        task.process(groupingTable);
-      } else {
-        static_assert(always_static_assert_v<Grouping>,
-                      "The first argument of the process method of your task must be either"
-                      " a o2::soa::Table or a o2::soa::RowView");
-      }
-    } else if constexpr (sizeof...(Associated) == 1) {
-      // One extra table provided: if the first argument itself is a table,
-      // then we simply pass it over to the process method and let the user do the
-      // double looping (e.g. if they want to do some association between different
-      // physics quantities.
-      //
-      // If the first argument is a single element, we consider that the user
-      // wants to do a loop first on the table associated to the first element,
-      // then to the subgroup of the second table which is associated to the
-      // first one. E.g.:
-      //
-      // MyTask::process(Collision const& collision, Tracks const& tracks)
-      //
-      // Will iterate on all the tracks for the provided collision.
-      if constexpr (soa::is_soa_table_t<std::decay_t<Grouping>>::value) {
-        static_assert(((soa::is_soa_iterator_t<std::decay_t<Associated>>::value == false) && ...),
-                      "You cannot have a soa::RowView iterator as an argument after the "
-                      " first argument of type soa::Table which is found as in the "
-                      " prototype of the task process method.");
-        auto& associated = std::get<0>(associatedTables);
-        associated.bindExternalIndices(&groupingTable);
-        groupingTable.bindExternalIndices(&associated);
-        task.process(groupingTable, associated);
-      } else if constexpr (soa::is_soa_iterator_t<std::decay_t<Grouping>>::value) {
-        using AssociatedType = std::tuple_element_t<0, std::tuple<Associated...>>;
-        if constexpr (soa::is_soa_iterator_t<std::decay_t<AssociatedType>>::value) {
-          auto groupedTable = std::get<0>(associatedTables);
-          size_t currentGrouping = 0;
-          Grouping groupingElement = groupingTable.begin();
-          for (auto& groupedElement : groupedTable) {
-            // FIXME: this only works for collisions for now...
-            auto groupingIndex = groupedElement.collisionId(); // Fine for the moment.
-            // We find the associated collision, assuming they are sorted.
-            while (groupingIndex > currentGrouping) {
-              // This const_cast is done because I do not want people to be
-              // able to move the iterator in the user code.
-              ++const_cast<std::decay_t<Grouping>&>(groupingElement);
-              ++const_cast<std::decay_t<AssociatedType>&>(groupedElement);
-            }
-            task.process(groupingElement, groupedElement);
-          }
-        } else if constexpr (soa::is_soa_table_like_t<std::decay_t<AssociatedType>>::value) {
-          auto allGroupedTable = std::get<0>(associatedTables);
-          using groupingMetadata = typename aod::MetadataTrait<std::decay_t<Grouping>>::metadata;
-          arrow::compute::FunctionContext ctx;
-          std::vector<arrow::compute::Datum> groupsCollection;
-          auto indexColumnName = std::string("f") + groupingMetadata::label() + "ID";
-          std::vector<uint64_t> offsets;
-          auto result = o2::framework::sliceByColumn(&ctx, indexColumnName,
-                                                     allGroupedTable.asArrowTable(), &groupsCollection, &offsets);
-          if (result.ok() == false) {
-            LOGF(ERROR, "Error while splitting second collection");
-            return;
-          }
-          size_t currentGrouping = 0;
-          auto groupingElement = groupingTable.begin();
-
-          // FIXME: this assumes every groupingElement has a group associated,
-          // which migh not be the case.
-          size_t oi = 0;
-          if constexpr (soa::is_soa_table_t<std::decay_t<AssociatedType>>::value) {
-            for (auto& groupedDatum : groupsCollection) {
-              auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
-              std::decay_t<AssociatedType> typedTable{groupedElementsTable, offsets[oi]};
-              typedTable.bindExternalIndices(&groupingTable);
-              task.process(groupingElement, typedTable);
-              ++const_cast<std::decay_t<Grouping>&>(groupingElement);
-              ++oi;
-            }
-          } else if constexpr (soa::is_soa_filtered_t<std::decay_t<AssociatedType>>::value) {
-            auto& fullSelection = allGroupedTable.getSelectedRows();
-            offsets.push_back(allGroupedTable.tableSize());
-
-            auto current_start = fullSelection.begin();
-
-            for (auto& groupedDatum : groupsCollection) {
-              auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
-
-              // for each grouping element we need to slice the selection vector
-              auto start_iterator = std::lower_bound(current_start, fullSelection.end(), offsets[oi]);
-              auto stop_iterator = std::lower_bound(start_iterator, fullSelection.end(), offsets[oi + 1]);
-              current_start = stop_iterator;
-              soa::SelectionVector slicedSelection{start_iterator, stop_iterator};
-              std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(), [&](int64_t index) { return index - static_cast<int64_t>(offsets[oi]); });
-
-              std::decay_t<AssociatedType> typedTable{{groupedElementsTable}, std::move(slicedSelection), offsets[oi]};
-              typedTable.bindExternalIndices(&groupingTable);
-              task.process(groupingElement, typedTable);
-              ++const_cast<std::decay_t<Grouping>&>(groupingElement);
-              ++oi;
-            }
-          } else if constexpr (soa::is_soa_join_t<std::decay_t<AssociatedType>>::value || soa::is_soa_concat_t<std::decay_t<AssociatedType>>::value) {
-            for (auto& groupedDatum : groupsCollection) {
-              auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
-              // Set the refererred table.
-              // FIXME: we should be able to do this upfront for all the tables.
-              std::decay_t<AssociatedType> typedTable{{groupedElementsTable}, offsets[oi]};
-              typedTable.bindExternalIndices(&groupingTable);
-              task.process(groupingElement, typedTable);
-              ++const_cast<std::decay_t<Grouping>&>(groupingElement);
-              ++oi;
-            }
-          }
-        } else {
-          static_assert(always_static_assert_v<AssociatedType>, "I do not know how to iterate on this");
+      // single argument to process
+      if constexpr (soa::is_soa_iterator_t<G>::value) {
+        for (auto& element : groupingTable) {
+          task.process(*element);
         }
       } else {
-        static_assert(always_static_assert_v<Grouping>,
-                      "Only grouping by Collision is supported for now");
+        static_assert(soa::is_soa_table_like_t<G>::value,
+                      "Single argument of process() should be a table-like or an iterator");
+        task.process(groupingTable);
       }
     } else {
-      static_assert(always_static_assert_v<Grouping, Associated...>,
-                    "Unable to find a way to iterate on the provided set of arguments. Probably unimplemented");
+      // multiple arguments to process
+      static_assert(((soa::is_soa_iterator_t<std::decay_t<Associated>>::value == false) && ...),
+                    "Associated arguments of process() should not be iterators");
+      auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, &C::process, infos);
+      if constexpr (soa::is_soa_iterator_t<G>::value) {
+        // grouping case
+        auto slicer = GroupSlicer(groupingTable, associatedTables);
+        for (auto& slice : slicer) {
+          auto associatedSlices = slice.associatedTables();
+          (std::get<std::decay_t<Associated>>(associatedSlices).bindExternalIndices(&groupingTable), ...);
+          (groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedSlices)), ...);
+          auto binder = [&](auto&& x) {
+            (std::get<std::decay_t<Associated>>(associatedSlices).bindExternalIndices(&x), ...);
+          };
+          std::apply(
+            [&](auto&&... x) {
+              (binder(x), ...);
+            },
+            associatedSlices);
+
+          invokeProcessWithArgs(task, slice.groupingElement(), associatedSlices);
+        }
+      } else {
+        // non-grouping case
+        (std::get<std::decay_t<Associated>>(associatedTables).bindExternalIndices(&groupingTable), ...);
+        (groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedTables)), ...);
+        auto binder = [&](auto&& x) {
+          (std::get<std::decay_t<Associated>>(associatedTables).bindExternalIndices(&x), ...);
+        };
+        std::apply(
+          [&](auto&&... x) {
+            (binder(x), ...);
+          },
+          associatedTables);
+
+        invokeProcessWithArgs(task, groupingTable, associatedTables);
+      }
     }
+  }
+
+  template <typename T, typename G, typename... A>
+  static void invokeProcessWithArgs(T& task, G g, std::tuple<A...>& at)
+  {
+    task.process(g, std::get<A>(at)...);
   }
 };
 

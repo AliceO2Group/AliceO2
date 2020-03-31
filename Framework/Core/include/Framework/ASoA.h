@@ -48,6 +48,12 @@ constexpr bool is_type_with_metadata_v = false;
 template <typename T>
 constexpr bool is_type_with_metadata_v<T, std::void_t<decltype(sizeof(typename T::metadata))>> = true;
 
+template <typename, typename = void>
+constexpr bool is_type_with_binding_v = false;
+
+template <typename T>
+constexpr bool is_type_with_binding_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
+
 template <typename T, typename TLambda>
 void call_if_has_originals(TLambda&& lambda)
 {
@@ -1235,6 +1241,7 @@ struct Join : JoinBase<Ts...> {
   }
 
   using table_t = base;
+  using persistent_columns_t = typename table_t::persistent_columns_t;
   using iterator = typename table_t::template RowView<Join<Ts...>, Ts...>;
   using const_iterator = iterator;
   using filtered_iterator = typename table_t::template RowViewFiltered<Join<Ts...>, Ts...>;
@@ -1261,6 +1268,7 @@ struct Concat : ConcatBase<T1, T2> {
   using left_t = T1;
   using right_t = T2;
   using table_t = ConcatBase<T1, T2>;
+  using persistent_columns_t = typename table_t::persistent_columns_t;
 
   using iterator = typename table_t::template RowView<Concat<T1, T2>, T1, T2>;
   using filtered_iterator = typename table_t::template RowViewFiltered<Concat<T1, T2>, T1, T2>;
@@ -1278,6 +1286,7 @@ class Filtered : public T
  public:
   using originals = originals_pack_t<T>;
   using table_t = typename T::table_t;
+  using persistent_columns_t = typename T::persistent_columns_t;
 
   template <typename P, typename... Os>
   constexpr static auto make_it(framework::pack<Os...> const&)

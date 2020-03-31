@@ -58,7 +58,7 @@ struct ATask {
 // FIXME: for the moment we do not derive from AnalysisTask as
 // we need GCC 7.4+ to fix a bug.
 struct BTask {
-  void process(o2::aod::Collision const&, o2::aod::Track const&)
+  void process(o2::aod::Collision const&, o2::soa::Join<o2::aod::Tracks, o2::aod::TracksExtra, o2::aod::TracksCov> const&, o2::aod::UnassignedTracks const&, o2::soa::Join<o2::aod::Calos, o2::aod::CaloTriggers> const&)
   {
   }
 };
@@ -143,9 +143,14 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   BOOST_CHECK_EQUAL(task1.outputs[0].binding.value, std::string("FooBars"));
 
   auto task2 = adaptAnalysisTask<BTask>("test2");
-  BOOST_CHECK_EQUAL(task2.inputs.size(), 2);
+  BOOST_CHECK_EQUAL(task2.inputs.size(), 7);
   BOOST_CHECK_EQUAL(task2.inputs[0].binding, "Collisions");
   BOOST_CHECK_EQUAL(task2.inputs[1].binding, "Tracks");
+  BOOST_CHECK_EQUAL(task2.inputs[2].binding, "TracksExtra");
+  BOOST_CHECK_EQUAL(task2.inputs[3].binding, "TracksCov");
+  BOOST_CHECK_EQUAL(task2.inputs[4].binding, "UnassignedTracks");
+  BOOST_CHECK_EQUAL(task2.inputs[5].binding, "Calos");
+  BOOST_CHECK_EQUAL(task2.inputs[6].binding, "CaloTriggers");
 
   auto task3 = adaptAnalysisTask<CTask>("test3");
   BOOST_CHECK_EQUAL(task3.inputs.size(), 2);
