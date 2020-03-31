@@ -510,7 +510,7 @@ struct AnalysisDataProcessorBuilder {
       template <typename A1>
       auto prepareArgument()
       {
-        constexpr unsigned int index = framework::has_type_v<A1, associated_pack_t>;
+        constexpr auto index = framework::has_type_at<A1>(associated_pack_t{});
         if (hasIndexTo<G>(typename std::decay_t<A1>::persistent_columns_t{})) {
           if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[position]).value);
