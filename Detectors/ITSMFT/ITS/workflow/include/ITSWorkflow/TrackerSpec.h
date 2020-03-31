@@ -14,6 +14,7 @@
 #define O2_ITS_TRACKERDPL
 
 #include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -43,6 +44,7 @@ class TrackerDPL : public framework::Task
  private:
   int mState = 0;
   bool mIsMC = false;
+  o2::itsmft::TopologyDictionary mDict;
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;
   std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<Tracker> mTracker = nullptr;
