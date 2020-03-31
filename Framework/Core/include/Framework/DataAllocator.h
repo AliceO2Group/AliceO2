@@ -430,6 +430,9 @@ class DataAllocator
     return snapshot(getOutputByBind(std::move(ref)), std::forward<Args>(args)...);
   }
 
+  /// check if a certain output is allowed
+  bool isAllowed(Output const& query);
+
  private:
   AllowedOutputRoutes mAllowedOutputRoutes;
   TimingInfo* mTimingInfo;

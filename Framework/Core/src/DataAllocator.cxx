@@ -251,5 +251,15 @@ Output DataAllocator::getOutputByBind(OutputRef&& ref)
   O2_BUILTIN_UNREACHABLE();
 }
 
+bool DataAllocator::isAllowed(Output const& query)
+{
+  for (auto const& route : mAllowedOutputRoutes) {
+    if (DataSpecUtils::match(route.matcher, query.origin, query.description, query.subSpec)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 } // namespace framework
 } // namespace o2
