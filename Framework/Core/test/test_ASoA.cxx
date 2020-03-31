@@ -113,7 +113,6 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   BOOST_CHECK(b == e);
 
   b = tests2.begin();
-  e = tests2.end();
   BOOST_CHECK(b != e);
   BOOST_CHECK((b + 1) == (b + 1));
   BOOST_CHECK((b + 7) != b);
@@ -127,7 +126,7 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
     value++;
   }
 
-  for (auto t1 = tests2.begin(); t1 != tests2.end() - 1; ++t1) {
+  for (auto t1 = tests2.begin(); t1 != tests2.end(); ++t1) {
     for (auto t2 = t1 + 1; t2 != tests2.end(); ++t2) {
     }
   }
@@ -383,9 +382,8 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   auto e = concatTestTable.end();
 
   BOOST_CHECK_EQUAL(b.mRowIndex, 0);
-  BOOST_CHECK_EQUAL(e.mRowIndex, -1);
   BOOST_CHECK_EQUAL(b.getSelectionRow(), 0);
-  BOOST_CHECK_EQUAL(e.getSelectionRow(), 3);
+  BOOST_CHECK_EQUAL(e.index, 3);
 
   BOOST_CHECK(concatTestTable.begin() != concatTestTable.end());
   for (auto& f : concatTestTable) {

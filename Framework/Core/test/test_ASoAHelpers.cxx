@@ -14,6 +14,7 @@
 
 #include "Framework/ASoAHelpers.h"
 #include "Framework/TableBuilder.h"
+#include "Framework/AnalysisDataModel.h"
 #include <boost/test/unit_test.hpp>
 
 using namespace o2::framework;
@@ -24,6 +25,7 @@ namespace test
 DECLARE_SOA_COLUMN(X, x, int32_t, "x");
 DECLARE_SOA_COLUMN(Y, y, int32_t, "y");
 DECLARE_SOA_COLUMN(Z, z, int32_t, "z");
+DECLARE_SOA_COLUMN(FloatZ, floatZ, float, "floatZ");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](int32_t x, int32_t y) { return x + y; });
 } // namespace test
 
@@ -666,4 +668,183 @@ BOOST_AUTO_TEST_CASE(SmallTableCombinations)
     count++;
   }
   BOOST_CHECK_EQUAL(count, 0);
+}
+
+// Calculate hash for an element based on 2 properties and their bins.
+int32_t getHash(const std::vector<uint32_t>& yBins, const std::vector<float>& zBins, uint32_t colY, float colZ)
+{
+  for (int i = 0; i < yBins.size(); i++) {
+    if (colY < yBins[i]) {
+      for (int j = 0; j < zBins.size(); j++) {
+        if (colZ < zBins[j]) {
+          return i + j * (yBins.size() + 1);
+        }
+      }
+      // overflow for zBins only
+      return i + zBins.size() * (yBins.size() + 1);
+    }
+  }
+
+  // overflow for yBins only
+  for (int j = 0; j < zBins.size(); j++) {
+    if (colZ < zBins[j]) {
+      return yBins.size() + j * (yBins.size() + 1);
+    }
+  }
+
+  // overflow for both bins
+  return (zBins.size() + 1) * (yBins.size() + 1) - 1;
+}
+
+BOOST_AUTO_TEST_CASE(BlockCombinations)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<int32_t, int32_t, float>({"x", "y", "floatZ"});
+  rowWriterA(0, 0, 25, -6.0f);
+  rowWriterA(0, 1, 18, 0.0f);
+  rowWriterA(0, 2, 48, -1.0f);
+  rowWriterA(0, 3, 3, 2.0f);
+  rowWriterA(0, 4, 28, -6.0f);
+  rowWriterA(0, 5, 2, 2.0f);
+  rowWriterA(0, 6, 12, 0.0f);
+  rowWriterA(0, 7, 24, -7.0f);
+  auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y, test::FloatZ>;
+  TestA testA{tableA};
+  BOOST_REQUIRE_EQUAL(8, testA.size());
+
+  // Grouped data:
+  // [3, 5] [0, 4, 7], [1, 6], [2]
+  // Assuming bins intervals: [ , )
+  std::vector<uint32_t> yBins{0, 5, 10, 20, 30, 40, 50, 101};
+  std::vector<float> zBins{-7, -5, -3, -1, 1, 3, 5, 7};
+
+  TableBuilder builderAux;
+  auto rowWriterAux = builderAux.persist<int32_t, int32_t>({"x", "y"});
+  for (auto it = testA.begin(); it != testA.end(); it++) {
+    auto& elem = *it;
+    rowWriterAux(0, elem.x(), getHash(yBins, zBins, elem.y(), elem.floatZ()));
+  }
+  auto tableAux = builderAux.finalize();
+  BOOST_REQUIRE_EQUAL(tableAux->num_rows(), 8);
+
+  // Auxiliary table: testsAux with id and hash, hash is the category for grouping
+  using TestsAux = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+  TestsAux testAux{tableAux};
+  BOOST_REQUIRE_EQUAL(8, testAux.size());
+
+  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairs{
+    {0, 0}, {0, 4}, {0, 7}, {4, 0}, {4, 4}, {4, 7}, {7, 0}, {7, 4}, {7, 7}, {1, 1}, {1, 6}, {6, 1}, {6, 6}, {2, 2}, {3, 3}, {3, 5}, {5, 3}, {5, 5}};
+  int count = 0;
+  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy("y", testAux, testAux))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedFullPairs[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedFullPairs[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedFullPairs.size());
+
+  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedFullTriples{
+    {0, 0, 0}, {0, 0, 4}, {0, 0, 7}, {0, 4, 0}, {0, 4, 4}, {0, 4, 7}, {0, 7, 0}, {0, 7, 4}, {0, 7, 7}, {4, 0, 0}, {4, 0, 4}, {4, 0, 7}, {4, 4, 0}, {4, 4, 4}, {4, 4, 7}, {4, 7, 0}, {4, 7, 4}, {4, 7, 7}, {7, 0, 0}, {7, 0, 4}, {7, 0, 7}, {7, 4, 0}, {7, 4, 4}, {7, 4, 7}, {7, 7, 0}, {7, 7, 4}, {7, 7, 7}, {1, 1, 1}, {1, 1, 6}, {1, 6, 1}, {1, 6, 6}, {6, 1, 1}, {6, 1, 6}, {6, 6, 1}, {6, 6, 6}, {2, 2, 2}, {3, 3, 3}, {3, 3, 5}, {3, 5, 3}, {3, 5, 5}, {5, 3, 3}, {5, 3, 5}, {5, 5, 3}, {5, 5, 5}};
+  count = 0;
+  for (auto& [c0, c1, c2] : combinations(CombinationsBlockFullIndexPolicy("y", testAux, testAux, testAux))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedFullTriples[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedFullTriples[count]));
+    BOOST_CHECK_EQUAL(c2.x(), std::get<2>(expectedFullTriples[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedFullTriples.size());
+
+  std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairs{{0, 4}, {0, 7}, {4, 7}, {1, 6}, {3, 5}};
+  count = 0;
+  for (auto& [c0, c1] : combinations(CombinationsBlockStrictlyUpperIndexPolicy("y", testAux, testAux))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedStrictlyUpperPairs[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedStrictlyUpperPairs[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedStrictlyUpperPairs.size());
+
+  std::vector<std::tuple<int32_t, int32_t>> expectedUpperPairs{
+    {0, 0}, {0, 4}, {0, 7}, {4, 4}, {4, 7}, {7, 7}, {1, 1}, {1, 6}, {6, 6}, {2, 2}, {3, 3}, {3, 5}, {5, 5}};
+  count = 0;
+  for (auto& [c0, c1] : combinations(CombinationsBlockUpperIndexPolicy("y", testAux, testAux))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedUpperPairs[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedUpperPairs[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedUpperPairs.size());
+
+  TableBuilder builderCollisions;
+  auto rowWriterCol = builderCollisions.cursor<o2::aod::Collisions>();
+  rowWriterCol(0, 0, 0 /*uint64_t GlobalBC*/,
+               0, 0, -6.0f /*float PosZ*/,
+               0, 0, 0, 0, 0, 0, 0, 25 /*uint32_t NumContrib*/,
+               0, 0, 0);
+  rowWriterCol(0, 1, 1 /*uint64_t GlobalBC*/,
+               0, 0, 0.0f /*float PosZ*/,
+               0, 0, 0, 0, 0, 0, 0, 18 /*uint32_t NumContrib*/,
+               0, 0, 0);
+  rowWriterCol(0, 2, 2 /*uint64_t GlobalBC*/,
+               0, 0, -1.0f /*float PosZ*/,
+               0, 0, 0, 0, 0, 0, 0, 48 /*uint32_t NumContrib*/,
+               0, 0, 0);
+  rowWriterCol(0, 3, 3 /*uint64_t GlobalBC*/,
+               0, 0, 2.0f /*float PosZ*/,
+               0, 0, 0, 0, 0, 0, 0, 3 /*uint32_t NumContrib*/,
+               0, 0, 0);
+  rowWriterCol(0, 0, 4 /*uint64_t GlobalBC*/,
+               0, 0, -6.0f /*float PosZ*/,
+               0, 0, 0, 0, 0, 0, 0, 28 /*uint32_t NumContrib*/,
+               0, 0, 0);
+  rowWriterCol(0, 3, 5 /*uint64_t GlobalBC*/,
+               0, 0, 2.0f /*float PosZ*/,
+               0, 0, 0, 0, 0, 0, 0, 2 /*uint32_t NumContrib*/,
+               0, 0, 0);
+  rowWriterCol(0, 1, 6 /*uint64_t GlobalBC*/,
+               0, 0, 0.0f /*float PosZ*/,
+               0, 0, 0, 0, 0, 0, 0, 12 /*uint32_t NumContrib*/,
+               0, 0, 0);
+  rowWriterCol(0, 0, 7 /*uint64_t GlobalBC*/,
+               0, 0, -7.0f /*float PosZ*/,
+               0, 0, 0, 0, 0, 0, 0, 24 /*uint32_t NumContrib*/,
+               0, 0, 0);
+  auto tableCol = builderCollisions.finalize();
+  BOOST_REQUIRE_EQUAL(tableCol->num_rows(), 8);
+
+  o2::aod::Collisions collisions{tableCol};
+  BOOST_REQUIRE_EQUAL(8, collisions.size());
+
+  TableBuilder builderColAux;
+  auto rowWriterColAux = builderColAux.persist<int32_t, int32_t>({"x", "y"});
+  int ind = 0;
+  for (auto it = collisions.begin(); it != collisions.end(); it++) {
+    auto& collision = *it;
+    rowWriterColAux(0, ind, getHash(yBins, zBins, collision.numContrib(), collision.posZ()));
+    ind++;
+  }
+  auto tableColAux = builderColAux.finalize();
+  BOOST_REQUIRE_EQUAL(tableColAux->num_rows(), 8);
+
+  // Auxiliary table: testAux with id and hash, hash is the category for grouping
+  TestsAux colAux{tableColAux};
+  BOOST_REQUIRE_EQUAL(8, colAux.size());
+
+  count = 0;
+  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy("y", colAux, colAux))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedFullPairs[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedFullPairs[count]));
+    // Corresponding collisions: collisions.begin() + c0.x(), collisions.begin() + c1.x()
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedFullPairs.size());
+
+  // Without hashing, taking a single column from the original table as a category
+  count = 0;
+  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy("fRunNumber", collisions, collisions))) {
+    BOOST_CHECK_EQUAL(c0.globalBC(), std::get<0>(expectedFullPairs[count]));
+    BOOST_CHECK_EQUAL(c1.globalBC(), std::get<1>(expectedFullPairs[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedFullPairs.size());
 }
