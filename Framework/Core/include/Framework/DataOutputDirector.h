@@ -17,7 +17,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/InputSpec.h"
 
-#include "rapidjson/document.h"
+#include "rapidjson/fwd.h"
 
 namespace o2
 {

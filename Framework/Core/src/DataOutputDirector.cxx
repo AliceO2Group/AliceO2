@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataOutputDirector.h"
 
+#include "rapidjson/document.h"
 #include "rapidjson/filereadstream.h"
 
 namespace o2
