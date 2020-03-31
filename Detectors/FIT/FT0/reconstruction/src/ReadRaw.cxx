@@ -202,7 +202,7 @@ void ReadRaw::writeDigits(std::string fileDataOut)
     int first = gsl::narrow_cast<int>(chDataVec.size());
     auto& chDgData = digit.getChDgData();
     chDataVec.insert(chDataVec.end(), chDgData.begin(), chDgData.end());
-    o2::ft0::Digit newDigit{first, (int)chDgData.size(), intrec, mTrigger};
+    o2::ft0::Digit newDigit{first, (int)chDgData.size(), intrec, mTrigger, 0};
     digitVec.emplace_back(newDigit);
   }
   mDigitAccum.clear();
