@@ -207,20 +207,47 @@ DataProcessorSpec
   auto writerFunction = [OutputInputs, isdangling](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     LOG(DEBUG) << "======== getGlobalAODSink::Init ==========";
 
-    // analyze ic and take actions accordingly
-    auto fnbase = ic.options().get<std::string>("res-file");
-    auto filemode = ic.options().get<std::string>("res-mode");
-    auto keepString = ic.options().get<std::string>("keep");
-    auto ntfmerge = ic.options().get<Int_t>("ntfmerge");
+    auto dod = std::make_shared<DataOutputDirector>();
 
-    // find out if any table needs to be saved
-    bool hasOutputsToWrite = false;
+    // analyze ic and take actions accordingly
+    // default values
+    std::string fnbase("AnalysisResults");
+    std::string filemode("RECREATE");
+    int ntfmerge = 1;
+
+    // values from json
+    auto fnjson = ic.options().get<std::string>("json-file");
+    if (!fnjson.empty()) {
+      auto [fnb, fmo, ntfm] = dod->readJson(fnjson);
+      if (!fnb.empty()) {
+        fnbase = fnb;
+      }
+      if (!fmo.empty()) {
+        filemode = fmo;
+      }
+      if (ntfm > 0) {
+        ntfmerge = ntfm;
+      }
+    }
+
+    // values from command line options, information from json is overwritten
+    auto fnb = ic.options().get<std::string>("res-file");
+    if (!fnb.empty()) {
+      fnbase = fnb;
+    }
+    auto fmo = ic.options().get<std::string>("res-mode");
+    if (!fmo.empty()) {
+      filemode = fmo;
+    }
+    auto ntfm = ic.options().get<Int_t>("ntfmerge");
+    if (ntfm > 0) {
+      ntfmerge = ntfm;
+    }
 
     // parse the keepString
-    auto dod = std::make_shared<DataOutputDirector>();
-    if (!fnbase.empty())
-      dod->setDefaultfname(fnbase);
+    auto keepString = ic.options().get<std::string>("keep");
     if (!keepString.empty()) {
+      dod->reset();
 
       std::string d("dangling");
       if (d.find(keepString) == 0) {
@@ -228,8 +255,9 @@ DataProcessorSpec
         // use the dangling outputs
         std::vector<InputSpec> danglingOutputs;
         for (auto ii = 0; ii < OutputInputs.size(); ii++) {
-          if (isdangling[ii])
+          if (isdangling[ii]) {
             danglingOutputs.emplace_back(OutputInputs[ii]);
+          }
         }
         dod->readSpecs(danglingOutputs);
 
@@ -238,13 +266,16 @@ DataProcessorSpec
         // use the keep string
         dod->readString(keepString);
       }
+    }
+    dod->setDefaultfname(fnbase);
 
-      for (auto& outobj : OutputInputs) {
-        auto ds = dod->getDataOutputDescriptors(outobj);
-        if (ds.size() > 0) {
-          hasOutputsToWrite = true;
-          break;
-        }
+    // find out if any table needs to be saved
+    bool hasOutputsToWrite = false;
+    for (auto& outobj : OutputInputs) {
+      auto ds = dod->getDataOutputDescriptors(outobj);
+      if (ds.size() > 0) {
+        hasOutputsToWrite = true;
+        break;
       }
     }
 
@@ -309,8 +340,9 @@ DataProcessorSpec
             if (d->colnames.size() > 0) {
               for (auto cn : d->colnames) {
                 auto col = table->GetColumnByName(cn);
-                if (col)
+                if (col) {
                   ta2tr.AddBranch(col);
+                }
               }
             } else {
               ta2tr.AddAllBranches();
@@ -323,14 +355,15 @@ DataProcessorSpec
   }; // end of writerFunction
 
   DataProcessorSpec spec{
-    "internal-dpl-AOD-writer",
+    "internal-dpl-aod-writer",
     OutputInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),
-    {{"res-file", VariantType::String, "AnalysisResults", {"Name of the output file"}},
-     {"res-mode", VariantType::String, "RECREATE", {"Creation mode of the result file: NEW, CREATE, RECREATE, UPDATE"}},
-     {"ntfmerge", VariantType::Int, 10, {"number of time frames to merge into one file"}},
-     {"keep", VariantType::String, "", {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION to save in outfile"}}}};
+    {{"json-file", VariantType::String, "", {"Name of the json configuration file"}},
+     {"res-file", VariantType::String, "", {"Default name of the output file"}},
+     {"res-mode", VariantType::String, "", {"Creation mode of the result files: NEW, CREATE, RECREATE, UPDATE"}},
+     {"ntfmerge", VariantType::Int, -1, {"Number of time frames to merge into one file"}},
+     {"keep", VariantType::String, "", {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION:treename:col1/col2/..:filename"}}}};
 
   return spec;
 }

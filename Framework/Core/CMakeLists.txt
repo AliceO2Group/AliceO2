@@ -175,7 +175,8 @@ foreach(t
         Variants
         WorkflowHelpers
         WorkflowSerialization
-        TreeToTable)
+        TreeToTable
+        DataOutputDirector)
 
   # FIXME ? The NAME parameter of o2_add_test is only needed to help the current
   # o2.sh recipe. If the recipe is changed, those params can go away, if needed.

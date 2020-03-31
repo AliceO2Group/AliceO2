@@ -21,8 +21,6 @@
 #include <TRandom.h>
 #include <arrow/table.h>
 
-using namespace o2::framework;
-
 BOOST_AUTO_TEST_CASE(TreeToTableConversion)
 {
   using namespace o2::framework;
