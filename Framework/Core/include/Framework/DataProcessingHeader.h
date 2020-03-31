@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <memory>
 #include <cassert>
+#include <chrono>
 
 namespace o2
 {
@@ -42,8 +43,13 @@ namespace framework
 ///
 /// @ingroup aliceo2_dataformats_dataheader
 struct DataProcessingHeader : public header::BaseHeader {
+
+  static uint64_t getCreationTime()
+  {
+    auto now = std::chrono::steady_clock::now();
+    return std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+  }
   // Required to do the lookup
-  static uint64_t getCreationTime();
   constexpr static const o2::header::HeaderType sHeaderType = "DataFlow";
   static const uint32_t sVersion = 1;
 
