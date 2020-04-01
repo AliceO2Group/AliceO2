@@ -327,7 +327,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   std::vector<bool> isdangling;
   for (int ii = 0; ii < OutputsInputs.size(); ii++) {
     if ((outputtypes[ii] & 2) == 2) {
-      
+
       // temporarily also request to be dangling
       if ((outputtypes[ii] & 1) == 1) {
         OutputsInputsAOD.emplace_back(OutputsInputs[ii]);
