@@ -37,12 +37,17 @@ namespace dataformats
 template <typename T>
 class MCTruthContainer;
 }
-
+namespace itsmft
+{
+class TopologyDictionary;
+class CompClusterExt;
+} // namespace itsmft
 namespace its
 {
 class CookedTracker
 {
   using Cluster = o2::itsmft::Cluster;
+  using CompClusterExt = o2::itsmft::CompClusterExt;
   using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
  public:
@@ -73,7 +78,7 @@ class CookedTracker
   using TrackInserter = std::function<int(const TrackITSExt& t)>;
   // These functions must be implemented
   template <typename U, typename V>
-  void process(gsl::span<const Cluster> clusters, U& tracks, V& clusIdx, o2::itsmft::ROFRecord& rof)
+  void process(gsl::span<const CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& it, const o2::itsmft::TopologyDictionary& dict, U& tracks, V& clusIdx, o2::itsmft::ROFRecord& rof)
   {
     TrackInserter inserter = [&tracks, &clusIdx, this](const TrackITSExt& t) -> int {
       // convert internal track to output format
@@ -82,15 +87,15 @@ class CookedTracker
       int clEntry = clusIdx.size();
       for (int i = 0; i < noc; i++) {
         const Cluster* c = this->getCluster(t.getClusterIndex(i));
-        Int_t idx = c - mFirstCluster - mFirstInFrame; // Index of this cluster in event
+        Int_t idx = c - &mClusterCache[0]; // Index of this cluster in event
         clusIdx.emplace_back(idx);
       }
       trackNew.setClusterRefs(clEntry, noc);
       return tracks.size();
     };
-    process(clusters, inserter, rof);
+    process(clusters, it, dict, inserter, rof);
   }
-  void process(gsl::span<const Cluster> const& clusters, TrackInserter& inserter, o2::itsmft::ROFRecord& rof);
+  void process(gsl::span<const CompClusterExt> const& clusters, gsl::span<const unsigned char>::iterator& it, const o2::itsmft::TopologyDictionary& dict, TrackInserter& inserter, o2::itsmft::ROFRecord& rof);
   const Cluster* getCluster(Int_t index) const;
 
   void setGeometry(o2::its::GeometryTGeo* geom);
@@ -113,7 +118,7 @@ class CookedTracker
 
  protected:
   static constexpr int kNLayers = 7;
-  int loadClusters(gsl::span<const Cluster> clusters, const o2::itsmft::ROFRecord& rof);
+  int loadClusters();
   void unloadClusters();
   std::tuple<int, int> processLoadedClusters(TrackInserter& inserter);
 
@@ -149,7 +154,7 @@ class CookedTracker
   static Layer sLayers[kNLayers];  ///< Layers filled with clusters
   std::vector<TrackITSExt> mSeeds; ///< Track seeds
 
-  const Cluster* mFirstCluster = nullptr; ///< Pointer to the 1st cluster in event
+  std::vector<Cluster> mClusterCache;
 
   static float mMostProbablePt; ///< settable most probable pt
 
