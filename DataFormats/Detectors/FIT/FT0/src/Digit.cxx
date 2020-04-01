@@ -19,13 +19,15 @@ using namespace o2::ft0;
 gsl::span<const ChannelData> Digit::getBunchChannelData(const gsl::span<const ChannelData> tfdata) const
 {
   // extract the span of channel data for this bunch from the whole TF data
-  return gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries());
+  return ref.getEntries() ? gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries()) : gsl::span<const ChannelData>();
 }
+
 void Digit::printStream(std::ostream& stream) const
 {
   stream << "FT0 Digit:  BC " << mIntRecord.bc << " orbit " << mIntRecord.orbit << std::endl;
   stream << " A amp " << mTriggers.amplA << "  C amp " << mTriggers.amplC << " time A " << mTriggers.timeA << " time C " << mTriggers.timeC << std::endl;
 }
+
 std::ostream& operator<<(std::ostream& stream, const Digit& digi)
 {
   digi.printStream(stream);
