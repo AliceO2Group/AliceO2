@@ -16,6 +16,8 @@
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -38,7 +40,9 @@ using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.root",
-                  std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "o2sim_geometry.root",
+                  std::string inputClustersITS = "o2clus_its.root",
+                  std::string dictfile = "complete_dictionary.bin",
+                  std::string inputGeom = "O2geometry.root",
                   std::string inputGRP = "o2sim_grp.root")
 {
 
@@ -86,6 +90,18 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   std::vector<o2::itsmft::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
+  if (!itsClusters.GetBranch("ITSClusterComp")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClusterComp in the input tree";
+  }
+  std::vector<o2::itsmft::CompClusterExt>* cclusters = nullptr;
+  itsClusters.SetBranchAddress("ITSClusterComp", &cclusters);
+
+  if (!itsClusters.GetBranch("ITSClusterPatt")) {
+    LOG(FATAL) << "Did not find ITS cluster patterns branch ITSClusterPatt in the input tree";
+  }
+  std::vector<unsigned char>* patterns = nullptr;
+  itsClusters.SetBranchAddress("ITSClusterPatt", &patterns);
+
   MCLabCont* labels = nullptr;
   if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
     LOG(WARNING) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree";
@@ -108,6 +124,15 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
 
   itsClusters.GetEntry(0);
   //<<<---------- attach input data ---------------<<<
+
+  o2::itsmft::TopologyDictionary dict;
+  std::ifstream file(dictfile.c_str());
+  if (file.good()) {
+    LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
+    dict.ReadBinaryFile(dictfile);
+  } else {
+    LOG(INFO) << "Running without dictionary !";
+  }
 
   //>>>--------- create/attach output ------------->>>
   // create/attach output tree
@@ -144,9 +169,11 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   o2::its::Vertexer vertexer(&vertexerTraits);
   o2::its::ROframe event(0);
 
-  auto clSpan = gsl::span(clusters->data(), clusters->size());
+  std::vector<unsigned char>::const_iterator pattIt = patterns->cbegin();
+  auto clSpan = gsl::span(cclusters->data(), cclusters->size());
   for (auto& rof : *rofs) {
-    o2::its::ioutils::loadROFrameData(rof, event, clSpan, labels);
+    auto it = pattIt;
+    o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, dict, labels);
     vertexer.clustersToVertices(event);
     auto verticesL = vertexer.exportVertices();
 
@@ -160,7 +187,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
       verticesL.emplace_back();
     }
     tracker.setVertices(verticesL);
-    tracker.process(clSpan, tracksITS, trackClIdx, rof);
+    tracker.process(clSpan, it, dict, tracksITS, trackClIdx, rof);
   }
   outTree.Fill();
 

@@ -16,6 +16,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "ITSReconstruction/CookedTracker.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "Framework/Task.h"
 
 using namespace o2::framework;
@@ -36,6 +37,7 @@ class CookedTrackerDPL : public Task
  private:
   int mState = 0;
   bool mUseMC = true;
+  o2::itsmft::TopologyDictionary mDict;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   o2::its::CookedTracker mTracker;
 };
