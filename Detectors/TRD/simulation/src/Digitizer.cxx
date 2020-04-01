@@ -401,7 +401,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       }   // end of loop over pads
     }     // end of loop over electrons
   }       // end of loop over hits
-  mLabelIndex++;
   return true;
 }
 

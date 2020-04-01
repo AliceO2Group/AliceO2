@@ -79,7 +79,6 @@ class Digitizer
   std::vector<TRDDiffusionAndTimeStructEstimator> mDriftEstimators;
 
   double mTime = 0.;
-  int mLabelIndex = 0;
   double mLastTime = 1.0e10; // starts in the future
   int mEventID = 0;
   int mSrcID = 0;
