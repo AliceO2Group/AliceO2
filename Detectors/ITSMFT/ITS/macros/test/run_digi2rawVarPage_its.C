@@ -89,7 +89,7 @@ void run_digi2rawVarPage_its(std::string outPrefix = "rawits",       // prefix o
         continue;
       }
       nEntProc++;
-      auto dgs = gsl::span<const o2::itsmft::Digit>(&digiVec[rofRec.getFirstEntry()], nDigROF);
+      auto dgs = nDigROF ? gsl::span<const o2::itsmft::Digit>(&digiVec[rofRec.getFirstEntry()], nDigROF) : gsl::span<const o2::itsmft::Digit>();
       m2r.digits2raw(dgs, rofRec.getBCData());
     }
   } // loop over multiple ROFvectors (in case of chaining)
