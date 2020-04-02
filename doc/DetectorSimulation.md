@@ -371,3 +371,7 @@ Digitization - the transformation of hits produced in the transport simulation t
 
 
 ## Embedding <a name="Embedding"></a>
+
+
+## Accessing Monte Carlo kinematics after the digitization phase
+
