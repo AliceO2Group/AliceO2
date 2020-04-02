@@ -11,7 +11,8 @@
 
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "MathUtils/Cartesian3D.h"
@@ -20,7 +21,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #endif
 
-void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root")
+void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root", std::string dictfile = "complete_dictionary.bin")
 {
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 
@@ -28,7 +29,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   using namespace o2::its;
 
   using Segmentation = o2::itsmft::SegmentationAlpide;
-  using o2::itsmft::Cluster;
+  using o2::itsmft::CompClusterExt;
   using o2::itsmft::Hit;
   using ROFRec = o2::itsmft::ROFRecord;
   using MC2ROF = o2::itsmft::MC2ROFRecord;
@@ -58,8 +59,22 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   // Clusters
   TFile fileC(clusfile.data());
   TTree* clusTree = (TTree*)fileC.Get("o2sim");
-  std::vector<Cluster>* clusArr = nullptr;
-  clusTree->SetBranchAddress("ITSCluster", &clusArr);
+  std::vector<CompClusterExt>* clusArr = nullptr;
+  clusTree->SetBranchAddress("ITSClusterComp", &clusArr);
+  std::vector<unsigned char>* patternsPtr = nullptr;
+  auto pattBranch = clusTree->GetBranch("ITSClusterPatt");
+  if (pattBranch) {
+    pattBranch->SetAddress(&patternsPtr);
+  }
+
+  o2::itsmft::TopologyDictionary dict;
+  std::ifstream file(dictfile.c_str());
+  if (file.good()) {
+    LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
+    dict.ReadBinaryFile(dictfile);
+  } else {
+    LOG(INFO) << "Running without dictionary !";
+  }
 
   // ROFrecords
   std::vector<ROFRec> rofRecVec, *rofRecVecP = &rofRecVec;
@@ -99,8 +114,9 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
       }
     }
   }
-  // << build min and max MC events used by each ROF
 
+  // << build min and max MC events used by each ROF
+  auto pattIt = patternsPtr->cbegin();
   for (int irof = 0; irof < nROFRec; irof++) {
     const auto& rofRec = rofRecVec[irof];
 
@@ -126,9 +142,18 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
 
       const auto& cluster = (*clusArr)[clEntry];
 
-      int chipID = cluster.getSensorID();
-      const auto locC = cluster.getXYZLoc(*gman);    // convert from tracking to local frame
-      const auto gloC = cluster.getXYZGloRot(*gman); // convert from tracking to global frame
+      auto pattID = cluster.getPatternID();
+      Point3D<float> locC;
+      if (pattID == o2::itsmft::CompCluster::InvalidPatternID || dict.IsGroup(pattID)) {
+        o2::itsmft::ClusterPattern patt(pattIt);
+        locC = dict.getClusterCoordinates(cluster, patt);
+      } else {
+        locC = dict.getClusterCoordinates(cluster);
+      }
+      auto chipID = cluster.getSensorID();
+      // Transformation to the local --> global
+      auto gloC = gman->getMatrixL2G(chipID) * locC;
+
       const auto& lab = (clusLabArr->getLabels(clEntry))[0];
 
       if (!lab.isValid() || lab.getSourceID() == QEDSourceID)
@@ -146,7 +171,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
       }
       const auto& hit = (*hitArray)[hitEntry->second];
       //
-      int npix = cluster.getNPix();
+      int npix = dict.GetNpixels(pattID);
       float dx = 0, dz = 0;
       int ievH = lab.getEventID();
       Point3D<float> locH, locHsta;
@@ -164,7 +189,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
               locH.X(), locH.Z(), dltx / dlty, dltz / dlty,
               gloC.X(), gloC.Y(), gloC.Z(),
               locC.X() - locH.X(), locC.Y() - locH.Y(), locC.Z() - locH.Z(),
-              rofRec.getROFrame(), cluster.getNPix(), chipID);
+              rofRec.getROFrame(), npix, chipID);
     }
   }
 
