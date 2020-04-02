@@ -15,6 +15,8 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TH1F.h>
+#include <TH2F.h>
+#include <TProfile.h>
 #include <TCanvas.h>
 #include <TLegend.h>
 
@@ -26,7 +28,7 @@
 
 using namespace o2::trd;
 
-constexpr int kMINENTRIES = 1000;
+constexpr int kMINENTRIES = 100;
 
 void CheckDigits(std::string digifile = "trddigits.root",
                  std::string hitfile = "o2sim_HitsTRD.root",
@@ -45,6 +47,19 @@ void CheckDigits(std::string digifile = "trddigits.root",
   TH1* hADC[540];
   for (int d = 0; d < 540; ++d) {
     hADC[d] = new TH1F(Form("hADC_%d", d), Form("ADC distribution for chamber %d;ADC value;Counts", d), 1024, 0, 1023);
+  }
+
+  TProfile* profADCperTimeBin[540];
+  TH2F* hADCperTimeBinAllDetectors = new TH2F("hADCperTimeBinAllDetectors",
+                                              "ADC distribution for all chambers for each time bin;Time bin;ADC",
+                                              31, -0.5, 30.5, 1014, 0, 1023);
+  TProfile* profADCperTimeBinAllDetectors = new TProfile("profADCperTimeBinAllDetectors",
+                                                         "ADC distribution for all chambers for each time bin;Time bin;ADC",
+                                                         31, -0.5, 30.5);
+  for (int d = 0; d < 540; ++d) {
+    profADCperTimeBin[d] = new TProfile(Form("profADCperTimeBin_%d", d),
+                                        Form("ADC distribution for chamber %d for each time bin;Time bin;ADC", d),
+                                        31, -0.5, 30.5);
   }
 
   LOG(INFO) << nev << " entries found";
@@ -66,6 +81,9 @@ void CheckDigits(std::string digifile = "trddigits.root",
           continue;
         }
         hADC[det]->Fill(adc);
+        profADCperTimeBin[det]->Fill(tb, adc);
+        hADCperTimeBinAllDetectors->Fill(tb, adc);
+        profADCperTimeBinAllDetectors->Fill(tb, adc);
       }
     }
   }
@@ -153,4 +171,20 @@ void CheckDigits(std::string digifile = "trddigits.root",
 
   c1->SetLogy();
   c1->SaveAs("testCheckDigits_ADCs.pdf");
+
+  TCanvas* c2 = new TCanvas("c2", "trd digits analysis", 600, 600);
+  // profADCperTimeBinAllDetectors->Draw("HIST*");
+  count = 0;
+  for (const auto& det : dets) {
+    profADCperTimeBin[det]->SetLineColor(count + 1);
+    // profADCperTimeBin[det]->SetLineWidth(2);
+    if (count == 0) {
+      profADCperTimeBin[det]->Draw("HIST*");
+      ++count;
+    } else {
+      profADCperTimeBin[det]->Draw("SAME HIST*");
+      ++count;
+    }
+  }
+  c2->SaveAs("testCheckDigits_ADCs_per_timebin.pdf");
 }
