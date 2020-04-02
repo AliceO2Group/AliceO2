@@ -13,31 +13,55 @@ Detector simulation, the simulation of detector response from virtual particle e
   b) the conversion of those traces into (electronic) signals in the detector readout (usually called digitization).
  
 The first part is handled by the `o2-sim` executable. The second part is handled in the `o2-sim-digitizer-workflow`.
- 
-# Documentation of `o2-sim`
 
-The purpose of the `o2-sim` executable is to simulate the passage of particles emerging from a collision inside the detector and to obtain their effect in terms of energy deposits (called hits) which could be converted into detectable signals.
+## Key new features with respect to AliRoot
 
-## Command overview
-* **Basic help:** Help on command line options can be obtained with `o2-sim --help`
-* **Typical example:** A typical (exemplary) invocation is of the form 
+The Run3 simulation offers the following features
+
+  - **distributed system based on FairMQ** that is splitting event generation, particle transport and IO into separate asyncronous components that can be deployed on different machines
+  - **sub-event parallelism** making it possible to transport a single big event in a short time and to reduce memory consumption
+  - **parallelism** independent on transport engine
+  - **configuration via pre-defined parameter classes and ini/text files**
+  - **clear separation of transport and digitization** - each phase can be run fully independently
+
+
+# Documentation of transport simulation
+
+The purpose of the `o2-sim` executable is to simulate the passage of particles emerging from a collision inside the detector and to obtain their effect in terms of energy deposits (called hits) which could be converted into detectable signals. It is the driver executable which will spawn a topology of sub-processes that interact via messages in a distributed system.
+
+## Usage overview
+* **Quick start example:** A typical (exemplary) invocation is of the form 
 
     ```o2-sim -n 10 -g pythia8 -e TGeant4 -j 2 --skipModules ZDC,PHS``` 
 
-    which would launch a simulation for 10 pythia8 events on the whole ALICE detector but ZDC and PHOS, using Geant4 on 2 worker processes.
-* **Generated output**: The simulation creates at least the following files:
+    which would launch a simulation for 10 pythia8 events on the whole ALICE detector but ZDC and PHOS, using Geant4 on 2 parallel worker processes.
+* **Generated output**: The simulation creates the following output files:
      
-     
-        | file              | description      |
-        | ----------------- | ---------------- |
-        | `o2sim.root`      | contains kinematics and hits |
-        | `O2geometry.root` | contains the ROOT geometry created for simulation |
-        | `o2sim_grp.root`  | the grp parameters |
+| File                  | Description                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| `o2sim_Kine.root`     | contains kinematics information (primaries and secondaries) and event meta information |
+| `o2sim_geometry.root` | contains the ROOT geometry created for simulation                                      |
+| `o2sim_grp.root`      | special global run parameters (grp) such as field                                      |
+| `o2sim_XXXHits.root`  | hit file for each participating active detector XXX                                    |
+| `o2sim_configuration.ini` | summary of parameter values with which the simulation was done                     |
 
 
-## Main configuration Options
+* **Main command line options**: The following major options are available (incomplete):
 
-control of verbosity
+| Option                | Description                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| -h,--help     | Prints the list of possible command line options and their default values.           |
+| -n,--number | The number of events to simulate.                                                       |
+| -g,--generator | name of a predefined generator template to use (such as pythia8, pythia8hi). Configuration of generations is explained in a dedicated section. |
+| -e,--engine | Select the VMC transport engine (TGeant4, TGeant3).                                     |
+| -m,--modules | List of modules/geometries to include (default is ALL); example -m PIPE ITS TPC       |
+| -j,--nworkers | Number of parallel simulation engine workers (default is half the number of hyperthread CPU cores) |
+| --chunkSize | Size of a sub-event. This determines how many primary tracks will be sent to a simulation worker to process. |
+| --skipModules | List of modules to skip / not to include (precedence over -m) |
+| --configFile   | A `.ini` file containing a list of (non-default) parameters to configure the simulation run. See section on configurable parameters for more details.  |
+| --configKeyValues | Like `--configFile` but allowing to set parameters on the command line as a string sequence. Example `--configKeyValues "Stack.pruneKine=false"`. Takes precedence over `--configFile`. Parameters need to be known ConfigurableParams. |
+| --seed   | The initial seed to (all) random number instances. Default is -1 which leads to random behaviour. |
+
 
 ## Configuration via Parameters
 
@@ -273,4 +297,6 @@ o2::eventgen::DeepTrigger
 
 ## Development
 
-# Documentation of `o2-sim-digitizer-workflow`
+# Documentation of the digitization step 
+
+Digitization, the transformation of hits produced in the transport simulation to electronics detector output, is steered by the `o2-sim-digitizer-workflow` executable.
