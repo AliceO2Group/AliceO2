@@ -19,6 +19,7 @@
 #include "MFTTracking/TrackExtrap.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include <stdexcept>
 #include <TMath.h>

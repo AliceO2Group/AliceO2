@@ -355,13 +355,13 @@ Bool_t TrackParamMFT::isCompatibleTrackParamMFT(const TrackParamMFT& TrackParamM
 void TrackParamMFT::print() const
 {
   /// Printing TrackParamMFT informations
-  cout << "<TrackParamMFT> Bending P=" << setw(5) << setprecision(3) << 1. / mParameters(4, 0)
-       << ", NonBendSlope=" << setw(5) << setprecision(3) << mParameters(1, 0) * 180. / TMath::Pi()
-       << ", BendSlope=" << setw(5) << setprecision(3) << mParameters(3, 0) * 180. / TMath::Pi() << ", (x,y,z)_IP=("
-       << setw(5) << setprecision(3) << mParameters(0, 0) << "," << setw(5) << setprecision(3) << mParameters(2, 0)
-       << "," << setw(5) << setprecision(3) << mZ << ") cm, (px,py,pz)=(" << setw(5) << setprecision(3) << getPx() << ","
-       << setw(5) << setprecision(3) << getPy() << "," << setw(5) << setprecision(3) << getP() << ") GeV/c, "
-       << "local chi2=" << getLocalChi2() << endl;
+  LOG(INFO) << "TrackParamMFT: p =" << setw(5) << setprecision(3) << getP()
+            << " Tanl = " << setw(5) << setprecision(3) << getTanl()
+            << " phi = " << setw(5) << setprecision(3) << getPhi()
+            << " pz = " << setw(5) << setprecision(3) << getPz()
+            << " pt = " << setw(5) << setprecision(3) << getPt()
+            << " charge = " << setw(5) << setprecision(3) << getCharge()
+            << " chi2 = " << setw(5) << setprecision(3) << getTrackChi2() << endl;
 }
 
 } // namespace mft

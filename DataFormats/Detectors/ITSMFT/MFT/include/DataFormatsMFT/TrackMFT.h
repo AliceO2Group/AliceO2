@@ -21,6 +21,7 @@
 #include <TMath.h>
 
 #include "CommonDataFormat/RangeReference.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
 {
@@ -51,20 +52,25 @@ class TrackMFT
   void setZ(Double_t z) { mZ = z; }
   Double_t getX() const { return mParameters(0, 0); }
   void setX(Double_t x) { mParameters(0, 0) = x; }
+  Double_t getSigmaX() const { return mCovariances(0, 0); }
 
   Double_t getY() const { return mParameters(1, 0); }
   void setY(Double_t y) { mParameters(1, 0) = y; }
+  Double_t getSigmaY() const { return mCovariances(1, 1); }
 
   void setPhi(Double_t phi) { mParameters(2, 0) = phi; }
   Double_t getPhi() const { return mParameters(2, 0); }
+  Double_t getSigmaPhi() const { return mCovariances(2, 2); }
 
   void setTanl(Double_t tanl) { mParameters(3, 0) = tanl; }
   Double_t getTanl() const { return mParameters(3, 0); }
+  Double_t getSigmaTanl() const { return mCovariances(3, 3); }
 
   void setInvQPt(Double_t invqpt) { mParameters(4, 0) = invqpt; }
   Double_t getInvQPt() const { return mParameters(4, 0); } // return Inverse charged pt
   Double_t getPt() const { return TMath::Abs(1.f / mParameters(4, 0)); }
   Double_t getInvPt() const { return TMath::Abs(mParameters(4, 0)); }
+  Double_t getSigmaInvQPt() const { return mCovariances(4, 4); }
 
   Double_t getPx() const { return TMath::Cos(getPhi()) * getPt(); } // return px
   Double_t getInvPx() const { return 1. / getPx(); }                // return invpx
@@ -77,6 +83,8 @@ class TrackMFT
 
   Double_t getP() const { return getPt() * TMath::Sqrt(1. + getTanl() * getTanl()); } // return total momentum
   Double_t getInverseMomentum() const { return 1.f / getP(); }
+
+  Double_t getEta() const { return -TMath::Log(TMath::Tan((TMath::PiOver2() - TMath::ATan(getTanl())) / 2)); } // return total momentum
 
   /// return the charge (assumed forward motion)
   Double_t getCharge() const { return TMath::Sign(1., mParameters(4, 0)); }
@@ -122,14 +130,29 @@ class TrackMFT
     mClusRef.set(firstEntry, n);
   }
 
+  const std::array<MCCompLabel, 10>& getMCCompLabels() const { return mMCCompLabels; } // constants::mft::LayersNumber = 10
+  void setMCCompLabels(const std::array<MCCompLabel, 10>& labels, int nPoints)
+  {
+    mMCCompLabels = labels;
+    mNPoints = nPoints;
+  }
+
   const ClusRefs& getClusterRefs() const { return mClusRef; }
   ClusRefs& getClusterRefs() { return mClusRef; }
 
   std::uint32_t getROFrame() const { return mROFrame; }
   void setROFrame(std::uint32_t f) { mROFrame = f; }
 
+  const Int_t getNPoints() const { return mNPoints; }
+
+  void print() const;
+  void printMCCompLabels() const;
+
  private:
   std::uint32_t mROFrame = 0;       ///< RO Frame
+  Int_t mNPoints{0};                // Number of clusters
+  std::array<MCCompLabel, 10> mMCCompLabels; // constants::mft::LayersNumber = 10
+
   ClusRefs mClusRef;                ///< references on clusters
 
   Double_t mZ = 0.; ///< Z coordinate (cm)
