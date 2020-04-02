@@ -336,7 +336,7 @@ Digitization - the transformation of hits produced in the transport simulation t
 
     ```o2-sim-digitizer-workflow [--sims foo] -b``` 
 
-    which would launch the digitization phase for all detectors that took part in a simulation stored under simulation prefix foo (default o2sim) and will digitize all events with a default bunch crossing structure. All digitizer will run in parallel to each other.
+    which would launch the digitization phase for all detectors that took part in a simulation stored under simulation prefix `foo` (default o2sim) and will digitize all events with a default bunch crossing structure. All digitizer will run in parallel to each other.
 
 * **A more advanced example:** 
 
@@ -345,5 +345,29 @@ Digitization - the transformation of hits produced in the transport simulation t
     which would launch the digitization phase for TPC and ITS with a custom LHC interactionRate. Moreover, this example does
     summation of digits coming from background (prefix bkg) as well as signal (prefix sgn) transport simulations.
 
-    
-    
+* **Generated output**: The digitization process creates the following output files:
+     
+| File                  | Description                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| `collisioncontext.root` | Contains information about the collision/digitization context used in this digitization. Keeps the list of input files and how collisions were composed for the digits embedding process and time stamps where assigned.  |
+| `XXXdigits.root` | Typically one digit file per detector XXX in a timeframe format. The file also typically contains mappings of digit indices to   MC labels. |
+| `o2simdigitizerworkflow_configuration.ini` | Summary of parameters used in the digitization process. |
+
+
+* **Main command line options**: The following major options are available:
+
+| Option                | Description                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| -h,--help     | Prints the list of possible command line options and their default values.           |
+| --sims | Comma separated list of simulation prefixes that should be overlaid/embedded. Example `--sims background,signal` where `background` and `signal` refer to transport simulation productions. Final collisions will be composed from both of them (in a round robin fashion). See separate section about [Embedding](#Embedding) for more details. If just one prefix is given, normal digitization without overlay will be done. |
+| --tpc-lanes | Number of parallel digitizers for TPC, which has a special attention due an increased data rate compared to other detectors. | |
+| --interactionRate | Total hadronic interaction rate (Hz). |
+| --bcPatternFile | Interacting BC pattern file chaning the default bunch crossing pattern. |
+| --onlyDet | Comma separated list of detectors to digitize. (Default is all) |
+| --skipDet | Comma separed list of detectors to exclude. |
+| --incontext | Name of context file. Useful for reusing a context from a previous run when we split the processing detectorwise. |
+| --outcontext | Specify name of contextfile to produce. |
+| --simFileQED | Optional special QED hit file to include effect from QED effects into digitization. |
+
+
+## Embedding <a name="Embedding"></a>
