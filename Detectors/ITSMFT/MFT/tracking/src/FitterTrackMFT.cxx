@@ -61,7 +61,7 @@ TrackParamMFT& FitterTrackMFT::createParamAtCluster(const o2::itsmft::Cluster& c
   itParam->setX(cluster.getX());
   itParam->setY(cluster.getY());
   itParam->setClusterPtr(&cluster);
-
+  mNPoints++;
   return *itParam;
 }
 
@@ -143,14 +143,10 @@ TrackParamMFT& FitterTrackMFT::getCurrentParam()
 }
 
 //__________________________________________________________________________
-void FitterTrackMFT::print() const
+void FitterTrackMFT::printMCCompLabels() const
 {
-  //  mParamAtClusters.front().print();
-  //  cout << "\tcurrent chamber = " << mCurrentChamber + 1 << " ; clusters = {";
-  //  for (const auto& param : *this) {
-  //    cout << param.getClusterPtr()->getIdAsString() << ", ";
-  //  }
-  //  cout << "}" << endl;
+  /// Printing FitterTrackMFT MCLabel information
+  LOG(INFO) << "FitterTrackMFT with " << mNPoints << " clusters. MCLabels: " << mMCCompLabels[0] << mMCCompLabels[1] << "..."; //<< mMCCompLabels[2] << mMCCompLabels[3] << mMCCompLabels[4] << mMCCompLabels[5] << mMCCompLabels[6] << mMCCompLabels[7] << mMCCompLabels[8] << mMCCompLabels[9];
 }
 
 } // namespace mft
