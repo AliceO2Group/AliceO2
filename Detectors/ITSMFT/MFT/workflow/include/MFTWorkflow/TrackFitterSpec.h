@@ -26,6 +26,9 @@ namespace o2
 namespace mft
 {
 
+using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
+using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
+
 class TrackFitterTask : public o2::framework::Task
 {
  public:
@@ -43,6 +46,9 @@ class TrackFitterTask : public o2::framework::Task
 
 template <typename T, typename O, typename C>
 void convertTrack(const T& inTrack, O& outTrack, C& clusters);
+
+SMatrix55 TtoSMatrixSym55(TMatrixD inMatrix);
+SMatrix5 TtoSMatrix5(TMatrixD inMatrix);
 
 o2::framework::DataProcessorSpec getTrackFitterSpec(bool useMC);
 

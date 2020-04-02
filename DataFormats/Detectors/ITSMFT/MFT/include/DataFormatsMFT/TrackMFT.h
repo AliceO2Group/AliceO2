@@ -17,8 +17,8 @@
 #define ALICEO2_MFT_TRACKMFT_H
 
 #include <vector>
-#include <TMatrixD.h>
 #include <TMath.h>
+#include "Math/SMatrix.h"
 
 #include "CommonDataFormat/RangeReference.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -37,12 +37,14 @@ class TrackMFT
 {
   using Cluster = o2::itsmft::Cluster;
   using ClusRefs = o2::dataformats::RangeRefComp<4>;
+  using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
+  using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 
  public:
 
   TrackMFT() = default;
   TrackMFT(const TrackMFT& t) = default;
-  TrackMFT(const Double_t Z, const TMatrixD parameters, const TMatrixD covariances, const Double_t chi2);
+  TrackMFT(const Double_t Z, const SMatrix5 parameters, const SMatrix55 covariances, const Double_t chi2);
 
   ~TrackMFT() = default;
 
@@ -50,26 +52,26 @@ class TrackMFT
   Double_t getZ() const { return mZ; }
   /// set Z coordinate (cm)
   void setZ(Double_t z) { mZ = z; }
-  Double_t getX() const { return mParameters(0, 0); }
-  void setX(Double_t x) { mParameters(0, 0) = x; }
+  Double_t getX() const { return mParameters(0); }
+  void setX(Double_t x) { mParameters(0) = x; }
   Double_t getSigmaX() const { return mCovariances(0, 0); }
 
-  Double_t getY() const { return mParameters(1, 0); }
-  void setY(Double_t y) { mParameters(1, 0) = y; }
+  Double_t getY() const { return mParameters(1); }
+  void setY(Double_t y) { mParameters(1) = y; }
   Double_t getSigmaY() const { return mCovariances(1, 1); }
 
-  void setPhi(Double_t phi) { mParameters(2, 0) = phi; }
-  Double_t getPhi() const { return mParameters(2, 0); }
+  void setPhi(Double_t phi) { mParameters(2) = phi; }
+  Double_t getPhi() const { return mParameters(2); }
   Double_t getSigmaPhi() const { return mCovariances(2, 2); }
 
-  void setTanl(Double_t tanl) { mParameters(3, 0) = tanl; }
-  Double_t getTanl() const { return mParameters(3, 0); }
+  void setTanl(Double_t tanl) { mParameters(3) = tanl; }
+  Double_t getTanl() const { return mParameters(3); }
   Double_t getSigmaTanl() const { return mCovariances(3, 3); }
 
-  void setInvQPt(Double_t invqpt) { mParameters(4, 0) = invqpt; }
-  Double_t getInvQPt() const { return mParameters(4, 0); } // return Inverse charged pt
-  Double_t getPt() const { return TMath::Abs(1.f / mParameters(4, 0)); }
-  Double_t getInvPt() const { return TMath::Abs(mParameters(4, 0)); }
+  void setInvQPt(Double_t invqpt) { mParameters(4) = invqpt; }
+  Double_t getInvQPt() const { return mParameters(4); } // return Inverse charged pt
+  Double_t getPt() const { return TMath::Abs(1.f / mParameters(4)); }
+  Double_t getInvPt() const { return TMath::Abs(mParameters(4)); }
   Double_t getSigmaInvQPt() const { return mCovariances(4, 4); }
 
   Double_t getPx() const { return TMath::Cos(getPhi()) * getPt(); } // return px
@@ -87,22 +89,21 @@ class TrackMFT
   Double_t getEta() const { return -TMath::Log(TMath::Tan((TMath::PiOver2() - TMath::ATan(getTanl())) / 2)); } // return total momentum
 
   /// return the charge (assumed forward motion)
-  Double_t getCharge() const { return TMath::Sign(1., mParameters(4, 0)); }
+  Double_t getCharge() const { return TMath::Sign(1., mParameters(4)); }
   /// set the charge (assumed forward motion)
   void setCharge(Double_t charge)
   {
-    if (charge * mParameters(4, 0) < 0.)
-      mParameters(4, 0) *= -1.;
+    if (charge * mParameters(4) < 0.)
+      mParameters(4) *= -1.;
   }
 
   /// return track parameters
-  const TMatrixD& getParameters() const { return mParameters; }
+  const SMatrix5& getParameters() const { return mParameters; }
   /// set track parameters
-  void setParameters(const TMatrixD& parameters) { mParameters = parameters; }
+  void setParameters(const SMatrix5& parameters) { mParameters = parameters; }
 
-  const TMatrixD& getCovariances() const;
-  void setCovariances(const TMatrixD& covariances);
-  void setCovariances(const Double_t matrix[5][5]);
+  const SMatrix55& getCovariances() const;
+  void setCovariances(const SMatrix55& covariances);
 
   /// return the chi2 of the track when the associated cluster was attached
   Double_t getTrackChi2() const { return mTrackChi2; }
@@ -163,7 +164,7 @@ class TrackMFT
   /// PHI     = azimutal angle
   /// TANL    = tangent of \lambda (dip angle)
   /// INVQPT    = Inverse transverse momentum (GeV/c ** -1) times charge (assumed forward motion)  </pre>
-  TMatrixD mParameters{5, 1}; ///< \brief Track parameters
+  SMatrix5 mParameters; ///< \brief Track parameters
 
   /// Covariance matrix of track parameters, ordered as follows:    <pre>
   ///  <X,X>         <Y,X>           <PHI,X>       <TANL,X>        <INVQPT,X>
@@ -171,7 +172,7 @@ class TrackMFT
   /// <X,PHI>       <Y,PHI>         <PHI,PHI>     <TANL,PHI>      <INVQPT,PHI>
   /// <X,TANL>      <Y,TANL>       <PHI,TANL>     <TANL,TANL>     <INVQPT,TANL>
   /// <X,INVQPT>   <Y,INVQPT>     <PHI,INVQPT>   <TANL,INVQPT>   <INVQPT,INVQPT>  </pre>
-  TMatrixD mCovariances{5, 5}; ///< \brief Covariance matrix of track parameters
+  SMatrix55 mCovariances;      ///< \brief Covariance matrix of track parameters
   Double_t mTrackChi2 = 0.;    ///< Chi2 of the track when the associated cluster was attached
   ClassDefNV(TrackMFT, 1);
 };

@@ -112,8 +112,8 @@ void TrackFitterTask::run(ProcessingContext& pc)
   for (const auto& track : fittertracks) {
     o2::mft::TrackMFT& temptrack = finalMFTtracks.emplace_back();
     temptrack.setZ(track.first().getZ());
-    temptrack.setParameters(track.first().getParameters());
-    temptrack.setCovariances(track.first().getCovariances());
+    temptrack.setParameters(TtoSMatrix5(track.first().getParameters()));
+    temptrack.setCovariances(TtoSMatrixSym55(track.first().getCovariances()));
     temptrack.setTrackChi2(track.first().getTrackChi2());
     temptrack.setMCCompLabels(track.getMCCompLabels(), track.getNPoints());
     finalMFTtracks.back().printMCCompLabels();
@@ -176,6 +176,29 @@ void convertTrack(const T& inTrack, O& outTrack, C& clusters)
   //  std::cout << "     getZ() =  " << par->getZ() << std::endl;
 
   //fit(outTrack, false);
+}
+
+//_________________________________________________________________________________________________
+SMatrix55 TtoSMatrixSym55(TMatrixD inMatrix)
+{
+  // TMatrix to sym SMatrix
+  SMatrix55 outMatrix;
+  for (auto i = 5; i--;) {
+    outMatrix(i, i) = inMatrix(i, i);
+    for (auto j = i; j--;) {
+      outMatrix(i, j) = inMatrix(i, j);
+    }
+  }
+  return outMatrix;
+}
+
+//_________________________________________________________________________________________________
+SMatrix5 TtoSMatrix5(TMatrixD inMatrix)
+{
+  SMatrix5 outMatrix;
+  for (auto i = 0; i < 5; i++)
+    outMatrix(i) = inMatrix(i, 0);
+  return outMatrix;
 }
 
 } // namespace mft
