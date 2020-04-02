@@ -74,6 +74,9 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labelsAccum;
     std::vector<TriggerRecord> triggers;
 
+    std::vector<o2::trd::Digit> digits;                         // digits which get filled
+    o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labels; // labels which get filled
+
     TStopwatch timer;
     timer.Start();
 
@@ -93,8 +96,6 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         context->retrieveHits(mSimChains, "TRDHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found TRD " << hits.size() << " hits ";
 
-        std::vector<o2::trd::Digit> digits;                         // digits which get filled
-        o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labels; // labels which get filled
         mDigitizer.process(hits, digits, labels);
 
         // Add trigger record
@@ -102,8 +103,17 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
         labelsAccum.mergeAtBack(labels);
+
+        digits.clear();
+        labels.clear();
       }
     }
+
+    // Force flush of the digits that remain in the digitizer cache
+    mDigitizer.flush(digits, labels);
+    triggers.emplace_back(irecords[irecords.size() - 1], digitsAccum.size(), digits.size());
+    std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
+    labelsAccum.mergeAtBack(labels);
 
     timer.Stop();
     LOG(INFO) << "TRD: Digitization took " << timer.RealTime() << "s";
