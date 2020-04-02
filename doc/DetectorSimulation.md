@@ -40,10 +40,13 @@ The purpose of the `o2-sim` executable is to simulate the passage of particles e
 | File                  | Description                                                                            |
 | --------------------- | -------------------------------------------------------------------------------------- |
 | `o2sim_Kine.root`     | contains kinematics information (primaries and secondaries) and event meta information |
-| `o2sim_geometry.root` | contains the ROOT geometry created for simulation                                      |
+| `o2sim_geometry.root` | contains the final ROOT geometry created for simulation run                            |
 | `o2sim_grp.root`      | special global run parameters (grp) such as field                                      |
 | `o2sim_XXXHits.root`  | hit file for each participating active detector XXX                                    |
 | `o2sim_configuration.ini` | summary of parameter values with which the simulation was done                     |
+| `serverlog` | log file produced from the particle generator server |
+| `workerlog` | log file produced form the transportation processes |
+| `hitmergerlog` | log file produced from the IO process |
 
 
 * **Main command line options**: The following major options are available (incomplete):
@@ -63,8 +66,25 @@ The purpose of the `o2-sim` executable is to simulate the passage of particles e
 | --seed   | The initial seed to (all) random number instances. Default is -1 which leads to random behaviour. |
 | -o,--outPrefix | How output files should be prefixed. Default is o2sim. Example `-o mySignalProduction`.|
 
+* **Expert control** via environment variables:
+`o2-sim` is sensitive to the following environment variables:
 
-## Configuration via Parameters
+| Variable | Description |
+| --- | --- |
+| **ALICE_O2SIM_DUMPLOG** | When set, the output of all FairMQ components will be shown on the screen and can be piped into a user logfile. |  
+| **ALICE_NOSIMSHM** | When set, communication between simulation processes will not happen using a shared memory mechanism but using ROOT serialization. |
+
+
+## Configurable Parameters
+
+Simulation makes use of `configurable parameters` as described in the [ConfigurableParam.md](https://github.com/AliceO2Group/AliceO2/blob/dev/Common/SimConfig/doc/ConfigurableParam.md) documentation.
+Detector code as well as general simulation code declare such parameter and access them during runtime. 
+Once a parameter is declared, it can be influenced/set from the outside via configuration files or from the command line. See the `--configFile` as well as `--configKeyValues` command line options.
+
+Important parameters influencing the transport simulation are:
+
+| Parameter | Description |
+| --- | --- |
 
 ## Help on available generators
 
@@ -91,12 +111,6 @@ Configures pythia8 for min.bias pp collisions at 14 TeV
 ```
 o2-sim -m PIPE ITS MFT -g pythia8 -n 50
 ```
-
-## Control via environment variables
-`o2-sim` is sensitive to the following environment variables:
-
-**ALICE_O2SIM_DUMPLOG**
-**ALICE_O2SIM_USESHM**
 
 [Describe in detail the environment variables]
 
