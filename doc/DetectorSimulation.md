@@ -80,11 +80,21 @@ The purpose of the `o2-sim` executable is to simulate the passage of particles e
 Simulation makes use of `configurable parameters` as described in the [ConfigurableParam.md](https://github.com/AliceO2Group/AliceO2/blob/dev/Common/SimConfig/doc/ConfigurableParam.md) documentation.
 Detector code as well as general simulation code declare such parameter and access them during runtime. 
 Once a parameter is declared, it can be influenced/set from the outside via configuration files or from the command line. See the `--configFile` as well as `--configKeyValues` command line options.
+The complete list of parameters and their default values can be inspected in the file `o2sim_configuration.ini` that is produced by an empty run `o2-sim -n 0 -m CAVE`.
 
 Important parameters influencing the transport simulation are:
 
-| Parameter | Description |
+| Main parameter key | Description |
 | --- | --- |
+| G4 | Parameters influencing the Geant4 engine, such as the physics list. Example "G4.physicslist=kFTFP_BERT_optical_biasing" |
+| Stack | Parameters influencing the particle stack. Example include whether the stack does kinematics pruning or whether it keeps secondaries at all. |
+| SimCutParams | Parameters allowing to set some sime geometry stepping cuts in R, Z, etc. |
+| Diamond | Parameter allowing to set the interaction vertex location and the spread/width. Is used in all event generators. |
+| Pythia6 | Parameters that influence the pythia6 generator. |
+| Pythia8 | Parameters that influence the pythia8 generator. |
+| TriggerParticle | Parameters influencing the trigger mechanism in particle generators. |
+
+Detectors may also have parameters influencing various pieces such geometry layout, material composition etc.
 
 ## Help on available generators
 
@@ -314,4 +324,26 @@ o2::eventgen::DeepTrigger
 
 # Documentation of the digitization step <a name="DigitSection"></a>
 
-Digitization, the transformation of hits produced in the transport simulation to electronics detector output, is steered by the `o2-sim-digitizer-workflow` executable.
+Digitization - the transformation of hits produced in the transport simulation to electronics detector output - is steered by the `o2-sim-digitizer-workflow` executable. The executable is implemented as a [DPL workflow] (https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/Core/README.md). The main components in this workflow are:
+- **A SimReader** process, responsible to analyze available simulation information/kinematics and to setup the digitization context, which describes things such as the structure of the timeframe (bunch cross properties and interaction rate) as well as how to combine different background and signal hits.
+- **Digitizer processors** per detector, responsible for the actual digitization upon receiving the digitization context from the SimReader.
+- **IO processors** per detector, responsible to write digits to files.
+- **GRP updater**, a process to update the GRP file with information aquired in digitization.
+
+
+## Usage overview:
+* **Quick start example:** A minimal invocation is of the form 
+
+    ```o2-sim-digitizer-workflow [--sims foo] -b``` 
+
+    which would launch the digitization phase for all detectors that took part in a simulation stored under simulation prefix foo (default o2sim) and will digitize all events with a default bunch crossing structure. All digitizer will run in parallel to each other.
+
+* **A more advanced example:** 
+
+    ```o2-sim-digitizer-workflow --sims bkg,sgn --interactionRate 1e6 --onlyDet TPC,ITS -b``` 
+
+    which would launch the digitization phase for TPC and ITS with a custom LHC interactionRate. Moreover, this example does
+    summation of digits coming from background (prefix bkg) as well as signal (prefix sgn) transport simulations.
+
+    
+    
