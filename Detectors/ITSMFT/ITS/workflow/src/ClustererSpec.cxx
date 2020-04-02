@@ -57,7 +57,7 @@ void ClustererDPL::init(InitContext& ic)
     return;
   }
 
-  mFullClusters = !ic.options().get<bool>("no-full-clusters");
+  mFullClusters = ic.options().get<bool>("full-clusters");
   mPatterns = !ic.options().get<bool>("no-patterns");
 
   // settings for the fired pixel overflow masking
@@ -166,7 +166,7 @@ DataProcessorSpec getClustererSpec(bool useMC)
     Options{
       {"its-dictionary-file", VariantType::String, "complete_dictionary.bin", {"Name of the cluster-topology dictionary file"}},
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"no-full-clusters", o2::framework::VariantType::Bool, false, {"Ignore full clusters"}},
+      {"full-clusters", o2::framework::VariantType::Bool, false, {"Produce full clusters"}},
       {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}}}};
 }
 
