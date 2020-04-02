@@ -12,7 +12,7 @@ Detector simulation, the simulation of detector response from virtual particle e
   a) the generation of simple (energy deposit) traces in the detector due to the passage of particles and the interaction with the detector material.
   b) the conversion of those traces into (electronic) signals in the detector readout (usually called digitization).
  
-The first part is handled by the `o2-sim` executable. The second part is handled in the `o2-sim-digitizer-workflow`.
+The first part is handled by the `o2-sim` executable (See [SimSection](#SimSection)). The second part is handled in the `o2-sim-digitizer-workflow` executable (See [DigitSection](#DigitSection)).
 
 ## Key new features with respect to AliRoot
 
@@ -25,7 +25,7 @@ The Run3 simulation offers the following features
   - **clear separation of transport and digitization** - each phase can be run fully independently
 
 
-# Documentation of transport simulation
+# Documentation of transport simulation <a name="SimSection"></a>
 
 The purpose of the `o2-sim` executable is to simulate the passage of particles emerging from a collision inside the detector and to obtain their effect in terms of energy deposits (called hits) which could be converted into detectable signals. It is the driver executable which will spawn a topology of sub-processes that interact via messages in a distributed system.
 
@@ -61,6 +61,7 @@ The purpose of the `o2-sim` executable is to simulate the passage of particles e
 | --configFile   | A `.ini` file containing a list of (non-default) parameters to configure the simulation run. See section on configurable parameters for more details.  |
 | --configKeyValues | Like `--configFile` but allowing to set parameters on the command line as a string sequence. Example `--configKeyValues "Stack.pruneKine=false"`. Takes precedence over `--configFile`. Parameters need to be known ConfigurableParams. |
 | --seed   | The initial seed to (all) random number instances. Default is -1 which leads to random behaviour. |
+| -o,--outPrefix | How output files should be prefixed. Default is o2sim. Example `-o mySignalProduction`.|
 
 
 ## Configuration via Parameters
@@ -297,6 +298,6 @@ o2::eventgen::DeepTrigger
 
 ## Development
 
-# Documentation of the digitization step 
+# Documentation of the digitization step <a name="DigitSection"></a>
 
 Digitization, the transformation of hits produced in the transport simulation to electronics detector output, is steered by the `o2-sim-digitizer-workflow` executable.
