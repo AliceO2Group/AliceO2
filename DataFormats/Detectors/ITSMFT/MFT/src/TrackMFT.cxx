@@ -16,7 +16,6 @@
 #include "DataFormatsMFT/TrackMFT.h"
 #include "CommonConstants/MathConstants.h"
 #include "DataFormatsITSMFT/Cluster.h"
-#include <TMatrixD.h>
 #include <TMath.h>
 
 using namespace o2::mft;
@@ -28,8 +27,11 @@ namespace o2
 namespace mft
 {
 
+using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
+using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
+
 //__________________________________________________________________________
-TrackMFT::TrackMFT(const Double_t z, const TMatrixD parameters, const TMatrixD covariances, const Double_t chi2)
+TrackMFT::TrackMFT(const Double_t z, const SMatrix5 parameters, const SMatrix55 covariances, const Double_t chi2)
 {
   mZ = z;
   mParameters = parameters;
@@ -38,22 +40,16 @@ TrackMFT::TrackMFT(const Double_t z, const TMatrixD parameters, const TMatrixD c
 }
 
 //__________________________________________________________________________
-const TMatrixD& TrackMFT::getCovariances() const
+const SMatrix55& TrackMFT::getCovariances() const
 {
   /// Return the covariance matrix
   return mCovariances;
 }
 
 //__________________________________________________________________________
-void TrackMFT::setCovariances(const TMatrixD& covariances)
+void TrackMFT::setCovariances(const SMatrix55& covariances)
 {
   mCovariances = covariances;
-}
-
-//__________________________________________________________________________
-void TrackMFT::setCovariances(const Double_t matrix[5][5])
-{
-  mCovariances = TMatrixD(5, 5, &(matrix[0][0]));
 }
 
 //__________________________________________________________________________
