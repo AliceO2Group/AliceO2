@@ -327,12 +327,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   std::vector<bool> isdangling;
   for (int ii = 0; ii < OutputsInputs.size(); ii++) {
     if ((outputtypes[ii] & 2) == 2) {
-
-      // temporarily also request to be dangling
-      if ((outputtypes[ii] & 1) == 1) {
-        OutputsInputsAOD.emplace_back(OutputsInputs[ii]);
-        isdangling.emplace_back((outputtypes[ii] & 1) == 1);
-      }
+      OutputsInputsAOD.emplace_back(OutputsInputs[ii]);
+      isdangling.emplace_back((outputtypes[ii] & 1) == 1);
     }
   }
 
@@ -733,10 +729,15 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
     auto input = DataSpecUtils::matchingInput(outputSpec);
     char buf[64];
     input.binding = (snprintf(buf, 63, "output_%zu_%zu", output.workflowId, output.id), buf);
-    results.emplace_back(input);
 
-    outputtypes.emplace_back(outputtype);
+    // make sure that entries are unique
+    if (std::find(results.begin(), results.end(), input) == results.end()) {
+      results.emplace_back(input);
+      outputtypes.emplace_back(outputtype);
+    }
   }
+
+  // make sure that results is unique
 
   return std::make_tuple(results, outputtypes);
 }
