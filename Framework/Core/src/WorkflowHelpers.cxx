@@ -327,8 +327,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   std::vector<bool> isdangling;
   for (int ii = 0; ii < OutputsInputs.size(); ii++) {
     if ((outputtypes[ii] & 2) == 2) {
-      OutputsInputsAOD.emplace_back(OutputsInputs[ii]);
-      isdangling.emplace_back((outputtypes[ii] & 1) == 1);
+      
+      // temporarily also request to be dangling
+      if ((outputtypes[ii] & 1) == 1) {
+        OutputsInputsAOD.emplace_back(OutputsInputs[ii]);
+        isdangling.emplace_back((outputtypes[ii] & 1) == 1);
+      }
     }
   }
 
@@ -703,24 +707,27 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
     unsigned char outputtype = 0;
 
     // is AOD?
-    if (DataSpecUtils::partialMatch(outputSpec, header::DataOrigin("AOD")))
+    if (DataSpecUtils::partialMatch(outputSpec, header::DataOrigin("AOD"))) {
       outputtype += 2;
+    }
 
     // is dangling output?
     bool matched = false;
     for (size_t ii = 0, ie = inputs.size(); ii != ie; ++ii) {
       auto& input = inputs[ii];
       // Inputs of the same workflow cannot match outputs
-      if (output.workflowId == input.workflowId)
+      if (output.workflowId == input.workflowId) {
         continue;
+      }
       auto& inputSpec = workflow[input.workflowId].inputs[input.id];
       if (DataSpecUtils::match(inputSpec, outputSpec)) {
         matched = true;
         break;
       }
     }
-    if (!matched)
+    if (!matched) {
       outputtype += 1;
+    }
 
     // update results and outputtypes
     auto input = DataSpecUtils::matchingInput(outputSpec);
@@ -741,8 +748,9 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
 
   std::vector<InputSpec> results;
   for (int ii = 0; ii < OutputsInputs.size(); ii++) {
-    if ((outputtypes[ii] & 1) == 1)
+    if ((outputtypes[ii] & 1) == 1) {
       results.emplace_back(OutputsInputs[ii]);
+    }
   }
 
   return results;
