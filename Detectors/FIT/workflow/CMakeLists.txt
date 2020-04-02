@@ -17,4 +17,9 @@ o2_add_library(FITWorkflow
 o2_add_executable(reco-workflow
                   COMPONENT_NAME fit
                   SOURCES src/fit-reco-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::FITWorkflow)
+                  PUBLIC_LINK_LIBRARIES O2::FITWorkflow
+		  TARGETVARNAME fitrecoexe)
+
+if(NOT APPLE)
+ set_property(TARGET ${fitrecoexe} PROPERTY LINK_WHAT_YOU_USE ON)
+endif()    		
