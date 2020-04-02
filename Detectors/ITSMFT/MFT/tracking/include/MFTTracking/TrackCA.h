@@ -56,9 +56,9 @@ class TrackCA final
   Int_t mRoadId{-1};
   Float_t mChiSquareZX{0.};
   Float_t mChiSquareZY{0.};
-  std::array<Float_t, constants::mft::LayersNumber> mX = {-15., -15., -15., -15., -15., -15., -15., -15., -15., -15.};
-  std::array<Float_t, constants::mft::LayersNumber> mY = {-15., -15., -15., -15., -15., -15., -15., -15., -15., -15.};
-  std::array<Float_t, constants::mft::LayersNumber> mZ = {-80., -80., -80., -80., -80., -80., -80., -80., -80., -80.};
+  std::array<Float_t, constants::mft::LayersNumber> mX = {-25., -25., -25., -25., -25., -25., -25., -25., -25., -25.};
+  std::array<Float_t, constants::mft::LayersNumber> mY = {-25., -25., -25., -25., -25., -25., -25., -25., -25., -25.};
+  std::array<Float_t, constants::mft::LayersNumber> mZ = {-120., -120., -120., -120., -120., -120., -120., -120., -120., -120.};
   std::array<Int_t, constants::mft::LayersNumber> mLayer;
   std::array<Int_t, constants::mft::LayersNumber> mClusterId;
   std::array<Int_t, constants::mft::LayersNumber> mCellLayer;
@@ -136,9 +136,9 @@ class TrackLTF final
 
  private:
   Int_t mNPoints = 0;
-  std::array<Float_t, constants::mft::LayersNumber> mX = {-15., -15., -15., -15., -15., -15., -15., -15., -15., -15.};
-  std::array<Float_t, constants::mft::LayersNumber> mY = {-15., -15., -15., -15., -15., -15., -15., -15., -15., -15.};
-  std::array<Float_t, constants::mft::LayersNumber> mZ = {-80., -80., -80., -80., -80., -80., -80., -80., -80., -80.};
+  std::array<Float_t, constants::mft::LayersNumber> mX = {-25., -25., -25., -25., -25., -25., -25., -25., -25., -25.};
+  std::array<Float_t, constants::mft::LayersNumber> mY = {-25., -25., -25., -25., -25., -25., -25., -25., -25., -25.};
+  std::array<Float_t, constants::mft::LayersNumber> mZ = {-120., -120., -120., -120., -120., -120., -120., -120., -120., -120.};
   std::array<Int_t, constants::mft::LayersNumber> mLayer;
   std::array<Int_t, constants::mft::LayersNumber> mClusterId;
   std::array<MCCompLabel, constants::mft::LayersNumber> mMCCompLabels;
