@@ -144,7 +144,7 @@ int GPUTPCGMMerger::GetTrackLabel(const GPUTPCGMBorderTrack& trk)
   std::vector<int> labels;
   for (int i = 0; i < nClusters; i++) {
     for (int j = 0; j < 3; j++) {
-      int label = mChainTracking->mIOPtrs.mcLabelsTPC[clusters[i].GetId()].mClusterID[j].fMCID;
+      int label = mChainTracking->mIOPtrs.mcLabelsTPC[clusters[i].GetId()].fClusterID[j].fMCID;
       if (label >= 0) {
         labels.push_back(label);
       }
@@ -559,9 +559,9 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
 #endif
       {
         CADEBUG(
-          printf("Comparing track %3d to %3d: ", r1.fId, r2.fId); for (int i = 0; i < 5; i++) { printf("%8.3f ", b1.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b1.Cov()[i]); } printf("\n%28s", ""));
+          if (mChainTracking->mIOPtrs.mcLabelsTPC) {printf("Comparing track %3d to %3d: ", r1.fId, r2.fId); for (int i = 0; i < 5; i++) { printf("%8.3f ", b1.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b1.Cov()[i]); } printf("\n%28s", ""); });
         CADEBUG(
-          for (int i = 0; i < 5; i++) { printf("%8.3f ", b2.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b2.Cov()[i]); } printf("   -   %5s   -   ", GetTrackLabel(b1) == GetTrackLabel(b2) ? "CLONE" : "FAKE"));
+          if (mChainTracking->mIOPtrs.mcLabelsTPC) {for (int i = 0; i < 5; i++) { printf("%8.3f ", b2.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b2.Cov()[i]); } printf("   -   %5s   -   ", GetTrackLabel(b1) == GetTrackLabel(b2) ? "CLONE" : "FAKE"); });
         if (b2.NClusters() < lBest2) {
           CADEBUG2(continue, printf("!NCl1\n"));
         }

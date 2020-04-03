@@ -720,14 +720,6 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMergedTrackHit* GPUrestrict
   // printf("Tan %f %f (%f %f)\n", atana, atanb, mX - xp, mP[0] - yp);
   const float dS = (xp > 0 ? (atana + atanb) : (atanb - atana)) * r;
   float dz = dS * mP[3];
-  // printf("Track Z %f (Offset %f), dz %f, V %f (dS %f, dZds %f, qPt %f)             - Z span %f to %f: diff %f\n", mP[1], mZOffset, dz, mP[1] - dz, dS, mP[3], mP[4], clusters[0].z, clusters[N - 1].z, clusters[0].z - clusters[N - 1].z);
-  if (CAMath::Abs(dz) > 250.f) {
-    dz = dz > 0 ? 250.f : -250.f;
-  }
-  float dZOffset = mP[1] - dz;
-  mZOffset += dZOffset;
-  mP[1] -= dZOffset;
-  dZOffset = 0;
   float z0, z1;
   if (merger->Param().earlyTpcTransform) {
     z0 = clusters[0].z;
@@ -740,6 +732,15 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMergedTrackHit* GPUrestrict
     GPUTPCConvertImpl::convert(*merger->GetConstantMem(), clusters[0].slice, clusters[0].row, cls[clusters[0].num].getPad(), cls[clusters[0].num].getTime(), x, y, z0);
     GPUTPCConvertImpl::convert(*merger->GetConstantMem(), clusters[N - 1].slice, clusters[N - 1].row, cls[clusters[N - 1].num].getPad(), cls[clusters[N - 1].num].getTime(), x, y, z1);
   }
+
+  // printf("Track Z %f (Offset %f), dz %f, V %f (dS %f, dZds %f, qPt %f)             - Z span %f to %f: diff %f\n", mP[1], mZOffset, dz, mP[1] - dz, dS, mP[3], mP[4], z0, z1, z0 - z1);
+  if (CAMath::Abs(dz) > 250.f) {
+    dz = dz > 0 ? 250.f : -250.f;
+  }
+  float dZOffset = mP[1] - dz;
+  mZOffset += dZOffset;
+  mP[1] -= dZOffset;
+  dZOffset = 0;
   float zMax = CAMath::Max(z0, z1);
   float zMin = CAMath::Min(z0, z1);
   if (zMin < 0 && zMin - mZOffset < -250) {
@@ -752,7 +753,7 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMergedTrackHit* GPUrestrict
   } else if (zMax > 0 && zMin - mZOffset < 0) {
     dZOffset = zMin - mZOffset;
   }
-  // if (dZOffset != 0) printf("Moving clusters to TPC Range: Side %f, Shift %f: %f to %f --> %f to %f\n", clusters[0].z, dZOffset, clusters[0].z - mZOffset, clusters[N - 1].z - mZOffset, clusters[0].z - mZOffset - dZOffset, clusters[N - 1].z - mZOffset - dZOffset);
+  // if (dZOffset != 0) printf("Moving clusters to TPC Range: Side %f, Shift %f: %f to %f --> %f to %f\n", z0, dZOffset, z0 - mZOffset, z1 - mZOffset, z0 - mZOffset - dZOffset, z1 - mZOffset - dZOffset);
   mZOffset += dZOffset;
   mP[1] -= dZOffset;
   // printf("\n");
