@@ -72,9 +72,6 @@ DECLARE_SOA_TABLE(Cand2Prong, "AOD", "CANDDZERO",
                   cand2prong::MassD0, cand2prong::MassD0bar);
 } // namespace o2::aod
 
-using namespace o2;
-using namespace o2::framework;
-
 //FIXME: this functions will need to become dynamic columns
 //once we will be able to build dynamic columns starting from
 //columns that belongs to different tables
