@@ -270,15 +270,21 @@ int GPUTPCGMMerger::RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPC
   trk.X() = inTrack->Param().GetX();
   trk.Y() = inTrack->Param().GetY();
   trk.Z() = inTrack->Param().GetZ();
+  float tzInner, tzOuter;
   if (Param().earlyTpcTransform) {
     trk.TZOffset() = inTrack->Param().GetZOffset();
+    tzInner = inTrack->Cluster(0).GetZ();
+    tzOuter = inTrack->Cluster(inTrack->NClusters() - 1).GetZ();
   } else {
     trk.TZOffset() = GetConstantMem()->calibObjects.fastTransform->convZOffsetToVertexTime(slice, inTrack->Param().GetZOffset(), Param().continuousMaxTimeBin);
     const ClusterNative* cls = GetConstantMem()->ioPtrs.clustersNative->clustersLinear;
     // printf("Setup: (slice %d maxTime %d vDrift %f) ZOffset %f --> TOffset %f (Chk %f) Cluster 0: Z %f Time %f - Cluster N: Z %f Time %f\n", slice, Param().continuousMaxTimeBin, GetConstantMem()->calibObjects.fastTransform->getVDrift(),
     //        inTrack->Param().GetZOffset(), trk.TZOffset(), GetConstantMem()->calibObjects.fastTransform->convTimeToZinTimeFrame(slice, trk.TZOffset(), Param().continuousMaxTimeBin),
     //        inTrack->Cluster(0).GetZ(), cls[inTrack->Cluster(0).GetId()].getTime(), inTrack->Cluster(inTrack->NClusters() - 1).GetZ(), cls[inTrack->Cluster(inTrack->NClusters() - 1).GetId()].getTime());
+    tzInner = cls[inTrack->Cluster(0).GetId()].getTime();
+    tzOuter = cls[inTrack->Cluster(inTrack->NClusters() - 1).GetId()].getTime();
   }
+  trk.ShiftZ(this, slice, tzInner, tzOuter);
   trk.SinPhi() = inTrack->Param().GetSinPhi();
   trk.DzDs() = inTrack->Param().GetDzDs();
   trk.QPt() = inTrack->Param().GetQPt();
