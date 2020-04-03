@@ -25,7 +25,6 @@
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/TRDSimParam.h"
 #include "TRDBase/FeeParam.h"
-using namespace std;
 
 namespace o2
 {
@@ -50,14 +49,14 @@ class PadParameters
   T getValue(int col, int row) const { return getValue(getChannel(col, row)); };
   void setValue(int ich, T value) { mData[ich] = value; }
   void setValue(int col, int row, T value) { setValue(getChannel(col, row), value); }
-  void debug() { cout << "in padparameters debug with this:" << this << " with mPlane:mChamber:mNrows:mNchannels::" << mPlane << ":" << mNrows << ":" << mNchannels << "   and a vector size of : " << mData.size() << endl; };
+  void debug() { std::cout << "in padparameters debug with this:" << this << " with mPlane:mChamber:mNrows:mNchannels::" << mPlane << ":" << mNrows << ":" << mNchannels << "   and a vector size of : " << mData.size() << std::endl; };
   void reset(int chamberindex, int col, int row, std::vector<T>& data);
   void dumpNonZeroValues(int roc)
   {
     int count = 0;
     for (auto& pad : mData) { // Range-for!
       if (pad > 0) {
-        cout << "roc:pad:value" << roc << ":" << count << ":" << pad << endl;
+        std::cout << "roc:pad:value" << roc << ":" << count << ":" << pad << std::endl;
       }
       count++;
     }
