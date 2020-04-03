@@ -58,3 +58,10 @@ o2_add_test(
   COMPONENT_NAME DataFormats-TPC
   PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
   LABELS tpc dataformats)
+
+o2_add_test(
+  CompressedClusters
+  SOURCES test/testCompressedClusters.cxx
+  COMPONENT_NAME DataFormats-TPC
+  PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
+  LABELS tpc dataformats)
