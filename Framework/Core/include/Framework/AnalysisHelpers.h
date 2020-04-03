@@ -15,8 +15,6 @@
 #include <ROOT/RDataFrame.hxx>
 #include <string>
 
-using namespace ROOT::RDF;
-
 namespace o2
 {
 namespace framework

@@ -20,6 +20,9 @@
 #include <cmath>
 #include <array>
 
+using namespace o2;
+using namespace o2::framework;
+
 struct DecayVertexBuilder2Prong {
   // primary vertex position
   OutputObj<TH1F> hvtxp_x_out{TH1F("hvertexx", "x primary vtx", 100, -10., 10.)};
