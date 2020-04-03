@@ -25,14 +25,12 @@
 #include "CCDB/BasicCCDBManager.h"
 #include <iostream>
 
-using namespace o2::framework;
-using namespace std;
 namespace o2
 {
 namespace trd
 {
 
-class TRDDPLTrapSimulatorTask : public Task
+class TRDDPLTrapSimulatorTask : public framework::Task
 {
 
  public:

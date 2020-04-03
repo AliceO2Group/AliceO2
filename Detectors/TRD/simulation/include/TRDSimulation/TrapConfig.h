@@ -26,8 +26,6 @@
 // TRAP registers
 // TRAP data memory (DMEM)
 //
-using namespace std;
-
 namespace o2
 {
 namespace trd
@@ -533,13 +531,13 @@ class TrapConfig
   bool printTrapReg(TrapReg_t reg, int det = -1, int rob = -1, int mcm = -1);
   bool printTrapAddr(int addr, int det = -1, int rob = -1, int mcm = -1);
 
-  void printMemDatx(ostream& os, int addr);
-  void printMemDatx(ostream& os, int addr, int det, int rob, int mcm);
-  void printMemDatx(ostream& os, TrapReg_t reg);
-  void printMemDatx(ostream& os, TrapReg_t reg, int det, int rob, int mcm);
-  void printDatx(ostream& os, unsigned int addr, unsigned int data, int rob, int mcm);
+  void printMemDatx(std::ostream& os, int addr);
+  void printMemDatx(std::ostream& os, int addr, int det, int rob, int mcm);
+  void printMemDatx(std::ostream& os, TrapReg_t reg);
+  void printMemDatx(std::ostream& os, TrapReg_t reg, int det, int rob, int mcm);
+  void printDatx(std::ostream& os, unsigned int addr, unsigned int data, int rob, int mcm);
 
-  void printVerify(ostream& os, int det, int rob, int mcm);
+  void printVerify(std::ostream& os, int det, int rob, int mcm);
 
   static const int mgkDmemStartAddress = 0xc000; // start address in TRAP GIO
   static const int mgkDmemWords = 0x400;         // number of words in DMEM
@@ -568,7 +566,7 @@ class TrapConfig
         mData[index] = value;
         mValid[index] = valid;
       } else
-        cout << "attempt to write data outside array with size : " << mData.size() << "and index of :" << index;
+        std::cout << "attempt to write data outside array with size : " << mData.size() << "and index of :" << index;
     }
     int getDataSize() { return mData.size(); }
 
@@ -639,7 +637,7 @@ class TrapConfig
     {
       mAddr = addr;
       std::stringstream mNamestream;
-      mNamestream << "DMEM 0x" << hex << mAddr;
+      mNamestream << "DMEM 0x" << std::hex << mAddr;
       mName = mNamestream.str();
     }
     std::string getName() { return mName; }
