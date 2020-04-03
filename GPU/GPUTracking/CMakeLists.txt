@@ -116,6 +116,7 @@ set(HDRS_INSTALL
     Base/GPUO2DataTypes.h
     Base/GPUHostDataTypes.h
     Base/GPUMemorySizeScalers.h
+    Base/GPURawData.h
     dEdx/GPUdEdxInfo.h
     TPCConvert/GPUTPCConvertImpl.h
     Base/GPUReconstructionKernelMacros.h

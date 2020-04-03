@@ -18,24 +18,7 @@
 #include "PackedCharge.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "CommonConstants/LHCConstants.h"
-
-#ifndef __OPENCL__
-#include "Headers/RAWDataHeader.h"
-#else
-namespace o2
-{
-namespace header
-{
-struct RAWDataHeader {
-  union {
-    unsigned int words[16];
-    int heartbeatOrbit;
-  };
-};
-} // namespace header
-} // namespace o2
-
-#endif
+#include "GPURawData.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
@@ -96,7 +79,7 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
       const TPCZSHDR* hdr = reinterpret_cast<const TPCZSHDR*>(pagePtr);
       pagePtr += sizeof(*hdr);
       unsigned int mask = (1 << s.decodeBits) - 1;
-      int timeBin = hdr->timeOffset + (rdh->heartbeatOrbit * o2::constants::lhc::LHCMaxBunches + Constants::LHCBCPERTIMEBIN - 1 - bcShiftInFirstHBF) / Constants::LHCBCPERTIMEBIN;
+      int timeBin = hdr->timeOffset + (GPURawDataUtils::getOrbit(rdh) * o2::constants::lhc::LHCMaxBunches + Constants::LHCBCPERTIMEBIN - 1 - bcShiftInFirstHBF) / Constants::LHCBCPERTIMEBIN;
       for (int l = 0; l < hdr->nTimeBins; l++) { // TODO: Parallelize over time bins
         pagePtr += (pagePtr - page) & 1; //Ensure 16 bit alignment
         const TPCZSTBHDR* tbHdr = reinterpret_cast<const TPCZSTBHDR*>(pagePtr);
