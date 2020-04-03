@@ -77,9 +77,9 @@ class GPUTPCGMTrackParam
   {
     return mP[4];
   }
-  GPUd() float& ZOffset()
+  GPUd() float& TZOffset()
   {
-    return mZOffset;
+    return mTZOffset;
   }
 
   GPUhd() float GetX() const { return mX; }
@@ -88,7 +88,7 @@ class GPUTPCGMTrackParam
   GPUd() float GetSinPhi() const { return mP[2]; }
   GPUd() float GetDzDs() const { return mP[3]; }
   GPUd() float GetQPt() const { return mP[4]; }
-  GPUd() float GetZOffset() const { return mZOffset; }
+  GPUd() float GetTZOffset() const { return mTZOffset; }
 
   GPUd() float GetKappa(float Bz) const { return -mP[4] * Bz; }
 
@@ -176,7 +176,8 @@ class GPUTPCGMTrackParam
   }
 
   GPUd() bool Rotate(float alpha);
-  GPUd() void ShiftZ(const GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger* merger, int N);
+  GPUd() void ShiftZ(const GPUTPCGMMerger* merger, int slice, float tzInner, float tzOuter);
+  GPUd() void ShiftZ2(const GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger* merger, int N);
 
   GPUd() static float Reciprocal(float x) { return 1.f / x; }
   GPUd() static void Assign(float& x, bool mask, float v)
@@ -213,12 +214,12 @@ class GPUTPCGMTrackParam
   GPUd() bool FollowCircleChk(float lrFactor, float toY, float toX, bool up, bool right);
   GPUd() int initResetT0();
 
-  float mX; // x position
-  float mZOffset;
-  float mP[5];  // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
-  float mC[15]; // the covariance matrix for Y,Z,SinPhi,..
-  float mChi2;  // the chi^2 value
-  int mNDF;     // the Number of Degrees of Freedom
+  float mX;        // x position
+  float mTZOffset; // Z offset with early transform, T offset otherwise
+  float mP[5];     // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
+  float mC[15];    // the covariance matrix for Y,Z,SinPhi,..
+  float mChi2;     // the chi^2 value
+  int mNDF;        // the Number of Degrees of Freedom
 };
 
 GPUdi() int GPUTPCGMTrackParam::initResetT0()

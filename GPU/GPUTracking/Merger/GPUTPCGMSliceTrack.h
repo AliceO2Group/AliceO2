@@ -28,6 +28,7 @@ namespace gpu
  *
  * The class describes TPC slice tracks used in GPUTPCGMMerger
  */
+class GPUTPCGMMerger;
 class GPUTPCGMSliceTrack
 {
  public:
@@ -50,7 +51,7 @@ class GPUTPCGMSliceTrack
   float SecPhi() const { return mSecPhi; }
   float DzDs() const { return mDzDs; }
   float QPt() const { return mQPt; }
-  float ZOffset() const { return mZOffset; }
+  float TZOffset() const { return mTZOffset; }
   float Leg() const { return mLeg; }
 
   int LocalTrackId() const { return mLocalTrackId; }
@@ -64,24 +65,7 @@ class GPUTPCGMSliceTrack
   GPUd() float MinClusterT(const o2::tpc::ClusterNative* cls) { return CAMath::Min(cls[mOrigTrack->Clusters()->GetId()].getTime(), cls[(mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetId()].getTime()); }
 
   void Set(const GPUTPCGMTrackParam& trk, const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice);
-
-  void Set(const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice)
-  {
-    const GPUTPCBaseTrackParam& t = sliceTr->Param();
-    mOrigTrack = sliceTr;
-    mX = t.GetX();
-    mY = t.GetY();
-    mZ = t.GetZ();
-    mDzDs = t.GetDzDs();
-    mSinPhi = t.GetSinPhi();
-    mQPt = t.GetQPt();
-    mCosPhi = sqrt(1.f - mSinPhi * mSinPhi);
-    mSecPhi = 1.f / mCosPhi;
-    mAlpha = alpha;
-    mSlice = slice;
-    mZOffset = t.GetZOffset();
-    mNClusters = sliceTr->NClusters();
-  }
+  void Set(const GPUTPCGMMerger* merger, const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice);
 
   void SetGlobalSectorTrackCov()
   {
@@ -117,23 +101,23 @@ class GPUTPCGMSliceTrack
   }
 
   bool FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi = GPUCA_MAX_SIN_PHI, float sinPhiMargin = 0.f);
-  bool TransportToX(float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov = true) const;
-  bool TransportToXAlpha(float x, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const;
+  bool TransportToX(GPUTPCGMMerger* merger, float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov = true) const;
+  bool TransportToXAlpha(GPUTPCGMMerger* merger, float x, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const;
   void CopyBaseTrackCov();
 
  private:
   const GPUTPCSliceOutTrack* mOrigTrack;                    // pointer to original slice track
   float mX, mY, mZ, mSinPhi, mDzDs, mQPt, mCosPhi, mSecPhi; // parameters
-  float mZOffset;
-  float mC0, mC2, mC3, mC5, mC7, mC9, mC10, mC12, mC14; // covariances
-  float mAlpha;                                         // alpha angle
-  int mSlice;                                           // slice of this track segment
-  int mNClusters;                                       // N clusters
-  int mNeighbour[2];                                    //
-  int mSegmentNeighbour[2];                             //
-  int mLocalTrackId;                                    // Corrected local track id in terms of GMSliceTracks array
-  int mGlobalTrackIds[2];                               // IDs of associated global tracks
-  unsigned char mLeg;                                   // Leg of this track segment
+  float mTZOffset;                                          // Z offset with early transform, T offset otherwise
+  float mC0, mC2, mC3, mC5, mC7, mC9, mC10, mC12, mC14;     // covariances
+  float mAlpha;                                             // alpha angle
+  int mSlice;                                               // slice of this track segment
+  int mNClusters;                                           // N clusters
+  int mNeighbour[2];                                        //
+  int mSegmentNeighbour[2];                                 //
+  int mLocalTrackId;                                        // Corrected local track id in terms of GMSliceTracks array
+  int mGlobalTrackIds[2];                                   // IDs of associated global tracks
+  unsigned char mLeg;                                       // Leg of this track segment
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

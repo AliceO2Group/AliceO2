@@ -1006,7 +1006,7 @@ void GPUQA::RunQA(bool matchOnly)
 #ifdef GPUCA_TPC_GEOMETRY_O2 // ignore z here, larger difference in X due to shifted reference
       if (mConfig.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (merger.Param().continuousMaxTimeBin ? 0 : ((param.Z() - mc1.z) * (param.Z() - mc1.z))) > (5 + abs(81 - TRACK_EXPECTED_REFERENCE_X)) * (5 + abs(81 - TRACK_EXPECTED_REFERENCE_X))) {
 #else // Consider Z offset (pseudo-tf mc tracks have shifted z)
-      if (mConfig.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() + param.ZOffset() - mc1.z) * (param.Z() + param.ZOffset() - mc1.z) > 25) {
+      if (mConfig.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() + param.TZOffset() - mc1.z) * (param.Z() + param.TZOffset() - mc1.z) > 25) { // TODO: fix TZOffset
 #endif
         continue;
       }
@@ -1015,9 +1015,9 @@ void GPUQA::RunQA(bool matchOnly)
         continue;
       }
 #ifdef GPUCA_TPC_GEOMETRY_O2 // ignore z here, larger difference in X due to shifted reference
-      if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || (merger.Param().continuousMaxTimeBin == 0 && fabsf(param.Z() + param.ZOffset() - mc1.z) > (mConfig.strict ? 1.f : 4.f))) {
+      if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || (merger.Param().continuousMaxTimeBin == 0 && fabsf(param.Z() + param.TZOffset() - mc1.z) > (mConfig.strict ? 1.f : 4.f))) { // TODO: fix TZOffset here
 #else
-      if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || fabsf(param.Z() + param.ZOffset() - mc1.z) > (mConfig.strict ? 1.f : 4.f)) {
+      if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || fabsf(param.Z() + param.TZOffset() - mc1.z) > (mConfig.strict ? 1.f : 4.f)) {                                                                         // TODO: fix TZOffset here
 #endif
         continue;
       }
@@ -1025,7 +1025,7 @@ void GPUQA::RunQA(bool matchOnly)
       float charge = mc1.charge > 0 ? 1.f : -1.f;
 
       float deltaY = param.GetY() - mclocal[1];
-      float deltaZ = param.GetZ() + param.ZOffset() - mc1.z;
+      float deltaZ = param.GetZ() + param.TZOffset() - mc1.z; // TODO: fix TZOffset here
       float deltaPhiNative = param.GetSinPhi() - mclocal[3] / mc2.pt;
       float deltaPhi = std::asin(param.GetSinPhi()) - std::atan2(mclocal[3], mclocal[2]);
       float deltaLambdaNative = param.GetDzDs() - mc1.pZ / mc2.pt;
