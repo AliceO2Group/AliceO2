@@ -30,7 +30,7 @@
 #include "Digit.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/Constants.h"
-#include "Headers/RAWDataHeader.h"
+#include "GPURawData.h"
 #include "CommonConstants/LHCConstants.h"
 #endif
 
@@ -153,8 +153,9 @@ int GPUReconstructionConvert::GetMaxTimeBin(const GPUTrackingInOutZS& zspages)
       for (unsigned int k = 0; k < zspages.slice[i].count[j]; k++) {
         const char* page = (const char*)zspages.slice[i].zsPtr[j][k];
         for (unsigned int l = 0; l < zspages.slice[i].nZSPtr[j][k]; l++) {
+          o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)(page + l * TPCZSHDR::TPC_ZS_PAGE_SIZE);
           TPCZSHDR* hdr = (TPCZSHDR*)(page + l * TPCZSHDR::TPC_ZS_PAGE_SIZE + sizeof(o2::header::RAWDataHeader));
-          unsigned int timeBin = (unsigned int)hdr->timeOffset + hdr->nTimeBins;
+          unsigned int timeBin = GPURawDataUtils::getOrbit(rdh) * o2::constants::lhc::LHCMaxBunches / o2::tpc::Constants::LHCBCPERTIMEBIN + (unsigned int)hdr->timeOffset + hdr->nTimeBins;
           if (timeBin > retVal) {
             retVal = timeBin;
           }
