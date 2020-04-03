@@ -22,7 +22,7 @@ FairGenerator*
   hij->SetShadowing(1);
   hij->SetDecaysOff(1);
   hij->SetSelectAll(0);
-  hij->SetPtHardMin(2.3);
+  hij->SetPtHardMin(2.9);
   hij->Init();
 
   // instance and configure TGenerator interface
@@ -31,6 +31,6 @@ FairGenerator*
   tgen->setEnergyUnit(1.);          // [GeV/c]
   tgen->setPositionUnit(0.1);       // [cm]
   tgen->setTimeUnit(3.3356410e-12); // [s]
-  tgen->setTGenerator(hij);
+  tgen->setTGenerator(hij->GetMC());
   return tgen;
 }
