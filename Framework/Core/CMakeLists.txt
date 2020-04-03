@@ -155,6 +155,7 @@ foreach(t
         FairMQResizableBuffer
         FrameworkDataFlowToDDS
         Graphviz
+        GroupSlicer
         HistogramRegistry
         InfoLogger
         InputRecord
