@@ -42,6 +42,7 @@
 #include "TRDSimulation/TrapSimulator.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 
+using namespace std;
 using namespace o2::framework;
 
 namespace o2

@@ -156,21 +156,21 @@ class TrapSimulator
   void draw(int choice, int index); // draw data (ADC data, hits and tracklets)
 
   friend std::ostream& operator<<(std::ostream& os, const TrapSimulator& mcm); // data output using ostream (e.g. cout << mcm;)
-  static ostream& cfdat(ostream& os);                                          // manipulator to activate cfdat output
-  static ostream& raw(ostream& os);                                            // manipulator to activate raw output
-  static ostream& text(ostream& os);                                           // manipulator to activate text output
+  static std::ostream& cfdat(std::ostream& os);                                // manipulator to activate cfdat output
+  static std::ostream& raw(std::ostream& os);                                  // manipulator to activate raw output
+  static std::ostream& text(std::ostream& os);                                 // manipulator to activate text output
 
   // PID
   int getPID(int q0, int q1);
   void printPidLutHuman();
 
   // I/O
-  void printFitRegXml(ostream& os) const;
-  void printTrackletsXml(ostream& os) const;
-  void printAdcDatTxt(ostream& os) const;
-  void printAdcDatHuman(ostream& os) const;
-  void printAdcDatXml(ostream& os) const;
-  void printAdcDatDatx(ostream& os, bool broadcast = kFALSE, int timeBinOffset = -1) const;
+  void printFitRegXml(std::ostream& os) const;
+  void printTrackletsXml(std::ostream& os) const;
+  void printAdcDatTxt(std::ostream& os) const;
+  void printAdcDatHuman(std::ostream& os) const;
+  void printAdcDatXml(std::ostream& os) const;
+  void printAdcDatDatx(std::ostream& os, bool broadcast = kFALSE, int timeBinOffset = -1) const;
 
   static bool readPackedConfig(TrapConfig* cfg, int hc, unsigned int* data, int size);
 
