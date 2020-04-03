@@ -163,6 +163,12 @@ int ReadConfiguration(int argc, char** argv)
     return (1);
   }
 #endif
+  if (configStandalone.qa) {
+    if (getenv("LC_NUMERIC")) {
+      printf("Please unset the LC_NUMERIC env variable, otherwise ROOT will not be able to fit correctly"); // BUG: ROOT Problem
+      return (1);
+    }
+  }
 #ifndef GPUCA_BUILD_EVENT_DISPLAY
   if (configStandalone.eventDisplay) {
     printf("EventDisplay not enabled in build\n");
