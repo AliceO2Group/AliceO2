@@ -8,21 +8,21 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(Vertexing
+o2_add_library(DetectorsVertexing
                SOURCES src/DCAFitterN.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Core
 	                             O2::CommonUtils
                                      O2::ReconstructionDataFormats)
 
-o2_target_root_dictionary(Vertexing
+o2_target_root_dictionary(DetectorsVertexing
                           HEADERS include/DetectorsVertexing/HelixHelper.h
                                   include/DetectorsVertexing/DCAFitterN.h)
 
 o2_add_test(
   DCAFitterN
   SOURCES test/testDCAFitterN.cxx
-  COMPONENT_NAME Vertexing
-  PUBLIC_LINK_LIBRARIES O2::Vertexing ROOT::Core ROOT::Physics
+  COMPONENT_NAME DetectorsVertexing
+  PUBLIC_LINK_LIBRARIES O2::DetectorsVertexing ROOT::Core ROOT::Physics
   LABELS vertexing
   ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
   VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
