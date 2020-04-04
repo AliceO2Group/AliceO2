@@ -222,7 +222,7 @@ void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters, TH1F* freq
 //////////////////////////////////////////
 //////////////////////////////////////////
 
-void CheckClusterShape(std::string digifile = "o2digi_its.root", std::string inputGeom = "O2geometry.root")
+void CheckClusterShape(std::string digifile = "o2digi_its.root", std::string inputGeom = "")
 {
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");

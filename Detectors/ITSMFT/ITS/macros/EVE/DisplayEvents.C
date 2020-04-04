@@ -289,16 +289,16 @@ TEveElement* Data::getEveChipClusters(int chip)
   qclus->SetFrame(box);
   int ncl = 0;
   qclus->Reset(TEveQuadSet::kQT_LineXYFixedZ, kFALSE, 32);
+  auto gman = o2::its::GeometryTGeo::Instance();
   for (const auto& c : mClusters) {
     auto id = c.getSensorID();
     if (id != chip)
       continue;
     ncl++;
 
-    int row = c.getPatternRowMin();
-    int col = c.getPatternColMin();
-    int len = c.getPatternColSpan();
-    int wid = c.getPatternRowSpan();
+    auto xyz = c.getXYZLoc(*gman);
+    int row = 0, col = 0, len = 1, wid = 1;
+    SegmentationAlpide::localToDetector(xyz.X(), xyz.Z(), row, col);
     qclus->AddLine(col * dx, row * dy, len * dx, 0.);
     qclus->AddLine(col * dx, row * dy, 0., wid * dy);
     qclus->AddLine((col + len) * dx, row * dy, 0., wid * dy);
@@ -440,7 +440,7 @@ void init(int entry = 0, int chip = 13,
           bool rawdata = false,
           const std::vector<std::string> clusfiles = {"data-ep4-link0"},
           std::string tracfile = "o2trac_its.root",
-          std::string inputGeom = "O2geometry.root")
+          std::string inputGeom = "")
 {
   TEveManager::Create(kTRUE, "V");
   TEveBrowser* browser = gEve->GetBrowser();

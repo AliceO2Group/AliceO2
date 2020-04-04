@@ -21,7 +21,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #endif
 
-void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root", std::string dictfile = "complete_dictionary.bin")
+void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "o2sim_geometry.root", std::string paramfile = "o2sim_par.root", std::string dictfile = "complete_dictionary.bin")
 {
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 
@@ -142,6 +142,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
 
       const auto& cluster = (*clusArr)[clEntry];
 
+      int npix = 0;
       auto pattID = cluster.getPatternID();
       Point3D<float> locC;
       if (pattID == o2::itsmft::CompCluster::InvalidPatternID || dict.IsGroup(pattID)) {
@@ -149,6 +150,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
         locC = dict.getClusterCoordinates(cluster, patt);
       } else {
         locC = dict.getClusterCoordinates(cluster);
+        npix = dict.GetNpixels(pattID);
       }
       auto chipID = cluster.getSensorID();
       // Transformation to the local --> global
@@ -171,7 +173,6 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
       }
       const auto& hit = (*hitArray)[hitEntry->second];
       //
-      int npix = dict.GetNpixels(pattID);
       float dx = 0, dz = 0;
       int ievH = lab.getEventID();
       Point3D<float> locH, locHsta;

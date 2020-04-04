@@ -42,7 +42,7 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.root",
                   std::string inputClustersITS = "o2clus_its.root",
                   std::string dictfile = "complete_dictionary.bin",
-                  std::string inputGeom = "O2geometry.root",
+                  std::string inputGeom = "",
                   std::string inputGRP = "o2sim_grp.root")
 {
 
@@ -70,7 +70,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);
   LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode";
 
-  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
   auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot)); // request cached transforms
 
@@ -169,7 +169,8 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   o2::its::Vertexer vertexer(&vertexerTraits);
   o2::its::ROframe event(0);
 
-  std::vector<unsigned char>::const_iterator pattIt = patterns->cbegin();
+  gsl::span<const unsigned char> patt(patterns->data(), patterns->size());
+  auto pattIt = patt.begin();
   auto clSpan = gsl::span(cclusters->data(), cclusters->size());
   for (auto& rof : *rofs) {
     auto it = pattIt;
