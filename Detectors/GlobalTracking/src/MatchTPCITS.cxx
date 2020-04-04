@@ -666,7 +666,7 @@ bool MatchTPCITS::prepareTPCTracks()
       mTPCLblWork.emplace_back(mTPCTrkLabels->getLabels(it)[0]);
     }
 
-    float time0 = trcOrig.getTime0() - mNTPCBinsFullDrift;
+    float time0 = trcOrig.getTime0();
     trc.timeBins.set(time0 - trcOrig.getDeltaTBwd() - mTPCTimeEdgeTSafeMargin,
                      time0 + trcOrig.getDeltaTFwd() + mTPCTimeEdgeTSafeMargin);
     // assign min max possible Z for this track which still respects the clusters A/C side
@@ -1496,7 +1496,7 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
 
   /// precise time estimate
   auto tpcTrOrig = mTPCTracksArray[tTPC.sourceID];
-  float timeTB = tpcTrOrig.getTime0() - mNTPCBinsFullDrift;
+  float timeTB = tpcTrOrig.getTime0();
   if (tpcTrOrig.hasASideClustersOnly()) {
     timeTB += deltaT;
   } else if (tpcTrOrig.hasCSideClustersOnly()) {
@@ -1690,7 +1690,7 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
 
   /// precise time estimate
   const auto& tpcTrOrig = mTPCTracksArray[tTPC.sourceID];
-  float timeTB = tpcTrOrig.getTime0() - mNTPCBinsFullDrift;
+  float timeTB = tpcTrOrig.getTime0();
   if (tpcTrOrig.hasASideClustersOnly()) {
     timeTB += deltaT;
   } else if (tpcTrOrig.hasCSideClustersOnly()) {
@@ -2443,7 +2443,7 @@ float MatchTPCITS::correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTP
   if (tpcTrOrig.hasBothSidesClusters()) {
     return 0.;
   }
-  float timeIC = cand.timeBins.mean(), timeTrc = tpcTrOrig.getTime0() - mNTPCBinsFullDrift;
+  float timeIC = cand.timeBins.mean(), timeTrc = tpcTrOrig.getTime0();
   float driftErr = cand.timeBins.delta() * mTPCBin2Z;
 
   // we use this for refit
