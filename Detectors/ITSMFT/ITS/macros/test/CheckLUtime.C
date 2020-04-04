@@ -15,24 +15,19 @@
 #include <string>
 #include "TStopwatch.h"
 
-#include "ITSMFTReconstruction/BuildTopologyDictionary.h"
 #include "ITSMFTReconstruction/LookUp.h"
 #include "DataFormatsITSMFT/Cluster.h"
-#include "DataFormatsITSMFT/ClusterTopology.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 
 #endif
 
 void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile = "complete_dictionary.bin")
 {
-
-  using o2::itsmft::BuildTopologyDictionary;
   using o2::itsmft::Cluster;
-  using o2::itsmft::ClusterTopology;
+  using o2::itsmft::CompClusterExt;
   using o2::itsmft::LookUp;
-  using o2::itsmft::TopologyDictionary;
 
   LookUp finder(dictfile.c_str());
-  TopologyDictionary dict;
   ofstream time_output("time.txt");
 
   ofstream realtime, cputime;
@@ -44,8 +39,13 @@ void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile 
   // Clusters
   TFile* file1 = TFile::Open(clusfile.data());
   TTree* clusTree = (TTree*)gFile->Get("o2sim");
-  std::vector<Cluster>* clusArr = nullptr;
-  clusTree->SetBranchAddress("ITSCluster", &clusArr);
+  std::vector<CompClusterExt>* clusArr = nullptr;
+  clusTree->SetBranchAddress("ITSClusterComp", &clusArr);
+  std::vector<unsigned char>* patternsPtr = nullptr;
+  auto pattBranch = clusTree->GetBranch("ITSClusterPatt");
+  if (pattBranch) {
+    pattBranch->SetAddress(&patternsPtr);
+  }
 
   Int_t nevCl = clusTree->GetEntries(); // clusters in cont. readout may be grouped as few events per entry
   int ievC = 0, ievH = 0;
@@ -57,16 +57,18 @@ void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile 
     bool restart = false;
     restart = (ievC == 0) ? true : false;
     timerLookUp.Start(restart);
-    while (nc--) {
-      // cluster is in tracking coordinates always
-      Cluster& c = (*clusArr)[nc];
-      int rowSpan = c.getPatternRowSpan();
-      int columnSpan = c.getPatternColSpan();
+    auto pattIdx = patternsPtr->cbegin();
+    for (int i = 0; i < nc; i++) {
+      CompClusterExt& c = (*clusArr)[i];
+      auto rowSpan = *pattIdx++;
+      auto columnSpan = *pattIdx++;
       int nBytes = (rowSpan * columnSpan) >> 3;
       if (((rowSpan * columnSpan) % 8) != 0)
         nBytes++;
-      unsigned char patt[Cluster::kMaxPatternBytes];
-      c.getPattern(&patt[0], nBytes);
+      unsigned char patt[Cluster::kMaxPatternBytes] = {0}, *p = &patt[0];
+      while (nBytes--) {
+        *p++ = *pattIdx++;
+      }
       finder.findGroupID(rowSpan, columnSpan, patt);
     }
     timerLookUp.Stop();

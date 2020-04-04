@@ -26,7 +26,8 @@ bool verbose = false;
 
 void CheckLookUp(std::string clusfile = "o2clus_its.root", std::string dictfile = "complete_dictionary.bin")
 {
-
+#ifdef _ClusterTopology_
+  // This macro needs itsmft::Clusters to be compiled with topology information
   using o2::itsmft::BuildTopologyDictionary;
   using o2::itsmft::Cluster;
   using o2::itsmft::ClusterTopology;
@@ -112,4 +113,5 @@ void CheckLookUp(std::string clusfile = "o2clus_its.root", std::string dictfile 
   hDistribution->Scale(1 / hDistribution->Integral());
   outroot.cd();
   hDistribution->Write();
+#endif
 }

@@ -23,7 +23,7 @@
 
 #endif
 
-void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root")
+void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "", std::string paramfile = "o2sim_par.root")
 {
 
   using namespace o2::base;
