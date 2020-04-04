@@ -131,7 +131,7 @@ void TrackFitter::initTrack(const o2::itsmft::Cluster& cl, TrackParamMFT& param)
   double sigmax0sq = 0.0005;       // FIXME: from cluster
   double sigmay0sq = 0.0005;       // FIXME: from cluster
   double sigmaDeltaZsq = 5;        // Primary vertex distribution: beam interaction diamond
-  double sigmaboost = 1e9;         // Boost q/pt seed covariances
+  double sigmaboost = 1e7;         // Boost q/pt seed covariances
   double sigmainvqptsq = sigmaboost * 1e-8 / r0cu / r0cu * (sigmax0sq * x0 * x0 + sigmay0sq * y0 * y0); // .25 / pt; // Very large uncertainty on pt
 
   std::cout << "initTrack: pt = " << pt << std::endl;
