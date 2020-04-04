@@ -23,7 +23,7 @@
 
 #endif
 
-void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = "O2geometry.root", std::string dictionary_file = "complete_dictionary.bin")
+void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = "", std::string dictionary_file = "complete_dictionary.bin")
 {
   gStyle->SetOptStat(0);
   using namespace o2::base;

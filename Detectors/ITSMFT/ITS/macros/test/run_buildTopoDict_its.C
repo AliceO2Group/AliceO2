@@ -35,7 +35,7 @@
 
 void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
                            std::string hitfile = "o2sim_HitsITS.root",
-                           std::string inputGeom = "O2geometry.root")
+                           std::string inputGeom = "")
 {
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 

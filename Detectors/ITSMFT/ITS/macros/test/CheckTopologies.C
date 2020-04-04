@@ -17,7 +17,7 @@
 #include "MathUtils/Utils.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/BuildTopologyDictionary.h"
-#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ClusterTopology.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "MathUtils/Cartesian3D.h"
@@ -26,14 +26,14 @@
 
 #endif
 
-void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "O2geometry.root")
+void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "o2sim_geometry.root")
 {
   using namespace o2::base;
   using namespace o2::its;
 
   using o2::itsmft::BuildTopologyDictionary;
-  using o2::itsmft::Cluster;
   using o2::itsmft::ClusterTopology;
+  using o2::itsmft::CompClusterExt;
   using o2::itsmft::Hit;
 
   // Geometry
@@ -51,8 +51,14 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
   // Clusters
   TFile* file1 = TFile::Open(clusfile.data());
   TTree* clusTree = (TTree*)gFile->Get("o2sim");
-  std::vector<Cluster>* clusArr = nullptr;
-  clusTree->SetBranchAddress("ITSCluster", &clusArr);
+  std::vector<CompClusterExt>* clusArr = nullptr;
+  clusTree->SetBranchAddress("ITSClusterComp", &clusArr);
+  std::vector<unsigned char>* patternsPtr = nullptr;
+  auto pattBranch = clusTree->GetBranch("ITSClusterPatt");
+  if (pattBranch) {
+    pattBranch->SetAddress(&patternsPtr);
+  }
+
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
   clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
@@ -72,22 +78,18 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
     Int_t nc = clusArr->size();
     printf("processing cluster event %d\n", ievC);
 
-    while (nc--) {
+    auto pattIdx = patternsPtr->cbegin();
+    for (int i = 0; i < nc; i++) {
       // cluster is in tracking coordinates always
-      Cluster& c = (*clusArr)[nc];
+      CompClusterExt& c = (*clusArr)[i];
       Int_t chipID = c.getSensorID();
-      const auto locC = c.getXYZLoc(*gman);    // convert from tracking to local frame
-      const auto gloC = c.getXYZGloRot(*gman); // convert from tracking to global frame
-      auto lab = (clusLabArr->getLabels(nc))[0];
 
-      int rowSpan = c.getPatternRowSpan();
-      int columnSpan = c.getPatternColSpan();
-      int nBytes = (rowSpan * columnSpan) >> 3;
-      if (((rowSpan * columnSpan) % 8) != 0)
-        nBytes++;
-      unsigned char patt[Cluster::kMaxPatternBytes];
-      c.getPattern(&patt[0], nBytes);
-      ClusterTopology topology(rowSpan, columnSpan, patt);
+      auto lab = (clusLabArr->getLabels(i))[0];
+
+      ClusterTopology topology;
+      o2::itsmft::ClusterPattern pattern(pattIdx);
+      topology.setPattern(pattern);
+      const auto locC = o2::itsmft::TopologyDictionary::getClusterCoordinates(c, pattern);
 
       float dx = 0, dz = 0;
       int trID = lab.getTrackID();
