@@ -78,45 +78,39 @@ void TrackFitterTask::run(ProcessingContext& pc)
 
   int nTracksCA = 0;
   int nTracksLTF = 0;
-  std::vector<o2::mft::FitterTrackMFT> fittertracks;
+  std::vector<o2::mft::FitterTrackMFT> fittertracks(tracksLTF.size() + tracksCA.size());
   auto& finalMFTtracks = pc.outputs().make<std::vector<o2::mft::TrackMFT>>(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe});
+  finalMFTtracks.resize(tracksLTF.size() + tracksCA.size());
   std::list<o2::itsmft::Cluster> clusters;
 
   // Fit LTF tracks
   for (const auto& track : tracksLTF) {
-    o2::mft::FitterTrackMFT& temptrack = fittertracks.emplace_back();
+    auto& temptrack = fittertracks.at(nTracksLTF);
     convertTrack(track, temptrack, clusters);
     mTrackFitter->fit(temptrack, false);
-    fittertracks.back().printMCCompLabels();
-    //LOG(INFO) << "tracksLTF: nTracksLTF  = " << nTracksLTF << " tracks.size() = " << fittertracks.size() << std::endl;
     nTracksLTF++;
   }
 
   // Fit CA tracks
   for (const auto& track : tracksCA) {
-    o2::mft::FitterTrackMFT& temptrack = fittertracks.emplace_back();
-    //o2::itsmft::Cluster& tempcluster = clusters.emplace_back();
+    auto& temptrack = fittertracks.at(nTracksLTF + nTracksCA);
     convertTrack(track, temptrack, clusters);
     mTrackFitter->fit(temptrack, false);
-    fittertracks.back().printMCCompLabels();
-    //LOG(INFO) << "tracksCA: nTracksCA  = " << nTracksCA << " tracks.size() = " << fittertracks.size() << std::endl;
     nTracksCA++;
   }
-
-  LOG(INFO) << "\n ********* Fitted MFTTracks MCLabels() ********* ";
-  for (auto& track : fittertracks)
-    track.printMCCompLabels();
-
-  LOG(INFO) << "\n ********* Final MFTTracks MCLabels() Output ********* ";
+  auto nTotalTracks = 0;
   // Convert fitter tracks to the final Standalone MFT Track
   for (const auto& track : fittertracks) {
-    o2::mft::TrackMFT& temptrack = finalMFTtracks.emplace_back();
+    //o2::mft::TrackMFT& temptrack = finalMFTtracks.emplace_back();
+    auto& temptrack = finalMFTtracks.at(nTotalTracks);
+
     temptrack.setZ(track.first().getZ());
     temptrack.setParameters(TtoSMatrix5(track.first().getParameters()));
     temptrack.setCovariances(TtoSMatrixSym55(track.first().getCovariances()));
     temptrack.setTrackChi2(track.first().getTrackChi2());
     temptrack.setMCCompLabels(track.getMCCompLabels(), track.getNPoints());
-    finalMFTtracks.back().printMCCompLabels();
+    //finalMFTtracks.back().printMCCompLabels();
+    nTotalTracks++;
   }
 
   LOG(INFO) << "MFTFitter loaded " << tracksLTF.size() << " LTF tracks";
@@ -160,22 +154,15 @@ void convertTrack(const T& inTrack, O& outTrack, C& clusters)
   auto nClusters = inTrack.getNPoints();
   static int ntrack = 0;
 
-  //std::cout << "** Converting MFT track with nClusters = " << nClusters << std::endl;
-  // Add clusters to Tracker's cluster vector & set fittedTrack cluster range
+  // Add clusters to Tracker's cluster vector & set fittedTrack cluster range.
+  // TODO: get rid of this cluster vector
   for (auto cls = 0; cls < nClusters; cls++) {
     o2::itsmft::Cluster& tempcluster = clusters.emplace_back(clusterIDs[cls], xpos[cls], ypos[cls], zpos[cls]);
-    //auto cluster = o2::itsmft::Cluster();
     tempcluster.setSigmaY2(0.0001); // FIXME:
     tempcluster.setSigmaZ2(0.0001); // FIXME: Use clusters errors once available
     outTrack.createParamAtCluster(tempcluster);
-    //std::cout << "Adding cluster " << cls << " to track " << ntrack << " with clusterID " << tempcluster.getSensorID() << " at z = " << tempcluster.getZ() << std::endl;
   }
   outTrack.setMCCompLabels(inTrack.getMCCompLabels(), nClusters);
-  //std::cout << "  ** outTrack has getNClusters = " << outTrack.getNClusters() << std::endl;
-  //for (auto par = outTrack.rbegin(); par != outTrack.rend(); par++)
-  //  std::cout << "     getZ() =  " << par->getZ() << std::endl;
-
-  //fit(outTrack, false);
 }
 
 //_________________________________________________________________________________________________
