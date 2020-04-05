@@ -52,3 +52,9 @@ o2_add_test(RangeTokenizer
             SOURCES test/test_RangeTokenizer.cxx
             COMPONENT_NAME Algorithm
             LABELS algorithm)
+
+
+o2_add_test(FlattenRestore
+            SOURCES test/test_FlattenRestore.cxx
+            COMPONENT_NAME Algorithm
+            LABELS algorithm)
