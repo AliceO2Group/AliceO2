@@ -9,27 +9,28 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MCHRawDecoder
-               SOURCES src/Decoder.cxx
-               PUBLIC_LINK_LIBRARIES O2::MCHRawCommon O2::MCHRawElecMap
-               PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
+        SOURCES src/PageDecoder.cxx src/DecoderLogic.cxx
+        PUBLIC_LINK_LIBRARIES O2::MCHRawCommon O2::MCHRawElecMap
+        PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
 
 if(BUILD_TESTING)
-  o2_add_test(decoder
-              SOURCES src/testDecoder.cxx
-              COMPONENT_NAME mch
-              LABELS "mch;raw"
-              PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder O2::MCHTestRawRefBuffers)
+        o2_add_test(page-decoder
+                SOURCES src/testPageDecoder.cxx
+                COMPONENT_NAME mchraw
+                LABELS "muon;mch;raw"
+                PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder O2::MCHTestRawRefBuffers
+                O2::DPLUtils)
 
-  o2_add_test(bare-elink-decoder
-              SOURCES src/testBareElinkDecoder.cxx
-              COMPONENT_NAME mch
-              LABELS "mch;raw"
-              PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder O2::MCHRawImplHelpers)
+        o2_add_test(bare-elink-decoder
+                SOURCES src/testBareElinkDecoder.cxx
+                COMPONENT_NAME mchraw
+                LABELS "muon;mch;raw"
+                PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder O2::MCHRawImplHelpers)
 
-  o2_add_test(userlogic-elink-decoder
-          SOURCES src/testUserLogicElinkDecoder.cxx
-              COMPONENT_NAME mch
-              LABELS "mch;raw"
-              PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder O2::MCHRawImplHelpers)
+        o2_add_test(userlogic-endpoint-decoder
+                SOURCES src/testUserLogicEndpointDecoder.cxx
+                COMPONENT_NAME mchraw
+                LABELS "muon;mch;raw"
+                PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder O2::MCHRawImplHelpers)
 
 endif()
