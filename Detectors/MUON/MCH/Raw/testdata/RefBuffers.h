@@ -11,13 +11,13 @@
 #ifndef O2_MCH_RAW_TEST_REF_BUFFERS_H
 #define O2_MCH_RAW_TEST_REF_BUFFERS_H
 
-#include <vector>
-#include <cstdint>
+#include <cstddef>
+#include <gsl/span>
 
 template <typename DataFormat, typename Mode>
-extern std::vector<uint8_t> REF_BUFFER_GBT();
+extern gsl::span<const std::byte> REF_BUFFER_GBT();
 
 template <typename DataFormat, typename Mode>
-extern std::vector<uint8_t> REF_BUFFER_CRU();
+extern gsl::span<const std::byte> REF_BUFFER_CRU();
 
 #endif

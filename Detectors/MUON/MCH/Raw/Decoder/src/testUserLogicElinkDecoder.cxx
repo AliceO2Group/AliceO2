@@ -132,9 +132,9 @@ std::vector<uint64_t> createBuffer(const std::vector<SampaCluster>& clusters,
 template <typename CHARGESUM>
 void decodeBuffer(UserLogicElinkDecoder<CHARGESUM>& dec, const std::vector<uint64_t>& b64)
 {
-  std::vector<uint8_t> b8;
+  std::vector<std::byte> b8;
   impl::copyBuffer(b64, b8);
-  impl::dumpBuffer(b8);
+  impl::dumpBuffer<o2::mch::raw::UserLogicFormat>(b8);
   for (auto b : b64) {
     dec.append(b);
   }

@@ -32,7 +32,7 @@ class PageParser
  public:
   PageParser(RawDataHeaderHandler<RDH> rdhHandler, PAYLOADDECODER decoder);
 
-  DecoderStat parse(gsl::span<uint8_t> buffer);
+  DecoderStat parse(gsl::span<const std::byte> buffer);
 
  private:
   RawDataHeaderHandler<RDH> mRdhHandler;
@@ -48,7 +48,7 @@ PageParser<RDH, PAYLOADDECODER>::PageParser(RawDataHeaderHandler<RDH> rdhHandler
 }
 
 template <typename RDH, typename PAYLOADDECODER>
-DecoderStat PageParser<RDH, PAYLOADDECODER>::parse(gsl::span<uint8_t> buffer)
+DecoderStat PageParser<RDH, PAYLOADDECODER>::parse(gsl::span<const std::byte> buffer)
 {
   RDH originalRDH;
   const size_t nofRDHWords = sizeof(originalRDH);
@@ -59,7 +59,6 @@ DecoderStat PageParser<RDH, PAYLOADDECODER>::parse(gsl::span<uint8_t> buffer)
     originalRDH = createRDH<RDH>(buffer.subspan(index, nofRDHWords));
     if (!isValid(originalRDH)) {
       std::cout << "Got an invalid RDH\n";
-      impl::dumpBuffer(buffer.subspan(index, nofRDHWords));
       return mStats;
     }
     if (hasOrbitJump(rdhOrbit(originalRDH), mOrbit)) {

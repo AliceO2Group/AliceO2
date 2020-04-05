@@ -37,7 +37,7 @@ Decoder createDecoder(RawDataHeaderHandler<RDH> rdhHandler, SampaChannelHandler 
 {
   using GBTDecoder = typename GBTDecoderTrait<FORMAT, CHARGESUM>::type;
   using PAYLOADDECODER = PayloadDecoder<RDH, GBTDecoder>;
-  return [rdhHandler, channelHandler](gsl::span<uint8_t> buffer) -> DecoderStat {
+  return [rdhHandler, channelHandler](gsl::span<const std::byte> buffer) -> DecoderStat {
     static PageParser<RDH, PAYLOADDECODER> mPageParser(rdhHandler, PAYLOADDECODER(channelHandler));
     return mPageParser.parse(buffer);
   };

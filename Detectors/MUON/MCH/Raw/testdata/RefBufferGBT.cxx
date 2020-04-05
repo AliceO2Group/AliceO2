@@ -12,22 +12,22 @@
 #include "MCHRawCommon/DataFormats.h"
 #include <array>
 
-extern std::array<uint8_t, 2560> REF_BUFFER_GBT_BARE_CHARGESUM;
-extern std::array<uint8_t, 96> REF_BUFFER_GBT_USER_LOGIC_CHARGESUM;
+extern std::array<const uint8_t, 2560> REF_BUFFER_GBT_BARE_CHARGESUM;
+extern std::array<const uint8_t, 96> REF_BUFFER_GBT_USER_LOGIC_CHARGESUM;
 
 template <>
-std::vector<uint8_t> REF_BUFFER_GBT<o2::mch::raw::BareFormat, o2::mch::raw::ChargeSumMode>()
+gsl::span<const std::byte> REF_BUFFER_GBT<o2::mch::raw::BareFormat, o2::mch::raw::ChargeSumMode>()
 {
-  return {REF_BUFFER_GBT_BARE_CHARGESUM.begin(), REF_BUFFER_GBT_BARE_CHARGESUM.end()};
+  return gsl::span<const std::byte>(reinterpret_cast<const std::byte*>(&REF_BUFFER_GBT_BARE_CHARGESUM[0]), REF_BUFFER_GBT_BARE_CHARGESUM.size());
 }
 
 template <>
-std::vector<uint8_t> REF_BUFFER_GBT<o2::mch::raw::UserLogicFormat, o2::mch::raw::ChargeSumMode>()
+gsl::span<const std::byte> REF_BUFFER_GBT<o2::mch::raw::UserLogicFormat, o2::mch::raw::ChargeSumMode>()
 {
-  return {REF_BUFFER_GBT_USER_LOGIC_CHARGESUM.begin(), REF_BUFFER_GBT_USER_LOGIC_CHARGESUM.end()};
+  return {reinterpret_cast<const std::byte*>(&REF_BUFFER_GBT_USER_LOGIC_CHARGESUM[0]), REF_BUFFER_GBT_USER_LOGIC_CHARGESUM.size()};
 }
 
-std::array<uint8_t, 2560> REF_BUFFER_GBT_BARE_CHARGESUM =
+std::array<const uint8_t, 2560> REF_BUFFER_GBT_BARE_CHARGESUM =
   {
     // clang-format off
 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 
@@ -246,7 +246,7 @@ std::array<uint8_t, 2560> REF_BUFFER_GBT_BARE_CHARGESUM =
 0x00, 0x00, 0x00, 0x00
     // clang-format on
 };
-std::array<uint8_t, 96> REF_BUFFER_GBT_USER_LOGIC_CHARGESUM =
+std::array<const uint8_t, 96> REF_BUFFER_GBT_USER_LOGIC_CHARGESUM =
   {
     // clang-format off
 0x13, 0x01, 0xF0, 0x40, 0x55, 0x55, 0x01, 0xB8, 0x0C, 0x12, 0x00, 0x00,

@@ -42,7 +42,7 @@ class PayloadDecoder
 
   /// decode the buffer
   /// \return the number of bytes used from the buffer
-  size_t process(const RDH& rdh, gsl::span<uint8_t> buffer);
+  size_t process(const RDH& rdh, gsl::span<const std::byte> buffer);
 
   void reset();
 
@@ -58,7 +58,7 @@ PayloadDecoder<RDH, GBTDECODER>::PayloadDecoder(SampaChannelHandler channelHandl
 }
 
 template <typename RDH, typename GBTDECODER>
-size_t PayloadDecoder<RDH, GBTDECODER>::process(const RDH& rdh, gsl::span<uint8_t> buffer)
+size_t PayloadDecoder<RDH, GBTDECODER>::process(const RDH& rdh, gsl::span<const std::byte> buffer)
 {
   auto solarId = rdh.feeId;
   auto c = mDecoders.find(solarId);

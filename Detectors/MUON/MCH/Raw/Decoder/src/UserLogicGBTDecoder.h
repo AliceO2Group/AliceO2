@@ -47,7 +47,7 @@ class UserLogicGBTDecoder
     *
     * @return the number of bytes used in the bytes span
     */
-  size_t append(gsl::span<uint8_t> bytes);
+  size_t append(gsl::span<const std::byte> bytes);
   ///@}
 
   /** @name Methods for testing
@@ -82,7 +82,7 @@ UserLogicGBTDecoder<CHARGESUM>::UserLogicGBTDecoder(uint16_t solarId,
 }
 
 template <typename CHARGESUM>
-size_t UserLogicGBTDecoder<CHARGESUM>::append(gsl::span<uint8_t> buffer)
+size_t UserLogicGBTDecoder<CHARGESUM>::append(gsl::span<const std::byte> buffer)
 {
   if (buffer.size() % 8) {
     throw std::invalid_argument("buffer size should be a multiple of 8");

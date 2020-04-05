@@ -12,36 +12,28 @@
 #define O2_MCH_RAW_RDH_MANIP_H
 
 #include <cstdint>
-#include <iostream>
-#include <vector>
-#include <gsl/span>
-#include <string_view>
 #include <functional>
+#include <gsl/span>
+#include <iostream>
+#include <string>
+#include <string_view>
+#include <vector>
+#include <cstddef>
 
-namespace o2
-{
-namespace mch
-{
-namespace raw
+namespace o2::mch::raw
 {
 
 template <typename RDH>
 void assertRDH(const RDH& rdh);
 
 template <typename RDH>
-void appendRDH(std::vector<uint8_t>& buffer, const RDH& rdh);
+void appendRDH(std::vector<std::byte>& buffer, const RDH& rdh);
 
 template <typename RDH>
-void appendRDH(std::vector<uint32_t>& buffer, const RDH& rdh);
+RDH createRDH(gsl::span<const std::byte> buffer);
 
 template <typename RDH>
-RDH createRDH(gsl::span<uint8_t> buffer);
-
-template <typename RDH>
-RDH createRDH(gsl::span<uint32_t> buffer);
-
-template <typename RDH>
-RDH createRDH(uint16_t cruId, uint8_t linkId, uint16_t solarId, uint32_t orbit, uint16_t bunchCrossing, uint16_t payloadSize);
+RDH createRDH(uint16_t cruId, uint8_t linkId, uint16_t feeId, uint32_t orbit, uint16_t bunchCrossing, uint16_t payloadSize);
 
 template <typename RDH>
 bool isValid(const RDH& rdh);
@@ -59,27 +51,23 @@ template <typename RDH>
 uint16_t rdhBunchCrossing(const RDH& rdh);
 
 template <typename RDH>
-int countRDHs(gsl::span<uint8_t> buffer);
+int countRDHs(gsl::span<const std::byte> buffer);
 
 template <typename RDH>
-int showRDHs(gsl::span<uint32_t> buffer);
+int showRDHs(gsl::span<const std::byte> buffer);
+
+std::string triggerTypeAsString(uint32_t triggerType);
 
 template <typename RDH>
-int showRDHs(gsl::span<uint8_t> buffer);
-
-void dumpRDHBuffer(gsl::span<uint32_t> buffer, std::string_view indent);
+int forEachRDH(gsl::span<const std::byte> buffer, std::function<void(const RDH&)> f);
 
 template <typename RDH>
-int forEachRDH(gsl::span<uint32_t> buffer, std::function<void(RDH&)> f);
+int forEachRDH(gsl::span<const std::byte> buffer, std::function<void(const RDH&, gsl::span<const std::byte>::size_type offset)> f);
 
+// beware : this version might modify the RDH, hence the buffer
 template <typename RDH>
-int countRDHs(gsl::span<uint32_t> buffer);
+int forEachRDH(gsl::span<std::byte> buffer, std::function<void(RDH&, gsl::span<std::byte>::size_type offset)> f);
 
-template <typename RDH>
-int countRDHs(gsl::span<uint8_t> buffer);
-
-} // namespace raw
-} // namespace mch
-} // namespace o2
+} // namespace o2::mch::raw
 
 #endif
