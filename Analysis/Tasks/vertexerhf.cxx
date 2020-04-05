@@ -112,32 +112,30 @@ struct DecayVertexBuilder2Prong {
         df.setUseAbsDCA(true);
         int nCand = df.process(trackparvar0, trackparvar1);
         //FIXME: currently filling the table for all dca candidates.
-        for (int ic = 0; ic < nCand; ic++) {
-          const auto& vtx = df.getPCACandidate(ic);
-          LOGF(info, "vertex x %f", vtx[0]);
-          hvtx_x_out->Fill(vtx[0]);
-          hvtx_y_out->Fill(vtx[1]);
-          hvtx_z_out->Fill(vtx[2]);
-          o2::track::TrackParCov trackdec0 = df.getTrack(0, ic);
-          o2::track::TrackParCov trackdec1 = df.getTrack(1, ic);
-          std::array<float, 3> pvec0;
-          std::array<float, 3> pvec1;
-          trackdec0.getPxPyPzGlo(pvec0);
-          trackdec1.getPxPyPzGlo(pvec1);
-          float masspion = 0.140;
-          float masskaon = 0.494;
-          float mass_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masspion,
-                                       pvec1[0], pvec1[1], pvec1[2], masskaon);
-          float masssw_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masskaon,
-                                         pvec1[0], pvec1[1], pvec1[2], masspion);
-          secvtx2prong(track_0.collisionId(),
-                       collision.posX(), collision.posY(), collision.posZ(),
-                       vtx[0], vtx[1], vtx[2], track_0.globalIndex(),
-                       pvec0[0], pvec0[1], pvec0[2], track_0.y(),
-                       track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], track_1.y(),
-                       ic, mass_, masssw_);
-          hchi2dca->Fill(df.getChi2AtPCACandidate(ic));
-        }
+        const auto& vtx = df.getPCACandidate();
+        LOGF(info, "vertex x %f", vtx[0]);
+        hvtx_x_out->Fill(vtx[0]);
+        hvtx_y_out->Fill(vtx[1]);
+        hvtx_z_out->Fill(vtx[2]);
+        o2::track::TrackParCov trackdec0 = df.getTrack(0);
+        o2::track::TrackParCov trackdec1 = df.getTrack(1);
+        std::array<float, 3> pvec0;
+        std::array<float, 3> pvec1;
+        trackdec0.getPxPyPzGlo(pvec0);
+        trackdec1.getPxPyPzGlo(pvec1);
+        float masspion = 0.140;
+        float masskaon = 0.494;
+        float mass_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masspion,
+                                     pvec1[0], pvec1[1], pvec1[2], masskaon);
+        float masssw_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masskaon,
+                                       pvec1[0], pvec1[1], pvec1[2], masspion);
+        secvtx2prong(track_0.collisionId(),
+                     collision.posX(), collision.posY(), collision.posZ(),
+                     vtx[0], vtx[1], vtx[2], track_0.globalIndex(),
+                     pvec0[0], pvec0[1], pvec0[2], track_0.y(),
+                     track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], track_1.y(),
+                     mass_, masssw_);
+        hchi2dca->Fill(df.getChi2AtPCACandidate());
       }
     }
   }
@@ -205,7 +203,7 @@ struct CandidateBuildingDzero {
       //select the candidate via its index. It is redundant cause the secondary
       //vertex recostruction is performed more than once for each dca candidate
       int nCand = df.process(trackparvar0, trackparvar1);
-      const auto& secvtx = df.getPCACandidate(secVtx2prong.indexDCApair());
+      const auto& secvtx = df.getPCACandidate();
       float masspion = 0.140;
       float masskaon = 0.494;
       float mass_ = invmass2prongs(secVtx2prong.px0(), secVtx2prong.py0(),
@@ -217,8 +215,8 @@ struct CandidateBuildingDzero {
                                      secVtx2prong.px1(), secVtx2prong.py1(),
                                      secVtx2prong.pz1(), masspion);
       cand2prong(mass_, masssw_);
-      o2::track::TrackParCov trackdec0 = df.getTrack(0, secVtx2prong.indexDCApair());
-      o2::track::TrackParCov trackdec1 = df.getTrack(1, secVtx2prong.indexDCApair());
+      o2::track::TrackParCov trackdec0 = df.getTrack(0);
+      o2::track::TrackParCov trackdec1 = df.getTrack(1);
       std::array<float, 3> pvec0;
       std::array<float, 3> pvec1;
       trackdec0.getPxPyPzGlo(pvec0);
