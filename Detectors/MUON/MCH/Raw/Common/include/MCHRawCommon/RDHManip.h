@@ -18,6 +18,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include "MCHRawCommon/RDHFields.h"
 #include <cstddef>
 
 namespace o2::mch::raw
@@ -37,18 +38,6 @@ RDH createRDH(uint16_t cruId, uint8_t linkId, uint16_t feeId, uint32_t orbit, ui
 
 template <typename RDH>
 bool isValid(const RDH& rdh);
-
-template <typename RDH>
-size_t rdhPayloadSize(const RDH& rdh);
-
-template <typename RDH>
-uint8_t rdhLinkId(const RDH& rdh);
-
-template <typename RDH>
-uint32_t rdhOrbit(const RDH& rdh);
-
-template <typename RDH>
-uint16_t rdhBunchCrossing(const RDH& rdh);
 
 template <typename RDH>
 int countRDHs(gsl::span<const std::byte> buffer);

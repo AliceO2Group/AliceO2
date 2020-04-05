@@ -8,42 +8,102 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHRawCommon/RDHManip.h"
-#include <fmt/format.h>
+#include "CommonConstants/Triggers.h"
 #include "Headers/RAWDataHeader.h"
-#include <iostream>
+#include "MCHRawCommon/RDHManip.h"
 #include <cassert>
+#include <fmt/format.h>
+#include <iostream>
+#include <string>
+#include "CommonConstants/Triggers.h"
 
-using namespace o2::header;
-
-std::ostream& operator<<(std::ostream& os, const RAWDataHeaderV4& rdh)
+namespace o2::header
 {
-  os << fmt::format("version              {:03d} headerSize      {:03d} \n",
+std::ostream& operator<<(std::ostream& os, const o2::header::RAWDataHeaderV4& rdh)
+{
+  os << fmt::format("version              {:03d} headerSize      {:03d} triggerType {:08x} {:s}\n",
                     rdh.version,
-                    rdh.headerSize);
+                    rdh.headerSize,
+                    rdh.triggerType,
+                    o2::mch::raw::triggerTypeAsString(rdh.triggerType));
 
-  os << fmt::format("cruId                {:03d} dpwId            {:02d} linkId        {:03d}\n", rdh.cruID, rdh.endPointID, rdh.linkID);
+  os << fmt::format("cruId                {:03d} dpwId            {:02d} linkId           {:03d}\n", rdh.cruID, rdh.endPointID, rdh.linkID);
 
-  os << fmt::format("offsetToNext   {:05d} memorySize    {:05d} blockLength {:05d}\n", rdh.offsetToNext, rdh.memorySize, rdh.blockLength);
+  os << fmt::format("offsetToNext       {:05d} memorySize    {:05d} blockLength    {:05d} {:s}\n", rdh.offsetToNext, rdh.memorySize, rdh.blockLength,
+                    rdh.memorySize == sizeof(rdh) ? "EMPTY" : "");
 
-  os << fmt::format("triggerOrbit  {:010d} HB orbit {:010d}\n",
-                    rdh.triggerOrbit, rdh.heartbeatOrbit);
+  os << fmt::format("heartbeatOrbit{:010d} heartbeatBC    {:04d} feeId         {:6d}\n",
+                    rdh.heartbeatOrbit, rdh.heartbeatBC, rdh.feeId);
 
-  os << fmt::format("triggerBC           {:04d} heartbeatBC    {:04d}\n",
-                    rdh.triggerBC, rdh.heartbeatBC);
-
-  os << fmt::format("stopBit                {:1d} pagesCounter    {:03d} packetCounter {:03d} \n",
-                    rdh.stop, rdh.pageCnt, rdh.packetCounter);
+  os << fmt::format("stopBit                {:1d} pagesCounter    {:03d} packetCounter    {:03d} {:s}\n",
+                    rdh.stop, rdh.pageCnt, rdh.packetCounter,
+                    rdh.stop ? "STOP" : "");
 
   return os;
 }
 
-namespace o2
+} // namespace o2::header
+
+using namespace o2::header;
+
+namespace o2::mch::raw
 {
-namespace mch
+
+std::string triggerTypeAsString(uint32_t triggerType)
 {
-namespace raw
-{
+  std::string s;
+
+  if (triggerType == 0) {
+    s = "UNKNOWN";
+  }
+
+  if (triggerType & o2::trigger::ORBIT) {
+    s += "ORBIT ";
+  }
+  if (triggerType & o2::trigger::HB) {
+    s += "HB ";
+  }
+  if (triggerType & o2::trigger::HBr) {
+    s += "HBr ";
+  }
+  if (triggerType & o2::trigger::HC) {
+    s += "HC ";
+  }
+  if (triggerType & o2::trigger::PhT) {
+    s += "PhT ";
+  }
+  if (triggerType & o2::trigger::PP) {
+    s += "PP ";
+  }
+  if (triggerType & o2::trigger::Cal) {
+    s += "Cal ";
+  }
+  if (triggerType & o2::trigger::SOT) {
+    s += "SOT ";
+  }
+  if (triggerType & o2::trigger::EOT) {
+    s += "EOT ";
+  }
+  if (triggerType & o2::trigger::SOC) {
+    s += "SOC ";
+  }
+  if (triggerType & o2::trigger::EOC) {
+    s += "EOC ";
+  }
+  if (triggerType & o2::trigger::TF) {
+    s += "TF ";
+  }
+  if (triggerType & o2::trigger::TPC) {
+    s += "TPC ";
+  }
+  if (triggerType & o2::trigger::TPCrst) {
+    s += "TPCrst ";
+  }
+  if (triggerType & o2::trigger::TOF) {
+    s += "TOF ";
+  }
+  return s;
+}
 
 template <>
 bool isValid(const RAWDataHeaderV4& rdh)
@@ -126,7 +186,7 @@ RAWDataHeaderV4 createRDH(gsl::span<const std::byte> buffer)
 }
 
 template <>
-RAWDataHeaderV4 createRDH(uint16_t cruId, uint8_t linkId, uint16_t solarId, uint32_t orbit, uint16_t bunchCrossing,
+RAWDataHeaderV4 createRDH(uint16_t cruId, uint8_t linkId, uint16_t feeId, uint32_t orbit, uint16_t bunchCrossing,
                           uint16_t payloadSize)
 {
   RAWDataHeaderV4 rdh;
@@ -138,7 +198,8 @@ RAWDataHeaderV4 createRDH(uint16_t cruId, uint8_t linkId, uint16_t solarId, uint
   uint16_t memorySize = payloadSize + sizeof(rdh);
 
   rdh.cruID = cruId;
-  rdh.feeId = solarId;
+  rdhLinkId(rdh, linkId);
+  rdh.feeId = feeId;
   rdh.priority = 0;
   rdh.blockLength = memorySize - sizeof(rdh); // FIXME: the blockLength disappears in RDHv5 ?
   rdh.memorySize = memorySize;
@@ -153,30 +214,6 @@ RAWDataHeaderV4 createRDH(uint16_t cruId, uint8_t linkId, uint16_t solarId, uint
   rdh.heartbeatBC = bunchCrossing;
 
   return rdh;
-}
-
-template <>
-uint32_t rdhOrbit(const RAWDataHeaderV4& rdh)
-{
-  return rdh.triggerOrbit; // or is it heartbeatOrbit ?
-}
-
-template <>
-size_t rdhPayloadSize(const RAWDataHeaderV4& rdh)
-{
-  return rdh.memorySize - sizeof(rdh);
-}
-
-template <>
-uint8_t rdhLinkId(const RAWDataHeaderV4& rdh)
-{
-  return rdh.linkID + 12 * rdh.endPointID;
-}
-
-template <>
-uint16_t rdhBunchCrossing(const RAWDataHeaderV4& rdh)
-{
-  return static_cast<uint16_t>(rdh.triggerBC & 0xFFF);
 }
 
 template <typename RDH>
@@ -275,6 +312,4 @@ template int forEachRDH(gsl::span<const std::byte> buffer, std::function<void(co
 template int forEachRDH(gsl::span<uint8_t> buffer, std::function<void(RAWDataHeaderV4&, gsl::span<uint8_t>::size_type)> f);
 template int forEachRDH(gsl::span<const std::byte> buffer, std::function<void(const RAWDataHeaderV4&, gsl::span<const std::byte>::size_type)> f);
 
-} // namespace raw
-} // namespace mch
-} // namespace o2
+} // namespace o2::mch::raw
