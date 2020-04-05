@@ -9,11 +9,10 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MCHRawCommon
-               SOURCES src/RDHManip.cxx src/SampaHeader.cxx src/SampaCluster.cxx
-               PUBLIC_LINK_LIBRARIES fmt::fmt ms_gsl::ms_gsl Boost::boost
-                                     O2::Headers
-               PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
+        SOURCES src/RDHManip.cxx src/SampaHeader.cxx src/SampaCluster.cxx src/RDHFieldsV4.cxx
+        PUBLIC_LINK_LIBRARIES fmt::fmt ms_gsl::ms_gsl Boost::boost O2::Headers O2::CommonConstants
+        PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
 
 if(BUILD_TESTING)
-  add_subdirectory(test)
+        add_subdirectory(test)
 endif()
