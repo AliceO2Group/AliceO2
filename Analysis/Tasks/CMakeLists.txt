@@ -45,3 +45,8 @@ o2_add_executable(upc-an
                   SOURCES upcAnalysis.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
                   COMPONENT_NAME Analysis)
+
+o2_add_executable(event-selection
+                  SOURCES eventSelection.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
+                  COMPONENT_NAME Analysis)
