@@ -18,6 +18,7 @@
 #include <algorithm>
 #include "NofBits.h"
 #include <array>
+#include <sstream>
 
 namespace
 {
@@ -373,8 +374,10 @@ SampaHeader sampaSync()
     0);
 }
 
-std::ostream& operator<<(std::ostream& os, const SampaHeader& sh)
+std::string asString(const SampaHeader& sh)
 {
+  std::stringstream os;
+
   uint64_t one = 1;
   std::vector<int> sep = {5, 6, 9, 19, 23, 28, 48};
   for (int i = 0; i < 50; i++) {
@@ -397,7 +400,12 @@ std::ostream& operator<<(std::ostream& os, const SampaHeader& sh)
                      packetTypeName(sh.packetType()),
                      sh.hasError() ? "ERROR" : "")
      << "\n";
-  return os;
+  return os.str();
+}
+
+std::ostream& operator<<(std::ostream& os, const SampaHeader& sh)
+{
+  return os << asString(sh);
 }
 
 // conv array convert a bit position in the hamming sense
@@ -610,6 +618,11 @@ int computeHeaderParity4(uint64_t no)
   constexpr uint64_t one{1};
   no &= ~(one << 6); // reset bit 6
   return computeParity(no);
+}
+
+uint8_t channelNumber64(const SampaHeader& sh)
+{
+  return sh.channelAddress() + (sh.chipAddress() % 2) * 32;
 }
 } // namespace raw
 } // namespace mch
