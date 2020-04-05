@@ -19,12 +19,13 @@
 #include <limits>
 #include "MCHRawCommon/RDHManip.h"
 #include "Headers/RAWDataHeader.h"
+#include "MCHRawCommon/DataFormats.h"
 
 namespace o2::mch::raw::impl
 {
 
 template <typename T, std::enable_if_t<std::is_integral<T>::value, int> = 1>
-void dumpBuffer(gsl::span<T> buffer)
+void dumpByteBuffer(gsl::span<T> buffer)
 {
 
   int i{0};
@@ -38,7 +39,7 @@ void dumpBuffer(gsl::span<T> buffer)
   std::cout << "\n";
 }
 
-uint64_t b8to64(gsl::span<uint8_t> buffer, size_t i)
+uint64_t b8to64(gsl::span<const std::byte> buffer, size_t i)
 {
   return (static_cast<uint64_t>(buffer[i + 0])) |
          (static_cast<uint64_t>(buffer[i + 1]) << 8) |
@@ -50,19 +51,23 @@ uint64_t b8to64(gsl::span<uint8_t> buffer, size_t i)
          (static_cast<uint64_t>(buffer[i + 7]) << 56);
 }
 
-void append(std::vector<uint8_t>& buffer, uint64_t w)
+void append(std::vector<std::byte>& buffer, uint64_t w)
 {
-  buffer.emplace_back(static_cast<uint8_t>((w & UINT64_C(0x00000000000000FF))));
-  buffer.emplace_back(static_cast<uint8_t>((w & UINT64_C(0x000000000000FF00)) >> 8));
-  buffer.emplace_back(static_cast<uint8_t>((w & UINT64_C(0x0000000000FF0000)) >> 16));
-  buffer.emplace_back(static_cast<uint8_t>((w & UINT64_C(0x00000000FF000000)) >> 24));
-  buffer.emplace_back(static_cast<uint8_t>((w & UINT64_C(0x000000FF00000000)) >> 32));
-  buffer.emplace_back(static_cast<uint8_t>((w & UINT64_C(0x0000FF0000000000)) >> 40));
-  buffer.emplace_back(static_cast<uint8_t>((w & UINT64_C(0x00FF000000000000)) >> 48));
-  buffer.emplace_back(static_cast<uint8_t>((w & UINT64_C(0xFF00000000000000)) >> 56));
+  buffer.emplace_back(std::byte{static_cast<uint8_t>((w & UINT64_C(0x00000000000000FF)))});
+  buffer.emplace_back(std::byte{static_cast<uint8_t>((w & UINT64_C(0x000000000000FF00)) >> 8)});
+  buffer.emplace_back(std::byte{static_cast<uint8_t>((w & UINT64_C(0x0000000000FF0000)) >> 16)});
+  buffer.emplace_back(std::byte{static_cast<uint8_t>((w & UINT64_C(0x00000000FF000000)) >> 24)});
+  buffer.emplace_back(std::byte{static_cast<uint8_t>((w & UINT64_C(0x000000FF00000000)) >> 32)});
+  buffer.emplace_back(std::byte{static_cast<uint8_t>((w & UINT64_C(0x0000FF0000000000)) >> 40)});
+  buffer.emplace_back(std::byte{static_cast<uint8_t>((w & UINT64_C(0x00FF000000000000)) >> 48)});
+  buffer.emplace_back(std::byte{static_cast<uint8_t>((w & UINT64_C(0xFF00000000000000)) >> 56)});
 }
 
-void dumpBuffer(gsl::span<uint8_t> buffer, std::ostream& out = std::cout, size_t maxbytes = std::numeric_limits<size_t>::max())
+template <typename FORMAT>
+void dumpBuffer(gsl::span<const std::byte> buffer, std::ostream& out = std::cout, size_t maxbytes = std::numeric_limits<size_t>::max());
+
+template <>
+void dumpBuffer<o2::mch::raw::BareFormat>(gsl::span<const std::byte> buffer, std::ostream& out, size_t maxbytes)
 {
   int i{0};
   int inRDH{0};
@@ -110,13 +115,76 @@ void dumpBuffer(gsl::span<uint8_t> buffer, std::ostream& out = std::cout, size_t
   }
   out << "\n";
 }
+
+template <>
+void dumpBuffer<o2::mch::raw::UserLogicFormat>(gsl::span<const std::byte> buffer, std::ostream& out, size_t maxbytes)
+{
+  int i{0};
+  int inRDH{0};
+  o2::header::RAWDataHeaderV4 rdh;
+
+  if (buffer.size() < 8) {
+    std::cout << "Should at least get 8 bytes to be able to dump\n";
+    return;
+  }
+  while ((i < buffer.size() - 7) && i < maxbytes) {
+    if (i % 8 == 0) {
+      out << fmt::format("\n{:8d} : ", i);
+    }
+    uint64_t w = b8to64(buffer, i);
+    out << fmt::format("{:016X} {:4d} {:4d} {:4d} {:4d} {:4d} ",
+                       w,
+                       (w & 0x3FF0000000000) >> 40,
+                       (w & 0xFFC0000000) >> 30,
+                       (w & 0x3FF00000) >> 20,
+                       (w & 0xFFC00) >> 10,
+                       (w & 0x3FF));
+    if ((w & 0xFFFF) == 0x4004) {
+      inRDH = 8;
+    }
+    if (inRDH) {
+      --inRDH;
+      if (inRDH == 7) {
+        out << "Begin RDH ";
+        rdh = o2::mch::raw::createRDH<o2::header::RAWDataHeaderV4>(buffer.subspan(i, 64));
+        std::cout << fmt::format("ORBIT {} BX {} PAYLOADSIZE {}", rdhOrbit(rdh), rdhBunchCrossing(rdh), rdhPayloadSize(rdh));
+      }
+      if (inRDH == 0) {
+        out << "End RDH ";
+      }
+    } else {
+      constexpr uint64_t FIFTYBITSATONE = (static_cast<uint64_t>(1) << 50) - 1;
+      SampaHeader h(w & FIFTYBITSATONE);
+      uint64_t f14 = ((w & 0xFFFC000000000000) >> 50);
+      uint64_t gbt = (f14 & 0x3E00) >> 6;
+      uint64_t ds = (f14 & 0x1F8) >> 3;
+      uint64_t error = f14 & 0x7;
+      if (h == sampaSync()) {
+        out << "SYNC !!";
+      }
+      if (w) {
+        out << fmt::format("w {:16x} F14 {:4x} GBT {:3d} DS {:2d} ERR {:1d}", w, f14, gbt, ds, error);
+      }
+      // } else if (h.packetType() == SampaPacketType::Sync) {
+      //   out << "SYNC " << std::boolalpha << (h == sampaSync());
+      if (h.packetType() == SampaPacketType::Data) {
+        out << fmt::format(" n10 {:4d} chip {:2d} ch {:2d}",
+                           h.nof10BitWords(), h.chipAddress(), h.channelAddress());
+      }
+    }
+    i += 8;
+  }
+  out << "\n";
+}
+
+template <typename FORMAT>
 void dumpBuffer(const std::vector<uint64_t>& buffer, std::ostream& out = std::cout, size_t maxbytes = std::numeric_limits<size_t>::max())
 {
-  std::vector<uint8_t> b8;
+  std::vector<std::byte> b8;
   for (auto w : buffer) {
     append(b8, w);
   }
-  dumpBuffer(b8, out, maxbytes);
+  dumpBuffer<FORMAT>(b8, out, maxbytes);
 }
 
 } // namespace o2::mch::raw::impl
