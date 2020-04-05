@@ -111,7 +111,7 @@ class SampaHeader
   ///@}
 
   /// return the header as a 64-bits integer
-  uint64_t uint64() const { return mValue; }
+  constexpr uint64_t uint64() const { return mValue; }
 
   /// sets the value from a 64-bits integer.
   /// if the value does not fit within 50 bits an exception is thrown.
@@ -127,6 +127,9 @@ constexpr uint64_t sampaSyncWord{0x1555540f00113};
 
 /// The 50-bits Sampa SYNC word.
 SampaHeader sampaSync();
+
+/// Return channel number (0..63)
+uint8_t channelNumber64(const SampaHeader& sh);
 
 /// packetTypeName returns a string representation of the given packet type.
 std::string packetTypeName(SampaPacketType pkt);
@@ -151,6 +154,8 @@ int computeHeaderParity1(uint64_t value);
 int computeHeaderParity2(uint64_t value);
 int computeHeaderParity3(uint64_t value);
 int computeHeaderParity4(uint64_t value);
+
+std::string asString(const SampaHeader& sh);
 
 std::ostream&
   operator<<(std::ostream& os, const SampaHeader& sh);

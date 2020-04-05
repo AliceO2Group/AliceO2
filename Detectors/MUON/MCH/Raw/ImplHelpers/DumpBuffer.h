@@ -103,9 +103,13 @@ void dumpBuffer<o2::mch::raw::BareFormat>(gsl::span<const std::byte> buffer, std
         out << "End RDH ";
       }
     } else {
-      SampaHeader h(w & 0x3FFFFFFFFFFFF);
-      if (h.packetType() == SampaPacketType::Sync) {
-        out << "SYNC";
+      constexpr uint64_t FIFTYBITSATONE = (static_cast<uint64_t>(1) << 50) - 1;
+      SampaHeader h(w & FIFTYBITSATONE);
+      std::cout << "14first=" << ((w & 0xFFFC000000000000) >> 50) << " ";
+      if (h == sampaSync()) {
+        out << "SYNC !!";
+      } else if (h.packetType() == SampaPacketType::Sync) {
+        out << "SYNC " << std::boolalpha << (h == sampaSync());
       } else if (h.packetType() == SampaPacketType::Data) {
         out << fmt::format(" n10 {:4d} chip {:2d} ch {:2d}",
                            h.nof10BitWords(), h.chipAddress(), h.channelAddress());
@@ -155,21 +159,8 @@ void dumpBuffer<o2::mch::raw::UserLogicFormat>(gsl::span<const std::byte> buffer
     } else {
       constexpr uint64_t FIFTYBITSATONE = (static_cast<uint64_t>(1) << 50) - 1;
       SampaHeader h(w & FIFTYBITSATONE);
-      uint64_t f14 = ((w & 0xFFFC000000000000) >> 50);
-      uint64_t gbt = (f14 & 0x3E00) >> 6;
-      uint64_t ds = (f14 & 0x1F8) >> 3;
-      uint64_t error = f14 & 0x7;
       if (h == sampaSync()) {
         out << "SYNC !!";
-      }
-      if (w) {
-        out << fmt::format("w {:16x} F14 {:4x} GBT {:3d} DS {:2d} ERR {:1d}", w, f14, gbt, ds, error);
-      }
-      // } else if (h.packetType() == SampaPacketType::Sync) {
-      //   out << "SYNC " << std::boolalpha << (h == sampaSync());
-      if (h.packetType() == SampaPacketType::Data) {
-        out << fmt::format(" n10 {:4d} chip {:2d} ch {:2d}",
-                           h.nof10BitWords(), h.chipAddress(), h.channelAddress());
       }
     }
     i += 8;

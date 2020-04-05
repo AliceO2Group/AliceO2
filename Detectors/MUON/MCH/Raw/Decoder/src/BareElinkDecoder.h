@@ -151,7 +151,6 @@ std::string bitBufferString(const std::bitset<50>& bs, int imax)
 }
 } // namespace
 
-//FIXME: probably needs the GBT id as well here ?
 template <typename CHARGESUM>
 BareElinkDecoder<CHARGESUM>::BareElinkDecoder(DsElecId dsId,
                                               SampaChannelHandler sampaChannelHandler)
@@ -418,17 +417,12 @@ std::ostream& operator<<(std::ostream& os, const o2::mch::raw::BareElinkDecoder<
   return os;
 }
 
-uint8_t channelNumber(const SampaHeader& sh)
-{
-  return sh.channelAddress() + (sh.chipAddress() % 2) * 32;
-}
-
 template <>
 void BareElinkDecoder<ChargeSumMode>::sendCluster()
 {
   if (mSampaChannelHandler) {
     mSampaChannelHandler(mDsId,
-                         channelNumber(mSampaHeader),
+                         channelNumber64(mSampaHeader),
                          SampaCluster(mTimestamp, mClusterSum));
   }
 }
@@ -438,7 +432,7 @@ void BareElinkDecoder<SampleMode>::sendCluster()
 {
   if (mSampaChannelHandler) {
     mSampaChannelHandler(mDsId,
-                         channelNumber(mSampaHeader),
+                         channelNumber64(mSampaHeader),
                          SampaCluster(mTimestamp, mSamples));
   }
   mSamples.clear();

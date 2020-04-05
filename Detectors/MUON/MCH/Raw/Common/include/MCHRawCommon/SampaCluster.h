@@ -85,6 +85,9 @@ void assertNotMixingClusters(const std::vector<SampaCluster>& data)
 }
 
 std::ostream& operator<<(std::ostream& os, const SampaCluster& sc);
+
+std::string asString(const SampaCluster& sc);
+
 } // namespace raw
 } // namespace mch
 } // namespace o2

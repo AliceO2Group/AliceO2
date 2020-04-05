@@ -10,6 +10,7 @@
 
 #include "Headers/RAWDataHeader.h"
 #include "MCHRawCommon/RDHFields.h"
+#include "Assertions.h"
 
 namespace o2::mch::raw
 {
@@ -35,14 +36,16 @@ uint16_t rdhPayloadSize(const o2::header::RAWDataHeaderV4& rdh)
 template <>
 uint8_t rdhLinkId(const o2::header::RAWDataHeaderV4& rdh)
 {
-  return rdh.linkID + 12 * rdh.endPointID;
+  return rdh.linkID;
 }
 
 template <>
 void rdhLinkId(o2::header::RAWDataHeaderV4& rdh, uint8_t linkId)
 {
-  rdh.linkID = linkId % 12;
-  rdh.endPointID = linkId / 12;
+  if (linkId < 0 || (linkId > 11 && linkId != 15)) {
+    throw std::invalid_argument(fmt::format("linkId should be between 0 and 11 or = 15 but is {}", linkId));
+  }
+  rdh.linkID = linkId;
 }
 
 template <>
@@ -157,5 +160,12 @@ template <>
 uint8_t rdhEndpoint(const o2::header::RAWDataHeaderV4& rdh)
 {
   return rdh.endPointID;
+}
+
+template <>
+void rdhEndpoint(o2::header::RAWDataHeaderV4& rdh, uint8_t endpoint)
+{
+  impl::assertIsInRange("endpoint", endpoint, 0, 1);
+  rdh.endPointID = endpoint;
 }
 } // namespace o2::mch::raw

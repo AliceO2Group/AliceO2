@@ -8,24 +8,4 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_RAW_RAWDATAHEADER_HANDLER_H
-#define O2_MCH_RAW_RAWDATAHEADER_HANDLER_H
-
-#include <functional>
-#include "MCHRawCommon/RDHManip.h"
-#include <optional>
-
-namespace o2
-{
-namespace mch
-{
-namespace raw
-{
-template <typename RDH>
-using RawDataHeaderHandler = std::function<std::optional<RDH>(const RDH& rdh)>;
-
-} // namespace raw
-} // namespace mch
-} // namespace o2
-
-#endif
+//#define ULDEBUG

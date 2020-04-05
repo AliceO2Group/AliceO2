@@ -18,7 +18,7 @@
 #include <fmt/printf.h>
 #include "MCHRawCommon/RDHManip.h"
 #include "MCHRawCommon/DataFormats.h"
-#include "MCHRawDecoder/Decoder.h"
+#include "MCHRawDecoder/PageDecoder.h"
 #include "Headers/RAWDataHeader.h"
 #include "RefBuffers.h"
 #include "BareGBTDecoder.h"
@@ -28,13 +28,6 @@ using namespace o2::mch::raw;
 using o2::header::RAWDataHeaderV4;
 
 std::ostream& operator<<(std::ostream&, const RAWDataHeaderV4&);
-
-std::optional<RAWDataHeaderV4> handleRDH(const RAWDataHeaderV4& rdh)
-{
-  // std::cout << std::string(80, '-') << "\n";
-  // std::cout << rdh << "\n";
-  return rdh;
-}
 
 SampaChannelHandler handlePacketStoreAsVec(std::vector<std::string>& result)
 {
@@ -47,34 +40,29 @@ BOOST_AUTO_TEST_SUITE(o2_mch_raw)
 
 BOOST_AUTO_TEST_SUITE(decoder)
 
-BOOST_AUTO_TEST_CASE(Test0)
-{
-  RawDataHeaderHandler<RAWDataHeaderV4> rh;
-  SampaChannelHandler ch;
-
-  auto d = createDecoder<BareFormat, ChargeSumMode, RAWDataHeaderV4>(rh, ch);
-
-  createDecoder<BareFormat, ChargeSumMode, RAWDataHeaderV4>(handleRDH, ch);
-  createDecoder<BareFormat, SampleMode, RAWDataHeaderV4>(
-    handleRDH, [](DsElecId dsId, uint8_t channel, SampaCluster sc) {
-    });
-}
-
 BOOST_AUTO_TEST_CASE(Test1)
 {
   std::vector<std::byte> buffer(1024);
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<uint8_t> dis(0, 0XFF);
+  std::uniform_int_distribution<uint8_t> dis(0, 0xFF);
   std::generate(buffer.begin(), buffer.end(), [&] { return std::byte{dis(gen)}; });
 
-  auto rdh = createRDH<RAWDataHeaderV4>(0, 0, 0, 12, 34, buffer.size());
+  uint16_t dummyCruId{0};
+  uint8_t dummyEndpoint{0};
+  uint8_t dummyLinkId{0};
+  uint16_t dummyFeeId{0};
+  uint32_t orbit{12};
+  uint16_t bunchCrossing{34};
+
+  auto rdh = createRDH<RAWDataHeaderV4>(dummyCruId, dummyEndpoint, dummyLinkId, dummyFeeId,
+                                        orbit, bunchCrossing, buffer.size());
 
   std::vector<std::byte> testBuffer;
 
   // duplicate the (rdh+payload) to fake a 3 rdhs buffer
   int nrdhs{3};
-  for (int i = 0; i < nrdhs; i++) {
+  for (auto i = 0; i < nrdhs; i++) {
     appendRDH(testBuffer, rdh);
     std::copy(begin(buffer), end(buffer), std::back_inserter(testBuffer));
   }
@@ -90,13 +78,9 @@ BOOST_AUTO_TEST_CASE(TestDecoding)
 {
   auto testBuffer = REF_BUFFER_CRU<BareFormat, ChargeSumMode>();
   int n = countRDHs<RAWDataHeaderV4>(testBuffer);
-  BOOST_CHECK_EQUAL(n, 4);
+  BOOST_CHECK_EQUAL(n, 28);
   std::vector<std::string> result;
   std::vector<std::string> expected{
-    "S728-J1-DS2-ch-0-ts-0-q-10",
-
-    "S728-J1-DS2-ch-0-ts-0-q-10",
-    "S728-J1-DS2-ch-1-ts-0-q-10",
 
     "S728-J1-DS0-ch-3-ts-0-q-13",
     "S728-J1-DS0-ch-13-ts-0-q-133",
@@ -112,12 +96,13 @@ BOOST_AUTO_TEST_CASE(TestDecoding)
     "S448-J6-DS2-ch-24-ts-0-q-440",
     "S448-J6-DS2-ch-25-ts-0-q-450",
     "S448-J6-DS2-ch-26-ts-0-q-460",
-    "S448-J6-DS2-ch-12-ts-0-q-420"
+    "S448-J6-DS2-ch-12-ts-0-q-420"};
 
-  };
+  auto pageDecoder = createPageDecoder(testBuffer, handlePacketStoreAsVec(result));
 
-  auto decode = createDecoder<BareFormat, ChargeSumMode, RAWDataHeaderV4>(handleRDH, handlePacketStoreAsVec(result));
-  decode(testBuffer);
+  auto parser = createPageParser(testBuffer);
+
+  parser(testBuffer, pageDecoder);
 
   BOOST_CHECK_EQUAL(result.size(), expected.size());
   BOOST_CHECK(std::is_permutation(begin(result), end(result), begin(expected)));
@@ -135,8 +120,8 @@ BOOST_AUTO_TEST_CASE(BareGBTDecoderFromBuffer)
 {
   std::vector<std::string> result;
   BareGBTDecoder<ChargeSumMode> dec(0, handlePacketStoreAsVec(result));
-  auto buf = REF_BUFFER_GBT<BareFormat, ChargeSumMode>();
-  dec.append(buf);
+  auto testBuffer = REF_BUFFER_GBT<BareFormat, ChargeSumMode>();
+  dec.append(testBuffer);
   std::vector<std::string> expected{
     "S0-J0-DS3-ch-63-ts-12-q-163",
     "S0-J0-DS3-ch-33-ts-12-q-133",

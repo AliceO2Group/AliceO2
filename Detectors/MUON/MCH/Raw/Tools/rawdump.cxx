@@ -14,10 +14,9 @@
 #include "DumpBuffer.h"
 #include "Headers/RAWDataHeader.h"
 #include "MCHRawCommon/DataFormats.h"
-#include "MCHRawDecoder/Decoder.h"
+#include "MCHRawDecoder/PageDecoder.h"
 #include "MCHRawElecMap/Mapper.h"
 #include "boost/program_options.hpp"
-#include <chrono>
 #include <fmt/format.h>
 #include <fstream>
 #include <gsl/span>
@@ -27,10 +26,15 @@
 #include <rapidjson/writer.h>
 #include <optional>
 #include <cstdint>
+#include <map>
+#include <string>
 
 namespace po = boost::program_options;
 
+namespace o2::header
+{
 extern std::ostream& operator<<(std::ostream&, const o2::header::RAWDataHeaderV4&);
+}
 
 using namespace o2::mch::raw;
 using RDHv4 = o2::header::RAWDataHeaderV4;
@@ -38,13 +42,9 @@ using RDHv4 = o2::header::RAWDataHeaderV4;
 class DumpOptions
 {
  public:
-  DumpOptions(unsigned int deId, unsigned int maxNofRDHs, bool showRDHs, bool jsonOutput)
-    : mDeId{deId}, mMaxNofRDHs{maxNofRDHs == 0 ? std::numeric_limits<unsigned int>::max() : maxNofRDHs}, mShowRDHs{showRDHs}, mJSON{jsonOutput} {}
+  DumpOptions(unsigned int maxNofRDHs, bool showRDHs, bool jsonOutput)
+    : mMaxNofRDHs{maxNofRDHs == 0 ? std::numeric_limits<unsigned int>::max() : maxNofRDHs}, mShowRDHs{showRDHs}, mJSON{jsonOutput} {}
 
-  unsigned int deId() const
-  {
-    return mDeId;
-  }
   unsigned int maxNofRDHs() const
   {
     return mMaxNofRDHs;
@@ -68,18 +68,18 @@ class DumpOptions
   void cruId(uint16_t c) { mCruId = c; }
 
  private:
-  unsigned int mDeId;
   unsigned int mMaxNofRDHs;
   bool mShowRDHs;
   bool mJSON;
   std::optional<uint16_t> mCruId{std::nullopt};
 };
 
-struct Stat {
+struct ChannelStat {
   double mean{0};
   double rms{0};
   double q{0};
   int n{0};
+
   void incr(int v)
   {
     n++;
@@ -90,13 +90,13 @@ struct Stat {
   }
 };
 
-std::ostream& operator<<(std::ostream& os, const Stat& s)
+std::ostream& operator<<(std::ostream& os, const ChannelStat& s)
 {
   os << fmt::format("MEAN {:7.3f} RMS {:7.3f} NSAMPLES {:5d} ", s.mean, s.rms, s.n);
   return os;
 }
-template <typename FORMAT, typename CHARGESUM, typename RDH>
-std::map<std::string, Stat> rawdump(std::string input, DumpOptions opt)
+
+std::map<std::string, ChannelStat> rawdump(std::string input, DumpOptions opt)
 {
   std::ifstream in(input.c_str(), std::ios::binary);
   if (!in.good()) {
@@ -106,55 +106,73 @@ std::map<std::string, Stat> rawdump(std::string input, DumpOptions opt)
   constexpr size_t pageSize = 8192;
 
   std::array<std::byte, pageSize> buffer;
-  gsl::span<std::byte> sbuffer(buffer);
-
-  size_t ndigits{0};
-
-  std::map<std::string, int> uniqueDS;
-  std::map<std::string, int> uniqueChannel;
-  std::map<std::string, Stat> statChannel;
-
-  memset(&buffer[0], 0, buffer.size());
-  auto channelHandler = [&ndigits, &uniqueDS, &uniqueChannel, &statChannel](DsElecId dsId,
-                                                                            uint8_t channel, o2::mch::raw::SampaCluster sc) {
-    auto s = asString(dsId);
-    uniqueDS[s]++;
-    auto ch = fmt::format("{}-CH{}", s, channel);
-    uniqueChannel[ch]++;
-    auto& stat = statChannel[ch];
-    for (auto d = 0; d < sc.nofSamples(); d++) {
-      stat.incr(sc.samples[d]);
-    }
-    ++ndigits;
-  };
+  gsl::span<const std::byte> page(buffer);
 
   size_t nrdhs{0};
-  auto rdhHandler = [&](const RDH& rdh) -> std::optional<RDH> {
+  const auto patchPage = [&](gsl::span<std::byte> rdhBuffer) {
+    auto rdhPtr = reinterpret_cast<o2::header::RAWDataHeaderV4*>(&rdhBuffer[0]);
+    auto& rdh = *rdhPtr;
     nrdhs++;
-    return rdh;
+    auto cruId = rdhCruId(rdh);
+    if (opt.cruId().has_value()) {
+      cruId = opt.cruId().value();
+      rdhLinkId(rdh, 0);
+    }
+    rdhFeeId(rdh, cruId * 2 + rdhEndpoint(rdh));
+    if (opt.showRDHs()) {
+      std::cout << nrdhs << "--" << rdh << "\n";
+    }
   };
 
-  o2::mch::raw::Decoder decode = o2::mch::raw::createDecoder<FORMAT, CHARGESUM, RDH>(rdhHandler, channelHandler);
+  struct Counters {
+    std::map<std::string, int> uniqueDS;
+    std::map<std::string, int> uniqueChannel;
+    std::map<std::string, ChannelStat> statChannel;
+    int ndigits{0};
+  } counters;
 
-  std::vector<std::chrono::microseconds> timers;
+  const auto channelHandler =
+    [&](DsElecId dsId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
+      auto s = asString(dsId);
+      counters.uniqueDS[s]++;
+      auto ch = fmt::format("{}-CH{}", s, channel);
+      counters.uniqueChannel[ch]++;
+      auto& chanstat = counters.statChannel[ch];
+      if (sc.isClusterSum()) {
+        chanstat.incr(sc.chargeSum);
+      } else {
+        for (auto d = 0; d < sc.nofSamples(); d++) {
+          chanstat.incr(sc.samples[d]);
+        }
+      }
+      counters.ndigits++;
+    };
+
+  o2::mch::raw::PageDecoder decode = nullptr;
 
   size_t npages{0};
-  DecoderStat decStat;
+  uint64_t bytesRead{0};
 
-  while (npages < opt.maxNofRDHs() && in.read(reinterpret_cast<char*>(&buffer[0]), pageSize)) {
+  // warning : we currently assume fixed-size pages for reading the file...
+  while (npages < opt.maxNofRDHs() && in.read(reinterpret_cast<char*>(&buffer[0]), pageSize) && in.gcount() == pageSize) {
     npages++;
-    decStat = decode(sbuffer);
+    bytesRead += in.gcount();
+    if (!decode) {
+      decode = createPageDecoder(page, channelHandler);
+    }
+    patchPage(buffer);
+    decode(page);
   }
 
   if (!opt.json()) {
-    std::cout << ndigits << " digits seen - " << nrdhs << " RDHs seen - " << npages << " npages read\n";
-    std::cout << "#unique DS=" << uniqueDS.size() << " #unique Channel=" << uniqueChannel.size() << "\n";
-    std::cout << decStat << "\n";
+    std::cout << counters.ndigits << " digits seen - " << nrdhs << " RDHs seen - " << npages << " npages read\n";
+    std::cout << "#unique DS=" << counters.uniqueDS.size() << " #unique Channel=" << counters.uniqueChannel.size() << "\n";
   }
-  return statChannel;
+
+  return counters.statChannel;
 }
 
-void output(const std::map<std::string, Stat>& channels)
+void output(const std::map<std::string, ChannelStat>& channels)
 {
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -187,7 +205,6 @@ int main(int argc, char* argv[])
   po::variables_map vm;
   po::options_description generic("Generic options");
   unsigned int nrdhs{0};
-  unsigned int deId{0};
   bool showRDHs{false};
   bool userLogic{false}; // default format is bareformat...
   bool chargeSum{false}; //... in sample mode
@@ -199,10 +216,8 @@ int main(int argc, char* argv[])
       ("input-file,i", po::value<std::string>(&inputFile)->required(), "input file name")
       ("nrdhs,n", po::value<unsigned int>(&nrdhs), "number of RDHs to go through")
       ("showRDHs,s",po::bool_switch(&showRDHs),"show RDHs")
-      ("userLogic,u",po::bool_switch(&userLogic),"user logic format")
       ("chargeSum,c",po::bool_switch(&chargeSum),"charge sum format")
       ("json,j",po::bool_switch(&jsonOutput),"output means and rms in json format")
-      ("de,d",po::value<unsigned int>(&deId)->required(),"detection element id of the data to be decoded")
       ("cru",po::value<uint16_t>(),"force cruId")
       ;
   // clang-format on
@@ -224,25 +239,13 @@ int main(int argc, char* argv[])
     exit(1);
   }
 
-  DumpOptions opt(deId, nrdhs, showRDHs, jsonOutput);
-  std::map<std::string, Stat> statChannel;
+  DumpOptions opt(nrdhs, showRDHs, jsonOutput);
 
   if (vm.count("cru")) {
     opt.cruId(vm["cru"].as<uint16_t>());
   }
-  if (userLogic) {
-    if (chargeSum) {
-      statChannel = rawdump<UserLogicFormat, ChargeSumMode, RDHv4>(inputFile, opt);
-    } else {
-      statChannel = rawdump<UserLogicFormat, SampleMode, RDHv4>(inputFile, opt);
-    }
-  } else {
-    if (chargeSum) {
-      statChannel = rawdump<BareFormat, ChargeSumMode, RDHv4>(inputFile, opt);
-    } else {
-      statChannel = rawdump<BareFormat, SampleMode, RDHv4>(inputFile, opt);
-    }
-  }
+
+  auto statChannel = rawdump(inputFile, opt);
 
   if (jsonOutput) {
     output(statChannel);

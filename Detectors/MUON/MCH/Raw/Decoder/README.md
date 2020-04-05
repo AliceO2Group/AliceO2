@@ -11,13 +11,30 @@ sampa electronics does the charge integration) or in sample mode (the sampa
 electronics transmit all the charge samples). All formats are composed of
 {RawDataHeader,Payload} pairs.
 
-Note that the cluster sum mode has to be properly selected, as there is
-unfortunately no way to infer it from the data itself...
+The work of the MCH Raw Data decoder is to decode one single such pair, also
+called a (CRU) page. How the loop on the raw pages is done is *not* the decoder business.
 
-## createDecoder&lt;FORMAT,CHARGESUM,RDH>
+## createPageDecoder
 
-On the reading/consumer/decoding end, the choice of the decoder to use is made
-through a templatized function, `createDecoder<FORMAT,CHARGESUM,RDH>`.
+On the reading/consumer/decoding end, the choice of the internal decoder to use is made
+using the data itself. You must give (at least) a part of a raw data buffer that contains
+ a (valid) RawDataHeader. That RDH is used to deduce which implementation is picked.
+
+    gsl::span<const std::byte> rawbuffer = ... ;
+    auto pageDecoder = o2::mch::raw::createPageDecoder(rawbuffer,channelHandler);
+
+The `pageDecoder` that is returned is a function that you have to call on each
+data page that you want to decode : 
+
+    while(some_data_is_available) {
+    // get some memory buffer from somewhere ...
+    buffer = ... 
+
+    // decode that buffer
+    pageDecode(buffer);
+    }
+
+Internally the implementation is using templatized implementation, `PageDecoderImpl<RDH,FORMAT,CHARGESUM>`.
 Currently the following template parameters combinations have been tested : 
 
 |      FORMAT     |   CHARGESUM   |       RDH       |
@@ -29,46 +46,14 @@ Currently the following template parameters combinations have been tested :
 
 RDH V5 is not yet supported, but is planned.
 
-As an example, to get a decoder for BareFormat in ChargeSum mode, using
-RawDataHeaderV4 :
-
-```.cpp
-#include "MCHRawDecoder/Decoder.h"
-
-RawDataHeaderHandler<RAWDataHeaderV4> rh;
-SampaChannelHandler ch;
-
-auto decoder = o2::mch::raw::createDecoder<BareFormat, ChargeSumMode, RAWDataHeaderV4>(rh, ch);
-
-// get some memory buffer from somewhere ...
-buffer = ... 
-
-// decode that buffer
-decode(buffer);
-```
-
-The `createDecoder` function requires two parameters : a `RawDataHeaderHandler`
+The `createPageDecoder` function requires two parameters : a raw memory buffer 
+(in the form of a `gsl::span<const std::byte>` (note that the span is on constant bytes, 
+i.e. the input buffer is read-only)
 and a `SampaChannelHandler`.
-Both parameters can be defined as lambdas, regular free functions, or member
-functions of some class.
-
-## RawDataHeaderHandler
-
-The `RawDataHeaderHandler` is a function that takes a RawDataHeader and
-(optionally) returns a RawDataHeader, i.e. :
-
-```.cpp
-using RawDataHeaderHandler = std::function<std::optional<RDH>(const RDH& rdh)>;
-```
-
-If no RDH is returned (i.e. `std::nullopt` is returned) then that part of the
-raw data is *not* decoded at all.
-The returned RDH can be a modified version of the argument, e.g. to change some
-of the values (like `feeId` according to some mapping).
 
 ## SampaChannelHandler
 
-The `SampaChannelHandler` is also a function, that takes a dual sampa
+The `SampaChannelHandler` is  a function, that takes a dual sampa
 identifier (in electronics realm, aka solar,group,index tuple), a channel
 identifier within that dual sampa, a `SampaCluster` and returns nothing, i.e. :
 
@@ -93,6 +78,7 @@ SampaChannelHandler handlePacket(DsElecId dsId, uint8_t channel, SampaCluster sc
 // (note that this particular function only correctly handles the SampaCluster in ChargeSum Mode)
 ```
 
-## TODO
+## Example of decoding raw data
 
-Add a description of the two data formats here ?
+A (not particularly clean) example of how to decode raw data can be found in the source of the `o2-mchraw-dump` 
+ executable [rawdump](../Tools/rawdump.cxx)

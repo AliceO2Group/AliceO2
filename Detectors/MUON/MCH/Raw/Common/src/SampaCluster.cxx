@@ -12,6 +12,7 @@
 #include "MCHRawCommon/DataFormats.h"
 #include "Assertions.h"
 #include <fmt/format.h>
+#include <sstream>
 
 namespace o2
 {
@@ -37,7 +38,7 @@ SampaCluster::SampaCluster(uint16_t timestamp, const std::vector<uint16_t>& samp
     throw std::invalid_argument("cannot add data with no sample");
   }
   for (auto i = 0; i < samples.size(); i++) {
-    impl::assertIsInRange(fmt::format("samples[{}]", i), samples[i], 0, 0x3FF);
+    impl::assertIsInRange("sample", samples[i], 0, 0x3FF);
   }
 }
 
@@ -80,6 +81,13 @@ std::ostream& operator<<(std::ostream& os, const SampaCluster& sc)
     os << "]";
   }
   return os;
+}
+
+std::string asString(const SampaCluster& sc)
+{
+  std::stringstream s;
+  s << sc;
+  return s.str();
 }
 
 } // namespace raw

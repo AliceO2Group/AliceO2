@@ -90,6 +90,10 @@ void rdhTriggerType(RDH& rdh, uint32_t triggerType);
 
 template <typename RDH>
 uint8_t rdhEndpoint(const RDH& rdh);
+
+template <typename RDH>
+void rdhEndpoint(RDH& rdh, uint8_t endpoint);
+
 } // namespace raw
 } // namespace mch
 } // namespace o2
