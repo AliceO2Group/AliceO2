@@ -51,7 +51,7 @@ class TOFDPLRecoWorkflowTask
   void init(framework::InitContext& ic)
   {
     // nothing special to be set up
-    o2::base::GeometryManager::loadGeometry("./O2geometry.root", "FAIRGeom");
+    o2::base::GeometryManager::loadGeometry();
     o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
   }
 
@@ -92,7 +92,7 @@ class TOFDPLRecoWorkflowTask
     // std::string inputGeom = "O2geometry.root";
     // std::string inputGRP = "o2sim_grp.root";
 
-    //  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+    //  o2::base::GeometryManager::loadGeometry(path);
     //  o2::base::Propagator::initFieldFromGRP(path + inputGRP);
 
     // call actual matching info routine

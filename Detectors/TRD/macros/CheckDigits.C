@@ -32,7 +32,7 @@ constexpr int kMINENTRIES = 100;
 
 void CheckDigits(std::string digifile = "trddigits.root",
                  std::string hitfile = "o2sim_HitsTRD.root",
-                 std::string inputGeom = "O2geometry.root",
+                 std::string inputGeom = "",
                  std::string paramfile = "o2sim_par.root")
 {
   TFile* fin = TFile::Open(digifile.data());

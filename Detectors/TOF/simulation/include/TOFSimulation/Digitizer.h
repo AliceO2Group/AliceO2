@@ -67,8 +67,8 @@ class Digitizer : public WindowFiller
   void setEventID(Int_t id) { mEventID = id; }
   void setSrcID(Int_t id) { mSrcID = id; }
 
-  void test(const char* geo = "O2geometry.root");
-  void testFromHits(const char* geo = "O2geometry.root", const char* hits = "AliceO2_TGeant3.tof.mc_10_event.root");
+  void test(const char* geo = "");
+  void testFromHits(const char* geo = "", const char* hits = "AliceO2_TGeant3.tof.mc_10_event.root");
 
  private:
   // parameters
