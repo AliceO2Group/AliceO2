@@ -105,8 +105,8 @@ std::map<std::string, Stat> rawdump(std::string input, DumpOptions opt)
   }
   constexpr size_t pageSize = 8192;
 
-  std::array<uint8_t, pageSize> buffer;
-  gsl::span<uint8_t> sbuffer(buffer);
+  std::array<std::byte, pageSize> buffer;
+  gsl::span<std::byte> sbuffer(buffer);
 
   size_t ndigits{0};
 

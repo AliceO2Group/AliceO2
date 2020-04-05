@@ -33,7 +33,7 @@ struct DecoderStat {
 
 std::ostream& operator<<(std::ostream& out, const DecoderStat& decStat);
 
-using Decoder = std::function<DecoderStat(gsl::span<uint8_t> buffer)>;
+using Decoder = std::function<DecoderStat(gsl::span<const std::byte> buffer)>;
 
 template <typename FORMAT, typename CHARGESUM, typename RDH>
 Decoder createDecoder(RawDataHeaderHandler<RDH> rdhHandler,
