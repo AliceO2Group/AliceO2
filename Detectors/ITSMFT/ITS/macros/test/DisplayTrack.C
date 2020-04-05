@@ -42,7 +42,7 @@ void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2tr
 
   // Load geometry
   if (gGeoManager == nullptr) {
-    o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+    o2::base::GeometryManager::loadGeometry(inputGeom);
   }
 
   gGeoManager->GetVolume("obSuppCyl")->SetInvisible();

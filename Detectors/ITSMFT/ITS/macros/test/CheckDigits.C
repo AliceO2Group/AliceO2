@@ -39,7 +39,7 @@ void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = 
   TNtuple* nt = new TNtuple("ntd", "digit ntuple", "id:x:y:z:rowD:colD:rowH:colH:xlH:zlH:xlcH:zlcH:dx:dz");
 
   // Geometry
-  o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(inputGeom);
   auto* gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G));
 

@@ -53,7 +53,7 @@ using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 void run_trac_ca_its(std::string path = "./",
                      std::string outputfile = "o2trac_its.root",
-                     std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "o2sim_geometry.root",
+                     std::string inputClustersITS = "o2clus_its.root",
                      std::string inputGRP = "o2sim_grp.root")
 {
 
@@ -77,7 +77,7 @@ void run_trac_ca_its(std::string path = "./",
   if (!grp) {
     LOG(FATAL) << "Cannot run w/o GRP object";
   }
-  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(path);
   o2::base::Propagator::initFieldFromGRP(grp);
   auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!field) {

@@ -25,8 +25,8 @@ std::string NameConf::getGeomFileName(const std::string_view prefix)
   // check if the prefix is an existing path
   const bool prefixispath = pathExists(prefix);
   if (prefixispath) {
-    return o2::utils::concat_string(prefix, "/", STANDARDSIMPREFIX, "_", GEOM_STRING, ".root");
+    return o2::utils::concat_string(prefix, "/", STANDARDSIMPREFIX, "_", GEOM_FILE_STRING, ".root");
   } else {
-    return o2::utils::concat_string(prefix.empty() ? STANDARDSIMPREFIX : prefix, "_", GEOM_STRING, ".root");
+    return o2::utils::concat_string(prefix.empty() ? STANDARDSIMPREFIX : prefix, "_", GEOM_FILE_STRING, ".root");
   }
 }

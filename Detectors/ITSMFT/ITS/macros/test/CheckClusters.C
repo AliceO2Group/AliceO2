@@ -43,7 +43,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   TNtuple nt("ntc", "cluster ntuple", "ev:lab:hlx:hlz:tx:tz:cgx:cgy:cgz:dx:dy:dz:rof:npx:id");
 
   // Geometry
-  o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms

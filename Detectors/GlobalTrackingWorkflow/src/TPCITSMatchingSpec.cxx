@@ -45,7 +45,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
 {
 
   //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry("O2geometry.root");
+  o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
 
   mMatching.setDPLIO(true);

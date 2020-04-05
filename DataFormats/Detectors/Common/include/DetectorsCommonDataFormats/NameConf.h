@@ -54,6 +54,9 @@ class NameConf
   // Filename to store geometry file
   static std::string getGeomFileName(const std::string_view prefix = "");
 
+  // TGeometry object name
+  static constexpr std::string_view GEOMOBJECTNAME = "FAIRGeom"; // hardcoded
+
   // public standard TTree key (for MC ) -- not a function
   static constexpr std::string_view MCTTREENAME = "o2sim"; // hardcoded
 
@@ -67,7 +70,7 @@ class NameConf
   static constexpr std::string_view DIGITS_STRING = "Digits"; // hardcoded
   static constexpr std::string_view GRP_STRING = "grp";       // hardcoded
   static constexpr std::string_view KINE_STRING = "Kine";     // hardcoded
-  static constexpr std::string_view GEOM_STRING = "geometry";
+  static constexpr std::string_view GEOM_FILE_STRING = "geometry"; //
 };
 
 } // namespace base

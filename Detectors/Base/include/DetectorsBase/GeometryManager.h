@@ -20,7 +20,7 @@
 #include <TGeoShape.h>
 #include <TMath.h>
 #include <TObject.h> // for TObject
-#include <string>
+#include <string_view>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "FairLogger.h" // for LOG
 #include "MathUtils/Cartesian3D.h"
@@ -48,7 +48,7 @@ class GeometryManager : public TObject
 {
  public:
   ///< load geometry from file
-  static void loadGeometry(std::string geomFileName = "", std::string geomName = "FAIRGeom");
+  static void loadGeometry(std::string_view geomFileName = "");
 
   ///< Get the global transformation matrix (ideal geometry) for a given alignable volume
   ///< The alignable volume is identified by 'symname' which has to be either a valid symbolic

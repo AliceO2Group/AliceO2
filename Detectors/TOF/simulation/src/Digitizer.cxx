@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TOFSimulation/Digitizer.h"
+#include "DetectorsBase/GeometryManager.h"
 
 #include "TCanvas.h"
 #include "TFile.h"
@@ -564,8 +565,7 @@ void Digitizer::test(const char* geo)
 {
   Int_t nhit = 1000000;
 
-  TFile* fgeo = new TFile(geo);
-  fgeo->Get("FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(geo);
 
   o2::tof::HitType* hit = new o2::tof::HitType();
 
@@ -732,8 +732,7 @@ void Digitizer::test(const char* geo)
 //______________________________________________________________________
 void Digitizer::testFromHits(const char* geo, const char* hits)
 {
-  TFile* fgeo = new TFile(geo);
-  fgeo->Get("FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(geo);
 
   TFile* fHit = new TFile(hits);
   fHit->ls();

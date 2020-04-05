@@ -23,7 +23,6 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
                       std::string inputClustersITS = "o2clus_its.root",
                       std::string inputClustersTPC = "tpc-native-clusters.root",
                       std::string inputFITInfo = "o2reco_ft0.root", // optional FIT (T0) info
-                      std::string inputGeom = "o2sim_geometry.root",
                       std::string inputGRP = "o2sim_grp.root")
 {
 
@@ -79,7 +78,7 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
 #endif
 
   //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(path);
   o2::base::Propagator::initFieldFromGRP(path + inputGRP);
 
   //-------------------- settings -----------//

@@ -30,7 +30,7 @@ void run_match_tof(std::string path = "./", std::string outputfile = "o2match_to
                    std::string outputfileCalib = "o2calib_tof.root",
                    std::string inputTracksTPCITS = "o2match_itstpc.root",
                    std::string inputTracksTPC = "tpctracks.root",
-                   std::string inputClustersTOF = "tofclusters.root", std::string inputGeom = "o2sim_geometry.root",
+                   std::string inputClustersTOF = "tofclusters.root",
                    std::string inputGRP = "o2sim_grp.root")
 {
 
@@ -70,7 +70,7 @@ void run_match_tof(std::string path = "./", std::string outputfile = "o2match_to
 #endif
 
   //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(path);
   o2::base::Propagator::initFieldFromGRP(path + inputGRP);
 
   matching.init();

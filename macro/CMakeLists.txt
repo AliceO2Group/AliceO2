@@ -152,7 +152,7 @@ o2_add_test_root_macro(eventDisplay.C PUBLIC_LINK_LIBRARIES FairRoot::Base)
 
 o2_add_test_root_macro(
   initSimGeomAndField.C
-  PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters O2::Field)
+  PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters O2::Field O2::DetectorsBase)
 
 o2_add_test_root_macro(
         analyzeDigitLabels.C
@@ -327,6 +327,7 @@ o2_add_test_root_macro(run_primary_vertexer_ITS.C
                                              O2::GPUTracking
                                              O2::SimulationDataFormat
                                              O2::ITSBase O2::ITStracking
+					     O2::DetectorsBase
                        LABELS its COMPILE_ONLY)
 
 # FIXME: move to subsystem dir
