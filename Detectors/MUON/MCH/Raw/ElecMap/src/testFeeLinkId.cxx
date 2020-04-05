@@ -8,39 +8,37 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test MCHRaw CruLinkId
+#define BOOST_TEST_MODULE Test MCHRaw FeeLinkId
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
 
-#include "MCHRawElecMap/CruLinkId.h"
+#include "MCHRawElecMap/FeeLinkId.h"
 #include <fmt/format.h>
 
 using namespace o2::mch::raw;
 
 BOOST_AUTO_TEST_SUITE(o2_mch_raw)
 
-BOOST_AUTO_TEST_SUITE(crulinkid)
+BOOST_AUTO_TEST_SUITE(feelinkid)
 
-BOOST_AUTO_TEST_CASE(CruLinkIdEncodeDecode)
+BOOST_AUTO_TEST_CASE(FeeLinkIdEncodeDecode)
 {
-  uint16_t cruId{0};
-  uint8_t linkId{23};
-  uint16_t deId{0};
-  CruLinkId cl(cruId, linkId, deId);
+  uint16_t feeId{0};
+  uint8_t linkId{11};
+  FeeLinkId cl(feeId, linkId);
   auto code = encode(cl);
-  auto x = decodeCruLinkId(code);
+  auto x = decodeFeeLinkId(code);
   BOOST_CHECK_EQUAL(code, encode(x));
 }
 
-BOOST_AUTO_TEST_CASE(CruLinkIdCtorMustThrowIfLinkIdIsInvalid)
+BOOST_AUTO_TEST_CASE(FeeLinkIdCtorMustThrowIfLinkIdIsInvalid)
 {
-  uint16_t cruId{0};
-  uint16_t solarId{0};
-  BOOST_CHECK_THROW(CruLinkId a(cruId, 24, solarId), std::logic_error);
-  BOOST_CHECK_NO_THROW(CruLinkId a(cruId, 0, solarId));
-  BOOST_CHECK_NO_THROW(CruLinkId a(cruId, 23, solarId));
+  uint16_t feeId{0};
+  BOOST_CHECK_THROW(FeeLinkId a(feeId, 24), std::logic_error);
+  BOOST_CHECK_NO_THROW(FeeLinkId a(feeId, 0));
+  BOOST_CHECK_NO_THROW(FeeLinkId a(feeId, 11));
 }
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()
