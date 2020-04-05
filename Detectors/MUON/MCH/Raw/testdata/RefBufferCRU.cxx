@@ -15,9 +15,9 @@
 extern std::array<uint8_t, 11628> REF_BUFFER_CRU_BARE_CHARGESUM;
 
 template <>
-std::vector<uint8_t> REF_BUFFER_CRU<o2::mch::raw::BareFormat, o2::mch::raw::ChargeSumMode>()
+gsl::span<const std::byte> REF_BUFFER_CRU<o2::mch::raw::BareFormat, o2::mch::raw::ChargeSumMode>()
 {
-  return std::vector<uint8_t>(REF_BUFFER_CRU_BARE_CHARGESUM.begin(), REF_BUFFER_CRU_BARE_CHARGESUM.end());
+  return gsl::span<const std::byte>(reinterpret_cast<const std::byte*>(&REF_BUFFER_CRU_BARE_CHARGESUM[0]), REF_BUFFER_CRU_BARE_CHARGESUM.size());
 }
 
 std::array<uint8_t, 11628> REF_BUFFER_CRU_BARE_CHARGESUM = {

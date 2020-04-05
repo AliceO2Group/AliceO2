@@ -22,6 +22,7 @@
 #include "Headers/RAWDataHeader.h"
 #include "RefBuffers.h"
 #include "BareGBTDecoder.h"
+#include <random>
 
 using namespace o2::mch::raw;
 using o2::header::RAWDataHeaderV4;
@@ -61,12 +62,15 @@ BOOST_AUTO_TEST_CASE(Test0)
 
 BOOST_AUTO_TEST_CASE(Test1)
 {
-  std::vector<uint8_t> buffer(1024);
-  std::generate(buffer.begin(), buffer.end(), std::rand);
+  std::vector<std::byte> buffer(1024);
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<uint8_t> dis(0, 0XFF);
+  std::generate(buffer.begin(), buffer.end(), [&] { return std::byte{dis(gen)}; });
 
   auto rdh = createRDH<RAWDataHeaderV4>(0, 0, 0, 12, 34, buffer.size());
 
-  std::vector<uint8_t> testBuffer;
+  std::vector<std::byte> testBuffer;
 
   // duplicate the (rdh+payload) to fake a 3 rdhs buffer
   int nrdhs{3};
