@@ -74,7 +74,7 @@ def gencode_do(df, df_cru, solar_map, chamber):
               ''')
 
     out.write(
-        "void fillElec2Det{}(std::map<uint16_t,uint32_t>& e2d){{".format(chamber))
+        "void fillElec2Det{}(std::map<uint32_t,uint32_t>& e2d){{".format(chamber))
 
     for row in df.itertuples():
         gencode_insert_row_in_map(out, row)
@@ -82,12 +82,12 @@ def gencode_do(df, df_cru, solar_map, chamber):
     out.write("}")
 
     out.write(
-        "void fillSolar2CruLink{}(std::map<uint16_t, uint32_t>& s2c){{".format(chamber))
+        "void fillSolar2FeeLink{}(std::map<uint16_t, uint32_t>& s2f){{".format(chamber))
 
     for row in df_cru.itertuples():
         if len(row.solar_id) > 0:
-            out.write("add_cru(s2c,{},{},{},{});\n".format(
-                row.cru_id, row.link_id, row.solar_id, solar_map[int(row.solar_id)]))
+            out.write("add_cru(s2f,{},{},{});\n".format(
+                row.fee_id, row.link_id, row.solar_id))
 
     out.write("}")
     gencode_close_generated(out)
@@ -135,12 +135,13 @@ def gs_read_sheet_cru(credential_file, workbook, sheet_name):
 
     data = wks.get_all_values()
 
-# LINK ID	CRU ID	CRU LINK	DWP	CRU ADDR	DW ADDR
+# LINK ID	CRU ID	CRU LINK	DWP	CRU ADDR	DW ADDR   FEE ID
 
-    cols = np.array([0, 1, 2, 3, 4, 5])
+    cols = np.array([0, 1, 2, 3, 4, 5,6,7])
     df = pd.DataFrame(np.asarray(data)[:, cols],
-                      columns=["solar_id", "cru_id", "link_id",
-                               "dwp", "cru_address_0", "cru_address_1"])
+                      columns=["solar_id", "cru_id", "link_id", "cru_sn",
+                               "dwp", "cru_address_0", "cru_address_1",
+                               "fee_id"])
 
     return df.iloc[1:]
 
