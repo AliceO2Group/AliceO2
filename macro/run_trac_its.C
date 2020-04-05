@@ -70,7 +70,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);
   LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode";
 
-  o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot)); // request cached transforms
 

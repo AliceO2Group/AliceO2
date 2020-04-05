@@ -67,7 +67,7 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
                             "ipD:ipZ:label");
 
   // Geometry
-  o2::base::GeometryManager::loadGeometry("o2sim_geometry.root", "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry();
   auto gman = o2::its::GeometryTGeo::Instance();
 
   // MC tracks

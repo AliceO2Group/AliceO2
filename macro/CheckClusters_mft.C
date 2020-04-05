@@ -53,8 +53,7 @@ void CheckClusters_mft(Int_t nEvents = 10, Int_t nMuons = 200)
   Char_t filename[100];
 
   // Geometry
-  sprintf(filename, NameConf::getGeomFileName("o2sim").c_str());
-  o2::base::GeometryManager::loadGeometry(filename, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry();
   auto gman = o2::mft::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2G,
                                             o2::TransformType::L2G)); // request cached transforms
