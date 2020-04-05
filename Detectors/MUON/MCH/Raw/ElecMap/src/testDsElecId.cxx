@@ -32,6 +32,12 @@ BOOST_AUTO_TEST_CASE(DsElecId)
   BOOST_CHECK_EQUAL(code, encode(x.value()));
 }
 
+BOOST_AUTO_TEST_CASE(DsElecIdTooBigSolarIdShouldThrow)
+{
+  BOOST_CHECK_THROW(o2::mch::raw::DsElecId eid(1024, 0, 1), std::invalid_argument);
+  BOOST_CHECK_NO_THROW(o2::mch::raw::DsElecId eid(1023, 0, 1));
+}
+
 BOOST_AUTO_TEST_CASE(DsElecIdValidString)
 {
   o2::mch::raw::DsElecId eid(448, 6, 2);

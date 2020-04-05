@@ -17,8 +17,9 @@ o2_add_library(MCHRawElecMap
         src/CH6R.cxx
         src/CH7L.cxx
         src/CH7R.cxx
-        src/CruLinkId.cxx
+        src/CH8L.cxx
         src/DsDetId.cxx
+        src/FeeLinkId.cxx
         src/ElectronicMapperDummy.cxx
         src/ElectronicMapperGenerated.cxx
         src/dslist.cxx
@@ -26,19 +27,19 @@ o2_add_library(MCHRawElecMap
         PUBLIC_LINK_LIBRARIES O2::MCHRawImplHelpers ms_gsl::ms_gsl)
 
 if(BUILD_TESTING)
-        o2_add_test(elecmap-dummy
+        o2_add_test(elecmap
                 SOURCES src/testElectronicMapper.cxx
-                COMPONENT_NAME mch
+                COMPONENT_NAME mchraw
                 LABELS "muon;mch;raw"
                 PUBLIC_LINK_LIBRARIES O2::MCHRawElecMap)
         o2_add_test(dselecid
                 SOURCES src/testDsElecId.cxx
-                COMPONENT_NAME mch
+                COMPONENT_NAME mchraw
                 LABELS "muon;mch;raw"
                 PUBLIC_LINK_LIBRARIES O2::MCHRawElecMap)
-        o2_add_test(crulinkid
-                SOURCES src/testCruLinkId.cxx
-                COMPONENT_NAME mch
+        o2_add_test(feelinkid
+                SOURCES src/testFeeLinkId.cxx
+                COMPONENT_NAME mchraw
                 LABELS "muon;mch;raw"
                 PUBLIC_LINK_LIBRARIES O2::MCHRawElecMap)
 endif()

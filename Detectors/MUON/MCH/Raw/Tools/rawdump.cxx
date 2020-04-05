@@ -128,29 +128,10 @@ std::map<std::string, Stat> rawdump(std::string input, DumpOptions opt)
     ++ndigits;
   };
 
-  auto cruLink2solar = o2::mch::raw::createCruLink2SolarMapper<ElectronicMapperGenerated>();
-
   size_t nrdhs{0};
   auto rdhHandler = [&](const RDH& rdh) -> std::optional<RDH> {
     nrdhs++;
-    if (opt.showRDHs()) {
-      std::cout << nrdhs << "--" << rdh << "\n";
-    }
-    auto r = rdh;
-    auto cruId = r.cruID;
-    if (opt.cruId().has_value()) {
-      // force cruId to externally given value
-      cruId = opt.cruId().value();
-    }
-    auto linkId = rdhLinkId(r);
-    auto solar = cruLink2solar(o2::mch::raw::CruLinkId(cruId, linkId, opt.deId()));
-    if (!solar.has_value()) {
-      std::cout << fmt::format("ERROR - Could not get solarUID from CRU,LINK=({},{},{})\n",
-                               cruId, linkId, opt.deId());
-      return std::nullopt;
-    }
-    r.feeId = solar.value();
-    return r;
+    return rdh;
   };
 
   o2::mch::raw::Decoder decode = o2::mch::raw::createDecoder<FORMAT, CHARGESUM, RDH>(rdhHandler, channelHandler);

@@ -8,34 +8,37 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_RAW_ELECMAP_CRU_LINK_ID_H
-#define O2_MCH_RAW_ELECMAP_CRU_LINK_ID_H
+#ifndef O2_MCH_RAW_ELECMAP_FEE_LINK_ID_H
+#define O2_MCH_RAW_ELECMAP_FEE_LINK_ID_H
 
 #include <cstdint>
 #include <iosfwd>
 
 namespace o2::mch::raw
 {
-class CruLinkId
+
+class FeeLinkId
 {
  public:
-  CruLinkId(uint16_t cruId, uint8_t linkId);
-  CruLinkId(uint16_t cruId, uint8_t linkId, uint16_t deId);
+  FeeLinkId(uint16_t feeId, uint8_t linkId);
 
-  uint16_t cruId() const { return mCruId; }
-  uint16_t deId() const { return mDeId; }
+  uint16_t feeId() const { return mFeeId; }
   uint8_t linkId() const { return mLinkId; }
 
  private:
-  uint16_t mCruId;
+  uint16_t mFeeId;
   uint8_t mLinkId;
-  uint16_t mDeId;
 };
 
-CruLinkId decodeCruLinkId(uint32_t code);
-uint32_t encode(const CruLinkId& id);
+FeeLinkId decodeFeeLinkId(uint32_t code);
 
-std::ostream& operator<<(std::ostream& os, const CruLinkId& id);
+uint32_t encode(const FeeLinkId& id);
 
+bool operator<(const FeeLinkId& f1, const FeeLinkId& f2);
+
+std::ostream& operator<<(std::ostream& os, const FeeLinkId& id);
+
+std::string asString(const FeeLinkId& feeLinkId);
 } // namespace o2::mch::raw
+
 #endif
