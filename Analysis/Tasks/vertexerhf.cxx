@@ -141,7 +141,6 @@ struct DecayVertexBuilder2Prong {
                      track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], track_1.y(),
                      mass_, masssw_);
         hchi2dca->Fill(df.getChi2AtPCACandidate());
-
       }
     }
   }
