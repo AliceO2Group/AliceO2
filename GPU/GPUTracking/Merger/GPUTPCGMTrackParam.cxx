@@ -378,7 +378,7 @@ GPUd() void GPUTPCGMTrackParam::MirrorTo(GPUTPCGMPropagator& GPUrestrict() prop,
   mChi2 = 0;
 }
 
-GPUd() int GPUTPCGMTrackParam::MergeDoubleRowClusters(int ihit, int wayDirection, GPUTPCGMMergedTrackHit* GPUrestrict() clusters, const GPUTPCGMMerger* GPUrestrict() merger, GPUTPCGMPropagator& GPUrestrict() prop, float& GPUrestrict() xx, float& GPUrestrict() yy, float& GPUrestrict() zz, int maxN, float clAlpha, unsigned char& GPUrestrict() clusterState, bool rejectChi2)
+GPUd() int GPUTPCGMTrackParam::MergeDoubleRowClusters(int& ihit, int wayDirection, GPUTPCGMMergedTrackHit* GPUrestrict() clusters, const GPUTPCGMMerger* GPUrestrict() merger, GPUTPCGMPropagator& GPUrestrict() prop, float& GPUrestrict() xx, float& GPUrestrict() yy, float& GPUrestrict() zz, int maxN, float clAlpha, unsigned char& GPUrestrict() clusterState, bool rejectChi2)
 {
   if (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].row == clusters[ihit + wayDirection].row && clusters[ihit].slice == clusters[ihit + wayDirection].slice && clusters[ihit].leg == clusters[ihit + wayDirection].leg) {
     float maxDistY, maxDistZ;
