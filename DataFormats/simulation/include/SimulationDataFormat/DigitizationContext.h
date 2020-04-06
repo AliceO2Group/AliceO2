@@ -78,6 +78,9 @@ class DigitizationContext
   /// return boolean saying if input simchains was modified or not
   bool initSimKinematicsChains(std::vector<TChain*>& simkinematicschains) const;
 
+  /// Check collision parts for vertex consistency.
+  bool checkVertexCompatibility(bool verbose = false) const;
+
   /// function reading the hits from a chain (previously initialized with initSimChains
   /// The hits pointer will be initialized (what to we do about ownership??)
   template <typename T>
