@@ -45,7 +45,7 @@ class Generator : public FairGenerator
   /** constructor **/
   Generator(const Char_t* name, const Char_t* title = "ALICEo2 Generator");
   /** destructor **/
-  ~Generator() override;
+  ~Generator() override = default;
 
   /** Initialize the generator if needed **/
   Bool_t Init() override;
