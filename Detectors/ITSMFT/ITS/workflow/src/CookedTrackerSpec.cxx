@@ -70,6 +70,15 @@ void CookedTrackerDPL::init(InitContext& ic)
     LOG(ERROR) << "Cannot retrieve GRP from the " << filename.c_str() << " file !";
     mState = 0;
   }
+
+  filename = ic.options().get<std::string>("dictionary-file");
+  std::ifstream file(filename.c_str());
+  if (file.good()) {
+    LOG(INFO) << "Running with dictionary: " << filename.c_str();
+    mDict.ReadBinaryFile(filename);
+  } else {
+    LOG(INFO) << "Running without dictionary !";
+  }
   mState = 1;
 }
 
@@ -79,6 +88,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     return;
 
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
+  gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto clusters = pc.inputs().get<gsl::span<o2::itsmft::Cluster>>("clusters");
 
   // code further down does assignment to the rofs and the altered object is used for output
@@ -112,8 +122,11 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
   auto& tracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe});
   auto& clusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
+
+  gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
   for (auto& rof : rofs) {
-    o2::its::ioutils::loadROFrameData(rof, event, clusters, labels.get());
+    auto it = pattIt;
+    o2::its::ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels.get());
     vertexer.clustersToVertices(event);
     auto vtxVecLoc = vertexer.exportVertices();
 
@@ -129,7 +142,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
       vtxVecLoc.emplace_back();
     }
     mTracker.setVertices(vtxVecLoc);
-    mTracker.process(clusters, tracks, clusIdx, rof);
+    mTracker.process(compClusters, it, mDict, tracks, clusIdx, rof);
   }
 
   LOG(INFO) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
@@ -146,6 +159,7 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe);
 
@@ -170,8 +184,8 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
     AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(useMC)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"nthreads", VariantType::Int, 1, {"Number of threads"}},
-    }};
+      {"dictionary-file", VariantType::String, "complete_dictionary.bin", {"Name of the dictionary file"}},
+      {"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
 }
 
 } // namespace its

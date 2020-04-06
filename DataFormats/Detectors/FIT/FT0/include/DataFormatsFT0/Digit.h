@@ -19,7 +19,6 @@
 #include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/TimeStamp.h"
 #include "DataFormatsFT0/ChannelData.h"
-#include <FairLogger.h>
 #include <Rtypes.h>
 #include <gsl/span>
 #include <bitset>
@@ -86,22 +85,23 @@ struct Triggers {
 };
 
 struct Digit {
-  o2::dataformats::RangeRefComp<5> ref;
-
+  o2::dataformats::RangeReference<int, int> ref;
   Triggers mTriggers;               // pattern of triggers  in this BC
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
-
+  int mEventID;
   Digit() = default;
-  Digit(int first, int ne, o2::InteractionRecord iRec, Triggers chTrig)
+  Digit(int first, int ne, o2::InteractionRecord iRec, Triggers chTrig, int event)
   {
     ref.setFirstEntry(first);
     ref.setEntries(ne);
     mIntRecord = iRec;
     mTriggers = chTrig;
+    mEventID = event;
   }
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
   Triggers getTriggers() { return mTriggers; }
+  int getEventID() const { return mEventID; }
   o2::InteractionRecord getIntRecord() { return mIntRecord; };
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
   enum { bit1TimeLostEvent,
@@ -120,7 +120,7 @@ struct Digit {
 
   void printStream(std::ostream& stream) const;
 
-  ClassDefNV(Digit, 2);
+  ClassDefNV(Digit, 3);
 };
 } // namespace ft0
 } // namespace o2

@@ -18,7 +18,7 @@
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
-#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsMID/ROFRecord.h"
@@ -38,21 +38,14 @@ namespace o2
 namespace mid
 {
 
-class MIDDPLDigitizerTask
+class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  // MIDDPLDigitizerTask(Digitizer digitizer) : mDigitizer(nullptr)
-  // {
-  //   /// Ctor
-  // }
+  MIDDPLDigitizerTask() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM) {}
 
-  void init(framework::InitContext& ic)
+  void initDigitizerTask(framework::InitContext& ic) override
   {
     LOG(INFO) << "initializing MID digitization";
-
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry();
-    }
 
     mDigitizer = std::make_unique<Digitizer>(createDefaultChamberResponse(), createDefaultChamberEfficiencyResponse(), createTransformationFromManager(gGeoManager));
   }

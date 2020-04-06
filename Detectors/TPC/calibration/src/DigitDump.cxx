@@ -19,6 +19,7 @@
 #include "TPCBase/Mapper.h"
 #include "TPCBase/ROC.h"
 #include "TPCCalibration/DigitDump.h"
+#include "TPCCalibration/DigitDumpParam.h"
 
 using namespace o2::tpc;
 
@@ -31,6 +32,19 @@ DigitDump::~DigitDump()
 }
 
 //______________________________________________________________________________
+void DigitDump::init()
+{
+  const auto& param = DigitDumpParam::Instance();
+
+  mFirstTimeBin = param.FirstTimeBin;
+  mLastTimeBin = param.LastTimeBin;
+  mADCMin = param.ADCMin;
+  mADCMax = param.ADCMax;
+  mNoiseThreshold = param.NoiseThreshold;
+  mPedestalAndNoiseFile = param.PedestalAndNoiseFile;
+}
+
+//______________________________________________________________________________
 Int_t DigitDump::updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
                            const Int_t timeBin, const Float_t signal)
 {
@@ -38,8 +52,8 @@ Int_t DigitDump::updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
     return 0;
   }
 
-  if (!mFile) {
-    init();
+  if (!mInitialized) {
+    initInputOutput();
   }
 
   Mapper& mapper = Mapper::instance();
@@ -81,7 +95,7 @@ Int_t DigitDump::updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
 }
 
 //______________________________________________________________________________
-void DigitDump::endEvent()
+void DigitDump::sortDigits()
 {
   // sort digits
   for (auto& digits : mDigits) {
@@ -93,12 +107,17 @@ void DigitDump::endEvent()
       return false;
     });
   }
+}
+
+//______________________________________________________________________________
+void DigitDump::endEvent()
+{
+  // sort digits
+  sortDigits();
 
   mTree->Fill();
 
-  for (auto& digits : mDigits) {
-    digits.clear();
-  }
+  clearDigits();
 }
 
 //______________________________________________________________________________
@@ -136,8 +155,11 @@ void DigitDump::setupOutputTree()
 }
 
 //______________________________________________________________________________
-void DigitDump::init()
+void DigitDump::initInputOutput()
 {
   loadNoiseAndPedestal();
-  setupOutputTree();
+  if (!mInMemoryOnly) {
+    setupOutputTree();
+  }
+  mInitialized = true;
 }

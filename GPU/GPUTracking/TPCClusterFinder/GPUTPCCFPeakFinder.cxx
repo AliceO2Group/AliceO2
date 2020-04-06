@@ -29,7 +29,7 @@ GPUdii() void GPUTPCCFPeakFinder::Thread<GPUTPCCFPeakFinder::findPeaks>(int nBlo
   findPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPpositions, clusterer.mPmemory->counters.nDigits, clusterer.mPisPeak, isPeakMap);
 }
 
-GPUd() bool GPUTPCCFPeakFinder::isPeakScratchPad(
+GPUdii() bool GPUTPCCFPeakFinder::isPeakScratchPad(
   GPUSharedMemory& smem,
   Charge q,
   const ChargePos& pos,
@@ -88,7 +88,7 @@ GPUd() bool GPUTPCCFPeakFinder::isPeakScratchPad(
   return peak;
 }
 
-GPUd() bool GPUTPCCFPeakFinder::isPeak(
+GPUdii() bool GPUTPCCFPeakFinder::isPeak(
   Charge myCharge,
   const ChargePos& pos,
   const Array2D<PackedCharge>& chargeMap)

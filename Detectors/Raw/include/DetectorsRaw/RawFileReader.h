@@ -24,7 +24,7 @@
 #include <Rtypes.h>
 #include "Headers/RAWDataHeader.h"
 #include "Headers/DataHeader.h"
-#include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 namespace o2
 {

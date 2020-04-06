@@ -40,9 +40,8 @@ namespace its
 {
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-TrackerDPL::TrackerDPL(bool isMC,
-                       o2::gpu::GPUDataTypes::DeviceType dType) : mIsMC{isMC},
-                                                                  mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)}
+TrackerDPL::TrackerDPL(bool isMC, o2::gpu::GPUDataTypes::DeviceType dType) : mIsMC{isMC},
+                                                                             mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)}
 {
 }
 
@@ -72,6 +71,15 @@ void TrackerDPL::init(InitContext& ic)
     LOG(ERROR) << "Cannot retrieve GRP from the " << filename.c_str() << " file !";
     mState = 0;
   }
+
+  filename = ic.options().get<std::string>("dictionary-file");
+  std::ifstream file(filename.c_str());
+  if (file.good()) {
+    LOG(INFO) << "Running with dictionary: " << filename.c_str();
+    mDict.ReadBinaryFile(filename);
+  } else {
+    LOG(INFO) << "Running without dictionary !";
+  }
   mState = 1;
 }
 
@@ -81,6 +89,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     return;
 
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
+  gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto clusters = pc.inputs().get<gsl::span<o2::itsmft::Cluster>>("clusters");
 
   // code further down does assignment to the rofs and the altered object is used for output
@@ -129,9 +138,10 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
   };
 
+  gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
   if (continuous) {
     for (const auto& rof : rofs) {
-      int nclUsed = ioutils::loadROFrameData(rof, event, clusters, labels);
+      int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
       if (nclUsed) {
         LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mVertexer->clustersToVertices(event);
@@ -161,7 +171,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       roFrame++;
     }
   } else {
-    ioutils::loadEventData(event, clusters, labels);
+    ioutils::loadEventData(event, compClusters, pattIt, mDict, labels);
     event.addPrimaryVertex(0.f, 0.f, 0.f); //FIXME :  run an actual vertex finder !
     mTracker->clustersToTracks(event);
     tracks.swap(mTracker->getTracks());
@@ -182,6 +192,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType d
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe);
 
@@ -205,7 +216,8 @@ DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType d
     outputs,
     AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC, dType)},
     Options{
-      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}}}};
+      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
+      {"dictionary-file", VariantType::String, "complete_dictionary.bin", {"Name of the dictionary file"}}}};
 }
 
 } // namespace its

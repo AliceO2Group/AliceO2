@@ -25,9 +25,9 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/Task.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include <TChain.h>
-#include <iostream>
 #include <TStopwatch.h>
 
 using namespace o2::framework;
@@ -37,21 +37,19 @@ namespace o2
 {
 namespace ft0
 {
-// helper function which will be offered as a service
-//template <typename T>
 
-class FT0DPLDigitizerTask
+class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
 
   using GRP = o2::parameters::GRPObject;
 
  public:
-  FT0DPLDigitizerTask() : mDigitizer(DigitizationParameters{}) {}
+  FT0DPLDigitizerTask() : o2::base::BaseDPLDigitizer(), mDigitizer(DigitizationParameters{}) {}
   explicit FT0DPLDigitizerTask(o2::ft0::DigitizationParameters const& parameters)
-    : mDigitizer(parameters){};
-  ~FT0DPLDigitizerTask() = default;
+    : o2::base::BaseDPLDigitizer(), mDigitizer(parameters){};
+  ~FT0DPLDigitizerTask() override = default;
 
-  void init(framework::InitContext& ic)
+  void initDigitizerTask(framework::InitContext& ic) override
   {
     mDigitizer.init();
     mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
@@ -89,6 +87,7 @@ class FT0DPLDigitizerTask
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
       mDigitizer.setInteractionRecord(timesview[collID]);
+      LOG(INFO) << " setInteractionRecord " << timesview[collID] << " bc " << mDigitizer.getBC() << " orbit " << mDigitizer.getOrbit();
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
@@ -100,7 +99,6 @@ class FT0DPLDigitizerTask
         // call actual digitization procedure
         mDigitizer.setEventID(part.entryID);
         mDigitizer.setSrcID(part.sourceID);
-        LOG(INFO) << "srcId " << part.sourceID << ", event " << part.entryID;
         mDigitizer.process(&hits, mDigitsBC, mDigitsCh, labels);
       }
     }

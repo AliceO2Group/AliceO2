@@ -25,6 +25,54 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
+void GPUTPCGMSliceTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice)
+{
+  const GPUTPCBaseTrackParam& t = sliceTr->Param();
+  mOrigTrack = sliceTr;
+  mX = t.GetX();
+  mY = t.GetY();
+  mZ = t.GetZ();
+  mDzDs = t.GetDzDs();
+  mSinPhi = t.GetSinPhi();
+  mQPt = t.GetQPt();
+  mCosPhi = sqrt(1.f - mSinPhi * mSinPhi);
+  mSecPhi = 1.f / mCosPhi;
+  mAlpha = alpha;
+  mSlice = slice;
+  if (merger->Param().earlyTpcTransform) {
+    mTZOffset = t.GetZOffset();
+  } else {
+    mTZOffset = merger->GetConstantMem()->calibObjects.fastTransform->convZOffsetToVertexTime(slice, t.GetZOffset(), merger->Param().continuousMaxTimeBin);
+  }
+  mNClusters = sliceTr->NClusters();
+}
+
+void GPUTPCGMSliceTrack::Set(const GPUTPCGMTrackParam& trk, const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice)
+{
+  mOrigTrack = sliceTr;
+  mX = trk.GetX();
+  mY = trk.GetY();
+  mZ = trk.GetZ();
+  mDzDs = trk.GetDzDs();
+  mSinPhi = trk.GetSinPhi();
+  mQPt = trk.GetQPt();
+  mCosPhi = sqrt(1.f - mSinPhi * mSinPhi);
+  mSecPhi = 1.f / mCosPhi;
+  mAlpha = alpha;
+  mSlice = slice;
+  mTZOffset = trk.GetTZOffset();
+  mNClusters = sliceTr->NClusters();
+  mC0 = trk.GetCov(0);
+  mC2 = trk.GetCov(2);
+  mC3 = trk.GetCov(3);
+  mC5 = trk.GetCov(5);
+  mC7 = trk.GetCov(7);
+  mC9 = trk.GetCov(9);
+  mC10 = trk.GetCov(10);
+  mC12 = trk.GetCov(12);
+  mC14 = trk.GetCov(14);
+}
+
 bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi, float sinPhiMargin)
 {
   float lastX;
@@ -189,7 +237,7 @@ bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, 
 
   //* Check that the track parameters and covariance matrix are reasonable
 
-  bool ok = CAMath::Finite(mX) && CAMath::Finite(mY) && CAMath::Finite(mZ) && CAMath::Finite(mSinPhi) && CAMath::Finite(mDzDs) && CAMath::Finite(mQPt) && CAMath::Finite(mCosPhi) && CAMath::Finite(mSecPhi) && CAMath::Finite(mZOffset) && CAMath::Finite(mC0) && CAMath::Finite(mC2) &&
+  bool ok = CAMath::Finite(mX) && CAMath::Finite(mY) && CAMath::Finite(mZ) && CAMath::Finite(mSinPhi) && CAMath::Finite(mDzDs) && CAMath::Finite(mQPt) && CAMath::Finite(mCosPhi) && CAMath::Finite(mSecPhi) && CAMath::Finite(mTZOffset) && CAMath::Finite(mC0) && CAMath::Finite(mC2) &&
             CAMath::Finite(mC3) && CAMath::Finite(mC5) && CAMath::Finite(mC7) && CAMath::Finite(mC9) && CAMath::Finite(mC10) && CAMath::Finite(mC12) && CAMath::Finite(mC14);
 
   if (mC0 <= 0.f || mC2 <= 0.f || mC5 <= 0.f || mC9 <= 0.f || mC14 <= 0.f || mC0 > 5.f || mC2 > 5.f || mC5 > 2.f || mC9 > 2.f) {
@@ -203,7 +251,7 @@ bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, 
   return ok;
 }
 
-bool GPUTPCGMSliceTrack::TransportToX(float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov) const
+bool GPUTPCGMSliceTrack::TransportToX(GPUTPCGMMerger* merger, float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov) const
 {
   Bz = -Bz;
   float ex = mCosPhi;
@@ -244,7 +292,11 @@ bool GPUTPCGMSliceTrack::TransportToX(float x, float Bz, GPUTPCGMBorderTrack& b,
   b.SetPar(2, ey1);
   b.SetPar(3, mDzDs);
   b.SetPar(4, mQPt);
-  b.SetZOffset(mZOffset);
+  if (merger->Param().earlyTpcTransform) {
+    b.SetZOffsetLinear(mTZOffset);
+  } else {
+    b.SetZOffsetLinear(merger->GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(mSlice, mTZOffset, merger->Param().continuousMaxTimeBin));
+  }
 
   if (!doCov) {
     return (1);
@@ -291,7 +343,7 @@ bool GPUTPCGMSliceTrack::TransportToX(float x, float Bz, GPUTPCGMBorderTrack& b,
   return 1;
 }
 
-bool GPUTPCGMSliceTrack::TransportToXAlpha(float newX, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const
+bool GPUTPCGMSliceTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float newX, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const
 {
   //*
 
@@ -396,7 +448,11 @@ bool GPUTPCGMSliceTrack::TransportToXAlpha(float newX, float sinAlpha, float cos
   b.SetPar(2, ey1);
   b.SetPar(3, dzds);
   b.SetPar(4, qpt);
-  b.SetZOffset(mZOffset);
+  if (merger->Param().earlyTpcTransform) {
+    b.SetZOffsetLinear(mTZOffset);
+  } else {
+    b.SetZOffsetLinear(merger->GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(mSlice, mTZOffset, merger->Param().continuousMaxTimeBin));
+  }
 
   b.SetCov(0, c00 + h2 * h2c22 + h4 * h4c44 + 2.f * (h2 * c20ph4c42 + h4 * c40));
   b.SetCov(1, c11 + dS * (c31 + n7));
@@ -409,4 +465,18 @@ bool GPUTPCGMSliceTrack::TransportToXAlpha(float newX, float sinAlpha, float cos
   b.LimitCov();
 
   return 1;
+}
+
+void GPUTPCGMSliceTrack::CopyBaseTrackCov()
+{
+  const float* GPUrestrict() cov = mOrigTrack->Param().mC;
+  mC0 = cov[0];
+  mC2 = cov[2];
+  mC3 = cov[3];
+  mC5 = cov[5];
+  mC7 = cov[7];
+  mC9 = cov[9];
+  mC10 = cov[10];
+  mC12 = cov[12];
+  mC14 = cov[14];
 }

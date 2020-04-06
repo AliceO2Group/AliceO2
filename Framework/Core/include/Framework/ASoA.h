@@ -48,6 +48,12 @@ constexpr bool is_type_with_metadata_v = false;
 template <typename T>
 constexpr bool is_type_with_metadata_v<T, std::void_t<decltype(sizeof(typename T::metadata))>> = true;
 
+template <typename, typename = void>
+constexpr bool is_type_with_binding_v = false;
+
+template <typename T>
+constexpr bool is_type_with_binding_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
+
 template <typename T, typename TLambda>
 void call_if_has_originals(TLambda&& lambda)
 {
@@ -90,7 +96,7 @@ struct arrow_array_for {
 };
 template <>
 struct arrow_array_for<bool> {
-  using type = arrow::Int8Array;
+  using type = arrow::BooleanArray;
 };
 template <>
 struct arrow_array_for<int8_t> {
@@ -168,6 +174,8 @@ struct Flat {
 template <typename T, typename ChunkingPolicy = Chunked>
 class ColumnIterator : ChunkingPolicy
 {
+  static constexpr char SCALE_FACTOR = std::is_same_v<std::decay_t<T>, bool> ? 3 : 0;
+
  public:
   /// Constructor of the column iterator. Notice how it takes a pointer
   /// to the arrow::Column (for the data store) and to the index inside
@@ -181,7 +189,7 @@ class ColumnIterator : ChunkingPolicy
   {
     auto chunks = mColumn->data();
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mCurrent = reinterpret_cast<T const*>(array->raw_values());
+    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset();
     mLast = mCurrent + array->length();
   }
 
@@ -200,8 +208,8 @@ class ColumnIterator : ChunkingPolicy
     mFirstIndex += previousArray->length();
     mCurrentChunk++;
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mCurrent = reinterpret_cast<T const*>(array->raw_values() - mFirstIndex);
-    mLast = mCurrent + array->length() + mFirstIndex;
+    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
+    mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
   void prevChunk() const
@@ -211,8 +219,8 @@ class ColumnIterator : ChunkingPolicy
     mFirstIndex -= previousArray->length();
     mCurrentChunk--;
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mCurrent = reinterpret_cast<T const*>(array->raw_values() - mFirstIndex);
-    mLast = mCurrent + array->length() + mFirstIndex;
+    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
+    mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
   void moveToChunk(int chunk)
@@ -236,18 +244,25 @@ class ColumnIterator : ChunkingPolicy
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
     assert(array.get());
     mFirstIndex = mColumn->length() - array->length();
-    mCurrent = reinterpret_cast<T const*>(array->raw_values() - mFirstIndex);
-    mLast = mCurrent + array->length() + mFirstIndex;
+    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
+    mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
-  T const& operator*() const
+  decltype(auto) operator*() const
   {
     if constexpr (ChunkingPolicy::chunked) {
-      if (O2_BUILTIN_UNLIKELY(((mCurrent + *mCurrentPos) >= mLast))) {
+      if (O2_BUILTIN_UNLIKELY(((mCurrent + (*mCurrentPos >> SCALE_FACTOR)) >= mLast))) {
         nextChunk();
       }
     }
-    return *(mCurrent + *mCurrentPos);
+    if constexpr (std::is_same_v<bool, std::decay_t<T>>) {
+      // FIXME: notice that due to the type punning we cannot simply convert the
+      //        masked char to a bool, because it's undefined behavior.
+      // FIXME: check if shifting the masked bit to the first position is better than != 0
+      return (*((char*)mCurrent + (*mCurrentPos >> SCALE_FACTOR)) & (1 << (*mCurrentPos & 0x7))) != 0;
+    } else {
+      return *(mCurrent + (*mCurrentPos >> SCALE_FACTOR));
+    }
   }
 
   // Move to the chunk which containts element pos
@@ -255,7 +270,7 @@ class ColumnIterator : ChunkingPolicy
   {
     // If we get outside range of the current chunk, go to the next.
     if constexpr (ChunkingPolicy::chunked) {
-      while (O2_BUILTIN_UNLIKELY((mCurrent + *mCurrentPos) >= mLast)) {
+      while (O2_BUILTIN_UNLIKELY((mCurrent + (*mCurrentPos >> SCALE_FACTOR)) >= mLast)) {
         nextChunk();
       }
     }
@@ -266,7 +281,7 @@ class ColumnIterator : ChunkingPolicy
   ColumnIterator<T>& checkNextChunk()
   {
     if constexpr (ChunkingPolicy::chunked) {
-      if (O2_BUILTIN_LIKELY((mCurrent + *mCurrentPos) <= mLast)) {
+      if (O2_BUILTIN_LIKELY((mCurrent + (*mCurrentPos >> SCALE_FACTOR)) <= mLast)) {
         return *this;
       }
       nextChunk();
@@ -429,6 +444,10 @@ struct IndexPolicyBase {
   uint64_t mOffset = 0;
 };
 
+struct RowViewSentinel {
+  uint64_t const index;
+};
+
 struct DefaultIndexPolicy : IndexPolicyBase {
   /// Needed to be able to copy the policy
   DefaultIndexPolicy() = default;
@@ -488,6 +507,16 @@ struct DefaultIndexPolicy : IndexPolicyBase {
   bool operator==(DefaultIndexPolicy const& other) const
   {
     return O2_BUILTIN_UNLIKELY(this->mRowIndex == other.mRowIndex);
+  }
+
+  bool operator!=(RowViewSentinel const& sentinel) const
+  {
+    return O2_BUILTIN_LIKELY(this->mRowIndex != sentinel.index);
+  }
+
+  bool operator==(RowViewSentinel const& sentinel) const
+  {
+    return O2_BUILTIN_UNLIKELY(this->mRowIndex == sentinel.index);
   }
   int64_t mMaxRow = 0;
 };
@@ -552,6 +581,16 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   bool operator==(FilteredIndexPolicy const& other) const
   {
     return O2_BUILTIN_UNLIKELY(mSelectionRow == other.mSelectionRow);
+  }
+
+  bool operator!=(RowViewSentinel const& sentinel) const
+  {
+    return O2_BUILTIN_LIKELY(mSelectionRow != sentinel.index);
+  }
+
+  bool operator==(RowViewSentinel const& sentinel) const
+  {
+    return O2_BUILTIN_UNLIKELY(mSelectionRow == sentinel.index);
   }
 
   /// Move iterator to one after the end. Since this is a view
@@ -849,10 +888,9 @@ class Table
         std::pair<C*, arrow::Column*>{nullptr,
                                       lookupColumn<C>()}...},
       mBegin(mColumnIndex, {table->num_rows(), offset}),
-      mEnd(mColumnIndex, {table->num_rows(), offset}),
+      mEnd{static_cast<uint64_t>(table->num_rows())},
       mOffset(offset)
   {
-    mEnd.moveToEnd();
   }
 
   /// FIXME: this is to be able to construct a Filtered without explicit Join
@@ -868,9 +906,9 @@ class Table
     return unfiltered_iterator(mBegin);
   }
 
-  unfiltered_iterator end()
+  RowViewSentinel end()
   {
-    return unfiltered_iterator{mEnd};
+    return RowViewSentinel{mEnd};
   }
 
   filtered_iterator filtered_begin(SelectionVector selection)
@@ -882,11 +920,9 @@ class Table
     return filtered_iterator(mColumnIndex, {selection, mOffset});
   }
 
-  filtered_iterator filtered_end(SelectionVector selection)
+  RowViewSentinel filtered_end(SelectionVector selection)
   {
-    auto end = filtered_iterator(mColumnIndex, {selection, mOffset});
-    end.moveToEnd();
-    return end;
+    return RowViewSentinel{selection.size()};
   }
 
   unfiltered_const_iterator begin() const
@@ -894,9 +930,9 @@ class Table
     return unfiltered_const_iterator(mBegin);
   }
 
-  unfiltered_const_iterator end() const
+  RowViewSentinel end() const
   {
-    return unfiltered_const_iterator{mEnd};
+    return RowViewSentinel{mEnd};
   }
 
   /// Return a type erased arrow table backing store for / the type safe table.
@@ -917,7 +953,6 @@ class Table
   void bindExternalIndices(TA*... current)
   {
     mBegin.bindExternalIndices(current...);
-    mEnd.bindExternalIndices(current...);
   }
 
  private:
@@ -942,7 +977,7 @@ class Table
   /// Cached begin iterator for this table.
   unfiltered_iterator mBegin;
   /// Cached end iterator for this table.
-  unfiltered_iterator mEnd;
+  RowViewSentinel mEnd;
   /// Offset of the table within a larger table.
   uint64_t mOffset;
 };
@@ -975,7 +1010,7 @@ template <typename INHERIT>
 class TableMetadata
 {
  public:
-  static constexpr char const* label() { return INHERIT::mLabel; }
+  static constexpr char const* const label() { return INHERIT::mLabel; }
   static constexpr char const (&origin())[4] { return INHERIT::mOrigin; }
   static constexpr char const (&description())[16] { return INHERIT::mDescription; }
 };
@@ -1206,6 +1241,7 @@ struct Join : JoinBase<Ts...> {
   }
 
   using table_t = base;
+  using persistent_columns_t = typename table_t::persistent_columns_t;
   using iterator = typename table_t::template RowView<Join<Ts...>, Ts...>;
   using const_iterator = iterator;
   using filtered_iterator = typename table_t::template RowViewFiltered<Join<Ts...>, Ts...>;
@@ -1232,6 +1268,7 @@ struct Concat : ConcatBase<T1, T2> {
   using left_t = T1;
   using right_t = T2;
   using table_t = ConcatBase<T1, T2>;
+  using persistent_columns_t = typename table_t::persistent_columns_t;
 
   using iterator = typename table_t::template RowView<Concat<T1, T2>, T1, T2>;
   using filtered_iterator = typename table_t::template RowViewFiltered<Concat<T1, T2>, T1, T2>;
@@ -1249,6 +1286,7 @@ class Filtered : public T
  public:
   using originals = originals_pack_t<T>;
   using table_t = typename T::table_t;
+  using persistent_columns_t = typename T::persistent_columns_t;
 
   template <typename P, typename... Os>
   constexpr static auto make_it(framework::pack<Os...> const&)
@@ -1262,7 +1300,7 @@ class Filtered : public T
     : T{std::move(tables), offset},
       mSelectedRows{std::forward<SelectionVector>(selection)},
       mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
-      mFilteredEnd{table_t::filtered_end(mSelectedRows)}
+      mFilteredEnd{mSelectedRows.size()}
   {
   }
 
@@ -1270,7 +1308,7 @@ class Filtered : public T
     : T{std::move(tables), offset},
       mSelectedRows{copySelection(selection)},
       mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
-      mFilteredEnd{table_t::filtered_end(mSelectedRows)}
+      mFilteredEnd{mSelectedRows.size()}
   {
   }
 
@@ -1280,7 +1318,7 @@ class Filtered : public T
                                                                           framework::expressions::createFilter(this->asArrowTable()->schema(),
                                                                                                                framework::expressions::createCondition(tree))))},
       mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
-      mFilteredEnd{table_t::filtered_end(mSelectedRows)}
+      mFilteredEnd{mSelectedRows.size()}
   {
   }
 
@@ -1289,9 +1327,9 @@ class Filtered : public T
     return iterator(mFilteredBegin);
   }
 
-  iterator end()
+  RowViewSentinel end()
   {
-    return iterator{mFilteredEnd};
+    return RowViewSentinel{mFilteredEnd};
   }
 
   const_iterator begin() const
@@ -1299,9 +1337,9 @@ class Filtered : public T
     return const_iterator(mFilteredBegin);
   }
 
-  const_iterator end() const
+  RowViewSentinel end() const
   {
-    return const_iterator{mFilteredEnd};
+    return RowViewSentinel{mFilteredEnd};
   }
 
   int64_t size() const
@@ -1335,13 +1373,12 @@ class Filtered : public T
   {
     table_t::bindExternalIndices(current...);
     mFilteredBegin.bindExternalIndices(current...);
-    mFilteredEnd.bindExternalIndices(current...);
   }
 
  private:
   SelectionVector mSelectedRows;
   iterator mFilteredBegin;
-  iterator mFilteredEnd;
+  RowViewSentinel mFilteredEnd;
 };
 
 template <typename T>

@@ -39,5 +39,6 @@
 #pragma link C++ class o2::tpc::CompressedClustersCounters + ;
 #pragma link C++ class o2::tpc::CompressedClustersPtrs_helper < o2::tpc::CompressedClustersCounters> + ;
 #pragma link C++ class o2::tpc::CompressedClusters + ;
+#pragma link C++ enum o2::tpc::StatisticsType;
 
 #endif

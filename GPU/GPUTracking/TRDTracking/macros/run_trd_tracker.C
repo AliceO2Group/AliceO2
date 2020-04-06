@@ -25,14 +25,13 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 void run_trd_tracker(std::string path = "./",
-                     std::string inputGeom = "O2geometry.root",
                      std::string inputGRP = "o2sim_grp.root",
                      std::string inputTracks = "o2match_itstpc.root",
                      std::string inputTracklets = "trdtracklets.root")
 {
 
   //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(path);
   o2::base::Propagator::initFieldFromGRP(path + inputGRP);
 
   auto geo = o2::trd::TRDGeometry::instance();

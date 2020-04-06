@@ -21,6 +21,7 @@
 
 #include "DataFormatsITSMFT/Cluster.h"
 #include "MFTTracking/TrackParamMFT.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
 {
@@ -44,6 +45,14 @@ class FitterTrackMFT
 
   /// Return the number of attached clusters
   const int getNClusters() const { return mParamAtClusters.size(); }
+
+  // Set and Get MCCompLabels
+  const std::array<MCCompLabel, 10>& getMCCompLabels() const { return mMCCompLabels; } // constants::mft::LayersNumber = 10
+  void setMCCompLabels(const std::array<MCCompLabel, 10>& labels, int nPoints)
+  {
+    mMCCompLabels = labels;
+    mNPoints = nPoints;
+  }
 
   /// Return a reference to the track parameters at first cluster
   const TrackParamMFT& first() const { return mParamAtClusters.front(); }
@@ -95,7 +104,9 @@ class FitterTrackMFT
   /// return the flag telling if this track should be deleted
   bool isRemovable() const { return mRemovable; }
 
-  void print() const;
+  void printMCCompLabels() const;
+
+  const Int_t getNPoints() const { return mNPoints; }
 
  private:
   TrackParamMFT mParamAtVertex{};                 ///< track parameters at vertex
@@ -104,6 +115,8 @@ class FitterTrackMFT
   int mCurrentLayer = -1;                         ///< current chamber on which the current parameters are given
   bool mConnected = false;                        ///< flag telling if this track shares cluster(s) with another
   bool mRemovable = false;                        ///< flag telling if this track should be deleted
+  Int_t mNPoints{0};                              // Number of clusters
+  std::array<MCCompLabel, 10> mMCCompLabels;      // constants::mft::LayersNumber = 10
 };
 
 } // namespace mft

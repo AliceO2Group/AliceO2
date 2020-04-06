@@ -163,6 +163,12 @@ int ReadConfiguration(int argc, char** argv)
     return (1);
   }
 #endif
+  if (configStandalone.qa) {
+    if (getenv("LC_NUMERIC")) {
+      printf("Please unset the LC_NUMERIC env variable, otherwise ROOT will not be able to fit correctly"); // BUG: ROOT Problem
+      return (1);
+    }
+  }
 #ifndef GPUCA_BUILD_EVENT_DISPLAY
   if (configStandalone.eventDisplay) {
     printf("EventDisplay not enabled in build\n");
@@ -285,6 +291,9 @@ int SetupReconstruction()
   recSet.ForceEarlyTPCTransform = configStandalone.configRec.ForceEarlyTPCTransform;
   recSet.fwdTPCDigitsAsClusters = configStandalone.configRec.fwdTPCDigitsAsClusters;
   recSet.dropLoopers = configStandalone.configRec.dropLoopers;
+  if (configStandalone.configRec.mergerCovSource != -1) {
+    recSet.mergerCovSource = configStandalone.configRec.mergerCovSource;
+  }
   if (configStandalone.referenceX < 500.) {
     recSet.TrackReferenceX = configStandalone.referenceX;
   }
@@ -567,7 +576,7 @@ int main(int argc, char** argv)
           }
         }
 
-        if (configStandalone.overrideMaxTimebin && (chainTracking->mIOPtrs.clustersNative || chainTracking->mIOPtrs.tpcPackedDigits)) {
+        if (configStandalone.overrideMaxTimebin && (chainTracking->mIOPtrs.clustersNative || chainTracking->mIOPtrs.tpcPackedDigits || chainTracking->mIOPtrs.tpcZS)) {
           GPUSettingsEvent ev = rec->GetEventSettings();
           ev.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
           rec->UpdateEventSettings(&ev);

@@ -148,9 +148,11 @@ class TPCFastTransform : public FlatObject
   GPUd() void convUVtoPadTimeInTimeFrame(int slice, int row, float u, float v, float& pad, float& time, float maxTimeBin) const;
 
   GPUd() float convTimeToZinTimeFrame(int slice, float time, float maxTimeBin) const;
-  GPUd() float convZtoTimeInTimeFrame(float z, float maxTimeBin) const;
+  GPUd() float convZtoTimeInTimeFrame(int slice, float z, float maxTimeBin) const;
   GPUd() float convDeltaTimeToDeltaZinTimeFrame(int slice, float deltaTime) const;
   GPUd() float convDeltaZtoDeltaTimeInTimeFrame(int slice, float deltaZ) const;
+  GPUd() float convZOffsetToVertexTime(int slice, float zOffset, float maxTimeBin) const;
+  GPUd() float convVertexTimeToZOffset(int slice, float vertexTime, float maxTimeBin) const;
 
   GPUd() void getTOFcorrection(int slice, int row, float x, float y, float z, float& dz) const;
 
@@ -272,6 +274,24 @@ GPUdi() void TPCFastTransform::convPadTimeToUVinTimeFrame(int slice, int row, fl
     v += getGeometry().getTPCzLengthA();
   } else {
     v += getGeometry().getTPCzLengthC();
+  }
+}
+
+GPUdi() float TPCFastTransform::convZOffsetToVertexTime(int slice, float zOffset, float maxTimeBin) const
+{
+  if (slice < getGeometry().getNumberOfSlicesA()) {
+    return maxTimeBin - (getGeometry().getTPCzLengthA() + zOffset) / mVdrift;
+  } else {
+    return maxTimeBin - (getGeometry().getTPCzLengthC() - zOffset) / mVdrift;
+  }
+}
+
+GPUdi() float TPCFastTransform::convVertexTimeToZOffset(int slice, float vertexTime, float maxTimeBin) const
+{
+  if (slice < getGeometry().getNumberOfSlicesA()) {
+    return (maxTimeBin - vertexTime) * mVdrift - getGeometry().getTPCzLengthA();
+  } else {
+    return -((maxTimeBin - vertexTime) * mVdrift - getGeometry().getTPCzLengthC());
   }
 }
 
@@ -404,11 +424,15 @@ GPUdi() float TPCFastTransform::convTimeToZinTimeFrame(int slice, float time, fl
   return z;
 }
 
-GPUdi() float TPCFastTransform::convZtoTimeInTimeFrame(float z, float maxTimeBin) const
+GPUdi() float TPCFastTransform::convZtoTimeInTimeFrame(int slice, float z, float maxTimeBin) const
 {
   /// Inverse transformation of convTimeToZinTimeFrame()
-  z = z - getGeometry().getTPCalignmentZ(); // global TPC alignment
-  float v = fabs(z);
+  float v;
+  if (slice < getGeometry().getNumberOfSlicesA()) {
+    v = getGeometry().getTPCalignmentZ() - z;
+  } else {
+    v = z - getGeometry().getTPCalignmentZ();
+  }
   return mT0 + maxTimeBin + (v - mLdriftCorr) / mVdrift;
 }
 

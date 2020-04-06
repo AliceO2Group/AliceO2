@@ -17,32 +17,19 @@
 #include "Array2D.h"
 #include "PackedCharge.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
-
-#ifndef __OPENCL__
-#include "Headers/RAWDataHeader.h"
-#else
-namespace o2
-{
-namespace header
-{
-struct RAWDataHeader {
-  unsigned int words[16];
-};
-} // namespace header
-} // namespace o2
-
-#endif
+#include "CommonConstants/LHCConstants.h"
+#include "GPURawData.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
 template <>
-GPUdii() void GPUTPCCFDecodeZS::Thread<GPUTPCCFDecodeZS::decodeZS>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFDecodeZS::Thread<GPUTPCCFDecodeZS::decodeZS>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int bcShiftInFirstHBF)
 {
-  GPUTPCCFDecodeZS::decode(clusterer, smem, nBlocks, nThreads, iBlock, iThread);
+  GPUTPCCFDecodeZS::decode(clusterer, smem, nBlocks, nThreads, iBlock, iThread, bcShiftInFirstHBF);
 }
 
-GPUd() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread)
+GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread, int bcShiftInFirstHBF)
 {
   const unsigned int slice = clusterer.mISlice;
 #ifdef GPUCA_GPUCODE
@@ -87,11 +74,12 @@ GPUd() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUSharedMe
       CA_SHARED_CACHE_REF(&s.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, unsigned int, pageCache);
       GPUbarrier();
       const unsigned char* page = (const unsigned char*)pageCache;
+      const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)page;
       const unsigned char* pagePtr = page + sizeof(o2::header::RAWDataHeader);
       const TPCZSHDR* hdr = reinterpret_cast<const TPCZSHDR*>(pagePtr);
       pagePtr += sizeof(*hdr);
       unsigned int mask = (1 << s.decodeBits) - 1;
-      int timeBin = hdr->timeOffset;
+      int timeBin = hdr->timeOffset + (GPURawDataUtils::getOrbit(rdh) * o2::constants::lhc::LHCMaxBunches + Constants::LHCBCPERTIMEBIN - 1 - bcShiftInFirstHBF) / Constants::LHCBCPERTIMEBIN;
       for (int l = 0; l < hdr->nTimeBins; l++) { // TODO: Parallelize over time bins
         pagePtr += (pagePtr - page) & 1; //Ensure 16 bit alignment
         const TPCZSTBHDR* tbHdr = reinterpret_cast<const TPCZSTBHDR*>(pagePtr);

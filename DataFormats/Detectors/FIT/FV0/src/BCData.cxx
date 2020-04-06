@@ -23,5 +23,5 @@ void BCData::print() const
 gsl::span<const ChannelData> BCData::getBunchChannelData(const gsl::span<const ChannelData> tfdata) const
 {
   // extract the span of channel data for this bunch from the whole TF data
-  return gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries());
+  return ref.getEntries() ? gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries()) : gsl::span<const ChannelData>();
 }

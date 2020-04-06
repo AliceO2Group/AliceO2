@@ -28,13 +28,14 @@ namespace tpc
 namespace reco_workflow
 {
 /// define input and output types of the workflow
-enum struct InputType { Digitizer, // directly read digits from channel {TPC:DIGITS}
-                        Digits,    // read digits from file
-                        Raw,       // read hardware clusters in raw page format from file
-                        Clusters,  // read native clusters from file
+enum struct InputType { Digitizer,        // directly read digits from channel {TPC:DIGITS}
+                        Digits,           // read digits from file
+                        ClustersHardware, // read hardware clusters in raw page format from file
+                        Clusters,         // read native clusters from file
+                        ZSRaw,
 };
 enum struct OutputType { Digits,
-                         Raw,
+                         ClustersHardware,
                          Clusters,
                          Tracks,
                          DisableWriter,
@@ -49,11 +50,11 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,         
                                     int caClusterer = 0                           //
 );
 
-framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,           //
-                                    bool propagateMC = true, unsigned nLanes = 1, //
-                                    std::string const& cfgInput = "digitizer",    //
-                                    std::string const& cfgOutput = "tracks",      //
-                                    int caClusterer = 0                           //
+static inline framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,           //
+                                                  bool propagateMC = true, unsigned nLanes = 1, //
+                                                  std::string const& cfgInput = "digitizer",    //
+                                                  std::string const& cfgOutput = "tracks",      //
+                                                  int caClusterer = 0                           //
 )
 {
   // create a default lane configuration with ids [0, nLanes-1]
@@ -62,10 +63,10 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,         
   return getWorkflow(tpcSectors, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer);
 }
 
-framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1, //
-                                    std::string const& cfgInput = "digitizer",    //
-                                    std::string const& cfgOutput = "tracks",      //
-                                    int caClusterer = 0                           //
+static inline framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1, //
+                                                  std::string const& cfgInput = "digitizer",    //
+                                                  std::string const& cfgOutput = "tracks",      //
+                                                  int caClusterer = 0                           //
 )
 {
   // create a default lane configuration with ids [0, nLanes-1]

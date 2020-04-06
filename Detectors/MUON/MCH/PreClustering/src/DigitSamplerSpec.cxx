@@ -18,6 +18,7 @@
 #include <iostream>
 #include <fstream>
 
+#include <string>
 #include <stdexcept>
 
 #include "Framework/CallbackService.h"
@@ -28,7 +29,9 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 
-#include "MCHBase/DigitBlock.h"
+#include "MCHBase/Digit.h"
+
+#include "MCHMappingFactory/CreateSegmentation.h"
 
 namespace o2
 {
@@ -37,7 +40,6 @@ namespace mch
 
 using namespace std;
 using namespace o2::framework;
-using namespace o2::mch;
 
 class DigitSamplerTask
 {
@@ -54,14 +56,14 @@ class DigitSamplerTask
       throw invalid_argument("Cannot open input file " + inputFileName);
     }
 
+    mUseRun2DigitUID = ic.options().get<bool>("useRun2DigitUID");
+
     auto stop = [this]() {
       /// close the input file
       LOG(INFO) << "stop digit sampler";
       this->mInputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
-
-    mPrint = ic.options().get<bool>("print");
   }
 
   //_________________________________________________________________________________________________
@@ -69,47 +71,64 @@ class DigitSamplerTask
   {
     /// send the digits of the current event
 
-    DigitBlock digitBlock{};
-    mInputFile.read(reinterpret_cast<char*>(&digitBlock), SSizeOfDigitBlock);
+    int nDigits(0);
+    mInputFile.read(reinterpret_cast<char*>(&nDigits), SSizeOfInt);
     if (mInputFile.fail()) {
+      pc.services().get<ControlService>().endOfStream();
       return; // probably reached eof
     }
 
-    if (digitBlock.header.fRecordWidth != SSizeOfDigitStruct) {
-      throw length_error("incorrect size of digits. Content changed?");
-    }
-
     // create the output message
-    auto size = digitBlock.header.fNrecords * SSizeOfDigitStruct;
-    auto msgOut = pc.outputs().make<char>(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, SSizeOfDigitBlock + size);
-    if (msgOut.size() != SSizeOfDigitBlock + size) {
+    auto size = nDigits * SSizeOfDigit;
+    auto msgOut = pc.outputs().make<char>(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, SSizeOfInt + size);
+    if (msgOut.size() != SSizeOfInt + size) {
       throw length_error("incorrect message payload");
     }
 
     auto bufferPtr = msgOut.data();
 
-    // fill header info
-    memcpy(bufferPtr, &digitBlock, SSizeOfDigitBlock);
-    bufferPtr += SSizeOfDigitBlock;
+    // fill number of digits
+    memcpy(bufferPtr, &nDigits, SSizeOfInt);
+    bufferPtr += SSizeOfInt;
 
-    // fill digits info
+    // fill digits in O2 format, if any
     if (size > 0) {
       mInputFile.read(bufferPtr, size);
+      if (mUseRun2DigitUID) {
+        convertDigitUID2PadID(reinterpret_cast<Digit*>(bufferPtr), nDigits);
+      }
     } else {
       LOG(INFO) << "event is empty";
-    }
-
-    if (mPrint) {
-      LOG(INFO) << "block: " << *reinterpret_cast<const DigitBlock*>(msgOut.data());
     }
   }
 
  private:
-  static constexpr uint32_t SSizeOfDigitBlock = sizeof(DigitBlock);
-  static constexpr uint32_t SSizeOfDigitStruct = sizeof(DigitStruct);
+  //_________________________________________________________________________________________________
+  void convertDigitUID2PadID(Digit* digits, int nDigits)
+  {
+    /// convert the digit UID in run2 format into a pad ID (i.e. index) in O2 mapping
 
-  std::ifstream mInputFile{}; ///< input file
-  bool mPrint = false;        ///< print digits
+    for (int iDigit = 0; iDigit < nDigits; ++iDigit) {
+
+      int deID = digits[iDigit].getDetID();
+      int digitID = digits[iDigit].getPadID();
+      int manuID = (digitID & 0xFFF000) >> 12;
+      int manuCh = (digitID & 0x3F000000) >> 24;
+
+      int padID = mapping::segmentation(deID).findPadByFEE(manuID, manuCh);
+      if (padID < 0) {
+        throw runtime_error(std::string("digitID ") + digitID + " does not exist in the mapping");
+      }
+
+      digits[iDigit].setPadID(padID);
+    }
+  }
+
+  static constexpr uint32_t SSizeOfInt = sizeof(int);
+  static constexpr uint32_t SSizeOfDigit = sizeof(Digit);
+
+  std::ifstream mInputFile{};    ///< input file
+  bool mUseRun2DigitUID = false; ///< true if Digit.mPadID = digit UID in run2 format
 };
 
 //_________________________________________________________________________________________________
@@ -121,7 +140,7 @@ o2::framework::DataProcessorSpec getDigitSamplerSpec()
     Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<DigitSamplerTask>()},
     Options{{"infile", VariantType::String, "", {"input file name"}},
-            {"print", VariantType::Bool, false, {"print digits"}}}};
+            {"useRun2DigitUID", VariantType::Bool, false, {"mPadID = digit UID in run2 format"}}}};
 }
 
 } // end namespace mch

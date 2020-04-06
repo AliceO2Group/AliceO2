@@ -26,15 +26,11 @@ namespace mch
 using namespace std;
 
 //_________________________________________________________________________________________________
-void PreClusterFinder::init(std::string& fileName)
+void PreClusterFinder::init()
 {
   /// Load the mapping and prepare the internal structure
 
-  try {
-    readMapping(fileName.c_str());
-  } catch (exception const&) {
-    throw;
-  }
+  createMapping();
 
   for (int iDE = 0; iDE < SNDEs; ++iDE) {
     for (int iPlane = 0; iPlane < 2; ++iPlane) {
@@ -88,30 +84,21 @@ void PreClusterFinder::reset()
 }
 
 //_________________________________________________________________________________________________
-void PreClusterFinder::loadDigits(const DigitStruct* digits, uint32_t nDigits)
+void PreClusterFinder::loadDigits(const Digit* digits, int nDigits)
 {
   /// fill the Mapping::MpDE structure with fired pads
 
-  int iPlane(0);
-  uint16_t iPad(0);
+  for (int i = 0; i < nDigits; ++i) {
 
-  // loop over digits
-  for (uint32_t i = 0; i < nDigits; ++i) {
+    const Digit& digit(digits[i]);
 
-    const DigitStruct& digit(digits[i]);
-
-    int deIndex = mDEIndices[detectionElementId(digit.uid)];
+    int deIndex = mDEIndices[digit.getDetID()];
     assert(deIndex >= 0 && deIndex < SNDEs);
 
     DetectionElement& de(mDEs[deIndex]);
 
-    iPlane = (cathode(digit.uid) == de.mapping->iCath[0]) ? 0 : 1;
-    iPad = de.mapping->padIndices[iPlane].GetValue(digit.uid);
-    if (iPad == 0) {
-      LOG(WARN) << "pad ID " << digit.uid << " does not exist in the mapping";
-      continue;
-    }
-    --iPad;
+    uint16_t iPad = digit.getPadID();
+    int iPlane = (iPad < de.mapping->nPads[0]) ? 0 : 1;
 
     // register this digit
     uint16_t iDigit = de.nFiredPads[0] + de.nFiredPads[1];
@@ -391,17 +378,16 @@ bool PreClusterFinder::areOverlapping(PreCluster& cluster1, PreCluster& cluster2
 }
 
 //_________________________________________________________________________________________________
-void PreClusterFinder::readMapping(const char* fileName)
+void PreClusterFinder::createMapping()
 {
   /// Fill the internal mapping structures
 
   auto tStart = std::chrono::high_resolution_clock::now();
 
-  std::vector<std::unique_ptr<Mapping::MpDE>> mpDEs = Mapping::readMapping(fileName);
+  std::vector<std::unique_ptr<Mapping::MpDE>> mpDEs = Mapping::createMapping();
 
-  if (mpDEs.size() < SNDEs) {
-    LOG(ERROR) << "Invalid binary mapping file " << fileName;
-    throw runtime_error(fair::mq::tools::ToString("Invalid binary mapping file ", fileName));
+  if (mpDEs.size() != SNDEs) {
+    throw runtime_error("invalid mapping");
   }
 
   mDEIndices.reserve(SNDEs);
@@ -429,7 +415,7 @@ void PreClusterFinder::readMapping(const char* fileName)
   }
 
   auto tEnd = std::chrono::high_resolution_clock::now();
-  LOG(INFO) << "Read mapping in: " << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms\n";
+  LOG(INFO) << "create mapping in: " << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms";
 }
 
 } // namespace mch

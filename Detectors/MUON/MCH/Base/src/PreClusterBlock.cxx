@@ -86,7 +86,7 @@ int PreClusterBlock::reset(void* buffer, uint32_t size, bool write)
 }
 
 //_________________________________________________________________________________________________
-int PreClusterBlock::startPreCluster(const DigitStruct& digit)
+int PreClusterBlock::startPreCluster(const Digit& digit)
 {
   /// start a new precluster
 
@@ -107,9 +107,9 @@ int PreClusterBlock::startPreCluster(const DigitStruct& digit)
   mCurrentSize += SSizeOfUShort;
 
   // store digit and increment buffer
-  auto lastDigit = reinterpret_cast<DigitStruct*>(mBuffer);
+  auto lastDigit = reinterpret_cast<Digit*>(mBuffer);
   *lastDigit = digit;
-  mBuffer = (reinterpret_cast<DigitStruct*>(mBuffer) + 1);
+  mBuffer = (reinterpret_cast<Digit*>(mBuffer) + 1);
   mCurrentSize += SSizeOfDigit;
 
   // increment number of pre-clusters
@@ -123,7 +123,7 @@ int PreClusterBlock::startPreCluster(const DigitStruct& digit)
 }
 
 //_________________________________________________________________________________________________
-int PreClusterBlock::addDigit(const DigitStruct& digit)
+int PreClusterBlock::addDigit(const Digit& digit)
 {
   /// add a new digit to the current precluster
 
@@ -142,8 +142,8 @@ int PreClusterBlock::addDigit(const DigitStruct& digit)
   *mLastNDigits += 1;
 
   // assign digit to the buffer and increment buffer
-  *(reinterpret_cast<DigitStruct*>(mBuffer)) = digit;
-  mBuffer = (reinterpret_cast<DigitStruct*>(mBuffer) + 1);
+  *(reinterpret_cast<Digit*>(mBuffer)) = digit;
+  mBuffer = (reinterpret_cast<Digit*>(mBuffer) + 1);
   mCurrentSize += SSizeOfDigit;
 
   // increment number of digits in the stored cluster
@@ -191,8 +191,8 @@ int PreClusterBlock::readBuffer()
     // read the digits
     if (nDigits && (*nDigits) > 0 && mCurrentSize + (*nDigits) * SSizeOfDigit <= mSize) {
 
-      auto digit = reinterpret_cast<DigitStruct*>(mBuffer);
-      mBuffer = (reinterpret_cast<DigitStruct*>(mBuffer) + (*nDigits));
+      auto digit = reinterpret_cast<Digit*>(mBuffer);
+      mBuffer = (reinterpret_cast<Digit*>(mBuffer) + (*nDigits));
       mCurrentSize += (*nDigits) * SSizeOfDigit;
 
       // store
@@ -234,7 +234,7 @@ std::ostream& operator<<(std::ostream& stream, const PreClusterStruct& cluster)
 {
   stream << "{nDigits= " << cluster.nDigits;
   for (int i = 0; i < cluster.nDigits; ++i) {
-    stream << ", digit[" << i << "]= " << cluster.digits[i];
+    stream << ", digit[" << i << "]= " << cluster.digits[i].getPadID();
   }
   stream << "}";
 

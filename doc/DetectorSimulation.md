@@ -12,34 +12,89 @@ Detector simulation, the simulation of detector response from virtual particle e
   a) the generation of simple (energy deposit) traces in the detector due to the passage of particles and the interaction with the detector material.
   b) the conversion of those traces into (electronic) signals in the detector readout (usually called digitization).
  
-The first part is handled by the `o2-sim` executable. The second part is handled in the `o2-sim-digitizer-workflow`.
- 
-# Documentation of `o2-sim`
+The first part is handled by the `o2-sim` executable (See [SimSection](#SimSection)). The second part is handled in the `o2-sim-digitizer-workflow` executable (See [DigitSection](#DigitSection)).
 
-The purpose of the `o2-sim` executable is to simulate the passage of particles emerging from a collision inside the detector and to obtain their effect in terms of energy deposits (called hits) which could be converted into detectable signals.
+## Key new features with respect to AliRoot
 
-## Command overview
-* **Basic help:** Help on command line options can be obtained with `o2-sim --help`
-* **Typical example:** A typical (exemplary) invocation is of the form 
+The Run3 simulation offers the following features
+
+  - **distributed system based on FairMQ** that is splitting event generation, particle transport and IO into separate asyncronous components that can be deployed on different machines
+  - **sub-event parallelism** making it possible to transport a single big event in a short time and to reduce memory consumption
+  - **parallelism** independent on transport engine
+  - **configuration via pre-defined parameter classes and ini/text files**
+  - **clear separation of transport and digitization** - each phase can be run fully independently
+
+
+# Documentation of transport simulation <a name="SimSection"></a>
+
+The purpose of the `o2-sim` executable is to simulate the passage of particles emerging from a collision inside the detector and to obtain their effect in terms of energy deposits (called hits) which could be converted into detectable signals. It is the driver executable which will spawn a topology of sub-processes that interact via messages in a distributed system.
+
+## Usage overview
+* **Quick start example:** A typical (exemplary) invocation is of the form 
 
     ```o2-sim -n 10 -g pythia8 -e TGeant4 -j 2 --skipModules ZDC,PHS``` 
 
-    which would launch a simulation for 10 pythia8 events on the whole ALICE detector but ZDC and PHOS, using Geant4 on 2 worker processes.
-* **Generated output**: The simulation creates at least the following files:
+    which would launch a simulation for 10 pythia8 events on the whole ALICE detector but ZDC and PHOS, using Geant4 on 2 parallel worker processes.
+* **Generated output**: The simulation creates the following output files:
      
-     
-        | file              | description      |
-        | ----------------- | ---------------- |
-        | `o2sim.root`      | contains kinematics and hits |
-        | `O2geometry.root` | contains the ROOT geometry created for simulation |
-        | `o2sim_grp.root`  | the grp parameters |
+| File                  | Description                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| `o2sim_Kine.root`     | contains kinematics information (primaries and secondaries) and event meta information |
+| `o2sim_geometry.root` | contains the final ROOT geometry created for simulation run                            |
+| `o2sim_grp.root`      | special global run parameters (grp) such as field                                      |
+| `o2sim_XXXHits.root`  | hit file for each participating active detector XXX                                    |
+| `o2sim_configuration.ini` | summary of parameter values with which the simulation was done                     |
+| `serverlog` | log file produced from the particle generator server |
+| `workerlog` | log file produced form the transportation processes |
+| `hitmergerlog` | log file produced from the IO process |
 
 
-## Main configuration Options
+* **Main command line options**: The following major options are available (incomplete):
 
-control of verbosity
+| Option                | Description                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| -h,--help     | Prints the list of possible command line options and their default values.           |
+| -n,--number | The number of events to simulate.                                                       |
+| -g,--generator | name of a predefined generator template to use (such as pythia8, pythia8hi). Configuration of generations is explained in a dedicated section. |
+| -e,--engine | Select the VMC transport engine (TGeant4, TGeant3).                                     |
+| -m,--modules | List of modules/geometries to include (default is ALL); example -m PIPE ITS TPC       |
+| -j,--nworkers | Number of parallel simulation engine workers (default is half the number of hyperthread CPU cores) |
+| --chunkSize | Size of a sub-event. This determines how many primary tracks will be sent to a simulation worker to process. |
+| --skipModules | List of modules to skip / not to include (precedence over -m) |
+| --configFile   | A `.ini` file containing a list of (non-default) parameters to configure the simulation run. See section on configurable parameters for more details.  |
+| --configKeyValues | Like `--configFile` but allowing to set parameters on the command line as a string sequence. Example `--configKeyValues "Stack.pruneKine=false"`. Takes precedence over `--configFile`. Parameters need to be known ConfigurableParams. |
+| --seed   | The initial seed to (all) random number instances. Default is -1 which leads to random behaviour. |
+| -o,--outPrefix | How output files should be prefixed. Default is o2sim. Example `-o mySignalProduction`.|
 
-## Configuration via Parameters
+* **Expert control** via environment variables:
+`o2-sim` is sensitive to the following environment variables:
+
+| Variable | Description |
+| --- | --- |
+| **ALICE_O2SIM_DUMPLOG** | When set, the output of all FairMQ components will be shown on the screen and can be piped into a user logfile. |  
+| **ALICE_NOSIMSHM** | When set, communication between simulation processes will not happen using a shared memory mechanism but using ROOT serialization. |
+
+
+## Configurable Parameters
+
+Simulation makes use of `configurable parameters` as described in the [ConfigurableParam.md](https://github.com/AliceO2Group/AliceO2/blob/dev/Common/SimConfig/doc/ConfigurableParam.md) documentation.
+Detector code as well as general simulation code declare such parameter and access them during runtime. 
+Once a parameter is declared, it can be influenced/set from the outside via configuration files or from the command line. See the `--configFile` as well as `--configKeyValues` command line options.
+The complete list of parameters and their default values can be inspected in the file `o2sim_configuration.ini` that is produced by an empty run `o2-sim -n 0 -m CAVE`.
+
+Important parameters influencing the transport simulation are:
+
+| Main parameter key | Description |
+| --- | --- |
+| G4 | Parameters influencing the Geant4 engine, such as the physics list. Example "G4.physicslist=kFTFP_BERT_optical_biasing" |
+| Stack | Parameters influencing the particle stack. Example include whether the stack does kinematics pruning or whether it keeps secondaries at all. |
+| SimCutParams | Parameters allowing to set some sime geometry stepping cuts in R, Z, etc. |
+| Diamond | Parameter allowing to set the interaction vertex location and the spread/width. Is used in all event generators. |
+| Pythia6 | Parameters that influence the pythia6 generator. |
+| Pythia8 | Parameters that influence the pythia8 generator. |
+| TriggerParticle | Parameters influencing the trigger mechanism in particle generators. |
+
+Detectors may also have parameters influencing various pieces such geometry layout, material composition etc.
 
 ## Help on available generators
 
@@ -66,12 +121,6 @@ Configures pythia8 for min.bias pp collisions at 14 TeV
 ```
 o2-sim -m PIPE ITS MFT -g pythia8 -n 50
 ```
-
-## Control via environment variables
-`o2-sim` is sensitive to the following environment variables:
-
-**ALICE_O2SIM_DUMPLOG**
-**ALICE_O2SIM_USESHM**
 
 [Describe in detail the environment variables]
 
@@ -273,4 +322,56 @@ o2::eventgen::DeepTrigger
 
 ## Development
 
-# Documentation of `o2-sim-digitizer-workflow`
+# Documentation of the digitization step <a name="DigitSection"></a>
+
+Digitization - the transformation of hits produced in the transport simulation to electronics detector output - is steered by the `o2-sim-digitizer-workflow` executable. The executable is implemented as a [DPL workflow] (https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/Core/README.md). The main components in this workflow are:
+- **A SimReader** process, responsible to analyze available simulation information/kinematics and to setup the digitization context, which describes things such as the structure of the timeframe (bunch cross properties and interaction rate) as well as how to combine different background and signal hits.
+- **Digitizer processors** per detector, responsible for the actual digitization upon receiving the digitization context from the SimReader.
+- **IO processors** per detector, responsible to write digits to files.
+- **GRP updater**, a process to update the GRP file with information aquired in digitization.
+
+
+## Usage overview:
+* **Quick start example:** A minimal invocation is of the form 
+
+    ```o2-sim-digitizer-workflow [--sims foo] -b``` 
+
+    which would launch the digitization phase for all detectors that took part in a simulation stored under simulation prefix `foo` (default o2sim) and will digitize all events with a default bunch crossing structure. All digitizer will run in parallel to each other.
+
+* **A more advanced example:** 
+
+    ```o2-sim-digitizer-workflow --sims bkg,sgn --interactionRate 1e6 --onlyDet TPC,ITS -b``` 
+
+    which would launch the digitization phase for TPC and ITS with a custom LHC interactionRate. Moreover, this example does
+    summation of digits coming from background (prefix bkg) as well as signal (prefix sgn) transport simulations.
+
+* **Generated output**: The digitization process creates the following output files:
+     
+| File                  | Description                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| `collisioncontext.root` | Contains information about the collision/digitization context used in this digitization. Keeps the list of input files and how collisions were composed for the digits embedding process and time stamps where assigned.  |
+| `XXXdigits.root` | Typically one digit file per detector XXX in a timeframe format. The file also typically contains mappings of digit indices to   MC labels. |
+| `o2simdigitizerworkflow_configuration.ini` | Summary of parameters used in the digitization process. |
+
+
+* **Main command line options**: The following major options are available:
+
+| Option                | Description                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| -h,--help     | Prints the list of possible command line options and their default values.           |
+| --sims | Comma separated list of simulation prefixes that should be overlaid/embedded. Example `--sims background,signal` where `background` and `signal` refer to transport simulation productions. Final collisions will be composed from both of them (in a round robin fashion). See separate section about [Embedding](#Embedding) for more details. If just one prefix is given, normal digitization without overlay will be done. |
+| --tpc-lanes | Number of parallel digitizers for TPC, which has a special attention due an increased data rate compared to other detectors. | |
+| --interactionRate | Total hadronic interaction rate (Hz). |
+| --bcPatternFile | Interacting BC pattern file chaning the default bunch crossing pattern. |
+| --onlyDet | Comma separated list of detectors to digitize. (Default is all) |
+| --skipDet | Comma separed list of detectors to exclude. |
+| --incontext | Name of context file. Useful for reusing a context from a previous run when we split the processing detectorwise. |
+| --outcontext | Specify name of contextfile to produce. |
+| --simFileQED | Optional special QED hit file to include effect from QED effects into digitization. |
+
+
+## Embedding <a name="Embedding"></a>
+
+
+## Accessing Monte Carlo kinematics after the digitization phase
+

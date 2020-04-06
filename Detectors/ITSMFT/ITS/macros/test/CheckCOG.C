@@ -23,18 +23,19 @@
 
 #endif
 
-void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = "O2geometry.root", std::string dictionary_file = "complete_dictionary.bin")
+void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = "", std::string dictionary_file = "complete_dictionary.bin")
 {
   gStyle->SetOptStat(0);
   using namespace o2::base;
   using namespace o2::its;
 
   using o2::itsmft::Cluster;
+  using o2::itsmft::CompCluster;
   using o2::itsmft::CompClusterExt;
   using o2::itsmft::TopologyDictionary;
 
   // Geometry
-  o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms
@@ -56,7 +57,14 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
   int ievC = 0;
   int lastReadHitEv = -1;
 
-  TopologyDictionary dict(dictionary_file.c_str());
+  TopologyDictionary dict;
+  std::ifstream file(dictionary_file.c_str());
+  if (file.good()) {
+    LOG(INFO) << "Running with dictionary: " << dictionary_file.c_str();
+    dict.ReadBinaryFile(dictionary_file);
+  } else {
+    LOG(INFO) << "Running without dictionary !";
+  }
 
   TH1F* hTotalX = new TH1F("hTotalX", "All entries;x_{full} - x_{compact} (#mum);counts", 81, -40.5, 40.5);
   TH1F* hTotalZ = new TH1F("hTotalZ", "All entries;z_{full} - z_{compact} (#mum);counts", 81, -40.5, 40.5);
@@ -80,32 +88,37 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
     }
     printf("processing cluster event %d\n", ievC);
 
-    auto pattIdx = patternsPtr->begin();
+    auto pattIdx = patternsPtr->cbegin();
     for (int i = 0; i < nc; i++) {
       // cluster is in tracking coordinates always
       Cluster& c = (*clusArr)[i];
       const auto locC = c.getXYZLoc(*gman); // convert from tracking to local frame
 
+      float dx, dz;
+      Point3D<float> locComp;
       CompClusterExt& cComp = (*compclusArr)[i];
-      Point3D<float> locComp = dict.getClusterCoordinates(cComp);
+      auto pattID = cComp.getPatternID();
+      fOut << Form("groupID: %d\n", pattID);
+      if (pattID != CompCluster::InvalidPatternID) {
+        Point3D<float> locComp = dict.getClusterCoordinates(cComp);
 
-      float xComp = locComp.X();
-      float zComp = locComp.Z();
+        float xComp = locComp.X();
+        float zComp = locComp.Z();
 
-      float dx = (locC.X() - xComp) * 10000;
-      float dz = (locC.Z() - zComp) * 10000;
+        dx = (locC.X() - xComp) * 10000;
+        dz = (locC.Z() - zComp) * 10000;
 
-      hTotalX->Fill(dx);
-      hTotalZ->Fill(dz);
+        hTotalX->Fill(dx);
+        hTotalZ->Fill(dz);
 
-      fOut << Form("groupID: %d\n", cComp.getPatternID());
-      fOut << Form("is group: %o\n", dict.IsGroup(cComp.getPatternID()));
-      fOut << Form("x_full: %.4f x_comp: %.4f dx: %.4f x_shift: %.4f\n", locC.X(), xComp, dx / 10000, dict.GetXcog(cComp.getPatternID()));
-      fOut << Form("z_full: %.4f z_comp: %.4f dZ: %.4f z_shift: %.4f\n", locC.Z(), zComp, dz / 10000, dict.GetZcog(cComp.getPatternID()));
-      fOut << dict.GetPattern(cComp.getPatternID());
-      fOut << Form("***************************************\n");
+        fOut << Form("is group: %o\n", dict.IsGroup(pattID));
+        fOut << Form("x_full: %.4f x_comp: %.4f dx: %.4f x_shift: %.4f\n", locC.X(), xComp, dx / 10000, dict.GetXcog(pattID));
+        fOut << Form("z_full: %.4f z_comp: %.4f dZ: %.4f z_shift: %.4f\n", locC.Z(), zComp, dz / 10000, dict.GetZcog(pattID));
+        fOut << dict.GetPattern(pattID);
+        fOut << Form("***************************************\n");
+      }
 
-      if (dict.IsGroup(cComp.getPatternID())) {
+      if (pattID == CompCluster::InvalidPatternID || dict.IsGroup(pattID)) {
         if (patternsPtr) { // Restore the full pixel pattern information from the auxiliary branch
           o2::itsmft::ClusterPattern patt(pattIdx);
           auto locCl = dict.getClusterCoordinates(cComp, patt);

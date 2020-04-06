@@ -136,7 +136,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   for (char cside = 0; cside < 2; cside++) {
     for (int i = 0; i < nTracks; i++) {
       if (tracks[i].OK() && tracks[i].CSide() == cside) {
-        trackSort[tmp++] = {i, (cside == 0 ? 1.f : -1.f) * tracks[i].GetParam().GetZOffset()};
+        trackSort[tmp++] = {i, tracks[i].GetParam().GetTZOffset()};
         auto ncl = tracks[i].NClusters();
         clBuff += ncl + (ncl + 1) / 2; // actual N clusters to store will be less
       }
@@ -159,8 +159,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
     float time0 = 0.f, tFwd = 0.f, tBwd = 0.f;
 
     if (mTrackingCAO2Interface->GetParamContinuous()) {
-      float zoffset = tracks[i].CSide() ? -tracks[i].GetParam().GetZOffset() : tracks[i].GetParam().GetZOffset();
-      time0 = sContinuousTFReferenceLength - zoffset * vzbinInv;
+      time0 = tracks[i].GetParam().GetTZOffset();
 
       if (tracks[i].CCE()) {
         bool lastSide = trackClusters[tracks[i].FirstClusterRef()].slice < Sector::MAXSECTOR / 2;
@@ -183,8 +182,8 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
         float t1 = clusters->clusters[c1.slice][c1.row][c1.num].getTime();
         float t2 = clusters->clusters[c2.slice][c2.row][c2.num].getTime();
         auto times = std::minmax(t1, t2);
-        tFwd = times.first - time0 + detParam.TPClength * vzbinInv;
-        tBwd = time0 - times.second;
+        tFwd = times.first - time0;
+        tBwd = time0 - (times.second - detParam.TPClength * vzbinInv);
       }
     }
 

@@ -386,7 +386,19 @@ combinations(filter, tracks, covs); // equivalent to combinations(CombinationsFu
 
 ### Saving tables to file
 
-Produced tables can be saved to file as TTrees. This process is customized by the command line option `--keep` (of the internal-dpl-AOD-writer). **Please be aware, that the format of the `keep` option as described here is preliminary and might be changed in future.**
+Produced tables can be saved to file as TTrees. This process is customized by various command line options of the internal-dpl-aod-writer. The options allow to specify which columns of which table are saved to which tree in which file.
+
+**Please be aware, that the functionality of these options is preliminary and might be changed in future.**
+
+The options to consider are:
+
+* --keep
+* --res-file
+* --ntfmerge
+* --json-file
+
+
+#### --keep
 
 `keep` is a comma-separated list of `DataOuputDescriptions`.
 
@@ -395,17 +407,17 @@ Produced tables can be saved to file as TTrees. This process is customized by th
 DataOuputDescription1,DataOuputDescription2, ...
 ```
 
-Each `DataOuputDescription` is a semicolon-separated list of 4 items
+Each `DataOuputDescription` is a colon-separated list of 4 items
 
 `DataOuputDescription`
 ```csh
 table:tree:columns:file
 ```
-and instructs the internal-dpl-AOD-writer, to save the columns `columns` of table `table` as TTree `tree` into files `file_x.root`, where `x` is an incremental number. The selected columns are saved as separate TBranches of TTree `tree`.
+and instructs the internal-dpl-aod-writer, to save the columns `columns` of table `table` as TTree `tree` into files `file_x.root`, where `x` is an incremental number. The selected columns are saved as separate TBranches of TTree `tree`.
 
 By default `x` is incremented with every time frame. This behavior can be modified with the command line option `--ntfmerge`. The value of `ntfmerge` specifies the number of time frames to merge into one file. 
 
-The first item of a `DataOuputDescription` is mandatory and needs to be specified, otherwise the `DataOuputDescription` is ignored. The other three items are optional and are filled by default values if missing.
+The first item of a `DataOuputDescription` (`table`) is mandatory and needs to be specified, otherwise the `DataOuputDescription` is ignored. The other three items are optional and are filled by default values if missing.
 
 The format of `table` is
 
@@ -415,7 +427,7 @@ AOD/tablename/0
 ```
 `tablename` is the name of the table as defined in the workflow definition.
 
-The format of `tree` is a simple string which names the TTree the table will be saved to. If `tree` is not specified then `tablename` will be used as TTree name.
+The format of `tree` is a simple string which names the TTree the table is saved to. If `tree` is not specified then `tablename` is used as TTree name.
 
 `columns` is a slash(/)-separated list of column names., e.g.
 
@@ -423,9 +435,87 @@ The format of `tree` is a simple string which names the TTree the table will be 
 ```csh
 col1/col2/col3
 ```
-The column names are expected to match column names of table `tablename` as defined in the respective workflow. Non-matching columns are ignored. The selected table columns are saved as separate TBranches with the same names as the corresponding table columns. If `columns` is not specified then all table columns will be saved.
+The column names are expected to match column names of table `tablename` as defined in the respective workflow. Non-matching columns are ignored. The selected table columns are saved as separate TBranches with the same names as the corresponding table columns. If `columns` is not specified then all table columns are saved.
 
-`file` finally specifies the base name of the files the tables are saved to. The actual file names are composed as `file`_`x`.root, where 'x' is an incremental number. If `file` is not specified the default file name is used. The default file name can be set with the command line option `--res-file`. However, if `res-file` is missing then the default file name is set to `AnalysisResults`.
+`file` finally specifies the base name of the files the tables are saved to. The actual file names are composed as `file`_`x`.root, where `x` is an incremental number. If `file` is not specified the default file name is used. The default file name can be set with the command line option `--res-file`. However, if `res-file` is missing then the default file name is set to `AnalysisResults`.
+
+##### Dangling outputs
+The `keep` option also accepts the string "dangling" (or any leading sub-string of it). In
+this case all dangling output tables are saved. For the parameters `tree`, `columns`, and
+`file` the default values ([see table below](#priorities)) are used.
+
+#### --ntfmerge
+
+`ntfmerge` specifies the number of time frames which are merged into a given root file. By default this value is set to 1. The actual file names are composed as `file`_`x`.root, where `x` is an incremental number. `x` is incremented by 1 at every `ntfmerge` time frame.
+
+#### --res-file
+
+`res-file` specifies the default base name of the results files to which tables are saved. If in any of the `DataOutputDescriptions` the `file` value is missing it will be set to this default value.
+
+#### --json-file
+
+`json-file` specifies the name of a json-file which contains the full information needed to customize the behavior of the internal-dpl-aod-writer. It can replace the other three options completely. Nevertheless, currently all options are supported ([see also discussion below](#redundancy)).
+
+An example file is shown in the highlighted field below. The relevant
+information is contained in an json object `OutputDirector`. The
+`OutputDirector` can include three different items:
+
+  1. `resfile` is a string and corresponds to the `res-file` command line option  
+  2.`ntfmerge` is an integer and corresponds to the `ntfmerge` command line option  
+  3.`OutputDescriptions` is an array of objects and corresponds to the `keep` command line option. The objects are equivalent to the `DataOuputDescriptions` of the `keep` option and are composed of 4 items which correspond to the 4 items of a `DataOuputDescription`.
+  
+     a. `table` is a string  
+     b. `treename` is a string  
+     c. `columns` is an array of strings  
+     d. `filename` is a string  
+  
+  
+`Example json file`
+```csh
+{
+  "OutputDirector": {
+      "resfile": "defresults",
+      "ntfmerge": 10,
+      "OutputDescriptions": [
+          {
+            "table": "AOD/UNO/0",
+            "columns": [
+              "col1",
+              "col2"
+            ],
+            "treename": "uno",
+            "filename": "unoresults"
+          },
+          {
+            "table": "AOD/DUE/0",
+            "columns": [
+              "col3"
+            ],
+            "treename": "due",
+            "filename": "dueresults"
+          }
+      ]
+  }
+}
+```
+<a name="redundancy"></a>
+The information provided with the json file and the information which can be provided with
+the other command line options is obviously redundant. Anyway, currently all options can
+be used together. Practically the json-file - if provided - is read first. Then parameters are reset with values specified by other command line options. If any parameter value is still unset then its default value is used.
+
+This hierarchy of the options is summarized in the following table. The columns represent the command line options and the rows the parameters which can be set. The table elements specify the priority a given command line option has to set the value of a given parameter. The last column in the table is the default, which always has the lowest priority. The actual default value is the value shown between brackets.
+
+<a name="priorities"></a>
+
+| parameter\option | keep | res-file | ntfmerge | json-file | default |
+|--------------|:----:|:--------:|:--------:|----------:|:-------:|
+| `default file name` | - | 1.    | -        | 2.        | 3. (AnalysisResults)|
+| `ntfmerge`   | -    | -        |  1.      | 2.        | 3. (1)  |
+| `tablename`  | 1.   | -        | -        | 2.        | -       |
+| `tree`       | 1.   | -        | -        | 2.        | 3. (`tablename`) |
+| `columns`    | 1.   | -        | -        | 2.        | 3. (all columns)     |
+| `file`       | 1.   | 2.       | -        | 3.        | 4. (`default file name`)|
+
 
 #### Valid example command line options
 
@@ -440,12 +530,16 @@ The column names are expected to match column names of table `tablename` as defi
  # save columns 'c1' and 'c2' of table 'UNO' to TTree 'trsel1' in files 'myskim'_x.root and
  # save columns 'c6', 'c7' and 'c8' of table 'DUE' to TTree 'trsel2' in files 'myskim'_x.root.
  # Merge 50 time frames in each file.
-  
+
+--json-file myconfig.json
+ # accordng to the contents of myconfig.json
 ```
 
 #### Limitations
 
-If the provided `--keep` option contains two `DataOuputDescriptions` with equal combination of `tree` and `file` then the processing will be stopped! It is not pssible to save two trees with equal name to a given file.
+If in any case two `DataOuputDescriptions` are provided which have equal combinations of
+the `tree` and `file` parameters then the processing is stopped! It is not possible to save
+two trees with equal name to a given file.
 
 ### Possible ideas
 

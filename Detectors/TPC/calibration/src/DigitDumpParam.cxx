@@ -8,17 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef STEER_DIGITIZERWORKFLOW_SRC_COLLISIONTIMEPRINTER_H_
-#define STEER_DIGITIZERWORKFLOW_SRC_COLLISIONTIMEPRINTER_H_
+/// \file DigitDumpParam.cxx
+/// \brief Implementation of the parameter class for the hardware clusterer
+/// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
-#include "Framework/DataProcessorSpec.h"
+#include "TPCCalibration/DigitDumpParam.h"
 
-namespace o2
-{
-namespace steer
-{
-o2::framework::DataProcessorSpec getCollisionTimePrinter(int subchannel);
-}
-} // namespace o2
-
-#endif /* STEER_DIGITIZERWORKFLOW_SRC_COLLISIONTIMEPRINTER_H_ */
+O2ParamImpl(o2::tpc::DigitDumpParam);

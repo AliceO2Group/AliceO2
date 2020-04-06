@@ -18,6 +18,7 @@
 #include "PHOSBase/Hit.h"
 #include "PHOSSimulation/Digitizer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 
 class TChain;
 
@@ -30,18 +31,18 @@ namespace phos
 /// \author Dmitri Peresunko, NRC "Kurchatov institute"
 /// \author Adopted from EMCAL code write by Markus Fasel
 /// \since Dec, 2019
-class DigitizerSpec : public framework::Task
+class DigitizerSpec : public o2::base::BaseDPLDigitizer
 {
  public:
   /// \brief Constructor
-  DigitizerSpec() = default;
+  DigitizerSpec() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM) {}
 
   /// \brief Destructor
   ~DigitizerSpec() final = default;
 
   /// \brief init digitizer
   /// \param ctx Init context
-  void init(framework::InitContext& ctx) final;
+  void initDigitizerTask(framework::InitContext& ctx) final;
 
   /// \brief run digitizer
   /// \param ctx Processing context
@@ -50,7 +51,7 @@ class DigitizerSpec : public framework::Task
   /// - Open readout window when the event sets a trigger
   /// - Accumulate digits sampled via the time response from different bunch crossings
   /// - Retrieve digits when the readout window closes
-  void run(framework::ProcessingContext& ctx) final;
+  void run(framework::ProcessingContext& ctx);
 
  private:
   /// \brief helper function which will be offered as a service

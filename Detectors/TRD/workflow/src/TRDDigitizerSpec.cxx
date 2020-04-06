@@ -25,7 +25,7 @@
 #include "TRDBase/Digit.h" // for the Digit type
 #include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/Detector.h" // for the Hit type
-#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include "TRDBase/Calibrations.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 
@@ -37,16 +37,15 @@ namespace o2
 namespace trd
 {
 
-class TRDDPLDigitizerTask
+class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  void init(framework::InitContext& ic)
+  TRDDPLDigitizerTask() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM | o2::base::InitServices::FIELD) {}
+
+  void initDigitizerTask(framework::InitContext& ic) override
   {
     LOG(INFO) << "initializing TRD digitization";
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry();
-    }
-    LOG(INFO) << "initialed TRD digitization";
+    mDigitizer.init();
   }
 
   void run(framework::ProcessingContext& pc)
@@ -75,6 +74,9 @@ class TRDDPLDigitizerTask
     o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labelsAccum;
     std::vector<TriggerRecord> triggers;
 
+    std::vector<o2::trd::Digit> digits;                         // digits which get filled
+    o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labels; // labels which get filled
+
     TStopwatch timer;
     timer.Start();
 
@@ -94,8 +96,6 @@ class TRDDPLDigitizerTask
         context->retrieveHits(mSimChains, "TRDHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found TRD " << hits.size() << " hits ";
 
-        std::vector<o2::trd::Digit> digits;                         // digits which get filled
-        o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labels; // labels which get filled
         mDigitizer.process(hits, digits, labels);
 
         // Add trigger record
@@ -103,8 +103,17 @@ class TRDDPLDigitizerTask
 
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
         labelsAccum.mergeAtBack(labels);
+
+        digits.clear();
+        labels.clear();
       }
     }
+
+    // Force flush of the digits that remain in the digitizer cache
+    mDigitizer.flush(digits, labels);
+    triggers.emplace_back(irecords[irecords.size() - 1], digitsAccum.size(), digits.size());
+    std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
+    labelsAccum.mergeAtBack(labels);
 
     timer.Stop();
     LOG(INFO) << "TRD: Digitization took " << timer.RealTime() << "s";

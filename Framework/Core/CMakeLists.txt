@@ -15,6 +15,9 @@ if(GLFW_FOUND)
 else()
   set(GUI_SOURCES src/FrameworkDummyDebugger.cxx)
 endif()
+if (TARGET AliceO2::DebugGUI)
+  set(DEBUGGUI_TARGET AliceO2::DebugGUI)
+endif()
 
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
@@ -97,7 +100,8 @@ o2_add_library(Framework
                        src/ExternalFairMQDeviceProxy.cxx
                        test/TestClasses.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
-               PUBLIC_LINK_LIBRARIES AliceO2::Common
+               PUBLIC_LINK_LIBRARIES ${DEBUGGUI_TARGET}
+                                     AliceO2::Common
                                      AliceO2::Configuration
                                      AliceO2::InfoLogger
                                      AliceO2::Monitoring
@@ -113,7 +117,6 @@ o2_add_library(Framework
                                      arrow::arrow_shared
                                      ms_gsl::ms_gsl
                                      ROOT::ROOTDataFrame
-                                     AliceO2::DebugGUI
                                      O2::FrameworkLogger
                                      Boost::serialization
                                      arrow::gandiva_shared
@@ -152,6 +155,7 @@ foreach(t
         FairMQResizableBuffer
         FrameworkDataFlowToDDS
         Graphviz
+        GroupSlicer
         HistogramRegistry
         InfoLogger
         InputRecord
@@ -172,7 +176,8 @@ foreach(t
         Variants
         WorkflowHelpers
         WorkflowSerialization
-        TreeToTable)
+        TreeToTable
+        DataOutputDirector)
 
   # FIXME ? The NAME parameter of o2_add_test is only needed to help the current
   # o2.sh recipe. If the recipe is changed, those params can go away, if needed.
@@ -245,12 +250,17 @@ endforeach()
 
 # #####################################################@
 
+if (TARGET AliceO2::DebugGUI)
+set (DEBUG_GUI_TESTS_WORKFLOW
+     CustomGUIGL
+     CustomGUISokol
+     SimpleTracksED
+     )
+endif()
+
 foreach(w
         BoostSerializedProcessing
         CallbackService
-        CustomGUIGL
-        CustomGUISokol
-        SimpleTracksED
         DanglingInputs
         DanglingOutputs
         DataAllocator
@@ -268,6 +278,7 @@ foreach(w
         SingleDataSource
         Task
         ExternalFairMQDeviceWorkflow
+        ${DEBUG_GUI_TESTS_WORKFLOW}
         )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx
@@ -283,6 +294,7 @@ endforeach()
 # part. [WARN] Incoming data is already obsolete, not relaying.
 set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
 
+if (TARGET AliceO2::DebugGUI)
 # TODO: investigate the problem with the two unit tests, maybe setup of the CI
 # environment assertion fired X11: The DISPLAY environment variable is missing
 # glfw-3.2.1/src/window.c:579: glfwGetFramebufferSize: Assertion `window !=
@@ -290,6 +302,7 @@ set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_SimpleTracksED PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUIGL PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUISokol PROPERTY DISABLED TRUE)
+endif()
 
 # there is a problem in the termination of the FairMQDevice by signals because
 # the pending input polling is aborted and this throws an error

@@ -18,7 +18,9 @@
 #pragma link C++ class o2::raw::RawFileReader::LinkData + ;
 #pragma link C++ class o2::raw::RawFileWriter + ;
 #pragma link C++ class o2::raw::RawFileWriter::LinkData + ;
+#pragma link C++ class o2::itsmft::SimpleRawReader + ;
 
+#pragma link C++ class o2::raw::RDHUtils + ;
 #pragma link C++ class o2::raw::HBFUtils + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::raw::HBFUtils> + ;
 

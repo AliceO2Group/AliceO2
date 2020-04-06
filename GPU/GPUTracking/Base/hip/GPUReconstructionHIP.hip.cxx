@@ -21,28 +21,18 @@
 #include <hip/hip_ext.h>
 #endif
 
-#include "GPUReconstructionHIP.h"
-#include "GPUReconstructionHIPInternals.h"
-#include "GPUReconstructionIncludes.h"
-
-using namespace GPUCA_NAMESPACE::gpu;
+#include "GPUDef.h"
 
 // clang-format off
-constexpr size_t gGPUConstantMemBufferSize = sizeof(GPUConstantMem);
 #ifndef GPUCA_NO_CONSTANT_MEMORY
-  // __constant__ GPUConstantMem gGPUConstantMemBuffer; // This compiles, but still doesn't work correctly at runtime
-  // #define GPUCA_CONSMEM gGPUConstantMemBuffer
-  __constant__ uint4 gGPUConstantMemBuffer[gGPUConstantMemBufferSize / sizeof(uint4)];
-  __global__ void gGPUConstantMemBuffer_dummy(int* p) { *p = *(int*)&gGPUConstantMemBuffer; }
   #ifdef GPUCA_CONSTANT_AS_ARGUMENT
     #define GPUCA_CONSMEM_PTR const GPUConstantMemCopyable gGPUConstantMemBufferByValue,
     #define GPUCA_CONSMEM_CALL gGPUConstantMemBufferHost,
-    #define GPUCA_CONSMEM const_cast<GPUConstantMem&>(gGPUConstantMemBufferByValue.v)
-    static GPUConstantMemCopyable gGPUConstantMemBufferHost;
+    #define GPUCA_CONSMEM (const_cast<GPUConstantMem&>(gGPUConstantMemBufferByValue.v))
   #else
     #define GPUCA_CONSMEM_PTR
     #define GPUCA_CONSMEM_CALL
-    #define GPUCA_CONSMEM (GPUConstantMem&)gGPUConstantMemBuffer
+    #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
   #endif
 #else
   #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
@@ -50,6 +40,16 @@ constexpr size_t gGPUConstantMemBufferSize = sizeof(GPUConstantMem);
   #define GPUCA_CONSMEM const_cast<GPUConstantMem&>(*gGPUConstantMemBuffer)
 #endif
 // clang-format on
+
+#include "GPUReconstructionHIP.h"
+#include "GPUReconstructionHIPInternals.h"
+#include "GPUReconstructionIncludes.h"
+
+#ifdef GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM
+__global__ void gGPUConstantMemBuffer_dummy(int* p) { *p = *(int*)&gGPUConstantMemBuffer; }
+#endif
+
+using namespace GPUCA_NAMESPACE::gpu;
 
 __global__ void gHIPMemSetWorkaround(char* ptr, char val, size_t size)
 {
@@ -91,6 +91,8 @@ GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice, Args... args)
 
 #undef GPUCA_KRNL_REG
 #define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_STRIP(args))
+#undef GPUCA_KRNL_CUSTOM
+#define GPUCA_KRNL_CUSTOM(args) GPUCA_M_STRIP(args)
 #undef GPUCA_KRNL_BACKEND_XARGS
 #define GPUCA_KRNL_BACKEND_XARGS hipEvent_t *start, hipEvent_t *stop,
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward)
