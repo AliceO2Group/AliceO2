@@ -44,13 +44,6 @@ Generator::Generator(const Char_t* name, const Char_t* title) : FairGenerator(na
 
 /*****************************************************************/
 
-Generator::~Generator()
-{
-  /** default destructor **/
-}
-
-/*****************************************************************/
-
 Bool_t
   Generator::Init()
 {
