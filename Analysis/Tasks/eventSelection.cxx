@@ -31,13 +31,13 @@ namespace evsel
 {
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 // TODO bool arrays are not supported? Storing in int32 for the moment
-DECLARE_SOA_COLUMN(Alias, alias, int32_t[nAliases], "fAlias");
-DECLARE_SOA_COLUMN(BBV0A, bbV0A, bool, "fBBV0A"); // beam-beam time in V0A
-DECLARE_SOA_COLUMN(BBV0C, bbV0C, bool, "fBBV0C"); // beam-beam time in V0C
-DECLARE_SOA_COLUMN(BGV0A, bgV0A, bool, "fBGV0A"); // beam-gas time in V0A
-DECLARE_SOA_COLUMN(BGV0C, bgV0C, bool, "fBGV0C"); // beam-gas time in V0C
-DECLARE_SOA_COLUMN(BBZNA, bbZNA, bool, "fBBZNA"); // beam-beam time in ZNA
-DECLARE_SOA_COLUMN(BBZNC, bbZNC, bool, "fBBZNC"); // beam-beam time in ZNC
+DECLARE_SOA_COLUMN(Alias, alias, int32_t[nAliases]);
+DECLARE_SOA_COLUMN(BBV0A, bbV0A, bool); // beam-beam time in V0A
+DECLARE_SOA_COLUMN(BBV0C, bbV0C, bool); // beam-beam time in V0C
+DECLARE_SOA_COLUMN(BGV0A, bgV0A, bool); // beam-gas time in V0A
+DECLARE_SOA_COLUMN(BGV0C, bgV0C, bool); // beam-gas time in V0C
+DECLARE_SOA_COLUMN(BBZNA, bbZNA, bool); // beam-beam time in ZNA
+DECLARE_SOA_COLUMN(BBZNC, bbZNC, bool); // beam-beam time in ZNC
 DECLARE_SOA_DYNAMIC_COLUMN(SEL7, sel7, [](bool bbV0A, bool bbV0C, bool bbZNA, bool bbZNC) -> bool { return bbV0A && bbV0C && bbZNA && bbZNC; });
 
 } // namespace evsel
@@ -49,8 +49,8 @@ using EvSel = EvSels::iterator;
 namespace mult
 {
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-DECLARE_SOA_COLUMN(MultV0A, multV0A, float, "fMultV0A");
-DECLARE_SOA_COLUMN(MultV0C, multV0C, float, "fMultV0C");
+DECLARE_SOA_COLUMN(MultV0A, multV0A, float);
+DECLARE_SOA_COLUMN(MultV0C, multV0C, float);
 DECLARE_SOA_DYNAMIC_COLUMN(MultV0M, multV0M, [](float multV0A, float multV0C) -> float { return multV0A + multV0C; });
 } // namespace mult
 DECLARE_SOA_TABLE(Mults, "AOD", "MULT", mult::CollisionId, mult::MultV0A, mult::MultV0C, mult::MultV0M<mult::MultV0A, mult::MultV0C>);
@@ -59,7 +59,7 @@ using Mult = Mults::iterator;
 namespace cent
 {
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-DECLARE_SOA_COLUMN(CentV0M, centV0M, float, "fCentV0M");
+DECLARE_SOA_COLUMN(CentV0M, centV0M, float);
 } // namespace cent
 DECLARE_SOA_TABLE(Cents, "AOD", "CENT", cent::CollisionId, cent::CentV0M);
 } // namespace o2::aod
