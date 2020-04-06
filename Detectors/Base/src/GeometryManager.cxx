@@ -19,7 +19,7 @@
 #include <TGeoPhysicalNode.h> // for TGeoPhysicalNode, TGeoPNEntry
 #include <TObjArray.h>        // for TObjArray
 #include <TObject.h>          // for TObject
-
+#include <string>
 #include <cassert>
 #include <cstddef> // for NULL
 
@@ -445,7 +445,7 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
 void GeometryManager::loadGeometry(std::string_view geomFileName)
 {
   ///< load geometry from file
-  auto fname = geomFileName.empty() ? o2::base::NameConf::getGeomFileName() : geomFileName;
+  std::string fname = geomFileName.empty() ? o2::base::NameConf::getGeomFileName() : std::string(geomFileName);
   LOG(INFO) << "Loading geometry " << o2::base::NameConf::GEOMOBJECTNAME << " from " << fname;
   TFile flGeom(fname.data());
   if (flGeom.IsZombie()) {
