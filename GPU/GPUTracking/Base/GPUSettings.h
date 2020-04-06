@@ -79,6 +79,7 @@ struct GPUSettingsRec {
   unsigned char bz0Pt;                   // Nominal Pt to set when bz = 0 (in 10 MeV)
   unsigned char dropLoopers;             // Drop all clusters after starting from the second loop from tracks
   unsigned char mergerCovSource;         // 0 = simpleFilterErrors, 1 = use from track following
+  unsigned char mergerInterpolateErrors; // Use interpolation for cluster rejection based on chi-2 instead of extrapolation
 };
 
 // Settings describing the events / time frames

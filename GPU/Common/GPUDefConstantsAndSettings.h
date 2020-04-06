@@ -11,6 +11,9 @@
 /// \file GPUDefConstantsAndSettings.h
 /// \author David Rohr
 
+// This files contains compile-time constants affecting the GPU algorithms / reconstruction results.
+// Architecture-dependant compile-time constants affecting the performance without changing the results are stored in GPUDefGPUParameters.h
+
 #ifndef GPUDEFCONSTANTSANDSETTINGS_H
 #define GPUDEFCONSTANTSANDSETTINGS_H
 
@@ -37,9 +40,9 @@
 #define GPUCA_GLOBAL_TRACKING_MIN_HITS 8              // Min num of hits for an additional global track
 
 #define GPUCA_MERGER_CE_ROWLIMIT 5                    //Distance from first / last row in order to attempt merging accross CE
-
 #define GPUCA_MERGER_LOOPER_QPT_LIMIT 4               // Min Q/Pt to run special looper merging procedure
 #define GPUCA_MERGER_HORIZONTAL_DOUBLE_QPT_LIMIT 2    // Min Q/Pt to attempt second horizontal merge between slices after a vertical merge was found
+#define GPUCA_MERGER_MAX_TRACK_CLUSTERS 1000          // Maximum number of clusters a track may have after merging
 
 #define GPUCA_Y_FACTOR 4                              // Weight of y residual vs z residual in tracklet constructor
 #define GPUCA_MAXN 40                                 // Maximum number of neighbor hits to consider in one row in neightbors finder
