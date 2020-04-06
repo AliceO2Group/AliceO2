@@ -33,7 +33,6 @@ DECLARE_SOA_COLUMN(Px1, px1, float, "fPx1");
 DECLARE_SOA_COLUMN(Py1, py1, float, "fPy1");
 DECLARE_SOA_COLUMN(Pz1, pz1, float, "fPz1");
 DECLARE_SOA_COLUMN(Y1, y1, float, "fY1");
-DECLARE_SOA_COLUMN(IndexDCApair, indexDCApair, int, "fIndexDCApair");
 DECLARE_SOA_COLUMN(Mass, mass, float, "fMass");
 DECLARE_SOA_COLUMN(Massbar, massbar, float, "fMassbar");
 DECLARE_SOA_DYNAMIC_COLUMN(DecaylengthXY, decaylengthXY,
@@ -61,7 +60,7 @@ DECLARE_SOA_TABLE(SecVtx2Prong, "AOD", "VTX2PRONG",
                   secvtx2prong::Px0, secvtx2prong::Py0, secvtx2prong::Pz0, secvtx2prong::Y0,
                   secvtx2prong::Index1Id,
                   secvtx2prong::Px1, secvtx2prong::Py1, secvtx2prong::Pz1, secvtx2prong::Y1,
-                  secvtx2prong::IndexDCApair, secvtx2prong::Mass, secvtx2prong::Massbar,
+                  secvtx2prong::Mass, secvtx2prong::Massbar,
                   secvtx2prong::DecaylengthXY<secvtx2prong::Posdecayx, secvtx2prong::Posdecayy,
                                               collision::PosX, collision::PosY>,
                   secvtx2prong::Decaylength<secvtx2prong::Posdecayx, secvtx2prong::Posdecayy,
