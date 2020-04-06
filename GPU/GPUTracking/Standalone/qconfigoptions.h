@@ -80,6 +80,7 @@ AddOption(ForceEarlyTPCTransform, int, -1, "ForceEarlyTPCTransform", 0, "Force e
 AddOption(fwdTPCDigitsAsClusters, bool, false, "forwardTPCdigits", 0, "Forward TPC digits as clusters (if they pass the ZS threshold)")
 AddOption(dropLoopers, bool, false, "dropLoopers", 0, "Drop looping tracks starting from second loop")
 AddOption(mergerCovSource, int, -1, "mergerCovSource", 0, "Method to obtain covariance in track merger: 0 = simple filterErrors method, 1 = use cov from track following")
+AddOption(mergerInterpolateErrors, int, -1, "mergerInterpolateErrors", 0, "Use interpolation instead of extrapolation for chi2 based cluster rejection")
 AddHelp("help", 'h')
 EndConfig()
 

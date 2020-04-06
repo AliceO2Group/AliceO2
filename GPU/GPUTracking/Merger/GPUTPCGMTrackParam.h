@@ -18,6 +18,7 @@
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUCommonMath.h"
 #include "GPUdEdxInfo.h"
+#include "GPUTPCGMMergerTypes.h"
 
 #ifndef __OPENCL__
 #include <cstddef>

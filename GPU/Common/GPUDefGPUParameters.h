@@ -11,6 +11,11 @@
 /// \file GPUDefGPUParameters.h
 /// \author David Rohr
 
+// This files contains compile-time constants affecting the GPU performance.
+// Many of these constants are GPU-architecture specific.
+// This file also contains all constants describing memory limitations, essentially limiting the total number of tracks, etc.
+// Compile-time constants affecting the tracking algorithms / results are located in GPUDefConstantsAndSettings.h
+
 #ifndef GPUDEFGPUPARAMETERS_H
 #define GPUDEFGPUPARAMETERS_H
 // clang-format off

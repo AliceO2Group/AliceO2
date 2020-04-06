@@ -54,7 +54,7 @@ GPUd() int GPUTPCCompressionTrackModel::Propagate(float x, float alpha)
 GPUd() int GPUTPCCompressionTrackModel::Filter(float y, float z, int iRow)
 {
   mTrk.ConstrainSinPhi();
-  int retVal = mProp.Update(y, z, iRow, *mParam, 0, false, false);
+  int retVal = mProp.Update(y, z, iRow, *mParam, 0, 0, nullptr, false);
   // GPUInfo("Filtered with %f %f: y %f z %f qPt %f", y, z, mTrk.Y(), mTrk.Z(), mTrk.QPt());
   return retVal;
 }

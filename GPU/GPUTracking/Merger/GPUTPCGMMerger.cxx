@@ -48,9 +48,10 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
+using namespace GPUTPCGMMergerTypes;
 
 static constexpr int kMaxParts = 400;
-static constexpr int kMaxClusters = 1000;
+static constexpr int kMaxClusters = GPUCA_MERGER_MAX_TRACK_CLUSTERS;
 
 //#define OFFLINE_FITTER
 
@@ -305,7 +306,7 @@ int GPUTPCGMMerger::RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPC
       return 1;
     }
     trk.ConstrainSinPhi();
-    if (prop.Update(y, z, inTrack->Cluster(i).GetRow(), Param(), inTrack->Cluster(i).GetFlags() & GPUTPCGMMergedTrackHit::clustererAndSharedFlags, false, false)) {
+    if (prop.Update(y, z, inTrack->Cluster(i).GetRow(), Param(), inTrack->Cluster(i).GetFlags() & GPUTPCGMMergedTrackHit::clustererAndSharedFlags, 0, nullptr, false)) {
       return 1;
     }
     trk.ConstrainSinPhi();
@@ -1035,6 +1036,10 @@ void GPUTPCGMMerger::MergeCE()
       }
       trk[1]->SetFirstClusterRef(newRef);
       trk[1]->SetNClusters(trk[0]->NClusters() + trk[1]->NClusters());
+      if (trk[1]->NClusters() > GPUCA_MERGER_MAX_TRACK_CLUSTERS) {
+        trk[1]->SetFirstClusterRef(trk[1]->FirstClusterRef() + trk[1]->NClusters() - GPUCA_MERGER_MAX_TRACK_CLUSTERS);
+        trk[1]->SetNClusters(GPUCA_MERGER_MAX_TRACK_CLUSTERS);
+      }
       trk[1]->SetCCE(true);
       if (looper) {
         trk[1]->SetLooper(true);

@@ -48,6 +48,7 @@ void GPUSettingsRec::SetDefaults()
   bz0Pt = 60;
   dropLoopers = false;
   mergerCovSource = 2;
+  mergerInterpolateErrors = 1;
 }
 
 void GPUSettingsEvent::SetDefaults()
