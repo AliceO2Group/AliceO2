@@ -18,14 +18,16 @@
 
 #undef NDEBUG
 
-#ifndef GPUCA_GPUCODE_DEVICE
+#if !defined(GPUCA_GPUCODE_DEVICE)
 #include <cstddef>
 #include <memory>
 #include <cstring>
 #include <cassert>
 #endif
+
 #include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
+#include "GPUCommonLogger.h"
 
 //#define GPUCA_GPUCODE // uncomment to test "GPU" mode
 
@@ -281,6 +283,14 @@ class FlatObject
 
 #if !defined(GPUCA_GPUCODE) // code invisible on GPU
 
+  /// write a child class object to the file
+  template <class T, class TFile>
+  static int writeToFile(T& obj, TFile& outf, const char* name);
+
+  /// read a child class object from the file
+  template <class T, class TFile>
+  static T* readFromFile(TFile& inpf, const char* name);
+
   /// Test the flat object functionality for a child class T
   template <class T>
   static std::string stressTest(T& obj);
@@ -437,7 +447,51 @@ inline void FlatObject::setFutureBufferAddress(char* futureFlatBufferPtr)
   mFlatBufferContainer = nullptr;
 }
 
-#ifndef GPUCA_GPUCODE // code invisible on GPU
+#if !defined(GPUCA_GPUCODE) // code invisible on GPU
+
+template <class T, class TFile>
+inline int FlatObject::writeToFile(T& obj, TFile& outf, const char* name)
+{
+  /// store to file
+  assert(obj.isConstructed());
+
+  if (outf.IsZombie()) {
+    LOG(ERROR) << "Failed to write to file " << outf.GetName();
+    return -1;
+  }
+
+  bool isBufferExternal = !obj.isBufferInternal();
+  if (isBufferExternal) {
+    obj.adoptInternalBuffer(obj.mFlatBufferPtr);
+  }
+  outf.WriteObjectAny(&obj, T::Class(), name);
+  if (isBufferExternal) {
+    obj.clearInternalBufferPtr();
+  }
+  return 0;
+}
+
+template <class T, class TFile>
+inline T* FlatObject::readFromFile(TFile& inpf, const char* name)
+{
+  /// read from file
+
+  if (inpf.IsZombie()) {
+    LOG(ERROR) << "Failed to read from file " << inpf.GetName();
+    return nullptr;
+  }
+  T* pobj = reinterpret_cast<T*>(inpf.GetObjectChecked(name, T::Class()));
+  if (!pobj) {
+    LOG(ERROR) << "Failed to load " << name << " from " << inpf.GetName();
+    return nullptr;
+  }
+  if (pobj->mFlatBufferSize > 0 && pobj->mFlatBufferContainer == nullptr) {
+    LOG(ERROR) << "Failed to load " << name << " from " << inpf.GetName() << ": empty flat buffer container";
+    return nullptr;
+  }
+  pobj->setActualBufferAddress(pobj->mFlatBufferContainer);
+  return pobj;
+}
 
 template <class T>
 inline std::string FlatObject::stressTest(T& obj)

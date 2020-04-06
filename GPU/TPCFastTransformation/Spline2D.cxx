@@ -26,35 +26,99 @@
 #include "SplineHelper2D.h"
 #include "TCanvas.h"
 #include "TNtuple.h"
+#include "TFile.h"
 #endif
 
+using namespace std;
 using namespace GPUCA_NAMESPACE::gpu;
 
-void Spline2D::destroy()
+template <typename Tfloat, bool TgridOnly>
+void Spline2DBase<Tfloat, TgridOnly>::destroy()
 {
   /// See FlatObject for description
-  mGridU.destroy();
-  mGridV.destroy();
+  mGridU1.destroy();
+  mGridU2.destroy();
   FlatObject::destroy();
 }
 
-#if !defined(GPUCA_GPUCODE)
-void Spline2D::cloneFromObject(const Spline2D& obj, char* newFlatBufferPtr)
+template <typename Tfloat, bool TgridOnly>
+void Spline2DBase<Tfloat, TgridOnly>::setActualBufferAddress(char* actualFlatBufferPtr)
 {
   /// See FlatObject for description
+
+  FlatObject::setActualBufferAddress(actualFlatBufferPtr);
+
+  size_t u2Offset = alignSize(mGridU1.getFlatBufferSize(), mGridU2.getBufferAlignmentBytes());
+  int parametersOffset = u2Offset;
+  int bufferSize = parametersOffset;
+  mFparameters = nullptr;
+
+  if (!TgridOnly) {
+    parametersOffset = alignSize(u2Offset + mGridU2.getFlatBufferSize(), getParameterAlignmentBytes());
+    bufferSize = parametersOffset + getSizeOfParameters();
+    mFparameters = reinterpret_cast<Tfloat*>(mFlatBufferPtr + parametersOffset);
+  } else {
+    mFparameters = nullptr;
+  }
+  mGridU1.setActualBufferAddress(mFlatBufferPtr);
+  mGridU2.setActualBufferAddress(mFlatBufferPtr + u2Offset);
+}
+
+template <typename Tfloat, bool TgridOnly>
+void Spline2DBase<Tfloat, TgridOnly>::setFutureBufferAddress(char* futureFlatBufferPtr)
+{
+  /// See FlatObject for description
+  char* bufferU = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mGridU1.getFlatBufferPtr());
+  char* bufferV = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mGridU2.getFlatBufferPtr());
+  mGridU1.setFutureBufferAddress(bufferU);
+  mGridU2.setFutureBufferAddress(bufferV);
+  if (!TgridOnly) {
+    mFparameters = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mFparameters);
+  } else {
+    mFparameters = nullptr;
+  }
+  FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
+}
+
+template <typename Tfloat, bool TgridOnly>
+void Spline2DBase<Tfloat, TgridOnly>::print() const
+{
+  printf(" Irregular Spline 2D: \n");
+  printf(" grid U1: \n");
+  mGridU1.print();
+  printf(" grid U2: \n");
+  mGridU2.print();
+}
+
+#if !defined(GPUCA_GPUCODE)
+template <typename Tfloat, bool TgridOnly>
+void Spline2DBase<Tfloat, TgridOnly>::cloneFromObject(const Spline2DBase<Tfloat, TgridOnly>& obj, char* newFlatBufferPtr)
+{
+  /// See FlatObject for description
+  if (!TgridOnly && mFdim != obj.mFdim) {
+    assert(0);
+    return;
+  }
 
   const char* oldFlatBufferPtr = obj.mFlatBufferPtr;
 
   FlatObject::cloneFromObject(obj, newFlatBufferPtr);
 
-  char* bufferU = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mGridU.getFlatBufferPtr());
-  char* bufferV = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mGridV.getFlatBufferPtr());
+  char* bufferU = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mGridU1.getFlatBufferPtr());
+  char* bufferV = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mGridU2.getFlatBufferPtr());
 
-  mGridU.cloneFromObject(obj.mGridU, bufferU);
-  mGridV.cloneFromObject(obj.mGridV, bufferV);
+  mGridU1.cloneFromObject(obj.mGridU1, bufferU);
+  mGridU2.cloneFromObject(obj.mGridU2, bufferV);
+
+  if (!TgridOnly) {
+    mFparameters = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mFparameters);
+  } else {
+    mFparameters = nullptr;
+  }
 }
 
-void Spline2D::moveBufferTo(char* newFlatBufferPtr)
+template <typename Tfloat, bool TgridOnly>
+void Spline2DBase<Tfloat, TgridOnly>::moveBufferTo(char* newFlatBufferPtr)
 {
   /// See FlatObject for description
   char* oldFlatBufferPtr = mFlatBufferPtr;
@@ -63,93 +127,106 @@ void Spline2D::moveBufferTo(char* newFlatBufferPtr)
   mFlatBufferPtr = oldFlatBufferPtr;
   setActualBufferAddress(currFlatBufferPtr);
 }
-#endif
 
-void Spline2D::setActualBufferAddress(char* actualFlatBufferPtr)
+template <typename Tfloat, bool TgridOnly>
+void Spline2DBase<Tfloat, TgridOnly>::recreate(
+  int numberOfKnotsU1, const int knotsU1[], int numberOfKnotsU2, const int knotsU2[])
 {
-  /// See FlatObject for description
-  char* bufferU = FlatObject::relocatePointer(mFlatBufferPtr, actualFlatBufferPtr, mGridU.getFlatBufferPtr());
-  char* bufferV = FlatObject::relocatePointer(mFlatBufferPtr, actualFlatBufferPtr, mGridV.getFlatBufferPtr());
-  mGridU.setActualBufferAddress(bufferU);
-  mGridV.setActualBufferAddress(bufferV);
-  FlatObject::setActualBufferAddress(actualFlatBufferPtr);
-}
-
-void Spline2D::setFutureBufferAddress(char* futureFlatBufferPtr)
-{
-  /// See FlatObject for description
-  char* bufferU = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mGridU.getFlatBufferPtr());
-  char* bufferV = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mGridV.getFlatBufferPtr());
-  mGridU.setFutureBufferAddress(bufferU);
-  mGridV.setFutureBufferAddress(bufferV);
-  FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
-}
-
-#if !defined(GPUCA_GPUCODE)
-void Spline2D::constructKnots(int numberOfKnotsU, const int knotsU[], int numberOfKnotsV, const int knotsV[])
-{
-  /// Constructor
-  ///
-  /// Number of created knots may differ from the input values:
-  /// - Edge knots {0} and {Umax/Vmax} will be added if they are not present.
-  /// - Duplicated knots, knots with a negative coordinate will be deleted
-  /// - At least 2 knots for each axis will be created
-  ///
-  /// \param numberOfKnotsU     Number of knots in knotsU[] array
-  /// \param knotsU             Array of knot positions (integer values)
-  ///
-  /// \param numberOfKnotsV     Number of knots in knotsV[] array
-  /// \param knotsV             Array of knot positions (integer values)
-  ///
+  /// Constructor for an irregular spline
 
   FlatObject::startConstruction();
 
-  mGridU.constructKnots(numberOfKnotsU, knotsU);
-  mGridV.constructKnots(numberOfKnotsV, knotsV);
+  mGridU1.recreate(numberOfKnotsU1, knotsU1, 0);
+  mGridU2.recreate(numberOfKnotsU2, knotsU2, 0);
 
-  size_t vOffset = alignSize(mGridU.getFlatBufferSize(), mGridV.getBufferAlignmentBytes());
+  size_t u2Offset = alignSize(mGridU1.getFlatBufferSize(), mGridU2.getBufferAlignmentBytes());
+  int parametersOffset = u2Offset;
+  int bufferSize = parametersOffset;
+  mFparameters = nullptr;
 
-  FlatObject::finishConstruction(vOffset + mGridV.getFlatBufferSize());
+  if (!TgridOnly) {
+    parametersOffset = alignSize(u2Offset + mGridU2.getFlatBufferSize(), getParameterAlignmentBytes());
+    bufferSize = parametersOffset + getSizeOfParameters();
+  }
 
-  mGridU.moveBufferTo(mFlatBufferPtr);
-  mGridV.moveBufferTo(mFlatBufferPtr + vOffset);
+  FlatObject::finishConstruction(bufferSize);
+
+  mGridU1.moveBufferTo(mFlatBufferPtr);
+  mGridU2.moveBufferTo(mFlatBufferPtr + u2Offset);
+  if (!TgridOnly) {
+    mFparameters = reinterpret_cast<Tfloat*>(mFlatBufferPtr + parametersOffset);
+    for (int i = 0; i < getNumberOfParameters(); i++) {
+      mFparameters[i] = 0;
+    }
+  }
 }
 
-void Spline2D::constructKnotsRegular(int numberOfKnotsU, int numberOfKnotsV)
+template <typename Tfloat, bool TgridOnly>
+void Spline2DBase<Tfloat, TgridOnly>::recreate(
+  int numberOfKnotsU1, int numberOfKnotsU2)
 {
   /// Constructor for a regular spline
-  /// \param numberOfKnotsU     U axis: Number of knots in knots[] array
-  /// \param numberOfKnotsV     V axis: Number of knots in knots[] array
-  ///
 
   FlatObject::startConstruction();
 
-  mGridU.constructKnotsRegular(numberOfKnotsU);
-  mGridV.constructKnotsRegular(numberOfKnotsV);
+  mGridU1.recreate(numberOfKnotsU1, 0);
+  mGridU2.recreate(numberOfKnotsU2, 0);
 
-  size_t vOffset = alignSize(mGridU.getFlatBufferSize(), mGridV.getBufferAlignmentBytes());
+  size_t u2Offset = alignSize(mGridU1.getFlatBufferSize(), mGridU2.getBufferAlignmentBytes());
+  int parametersOffset = u2Offset;
+  int bufferSize = parametersOffset;
+  mFparameters = nullptr;
 
-  FlatObject::finishConstruction(vOffset + mGridV.getFlatBufferSize());
+  if (!TgridOnly) {
+    parametersOffset = alignSize(u2Offset + mGridU2.getFlatBufferSize(), getParameterAlignmentBytes());
+    bufferSize = parametersOffset + getSizeOfParameters();
+  }
 
-  mGridU.moveBufferTo(mFlatBufferPtr);
-  mGridV.moveBufferTo(mFlatBufferPtr + vOffset);
+  FlatObject::finishConstruction(bufferSize);
+
+  mGridU1.moveBufferTo(mFlatBufferPtr);
+  mGridU2.moveBufferTo(mFlatBufferPtr + u2Offset);
+
+  if (!TgridOnly) {
+    mFparameters = reinterpret_cast<Tfloat*>(mFlatBufferPtr + parametersOffset);
+    for (int i = 0; i < getNumberOfParameters(); i++) {
+      mFparameters[i] = 0;
+    }
+  }
 }
-#endif
 
-void Spline2D::print() const
+template <typename Tfloat, bool TgridOnly>
+void Spline2DBase<Tfloat, TgridOnly>::approximateFunction(
+  Tfloat x1Min, Tfloat x1Max, Tfloat x2Min, Tfloat x2Max,
+  std::function<void(Tfloat x1, Tfloat x2, Tfloat f[])> F,
+  int nAxiliaryDataPointsU1, int nAxiliaryDataPointsU2)
 {
-#if !defined(GPUCA_GPUCODE)
-  std::cout << " Irregular Spline 2D: " << std::endl;
-  std::cout << " grid U: " << std::endl;
-  mGridU.print();
-  std::cout << " grid V: " << std::endl;
-  mGridV.print();
-#endif
+  /// approximate a function F with this spline
+  SplineHelper2D<Tfloat> helper;
+  helper.approximateFunction(*this, x1Min, x1Max, x2Min, x2Max, F, nAxiliaryDataPointsU1, nAxiliaryDataPointsU2);
 }
+
+#endif
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
 
-int Spline2D::test(const bool draw, const bool drawDataPoints)
+template <typename Tfloat, bool TgridOnly>
+int Spline2DBase<Tfloat, TgridOnly>::writeToFile(TFile& outf, const char* name)
+{
+  /// write a class object to the file
+  return FlatObject::writeToFile(*this, outf, name);
+}
+
+template <typename Tfloat, bool TgridOnly>
+Spline2DBase<Tfloat, TgridOnly>* Spline2DBase<Tfloat, TgridOnly>::readFromFile(
+  TFile& inpf, const char* name)
+{
+  /// read a class object from the file
+  return FlatObject::readFromFile<Spline2DBase<Tfloat, TgridOnly>>(inpf, name);
+}
+
+template <typename Tfloat, bool TgridOnly>
+int Spline2DBase<Tfloat, TgridOnly>::test(const bool draw, const bool drawDataPoints)
 {
   using namespace std;
 
@@ -163,7 +240,7 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
   const int nAxiliaryPoints = 1;
   int uMax = nKnots * 3;
 
-  auto F = [&](float u, float v, float Fuv[]) -> void {
+  auto F = [&](Tfloat u, Tfloat v, Tfloat Fuv[]) {
     double uu = u * TMath::Pi() / uMax;
     double vv = v * TMath::Pi() / uMax;
     for (int dim = 0; dim < Ndim; dim++) {
@@ -205,7 +282,7 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
   int nTries = 10;
 
   if (draw) {
-    canv = new TCanvas("cQA", "Spline1D  QA", 2000, 1000);
+    canv = new TCanvas("cQA", "Spline2D  QA", 2000, 1000);
     nTries = 10000;
   }
 
@@ -214,7 +291,7 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
   long double statN = 0;
 
   for (int seed = 1; seed < nTries + 1; seed++) {
-    //cout << "next try.." << endl;
+    cout << "next try.." << endl;
 
     gRandom->SetSeed(seed);
 
@@ -224,12 +301,10 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
       }
     }
 
-    GPUCA_NAMESPACE::gpu::SplineHelper2D helper;
-    GPUCA_NAMESPACE::gpu::Spline2D spline;
-    // spline.constructKnotsRegular(nKnots, nKnots);
+    Spline2D<Tfloat, Ndim> spline;
 
+    int knotsU[nKnots], knotsV[nKnots];
     do {
-      int knotsU[nKnots], knotsV[nKnots];
       knotsU[0] = 0;
       knotsV[0] = 0;
       double du = 1. * uMax / (nKnots - 1);
@@ -239,10 +314,10 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
       }
       knotsU[nKnots - 1] = uMax;
       knotsV[nKnots - 1] = uMax;
-      spline.constructKnots(nKnots, knotsU, nKnots, knotsV);
+      spline.recreate(nKnots, knotsU, nKnots, knotsV);
 
-      if (nKnots != spline.getGridU().getNumberOfKnots() ||
-          nKnots != spline.getGridV().getNumberOfKnots()) {
+      if (nKnots != spline.getGridU1().getNumberOfKnots() ||
+          nKnots != spline.getGridU2().getNumberOfKnots()) {
         cout << "warning: n knots changed during the initialisation " << nKnots
              << " -> " << spline.getNumberOfKnots() << std::endl;
         continue;
@@ -257,58 +332,52 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
       // cout << "flat object functionality is ok" << endl;
     }
 
-    int err2 = helper.setSpline(spline, nAxiliaryPoints, nAxiliaryPoints);
-    if (err2 != 0) {
-      cout << "Error by spline construction: " << helper.getLastError()
-           << std::endl;
-      return -1;
-    }
-
     // Ndim-D spline
+    spline.approximateFunction(0., uMax, 0., uMax, F, 4, 4);
 
-    std::unique_ptr<float[]> parameters = helper.constructParameters(Ndim, F, 0., uMax, 0., uMax);
+    //if (itry == 0)
+    if (1) {
+      TFile outf("testSpline2D.root", "recreate");
+      if (outf.IsZombie()) {
+        cout << "Failed to open output file testSpline2D.root " << std::endl;
+      } else {
+        const char* name = "spline2Dtest";
+        spline.writeToFile(outf, name);
+        Spline2D<Tfloat, Ndim>* p = Spline2D<Tfloat, Ndim>::readFromFile(outf, name);
+        if (p == nullptr) {
+          cout << "Failed to read Spline1D from file testSpline1D.root " << std::endl;
+        } else {
+          spline = *p;
+        }
+        outf.Close();
+      }
+    }
 
     // 1-D splines for each of Ndim dimensions
 
-    std::unique_ptr<float[]> parameters1D[Ndim];
-    {
-      std::unique_ptr<float[]> dataPoints1D[Ndim];
-      for (int dim = 0; dim < Ndim; dim++) {
-        parameters1D[dim].reset(new float[spline.getNumberOfParameters(1)]);
-        dataPoints1D[dim].reset(new float[helper.getNumberOfDataPoints()]);
-      }
+    Spline2D<Tfloat, 1, false> splines1D[Ndim];
 
-      int nPointsU = helper.getNumberOfDataPointsU();
-      int nPointsV = helper.getNumberOfDataPointsV();
-      for (int ipv = 0; ipv < nPointsV; ipv++) {
-        float v = helper.getHelperV().getDataPoint(ipv).u;
-        for (int ipu = 0; ipu < nPointsU; ipu++) {
-          float u = helper.getHelperU().getDataPoint(ipu).u;
-          float Fuv[Ndim];
-          F(u, v, Fuv);
-          int ip = ipv * nPointsU + ipu;
-          for (int dim = 0; dim < Ndim; dim++) {
-            dataPoints1D[dim][ip] = Fuv[dim];
-          }
-        }
-      }
-
-      for (int dim = 0; dim < Ndim; dim++) {
-        helper.constructParameters(1, dataPoints1D[dim].get(), parameters1D[dim].get());
-      }
+    for (int dim = 0; dim < Ndim; dim++) {
+      auto F1 = [&](Tfloat x1, Tfloat x2, Tfloat f[]) {
+        Tfloat ff[Ndim];
+        F(x1, x2, ff);
+        f[0] = ff[dim];
+      };
+      splines1D[dim].recreate(nKnots, knotsU, nKnots, knotsV);
+      splines1D[dim].approximateFunction(0., uMax, 0., uMax, F1, 4, 4);
     }
 
     double stepU = .1;
     for (double u = 0; u < uMax; u += stepU) {
       for (double v = 0; v < uMax; v += stepU) {
-        float f[Ndim];
+        Tfloat f[Ndim];
         F(u, v, f);
-        float s[Ndim];
-        float s1;
-        spline.interpolate<Ndim>(parameters.get(), u, v, s);
+        Tfloat s[Ndim];
+        Tfloat s1;
+        spline.interpolate(u, v, s);
         for (int dim = 0; dim < Ndim; dim++) {
           statDf += (s[dim] - f[dim]) * (s[dim] - f[dim]);
-          spline.interpolate<1>(parameters1D[dim].get(), u, v, &s1);
+          splines1D[dim].interpolate(u, v, &s1);
           statDf1D += (s[dim] - s1) * (s[dim] - s1);
         }
         statN += Ndim;
@@ -328,10 +397,10 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
       double stepU = .1;
       for (double u = 0; u < uMax; u += stepU) {
         for (double v = 0; v < uMax; v += stepU) {
-          float f[Ndim];
+          Tfloat f[Ndim];
           F(u, v, f);
-          float s[Ndim];
-          spline.interpolate<Ndim>(parameters.get(), u, v, s);
+          Tfloat s[Ndim];
+          spline.interpolate(u, v, s);
           nt->Fill(u, v, f[0], s[0]);
         }
       }
@@ -351,10 +420,10 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
 
       for (int i = 0; i < nKnots; i++) {
         for (int j = 0; j < nKnots; j++) {
-          double u = spline.getGridU().getKnot(i).u;
-          double v = spline.getGridV().getKnot(j).u;
-          float s[Ndim];
-          spline.interpolate<Ndim>(parameters.get(), u, v, s);
+          double u = spline.getGridU1().getKnot(i).u;
+          double v = spline.getGridU2().getKnot(j).u;
+          Tfloat s[Ndim];
+          spline.interpolate(u, v, s);
           knots->Fill(1, u, v, s[0]);
         }
       }
@@ -366,15 +435,17 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
       knots->Draw("s:u:v", "type==1", "same"); // knots
 
       if (drawDataPoints) {
-        for (int ipu = 0; ipu < helper.getHelperU().getNumberOfDataPoints(); ipu++) {
-          const SplineHelper1D::DataPoint& pu = helper.getHelperU().getDataPoint(ipu);
-          for (int ipv = 0; ipv < helper.getHelperV().getNumberOfDataPoints(); ipv++) {
-            const SplineHelper1D::DataPoint& pv = helper.getHelperV().getDataPoint(ipv);
+        SplineHelper2D<Tfloat> helper;
+        helper.setSpline(spline, 4, 4);
+        for (int ipu = 0; ipu < helper.getHelperU1().getNumberOfDataPoints(); ipu++) {
+          const typename SplineHelper1D<Tfloat>::DataPoint& pu = helper.getHelperU1().getDataPoint(ipu);
+          for (int ipv = 0; ipv < helper.getHelperU2().getNumberOfDataPoints(); ipv++) {
+            const typename SplineHelper1D<Tfloat>::DataPoint& pv = helper.getHelperU2().getDataPoint(ipv);
             if (pu.isKnot && pv.isKnot) {
               continue;
             }
-            float s[Ndim];
-            spline.interpolate<Ndim>(parameters.get(), pu.u, pv.u, s);
+            Tfloat s[Ndim];
+            spline.interpolate(pu.u, pv.u, s);
             knots->Fill(2, pu.u, pv.u, s[0]);
           }
         }
@@ -395,7 +466,7 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
   statDf = sqrt(statDf / statN);
   statDf1D = sqrt(statDf1D / statN);
 
-  cout << "\n std dev for Compact Spline   : " << statDf << std::endl;
+  cout << "\n std dev for Spline2D   : " << statDf << std::endl;
   cout << " mean difference between 1-D and " << Ndim
        << "-D splines   : " << statDf1D << std::endl;
 
@@ -405,7 +476,13 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
     cout << "Something is wrong!!" << endl;
     return -2;
   }
+
   return 0;
 }
 
 #endif // GPUCA_GPUCODE
+
+template class Spline2DBase<float, false>;
+template class Spline2DBase<float, true>;
+template class Spline2DBase<double, false>;
+template class Spline2DBase<double, true>;

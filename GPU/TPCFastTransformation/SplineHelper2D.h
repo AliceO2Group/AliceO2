@@ -35,7 +35,7 @@ namespace gpu
 ///
 /// The SplineHelper2D class is to initialize Spline* objects
 ///
-
+template <typename Tfloat>
 class SplineHelper2D
 {
  public:
@@ -55,21 +55,37 @@ class SplineHelper2D
 
   /// _______________  Main functionality  ________________________
 
-  int setSpline(const Spline2D& spline, int nAxiliaryPointsU, int nAxiliaryPointsV);
+  /// Create best-fit spline parameters for a given input function F
+  template <bool TgridOnly>
+  void approximateFunction(
+    Spline2DBase<Tfloat, TgridOnly>& spline,
+    Tfloat x1Min, Tfloat x1Max, Tfloat x2Min, Tfloat x2Max,
+    std::function<void(Tfloat x1, Tfloat x2, Tfloat f[/*spline.getFdimensions()*/])> F,
+    int nAxiliaryDataPointsU1 = 4, int nAxiliaryDataPointsU2 = 4);
 
-  /// Creates compact spline parameters for a given input function
-  std::unique_ptr<float[]> constructParameters(int Ndim, std::function<void(float u, float v, float f[/*Ndim*/])> F, float uMin, float uMax, float vMin, float vMax);
+  /// _______________   Interface for a step-wise construction of the best-fit spline   ________________________
 
-  /// _______________   Interface for a manual construction of compact splines   ________________________
+  /// precompute everything needed for the construction
+  template <bool TgridOnly>
+  int setSpline(const Spline2DBase<Tfloat, TgridOnly>& spline, int nAxiliaryPointsU1, int nAxiliaryPointsU2);
 
-  void constructParameters(int Ndim, const float DataPointF[/*getNumberOfDataPoints() x Ndim*/], float parameters[/*mSpline.getNumberOfParameters(Ndim)*/]) const;
+  /// approximate std::function, output in Fparameters
+  void approximateFunction(
+    Tfloat* Fparameters, Tfloat x1Min, Tfloat x1Max, Tfloat x2Min, Tfloat x2Max,
+    std::function<void(Tfloat x1, Tfloat x2, Tfloat f[/*spline.getFdimensions()*/])> F) const;
 
-  int getNumberOfDataPointsU() const { return mHelperU.getNumberOfDataPoints(); }
-  int getNumberOfDataPointsV() const { return mHelperV.getNumberOfDataPoints(); }
-  int getNumberOfDataPoints() const { return getNumberOfDataPointsU() * getNumberOfDataPointsV(); }
+  /// approximate a function given as an array of values at data points
+  void approximateFunction(
+    Tfloat* Fparameters, const Tfloat DataPointF[/*getNumberOfDataPoints() x nFdim*/]) const;
 
-  const SplineHelper1D& getHelperU() const { return mHelperU; }
-  const SplineHelper1D& getHelperV() const { return mHelperV; }
+  int getNumberOfDataPointsU1() const { return mHelperU1.getNumberOfDataPoints(); }
+
+  int getNumberOfDataPointsU2() const { return mHelperU2.getNumberOfDataPoints(); }
+
+  int getNumberOfDataPoints() const { return getNumberOfDataPointsU1() * getNumberOfDataPointsU2(); }
+
+  const SplineHelper1D<Tfloat>& getHelperU1() const { return mHelperU1; }
+  const SplineHelper1D<Tfloat>& getHelperU2() const { return mHelperU2; }
 
   /// _______________  Utilities   ________________________
 
@@ -81,17 +97,47 @@ class SplineHelper2D
   int storeError(Int_t code, const char* msg);
 
   TString mError = ""; ///< error string
-
-  Spline2D mSpline;
-  SplineHelper1D mHelperU;
-  SplineHelper1D mHelperV;
+  int mFdimensions;    ///< n of F dimensions
+  SplineHelper1D<Tfloat> mHelperU1;
+  SplineHelper1D<Tfloat> mHelperU2;
 };
 
-inline int SplineHelper2D::storeError(int code, const char* msg)
+template <typename Tfloat>
+template <bool TgridOnly>
+void SplineHelper2D<Tfloat>::approximateFunction(
+  Spline2DBase<Tfloat, TgridOnly>& spline,
+  Tfloat x1Min, Tfloat x1Max, Tfloat x2Min, Tfloat x2Max,
+  std::function<void(Tfloat x1, Tfloat x2, Tfloat f[/*spline.getFdimensions()*/])> F,
+  int nAxiliaryDataPointsU1, int nAxiliaryDataPointsU2)
 {
-  mError = msg;
-  return code;
+  /// Create best-fit spline parameters for a given input function F
+  if (!spline.isGridOnly()) {
+    setSpline(spline, nAxiliaryDataPointsU1, nAxiliaryDataPointsU2);
+    approximateFunction(spline.getFparameters(), x1Min, x1Max, x2Min, x2Max, F);
+  }
+  spline.setXrange(x1Min, x1Max, x2Min, x2Max);
 }
+
+template <typename Tfloat>
+template <bool TgridOnly>
+int SplineHelper2D<Tfloat>::setSpline(
+  const Spline2DBase<Tfloat, TgridOnly>& spline, int nAxiliaryPointsU, int nAxiliaryPointsV)
+{
+  // Prepare creation of 2D irregular spline
+  // The should be at least one (better, two) axiliary measurements on each segnment between two knots and at least 2*nKnots measurements in total
+  // Returns 0 when the spline can not be constructed with the given nAxiliaryPoints
+
+  int ret = 0;
+  mFdimensions = spline.getFdimensions();
+  if (mHelperU1.setSpline(spline.getGridU1(), mFdimensions, nAxiliaryPointsU) != 0) {
+    ret = storeError(-2, "SplineHelper2D::setSpline2D: error by setting U axis");
+  }
+  if (mHelperU2.setSpline(spline.getGridU2(), mFdimensions, nAxiliaryPointsV) != 0) {
+    ret = storeError(-3, "SplineHelper2D::setSpline2D: error by setting V axis");
+  }
+  return ret;
+}
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
