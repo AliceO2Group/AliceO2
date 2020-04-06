@@ -52,6 +52,11 @@ void dumpDeviceSpec2DDS(std::ostream& out,
     out << "</exe>\n";
     out << "   </decltask>\n";
   }
+  out << "   <declcollection name=\"DPL\">\n       <tasks>\n";
+  for (size_t di = 0; di < specs.size(); ++di) {
+    out << "          <name>" << specs[di].name << "</name>\n";
+  }
+  out << "       </tasks>\n   </declcollection>\n";
   out << "</topology>\n";
 }
 
