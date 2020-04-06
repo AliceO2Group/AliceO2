@@ -21,12 +21,12 @@ namespace o2::aod
 namespace jet
 {
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-DECLARE_SOA_COLUMN(Eta, eta, float, "fEta");
-DECLARE_SOA_COLUMN(Phi, phi, float, "fPhi");
-DECLARE_SOA_COLUMN(Pt, pt, float, "fPt");
-DECLARE_SOA_COLUMN(Area, area, float, "fArea");
-DECLARE_SOA_COLUMN(Energy, energy, float, "fEnergy");
-DECLARE_SOA_COLUMN(Mass, mass, float, "fMass");
+DECLARE_SOA_COLUMN(Eta, eta, float);
+DECLARE_SOA_COLUMN(Phi, phi, float);
+DECLARE_SOA_COLUMN(Pt, pt, float);
+DECLARE_SOA_COLUMN(Area, area, float);
+DECLARE_SOA_COLUMN(Energy, energy, float);
+DECLARE_SOA_COLUMN(Mass, mass, float);
 } // namespace jet
 
 DECLARE_SOA_TABLE(Jets, "AOD", "JET",

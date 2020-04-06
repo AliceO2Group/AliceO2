@@ -24,9 +24,9 @@ namespace o2::aod
 {
 namespace test
 {
-DECLARE_SOA_COLUMN(Foo, foo, float, "fBar");
-DECLARE_SOA_COLUMN(Bar, bar, float, "fFoo");
-DECLARE_SOA_COLUMN(EventProperty, eventProperty, float, "fEventProperty");
+DECLARE_SOA_COLUMN(Foo, foo, float);
+DECLARE_SOA_COLUMN(Bar, bar, float);
+DECLARE_SOA_COLUMN(EventProperty, eventProperty, float);
 } // namespace test
 DECLARE_SOA_TABLE(Events, "AOD", "EVTS",
                   o2::soa::Index<>,
@@ -39,9 +39,9 @@ using Event = Events::iterator;
 namespace test
 {
 DECLARE_SOA_INDEX_COLUMN(Event, event);
-DECLARE_SOA_COLUMN(X, x, float, "fX");
-DECLARE_SOA_COLUMN(Y, y, float, "fY");
-DECLARE_SOA_COLUMN(Z, z, float, "fZ");
+DECLARE_SOA_COLUMN(X, x, float);
+DECLARE_SOA_COLUMN(Y, y, float);
+DECLARE_SOA_COLUMN(Z, z, float);
 } // namespace test
 
 DECLARE_SOA_TABLE(TrksX, "AOD", "TRKSX",

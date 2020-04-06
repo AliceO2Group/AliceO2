@@ -22,9 +22,9 @@ namespace o2::aod
 {
 namespace etaphi
 {
-DECLARE_SOA_COLUMN(Eta2, eta2, float, "fEta2");
-DECLARE_SOA_COLUMN(Phi2, phi2, float, "fPhi2");
-DECLARE_SOA_COLUMN(Pt2, pt2, float, "fPt2");
+DECLARE_SOA_COLUMN(Eta2, eta2, float);
+DECLARE_SOA_COLUMN(Phi2, phi2, float);
+DECLARE_SOA_COLUMN(Pt2, pt2, float);
 } // namespace etaphi
 DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
                   etaphi::Eta2, etaphi::Phi2, etaphi::Pt2);

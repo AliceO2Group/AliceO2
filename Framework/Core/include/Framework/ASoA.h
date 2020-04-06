@@ -1023,7 +1023,7 @@ class TableMetadata
     using metadata = std::void_t<T>; \
   }
 
-#define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_, _Label_)                  \
+#define DECLARE_SOA_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)             \
   struct _Name_ : o2::soa::Column<_Type_, _Name_> {                            \
     static constexpr const char* mLabel = _Label_;                             \
     using base = o2::soa::Column<_Type_, _Name_>;                              \
@@ -1045,6 +1045,9 @@ class TableMetadata
   };                                                                           \
   static const o2::framework::expressions::BindingNode _Getter_ { _Label_,     \
                                                                   o2::framework::expressions::selectArrowType<_Type_>() }
+
+#define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_) \
+  DECLARE_SOA_COLUMN_FULL(_Name_, _Getter_, _Type_, "f" #_Name_)
 
 /// An index column is a column of indices to elements / of another table named
 /// _Name_##s. The column name will be _Name_##Id and will always be stored in

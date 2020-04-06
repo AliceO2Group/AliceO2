@@ -26,9 +26,9 @@ using namespace o2::soa;
 DECLARE_SOA_STORE();
 namespace test
 {
-DECLARE_SOA_COLUMN(X, x, int32_t, "x");
-DECLARE_SOA_COLUMN(Y, y, int32_t, "y");
-DECLARE_SOA_COLUMN(Z, z, int32_t, "z");
+DECLARE_SOA_COLUMN_FULL(X, x, int32_t, "x");
+DECLARE_SOA_COLUMN_FULL(Y, y, int32_t, "y");
+DECLARE_SOA_COLUMN_FULL(Z, z, int32_t, "z");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](int32_t x, int32_t y) { return x + y; });
 } // namespace test
 
@@ -36,19 +36,19 @@ DECLARE_SOA_TABLE(Points, "TST", "POINTS", test::X, test::Y);
 
 namespace test
 {
-DECLARE_SOA_COLUMN(SomeBool, someBool, bool, "someBool");
-DECLARE_SOA_COLUMN(Color, color, int32_t, "color");
+DECLARE_SOA_COLUMN_FULL(SomeBool, someBool, bool, "someBool");
+DECLARE_SOA_COLUMN_FULL(Color, color, int32_t, "color");
 } // namespace test
 
 DECLARE_SOA_TABLE(Infos, "TST", "INFOS", test::Color, test::SomeBool);
 
 namespace test
 {
-DECLARE_SOA_COLUMN(N, n, int, "fN");
+DECLARE_SOA_COLUMN(N, n, int);
 DECLARE_SOA_INDEX_COLUMN_FULL(Info, info, int, Infos, "fInfosID");
 DECLARE_SOA_INDEX_COLUMN_FULL(PointA, pointA, int, Points, "fPointAID");
 DECLARE_SOA_INDEX_COLUMN_FULL(PointB, pointB, int, Points, "fPointBID");
-DECLARE_SOA_COLUMN(Thickness, thickness, int, "thickness");
+DECLARE_SOA_COLUMN_FULL(Thickness, thickness, int, "thickness");
 } // namespace test
 
 DECLARE_SOA_TABLE(Segments, "TST", "SEGMENTS", test::N, test::PointAId, test::PointBId, test::InfoId);

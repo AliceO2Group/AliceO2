@@ -23,12 +23,12 @@ namespace o2::aod
 {
 namespace test
 {
-DECLARE_SOA_COLUMN(X, x, float, "fX");
-DECLARE_SOA_COLUMN(Y, y, float, "fY");
-DECLARE_SOA_COLUMN(Z, z, float, "fZ");
-DECLARE_SOA_COLUMN(Foo, foo, float, "fBar");
-DECLARE_SOA_COLUMN(Bar, bar, float, "fFoo");
-DECLARE_SOA_COLUMN(EventProperty, eventProperty, float, "fEventProperty");
+DECLARE_SOA_COLUMN(X, x, float);
+DECLARE_SOA_COLUMN(Y, y, float);
+DECLARE_SOA_COLUMN(Z, z, float);
+DECLARE_SOA_COLUMN(Foo, foo, float);
+DECLARE_SOA_COLUMN(Bar, bar, float);
+DECLARE_SOA_COLUMN(EventProperty, eventProperty, float);
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
 } // namespace test
 DECLARE_SOA_TABLE(Foos, "AOD", "FOO",

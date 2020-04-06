@@ -126,9 +126,9 @@ BENCHMARK(BM_TableBuilderSimple2)->Range(8, 8 << 16);
 
 namespace test
 {
-DECLARE_SOA_COLUMN(X, x, float, "x");
-DECLARE_SOA_COLUMN(Y, y, float, "y");
-DECLARE_SOA_COLUMN(Z, z, float, "z");
+DECLARE_SOA_COLUMN(X, x, float);
+DECLARE_SOA_COLUMN(Y, y, float);
+DECLARE_SOA_COLUMN(Z, z, float);
 } // namespace test
 
 using TestVectors = o2::soa::Table<test::X, test::Y, test::Z>;

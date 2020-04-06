@@ -15,9 +15,9 @@ namespace o2::aod
 {
 namespace uno
 {
-DECLARE_SOA_COLUMN(Eta, eta, float, "fEta1");
-DECLARE_SOA_COLUMN(Phi, phi, int, "fPhi1");
-DECLARE_SOA_COLUMN(Mom, mom, double, "fMom1");
+DECLARE_SOA_COLUMN_FULL(Eta, eta, float, "fEta1");
+DECLARE_SOA_COLUMN_FULL(Phi, phi, int, "fPhi1");
+DECLARE_SOA_COLUMN_FULL(Mom, mom, double, "fMom1");
 } // namespace uno
 
 DECLARE_SOA_TABLE(Uno, "AOD", "UNO",
@@ -25,8 +25,8 @@ DECLARE_SOA_TABLE(Uno, "AOD", "UNO",
 
 namespace due
 {
-DECLARE_SOA_COLUMN(Eta, eta, double, "fEta2");
-DECLARE_SOA_COLUMN(Phi, phi, double, "fPhi2");
+DECLARE_SOA_COLUMN_FULL(Eta, eta, double, "fEta2");
+DECLARE_SOA_COLUMN_FULL(Phi, phi, double, "fPhi2");
 } // namespace due
 
 DECLARE_SOA_TABLE(Due, "AOD", "DUE",
