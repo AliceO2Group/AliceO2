@@ -25,12 +25,14 @@ namespace mch
 
 /// cluster minimal structure
 struct ClusterStruct {
-  float x;      ///< cluster position along x
-  float y;      ///< cluster position along y
-  float z;      ///< cluster position along z
-  float ex;     ///< cluster resolution along x
-  float ey;     ///< cluster resolution along y
-  uint32_t uid; ///< cluster unique ID
+  float x;             ///< cluster position along x
+  float y;             ///< cluster position along y
+  float z;             ///< cluster position along z
+  float ex;            ///< cluster resolution along x
+  float ey;            ///< cluster resolution along y
+  uint32_t uid;        ///< cluster unique ID
+  uint32_t firstDigit; ///< index of first associated digit in the ordered vector of digits
+  uint32_t nDigits;    ///< number of digits attached to this cluster
 
   /// Return the chamber ID (0..), part of the unique ID
   int getChamberId() const { return getChamberId(uid); }
@@ -45,6 +47,12 @@ struct ClusterStruct {
   static int getDEId(uint32_t clusterId) { return (clusterId & 0x0FFE0000) >> 17; }
   /// Return the index of the cluster, part of its unique ID
   static int getClusterIndex(uint32_t clusterId) { return (clusterId & 0x0001FFFF); }
+
+  /// Build the unique ID of the cluster from the chamber ID, detection element ID and cluster index
+  static uint32_t buildUniqueId(int chamberId, int deId, int clusterIndex)
+  {
+    return (((chamberId & 0xF) << 28) | ((deId & 0x7FF) << 17) | (clusterIndex & 0x1FFFF));
+  }
 };
 
 std::ostream& operator<<(std::ostream& stream, const ClusterStruct& cluster);
