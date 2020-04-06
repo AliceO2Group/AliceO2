@@ -22,10 +22,10 @@ using namespace o2::soa;
 
 namespace test
 {
-DECLARE_SOA_COLUMN(X, x, int32_t, "x");
-DECLARE_SOA_COLUMN(Y, y, int32_t, "y");
-DECLARE_SOA_COLUMN(Z, z, int32_t, "z");
-DECLARE_SOA_COLUMN(FloatZ, floatZ, float, "floatZ");
+DECLARE_SOA_COLUMN_FULL(X, x, int32_t, "x");
+DECLARE_SOA_COLUMN_FULL(Y, y, int32_t, "y");
+DECLARE_SOA_COLUMN_FULL(Z, z, int32_t, "z");
+DECLARE_SOA_COLUMN_FULL(FloatZ, floatZ, float, "floatZ");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](int32_t x, int32_t y) { return x + y; });
 } // namespace test
 
