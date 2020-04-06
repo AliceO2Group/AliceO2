@@ -9,10 +9,12 @@
 // or submit itself to any jurisdiction.
 
 #include "SimulationDataFormat/DigitizationContext.h"
+#include "SimulationDataFormat/MCEventHeader.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include <TChain.h>
 #include <TFile.h>
 #include <iostream>
+#include <MathUtils/Cartesian3D.h>
 
 using namespace o2::steer;
 
@@ -82,6 +84,66 @@ bool DigitizationContext::initSimKinematicsChains(std::vector<TChain*>& simkinem
     simkinematicschains.back()->AddFile(o2::base::NameConf::getMCKinematicsFileName(mSimPrefixes[source].data()).c_str());
   }
   return true;
+}
+
+bool DigitizationContext::checkVertexCompatibility(bool verbose) const
+{
+  if (mMaxPartNumber == 1) {
+    return true;
+  }
+
+  auto checkVertexPair = [](Point3D<double> const& p1, Point3D<double> const& p2) -> bool {
+    return (p2 - p1).Mag2() < 1E-6;
+  };
+
+  std::vector<TChain*> kinematicschain;
+  std::vector<TBranch*> headerbranches;
+  std::vector<o2::dataformats::MCEventHeader*> headers;
+  std::vector<Point3D<double>> vertices;
+  initSimKinematicsChains(kinematicschain);
+  bool consistent = true;
+  if (kinematicschain.size() > 0) {
+    headerbranches.resize(kinematicschain.size(), nullptr);
+    headers.resize(kinematicschain.size(), nullptr);
+    // loop over all collisions in this context
+    int collisionID = 0;
+    for (auto& collision : getEventParts()) {
+      collisionID++;
+      vertices.clear();
+      for (auto& part : collision) {
+        const auto source = part.sourceID;
+        const auto entry = part.entryID;
+        auto chain = kinematicschain[source];
+        if (!headerbranches[source]) {
+          headerbranches[source] = chain->GetBranch("MCEventHeader.");
+          headerbranches[source]->SetAddress(&headers[source]);
+        }
+        // get the MCEventHeader to read out the vertex
+        headerbranches[source]->GetEntry(entry);
+        auto header = headers[source];
+        vertices.emplace_back(header->GetX(), header->GetY(), header->GetZ());
+      }
+      // analyse vertex matching
+      bool thiscollision = true;
+      const auto& p1 = vertices[0];
+      for (int j = 1; j < vertices.size(); ++j) {
+        const auto& p2 = vertices[j];
+        bool thischeck = checkVertexPair(p1, p2);
+        thiscollision &= thischeck;
+      }
+      if (verbose && !thiscollision) {
+        std::stringstream text;
+        text << "Found inconsistent vertices for digit collision ";
+        text << collisionID << " : ";
+        for (auto& p : vertices) {
+          text << p << " ";
+        }
+        LOG(ERROR) << text.str();
+      }
+      consistent &= thiscollision;
+    }
+  }
+  return consistent;
 }
 
 o2::parameters::GRPObject const& DigitizationContext::getGRP() const
