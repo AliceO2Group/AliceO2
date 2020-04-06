@@ -196,11 +196,6 @@ int ReadConfiguration(int argc, char** argv)
     printf("Can only produce QA pdf output when input files are specified!\n");
     return (1);
   }
-  if ((configStandalone.nways & 1) == 0) {
-    printf("nWay setting musst be odd number!\n");
-    return (1);
-  }
-
   if (configStandalone.eventDisplay) {
     configStandalone.noprompt = 1;
   }
@@ -293,6 +288,9 @@ int SetupReconstruction()
   recSet.dropLoopers = configStandalone.configRec.dropLoopers;
   if (configStandalone.configRec.mergerCovSource != -1) {
     recSet.mergerCovSource = configStandalone.configRec.mergerCovSource;
+  }
+  if (configStandalone.configRec.mergerInterpolateErrors != -1) {
+    recSet.mergerInterpolateErrors = configStandalone.configRec.mergerInterpolateErrors;
   }
   if (configStandalone.referenceX < 500.) {
     recSet.TrackReferenceX = configStandalone.referenceX;
@@ -611,7 +609,7 @@ int main(int argc, char** argv)
             }
             for (int k = 0; k < chainTracking->GetTPCMerger().NMaxClusters(); k++) {
               int attach = chainTracking->GetTPCMerger().ClusterAttachment()[k];
-              if (attach & GPUTPCGMMerger::attachFlagMask) {
+              if (attach & GPUTPCGMMergerTypes::attachFlagMask) {
                 nAdjacentClusters++;
               }
             }

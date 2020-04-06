@@ -31,6 +31,7 @@
 #include "GPUTPCGMBorderTrack.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace GPUTPCGMMergerTypes;
 
 void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out)
 {

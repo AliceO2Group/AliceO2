@@ -227,6 +227,20 @@ bool GPUChainTracking::ValidateSteps()
   }
   return true;
 }
+
+bool GPUChainTracking::ValidateSettings()
+{
+  if ((param().rec.NWays & 1) == 0) {
+    GPUError("nWay setting musst be odd number!");
+    return false;
+  }
+  if (param().rec.mergerInterpolateErrors && param().rec.NWays == 1) {
+    GPUError("Cannot do error interpolation with NWays = 1!");
+    return false;
+  }
+  return true;
+}
+
 int GPUChainTracking::Init()
 {
   const auto& threadContext = GetThreadContext();
@@ -244,6 +258,10 @@ int GPUChainTracking::Init()
   }
   if (!ValidateSteps()) {
     GPUError("Invalid GPU Reconstruction Step / Input / Output configuration");
+    return 1;
+  }
+  if (!ValidateSettings()) {
+    GPUError("Invalid GPU Reconstruction Settings");
     return 1;
   }
 

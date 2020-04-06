@@ -122,6 +122,7 @@ set(HDRS_INSTALL
     Base/GPUReconstructionKernelMacros.h
     Base/GPUO2FakeClasses.h
     Base/GPUParam.inc
+    Merger/GPUTPCGMMergerTypes.h
 )
 
 # Sources only for O2
