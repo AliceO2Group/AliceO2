@@ -45,13 +45,12 @@ void configLayers();
 
 bool buildMatBudLUT(int nTst, int maxLr, std::string outName, std::string outFile, std::string geomNameInput)
 {
-  auto geomName = geomNameInput.empty() ? o2::base::NameConf::getGeomFileName() : geomNameInput;
+  auto geomName = o2::base::NameConf::getGeomFileName(geomNameInput);
   if (gSystem->AccessPathName(geomName.c_str())) { // if needed, create geometry
     std::cout << geomName << " does not exist. Will create it\n";
     gSystem->Exec("$O2_ROOT/bin/o2-sim -n 0");
-    geomName = o2::base::NameConf::getGeomFileName();
   }
-  o2::base::GeometryManager::loadGeometry(geomName);
+  o2::base::GeometryManager::loadGeometry(geomNameInput);
   configLayers();
 
   if (maxLr < 1) {
