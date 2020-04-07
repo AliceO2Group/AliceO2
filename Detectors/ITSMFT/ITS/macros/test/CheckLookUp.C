@@ -28,15 +28,17 @@ bool verbose = true;
 
 void CheckLookUp(std::string clusfile = "o2clus_its_comp.root", std::string dictfile = "complete_dictionary.bin")
 {
+#ifndef _ClusterTopology_
+  std::cout << "This macro needs clusters in full format!" << std::endl;
+  return;
+#else
+
   // This macro needs itsmft::Clusters to be compiled with topology information
   using o2::itsmft::BuildTopologyDictionary;
   using o2::itsmft::Cluster;
   using o2::itsmft::ClusterTopology;
-  using o2::itsmft::CompClusterExt;
   using o2::itsmft::LookUp;
   using o2::itsmft::TopologyDictionary;
-
-   std::ofstream output_check("check_lookup.txt");
 
   LookUp finder("complete_dictionary.bin");
   TopologyDictionary dict;
@@ -50,16 +52,8 @@ void CheckLookUp(std::string clusfile = "o2clus_its_comp.root", std::string dict
   // Clusters
   TFile* file1 = TFile::Open(clusfile.data());
   TTree* clusTree = (TTree*)gFile->Get("o2sim");
-  std::vector<CompClusterExt>* clusArr = nullptr;
-  clusTree->SetBranchAddress("ITSClusterComp", &clusArr);
-  std::vector<unsigned char>* patternsPtr = nullptr;
-  auto pattBranch = clusTree->GetBranch("ITSClusterPatt");
-  if (pattBranch) {
-    pattBranch->SetAddress(&patternsPtr);
-  } else {
-    std::cout << "Missing branch with patterns." << std::endl;
-    return;
-  }
+  std::vector<Cluster>* clusArr = nullptr;
+  clusTree->SetBranchAddress("ITSCluster", &clusArr);
 
   Int_t nevCl = clusTree->GetEntries(); // clusters in cont. readout may be
                                         // grouped as few events per entry
@@ -73,26 +67,22 @@ void CheckLookUp(std::string clusfile = "o2clus_its_comp.root", std::string dict
     clusTree->GetEvent(ievC);
     Int_t nc = clusArr->size();
     printf("processing cluster event %d\n", ievC);
-    
+
     auto pattIdx = patternsPtr->cbegin();
     for (int i = 0; i < nc; i++) {
       total++;
       // cluster is in tracking coordinates always
-      // cluster is in tracking coordinates always
-      CompClusterExt& c = (*clusArr)[i];
-
-      o2::itsmft::ClusterPattern pattern(pattIdx);
-      ClusterTopology topology(pattern);
-      output_check << "iEv: " << ievC << " / " << nevCl << " iCl: " << i << " / " << nc << std::endl;
-      output_check << topology << std::endl;
-      //pippo << topology << std::endl;
-      int rowSpan = topology.getRowSpan();
-      int columnSpan = topology.getColumnSpan();
-      int nBytes = topology.getUsedBytes();
-      std::array<unsigned char, Cluster::kMaxPatternBytes + 2> pattExt =
-        topology.getPattern();
+      Cluster& c = (*clusArr)[i];
+      int rowSpan = c.getPatternRowSpan();
+      int columnSpan = c.getPatternColSpan();
+      int nBytes = (rowSpan * columnSpan) >> 3;
+      if (((rowSpan * columnSpan) % 8) != 0)
+        nBytes++;
       unsigned char patt[Cluster::kMaxPatternBytes];
-      memcpy(&patt[0], &pattExt[2], nBytes);
+      c.getPattern(&patt[0], nBytes);
+      ClusterTopology topology(rowSpan, columnSpan, patt);
+      std::array<unsigned char, Cluster::kMaxPatternBytes + 2> pattExt =
+        topology.getPattern(); // Get the pattern in extended format (the first two bytes are the number of rows/colums)
       if (verbose) {
         check_output << "input:" << endl
                      << endl;
@@ -113,24 +103,24 @@ void CheckLookUp(std::string clusfile = "o2clus_its_comp.root", std::string dict
           << "********************************************************"
           << endl;
       }
-      // for (int i = 0; i < Cluster::kMaxPatternBytes + 2; i++) {
-      //   if (pattExt[i] != out_patt[i]) {
-      //     mistakes++;
-      //     if (!bGroup)
-      //       mistakes_outside_groups++;
-      //     mist << "input:" << endl
-      //          << endl;
-      //     mist << topology << endl;
-      //     mist << "output:" << endl
-      //          << "isGroup: " << std::boolalpha << dict.isGroup(finder.findGroupID(rowSpan, columnSpan, patt)) << endl
-      //          << endl;
-      //     mist << dict.getPattern(finder.findGroupID(rowSpan, columnSpan, patt))
-      //          << endl;
-      //     mist << "********************************************************"
-      //          << endl;
-      //     break;
-      //   }
-      // }
+      for (int i = 0; i < Cluster::kMaxPatternBytes + 2; i++) {
+        if (pattExt[i] != out_patt[i]) {
+          mistakes++;
+          if (!bGroup)
+            mistakes_outside_groups++;
+          mist << "input:" << endl
+               << endl;
+          mist << topology << endl;
+          mist << "output:" << endl
+               << "isGroup: " << std::boolalpha << dict.isGroup(finder.findGroupID(rowSpan, columnSpan, patt)) << endl
+               << endl;
+          mist << dict.getPattern(finder.findGroupID(rowSpan, columnSpan, patt))
+               << endl;
+          mist << "********************************************************"
+               << endl;
+          break;
+        }
+      }
     }
   }
   std::cout << "number of mismatch: " << mistakes << " / " << total << std::endl;
@@ -159,4 +149,5 @@ void CheckLookUp(std::string clusfile = "o2clus_its_comp.root", std::string dict
   leg->AddEntry(hDistribution, "Topology distribution", "PE");
   leg->Draw();
   cv->Write();
+#endif
 }
