@@ -216,12 +216,10 @@ DataProcessorSpec
     int ntfmerge = 1;
 
     // values from json
-    std::string fnb, fmo;
-    int ntfm = 0;
     if (ic.options().isSet("json-file")) {
       auto fnjson = ic.options().get<std::string>("json-file");
       if (!fnjson.empty()) {
-        tie(fnb, fmo, ntfm) = dod->readJson(fnjson);
+        auto [fnb, fmo, ntfm] = dod->readJson(fnjson);
         if (!fnb.empty()) {
           fnbase = fnb;
         }
@@ -242,7 +240,7 @@ DataProcessorSpec
       filemode = ic.options().get<std::string>("res-mode");
     }
     if (ic.options().isSet("ntfmerge")) {
-      ntfm = ic.options().get<int>("ntfmerge");
+      auto ntfm = ic.options().get<int>("ntfmerge");
       if (ntfm > 0) {
         ntfmerge = ntfm;
       }
