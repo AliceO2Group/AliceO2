@@ -16,6 +16,8 @@
 #include <stdexcept>
 #include <iosfwd>
 #include <initializer_list>
+#include <string_view>
+#include <string>
 
 namespace o2
 {
@@ -72,6 +74,14 @@ struct variant_trait<const char* const> : std::integral_constant<VariantType, Va
 };
 
 template <>
+struct variant_trait<std::string_view> : std::integral_constant<VariantType, VariantType::String> {
+};
+
+template <>
+struct variant_trait<std::string> : std::integral_constant<VariantType, VariantType::String> {
+};
+
+template <>
 struct variant_trait<bool> : std::integral_constant<VariantType, VariantType::Bool> {
 };
 
@@ -124,6 +134,20 @@ struct variant_helper<S, const char*> {
   static const char* get(const S* store) { return *reinterpret_cast<const char* const*>(store); }
 
   static void set(S* store, const char* value) { *reinterpret_cast<char**>(store) = strdup(value); }
+};
+
+template <typename S>
+struct variant_helper<S, std::string_view> {
+  static std::string_view get(const S* store) { return std::string_view(*reinterpret_cast<const char* const*>(store)); }
+
+  static void set(S* store, std::string_view value) { *reinterpret_cast<char**>(store) = strdup(value.data()); }
+};
+
+template <typename S>
+struct variant_helper<S, std::string> {
+  static std::string get(const S* store) { return std::string(strdup(*reinterpret_cast<const char* const*>(store))); }
+
+  static void set(S* store, std::string value) { *reinterpret_cast<char**>(store) = strdup(value.data()); }
 };
 
 // Poor man variant class. Does not take ownership of anything passed to it.

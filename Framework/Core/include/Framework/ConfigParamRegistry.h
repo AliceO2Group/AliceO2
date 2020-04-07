@@ -53,6 +53,10 @@ class ConfigParamRegistry
         return mRetriever->getDouble(key);
       } else if constexpr (std::is_same_v<T, std::string>) {
         return mRetriever->getString(key);
+      } else if constexpr (std::is_same_v<T, std::string_view>) {
+        return std::string_view{mRetriever->getString(key)};
+      } else if constexpr (std::is_same_v<T, std::string>) {
+        return std::string{mRetriever->getString(key)};
       } else if constexpr (std::is_same_v<T, bool>) {
         return mRetriever->getBool(key);
       } else if constexpr (std::is_same_v<T, boost::property_tree::ptree>) {
