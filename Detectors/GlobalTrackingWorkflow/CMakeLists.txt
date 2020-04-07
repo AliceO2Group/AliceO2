@@ -12,14 +12,14 @@
 o2_add_library(GlobalTrackingWorkflow
                SOURCES src/TrackWriterTPCITSSpec.cxx src/TPCITSMatchingSpec.cxx
                        src/MatchTPCITSWorkflow.cxx src/TrackTPCITSReaderSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::GlobalTracking O2::ITSWorkflow
+               PUBLIC_LINK_LIBRARIES O2::GlobalTracking O2::ITStracking O2::ITSWorkflow
                                      O2::TPCWorkflow O2::FITWorkflow
                                      O2::ITSMFTWorkflow)
 
 o2_add_executable(match-workflow
                   COMPONENT_NAME tpcits
                   SOURCES src/tpcits-match-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow)
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow )
 
 add_subdirectory(tofworkflow)
 

@@ -16,6 +16,7 @@
 #include <TSystem.h>
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "GlobalTrackingWorkflow/TPCITSMatchingSpec.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -32,6 +33,8 @@
 #include "DetectorsBase/Propagator.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
+#include "ITStracking/IOUtils.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -48,12 +51,20 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
 
-  mMatching.setDPLIO(true);
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
   mMatching.setITSROFrameLengthMUS(alpParams.roFrameLength / 1.e3); // ITS ROFrame duration in \mus
   mMatching.setMCTruthOn(mUseMC);
   //
+  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  if (o2::base::NameConf::pathExists(dictFile)) {
+    mITSDict.readBinaryFile(dictFile);
+    LOG(INFO) << "Matching is running with a provided ITS dictionary: " << dictFile;
+  } else {
+    LOG(INFO) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
+  }
   mMatching.init();
+  //
 }
 
 void TPCITSMatchingDPL::run(ProcessingContext& pc)
@@ -66,8 +77,9 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   const auto tracksITS = pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS");
   const auto trackClIdxITS = pc.inputs().get<gsl::span<int>>("trackClIdx");
   const auto tracksITSROF = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackITSROF");
-  const auto clusITS = pc.inputs().get<gsl::span<o2::itsmft::Cluster>>("clusITS");
+  const auto clusITS = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusITS");
   const auto clusITSROF = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusITSROF");
+  const auto patterns = pc.inputs().get<gsl::span<unsigned char>>("clusITSPatt");
   const auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
   const auto tracksTPCClRefs = pc.inputs().get<gsl::span<o2::tpc::TPCClRefElem>>("trackTPCClRefs");
 
@@ -232,11 +244,17 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     lblTPCPtr = lblTPC.get();
   }
   //
+  // create ITS clusters as spacepoints in tracking frame
+  std::vector<o2::BaseCluster<float>> itsSP;
+  itsSP.reserve(clusITS.size());
+  auto pattIt = patterns.begin();
+  o2::its::ioutils::convertCompactClusters(clusITS, pattIt, itsSP, mITSDict);
+
   // pass input data to MatchTPCITS object
   mMatching.setITSTracksInp(tracksITS);
   mMatching.setITSTrackClusIdxInp(trackClIdxITS);
   mMatching.setITSTrackROFRecInp(tracksITSROF);
-  mMatching.setITSClustersInp(clusITS);
+  mMatching.setITSClustersInp(itsSP);
   mMatching.setITSClusterROFRecInp(clusITSROF);
   mMatching.setTPCTracksInp(tracksTPC);
   mMatching.setTPCTrackClusIdxInp(tracksTPCClRefs);
@@ -281,7 +299,8 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcC
   inputs.emplace_back("trackITS", "ITS", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackClIdx", "ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackITSROF", "ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
-  inputs.emplace_back("clusITS", "ITS", "CLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("clusITS", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("clusITSPatt", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusITSROF", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackTPCClRefs", "TPC", "CLUSREFS", 0, Lifetime::Timeframe);
@@ -311,7 +330,7 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcC
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useMC, tpcClusLanes)},
-    Options{}};
+    Options{{"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}}}};
 }
 
 } // namespace globaltracking

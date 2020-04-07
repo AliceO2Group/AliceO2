@@ -33,6 +33,11 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
   }
 
   //>>>---------- attach input data --------------->>>
+  o2::tpc::ClusterNativeHelper::Reader* mTPCClusterReader = nullptr;     ///< TPC cluster reader
+  std::unique_ptr<o2::tpc::ClusterNativeAccess> mTPCClusterIdxStructOwn; ///< used in case of tree-based IO
+  std::unique_ptr<o2::tpc::ClusterNative[]> mTPCClusterBufferOwn;        ///< buffer for clusters in mTPCClusterIdxStructOwn
+  o2::tpc::MCLabelContainer mTPCClusterMCBufferOwn;                      ///< buffer for mc labels
+
   TChain itsTracks("o2sim");
   itsTracks.AddFile((path + inputTracksITS).c_str());
   matching.setInputTreeITSTracks(&itsTracks);
@@ -92,4 +97,78 @@ void run_match_TPCITS(std::string path = "./", std::string outputfile = "o2match
   outFile.cd();
   outTree.Write();
   outFile.Close();
+}
+
+void setupTF(int entry)
+{
+  std::string mITSTrackBranchName = "ITSTrack";                ///< name of branch containing input ITS tracks
+  std::string mITSTrackClusIdxBranchName = "ITSTrackClusIdx";  ///< name of branch containing input ITS tracks cluster indices
+  std::string mITSTrackROFRecBranchName = "ITSTracksROF";      ///< name of branch containing input ITS tracks ROFRecords
+  std::string mTPCTrackBranchName = "Tracks";                  ///< name of branch containing input TPC tracks
+  std::string mTPCTrackClusIdxBranchName = "ClusRefs";         ///< name of branch containing input TPC tracks cluster references
+  std::string mITSClusterBranchName = "ITSCluster";            ///< name of branch containing input ITS clusters
+  std::string mITSClusMCTruthBranchName = "ITSClusterMCTruth"; ///< name of branch containing input ITS clusters MC
+  std::string mITSClusterROFRecBranchName = "ITSClustersROF";  ///< name of branch containing input ITS clusters ROFRecords
+  std::string mITSMCTruthBranchName = "ITSTrackMCTruth";       ///< name of branch containing ITS MC labels
+  std::string mTPCMCTruthBranchName = "TracksMCTruth";         ///< name of branch containing input TPC tracks
+  std::string mFITInfoBranchName = "FT0Cluster";               ///< name of branch containing input FIT Info
+
+  if (!mDPLIO) { // init
+    attachInputTrees();
+
+    TTree* mOutputTree = nullptr; ///< output tree for matched tracks
+
+    // create output branch
+    if (mOutputTree) {
+      mOutputTree->Branch(NAMES::TPCITS_TracksBranchName.data(), &mMatchedTracks);
+      if (mMCTruthON) {
+        mOutputTree->Branch(NAMES::TPCITS_ITSMCTruthBranchName.data(), &mOutITSLabels);
+        mOutputTree->Branch(NAMES::TPCITS_TPCMCTruthBranchName.data(), &mOutTPCLabels);
+      }
+    } else {
+      LOG(ERROR) << "Output tree is not attached, matched tracks will not be stored";
+    }
+  }
+  std::vector<o2::itsmft::Cluster> mITSClustersBuffer; ///< input ITS clusters buffer for tree IO
+  std::vector<o2::itsmft::ROFRecord> mITSClusterROFRecBuffer;
+  MCLabCont mITSClsLabelsBuffer;
+
+  std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayPtr = nullptr;             ///< input TPC tracks from tree
+  std::vector<o2::tpc::TPCClRefElem>* mTPCTrackClusIdxPtr = nullptr;        ///< input TPC track cluster indices from tree
+  std::vector<o2::itsmft::ROFRecord>* mITSTrackROFRecPtr = nullptr;         ///< input ITS tracks ROFRecord from tree
+  std::vector<o2::its::TrackITS>* mITSTracksArrayPtr = nullptr;             ///< input ITS tracks read from tree
+  std::vector<int>* mITSTrackClusIdxPtr = nullptr;                          ///< input ITS track cluster indices from tree
+  const std::vector<o2::itsmft::Cluster>* mITSClustersArrayPtr = nullptr;   ///< input ITS clusters from tree
+  const std::vector<o2::itsmft::ROFRecord>* mITSClusterROFRecPtr = nullptr; ///< input ITS clusters ROFRecord from tree
+  const std::vector<o2::ft0::RecPoints>* mFITInfoPtr = nullptr;             ///< optional input FIT info from the tree
+
+  mTimerIO.Start(false);
+
+  mTreeITSTracks->GetEntry(0);
+  mITSTrackROFRec = gsl::span<const o2::itsmft::ROFRecord>(mITSTrackROFRecPtr->data(), mITSTrackROFRecPtr->size());
+  mTreeITSClusters->GetEntry(0);
+  mITSClustersArray = gsl::span<const o2::itsmft::Cluster>(mITSClustersArrayPtr->data(), mITSClustersArrayPtr->size());
+  mITSClusterROFRec = gsl::span<const o2::itsmft::ROFRecord>(mITSClusterROFRecPtr->data(), mITSClusterROFRecPtr->size());
+  mITSTracksArray = gsl::span<const o2::its::TrackITS>(mITSTracksArrayPtr->data(), mITSTracksArrayPtr->size());
+  mITSTrackClusIdx = gsl::span<const int>(mITSTrackClusIdxPtr->data(), mITSTrackClusIdxPtr->size());
+
+  mTreeTPCTracks->GetEntry(0);
+  LOG(DEBUG) << "Loading TPC tracks: " << mTPCTracksArrayPtr->size() << " tracks";
+  mTPCTracksArray = gsl::span<const o2::tpc::TrackTPC>(mTPCTracksArrayPtr->data(), mTPCTracksArrayPtr->size());
+  mTPCTrackClusIdx = gsl::span<const o2::tpc::TPCClRefElem>(mTPCTrackClusIdxPtr->data(), mTPCTrackClusIdxPtr->size());
+
+  mTPCClusterReader->read(0);
+  mTPCClusterReader->fillIndex(*mTPCClusterIdxStructOwn.get(), mTPCClusterBufferOwn, mTPCClusterMCBufferOwn);
+  mTPCClusterIdxStruct = mTPCClusterIdxStructOwn.get();
+
+  mTreeFITInfo->GetEntry(0);
+  mFITInfo = gsl::span<const o2::ft0::RecPoints>(mFITInfoPtr->data(), mFITInfoPtr->size()); // FT0 not yet POD
+
+  mTimerIO.Stop();
+
+  if (mMatchedTracks.size() && mOutputTree) {
+    mTimerIO.Start(false);
+    mOutputTree->Fill();
+    mTimerIO.Stop();
+  }
 }

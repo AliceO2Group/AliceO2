@@ -31,11 +31,12 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC)
 {
   framework::WorkflowSpec specs;
 
-  bool passFullITSClusters = true;  // temporarily pass full clusters,
-  bool passCompITSClusters = false; // eventually only compact of recpoints will be passed
+  bool passFullITSClusters = false; // temporarily pass full clusters,
+  bool passCompITSClusters = true;  // eventually only compact of recpoints will be passed
+  bool passITSClusPatterns = true;
 
   specs.emplace_back(o2::its::getITSTrackReaderSpec(useMC));
-  specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(useMC, passFullITSClusters, passCompITSClusters));
+  specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(useMC, passFullITSClusters, passCompITSClusters, passITSClusPatterns));
 
   specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
 
