@@ -1,3 +1,4 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <Rtypes.h>
 #include <iostream>
 
@@ -5,6 +6,7 @@
 #include "FT0Simulation/Digits2Raw.h"
 #include "DataFormatsFT0/RawEventData.h"
 #include "DataFormatsFT0/LookUpTable.h"
+#endif
 
 void FT0digits2raw()
 {
