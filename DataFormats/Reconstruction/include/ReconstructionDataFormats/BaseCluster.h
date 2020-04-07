@@ -26,7 +26,6 @@ namespace o2
 // to AliRoot). The errors are defined in *ideal* tracking frame
 // DetectorID should correspond to continuous (no jumps between detector layers
 // planes etc.) internal sensor ID within detector
-// Detector specific clusters should be composed by including it as data member
 template <typename T>
 class BaseCluster
 {
@@ -42,6 +41,7 @@ class BaseCluster
 
  public:
   BaseCluster() = default;
+  ~BaseCluster() = default;
 
   // constructor
   BaseCluster(std::uint16_t sensid, const Point3D<T>& xyz) : mPos(xyz), mSensorID(sensid) {}
@@ -113,7 +113,6 @@ class BaseCluster
   }
 
  protected:
-  ~BaseCluster() = default;
 
   ClassDefNV(BaseCluster, 2);
 };
