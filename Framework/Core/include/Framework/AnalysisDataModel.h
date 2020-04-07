@@ -27,9 +27,9 @@ namespace collision
 // DECLARE_SOA_COLUMN(TimeframeId, timeframeId, uint64_t);
 DECLARE_SOA_COLUMN(RunNumber, runNumber, int);
 DECLARE_SOA_COLUMN(GlobalBC, globalBC, uint64_t);
-DECLARE_SOA_COLUMN(PosX, posX, float);
-DECLARE_SOA_COLUMN(PosY, posY, float);
-DECLARE_SOA_COLUMN(PosZ, posZ, float);
+DECLARE_SOA_COLUMN_FULL(PosX, posX, float, "fX");
+DECLARE_SOA_COLUMN_FULL(PosY, posY, float, "fY");
+DECLARE_SOA_COLUMN_FULL(PosZ, posZ, float, "fZ");
 DECLARE_SOA_COLUMN(CovXX, covXX, float);
 DECLARE_SOA_COLUMN(CovXY, covXY, float);
 DECLARE_SOA_COLUMN(CovXZ, covXZ, float);
