@@ -12,6 +12,7 @@ o2_add_library(DataFormatsFV0
         SOURCES src/Hit.cxx
                 src/ChannelData.cxx
                 src/BCData.cxx
+                src/RawEventData.cxx
         PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
                               O2::CommonDataFormat
                               ms_gsl::ms_gsl)
@@ -19,4 +20,6 @@ o2_add_library(DataFormatsFV0
 o2_target_root_dictionary(DataFormatsFV0
         HEADERS include/DataFormatsFV0/Hit.h
                 include/DataFormatsFV0/BCData.h
-                include/DataFormatsFV0/ChannelData.h)
+                include/DataFormatsFV0/ChannelData.h
+                include/DataFormatsFV0/RawEventData.h
+                include/DataFormatsFV0/LookUpTable.h    )

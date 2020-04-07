@@ -22,5 +22,5 @@
 #pragma link C++ class o2::fv0::DigitizationConstant + ;
 #pragma link C++ class o2::fv0::FV0DigParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::fv0::FV0DigParam> + ;
-
+#pragma link C++ class o2::fv0::Digits2Raw + ;
 #endif
