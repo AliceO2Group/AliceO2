@@ -26,13 +26,14 @@ namespace o2
 namespace itsmft
 {
 
-ClusterReader::ClusterReader(o2::detectors::DetID id, bool useMC, bool useClFull, bool useClComp)
+ClusterReader::ClusterReader(o2::detectors::DetID id, bool useMC, bool useClFull, bool useClComp, bool usePatterns)
 {
   assert(id == o2::detectors::DetID::ITS || id == o2::detectors::DetID::MFT);
   mDetNameLC = mDetName = id.getName();
   mUseMC = useMC;
   mUseClFull = useClFull;
   mUseClComp = useClComp;
+  mUsePatterns = usePatterns;
   std::transform(mDetNameLC.begin(), mDetNameLC.end(), mDetNameLC.begin(), ::tolower);
 }
 
@@ -64,6 +65,9 @@ void ClusterReader::run(ProcessingContext& pc)
   }
   if (mUseClComp) {
     pc.outputs().snapshot(Output{mOrigin, "COMPCLUSTERS", 0, Lifetime::Timeframe}, mClusterCompArray);
+  }
+  if (mUsePatterns) {
+    pc.outputs().snapshot(Output{mOrigin, "PATTERNS", 0, Lifetime::Timeframe}, mPatternsArray);
   }
   if (mUseMC) {
     pc.outputs().snapshot(Output{mOrigin, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mClusterMCTruth);
@@ -98,6 +102,9 @@ void ClusterReader::read()
   if (mUseClComp) {
     clTree->SetBranchAddress((mDetName + mClusterCompBranchName).c_str(), &mClusterCompArrayPtr);
   }
+  if (mUsePatterns) {
+    clTree->SetBranchAddress((mDetName + mClusterPattBranchName).c_str(), &mPatternsArrayPtr);
+  }
   if (mUseMC) {
     if (clTree->GetBranch((mDetName + mClustMCTruthBranchName).c_str())) {
       clTree->SetBranchAddress((mDetName + mClustMCTruthBranchName).c_str(), &mClusterMCTruthPtr);
@@ -110,7 +117,7 @@ void ClusterReader::read()
   clTree->GetEntry(0);
 }
 
-DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useClComp)
+DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useClComp, bool usePatterns)
 {
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back("ITS", "ITSClusterROF", 0, Lifetime::Timeframe);
@@ -119,6 +126,9 @@ DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useCl
   }
   if (useClComp) {
     outputSpec.emplace_back("ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  }
+  if (usePatterns) {
+    outputSpec.emplace_back("ITS", "PATTERNS", 0, Lifetime::Timeframe);
   }
   if (useMC) {
     outputSpec.emplace_back("ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
@@ -133,7 +143,7 @@ DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useCl
       {"its-cluster-infile", VariantType::String, "o2clus_its.root", {"Name of the input cluster file"}}}};
 }
 
-DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool useClFull, bool useClComp)
+DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool useClFull, bool useClComp, bool usePatterns)
 {
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back("MFT", "MFTClusterROF", 0, Lifetime::Timeframe);
@@ -142,6 +152,9 @@ DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool useClFull, bool useCl
   }
   if (useClComp) {
     outputSpec.emplace_back("MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  }
+  if (usePatterns) {
+    outputSpec.emplace_back("MFT", "PATTERNS", 0, Lifetime::Timeframe);
   }
   if (useMC) {
     outputSpec.emplace_back("MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
