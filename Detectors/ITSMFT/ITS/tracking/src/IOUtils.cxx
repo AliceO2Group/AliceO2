@@ -27,6 +27,7 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITStracking/Constants.h"
+#include "ITStracking/json.h"
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -44,6 +45,11 @@ namespace o2
 {
 namespace its
 {
+
+void to_json(nlohmann::json& j, const TrackingParameters& par);
+void from_json(const nlohmann::json& j, TrackingParameters& par);
+void to_json(nlohmann::json& j, const MemoryParameters& par);
+void from_json(const nlohmann::json& j, MemoryParameters& par);
 
 void ioutils::loadConfigurations(const std::string& fileName)
 {

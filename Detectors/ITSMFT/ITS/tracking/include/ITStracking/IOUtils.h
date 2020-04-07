@@ -23,7 +23,6 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/ROframe.h"
-#include "ITStracking/json.h"
 #include "ITStracking/Label.h"
 #include "ITStracking/Road.h"
 
@@ -47,11 +46,6 @@ class TopologyDictionary;
 
 namespace its
 {
-
-void to_json(nlohmann::json& j, const TrackingParameters& par);
-void from_json(const nlohmann::json& j, TrackingParameters& par);
-void to_json(nlohmann::json& j, const MemoryParameters& par);
-void from_json(const nlohmann::json& j, MemoryParameters& par);
 
 namespace ioutils
 {
