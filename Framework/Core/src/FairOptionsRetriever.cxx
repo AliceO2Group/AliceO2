@@ -33,6 +33,11 @@ FairOptionsRetriever::FairOptionsRetriever(std::vector<ConfigParamSpec> const& s
   PropertyTreeHelpers::populate(schema, mStore, mOpts->GetVarMap());
 }
 
+bool FairOptionsRetriever::isSet(const char* key) const
+{
+  return (mOpts->Count(key) > 0);
+}
+
 int FairOptionsRetriever::getInt(const char* key) const
 {
   return mStore.get<int>(key);
