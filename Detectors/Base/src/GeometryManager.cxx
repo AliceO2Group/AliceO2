@@ -445,11 +445,11 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
 void GeometryManager::loadGeometry(std::string_view geomFileName)
 {
   ///< load geometry from file
-  std::string fname = geomFileName.empty() ? o2::base::NameConf::getGeomFileName() : std::string(geomFileName);
+  std::string fname = o2::base::NameConf::getGeomFileName(geomFileName);
   LOG(INFO) << "Loading geometry " << o2::base::NameConf::GEOMOBJECTNAME << " from " << fname;
   TFile flGeom(fname.data());
   if (flGeom.IsZombie()) {
-    LOG(FATAL) << "Failed to open file " << geomFileName;
+    LOG(FATAL) << "Failed to open file " << fname;
   }
   if (!flGeom.Get(std::string(o2::base::NameConf::GEOMOBJECTNAME).c_str())) {
     LOG(FATAL) << "Did not find geometry named " << o2::base::NameConf::GEOMOBJECTNAME;
