@@ -108,6 +108,14 @@ BOOST_AUTO_TEST_CASE(TestDDS)
    <decltask id="D">
        <exe reachable="true">foo --id D --control static --log-color false --color false --jobs 4 --session dpl_workflow-id --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
    </decltask>
+   <declcollection name="DPL">
+       <tasks>
+          <name>A</name>
+          <name>B</name>
+          <name>C</name>
+          <name>D</name>
+       </tasks>
+   </declcollection>
 </topology>
 )EXPECTED");
 }

@@ -84,13 +84,11 @@ void PreClusterFinder::reset()
 }
 
 //_________________________________________________________________________________________________
-void PreClusterFinder::loadDigits(const Digit* digits, int nDigits)
+void PreClusterFinder::loadDigits(gsl::span<const Digit> digits)
 {
   /// fill the Mapping::MpDE structure with fired pads
 
-  for (int i = 0; i < nDigits; ++i) {
-
-    const Digit& digit(digits[i]);
+  for (const auto& digit : digits) {
 
     int deIndex = mDEIndices[digit.getDetID()];
     assert(deIndex >= 0 && deIndex < SNDEs);
@@ -126,6 +124,42 @@ int PreClusterFinder::run()
   /// preclusterize each cathod separately then merge them
   preClusterizeRecursive();
   return mergePreClusters();
+}
+
+//_________________________________________________________________________________________________
+void PreClusterFinder::getPreClusters(std::vector<o2::mch::PreCluster>& preClusters, std::vector<Digit>& digits)
+{
+  /// add the preclusters and associated digits at the end of the input vectors
+  /// the existing preclusters and digits are not touched, so the corresponding indices are preserved
+  /// however, iterators, pointers and references might be invalidated in case the vectors are resized
+
+  for (int iDE = 0, nDEs = SNDEs; iDE < nDEs; ++iDE) {
+
+    DetectionElement& de(mDEs[iDE]);
+    if (de.nOrderedPads[1] == 0) {
+      continue;
+    }
+
+    for (int iPlane = 0; iPlane < 2; ++iPlane) {
+      for (int iCluster = 0; iCluster < mNPreClusters[iDE][iPlane]; ++iCluster) {
+
+        PreCluster* cluster = mPreClusters[iDE][iPlane][iCluster].get();
+        if (!cluster->storeMe) {
+          continue;
+        }
+
+        // add this precluster
+        uint16_t firstDigit = digits.size();
+        uint16_t nDigits = cluster->lastPad - cluster->firstPad + 1;
+        preClusters.push_back({firstDigit, nDigits});
+
+        // add the digits of this precluster
+        for (uint16_t iOrderedPad = cluster->firstPad; iOrderedPad <= cluster->lastPad; ++iOrderedPad) {
+          digits.emplace_back(*de.digits[de.mapping->pads[de.orderedPads[1][iOrderedPad]].iDigit]);
+        }
+      }
+    }
+  }
 }
 
 //_________________________________________________________________________________________________

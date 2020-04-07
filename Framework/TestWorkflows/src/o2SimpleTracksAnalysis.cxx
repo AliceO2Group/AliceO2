@@ -26,8 +26,8 @@ namespace aod
 {
 namespace tracks
 {
-DECLARE_SOA_COLUMN(Eta, eta, float, "fEta");
-DECLARE_SOA_COLUMN(Phi, phi, float, "fPhi");
+DECLARE_SOA_COLUMN(Eta, eta, float);
+DECLARE_SOA_COLUMN(Phi, phi, float);
 } // namespace tracks
 
 using TracksDerived = o2::soa::Table<tracks::Eta, tracks::Phi>;

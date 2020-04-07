@@ -108,13 +108,13 @@ namespace o2::aod
 DECLARE_SOA_STORE();
 namespace test
 {
-DECLARE_SOA_COLUMN(Px, px, float, "px");
-DECLARE_SOA_COLUMN(Py, py, float, "py");
-DECLARE_SOA_COLUMN(Pz, pz, float, "pz");
-DECLARE_SOA_COLUMN(Xyz, xyz, float[3], "xyz");
-DECLARE_SOA_COLUMN(Ij, ij, int[2], "ij");
-DECLARE_SOA_COLUMN(Random, random, double, "random");
-DECLARE_SOA_COLUMN(Ev, ev, int, "ev");
+DECLARE_SOA_COLUMN_FULL(Px, px, float, "px");
+DECLARE_SOA_COLUMN_FULL(Py, py, float, "py");
+DECLARE_SOA_COLUMN_FULL(Pz, pz, float, "pz");
+DECLARE_SOA_COLUMN_FULL(Xyz, xyz, float[3], "xyz");
+DECLARE_SOA_COLUMN_FULL(Ij, ij, int[2], "ij");
+DECLARE_SOA_COLUMN_FULL(Random, random, double, "random");
+DECLARE_SOA_COLUMN_FULL(Ev, ev, int, "ev");
 } // namespace test
 
 DECLARE_SOA_TABLE(Test, "AOD", "ETAPHI",

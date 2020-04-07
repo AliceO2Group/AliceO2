@@ -18,6 +18,7 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <vector>
 
 #include <stdexcept>
 
@@ -30,7 +31,7 @@
 #include "Framework/Task.h"
 
 #include "MCHBase/Digit.h"
-#include "MCHBase/PreClusterBlock.h"
+#include "MCHBase/PreCluster.h"
 #include "PreClusterFinder.h"
 
 namespace o2
@@ -77,29 +78,17 @@ class PreClusterFinderTask
     // prepare to receive new data
     auto tStart = std::chrono::high_resolution_clock::now();
     mPreClusterFinder.reset();
+    mPreClusters.clear();
+    mUsedDigits.clear();
     auto tEnd = std::chrono::high_resolution_clock::now();
     mTimeResetPreClusterFinder += tEnd - tStart;
 
-    // get the input buffer
-    auto msgIn = pc.inputs().get<gsl::span<char>>("digits");
-    auto bufferPtrIn = msgIn.data();
-    auto sizeIn = msgIn.size();
-
-    // get the number of digits
-    if (sizeIn < SSizeOfInt) {
-      throw out_of_range("missing number of digits");
-    }
-    auto& nDigits(*reinterpret_cast<const int*>(bufferPtrIn));
-    bufferPtrIn += SSizeOfInt;
-    sizeIn -= SSizeOfInt;
-    if (sizeIn != nDigits * SSizeOfDigit) {
-      throw length_error("incorrect payload");
-    }
+    // get the input digits
+    auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
 
     // load the digits to get the fired pads
-    auto digits(reinterpret_cast<const Digit*>(bufferPtrIn));
     tStart = std::chrono::high_resolution_clock::now();
-    mPreClusterFinder.loadDigits(digits, nDigits);
+    mPreClusterFinder.loadDigits(digits);
     tEnd = std::chrono::high_resolution_clock::now();
     mTimeLoadDigits += tEnd - tStart;
 
@@ -109,119 +98,34 @@ class PreClusterFinderTask
     tEnd = std::chrono::high_resolution_clock::now();
     mTimePreClusterFinder += tEnd - tStart;
 
-    // number of DEs with preclusters and total number of pads used
-    int nUsedDigits(0);
-    int nDEWithPreClusters = mPreClusterFinder.getNDEWithPreClusters(nUsedDigits);
+    // get the preclusters and associated digits
+    tStart = std::chrono::high_resolution_clock::now();
+    mPreClusters.reserve(nPreClusters); // to avoid reallocation if
+    mUsedDigits.reserve(digits.size()); // the capacity is exceeded
+    mPreClusterFinder.getPreClusters(mPreClusters, mUsedDigits);
+    if (mUsedDigits.size() != digits.size()) {
+      throw runtime_error("some digits have been lost during the preclustering");
+    }
+    tEnd = std::chrono::high_resolution_clock::now();
+    mTimeStorePreClusters += tEnd - tStart;
 
-    // create the output message of the exactly needed buffer size
-    auto sizeOut = SSizeOfInt + nDEWithPreClusters * 2 * SSizeOfInt +
-                   PreClusterBlock::sizeOfPreClusterBlocks(nDEWithPreClusters, nPreClusters, nUsedDigits);
-    auto msgOut = pc.outputs().make<char>(Output{"MCH", "PRECLUSTERS", 0, Lifetime::Timeframe}, sizeOut);
-    auto bufferPtrOut = msgOut.data();
-    if (msgOut.size() != sizeOut) {
-      throw length_error("incorrect message payload");
+    if (mPrint) {
+      cout << mPreClusters.size() << " preclusters:" << endl;
+      for (const auto& precluster : mPreClusters) {
+        precluster.print(cout, mUsedDigits);
+      }
     }
 
-    // store the number of DE with preclusters
-    memcpy(bufferPtrOut, &nDEWithPreClusters, SSizeOfInt);
-    bufferPtrOut += SSizeOfInt;
-    sizeOut -= SSizeOfInt;
-
-    // store preclusters
-    try {
-      tStart = std::chrono::high_resolution_clock::now();
-      storePreClusters(bufferPtrOut, sizeOut);
-      tEnd = std::chrono::high_resolution_clock::now();
-      mTimeStorePreClusters += tEnd - tStart;
-    } catch (exception const& e) {
-      throw length_error(std::string("fail to store preclusters: ") + e.what());
-    }
+    // send the output messages
+    pc.outputs().snapshot(Output{"MCH", "PRECLUSTERS", 0, Lifetime::Timeframe}, mPreClusters);
+    pc.outputs().snapshot(Output{"MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}, mUsedDigits);
   }
 
  private:
-  //_________________________________________________________________________________________________
-  void storePreClusters(char* buffer, uint32_t size)
-  {
-    /// store the preclusters in the given buffer
-
-    const PreClusterFinder::PreCluster* cluster(nullptr);
-    const Digit* digit(nullptr);
-    uint32_t* bytesUsed(nullptr);
-    uint32_t totalBytesUsed(0);
-
-    for (int iDE = 0, nDEs = mPreClusterFinder.getNDEs(); iDE < nDEs; ++iDE) {
-
-      if (!mPreClusterFinder.hasPreClusters(iDE)) {
-        continue;
-      }
-
-      // store the DE ID
-      if (size - totalBytesUsed >= SSizeOfInt) {
-        auto deId(reinterpret_cast<int*>(buffer + totalBytesUsed));
-        *deId = mPreClusterFinder.getDEId(iDE);
-        totalBytesUsed += SSizeOfInt;
-      } else {
-        throw length_error("cannot store DE ID");
-      }
-
-      // prepare to store the size of the PreClusterBlock
-      if (size - totalBytesUsed >= SSizeOfInt) {
-        bytesUsed = reinterpret_cast<uint32_t*>(buffer + totalBytesUsed);
-        totalBytesUsed += SSizeOfInt;
-      } else {
-        throw length_error("cannot store size of the PreClusterBlock");
-      }
-
-      // prepare to store the preclusters of this DE
-      if (mPreClusterBlock.reset(buffer + totalBytesUsed, size - totalBytesUsed, true) < 0) {
-        throw length_error("cannot reset the cluster block");
-      }
-
-      for (int iPlane = 0; iPlane < 2; ++iPlane) {
-        for (int iCluster = 0, nClusters = mPreClusterFinder.getNPreClusters(iDE, iPlane);
-             iCluster < nClusters; ++iCluster) {
-
-          cluster = mPreClusterFinder.getPreCluster(iDE, iPlane, iCluster);
-          if (!cluster->storeMe) {
-            continue;
-          }
-
-          // add the precluster with its first digit
-          digit = mPreClusterFinder.getDigit(iDE, cluster->firstPad);
-          if (mPreClusterBlock.startPreCluster(*digit) < 0) {
-            throw length_error("cannot store a new precluster");
-          }
-
-          // loop over other pads and add corresponding digits
-          for (uint16_t iOrderedPad = cluster->firstPad + 1; iOrderedPad <= cluster->lastPad; ++iOrderedPad) {
-            digit = mPreClusterFinder.getDigit(iDE, iOrderedPad);
-            if (mPreClusterBlock.addDigit(*digit) < 0) {
-              throw length_error("cannot store a new digit");
-            }
-          }
-        }
-      }
-
-      // store the size of the PreClusterBlock
-      *bytesUsed = mPreClusterBlock.getCurrentSize();
-      totalBytesUsed += *bytesUsed;
-
-      if (mPrint) {
-        LOG(INFO) << "block: " << mPreClusterBlock;
-      }
-    }
-
-    if (totalBytesUsed != size) {
-      throw length_error("incorrect payload");
-    }
-  }
-
-  static constexpr uint32_t SSizeOfInt = sizeof(int);
-  static constexpr uint32_t SSizeOfDigit = sizeof(Digit);
-
-  bool mPrint = false;                  ///< print preclusters
-  PreClusterFinder mPreClusterFinder{}; ///< preclusterizer
-  PreClusterBlock mPreClusterBlock{};   ///< preclusters data blocks
+  bool mPrint = false;                    ///< print preclusters
+  PreClusterFinder mPreClusterFinder{};   ///< preclusterizer
+  std::vector<PreCluster> mPreClusters{}; ///< vector of preclusters
+  std::vector<Digit> mUsedDigits{};       ///< vector of digits in the preclusters
 
   std::chrono::duration<double, std::milli> mTimeResetPreClusterFinder{}; ///< timer
   std::chrono::duration<double, std::milli> mTimeLoadDigits{};            ///< timer
@@ -235,7 +139,8 @@ o2::framework::DataProcessorSpec getPreClusterFinderSpec()
   return DataProcessorSpec{
     "PreClusterFinder",
     Inputs{InputSpec{"digits", "MCH", "DIGITS", 0, Lifetime::Timeframe}},
-    Outputs{OutputSpec{"MCH", "PRECLUSTERS", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{"MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
+            OutputSpec{"MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<PreClusterFinderTask>()},
     Options{{"print", VariantType::Bool, false, {"print preclusters"}}}};
 }

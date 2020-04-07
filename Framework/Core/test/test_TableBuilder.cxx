@@ -32,9 +32,9 @@ using namespace o2::framework;
 
 namespace test
 {
-DECLARE_SOA_COLUMN(X, x, uint64_t, "x");
-DECLARE_SOA_COLUMN(Y, y, uint64_t, "y");
-DECLARE_SOA_COLUMN(Pos, pos, int[3], "pos");
+DECLARE_SOA_COLUMN_FULL(X, x, uint64_t, "x");
+DECLARE_SOA_COLUMN_FULL(Y, y, uint64_t, "y");
+DECLARE_SOA_COLUMN_FULL(Pos, pos, int[3], "pos");
 } // namespace test
 
 using TestTable = o2::soa::Table<test::X, test::Y>;
