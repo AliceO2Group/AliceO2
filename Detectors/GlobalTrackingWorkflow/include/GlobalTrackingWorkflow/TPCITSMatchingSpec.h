@@ -16,6 +16,7 @@
 #include "TFile.h"
 
 #include "GlobalTracking/MatchTPCITS.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsTPC/Constants.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -40,7 +41,7 @@ class TPCITSMatchingDPL : public Task
 
  private:
   o2::globaltracking::MatchTPCITS mMatching; // matching engine
-
+  o2::itsmft::TopologyDictionary mITSDict;   // cluster patterns dictionary
   std::vector<int> mTPCClusLanes;
   std::array<std::vector<char>, o2::tpc::Constants::MAXSECTOR> mBufferedTPCClusters; // at the moment not used
 
