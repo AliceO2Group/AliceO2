@@ -43,10 +43,12 @@ struct DecayVertexBuilder2Prong {
   OutputObj<TH1F> hchi2dca{TH1F("hchi2dca", "chi2 DCA decay", 1000, 0., 0.0002)};
 
   Produces<aod::SecVtx2Prong> secvtx2prong;
+  Configurable<std::string> triggersel{"triggersel", "test", "A string configurable"};
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks,
                                                           aod::TracksCov, aod::TracksExtra> const& tracks)
   {
+    LOGP(error, "Trigger selection {}", std::string{triggersel});
     LOGF(info, "Tracks for collision: %d", tracks.size());
     o2::vertexing::DCAFitterN<2> df;
     df.setBz(5.0);

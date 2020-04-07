@@ -218,6 +218,7 @@ class Variant
   template <typename T>
   T get() const
   {
+    auto v = variant_trait_v<T>;
     if (mType != variant_trait_v<T>) {
       throw std::runtime_error("Mismatch between types");
     }
