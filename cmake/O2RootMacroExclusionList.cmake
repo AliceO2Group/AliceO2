@@ -45,6 +45,7 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             macro/SetIncludePath.C
             macro/loadExtDepLib.C
             macro/load_all_libs.C
+            macro/run_trac_its.C # temporarily, untile json.h is fixed 
             macro/putCondition.C
             macro/rootlogon.C)
 
