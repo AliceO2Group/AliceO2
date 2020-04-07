@@ -20,6 +20,7 @@ install(FILES CheckClusters_mft.C
               migrateSimFiles.C
               analyzeDigitLabels.C
               analyzeOriginHits.C
+              checkGeomOverlaps.C
               build_geometry.C
               checkTOFMatching.C
               compareTopologyDistributions.C
@@ -202,6 +203,7 @@ endif()
 
 # FIXME: move to subsystem dir + add includes if one wants to compile it...
 # o2_add_test_root_macro( putCondition.C)
+o2_add_test_root_macro(checkGeomOverlaps.C)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(readEMCHits.C
