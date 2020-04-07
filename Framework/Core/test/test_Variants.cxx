@@ -40,6 +40,8 @@ BOOST_AUTO_TEST_CASE(VariantTest)
   Variant d("foo");
   ss << d;
   BOOST_CHECK(std::string(d.get<const char*>()) == "foo");
+  BOOST_CHECK(std::string(d.get<std::string_view>()) == "foo");
+  BOOST_CHECK(std::string(d.get<std::string>()) == "foo");
 
   Variant e(true);
   BOOST_CHECK_EQUAL(e.get<bool>(), true);
