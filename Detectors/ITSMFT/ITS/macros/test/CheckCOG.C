@@ -152,7 +152,7 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
   cTotal->Print("cTotal.pdf");
   cCommon->cd(1);
   gPad->SetLogy();
-  hCommonX->Draw();É
+  hCommonX->Draw();
   cCommon->cd(2);
   gPad->SetLogy();
   hCommonZ->Draw();
