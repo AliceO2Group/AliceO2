@@ -198,7 +198,7 @@ o2_add_test_root_macro(o2sim.C
                                              O2::ZDCSimulation
                                              O2::CommonTypes
                                              O2::SimSetup
-                                             O2::Steer)
+                                             O2::Steer LOAD_ONLY)
 endif()
 
 # FIXME: move to subsystem dir + add includes if one wants to compile it...
