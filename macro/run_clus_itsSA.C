@@ -21,8 +21,8 @@
 // root -b -q run_clus_itsSA.C+\(\"o2clus_its.root\",\"dig.raw\"\) 2>&1 | tee clusSARAW.log
 //
 
-void run_clus_itsSA(std::string inputfile = "rawits.bin", // output file name
-                    std::string outputfile = "clr.root",  // input file name (root or raw)
+void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
+                    std::string outputfile = "clr.root",  // output file name (root or raw)
                     bool raw = true,                      // flag if this is raw data
                     float strobe = -1.,                   // strobe length in ns of ALPIDE readout, if <0, get automatically
                     bool withFullClusters = true,
