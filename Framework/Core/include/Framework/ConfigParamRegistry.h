@@ -38,6 +38,11 @@ class ConfigParamRegistry
   {
   }
 
+  int isSet(const char* key) const
+  {
+    return mRetriever->isSet(key);
+  }
+
   template <typename T>
   T get(const char* key) const
   {
