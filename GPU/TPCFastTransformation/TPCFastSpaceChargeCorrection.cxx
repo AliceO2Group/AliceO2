@@ -72,7 +72,7 @@ void TPCFastSpaceChargeCorrection::relocateBufferPointers(const char* oldBuffer,
   mScenarioPtr = FlatObject::relocatePointer(oldBuffer, newBuffer, mScenarioPtr);
 
   for (int i = 0; i < mNumberOfScenarios; i++) {
-    Spline2D<float, 3, 1>& sp = mScenarioPtr[i];
+    Spline2D<float, 3, 0>& sp = mScenarioPtr[i];
     char* newSplineBuf = relocatePointer(oldBuffer, newBuffer, sp.getFlatBufferPtr());
     sp.setActualBufferAddress(newSplineBuf);
   }

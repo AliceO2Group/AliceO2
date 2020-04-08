@@ -36,6 +36,13 @@ using namespace std;
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <typename Tfloat, bool TisConsistent>
+Spline2DBase<Tfloat, TisConsistent>::Spline2DBase(int nDim)
+  : mFdim(nDim), FlatObject(), mGridU1(), mGridU2(), mFparameters(nullptr)
+{
+  recreate(2, 2);
+}
+
+template <typename Tfloat, bool TisConsistent>
 void Spline2DBase<Tfloat, TisConsistent>::destroy()
 {
   /// See FlatObject for description
@@ -128,13 +135,6 @@ void Spline2DBase<Tfloat, TisConsistent>::moveBufferTo(char* newFlatBufferPtr)
   char* currFlatBufferPtr = mFlatBufferPtr;
   mFlatBufferPtr = oldFlatBufferPtr;
   setActualBufferAddress(currFlatBufferPtr);
-}
-
-template <typename Tfloat, bool TisConsistent>
-Spline2DBase<Tfloat, TisConsistent>::Spline2DBase()
-  : FlatObject(), mGridU1(), mGridU2(), mFdim(1), mFparameters(nullptr)
-{
-  recreate(2, 2);
 }
 
 template <typename Tfloat, bool TisConsistent>

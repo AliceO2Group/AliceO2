@@ -68,8 +68,8 @@ class Spline2DBase : public FlatObject
   /// _____________  Constructors / destructors __________________________
 
 #if !defined(GPUCA_GPUCODE)
-  /// default constructor for the ROOT streamer
-  Spline2DBase();
+  /// constructor && default constructor for the ROOT streamer
+  Spline2DBase(int nDim = 1);
 #else
   /// Disable constructors
   Spline2DBase() CON_DELETE;
@@ -182,10 +182,12 @@ class Spline2DBase : public FlatObject
   void setActualBufferAddress(char* actualFlatBufferPtr);
   void setFutureBufferAddress(char* futureFlatBufferPtr);
 
+ private:
+  int mFdim; ///< dimentionality of F
+
  protected:                 /// _____________  Data members  ____________
   Spline1D<Tfloat> mGridU1; ///< grid for U axis
   Spline1D<Tfloat> mGridU2; ///< grid for V axis
-  int mFdim;                ///< dimentionality of F
   Tfloat* mFparameters;     //! (transient!!) F-dependent parameters of the spline
 
   ClassDefNV(Spline2DBase, 1);
@@ -208,31 +210,11 @@ class Spline2D : public Spline2DBase<Tfloat, TisConsistent>
 
 #if !defined(GPUCA_GPUCODE)
 
-  /// -- The number of F dimensions is taken from the templeate parameter TnFdim, when it is > 0,
-  /// -- otherwise from the constructor parameter nDim.
-
-  /// Default constructor
-  Spline2D(int nDim);
-
-  /// Constructor for a regular spline
-  Spline2D(int nDim, int numberOfKnotsU1, int numberOfKnotsU2);
+  /// Constructor for a regular spline && default constructor
+  Spline2D(int numberOfKnotsU1 = 2, int numberOfKnotsU2 = 2);
 
   /// Constructor for an irregular spline
-  Spline2D(int nDim, int numberOfKnotsU1, const int knotsU1[], int numberOfKnotsU2, const int knotsU2[]);
-
-  /// -- Shorter interface for the case TnFdim > 0. mFdim is taken from the TnFdim
-
-  /// Default constructor
-  Spline2D()
-    : Spline2D(TnFdim){};
-
-  /// Constructor for a regular spline
-  Spline2D(int numberOfKnotsU1, int numberOfKnotsU2)
-    : Spline2D(TnFdim, numberOfKnotsU1, numberOfKnotsU2){};
-
-  /// Constructor for an irregular spline
-  Spline2D(int numberOfKnotsU1, const int knotsU1[], int numberOfKnotsU2, const int knotsU2[])
-    : Spline2D(TnFdim, numberOfKnotsU1, knotsU1, numberOfKnotsU2, knotsU2){};
+  Spline2D(int numberOfKnotsU1, const int knotsU1[], int numberOfKnotsU2, const int knotsU2[]);
 
   /// Copy constructor
   Spline2D(const Spline2D&);
@@ -286,10 +268,9 @@ class Spline2D : public Spline2DBase<Tfloat, TisConsistent>
 
   /// _______________  Getters   ________________________
 
-  /// Get number of F dimensions. Hopefully, the compiler will optimise it away when TnFdim>0
-  GPUhd() int getFdimensions() const { return TnFdim > 0 ? TnFdim : mFdim; }
+  /// Get number of F dimensions.
+  GPUhd() static constexpr int getFdimensions() { return TnFdim; }
 
-  using TBase::mFdim;
   using TBase::mFparameters;
   using TBase::mGridU1;
   using TBase::mGridU2;
@@ -332,36 +313,25 @@ GPUhdi() void Spline2DBase<Tfloat, TisConsistent>::setXrange(
 
 template <typename Tfloat, int TnFdim, bool TisConsistent>
 GPUhdi() Spline2D<Tfloat, TnFdim, TisConsistent>::
-  Spline2D(int nDim)
-  : Spline2DBase<Tfloat, TisConsistent>()
+  Spline2D(int numberOfKnotsU1, int numberOfKnotsU2)
+  : Spline2DBase<Tfloat, TisConsistent>(TnFdim)
 {
-  mFdim = (TnFdim > 0) ? TnFdim : nDim;
-  this->recreate(2, 2);
-}
-
-template <typename Tfloat, int TnFdim, bool TisConsistent>
-GPUhdi() Spline2D<Tfloat, TnFdim, TisConsistent>::
-  Spline2D(int nDim, int numberOfKnotsU1, int numberOfKnotsU2)
-  : Spline2DBase<Tfloat, TisConsistent>()
-{
-  mFdim = (TnFdim > 0) ? TnFdim : nDim;
   this->recreate(numberOfKnotsU1, numberOfKnotsU2);
 }
 
 template <typename Tfloat, int TnFdim, bool TisConsistent>
 GPUhdi() Spline2D<Tfloat, TnFdim, TisConsistent>::
-  Spline2D(int nDim, int numberOfKnotsU1, const int knotsU1[],
+  Spline2D(int numberOfKnotsU1, const int knotsU1[],
            int numberOfKnotsU2, const int knotsU2[])
-  : Spline2DBase<Tfloat, TisConsistent>()
+  : Spline2DBase<Tfloat, TisConsistent>(TnFdim)
 {
-  mFdim = (TnFdim > 0) ? TnFdim : nDim;
   this->recreate(numberOfKnotsU1, knotsU1, numberOfKnotsU2, knotsU2);
 }
 
 template <typename Tfloat, int TnFdim, bool TisConsistent>
 GPUhdi() Spline2D<Tfloat, TnFdim, TisConsistent>::
   Spline2D(const Spline2D& spline)
-  : Spline2DBase<Tfloat, TisConsistent>()
+  : Spline2DBase<Tfloat, TisConsistent>(TnFdim)
 {
   this->cloneFromObject(spline, nullptr);
 }

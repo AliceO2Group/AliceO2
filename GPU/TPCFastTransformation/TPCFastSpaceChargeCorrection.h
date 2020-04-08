@@ -45,7 +45,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
     size_t dataOffsetBytes; ///< offset for the spline data withing a TPC slice
   };
 
-  typedef Spline2D<float, 3, 1> TSpline;
+  typedef Spline2D<float, 3, 0> TSpline;
 
   /// _____________  Constructors / destructors __________________________
 
