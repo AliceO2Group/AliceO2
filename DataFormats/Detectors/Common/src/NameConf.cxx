@@ -10,6 +10,8 @@
 
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include <sys/stat.h>
+#include <cstdlib>
+#include <memory>
 
 using namespace o2::base;
 using DId = o2::detectors::DetID;
@@ -26,6 +28,12 @@ bool NameConf::pathIsDirectory(const std::string_view p)
 {
   struct stat buffer;
   return (stat(p.data(), &buffer) == 0) && S_ISDIR(buffer.st_mode);
+}
+
+std::string NameConf::getFullPath(const std::string_view p)
+{
+  std::unique_ptr<char[]> real_path(realpath(p.data(), nullptr));
+  return std::string(real_path.get());
 }
 
 // Filename to store geometry file
