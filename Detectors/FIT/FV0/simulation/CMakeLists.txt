@@ -19,8 +19,7 @@ o2_add_library(FV0Simulation
                               O2::DataFormatsFV0
                               ROOT::Physics
                               O2::Headers
-                              O2::Framework
-        )
+                              O2::Framework)
 
 o2_target_root_dictionary(FV0Simulation
                           HEADERS include/FV0Simulation/Detector.h

@@ -40,6 +40,7 @@ struct BCData {
   }
 
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
+  o2::InteractionRecord getIntRecord() { return ir;};
   void print() const;
 
   ClassDefNV(BCData, 1);

@@ -88,7 +88,8 @@ namespace o2
             std::ofstream mFileDest;
             std::array<o2::fv0::DataPageWriter, NPMs> mPages;
             o2::fv0::RawEventData mRawEventData;
-            o2::raw::HBFUtils mSampler;
+            //o2::raw::HBFUtils mSampler;
+            const o2::raw::HBFUtils& mSampler = o2::raw::HBFUtils::Instance();
             //o2::fv0::Triggers mTriggers;
             /////////////////////////////////////////////////
 
