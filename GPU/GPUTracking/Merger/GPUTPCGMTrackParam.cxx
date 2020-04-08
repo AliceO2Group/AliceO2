@@ -96,9 +96,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
     int resetT0 = initResetT0();
     const bool refit = (nWays == 1 || iWay >= 1);
     const float maxSinForUpdate = CAMath::Sin(70.f * kDeg2Rad);
-    if (!(refit && attempt == 0)) {
-      prop.SetSeedingErrors(true);
-    }
+    prop.SetSeedingErrors(!(refit && attempt == 0));
 
     ResetCovariance();
     prop.SetFitInProjections(iWay != 0);
