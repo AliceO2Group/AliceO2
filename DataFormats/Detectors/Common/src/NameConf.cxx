@@ -32,22 +32,22 @@ bool NameConf::pathIsDirectory(const std::string_view p)
 std::string NameConf::getGeomFileName(const std::string_view prefix)
 {
   // check if the prefix is an existing path
-  const bool prefixispath = pathIsDirectory(prefix);
-  if (prefixispath) {
+  if (pathIsDirectory(prefix)) {
     return o2::utils::concat_string(prefix, "/", STANDARDSIMPREFIX, "_", GEOM_FILE_STRING, ".root");
-  } else {
-    return o2::utils::concat_string(prefix.empty() ? STANDARDSIMPREFIX : prefix, "_", GEOM_FILE_STRING, ".root");
+  } else if (pathExists(prefix)) {
+    return std::string(prefix); // it is a full file
   }
+  return o2::utils::concat_string(prefix.empty() ? STANDARDSIMPREFIX : prefix, "_", GEOM_FILE_STRING, ".root");
 }
 
 // Filename to store geometry file
 std::string NameConf::getDictionaryFileName(DId det, const std::string_view prefix, const std::string_view ext)
 {
   // check if the prefix is an existing path
-  const bool prefixispath = pathIsDirectory(prefix);
-  if (prefixispath) {
+  if (pathIsDirectory(prefix)) {
     return o2::utils::concat_string(prefix, "/", det.getName(), DICTFILENAME, ext);
-  } else {
-    return o2::utils::concat_string(prefix, det.getName(), DICTFILENAME, ext);
+  } else if (pathExists(prefix)) {
+    return std::string(prefix); // it is a full file
   }
+  return o2::utils::concat_string(prefix, det.getName(), DICTFILENAME, ext);
 }
