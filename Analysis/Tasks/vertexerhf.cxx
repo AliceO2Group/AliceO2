@@ -48,7 +48,7 @@ struct DecayVertexBuilder2Prong {
   void process(aod::Collision const& collision, soa::Join<aod::Tracks,
                                                           aod::TracksCov, aod::TracksExtra> const& tracks)
   {
-    LOGP(error, "Trigger selection {}", std::string{triggersel});
+    //LOGF(info, "Trigger selection %s", std::string{triggersel});
     LOGF(info, "Tracks for collision: %d", tracks.size());
     o2::vertexing::DCAFitterN<2> df;
     df.setBz(5.0);
