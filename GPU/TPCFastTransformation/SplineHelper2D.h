@@ -56,9 +56,9 @@ class SplineHelper2D
   /// _______________  Main functionality  ________________________
 
   /// Create best-fit spline parameters for a given input function F
-  template <bool TgridOnly>
+  template <bool TisConsistent>
   void approximateFunction(
-    Spline2DBase<Tfloat, TgridOnly>& spline,
+    Spline2DBase<Tfloat, TisConsistent>& spline,
     Tfloat x1Min, Tfloat x1Max, Tfloat x2Min, Tfloat x2Max,
     std::function<void(Tfloat x1, Tfloat x2, Tfloat f[/*spline.getFdimensions()*/])> F,
     int nAxiliaryDataPointsU1 = 4, int nAxiliaryDataPointsU2 = 4);
@@ -66,8 +66,8 @@ class SplineHelper2D
   /// _______________   Interface for a step-wise construction of the best-fit spline   ________________________
 
   /// precompute everything needed for the construction
-  template <bool TgridOnly>
-  int setSpline(const Spline2DBase<Tfloat, TgridOnly>& spline, int nAxiliaryPointsU1, int nAxiliaryPointsU2);
+  template <bool TisConsistent>
+  int setSpline(const Spline2DBase<Tfloat, TisConsistent>& spline, int nAxiliaryPointsU1, int nAxiliaryPointsU2);
 
   /// approximate std::function, output in Fparameters
   void approximateFunction(
@@ -103,15 +103,15 @@ class SplineHelper2D
 };
 
 template <typename Tfloat>
-template <bool TgridOnly>
+template <bool TisConsistent>
 void SplineHelper2D<Tfloat>::approximateFunction(
-  Spline2DBase<Tfloat, TgridOnly>& spline,
+  Spline2DBase<Tfloat, TisConsistent>& spline,
   Tfloat x1Min, Tfloat x1Max, Tfloat x2Min, Tfloat x2Max,
   std::function<void(Tfloat x1, Tfloat x2, Tfloat f[/*spline.getFdimensions()*/])> F,
   int nAxiliaryDataPointsU1, int nAxiliaryDataPointsU2)
 {
   /// Create best-fit spline parameters for a given input function F
-  if (!spline.isGridOnly()) {
+  if (spline.isConsistent()) {
     setSpline(spline, nAxiliaryDataPointsU1, nAxiliaryDataPointsU2);
     approximateFunction(spline.getFparameters(), x1Min, x1Max, x2Min, x2Max, F);
   }
@@ -119,9 +119,9 @@ void SplineHelper2D<Tfloat>::approximateFunction(
 }
 
 template <typename Tfloat>
-template <bool TgridOnly>
+template <bool TisConsistent>
 int SplineHelper2D<Tfloat>::setSpline(
-  const Spline2DBase<Tfloat, TgridOnly>& spline, int nAxiliaryPointsU, int nAxiliaryPointsV)
+  const Spline2DBase<Tfloat, TisConsistent>& spline, int nAxiliaryPointsU, int nAxiliaryPointsV)
 {
   // Prepare creation of 2D irregular spline
   // The should be at least one (better, two) axiliary measurements on each segnment between two knots and at least 2*nKnots measurements in total

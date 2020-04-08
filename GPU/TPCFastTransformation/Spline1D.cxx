@@ -501,5 +501,5 @@ int Spline1D<Tfloat>::test(const bool draw, const bool drawDataPoints)
 
 #endif // GPUCA_GPUCODE
 
-template class Spline1D<float>;
-template class Spline1D<double>;
+template class GPUCA_NAMESPACE::gpu::Spline1D<float>;
+template class GPUCA_NAMESPACE::gpu::Spline1D<double>;

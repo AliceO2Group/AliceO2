@@ -32,8 +32,8 @@
 using namespace std;
 using namespace GPUCA_NAMESPACE::gpu;
 
-template <typename Tfloat, bool TgridOnly>
-void Spline2DBase<Tfloat, TgridOnly>::destroy()
+template <typename Tfloat, bool TisConsistent>
+void Spline2DBase<Tfloat, TisConsistent>::destroy()
 {
   /// See FlatObject for description
   mGridU1.destroy();
@@ -41,8 +41,8 @@ void Spline2DBase<Tfloat, TgridOnly>::destroy()
   FlatObject::destroy();
 }
 
-template <typename Tfloat, bool TgridOnly>
-void Spline2DBase<Tfloat, TgridOnly>::setActualBufferAddress(char* actualFlatBufferPtr)
+template <typename Tfloat, bool TisConsistent>
+void Spline2DBase<Tfloat, TisConsistent>::setActualBufferAddress(char* actualFlatBufferPtr)
 {
   /// See FlatObject for description
 
@@ -50,29 +50,28 @@ void Spline2DBase<Tfloat, TgridOnly>::setActualBufferAddress(char* actualFlatBuf
 
   size_t u2Offset = alignSize(mGridU1.getFlatBufferSize(), mGridU2.getBufferAlignmentBytes());
   int parametersOffset = u2Offset;
-  int bufferSize = parametersOffset;
+  //int bufferSize = parametersOffset;
   mFparameters = nullptr;
 
-  if (!TgridOnly) {
+  if (TisConsistent) {
     parametersOffset = alignSize(u2Offset + mGridU2.getFlatBufferSize(), getParameterAlignmentBytes());
-    bufferSize = parametersOffset + getSizeOfParameters();
+    //bufferSize = parametersOffset + getSizeOfParameters();
     mFparameters = reinterpret_cast<Tfloat*>(mFlatBufferPtr + parametersOffset);
-  } else {
-    mFparameters = nullptr;
   }
+
   mGridU1.setActualBufferAddress(mFlatBufferPtr);
   mGridU2.setActualBufferAddress(mFlatBufferPtr + u2Offset);
 }
 
-template <typename Tfloat, bool TgridOnly>
-void Spline2DBase<Tfloat, TgridOnly>::setFutureBufferAddress(char* futureFlatBufferPtr)
+template <typename Tfloat, bool TisConsistent>
+void Spline2DBase<Tfloat, TisConsistent>::setFutureBufferAddress(char* futureFlatBufferPtr)
 {
   /// See FlatObject for description
   char* bufferU = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mGridU1.getFlatBufferPtr());
   char* bufferV = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mGridU2.getFlatBufferPtr());
   mGridU1.setFutureBufferAddress(bufferU);
   mGridU2.setFutureBufferAddress(bufferV);
-  if (!TgridOnly) {
+  if (TisConsistent) {
     mFparameters = relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mFparameters);
   } else {
     mFparameters = nullptr;
@@ -80,8 +79,8 @@ void Spline2DBase<Tfloat, TgridOnly>::setFutureBufferAddress(char* futureFlatBuf
   FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
 }
 
-template <typename Tfloat, bool TgridOnly>
-void Spline2DBase<Tfloat, TgridOnly>::print() const
+template <typename Tfloat, bool TisConsistent>
+void Spline2DBase<Tfloat, TisConsistent>::print() const
 {
   printf(" Irregular Spline 2D: \n");
   printf(" grid U1: \n");
@@ -91,11 +90,11 @@ void Spline2DBase<Tfloat, TgridOnly>::print() const
 }
 
 #if !defined(GPUCA_GPUCODE)
-template <typename Tfloat, bool TgridOnly>
-void Spline2DBase<Tfloat, TgridOnly>::cloneFromObject(const Spline2DBase<Tfloat, TgridOnly>& obj, char* newFlatBufferPtr)
+template <typename Tfloat, bool TisConsistent>
+void Spline2DBase<Tfloat, TisConsistent>::cloneFromObject(const Spline2DBase<Tfloat, TisConsistent>& obj, char* newFlatBufferPtr)
 {
   /// See FlatObject for description
-  if (!TgridOnly && mFdim != obj.mFdim) {
+  if (TisConsistent && mFdim != obj.mFdim) {
     assert(0);
     return;
   }
@@ -110,15 +109,15 @@ void Spline2DBase<Tfloat, TgridOnly>::cloneFromObject(const Spline2DBase<Tfloat,
   mGridU1.cloneFromObject(obj.mGridU1, bufferU);
   mGridU2.cloneFromObject(obj.mGridU2, bufferV);
 
-  if (!TgridOnly) {
+  if (TisConsistent) {
     mFparameters = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mFparameters);
   } else {
     mFparameters = nullptr;
   }
 }
 
-template <typename Tfloat, bool TgridOnly>
-void Spline2DBase<Tfloat, TgridOnly>::moveBufferTo(char* newFlatBufferPtr)
+template <typename Tfloat, bool TisConsistent>
+void Spline2DBase<Tfloat, TisConsistent>::moveBufferTo(char* newFlatBufferPtr)
 {
   /// See FlatObject for description
   char* oldFlatBufferPtr = mFlatBufferPtr;
@@ -128,8 +127,15 @@ void Spline2DBase<Tfloat, TgridOnly>::moveBufferTo(char* newFlatBufferPtr)
   setActualBufferAddress(currFlatBufferPtr);
 }
 
-template <typename Tfloat, bool TgridOnly>
-void Spline2DBase<Tfloat, TgridOnly>::recreate(
+template <typename Tfloat, bool TisConsistent>
+Spline2DBase<Tfloat, TisConsistent>::Spline2DBase()
+  : FlatObject(), mGridU1(), mGridU2(), mFdim(1), mFparameters(nullptr)
+{
+  recreate(2, 2);
+}
+
+template <typename Tfloat, bool TisConsistent>
+void Spline2DBase<Tfloat, TisConsistent>::recreate(
   int numberOfKnotsU1, const int knotsU1[], int numberOfKnotsU2, const int knotsU2[])
 {
   /// Constructor for an irregular spline
@@ -140,12 +146,12 @@ void Spline2DBase<Tfloat, TgridOnly>::recreate(
   mGridU2.recreate(numberOfKnotsU2, knotsU2, 0);
 
   size_t u2Offset = alignSize(mGridU1.getFlatBufferSize(), mGridU2.getBufferAlignmentBytes());
-  int parametersOffset = u2Offset;
+  int parametersOffset = u2Offset + mGridU2.getFlatBufferSize();
   int bufferSize = parametersOffset;
   mFparameters = nullptr;
 
-  if (!TgridOnly) {
-    parametersOffset = alignSize(u2Offset + mGridU2.getFlatBufferSize(), getParameterAlignmentBytes());
+  if (TisConsistent) {
+    parametersOffset = alignSize(bufferSize, getParameterAlignmentBytes());
     bufferSize = parametersOffset + getSizeOfParameters();
   }
 
@@ -153,7 +159,7 @@ void Spline2DBase<Tfloat, TgridOnly>::recreate(
 
   mGridU1.moveBufferTo(mFlatBufferPtr);
   mGridU2.moveBufferTo(mFlatBufferPtr + u2Offset);
-  if (!TgridOnly) {
+  if (TisConsistent) {
     mFparameters = reinterpret_cast<Tfloat*>(mFlatBufferPtr + parametersOffset);
     for (int i = 0; i < getNumberOfParameters(); i++) {
       mFparameters[i] = 0;
@@ -161,8 +167,8 @@ void Spline2DBase<Tfloat, TgridOnly>::recreate(
   }
 }
 
-template <typename Tfloat, bool TgridOnly>
-void Spline2DBase<Tfloat, TgridOnly>::recreate(
+template <typename Tfloat, bool TisConsistent>
+void Spline2DBase<Tfloat, TisConsistent>::recreate(
   int numberOfKnotsU1, int numberOfKnotsU2)
 {
   /// Constructor for a regular spline
@@ -170,15 +176,16 @@ void Spline2DBase<Tfloat, TgridOnly>::recreate(
   FlatObject::startConstruction();
 
   mGridU1.recreate(numberOfKnotsU1, 0);
+
   mGridU2.recreate(numberOfKnotsU2, 0);
 
   size_t u2Offset = alignSize(mGridU1.getFlatBufferSize(), mGridU2.getBufferAlignmentBytes());
-  int parametersOffset = u2Offset;
+  int parametersOffset = u2Offset + mGridU2.getFlatBufferSize();
   int bufferSize = parametersOffset;
   mFparameters = nullptr;
 
-  if (!TgridOnly) {
-    parametersOffset = alignSize(u2Offset + mGridU2.getFlatBufferSize(), getParameterAlignmentBytes());
+  if (TisConsistent) {
+    parametersOffset = alignSize(bufferSize, getParameterAlignmentBytes());
     bufferSize = parametersOffset + getSizeOfParameters();
   }
 
@@ -187,7 +194,7 @@ void Spline2DBase<Tfloat, TgridOnly>::recreate(
   mGridU1.moveBufferTo(mFlatBufferPtr);
   mGridU2.moveBufferTo(mFlatBufferPtr + u2Offset);
 
-  if (!TgridOnly) {
+  if (TisConsistent) {
     mFparameters = reinterpret_cast<Tfloat*>(mFlatBufferPtr + parametersOffset);
     for (int i = 0; i < getNumberOfParameters(); i++) {
       mFparameters[i] = 0;
@@ -195,8 +202,8 @@ void Spline2DBase<Tfloat, TgridOnly>::recreate(
   }
 }
 
-template <typename Tfloat, bool TgridOnly>
-void Spline2DBase<Tfloat, TgridOnly>::approximateFunction(
+template <typename Tfloat, bool TisConsistent>
+void Spline2DBase<Tfloat, TisConsistent>::approximateFunction(
   Tfloat x1Min, Tfloat x1Max, Tfloat x2Min, Tfloat x2Max,
   std::function<void(Tfloat x1, Tfloat x2, Tfloat f[])> F,
   int nAxiliaryDataPointsU1, int nAxiliaryDataPointsU2)
@@ -210,23 +217,23 @@ void Spline2DBase<Tfloat, TgridOnly>::approximateFunction(
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
 
-template <typename Tfloat, bool TgridOnly>
-int Spline2DBase<Tfloat, TgridOnly>::writeToFile(TFile& outf, const char* name)
+template <typename Tfloat, bool TisConsistent>
+int Spline2DBase<Tfloat, TisConsistent>::writeToFile(TFile& outf, const char* name)
 {
   /// write a class object to the file
   return FlatObject::writeToFile(*this, outf, name);
 }
 
-template <typename Tfloat, bool TgridOnly>
-Spline2DBase<Tfloat, TgridOnly>* Spline2DBase<Tfloat, TgridOnly>::readFromFile(
+template <typename Tfloat, bool TisConsistent>
+Spline2DBase<Tfloat, TisConsistent>* Spline2DBase<Tfloat, TisConsistent>::readFromFile(
   TFile& inpf, const char* name)
 {
   /// read a class object from the file
-  return FlatObject::readFromFile<Spline2DBase<Tfloat, TgridOnly>>(inpf, name);
+  return FlatObject::readFromFile<Spline2DBase<Tfloat, TisConsistent>>(inpf, name);
 }
 
-template <typename Tfloat, bool TgridOnly>
-int Spline2DBase<Tfloat, TgridOnly>::test(const bool draw, const bool drawDataPoints)
+template <typename Tfloat, bool TisConsistent>
+int Spline2DBase<Tfloat, TisConsistent>::test(const bool draw, const bool drawDataPoints)
 {
   using namespace std;
 
@@ -282,7 +289,7 @@ int Spline2DBase<Tfloat, TgridOnly>::test(const bool draw, const bool drawDataPo
   int nTries = 10;
 
   if (draw) {
-    canv = new TCanvas("cQA", "Spline2D  QA", 2000, 1000);
+    canv = new TCanvas("cQA", "Spline2D  QA", 1500, 800);
     nTries = 10000;
   }
 
@@ -291,7 +298,7 @@ int Spline2DBase<Tfloat, TgridOnly>::test(const bool draw, const bool drawDataPo
   long double statN = 0;
 
   for (int seed = 1; seed < nTries + 1; seed++) {
-    cout << "next try.." << endl;
+    //cout << "next try.." << endl;
 
     gRandom->SetSeed(seed);
 
@@ -355,7 +362,7 @@ int Spline2DBase<Tfloat, TgridOnly>::test(const bool draw, const bool drawDataPo
 
     // 1-D splines for each of Ndim dimensions
 
-    Spline2D<Tfloat, 1, false> splines1D[Ndim];
+    Spline2D<Tfloat, 1> splines1D[Ndim];
 
     for (int dim = 0; dim < Ndim; dim++) {
       auto F1 = [&](Tfloat x1, Tfloat x2, Tfloat f[]) {
@@ -393,8 +400,7 @@ int Spline2DBase<Tfloat, TgridOnly>::test(const bool draw, const bool drawDataPo
       delete knots;
       nt = new TNtuple("nt", "nt", "u:v:f:s");
       knots = new TNtuple("knots", "knots", "type:u:v:s");
-
-      double stepU = .1;
+      double stepU = .3;
       for (double u = 0; u < uMax; u += stepU) {
         for (double v = 0; v < uMax; v += stepU) {
           Tfloat f[Ndim];
@@ -482,7 +488,16 @@ int Spline2DBase<Tfloat, TgridOnly>::test(const bool draw, const bool drawDataPo
 
 #endif // GPUCA_GPUCODE
 
-template class Spline2DBase<float, false>;
-template class Spline2DBase<float, true>;
-template class Spline2DBase<double, false>;
-template class Spline2DBase<double, true>;
+templateClassImp(GPUCA_NAMESPACE::gpu::Spline2DBase);
+//templateClassImp(GPUCA_NAMESPACE::gpu::Spline2D);
+
+template class GPUCA_NAMESPACE::gpu::Spline2DBase<float, false>;
+template class GPUCA_NAMESPACE::gpu::Spline2DBase<float, true>;
+template class GPUCA_NAMESPACE::gpu::Spline2DBase<double, false>;
+template class GPUCA_NAMESPACE::gpu::Spline2DBase<double, true>;
+/*
+template class GPUCA_NAMESPACE::gpu::Spline2D<float, 0, false>;
+template class GPUCA_NAMESPACE::gpu::Spline2D<float, 0, true>;
+template class GPUCA_NAMESPACE::gpu::Spline2D<double, 0, false>;
+template class GPUCA_NAMESPACE::gpu::Spline2D<double, 0, true>;
+*/

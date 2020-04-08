@@ -144,7 +144,7 @@ void SplineHelper2D<Tfloat>::approximateFunction(
   }
 }
 
-template class SplineHelper2D<float>;
-template class SplineHelper2D<double>;
+template class GPUCA_NAMESPACE::gpu::SplineHelper2D<float>;
+template class GPUCA_NAMESPACE::gpu::SplineHelper2D<double>;
 
 #endif
