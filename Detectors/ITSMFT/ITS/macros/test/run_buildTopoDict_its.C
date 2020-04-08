@@ -27,6 +27,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include <unordered_map>
+#include "DetectorsCommonDataFormats/NameConf.h"
 #endif
 
 /// Build dictionary of topologies from the root file with full clusters
@@ -194,9 +195,11 @@ void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
 
   dict.setThreshold(0.0001);
   dict.groupRareTopologies();
-  dict.printDictionaryBinary("dictionary.bin");
-  dict.printDictionary("dictionary.txt");
-  dict.saveDictionaryRoot("dictionary.root");
+
+  auto dID = o2::detectors::DetID::ITS;
+  dict.printDictionaryBinary(o2::base::NameConf::getDictionaryFileName(dID, "", ".bin"));
+  dict.printDictionary(o2::base::NameConf::getDictionaryFileName(dID, "", ".txt"));
+  dict.saveDictionaryRoot(o2::base::NameConf::getDictionaryFileName(dID, "", ".root"));
 
   TFile histogramOutput("dict_histograms.root", "recreate");
   TCanvas* cComplete = new TCanvas("cComplete", "Distribution of all the topologies");

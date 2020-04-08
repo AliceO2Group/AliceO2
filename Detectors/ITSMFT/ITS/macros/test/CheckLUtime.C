@@ -18,15 +18,19 @@
 #include "ITSMFTReconstruction/LookUp.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #endif
 
-void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile = "complete_dictionary.bin")
+void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile = "")
 {
   using o2::itsmft::Cluster;
   using o2::itsmft::CompClusterExt;
   using o2::itsmft::LookUp;
 
+  if (dictfile.empty()) {
+    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+  }
   LookUp finder(dictfile.c_str());
   ofstream time_output("time.txt");
 

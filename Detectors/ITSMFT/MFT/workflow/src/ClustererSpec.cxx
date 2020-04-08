@@ -26,6 +26,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #include <vector>
 
@@ -63,17 +64,15 @@ void ClustererDPL::init(InitContext& ic)
   mFullClusters = !ic.options().get<bool>("no-full-clusters");
   mCompactClusters = !ic.options().get<bool>("no-compact-clusters");
 
-  auto filename = ic.options().get<std::string>("mft-dictionary-file");
-  mFile = std::make_unique<std::ifstream>(filename.c_str(), std::ios::in | std::ios::binary);
-  if (mFile->good()) {
-    mClusterer->loadDictionary(filename);
-    LOG(INFO) << "MFTClusterer running with a provided dictionary: " << filename.c_str();
-    mState = 1;
+  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::MFT, dictPath, ".bin");
+  if (o2::base::NameConf::pathExists(dictFile)) {
+    mClusterer->loadDictionary(dictFile);
+    LOG(INFO) << "ITSClusterer running with a provided dictionary: " << dictFile;
   } else {
-    LOG(WARNING) << "Cannot open the " << filename.c_str() << "  file, compact clusters cannot be produced";
-    mState = 0;
+    LOG(INFO) << "Dictionary " << dictFile << " is absent, ITSClusterer expects cluster patterns";
   }
-
+  mState = 1;
   mClusterer->print();
 }
 
@@ -161,7 +160,7 @@ DataProcessorSpec getClustererSpec(bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<ClustererDPL>(useMC)},
     Options{
-      {"mft-dictionary-file", VariantType::String, "complete_dictionary.bin", {"Name of the cluster-topology dictionary file"}},
+      {"mft-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
       {"no-full-clusters", o2::framework::VariantType::Bool, false, {"Ignore full clusters"}},
       {"no-compact-clusters", o2::framework::VariantType::Bool, false, {"Ignore compact clusters"}}}};
