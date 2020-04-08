@@ -56,6 +56,8 @@ void TopologyDictionary::writeBinaryFile(string outputfile)
     file_output.write(reinterpret_cast<char*>(&p.mHash), sizeof(unsigned long));
     file_output.write(reinterpret_cast<char*>(&p.mErrX), sizeof(float));
     file_output.write(reinterpret_cast<char*>(&p.mErrZ), sizeof(float));
+    file_output.write(reinterpret_cast<char*>(&p.mErr2X), sizeof(float));
+    file_output.write(reinterpret_cast<char*>(&p.mErr2Z), sizeof(float));
     file_output.write(reinterpret_cast<char*>(&p.mXCOG), sizeof(float));
     file_output.write(reinterpret_cast<char*>(&p.mZCOG), sizeof(float));
     file_output.write(reinterpret_cast<char*>(&p.mNpixels), sizeof(int));
@@ -77,12 +79,14 @@ int TopologyDictionary::readBinaryFile(string fname)
   GroupStruct gr;
   int groupID = 0;
   if (!in.is_open()) {
-    LOG(ERROR) << "The file coud not be opened";
+    LOG(ERROR) << "The file " << fname << " coud not be opened";
     throw std::runtime_error("The file coud not be opened");
   } else {
     while (in.read(reinterpret_cast<char*>(&gr.mHash), sizeof(unsigned long))) {
       in.read(reinterpret_cast<char*>(&gr.mErrX), sizeof(float));
       in.read(reinterpret_cast<char*>(&gr.mErrZ), sizeof(float));
+      in.read(reinterpret_cast<char*>(&gr.mErr2X), sizeof(float));
+      in.read(reinterpret_cast<char*>(&gr.mErr2Z), sizeof(float));
       in.read(reinterpret_cast<char*>(&gr.mXCOG), sizeof(float));
       in.read(reinterpret_cast<char*>(&gr.mZCOG), sizeof(float));
       in.read(reinterpret_cast<char*>(&gr.mNpixels), sizeof(int));

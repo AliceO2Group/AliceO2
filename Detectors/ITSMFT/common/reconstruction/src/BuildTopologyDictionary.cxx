@@ -146,6 +146,8 @@ void BuildTopologyDictionary::groupRareTopologies()
     // rough estimation for the error considering a8 uniform distribution
     gr.mErrX = std::sqrt(mMapInfo.find(gr.mHash)->second.mXsigma2);
     gr.mErrZ = std::sqrt(mMapInfo.find(gr.mHash)->second.mZsigma2);
+    gr.mErr2X = gr.mErrX * gr.mErrX;
+    gr.mErr2Z = gr.mErrZ * gr.mErrZ;
     gr.mXCOG = -1 * mMapInfo.find(gr.mHash)->second.mCOGx * o2::itsmft::SegmentationAlpide::PitchRow;
     gr.mZCOG = mMapInfo.find(gr.mHash)->second.mCOGz * o2::itsmft::SegmentationAlpide::PitchCol;
     gr.mNpixels = mMapInfo.find(gr.mHash)->second.mNpixels;
@@ -254,7 +256,7 @@ std::ostream& operator<<(std::ostream& os, const BuildTopologyDictionary& DB)
   return os;
 }
 
-void BuildTopologyDictionary::printDictionary(std::string fname)
+void BuildTopologyDictionary::printDictionary(const std::string& fname)
 {
   std::cout << "Saving the the dictionary in binary format: ";
   std::ofstream out(fname);
@@ -263,7 +265,7 @@ void BuildTopologyDictionary::printDictionary(std::string fname)
   std::cout << "done!" << std::endl;
 }
 
-void BuildTopologyDictionary::printDictionaryBinary(std::string fname)
+void BuildTopologyDictionary::printDictionaryBinary(const std::string& fname)
 {
   std::cout << "Printing the dictionary: ";
   std::ofstream out(fname);
@@ -272,10 +274,10 @@ void BuildTopologyDictionary::printDictionaryBinary(std::string fname)
   std::cout << "done!" << std::endl;
 }
 
-void BuildTopologyDictionary::saveDictionaryRoot(const char* filename)
+void BuildTopologyDictionary::saveDictionaryRoot(const std::string& fname)
 {
   std::cout << "Saving the the dictionary in a ROOT file: ";
-  TFile output(filename, "recreate");
+  TFile output(fname.c_str(), "recreate");
   output.WriteObjectAny(&mDictionary, mDictionary.Class(), "TopologyDictionary");
   output.Close();
   std::cout << "done!" << std::endl;
