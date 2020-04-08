@@ -393,6 +393,18 @@ BOOST_AUTO_TEST_CASE(CheckOnePadPositionPresentOnOnlyBendingPlane)
   BOOST_CHECK_EQUAL(seg.isValid(nb), false);
 }
 
+BOOST_AUTO_TEST_CASE(WhenOnlyOneCathodeHasAPadTheValidIndexMustRelativeToDeNotToCathode)
+{
+  double x = 8.8;
+  double y = 18;
+  int b, nb;
+  bool ok = seg.findPadPairByPosition(x, y, b, nb);
+  BOOST_CHECK_EQUAL(ok, false);
+  BOOST_CHECK_EQUAL(seg.isValid(nb), true);
+  BOOST_CHECK_EQUAL(seg.isValid(b), false);
+  BOOST_CHECK_EQUAL(seg.isBendingPad(nb), false);
+}
+
 BOOST_AUTO_TEST_CASE(CheckCopy)
 {
   Segmentation copy{seg};

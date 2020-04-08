@@ -15,7 +15,7 @@ o2_add_test(StressTest
             COMPONENT_NAME mchmapping
             PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl3 O2::MCHMappingSegContour
                                   RapidJSON::RapidJSON
-            LABELS "muon;mch;long" CONFIGURATIONS RelWithDebInfo)
+            LABELS "muon;mch;long")
 
 if(benchmark_FOUND)
   o2_add_executable(segmentation3
