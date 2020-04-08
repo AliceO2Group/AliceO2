@@ -359,7 +359,10 @@ void GPUTPCGMMerger::UnpackSlices()
         track.CopyBaseTrackCov();
       } else if (Param().rec.mergerCovSource == 2) {
         if (RefitSliceTrack(track, sliceTr, alpha, iSlice)) {
-          continue;
+          track.Set(this, sliceTr, alpha, iSlice); // TODO: Why does the refit fail, it shouldn't, this workaround should be removed
+          if (!track.FilterErrors(this, iSlice, GPUCA_MAX_SIN_PHI, 0.1f)) {
+            continue;
+          }
         }
       }
       CADEBUG(GPUInfo("INPUT Slice %d, Track %u, QPt %f DzDs %f", iSlice, itr, track.QPt(), track.DzDs()));
