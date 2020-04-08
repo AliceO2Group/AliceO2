@@ -20,6 +20,7 @@ install(FILES CheckClusters_mft.C
               migrateSimFiles.C
               analyzeDigitLabels.C
               analyzeOriginHits.C
+              checkGeomOverlaps.C
               build_geometry.C
               checkTOFMatching.C
               compareTopologyDistributions.C
@@ -46,7 +47,6 @@ install(FILES CheckClusters_mft.C
               run_digi2raw_tof.C
               run_cmp2digit_tof.C
               compareTOFDigits.C
-              run_match_TPCITS.C
               run_match_tof.C
               run_primary_vertexer_ITS.C
               run_rawdecoding_its.C
@@ -197,11 +197,12 @@ o2_add_test_root_macro(o2sim.C
                                              O2::ZDCSimulation
                                              O2::CommonTypes
                                              O2::SimSetup
-                                             O2::Steer)
+                                             O2::Steer LOAD_ONLY)
 endif()
 
 # FIXME: move to subsystem dir + add includes if one wants to compile it...
 # o2_add_test_root_macro( putCondition.C)
+o2_add_test_root_macro(checkGeomOverlaps.C)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(readEMCHits.C
@@ -303,16 +304,6 @@ o2_add_test_root_macro(compareTOFDigits.C
                        PUBLIC_LINK_LIBRARIES O2::TOFBase
                        LABELS tof)
 
-o2_add_test_root_macro(run_match_TPCITS.C
-                       PUBLIC_LINK_LIBRARIES O2::Field
-                                             O2::DataFormatsParameters
-                                             O2::DetectorsBase
-                                             O2::DataFormatsTPC
-                                             O2::TPCReconstruction
-                                             O2::GlobalTracking
-                                             O2::ITSMFTBase
-                       LABELS "its;tpc")
-
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_match_tof.C
                        PUBLIC_LINK_LIBRARIES O2::Field O2::DataFormatsParameters
@@ -370,7 +361,7 @@ o2_add_test_root_macro(run_trac_its.C
                                              O2::ITStracking
                                              O2::MathUtils
                                              O2::SimulationDataFormat
-                       LABELS its)
+                        LABELS its)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_trac_mft.C

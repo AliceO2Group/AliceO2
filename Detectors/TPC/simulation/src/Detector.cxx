@@ -1124,6 +1124,21 @@ void Detector::ConstructTPCGeometry()
   v2->AddNode(v4, 1);
   //
   v1->AddNode(v2, 1);
+  //
+  //  Outer field cage guard rings. Inner placed in the drift gas, outer placed in the outer insulator (CO2)
+  //
+  auto* ogri = new TGeoTube(257.985, 258., 0.6);      // placed in the drift volume
+  auto* ogro = new TGeoTube(260.0676, 260.0826, 0.6); //placed in the outer insulator
+  //
+  auto* ogriv = new TGeoVolume("TPC_OGRI", ogri, m3);
+  auto* ogrov = new TGeoVolume("TPC_OGRO", ogro, m3);
+  //
+  for (Int_t i = 0; i < 24; i++) {
+    v9->AddNode(ogriv, (i + 1), new TGeoTranslation(0., 0., (i + 1) * 10));
+    v9->AddNode(ogriv, (i + 25), new TGeoTranslation(0., 0., -(i + 1) * 10));
+    v2->AddNode(ogrov, (i + 1), new TGeoTranslation(0., 0., (i + 1) * 10));
+    v2->AddNode(ogrov, (i + 25), new TGeoTranslation(0., 0., -(i + 1) * 10));
+  }
   //--------------------------------------------------------------------
   // Tpc Inner INsulator (CO2)
   // the cones, the central drum and the inner f.c. sandwich with a piece
@@ -1366,6 +1381,42 @@ void Detector::ConstructTPCGeometry()
   v1->AddNode(hvss, 1, new TGeoTranslation(0., 0., 163.8));
   v9->AddNode(tv100, 1);
   //
+  // guard rings for IFC - outer placed in inner insulator, inner placed in the drift gas (3 different radii)
+  // AL, 1.2 cm wide, 0.015 cm thick, volumes TPC_IGR1 - outer, TPC_IGR2-4 - inner
+  //
+  auto* igro = new TGeoTube(76.6624, 76.6774, 0.6);
+  auto* igrio = new TGeoTube(78.845, 78.86, 0.6); //outer part
+  auto* igrim = new TGeoTube(78.795, 78.81, 0.6);
+  auto* igric = new TGeoTube(78.785, 78.8, 0.6);
+  //
+  // volumes
+  //
+  auto* igrov = new TGeoVolume("TPC_IGR1", igro, m3);
+  auto* igriov = new TGeoVolume("TPC_IGR2", igrio, m3);
+  auto* igrimv = new TGeoVolume("TPC_IGR3", igrim, m3);
+  auto* igricv = new TGeoVolume("TPC_IGR4", igric, m3);
+  //
+  // outer guard rings for IFC placement - every 10 cm
+  //
+  for (Int_t i = 0; i < 24; i++) {
+    v5->AddNode(igrov, (i + 1), new TGeoTranslation(0., 0., (i + 1) * 10));
+    v5->AddNode(igrov, (i + 25), new TGeoTranslation(0., 0., -(i + 1) * 10));
+  }
+  //
+  // inner guard rings for IFC placement
+  //
+  for (Int_t i = 0; i < 9; i++) {
+    v9->AddNode(igricv, (i + 1), new TGeoTranslation(0., 0., (i + 1) * 10));
+    v9->AddNode(igricv, (i + 10), new TGeoTranslation(0., 0., -(i + 1) * 10));
+  }
+  v9->AddNode(igrimv, 1, new TGeoTranslation(0., 0., 100.));
+  v9->AddNode(igrimv, 2, new TGeoTranslation(0., 0., -100.));
+  //
+  for (Int_t i = 0; i < 13; i++) {
+    v9->AddNode(igriov, i + 1, new TGeoTranslation(0., 0., 100 + (i + 1) * 10));
+    v9->AddNode(igriov, i + 14, new TGeoTranslation(0., 0., -(100 + (i + 1) * 10)));
+  }
+  //
   // central drum
   //
   // flange + sandwich
@@ -1479,21 +1530,21 @@ void Detector::ConstructTPCGeometry()
   Double_t lowEdge = 86.3; // hole in the wheel
   Double_t upEdge = 240.4; // hole in the wheel
   //
-  new TGeoTubeSeg("sec", 74.5, 264.4, 3., 0., 20.);
+  new TGeoTubeSeg("tpc_ssec", 74.5, 264.4, 3., 0., 20.);
   //
-  auto* hole = new TGeoPgon("hole", 0., 20., 1, 4);
+  auto* tpc_hole = new TGeoPgon("tpc_hole", 0., 20., 1, 4);
   //
-  hole->DefineSection(0, -3.5, lowEdge - shift, upEdge - shift);
-  hole->DefineSection(1, -1.5, lowEdge - shift, upEdge - shift);
+  tpc_hole->DefineSection(0, -3.5, lowEdge - shift, upEdge - shift);
+  tpc_hole->DefineSection(1, -1.5, lowEdge - shift, upEdge - shift);
   //
-  hole->DefineSection(2, -1.5, lowEdge - shift, upEdge + 3. - shift);
-  hole->DefineSection(3, 3.5, lowEdge - shift, upEdge + 3. - shift);
+  tpc_hole->DefineSection(2, -1.5, lowEdge - shift, upEdge + 3. - shift);
+  tpc_hole->DefineSection(3, 3.5, lowEdge - shift, upEdge + 3. - shift);
   //
   Double_t ys = shift * TMath::Sin(openingAngle);
   Double_t xs = shift * TMath::Cos(openingAngle);
   auto* tr = new TGeoTranslation("tr", xs, ys, 0.);
   tr->RegisterYourself();
-  auto* chamber = new TGeoCompositeShape("sec-hole:tr");
+  auto* chamber = new TGeoCompositeShape("tpc_ssec-tpc_hole:tr");
   auto* sv = new TGeoVolume("TPC_WSEG", chamber, m3);
   auto* bar = new TGeoPgon("bar", 0., 20., 1, 2);
   bar->DefineSection(0, -3., 131.5 - shift, 136.5 - shift);

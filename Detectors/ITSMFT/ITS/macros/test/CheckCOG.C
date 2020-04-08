@@ -20,10 +20,11 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "MathUtils/Cartesian3D.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #endif
 
-void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = "", std::string dictionary_file = "complete_dictionary.bin")
+void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = "", std::string dictionary_file = "")
 {
   gStyle->SetOptStat(0);
   using namespace o2::base;
@@ -33,6 +34,10 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
   using o2::itsmft::CompCluster;
   using o2::itsmft::CompClusterExt;
   using o2::itsmft::TopologyDictionary;
+
+  if (dictionary_file.empty()) {
+    dictionary_file = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+  }
 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom);
@@ -61,7 +66,7 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
   std::ifstream file(dictionary_file.c_str());
   if (file.good()) {
     LOG(INFO) << "Running with dictionary: " << dictionary_file.c_str();
-    dict.ReadBinaryFile(dictionary_file);
+    dict.readBinaryFile(dictionary_file);
   } else {
     LOG(INFO) << "Running without dictionary !";
   }
@@ -88,7 +93,9 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
     }
     printf("processing cluster event %d\n", ievC);
 
-    auto pattIdx = patternsPtr->cbegin();
+    std::vector<unsigned char>::const_iterator pattIdx;
+    if (patternsPtr)
+      pattIdx = patternsPtr->begin();
     for (int i = 0; i < nc; i++) {
       // cluster is in tracking coordinates always
       Cluster& c = (*clusArr)[i];
@@ -111,25 +118,26 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
         hTotalX->Fill(dx);
         hTotalZ->Fill(dz);
 
-        fOut << Form("is group: %o\n", dict.IsGroup(pattID));
-        fOut << Form("x_full: %.4f x_comp: %.4f dx: %.4f x_shift: %.4f\n", locC.X(), xComp, dx / 10000, dict.GetXcog(pattID));
-        fOut << Form("z_full: %.4f z_comp: %.4f dZ: %.4f z_shift: %.4f\n", locC.Z(), zComp, dz / 10000, dict.GetZcog(pattID));
-        fOut << dict.GetPattern(pattID);
+        fOut << Form("groupID: %d\n", cComp.getPatternID());
+        fOut << Form("is group: %o\n", dict.isGroup(cComp.getPatternID()));
+        fOut << Form("x_full: %.4f x_comp: %.4f dx: %.4f x_shift: %.4f\n", locC.X(), xComp, dx / 10000, dict.getXCOG(cComp.getPatternID()));
+        fOut << Form("z_full: %.4f z_comp: %.4f dZ: %.4f z_shift: %.4f\n", locC.Z(), zComp, dz / 10000, dict.getZCOG(cComp.getPatternID()));
+        fOut << dict.getPattern(cComp.getPatternID());
         fOut << Form("***************************************\n");
-      }
 
-      if (pattID == CompCluster::InvalidPatternID || dict.IsGroup(pattID)) {
-        if (patternsPtr) { // Restore the full pixel pattern information from the auxiliary branch
-          o2::itsmft::ClusterPattern patt(pattIdx);
-          auto locCl = dict.getClusterCoordinates(cComp, patt);
-          dx = (locC.X() - locCl.X()) * 10000;
-          dz = (locC.Z() - locCl.Z()) * 10000;
+        if (dict.isGroup(cComp.getPatternID())) {
+          if (patternsPtr) { // Restore the full pixel pattern information from the auxiliary branch
+            o2::itsmft::ClusterPattern patt(pattIdx);
+            auto locCl = dict.getClusterCoordinates(cComp, patt);
+            dx = (locC.X() - locCl.X()) * 10000;
+            dz = (locC.Z() - locCl.Z()) * 10000;
+          }
+          hGroupX->Fill(dx);
+          hGroupZ->Fill(dz);
+        } else {
+          hCommonX->Fill(dx);
+          hCommonZ->Fill(dz);
         }
-        hGroupX->Fill(dx);
-        hGroupZ->Fill(dz);
-      } else {
-        hCommonX->Fill(dx);
-        hCommonZ->Fill(dz);
       }
     }
   }

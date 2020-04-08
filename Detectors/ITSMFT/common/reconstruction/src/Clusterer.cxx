@@ -307,7 +307,7 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
         }
       }
       UShort_t pattID = (mPattIdConverter.size() == 0) ? CompCluster::InvalidPatternID : mPattIdConverter.findGroupID(rowSpanW, colSpanW, patt);
-      if (pattID == CompCluster::InvalidPatternID || mPattIdConverter.IsGroup(pattID)) {
+      if (pattID == CompCluster::InvalidPatternID || mPattIdConverter.isGroup(pattID)) {
         float xCOG = 0., zCOG = 0.;
         ClusterPattern::getCOG(rowSpanW, colSpanW, patt, xCOG, zCOG);
         rowMin += round(xCOG);

@@ -7,25 +7,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef O2_ANALYSIS_CENTRALITY_H_
+#define O2_ANALYSIS_CENTRALITY_H_
 
-#ifndef O2_MCH_RAW_RAWDATAHEADER_HANDLER_H
-#define O2_MCH_RAW_RAWDATAHEADER_HANDLER_H
+#include "Framework/AnalysisDataModel.h"
 
-#include <functional>
-#include "MCHRawCommon/RDHManip.h"
-#include <optional>
-
-namespace o2
+namespace o2::aod
 {
-namespace mch
+namespace cent
 {
-namespace raw
-{
-template <typename RDH>
-using RawDataHeaderHandler = std::function<std::optional<RDH>(const RDH& rdh)>;
+DECLARE_SOA_COLUMN(CentV0M, centV0M, float);
+} // namespace cent
+DECLARE_SOA_TABLE(Cents, "AOD", "CENT", cent::CentV0M);
+using Cent = Cents::iterator;
+} // namespace o2::aod
 
-} // namespace raw
-} // namespace mch
-} // namespace o2
-
-#endif
+#endif // O2_ANALYSIS_CENTRALITY_H_

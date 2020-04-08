@@ -15,8 +15,8 @@ namespace o2::aod
 {
 namespace etaphi
 {
-DECLARE_SOA_COLUMN(Eta, eta2, float, "fEta");
-DECLARE_SOA_COLUMN(Phi, phi2, float, "fPhi");
+DECLARE_SOA_COLUMN(Eta, eta2, float);
+DECLARE_SOA_COLUMN(Phi, phi2, float);
 } // namespace etaphi
 DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
                   etaphi::Eta, etaphi::Phi);

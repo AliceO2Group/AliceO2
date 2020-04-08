@@ -64,12 +64,12 @@ using namespace GPUCA_NAMESPACE::gpu;
 #define QA_TIMING 0
 
 #ifdef GPUCA_MERGER_BY_MC_LABEL
-#define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()         \
-  if (!unattached && mTrackMCLabels[id].isValid()) { \
-    int mcLabel = mTrackMCLabels[id].getTrackID());  \
-    if (mTrackMCLabelsReverse[mcLabel] != id) {      \
-      attach &= (~GPUTPCGMMerger::attachGoodLeg);    \
-    }                                                \
+#define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()           \
+  if (!unattached && mTrackMCLabels[id].isValid()) {   \
+    int mcLabel = mTrackMCLabels[id].getTrackID());    \
+    if (mTrackMCLabelsReverse[mcLabel] != id) {        \
+      attach &= (~GPUTPCGMMergerTypes::attachGoodLeg); \
+    }                                                  \
   }
 #else
 #define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()
@@ -80,7 +80,7 @@ using namespace GPUCA_NAMESPACE::gpu;
   float qpt = 0;                                                \
   bool lowPt = false;                                           \
   bool mev200 = false;                                          \
-  int id = attach & GPUTPCGMMerger::attachTrackMask;            \
+  int id = attach & GPUTPCGMMergerTypes::attachTrackMask;       \
   if (!unattached) {                                            \
     qpt = fabsf(merger.OutputTracks()[id].GetParam().GetQPt()); \
     lowPt = qpt > 20;                                           \
@@ -89,41 +89,41 @@ using namespace GPUCA_NAMESPACE::gpu;
   bool physics = false, protect = false;                        \
   CHECK_CLUSTER_STATE_INIT_LEG_BY_MC();
 
-#define CHECK_CLUSTER_STATE_CHK_COUNT()                         \
-  if (!unattached && mev200) {                                  \
-    mNRecClusters200MeV++;                                      \
-  }                                                             \
-  if (unattached) {                                             \
-  } else if (lowPt) {                                           \
-    mNRecClustersLowPt++;                                       \
-  } else if ((attach & GPUTPCGMMerger::attachGoodLeg) == 0) {   \
-    mNRecClustersLoopers++;                                     \
-  } else if ((attach & GPUTPCGMMerger::attachTube) && mev200) { \
-    mNRecClustersTube200++;                                     \
-  } else if (attach & GPUTPCGMMerger::attachHighIncl) {         \
-    mNRecClustersHighIncl++;                                    \
-  } else if (attach & GPUTPCGMMerger::attachTube) {             \
-    protect = true;                                             \
-    mNRecClustersTube++;                                        \
-  } else if ((attach & GPUTPCGMMerger::attachGood) == 0) {      \
-    protect = true;                                             \
-    mNRecClustersRejected++;                                    \
-  } else {                                                      \
-    physics = true;                                             \
+#define CHECK_CLUSTER_STATE_CHK_COUNT()                              \
+  if (!unattached && mev200) {                                       \
+    mNRecClusters200MeV++;                                           \
+  }                                                                  \
+  if (unattached) {                                                  \
+  } else if (lowPt) {                                                \
+    mNRecClustersLowPt++;                                            \
+  } else if ((attach & GPUTPCGMMergerTypes::attachGoodLeg) == 0) {   \
+    mNRecClustersLoopers++;                                          \
+  } else if ((attach & GPUTPCGMMergerTypes::attachTube) && mev200) { \
+    mNRecClustersTube200++;                                          \
+  } else if (attach & GPUTPCGMMergerTypes::attachHighIncl) {         \
+    mNRecClustersHighIncl++;                                         \
+  } else if (attach & GPUTPCGMMergerTypes::attachTube) {             \
+    protect = true;                                                  \
+    mNRecClustersTube++;                                             \
+  } else if ((attach & GPUTPCGMMergerTypes::attachGood) == 0) {      \
+    protect = true;                                                  \
+    mNRecClustersRejected++;                                         \
+  } else {                                                           \
+    physics = true;                                                  \
   }
 
-#define CHECK_CLUSTER_STATE_CHK_NOCOUNT()                       \
-  if (unattached) {                                             \
-  } else if (lowPt) {                                           \
-  } else if ((attach & GPUTPCGMMerger::attachGoodLeg) == 0) {   \
-  } else if ((attach & GPUTPCGMMerger::attachTube) && mev200) { \
-  } else if (attach & GPUTPCGMMerger::attachHighIncl) {         \
-  } else if (attach & GPUTPCGMMerger::attachTube) {             \
-    protect = true;                                             \
-  } else if ((attach & GPUTPCGMMerger::attachGood) == 0) {      \
-    protect = true;                                             \
-  } else {                                                      \
-    physics = true;                                             \
+#define CHECK_CLUSTER_STATE_CHK_NOCOUNT()                            \
+  if (unattached) {                                                  \
+  } else if (lowPt) {                                                \
+  } else if ((attach & GPUTPCGMMergerTypes::attachGoodLeg) == 0) {   \
+  } else if ((attach & GPUTPCGMMergerTypes::attachTube) && mev200) { \
+  } else if (attach & GPUTPCGMMergerTypes::attachHighIncl) {         \
+  } else if (attach & GPUTPCGMMergerTypes::attachTube) {             \
+    protect = true;                                                  \
+  } else if ((attach & GPUTPCGMMergerTypes::attachGood) == 0) {      \
+    protect = true;                                                  \
+  } else {                                                           \
+    physics = true;                                                  \
   }
 
 // clang-format off
@@ -726,8 +726,8 @@ void GPUQA::RunQA(bool matchOnly)
     for (unsigned int i = 0; i < GetNMCLabels(); i++) {
       if (mClusterParam[i].attached == 0 && mClusterParam[i].fakeAttached == 0) {
         int attach = merger.ClusterAttachment()[i];
-        if (attach & GPUTPCGMMerger::attachFlagMask) {
-          int track = attach & GPUTPCGMMerger::attachTrackMask;
+        if (attach & GPUTPCGMMergerTypes::attachFlagMask) {
+          int track = attach & GPUTPCGMMergerTypes::attachTrackMask;
           mcLabelI_t trackL = mTrackMCLabels[track];
           bool fake = true;
           for (int j = 0; j < GetMCLabelNID(i); j++) {
@@ -1163,7 +1163,7 @@ void GPUQA::RunQA(bool matchOnly)
       int attach = merger.ClusterAttachment()[i];
       CHECK_CLUSTER_STATE_NOCOUNT();
       if (mClusterParam[i].adjacent) {
-        int label = merger.ClusterAttachment()[i] & GPUTPCGMMerger::attachTrackMask;
+        int label = merger.ClusterAttachment()[i] & GPUTPCGMMergerTypes::attachTrackMask;
         if (!mTrackMCLabels[label].isValid()) {
           float totalWeight = 0.;
           for (int j = 0; j < GetMCLabelNID(i); j++) {
@@ -1320,8 +1320,8 @@ void GPUQA::RunQA(bool matchOnly)
             mNRecClustersFullFakeRemove400++;
           }
           /*printf("Fake removal (%d): Hit %7d, attached %d lowPt %d looper %d tube200 %d highIncl %d tube %d bad %d recPt %7.2f recLabel %6d", totalFake, i, (int) (mClusterParam[i].attached || mClusterParam[i].fakeAttached),
-              (int) lowPt, (int) ((attach & GPUTPCGMMerger::attachGoodLeg) == 0), (int) ((attach & GPUTPCGMMerger::attachTube) && mev200),
-              (int) ((attach & GPUTPCGMMerger::attachHighIncl) != 0), (int) ((attach & GPUTPCGMMerger::attachTube) != 0), (int) ((attach & GPUTPCGMMerger::attachGood) == 0),
+              (int) lowPt, (int) ((attach & GPUTPCGMMergerTypes::attachGoodLeg) == 0), (int) ((attach & GPUTPCGMMergerTypes::attachTube) && mev200),
+              (int) ((attach & GPUTPCGMMergerTypes::attachHighIncl) != 0), (int) ((attach & GPUTPCGMMergerTypes::attachTube) != 0), (int) ((attach & GPUTPCGMMergerTypes::attachGood) == 0),
               fabsf(qpt) > 0 ? 1.f / qpt : 0.f, id);
           for (int j = 0;j < GetMCLabelNID(i);j++)
           {

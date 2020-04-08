@@ -18,9 +18,8 @@ namespace o2::aod
 namespace track
 {
 // Columns to store track filter decisions
-DECLARE_SOA_COLUMN(IsGlobalTrack, isGlobalTrack, bool, "fIsGlobalTrack");
-DECLARE_SOA_COLUMN(IsGlobalTrackSDD, isGlobalTrackSDD, bool,
-                   "fIsGlobalTrackSDD");
+DECLARE_SOA_COLUMN(IsGlobalTrack, isGlobalTrack, bool);
+DECLARE_SOA_COLUMN(IsGlobalTrackSDD, isGlobalTrackSDD, bool);
 
 } // namespace track
 

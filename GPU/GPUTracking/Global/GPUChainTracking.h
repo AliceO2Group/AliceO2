@@ -186,6 +186,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void PrintDebugOutput();
 
   bool ValidateSteps();
+  bool ValidateSettings();
 
   // Pointers to tracker classes
   GPUTrackingFlatObjects mFlatObjectsShadow; // Host copy of flat objects that will be used on the GPU

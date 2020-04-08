@@ -79,7 +79,7 @@ std::set<int> nofDualSampasFromMapper(gsl::span<int> deids)
 {
   std::set<int> ds;
 
-  auto d2e = o2::mch::raw::createDet2ElecMapper<T>(deids);
+  auto d2e = o2::mch::raw::createDet2ElecMapper<T>();
 
   for (auto deid : deids) {
     size_t nref = dslist(deid).size();
@@ -91,6 +91,8 @@ std::set<int> nofDualSampasFromMapper(gsl::span<int> deids)
         auto code = o2::mch::raw::encode(id); // encode to be sure we're counting unique pairs (deid,dsid)
         ds.insert(code);
         dsForOneDE.insert(code);
+      } else {
+        std::cout << "did not find matching dsel for id=" << id << "\n";
       }
     };
     if (dsForOneDE.size() != nref) {
@@ -169,6 +171,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH7L, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH7L);
   auto expected = nofDualSampas(o2::mch::raw::deIdsOfCH7L);
+  BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
+}
+
+// BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH8R, T, testTypes)
+// {
+//   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH8R);
+//   auto expected = nofDualSampas(o2::mch::raw::deIdsOfCH8R);
+//   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
+// }
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH8L, T, testTypes)
+{
+  auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH8L);
+  auto expected = nofDualSampas(o2::mch::raw::deIdsOfCH8L);
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
@@ -288,19 +304,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(CheckNumberOfSolarsPerDetectionElement, T, realTyp
   BOOST_CHECK_EQUAL(getSolarUIDs<T>(824).size(), 0);
   BOOST_CHECK_EQUAL(getSolarUIDs<T>(825).size(), 0);
   // 8L = 8O
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(807).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(808).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(809).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(810).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(811).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(812).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(813).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(814).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(815).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(816).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(817).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(818).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(819).size(), 0);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(807).size(), 1);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(808).size(), 2);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(809).size(), 2);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(810).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(811).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(812).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(813).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(814).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(815).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(816).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(817).size(), 2);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(818).size(), 2);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(819).size(), 1);
 
   // Chamber 9
   // 9R = 9I
@@ -363,24 +379,28 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(CheckNumberOfSolarsPerDetectionElement, T, realTyp
   BOOST_CHECK_EQUAL(getSolarUIDs<T>(1019).size(), 0);
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(AllSolarsMustGetACruLink, T, realTypes)
+BOOST_AUTO_TEST_CASE_TEMPLATE(AllSolarsMustGetAFeeLink, T, realTypes)
 {
   std::set<uint16_t> solarIds = getSolarUIDs<T>();
-  auto solar2cruLink = o2::mch::raw::createSolar2CruLinkMapper<T>();
+  auto solar2feeLink = o2::mch::raw::createSolar2FeeLinkMapper<T>();
   int nbad{0};
   for (auto s : solarIds) {
-    auto p = solar2cruLink(s);
+    auto p = solar2feeLink(s);
     if (!p.has_value()) {
       ++nbad;
+      std::cout << "Got no feelinkId for solarId " << s << "\n";
     }
-    // std::cout << fmt::format("SOLAR {:4d} ", s);
-    // if (p.has_value()) {
-    //   std::cout << fmt::format("CRU {:4d} LINK {:1d}\n", p->cruId(), p->linkId());
-    // } else {
-    //   std::cout << " NO DATA\n";
-    // }
   }
   BOOST_CHECK_EQUAL(nbad, 0);
+  BOOST_CHECK_EQUAL(solarIds.size(), 192); // must be updated when adding more chambers
+}
+
+BOOST_AUTO_TEST_CASE(SpotCheck)
+{
+  o2::mch::raw::FeeLinkId id(44, 0);
+  auto f2s = o2::mch::raw::createFeeLink2SolarMapper<ElectronicMapperGenerated>();
+  auto s = f2s(id);
+  BOOST_CHECK_EQUAL(s.has_value(), true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

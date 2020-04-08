@@ -19,9 +19,12 @@
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #endif
 
-void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "o2sim_geometry.root", std::string paramfile = "o2sim_par.root", std::string dictfile = "complete_dictionary.bin")
+void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root",
+                   std::string inputGeom = "", std::string paramfile = "o2sim_par.root",
+                   std::string dictfile = "")
 {
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 
@@ -66,12 +69,14 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   if (pattBranch) {
     pattBranch->SetAddress(&patternsPtr);
   }
-
+  if (dictfile.empty()) {
+    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+  }
   o2::itsmft::TopologyDictionary dict;
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
     LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
-    dict.ReadBinaryFile(dictfile);
+    dict.readBinaryFile(dictfile);
   } else {
     LOG(INFO) << "Running without dictionary !";
   }
@@ -145,12 +150,12 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
       int npix = 0;
       auto pattID = cluster.getPatternID();
       Point3D<float> locC;
-      if (pattID == o2::itsmft::CompCluster::InvalidPatternID || dict.IsGroup(pattID)) {
+      if (pattID == o2::itsmft::CompCluster::InvalidPatternID || dict.isGroup(pattID)) {
         o2::itsmft::ClusterPattern patt(pattIt);
         locC = dict.getClusterCoordinates(cluster, patt);
       } else {
         locC = dict.getClusterCoordinates(cluster);
-        npix = dict.GetNpixels(pattID);
+        npix = dict.getNpixels(pattID);
       }
       auto chipID = cluster.getSensorID();
       // Transformation to the local --> global

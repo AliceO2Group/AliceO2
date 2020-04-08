@@ -48,9 +48,10 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
+using namespace GPUTPCGMMergerTypes;
 
 static constexpr int kMaxParts = 400;
-static constexpr int kMaxClusters = 1000;
+static constexpr int kMaxClusters = GPUCA_MERGER_MAX_TRACK_CLUSTERS;
 
 //#define OFFLINE_FITTER
 
@@ -270,6 +271,9 @@ int GPUTPCGMMerger::RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPC
   trk.X() = inTrack->Param().GetX();
   trk.Y() = inTrack->Param().GetY();
   trk.Z() = inTrack->Param().GetZ();
+  trk.SinPhi() = inTrack->Param().GetSinPhi();
+  trk.DzDs() = inTrack->Param().GetDzDs();
+  trk.QPt() = inTrack->Param().GetQPt();
   float tzInner, tzOuter;
   if (Param().earlyTpcTransform) {
     trk.TZOffset() = inTrack->Param().GetZOffset();
@@ -285,9 +289,6 @@ int GPUTPCGMMerger::RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPC
     tzOuter = cls[inTrack->Cluster(inTrack->NClusters() - 1).GetId()].getTime();
   }
   trk.ShiftZ(this, slice, tzInner, tzOuter);
-  trk.SinPhi() = inTrack->Param().GetSinPhi();
-  trk.DzDs() = inTrack->Param().GetDzDs();
-  trk.QPt() = inTrack->Param().GetQPt();
   trk.ResetCovariance();
   prop.SetTrack(&trk, alpha);
   for (int i = 0; i < inTrack->NClusters(); i++) {
@@ -305,7 +306,7 @@ int GPUTPCGMMerger::RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPC
       return 1;
     }
     trk.ConstrainSinPhi();
-    if (prop.Update(y, z, inTrack->Cluster(i).GetRow(), Param(), inTrack->Cluster(i).GetFlags() & GPUTPCGMMergedTrackHit::clustererAndSharedFlags, false, false)) {
+    if (prop.Update(y, z, inTrack->Cluster(i).GetRow(), Param(), inTrack->Cluster(i).GetFlags() & GPUTPCGMMergedTrackHit::clustererAndSharedFlags, 0, nullptr, false)) {
       return 1;
     }
     trk.ConstrainSinPhi();
@@ -358,7 +359,10 @@ void GPUTPCGMMerger::UnpackSlices()
         track.CopyBaseTrackCov();
       } else if (Param().rec.mergerCovSource == 2) {
         if (RefitSliceTrack(track, sliceTr, alpha, iSlice)) {
-          continue;
+          track.Set(this, sliceTr, alpha, iSlice); // TODO: Why does the refit fail, it shouldn't, this workaround should be removed
+          if (!track.FilterErrors(this, iSlice, GPUCA_MAX_SIN_PHI, 0.1f)) {
+            continue;
+          }
         }
       }
       CADEBUG(GPUInfo("INPUT Slice %d, Track %u, QPt %f DzDs %f", iSlice, itr, track.QPt(), track.DzDs()));
@@ -1035,6 +1039,10 @@ void GPUTPCGMMerger::MergeCE()
       }
       trk[1]->SetFirstClusterRef(newRef);
       trk[1]->SetNClusters(trk[0]->NClusters() + trk[1]->NClusters());
+      if (trk[1]->NClusters() > GPUCA_MERGER_MAX_TRACK_CLUSTERS) {
+        trk[1]->SetFirstClusterRef(trk[1]->FirstClusterRef() + trk[1]->NClusters() - GPUCA_MERGER_MAX_TRACK_CLUSTERS);
+        trk[1]->SetNClusters(GPUCA_MERGER_MAX_TRACK_CLUSTERS);
+      }
       trk[1]->SetCCE(true);
       if (looper) {
         trk[1]->SetLooper(true);

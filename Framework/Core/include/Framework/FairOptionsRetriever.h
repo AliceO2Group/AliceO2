@@ -34,6 +34,7 @@ class FairOptionsRetriever : public ParamRetriever
  public:
   FairOptionsRetriever(std::vector<ConfigParamSpec> const& schema, const FairMQProgOptions* opts);
 
+  bool isSet(const char* name) const final;
   int getInt(const char* name) const final;
   int64_t getInt64(const char* name) const final;
   float getFloat(const char* name) const final;
