@@ -33,7 +33,7 @@ namespace impl4
 class CathodeSegmentation
 {
  public:
-  static constexpr int InvalidCatPadIndex{ -1 };
+  static constexpr int InvalidCatPadIndex{-1};
 
   using Point =
     boost::geometry::model::point<double, 2, boost::geometry::cs::cartesian>;

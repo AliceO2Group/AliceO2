@@ -52,15 +52,15 @@ CathodeSegmentation* createCathodeSegmentation(int detElemId,
 
 void CathodeSegmentation::fillRtree()
 {
-  int catPadIndex{ 0 };
+  int catPadIndex{0};
 
   for (auto padGroupIndex = 0; padGroupIndex < mPadGroups.size();
        ++padGroupIndex) {
     mPadGroupIndex2CatPadIndexIndex.push_back(catPadIndex);
     auto& pg = mPadGroups[padGroupIndex];
     auto& pgt = mPadGroupTypes[pg.mPadGroupTypeId];
-    double dx{ mPadSizes[pg.mPadSizeId].first };
-    double dy{ mPadSizes[pg.mPadSizeId].second };
+    double dx{mPadSizes[pg.mPadSizeId].first};
+    double dy{mPadSizes[pg.mPadSizeId].second};
     for (int ix = 0; ix < pgt.getNofPadsX(); ++ix) {
       for (int iy = 0; iy < pgt.getNofPadsY(); ++iy) {
         if (pgt.id(ix, iy) >= 0) {
@@ -71,8 +71,8 @@ void CathodeSegmentation::fillRtree()
           double ymax = (iy + 1) * dy + pg.mY;
 
           mRtree.insert(std::make_pair(
-            CathodeSegmentation::Box{ CathodeSegmentation::Point(xmin, ymin),
-                                      CathodeSegmentation::Point(xmax, ymax) },
+            CathodeSegmentation::Box{CathodeSegmentation::Point(xmin, ymin),
+                                     CathodeSegmentation::Point(xmax, ymax)},
             catPadIndex));
 
           mCatPadIndex2PadGroupIndex.push_back(padGroupIndex);
@@ -110,12 +110,12 @@ CathodeSegmentation::CathodeSegmentation(
   int segType, bool isBendingPlane, std::vector<PadGroup> padGroups,
   std::vector<PadGroupType> padGroupTypes,
   std::vector<std::pair<float, float>> padSizes)
-  : mSegType{ segType },
-    mIsBendingPlane{ isBendingPlane },
-    mPadGroups{ std::move(padGroups) },
-    mDualSampaIds{ getUnique(mPadGroups) },
-    mPadGroupTypes{ std::move(padGroupTypes) },
-    mPadSizes{ std::move(padSizes) },
+  : mSegType{segType},
+    mIsBendingPlane{isBendingPlane},
+    mPadGroups{std::move(padGroups)},
+    mDualSampaIds{getUnique(mPadGroups)},
+    mPadGroupTypes{std::move(padGroupTypes)},
+    mPadSizes{std::move(padSizes)},
     mCatPadIndex2PadGroupIndex{},
     mCatPadIndex2PadGroupTypeFastIndex{},
     mPadGroupIndex2CatPadIndexIndex{}
@@ -147,7 +147,7 @@ std::vector<int> CathodeSegmentation::getCatPadIndexs(double xmin, double ymin,
 {
   std::vector<CathodeSegmentation::Value> result_n;
   mRtree.query(boost::geometry::index::intersects(
-                 CathodeSegmentation::Box({ xmin, ymin }, { xmax, ymax })),
+                 CathodeSegmentation::Box({xmin, ymin}, {xmax, ymax})),
                std::back_inserter(result_n));
   std::vector<int> catPadIndexs;
   for (auto& r : result_n) {
@@ -164,7 +164,7 @@ std::vector<int> CathodeSegmentation::getNeighbouringCatPadIndexs(
   double dx = padSizeX(catPadIndex) / 2.0;
   double dy = padSizeY(catPadIndex) / 2.0;
 
-  const double offset{ 0.1 }; // 1 mm
+  const double offset{0.1}; // 1 mm
 
   auto pads = getCatPadIndexs(x - dx - offset, y - dy - offset, x + dx + offset,
                               y + dy + offset);
@@ -182,15 +182,15 @@ double CathodeSegmentation::squaredDistance(int catPadIndex, double x,
 
 int CathodeSegmentation::findPadByPosition(double x, double y) const
 {
-  const double epsilon{ 1E-4 };
+  const double epsilon{1E-4};
   auto pads =
     getCatPadIndexs(x - epsilon, y - epsilon, x + epsilon, y + epsilon);
 
-  double dmin{ std::numeric_limits<double>::max() };
-  int catPadIndex{ InvalidCatPadIndex };
+  double dmin{std::numeric_limits<double>::max()};
+  int catPadIndex{InvalidCatPadIndex};
 
   for (auto i = 0; i < pads.size(); ++i) {
-    double d{ squaredDistance(pads[i], x, y) };
+    double d{squaredDistance(pads[i], x, y)};
     if (d < dmin) {
       catPadIndex = pads[i];
       dmin = d;
