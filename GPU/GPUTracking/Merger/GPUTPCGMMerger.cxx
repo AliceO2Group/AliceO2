@@ -270,6 +270,9 @@ int GPUTPCGMMerger::RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPC
   trk.X() = inTrack->Param().GetX();
   trk.Y() = inTrack->Param().GetY();
   trk.Z() = inTrack->Param().GetZ();
+  trk.SinPhi() = inTrack->Param().GetSinPhi();
+  trk.DzDs() = inTrack->Param().GetDzDs();
+  trk.QPt() = inTrack->Param().GetQPt();
   float tzInner, tzOuter;
   if (Param().earlyTpcTransform) {
     trk.TZOffset() = inTrack->Param().GetZOffset();
@@ -285,9 +288,6 @@ int GPUTPCGMMerger::RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPC
     tzOuter = cls[inTrack->Cluster(inTrack->NClusters() - 1).GetId()].getTime();
   }
   trk.ShiftZ(this, slice, tzInner, tzOuter);
-  trk.SinPhi() = inTrack->Param().GetSinPhi();
-  trk.DzDs() = inTrack->Param().GetDzDs();
-  trk.QPt() = inTrack->Param().GetQPt();
   trk.ResetCovariance();
   prop.SetTrack(&trk, alpha);
   for (int i = 0; i < inTrack->NClusters(); i++) {
