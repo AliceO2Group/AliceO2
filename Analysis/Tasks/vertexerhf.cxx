@@ -59,11 +59,15 @@ struct DecayVertexBuilder2Prong {
 	       soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
     //LOGF(info, "Trigger selection %s", std::string{triggersel});
-    auto trigger = getTrigger(collision, triggers);
-    uint64_t triggerMask = trigger.triggerMask();
-    bool isTriggerClassFired = triggerMask & 1ul << (triggerindex -1);
-    if (!isTriggerClassFired && triggerindex!=-1)
-      return;
+    int trigindex = int{triggerindex};
+    if (trigindex !=-1){
+      LOGF(info, "Selecting on trigger bit %d", trigindex);
+      auto trigger = getTrigger(collision, triggers);
+      uint64_t triggerMask = trigger.triggerMask();
+      bool isTriggerClassFired = triggerMask & 1ul << (trigindex -1);
+      if (!isTriggerClassFired)
+        return;
+    }
     LOGF(info, "Tracks for collision: %d", tracks.size());
     o2::vertexing::DCAFitterN<2> df;
     df.setBz(5.0);
