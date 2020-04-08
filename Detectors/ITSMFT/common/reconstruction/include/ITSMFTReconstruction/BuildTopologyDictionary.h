@@ -64,9 +64,9 @@ class BuildTopologyDictionary
   void setThresholdCumulative(double cumulative); // Considering the integral
   void groupRareTopologies();
   friend std::ostream& operator<<(std::ostream& os, const BuildTopologyDictionary& BD);
-  void printDictionary(std::string fname);
-  void printDictionaryBinary(std::string fname);
-  void saveDictionaryRoot(const char* filename);
+  void printDictionary(const std::string& fname);
+  void printDictionaryBinary(const std::string& fname);
+  void saveDictionaryRoot(const std::string& fname);
 
   int getTotClusters() const { return mTotClusters; }
   int getNotInGroups() const { return mNCommonTopologies; }
