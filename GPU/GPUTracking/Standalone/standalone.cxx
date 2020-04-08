@@ -165,7 +165,7 @@ int ReadConfiguration(int argc, char** argv)
 #endif
   if (configStandalone.qa) {
     if (getenv("LC_NUMERIC")) {
-      printf("Please unset the LC_NUMERIC env variable, otherwise ROOT will not be able to fit correctly"); // BUG: ROOT Problem
+      printf("Please unset the LC_NUMERIC env variable, otherwise ROOT will not be able to fit correctly\n"); // BUG: ROOT Problem
       return (1);
     }
   }
