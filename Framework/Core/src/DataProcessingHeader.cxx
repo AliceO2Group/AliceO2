@@ -16,6 +16,5 @@ namespace o2
 namespace framework
 {
 
-
 } // namespace framework
 } // namespace o2

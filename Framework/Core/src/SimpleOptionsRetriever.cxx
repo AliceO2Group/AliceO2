@@ -26,6 +26,11 @@ namespace bpo = boost::program_options;
 namespace o2::framework
 {
 
+bool SimpleOptionsRetriever::isSet(const char* key) const
+{
+  return (mStore.find(key) != mStore.not_found());
+}
+
 int SimpleOptionsRetriever::getInt(char const* key) const
 {
   return mStore.get<int>(key);
