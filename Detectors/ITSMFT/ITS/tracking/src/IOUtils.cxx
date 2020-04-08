@@ -51,6 +51,35 @@ void from_json(const nlohmann::json& j, TrackingParameters& par);
 void to_json(nlohmann::json& j, const MemoryParameters& par);
 void from_json(const nlohmann::json& j, MemoryParameters& par);
 
+/// convert compact clusters to 3D spacepoints
+void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
+                                     gsl::span<const unsigned char>::iterator& pattIt,
+                                     std::vector<o2::BaseCluster<float>>& output,
+                                     const itsmft::TopologyDictionary& dict)
+{
+  GeometryTGeo* geom = GeometryTGeo::Instance();
+  for (auto& c : clusters) {
+    auto pattID = c.getPatternID();
+    Point3D<float> locXYZ;
+    float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
+    if (pattID != itsmft::CompCluster::InvalidPatternID) {
+      sigmaY2 = dict.getErr2X(pattID);
+      sigmaZ2 = dict.getErr2Z(pattID);
+      if (!dict.isGroup(pattID)) {
+        locXYZ = dict.getClusterCoordinates(c);
+      } else {
+        o2::itsmft::ClusterPattern patt(pattIt);
+        locXYZ = dict.getClusterCoordinates(c, patt);
+      }
+    } else {
+      o2::itsmft::ClusterPattern patt(pattIt);
+      locXYZ = dict.getClusterCoordinates(c, patt);
+    }
+    auto cl3d = output.emplace_back(c.getSensorID(), geom->getMatrixT2L(c.getSensorID()) ^ locXYZ); // local --> tracking
+    cl3d.setErrors(sigmaY2, sigmaYZ, sigmaZ2);
+  }
+}
+
 void ioutils::loadConfigurations(const std::string& fileName)
 {
   if (!fileName.empty()) {
@@ -162,12 +191,10 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
 
     auto pattID = c.getPatternID();
     Point3D<float> locXYZ;
-    float sigmaY2 = 0.0015 * 0.0015, sigmaZ2 = sigmaY2, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
+    float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaY2 = dict.getErrX(pattID);
-      sigmaY2 *= sigmaY2;
-      sigmaZ2 = dict.getErrZ(pattID);
-      sigmaZ2 *= sigmaZ2;
+      sigmaY2 = dict.getErr2X(pattID);
+      sigmaZ2 = dict.getErr2Z(pattID);
       if (!dict.isGroup(pattID)) {
         locXYZ = dict.getClusterCoordinates(c);
       } else {
@@ -243,12 +270,10 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
 
     auto pattID = c.getPatternID();
     Point3D<float> locXYZ;
-    float sigmaY2 = 0.0015 * 0.0015, sigmaZ2 = sigmaY2, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
+    float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaY2 = dict.getErrX(pattID);
-      sigmaY2 *= sigmaY2;
-      sigmaZ2 = dict.getErrZ(pattID);
-      sigmaZ2 *= sigmaZ2;
+      sigmaY2 = dict.getErr2X(pattID);
+      sigmaZ2 = dict.getErr2Z(pattID);
       if (!dict.isGroup(pattID)) {
         locXYZ = dict.getClusterCoordinates(c);
       } else {

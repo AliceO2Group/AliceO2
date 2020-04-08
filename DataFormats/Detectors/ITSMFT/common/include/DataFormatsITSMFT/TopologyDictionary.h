@@ -51,6 +51,8 @@ struct GroupStruct {
   unsigned long mHash;     ///< Hashcode
   float mErrX;             ///< Error associated to the hit point in the x direction.
   float mErrZ;             ///< Error associated to the hit point in the z direction.
+  float mErr2X;            ///< Squared Error associated to the hit point in the x direction.
+  float mErr2Z;            ///< Squared Error associated to the hit point in the z direction.
   float mXCOG;             ///< x position of te COG wrt the boottom left corner of the bounding box
   float mZCOG;             ///< z position of te COG wrt the boottom left corner of the bounding box
   int mNpixels;            ///< Number of fired pixels
@@ -58,7 +60,7 @@ struct GroupStruct {
                            ///the bits set to 1.
   double mFrequency;       ///< Frequency of the topology
   bool mIsGroup;           ///< false: common topology; true: group of rare topologies
-  ClassDefNV(GroupStruct, 2);
+  ClassDefNV(GroupStruct, 3);
 };
 
 class TopologyDictionary
@@ -105,6 +107,18 @@ class TopologyDictionary
   {
     assert(n >= 0 || n < (int)mVectorOfIDs.size());
     return mVectorOfIDs[n].mErrZ;
+  }
+  /// Returns the error^2 on the x position of the COG for the n_th element
+  inline float getErr2X(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mErr2X;
+  }
+  /// Returns the error^2 on the z position of the COG for the n_th element
+  inline float getErr2Z(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mErr2Z;
   }
   /// Returns the hash of the n_th element
   inline unsigned long getHash(int n) const
