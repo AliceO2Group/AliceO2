@@ -145,4 +145,49 @@ BOOST_AUTO_TEST_CASE(test_tpc_compressedclusters)
   BOOST_CHECK(memcmp(restored.nSliceRowClusters, data.nSliceRowClusters.data(), restored.nSliceRows * sizeof(decltype(data.nSliceRowClusters)::value_type)) == 0);
 }
 
+BOOST_AUTO_TEST_CASE(test_tpc_compressedclusters_root_streaming)
+{
+  CompressedClusters clusters;
+  ClustersData data;
+  fillClusters(clusters, data);
+
+  std::string fileName = gSystem->TempDirectory();
+  fileName += "/testCompressedClusters.root";
+
+  { // scope for the creation of the test file
+    std::unique_ptr<TFile> testFile(TFile::Open(fileName.c_str(), "RECREATE"));
+    std::unique_ptr<TTree> testTree = std::make_unique<TTree>("testtree", "testtree");
+
+    auto* branch = testTree->Branch("compclusters", &clusters);
+    testTree->Fill();
+    testTree->Write();
+    testTree->SetDirectory(nullptr);
+    testFile->Close();
+  }
+
+  { // scope for read back of the streamed object
+    std::unique_ptr<TFile> file(TFile::Open(fileName.c_str()));
+    BOOST_REQUIRE(file != nullptr);
+    TTree* tree = reinterpret_cast<TTree*>(file->GetObjectChecked("testtree", "TTree"));
+    BOOST_REQUIRE(tree != nullptr);
+    TBranch* branch = tree->GetBranch("compclusters");
+    BOOST_REQUIRE(branch != nullptr);
+    CompressedClusters* readback = nullptr;
+    branch->SetAddress(&readback);
+    branch->GetEntry(0);
+    BOOST_REQUIRE(readback != nullptr);
+
+    CompressedClusters& restored = *readback;
+    // check one entry from each category
+    BOOST_CHECK(restored.nAttachedClusters == data.qMaxA.size());
+    BOOST_CHECK(memcmp(restored.qMaxA, data.qMaxA.data(), restored.nAttachedClusters * sizeof(decltype(data.qMaxA)::value_type)) == 0);
+    BOOST_CHECK(restored.nTracks == data.nTrackClusters.size());
+    BOOST_CHECK(memcmp(restored.nTrackClusters, data.nTrackClusters.data(), restored.nTracks * sizeof(decltype(data.nTrackClusters)::value_type)) == 0);
+    BOOST_CHECK(restored.nUnattachedClusters == data.qMaxU.size());
+    BOOST_CHECK(memcmp(restored.qMaxU, data.qMaxU.data(), restored.nUnattachedClusters * sizeof(decltype(data.qMaxU)::value_type)) == 0);
+    BOOST_CHECK(restored.nSliceRows == data.nSliceRowClusters.size());
+    BOOST_CHECK(memcmp(restored.nSliceRowClusters, data.nSliceRowClusters.data(), restored.nSliceRows * sizeof(decltype(data.nSliceRowClusters)::value_type)) == 0);
+  }
+}
+
 } // namespace o2::tpc
