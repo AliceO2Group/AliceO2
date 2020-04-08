@@ -29,6 +29,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "ReconstructionDataFormats/Vertex.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #endif
 
 #include "ITStracking/ROframe.h"
@@ -41,7 +42,7 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.root",
                   std::string inputClustersITS = "o2clus_its.root",
-                  std::string dictfile = "complete_dictionary.bin",
+                  std::string dictfile = "",
                   std::string inputGeom = "",
                   std::string inputGRP = "o2sim_grp.root")
 {
@@ -126,6 +127,9 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   //<<<---------- attach input data ---------------<<<
 
   o2::itsmft::TopologyDictionary dict;
+  if (dictfile.empty()) {
+    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+  }
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
     LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
