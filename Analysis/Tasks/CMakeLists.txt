@@ -50,3 +50,24 @@ o2_add_executable(event-selection
                   SOURCES eventSelection.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
                   COMPONENT_NAME Analysis)
+
+o2_add_executable(multiplicity-table
+                  SOURCES multiplicityTable.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
+                  COMPONENT_NAME Analysis)
+
+o2_add_executable(multiplicity-qa
+                  SOURCES multiplicityQa.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
+                  COMPONENT_NAME Analysis)
+                  
+o2_add_executable(centrality-table
+                  SOURCES centralityTable.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
+                  COMPONENT_NAME Analysis)
+
+o2_add_executable(centrality-qa
+                  SOURCES centralityQa.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
+                  COMPONENT_NAME Analysis)
+

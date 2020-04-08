@@ -10,6 +10,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Analysis/EventSelection.h"
 #include "TFile.h"
 #include "TTree.h"
 #include "TH1F.h"
@@ -21,100 +22,39 @@ using std::string;
 using namespace o2;
 using namespace o2::framework;
 
-// TODO read nAliases from the alias map?
-#define nAliases 2
-
-// TODO move es, mult and cent declarations to AnalysisDataModel.h
-namespace o2::aod
-{
-namespace evsel
-{
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-// TODO bool arrays are not supported? Storing in int32 for the moment
-DECLARE_SOA_COLUMN(Alias, alias, int32_t[nAliases]);
-DECLARE_SOA_COLUMN(BBV0A, bbV0A, bool); // beam-beam time in V0A
-DECLARE_SOA_COLUMN(BBV0C, bbV0C, bool); // beam-beam time in V0C
-DECLARE_SOA_COLUMN(BGV0A, bgV0A, bool); // beam-gas time in V0A
-DECLARE_SOA_COLUMN(BGV0C, bgV0C, bool); // beam-gas time in V0C
-DECLARE_SOA_COLUMN(BBZNA, bbZNA, bool); // beam-beam time in ZNA
-DECLARE_SOA_COLUMN(BBZNC, bbZNC, bool); // beam-beam time in ZNC
-DECLARE_SOA_DYNAMIC_COLUMN(SEL7, sel7, [](bool bbV0A, bool bbV0C, bool bbZNA, bool bbZNC) -> bool { return bbV0A && bbV0C && bbZNA && bbZNC; });
-
-} // namespace evsel
-DECLARE_SOA_TABLE(EvSels, "AOD", "ES", evsel::CollisionId,
-                  evsel::Alias, evsel::BBV0A, evsel::BBV0C, evsel::BGV0A, evsel::BGV0C, evsel::BBZNA, evsel::BBZNC,
-                  evsel::SEL7<evsel::BBV0A, evsel::BBV0C, evsel::BBZNA, evsel::BBZNC>);
-using EvSel = EvSels::iterator;
-
-namespace mult
-{
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-DECLARE_SOA_COLUMN(MultV0A, multV0A, float);
-DECLARE_SOA_COLUMN(MultV0C, multV0C, float);
-DECLARE_SOA_DYNAMIC_COLUMN(MultV0M, multV0M, [](float multV0A, float multV0C) -> float { return multV0A + multV0C; });
-} // namespace mult
-DECLARE_SOA_TABLE(Mults, "AOD", "MULT", mult::CollisionId, mult::MultV0A, mult::MultV0C, mult::MultV0M<mult::MultV0A, mult::MultV0C>);
-using Mult = Mults::iterator;
-
-namespace cent
-{
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-DECLARE_SOA_COLUMN(CentV0M, centV0M, float);
-} // namespace cent
-DECLARE_SOA_TABLE(Cents, "AOD", "CENT", cent::CollisionId, cent::CentV0M);
-} // namespace o2::aod
-
-aod::Mult getMult(aod::Collision const& collision, aod::Mults const& mults)
-{
-  for (auto& mult : mults)
-    if (mult.collision() == collision)
-      return mult;
-  aod::Mult dummy;
-  return dummy;
-}
-
-aod::EvSel getEvSel(aod::Collision const& collision, aod::EvSels const& evsels)
-{
-  for (auto& evsel : evsels)
-    if (evsel.collision() == collision)
-      return evsel;
-  aod::EvSel dummy;
-  return dummy;
-}
-
-aod::Trigger getTrigger(aod::Collision const& collision, aod::Triggers const& triggers)
-{
-  for (auto trigger : triggers)
-    if (trigger.globalBC() == collision.globalBC())
-      return trigger;
-  aod::Trigger dummy;
-  return dummy;
-}
-
-aod::VZero getVZero(aod::Collision const& collision, aod::VZeros const& vzeros)
-{
-  // TODO use globalBC to access vzero info
-  for (auto& vzero : vzeros)
-    if (vzero.collision() == collision)
-      return vzero;
-  aod::VZero dummy;
-  return dummy;
-}
-
-aod::Zdc getZdc(aod::Collision const& collision, aod::Zdcs const& zdcs)
-{
-  // TODO use globalBC to access zdc info
-  for (auto& zdc : zdcs)
-    if (zdc.collision() == collision)
-      return zdc;
-  aod::Zdc dummy;
-  return dummy;
-}
-
 struct EventSelectionTask {
   Produces<aod::EvSels> evsel;
   map<string, int> mClasses;
   map<int, string> mAliases;
+
+  aod::Trigger getTrigger(aod::Collision const& collision, aod::Triggers const& triggers)
+  {
+    for (auto trigger : triggers)
+      if (trigger.globalBC() == collision.globalBC())
+        return trigger;
+    aod::Trigger dummy;
+    return dummy;
+  }
+
+  aod::VZero getVZero(aod::Collision const& collision, aod::VZeros const& vzeros)
+  {
+    // TODO use globalBC to access vzero info
+    for (auto& vzero : vzeros)
+      if (vzero.collision() == collision)
+        return vzero;
+    aod::VZero dummy;
+    return dummy;
+  }
+
+  aod::Zdc getZdc(aod::Collision const& collision, aod::Zdcs const& zdcs)
+  {
+    // TODO use globalBC to access zdc info
+    for (auto& zdc : zdcs)
+      if (zdc.collision() == collision)
+        return zdc;
+    aod::Zdc dummy;
+    return dummy;
+  }
 
   // TODO create aliases elsewhere (like BrowseAndFill macro)
   void createAliases()
@@ -144,6 +84,7 @@ struct EventSelectionTask {
 
   void process(aod::Collision const& collision, aod::Triggers const& triggers, aod::Zdcs const& zdcs, aod::VZeros const& vzeros)
   {
+    LOGF(info, "Starting new event");
     // CTP info
     auto trigger = getTrigger(collision, triggers);
     uint64_t triggerMask = trigger.triggerMask();
@@ -199,81 +140,12 @@ struct EventSelectionTask {
     bool bgV0C = timeV0C > -25. && timeV0C < 0.; // ns
 
     // Fill event selection columns
-    evsel(collision, alias, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC);
-  }
-};
-
-struct MultiplicityTask {
-  Produces<aod::Mults> mult;
-  OutputObj<TH1F> hMultV0M{TH1F("hMultV0M", "", 55000, 0, 55000)};
-
-  // TODO use soa::Join for collision + evsel?
-  void process(aod::Collision const& collision, aod::VZeros const& vzeros, aod::EvSels const& evsels)
-  {
-    auto vzero = getVZero(collision, vzeros);
-    auto evsel = getEvSel(collision, evsels);
-
-    // VZERO info
-    float multV0A = 0;
-    float multV0C = 0;
-    for (int i = 0; i < 32; i++) {
-      // TODO use properly calibrated multiplicity
-      multV0A += vzero.adc()[i + 32];
-      multV0C += vzero.adc()[i];
-    }
-
-    // fill multiplicity columns
-    mult(collision, multV0A, multV0C);
-
-    //TODO: bypass alias checks in continuous mode
-    if (!evsel.alias()[0] || !evsel.sel7())
-      return;
-
-    LOGF(info, "multV0A=%.0f multV0C=%.0f multV0M=%.0f", multV0A, multV0C, multV0A + multV0C);
-    // fill calibration histos
-    hMultV0M->Fill(multV0A + multV0C);
-  }
-};
-
-struct CentralityTask {
-  Produces<aod::Cents> cent;
-  OutputObj<TH1F> hCentV0M{TH1F("hCentV0M", "", 21, 0, 105)};
-  TH1F* hCumMultV0M;
-
-  void init(InitContext&)
-  {
-    // TODO read multiplicity histos from CCDB
-    TFile f("centrality.root");
-    TH1F* hMultV0M = (TH1F*)f.Get("multiplicity/hMultV0M");
-    // TODO produce cumulative histos in the post processing macro
-    hCumMultV0M = (TH1F*)hMultV0M->GetCumulative(false);
-    hCumMultV0M->Scale(100. / hCumMultV0M->GetMaximum());
-  }
-
-  // TODO use soa::Join for collisions,evsels and mults?
-  void process(aod::Collision const& collision, aod::EvSels const& evsels, aod::Mults const& mults)
-  {
-    auto evsel = getEvSel(collision, evsels);
-    auto mult = getMult(collision, mults);
-
-    float centV0M = hCumMultV0M->GetBinContent(hCumMultV0M->FindFixBin(mult.multV0M()));
-    // fill centrality columns
-    cent(collision, centV0M);
-
-    //TODO: bypass alias checks in continuous mode
-    if (!evsel.alias()[0] || !evsel.sel7())
-      return;
-
-    LOGF(info, "multV0M=%.0f centV0M=%.0f", mult.multV0M(), centV0M);
-    // fill centrality histos
-    hCentV0M->Fill(centV0M);
+    evsel(alias, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC);
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelectionTask>("event-selection"),
-    adaptAnalysisTask<MultiplicityTask>("multiplicity"),
-    adaptAnalysisTask<CentralityTask>("centrality")};
+    adaptAnalysisTask<EventSelectionTask>("event-selection")};
 }
