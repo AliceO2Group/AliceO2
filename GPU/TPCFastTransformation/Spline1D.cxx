@@ -208,6 +208,24 @@ void Spline1D<Tfloat>::recreate(int numberOfKnots, int nFdimensions)
   recreate(numberOfKnots, knots.data(), nFdimensions);
 }
 
+#endif
+
+template <typename Tfloat>
+void Spline1D<Tfloat>::print() const
+{
+  printf(" Compact Spline 1D: \n");
+  printf("  mNumberOfKnots = %d \n", mNumberOfKnots);
+  printf("  mUmax = %d\n", mUmax);
+  printf("  mUtoKnotMap = %p \n", (void*)mUtoKnotMap);
+  printf("  knots: ");
+  for (int i = 0; i < mNumberOfKnots; i++) {
+    printf("%d ", (int)getKnot(i).u);
+  }
+  printf("\n");
+}
+
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+
 template <typename Tfloat>
 void Spline1D<Tfloat>::approximateFunction(Tfloat xMin, Tfloat xMax,
                                            std::function<void(Tfloat x, Tfloat f[/*mFdimensions*/])> F,
@@ -219,23 +237,6 @@ void Spline1D<Tfloat>::approximateFunction(Tfloat xMin, Tfloat xMax,
   helper.approximateFunction(*this, xMin, xMax, F, nAxiliaryDataPoints);
 }
 
-#endif
-
-template <typename Tfloat>
-void Spline1D<Tfloat>::print() const
-{
-  printf(" Compact Spline 1D: \n");
-  printf("  mNumberOfKnots = %d \n", mNumberOfKnots);
-  printf("  mUmax = %d\n", mUmax);
-  printf("  mUtoKnotMap = %l \n", (void*)mUtoKnotMap);
-  printf("  knots: ");
-  for (int i = 0; i < mNumberOfKnots; i++) {
-    printf("%d ", (int)getKnot(i).u);
-  }
-  printf("\n");
-}
-
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 template <typename Tfloat>
 int Spline1D<Tfloat>::writeToFile(TFile& outf, const char* name)
 {

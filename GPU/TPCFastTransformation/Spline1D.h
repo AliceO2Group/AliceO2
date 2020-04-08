@@ -348,6 +348,7 @@ Spline1D<Tfloat>::Spline1D(int numberOfKnots, const int knots[], int nFdimension
 
 template <typename Tfloat>
 Spline1D<Tfloat>::Spline1D(const Spline1D& spline)
+  : FlatObject()
 {
   cloneFromObject(spline, nullptr);
 }

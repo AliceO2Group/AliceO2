@@ -27,6 +27,9 @@
 #include "TCanvas.h"
 #include "TNtuple.h"
 #include "TFile.h"
+
+templateClassImp(GPUCA_NAMESPACE::gpu::Spline2DBase);
+
 #endif
 
 using namespace std;
@@ -202,6 +205,10 @@ void Spline2DBase<Tfloat, TisConsistent>::recreate(
   }
 }
 
+#endif
+
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+
 template <typename Tfloat, bool TisConsistent>
 void Spline2DBase<Tfloat, TisConsistent>::approximateFunction(
   Tfloat x1Min, Tfloat x1Max, Tfloat x2Min, Tfloat x2Max,
@@ -212,10 +219,6 @@ void Spline2DBase<Tfloat, TisConsistent>::approximateFunction(
   SplineHelper2D<Tfloat> helper;
   helper.approximateFunction(*this, x1Min, x1Max, x2Min, x2Max, F, nAxiliaryDataPointsU1, nAxiliaryDataPointsU2);
 }
-
-#endif
-
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
 
 template <typename Tfloat, bool TisConsistent>
 int Spline2DBase<Tfloat, TisConsistent>::writeToFile(TFile& outf, const char* name)
@@ -488,7 +491,6 @@ int Spline2DBase<Tfloat, TisConsistent>::test(const bool draw, const bool drawDa
 
 #endif // GPUCA_GPUCODE
 
-templateClassImp(GPUCA_NAMESPACE::gpu::Spline2DBase);
 //templateClassImp(GPUCA_NAMESPACE::gpu::Spline2D);
 
 template class GPUCA_NAMESPACE::gpu::Spline2DBase<float, false>;
