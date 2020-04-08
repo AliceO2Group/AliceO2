@@ -9,6 +9,7 @@
 #include "DataFormatsITSMFT/ClusterPattern.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSMFTReconstruction/LookUp.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #endif
 
 using o2::itsmft::Cluster;
@@ -16,12 +17,15 @@ using o2::itsmft::ClusterPattern;
 using o2::itsmft::LookUp;
 using o2::itsmft::TopologyDictionary;
 
-void dictionary_integrity_test(string intput_name = "complete_dictionary.bin", string output_name = "dictionary_test.txt")
+void dictionary_integrity_test(std::string dictfile = "", std::string output_name = "dictionary_test.txt")
 {
 
   TopologyDictionary dict;
-  dict.readBinaryFile(intput_name.c_str());
-  LookUp finder(intput_name.c_str());
+  if (dictfile.empty()) {
+    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+  }
+  dict.readBinaryFile(dictfile);
+  LookUp finder(dictfile);
 
   int mistake_counter = 0;
 

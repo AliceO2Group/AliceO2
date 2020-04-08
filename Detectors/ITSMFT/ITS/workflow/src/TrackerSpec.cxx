@@ -32,6 +32,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 namespace o2
 {
@@ -72,14 +73,16 @@ void TrackerDPL::init(InitContext& ic)
     mState = 0;
   }
 
-  filename = ic.options().get<std::string>("dictionary-file");
-  std::ifstream file(filename.c_str());
-  if (file.good()) {
-    LOG(INFO) << "Running with dictionary: " << filename.c_str();
-    mDict.readBinaryFile(filename);
+  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  if (o2::base::NameConf::pathExists(dictFile)) {
+    mDict.readBinaryFile(dictFile);
+    LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
+    mState = 1;
   } else {
-    LOG(INFO) << "Running without dictionary !";
+    LOG(INFO) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
   }
+
   mState = 1;
 }
 
@@ -217,7 +220,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType d
     AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC, dType)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"dictionary-file", VariantType::String, "complete_dictionary.bin", {"Name of the dictionary file"}}}};
+      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}}}};
 }
 
 } // namespace its

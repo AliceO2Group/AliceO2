@@ -20,10 +20,11 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "MathUtils/Cartesian3D.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #endif
 
-void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = "o2sim_geometry.root", std::string dictionary_file = "complete_dictionary.bin")
+void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = "", std::string dictionary_file = "")
 {
   gStyle->SetOptStat(0);
   using namespace o2::base;
@@ -33,6 +34,10 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
   using o2::itsmft::CompCluster;
   using o2::itsmft::CompClusterExt;
   using o2::itsmft::TopologyDictionary;
+
+  if (dictionary_file.empty()) {
+    dictionary_file = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+  }
 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom);

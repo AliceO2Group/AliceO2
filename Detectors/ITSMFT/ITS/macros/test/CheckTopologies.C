@@ -25,10 +25,11 @@
 #include "MathUtils/Cartesian3D.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #endif
 
-void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "o2sim_geometry.root")
+void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "")
 {
   using namespace o2::base;
   using namespace o2::its;
@@ -37,7 +38,6 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
   using o2::itsmft::ClusterTopology;
   using o2::itsmft::CompClusterExt;
   using o2::itsmft::Hit;
-
   std::ofstream output_check("check_topologies.txt");
 
   // Geometry
@@ -146,11 +146,14 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
       completeDictionary.accountTopology(topology, dx, dz);
     }
   }
+
+  auto dID = o2::detectors::DetID::ITS;
+
   completeDictionary.setThreshold(0.0001);
   completeDictionary.groupRareTopologies();
-  completeDictionary.printDictionaryBinary("complete_dictionary.bin");
-  completeDictionary.printDictionary("complete_dictionary.txt");
-  completeDictionary.saveDictionaryRoot("complete_dictionary.root");
+  completeDictionary.printDictionaryBinary(o2::base::NameConf::getDictionaryFileName(dID, "", ".bin"));
+  completeDictionary.printDictionary(o2::base::NameConf::getDictionaryFileName(dID, "", ".txt"));
+  completeDictionary.saveDictionaryRoot(o2::base::NameConf::getDictionaryFileName(dID, "", ".root"));
 
   TFile histogramOutput("histograms.root", "recreate");
   TCanvas* cComplete = new TCanvas("cComplete", "Distribution of all the topologies");
@@ -171,14 +174,14 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
   if (clusLabArr) {
     noiseDictionary.setThreshold(0.0001);
     noiseDictionary.groupRareTopologies();
-    noiseDictionary.printDictionaryBinary("noise_dictionary.bin");
-    noiseDictionary.printDictionary("noise_dictionary.txt");
-    noiseDictionary.saveDictionaryRoot("noise_dictionary.root");
+    noiseDictionary.printDictionaryBinary(o2::base::NameConf::getDictionaryFileName(dID, "noise", ".bin"));
+    noiseDictionary.printDictionary(o2::base::NameConf::getDictionaryFileName(dID, "noise", ".txt"));
+    noiseDictionary.saveDictionaryRoot(o2::base::NameConf::getDictionaryFileName(dID, "noise", ".root"));
     signalDictionary.setThreshold(0.0001);
     signalDictionary.groupRareTopologies();
-    signalDictionary.printDictionaryBinary("signal_dictionary.bin");
-    signalDictionary.printDictionary("signal_dictionary.txt");
-    signalDictionary.saveDictionaryRoot("signal_dictionary.root");
+    signalDictionary.printDictionaryBinary(o2::base::NameConf::getDictionaryFileName(dID, "signal", ".bin"));
+    signalDictionary.printDictionary(o2::base::NameConf::getDictionaryFileName(dID, "signal", ".txt"));
+    signalDictionary.saveDictionaryRoot(o2::base::NameConf::getDictionaryFileName(dID, "signal", ".root"));
 
     cNoise = new TCanvas("cNoise", "Distribution of noise topologies");
     cNoise->cd();

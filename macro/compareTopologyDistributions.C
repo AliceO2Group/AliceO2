@@ -9,6 +9,7 @@
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #include <string>
 #include <vector>
@@ -18,10 +19,12 @@
 
 void compareTopologyDistributions(
   string cluster_file_name = "o2clus_its.root",
-  string dictionary_file_name = "complete_dictionary.bin",
+  string dictionary_file_name = "",
   string output_file_name = "comparison.root")
 {
-
+  if (dictionary_file_name.empty()) {
+    dictionary_file_name = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".root");
+  }
   TFile dictionary_file(dictionary_file_name.c_str());
   o2::itsmft::TopologyDictionary dict;
   dict.readBinaryFile(dictionary_file_name.c_str());

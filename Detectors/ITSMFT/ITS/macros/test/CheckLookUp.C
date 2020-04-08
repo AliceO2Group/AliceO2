@@ -21,12 +21,13 @@
 #include "ITSMFTReconstruction/BuildTopologyDictionary.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "ITSMFTReconstruction/LookUp.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #endif
 
 bool verbose = true;
 
-void CheckLookUp(std::string clusfile = "o2clus_its_comp.root", std::string dictfile = "complete_dictionary.bin")
+void CheckLookUp(std::string clusfile = "o2clus_its_comp.root", std::string dictfile = "")
 {
 #ifndef _ClusterTopology_
   std::cout << "This macro needs clusters in full format!" << std::endl;
@@ -40,9 +41,14 @@ void CheckLookUp(std::string clusfile = "o2clus_its_comp.root", std::string dict
   using o2::itsmft::LookUp;
   using o2::itsmft::TopologyDictionary;
 
-  LookUp finder("complete_dictionary.bin");
+  std::ofstream output_check("check_lookup.txt");
+
+  if (dictfile.empty()) {
+    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+  }
+  LookUp finder(dictfile);
   TopologyDictionary dict;
-  dict.readBinaryFile(dictfile.c_str());
+  dict.readBinaryFile(dictfile);
   ofstream check_output("checkLU.txt");
   ofstream mist("mist.txt");
   TFile outroot("checkLU.root", "RECREATE");

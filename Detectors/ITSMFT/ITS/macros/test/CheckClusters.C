@@ -19,9 +19,12 @@
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #endif
 
-void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "o2sim_geometry.root", std::string paramfile = "o2sim_par.root", std::string dictfile = "complete_dictionary.bin")
+void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root",
+                   std::string inputGeom = "", std::string paramfile = "o2sim_par.root",
+                   std::string dictfile = "")
 {
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 
@@ -66,7 +69,9 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   if (pattBranch) {
     pattBranch->SetAddress(&patternsPtr);
   }
-
+  if (dictfile.empty()) {
+    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+  }
   o2::itsmft::TopologyDictionary dict;
   std::ifstream file(dictfile.c_str());
   if (file.good()) {

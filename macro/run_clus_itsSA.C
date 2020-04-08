@@ -5,6 +5,7 @@
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "CommonConstants/LHCConstants.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "FairLogger.h"
 #endif
 
@@ -26,7 +27,7 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
                     bool raw = true,                      // flag if this is raw data
                     float strobe = -1.,                   // strobe length in ns of ALPIDE readout, if <0, get automatically
                     bool withFullClusters = true,
-                    std::string dictionaryfile = "complete_dictionary.bin",
+                    std::string dictionaryfile = "",
                     bool withPatterns = true)
 {
   // Initialize logger
@@ -42,6 +43,9 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
   o2::its::ClustererTask* clus = new o2::its::ClustererTask(useMCTruth, raw);
   clus->setMaxROframe(2 << 21); // about 3 cluster files per a raw data chunk
 
+  if (dictionaryfile.empty()) {
+    dictionaryfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+  }
   std::ifstream file(dictionaryfile.c_str());
   if (file.good()) {
     LOG(INFO) << "Running with dictionary: " << dictionaryfile.c_str();

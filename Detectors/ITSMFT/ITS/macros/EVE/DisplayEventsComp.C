@@ -37,6 +37,7 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #endif
 
 using namespace o2::itsmft;
@@ -429,7 +430,7 @@ void init(int entry = 0, int chip = 13,
           std::string tracfile = "o2trac_its.root",
           std::string inputGeom = "")
 {
-  dict.readBinaryFile("complete_dictionary.bin");
+  dict.readBinaryFile(o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin"));
 
   TEveManager::Create(kTRUE, "V");
   TEveBrowser* browser = gEve->GetBrowser();

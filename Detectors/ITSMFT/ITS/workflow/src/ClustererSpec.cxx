@@ -28,6 +28,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "CommonConstants/LHCConstants.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
@@ -64,14 +65,15 @@ void ClustererDPL::init(InitContext& ic)
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
   mClusterer->setMaxBCSeparationToMask(alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + 10);
 
-  auto filename = ic.options().get<std::string>("its-dictionary-file");
-  mFile = std::make_unique<std::ifstream>(filename.c_str(), std::ios::in | std::ios::binary);
-  if (mFile->good()) {
-    mClusterer->loadDictionary(filename);
-    LOG(INFO) << "ITSClusterer running with a provided dictionary: " << filename.c_str();
-    mState = 1;
+  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  if (o2::base::NameConf::pathExists(dictFile)) {
+    mClusterer->loadDictionary(dictFile);
+    LOG(INFO) << "ITSClusterer running with a provided dictionary: " << dictFile;
+  } else {
+    LOG(INFO) << "Dictionary " << dictFile << " is absent, ITSClusterer expects cluster patterns";
   }
-
+  mState = 1;
   mClusterer->print();
 }
 
@@ -164,7 +166,7 @@ DataProcessorSpec getClustererSpec(bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<ClustererDPL>(useMC)},
     Options{
-      {"its-dictionary-file", VariantType::String, "complete_dictionary.bin", {"Name of the cluster-topology dictionary file"}},
+      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
       {"full-clusters", o2::framework::VariantType::Bool, false, {"Produce full clusters"}},
       {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}}}};
