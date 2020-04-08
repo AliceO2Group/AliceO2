@@ -360,3 +360,53 @@ some-workflow --monitoring-backend=no-op://
 ```
 
 notice that the GUI will not function properly if you do so.
+
+### Using command line options in DataProcessorSpec
+
+Command line options for a given DataProcessorSpec are defined as a std::vector\<ConfigParamSpec\>.
+
+A ConfigParamSpec is defined by the 4 arguments
+  * name
+  * type
+  * default
+  * help
+
+or with a constructor using only 3 arguments (without the default value).
+
+E.g.
+```cpp
+  { {"opt1", VariantType::String, "def1", {"Command line option 1"}},    // constructor with default value def1
+    {"opt2", VariantType::Int, {"Command line option 2"}},               // constructor without default value  
+    {"opt3", VariantType::Float, 10., {"Command line option 3"}} }
+```
+    
+(the available VariantType are listed in Framework/Variant.h).
+
+The options are internally filled into an object of type ConfigParamRegistry and forwarded to the InitCallback of the respective AlgorithmSpec as part of the argument of type InitContext. The ConfigParamRegistry is finally accessed with InitContext::options().
+
+E.g.
+```cpp
+ConfigParamRegistry opts = ic.options();  // with InitContext ic;
+```
+
+
+ConfigParamRegistry has the two methods `isSet(key)` and `get<T>(key)`.  
+
+To read the option value use the `get<T>` method with the appropriate type `T`, e.g.
+
+```cpp
+  auto vopt1 = ic.options().get<std::string>("opt1");
+  auto vopt2 = ic.options().get<std::int>("opt2");
+```
+
+To test wether the option `key` was set on the command line the method `isSet(key)` can be used. However be aware that the method `isSet(key)` with an option defined with a default value (constructor with
+4 arguments) will always return `true`. If the option was set on the command line, then it will have the respective set value. If it is not set on the command line then it will have the default value. On
+the other hand an option defined without a default value (constructor with 3 arguments) will only be recognized as set if it indeed was set on the command line. If it was not set, then its value will be
+undefined. Thus to read an option without default value do e.g.
+
+```cpp
+  std::string vopt1("");
+  if (ic.options().isSet("opt1")) {
+    vopt1 = ic.options().get<std::string>("opt1");
+  }
+```

@@ -72,6 +72,11 @@ BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const&
   PropertyTreeHelpers::populate(specs, mStore, vmap);
 }
 
+bool BoostOptionsRetriever::isSet(const char* key) const
+{
+  return (mStore.find(key) != mStore.not_found());
+}
+
 int BoostOptionsRetriever::getInt(const char* key) const
 {
   return mStore.get<int>(key);

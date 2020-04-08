@@ -88,13 +88,25 @@ bool ConfigParamsHelper::dpl2BoostOptions(const std::vector<ConfigParamSpec>& sp
     std::stringstream defaultValue;
     defaultValue << configSpec.defaultValue;
     if (configSpec.type != VariantType::Bool) {
-      options.add_options()(configSpec.name.c_str(),
-                            bpo::value<std::string>()->default_value(defaultValue.str().c_str()),
-                            configSpec.help.c_str());
+      if (configSpec.defaultValue.type() != VariantType::Empty) {
+        options.add_options()(configSpec.name.c_str(),
+                              bpo::value<std::string>()->default_value(defaultValue.str().c_str()),
+                              configSpec.help.c_str());
+      } else {
+        options.add_options()(configSpec.name.c_str(),
+                              bpo::value<std::string>(),
+                              configSpec.help.c_str());
+      }
     } else {
-      options.add_options()(configSpec.name.c_str(),
-                            bpo::value<bool>()->zero_tokens()->default_value(configSpec.defaultValue.get<bool>()),
-                            configSpec.help.c_str());
+      if (configSpec.defaultValue.type() != VariantType::Empty) {
+        options.add_options()(configSpec.name.c_str(),
+                              bpo::value<bool>()->zero_tokens()->default_value(configSpec.defaultValue.get<bool>()),
+                              configSpec.help.c_str());
+      } else {
+        options.add_options()(configSpec.name.c_str(),
+                              bpo::value<bool>()->zero_tokens(),
+                              configSpec.help.c_str());
+      }
     }
   }
 

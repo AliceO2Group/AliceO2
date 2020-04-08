@@ -20,6 +20,7 @@ namespace o2::framework
 class SimpleOptionsRetriever : public ParamRetriever
 {
  public:
+  bool isSet(const char* name) const final;
   int getInt(const char* name) const final;
   int64_t getInt64(const char* name) const final;
   float getFloat(const char* name) const final;

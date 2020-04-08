@@ -32,6 +32,7 @@ class BoostOptionsRetriever : public ParamRetriever
                         bool ignoreUnknown,
                         int& argc, char**& argv);
 
+  bool isSet(const char* name) const final;
   int getInt(const char* name) const final;
   int64_t getInt64(const char* name) const final;
   float getFloat(const char* name) const final;

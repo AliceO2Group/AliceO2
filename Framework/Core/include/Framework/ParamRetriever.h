@@ -24,6 +24,7 @@ namespace framework
 class ParamRetriever
 {
  public:
+  virtual bool isSet(const char* name) const = 0;
   virtual int getInt(const char* name) const = 0;
   virtual int64_t getInt64(const char* name) const = 0;
   virtual float getFloat(const char* name) const = 0;

@@ -216,38 +216,39 @@ DataProcessorSpec
     int ntfmerge = 1;
 
     // values from json
-    auto fnjson = ic.options().get<std::string>("json-file");
-    if (!fnjson.empty()) {
-      auto [fnb, fmo, ntfm] = dod->readJson(fnjson);
-      if (!fnb.empty()) {
-        fnbase = fnb;
-      }
-      if (!fmo.empty()) {
-        filemode = fmo;
-      }
-      if (ntfm > 0) {
-        ntfmerge = ntfm;
+    if (ic.options().isSet("json-file")) {
+      auto fnjson = ic.options().get<std::string>("json-file");
+      if (!fnjson.empty()) {
+        auto [fnb, fmo, ntfm] = dod->readJson(fnjson);
+        if (!fnb.empty()) {
+          fnbase = fnb;
+        }
+        if (!fmo.empty()) {
+          filemode = fmo;
+        }
+        if (ntfm > 0) {
+          ntfmerge = ntfm;
+        }
       }
     }
 
     // values from command line options, information from json is overwritten
-    auto fnb = ic.options().get<std::string>("res-file");
-    if (!fnb.empty()) {
-      fnbase = fnb;
+    if (ic.options().isSet("res-file")) {
+      fnbase = ic.options().get<std::string>("res-file");
     }
-    auto fmo = ic.options().get<std::string>("res-mode");
-    if (!fmo.empty()) {
-      filemode = fmo;
+    if (ic.options().isSet("res-mode")) {
+      filemode = ic.options().get<std::string>("res-mode");
     }
-    auto ntfm = ic.options().get<Int_t>("ntfmerge");
-    if (ntfm > 0) {
-      ntfmerge = ntfm;
+    if (ic.options().isSet("ntfmerge")) {
+      auto ntfm = ic.options().get<int>("ntfmerge");
+      if (ntfm > 0) {
+        ntfmerge = ntfm;
+      }
     }
-
     // parse the keepString
-    auto keepString = ic.options().get<std::string>("keep");
-    if (!keepString.empty()) {
+    if (ic.options().isSet("keep")) {
       dod->reset();
+      auto keepString = ic.options().get<std::string>("keep");
 
       std::string d("dangling");
       if (d.find(keepString) == 0) {
@@ -359,11 +360,11 @@ DataProcessorSpec
     OutputInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),
-    {{"json-file", VariantType::String, "", {"Name of the json configuration file"}},
-     {"res-file", VariantType::String, "", {"Default name of the output file"}},
-     {"res-mode", VariantType::String, "", {"Creation mode of the result files: NEW, CREATE, RECREATE, UPDATE"}},
-     {"ntfmerge", VariantType::Int, -1, {"Number of time frames to merge into one file"}},
-     {"keep", VariantType::String, "", {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION:treename:col1/col2/..:filename"}}}};
+    {{"json-file", VariantType::String, {"Name of the json configuration file"}},
+     {"res-file", VariantType::String, {"Default name of the output file"}},
+     {"res-mode", VariantType::String, {"Creation mode of the result files: NEW, CREATE, RECREATE, UPDATE"}},
+     {"ntfmerge", VariantType::Int, {"Number of time frames to merge into one file"}},
+     {"keep", VariantType::String, {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION:treename:col1/col2/..:filename"}}}};
 
   return spec;
 }
