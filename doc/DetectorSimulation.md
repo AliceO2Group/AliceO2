@@ -373,5 +373,73 @@ Digitization - the transformation of hits produced in the transport simulation t
 ## Embedding <a name="Embedding"></a>
 
 
-## Accessing Monte Carlo kinematics after the digitization phase
+## Monte Carlo Labels <a name="MCLabels"></a>
+
+We can associate digits to tracks/particles of the original transport simulation, so as to keep provenance information of how
+digits were triggered. This information can be passed forward to reconstruction and analysis and used to study reconstruction efficiencies etc.
+
+To this end, a special data object `MCCompLabel` is offered, which allows to encapsulate the identifiers of track, event and source kinematics files. 
+```c++
+  MCCompLabel(int trackID, int evID, int srcID, bool fake = false)
+```
+This information should be enough to lookup and load the precise Monte Carlo track ([see here](#MCReader)).
+
+Association of digits to an arbitrary number of labels is done via filling a **separate** and **dedicated** container called `MCTruthContainer` which is written as a separate branch to the output file, next to the branch for digits. This has the advantage that digits may be kept as close as possible to the raw data and we can have arbitrary number of labels at a minimal memory cost.
+
+The mechanics is as follows: For a collection of digits created for detector `foo`
+```c++
+std::vector<o2::foo::Digits> mDigits;
+```
+we keep a separate container of labels of type:
+```c++
+o2::dataformats::MCTruthContainer<o2::dataformats::MCCompLabel> mLabelContainer;
+```
+Querying the labels works by positional correspondance: Labels for the digit at position `pos` can be accessed in the following way:
+```c++
+const auto& digit = mDigits[pos];
+// returns an iterable view of labels
+const auto& labels_for_digit = mLabelContainer.getLabels(pos);
+// iterate over labels
+for (auto& label : labels_for_digit) {
+   // process label
+}
+```
+
+If positional correspondance is too weak, one may eventualy choose to record the corresponding data index in the labelcontainer inside the digit itself:
+```c++
+const auto& digit = mDigits[pos];
+// returns an iterable view of labels
+const auto& labels_for_digit = mLabelContainer.getLabels(digit.labelindex);
+// iterate over labels
+for (auto& label : labels_for_digit) {
+   // process label
+}
+```
+
+
+## Accessing Monte Carlo kinematics after the digitization phase <a name="MCReader"></a>
+
+After digitization is done, one can use the `MCKinematicsReader` class to load and access the Monte Carlo tracks.
+The MCKinematicsReader needs the digitization context file, generated during digitization. Once initialized it can return the tracks associated to a Monte Carlo label.
+
+A typical code example may be
+```c++
+// init the reader from the context
+o2::steer MCKinematicsReader reader("collisioncontext.root");
+
+// load digits from the digits file --> save in alldigits
+// load the label container from the digits file --> save in labelcontainer
+
+// this is simply iterating over all the digits and querying the tracks that contributed to these digits
+
+for (int pos = 0; pos < alldigits.size(); ++pos) {
+  const auto& digit = alldigits[pos];
+  const auto& labels_for_digit = labelcontainer.getLabels(pos);
+  // iterate over labels
+  for (auto& label : labels_for_digit) {
+     track = reader.getTrack(label);
+     // do something with the track
+  }
+}
+```
 
