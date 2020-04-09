@@ -443,25 +443,8 @@ GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& GPUrestrict() sl
   if (NHitsTotal() == 0) {
     return;
   }
-  int nTrk = mCommonMem->nTracklets;
-  mCommonMem->nTracklets = 1;
-  GPUTPCTracklet* trk = mTracklets;
-  mTracklets = new GPUTPCTracklet;
-#ifdef GPUCA_EXTERN_ROW_HITS
-  calink* lnk = mTrackletRowHits;
-  mTrackletRowHits = new calink[GPUCA_ROW_COUNT];
-#endif
-
   sliceLeft.PerformGlobalTracking(*this, true);
   sliceRight.PerformGlobalTracking(*this, false);
-
-  mCommonMem->nTracklets = nTrk;
-  delete mTracklets;
-  mTracklets = trk;
-#ifdef GPUCA_EXTERN_ROW_HITS
-  delete[] mTrackletRowHits;
-  mTrackletRowHits = lnk;
-#endif
 }
 
 GPUh() int GPUTPCTracker::GlobalTrackingSliceOrder(int iSlice)
