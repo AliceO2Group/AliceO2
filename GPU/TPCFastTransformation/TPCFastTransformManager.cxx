@@ -113,8 +113,8 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform,
 
     correction.startConstruction(geo, nDistortionScenarios);
 
-    Spline2D spline;
-    spline.constructKnotsRegular(8, 20);
+    TPCFastSpaceChargeCorrection::SplineType spline;
+    spline.recreate(8, 20);
 
     int scenario = 0;
     correction.setSplineScenario(scenario, spline);
@@ -277,11 +277,11 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
 
       const TPCFastTransformGeo::RowInfo& rowInfo = geo.getRowInfo(row);
 
-      const Spline2D& spline = correction.getSpline(slice, row);
-      float* data = correction.getSplineDataNonConst(slice, row);
+      const TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSpline(slice, row);
+      float* data = correction.getSplineData(slice, row);
 
-      SplineHelper2D helper;
-      helper.setSpline(spline, 3, 3);
+      SplineHelper2D<float> helper;
+      helper.setSpline(spline, 4, 4);
       auto F = [&](float su, float sv, float dxuv[3]) {
         float x = rowInfo.x;
         // x, u, v cordinates of the knot (local cartesian coord. of slice
@@ -322,12 +322,7 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
         dxuv[2] = ov - v;
       };
 
-      std::unique_ptr<float[]> par =
-        helper.constructParameters(3, F, 0., 1., 0., 1.);
-
-      for (int i = 0; i < spline.getNumberOfParameters(3); i++) {
-        data[i] = par[i];
-      }
+      helper.approximateFunction(data, 0., 1., 0., 1., F);
 
     } // row
   }   // slice

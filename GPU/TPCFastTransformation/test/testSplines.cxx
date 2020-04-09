@@ -27,11 +27,12 @@ namespace gpu
 /// @brief Basic test if we can create the interface
 BOOST_AUTO_TEST_CASE(Spline_test1)
 {
-  o2::gpu::Spline1D s1;
+
+  o2::gpu::Spline1D<float> s1;
   int err1 = s1.test(0);
   BOOST_CHECK_MESSAGE(err1 == 0, "test of GPU/TPCFastTransform/Spline1D failed with the error code " << err1);
 
-  o2::gpu::Spline2D s2;
+  o2::gpu::Spline2D<float, 1> s2;
   int err2 = s2.test(0);
   BOOST_CHECK_MESSAGE(err2 == 0, "test of GPU/TPCFastTransform/Spline2D failed with the error code " << err2);
 }
