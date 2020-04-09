@@ -105,12 +105,15 @@ int GPUChainTracking::DoProfile()
 
 void GPUChainTracking::PrintMemoryStatistics()
 {
+  unsigned int nStartHits = 0, nMaxStartHits = 0;
   unsigned int nTracklets = 0, nMaxTracklets = 0;
   unsigned int nSectorTracks = 0, nMaxSectorTracks = 0;
   unsigned int nSectorTrackHits = 0, nMaxSectorTrackHits = 0;
   for (int i = 0; i < NSLICES; i++) {
     nMaxTracklets += processors()->tpcTrackers[i].NMaxTracklets();
     nTracklets += *processors()->tpcTrackers[i].NTracklets();
+    nMaxStartHits += processors()->tpcTrackers[i].NMaxStartHits();
+    nStartHits += *processors()->tpcTrackers[i].NStartHits();
     nMaxSectorTracks += processors()->tpcTrackers[i].NMaxTracks();
     nSectorTracks += *processors()->tpcTrackers[i].NTracks();
     nMaxSectorTrackHits += processors()->tpcTrackers[i].NMaxTrackHits();
@@ -121,6 +124,7 @@ void GPUChainTracking::PrintMemoryStatistics()
   unsigned int nTrackHits = processors()->tpcMerger.NOutputTrackClusters();
   unsigned int nMaxTrackHits = processors()->tpcMerger.NMaxOutputTrackClusters();
 
+  GPUInfo("Mem Usage Start Hits     : %7u / %7u (%3.0f%%)", nStartHits, nMaxStartHits, 100.f * nStartHits / nMaxStartHits);
   GPUInfo("Mem Usage Tracklets      : %7u / %7u (%3.0f%%)", nTracklets, nMaxTracklets, 100.f * nTracklets / nMaxTracklets);
   GPUInfo("Mem Usage SectorTracks   : %7u / %7u (%3.0f%%)", nSectorTracks, nMaxSectorTracks, 100.f * nSectorTracks / nMaxSectorTracks);
   GPUInfo("Mem Usage SectorTrackHits: %7u / %7u (%3.0f%%)", nSectorTrackHits, nMaxSectorTrackHits, 100.f * nSectorTrackHits / nMaxSectorTrackHits);

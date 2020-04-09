@@ -1048,7 +1048,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       processorsShadow()->tpcTrackers[iSlice].GPUParametersConst()->gpumem = (char*)mRec->DeviceMemoryBase();
       // Initialize Startup Constants
-      processors()->tpcTrackers[iSlice].GPUParameters()->nextTracklet = ((ConstructorBlockCount() + NSLICES - 1 - iSlice) / NSLICES) * ConstructorThreadCount();
+      processors()->tpcTrackers[iSlice].GPUParameters()->nextStartHit = ((ConstructorBlockCount() + NSLICES - 1 - iSlice) / NSLICES) * ConstructorThreadCount();
       processorsShadow()->tpcTrackers[iSlice].SetGPUTextureBase(mRec->DeviceMemoryBase());
     }
 
