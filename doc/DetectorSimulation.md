@@ -12,7 +12,7 @@ Detector simulation, the simulation of detector response from virtual particle e
   a) the generation of simple (energy deposit) traces in the detector due to the passage of particles and the interaction with the detector material.
   b) the conversion of those traces into (electronic) signals in the detector readout (usually called digitization).
  
-The first part is handled by the `o2-sim` executable (See [SimSection](#SimSection)). The second part is handled in the `o2-sim-digitizer-workflow` executable (See [DigitSection](#DigitSection)).
+The first part is handled by the `o2-sim` executable (See [SimSection](#SimSection)). The second part is handled in the `o2-sim-digitizer-workflow` executable (See [DigitSection](#DigitSection)). References to examples are [collected here](#Examples).
 
 ## Key new features with respect to AliRoot
 
@@ -443,3 +443,13 @@ for (int pos = 0; pos < alldigits.size(); ++pos) {
 }
 ```
 
+# Simulation tutorials/examples <a name="Examples"></a>
+
+Some examples for the usage of simulation and digitization are collected in an [examples folder](../run/SimExamples).
+Other helpful resources are the scripts used for regression testing in [prodtests](../prodtests). 
+
+| Example               | Short Description                                                                      |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| [Jet_Embedding_Pythia](../run/SimExamples/Jet_Embedding_Pythia8) | Complex example showing **generator configuration**, **digitization embedding**, **MCTrack access** |
+| [sim_challenge.sh](../prodtests/sim_challenge.sh) | Basic example doing a **simple transport, digitization, reconstruction pipeline** on the full dectector. All stages use parallelism. |
+| [sim_performance.sh](../prodtests/sim_performance_test.sh) | Basic example for serial transport and linearized digitization sequence (one detector after the other). Serves as standard performance candle. |  
