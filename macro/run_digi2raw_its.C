@@ -90,7 +90,8 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
         ru.links[il] = rawReader.addGBTLink();
         auto* link = rawReader.getGBTLink(ru.links[il]);
         link->lanes = lanes & ((0x1 << lnkAs[il]) - 1) << (accL);
-        link->id = il;
+        link->idInCRU = il;
+        link->cruID = il;
         link->feeID = mp.RUSW2FEEId(ir, il);
         accL += lnkAs[il];
         LOG(INFO) << "RU " << std::setw(3) << ir << " on lr" << int(ru.ruInfo->layer)
