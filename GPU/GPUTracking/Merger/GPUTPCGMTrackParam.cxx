@@ -103,10 +103,11 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
     int resetT0 = initResetT0();
     const bool refit = (nWays == 1 || iWay >= 1);
     const float maxSinForUpdate = CAMath::Sin(70.f * kDeg2Rad);
-    prop.SetSeedingErrors(!(refit && attempt == 0));
 
     ResetCovariance();
+    prop.SetSeedingErrors(!(refit && attempt == 0));
     prop.SetFitInProjections(param.rec.fitInProjections == -1 ? (iWay != 0) : param.rec.fitInProjections);
+    prop.SetPropagateBzOnly(param.rec.fitPropagateBzOnly > iWay);
     prop.SetTrack(this, iWay ? prop.GetAlpha() : Alpha);
     ConstrainSinPhi(prop.GetFitInProjections() ? 0.95f : GPUCA_MAX_SIN_PHI_LOW);
     CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f)\n", iTrk, iWay, (int)(prop.GetAlpha() / kSectAngle + 0.5) + (mP[1] < 0 ? 18 : 0), prop.GetAlpha()));
