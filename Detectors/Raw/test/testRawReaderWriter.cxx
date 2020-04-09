@@ -21,9 +21,12 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
-#include "DetectorsRaw/RawFileReader.h"
+#include "DetectorsRaw/SimpleRawReader.h"
+#include "DetectorsRaw/SimpleSTF.h"
 #include "CommonConstants/Triggers.h"
 #include "Framework/Logger.h"
+#include "Framework/InputRecord.h"
+#include "DPLUtils/DPLRawParser.h"
 
 // @brief test and demo for RawFileReader and Writer classes
 // @author ruben.shahoyan@cern.ch
@@ -31,7 +34,8 @@
 namespace o2
 {
 using namespace o2::raw;
-using RDH = o2::header::RAWDataHeaderV4;
+using namespace o2::framework;
+using RDH = o2::raw::RawFileWriter::RDH;
 using IR = o2::InteractionRecord;
 
 constexpr int NCRU = 3 + 1;    // number of CRUs, the last one is a special CRU with preformatted data filled
@@ -272,6 +276,37 @@ BOOST_AUTO_TEST_CASE(RawReaderWriter)
   TestRawReader dr;
   dr.init();
   dr.run(); // read back and check
+
+  // test SimpleReader
+  int nLoops = 5;
+  SimpleRawReader sr(CFGName, false, nLoops);
+  int ntf = 0;
+  while (sr.loadNextTF()) {
+    ntf++;
+    auto& record = *sr.getInputRecord();
+    BOOST_CHECK(record.size() == NCRU * NLinkPerCRU);
+    o2::header::DataHeader const* dhPrev = nullptr;
+    DPLRawParser parser(record);
+    for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+      auto const* rdh = it.get_if<RDH>();
+      auto const* dh = it.o2DataHeader();
+      BOOST_REQUIRE(rdh != nullptr);
+      bool newLink = false;
+      if (dh != dhPrev) {
+        dhPrev = dh;
+        newLink = true;
+      }
+      if (rdh->cruID == NCRU - 1) {
+        if (newLink) {
+          dh->print();
+        }
+        RDHUtils::printRDH(rdh);
+        if (rdh->memorySize > sizeof(RDH) + RDHUtils::GBTWord) { // special CRU with predefined sizes
+          BOOST_CHECK(it.size() + sizeof(RDH) == SpecSize[rdh->linkID]);
+        }
+      }
+    }
+  }
 }
 
 } // namespace o2

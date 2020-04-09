@@ -13,34 +13,48 @@
 #ifndef ALICEO2_ITSMFT_SIMPLERAWREADER_H_
 #define ALICEO2_ITSMFT_SIMPLERAWREADER_H_
 
-#include <vector>
-#include <gsl/gsl>
-#include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RawFileReader.h"
 
 namespace o2
 {
+namespace framework
+{
+class InputRecord;
+}
+namespace raw
+{
+struct SimpleSTF;
 
-namespace itsmft
+/// Class to read raw data from the file and to create a STF-like structure which can be navigated using e.g. DPLRawParser
+/// but which can be used in the standalone code not using exchange over the DPL.
+/// Simple reader for non-DPL tests
+class SimpleRawReader
 {
 
-/// Simple reader for non-DPL tests
-struct SimpleRawReader {                                   // simple class to read detector raw data for multiple links
-  using LinkBuffer = std::pair<std::vector<char>, size_t>; // buffer for the link TF data and running position index
-  using RDH = o2::header::RAWDataHeader;
-
-  std::unique_ptr<o2::raw::RawFileReader> reader;
-  std::vector<LinkBuffer> buffers;
-  std::string cfgName{};
-
-  SimpleRawReader() = default;
-  SimpleRawReader(const std::string& cfg) : cfgName(cfg) {}
+ public:
+  SimpleRawReader();
+  SimpleRawReader(const std::string& cfg, bool tfPerMessage = false, int loop = 1);
+  ~SimpleRawReader();
   void init();
-  int loadNextTF();
-  int getNLinks() const { return reader ? reader->getNLinks() : 0; }
+  bool loadNextTF();
+  int getNLinks() const { return mReader ? mReader->getNLinks() : 0; }
+  bool isDone() const { return mDone; }
+  void setTFPerMessage(bool v = true) { mHBFPerMessage = !v; }
+  void setConfigFileName(const std::string& fn) { mCFGName = fn; }
+  void printStat() const;
 
-  const gsl::span<char> getNextPage(int il);
-  bool initDone = false;
+  SimpleSTF* getSimpleSTF();
+  o2::framework::InputRecord* getInputRecord();
+
+ private:
+  int mLoop = 0;              // once last TF reached, loop while mLoop>=0
+  bool mHBFPerMessage = true; // true: send TF as multipart of HBFs, false: single message per TF
+  bool mDone = false;
+  std::string mCFGName{};
+  std::unique_ptr<o2::raw::RawFileReader> mReader;
+  size_t mLoopsDone = 0, mSentSize = 0, mSentMessages = 0, mTFIDaccum = 0; // statistics
+
+  std::unique_ptr<SimpleSTF> mSTF;
 
   ClassDefNV(SimpleRawReader, 1);
 };
