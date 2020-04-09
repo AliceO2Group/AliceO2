@@ -11,6 +11,7 @@
 #include "ITSMFTSimulation/MC2RawEncoder.h"
 #include "CommonConstants/Triggers.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "ITSMFTReconstruction/GBTLink.h"
 #include "Framework/Logger.h"
 
 using namespace o2::itsmft;
@@ -31,35 +32,36 @@ void MC2RawEncoder<Mapping>::init()
   for (uint8_t ru = mRUSWMin; ru <= mRUSWMax; ru++) {
     auto& ruData = getCreateRUDecode(ru);
     int nLinks = 0;
-    for (int il = 0; il < MaxLinksPerRU; il++) {
-      if (ruData.links[il]) {
-        auto subspec = o2::raw::RDHUtils::getSubSpec(ruData.links[il]->cruID, ruData.links[il]->id, ruData.links[il]->endPointID, ruData.links[il]->feeID);
+    for (int il = 0; il < RUDecodeData::MaxLinksPerRU; il++) {
+      auto* link = getGBTLink(ruData.links[il]);
+      if (link) {
+        auto subspec = o2::raw::RDHUtils::getSubSpec(link->cruID, link->idInCRU, link->endPointID, link->feeID);
         if (!mWriter.isLinkRegistered(subspec)) {
           LOGF(INFO, "RU%3d FEEId 0x%04x Link %02d of CRU=0x%94x will be writing to default sink %s",
-               int(ru), ruData.links[il]->feeID, ruData.links[il]->id, ruData.links[il]->cruID, mDefaultSinkName);
-          mWriter.registerLink(ruData.links[il]->feeID, ruData.links[il]->cruID, ruData.links[il]->id,
-                               ruData.links[il]->endPointID, mDefaultSinkName);
+               int(ru), link->feeID, link->idInCRU, link->cruID, mDefaultSinkName);
+          mWriter.registerLink(link->feeID, link->cruID, link->idInCRU, link->endPointID, mDefaultSinkName);
         }
         nLinks++;
-        if (ruData.links[il]->packetCounter < 0) {
-          ruData.links[il]->packetCounter = 0; // reset only once
+        if (link->packetCounter < 0) {
+          link->packetCounter = 0; // reset only once
         }
       }
     }
     mNLinks += nLinks;
     if (!nLinks) {
       LOG(WARNING) << "No GBT links were defined for RU " << int(ru) << " defining automatically";
-      ruData.links[0] = std::make_unique<GBTLink>();
-      ruData.links[0]->lanes = mMAP.getCablesOnRUType(ruData.ruInfo->ruType);
-      ruData.links[0]->id = 0;
-      ruData.links[0]->cruID = ru;
-      ruData.links[0]->feeID = mMAP.RUSW2FEEId(ruData.ruInfo->idSW, 0);
-      ruData.links[0]->endPointID = 0;
-      ruData.links[0]->packetCounter = 0;
-      mWriter.registerLink(ruData.links[0]->feeID, ruData.links[0]->cruID, ruData.links[0]->id,
-                           ruData.links[0]->endPointID, mDefaultSinkName);
-      LOGF(INFO, "RU%3d FEEId 0x%04x Link %02d of CRU=0x%04x Lanes: %s -> %s", int(ru), ruData.links[0]->feeID,
-           ruData.links[0]->id, ruData.links[0]->cruID, std::bitset<28>(ruData.links[0]->lanes).to_string(), mDefaultSinkName);
+      ruData.links[0] = addGBTLink();
+      auto* link = getGBTLink(ruData.links[0]);
+      link->lanes = mMAP.getCablesOnRUType(ruData.ruInfo->ruType);
+      link->idInCRU = 0;
+      link->idInRU = 0;
+      link->cruID = ru;
+      link->feeID = mMAP.RUSW2FEEId(ruData.ruInfo->idSW, 0);
+      link->endPointID = 0;
+      link->packetCounter = 0;
+      mWriter.registerLink(link->feeID, link->cruID, link->idInCRU, link->endPointID, mDefaultSinkName);
+      LOGF(INFO, "RU%3d FEEId 0x%04x Link %02d of CRU=0x%04x Lanes: %s -> %s", int(ru), link->feeID,
+           link->idInCRU, link->cruID, std::bitset<28>(link->lanes).to_string(), mDefaultSinkName);
       mNLinks++;
     }
   }
@@ -165,8 +167,8 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
   gbtTrigger.internal = isContinuousReadout();
   gbtTrigger.triggerType = 0; //TODO
 
-  for (int il = 0; il < MaxLinksPerRU; il++) {
-    auto link = ru.links[il].get();
+  for (int il = 0; il < RUDecodeData::MaxLinksPerRU; il++) {
+    auto link = getGBTLink(ru.links[il]);
     if (!link) {
       continue;
     }
@@ -219,13 +221,11 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
     LOGF(DEBUG, "Filled %s with %d GBT words", link->describe(), nPayLoadWordsNeeded + 3);
 
     // flush to writer
-    mWriter.addData(link->feeID, link->cruID, link->id, link->endPointID, mCurrIR,
-                    gsl::span((char*)link->data.data(), link->data.getSize()));
+    mWriter.addData(link->feeID, link->cruID, link->idInCRU, link->endPointID, mCurrIR, gsl::span((char*)link->data.data(), link->data.getSize()));
     link->data.clear();
     //
   } // loop over links of RU
-  ru.clearTrigger();
-  ru.nChipsFired = 0;
+  ru.clear();
 }
 
 ///______________________________________________________________________
@@ -236,6 +236,7 @@ RUDecodeData& MC2RawEncoder<Mapping>::getCreateRUDecode(int ruSW)
   if (mRUEntry[ruSW] < 0) {
     mRUEntry[ruSW] = mNRUs++;
     mRUDecodeVec[mRUEntry[ruSW]].ruInfo = mMAP.getRUInfoSW(ruSW); // info on the stave/RU
+    mRUDecodeVec[mRUEntry[ruSW]].chipsData.resize(mMAP.getNChipsOnRUType(mMAP.getRUInfoSW(ruSW)->ruType));
     LOG(INFO) << "Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
   }
   return mRUDecodeVec[mRUEntry[ruSW]];
@@ -281,14 +282,16 @@ int MC2RawEncoder<Mapping>::carryOverMethod(const RDH& rdh, const gsl::span<char
   // query of this method will be done on the new CRU page
 
   constexpr int TrigHeadSize = sizeof(GBTTrigger) + sizeof(GBTDataHeader);
+  constexpr int TotServiceSize = sizeof(GBTTrigger) + sizeof(GBTDataHeader) + sizeof(GBTDataTrailer);
 
   int offs = ptr - &data[0]; // offset wrt the head of the payload
   // make sure ptr and end of the suggested block are within the payload
   assert(offs >= 0 && size_t(offs + maxSize) <= data.size());
 
-  if (offs && offs <= TrigHeadSize) { // we cannot split trigger+header
+  if ((maxSize <= TotServiceSize)) {  // we cannot split trigger+header
     return 0;                         // suggest moving the whole payload to the new CRU page
   }
+
   // this is where we would usually split: account for the trailer to add
   int actualSize = maxSize - sizeof(GBTDataTrailer);
 

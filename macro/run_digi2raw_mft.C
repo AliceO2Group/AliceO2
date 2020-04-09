@@ -79,11 +79,12 @@ void run_digi2raw_mft(std::string outName = "rawmft.bin",                       
   for (int ir = 0; ir < mp.getNRUs(); ir++) {
     auto& ru = rawReader.getCreateRUDecode(ir);               // create RU container
     uint32_t lanes = mp.getCablesOnRUType(ru.ruInfo->ruType); // lanes patter of this RU
-    ru.links[0] = std::make_unique<o2::itsmft::GBTLink>();
-    ru.links[0]->lanes = lanes; // single link reads all lanes
+    ru.links[0] = rawReader.addGBTLink();
+    auto* link = rawReader.getGBTLink(ru.links[0]);
+    link->lanes = lanes; // single link reads all lanes
     LOG(INFO) << "RU " << std::setw(3) << ir << " type " << int(ru.ruInfo->ruType) << " on lr" << int(ru.ruInfo->layer)
               << " : FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << mp.RUSW2FEEId(ir, int(ru.ruInfo->layer))
-              << " reads lanes " << std::bitset<25>(ru.links[0]->lanes);
+              << " reads lanes " << std::bitset<25>(link->lanes);
   }
 
   //-------------------------------------------------------------------------------<<<<

@@ -1,4 +1,17 @@
-#if !defined(__CLING__) || defined(__ROOTCLING__)
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file digi2raw.cxx
+/// \author ruben.shahoyan@cern.ch
+
+#include <boost/program_options.hpp>
 #include <TTree.h>
 #include <TChain.h>
 #include <TFile.h>
@@ -13,33 +26,74 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTSimulation/MC2RawEncoder.h"
-#endif
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/StringUtils.h"
 
-// demo macro the MC->raw conversion with new (variable page size) format
-void setupLinks(o2::itsmft::MC2RawEncoder<o2::itsmft::ChipMappingITS>& m2r, const std::string& outPrefix);
+/// MC->raw conversion with new (variable page size) format for ITS
+using MAP = o2::itsmft::ChipMappingITS;
+namespace bpo = boost::program_options;
 
-void run_digi2rawVarPage_its(std::string outPrefix = "rawits",       // prefix of the output binary file
-                             std::string inpName = "itsdigits.root", // name of the input ITS digits
-                             int verbosity = 0,
-                             std::string digTreeName = "o2sim",           // name of the digits tree
-                             std::string digBranchName = "ITSDigit",      // name of the digits branch
-                             std::string rofRecName = "ITSDigitROF",      // name of the ROF records branch
-                             std::string inputGRP = "o2sim_grp.root",     // name of the simulated data GRP file
-                             uint8_t ruSWMin = 0, uint8_t ruSWMax = 0xff, // seq.ID of 1st and last RU (stave) to convert
-                             int superPageSizeInB = 1024 * 1024           // superpage in bytes
-)
+void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, bool filePerCRU);
+void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU, int verbosity, int superPageSizeInB = 1024 * 1024);
+
+int main(int argc, char** argv)
+{
+  bpo::variables_map vm;
+  bpo::options_description opt_general("Usage:\n  " + std::string(argv[0]) +
+                                       "Convert ITS digits to CRU raw data\n");
+  bpo::options_description opt_hidden("");
+  bpo::options_description opt_all;
+  bpo::positional_options_description opt_pos;
+
+  try {
+    auto add_option = opt_general.add_options();
+    add_option("help,h", "Print this help message");
+    add_option("verbosity,v", bpo::value<uint32_t>()->default_value(0), "verbosity level [0 = no output]");
+    add_option("input-file,i", bpo::value<std::string>()->default_value("itsdigits.root"), "input ITS digits file");
+    add_option("file-per-cru,c", bpo::value<bool>()->default_value(false)->implicit_value(true), "create output file per CRU (default: per layer)");
+    add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "Output directory for raw data");
+
+    opt_all.add(opt_general).add(opt_hidden);
+    bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
+
+    if (vm.count("help")) {
+      std::cout << opt_general << std::endl;
+      exit(0);
+    }
+
+    bpo::notify(vm);
+  } catch (bpo::error& e) {
+    std::cerr << "ERROR: " << e.what() << std::endl
+              << std::endl;
+    std::cerr << opt_general << std::endl;
+    exit(1);
+  } catch (std::exception& e) {
+    std::cerr << e.what() << ", application will now exit" << std::endl;
+    exit(2);
+  }
+  digi2raw(vm["input-file"].as<std::string>(),
+           vm["output-dir"].as<std::string>(),
+           vm["file-per-cru"].as<bool>(),
+           vm["verbosity"].as<uint32_t>());
+
+  return 0;
+}
+
+void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU, int verbosity, int superPageSizeInB)
 {
   TStopwatch swTot;
   swTot.Start();
   using ROFR = o2::itsmft::ROFRecord;
   using ROFRVEC = std::vector<o2::itsmft::ROFRecord>;
-
+  const uint8_t ruSWMin = 0, ruSWMax = 0xff; // seq.ID of 1st and last RU (stave) to convert
   ///-------> input
+  std::string digTreeName{o2::base::NameConf::MCTTREENAME.data()};
   TChain digTree(digTreeName.c_str());
-
-  digTree.AddFile(inpName.c_str());
+  digTree.AddFile(inpName.data());
 
   std::vector<o2::itsmft::Digit> digiVec, *digiVecP = &digiVec;
+  std::string digBranchName = o2::utils::concat_string(MAP::getName(), "Digit");
   if (!digTree.GetBranch(digBranchName.c_str())) {
     LOG(FATAL) << "Failed to find the branch " << digBranchName << " in the tree " << digTreeName;
   }
@@ -47,30 +101,24 @@ void run_digi2rawVarPage_its(std::string outPrefix = "rawits",       // prefix o
 
   // ROF record entries in the digit tree
   ROFRVEC rofRecVec, *rofRecVecP = &rofRecVec;
+  std::string rofRecName = o2::utils::concat_string(MAP::getName(), "DigitROF");
   if (!digTree.GetBranch(rofRecName.c_str())) {
     LOG(FATAL) << "Failed to find the branch " << rofRecName << " in the tree " << digTreeName;
   }
   digTree.SetBranchAddress(rofRecName.c_str(), &rofRecVecP);
   ///-------< input
-
+  std::string inputGRP = o2::base::NameConf::getGRPFileName();
   const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
 
-  o2::itsmft::MC2RawEncoder<o2::itsmft::ChipMappingITS> m2r;
+  o2::itsmft::MC2RawEncoder<MAP> m2r;
   m2r.setVerbosity(verbosity);
-  m2r.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::ITS)); // must be set explicitly
-  m2r.setDefaultSinkName(outPrefix + ".raw");
+  m2r.setContinuousReadout(grp->isDetContinuousReadOut(MAP::getDetID())); // must be set explicitly
+  m2r.setDefaultSinkName(o2::utils::concat_string(MAP::getName(), ".raw"));
   m2r.setMinMaxRUSW(ruSWMin, ruSWMax);
+  m2r.getWriter().setSuperPageSize(superPageSizeInB);
 
-  {
-    // Attention: HBFUtils is a special singleton of ConfigurableParam type, cannot be set by detectors
-    o2::raw::HBFUtils::updateFromString("HBFUtils.nHBFPerTF=256"); // this is default anyway
-  }
-
-  m2r.getWriter().setSuperPageSize(1024 * 1024);      // this is default anyway
-
-  m2r.setVerbosity(0);
-
-  setupLinks(m2r, outPrefix);
+  m2r.setVerbosity(verbosity);
+  setupLinks(m2r, outDir, MAP::getName(), filePerCRU);
   //-------------------------------------------------------------------------------<<<<
   int lastTreeID = -1;
   long offs = 0, nEntProc = 0;
@@ -94,13 +142,14 @@ void run_digi2rawVarPage_its(std::string outPrefix = "rawits",       // prefix o
     }
   } // loop over multiple ROFvectors (in case of chaining)
 
+  m2r.getWriter().writeConfFile(MAP::getName(), "RAWDATA", o2::utils::concat_string(outDir, '/', MAP::getName(), "raw.cfg"));
   m2r.finalize(); // finish TF and flush data
   //
   swTot.Stop();
   swTot.Print();
 }
 
-void setupLinks(o2::itsmft::MC2RawEncoder<o2::itsmft::ChipMappingITS>& m2r, const std::string& outPrefix)
+void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, bool filePerCRU)
 {
   //------------------------------------------------------------------------------->>>>
   // just as an example, we require here that the staves are read via 3 links, with partitioning according to lnkXB below
@@ -138,7 +187,7 @@ void setupLinks(o2::itsmft::MC2RawEncoder<o2::itsmft::ChipMappingITS>& m2r, cons
     for (int i = 3; i--;) {
       nlk += lnkAs[i] ? 1 : 0;
     }
-    outFileLink = outPrefix + "_lr" + std::to_string(ilr) + ".raw";
+
     for (int ir = 0; ir < nruLr; ir++) {
       int ruID = nRUtot++;
       bool accept = !(ruID < m2r.getRUSWMin() || ruID > m2r.getRUSWMax()); // ignored RUs ?
@@ -165,6 +214,7 @@ void setupLinks(o2::itsmft::MC2RawEncoder<o2::itsmft::ChipMappingITS>& m2r, cons
                       << " -> " << outFileLink;
           }
           // register the link in the writer, if not done here, its data will be dumped to common default file
+          outFileLink = filePerCRU ? o2::utils::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(nCRU), ".raw") : o2::utils::concat_string(outPrefix, "_lr", std::to_string(ilr), ".raw");
           m2r.getWriter().registerLink(link->feeID, link->cruID, link->idInCRU,
                                        link->endPointID, outFileLink);
           //
