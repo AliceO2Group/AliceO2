@@ -137,9 +137,9 @@ PageDecoder createPageDecoder(RawBuffer rdhBuffer, SampaChannelHandler channelHa
       }
     } else {
       if (rdhFeeId(rdh) & impl::CHARGESUM_MASK) {
-        return impl::PageDecoderImpl<V4, BareFormat, SampleMode>(channelHandler);
-      } else {
         return impl::PageDecoderImpl<V4, BareFormat, ChargeSumMode>(channelHandler);
+      } else {
+        return impl::PageDecoderImpl<V4, BareFormat, SampleMode>(channelHandler);
       }
     }
   }
