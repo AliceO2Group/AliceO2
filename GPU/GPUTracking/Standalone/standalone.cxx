@@ -296,6 +296,9 @@ int SetupReconstruction()
     recSet.TrackReferenceX = configStandalone.referenceX;
   }
   recSet.tpcZSthreshold = configStandalone.zsThreshold;
+  if (configStandalone.configRec.fitInProjections != -1) {
+    recSet.fitInProjections = configStandalone.configRec.fitInProjections;
+  }
 
   if (configStandalone.OMPThreads != -1) {
     devProc.nThreads = configStandalone.OMPThreads;

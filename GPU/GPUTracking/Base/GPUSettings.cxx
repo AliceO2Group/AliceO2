@@ -49,6 +49,7 @@ void GPUSettingsRec::SetDefaults()
   dropLoopers = false;
   mergerCovSource = 2;
   mergerInterpolateErrors = 1;
+  fitInProjections = -1;
 }
 
 void GPUSettingsEvent::SetDefaults()
