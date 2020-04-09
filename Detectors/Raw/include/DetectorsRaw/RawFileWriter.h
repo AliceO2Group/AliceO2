@@ -37,7 +37,7 @@ class RawFileWriter
 {
 
  public:
-  using RDH = o2::header::RAWDataHeaderV4;
+  using RDH = o2::header::RAWDataHeader;
   using IR = o2::InteractionRecord;
   using CarryOverCallBack = std::function<int(const RDH& rdh, const gsl::span<char> data,
                                               const char* ptr, int size, int splitID,
@@ -137,11 +137,11 @@ class RawFileWriter
 
   RawFileWriter() = default;
   ~RawFileWriter();
-  void writeConfFile(const std::string& origin = "FLP", const std::string& description = "RAWDATA", const std::string& cfgname = "raw.cfg") const;
+  void writeConfFile(std::string_view origin = "FLP", std::string_view description = "RAWDATA", std::string_view cfgname = "raw.cfg", bool fullPath = true) const;
   void close();
 
-  LinkData& registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8_t endpoint, const std::string& outFileName);
-  LinkData& registerLink(const RDH& rdh, const std::string& outFileName);
+  LinkData& registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8_t endpoint, std::string_view outFileName);
+  LinkData& registerLink(const RDH& rdh, std::string_view outFileName);
 
   LinkData& getLinkWithSubSpec(LinkSubSpec_t ss);
   LinkData& getLinkWithSubSpec(const RDH& rdh) { return mSSpec2Link[RDHUtils::getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID, rdh.feeId)]; }
