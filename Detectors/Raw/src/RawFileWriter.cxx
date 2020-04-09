@@ -17,6 +17,7 @@
 #include <sstream>
 #include <functional>
 #include <cassert>
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "CommonConstants/Triggers.h"
@@ -81,13 +82,13 @@ RawFileWriter::LinkData& RawFileWriter::LinkData::operator=(const LinkData& src)
 }
 
 //_____________________________________________________________________
-RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8_t endpoint, const std::string& outFileName)
+RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8_t endpoint, std::string_view outFileNameV)
 {
   // register the GBT link and its output file
-
+  std::string outFileName{outFileNameV};
   auto sspec = RDHUtils::getSubSpec(cru, link, endpoint, fee);
   auto& linkData = mSSpec2Link[sspec];
-  auto& file = mFName2File[outFileName];
+  auto& file = mFName2File[std::string(outFileName)];
   if (!file.handler) {
     if (!(file.handler = fopen(outFileName.c_str(), "wb"))) { // if file does not exist, create it
       LOG(ERROR) << "Failed to open output file " << outFileName;
@@ -117,7 +118,7 @@ RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru,
 }
 
 //_____________________________________________________________________
-RawFileWriter::LinkData& RawFileWriter::registerLink(const RDH& rdh, const std::string& outFileName)
+RawFileWriter::LinkData& RawFileWriter::registerLink(const RDH& rdh, std::string_view outFileName)
 {
   // register the GBT link and its output file
   auto& linkData = registerLink(rdh.feeId, rdh.cruID, rdh.linkID, rdh.endPointID, outFileName);
@@ -170,18 +171,21 @@ RawFileWriter::LinkData& RawFileWriter::getLinkWithSubSpec(LinkSubSpec_t ss)
 }
 
 //_____________________________________________________________________
-void RawFileWriter::writeConfFile(const std::string& origin, const std::string& description, const std::string& cfgname) const
+void RawFileWriter::writeConfFile(std::string_view origin, std::string_view description, std::string_view cfgname, bool fullPath) const
 {
   // write configuration file for generated data
   std::ofstream cfgfile;
-  cfgfile.open(cfgname);
-  cfgfile << "[defaults]" << std::endl;
-  cfgfile << "dataOrigin = " << origin << std::endl;
-  cfgfile << "dataDescription = " << description << std::endl;
+  cfgfile.open(cfgname.data());
+  // this is good for the global settings only, problematic for concatenation
+  cfgfile << "#[defaults]" << std::endl;
+  cfgfile << "#dataOrigin = " << origin << std::endl;
+  cfgfile << "#dataDescription = " << description << std::endl;
   for (int i = 0; i < getNOutputFiles(); i++) {
     cfgfile << std::endl
             << "[input-" << i << "]" << std::endl;
-    cfgfile << "filePath = " << getOutputFileName(i) << std::endl;
+    cfgfile << "dataOrigin = " << origin << std::endl;
+    cfgfile << "dataDescription = " << description << std::endl;
+    cfgfile << "filePath = " << (fullPath ? o2::base::NameConf::getFullPath(getOutputFileName(i)) : getOutputFileName(i)) << std::endl;
   }
   cfgfile.close();
 }

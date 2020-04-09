@@ -35,7 +35,7 @@ class RawFileReader
 {
   using LinkSpec_t = uint64_t; // = (origin<<32) | LinkSubSpec
  public:
-  using RDH = o2::header::RAWDataHeaderV4;
+  using RDH = o2::header::RAWDataHeader;
   using OrDesc = std::pair<o2::header::DataOrigin, o2::header::DataDescription>;
   using InputsMap = std::map<OrDesc, std::vector<std::string>>;
   //================================================================================
