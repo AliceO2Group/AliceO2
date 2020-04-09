@@ -177,29 +177,16 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
       out << " (Error: Tracklet " << j << " First " << tracklet.FirstRow() << " Last " << tracklet.LastRow() << " Hits " << tracklet.NHits() << ") ";
       for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
         // if (tracklet.RowHit(i) != CALINK_INVAL)
-#ifdef GPUCA_EXTERN_ROW_HITS
-        out << i << "-" << mTrackletRowHits[(i - tracklet.FirstRow()) * mNMaxTracklets + j] << ", ";
-#else
-        out << i << "-" << tracklet.RowHit(i) << ", ";
-#endif
+        out << i << "-" << mTrackletRowHits[tracklet.FirstHit() + (i - tracklet.FirstRow())] << ", ";
       }
     } else if (tracklet.NHits() && tracklet.LastRow() >= tracklet.FirstRow()) {
       int nHits = 0;
       for (int i = tracklet.FirstRow(); i <= tracklet.LastRow(); i++) {
-#ifdef GPUCA_EXTERN_ROW_HITS
-        calink ih = mTrackletRowHits[(i - tracklet.FirstRow()) * mNMaxTracklets + j];
-#else
-        calink ih = tracklet.RowHit(i);
-#endif
+        calink ih = mTrackletRowHits[tracklet.FirstHit() + (i - tracklet.FirstRow())];
         if (ih != CALINK_INVAL) {
           nHits++;
         }
-
-#ifdef GPUCA_EXTERN_ROW_HITS
-        out << i << "-" << mTrackletRowHits[(i - tracklet.FirstRow()) * mNMaxTracklets + j] << ", ";
-#else
-        out << i << "-" << tracklet.RowHit(i) << ", ";
-#endif
+        out << i << "-" << mTrackletRowHits[tracklet.FirstHit() + (i - tracklet.FirstRow())] << ", ";
       }
       if (nHits != tracklet.NHits()) {
         std::cout << std::endl
