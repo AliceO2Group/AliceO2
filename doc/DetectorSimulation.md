@@ -376,7 +376,7 @@ Digitization - the transformation of hits produced in the transport simulation t
 ## Monte Carlo Labels <a name="MCLabels"></a>
 
 We can associate digits to tracks/particles of the original transport simulation, so as to keep provenance information of how
-digits where triggered. This information can be passed forward to reconstruction and analysis and used to study reconstruction efficiencies etc.
+digits were triggered. This information can be passed forward to reconstruction and analysis and used to study reconstruction efficiencies etc.
 
 To this end, a special data object `MCCompLabel` is offered, which allows to encapsulate the identifiers of track, event and source kinematics files. 
 ```c++
@@ -392,7 +392,7 @@ std::vector<o2::foo::Digits> mDigits;
 ```
 we keep a separate container of labels of type:
 ```c++
-o2::dataformats::MCTruthContainer<o2::dataformats::MCCompLabel>
+o2::dataformats::MCTruthContainer<o2::dataformats::MCCompLabel> mLabelContainer;
 ```
 Querying the labels works by positional correspondance: Labels for the digit at position `pos` can be accessed in the following way:
 ```c++
