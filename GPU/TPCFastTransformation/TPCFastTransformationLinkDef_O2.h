@@ -33,23 +33,7 @@
 #pragma link C++ class o2::gpu::Spline2DBase < float, true> + ;
 #pragma link C++ class o2::gpu::Spline2DBase < double, true> + ;
 
-//#pragma link C++ class o2::gpu::Spline2D < float, 0, false > +;
-//#pragma link C++ class o2::gpu::Spline2D < double, 0, false > +;
-//#pragma link C++ class o2::gpu::Spline2D < float > +;
-//#pragma link C++ class o2::gpu::Spline2D < double > +;
-
-#pragma link C++ class o2::gpu::Spline2D < float, 1, true> - ;
-
-/*
-#pragma link C++ class o2::gpu::Spline2D < float, 0, false > +;
-#pragma link C++ class o2::gpu::Spline2D < double, 0, false > +;
-#pragma link C++ class o2::gpu::Spline2D < float, 0, true > +;
-#pragma link C++ class o2::gpu::Spline2D < double, 0, true > +;
-*/
-//#pragma link C++ class o2::gpu::Spline2Di < float  > +;
-//#pragma link C++ class o2::gpu::Spline2Di < double > +;
-
-//#pragma link c++ global o2::gpu::gSpine2Dtmp+;
+#pragma link C++ class o2::gpu::Spline2D < float, 1> - ;
 
 #pragma link C++ class o2::gpu::SplineHelper1D < float>;
 #pragma link C++ class o2::gpu::SplineHelper1D < double>;
