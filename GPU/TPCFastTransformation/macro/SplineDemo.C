@@ -28,7 +28,6 @@ int nKnots = 4;
 
 static double Fcoeff[2 * (Fdegree + 1)];
 
-
 void F(float u, float f[])
 {
   double uu = u * TMath::Pi() / (nKnots - 1);
@@ -135,17 +134,12 @@ int SplineDemo()
       Fcoeff[i] = gRandom->Uniform(-1, 1);
     }
 
-    o2::gpu::Spline1D spline(nKnots);
+    o2::gpu::Spline1D<float> spline(nKnots, 1);
+    spline.approximateFunction(0, nKnots - 1, F, nAxiliaryPoints);
 
-    o2::gpu::SplineHelper1D helper;
-    helper.setSpline(spline, nAxiliaryPoints);
-
-    std::unique_ptr<float[]> parameters = helper.constructParameters(1, F, 0., spline.getUmax());
-
-    o2::gpu::Spline1D splineClassic(nKnots);
-    helper.setSpline(splineClassic, nAxiliaryPoints);
-
-    std::unique_ptr<float[]> parametersClassic = helper.constructParametersClassic(1, F, 0., splineClassic.getUmax());
+    o2::gpu::Spline1D<float> splineClassic(nKnots, 1);
+    o2::gpu::SplineHelper1D<float> helper;
+    helper.approximateFunctionClassic(splineClassic, 0, nKnots - 1, F);
 
     IrregularSpline1D splineLocal;
     int nKnotsLocal = 2 * nKnots - 1;
@@ -169,15 +163,16 @@ int SplineDemo()
 
     for (int i = 0; i < nKnots; i++) {
       double u = splineClassic.getKnot(i).u;
-      double fs = splineClassic.interpolate1D(parametersClassic.get(), u);
+      double fs = splineClassic.interpolate(splineClassic.convUtoX(u));
       knots->Fill(1, u, fs);
     }
 
+    helper.setSpline(spline, 1, nAxiliaryPoints);
     for (int j = 0; j < helper.getNumberOfDataPoints(); j++) {
-      const SplineHelper1D::DataPoint& p = helper.getDataPoint(j);
+      const typename SplineHelper1D<float>::DataPoint& p = helper.getDataPoint(j);
       float f0;
       F(p.u, &f0);
-      double fs = spline.interpolate1D(parameters.get(), p.u);
+      double fs = spline.interpolate(spline.convUtoX(p.u));
       if (p.isKnot) {
         knots->Fill(2, p.u, fs);
       }
@@ -217,8 +212,8 @@ int SplineDemo()
       double u = s * (nKnots - 1);
       float f0;
       F(u, &f0);
-      double fBestFit = spline.interpolate1D(parameters.get(), u);
-      double fClass = splineClassic.interpolate1D(parametersClassic.get(), u);
+      double fBestFit = spline.interpolate(spline.convUtoX(u));
+      double fClass = splineClassic.interpolate(splineClassic.convUtoX(u));
       double fLocal = splineLocal.getSpline(parametersLocal.get(), s);
       double fCheb = cheb(u, 2 * nKnots - 1);
       nt->Fill(u, f0, fBestFit, fClass, fLocal, fCheb);

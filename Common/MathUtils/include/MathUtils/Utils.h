@@ -69,9 +69,12 @@ inline void BringToPMPiGen(float& phi)
 
 inline void sincosf(float ang, float& s, float& c)
 {
-  // consider speedup for simultaneus calculation
-  s = o2::gpu::CAMath::Sin(ang);
-  c = o2::gpu::CAMath::Cos(ang);
+  o2::gpu::GPUCommonMath::SinCos(ang, s, c);
+}
+
+inline void sincos(double ang, double& s, double& c)
+{
+  o2::gpu::GPUCommonMath::SinCos(ang, s, c);
 }
 
 inline void rotateZ(float xL, float yL, float& xG, float& yG, float snAlp, float csAlp)
