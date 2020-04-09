@@ -86,7 +86,7 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
 #endif
     calink ih = rowHits[iRow];
 #ifdef GPUCA_EXTERN_ROW_HITS
-    tracker.TrackletRowHits()[iRow * tracker.NMaxTracklets() + itrout] = ih;
+    tracker.TrackletRowHits()[(iRow - r.mFirstRow) * tracker.NMaxTracklets() + itrout] = ih;
 #else
     tracklet.SetRowHit(iRow, ih);
 #endif // GPUCA_EXTERN_ROW_HITS
