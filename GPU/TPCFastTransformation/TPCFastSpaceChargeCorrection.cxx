@@ -72,7 +72,7 @@ void TPCFastSpaceChargeCorrection::relocateBufferPointers(const char* oldBuffer,
   mScenarioPtr = FlatObject::relocatePointer(oldBuffer, newBuffer, mScenarioPtr);
 
   for (int i = 0; i < mNumberOfScenarios; i++) {
-    Spline2D<float, 3, 0>& sp = mScenarioPtr[i];
+    SplineType& sp = mScenarioPtr[i];
     char* newSplineBuf = relocatePointer(oldBuffer, newBuffer, sp.getFlatBufferPtr());
     sp.setActualBufferAddress(newSplineBuf);
   }
@@ -127,20 +127,20 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
 
   mRowSplineInfoPtr = reinterpret_cast<RowSplineInfo*>(mFlatBufferPtr + rowsOffset);
 
-  size_t scOffset = alignSize(rowsOffset + rowsSize, TSpline::getClassAlignmentBytes());
-  size_t scSize = sizeof(TSpline) * mNumberOfScenarios;
+  size_t scOffset = alignSize(rowsOffset + rowsSize, SplineType::getClassAlignmentBytes());
+  size_t scSize = sizeof(SplineType) * mNumberOfScenarios;
 
-  mScenarioPtr = reinterpret_cast<TSpline*>(mFlatBufferPtr + scOffset);
+  mScenarioPtr = reinterpret_cast<SplineType*>(mFlatBufferPtr + scOffset);
 
-  size_t scBufferOffset = alignSize(scOffset + scSize, TSpline::getBufferAlignmentBytes());
+  size_t scBufferOffset = alignSize(scOffset + scSize, SplineType::getBufferAlignmentBytes());
   size_t scBufferSize = 0;
 
   for (int i = 0; i < mNumberOfScenarios; i++) {
-    TSpline& sp = mScenarioPtr[i];
+    SplineType& sp = mScenarioPtr[i];
     sp.setActualBufferAddress(mFlatBufferPtr + scBufferOffset + scBufferSize);
     scBufferSize = alignSize(scBufferSize + sp.getFlatBufferSize(), sp.getBufferAlignmentBytes());
   }
-  size_t dataAlignment = TSpline::getParameterAlignmentBytes();
+  size_t dataAlignment = SplineType::getParameterAlignmentBytes();
   size_t sliceDataOffset = alignSize(scBufferOffset + scBufferSize, dataAlignment);
 
   mSplineData = reinterpret_cast<char*>(mFlatBufferPtr + sliceDataOffset);
@@ -161,7 +161,7 @@ void TPCFastSpaceChargeCorrection::setFutureBufferAddress(char* futureFlatBuffer
   mRowSplineInfoPtr = relocatePointer(oldBuffer, newBuffer, mRowSplineInfoPtr);
 
   for (int i = 0; i < mNumberOfScenarios; i++) {
-    TSpline& sp = mScenarioPtr[i];
+    SplineType& sp = mScenarioPtr[i];
     char* newSplineBuf = relocatePointer(oldBuffer, newBuffer, sp.getFlatBufferPtr());
     sp.setFutureBufferAddress(newSplineBuf);
   }
@@ -186,7 +186,7 @@ void TPCFastSpaceChargeCorrection::startConstruction(const TPCFastTransformGeo& 
 
 #if !defined(GPUCA_GPUCODE)
   mConstructionRowSplineInfos = new RowSplineInfo[mGeo.getNumberOfRows()];
-  mConstructionScenarios = new TSpline[mNumberOfScenarios];
+  mConstructionScenarios = new SplineType[mNumberOfScenarios];
 #endif
 
   assert(mConstructionRowSplineInfos != nullptr);
@@ -219,13 +219,13 @@ void TPCFastSpaceChargeCorrection::setRowScenarioID(int iRow, int iScenario)
   row.dataOffsetBytes = 0;
 }
 
-void TPCFastSpaceChargeCorrection::setSplineScenario(int scenarioIndex, const TSpline& spline)
+void TPCFastSpaceChargeCorrection::setSplineScenario(int scenarioIndex, const SplineType& spline)
 {
   /// Sets approximation scenario
   assert(mConstructionMask & ConstructionState::InProgress);
   assert(scenarioIndex >= 0 && scenarioIndex < mNumberOfScenarios);
   assert(spline.isConstructed());
-  TSpline& sp = mConstructionScenarios[scenarioIndex];
+  SplineType& sp = mConstructionScenarios[scenarioIndex];
   sp.cloneFromObject(spline, nullptr); //  clone to internal buffer container
 }
 
@@ -247,28 +247,28 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
   size_t rowsOffset = 0;
   size_t rowsSize = sizeof(RowSplineInfo) * mGeo.getNumberOfRows();
 
-  size_t scOffset = alignSize(rowsOffset + rowsSize, TSpline::getClassAlignmentBytes());
-  size_t scSize = sizeof(TSpline) * mNumberOfScenarios;
+  size_t scOffset = alignSize(rowsOffset + rowsSize, SplineType::getClassAlignmentBytes());
+  size_t scSize = sizeof(SplineType) * mNumberOfScenarios;
 
   size_t scBufferOffsets[mNumberOfScenarios];
 
-  scBufferOffsets[0] = alignSize(scOffset + scSize, TSpline::getBufferAlignmentBytes());
+  scBufferOffsets[0] = alignSize(scOffset + scSize, SplineType::getBufferAlignmentBytes());
   size_t scBufferSize = 0;
   for (int i = 0; i < mNumberOfScenarios; i++) {
-    TSpline& sp = mConstructionScenarios[i];
+    SplineType& sp = mConstructionScenarios[i];
     scBufferOffsets[i] = scBufferOffsets[0] + scBufferSize;
     scBufferSize = alignSize(scBufferSize + sp.getFlatBufferSize(), sp.getBufferAlignmentBytes());
   }
 
-  size_t sliceDataOffset = alignSize(scBufferOffsets[0] + scBufferSize, TSpline::getParameterAlignmentBytes());
+  size_t sliceDataOffset = alignSize(scBufferOffsets[0] + scBufferSize, SplineType::getParameterAlignmentBytes());
 
   mSliceDataSizeBytes = 0;
   for (int i = 0; i < mGeo.getNumberOfRows(); i++) {
     RowSplineInfo& row = mConstructionRowSplineInfos[i];
     row.dataOffsetBytes = mSliceDataSizeBytes;
-    TSpline& sp = mConstructionScenarios[row.splineScenarioID];
+    SplineType& sp = mConstructionScenarios[row.splineScenarioID];
     mSliceDataSizeBytes += sp.getSizeOfParameters();
-    mSliceDataSizeBytes = alignSize(mSliceDataSizeBytes, TSpline::getParameterAlignmentBytes());
+    mSliceDataSizeBytes = alignSize(mSliceDataSizeBytes, SplineType::getParameterAlignmentBytes());
   }
 
   FlatObject::finishConstruction(sliceDataOffset + mSliceDataSizeBytes * mGeo.getNumberOfSlices());
@@ -278,12 +278,12 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
     mRowSplineInfoPtr[i] = mConstructionRowSplineInfos[i];
   }
 
-  mScenarioPtr = reinterpret_cast<TSpline*>(mFlatBufferPtr + scOffset);
+  mScenarioPtr = reinterpret_cast<SplineType*>(mFlatBufferPtr + scOffset);
 
   for (int i = 0; i < mNumberOfScenarios; i++) {
-    TSpline& sp0 = mConstructionScenarios[i];
-    TSpline& sp1 = mScenarioPtr[i];
-    new (&sp1) TSpline(); // first, call a constructor
+    SplineType& sp0 = mConstructionScenarios[i];
+    SplineType& sp1 = mScenarioPtr[i];
+    new (&sp1) SplineType(); // first, call a constructor
     sp1.cloneFromObject(sp0, mFlatBufferPtr + scBufferOffsets[i]);
   }
 
@@ -297,7 +297,7 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
 
   for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
     for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
-      const TSpline& spline = getSpline(slice, row);
+      const SplineType& spline = getSpline(slice, row);
       float* data = getSplineData(slice, row);
       for (int i = 0; i < spline.getNumberOfParameters(); i++) {
         data[i] = 0.f;
@@ -327,7 +327,7 @@ void TPCFastSpaceChargeCorrection::print() const
   for (int is = 0; is < mGeo.getNumberOfSlices(); is++) {
     for (int ir = 0; ir < mGeo.getNumberOfRows(); ir++) {
       std::cout << "slice " << is << " row " << ir << ": " << std::endl;
-      const TSpline& spline = getSpline(is, ir);
+      const SplineType& spline = getSpline(is, ir);
       const float* d = getSplineData(is, ir);
       int k = 0;
       for (int i = 0; i < spline.getGridU1().getNumberOfKnots(); i++) {

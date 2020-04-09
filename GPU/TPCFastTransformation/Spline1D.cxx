@@ -35,8 +35,8 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-template <typename Tfloat>
-void Spline1D<Tfloat>::destroy()
+template <typename DataT>
+void Spline1D<DataT>::destroy()
 {
   /// See FlatObject for description
   mNumberOfKnots = 0;
@@ -50,8 +50,8 @@ void Spline1D<Tfloat>::destroy()
 }
 
 #if !defined(GPUCA_GPUCODE)
-template <typename Tfloat>
-void Spline1D<Tfloat>::cloneFromObject(const Spline1D& obj, char* newFlatBufferPtr)
+template <typename DataT>
+void Spline1D<DataT>::cloneFromObject(const Spline1D& obj, char* newFlatBufferPtr)
 {
   /// See FlatObject for description
   const char* oldFlatBufferPtr = obj.mFlatBufferPtr;
@@ -65,8 +65,8 @@ void Spline1D<Tfloat>::cloneFromObject(const Spline1D& obj, char* newFlatBufferP
   mFparameters = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mFparameters);
 }
 
-template <typename Tfloat>
-void Spline1D<Tfloat>::moveBufferTo(char* newFlatBufferPtr)
+template <typename DataT>
+void Spline1D<DataT>::moveBufferTo(char* newFlatBufferPtr)
 {
   /// See FlatObject for description
   const char* oldFlatBufferPtr = mFlatBufferPtr;
@@ -76,8 +76,8 @@ void Spline1D<Tfloat>::moveBufferTo(char* newFlatBufferPtr)
 }
 #endif
 
-template <typename Tfloat>
-void Spline1D<Tfloat>::setActualBufferAddress(char* actualFlatBufferPtr)
+template <typename DataT>
+void Spline1D<DataT>::setActualBufferAddress(char* actualFlatBufferPtr)
 {
   /// See FlatObject for description
   //mUtoKnotMap = FlatObject::relocatePointer(mFlatBufferPtr, actualFlatBufferPtr, mUtoKnotMap);
@@ -89,11 +89,11 @@ void Spline1D<Tfloat>::setActualBufferAddress(char* actualFlatBufferPtr)
 
   FlatObject::setActualBufferAddress(actualFlatBufferPtr);
   mUtoKnotMap = reinterpret_cast<int*>(mFlatBufferPtr + uToKnotMapOffset);
-  mFparameters = reinterpret_cast<Tfloat*>(mFlatBufferPtr + parametersOffset);
+  mFparameters = reinterpret_cast<DataT*>(mFlatBufferPtr + parametersOffset);
 }
 
-template <typename Tfloat>
-void Spline1D<Tfloat>::setFutureBufferAddress(char* futureFlatBufferPtr)
+template <typename DataT>
+void Spline1D<DataT>::setFutureBufferAddress(char* futureFlatBufferPtr)
 {
   /// See FlatObject for description
   mUtoKnotMap = FlatObject::relocatePointer(mFlatBufferPtr, futureFlatBufferPtr, mUtoKnotMap);
@@ -103,8 +103,8 @@ void Spline1D<Tfloat>::setFutureBufferAddress(char* futureFlatBufferPtr)
 
 #if !defined(GPUCA_GPUCODE)
 
-template <typename Tfloat>
-void Spline1D<Tfloat>::recreate(int numberOfKnots, const int inputKnots[], int nFdimensions)
+template <typename DataT>
+void Spline1D<DataT>::recreate(int numberOfKnots, const int inputKnots[], int nFdimensions)
 {
   /// Main constructor for an irregular spline
   ///
@@ -153,7 +153,7 @@ void Spline1D<Tfloat>::recreate(int numberOfKnots, const int inputKnots[], int n
   FlatObject::finishConstruction(bufferSize);
 
   mUtoKnotMap = reinterpret_cast<int*>(mFlatBufferPtr + uToKnotMapOffset);
-  mFparameters = reinterpret_cast<Tfloat*>(mFlatBufferPtr + parametersOffset);
+  mFparameters = reinterpret_cast<DataT*>(mFlatBufferPtr + parametersOffset);
 
   Knot* s = getKnots();
 
@@ -191,8 +191,8 @@ void Spline1D<Tfloat>::recreate(int numberOfKnots, const int inputKnots[], int n
   }
 }
 
-template <typename Tfloat>
-void Spline1D<Tfloat>::recreate(int numberOfKnots, int nFdimensions)
+template <typename DataT>
+void Spline1D<DataT>::recreate(int numberOfKnots, int nFdimensions)
 {
   /// Constructor for a regular spline
   /// \param numberOfKnots     Number of knots
@@ -210,8 +210,8 @@ void Spline1D<Tfloat>::recreate(int numberOfKnots, int nFdimensions)
 
 #endif
 
-template <typename Tfloat>
-void Spline1D<Tfloat>::print() const
+template <typename DataT>
+void Spline1D<DataT>::print() const
 {
   printf(" Compact Spline 1D: \n");
   printf("  mNumberOfKnots = %d \n", mNumberOfKnots);
@@ -226,33 +226,33 @@ void Spline1D<Tfloat>::print() const
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
-template <typename Tfloat>
-void Spline1D<Tfloat>::approximateFunction(Tfloat xMin, Tfloat xMax,
-                                           std::function<void(Tfloat x, Tfloat f[/*mFdimensions*/])> F,
-                                           int nAxiliaryDataPoints)
+template <typename DataT>
+void Spline1D<DataT>::approximateFunction(DataT xMin, DataT xMax,
+                                          std::function<void(DataT x, DataT f[/*mFdimensions*/])> F,
+                                          int nAxiliaryDataPoints)
 {
   /// Approximate F with this spline
   setXrange(xMin, xMax);
-  SplineHelper1D<Tfloat> helper;
+  SplineHelper1D<DataT> helper;
   helper.approximateFunction(*this, xMin, xMax, F, nAxiliaryDataPoints);
 }
 
-template <typename Tfloat>
-int Spline1D<Tfloat>::writeToFile(TFile& outf, const char* name)
+template <typename DataT>
+int Spline1D<DataT>::writeToFile(TFile& outf, const char* name)
 {
   /// write a class object to the file
   return FlatObject::writeToFile(*this, outf, name);
 }
 
-template <typename Tfloat>
-Spline1D<Tfloat>* Spline1D<Tfloat>::readFromFile(TFile& inpf, const char* name)
+template <typename DataT>
+Spline1D<DataT>* Spline1D<DataT>::readFromFile(TFile& inpf, const char* name)
 {
   /// read a class object from the file
-  return FlatObject::readFromFile<Spline1D<Tfloat>>(inpf, name);
+  return FlatObject::readFromFile<Spline1D<DataT>>(inpf, name);
 }
 
-template <typename Tfloat>
-int Spline1D<Tfloat>::test(const bool draw, const bool drawDataPoints)
+template <typename DataT>
+int Spline1D<DataT>::test(const bool draw, const bool drawDataPoints)
 {
   using namespace std;
 
@@ -262,7 +262,7 @@ int Spline1D<Tfloat>::test(const bool draw, const bool drawDataPoints)
   const int Fdegree = 4;
   double Fcoeff[Ndim][2 * (Fdegree + 1)];
 
-  auto F = [&](Tfloat x, Tfloat f[]) -> void {
+  auto F = [&](DataT x, DataT f[]) -> void {
     double xx = x;
     for (int dim = 0; dim < Ndim; dim++) {
       f[dim] = 0; // Fcoeff[0]/2;
@@ -360,7 +360,7 @@ int Spline1D<Tfloat>::test(const bool draw, const bool drawDataPoints)
       } else {
         const char* name = "spline1Dtest";
         spline1.writeToFile(outf, name);
-        Spline1D<Tfloat>* p = spline1.readFromFile(outf, name);
+        Spline1D<DataT>* p = spline1.readFromFile(outf, name);
         if (p == nullptr) {
           cout << "Failed to read Spline1D from file testSpline1D.root " << std::endl;
         } else {
@@ -370,7 +370,7 @@ int Spline1D<Tfloat>::test(const bool draw, const bool drawDataPoints)
       }
     }
 
-    SplineHelper1D<Tfloat> helper;
+    SplineHelper1D<DataT> helper;
     helper.setSpline(spline2, Ndim, nAxiliaryPoints);
     helper.approximateFunctionGradually(spline2, 0., TMath::Pi(), F, nAxiliaryPoints);
 
@@ -378,8 +378,8 @@ int Spline1D<Tfloat>::test(const bool draw, const bool drawDataPoints)
     Spline1D splines3[Ndim];
     {
       for (int dim = 0; dim < Ndim; dim++) {
-        auto F3 = [&](Tfloat u, Tfloat f[]) -> void {
-          Tfloat ff[Ndim];
+        auto F3 = [&](DataT u, DataT f[]) -> void {
+          DataT ff[Ndim];
           F(u, ff);
           f[0] = ff[dim];
         };
@@ -390,14 +390,14 @@ int Spline1D<Tfloat>::test(const bool draw, const bool drawDataPoints)
 
     double stepX = 1.e-2;
     for (double x = 0; x < TMath::Pi(); x += stepX) {
-      Tfloat f[Ndim], s1[Ndim], s2[Ndim];
+      DataT f[Ndim], s1[Ndim], s2[Ndim];
       F(x, f);
       spline1.interpolate(x, s1);
       spline2.interpolate(x, s2);
       for (int dim = 0; dim < Ndim; dim++) {
         statDf1 += (s1[dim] - f[dim]) * (s1[dim] - f[dim]);
         statDf2 += (s2[dim] - f[dim]) * (s2[dim] - f[dim]);
-        Tfloat s1D = splines3[dim].interpolate(x);
+        DataT s1D = splines3[dim].interpolate(x);
         statDf1D += (s1D - s1[dim]) * (s1D - s1[dim]);
       }
       statN += Ndim;
@@ -408,11 +408,11 @@ int Spline1D<Tfloat>::test(const bool draw, const bool drawDataPoints)
       delete nt;
       delete knots;
       nt = new TNtuple("nt", "nt", "u:f:s");
-      Tfloat drawMax = -1.e20;
-      Tfloat drawMin = 1.e20;
-      Tfloat stepX = 1.e-4;
+      DataT drawMax = -1.e20;
+      DataT drawMin = 1.e20;
+      DataT stepX = 1.e-4;
       for (double x = 0; x < TMath::Pi(); x += stepX) {
-        Tfloat f[Ndim], s[Ndim];
+        DataT f[Ndim], s[Ndim];
         F(x, f);
         spline1.interpolate(x, s);
         nt->Fill(spline1.convXtoU(x), f[0], s[0]);
@@ -447,7 +447,7 @@ int Spline1D<Tfloat>::test(const bool draw, const bool drawDataPoints)
       knots = new TNtuple("knots", "knots", "type:u:s");
       for (int i = 0; i < nKnots; i++) {
         double u = spline1.getKnot(i).u;
-        Tfloat s[Ndim];
+        DataT s[Ndim];
         spline1.interpolate(spline1.convUtoX(u), s);
         knots->Fill(1, u, s[0]);
       }
@@ -460,11 +460,11 @@ int Spline1D<Tfloat>::test(const bool draw, const bool drawDataPoints)
 
       if (drawDataPoints) {
         for (int j = 0; j < helper.getNumberOfDataPoints(); j++) {
-          const typename SplineHelper1D<Tfloat>::DataPoint& p = helper.getDataPoint(j);
+          const typename SplineHelper1D<DataT>::DataPoint& p = helper.getDataPoint(j);
           if (p.isKnot) {
             continue;
           }
-          Tfloat s[Ndim];
+          DataT s[Ndim];
           spline1.interpolate(spline1.convUtoX(p.u), s);
           knots->Fill(2, p.u, s[0]);
         }

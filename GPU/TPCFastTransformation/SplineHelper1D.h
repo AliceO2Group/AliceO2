@@ -32,7 +32,7 @@ namespace gpu
 ///
 /// The SplineHelper1D class is to initialize parameters for Spline1D class
 ///
-template <typename Tfloat>
+template <typename DataT>
 class SplineHelper1D
 {
  public:
@@ -66,49 +66,49 @@ class SplineHelper1D
   /// _______________  Main functionality  ________________________
 
   /// Create best-fit spline parameters for a given input function F
-  void approximateFunction(Spline1D<Tfloat>& spline,
-                           Tfloat xMin, Tfloat xMax, std::function<void(Tfloat x, Tfloat f[/*spline.getFdimensions()*/])> F,
+  void approximateFunction(Spline1D<DataT>& spline,
+                           DataT xMin, DataT xMax, std::function<void(DataT x, DataT f[/*spline.getFdimensions()*/])> F,
                            int nAxiliaryDataPoints = 4);
 
   /// Create best-fit spline parameters gradually for a given input function F
-  void approximateFunctionGradually(Spline1D<Tfloat>& spline,
-                                    Tfloat xMin, Tfloat xMax, std::function<void(Tfloat x, Tfloat f[/*spline.getFdimensions()*/])> F,
+  void approximateFunctionGradually(Spline1D<DataT>& spline,
+                                    DataT xMin, DataT xMax, std::function<void(DataT x, DataT f[/*spline.getFdimensions()*/])> F,
                                     int nAxiliaryDataPoints = 4);
 
   /// Create classic spline parameters for a given input function F
-  void approximateFunctionClassic(Spline1D<Tfloat>& spline,
-                                  Tfloat xMin, Tfloat xMax, std::function<void(Tfloat x, Tfloat f[/*spline.getFdimensions()*/])> F);
+  void approximateFunctionClassic(Spline1D<DataT>& spline,
+                                  DataT xMin, DataT xMax, std::function<void(DataT x, DataT f[/*spline.getFdimensions()*/])> F);
 
   /// _______________   Interface for a step-wise construction of the best-fit spline   ________________________
 
   /// precompute everything needed for the construction
-  int setSpline(const Spline1D<Tfloat>& spline, int nFdimensions, int nAxiliaryDataPoints);
+  int setSpline(const Spline1D<DataT>& spline, int nFdimensions, int nAxiliaryDataPoints);
 
   /// approximate std::function, output in Fparameters
-  void approximateFunction(Tfloat* Fparameters, Tfloat xMin, Tfloat xMax, std::function<void(Tfloat x, Tfloat f[])> F) const;
+  void approximateFunction(DataT* Fparameters, DataT xMin, DataT xMax, std::function<void(DataT x, DataT f[])> F) const;
 
   /// approximate std::function gradually, output in Fparameters
-  void approximateFunctionGradually(Tfloat* Fparameters, Tfloat xMin, Tfloat xMax, std::function<void(Tfloat x, Tfloat f[])> F) const;
+  void approximateFunctionGradually(DataT* Fparameters, DataT xMin, DataT xMax, std::function<void(DataT x, DataT f[])> F) const;
 
   /// number of data points
   int getNumberOfDataPoints() const { return mDataPoints.size(); }
 
   /// approximate a function given as an array of values at data points
-  void approximateFunction(Tfloat* Fparameters, const Tfloat DataPointF[/*getNumberOfDataPoints() x nFdim*/]) const;
+  void approximateFunction(DataT* Fparameters, const DataT DataPointF[/*getNumberOfDataPoints() x nFdim*/]) const;
 
   /// gradually approximate a function given as an array of values at data points
-  void approximateFunctionGradually(Tfloat* Fparameters, const Tfloat DataPointF[/*getNumberOfDataPoints() x nFdim */]) const;
+  void approximateFunctionGradually(DataT* Fparameters, const DataT DataPointF[/*getNumberOfDataPoints() x nFdim */]) const;
 
   /// a tool for the gradual approximation: set spline values S_i at knots == function values
-  void copySfromDataPoints(Tfloat* Fparameters, const Tfloat DataPointF[/*getNumberOfDataPoints() x nFdim*/]) const;
+  void copySfromDataPoints(DataT* Fparameters, const DataT DataPointF[/*getNumberOfDataPoints() x nFdim*/]) const;
 
   /// a tool for the gradual approximation:
   /// calibrate spline derivatives D_i using already calibrated spline values S_i
-  void approximateDerivatives(Tfloat* Fparameters, const Tfloat DataPointF[/*getNumberOfDataPoints() x nFdim*/]) const;
+  void approximateDerivatives(DataT* Fparameters, const DataT DataPointF[/*getNumberOfDataPoints() x nFdim*/]) const;
 
   /// _______________  Utilities   ________________________
 
-  const Spline1D<Tfloat>& getSpline() const { return mSpline; }
+  const Spline1D<DataT>& getSpline() const { return mSpline; }
 
   int getKnotDataPoint(int iknot) const { return mKnotDataPoints[iknot]; }
 
@@ -125,7 +125,7 @@ class SplineHelper1D
 
   /// helpers for the construction of 1D spline
 
-  Spline1D<Tfloat> mSpline;           ///< copy of the spline
+  Spline1D<DataT> mSpline;            ///< copy of the spline
   int mFdimensions;                   ///< n of F dimensions
   std::vector<DataPoint> mDataPoints; ///< measurement points
   std::vector<int> mKnotDataPoints;   ///< which measurement points are at knots

@@ -113,7 +113,7 @@ int TPCFastTransformManager::create(TPCFastTransform& fastTransform,
 
     correction.startConstruction(geo, nDistortionScenarios);
 
-    Spline2D<float, 3> spline;
+    TPCFastSpaceChargeCorrection::SplineType spline;
     spline.recreate(8, 20);
 
     int scenario = 0;
@@ -277,11 +277,11 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
 
       const TPCFastTransformGeo::RowInfo& rowInfo = geo.getRowInfo(row);
 
-      const Spline2D<float, 3>& spline = correction.getSpline(slice, row);
-      float* data = correction.getSplineDataNonConst(slice, row);
+      const TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSpline(slice, row);
+      float* data = correction.getSplineData(slice, row);
 
       SplineHelper2D<float> helper;
-      helper.setSpline(spline, 3, 3);
+      helper.setSpline(spline, 4, 4);
       auto F = [&](float su, float sv, float dxuv[3]) {
         float x = rowInfo.x;
         // x, u, v cordinates of the knot (local cartesian coord. of slice

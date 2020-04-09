@@ -35,7 +35,7 @@ namespace gpu
 ///
 /// The SplineHelper2D class is to initialize Spline* objects
 ///
-template <typename Tfloat>
+template <typename DataT>
 class SplineHelper2D
 {
  public:
@@ -56,27 +56,33 @@ class SplineHelper2D
   /// _______________  Main functionality  ________________________
 
   /// Create best-fit spline parameters for a given input function F
-  template <bool TisConsistent>
+  template <bool isConsistentT>
   void approximateFunction(
-    Spline2DBase<Tfloat, TisConsistent>& spline,
-    Tfloat x1Min, Tfloat x1Max, Tfloat x2Min, Tfloat x2Max,
-    std::function<void(Tfloat x1, Tfloat x2, Tfloat f[/*spline.getFdimensions()*/])> F,
+    Spline2DBase<DataT, isConsistentT>& spline,
+    DataT x1Min, DataT x1Max, DataT x2Min, DataT x2Max,
+    std::function<void(DataT x1, DataT x2, DataT f[/*spline.getFdimensions()*/])> F,
     int nAxiliaryDataPointsU1 = 4, int nAxiliaryDataPointsU2 = 4);
 
   /// _______________   Interface for a step-wise construction of the best-fit spline   ________________________
 
   /// precompute everything needed for the construction
-  template <bool TisConsistent>
-  int setSpline(const Spline2DBase<Tfloat, TisConsistent>& spline, int nAxiliaryPointsU1, int nAxiliaryPointsU2);
+  template <bool isConsistentT>
+  int setSpline(const Spline2DBase<DataT, isConsistentT>& spline, int nAxiliaryPointsU1, int nAxiliaryPointsU2);
 
   /// approximate std::function, output in Fparameters
   void approximateFunction(
-    Tfloat* Fparameters, Tfloat x1Min, Tfloat x1Max, Tfloat x2Min, Tfloat x2Max,
-    std::function<void(Tfloat x1, Tfloat x2, Tfloat f[/*spline.getFdimensions()*/])> F) const;
+    DataT* Fparameters, DataT x1Min, DataT x1Max, DataT x2Min, DataT x2Max,
+    std::function<void(DataT x1, DataT x2, DataT f[/*mFdimensions*/])> F) const;
+
+  /// approximate std::function, output in Fparameters. F calculates values for a batch of points.
+  void approximateFunctionBatch(
+    DataT* Fparameters, DataT x1Min, DataT x1Max, DataT x2Min, DataT x2Max,
+    std::function<void(const std::vector<DataT>& x1, const std::vector<DataT>& x2, std::vector<DataT> f[/*mFdimensions*/])> F,
+    unsigned int batchsize) const;
 
   /// approximate a function given as an array of values at data points
   void approximateFunction(
-    Tfloat* Fparameters, const Tfloat DataPointF[/*getNumberOfDataPoints() x nFdim*/]) const;
+    DataT* Fparameters, const DataT DataPointF[/*getNumberOfDataPoints() x nFdim*/]) const;
 
   int getNumberOfDataPointsU1() const { return mHelperU1.getNumberOfDataPoints(); }
 
@@ -84,8 +90,8 @@ class SplineHelper2D
 
   int getNumberOfDataPoints() const { return getNumberOfDataPointsU1() * getNumberOfDataPointsU2(); }
 
-  const SplineHelper1D<Tfloat>& getHelperU1() const { return mHelperU1; }
-  const SplineHelper1D<Tfloat>& getHelperU2() const { return mHelperU2; }
+  const SplineHelper1D<DataT>& getHelperU1() const { return mHelperU1; }
+  const SplineHelper1D<DataT>& getHelperU2() const { return mHelperU2; }
 
   /// _______________  Utilities   ________________________
 
@@ -98,16 +104,16 @@ class SplineHelper2D
 
   TString mError = ""; ///< error string
   int mFdimensions;    ///< n of F dimensions
-  SplineHelper1D<Tfloat> mHelperU1;
-  SplineHelper1D<Tfloat> mHelperU2;
+  SplineHelper1D<DataT> mHelperU1;
+  SplineHelper1D<DataT> mHelperU2;
 };
 
-template <typename Tfloat>
-template <bool TisConsistent>
-void SplineHelper2D<Tfloat>::approximateFunction(
-  Spline2DBase<Tfloat, TisConsistent>& spline,
-  Tfloat x1Min, Tfloat x1Max, Tfloat x2Min, Tfloat x2Max,
-  std::function<void(Tfloat x1, Tfloat x2, Tfloat f[/*spline.getFdimensions()*/])> F,
+template <typename DataT>
+template <bool isConsistentT>
+void SplineHelper2D<DataT>::approximateFunction(
+  Spline2DBase<DataT, isConsistentT>& spline,
+  DataT x1Min, DataT x1Max, DataT x2Min, DataT x2Max,
+  std::function<void(DataT x1, DataT x2, DataT f[/*spline.getFdimensions()*/])> F,
   int nAxiliaryDataPointsU1, int nAxiliaryDataPointsU2)
 {
   /// Create best-fit spline parameters for a given input function F
@@ -118,10 +124,10 @@ void SplineHelper2D<Tfloat>::approximateFunction(
   spline.setXrange(x1Min, x1Max, x2Min, x2Max);
 }
 
-template <typename Tfloat>
-template <bool TisConsistent>
-int SplineHelper2D<Tfloat>::setSpline(
-  const Spline2DBase<Tfloat, TisConsistent>& spline, int nAxiliaryPointsU, int nAxiliaryPointsV)
+template <typename DataT>
+template <bool isConsistentT>
+int SplineHelper2D<DataT>::setSpline(
+  const Spline2DBase<DataT, isConsistentT>& spline, int nAxiliaryPointsU, int nAxiliaryPointsV)
 {
   // Prepare creation of 2D irregular spline
   // The should be at least one (better, two) axiliary measurements on each segnment between two knots and at least 2*nKnots measurements in total

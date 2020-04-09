@@ -131,7 +131,7 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
     */
     for (int scenario = 0; scenario < nCorrectionScenarios; scenario++) {
       int row = scenario * 10;
-      TPCFastSpaceChargeCorrection::TSpline spline;
+      TPCFastSpaceChargeCorrection::SplineType spline;
       if (!mSpaceChargeCorrection || row >= nRows) { //SG!!!
         spline.recreate(8, 20);
       } else {
@@ -262,7 +262,7 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   for (int slice = 0; slice < correction.getGeometry().getNumberOfSlices(); slice++) {
     for (int row = 0; row < correction.getGeometry().getNumberOfRows(); row++) {
-      const TPCFastSpaceChargeCorrection::TSpline& spline = correction.getSpline(slice, row);
+      const TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSpline(slice, row);
       float* data = correction.getSplineData(slice, row);
       if (mSpaceChargeCorrection) {
         SplineHelper2D<float> helper;

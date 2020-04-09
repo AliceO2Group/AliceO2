@@ -45,7 +45,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
     size_t dataOffsetBytes; ///< offset for the spline data withing a TPC slice
   };
 
-  typedef Spline2D<float, 3, 0> TSpline;
+  typedef Spline2D<float, 3, 0> SplineType;
 
   /// _____________  Constructors / destructors __________________________
 
@@ -92,7 +92,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   void setRowScenarioID(int iRow, int iScenario);
 
   /// Sets approximation scenario
-  void setSplineScenario(int scenarioIndex, const TSpline& spline);
+  void setSplineScenario(int scenarioIndex, const SplineType& spline);
 
   /// Finishes construction: puts everything to the flat buffer, releases temporary memory
   void finishConstruction();
@@ -103,7 +103,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   void setTimeStamp(long int v) { mTimeStamp = v; }
 
   /// Gives pointer to a spline
-  GPUd() const TSpline& getSpline(int slice, int row) const;
+  GPUd() const SplineType& getSpline(int slice, int row) const;
 
   /// Gives pointer to spline data
   GPUd() float* getSplineData(int slice, int row);
@@ -140,7 +140,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   /// _______________  Construction control  _______________________________________________
 
   RowSplineInfo* mConstructionRowSplineInfos = nullptr; //! (transient!!) Temporary container of the row infos during construction
-  TSpline* mConstructionScenarios = nullptr;            //! (transient!!) Temporary container for spline scenarios
+  SplineType* mConstructionScenarios = nullptr;         //! (transient!!) Temporary container for spline scenarios
 
   /// _______________  Geometry  _______________________________________________
 
@@ -149,7 +149,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   int mNumberOfScenarios; ///< Number of approximation spline scenarios
 
   RowSplineInfo* mRowSplineInfoPtr; //! (transient!!) pointer to RowInfo array inside the mFlatBufferPtr buffer
-  TSpline* mScenarioPtr;            //! (transient!!) pointer to spline scenarios
+  SplineType* mScenarioPtr;         //! (transient!!) pointer to spline scenarios
 
   /// _______________  Calibration data  _______________________________________________
 
@@ -165,7 +165,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
 GPUdi() int TPCFastSpaceChargeCorrection::getCorrection(int slice, int row, float u, float v, float& dx, float& du, float& dv) const
 {
-  const TSpline& spline = getSpline(slice, row);
+  const SplineType& spline = getSpline(slice, row);
   const float* splineData = getSplineData(slice, row);
   float su = 0, sv = 0;
   mGeo.convUVtoScaledUV(slice, row, u, v, su, sv);
@@ -179,7 +179,7 @@ GPUdi() int TPCFastSpaceChargeCorrection::getCorrection(int slice, int row, floa
   return 0;
 }
 
-GPUdi() const TPCFastSpaceChargeCorrection::TSpline& TPCFastSpaceChargeCorrection::getSpline(int slice, int row) const
+GPUdi() const TPCFastSpaceChargeCorrection::SplineType& TPCFastSpaceChargeCorrection::getSpline(int slice, int row) const
 {
   /// Gives pointer to spline
   const RowSplineInfo& rowInfo = mRowSplineInfoPtr[row];
