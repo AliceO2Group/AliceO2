@@ -143,7 +143,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
   for (auto it = parser.begin(); it != parser.end(); ++it) {
     auto const* dh = it.o2DataHeader();
     auto& lnkref = mSubsSpec2LinkID[dh->subSpecification];
-    const auto* rdh = it.get_if<o2::header::RAWDataHeader>();
+    const auto* rdh = it.get_if<RDH>();
 
     if (lnkref.entry == -1) { // new link needs to be added
       lnkref.entry = int(mGBTLinks.size());
