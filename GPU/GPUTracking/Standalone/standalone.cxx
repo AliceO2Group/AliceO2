@@ -299,6 +299,9 @@ int SetupReconstruction()
   if (configStandalone.configRec.fitInProjections != -1) {
     recSet.fitInProjections = configStandalone.configRec.fitInProjections;
   }
+  if (configStandalone.configRec.fitPropagateBzOnly != -1) {
+    recSet.fitPropagateBzOnly = configStandalone.configRec.fitPropagateBzOnly;
+  }
 
   if (configStandalone.OMPThreads != -1) {
     devProc.nThreads = configStandalone.OMPThreads;
