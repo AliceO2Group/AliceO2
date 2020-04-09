@@ -21,7 +21,8 @@ set(SRCS
     devtools/IrregularSpline2D3DCalibrator.cxx
     TPCFastTransformGeo.cxx
     TPCFastSpaceChargeCorrection.cxx
-    TPCFastTransform.cxx)
+    TPCFastTransform.cxx
+)
 
 string(REPLACE ".cxx" ".h" HDRS_CINT_O2 "${SRCS}")
 set(HDRS_CINT_O2 ${HDRS_CINT_O2} devtools/RegularSpline1D.h)

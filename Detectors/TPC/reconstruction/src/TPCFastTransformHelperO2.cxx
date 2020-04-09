@@ -131,12 +131,12 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
     */
     for (int scenario = 0; scenario < nCorrectionScenarios; scenario++) {
       int row = scenario * 10;
-      Spline2D spline;
+      TPCFastSpaceChargeCorrection::SplineType spline;
       if (!mSpaceChargeCorrection || row >= nRows) { //SG!!!
-        spline.constructKnotsRegular(8, 20);
+        spline.recreate(8, 20);
       } else {
         // TODO: update the calibrator
-        spline.constructKnotsRegular(8, 20);
+        spline.recreate(8, 20);
         /*
         // create the input function
         for (int knot = 0; knot < raster.getNumberOfKnots(); knot++) {
@@ -262,21 +262,17 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   for (int slice = 0; slice < correction.getGeometry().getNumberOfSlices(); slice++) {
     for (int row = 0; row < correction.getGeometry().getNumberOfRows(); row++) {
-      const Spline2D& spline = correction.getSpline(slice, row);
-      float* data = correction.getSplineDataNonConst(slice, row);
+      const TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSpline(slice, row);
+      float* data = correction.getSplineData(slice, row);
       if (mSpaceChargeCorrection) {
-        SplineHelper2D helper;
+        SplineHelper2D<float> helper;
         helper.setSpline(spline, 3, 3);
         auto F = [&](float su, float sv, float dxuv[3]) {
           getSpaceChargeCorrection(slice, row, su, sv, dxuv[0], dxuv[1], dxuv[2]);
         };
-        std::unique_ptr<float[]> par = helper.constructParameters(3, F, 0., 1., 0., 1.);
-
-        for (int i = 0; i < spline.getNumberOfParameters(3); i++) {
-          data[i] = par[i];
-        }
+        helper.approximateFunction(data, 0., 1., 0., 1., F);
       } else {
-        for (int i = 0; i < spline.getNumberOfParameters(3); i++) {
+        for (int i = 0; i < spline.getNumberOfParameters(); i++) {
           data[i] = 0;
         }
       }
