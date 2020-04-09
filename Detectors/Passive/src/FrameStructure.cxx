@@ -672,13 +672,13 @@ void FrameStructure::ConstructGeometry()
 
   vmc->Gsvolu("B045", "TRAP", kSteel, ptrap, 11);
 
-  TGeoTrap *b045shape = new TGeoTrap("B045shape", ptrap[0], ptrap[1], ptrap[2], ptrap[3], ptrap[4], ptrap[5], ptrap[6], ptrap[7], ptrap[8], ptrap[9], ptrap[10]);
-  double cutAngle = 43*TMath::DegToRad();
-  double trd1par[4] = {0., 15 +0.1, 15, 15*TMath::Tan(cutAngle)*0.5 +0.45};
-  TGeoTranslation* trnsB045cut = new TGeoTranslation("trnsB045cut", ptrap[0]*TMath::Tan(ptrap[1]*TMath::DegToRad())-trd1par[2]+ptrap[4], -ptrap[3] + 0.5, ptrap[0] + 0.6);
+  TGeoTrap* b045shape = new TGeoTrap("B045shape", ptrap[0], ptrap[1], ptrap[2], ptrap[3], ptrap[4], ptrap[5], ptrap[6], ptrap[7], ptrap[8], ptrap[9], ptrap[10]);
+  double cutAngle = 43 * TMath::DegToRad();
+  double trd1par[4] = {0., 15 + 0.1, 15, 15 * TMath::Tan(cutAngle) * 0.5 + 0.45};
+  TGeoTranslation* trnsB045cut = new TGeoTranslation("trnsB045cut", ptrap[0] * TMath::Tan(ptrap[1] * TMath::DegToRad()) - trd1par[2] + ptrap[4], -ptrap[3] + 0.5, ptrap[0] + 0.6);
   TGeoRotation* rotB045cut = new TGeoRotation("rotB045cut");
   rotB045cut->RotateZ(90);
-  TGeoCombiTrans *moveB045cut = new TGeoCombiTrans(*trnsB045cut, *rotB045cut);
+  TGeoCombiTrans* moveB045cut = new TGeoCombiTrans(*trnsB045cut, *rotB045cut);
   moveB045cut->SetName("moveB045cut");
   moveB045cut->RegisterYourself();
 
@@ -692,7 +692,7 @@ void FrameStructure::ConstructGeometry()
   vmc->Gsvolu("B046", "TRAP", kAir, ptrap, 11);
   vmc->Gspos("B046", 1, "B045", 0.0, 0.0, 0., 0, "ONLY");
 
-  TGeoTrd1 *cutOnB045 = new TGeoTrd1("cutOnB045",trd1par[0],trd1par[1],trd1par[2],trd1par[3]);
+  TGeoTrd1* cutOnB045 = new TGeoTrd1("cutOnB045", trd1par[0], trd1par[1], trd1par[2], trd1par[3]);
 
   TGeoCompositeShape* b045shapeCut = new TGeoCompositeShape("B045shapeCut", "(B045shape)-(cutOnB045:moveB045cut)");
   TGeoVolume* B045cutVol = new TGeoVolume("B045cut", b045shapeCut, kMedSteel);
@@ -1376,8 +1376,7 @@ void FrameStructure::ConstructGeometry()
     dy = -TMath::Cos((phi1 + 8.95) * kdeg2rad) * (rout2 + 12.);
     if ((i > 3 && i < 8) || (i > 10 && i < 15)) {
       (gGeoManager->GetVolume("B077"))->AddNode(asTOFS03, i, new TGeoCombiTrans(dx, dy, 345. - 53. - 0.5, rot1));
-    }
-    else {
+    } else {
       (gGeoManager->GetVolume("B077"))->AddNode(asTOFS01, i, new TGeoCombiTrans(dx, dy, 345. - 53. - 0.5, rot1));
     }
     dx = TMath::Sin((phi1 - 8.95) * kdeg2rad) * (rout2 + 12.);
