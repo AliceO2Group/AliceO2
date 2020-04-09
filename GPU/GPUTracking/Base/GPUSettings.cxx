@@ -50,6 +50,7 @@ void GPUSettingsRec::SetDefaults()
   mergerCovSource = 2;
   mergerInterpolateErrors = 1;
   fitInProjections = -1;
+  fitPropagateBzOnly = -1;
 }
 
 void GPUSettingsEvent::SetDefaults()

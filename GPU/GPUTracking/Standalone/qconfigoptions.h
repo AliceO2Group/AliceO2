@@ -82,6 +82,7 @@ AddOption(dropLoopers, bool, false, "dropLoopers", 0, "Drop looping tracks start
 AddOption(mergerCovSource, int, -1, "mergerCovSource", 0, "Method to obtain covariance in track merger: 0 = simple filterErrors method, 1 = use cov from track following")
 AddOption(mergerInterpolateErrors, int, -1, "mergerInterpolateErrors", 0, "Use interpolation instead of extrapolation for chi2 based cluster rejection")
 AddOption(fitInProjections, int, -1, "fitInProjections", 0, "Fit in projection, -1 to enable for all but passes but the first one")
+AddOption(fitPropagateBzOnly, int, -1, "fitPropagateBzOnly", 0, "Propagate using Bz only for n passes")
 AddHelp("help", 'h')
 EndConfig()
 
