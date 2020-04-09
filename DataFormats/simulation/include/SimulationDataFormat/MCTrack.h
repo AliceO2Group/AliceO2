@@ -58,6 +58,7 @@ class MCTrackT
   ///  Accessors
   Int_t GetPdgCode() const { return mPdgCode; }
   Int_t getMotherTrackId() const { return mMotherTrackId; }
+  bool isSecondary() const { return mMotherTrackId != -1; }
   Double_t GetStartVertexMomentumX() const { return mStartVertexMomentumX; }
   Double_t GetStartVertexMomentumY() const { return mStartVertexMomentumY; }
   Double_t GetStartVertexMomentumZ() const { return mStartVertexMomentumZ; }
@@ -165,7 +166,7 @@ class MCTrackT
   Int_t mPdgCode;
 
   ///  Index of mother track. -1 for primary particles.
-  Int_t mMotherTrackId;
+  Int_t mMotherTrackId = -1;
 
   // hitmask stored as an int
   // if bit i is set it means that this track left a trace in detector i
