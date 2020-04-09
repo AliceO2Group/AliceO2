@@ -328,6 +328,7 @@ class RootTreeWriter
   // can write a simple array of chars and use a pointer
   template <typename T>
   struct StructureElementTypeTrait<T, std::enable_if_t<std::is_same<T, const char*>::value>> {
+    using value_type = T;
     using store_type = BinaryBranchStoreType<char>;
     using specialization_id = BinaryBranchSpecialization;
   };
@@ -336,7 +337,8 @@ class RootTreeWriter
   // using an internal variable of the given type, involves a copy
   template <typename T>
   struct StructureElementTypeTrait<T, std::enable_if_t<is_messageable<T>::value>> {
-    using store_type = T;
+    using value_type = T;
+    using store_type = value_type;
     using specialization_id = MessageableTypeSpecialization;
   };
 
@@ -344,7 +346,8 @@ class RootTreeWriter
   template <typename T>
   struct StructureElementTypeTrait<T, std::enable_if_t<has_messageable_value_type<T>::value &&
                                                        is_specialization<T, std::vector>::value>> {
-    using store_type = T*;
+    using value_type = T;
+    using store_type = value_type*;
     using specialization_id = MessageableVectorSpecialization;
   };
 
@@ -353,7 +356,16 @@ class RootTreeWriter
   struct StructureElementTypeTrait<T, std::enable_if_t<has_root_dictionary<T>::value &&
                                                        is_messageable<T>::value == false &&
                                                        has_messageable_value_type<T>::value == false>> {
-    using store_type = T*;
+    using value_type = T;
+    using store_type = value_type*;
+    using specialization_id = ROOTTypeSpecialization;
+  };
+
+  // types marked as ROOT serialized
+  template <typename T>
+  struct StructureElementTypeTrait<T, std::enable_if_t<is_specialization<T, ROOTSerialized>::value == true>> {
+    using value_type = typename T::wrapped_type;
+    using store_type = value_type*;
     using specialization_id = ROOTTypeSpecialization;
   };
 
@@ -364,7 +376,7 @@ class RootTreeWriter
   {
    public:
     using PrevT = BASE;
-    using value_type = DataT;
+    using value_type = typename StructureElementTypeTrait<DataT>::value_type;
     using store_type = typename StructureElementTypeTrait<DataT>::store_type;
     using specialization_id = typename StructureElementTypeTrait<DataT>::specialization_id;
     static const size_t STAGE = BASE::STAGE + 1;
