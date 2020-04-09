@@ -49,7 +49,7 @@ class GPUTPCTracklet
     return mRowHits[i];
   }
   GPUhd() const calink* RowHits() const { return (mRowHits); }
-  GPUhd() void SetRowHit(int irow, int ih) { mRowHits[irow] = ih; }
+  GPUhd() void SetRowHit(int irow, caling ih) { mRowHits[irow] = ih; }
 #endif // GPUCA_EXTERN_ROW_HITS
 
   GPUhd() void SetNHits(int v)

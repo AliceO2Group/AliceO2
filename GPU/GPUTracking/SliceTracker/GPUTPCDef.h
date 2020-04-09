@@ -50,13 +50,5 @@ struct cahit2 { cahit x, y; };
   #endif
 #endif
 
-#ifdef GPUCA_EXTERN_ROW_HITS
-  #define CA_GET_ROW_HIT(iRow) tracker.TrackletRowHits()[iRow * s.mNTracklets + r.mItr]
-  #define CA_SET_ROW_HIT(iRow, val) tracker.TrackletRowHits()[iRow * s.mNTracklets + r.mItr] = val
-#else
-  #define CA_GET_ROW_HIT(iRow) tracklet.RowHit(iRow)
-  #define CA_SET_ROW_HIT(iRow, val) tracklet.SetRowHit(iRow, val)
-#endif
-
 #endif //GPUDTPCEF_H
 // clang format on
