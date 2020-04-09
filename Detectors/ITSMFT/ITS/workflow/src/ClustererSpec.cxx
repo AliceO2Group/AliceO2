@@ -79,9 +79,6 @@ void ClustererDPL::init(InitContext& ic)
 
 void ClustererDPL::run(ProcessingContext& pc)
 {
-  if (mState > 1)
-    return;
-
   auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
   auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
@@ -103,42 +100,38 @@ void ClustererDPL::run(ProcessingContext& pc)
     reader.setDigitsMCTruth(labels.get());
   }
   reader.init();
-
-  std::vector<o2::itsmft::CompClusterExt> compClusters;
-  std::vector<o2::itsmft::Cluster> clusters;
-  std::vector<o2::itsmft::ROFRecord> clusterROframes; // To be filled in future
-  std::vector<unsigned char> patterns;
-
-  if (mPatterns) {
-    LOG(INFO) << "Will save rare cluster patterns";
-    mClusterer->setPatterns(&patterns);
-  }
+  auto orig = o2::header::gDataOriginITS;
+  std::vector<o2::itsmft::Cluster, boost::container::pmr::polymorphic_allocator<o2::itsmft::Cluster>>* clusVec = nullptr;
+  std::vector<o2::itsmft::CompClusterExt, boost::container::pmr::polymorphic_allocator<o2::itsmft::CompClusterExt>>* clusCompVec = nullptr;
+  std::vector<o2::itsmft::ROFRecord, boost::container::pmr::polymorphic_allocator<o2::itsmft::ROFRecord>>* clusROFVec = nullptr;
+  std::vector<unsigned char, boost::container::pmr::polymorphic_allocator<unsigned char>>* clusPattVec = nullptr;
 
   std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> clusterLabels;
   if (mUseMC) {
     clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
   }
-  mClusterer->process(reader, mFullClusters ? &clusters : nullptr, &compClusters, clusterLabels.get(), &clusterROframes);
-  // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
-  // -> consider recalculationg maxROF
 
-  LOG(INFO) << "ITSClusterer pushed " << clusters.size() << " clusters, in "
-            << clusterROframes.size() << " RO frames";
+  clusCompVec = &pc.outputs().make<std::vector<o2::itsmft::CompClusterExt>>(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe});
+  clusROFVec = &pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{orig, "ITSClusterROF", 0, Lifetime::Timeframe});
+  //  if (mFullClusters) // in principle, we don't need to send empty array, but other devices expecting it do not know about options of this device: problem?
+  clusVec = &pc.outputs().make<std::vector<o2::itsmft::Cluster>>(Output{orig, "CLUSTERS", 0, Lifetime::Timeframe});
+  //  if (mPatterns) // idem
+  clusPattVec = &pc.outputs().make<std::vector<unsigned char>>(Output{orig, "PATTERNS", 0, Lifetime::Timeframe});
 
-  pc.outputs().snapshot(Output{"ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe}, compClusters);
-  pc.outputs().snapshot(Output{"ITS", "PATTERNS", 0, Lifetime::Timeframe}, patterns);
-  pc.outputs().snapshot(Output{"ITS", "CLUSTERS", 0, Lifetime::Timeframe}, clusters);
-  pc.outputs().snapshot(Output{"ITS", "ITSClusterROF", 0, Lifetime::Timeframe}, clusterROframes);
+  mClusterer->process(reader, mFullClusters ? clusVec : nullptr, clusCompVec, mPatterns ? clusPattVec : nullptr, clusROFVec, clusterLabels.get());
+
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe}, *clusterLabels.get());
+    pc.outputs().snapshot(Output{orig, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, *clusterLabels.get()); // at the moment requires snapshot
     std::vector<o2::itsmft::MC2ROFRecord> clusterMC2ROframes(mc2rofs.size());
     for (int i = mc2rofs.size(); i--;) {
       clusterMC2ROframes[i] = mc2rofs[i]; // Simply, replicate it from digits ?
     }
-    pc.outputs().snapshot(Output{"ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
+    pc.outputs().snapshot(Output{orig, "ITSClusterMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
   }
 
-  mState = 2;
+  // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
+  // -> consider recalculationg maxROF
+  LOG(INFO) << "ITSClusterer pushed " << clusCompVec->size() << " clusters, in " << clusROFVec->size() << " RO frames";
 }
 
 DataProcessorSpec getClustererSpec(bool useMC)

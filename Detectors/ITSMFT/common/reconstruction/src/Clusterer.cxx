@@ -11,14 +11,16 @@
 /// \file Clusterer.cxx
 /// \brief Implementation of the ITS cluster finder
 #include <algorithm>
-#include "FairLogger.h" // for LOG
-
-#include "ITSMFTBase/SegmentationAlpide.h"
+#include "Framework/Logger.h"
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::itsmft;
-using Segmentation = o2::itsmft::SegmentationAlpide;
+
+Clusterer::~Clusterer()
+{
+  print();
+}
 
 //__________________________________________________
 Clusterer::Clusterer() : mPattIdConverter(), mCurr(mColumn2 + 1), mPrev(mColumn1 + 1)
@@ -34,90 +36,6 @@ Clusterer::Clusterer() : mPattIdConverter(), mCurr(mColumn2 + 1), mPrev(mColumn1
 
 #ifdef _PERFORM_TIMING_
   mTimer.Stop();
-#endif
-}
-
-//__________________________________________________
-void Clusterer::process(PixelReader& reader, std::vector<Cluster>* fullClus,
-                        std::vector<CompClusterExt>* compClus, MCTruth* labelsCl,
-                        std::vector<o2::itsmft::ROFRecord>* vecROFRec)
-{
-
-#ifdef _PERFORM_TIMING_
-  mTimer.Start(kFALSE);
-#endif
-
-  mClustersCount = compClus ? compClus->size() : (fullClus ? fullClus->size() : 0);
-
-  auto& currROFIR = mROFRef.getBCData();
-  auto& currROFEntry = mROFRef.getEntry();
-
-  while ((mChipData = reader.getNextChipData(mChips))) { // read next chip data to corresponding
-    // vector in the mChips and return the pointer on it
-
-    if (!(mChipData->getInteractionRecord() == currROFIR)) { // new ROF starts
-
-      mROFRef.setNEntries(mClustersCount - currROFEntry.getFirstEntry()); // number of entries in this ROF
-
-      if (!currROFIR.isDummy()) {
-        if (mClusTree) { // if necessary, flush existing data
-          LOG(INFO) << "ITS: clusterizing new ROFrame, Orbit :" << mChipData->getInteractionRecord().orbit
-                    << " BC: " << mChipData->getInteractionRecord().bc;
-          mROFRef.setFirstEntry(mClusTree->GetEntries());
-          flushClusters(fullClus, compClus, labelsCl);
-        }
-        if (vecROFRec) {
-          vecROFRec->emplace_back(mROFRef);
-        }
-      }
-      currROFEntry.setFirstEntry(mClustersCount);
-      currROFIR = mChipData->getInteractionRecord();
-      mROFRef.setROFrame(mChipData->getROFrame()); // TODO: outphase this
-    }
-
-    auto chipID = mChipData->getChipID();
-    // LOG(DEBUG) << "ITSClusterer got Chip " << chipID << " ROFrame " << mChipData->getROFrame()
-    //            << " Nhits " << mChipData->getData().size();
-
-    if (mMaxBCSeparationToMask > 0) { // mask pixels fired from the previous ROF
-      if (mChipsOld.size() < mChips.size()) {
-        mChipsOld.resize(mChips.size()); // expand buffer of previous ROF data
-      }
-      const auto& chipInPrevROF = mChipsOld[chipID];
-      if (std::abs(currROFIR.differenceInBC(chipInPrevROF.getInteractionRecord())) < mMaxBCSeparationToMask) {
-        mChipData->maskFiredInSample(mChipsOld[chipID]);
-      }
-    }
-    auto validPixID = mChipData->getFirstUnmasked();
-    if (validPixID < mChipData->getData().size()) { // chip data may have all of its pixels masked!
-      initChip(validPixID++);
-      for (; validPixID < mChipData->getData().size(); validPixID++) {
-        if (!mChipData->getData()[validPixID].isMasked()) {
-          updateChip(validPixID);
-        }
-      }
-      finishChip(fullClus, compClus, reader.getDigitsMCTruth(), labelsCl);
-    }
-    if (mMaxBCSeparationToMask > 0) { // current chip data will be used in the next ROF to mask overflow pixels
-      mChipsOld[chipID].swap(*mChipData);
-    }
-  }
-  mROFRef.setNEntries(mClustersCount - currROFEntry.getFirstEntry()); // number of entries in this ROF
-
-  // flush last ROF
-  if (!currROFIR.isDummy()) {
-    if (mClusTree) { // if necessary, flush existing data
-      mROFRef.setFirstEntry(mClusTree->GetEntries());
-      flushClusters(fullClus, compClus, labelsCl);
-    }
-    if (vecROFRec) {
-      vecROFRec->emplace_back(mROFRef); // the ROFrecords vector is stored outside, in a single entry of the tree
-    }
-  }
-#ifdef _PERFORM_TIMING_
-  mTimer.Stop();
-  printf("Clusterization timing (w/o disk IO): ");
-  mTimer.Print();
 #endif
 }
 
@@ -196,145 +114,6 @@ void Clusterer::updateChip(UInt_t ip)
 }
 
 //__________________________________________________
-void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClusterExt>* compClus,
-                           const MCTruth* labelsDig, MCTruth* labelsClus)
-{
-  constexpr Float_t SigmaX2 = Segmentation::PitchRow * Segmentation::PitchRow / 12.; // FIXME
-  constexpr Float_t SigmaY2 = Segmentation::PitchCol * Segmentation::PitchCol / 12.; // FIXME
-
-  const auto& pixData = mChipData->getData();
-
-  for (int i1 = 0; i1 < mPreClusterHeads.size(); ++i1) {
-    const auto ci = mPreClusterIndices[i1];
-    if (ci < 0) {
-      continue;
-    }
-    UShort_t rowMax = 0, rowMin = 65535;
-    UShort_t colMax = 0, colMin = 65535;
-    int nlab = 0, npix = 0;
-    int next = mPreClusterHeads[i1];
-    while (next >= 0) {
-      const auto& pixEntry = mPixels[next];
-      const auto pix = pixData[pixEntry.second];
-      if (npix < mPixArrBuff.size()) {
-        mPixArrBuff[npix++] = pix; // needed for cluster topology
-        adjustBoundingBox(pix, rowMin, rowMax, colMin, colMax);
-        if (labelsClus) { // the MCtruth for this pixel is at mChipData->startID+pixEntry.second
-          fetchMCLabels(pixEntry.second + mChipData->getStartID(), labelsDig, nlab);
-        }
-        next = pixEntry.first;
-      } else {
-        LOG(ERROR) << "Cluster size " << npix + 1 << " exceeds the buffer size";
-      }
-    }
-    mPreClusterIndices[i1] = -1;
-    for (int i2 = i1 + 1; i2 < mPreClusterHeads.size(); ++i2) {
-      if (mPreClusterIndices[i2] != ci) {
-        continue;
-      }
-      next = mPreClusterHeads[i2];
-      while (next >= 0) {
-        const auto& pixEntry = mPixels[next];
-        const auto pix = pixData[pixEntry.second]; // PixelData
-        if (npix < mPixArrBuff.size()) {
-          mPixArrBuff[npix++] = pix; // needed for cluster topology
-          adjustBoundingBox(pix, rowMin, rowMax, colMin, colMax);
-          if (labelsClus) { // the MCtruth for this pixel is at mChipData->startID+pixEntry.second
-            fetchMCLabels(pixEntry.second + mChipData->getStartID(), labelsDig, nlab);
-          }
-          next = pixEntry.first;
-        } else {
-          LOG(ERROR) << "Cluster size " << npix + 1 << " exceeds the buffer size";
-        }
-      }
-      mPreClusterIndices[i2] = -1;
-    }
-    UShort_t rowSpan = rowMax - rowMin + 1, colSpan = colMax - colMin + 1;
-    Cluster clus;
-    clus.setSensorID(mChipData->getChipID());
-    clus.setNxNzN(rowSpan, colSpan, npix);
-    UShort_t colSpanW = colSpan, rowSpanW = rowSpan;
-    if (colSpan * rowSpan > Cluster::kMaxPatternBits) { // need to store partial info
-      // will curtail largest dimension
-      if (colSpan > rowSpan) {
-        if ((colSpanW = Cluster::kMaxPatternBits / rowSpan) == 0) {
-          colSpanW = 1;
-          rowSpanW = Cluster::kMaxPatternBits;
-        }
-      } else {
-        if ((rowSpanW = Cluster::kMaxPatternBits / colSpan) == 0) {
-          rowSpanW = 1;
-          colSpanW = Cluster::kMaxPatternBits;
-        }
-      }
-    }
-#ifdef _ClusterTopology_
-    clus.setPatternRowSpan(rowSpanW, rowSpanW < rowSpan);
-    clus.setPatternColSpan(colSpanW, colSpanW < colSpan);
-    clus.setPatternRowMin(rowMin);
-    clus.setPatternColMin(colMin);
-    for (int i = 0; i < npix; i++) {
-      const auto pix = mPixArrBuff[i];
-      unsigned short ir = pix.getRowDirect() - rowMin, ic = pix.getCol() - colMin;
-      if (ir < rowSpanW && ic < colSpanW) {
-        clus.setPixel(ir, ic);
-      }
-    }
-#endif              //_ClusterTopology_
-    if (fullClus) { // do we need conventional clusters with full topology and coordinates?
-      fullClus->push_back(clus);
-      Cluster& c = fullClus->back();
-      Float_t x = 0., z = 0.;
-      for (int i = npix; i--;) {
-        x += mPixArrBuff[i].getRowDirect();
-        z += mPixArrBuff[i].getCol();
-      }
-      Point3D<float> xyzLoc;
-      Segmentation::detectorToLocalUnchecked(x / npix, z / npix, xyzLoc);
-      auto xyzTra = mGeometry->getMatrixT2L(mChipData->getChipID()) ^ (xyzLoc); // inverse transform from Local to Tracking frame
-      c.setPos(xyzTra);
-      c.setErrors(SigmaX2, SigmaY2, 0.f);
-    }
-
-    if (compClus) { // store compact clusters
-      unsigned char patt[Cluster::kMaxPatternBytes] = {0};
-      for (int i = 0; i < npix; i++) {
-        const auto pix = mPixArrBuff[i];
-        unsigned short ir = pix.getRowDirect() - rowMin, ic = pix.getCol() - colMin;
-        if (ir < rowSpanW && ic < colSpanW) {
-          int nbits = ir * colSpanW + ic;
-          patt[nbits >> 3] |= (0x1 << (7 - (nbits % 8)));
-        }
-      }
-      UShort_t pattID = (mPattIdConverter.size() == 0) ? CompCluster::InvalidPatternID : mPattIdConverter.findGroupID(rowSpanW, colSpanW, patt);
-      if (pattID == CompCluster::InvalidPatternID || mPattIdConverter.isGroup(pattID)) {
-        float xCOG = 0., zCOG = 0.;
-        ClusterPattern::getCOG(rowSpanW, colSpanW, patt, xCOG, zCOG);
-        rowMin += round(xCOG);
-        colMin += round(zCOG);
-        if (mPatterns) {
-          mPatterns->emplace_back((unsigned char)rowSpanW);
-          mPatterns->emplace_back((unsigned char)colSpanW);
-          int nBytes = rowSpanW * colSpanW / 8;
-          if (((rowSpanW * colSpanW) % 8) != 0)
-            nBytes++;
-          mPatterns->insert(mPatterns->end(), std::begin(patt), std::begin(patt) + nBytes);
-        }
-      }
-      compClus->emplace_back(rowMin, colMin, pattID, mChipData->getChipID());
-    }
-
-    if (labelsClus) { // MC labels were requested
-      for (int i = nlab; i--;) {
-        labelsClus->addElement(mClustersCount, mLabelsBuff[i]);
-      }
-    }
-
-    mClustersCount++;
-  }
-}
-
-//__________________________________________________
 void Clusterer::fetchMCLabels(int digID, const MCTruth* labelsDig, int& nfilled)
 {
   // transfer MC labels to cluster
@@ -373,4 +152,8 @@ void Clusterer::print() const
 {
   // print settings
   printf("Mask overflow pixels in strobes separated by < %d BCs\n", mMaxBCSeparationToMask);
+#ifdef _PERFORM_TIMING_
+  printf("Clusterization timing (w/o disk IO): ");
+  mTimer.Print();
+#endif
 }

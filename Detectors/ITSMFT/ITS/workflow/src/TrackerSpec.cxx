@@ -78,7 +78,6 @@ void TrackerDPL::init(InitContext& ic)
   if (o2::base::NameConf::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
     LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
-    mState = 1;
   } else {
     LOG(INFO) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
   }

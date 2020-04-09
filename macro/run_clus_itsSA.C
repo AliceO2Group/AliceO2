@@ -54,10 +54,6 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
     LOG(INFO) << "Running without dictionary !";
   }
 
-  if (withPatterns) {
-    clus->setPatterns();
-  }
-
   // Mask fired pixels separated by <= this number of BCs (for overflow pixels).
   // In continuos mode strobe lenght should be used, in triggered one: signal shaping time (~7mus)
   if (strobe < 0) {

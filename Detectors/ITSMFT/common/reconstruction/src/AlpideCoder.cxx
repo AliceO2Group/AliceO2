@@ -14,8 +14,6 @@
 #include "ITSMFTReconstruction/AlpideCoder.h"
 #include <TClass.h>
 
-//#define _RAW_READER_DEBUG_ // to produce debug output during decoding
-
 using namespace o2::itsmft;
 
 //_____________________________________

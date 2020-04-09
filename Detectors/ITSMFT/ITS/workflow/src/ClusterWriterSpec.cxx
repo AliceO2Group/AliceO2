@@ -83,8 +83,6 @@ void ClusterWriter::run(ProcessingContext& pc)
   mTree->Write();
   mTree.release()->Delete();
   mFile->Close();
-
-  mState = 2;
 }
 
 DataProcessorSpec getClusterWriterSpec(bool useMC)

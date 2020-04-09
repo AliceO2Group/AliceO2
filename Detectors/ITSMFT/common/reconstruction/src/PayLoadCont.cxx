@@ -17,6 +17,31 @@ using namespace o2::itsmft;
 
 constexpr size_t PayLoadCont::MinCapacity;
 
+PayLoadCont::PayLoadCont(const PayLoadCont& src)
+{
+  mBuffer = src.mBuffer;
+  if (src.mPtr) {
+    mPtr = mBuffer.data() + (src.mPtr - src.mBuffer.data());
+  }
+  if (src.mEnd) {
+    mEnd = mBuffer.data() + (src.mEnd - src.mBuffer.data());
+  }
+}
+
+PayLoadCont& PayLoadCont::operator=(const PayLoadCont& src)
+{
+  if (&src != this) {
+    mBuffer = src.mBuffer;
+    if (src.mPtr) {
+      mPtr = mBuffer.data() + (src.mPtr - src.mBuffer.data());
+    }
+    if (src.mEnd) {
+      mEnd = mBuffer.data() + (src.mEnd - src.mBuffer.data());
+    }
+  }
+  return *this;
+}
+
 void PayLoadCont::expand(size_t sz)
 {
   ///< increase the buffer size

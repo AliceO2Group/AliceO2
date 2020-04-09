@@ -34,8 +34,13 @@ class PayLoadCont
   static constexpr size_t MinCapacity = 16;
 
   ///< allocate buffer
-  PayLoadCont(size_t iniSize = MinCapacity) { expand(iniSize); }
+  PayLoadCont() = default;
+  PayLoadCont(size_t sz) { expand(sz); }
   ~PayLoadCont() = default;
+
+  PayLoadCont(const PayLoadCont& src);
+
+  PayLoadCont& operator=(const PayLoadCont& src);
 
   const uint8_t* data() const { return mBuffer.data(); }
 

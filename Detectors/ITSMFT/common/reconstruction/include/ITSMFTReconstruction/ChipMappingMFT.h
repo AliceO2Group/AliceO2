@@ -17,7 +17,9 @@
 #include <Rtypes.h>
 #include <array>
 #include <FairLogger.h>
+#include "Headers/DataHeader.h"
 #include "ITSMFTReconstruction/RUInfo.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 namespace o2
 {
@@ -50,6 +52,8 @@ class ChipMappingMFT
   ~ChipMappingMFT() = default;
 
   static constexpr std::string_view getName() { return "MFT"; }
+  static constexpr o2::header::DataOrigin getOrigin() { return o2::header::gDataOriginMFT; }
+  static constexpr o2::detectors::DetID::ID getDetID() { return o2::detectors::DetID::MFT; }
 
   // RS placeholder for methods to implement ----------->
 
