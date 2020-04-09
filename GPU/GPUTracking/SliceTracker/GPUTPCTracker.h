@@ -62,9 +62,10 @@ class GPUTPCTracker : public GPUProcessor
   };
 
   struct commonMemoryStruct {
-    commonMemoryStruct() : nStartHits(0), nTracklets(0), nTracks(0), nLocalTracks(0), nTrackHits(0), nLocalTrackHits(0), kernelError(0), gpuParameters() {}
+    commonMemoryStruct() : nStartHits(0), nTracklets(0), nRowHits(0), nTracks(0), nLocalTracks(0), nTrackHits(0), nLocalTrackHits(0), kernelError(0), gpuParameters() {}
     GPUAtomic(unsigned int) nStartHits; // number of start hits
     GPUAtomic(unsigned int) nTracklets; // number of tracklets
+    GPUAtomic(unsigned int) nRowHits;   // number of tracklet hits
     GPUAtomic(unsigned int) nTracks;    // number of reconstructed tracks
     int nLocalTracks;                   // number of reconstructed tracks before global tracking
     GPUAtomic(unsigned int) nTrackHits; // number of track hits
@@ -152,6 +153,7 @@ class GPUTPCTracker : public GPUProcessor
 
   GPUhd() unsigned int NHitsTotal() const { return mData.NumberOfHits(); }
   GPUhd() unsigned int NMaxTracklets() const { return mNMaxTracklets; }
+  GPUhd() unsigned int NMaxRowHits() const { return mNMaxRowHits; }
   GPUhd() unsigned int NMaxTracks() const { return mNMaxTracks; }
   GPUhd() unsigned int NMaxTrackHits() const { return mNMaxTrackHits; }
   GPUhd() unsigned int NMaxStartHits() const { return mNMaxStartHits; }
@@ -214,6 +216,7 @@ class GPUTPCTracker : public GPUProcessor
   GPUd() int HitWeight(const MEM_TYPE(GPUTPCRow) & row, int hitIndex) const { return mData.HitWeight(row, hitIndex); }
 
   GPUhd() GPUglobalref() GPUAtomic(unsigned int) * NTracklets() const { return &mCommonMem->nTracklets; }
+  GPUhd() GPUglobalref() GPUAtomic(unsigned int) * NRowHits() const { return &mCommonMem->nRowHits; }
   GPUhd() GPUglobalref() GPUAtomic(unsigned int) * NStartHits() const { return &mCommonMem->nStartHits; }
 
   GPUhd() GPUglobalref() const GPUTPCHitId& TrackletStartHit(int i) const { return mTrackletStartHits[i]; }
@@ -274,6 +277,7 @@ class GPUTPCTracker : public GPUProcessor
   unsigned int mNMaxStartHits;
   unsigned int mNMaxRowStartHits;
   unsigned int mNMaxTracklets;
+  unsigned int mNMaxRowHits;
   unsigned int mNMaxTracks;
   unsigned int mNMaxTrackHits;
   short mMemoryResLinksScratch;

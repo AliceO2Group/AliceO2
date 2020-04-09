@@ -63,7 +63,8 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
           tParam.Cov()[10], tParam.Cov()[11], tParam.Cov()[12], tParam.Cov()[13], tParam.Cov()[14]);*/
 
   unsigned int itrout = CAMath::AtomicAdd(tracker.NTracklets(), 1);
-  if (itrout >= tracker.NMaxTracklets()) {
+  unsigned int hitout = CAMath::AtomicAdd(tracker.NRowHits(), r.mLastRow + 1 - r.mFirstRow);
+  if (itrout >= tracker.NMaxTracklets() || hitout >= tracker.NMaxRowHits()) {
     tracker.CommonMemory()->kernelError = GPUCA_ERROR_TRACKLET_OVERFLOW;
     CAMath::AtomicExch(tracker.NTracklets(), 0);
     return;
@@ -76,6 +77,7 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
 
   tracklet.SetFirstRow(r.mFirstRow);
   tracklet.SetLastRow(r.mLastRow);
+  tracklet.SetFirstHit(hitout);
   tracklet.SetParam(tParam.GetParam());
   int w = tracker.CalculateHitWeight(r.mNHits, tParam.GetChi2(), r.mISH);
   tracklet.SetHitWeight(w);
@@ -85,11 +87,7 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
   for (int iRow = r.mFirstRow; iRow <= r.mLastRow; iRow++) {
 #endif
     calink ih = rowHits[iRow];
-#ifdef GPUCA_EXTERN_ROW_HITS
-    tracker.TrackletRowHits()[(iRow - r.mFirstRow) * tracker.NMaxTracklets() + itrout] = ih;
-#else
-    tracklet.SetRowHit(iRow, ih);
-#endif // GPUCA_EXTERN_ROW_HITS
+    tracker.TrackletRowHits()[hitout + (iRow - r.mFirstRow)] = ih;
     if (ih != CALINK_INVAL) {
       CA_MAKE_SHARED_REF(GPUTPCRow, row, tracker.Row(iRow), s.mRows[iRow]);
       tracker.MaximizeHitWeight(row, ih, w);
@@ -100,11 +98,7 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
 MEM_CLASS_PRE2()
 GPUd() void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() s, GPUTPCThreadMemory& GPUrestrict() r, GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & GPUrestrict() tracker, MEM_LG2(GPUTPCTrackParam) & GPUrestrict() tParam, int iRow, calink& rowHit)
 {
-// reconstruction of tracklets, tracklets update step
-#ifndef GPUCA_EXTERN_ROW_HITS
-  GPUTPCTracklet& GPUrestrict() tracklet = tracker.Tracklets()[r.mISH];
-#endif // GPUCA_EXTERN_ROW_HITS
-
+  // reconstruction of tracklets, tracklets update step
   CA_MAKE_SHARED_REF(GPUTPCRow, row, tracker.Row(iRow), s.mRows[iRow]);
 
   float y0 = row.Grid().YMin();
@@ -354,9 +348,6 @@ GPUd() void GPUTPCTrackletConstructor::DoTracklet(GPUconstantref() MEM_GLOBAL(GP
   MEM_PLAIN(GPUTPCTrackParam)
   tParam;
   calink rowHits[GPUCA_ROW_COUNT];
-#ifndef GPUCA_EXTERN_ROW_HITS
-  GPUTPCTracklet& GPUrestrict() tracklet = tracker.Tracklets()[r.mISH];
-#endif // GPUCA_EXTERN_ROW_HITS
   if (r.mGo) {
     GPUTPCHitId id = tracker.TrackletStartHits()[r.mISH];
 

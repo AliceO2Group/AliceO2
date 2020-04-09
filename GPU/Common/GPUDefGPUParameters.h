@@ -194,7 +194,6 @@
 #define GPUCA_MAX_THREADS 1024
 #define GPUCA_MAX_STREAMS 32
 
-#define GPUCA_EXTERN_ROW_HITS                                          // Store row hits in separate array outside of tracklets
 #define GPUCA_SORT_STARTHITS_GPU                                       // Sort the start hits when running on GPU
 #define GPUCA_ROWALIGNMENT 16                                          // Align of Row Hits and Grid
 #define GPUCA_BUFFER_ALIGNMENT 64                                      // Alignment of buffers obtained from SetPointers

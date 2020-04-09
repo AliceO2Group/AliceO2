@@ -117,9 +117,7 @@ void GPUTPCTracker::RegisterMemoryAllocation()
 GPUhd() void* GPUTPCTracker::SetPointersTracklets(void* mem)
 {
   computePointerWithAlignment(mem, mTracklets, mNMaxTracklets);
-#ifdef GPUCA_EXTERN_ROW_HITS
-  computePointerWithAlignment(mem, mTrackletRowHits, mNMaxTracklets * GPUCA_ROW_COUNT);
-#endif
+  computePointerWithAlignment(mem, mTrackletRowHits, mNMaxRowHits);
   return mem;
 }
 
@@ -139,6 +137,7 @@ void GPUTPCTracker::SetMaxData(const GPUTrackingInOutPointers& io)
   }
   mNMaxRowStartHits = mRec->MemoryScalers()->NTPCMaxRowStartHits(mData.NumberOfHits());
   mNMaxTracklets = mRec->MemoryScalers()->NTPCTracklets(mData.NumberOfHits());
+  mNMaxRowHits = mRec->MemoryScalers()->NTPCTrackletHits(mData.NumberOfHits());
   mNMaxTracks = mRec->MemoryScalers()->NTPCSectorTracks(mData.NumberOfHits());
   mNMaxTrackHits = mRec->MemoryScalers()->NTPCSectorTrackHits(mData.NumberOfHits());
 #ifdef GPUCA_SORT_STARTHITS_GPU
