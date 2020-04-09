@@ -53,7 +53,7 @@ class GPUTPCTracker : public GPUProcessor
 #endif
 
   struct StructGPUParameters {
-    GPUAtomic(unsigned int) nextTracklet; // Next Tracklet to process
+    GPUAtomic(unsigned int) nextStartHit; // Next Tracklet to process
   };
 
   MEM_CLASS_PRE2()
@@ -62,7 +62,8 @@ class GPUTPCTracker : public GPUProcessor
   };
 
   struct commonMemoryStruct {
-    commonMemoryStruct() : nTracklets(0), nTracks(0), nLocalTracks(0), nTrackHits(0), nLocalTrackHits(0), kernelError(0), gpuParameters() {}
+    commonMemoryStruct() : nStartHits(0), nTracklets(0), nTracks(0), nLocalTracks(0), nTrackHits(0), nLocalTrackHits(0), kernelError(0), gpuParameters() {}
+    GPUAtomic(unsigned int) nStartHits; // number of start hits
     GPUAtomic(unsigned int) nTracklets; // number of tracklets
     GPUAtomic(unsigned int) nTracks;    // number of reconstructed tracks
     int nLocalTracks;                   // number of reconstructed tracks before global tracking
@@ -213,6 +214,7 @@ class GPUTPCTracker : public GPUProcessor
   GPUd() int HitWeight(const MEM_TYPE(GPUTPCRow) & row, int hitIndex) const { return mData.HitWeight(row, hitIndex); }
 
   GPUhd() GPUglobalref() GPUAtomic(unsigned int) * NTracklets() const { return &mCommonMem->nTracklets; }
+  GPUhd() GPUglobalref() GPUAtomic(unsigned int) * NStartHits() const { return &mCommonMem->nStartHits; }
 
   GPUhd() GPUglobalref() const GPUTPCHitId& TrackletStartHit(int i) const { return mTrackletStartHits[i]; }
   GPUhd() GPUglobalref() GPUTPCHitId* TrackletStartHits() const { return mTrackletStartHits; }
