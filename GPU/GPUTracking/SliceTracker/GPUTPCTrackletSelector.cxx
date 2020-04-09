@@ -61,7 +61,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
     for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= minHits; irow++) {
       gap++;
 #ifdef GPUCA_EXTERN_ROW_HITS
-      calink ih = tracker.TrackletRowHits()[irow * tracker.NMaxTracklets() + itr];
+      calink ih = tracker.TrackletRowHits()[(irow - firstRow) * tracker.NMaxTracklets() + itr];
 #else
       calink ih = tracklet.RowHit(irow);
 #endif // GPUCA_EXTERN_ROW_HITS
