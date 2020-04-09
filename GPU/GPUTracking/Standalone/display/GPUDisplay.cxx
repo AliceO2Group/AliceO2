@@ -827,11 +827,7 @@ GPUDisplay::vboList GPUDisplay::DrawTracklets(const GPUTPCTracker& tracker)
     size_t startCountInner = mVertexBuffer[iSlice].size();
     float4 oldpos;
     for (int j = tracklet.FirstRow(); j <= tracklet.LastRow(); j++) {
-#ifdef GPUCA_EXTERN_ROW_HITS
-      const calink rowHit = tracker.TrackletRowHits()[(j - tracklet.FirstRow()) * tracker.NMaxTracklets() + i];
-#else
-      const calink rowHit = tracklet.RowHit(j);
-#endif
+      const calink rowHit = tracker.TrackletRowHits()[tracklet.FirstHit() + (j - tracklet.FirstRow())];
       if (rowHit != CALINK_INVAL) {
         const GPUTPCRow& row = tracker.Data().Row(j);
         const int cid = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, rowHit));

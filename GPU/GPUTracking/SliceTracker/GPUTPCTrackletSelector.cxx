@@ -60,11 +60,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
 
     for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= minHits; irow++) {
       gap++;
-#ifdef GPUCA_EXTERN_ROW_HITS
-      calink ih = tracker.TrackletRowHits()[(irow - firstRow) * tracker.NMaxTracklets() + itr];
-#else
-      calink ih = tracklet.RowHit(irow);
-#endif // GPUCA_EXTERN_ROW_HITS
+      calink ih = tracker.TrackletRowHits()[tracklet.FirstHit() + (irow - firstRow)];
       if (ih != CALINK_INVAL) {
         GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(irow);
         bool own = (tracker.HitWeight(row, ih) <= w);
