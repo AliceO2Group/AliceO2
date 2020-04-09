@@ -434,6 +434,9 @@ void GPUReconstruction::PrintMemoryStatistics()
   std::map<std::string, std::array<size_t, 3>> sizes;
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
     auto& res = mMemoryResources[i];
+    if (res.mReuse != -1) {
+      continue;
+    }
     auto& x = sizes[res.mName];
     if (res.mPtr) {
       x[0] += res.mSize;
@@ -445,6 +448,7 @@ void GPUReconstruction::PrintMemoryStatistics()
       x[2] = 1;
     }
   }
+  printf("%59s CPU / %9s GPU\n", "", "");
   for (auto it = sizes.begin(); it != sizes.end(); it++) {
     printf("Allocation %30s %s: Size %'13lld / %'13lld\n", it->first.c_str(), it->second[2] ? "P" : " ", (long long int)it->second[0], (long long int)it->second[1]);
   }
