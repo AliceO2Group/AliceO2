@@ -24,9 +24,11 @@ o2_add_library(ITSWorkflow
                                      O2::SimulationDataFormat
                                      O2::ITStracking
                                      O2::ITSReconstruction
+                                     O2::ITSMFTReconstruction
                                      O2::GPUTracking)
 
 o2_add_executable(reco-workflow
                   SOURCES src/its-reco-workflow.cxx
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
+
