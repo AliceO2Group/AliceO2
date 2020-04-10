@@ -13,7 +13,7 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "PreClusterFinderSpec.h"
+#include "MCHWorkflow/PreClusterFinderSpec.h"
 
 #include <iostream>
 #include <fstream>
@@ -32,7 +32,7 @@
 
 #include "MCHBase/Digit.h"
 #include "MCHBase/PreCluster.h"
-#include "PreClusterFinder.h"
+#include "../../PreClustering/src/PreClusterFinder.h"
 
 namespace o2
 {
@@ -108,13 +108,6 @@ class PreClusterFinderTask
     }
     tEnd = std::chrono::high_resolution_clock::now();
     mTimeStorePreClusters += tEnd - tStart;
-
-    if (mPrint) {
-      cout << mPreClusters.size() << " preclusters:" << endl;
-      for (const auto& precluster : mPreClusters) {
-        precluster.print(cout, mUsedDigits);
-      }
-    }
 
     // send the output messages
     pc.outputs().snapshot(Output{"MCH", "PRECLUSTERS", 0, Lifetime::Timeframe}, mPreClusters);

@@ -57,6 +57,14 @@ class PreClusterSinkTask
       throw invalid_argument("Cannot open output file" + outputFileName);
     }
 
+    auto outputTxtFileName = ic.options().get<std::string>("outfile-txt");
+    if( !outputTxtFileName.empty() ) {
+      mOutputTxtFile.open(outputTxtFileName, ios::out);
+      if (!mOutputTxtFile.is_open()) {
+        throw invalid_argument("Cannot open output text file" + outputTxtFileName);
+      }
+    }
+
     mUseRun2DigitUID = ic.options().get<bool>("useRun2DigitUID");
 
     auto stop = [this]() {
@@ -95,6 +103,15 @@ class PreClusterSinkTask
     } else {
       mOutputFile.write(reinterpret_cast<const char*>(digits.data()), digits.size_bytes());
     }
+
+    bool mPrint = false;
+    if (mOutputTxtFile.is_open()) {
+      mOutputTxtFile << preClusters.size() << " preclusters:" << endl;
+      for (const auto& precluster : preClusters) {
+        precluster.print(mOutputTxtFile, digits);
+      }
+    }
+
   }
 
  private:
@@ -133,8 +150,9 @@ class PreClusterSinkTask
     }
   }
 
-  std::ofstream mOutputFile{};   ///< output file
-  bool mUseRun2DigitUID = false; ///< true if Digit.mPadID = digit UID in run2 format
+  std::ofstream mOutputFile{};    ///< output file
+  std::ofstream mOutputTxtFile{}; ///< output text file
+  bool mUseRun2DigitUID = false;  ///< true if Digit.mPadID = digit UID in run2 format
 };
 
 //_________________________________________________________________________________________________
@@ -147,6 +165,7 @@ o2::framework::DataProcessorSpec getPreClusterSinkSpec()
     Outputs{},
     AlgorithmSpec{adaptFromTask<PreClusterSinkTask>()},
     Options{{"outfile", VariantType::String, "preclusters.out", {"output filename"}},
+            {"outfile-txt", VariantType::String, "", {"text output filename (optional)"}},
             {"useRun2DigitUID", VariantType::Bool, false, {"mPadID = digit UID in run2 format"}}}};
 }
 
