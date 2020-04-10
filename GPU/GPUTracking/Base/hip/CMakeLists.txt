@@ -51,10 +51,12 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                   PUBLIC_LINK_LIBRARIES O2::GPUCommon hip::host hip::device hip::hipcub ROCm::rocThrust
                   COMPONENT_NAME GPU
                   LABELS gpu)
-
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
+  if(NOT CMAKE_CXX_STANDARD OR CMAKE_CXX_STANDARD LESS 14)
+    message(FATAL_ERROR "HIP support needs at least C++14")
+  endif()
   add_definitions(-DGPUCA_GPULIBRARY=HIP)
 
   # Generate the dictionary
@@ -71,7 +73,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   set(ALILIBSTESTED ${ALILIBSTESTED} CACHE INTERNAL "ALILIBSTESTED")
 
   # HIP run-time and driver
-  target_link_libraries(Ali${MODULE} PUBLIC AliGPUTracking)
+  target_link_libraries(Ali${MODULE} PUBLIC AliGPUTracking hip::host hip::device hip::hipcub ROCm::rocThrust)
 
   # Additional compilation flags
   set_target_properties(Ali${MODULE} PROPERTIES COMPILE_FLAGS "")
