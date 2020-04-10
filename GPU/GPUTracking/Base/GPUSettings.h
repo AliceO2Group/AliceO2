@@ -155,6 +155,7 @@ struct GPUSettingsDeviceProcessing {
   int tpcCompressionGatherMode;       // Modes: 0 = gather by DMA, 1 = DMA + gather on host, ...
   bool mergerSortTracks;              // Sort track indices for GPU track fit
   bool runMC;                         // Process MC labels
+  float memoryScalingFactor;          // Factor to apply to all memory scalers
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

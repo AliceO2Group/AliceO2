@@ -189,6 +189,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (param().rec.NonConsecutiveIDs) {
     param().rec.DisableRefitAttachment = 0xFF;
   }
+  mMemoryScalers->factor = GetDeviceProcessingSettings().memoryScalingFactor;
 
 #ifdef WITH_OPENMP
   if (mDeviceProcessingSettings.nThreads <= 0) {
