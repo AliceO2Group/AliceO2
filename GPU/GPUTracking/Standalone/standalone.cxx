@@ -71,10 +71,10 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 //#define BROKEN_EVENTS
 
-GPUReconstruction* rec;
-GPUChainTracking* chainTracking;
+GPUReconstruction *rec, *recAsync;
+GPUChainTracking *chainTracking, *chainTrackingAsync;
 #ifdef HAVE_O2HEADERS
-GPUChainITS* chainITS;
+GPUChainITS *chainITS, *chainITSAsync;
 #endif
 std::unique_ptr<char[]> outputmemory;
 std::unique_ptr<GPUDisplayBackend> eventDisplay;
@@ -238,6 +238,9 @@ int SetupReconstruction()
     snprintf(filename, 256, "events/%s/", configStandalone.EventsDir);
     rec->ReadSettings(filename);
     printf("Read event settings from dir %s (solenoidBz: %f, home-made events %d, constBz %d, maxTimeBin %d)\n", filename, rec->GetEventSettings().solenoidBz, (int)rec->GetEventSettings().homemadeEvents, (int)rec->GetEventSettings().constBz, rec->GetEventSettings().continuousMaxTimeBin);
+    if (configStandalone.testSyncAsync) {
+      recAsync->ReadSettings(filename);
+    }
   }
 
   GPUSettingsEvent ev = rec->GetEventSettings();
@@ -406,7 +409,16 @@ int SetupReconstruction()
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUReconstruction::RecoStep::TPCCompression));
   steps.outputs.setBits(GPUDataTypes::InOutType::TRDTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TRDTracking));
 
+  if (configStandalone.testSyncAsync) {
+    // Set settings for synchronous
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, 0);
+  }
   rec->SetSettings(&ev, &recSet, &devProc, &steps);
+  if (configStandalone.testSyncAsync) {
+    // Set settings for asynchronous
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, 1);
+    recAsync->SetSettings(&ev, &recSet, &devProc, &steps);
+  }
   if (rec->Init()) {
     printf("Error initializing GPUReconstruction!\n");
     return 1;
@@ -439,7 +451,7 @@ int ReadEvent(int n)
 
 int main(int argc, char** argv)
 {
-  std::unique_ptr<GPUReconstruction> recUnique;
+  std::unique_ptr<GPUReconstruction> recUnique, recUniqueAsync;
 
   SetCPUAndOSSettings();
 
@@ -449,14 +461,25 @@ int main(int argc, char** argv)
 
   recUnique.reset(GPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType : GPUReconstruction::DEVICE_TYPE_NAMES[GPUReconstruction::DeviceType::CPU], configStandalone.runGPUforce));
   rec = recUnique.get();
-  if (rec == nullptr) {
+  if (configStandalone.testSyncAsync) {
+    recUniqueAsync.reset(GPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType : GPUReconstruction::DEVICE_TYPE_NAMES[GPUReconstruction::DeviceType::CPU], configStandalone.runGPUforce, rec));
+    recAsync = recUniqueAsync.get();
+  }
+  if (rec == nullptr || (configStandalone.testSyncAsync && recAsync == nullptr)) {
     printf("Error initializing GPUReconstruction\n");
     return (1);
   }
   rec->SetDebugLevelTmp(configStandalone.DebugLevel);
   chainTracking = rec->AddChain<GPUChainTracking>();
+  if (configStandalone.testSyncAsync) {
+    recAsync->SetDebugLevelTmp(configStandalone.DebugLevel);
+    chainTrackingAsync = recAsync->AddChain<GPUChainTracking>();
+  }
 #ifdef HAVE_O2HEADERS
   chainITS = rec->AddChain<GPUChainITS>(0);
+  if (configStandalone.testSyncAsync) {
+    chainITSAsync = recAsync->AddChain<GPUChainITS>(0);
+  }
 #endif
 
   if (SetupReconstruction()) {
@@ -593,6 +616,7 @@ int main(int argc, char** argv)
         printf("Loading time: %'d us\n", (int)(1000000 * timerLoad.GetCurrentElapsedTime()));
 
         printf("Processing Event %d\n", iEvent);
+        GPUTrackingInOutPointers ioPtrSave = chainTracking->mIOPtrs;
         for (int j1 = 0; j1 < configStandalone.runs; j1++) {
           if (configStandalone.runs > 1) {
             printf("Run %d\n", j1 + 1);
@@ -602,6 +626,10 @@ int main(int argc, char** argv)
           }
           rec->SetResetTimers(j1 < configStandalone.runsInit);
 
+          if (configStandalone.testSyncAsync) {
+            printf("Running synchronous phase\n");
+          }
+          chainTracking->mIOPtrs = ioPtrSave;
           int tmpRetVal = rec->RunChains();
 
           if (tmpRetVal == 0 || tmpRetVal == 2) {
@@ -643,6 +671,14 @@ int main(int argc, char** argv)
             rec->PrintMemoryOverview();
           }
           rec->ClearAllocatedMemory();
+
+          if (tmpRetVal == 0 && configStandalone.testSyncAsync) {
+            if (configStandalone.testSyncAsync) {
+              printf("Running asynchronous phase\n");
+            }
+            chainTrackingAsync->mIOPtrs = ioPtrSave;
+            tmpRetVal = recAsync->RunChains();
+          }
 
           if (tmpRetVal == 2) {
             configStandalone.continueOnError = 0; // Forced exit from event display loop

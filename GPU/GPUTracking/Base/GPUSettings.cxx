@@ -66,6 +66,7 @@ void GPUSettingsProcessing::SetDefaults()
 {
   deviceType = GPUDataTypes::DeviceType::CPU;
   forceDeviceType = true;
+  master = nullptr;
 }
 
 void GPUSettingsDeviceProcessing::SetDefaults()
