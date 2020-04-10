@@ -21,6 +21,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 class GPUDisplayBackend;
+class GPUReconstruction;
 
 class GPUSettings
 {
@@ -112,8 +113,9 @@ struct GPUSettingsProcessing {
   void SetDefaults();
 #endif
 
-  unsigned int deviceType; // Device type, shall use GPUDataTypes::DEVICE_TYPE constants, e.g. CPU / CUDA
-  char forceDeviceType;    // Fail if device initialization fails, otherwise falls back to CPU
+  unsigned int deviceType;   // Device type, shall use GPUDataTypes::DEVICE_TYPE constants, e.g. CPU / CUDA
+  char forceDeviceType;      // Fail if device initialization fails, otherwise falls back to CPU
+  GPUReconstruction* master; // GPUReconstruction master object
 };
 
 // Settings steering the processing once the device was selected

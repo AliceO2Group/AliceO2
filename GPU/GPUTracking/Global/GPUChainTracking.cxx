@@ -294,7 +294,7 @@ int GPUChainTracking::Init()
     }
 #endif
     TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mFlatObjectsShadow.mMemoryResFlat);
-    WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->calibObjects - (char*)processors(), &mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects), -1);
+    WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->calibObjects - (char*)processors(), &mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects), -1); // First initialization, for users not using RunChain
   }
 
   if (GetDeviceProcessingSettings().debugLevel >= 6) {
@@ -1681,6 +1681,10 @@ int GPUChainTracking::RunChain()
   int nCount = mRec->getNEventsProcessed();
   if (GetDeviceProcessingSettings().debugLevel >= 6) {
     mDebugFile << "\n\nProcessing event " << nCount << std::endl;
+  }
+  if (mRec->slavesExist() && mRec->IsGPU()) {
+    const auto threadContext = GetThreadContext();
+    WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->calibObjects - (char*)processors(), &mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects), -1); // Reinitialize
   }
 
 #ifdef GPUCA_STANDALONE

@@ -197,10 +197,6 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   unsigned int mWarpSize = 0;
   unsigned int mITSThreadCount = 0;
 
-  int mThreadId = -1; // Thread ID that is valid for the local CUDA context
-  int mGPUStuck = 0;  // Marks that the GPU is stuck, skip future events
-  int mNStreams = 1;
-
   struct timerMeta {
     std::unique_ptr<HighResTimer[]> timer;
     std::string name;

@@ -135,7 +135,10 @@ int GPUReconstructionCPU::InitDevice()
     if (mDeviceMemorySize > mHostMemorySize) {
       mHostMemorySize = mDeviceMemorySize;
     }
-    mHostMemoryPermanent = mHostMemoryBase = operator new(mHostMemorySize);
+    if (mMaster == nullptr) {
+      mHostMemoryBase = operator new(mHostMemorySize);
+    }
+    mHostMemoryPermanent = mHostMemoryBase;
     ClearAllocatedMemory();
   }
   SetThreadCounts();
@@ -146,7 +149,9 @@ int GPUReconstructionCPU::InitDevice()
 int GPUReconstructionCPU::ExitDevice()
 {
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
-    operator delete(mHostMemoryBase);
+    if (mMaster == nullptr) {
+      operator delete(mHostMemoryBase);
+    }
     mHostMemoryPool = mHostMemoryBase = mHostMemoryPermanent = nullptr;
     mHostMemorySize = 0;
   }
@@ -192,6 +197,9 @@ int GPUReconstructionCPU::RunChains()
   }
 
   timerTotal.Start();
+  if (mSlaves.size() || mMaster) {
+    WriteConstantParams(); // Reinitialize
+  }
   for (unsigned int i = 0; i < mChains.size(); i++) {
     int retVal = mChains[i]->RunChain();
     if (retVal) {
