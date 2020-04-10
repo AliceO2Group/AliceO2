@@ -214,6 +214,9 @@ int GPUReconstructionCPU::RunChains()
 
     for (unsigned int i = 0; i < mTimers.size(); i++) {
       double time = 0;
+      if (mTimers[i] == nullptr) {
+        continue;
+      }
       for (int j = 0; j < mTimers[i]->num; j++) {
         HighResTimer& timer = mTimers[i]->timer[j];
         time += timer.GetElapsedTime();

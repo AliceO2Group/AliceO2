@@ -19,6 +19,7 @@
 #include "GPUTPCDef.h"
 #include "GPUQA.h"
 #include "GPUDisplayBackend.h"
+#include "TPCClusterDecompressor.h"
 #include "genEvents.h"
 
 #include <iostream>
@@ -316,6 +317,7 @@ int SetupReconstruction()
   devProc.runQA = configStandalone.qa;
   devProc.runMC = configStandalone.configProc.runMC;
   devProc.runCompressionStatistics = configStandalone.compressionStat;
+  devProc.memoryScalingFactor = configStandalone.memoryScalingFactor;
   if (configStandalone.eventDisplay) {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef _WIN32
@@ -348,7 +350,9 @@ int SetupReconstruction()
   devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
   devProc.memoryAllocationStrategy = configStandalone.allocationStrategy;
   devProc.registerStandaloneInputMemory = configStandalone.registerInputMemory;
-  recSet.tpcRejectionMode = configStandalone.configRec.tpcReject;
+  if (configStandalone.configRec.tpcReject != -1) {
+    recSet.tpcRejectionMode = configStandalone.configRec.tpcReject;
+  }
   if (configStandalone.configRec.tpcRejectThreshold != 0.f) {
     recSet.tpcRejectQPt = 1.f / configStandalone.configRec.tpcRejectThreshold;
   }
@@ -412,11 +416,21 @@ int SetupReconstruction()
   if (configStandalone.testSyncAsync) {
     // Set settings for synchronous
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, 0);
+    devProc.eventDisplay = nullptr;
   }
   rec->SetSettings(&ev, &recSet, &devProc, &steps);
   if (configStandalone.testSyncAsync) {
     // Set settings for asynchronous
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, 1);
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCCompression, false);
+    steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, 0);
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCClusterFinding, false);
+    steps.inputs.setBits(GPUDataTypes::InOutType::TPCRaw, false);
+    steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, true);
+    devProc.runMC = false;
+    devProc.runQA = false;
+    devProc.eventDisplay = eventDisplay.get();
+    devProc.runCompressionStatistics = 0;
     recAsync->SetSettings(&ev, &recSet, &devProc, &steps);
   }
   if (rec->Init()) {
@@ -447,6 +461,41 @@ int ReadEvent(int n)
     chainTracking->ConvertNativeToClusterDataLegacy();
   }
   return 0;
+}
+
+void OutputStat(GPUChainTracking* t, long long int* nTracksTotal = nullptr, long long int* nClustersTotal = nullptr)
+{
+  int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
+  for (int k = 0; k < t->GetTPCMerger().NOutputTracks(); k++) {
+    if (t->GetTPCMerger().OutputTracks()[k].OK()) {
+      nTracks++;
+      nAttachedClusters += t->GetTPCMerger().OutputTracks()[k].NClusters();
+      nAttachedClustersFitted += t->GetTPCMerger().OutputTracks()[k].NClustersFitted();
+    }
+  }
+  for (int k = 0; k < t->GetTPCMerger().NMaxClusters(); k++) {
+    int attach = t->GetTPCMerger().ClusterAttachment()[k];
+    if (attach & GPUTPCGMMergerTypes::attachFlagMask) {
+      nAdjacentClusters++;
+    }
+  }
+
+  nClusters = t->GetTPCMerger().NClusters();
+  if (nTracksTotal && nClustersTotal) {
+    *nTracksTotal += nTracks;
+    *nClustersTotal += nClusters;
+  }
+
+  char trdText[1024] = "";
+  if (t->GetRecoSteps() & GPUReconstruction::RecoStep::TRDTracking) {
+    int nTracklets = 0;
+    for (int k = 0; k < t->GetTRDTracker()->NTracks(); k++) {
+      auto& trk = t->GetTRDTracker()->Tracks()[k];
+      nTracklets += trk.GetNtracklets();
+    }
+    snprintf(trdText, 1024, " - TRD Tracker reconstructed %d tracks (%d tracklets)", t->GetTRDTracker()->NTracks(), nTracklets);
+  }
+  printf("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total))%s\n", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, t->GetTPCMerger().NMaxClusters(), trdText);
 }
 
 int main(int argc, char** argv)
@@ -631,54 +680,53 @@ int main(int argc, char** argv)
           }
           chainTracking->mIOPtrs = ioPtrSave;
           int tmpRetVal = rec->RunChains();
+          nEventsProcessed += (j1 == 0);
 
           if (tmpRetVal == 0 || tmpRetVal == 2) {
-            int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
-            for (int k = 0; k < chainTracking->GetTPCMerger().NOutputTracks(); k++) {
-              if (chainTracking->GetTPCMerger().OutputTracks()[k].OK()) {
-                nTracks++;
-                nAttachedClusters += chainTracking->GetTPCMerger().OutputTracks()[k].NClusters();
-                nAttachedClustersFitted += chainTracking->GetTPCMerger().OutputTracks()[k].NClustersFitted();
-              }
-            }
-            for (int k = 0; k < chainTracking->GetTPCMerger().NMaxClusters(); k++) {
-              int attach = chainTracking->GetTPCMerger().ClusterAttachment()[k];
-              if (attach & GPUTPCGMMergerTypes::attachFlagMask) {
-                nAdjacentClusters++;
-              }
-            }
-
-            nClusters = chainTracking->GetTPCMerger().NClusters();
-            printf("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total))\n", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, chainTracking->GetTPCMerger().NMaxClusters());
-            if (j1 == 0) {
-              nTracksTotal += nTracks;
-              nClustersTotal += nClusters;
-              nEventsProcessed++;
-            }
-
-            if (chainTracking->GetRecoSteps() & GPUReconstruction::RecoStep::TRDTracking) {
-              int nTracklets = 0;
-              for (int k = 0; k < chainTracking->GetTRDTracker()->NTracks(); k++) {
-                auto& trk = chainTracking->GetTRDTracker()->Tracks()[k];
-                nTracklets += trk.GetNtracklets();
-              }
-              printf("TRD Tracker reconstructed %d tracks (%d tracklets)\n", chainTracking->GetTRDTracker()->NTracks(), nTracklets);
-            }
+            OutputStat(chainTracking, j1 == 0 ? &nTracksTotal : nullptr, j1 == 0 ? &nClustersTotal : nullptr);
           }
           if (configStandalone.memoryStat) {
             rec->PrintMemoryStatistics();
           } else if (configStandalone.DebugLevel >= 2) {
             rec->PrintMemoryOverview();
           }
-          rec->ClearAllocatedMemory();
 
           if (tmpRetVal == 0 && configStandalone.testSyncAsync) {
             if (configStandalone.testSyncAsync) {
               printf("Running asynchronous phase\n");
             }
+
+            TPCClusterDecompressor decomp;
+            o2::tpc::ClusterNativeAccess clNativeAccess;
+            std::vector<o2::tpc::ClusterNative> clBuffer;
+            HighResTimer timerDecompress;
+            timerDecompress.ResetStart();
+            if (decomp.decompress(chainTracking->mIOPtrs.tpcCompressedClusters, clNativeAccess, clBuffer, recAsync->GetParam())) {
+              printf("Error decompressing clusters\n");
+              goto breakrun;
+            }
+            printf("Cluster decompression time: %'d us\n", (int)(timerDecompress.GetCurrentElapsedTime() * 1000000));
             chainTrackingAsync->mIOPtrs = ioPtrSave;
+            chainTrackingAsync->mIOPtrs.tpcZS = nullptr;
+            chainTrackingAsync->mIOPtrs.tpcPackedDigits = nullptr;
+            chainTrackingAsync->mIOPtrs.mcInfosTPC = nullptr;
+            chainTrackingAsync->mIOPtrs.nMCInfosTPC = 0;
+            chainTrackingAsync->mIOPtrs.mcLabelsTPC = nullptr;
+            chainTrackingAsync->mIOPtrs.nMCLabelsTPC = 0;
+            for (int i = 0; i < chainTracking->NSLICES; i++) {
+              chainTrackingAsync->mIOPtrs.clusterData[i] = nullptr;
+              chainTrackingAsync->mIOPtrs.nClusterData[i] = 0;
+              chainTrackingAsync->mIOPtrs.rawClusters[i] = nullptr;
+              chainTrackingAsync->mIOPtrs.nRawClusters[i] = 0;
+            }
+            chainTrackingAsync->mIOPtrs.clustersNative = &clNativeAccess;
             tmpRetVal = recAsync->RunChains();
+            if (tmpRetVal == 0 || tmpRetVal == 2) {
+              OutputStat(chainTrackingAsync, nullptr, nullptr);
+            }
+            recAsync->ClearAllocatedMemory();
           }
+          rec->ClearAllocatedMemory();
 
           if (tmpRetVal == 2) {
             configStandalone.continueOnError = 0; // Forced exit from event display loop
