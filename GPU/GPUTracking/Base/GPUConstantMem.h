@@ -23,6 +23,7 @@
 #include "GPUTPCGMMerger.h"
 #include "GPUTRDTracker.h"
 #else
+#include "GPUTRDDef.h"
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -30,24 +31,11 @@ namespace gpu
 class GPUTPCGMMerger
 {
 };
-class TRDBaseTrackGPU;
-class TRDBasePropagatorGPU;
-template <class T>
-class trackInterface;
-template <class T>
-class propagatorInterface;
-template <class T>
-class GPUTRDTrack_t;
-// clang-format off
-typedef GPUTRDTrack_t<trackInterface<TRDBaseTrackGPU> > GPUTRDTrackGPU;
-// clang-format on
-typedef propagatorInterface<TRDBasePropagatorGPU> GPUTRDPropagatorGPU;
 template <class T, class P>
 class GPUTRDTracker_t
 {
   void SetMaxData(const GPUTrackingInOutPointers& io) {}
 };
-typedef GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU> GPUTRDTrackerGPU;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 #endif
@@ -108,7 +96,7 @@ static constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + si
 #if defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
-GPUconstant() o2::gpu::GPUConstantMemCopyable gGPUConstantMemBuffer; // HIP constant memory symbol address cannot be obtained when in namespace
+GPUconstant() GPUCA_NAMESPACE::gpu::GPUConstantMemCopyable gGPUConstantMemBuffer; // HIP constant memory symbol address cannot be obtained when in namespace
 namespace GPUCA_NAMESPACE
 {
 namespace gpu

@@ -78,8 +78,10 @@ template <class T>
 class propagatorInterface;
 template <class T>
 class GPUTRDTrack_t;
-typedef GPUTRDTrack_t<trackInterface<TRDBaseTrack>> GPUTRDTrack;
-typedef GPUTRDTrack_t<trackInterface<TRDBaseTrackGPU>> GPUTRDTrackGPU;
+// clang-format off
+typedef GPUTRDTrack_t<trackInterface<TRDBaseTrack> > GPUTRDTrack; // Need pre-c++11 compliant formatting
+typedef GPUTRDTrack_t<trackInterface<TRDBaseTrackGPU> > GPUTRDTrackGPU;
+// clang-foramt on
 typedef propagatorInterface<TRDBasePropagator> GPUTRDPropagator;
 typedef propagatorInterface<TRDBasePropagatorGPU> GPUTRDPropagatorGPU;
 

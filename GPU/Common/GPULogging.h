@@ -40,7 +40,7 @@
       fmt::fprintf(stderr, string "\n", ##__VA_ARGS__); \
       throw std::exception();                           \
     }
-#elif defined(GPUCA_STANDALONE) || defined(GPUCA_GPUCODE_DEVICE) || (defined(GPUCA_ALIROOT_LIB) && defined(__CUDACC__) && defined(__cplusplus) && __cplusplus < 201703L)
+#elif defined(GPUCA_STANDALONE) || defined(GPUCA_GPUCODE_DEVICE) || (defined(GPUCA_ALIROOT_LIB) && defined(GPUCA_GPUCODE) && defined(__cplusplus) && __cplusplus < 201703L)
   // For standalone / CUDA / HIP, we just use printf, which should be available
   // Temporarily, we also have to handle CUDA on AliRoot with O2 defaults due to ROOT / CUDA incompatibilities
   #define GPUInfo(string, ...)            \
