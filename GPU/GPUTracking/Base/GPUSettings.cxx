@@ -98,4 +98,5 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   tpcCompressionGatherMode = 1;
   mergerSortTracks = 1;
   runMC = false;
+  memoryScalingFactor = 1.f;
 }

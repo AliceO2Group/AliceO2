@@ -1769,7 +1769,7 @@ int GPUChainTracking::RunChain()
     if (mIOPtrs.clustersNative) {
       printf("TPC Transformation Time: %'d us\n", (int)(1000000 * timerTransform.GetElapsedTime() / nCount));
     }
-    if (mIOPtrs.clustersNative) {
+    if (mIOPtrs.clustersNative && GetRecoSteps() & RecoStep::TPCCompression) {
       printf("TPC Compression Time: %'d us\n", (int)(1000000 * timerCompression.GetElapsedTime() / nCount));
     }
   }
