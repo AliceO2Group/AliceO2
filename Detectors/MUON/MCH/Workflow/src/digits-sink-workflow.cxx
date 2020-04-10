@@ -42,7 +42,6 @@
 using namespace o2;
 using namespace o2::framework;
 
-
 namespace o2
 {
 namespace mch
@@ -52,7 +51,6 @@ namespace raw
 
 using namespace o2;
 using namespace o2::framework;
-
 
 class DigitsSinkTask
 {
@@ -66,7 +64,7 @@ class DigitsSinkTask
     mPrint = ic.options().get<bool>("print");
 
     auto outputFileName = ic.options().get<std::string>("outfile");
-    if( !outputFileName.empty() ) {
+    if (!outputFileName.empty()) {
       mOutputFile.open(outputFileName, std::ios::out);
       if (!mOutputFile.is_open()) {
         throw std::invalid_argument("Cannot open output file" + outputFileName);
@@ -87,24 +85,14 @@ class DigitsSinkTask
     // get the input digits
     auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
 
-    if(mPrint) {
+    if (mPrint) {
       for (auto d : digits) {
-        std::cout <<
-            " DE# " << d.getDetID() <<
-            " PadId " << d.getPadID() <<
-            " ADC " << d.getADC() <<
-            " time "<< d.getTimeStamp() <<
-            std::endl;
+        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTimeStamp() << std::endl;
       }
     }
-    if(mOutputFile.is_open()) {
+    if (mOutputFile.is_open()) {
       for (auto d : digits) {
-        mOutputFile <<
-            " DE# " << d.getDetID() <<
-            " PadId " << d.getPadID() <<
-            " ADC " << d.getADC() <<
-            " time "<< d.getTimeStamp() <<
-            std::endl;
+        mOutputFile << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTimeStamp() << std::endl;
       }
     }
   }
@@ -117,7 +105,6 @@ class DigitsSinkTask
 } // end namespace raw
 } // end namespace mch
 } // end namespace o2
-
 
 using namespace o2;
 using namespace o2::framework;

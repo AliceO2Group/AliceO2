@@ -48,14 +48,10 @@
 
 // Dans ce code, on récupère un infut aui est un message avec le buffer, on fait tourner le code de base decodeBuffer qui est dans Handlers, et on renvoir un message de sortie (inspiré de FileReader de Andrea)
 
-
-
 namespace o2::header
 {
 extern std::ostream& operator<<(std::ostream&, const o2::header::RAWDataHeaderV4&);
 }
-
-
 
 namespace o2
 {
@@ -69,28 +65,27 @@ using namespace o2::framework;
 using namespace o2::mch::mapping;
 using RDHv4 = o2::header::RAWDataHeaderV4;
 
-
 std::array<int, 64> refManu2ds_st345 = {
-    63, 62, 61, 60, 59, 57, 56, 53, 51, 50, 47, 45, 44, 41, 38, 35,
-    36, 33, 34, 37, 32, 39, 40, 42, 43, 46, 48, 49, 52, 54, 55, 58,
-    7, 8, 5, 2, 6, 1, 3, 0, 4, 9, 10, 15, 17, 18, 22, 25,
-    31, 30, 29, 28, 27, 26, 24, 23, 20, 21, 16, 19, 12, 14, 11, 13};
+  63, 62, 61, 60, 59, 57, 56, 53, 51, 50, 47, 45, 44, 41, 38, 35,
+  36, 33, 34, 37, 32, 39, 40, 42, 43, 46, 48, 49, 52, 54, 55, 58,
+  7, 8, 5, 2, 6, 1, 3, 0, 4, 9, 10, 15, 17, 18, 22, 25,
+  31, 30, 29, 28, 27, 26, 24, 23, 20, 21, 16, 19, 12, 14, 11, 13};
 
-int manu2ds(int i){
+int manu2ds(int i)
+{
   return refManu2ds_st345[i];
 }
 
-
 class DataDecoderTask
 {
-  void decodeBuffer(gsl::span<const std::byte> page, std::vector<o2::mch::Digit> &digits)
+  void decodeBuffer(gsl::span<const std::byte> page, std::vector<o2::mch::Digit>& digits)
   {
     size_t ndigits{0};
 
     auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
       auto s = asString(dsElecId);
       channel = manu2ds(int(channel));
-      if(mPrint) {
+      if (mPrint) {
         auto ch = fmt::format("{}-CH{}", s, channel);
         std::cout << ch << std::endl;
       }
@@ -100,10 +95,9 @@ class DataDecoderTask
         digitadc += sc.samples[d];
       }
 
-
       int deId;
       int dsIddet;
-      if(auto opt = Elec2Det(dsElecId); opt.has_value()) {
+      if (auto opt = Elec2Det(dsElecId); opt.has_value()) {
         DsDetId dsDetId = opt.value();
         dsIddet = dsDetId.dsId();
         deId = dsDetId.deId();
@@ -115,24 +109,25 @@ class DataDecoderTask
         //Segmentation segment(deId);
 
         padId = segment.findPadByFEE(dsIddet, int(channel));
-        if(mPrint)
-          std::cout << "DS "<<(int)dsElecId.elinkId()<<"  CHIP "<<((int)channel)/32<<"  CH "<<((int)channel)%32<<"  ADC " << digitadc << "  DE# " << deId << "  DSid " << dsIddet << "  PadId " << padId << std::endl;
-      } catch (const std::exception& e) { return; }
-
+        if (mPrint)
+          std::cout << "DS " << (int)dsElecId.elinkId() << "  CHIP " << ((int)channel) / 32 << "  CH " << ((int)channel) % 32 << "  ADC " << digitadc << "  DE# " << deId << "  DSid " << dsIddet << "  PadId " << padId << std::endl;
+      } catch (const std::exception& e) {
+        return;
+      }
 
       int time = 0;
 
-      digits.emplace_back( o2::mch::Digit(time, deId, padId, digitadc) );
+      digits.emplace_back(o2::mch::Digit(time, deId, padId, digitadc));
       //o2::mch::Digit& mchdigit = digits.back();
       //mchdigit.setDetID(deId);
       //mchdigit.setPadID(padId);
       //mchdigit.setADC(digitadc);
       //mchdigit.setTimeStamp(time);
 
-      if(mPrint) std::cout << "DIGIT STORED:\nADC " << digits.back().getADC() << " DE# " << digits.back().getDetID() << " PadId " << digits.back().getPadID() << " time "<< digits.back().getTimeStamp() << std::endl;
+      if (mPrint)
+        std::cout << "DIGIT STORED:\nADC " << digits.back().getADC() << " DE# " << digits.back().getDetID() << " PadId " << digits.back().getPadID() << " time " << digits.back().getTimeStamp() << std::endl;
       ++ndigits;
     };
-
 
     const auto patchPage = [&](gsl::span<const std::byte> rdhBuffer) {
       auto rdhPtr = reinterpret_cast<o2::header::RAWDataHeaderV4*>(const_cast<std::byte*>(&rdhBuffer[0]));
@@ -150,8 +145,7 @@ class DataDecoderTask
     decode(page);
   }
 
-
-public:
+ public:
   //_________________________________________________________________________________________________
   void init(framework::InitContext& ic)
   {
@@ -183,14 +177,14 @@ public:
       // offset of payload in the raw page
       //size_t offset = it.offset();
 
-      if( payloadSize == 0 ) continue;
-
+      if (payloadSize == 0)
+        continue;
 
       //std::cout<<"\n\npayloadSize: "<<payloadSize<<std::endl;
       //std::cout<<"raw:     "<<(void*)raw<<std::endl;
       //std::cout<<"payload: "<<(void*)payload<<std::endl;
 
-      gsl::span<const std::byte> buffer(reinterpret_cast<const std::byte*>(raw), sizeof(o2::header::RAWDataHeaderV4)+payloadSize);
+      gsl::span<const std::byte> buffer(reinterpret_cast<const std::byte*>(raw), sizeof(o2::header::RAWDataHeaderV4) + payloadSize);
       decodeBuffer(buffer, digits);
     }
 
@@ -210,14 +204,9 @@ public:
       decodeBuffer(buffer, digits);
     }
 
-    if(mPrint) {
+    if (mPrint) {
       for (auto d : digits) {
-        std::cout <<
-            " DE# " << d.getDetID() <<
-            " PadId " << d.getPadID() <<
-            " ADC " << d.getADC() <<
-            " time "<< d.getTimeStamp() <<
-            std::endl;
+        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTimeStamp() << std::endl;
       }
     }
 
@@ -230,10 +219,10 @@ public:
 
     // create the output message
     auto freefct = [](void* data, void*) { free(data); };
-    pc.outputs().adoptChunk(Output{ "MCH", "DIGITS", 0 }, outbuffer, OUT_SIZE, freefct, nullptr);
+    pc.outputs().adoptChunk(Output{"MCH", "DIGITS", 0}, outbuffer, OUT_SIZE, freefct, nullptr);
   }
 
-private:
+ private:
   std::function<std::optional<DsDetId>(DsElecId)> Elec2Det;
   std::function<std::optional<uint16_t>(FeeLinkId id)> fee2Solar;
   size_t nrdhs{0};
@@ -252,8 +241,7 @@ o2::framework::DataProcessorSpec getDecodingSpec()
     //o2::framework::select("readout:ROUT/RAWDATA"),
     Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<DataDecoderTask>()},
-    Options{{"print", VariantType::Bool, false, {"print digits"}}}
-  };
+    Options{{"print", VariantType::Bool, false, {"print digits"}}}};
 }
 
 } // end namespace raw

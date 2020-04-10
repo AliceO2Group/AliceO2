@@ -67,7 +67,6 @@ struct CRUheader {
   //uint64_t dummy2;
 };
 
-
 namespace o2::header
 {
 extern std::ostream& operator<<(std::ostream&, const o2::header::RAWDataHeaderV4&);
@@ -85,28 +84,27 @@ using namespace o2::framework;
 using namespace o2::mch::mapping;
 using RDHv4 = o2::header::RAWDataHeaderV4;
 
-
 std::array<int, 64> refManu2ds_st345 = {
-    63, 62, 61, 60, 59, 57, 56, 53, 51, 50, 47, 45, 44, 41, 38, 35,
-    36, 33, 34, 37, 32, 39, 40, 42, 43, 46, 48, 49, 52, 54, 55, 58,
-    7, 8, 5, 2, 6, 1, 3, 0, 4, 9, 10, 15, 17, 18, 22, 25,
-    31, 30, 29, 28, 27, 26, 24, 23, 20, 21, 16, 19, 12, 14, 11, 13};
+  63, 62, 61, 60, 59, 57, 56, 53, 51, 50, 47, 45, 44, 41, 38, 35,
+  36, 33, 34, 37, 32, 39, 40, 42, 43, 46, 48, 49, 52, 54, 55, 58,
+  7, 8, 5, 2, 6, 1, 3, 0, 4, 9, 10, 15, 17, 18, 22, 25,
+  31, 30, 29, 28, 27, 26, 24, 23, 20, 21, 16, 19, 12, 14, 11, 13};
 
-int manu2ds(int i){
+int manu2ds(int i)
+{
   return refManu2ds_st345[i];
 }
 
-
 class FileReaderTask
 {
-  void decodeBuffer(gsl::span<const std::byte> page, std::vector<o2::mch::Digit> &digits)
+  void decodeBuffer(gsl::span<const std::byte> page, std::vector<o2::mch::Digit>& digits)
   {
     size_t ndigits{0};
 
     auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
       auto s = asString(dsElecId);
       channel = manu2ds(int(channel));
-      if(mPrint) {
+      if (mPrint) {
         auto ch = fmt::format("{}-CH{} samples={}", s, channel, sc.samples.size());
         std::cout << ch << std::endl;
       }
@@ -116,18 +114,17 @@ class FileReaderTask
         digitadc += sc.samples[d];
       }
 
-
       int deId = -1;
       int dsIddet = -1;
-      if(auto opt = Elec2Det(dsElecId); opt.has_value()) {
+      if (auto opt = Elec2Det(dsElecId); opt.has_value()) {
         DsDetId dsDetId = opt.value();
         dsIddet = dsDetId.dsId();
         deId = dsDetId.deId();
       }
-      if(dsIddet < 0 || deId < 0) {
-        std::cout << "SOLAR "<<(int)dsElecId.solarId()
-            <<"  DS "<<(int)dsElecId.elinkId()<<" ("<<(int)dsElecId.elinkGroupId()<<","<<(int)dsElecId.elinkIndexInGroup()<<")"
-            <<"  CHIP "<<((int)channel)/32<<"  CH "<<((int)channel)%32<<"  ADC " << digitadc << "  DE# " << deId << "  DSid " << dsIddet << std::endl;
+      if (dsIddet < 0 || deId < 0) {
+        std::cout << "SOLAR " << (int)dsElecId.solarId()
+                  << "  DS " << (int)dsElecId.elinkId() << " (" << (int)dsElecId.elinkGroupId() << "," << (int)dsElecId.elinkIndexInGroup() << ")"
+                  << "  CHIP " << ((int)channel) / 32 << "  CH " << ((int)channel) % 32 << "  ADC " << digitadc << "  DE# " << deId << "  DSid " << dsIddet << std::endl;
         return;
       }
 
@@ -137,24 +134,25 @@ class FileReaderTask
         //Segmentation segment(deId);
 
         padId = segment.findPadByFEE(dsIddet, int(channel));
-        if(mPrint)
-          std::cout << "DS "<<(int)dsElecId.elinkId()<<"  CHIP "<<((int)channel)/32<<"  CH "<<((int)channel)%32<<"  ADC " << digitadc << "  DE# " << deId << "  DSid " << dsIddet << "  PadId " << padId << std::endl;
-      } catch (const std::exception& e) { return; }
-
+        if (mPrint)
+          std::cout << "DS " << (int)dsElecId.elinkId() << "  CHIP " << ((int)channel) / 32 << "  CH " << ((int)channel) % 32 << "  ADC " << digitadc << "  DE# " << deId << "  DSid " << dsIddet << "  PadId " << padId << std::endl;
+      } catch (const std::exception& e) {
+        return;
+      }
 
       int time = 0;
 
-      digits.emplace_back( o2::mch::Digit(time, deId, padId, digitadc) );
+      digits.emplace_back(o2::mch::Digit(time, deId, padId, digitadc));
       //o2::mch::Digit& mchdigit = digits.back();
       //mchdigit.setDetID(deId);
       //mchdigit.setPadID(padId);
       //mchdigit.setADC(digitadc);
       //mchdigit.setTimeStamp(time);
 
-      if(mPrint) std::cout << "DIGIT STORED:\nADC " << digits.back().getADC() << " DE# " << digits.back().getDetID() << " PadId " << digits.back().getPadID() << " time "<< digits.back().getTimeStamp() << std::endl;
+      if (mPrint)
+        std::cout << "DIGIT STORED:\nADC " << digits.back().getADC() << " DE# " << digits.back().getDetID() << " PadId " << digits.back().getPadID() << " time " << digits.back().getTimeStamp() << std::endl;
       ++ndigits;
     };
-
 
     const auto patchPage = [&](gsl::span<const std::byte> rdhBuffer) {
       auto rdhPtr = reinterpret_cast<o2::header::RAWDataHeaderV4*>(const_cast<std::byte*>(&rdhBuffer[0]));
@@ -168,7 +166,7 @@ class FileReaderTask
     };
 
     patchPage(page);
-    if(!decoder.has_value())
+    if (!decoder.has_value())
       decoder = o2::mch::raw::createPageDecoder(page, channelHandler);
     decoder.value()(page);
   }
@@ -206,15 +204,17 @@ class FileReaderTask
   {
     std::vector<o2::mch::Digit> digits;
 
-   uint32_t CRUbuf[4 * 4];
+    uint32_t CRUbuf[4 * 4];
     CRUheader CRUh;
     /// send one RDH block via DPL
 
     int RDH_BLOCK_SIZE = 8192;
 
-    if( nFrames == 0 ) return;
+    if (nFrames == 0)
+      return;
     //printf("nFrames: %d\n", nFrames);
-    if(nFrames > 0) nFrames -= 1;
+    if (nFrames > 0)
+      nFrames -= 1;
 
     mInputFile.read((char*)(&CRUbuf), sizeof(CRUbuf));
     memcpy(&CRUh, CRUbuf, sizeof(CRUheader));
@@ -238,14 +238,9 @@ class FileReaderTask
     gsl::span<const std::byte> buffer(reinterpret_cast<const std::byte*>(buf), RDH_BLOCK_SIZE);
     decodeBuffer(buffer, digits);
 
-    if(mPrint) {
+    if (mPrint) {
       for (auto d : digits) {
-        std::cout <<
-            " DE# " << d.getDetID() <<
-            " PadId " << d.getPadID() <<
-            " ADC " << d.getADC() <<
-            " time "<< d.getTimeStamp() <<
-            std::endl;
+        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTimeStamp() << std::endl;
       }
     }
 
@@ -258,7 +253,7 @@ class FileReaderTask
 
     // create the output message
     auto freefct = [](void* data, void*) { free(data); };
-    pc.outputs().adoptChunk(Output{ "MCH", "DIGITS", 0 }, outbuffer, OUT_SIZE, freefct, nullptr);
+    pc.outputs().adoptChunk(Output{"MCH", "DIGITS", 0}, outbuffer, OUT_SIZE, freefct, nullptr);
   }
 
  private:
@@ -267,9 +262,9 @@ class FileReaderTask
   std::optional<o2::mch::raw::PageDecoder> decoder;
   size_t nrdhs{0};
 
-  std::ifstream mInputFile{};  ///< input file
-  int nFrames;                 ///< number of frames to process
-  bool mPrint = false;         ///< print digits
+  std::ifstream mInputFile{}; ///< input file
+  int nFrames;                ///< number of frames to process
+  bool mPrint = false;        ///< print digits
 };
 
 //_________________________________________________________________________________________________
@@ -279,15 +274,13 @@ o2::framework::DataProcessorSpec getFileReaderSpec()
     "FileReader",
     Inputs{},
     Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{ adaptFromTask<FileReaderTask>() },
-    Options{ { "infile", VariantType::String, "data.raw", { "input file name" } } }
-  };
+    AlgorithmSpec{adaptFromTask<FileReaderTask>()},
+    Options{{"infile", VariantType::String, "data.raw", {"input file name"}}}};
 }
 
 } // end namespace raw
 } // end namespace mch
 } // end namespace o2
-
 
 using namespace o2;
 using namespace o2::framework;

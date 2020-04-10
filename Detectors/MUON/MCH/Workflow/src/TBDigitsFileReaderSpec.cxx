@@ -41,7 +41,7 @@ using namespace o2::framework;
 
 class TBDigitsFileReaderTask
 {
-public:
+ public:
   //_________________________________________________________________________________________________
   void init(framework::InitContext& ic)
   {
@@ -57,7 +57,7 @@ public:
   void run(framework::ProcessingContext& pc)
   {
     /// read the digits
-    if( !mTBDigitsFileReader.readDigitsFromFile() ) {
+    if (!mTBDigitsFileReader.readDigitsFromFile()) {
       //throw runtime_error("end of digits file reached");
       return;
     }
@@ -66,15 +66,14 @@ public:
     Digit* digitsBuffer = (Digit*)malloc(sizeof(Digit) * nDigits);
     mTBDigitsFileReader.storeDigits(digitsBuffer);
 
-
     // create the output message
     auto freefct = [](void* data, void* /*hint*/) { free(data); };
-    pc.outputs().adoptChunk(Output{ "MCH", "DIGITS" }, reinterpret_cast<char*>(digitsBuffer), sizeof(Digit) * nDigits, freefct, nullptr);
+    pc.outputs().adoptChunk(Output{"MCH", "DIGITS"}, reinterpret_cast<char*>(digitsBuffer), sizeof(Digit) * nDigits, freefct, nullptr);
   }
 
-private:
-  bool mPrint = false;                    ///< print preclusters
-  TBDigitsFileReader mTBDigitsFileReader{};   ///< preclusterizer
+ private:
+  bool mPrint = false;                      ///< print preclusters
+  TBDigitsFileReader mTBDigitsFileReader{}; ///< preclusterizer
 };
 
 //_________________________________________________________________________________________________

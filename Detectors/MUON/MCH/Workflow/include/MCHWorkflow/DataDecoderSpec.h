@@ -13,7 +13,6 @@ namespace raw
 using namespace o2;
 using namespace o2::framework;
 
-
 o2::framework::DataProcessorSpec getDecodingSpec();
 
 } // end namespace raw
@@ -21,4 +20,3 @@ o2::framework::DataProcessorSpec getDecodingSpec();
 } // end namespace o2
 
 #endif
-

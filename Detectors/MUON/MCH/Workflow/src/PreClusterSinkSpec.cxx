@@ -58,7 +58,7 @@ class PreClusterSinkTask
     }
 
     auto outputTxtFileName = ic.options().get<std::string>("outfile-txt");
-    if( !outputTxtFileName.empty() ) {
+    if (!outputTxtFileName.empty()) {
       mOutputTxtFile.open(outputTxtFileName, ios::out);
       if (!mOutputTxtFile.is_open()) {
         throw invalid_argument("Cannot open output text file" + outputTxtFileName);
@@ -111,7 +111,6 @@ class PreClusterSinkTask
         precluster.print(mOutputTxtFile, digits);
       }
     }
-
   }
 
  private:

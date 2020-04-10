@@ -16,11 +16,9 @@
 using namespace o2::mch;
 using namespace std;
 
-
 TBDigitsFileReader::TBDigitsFileReader()
 {
 }
-
 
 void TBDigitsFileReader::init(std::string inputFileName)
 {
@@ -30,23 +28,22 @@ void TBDigitsFileReader::init(std::string inputFileName)
   }
 }
 
-
 bool TBDigitsFileReader::readDigitsFromFile()
 {
-  int manu2ds[64]={62,61,63,60,59,55,58,57,56,54,50,46,42,39,37,41,
-      35,36,33,34,32,38,43,40,45,44,47,48,49,52,51,53,
-      7, 6, 5, 4, 2, 3, 1, 0, 9,11,13,15,17,19,21,23,
-      31,30,29,28,27,26,25,24,22,20,18,16,14,12,10, 8};
+  int manu2ds[64] = {62, 61, 63, 60, 59, 55, 58, 57, 56, 54, 50, 46, 42, 39, 37, 41,
+                     35, 36, 33, 34, 32, 38, 43, 40, 45, 44, 47, 48, 49, 52, 51, 53,
+                     7, 6, 5, 4, 2, 3, 1, 0, 9, 11, 13, 15, 17, 19, 21, 23,
+                     31, 30, 29, 28, 27, 26, 25, 24, 22, 20, 18, 16, 14, 12, 10, 8};
 
   int ds2manu[64];
-  for(int i = 0; i < 64; i++) {
-    for(int j = 0; j < 64; j++) {
-      if( manu2ds[j] != i ) continue;
+  for (int i = 0; i < 64; i++) {
+    for (int j = 0; j < 64; j++) {
+      if (manu2ds[j] != i)
+        continue;
       ds2manu[i] = j;
       break;
     }
   }
-
 
   digits.clear();
   clusters.clear();
@@ -58,11 +55,12 @@ bool TBDigitsFileReader::readDigitsFromFile()
   mInputFile.read(reinterpret_cast<char*>(&sievent), sizeof(int));
 
   int nDE = 0;
-  int DE1 = 0; 
+  int DE1 = 0;
   mInputFile.read(reinterpret_cast<char*>(&nDE), sizeof(int));
-  if(mInputFile.eof()) return false;
+  if (mInputFile.eof())
+    return false;
 
-  for(int iDE = 0; iDE < nDE; iDE++) {
+  for (int iDE = 0; iDE < nDE; iDE++) {
 
     int DE;
     mInputFile.read(reinterpret_cast<char*>(&DE), sizeof(int));
@@ -77,7 +75,7 @@ bool TBDigitsFileReader::readDigitsFromFile()
 
     int dsId, dsCh, size, time, padX, padY;
     float charge, posX, posY;
-    for(int ih = 0; ih < npad; ih++) {
+    for (int ih = 0; ih < npad; ih++) {
 
       mInputFile.read(reinterpret_cast<char*>(&dsId), sizeof(int));
       mInputFile.read(reinterpret_cast<char*>(&dsCh), sizeof(int));
@@ -100,7 +98,7 @@ bool TBDigitsFileReader::readDigitsFromFile()
       try {
         mapping::Segmentation segment(detId);
         int padId = segment.findPadByFEE(dualSampaId, dualSampaChannel);
-        if(padId < 0) {
+        if (padId < 0) {
           printf("padId: %d\n", padId);
           continue;
         }
@@ -108,22 +106,21 @@ bool TBDigitsFileReader::readDigitsFromFile()
         float X = segment.padPositionX(padId);
         float Y = segment.padPositionY(padId);
 
-        if(Y != posY) {
+        if (Y != posY) {
           printf("B  hit %d  dsid=%d chan=%d  charge=%f  time=%d\n",
-              ih, dsId, dsCh, charge, time);
-          std::cout<<"posY: "<<posY<<"  "<<Y<<std::endl;
+                 ih, dsId, dsCh, charge, time);
+          std::cout << "posY: " << posY << "  " << Y << std::endl;
           break;
         }
 
-        digits.push_back( std::make_unique<Digit>(time, detId, padId, adc) );
+        digits.push_back(std::make_unique<Digit>(time, detId, padId, adc));
         //digits.push_back( std::make_unique<Digit>() );
         //Digit* mchdigit = digits.back().get();
         //mchdigit->setDetID(detId);
         //mchdigit->setPadID(padId);
         //mchdigit->setADC(adc);
         //mchdigit->setTimeStamp(time);
-      }
-      catch(std::exception& e) {
+      } catch (std::exception& e) {
         continue;
       }
     }
@@ -131,7 +128,7 @@ bool TBDigitsFileReader::readDigitsFromFile()
     int nclus;
     mInputFile.read(reinterpret_cast<char*>(&nclus), sizeof(int));
 
-    for(int ic = 0; ic < nclus; ic++) {
+    for (int ic = 0; ic < nclus; ic++) {
       clusters.emplace_back();
       TBCluster& c = clusters.back();
       //mInputFile.read(reinterpret_cast<char*>(&c), sizeof(TBCluster));
@@ -171,40 +168,36 @@ bool TBDigitsFileReader::readDigitsFromFile()
   return true;
 }
 
-
 ssize_t TBDigitsFileReader::getNumberOfDigits()
 {
   return digits.size();
 }
 
-
 void TBDigitsFileReader::storeDigits(void* bufferPtr)
 {
   Digit* ptr = (Digit*)bufferPtr;
-  for(unsigned int di = 0; di < digits.size(); di++) {
+  for (unsigned int di = 0; di < digits.size(); di++) {
 
     memcpy(ptr, digits[di].get(), sizeof(Digit));
     ptr += 1;
   }
 }
 
-
-
 std::ostream& operator<<(std::ostream& stream, const TBCluster& c)
 {
-  stream<<"  XNhits: "<<c.fXNhits<<"\n"
-      <<"  XYhits: "<<c.fYNhits<<"\n"
-      <<"  Charge: "<<c.fCharge<<"\n"
-      <<"  fXclus: "<<c.fXclus<<"\n"
-      <<"  fYclus: "<<c.fYclus<<"\n"
-      <<"  fXmat: "<<c.fXmat<<"\n"
-      <<"  fYmat: "<<c.fYmat<<"\n"
-      <<"  fXmaterror: "<<c.fXmaterror<<"\n"
-      <<"  fYmaterror: "<<c.fYmaterror<<"\n"
-      <<"  fChi2mat: "<<c.fChi2mat<<"\n"
-      <<"  fK3x: "<<c.fK3x<<"\n"
-      <<"  fK3y: "<<c.fK3y<<"\n"
-      <<"  fK3yrec: "<<c.fK3yrec<<"\n";
+  stream << "  XNhits: " << c.fXNhits << "\n"
+         << "  XYhits: " << c.fYNhits << "\n"
+         << "  Charge: " << c.fCharge << "\n"
+         << "  fXclus: " << c.fXclus << "\n"
+         << "  fYclus: " << c.fYclus << "\n"
+         << "  fXmat: " << c.fXmat << "\n"
+         << "  fYmat: " << c.fYmat << "\n"
+         << "  fXmaterror: " << c.fXmaterror << "\n"
+         << "  fYmaterror: " << c.fYmaterror << "\n"
+         << "  fChi2mat: " << c.fChi2mat << "\n"
+         << "  fK3x: " << c.fK3x << "\n"
+         << "  fK3y: " << c.fK3y << "\n"
+         << "  fK3yrec: " << c.fK3yrec << "\n";
 
   return stream;
 }
