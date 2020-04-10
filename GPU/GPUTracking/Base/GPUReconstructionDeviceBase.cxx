@@ -269,7 +269,9 @@ int GPUReconstructionDeviceBase::InitDevice()
 
   SetThreadCounts();
 
-  GPUInfo("GPU Tracker initialization successfull"); // Verbosity reduced because GPU backend will print GPUImportant message!
+  if (mMaster == nullptr || mDeviceProcessingSettings.debugLevel >= 2) {
+    GPUInfo("GPU Tracker initialization successfull"); // Verbosity reduced because GPU backend will print GPUImportant message!
+  }
 
   return (retVal);
 }

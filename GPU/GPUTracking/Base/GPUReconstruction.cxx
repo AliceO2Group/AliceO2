@@ -51,6 +51,16 @@ constexpr GPUReconstruction::GeometryType GPUReconstruction::geometryType;
 
 GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostConstantMem(new GPUConstantMem), mProcessingSettings(cfg)
 {
+  if (cfg.master) {
+    if (cfg.master->mProcessingSettings.deviceType != cfg.deviceType) {
+      throw std::invalid_argument("device type of master and slave GPUReconstruction does not match");
+    }
+    if (cfg.master->mMaster) {
+      throw std::invalid_argument("Cannot be slave to a slave");
+    }
+    mMaster = cfg.master;
+    cfg.master->mSlaves.emplace_back(this);
+  }
   mDeviceProcessingSettings.SetDefaults();
   mEventSettings.SetDefaults();
   param().SetDefaults(&mEventSettings);
@@ -81,6 +91,63 @@ void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* tr
 }
 
 int GPUReconstruction::Init()
+{
+  if (mMaster) {
+    throw std::runtime_error("Must not call init on slave!");
+  }
+  int retVal = InitPhaseBeforeDevice();
+  if (retVal) {
+    return retVal;
+  }
+  for (unsigned int i = 0; i < mSlaves.size(); i++) {
+    retVal = mSlaves[i]->InitPhaseBeforeDevice();
+    if (retVal) {
+      GPUError("Error initialization slave (before deviceinit)");
+      return retVal;
+    }
+    mNStreams = std::max(mNStreams, mSlaves[i]->mNStreams);
+    mHostMemorySize = std::max(mHostMemorySize, mSlaves[i]->mHostMemorySize);
+    mDeviceMemorySize = std::max(mDeviceMemorySize, mSlaves[i]->mDeviceMemorySize);
+  }
+  if (InitDevice()) {
+    return 1;
+  }
+  if (InitPhasePermanentMemory()) {
+    return 1;
+  }
+  for (unsigned int i = 0; i < mSlaves.size(); i++) {
+    mSlaves[i]->mDeviceMemorySize = mDeviceMemorySize;
+    mSlaves[i]->mHostMemorySize = mHostMemorySize;
+    mSlaves[i]->mDeviceMemoryBase = mDeviceMemoryPermanent;
+    mSlaves[i]->mHostMemoryBase = mHostMemoryPermanent;
+    if (mSlaves[i]->InitDevice()) {
+      GPUError("Error initialization slave (deviceinit)");
+      return 1;
+    }
+    if (mSlaves[i]->InitPhasePermanentMemory()) {
+      GPUError("Error initialization slave (permanent memory)");
+      return 1;
+    }
+    mDeviceMemoryPermanent = mSlaves[i]->mDeviceMemoryPermanent;
+    mHostMemoryPermanent = mSlaves[i]->mHostMemoryPermanent;
+  }
+  retVal = InitPhaseAfterDevice();
+  if (retVal) {
+    return retVal;
+  }
+  for (unsigned int i = 0; i < mSlaves.size(); i++) {
+    mSlaves[i]->mDeviceMemoryPermanent = mDeviceMemoryPermanent;
+    mSlaves[i]->mHostMemoryPermanent = mHostMemoryPermanent;
+    retVal = mSlaves[i]->InitPhaseAfterDevice();
+    if (retVal) {
+      GPUError("Error initialization slave (after device init)");
+      return retVal;
+    }
+  }
+  return 0;
+}
+
+int GPUReconstruction::InitPhaseBeforeDevice()
 {
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_AUTO) {
     mDeviceProcessingSettings.memoryAllocationStrategy = IsGPU() ? GPUMemoryResource::ALLOCATION_GLOBAL : GPUMemoryResource::ALLOCATION_INDIVIDUAL;
@@ -151,9 +218,14 @@ int GPUReconstruction::Init()
     (mProcessors[i].proc->*(mProcessors[i].RegisterMemoryAllocation))();
   }
 
-  if (InitDevice()) {
-    return 1;
+  if (IsGPU()) {
+    mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
   }
+  return 0;
+}
+
+int GPUReconstruction::InitPhasePermanentMemory()
+{
   GPUCA_GPUReconstructionUpdateDefailts();
   if (!mDeviceProcessingSettings.trackletConstructorInPipeline) {
     mDeviceProcessingSettings.trackletSelectorInPipeline = false;
@@ -165,7 +237,11 @@ int GPUReconstruction::Init()
     }
   }
   AllocateRegisteredPermanentMemory();
+  return 0;
+}
 
+int GPUReconstruction::InitPhaseAfterDevice()
+{
   for (unsigned int i = 0; i < mChains.size(); i++) {
     if (mChains[i]->Init()) {
       return 1;
@@ -175,13 +251,18 @@ int GPUReconstruction::Init()
     (mProcessors[i].proc->*(mProcessors[i].InitializeProcessor))();
   }
 
+  WriteConstantParams(); // First initialization, if the user doesn't use RunChains
+
+  mInitialized = true;
+  return 0;
+}
+
+void GPUReconstruction::WriteConstantParams()
+{
   if (IsGPU()) {
     const auto threadContext = GetThreadContext();
     WriteToConstantMemory((char*)&processors()->param - (char*)processors(), &param(), sizeof(param()), -1);
   }
-
-  mInitialized = true;
-  return 0;
 }
 
 int GPUReconstruction::Finalize()
@@ -194,6 +275,15 @@ int GPUReconstruction::Finalize()
 
 int GPUReconstruction::Exit()
 {
+  if (!mInitialized) {
+    return 1;
+  }
+  for (unsigned int i = 0; i < mSlaves.size(); i++) {
+    if (mSlaves[i]->Exit()) {
+      GPUError("Error exiting slave");
+    }
+  }
+
   mChains.clear();          // Make sure we destroy a possible ITS GPU tracker before we call the destructors
   mHostConstantMem.reset(); // Reset these explicitly before the destruction of other members unloads the library
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
@@ -545,12 +635,13 @@ int GPUReconstruction::GetMaxThreads() { return mDeviceProcessingSettings.nThrea
 
 std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstruction::GetThreadContext() { return std::unique_ptr<GPUReconstruction::GPUThreadContext>(new GPUThreadContext); }
 
-GPUReconstruction* GPUReconstruction::CreateInstance(DeviceType type, bool forceType)
+GPUReconstruction* GPUReconstruction::CreateInstance(DeviceType type, bool forceType, GPUReconstruction* master)
 {
   GPUSettingsProcessing cfg;
   cfg.SetDefaults();
   cfg.deviceType = type;
   cfg.forceDeviceType = forceType;
+  cfg.master = master;
   return CreateInstance(cfg);
 }
 
@@ -591,20 +682,20 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsProcessing
       retVal = CreateInstance(cfg2);
     }
   } else {
-    GPUInfo("Created GPUReconstruction instance for device type %s (%u)", DEVICE_TYPE_NAMES[type], type);
+    GPUInfo("Created GPUReconstruction instance for device type %s (%u) %s", DEVICE_TYPE_NAMES[type], type, cfg.master ? " (slave)" : "");
   }
 
   return retVal;
 }
 
-GPUReconstruction* GPUReconstruction::CreateInstance(const char* type, bool forceType)
+GPUReconstruction* GPUReconstruction::CreateInstance(const char* type, bool forceType, GPUReconstruction* master)
 {
   DeviceType t = GetDeviceType(type);
   if (t == DeviceType::INVALID_DEVICE) {
     GPUError("Invalid device type: %s", type);
     return nullptr;
   }
-  return CreateInstance(t, forceType);
+  return CreateInstance(t, forceType, master);
 }
 
 GPUReconstruction::DeviceType GPUReconstruction::GetDeviceType(const char* type)

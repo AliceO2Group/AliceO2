@@ -165,6 +165,7 @@ AddOption(allocationStrategy, int, 0, "allocationStrategy", 0, "Memory Allocatio
 AddOption(printSettings, bool, false, "printSettings", 0, "Print all settings")
 AddOption(compressionStat, bool, false, "compressionStat", 0, "Run statistics and verification for cluster compression")
 AddOption(memoryStat, bool, false, "memoryStat", 0, "Print memory statistics")
+AddOption(testSyncAsync, bool, false, "syncAsync", 0, "Test first synchronous and then asynchronous processing")
 AddHelp("help", 'h')
 AddHelpAll("helpall", 'H')
 AddSubConfig(structConfigTF, configTF)
