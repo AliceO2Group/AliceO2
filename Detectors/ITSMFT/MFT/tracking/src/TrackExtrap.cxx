@@ -104,7 +104,7 @@ void TrackExtrap::helixExtrapToZ(TrackParamMFT* trackParam, double zEnd)
   }
 
   // Compute track parameters
-  double dZ = (zEnd - trackParam->getZ()); // Propagate in meters
+  double dZ = (zEnd - trackParam->getZ());
   double x0 = trackParam->getX();
   double y0 = trackParam->getY();
   double phi0 = trackParam->getPhi();
@@ -113,7 +113,7 @@ void TrackExtrap::helixExtrapToZ(TrackParamMFT* trackParam, double zEnd)
   double tanl0 = trackParam->getTanl();
   double invqpt0 = trackParam->getInvQPt();
 
-  double k = -getBz() * o2::constants::math::B2C;
+  double k = getBz() * o2::constants::math::B2C;
   double deltax = (dZ * cosphi0 / tanl0 - dZ * dZ * k * invqpt0 * sinphi0 / (2. * tanl0 * tanl0));
   double deltay = (dZ * sinphi0 / tanl0 + dZ * dZ * k * invqpt0 * cosphi0 / (2. * tanl0 * tanl0));
 
@@ -150,7 +150,7 @@ void TrackExtrap::helixExtrapToZCov(TrackParamMFT* trackParam, double zEnd, bool
   double cosphi0 = TMath::Cos(phi0);
   double sinphi0 = TMath::Sin(phi0);
   double tanl0sq = tanl0 * tanl0;
-  double k = -getBz() * o2::constants::math::B2C;
+  double k = getBz() * o2::constants::math::B2C;
 
   TMatrixD jacob(5, 5);
   jacob.UnitMatrix();
