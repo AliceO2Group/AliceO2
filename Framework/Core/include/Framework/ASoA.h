@@ -544,9 +544,11 @@ struct FilteredIndexPolicy : IndexPolicyBase {
  private:
   inline void updateRow()
   {
-    /// FIXME: there should be a way to detect and gracefully handle empty
-    ///        selections outside the index policy
-    this->mRowIndex = O2_BUILTIN_LIKELY(mMaxSelection != 0) ? mSelectedRows[mSelectionRow] : mSelectionRow;
+    this->mRowIndex = O2_BUILTIN_LIKELY(mSelectionRow < mMaxSelection) ? mSelectedRows[mSelectionRow] : -1;
+
+    // this->mRowIndex = O2_BUILTIN_LIKELY(mMaxSelection != 0) ?
+    //  (mSelectionRow < mMaxSelection ? mSelectedRows[mSelectionRow] : -1)
+    //  : mSelectionRow;
   }
   SelectionVector mSelectedRows;
   int64_t mSelectionRow = 0;
