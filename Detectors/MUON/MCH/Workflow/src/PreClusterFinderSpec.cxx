@@ -32,7 +32,7 @@
 
 #include "MCHBase/Digit.h"
 #include "MCHBase/PreCluster.h"
-#include "../../PreClustering/src/PreClusterFinder.h"
+#include "MCHPreClustering/PreClusterFinder.h"
 
 namespace o2
 {
