@@ -158,8 +158,8 @@ void convertTrack(const T& inTrack, O& outTrack, C& clusters)
   // TODO: get rid of this cluster vector
   for (auto cls = 0; cls < nClusters; cls++) {
     o2::itsmft::Cluster& tempcluster = clusters.emplace_back(clusterIDs[cls], xpos[cls], ypos[cls], zpos[cls]);
-    tempcluster.setSigmaY2(0.0001); // FIXME:
-    tempcluster.setSigmaZ2(0.0001); // FIXME: Use clusters errors once available
+    tempcluster.setSigmaY2(5.43e-4); // FIXME:
+    tempcluster.setSigmaZ2(5.0e-4); // FIXME: Use clusters errors once available
     outTrack.createParamAtCluster(tempcluster);
   }
   outTrack.setMCCompLabels(inTrack.getMCCompLabels(), nClusters);
