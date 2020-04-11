@@ -581,6 +581,9 @@ void GPUReconstruction::DumpSettings(const char* dir)
 void GPUReconstruction::UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsDeviceProcessing* p)
 {
   param().UpdateEventSettings(e, p);
+  if (mInitialized) {
+    WriteConstantParams();
+  }
 }
 
 void GPUReconstruction::ReadSettings(const char* dir)
