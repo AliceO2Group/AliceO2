@@ -68,6 +68,9 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       float y = param.tpcGeometry.LinearPad2Y(hit.slice, hit.row, orgCl.getPad());
       float z = param.tpcGeometry.LinearTime2Z(hit.slice, orgCl.getTime());
       if (nClustersStored) {
+        if ((hit.slice < GPUCA_NSLICES) ^ (lastSlice < GPUCA_NSLICES)) {
+          break;
+        }
         if (lastLeg != hit.leg && track.Mirror()) {
           break;
         }
