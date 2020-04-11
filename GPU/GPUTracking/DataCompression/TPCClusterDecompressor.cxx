@@ -51,9 +51,11 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
           row = clustersCompressed->rowDiffA[offset - i - 1];
         }
         if (changeLeg && track.Mirror()) {
+          offset += clustersCompressed->nTrackClusters[i] - j;
           break;
         }
         if (track.Propagate(param.tpcGeometry.Row2X(row), param.SliceParam[slice].Alpha)) {
+          offset += clustersCompressed->nTrackClusters[i] - j;
           break;
         }
         unsigned int timeTmp = clustersCompressed->timeResA[offset - i - 1];
@@ -75,6 +77,7 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
         track.Init(param.tpcGeometry.Row2X(row), y, z, param.SliceParam[slice].Alpha, clustersCompressed->qPtA[i], param);
       }
       if (j + 1 < clustersCompressed->nTrackClusters[i] && track.Filter(y, z, row)) {
+        offset += clustersCompressed->nTrackClusters[i] - j;
         break;
       }
       offset++;
