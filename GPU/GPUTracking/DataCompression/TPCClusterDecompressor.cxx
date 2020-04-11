@@ -60,8 +60,9 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
         if (timeTmp & 800000) {
           timeTmp |= 0xFF000000;
         }
-        time = timeTmp + ClusterNative::packTime(param.tpcGeometry.LinearZ2Time(slice, track.Z()));
-        pad = clustersCompressed->padResA[offset - i - 1] + ClusterNative::packPad(param.tpcGeometry.LinearY2Pad(slice, row, track.Y()));
+        time = timeTmp + ClusterNative::packTime(CAMath::Max(0.f, param.tpcGeometry.LinearZ2Time(slice, track.Z())));
+        float tmpPad = CAMath::Max(0.f, CAMath::Min((float)param.tpcGeometry.NPads(GPUCA_ROW_COUNT - 1), param.tpcGeometry.LinearY2Pad(slice, row, track.Y())));
+        pad = clustersCompressed->padResA[offset - i - 1] + ClusterNative::packPad(tmpPad);
       } else {
         time = clustersCompressed->timeA[i];
         pad = clustersCompressed->padA[i];

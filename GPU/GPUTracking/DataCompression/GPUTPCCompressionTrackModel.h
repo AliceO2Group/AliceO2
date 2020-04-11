@@ -50,11 +50,15 @@ class GPUTPCCompressionTrackModel
   GPUd() int Mirror();
 
 #ifdef GPUCA_COMPRESSION_TRACK_MODEL_MERGER
-  GPUd() float Y() const
+  GPUd() float X() const
   {
-    return mTrk.GetY();
+    return mTrk.GetX();
   }
+  GPUd() float Y() const { return mTrk.GetY(); }
   GPUd() float Z() const { return mTrk.GetZ(); }
+  GPUd() float SinPhi() const { return mTrk.GetSinPhi(); }
+  GPUd() float DzDs() const { return mTrk.GetDzDs(); }
+  GPUd() float QPt() const { return mTrk.GetQPt(); }
 
 #elif defined(GPUCA_COMPRESSION_TRACK_MODEL_SLICETRACKER)
 
