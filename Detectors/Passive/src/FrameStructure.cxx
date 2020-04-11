@@ -671,14 +671,31 @@ void FrameStructure::ConstructGeometry()
   ptrap[9] = ptrap[4];
 
   vmc->Gsvolu("B045", "TRAP", kSteel, ptrap, 11);
+
+  TGeoTrap* b045shape = new TGeoTrap("B045shape", ptrap[0], ptrap[1], ptrap[2], ptrap[3], ptrap[4], ptrap[5], ptrap[6], ptrap[7], ptrap[8], ptrap[9], ptrap[10]);
+  double cutAngle = 43 * TMath::DegToRad();
+  double trd1par[4] = {0., 15 + 0.1, 15, 15 * TMath::Tan(cutAngle) * 0.5 + 0.45};
+  TGeoTranslation* trnsB045cut = new TGeoTranslation("trnsB045cut", ptrap[0] * TMath::Tan(ptrap[1] * TMath::DegToRad()) - trd1par[2] + ptrap[4], -ptrap[3] + 0.5, ptrap[0] + 0.6);
+  TGeoRotation* rotB045cut = new TGeoRotation("rotB045cut");
+  rotB045cut->RotateZ(90);
+  TGeoCombiTrans* moveB045cut = new TGeoCombiTrans(*trnsB045cut, *rotB045cut);
+  moveB045cut->SetName("moveB045cut");
+  moveB045cut->RegisterYourself();
+
   ptrap[3] = doh - ds;
   ptrap[4] = (dol - ds) / x;
   ptrap[5] = ptrap[4];
   ptrap[7] = ptrap[3];
   ptrap[8] = ptrap[4];
   ptrap[9] = ptrap[4];
+
   vmc->Gsvolu("B046", "TRAP", kAir, ptrap, 11);
   vmc->Gspos("B046", 1, "B045", 0.0, 0.0, 0., 0, "ONLY");
+
+  TGeoTrd1* cutOnB045 = new TGeoTrd1("cutOnB045", trd1par[0], trd1par[1], trd1par[2], trd1par[3]);
+
+  TGeoCompositeShape* b045shapeCut = new TGeoCompositeShape("B045shapeCut", "(B045shape)-(cutOnB045:moveB045cut)");
+  TGeoVolume* B045cutVol = new TGeoVolume("B045cut", b045shapeCut, kMedSteel);
 
   //
   // Positioning of diagonal bars
@@ -701,7 +718,7 @@ void FrameStructure::ConstructGeometry()
   vmc->Gspos("B045", 4, "B077", dx, dy, -dz2, idrotm[2029], "ONLY");
 
   vmc->Gspos("B045", 5, "B077", dx, -dy, -dz2, idrotm[2021], "ONLY");
-  vmc->Gspos("B045", 6, "B077", dx, -dy, +dz2, idrotm[2028], "ONLY");
+  vmc->Gspos("B045cut", 6, "B077", dx, -dy, +dz2, idrotm[2028], "ONLY");
   vmc->Gspos("B045", 7, "B077", -dx, -dy, -dz2, idrotm[2022], "ONLY");
   vmc->Gspos("B045", 8, "B077", -dx, -dy, +dz2, idrotm[2029], "ONLY");
 
