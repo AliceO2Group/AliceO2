@@ -16,9 +16,6 @@
 
 #include "MCHBase/Digit.h"
 
-using namespace o2::mch;
-using namespace std;
-
 namespace o2
 {
 

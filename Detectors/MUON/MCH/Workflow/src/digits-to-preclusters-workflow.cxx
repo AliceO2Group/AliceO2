@@ -8,10 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file PreClusterFinderDevice.cxx
-/// \brief Implementation of a DPL device to run the preclusterizer
+/// \file digits-to-preclausters-workflow.cxx
+/// \brief This is an executable that runs the preclusterization via DPL.
+///
+/// This is an executable that takes digits from the Data Processing Layer, runs the preclusterization and sends the preclusters via the Data Processing Layer.
 ///
 /// \author Philippe Pillot, Subatech
+/// \author Andrea Ferrero, CEA
 
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"

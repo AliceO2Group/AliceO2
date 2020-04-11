@@ -8,10 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file PreClusterFinderDevice.cxx
-/// \brief Implementation of a DPL device to run the preclusterizer
+/// \file digits-reader-run2-workflow.cxx
+/// \brief Implementation of a DPL device to read digits from special binary files generated from Run2 data.
 ///
 /// \author Philippe Pillot, Subatech
+/// \author Andrea Ferrero, CEA
 
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
