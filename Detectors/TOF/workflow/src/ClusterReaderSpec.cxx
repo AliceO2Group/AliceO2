@@ -72,6 +72,7 @@ void ClusterReader::run(ProcessingContext& pc)
   }
 
   mState = 2;
+  pc.services().get<ControlService>().endOfStream();
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
