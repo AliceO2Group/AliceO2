@@ -51,6 +51,7 @@ void TrackReader::run(ProcessingContext& pc)
   }
 
   mFinished = true;
+  pc.services().get<ControlService>().endOfStream();
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
