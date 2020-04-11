@@ -8,10 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file PreClusterFinderDevice.cxx
-/// \brief Implementation of a DPL device to run the preclusterizer
-///
+/// \file   preclusters-sink-workflow.cxx
 /// \author Philippe Pillot, Subatech
+/// \author  Andrea Ferrero
+///
+/// \brief This is an executable that dumps to a file on disk the preclusters received via DPL.
+///
+/// This is an executable that dumps to a file on disk the preclusters received via the Data Processing Layer.
+/// It can be used to debug the preclustering step. For example, one can do:
+/// \code{.sh}
+/// o2-mch-file-to-digits-workflow --infile=some_data_file | o2-mch-digits-to-preclusters-workflow | o2-mch-preclusters-sink-workflow --outfile preclusters.bin
+/// \endcode
+///
 
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"

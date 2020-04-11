@@ -66,8 +66,6 @@ class PreClusterFinderTask
                 << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms";
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
-
-    mPrint = ic.options().get<bool>("print");
   }
 
   //_________________________________________________________________________________________________
@@ -115,7 +113,6 @@ class PreClusterFinderTask
   }
 
  private:
-  bool mPrint = false;                    ///< print preclusters
   PreClusterFinder mPreClusterFinder{};   ///< preclusterizer
   std::vector<PreCluster> mPreClusters{}; ///< vector of preclusters
   std::vector<Digit> mUsedDigits{};       ///< vector of digits in the preclusters
@@ -135,7 +132,7 @@ o2::framework::DataProcessorSpec getPreClusterFinderSpec()
     Outputs{OutputSpec{"MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
             OutputSpec{"MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<PreClusterFinderTask>()},
-    Options{{"print", VariantType::Bool, false, {"print preclusters"}}}};
+    Options{}};
 }
 
 } // end namespace mch

@@ -9,16 +9,12 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file    runFileReader.cxx
+/// \file    raw-to-digits-workflow.cxx
 /// \author  Andrea Ferrero
 ///
-/// \brief This is an executable that reads a data file from disk and sends the data to QC via DPL.
+/// \brief This is an executable that runs the decoding via DPL.
 ///
-/// This is an executable that reads a data file from disk and sends the data to QC via the Data Processing Layer.
-/// It can be used as a data source for QC development. For example, one can do:
-/// \code{.sh}
-/// o2-qc-run-file-reader --infile=some_data_file | o2-qc --config json://${QUALITYCONTROL_ROOT}/etc/your_config.json
-/// \endcode
+/// This is an executable that takes a raw buffer from the Data Processing Layer, runs the decoding and sends the digits via the Data Processing Layer.
 ///
 
 #include "Framework/WorkflowSpec.h"
@@ -29,12 +25,9 @@
 #include "Framework/runDataProcessing.h"
 #include "MCHWorkflow/DataDecoderSpec.h"
 
-// Dans ce code, on récupère un infut aui est un message avec le buffer, on fait tourner le code de base decodeBuffer qui est dans Handlers, et on renvoir un message de sortie (inspiré de FileReader de Andrea)
-
 using namespace o2;
 using namespace o2::framework;
 
-// clang-format off
 WorkflowSpec defineDataProcessing(const ConfigContext&)
 {
   WorkflowSpec specs;
@@ -44,4 +37,3 @@ WorkflowSpec defineDataProcessing(const ConfigContext&)
 
   return specs;
 }
-// clang-format on

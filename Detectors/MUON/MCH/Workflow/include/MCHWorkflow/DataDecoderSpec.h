@@ -10,9 +10,6 @@ namespace mch
 namespace raw
 {
 
-using namespace o2;
-using namespace o2::framework;
-
 o2::framework::DataProcessorSpec getDecodingSpec();
 
 } // end namespace raw

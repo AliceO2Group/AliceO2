@@ -22,7 +22,6 @@
 using namespace o2;
 using namespace o2::framework;
 
-// clang-format off
 WorkflowSpec defineDataProcessing(const ConfigContext&)
 {
   WorkflowSpec specs;
@@ -32,4 +31,3 @@ WorkflowSpec defineDataProcessing(const ConfigContext&)
 
   return specs;
 }
-// clang-format on

@@ -9,15 +9,15 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file    runFileReader.cxx
+/// \file    digits-sink-workflow.cxx
 /// \author  Andrea Ferrero
 ///
-/// \brief This is an executable that reads a data file from disk and sends the data to QC via DPL.
+/// \brief This is an executable that dumps to a file on disk the digits received via DPL.
 ///
-/// This is an executable that reads a data file from disk and sends the data to QC via the Data Processing Layer.
-/// It can be used as a data source for QC development. For example, one can do:
+/// This is an executable that dumps to a file on disk the digits received via the Data Processing Layer.
+/// It can be used to debug the raw decoding step. For example, one can do:
 /// \code{.sh}
-/// o2-qc-run-file-reader --infile=some_data_file | o2-qc --config json://${QUALITYCONTROL_ROOT}/etc/your_config.json
+/// o2-mch-file-to-digits-workflow --infile=some_data_file | o2-mch-digits-sink-workflow --outfile digits.txt
 /// \endcode
 ///
 
@@ -105,9 +105,6 @@ class DigitsSinkTask
 } // end namespace raw
 } // end namespace mch
 } // end namespace o2
-
-using namespace o2;
-using namespace o2::framework;
 
 // clang-format off
 WorkflowSpec defineDataProcessing(const ConfigContext&)
