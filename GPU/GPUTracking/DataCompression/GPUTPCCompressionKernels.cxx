@@ -179,7 +179,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
   const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = processors.tpcConverter.getClustersNative();
   GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
   GPUParam& GPUrestrict() param = processors.param;
-  unsigned int* sortBuffer = compressor.mClusterSortBuffer + iBlock * compressor.mNMaxClusterSliceRow;
+  unsigned int* sortBuffer = smem.sortBuffer;
   for (int iSliceRow = iBlock; iSliceRow < GPUCA_NSLICES * GPUCA_ROW_COUNT; iSliceRow += nBlocks) {
     const int iSlice = iSliceRow / GPUCA_ROW_COUNT;
     const int iRow = iSliceRow % GPUCA_ROW_COUNT;
