@@ -12,8 +12,6 @@
 
 #include <vector>
 
-#include "TTree.h"
-
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/VertexReaderSpec.h"
@@ -28,47 +26,38 @@ namespace its
 
 void VertexReader::init(InitContext& ic)
 {
-  mInputFileName = ic.options().get<std::string>("its-vertex-infile");
+  mFileName = ic.options().get<std::string>("its-vertex-infile");
+  connectTree(mFileName);
 }
 
 void VertexReader::run(ProcessingContext& pc)
 {
-
-  if (mFinished) {
-    return;
-  }
-
-  // load data from files
-  TFile trFile(mInputFileName.c_str(), "read");
-  if (trFile.IsZombie()) {
-    LOG(FATAL) << "Failed to open tracks file " << mInputFileName;
-  }
-  TTree* trTree = (TTree*)trFile.Get(mVertexTreeName.c_str());
-  if (!trTree) {
-    LOG(FATAL) << "Failed to load tracks tree " << mVertexTreeName << " from " << mInputFileName;
-  }
-  if (!trTree->GetBranch(mVertexBranchName.c_str())) {
-    LOG(FATAL) << "No " << mVertexBranchName << " branch in " << mVertexTreeName;
-  }
-  if (!trTree->GetBranch(mVertexROFBranchName.c_str())) {
-    LOG(FATAL) << "No " << mVertexROFBranchName << " branch in " << mVertexTreeName;
-  }
-  trTree->SetBranchAddress(mVertexBranchName.c_str(), &mVerticesInp);
-  trTree->SetBranchAddress(mVertexROFBranchName.c_str(), &mVerticesROFRecInp);
-
-  trTree->GetBranch(mVertexROFBranchName.c_str())->GetEntry(0);
-  trTree->GetBranch(mVertexBranchName.c_str())->GetEntry(0);
-  delete trTree;
-  trFile.Close();
-
-  LOG(INFO) << "ITSVertexReader pushes " << mVerticesROFRec.size() << " ROFRecords,"
-            << mVertices.size() << " vertices";
+  auto ent = mTree->GetReadEntry() + 1;
+  assert(ent < mTree->GetEntries()); // this should not happen
+  mTree->GetEntry(ent);
+  LOG(INFO) << "Pushing " << mVerticesPtr->size() << " vertices in " << mVerticesROFRecPtr->size()
+            << " ROFs at entry " << ent;
   pc.outputs().snapshot(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe}, mVertices);
   pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe}, mVerticesROFRec);
 
-  mFinished = true;
-  pc.services().get<ControlService>().endOfStream();
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  }
+}
+
+void VertexReader::connectTree(const std::string& filename)
+{
+  mTree.reset(nullptr); // in case it was already loaded
+  mFile.reset(TFile::Open(filename.c_str()));
+  assert(mFile && !mFile->IsZombie());
+  mTree.reset((TTree*)mFile->Get(mVertexTreeName.c_str()));
+  assert(mTree);
+  assert(mTree->GetBranch(mVertexBranchName.c_str()));
+  assert(mTree->GetBranch(mVertexROFBranchName.c_str()));
+  mTree->SetBranchAddress(mVertexBranchName.c_str(), &mVerticesPtr);
+  mTree->SetBranchAddress(mVertexROFBranchName.c_str(), &mVerticesROFRecPtr);
+  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getITSVertexReaderSpec()
