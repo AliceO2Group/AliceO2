@@ -27,6 +27,7 @@
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
 #include "GPUChainITS.h"
+#include "CommonUtils/StringUtils.h"
 
 namespace o2
 {
@@ -42,7 +43,6 @@ class TrackerDPL : public framework::Task
   void run(framework::ProcessingContext& pc) final;
 
  private:
-  int mState = 0;
   bool mIsMC = false;
   o2::itsmft::TopologyDictionary mDict;
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;

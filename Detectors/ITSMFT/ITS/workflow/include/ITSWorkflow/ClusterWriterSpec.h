@@ -19,23 +19,21 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
-using namespace o2::framework;
-
 namespace o2
 {
 namespace its
 {
 
-class ClusterWriter : public Task
+class ClusterWriter : public o2::framework::Task
 {
  public:
   ClusterWriter(bool useMC) : mUseMC(useMC) {}
   ~ClusterWriter() override = default;
-  void init(InitContext& ic) final;
-  void run(ProcessingContext& pc) final;
+  void init(o2::framework::InitContext& ic) final;
+  void run(o2::framework::ProcessingContext& pc) final;
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  int mState = 0;
   bool mUseMC = true;
   std::unique_ptr<TFile> mFile = nullptr;
   std::unique_ptr<TTree> mTree = nullptr;
