@@ -14,6 +14,7 @@
 #define O2_GLOBAL_TRACKITSTPCREADER
 
 #include "TFile.h"
+#include "TTree.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -36,12 +37,14 @@ class TrackTPCITSReader : public Task
   void run(ProcessingContext& pc) final;
 
  private:
-  int mState = 0;
+  void connectTree(const std::string& filename);
   bool mUseMC = true;
-  std::unique_ptr<TFile> mFile = nullptr;
-  std::vector<o2::dataformats::TrackTPCITS> mTracks, *mPtracks = &mTracks;
-  std::vector<o2::MCCompLabel> mTPCLabels, *mPTPCLabels = &mTPCLabels;
-  std::vector<o2::MCCompLabel> mITSLabels, *mPITSLabels = &mITSLabels;
+  std::unique_ptr<TFile> mFile;
+  std::unique_ptr<TTree> mTree;
+  std::string mFileName = "";
+  std::vector<o2::dataformats::TrackTPCITS> mTracks, *mTracksPtr = &mTracks;
+  std::vector<o2::MCCompLabel> mTPCLabels, *mTPCLabelsPtr = &mTPCLabels;
+  std::vector<o2::MCCompLabel> mITSLabels, *mITSLabelsPtr = &mITSLabels;
 };
 
 /// create a processor spec

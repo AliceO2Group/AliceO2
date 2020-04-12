@@ -12,8 +12,6 @@
 
 #include <vector>
 
-#include "TTree.h"
-
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
@@ -29,53 +27,42 @@ namespace globaltracking
 {
 void TrackTPCITSReader::init(InitContext& ic)
 {
-  LOG(INFO) << "Init ITS-TPC Track reader!";
-  auto filename = ic.options().get<std::string>("itstpc-track-infile");
-  mFile = std::make_unique<TFile>(filename.c_str(), "OLD");
-  if (!mFile->IsOpen()) {
-    LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
-    mState = 0;
-    return;
-  }
-  mState = 1;
+  mFileName = ic.options().get<std::string>("itstpc-track-infile");
+  connectTree(mFileName);
 }
 
 void TrackTPCITSReader::run(ProcessingContext& pc)
 {
-  if (mState != 1) {
-    return;
+  auto ent = mTree->GetReadEntry() + 1;
+  assert(ent < mTree->GetEntries()); // this should not happen
+  mTree->GetEntry(ent);
+  LOG(INFO) << "Pushing " << mTracks.size() << " TPC-ITS matches at entry " << ent;
+
+  pc.outputs().snapshot(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe}, mTracks);
+  if (mUseMC) {
+    pc.outputs().snapshot(Output{"GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe}, mITSLabels);
+    pc.outputs().snapshot(Output{"GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe}, mTPCLabels);
   }
 
-  mFile->ls();
-
-  std::unique_ptr<TTree> treeTrack((TTree*)mFile->Get("matchTPCITS"));
-
-  if (treeTrack) {
-    treeTrack->SetBranchAddress("TPCITS", &mPtracks);
-
-    if (mUseMC) {
-      treeTrack->SetBranchAddress("MatchITSMCTruth", &mPITSLabels);
-      treeTrack->SetBranchAddress("MatchTPCMCTruth", &mPTPCLabels);
-    }
-
-    treeTrack->GetEntry(0);
-
-    printf("N ITS-TPC tracks = %lu\n", mTracks.size());
-
-    // add digits loaded in the output snapshot
-    pc.outputs().snapshot(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe}, mTracks);
-    if (mUseMC) {
-      pc.outputs().snapshot(Output{"GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe}, mITSLabels);
-      pc.outputs().snapshot(Output{"GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe}, mTPCLabels);
-    }
-  } else {
-    LOG(ERROR) << "Cannot read the ITS-TPC tracks !";
-    return;
+  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
+}
 
-  mState = 2;
-  pc.services().get<ControlService>().endOfStream();
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+void TrackTPCITSReader::connectTree(const std::string& filename)
+{
+  mTree.reset(nullptr); // in case it was already loaded
+  mFile.reset(TFile::Open(filename.c_str()));
+  assert(mFile && !mFile->IsZombie());
+  mTree.reset((TTree*)mFile->Get("matchTPCITS"));
+  assert(mTree);
+  mTree->SetBranchAddress("TPCITS", &mTracksPtr);
+  if (mUseMC) {
+    mTree->SetBranchAddress("MatchITSMCTruth", &mITSLabelsPtr);
+    mTree->SetBranchAddress("MatchTPCMCTruth", &mTPCLabelsPtr);
+  }
+  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getTrackTPCITSReaderSpec(bool useMC)
