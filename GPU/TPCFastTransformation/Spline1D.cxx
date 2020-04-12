@@ -31,11 +31,7 @@
 #include "TNtuple.h"
 #include "TH1.h"
 #include "TFile.h"
-#include <cmath>
-#ifdef __APPLE__
-#define sincos(x, s, c) __sincos(x, s, c)
-#define sincosf(x, s, c) __sincosf(x, s, c)
-#endif
+#include "GPUCommonMath.h"
 
 templateClassImp(GPUCA_NAMESPACE::gpu::Spline1D);
 
@@ -276,7 +272,7 @@ int Spline1D<DataT>::test(const bool draw, const bool drawDataPoints)
     double cosx[Fdegree + 1], sinx[Fdegree + 1];
     double xi = 0;
     for (int i = 0; i <= Fdegree; i++, xi += x) {
-      sincos(xi, &sinx[i], &cosx[i]);
+      GPUCommonMath::SinCos(xi, sinx[i], cosx[i]);
     }
     for (int dim = 0; dim < Ndim; dim++) {
       f[dim] = 0; // Fcoeff[0]/2;
