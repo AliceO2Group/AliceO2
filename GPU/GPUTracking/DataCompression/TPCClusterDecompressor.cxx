@@ -95,7 +95,9 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
       ClusterNative* buffer = &clusterBuffer[clustersNative.clusterOffset[i][j]];
-      memcpy((void*)buffer, (const void*)clusters[i][j].data(), clusters[i][j].size() * sizeof(clusterBuffer[0]));
+      if (clusters[i][j].size()) {
+        memcpy((void*)buffer, (const void*)clusters[i][j].data(), clusters[i][j].size() * sizeof(clusterBuffer[0]));
+      }
       unsigned int time = 0;
       unsigned short pad = 0;
       ClusterNative* cl = buffer + clusters[i][j].size();

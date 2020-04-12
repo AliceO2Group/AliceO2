@@ -52,8 +52,10 @@
 #define GPUCA_MERGER_COV_LIMIT 1000                   // Abort fit when y/z cov exceed the limit
 #define GPUCA_MIN_TRACK_PT_DEFAULT 0.010              // Default setting for minimum track Pt at some places
 
-#define GPUCA_MAX_SIN_PHI_LOW 0.99f                   // Must be preprocessor define because c++ pre 11 cannot use static constexpr for initializes
-#define GPUCA_MAX_SIN_PHI 0.999f
+#define GPUCA_MAX_SIN_PHI_LOW 0.99f                   // Limits for maximum sin phi during fit
+#define GPUCA_MAX_SIN_PHI 0.999f                      // Must be preprocessor define because c++ pre 11 cannot use static constexpr for initializes
+
+#define GPUCA_TPC_COMP_CHUNK_SIZE 1024                // Chunk size of sorted unattached TPC cluster in compression
 
 #if defined(HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !(defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE < 393216)
   //Use definitions from the O2 headers if available for nicer code and type safety
