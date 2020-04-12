@@ -126,6 +126,15 @@ class GPUTPCTrackParam
 
   GPUd() bool CheckNumericalQuality() const;
 
+  GPUdi() void ConstrainSinPhi(float limit = GPUCA_MAX_SIN_PHI)
+  {
+    if (GetSinPhi() > limit) {
+      SetSinPhi(limit);
+    } else if (GetSinPhi() < -limit) {
+      SetSinPhi(-limit);
+    }
+  }
+
   GPUd() void Print() const;
 
 #ifndef GPUCA_GPUCODE

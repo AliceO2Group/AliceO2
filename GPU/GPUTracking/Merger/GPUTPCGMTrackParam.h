@@ -159,7 +159,7 @@ class GPUTPCGMTrackParam
 
   GPUd() int FollowCircle(const GPUTPCGMMerger* Merger, GPUTPCGMPropagator& prop, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection);
 
-  GPUd() void MarkClusters(GPUTPCGMMergedTrackHit* GPUrestrict() clusters, int ihitFirst, int ihitLast, int wayDirection, unsigned char state)
+  GPUdi() void MarkClusters(GPUTPCGMMergedTrackHit* GPUrestrict() clusters, int ihitFirst, int ihitLast, int wayDirection, unsigned char state)
   {
     clusters[ihitFirst].state |= state;
     while (ihitFirst != ihitLast) {
@@ -167,7 +167,7 @@ class GPUTPCGMTrackParam
       clusters[ihitFirst].state |= state;
     }
   }
-  GPUd() void UnmarkClusters(GPUTPCGMMergedTrackHit* GPUrestrict() clusters, int ihitFirst, int ihitLast, int wayDirection, unsigned char state)
+  GPUdi() void UnmarkClusters(GPUTPCGMMergedTrackHit* GPUrestrict() clusters, int ihitFirst, int ihitLast, int wayDirection, unsigned char state)
   {
     clusters[ihitFirst].state &= ~state;
     while (ihitFirst != ihitLast) {
@@ -181,14 +181,14 @@ class GPUTPCGMTrackParam
   GPUd() void ShiftZ2(const GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger* merger, int N);
 
   GPUd() static float Reciprocal(float x) { return 1.f / x; }
-  GPUd() static void Assign(float& x, bool mask, float v)
+  GPUdi() static void Assign(float& x, bool mask, float v)
   {
     if (mask) {
       x = v;
     }
   }
 
-  GPUd() static void Assign(int& x, bool mask, int v)
+  GPUdi() static void Assign(int& x, bool mask, int v)
   {
     if (mask) {
       x = v;
@@ -202,7 +202,7 @@ class GPUTPCGMTrackParam
   void SetExtParam(const AliExternalTrackParam& T);
 #endif
 
-  GPUd() void ConstrainSinPhi(float limit = GPUCA_MAX_SIN_PHI)
+  GPUdi() void ConstrainSinPhi(float limit = GPUCA_MAX_SIN_PHI)
   {
     if (mP[2] > limit) {
       mP[2] = limit;

@@ -110,12 +110,19 @@ class GPUTPCTracker : public GPUProcessor
   }
 
   MEM_CLASS_PRE2()
-  GPUd() void GetErrors2Seeding(int iRow, const MEM_LG2(GPUTPCTrackParam) & t, float& ErrY2, float& ErrZ2) const
+  GPUdi() static void GetErrors2Seeding(const MEM_CONSTANT(GPUParam) & param, int iRow, const MEM_LG2(GPUTPCTrackParam) & t, float& ErrY2, float& ErrZ2)
+  {
+    // param.GetClusterErrors2( iRow, param.GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
+    param.GetClusterRMS2(iRow, param.ContinuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2);
+  }
+
+  MEM_CLASS_PRE2()
+  GPUdi() void GetErrors2Seeding(int iRow, const MEM_LG2(GPUTPCTrackParam) & t, float& ErrY2, float& ErrZ2) const
   {
     // Param().GetClusterErrors2( iRow, Param().GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
     Param().GetClusterRMS2(iRow, Param().ContinuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2);
   }
-  GPUd() void GetErrors2Seeding(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
+  GPUdi() void GetErrors2Seeding(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
   {
     // Param().GetClusterErrors2( iRow, Param().GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
     Param().GetClusterRMS2(iRow, Param().ContinuousTracking != 0.f ? 125.f : z, sinPhi, DzDs, ErrY2, ErrZ2);
@@ -144,7 +151,7 @@ class GPUTPCTracker : public GPUProcessor
   GPUhd() int ISlice() const { return mISlice; }
 
   GPUhd() GPUconstantref() const MEM_LG(GPUTPCSliceData) & Data() const { return mData; }
-  GPUhd() GPUconstantref() MEM_LG(GPUTPCSliceData) & Data()
+  GPUhdi() GPUconstantref() MEM_LG(GPUTPCSliceData) & Data()
   {
     return mData;
   }
@@ -198,7 +205,7 @@ class GPUTPCTracker : public GPUProcessor
  * only one. So a unique number (row index is good) is added in the least significant part of
  * the weight
  */
-  GPUd() static int CalculateHitWeight(int NHits, float chi2, int)
+  GPUdi() static int CalculateHitWeight(int NHits, float chi2, int)
   {
     const float chi2_suppress = 6.f;
     float weight = (((float)NHits * (chi2_suppress - chi2 / 500.f)) * (1e9f / chi2_suppress / 160.f));
@@ -233,7 +240,6 @@ class GPUTPCTracker : public GPUProcessor
   GPUhd() GPUglobalref() GPUTPCHitId* TrackHits() const { return mTrackHits; }
 
   GPUhd() GPUglobalref() MEM_GLOBAL(GPUTPCRow) * SliceDataRows() const { return (mData.Rows()); }
-
   GPUhd() GPUglobalref() int* RowStartHitCountOffset() const { return (mRowStartHitCountOffset); }
   GPUhd() GPUglobalref() StructGPUParameters* GPUParameters() const { return (&mCommonMem->gpuParameters); }
   GPUhd() MakeType(MEM_LG(StructGPUParametersConst) *) GPUParametersConst()
