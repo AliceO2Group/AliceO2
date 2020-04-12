@@ -37,41 +37,39 @@ RecPointReader::RecPointReader(bool useMC)
 void RecPointReader::init(InitContext& ic)
 {
   mInputFileName = ic.options().get<std::string>("ft0-recpoints-infile");
+  connectTree(mInputFileName);
 }
 
 void RecPointReader::run(ProcessingContext& pc)
 {
-  if (mFinished) {
-    return;
-  }
+  auto ent = mTree->GetReadEntry() + 1;
+  assert(ent < mTree->GetEntries()); // this should not happen
+  mTree->GetEntry(ent);
 
-  { // load data from files
-    TFile rpFile(mInputFileName.c_str(), "read");
-    if (rpFile.IsZombie()) {
-      LOG(FATAL) << "Failed to open FT0 recpoints file " << mInputFileName;
-    }
-    TTree* rpTree = (TTree*)rpFile.Get(mRecPointTreeName.c_str());
-    if (!rpTree) {
-      LOG(FATAL) << "Failed to load FT0 recpoints tree " << mRecPointTreeName << " from " << mInputFileName;
-    }
-    LOG(INFO) << "Loaded FT0 recpoints tree " << mRecPointTreeName << " from " << mInputFileName;
-
-    rpTree->SetBranchAddress(mRecPointBranchName.c_str(), &mRecPoints);
-    if (mUseMC) {
-      LOG(WARNING) << "MC-truth is not supported for FT0 recpoints currently";
-      mUseMC = false;
-    }
-
-    rpTree->GetEntry(0);
-    delete rpTree;
-    rpFile.Close();
-  }
-
-  LOG(INFO) << "FT0 RecPointReader pushes " << mRecPoints->size() << " recpoints";
+  LOG(INFO) << "FT0 RecPointReader pushes " << mRecPoints->size() << " recpoints at entry " << ent;
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, *mRecPoints);
 
-  mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  }
+}
+
+void RecPointReader::connectTree(const std::string& filename)
+{
+  mTree.reset(nullptr); // in case it was already loaded
+  mFile.reset(TFile::Open(filename.c_str()));
+  assert(mFile && !mFile->IsZombie());
+  mTree.reset((TTree*)mFile->Get(mRecPointTreeName.c_str()));
+  assert(mTree);
+
+  mTree->SetBranchAddress(mRecPointBranchName.c_str(), &mRecPoints);
+  if (mUseMC) {
+    LOG(WARNING) << "MC-truth is not supported for FT0 recpoints currently";
+    mUseMC = false;
+  }
+
+  LOG(INFO) << "Loaded FT0 RecPoints tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getFT0RecPointReaderSpec(bool useMC)
