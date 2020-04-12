@@ -30,11 +30,12 @@ class TrackWriter : public o2::framework::Task
   ~TrackWriter() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  int mState = 0;
   bool mUseMC = true;
   std::unique_ptr<TFile> mFile = nullptr;
+  std::unique_ptr<TTree> mTree = nullptr;
 };
 
 /// create a processor spec
