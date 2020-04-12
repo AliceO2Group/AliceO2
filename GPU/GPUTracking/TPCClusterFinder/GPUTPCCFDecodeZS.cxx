@@ -19,6 +19,7 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "CommonConstants/LHCConstants.h"
 #include "GPURawData.h"
+#include "GPUCommonAlgorithm.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
@@ -97,6 +98,22 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
           const unsigned char* rowData = n == 0 ? pagePtr : (page + tbHdr->rowAddr1()[n - 1]);
           s.RowClusterOffset[n] = CAMath::AtomicAddShared(&s.rowOffsetCounter, rowData[2 * *rowData]);
         }
+        /*if (iThread < GPUCA_WARP_SIZE) { // TODO: Seems to miscompile with HIP, CUDA performance doesn't really change, for now sticking to the AtomicAdd
+          GPUSharedMemory& smem = s;
+          int o;
+          if (iThread < nRowsUsed) {
+            const unsigned char* rowData = iThread == 0 ? pagePtr : (page + tbHdr->rowAddr1()[iThread - 1]);
+            o = rowData[2 * *rowData];
+          } else {
+            o = 0;
+          }
+          int x = warp_scan_inclusive_add(o);
+          if (iThread < nRowsUsed) {
+            s.RowClusterOffset[iThread] = s.rowOffsetCounter + x - o;
+          } else if (iThread == GPUCA_WARP_SIZE - 1) {
+            s.rowOffsetCounter += x;
+          }
+        }*/
         GPUbarrier();
 
         if (myRow < s.rowStride) {
