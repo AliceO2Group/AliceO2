@@ -104,7 +104,7 @@ int ReadConfiguration(int argc, char** argv)
     if (qcRet != qConfig::qcrHelp) {
       printf("Error parsing command line parameters\n");
     }
-    return (1);
+    return 1;
   }
   if (configStandalone.printSettings) {
     qConfigPrint();
@@ -121,7 +121,7 @@ int ReadConfiguration(int argc, char** argv)
     printf("Setting affinitiy to restrict on CPU %d\n", configStandalone.affinity);
     if (0 != sched_setaffinity(0, sizeof(mask), &mask)) {
       printf("Error setting CPU affinity\n");
-      return (1);
+      return 1;
     }
   }
   if (configStandalone.fifo) {
@@ -131,7 +131,7 @@ int ReadConfiguration(int argc, char** argv)
     param.sched_priority = 1;
     if (0 != sched_setscheduler(0, SCHED_FIFO, &param)) {
       printf("Error setting scheduler\n");
-      return (1);
+      return 1;
     }
   }
   if (configStandalone.fpe) {
@@ -144,15 +144,15 @@ int ReadConfiguration(int argc, char** argv)
 #else
   if (configStandalone.affinity != -1) {
     printf("Affinity setting not supported on Windows\n");
-    return (1);
+    return 1;
   }
   if (configStandalone.fifo) {
     printf("FIFO Scheduler setting not supported on Windows\n");
-    return (1);
+    return 1;
   }
   if (configStandalone.fpe) {
     printf("FPE not supported on Windows\n");
-    return (1);
+    return 1;
   }
 #endif
 #ifndef HAVE_O2HEADERS
@@ -161,24 +161,24 @@ int ReadConfiguration(int argc, char** argv)
 #ifndef GPUCA_BUILD_QA
   if (configStandalone.qa || configStandalone.eventGenerator) {
     printf("QA not enabled in build\n");
-    return (1);
+    return 1;
   }
 #endif
   if (configStandalone.qa) {
     if (getenv("LC_NUMERIC")) {
       printf("Please unset the LC_NUMERIC env variable, otherwise ROOT will not be able to fit correctly\n"); // BUG: ROOT Problem
-      return (1);
+      return 1;
     }
   }
 #ifndef GPUCA_BUILD_EVENT_DISPLAY
   if (configStandalone.eventDisplay) {
     printf("EventDisplay not enabled in build\n");
-    return (1);
+    return 1;
   }
 #endif
   if (configStandalone.configTF.bunchSim && configStandalone.configTF.nMerge) {
     printf("Cannot run --MERGE and --SIMBUNCHES togeterh\n");
-    return (1);
+    return 1;
   }
   if (configStandalone.configTF.bunchSim > 1) {
     configStandalone.configTF.timeFrameLen = 1.e9 * configStandalone.configTF.bunchSim / configStandalone.configTF.interactionRate;
@@ -195,7 +195,11 @@ int ReadConfiguration(int argc, char** argv)
   }
   if (configStandalone.configQA.inputHistogramsOnly && configStandalone.configQA.compareInputs.size() == 0) {
     printf("Can only produce QA pdf output when input files are specified!\n");
-    return (1);
+    return 1;
+  }
+  if (configStandalone.timeFrameTime && configStandalone.DebugLevel == 0) {
+    printf("tfTime needs debug >= 1 currently\n");
+    return 1;
   }
   if (configStandalone.eventDisplay) {
     configStandalone.noprompt = 1;
@@ -212,7 +216,7 @@ int ReadConfiguration(int argc, char** argv)
   }
   if (configStandalone.OMPThreads != omp_get_max_threads()) {
     printf("Cannot set number of OMP threads!\n");
-    return (1);
+    return 1;
   }
 #else
   configStandalone.OMPThreads = 1;
@@ -226,7 +230,7 @@ int ReadConfiguration(int argc, char** argv)
     printf("GPU disables at build time!\n");
     printf("Press a key to exit!\n");
     getchar();
-    return (1);
+    return 1;
   }
 #endif
   return (0);
@@ -505,7 +509,7 @@ int main(int argc, char** argv)
   SetCPUAndOSSettings();
 
   if (ReadConfiguration(argc, argv)) {
-    return (1);
+    return 1;
   }
 
   recUnique.reset(GPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType : GPUReconstruction::DEVICE_TYPE_NAMES[GPUReconstruction::DeviceType::CPU], configStandalone.runGPUforce));
@@ -516,7 +520,7 @@ int main(int argc, char** argv)
   }
   if (rec == nullptr || (configStandalone.testSyncAsync && recAsync == nullptr)) {
     printf("Error initializing GPUReconstruction\n");
-    return (1);
+    return 1;
   }
   rec->SetDebugLevelTmp(configStandalone.DebugLevel);
   chainTracking = rec->AddChain<GPUChainTracking>();
@@ -532,7 +536,7 @@ int main(int argc, char** argv)
 #endif
 
   if (SetupReconstruction()) {
-    return (1);
+    return 1;
   }
 
   // hlt.SetRunMerger(configStandalone.merger); //TODO!
@@ -562,7 +566,7 @@ int main(int argc, char** argv)
 
   if (configStandalone.eventGenerator) {
     genEvents::RunEventGenerator(chainTracking);
-    return (1);
+    return 1;
   } else {
     int nEvents = configStandalone.NEvents;
     if (configStandalone.configTF.bunchSim) {
@@ -685,11 +689,11 @@ int main(int argc, char** argv)
 
           if (tmpRetVal == 0 || tmpRetVal == 2) {
             OutputStat(chainTracking, j1 == 0 ? &nTracksTotal : nullptr, j1 == 0 ? &nClustersTotal : nullptr);
-          }
-          if (configStandalone.memoryStat) {
-            rec->PrintMemoryStatistics();
-          } else if (configStandalone.DebugLevel >= 2) {
-            rec->PrintMemoryOverview();
+            if (configStandalone.memoryStat) {
+              rec->PrintMemoryStatistics();
+            } else if (configStandalone.DebugLevel >= 2) {
+              rec->PrintMemoryOverview();
+            }
           }
 
           if (tmpRetVal == 0 && configStandalone.testSyncAsync) {
@@ -724,6 +728,9 @@ int main(int argc, char** argv)
             tmpRetVal = recAsync->RunChains();
             if (tmpRetVal == 0 || tmpRetVal == 2) {
               OutputStat(chainTrackingAsync, nullptr, nullptr);
+              if (configStandalone.memoryStat) {
+                recAsync->PrintMemoryStatistics();
+              }
             }
             recAsync->ClearAllocatedMemory();
           }
@@ -738,6 +745,21 @@ int main(int argc, char** argv)
               printf("Error occured\n");
             }
             goto breakrun;
+          }
+        }
+        if (configStandalone.timeFrameTime) {
+          double nClusters = chainTracking->GetTPCMerger().NMaxClusters();
+          if (nClusters > 0) {
+            double nClsPerTF = 550000. * 1138.3;
+            double timePerTF = rec->GetStatKernelTime() / 1000000. * nClsPerTF / nClusters;
+            double nGPUsReq = timePerTF / 0.02277;
+            char stat[1024];
+            snprintf(stat, 1024, "Sync phase: %.2f sec per 256 orbit TF, %.1f GPUs required", timePerTF, nGPUsReq);
+            if (configStandalone.testSyncAsync) {
+              timePerTF = recAsync->GetStatKernelTime() / 1000000. * nClsPerTF / nClusters;
+              snprintf(stat + strlen(stat), 1024 - strlen(stat), " - Async phase: %f sec per TF", timePerTF);
+            }
+            printf("%s (Extrapolated from %d clusters to %d)\n", stat, (int)nClusters, (int)nClsPerTF);
           }
         }
       }

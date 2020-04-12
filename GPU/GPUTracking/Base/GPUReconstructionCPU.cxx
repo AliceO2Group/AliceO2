@@ -259,8 +259,9 @@ int GPUReconstructionCPU::RunChains()
         mTimersRecoSteps[i].countToHost = 0;
       }
     }
-    printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total kernel time", (int)(kernelTotal * 1000000 / mStatNEvents));
-    printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total time", (int)(timerTotal.GetElapsedTime() * 1000000 / mStatNEvents));
+    mStatKernelTime = kernelTotal * 1000000 / mStatNEvents;
+    printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total kernel time", (int)mStatKernelTime);
+    printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total time", (int)(timerTotal.GetElapsedTime() * 1000000. / mStatNEvents));
   } else if (GetDeviceProcessingSettings().debugLevel >= 0) {
     printf("Total Time: %'d us\n", (int)(timerTotal.GetElapsedTime() * 1000000 / mStatNEvents));
   }

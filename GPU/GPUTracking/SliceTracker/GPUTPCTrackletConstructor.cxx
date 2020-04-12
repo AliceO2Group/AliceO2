@@ -65,7 +65,7 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
   unsigned int itrout = CAMath::AtomicAdd(tracker.NTracklets(), 1);
   unsigned int hitout = CAMath::AtomicAdd(tracker.NRowHits(), r.mLastRow + 1 - r.mFirstRow);
   if (itrout >= tracker.NMaxTracklets() || hitout >= tracker.NMaxRowHits()) {
-    tracker.CommonMemory()->kernelError = GPUCA_ERROR_TRACKLET_OVERFLOW;
+    tracker.CommonMemory()->kernelError = itrout >= tracker.NMaxTracklets() ? GPUCA_ERROR_TRACKLET_OVERFLOW : GPUCA_ERROR_TRACKLET_HIT_OVERFLOW;
     CAMath::AtomicExch(tracker.NTracklets(), 0);
     return;
   }

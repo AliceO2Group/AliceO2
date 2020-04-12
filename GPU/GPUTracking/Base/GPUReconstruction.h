@@ -216,6 +216,7 @@ class GPUReconstruction
 
   // Support / Debugging
   virtual void PrintKernelOccupancies() {}
+  double GetStatKernelTime() { return mStatKernelTime; }
 
  protected:
   GPUReconstruction(const GPUSettingsProcessing& cfg); // Constructor
@@ -309,6 +310,7 @@ class GPUReconstruction
   bool mInitialized = false;
   unsigned int mStatNEvents = 0;
   unsigned int mNEventsProcessed = 0;
+  double mStatKernelTime = 0.;
 
   int mThreadId = -1; // Thread ID that is valid for the local CUDA context
   int mGPUStuck = 0;  // Marks that the GPU is stuck, skip future events
