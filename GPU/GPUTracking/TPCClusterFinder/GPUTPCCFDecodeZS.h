@@ -37,6 +37,7 @@ class GPUTPCCFDecodeZS : public GPUKernelTemplate
     unsigned int nThreadsPerRow;
     unsigned int rowStride;
     unsigned int decodeBits;
+    GPUAtomic(unsigned int) rowOffsetCounter;
     float decodeBitsFactor;
   };
 
