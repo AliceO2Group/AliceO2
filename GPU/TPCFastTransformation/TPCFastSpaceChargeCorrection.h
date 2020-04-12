@@ -113,7 +113,10 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
   /// _______________ The main method: cluster correction  _______________________
   ///
-  GPUd() int getCorrection(int slice, int row, float u, float v, float& dx, float& du, float& dv) const;
+  GPUd() void getCorrection(int slice, int row, float u, float v, float& dx, float& du, float& dv) const;
+
+  ///
+  GPUd() void getCorXfromCorrUV(int slice, int row, float cu, float cv, float& cx) const;
 
   /// _______________  Utilities  _______________________________________________
 
@@ -163,22 +166,6 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 ///       Inline implementations of some methods
 /// ====================================================
 
-GPUdi() int TPCFastSpaceChargeCorrection::getCorrection(int slice, int row, float u, float v, float& dx, float& du, float& dv) const
-{
-  const SplineType& spline = getSpline(slice, row);
-  const float* splineData = getSplineData(slice, row);
-  float su = 0, sv = 0;
-  mGeo.convUVtoScaledUV(slice, row, u, v, su, sv);
-  su *= spline.getGridU1().getUmax();
-  sv *= spline.getGridU2().getUmax();
-  float dxuv[3];
-  spline.interpolateU(splineData, su, sv, dxuv);
-  dx = dxuv[0];
-  du = dxuv[1];
-  dv = dxuv[2];
-  return 0;
-}
-
 GPUdi() const TPCFastSpaceChargeCorrection::SplineType& TPCFastSpaceChargeCorrection::getSpline(int slice, int row) const
 {
   /// Gives pointer to spline
@@ -198,6 +185,38 @@ GPUdi() const float* TPCFastSpaceChargeCorrection::getSplineData(int slice, int 
   /// Gives pointer to spline data
   const RowSplineInfo& rowInfo = mRowSplineInfoPtr[row];
   return reinterpret_cast<float*>(mSplineData + mSliceDataSizeBytes * slice + rowInfo.dataOffsetBytes);
+}
+
+GPUdi() void TPCFastSpaceChargeCorrection::getCorrection(int slice, int row, float u, float v, float& dx, float& du, float& dv) const
+{
+  const SplineType& spline = getSpline(slice, row);
+  const float* splineData = getSplineData(slice, row);
+  float su = 0, sv = 0;
+  mGeo.convUVtoScaledUV(slice, row, u, v, su, sv);
+  su *= spline.getGridU1().getUmax();
+  sv *= spline.getGridU2().getUmax();
+  float dxuv[3];
+  spline.interpolateU(splineData, su, sv, dxuv);
+  dx = dxuv[0];
+  du = dxuv[1];
+  dv = dxuv[2];
+}
+
+GPUdi() void TPCFastSpaceChargeCorrection::getCorXfromCorrUV(
+  int slice, int row, float cu, float cv, float& cx) const
+{
+  const SplineType& spline = getSpline(slice, row);
+  const float* splineData = getSplineDataUV2X(slice, row);
+  // scale corrected u,v to the spline grid
+  float su = 0, sv = 0;
+  mGeo.convUVtoScaledUV(slice, row, u, v, su, sv);
+  su *= spline.getGridU1().getUmax();
+  sv *= spline.getGridU2().getUmax();
+  float dxuv[3];
+  spline.interpolateU(splineData, su, sv, dxuv);
+  dx = dxuv[0];
+  du = dxuv[1];
+  dv = dxuv[2];
 }
 
 } // namespace gpu
