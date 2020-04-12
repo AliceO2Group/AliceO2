@@ -17,6 +17,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
+#include <cassert>
 
 using namespace o2::framework;
 using namespace o2::itsmft;
@@ -39,21 +40,18 @@ ClusterReader::ClusterReader(o2::detectors::DetID id, bool useMC, bool useClFull
 
 void ClusterReader::init(InitContext& ic)
 {
-  mInputFileName = ic.options().get<std::string>((mDetNameLC + "-cluster-infile").c_str());
+  mFileName = ic.options().get<std::string>((mDetNameLC + "-cluster-infile").c_str());
+  connectTree(mFileName);
 }
 
 void ClusterReader::run(ProcessingContext& pc)
 {
-
-  if (mFinished) {
-    return;
-  }
-
-  read();
-
+  auto ent = mTree->GetReadEntry() + 1;
+  assert(ent < mTree->GetEntries()); // this should not happen
+  mTree->GetEntry(ent);
   LOG(INFO) << mDetName << "ClusterReader pushes " << mClusROFRec.size() << " ROFRecords,"
             << mClusterArray.size() << " full clusters, " << mClusterCompArray.size()
-            << " compact clusters";
+            << " compact clusters at entry " << ent;
 
   // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
   // To be fixed once the names-definition class is ready
@@ -71,50 +69,44 @@ void ClusterReader::run(ProcessingContext& pc)
   }
   if (mUseMC) {
     pc.outputs().snapshot(Output{mOrigin, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mClusterMCTruth);
+    pc.outputs().snapshot(Output{mOrigin, "ClusterMC2ROF", 0, Lifetime::Timeframe}, mClusMC2ROFs);
   }
 
-  mFinished = true;
-  pc.services().get<ControlService>().endOfStream();
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  }
 }
 
-void ClusterReader::read()
+void ClusterReader::connectTree(const std::string& filename)
 {
-  // load data from files
-  TFile clFile(mInputFileName.c_str(), "read");
-  if (clFile.IsZombie()) {
-    LOG(FATAL) << "Failed to open cluster file " << mInputFileName;
-  }
-  TTree* clTree = (TTree*)clFile.Get(mClusTreeName.c_str());
-  if (!clTree) {
-    LOG(FATAL) << "Failed to load clusters tree " << mClusTreeName << " from " << mInputFileName;
-  }
-  if (!clTree->GetBranch((mDetName + mClusROFBranchName).c_str())) {
-    LOG(FATAL) << "Failed to load clusters ROFrecords branch "
-               << " from " << mInputFileName;
-  }
+  mTree.reset(nullptr); // in case it was already loaded
+  mFile.reset(TFile::Open(filename.c_str()));
+  assert(mFile && !mFile->IsZombie());
+  mTree.reset((TTree*)mFile->Get(mClusTreeName.c_str()));
+  assert(mTree);
 
-  clTree->SetBranchAddress((mDetName + mClusROFBranchName).c_str(), &mClusROFRecPtr);
-
+  mTree->SetBranchAddress((mDetName + mClusROFBranchName).c_str(), &mClusROFRecPtr);
   if (mUseClFull) {
-    clTree->SetBranchAddress((mDetName + mClusterBranchName).c_str(), &mClusterArrayPtr);
+    mTree->SetBranchAddress((mDetName + mClusterBranchName).c_str(), &mClusterArrayPtr); // being eliminated!!!
   }
   if (mUseClComp) {
-    clTree->SetBranchAddress((mDetName + mClusterCompBranchName).c_str(), &mClusterCompArrayPtr);
+    mTree->SetBranchAddress((mDetName + mClusterCompBranchName).c_str(), &mClusterCompArrayPtr);
   }
   if (mUsePatterns) {
-    clTree->SetBranchAddress((mDetName + mClusterPattBranchName).c_str(), &mPatternsArrayPtr);
+    mTree->SetBranchAddress((mDetName + mClusterPattBranchName).c_str(), &mPatternsArrayPtr);
   }
   if (mUseMC) {
-    if (clTree->GetBranch((mDetName + mClustMCTruthBranchName).c_str())) {
-      clTree->SetBranchAddress((mDetName + mClustMCTruthBranchName).c_str(), &mClusterMCTruthPtr);
-      LOG(INFO) << "Will use MC-truth from " << mDetName + mClustMCTruthBranchName;
+    if (mTree->GetBranch((mDetName + mClustMCTruthBranchName).c_str()) &&
+        mTree->GetBranch((mDetName + mClustMC2ROFBranchName).c_str())) {
+      mTree->SetBranchAddress((mDetName + mClustMCTruthBranchName).c_str(), &mClusterMCTruthPtr);
+      mTree->SetBranchAddress((mDetName + mClustMC2ROFBranchName).c_str(), &mClusMC2ROFsPtr);
     } else {
       LOG(INFO) << "MC-truth is missing";
       mUseMC = false;
     }
   }
-  clTree->GetEntry(0);
+  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useClComp, bool usePatterns)
@@ -132,6 +124,7 @@ DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useCl
   }
   if (useMC) {
     outputSpec.emplace_back("ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("ITS", "ClusterMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
@@ -158,6 +151,7 @@ DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool useClFull, bool useCl
   }
   if (useMC) {
     outputSpec.emplace_back("MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("MFT", "ClusterMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
