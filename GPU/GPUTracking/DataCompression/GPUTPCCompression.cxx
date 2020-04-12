@@ -31,7 +31,6 @@ void* GPUTPCCompression::SetPointersScratch(void* mem)
   if (mRec->GetDeviceProcessingSettings().tpcCompressionGatherMode == 0) {
     SetPointersCompressedClusters(mem, mPtrs, mMaxTrackClusters, mMaxTracks, mMaxClusters, false);
   }
-  computePointerWithAlignment(mem, mClusterSortBuffer, mNGPUBlocks * mNMaxClusterSliceRow);
   return mem;
 }
 
