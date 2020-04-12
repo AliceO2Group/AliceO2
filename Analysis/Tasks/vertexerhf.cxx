@@ -49,7 +49,7 @@ struct DecayVertexBuilder2Prong {
                                                           aod::TracksCov, aod::TracksExtra> const& tracks)
   {
     //LOGP(error, "Trigger selection {}", std::string{triggersel});
-    LOGF(info, "Tracks for collision: %d", tracks.size());
+    LOGF(info, "N. of Tracks for collision: %d", tracks.size());
     o2::vertexing::DCAFitterN<2> df;
     df.setBz(5.0);
     // After finding the vertex, propagate tracks to the DCA. This is default anyway
@@ -116,7 +116,7 @@ struct DecayVertexBuilder2Prong {
         o2::track::TrackParCov trackparvar1(x1_, alpha1_, arraypar1, covpar1);
         df.setUseAbsDCA(true);
         int nCand = df.process(trackparvar0, trackparvar1);
-        df.propagateTracksToVertex();
+        if (nCand == 0) continue;
         const auto& vtx = df.getPCACandidate();
         LOGF(info, "vertex x %f", vtx[0]);
         hvtx_x_out->Fill(vtx[0]);
@@ -208,7 +208,9 @@ struct CandidateBuildingDzero {
       //select the candidate via its index. It is redundant cause the secondary
       //vertex recostruction is performed more than once for each dca candidate
       int nCand = df.process(trackparvar0, trackparvar1);
-      df.propagateTracksToVertex();
+      if (nCand == 0) {
+        LOGF(error, " DCAFitter failing in the candidate building: it should not happen");
+      }
       const auto& secvtx = df.getPCACandidate();
       float masspion = 0.140;
       float masskaon = 0.494;
