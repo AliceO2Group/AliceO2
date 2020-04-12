@@ -117,7 +117,7 @@ struct DecayVertexBuilder2Prong {
         df.setUseAbsDCA(true);
         int nCand = df.process(trackparvar0, trackparvar1);
         if (nCand == 0)
-	  continue;
+          continue;
         const auto& vtx = df.getPCACandidate();
         LOGF(info, "vertex x %f", vtx[0]);
         hvtx_x_out->Fill(vtx[0]);
