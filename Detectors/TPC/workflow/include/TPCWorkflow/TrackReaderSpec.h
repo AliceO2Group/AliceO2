@@ -14,6 +14,7 @@
 #define O2_TPC_TRACKREADER
 
 #include "TFile.h"
+#include "TTree.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -39,13 +40,16 @@ class TrackReader : public Task
   void run(ProcessingContext& pc) final;
 
  private:
-  void accumulate();
+  void accumulate(int from, int n);
+  void connectTree(const std::string& filename);
 
   std::vector<o2::tpc::TrackTPC>*mTracksInp = nullptr, mTracksOut;
   std::vector<o2::tpc::TPCClRefElem>*mCluRefVecInp = nullptr, mCluRefVecOut;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>*mMCTruthInp = nullptr, mMCTruthOut;
 
-  bool mFinished = false;
+  std::unique_ptr<TFile> mFile;
+  std::unique_ptr<TTree> mTree;
+
   bool mUseMC = true; // use MC truth
 
   std::string mInputFileName = "tpctracks.root";
