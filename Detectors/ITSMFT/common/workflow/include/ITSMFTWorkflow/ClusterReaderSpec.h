@@ -14,6 +14,7 @@
 #define O2_ITSMFT_CLUSTERREADER
 
 #include "TFile.h"
+#include "TTree.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -41,17 +42,19 @@ class ClusterReader : public Task
   void run(ProcessingContext& pc) final;
 
  protected:
-  void read();
+  void connectTree(const std::string& filename);
 
   std::vector<o2::itsmft::ROFRecord> mClusROFRec, *mClusROFRecPtr = &mClusROFRec;
   std::vector<o2::itsmft::Cluster> mClusterArray, *mClusterArrayPtr = &mClusterArray;
   std::vector<o2::itsmft::CompClusterExt> mClusterCompArray, *mClusterCompArrayPtr = &mClusterCompArray;
   std::vector<unsigned char> mPatternsArray, *mPatternsArrayPtr = &mPatternsArray;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mClusterMCTruth, *mClusterMCTruthPtr = &mClusterMCTruth;
+  std::vector<o2::itsmft::MC2ROFRecord> mClusMC2ROFs, *mClusMC2ROFsPtr = &mClusMC2ROFs;
 
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
 
-  bool mFinished = false;
+  std::unique_ptr<TFile> mFile;
+  std::unique_ptr<TTree> mTree;
 
   bool mUseMC = true;     // use MC truth
   bool mUseClFull = true; // use full clusters
@@ -60,14 +63,14 @@ class ClusterReader : public Task
 
   std::string mDetName = "";
   std::string mDetNameLC = "";
-  std::string mInputFileName = "";
-
+  std::string mFileName = "";
   std::string mClusTreeName = "o2sim";
   std::string mClusROFBranchName = "ClustersROF";
   std::string mClusterBranchName = "Cluster";
   std::string mClusterPattBranchName = "ClusterPatt";
   std::string mClusterCompBranchName = "ClusterComp";
   std::string mClustMCTruthBranchName = "ClusterMCTruth";
+  std::string mClustMC2ROFBranchName = "ClustersMC2ROF";
 };
 
 class ITSClusterReader : public ClusterReader
