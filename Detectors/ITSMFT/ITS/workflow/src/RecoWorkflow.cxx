@@ -27,12 +27,19 @@ namespace its
 namespace reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, o2::gpu::GPUDataTypes::DeviceType dtype)
+framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, o2::gpu::GPUDataTypes::DeviceType dtype,
+                                    bool upstreamDigits, bool upstreamClusters)
 {
   framework::WorkflowSpec specs;
 
-  specs.emplace_back(o2::its::getDigitReaderSpec(useMC));
-  specs.emplace_back(o2::its::getClustererSpec(useMC));
+  if (!(upstreamDigits || upstreamClusters)) {
+    specs.emplace_back(o2::its::getDigitReaderSpec(useMC));
+  }
+
+  if (!upstreamClusters) {
+    specs.emplace_back(o2::its::getClustererSpec(useMC));
+  }
+
   specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
   if (useCAtracker) {
     specs.emplace_back(o2::its::getTrackerSpec(useMC, dtype));
