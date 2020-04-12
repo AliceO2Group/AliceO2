@@ -110,28 +110,34 @@ void GPUChainTracking::PrintMemoryStatistics()
   unsigned int nTrackletHits = 0, nMaxTrackletHits = 0;
   unsigned int nSectorTracks = 0, nMaxSectorTracks = 0;
   unsigned int nSectorTrackHits = 0, nMaxSectorTrackHits = 0;
+  float maxUsageHits = 0.f, maxUsageTracklets = 0.f, maxUsageTrackletHits = 0.f, maxUsageTracks = 0.f, maxUsageTrackHits = 0.f;
   for (int i = 0; i < NSLICES; i++) {
-    nMaxTracklets += processors()->tpcTrackers[i].NMaxTracklets();
-    nTracklets += *processors()->tpcTrackers[i].NTracklets();
-    nMaxTrackletHits += processors()->tpcTrackers[i].NMaxRowHits();
-    nTrackletHits += *processors()->tpcTrackers[i].NRowHits();
     nMaxStartHits += processors()->tpcTrackers[i].NMaxStartHits();
     nStartHits += *processors()->tpcTrackers[i].NStartHits();
+    maxUsageHits = CAMath::Max(maxUsageHits, 100.f * *processors()->tpcTrackers[i].NStartHits() / processors()->tpcTrackers[i].NMaxStartHits());
+    nMaxTracklets += processors()->tpcTrackers[i].NMaxTracklets();
+    nTracklets += *processors()->tpcTrackers[i].NTracklets();
+    maxUsageTracklets = CAMath::Max(maxUsageTracklets, 100.f * *processors()->tpcTrackers[i].NTracklets() / processors()->tpcTrackers[i].NMaxTracklets());
+    nMaxTrackletHits += processors()->tpcTrackers[i].NMaxRowHits();
+    nTrackletHits += *processors()->tpcTrackers[i].NRowHits();
+    maxUsageTrackletHits = CAMath::Max(maxUsageTrackletHits, 100.f * *processors()->tpcTrackers[i].NRowHits() / processors()->tpcTrackers[i].NMaxRowHits());
     nMaxSectorTracks += processors()->tpcTrackers[i].NMaxTracks();
     nSectorTracks += *processors()->tpcTrackers[i].NTracks();
+    maxUsageTracks = CAMath::Max(maxUsageTracks, 100.f * *processors()->tpcTrackers[i].NTracks() / processors()->tpcTrackers[i].NMaxTracks());
     nMaxSectorTrackHits += processors()->tpcTrackers[i].NMaxTrackHits();
     nSectorTrackHits += *processors()->tpcTrackers[i].NTrackHits();
+    maxUsageTrackHits = CAMath::Max(maxUsageTrackHits, 100.f * *processors()->tpcTrackers[i].NTrackHits() / processors()->tpcTrackers[i].NMaxTrackHits());
   }
   unsigned int nTracks = processors()->tpcMerger.NOutputTracks();
   unsigned int nMaxTracks = processors()->tpcMerger.NMaxTracks();
   unsigned int nTrackHits = processors()->tpcMerger.NOutputTrackClusters();
   unsigned int nMaxTrackHits = processors()->tpcMerger.NMaxOutputTrackClusters();
 
-  GPUInfo("Mem Usage Start Hits     : %8u / %8u (%3.0f%%)", nStartHits, nMaxStartHits, 100.f * nStartHits / nMaxStartHits);
-  GPUInfo("Mem Usage Tracklets      : %8u / %8u (%3.0f%%)", nTracklets, nMaxTracklets, 100.f * nTracklets / nMaxTracklets);
-  GPUInfo("Mem Usage TrackletHits   : %8u / %8u (%3.0f%%)", nTrackletHits, nMaxTrackletHits, 100.f * nTrackletHits / nMaxTrackletHits);
-  GPUInfo("Mem Usage SectorTracks   : %8u / %8u (%3.0f%%)", nSectorTracks, nMaxSectorTracks, 100.f * nSectorTracks / nMaxSectorTracks);
-  GPUInfo("Mem Usage SectorTrackHits: %8u / %8u (%3.0f%%)", nSectorTrackHits, nMaxSectorTrackHits, 100.f * nSectorTrackHits / nMaxSectorTrackHits);
+  GPUInfo("Mem Usage Start Hits     : %8u / %8u (%3.0f%% / %3.0f%%)", nStartHits, nMaxStartHits, 100.f * nStartHits / nMaxStartHits, maxUsageHits);
+  GPUInfo("Mem Usage Tracklets      : %8u / %8u (%3.0f%% / %3.0f%%)", nTracklets, nMaxTracklets, 100.f * nTracklets / nMaxTracklets, maxUsageTracklets);
+  GPUInfo("Mem Usage TrackletHits   : %8u / %8u (%3.0f%% / %3.0f%%)", nTrackletHits, nMaxTrackletHits, 100.f * nTrackletHits / nMaxTrackletHits, maxUsageTrackletHits);
+  GPUInfo("Mem Usage SectorTracks   : %8u / %8u (%3.0f%% / %3.0f%%)", nSectorTracks, nMaxSectorTracks, 100.f * nSectorTracks / nMaxSectorTracks, maxUsageTracks);
+  GPUInfo("Mem Usage SectorTrackHits: %8u / %8u (%3.0f%% / %3.0f%%)", nSectorTrackHits, nMaxSectorTrackHits, 100.f * nSectorTrackHits / nMaxSectorTrackHits, maxUsageTrackHits);
   GPUInfo("Mem Usage Tracks         : %8u / %8u (%3.0f%%)", nTracks, nMaxTracks, 100.f * nTracks / nMaxTracks);
   GPUInfo("Mem Usage TrackHits      : %8u / %8u (%3.0f%%)", nTrackHits, nMaxTrackHits, 100.f * nTrackHits / nMaxTrackHits);
 }
