@@ -313,6 +313,15 @@ GPUdi() T work_group_broadcast_FUNC(T v, int i, S& smem)
   __syncthreads();
   return retVal;
 }
+
+#define warp_scan_inclusive_add(v) warp_scan_inclusive_add_FUNC(v, smem)
+template <class T, class S>
+GPUdi() T warp_scan_inclusive_add_FUNC(T v, S& smem)
+{
+  typename S::WarpScan(smem.cubWarpTmpMem).InclusiveSum(v, v);
+  return v;
+}
+
 #else
 // Trivial implementation for the CPU
 
@@ -323,6 +332,12 @@ GPUdi() T work_group_scan_inclusive_add(T v)
 }
 template <class T>
 GPUdi() T work_group_broadcast(T v, int i)
+{
+  return v;
+}
+
+template <class T>
+GPUdi() T warp_scan_inclusive_add(T v)
 {
   return v;
 }
