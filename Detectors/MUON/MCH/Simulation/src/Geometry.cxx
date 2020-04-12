@@ -25,8 +25,12 @@ namespace mch
 void createGeometry(TGeoVolume& topVolume)
 {
   createMaterials();
-  createStation1Geometry(topVolume);
-  createStation2Geometry(topVolume);
+
+  auto volYOUT1 = gGeoManager->GetVolume("YOUT1");
+
+  createStation1Geometry((volYOUT1) ? *volYOUT1 : topVolume);
+  createStation2Geometry((volYOUT1) ? *volYOUT1 : topVolume);
+
   createStation345Geometry(topVolume);
 }
 
