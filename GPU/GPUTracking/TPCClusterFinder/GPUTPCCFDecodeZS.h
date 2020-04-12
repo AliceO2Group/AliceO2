@@ -29,7 +29,7 @@ class GPUTPCClusterFinder;
 class GPUTPCCFDecodeZS : public GPUKernelTemplate
 {
  public:
-  struct GPUSharedMemory {
+  struct GPUSharedMemory /*: public GPUKernelTemplate::GPUSharedMemoryScan64<int, GPUCA_WARP_SIZE>*/ {
     CA_SHARED_STORAGE(unsigned int ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(unsigned int)]);
     unsigned int RowClusterOffset[o2::tpc::TPCZSHDR::TPC_MAX_ZS_ROW_IN_ENDPOINT];
     unsigned int nRowsRegion;
