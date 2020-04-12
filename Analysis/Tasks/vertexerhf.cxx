@@ -116,7 +116,8 @@ struct DecayVertexBuilder2Prong {
         o2::track::TrackParCov trackparvar1(x1_, alpha1_, arraypar1, covpar1);
         df.setUseAbsDCA(true);
         int nCand = df.process(trackparvar0, trackparvar1);
-        if (nCand == 0) continue;
+        if (nCand == 0)
+	  continue;
         const auto& vtx = df.getPCACandidate();
         LOGF(info, "vertex x %f", vtx[0]);
         hvtx_x_out->Fill(vtx[0]);
