@@ -31,6 +31,7 @@ GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float a
   mProp.SetToyMCEventsFlag(false);
   mProp.SetSeedingErrors(true); // Larger errors for seeds, better since we don't start with good hypothesis
   mProp.SetFitInProjections(true);
+  mProp.SetPropagateBzOnly(true);
   mProp.SetPolynomialField(&param.polynomialField);
   mTrk.X() = x;
   mTrk.Y() = y;
