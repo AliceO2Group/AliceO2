@@ -14,6 +14,7 @@
 #define O2_ITS_VERTEXREADER
 
 #include "TFile.h"
+#include "TTree.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -37,15 +38,17 @@ class VertexReader : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
 
  protected:
+  void connectTree(const std::string& filename);
   void accumulate();
 
-  std::vector<o2::itsmft::ROFRecord> mVerticesROFRec, *mVerticesROFRecInp = &mVerticesROFRec;
-  std::vector<Vertex> mVertices, *mVerticesInp = &mVertices;
+  std::vector<o2::itsmft::ROFRecord> mVerticesROFRec, *mVerticesROFRecPtr = &mVerticesROFRec;
+  std::vector<Vertex> mVertices, *mVerticesPtr = &mVertices;
 
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginITS;
 
-  bool mFinished = false;
-  std::string mInputFileName = "";
+  std::unique_ptr<TFile> mFile;
+  std::unique_ptr<TTree> mTree;
+  std::string mFileName = "";
   std::string mVertexTreeName = "o2sim";
   std::string mVertexBranchName = "Vertices";
   std::string mVertexROFBranchName = "VerticesROF";
