@@ -48,8 +48,10 @@ class GPUKernelTemplate
     // Provides the shared memory resources for CUB collectives
 #if (defined(__CUDACC__) || defined(__HIPCC__)) && defined(GPUCA_GPUCODE)
     typedef GPUCA_CUB::BlockScan<T, I> BlockScan;
+    typedef GPUCA_CUB::WarpScan<T> WarpScan;
     union {
       typename BlockScan::TempStorage cubTmpMem;
+      typename WarpScan::TempStorage cubWarpTmpMem;
       int tmpBroadcast;
     };
 #endif
