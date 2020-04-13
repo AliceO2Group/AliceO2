@@ -85,17 +85,17 @@ void run_trac_mft(float rate, std::string outputfile, std::string inputfile, std
   Double_t ctime = timer.CpuTime();
 
   Float_t cpuUsage = ctime / rtime;
-  cout << "<DartMeasurement name=\"CpuLoad\" type=\"numeric/double\">";
-  cout << cpuUsage;
-  cout << "</DartMeasurement>" << endl;
-  cout << endl
-       << endl;
+  std::cout << "<DartMeasurement name=\"CpuLoad\" type=\"numeric/double\">";
+  std::cout << cpuUsage;
+  std::cout << "</DartMeasurement>" << std::endl;
+  std::cout << std::endl
+            << std::endl;
   std::cout << "Macro finished succesfully" << std::endl;
 
-  std::cout << endl
+  std::cout << std::endl
             << std::endl;
   std::cout << "Output file is " << outputfile.data() << std::endl;
   std::cout << "Parameter file is " << paramfile.data() << std::endl;
-  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl
-            << endl;
+  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl
+            << std::endl;
 }

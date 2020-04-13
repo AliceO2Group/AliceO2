@@ -33,7 +33,7 @@ void plot_hit_cpv(int ievent = 0, std::string inputprefix = "o2sim")
   hitTree->SetBranchAddress("CPVHit", &mHitsArray);
 
   if (!mHitsArray) {
-    cout << "CPV hits not registered in the FairRootManager. Exiting ..." << endl;
+    std::cout << "CPV hits not registered in the FairRootManager. Exiting ..." << std::endl;
     return;
   }
   hitTree->GetEvent(ievent);

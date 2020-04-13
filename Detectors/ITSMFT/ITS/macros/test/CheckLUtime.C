@@ -22,6 +22,8 @@
 
 #endif
 
+using namespace std;
+
 void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile = "")
 {
   using o2::itsmft::Cluster;
@@ -81,6 +83,6 @@ void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile 
   realtime.close();
   cputime << timerLookUp.CpuTime() / nevCl << std::endl;
   cputime.close();
-  time_output << "Real time (s): " << timerLookUp.RealTime() / nevCl << "CPU time (s): " << timerLookUp.CpuTime() / nevCl << endl;
-  cout << "Real time (s): " << timerLookUp.RealTime() / nevCl << " CPU time (s): " << timerLookUp.CpuTime() / nevCl << endl;
+  time_output << "Real time (s): " << timerLookUp.RealTime() / nevCl << "CPU time (s): " << timerLookUp.CpuTime() / nevCl << std::endl;
+  std::cout << "Real time (s): " << timerLookUp.RealTime() / nevCl << " CPU time (s): " << timerLookUp.CpuTime() / nevCl << std::endl;
 }

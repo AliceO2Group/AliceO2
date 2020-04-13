@@ -48,7 +48,7 @@ void RawFitterTESTs()
   while (rawreader.hasNext()) {
 
     rawreader.next();
-    cout << "next page \n";
+    std::cout << "next page \n";
 
     //std::cout<<rawreader.getRawHeader()<<std::endl;
 

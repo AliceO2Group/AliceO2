@@ -21,6 +21,7 @@
 using o2::itsmft::Digit;
 using o2::itsmft::SegmentationAlpide;
 using namespace o2::its;
+using namespace std;
 
 //////////////////////////////////////////
 //////////////////////////////////////////
@@ -166,7 +167,7 @@ class Cluster
 //////////////////////////////////////////
 void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters, TH1F* freqDist, TH1F* cSizeDist)
 {
-  cout << ">>> Event " << nev << endl;
+  std::cout << ">>> Event " << nev << std::endl;
   Float_t x, z;
   Long64_t shapeId;
   map<Long64_t, Int_t> csFrequency;
@@ -181,33 +182,33 @@ void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters, TH1F* freq
       o2::itsmft::ClusterShape* cs = Cluster::PixelsToClusterShape(pv);
       shapeId = cs->GetShapeID();
       cSizeDist->Fill(cs->GetNFiredPixels());
-      cout << endl
-           << shapeId << ":" << endl
-           << *cs << endl
-           << endl;
+      std::cout << std::endl
+                << shapeId << ":" << std::endl
+                << *cs << std::endl
+                << std::endl;
 
       if (csFrequency.find(shapeId) == csFrequency.end())
         csFrequency[shapeId] = 0;
       csFrequency[shapeId] += 1;
 
       // if (cls.GetNClusters(i) > 0) {
-      //   cout << " [";
+      //   std::cout << " [";
       //   for (auto j = 0; j < cls.GetNClusters(i); ++j) {
       //     Pixel p = cls.GetPixel(i, j);
-      //     cout << "(" << p.GetRow() << "," << p.GetCol() << ")";
+      //     std::cout << "(" << p.GetRow() << "," << p.GetCol() << ")";
       //     //SegmentationAlpide::detectorToLocal(p.GetRow(),p.GetCol(),x,z);
       //     //cout << "(" << x << "," << z << ")";
-      //     if (j < cls.GetNClusters(i)-1) cout << "  ";
+      //     if (j < cls.GetNClusters(i)-1) std::cout << "  ";
       //   }
-      //   cout << "]";
+      //   std::cout << "]";
       // }
 
-      //if (i < 6) cout << ", ";
-      //else cout << endl;
+      //if (i < 6) std::cout << ", ";
+      //else std::cout << std::endl;
     }
   }
-  cout << ">>>>>>>>>>>>>>>>>" << endl
-       << endl;
+  std::cout << ">>>>>>>>>>>>>>>>>" << std::endl
+            << std::endl;
 
   int i = 0;
   std::multimap<Int_t, Long64_t> fmap = flip_map(csFrequency);

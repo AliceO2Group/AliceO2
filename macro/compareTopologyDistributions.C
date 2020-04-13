@@ -17,6 +17,8 @@
 
 // Compare the topology distribution from the cluster finder with that in the dictionary
 
+using namespace std;
+
 void compareTopologyDistributions(
   string cluster_file_name = "o2clus_its.root",
   string dictionary_file_name = "",

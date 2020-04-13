@@ -69,7 +69,7 @@ void initF()
   splineF.construct(nKnotsU, knotsU, nKnotsU,
                     nKnotsV, knotsV, nKnotsV);
 
-  cout << "number of knots: " << splineF.getNumberOfKnots() << endl;
+  std::cout << "number of knots: " << splineF.getNumberOfKnots() << std::endl;
 
   splineF_data = new float[splineF.getNumberOfKnots() * 3];
   for (int i = 0; i < splineF.getNumberOfKnots(); i++) {
@@ -97,12 +97,12 @@ bool initTPC(const char* fileName, int slice, int row)
 
   TFile file(fileName, "READ");
   if (!file.IsOpen()) {
-    cout << "distortion file not found!" << endl;
+    std::cout << "distortion file not found!" << std::endl;
     exit(0);
   }
   TNtuple* nt = (TNtuple*)file.Get("dist");
   if (!nt) {
-    cout << "distortion ntuple is not found in the file!" << endl;
+    std::cout << "distortion ntuple is not found in the file!" << std::endl;
     exit(0);
   }
 
@@ -128,7 +128,7 @@ bool initTPC(const char* fileName, int slice, int row)
     if (nearbyint(fslice) != slice || nearbyint(frow) != row)
       continue;
     if (nent >= splineF.getNumberOfKnots()) {
-      cout << "Init TPC: unexpected entries: entry " << nent << " expected n entries " << splineF.getNumberOfKnots() << endl;
+      std::cout << "Init TPC: unexpected entries: entry " << nent << " expected n entries " << splineF.getNumberOfKnots() << std::endl;
       return 0;
     }
     splineF_data[3 * nent + 0] = dx;
@@ -137,7 +137,7 @@ bool initTPC(const char* fileName, int slice, int row)
     nent++;
   }
   if (nent != splineF.getNumberOfKnots()) {
-    cout << "Init TPC: unexpected N entries: read " << nent << " expected " << splineF.getNumberOfKnots() << endl;
+    std::cout << "Init TPC: unexpected N entries: read " << nent << " expected " << splineF.getNumberOfKnots() << std::endl;
     return 0;
   }
   return 1;
@@ -150,7 +150,7 @@ int IrregularSpline2D3DCalibratorTest()
   const bool kAsk = 0;
   const bool kTestTPC = 0;
 
-  cout << "Spline calibration starts" << endl;
+  std::cout << "Spline calibration starts" << std::endl;
 
   IrregularSpline2D3DCalibrator finder;
 
@@ -202,8 +202,8 @@ int IrregularSpline2D3DCalibratorTest()
 
     do {
 
-      cout << "n knots: u " << finder.getSpline().getGridU().getNumberOfKnots()
-           << " v " << finder.getSpline().getGridV().getNumberOfKnots() << endl;
+      std::cout << "n knots: u " << finder.getSpline().getGridU().getNumberOfKnots()
+                << " v " << finder.getSpline().getGridV().getNumberOfKnots() << std::endl;
 
       delete gknotsF;
       delete gknots;
@@ -330,7 +330,7 @@ int IrregularSpline2D3DCalibratorTest()
     std::cout << " output spline: " << std::endl;
     finder.getSpline().getGrid(0).print();
     finder.getSpline().getGrid(1).print();
-    cout << "seed = " << seed << std::endl;
+    std::cout << "seed = " << seed << std::endl;
 
     if (kAsk)
       keyPressed = getchar();
