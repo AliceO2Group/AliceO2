@@ -273,6 +273,12 @@ class Spline2D : public Spline2DBase<DataT, isConsistentT>
   /// Get number of F dimensions.
   GPUhd() static constexpr int getFdimensions() { return nFdimT; }
 
+  /// Number of parameters
+  GPUhd() int getNumberOfParameters() const { return (4 * nFdimT) * this->getNumberOfKnots(); }
+
+  /// Size of the parameter array in bytes
+  GPUhd() size_t getSizeOfParameters() const { return sizeof(DataT) * getNumberOfParameters(); }
+
   using TBase::mFparameters;
   using TBase::mGridU1;
   using TBase::mGridU2;

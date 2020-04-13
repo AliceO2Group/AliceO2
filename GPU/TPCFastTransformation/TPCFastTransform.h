@@ -136,7 +136,13 @@ class TPCFastTransform : public FlatObject
 
   /// Transformation in the time frame
   GPUd() void TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
+
+  /// Inverse transformation
   GPUd() void InverseTransformInTimeFrame(int slice, int row, float /*x*/, float y, float z, float& pad, float& time, float maxTimeBin) const;
+
+  GPUd() void InverseTransformYZtoX(int slice, int row, float y, float z, float& x) const;
+
+  GPUd() void InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz) const;
 
   /// Ideal transformation with Vdrift only - without calibration
   GPUd() void TransformIdeal(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime) const;
@@ -455,6 +461,23 @@ GPUdi() float TPCFastTransform::getLastCalibratedTimeBin(int slice) const
   getGeometry().convScaledUVtoUV(slice, 0, 0.f, 1.f, u, v);
   convUVtoPadTime(slice, 0, u, v, pad, time, 0);
   return time;
+}
+
+GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y, float z, float& x) const
+{
+  /// Transformation y,z -> x
+  float u = 0, v = 0;
+  getGeometry().convLocalToUV(slice, y, z, u, v);
+  mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, x);
+}
+
+GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz) const
+{
+  /// Transformation y,z -> x
+  float u = 0, v = 0;
+  getGeometry().convLocalToUV(slice, y, z, u, v);
+  mCorrection.getCorrectionInvUV(slice, row, u, v, u, v);
+  getGeometry().convUVtoLocal(slice, u, v, ny, nz);
 }
 
 } // namespace gpu
