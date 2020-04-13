@@ -20,6 +20,8 @@
 #include "ZDCSimulation/SimCondition.h"
 #include "ZDCBase/Constants.h"
 
+using namespace std;
+
 void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
                         long tmin = 0, long tmax = -1,
                         std::string ccdbHost = "http://ccdb-test.cern.ch:8080")

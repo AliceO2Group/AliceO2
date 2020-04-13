@@ -15,7 +15,7 @@
 
 void UserDecayConfig()
 {
-  cout << "Loading User Decay Config from macro" << endl;
+  std::cout << "Loading User Decay Config from macro" << std::endl;
   TDatabasePDG* db = TDatabasePDG::Instance();
   TParticlePDG* p = 0;
 
@@ -34,7 +34,7 @@ void UserDecayConfig()
     mode[kz][0] = 0;
     mode[kz][1] = 0;
     mode[kz][2] = 0;
-    //  cout << mode[kz][0] << " " << 	mode[kz][1] << " " << mode[kz][2] << endl;
+    //  std::cout << mode[kz][0] << " " << 	mode[kz][1] << " " << mode[kz][2] << std::endl;
   }
   bratio[0] = 100.;
   mode[0][0] = 2112;
