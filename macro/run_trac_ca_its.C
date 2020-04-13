@@ -185,10 +185,10 @@ void run_trac_ca_its(std::string path = "./",
 
     if (!vertITS.empty()) {
       // Using only the first vertex in the list
-      cout << " - Reconstructed vertexer: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
+      std::cout << " - Reconstructed vertexer: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
       event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
     } else {
-      cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
+      std::cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
     }
     trackClIdx.clear();
     tracksITS.clear();

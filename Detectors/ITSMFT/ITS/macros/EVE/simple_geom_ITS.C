@@ -18,6 +18,8 @@
 
 #endif
 
+using namespace std;
+
 void AddNodes(TGeoNode* node, TEveGeoNode* parent, Int_t depth, Int_t depthmax, TObjArray* list);
 
 void simple_geom_ITS(std::string inputGeom = "o2sim_geometry.root")

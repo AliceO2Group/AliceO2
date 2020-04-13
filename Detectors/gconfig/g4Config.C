@@ -57,13 +57,13 @@ void Config()
                                  // any other choice is dangerously inconsistent with the FinishPrimary() interface of VMCApp
 
   auto& physicsSetup = ::o2::conf::G4Params::Instance().getPhysicsConfigString();
-  cout << "PhysicsSetup wanted " << physicsSetup << "\n";
+  std::cout << "PhysicsSetup wanted " << physicsSetup << "\n";
   auto runConfiguration = new TG4RunConfiguration("geomRoot", physicsSetup, "stepLimiter+specialCuts",
                                                   specialStacking, mtMode);
 
   /// Create the G4 VMC
   TGeant4* geant4 = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);
-  cout << "Geant4 has been created." << endl;
+  std::cout << "Geant4 has been created." << std::endl;
 
   // setup the stack
   stackSetup(geant4, FairRunSim::Instance());
@@ -84,5 +84,5 @@ void Config()
   // Enter in Geant4 Interactive mode
   // geant4->StartGeantUI();
 
-  cout << "g4Config.C finished" << endl;
+  std::cout << "g4Config.C finished" << std::endl;
 }
