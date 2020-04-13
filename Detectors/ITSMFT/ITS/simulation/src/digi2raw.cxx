@@ -72,6 +72,7 @@ int main(int argc, char** argv)
     std::cerr << e.what() << ", application will now exit" << std::endl;
     exit(2);
   }
+
   digi2raw(vm["input-file"].as<std::string>(),
            vm["output-dir"].as<std::string>(),
            vm["file-per-cru"].as<bool>(),
@@ -214,7 +215,7 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
                       << " -> " << outFileLink;
           }
           // register the link in the writer, if not done here, its data will be dumped to common default file
-          outFileLink = filePerCRU ? o2::utils::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(nCRU), ".raw") : o2::utils::concat_string(outPrefix, "_lr", std::to_string(ilr), ".raw");
+          outFileLink = filePerCRU ? o2::utils::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(nCRU), ".raw") : o2::utils::concat_string(outDir, "/", outPrefix, "_lr", std::to_string(ilr), ".raw");
           m2r.getWriter().registerLink(link->feeID, link->cruID, link->idInCRU,
                                        link->endPointID, outFileLink);
           //
