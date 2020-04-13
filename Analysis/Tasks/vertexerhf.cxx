@@ -61,7 +61,7 @@ struct DecayVertexBuilder2Prong {
   {
     //LOGP(error, "Trigger selection {}", std::string{triggersel});
     int trigindex = int{triggerindex};
-    if (trigindex !=-1) {
+    if (trigindex != -1) {
       LOGF(info, "Selecting on trigger bit %d", trigindex);
       auto trigger = getTrigger(collision, triggers);
       uint64_t triggerMask = trigger.triggerMask();
