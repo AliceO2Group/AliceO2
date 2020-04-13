@@ -14,12 +14,17 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
+#include "CommonConstants/LHCConstants.h"
 #include <string_view>
 
 namespace o2
 {
 namespace itsmft
 {
+
+constexpr float DEFROFLength = o2::constants::lhc::LHCOrbitNS / 15;         // ROF length, divisor of the orbit
+constexpr float DEFStrobeDelay = o2::constants::lhc::LHCBunchSpacingNS * 4; // ~100 ns delay
+
 template <int N>
 struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<N>> {
   static_assert(N == o2::detectors::DetID::ITS || N == o2::detectors::DetID::MFT, "only DetID::ITS orDetID:: MFT are allowed");
@@ -28,10 +33,9 @@ struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<
   {
     return N == o2::detectors::DetID::ITS ? ParamName[0] : ParamName[1];
   }
-
-  float roFrameLength = 6000.;      ///< length of RO frame in ns
-  float strobeDelay = 100.;         ///< strobe start (in ns) wrt ROF start
-  float strobeLength = 6000. - 100; ///< length of the strobe in ns (sig. over threshold checked in this window only)
+  float roFrameLength = DEFROFLength;                 ///< length of RO frame in ns
+  float strobeDelay = DEFStrobeDelay;                 ///< strobe start (in ns) wrt ROF start
+  float strobeLength = DEFROFLength - DEFStrobeDelay; ///< length of the strobe in ns (sig. over threshold checked in this window only)
 
   // boilerplate stuff + make principal key
   O2ParamDef(DPLAlpideParam, getParamName().data());
