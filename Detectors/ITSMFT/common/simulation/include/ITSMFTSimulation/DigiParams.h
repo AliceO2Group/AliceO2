@@ -16,6 +16,7 @@
 
 #include <Rtypes.h>
 #include <ITSMFTSimulation/AlpideSignalTrapezoid.h>
+#include "ITSMFTBase/DPLAlpideParam.h"
 
 ////////////////////////////////////////////////////////////
 //                                                        //
@@ -86,9 +87,9 @@ class DigiParams
   static constexpr double infTime = 1e99;
   bool mIsContinuous = false;        ///< flag for continuous simulation
   float mNoisePerPixel = 1.e-7;      ///< ALPIDE Noise per chip
-  float mROFrameLength = 6000.;      ///< length of RO frame in ns
-  float mStrobeDelay = 6000.;        ///< strobe start (in ns) wrt ROF start
-  float mStrobeLength = 100.;        ///< length of the strobe in ns (sig. over threshold checked in this window only)
+  float mROFrameLength = DEFROFLength;                 ///< length of RO frame in ns
+  float mStrobeDelay = DEFStrobeDelay;                 ///< strobe start (in ns) wrt ROF start
+  float mStrobeLength = DEFROFLength - DEFStrobeDelay; ///< length of the strobe in ns (sig. over threshold checked in this window only)
   double mTimeOffset = -2 * infTime; ///< time offset (in seconds!) to calculate ROFrame from hit time
 
   int mChargeThreshold = 150;              ///< charge threshold in Nelectrons
