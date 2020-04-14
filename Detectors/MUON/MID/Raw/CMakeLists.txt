@@ -19,6 +19,10 @@ o2_add_library(
           src/ELinkDecoder.cxx
           src/Encoder.cxx
           src/FEEIdConfig.cxx
+          src/GBTBareDecoder.cxx
+          src/GBTOutputHandler.cxx
+          src/GBTUserLogicDecoder.cxx
+          src/GBTUserLogicEncoder.cxx
           src/LocalBoardRO.cxx
           src/RawBuffer.cxx
           src/RawFileReader.cxx
