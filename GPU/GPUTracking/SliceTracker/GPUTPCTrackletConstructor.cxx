@@ -63,10 +63,14 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
           tParam.Cov()[10], tParam.Cov()[11], tParam.Cov()[12], tParam.Cov()[13], tParam.Cov()[14]);*/
 
   unsigned int itrout = CAMath::AtomicAdd(tracker.NTracklets(), 1);
-  unsigned int hitout = CAMath::AtomicAdd(tracker.NRowHits(), r.mLastRow + 1 - r.mFirstRow);
-  if (itrout >= tracker.NMaxTracklets() || hitout >= tracker.NMaxRowHits()) {
+  const unsigned int nHits = r.mLastRow + 1 - r.mFirstRow;
+  unsigned int hitout = CAMath::AtomicAdd(tracker.NRowHits(), nHits);
+  if (itrout >= tracker.NMaxTracklets() || hitout + nHits > tracker.NMaxRowHits()) {
     tracker.CommonMemory()->kernelError = itrout >= tracker.NMaxTracklets() ? GPUCA_ERROR_TRACKLET_OVERFLOW : GPUCA_ERROR_TRACKLET_HIT_OVERFLOW;
     CAMath::AtomicExch(tracker.NTracklets(), 0);
+    if (hitout + nHits > tracker.NMaxRowHits()) {
+      CAMath::AtomicExch(tracker.NRowHits(), tracker.NMaxRowHits());
+    }
     return;
   }
 

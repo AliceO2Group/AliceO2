@@ -90,7 +90,11 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data)
   }
 
   mChain->mIOPtrs = *data;
-  mRec->RunChains();
+  int retVal = mRec->RunChains();
+  if (retVal) {
+    mRec->ClearAllocatedMemory();
+    return retVal;
+  }
   *data = mChain->mIOPtrs;
 
   const o2::tpc::ClusterNativeAccess* ext = mChain->GetClusterNativeAccess();
