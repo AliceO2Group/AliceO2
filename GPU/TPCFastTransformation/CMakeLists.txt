@@ -15,6 +15,7 @@ set(SRCS
     Spline2D.cxx
     SplineHelper1D.cxx
     SplineHelper2D.cxx
+    PolynomFit.cxx  
     devtools/IrregularSpline1D.cxx
     devtools/IrregularSpline2D3D.cxx
     devtools/SemiregularSpline2D3D.cxx

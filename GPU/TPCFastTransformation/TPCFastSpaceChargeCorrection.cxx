@@ -17,6 +17,9 @@
 
 #if !defined(GPUCA_GPUCODE)
 #include <iostream>
+#include <cmath>
+#include "PolynomFit.h"
+#include "SplineHelper2D.h"
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -357,9 +360,10 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
   }
 }
 
+#if !defined(GPUCA_GPUCODE)
+
 void TPCFastSpaceChargeCorrection::print() const
 {
-#if !defined(GPUCA_GPUCODE)
   std::cout << " TPC Correction: " << std::endl;
   mGeo.print();
   std::cout << "  mNumberOfScenarios = " << mNumberOfScenarios << std::endl;
@@ -389,5 +393,166 @@ void TPCFastSpaceChargeCorrection::print() const
       }
     }
   }
-#endif
 }
+
+GPUhd() void TPCFastSpaceChargeCorrection::getChebyshevPolynoms(double x, int N, double f[])
+{
+  f[0] = 1;
+  f[1] = x;
+  x *= 2;
+  for (int i = 2; i < N; i++) {
+    f[i] = x * f[i - 1] - f[i - 2];
+  }
+}
+
+GPUhd() double TPCFastSpaceChargeCorrection::getChebyshevApproximation(double x, int N, double c[])
+{
+  double y = c[0] + c[1] * x;
+  double f0 = 1;
+  double f1 = x;
+  x *= 2;
+  for (int i = 2; i < N; i++) {
+    double f = x * f1 - f0;
+    y += c[i] * f;
+    f0 = f1;
+    f1 = f;
+  }
+  return y;
+}
+
+GPUh() void TPCFastSpaceChargeCorrection::initInverse()
+{
+  SplineHelper2D<float> helper;
+
+  float tpcR2min = mGeo.getRowInfo(0).x - 1.;
+  tpcR2min = tpcR2min * tpcR2min;
+  float tpcR2max = mGeo.getRowInfo(mGeo.getNumberOfRows() - 1).x;
+  tpcR2max = tpcR2max / cos(2 * M_PI / mGeo.getNumberOfSlicesA() / 2) + 1.;
+  tpcR2max = tpcR2max * tpcR2max;
+
+  for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
+    float vLength = (slice < mGeo.getNumberOfSlicesA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
+    for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
+      int sliceRow = slice * mGeo.getNumberOfRows() + row;
+      SliceRowInfo& info = mSliceRowInfoPtr[sliceRow];
+      float cuMin = 0., cuMax = 0, cvMax = 0.;
+      const SplineType& spline = getSpline(slice, row);
+      helper.setSpline(spline, 4, 4);
+
+      float u0, u1, v0, v1;
+      mGeo.convScaledUVtoUV(slice, row, 0., 0, u0, v0);
+      mGeo.convScaledUVtoUV(slice, row, 1., 1, u1, v1);
+      float x = mGeo.getRowInfo(row).x;
+      float du = (u1 - u0) / (3 * helper.getNumberOfDataPointsU1());
+      float dv = (v1 - v0) / (3 * helper.getNumberOfDataPointsU2());
+
+      const int nChebV = helper.getNumberOfDataPointsU2();
+      std::vector<double> chebPolynomsV(nChebV), chebCoeffV(nChebV);
+      PolynomFit fitter(nChebV);
+
+      struct Entry {
+        double u, v, cu, cv;
+      };
+      std::vector<Entry> dataRowsV[helper.getNumberOfDataPointsU2()];
+
+      for (float u = u0; u < u1; u += du) {
+        fitter.reset();
+        float vMax = 0;
+        for (float v = v0; v < v1; v += dv) {
+          float dx, du, dv;
+          getCorrection(slice, row, u, v, dx, du, dv);
+          float cx = x + dx;
+          float cu = u + du;
+          float cv = v + dv;
+          float r2 = cx * cx + cu * cu;
+          if (cv < 0 || cv > vLength || r2 < tpcR2min || r2 > tpcR2max) {
+            continue;
+          }
+          if (cu < cuMin) {
+            cuMin = cu;
+          }
+          if (cu > cuMax) {
+            cuMax = cu;
+          }
+          if (cv > cvMax) {
+            cvMax = cv;
+          }
+          if (v < vMax) {
+            vMax = v;
+          }
+          getChebyshevPolynoms(cv, nChebV, chebPolynomsV.data());
+          fitter.addMeasurement(chebPolynomsV.data(), (double)v);
+        }
+        int nCoefficients = (fitter.getNmeasurements() >= nChebV) ? nChebV : fitter.getNmeasurements();
+        int err = fitter.fit(chebCoeffV.data(), nCoefficients);
+        assert(err == 0);
+        // TODO: refit with extra measurements close to cv == data points cv
+
+        // fill data for cv data rows
+        double drow = vLength / (helper.getNumberOfDataPointsU2() - 1);
+        for (int i = 0; i < helper.getNumberOfDataPointsU2(); i++) {
+          double cv = i * drow;
+          double v = getChebyshevApproximation(cv, nCoefficients, chebCoeffV.data());
+          float dx, du, dv;
+          getCorrection(slice, row, u, v, dx, du, dv);
+          double cu = u + du;
+          cv = v + dv;
+          Entry e{u, v, cu, cv};
+          dataRowsV[i].push_back(e);
+        }
+      } // u
+
+      info.CorrU0 = cuMin;
+      info.scaleCorrUtoGrid = (spline.getGridU1().getNumberOfKnots() - 1) / (cuMax - cuMin);
+      info.scaleCorrVtoGrid = (spline.getGridU2().getNumberOfKnots() - 1) / vLength;
+
+      float dataPointF[helper.getNumberOfDataPoints()];
+
+      // fit u(cu)
+      const int nChebU = helper.getNumberOfDataPointsU1();
+      std::vector<double> chebPolynomsU(nChebU), chebCoeffU(nChebU), chebCoeffU1(nChebU);
+      fitter.reset(nChebU);
+      PolynomFit fitter1(nChebU);
+      double drow = vLength / (helper.getNumberOfDataPointsU2() - 1);
+      double dcol = (cuMax - cuMin) / (helper.getNumberOfDataPointsU1() - 1);
+      for (int iv = 0; iv < helper.getNumberOfDataPointsU2(); iv++) {
+        fitter.reset();
+        fitter1.reset();
+        for (unsigned int i = 0; i < dataRowsV[iv].size(); i++) {
+          getChebyshevPolynoms(dataRowsV[iv][i].cu, nChebU, chebPolynomsU.data());
+          fitter.addMeasurement(chebPolynomsU.data(), dataRowsV[iv][i].u);
+          fitter1.addMeasurement(chebPolynomsU.data(), dataRowsV[iv][i].v);
+        }
+        int nCoefficients = (fitter.getNmeasurements() >= nChebU) ? nChebU : fitter.getNmeasurements();
+        int err = fitter.fit(chebCoeffU.data(), nCoefficients);
+        err = fitter1.fit(chebCoeffU1.data(), nCoefficients);
+        assert(err == 0);
+        double cv = 0 + iv * drow;
+        // fill data points
+        for (int iu = 0; iu < helper.getNumberOfDataPointsU1(); iu++) {
+          double cu = cuMin + iu * dcol;
+          double u = getChebyshevApproximation(cu, nCoefficients, chebCoeffU.data());
+          double v = getChebyshevApproximation(cu, nCoefficients, chebCoeffU1.data());
+          float dx, du, dv;
+          getCorrection(slice, row, u, v, dx, du, dv);
+          double cx = x + dx;
+          dataPointF[(iv * helper.getNumberOfDataPointsU1() + iu) * 3 + 0] = cx;
+          dataPointF[(iv * helper.getNumberOfDataPointsU1() + iu) * 3 + 1] = u;
+          dataPointF[(iv * helper.getNumberOfDataPointsU1() + iu) * 3 + 2] = v;
+        } // iu
+      }   // iv
+
+      float par[spline.getNumberOfParameters()];
+      helper.approximateFunction(par, dataPointF);
+      float* splineX = getSplineData(slice, row, 1);
+      float* splineUV = getSplineData(slice, row, 2);
+      for (int i = 0; i < spline.getNumberOfParameters() / 3; i++) {
+        splineX[i] = par[3 * i + 0];
+        splineUV[2 * i + 0] = par[3 * i + 1];
+        splineUV[2 * i + 1] = par[3 * i + 2];
+      }
+    } // row
+  }   // slice
+}
+
+#endif // GPUCA_GPUCODE
