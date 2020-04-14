@@ -63,11 +63,14 @@ namespace o2
 namespace tpc
 {
 
-DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> const& inputIds)
+DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> const& tpcsectors)
 {
   auto& processMC = config.processMC;
   auto& caClusterer = config.caClusterer;
   auto& zsDecoder = config.zsDecoder;
+  if (config.outputCAClusters && !config.caClusterer) {
+    throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
+  }
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   using ClusterGroupParser = o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>;
   struct ProcessAttributes {
@@ -84,16 +87,15 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
     std::unique_ptr<o2::gpu::GPUDisplayBackend> displayBackend;
     std::unique_ptr<TPCFastTransform> fastTransform;
     int verbosity = 1;
-    std::vector<int> inputIds;
+    std::vector<int> clusterOutputIds;
     bool readyToQuit = false;
   };
 
-  auto initFunction = [processMC, caClusterer, zsDecoder, inputIds](InitContext& ic) {
+  auto processAttributes = std::make_shared<ProcessAttributes>();
+  auto initFunction = [processAttributes, processMC, caClusterer, zsDecoder](InitContext& ic) {
     auto options = ic.options().get<std::string>("tracker-options");
 
-    auto processAttributes = std::make_shared<ProcessAttributes>();
     {
-      processAttributes->inputIds = inputIds;
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       parser = std::make_unique<ClusterGroupParser>();
@@ -609,6 +611,22 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
         }
       }
 
+      // publish clusters produced by CA clusterer sector-wise if the outputs are configured
+      if (processAttributes->clusterOutputIds.size() > 0 && ptrs.clusters == nullptr) {
+        throw std::logic_error("No cluster index object provided by GPU processor");
+      }
+      for (auto const& sector : processAttributes->clusterOutputIds) {
+        o2::tpc::TPCSectorHeader header{sector};
+        o2::header::DataHeader::SubSpecificationType subspec = sector;
+        header.activeSectors = activeSectors;
+        auto& target = pc.outputs().make<std::vector<char>>({gDataOriginTPC, "CLUSTERNATIVE", subspec, Lifetime::Timeframe, {header}});
+        std::vector<MCLabelContainer> labels;
+        ClusterNativeHelper::copySectorData(*ptrs.clusters, sector, target, labels);
+        if (pc.outputs().isAllowed({gDataOriginTPC, "CLNATIVEMCLBL", subspec})) {
+          pc.outputs().snapshot({gDataOriginTPC, "CLNATIVEMCLBL", subspec, Lifetime::Timeframe, {header}}, labels);
+        }
+      }
+
       validInputs.reset();
       if (processMC) {
         validMcInputs.reset();
@@ -625,7 +643,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
   // changing the binding name of the input in order to identify inputs by unique labels
   // in the processing. Think about how the processing can be made agnostic of input size,
   // e.g. by providing a span of inputs under a certain label
-  auto createInputSpecs = [&inputIds, &config]() {
+  auto createInputSpecs = [&tpcsectors, &config]() {
     Inputs inputs;
     if (config.caClusterer) {
       // We accept digits and MC labels also if we run on ZS Raw data, since they are needed for MC label propagation
@@ -646,12 +664,12 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
       }
     }
 
-    auto tmp = std::move(mergeInputs(inputs, inputIds.size(),
-                                     [inputIds](InputSpec& input, size_t index) {
+    auto tmp = std::move(mergeInputs(inputs, tpcsectors.size(),
+                                     [tpcsectors](InputSpec& input, size_t index) {
                                        // using unique input names for the moment but want to find
                                        // an input-multiplicity-agnostic way of processing
-                                       input.binding += std::to_string(inputIds[index]);
-                                       DataSpecUtils::updateMatchingSubspec(input, inputIds[index]);
+                                       input.binding += std::to_string(tpcsectors[index]);
+                                       DataSpecUtils::updateMatchingSubspec(input, tpcsectors[index]);
                                      }));
     if (config.zsDecoder) {
       // We add this after the mergeInputs, since we need to keep the subspecification
@@ -660,7 +678,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
     return tmp;
   };
 
-  auto createOutputSpecs = [&config]() {
+  auto createOutputSpecs = [&config, &tpcsectors, &processAttributes]() {
     std::vector<OutputSpec> outputSpecs{
       OutputSpec{{"outTracks"}, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe},
       OutputSpec{{"outClusRefs"}, gDataOriginTPC, "CLUSREFS", 0, Lifetime::Timeframe},
@@ -676,6 +694,16 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
     }
     if (config.outputCompClusters) {
       outputSpecs.emplace_back(gDataOriginTPC, "COMPCLUSTERS", 0, Lifetime::Timeframe);
+    }
+    if (config.outputCAClusters) {
+      for (auto const& sector : tpcsectors) {
+        o2::header::DataHeader::SubSpecificationType id = sector;
+        outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVE", id, Lifetime::Timeframe);
+        processAttributes->clusterOutputIds.emplace_back(sector);
+        if (config.processMC) {
+          outputSpecs.emplace_back(OutputSpec{gDataOriginTPC, "CLNATIVEMCLBL", id, Lifetime::Timeframe});
+        }
+      }
     }
     return std::move(outputSpecs);
   };
