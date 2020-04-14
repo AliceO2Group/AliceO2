@@ -58,6 +58,12 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema, b
         default:
           throw std::runtime_error("Unknown variant type");
       }
+    } catch (std::runtime_error& re) {
+      throw re;
+    } catch (std::exception& e) {
+      throw std::invalid_argument(std::string("missing option: ") + key + " (" + e.what() + ")");
+    } catch (...) {
+      throw std::invalid_argument(std::string("missing option: ") + key);
     }
   }
 }
