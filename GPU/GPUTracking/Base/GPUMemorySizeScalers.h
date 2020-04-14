@@ -29,11 +29,11 @@ struct GPUMemorySizeScalers {
 
   // Offset
   static constexpr double offset = 1000.;
+  static constexpr double hitOffset = 20000;
 
   // Scaling Factors
   static constexpr double tpcPeaksPerDigit = 0.2;
   static constexpr double tpcClustersPerPeak = 0.9;
-  static constexpr double tpcClustersNoiseOffset = 20000;
   static constexpr double tpcStartHitsPerHit = 0.08;
   static constexpr double tpcTrackletsPerStartHit = 0.8;
   static constexpr double tpcTrackletHitsPerHit = 5;
@@ -42,11 +42,11 @@ struct GPUMemorySizeScalers {
   static constexpr double tpcTracksPerHit = 0.012;
   static constexpr double tpcTrackHitsPerHit = 0.7;
 
-  double NTPCPeaks(double tpcDigits) { return offset + tpcDigits * tpcPeaksPerDigit * factor + tpcClustersNoiseOffset; }
+  double NTPCPeaks(double tpcDigits) { return hitOffset + tpcDigits * tpcPeaksPerDigit * factor; }
   double NTPCClusters(double tpcDigits) { return tpcClustersPerPeak * NTPCPeaks(tpcDigits) * factor; }
   double NTPCStartHits(double tpcHits) { return offset + tpcHits * tpcStartHitsPerHit * factor; }
   double NTPCTracklets(double tpcHits) { return NTPCStartHits(tpcHits) * tpcTrackletsPerStartHit * factor; }
-  double NTPCTrackletHits(double tpcHits) { return offset + tpcHits * tpcTrackletHitsPerHit * factor; }
+  double NTPCTrackletHits(double tpcHits) { return hitOffset + tpcHits * tpcTrackletHitsPerHit * factor; }
   double NTPCSectorTracks(double tpcHits) { return offset + tpcHits * tpcSectorTracksPerHit * factor; }
   double NTPCSectorTrackHits(double tpcHits) { return offset + tpcHits * tpcSectorTrackHitsPerHit * factor; }
   double NTPCTracks(double tpcHits) { return offset + tpcHits * tpcTracksPerHit * factor; }
