@@ -8,18 +8,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-if(ALIROOT)
-  # FIXME: not tested
-  add_subdirectory(hough)
-endif(ALIROOT)
+o2_add_library(rANS  
+	SOURCES src/SymbolStatistics.cxx)
 
-add_subdirectory(aliceHLTwrapper)
-add_subdirectory(O2MessageMonitor)
-add_subdirectory(DataFlow)
-add_subdirectory(Publishers)
-add_subdirectory(DataCompression)
-add_subdirectory(Mergers)
-add_subdirectory(O2Device)
-add_subdirectory(PCG)
-add_subdirectory(rANS)
-add_subdirectory(Tools)
+o2_add_test(EncodeDecode
+			NAME EncodeDecode
+            SOURCES test/test_ransEncodeDecode.cxx
+            PUBLIC_LINK_LIBRARIES O2::rANS
+            COMPONENT_NAME rANS
+            LABELS utils)
