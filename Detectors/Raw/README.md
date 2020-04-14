@@ -340,3 +340,7 @@ L11  | Spec:0x3211267  FEE:0x3201 CRU:  49 Lnk:  2 EP:0 | SPages:  31 Pages:  76
 Largest super-page: 1047008 B, largest TF: 4070048 B
 Real time 0:00:00, CP time 0.120
 ```
+
+## Miscellaneous macros
+
+*   `rawStat.C`: writes into the tree the size per HBF contained in the raw data provided in the RawFileReader config file. No check for synchronization between different links is done.
