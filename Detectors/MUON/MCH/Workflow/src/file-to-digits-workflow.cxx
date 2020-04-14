@@ -245,6 +245,7 @@ class FileReaderTask
         LOG(INFO) << "end of file reached";
       }
       free(buf);
+      pc.services().get<ControlService>().endOfStream();
       return; // probably reached eof
     }
 
