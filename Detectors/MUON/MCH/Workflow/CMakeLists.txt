@@ -52,11 +52,3 @@ o2_add_executable(
         SOURCES src/PreClusterSinkSpec.cxx src/preclusters-sink-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
-
-#o2_add_executable(preclusterizer-workflow
-#                  COMPONENT_NAME mch
-#                  SOURCES src/PreClusterizerWorkflow.cxx
-#                          src/DigitSamplerSpec.cxx
-#                          src/PreClusterFinderSpec.cxx
-#                          src/PreClusterSinkSpec.cxx
-#                  PUBLIC_LINK_LIBRARIES O2::MCHPreClustering)
