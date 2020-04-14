@@ -42,8 +42,8 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
 
 o2_add_executable(
-        digits-reader-run2-workflow
-        SOURCES src/DigitSamplerSpec.cxx src/digits-reader-run2-workflow.cxx
+        digits-reader-workflow
+        SOURCES src/DigitSamplerSpec.cxx src/digits-reader-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
 

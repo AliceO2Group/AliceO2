@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file digits-reader-run2-workflow.cxx
-/// \brief Implementation of a DPL device to read digits from special binary files generated from Run2 data.
+/// \file digits-reader-workflow.cxx
+/// \brief Implementation of a DPL device to read digits from a binary file
 ///
 /// \author Philippe Pillot, Subatech
 /// \author Andrea Ferrero, CEA
