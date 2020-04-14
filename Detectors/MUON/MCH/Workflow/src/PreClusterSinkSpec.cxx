@@ -104,7 +104,6 @@ class PreClusterSinkTask
       mOutputFile.write(reinterpret_cast<const char*>(digits.data()), digits.size_bytes());
     }
 
-    bool mPrint = false;
     if (mOutputTxtFile.is_open()) {
       mOutputTxtFile << preClusters.size() << " preclusters:" << endl;
       for (const auto& precluster : preClusters) {
