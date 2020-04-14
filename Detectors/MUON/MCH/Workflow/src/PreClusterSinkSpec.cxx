@@ -150,9 +150,9 @@ class PreClusterSinkTask
     }
   }
 
-  std::ofstream mOutputFile{};    ///< output file
-  bool mText = false;             ///< output preclusters in text format
-  bool mUseRun2DigitUID = false;  ///< true if Digit.mPadID = digit UID in run2 format
+  std::ofstream mOutputFile{};   ///< output file
+  bool mText = false;            ///< output preclusters in text format
+  bool mUseRun2DigitUID = false; ///< true if Digit.mPadID = digit UID in run2 format
 };
 
 //_________________________________________________________________________________________________

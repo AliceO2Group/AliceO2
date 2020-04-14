@@ -57,17 +57,19 @@ using namespace o2::mch::mapping;
 using RDHv4 = o2::header::RAWDataHeaderV4;
 
 std::array<int, 64> refManu2ds_st345 = {
-    63, 62, 61, 60, 59, 57, 56, 53, 51, 50, 47, 45, 44, 41, 38, 35,
-    36, 33, 34, 37, 32, 39, 40, 42, 43, 46, 48, 49, 52, 54, 55, 58,
-    7, 8, 5, 2, 6, 1, 3, 0, 4, 9, 10, 15, 17, 18, 22, 25,
-    31, 30, 29, 28, 27, 26, 24, 23, 20, 21, 16, 19, 12, 14, 11, 13};
+  63, 62, 61, 60, 59, 57, 56, 53, 51, 50, 47, 45, 44, 41, 38, 35,
+  36, 33, 34, 37, 32, 39, 40, 42, 43, 46, 48, 49, 52, 54, 55, 58,
+  7, 8, 5, 2, 6, 1, 3, 0, 4, 9, 10, 15, 17, 18, 22, 25,
+  31, 30, 29, 28, 27, 26, 24, 23, 20, 21, 16, 19, 12, 14, 11, 13};
 std::array<int, 64> refDs2manu_st345;
 
-int manu2ds(int i){
+int manu2ds(int i)
+{
   return refManu2ds_st345[i];
 }
 
-int ds2manu(int i){
+int ds2manu(int i)
+{
   return refDs2manu_st345[i];
 }
 
@@ -78,7 +80,8 @@ class DataDecoderTask
     size_t ndigits{0};
 
     auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
-      if(mDs2manu) channel = ds2manu(int(channel));
+      if (mDs2manu)
+        channel = ds2manu(int(channel));
       if (mPrint) {
         auto s = asString(dsElecId);
         auto ch = fmt::format("{}-CH{}", s, channel);
@@ -212,8 +215,7 @@ o2::framework::DataProcessorSpec getDecodingSpec()
     o2::framework::select("TF:MCH/RAWDATA"),
     Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<DataDecoderTask>()},
-    Options{{"print", VariantType::Bool, false, {"print digits"}}, {"ds2manu", VariantType::Bool, false, {"convert channel numbering from Run3 to Run1-2 order"}}}
-  };
+    Options{{"print", VariantType::Bool, false, {"print digits"}}, {"ds2manu", VariantType::Bool, false, {"convert channel numbering from Run3 to Run1-2 order"}}}};
 }
 
 } // end namespace raw
