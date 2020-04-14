@@ -36,19 +36,25 @@ struct PreClusterFinder::DetectionElement {
 
 using namespace std;
 
+//_________________________________________________________________________________________________
 PreClusterFinder::PreClusterFinder() : mDEs{}
 {
+  /// default constructor: prepare the internal mapping structures
   for (auto i = 0; i < SNDEs; i++) {
     mDEs.emplace_back(new DetectionElement);
   }
 }
 
-PreClusterFinder::~PreClusterFinder() {}
+//_________________________________________________________________________________________________
+PreClusterFinder::~PreClusterFinder()
+{
+   /// default destructor
+}
 
 //_________________________________________________________________________________________________
 void PreClusterFinder::init()
 {
-  /// Load the mapping and prepare the internal structure
+  /// load the mapping and fill the internal structures
 
   createMapping();
 
