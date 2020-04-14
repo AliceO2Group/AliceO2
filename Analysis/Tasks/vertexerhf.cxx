@@ -44,11 +44,32 @@ struct DecayVertexBuilder2Prong {
 
   Produces<aod::SecVtx2Prong> secvtx2prong;
   //Configurable<std::string> triggersel{"triggersel", "test", "A string configurable"};
+  Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks,
-                                                          aod::TracksCov, aod::TracksExtra> const& tracks)
+  aod::Trigger getTrigger(aod::Collision const& collision, aod::Triggers const& triggers)
+  {
+    for (auto trigger : triggers)
+      if (trigger.globalBC() == collision.globalBC())
+        return trigger;
+    aod::Trigger dummy;
+    return dummy;
+  }
+
+  void process(aod::Collision const& collision,
+               aod::Triggers const& triggers,
+               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
     //LOGP(error, "Trigger selection {}", std::string{triggersel});
+    int trigindex = int{triggerindex};
+    if (trigindex != -1) {
+      LOGF(info, "Selecting on trigger bit %d", trigindex);
+      auto trigger = getTrigger(collision, triggers);
+      uint64_t triggerMask = trigger.triggerMask();
+      bool isTriggerClassFired = triggerMask & 1ul << (trigindex - 1);
+      if (!isTriggerClassFired)
+        return;
+    }
+
     LOGF(info, "N. of Tracks for collision: %d", tracks.size());
     o2::vertexing::DCAFitterN<2> df;
     df.setBz(5.0);
