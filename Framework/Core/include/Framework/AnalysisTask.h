@@ -427,14 +427,19 @@ struct AnalysisDataProcessorBuilder {
         /// to grouping table
         ///
         auto splitter = [&](auto&& x) {
-          if (hasIndexTo<std::decay_t<G>>(typename std::decay_t<decltype(x)>::persistent_columns_t{})) {
+          using xt = std::decay_t<decltype(x)>;
+          constexpr auto index = framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{});
+          if (hasIndexTo<std::decay_t<G>>(typename xt::persistent_columns_t{})) {
             auto result = o2::framework::sliceByColumn(&ctx, indexColumnName,
                                                        x.asArrowTable(),
-                                                       &groups[framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{})],
-                                                       &offsets[framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{})]);
+                                                       &groups[index],
+                                                       &offsets[index]);
             if (result.ok() == false) {
               throw std::runtime_error("Cannot split collection");
             }
+            if (groups[index].size() != gt.size()) {
+              throw std::runtime_error("Splitting collection resulted in different group number than there is rows in the grouping table.");
+            };
           }
         };
 
