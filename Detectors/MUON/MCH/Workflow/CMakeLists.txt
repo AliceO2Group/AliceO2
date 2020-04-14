@@ -13,7 +13,7 @@ o2_add_library(MCHWorkflow
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::MCHRawDecoder Boost::program_options
                                      O2::MCHRawImplHelpers RapidJSON::RapidJSON O2::MCHMappingInterface O2::MCHPreClustering
-                                     O2::MCHMappingFactory O2::MCHMappingImpl3 O2::MCHRawElecMap O2::MCHBase)
+                                     O2::MCHMappingFactory O2::MCHMappingImpl3 O2::MCHRawElecMap O2::MCHBase O2::MCHPreClustering)
 
 o2_add_executable(
         file-to-digits-workflow
@@ -42,16 +42,10 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
 
 o2_add_executable(
-        digits-reader-run2-workflow
-        SOURCES src/DigitSamplerSpec.cxx src/digits-reader-run2-workflow.cxx
+        digits-reader-workflow
+        SOURCES src/DigitSamplerSpec.cxx src/digits-reader-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
-
-o2_add_executable(
-        digits-reader-tb-workflow
-        SOURCES src/TBDigitsFileReader.cxx src/TBDigitsFileReaderSpec.cxx src/digits-reader-tb-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils Boost::program_options O2::MCHBase O2::MCHMappingInterface O2::MCHMappingFactory O2::MCHMappingImpl3)
 
 o2_add_executable(
         preclusters-sink-workflow

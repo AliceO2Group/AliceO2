@@ -61,14 +61,12 @@ class DigitsSinkTask
     /// Get the input file and other options from the context
     LOG(INFO) << "initializing digits sink";
 
-    mPrint = ic.options().get<bool>("print");
+    mText = ic.options().get<bool>("txt");
 
     auto outputFileName = ic.options().get<std::string>("outfile");
-    if (!outputFileName.empty()) {
-      mOutputFile.open(outputFileName, std::ios::out);
-      if (!mOutputFile.is_open()) {
-        throw std::invalid_argument("Cannot open output file" + outputFileName);
-      }
+    mOutputFile.open(outputFileName, (mText ? std::ios::out : (std::ios::out | std::ios::binary)));
+    if (!mOutputFile.is_open()) {
+      throw std::invalid_argument("Cannot open output file" + outputFileName);
     }
 
     auto stop = [this]() {
@@ -85,21 +83,20 @@ class DigitsSinkTask
     // get the input digits
     auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
 
-    if (mPrint) {
-      for (auto d : digits) {
-        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTimeStamp() << std::endl;
-      }
-    }
-    if (mOutputFile.is_open()) {
+    if (mText) {
       for (auto d : digits) {
         mOutputFile << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTimeStamp() << std::endl;
       }
+    } else {
+      int nDigits = digits.length();
+      mOutputFile.write(reinterpret_cast<char*>(&nDigits), sizeof(int));
+      mOutputFile.write(reinterpret_cast<const char*>(digits.data()), digits.size_bytes());
     }
   }
 
  private:
   std::ofstream mOutputFile{}; ///< output file
-  bool mPrint = false;         ///< print digits
+  bool mText = false;          ///< output digits in text format
 };
 
 } // end namespace raw
@@ -117,8 +114,8 @@ WorkflowSpec defineDataProcessing(const ConfigContext&)
     Inputs{InputSpec{"digits", "MCH", "DIGITS", 0, Lifetime::Timeframe}},
     Outputs{},
     AlgorithmSpec{adaptFromTask<o2::mch::raw::DigitsSinkTask>()},
-    Options{ { "outfile", VariantType::String, "", { "output file name" } },
-      {"print", VariantType::Bool, false, {"print digits"}}}
+    Options{ { "outfile", VariantType::String, "digits.out", { "output file name" } },
+      {"txt", VariantType::Bool, false, {"output digits in text format"}}}
   };
   specs.push_back(producer);
 

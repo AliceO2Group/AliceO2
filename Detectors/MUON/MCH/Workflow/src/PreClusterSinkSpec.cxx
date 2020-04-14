@@ -51,18 +51,12 @@ class PreClusterSinkTask
     /// Get the output file from the context
     LOG(INFO) << "initializing precluster sink";
 
+    mText = ic.options().get<bool>("txt");
+
     auto outputFileName = ic.options().get<std::string>("outfile");
-    mOutputFile.open(outputFileName, ios::out | ios::binary);
+    mOutputFile.open(outputFileName, (mText ? ios::out : (ios::out | ios::binary)));
     if (!mOutputFile.is_open()) {
       throw invalid_argument("Cannot open output file" + outputFileName);
-    }
-
-    auto outputTxtFileName = ic.options().get<std::string>("outfile-txt");
-    if (!outputTxtFileName.empty()) {
-      mOutputTxtFile.open(outputTxtFileName, ios::out);
-      if (!mOutputTxtFile.is_open()) {
-        throw invalid_argument("Cannot open output text file" + outputTxtFileName);
-      }
     }
 
     mUseRun2DigitUID = ic.options().get<bool>("useRun2DigitUID");
@@ -84,30 +78,38 @@ class PreClusterSinkTask
     auto preClusters = pc.inputs().get<gsl::span<PreCluster>>("preclusters");
     auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
 
-    // write the number of preclusters
-    int nPreClusters = preClusters.size();
-    mOutputFile.write(reinterpret_cast<char*>(&nPreClusters), sizeof(int));
-
-    // write the total number of digits in these preclusters
-    int nDigits = digits.size();
-    mOutputFile.write(reinterpret_cast<char*>(&nDigits), sizeof(int));
-
-    // write the preclusters
-    mOutputFile.write(reinterpret_cast<const char*>(preClusters.data()), preClusters.size_bytes());
-
-    // write the digits (after converting the pad ID into a digit UID if requested)
-    if (mUseRun2DigitUID) {
-      std::vector<Digit> digitsCopy(digits.begin(), digits.end());
-      convertPadID2DigitUID(digitsCopy);
-      mOutputFile.write(reinterpret_cast<char*>(digitsCopy.data()), digitsCopy.size() * sizeof(Digit));
+    if (mText) {
+      mOutputFile << preClusters.size() << " preclusters:" << endl;
+      if (mUseRun2DigitUID) {
+        std::vector<Digit> digitsCopy(digits.begin(), digits.end());
+        convertPadID2DigitUID(digitsCopy);
+        for (const auto& precluster : preClusters) {
+          precluster.print(mOutputFile, digitsCopy);
+        }
+      } else {
+        for (const auto& precluster : preClusters) {
+          precluster.print(mOutputFile, digits);
+        }
+      }
     } else {
-      mOutputFile.write(reinterpret_cast<const char*>(digits.data()), digits.size_bytes());
-    }
+      // write the number of preclusters
+      int nPreClusters = preClusters.size();
+      mOutputFile.write(reinterpret_cast<char*>(&nPreClusters), sizeof(int));
 
-    if (mOutputTxtFile.is_open()) {
-      mOutputTxtFile << preClusters.size() << " preclusters:" << endl;
-      for (const auto& precluster : preClusters) {
-        precluster.print(mOutputTxtFile, digits);
+      // write the total number of digits in these preclusters
+      int nDigits = digits.size();
+      mOutputFile.write(reinterpret_cast<char*>(&nDigits), sizeof(int));
+
+      // write the preclusters
+      mOutputFile.write(reinterpret_cast<const char*>(preClusters.data()), preClusters.size_bytes());
+
+      // write the digits (after converting the pad ID into a digit UID if requested)
+      if (mUseRun2DigitUID) {
+        std::vector<Digit> digitsCopy(digits.begin(), digits.end());
+        convertPadID2DigitUID(digitsCopy);
+        mOutputFile.write(reinterpret_cast<char*>(digitsCopy.data()), digitsCopy.size() * sizeof(Digit));
+      } else {
+        mOutputFile.write(reinterpret_cast<const char*>(digits.data()), digits.size_bytes());
       }
     }
   }
@@ -148,9 +150,9 @@ class PreClusterSinkTask
     }
   }
 
-  std::ofstream mOutputFile{};    ///< output file
-  std::ofstream mOutputTxtFile{}; ///< output text file
-  bool mUseRun2DigitUID = false;  ///< true if Digit.mPadID = digit UID in run2 format
+  std::ofstream mOutputFile{};   ///< output file
+  bool mText = false;            ///< output preclusters in text format
+  bool mUseRun2DigitUID = false; ///< true if Digit.mPadID = digit UID in run2 format
 };
 
 //_________________________________________________________________________________________________
@@ -163,7 +165,7 @@ o2::framework::DataProcessorSpec getPreClusterSinkSpec()
     Outputs{},
     AlgorithmSpec{adaptFromTask<PreClusterSinkTask>()},
     Options{{"outfile", VariantType::String, "preclusters.out", {"output filename"}},
-            {"outfile-txt", VariantType::String, "", {"text output filename (optional)"}},
+            {"txt", VariantType::Bool, false, {"output preclusters in text format"}},
             {"useRun2DigitUID", VariantType::Bool, false, {"mPadID = digit UID in run2 format"}}}};
 }
 
