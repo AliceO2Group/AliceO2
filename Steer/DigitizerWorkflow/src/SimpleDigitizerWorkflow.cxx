@@ -425,7 +425,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   };
 
   std::vector<o2::detectors::DetID> detList; // list of participating detectors
-  int fanoutsize = 0;
 
   // the TPC part
   // we need to init this anyway since TPC is treated a bit special (for the moment)
@@ -433,8 +432,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     initTPC();
   }
 
-  // keeps track of which subchannels correspond to tpc channels
-  auto tpclanes = std::make_shared<std::vector<int>>();
   // keeps track of which tpc sectors to process
   std::vector<int> tpcsectors;
 
@@ -443,23 +440,23 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto lanes = getNumTPCLanes(tpcsectors, configcontext);
     detList.emplace_back(o2::detectors::DetID::TPC);
 
-    for (auto const& sector : tpcsectors) {
-      tpclanes->emplace_back(sector); // this records that TPC is "listening under this subchannel"
-    }
-    WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, *tpclanes);
+    WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, tpcsectors);
     specs.insert(specs.end(), tpcPipelines.begin(), tpcPipelines.end());
-    fanoutsize += 36;
 
     auto tpcRecoOutputType = configcontext.options().get<std::string>("tpc-reco-type");
     if (tpcRecoOutputType.empty()) {
       // for writing digits to disc
-      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(*tpclanes));
+      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(tpcsectors));
     } else {
       // attach the TPC reco workflow
       auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(tpcsectors, tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
       specs.insert(specs.end(), tpcRecoWorkflow.begin(), tpcRecoWorkflow.end());
     }
   }
+
+  // first 36 channels are reserved for the TPC
+  const int firstOtherChannel = 36;
+  int fanoutsize = firstOtherChannel;
 
   // the ITS part
   if (isEnabled(o2::detectors::DetID::ITS)) {
@@ -598,7 +595,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));
 
   // The SIM Reader. NEEDS TO BE LAST
-  specs[0] = o2::steer::getSimReaderSpec(fanoutsize, simPrefixes, tpcsectors, tpclanes);
+  specs[0] = o2::steer::getSimReaderSpec({firstOtherChannel, fanoutsize}, simPrefixes, tpcsectors);
 
   return specs;
 }
