@@ -29,11 +29,15 @@ enum struct Operation {
   CAClusterer,        // run the CA clusterer
   ZSDecoder,          // run the ZS raw data decoder
   OutputTracks,       // publish tracks
+  OutputCAClusters,   // publish the clusters produced by CA clusterer
   OutputCompClusters, // publish CompClusters container
   ProcessMC,          // process MC labels
   Noop,               // skip argument on the constructor
 };
 
+/// Helper struct to pass the individual ca::Operation flags to
+/// the processor spec. The struct is initialized by a variable list of
+/// constructor arguments.
 struct Config {
   template <typename... Args>
   Config(Args&&... args)
@@ -57,6 +61,9 @@ struct Config {
       case Operation::OutputCompClusters:
         outputCompClusters = true;
         break;
+      case Operation::OutputCAClusters:
+        outputCAClusters = true;
+        break;
       case Operation::ProcessMC:
         processMC = true;
         break;
@@ -74,14 +81,29 @@ struct Config {
   bool zsDecoder = false;
   bool outputTracks = false;
   bool outputCompClusters = false;
+  bool outputCAClusters = false;
   bool processMC = false;
 };
 
 } // namespace ca
 
-/// create a processor spec
-/// read simulated TPC clusters from file and publish
-framework::DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> const& inputIds);
+/// create a processor spec for the CATracker
+/// The CA tracker is actually much more than the tracker it has evolved to a
+/// general interface processor for TPC GPU algorithms. This includes currently
+/// decoding of zero-suppressed raw data, ca clusterer and ca tracking. The input
+/// is chosen depending on the mode.
+///
+/// The input specs are created depending on the list of tpc sectors, with separate
+/// routes per sector. If the processor is also runnig the clusterer and cluster
+/// output is enabled, the outputs are created based on the list of TPC sectors.
+///
+/// The individual operations of the CA processor can be switched using enum
+/// @ca::Operations, a configuration object @a ca::Config is used to pass the
+/// configuration to the processor spec.
+///
+/// @param config     configuration option for the processor spec
+/// @param tpcsectors list of sector numbers
+framework::DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> const& tpcsectors);
 
 } // end namespace tpc
 } // end namespace o2
