@@ -153,7 +153,8 @@ void GPUTPCTracker::SetMaxData(const GPUTrackingInOutPointers& io)
 void GPUTPCTracker::UpdateMaxData()
 {
   mNMaxTracklets = mCommonMem->nStartHits;
-  mNMaxTracks = mCommonMem->nStartHits * 2 + 50;
+  mNMaxTracks = mNMaxTracklets * 2 + 50;
+  mNMaxRowHits = mNMaxTracklets * GPUCA_ROW_COUNT;
 }
 
 void GPUTPCTracker::SetupCommonMemory() { new (mCommonMem) commonMemoryStruct; }
