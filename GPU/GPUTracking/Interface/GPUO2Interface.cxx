@@ -14,6 +14,7 @@
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
+#include "GPUMemorySizeScalers.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUParam.inc"
 #include <iostream>
@@ -55,6 +56,9 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   mChain->SetTRDGeometry(mConfig->configCalib.trdGeometry);
   if (mRec->Init()) {
     return (1);
+  }
+  if (!mRec->IsGPU() && mConfig->configDeviceProcessing.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+    mRec->MemoryScalers()->factor *= 2;
   }
   mInitialized = true;
   return (0);
