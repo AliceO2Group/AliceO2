@@ -77,9 +77,9 @@ class PreClusterFinder
 
   static constexpr int SNDEs = 156; ///< number of DEs
 
-  std::unordered_map<int, int> mDEIndices{}; ///< maps DE indices from DE IDs
+  std::vector<std::unique_ptr<DetectionElement>> mDEs; ///< internal mapping
+  std::unordered_map<int, int> mDEIndices{};           ///< maps DE indices from DE IDs
 
-  std::vector<std::unique_ptr<DetectionElement>> mDEs;
   int mNPreClusters[SNDEs][2]{};                                     ///< number of preclusters in each cathods of each DE
   std::vector<std::unique_ptr<PreCluster>> mPreClusters[SNDEs][2]{}; ///< preclusters in each cathods of each DE
 };
