@@ -55,3 +55,8 @@ o2_add_test(RawReaderWriter
             SOURCES test/testRawReaderWriter.cxx
             COMPONENT_NAME raw
             LABELS raw)
+
+o2_add_test_root_macro(macro/rawStat.C
+                       PUBLIC_LINK_LIBRARIES O2::DetectorsRaw
+                                             O2::CommonUtils
+                       LABELS raw)
