@@ -580,7 +580,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
       int retVal = tracker->runTracking(&ptrs);
       if (retVal != 0) {
         // FIXME: error policy
-        LOG(ERROR) << "tracker returned error code " << retVal;
+        LOG(FATAL) << "tracker returned error code " << retVal;
       }
       LOG(INFO) << "found " << tracks.size() << " track(s)";
       // tracks are published if the output channel is configured
