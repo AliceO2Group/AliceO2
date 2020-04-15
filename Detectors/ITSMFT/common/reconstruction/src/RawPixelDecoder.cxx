@@ -117,7 +117,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger(int iru)
         ndec++;
         if (mInteractionRecord > link->ir) { // update interaction record RSTOD: do we need to set it for every chip?
           mInteractionRecord = link->ir;
-          mInteractionRecordHB = o2::raw::RDHUtils::getHBIR(*link->lastRDH);
+          mInteractionRecordHB = o2::raw::RDHUtils::getHeartBeatIR(*link->lastRDH);
           mTrigger = link->trigger;
         }
       }

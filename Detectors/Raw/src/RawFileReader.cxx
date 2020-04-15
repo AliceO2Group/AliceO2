@@ -271,12 +271,12 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
       }
       if ((reader->mCheckErrors & (0x1 << ErrHBFJump)) &&
           (nCRUPages && // skip this check for the very 1st RDH
-           !(RDHUtils::getHBBC(rdh) == RDHUtils::getHBBC(rdhl) &&
-             RDHUtils::getHBOrbit(rdh) == RDHUtils::getHBOrbit(rdhl) + 1))) {
+           !(RDHUtils::getHeartBeatBC(rdh) == RDHUtils::getHeartBeatBC(rdhl) &&
+             RDHUtils::getHeartBeatOrbit(rdh) == RDHUtils::getHeartBeatOrbit(rdhl) + 1))) {
         LOG(ERROR) << ErrNames[ErrHBFJump] << " @ HBF#" << nHBFrames << " New HB orbit/bc="
-                   << RDHUtils::getHBOrbit(rdh) << '/' << int(RDHUtils::getHBBC(rdh))
+                   << RDHUtils::getHeartBeatOrbit(rdh) << '/' << int(RDHUtils::getHeartBeatBC(rdh))
                    << " is not incremented by 1 orbit wrt Old HB orbit/bc="
-                   << RDHUtils::getHBOrbit(rdhl) << '/' << int(RDHUtils::getHBBC(rdhl));
+                   << RDHUtils::getHeartBeatOrbit(rdhl) << '/' << int(RDHUtils::getHeartBeatBC(rdhl));
         ok = false;
         nErrors++;
       }
@@ -301,7 +301,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
         }
       } // end of check errors
     }
-    bl.orbit = RDHUtils::getHBOrbit(rdh);
+    bl.orbit = RDHUtils::getHeartBeatOrbit(rdh);
     bl.tfID = nTimeFrames - 1;
 
     if (newSPage) {

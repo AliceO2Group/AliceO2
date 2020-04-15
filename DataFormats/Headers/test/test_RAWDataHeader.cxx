@@ -17,7 +17,7 @@
 
 BOOST_AUTO_TEST_CASE(test_rdh_v4)
 {
-  using RDH = o2::header::RAWDataHeader;
+  using RDH = o2::header::RAWDataHeaderV4;
   static_assert(sizeof(RDH) == 64, "RAWDataHeader v5 is supposed to be 512 bit");
 
   // check the defaults
@@ -105,4 +105,19 @@ BOOST_AUTO_TEST_CASE(test_rdh_v5)
   BOOST_CHECK(defaultRDH.version == 5);
   BOOST_CHECK(defaultRDH.feeId == 0xffff);
   BOOST_CHECK(defaultRDH.headerSize == 64); // header size in 64 bytes = 8*64 bit words
+}
+
+BOOST_AUTO_TEST_CASE(test_rdh_v6)
+{
+  using RDH = o2::header::RAWDataHeaderV6;
+  static_assert(sizeof(RDH) == 64, "RAWDataHeader v6 is supposed to be 512 bit");
+
+  // check the defaults
+  RDH defaultRDH;
+  uint64_t dummySrc = 0xcd;
+  defaultRDH.sourceID = dummySrc; // only lowes byte should be assigned
+  BOOST_CHECK(defaultRDH.version == 6);
+  BOOST_CHECK(defaultRDH.feeId == 0xffff);
+  BOOST_CHECK(defaultRDH.headerSize == 64); // header size in 64 bytes = 8*64 bit words
+  BOOST_CHECK(defaultRDH.sourceID == dummySrc);
 }
