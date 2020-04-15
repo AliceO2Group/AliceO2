@@ -126,7 +126,7 @@ class GPUTPCTrackerComponent : public AliHLTProcessor
   int ReadConfigurationString(const char* arguments);
   int ReadCDBEntry(const char* cdbEntry, const char* chainId);
   int Configure(const char* cdbEntry, const char* chainId, const char* commandLine);
-  void ConfigureSlices();
+  int ConfigureSlices();
 
   AliHLTAsyncMemberProcessor<GPUTPCTrackerComponent> fAsyncProcessor;
   void* TrackerInit(void*);

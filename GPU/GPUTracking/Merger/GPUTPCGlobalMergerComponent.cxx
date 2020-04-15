@@ -302,6 +302,7 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
   }
   rec.NWays = fNWays;
   rec.NWaysOuter = fNWaysOuter;
+  rec.mergerInterpolateErrors = false;
   rec.NonConsecutiveIDs = true;
 
   GPURecoStepConfiguration steps;
@@ -311,7 +312,9 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
 
   fRec->SetSettings(&ev, &rec, &devProc, &steps);
   fChain->LoadClusterErrors();
-  fRec->Init();
+  if (fRec->Init()) {
+    return -EINVAL;
+  }
   fChain->GetTPCMerger().OverrideSliceTracker(nullptr);
 
   return 0;
