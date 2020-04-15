@@ -1257,6 +1257,17 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
   }
 }
 
+/// Helper to to detect conflicting options
+void conflicting_options(const boost::program_options::variables_map& vm,
+                         const std::string& opt1, const std::string& opt2)
+{
+  if (vm.count(opt1) && !vm[opt1].defaulted() &&
+      vm.count(opt2) && !vm[opt2].defaulted()) {
+    throw std::logic_error(std::string("Conflicting options '") +
+                           opt1 + "' and '" + opt2 + "'.");
+  }
+}
+
 // This is a toy executor for the workflow spec
 // What it needs to do is:
 //
@@ -1415,6 +1426,16 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     std::cerr << "Error: " << e.what() << std::endl;
     exit(1);
   }
+  conflicting_options(varmap, "dds", "o2-control");
+  conflicting_options(varmap, "dds", "dump-workflow");
+  conflicting_options(varmap, "dds", "run");
+  conflicting_options(varmap, "dds", "graphviz");
+  conflicting_options(varmap, "o2-control", "dump-workflow");
+  conflicting_options(varmap, "o2-control", "run");
+  conflicting_options(varmap, "o2-control", "graphviz");
+  conflicting_options(varmap, "run", "dump-workflow");
+  conflicting_options(varmap, "run", "graphviz");
+  conflicting_options(varmap, "dump-workflow", "graphviz");
 
   if (varmap.count("help")) {
     printHelp(varmap, executorOptions, physicalWorkflow, currentWorkflowOptions);
