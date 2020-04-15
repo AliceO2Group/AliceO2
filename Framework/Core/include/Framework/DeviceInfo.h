@@ -30,6 +30,11 @@ namespace framework
 struct DeviceInfo {
   /// The pid of the device associated to this device
   pid_t pid;
+  /// The exit status of the device, if not running.
+  /// Notice that -1 means that no exit status was set,
+  /// since the actual values which will be seen by the parent
+  /// are guaranteed to be between 0 and 255.
+  int exitStatus = -1;
   /// The position inside the history circular buffer of this device
   size_t historyPos;
   /// The size of the history circular buffer

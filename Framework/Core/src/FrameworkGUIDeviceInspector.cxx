@@ -118,7 +118,11 @@ void displayDeviceInspector(DeviceSpec const& spec,
 {
   ImGui::Text("Name: %s", spec.name.c_str());
   ImGui::Text("Executable: %s", metadata.executable.c_str());
-  ImGui::Text("Pid: %d", info.pid);
+  if (info.active) {
+    ImGui::Text("Pid: %d", info.pid);
+  } else {
+    ImGui::Text("Pid: %d (exit status: %d)", info.pid, info.exitStatus);
+  }
   ImGui::Text("Rank: %zu/%zu%%%zu/%zu", spec.rank, spec.nSlots, spec.inputTimesliceId, spec.maxInputTimeslices);
 
   if (ImGui::Button("Attach debugger")) {
