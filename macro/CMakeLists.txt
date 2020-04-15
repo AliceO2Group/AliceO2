@@ -107,12 +107,10 @@ o2_add_test_root_macro(duplicateHits.C
 		O2::MCHSimulation
 		O2::MIDSimulation
 		O2::ZDCSimulation
-		O2::CPVBase LOAD_ONLY)
+		O2::CPVBase)
 
 o2_add_test_root_macro(migrateSimFiles.C
-		PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats
- LOAD_ONLY
-)
+		PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats)
 
 o2_add_test_root_macro(analyzeOriginHits.C
                        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
@@ -197,7 +195,7 @@ o2_add_test_root_macro(o2sim.C
                                              O2::ZDCSimulation
                                              O2::CommonTypes
                                              O2::SimSetup
-                                             O2::Steer LOAD_ONLY)
+                                             O2::Steer)
 endif()
 
 # FIXME: move to subsystem dir + add includes if one wants to compile it...

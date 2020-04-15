@@ -1,22 +1,33 @@
-// Macro to check functioning of stack
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+// Executable to check functioning of stack
 // Analyses kinematics and track references of a kinematics file
 
-#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "TFile.h"
 #include "TTree.h"
-#endif
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
 #include <cassert>
 #include "FairLogger.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
-void checkStack(const char* nameprefix = "o2sim")
+int main(int argc, char** argv)
 {
+  const char* nameprefix = argv[1];
+
   FairLogger::GetLogger()->SetLogScreenLevel("DEBUG");
   TFile f(o2::base::NameConf::getMCKinematicsFileName(nameprefix).c_str());
 
@@ -80,4 +91,5 @@ void checkStack(const char* nameprefix = "o2sim")
     }
   }
   LOG(INFO) << "STACK TEST SUCCESSFULL\n";
+  return 0;
 }

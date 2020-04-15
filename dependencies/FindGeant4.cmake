@@ -39,8 +39,20 @@ set_target_properties(geant4
                       PROPERTIES INTERFACE_LINK_DIRECTORIES
                       "${Geant4_LIBRARY_DIRS}")
 
+# FIXME: this should be properly done by Geant4 itself instead 
+find_package(VGM)
+set_property(TARGET geant4 APPEND PROPERTY INTERFACE_LINK_DIRECTORIES $<TARGET_FILE_DIR:XmlVGM>)
+
 # Promote the imported target to global visibility
 # (so we can alias it)
 set_target_properties(geant4 PROPERTIES IMPORTED_GLOBAL TRUE)
+
+# define a list containing all the variables needed by the physics datasets
+# used by Geant4.
+# The G4ENV list can then be used to e.g. define the ENVIRONMENT property
+# of tests that use Geant4
+foreach(ds IN LISTS Geant4_DATASETS)
+  list(APPEND G4ENV "${Geant4_DATASET_${ds}_ENVVAR}=${Geant4_DATASET_${ds}_PATH}")
+endforeach()
 
 add_library(MC::Geant4 ALIAS geant4)
