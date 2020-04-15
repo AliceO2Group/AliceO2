@@ -152,7 +152,7 @@ GBTLink::ErrorType GBTLink::checkErrorsRDH(const RDH* rdh)
 /// Check RDH Stop correctness
 GBTLink::ErrorType GBTLink::checkErrorsRDHStop(const RDH* rdh)
 {
-  if (lastRDH && RDHUtils::getHBOrbit(*lastRDH) != RDHUtils::getHBOrbit(*rdh) // new HB starts
+  if (lastRDH && RDHUtils::getHeartBeatOrbit(*lastRDH) != RDHUtils::getHeartBeatOrbit(*rdh) // new HB starts
       && !lastRDH->stop) {
     statistics.errorCounts[GBTS::ErrPageNotStopped]++;
     LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTS::ErrPageNotStopped];
