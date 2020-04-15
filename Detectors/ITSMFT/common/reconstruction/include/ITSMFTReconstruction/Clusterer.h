@@ -109,7 +109,7 @@ class Clusterer
     mPattIdConverter.loadDictionary(fileName);
   }
 
-  const TStopwatch& getTimer() const { return mTimer; }
+  TStopwatch& getTimer() { return mTimer; } // cannot be const
 
  private:
   void initChip(UInt_t first);

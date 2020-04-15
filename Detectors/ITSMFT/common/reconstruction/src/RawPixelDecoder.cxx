@@ -26,7 +26,7 @@ RawPixelDecoder<Mapping>::RawPixelDecoder()
   mRUEntry.fill(-1); // no known links in the beginning
   mTimerTFStart.Stop();
   mTimerDecode.Stop();
-  mTimeFetchData.Stop();
+  mTimerFetchData.Stop();
 }
 
 ///______________________________________________________________
@@ -38,22 +38,26 @@ RawPixelDecoder<Mapping>::~RawPixelDecoder()
 }
 
 ///______________________________________________________________
-/// print timing, cannot be const since TStopwatch getters are not const...
+///
 template <class Mapping>
-void RawPixelDecoder<Mapping>::printReport()
+void RawPixelDecoder<Mapping>::printReport() const
 {
   LOGF(INFO, "Decoded %zu hits in %zu non-empty chips in %u ROFs", mNPixelsFired, mNChipsFired, mROFCounter);
   double cpu = 0, real = 0;
-  LOGF(INFO, "Timing Start TF:  CPU = %.3e Real = %.3e in %d slots", mTimerTFStart.CpuTime(), mTimerTFStart.RealTime(), mTimerTFStart.Counter());
-  cpu += mTimerTFStart.CpuTime();
-  real += mTimerTFStart.RealTime();
-  LOGF(INFO, "Timing Decode:    CPU = %.3e Real = %.3e in %d slots", mTimerDecode.CpuTime(), mTimerDecode.RealTime(), mTimerDecode.Counter());
-  cpu += mTimerDecode.CpuTime();
-  real += mTimerDecode.RealTime();
-  LOGF(INFO, "Timing FetchData: CPU = %.3e Real = %.3e in %d slots", mTimeFetchData.CpuTime(), mTimeFetchData.RealTime(), mTimeFetchData.Counter());
-  cpu += mTimeFetchData.CpuTime();
-  real += mTimeFetchData.RealTime();
-  LOGF(INFO, "Timing Total:     CPU = %.3e Real = %.3e", cpu, real);
+  auto& tmrS = const_cast<TStopwatch&>(mTimerTFStart);
+  LOGF(INFO, "> Timing Start TF:  CPU = %.3e Real = %.3e in %d slots", tmrS.CpuTime(), tmrS.RealTime(), tmrS.Counter());
+  cpu += tmrS.CpuTime();
+  real += tmrS.RealTime();
+  auto& tmrD = const_cast<TStopwatch&>(mTimerDecode);
+  LOGF(INFO, "> Timing Decode:    CPU = %.3e Real = %.3e in %d slots", tmrD.CpuTime(), tmrD.RealTime(), tmrD.Counter());
+  cpu += tmrD.CpuTime();
+  real += tmrD.RealTime();
+  auto& tmrF = const_cast<TStopwatch&>(mTimerFetchData);
+  LOGF(INFO, "> Timing FetchData: CPU = %.3e Real = %.3e in %d slots", tmrF.CpuTime(), tmrF.RealTime(), tmrF.Counter());
+  cpu += tmrF.CpuTime();
+  real += tmrF.RealTime();
+  LOGF(INFO, "> Timing Total:     CPU = %.3e Real = %.3e in %d slots in %s mode", cpu, real, tmrS.Counter(),
+       mDecodeNextAuto ? "AutoDecode" : "ExternalCall");
 }
 
 ///______________________________________________________________

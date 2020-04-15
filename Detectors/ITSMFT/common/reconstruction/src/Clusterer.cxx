@@ -151,9 +151,10 @@ void Clusterer::clear()
 void Clusterer::print() const
 {
   // print settings
-  printf("Mask overflow pixels in strobes separated by < %d BCs\n", mMaxBCSeparationToMask);
+  LOG(INFO) << "Clusterizer masks overflow pixels in strobes separated by < " << mMaxBCSeparationToMask << " BC";
 #ifdef _PERFORM_TIMING_
-  printf("Clusterization timing (w/o disk IO): ");
-  mTimer.Print();
+  auto& tmr = const_cast<TStopwatch&>(mTimer); // ugly but this is what root does internally
+  LOG(INFO) << "Clusterization timing (w/o disk IO): Cpu: " << tmr.CpuTime()
+            << " Real: " << tmr.RealTime() << " s in " << tmr.Counter() << " slots";
 #endif
 }

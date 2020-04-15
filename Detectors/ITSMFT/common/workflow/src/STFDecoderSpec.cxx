@@ -45,8 +45,19 @@ template <class Mapping>
 STFDecoder<Mapping>::STFDecoder(bool doClusters, bool doPatterns, bool doDigits, std::string_view dict)
   : mDoClusters(doClusters), mDoPatterns(doPatterns), mDoDigits(doDigits), mDictName(dict)
 {
+  mTimer.Stop();
+  mTimer.Reset();
 }
 
+///_______________________________________
+template <class Mapping>
+STFDecoder<Mapping>::~STFDecoder()
+{
+  LOGF(INFO, "Total STF decoding%s timing (w/o disk IO): Cpu: %.3e Real: %.3e s in %d slots",
+       mDoClusters ? "/clustering" : "", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter());
+}
+
+///_______________________________________
 template <class Mapping>
 void STFDecoder<Mapping>::init(InitContext& ic)
 {
@@ -89,7 +100,8 @@ template <class Mapping>
 void STFDecoder<Mapping>::run(ProcessingContext& pc)
 {
   int nSlots = pc.inputs().getNofParts(0);
-
+  double timeCl = 0, timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
+  mTimer.Start(false);
   mDecoder->startNewTF(pc.inputs());
   auto orig = o2::header::gDataOriginITS;
 
@@ -106,6 +118,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   std::vector<unsigned char, boost::container::pmr::polymorphic_allocator<unsigned char>>* clusPattVec = nullptr;
 
   if (mDoClusters) { // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
+    timeCl = mClusterer->getTimer().CpuTime();
     clusVecDUMMY = &pc.outputs().make<std::vector<o2::itsmft::Cluster>>(Output{orig, "CLUSTERS", 0, Lifetime::Timeframe});
     clusCompVec = &pc.outputs().make<std::vector<CompClusterExt>>(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe});
     clusPattVec = &pc.outputs().make<std::vector<unsigned char>>(Output{orig, "PATTERNS", 0, Lifetime::Timeframe});
@@ -114,7 +127,6 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 
   // if digits are requested, we don't want clusterer to run automatic decoding
   mDecoder->setDecodeNextAuto(!(mDoDigits && mDoClusters));
-
   while (mDecoder->decodeNextTrigger()) {
     if (mDoDigits) {                                    // call before clusterization, since the latter will hide the digits
       mDecoder->fillDecodedDigits(*digVec, *digROFVec); // lot of copying involved
@@ -125,11 +137,14 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   }
 
   if (mDoClusters) {
-    LOG(INFO) << "Built " << clusCompVec->size() << " clusters in " << clusROFVec->size() << " ROFs";
+    LOG(INFO) << "Built " << clusCompVec->size() << " clusters in " << clusROFVec->size() << " ROFs in "
+              << mClusterer->getTimer().CpuTime() - timeCl << " s";
   }
   if (mDoDigits) {
     LOG(INFO) << "Decoded " << digVec->size() << " Digits in " << digROFVec->size() << " ROFs";
   }
+  mTimer.Stop();
+  LOG(INFO) << "Total time for this TF: CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
 }
 
 ///_______________________________________
