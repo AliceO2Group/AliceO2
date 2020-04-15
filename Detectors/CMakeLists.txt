@@ -36,6 +36,7 @@ add_subdirectory(Calibration)
 
 if(BUILD_SIMULATION)
   add_subdirectory(gconfig)
+  o2_data_file(COPY gconfig DESTINATION Detectors)
 endif()
 
-o2_data_file(COPY Geometry gconfig DESTINATION Detectors)
+o2_data_file(COPY Geometry DESTINATION Detectors)

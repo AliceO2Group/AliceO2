@@ -28,10 +28,12 @@ find_path(${PKGNAME}_DATA
 if(${PKGNAME}_INCLUDE_DIR AND ${PKGNAME}_LIBRARY_SHARED AND ${PKGNAME}_DATA)
   add_library(pythia SHARED IMPORTED)
   get_filename_component(incdir ${${PKGNAME}_INCLUDE_DIR}/.. ABSOLUTE)
+  get_filename_component(libdir ${${PKGNAME}_LIBRARY_SHARED} DIRECTORY)
   set_target_properties(pythia
                         PROPERTIES IMPORTED_LOCATION
                                    ${${PKGNAME}_LIBRARY_SHARED}
-                                   INTERFACE_INCLUDE_DIRECTORIES ${incdir})
+                                   INTERFACE_INCLUDE_DIRECTORIES ${incdir}
+                                   INTERFACE_LINK_DIRECTORIES ${libdir})
   # Promote the imported target to global visibility (so we can alias it)
   set_target_properties(pythia PROPERTIES IMPORTED_GLOBAL TRUE)
   add_library(MC::Pythia ALIAS pythia)
