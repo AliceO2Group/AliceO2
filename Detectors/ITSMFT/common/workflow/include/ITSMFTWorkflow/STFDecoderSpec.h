@@ -15,6 +15,7 @@
 #ifndef O2_ITSMFT_STFDECODER_
 #define O2_ITSMFT_STFDECODER_
 
+#include <TStopwatch.h>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include <memory>
@@ -36,13 +37,13 @@ class STFDecoder : public Task
 {
  public:
   STFDecoder(bool clusters = true, bool pattern = true, bool digits = false, std::string_view dict = "");
-  ~STFDecoder() override = default;
+  ~STFDecoder() override;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
  private:
   std::unique_ptr<o2::itsmft::Clusterer> setupClusterer(const std::string& dictName);
-
+  TStopwatch mTimer;
   bool mDoClusters = false;
   bool mDoPatterns = false;
   bool mDoDigits = false;

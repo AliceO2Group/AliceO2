@@ -66,11 +66,11 @@ class RawPixelDecoder : public PixelReader
   bool getDecodeNextAuto() const { return mDecodeNextAuto; }
   void setDecodeNextAuto(bool v) { mDecodeNextAuto = v; }
 
-  void printReport();
+  void printReport() const;
 
   TStopwatch& getTimerTFStart() { return mTimerTFStart; }
   TStopwatch& getTimerDecode() { return mTimerDecode; }
-  TStopwatch& getTimerExtract() { return mTimerDecode; }
+  TStopwatch& getTimerExtract() { return mTimerFetchData; }
   uint32_t getNChipsFiredROF() const { return mNChipsFiredROF; }
   uint32_t getNPixelsFiredROF() const { return mNPixelsFiredROF; }
   size_t getNChipsFired() const { return mNChipsFired; }
@@ -108,7 +108,7 @@ class RawPixelDecoder : public PixelReader
   bool mDecodeNextAuto = true;                    // try to decode next trigger when getNextChipData does not see any decoded data
   TStopwatch mTimerTFStart;
   TStopwatch mTimerDecode;
-  TStopwatch mTimeFetchData;
+  TStopwatch mTimerFetchData;
 
   ClassDefOverride(RawPixelDecoder, 1);
 };
@@ -122,7 +122,7 @@ int RawPixelDecoder<Mapping>::fillDecodedDigits(DigitContainer& digits, ROFConta
   if (mInteractionRecord.isDummy()) {
     return 0; // nothing was decoded
   }
-  mTimeFetchData.Start(false);
+  mTimerFetchData.Start(false);
   int ref = digits.size();
   for (unsigned int iru = 0; iru < mRUDecodeVec.size(); iru++) {
     for (int ic = 0; ic < mRUDecodeVec[iru].nChipsFired; ic++) {
@@ -134,7 +134,7 @@ int RawPixelDecoder<Mapping>::fillDecodedDigits(DigitContainer& digits, ROFConta
   }
   int nFilled = digits.size() - ref;
   rofs.emplace_back(mInteractionRecord, mROFCounter, ref, nFilled);
-  mTimeFetchData.Stop();
+  mTimerFetchData.Stop();
   return nFilled;
 }
 
