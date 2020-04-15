@@ -561,11 +561,15 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
 void processSigChild(DeviceInfos& infos)
 {
   while (true) {
-    pid_t pid = waitpid((pid_t)(-1), nullptr, WNOHANG);
+    int status;
+    pid_t pid = waitpid((pid_t)(-1), &status, WNOHANG);
     if (pid > 0) {
+      int es = WEXITSTATUS(status);
+
       for (auto& info : infos) {
         if (info.pid == pid) {
           info.active = false;
+          info.exitStatus = es;
         }
       }
       continue;
