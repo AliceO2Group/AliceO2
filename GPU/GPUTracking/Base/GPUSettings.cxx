@@ -26,7 +26,7 @@ void GPUSettingsRec::SetDefaults()
   ClusterError2CorrectionZ = 1.f;
   MinNTrackClusters = -1;
   MaxTrackQPt = 1.f / GPUCA_MIN_TRACK_PT_DEFAULT;
-  NWays = 1;
+  NWays = 3;
   NWaysOuter = false;
   RejectMode = 5;
   GlobalTracking = true;
