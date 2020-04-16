@@ -425,7 +425,7 @@ The MCKinematicsReader needs the digitization context file, generated during dig
 A typical code example may be
 ```c++
 // init the reader from the context
-o2::steer MCKinematicsReader reader("collisioncontext.root");
+o2::steer::MCKinematicsReader reader("collisioncontext.root");
 
 // load digits from the digits file --> save in alldigits
 // load the label container from the digits file --> save in labelcontainer
