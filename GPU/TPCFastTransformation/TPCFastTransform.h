@@ -122,7 +122,7 @@ class TPCFastTransform : public FlatObject
   GPUd() const TPCFastSpaceChargeCorrection& getCorrection() const { return mCorrection; }
 
   /// Gives a reference for external initialization of TPC corrections
-  TPCFastSpaceChargeCorrection& getCorrectionNonConst() { return mCorrection; }
+  TPCFastSpaceChargeCorrection& getCorrection() { return mCorrection; }
 
   /// Finishes initialization: puts everything to the flat buffer, releases temporary memory
   void finishConstruction();

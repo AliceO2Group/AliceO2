@@ -152,8 +152,6 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   void print() const;
 #endif
 
-  GPUhd() static void getChebyshevPolynoms(double x, int N, double f[]);
-  GPUhd() static double getChebyshevApproximation(double x, int N, double c[]);
 
  private:
   /// relocate buffer pointers
