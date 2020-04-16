@@ -20,6 +20,28 @@
 namespace o2::framework::raw_parser
 {
 
+const char* RDHFormatter<V6>::sFormatString = "{:>5} {:>4} {:>4} {:>4} {:>4} {:>3} {:>3} {:>3}  {:>1}";
+void RDHFormatter<V6>::apply(std::ostream& os, V6 const& header, FormatSpec choice, const char* delimiter)
+{
+  if (choice == FormatSpec::Info) {
+    os << "RDH v6";
+  } else if (choice == FormatSpec::TableHeader) {
+    os << fmt::format(sFormatString, "PkC", "pCnt", "fId", "sId", "Mem", "CRU", "EP", "LID", "s");
+  } else if (choice == FormatSpec::Entry) {
+    os << fmt::format(sFormatString,
+                      header.packetCounter,
+                      header.pageCnt,
+                      header.feeId,
+                      header.sourceID,
+                      header.memorySize,
+                      header.cruID,
+                      header.endPointID,
+                      header.linkID,
+                      header.stop);
+  }
+  os << delimiter;
+}
+
 const char* RDHFormatter<V5>::sFormatString = "{:>5} {:>4} {:>4} {:>4} {:>3} {:>3} {:>3}  {:>1}";
 void RDHFormatter<V5>::apply(std::ostream& os, V5 const& header, FormatSpec choice, const char* delimiter)
 {
