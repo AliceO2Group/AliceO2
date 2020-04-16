@@ -145,9 +145,9 @@ find_package(Clang)
 set_package_properties(Clang PROPERTIES TYPE OPTIONAL)
 endif()
 
-
 find_package(O2GPU)
 
 find_package(FastJet)
+set_package_properties(FastJet PROPERTIES TYPE OPTIONAL)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
