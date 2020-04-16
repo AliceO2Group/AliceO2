@@ -57,7 +57,8 @@ set(SRCS
     TRDTracking/GPUTRDTracker.cxx
     TRDTracking/GPUTRDTrackletWord.cxx
     TRDTracking/GPUTRDTrackerKernels.cxx
-    Base/GPUParam.cxx)
+    Base/GPUParam.cxx
+    dEdx/TPCdEdxCalibrationSplines.cxx)
 
 set(SRCS_NO_CINT
     Base/GPUDataTypes.cxx
@@ -128,7 +129,7 @@ set(HDRS_INSTALL
 # Sources only for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   set(SRCS ${SRCS} Interface/GPUO2Interface.cxx)
-  set(HDRS_CINT_O2 ${HDRS_CINT_O2} Interface/GPUO2Interface.h)
+  set(HDRS_CINT_O2 ${HDRS_CINT_O2} Interface/GPUO2Interface.h dEdx/TPCdEdxCalibrationSplines.h)
 endif()
 
 # Sources for O2 and for Standalone if requested in config file
@@ -167,7 +168,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
     set(HDRS_INSTALL ${HDRS_INSTALL}
                      Interface/GPUO2InterfaceConfiguration.h
                      ITS/GPUITSTrack.h
-                     dEdx/GPUdEdxInfo.h
                      TPCClusterFinder/Array2D.h
                      TPCClusterFinder/CfConsts.h
                      TPCClusterFinder/CfFragment.h
