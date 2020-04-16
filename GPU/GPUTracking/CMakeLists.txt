@@ -241,6 +241,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                  TARGETVARNAME targetName
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                        O2::DataFormatsTPC
+                                       O2::TPCBase
                                        O2::TRDBase
                                        O2::ITStracking
                                        O2::TPCFastTransformation

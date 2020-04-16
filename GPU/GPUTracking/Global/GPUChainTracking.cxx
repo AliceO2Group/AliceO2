@@ -594,7 +594,7 @@ void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
   mTPCZSSizes.reset(new unsigned int[NSLICES * GPUTrackingInOutZS::NENDPOINTS]);
   mTPCZSPtrs.reset(new void*[NSLICES * GPUTrackingInOutZS::NENDPOINTS]);
   mTPCZS.reset(new GPUTrackingInOutZS);
-  GPUReconstructionConvert::RunZSEncoder(mIOPtrs.tpcPackedDigits, &mTPCZSBuffer, mTPCZSSizes.get(), nullptr, nullptr, param(), zs12bit, true);
+  GPUReconstructionConvert::RunZSEncoder<deprecated::PackedDigit>(*mIOPtrs.tpcPackedDigits, &mTPCZSBuffer, mTPCZSSizes.get(), nullptr, nullptr, param(), zs12bit, true);
   GPUReconstructionConvert::RunZSEncoderCreateMeta(mTPCZSBuffer.get(), mTPCZSSizes.get(), mTPCZSPtrs.get(), mTPCZS.get());
   mIOPtrs.tpcZS = mTPCZS.get();
   if (GetDeviceProcessingSettings().registerStandaloneInputMemory) {

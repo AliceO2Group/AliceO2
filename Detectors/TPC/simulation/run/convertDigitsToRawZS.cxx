@@ -125,34 +125,10 @@ void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::
   GPUParam _GPUParam;
   _GPUParam.SetDefaults(5.00668);
   const GPUParam mGPUParam = _GPUParam;
-
-  std::vector<deprecated::PackedDigit> gpuDigits[NSectors];
-  GPUTrackingInOutDigits gpuDigitsMap;
-
-  //convert to GPU digits
   const float zsThreshold = 0;
-  for (int i = 0; i < NSectors; i++) {
-    const auto& d = inputDigits[i];
-    gpuDigits[i].reserve(d.size());
-    for (int j = 0; j < d.size(); j++) {
-      if (d[j].getChargeFloat() >= zsThreshold) {
-        gpuDigits[i].emplace_back(
-          deprecated::PackedDigit{
-            d[j].getChargeFloat(),
-            (Timestamp)d[j].getTimeStamp(),
-            (Pad)d[j].getPad(),
-            (Row)d[j].getRow()});
-      }
-    }
 
-    gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
-    gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();
-  }
-
-  const GPUTrackingInOutDigits gpuDigitsMap2 = std::move(gpuDigitsMap);
   o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
-
-  zsEncoder->RunZSEncoder(&gpuDigitsMap, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, verify);
+  zsEncoder->RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, verify, zsThreshold);
 }
 
 int main(int argc, char** argv)
