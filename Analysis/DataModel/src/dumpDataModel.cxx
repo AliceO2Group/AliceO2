@@ -153,10 +153,13 @@ edge[dir=back, arrowtail=empty]
   dumpTable<Muons>();
   dumpTable<MuonClusters>();
   dumpTable<Zdcs>();
-  dumpTable<VZeros>();
+  dumpTable<Run2V0s>();
   dumpTable<V0s>();
   dumpTable<Cascades>();
-  dumpTable<Timeframes>();
+  dumpTable<BCs>();
+  dumpTable<FT0s>();
+  dumpTable<FV0s>();
+  dumpTable<FDDs>();
   dumpTable<SecVtx2Prong>(true, StyleType::GREEN);
   dumpTable<Cand2Prong>(true, StyleType::GREEN);
   dumpTable<Jets>(true, StyleType::BLUE);

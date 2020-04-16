@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
 {
   TableBuilder trackBuilder;
   auto trackWriter = trackBuilder.cursor<Tracks>();
-  trackWriter(0, 0, 0, 0, 0, 0, 0, 0, 0);
+  trackWriter(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   auto tracks = trackBuilder.finalize();
 
   TableBuilder trackParCovBuilder;

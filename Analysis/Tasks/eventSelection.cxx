@@ -27,30 +27,19 @@ struct EventSelectionTask {
   map<string, int> mClasses;
   map<int, string> mAliases;
 
-  aod::Trigger getTrigger(aod::Collision const& collision, aod::Triggers const& triggers)
+  aod::Run2V0 getVZero(aod::BC const& bc, aod::Run2V0s const& vzeros)
   {
-    for (auto trigger : triggers)
-      if (trigger.globalBC() == collision.globalBC())
-        return trigger;
-    aod::Trigger dummy;
-    return dummy;
-  }
-
-  aod::VZero getVZero(aod::Collision const& collision, aod::VZeros const& vzeros)
-  {
-    // TODO use globalBC to access vzero info
     for (auto& vzero : vzeros)
-      if (vzero.collision() == collision)
+      if (vzero.bc() == bc)
         return vzero;
-    aod::VZero dummy;
+    aod::Run2V0 dummy;
     return dummy;
   }
 
-  aod::Zdc getZdc(aod::Collision const& collision, aod::Zdcs const& zdcs)
+  aod::Zdc getZdc(aod::BC const& bc, aod::Zdcs const& zdcs)
   {
-    // TODO use globalBC to access zdc info
     for (auto& zdc : zdcs)
-      if (zdc.collision() == collision)
+      if (zdc.bc() == bc)
         return zdc;
     aod::Zdc dummy;
     return dummy;
@@ -82,12 +71,11 @@ struct EventSelectionTask {
     }
   }
 
-  void process(aod::Collision const& collision, aod::Triggers const& triggers, aod::Zdcs const& zdcs, aod::VZeros const& vzeros)
+  void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros)
   {
     LOGF(info, "Starting new event");
     // CTP info
-    auto trigger = getTrigger(collision, triggers);
-    uint64_t triggerMask = trigger.triggerMask();
+    uint64_t triggerMask = collision.bc().triggerMask();
     LOGF(info, "triggerMask=%llu", triggerMask);
     // fill fired aliases
     int32_t alias[nAliases] = {0};
@@ -107,14 +95,14 @@ struct EventSelectionTask {
     }
 
     // ZDC info
-    auto zdc = getZdc(collision, zdcs);
+    auto zdc = getZdc(collision.bc(), zdcs);
     // TODO replace it with timing checks when time arrays become available
     uint8_t zdcFired = zdc.fired();
     bool bbZNA = zdcFired & 1 << 0;
     bool bbZNC = zdcFired & 1 << 1;
 
     // VZERO info
-    auto vzero = getVZero(collision, vzeros);
+    auto vzero = getVZero(collision.bc(), vzeros);
     // TODO use properly calibrated average times
     float timeV0A = 0;
     float timeV0C = 0;

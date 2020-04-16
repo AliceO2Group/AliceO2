@@ -22,20 +22,8 @@ using namespace o2::framework;
 struct MultiplicityTableTask {
   Produces<aod::Mults> mult;
 
-  aod::VZero getVZero(aod::Collision const& collision, aod::VZeros const& vzeros)
+  void process(aod::Run2V0 const& vzero)
   {
-    // TODO use globalBC to access vzero info
-    for (auto& vzero : vzeros)
-      if (vzero.collision() == collision)
-        return vzero;
-    aod::VZero dummy;
-    return dummy;
-  }
-
-  void process(aod::Collision const& collision, aod::VZeros const& vzeros)
-  {
-    auto vzero = getVZero(collision, vzeros);
-
     // VZERO info
     float multV0A = 0;
     float multV0C = 0;

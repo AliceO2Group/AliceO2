@@ -182,7 +182,7 @@ static void BM_ASoAHelpersNaiveTracksPairs(benchmark::State& state)
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1));
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
 
@@ -217,7 +217,7 @@ static void BM_ASoAHelpersNaiveTracksFives(benchmark::State& state)
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1));
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
 
@@ -320,7 +320,7 @@ static void BM_ASoAHelpersCombGenTracksPairs(benchmark::State& state)
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1));
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
 
@@ -352,7 +352,7 @@ static void BM_ASoAHelpersCombGenTracksFives(benchmark::State& state)
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1));
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
 
@@ -425,7 +425,7 @@ static void BM_ASoAHelpersCombGenTracksFivesMultipleChunks(benchmark::State& sta
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriterA(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
                uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-               uniform_dist(e1), uniform_dist(e1));
+               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto tableA = builderA.finalize();
 
@@ -434,7 +434,7 @@ static void BM_ASoAHelpersCombGenTracksFivesMultipleChunks(benchmark::State& sta
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriterB(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
                uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-               uniform_dist(e1), uniform_dist(e1));
+               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto tableB = builderB.finalize();
 

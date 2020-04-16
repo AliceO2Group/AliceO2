@@ -134,14 +134,16 @@ struct CorrelationTask {
     }
   }
 
-  // Version with explicit nested loop
+// Version with explicit nested loop
 #ifdef MYFILTER
-  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::EtaPhi>> const& tracks)
+  void process(aod::Collision const& collision, aod::Run2V0s const& vzeros, soa::Filtered<soa::Join<aod::Tracks, aod::EtaPhi>> const& tracks)
 #else
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::EtaPhi> const& tracks)
+  void process(aod::Collision const& collision, aod::Run2V0s const& vzeros, soa::Join<aod::Tracks, aod::EtaPhi> const& tracks)
 #endif
   {
     LOGF(info, "Tracks for collision: %d", tracks.size());
+    for (auto& vzero : vzeros)
+      LOGF(info, "V0: %f %f", vzero.adc()[0], vzero.adc()[1]);
 
     int bSign = 1; // TODO magnetic field from CCDB
     const float pTCut = 1.0;
