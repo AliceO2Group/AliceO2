@@ -279,7 +279,7 @@ class FileReaderTask
   size_t nrdhs{0};
 
   std::ifstream mInputFile{}; ///< input file
-  int mFrameMax;                ///< number of frames to process
+  int mFrameMax;              ///< number of frames to process
   bool mPrint = false;        ///< print digits
 };
 
