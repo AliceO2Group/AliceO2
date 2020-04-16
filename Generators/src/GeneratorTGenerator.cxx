@@ -78,7 +78,6 @@ Bool_t
 {
   /** import particles **/
 
-  mParticles.clear();
   mTGenerator->ImportParticles(mCloneParticles, "All");
   auto nparticles = mCloneParticles->GetEntries();
   for (Int_t iparticle = 0; iparticle < nparticles; iparticle++) {

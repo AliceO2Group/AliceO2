@@ -18,6 +18,8 @@
 #include "Generators/Trigger.h"
 #include <vector>
 
+class FairMCEventHeader;
+
 namespace o2
 {
 namespace eventgen
@@ -68,6 +70,9 @@ class Generator : public FairGenerator
   void setTriggerMode(ETriggerMode_t val) { mTriggerMode = val; };
   void addTrigger(Trigger trigger) { mTriggers.push_back(trigger); };
   void addDeepTrigger(DeepTrigger trigger) { mDeepTriggers.push_back(trigger); };
+
+  /** notification methods **/
+  virtual void notifyEmbedding(const FairMCEventHeader* mcHeader){};
 
  protected:
   /** copy constructor **/

@@ -101,8 +101,6 @@ Bool_t GeneratorHepMC::importParticles()
 {
   /** import particles **/
 
-  mParticles.clear();
-
   /** loop over particles **/
   auto particles = mEvent->particles();
   for (int i = 0; i < particles.size(); ++i) {
