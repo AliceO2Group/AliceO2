@@ -45,12 +45,14 @@ enum AODTypeMask : uint64_t {
   TracksExtra = 1 << 2,
   Calo = 1 << 3,
   Muon = 1 << 4,
-  VZero = 1 << 5,
+  Run2V0 = 1 << 5,
   Zdc = 1 << 6,
-  Trigger = 1 << 7,
+  BC = 1 << 7,
   Collisions = 1 << 8,
-  Timeframe = 1 << 9,
-  Unknown = 1 << 11
+  FT0 = 1 << 9,
+  FV0 = 1 << 10,
+  FDD = 1 << 11,
+  Unknown = 1 << 13
 };
 
 uint64_t getMask(header::DataDescription description)
@@ -66,16 +68,20 @@ uint64_t getMask(header::DataDescription description)
     return AODTypeMask::Calo;
   } else if (description == header::DataDescription{"MUON"}) {
     return AODTypeMask::Muon;
-  } else if (description == header::DataDescription{"VZERO"}) {
-    return AODTypeMask::VZero;
+  } else if (description == header::DataDescription{"RUN2V0"}) {
+    return AODTypeMask::Run2V0;
   } else if (description == header::DataDescription{"ZDC"}) {
     return AODTypeMask::Zdc;
-  } else if (description == header::DataDescription{"TRIGGER"}) {
-    return AODTypeMask::Trigger;
+  } else if (description == header::DataDescription{"BC"}) {
+    return AODTypeMask::BC;
   } else if (description == header::DataDescription{"COLLISION"}) {
     return AODTypeMask::Collisions;
-  } else if (description == header::DataDescription{"TIMEFRAME"}) {
-    return AODTypeMask::Timeframe;
+  } else if (description == header::DataDescription{"FT0"}) {
+    return AODTypeMask::FT0;
+  } else if (description == header::DataDescription{"FV0"}) {
+    return AODTypeMask::FV0;
+  } else if (description == header::DataDescription{"FDD"}) {
+    return AODTypeMask::FDD;
   } else {
     LOG(DEBUG) << "This is a tree of unknown type! " << description.str;
     return AODTypeMask::Unknown;
@@ -169,9 +175,12 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       tableMaker(o2::aod::TracksExtraMetadata{}, AODTypeMask::TracksExtra, "O2tracks");
       tableMaker(o2::aod::CalosMetadata{}, AODTypeMask::Calo, "O2calo");
       tableMaker(o2::aod::MuonsMetadata{}, AODTypeMask::Muon, "O2muon");
-      tableMaker(o2::aod::VZerosMetadata{}, AODTypeMask::VZero, "O2vzero");
+      tableMaker(o2::aod::Run2V0sMetadata{}, AODTypeMask::Run2V0, "Run2v0");
       tableMaker(o2::aod::ZdcsMetadata{}, AODTypeMask::Zdc, "O2zdc");
-      tableMaker(o2::aod::TriggersMetadata{}, AODTypeMask::Trigger, "O2trigger");
+      tableMaker(o2::aod::BCsMetadata{}, AODTypeMask::BC, "O2bc");
+      tableMaker(o2::aod::FT0sMetadata{}, AODTypeMask::FT0, "O2ft0");
+      tableMaker(o2::aod::FV0sMetadata{}, AODTypeMask::FV0, "O2fv0");
+      tableMaker(o2::aod::FDDsMetadata{}, AODTypeMask::FDD, "O2fdd");
 
       // tables not included in the DataModel
       if (readMask & AODTypeMask::Unknown) {
