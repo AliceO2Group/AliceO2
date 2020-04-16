@@ -189,7 +189,7 @@ class DataDecoderTask
     const size_t OUT_SIZE = sizeof(o2::mch::Digit) * digits.size();
 
     /// send the output buffer via DPL
-    char* outbuffer = NULL;
+    char* outbuffer = nullptr;
     outbuffer = (char*)realloc(outbuffer, OUT_SIZE);
     memcpy(outbuffer, digits.data(), OUT_SIZE);
 

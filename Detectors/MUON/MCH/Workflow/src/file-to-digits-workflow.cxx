@@ -197,7 +197,7 @@ class FileReaderTask
     fee2Solar = o2::mch::raw::createFeeLink2SolarMapper<ElectronicMapperGenerated>();
     nrdhs = 0;
 
-    nFrames = ic.options().get<int>("frames");
+    mFrameMax = ic.options().get<int>("frames");
     mPrint = ic.options().get<bool>("print");
 
     auto inputFileName = ic.options().get<std::string>("infile");
@@ -225,11 +225,11 @@ class FileReaderTask
 
     int RDH_BLOCK_SIZE = 8192;
 
-    if (nFrames == 0)
+    if (mFrameMax == 0)
       return;
-    //printf("nFrames: %d\n", nFrames);
-    if (nFrames > 0)
-      nFrames -= 1;
+    //printf("mFrameMax: %d\n", mFrameMax);
+    if (mFrameMax > 0)
+      mFrameMax -= 1;
 
     mInputFile.read((char*)(&CRUbuf), sizeof(CRUbuf));
     memcpy(&CRUh, CRUbuf, sizeof(CRUheader));
@@ -279,7 +279,7 @@ class FileReaderTask
   size_t nrdhs{0};
 
   std::ifstream mInputFile{}; ///< input file
-  int nFrames;                ///< number of frames to process
+  int mFrameMax;                ///< number of frames to process
   bool mPrint = false;        ///< print digits
 };
 

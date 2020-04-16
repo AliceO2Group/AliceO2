@@ -46,10 +46,7 @@ PreClusterFinder::PreClusterFinder() : mDEs{}
 }
 
 //_________________________________________________________________________________________________
-PreClusterFinder::~PreClusterFinder()
-{
-  /// default destructor
-}
+PreClusterFinder::~PreClusterFinder() = default;
 
 //_________________________________________________________________________________________________
 void PreClusterFinder::init()
