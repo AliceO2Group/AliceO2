@@ -78,7 +78,8 @@ class RawWriterDeviceDPL
  private:
   void write()
   {
-    mFile.write(reinterpret_cast<const char*>(mEncoder.getBuffer().data()), mEncoder.getBufferSize());
+    const auto& buffer = mEncoder.getBuffer();
+    mFile.write(reinterpret_cast<const char*>(buffer.data()), mEncoder.getBufferSize());
     mEncoder.clear();
   }
   Encoder mEncoder{};
