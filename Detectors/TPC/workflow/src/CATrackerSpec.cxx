@@ -122,8 +122,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
         continuous = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
         LOG(INFO) << "Initializing run paramerers from GRP bz=" << solenoidBz << " cont=" << continuous;
       } else {
-        LOG(ERROR) << "Failed to initialize run parameters from GRP";
-        // should we call fatal here?
+        throw std::runtime_error("Failed to initialize run parameters from GRP");
       }
 
       // Parse the config string
@@ -579,8 +578,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
       }
       int retVal = tracker->runTracking(&ptrs);
       if (retVal != 0) {
-        // FIXME: error policy
-        LOG(FATAL) << "tracker returned error code " << retVal;
+        throw std::runtime_error("tracker returned error code " + std::to_string(retVal));
       }
       LOG(INFO) << "found " << tracks.size() << " track(s)";
       // tracks are published if the output channel is configured
