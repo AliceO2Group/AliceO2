@@ -15,8 +15,8 @@
 #ifndef ALICEO2_TPC_DIGIT_H_
 #define ALICEO2_TPC_DIGIT_H_
 
+#include "GPUCommonRtypes.h"
 #include "CommonDataFormat/TimeStamp.h"
-#include "TObject.h"
 
 namespace o2
 {
