@@ -169,14 +169,27 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
     {16, 0, 0}, // MB
     {28, 0, 0} // OB
      */
+    /* //  uncomment this to have 3 link per RU
     {3, 3, 3}, // IB
     {5, 5, 6}, // MB
     {9, 9, 10} // OB
+    */
+    // partition according to https://indico.cern.ch/event/907685/contributions/3818967/attachments/2019436/3376161/20200411_SOX_EOX_Proposal.pdf
+    {3, 3, 3},  // IB
+    {8, 8, 0},  // MB
+    {14, 14, 0} // OB
   };
-
+  std::vector<std::vector<int>> defRU{// number of RUs per CRU at each layer
+                                      {6, 6},
+                                      {8, 8},
+                                      {5, 5, 5, 5},
+                                      {12, 12},
+                                      {8, 7, 8, 7},
+                                      {11, 10, 11, 10},
+                                      {12, 12, 12, 12}};
   // this is an arbitrary mapping
   int nCRU = 0, nRUtot = 0, nRU = 0, nLinks = 0;
-  int linkID = 0, cruIDprev = -1, cruID = o2::detectors::DetID::ITS << 10; // this will be the lowest CRUID
+  int linkID = 0, cruID = o2::detectors::DetID::ITS << 10; // this will be the lowest CRUID
   std::string outFileLink;
 
   for (int ilr = 0; ilr < mp.NLayers; ilr++) {
@@ -188,52 +201,51 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
     for (int i = 3; i--;) {
       nlk += lnkAs[i] ? 1 : 0;
     }
-
-    for (int ir = 0; ir < nruLr; ir++) {
-      int ruID = nRUtot++;
-      bool accept = !(ruID < m2r.getRUSWMin() || ruID > m2r.getRUSWMax()); // ignored RUs ?
-      if (accept) {
-        m2r.getCreateRUDecode(ruID); // create RU container
-        nRU++;
-      }
-      int accL = 0;
-      for (int il = 0; il < MaxLinksPerRU; il++) { // create links
-        if (accept) {
-          nLinks++;
-          auto& ru = *m2r.getRUDecode(ruID);
-          uint32_t lanes = mp.getCablesOnRUType(ru.ruInfo->ruType); // lanes patter of this RU
-          ru.links[il] = m2r.addGBTLink();
-          auto link = m2r.getGBTLink(ru.links[il]);
-          link->lanes = lanes & ((0x1 << lnkAs[il]) - 1) << (accL);
-          link->idInCRU = linkID;
-          link->cruID = cruID;
-          link->feeID = mp.RUSW2FEEId(ruID, il);
-          link->endPointID = 0; // 0 or 1
-          accL += lnkAs[il];
-          if (m2r.getVerbosity()) {
-            LOG(INFO) << "RU" << ruID << '(' << ir << " on lr " << ilr << ") " << link->describe()
-                      << " -> " << outFileLink;
-          }
-          // register the link in the writer, if not done here, its data will be dumped to common default file
-          outFileLink = filePerCRU ? o2::utils::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(nCRU), ".raw") : o2::utils::concat_string(outDir, "/", outPrefix, "_lr", std::to_string(ilr), ".raw");
-          m2r.getWriter().registerLink(link->feeID, link->cruID, link->idInCRU,
-                                       link->endPointID, outFileLink);
-          //
-          if (cruIDprev != cruID) { // just to count used CRUs
-            cruIDprev = cruID;
-            nCRU++;
-          }
-        }
-        if ((++linkID) >= MaxLinksPerCRU) {
-          linkID = 0;
-          ++cruID;
-        }
-      }
+    const auto& ruList = defRU[ilr];
+    // sanity check
+    if (std::accumulate(ruList.begin(), ruList.end(), 0) != nruLr) {
+      throw std::runtime_error("Declared RU partitioning does not add up to expected N staves per layer");
     }
-    if (linkID) {
-      linkID = 0; // we don't want to put links of different layers on the same CRU
-      ++cruID;
-    }
-  }
+    int ruInLr = 0; // counter for RUs within the layer
+    int nCRUlr = ruList.size();
+    for (int iCRU = 0; iCRU < nCRUlr; iCRU++) {
+      for (int irc = 0; irc < ruList[iCRU]; irc++) {
+        int ruID = nRUtot++;
+        bool acceptRU = !(ruID < m2r.getRUSWMin() || ruID > m2r.getRUSWMax()); // ignored RUs ?
+        if (acceptRU) {
+          m2r.getCreateRUDecode(ruID); // create RU container
+          nRU++;
+        }
+        int accL = 0;
+        for (int il = 0; il < MaxLinksPerRU; il++) { // create links
+          if (acceptRU && lnkAs[il]) {
+            nLinks++;
+            auto& ru = *m2r.getRUDecode(ruID);
+            uint32_t lanes = mp.getCablesOnRUType(ru.ruInfo->ruType); // lanes patter of this RU
+            ru.links[il] = m2r.addGBTLink();
+            auto link = m2r.getGBTLink(ru.links[il]);
+            link->lanes = lanes & ((0x1 << lnkAs[il]) - 1) << (accL);
+            link->idInCRU = linkID;
+            link->cruID = cruID;
+            link->feeID = mp.RUSW2FEEId(ruID, il);
+            link->endPointID = 0; // 0 or 1
+            accL += lnkAs[il];
+            if (m2r.getVerbosity()) {
+              LOG(INFO) << "RU" << ruID << '(' << ruInLr << " on lr " << ilr << ") " << link->describe()
+                        << " -> " << outFileLink;
+            }
+            // register the link in the writer, if not done here, its data will be dumped to common default file
+            outFileLink = filePerCRU ? o2::utils::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(nCRU), ".raw") : o2::utils::concat_string(outDir, "/", outPrefix, "_lr", std::to_string(ilr), ".raw");
+            m2r.getWriter().registerLink(link->feeID, link->cruID, link->idInCRU, link->endPointID, outFileLink);
+            //
+            linkID++;
+          }
+        } // links of RU
+        ruInLr++;
+      } // RUs of CRU
+      cruID++;
+      nCRU++;
+    } // CRUs of the layer
+  }   // layers
   LOG(INFO) << "Distributed " << nLinks << " links on " << nRU << " RUs in " << nCRU << " CRUs";
 }

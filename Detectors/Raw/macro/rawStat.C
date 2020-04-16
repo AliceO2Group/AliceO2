@@ -32,6 +32,8 @@ void rawStat(const std::string& conf)
         hbfSize += sz;
         buff.resize(sz);
         link.readNextHBF(buff.data()); // just to advance
+        strm << "links"
+             << "id=" << il << "sz=" << sz << "\n";
       }
     }
     if (hbfSize) {
