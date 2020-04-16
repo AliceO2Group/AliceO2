@@ -14,7 +14,8 @@
 #ifndef ALICEO2_RDHUTILS_H
 #define ALICEO2_RDHUTILS_H
 
-#include <Rtypes.h>
+#include "GPUCommonDef.h"
+#include "GPUCommonRtypes.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "Headers/RAWDataHeader.h"
 
@@ -36,10 +37,10 @@ struct RDHUtils {
   static constexpr int GBTWord = 16; // length of GBT word
   static constexpr int MAXCRUPage = 512 * GBTWord;
 
-  static uint8_t getVersion(const RDHv4& rdh) { return rdh.version; } // same for all // why template does not work here?
-  static uint8_t getVersion(const RDHv5& rdh) { return rdh.version; } // same for all
-  static uint8_t getVersion(const RDHv6& rdh) { return rdh.version; } // same for all
-  static uint8_t getVersion(const void* rdhP)
+  GPUhdi() static uint8_t getVersion(const RDHv4& rdh) { return rdh.version; } // same for all // why template does not work here?
+  GPUhdi() static uint8_t getVersion(const RDHv5& rdh) { return rdh.version; } // same for all
+  GPUhdi() static uint8_t getVersion(const RDHv6& rdh) { return rdh.version; } // same for all
+  GPUhdi() static uint8_t getVersion(const void* rdhP)
   {
     auto v = getVersion((*reinterpret_cast<const RDHDef*>(rdhP)));
     if (v > MaxRDHVersion) {
@@ -62,11 +63,11 @@ struct RDHUtils {
   static int getHeaderSize(const void* rdhP) { return getHeaderSize(*reinterpret_cast<const RDHDef*>(rdhP)); }
 
   template <typename RDH>
-  static uint16_t getFEEID(const RDH& rdh)
+  GPUhdi() static uint16_t getFEEID(const RDH& rdh)
   {
     return rdh.feeId;
   } // same for all
-  static uint16_t getFEEID(const void* rdhP) { return getFEEID(*reinterpret_cast<const RDHDef*>(rdhP)); }
+  GPUhdi() static uint16_t getFEEID(const void* rdhP) { return getFEEID(*reinterpret_cast<const RDHDef*>(rdhP)); }
   template <typename RDH>
   static void setFEEID(RDH& rdh, uint16_t v)
   {
@@ -88,13 +89,13 @@ struct RDHUtils {
   static void setPriorityBit(void* rdhP, bool v) { setPriorityBit(*reinterpret_cast<RDHDef*>(rdhP), v); }
 
   template <typename RDH>
-  static uint8_t getSourceID(const RDH& rdh)
+  GPUhdi() static uint8_t getSourceID(const RDH& rdh)
   { // does not exist before V6
     processError(getVersion(rdh), "sourceID");
     return 0xff;
   }
-  static uint8_t getSourceID(const RDHv6& rdh) { return rdh.sourceID; }
-  static uint8_t getSourceID(const void* rdhP)
+  GPUhdi() static uint8_t getSourceID(const RDHv6& rdh) { return rdh.sourceID; }
+  GPUhdi() static uint8_t getSourceID(const void* rdhP)
   {
     int version = getVersion(rdhP);
     if (version > 5) {
@@ -193,10 +194,10 @@ struct RDHUtils {
   } // same for all
   static void setEndPointID(void* rdhP, uint8_t v) { setEndPointID(*reinterpret_cast<RDHDef*>(rdhP), v); }
 
-  static uint16_t getHeartBeatBC(const RDHv4& rdh) { return rdh.heartbeatBC; }
-  static uint16_t getHeartBeatBC(const RDHv5& rdh) { return rdh.bunchCrossing; } // starting from V5 no distiction trigger or HB
-  static uint16_t getHeartBeatBC(const RDHv6& rdh) { return rdh.bunchCrossing; }
-  static uint16_t getHeartBeatBC(const void* rdhP)
+  GPUhdi() static uint16_t getHeartBeatBC(const RDHv4& rdh) { return rdh.heartbeatBC; }
+  GPUhdi() static uint16_t getHeartBeatBC(const RDHv5& rdh) { return rdh.bunchCrossing; } // starting from V5 no distiction trigger or HB
+  GPUhdi() static uint16_t getHeartBeatBC(const RDHv6& rdh) { return rdh.bunchCrossing; }
+  GPUhdi() static uint16_t getHeartBeatBC(const void* rdhP)
   {
     int version = getVersion(rdhP);
     if (version > 4) {
@@ -218,10 +219,10 @@ struct RDHUtils {
     }
   }
 
-  static uint32_t getHeartBeatOrbit(const RDHv4& rdh) { return rdh.heartbeatOrbit; }
-  static uint32_t getHeartBeatOrbit(const RDHv5& rdh) { return rdh.orbit; } // starting from V5 no distiction trigger or HB
-  static uint32_t getHeartBeatOrbit(const RDHv6& rdh) { return rdh.orbit; }
-  static uint32_t getHeartBeatOrbit(const void* rdhP)
+  GPUhdi() static uint32_t getHeartBeatOrbit(const RDHv4& rdh) { return rdh.heartbeatOrbit; }
+  GPUhdi() static uint32_t getHeartBeatOrbit(const RDHv5& rdh) { return rdh.orbit; } // starting from V5 no distiction trigger or HB
+  GPUhdi() static uint32_t getHeartBeatOrbit(const RDHv6& rdh) { return rdh.orbit; }
+  GPUhdi() static uint32_t getHeartBeatOrbit(const void* rdhP)
   {
     int version = getVersion(rdhP);
     if (version > 4) {
@@ -476,7 +477,13 @@ struct RDHUtils {
 
  private:
   static uint32_t fletcher32(const uint16_t* data, int len);
-  static void processError(int v, std::string_view field);
+#if defined(GPUCA_GPUCODE_DEVICE) || defined(GPUCA_STANDALONE)
+  GPUhdi() static void processError(int v, const char* field)
+  {
+  }
+#else
+  GPUhdni() static void processError(int v, const char* field);
+#endif
 
   ClassDefNV(RDHUtils, 1);
 };

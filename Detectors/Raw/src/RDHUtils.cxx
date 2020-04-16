@@ -245,7 +245,7 @@ uint32_t RDHUtils::fletcher32(const uint16_t* data, int len)
 }
 
 /// process access to non-existing field
-void RDHUtils::processError(int v, std::string_view field)
+void RDHUtils::processError(int v, const char* field)
 {
   LOG(ERROR) << "Wrong field " << field << " for RDHv" << v;
   throw std::runtime_error("wrong RDH field accessed");

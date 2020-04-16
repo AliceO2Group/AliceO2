@@ -135,6 +135,7 @@ include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/cuda/src
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/hip/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/hip/src
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/Raw/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TPC/base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/src)
