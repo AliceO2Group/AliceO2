@@ -121,7 +121,6 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
   }
 
   float artificialVDrift = tracker.getPseudoVDrift();
-  float tfReferenceLength = tracker.getTFReferenceLength();
 
   // partial printout of 100 tracks
   int step = tracks.size() / 100;

@@ -118,9 +118,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
 
       const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
       if (grp) {
-        LOG(INFO) << "Initializing run paramerers from GRP";
         solenoidBz *= grp->getL3Current() / 30000.;
         continuous = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
+        LOG(INFO) << "Initializing run paramerers from GRP bz=" << solenoidBz << " cont=" << continuous;
       } else {
         LOG(ERROR) << "Failed to initialize run parameters from GRP";
         // should we call fatal here?
@@ -206,7 +206,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
       config.configDeviceProcessing.debugLevel = debugLevel; // Debug verbosity
 
       config.configEvent.solenoidBz = solenoidBz;
-      config.configEvent.continuousMaxTimeBin = continuous ? 0.023 * 5e6 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
+      int maxContTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + Constants::LHCBCPERTIMEBIN - 1) / Constants::LHCBCPERTIMEBIN;
+      config.configEvent.continuousMaxTimeBin = continuous ? maxContTimeBin : 0; // Number of timebins in timeframe if continuous, 0 otherwise
 
       config.configReconstruction.NWays = 3;               // Should always be 3!
       config.configReconstruction.NWaysOuter = true;       // Will create outer param for TRD
