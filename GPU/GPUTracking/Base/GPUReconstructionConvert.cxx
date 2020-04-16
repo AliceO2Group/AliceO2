@@ -313,8 +313,9 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
 #endif
           {
             o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)page;
-            rdh->heartbeatBC = bcShiftInFirstHBF;
-            rdh->heartbeatOrbit = hbf;
+            unsigned int rdhbc = ((unsigned long long int)bcShiftInFirstHBF + hbf * o2::constants::lhc::LHCMaxBunches) % o2::constants::lhc::LHCMaxBunches;
+            o2::raw::RDHUtils::setHeartBeatOrbit(*rdh, hbf);
+            o2::raw::RDHUtils::setHeartBeatBC(*rdh, rdhbc);
           }
         }
         if (k >= tmpBuffer.size()) {
@@ -325,6 +326,23 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
         if (raw) {
           page = &singleBuffer;
         } else {
+          if (buffer[i][endpoint].size() == 0 && nexthbf != 0) {
+            // Emplace empty page with RDH containing beginning of TF
+            buffer[i][endpoint].emplace_back();
+            page = &buffer[i][endpoint].back();
+            o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)page;
+            o2::raw::RDHUtils::setHeartBeatOrbit(*rdh, 0);
+            o2::raw::RDHUtils::setHeartBeatBC(*rdh, bcShiftInFirstHBF);
+            pagePtr = reinterpret_cast<unsigned char*>(page);
+            pagePtr += sizeof(o2::header::RAWDataHeader);
+            hdr = reinterpret_cast<TPCZSHDR*>(pagePtr);
+            hdr->version = zs12bit ? 2 : 1;
+            hdr->cruID = i * 10 + region;
+            hdr->timeOffset = 0;
+            hdr->nTimeBins = 0;
+            hdr->nADCsamples = 0;
+            totalPages++;
+          }
           buffer[i][endpoint].emplace_back();
           page = &buffer[i][endpoint].back();
         }
@@ -411,7 +429,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
           int nRowsRegion = param.tpcGeometry.GetRegionRows(region);
 
           int timeBin = hdr->timeOffset;
-          timeBin += (rdh->heartbeatOrbit * o2::constants::lhc::LHCMaxBunches + Constants::LHCBCPERTIMEBIN - 1 - bcShiftInFirstHBF) / Constants::LHCBCPERTIMEBIN;
+          timeBin += (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) * o2::constants::lhc::LHCMaxBunches + Constants::LHCBCPERTIMEBIN - 1 - bcShiftInFirstHBF) / Constants::LHCBCPERTIMEBIN;
           for (int l = 0; l < hdr->nTimeBins; l++) {
             if ((pagePtr - reinterpret_cast<unsigned char*>(page)) & 1) {
               pagePtr++;
