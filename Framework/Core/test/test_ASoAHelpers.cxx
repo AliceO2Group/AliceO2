@@ -778,38 +778,38 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
 
   TableBuilder builderCollisions;
   auto rowWriterCol = builderCollisions.cursor<o2::aod::Collisions>();
-  rowWriterCol(0, 0, 0 /*uint64_t GlobalBC*/,
+  rowWriterCol(0, 0,
                0, 0, -6.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 25 /*uint32_t NumContrib*/,
-               0, 0, 0);
-  rowWriterCol(0, 1, 1 /*uint64_t GlobalBC*/,
+               0, 0, 0 /* uint8_t CollisionTimeMask */);
+  rowWriterCol(0, 1,
                0, 0, 0.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 18 /*uint32_t NumContrib*/,
-               0, 0, 0);
-  rowWriterCol(0, 2, 2 /*uint64_t GlobalBC*/,
+               0, 0, 1 /* uint8_t CollisionTimeMask */);
+  rowWriterCol(0, 2,
                0, 0, -1.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 48 /*uint32_t NumContrib*/,
-               0, 0, 0);
-  rowWriterCol(0, 3, 3 /*uint64_t GlobalBC*/,
+               0, 0, 2 /* uint8_t CollisionTimeMask */);
+  rowWriterCol(0, 3,
                0, 0, 2.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 3 /*uint32_t NumContrib*/,
-               0, 0, 0);
-  rowWriterCol(0, 0, 4 /*uint64_t GlobalBC*/,
+               0, 0, 3 /* uint8_t CollisionTimeMask */);
+  rowWriterCol(0, 0,
                0, 0, -6.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 28 /*uint32_t NumContrib*/,
-               0, 0, 0);
-  rowWriterCol(0, 3, 5 /*uint64_t GlobalBC*/,
+               0, 0, 4 /* uint8_t CollisionTimeMask */);
+  rowWriterCol(0, 3,
                0, 0, 2.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 2 /*uint32_t NumContrib*/,
-               0, 0, 0);
-  rowWriterCol(0, 1, 6 /*uint64_t GlobalBC*/,
+               0, 0, 5 /* uint8_t CollisionTimeMask */);
+  rowWriterCol(0, 1,
                0, 0, 0.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 12 /*uint32_t NumContrib*/,
-               0, 0, 0);
-  rowWriterCol(0, 0, 7 /*uint64_t GlobalBC*/,
+               0, 0, 6 /* uint8_t CollisionTimeMask */);
+  rowWriterCol(0, 0,
                0, 0, -7.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 24 /*uint32_t NumContrib*/,
-               0, 0, 0);
+               0, 0, 7 /* uint8_t CollisionTimeMask */);
   auto tableCol = builderCollisions.finalize();
   BOOST_REQUIRE_EQUAL(tableCol->num_rows(), 8);
 
@@ -842,9 +842,9 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
 
   // Without hashing, taking a single column from the original table as a category
   count = 0;
-  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy("fRunNumber", collisions, collisions))) {
-    BOOST_CHECK_EQUAL(c0.globalBC(), std::get<0>(expectedFullPairs[count]));
-    BOOST_CHECK_EQUAL(c1.globalBC(), std::get<1>(expectedFullPairs[count]));
+  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy("fBCsID", collisions, collisions))) {
+    BOOST_CHECK_EQUAL(c0.collisionTimeMask(), std::get<0>(expectedFullPairs[count]));
+    BOOST_CHECK_EQUAL(c1.collisionTimeMask(), std::get<1>(expectedFullPairs[count]));
     count++;
   }
   BOOST_CHECK_EQUAL(count, expectedFullPairs.size());

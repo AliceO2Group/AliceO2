@@ -13,6 +13,7 @@
 #include "Framework/ASoA.h"
 #include "MathUtils/Utils.h"
 #include <cmath>
+#include "Framework/DataTypes.h"
 
 namespace o2
 {
@@ -22,11 +23,21 @@ namespace aod
 // the o2::aod namespace.
 DECLARE_SOA_STORE();
 
-namespace collision
+namespace bc
 {
-// DECLARE_SOA_COLUMN(TimeframeId, timeframeId, uint64_t);
 DECLARE_SOA_COLUMN(RunNumber, runNumber, int);
 DECLARE_SOA_COLUMN(GlobalBC, globalBC, uint64_t);
+DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint64_t);
+} // namespace bc
+
+DECLARE_SOA_TABLE(BCs, "AOD", "TRIGGER", o2::soa::Index<>,
+                  bc::RunNumber, bc::GlobalBC,
+                  bc::TriggerMask);
+using BC = BCs::iterator;
+
+namespace collision
+{
+DECLARE_SOA_INDEX_COLUMN(BC, bc);
 DECLARE_SOA_COLUMN_FULL(PosX, posX, float, "fX");
 DECLARE_SOA_COLUMN_FULL(PosY, posY, float, "fY");
 DECLARE_SOA_COLUMN_FULL(PosZ, posZ, float, "fZ");
@@ -37,20 +48,27 @@ DECLARE_SOA_COLUMN(CovYY, covYY, float);
 DECLARE_SOA_COLUMN(CovYZ, covYZ, float);
 DECLARE_SOA_COLUMN(CovZZ, covZZ, float);
 DECLARE_SOA_COLUMN(Chi2, chi2, float);
-DECLARE_SOA_COLUMN_FULL(NumContrib, numContrib, uint32_t, "fN");
+DECLARE_SOA_COLUMN_FULL(NumContrib, numContrib, uint32_t, "fN"); // TODO fix name
 DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);
 DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float);
-DECLARE_SOA_COLUMN(CollisionTimeMask, collisionTimeMask, uint8_t);
+DECLARE_SOA_COLUMN(CollisionTimeMask, collisionTimeMask, uint8_t); // TODO put nature of CollisionTimeRes here, e.g. MSB 0 = exact range / 1 = Gaussian uncertainty
 } // namespace collision
 
-DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", o2::soa::Index<>, collision::RunNumber, collision::GlobalBC, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2, collision::NumContrib, collision::CollisionTime, collision::CollisionTimeRes, collision::CollisionTimeMask);
+DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", o2::soa::Index<>, collision::BCId, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2, collision::NumContrib, collision::CollisionTime, collision::CollisionTimeRes, collision::CollisionTimeMask);
 
 using Collision = Collisions::iterator;
+
+// NOTE Relation between Collisions and BC table
+// (important for pp in case of ambigous assignment)
+// A collision entry points to the entry in the BC table based on the calculated BC from the collision time
+// To study other compatible triggers with the collision time, use this helper (not yet implemented :)):
+// auto compatibleBCs = getCompatibleBCs(collision, BCs, /* sigma */ 3);
 
 namespace track
 {
 // TRACKPAR TABLE definition
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_COLUMN(TrackType, trackType, unsigned int); // TODO define enum
 DECLARE_SOA_COLUMN(X, x, float);
 DECLARE_SOA_COLUMN(Alpha, alpha, float);
 DECLARE_SOA_COLUMN(Y, y, float);
@@ -123,7 +141,6 @@ DECLARE_SOA_COLUMN(TOFsignal, tofSignal, float);
 DECLARE_SOA_COLUMN(Length, length, float);
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, [](uint8_t tpcNClsFindable, uint8_t tpcNClsFindableMinusFound) -> int16_t { return tpcNClsFindable - tpcNClsFindableMinusFound; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, [](uint8_t tpcNClsFindable, uint8_t TPCNClsFindableMinusCrossedRows) -> int16_t { return tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
-
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, [](uint8_t itsClusterMap) -> uint8_t {
   uint8_t itsNcls = 0;
   constexpr uint8_t bit = 1;
@@ -149,7 +166,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, [](uint8_
 } // namespace track
 
 DECLARE_SOA_TABLE(Tracks, "AOD", "TRACKPAR",
-                  o2::soa::Index<>, track::CollisionId, track::X, track::Alpha,
+                  o2::soa::Index<>, track::CollisionId, track::TrackType,
+                  track::X, track::Alpha,
                   track::Y, track::Z, track::Snp, track::Tgl,
                   track::Signed1Pt,
                   track::Phi<track::Snp, track::Alpha>,
@@ -198,37 +216,37 @@ using UnassignedTrack = UnassignedTracks::iterator;
 
 namespace calo
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_INDEX_COLUMN(BC, bc);
 DECLARE_SOA_COLUMN(CellNumber, cellNumber, int16_t);
 DECLARE_SOA_COLUMN(Amplitude, amplitude, float);
 DECLARE_SOA_COLUMN(Time, time, float);
 DECLARE_SOA_COLUMN(CellType, cellType, int8_t);
-DECLARE_SOA_COLUMN_FULL(CaloType, caloType, int8_t, "fType");
+DECLARE_SOA_COLUMN_FULL(CaloType, caloType, int8_t, "fType"); // FIXME fix naming
 } // namespace calo
 
-DECLARE_SOA_TABLE(Calos, "AOD", "CALO",
-                  calo::CollisionId, calo::CellNumber, calo::Amplitude, calo::Time, calo::CellType, calo::CaloType);
+DECLARE_SOA_TABLE(Calos, "AOD", "CALO", calo::BCId,
+                  calo::CellNumber, calo::Amplitude, calo::Time, calo::CellType, calo::CaloType);
 using Calo = Calos::iterator;
 
 namespace calotrigger
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_INDEX_COLUMN(BC, bc);
 DECLARE_SOA_COLUMN_FULL(FastorAbsId, fastorAbsId, int32_t, "fFastorAbsID");
 DECLARE_SOA_COLUMN(L0Amplitude, l0Amplitude, float);
 DECLARE_SOA_COLUMN(L0Time, l0Time, float);
 DECLARE_SOA_COLUMN_FULL(L1Timesum, l1Timesum, int32_t, "fL1TimeSum");
 DECLARE_SOA_COLUMN(NL0Times, nl0Times, int8_t);
-DECLARE_SOA_COLUMN_FULL(Triggerbits, triggerbits, int32_t, "fTriggerBits");
-DECLARE_SOA_COLUMN_FULL(CaloType, caloType, int8_t, "fType");
+DECLARE_SOA_COLUMN_FULL(BCbits, triggerbits, int32_t, "fBCBits");
+DECLARE_SOA_COLUMN_FULL(CaloType, caloType, int8_t, "fType"); // FIXME fix naming
 } // namespace calotrigger
 
 DECLARE_SOA_TABLE(CaloTriggers, "AOD", "CALOTRIGGER",
-                  calotrigger::CollisionId, calotrigger::FastorAbsId, calotrigger::L0Amplitude, calotrigger::L0Time, calotrigger::L1Timesum, calotrigger::NL0Times, calotrigger::Triggerbits, calotrigger::CaloType);
+                  calotrigger::BCId, calotrigger::FastorAbsId, calotrigger::L0Amplitude, calotrigger::L0Time, calotrigger::L1Timesum, calotrigger::NL0Times, calotrigger::BCbits, calotrigger::CaloType);
 using CaloTrigger = CaloTriggers::iterator;
 
 namespace muon
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_INDEX_COLUMN(BC, bc);
 DECLARE_SOA_COLUMN(InverseBendingMomentum, inverseBendingMomentum, float);
 DECLARE_SOA_COLUMN(ThetaX, thetaX, float);
 DECLARE_SOA_COLUMN(ThetaY, thetaY, float);
@@ -238,15 +256,17 @@ DECLARE_SOA_COLUMN(NonBendingCoor, nonBendingCoor, float);
 // FIXME: need to implement array columns...
 // DECLARE_SOA_COLUMN(Covariances, covariances, float[], "fCovariances");
 DECLARE_SOA_COLUMN(Chi2, chi2, float);
-DECLARE_SOA_COLUMN(Chi2MatchTrigger, chi2MatchTrigger, float);
+DECLARE_SOA_COLUMN(Chi2MatchBC, chi2MatchBC, float);
 } // namespace muon
 
 DECLARE_SOA_TABLE(Muons, "AOD", "MUON",
-                  muon::CollisionId, muon::InverseBendingMomentum,
+                  muon::BCId, muon::InverseBendingMomentum,
                   muon::ThetaX, muon::ThetaY, muon::ZMu,
                   muon::BendingCoor, muon::NonBendingCoor,
-                  muon::Chi2, muon::Chi2MatchTrigger);
+                  muon::Chi2, muon::Chi2MatchBC);
 using Muon = Muons::iterator;
+
+// NOTE for now muon tracks are uniquely assigned to a BC / GlobalBC assuming they contain an MID hit. Discussion on tracks without MID hit is ongoing.
 
 namespace muoncluster
 {
@@ -271,7 +291,7 @@ using MuonCluster = MuonClusters::iterator;
 
 namespace zdc
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_INDEX_COLUMN(BC, bc);
 DECLARE_SOA_COLUMN(ZEM1Energy, zem1Energy, float);
 DECLARE_SOA_COLUMN(ZEM2Energy, zem2Energy, float);
 DECLARE_SOA_COLUMN(ZNCTowerEnergy, zncTowerEnergy, float[5]);
@@ -286,27 +306,52 @@ DECLARE_SOA_COLUMN(ZPATowerEnergyLR, zpaTowerEnergyLR, float[5]);
 DECLARE_SOA_COLUMN(Fired, fired, uint8_t);
 } // namespace zdc
 
-DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", zdc::CollisionId,
+DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", zdc::BCId,
                   zdc::ZEM1Energy, zdc::ZEM2Energy,
                   zdc::ZNCTowerEnergy, zdc::ZNATowerEnergy, zdc::ZPCTowerEnergy, zdc::ZPATowerEnergy,
                   zdc::ZNCTowerEnergyLR, zdc::ZNATowerEnergyLR, zdc::ZPCTowerEnergyLR, zdc::ZPATowerEnergyLR,
                   zdc::Fired);
 using Zdc = Zdcs::iterator;
 
-namespace vzero
+namespace ft0
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-DECLARE_SOA_COLUMN(Adc, adc, float[64]);
-DECLARE_SOA_COLUMN(Time, time, float[64]);
-DECLARE_SOA_COLUMN(Width, width, float[64]);
-DECLARE_SOA_COLUMN(BBFlag, bbFlag, uint64_t);
-DECLARE_SOA_COLUMN(BGFlag, bgFlag, uint64_t);
-} // namespace vzero
+DECLARE_SOA_INDEX_COLUMN(BC, bc);
+DECLARE_SOA_COLUMN(Amplitude, amplitude, float[208]);
+DECLARE_SOA_COLUMN(TimeA, timeA, float);
+DECLARE_SOA_COLUMN(TimeC, timeC, float);
+DECLARE_SOA_COLUMN(BCSignal, triggerSignal, uint8_t);
+} // namespace ft0
 
-DECLARE_SOA_TABLE(VZeros, "AOD", "VZERO", vzero::CollisionId,
-                  vzero::Adc, vzero::Time, vzero::Width,
-                  vzero::BBFlag, vzero::BGFlag);
-using VZero = VZeros::iterator;
+DECLARE_SOA_TABLE(FT0s, "AOD", "FT0", ft0::BCId,
+                  ft0::Amplitude, ft0::TimeA, ft0::TimeC,
+                  ft0::BCSignal);
+using FT0 = FT0s::iterator;
+
+namespace fv0
+{
+DECLARE_SOA_INDEX_COLUMN(BC, bc);
+DECLARE_SOA_COLUMN(Amplitude, amplitude, float[48]);
+DECLARE_SOA_COLUMN(TimeA, timeA, float);
+DECLARE_SOA_COLUMN(BCSignal, triggerSignal, uint8_t);
+} // namespace fv0
+
+DECLARE_SOA_TABLE(FV0s, "AOD", "FV0", fv0::BCId,
+                  fv0::Amplitude, fv0::TimeA, fv0::BCSignal);
+using FV0 = FV0s::iterator;
+
+namespace fdd
+{
+DECLARE_SOA_INDEX_COLUMN(BC, bc);
+DECLARE_SOA_COLUMN(Amplitude, amplitude, float[8]);
+DECLARE_SOA_COLUMN(TimeA, timeA, float);
+DECLARE_SOA_COLUMN(TimeC, timeC, float);
+DECLARE_SOA_COLUMN(BCSignal, triggerSignal, uint8_t);
+} // namespace fdd
+
+DECLARE_SOA_TABLE(FDDs, "AOD", "FDD", fdd::BCId,
+                  fdd::Amplitude, fdd::TimeA, fdd::TimeC,
+                  fdd::BCSignal);
+using FDD = FDDs::iterator;
 
 namespace v0
 {
@@ -326,23 +371,22 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, "fTracksID");
 DECLARE_SOA_TABLE(Cascades, "AOD", "CASCADE", cascade::V0Id, cascade::BachelorId);
 using Casecade = Cascades::iterator;
 
-namespace trigger
+// ---- LEGACY tables ----
+
+namespace run2v0
 {
-DECLARE_SOA_COLUMN(GlobalBC, globalBC, uint64_t);
-DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint64_t);
-} // namespace trigger
+DECLARE_SOA_INDEX_COLUMN(BC, bc);
+DECLARE_SOA_COLUMN(Adc, adc, float[64]);
+DECLARE_SOA_COLUMN(Time, time, float[64]);
+DECLARE_SOA_COLUMN(Width, width, float[64]);
+DECLARE_SOA_COLUMN(BBFlag, bbFlag, uint64_t);
+DECLARE_SOA_COLUMN(BGFlag, bgFlag, uint64_t);
+} // namespace run2v0
 
-DECLARE_SOA_TABLE(Triggers, "AOD", "TRIGGER", trigger::TriggerMask, trigger::GlobalBC);
-using Trigger = Triggers::iterator;
-
-namespace timeframe
-{
-DECLARE_SOA_COLUMN(Timestamp, timestamp, uint64_t);
-} // namespace timeframe
-
-DECLARE_SOA_TABLE(Timeframes, "AOD", "TIMEFRAME",
-                  timeframe::Timestamp);
-using Timeframe = Timeframes::iterator;
+DECLARE_SOA_TABLE(Run2V0s, "AOD", "VZERO", run2v0::BCId,
+                  run2v0::Adc, run2v0::Time, run2v0::Width,
+                  run2v0::BBFlag, run2v0::BGFlag);
+using Run2V0 = Run2V0s::iterator;
 
 } // namespace aod
 
