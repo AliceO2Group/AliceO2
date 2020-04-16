@@ -47,6 +47,7 @@
 #include "GPUTPCClusterStatistics.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "Headers/RAWDataHeader.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "GPUHostDataTypes.h"
 #else
 #include "GPUO2FakeClasses.h"
@@ -893,7 +894,8 @@ int GPUChainTracking::RunTPCClusterizer()
 
       if (mIOPtrs.tpcZS) {
 #ifdef GPUCA_O2_LIB
-        int bcShiftInFirstHBF = mIOPtrs.tpcZS->ir ? mIOPtrs.tpcZS->ir->bc : 0;
+        const o2::header::RAWDataHeader* hdr = (const o2::header::RAWDataHeader*)mIOPtrs.tpcZS->slice[0].zsPtr[0][0];
+        int bcShiftInFirstHBF = o2::raw::RDHUtils::getHeartBeatBC(hdr);
 #else
         int bcShiftInFirstHBF = 0;
 #endif

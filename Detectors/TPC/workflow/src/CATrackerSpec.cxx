@@ -564,10 +564,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
       ptrs.outputTracks = &tracks;
       ptrs.outputClusRefs = &clusRefs;
       ptrs.outputTracksMCTruth = (processMC ? &tracksMCTruth : nullptr);
-      o2::InteractionRecord ir = raw::HBFUtils::Instance().getFirstIR();
       if (caClusterer) {
         if (zsDecoder) {
-          processAttributes->tpcZS.ir = &ir;
           ptrs.tpcZS = &processAttributes->tpcZS;
           if (processMC) {
             throw std::runtime_error("Cannot process MC information, none available"); // In fact, passing in MC data with ZS TPC Raw is not yet available

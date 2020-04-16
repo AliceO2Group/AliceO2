@@ -44,7 +44,6 @@ using CompressedClusters = CompressedClustersPtrs_helper<CompressedClustersCount
 
 namespace o2
 {
-struct InteractionRecord;
 class MCCompLabel;
 namespace base
 {
@@ -192,7 +191,6 @@ struct GPUTrackingInOutZS {
     unsigned int n[NSLICES][NENDPOINTS];
   };
   GPUTrackingInOutZSSlice slice[NSLICES];
-  o2::InteractionRecord* ir;
 };
 
 struct GPUTrackingInOutDigits {
