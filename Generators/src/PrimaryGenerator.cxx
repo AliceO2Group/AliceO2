@@ -11,6 +11,7 @@
 /// \author R+Preghenella - June 2017
 
 #include "Generators/PrimaryGenerator.h"
+#include "Generators/Generator.h"
 #include "Generators/InteractionDiamondParam.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "FairLogger.h"
@@ -83,6 +84,14 @@ Bool_t PrimaryGenerator::GenerateEvent(FairGenericStack* pStack)
   /** setup interaction vertex **/
   mEmbedTree->GetEntry(mEmbedIndex);
   setInteractionVertex(mEmbedEvent);
+
+  /** notify event generators **/
+  auto genList = GetListOfGenerators();
+  for (int igen = 0; igen < genList->GetEntries(); ++igen) {
+    auto o2gen = dynamic_cast<Generator*>(genList->At(igen));
+    if (o2gen)
+      o2gen->notifyEmbedding(mEmbedEvent);
+  }
 
   /** generate event **/
   if (!FairPrimaryGenerator::GenerateEvent(pStack))

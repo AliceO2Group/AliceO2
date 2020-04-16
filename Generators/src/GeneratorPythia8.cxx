@@ -94,8 +94,6 @@ Bool_t
 {
   /** import particles **/
 
-  mParticles.clear();
-
   /* loop over particles */
   //  auto weight = mPythia.info.weight(); // TBD: use weights
   auto nParticles = mPythia.event.size();
