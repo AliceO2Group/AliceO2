@@ -53,6 +53,7 @@
 #endif
 
 #include "TPCFastTransform.h"
+#include "TPCdEdxCalibrationSplines.h"
 
 #include "utils/linux_helpers.h"
 using namespace GPUCA_NAMESPACE::gpu;
@@ -287,6 +288,13 @@ int GPUChainTracking::Init()
       mFlatObjectsShadow.mCalibObjects.fastTransform->setFutureBufferAddress(mFlatObjectsDevice.mTpcTransformBuffer);
     }
 #ifdef HAVE_O2HEADERS
+    if (processors()->calibObjects.dEdxSplines) {
+      memcpy((void*)mFlatObjectsShadow.mCalibObjects.dEdxSplines, (const void*)processors()->calibObjects.dEdxSplines, sizeof(*processors()->calibObjects.dEdxSplines));
+      memcpy((void*)mFlatObjectsShadow.mdEdxSplinesBuffer, (const void*)processors()->calibObjects.dEdxSplines->getFlatBufferPtr(), processors()->calibObjects.dEdxSplines->getFlatBufferSize());
+      mFlatObjectsShadow.mCalibObjects.dEdxSplines->clearInternalBufferPtr();
+      mFlatObjectsShadow.mCalibObjects.dEdxSplines->setActualBufferAddress(mFlatObjectsShadow.mdEdxSplinesBuffer);
+      mFlatObjectsShadow.mCalibObjects.dEdxSplines->setFutureBufferAddress(mFlatObjectsDevice.mdEdxSplinesBuffer);
+    }
     if (processors()->calibObjects.matLUT) {
       memcpy((void*)mFlatObjectsShadow.mCalibObjects.matLUT, (const void*)processors()->calibObjects.matLUT, sizeof(*processors()->calibObjects.matLUT));
       memcpy((void*)mFlatObjectsShadow.mMatLUTBuffer, (const void*)processors()->calibObjects.matLUT->getFlatBufferPtr(), processors()->calibObjects.matLUT->getFlatBufferSize());
@@ -517,6 +525,10 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
     computePointerWithAlignment(mem, mTpcTransformBuffer, mChainTracking->GetTPCTransform()->getFlatBufferSize());
   }
 #ifdef HAVE_O2HEADERS
+  if (mChainTracking->GetdEdxSplines()) {
+    computePointerWithAlignment(mem, mCalibObjects.dEdxSplines, 1);
+    computePointerWithAlignment(mem, mdEdxSplinesBuffer, mChainTracking->GetdEdxSplines()->getFlatBufferSize());
+  }
   if (mChainTracking->GetMatLUT()) {
     computePointerWithAlignment(mem, mCalibObjects.matLUT, 1);
     computePointerWithAlignment(mem, mMatLUTBuffer, mChainTracking->GetMatLUT()->getFlatBufferSize());
@@ -677,6 +689,12 @@ void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& t
 {
   mTPCFastTransformU = std::move(tpcFastTransform);
   processors()->calibObjects.fastTransform = mTPCFastTransformU.get();
+}
+
+void GPUChainTracking::SetdEdxSplines(std::unique_ptr<TPCdEdxCalibrationSplines>&& dEdxSplines)
+{
+  mdEdxSplinesU = std::move(dEdxSplines);
+  processors()->calibObjects.dEdxSplines = mdEdxSplinesU.get();
 }
 
 void GPUChainTracking::SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut)
