@@ -39,7 +39,6 @@ namespace o2::gpu
 class GPUReconstruction;
 class GPUChainTracking;
 struct GPUO2InterfaceConfiguration;
-class TPCFastTransform;
 
 class GPUTPCO2Interface
 {
