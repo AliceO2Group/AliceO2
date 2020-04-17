@@ -75,7 +75,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
     // data set is complete, have to think about a DPL feature to take
     // ownership of an input
     std::array<std::vector<char>, NSectors> bufferedInputs;
-    std::array<std::vector<MCLabelContainer>, NSectors> mcInputs;
+    using CachedMCLabelContainer = decltype(std::declval<InputRecord>().get<std::vector<MCLabelContainer>>(DataRef{nullptr, nullptr, nullptr}));
+    std::array<CachedMCLabelContainer, NSectors> mcInputs;
     std::bitset<NSectors> validInputs = 0;
     std::bitset<NSectors> validMcInputs = 0;
     std::unique_ptr<ClusterGroupParser> parser;
