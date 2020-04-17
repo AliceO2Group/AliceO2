@@ -19,6 +19,8 @@
 #include <vector>
 #include <string_view>
 
+#include "TPCBase/CalDet.h"
+
 class TObjArray;
 class TCanvas;
 class TH1;
@@ -27,12 +29,6 @@ namespace o2
 {
 namespace tpc
 {
-
-template <class T>
-class CalDet;
-
-template <class T>
-class CalArray;
 
 /// \namespace utils
 /// \brief Common utility functions
@@ -49,7 +45,10 @@ const std::vector<std::string> tokenize(const std::string_view input, const std:
 TH1* getBinInfoXY(int& binx, int& biny, float& bincx, float& bincy);
 void addFECInfo();
 void saveCanvases(TObjArray& arr, std::string_view outDir, std::string_view types = "png,pdf", std::string_view rootFileName = "");
+void saveCanvases(std::vector<TCanvas*> canvases, std::string_view outDir, std::string_view types = "png,pdf", std::string_view rootFileName = "");
 void saveCanvas(TCanvas& c, std::string_view outDir, std::string_view types);
+std::vector<CalPad*> readCalPads(const std::string_view fileName, const std::vector<std::string>& calPadNames);
+std::vector<CalPad*> readCalPads(const std::string_view fileName, const std::string_view calPadNames);
 
 } // namespace utils
 } // namespace tpc
