@@ -121,6 +121,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
       bool qa = false;                           // Run the QA after tracking
       bool readTransformationFromFile = false;   // Read the TPC transformation from the file
       char tpcTransformationFileName[1024] = ""; // A file with the TPC transformation
+      char matBudFileName[1024] = "";            // Material budget file name
 
       const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
       if (grp) {
@@ -178,6 +179,10 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
             gpuType[len] = 0;
             useGPU = true;
             printf("Using GPU Type %s\n", gpuType);
+          } else if (optLen > 8 && strncmp(optPtr, "matBudFile=", 8) == 0) {
+            int len = std::min(optLen - 11, 1023);
+            memcpy(matBudFileName, optPtr + 11, len);
+            matBudFileName[len] = 0;
           } else if (optLen > 15 && strncmp(optPtr, "transformation=", 15) == 0) {
             int len = std::min(optLen - 15, 1023);
             memcpy(tpcTransformationFileName, optPtr + 15, len);
@@ -252,8 +257,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
       if (config.configCalib.fastTransform == nullptr) {
         throw std::invalid_argument("GPUCATracking: initialization of the TPC transformation failed");
       }
-      o2::base::MatLayerCylSet* lut = o2::base::MatLayerCylSet::loadFromFile("matbud.root", "MatBud");
-      config.configCalib.matLUT = lut;
+      if (strlen(matBudFileName)) {
+        config.configCalib.matLUT = o2::base::MatLayerCylSet::loadFromFile(matBudFileName, "MatBud");
+      }
       // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
       /*o2::base::GeometryManager::loadGeometry();
       o2::trd::TRDGeometry gm;
