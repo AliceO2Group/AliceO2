@@ -26,6 +26,7 @@
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/Digit.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 #include "GPUO2Interface.h"
 #include "GPUO2InterfaceConfiguration.h"
@@ -92,6 +93,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   } else if (data->o2Digits) {
     ptrs.clustersNative = nullptr;
     const float zsThreshold = mTrackingCAO2Interface->getConfig().configReconstruction.tpcZSthreshold;
+    const int maxContTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + Constants::LHCBCPERTIMEBIN - 1) / Constants::LHCBCPERTIMEBIN;
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
       const auto& d = (*(data->o2Digits))[i];
       gpuDigits[i].reserve(d.size());
@@ -99,6 +101,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       for (int j = 0; j < d.size(); j++) {
         if (d[j].getTimeStamp() >= 4000) {
           throw std::runtime_error("Digits with time bin >= 4000 not yet supported in GPUCF");
+        }
+        if (d[j].getTimeStamp() >= maxContTimeBin) {
+          throw std::runtime_error("Digit time bin exceeds time frame length");
         }
         if (d[j].getChargeFloat() >= zsThreshold) {
           gpuDigits[i].emplace_back(deprecated::PackedDigit{d[j].getChargeFloat(), (Timestamp)d[j].getTimeStamp(), (Pad)d[j].getPad(), (Row)d[j].getRow()});
