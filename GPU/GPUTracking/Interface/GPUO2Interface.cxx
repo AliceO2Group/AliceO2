@@ -95,6 +95,9 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data)
 
   mChain->mIOPtrs = *data;
   int retVal = mRec->RunChains();
+  if (retVal == 2) {
+    retVal = 0; // 2 signals end of event display, ignore
+  }
   if (retVal) {
     mRec->ClearAllocatedMemory();
     return retVal;
