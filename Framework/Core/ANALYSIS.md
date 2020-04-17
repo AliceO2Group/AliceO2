@@ -574,11 +574,10 @@ three items:
   2.`fileregex` is a regex string which is used to select the input files from the file list specified by `resfiles`.
   3.`InputDescriptors` is an array of objects, the so called `DataInputDescriptors`, which are composed of 4 items.
   
-     a. `table` is a string and specifies the table to fill. The `table` needs to be provided in the format `AOD/tablename/0`, where `tablename` is the name of the table as defined in the workflow definition.
+     a. `table` is a string and specifies the table to fill. The `table` needs to be provided in the format `AOD/tablename/0`, where `tablename` is the name of the table as defined in the workflow definition.  
      b. `treename` is a string and specifies the tree which is to be used to fill `table`  
-     c. `resfiles` is either a string or an array of strings. It specifies a list of possible input files (see discussion of `resfiles` above).
-     d. `fileregex` is a regular expression string which is used to select the
-input files from the file list specified by `resfiles`  
+     c. `resfiles` is either a string or an array of strings. It specifies a list of possible input files (see discussion of `resfiles` above).  
+     d. `fileregex` is a regular expression string which is used to select the input files from the file list specified by `resfiles`  
 
 The information contained in a `DataInputDescriptor` instructs the internal-dpl-aod-reader to fill table `table` with the values from the tree `treename` in the files which are defined by `resfiles` and which names match the regex `fileregex`.
 
