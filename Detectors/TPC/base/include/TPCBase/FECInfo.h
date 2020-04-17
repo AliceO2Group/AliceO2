@@ -21,6 +21,11 @@ namespace tpc
 class FECInfo
 {
  public:
+  static constexpr int ChannelsPerSAMPA = 32;
+  static constexpr int SAMPAsPerFEC = 5;
+  static constexpr int ChannelsPerFEC = ChannelsPerSAMPA * SAMPAsPerFEC;
+  static constexpr int FECsPerSector = 91;
+
   FECInfo() = default;
   FECInfo(unsigned char index,
           //unsigned char connector,
@@ -33,7 +38,7 @@ class FECInfo
 
   unsigned char getIndex() const { return mIndex; }
   //const unsigned char getConnector()    const { return mConnector;   } // -> can be calculated from mSampaChannel and mSampaChip
-  //const unsigned char getChannel()      const { return mChannel;     } // -> can be calculated from mSampaChannel and mSampaChip
+  unsigned char getFECChannel() const { return mSampaChip * ChannelsPerSAMPA + mSampaChannel; } // -> can be calculated from mSampaChannel and mSampaChip
   unsigned char getSampaChip() const { return mSampaChip; }
   unsigned char getSampaChannel() const { return mSampaChannel; }
 
@@ -57,6 +62,12 @@ class FECInfo
   static constexpr int fecInSector(const int globalSAMPAId) { return globalSAMPAId >> 8; }
   static constexpr int sampaOnFEC(const int globalSAMPAId) { return (globalSAMPAId >> 5) & 7; }
   static constexpr int channelOnSAMPA(const int globalSAMPAId) { return globalSAMPAId & 31; }
+
+  /// calculate the sampa number from the channel number on the FEC (0-159)
+  static constexpr int sampaFromFECChannel(const int fecChannel) { return fecChannel / ChannelsPerSAMPA; }
+
+  /// calculate the sampa channel number from the channel number on the FEC (0-159)
+  static constexpr int channelFromFECChannel(const int fecChannel) { return fecChannel % ChannelsPerSAMPA; }
 
   static void sampaInfo(const int globalSAMPAId, int& fecInSector, int& sampaOnFEC, int& channelOnSAMPA)
   {
