@@ -893,13 +893,8 @@ int GPUChainTracking::RunTPCClusterizer()
       }
 
       if (mIOPtrs.tpcZS) {
-#ifdef GPUCA_O2_LIB
-        const o2::header::RAWDataHeader* hdr = (const o2::header::RAWDataHeader*)mIOPtrs.tpcZS->slice[0].zsPtr[0][0];
-        int bcShiftInFirstHBF = o2::raw::RDHUtils::getHeartBeatBC(hdr);
-#else
-        int bcShiftInFirstHBF = 0;
-#endif
-        runKernel<GPUTPCCFDecodeZS, GPUTPCCFDecodeZS::decodeZS>({doGPU ? clusterer.mPmemory->counters.nPages : GPUTrackingInOutZS::NENDPOINTS, CFDecodeThreadCount(), lane}, {iSlice}, {}, bcShiftInFirstHBF);
+        int firstHBF = mIOPtrs.tpcZS->slice[0].count[0] ? o2::raw::RDHUtils::getHeartBeatOrbit((const o2::header::RAWDataHeader*)mIOPtrs.tpcZS->slice[0].zsPtr[0][0]) : 0;
+        runKernel<GPUTPCCFDecodeZS, GPUTPCCFDecodeZS::decodeZS>({doGPU ? clusterer.mPmemory->counters.nPages : GPUTrackingInOutZS::NENDPOINTS, CFDecodeThreadCount(), lane}, {iSlice}, {}, firstHBF);
         TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
         SynchronizeStream(lane);
       } else {
