@@ -161,6 +161,7 @@ foreach(t
         InputRecord
         InputRecordWalker
         InputSpan
+        InputSpec
         Kernels
         LogParsingHelpers
         PtrHelpers

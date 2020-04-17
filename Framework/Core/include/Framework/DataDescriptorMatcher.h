@@ -238,9 +238,9 @@ class DataDescriptorMatcher
   /// contents mLeft and mRight into a new unique_ptr, if
   /// needed.
   DataDescriptorMatcher(DataDescriptorMatcher const& other);
-  //DataDescriptorMatcher(DataDescriptorMatcher&& other) noexcept;
+  DataDescriptorMatcher(DataDescriptorMatcher&& other) noexcept = default;
   DataDescriptorMatcher& operator=(DataDescriptorMatcher const& other);
-  //DataDescriptorMatcher &operator=(DataDescriptorMatcher&& other) noexcept = default;
+  DataDescriptorMatcher& operator=(DataDescriptorMatcher&& other) noexcept = default;
 
   /// Unary operator on a node
   DataDescriptorMatcher(Op op, Node&& lhs, Node&& rhs = std::move(ConstantValueMatcher{false}));
