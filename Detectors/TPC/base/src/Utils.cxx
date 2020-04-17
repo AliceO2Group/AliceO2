@@ -122,10 +122,42 @@ void utils::saveCanvases(TObjArray& arr, std::string_view outDir, std::string_vi
   }
 }
 
+void utils::saveCanvases(std::vector<TCanvas*> canvases, std::string_view outDir, std::string_view types, std::string_view rootFileName)
+{
+  TObjArray arr;
+  for (auto c : canvases) {
+    arr.Add(c);
+  }
+
+  saveCanvases(arr, outDir, types, rootFileName);
+}
+
 void utils::saveCanvas(TCanvas& c, std::string_view outDir, std::string_view types)
 {
   const auto typesVec = tokenize(types, ",");
   for (const auto& type : typesVec) {
     c.SaveAs(fmt::format("{}/{}.{}", outDir, c.GetName(), type).data());
   }
+}
+
+std::vector<CalPad*> utils::readCalPads(const std::string_view fileName, const std::vector<std::string>& calPadNames)
+{
+  std::vector<CalPad*> calPads(calPadNames.size());
+
+  std::unique_ptr<TFile> file(TFile::Open(fileName.data()));
+  if (!file || !file->IsOpen() || file->IsZombie()) {
+    return calPads;
+  }
+
+  for (size_t iCalPad = 0; iCalPad < calPadNames.size(); ++iCalPad) {
+    file->GetObject(calPadNames[iCalPad].data(), calPads[iCalPad]);
+  }
+
+  return calPads;
+}
+
+std::vector<CalPad*> utils::readCalPads(const std::string_view fileName, const std::string_view calPadNames)
+{
+  auto calPadNamesVec = tokenize(calPadNames, ",");
+  return readCalPads(fileName, calPadNamesVec);
 }
