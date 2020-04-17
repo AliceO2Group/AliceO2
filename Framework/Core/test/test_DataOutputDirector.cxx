@@ -30,8 +30,8 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
   // test keepString reader
   std::string keepString("AOD/UNO/0:tr1:c1/c2/c3:fn1,AOD/UNO/0::c4");
   dod.readString(keepString);
-  dod.setDefaultfname(mydfn);
-  // dod.printOut(); printf("\n\n");
+  dod.setFilenameBase(mydfn);
+  //dod.printOut(); printf("\n\n");
 
   auto ds = dod.getDataOutputDescriptors(dh);
 
@@ -40,12 +40,12 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
   BOOST_CHECK_EQUAL(ds[0]->tablename, std::string("UNO"));
   BOOST_CHECK_EQUAL(ds[0]->treename, std::string("tr1"));
   BOOST_CHECK_EQUAL(ds[0]->colnames.size(), 3);
-  BOOST_CHECK_EQUAL(ds[0]->getFilename(), std::string("fn1"));
+  BOOST_CHECK_EQUAL(ds[0]->getFilenameBase(), std::string("fn1"));
 
   BOOST_CHECK_EQUAL(ds[1]->tablename, std::string("UNO"));
   BOOST_CHECK_EQUAL(ds[1]->treename, std::string("UNO"));
   BOOST_CHECK_EQUAL(ds[1]->colnames.size(), 1);
-  BOOST_CHECK_EQUAL(ds[1]->getFilename(), std::string("myresultfile"));
+  BOOST_CHECK_EQUAL(ds[1]->getFilenameBase(), std::string("myresultfile"));
 
   // test jsonString reader
   std::string dfn("");
@@ -55,11 +55,11 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
   dh = DataHeader(DataDescription{"DUE"},
                   DataOrigin{"AOD"},
                   DataHeader::SubSpecificationType{0});
-  std::string jsonString(R"({"OutputDirector": {"resfile": "defresults", "resfilemode": "RECREATE", "ntfmerge": 10, "OutputDescriptions": [{"table": "AOD/UNO/0", "columns": ["fEta1","fMom1"], "treename": "uno", "filename": "unoresults"}, {"table": "AOD/DUE/0", "columns": ["fPhi2"], "treename": "due"}]}})");
+  std::string jsonString(R"({"OutputDirector": {"resfile": "defresults", "resfilemode": "RECREATE", "ntfmerge": 10, "OutputDescriptors": [{"table": "AOD/UNO/0", "columns": ["fEta1","fMom1"], "treename": "uno", "filename": "unoresults"}, {"table": "AOD/DUE/0", "columns": ["fPhi2"], "treename": "due"}]}})");
 
   dod.reset();
   std::tie(dfn, fmode, ntf) = dod.readJsonString(jsonString);
-  // dod.printOut(); printf("\n\n");
+  //dod.printOut(); printf("\n\n");
   ds = dod.getDataOutputDescriptors(dh);
 
   BOOST_CHECK_EQUAL(ds.size(), 1);
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
   BOOST_CHECK_EQUAL(ds[0]->tablename, std::string("DUE"));
   BOOST_CHECK_EQUAL(ds[0]->treename, std::string("due"));
   BOOST_CHECK_EQUAL(ds[0]->colnames.size(), 1);
-  BOOST_CHECK_EQUAL(ds[0]->getFilename(), std::string("defresults"));
+  BOOST_CHECK_EQUAL(ds[0]->getFilenameBase(), std::string("defresults"));
 
   // test json file reader
   std::string jsonFile("testO2config.json");
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
   jf << R"(    "resfile": "defresults",)" << std::endl;
   jf << R"(    "resfilemode": "NEW",)" << std::endl;
   jf << R"(    "ntfmerge": 10,)" << std::endl;
-  jf << R"(    "OutputDescriptions": [)" << std::endl;
+  jf << R"(    "OutputDescriptors": [)" << std::endl;
   jf << R"(      {)" << std::endl;
   jf << R"(        "table": "AOD/DUE/0",)" << std::endl;
   jf << R"(        "columns": [)" << std::endl;
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
 
   dod.reset();
   std::tie(dfn, fmode, ntf) = dod.readJson(jsonFile);
-  dod.setDefaultfname("AnalysisResults");
+  dod.setFilenameBase("AnalysisResults");
   //dod.printOut(); printf("\n\n");
   ds = dod.getDataOutputDescriptors(dh);
 
@@ -114,12 +114,12 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
   BOOST_CHECK_EQUAL(fmode, std::string("NEW"));
   BOOST_CHECK_EQUAL(ntf, 10);
 
-  BOOST_CHECK_EQUAL(ds[0]->getFilename(), std::string("unoresults"));
+  BOOST_CHECK_EQUAL(ds[0]->getFilenameBase(), std::string("unoresults"));
   BOOST_CHECK_EQUAL(ds[0]->tablename, std::string("DUE"));
   BOOST_CHECK_EQUAL(ds[0]->treename, std::string("uno"));
   BOOST_CHECK_EQUAL(ds[0]->colnames.size(), 2);
 
-  BOOST_CHECK_EQUAL(ds[1]->getFilename(), std::string("dueresults"));
+  BOOST_CHECK_EQUAL(ds[1]->getFilenameBase(), std::string("dueresults"));
   BOOST_CHECK_EQUAL(ds[1]->tablename, std::string("DUE"));
   BOOST_CHECK_EQUAL(ds[1]->treename, std::string("due"));
   BOOST_CHECK_EQUAL(ds[1]->colnames.size(), 1);

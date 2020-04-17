@@ -268,7 +268,7 @@ DataProcessorSpec
         dod->readString(keepString);
       }
     }
-    dod->setDefaultfname(fnbase);
+    dod->setFilenameBase(fnbase);
 
     // find out if any table needs to be saved
     bool hasOutputsToWrite = false;
@@ -293,7 +293,7 @@ DataProcessorSpec
 
     // end of data functor is called at the end of the data stream
     auto endofdatacb = [dod](EndOfStreamContext& context) {
-      dod->closeDataOutputFiles();
+      dod->closeDataFiles();
 
       context.services().get<ControlService>().readyToQuit(QuitRequest::All);
     };
