@@ -172,7 +172,7 @@ TH2* painter::getHistogram2D(const CalArray<T>& calArray)
   const PadSubset padSubset = calArray.getPadSubset();
   // ===| maximum number of rows and pads |=====================================
   const int nrows = mapper.getNumberOfPadRows(padSubset, position);
-  const int npads = mapper.getNumberOfPadsInRow(padSubset, position, nrows - 1);
+  const int npads = mapper.getNumberOfPadsInRow(padSubset, position, nrows - 1) + 6;
 
   // ===| create histogram |====================================================
   const auto title = calArray.getName().c_str();
