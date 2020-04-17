@@ -25,12 +25,12 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
 template <>
-GPUdii() void GPUTPCCFDecodeZS::Thread<GPUTPCCFDecodeZS::decodeZS>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int bcShiftInFirstHBF)
+GPUdii() void GPUTPCCFDecodeZS::Thread<GPUTPCCFDecodeZS::decodeZS>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int firstHBF)
 {
-  GPUTPCCFDecodeZS::decode(clusterer, smem, nBlocks, nThreads, iBlock, iThread, bcShiftInFirstHBF);
+  GPUTPCCFDecodeZS::decode(clusterer, smem, nBlocks, nThreads, iBlock, iThread, firstHBF);
 }
 
-GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread, int bcShiftInFirstHBF)
+GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread, int firstHBF)
 {
   const unsigned int slice = clusterer.mISlice;
 #ifdef GPUCA_GPUCODE
@@ -79,7 +79,7 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
       const TPCZSHDR* hdr = reinterpret_cast<const TPCZSHDR*>(pagePtr);
       pagePtr += sizeof(*hdr);
       unsigned int mask = (1 << s.decodeBits) - 1;
-      int timeBin = hdr->timeOffset + (GPURawDataUtils::getOrbit(rdh) * o2::constants::lhc::LHCMaxBunches + Constants::LHCBCPERTIMEBIN - 1 - bcShiftInFirstHBF) / Constants::LHCBCPERTIMEBIN;
+      int timeBin = (hdr->timeOffset + (GPURawDataUtils::getOrbit(rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / Constants::LHCBCPERTIMEBIN;
       const int rowOffset = s.regionStartRow + ((endpoint & 1) ? (s.nRowsRegion / 2) : 0);
       const int nRows = (endpoint & 1) ? (s.nRowsRegion - s.nRowsRegion / 2) : (s.nRowsRegion / 2);
 
