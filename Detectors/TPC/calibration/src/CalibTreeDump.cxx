@@ -25,6 +25,7 @@
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/Mapper.h"
+#include "TPCBase/Utils.h"
 #include "TPCBase/Sector.h"
 
 #include "TPCCalibration/CalibTreeDump.h"
@@ -32,6 +33,14 @@
 using o2::math_utils::math_base::median;
 
 using namespace o2::tpc;
+
+void CalibTreeDump::addCalPads(const std::string_view file, const std::string_view calPadNames)
+{
+  auto calPads = utils::readCalPads(file, calPadNames);
+  for (auto calPad : calPads) {
+    add(calPad);
+  }
+}
 
 //______________________________________________________________________________
 void CalibTreeDump::dumpToFile(const std::string filename)
@@ -195,8 +204,12 @@ void CalibTreeDump::addCalDetObjects(TTree* tree)
 {
 
   int iter = 0;
-  for (auto& calDet : mCalDetObjects) {
+  for (auto pcalDet : mCalDetObjects) {
     // ===| branch names |===
+    if (!pcalDet) {
+      continue;
+    }
+    auto& calDet = *pcalDet;
     std::string name = calDet.getName();
 
     if (name == "PadCalibrationObject" || name.size() == 0) {
@@ -318,8 +331,8 @@ void CalibTreeDump::setDefaultAliases(TTree* tree)
   tree->SetAlias("OROC2", "partition == 3");
   tree->SetAlias("OROC3", "partition == 4");
 
-  tree->SetAlias("A_Side", "sector < 36");
-  tree->SetAlias("C_Side", "sector >= 36");
+  tree->SetAlias("A_Side", "sector < 18");
+  tree->SetAlias("C_Side", "sector >= 18");
 
   if (mAddFEEInfo) {
     tree->SetAlias("fecID", "fecInSector + sector * 91");
