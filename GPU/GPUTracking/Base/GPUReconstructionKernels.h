@@ -46,7 +46,7 @@ GPUCA_KRNL((GPUTPCCFStreamCompaction,   nativeScanUp     ), (single, REG, (GPUCA
 GPUCA_KRNL((GPUTPCCFStreamCompaction,   nativeScanTop    ), (single, REG, (GPUCA_THREAD_COUNT_SCAN, 1)), (, int iBuf, int nElems), (, iBuf, nElems))
 GPUCA_KRNL((GPUTPCCFStreamCompaction,   nativeScanDown   ), (single, REG, (GPUCA_THREAD_COUNT_SCAN, 1)), (, int iBuf, unsigned int offset, int nElems), (, iBuf, offset, nElems))
 GPUCA_KRNL((GPUTPCCFStreamCompaction,   compact          ), (single, REG, (GPUCA_THREAD_COUNT_SCAN, 1)), (, int iBuf, int stage, GPUPtr1(ChargePos*, in), GPUPtr1(ChargePos*, out)), (, iBuf, stage, GPUPtr2(ChargePos*, in), GPUPtr2(ChargePos*, out)))
-GPUCA_KRNL((GPUTPCCFDecodeZS                             ), (single, REG, (GPUCA_THREAD_COUNT_CFDECODE, GPUCA_MINBLOCK_COUNT_DECODE)), (, int bcShiftInFirstHBF), (, bcShiftInFirstHBF))
+GPUCA_KRNL((GPUTPCCFDecodeZS                             ), (single, REG, (GPUCA_THREAD_COUNT_CFDECODE, GPUCA_MINBLOCK_COUNT_DECODE)), (, int firstHBF), (, firstHBF))
 #endif
 #endif
 // clang-format on
