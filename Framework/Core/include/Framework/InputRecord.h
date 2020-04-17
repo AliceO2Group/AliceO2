@@ -134,7 +134,7 @@ class InputRecord
 
     // copy constructor is needed in the setup of unique_ptr
     // check that assignments happen only to uninitialized instances
-    constexpr Deleter(const self_type& other)
+    constexpr Deleter(const self_type& other) : base::default_delete(other), mProperty{OwnershipProperty::Unknown}
     {
       if (mProperty == OwnershipProperty::Unknown) {
         mProperty = other.mProperty;
@@ -145,16 +145,28 @@ class InputRecord
 
     // copy constructor for the default delete which simply sets the
     // resource ownership control to 'Owning'
-    constexpr Deleter(const base& other) { mProperty = OwnershipProperty::Owning; }
+    constexpr Deleter(const base& other) : base::default_delete(other), mProperty{OwnershipProperty::Owning} {}
 
-    // forbid assignment operator to prohibid changing the Deleter
-    // resource control property once used in the unique_ptr
-    self_type& operator=(const self_type&) = delete;
+    // allow assignment operator only for pristine or matching resource control property
+    self_type& operator=(const self_type& other)
+    {
+      // the default_deleter does not have any state, so this could be skipped, but keep the call to
+      // the base for completeness, and the (small) chance for changing the base
+      base::operator=(other);
+      if (mProperty == OwnershipProperty::Unknown) {
+        mProperty = other.mProperty;
+      } else if (mProperty != other.mProperty) {
+        throw std::runtime_error("Attemp to change resource control");
+      }
+      return *this;
+    }
 
     void operator()(T* ptr) const
     {
-      if (mProperty == OwnershipProperty::NotOwning)
+      if (mProperty == OwnershipProperty::NotOwning) {
+        // nothing done if resource is not owned
         return;
+      }
       base::operator()(ptr);
     }
 
