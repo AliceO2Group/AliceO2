@@ -31,7 +31,6 @@
 
 #include "MCHBase/Digit.h"
 #include "MCHBase/PreCluster.h"
-
 #include "MCHMappingFactory/CreateSegmentation.h"
 
 namespace o2
