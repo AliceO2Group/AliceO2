@@ -456,9 +456,9 @@ class RootTreeWriter
     // specialization for trivial structs or serialized objects without a TClass interface
     // the extracted object is copied to store variable
     template <typename S, typename std::enable_if_t<std::is_same<S, MessageableTypeSpecialization>::value, int> = 0>
-    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, size_t branchIdx)
     {
-      auto data = context.get<value_type>(key);
+      auto data = context.get<value_type>(ref);
       mStore[branchIdx] = data;
       branch->Fill();
     }
@@ -468,9 +468,9 @@ class RootTreeWriter
     // in order to directly use the pointer to extracted object
     // store is a pointer to object
     template <typename S, typename std::enable_if_t<std::is_same<S, ROOTTypeSpecialization>::value, int> = 0>
-    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, size_t branchIdx)
     {
-      auto data = context.get<typename std::add_pointer<value_type>::type>(key);
+      auto data = context.get<typename std::add_pointer<value_type>::type>(ref);
       // this is ugly but necessary because of the TTree API does not allow a const
       // object as input. Have to rely on that ROOT treats the object as const
       mStore[branchIdx] = const_cast<value_type*>(data.get());
@@ -480,9 +480,9 @@ class RootTreeWriter
     // specialization for binary buffers using const char*
     // this writes both the data branch and a size branch
     template <typename S, typename std::enable_if_t<std::is_same<S, BinaryBranchSpecialization>::value, int> = 0>
-    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, size_t branchIdx)
     {
-      auto data = context.get<gsl::span<char>>(key);
+      auto data = context.get<gsl::span<char>>(ref);
       std::get<2>(mStore.at(branchIdx)) = data.size();
       std::get<1>(mStore.at(branchIdx))->Fill();
       std::get<0>(mStore.at(branchIdx)).resize(data.size());
@@ -492,7 +492,7 @@ class RootTreeWriter
 
     // specialization for vectors of messageable types
     template <typename S, typename std::enable_if_t<std::is_same<S, MessageableVectorSpecialization>::value, int> = 0>
-    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, size_t branchIdx)
     {
       using ValueType = typename value_type::value_type;
       static_assert(is_messageable<ValueType>::value, "logical error: should be correctly selected by StructureElementTypeTrait");
@@ -501,14 +501,14 @@ class RootTreeWriter
       try {
         // try extracting from message with serialization method NONE, throw runtime error
         // if message is serialized
-        auto data = context.get<gsl::span<ValueType>>(key);
+        auto data = context.get<gsl::span<ValueType>>(ref);
         value_type clone(data.begin(), data.end());
         mStore[branchIdx] = &clone;
         branch->Fill();
       } catch (const std::runtime_error& e) {
         if constexpr (has_root_dictionary<value_type>::value == true) {
           // try extracting from message with serialization method ROOT
-          auto data = context.get<typename std::add_pointer<value_type>::type>(key);
+          auto data = context.get<typename std::add_pointer<value_type>::type>(ref);
           mStore[branchIdx] = const_cast<value_type*>(data.get());
           branch->Fill();
         } else {
@@ -528,16 +528,20 @@ class RootTreeWriter
       BranchSpec const& spec = specs[SpecIndex];
       // loop over all defined inputs
       for (auto const& key : spec.keys) {
-        auto dataref = context.get(key.c_str());
-        size_t branchIdx = 0;
-        if (spec.getIndex) {
-          branchIdx = spec.getIndex(dataref);
-          if (branchIdx == ~(size_t)0) {
-            // this indicates skipping
-            continue;
+        auto keypos = context.getPos(key.c_str());
+        auto parts = context.getNofParts(keypos);
+        for (decltype(parts) part = 0; part < parts; part++) {
+          auto dataref = context.get(key.c_str(), part);
+          size_t branchIdx = 0;
+          if (spec.getIndex) {
+            branchIdx = spec.getIndex(dataref);
+            if (branchIdx == ~(size_t)0) {
+              // this indicates skipping
+              continue;
+            }
           }
+          fillData<specialization_id>(context, dataref, spec.branches.at(branchIdx), branchIdx);
         }
-        fillData<specialization_id>(context, key.c_str(), spec.branches.at(branchIdx), branchIdx);
       }
     }
 
