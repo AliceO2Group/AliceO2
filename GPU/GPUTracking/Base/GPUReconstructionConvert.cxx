@@ -292,29 +292,31 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
             break;
           }
         }
-        unsigned int sizeChk = (unsigned int)(pagePtr - reinterpret_cast<unsigned char*>(page));                    // already written
-        sizeChk += 2 * (nRowsInTB + (ZSEncoderGetRow(tmpBuffer[k]) != lastRow));                                    // TB HDR
-        sizeChk += streamSize8;                                                                                     // in stream buffer
-        sizeChk += (ZSEncoderGetTime(tmpBuffer[k]) != lastTime || ZSEncoderGetRow(tmpBuffer[k]) != lastRow) ? 3 : 0;                          // new row overhead
-        sizeChk += (lastTime != -1 && ZSEncoderGetTime(tmpBuffer[k]) > lastTime) ? ((ZSEncoderGetTime(tmpBuffer[k]) - lastTime - 1) * 2) : 0; // empty time bins
-        sizeChk += (lastTime != ZSEncoderGetTime(tmpBuffer[k])) ? (sizeChk & 1) : 0;                                                          // time bin alignment
-        sizeChk += 2;                                                                                               // sequence metadata
-        const unsigned int streamSizeChk = streamSize + ((lastTime != ZSEncoderGetTime(tmpBuffer[k]) && streamSize % encodeBits) ? (encodeBits - streamSize % encodeBits) : 0);
-        if (sizeChk + ((1 + streamSizeChk) * encodeBits + 7) / 8 > TPCZSHDR::TPC_ZS_PAGE_SIZE) {
-          lastEndpoint = -1;
-        } else if (sizeChk + ((seqLen + streamSizeChk) * encodeBits + 7) / 8 > TPCZSHDR::TPC_ZS_PAGE_SIZE) {
-          seqLen = (TPCZSHDR::TPC_ZS_PAGE_SIZE - sizeChk) * 8 / encodeBits - streamSizeChk;
-        }
         if (lastTime != -1 && (int)hdr->nTimeBins + ZSEncoderGetTime(tmpBuffer[k]) - lastTime >= 256) {
           lastEndpoint = -1;
         }
-        //sizeChk += ((seqLen + streamSizeChk) * encodeBits + 7) / 8;
-        //printf("Endpoint %d (%d), Pos %d, Chk %d, Len %d, rows %d, StreamSize %d %d, time %d (%d), row %d (%d), pad %d\n", endpoint, lastEndpoint, (int) (pagePtr - reinterpret_cast<unsigned char*>(page)), sizeChk, seqLen, nRowsInTB, streamSize8, streamSize, (int) ZSEncoderGetTime(tmpBuffer[k]), lastTime, (int) ZSEncoderGetRow(tmpBuffer[k]), lastRow, ZSEncoderGetPad(tmpBuffer[k]));
         if (ZSEncoderGetTime(tmpBuffer[k]) != lastTime) {
           nexthbf = ((long)ZSEncoderGetTime(tmpBuffer[k]) * Constants::LHCBCPERTIMEBIN + bcShiftInFirstHBF) / o2::constants::lhc::LHCMaxBunches;
           if (hbf != nexthbf) {
             lastEndpoint = -1;
           }
+        }
+        if (endpoint == lastEndpoint) {
+          unsigned int sizeChk = (unsigned int)(pagePtr - reinterpret_cast<unsigned char*>(page));                                              // already written
+          sizeChk += 2 * (nRowsInTB + (ZSEncoderGetRow(tmpBuffer[k]) != lastRow && ZSEncoderGetTime(tmpBuffer[k]) == lastTime));                // TB HDR
+          sizeChk += streamSize8;                                                                                                               // in stream buffer
+          sizeChk += (lastTime != ZSEncoderGetTime(tmpBuffer[k])) && ((sizeChk + (streamSize * encodeBits + 7) / 8) & 1);                       // time bin alignment
+          sizeChk += (ZSEncoderGetTime(tmpBuffer[k]) != lastTime || ZSEncoderGetRow(tmpBuffer[k]) != lastRow) ? 3 : 0;                          // new row overhead
+          sizeChk += (lastTime != -1 && ZSEncoderGetTime(tmpBuffer[k]) > lastTime) ? ((ZSEncoderGetTime(tmpBuffer[k]) - lastTime - 1) * 2) : 0; // empty time bins
+          sizeChk += 2;                                                                                                                         // sequence metadata
+          const unsigned int streamSizeChkBits = streamSize * encodeBits + ((lastTime != ZSEncoderGetTime(tmpBuffer[k]) && (streamSize * encodeBits) % 8) ? (8 - (streamSize * encodeBits) % 8) : 0);
+          if (sizeChk + (encodeBits + streamSizeChkBits + 7) / 8 > TPCZSHDR::TPC_ZS_PAGE_SIZE) {
+            lastEndpoint = -1;
+          } else if (sizeChk + (seqLen * encodeBits + streamSizeChkBits + 7) / 8 > TPCZSHDR::TPC_ZS_PAGE_SIZE) {
+            seqLen = ((TPCZSHDR::TPC_ZS_PAGE_SIZE - sizeChk) * 8 - streamSizeChkBits) / encodeBits;
+          }
+          // sizeChk += (seqLen * encodeBits + streamSizeChkBits + 7) / 8;
+          // printf("Endpoint %d (%d), Pos %d, Chk %d, Len %d, rows %d, StreamSize %d %d, time %d (%d), row %d (%d), pad %d\n", endpoint, lastEndpoint, (int) (pagePtr - reinterpret_cast<unsigned char*>(page)), sizeChk, seqLen, nRowsInTB, streamSize8, streamSize, (int) ZSEncoderGetTime(tmpBuffer[k]), lastTime, (int) ZSEncoderGetRow(tmpBuffer[k]), lastRow, ZSEncoderGetPad(tmpBuffer[k]));
         }
       }
       if (k >= tmpBuffer.size() || endpoint != lastEndpoint || ZSEncoderGetTime(tmpBuffer[k]) != lastTime) {
