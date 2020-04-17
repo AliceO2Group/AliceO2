@@ -43,7 +43,7 @@ class GPUdEdx
  public:
   // The driver must call clear(), fill clusters row by row outside-in, then run computedEdx() to get the result
   GPUd() void clear();
-  GPUd() void fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& param, const TPCdEdxCalibrationSplines* splines);
+  GPUd() void fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& param, const TPCdEdxCalibrationSplines* splines, float z);
   GPUd() void fillSubThreshold(int padRow, const GPUParam& param);
   GPUd() void computedEdx(GPUdEdxInfo& output, const GPUParam& param);
 
@@ -83,7 +83,7 @@ GPUdi() void GPUdEdx::checkSubThresh(int roc)
   mLastROC = roc;
 }
 
-GPUdi() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& GPUrestrict() param, const TPCdEdxCalibrationSplines* splines)
+GPUdi() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& GPUrestrict() param, const TPCdEdxCalibrationSplines* splines, float z)
 {
   if (mCount >= MAX_NCL) {
     return;
@@ -94,10 +94,21 @@ GPUdi() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trac
   if (snp2 > GPUCA_MAX_SIN_PHI_LOW) {
     snp2 = GPUCA_MAX_SIN_PHI_LOW;
   }
-  float factor = CAMath::Sqrt((1 - snp2) / (1 + trackTgl * trackTgl));
+  float tgl2 = trackTgl * trackTgl;
+  float factor = CAMath::Sqrt((1 - snp2) / (1 + tgl2));
   factor /= param.tpcGeometry.PadHeight(padRow);
   qtot *= factor;
-  qmax *= factor / param.tpcGeometry.PadWidth(padRow);
+  qmax *= factor;
+
+  const float sec2 = 1.f / (1.f - snp2);
+  // angleZ: z angle - dz/dx (cm/cm)
+  const float angleZ = CAMath::Sqrt(tgl2 * sec2); // fast
+
+  const int region = param.tpcGeometry.GetRegion(padRow);
+  const float qMaxCorr = splines->interpolateqMax(region, angleZ, z);
+  const float qTotCorr = splines->interpolateqTot(region, angleZ, z);
+  qmax /= qMaxCorr;
+  qtot /= qTotCorr;
 
   mChargeTot[mCount] = qtot;
   mChargeMax[mCount++] = qmax;
