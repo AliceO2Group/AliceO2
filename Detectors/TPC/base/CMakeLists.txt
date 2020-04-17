@@ -34,7 +34,7 @@ o2_add_library(TPCBase
                        src/Sector.cxx
                        src/Utils.cxx
                PUBLIC_LINK_LIBRARIES Vc::Vc Boost::boost O2::DataFormatsTPC
-                                     O2::CCDB FairRoot::Base)
+                                     O2::DetectorsRaw O2::CCDB FairRoot::Base)
 
 o2_target_root_dictionary(TPCBase
                           HEADERS include/TPCBase/CalArray.h
@@ -86,6 +86,12 @@ o2_add_test(Parameters
             COMPONENT_NAME tpc
             PUBLIC_LINK_LIBRARIES O2::TPCBase
             SOURCES test/testTPCParameters.cxx
+            LABELS tpc)
+
+o2_add_test(RDHUtils
+            COMPONENT_NAME tpc
+            PUBLIC_LINK_LIBRARIES O2::TPCBase
+            SOURCES test/testRDHUtils.cxx
             LABELS tpc)
 
 #o2_add_test(CCDBInterface
