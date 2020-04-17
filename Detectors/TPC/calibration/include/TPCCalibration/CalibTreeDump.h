@@ -53,28 +53,31 @@ class CalibTreeDump
 
   /// Add CalDet object
   template <typename T>
-  void add(const CalDet<T>& calDet)
+  void add(CalDet<T>* calDet)
   {
-    mCalDetObjects.push_back(calDet);
+    mCalDetObjects.emplace_back(calDet);
   }
   //void add(const CalDet<DataTypes>& calDet) { mCalDetObjects.push_back(calDet); }
 
   /// Add CalArray objects
   template <typename T>
-  void add(const CalArray<T>& calArray)
+  void add(CalArray<T>* calArray)
   {
-    mCalArrayObjects.push_back(calArray);
+    mCalArrayObjects.emplace_back(calArray);
   }
 
   /// Set adding of FEE mapping to the tree
   void setAddFEEInfo(bool add = true) { mAddFEEInfo = add; }
 
+  /// Add CalPad objects from a file
+  void addCalPads(const std::string_view file, const std::string_view calPadNames);
+
   /// Dump the registered calibration data to file
   void dumpToFile(const std::string filename = "CalibTree.root");
 
  private:
-  std::vector<DataTypes> mCalDetObjects{};   ///< array of CalDet objects
-  std::vector<DataTypes> mCalArrayObjects{}; ///< array of CalArray objects
+  std::vector<DataTypes*> mCalDetObjects{};   ///< array of CalDet objects
+  std::vector<DataTypes*> mCalArrayObjects{}; ///< array of CalArray objects
   bool mAddFEEInfo{false};                   ///< add front end electronics mappings
   std::vector<float> mTraceLengthIROC;       ///< trace lengths IROC
   std::vector<float> mTraceLengthOROC;       ///< trace lengths OROC
