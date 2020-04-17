@@ -65,7 +65,7 @@ root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C > hitstats.log
 echo "Running digitization for $intRate kHz interaction rate"
 intRate=$((1000*(intRate)));
 echo o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate
-o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate  &>  digi.log
+o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate --skipDet MCH  &>  digi.log
 # existing checks
 #root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckDigits.C+
 

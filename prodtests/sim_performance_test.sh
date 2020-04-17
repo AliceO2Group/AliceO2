@@ -90,7 +90,7 @@ digi_total_time=0.
 digi_total_mem=0.
 hits_total=0
 
-for d in TRD ITS EMC TPC MFT MID MCH FDD FV0 FT0 PHS TOF HMP CPV; do
+for d in TRD ITS EMC TPC MFT MID FDD FV0 FT0 PHS TOF HMP CPV; do
   DIGILOGFILE=logdigi_${SIMCONFIG}_${d}
   DIGITIMEFILE=timedigi_${SIMCONFIG}_${d}
 
