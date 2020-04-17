@@ -62,7 +62,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
               if (dh != lastDataHeader) {
                 if (!rdhprintout.str().empty()) {
                   LOG(INFO) << rdhprintout.str();
-                  rdhprintout.str().clear();
+                  rdhprintout.str(std::string());
                 }
                 // print the DataHeader information only for the first part or if we have high verbosity
                 if (loglevel > 1 || dh->splitPayloadIndex == 0) {
