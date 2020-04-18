@@ -18,7 +18,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   workflowOptions.push_back(ConfigParamSpec{"conf", o2::framework::VariantType::String, "", {"configuration file to init from (obligatory)"}});
-  workflowOptions.push_back(ConfigParamSpec{"loop", o2::framework::VariantType::Int, 0, {"loop N times (infinite for N<0)"}});
+  workflowOptions.push_back(ConfigParamSpec{"loop", o2::framework::VariantType::Int, 1, {"loop N times (infinite for N<0)"}});
   workflowOptions.push_back(ConfigParamSpec{"message-per-tf", o2::framework::VariantType::Bool, false, {"send TF of each link as a single FMQ message rather than multipart with message per HB"}});
   workflowOptions.push_back(ConfigParamSpec{"output-per-link", o2::framework::VariantType::Bool, false, {"send message per Link rather than per FMQ output route"}});
   workflowOptions.push_back(ConfigParamSpec{"delay", o2::framework::VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});

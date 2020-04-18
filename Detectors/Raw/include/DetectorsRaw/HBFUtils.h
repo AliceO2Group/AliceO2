@@ -45,7 +45,6 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
 
   IR getFirstIR() const { return {bcFirst, orbitFirst}; }
 
-  void setNOrbitsPerTF(int n) { nHBFPerTF = n > 0 ? n : 1; }
   int getNOrbitsPerTF() const { return nHBFPerTF; }
 
   ///< get IR corresponding to start of the HBF
