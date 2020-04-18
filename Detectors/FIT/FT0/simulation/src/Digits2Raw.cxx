@@ -44,6 +44,7 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 #include "FT0Simulation/Digits2Raw.h"
 #include "CommonConstants/Triggers.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RawFileWriter.h"
 #include <Framework/Logger.h>
 #include <TStopwatch.h>
 #include <cassert>
@@ -53,6 +54,7 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 #include <iomanip>
 #include "TFile.h"
 #include "TTree.h"
+#include <gsl/span>
 
 using namespace o2::ft0;
 
@@ -65,15 +67,28 @@ Digits2Raw::Digits2Raw(const std::string fileRaw, std::string fileDigitsName)
 
   mFileDest.exceptions(std::ios_base::failbit | std::ios_base::badbit);
   mFileDest.open(fileRaw, std::fstream::out | std::fstream::binary);
-  Digits2Raw::readDigits(fileDigitsName.c_str());
+  Digits2Raw::readDigits(fileRaw.c_str(), fileDigitsName.c_str());
 }
 
-void Digits2Raw::readDigits(const std::string fileDigitsName)
+void Digits2Raw::readDigits(const std::string fileRaw, const std::string fileDigitsName)
 {
   LOG(INFO) << "**********Digits2Raw::convertDigits" << std::endl;
 
   o2::ft0::LookUpTable lut{o2::ft0::Digits2Raw::linear()};
   LOG(DEBUG) << " ##### LookUp set ";
+
+  using namespace o2::raw;
+  uint32_t linkID;
+  uint16_t cruID;
+  uint32_t endPointID;
+  uint64_t feeID;
+  for (int ilink = 0; ilink < NPMs; ++ilink) {
+    linkID = uint32_t(ilink);
+    feeID = uint64_t(ilink);
+    cruID = uint16_t(ilink);
+    endPointID = uint32_t(0);
+    mWriter.registerLink(feeID, cruID, linkID, endPointID, fileRaw.data());
+  }
 
   TFile* fdig = TFile::Open(fileDigitsName.data());
   assert(fdig != nullptr);
@@ -104,19 +119,6 @@ void Digits2Raw::readDigits(const std::string fileDigitsName)
       if (nHBF) {
         for (int j = 0; j < nHBF - 1; j++) {
           o2::InteractionRecord rdhIR = HBIRVec[j];
-          for (int link = 0; link < (int)mPages.size(); ++link) {
-            setRDH(mPages[link].mRDH, link, rdhIR);
-            mPages[link].flush(mFileDest);
-          }
-        }
-
-        uint32_t current_orbit = intRecord.orbit;
-        if (old_orbit != current_orbit) {
-          for (DataPageWriter& writer : mPages)
-            writer.flush(mFileDest);
-          for (int nlink = 0; nlink < NPMs; ++nlink)
-            setRDH(mPages[nlink].mRDH, nlink, intRecord);
-          old_orbit = current_orbit;
         }
         auto channels = bcd.getBunchChannelData(digitsCh);
         int nch = channels.size();
@@ -125,10 +127,6 @@ void Digits2Raw::readDigits(const std::string fileDigitsName)
         }
       }
     }
-    for (DataPageWriter& writer : mPages)
-      writer.flush(mFileDest);
-    for (int nlink = 0; nlink < NPMs; ++nlink)
-      setRDH(mPages[nlink].mRDH, nlink, intRecord);
   }
 }
 
@@ -152,7 +150,9 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
         if ((nchannels % 2) == 1)
           mRawEventData.mEventData[nchannels] = {};
         mRawEventData.mEventHeader.nGBTWords = nGBTWords;
-        mPages[oldlink].write(mRawEventData.to_vector(0));
+        auto data = mRawEventData.to_vector(false);
+        mWriter.addData(oldlink, oldlink,
+                        oldlink, 0, intRecord, data);
       }
       oldlink = nlink;
       mRawEventData.mEventHeader = makeGBTHeader(nlink, intRecord);
@@ -182,7 +182,6 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   if ((nchannels % 2) == 1)
     mRawEventData.mEventData[nchannels] = {};
   mRawEventData.mEventHeader.nGBTWords = nGBTWords;
-  mPages[oldlink].write(mRawEventData.to_vector(0));
   LOG(DEBUG) << " last " << oldlink;
   //TCM
   mRawEventData.mEventHeader = makeGBTHeader(LinkTCM, intRecord); //TCM
@@ -207,8 +206,9 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
             << " trig "
             << " ver " << tcmdata.vertex << " A " << tcmdata.orA << " C " << tcmdata.orC
             << " size " << sizeof(tcmdata);
-  mPages.at(LinkTCM).write(mRawEventData.to_vector(1));
-  LOG(DEBUG) << " write TCM " << LinkTCM;
+  auto data = mRawEventData.to_vector(1);
+  mWriter.addData(uint16_t(LinkTCM), uint16_t(LinkTCM), uint16_t(LinkTCM), uint16_t(0), intRecord, data);
+  LOG(INFO) << " write TCM " << LinkTCM;
 }
 
 //_____________________________________________________________________________________
