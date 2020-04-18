@@ -74,8 +74,6 @@ class ClusterTopology
     }
   }
 
-  friend class Clusterer;
-
  private:
   void setHash(unsigned long hash) { mHash = hash; }
   ClusterPattern mPattern; ///< Pattern of pixels

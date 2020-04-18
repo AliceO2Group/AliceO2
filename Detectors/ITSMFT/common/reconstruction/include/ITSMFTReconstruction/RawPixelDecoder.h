@@ -52,7 +52,7 @@ class RawPixelDecoder : public PixelReader
 
   void startNewTF(o2::framework::InputRecord& inputs);
 
-  int decodeNextTrigger();
+  int decodeNextTrigger() final;
   int decodeNextTrigger(int il);
 
   template <class DigitContainer, class ROFContainer>
@@ -60,11 +60,11 @@ class RawPixelDecoder : public PixelReader
 
   const RUDecodeData* getRUDecode(int ruSW) const { return mRUEntry[ruSW] < 0 ? nullptr : &mRUDecodeVec[mRUEntry[ruSW]]; }
 
+  void setNThreads(int n);
+  int getNThreads() const { return mNThreads; }
+
   void setVerbosity(int v);
   int getVerbosity() const { return mVerbosity; }
-
-  bool getDecodeNextAuto() const { return mDecodeNextAuto; }
-  void setDecodeNextAuto(bool v) { mDecodeNextAuto = v; }
 
   void printReport() const;
 
@@ -95,17 +95,17 @@ class RawPixelDecoder : public PixelReader
 
   std::vector<RUDecodeData> mRUDecodeVec;       // set of active RUs
   std::array<int, Mapping::getNRUs()> mRUEntry; // entry of the RU with given SW ID in the mRUDecodeVec
+  std::string mSelfName;                        // self name
   uint16_t mCurRUDecodeID = NORUDECODED;        // index of currently processed RUDecode container
   Mapping mMAP;                                 // chip mapping
   int mVerbosity = 0;
-
+  int mNThreads = 1; // number of decoding threads
   // statistics
   o2::itsmft::ROFRecord::ROFtype mROFCounter = 0; // RSTODO is this needed? eliminate from ROFRecord ?
   uint32_t mNChipsFiredROF = 0;                   // counter within the ROF
   uint32_t mNPixelsFiredROF = 0;                  // counter within the ROF
   size_t mNChipsFired = 0;                        // global counter
   size_t mNPixelsFired = 0;                       // global counter
-  bool mDecodeNextAuto = true;                    // try to decode next trigger when getNextChipData does not see any decoded data
   TStopwatch mTimerTFStart;
   TStopwatch mTimerDecode;
   TStopwatch mTimerFetchData;

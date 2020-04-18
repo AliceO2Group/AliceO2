@@ -92,6 +92,7 @@ void GBTLink::clear(bool resetStat, bool resetTFRaw)
   if (resetStat) {
     statistics.clear();
   }
+  status = None;
 }
 
 ///_________________________________________________________________

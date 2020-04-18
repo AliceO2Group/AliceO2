@@ -108,7 +108,8 @@ struct GBTTrigger;
 
 /// support for the GBT single link data
 struct GBTLink {
-  enum CollectedDataStatus { AbortedOnError,
+  enum CollectedDataStatus { None, // set before starting collectROFCableData
+                             AbortedOnError,
                              StoppedOnEndOfData,
                              DataSeen };
   enum ErrorType { NoError,
@@ -117,6 +118,7 @@ struct GBTLink {
   using RDH = o2::header::RAWDataHeader;
 
   int8_t verbosity = 0;
+  CollectedDataStatus status = None;
   uint8_t idInRU = 0;     // link ID within the RU
   uint8_t idInCRU = 0;    // link ID within the CRU
   uint8_t endPointID = 0; // endpoint ID of the CRU
@@ -125,7 +127,7 @@ struct GBTLink {
   uint16_t channelID = 0; // channel ID in the reader input
   uint32_t lanes = 0;     // lanes served by this link
 
-  // RS do we need this >> ?
+  // RS do we need this >> ? // Legacy from old data format encoder
   int lastPageSize = 0; // size of last added page = offset from the end to get to the RDH
   int nTriggers = 0;    // number of triggers loaded (the last one might be incomplete)
   // << ?
@@ -208,6 +210,7 @@ template <class Mapping>
 GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
 {
   int nw = 0;
+  status = None;
   auto* currRawPiece = rawData.currentPiece();
   while (currRawPiece) { // we may loop over multiple CRU page
     if (dataOffset >= currRawPiece->size) {
@@ -290,10 +293,10 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     ir.bc = gbtTrg->bc;
     ir.orbit = gbtTrg->orbit;
     trigger = gbtTrg->triggerType;
-    return DataSeen;
+    return (status = DataSeen);
   }
 
-  return StoppedOnEndOfData;
+  return (status = StoppedOnEndOfData);
 }
 
 } // namespace itsmft
