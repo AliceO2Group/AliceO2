@@ -70,6 +70,23 @@ void Digitizer::init()
   }
 
   mSDigits = false;
+  setupSimulationValues();
+}
+
+void Digitizer::setupSimulationValues()
+{
+  kNpad = mSimParam->getNumberOfPadsInPadResponse(); // Number of pads included in the pad response
+  kAmWidth = TRDGeometry::amThick();                 // Width of the amplification region
+  kDrWidth = TRDGeometry::drThick();                 // Width of the drift retion
+  kDrMin = -0.5 * kAmWidth;                          // Drift + Amplification region
+  kDrMax = kDrWidth + 0.5 * kAmWidth;                // Drift + Amplification region
+  timeBinTRFend = 0;
+  if (mSimParam->TRFOn()) {
+    timeBinTRFend = ((int)(mSimParam->GetTRFhi() * mCommonParam->GetSamplingFrequency())) - 1;
+  }
+  nTimeTotal = kTimeBins; // PLEASE FIX ME when CCDB is ready
+  samplingRate = mCommonParam->GetSamplingFrequency();
+  elAttachProp = mSimParam->GetElAttachProp() / 100;
 }
 
 void Digitizer::clearCollections()
@@ -186,24 +203,10 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
   //
   // Convert the detector-wise sorted hits to detector signals
   //
-  const int kNpad = mSimParam->getNumberOfPadsInPadResponse(); // Number of pads included in the pad response
-  const float kAmWidth = TRDGeometry::amThick();               // Width of the amplification region
-  const float kDrWidth = TRDGeometry::drThick();               // Width of the drift retion
-  const float kDrMin = -0.5 * kAmWidth;                        // Drift + Amplification region
-  const float kDrMax = kDrWidth + 0.5 * kAmWidth;              // Drift + Amplification region
 
-  int timeBinTRFend = 0;
   double padSignal[kNpad];
 
-  if (mSimParam->TRFOn()) {
-    timeBinTRFend = ((int)(mSimParam->GetTRFhi() * mCommonParam->GetSamplingFrequency())) - 1;
-  }
-
   const double calExBDetValue = mCalib->getExB(det); // T * V/cm (check units)
-  const int nTimeTotal = kTimeBins;                  // PLEASE FIX ME when CCDB is ready
-  const float samplingRate = mCommonParam->GetSamplingFrequency();
-  const float elAttachProp = mSimParam->GetElAttachProp() / 100;
-
   const TRDPadPlane* padPlane = mGeo->getPadPlane(det);
   const int layer = mGeo->getLayer(det);
   const float rowEndROC = padPlane->getRowEndROC();
@@ -336,6 +339,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
         padSignal[1] = signal;
         padSignal[2] = 0;
       }
+
       // The time bin (always positive), with t0 distortion
       double timeBinIdeal = driftTime * samplingRate + t0;
       // Protection
@@ -349,6 +353,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       // The sampling is done always in the middle of the time bin
       const int firstTimeBin = std::max(timeBinTruncated, 0);
       const int lastTimeBin = std::min(timeBinTruncated + timeBinTRFend, nTimeTotal);
+
       // loop over pads first then over timebins for better cache friendliness
       // and less access to signalMapCont
       for (int pad = 0; pad < kNpad; ++pad) {
@@ -361,47 +366,42 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
         }
 
         const int key = calculateKey(det, rowE, colPos);
-        if (key < KEY_MIN || key > KEY_MAX) {
-          LOG(FATAL) << "Wrong TRD key " << key << " for (det,row,col) = (" << det << ", " << rowE << ", " << colPos << ")";
-        }
-
         auto& currentSignalData = signalMapCont[key]; // Get the old signal or make a new one if it doesn't exist
         auto& currentSignal = currentSignalData.signals;
         auto& trackIds = currentSignalData.trackIds;
         auto& labels = currentSignalData.labels;
 
-        if (trackIds[hit.GetTrackID()] == 0) {
-          trackIds[hit.GetTrackID()] = 1;
-          MCLabel label(hit.GetTrackID(), getEventID(), getSrcID());
-          labels.push_back(label);
-        }
+        // add a label record
+        addLabel(hit, labels, trackIds);
 
-        for (int tb = firstTimeBin; tb < lastTimeBin; ++tb) {
-          // Apply the time response
-          double timeResponse = 1;
-          double crossTalk = 0;
-          const double t = (tb - timeBinTruncated) / samplingRate + timeOffset;
-          if (mSimParam->TRFOn()) {
-            timeResponse = mSimParam->TimeResponse(t);
-          }
-          if (mSimParam->CTOn()) {
-            crossTalk = mSimParam->CrossTalk(t);
-          }
-          float signalOld = currentSignal[tb];
-          if (colPos != colE) {
-            // Cross talk added to non-central pads
-            signalOld += padSignal[pad] * (timeResponse + crossTalk);
-          } else {
-            // Without cross talk at central pad
-            signalOld += padSignal[pad] * timeResponse;
-          }
-          // Update the final signal
-          currentSignal[tb] = signalOld;
-        } // end of loop time bins
-      }   // end of loop over pads
-    }     // end of loop over electrons
-  }       // end of loop over hits
+        // add signal with crosstalk for the non-central pads only
+        if (colPos != colE) {
+          for (int tb = firstTimeBin; tb < lastTimeBin; ++tb) {
+            const double t = (tb - timeBinTruncated) / samplingRate + timeOffset;
+            const double timeResponse = mSimParam->TRFOn() ? mSimParam->TimeResponse(t) : 1;
+            const double crossTalk = mSimParam->CTOn() ? mSimParam->CrossTalk(t) : 0;
+            currentSignal[tb] += padSignal[pad] * (timeResponse + crossTalk);
+          } // end of loop time bins
+        } else {
+          for (int tb = firstTimeBin; tb < lastTimeBin; ++tb) {
+            const double t = (tb - timeBinTruncated) / samplingRate + timeOffset;
+            const double timeResponse = mSimParam->TRFOn() ? mSimParam->TimeResponse(t) : 1;
+            currentSignal[tb] += padSignal[pad] * timeResponse;
+          } // end of loop time bins
+        }
+      } // end of loop over pads
+    }   // end of loop over electrons
+  }     // end of loop over hits
   return true;
+}
+
+void Digitizer::addLabel(const o2::trd::HitType& hit, std::vector<o2::trd::MCLabel>& labels, std::unordered_map<int, int>& trackIds)
+{
+  if (trackIds[hit.GetTrackID()] == 0) {
+    trackIds[hit.GetTrackID()] = 1;
+    MCLabel label(hit.GetTrackID(), getEventID(), getSrcID());
+    labels.push_back(label);
+  }
 }
 
 float drawGaus(o2::math_utils::RandomRing<>& normaldistRing, float mu, float sigma)

@@ -82,6 +82,15 @@ class Digitizer
   double mLastTime = 1.0e10; // starts in the future
   int mEventID = 0;
   int mSrcID = 0;
+  int kNpad = 0;         // Number of pads included in the pad response
+  float kAmWidth = 0;    // Width of the amplification region
+  float kDrWidth = 0;    // Width of the drift retion
+  float kDrMin = 0;      // Drift + Amplification region
+  float kDrMax = 0;      // Drift + Amplification region
+  int timeBinTRFend = 0; // time bin TRF ends
+  int nTimeTotal = 30;   // PLEASE FIX ME when CCDB is ready
+  float samplingRate = 0;
+  float elAttachProp = 0;
 
   bool mSDigits{false};                                    // true: convert signals to summable digits, false by defaults
   std::vector<HitType> mHitContainer;                      // the container of hits in a given detector
@@ -91,17 +100,25 @@ class Digitizer
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   void clearCollections();
+  void setupSimulationValues();
 
   // Digitization chaing methods
   bool convertHits(const int, const std::vector<HitType>&, SignalContainer&, int thread = 0); // True if hit-to-signal conversion is successful
   bool convertSignalsToADC(const int, SignalContainer&, DigitContainer&, int thread = 0);     // True if signal-to-ADC conversion is successful
-
+  void addLabel(const o2::trd::HitType& hit, std::vector<o2::trd::MCLabel>&, std::unordered_map<int, int>&);
   bool diffusion(float, float, float, float, float, float, double&, double&, double&, int thread = 0); // True if diffusion is applied successfully
 
   // Helpers for signal handling
   static constexpr int KEY_MIN = 0;
   static constexpr int KEY_MAX = 2211727;
-  int calculateKey(const int det, const int row, const int col) { return ((det << 12) | (row << 8) | col); }
+  int calculateKey(const int det, const int row, const int col)
+  {
+    int key = ((det << 12) | (row << 8) | col);
+    if (key < KEY_MIN || key > KEY_MAX) {
+      LOG(FATAL) << "Wrong TRD key " << key << " for (det,row,col) = (" << det << ", " << row << ", " << col << ")";
+    }
+    return key;
+  }
   int getDetectorFromKey(const int key) { return (key >> 12) & 0xFFF; }
   int getRowFromKey(const int key) { return (key >> 8) & 0xF; }
   int getColFromKey(const int key) { return key & 0xFF; }
