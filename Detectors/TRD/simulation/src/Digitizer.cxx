@@ -216,7 +216,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
 
   // Loop over hits
   for (const auto& hit : hits) {
-    bool isDigit = false;
     const int qTotal = hit.GetCharge();
     /*
       Now the real local coordinate system of the ROC
