@@ -28,7 +28,7 @@ namespace reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU,
-                                    bool upstreamDigits = false, bool upstreamClusters = false);
+                                    bool upstreamDigits = false, bool upstreamClusters = false, bool disableRootOutput = false);
 }
 
 } // namespace its
