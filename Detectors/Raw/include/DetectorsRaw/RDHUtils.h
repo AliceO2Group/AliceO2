@@ -130,11 +130,11 @@ struct RDHUtils {
   static void setOffsetToNext(void* rdhP, uint16_t v) { setOffsetToNext(*reinterpret_cast<RDHDef*>(rdhP), v); }
 
   template <typename RDH>
-  static uint16_t getMemorySize(const RDH& rdh)
+  GPUhdi() static uint16_t getMemorySize(const RDH& rdh)
   {
     return rdh.memorySize;
   } // same for all
-  static uint16_t getMemorySize(const void* rdhP) { return getMemorySize(*reinterpret_cast<const RDHDef*>(rdhP)); }
+  GPUhdi() static uint16_t getMemorySize(const void* rdhP) { return getMemorySize(*reinterpret_cast<const RDHDef*>(rdhP)); }
   template <typename RDH>
   static void setMemorySize(RDH& rdh, uint16_t v)
   {
