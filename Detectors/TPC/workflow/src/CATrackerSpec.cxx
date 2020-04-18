@@ -37,6 +37,7 @@
 #include "DPLUtils/DPLRawParser.h"
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "TPCBase/RDHUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUDisplayBackend.h"
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
@@ -401,14 +402,14 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
 
           const unsigned char* ptr = nullptr;
           int count = 0;
-          int lastFEE = -1;
+          rdh_utils::FEEIDType lastFEE = -1;
           int rawcru = 0;
           int rawendpoint = 0;
           size_t totalSize = 0;
           for (auto it = parser.begin(); it != parser.end(); it++) {
             const unsigned char* current = it.raw();
             const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)current;
-            if (current == nullptr || it.size() == 0 || (current - ptr) % TPCZSHDR::TPC_ZS_PAGE_SIZE || rdh->feeId != lastFEE) {
+            if (current == nullptr || it.size() == 0 || (current - ptr) % TPCZSHDR::TPC_ZS_PAGE_SIZE || o2::raw::RDHUtils::getFEEID(*rdh) != lastFEE) {
               if (count) {
                 tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
                 tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
@@ -418,9 +419,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
                 ptr = nullptr;
                 continue;
               }
-              lastFEE = rdh->feeId;
-              rawcru = lastFEE >> 7;
-              rawendpoint = (lastFEE & 64) >> 6;
+              lastFEE = o2::raw::RDHUtils::getFEEID(*rdh);
+              rawcru = rdh_utils::getCRU(lastFEE);
+              rawendpoint = rdh_utils::getEndPoint(lastFEE);
               ptr = current;
             }
             count++;

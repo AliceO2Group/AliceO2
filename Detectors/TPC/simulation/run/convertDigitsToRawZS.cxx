@@ -35,6 +35,7 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "TPCBase/RDHUtils.h"
 
 namespace bpo = boost::program_options;
 
@@ -87,7 +88,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   // raw data output
   o2::raw::RawFileWriter writer;
 
-  const unsigned int defaultLink = 15;
+  const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
 
   // set up raw writer
   std::string outDir{outputPath};
@@ -101,8 +102,8 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
     for (unsigned int j = 0; j < NEndpoints; j++) {
       const unsigned int cruInSector = j / 2;
       const unsigned int cruID = i * 10 + cruInSector;
-      const unsigned int feeid = (cruID << 7) | ((j & 1) << 6) | (defaultLink & 0x3F);
-      writer.registerLink(feeid, cruID, defaultLink, j % 2, fmt::format("{}cru{}.raw", outDir, cruID));
+      const rdh_utils::FEEIDType feeid = rdh_utils::getFEEID(cruID, j & 1, defaultLink);
+      writer.registerLink(feeid, cruID, defaultLink, j & 1, fmt::format("{}cru{}.raw", outDir, cruID));
     }
   }
   for (Long64_t ievent = 0; ievent < treeSim->GetEntries(); ++ievent) {

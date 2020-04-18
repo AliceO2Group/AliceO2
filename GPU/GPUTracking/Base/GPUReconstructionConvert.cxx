@@ -34,6 +34,7 @@
 #include "DataFormatsTPC/Constants.h"
 #include "GPURawData.h"
 #include "CommonConstants/LHCConstants.h"
+#include "TPCBase/RDHUtils.h"
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -228,7 +229,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
   for (unsigned int i = 0; i < NSLICES; i++) {
     std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)> singleBuffer;
 #ifdef GPUCA_O2_LIB
-    int rawlnk = 15;
+    int rawlnk = rdh_utils::UserLogicLinkID;
     int bcShiftInFirstHBF = ir ? ir->bc : 0;
 #else
     int bcShiftInFirstHBF = 0;
@@ -335,7 +336,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
         if (page && (k >= tmpBuffer.size() || endpoint != lastEndpoint)) {
 #ifdef GPUCA_O2_LIB
           if (raw) {
-            const int rawfeeid = (rawcru << 7) | (rawendpoint << 6) | rawlnk;
+            const rdh_utils::FEEIDType rawfeeid = rdh_utils::getFEEID(rawcru, rawendpoint, rawlnk);
             raw->addData(rawfeeid, rawcru, rawlnk, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + TPCZSHDR::TPC_ZS_PAGE_SIZE), true);
           } else
 #endif
