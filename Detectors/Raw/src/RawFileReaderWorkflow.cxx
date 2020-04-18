@@ -44,7 +44,7 @@ class rawReaderSpecs : public o2f::Task
 {
  public:
   explicit rawReaderSpecs(const std::string& config, bool tfAsMessage = false, bool outPerRoute = true, int loop = 1, uint32_t delay_us = 0)
-    : mLoop(loop), mHBFPerMessage(!tfAsMessage), mOutPerRoute(outPerRoute), mDelayUSec(delay_us), mReader(std::make_unique<o2::raw::RawFileReader>(config))
+    : mLoop(loop < 1 ? 1 : loop), mHBFPerMessage(!tfAsMessage), mOutPerRoute(outPerRoute), mDelayUSec(delay_us), mReader(std::make_unique<o2::raw::RawFileReader>(config))
   {
     LOG(INFO) << "Number of loops over whole data requested: " << mLoop;
     if (mHBFPerMessage) {
@@ -100,7 +100,7 @@ class rawReaderSpecs : public o2f::Task
     }
 
     if (tfID >= mReader->getNTimeFrames()) {
-      if (mReader->getNTimeFrames() && mLoop--) {
+      if (mReader->getNTimeFrames() && --mLoop) {
         tfID = 0;
         mReader->setNextTFToRead(tfID);
         loopsDone++;
