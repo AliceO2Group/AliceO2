@@ -14,7 +14,11 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
 #include "DPLUtils/DPLRawParser.h"
+#include "CommonUtils/StringUtils.h"
 
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
 using namespace o2::itsmft;
 using namespace o2::framework;
 
@@ -27,6 +31,7 @@ RawPixelDecoder<Mapping>::RawPixelDecoder()
   mTimerTFStart.Stop();
   mTimerDecode.Stop();
   mTimerFetchData.Stop();
+  mSelfName = o2::utils::concat_string(Mapping::getName(), "Decoder");
 }
 
 ///______________________________________________________________
@@ -42,21 +47,21 @@ RawPixelDecoder<Mapping>::~RawPixelDecoder()
 template <class Mapping>
 void RawPixelDecoder<Mapping>::printReport() const
 {
-  LOGF(INFO, "Decoded %zu hits in %zu non-empty chips in %u ROFs", mNPixelsFired, mNChipsFired, mROFCounter);
+  LOGF(INFO, "%s Decoded %zu hits in %zu non-empty chips in %u ROFs with %d threads", mSelfName, mNPixelsFired, mNChipsFired, mROFCounter, mNThreads);
   double cpu = 0, real = 0;
   auto& tmrS = const_cast<TStopwatch&>(mTimerTFStart);
-  LOGF(INFO, "> Timing Start TF:  CPU = %.3e Real = %.3e in %d slots", tmrS.CpuTime(), tmrS.RealTime(), tmrS.Counter());
+  LOGF(INFO, "%s Timing Start TF:  CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrS.CpuTime(), tmrS.RealTime(), tmrS.Counter() - 1);
   cpu += tmrS.CpuTime();
   real += tmrS.RealTime();
   auto& tmrD = const_cast<TStopwatch&>(mTimerDecode);
-  LOGF(INFO, "> Timing Decode:    CPU = %.3e Real = %.3e in %d slots", tmrD.CpuTime(), tmrD.RealTime(), tmrD.Counter());
+  LOGF(INFO, "%s Timing Decode:    CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrD.CpuTime(), tmrD.RealTime(), tmrD.Counter() - 1);
   cpu += tmrD.CpuTime();
   real += tmrD.RealTime();
   auto& tmrF = const_cast<TStopwatch&>(mTimerFetchData);
-  LOGF(INFO, "> Timing FetchData: CPU = %.3e Real = %.3e in %d slots", tmrF.CpuTime(), tmrF.RealTime(), tmrF.Counter());
+  LOGF(INFO, "%s Timing FetchData: CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrF.CpuTime(), tmrF.RealTime(), tmrF.Counter() - 1);
   cpu += tmrF.CpuTime();
   real += tmrF.RealTime();
-  LOGF(INFO, "> Timing Total:     CPU = %.3e Real = %.3e in %d slots in %s mode", cpu, real, tmrS.Counter(),
+  LOGF(INFO, "%s Timing Total:     CPU = %.3e Real = %.3e in %d slots in %s mode", mSelfName, cpu, real, tmrS.Counter() - 1,
        mDecodeNextAuto ? "AutoDecode" : "ExternalCall");
 }
 
@@ -70,18 +75,40 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
   mNPixelsFiredROF = 0;
   mInteractionRecord.clear();
   int nLinksWithData = 0, nru = mRUDecodeVec.size();
+#ifdef WITH_OPENMP
+  if (mNThreads > 0) { // otherwhise, rely on default
+    omp_set_num_threads(mNThreads);
+  } else {
+    mNThreads = omp_get_num_threads();
+    LOG(INFO) << mSelfName << " will use " << mNThreads << " threads";
+  }
+#pragma omp parallel for schedule(dynamic) reduction(+ \
+                                                     : nLinksWithData, mNChipsFiredROF, mNPixelsFiredROF)
+#endif
   for (int iru = 0; iru < nru; iru++) {
     nLinksWithData += decodeNextTrigger(iru);
     mNChipsFiredROF += mRUDecodeVec[iru].nChipsFired;
+    int npix = 0;
     for (int ic = mRUDecodeVec[iru].nChipsFired; ic--;) {
-      mNPixelsFiredROF += mRUDecodeVec[iru].chipsData[ic].getData().size();
+      npix += mRUDecodeVec[iru].chipsData[ic].getData().size();
     }
+    mNPixelsFiredROF += npix;
   }
+
   if (nLinksWithData) { // fill some statistics
     mROFCounter++;
     mNChipsFired += mNChipsFiredROF;
     mNPixelsFired += mNPixelsFiredROF;
     mCurRUDecodeID = 0; // getNextChipData will start from here
+    // set IR and trigger from the 1st non empty link
+    for (const auto& link : mGBTLinks) {
+      if (link.status == GBTLink::DataSeen) {
+        mInteractionRecord = link.ir;
+        mInteractionRecordHB = o2::raw::RDHUtils::getHeartBeatIR(link.lastRDH);
+        mTrigger = link.trigger;
+        break;
+      }
+    }
   }
   mTimerDecode.Stop();
   // LOG(INFO) << "Chips Fired: " << mNChipsFiredROF << " NPixels: " << mNPixelsFiredROF << " at IR " << mInteractionRecord << " of HBF " << mInteractionRecordHB;
@@ -119,11 +146,6 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger(int iru)
       auto res = link->collectROFCableData(mMAP);
       if (res == GBTLink::DataSeen) { // at the moment process only DataSeen
         ndec++;
-        if (mInteractionRecord > link->ir) { // update interaction record RSTOD: do we need to set it for every chip?
-          mInteractionRecord = link->ir;
-          mInteractionRecordHB = o2::raw::RDHUtils::getHeartBeatIR(*link->lastRDH);
-          mTrigger = link->trigger;
-        }
       }
     }
   }
@@ -154,7 +176,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       auto& lnk = mGBTLinks.emplace_back(rdh->cruID, rdh->feeId, rdh->endPointID, rdh->linkID, lnkref.entry);
       getCreateRUDecode(mMAP.FEEId2RUSW(rdh->feeId)); // make sure there is a RU for this link
       lnk.verbosity = mVerbosity;
-      LOG(INFO) << "registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
+      LOG(INFO) << mSelfName << " registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
       linksAdded++;
     }
     auto& link = mGBTLinks[lnkref.entry];
@@ -167,7 +189,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
 
   if (linksAdded) { // new links were added, update link<->RU mapping, usually is done for 1st TF only
     if (nLinks) {
-      LOG(WARNING) << "New links appeared although the initialization was already done";
+      LOG(WARNING) << mSelfName << " New links appeared although the initialization was already done";
       for (auto& ru : mRUDecodeVec) { // reset RU->link references since they may have been changed
         memset(&ru.links[0], -1, RUDecodeData::MaxLinksPerRU * sizeof(int));
       }
@@ -186,7 +208,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       uint16_t lr, ruOnLr, linkInRU;
       mMAP.expandFEEId(link.feeID, lr, ruOnLr, linkInRU);
       if (newLinkAdded) {
-        LOG(INFO) << "Attaching " << link.describe() << " to RU#" << int(mMAP.FEEId2RUSW(link.feeID))
+        LOG(INFO) << mSelfName << " Attaching " << link.describe() << " to RU#" << int(mMAP.FEEId2RUSW(link.feeID))
                   << " (stave " << ruOnLr << " of layer " << lr << ')';
       }
       link.idInRU = linkInRU;
@@ -207,7 +229,7 @@ RUDecodeData& RawPixelDecoder<Mapping>::getCreateRUDecode(int ruSW)
     ru.ruSWID = ruSW;
     ru.ruInfo = mMAP.getRUInfoSW(ruSW); // info on the stave/RU
     ru.chipsData.resize(mMAP.getNChipsOnRUType(ru.ruInfo->ruType));
-    LOG(INFO) << "Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
+    LOG(INFO) << mSelfName << " Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
   }
   return mRUDecodeVec[mRUEntry[ruSW]];
 }
@@ -261,6 +283,18 @@ void RawPixelDecoder<Mapping>::setVerbosity(int v)
   for (auto& link : mGBTLinks) {
     link.verbosity = v;
   }
+}
+
+///______________________________________________________________________
+template <class Mapping>
+void RawPixelDecoder<Mapping>::setNThreads(int n)
+{
+#ifdef WITH_OPENMP
+  mNThreads = n;
+#else
+  LOG(WARNING) << mSelfName << " Multithreading is not supported, imposing single thread";
+  mNThreads = 1;
+#endif
 }
 
 template class o2::itsmft::RawPixelDecoder<o2::itsmft::ChipMappingITS>;

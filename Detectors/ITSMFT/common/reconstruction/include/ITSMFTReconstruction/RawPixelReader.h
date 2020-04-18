@@ -178,6 +178,9 @@ class RawPixelReader : public PixelReader
       mCurRUDecodeID = 0; // no more decoded data if reached this place,
     }
     // will need to decode new trigger
+    if (!mDecodeNextAuto) { // no more data in the current ROF and no automatic decoding of next one was requested
+      return nullptr;
+    }
     if (mMinTriggersCached < 2) { // last trigger might be incomplete, need to cache more data
       cacheLinksData(mRawBuffer);
     }
@@ -608,7 +611,7 @@ class RawPixelReader : public PixelReader
   }
 
   //_____________________________________
-  int decodeNextTrigger()
+  int decodeNextTrigger() final
   {
     // Decode next trigger from the cached links data and decrease cached triggers counter, return N links decoded
     if (mMinTriggersCached < 1) {
@@ -1308,7 +1311,12 @@ class RawPixelReader : public PixelReader
       }
       mCurRUDecodeID = 0; // no more decoded data if reached this place,
     }
+
     // will need to decode new trigger
+    if (!mDecodeNextAuto) { // no more data in the current ROF and no automatic decoding of next one was requested
+      return false;
+    }
+
     if (mMinTriggersCached < 2) { // last trigger might be incomplete, need to cache more data
       cacheLinksData(mRawBuffer);
     }

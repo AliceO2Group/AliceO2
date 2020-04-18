@@ -31,7 +31,7 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include <string>
+#include "CommonUtils/StringUtils.h"
 
 namespace o2
 {
@@ -45,6 +45,7 @@ template <class Mapping>
 STFDecoder<Mapping>::STFDecoder(bool doClusters, bool doPatterns, bool doDigits, std::string_view dict)
   : mDoClusters(doClusters), mDoPatterns(doPatterns), mDoDigits(doDigits), mDictName(dict)
 {
+  mSelfName = o2::utils::concat_string(Mapping::getName(), "STFDecoder");
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -53,20 +54,20 @@ STFDecoder<Mapping>::STFDecoder(bool doClusters, bool doPatterns, bool doDigits,
 template <class Mapping>
 STFDecoder<Mapping>::~STFDecoder()
 {
-  LOGF(INFO, "Total STF decoding%s timing (w/o disk IO): Cpu: %.3e Real: %.3e s in %d slots",
-       mDoClusters ? "/clustering" : "", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter());
+  LOGF(INFO, "%s Total STF decoding%s timing (w/o disk IO): Cpu: %.3e Real: %.3e s in %d slots", mSelfName,
+       mDoClusters ? "/clustering" : "", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 ///_______________________________________
 template <class Mapping>
 void STFDecoder<Mapping>::init(InitContext& ic)
 {
-  LOG(INFO) << "STF decoder for " << Mapping::getName();
   mDecoder = std::make_unique<RawPixelDecoder<Mapping>>();
   mDecoder->init();
 
   auto detID = Mapping::getDetID();
-
+  mNThreads = ic.options().get<int>("nthreads");
+  mDecoder->setNThreads(mNThreads);
   if (mDoClusters) {
     o2::base::GeometryManager::loadGeometry(); // for generating full clusters
     GeometryTGeo* geom = nullptr;
@@ -88,9 +89,9 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     std::string dictFile = o2::base::NameConf::getDictionaryFileName(detID, mDictName, ".bin");
     if (o2::base::NameConf::pathExists(dictFile)) {
       mClusterer->loadDictionary(dictFile);
-      LOG(INFO) << Mapping::getName() << " clusterer running with a provided dictionary: " << dictFile;
+      LOG(INFO) << mSelfName << " clusterer running with a provided dictionary: " << dictFile;
     } else {
-      LOG(INFO) << "Dictionary " << dictFile << " is absent, " << Mapping::getName() << " clusterer expects cluster patterns";
+      LOG(INFO) << mSelfName << " Dictionary " << dictFile << " is absent, " << Mapping::getName() << " clusterer expects cluster patterns";
     }
     mClusterer->print();
   }
@@ -104,47 +105,44 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   mTimer.Start(false);
   mDecoder->startNewTF(pc.inputs());
   auto orig = o2::header::gDataOriginITS;
-
-  std::vector<Digit, boost::container::pmr::polymorphic_allocator<Digit>>* digVec = nullptr;
-  std::vector<ROFRecord, boost::container::pmr::polymorphic_allocator<ROFRecord>>* digROFVec = nullptr;
-  if (mDoDigits) {
-    digVec = &pc.outputs().make<std::vector<Digit>>(Output{orig, "DIGITS", 0, Lifetime::Timeframe});
-    digROFVec = &pc.outputs().make<std::vector<ROFRecord>>(Output{orig, "ITSDigitROF", 0, Lifetime::Timeframe});
-  }
-  using CLUSVECDUMMY = std::vector<Cluster, boost::container::pmr::polymorphic_allocator<Cluster>>;
-  CLUSVECDUMMY* clusVecDUMMY = nullptr; // to pick the template!
-  std::vector<CompClusterExt, boost::container::pmr::polymorphic_allocator<CompClusterExt>>* clusCompVec = nullptr;
-  std::vector<ROFRecord, boost::container::pmr::polymorphic_allocator<ROFRecord>>* clusROFVec = nullptr;
-  std::vector<unsigned char, boost::container::pmr::polymorphic_allocator<unsigned char>>* clusPattVec = nullptr;
-
-  if (mDoClusters) { // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
-    timeCl = mClusterer->getTimer().CpuTime();
-    clusVecDUMMY = &pc.outputs().make<std::vector<o2::itsmft::Cluster>>(Output{orig, "CLUSTERS", 0, Lifetime::Timeframe});
-    clusCompVec = &pc.outputs().make<std::vector<CompClusterExt>>(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe});
-    clusPattVec = &pc.outputs().make<std::vector<unsigned char>>(Output{orig, "PATTERNS", 0, Lifetime::Timeframe});
-    clusROFVec = &pc.outputs().make<std::vector<ROFRecord>>(Output{orig, "ITSClusterROF", 0, Lifetime::Timeframe});
-  }
-
-  // if digits are requested, we don't want clusterer to run automatic decoding
-  mDecoder->setDecodeNextAuto(!(mDoDigits && mDoClusters));
+  using CLUSVECDUMMY = std::vector<Cluster>;
+  std::vector<o2::itsmft::Cluster> clusVec;
+  std::vector<o2::itsmft::CompClusterExt> clusCompVec;
+  std::vector<o2::itsmft::ROFRecord> clusROFVec;
+  std::vector<unsigned char> clusPattVec;
+  std::vector<Digit> digVec;
+  std::vector<ROFRecord> digROFVec;
+  CLUSVECDUMMY* clusVecDUMMY = nullptr;
+  mDecoder->setDecodeNextAuto(false);
   while (mDecoder->decodeNextTrigger()) {
     if (mDoDigits) {                                    // call before clusterization, since the latter will hide the digits
-      mDecoder->fillDecodedDigits(*digVec, *digROFVec); // lot of copying involved
+      mDecoder->fillDecodedDigits(digVec, digROFVec);   // lot of copying involved
     }
-    if (mDoClusters) {
-      mClusterer->process(*mDecoder.get(), (CLUSVECDUMMY*)nullptr, clusCompVec, mDoPatterns ? clusPattVec : nullptr, clusROFVec);
+    if (mDoClusters) { // !!! THREADS !!!
+      mClusterer->process(mNThreads, *mDecoder.get(), (CLUSVECDUMMY*)nullptr, &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
     }
+  }
+
+  if (mDoDigits) {
+    pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVec);
+    pc.outputs().snapshot(Output{orig, "ITSDigitROF", 0, Lifetime::Timeframe}, digROFVec);
+  }
+  if (mDoClusters) {                                                                  // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
+    pc.outputs().snapshot(Output{orig, "CLUSTERS", 0, Lifetime::Timeframe}, clusVec); // DUMMY!!!
+    pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
+    pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
+    pc.outputs().snapshot(Output{orig, "ITSClusterROF", 0, Lifetime::Timeframe}, clusROFVec);
   }
 
   if (mDoClusters) {
-    LOG(INFO) << "Built " << clusCompVec->size() << " clusters in " << clusROFVec->size() << " ROFs in "
+    LOG(INFO) << mSelfName << " Built " << clusCompVec.size() << " clusters in " << clusROFVec.size() << " ROFs in "
               << mClusterer->getTimer().CpuTime() - timeCl << " s";
   }
   if (mDoDigits) {
-    LOG(INFO) << "Decoded " << digVec->size() << " Digits in " << digROFVec->size() << " ROFs";
+    LOG(INFO) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs";
   }
   mTimer.Stop();
-  LOG(INFO) << "Total time for this TF: CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
+  LOG(INFO) << mSelfName << " Total time for this TF: CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
 }
 
 ///_______________________________________
@@ -190,7 +188,8 @@ DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool do
     Inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, dict)},
-    Options{}};
+    Options{
+      {"nthreads", VariantType::Int, 0, {"Number of decoding/clustering threads (<1: rely on openMP default)"}}}};
 }
 
 DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict)
@@ -217,7 +216,8 @@ DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool do
     Inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, dict)},
-    Options{}};
+    Options{
+      {"nthreads", VariantType::Int, 0, {"Number of decoding/clustering threads (<1: rely on openMP default)"}}}};
 }
 
 } // namespace itsmft
