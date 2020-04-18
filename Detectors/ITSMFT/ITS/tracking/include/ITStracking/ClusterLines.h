@@ -61,12 +61,12 @@ struct Line final {
 #endif
 };
 
-inline Line::Line() : weightMatrix{1., 0., 0., 1., 0., 1.}
+GPUhdi() Line::Line() : weightMatrix{1., 0., 0., 1., 0., 1.}
 {
   isEmpty = true;
 }
 
-inline Line::Line(const Line& other)
+GPUhdi() Line::Line(const Line& other)
 {
   isEmpty = other.isEmpty;
   for (int i{0}; i < 3; ++i) {
@@ -81,7 +81,7 @@ inline Line::Line(const Line& other)
 #endif
 }
 
-inline Line::Line(const float firstPoint[3], const float secondPoint[3])
+GPUhdi() Line::Line(const float firstPoint[3], const float secondPoint[3])
 {
   for (int i{0}; i < 3; ++i) {
     originPoint[i] = firstPoint[i];
@@ -95,7 +95,7 @@ inline Line::Line(const float firstPoint[3], const float secondPoint[3])
     cosinesDirector[index] *= inverseNorm;
 }
 
-inline Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters)
+GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters)
 {
   originPoint[0] = innerClusters[tracklet.firstClusterIndex].xCoordinate;
   originPoint[1] = innerClusters[tracklet.firstClusterIndex].yCoordinate;
@@ -113,7 +113,7 @@ inline Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const 
 }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-inline Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters, const int evId) : evtId{evId}
+GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters, const int evId) : evtId{evId}
 {
   originPoint[0] = innerClusters[tracklet.firstClusterIndex].xCoordinate;
   originPoint[1] = innerClusters[tracklet.firstClusterIndex].yCoordinate;
@@ -136,8 +136,9 @@ inline float Line::getDistanceFromPoint(const Line& line, const std::array<float
 {
   float DCASquared{0};
   float cdelta{0};
-  for (int i{0}; i < 3; ++i)
+  for (int i{0}; i < 3; ++i) {
     cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
+  }
   for (int i{0}; i < 3; ++i) {
     DCASquared += (line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta) *
                   (line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta);
@@ -145,7 +146,7 @@ inline float Line::getDistanceFromPoint(const Line& line, const std::array<float
   return gpu::CAMath::Sqrt(DCASquared);
 }
 
-inline float Line::getDistanceFromPoint(const Line& line, const float point[3])
+GPUhdi() float Line::getDistanceFromPoint(const Line& line, const float point[3])
 {
   float DCASquared{0};
   float cdelta{0};
@@ -158,7 +159,7 @@ inline float Line::getDistanceFromPoint(const Line& line, const float point[3])
   return gpu::CAMath::Sqrt(DCASquared);
 }
 
-inline float Line::getDCA(const Line& firstLine, const Line& secondLine, const float precision)
+GPUhdi() float Line::getDCA(const Line& firstLine, const Line& secondLine, const float precision)
 {
   float normalVector[3];
   normalVector[0] = firstLine.cosinesDirector[1] * secondLine.cosinesDirector[2] -
@@ -182,14 +183,14 @@ inline float Line::getDCA(const Line& firstLine, const Line& secondLine, const f
       stdOriginPoint[i] = secondLine.originPoint[1];
     }
 #else
-    std::array<float, 3> stdOriginPoint;
+    std::array<float, 3> stdOriginPoint = {};
     std::copy_n(secondLine.originPoint, 3, stdOriginPoint.begin());
 #endif
     return getDistanceFromPoint(firstLine, stdOriginPoint);
   }
 }
 
-inline void Line::getDCAComponents(const Line& line, const float point[3], float destArray[6])
+GPUhdi() void Line::getDCAComponents(const Line& line, const float point[3], float destArray[6])
 {
   float cdelta{0.};
   for (int i{0}; i < 3; ++i)
