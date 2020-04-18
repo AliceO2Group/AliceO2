@@ -10,6 +10,8 @@
 
 *   `o2-its-reco-workflow`: reconstruction of ITS tracks starting from simulated digits.
 
+*   `o2-itsmft-stf-decoder-workflow`: raw data STF decoder and clusterizer. Provides either cluster or digits or both. Supports multi-threading.
+
 Can be extended to reconstruction from the raw data by disabling the digits reader and piping it to the output of the STF reader:
 
 ```bash

@@ -9,6 +9,7 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(ITSMFTReconstruction
+               TARGETVARNAME targetName
                SOURCES src/ChipMappingITS.cxx
                        src/ChipMappingMFT.cxx
                        src/DigitPixelReader.cxx
@@ -52,3 +53,9 @@ o2_target_root_dictionary(
           include/ITSMFTReconstruction/PayLoadCont.h
           include/ITSMFTReconstruction/PayLoadSG.h	  
           include/ITSMFTReconstruction/RUInfo.h)
+
+if (OpenMP_CXX_FOUND)
+    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()
+  

@@ -63,6 +63,7 @@ void ClustererDPL::init(InitContext& ic)
 
   mFullClusters = ic.options().get<bool>("full-clusters");
   mPatterns = !ic.options().get<bool>("no-patterns");
+  mNThreads = ic.options().get<int>("nthreads");
 
   // settings for the fired pixel overflow masking
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
@@ -104,24 +105,20 @@ void ClustererDPL::run(ProcessingContext& pc)
   }
   reader.init();
   auto orig = o2::header::gDataOriginMFT;
-  std::vector<o2::itsmft::Cluster, boost::container::pmr::polymorphic_allocator<o2::itsmft::Cluster>>* clusVec = nullptr;
-  std::vector<o2::itsmft::CompClusterExt, boost::container::pmr::polymorphic_allocator<o2::itsmft::CompClusterExt>>* clusCompVec = nullptr;
-  std::vector<o2::itsmft::ROFRecord, boost::container::pmr::polymorphic_allocator<o2::itsmft::ROFRecord>>* clusROFVec = nullptr;
-  std::vector<unsigned char, boost::container::pmr::polymorphic_allocator<unsigned char>>* clusPattVec = nullptr;
+  std::vector<o2::itsmft::Cluster> clusVec;
+  std::vector<o2::itsmft::CompClusterExt> clusCompVec;
+  std::vector<o2::itsmft::ROFRecord> clusROFVec;
+  std::vector<unsigned char> clusPattVec;
 
   std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> clusterLabels;
   if (mUseMC) {
     clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
   }
-
-  clusCompVec = &pc.outputs().make<std::vector<o2::itsmft::CompClusterExt>>(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe});
-  clusROFVec = &pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{orig, "MFTClusterROF", 0, Lifetime::Timeframe});
-  //  if (mFullClusters) // in principle, we don't need to send empty array, but other devices expecting it do not know about options of this device: problem?
-  clusVec = &pc.outputs().make<std::vector<o2::itsmft::Cluster>>(Output{orig, "CLUSTERS", 0, Lifetime::Timeframe});
-  //  if (mPatterns) // idem
-  clusPattVec = &pc.outputs().make<std::vector<unsigned char>>(Output{orig, "PATTERNS", 0, Lifetime::Timeframe});
-
-  mClusterer->process(reader, mFullClusters ? clusVec : nullptr, clusCompVec, mPatterns ? clusPattVec : nullptr, clusROFVec, clusterLabels.get());
+  mClusterer->process(mNThreads, reader, mFullClusters ? &clusVec : nullptr, &clusCompVec, mPatterns ? &clusPattVec : nullptr, &clusROFVec, clusterLabels.get());
+  pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
+  pc.outputs().snapshot(Output{orig, "MFTClusterROF", 0, Lifetime::Timeframe}, clusROFVec);
+  pc.outputs().snapshot(Output{orig, "CLUSTERS", 0, Lifetime::Timeframe}, clusVec);
+  pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{orig, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, *clusterLabels.get()); // at the moment requires snapshot
@@ -134,7 +131,7 @@ void ClustererDPL::run(ProcessingContext& pc)
 
   // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
   // -> consider recalculationg maxROF
-  LOG(INFO) << "MFTClusterer pushed " << clusCompVec->size() << " clusters, in " << clusROFVec->size() << " RO frames";
+  LOG(INFO) << "MFTClusterer pushed " << clusCompVec.size() << " clusters, in " << clusROFVec.size() << " RO frames";
 }
 
 DataProcessorSpec getClustererSpec(bool useMC)
@@ -165,7 +162,8 @@ DataProcessorSpec getClustererSpec(bool useMC)
       {"mft-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
       {"full-clusters", o2::framework::VariantType::Bool, true, {"Produce full clusters"}}, // RSTODO temporary set to true
-      {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}}}};
+      {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}},
+      {"nthreads", VariantType::Int, 0, {"Number of clustering threads (<1: rely on openMP default)"}}}};
 }
 
 } // namespace mft

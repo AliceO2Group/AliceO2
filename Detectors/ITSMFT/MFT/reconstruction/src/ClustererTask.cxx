@@ -80,7 +80,7 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
   if (mRawDataMode) {
 
     mReaderRaw->openInput(inpName);
-    mClusterer.process(*mReaderRaw.get(), &mFullClus, &mCompClus, &mPatterns, &mROFRecVec, nullptr);
+    mClusterer.process(1, *mReaderRaw.get(), &mFullClus, &mCompClus, &mPatterns, &mROFRecVec, nullptr);
 
     auto basename = outName.substr(0, outName.size() - sizeof("root"));
     auto nFiles = int(mROFRecVec.size() / maxROframe);
@@ -125,7 +125,7 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
 
     // loop over entries of the input tree
     while (mReaderMC->readNextEntry()) {
-      mClusterer.process(*mReaderMC.get(), &mFullClus, &mCompClus, &mPatterns, &mROFRecVec, &mClsLabels);
+      mClusterer.process(1, *mReaderMC.get(), &mFullClus, &mCompClus, &mPatterns, &mROFRecVec, &mClsLabels);
     }
 
     outTree.Branch("MFTClusterPatt", &mPatterns);

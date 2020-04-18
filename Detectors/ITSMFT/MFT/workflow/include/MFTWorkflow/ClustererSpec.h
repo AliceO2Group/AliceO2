@@ -40,6 +40,7 @@ class ClustererDPL : public Task
   bool mUseMC = true;
   bool mFullClusters = true; // RSTODO TO BE ELINIMATED but the MFT is not ready yet
   bool mPatterns = true;
+  int mNThreads = 1;
   std::unique_ptr<std::ifstream> mFile = nullptr;
   std::unique_ptr<o2::itsmft::Clusterer> mClusterer = nullptr;
 };

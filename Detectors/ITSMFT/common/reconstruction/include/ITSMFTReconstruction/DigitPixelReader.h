@@ -74,10 +74,12 @@ class DigitPixelReader : public PixelReader
 
   void init() override
   {
-    mLastDigit = nullptr;
     mIdDig = 0;
     mIdROF = -1;
   }
+
+  // prepare next trigger
+  int decodeNextTrigger() override;
 
   // methods for standalone reading
   void openInput(const std::string rawInput, o2::detectors::DetID det);
@@ -104,9 +106,8 @@ class DigitPixelReader : public PixelReader
   gsl::span<const o2::itsmft::MC2ROFRecord> mMC2ROFRecVec;
 
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mDigitsMCTruth = nullptr;
-  const Digit* mLastDigit = nullptr;
-  Int_t mIdDig = 0; // last Digits slot read
-  Int_t mIdROF = 0; // last ROFRecord slot read
+  Int_t mIdDig = 0; // Digits slot read within ROF
+  Int_t mIdROF = 0; // ROFRecord being red
 
   std::unique_ptr<TTree> mInputTree;       // input tree for digits
 

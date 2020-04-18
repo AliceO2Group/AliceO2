@@ -19,6 +19,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include <memory>
+#include <string>
 #include <string_view>
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
@@ -47,6 +48,8 @@ class STFDecoder : public Task
   bool mDoClusters = false;
   bool mDoPatterns = false;
   bool mDoDigits = false;
+  int mNThreads = 1;
+  std::string mSelfName;
   std::string mDictName;
   std::unique_ptr<RawPixelDecoder<Mapping>> mDecoder;
   std::unique_ptr<Clusterer> mClusterer;
