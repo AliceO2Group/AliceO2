@@ -138,7 +138,7 @@ struct RDHUtils {
   template <typename RDH>
   static void setMemorySize(RDH& rdh, uint16_t v)
   {
-    rdh.offsetToNext = v;
+    rdh.memorySize = v;
   } // same for all
   static void setMemorySize(void* rdhP, uint16_t v) { setMemorySize(*reinterpret_cast<RDHDef*>(rdhP), v); }
 
