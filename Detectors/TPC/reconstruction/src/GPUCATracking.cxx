@@ -288,6 +288,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   }
   outClusRefs->resize(clBuff); // remove overhead
   data->compressedClusters = ptrs.tpcCompressedClusters;
+  if (data->o2Digits || data->tpcZS) {
+    data->clusters = ptrs.clustersNative;
+  }
   mTrackingCAO2Interface->Clear(false);
 
   return (retVal);
