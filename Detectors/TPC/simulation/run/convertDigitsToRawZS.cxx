@@ -126,7 +126,7 @@ void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::
   GPUParam _GPUParam;
   _GPUParam.SetDefaults(5.00668);
   const GPUParam mGPUParam = _GPUParam;
-  const float zsThreshold = 0;
+  const float zsThreshold = 2;
 
   o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
   zsEncoder->RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, verify, zsThreshold);
