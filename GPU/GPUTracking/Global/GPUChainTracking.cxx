@@ -377,6 +377,10 @@ int GPUChainTracking::PrepareEvent()
                 *(o++) = GPUTPCClusterFinder::ZSOffset{nDigits, j, num++};
               }
               const unsigned char* const page = ((const unsigned char*)mIOPtrs.tpcZS->slice[iSlice].zsPtr[j][k]) + l * TPCZSHDR::TPC_ZS_PAGE_SIZE;
+              const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)page;
+              if (o2::raw::RDHUtils::getMemorySize(*rdh) == sizeof(o2::header::RAWDataHeader)) {
+                continue;
+              }
               const TPCZSHDR* const hdr = (const TPCZSHDR*)(page + sizeof(o2::header::RAWDataHeader));
               nDigits += hdr->nADCsamples;
             }
@@ -893,7 +897,7 @@ int GPUChainTracking::RunTPCClusterizer()
       }
 
       if (mIOPtrs.tpcZS) {
-        int firstHBF = mIOPtrs.tpcZS->slice[0].count[0] ? o2::raw::RDHUtils::getHeartBeatOrbit((const o2::header::RAWDataHeader*)mIOPtrs.tpcZS->slice[0].zsPtr[0][0]) : 0;
+        int firstHBF = mIOPtrs.tpcZS->slice[0].count[0] ? o2::raw::RDHUtils::getHeartBeatOrbit(*(const o2::header::RAWDataHeader*)mIOPtrs.tpcZS->slice[0].zsPtr[0][0]) : 0;
         runKernel<GPUTPCCFDecodeZS, GPUTPCCFDecodeZS::decodeZS>({doGPU ? clusterer.mPmemory->counters.nPages : GPUTrackingInOutZS::NENDPOINTS, CFDecodeThreadCount(), lane}, {iSlice}, {}, firstHBF);
         TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
         SynchronizeStream(lane);

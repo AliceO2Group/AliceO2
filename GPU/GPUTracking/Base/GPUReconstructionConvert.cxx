@@ -344,6 +344,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
             o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)page;
             o2::raw::RDHUtils::setHeartBeatOrbit(*rdh, hbf);
             o2::raw::RDHUtils::setHeartBeatBC(*rdh, bcShiftInFirstHBF);
+            o2::raw::RDHUtils::setMemorySize(*rdh, TPCZSHDR::TPC_ZS_PAGE_SIZE);
           }
         }
         if (k >= tmpBuffer.size()) {
@@ -361,14 +362,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
             o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)page;
             o2::raw::RDHUtils::setHeartBeatOrbit(*rdh, 0);
             o2::raw::RDHUtils::setHeartBeatBC(*rdh, bcShiftInFirstHBF);
-            pagePtr = reinterpret_cast<unsigned char*>(page);
-            pagePtr += sizeof(o2::header::RAWDataHeader);
-            hdr = reinterpret_cast<TPCZSHDR*>(pagePtr);
-            hdr->version = zs12bit ? 2 : 1;
-            hdr->cruID = i * 10 + region;
-            hdr->timeOffset = 0;
-            hdr->nTimeBins = 0;
-            hdr->nADCsamples = 0;
+            o2::raw::RDHUtils::setMemorySize(*rdh, sizeof(o2::header::RAWDataHeader));
             totalPages++;
           }
           buffer[i][endpoint].emplace_back();
@@ -436,6 +430,9 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
           page = &buffer[i][j][k];
           pagePtr = reinterpret_cast<unsigned char*>(page);
           const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)pagePtr;
+          if (o2::raw::RDHUtils::getMemorySize(*rdh) == sizeof(o2::header::RAWDataHeader)) {
+            continue;
+          }
           pagePtr += sizeof(o2::header::RAWDataHeader);
           hdr = reinterpret_cast<TPCZSHDR*>(pagePtr);
           pagePtr += sizeof(*hdr);

@@ -44,6 +44,7 @@ class GPURawDataUtils
  public:
   static GPUd() unsigned int getOrbit(const o2::header::RAWDataHeader* rdh);
   static GPUd() unsigned int getBC(const o2::header::RAWDataHeader* rdh);
+  static GPUd() unsigned int getSize(const o2::header::RAWDataHeader* rdh);
 };
 
 GPUdi() unsigned int GPURawDataUtils::getOrbit(const o2::header::RAWDataHeader* rdh)
@@ -61,6 +62,15 @@ GPUdi() unsigned int GPURawDataUtils::getBC(const o2::header::RAWDataHeader* rdh
   return o2::raw::RDHUtils::getHeartBeatBC(*rdh);
 #else
   return ((rdh->words[4] >> 48) & 0xFFF); // TODO: Ad-hoc implementation for OpenCL, RDHV4, to be moved to RDHUtils
+#endif
+}
+
+GPUdi() unsigned int GPURawDataUtils::getSize(const o2::header::RAWDataHeader* rdh)
+{
+#ifndef __OPENCL__
+  return o2::raw::RDHUtils::getMemorySize(*rdh);
+#else
+  return ((rdh->words[1] >> 16) & 0xFFFF); // TODO: Ad-hoc implementation for OpenCL, RDHV4, to be moved to RDHUtils
 #endif
 }
 
