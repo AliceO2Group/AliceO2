@@ -29,6 +29,8 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "CommonUtils/StringUtils.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 /// MC->raw conversion with new (variable page size) format for ITS
 using MAP = o2::itsmft::ChipMappingITS;
@@ -52,7 +54,8 @@ int main(int argc, char** argv)
     add_option("verbosity,v", bpo::value<uint32_t>()->default_value(0), "verbosity level [0 = no output]");
     add_option("input-file,i", bpo::value<std::string>()->default_value("itsdigits.root"), "input ITS digits file");
     add_option("file-per-cru,c", bpo::value<bool>()->default_value(false)->implicit_value(true), "create output file per CRU (default: per layer)");
-    add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "Output directory for raw data");
+    add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
+    add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
@@ -73,6 +76,7 @@ int main(int argc, char** argv)
     exit(2);
   }
 
+  o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
   digi2raw(vm["input-file"].as<std::string>(),
            vm["output-dir"].as<std::string>(),
            vm["file-per-cru"].as<bool>(),
@@ -88,10 +92,15 @@ void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU
   using ROFR = o2::itsmft::ROFRecord;
   using ROFRVEC = std::vector<o2::itsmft::ROFRecord>;
   const uint8_t ruSWMin = 0, ruSWMax = 0xff; // seq.ID of 1st and last RU (stave) to convert
+
+  LOG(INFO) << "HBFUtil settings:";
+  o2::raw::HBFUtils::Instance().print();
+
   ///-------> input
   std::string digTreeName{o2::base::NameConf::MCTTREENAME.data()};
   TChain digTree(digTreeName.c_str());
   digTree.AddFile(inpName.data());
+  digTree.SetBranchStatus("*MCTruth*", 0); // ignore MC info
 
   std::vector<o2::itsmft::Digit> digiVec, *digiVecP = &digiVec;
   std::string digBranchName = o2::utils::concat_string(MAP::getName(), "Digit");
