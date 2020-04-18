@@ -27,6 +27,7 @@ using namespace o2::tpc;
 
 void GPUTPCClusterFinder::InitializeProcessor()
 {
+  mMinMaxCN = new MinMaxCN[GPUTrackingInOutZS::NENDPOINTS];
 }
 
 GPUTPCClusterFinder::~GPUTPCClusterFinder()
@@ -138,4 +139,6 @@ void GPUTPCClusterFinder::clearMCMemory()
   mPlabelHeaderOffset = nullptr;
   delete[] mPlabelDataOffset;
   mPlabelDataOffset = nullptr;
+  delete[] mMinMaxCN;
+  mMinMaxCN = nullptr;
 }
