@@ -49,6 +49,7 @@ class GPUTPCClusterFinder : public GPUProcessor
       size_t nPeaks = 0;
       size_t nClusters = 0;
       unsigned int nPages = 0;
+      unsigned int nPagesSubslice = 0;
     } counters;
   };
 
@@ -56,6 +57,10 @@ class GPUTPCClusterFinder : public GPUProcessor
     unsigned int offset;
     unsigned short endpoint;
     unsigned short num;
+  };
+
+  struct MinMaxCN {
+    unsigned int minC, minN, maxC, maxN;
   };
 
 #ifndef GPUCA_GPUCODE
@@ -78,6 +83,7 @@ class GPUTPCClusterFinder : public GPUProcessor
 #endif
   unsigned char* mPzs = nullptr;
   ZSOffset* mPzsOffsets = nullptr;
+  MinMaxCN* mMinMaxCN = nullptr;
   deprecated::Digit* mPdigits = nullptr; // input digits, only set if ZS is skipped
   ChargePos* mPpositions = nullptr;
   ChargePos* mPpeakPositions = nullptr;

@@ -152,13 +152,14 @@ int GPUReconstructionConvert::GetMaxTimeBin(const GPUTrackingInOutZS& zspages)
 #ifdef HAVE_O2HEADERS
   float retVal = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
+    int firstHBF = zspages.slice[i].count[0] ? o2::raw::RDHUtils::getHeartBeatOrbit(*(const o2::header::RAWDataHeader*)zspages.slice[i].zsPtr[0][0]) : 0;
     for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
       for (unsigned int k = 0; k < zspages.slice[i].count[j]; k++) {
         const char* page = (const char*)zspages.slice[i].zsPtr[j][k];
         for (unsigned int l = 0; l < zspages.slice[i].nZSPtr[j][k]; l++) {
           o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)(page + l * TPCZSHDR::TPC_ZS_PAGE_SIZE);
           TPCZSHDR* hdr = (TPCZSHDR*)(page + l * TPCZSHDR::TPC_ZS_PAGE_SIZE + sizeof(o2::header::RAWDataHeader));
-          unsigned int timeBin = GPURawDataUtils::getOrbit(rdh) * o2::constants::lhc::LHCMaxBunches / o2::tpc::Constants::LHCBCPERTIMEBIN + (unsigned int)hdr->timeOffset + hdr->nTimeBins;
+          unsigned int timeBin = (hdr->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / Constants::LHCBCPERTIMEBIN + hdr->nTimeBins;
           if (timeBin > retVal) {
             retVal = timeBin;
           }
