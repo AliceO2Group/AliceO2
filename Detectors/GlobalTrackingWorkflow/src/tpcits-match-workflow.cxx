@@ -19,11 +19,13 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  workflowOptions.push_back(ConfigParamSpec{
-    "disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}});
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
-  std::string keyvaluehelp("Semicolon separated key=value strings ...");
-  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
+  std::swap(workflowOptions, options);
 }
 
 // ------------------------------------------------------------------
@@ -38,5 +40,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2matchtpcits-workflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  return std::move(o2::globaltracking::getMatchTPCITSWorkflow(useMC));
+  auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
+  auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  return std::move(o2::globaltracking::getMatchTPCITSWorkflow(useMC, disableRootInp, disableRootOut));
 }
