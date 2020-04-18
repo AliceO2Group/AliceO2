@@ -27,7 +27,7 @@ namespace o2
 namespace globaltracking
 {
 
-framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC)
+framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC, bool disableRootInp, bool disableRootOut)
 {
   framework::WorkflowSpec specs;
 
@@ -35,31 +35,33 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC)
   bool passCompITSClusters = true;  // eventually only compact of recpoints will be passed
   bool passITSClusPatterns = true;
 
-  specs.emplace_back(o2::its::getITSTrackReaderSpec(useMC));
-  specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(useMC, passFullITSClusters, passCompITSClusters, passITSClusPatterns));
-
-  specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
-
   std::vector<int> tpcClusSectors = o2::RangeTokenizer::tokenize<int>("0-35");
   std::vector<int> tpcClusLanes = tpcClusSectors;
-  specs.emplace_back(o2::tpc::getPublisherSpec(o2::tpc::PublisherConf{
-                                                 "tpc-native-cluster-reader",
-                                                 "tpcrec",
-                                                 {"clusterbranch", "TPCClusterNative", "Branch with TPC native clusters"},
-                                                 {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
-                                                 OutputSpec{"TPC", "CLUSTERNATIVE"},
-                                                 OutputSpec{"TPC", "CLNATIVEMCLBL"},
-                                                 tpcClusSectors,
-                                                 tpcClusLanes},
-                                               useMC));
 
-  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(useMC, tpcClusLanes));
-  specs.emplace_back(o2::globaltracking::getTrackWriterTPCITSSpec(useMC));
+  if (!disableRootInp) {
+    specs.emplace_back(o2::its::getITSTrackReaderSpec(useMC));
+    specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(useMC, passFullITSClusters, passCompITSClusters, passITSClusPatterns));
+    specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
+    specs.emplace_back(o2::tpc::getPublisherSpec(o2::tpc::PublisherConf{
+                                                   "tpc-native-cluster-reader",
+                                                   "tpcrec",
+                                                   {"clusterbranch", "TPCClusterNative", "Branch with TPC native clusters"},
+                                                   {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
+                                                   OutputSpec{"TPC", "CLUSTERNATIVE"},
+                                                   OutputSpec{"TPC", "CLNATIVEMCLBL"},
+                                                   tpcClusSectors,
+                                                   tpcClusLanes},
+                                                 useMC));
 
-  if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
-    specs.emplace_back(o2::ft0::getFT0RecPointReaderSpec(useMC));
+    if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
+      specs.emplace_back(o2::ft0::getFT0RecPointReaderSpec(useMC));
+    }
   }
+  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(useMC, tpcClusLanes));
 
+  if (!disableRootOut) {
+    specs.emplace_back(o2::globaltracking::getTrackWriterTPCITSSpec(useMC));
+  }
   return specs;
 }
 
