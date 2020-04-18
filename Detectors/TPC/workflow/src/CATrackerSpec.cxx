@@ -415,13 +415,13 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
                 tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
               }
               count = 0;
-              if (it.size() == 0) {
-                ptr = nullptr;
-                continue;
-              }
               lastFEE = o2::raw::RDHUtils::getFEEID(*rdh);
               rawcru = rdh_utils::getCRU(lastFEE);
               rawendpoint = rdh_utils::getEndPoint(lastFEE);
+              if (it.size() == 0 && tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].size()) {
+                ptr = nullptr;
+                continue;
+              }
               ptr = current;
             }
             count++;
