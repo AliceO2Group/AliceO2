@@ -138,10 +138,14 @@ void Digitizer::storeBC(BCCache& bc,
     //   *out++ = channel_begin++->hit_time;
     // }
     int chain = (std::rand() % 2) ? 1 : 0;
-    auto cfd = get_time(channel_times, (mDeadTimes[ipmt].intrec ==
-                                        firstBCinDeque)
-                                         ? mDeadTimes[ipmt].deadTime - 25.
-                                         : -25.);
+    /* auto cfd = get_time(channel_times, (mDeadTimes[ipmt].intrec == */
+    /*                                     firstBCinDeque) */
+    /*                                      ? mDeadTimes[ipmt].deadTime - 25. */
+    /*                                      : -25.); */
+    auto cfd = get_time(channel_times,
+                        mDeadTimes[ipmt].intrec.bc2ns() -
+                          firstBCinDeque.bc2ns() +
+                          mDeadTimes[ipmt].deadTime);
     mDeadTimes[ipmt].intrec = firstBCinDeque;
     mDeadTimes[ipmt].deadTime = cfd.deadTime;
 
