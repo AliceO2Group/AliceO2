@@ -89,6 +89,7 @@ o2_add_library(Framework
                        src/TMessageSerializer.cxx
                        src/TableBuilder.cxx
                        src/TableConsumer.cxx
+                       src/DataInputDirector.cxx
                        src/DataOutputDirector.cxx
                        src/Task.cxx
                        src/TextControlService.cxx
@@ -178,7 +179,8 @@ foreach(t
         WorkflowHelpers
         WorkflowSerialization
         TreeToTable
-        DataOutputDirector)
+        DataOutputDirector
+	DataInputDirector)
 
   # FIXME ? The NAME parameter of o2_add_test is only needed to help the current
   # o2.sh recipe. If the recipe is changed, those params can go away, if needed.
