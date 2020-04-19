@@ -531,9 +531,25 @@ std::string getVolumePathName(int detElemId)
 
 o2::Transform3D getTransformation(int detElemId, const TGeoManager& geo)
 {
+
+  int nCh = detElemId / 100;
+
+  if (nCh < 1 || nCh > 10) {
+    throw std::runtime_error("Wrong detection element Id");
+  }
+
   std::string volPathName = geo.GetTopVolume()->GetName();
 
-  volPathName += "/";
+  if (nCh <= 4 && geo.GetVolume("YOUT1")) {
+    volPathName += "/YOUT1_1/";
+  } else if ((nCh == 5 || nCh == 6) && geo.GetVolume("DDIP")) {
+    volPathName += "/DDIP_1/";
+  } else if (nCh >= 7 && geo.GetVolume("YOUT2")) {
+    volPathName += "/YOUT2_1/";
+  } else {
+    volPathName += "/";
+  }
+
   volPathName += impl::getVolumePathName(detElemId);
 
   TGeoNavigator* navig = gGeoManager->GetCurrentNavigator();
