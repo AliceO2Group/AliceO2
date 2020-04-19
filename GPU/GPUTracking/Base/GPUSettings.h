@@ -157,6 +157,7 @@ struct GPUSettingsDeviceProcessing {
   bool mergerSortTracks;              // Sort track indices for GPU track fit
   bool runMC;                         // Process MC labels
   float memoryScalingFactor;          // Factor to apply to all memory scalers
+  bool fitSlowTracksInOtherPass;      // Do a second pass on tracks that are supposed to take long, an attempt to reduce divergence on the GPU
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

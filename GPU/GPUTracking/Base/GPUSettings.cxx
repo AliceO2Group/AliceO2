@@ -100,4 +100,5 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   mergerSortTracks = 1;
   runMC = false;
   memoryScalingFactor = 1.f;
+  fitSlowTracksInOtherPass = false;
 }
