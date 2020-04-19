@@ -54,7 +54,8 @@ struct DataInputDescriptor {
   std::regex getFilenamesRegex();
   int getNumberInputfiles() { return mfilenames.size(); }
 
-  TFile* getDataFile(int counter);
+  TFile* getInputFile(int counter);
+  void closeInputFile();
   std::string getInputFilename(int counter);
 
  private:
@@ -64,6 +65,7 @@ struct DataInputDescriptor {
   std::string* mFilenameRegexPtr = nullptr;
   std::vector<std::string> mfilenames;
   std::vector<std::string>* mdefaultFilenamesPtr = nullptr;
+  TFile* mcurrentFile = nullptr;
 };
 
 struct DataInputDirector {
@@ -83,6 +85,7 @@ struct DataInputDirector {
   void setInputfilesFile(std::string iffn) { minputfilesFile = iffn; }
   void setFilenamesRegex(std::string dfn) { mFilenameRegex = dfn; }
   bool readJson(std::string const& fnjson);
+  void closeInputFiles();
 
   // getters
   DataInputDescriptor* getDataInputDescriptor(header::DataHeader dh);

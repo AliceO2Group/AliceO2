@@ -41,15 +41,31 @@ void DataInputDescriptor::addFilename(std::string fn)
   mfilenames.emplace_back(fn);
 }
 
-TFile* DataInputDescriptor::getDataFile(int counter)
+TFile* DataInputDescriptor::getInputFile(int counter)
 {
-  TFile* file = nullptr;
 
   if (counter < getNumberInputfiles()) {
-    file = new TFile(mfilenames[counter].c_str());
+    if (mcurrentFile) {
+      if (mcurrentFile->GetName() != mfilenames[counter]) {
+        closeInputFile();
+        mcurrentFile = new TFile(mfilenames[counter].c_str());
+      }
+    } else {
+      mcurrentFile = new TFile(mfilenames[counter].c_str());
+    }
+  } else {
+    closeInputFile();
   }
 
-  return file;
+  return mcurrentFile;
+}
+
+void DataInputDescriptor::closeInputFile()
+{
+  if (mcurrentFile) {
+    mcurrentFile->Close();
+    delete mcurrentFile;
+  }
 }
 
 int DataInputDescriptor::fillInputfiles()
@@ -389,7 +405,7 @@ std::unique_ptr<TTreeReader> DataInputDirector::getTreeReader(header::DataHeader
   if (!didesc) {
     didesc = mdefaultDataInputDescriptor;
   }
-  auto file = didesc->getDataFile(counter);
+  auto file = didesc->getInputFile(counter);
   if (file->IsOpen()) {
     reader = std::make_unique<TTreeReader>(treename.c_str(), file);
     if (!reader) {
@@ -430,7 +446,7 @@ TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter)
     didesc = mdefaultDataInputDescriptor;
     treename = dh.dataDescription.str;
   }
-  auto file = didesc->getDataFile(counter);
+  auto file = didesc->getInputFile(counter);
 
   if (file->IsOpen()) {
     tree = (TTree*)file->Get(treename);
@@ -442,6 +458,14 @@ TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter)
   }
 
   return tree;
+}
+
+void DataInputDirector::closeInputFiles()
+{
+  mdefaultDataInputDescriptor->closeInputFile();
+  for (auto didesc : mdataInputDescriptors) {
+    didesc->closeInputFile();
+  }
 }
 
 bool DataInputDirector::isValid()

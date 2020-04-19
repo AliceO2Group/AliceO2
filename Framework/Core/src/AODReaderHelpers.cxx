@@ -320,6 +320,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 
       if (didir->atEnd(fi)) {
         LOGP(INFO, "All input files processed");
+        didir->closeInputFiles();
         control.endOfStream();
         control.readyToQuit(QuitRequest::Me);
         return;
