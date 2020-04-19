@@ -195,7 +195,7 @@ class GPUTPCGMTrackParam
     }
   }
 
-  GPUd() static void RefitTrack(GPUTPCGMMergedTrack& track, int iTrk, const GPUTPCGMMerger* merger, GPUTPCGMMergedTrackHit* clusters);
+  GPUd() static void RefitTrack(GPUTPCGMMergedTrack& track, int iTrk, GPUTPCGMMerger* merger, GPUTPCGMMergedTrackHit* clusters, int attempt);
 
 #if defined(GPUCA_ALIROOT_LIB) & !defined(GPUCA_GPUCODE)
   bool GetExtParam(AliExternalTrackParam& T, double alpha) const;

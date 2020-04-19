@@ -22,12 +22,12 @@ template <>
 GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, int mode)
 {
   const int iStart = mode <= 0 ? 0 : merger.NSlowTracks();
-  const int iEnd = mode >= 0 ? merger.NOutputTracks() : merger.NSlowTracks();
+  const int iEnd = mode == -2 ? merger.Memory()->nRetryRefit : mode >= 0 ? merger.NOutputTracks() : merger.NSlowTracks();
 #if defined(WITH_OPENMP) && !defined(GPUCA_GPUCODE)
 #pragma omp parallel for num_threads(merger.GetRec().GetDeviceProcessingSettings().nThreads)
 #endif
   for (int ii = iStart + get_global_id(0); ii < iEnd; ii += get_global_size(0)) {
-    const int i = mode ? merger.TrackOrderProcess()[ii] : ii;
-    GPUTPCGMTrackParam::RefitTrack(merger.OutputTracks()[i], i, &merger, merger.Clusters());
+    const int i = mode == -2 ? merger.RetryRefitIds()[ii] : mode ? merger.TrackOrderProcess()[ii] : ii;
+    GPUTPCGMTrackParam::RefitTrack(merger.OutputTracks()[i], i, &merger, merger.Clusters(), mode == -2);
   }
 }

@@ -874,7 +874,7 @@ void GPUTPCGMTrackParam::SetExtParam(const AliExternalTrackParam& T)
 }
 #endif
 
-GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() track, int iTrk, const GPUTPCGMMerger* GPUrestrict() merger, GPUTPCGMMergedTrackHit* GPUrestrict() clusters) // TODO: Inline me, once __forceinline__ is fixed by HIP
+GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() track, int iTrk, GPUTPCGMMerger* GPUrestrict() merger, GPUTPCGMMergedTrackHit* GPUrestrict() clusters, int attempt) // TODO: Inline me, once __forceinline__ is fixed by HIP
 {
   if (!track.OK()) {
     return;
@@ -884,36 +884,40 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() tr
   CADEBUG(if (DEBUG_SINGLE_TRACK >= 0 && iTrk != DEBUG_SINGLE_TRACK) { track.SetNClusters(0); track.SetOK(0); return; } );
   // clang-format on
 
-  const int nAttempts = 2;
-  for (int attempt = 0;;) {
-    int nTrackHits = track.NClusters();
-    int NTolerated = 0; // Clusters not fit but tollerated for track length cut
-    GPUTPCGMTrackParam t = track.Param();
-    float Alpha = track.Alpha();
-    CADEBUG(int nTrackHitsOld = nTrackHits; float ptOld = t.QPt());
-    bool ok = t.Fit(merger, iTrk, clusters + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, attempt, GPUCA_MAX_SIN_PHI, &track.OuterParam(), merger->Param().dodEdx ? &track.dEdxInfo() : nullptr);
-    CADEBUG(printf("Finished Fit Track %d\n", iTrk));
+  int nTrackHits = track.NClusters();
+  int NTolerated = 0; // Clusters not fit but tollerated for track length cut
+  GPUTPCGMTrackParam t = track.Param();
+  float Alpha = track.Alpha();
+  CADEBUG(int nTrackHitsOld = nTrackHits; float ptOld = t.QPt());
+  bool ok = t.Fit(merger, iTrk, clusters + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, attempt, GPUCA_MAX_SIN_PHI, &track.OuterParam(), merger->Param().dodEdx ? &track.dEdxInfo() : nullptr);
+  CADEBUG(printf("Finished Fit Track %d\n", iTrk));
+  CADEBUG(printf("OUTPUT hits %d -> %d+%d = %d, QPt %f -> %f, SP %f, ok %d chi2 %f chi2ndf %f\n", nTrackHitsOld, nTrackHits, NTolerated, nTrackHits + NTolerated, ptOld, t.QPt(), t.SinPhi(), (int)ok, t.Chi2(), t.Chi2() / CAMath::Max(1, nTrackHits)));
 
-    if (CAMath::Abs(t.QPt()) < 1.e-4f) {
-      t.QPt() = 1.e-4f;
+  if (!ok && attempt == 0 && merger->Param().rec.retryRefit) {
+    for (unsigned int i = 0; i < track.NClusters(); i++) {
+      clusters[track.FirstClusterRef() + i].state &= GPUTPCGMMergedTrackHit::clustererAndSharedFlags;
     }
-
-    CADEBUG(printf("OUTPUT hits %d -> %d+%d = %d, QPt %f -> %f, SP %f, ok %d chi2 %f chi2ndf %f\n", nTrackHitsOld, nTrackHits, NTolerated, nTrackHits + NTolerated, ptOld, t.QPt(), t.SinPhi(), (int)ok, t.Chi2(), t.Chi2() / CAMath::Max(1, nTrackHits)));
-
-    if (!ok && ++attempt < nAttempts) {
-      for (unsigned int i = 0; i < track.NClusters(); i++) {
-        clusters[track.FirstClusterRef() + i].state &= GPUTPCGMMergedTrackHit::clustererAndSharedFlags;
-      }
-      CADEBUG(printf("Track rejected, running refit\n"));
-      continue;
+    CADEBUG(printf("Track rejected, marking for retry\n"));
+    if (merger->Param().rec.retryRefit == 2) {
+      nTrackHits = track.NClusters();
+      NTolerated = 0; // Clusters not fit but tollerated for track length cut
+      t = track.Param();
+      Alpha = track.Alpha();
+      ok = t.Fit(merger, iTrk, clusters + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, 1, GPUCA_MAX_SIN_PHI, &track.OuterParam(), merger->Param().dodEdx ? &track.dEdxInfo() : nullptr);
+    } else {
+      unsigned int nRefit = CAMath::AtomicAdd(&merger->Memory()->nRetryRefit, 1);
+      merger->RetryRefitIds()[nRefit] = iTrk;
+      return;
     }
-
-    track.SetOK(ok);
-    track.SetNClustersFitted(nTrackHits);
-    track.Param() = t;
-    track.Alpha() = Alpha;
-    break;
   }
+  if (CAMath::Abs(t.QPt()) < 1.e-4f) {
+    t.QPt() = 1.e-4f;
+  }
+
+  track.SetOK(ok);
+  track.SetNClustersFitted(nTrackHits);
+  track.Param() = t;
+  track.Alpha() = Alpha;
 
   if (track.OK()) {
     int ind = track.FirstClusterRef();
