@@ -59,6 +59,10 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUTPCGMMerger(const GPUTPCGMMerger&) CON_DELETE;
   const GPUTPCGMMerger& operator=(const GPUTPCGMMerger&) const CON_DELETE;
 
+  struct memory {
+    GPUAtomic(unsigned int) nRetryRefit;
+  };
+
   void InitializeProcessor();
   void RegisterMemoryAllocation();
   void SetMaxData(const GPUTrackingInOutPointers& io);
@@ -97,6 +101,8 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhd() unsigned int* TrackOrderAttach() const { return mTrackOrderAttach; }
   GPUhd() unsigned int* TrackOrderProcess() const { return mTrackOrderProcess; }
   GPUd() unsigned int NSlowTracks() const { return mNSlowTracks; }
+  GPUd() unsigned int* RetryRefitIds() { return mRetryRefitIds; }
+  GPUd() memory* Memory() { return mMemory; }
 
   short MemoryResMerger() { return mMemoryResMerger; }
   short MemoryResRefit() { return mMemoryResRefit; }
@@ -182,6 +188,8 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUTPCGMBorderTrack::Range* mBorderRangeMemory;    // memory for border tracks
   GPUTPCGMBorderTrack::Range* mBorderRange[NSLICES]; // memory for border tracks
   int mBorderCETracks[2][NSLICES];
+  memory* mMemory;
+  unsigned int* mRetryRefitIds;
 
   const GPUTPCTracker* mSliceTrackers;
   const o2::base::MatLayerCylSet* mMatLUT;
