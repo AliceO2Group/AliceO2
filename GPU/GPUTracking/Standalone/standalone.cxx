@@ -313,6 +313,9 @@ int SetupReconstruction()
   if (configStandalone.configRec.retryRefit != -1) {
     recSet.retryRefit = configStandalone.configRec.retryRefit;
   }
+  if (configStandalone.configRec.loopInterpolationInExtraPass != -1) {
+    recSet.loopInterpolationInExtraPass = configStandalone.configRec.loopInterpolationInExtraPass;
+  }
 
   if (configStandalone.OMPThreads != -1) {
     devProc.nThreads = configStandalone.OMPThreads;
@@ -438,6 +441,9 @@ int SetupReconstruction()
     devProc.runQA = false;
     devProc.eventDisplay = eventDisplay.get();
     devProc.runCompressionStatistics = 0;
+    recSet.DisableRefitAttachment = 0xFF;
+    recSet.loopInterpolationInExtraPass = 0;
+    recSet.MaxTrackQPt = CAMath::Min(recSet.MaxTrackQPt, recSet.tpcRejectQPt);
     recAsync->SetSettings(&ev, &recSet, &devProc, &steps);
   }
   if (rec->Init()) {
@@ -480,7 +486,7 @@ void OutputStat(GPUChainTracking* t, long long int* nTracksTotal = nullptr, long
       nAttachedClustersFitted += t->GetTPCMerger().OutputTracks()[k].NClustersFitted();
     }
   }
-  for (int k = 0; k < t->GetTPCMerger().NMaxClusters(); k++) {
+  for (unsigned int k = 0; k < t->GetTPCMerger().NMaxClusters(); k++) {
     int attach = t->GetTPCMerger().ClusterAttachment()[k];
     if (attach & GPUTPCGMMergerTypes::attachFlagMask) {
       nAdjacentClusters++;

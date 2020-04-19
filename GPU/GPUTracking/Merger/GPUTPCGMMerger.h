@@ -46,6 +46,7 @@ class GPUTPCGMTrackParam;
 class GPUTPCTracker;
 class GPUChainTracking;
 class GPUTPCGMPolynomialField;
+struct GPUTPCGMLoopData;
 
 /**
  * @class GPUTPCGMMerger
@@ -61,6 +62,7 @@ class GPUTPCGMMerger : public GPUProcessor
 
   struct memory {
     GPUAtomic(unsigned int) nRetryRefit;
+    GPUAtomic(unsigned int) nLoopData;
   };
 
   void InitializeProcessor();
@@ -86,11 +88,11 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhd() void SetMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
   GPUhd() const o2::base::MatLayerCylSet* MatLUT() const { return mMatLUT; }
 
-  GPUhd() int NClusters() const { return (mNClusters); }
-  GPUhd() int NMaxClusters() const { return (mNMaxClusters); }
-  GPUhd() int NMaxTracks() const { return (mNMaxTracks); }
-  GPUhd() int NMaxOutputTrackClusters() const { return (mNMaxOutputTrackClusters); }
-  GPUhd() int NOutputTrackClusters() const { return (mNOutputTrackClusters); }
+  GPUhd() unsigned int NClusters() const { return (mNClusters); }
+  GPUhd() unsigned int NMaxClusters() const { return (mNMaxClusters); }
+  GPUhd() unsigned int NMaxTracks() const { return (mNMaxTracks); }
+  GPUhd() unsigned int NMaxOutputTrackClusters() const { return (mNMaxOutputTrackClusters); }
+  GPUhd() unsigned int NOutputTrackClusters() const { return (mNOutputTrackClusters); }
   GPUhd() const GPUTPCGMMergedTrackHit* Clusters() const { return (mClusters); }
   GPUhd() GPUTPCGMMergedTrackHit* Clusters()
   {
@@ -101,8 +103,9 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhd() unsigned int* TrackOrderAttach() const { return mTrackOrderAttach; }
   GPUhd() unsigned int* TrackOrderProcess() const { return mTrackOrderProcess; }
   GPUd() unsigned int NSlowTracks() const { return mNSlowTracks; }
-  GPUd() unsigned int* RetryRefitIds() { return mRetryRefitIds; }
-  GPUd() memory* Memory() { return mMemory; }
+  GPUd() unsigned int* RetryRefitIds() const { return mRetryRefitIds; }
+  GPUd() GPUTPCGMLoopData* LoopData() const { return mLoopData; }
+  GPUd() memory* Memory() const { return mMemory; }
 
   short MemoryResMerger() { return mMemoryResMerger; }
   short MemoryResRefit() { return mMemoryResRefit; }
@@ -190,6 +193,7 @@ class GPUTPCGMMerger : public GPUProcessor
   int mBorderCETracks[2][NSLICES];
   memory* mMemory;
   unsigned int* mRetryRefitIds;
+  GPUTPCGMLoopData* mLoopData;
 
   const GPUTPCTracker* mSliceTrackers;
   const o2::base::MatLayerCylSet* mMatLUT;

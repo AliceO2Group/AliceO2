@@ -1294,7 +1294,7 @@ void GPUQA::RunQA(bool matchOnly)
     mNCl->Fill(track.NClustersFitted());
   }
 
-  for (int i = 0; i < merger.NMaxClusters(); i++) {
+  for (unsigned int i = 0; i < merger.NMaxClusters(); i++) {
     int attach = merger.ClusterAttachment()[i];
     CHECK_CLUSTER_STATE();
 
