@@ -52,14 +52,6 @@ STFDecoder<Mapping>::STFDecoder(bool doClusters, bool doPatterns, bool doDigits,
 
 ///_______________________________________
 template <class Mapping>
-STFDecoder<Mapping>::~STFDecoder()
-{
-  LOGF(INFO, "%s Total STF decoding%s timing (w/o disk IO): Cpu: %.3e Real: %.3e s in %d slots", mSelfName,
-       mDoClusters ? "/clustering" : "", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
-}
-
-///_______________________________________
-template <class Mapping>
 void STFDecoder<Mapping>::init(InitContext& ic)
 {
   mDecoder = std::make_unique<RawPixelDecoder<Mapping>>();
@@ -97,11 +89,12 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   }
 }
 
+///_______________________________________
 template <class Mapping>
 void STFDecoder<Mapping>::run(ProcessingContext& pc)
 {
   int nSlots = pc.inputs().getNofParts(0);
-  double timeCl = 0, timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
+  double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
   mDecoder->startNewTF(pc.inputs());
   auto orig = o2::header::gDataOriginITS;
@@ -135,14 +128,28 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   }
 
   if (mDoClusters) {
-    LOG(INFO) << mSelfName << " Built " << clusCompVec.size() << " clusters in " << clusROFVec.size() << " ROFs in "
-              << mClusterer->getTimer().CpuTime() - timeCl << " s";
+    LOG(INFO) << mSelfName << " Built " << clusCompVec.size() << " clusters in " << clusROFVec.size() << " ROFs";
   }
   if (mDoDigits) {
     LOG(INFO) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs";
   }
   mTimer.Stop();
   LOG(INFO) << mSelfName << " Total time for this TF: CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
+}
+
+///_______________________________________
+template <class Mapping>
+void STFDecoder<Mapping>::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "%s statistics:", mSelfName);
+  LOGF(INFO, "%s Total STF decoding%s timing (w/o disk IO): Cpu: %.3e Real: %.3e s in %d slots", mSelfName,
+       mDoClusters ? "/clustering" : "", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  if (mDecoder) {
+    mDecoder->printReport();
+  }
+  if (mClusterer) {
+    mClusterer->print();
+  }
 }
 
 ///_______________________________________

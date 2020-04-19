@@ -73,6 +73,9 @@ class Clusterer
   //=========================================================
   /// methods and transient data used within a thread
   struct ClustererThread {
+    static constexpr float SigmaX2 = SegmentationAlpide::PitchRow * SegmentationAlpide::PitchRow / 12.;
+    static constexpr float SigmaY2 = SegmentationAlpide::PitchCol * SegmentationAlpide::PitchCol / 12.;
+
     Clusterer* parent = nullptr; // parent clusterer
     // buffers for entries in preClusterIndices in 2 columns, to avoid boundary checks, we reserve
     // extra elements in the beginning and the end
@@ -125,7 +128,10 @@ class Clusterer
     void fetchMCLabels(int digID, const MCTruth* labelsDig, int& nfilled);
     void initChip(const ChipPixelData* curChipData, uint32_t first);
     void updateChip(const ChipPixelData* curChipData, uint32_t ip);
-    void finishChip(ChipPixelData* curChipData, FullClusCont* fullClus, CompClusCont* compClus, PatternCont* patterns, const MCTruth* labelsDig, MCTruth* labelsClus);
+    void finishChip(ChipPixelData* curChipData, FullClusCont* fullClus, CompClusCont* compClus, PatternCont* patterns,
+                    const MCTruth* labelsDig, MCTruth* labelsClus);
+    void finishChipSingleHitFast(uint32_t hit, ChipPixelData* curChipData, FullClusCont* fullClusPtr, CompClusCont* compClusPtr,
+                                 PatternCont* patternsPtr, const MCTruth* labelsDigPtr, MCTruth* labelsClusPTr);
     void process(gsl::span<ChipPixelData*> chipPtrs, FullClusCont* fullClusPtr, CompClusCont* compClusPtr, PatternCont* patternsPtr,
                  const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord* rofPtr);
 
@@ -138,7 +144,7 @@ class Clusterer
   //=========================================================
 
   Clusterer();
-  ~Clusterer();
+  ~Clusterer() = default;
 
   Clusterer(const Clusterer&) = delete;
   Clusterer& operator=(const Clusterer&) = delete;
@@ -176,6 +182,7 @@ class Clusterer
   void loadDictionary(const std::string& fileName) { mPattIdConverter.loadDictionary(fileName); }
 
   TStopwatch& getTimer() { return mTimer; } // cannot be const
+  TStopwatch& getTimerMerge() { return mTimerMerge; } // cannot be const
 
  private:
 
@@ -220,6 +227,7 @@ class Clusterer
   TTree* mClusTree = nullptr;    //! externally provided tree to write clusters output (if needed)
 
   TStopwatch mTimer;
+  TStopwatch mTimerMerge;
 };
 
 
