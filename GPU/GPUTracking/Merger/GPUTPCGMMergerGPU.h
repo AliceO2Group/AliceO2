@@ -21,7 +21,7 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-class GPUTPCGMMergerTrackFit : public GPUKernelTemplate
+class GPUTPCGMMergerGeneral : public GPUKernelTemplate
 {
  public:
   GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCMerging; }
@@ -31,8 +31,24 @@ class GPUTPCGMMergerTrackFit : public GPUKernelTemplate
   {
     return &processors.tpcMerger;
   }
+#endif
+};
+
+class GPUTPCGMMergerTrackFit : public GPUTPCGMMergerGeneral
+{
+ public:
+#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
   template <int iKernel = defaultKernel>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger, int mode);
+#endif
+};
+
+class GPUTPCGMMergerFollowLoopers : public GPUTPCGMMergerGeneral
+{
+ public:
+#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
 #endif
 };
 

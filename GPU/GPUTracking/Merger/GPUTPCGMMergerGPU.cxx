@@ -31,3 +31,14 @@ GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int nBlocks, int nThreads, int i
     GPUTPCGMTrackParam::RefitTrack(merger.OutputTracks()[i], i, &merger, merger.Clusters(), mode == -2);
   }
 }
+
+template <>
+GPUdii() void GPUTPCGMMergerFollowLoopers::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+#if defined(WITH_OPENMP) && !defined(GPUCA_GPUCODE)
+#pragma omp parallel for num_threads(merger.GetRec().GetDeviceProcessingSettings().nThreads)
+#endif
+  for (unsigned int i = get_global_id(0); i < merger.Memory()->nLoopData; i += get_global_size(0)) {
+    GPUTPCGMTrackParam::RefitLoop(&merger, i);
+  }
+}

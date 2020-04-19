@@ -1506,6 +1506,7 @@ int GPUChainTracking::RunTPCTrackingMerger()
   }
 
   Merger.Memory()->nRetryRefit = 0;
+  Merger.Memory()->nLoopData = 0;
   WriteToConstantMemory(RecoStep::TPCMerging, (char*)&processors()->tpcMerger - (char*)processors(), &MergerShadow, sizeof(MergerShadow), 0);
   TransferMemoryResourceLinkToGPU(RecoStep::TPCMerging, Merger.MemoryResRefit());
   timerCopyToGPU.Stop();
@@ -1516,8 +1517,11 @@ int GPUChainTracking::RunTPCTrackingMerger()
   } else {
     runKernel<GPUTPCGMMergerTrackFit>(GetGrid(Merger.NOutputTracks(), FitThreadCount(), 0), krnlRunRangeNone, krnlEventNone, 0);
   }
-  if (param().rec.retryRefit) {
+  if (param().rec.retryRefit == 1) {
     runKernel<GPUTPCGMMergerTrackFit>(GetGrid(Merger.NOutputTracks(), FitThreadCount(), 0), krnlRunRangeNone, krnlEventNone, -2);
+  }
+  if (param().rec.loopInterpolationInExtraPass) {
+    runKernel<GPUTPCGMMergerFollowLoopers>(GetGrid(Merger.NOutputTracks(), FitThreadCount(), 0), krnlRunRangeNone, krnlEventNone);
   }
   SynchronizeGPU();
 

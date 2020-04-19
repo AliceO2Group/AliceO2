@@ -84,6 +84,7 @@ struct GPUSettingsRec {
   char fitInProjections;                 // -1 for automatic
   char fitPropagateBzOnly;               // Use only Bz for the propagation during the fit in the first n passes, -1 = NWays -1
   char retryRefit;                       // Retry refit with larger cluster errors when fit fails
+  char loopInterpolationInExtraPass;     // Perform the loop interpolation in an extra pass
 };
 
 // Settings describing the events / time frames
