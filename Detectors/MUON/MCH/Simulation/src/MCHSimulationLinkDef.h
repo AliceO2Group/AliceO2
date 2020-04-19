@@ -28,6 +28,7 @@
 #pragma link C++ function o2::mch::getSensitiveVolumes;
 
 #pragma link C++ function o2::mch::test::createStandaloneGeometry;
+#pragma link C++ function o2::mch::test::createRegularGeometry;
 #pragma link C++ function o2::mch::test::drawGeometry;
 #pragma link C++ function o2::mch::test::getRadio;
 #pragma link C++ function o2::mch::test::showGeometryAsTextTree;

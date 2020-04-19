@@ -26,6 +26,11 @@ namespace test
 /// usefull for tests or drawing for instance.
 void createStandaloneGeometry();
 
+/// creates MCH geometry with the beam shielding and the dipole
+/// from scratch (i.e. from a null TGeoManager).
+/// usefull for tests.
+void createRegularGeometry();
+
 /// tree like textual dump of the geometry nodes
 void showGeometryAsTextTree(const char* fromPath = "", int maxdepth = 2, std::ostream& out = std::cout);
 

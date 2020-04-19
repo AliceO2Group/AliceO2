@@ -22,6 +22,13 @@
 #include "TGLViewer.h"
 #include "TGLRnrCtx.h"
 #include "TVirtualPad.h"
+#include "DetectorsPassive/Cave.h"
+#include "DetectorsPassive/Dipole.h"
+#include "DetectorsPassive/Absorber.h"
+#include "DetectorsPassive/Compensator.h"
+#include "DetectorsPassive/Shil.h"
+#include "DetectorsPassive/Pipe.h"
+#include "MCHSimulation/Detector.h"
 
 namespace o2
 {
@@ -111,6 +118,22 @@ void createStandaloneGeometry()
   TGeoVolume* top = createAirVacuumCave("cave");
   g->SetTopVolume(top);
   o2::mch::createGeometry(*top);
+}
+
+void createRegularGeometry()
+{
+  if (gGeoManager && gGeoManager->GetTopVolume()) {
+    std::cerr << "Can only call this function with an empty geometry, i.e. gGeoManager==nullptr "
+              << " or gGeoManager->GetTopVolume()==nullptr\n";
+  }
+  TGeoManager* g = new TGeoManager("MCH-BASICS", "ALICE MCH Regular Geometry");
+  o2::passive::Cave("CAVE", "Cave (for MCH Basics)").ConstructGeometry();
+  o2::passive::Dipole("Dipole", "Alice Dipole (for MCH Basics)").ConstructGeometry();
+  o2::passive::Compensator("Comp", "Alice Compensator Dipole (for MCH Basics)").ConstructGeometry();
+  o2::passive::Pipe("Pipe", "Beam pipe (for MCH Basics)").ConstructGeometry();
+  o2::passive::Shil("Shield", "Small angle beam shield (for MCH Basics)").ConstructGeometry();
+  o2::passive::Absorber("Absorber", "Absorber (for MCH Basics)").ConstructGeometry();
+  o2::mch::Detector(true).ConstructGeometry();
 }
 
 void setVolumeVisibility(const char* pattern, bool visible, bool visibleDaughters)

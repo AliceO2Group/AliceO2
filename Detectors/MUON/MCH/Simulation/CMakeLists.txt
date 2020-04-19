@@ -28,6 +28,7 @@ o2_add_library(MCHSimulation
 		       PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
 		                     O2::MCHBase
                                      O2::MCHMappingImpl3 O2::DetectorsBase
+                                     O2::DetectorsPassive
                                      RapidJSON::RapidJSON)
 
 o2_target_root_dictionary(MCHSimulation
