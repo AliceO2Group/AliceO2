@@ -449,6 +449,7 @@ TFile* DataOutputDirector::getDataOutputFile(DataOutputDescriptor* dodesc,
       mfilePtrs[ind] = new TFile(fn.c_str(), filemode.c_str());
     }
     filePtr = mfilePtrs[ind];
+    filePtr->cd();
   }
 
   return filePtr;
