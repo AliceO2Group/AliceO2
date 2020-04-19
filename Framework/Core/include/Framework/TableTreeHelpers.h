@@ -236,7 +236,7 @@ class branchIterator
 
     return true;
   };
-}  ;
+};
 
 // -----------------------------------------------------------------------------
 class TableToTree
@@ -309,7 +309,7 @@ class TableToTree
       // update the branches
       for (auto brit : brits)
         togo &= brit->push();
-      
+
       // fill the tree
       tr->Fill();
     }
