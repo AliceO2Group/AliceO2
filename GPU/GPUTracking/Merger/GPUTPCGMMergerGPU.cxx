@@ -27,11 +27,7 @@ GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int nBlocks, int nThreads, int i
 #pragma omp parallel for num_threads(merger.GetRec().GetDeviceProcessingSettings().nThreads)
 #endif
   for (int ii = iStart + get_global_id(0); ii < iEnd; ii += get_global_size(0)) {
-#ifdef __HIPCC__
-    const int i = ii; // TODO: BUG: remove me, workaround for bug in hipcc compiler
-#else
     const int i = mode ? merger.TrackOrderProcess()[ii] : ii;
-#endif
     GPUTPCGMTrackParam::RefitTrack(merger.OutputTracks()[i], i, &merger, merger.Clusters());
   }
 }

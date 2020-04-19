@@ -179,12 +179,6 @@ void GPUReconstructionHIPBackend::GetITSTraits(std::unique_ptr<o2::its::TrackerT
 
 int GPUReconstructionHIPBackend::InitDevice_Runtime()
 {
-#ifdef GPUCA_STANDALONE
-  if (mDeviceProcessingSettings.mergerSortTracks) {
-    GPUFatal("sorting merger track indizes unsupported by HIP (compiler bug), please use --PROCmergerSortTracks option!"); // TODO: BUG: remove me, workaround for bug in hipcc compiler
-  }
-#endif
-
   // Find best HIP device, initialize and allocate memory
   GPUCA_GPUReconstructionUpdateDefailts();
 
