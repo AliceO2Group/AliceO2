@@ -83,6 +83,7 @@ struct GPUSettingsRec {
   unsigned char mergerInterpolateErrors; // Use interpolation for cluster rejection based on chi-2 instead of extrapolation
   char fitInProjections;                 // -1 for automatic
   char fitPropagateBzOnly;               // Use only Bz for the propagation during the fit in the first n passes, -1 = NWays -1
+  char retryRefit;                       // Retry refit with larger cluster errors when fit fails
 };
 
 // Settings describing the events / time frames
