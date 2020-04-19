@@ -45,7 +45,7 @@ class RawPixelDecoder : public PixelReader
 
  public:
   RawPixelDecoder();
-  ~RawPixelDecoder() final;
+  ~RawPixelDecoder() final = default;
   void init() final {}
   bool getNextChipData(ChipPixelData& chipData) final;
   ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) final;

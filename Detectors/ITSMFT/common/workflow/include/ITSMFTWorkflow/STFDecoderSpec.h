@@ -38,9 +38,10 @@ class STFDecoder : public Task
 {
  public:
   STFDecoder(bool clusters = true, bool pattern = true, bool digits = false, std::string_view dict = "");
-  ~STFDecoder() override;
+  ~STFDecoder() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void endOfStream(EndOfStreamContext& ec) final;
 
  private:
   std::unique_ptr<o2::itsmft::Clusterer> setupClusterer(const std::string& dictName);
