@@ -25,19 +25,13 @@
 using namespace o2::itsmft;
 
 //__________________________________________________
-Clusterer::~Clusterer()
-{
-  print();
-}
-
-//__________________________________________________
 void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClus, CompClusCont* compClus,
                         PatternCont* patterns, ROFRecCont* vecROFRec, MCTruth* labelsCl)
 {
-
 #ifdef _PERFORM_TIMING_
   mTimer.Start(kFALSE);
 #endif
+  constexpr int LoopPerThread = 4; // in MT mode run so many times more loops than the threads allowed
   auto autoDecode = reader.getDecodeNextAuto();
   o2::itsmft::ROFRecord* rof = nullptr;
   do {
@@ -64,32 +58,41 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
     if (nFired < nThreads) {
       nThreads = nFired;
     }
+    int nLoops = nThreads;
 #ifdef WITH_OPENMP
     if (nThreads > 0) {
       omp_set_num_threads(nThreads);
     } else {
       nThreads = omp_get_num_threads(); // RSTODO I guess the system may decide to provide less threads than asked?
     }
-    int chTrh[nThreads + 1], thrID = 0;
-    chTrh[0] = 0;
+    nLoops = nThreads == 1 ? 1 : std::min(nFired, LoopPerThread * nThreads);
+    std::vector<int> loopLim;
+    loopLim.reserve(nLoops + nLoops);
+    loopLim.push_back(0);
     // decide actual workshare between the threads, trying to process the same number of pixels in each
-    size_t nAvPixPerThread = nPix / nThreads, smt = 0;
+    size_t nAvPixPerLoop = nPix / nLoops, smt = 0;
     for (int i = 0; i < nFired; i++) {
       smt += mFiredChipsPtr[i]->getData().size();
-      if (smt >= nAvPixPerThread) { // define threads boundary
-        chTrh[++thrID] = i;
-        smt = mFiredChipsPtr[i]->getData().size();
+      if (smt >= nAvPixPerLoop) { // define threads boundary
+        loopLim.push_back(i);
+        smt = 0;
       }
     }
-    chTrh[nThreads] = nFired;
+    if (loopLim.back() != nFired) {
+      loopLim.push_back(nFired);
+    }
+    nLoops = loopLim.size() - 1;
+    if (nThreads > nLoops) { // this should not happen
+      omp_set_num_threads(nLoops);
+    }
 #else
-    nThreads = 1;
-    int chTrh[2] = {0, nFired};
+    nThreads = nLoops = 1;
+    std::vector<int> loopLim{0, nFired};
 #endif
-    if (nThreads > mThreads.size()) {
+    if (nLoops > mThreads.size()) {
       int oldSz = mThreads.size();
-      mThreads.resize(nThreads);
-      for (int i = oldSz; i < nThreads; i++) {
+      mThreads.resize(nLoops);
+      for (int i = oldSz; i < nLoops; i++) {
         mThreads[i] = std::make_unique<ClustererThread>(this);
       }
     }
@@ -97,8 +100,8 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
 #pragma omp parallel for
 #endif
     //>> start of MT region
-    for (int ith = 0; ith < nThreads; ith++) {
-      auto chips = gsl::span(&mFiredChipsPtr[chTrh[ith]], chTrh[ith + 1] - chTrh[ith]);
+    for (int ith = 0; ith < nLoops; ith++) { // each loop is done by a separate thread
+      auto chips = gsl::span(&mFiredChipsPtr[loopLim[ith]], loopLim[ith + 1] - loopLim[ith]);
       if (!ith) { // the 1st thread can write directly to the final destination
         mThreads[ith]->process(chips, fullClus, compClus, patterns, labelsCl ? reader.getDigitsMCTruth() : nullptr, labelsCl, rof);
       } else { // extra threads will store in their own containers
@@ -113,9 +116,12 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
     //<< end of MT region
 
     // copy data of all threads but the 1st one to final destination
-    if (nThreads > 1) {
+    if (nLoops > 1) {
+#ifdef _PERFORM_TIMING_
+      mTimerMerge.Start(false);
+#endif
       size_t nClTot = compClus->size(), nPattTot = patterns ? patterns->size() : 0;
-      for (int ith = 1; ith < nThreads; ith++) {
+      for (int ith = 1; ith < nLoops; ith++) {
         nClTot += mThreads[ith]->compClusters.size();
         nPattTot += mThreads[ith]->patterns.size();
       }
@@ -126,7 +132,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
       if (patterns) {
         patterns->reserve(nPattTot);
       }
-      for (int ith = 1; ith < nThreads; ith++) {
+      for (int ith = 1; ith < nLoops; ith++) {
         compClus->insert(compClus->end(), mThreads[ith]->compClusters.begin(), mThreads[ith]->compClusters.end());
         mThreads[ith]->compClusters.clear();
 
@@ -143,6 +149,9 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
           mThreads[ith]->labels.clear();
         }
       }
+#ifdef _PERFORM_TIMING_
+      mTimerMerge.Stop();
+#endif
     }
     // finalize last ROF
     if (rof) {
@@ -175,14 +184,20 @@ void Clusterer::ClustererThread::process(gsl::span<ChipPixelData*> chipPtrs, Ful
       }
     }
     auto validPixID = curChipData->getFirstUnmasked();
-    if (validPixID < curChipData->getData().size()) { // chip data may have all of its pixels masked!
-      initChip(curChipData, validPixID++);
-      for (; validPixID < curChipData->getData().size(); validPixID++) {
-        if (!curChipData->getData()[validPixID].isMasked()) {
-          updateChip(curChipData, validPixID);
+    auto npix = curChipData->getData().size();
+    if (validPixID < npix) { // chip data may have all of its pixels masked!
+      auto valp = validPixID++;
+      if (validPixID == npix) { // special case of a single pixel fired on the chip
+        finishChipSingleHitFast(valp, curChipData, fullClusPtr, compClusPtr, patternsPtr, labelsDigPtr, labelsClPtr);
+      } else {
+        initChip(curChipData, valp);
+        for (; validPixID < npix; validPixID++) {
+          if (!curChipData->getData()[validPixID].isMasked()) {
+            updateChip(curChipData, validPixID);
+          }
         }
+        finishChip(curChipData, fullClusPtr, compClusPtr, patternsPtr, labelsDigPtr, labelsClPtr);
       }
-      finishChip(curChipData, fullClusPtr, compClusPtr, patternsPtr, labelsDigPtr, labelsClPtr);
     }
     if (parent->mMaxBCSeparationToMask > 0) { // current chip data will be used in the next ROF to mask overflow pixels
       parent->mChipsOld[chipID].swap(*curChipData);
@@ -194,8 +209,6 @@ void Clusterer::ClustererThread::process(gsl::span<ChipPixelData*> chipPtrs, Ful
 void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, FullClusCont* fullClusPtr, CompClusCont* compClusPtr,
                                             PatternCont* patternsPtr, const MCTruth* labelsDigPtr, MCTruth* labelsClusPTr)
 {
-  constexpr float SigmaX2 = SegmentationAlpide::PitchRow * SegmentationAlpide::PitchRow / 12.; // FIXME
-  constexpr float SigmaY2 = SegmentationAlpide::PitchCol * SegmentationAlpide::PitchCol / 12.; // FIXME
   auto clustersCount = compClusPtr->size();
   const auto& pixData = curChipData->getData();
   for (int i1 = 0; i1 < preClusterHeads.size(); ++i1) {
@@ -323,6 +336,54 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, FullClus
 }
 
 //__________________________________________________
+void Clusterer::ClustererThread::finishChipSingleHitFast(uint32_t hit, ChipPixelData* curChipData, FullClusCont* fullClusPtr,
+                                                         CompClusCont* compClusPtr, PatternCont* patternsPtr, const MCTruth* labelsDigPtr, MCTruth* labelsClusPTr)
+{
+  auto clustersCount = compClusPtr->size();
+  auto pix = curChipData->getData()[hit];
+  uint16_t row = pix.getRowDirect(), col = pix.getCol();
+
+  if (fullClusPtr) { // do we need conventional clusters with full topology and coordinates?
+    Cluster clus;
+    clus.setSensorID(curChipData->getChipID());
+    clus.setNxNzN(1, 1, 1);
+#ifdef _ClusterTopology_
+    clus.setPatternRowSpan(1, false);
+    clus.setPatternColSpan(1, false);
+    clus.setPatternRowMin(row);
+    clus.setPatternColMin(col);
+    clus.setPixel(0, 0);
+#endif //_ClusterTopology_
+    fullClusPtr->push_back(clus);
+    Cluster& c = fullClusPtr->back();
+    Point3D<float> xyzLoc;
+    SegmentationAlpide::detectorToLocalUnchecked(row, col, xyzLoc);                     // implicit conversion of row,col to floats!
+    auto xyzTra = parent->mGeometry->getMatrixT2L(curChipData->getChipID()) ^ (xyzLoc); // inverse transform from Local to Tracking frame
+    c.setPos(xyzTra);
+    c.setErrors(SigmaX2, SigmaY2, 0.f);
+  }
+
+  if (labelsClusPTr) { // MC labels were requested
+    int nlab = 0;
+    fetchMCLabels(curChipData->getStartID() + hit, labelsDigPtr, nlab);
+    auto cnt = compClusPtr->size();
+    for (int i = nlab; i--;) {
+      labelsClusPTr->addElement(cnt, labelsBuff[i]);
+    }
+  }
+
+  // add to compact clusters, which must be always filled
+  unsigned char patt[Cluster::kMaxPatternBytes]{0x1 << (7 - (0 % 8))}; // unrolled 1 hit version of full loop in finishChip
+  uint16_t pattID = (parent->mPattIdConverter.size() == 0) ? CompCluster::InvalidPatternID : parent->mPattIdConverter.findGroupID(1, 1, patt);
+  if ((pattID == CompCluster::InvalidPatternID || parent->mPattIdConverter.isGroup(pattID)) && patternsPtr) {
+    patternsPtr->emplace_back(1); // rowspan
+    patternsPtr->emplace_back(1); // colspan
+    patternsPtr->insert(patternsPtr->end(), std::begin(patt), std::begin(patt) + 1);
+  }
+  compClusPtr->emplace_back(row, col, pattID, curChipData->getChipID());
+}
+
+//__________________________________________________
 Clusterer::Clusterer() : mPattIdConverter()
 {
   mROFRef.clear();
@@ -334,6 +395,9 @@ Clusterer::Clusterer() : mPattIdConverter()
 
 #ifdef _PERFORM_TIMING_
   mTimer.Stop();
+  mTimer.Reset();
+  mTimerMerge.Stop();
+  mTimerMerge.Reset();
 #endif
 }
 
@@ -438,8 +502,12 @@ void Clusterer::clear()
   // reset
   mClusTree = nullptr;
   mROFRef.clear();
+#ifdef _PERFORM_TIMING_
   mTimer.Stop();
   mTimer.Reset();
+  mTimerMerge.Stop();
+  mTimerMerge.Reset();
+#endif
 }
 
 ///< flush cluster data accumulated so far into the tree, this method should be NEVER used in MT-mode
@@ -471,7 +539,11 @@ void Clusterer::print() const
   LOG(INFO) << "Clusterizer masks overflow pixels in strobes separated by < " << mMaxBCSeparationToMask << " BC";
 #ifdef _PERFORM_TIMING_
   auto& tmr = const_cast<TStopwatch&>(mTimer); // ugly but this is what root does internally
-  LOG(INFO) << "Clusterization timing (w/o disk IO): Cpu: " << tmr.CpuTime()
+  auto& tmrm = const_cast<TStopwatch&>(mTimerMerge);
+  LOG(INFO) << "Inclusive clusterization timing (w/o disk IO): Cpu: " << tmr.CpuTime()
             << " Real: " << tmr.RealTime() << " s in " << tmr.Counter() << " slots";
+  LOG(INFO) << "Threads output merging timing                : Cpu: " << tmrm.CpuTime()
+            << " Real: " << tmrm.RealTime() << " s in " << tmrm.Counter() << " slots";
+
 #endif
 }

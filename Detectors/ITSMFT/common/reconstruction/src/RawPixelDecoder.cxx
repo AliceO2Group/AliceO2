@@ -35,14 +35,6 @@ RawPixelDecoder<Mapping>::RawPixelDecoder()
 }
 
 ///______________________________________________________________
-/// D-tor
-template <class Mapping>
-RawPixelDecoder<Mapping>::~RawPixelDecoder()
-{
-  printReport();
-}
-
-///______________________________________________________________
 ///
 template <class Mapping>
 void RawPixelDecoder<Mapping>::printReport() const
