@@ -52,6 +52,7 @@ void GPUSettingsRec::SetDefaults()
   fitInProjections = -1;
   fitPropagateBzOnly = -1;
   retryRefit = 1;
+  loopInterpolationInExtraPass = 0;
 }
 
 void GPUSettingsEvent::SetDefaults()
