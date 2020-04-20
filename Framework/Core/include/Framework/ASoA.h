@@ -42,7 +42,7 @@ std::shared_ptr<arrow::ChunkedArray>
   return p;
 }
 
-using BackendColumnType = decltype(std::declval<arrow::Table>().column(0));
+using BackendColumnType = typename decltype(std::declval<arrow::Table>().column(0))::element_type;
 using SelectionVector = std::vector<int64_t>;
 
 template <typename, typename = void>
