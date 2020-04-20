@@ -25,8 +25,6 @@
 #include "MCHBase/Digit.h"
 #include "MCHBase/PreCluster.h"
 
-#include "PreClusterFinderMapping.h"
-
 namespace o2
 {
 namespace mch
@@ -35,8 +33,8 @@ namespace mch
 class PreClusterFinder
 {
  public:
-  PreClusterFinder() = default;
-  ~PreClusterFinder() = default;
+  PreClusterFinder();
+  ~PreClusterFinder();
 
   PreClusterFinder(const PreClusterFinder&) = delete;
   PreClusterFinder& operator=(const PreClusterFinder&) = delete;
@@ -54,14 +52,7 @@ class PreClusterFinder
   void getPreClusters(std::vector<o2::mch::PreCluster>& preClusters, std::vector<Digit>& digits);
 
  private:
-  struct DetectionElement {
-    std::unique_ptr<Mapping::MpDE> mapping; // mapping of this DE including the list of pads
-    std::vector<const Digit*> digits;       // list of pointers to digits (not owner)
-    uint16_t nFiredPads[2];                 // number of fired pads on each plane
-    std::vector<uint16_t> firedPads[2];     // indices of fired pads on each plane
-    uint16_t nOrderedPads[2];               // current number of fired pads in the following arrays
-    std::vector<uint16_t> orderedPads[2];   // indices of fired pads ordered after preclustering and merging
-  };
+  struct DetectionElement;
 
   struct PreCluster {
     uint16_t firstPad; // index of first associated pad in the orderedPads array
@@ -86,8 +77,8 @@ class PreClusterFinder
 
   static constexpr int SNDEs = 156; ///< number of DEs
 
-  DetectionElement mDEs[SNDEs]{};            ///< internal mapping
-  std::unordered_map<int, int> mDEIndices{}; ///< maps DE indices from DE IDs
+  std::vector<std::unique_ptr<DetectionElement>> mDEs; ///< internal mapping
+  std::unordered_map<int, int> mDEIndices{};           ///< maps DE indices from DE IDs
 
   int mNPreClusters[SNDEs][2]{};                                     ///< number of preclusters in each cathods of each DE
   std::vector<std::unique_ptr<PreCluster>> mPreClusters[SNDEs][2]{}; ///< preclusters in each cathods of each DE

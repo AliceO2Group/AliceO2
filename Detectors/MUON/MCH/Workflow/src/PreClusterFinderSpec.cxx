@@ -13,7 +13,7 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "PreClusterFinderSpec.h"
+#include "MCHWorkflow/PreClusterFinderSpec.h"
 
 #include <iostream>
 #include <fstream>
@@ -32,7 +32,7 @@
 
 #include "MCHBase/Digit.h"
 #include "MCHBase/PreCluster.h"
-#include "PreClusterFinder.h"
+#include "MCHPreClustering/PreClusterFinder.h"
 
 namespace o2
 {
@@ -66,8 +66,6 @@ class PreClusterFinderTask
                 << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms";
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
-
-    mPrint = ic.options().get<bool>("print");
   }
 
   //_________________________________________________________________________________________________
@@ -109,20 +107,12 @@ class PreClusterFinderTask
     tEnd = std::chrono::high_resolution_clock::now();
     mTimeStorePreClusters += tEnd - tStart;
 
-    if (mPrint) {
-      cout << mPreClusters.size() << " preclusters:" << endl;
-      for (const auto& precluster : mPreClusters) {
-        precluster.print(cout, mUsedDigits);
-      }
-    }
-
     // send the output messages
     pc.outputs().snapshot(Output{"MCH", "PRECLUSTERS", 0, Lifetime::Timeframe}, mPreClusters);
     pc.outputs().snapshot(Output{"MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}, mUsedDigits);
   }
 
  private:
-  bool mPrint = false;                    ///< print preclusters
   PreClusterFinder mPreClusterFinder{};   ///< preclusterizer
   std::vector<PreCluster> mPreClusters{}; ///< vector of preclusters
   std::vector<Digit> mUsedDigits{};       ///< vector of digits in the preclusters
@@ -142,7 +132,7 @@ o2::framework::DataProcessorSpec getPreClusterFinderSpec()
     Outputs{OutputSpec{"MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
             OutputSpec{"MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<PreClusterFinderTask>()},
-    Options{{"print", VariantType::Bool, false, {"print preclusters"}}}};
+    Options{}};
 }
 
 } // end namespace mch

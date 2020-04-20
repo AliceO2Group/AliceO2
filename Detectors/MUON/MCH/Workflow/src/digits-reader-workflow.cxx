@@ -8,18 +8,27 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file digits-reader-workflow.cxx
+/// \brief Implementation of a DPL device to read digits from a binary file
+///
+/// \author Philippe Pillot, Subatech
+/// \author Andrea Ferrero, CEA
+
+#include "Framework/CallbackService.h"
+#include "Framework/ControlService.h"
+#include "Framework/Task.h"
 #include "Framework/runDataProcessing.h"
-
 #include "DigitSamplerSpec.h"
-#include "PreClusterFinderSpec.h"
-#include "PreClusterSinkSpec.h"
 
+using namespace o2;
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(const ConfigContext&)
 {
-  return WorkflowSpec{
-    o2::mch::getDigitSamplerSpec(),
-    o2::mch::getPreClusterFinderSpec(),
-    o2::mch::getPreClusterSinkSpec()};
+  WorkflowSpec specs;
+
+  DataProcessorSpec producer = o2::mch::getDigitSamplerSpec();
+  specs.push_back(producer);
+
+  return specs;
 }
