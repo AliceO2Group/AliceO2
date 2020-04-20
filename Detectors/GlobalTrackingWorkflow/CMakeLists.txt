@@ -22,4 +22,4 @@ o2_add_executable(match-workflow
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow )
 
 add_subdirectory(tofworkflow)
-
+add_subdirectory(tpcinterpolationworkflow)

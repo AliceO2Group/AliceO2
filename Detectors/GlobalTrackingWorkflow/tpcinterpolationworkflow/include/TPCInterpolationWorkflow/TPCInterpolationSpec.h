@@ -1,0 +1,49 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+#ifndef O2_TPC_INTERPOLATION_SPEC_H
+#define O2_TPC_INTERPOLATION_SPEC_H
+
+/// @file   TPCInterpolationSpec.h
+
+#include "DataFormatsTPC/Constants.h"
+#include "SpacePoints/TrackInterpolation.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/Task.h"
+
+using namespace o2::framework;
+
+namespace o2
+{
+namespace tpc
+{
+class TPCInterpolationDPL : public Task
+{
+ public:
+  TPCInterpolationDPL(bool useMC, const std::vector<int>& tpcClusLanes) : mUseMC(useMC), mTPCClusLanes(tpcClusLanes) {}
+  ~TPCInterpolationDPL() override = default;
+  void init(InitContext& ic) final;
+  void run(ProcessingContext& pc) final;
+
+ private:
+  o2::tpc::TrackInterpolation mInterpolation; // track interpolation engine
+  std::vector<int> mTPCClusLanes;
+  std::array<std::vector<char>, o2::tpc::Constants::MAXSECTOR> mBufferedTPCClusters;
+
+  bool mUseMC{false}; ///< MC flag
+};
+
+/// create a processor spec
+framework::DataProcessorSpec getTPCInterpolationSpec(bool useMC, const std::vector<int>& tpcClusLanes);
+
+} // namespace tpc
+} // namespace o2
+
+#endif
