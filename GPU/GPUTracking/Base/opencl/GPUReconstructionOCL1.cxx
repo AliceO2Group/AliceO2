@@ -63,7 +63,8 @@ int GPUReconstructionOCL1Backend::GetOCLPrograms()
   }
 
 #define GPUCA_OPENCL1
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) \
+  GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward) \
   if (AddKernel<GPUCA_M_KRNL_TEMPLATE(x_class)>(false)) {                     \
     return 1;                                                                 \

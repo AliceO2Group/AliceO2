@@ -162,6 +162,12 @@ class GPUChain
   {
     return mRec->runKernel<S, I, J, Args...>(x, y, z, std::forward<Args>(args)...);
   }
+  template <class S, int I = 0>
+  const GPUReconstruction::krnlProperties getKernelProperties()
+  {
+    return mRec->getKernelProperties<S, I>();
+  }
+
   template <class T, int I = 0, int J = -1>
   HighResTimer& getKernelTimer(int num = 0)
   {
@@ -172,27 +178,15 @@ class GPUChain
   {
     return mRec->getTimer<T, J>(name, num);
   }
-  krnlExec GetGrid(unsigned int totalItems, unsigned int nThreads, int stream);
+  krnlExec GetGrid(unsigned int totalItems, unsigned int nThreads, int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  krnlExec GetGrid(unsigned int totalItems, int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  krnlExec GetGridBlk(unsigned int nBlocks, int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  krnlExec GetGridBlkStep(unsigned int nBlocks, int stream, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+
   inline unsigned int BlockCount() const { return mRec->mBlockCount; }
   inline unsigned int WarpSize() const { return mRec->mWarpSize; }
   inline unsigned int ThreadCount() const { return mRec->mThreadCount; }
-  inline unsigned int ConstructorBlockCount() const { return mRec->mConstructorBlockCount; }
-  inline unsigned int SelectorBlockCount() const { return mRec->mSelectorBlockCount; }
-  inline unsigned int HitsSorterBlockCount() const { return mRec->mHitsSorterBlockCount; }
-  inline unsigned int ConstructorThreadCount() const { return mRec->mConstructorThreadCount; }
-  inline unsigned int SelectorThreadCount() const { return mRec->mSelectorThreadCount; }
-  inline unsigned int FinderThreadCount() const { return mRec->mFinderThreadCount; }
-  inline unsigned int HitsSorterThreadCount() const { return mRec->mHitsSorterThreadCount; }
-  inline unsigned int HitsFinderThreadCount() const { return mRec->mHitsFinderThreadCount; }
-  inline unsigned int ClustererThreadCount() const { return mRec->mClustererThreadCount; }
-  inline unsigned int ScanThreadCount() const { return mRec->mScanThreadCount; }
-  inline unsigned int TRDThreadCount() const { return mRec->mTRDThreadCount; }
-  inline unsigned int ConverterThreadCount() const { return mRec->mConverterThreadCount; }
-  inline unsigned int Compression1ThreadCount() const { return mRec->mCompression1ThreadCount; }
-  inline unsigned int Compression2ThreadCount() const { return mRec->mCompression2ThreadCount; }
-  inline unsigned int CFDecodeThreadCount() const { return mRec->mCFDecodeThreadCount; }
-  inline unsigned int FitThreadCount() const { return mRec->mFitThreadCount; }
-  inline unsigned int ITSThreadCount() const { return mRec->mITSThreadCount; }
+
   inline size_t AllocateRegisteredMemory(GPUProcessor* proc) { return mRec->AllocateRegisteredMemory(proc); }
   inline size_t AllocateRegisteredMemory(short res, GPUOutputControl* control = nullptr) { return mRec->AllocateRegisteredMemory(res, control); }
   template <class T>

@@ -200,6 +200,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
 #else
   mDeviceProcessingSettings.nThreads = 1;
 #endif
+  mMaxThreads = std::max(mMaxThreads, mDeviceProcessingSettings.nThreads);
 
   mDeviceMemorySize = mHostMemorySize = 0;
   for (unsigned int i = 0; i < mChains.size(); i++) {
@@ -637,8 +638,6 @@ void GPUReconstruction::SetOutputControl(void* ptr, size_t size)
   outputControl.OutputMaxSize = size;
   SetOutputControl(outputControl);
 }
-
-int GPUReconstruction::GetMaxThreads() { return mDeviceProcessingSettings.nThreads; }
 
 std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstruction::GetThreadContext() { return std::unique_ptr<GPUReconstruction::GPUThreadContext>(new GPUThreadContext); }
 

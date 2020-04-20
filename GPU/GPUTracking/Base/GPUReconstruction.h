@@ -144,6 +144,13 @@ class GPUReconstruction
     int nEvents;
   };
 
+  struct krnlProperties {
+    krnlProperties(int t, int b = 1) : nThreads(t), minBlocks(b) {}
+    unsigned int nThreads;
+    unsigned int minBlocks;
+    unsigned int total() { return nThreads * minBlocks; }
+  };
+
   // Global steering functions
   template <class T, typename... Args>
   T* AddChain(Args... args);
@@ -198,7 +205,7 @@ class GPUReconstruction
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
   void SetOutputControl(void* ptr, size_t size);
   GPUOutputControl& OutputControl() { return mOutputControl; }
-  virtual int GetMaxThreads();
+  int GetMaxThreads() { return mMaxThreads; }
   const void* DeviceMemoryBase() const { return mDeviceMemoryBase; }
 
   RecoStepField GetRecoSteps() const { return mRecoSteps; }
@@ -312,9 +319,10 @@ class GPUReconstruction
   unsigned int mNEventsProcessed = 0;
   double mStatKernelTime = 0.;
 
-  int mThreadId = -1; // Thread ID that is valid for the local CUDA context
-  int mGPUStuck = 0;  // Marks that the GPU is stuck, skip future events
-  int mNStreams = 1;  // Number of parallel GPU streams
+  int mMaxThreads = 0; // Maximum number of threads that may be running, on CPU or GPU
+  int mThreadId = -1;  // Thread ID that is valid for the local CUDA context
+  int mGPUStuck = 0;   // Marks that the GPU is stuck, skip future events
+  int mNStreams = 1;   // Number of parallel GPU streams
 
   // Management for GPUProcessors
   struct ProcessorData {

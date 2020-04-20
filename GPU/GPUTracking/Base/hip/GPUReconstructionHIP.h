@@ -38,7 +38,6 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
 
   int InitDevice_Runtime() override;
   int ExitDevice_Runtime() override;
-  void SetThreadCounts() override;
 
   void SynchronizeGPU() override;
   int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override;
@@ -60,12 +59,13 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
 
   template <class T, int I = 0, typename... Args>
   int runKernelBackend(krnlSetup& _xyz, Args... args);
+  template <class T, int I = 0>
+  const krnlProperties getKernelPropertiesBackend();
   template <class T, int I>
   class backendInternal;
 
  private:
   GPUReconstructionHIPInternals* mInternals;
-  int mCoreCount = 0;
 };
 
 using GPUReconstructionHIP = GPUReconstructionKernels<GPUReconstructionHIPBackend>;

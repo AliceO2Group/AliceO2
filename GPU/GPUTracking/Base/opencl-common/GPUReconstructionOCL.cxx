@@ -31,6 +31,11 @@ using namespace GPUCA_NAMESPACE::gpu;
     return (1);            \
   }
 
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_PROP(x_class, x_attributes)
+#define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionOCL
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+
 GPUReconstructionOCL::GPUReconstructionOCL(const GPUSettingsProcessing& cfg) : GPUReconstructionDeviceBase(cfg, sizeof(GPUReconstructionDeviceBase))
 {
   if (mMaster == nullptr) {
@@ -213,7 +218,9 @@ int GPUReconstructionOCL::InitDevice_Runtime()
 
     mDeviceName = device_name;
     mDeviceName += " (OpenCL)";
-    mCoreCount = shaders;
+    mBlockCount = shaders;
+    mWarpSize = 32;
+    mMaxThreads = std::max<int>(mMaxThreads, maxWorkGroup * mBlockCount);
 
     mInternals->context = clCreateContext(nullptr, ContextForAllPlatforms() ? count : 1, ContextForAllPlatforms() ? mInternals->devices.get() : &mInternals->device, nullptr, nullptr, &ocl_error);
     if (GPUFailedMsgI(ocl_error)) {
@@ -311,7 +318,9 @@ int GPUReconstructionOCL::InitDevice_Runtime()
             (long long int)mHostMemorySize, -1, (long long int)gGPUConstantMemBufferSize);
   } else {
     GPUReconstructionOCL* master = dynamic_cast<GPUReconstructionOCL*>(mMaster);
-    mCoreCount = master->mCoreCount;
+    mBlockCount = master->mBlockCount;
+    mWarpSize = master->mWarpSize;
+    mMaxThreads = master->mMaxThreads;
     mDeviceName = master->mDeviceName;
     mDeviceConstantMem = master->mDeviceConstantMem;
     mInternals = master->mInternals;
@@ -457,28 +466,4 @@ int GPUReconstructionOCL::GPUDebug(const char* state, int stream)
     GPUInfo("GPU Sync Done");
   }
   return (0);
-}
-
-void GPUReconstructionOCL::SetThreadCounts()
-{
-  mThreadCount = GPUCA_THREAD_COUNT;
-  mBlockCount = mCoreCount;
-  mConstructorBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_CONSTRUCTOR;
-  mSelectorBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_SELECTOR;
-  mHitsSorterBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_HITSSORTER;
-  mConstructorThreadCount = GPUCA_THREAD_COUNT_CONSTRUCTOR;
-  mSelectorThreadCount = GPUCA_THREAD_COUNT_SELECTOR;
-  mFinderThreadCount = GPUCA_THREAD_COUNT_FINDER;
-  mTRDThreadCount = GPUCA_THREAD_COUNT_TRD;
-  mClustererThreadCount = GPUCA_THREAD_COUNT_CLUSTERER;
-  mScanThreadCount = GPUCA_THREAD_COUNT_SCAN;
-  mConverterThreadCount = GPUCA_THREAD_COUNT_CONVERTER;
-  mCompression1ThreadCount = GPUCA_THREAD_COUNT_COMPRESSION1;
-  mCompression2ThreadCount = GPUCA_THREAD_COUNT_COMPRESSION2;
-  mCFDecodeThreadCount = GPUCA_THREAD_COUNT_CFDECODE;
-  mFitThreadCount = GPUCA_THREAD_COUNT_FIT;
-  mITSThreadCount = GPUCA_THREAD_COUNT_ITS;
-  mWarpSize = GPUCA_WARP_SIZE;
-  mHitsSorterThreadCount = GPUCA_THREAD_COUNT_HITSSORTER;
-  mHitsFinderThreadCount = GPUCA_THREAD_COUNT_HITSFINDER;
 }

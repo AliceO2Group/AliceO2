@@ -33,7 +33,6 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   ~GPUReconstructionDeviceBase() override;
 
   const GPUParam* DeviceParam() const { return &mDeviceConstantMem->param; }
-  int GetMaxThreads() override;
 
  protected:
   GPUReconstructionDeviceBase(const GPUSettingsProcessing& cfg, size_t sizeCheck);

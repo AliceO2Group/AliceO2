@@ -38,7 +38,6 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
 
   int InitDevice_Runtime() override;
   int ExitDevice_Runtime() override;
-  void SetThreadCounts() override;
 
   class GPUThreadContextCUDA : public GPUThreadContext
   {
@@ -74,12 +73,13 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
 
   template <class T, int I = 0, typename... Args>
   int runKernelBackend(krnlSetup& _xyz, const Args&... args);
+  template <class T, int I = 0>
+  const krnlProperties getKernelPropertiesBackend();
   template <class T, int I>
   class backendInternal;
 
  private:
   GPUReconstructionCUDAInternals* mInternals;
-  int mCoreCount = 0;
 };
 
 using GPUReconstructionCUDA = GPUReconstructionKernels<GPUReconstructionCUDABackend>;
