@@ -17,7 +17,9 @@
 #pragma link C++ class o2::tpc::TrackInterpolation + ;
 #pragma link C++ class o2::tpc::TrackResiduals + ;
 #pragma link C++ class o2::tpc::TrackData + ;
+#pragma link C++ class std::vector < o2::tpc::TrackData> + ;
 #pragma link C++ class o2::tpc::TPCClusterResiduals + ;
+#pragma link C++ class std::vector < o2::tpc::TPCClusterResiduals> + ;
 #pragma link C++ class o2::tpc::TrackResiduals::LocalResid + ;
 #pragma link C++ class o2::tpc::TrackResiduals::VoxRes + ;
 
