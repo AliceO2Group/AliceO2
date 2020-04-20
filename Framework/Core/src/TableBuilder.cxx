@@ -44,7 +44,7 @@ void ArrayFromVector(const std::vector<C_TYPE>& values, std::shared_ptr<arrow::A
 
 } // namespace
 
-namespace o2::framework 
+namespace o2::framework
 {
 
 std::shared_ptr<arrow::Table>
