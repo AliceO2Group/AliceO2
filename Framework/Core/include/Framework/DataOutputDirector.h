@@ -37,15 +37,15 @@ struct DataOutputDescriptor {
 
   DataOutputDescriptor(std::string sin);
 
-  void setFilename(std::string fn) { filename = fn; }
-  void setFilename(std::string* fnptr) { dfnptr = fnptr; }
-  std::string getFilename();
+  void setFilenameBase(std::string fn) { mfilenameBase = fn; }
+  void setFilenameBase(std::string* fnptr) { mfilenameBasePtr = fnptr; }
+  std::string getFilenameBase();
 
   void printOut();
 
  private:
-  std::string filename;
-  std::string* dfnptr = nullptr;
+  std::string mfilenameBase;
+  std::string* mfilenameBasePtr = nullptr;
 
   std::string remove_ws(const std::string& s);
 };
@@ -77,23 +77,24 @@ struct DataOutputDirector {
   // get the matching TFile
   TFile* getDataOutputFile(DataOutputDescriptor* dod,
                            int ntf, int ntfmerge, std::string filemode);
-  void closeDataOutputFiles();
+  void closeDataFiles();
 
-  void setDefaultfname(std::string dfn);
+  void setFilenameBase(std::string dfn);
 
   void printOut();
 
  private:
-  int ndod = 0;
-  std::string defaultfname;
-  std::string* const dfnptr = &defaultfname;
-  std::vector<DataOutputDescriptor*> dodescrs;
-  std::vector<std::string> tnfns;
-  std::vector<std::string> fnames;
-  std::vector<int> fcnts;
-  std::vector<TFile*> fouts;
+  std::string mfilenameBase;
+  std::string* const mfilenameBasePtr = &mfilenameBase;
+  std::vector<DataOutputDescriptor*> mDataOutputDescriptors;
+  std::vector<std::string> mtreeFilenames;
+  std::vector<std::string> mfilenameBases;
+  std::vector<int> mfileCounts;
+  std::vector<TFile*> mfilePtrs;
+  bool mdebugmode = false;
 
   std::tuple<std::string, std::string, int> readJsonDocument(Document* doc);
+  const std::tuple<std::string, std::string, int> memptyanswer = std::make_tuple(std::string(""), std::string(""), -1);
 };
 
 } // namespace framework

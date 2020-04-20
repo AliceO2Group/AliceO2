@@ -18,6 +18,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/DataInputDirector.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/ChannelInfo.h"
 #include "Framework/Logger.h"
@@ -169,7 +170,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
     auto nEvents = options.get<int>("events");
 
     if (filename.empty()) {
-      LOG(error) << "Option --esd-file did not provide a filename";
+      LOGP(ERROR, "Option --esd-file did not provide a filename");
       control.readyToQuit(QuitRequest::All);
       return adaptStateless([](RawDeviceService& service) {
         service.device()->WaitFor(std::chrono::milliseconds(1000));
@@ -186,7 +187,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
           filenames.push_back(filename);
         }
       } catch (...) {
-        LOG(error) << "Unable to process file list: " << filename;
+        LOGP(ERROR, "Unable to process file list: {}", filename);
       }
     } else {
       filenames.push_back(filename);
@@ -212,7 +213,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
       }
       FILE* pipe = popen((command + " " + f).c_str(), "r");
       if (pipe == nullptr) {
-        LOG(ERROR) << "Unable to run converter: " << (command + " " + f).c_str() << f;
+        LOGP(ERROR, "Unable to run converter: {} {}", (command + " " + f), f);
         ctrl.endOfStream();
         ctrl.readyToQuit(QuitRequest::All);
         return;
@@ -232,7 +233,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
         auto input = std::make_shared<FileStream>(pipe);
         auto readerStatus = arrow::ipc::RecordBatchStreamReader::Open(input, &reader);
         if (readerStatus.ok() == false) {
-          LOG(ERROR) << "Reader status not ok: " << readerStatus.message();
+          LOGP(ERROR, "Reader status not ok: {}", readerStatus.message());
           break;
         }
 
@@ -275,7 +276,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
         }
       }
       if (ferror(pipe)) {
-        LOG(ERROR) << "Error while reading from PIPE";
+        LOGP(ERROR, "Error while reading from PIPE");
       }
       pclose(pipe);
     });
@@ -288,60 +289,52 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 {
   auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
                                                  DeviceSpec const& spec) {
-    std::vector<std::string> filenames;
     auto filename = options.get<std::string>("aod-file");
 
-    // If option starts with a @, we consider the file as text which contains a list of
-    // files.
-    if (filename.size() && filename[0] == '@') {
-      try {
-        filename.erase(0, 1);
-        std::ifstream filelist(filename);
-        while (std::getline(filelist, filename)) {
-          filenames.push_back(filename);
-        }
-      } catch (...) {
-        LOG(error) << "Unable to process file list: " << filename;
+    // create a DataInputDirector
+    auto didir = std::make_shared<DataInputDirector>(filename);
+    if (options.isSet("json-file")) {
+      auto jsonFile = options.get<std::string>("json-file");
+      if (!didir->readJson(jsonFile)) {
+        LOGP(ERROR, "Check the JSON document! Can not be properly parsed!");
       }
-    } else {
-      filenames.push_back(filename);
     }
 
     // analyze type of requested tables
     uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{"AOD"});
     std::vector<OutputRoute> unknowns;
-    if (readMask & AODTypeMask::Unknown)
+    if (readMask & AODTypeMask::Unknown) {
       unknowns = getListOfUnknown(spec.outputs);
+    }
 
     auto counter = std::make_shared<int>(0);
     return adaptStateless([readMask,
                            unknowns,
                            counter,
-                           filenames](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
+                           didir](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
       // Each parallel reader reads the files whose index is associated to
       // their inputTimesliceId
       assert(device.inputTimesliceId < device.maxInputTimeslices);
       size_t fi = (*counter * device.maxInputTimeslices) + device.inputTimesliceId;
-      if (fi >= filenames.size()) {
-        LOG(info) << "All input files processed";
+      *counter += 1;
+
+      if (didir->atEnd(fi)) {
+        LOGP(INFO, "All input files processed");
+        didir->closeInputFiles();
         control.endOfStream();
         control.readyToQuit(QuitRequest::Me);
         return;
       }
-      auto f = filenames[fi];
-      LOG(INFO) << "Processing " << f;
-      auto infile = std::make_unique<TFile>(f.c_str());
-      *counter += 1;
-      if (infile.get() == nullptr || infile->IsOpen() == false) {
-        LOG(ERROR) << "File not found: " + f;
-        return;
-      }
-      auto tableMaker = [&infile, &readMask, &outputs, &f](auto metadata, AODTypeMask mask, char const* treeName) {
+
+      auto tableMaker = [&readMask, &outputs, fi, didir](auto metadata, AODTypeMask mask, char const* treeName) {
         if (readMask & mask) {
+
+          auto dh = header::DataHeader(decltype(metadata)::description(), decltype(metadata)::origin(), 0);
+          auto reader = didir->getTreeReader(dh, fi, treeName);
+
           using table_t = typename decltype(metadata)::table_t;
-          std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>(treeName, infile.get());
-          if (reader->IsInvalid()) {
-            LOGP(ERROR, "Requested {} tree not found in file {}", treeName, f);
+          if (!reader || (reader && reader->IsInvalid())) {
+            LOGP(ERROR, "Requested \"{}\" tree not found in input file \"{}\"", treeName, didir->getInputFilename(dh, fi));
           } else {
             auto& builder = outputs.make<TableBuilder>(Output{decltype(metadata)::origin(), decltype(metadata)::description()});
             RootTableBuilderHelpers::convertASoA<table_t>(builder, *reader);
@@ -363,19 +356,20 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 
         // loop over unknowns
         for (auto route : unknowns) {
-          auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
 
-          // get the tree from infile
-          auto trname = concrete.description.str;
-          auto tr = (TTree*)infile.get()->Get(trname);
+          // create a TreeToTable object
+          auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+          auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
+
+          auto tr = didir->getDataTree(dh, fi);
           if (!tr) {
-            LOG(ERROR) << "Tree " << trname << "is not contained in file " << f;
+            char* table;
+            sprintf(table, "%s/%s/%" PRIu32, concrete.origin.str, concrete.description.str, concrete.subSpec);
+            LOGP(ERROR, "Error while retrieving the tree for \"{}\"!", table);
             return;
           }
 
-          // create a TreeToTable object
-          auto h = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
-          auto o = Output(h);
+          auto o = Output(dh);
           auto& t2t = outputs.make<TreeToTable>(o, tr);
 
           // fill the table

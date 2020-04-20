@@ -8,8 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/DataOutputDirector.h"
+#include "Framework/Logger.h"
 
 #include "rapidjson/document.h"
+#include "rapidjson/prettywriter.h"
 #include "rapidjson/filereadstream.h"
 
 namespace o2
@@ -18,25 +20,25 @@ namespace framework
 {
 using namespace rapidjson;
 
-DataOutputDescriptor::DataOutputDescriptor(std::string sin)
+DataOutputDescriptor::DataOutputDescriptor(std::string inString)
 {
-  // sin is an item consisting of 4 parts which are separated by a ':'
+  // inString is an item consisting of 4 parts which are separated by a ':'
   // "origin/description/subSpec:treename:col1/col2/col3:filename"
   // the 1st part is used to create a DataDescriptorMatcher
   // the other parts are used to fill treename, colnames, and filename
   // remove all spaces
-  auto s = remove_ws(sin);
+  auto cleanString = remove_ws(inString);
 
   // reset
   treename = "";
   colnames.clear();
-  filename = "";
+  mfilenameBase = "";
 
   // analyze the  parts of the input string
   static const std::regex delim1(":");
   std::sregex_token_iterator end;
-  std::sregex_token_iterator iter1(s.begin(),
-                                   s.end(),
+  std::sregex_token_iterator iter1(cleanString.begin(),
+                                   cleanString.end(),
                                    delim1,
                                    -1);
 
@@ -44,13 +46,13 @@ DataOutputDescriptor::DataOutputDescriptor(std::string sin)
   if (iter1 == end) {
     return;
   }
-  auto a = iter1->str();
-  matcher = DataDescriptorQueryBuilder::buildNode(a);
+  auto tableString = iter1->str();
+  matcher = DataDescriptorQueryBuilder::buildNode(tableString);
 
   // get the table name
-  auto m = DataDescriptorQueryBuilder::getTokens(a);
-  if (!std::string(m[2]).empty()) {
-    tablename = m[2];
+  auto tableItems = DataDescriptorQueryBuilder::getTokens(tableString);
+  if (!std::string(tableItems[2]).empty()) {
+    tablename = tableItems[2];
   }
 
   // get the tree name
@@ -84,34 +86,34 @@ DataOutputDescriptor::DataOutputDescriptor(std::string sin)
     }
   }
 
-  // get the filename
+  // get the file name base
   ++iter1;
   if (iter1 == end) {
     return;
   }
   if (!iter1->str().empty()) {
-    filename = iter1->str();
+    mfilenameBase = iter1->str();
   }
 }
 
-std::string DataOutputDescriptor::getFilename()
+std::string DataOutputDescriptor::getFilenameBase()
 {
-  return (filename.empty() && dfnptr) ? (std::string)*dfnptr : filename;
+  return (mfilenameBase.empty() && mfilenameBasePtr) ? (std::string)*mfilenameBasePtr : mfilenameBase;
 }
 
 void DataOutputDescriptor::printOut()
 {
-  LOG(INFO) << "DataOutputDescriptor";
-  LOG(INFO) << "  table name: " << tablename;
-  LOG(INFO) << "  file name : " << getFilename();
-  LOG(INFO) << "  tree name : " << treename;
+  LOGP(INFO, "DataOutputDescriptor");
+  LOGP(INFO, "  Table name     : {}", tablename);
+  LOGP(INFO, "  File name base : {}", getFilenameBase());
+  LOGP(INFO, "  Tree name      : {}", treename);
   if (colnames.empty()) {
-    LOG(INFO) << "  columns   : all";
+    LOGP(INFO, "  Columns      : \"all\"");
   } else {
-    LOG(INFO) << "  columns   : " << colnames.size();
+    LOGP(INFO, "  Columns      : {}", colnames.size());
   }
   for (auto cn : colnames)
-    LOG(INFO) << "  " << cn;
+    LOGP(INFO, "    {}", cn);
 }
 
 std::string DataOutputDescriptor::remove_ws(const std::string& s)
@@ -127,19 +129,18 @@ std::string DataOutputDescriptor::remove_ws(const std::string& s)
 
 DataOutputDirector::DataOutputDirector()
 {
-  defaultfname = std::string("");
+  mfilenameBase = std::string("");
 }
 
 void DataOutputDirector::reset()
 {
-  dodescrs.clear();
-  fnames.clear();
-  tnfns.clear();
-  closeDataOutputFiles();
-  fouts.clear();
-  fcnts.clear();
-  defaultfname = std::string("");
-  ndod = 0;
+  mDataOutputDescriptors.clear();
+  mfilenameBases.clear();
+  mtreeFilenames.clear();
+  closeDataFiles();
+  mfilePtrs.clear();
+  mfileCounts.clear();
+  mfilenameBase = std::string("");
 };
 
 void DataOutputDirector::readString(std::string const& keepString)
@@ -155,101 +156,99 @@ void DataOutputDirector::readString(std::string const& keepString)
 
   // loop over ','-separated items
   for (; iter != end; ++iter) {
-    auto s = iter->str();
+    auto itemString = iter->str();
 
     // create a new DataOutputDescriptor and add it to the list
-    auto dod = new DataOutputDescriptor(s);
-    if (dod->getFilename().empty()) {
-      dod->setFilename(dfnptr);
+    auto dodesc = new DataOutputDescriptor(itemString);
+    if (dodesc->getFilenameBase().empty()) {
+      dodesc->setFilenameBase(mfilenameBasePtr);
     }
-    dodescrs.emplace_back(dod);
-    fnames.emplace_back(dod->getFilename());
-    tnfns.emplace_back(dod->treename + dod->getFilename());
+    mDataOutputDescriptors.emplace_back(dodesc);
+    mfilenameBases.emplace_back(dodesc->getFilenameBase());
+    mtreeFilenames.emplace_back(dodesc->treename + dodesc->getFilenameBase());
   }
 
   // the combination [tree name/file name] must be unique
   // throw exception if this is not the case
-  auto it = std::unique(tnfns.begin(), tnfns.end());
-  if (it != tnfns.end()) {
+  auto it = std::unique(mtreeFilenames.begin(), mtreeFilenames.end());
+  if (it != mtreeFilenames.end()) {
     printOut();
-    LOG(FATAL) << "Dublicate tree names in a file!";
+    LOGP(FATAL, "Dublicate tree names in a file!");
   }
 
-  // make unique/sorted list of fnames
-  std::sort(fnames.begin(), fnames.end());
-  auto last = std::unique(fnames.begin(), fnames.end());
-  fnames.erase(last, fnames.end());
+  // make unique/sorted list of filenameBases
+  std::sort(mfilenameBases.begin(), mfilenameBases.end());
+  auto last = std::unique(mfilenameBases.begin(), mfilenameBases.end());
+  mfilenameBases.erase(last, mfilenameBases.end());
 
-  // prepare list fouts of TFile and fcnts
-  for (auto fn : fnames) {
-    fouts.emplace_back(new TFile());
-    fcnts.emplace_back(-1);
+  // prepare list mfilePtrs of TFile and mfileCounts
+  for (auto fn : mfilenameBases) {
+    mfilePtrs.emplace_back(new TFile());
+    mfileCounts.emplace_back(-1);
   }
-
-  // number of DataOutputDescriptors
-  ndod = dodescrs.size();
 }
 
 // creates a keep string from a InputSpec
 std::string SpectoString(InputSpec input)
 {
-  std::string s;
+  std::string keepString;
   std::string delim("/");
 
   auto matcher = DataSpecUtils::asConcreteDataMatcher(input);
-  s += matcher.origin.str + delim;
-  s += matcher.description.str + delim;
-  s += std::to_string(matcher.subSpec);
+  keepString += matcher.origin.str + delim;
+  keepString += matcher.description.str + delim;
+  keepString += std::to_string(matcher.subSpec);
 
-  return s;
+  return keepString;
 }
 
 void DataOutputDirector::readSpecs(std::vector<InputSpec> inputs)
 {
   for (auto input : inputs) {
-    auto s = SpectoString(input);
-    readString(s);
+    auto keepString = SpectoString(input);
+    readString(keepString);
   }
 }
 
 std::tuple<std::string, std::string, int> DataOutputDirector::readJson(std::string const& fnjson)
 {
   // open the file
-  FILE* f = fopen(fnjson.c_str(), "r");
-  if (!f) {
-    LOG(INFO) << "Could not open JSON file " << fnjson;
-    return std::make_tuple(std::string(""), std::string(""), -1);
+  FILE* fjson = fopen(fnjson.c_str(), "r");
+  if (!fjson) {
+    LOGP(INFO, "Could not open JSON file \"{}\"", fnjson);
+    return memptyanswer;
   }
 
   // create streamer
   char readBuffer[65536];
-  FileReadStream is(f, readBuffer, sizeof(readBuffer));
+  FileReadStream jsonStream(fjson, readBuffer, sizeof(readBuffer));
 
   // parse the json file
-  Document doc;
-  doc.ParseStream(is);
-  auto [dfn, fmode, ntfm] = readJsonDocument(&doc);
+  Document jsonDocument;
+  jsonDocument.ParseStream(jsonStream);
+  auto [dfn, fmode, ntfm] = readJsonDocument(&jsonDocument);
 
   // clean up
-  fclose(f);
+  fclose(fjson);
 
   return std::make_tuple(dfn, fmode, ntfm);
 }
 
-std::tuple<std::string, std::string, int> DataOutputDirector::readJsonString(std::string const& stjson)
+std::tuple<std::string, std::string, int> DataOutputDirector::readJsonString(std::string const& jsonString)
 {
   // parse the json string
-  Document doc;
-  doc.Parse(stjson.c_str());
-  auto [dfn, fmode, ntfm] = readJsonDocument(&doc);
+  Document jsonDocument;
+  jsonDocument.Parse(jsonString.c_str());
+  auto [dfn, fmode, ntfm] = readJsonDocument(&jsonDocument);
 
   return std::make_tuple(dfn, fmode, ntfm);
 }
 
-std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(Document* doc)
+std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(Document* jsonDocument)
 {
   std::string smc(":");
   std::string slh("/");
+  const char* itemName;
 
   // initialisations
   std::string dfn("");
@@ -257,75 +256,137 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
   int ntfm = -1;
 
   // is it a proper json document?
-  if (!doc->HasParseError()) {
+  if (jsonDocument->HasParseError()) {
+    LOGP(ERROR, "Check the JSON document! There is a problem with the format!");
+    return memptyanswer;
+  }
 
-    // OutputDirector
-    const Value& dod = (*doc)["OutputDirector"];
-    if (dod.IsObject()) {
+  // OutputDirector
+  itemName = "OutputDirector";
+  const Value& dodirItem = (*jsonDocument)[itemName];
+  if (!dodirItem.IsObject()) {
+    LOGP(ERROR, "Check the JSON document! Couldn't find an \"{}\" object!", itemName);
+    return memptyanswer;
+  }
 
-      // loop over the dod members
-      for (auto item = dod.MemberBegin(); item != dod.MemberEnd(); ++item) {
-
-        // get item name and value
-        auto itemname = item->name.GetString();
-        const Value& v = dod[itemname];
-
-        // check possible items
-        if (std::strcmp(itemname, "resfile") == 0) {
-          // default result file name
-          if (v.IsString()) {
-            dfn = v.GetString();
-            setDefaultfname(dfn);
-          }
-        } else if (std::strcmp(itemname, "resfilemode") == 0) {
-          // open mode for result file
-          if (v.IsString()) {
-            fmode = v.GetString();
-          }
-        } else if (std::strcmp(itemname, "ntfmerge") == 0) {
-          // number of time frames to merge
-          if (v.IsNumber()) {
-            ntfm = v.GetInt();
-          }
-        } else if (std::strcmp(itemname, "OutputDescriptions") == 0) {
-          // array of DataOutputDescriptions
-          if (v.IsArray()) {
-            for (auto& od : v.GetArray()) {
-              if (od.IsObject()) {
-                // DataOutputDescription
-                std::string s = "";
-                if (od.HasMember("table")) {
-                  s += od["table"].GetString();
-                }
-                s += smc;
-                if (od.HasMember("treename")) {
-                  s += od["treename"].GetString();
-                }
-                s += smc;
-                if (od.HasMember("columns")) {
-                  if (od["columns"].IsArray()) {
-                    auto cs = od["columns"].GetArray();
-                    for (auto& c : cs)
-                      s += (c == cs[0]) ? c.GetString() : slh + c.GetString();
-                  }
-                }
-                s += smc;
-                if (od.HasMember("filename")) {
-                  s += od["filename"].GetString();
-                }
-
-                // convert s to DataOutputDescription object
-                readString(s);
-              }
-            }
-          }
-        }
-      }
+  // now read various items
+  itemName = "debugmode";
+  if (dodirItem.HasMember(itemName)) {
+    if (dodirItem[itemName].IsBool()) {
+      mdebugmode = dodirItem[itemName].GetBool();
     } else {
-      LOG(INFO) << "Couldn't find an OutputDirector in JSON document";
+      LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a boolean!", itemName);
+      return memptyanswer;
     }
   } else {
-    LOG(INFO) << "Problem with JSON document";
+    mdebugmode = false;
+  }
+
+  if (mdebugmode) {
+    StringBuffer buffer;
+    buffer.Clear();
+    Writer<rapidjson::StringBuffer> writer(buffer);
+    dodirItem.Accept(writer);
+    LOGP(INFO, "OutputDirector object: {}", std::string(buffer.GetString()));
+  }
+
+  itemName = "resfile";
+  if (dodirItem.HasMember(itemName)) {
+    if (dodirItem[itemName].IsString()) {
+      dfn = dodirItem[itemName].GetString();
+      setFilenameBase(dfn);
+    } else {
+      LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a string!", itemName);
+      return memptyanswer;
+    }
+  }
+
+  itemName = "resfilemode";
+  if (dodirItem.HasMember(itemName)) {
+    if (dodirItem[itemName].IsString()) {
+      fmode = dodirItem[itemName].GetString();
+    } else {
+      LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a string!", itemName);
+      return memptyanswer;
+    }
+  }
+
+  itemName = "ntfmerge";
+  if (dodirItem.HasMember(itemName)) {
+    if (dodirItem[itemName].IsNumber()) {
+      ntfm = dodirItem[itemName].GetInt();
+    } else {
+      LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a number!", itemName);
+      return memptyanswer;
+    }
+  }
+
+  itemName = "OutputDescriptors";
+  if (dodirItem.HasMember(itemName)) {
+    if (!dodirItem[itemName].IsArray()) {
+      LOGP(ERROR, "Check the JSON document! Item \"{}\" must be an array!", itemName);
+      return memptyanswer;
+    }
+
+    // loop over DataOutputDescriptors
+    for (auto& dodescItem : dodirItem[itemName].GetArray()) {
+      if (!dodescItem.IsObject()) {
+        LOGP(ERROR, "Check the JSON document! \"{}\" must be objects!", itemName);
+        return memptyanswer;
+      }
+
+      std::string dodString = "";
+      itemName = "table";
+      if (dodescItem.HasMember(itemName)) {
+        if (dodescItem[itemName].IsString()) {
+          dodString += dodescItem[itemName].GetString();
+        } else {
+          LOGP(ERROR, "Check the JSON document! \"{}\" must be a string!", itemName);
+          return memptyanswer;
+        }
+      }
+      dodString += smc;
+      itemName = "treename";
+      if (dodescItem.HasMember(itemName)) {
+        if (dodescItem[itemName].IsString()) {
+          dodString += dodescItem[itemName].GetString();
+        } else {
+          LOGP(ERROR, "Check the JSON document! \"{}\" must be a string!", itemName);
+          return memptyanswer;
+        }
+      }
+      dodString += smc;
+      itemName = "columns";
+      if (dodescItem.HasMember(itemName)) {
+        if (dodescItem[itemName].IsArray()) {
+          auto columnNames = dodescItem[itemName].GetArray();
+          for (auto& c : columnNames) {
+            dodString += (c == columnNames[0]) ? c.GetString() : slh + c.GetString();
+          }
+        } else {
+          LOGP(ERROR, "Check the JSON document! \"{}\" must be an array!", itemName);
+          return memptyanswer;
+        }
+      }
+      dodString += smc;
+      itemName = "filename";
+      if (dodescItem.HasMember(itemName)) {
+        if (dodescItem[itemName].IsString()) {
+          dodString += dodescItem[itemName].GetString();
+        } else {
+          LOGP(ERROR, "Check the JSON document! \"{}\" must be a string!", itemName);
+          return memptyanswer;
+        }
+      }
+
+      // convert s to DataOutputDescription object
+      readString(dodString);
+    }
+  }
+
+  // print the DataOutputDirector
+  if (mdebugmode) {
+    printOut();
   }
 
   return std::make_tuple(dfn, fmode, ntfm);
@@ -338,7 +399,7 @@ std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(
   // compute list of matching outputs
   data_matcher::VariableContext context;
 
-  for (auto dodescr : dodescrs) {
+  for (auto dodescr : mDataOutputDescriptors) {
     if (dodescr->matcher->match(dh, context)) {
       result.emplace_back(dodescr);
     }
@@ -355,7 +416,7 @@ std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(
   data_matcher::VariableContext context;
   auto concrete = std::get<ConcreteDataMatcher>(spec.matcher);
 
-  for (auto dodescr : dodescrs) {
+  for (auto dodescr : mDataOutputDescriptors) {
     if (dodescr->matcher->match(concrete, context)) {
       result.emplace_back(dodescr);
     }
@@ -364,93 +425,93 @@ std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(
   return result;
 }
 
-TFile* DataOutputDirector::getDataOutputFile(DataOutputDescriptor* dod,
+TFile* DataOutputDirector::getDataOutputFile(DataOutputDescriptor* dodesc,
                                              int ntf, int ntfmerge,
                                              std::string filemode)
 {
   // initialisation
-  TFile* fout = nullptr;
+  TFile* filePtr = nullptr;
 
-  // search dod->filename in fnames and return corresponding fout
-  auto it = std::find(fnames.begin(), fnames.end(), dod->getFilename());
-  if (it != fnames.end()) {
-    int ind = std::distance(fnames.begin(), it);
+  // search dodesc->filename in mfilenameBases and return corresponding filePtr
+  auto it = std::find(mfilenameBases.begin(), mfilenameBases.end(), dodesc->getFilenameBase());
+  if (it != mfilenameBases.end()) {
+    int ind = std::distance(mfilenameBases.begin(), it);
 
     // check if new version of file needs to be opened
     int fcnt = (int)(ntf / ntfmerge);
-    if ((ntf % ntfmerge) == 0 && fcnt > fcnts[ind]) {
-      if (fouts[ind]) {
-        fouts[ind]->Close();
+    if ((ntf % ntfmerge) == 0 && fcnt > mfileCounts[ind]) {
+      if (mfilePtrs[ind]) {
+        mfilePtrs[ind]->Close();
       }
 
-      fcnts[ind] = fcnt;
-      auto fn = fnames[ind] + "_" + std::to_string(fcnts[ind]) + ".root";
-      fouts[ind] = new TFile(fn.c_str(), filemode.c_str());
+      mfileCounts[ind] = fcnt;
+      auto fn = mfilenameBases[ind] + "_" + std::to_string(mfileCounts[ind]) + ".root";
+      mfilePtrs[ind] = new TFile(fn.c_str(), filemode.c_str());
     }
-    fout = fouts[ind];
+    filePtr = mfilePtrs[ind];
+    filePtr->cd();
   }
 
-  return fout;
+  return filePtr;
 }
 
-void DataOutputDirector::closeDataOutputFiles()
+void DataOutputDirector::closeDataFiles()
 {
-  for (auto fout : fouts)
-    if (fout) {
-      fout->Close();
+  for (auto filePtr : mfilePtrs)
+    if (filePtr) {
+      filePtr->Close();
     }
 }
 
 void DataOutputDirector::printOut()
 {
-  LOG(INFO) << "DataOutputDirector";
-  LOG(INFO) << "  Default file name: " << defaultfname;
-  LOG(INFO) << "  Number of dods   : " << ndod;
-  LOG(INFO) << "  Number of files  : " << fnames.size();
+  LOGP(INFO, "DataOutputDirector");
+  LOGP(INFO, "  Default file name    : {}", mfilenameBase);
+  LOGP(INFO, "  Number of files      : {}", mfilenameBases.size());
 
-  LOG(INFO) << "  dods:";
-  for (auto const& ds : dodescrs)
+  LOGP(INFO, "  DataOutputDescriptors: {}", mDataOutputDescriptors.size());
+  for (auto const& ds : mDataOutputDescriptors)
     ds->printOut();
 
-  LOG(INFO) << "  File names:";
-  for (auto const& fb : fnames)
-    LOG(INFO) << fb;
+  LOGP(INFO, "  File name bases      :");
+  for (auto const& fb : mfilenameBases)
+    LOGP(INFO, fb);
 }
 
-void DataOutputDirector::setDefaultfname(std::string dfn)
+void DataOutputDirector::setFilenameBase(std::string dfn)
 {
   // reset
-  defaultfname = dfn;
+  mfilenameBase = dfn;
 
-  fnames.clear();
-  tnfns.clear();
-  closeDataOutputFiles();
-  fouts.clear();
-  fcnts.clear();
+  mfilenameBases.clear();
+  mtreeFilenames.clear();
+  closeDataFiles();
+  mfilePtrs.clear();
+  mfileCounts.clear();
 
   // loop over DataOutputDescritors
-  for (auto dod : dodescrs) {
-    fnames.emplace_back(dod->getFilename());
-    tnfns.emplace_back(dod->treename + dod->getFilename());
+  for (auto dodesc : mDataOutputDescriptors) {
+    mfilenameBases.emplace_back(dodesc->getFilenameBase());
+    mtreeFilenames.emplace_back(dodesc->treename + dodesc->getFilenameBase());
   }
 
   // the combination [tree name/file name] must be unique
   // throw exception if this is not the case
-  auto it = std::unique(tnfns.begin(), tnfns.end());
-  if (it != tnfns.end()) {
+  auto it = std::unique(mtreeFilenames.begin(), mtreeFilenames.end());
+  if (it != mtreeFilenames.end()) {
     printOut();
     LOG(FATAL) << "Dublicate tree names in a file!";
   }
 
-  // make unique/sorted list of fnames
-  std::sort(fnames.begin(), fnames.end());
-  auto last = std::unique(fnames.begin(), fnames.end());
-  fnames.erase(last, fnames.end());
+  // make unique/sorted list of filenameBases
+  std::sort(mfilenameBases.begin(), mfilenameBases.end());
+  auto last = std::unique(mfilenameBases.begin(), mfilenameBases.end());
+  mfilenameBases.erase(last, mfilenameBases.end());
 
-  // prepare list fouts of TFile and fcnts
-  for (auto fn : fnames) {
-    fouts.emplace_back(new TFile());
-    fcnts.emplace_back(-1);
+  // prepare list mfilePtrs of TFile and mfileCounts
+  for (auto fn : mfilenameBases) {
+    mfilePtrs.emplace_back(new TFile());
+    mfileCounts.emplace_back(-1);
   }
 }
 
