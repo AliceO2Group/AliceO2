@@ -36,8 +36,8 @@ static inline std::shared_ptr<arrow::ChunkedArray> getBackendColumnData(T p)
 }
 
 template <>
-static inline std::shared_ptr<arrow::ChunkedArray>
- getBackendColumnData<std::shared_ptr<arrow::ChunkedArray>>(std::shared_ptr<arrow::ChunkedArray> p)
+std::shared_ptr<arrow::ChunkedArray>
+  getBackendColumnData<std::shared_ptr<arrow::ChunkedArray>>(std::shared_ptr<arrow::ChunkedArray> p)
 {
   return p;
 }
