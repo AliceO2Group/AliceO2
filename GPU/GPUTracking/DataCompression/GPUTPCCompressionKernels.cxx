@@ -192,7 +192,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
 
     CompressedClustersPtrsOnly& GPUrestrict() c = compressor.mPtrs;
 
-    const unsigned int nn = GPUCommonMath::nextMultipleOf<GPUCA_THREAD_COUNT_COMPRESSION2>(clusters->nClusters[iSlice][iRow]);
+    const unsigned int nn = GPUCommonMath::nextMultipleOf<GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionKernels_step1unattached)>(clusters->nClusters[iSlice][iRow]);
     for (unsigned int i = iThread; i < nn + nThreads; i += nThreads) {
       const int idx = idOffset + i;
       int cidx = 0;

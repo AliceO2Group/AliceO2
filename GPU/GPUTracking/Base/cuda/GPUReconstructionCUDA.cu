@@ -78,7 +78,9 @@ GPUg() void runKernelCUDA(GPUCA_CONSMEM_PTR int iSlice, Args... args)
 
 #undef GPUCA_KRNL_REG
 #define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_STRIP(args))
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) \
+  GPUCA_KRNL_PROP(x_class, x_attributes)                          \
+  GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionCUDABackend
 #define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward) \
   GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))<<<x.nBlocks, x.nThreads, 0, me->mInternals->CudaStreams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, args...);
@@ -288,7 +290,9 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       GPUInfo("\ttextureAlignment = %lld", (unsigned long long int)cudaDeviceProp.textureAlignment);
       GPUInfo(" ");
     }
-    mCoreCount = cudaDeviceProp.multiProcessorCount;
+    mBlockCount = cudaDeviceProp.multiProcessorCount;
+    mWarpSize = 32;
+    mMaxThreads = std::max<int>(mMaxThreads, cudaDeviceProp.maxThreadsPerBlock * mBlockCount);
     mDeviceName = cudaDeviceProp.name;
     mDeviceName += " (CUDA GPU)";
 
@@ -371,13 +375,15 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
 #endif
     mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMem;
 
-    dummyInitKernel<<<mCoreCount, 256>>>(mDeviceMemoryBase);
+    dummyInitKernel<<<mBlockCount, 256>>>(mDeviceMemoryBase);
     GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, cudaDeviceProp.name, cudaDeviceProp.clockRate, cudaDeviceProp.multiProcessorCount, (long long int)mHostMemorySize,
             (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
   } else {
     GPUReconstructionCUDABackend* master = dynamic_cast<GPUReconstructionCUDABackend*>(mMaster);
     mDeviceId = master->mDeviceId;
-    mCoreCount = master->mCoreCount;
+    mBlockCount = master->mBlockCount;
+    mWarpSize = master->mWarpSize;
+    mMaxThreads = master->mMaxThreads;
     mDeviceName = master->mDeviceName;
     mDeviceConstantMem = master->mDeviceConstantMem;
     mInternals = master->mInternals;
@@ -564,30 +570,6 @@ int GPUReconstructionCUDABackend::PrepareTextures()
   GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu, mProcessorsShadow->tpcTrackers[0].Data().Memory(), &channelDescu, NSLICES * GPUCA_SLICE_DATA_MEMORY));
 #endif
   return (0);
-}
-
-void GPUReconstructionCUDABackend::SetThreadCounts()
-{
-  mThreadCount = GPUCA_THREAD_COUNT;
-  mBlockCount = mCoreCount;
-  mConstructorBlockCount = mBlockCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_MINBLOCK_COUNT_CONSTRUCTOR);
-  mSelectorBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_SELECTOR;
-  mHitsSorterBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_HITSSORTER;
-  mConstructorThreadCount = GPUCA_THREAD_COUNT_CONSTRUCTOR;
-  mSelectorThreadCount = GPUCA_THREAD_COUNT_SELECTOR;
-  mFinderThreadCount = GPUCA_THREAD_COUNT_FINDER;
-  mHitsSorterThreadCount = GPUCA_THREAD_COUNT_HITSSORTER;
-  mHitsFinderThreadCount = GPUCA_THREAD_COUNT_HITSFINDER;
-  mTRDThreadCount = GPUCA_THREAD_COUNT_TRD;
-  mClustererThreadCount = GPUCA_THREAD_COUNT_CLUSTERER;
-  mScanThreadCount = GPUCA_THREAD_COUNT_SCAN;
-  mConverterThreadCount = GPUCA_THREAD_COUNT_CONVERTER;
-  mCompression1ThreadCount = GPUCA_THREAD_COUNT_COMPRESSION1;
-  mCompression2ThreadCount = GPUCA_THREAD_COUNT_COMPRESSION2;
-  mCFDecodeThreadCount = GPUCA_THREAD_COUNT_CFDECODE;
-  mFitThreadCount = GPUCA_THREAD_COUNT_FIT;
-  mITSThreadCount = GPUCA_THREAD_COUNT_ITS;
-  mWarpSize = GPUCA_WARP_SIZE;
 }
 
 int GPUReconstructionCUDABackend::registerMemoryForGPU(const void* ptr, size_t size)
