@@ -36,8 +36,18 @@ include(FeatureSummary)
 
 include(FindThreads)
 
-find_package(arrow MODULE)
-set_package_properties(arrow PROPERTIES TYPE REQUIRED)
+find_package(arrow CONFIG REQUIRED)
+if (NOT TARGET gandiva_shared)
+find_package(gandiva CONFIG REQUIRED)
+endif()
+
+# Promote the imported target to global visibility (so we can alias it)
+set_target_properties(arrow_shared PROPERTIES IMPORTED_GLOBAL TRUE)
+add_library(arrow::arrow_shared ALIAS arrow_shared)
+
+# Promote the imported target to global visibility (so we can alias it)
+set_target_properties(gandiva_shared PROPERTIES IMPORTED_GLOBAL TRUE)
+add_library(arrow::gandiva_shared ALIAS gandiva_shared)
 
 find_package(Vc)
 set_package_properties(Vc PROPERTIES TYPE REQUIRED)
