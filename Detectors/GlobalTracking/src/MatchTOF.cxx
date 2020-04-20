@@ -898,10 +898,10 @@ void MatchTOF::selectBestMatches()
       }
       if (!labelOk) {
         // we have not found the track label among those associated to the TOF cluster --> fake match! We will associate the label of the main channel, but negative
-	if(! labelsTOF.size())
-	  LOG(ERROR) << "TOF label not found since size of label is zero. This should not happen!!!!";
-	else
-	  mOutTOFLabels.emplace_back(labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID(), true);
+        //assert(labelsTOF.size());
+        if (!labelsTOF.size())
+          throw std::runtime_error("TOF label not found since size of label is zero. This should not happen!!!!");
+        mOutTOFLabels.emplace_back(labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID(), true);
       }
       mOutTPCLabels.push_back(labelTPC);
       mOutITSLabels.push_back(labelITS);
