@@ -46,7 +46,7 @@ std::shared_ptr<arrow::Table>
   // and therefore return an empty table;
   if (mBuffer->size() == 0) {
     std::vector<std::shared_ptr<arrow::Field>> dummyFields{};
-    std::vector<std::shared_ptr<BackendColumnType>> dummyColumns{};
+    std::vector<std::shared_ptr<o2::soa::BackendColumnType>> dummyColumns{};
     auto dummySchema = std::make_shared<arrow::Schema>(dummyFields);
     return arrow::Table::Make(dummySchema, dummyColumns);
   }
