@@ -30,7 +30,7 @@ class GPUTPCCFDeconvolution : public GPUKernelTemplate
 {
 
  public:
-  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<short, GPUCA_THREAD_COUNT_CLUSTERER> {
+  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<short, GPUCA_GET_THREAD_COUNT(GPUCA_LB_CLUSTER_FINDER)> {
     ChargePos posBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
     uchar aboveThresholdBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     uchar buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_COUNT_N];

@@ -441,7 +441,7 @@ GPUdii() void GPUTPCTrackletConstructor::Thread<GPUTPCTrackletConstructor::allSl
     GPUTPCThreadMemory rMem;
 
     while ((rMem.mISH = FetchTracklet(tracker, sMem)) != -2) {
-      if (rMem.mISH >= 0 && get_local_id(0) < GPUCA_THREAD_COUNT_CONSTRUCTOR) {
+      if (rMem.mISH >= 0 && get_local_id(0) < GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCTrackletConstructor)) {
         rMem.mISH += get_local_id(0);
       } else {
         rMem.mISH = -1;
@@ -481,11 +481,11 @@ GPUd() int GPUTPCTrackletConstructor::FetchTracklet(GPUconstantref() MEM_GLOBAL(
   if (get_local_id(0) == 0) {
     int firstStartHit = -2;
     if (sMem.mNextStartHitFirstRun == 1) {
-      firstStartHit = (get_group_id(0) - tracker.ISlice()) / GPUCA_NSLICES * GPUCA_THREAD_COUNT_CONSTRUCTOR;
+      firstStartHit = (get_group_id(0) - tracker.ISlice()) / GPUCA_NSLICES * GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCTrackletConstructor);
       sMem.mNextStartHitFirstRun = 0;
     } else {
       if (tracker.GPUParameters()->nextStartHit < nStartHit) {
-        firstStartHit = CAMath::AtomicAdd(&tracker.GPUParameters()->nextStartHit, GPUCA_THREAD_COUNT_CONSTRUCTOR);
+        firstStartHit = CAMath::AtomicAdd(&tracker.GPUParameters()->nextStartHit, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCTrackletConstructor));
       }
     }
     sMem.mNextStartHitFirst = firstStartHit < (int)nStartHit ? firstStartHit : -2;
