@@ -306,12 +306,12 @@ class TableToTree
     bool togo = true;
     LOG(DEBUG) << "Number of colums " << brits.size();
     while (togo) {
-      // fill the tree
-      tr->Fill();
-
       // update the branches
       for (auto brit : brits)
         togo &= brit->push();
+
+      // fill the tree
+      tr->Fill();
     }
     tr->Write();
 
