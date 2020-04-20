@@ -30,14 +30,14 @@ namespace o2::soa
 {
 
 template <typename T>
-std::shared_ptr<arrow::ChunkedArray> getBackendColumnData(T p)
+static inline std::shared_ptr<arrow::ChunkedArray> getBackendColumnData(T p)
 {
   return p->data();
 }
 
 template <>
-std::shared_ptr<arrow::ChunkedArray>
-  getBackendColumnData<std::shared_ptr<arrow::ChunkedArray>>(std::shared_ptr<arrow::ChunkedArray> p)
+static inline std::shared_ptr<arrow::ChunkedArray>
+ getBackendColumnData<std::shared_ptr<arrow::ChunkedArray>>(std::shared_ptr<arrow::ChunkedArray> p)
 {
   return p;
 }
