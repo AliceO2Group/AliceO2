@@ -16,7 +16,7 @@
 #ifndef ALICEO2_TPC_PARAM_H_
 #define ALICEO2_TPC_PARAM_H_
 
-#define TPC_RUN2
+//#define TPC_RUN2
 
 #include "DataFormatsTPC/Constants.h"
 
