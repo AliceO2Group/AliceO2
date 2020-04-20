@@ -1044,7 +1044,7 @@ class TableMetadata
     using base = o2::soa::Column<_Type_, _Name_>;                              \
     using type = _Type_;                                                       \
     using column_t = _Name_;                                                   \
-    _Name_(BackendColumnType const* column)                                    \
+    _Name_(o2::soa::BackendColumnType const* column)                           \
       : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(column)) \
     {                                                                          \
     }                                                                          \
@@ -1084,7 +1084,7 @@ class TableMetadata
     using type = _Type_;                                                           \
     using column_t = _Name_##Id;                                                   \
     using binding_t = _Table_;                                                     \
-    _Name_##Id(BackendColumnType const* column)                                    \
+    _Name_##Id(o2::soa::BackendColumnType const* column)                           \
       : o2::soa::Column<_Type_, _Name_##Id>(o2::soa::ColumnIterator<type>(column)) \
     {                                                                              \
     }                                                                              \
@@ -1165,7 +1165,7 @@ class TableMetadata
     using callable_t = helper::callable_t;                                                                                 \
     using callback_t = callable_t::type;                                                                                   \
                                                                                                                            \
-    _Name_(BackendColumnType const*)                                                                                       \
+    _Name_(o2::soa::BackendColumnType const*)                                                                              \
     {                                                                                                                      \
     }                                                                                                                      \
     _Name_() = default;                                                                                                    \
