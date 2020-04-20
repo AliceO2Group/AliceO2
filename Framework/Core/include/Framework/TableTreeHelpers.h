@@ -162,7 +162,7 @@ class branchIterator
   };
 
  public:
-  branchIterator(TTree* tree, std::shared_ptr<arrow::Column> col)
+  branchIterator(TTree* tree, std::shared_ptr<soa::BackendColumnType> col)
   {
     brn = col->name().c_str();
     dt = col->type()->id();
@@ -274,7 +274,7 @@ class TableToTree
     brits.clear();
   }
 
-  bool AddBranch(std::shared_ptr<arrow::Column> col)
+  bool AddBranch(std::shared_ptr<soa::BackendColumnType> col)
   {
     branchIterator* brit = new branchIterator(tr, col);
     if (brit->Status())
