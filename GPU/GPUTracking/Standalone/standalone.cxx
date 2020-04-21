@@ -316,6 +316,7 @@ int SetupReconstruction()
   if (configStandalone.configRec.loopInterpolationInExtraPass != -1) {
     recSet.loopInterpolationInExtraPass = configStandalone.configRec.loopInterpolationInExtraPass;
   }
+  recSet.mergerReadFromTrackerDirectly = configStandalone.configRec.mergerReadFromTrackerDirectly;
 
   if (configStandalone.OMPThreads != -1) {
     devProc.nThreads = configStandalone.OMPThreads;
@@ -418,7 +419,7 @@ int SetupReconstruction()
   }
 
   steps.outputs.clear();
-  steps.outputs.setBits(GPUDataTypes::InOutType::TPCSectorTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCSliceTracking));
+  steps.outputs.setBits(GPUDataTypes::InOutType::TPCSectorTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCSliceTracking) && !recSet.mergerReadFromTrackerDirectly);
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCMergedTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCMerging));
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUReconstruction::RecoStep::TPCCompression));
   steps.outputs.setBits(GPUDataTypes::InOutType::TRDTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TRDTracking));
