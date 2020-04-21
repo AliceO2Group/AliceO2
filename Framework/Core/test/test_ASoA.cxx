@@ -88,8 +88,8 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   BOOST_CHECK_EQUAL(*i, 1);
 
   auto rowIndex = std::make_tuple(
-    std::pair<test::X*, arrow::Column*>{nullptr, table->column(0).get()},
-    std::pair<test::Y*, arrow::Column*>{nullptr, table->column(1).get()});
+    std::pair<test::X*, BackendColumnType*>{nullptr, table->column(0).get()},
+    std::pair<test::Y*, BackendColumnType*>{nullptr, table->column(1).get()});
   Points::iterator tests(rowIndex, {table->num_rows(), 0});
   BOOST_CHECK_EQUAL(tests.x(), 0);
   BOOST_CHECK_EQUAL(tests.y(), 0);

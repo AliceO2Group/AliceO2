@@ -19,7 +19,7 @@ std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_p
   if (tables.size() == 1) {
     return tables[0];
   }
-  std::vector<std::shared_ptr<arrow::Column>> columns;
+  std::vector<std::shared_ptr<BackendColumnType>> columns;
   std::vector<std::shared_ptr<arrow::Field>> fields;
 
   for (auto& t : tables) {
@@ -36,7 +36,7 @@ std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared
   if (tables.size() == 1) {
     return tables[0];
   }
-  std::vector<std::shared_ptr<arrow::Column>> columns;
+  std::vector<std::shared_ptr<BackendColumnType>> columns;
   assert(tables.size() > 1);
   std::vector<std::shared_ptr<arrow::Field>> resultFields = tables[0]->schema()->fields();
   auto compareFields = [](std::shared_ptr<arrow::Field> const& f1, std::shared_ptr<arrow::Field> const& f2) {
@@ -64,7 +64,7 @@ std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared
       auto otherChunks = column->data()->chunks();
       chunks.insert(chunks.end(), otherChunks.begin(), otherChunks.end());
     }
-    columns.push_back(std::make_shared<arrow::Column>(field, chunks));
+    columns.push_back(std::make_shared<BackendColumnType>(field, chunks));
   }
 
   auto result = arrow::Table::Make(std::make_shared<arrow::Schema>(resultFields), columns);
