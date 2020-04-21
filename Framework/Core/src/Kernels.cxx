@@ -36,7 +36,7 @@ Status HashByColumnKernel::Call(FunctionContext* ctx, Datum const& inputTable, D
   if (inputTable.kind() == Datum::TABLE) {
     auto table = arrow::util::get<std::shared_ptr<arrow::Table>>(inputTable.value);
     auto columnIndex = table->schema()->GetFieldIndex(mOptions.columnName);
-    auto chunkedArray = table->column(columnIndex)->data();
+    auto chunkedArray = getBackendColumnData(table->column(columnIndex));
     *hashes = std::move(chunkedArray);
     return arrow::Status::OK();
   }
@@ -87,7 +87,7 @@ Status SortedGroupByKernel::Call(FunctionContext* ctx, Datum const& inputTable, 
     auto table = util::get<std::shared_ptr<arrow::Table>>(inputTable.value);
     auto columnIndex = table->schema()->GetFieldIndex(mOptions.columnName);
     auto dataType = table->column(columnIndex)->type();
-    auto chunkedArray = table->column(columnIndex)->data();
+    auto chunkedArray = getBackendColumnData(table->column(columnIndex));
     if (dataType->id() == Type::UINT64) {
       return doGrouping<uint64_t, arrow::UInt64Array>(chunkedArray, outputRanges);
     } else if (dataType->id() == Type::INT64) {
@@ -120,9 +120,9 @@ arrow::Status sliceByColumn(FunctionContext* context, std::string const& key,
     offsets->reserve(ranges->num_rows());
   }
 
-  auto startChunks = ranges->column(0)->data();
+  auto startChunks = getBackendColumnData(ranges->column(0));
   assert(startChunks->num_chunks() == 1);
-  auto countChunks = ranges->column(1)->data();
+  auto countChunks = getBackendColumnData(ranges->column(1));
   assert(countChunks->num_chunks() == 1);
   auto startData = std::static_pointer_cast<UInt64Array>(startChunks->chunk(0))->raw_values();
   auto countData = std::static_pointer_cast<UInt64Array>(countChunks->chunk(0))->raw_values();
@@ -132,7 +132,7 @@ arrow::Status sliceByColumn(FunctionContext* context, std::string const& key,
     auto start = startData[ri];
     auto count = countData[ri];
     auto schema = table->schema();
-    std::vector<std::shared_ptr<Column>> slicedColumns;
+    std::vector<std::shared_ptr<BackendColumnType>> slicedColumns;
     slicedColumns.reserve(schema->num_fields());
     for (size_t ci = 0; ci < schema->num_fields(); ++ci) {
       slicedColumns.emplace_back(table->column(ci)->Slice(start, count));

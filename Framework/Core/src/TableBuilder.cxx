@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/TableBuilder.h"
+#include "Framework/ArrowCompatibility.h"
 #include <memory>
 #if defined(__GNUC__)
 #pragma GCC diagnostic push
@@ -51,10 +52,10 @@ std::shared_ptr<arrow::Table>
   TableBuilder::finalize()
 {
   mFinalizer();
-  std::vector<std::shared_ptr<soa::BackendColumnType>> columns;
+  std::vector<std::shared_ptr<BackendColumnType>> columns;
   columns.reserve(mArrays.size());
   for (size_t i = 0; i < mSchema->num_fields(); ++i) {
-    auto column = std::make_shared<soa::BackendColumnType>(mSchema->field(i), mArrays[i]);
+    auto column = makeBackendColumn<BackendColumnType>(mSchema->field(i), mArrays[i]);
     columns.emplace_back(column);
   }
   auto table_ = arrow::Table::Make(mSchema, columns);

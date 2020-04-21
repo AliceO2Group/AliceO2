@@ -18,6 +18,7 @@
 #include "Framework/Traits.h"
 #include "Framework/Expressions.h"
 #include "Framework/Kernels.h"
+#include "Framework/ArrowCompatibility.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
 #include <arrow/util/variant.h>
@@ -29,20 +30,7 @@
 namespace o2::soa
 {
 
-template <typename T>
-static inline std::shared_ptr<arrow::ChunkedArray> getBackendColumnData(T p)
-{
-  return p->data();
-}
-
-template <>
-std::shared_ptr<arrow::ChunkedArray>
-  getBackendColumnData<std::shared_ptr<arrow::ChunkedArray>>(std::shared_ptr<arrow::ChunkedArray> p)
-{
-  return p;
-}
-
-using BackendColumnType = typename decltype(std::declval<arrow::Table>().column(0))::element_type;
+using BackendColumnType = framework::BackendColumnType;
 using SelectionVector = std::vector<int64_t>;
 
 template <typename, typename = void>
@@ -202,7 +190,7 @@ class ColumnIterator : ChunkingPolicy
       mFirstIndex{0},
       mCurrentChunk{0}
   {
-    auto chunks = mColumn->data();
+    auto chunks = framework::getBackendColumnPtrData<BackendColumnType>(mColumn);
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
     mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset();
     mLast = mCurrent + array->length();
@@ -218,7 +206,7 @@ class ColumnIterator : ChunkingPolicy
   /// Move the iterator to the next chunk.
   void nextChunk() const
   {
-    auto chunks = mColumn->data();
+    auto chunks = framework::getBackendColumnPtrData<BackendColumnType>(mColumn);
     auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
     mFirstIndex += previousArray->length();
     mCurrentChunk++;
@@ -229,7 +217,7 @@ class ColumnIterator : ChunkingPolicy
 
   void prevChunk() const
   {
-    auto chunks = mColumn->data();
+    auto chunks = framework::getBackendColumnPtrData<BackendColumnType>(mColumn);
     auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
     mFirstIndex -= previousArray->length();
     mCurrentChunk--;
@@ -254,8 +242,8 @@ class ColumnIterator : ChunkingPolicy
   /// Move the iterator to the end of the column.
   void moveToEnd()
   {
-    mCurrentChunk = mColumn->data()->num_chunks() - 1;
-    auto chunks = mColumn->data();
+    auto chunks = framework::getBackendColumnPtrData<BackendColumnType>(mColumn);
+    mCurrentChunk = chunks->num_chunks() - 1;
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
     assert(array.get());
     mFirstIndex = mColumn->length() - array->length();
