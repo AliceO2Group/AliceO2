@@ -373,7 +373,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
           auto& t2t = outputs.make<TreeToTable>(o, tr);
 
           // fill the table
-          t2t.Fill();
+          t2t.fill();
         }
       }
     });

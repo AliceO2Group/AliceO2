@@ -342,13 +342,13 @@ DataProcessorSpec
               for (auto cn : d->colnames) {
                 auto col = table->GetColumnByName(cn);
                 if (col) {
-                  ta2tr.AddBranch(col);
+                  ta2tr.addBranch(col);
                 }
               }
             } else {
-              ta2tr.AddAllBranches();
+              ta2tr.addAllBranches();
             }
-            ta2tr.Process();
+            ta2tr.process();
           }
         }
       }
