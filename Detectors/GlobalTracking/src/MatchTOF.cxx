@@ -741,27 +741,31 @@ void MatchTOF::doMatching(int sec)
 
       // compute fine correction using cluster position instead of pad center
       // this because in case of multiple-hit cluster position is averaged on all pads contributing to the cluster (then error position matrix can be used for Chi2 if nedeed)
+      int ndigits = 1;
       float posCorr[3] = {0, 0, 0};
 
       if (trefTOF.isBitSet(Cluster::kLeft))
-        posCorr[0] = Geo::XPAD * 0.5;
+        posCorr[0] += Geo::XPAD, ndigits++;
       if (trefTOF.isBitSet(Cluster::kUpLeft))
-        posCorr[0] = Geo::XPAD * 0.5, posCorr[2] = -Geo::ZPAD * 0.5;
+        posCorr[0] += Geo::XPAD, posCorr[2] -= Geo::ZPAD, ndigits++;
       if (trefTOF.isBitSet(Cluster::kDownLeft))
-        posCorr[0] = Geo::XPAD * 0.5, posCorr[2] = Geo::ZPAD * 0.5;
+        posCorr[0] += Geo::XPAD, posCorr[2] += Geo::ZPAD, ndigits++;
       if (trefTOF.isBitSet(Cluster::kUp))
-        posCorr[2] = -Geo::ZPAD * 0.5;
+        posCorr[2] -= Geo::ZPAD, ndigits++;
       if (trefTOF.isBitSet(Cluster::kDown))
-        posCorr[2] = Geo::ZPAD * 0.5;
+        posCorr[2] += Geo::ZPAD, ndigits++;
       if (trefTOF.isBitSet(Cluster::kRight))
-        posCorr[0] = -Geo::XPAD * 0.5;
+        posCorr[0] -= Geo::XPAD, ndigits++;
       if (trefTOF.isBitSet(Cluster::kUpRight))
-        posCorr[0] = -Geo::XPAD * 0.5, posCorr[2] = -Geo::ZPAD * 0.5;
+        posCorr[0] -= Geo::XPAD, posCorr[2] -= Geo::ZPAD, ndigits++;
       if (trefTOF.isBitSet(Cluster::kDownRight))
-        posCorr[0] = -Geo::XPAD * 0.5, posCorr[2] = Geo::ZPAD * 0.5;
+        posCorr[0] -= Geo::XPAD, posCorr[2] += Geo::ZPAD, ndigits++;
 
-      // TO be done
-      // weighted average to be included in case of multipad clusters
+      if (ndigits > 1) {
+        posCorr[0] /= ndigits;
+        posCorr[1] /= ndigits;
+        posCorr[2] /= ndigits;
+      }
 
       int trackIdTOF;
       int eventIdTOF;
