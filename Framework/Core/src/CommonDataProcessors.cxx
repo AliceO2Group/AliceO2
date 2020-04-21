@@ -340,9 +340,11 @@ DataProcessorSpec
 
             if (d->colnames.size() > 0) {
               for (auto cn : d->colnames) {
-                auto col = table->GetColumnByName(cn);
-                if (col) {
-                  ta2tr.addBranch(col);
+                auto idx = table->schema()->GetFieldIndex(cn);
+                auto col = table->column(idx);
+                auto field = table->field(idx);
+                if (idx != -1) {
+                  ta2tr.addBranch(col, field);
                 }
               }
             } else {
