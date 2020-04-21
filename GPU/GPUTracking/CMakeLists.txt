@@ -119,6 +119,7 @@ set(HDRS_INSTALL
     Base/GPUMemorySizeScalers.h
     Base/GPURawData.h
     dEdx/GPUdEdxInfo.h
+    dEdx/TPCdEdxCalibrationSplines.h
     TPCConvert/GPUTPCConvertImpl.h
     Base/GPUReconstructionKernelMacros.h
     Base/GPUO2FakeClasses.h
@@ -143,6 +144,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         ITS/GPUITSFitter.cxx
         ITS/GPUITSFitterKernels.cxx
         dEdx/GPUdEdx.cxx
+        dEdx/TPCdEdxCalibrationSplines.cxx
         TPCConvert/GPUTPCConvert.cxx
         TPCConvert/GPUTPCConvertKernel.cxx
         DataCompression/GPUTPCCompression.cxx

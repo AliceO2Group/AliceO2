@@ -102,7 +102,7 @@ GPUdi() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trac
 
   const float sec2 = 1.f / (1.f - snp2);
   // angleZ: z angle - dz/dx (cm/cm)
-  const float angleZ = CAMath::Sqrt(tgl2 * sec2); // fast
+  float angleZ = CAMath::Sqrt(tgl2 * sec2); // fast
   if (angleZ > 3) {
     angleZ = 3;
   }
