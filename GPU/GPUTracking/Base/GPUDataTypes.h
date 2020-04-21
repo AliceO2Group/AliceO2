@@ -212,10 +212,10 @@ struct GPUTrackingInOutPointers {
   const AliHLTTPCRawCluster* rawClusters[NSLICES] = {nullptr};
   unsigned int nRawClusters[NSLICES] = {0};
   const o2::tpc::ClusterNativeAccess* clustersNative = nullptr;
-  const GPUTPCTrack* sliceOutTracks[NSLICES] = {nullptr};
-  unsigned int nSliceOutTracks[NSLICES] = {0};
-  const GPUTPCHitId* sliceOutClusters[NSLICES] = {nullptr};
-  unsigned int nSliceOutClusters[NSLICES] = {0};
+  const GPUTPCTrack* sliceTracks[NSLICES] = {nullptr};
+  unsigned int nSliceTracks[NSLICES] = {0};
+  const GPUTPCHitId* sliceClusters[NSLICES] = {nullptr};
+  unsigned int nSliceClusters[NSLICES] = {0};
   const AliHLTTPCClusterMCLabel* mcLabelsTPC = nullptr;
   unsigned int nMCLabelsTPC = 0;
   const GPUTPCMCInfo* mcInfosTPC = nullptr;

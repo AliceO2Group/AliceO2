@@ -14,7 +14,7 @@
 #ifndef GPUTPCGMSLICETRACK_H
 #define GPUTPCGMSLICETRACK_H
 
-#include "GPUTPCSliceOutTrack.h"
+#include "GPUTPCTrack.h"
 #include "GPUTPCGMTrackParam.h"
 #include "GPUCommonMath.h"
 #include "GPUO2DataTypes.h"
@@ -42,7 +42,7 @@ class GPUTPCGMSliceTrack
   int PrevSegmentNeighbour() const { return mSegmentNeighbour[0]; }
   int NextSegmentNeighbour() const { return mSegmentNeighbour[1]; }
   int SegmentNeighbour(int i) const { return mSegmentNeighbour[i]; }
-  const GPUTPCSliceOutTrack* OrigTrack() const { return mOrigTrack; }
+  const GPUTPCTrack* OrigTrack() const { return mOrigTrack; }
   float X() const { return mX; }
   float Y() const { return mY; }
   float Z() const { return mZ; }
@@ -59,13 +59,13 @@ class GPUTPCGMSliceTrack
   int GlobalTrackId(int n) const { return mGlobalTrackIds[n]; }
   void SetGlobalTrackId(int n, int v) { mGlobalTrackIds[n] = v; }
 
-  float MaxClusterZ() { return CAMath::Max(mOrigTrack->Clusters()->GetZ(), (mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetZ()); }
-  float MinClusterZ() { return CAMath::Min(mOrigTrack->Clusters()->GetZ(), (mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetZ()); }
-  GPUd() float MaxClusterT(const o2::tpc::ClusterNative* cls) { return CAMath::Max(cls[mOrigTrack->Clusters()->GetId()].getTime(), cls[(mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetId()].getTime()); }
-  GPUd() float MinClusterT(const o2::tpc::ClusterNative* cls) { return CAMath::Min(cls[mOrigTrack->Clusters()->GetId()].getTime(), cls[(mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetId()].getTime()); }
+  float MaxClusterZT() const { return mMaxClusterZT; }
+  float MinClusterZT() const { return mMinClusterZT; }
+  void SetMaxClusterZT(float v) { mMaxClusterZT = v; }
+  void SetMinClusterZT(float v) { mMinClusterZT = v; }
 
-  void Set(const GPUTPCGMTrackParam& trk, const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice);
-  void Set(const GPUTPCGMMerger* merger, const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice);
+  void Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sliceTr, float alpha, int slice);
+  void Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sliceTr, float alpha, int slice);
 
   void SetGlobalSectorTrackCov()
   {
@@ -106,11 +106,12 @@ class GPUTPCGMSliceTrack
   void CopyBaseTrackCov();
 
  private:
-  const GPUTPCSliceOutTrack* mOrigTrack;                    // pointer to original slice track
+  const GPUTPCTrack* mOrigTrack;                            // pointer to original slice track
   float mX, mY, mZ, mSinPhi, mDzDs, mQPt, mCosPhi, mSecPhi; // parameters
   float mTZOffset;                                          // Z offset with early transform, T offset otherwise
   float mC0, mC2, mC3, mC5, mC7, mC9, mC10, mC12, mC14;     // covariances
   float mAlpha;                                             // alpha angle
+  float mMinClusterZT, mMaxClusterZT;                       // Minimum maximum cluster Z / T
   int mSlice;                                               // slice of this track segment
   int mNClusters;                                           // N clusters
   int mNeighbour[2];                                        //

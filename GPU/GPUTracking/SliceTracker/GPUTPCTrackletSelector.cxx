@@ -94,7 +94,6 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
             }
             return;
           }
-          tracker.Tracks()[itrout].SetAlive(1);
           tracker.Tracks()[itrout].SetLocalTrackId(itrout);
           tracker.Tracks()[itrout].SetParam(tracklet.Param());
           tracker.Tracks()[itrout].SetFirstHitID(nFirstTrackHit);
