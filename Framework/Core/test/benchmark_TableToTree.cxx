@@ -61,8 +61,9 @@ static void BM_TableToTree(benchmark::State& state)
 
     // benchmark TableToTree
     TableToTree ta2tr(table, &fout, "table2tree");
-    if (ta2tr.AddAllBranches())
-      ta2tr.Process();
+    if (ta2tr.addAllBranches()) {
+      ta2tr.process();
+    }
 
     // clean up
     fout.Close();

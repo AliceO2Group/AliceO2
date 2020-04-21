@@ -38,9 +38,9 @@
 ///       {
 ///         "table": "AOD/DUE/0",
 ///         "columns": [
-///           "due_2",
+///           "due_1",
 ///           "due_3",
-///           "due_4"
+///           "due_5"
 ///         ],
 ///         "treename": "duetree"
 ///       },
@@ -90,24 +90,26 @@ DECLARE_SOA_TABLE(Uno, "AOD", "UNO",
 
 namespace due
 {
-DECLARE_SOA_COLUMN_FULL(Eta, eta, float, "due_1");
-DECLARE_SOA_COLUMN_FULL(Phi, phi, float, "due_2");
-DECLARE_SOA_COLUMN_FULL(Mom, mom, double, "due_3");
-DECLARE_SOA_COLUMN_FULL(Pt, pt, double, "due_4");
+DECLARE_SOA_COLUMN_FULL(Ok, ok, bool, "due_1");
+DECLARE_SOA_COLUMN_FULL(Eta, eta, float, "due_2");
+DECLARE_SOA_COLUMN_FULL(Phi, phi, float, "due_3");
+DECLARE_SOA_COLUMN_FULL(Mom, mom, double, "due_4");
+DECLARE_SOA_COLUMN_FULL(Pt, pt, double, "due_5");
 } // namespace due
 
 DECLARE_SOA_TABLE(Due, "AOD", "DUE",
-                  due::Eta, due::Phi, due::Mom, due::Pt);
+                  due::Ok, due::Eta, due::Phi, due::Mom, due::Pt);
 
 namespace tre
 {
 DECLARE_SOA_COLUMN_FULL(Eta, eta, float, "tre_1");
 DECLARE_SOA_COLUMN_FULL(Phi, phi, float, "tre_2");
 DECLARE_SOA_COLUMN_FULL(Mom, mom, double, "tre_3");
+DECLARE_SOA_COLUMN_FULL(Id, id, int, "tre_4");
 } // namespace tre
 
 DECLARE_SOA_TABLE(Tre, "AOD", "TRE",
-                  tre::Eta, tre::Phi, tre::Mom);
+                  tre::Eta, tre::Phi, tre::Mom, tre::Id);
 
 } // namespace o2::aod
 
@@ -127,17 +129,18 @@ struct ATask {
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
+      bool ok = (cnt % 2) == 0;
       float eta = log(tan(0.25f * static_cast<float>(M_PI) - 0.5f * atan(track.tgl())));
       float phi = asin(track.snp()) + track.alpha() + static_cast<float>(M_PI);
-      float mom = track.tgl();
-      float pt = track.signed1Pt();
+      double mom = track.tgl();
+      double pt = track.signed1Pt();
+      int id = (int)cnt;
 
       table_uno(phi, eta, mom);
-      table_due(phi, eta, mom, pt);
-      table_tre(phi, eta, mom);
+      table_due(ok, phi, eta, mom, pt);
+      table_tre(phi, eta, mom, id);
+      LOGF(INFO, "Values (%i): (%i %f, %f, %f, %f, %i)", cnt, ok, eta, phi, mom, pt, id);
       cnt++;
-
-      LOGF(INFO, "Values (%i): (%f, %f, %f, %f)", cnt, eta, phi, mom, pt);
     }
 
     LOGF(INFO, "ATask Processed %i data points from Tracks", cnt);

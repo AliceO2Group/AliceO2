@@ -38,9 +38,9 @@
 ///       {
 ///         "table": "AOD/DUE/0",
 ///         "columns": [
-///           "due_2",
+///           "due_1",
 ///           "due_3",
-///           "due_4"
+///           "due_5"
 ///         ],
 ///         "treename": "duetree"
 ///       },
@@ -89,13 +89,13 @@ DECLARE_SOA_TABLE(Eins, "AOD", "EINS",
 
 namespace zwei
 {
-DECLARE_SOA_COLUMN_FULL(Phi, phi, float, "due_2");
-DECLARE_SOA_COLUMN_FULL(Mom, mom, double, "due_3");
-DECLARE_SOA_COLUMN_FULL(Pt, pt, double, "due_4");
+DECLARE_SOA_COLUMN_FULL(Ok, ok, bool, "due_1");
+DECLARE_SOA_COLUMN_FULL(Phi, phi, float, "due_3");
+DECLARE_SOA_COLUMN_FULL(Pt, pt, double, "due_5");
 } // namespace zwei
 
 DECLARE_SOA_TABLE(Zwei, "AOD", "ZWEI",
-                  zwei::Phi, zwei::Mom, zwei::Pt);
+                  zwei::Ok, zwei::Phi, zwei::Pt);
 
 namespace drei
 {
@@ -127,12 +127,12 @@ struct ATask {
 
     cnt = 0;
     for (auto& due : dues) {
+      auto ok = due.ok();
       auto phi = due.phi();
-      auto mom = due.mom();
       auto pt = due.pt();
 
       cnt++;
-      LOGF(INFO, "Zwei (%i): (%f, %f, %f)", cnt, phi, mom, pt);
+      LOGF(INFO, "Zwei (%i): (%i, %f, %f)", cnt, ok, phi, pt);
     }
     LOGF(INFO, "ATask Processed %i data points from Zwei", cnt);
 

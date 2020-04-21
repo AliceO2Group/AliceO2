@@ -142,7 +142,7 @@ class DataAllocator
       TreeToTable* t2t = nullptr;
       call_if_defined<struct TreeToTable>([&](auto* p) {
         t2t = new std::decay_t<decltype(*p)>(args...);
-        t2t->AddAllColumns();
+        t2t->addAllColumns();
         adopt(spec, t2t);
       });
       return *t2t;
