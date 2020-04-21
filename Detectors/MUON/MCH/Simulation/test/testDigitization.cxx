@@ -37,12 +37,23 @@ struct GEOMETRY {
   }
 };
 
+namespace
+{
+Point3D<float> entrancePoint1(-17.7993, 8.929883, -522.201); //x,y,z coordinates in cm
+Point3D<float> exitPoint1(-17.8136, 8.93606, -522.62);
+Point3D<float> entrancePoint2(-49.2793, 28.8673, -1441.25);
+Point3D<float> exitPoint2(-49.2965, 28.8806, -1441.75);
+} // namespace
+
 /// \brief Test of the Digitization
 /// A couple of values are filled into Hits and we check whether we get reproducible output in terms of digits
 /// and MClabels
 
 BOOST_AUTO_TEST_SUITE(o2_mch_simulation)
 
+BOOST_FIXTURE_TEST_SUITE(digitization, GEOMETRY)
+
+BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE(DigitizerTest)
 {
 
@@ -51,10 +62,7 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
   int trackId2 = 1;
   short detElemId1 = 101;
   short detElemId2 = 1012;
-  Point3D<float> entrancePoint1(-17.7993, 8.929883, -522.201); //x,y,z coordinates in cm
-  Point3D<float> exitPoint1(-17.8136, 8.93606, -522.62);
-  Point3D<float> entrancePoint2(-49.2793, 28.8673, -1441.25);
-  Point3D<float> exitPoint2(-49.2965, 28.8806, -1441.75);
+
   float eloss1 = 1e-6;
   float eloss2 = 1e-6;
   float length = 0.f;
@@ -132,6 +140,7 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
     BOOST_FAIL(" more than 10 digits for one hit in station 2 ");
 }
 
+BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE(mergingDigitizer)
 {
   //merging
@@ -140,10 +149,6 @@ BOOST_AUTO_TEST_CASE(mergingDigitizer)
   int trackId2 = 1;
   short detElemId1 = 101;
   short detElemId2 = 1012;
-  Point3D<float> entrancePoint1(-17.7993, 8.929883, -522.201); //x,y,z coord. (cm)
-  Point3D<float> exitPoint1(-17.8136, 8.93606, -522.62);
-  Point3D<float> entrancePoint2(-49.2793, 28.8673, -1441.25);
-  Point3D<float> exitPoint2(-49.2965, 28.8806, -1441.75);
   float eloss1 = 1e-6;
   float eloss2 = 1e-6;
   float length = 0.f;
@@ -192,4 +197,5 @@ BOOST_AUTO_TEST_CASE(mergingDigitizer)
 
 } //testing
 
+BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()

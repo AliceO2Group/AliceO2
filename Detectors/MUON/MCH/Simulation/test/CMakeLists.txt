@@ -26,7 +26,7 @@ o2_add_test(geometry-regular
 
 o2_add_test(simulation
         COMPONENT_NAME mch
-        SOURCES testDigitMerging.cxx DigitMerging.cxx testGeometry.cxx
+        SOURCES testDigitMerging.cxx DigitMerging.cxx
         testDigitization.cxx testResponse.cxx
         PUBLIC_LINK_LIBRARIES O2::MCHSimulation O2::MCHBase
         LABELS muon mch long sim)
