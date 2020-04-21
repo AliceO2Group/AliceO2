@@ -160,28 +160,28 @@ TGeoVolume* createRPC(geoparams::RPCtype type, int iChamber)
     cutPos->RegisterYourself();
 
     // for each volume, create a box and change the volume shape by extracting the cut shape
-    new TGeoBBox(Form("%sGasCut", name), cutHalfLength, cutHalfHeight, kGasHalfThickness);
+    new TGeoBBox(Form("%sGasCut", name), cutHalfLength, cutHalfHeight, 2 * kGasHalfThickness);
     gas->SetShape(new TGeoCompositeShape(Form("%sGasShape", name), Form("%sGasBox-%sGasCut:%sPos", name, name, cutName)));
 
-    new TGeoBBox(Form("%sElecCut", name), cutHalfLength, cutHalfHeight, kElectrodHalfThickness);
+    new TGeoBBox(Form("%sElecCut", name), cutHalfLength, cutHalfHeight, 2 * kElectrodHalfThickness);
     electrod->SetShape(new TGeoCompositeShape(Form("%sElecShape", name), Form("%sElecBox-%sElecCut:%sPos", name, name, cutName)));
 
-    new TGeoBBox(Form("%sInsuCut", name), cutHalfLength, cutHalfHeight, kInsulatorHalfThickness);
+    new TGeoBBox(Form("%sInsuCut", name), cutHalfLength, cutHalfHeight, 2 * kInsulatorHalfThickness);
     insu->SetShape(new TGeoCompositeShape(Form("%sInsuShape", name), Form("%sInsuBox-%sInsuCut:%sPos", name, name, cutName)));
 
-    new TGeoBBox(Form("%sCopperCut", name), cutHalfLength, cutHalfHeight, kCopperHalfThickness);
+    new TGeoBBox(Form("%sCopperCut", name), cutHalfLength, cutHalfHeight, 2 * kCopperHalfThickness);
     copper->SetShape(new TGeoCompositeShape(Form("%sCopperShape", name), Form("%sCopperBox-%sCopperCut:%sPos", name, name, cutName)));
 
-    new TGeoBBox(Form("%sMylarCut", name), cutHalfLength, cutHalfHeight, kMylarHalfThickness);
+    new TGeoBBox(Form("%sMylarCut", name), cutHalfLength, cutHalfHeight, 2 * kMylarHalfThickness);
     mylar->SetShape(new TGeoCompositeShape(Form("%sMylarShape", name), Form("%sMylarBox-%sMylarCut:%sPos", name, name, cutName)));
 
-    new TGeoBBox(Form("%sStyroCut", name), cutHalfLength, cutHalfHeight, kStyrofoamHalfThickness);
+    new TGeoBBox(Form("%sStyroCut", name), cutHalfLength, cutHalfHeight, 2 * kStyrofoamHalfThickness);
     styro->SetShape(new TGeoCompositeShape(Form("%sStyroShape", name), Form("%sStyroBox-%sStyroCut:%sPos", name, name, cutName)));
 
-    new TGeoBBox(Form("%sAluCut", name), cutHalfLength, cutHalfHeight, kAluminiumHalfThickness);
+    new TGeoBBox(Form("%sAluCut", name), cutHalfLength, cutHalfHeight, 2 * kAluminiumHalfThickness);
     alu->SetShape(new TGeoCompositeShape(Form("%sAluShape", name), Form("%sAluBox-%sAluCut:%sPos", name, name, cutName)));
 
-    new TGeoBBox(Form("%sNomexCut", name), cutHalfLength, cutHalfHeight, kNomexHalfThickness);
+    new TGeoBBox(Form("%sNomexCut", name), cutHalfLength, cutHalfHeight, 2 * kNomexHalfThickness);
     nomex->SetShape(new TGeoCompositeShape(Form("%sNomexShape", name), Form("%sNomexBox-%sNomexCut:%sPos", name, name, cutName)));
   }
 
