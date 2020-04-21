@@ -284,6 +284,14 @@ class ClusterNativeHelper
     /// the event counter
     int mEvent = -1;
   };
+
+  /// copy data of the specified sector from the index to a byte-type container
+  /// optional MC labels are separated accordingly and added to a target vector.
+  /// @param index     the cluster index object
+  /// @param target    a container object, will be resized accordingly
+  /// @param mcTarget  container to receive the separated MC label objects
+  template <typename BufferType, typename MCArrayType>
+  static void copySectorData(ClusterNativeAccess const& index, int sector, BufferType& target, MCArrayType& mcTarget);
 };
 
 template <typename DataArrayType, typename MCArrayType, typename CheckFct>
@@ -331,6 +339,43 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
   }
 
   return result;
+}
+
+template <typename BufferType, typename MCArrayType>
+void ClusterNativeHelper::copySectorData(ClusterNativeAccess const& index, int sector, BufferType& target, MCArrayType& mcTarget)
+{
+  static_assert(sizeof(typename BufferType::value_type) == 1, "Target container must be byte-type");
+  if (index.clustersLinear == nullptr) {
+    return;
+  }
+  size_t nRows = 0;
+  size_t nClusters = 0;
+  for (unsigned int row = 0; row < NPadRows; row++) {
+    // count rows with clusters
+    nRows += index.nClusters[sector][row] > 0 ? 1 : 0;
+    nClusters += index.nClusters[sector][row];
+  }
+  size_t rawSize = nRows * sizeof(ClusterNativeBuffer) + nClusters * sizeof(ClusterNative);
+  target.resize(rawSize);
+  ClusterNativeBuffer* current = reinterpret_cast<ClusterNativeBuffer*>(target.data());
+  for (unsigned int row = 0; row < NPadRows; row++) {
+    if (index.nClusters[sector][row] == 0) {
+      continue;
+    }
+    current->sector = sector;
+    current->globalPadRow = row;
+    current->nClusters = index.nClusters[sector][row];
+    memcpy(current->clusters, index.clusters[sector][row], sizeof(*(current->clusters)) * current->nClusters);
+    current = reinterpret_cast<ClusterNativeBuffer*>(current->clusters + current->nClusters);
+    if (index.clustersMCTruth) {
+      mcTarget.emplace_back();
+      for (unsigned int k = 0; k < index.nClusters[sector][row]; k++) {
+        for (auto const& label : index.clustersMCTruth->getLabels(k + index.clusterOffset[sector][row])) {
+          mcTarget.back().addElement(k, label);
+        }
+      }
+    }
+  }
 }
 
 } // namespace tpc
