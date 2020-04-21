@@ -29,8 +29,8 @@ namespace o2
 namespace tof
 {
 
-template <typename RAWDataHeader>
-void CompressorTask<RAWDataHeader>::init(InitContext& ic)
+template <typename RAWDataHeader, bool verbose>
+void CompressorTask<RAWDataHeader, verbose>::init(InitContext& ic)
 {
   LOG(INFO) << "Compressor init";
 
@@ -51,8 +51,8 @@ void CompressorTask<RAWDataHeader>::init(InitContext& ic)
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
 }
 
-template <typename RAWDataHeader>
-void CompressorTask<RAWDataHeader>::run(ProcessingContext& pc)
+template <typename RAWDataHeader, bool verbose>
+void CompressorTask<RAWDataHeader, verbose>::run(ProcessingContext& pc)
 {
   LOG(DEBUG) << "Compressor run";
 
@@ -99,8 +99,10 @@ void CompressorTask<RAWDataHeader>::run(ProcessingContext& pc)
   }
 }
 
-template class CompressorTask<o2::header::RAWDataHeaderV4>;
-template class CompressorTask<o2::header::RAWDataHeaderV6>;
+template class CompressorTask<o2::header::RAWDataHeaderV4, true>;
+template class CompressorTask<o2::header::RAWDataHeaderV4, false>;
+template class CompressorTask<o2::header::RAWDataHeaderV6, true>;
+template class CompressorTask<o2::header::RAWDataHeaderV6, false>;
 
 } // namespace tof
 } // namespace o2
