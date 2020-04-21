@@ -22,7 +22,8 @@ o2_add_library(TPCWorkflow
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
-                                     O2::TPCCalibration O2::TPCSimulation)
+                                     O2::TPCCalibration O2::TPCSimulation 
+                                     O2::TPCEntropyCoding)
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME tpc
