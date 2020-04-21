@@ -150,6 +150,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 #if !defined(GPUCA_GPUCODE)
   /// Print method
   void print() const;
+  GPUh() void testInverse();
 #endif
 
 
