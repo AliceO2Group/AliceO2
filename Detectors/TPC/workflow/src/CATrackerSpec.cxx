@@ -77,12 +77,6 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   using ClusterGroupParser = o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>;
   struct ProcessAttributes {
-    // the input comes in individual calls and we need to buffer until
-    // data set is complete, have to think about a DPL feature to take
-    // ownership of an input
-    std::array<std::vector<char>, NSectors> bufferedInputs;
-    using CachedMCLabelContainer = decltype(std::declval<InputRecord>().get<std::vector<MCLabelContainer>>(DataRef{nullptr, nullptr, nullptr}));
-    std::array<CachedMCLabelContainer, NSectors> mcInputs;
     std::bitset<NSectors> validInputs = 0;
     std::bitset<NSectors> validMcInputs = 0;
     std::unique_ptr<ClusterGroupParser> parser;
@@ -287,7 +281,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
 
       // FIXME cleanup almost duplicated code
       auto& validMcInputs = processAttributes->validMcInputs;
-      auto& mcInputs = processAttributes->mcInputs;
+      using CachedMCLabelContainer = decltype(std::declval<InputRecord>().get<std::vector<MCLabelContainer>>(DataRef{nullptr, nullptr, nullptr}));
+      std::array<CachedMCLabelContainer, NSectors> mcInputs;
       std::array<gsl::span<const char>, NSectors> inputs;
       o2::gpu::GPUTrackingInOutZS tpcZS;
       std::vector<const void*> tpcZSmetaPointers[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
@@ -346,22 +341,11 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
       for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
         auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
         if (sectorHeader == nullptr) {
-          // FIXME: think about error policy
-          LOG(ERROR) << "sector header missing on header stack";
-          return;
+          throw std::runtime_error("sector header missing on header stack");
         }
         const int sector = sectorHeader->sector;
-        // check the current operation, this is used to either signal eod or noop
-        // FIXME: the noop is not needed any more once the lane configuration with one
-        // channel per sector is used
         if (sector < 0) {
-          if (operation < 0 && operation != sector) {
-            // we expect the same operation on all inputs
-            LOG(ERROR) << "inconsistent lane operation, got " << sector << ", expecting " << operation;
-          } else if (operation == 0) {
-            // store the operation
-            operation = sector;
-          }
+          //throw std::runtime_error("lagacy input, custom eos is not expected anymore")
           continue;
         }
         if (validInputs.test(sector)) {
@@ -377,20 +361,6 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
           inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
           LOG(INFO) << "GOT SPAN FOR SECTOR " << sector << " -> " << inputDigits[sector].size();
         }
-      }
-
-      if (operation == -1) {
-        // EOD is transmitted in the sectorHeader with sector number equal to -1
-        o2::tpc::TPCSectorHeader sh{-1};
-        sh.activeSectors = activeSectors;
-        pc.outputs().snapshot(OutputRef{"outTracks", 0, {sh}}, -1);
-        pc.outputs().snapshot(OutputRef{"outClusRefs", 0, {sh}}, -1);
-        if (processMC) {
-          pc.outputs().snapshot(OutputRef{"mclblout", 0, {sh}}, -1);
-        }
-        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-        processAttributes->readyToQuit = true;
-        return;
       }
 
       if (zsDecoder) {
@@ -478,47 +448,18 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
                       << "  active sectors: " << std::bitset<NSectors>(activeSectors);               //
           }
         };
-        auto& bufferedInputs = processAttributes->bufferedInputs;
         if (activeSectors == 0 || (activeSectors & validInputs.to_ulong()) != activeSectors ||
             (processMC && (activeSectors & validMcInputs.to_ulong()) != activeSectors)) {
-          // not all sectors available, we have to buffer the inputs
-          if (caClusterer) {
-            throw std::runtime_error("Buffering not possible with digits");
-          }
-          for (auto const& refentry : datarefs) {
-            auto& sector = refentry.first;
-            auto& ref = refentry.second;
-            auto payloadSize = DataRefUtils::getPayloadSize(ref);
-            bufferedInputs[sector].resize(payloadSize);
-            std::copy(ref.payload, ref.payload + payloadSize, bufferedInputs[sector].begin());
-            printInputLog(ref, "buffering", sector);
-          }
-
-          // not needed to send something, DPL will simply drop this timeslice, whenever the
-          // data for all sectors is available, the output is sent in that time slice
-          return;
+          throw std::runtime_error("Incomplete input data, expecting complete data set, buffering has been removed");
         }
         assert(processMC == false || validMcInputs == validInputs);
-        auto inputStatus = validInputs;
         for (auto const& refentry : datarefs) {
           auto& sector = refentry.first;
           auto& ref = refentry.second;
           inputs[sector] = gsl::span(ref.payload, DataRefUtils::getPayloadSize(ref));
-          inputStatus.reset(sector);
           printInputLog(ref, "received", sector);
         }
-        if (inputStatus.any()) {
-          // some of the inputs have been buffered
-          for (size_t sector = 0; sector < inputStatus.size(); ++sector) {
-            if (inputStatus.test(sector)) {
-              inputs[sector] = gsl::span(&bufferedInputs[sector].front(), bufferedInputs[sector].size());
-            }
-          }
-        }
         if (verbosity > 0) {
-          if (inputStatus.any()) {
-            LOG(INFO) << "using buffered data for " << inputStatus.count() << " sector(s)";
-          }
           // make human readable information from the bitfield
           std::string bitInfo;
           auto nActiveBits = validInputs.count();
