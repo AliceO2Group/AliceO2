@@ -10,7 +10,7 @@
 
 # Preamble
 
-cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 
 # it's important to specify accurately the list of languages. for instance C and
 # C++ as we _do_ have some C files to compile explicitely as C (e.g. gl3w.c)
