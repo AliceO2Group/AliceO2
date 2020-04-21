@@ -22,13 +22,17 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "DataFormatsTPC/CompressedClusters.h"
+#include "TPCEntropyCoding/EncodedClusters.h"
+#include "TPCEntropyCoding/TPCEntropyEncoder.h"
+#include "librans/rans.h"
+
 //#include "TPCClusterDecompressor.cxx"
 #include <memory> // for make_shared
 #include <vector>
 
-// TEMP: as a test, the processor simply writes the data to file, remove this
 #include <TFile.h>
 #include <TTree.h>
+#include <Compression.h>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -48,21 +52,22 @@ DataProcessorSpec getEntropyEncoderSpec()
     auto processAttributes = std::make_shared<ProcessAttributes>();
 
     auto processingFct = [processAttributes](ProcessingContext& pc) {
-      auto compressed = pc.inputs().get<CompressedClusters*>("input");
-      if (compressed == nullptr) {
+      auto clusters = pc.inputs().get<CompressedClusters*>("input");
+      if (clusters == nullptr) {
         LOG(ERROR) << "invalid input";
         return;
       }
-      LOG(INFO) << "input data with " << compressed->nTracks << " track(s) and " << compressed->nAttachedClusters << " attached clusters";
 
-      std::unique_ptr<TFile> testFile(TFile::Open("tpc-cluster-encoder.root", "RECREATE"));
-      testFile->WriteObject(compressed.get(), "TPCCompressedClusters");
-      testFile->Write();
-      testFile->Close();
+      auto encodedClusters = o2::tpc::TPCEntropyEncoder::encode(*clusters);
 
-      //o2::tpc::ClusterNativeAccess clustersNativeDecoded; // Cluster native access structure as used by the tracker
-      //std::vector<o2::tpc::ClusterNative> clusterBuffer; // std::vector that will hold the actual clusters, clustersNativeDecoded will point inside here
-      //mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param); // Run decompressor
+      const char* outFileName = "tpc-encoded-clusters.root";
+
+      // Fixme (lettrich): no TPC specific files and  no TPC specific workflows
+      // create the tree
+      TFile f(outFileName, "recreate");
+      TTree tree("EncodedClusters", "");
+      o2::tpc::TPCEntropyEncoder::appendToTTree(tree, *encodedClusters);
+      LOG(INFO) << "writing compressed clusters into " << outFileName;
     };
 
     return processingFct;
