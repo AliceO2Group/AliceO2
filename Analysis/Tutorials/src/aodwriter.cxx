@@ -129,21 +129,18 @@ struct ATask {
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      bool ok = (cnt%2)==0;
+      bool ok = (cnt % 2) == 0;
       float eta = log(tan(0.25f * static_cast<float>(M_PI) - 0.5f * atan(track.tgl())));
       float phi = asin(track.snp()) + track.alpha() + static_cast<float>(M_PI);
       double mom = track.tgl();
       double pt = track.signed1Pt();
-      int id = (int) cnt;
+      int id = (int)cnt;
 
-      if (cnt < 4) {
-        table_uno(phi, eta, mom);
-        table_due(ok, phi, eta, mom, pt);
-        table_tre(phi, eta, mom, id);
-        LOGF(INFO, "Values (%i): (%i %f, %f, %f, %f, %i)", cnt, ok, eta, phi, mom, pt, id);
-      }
+      table_uno(phi, eta, mom);
+      table_due(ok, phi, eta, mom, pt);
+      table_tre(phi, eta, mom, id);
+      LOGF(INFO, "Values (%i): (%i %f, %f, %f, %f, %i)", cnt, ok, eta, phi, mom, pt, id);
       cnt++;
-
     }
 
     LOGF(INFO, "ATask Processed %i data points from Tracks", cnt);
