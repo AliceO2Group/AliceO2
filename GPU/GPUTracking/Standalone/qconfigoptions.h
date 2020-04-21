@@ -85,6 +85,7 @@ AddOption(fitInProjections, int, -1, "fitInProjections", 0, "Fit in projection, 
 AddOption(fitPropagateBzOnly, int, -1, "fitPropagateBzOnly", 0, "Propagate using Bz only for n passes")
 AddOption(retryRefit, int, -1, "retryRefit", 0, "Retry refit when fit fails")
 AddOption(loopInterpolationInExtraPass, int, -1, "loopPass", 0, "Perform loop interpolation in an extra pass")
+AddOption(mergerReadFromTrackerDirectly, bool, true, "mergerReadFromTrackerDirectly", 0, "Forward data directly from tracker to merger on GPU")
 AddHelp("help", 'h')
 EndConfig()
 

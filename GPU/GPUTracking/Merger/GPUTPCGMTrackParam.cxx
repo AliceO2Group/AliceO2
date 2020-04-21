@@ -771,7 +771,7 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ2(const GPUTPCGMMergedTrackHit* clusters, 
   ShiftZ(merger, clusters[0].slice, tzInner, tzOuter);
 }
 
-GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merger, int slice, float tzinner, float tzouter)
+GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merger, int slice, float tz1, float tz2)
 {
   if (!merger->Param().ContinuousTracking) {
     return;
@@ -793,7 +793,7 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
   // printf("Tan %f %f (%f %f)\n", atana, atanb, mX - xp, mP[0] - yp);
   const float dS = (xp > 0 ? (atana + atanb) : (atanb - atana)) * r;
   float z0 = dS * mP[3];
-  // printf("Track Z %f (Offset %f), z0 %f, V %f (dS %f, dZds %f, qPt %f)             - Z span %f to %f: diff %f\n", mP[1], mTZOffset, z0, mP[1] - z0, dS, mP[3], mP[4], tzouter, tzinner, tzouter - tzinner);
+  // printf("Track Z %f (Offset %f), z0 %f, V %f (dS %f, dZds %f, qPt %f)             - Z span %f to %f: diff %f\n", mP[1], mTZOffset, z0, mP[1] - z0, dS, mP[3], mP[4], tz2, tz1, tz2 - tz1);
   if (CAMath::Abs(z0) > 250.f) {
     z0 = z0 > 0 ? 250.f : -250.f;
   }
@@ -802,8 +802,8 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
     mTZOffset += deltaZ;
     mP[1] -= deltaZ;
     deltaZ = 0;
-    float zMax = CAMath::Max(tzinner, tzouter);
-    float zMin = CAMath::Min(tzinner, tzouter);
+    float zMax = CAMath::Max(tz1, tz2);
+    float zMin = CAMath::Min(tz1, tz2);
     if (zMin < 0 && zMin - mTZOffset < -250) {
       deltaZ = zMin - mTZOffset + 250;
     } else if (zMax > 0 && zMax - mTZOffset > 250) {
@@ -814,16 +814,16 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
     } else if (zMax > 0 && zMin - mTZOffset < 0) {
       deltaZ = zMin - mTZOffset;
     }
-    // if (deltaZ != 0) printf("Moving clusters to TPC Range: Side %f, Shift %f: %f to %f --> %f to %f\n", tzouter, deltaZ, tzouter - mTZOffset, tzinner - mTZOffset, tzouter - mTZOffset - deltaZ, tzinner - mTZOffset - deltaZ);
+    // if (deltaZ != 0) printf("Moving clusters to TPC Range: Side %f, Shift %f: %f to %f --> %f to %f\n", tz2, deltaZ, tz2 - mTZOffset, tz1 - mTZOffset, tz2 - mTZOffset - deltaZ, tz1 - mTZOffset - deltaZ);
     mTZOffset += deltaZ;
     mP[1] -= deltaZ;
   } else {
     float deltaT = merger->GetConstantMem()->calibObjects.fastTransform->convDeltaZtoDeltaTimeInTimeFrame(slice, deltaZ);
     mTZOffset += deltaT;
     mP[1] -= deltaZ;
-    const float minT = CAMath::Min(tzinner, tzouter);
-    const float maxT = CAMath::Max(tzinner, tzouter) - 250.f / merger->GetConstantMem()->calibObjects.fastTransform->getVDrift(); // TODO: Replace my by max drift time
-    // printf("T Check: max %f min %f (min2 %f) vtx %f\n", maxT, minT, CAMath::Min(tzinner, tzouter), mTZOffset);
+    const float minT = CAMath::Min(tz1, tz2);
+    const float maxT = CAMath::Max(tz1, tz2) - 250.f / merger->GetConstantMem()->calibObjects.fastTransform->getVDrift(); // TODO: Replace my by max drift time
+    // printf("T Check: max %f min %f (min2 %f) vtx %f\n", maxT, minT, CAMath::Min(tzinner, tz2), mTZOffset);
     deltaT = 0.f;
     if (mTZOffset < maxT) {
       deltaT = maxT - mTZOffset;

@@ -85,6 +85,7 @@ struct GPUSettingsRec {
   char fitPropagateBzOnly;               // Use only Bz for the propagation during the fit in the first n passes, -1 = NWays -1
   char retryRefit;                       // Retry refit with larger cluster errors when fit fails
   char loopInterpolationInExtraPass;     // Perform the loop interpolation in an extra pass
+  char mergerReadFromTrackerDirectly;    // Make the TPC merger read the output directly from the tracker class
 };
 
 // Settings describing the events / time frames

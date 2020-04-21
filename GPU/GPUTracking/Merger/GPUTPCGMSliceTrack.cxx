@@ -76,14 +76,25 @@ void GPUTPCGMSliceTrack::Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* s
 bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi, float sinPhiMargin)
 {
   float lastX;
-  if (merger->Param().earlyTpcTransform) {
+  if (merger->Param().earlyTpcTransform && !merger->Param().rec.mergerReadFromTrackerDirectly) {
     lastX = mOrigTrack->OutTrackCluster(mOrigTrack->NHits() - 1).GetX(); // TODO: Why is this needed, Row2X should work, but looses some tracks
   } else {
     //float lastX = merger->Param().tpcGeometry.Row2X(mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetRow()); // TODO: again, why does this reduce efficiency?
     float y, z;
-    const GPUTPCSliceOutCluster& clo = mOrigTrack->OutTrackCluster(mOrigTrack->NHits() - 1);
-    const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clo.GetId()];
-    GPUTPCConvertImpl::convert(*merger->GetConstantMem(), iSlice, clo.GetRow(), cl.getPad(), cl.getTime(), lastX, y, z);
+    const GPUTPCSliceOutCluster* clo;
+    int row, index;
+    if (merger->Param().rec.mergerReadFromTrackerDirectly) {
+      const GPUTPCTracker& trk = merger->SliceTrackers()[iSlice];
+      const GPUTPCHitId& ic = trk.TrackHits()[mOrigTrack->FirstHitID() + mOrigTrack->NHits() - 1];
+      index = trk.Data().ClusterDataIndex(trk.Data().Row(ic.RowIndex()), ic.HitIndex()) + merger->GetConstantMem()->ioPtrs.clustersNative->clusterOffset[iSlice][0];
+      row = ic.RowIndex();
+    } else {
+      clo = &mOrigTrack->OutTrackCluster(mOrigTrack->NHits() - 1);
+      index = clo->GetId();
+      row = clo->GetRow();
+    }
+    const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[index];
+    GPUTPCConvertImpl::convert(*merger->GetConstantMem(), iSlice, row, cl.getPad(), cl.getTime(), lastX, y, z);
   }
 
   const int N = 3;

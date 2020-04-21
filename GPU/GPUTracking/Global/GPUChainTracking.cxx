@@ -173,7 +173,11 @@ bool GPUChainTracking::ValidateSteps()
     }
   }
   if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding) && !(GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCRaw)) {
-    GPUError("Invalid inputy, TPC Clusterizer needs TPC raw input");
+    GPUError("Invalid input, TPC Clusterizer needs TPC raw input");
+    return false;
+  }
+  if (((GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCSectorTracks) || (GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks) || !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion)) && param().rec.mergerReadFromTrackerDirectly) {
+    GPUError("Invalid input / output / step, mergerReadFromTrackerDirectly cannot read/store sectors tracks and needs TPC conversion");
     return false;
   }
   bool tpcClustersAvail = (GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCClusters) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding);
@@ -236,6 +240,10 @@ bool GPUChainTracking::ValidateSettings()
   }
   if (param().rec.mergerInterpolateErrors && param().rec.NWays == 1) {
     GPUError("Cannot do error interpolation with NWays = 1!");
+    return false;
+  }
+  if ((param().rec.mergerReadFromTrackerDirectly || !param().earlyTpcTransform) && param().rec.NonConsecutiveIDs) {
+    GPUError("incompatible settings for non consecutive ids");
     return false;
   }
   return true;
@@ -1433,9 +1441,6 @@ int GPUChainTracking::RunTPCTrackingMerger()
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCMerging;
   GPUTPCGMMerger& Merger = processors()->tpcMerger;
   GPUTPCGMMerger& MergerShadow = doGPU ? processorsShadow()->tpcMerger : Merger;
-  if (Merger.CheckSlices()) {
-    return 1;
-  }
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("Running TPC Merger");
   }
@@ -1778,7 +1783,7 @@ int GPUChainTracking::RunChain()
   timerMerger.Start();
   for (unsigned int i = 0; i < NSLICES; i++) {
     // GPUInfo("slice %d clusters %d tracks %d", i, mClusterData[i].NumberOfClusters(), processors()->tpcTrackers[i].Output()->NTracks());
-    processors()->tpcMerger.SetSliceData(i, processors()->tpcTrackers[i].Output());
+    processors()->tpcMerger.SetSliceData(i, param().rec.mergerReadFromTrackerDirectly ? nullptr : processors()->tpcTrackers[i].Output());
   }
   if (GetRecoSteps().isSet(RecoStep::TPCMerging) && RunTPCTrackingMerger()) {
     return 1;

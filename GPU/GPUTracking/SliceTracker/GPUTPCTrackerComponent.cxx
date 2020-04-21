@@ -390,6 +390,7 @@ int GPUTPCTrackerComponent::ConfigureSlices()
   rec.GlobalTracking = fGlobalTracking;
   devProc.stuckProtection = fGPUStuckProtection;
   rec.NonConsecutiveIDs = true;
+  rec.mergerReadFromTrackerDirectly = false;
 
   GPURecoStepConfiguration steps;
   steps.steps.set(GPUDataTypes::RecoStep::TPCSliceTracking);
