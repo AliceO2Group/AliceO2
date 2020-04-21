@@ -28,7 +28,7 @@ namespace o2
 namespace tof
 {
 
-template <typename RAWDataHeader>
+template <typename RAWDataHeader, bool verbose>
 class CompressorTask : public Task
 {
  public:
@@ -38,7 +38,7 @@ class CompressorTask : public Task
   void run(ProcessingContext& pc) final;
 
  private:
-  Compressor<RAWDataHeader> mCompressor;
+  Compressor<RAWDataHeader, verbose> mCompressor;
 };
 
 } // namespace tof
