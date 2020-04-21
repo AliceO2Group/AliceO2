@@ -28,7 +28,7 @@ namespace o2
 namespace tof
 {
 
-template <typename RAWDataHeader>
+template <typename RAWDataHeader, bool verbose>
 class Compressor
 {
 
