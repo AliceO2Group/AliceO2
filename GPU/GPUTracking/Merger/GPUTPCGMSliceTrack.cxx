@@ -25,7 +25,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-void GPUTPCGMSliceTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice)
+void GPUTPCGMSliceTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sliceTr, float alpha, int slice)
 {
   const GPUTPCBaseTrackParam& t = sliceTr->Param();
   mOrigTrack = sliceTr;
@@ -44,10 +44,10 @@ void GPUTPCGMSliceTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCSliceOutT
   } else {
     mTZOffset = merger->GetConstantMem()->calibObjects.fastTransform->convZOffsetToVertexTime(slice, t.GetZOffset(), merger->Param().continuousMaxTimeBin);
   }
-  mNClusters = sliceTr->NClusters();
+  mNClusters = sliceTr->NHits();
 }
 
-void GPUTPCGMSliceTrack::Set(const GPUTPCGMTrackParam& trk, const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice)
+void GPUTPCGMSliceTrack::Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sliceTr, float alpha, int slice)
 {
   mOrigTrack = sliceTr;
   mX = trk.GetX();
@@ -61,7 +61,7 @@ void GPUTPCGMSliceTrack::Set(const GPUTPCGMTrackParam& trk, const GPUTPCSliceOut
   mAlpha = alpha;
   mSlice = slice;
   mTZOffset = trk.GetTZOffset();
-  mNClusters = sliceTr->NClusters();
+  mNClusters = sliceTr->NHits();
   mC0 = trk.GetCov(0);
   mC2 = trk.GetCov(2);
   mC3 = trk.GetCov(3);
@@ -77,11 +77,11 @@ bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, 
 {
   float lastX;
   if (merger->Param().earlyTpcTransform) {
-    lastX = mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetX(); // TODO: Why is this needed, Row2X should work, but looses some tracks
+    lastX = mOrigTrack->OutTrackCluster(mOrigTrack->NHits() - 1).GetX(); // TODO: Why is this needed, Row2X should work, but looses some tracks
   } else {
     //float lastX = merger->Param().tpcGeometry.Row2X(mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetRow()); // TODO: again, why does this reduce efficiency?
     float y, z;
-    const GPUTPCSliceOutCluster& clo = mOrigTrack->Cluster(mOrigTrack->NClusters() - 1);
+    const GPUTPCSliceOutCluster& clo = mOrigTrack->OutTrackCluster(mOrigTrack->NHits() - 1);
     const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clo.GetId()];
     GPUTPCConvertImpl::convert(*merger->GetConstantMem(), iSlice, clo.GetRow(), cl.getPad(), cl.getTime(), lastX, y, z);
   }

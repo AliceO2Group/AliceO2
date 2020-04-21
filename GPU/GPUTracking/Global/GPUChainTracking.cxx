@@ -22,7 +22,6 @@
 #include "GPUChainTracking.h"
 #include "GPUTPCClusterData.h"
 #include "GPUTPCSliceOutput.h"
-#include "GPUTPCSliceOutTrack.h"
 #include "GPUTPCSliceOutCluster.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
@@ -531,8 +530,8 @@ void GPUChainTracking::AllocateIOMemory()
   for (unsigned int i = 0; i < NSLICES; i++) {
     AllocateIOMemoryHelper(mIOPtrs.nClusterData[i], mIOPtrs.clusterData[i], mIOMem.clusterData[i]);
     AllocateIOMemoryHelper(mIOPtrs.nRawClusters[i], mIOPtrs.rawClusters[i], mIOMem.rawClusters[i]);
-    AllocateIOMemoryHelper(mIOPtrs.nSliceOutTracks[i], mIOPtrs.sliceOutTracks[i], mIOMem.sliceOutTracks[i]);
-    AllocateIOMemoryHelper(mIOPtrs.nSliceOutClusters[i], mIOPtrs.sliceOutClusters[i], mIOMem.sliceOutClusters[i]);
+    AllocateIOMemoryHelper(mIOPtrs.nSliceTracks[i], mIOPtrs.sliceTracks[i], mIOMem.sliceTracks[i]);
+    AllocateIOMemoryHelper(mIOPtrs.nSliceClusters[i], mIOPtrs.sliceClusters[i], mIOMem.sliceClusters[i]);
   }
   AllocateIOMemoryHelper(mClusterNativeAccess->nClustersTotal, mClusterNativeAccess->clustersLinear, mIOMem.clustersNative);
   mIOPtrs.clustersNative = mClusterNativeAccess->nClustersTotal ? mClusterNativeAccess.get() : nullptr;
@@ -1418,10 +1417,10 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     return (1);
   }
   for (unsigned int i = 0; i < NSLICES; i++) {
-    mIOPtrs.nSliceOutTracks[i] = *processors()->tpcTrackers[i].NTracks();
-    mIOPtrs.sliceOutTracks[i] = processors()->tpcTrackers[i].Tracks();
-    mIOPtrs.nSliceOutClusters[i] = *processors()->tpcTrackers[i].NTrackHits();
-    mIOPtrs.sliceOutClusters[i] = processors()->tpcTrackers[i].TrackHits();
+    mIOPtrs.nSliceTracks[i] = *processors()->tpcTrackers[i].NTracks();
+    mIOPtrs.sliceTracks[i] = processors()->tpcTrackers[i].Tracks();
+    mIOPtrs.nSliceClusters[i] = *processors()->tpcTrackers[i].NTrackHits();
+    mIOPtrs.sliceClusters[i] = processors()->tpcTrackers[i].TrackHits();
   }
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Slice Tracker finished");

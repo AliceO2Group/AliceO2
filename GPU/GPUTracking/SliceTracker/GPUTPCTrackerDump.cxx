@@ -29,11 +29,11 @@ void GPUTPCTracker::DumpOutput(std::ostream& out)
 {
   if (Param().earlyTpcTransform) {
     out << "Slice " << mISlice << "\n";
-    const GPUTPCSliceOutTrack* track = (Output())->GetFirstTrack();
+    const GPUTPCTrack* track = (Output())->GetFirstTrack();
     for (unsigned int j = 0; j < (Output())->NTracks(); j++) {
-      out << "Track " << j << " (" << track->NClusters() << "): ";
-      for (int k = 0; k < track->NClusters(); k++) {
-        out << "(" << track->Cluster(k).GetX() << "," << track->Cluster(k).GetY() << "," << track->Cluster(k).GetZ() << ") ";
+      out << "Track " << j << " (" << track->NHits() << "): ";
+      for (int k = 0; k < track->NHits(); k++) {
+        out << "(" << track->OutTrackCluster(k).GetX() << "," << track->OutTrackCluster(k).GetY() << "," << track->OutTrackCluster(k).GetZ() << ") ";
       }
       out << " - (" << track->Param().Y() << " " << track->Param().Z() << " " << track->Param().SinPhi() << " " << track->Param().DzDs() << " " << track->Param().QPt() << "\n";
       track = track->GetNextTrack();
@@ -130,7 +130,7 @@ void GPUTPCTracker::DumpTrackHits(std::ostream& out)
   for (int k = 0; k < GPUCA_ROW_COUNT; k++) {
     for (int l = 0; l < Row(k).NHits(); l++) {
       for (unsigned int j = 0; j < *NTracks(); j++) {
-        if (Tracks()[j].NHits() == 0 || !Tracks()[j].Alive()) {
+        if (Tracks()[j].NHits() == 0) {
           continue;
         }
         if (TrackHits()[Tracks()[j].FirstHitID()].RowIndex() == k && TrackHits()[Tracks()[j].FirstHitID()].HitIndex() == l) {

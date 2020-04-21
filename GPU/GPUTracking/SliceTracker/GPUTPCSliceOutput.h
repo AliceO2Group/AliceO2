@@ -15,9 +15,7 @@
 #define GPUTPCSLICEOUTPUT_H
 
 #include "GPUTPCDef.h"
-#ifndef GPUCA_GPUCODE
-#include "GPUTPCSliceOutTrack.h" //Breaks OpenCL 1.2 since GPUTPCSliceOutput does not know the address space of the track
-#endif
+#include "GPUTPCTrack.h"
 
 #if !defined(__OPENCL__)
 #include <cstdlib>
@@ -50,16 +48,14 @@ class GPUTPCSliceOutput
   }
   GPUhd() unsigned int NLocalTracks() const { return mNLocalTracks; }
   GPUhd() unsigned int NTrackClusters() const { return mNTrackClusters; }
-#ifndef GPUCA_GPUCODE
-  GPUhd() const GPUTPCSliceOutTrack* GetFirstTrack() const
+  GPUhd() const GPUTPCTrack* GetFirstTrack() const
   {
     return mMemory;
   }
-  GPUhd() GPUTPCSliceOutTrack* FirstTrack()
+  GPUhd() GPUTPCTrack* FirstTrack()
   {
     return mMemory;
   }
-#endif
   GPUhd() size_t Size() const
   {
     return (mMemorySize);
@@ -87,13 +83,7 @@ class GPUTPCSliceOutput
 
 // Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
 // This way the whole Slice Output is one consecutive Memory Segment
-#ifndef GPUCA_GPUCODE
-#ifdef __OPENCL__
-  GPUTPCSliceOutTrack mMemory[1]; // the memory where the pointers above point into
-#else
-  GPUTPCSliceOutTrack mMemory[0]; // the memory where the pointers above point into
-#endif
-#endif
+  GPUTPCTrack mMemory[0]; // the memory where the pointers above point into
 #endif
 };
 } // namespace gpu

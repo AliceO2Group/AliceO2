@@ -110,7 +110,7 @@ class GPUTPCGMMerger : public GPUProcessor
   short MemoryResMerger() { return mMemoryResMerger; }
   short MemoryResRefit() { return mMemoryResRefit; }
 
-  int RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPCSliceOutTrack* inTrack, float alpha, int slice);
+  int RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPCTrack* inTrack, float alpha, int slice);
 
   void UnpackSlices();
   void MergeCEInit();

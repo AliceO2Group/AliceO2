@@ -18,7 +18,6 @@
 
 #include "GPUTPCClusterData.h"
 #include "GPUTPCSliceOutput.h"
-#include "GPUTPCSliceOutTrack.h"
 #include "GPUTPCSliceOutCluster.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
