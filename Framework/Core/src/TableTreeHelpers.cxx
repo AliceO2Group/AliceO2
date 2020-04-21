@@ -15,11 +15,11 @@ namespace o2
 namespace framework
 {
 
-branchIterator::branchIterator(TTree* tree, std::shared_ptr<arrow::Column> col)
+branchIterator::branchIterator(TTree* tree, std::shared_ptr<BackendColumnType> col, std::shared_ptr<arrow::Field> field)
 {
-  mbranchName = col->name().c_str();
-  marrowType = col->type()->id();
-  mchunks = col->data()->chunks();
+  mbranchName = field->name().c_str();
+  marrowType = field->type()->id();
+  mchunks = getBackendColumnData(col)->chunks();
   mnumberChuncs = mchunks.size();
 
   // initialize the branch
@@ -243,9 +243,9 @@ TableToTree::~TableToTree()
   mbranchIterators.clear();
 }
 
-bool TableToTree::addBranch(std::shared_ptr<arrow::Column> col)
+bool TableToTree::addBranch(std::shared_ptr<BackendColumnType> col, std::shared_ptr<arrow::Field> field)
 {
-  branchIterator* brit = new branchIterator(mtreePtr, col);
+  branchIterator* brit = new branchIterator(mtreePtr, col, field);
   if (brit->getStatus()) {
     mbranchIterators.push_back(brit);
   }
@@ -259,7 +259,7 @@ bool TableToTree::addAllBranches()
   bool status = mtable->num_columns() > 0;
   for (auto ii = 0; ii < mtable->num_columns(); ii++) {
     branchIterator* brit =
-      new branchIterator(mtreePtr, mtable->column(ii));
+      new branchIterator(mtreePtr, mtable->column(ii), mtable->field(ii));
     if (brit->getStatus()) {
       mbranchIterators.push_back(brit);
     } else {
