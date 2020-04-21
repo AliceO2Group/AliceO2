@@ -33,7 +33,7 @@ class GPUTPCGMSliceTrack
 {
  public:
   float Alpha() const { return mAlpha; }
-  char Slice() const { return (char)mSlice; }
+  unsigned char Slice() const { return mSlice; }
   char CSide() const { return mSlice >= 18; }
   int NClusters() const { return mNClusters; }
   int PrevNeighbour() const { return mNeighbour[0]; }
@@ -52,17 +52,22 @@ class GPUTPCGMSliceTrack
   float DzDs() const { return mDzDs; }
   float QPt() const { return mQPt; }
   float TZOffset() const { return mTZOffset; }
-  float Leg() const { return mLeg; }
+  unsigned char Leg() const { return mLeg; }
 
   int LocalTrackId() const { return mLocalTrackId; }
   void SetLocalTrackId(int v) { mLocalTrackId = v; }
   int GlobalTrackId(int n) const { return mGlobalTrackIds[n]; }
   void SetGlobalTrackId(int n, int v) { mGlobalTrackIds[n] = v; }
 
-  float MaxClusterZT() const { return mMaxClusterZT; }
-  float MinClusterZT() const { return mMinClusterZT; }
-  void SetMaxClusterZT(float v) { mMaxClusterZT = v; }
-  void SetMinClusterZT(float v) { mMinClusterZT = v; }
+  float MaxClusterZT() const { return CAMath::Max(mClusterZT[0], mClusterZT[1]); }
+  float MinClusterZT() const { return CAMath::Min(mClusterZT[0], mClusterZT[1]); }
+  float ClusterZT0() const { return mClusterZT[0]; }
+  float ClusterZTN() const { return mClusterZT[1]; }
+  void SetClusterZT(float v1, float v2)
+  {
+    mClusterZT[0] = v1;
+    mClusterZT[1] = v2;
+  }
 
   void Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sliceTr, float alpha, int slice);
   void Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sliceTr, float alpha, int slice);
@@ -111,13 +116,13 @@ class GPUTPCGMSliceTrack
   float mTZOffset;                                          // Z offset with early transform, T offset otherwise
   float mC0, mC2, mC3, mC5, mC7, mC9, mC10, mC12, mC14;     // covariances
   float mAlpha;                                             // alpha angle
-  float mMinClusterZT, mMaxClusterZT;                       // Minimum maximum cluster Z / T
-  int mSlice;                                               // slice of this track segment
+  float mClusterZT[2];                                      // Minimum maximum cluster Z / T
   int mNClusters;                                           // N clusters
   int mNeighbour[2];                                        //
   int mSegmentNeighbour[2];                                 //
   int mLocalTrackId;                                        // Corrected local track id in terms of GMSliceTracks array
   int mGlobalTrackIds[2];                                   // IDs of associated global tracks
+  unsigned char mSlice;                                     // slice of this track segment
   unsigned char mLeg;                                       // Leg of this track segment
 };
 } // namespace gpu

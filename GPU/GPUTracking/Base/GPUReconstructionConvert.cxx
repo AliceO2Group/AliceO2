@@ -192,6 +192,7 @@ void GPUReconstructionConvert::ZSstreamOut(unsigned short* bufIn, unsigned int& 
   lenIn = 0;
 }
 
+#ifdef HAVE_O2HEADERS
 static inline auto ZSEncoderGetDigits(const GPUTrackingInOutDigits& in, int i) { return in.tpcDigits[i]; }
 static inline auto ZSEncoderGetNDigits(const GPUTrackingInOutDigits& in, int i) { return in.nTPCDigits[i]; }
 static inline auto ZSEncoderGetTime(const deprecated::PackedDigit a) { return a.time; }
@@ -208,6 +209,7 @@ static inline auto ZSEncoderGetTime(const o2::tpc::Digit a) { return a.getTimeSt
 static inline auto ZSEncoderGetPad(const o2::tpc::Digit a) { return a.getPad(); }
 static inline auto ZSEncoderGetRow(const o2::tpc::Digit a) { return a.getRow(); }
 static inline auto ZSEncoderGetCharge(const o2::tpc::Digit a) { return a.getChargeFloat(); }
+#endif
 #endif
 
 template <class T, class S>

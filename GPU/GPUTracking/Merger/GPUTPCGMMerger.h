@@ -59,10 +59,19 @@ class GPUTPCGMMerger : public GPUProcessor
   ~GPUTPCGMMerger() CON_DEFAULT;
   GPUTPCGMMerger(const GPUTPCGMMerger&) CON_DELETE;
   const GPUTPCGMMerger& operator=(const GPUTPCGMMerger&) const CON_DELETE;
+  static CONSTEXPR int NSLICES = GPUCA_NSLICES; //* N slices
 
   struct memory {
     GPUAtomic(unsigned int) nRetryRefit;
     GPUAtomic(unsigned int) nLoopData;
+    const GPUTPCTrack* firstGlobalTracks[NSLICES];
+  };
+
+  struct trackCluster {
+    unsigned int id;
+    unsigned char row;
+    unsigned char slice;
+    unsigned char leg;
   };
 
   void InitializeProcessor();
@@ -76,7 +85,6 @@ class GPUTPCGMMerger : public GPUProcessor
   const GPUChainTracking* GetTrackingChain() const { return mChainTracking; }
 
   void SetSliceData(int index, const GPUTPCSliceOutput* SliceData);
-  int CheckSlices();
 
   GPUhd() int NOutputTracks() const { return mNOutputTracks; }
   GPUhd() const GPUTPCGMMergedTrack* OutputTracks() const { return mOutputTracks; }
@@ -107,10 +115,10 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() GPUTPCGMLoopData* LoopData() const { return mLoopData; }
   GPUd() memory* Memory() const { return mMemory; }
 
-  short MemoryResMerger() { return mMemoryResMerger; }
   short MemoryResRefit() { return mMemoryResRefit; }
 
   int RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPCTrack* inTrack, float alpha, int slice);
+  void SetTrackClusterZT(GPUTPCGMSliceTrack& track, int iSlice, const GPUTPCTrack* sliceTr);
 
   void UnpackSlices();
   void MergeCEInit();
@@ -154,7 +162,6 @@ class GPUTPCGMMerger : public GPUProcessor
   int SliceTrackInfoLocalTotal() { return mSliceTrackInfoIndex[NSLICES]; }
   int SliceTrackInfoTotal() { return mSliceTrackInfoIndex[2 * NSLICES]; }
 
-  static CONSTEXPR int NSLICES = GPUCA_NSLICES; //* N slices
   int mNextSliceInd[NSLICES];
   int mPrevSliceInd[NSLICES];
 
@@ -168,7 +175,6 @@ class GPUTPCGMMerger : public GPUProcessor
   unsigned int mNMaxOutputTrackClusters; // max number of clusters in output tracks (double-counting shared clusters)
   unsigned int mNMaxClusters;            // max total unique clusters (in event)
 
-  short mMemoryResMerger;
   short mMemoryResRefit;
 
   int mMaxID;
