@@ -100,7 +100,7 @@ class Spline2DBase : public FlatObject
 
   /// _______________  IO   ________________________
 
-#if !defined(ALIGPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_STANDALONE)
   /// write a class object to the file
   int writeToFile(TFile& outf, const char* name);
 
