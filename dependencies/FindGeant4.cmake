@@ -39,10 +39,6 @@ set_target_properties(geant4
                       PROPERTIES INTERFACE_LINK_DIRECTORIES
                       "${Geant4_LIBRARY_DIRS}")
 
-# FIXME: this should be properly done by Geant4 itself instead 
-find_package(VGM)
-set_property(TARGET geant4 APPEND PROPERTY INTERFACE_LINK_DIRECTORIES $<TARGET_FILE_DIR:XmlVGM>)
-
 # Promote the imported target to global visibility
 # (so we can alias it)
 set_target_properties(geant4 PROPERTIES IMPORTED_GLOBAL TRUE)
