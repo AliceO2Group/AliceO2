@@ -259,7 +259,7 @@ bool TableToTree::addAllBranches()
   bool status = mtable->num_columns() > 0;
   for (auto ii = 0; ii < mtable->num_columns(); ii++) {
     branchIterator* brit =
-      new branchIterator(mtreePtr, mtable->column(ii), mtable->field(ii));
+      new branchIterator(mtreePtr, mtable->column(ii), mtable->schema()->field(ii));
     if (brit->getStatus()) {
       mbranchIterators.push_back(brit);
     } else {
