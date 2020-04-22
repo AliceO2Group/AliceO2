@@ -138,6 +138,8 @@ void TrackFitter::initTrack(const o2::itsmft::Cluster& cl, TrackParamMFT& param)
   double tanl = pz / pt;
   double r0sq = cl.getX() * cl.getX() + cl.getY() * cl.getY();
   double r0cu = r0sq * TMath::Sqrt(r0sq);
+  double invr0sq = 1.0 / r0sq;
+  double invr0cu = 1.0 / r0cu;
   double sigmax0sq = cl.getSigmaZ2(); // FIXME: from cluster
   double sigmay0sq = cl.getSigmaY2(); // FIXME: from cluster
   double sigmaDeltaZsq = 5.0;         // Primary vertex distribution: beam interaction diamond
@@ -189,23 +191,23 @@ void TrackFitter::initTrack(const o2::itsmft::Cluster& cl, TrackParamMFT& param)
   lastParamCov.Zero();
   lastParamCov(0, 0) = sigmax0sq;                   // <X,X>
   lastParamCov(0, 1) = 0;                           // <Y,X>
-  lastParamCov(0, 2) = -sigmax0sq * y0 / r0sq;      // <PHI,X>
-  lastParamCov(0, 3) = -z0 * sigmax0sq * x0 / r0cu; // <TANL,X>
-  lastParamCov(0, 4) = sigmaboost * -x0 * sigmax0sq / r0cu; // <INVQPT,X>
+  lastParamCov(0, 2) = -sigmax0sq * y0 * invr0sq;   // <PHI,X>
+  lastParamCov(0, 3) = -z0 * sigmax0sq * x0 * invr0cu;         // <TANL,X>
+  lastParamCov(0, 4) = sigmaboost * -x0 * sigmax0sq * invr0cu; // <INVQPT,X>
 
   lastParamCov(1, 1) = sigmay0sq;                   // <Y,Y>
-  lastParamCov(1, 2) = sigmay0sq * x0 / r0sq;       // <PHI,Y>
-  lastParamCov(1, 3) = -z0 * sigmay0sq * y0 / r0cu; // <TANL,Y>
-  lastParamCov(1, 4) = sigmaboost * y0 * sigmay0sq / r0cu; //1e-2; // <INVQPT,Y>
+  lastParamCov(1, 2) = sigmay0sq * x0 * invr0sq;    // <PHI,Y>
+  lastParamCov(1, 3) = -z0 * sigmay0sq * y0 * invr0cu;        // <TANL,Y>
+  lastParamCov(1, 4) = sigmaboost * y0 * sigmay0sq * invr0cu; //1e-2; // <INVQPT,Y>
 
-  lastParamCov(2, 2) = (sigmax0sq * y0 * y0 + sigmay0sq * x0 * x0) / r0sq / r0sq;    // <PHI,PHI>
-  lastParamCov(2, 3) = z0 * x0 * y0 * (sigmax0sq - sigmay0sq) / r0sq / r0cu;         //  <TANL,PHI>
-  lastParamCov(2, 4) = sigmaboost * y0 * x0 / r0cu / r0sq * (sigmax0sq - sigmay0sq); //  <INVQPT,PHI>
+  lastParamCov(2, 2) = (sigmax0sq * y0 * y0 + sigmay0sq * x0 * x0) * invr0sq * invr0sq;    // <PHI,PHI>
+  lastParamCov(2, 3) = z0 * x0 * y0 * (sigmax0sq - sigmay0sq) * invr0sq * invr0cu;         //  <TANL,PHI>
+  lastParamCov(2, 4) = sigmaboost * y0 * x0 * invr0cu * invr0sq * (sigmax0sq - sigmay0sq); //  <INVQPT,PHI>
 
-  lastParamCov(3, 3) = z0 * z0 * (sigmax0sq * x0 * x0 + sigmay0sq * y0 * y0) / r0cu / r0cu + sigmaDeltaZsq / r0sq; // <TANL,TANL>
-  lastParamCov(3, 4) = sigmaboost * z0 / r0cu / r0cu * (sigmax0sq * x0 * x0 + sigmay0sq * y0 * y0);                // <INVQPT,TANL>
+  lastParamCov(3, 3) = z0 * z0 * (sigmax0sq * x0 * x0 + sigmay0sq * y0 * y0) * invr0cu * invr0cu + sigmaDeltaZsq * invr0sq; // <TANL,TANL>
+  lastParamCov(3, 4) = sigmaboost * z0 * invr0cu * invr0cu * (sigmax0sq * x0 * x0 + sigmay0sq * y0 * y0);                   // <INVQPT,TANL>
 
-  lastParamCov(4, 4) = sigmaboost * (sigmax0sq * x0 * x0 + sigmay0sq * y0 * y0) / r0cu / r0cu; // <INVQPT,INVQPT>
+  lastParamCov(4, 4) = sigmaboost * (sigmax0sq * x0 * x0 + sigmay0sq * y0 * y0) * invr0cu * invr0cu; // <INVQPT,INVQPT>
 
   lastParamCov(1, 0) = lastParamCov(0, 1); //
   lastParamCov(2, 0) = lastParamCov(0, 2); //
