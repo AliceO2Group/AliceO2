@@ -766,7 +766,7 @@ class RawPixelReader : public PixelReader
     mMAP.expandFEEId(rdh->feeId, lr, ruOnLr, linkIDinRU);
     auto* ruLink = getGBTLink(ruDecData.links[linkIDinRU]);
     auto& ruLinkStat = ruLink->statistics;
-    ruLink->lastRDH = rdh;
+    ruLink->lastRDH = reinterpret_cast<o2::header::RDHAny*>(rdh); // hack but this reader should be outphased anyway
     ruLinkStat.nPackets++;
 
 #ifdef _RAW_READER_ERROR_CHECKS_
@@ -939,7 +939,7 @@ class RawPixelReader : public PixelReader
       }
 #endif
       rdh = rdhN;
-      ruLink->lastRDH = rdh;
+      ruLink->lastRDH = reinterpret_cast<o2::header::RDHAny*>(rdh);
     }
 
 #ifdef _RAW_READER_ERROR_CHECKS_
@@ -1035,7 +1035,7 @@ class RawPixelReader : public PixelReader
 
     auto ruLink = getGBTLink(ruDecode.links[linkIDinRU]);
     auto& ruLinkStat = ruLink->statistics;
-    ruLink->lastRDH = rdh;
+    ruLink->lastRDH = reinterpret_cast<o2::header::RDHAny*>(rdh); // hack but this reader should be outphased anyway
     ruLinkStat.nPackets++;
 
 #ifdef _RAW_READER_ERROR_CHECKS_
@@ -1211,7 +1211,7 @@ class RawPixelReader : public PixelReader
       }
 #endif
       rdh = rdhN;
-      ruLink->lastRDH = rdh;
+      ruLink->lastRDH = reinterpret_cast<o2::header::RDHAny*>(rdh); // hack but this reader should be outphased anyway
     }
 
 #ifdef _RAW_READER_ERROR_CHECKS_
@@ -1260,7 +1260,7 @@ class RawPixelReader : public PixelReader
         LOG(ERROR) << "FEEId:" << OUTHEX(decData.ruInfo->idHW, 4) << " cable " << icab
                    << " data does not start with ChipHeader or ChipEmpty";
         ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrCableDataHeadWrong]++;
-        printRDH(getGBTLink(decData.links[decData.cableLinkID[icab]])->lastRDH);
+        printRDH(reinterpret_cast<const o2::header::RAWDataHeader*>(getGBTLink(decData.links[decData.cableLinkID[icab]])->lastRDH));
       }
 #endif
 
@@ -1273,7 +1273,7 @@ class RawPixelReader : public PixelReader
               LOG(ERROR) << "FEEId:" << OUTHEX(decData.ruInfo->idHW, 4) << " IB cable " << icab
                          << " shipped chip ID= " << chipData->getChipID();
               ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrIBChipLaneMismatch]++;
-              printRDH(getGBTLink(decData.links[decData.cableLinkID[icab]])->lastRDH);
+              printRDH(reinterpret_cast<const o2::header::RAWDataHeader*>(getGBTLink(decData.links[decData.cableLinkID[icab]])->lastRDH));
             }
           }
 #endif

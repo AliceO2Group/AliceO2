@@ -10,11 +10,12 @@
 
 #include "ITSMFTSimulation/MC2RawEncoder.h"
 #include "CommonConstants/Triggers.h"
-#include "DetectorsRaw/RDHUtils.h"
 #include "ITSMFTReconstruction/GBTLink.h"
 #include "Framework/Logger.h"
 
 using namespace o2::itsmft;
+using namespace o2::raw;
+using RDHUtils = o2::raw::RDHUtils;
 
 ///______________________________________________________________________
 template <class Mapping>
@@ -244,7 +245,7 @@ RUDecodeData& MC2RawEncoder<Mapping>::getCreateRUDecode(int ruSW)
 
 ///______________________________________________________________________
 template <class Mapping>
-int MC2RawEncoder<Mapping>::carryOverMethod(const RDH& rdh, const gsl::span<char> data,
+int MC2RawEncoder<Mapping>::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
                                             const char* ptr, int maxSize, int splitID,
                                             std::vector<char>& trailer, std::vector<char>& header) const
 {

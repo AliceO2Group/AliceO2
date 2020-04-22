@@ -25,6 +25,7 @@
 #include "ITSMFTReconstruction/RUDecodeData.h"
 #include "ITSMFTReconstruction/RUInfo.h"
 #include "Headers/RAWDataHeader.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "CommonDataFormat/InteractionRecord.h"
 
 #define GBTLINK_DECODE_ERRORCHECK(what) \
@@ -115,7 +116,7 @@ struct GBTLink {
   enum ErrorType { NoError,
                    Warning,
                    Abort };
-  using RDH = o2::header::RAWDataHeader;
+  using RDH = o2::header::RDHAny;
 
   int8_t verbosity = 0;
   CollectedDataStatus status = None;
@@ -166,7 +167,7 @@ struct GBTLink {
   }
 
  private:
-  void printRDH(const RDH* rdh);
+  void printRDH(const RDH& rdh);
   void discardData() { rawData.setDone(); }
   void printTrigger(const GBTTrigger* gbtTrg);
   void printHeader(const GBTDataHeader* gbtH);
@@ -174,12 +175,12 @@ struct GBTLink {
   bool nextCRUPage();
 
 #ifndef _RAW_READER_ERROR_CHECKS_ // define dummy inline check methods, will be compiled out
-  bool checkErrorsRDH(const RDH* rdh) const
+  bool checkErrorsRDH(const RDH& rdh) const
   {
     return true;
   }
-  ErrorType checkErrorsRDHStop(const RDH* rdh) const { return NoError; }
-  ErrorType checkErrorsRDHStopPageEmpty(const RDH* rdh) const { return NoError; }
+  ErrorType checkErrorsRDHStop(const RDH& rdh) const { return NoError; }
+  ErrorType checkErrorsRDHStopPageEmpty(const RDH& rdh) const { return NoError; }
   ErrorType checkErrorsTriggerWord(const GBTTrigger* gbtTrg) const { return NoError; }
   ErrorType checkErrorsHeaderWord(const GBTDataHeader* gbtH) const { return NoError; }
   ErrorType checkErrorsActiveLanes(int cables) const { return NoError; }
@@ -188,9 +189,9 @@ struct GBTLink {
   ErrorType checkErrorsPacketDoneMissing(const GBTDataTrailer* gbtT, bool notEnd) const { return NoError; }
   ErrorType checkErrorsLanesStops() const { return NoError; }
 #else
-  ErrorType checkErrorsRDH(const RDH* rdh);
-  ErrorType checkErrorsRDHStop(const RDH* rdh);
-  ErrorType checkErrorsRDHStopPageEmpty(const RDH* rdh);
+  ErrorType checkErrorsRDH(const RDH& rdh);
+  ErrorType checkErrorsRDHStop(const RDH& rdh);
+  ErrorType checkErrorsRDHStopPageEmpty(const RDH& rdh);
   ErrorType checkErrorsTriggerWord(const GBTTrigger* gbtTrg);
   ErrorType checkErrorsHeaderWord(const GBTDataHeader* gbtH);
   ErrorType checkErrorsActiveLanes(int cables);
@@ -222,11 +223,11 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     if (!dataOffset) { // here we always start with the RDH
       const auto* rdh = reinterpret_cast<const RDH*>(&currRawPiece->data[dataOffset]);
       if (verbosity) {
-        printRDH(rdh);
+        printRDH(*rdh);
       }
-      GBTLINK_DECODE_ERRORCHECK(checkErrorsRDH(rdh));              // make sure we are dealing with RDH
-      GBTLINK_DECODE_ERRORCHECK(checkErrorsRDHStop(rdh));          // if new HB starts, the lastRDH must have stop
-      GBTLINK_DECODE_ERRORCHECK(checkErrorsRDHStopPageEmpty(rdh)); // end of HBF should be an empty page with stop
+      GBTLINK_DECODE_ERRORCHECK(checkErrorsRDH(*rdh));              // make sure we are dealing with RDH
+      GBTLINK_DECODE_ERRORCHECK(checkErrorsRDHStop(*rdh));          // if new HB starts, the lastRDH must have stop
+      GBTLINK_DECODE_ERRORCHECK(checkErrorsRDHStopPageEmpty(*rdh)); // end of HBF should be an empty page with stop
       lastRDH = rdh;
       statistics.nPackets++;
       dataOffset += sizeof(RDH);
@@ -251,7 +252,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     GBTLINK_DECODE_ERRORCHECK(checkErrorsHeaderWord(gbtH));
     lanesActive = gbtH->activeLanes; // TODO do we need to update this for every page?
     GBTLINK_DECODE_ERRORCHECK(checkErrorsActiveLanes(chmap.getCablesOnRUType(ruPtr->ruInfo->ruType)));
-    //    if (!lastRDH->pageCnt) { // RSTODO reset flags in case of 1st page of new ROF (old format: judge by RDH)
+    //    if (RDHUtils::getPageCnt(*lastRDH)) { // RSTODO reset flags in case of 1st page of new ROF (old format: judge by RDH)
     //      lanesStop = 0;
     //      lanesWithData = 0;
     //    }

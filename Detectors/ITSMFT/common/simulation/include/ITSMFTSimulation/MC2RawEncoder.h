@@ -21,9 +21,11 @@
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "ITSMFTReconstruction/RUDecodeData.h"
 #include "DetectorsRaw/RawFileWriter.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 namespace o2
 {
+
 namespace itsmft
 {
 
@@ -31,7 +33,6 @@ template <class Mapping>
 class MC2RawEncoder
 {
   using Coder = o2::itsmft::AlpideCoder;
-  using RDH = o2::header::RAWDataHeader;
 
  public:
   MC2RawEncoder()
@@ -83,7 +84,7 @@ class MC2RawEncoder
     }
   }
 
-  int carryOverMethod(const RDH& rdh, const gsl::span<char> data, const char* ptr, int maxSize, int splitID,
+  int carryOverMethod(const o2::header::RDHAny* rdh, const gsl::span<char> data, const char* ptr, int maxSize, int splitID,
                       std::vector<char>& trailer, std::vector<char>& header) const;
 
   // create new gbt link
@@ -107,7 +108,7 @@ class MC2RawEncoder
                   Continuous,
                   Triggered };
   o2::InteractionRecord mCurrIR;               // currently processed int record
-  o2::raw::RawFileWriter mWriter;
+  o2::raw::RawFileWriter mWriter{Mapping::getOrigin()}; // set origin of data
   std::string mDefaultSinkName = "dataSink.raw";
   Mapping mMAP;
   Coder mCoder;
