@@ -65,36 +65,45 @@ void CompressorTask<RAWDataHeader, verbose>::run(ProcessingContext& pc)
   auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
   auto fairMQChannel = outputRoutes.at(0).channel;
 
-  /** receive input **/
-  for (auto& input : pc.inputs()) {
+  /** loop over inputs routes **/
+  for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
+    if (!iit.isValid())
+      continue;
 
-    /** input **/
-    auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
-    auto dataProcessingHeaderIn = DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input);
-    auto payloadIn = input.payload;
-    auto payloadInSize = headerIn->payloadSize;
-    mCompressor.setDecoderBuffer(payloadIn);
-    mCompressor.setDecoderBufferSize(payloadInSize);
-
-    /** run **/
-    mCompressor.run();
-    auto payloadOutSize = mCompressor.getEncoderByteCounter();
-    auto payloadMessage = device->NewMessage(payloadOutSize);
-    std::memcpy(payloadMessage->GetData(), bufferOut, payloadOutSize);
-
-    /** output **/
-    auto headerOut = *headerIn;
-    auto dataProcessingHeaderOut = *dataProcessingHeaderIn;
-    headerOut.dataDescription = "CRAWDATA";
-    headerOut.payloadSize = payloadOutSize;
-    o2::header::Stack headerStack{headerOut, dataProcessingHeaderOut};
-    auto headerMessage = device->NewMessage(headerStack.size());
-    std::memcpy(headerMessage->GetData(), headerStack.data(), headerStack.size());
-
-    /** send **/
+    /** prepare output parts **/
     FairMQParts parts;
-    parts.AddPart(std::move(headerMessage));
-    parts.AddPart(std::move(payloadMessage));
+
+    /** loop over input parts **/
+    for (auto const& ref : iit) {
+
+      auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      auto dataProcessingHeaderIn = DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref);
+      auto payloadIn = ref.payload;
+      auto payloadInSize = headerIn->payloadSize;
+      mCompressor.setDecoderBuffer(payloadIn);
+      mCompressor.setDecoderBufferSize(payloadInSize);
+
+      /** run **/
+      mCompressor.run();
+      auto payloadOutSize = mCompressor.getEncoderByteCounter();
+      auto payloadMessage = device->NewMessage(payloadOutSize);
+      std::memcpy(payloadMessage->GetData(), bufferOut, payloadOutSize);
+
+      /** output **/
+      auto headerOut = *headerIn;
+      auto dataProcessingHeaderOut = *dataProcessingHeaderIn;
+      headerOut.dataDescription = "CRAWDATA";
+      headerOut.payloadSize = payloadOutSize;
+      o2::header::Stack headerStack{headerOut, dataProcessingHeaderOut};
+      auto headerMessage = device->NewMessage(headerStack.size());
+      std::memcpy(headerMessage->GetData(), headerStack.data(), headerStack.size());
+
+      /** add parts **/
+      parts.AddPart(std::move(headerMessage));
+      parts.AddPart(std::move(payloadMessage));
+    }
+
+    /** send message **/
     device->Send(parts, fairMQChannel);
   }
 }
