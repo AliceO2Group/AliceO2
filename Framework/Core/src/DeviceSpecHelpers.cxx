@@ -632,7 +632,8 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
                                                        std::vector<DispatchPolicy> const& dispatchPolicies,
                                                        std::vector<DeviceSpec>& devices,
                                                        ResourceManager& resourceManager,
-                                                       std::string const& uniqueWorkflowId)
+                                                       std::string const& uniqueWorkflowId,
+                                                       bool resourcesMonitoring)
 {
 
   std::vector<LogicalForwardInfo> availableForwardsInfo;
@@ -708,6 +709,9 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
       }
     }
   }
+
+
+  for(auto& device : devices){ device.resourceMonitoring = resourcesMonitoring; }
 
   auto findDeviceIndex = [&deviceIndex](size_t processorIndex, size_t timeslice) {
     for (auto& deviceEdge : deviceIndex) {
@@ -915,6 +919,10 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     if (!haveSessionArg) {
       tmpArgs.emplace_back(std::string("--session"));
       tmpArgs.emplace_back("dpl_" + uniqueWorkflowId);
+    }
+
+    if(spec.resourceMonitoring){
+      tmpArgs.emplace_back(std::string("--resources-monitoring"));
     }
 
     // We create the final option list, depending on the channels

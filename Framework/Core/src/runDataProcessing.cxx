@@ -60,6 +60,7 @@
 #include "FairMQDevice.h"
 #include <fairmq/DeviceRunner.h>
 #include "options/FairMQProgOptions.h"
+#include "Framework/FairOptionsRetriever.h"
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/options_description.hpp>
@@ -640,6 +641,8 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     // Populate options from the command line. Notice that only the options
     // declared in the workflow definition are allowed.
     runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r) {
+        
+
       boost::program_options::options_description optsDesc;
       ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
       optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("infologger://"), "monitoring backend info") //
@@ -706,6 +709,8 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       serviceRegistry.registerService<CallbackService>(callbackService.get());
       serviceRegistry.registerService<TimesliceIndex>(timesliceIndex.get());
       serviceRegistry.registerService<DeviceSpec>(&spec);
+
+      if(spec.resourceMonitoring){ monitoringService->enableProcessMonitoring(1); }
 
       // The decltype stuff is to be able to compile with both new and old
       // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
@@ -881,7 +886,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             driverInfo.dispatchPolicies,
                                                             deviceSpecs,
                                                             *resourceManager,
-                                                            driverInfo.uniqueWorkflowId);
+                                                            driverInfo.uniqueWorkflowId,
+                                                            driverInfo.resourcesMonitoring);
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
@@ -1268,11 +1274,16 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<ConfigParamSpec> const& currentWorkflowOptions,
            o2::framework::ConfigContext& configContext)
 {
+
+  
   O2_SIGNPOST_INIT();
+
+
   std::vector<std::string> currentArgs;
   for (size_t ai = 1; ai < argc; ++ai) {
     currentArgs.push_back(argv[ai]);
   }
+
 
   WorkflowInfo currentWorkflow{
     argv[0],
@@ -1299,7 +1310,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")          //
     ("dump-workflow", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")     //
     ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far")          //
-    ("o2-control,o2", bpo::value<bool>()->zero_tokens()->default_value(false), "create O2 Control configuration");
+    ("o2-control,o2", bpo::value<bool>()->zero_tokens()->default_value(false), "create O2 Control configuration")
+    ("resources-monitoring", bpo::value<bool>()->zero_tokens()->default_value(false), "enable cpu/memory monitoring");
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
 
@@ -1399,6 +1411,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.timeout = varmap["timeout"].as<double>();
   driverInfo.deployHostname = varmap["hostname"].as<std::string>();
   driverInfo.resources = varmap["resources"].as<std::string>();
+  driverInfo.resourcesMonitoring = varmap["resources-monitoring"].as<bool>();
 
   // FIXME: should use the whole dataProcessorInfos, actually...
   driverInfo.processorInfo = dataProcessorInfos;

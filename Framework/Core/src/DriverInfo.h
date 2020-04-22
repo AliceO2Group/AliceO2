@@ -144,6 +144,9 @@ struct DriverInfo {
   float frameLatency;
   /// The unique id used for ipc communications
   std::string uniqueWorkflowId = "";
+  /// The enabler for cpu/memory monitoring
+  bool resourcesMonitoring;
+
 };
 
 } // namespace framework

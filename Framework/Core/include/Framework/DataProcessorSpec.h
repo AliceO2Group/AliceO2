@@ -16,7 +16,6 @@
 #include "Framework/DataRef.h"
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
-
 #include <string>
 #include <vector>
 
