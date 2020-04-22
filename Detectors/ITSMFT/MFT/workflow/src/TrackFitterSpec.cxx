@@ -87,8 +87,6 @@ void TrackFitterTask::run(ProcessingContext& pc)
   for (const auto& track : tracksLTF) {
     auto& temptrack = fittertracks.at(nTracksLTF + nFailedTracksLTF);
     convertTrack(track, temptrack, clusters);
-    std::cout << "Fitter Speck: nTracksLTF = " << nTracksLTF << std::endl;
-    std::cout << "Fitter Speck: nFailedTracksLTF = " << nFailedTracksLTF << std::endl;
     mTrackFitter->fit(temptrack, false) ? nTracksLTF++ : nFailedTracksLTF++;
   } // end fit LTF tracks
 
@@ -96,8 +94,6 @@ void TrackFitterTask::run(ProcessingContext& pc)
   for (const auto& track : tracksCA) {
     auto& temptrack = fittertracks.at(nTracksLTF + nFailedTracksLTF + nTracksCA + nFailedTracksCA);
     convertTrack(track, temptrack, clusters);
-    std::cout << "Fitter Speck: nTracksCA = " << nTracksLTF << std::endl;
-    std::cout << "Fitter Speck: nFailedTracksCA = " << nFailedTracksLTF << std::endl;
     mTrackFitter->fit(temptrack, false) ? nTracksCA++ : nFailedTracksCA++;
   } // end fit CA tracks
 
