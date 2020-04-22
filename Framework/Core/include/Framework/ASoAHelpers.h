@@ -13,6 +13,8 @@
 
 #include "Framework/ASoA.h"
 #include "Framework/Kernels.h"
+#include <arrow/table.h>
+#include "Framework/ArrowCompatibility.h"
 
 #include <arrow/compute/context.h>
 
@@ -67,7 +69,7 @@ std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const T& inTable, const 
 {
   auto arrowTable = inTable.asArrowTable();
   auto columnIndex = arrowTable->schema()->GetFieldIndex(categoryColumnName);
-  auto chunkedArray = arrowTable->column(columnIndex)->data();
+  auto chunkedArray = framework::getBackendColumnData(arrowTable->column(columnIndex));
 
   uint64_t ind = 0;
   std::vector<std::pair<uint64_t, uint64_t>> groupedIndices;

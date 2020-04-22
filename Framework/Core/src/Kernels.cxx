@@ -89,8 +89,8 @@ Status SortedGroupByKernel::Call(FunctionContext*, Datum const& inputTable, Datu
   if (inputTable.kind() == Datum::TABLE) {
     auto table = util::get<std::shared_ptr<arrow::Table>>(inputTable.value);
     auto columnIndex = table->schema()->GetFieldIndex(mOptions.columnName);
-    auto dataType = table->column(columnIndex)->type();
-    auto chunkedArray = table->column(columnIndex)->data();
+    auto dataType = table->schema()->field(columnIndex)->type();
+    auto chunkedArray = getBackendColumnData(table->column(columnIndex));
     switch (dataType->id()) {
       case Type::INT32:
         return doGrouping<int32_t, arrow::Int32Array>(chunkedArray, outputRanges);

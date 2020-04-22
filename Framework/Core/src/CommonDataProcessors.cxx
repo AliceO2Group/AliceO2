@@ -342,7 +342,7 @@ DataProcessorSpec
               for (auto cn : d->colnames) {
                 auto idx = table->schema()->GetFieldIndex(cn);
                 auto col = table->column(idx);
-                auto field = table->field(idx);
+                auto field = table->schema()->field(idx);
                 if (idx != -1) {
                   ta2tr.addBranch(col, field);
                 }
