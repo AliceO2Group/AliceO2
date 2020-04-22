@@ -88,7 +88,7 @@ class DigitsSinkTask
         mOutputFile << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTimeStamp() << std::endl;
       }
     } else {
-      int nDigits = digits.length();
+      int nDigits = digits.size();
       mOutputFile.write(reinterpret_cast<char*>(&nDigits), sizeof(int));
       mOutputFile.write(reinterpret_cast<const char*>(digits.data()), digits.size_bytes());
     }
