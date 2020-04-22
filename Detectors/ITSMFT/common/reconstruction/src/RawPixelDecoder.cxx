@@ -21,6 +21,7 @@
 #endif
 using namespace o2::itsmft;
 using namespace o2::framework;
+using RDHUtils = o2::raw::RDHUtils;
 
 ///______________________________________________________________
 /// C-tor
@@ -96,7 +97,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
     for (const auto& link : mGBTLinks) {
       if (link.status == GBTLink::DataSeen) {
         mInteractionRecord = link.ir;
-        mInteractionRecordHB = o2::raw::RDHUtils::getHeartBeatIR(link.lastRDH);
+        mInteractionRecordHB = o2::raw::RDHUtils::getHeartBeatIR(*link.lastRDH);
         mTrigger = link.trigger;
         break;
       }
@@ -161,12 +162,12 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
   for (auto it = parser.begin(); it != parser.end(); ++it) {
     auto const* dh = it.o2DataHeader();
     auto& lnkref = mSubsSpec2LinkID[dh->subSpecification];
-    const auto* rdh = it.get_if<RDH>();
+    const auto& rdh = *reinterpret_cast<const header::RDHAny*>(it.raw()); // RSTODO this is a hack in absence of generic header getter
 
     if (lnkref.entry == -1) { // new link needs to be added
       lnkref.entry = int(mGBTLinks.size());
-      auto& lnk = mGBTLinks.emplace_back(rdh->cruID, rdh->feeId, rdh->endPointID, rdh->linkID, lnkref.entry);
-      getCreateRUDecode(mMAP.FEEId2RUSW(rdh->feeId)); // make sure there is a RU for this link
+      auto& lnk = mGBTLinks.emplace_back(RDHUtils::getCRUID(rdh), RDHUtils::getFEEID(rdh), RDHUtils::getEndPointID(rdh), RDHUtils::getLinkID(rdh), lnkref.entry);
+      getCreateRUDecode(mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh))); // make sure there is a RU for this link
       lnk.verbosity = mVerbosity;
       LOG(INFO) << mSelfName << " registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
       linksAdded++;
@@ -176,7 +177,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       link.clear(false, true);               // clear link data except statistics
       currSSpec = dh->subSpecification;
     }
-    link.cacheData(it.raw(), rdh->memorySize);
+    link.cacheData(it.raw(), RDHUtils::getMemorySize(rdh));
   }
 
   if (linksAdded) { // new links were added, update link<->RU mapping, usually is done for 1st TF only
