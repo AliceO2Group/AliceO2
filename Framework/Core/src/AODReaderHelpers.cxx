@@ -40,48 +40,57 @@ namespace o2::framework::readers
 
 enum AODTypeMask : uint64_t {
   None = 0,
-  Tracks = 1 << 0,
-  TracksCov = 1 << 1,
-  TracksExtra = 1 << 2,
+  Track = 1 << 0,
+  TrackCov = 1 << 1,
+  TrackExtra = 1 << 2,
   Calo = 1 << 3,
-  Muon = 1 << 4,
-  Run2V0 = 1 << 5,
-  Zdc = 1 << 6,
-  BC = 1 << 7,
-  Collisions = 1 << 8,
-  FT0 = 1 << 9,
-  FV0 = 1 << 10,
-  FDD = 1 << 11,
-  Unknown = 1 << 13
+  CaloTrigger = 1 << 4,
+  Muon = 1 << 5,
+  MuonCluster = 1 << 6,
+  Zdc = 1 << 7,
+  BC = 1 << 8,
+  Collision = 1 << 9,
+  FT0 = 1 << 10,
+  FV0 = 1 << 11,
+  FDD = 1 << 12,
+  UnassignedTrack = 1 << 13,
+  Run2V0 = 1 << 14,
+  Unknown = 1 << 15
 };
 
 uint64_t getMask(header::DataDescription description)
 {
 
   if (description == header::DataDescription{"TRACKPAR"}) {
-    return AODTypeMask::Tracks;
+    return AODTypeMask::Track;
   } else if (description == header::DataDescription{"TRACKPARCOV"}) {
-    return AODTypeMask::TracksCov;
+    return AODTypeMask::TrackCov;
   } else if (description == header::DataDescription{"TRACKEXTRA"}) {
-    return AODTypeMask::TracksExtra;
+    return AODTypeMask::TrackExtra;
   } else if (description == header::DataDescription{"CALO"}) {
     return AODTypeMask::Calo;
+  } else if (description == header::DataDescription{"CALOTRIGGER"}) {
+    return AODTypeMask::CaloTrigger;
   } else if (description == header::DataDescription{"MUON"}) {
     return AODTypeMask::Muon;
-  } else if (description == header::DataDescription{"RUN2V0"}) {
-    return AODTypeMask::Run2V0;
+  } else if (description == header::DataDescription{"MUONCLUSTER"}) {
+    return AODTypeMask::MuonCluster;
   } else if (description == header::DataDescription{"ZDC"}) {
     return AODTypeMask::Zdc;
   } else if (description == header::DataDescription{"BC"}) {
     return AODTypeMask::BC;
   } else if (description == header::DataDescription{"COLLISION"}) {
-    return AODTypeMask::Collisions;
+    return AODTypeMask::Collision;
   } else if (description == header::DataDescription{"FT0"}) {
     return AODTypeMask::FT0;
   } else if (description == header::DataDescription{"FV0"}) {
     return AODTypeMask::FV0;
   } else if (description == header::DataDescription{"FDD"}) {
     return AODTypeMask::FDD;
+  } else if (description == header::DataDescription{"UNASSIGNEDTRACK"}) {
+    return AODTypeMask::UnassignedTrack;
+  } else if (description == header::DataDescription{"RUN2V0"}) {
+    return AODTypeMask::Run2V0;
   } else {
     LOG(DEBUG) << "This is a tree of unknown type! " << description.str;
     return AODTypeMask::Unknown;
@@ -169,18 +178,21 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
           }
         }
       };
-      tableMaker(o2::aod::CollisionsMetadata{}, AODTypeMask::Collisions, "O2collisions");
-      tableMaker(o2::aod::TracksMetadata{}, AODTypeMask::Tracks, "O2tracks");
-      tableMaker(o2::aod::TracksCovMetadata{}, AODTypeMask::TracksCov, "O2tracks");
-      tableMaker(o2::aod::TracksExtraMetadata{}, AODTypeMask::TracksExtra, "O2tracks");
+      tableMaker(o2::aod::CollisionsMetadata{}, AODTypeMask::Collision, "O2collision");
+      tableMaker(o2::aod::TracksMetadata{}, AODTypeMask::Track, "O2track");
+      tableMaker(o2::aod::TracksCovMetadata{}, AODTypeMask::TrackCov, "O2track");
+      tableMaker(o2::aod::TracksExtraMetadata{}, AODTypeMask::TrackExtra, "O2track");
       tableMaker(o2::aod::CalosMetadata{}, AODTypeMask::Calo, "O2calo");
+      tableMaker(o2::aod::CaloTriggersMetadata{}, AODTypeMask::Calo, "O2calotrigger");
       tableMaker(o2::aod::MuonsMetadata{}, AODTypeMask::Muon, "O2muon");
-      tableMaker(o2::aod::Run2V0sMetadata{}, AODTypeMask::Run2V0, "Run2v0");
+      tableMaker(o2::aod::MuonClustersMetadata{}, AODTypeMask::Muon, "O2muoncluster");
       tableMaker(o2::aod::ZdcsMetadata{}, AODTypeMask::Zdc, "O2zdc");
       tableMaker(o2::aod::BCsMetadata{}, AODTypeMask::BC, "O2bc");
       tableMaker(o2::aod::FT0sMetadata{}, AODTypeMask::FT0, "O2ft0");
       tableMaker(o2::aod::FV0sMetadata{}, AODTypeMask::FV0, "O2fv0");
       tableMaker(o2::aod::FDDsMetadata{}, AODTypeMask::FDD, "O2fdd");
+      tableMaker(o2::aod::UnassignedTracksMetadata{}, AODTypeMask::UnassignedTrack, "O2unassignedtrack");
+      tableMaker(o2::aod::Run2V0sMetadata{}, AODTypeMask::Run2V0, "Run2v0");
 
       // tables not included in the DataModel
       if (readMask & AODTypeMask::Unknown) {
