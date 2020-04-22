@@ -12,7 +12,7 @@
 
 namespace o2::aod::track
 {
-enum TrackTypeEnum : unsigned int {
+enum TrackTypeEnum : uint8_t {
   GlobalTrack,
   ITSStandalone,
   MFTStandalone,
