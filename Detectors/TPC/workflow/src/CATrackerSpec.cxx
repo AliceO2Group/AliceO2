@@ -615,6 +615,14 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
       if (processAttributes->clusterOutputIds.size() > 0 && ptrs.clusters == nullptr) {
         throw std::logic_error("No cluster index object provided by GPU processor");
       }
+      if (processAttributes->clusterOutputIds.size() > 0 && activeSectors == 0) {
+        // there is no sector header shipped with the ZS raw data and thus we do not have
+        // a valid activeSector variable, though it will be needed downstream
+        // FIXME: check if this can be provided upstream
+        for (auto const& sector : processAttributes->clusterOutputIds) {
+          activeSectors |= 0x1 << sector;
+        }
+      }
       for (auto const& sector : processAttributes->clusterOutputIds) {
         o2::tpc::TPCSectorHeader header{sector};
         o2::header::DataHeader::SubSpecificationType subspec = sector;
