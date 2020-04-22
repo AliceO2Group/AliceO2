@@ -35,7 +35,9 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "TPCBase/RDHUtils.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 namespace bpo = boost::program_options;
 
@@ -61,7 +63,7 @@ struct ProcessAttributes {
 
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer);
 #include "DetectorsRaw/HBFUtils.h"
-void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, bool sectorBySector)
+void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, bool sectorBySector, uint32_t rdhV)
 {
 
   // ===| open file and get tree |==============================================
@@ -76,7 +78,8 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   ProcessAttributes attr;
 
   // raw data output
-  o2::raw::RawFileWriter writer;
+  o2::raw::RawFileWriter writer{"TPC"}; // to set the RDHv6.sourceID if V6 is used
+  writer.useRDHVersion(rdhV);
 
   const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
 
@@ -173,6 +176,9 @@ int main(int argc, char** argv)
     add_option("input-file,i", bpo::value<std::string>()->required(), "Specifies input file.");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "Specify output directory");
     add_option("sector-by-sector,s", bpo::value<bool>()->default_value(false), "Run one TPC sector after another");
+    uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
+    add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
+    add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
@@ -192,11 +198,12 @@ int main(int argc, char** argv)
     std::cerr << e.what() << ", application will now exit" << std::endl;
     exit(2);
   }
-
+  o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
   convertDigitsToZSfinal(
     vm["input-file"].as<std::string>(),
     vm["output-dir"].as<std::string>(),
-    vm["sector-by-sector"].as<bool>());
+    vm["sector-by-sector"].as<bool>(),
+    vm["rdh-version"].as<uint32_t>());
 
   return 0;
 }
