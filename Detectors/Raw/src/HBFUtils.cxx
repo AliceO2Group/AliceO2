@@ -10,7 +10,6 @@
 
 #include "Framework/Logger.h"
 #include "DetectorsRaw/HBFUtils.h"
-#include "DetectorsRaw/RDHUtils.h"
 #include <FairLogger.h>
 #include <bitset>
 #include <cassert>

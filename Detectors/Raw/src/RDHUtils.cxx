@@ -10,6 +10,7 @@
 
 #include "Framework/Logger.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "CommonUtils/StringUtils.h"
 #include <FairLogger.h>
 #include <bitset>
 #include <cassert>
@@ -17,6 +18,8 @@
 
 using namespace o2::raw;
 using namespace o2::header;
+
+//=================================================
 
 //_________________________________________________
 void RDHUtils::printRDH(const RAWDataHeaderV4& rdh)
@@ -46,8 +49,8 @@ void RDHUtils::printRDH(const RAWDataHeaderV5& rdh)
 void RDHUtils::printRDH(const RAWDataHeaderV6& rdh)
 {
   std::bitset<32> trb(rdh.triggerType);
-  LOGF(INFO, "EP:%d CRU:0x%04x Link:%-3d FEEID:0x%04x SrcID:0x%02x Packet:%-3d MemSize:%-5d OffsNext:%-5d  prio.:%d HS:%-2d HV:%d",
-       int(rdh.endPointID), int(rdh.cruID), int(rdh.linkID), int(rdh.feeId), int(rdh.sourceID), int(rdh.packetCounter),
+  LOGF(INFO, "EP:%d CRU:0x%04x Link:%-3d FEEID:0x%04x SrcID:%s[%d] Packet:%-3d MemSize:%-5d OffsNext:%-5d  prio.:%d HS:%-2d HV:%d",
+       int(rdh.endPointID), int(rdh.cruID), int(rdh.linkID), int(rdh.feeId), DAQID::DAQtoO2(rdh.sourceID).str, int(rdh.sourceID), int(rdh.packetCounter),
        int(rdh.memorySize), int(rdh.offsetToNext), int(rdh.priority), int(rdh.headerSize), int(rdh.version));
   LOGF(INFO, "Orbit:%-9u BC:%-4d Stop:%d Page:%-5d Trg:%32s Par:%-5d DetFld:0x%04x",
        rdh.orbit, int(rdh.bunchCrossing), int(rdh.stop), int(rdh.pageCnt), trb.to_string().c_str(),

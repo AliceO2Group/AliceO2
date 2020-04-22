@@ -35,7 +35,8 @@ class RawFileReader
 {
   using LinkSpec_t = uint64_t; // = (origin<<32) | LinkSubSpec
  public:
-  using RDH = o2::header::RAWDataHeader;
+  using RDHAny = header::RDHAny;
+  using RDH = o2::header::RAWDataHeaderV4;
   using OrDesc = std::pair<o2::header::DataOrigin, o2::header::DataDescription>;
   using InputsMap = std::map<OrDesc, std::vector<std::string>>;
   //================================================================================
@@ -102,8 +103,8 @@ class RawFileReader
 
   //=====================================================================================
   struct LinkData {
-    RDH rdhl;             // RDH with the running info of the last RDH seen
-    LinkSpec_t spec = 0;  // Link subspec augmented by its origin
+    RDHAny rdhl;               // RDH with the running info of the last RDH seen
+    LinkSpec_t spec = 0;       // Link subspec augmented by its origin
     LinkSubSpec_t subspec = 0; // subspec according to DataDistribution
     uint32_t nTimeFrames = 0;
     uint32_t nHBFrames = 0;
@@ -121,9 +122,11 @@ class RawFileReader
     int nextBlock2Read = 0; // next block which should be read
 
     LinkData() = default;
-    LinkData(const o2::header::RAWDataHeaderV4& rdh, const RawFileReader* r);
-    LinkData(const o2::header::RAWDataHeaderV5& rdh, const RawFileReader* r);
-    bool preprocessCRUPage(const RDH& rdh, bool newSPage);
+    template <typename H>
+    LinkData(const H& rdh, const RawFileReader* r) : rdhl(rdh), reader(r)
+    {
+    }
+    bool preprocessCRUPage(const RDHAny& rdh, bool newSPage);
     size_t getLargestSuperPage() const;
     size_t getLargestTF() const;
     size_t getNextHBFSize() const;
@@ -192,7 +195,7 @@ class RawFileReader
   static InputsMap parseInput(const std::string& confUri);
 
  private:
-  int getLinkLocalID(const RDH& rdh, o2::header::DataOrigin orig);
+  int getLinkLocalID(const RDHAny& rdh, o2::header::DataOrigin orig);
   bool preprocessFile(int ifl);
   static LinkSpec_t createSpec(o2::header::DataOrigin orig, LinkSubSpec_t ss) { return (LinkSpec_t(orig) << 32) | ss; }
 
