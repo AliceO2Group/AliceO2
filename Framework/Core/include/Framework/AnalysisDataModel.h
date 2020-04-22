@@ -30,7 +30,7 @@ DECLARE_SOA_COLUMN(GlobalBC, globalBC, uint64_t);
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint64_t);
 } // namespace bc
 
-DECLARE_SOA_TABLE(BCs, "AOD", "TRIGGER", o2::soa::Index<>,
+DECLARE_SOA_TABLE(BCs, "AOD", "BC", o2::soa::Index<>,
                   bc::RunNumber, bc::GlobalBC,
                   bc::TriggerMask);
 using BC = BCs::iterator;
@@ -386,7 +386,7 @@ DECLARE_SOA_COLUMN(BBFlag, bbFlag, uint64_t);
 DECLARE_SOA_COLUMN(BGFlag, bgFlag, uint64_t);
 } // namespace run2v0
 
-DECLARE_SOA_TABLE(Run2V0s, "AOD", "VZERO", run2v0::BCId,
+DECLARE_SOA_TABLE(Run2V0s, "AOD", "RUN2V0", run2v0::BCId,
                   run2v0::Adc, run2v0::Time, run2v0::Width,
                   run2v0::BBFlag, run2v0::BGFlag);
 using Run2V0 = Run2V0s::iterator;
