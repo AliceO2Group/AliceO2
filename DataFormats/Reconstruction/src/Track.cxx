@@ -187,9 +187,6 @@ bool TrackPar::propagateParamTo(float xk, const array<float, 3>& b)
   if (fabs(f1) > Almost1 || fabs(f2) > Almost1) {
     return false;
   }
-  if (fabs(getQ2Pt()) < Almost0) {
-    return false;
-  }
   float r1 = sqrtf((1.f - f1) * (1.f + f1));
   if (fabs(r1) < Almost0) {
     return false;
@@ -292,7 +289,7 @@ bool TrackPar::propagateParamTo(float xk, float b)
   float crv = (fabs(b) < Almost0) ? 0.f : getCurvature(b);
   float x2r = crv * dx;
   float f1 = getSnp(), f2 = f1 + x2r;
-  if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1) || (fabs(getQ2Pt()) < Almost0)) {
+  if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1)) {
     return false;
   }
   float r1 = sqrtf((1.f - f1) * (1.f + f1));
@@ -634,7 +631,7 @@ bool TrackParCov::propagateTo(float xk, float b)
   float crv = (fabs(b) < Almost0) ? 0.f : getCurvature(b);
   float x2r = crv * dx;
   float f1 = getSnp(), f2 = f1 + x2r;
-  if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1) || (fabs(getQ2Pt()) < Almost0)) {
+  if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1)) {
     return false;
   }
   float r1 = sqrtf((1.f - f1) * (1.f + f1));
@@ -953,7 +950,7 @@ bool TrackParCov::propagateTo(float xk, const array<float, 3>& b)
   float crv = (fabs(b[2]) < Almost0) ? 0.f : getCurvature(b[2]);
   float x2r = crv * dx;
   float f1 = getSnp(), f2 = f1 + x2r;
-  if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1) || (fabs(getQ2Pt()) < Almost0)) {
+  if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1)) {
     return false;
   }
   float r1 = sqrtf((1.f - f1) * (1.f + f1));
