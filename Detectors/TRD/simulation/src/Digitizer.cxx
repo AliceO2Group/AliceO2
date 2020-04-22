@@ -70,10 +70,10 @@ void Digitizer::init()
   }
 
   mSDigits = false;
-  setupSimulationValues();
+  setSimulationParameters();
 }
 
-void Digitizer::setupSimulationValues()
+void Digitizer::setSimulationParameters()
 {
   kNpad = mSimParam->getNumberOfPadsInPadResponse(); // Number of pads included in the pad response
   kAmWidth = TRDGeometry::amThick();                 // Width of the amplification region
