@@ -36,8 +36,8 @@ include(FeatureSummary)
 
 include(FindThreads)
 
-find_package(arrow MODULE)
-set_package_properties(arrow PROPERTIES TYPE REQUIRED)
+find_package(O2arrow MODULE)
+set_package_properties(O2arrow PROPERTIES TYPE REQUIRED)
 
 find_package(Vc)
 set_package_properties(Vc PROPERTIES TYPE REQUIRED)
