@@ -14,7 +14,7 @@
 #include "GPUTPCClusterFinder.h"
 #include "GPUReconstruction.h"
 #include "Array2D.h"
-#include "Digit.h"
+#include "TPCBase/Digit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 

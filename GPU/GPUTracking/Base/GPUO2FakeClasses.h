@@ -30,6 +30,9 @@ namespace o2
 {
 namespace tpc
 {
+class Digit
+{
+};
 struct ClusterNative {
   GPUd() static float getTime() { return 0.f; }
   GPUd() static float getPad() { return 0.f; }

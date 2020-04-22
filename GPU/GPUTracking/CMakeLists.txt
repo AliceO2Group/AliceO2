@@ -173,7 +173,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      TPCClusterFinder/CfUtils.h
                      TPCClusterFinder/ChargePos.h
                      TPCClusterFinder/clusterFinderDefs.h
-                     TPCClusterFinder/Digit.h
                      TPCClusterFinder/GPUTPCClusterFinderKernels.h
                      TPCClusterFinder/PackedCharge.h)
 endif()
