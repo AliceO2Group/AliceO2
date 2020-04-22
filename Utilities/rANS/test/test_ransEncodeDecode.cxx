@@ -23,9 +23,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/mpl/vector.hpp>
 
-#include "../include/librans/SymbolStatistics.h"
-#include "../include/librans/Encoder.h"
-#include "../include/librans/Decoder.h"
+#include "librans/rans.h"
 
 template <typename CODER_T, typename STREAM_T, uint P>
 struct Fixture {
@@ -37,6 +35,9 @@ struct Fixture {
   // what is the datatype of our source symbols?
   using source_t = char;
 
+  using encoder_t = o2::rans::Encoder<coder_t, stream_t, source_t>;
+  using decoder_t = o2::rans::Decoder<coder_t, stream_t, source_t>;
+
   //TUNIG parameters
   // how many bits do we resample the symbol statistics to?
   // this depends on the size of the alphabet (i.e. how big source_t is).
@@ -47,7 +48,6 @@ struct Fixture {
   // 22Bits for 16Bit alphabets,
   // 25Bits for 25Bit alphabets
   const uint probabilityBits = P;
-  const uint32_t probabilityScale = 1 << P;
 
   const std::string source =
     R"(Sed ut perspiciatis, unde omnis iste natus error sit voluptatem accusantium 
@@ -70,12 +70,12 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode, T, Fixtures, T)
   // iterate over the message and create PDF and CDF for each symbol in the message
   o2::rans::SymbolStatistics stats{std::begin(T::source), std::end(T::source)};
   // For performance reason the distributions must be rescaled to be a power of two.
-  stats.rescaleFrequencyTable(T::probabilityScale);
+  stats.rescaleToNBits(T::probabilityBits);
 
   // buffer to write the rANS coded message into
   std::vector<typename T::stream_t> encoderBuffer(1 << 20, 0);
   //create a stateful encoder object that builds an encoding table from the given symbol statistics
-  o2::rans::Encoder<typename T::coder_t> encoder{stats, T::probabilityBits};
+  const typename T::encoder_t encoder{stats, T::probabilityBits};
   // encoder rANS encodes symbols from SOURCE array to encoder Buffer. Since coder and decoder
   // are mathematical inverse functions on the ANS state, they operate as a stack -
   // i.e. the decoder outputs the message in reverse order of the encoder.
@@ -88,7 +88,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode, T, Fixtures, T)
   // The decoded message will go into the decoder buffer which will have as many symbols as the original message
   std::vector<typename T::source_t> decoderBuffer(std::end(T::source) - std::begin(T::source), 0);
   // create a stateful decoder object that build a decoding table from the given symbol statistics
-  o2::rans::Decoder<typename T::coder_t, typename T::source_t> decoder(stats, T::probabilityBits, T::probabilityScale);
+  const typename T::decoder_t decoder{stats, T::probabilityBits};
   // the decoder unwinds the rANS state in the encoder buffer starting at ransBegin and decodes it into the decode buffer;
   decoder.process(decoderBuffer.begin(), encodedMessageStart, stats.getMessageLength());
 
