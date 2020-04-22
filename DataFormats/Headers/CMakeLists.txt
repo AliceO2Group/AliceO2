@@ -11,6 +11,7 @@
 o2_add_library(Headers
                SOURCES src/DataHeader.cxx src/NameHeader.cxx
                        src/HeartbeatFrame.cxx src/TimeStamp.cxx
+                       src/DAQID.cxx
                PUBLIC_LINK_LIBRARIES O2::MemoryResources)
 
 o2_add_test(DataHeader
@@ -36,3 +37,9 @@ o2_add_test(RAWDataHeader
             PUBLIC_LINK_LIBRARIES O2::Headers
             LABELS dataformats
             COMPONENT_NAME Headers)
+
+o2_add_test(DAQID
+            SOURCES test/testDAQID.cxx
+            PUBLIC_LINK_LIBRARIES O2::Headers
+            COMPONENT_NAME Headers
+            LABELS dataformats)
