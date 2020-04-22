@@ -38,9 +38,9 @@ using BC = BCs::iterator;
 namespace collision
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);
-DECLARE_SOA_COLUMN_FULL(PosX, posX, float, "fX");
-DECLARE_SOA_COLUMN_FULL(PosY, posY, float, "fY");
-DECLARE_SOA_COLUMN_FULL(PosZ, posZ, float, "fZ");
+DECLARE_SOA_COLUMN(PosX, posX, float);
+DECLARE_SOA_COLUMN(PosY, posY, float);
+DECLARE_SOA_COLUMN(PosZ, posZ, float);
 DECLARE_SOA_COLUMN(CovXX, covXX, float);
 DECLARE_SOA_COLUMN(CovXY, covXY, float);
 DECLARE_SOA_COLUMN(CovXZ, covXZ, float);
@@ -48,7 +48,7 @@ DECLARE_SOA_COLUMN(CovYY, covYY, float);
 DECLARE_SOA_COLUMN(CovYZ, covYZ, float);
 DECLARE_SOA_COLUMN(CovZZ, covZZ, float);
 DECLARE_SOA_COLUMN(Chi2, chi2, float);
-DECLARE_SOA_COLUMN_FULL(NumContrib, numContrib, uint32_t, "fN"); // TODO fix name
+DECLARE_SOA_COLUMN(NumContrib, numContrib, uint32_t);
 DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);
 DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float);
 DECLARE_SOA_COLUMN(CollisionTimeMask, collisionTimeMask, uint8_t); // TODO put nature of CollisionTimeRes here, e.g. MSB 0 = exact range / 1 = Gaussian uncertainty
@@ -68,7 +68,7 @@ namespace track
 {
 // TRACKPAR TABLE definition
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-DECLARE_SOA_COLUMN(TrackType, trackType, unsigned int); // TODO define enum
+DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t); // TODO change to TrackTypeEnum when enums are supported
 DECLARE_SOA_COLUMN(X, x, float);
 DECLARE_SOA_COLUMN(Alpha, alpha, float);
 DECLARE_SOA_COLUMN(Y, y, float);
@@ -123,21 +123,21 @@ DECLARE_SOA_COLUMN(C1PtTgl, c1PtTgl, float);
 DECLARE_SOA_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float);
 
 // TRACKEXTRA TABLE definition
-DECLARE_SOA_COLUMN_FULL(TPCInnerParam, tpcInnerParam, float, "fTPCinnerP");
+DECLARE_SOA_COLUMN(TPCInnerParam, tpcInnerParam, float);
 DECLARE_SOA_COLUMN(Flags, flags, uint64_t);
-DECLARE_SOA_COLUMN_FULL(ITSClusterMap, itsClusterMap, uint8_t, "fITSClusterMap");
-DECLARE_SOA_COLUMN_FULL(TPCNClsFindable, tpcNClsFindable, uint8_t, "fTPCnclsFindable");
-DECLARE_SOA_COLUMN_FULL(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t, "fTPCnclsFindableMinusFound");
-DECLARE_SOA_COLUMN_FULL(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedRows, int8_t, "fTPCnclsFindableMinusCrossedRows");
-DECLARE_SOA_COLUMN_FULL(TPCNClsShared, tpcNClsShared, uint8_t, "fTPCnclsShared");
-DECLARE_SOA_COLUMN_FULL(TRDNTracklets, trdNTracklets, uint8_t, "fTRDntracklets");
-DECLARE_SOA_COLUMN_FULL(ITSChi2NCl, itsChi2NCl, float, "fITSchi2Ncl");
-DECLARE_SOA_COLUMN(TPCchi2Ncl, tpcChi2Ncl, float);
-DECLARE_SOA_COLUMN(TRDchi2, trdChi2, float);
-DECLARE_SOA_COLUMN(TOFchi2, tofChi2, float);
-DECLARE_SOA_COLUMN(TPCsignal, tpcSignal, float);
-DECLARE_SOA_COLUMN(TRDsignal, trdSignal, float);
-DECLARE_SOA_COLUMN(TOFsignal, tofSignal, float);
+DECLARE_SOA_COLUMN(ITSClusterMap, itsClusterMap, uint8_t);
+DECLARE_SOA_COLUMN(TPCNClsFindable, tpcNClsFindable, uint8_t);
+DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t);
+DECLARE_SOA_COLUMN(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedRows, int8_t);
+DECLARE_SOA_COLUMN(TPCNClsShared, tpcNClsShared, uint8_t);
+DECLARE_SOA_COLUMN(TRDNTracklets, trdNTracklets, uint8_t);
+DECLARE_SOA_COLUMN(ITSChi2NCl, itsChi2NCl, float);
+DECLARE_SOA_COLUMN(TPCChi2Ncl, tpcChi2Ncl, float);
+DECLARE_SOA_COLUMN(TRDChi2, trdChi2, float);
+DECLARE_SOA_COLUMN(TOFChi2, tofChi2, float);
+DECLARE_SOA_COLUMN(TPCSignal, tpcSignal, float);
+DECLARE_SOA_COLUMN(TRDSignal, trdSignal, float);
+DECLARE_SOA_COLUMN(TOFSignal, tofSignal, float);
 DECLARE_SOA_COLUMN(Length, length, float);
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, [](uint8_t tpcNClsFindable, uint8_t tpcNClsFindableMinusFound) -> int16_t { return tpcNClsFindable - tpcNClsFindableMinusFound; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, [](uint8_t tpcNClsFindable, uint8_t TPCNClsFindableMinusCrossedRows) -> int16_t { return tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
@@ -191,8 +191,8 @@ DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCInnerParam, track::Flags, track::ITSClusterMap,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
                   track::TPCNClsShared, track::TRDNTracklets, track::ITSChi2NCl,
-                  track::TPCchi2Ncl, track::TRDchi2, track::TOFchi2,
-                  track::TPCsignal, track::TRDsignal, track::TOFsignal, track::Length,
+                  track::TPCChi2Ncl, track::TRDChi2, track::TOFChi2,
+                  track::TPCSignal, track::TRDSignal, track::TOFSignal, track::Length,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                   track::ITSNCls<track::ITSClusterMap>,
@@ -221,27 +221,31 @@ DECLARE_SOA_COLUMN(CellNumber, cellNumber, int16_t);
 DECLARE_SOA_COLUMN(Amplitude, amplitude, float);
 DECLARE_SOA_COLUMN(Time, time, float);
 DECLARE_SOA_COLUMN(CellType, cellType, int8_t);
-DECLARE_SOA_COLUMN_FULL(CaloType, caloType, int8_t, "fType"); // FIXME fix naming
+DECLARE_SOA_COLUMN(CaloType, caloType, int8_t);
 } // namespace calo
 
 DECLARE_SOA_TABLE(Calos, "AOD", "CALO", calo::BCId,
-                  calo::CellNumber, calo::Amplitude, calo::Time, calo::CellType, calo::CaloType);
+                  calo::CellNumber, calo::Amplitude, calo::Time,
+                  calo::CellType, calo::CaloType);
 using Calo = Calos::iterator;
 
 namespace calotrigger
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);
-DECLARE_SOA_COLUMN_FULL(FastorAbsId, fastorAbsId, int32_t, "fFastorAbsID");
+DECLARE_SOA_COLUMN(FastOrAbsId, fastOrAbsId, int32_t);
 DECLARE_SOA_COLUMN(L0Amplitude, l0Amplitude, float);
 DECLARE_SOA_COLUMN(L0Time, l0Time, float);
-DECLARE_SOA_COLUMN_FULL(L1Timesum, l1Timesum, int32_t, "fL1TimeSum");
+DECLARE_SOA_COLUMN(L1TimeSum, l1TimeSum, int32_t);
 DECLARE_SOA_COLUMN(NL0Times, nl0Times, int8_t);
-DECLARE_SOA_COLUMN_FULL(BCbits, triggerbits, int32_t, "fBCBits");
-DECLARE_SOA_COLUMN_FULL(CaloType, caloType, int8_t, "fType"); // FIXME fix naming
+DECLARE_SOA_COLUMN(TriggerBits, triggerBits, int32_t);
+DECLARE_SOA_COLUMN(CaloType, caloType, int8_t);
 } // namespace calotrigger
 
 DECLARE_SOA_TABLE(CaloTriggers, "AOD", "CALOTRIGGER",
-                  calotrigger::BCId, calotrigger::FastorAbsId, calotrigger::L0Amplitude, calotrigger::L0Time, calotrigger::L1Timesum, calotrigger::NL0Times, calotrigger::BCbits, calotrigger::CaloType);
+                  calotrigger::BCId, calotrigger::FastOrAbsId,
+                  calotrigger::L0Amplitude, calotrigger::L0Time,
+                  calotrigger::L1TimeSum, calotrigger::NL0Times,
+                  calotrigger::TriggerBits, calotrigger::CaloType);
 using CaloTrigger = CaloTriggers::iterator;
 
 namespace muon
@@ -250,28 +254,27 @@ DECLARE_SOA_INDEX_COLUMN(BC, bc);
 DECLARE_SOA_COLUMN(InverseBendingMomentum, inverseBendingMomentum, float);
 DECLARE_SOA_COLUMN(ThetaX, thetaX, float);
 DECLARE_SOA_COLUMN(ThetaY, thetaY, float);
-DECLARE_SOA_COLUMN_FULL(ZMu, zMu, float, "fZ");
+DECLARE_SOA_COLUMN(ZMu, zMu, float);
 DECLARE_SOA_COLUMN(BendingCoor, bendingCoor, float);
 DECLARE_SOA_COLUMN(NonBendingCoor, nonBendingCoor, float);
 // FIXME: need to implement array columns...
 // DECLARE_SOA_COLUMN(Covariances, covariances, float[], "fCovariances");
 DECLARE_SOA_COLUMN(Chi2, chi2, float);
-DECLARE_SOA_COLUMN(Chi2MatchBC, chi2MatchBC, float);
+DECLARE_SOA_COLUMN(Chi2MatchTrigger, chi2MatchTrigger, float);
 } // namespace muon
 
 DECLARE_SOA_TABLE(Muons, "AOD", "MUON",
                   muon::BCId, muon::InverseBendingMomentum,
                   muon::ThetaX, muon::ThetaY, muon::ZMu,
                   muon::BendingCoor, muon::NonBendingCoor,
-                  muon::Chi2, muon::Chi2MatchBC);
+                  muon::Chi2, muon::Chi2MatchTrigger);
 using Muon = Muons::iterator;
 
 // NOTE for now muon tracks are uniquely assigned to a BC / GlobalBC assuming they contain an MID hit. Discussion on tracks without MID hit is ongoing.
 
 namespace muoncluster
 {
-/// FIXME: where does this point to???? Tracks or Muons?
-DECLARE_SOA_INDEX_COLUMN_FULL(Track, track, int, Muons, "fMuonsID");
+DECLARE_SOA_INDEX_COLUMN_FULL(Track, track, int, Muons, "fMuonsID"); // points to a muon track in the Muon table
 DECLARE_SOA_COLUMN(X, x, float);
 DECLARE_SOA_COLUMN(Y, y, float);
 DECLARE_SOA_COLUMN(Z, z, float);
