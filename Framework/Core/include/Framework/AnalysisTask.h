@@ -589,11 +589,11 @@ struct AnalysisDataProcessorBuilder {
       auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, &C::process, infos);
       if constexpr (soa::is_soa_iterator_t<G>::value) {
         // grouping case
+        (groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedTables)), ...);
         auto slicer = GroupSlicer(groupingTable, associatedTables);
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
           (std::get<std::decay_t<Associated>>(associatedSlices).bindExternalIndices(&groupingTable), ...);
-          (groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedSlices)), ...);
           auto binder = [&](auto&& x) {
             (std::get<std::decay_t<Associated>>(associatedSlices).bindExternalIndices(&x), ...);
           };
