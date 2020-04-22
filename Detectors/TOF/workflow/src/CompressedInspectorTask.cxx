@@ -85,17 +85,22 @@ void CompressedInspectorTask<RAWDataHeader>::run(ProcessingContext& pc)
     return;
   }
 
-  /** receive input **/
-  for (auto& input : pc.inputs()) {
+  /** loop over inputs routes **/
+  for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
+    if (!iit.isValid())
+      continue;
 
-    /** input **/
-    const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
-    auto payloadIn = input.payload;
-    auto payloadInSize = headerIn->payloadSize;
+    /** loop over input parts **/
+    for (auto const& ref : iit) {
 
-    DecoderBase<RAWDataHeader>::setDecoderBuffer(payloadIn);
-    DecoderBase<RAWDataHeader>::setDecoderBufferSize(payloadInSize);
-    DecoderBase<RAWDataHeader>::run();
+      const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      auto payloadIn = ref.payload;
+      auto payloadInSize = headerIn->payloadSize;
+
+      DecoderBase<RAWDataHeader>::setDecoderBuffer(payloadIn);
+      DecoderBase<RAWDataHeader>::setDecoderBufferSize(payloadInSize);
+      DecoderBase<RAWDataHeader>::run();
+    }
   }
 }
 
