@@ -35,9 +35,8 @@ namespace o2
 {
 using namespace o2::raw;
 using namespace o2::framework;
-using RDH = o2::raw::RawFileWriter::RDH;
 using IR = o2::InteractionRecord;
-
+using RDHAny = header::RDHAny;
 constexpr int NCRU = 3 + 1;    // number of CRUs, the last one is a special CRU with preformatted data filled
 constexpr int NLinkPerCRU = 4; // number of links per CRU
 // sizes for preformatted pages filling (RDH size will be subtracted from the payload) in the last special CRU
@@ -57,19 +56,20 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
 
   // suppose detector puts in front and end of every trigger payload some header and trailer
 
-  RawFileWriter writer;
+  RawFileWriter writer{"TST"};
 
   //_________________________________________________________________
   void init()
   {
     // init writer
+    writer.useRDHVersion(6);
 
     // register links
     for (int icru = 0; icru < NCRU; icru++) {
       std::string outFileName = "testdata_cru" + std::to_string(icru) + ".raw";
       for (int il = 0; il < NLinkPerCRU; il++) {
         auto& link = writer.registerLink((icru << 8) + il, icru, il, 0, outFileName);
-        link.rdhCopy.detectorField = 0xff << icru; // if needed, set extra link info, will be copied to all RDHs
+        RDHUtils::setDetectorField(link.rdhCopy, 0xff << icru); // if needed, set extra link info, will be copied to all RDHs
       }
     }
 
@@ -116,7 +116,7 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
     while (irHB < irs.back()) {
       for (int il = 0; il < NLinkPerCRU; il++) {
         buffer.clear();
-        int pgSize = SpecSize[il] - sizeof(RDH);
+        int pgSize = SpecSize[il] - sizeof(RDHAny);
         buffer.resize(pgSize);
         for (int ipg = 2 * (NLinkPerCRU - il); ipg--;) {                       // just to enforce writing multiple pages per selected HBFs
           writer.addData((cruID << 8) + il, cruID, il, 0, irHB, buffer, true); // last argument is there to enforce a special "preformatted" mode
@@ -132,7 +132,7 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
 
   // optional callback functions to register in the RawFileWriter
   //_________________________________________________________________
-  void emptyHBFMethod(const RDH& rdh, std::vector<char>& toAdd) const
+  void emptyHBFMethod(const RDHAny* rdh, std::vector<char>& toAdd) const
   {
     // what we want to add for every empty page
     toAdd.resize(RDHUtils::GBTWord);
@@ -140,7 +140,7 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
   }
 
   //_________________________________________________________________
-  int carryOverMethod(const RDH& rdh, const gsl::span<char> data, const char* ptr, int maxSize, int splitID,
+  int carryOverMethod(const RDHAny* rdh, const gsl::span<char> data, const char* ptr, int maxSize, int splitID,
                       std::vector<char>& trailer, std::vector<char>& header) const
   {
     // how we want to split the large payloads. The data is the full payload which was sent for writing and
@@ -216,46 +216,47 @@ struct TestRawReader { // simple class to read detector raw data for multiple li
       if (nLinksRead) {
         BOOST_CHECK(nLinksRead == nLinks); // all links should have the same number of HBFs
 
-        const auto rdhRef = *reinterpret_cast<RDH*>(buffers[0].data());
+        const auto rdhRef = *reinterpret_cast<RDHAny*>(buffers[0].data());
 
         for (int il = 0; il < nLinks; il++) {
           auto& buff = buffers[il];
           int hbsize = buff.size();
           char* ptr = buff.data();
           while (ptr < &buff.back()) { // check all RDH open/close and optional headers and trailers
-            const auto rdhi = *reinterpret_cast<RDH*>(ptr);
+            const auto rdhi = *reinterpret_cast<RDHAny*>(ptr);
             if (firstHBF[il]) { // make sure SOT or SOC is there
-              BOOST_CHECK(rdhi.triggerType & (o2::trigger::SOC | o2::trigger::SOT));
+              BOOST_CHECK(RDHUtils::getTriggerType(rdhi) & (o2::trigger::SOC | o2::trigger::SOT));
             }
-
+            auto memSize = RDHUtils::getMemorySize(rdhi);
+            auto rdhSize = RDHUtils::getHeaderSize(rdhi);
             BOOST_CHECK(RDHUtils::checkRDH(rdhi));                             // check RDH validity
             BOOST_CHECK(RDHUtils::getHeartBeatIR(rdhRef) == RDHUtils::getHeartBeatIR(rdhi)); // make sure the RDH of each link corresponds to the same BC
-            if (rdhi.stop) {                                                   // closing page must be empty
-              BOOST_CHECK(rdhi.memorySize == rdhi.headerSize);
+            if (RDHUtils::getStop(rdhi)) {                                                   // closing page must be empty
+              BOOST_CHECK(memSize == rdhSize);
             } else {
-              if (rdhi.cruID < NCRU - 1) {                                    // these are not special CRUs
-                BOOST_CHECK(rdhi.memorySize > rdhi.headerSize);               // in this model all non-closing pages must contain something
-                if (rdhi.memorySize - rdhi.headerSize == RDHUtils::GBTWord) { // empty HBF will contain just a status word
-                  testStr.assign(ptr + rdhi.headerSize, RDHUtils::GBTWord);
+              if (RDHUtils::getCRUID(rdhi) < NCRU - 1) {      // these are not special CRUs
+                BOOST_CHECK(memSize > rdhSize);               // in this model all non-closing pages must contain something
+                if (memSize - rdhSize == RDHUtils::GBTWord) { // empty HBF will contain just a status word
+                  testStr.assign(ptr + rdhSize, RDHUtils::GBTWord);
                   BOOST_CHECK(testStr == HBFEmpty);
                 } else {
                   // pages with real payload should have at least header + trailer + some payload
-                  BOOST_CHECK(rdhi.memorySize - rdhi.headerSize > 2 * RDHUtils::GBTWord);
-                  testStr.assign(ptr + rdhi.headerSize, RDHUtils::GBTWord);
+                  BOOST_CHECK(memSize - rdhSize > 2 * RDHUtils::GBTWord);
+                  testStr.assign(ptr + rdhSize, RDHUtils::GBTWord);
                   BOOST_CHECK(testStr == PLHeader);
-                  testStr.assign(ptr + rdhi.memorySize - RDHUtils::GBTWord, RDHUtils::GBTWord);
+                  testStr.assign(ptr + memSize - RDHUtils::GBTWord, RDHUtils::GBTWord);
                   BOOST_CHECK(testStr == PLTrailer);
                 }
               } else { // for the special CRU with preformatted data make sure the page sizes were not modified
-                if (rdhi.memorySize > sizeof(RDH) + RDHUtils::GBTWord) {
+                if (memSize > rdhSize + RDHUtils::GBTWord) {
                   auto tfhb = HBFUtils::Instance().getTFandHBinTF({RDHUtils::getHeartBeatBC(rdhi), RDHUtils::getHeartBeatOrbit(rdhi)}); // TF and HBF relative to TF
                   BOOST_CHECK(tfhb.second % (HBFUtils::Instance().getNOrbitsPerTF() / NPreformHBFPerTF) == 0);            // we were filling only every NPreformHBFPerTF-th HBF
-                  BOOST_CHECK(rdhi.memorySize == SpecSize[rdhi.linkID]);                                                  // check if the size is correct
+                  BOOST_CHECK(memSize == SpecSize[RDHUtils::getLinkID(rdhi)]);                                            // check if the size is correct
                   nPreformatRead++;
                 }
               }
             }
-            ptr += rdhi.offsetToNext;
+            ptr += RDHUtils::getOffsetToNext(rdhi);
           }
           firstHBF[il] = false;
         }
@@ -284,11 +285,14 @@ BOOST_AUTO_TEST_CASE(RawReaderWriter)
   while (sr.loadNextTF()) {
     ntf++;
     auto& record = *sr.getInputRecord();
+    LOG(INFO) << "FAIL? " << record.size() << " " << NCRU * NLinkPerCRU;
+
     BOOST_CHECK(record.size() == NCRU * NLinkPerCRU);
     o2::header::DataHeader const* dhPrev = nullptr;
     DPLRawParser parser(record);
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-      auto const* rdh = it.get_if<RDH>();
+      //      auto const* rdh = &get_if<RDHAny>();
+      auto const* rdh = reinterpret_cast<const RDHAny*>(it.raw()); // RSTODO this is a hack in absence of generic header getter
       auto const* dh = it.o2DataHeader();
       BOOST_REQUIRE(rdh != nullptr);
       bool newLink = false;
@@ -296,13 +300,13 @@ BOOST_AUTO_TEST_CASE(RawReaderWriter)
         dhPrev = dh;
         newLink = true;
       }
-      if (rdh->cruID == NCRU - 1) {
+      if (RDHUtils::getCRUID(*rdh) == NCRU - 1) {
         if (newLink) {
           dh->print();
         }
         RDHUtils::printRDH(rdh);
-        if (rdh->memorySize > sizeof(RDH) + RDHUtils::GBTWord) { // special CRU with predefined sizes
-          BOOST_CHECK(it.size() + sizeof(RDH) == SpecSize[rdh->linkID]);
+        if (RDHUtils::getMemorySize(*rdh) > sizeof(RDHAny) + RDHUtils::GBTWord) { // special CRU with predefined sizes
+          BOOST_CHECK(it.size() + sizeof(RDHAny) == SpecSize[RDHUtils::getLinkID(*rdh)]);
         }
       }
     }
