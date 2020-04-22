@@ -16,8 +16,25 @@
 #ifndef RANS_RANS_H
 #define RANS_RANS_H
 
-#include "SymbolStatistics.h"
-#include "Encoder.h"
-#include "Decoder.h"
+#include "librans/SymbolStatistics.h"
+#include "librans/Encoder.h"
+#include "librans/Decoder.h"
+
+namespace o2
+{
+namespace rans
+{
+template <typename source_T>
+using Encoder32 = Encoder<uint32_t, uint8_t, source_T>;
+template <typename source_T>
+using Encoder64 = Encoder<uint64_t, uint32_t, source_T>;
+
+template <typename source_T>
+using Decoder32 = Decoder<uint32_t, uint8_t, source_T>;
+template <typename source_T>
+using Decoder64 = Decoder<uint64_t, uint32_t, source_T>;
+
+} // namespace rans
+} // namespace o2
 
 #endif /* RANS_RANS_H */

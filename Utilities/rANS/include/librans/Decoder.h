@@ -16,6 +16,7 @@
 #ifndef RANS_DECODER_H
 #define RANS_DECODER_H
 
+#include <cstddef>
 #include <type_traits>
 #include <iostream>
 
@@ -28,23 +29,29 @@ namespace o2
 {
 namespace rans
 {
-template <typename coder_t, typename source_T>
+template <typename coder_T, typename stream_T, typename source_T>
 class Decoder
 {
+
  private:
   using decoderSymbol_t = SymbolTable<DecoderSymbol>;
   using reverseSymbolLookupTable_t = ReverseSymbolLookupTable<source_T>;
+  using ransDecoder = Coder<coder_T, stream_T>;
 
  public:
   Decoder(const Decoder& d);
   Decoder(Decoder&& d) = default;
-  Decoder<coder_t, source_T>& operator=(const Decoder& d);
-  Decoder<coder_t, source_T>& operator=(Decoder&& d) = default;
+  Decoder<coder_T, stream_T, source_T>& operator=(const Decoder& d);
+  Decoder<coder_T, stream_T, source_T>& operator=(Decoder&& d) = default;
   ~Decoder() = default;
-  Decoder(const SymbolStatistics& stats, size_t probabilityBits, size_t probabilityScale);
+  Decoder(const SymbolStatistics& stats, size_t probabilityBits);
 
   template <typename stream_IT, typename source_IT>
   void process(const source_IT outputBegin, const stream_IT inputBegin, size_t numSymbols) const;
+
+  using coder_t = coder_T;
+  using stream_t = stream_T;
+  using source_t = source_T;
 
  private:
   std::unique_ptr<decoderSymbol_t> mSymbolTable;
@@ -52,15 +59,15 @@ class Decoder
   size_t mProbabilityBits;
 };
 
-template <typename coder_t, typename source_T>
-Decoder<coder_t, source_T>::Decoder(const Decoder& d) : mSymbolTable(nullptr), mReverseLUT(nullptr), mProbabilityBits(d.mProbabilityBits)
+template <typename coder_T, typename stream_T, typename source_T>
+Decoder<coder_T, stream_T, source_T>::Decoder(const Decoder& d) : mSymbolTable(nullptr), mReverseLUT(nullptr), mProbabilityBits(d.mProbabilityBits)
 {
   mSymbolTable = std::make_unique<decoderSymbol_t>(*d.mSymbolTable);
   mReverseLUT = std::make_unique<reverseSymbolLookupTable_t>(*d.mReverseLUT);
 }
 
-template <typename coder_t, typename source_T>
-Decoder<coder_t, source_T>& Decoder<coder_t, source_T>::operator=(const Decoder& d)
+template <typename coder_T, typename stream_T, typename source_T>
+Decoder<coder_T, stream_T, source_T>& Decoder<coder_T, stream_T, source_T>::operator=(const Decoder& d)
 {
   mSymbolTable = std::make_unique<decoderSymbol_t>(*d.mSymbolTable);
   mReverseLUT = std::make_unique<reverseSymbolLookupTable_t>(*d.mReverseLUT);
@@ -68,32 +75,30 @@ Decoder<coder_t, source_T>& Decoder<coder_t, source_T>::operator=(const Decoder&
   return *this;
 }
 
-template <typename coder_t, typename source_T>
-Decoder<coder_t, source_T>::Decoder(const SymbolStatistics& stats, size_t probabilityBits, size_t probabilityScale) : mSymbolTable(nullptr), mReverseLUT(nullptr), mProbabilityBits(probabilityBits)
+template <typename coder_T, typename stream_T, typename source_T>
+Decoder<coder_T, stream_T, source_T>::Decoder(const SymbolStatistics& stats, size_t probabilityBits) : mSymbolTable(nullptr), mReverseLUT(nullptr), mProbabilityBits(probabilityBits)
 {
   mSymbolTable = std::make_unique<decoderSymbol_t>(stats, probabilityBits);
-  mReverseLUT = std::make_unique<reverseSymbolLookupTable_t>(probabilityScale, stats);
+  mReverseLUT = std::make_unique<reverseSymbolLookupTable_t>(probabilityBits, stats);
 };
 
-template <typename coder_t, typename source_T>
+template <typename coder_T, typename stream_T, typename source_T>
 template <typename stream_IT, typename source_IT>
-void Decoder<coder_t, source_T>::process(const source_IT outputBegin, const stream_IT inputBegin, size_t numSymbols) const
+void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, const stream_IT inputBegin, size_t numSymbols) const
 {
   static_assert(std::is_same<typename std::iterator_traits<source_IT>::value_type, source_T>::value);
+  static_assert(std::is_same<typename std::iterator_traits<stream_IT>::value_type, stream_T>::value);
 
-  typedef typename std::iterator_traits<stream_IT>::value_type stream_t;
-  using ransDecoder = Coder<coder_t, stream_t>;
-
-  State<coder_t> rans0, rans1;
-  stream_t* ptr = &(*inputBegin);
+  State<coder_T> rans0, rans1;
+  stream_T* ptr = &(*inputBegin);
   source_IT it = outputBegin;
   ransDecoder::decInit(&rans0, &ptr);
   ransDecoder::decInit(&rans1, &ptr);
 
   for (size_t i = 0; i < (numSymbols & ~1); i += 2) {
-    const stream_t s0 =
+    const stream_T s0 =
       (*mReverseLUT)[ransDecoder::decGet(&rans0, mProbabilityBits)];
-    const stream_t s1 =
+    const stream_T s1 =
       (*mReverseLUT)[ransDecoder::decGet(&rans1, mProbabilityBits)];
     *it++ = s0;
     *it++ = s1;
@@ -107,7 +112,7 @@ void Decoder<coder_t, source_T>::process(const source_IT outputBegin, const stre
 
   // last byte, if number of bytes was odd
   if (numSymbols & 1) {
-    const stream_t s0 =
+    const stream_T s0 =
       (*mReverseLUT)[ransDecoder::decGet(&rans0, mProbabilityBits)];
     *it = s0;
     ransDecoder::decAdvanceSymbol(&rans0, &ptr, &(*mSymbolTable)[s0],

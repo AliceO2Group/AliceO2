@@ -16,14 +16,16 @@
 #include <cmath>
 
 #include "librans/SymbolStatistics.h"
+#include "librans/helper.h"
 
 namespace o2
 {
 namespace rans
 {
 
-void SymbolStatistics::rescaleFrequencyTable(uint32_t newCumulatedFrequency)
+void SymbolStatistics::rescaleToNBits(size_t bits)
 {
+  const size_t newCumulatedFrequency = bitsToRange(bits);
   assert(newCumulatedFrequency >= mFrequencyTable.size());
 
   size_t cumulatedFrequencies = mCumulativeFrequencyTable.back();
@@ -113,9 +115,10 @@ size_t SymbolStatistics::getMessageLength() const
 
 std::pair<uint32_t, uint32_t> SymbolStatistics::operator[](size_t index) const
 {
-  //  if (index - min_ > frequencyTable_.getNumSymbols()) {
-  //    std::cout << index << " out of bounds" << std::endl;
-  //  }
+  //  std::cout << "stats[" << index << "]" << std::endl;
+  if (index - mMin > mFrequencyTable.size()) {
+    std::cout << index << " out of bounds" << mFrequencyTable.size() << std::endl;
+  }
   return std::make_pair(mFrequencyTable[index - mMin],
                         mCumulativeFrequencyTable[index - mMin]);
 }

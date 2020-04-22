@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "SymbolStatistics.h"
+#include "helper.h"
 
 namespace o2
 {
@@ -28,10 +29,10 @@ template <typename source_t>
 class ReverseSymbolLookupTable
 {
  public:
-  ReverseSymbolLookupTable(size_t probabilityScale,
+  ReverseSymbolLookupTable(size_t probabilityBits,
                            const SymbolStatistics& stats)
   {
-    mLut.resize(probabilityScale);
+    mLut.resize(bitsToRange(probabilityBits));
     // go over all symbols
     for (int symbol = stats.getMinSymbol(); symbol < stats.getMaxSymbol() + 1;
          symbol++) {

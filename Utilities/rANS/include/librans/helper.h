@@ -13,6 +13,8 @@
 /// @since  2019-05-21
 /// @brief  various helper functions
 
+#include <cstddef>
+
 #ifndef RANS_HELPER_H
 #define RANS_HELPER_H
 
@@ -25,6 +27,11 @@ template <typename T>
 constexpr bool needs64Bit()
 {
   return sizeof(T) > 4;
+}
+
+constexpr size_t bitsToRange(size_t bits)
+{
+  return 1 << bits;
 }
 
 } // namespace rans
