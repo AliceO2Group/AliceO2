@@ -26,7 +26,6 @@
 #include "GPUReconstructionConvert.h"
 #include "GPUHostDataTypes.h"
 #include "GPUParam.h"
-#include "Digit.h"
 
 #include "DetectorsRaw/RawFileWriter.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -37,6 +36,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "TPCBase/RDHUtils.h"
+#include "TPCBase/Digit.h"
 #include "CommonUtils/ConfigurableParam.h"
 
 namespace bpo = boost::program_options;
