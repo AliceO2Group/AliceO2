@@ -83,7 +83,8 @@ Geometry::Geometry(const Geometry& geo)
     mTrd1BondPaperThick(geo.mTrd1BondPaperThick),
     mILOSS(geo.mILOSS),
     mIHADR(geo.mIHADR),
-    mSteelFrontThick(geo.mSteelFrontThick) // obsolete data member?
+    mSteelFrontThick(geo.mSteelFrontThick), // obsolete data member?
+    mCellIndexLookup(geo.mCellIndexLookup)
 {
   memcpy(mEnvelop, geo.mEnvelop, sizeof(Float_t) * 3);
   memcpy(mParSM, geo.mParSM, sizeof(Float_t) * 3);
@@ -154,6 +155,11 @@ Geometry::Geometry(const std::string_view name, const std::string_view mcname, c
   mNCellsInModule = mNPHIdiv * mNETAdiv;
 
   CreateListOfTrd1Modules();
+
+  mCellIndexLookup.resize(mNCells);
+  for (auto icell = 0; icell < mNCells; icell++) {
+    mCellIndexLookup[icell] = CalculateCellIndex(icell);
+  }
 
   memset(SMODULEMATRIX, 0, sizeof(TGeoHMatrix*) * EMCAL_MODULES);
 
@@ -871,7 +877,7 @@ Int_t Geometry::GetAbsCellIdFromEtaPhi(Double_t eta, Double_t phi) const
   return GetAbsCellIdFromCellIndexes(nSupMod, iphi, ieta);
 }
 
-std::tuple<int, int, int, int> Geometry::GetCellIndex(Int_t absId) const
+std::tuple<int, int, int, int> Geometry::CalculateCellIndex(Int_t absId) const
 {
   if (!CheckAbsCellId(absId))
     throw InvalidCellIDException(absId);
@@ -902,6 +908,13 @@ std::tuple<int, int, int, int> Geometry::GetCellIndex(Int_t absId) const
   tmp = tmp % mNCellsInModule;
   Int_t nIphi = tmp / mNPHIdiv, nIeta = tmp % mNPHIdiv;
   return std::make_tuple(nSupMod, nModule, nIphi, nIeta);
+}
+
+std::tuple<int, int, int, int> Geometry::GetCellIndex(Int_t absId) const
+{
+  if (!CheckAbsCellId(absId))
+    throw InvalidCellIDException(absId);
+  return mCellIndexLookup[absId];
 }
 
 Int_t Geometry::GetSuperModuleNumber(Int_t absId) const { return std::get<0>(GetCellIndex(absId)); }
