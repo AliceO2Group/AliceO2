@@ -37,7 +37,7 @@ using MAP = o2::itsmft::ChipMappingITS;
 namespace bpo = boost::program_options;
 
 void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, bool filePerCRU);
-void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU, int verbosity, int superPageSizeInB = 1024 * 1024);
+void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU, int verbosity, uint32_t rdhV = 4, int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
 {
@@ -56,6 +56,8 @@ int main(int argc, char** argv)
     add_option("file-per-cru,c", bpo::value<bool>()->default_value(false)->implicit_value(true), "create output file per CRU (default: per layer)");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
+    uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
+    add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
 
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
@@ -75,17 +77,17 @@ int main(int argc, char** argv)
     std::cerr << e.what() << ", application will now exit" << std::endl;
     exit(2);
   }
-
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
   digi2raw(vm["input-file"].as<std::string>(),
            vm["output-dir"].as<std::string>(),
            vm["file-per-cru"].as<bool>(),
-           vm["verbosity"].as<uint32_t>());
+           vm["verbosity"].as<uint32_t>(),
+           vm["rdh-version"].as<uint32_t>());
 
   return 0;
 }
 
-void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU, int verbosity, int superPageSizeInB)
+void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU, int verbosity, uint32_t rdhV, int superPageSizeInB)
 {
   TStopwatch swTot;
   swTot.Start();
@@ -126,6 +128,7 @@ void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU
   m2r.setDefaultSinkName(o2::utils::concat_string(MAP::getName(), ".raw"));
   m2r.setMinMaxRUSW(ruSWMin, ruSWMax);
   m2r.getWriter().setSuperPageSize(superPageSizeInB);
+  m2r.getWriter().useRDHVersion(rdhV);
 
   m2r.setVerbosity(verbosity);
   setupLinks(m2r, outDir, MAP::getName(), filePerCRU);
