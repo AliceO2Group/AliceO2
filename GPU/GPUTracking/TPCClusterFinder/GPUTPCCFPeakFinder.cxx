@@ -15,11 +15,9 @@
 
 #include "Array2D.h"
 #include "CfUtils.h"
-#include "Digit.h"
 #include "PackedCharge.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
-using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 template <>
 GPUdii() void GPUTPCCFPeakFinder::Thread<GPUTPCCFPeakFinder::findPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)

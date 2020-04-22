@@ -18,12 +18,12 @@
 #include "GPUProcessor.h"
 #include "GPUDataTypes.h"
 #include "CfFragment.h"
-#include "Digit.h"
 
-namespace GPUCA_NAMESPACE
+namespace o2
 {
 
 class MCCompLabel;
+
 namespace dataformats
 {
 template <typename TruthElement>
@@ -33,8 +33,13 @@ class MCTruthContainer;
 namespace tpc
 {
 struct ClusterNative;
-}
+class Digit;
+} // namespace tpc
 
+} // namespace o2
+
+namespace GPUCA_NAMESPACE
+{
 namespace gpu
 {
 struct GPUTPCClusterMCInterim;
@@ -87,7 +92,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   unsigned char* mPzs = nullptr;
   ZSOffset* mPzsOffsets = nullptr;
   MinMaxCN* mMinMaxCN = nullptr;
-  deprecated::Digit* mPdigits = nullptr; // input digits, only set if ZS is skipped
+  tpc::Digit* mPdigits = nullptr; // input digits, only set if ZS is skipped
   ChargePos* mPpositions = nullptr;
   ChargePos* mPpeakPositions = nullptr;
   ChargePos* mPfilteredPeakPositions = nullptr;
@@ -114,7 +119,6 @@ class GPUTPCClusterFinder : public GPUProcessor
   size_t mNMaxClusters = 0;
   size_t mBufSize = 0;
   size_t mNBufs = 0;
-
 
   unsigned short mMemoryId = 0;
   unsigned short mZSOffsetId = 0;

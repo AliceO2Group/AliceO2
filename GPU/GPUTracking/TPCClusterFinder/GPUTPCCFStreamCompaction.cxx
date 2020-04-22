@@ -16,12 +16,7 @@
 
 #include "ChargePos.h"
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
-
-using namespace deprecated;
+using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
 GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::nativeScanUpStart>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int iBuf, int stage)
@@ -174,6 +169,3 @@ GPUdii() int GPUTPCCFStreamCompaction::compactionElems(processorType& clusterer,
 {
   return (stage) ? clusterer.mPmemory->counters.nPeaks : clusterer.mPmemory->counters.nPositions;
 }
-
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE

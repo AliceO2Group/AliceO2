@@ -42,12 +42,12 @@
 #include "GPUTrackingInputProvider.h"
 
 #ifdef HAVE_O2HEADERS
-#include "Digit.h"
 #include "GPUTPCClusterStatistics.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "GPUHostDataTypes.h"
+#include "TPCBase/Digit.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif
@@ -647,7 +647,7 @@ void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
   mTPCZSSizes.reset(new unsigned int[NSLICES * GPUTrackingInOutZS::NENDPOINTS]);
   mTPCZSPtrs.reset(new void*[NSLICES * GPUTrackingInOutZS::NENDPOINTS]);
   mTPCZS.reset(new GPUTrackingInOutZS);
-  GPUReconstructionConvert::RunZSEncoder<deprecated::PackedDigit>(*mIOPtrs.tpcPackedDigits, &mTPCZSBuffer, mTPCZSSizes.get(), nullptr, nullptr, param(), zs12bit, true);
+  GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(*mIOPtrs.tpcPackedDigits, &mTPCZSBuffer, mTPCZSSizes.get(), nullptr, nullptr, param(), zs12bit, true);
   GPUReconstructionConvert::RunZSEncoderCreateMeta(mTPCZSBuffer.get(), mTPCZSSizes.get(), mTPCZSPtrs.get(), mTPCZS.get());
   mIOPtrs.tpcZS = mTPCZS.get();
   if (GetDeviceProcessingSettings().registerStandaloneInputMemory) {
@@ -739,14 +739,14 @@ void GPUChainTracking::ForwardTPCDigits()
   for (int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < mIOPtrs.tpcPackedDigits->nTPCDigits[i]; j++) {
       const auto& d = mIOPtrs.tpcPackedDigits->tpcDigits[i][j];
-      if (d.charge >= zsThreshold) {
+      if (d.getChargeFloat() >= zsThreshold) {
         ClusterNative c;
-        c.setTimeFlags(d.time, 0);
-        c.setPad(d.pad);
+        c.setTimeFlags(d.getTimeStamp(), 0);
+        c.setPad(d.getPad());
         c.setSigmaTime(1);
         c.setSigmaPad(1);
-        c.qTot = c.qMax = d.charge;
-        tmp[i][d.row].emplace_back(c);
+        c.qTot = c.qMax = d.getChargeFloat();
+        tmp[i][d.getRow()].emplace_back(c);
         nTotal++;
       }
     }
@@ -916,7 +916,7 @@ int GPUChainTracking::RunTPCClusterizer()
           if (doGPU) {
             GPUMemCpy(RecoStep::TPCClusterFinding, clustererShadow.mPdigits, inDigits->tpcDigits[iSlice], sizeof(clustererShadow.mPdigits[0]) * numDigits, lane, true);
           } else {
-            clustererShadow.mPdigits = const_cast<deprecated::Digit*>(inDigits->tpcDigits[iSlice]); // TODO: Needs fixing (invalid const cast)
+            clustererShadow.mPdigits = const_cast<o2::tpc::Digit*>(inDigits->tpcDigits[iSlice]); // TODO: Needs fixing (invalid const cast)
           }
         }
         TransferMemoryResourceLinkToGPU(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);

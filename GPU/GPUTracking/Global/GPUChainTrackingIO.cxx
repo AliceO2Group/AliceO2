@@ -43,6 +43,7 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "Headers/RAWDataHeader.h"
 #include "GPUHostDataTypes.h"
+#include "TPCBase/Digit.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif

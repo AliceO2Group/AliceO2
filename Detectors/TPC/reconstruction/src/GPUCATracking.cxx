@@ -34,8 +34,6 @@
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUHostDataTypes.h"
 
-#include "Digit.h"
-
 using namespace o2::gpu;
 using namespace o2::tpc;
 using namespace o2;
@@ -83,7 +81,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   Mapper& mapper = Mapper::instance();
 
   const ClusterNativeAccess* clusters;
-  std::vector<deprecated::PackedDigit> gpuDigits[Sector::MAXSECTOR];
+  std::vector<o2::tpc::Digit> gpuDigits[Sector::MAXSECTOR];
   GPUTrackingInOutDigits gpuDigitsMap;
   GPUTPCDigitsMCInput gpuDigitsMC;
   GPUTrackingInOutPointers ptrs;
@@ -106,7 +104,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
           throw std::runtime_error("Digit time bin exceeds time frame length");
         }
         if (d[j].getChargeFloat() >= zsThreshold) {
-          gpuDigits[i].emplace_back(deprecated::PackedDigit{d[j].getChargeFloat(), (Timestamp)d[j].getTimeStamp(), (Pad)d[j].getPad(), (Row)d[j].getRow()});
+          gpuDigits[i].emplace_back(d[j]);
         }
       }
       gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();

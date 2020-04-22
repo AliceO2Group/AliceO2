@@ -24,6 +24,7 @@ namespace tpc
 {
 struct ClusterNative;
 struct ClusterNativeAccess;
+class Digit;
 } // namespace tpc
 namespace raw
 {
@@ -42,10 +43,6 @@ class GPUTPCClusterData;
 class TPCFastTransform;
 struct GPUTrackingInOutDigits;
 struct GPUTrackingInOutZS;
-namespace deprecated
-{
-struct PackedDigit;
-}
 
 class GPUReconstructionConvert
 {
@@ -56,7 +53,7 @@ class GPUReconstructionConvert
   template <class T, class S>
   static void RunZSEncoder(const S& in, std::unique_ptr<unsigned long long int[]>* outBuffer, unsigned int* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, const GPUParam& param, bool zs12bit, bool verify, float threshold = 0.f);
   static void RunZSEncoderCreateMeta(const unsigned long long int* buffer, const unsigned int* sizes, void** ptrs, GPUTrackingInOutZS* out);
-  static void RunZSFilter(std::unique_ptr<deprecated::PackedDigit[]>* buffers, const deprecated::PackedDigit* const* ptrs, size_t* nsb, const size_t* ns, const GPUParam& param, bool zs12bit);
+  static void RunZSFilter(std::unique_ptr<tpc::Digit[]>* buffers, const tpc::Digit* const* ptrs, size_t* nsb, const size_t* ns, const GPUParam& param, bool zs12bit);
   static int GetMaxTimeBin(const o2::tpc::ClusterNativeAccess& native);
   static int GetMaxTimeBin(const GPUTrackingInOutDigits& digits);
   static int GetMaxTimeBin(const GPUTrackingInOutZS& zspages);

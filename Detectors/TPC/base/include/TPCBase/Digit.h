@@ -16,7 +16,11 @@
 #define ALICEO2_TPC_DIGIT_H_
 
 #include "GPUCommonRtypes.h"
+#include "GPUCommonDef.h"
 #include "CommonDataFormat/TimeStamp.h"
+#ifndef __OPENCL__
+#include <climits>
+#endif
 
 namespace o2
 {
@@ -31,49 +35,51 @@ class Digit : public DigitBase
 {
  public:
   /// Default constructor
-  Digit() = default;
+  GPUdDefault() Digit() CON_DEFAULT;
 
   /// Constructor, initializing values for position, charge, time and common mode
   /// \param cru CRU of the Digit
   /// \param charge Accumulated charge of Digit
   /// \param row Global pad row in which the Digit was created
   /// \param pad Pad in which the Digit was created
-  Digit(int cru, float charge, int row, int pad, int time);
+  GPUhdi() Digit(int cru, float charge, int row, int pad, int time);
 
   /// Destructor
-  ~Digit() = default;
+  GPUdDefault() ~Digit() CON_DEFAULT;
 
   /// Get the accumulated charged of the Digit in ADC counts.
   /// The conversion is such that the decimals are simply stripped
   /// \return charge of the Digit
-  int getCharge() const { return static_cast<int>(mCharge); }
+  GPUhdi() int getCharge() const { return static_cast<int>(mCharge); }
 
   /// Get the accumulated charged of the Digit as a float
   /// \return charge of the Digit as a float
-  float getChargeFloat() const { return mCharge; }
+  GPUhdi() float getChargeFloat() const { return mCharge; }
+
+  GPUhdi() void setCharge(float q) { mCharge = q; }
 
   /// Get the CRU of the Digit
   /// \return CRU of the Digit
-  int getCRU() const { return mCRU; }
+  GPUhdi() int getCRU() const { return mCRU; }
 
   /// Get the global pad row of the Digit
   /// \return Global pad row of the Digit
-  int getRow() const { return mRow; }
+  GPUhdi() int getRow() const { return mRow; }
 
   /// Get the pad of the Digit
   /// \return pad of the Digit
-  int getPad() const { return mPad; }
+  GPUhdi() int getPad() const { return mPad; }
 
  protected:
   float mCharge = 0.f;      ///< ADC value of the Digit
-  unsigned short mCRU = -1; ///< CRU of the Digit
-  unsigned char mRow = -1;  ///< Global pad row of the Digit
-  unsigned char mPad = -1;  ///< Pad of the Digit
+  unsigned short mCRU = USHRT_MAX; ///< CRU of the Digit
+  unsigned char mRow = UCHAR_MAX;  ///< Global pad row of the Digit
+  unsigned char mPad = UCHAR_MAX;  ///< Pad of the Digit
 
   ClassDefNV(Digit, 1);
 };
 
-inline Digit::Digit(int cru, float charge, int row, int pad, int time)
+GPUhdi() Digit::Digit(int cru, float charge, int row, int pad, int time)
   : DigitBase(time),
     mCharge(charge),
     mCRU(cru),
