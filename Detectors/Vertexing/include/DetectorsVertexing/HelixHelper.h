@@ -41,24 +41,20 @@ struct TrackAuxPar : public o2::utils::CircleXY {
     ss = s * s;
     cs = c * s;
   }
+  ClassDefNV(TrackAuxPar, 1);
 };
 
 //__________________________________________________________
 //< crossing coordinates of 2 circles
-struct CircleCrossInfo {
+struct CrossInfo {
   float xDCA[2];
   float yDCA[2];
   int nDCA;
 
-  CircleCrossInfo() = default;
-
-  CircleCrossInfo(const TrackAuxPar& trc0, const TrackAuxPar& trc1) { set(trc0, trc1); }
-  int set(const TrackAuxPar& trc0, const TrackAuxPar& trc1)
+  int circlesCrossInfo(const TrackAuxPar& trax0, const TrackAuxPar& trax1)
   {
-    // calculate up to 2 crossings between 2 circles
-    nDCA = 0;
-    const auto& trcA = trc0.rC > trc1.rC ? trc0 : trc1; // designate the largest circle as A
-    const auto& trcB = trc0.rC > trc1.rC ? trc1 : trc0;
+    const auto& trcA = trax0.rC > trax1.rC ? trax0 : trax1; // designate the largest circle as A
+    const auto& trcB = trax0.rC > trax1.rC ? trax1 : trax0;
     float xDist = trcB.xC - trcA.xC, yDist = trcB.yC - trcA.yC;
     float dist2 = xDist * xDist + yDist * yDist, dist = std::sqrt(dist2), rsum = trcA.rC + trcB.rC;
     if (std::abs(dist) < 1e-12) {
@@ -122,6 +118,137 @@ struct CircleCrossInfo {
     xDCA[0] = trcA.xC + 0.5 * (xDist * t2d);
     yDCA[0] = trcA.yC + 0.5 * (yDist * t2d);
   }
+
+  int linesCrossInfo(const TrackAuxPar& trax0, const TrackPar& tr0,
+                     const TrackAuxPar& trax1, const TrackPar& tr1)
+  {
+    /// closest approach of 2 straight lines
+    ///  TrackParam propagation can be parameterized in lab in a form
+    ///  xLab(t) = (x*cosAlp - y*sinAlp) + t*(cosAlp - sinAlp* snp/csp) = xLab0 + t*(cosAlp - sinAlp* snp/csp)
+    ///  yLab(t) = (x*sinAlp + y*cosAlp) + t*(sinAlp + cosAlp* snp/csp) = yLab0 + t*(sinAlp + cosAlp* snp/csp)
+    ///  zLab(t) = z + t * tgl / csp = zLab0 + t * tgl / csp
+    ///  where t is the x-step in the track alpha-frame, xLab,yLab,zLab are reference track coordinates in lab
+    ///  frame (filled by TrackAuxPar for straight line tracks).
+    ///
+    ///  Therefore, for the parametric track equation in lab 3D we have (wrt tracking-X increment t)
+    ///  xL(t) = xL + t Kx;  Kx = (cosAlp - sinAlp* snp/csp)
+    ///  yL(t) = yL + t Ky;  Ky = (sinAlp + cosAlp* snp/csp)
+    ///  zL(t) = zL + t Kz;  Kz = tgl / csp
+    ///  Note that Kx^2 + Ky^2 + Kz^2 = (1+tgl^2) / csp^2
+
+    float dx = trax1.xC - trax0.xC; // for straight line TrackAuxPar stores lab coordinates at referene point!!!
+    float dy = trax1.yC - trax0.yC; //
+    float dz = tr1.getZ() - tr0.getZ();
+    auto csp0i2 = 1. / tr0.getCsp2(); // 1 / csp^2
+    auto csp0i = std::sqrt(csp0i2);
+    auto tgp0 = tr0.getSnp() * csp0i;
+    float kx0 = trax0.c - trax0.s * tgp0;
+    float ky0 = trax0.s + trax0.c * tgp0;
+    float kz0 = tr0.getTgl() * csp0i;
+    auto csp1i2 = 1. / tr1.getCsp2(); // 1 / csp^2
+    auto csp1i = std::sqrt(csp1i2);
+    auto tgp1 = tr1.getSnp() * std::sqrt(csp1i2);
+    float kx1 = trax1.c - trax1.s * tgp1;
+    float ky1 = trax1.s + trax1.c * tgp1;
+    float kz1 = tr1.getTgl() * csp1i;
+    /// Minimize |vecL1 - vecL0|^2 wrt t0 and t1: point of closest approach
+    /// Leads to system
+    /// A Dx = B with Dx = {dx0, dx1}
+    /// with A =
+    ///  |      kx0^2+ky0^2+kz0^2     -(kx0*kx1+ky0*ky1+kz0*kz1) | =  (1+tgl0^2) / csp0^2           ....
+    ///  | -(kx0*kx1+ky0*ky1+kz0*kz1)     kx0^2+ky0^2+kz0^2      |     .....                   (1+tgl1^2) / csp1^2
+    /// and B = {(dx Kx0 + dy Ky0 + dz Kz0), -(dx Kx1 + dy Ky1 + dz Kz1) }
+    ///
+    float a00 = (1.f + tr0.getTgl() * tr0.getTgl()) * csp0i2, a11 = (1.f + tr1.getTgl() * tr1.getTgl()) * csp1i2, a01 = -(kx0 * kx1 + ky0 * ky1 + kz0 * kz1);
+    float b0 = dx * kx0 + dy * ky0 + dz * kz0, b1 = -(dx * kx1 + dy * ky1 + dz * kz1);
+    float det = a00 * a11 - a01 * a01, det0 = b0 * a11 - b1 * a01, det1 = a00 * b1 - a01 * b0;
+    if (std::abs(det) > o2::constants::math::Almost0) {
+      auto detI = 1. / det;
+      auto t0 = det0 * detI;
+      auto t1 = det1 * detI;
+      xDCA[0] = (trax0.xC + kx0 * t0 + trax1.xC + kx1 * t1) * 0.5;
+      yDCA[0] = (trax0.yC + ky0 * t0 + trax1.yC + ky1 * t1) * 0.5;
+      nDCA = 1;
+    }
+    return nDCA;
+  }
+
+  int circleLineCrossInfo(const TrackAuxPar& trax0, const TrackPar& tr0,
+                          const TrackAuxPar& trax1, const TrackPar& tr1)
+  {
+    /// closest approach of line and circle
+    ///  TrackParam propagation can be parameterized in lab in a form
+    ///  xLab(t) = (x*cosAlp - y*sinAlp) + t*(cosAlp - sinAlp* snp/csp) = xLab0 + t*(cosAlp - sinAlp* snp/csp)
+    ///  yLab(t) = (x*sinAlp + y*cosAlp) + t*(sinAlp + cosAlp* snp/csp) = yLab0 + t*(sinAlp + cosAlp* snp/csp)
+    ///  zLab(t) = z + t * tgl / csp = zLab0 + t * tgl / csp
+    ///  where t is the x-step in the track alpha-frame, xLab,yLab,zLab are reference track coordinates in lab
+    ///  frame (filled by TrackAuxPar for straight line tracks).
+    ///
+    ///  Therefore, for the parametric track equation in lab 3D we have (wrt tracking-X increment t)
+    ///  xL(t) = xL + t Kx;  Kx = (cosAlp - sinAlp* snp/csp)
+    ///  yL(t) = yL + t Ky;  Ky = (sinAlp + cosAlp* snp/csp)
+    ///  zL(t) = zL + t Kz;  Kz = tgl / csp
+    ///  Note that Kx^2 + Ky^2  = 1 / csp^2
+
+    const auto& traxH = trax0.rC > trax1.rC ? trax0 : trax1; // circle (for the line rC is set to 0)
+    const auto& traxL = trax0.rC > trax1.rC ? trax1 : trax0; // line
+    const auto& trcL = trax0.rC > trax1.rC ? tr1 : tr0;      // track of the line
+
+    // solve quadratic equation of line crossing the circle
+    float dx = traxL.xC - traxH.xC; // X distance between the line lab reference and circle center
+    float dy = traxL.yC - traxH.yC; // Y...
+    // t^2(kx^2+ky^2) + 2t(dx*kx+dy*ky) + dx^2 + dy^2 - r^2 = 0
+    auto cspi2 = 1. / trcL.getCsp2(); // 1 / csp^2 == kx^2 +  ky^2
+    auto cspi = std::sqrt(cspi2);
+    auto tgp = trcL.getSnp() * cspi;
+    float kx = traxL.c - traxL.s * tgp;
+    float ky = traxL.s + traxL.c * tgp;
+    double dk = dx * kx + dy * ky;
+    double det = dk * dk - cspi2 * (dx * dx + dy * dy - traxH.rC * traxH.rC);
+    if (det > 0) { // 2 crossings
+      det = std::sqrt(det);
+      float t0 = (-dk + det) * cspi2;
+      float t1 = (-dk - det) * cspi2;
+      xDCA[0] = traxL.xC + kx * t0;
+      yDCA[0] = traxL.yC + ky * t0;
+      xDCA[1] = traxL.xC + kx * t1;
+      yDCA[1] = traxL.yC + ky * t1;
+      nDCA = 2;
+    } else {
+      // there is no crossing, find the point of the closest approach on the line as the sames which is closest to the circle center
+      float t = -dk * cspi2;
+      float xL = traxL.xC + kx * t, yL = traxL.yC + ky * t;                                               // point on the line, need to average with point on the circle
+      float dxc = xL - traxH.xC, dyc = yL - traxH.yC, drcf = traxH.rC / std::sqrt(dxc * dxc + dyc * dyc); // radius / distance to circle center
+      float xH = traxH.xC + dxc * drcf, yH = traxH.yC + dyc * drcf;
+      xDCA[0] = (xL + xH) * 0.5;
+      yDCA[0] = (yL + yH) * 0.5;
+      nDCA = 1;
+    }
+    return nDCA;
+  }
+
+  int set(const TrackAuxPar& trax0, const TrackPar& tr0, const TrackAuxPar& trax1, const TrackPar& tr1)
+  {
+    // calculate up to 2 crossings between 2 circles
+    nDCA = 0;
+    if (trax0.rC > o2::constants::math::Almost0 && trax1.rC > o2::constants::math::Almost0) { // both are not straight lines
+      nDCA = circlesCrossInfo(trax0, trax1);
+    } else if (trax0.rC < o2::constants::math::Almost0 && trax1.rC < o2::constants::math::Almost0) { // both are straigt lines
+      nDCA = linesCrossInfo(trax0, tr0, trax1, tr1);
+    } else {
+      nDCA = circleLineCrossInfo(trax0, tr0, trax1, tr1);
+    }
+    //
+    return nDCA;
+  }
+
+  CrossInfo() = default;
+
+  CrossInfo(const TrackAuxPar& trax0, const TrackPar& tr0, const TrackAuxPar& trax1, const TrackPar& tr1)
+  {
+    set(trax0, tr0, trax1, tr1);
+  }
+  ClassDefNV(CrossInfo, 1);
 };
 
 } // namespace track
