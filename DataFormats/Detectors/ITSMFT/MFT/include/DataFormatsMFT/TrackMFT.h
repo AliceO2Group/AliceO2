@@ -74,6 +74,14 @@ class TrackMFT
   Double_t getInvPt() const { return TMath::Abs(mParameters(4)); }
   Double_t getSigmaInvQPt() const { return mCovariances(4, 4); }
 
+  // Charge and momentum from quadratic regression of clusters X,Y positions
+  void setInvQPtQuadtratic(Double_t invqpt) { mInvQPtQuadtratic = invqpt; }
+  const Double_t getInvQPtQuadtratic() const { return mInvQPtQuadtratic; } // Inverse charged pt
+  const Double_t getPtQuadtratic() const { return TMath::Abs(1.f / getInvQPtQuadtratic()); }
+  const Double_t getChargeQuadratic() const { return TMath::Sign(1., getInvQPtQuadtratic()); }
+  void setChi2QPtQuadtratic(Double_t chi2) { mQuadraticFitChi2 = chi2; }
+  const Double_t getChi2QPtQuadtratic() const { return mQuadraticFitChi2; }
+
   Double_t getPx() const { return TMath::Cos(getPhi()) * getPt(); } // return px
   Double_t getInvPx() const { return 1. / getPx(); }                // return invpx
 
@@ -149,6 +157,9 @@ class TrackMFT
   void print() const;
   void printMCCompLabels() const;
 
+  // Extrapolate this track to
+  void extrapHelixToZ(double zEnd, double Field);
+
  private:
   std::uint32_t mROFrame = 0;       ///< RO Frame
   Int_t mNPoints{0};                // Number of clusters
@@ -174,6 +185,16 @@ class TrackMFT
   /// <X,INVQPT>   <Y,INVQPT>     <PHI,INVQPT>   <TANL,INVQPT>   <INVQPT,INVQPT>  </pre>
   SMatrix55 mCovariances;      ///< \brief Covariance matrix of track parameters
   Double_t mTrackChi2 = 0.;    ///< Chi2 of the track when the associated cluster was attached
+
+  // Results from quadratic regression of clusters X,Y positions
+  // Chi2 of the quadratic regression used to estimate track pT and charge
+  Double_t mQuadraticFitChi2 = 0.;
+  // inversed charged momentum from quadratic regression
+  Double_t mInvQPtQuadtratic;
+
+  // Extrapolate covariances
+  void extrapHelixToZCov(double zEnd, double Field);
+
   ClassDefNV(TrackMFT, 1);
 };
 

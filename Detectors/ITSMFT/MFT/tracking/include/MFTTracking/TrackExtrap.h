@@ -55,7 +55,7 @@ class TrackExtrap
   void addMCSEffect(TrackParamMFT* TrackParamMFT, double dZ, double x0, bool isFieldON = true);
 
  private:
-  Float_t mBZField = 0.5;  // Tesla.
+  Float_t mBZField;        // kiloGauss.
   bool mIsFieldON = false; ///< true if the field is switched ON
 };
 
