@@ -13,6 +13,10 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#include "Rtypes.h"
+#endif
+
 #include "TPCFastTransform.h"
 
 #if !defined(GPUCA_GPUCODE)
@@ -147,7 +151,7 @@ void TPCFastTransform::print() const
 #endif
 }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
 int TPCFastTransform::writeToFile(std::string outFName, std::string name)
 {

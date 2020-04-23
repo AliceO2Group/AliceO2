@@ -13,6 +13,10 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#include "Rtypes.h"
+#endif
+
 #include "Spline1D.h"
 #include <cmath>
 
@@ -228,7 +232,7 @@ void Spline1D<DataT>::print() const
   printf("\n");
 }
 
-#if !defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 template <typename DataT>
 int Spline1D<DataT>::writeToFile(TFile& outf, const char* name)
 {
@@ -244,7 +248,7 @@ Spline1D<DataT>* Spline1D<DataT>::readFromFile(TFile& inpf, const char* name)
 }
 #endif
 
-#if !defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
 template <typename DataT>
 void Spline1D<DataT>::approximateFunction(DataT xMin, DataT xMax,
