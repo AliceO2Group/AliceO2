@@ -492,7 +492,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
               for (int n = 0; n < nSeqRead; n++) {
                 const int seqLen = rowData[(n + 1) * 2] - (n ? rowData[n * 2] : 0);
                 for (int o = 0; o < seqLen; o++) {
-                  compareBuffer.emplace_back(o2::tpc::Digit{0, (float)streamBuffer[pos10++] * decodeBitsFactor, (Row)(rowOffset + m), (Pad)(rowData[n * 2 + 1] + o), timeBin + l});
+                  compareBuffer.emplace_back(o2::tpc::Digit{0, (float)streamBuffer[pos10++] * decodeBitsFactor, (tpccf::Row)(rowOffset + m), (tpccf::Pad)(rowData[n * 2 + 1] + o), timeBin + l});
                 }
               }
               rowPos++;

@@ -93,9 +93,11 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+namespace tpccf
+{
 
-using TPCTime = int32_t;
-using TPCFragmentTime = int16_t;
+using TPCTime = int;
+using TPCFragmentTime = short;
 using Pad = unsigned char;
 using GlobalPad = short;
 using Row = unsigned char;
@@ -117,6 +119,7 @@ GPUconstexpr() float OUTER_CHARGE_THRESHOLD = 0.f;
 GPUconstexpr() float QTOT_THRESHOLD = 500.f;
 GPUconstexpr() int MIN_SPLIT_NUM = 1;
 
+} // namespace tpccf
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

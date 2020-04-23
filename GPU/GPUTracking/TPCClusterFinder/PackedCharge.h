@@ -40,16 +40,16 @@ class PackedCharge
   };
 
   GPUdDefault() PackedCharge() CON_DEFAULT;
-  GPUdi() explicit PackedCharge(Charge q) : PackedCharge(q, false, false) {}
-  GPUdi() PackedCharge(Charge q, bool peak3x3, bool wasSplit)
+  GPUdi() explicit PackedCharge(tpccf::Charge q) : PackedCharge(q, false, false) {}
+  GPUdi() PackedCharge(tpccf::Charge q, bool peak3x3, bool wasSplit)
   {
-    mVal = q * Charge(1 << DecimalBits);
+    mVal = q * tpccf::Charge(1 << DecimalBits);
     mVal = CAMath::Min<BasicType>(MaxVal, mVal); // ensure only lower 14 bits are set
     mVal |= (peak3x3) ? Has3x3PeakMask : Null;
     mVal |= (wasSplit) ? IsSplitMask : Null;
   }
 
-  GPUdi() Charge unpack() const { return Charge(mVal & ChargeMask) / Charge(1 << DecimalBits); }
+  GPUdi() tpccf::Charge unpack() const { return tpccf::Charge(mVal & ChargeMask) / tpccf::Charge(1 << DecimalBits); }
   GPUdi() bool has3x3Peak() const { return mVal & Has3x3PeakMask; }
   GPUdi() bool isSplit() const { return mVal & IsSplitMask; }
 

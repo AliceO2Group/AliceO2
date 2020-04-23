@@ -42,7 +42,7 @@ class Digit : public DigitBase
   /// \param charge Accumulated charge of Digit
   /// \param row Global pad row in which the Digit was created
   /// \param pad Pad in which the Digit was created
-  GPUhdi() Digit(int cru, float charge, int row, int pad, int time);
+  GPUdi() Digit(int cru, float charge, int row, int pad, int time);
 
   /// Destructor
   GPUdDefault() ~Digit() CON_DEFAULT;
@@ -50,25 +50,25 @@ class Digit : public DigitBase
   /// Get the accumulated charged of the Digit in ADC counts.
   /// The conversion is such that the decimals are simply stripped
   /// \return charge of the Digit
-  GPUhdi() int getCharge() const { return static_cast<int>(mCharge); }
+  GPUdi() int getCharge() const { return static_cast<int>(mCharge); }
 
   /// Get the accumulated charged of the Digit as a float
   /// \return charge of the Digit as a float
-  GPUhdi() float getChargeFloat() const { return mCharge; }
+  GPUdi() float getChargeFloat() const { return mCharge; }
 
-  GPUhdi() void setCharge(float q) { mCharge = q; }
+  GPUdi() void setCharge(float q) { mCharge = q; }
 
   /// Get the CRU of the Digit
   /// \return CRU of the Digit
-  GPUhdi() int getCRU() const { return mCRU; }
+  GPUdi() int getCRU() const { return mCRU; }
 
   /// Get the global pad row of the Digit
   /// \return Global pad row of the Digit
-  GPUhdi() int getRow() const { return mRow; }
+  GPUdi() int getRow() const { return mRow; }
 
   /// Get the pad of the Digit
   /// \return pad of the Digit
-  GPUhdi() int getPad() const { return mPad; }
+  GPUdi() int getPad() const { return mPad; }
 
  protected:
   float mCharge = 0.f;      ///< ADC value of the Digit
@@ -79,7 +79,7 @@ class Digit : public DigitBase
   ClassDefNV(Digit, 1);
 };
 
-GPUhdi() Digit::Digit(int cru, float charge, int row, int pad, int time)
+GPUdi() Digit::Digit(int cru, float charge, int row, int pad, int time)
   : DigitBase(time),
     mCharge(charge),
     mCRU(cru),

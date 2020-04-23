@@ -863,6 +863,7 @@ int GPUChainTracking::RunTPCClusterizer()
   static std::vector<o2::tpc::ClusterNative> clsMemory; // TODO: remove static temporary, data should remain on the GPU anyway
   size_t nClsTotal = 0;
   ClusterNativeAccess* tmp = mClusterNativeAccess.get();
+  std::fill(&tmp->nClusters[0][0], &tmp->nClusters[tpc::Constants::MAXSECTOR][tpc::Constants::MAXGLOBALPADROW], 0);
   size_t pos = 0;
   clsMemory.reserve(mRec->MemoryScalers()->nTPCHits);
 
@@ -877,8 +878,8 @@ int GPUChainTracking::RunTPCClusterizer()
     mcLinearLabels.data.reserve(mRec->MemoryScalers()->nTPCHits * 16); // Assumption: cluster will have less than 16 labels on average
   }
 
-  TPCTime timeSliceLen = TPC_MAX_TIME;
-  TPCFragmentTime fragmentLen = TPC_MAX_TIME;
+  tpccf::TPCTime timeSliceLen = 4000;
+  tpccf::TPCFragmentTime fragmentLen = TPC_MAX_TIME;
 
   for (unsigned int iSliceBase = 0; iSliceBase < NSLICES; iSliceBase += GetDeviceProcessingSettings().nTPCClustererLanes) {
     for (CfFragment fragment{timeSliceLen, fragmentLen}; !fragment.isEnd(); fragment = fragment.next(timeSliceLen, fragmentLen)) {
@@ -926,10 +927,12 @@ int GPUChainTracking::RunTPCClusterizer()
         if (iSliceBase == 0) {
           using ChargeMapType = decltype(*clustererShadow.mPchargeMap);
           using PeakMapType = decltype(*clustererShadow.mPpeakMap);
-          runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), lane, RecoStep::TPCClusterFinding}, krnlRunRangeNone, {}, clustererShadow.mPchargeMap, TPCMapMemoryLayout<ChargeMapType>::items() * sizeof(ChargeMapType));
-          runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), lane, RecoStep::TPCClusterFinding}, krnlRunRangeNone, {}, clustererShadow.mPpeakMap, TPCMapMemoryLayout<PeakMapType>::items() * sizeof(PeakMapType));
+          runKernel<GPUMemClean16>(GetGridBlkStep(BlockCount(), lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPchargeMap, TPCMapMemoryLayout<ChargeMapType>::items() * sizeof(ChargeMapType));
+          runKernel<GPUMemClean16>(GetGridBlkStep(BlockCount(), lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPpeakMap, TPCMapMemoryLayout<PeakMapType>::items() * sizeof(PeakMapType));
         }
-        runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), lane, RecoStep::TPCClusterFinding}, krnlRunRangeNone, {}, clustererShadow.mPclusterInRow, GPUCA_ROW_COUNT * sizeof(*clustererShadow.mPclusterInRow));
+        if (fragment.index == 0) {
+          runKernel<GPUMemClean16>(GetGridBlkStep(BlockCount(), lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPclusterInRow, GPUCA_ROW_COUNT * sizeof(*clustererShadow.mPclusterInRow));
+        }
         DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpChargeMap, mDebugFile, "Zeroed Charges");
         if (mIOPtrs.tpcZS && nPagesTotal == 0) {
           continue;
@@ -1030,32 +1033,33 @@ int GPUChainTracking::RunTPCClusterizer()
         if (clusterer.mPmemory->counters.nPositions) {
           runKernel<GPUTPCCFChargeMapFiller, GPUTPCCFChargeMapFiller::resetMaps>(GetGrid(clusterer.mPmemory->counters.nPositions, lane), {iSlice}, {});
         }
-        if (clusterer.mPmemory->counters.nClusters == 0) {
-          for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
-            tmp->nClusters[iSlice][j] = 0;
-          }
-          continue;
-        }
         nClsTotal += clusterer.mPmemory->counters.nClusters;
-        clsMemory.resize(nClsTotal);
-        for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
-          memcpy((void*)&clsMemory[pos], (const void*)&clusterer.mPclusterByRow[j * clusterer.mNMaxClusterPerRow], clusterer.mPclusterInRow[j] * sizeof(clsMemory[0]));
-          tmp->nClusters[iSlice][j] = clusterer.mPclusterInRow[j];
-          if (GetDeviceProcessingSettings().debugLevel >= 4) {
-            std::sort(&clsMemory[pos], &clsMemory[pos + clusterer.mPclusterInRow[j]]);
-          }
-          pos += clusterer.mPclusterInRow[j];
+      }
+    }
+    for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
+      unsigned int iSlice = iSliceBase + lane;
+      GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
+      clsMemory.resize(nClsTotal);
+      for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+        memcpy((void*)&clsMemory[pos], (const void*)&clusterer.mPclusterByRow[j * clusterer.mNMaxClusterPerRow], clusterer.mPclusterInRow[j] * sizeof(clsMemory[0]));
+        tmp->nClusters[iSlice][j] += clusterer.mPclusterInRow[j];
+        if (GetDeviceProcessingSettings().debugLevel >= 4) {
+          std::sort(&clsMemory[pos], &clsMemory[pos + clusterer.mPclusterInRow[j]]);
         }
+        pos += clusterer.mPclusterInRow[j];
+      }
 
-        if (not propagateMCLabels) {
+      if (not propagateMCLabels) {
+        continue;
+      }
+
+      runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::setRowOffsets>(GetGrid(GPUCA_ROW_COUNT, lane), {iSlice}, {});
+      GPUTPCCFMCLabelFlattener::setGlobalOffsetsAndAllocate(clusterer, mcLinearLabels);
+      for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+        if (clusterer.mPclusterInRow[j] == 0) {
           continue;
         }
-
-        runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::setRowOffsets>(GetGrid(GPUCA_ROW_COUNT, lane), {iSlice}, {});
-        GPUTPCCFMCLabelFlattener::setGlobalOffsetsAndAllocate(clusterer, mcLinearLabels);
-        for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
-          runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::flatten>(GetGrid(clusterer.mPclusterInRow[j], lane), {iSlice}, {}, j, &mcLinearLabels);
-        }
+        runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::flatten>(GetGrid(clusterer.mPclusterInRow[j], lane), {iSlice}, {}, j, &mcLinearLabels);
       }
     }
   }
