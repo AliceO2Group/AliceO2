@@ -25,7 +25,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-void GPUTPCGMSliceTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sliceTr, float alpha, int slice)
+GPUd() void GPUTPCGMSliceTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sliceTr, float alpha, int slice)
 {
   const GPUTPCBaseTrackParam& t = sliceTr->Param();
   mOrigTrack = sliceTr;
@@ -47,7 +47,7 @@ void GPUTPCGMSliceTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sl
   mNClusters = sliceTr->NHits();
 }
 
-void GPUTPCGMSliceTrack::Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sliceTr, float alpha, int slice)
+GPUd() void GPUTPCGMSliceTrack::Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sliceTr, float alpha, int slice)
 {
   mOrigTrack = sliceTr;
   mX = trk.GetX();
@@ -73,7 +73,7 @@ void GPUTPCGMSliceTrack::Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* s
   mC14 = trk.GetCov(14);
 }
 
-bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi, float sinPhiMargin)
+GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi, float sinPhiMargin)
 {
   float lastX;
   if (merger->Param().earlyTpcTransform && !merger->Param().rec.mergerReadFromTrackerDirectly) {
@@ -134,7 +134,7 @@ bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, 
       float ex = mCosPhi;
       float ey = mSinPhi;
       float ey1 = kdx + ey;
-      if (fabsf(ey1) > maxSinPhi) {
+      if (CAMath::Abs(ey1) > maxSinPhi) {
         if (ey1 > maxSinPhi && ey1 < maxSinPhi + sinPhiMargin) {
           ey1 = maxSinPhi - 0.01;
         } else if (ey1 > -maxSinPhi - sinPhiMargin) {
@@ -262,7 +262,7 @@ bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, 
   return ok;
 }
 
-bool GPUTPCGMSliceTrack::TransportToX(GPUTPCGMMerger* merger, float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov) const
+GPUd() bool GPUTPCGMSliceTrack::TransportToX(GPUTPCGMMerger* merger, float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov) const
 {
   Bz = -Bz;
   float ex = mCosPhi;
@@ -271,7 +271,7 @@ bool GPUTPCGMSliceTrack::TransportToX(GPUTPCGMMerger* merger, float x, float Bz,
   float dx = x - mX;
   float ey1 = k * dx + ey;
 
-  if (fabsf(ey1) > maxSinPhi) {
+  if (CAMath::Abs(ey1) > maxSinPhi) {
     return 0;
   }
 
@@ -331,7 +331,7 @@ bool GPUTPCGMSliceTrack::TransportToX(GPUTPCGMMerger* merger, float x, float Bz,
   float h4c44 = h4 * c44;
   float n7 = c31 + dS * c33;
 
-  if (fabsf(mQPt) > 6.66) // Special treatment for low Pt
+  if (CAMath::Abs(mQPt) > 6.66) // Special treatment for low Pt
   {
     b.SetCov(0, CAMath::Max(mC0, mC0 + h2 * h2c22 + h4 * h4c44 + 2.f * (h2 * c20ph4c42 + h4 * c40))); // Do not decrease Y cov for matching!
     float C2tmp = dS * 2.f * c31;
@@ -354,7 +354,7 @@ bool GPUTPCGMSliceTrack::TransportToX(GPUTPCGMMerger* merger, float x, float Bz,
   return 1;
 }
 
-bool GPUTPCGMSliceTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float newX, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const
+GPUd() bool GPUTPCGMSliceTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float newX, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const
 {
   //*
 
@@ -416,7 +416,7 @@ bool GPUTPCGMSliceTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float newX, f
   float dx = newX - x;
   float ey1 = k * dx + ey;
 
-  if (fabsf(ey1) > maxSinPhi) {
+  if (CAMath::Abs(ey1) > maxSinPhi) {
     return 0;
   }
 
@@ -478,7 +478,7 @@ bool GPUTPCGMSliceTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float newX, f
   return 1;
 }
 
-void GPUTPCGMSliceTrack::CopyBaseTrackCov()
+GPUd() void GPUTPCGMSliceTrack::CopyBaseTrackCov()
 {
   const float* GPUrestrict() cov = mOrigTrack->Param().mC;
   mC0 = cov[0];

@@ -42,3 +42,93 @@ GPUdii() void GPUTPCGMMergerFollowLoopers::Thread<0>(int nBlocks, int nThreads, 
     GPUTPCGMTrackParam::RefitLoop(&merger, i);
   }
 }
+
+template <>
+GPUdii() void GPUTPCGMMergerUnpack::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  merger.UnpackSlices(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerMergeWithin::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  merger.MergeWithingSlices(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerMergeSlices::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  merger.MergeSlices(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerMergeCEInit::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  merger.MergeCEInit(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerMergeCE::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  merger.MergeCE(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerCollect::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  merger.CollectMergedTracks(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerSortTracks::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  merger.SortTracks(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerSortTracksPrepare::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  merger.SortTracksPrepare(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerPrepareClusters::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  merger.PrepareClustersForFit(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerFinalize::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  merger.Finalize(nBlocks, nThreads, iBlock, iThread);
+}

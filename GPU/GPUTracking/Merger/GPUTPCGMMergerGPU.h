@@ -52,32 +52,94 @@ class GPUTPCGMMergerFollowLoopers : public GPUTPCGMMergerGeneral
 #endif
 };
 
-class GPUTPCGMMergerUnpack
+class GPUTPCGMMergerUnpack : public GPUTPCGMMergerGeneral
 {
+ public:
+#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
+#endif
 };
-class GPUTPCGMMergerMergeWithin
+
+class GPUTPCGMMergerMergeWithin : public GPUTPCGMMergerGeneral
 {
+ public:
+#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
+#endif
 };
-class GPUTPCGMMergerMergeSlices
+
+class GPUTPCGMMergerMergeSlices : public GPUTPCGMMergerGeneral
 {
+ public:
+#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
+#endif
 };
-class GPUTPCGMMergerMergeCE
+
+class GPUTPCGMMergerMergeCEInit : public GPUTPCGMMergerGeneral
 {
+ public:
+#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
+#endif
 };
-class GPUTPCGMMergerCollect
+
+class GPUTPCGMMergerMergeCE : public GPUTPCGMMergerGeneral
 {
+ public:
+#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
+#endif
 };
-class GPUTPCGMMergerClusters
+
+class GPUTPCGMMergerCollect : public GPUTPCGMMergerGeneral
 {
+ public:
+#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
+#endif
 };
-class GPUTPCGMMergerCopyToGPU
+
+class GPUTPCGMMergerPrepareClusters : public GPUTPCGMMergerGeneral
 {
+ public:
+#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
+#endif
 };
-class GPUTPCGMMergerCopyToHost
+
+class GPUTPCGMMergerSortTracks : public GPUTPCGMMergerGeneral
 {
+ public:
+#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
+#endif
 };
-class GPUTPCGMMergerFinalize
+
+class GPUTPCGMMergerSortTracksPrepare : public GPUTPCGMMergerGeneral
 {
+ public:
+#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
+#endif
+};
+
+class GPUTPCGMMergerFinalize : public GPUTPCGMMergerGeneral
+{
+ public:
+#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
+#endif
 };
 
 } // namespace gpu

@@ -16,9 +16,10 @@
 
 #include "GPUCommonDef.h"
 
-#if !defined(GPUCA_GPUCODE_DEVICE) && (!defined __cplusplus || __cplusplus < 201402L)
+#if !defined(GPUCA_GPUCODE_DEVICE)
+//&& (!defined __cplusplus || __cplusplus < 201402L) // This would enable to custom search also on the CPU if available by the compiler, but it is not always faster, so we stick to std::sort
 #include <algorithm>
-#define GPUCA_ALGORITHM_FALLBACK
+#define GPUCA_ALGORITHM_STD
 #endif
 
 // ----------------------------- SORTING -----------------------------
@@ -38,6 +39,8 @@ class GPUCommonAlgorithm
   GPUd() static void sort(T* begin, T* end, const S& comp);
   template <class T, class S>
   GPUd() static void sortInBlock(T* begin, T* end, const S& comp);
+  template <class T>
+  GPUd() static void swap(T& a, T& b);
 
  private:
   // Quicksort implementation
@@ -72,7 +75,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-#ifndef GPUCA_ALGORITHM_FALLBACK
+#ifndef GPUCA_ALGORITHM_STD
 template <typename I>
 GPUdi() void GPUCommonAlgorithm::IterSwap(I a, I b) noexcept
 {
@@ -222,7 +225,7 @@ namespace gpu
 template <class T>
 GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end)
 {
-#ifdef GPUCA_ALGORITHM_FALLBACK
+#ifdef GPUCA_ALGORITHM_STD
   std::sort(begin, end);
 #else
   QuickSort(begin, end, [](auto&& x, auto&& y) { return x < y; });
@@ -232,7 +235,7 @@ GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end)
 template <class T, class S>
 GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end, const S& comp)
 {
-#ifdef GPUCA_ALGORITHM_FALLBACK
+#ifdef GPUCA_ALGORITHM_STD
   std::sort(begin, end, comp);
 #else
   QuickSort(begin, end, comp);
@@ -272,6 +275,22 @@ GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
   }
 #endif
 }
+
+#ifdef GPUCA_GPUCODE_DEVICE
+template <class T>
+GPUdi() void GPUCommonAlgorithm::swap(T& a, T& b)
+{
+  auto tmp = a;
+  a = b;
+  b = tmp;
+}
+#else
+template <class T>
+GPUdi() void GPUCommonAlgorithm::swap(T& a, T& b)
+{
+  std::swap(a, b);
+}
+#endif
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
