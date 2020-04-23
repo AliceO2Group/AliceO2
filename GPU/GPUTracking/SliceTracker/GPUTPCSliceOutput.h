@@ -17,10 +17,6 @@
 #include "GPUTPCDef.h"
 #include "GPUTPCTrack.h"
 
-#if !defined(__OPENCL__)
-#include <cstdlib>
-#endif
-
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -41,21 +37,22 @@ struct GPUOutputControl;
 class GPUTPCSliceOutput
 {
  public:
-#if !defined(GPUCA_GPUCODE_DEVICE)
   GPUhd() unsigned int NTracks() const
   {
     return mNTracks;
   }
   GPUhd() unsigned int NLocalTracks() const { return mNLocalTracks; }
   GPUhd() unsigned int NTrackClusters() const { return mNTrackClusters; }
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
   GPUhd() const GPUTPCTrack* GetFirstTrack() const
   {
-    return mMemory;
+    return (const GPUTPCTrack*)((const char*)this + sizeof(*this));
   }
   GPUhd() GPUTPCTrack* FirstTrack()
   {
-    return mMemory;
+    return (GPUTPCTrack*)((char*)this + sizeof(*this));
   }
+#endif
   GPUhd() size_t Size() const
   {
     return (mMemorySize);
@@ -74,17 +71,12 @@ class GPUTPCSliceOutput
   GPUTPCSliceOutput(const GPUTPCSliceOutput&) CON_DELETE;            // NOLINT
   GPUTPCSliceOutput& operator=(const GPUTPCSliceOutput&) CON_DELETE; // NOLINT
 
-  GPUh() void SetMemorySize(size_t val) { mMemorySize = val; }
+  GPUhd() void SetMemorySize(size_t val) { mMemorySize = val; }
 
   unsigned int mNTracks; // number of reconstructed tracks
   unsigned int mNLocalTracks;
   unsigned int mNTrackClusters; // total number of track clusters
   size_t mMemorySize;           // Amount of memory really used
-
-// Must be last element of this class, user has to make sure to allocate anough memory consecutive to class memory!
-// This way the whole Slice Output is one consecutive Memory Segment
-  GPUTPCTrack mMemory[0]; // the memory where the pointers above point into
-#endif
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

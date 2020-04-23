@@ -13,20 +13,23 @@
 
 #define GPUCA_CADEBUG 0
 
+#ifndef __OPENCL__
 #include <cstdio>
 #include <cstring>
+#include <cmath>
+#endif
+
 #include "GPUTPCTracker.h"
 #include "GPUTPCClusterData.h"
 #include "GPUTPCTrackParam.h"
 #include "GPUTPCGMMerger.h"
 #include "GPUReconstruction.h"
-#include "GPUChainTracking.h"
 #include "GPUO2DataTypes.h"
 #include "TPCFastTransform.h"
 #include "GPUTPCConvertImpl.h"
-#include "GPUQA.h"
 
 #include "GPUCommonMath.h"
+#include "GPUCommonAlgorithm.h"
 
 #include "GPUTPCTrackParam.h"
 #include "GPUTPCSliceOutput.h"
@@ -37,9 +40,6 @@
 #include "GPUTPCGMTrackParam.h"
 #include "GPUTPCGMSliceTrack.h"
 #include "GPUTPCGMBorderTrack.h"
-#include <cmath>
-
-#include <algorithm>
 
 #ifdef GPUCA_CADEBUG_ENABLED
 #include "AliHLTTPCClusterMCData.h"
@@ -58,8 +58,13 @@ static constexpr int kMaxClusters = GPUCA_MERGER_MAX_TRACK_CLUSTERS;
 #undef OFFLINE_FITTER
 #endif
 
+#ifndef GPUCA_GPUCODE
+
+#include "GPUChainTracking.h"
+#include "GPUQA.h"
+
 GPUTPCGMMerger::GPUTPCGMMerger()
-  : mTrackLinks(nullptr), mNMaxSliceTracks(0), mNMaxTracks(0), mNMaxSingleSliceTracks(0), mNMaxOutputTrackClusters(0), mNMaxClusters(0), mMemoryResRefit(-1), mMaxID(0), mNClusters(0), mNOutputTracks(0), mNOutputTrackClusters(0), mOutputTracks(nullptr), mSliceTrackInfos(nullptr), mClusters(nullptr), mGlobalClusterIDs(nullptr), mClusterAttachment(nullptr), mTrackOrderAttach(nullptr), mTrackOrderProcess(nullptr), mTmpMem(nullptr), mBorderMemory(nullptr), mBorderRangeMemory(nullptr), mMemory(nullptr), mRetryRefitIds(nullptr), mLoopData(nullptr), mSliceTrackers(nullptr), mChainTracking(nullptr)
+  : mTrackLinks(nullptr), mNMaxSliceTracks(0), mNMaxTracks(0), mNMaxSingleSliceTracks(0), mNMaxOutputTrackClusters(0), mNMaxClusters(0), mMemoryResRefit(-1), mMaxID(0), mNClusters(0), mNOutputTracks(0), mNOutputTrackClusters(0), mOutputTracks(nullptr), mSliceTrackInfos(nullptr), mSliceTrackInfoIndex(nullptr), mClusters(nullptr), mGlobalClusterIDs(nullptr), mClusterAttachment(nullptr), mTrackOrderAttach(nullptr), mTrackOrderProcess(nullptr), mTmpMem(nullptr), mBorderMemory(nullptr), mBorderRangeMemory(nullptr), mBorderCETracks(nullptr), mMemory(nullptr), mRetryRefitIds(nullptr), mLoopData(nullptr), mSliceTrackers(nullptr), mChainTracking(nullptr)
 {
   //* constructor
 
@@ -76,9 +81,6 @@ GPUTPCGMMerger::GPUTPCGMMerger()
 
   for (int i = 0; i < NSLICES; i++) {
     mkSlices[i] = nullptr;
-    for (int j = 0; j < 2; j++) {
-      mBorderCETracks[j][i] = 0;
-    }
   }
 }
 
@@ -146,12 +148,12 @@ int GPUTPCGMMerger::GetTrackLabel(const GPUTPCGMBorderTrack& trk)
     if (Param().rec.mergerReadFromTrackerDirectly) {
       const GPUTPCTracker& tracker = mSliceTrackers[track->Slice()];
       const GPUTPCHitId& ic = tracker.TrackHits()[track->OrigTrack()->FirstHitID() + i];
-      id = tracker.Data().ClusterDataIndex(tracker.Data().Row(ic.RowIndex()), ic.HitIndex()) + mChainTracking->mIOPtrs.clustersNative->clusterOffset[track->Slice()][0];
+      id = tracker.Data().ClusterDataIndex(tracker.Data().Row(ic.RowIndex()), ic.HitIndex()) + GetConstantMem()->ioPtrs.clustersNative->clusterOffset[track->Slice()][0];
     } else {
       id = track->OrigTrack()->OutTrackClusters()[i].GetId();
     }
     for (int j = 0; j < 3; j++) {
-      int label = mChainTracking->mIOPtrs.mcLabelsTPC[id].fClusterID[j].fMCID;
+      int label = GetConstantMem()->ioPtrs.mcLabelsTPC[id].fClusterID[j].fMCID;
       if (label >= 0) {
         labels.push_back(label);
       }
@@ -178,14 +180,50 @@ int GPUTPCGMMerger::GetTrackLabel(const GPUTPCGMBorderTrack& trk)
   }
   return bestLabel;
 }
+
 #endif
 // END DEBUG CODE
+
+void GPUTPCGMMerger::PrintMergeGraph(const GPUTPCGMSliceTrack* trk, std::ostream& out)
+{
+  const GPUTPCGMSliceTrack* orgTrack = trk;
+  while (trk->PrevSegmentNeighbour() >= 0) {
+    trk = &mSliceTrackInfos[trk->PrevSegmentNeighbour()];
+  }
+  const GPUTPCGMSliceTrack* orgTower = trk;
+  while (trk->PrevNeighbour() >= 0) {
+    trk = &mSliceTrackInfos[trk->PrevNeighbour()];
+  }
+
+  int nextId = trk - mSliceTrackInfos;
+  out << "Graph of track %d" << (orgTrack - mSliceTrackInfos) << "\n";
+  while (nextId >= 0) {
+    trk = &mSliceTrackInfos[nextId];
+    if (trk->PrevSegmentNeighbour() >= 0) {
+      out << "TRACK TREE INVALID!!! " << trk->PrevSegmentNeighbour() << " --> " << nextId << "\n";
+    }
+    out << (trk == orgTower ? "--" : "  ");
+    while (nextId >= 0) {
+      GPUTPCGMSliceTrack* trk2 = &mSliceTrackInfos[nextId];
+      if (trk != trk2 && (trk2->PrevNeighbour() >= 0 || trk2->NextNeighbour() >= 0)) {
+        out << "   (TRACK TREE INVALID!!! " << trk2->PrevNeighbour() << " <-- " << nextId << " --> " << trk2->NextNeighbour() << ")   ";
+      }
+      char tmp[128];
+      snprintf(tmp, 128, " %s%5d(%5.2f)", trk2 == orgTrack ? "!" : " ", nextId, trk2->QPt());
+      out << tmp;
+      nextId = trk2->NextSegmentNeighbour();
+    }
+    out << "\n";
+    nextId = trk->NextNeighbour();
+  }
+}
 
 void GPUTPCGMMerger::InitializeProcessor() { mSliceTrackers = mChainTracking->GetTPCSliceTrackers(); }
 
 void* GPUTPCGMMerger::SetPointersHostOnly(void* mem)
 {
   computePointerWithAlignment(mem, mSliceTrackInfos, mNMaxSliceTracks);
+  computePointerWithAlignment(mem, mSliceTrackInfoIndex, NSLICES * 2 + 1);
   if (mRec->GetParam().rec.NonConsecutiveIDs) {
     computePointerWithAlignment(mem, mGlobalClusterIDs, mNMaxOutputTrackClusters);
   }
@@ -194,12 +232,13 @@ void* GPUTPCGMMerger::SetPointersHostOnly(void* mem)
   computePointerWithAlignment(mem, mTrackLinks, mNMaxSliceTracks);
   size_t tmpSize = CAMath::Max(mNMaxSingleSliceTracks * NSLICES * sizeof(int), mNMaxTracks * sizeof(int) + mNMaxClusters * sizeof(char));
   computePointerWithAlignment(mem, mTmpMem, tmpSize);
+  computePointerWithAlignment(mem, mBorderCETracks, 2 * NSLICES);
 
   int nTracks = 0;
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
     mBorder[iSlice] = mBorderMemory + nTracks;
     mBorderRange[iSlice] = mBorderRangeMemory + 2 * nTracks;
-    nTracks += Param().rec.mergerReadFromTrackerDirectly ? *mSliceTrackers[iSlice].NTracks() : mkSlices[iSlice]->NTracks();
+    nTracks += mRec->GetParam().rec.mergerReadFromTrackerDirectly ? *mSliceTrackers[iSlice].NTracks() : mkSlices[iSlice]->NTracks();
   }
   return mem;
 }
@@ -216,6 +255,7 @@ void* GPUTPCGMMerger::SetPointersGPURefit(void* mem)
     computePointerWithAlignment(mem, mTrackOrderProcess, mNMaxTracks);
   }
   computePointerWithAlignment(mem, mClusterAttachment, mNMaxClusters);
+  mem = SetPointersHostOnly(mem);
 
   return mem;
 }
@@ -223,8 +263,8 @@ void* GPUTPCGMMerger::SetPointersGPURefit(void* mem)
 void GPUTPCGMMerger::RegisterMemoryAllocation()
 {
   AllocateAndInitializeLate();
-  mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersHostOnly, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_HOST, "TPCMergerHost");
-  mMemoryResRefit = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersGPURefit, GPUMemoryResource::MEMORY_INOUT, "TPCMergerRefit");
+  //mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersHostOnly, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_HOST, "TPCMergerHost");
+  mMemoryResRefit = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersGPURefit, GPUMemoryResource::MEMORY_INOUT, "TPCMerger");
 }
 
 void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
@@ -233,9 +273,9 @@ void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
   mNClusters = 0;
   mNMaxSingleSliceTracks = 0;
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    unsigned int ntrk = Param().rec.mergerReadFromTrackerDirectly ? *mSliceTrackers[iSlice].NTracks() : mkSlices[iSlice]->NTracks();
+    unsigned int ntrk = mRec->GetParam().rec.mergerReadFromTrackerDirectly ? *mSliceTrackers[iSlice].NTracks() : mkSlices[iSlice]->NTracks();
     mNMaxSliceTracks += ntrk;
-    mNClusters += Param().rec.mergerReadFromTrackerDirectly ? *mSliceTrackers[iSlice].NTrackHits() : mkSlices[iSlice]->NTrackClusters();
+    mNClusters += mRec->GetParam().rec.mergerReadFromTrackerDirectly ? *mSliceTrackers[iSlice].NTrackHits() : mkSlices[iSlice]->NTrackClusters();
     if (mNMaxSingleSliceTracks < ntrk) {
       mNMaxSingleSliceTracks = ntrk;
     }
@@ -256,14 +296,29 @@ void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
 
 void GPUTPCGMMerger::SetSliceData(int index, const GPUTPCSliceOutput* sliceData) { mkSlices[index] = sliceData; }
 
-void GPUTPCGMMerger::ClearTrackLinks(int n)
+int GPUTPCGMMerger::CheckSlices()
+{
+  for (int i = 0; i < NSLICES; i++) {
+    if ((Param().rec.mergerReadFromTrackerDirectly ? mSliceTrackers[i].CommonMemory()->nLocalTracks : mkSlices[i]->NLocalTracks()) > mNMaxSingleSliceTracks) {
+      throw std::runtime_error("mNMaxSingleSliceTracks too small");
+    }
+  }
+  if (mSliceTrackers == nullptr && (!Param().rec.NonConsecutiveIDs || Param().rec.mergerReadFromTrackerDirectly)) {
+    throw std::runtime_error("Must provide slice tracker pointer if NonConsecutiveIDs = false or mergerReadFromTrackerDirectly");
+  }
+  return 0;
+}
+
+#endif // GPUCA_GPUCODE
+
+GPUd() void GPUTPCGMMerger::ClearTrackLinks(int n)
 {
   for (int i = 0; i < n; i++) {
     mTrackLinks[i] = -1;
   }
 }
 
-int GPUTPCGMMerger::RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPCTrack* inTrack, float alpha, int slice)
+GPUd() int GPUTPCGMMerger::RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPCTrack* inTrack, float alpha, int slice)
 {
   static constexpr float kRho = 1.025e-3f;  // 0.9e-3;
   static constexpr float kRadLen = 29.532f; // 28.94;
@@ -328,7 +383,7 @@ int GPUTPCGMMerger::RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPC
   return 0;
 }
 
-void GPUTPCGMMerger::SetTrackClusterZT(GPUTPCGMSliceTrack& track, int iSlice, const GPUTPCTrack* sliceTr)
+GPUd() void GPUTPCGMMerger::SetTrackClusterZT(GPUTPCGMSliceTrack& track, int iSlice, const GPUTPCTrack* sliceTr)
 {
   if (Param().rec.mergerReadFromTrackerDirectly) {
     const GPUTPCTracker& trk = mSliceTrackers[iSlice];
@@ -352,19 +407,10 @@ void GPUTPCGMMerger::SetTrackClusterZT(GPUTPCGMSliceTrack& track, int iSlice, co
   }
 }
 
-void GPUTPCGMMerger::UnpackSlices()
+GPUd() void GPUTPCGMMerger::UnpackSlices(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   //* unpack the cluster information from the slice tracks and initialize track info array
   int nTracksCurrent = 0;
-
-  for (int i = 0; i < NSLICES; i++) {
-    if ((Param().rec.mergerReadFromTrackerDirectly ? mSliceTrackers[i].CommonMemory()->nLocalTracks : mkSlices[i]->NLocalTracks()) > mNMaxSingleSliceTracks) {
-      throw std::runtime_error("mNMaxSingleSliceTracks too small");
-    }
-  }
-  if (mSliceTrackers == nullptr && (!Param().rec.NonConsecutiveIDs || Param().rec.mergerReadFromTrackerDirectly)) {
-    throw std::runtime_error("Must provide slice tracker pointer if NonConsecutiveIDs = false or mergerReadFromTrackerDirectly");
-  }
 
   int* TrackIds = (int*)mTmpMem;
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
@@ -450,7 +496,7 @@ void GPUTPCGMMerger::UnpackSlices()
   mSliceTrackInfoIndex[2 * NSLICES] = nTracksCurrent;
 }
 
-void GPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTrack B[], int& nB, bool useOrigTrackParam)
+GPUd() void GPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTrack* B, int& nB, bool useOrigTrackParam)
 {
   //* prepare slice tracks for merging with next/previous/same sector
   //* each track transported to the border line
@@ -488,7 +534,7 @@ void GPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTra
       continue;
     }
     if (useOrigTrackParam) { // TODO: Check how far this makes sense with slice track refit
-      if (fabsf(track->QPt()) < GPUCA_MERGER_LOOPER_QPT_LIMIT) {
+      if (CAMath::Abs(track->QPt()) < GPUCA_MERGER_LOOPER_QPT_LIMIT) {
         continue;
       }
       const GPUTPCGMSliceTrack* trackMin = track;
@@ -502,7 +548,7 @@ void GPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTra
       track = &trackTmp;
       trackTmp.Set(this, trackMin->OrigTrack(), trackMin->Alpha(), trackMin->Slice());
     } else {
-      if (fabsf(track->QPt()) < GPUCA_MERGER_HORIZONTAL_DOUBLE_QPT_LIMIT) {
+      if (CAMath::Abs(track->QPt()) < GPUCA_MERGER_HORIZONTAL_DOUBLE_QPT_LIMIT) {
         if (iBorder == 0 && track->NextNeighbour() >= 0) {
           continue;
         }
@@ -517,11 +563,11 @@ void GPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTra
       b.SetTrackID(itr);
       b.SetNClusters(track->NClusters());
       for (int i = 0; i < 4; i++) {
-        if (fabsf(b.Cov()[i]) >= 5.0) {
+        if (CAMath::Abs(b.Cov()[i]) >= 5.0) {
           b.SetCov(i, 5.0);
         }
       }
-      if (fabsf(b.Cov()[4]) >= 0.5) {
+      if (CAMath::Abs(b.Cov()[4]) >= 0.5) {
         b.SetCov(4, 0.5);
       }
       nB++;
@@ -529,7 +575,7 @@ void GPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTra
   }
 }
 
-void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], int N1, int iSlice2, GPUTPCGMBorderTrack B2[], int N2, int mergeMode)
+GPUd() void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack* B1, int N1, int iSlice2, GPUTPCGMBorderTrack* B2, int N2, int mergeMode)
 {
   //* merge two sets of tracks
   if (N1 == 0 || N2 == 0) {
@@ -556,8 +602,8 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
   {
     for (int itr = 0; itr < N1; itr++) {
       GPUTPCGMBorderTrack& b = B1[itr];
-      float d = CAMath::Max(0.5f, 3.5f * sqrtf(b.Cov()[1]));
-      if (fabsf(b.Par()[4]) >= 20) {
+      float d = CAMath::Max(0.5f, 3.5f * CAMath::Sqrt(b.Cov()[1]));
+      if (CAMath::Abs(b.Par()[4]) >= 20) {
         d *= 2;
       } else if (d > 3) {
         d = 3;
@@ -568,19 +614,22 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
       range1[itr].fMin = b.Par()[1] + b.ZOffsetLinear() - d;
       range1[itr].fMax = b.Par()[1] + b.ZOffsetLinear() + d;
     }
-    std::sort(range1, range1 + N1, GPUTPCGMBorderTrack::Range::CompMin);
+    auto CompMin = [](const GPUTPCGMBorderTrack::Range& a, const GPUTPCGMBorderTrack::Range& b) { return a.fMin < b.fMin; };
+    auto CompMax = [](const GPUTPCGMBorderTrack::Range& a, const GPUTPCGMBorderTrack::Range& b) { return a.fMax < b.fMax; };
+
+    GPUCommonAlgorithm::sort(range1, range1 + N1, CompMin);
     if (sameSlice) {
       for (int i = 0; i < N1; i++) {
         range2[i] = range1[i];
       }
-      std::sort(range2, range2 + N1, GPUTPCGMBorderTrack::Range::CompMax);
+      GPUCommonAlgorithm::sort(range2, range2 + N1, CompMax);
       N2 = N1;
       B2 = B1;
     } else {
       for (int itr = 0; itr < N2; itr++) {
         GPUTPCGMBorderTrack& b = B2[itr];
-        float d = CAMath::Max(0.5f, 3.5f * sqrtf(b.Cov()[1]));
-        if (fabsf(b.Par()[4]) >= 20) {
+        float d = CAMath::Max(0.5f, 3.5f * CAMath::Sqrt(b.Cov()[1]));
+        if (CAMath::Abs(b.Par()[4]) >= 20) {
           d *= 2;
         } else if (d > 3) {
           d = 3;
@@ -591,7 +640,7 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
         range2[itr].fMin = b.Par()[1] + b.ZOffsetLinear() - d;
         range2[itr].fMax = b.Par()[1] + b.ZOffsetLinear() + d;
       }
-      std::sort(range2, range2 + N2, GPUTPCGMBorderTrack::Range::CompMax);
+      GPUCommonAlgorithm::sort(range2, range2 + N2, CompMax);
     }
   }
 
@@ -625,9 +674,9 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
 #endif
       {
         CADEBUG(
-          if (mChainTracking->mIOPtrs.mcLabelsTPC) {printf("Comparing track %3d to %3d: ", r1.fId, r2.fId); for (int i = 0; i < 5; i++) { printf("%8.3f ", b1.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b1.Cov()[i]); } printf("\n%28s", ""); });
+          if (GetConstantMem()->ioPtrs.mcLabelsTPC) {printf("Comparing track %3d to %3d: ", r1.fId, r2.fId); for (int i = 0; i < 5; i++) { printf("%8.3f ", b1.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b1.Cov()[i]); } printf("\n%28s", ""); });
         CADEBUG(
-          if (mChainTracking->mIOPtrs.mcLabelsTPC) {for (int i = 0; i < 5; i++) { printf("%8.3f ", b2.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b2.Cov()[i]); } printf("   -   %5s   -   ", GetTrackLabel(b1) == GetTrackLabel(b2) ? "CLONE" : "FAKE"); });
+          if (GetConstantMem()->ioPtrs.mcLabelsTPC) {for (int i = 0; i < 5; i++) { printf("%8.3f ", b2.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b2.Cov()[i]); } printf("   -   %5s   -   ", GetTrackLabel(b1) == GetTrackLabel(b2) ? "CLONE" : "FAKE"); });
         if (b2.NClusters() < lBest2) {
           CADEBUG2(continue, printf("!NCl1\n"));
         }
@@ -647,15 +696,15 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
         if (!b1.CheckChi2QPt(b2, factor2k)) {
           CADEBUG2(continue, printf("!QPt\n"));
         }
-        float fys = fabsf(b1.Par()[4]) < 20 ? factor2ys : (2. * factor2ys);
-        float fzt = fabsf(b1.Par()[4]) < 20 ? factor2zt : (2. * factor2zt);
+        float fys = CAMath::Abs(b1.Par()[4]) < 20 ? factor2ys : (2. * factor2ys);
+        float fzt = CAMath::Abs(b1.Par()[4]) < 20 ? factor2zt : (2. * factor2zt);
         if (!b1.CheckChi2YS(b2, fys)) {
           CADEBUG2(continue, printf("!YS\n"));
         }
         if (!b1.CheckChi2ZT(b2, fzt)) {
           CADEBUG2(continue, printf("!ZT\n"));
         }
-        if (fabsf(b1.Par()[4]) < 20) {
+        if (CAMath::Abs(b1.Par()[4]) < 20) {
           if (b2.NClusters() < minNPartHits) {
             CADEBUG2(continue, printf("!NCl2\n"));
           }
@@ -663,7 +712,7 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
             CADEBUG2(continue, printf("!NCl3\n"));
           }
         }
-        CADEBUG(printf("OK: dZ %8.3f D1 %8.3f D2 %8.3f\n", fabsf(b1.Par()[1] - b2.Par()[1]), 3.5 * sqrt(b1.Cov()[1]), 3.5 * sqrt(b2.Cov()[1])));
+        CADEBUG(printf("OK: dZ %8.3f D1 %8.3f D2 %8.3f\n", CAMath::Abs(b1.Par()[1] - b2.Par()[1]), 3.5 * sqrt(b1.Cov()[1]), 3.5 * sqrt(b2.Cov()[1])));
       } // DEBUG CODE, match by MC label
       lBest2 = b2.NClusters();
       iBest2 = b2.TrackID();
@@ -681,7 +730,7 @@ void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], in
   // GPUInfo("STAT: slices %d, %d: all %d merged %d", iSlice1, iSlice2, statAll, statMerged);
 }
 
-void GPUTPCGMMerger::MergeWithingSlices()
+GPUd() void GPUTPCGMMerger::MergeWithingSlices(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   float x0 = Param().tpcGeometry.Row2X(63);
   const float maxSin = CAMath::Sin(60. / 180. * CAMath::Pi());
@@ -707,14 +756,14 @@ void GPUTPCGMMerger::MergeWithingSlices()
   ResolveMergeSlices(false, true);
 }
 
-void GPUTPCGMMerger::MergeSlices()
+GPUd() void GPUTPCGMMerger::MergeSlices(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   MergeSlicesStep(2, 3, false);
   MergeSlicesStep(0, 1, false);
   MergeSlicesStep(0, 1, true);
 }
 
-void GPUTPCGMMerger::MergeSlicesStep(int border0, int border1, bool useOrigTrackParam)
+GPUd() void GPUTPCGMMerger::MergeSlicesStep(int border0, int border1, bool useOrigTrackParam)
 {
   ClearTrackLinks(SliceTrackInfoLocalTotal());
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
@@ -728,41 +777,7 @@ void GPUTPCGMMerger::MergeSlicesStep(int border0, int border1, bool useOrigTrack
   ResolveMergeSlices(useOrigTrackParam, false);
 }
 
-void GPUTPCGMMerger::PrintMergeGraph(const GPUTPCGMSliceTrack* trk, std::ostream& out)
-{
-  const GPUTPCGMSliceTrack* orgTrack = trk;
-  while (trk->PrevSegmentNeighbour() >= 0) {
-    trk = &mSliceTrackInfos[trk->PrevSegmentNeighbour()];
-  }
-  const GPUTPCGMSliceTrack* orgTower = trk;
-  while (trk->PrevNeighbour() >= 0) {
-    trk = &mSliceTrackInfos[trk->PrevNeighbour()];
-  }
-
-  int nextId = trk - mSliceTrackInfos;
-  out << "Graph of track %d" << (orgTrack - mSliceTrackInfos) << "\n";
-  while (nextId >= 0) {
-    trk = &mSliceTrackInfos[nextId];
-    if (trk->PrevSegmentNeighbour() >= 0) {
-      out << "TRACK TREE INVALID!!! " << trk->PrevSegmentNeighbour() << " --> " << nextId << "\n";
-    }
-    out << (trk == orgTower ? "--" : "  ");
-    while (nextId >= 0) {
-      GPUTPCGMSliceTrack* trk2 = &mSliceTrackInfos[nextId];
-      if (trk != trk2 && (trk2->PrevNeighbour() >= 0 || trk2->NextNeighbour() >= 0)) {
-        out << "   (TRACK TREE INVALID!!! " << trk2->PrevNeighbour() << " <-- " << nextId << " --> " << trk2->NextNeighbour() << ")   ";
-      }
-      char tmp[128];
-      snprintf(tmp, 128, " %s%5d(%5.2f)", trk2 == orgTrack ? "!" : " ", nextId, trk2->QPt());
-      out << tmp;
-      nextId = trk2->NextSegmentNeighbour();
-    }
-    out << "\n";
-    nextId = trk->NextNeighbour();
-  }
-}
-
-void GPUTPCGMMerger::ResolveMergeSlices(bool useOrigTrackParam, bool mergeAll)
+GPUd() void GPUTPCGMMerger::ResolveMergeSlices(bool useOrigTrackParam, bool mergeAll)
 {
   if (!mergeAll) {
     /*int neighborType = useOrigTrackParam ? 1 : 0;
@@ -804,7 +819,7 @@ void GPUTPCGMMerger::ResolveMergeSlices(bool useOrigTrackParam, bool mergeAll)
     GPUTPCGMSliceTrack* track1Base = track1;
     GPUTPCGMSliceTrack* track2Base = track2;
 
-    bool sameSegment = fabsf(track1->NClusters() > track2->NClusters() ? track1->QPt() : track2->QPt()) < 2 || track1->QPt() * track2->QPt() > 0;
+    bool sameSegment = CAMath::Abs(track1->NClusters() > track2->NClusters() ? track1->QPt() : track2->QPt()) < 2 || track1->QPt() * track2->QPt() > 0;
     // GPUInfo("\nMerge %d with %d - same segment %d", itr, itr2, (int) sameSegment);
     // PrintMergeGraph(track1, std::cout);
     // PrintMergeGraph(track2, std::cout);
@@ -822,7 +837,7 @@ void GPUTPCGMMerger::ResolveMergeSlices(bool useOrigTrackParam, bool mergeAll)
           goto NextTrack;
         }
       }
-      std::swap(track1, track1Base);
+      GPUCommonAlgorithm::swap(track1, track1Base);
       for (int k = 0; k < 2; k++) {
         GPUTPCGMSliceTrack* tmp = track1Base;
         while (tmp->Neighbour(k) >= 0) {
@@ -880,7 +895,7 @@ void GPUTPCGMMerger::ResolveMergeSlices(bool useOrigTrackParam, bool mergeAll)
         continue;
       } else if (track1->Neighbour(goUp) < 0) {
         track2 = &mSliceTrackInfos[track2->Neighbour(!goUp)];
-        std::swap(track1, track2);
+        GPUCommonAlgorithm::swap(track1, track2);
       } else if (track2->Neighbour(!goUp) < 0) {
         track1 = &mSliceTrackInfos[track1->Neighbour(goUp)];
       } else { // Both would work, but we use the simpler one
@@ -928,16 +943,14 @@ void GPUTPCGMMerger::ResolveMergeSlices(bool useOrigTrackParam, bool mergeAll)
   }
 }
 
-void GPUTPCGMMerger::MergeCEInit()
+GPUd() void GPUTPCGMMerger::MergeCEInit(int nBlocks, int nThreads, int iBlock, int iThread)
 {
-  for (int k = 0; k < 2; k++) {
-    for (int i = 0; i < NSLICES; i++) {
-      mBorderCETracks[k][i] = 0;
-    }
+  for (int k = 0; k < 2 * NSLICES; k++) {
+    mBorderCETracks[k] = 0;
   }
 }
 
-void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGMMergedTrackHit& cls, int itr)
+GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGMMergedTrackHit& cls, int itr)
 {
   if (Param().rec.NonConsecutiveIDs) {
     return;
@@ -958,18 +971,18 @@ void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGM
     GPUTPCConvertImpl::convert(*mConstantMem, cls.slice, cls.row, cln.getPad(), cln.getTime(), x, y, z);
   }
 
-  if (!Param().ContinuousTracking && fabsf(z) > 10) {
+  if (!Param().ContinuousTracking && CAMath::Abs(z) > 10) {
     return;
   }
   int slice = track->Slice();
   for (int attempt = 0; attempt < 2; attempt++) {
     unsigned int nTracks = Param().rec.mergerReadFromTrackerDirectly ? *mSliceTrackers[slice].NTracks() : mkSlices[slice]->NTracks();
-    GPUTPCGMBorderTrack& b = attempt == 0 ? mBorder[slice][mBorderCETracks[0][slice]] : mBorder[slice][nTracks - 1 - mBorderCETracks[1][slice]];
+    GPUTPCGMBorderTrack& b = attempt == 0 ? mBorder[slice][mBorderCETracks[slice]] : mBorder[slice][nTracks - 1 - mBorderCETracks[NSLICES + slice]];
     const float x0 = Param().tpcGeometry.Row2X(attempt == 0 ? 63 : cls.row);
     if (track->TransportToX(this, x0, Param().ConstBz, b, GPUCA_MAX_SIN_PHI_LOW)) {
       b.SetTrackID(itr);
       b.SetNClusters(mOutputTracks[itr].NClusters());
-      if (fabsf(b.Cov()[4]) >= 0.5) {
+      if (CAMath::Abs(b.Cov()[4]) >= 0.5) {
         b.SetCov(4, 0.5); // TODO: Is this needed and better than the cut in BorderTrack?
       }
       if (track->CSide()) {
@@ -977,13 +990,13 @@ void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGM
         b.SetZOffsetLinear(-b.ZOffsetLinear());
       }
       b.SetRow(cls.row);
-      mBorderCETracks[attempt][slice]++;
+      mBorderCETracks[attempt * NSLICES + slice]++;
       break;
     }
   }
 }
 
-void GPUTPCGMMerger::MergeCE()
+GPUd() void GPUTPCGMMerger::MergeCE(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   ClearTrackLinks(mNOutputTracks);
   const ClusterNative* cls = Param().earlyTpcTransform ? nullptr : mConstantMem->ioPtrs.clustersNative->clustersLinear;
@@ -991,8 +1004,8 @@ void GPUTPCGMMerger::MergeCE()
     int jSlice = iSlice + NSLICES / 2;
     unsigned int nTracksI = Param().rec.mergerReadFromTrackerDirectly ? *mSliceTrackers[iSlice].NTracks() : mkSlices[iSlice]->NTracks();
     unsigned int nTracksJ = Param().rec.mergerReadFromTrackerDirectly ? *mSliceTrackers[jSlice].NTracks() : mkSlices[jSlice]->NTracks();
-    MergeBorderTracks(iSlice, mBorder[iSlice], mBorderCETracks[0][iSlice], jSlice, mBorder[jSlice], mBorderCETracks[0][jSlice], 1);
-    MergeBorderTracks(iSlice, mBorder[iSlice] + nTracksI - mBorderCETracks[1][iSlice], mBorderCETracks[1][iSlice], jSlice, mBorder[jSlice] + nTracksJ - mBorderCETracks[1][jSlice], mBorderCETracks[1][jSlice], 2);
+    MergeBorderTracks(iSlice, mBorder[iSlice], mBorderCETracks[iSlice], jSlice, mBorder[jSlice], mBorderCETracks[jSlice], 1);
+    MergeBorderTracks(iSlice, mBorder[iSlice] + nTracksI - mBorderCETracks[NSLICES + iSlice], mBorderCETracks[NSLICES + iSlice], jSlice, mBorder[jSlice] + nTracksJ - mBorderCETracks[NSLICES + jSlice], mBorderCETracks[NSLICES + jSlice], 2);
   }
   for (int i = 0; i < mNOutputTracks; i++) {
     if (mTrackLinks[i] >= 0) {
@@ -1015,8 +1028,8 @@ void GPUTPCGMMerger::MergeCE()
       if (looper) {
         float z0max, z1max;
         if (Param().earlyTpcTransform) {
-          z0max = CAMath::Max(fabsf(mClusters[trk[0]->FirstClusterRef()].z), fabsf(mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].z));
-          z1max = CAMath::Max(fabsf(mClusters[trk[1]->FirstClusterRef()].z), fabsf(mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].z));
+          z0max = CAMath::Max(CAMath::Abs(mClusters[trk[0]->FirstClusterRef()].z), CAMath::Abs(mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].z));
+          z1max = CAMath::Max(CAMath::Abs(mClusters[trk[1]->FirstClusterRef()].z), CAMath::Abs(mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].z));
         } else {
           z0max = -CAMath::Min(cls[mClusters[trk[0]->FirstClusterRef()].num].getTime(), cls[mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].num].getTime());
           z1max = -CAMath::Min(cls[mClusters[trk[1]->FirstClusterRef()].num].getTime(), cls[mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].num].getTime());
@@ -1030,7 +1043,7 @@ void GPUTPCGMMerger::MergeCE()
         }
       }
       if (needswap) {
-        std::swap(trk[0], trk[1]);
+        GPUCommonAlgorithm::swap(trk[0], trk[1]);
       }
 
       bool reverse[2] = {false, false};
@@ -1048,7 +1061,7 @@ void GPUTPCGMMerger::MergeCE()
         if (Param().earlyTpcTransform) {
           const float z0 = trk[0]->CSide() ? CAMath::Max(mClusters[trk[0]->FirstClusterRef()].z, mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].z) : CAMath::Min(mClusters[trk[0]->FirstClusterRef()].z, mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].z);
           const float z1 = trk[1]->CSide() ? CAMath::Max(mClusters[trk[1]->FirstClusterRef()].z, mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].z) : CAMath::Min(mClusters[trk[1]->FirstClusterRef()].z, mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].z);
-          const float offset = fabsf(z1) > fabsf(z0) ? -z0 : z1;
+          const float offset = CAMath::Abs(z1) > CAMath::Abs(z0) ? -z0 : z1;
           trk[1]->Param().Z() += trk[1]->Param().TZOffset() - offset;
           trk[1]->Param().TZOffset() = offset;
         } else {
@@ -1100,8 +1113,8 @@ struct GPUTPCGMMerger_CompareClusterIdsLooper {
   const bool outwards;
   const GPUTPCGMMerger::trackCluster* const cmp1;
   const clcomparestruct* const cmp2;
-  GPUTPCGMMerger_CompareClusterIdsLooper(unsigned char l, bool o, const GPUTPCGMMerger::trackCluster* c1, const clcomparestruct* c2) : leg(l), outwards(o), cmp1(c1), cmp2(c2) {}
-  bool operator()(const short aa, const short bb)
+  GPUd() GPUTPCGMMerger_CompareClusterIdsLooper(unsigned char l, bool o, const GPUTPCGMMerger::trackCluster* c1, const clcomparestruct* c2) : leg(l), outwards(o), cmp1(c1), cmp2(c2) {}
+  GPUd() bool operator()(const short aa, const short bb)
   {
     const clcomparestruct& a = cmp2[aa];
     const clcomparestruct& b = cmp2[bb];
@@ -1119,8 +1132,8 @@ struct GPUTPCGMMerger_CompareClusterIdsLooper {
 
 struct GPUTPCGMMerger_CompareClusterIds {
   const GPUTPCGMMerger::trackCluster* const mCmp;
-  GPUTPCGMMerger_CompareClusterIds(const GPUTPCGMMerger::trackCluster* cmp) : mCmp(cmp) {}
-  bool operator()(const short aa, const short bb)
+  GPUd() GPUTPCGMMerger_CompareClusterIds(const GPUTPCGMMerger::trackCluster* cmp) : mCmp(cmp) {}
+  GPUd() bool operator()(const short aa, const short bb)
   {
     const GPUTPCGMMerger::trackCluster& a = mCmp[aa];
     const GPUTPCGMMerger::trackCluster& b = mCmp[bb];
@@ -1133,19 +1146,19 @@ struct GPUTPCGMMerger_CompareClusterIds {
 
 struct GPUTPCGMMerger_CompareTracksAttachWeight {
   const GPUTPCGMMergedTrack* const mCmp;
-  GPUTPCGMMerger_CompareTracksAttachWeight(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
-  bool operator()(const int aa, const int bb)
+  GPUd() GPUTPCGMMerger_CompareTracksAttachWeight(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
+  GPUd() bool operator()(const int aa, const int bb)
   {
     const GPUTPCGMMergedTrack& GPUrestrict() a = mCmp[aa];
     const GPUTPCGMMergedTrack& GPUrestrict() b = mCmp[bb];
-    return (fabsf(a.GetParam().GetQPt()) > fabsf(b.GetParam().GetQPt()));
+    return (CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt()));
   }
 };
 
 struct GPUTPCGMMerger_CompareTracksProcess {
   const GPUTPCGMMergedTrack* const mCmp;
-  GPUTPCGMMerger_CompareTracksProcess(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
-  bool operator()(const int aa, const int bb)
+  GPUd() GPUTPCGMMerger_CompareTracksProcess(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
+  GPUd() bool operator()(const int aa, const int bb)
   {
     const GPUTPCGMMergedTrack& GPUrestrict() a = mCmp[aa];
     const GPUTPCGMMergedTrack& GPUrestrict() b = mCmp[bb];
@@ -1159,9 +1172,7 @@ struct GPUTPCGMMerger_CompareTracksProcess {
   }
 };
 
-bool GPUTPCGMMerger_CompareParts(const GPUTPCGMSliceTrack* a, const GPUTPCGMSliceTrack* b) { return (a->X() > b->X()); }
-
-void GPUTPCGMMerger::CollectMergedTracks()
+GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   // Resolve connections for global tracks first
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
@@ -1240,7 +1251,7 @@ void GPUTPCGMMerger::CollectMergedTracks()
 
     // unpack and sort clusters
     if (nParts > 1 && leg == 0) {
-      std::sort(trackParts, trackParts + nParts, GPUTPCGMMerger_CompareParts);
+      GPUCommonAlgorithm::sort(trackParts, trackParts + nParts, [](const GPUTPCGMSliceTrack* a, const GPUTPCGMSliceTrack* b) { return (a->X() > b->X()); });
     }
 
     if (Param().rec.dropLoopers && leg > 0) {
@@ -1259,7 +1270,7 @@ void GPUTPCGMMerger::CollectMergedTracks()
         if (Param().rec.mergerReadFromTrackerDirectly) {
           const GPUTPCTracker& trk = mSliceTrackers[t->Slice()];
           const GPUTPCHitId& ic = trk.TrackHits()[t->OrigTrack()->FirstHitID() + i];
-          unsigned int id = trk.Data().ClusterDataIndex(trk.Data().Row(ic.RowIndex()), ic.HitIndex()) + mChainTracking->mIOPtrs.clustersNative->clusterOffset[t->Slice()][0];
+          unsigned int id = trk.Data().ClusterDataIndex(trk.Data().Row(ic.RowIndex()), ic.HitIndex()) + GetConstantMem()->ioPtrs.clustersNative->clusterOffset[t->Slice()][0];
           *c2 = trackCluster{id, (unsigned char)ic.RowIndex(), t->Slice(), t->Leg()};
         } else {
           const GPUTPCSliceOutCluster c = t->OrigTrack()->OutTrackClusters()[i];
@@ -1339,9 +1350,9 @@ void GPUTPCGMMerger::CollectMergedTracks()
           nTmpHits += nTrackHits;
         }
 
-        std::sort(clusterIndices, clusterIndices + nHits, GPUTPCGMMerger_CompareClusterIdsLooper(baseLeg, outwards, trackClusters, clusterSort));
+        GPUCommonAlgorithm::sort(clusterIndices, clusterIndices + nHits, GPUTPCGMMerger_CompareClusterIdsLooper(baseLeg, outwards, trackClusters, clusterSort));
       } else {
-        std::sort(clusterIndices, clusterIndices + nHits, GPUTPCGMMerger_CompareClusterIds(trackClusters));
+        GPUCommonAlgorithm::sort(clusterIndices, clusterIndices + nHits, GPUTPCGMMerger_CompareClusterIds(trackClusters));
       }
       nTmpHits = 0;
       firstTrackIndex = lastTrackIndex = -1;
@@ -1384,7 +1395,7 @@ void GPUTPCGMMerger::CollectMergedTracks()
 #endif
         state = c->GetFlags();
       } else if (Param().earlyTpcTransform) {
-        int index = trackClusters[i].id - mChainTracking->mIOPtrs.clustersNative->clusterOffset[trackClusters[i].slice][0];
+        int index = trackClusters[i].id - GetConstantMem()->ioPtrs.clustersNative->clusterOffset[trackClusters[i].slice][0];
         const GPUTPCClusterData& c = mSliceTrackers[trackClusters[i].slice].ClusterData()[index];
         cl[i].x = c.x;
         cl[i].y = c.y;
@@ -1396,7 +1407,7 @@ void GPUTPCGMMerger::CollectMergedTracks()
 #endif
         state = c.flags;
       } else {
-        const ClusterNative& c = mChainTracking->mIOPtrs.clustersNative->clustersLinear[trackClusters[i].id];
+        const ClusterNative& c = GetConstantMem()->ioPtrs.clustersNative->clustersLinear[trackClusters[i].id];
         state = c.getFlags();
       }
       cl[i].state = state & GPUTPCGMMergedTrackHit::clustererAndSharedFlags; // Only allow edge, deconvoluted, and shared flags
@@ -1469,47 +1480,52 @@ void GPUTPCGMMerger::CollectMergedTracks()
   mNOutputTrackClusters = nOutTrackClusters;
 }
 
-void GPUTPCGMMerger::PrepareClustersForFit()
+GPUd() void GPUTPCGMMerger::SortTracks(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  mNSlowTracks = 0;
+  for (int i = 0; i < mNOutputTracks; i++) {
+    const GPUTPCGMMergedTrack& trk = mOutputTracks[i];
+    if (trk.CCE() || trk.Legs()) {
+      mNSlowTracks++;
+    }
+    mTrackOrderProcess[i] = i;
+  }
+}
+
+GPUd() void GPUTPCGMMerger::SortTracksPrepare(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  GPUCommonAlgorithm::sort(mTrackOrderProcess, mTrackOrderProcess + mNOutputTracks, GPUTPCGMMerger_CompareTracksProcess(mOutputTracks));
+}
+
+GPUd() void GPUTPCGMMerger::PrepareClustersForFit(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   unsigned int maxId = 0;
   maxId = Param().rec.NonConsecutiveIDs ? mNOutputTrackClusters : mNMaxClusters;
   if (maxId > mNMaxClusters) {
+#ifdef GPUCA_GPUCODE
+    // TODO: Add overflow handling
+#else
     throw std::runtime_error("mNMaxClusters too small");
+#endif
   }
   mMaxID = maxId;
 
   unsigned int* trackSort = (unsigned int*)mTmpMem;
   unsigned char* sharedCount = (unsigned char*)(trackSort + mNOutputTracks);
 
-  if (mRec->GetDeviceProcessingSettings().mergerSortTracks) {
-    mNSlowTracks = 0;
-    for (int i = 0; i < mNOutputTracks; i++) {
-      const GPUTPCGMMergedTrack& trk = mOutputTracks[i];
-      if (trk.CCE() || trk.Legs()) {
-        mNSlowTracks++;
-      }
-      mTrackOrderProcess[i] = i;
-    }
-    std::sort(mTrackOrderProcess, mTrackOrderProcess + mNOutputTracks, GPUTPCGMMerger_CompareTracksProcess(mOutputTracks));
-  }
-
   if (!Param().rec.NonConsecutiveIDs) {
     for (int i = 0; i < mNOutputTracks; i++) {
       trackSort[i] = i;
-    }
-    std::sort(trackSort, trackSort + mNOutputTracks, GPUTPCGMMerger_CompareTracksAttachWeight(mOutputTracks));
-    memset(mClusterAttachment, 0, maxId * sizeof(mClusterAttachment[0]));
-    for (int i = 0; i < mNOutputTracks; i++) {
       mTrackOrderAttach[trackSort[i]] = i;
+    }
+    GPUCommonAlgorithm::sort(trackSort, trackSort + mNOutputTracks, GPUTPCGMMerger_CompareTracksAttachWeight(mOutputTracks));
+    for (unsigned int i = 0; i < maxId; i++) {
+      mClusterAttachment[i] = 0;
+      sharedCount[i] = 0;
     }
     for (int i = 0; i < mNOutputTrackClusters; i++) {
       mClusterAttachment[mClusters[i].num] = attachAttached | attachGood;
-    }
-    for (unsigned int k = 0; k < maxId; k++) {
-      sharedCount[k] = 0;
-    }
-    for (int k = 0; k < mNOutputTrackClusters; k++) {
-      sharedCount[mClusters[k].num] = (sharedCount[mClusters[k].num] << 1) | 1;
+      sharedCount[mClusters[i].num] = (sharedCount[mClusters[i].num] << 1) | 1;
     }
     for (int k = 0; k < mNOutputTrackClusters; k++) {
       if (sharedCount[mClusters[k].num] > 1) {
@@ -1519,7 +1535,7 @@ void GPUTPCGMMerger::PrepareClustersForFit()
   }
 }
 
-void GPUTPCGMMerger::Finalize()
+GPUd() void GPUTPCGMMerger::Finalize(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   if (Param().rec.NonConsecutiveIDs) {
     for (int i = 0; i < mNOutputTrackClusters; i++) {

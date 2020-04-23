@@ -1131,6 +1131,9 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       // Initialize Startup Constants
       processors()->tpcTrackers[iSlice].GPUParameters()->nextStartHit = (((getKernelProperties<GPUTPCTrackletConstructor, GPUTPCTrackletConstructor::allSlices>().minBlocks * BlockCount()) + NSLICES - 1 - iSlice) / NSLICES) * getKernelProperties<GPUTPCTrackletConstructor, GPUTPCTrackletConstructor::allSlices>().nThreads;
       processorsShadow()->tpcTrackers[iSlice].SetGPUTextureBase(mRec->DeviceMemoryBase());
+      if (GetRecoSteps().isSet(RecoStep::TPCConversion)) {
+        processorsShadow()->tpcTrackers[iSlice].Data().SetClusterData(processorsShadow()->tpcConverter.mClusters + mIOPtrs.clustersNative->clusterOffset[iSlice][0], mIOPtrs.nClusterData[iSlice], mIOPtrs.clustersNative->clusterOffset[iSlice][0]);
+      }
     }
 
     RunHelperThreads(&GPUChainTracking::HelperReadEvent, this, NSLICES);
@@ -1475,70 +1478,46 @@ int GPUChainTracking::RunTPCTrackingMerger()
   }
   const auto& threadContext = GetThreadContext();
 
-  HighResTimer& timerUnpack = getTimer<GPUTPCGMMergerUnpack>("GMMergerUnpack");
-  HighResTimer& timerMergeWithin = getTimer<GPUTPCGMMergerMergeWithin>("GMMergerMergeWithin");
-  HighResTimer& timerMergeSlices = getTimer<GPUTPCGMMergerMergeSlices>("GMMergerMergeSlices");
-  HighResTimer& timerMergeCE = getTimer<GPUTPCGMMergerMergeCE>("GMMergerMergeCE");
-  HighResTimer& timerCollect = getTimer<GPUTPCGMMergerCollect>("GMMergerCollect");
-  HighResTimer& timerClusters = getTimer<GPUTPCGMMergerClusters>("GMMergerClusters");
-  HighResTimer& timerCopyToGPU = getTimer<GPUTPCGMMergerCopyToGPU>("GMMergerCopyToGPU");
-  HighResTimer& timerCopyToHost = getTimer<GPUTPCGMMergerCopyToHost>("GMMergerCopyToHost");
-  HighResTimer& timerFinalize = getTimer<GPUTPCGMMergerFinalize>("GMMergerFinalize");
-
   Merger.SetMatLUT(processors()->calibObjects.matLUT);
   SetupGPUProcessor(&Merger, true);
-
-  timerUnpack.Start();
-  Merger.UnpackSlices();
-  if (GetDeviceProcessingSettings().debugLevel >= 6) {
-    Merger.DumpSliceTracks(mDebugFile);
-  }
-  timerUnpack.StopAndStart(timerMergeWithin);
-
-  Merger.MergeWithingSlices();
-  if (GetDeviceProcessingSettings().debugLevel >= 6) {
-    Merger.DumpMergedWithinSlices(mDebugFile);
-  }
-  timerMergeWithin.StopAndStart(timerMergeSlices);
-
-  Merger.MergeSlices();
-  if (GetDeviceProcessingSettings().debugLevel >= 6) {
-    Merger.DumpMergedBetweenSlices(mDebugFile);
-  }
-  timerMergeSlices.StopAndStart(timerMergeCE);
-
-  Merger.MergeCEInit();
-  timerMergeCE.StopAndStart(timerCollect);
-
-  Merger.CollectMergedTracks();
-  if (GetDeviceProcessingSettings().debugLevel >= 6) {
-    Merger.DumpCollected(mDebugFile);
-  }
-  timerCollect.StopAndStart(timerMergeCE);
-
-  Merger.MergeCE();
-  if (GetDeviceProcessingSettings().debugLevel >= 6) {
-    Merger.DumpMergeCE(mDebugFile);
-  }
-  timerMergeCE.StopAndStart(timerClusters);
-
-  Merger.PrepareClustersForFit();
-  if (GetDeviceProcessingSettings().debugLevel >= 6) {
-    Merger.DumpFitPrepare(mDebugFile);
-  }
-  timerClusters.StopAndStart(timerCopyToGPU);
-
   if (doGPU) {
-    SetupGPUProcessor(&Merger, false);
     MergerShadow.OverrideSliceTracker(processorsDevice()->tpcTrackers);
     MergerShadow.SetMatLUT(mFlatObjectsShadow.mCalibObjects.matLUT);
+  }
+
+  if (Merger.CheckSlices()) {
+    return 1;
   }
 
   Merger.Memory()->nRetryRefit = 0;
   Merger.Memory()->nLoopData = 0;
   WriteToConstantMemory(RecoStep::TPCMerging, (char*)&processors()->tpcMerger - (char*)processors(), &MergerShadow, sizeof(MergerShadow), 0);
   TransferMemoryResourceLinkToGPU(RecoStep::TPCMerging, Merger.MemoryResRefit());
-  timerCopyToGPU.Stop();
+
+  runKernel<GPUTPCGMMergerUnpack>(GetGridBlk(256, 0), krnlRunRangeNone, krnlEventNone);
+  DoDebugAndDump(RecoStep::TPCMerging, 0, Merger, &GPUTPCGMMerger::DumpSliceTracks, mDebugFile);
+
+  runKernel<GPUTPCGMMergerMergeWithin>(GetGridBlk(256, 0), krnlRunRangeNone, krnlEventNone);
+  DoDebugAndDump(RecoStep::TPCMerging, 0, Merger, &GPUTPCGMMerger::DumpMergedWithinSlices, mDebugFile);
+
+  runKernel<GPUTPCGMMergerMergeSlices>(GetGridBlk(256, 0), krnlRunRangeNone, krnlEventNone);
+  DoDebugAndDump(RecoStep::TPCMerging, 0, Merger, &GPUTPCGMMerger::DumpMergedBetweenSlices, mDebugFile);
+
+  runKernel<GPUTPCGMMergerMergeCEInit>(GetGridBlk(256, 0), krnlRunRangeNone, krnlEventNone);
+
+  runKernel<GPUTPCGMMergerCollect>(GetGridBlk(256, 0), krnlRunRangeNone, krnlEventNone);
+  DoDebugAndDump(RecoStep::TPCMerging, 0, Merger, &GPUTPCGMMerger::DumpCollected, mDebugFile);
+
+  runKernel<GPUTPCGMMergerMergeCE>(GetGridBlk(256, 0), krnlRunRangeNone, krnlEventNone);
+  DoDebugAndDump(RecoStep::TPCMerging, 0, Merger, &GPUTPCGMMerger::DumpMergeCE, mDebugFile);
+
+  if (GetDeviceProcessingSettings().mergerSortTracks) {
+    runKernel<GPUTPCGMMergerSortTracks>(GetGridBlk(256, 0), krnlRunRangeNone, krnlEventNone);
+    runKernel<GPUTPCGMMergerSortTracksPrepare>(GetGridBlk(256, 0), krnlRunRangeNone, krnlEventNone);
+  }
+
+  runKernel<GPUTPCGMMergerPrepareClusters>(GetGridBlk(256, 0), krnlRunRangeNone, krnlEventNone);
+  DoDebugAndDump(RecoStep::TPCMerging, 0, Merger, &GPUTPCGMMerger::DumpFitPrepare, mDebugFile);
 
   if (GetDeviceProcessingSettings().fitSlowTracksInOtherPass && GetDeviceProcessingSettings().mergerSortTracks) {
     runKernel<GPUTPCGMMergerTrackFit>(GetGrid(Merger.NSlowTracks(), WarpSize(), 0), krnlRunRangeNone, krnlEventNone, -1);
@@ -1552,21 +1531,13 @@ int GPUChainTracking::RunTPCTrackingMerger()
   if (param().rec.loopInterpolationInExtraPass) {
     runKernel<GPUTPCGMMergerFollowLoopers>(GetGridBlk(Merger.NOutputTracks(), 0), krnlRunRangeNone, krnlEventNone);
   }
-  SynchronizeGPU();
+  DoDebugAndDump(RecoStep::TPCMerging, 0, Merger, &GPUTPCGMMerger::DumpRefit, mDebugFile);
 
-  timerCopyToHost.Start();
+  runKernel<GPUTPCGMMergerFinalize>(GetGridBlk(256, 0), krnlRunRangeNone, krnlEventNone);
+  DoDebugAndDump(RecoStep::TPCMerging, 0, Merger, &GPUTPCGMMerger::DumpFinal, mDebugFile);
+
   TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResRefit());
   SynchronizeGPU();
-  DoDebugAndDump(RecoStep::TPCMerging, 0, Merger, &GPUTPCGMMerger::DumpRefit, mDebugFile);
-  timerCopyToHost.StopAndStart(timerFinalize);
-
-  Merger.Finalize();
-  if (GetDeviceProcessingSettings().debugLevel >= 6) {
-    Merger.DumpFinal(mDebugFile);
-  }
-  timerFinalize.StopAndStart(timerCopyToGPU);
-  TransferMemoryResourceLinkToGPU(RecoStep::TPCMerging, Merger.MemoryResRefit()); // For compression
-  timerCopyToGPU.Stop();
 
   mIOPtrs.mergedTracks = Merger.OutputTracks();
   mIOPtrs.nMergedTracks = Merger.NOutputTracks();

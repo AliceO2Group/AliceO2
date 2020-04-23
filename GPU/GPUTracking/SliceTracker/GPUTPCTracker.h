@@ -97,12 +97,15 @@ class GPUTPCTracker : public GPUProcessor
   void DumpOutput(std::ostream& out);       // Similar for output
 
   int ReadEvent();
+#endif
 
-  GPUh() GPUglobalref() const GPUTPCClusterData* ClusterData() const { return mData.ClusterData(); }
-
-  GPUh() MakeType(const MEM_LG(GPUTPCRow) &) Row(const GPUTPCHitId& HitId) const { return mData.Row(HitId.RowIndex()); }
-
-  GPUhd() GPUglobalref() GPUTPCSliceOutput* Output() const { return mOutput; }
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+  GPUhdi() GPUglobalref() const GPUTPCClusterData* ClusterData() const
+  {
+    return mData.ClusterData();
+  }
+  GPUhdi() MakeType(const MEM_LG(GPUTPCRow) &) Row(const GPUTPCHitId& HitId) const { return mData.Row(HitId.RowIndex()); }
+  GPUhdi() GPUglobalref() GPUTPCSliceOutput* Output() const { return mOutput; }
 #endif
   GPUhdni() GPUglobalref() commonMemoryStruct* CommonMemory() const
   {
