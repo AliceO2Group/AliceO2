@@ -110,6 +110,7 @@
 /Testing
 
 /Utilities  @AliceO2Group/framework-admins
+/Utilities/Mergers @Barthelemy
 #/Utilities/DataCompression
 #/Utilities/DataFlow
 #/Utilities/MCStepLogger
