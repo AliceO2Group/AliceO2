@@ -11,6 +11,16 @@
 /// \file GPUCommonDef.h
 /// \author David Rohr
 
+// This is the base header to be included by all files that should feature GPU suppurt.
+// Incompatible code that cannot compile on GPU must be protected by one of the checks below.
+// The usual approach would be to protect with GPUCA_GPUCODE. This will be sufficient for all functions. If header includes still show errors, use GPUCA_ALIGPUCODE
+
+// The following checks are increasingly more strict hiding the code in more and more cases:
+// #ifndef __OPENCL__ : Hide from OpenCL kernel code. All system headers and usage thereof must be protected like this, or stronger.
+// #ifndef GPUCA_GPUCODE_DEVICE : Hide from kernel code on all GPU architectures. This includes the __OPENCL__ case and bodies of all GPU device functions (GPUd(), etc.)
+// #ifndef GPUCA_GPUCODE : Hide from compilation with GPU compiler. This includes the case kernel case of GPUCA_GPUCODE_DEVICE but also all host code compiled by the GPU compiler, e.g. for management.
+// #ifndef GPUCA_ALIGPUCODE : Code is completely invisible to the GPUCATracking library, irrespective of GPU or CPU compilation or which compiler.
+
 #ifndef GPUCOMMONDEF_H
 #define GPUCOMMONDEF_H
 
