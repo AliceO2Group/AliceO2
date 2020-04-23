@@ -75,8 +75,7 @@ std::string MergerInfrastructureBuilder::validateConfig()
 
   for (const auto& input : mInputs) {
     if (DataSpecUtils::match(input, mOutputSpec)) {
-      error += preamble + "output '" + DataSpecUtils::label(mOutputSpec)
-               + "' matches input '" + DataSpecUtils::label(input) + "'. That will cause a circular dependency!";
+      error += preamble + "output '" + DataSpecUtils::label(mOutputSpec) + "' matches input '" + DataSpecUtils::label(input) + "'. That will cause a circular dependency!";
     }
   }
 
