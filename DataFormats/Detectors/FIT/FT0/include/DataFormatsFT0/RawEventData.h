@@ -90,8 +90,7 @@ struct TCMdata {
         reservedField1 : 1, //56B,  PayloadSize1stWord 6
         timeA : 9,
         timeC : 9,
-        reservedField2 : 46,
-        reservedField3 : 8;
+        reservedField2 : 46;
     };
   };
   // ClassDefNV(TCMdata, 1);

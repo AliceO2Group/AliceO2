@@ -56,7 +56,8 @@ class DigitsTemp : public DigitBase
   uint16_t getBC() const { return mIntRecord.bc; }
 
   o2::ft0::Triggers mTrigger; //online triggers processed on TCM
-  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx, uint8_t chanA, uint8_t chanC, uint16_t aamplA, uint16_t aamplC, uint16_t atimeA, uint16_t atimeC)
+  Triggers getTriggers() { return mTrigger; }
+  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx, uint8_t chanA, uint8_t chanC, int32_t aamplA, int32_t aamplC, int16_t atimeA, int16_t atimeC)
   {
     auto trig = mTrigger.triggersignals;
     trig = trig | (isA ? (1 << 0) : 0);
