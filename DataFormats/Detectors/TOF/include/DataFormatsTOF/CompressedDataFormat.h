@@ -113,6 +113,12 @@ enum EDRMDiagnostic_t {
 };
 
 /** LTM diagnostic bits **/
+enum ELTMDiagnostic_t {
+  LTM_HEADER_MISSING = 1 << 4, // start from BIT(4)
+  LTM_TRAILER_MISSING = 1 << 5,
+  LTM_HEADER_UNEXPECTED = 1 << 7,
+  LTM_MAXDIAGNOSTIC_BIT = 1 << 16 // end before BIT(16)
+};
 
 /** TRM diagnostic bits, 12 bits [4-15] **/
 enum ETRMDiagnostic_t {

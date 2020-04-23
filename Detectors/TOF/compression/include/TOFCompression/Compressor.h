@@ -179,6 +179,8 @@ class Compressor
     const uint32_t* drmHeadW4;
     const uint32_t* drmHeadW5;
     const uint32_t* drmDataTrailer;
+    const uint32_t* ltmDataHeader;
+    const uint32_t* ltmDataTrailer;
     const uint32_t* trmDataHeader[10];
     const uint32_t* trmDataTrailer[10];
     const uint32_t* trmChainHeader[10][2];
@@ -190,7 +192,7 @@ class Compressor
     bool hasHits[10][2];
     bool hasErrors[10][2];
     bool decodeError;
-  } mDecoderSummary = {0};
+  } mDecoderSummary = {nullptr};
 
   struct SpiderSummary_t {
     uint32_t FramePackedHit[256][256];
