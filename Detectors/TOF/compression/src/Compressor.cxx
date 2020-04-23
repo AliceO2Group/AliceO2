@@ -159,8 +159,8 @@ bool Compressor<RAWDataHeader, verbose>::processHBF()
   mDecoderPointerMax = reinterpret_cast<const uint32_t*>(mDecoderSaveBuffer + mDecoderSaveBufferDataSize);
   while (mDecoderPointer < mDecoderPointerMax) {
     mEventCounter++;
-    if (processDRM()) {      // if this breaks, we did not run the checker and the summary is not reset!
-      mDecoderSummary = {0}; // reset it like this, perhaps a better way can be found
+    if (processDRM()) {            // if this breaks, we did not run the checker and the summary is not reset!
+      mDecoderSummary = {nullptr}; // reset it like this, perhaps a better way can be found
       break;
     }
   }
@@ -856,7 +856,6 @@ bool Compressor<RAWDataHeader, verbose>::checkerCheck()
   /** checker check **/
 
   mCheckerSummary.nDiagnosticWords = 0;
-  mCheckerSummary.DiagnosticWord[0] = 0x00000001;
 
   if (verbose && mCheckerVerbose) {
     std::cout << colorBlue
@@ -870,19 +869,20 @@ bool Compressor<RAWDataHeader, verbose>::checkerCheck()
 
   /** check TOF Data Header **/
 
+  /** check DRM **/
+  mCheckerSummary.DiagnosticWord[0] = 0x00000001;
+
   /** check DRM Data Header **/
   if (verbose && mCheckerVerbose) {
     printf(" --- Checking DRM Data Header: %p \n", mDecoderSummary.drmDataHeader);
   }
   if (!mDecoderSummary.drmDataHeader) {
     mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_HEADER_MISSING;
-#ifdef CHECKER_COUNTER
-    mCheckerSummary.nDiagnosticWords++;
-#endif
     if (verbose && mCheckerVerbose) {
       printf(" Missing DRM Data Header \n");
     }
-    mDecoderSummary.tofDataHeader = nullptr;
+    mDecoderSummary = {nullptr};
+    mCheckerSummary.nDiagnosticWords++;
     return true;
   }
 
@@ -892,21 +892,13 @@ bool Compressor<RAWDataHeader, verbose>::checkerCheck()
   }
   if (!mDecoderSummary.drmDataTrailer) {
     mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_TRAILER_MISSING;
-#ifdef CHECKER_COUNTER
-    mCheckerSummary.nDiagnosticWords++;
-#endif
     if (verbose && mCheckerVerbose) {
       printf(" Missing DRM Data Trailer \n");
     }
-    mDecoderSummary.tofDataHeader = nullptr;
-    mDecoderSummary.drmDataHeader = nullptr;
+    mDecoderSummary = {nullptr};
+    mCheckerSummary.nDiagnosticWords++;
     return true;
   }
-
-  /** increment DRM header counter **/
-#ifdef CHECKER_COUNTER
-  mDRMCounters.Headers++;
-#endif
 
   /** get DRM relevant data **/
   uint32_t partSlotMask = GET_DRMHEADW1_PARTSLOTMASK(*mDecoderSummary.drmHeadW1) & 0x7FE; // remove LTM bit
@@ -935,9 +927,6 @@ bool Compressor<RAWDataHeader, verbose>::checkerCheck()
   }
   if (GET_DRMHEADW1_CLOCKSTATUS(*mDecoderSummary.drmHeadW1) != 2) {
     mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_CLOCKSTATUS_WRONG;
-#ifdef CHECKER_COUNTER
-    mDRMCounters.clockStatus++;
-#endif
     if (verbose && mCheckerVerbose) {
       printf("%s DRM wrong clock status: %d %s\n", colorRed, GET_DRMHEADW1_CLOCKSTATUS(*mDecoderSummary.drmHeadW1), colorReset);
     }
@@ -949,9 +938,6 @@ bool Compressor<RAWDataHeader, verbose>::checkerCheck()
   }
   if (GET_DRMHEADW2_FAULTSLOTMASK(*mDecoderSummary.drmHeadW2)) {
     mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_FAULTSLOTMASK_NOTZERO;
-#ifdef CHECKER_COUNTER
-    mDRMCounters.Fault++;
-#endif
     if (verbose && mCheckerVerbose) {
       printf(" DRM fault slot mask: %x \n", GET_DRMHEADW2_FAULTSLOTMASK(*mDecoderSummary.drmHeadW2));
     }
@@ -963,9 +949,6 @@ bool Compressor<RAWDataHeader, verbose>::checkerCheck()
   }
   if (GET_DRMHEADW2_READOUTTIMEOUT(*mDecoderSummary.drmHeadW2)) {
     mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_READOUTTIMEOUT_NOTZERO;
-#ifdef CHECKER_COUNTER
-    mDRMCounters.RTOBit++;
-#endif
     if (verbose && mCheckerVerbose) {
       printf(" DRM readout timeout \n");
     }
@@ -986,12 +969,57 @@ bool Compressor<RAWDataHeader, verbose>::checkerCheck()
     }
   }
 
+  /** check current diagnostic word **/
+  auto iword = mCheckerSummary.nDiagnosticWords;
+  if (mCheckerSummary.DiagnosticWord[iword] & 0xFFFFFFF0) {
+    mCheckerSummary.nDiagnosticWords++;
+    iword++;
+  }
+
+  /** check LTM **/
+  mCheckerSummary.DiagnosticWord[iword] = 0x00000002;
+
+  /** check participating LTM **/
+  if (!(partSlotMask & 1)) {
+    if (mDecoderSummary.ltmDataHeader != nullptr) {
+      mCheckerSummary.DiagnosticWord[iword] |= diagnostic::LTM_HEADER_UNEXPECTED;
+      if (verbose && mCheckerVerbose) {
+        printf(" Non-participating LTM header found \n");
+      }
+    }
+  } else {
+    /** check LTM Data Header **/
+    if (verbose && mCheckerVerbose) {
+      printf(" --- Checking LTM Data Header: %p \n", mDecoderSummary.ltmDataHeader);
+    }
+    if (!mDecoderSummary.ltmDataHeader) {
+      mCheckerSummary.DiagnosticWord[iword] |= diagnostic::LTM_HEADER_MISSING;
+      if (verbose && mCheckerVerbose) {
+        printf(" Missing LTM Data Header \n");
+      }
+    }
+
+    /** check LTM Data Trailer **/
+    if (verbose && mCheckerVerbose) {
+      printf(" --- Checking LTM Data Trailer: %p \n", mDecoderSummary.ltmDataTrailer);
+    }
+    if (!mDecoderSummary.ltmDataTrailer) {
+      mCheckerSummary.DiagnosticWord[iword] |= diagnostic::LTM_TRAILER_MISSING;
+      if (verbose && mCheckerVerbose) {
+        printf(" Missing LTM Data Trailer \n");
+      }
+    }
+  }
+
+  /** clear LTM summary data **/
+  mDecoderSummary.ltmDataHeader = nullptr;
+  mDecoderSummary.ltmDataTrailer = nullptr;
+
   /** loop over TRMs **/
   for (int itrm = 0; itrm < 10; ++itrm) {
     uint32_t slotId = itrm + 3;
 
     /** check current diagnostic word **/
-    auto iword = mCheckerSummary.nDiagnosticWords;
     if (mCheckerSummary.DiagnosticWord[iword] & 0xFFFFFFF0) {
       mCheckerSummary.nDiagnosticWords++;
       iword++;
@@ -1002,13 +1030,13 @@ bool Compressor<RAWDataHeader, verbose>::checkerCheck()
 
     /** check participating TRM **/
     if (!(partSlotMask & 1 << (itrm + 1))) {
-      if (mDecoderSummary.trmDataHeader[itrm] != nullptr) {
+      if (mDecoderSummary.trmDataHeader[itrm]) {
         mCheckerSummary.DiagnosticWord[iword] |= diagnostic::TRM_HEADER_UNEXPECTED;
         if (verbose && mCheckerVerbose) {
           printf(" Non-participating header found (slotId=%u) \n", slotId);
         }
-      }
-      continue;
+      } else
+        continue;
     }
 
     /** check TRM bit in DRM fault mask **/
@@ -1174,7 +1202,6 @@ bool Compressor<RAWDataHeader, verbose>::checkerCheck()
   } /** end of loop over TRMs **/
 
   /** check current diagnostic word **/
-  auto iword = mCheckerSummary.nDiagnosticWords;
   if (mCheckerSummary.DiagnosticWord[iword] & 0xFFFFFFF0)
     mCheckerSummary.nDiagnosticWords++;
 
