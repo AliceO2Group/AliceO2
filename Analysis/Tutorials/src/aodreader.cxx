@@ -11,84 +11,146 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 
+/// This example is to be used together with the aodwriter example.
+/// aodwriter creates three tables and writes them to two sets of files.
+/// aodreader reads these files and creates related tables. aodwriter takes an
+/// aod file with tracks as input.
+///
+/// USAGE:
+///
+///   o2-analysistutorial-aodwriter --aod-file AO2D_ppK0starToyMC_v3.root --json-file writerConfiguration.json
+///   ls -1 treResults*.root > resultFiles.txt
+///   ls -1 unodueResults*.root >> resultFiles.txt
+///   o2-analysistutorial-aodreader --json-file readerConfiguration.json
+///
+/// writerConfiguration.json:
+/// {
+///   "OutputDirector": {
+///     "debugmode": true,
+///     "resfile": "unodueResults",
+///     "resfilemode": "RECREATE",
+///     "ntfmerge": 1,
+///     "OutputDescriptors": [
+///       {
+///         "table": "AOD/UNO/0",
+///         "treename": "unotree"
+///       },
+///       {
+///         "table": "AOD/DUE/0",
+///         "columns": [
+///           "due_1",
+///           "due_3",
+///           "due_5"
+///         ],
+///         "treename": "duetree"
+///       },
+///       {
+///         "table": "AOD/TRE/0",
+///         "filename": "treResults"
+///       }
+///     ]
+///   }
+/// }
+///
+/// readerConfiguration.json:
+/// {
+///   "InputDirector": {
+///     "debugmode": true,
+///     "resfiles": "@resultFiles.txt",
+///     "fileregex": "(unodue)(.*)",
+///     "InputDescriptors": [
+///       {
+///         "table": "AOD/EINS/0",
+///         "treename": "unotree"
+///       },
+///       {
+///         "table": "AOD/ZWEI/0",
+///         "treename": "duetree"
+///       },
+///       {
+///         "table": "AOD/DREI/0",
+///         "treename": "TRE",
+///         "fileregex": "(treResults)(.*)"
+///       }
+///     ]
+///   }
+/// }
+
 namespace o2::aod
 {
-namespace uno
+namespace eins
 {
-DECLARE_SOA_COLUMN_FULL(Eta, eta, float, "fEta1");
-DECLARE_SOA_COLUMN_FULL(Phi, phi, int, "fPhi1");
-DECLARE_SOA_COLUMN_FULL(Mom, mom, double, "fMom1");
-} // namespace uno
+DECLARE_SOA_COLUMN_FULL(Eta, eta, float, "uno_1");
+DECLARE_SOA_COLUMN_FULL(Mom, mom, double, "uno_3");
+} // namespace eins
 
-DECLARE_SOA_TABLE(Uno, "AOD", "UNO",
-                  uno::Eta, uno::Phi, uno::Mom);
+DECLARE_SOA_TABLE(Eins, "AOD", "EINS",
+                  eins::Eta, eins::Mom);
 
-namespace due
+namespace zwei
 {
-DECLARE_SOA_COLUMN_FULL(Eta, eta, double, "fEta2");
-DECLARE_SOA_COLUMN_FULL(Phi, phi, double, "fPhi2");
-} // namespace due
+DECLARE_SOA_COLUMN_FULL(Ok, ok, bool, "due_1");
+DECLARE_SOA_COLUMN_FULL(Phi, phi, float, "due_3");
+DECLARE_SOA_COLUMN_FULL(Pt, pt, double, "due_5");
+} // namespace zwei
 
-DECLARE_SOA_TABLE(Due, "AOD", "DUE",
-                  due::Eta, due::Phi);
+DECLARE_SOA_TABLE(Zwei, "AOD", "ZWEI",
+                  zwei::Ok, zwei::Phi, zwei::Pt);
+
+namespace drei
+{
+DECLARE_SOA_COLUMN_FULL(Eta, eta, float, "tre_1");
+DECLARE_SOA_COLUMN_FULL(Phi, phi, float, "tre_2");
+DECLARE_SOA_COLUMN_FULL(Mom, mom, double, "tre_3");
+} // namespace drei
+
+DECLARE_SOA_TABLE(Drei, "AOD", "DREI",
+                  drei::Eta, drei::Phi, drei::Mom);
 
 } // namespace o2::aod
 
 using namespace o2;
 using namespace o2::framework;
 
-// This task is related to the ATask in aodwriter.cxx
-// It reads and processes data which was created and saved by aodwriter
-//
-// To test use:
-//  o2-analysistutorial-aodwriter --aod-file AO2D.root --res-file tabletotree > log
-//  o2-analysistutorial-aodreader --aod-file tabletotree_0.root > log
-
-//
 struct ATask {
-  void process(aod::Uno const& unos, aod::Due const& dues)
+  void process(aod::Eins const& unos, aod::Zwei const& dues, aod::Drei const& tres)
   {
     int cnt = 0;
     for (auto& uno : unos) {
       auto eta = uno.eta();
-      auto phi = uno.phi();
       auto mom = uno.mom();
 
-      //LOGF(INFO, "(%f, %f, %f)", eta, phi, mom);
       cnt++;
+      LOGF(INFO, "Eins (%i): (%f, %f)", cnt, eta, mom);
     }
-    LOGF(INFO, "ATask Processed %i data points from Uno", cnt);
+    LOGF(INFO, "ATask Processed %i data points from Eins", cnt);
 
     cnt = 0;
     for (auto& due : dues) {
-      auto eta = due.eta();
+      auto ok = due.ok();
       auto phi = due.phi();
+      auto pt = due.pt();
 
-      //LOGF(INFO, "(%f, %f)", eta, phi);
       cnt++;
+      LOGF(INFO, "Zwei (%i): (%i, %f, %f)", cnt, ok, phi, pt);
     }
-    LOGF(INFO, "ATask Processed %i data points from Due", cnt);
-  }
-};
+    LOGF(INFO, "ATask Processed %i data points from Zwei", cnt);
 
-struct BTask {
-  void process(aod::Due const& dues)
-  {
-    int cnt = 0;
-    for (auto& etaPhi : dues) {
-      auto eta = etaPhi.eta();
-      auto phi = etaPhi.phi();
+    cnt = 0;
+    for (auto& tre : tres) {
+      auto eta = tre.eta();
+      auto phi = tre.phi();
+      auto mom = tre.mom();
 
-      //LOGF(INFO, "(%f, %f)", eta, phi);
       cnt++;
+      LOGF(INFO, "Drei (%i): (%f, %f, %f)", cnt, eta, phi, mom);
     }
-    LOGF(INFO, "BTask Processed %i data points from Due", cnt);
+    LOGF(INFO, "ATask Processed %i data points from Drei", cnt);
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("process-unodue"),
-    adaptAnalysisTask<BTask>("process-due")};
+    adaptAnalysisTask<ATask>("process-unoduetre")};
 }

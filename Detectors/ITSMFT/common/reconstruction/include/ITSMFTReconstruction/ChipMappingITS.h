@@ -19,7 +19,9 @@
 #include <cstdlib>
 #include <cstdint>
 #include <string>
+#include "Headers/DataHeader.h"
 #include "ITSMFTReconstruction/RUInfo.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 namespace o2
 {
@@ -34,6 +36,8 @@ class ChipMappingITS
   ~ChipMappingITS() = default;
 
   static constexpr std::string_view getName() { return "ITS"; }
+  static constexpr o2::header::DataOrigin getOrigin() { return o2::header::gDataOriginITS; }
+  static constexpr o2::detectors::DetID::ID getDetID() { return o2::detectors::DetID::ITS; }
 
   const std::vector<uint8_t>& getCableHWFirstChip(int s) const { return mCableHWFirstChip[s]; }
 

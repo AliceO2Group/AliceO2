@@ -69,8 +69,7 @@ void TrackerDPL::init(InitContext& ic)
     double origD[3] = {0., 0., 0.};
     mTracker->setBz(field->getBz(origD));
   } else {
-    LOG(ERROR) << "Cannot retrieve GRP from the " << filename.c_str() << " file !";
-    mState = 0;
+    throw std::runtime_error(o2::utils::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
@@ -78,19 +77,13 @@ void TrackerDPL::init(InitContext& ic)
   if (o2::base::NameConf::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
     LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
-    mState = 1;
   } else {
     LOG(INFO) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
   }
-
-  mState = 1;
 }
 
 void TrackerDPL::run(ProcessingContext& pc)
 {
-  if (mState != 1)
-    return;
-
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto clusters = pc.inputs().get<gsl::span<o2::itsmft::Cluster>>("clusters");
@@ -187,8 +180,6 @@ void TrackerDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
     pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
-
-  mState = 2;
 }
 
 DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType dType)

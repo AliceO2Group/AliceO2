@@ -109,6 +109,9 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   using o2::framework::CompletionPolicy;
   // we customize the completion policy for the writer since it should stream immediately
   policies.push_back(CompletionPolicyHelpers::defineByName("TPCDigitWriter", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("TPCDigitizer.*", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-cluster-decoder.*", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-clusterer.*", CompletionPolicy::CompletionOp::Consume));
 }
 
 // ------------------------------------------------------------------
@@ -158,6 +161,15 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"enable-trd-trapsim", VariantType::Bool, false, {"enable the trap simulation of the TRD"}});
 }
 
+void customize(std::vector<o2::framework::DispatchPolicy>& policies)
+{
+  using DispatchOp = o2::framework::DispatchPolicy::DispatchOp;
+  // we customize all devices to dispatch data immediately
+  auto matcher = [](auto const& spec) {
+    return spec.name == "SimReader";
+  };
+  policies.push_back({"prompt-for-simreader", matcher, DispatchOp::WhenReady});
+}
 // ------------------------------------------------------------------
 
 #include "Framework/runDataProcessing.h"
@@ -413,7 +425,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   };
 
   std::vector<o2::detectors::DetID> detList; // list of participating detectors
-  int fanoutsize = 0;
 
   // the TPC part
   // we need to init this anyway since TPC is treated a bit special (for the moment)
@@ -421,8 +432,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     initTPC();
   }
 
-  // keeps track of which subchannels correspond to tpc channels
-  auto tpclanes = std::make_shared<std::vector<int>>();
   // keeps track of which tpc sectors to process
   std::vector<int> tpcsectors;
 
@@ -431,22 +440,23 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto lanes = getNumTPCLanes(tpcsectors, configcontext);
     detList.emplace_back(o2::detectors::DetID::TPC);
 
-    for (int l = 0; l < lanes; ++l) {
-      specs.emplace_back(o2::tpc::getTPCDigitizerSpec(fanoutsize, (l == 0)));
-      tpclanes->emplace_back(fanoutsize); // this records that TPC is "listening under this subchannel"
-      fanoutsize++;
-    }
+    WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, tpcsectors);
+    specs.insert(specs.end(), tpcPipelines.begin(), tpcPipelines.end());
 
     auto tpcRecoOutputType = configcontext.options().get<std::string>("tpc-reco-type");
     if (tpcRecoOutputType.empty()) {
       // for writing digits to disc
-      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(lanes));
+      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(tpcsectors));
     } else {
       // attach the TPC reco workflow
-      auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
+      auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(tpcsectors, tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
       specs.insert(specs.end(), tpcRecoWorkflow.begin(), tpcRecoWorkflow.end());
     }
   }
+
+  // first 36 channels are reserved for the TPC
+  const int firstOtherChannel = 36;
+  int fanoutsize = firstOtherChannel;
 
   // the ITS part
   if (isEnabled(o2::detectors::DetID::ITS)) {
@@ -585,7 +595,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));
 
   // The SIM Reader. NEEDS TO BE LAST
-  specs[0] = o2::steer::getSimReaderSpec(fanoutsize, simPrefixes, tpcsectors, tpclanes);
+  specs[0] = o2::steer::getSimReaderSpec({firstOtherChannel, fanoutsize}, simPrefixes, tpcsectors);
 
   return specs;
 }

@@ -2,6 +2,97 @@
 
 # chain of algorithms from MC and reco
 
+
+# ----------- START WITH UTILITY FUNCTIONS ----------------------------
+
+child_pid_list=
+# finds out all the (recursive) child process starting from a parent
+# output includes the parent
+# output is saved in child_pid_list
+childprocs() {
+  local parent=$1
+  if [ "$parent" ] ; then
+    child_pid_list="$child_pid_list $parent"
+    for childpid in $(pgrep -P ${parent}); do
+      childprocs $childpid
+    done;
+  fi
+}
+
+taskwrapper() {
+  # A simple task wrapper launching a DPL workflow in the background 
+  # and checking the output for exceptions. If exceptions are found,
+  # all participating processes will be sent a termination signal.
+  # The rational behind this function is to be able to determine failing 
+  # conditions early and prevent longtime hanging executables 
+  # (until DPL offers signal handling and automatic shutdown)
+
+  local logfile=$1
+  shift 1
+  local command=$*
+
+  # launch the actual command in the background
+  echo "Launching task: ${command} &> $logfile &"
+  eval ${command} &> $logfile &
+
+  # THE NEXT PART IS THE SUPERVISION PART
+  # get the PID
+  PID=$!
+
+  while [ 1 ]; do
+    # We don't like to see critical problems in the log file.
+
+    # We need to grep on multitude of things:
+    # - all sorts of exceptions (may need to fine-tune)  
+    # - segmentation violation
+    # - there was a crash
+    pattern='-e "xception"               \
+             -e "segmentation violation" \
+             -e "There was a crash."'
+      
+    grepcommand="grep -H ${pattern} $logfile >> encountered_exceptions_list 2>/dev/null"
+    eval ${grepcommand}
+    
+    grepcommand="grep -h --count ${pattern} $logfile 2>/dev/null"
+    # using eval here since otherwise the pattern is translated to a
+    # a weirdly quoted stringlist
+    RC=$(eval ${grepcommand})
+    
+    # if we see an exception we will bring down the DPL workflow
+    # after having given it some chance to shut-down itself
+    # basically --> send kill to all children
+    if [ "$RC" != "" -a "$RC" != "0" ]; then
+      echo "Detected critical problem in logfile $logfile"
+      sleep 2
+
+      # query processes still alive
+      child_pid_list=
+      childprocs ${PID}
+      for p in $child_pid_list; do
+        echo "killing child $p"
+        kill $p
+      done      
+
+      return 1
+    fi
+
+    # check if command returned which may bring us out of the loop
+    ps -p $PID > /dev/null
+    [ $? == 1 ] && break
+
+    # sleep for some time
+    sleep 5
+  done
+
+  # wait for PID and fetch return code
+  # ?? should directly exit here?
+  wait $PID
+  return $?
+}
+
+# ----------- START WITH ACTUAL SCRIPT ----------------------------
+
+
 # default number of events
 nevPP=10
 nevPbPb=10
@@ -64,34 +155,40 @@ root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C > hitstats.log
 
 echo "Running digitization for $intRate kHz interaction rate"
 intRate=$((1000*(intRate)));
-echo o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate
-o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate  &>  digi.log
+taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate --skipDet MCH
+echo "Return status of digitization: $?"
 # existing checks
 #root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckDigits.C+
 
+echo "Running TPC reco flow"
+#needs TPC digitized data
+taskwrapper tpcreco.log o2-tpc-reco-workflow $gloOpt --tpc-digit-reader \"--infile tpcdigits.root\" --input-type digits --output-type clusters,tracks  --tpc-track-writer \"--treename events --track-branch-name Tracks --trackmc-branch-name TracksMCTruth\"
+echo "Return status of tpcreco: $?"
+
 echo "Running ITS reco flow"
-#needs ITS digitized data
-o2-its-reco-workflow  $gloOpt &> itsreco.log
+taskwrapper itsreco.log  o2-its-reco-workflow  $gloOpt
+echo "Return status of itsreco: $?"
+
 # existing checks
 # root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckClusters.C+
 # root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckTracks.C+
 
 echo "Running MFT reco flow"
 #needs MFT digitized data
-o2-mft-reco-workflow  $gloOpt &> mftreco.log
+taskwrapper mftreco.log  o2-mft-reco-workflow  $gloOpt
+echo "Return status of mftreco: $?"
 
 echo "Running FIT(FT0) reco flow"
 #needs FIT digitized data
-o2-fit-reco-workflow $gloOpt &> fitreco.log
-
-echo "Running TPC reco flow"
-#needs TPC digitized data
-o2-tpc-reco-workflow $gloOpt --tpc-digit-reader '--infile tpcdigits.root' --input-type digits --output-type clusters,tracks  --tpc-track-writer "--treename events --track-branch-name Tracks --trackmc-branch-name TracksMCTruth" &> tpcreco.log
+taskwrapper fitreco.log o2-fit-reco-workflow $gloOpt
+echo "Return status of fitreco: $?"
 
 echo "Running ITS-TPC macthing flow"
 #needs results of o2-tpc-reco-workflow, o2-its-reco-workflow and o2-fit-reco-workflow
-o2-tpcits-match-workflow $gloOpt --tpc-track-reader "tpctracks.root" --tpc-native-cluster-reader "--infile tpc-native-clusters.root" &> itstpcMatch.log
+taskwrapper itstpcMatch.log o2-tpcits-match-workflow $gloOpt --tpc-track-reader \"tpctracks.root\" --tpc-native-cluster-reader \"--infile tpc-native-clusters.root\"
+echo "Return status of itstpcMatch: $?"
 
 echo "Running ITSTPC-TOF macthing flow"
 #needs results of TOF digitized data and results of o2-tpcits-match-workflow
-o2-tof-reco-workflow $gloOpt >& tofMatch.log
+taskwrapper tofMatch.log o2-tof-reco-workflow $gloOpt
+echo "Return status of its-tpc-tof match: $?"

@@ -14,6 +14,7 @@
 #define O2_TOF_CLUSTERREADER
 
 #include "TFile.h"
+#include "TTree.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -37,11 +38,15 @@ class ClusterReader : public Task
   void run(ProcessingContext& pc) final;
 
  private:
-  int mState = 0;
+  void connectTree(const std::string& filename);
+
   bool mUseMC = true;
-  std::unique_ptr<TFile> mFile = nullptr;
-  std::vector<Cluster> mClusters, *mPclusters = &mClusters;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels, *mPlabels = &mLabels;
+  std::unique_ptr<TFile> mFile;
+  std::unique_ptr<TTree> mTree;
+  std::string mFileName = "";
+
+  std::vector<Cluster> mClusters, *mClustersPtr = &mClusters;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels, *mLabelsPtr = &mLabels;
 };
 
 /// create a processor spec

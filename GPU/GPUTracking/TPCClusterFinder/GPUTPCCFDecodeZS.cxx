@@ -19,17 +19,18 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "CommonConstants/LHCConstants.h"
 #include "GPURawData.h"
+#include "GPUCommonAlgorithm.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
 template <>
-GPUdii() void GPUTPCCFDecodeZS::Thread<GPUTPCCFDecodeZS::decodeZS>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int bcShiftInFirstHBF)
+GPUdii() void GPUTPCCFDecodeZS::Thread<GPUTPCCFDecodeZS::decodeZS>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int firstHBF)
 {
-  GPUTPCCFDecodeZS::decode(clusterer, smem, nBlocks, nThreads, iBlock, iThread, bcShiftInFirstHBF);
+  GPUTPCCFDecodeZS::decode(clusterer, smem, nBlocks, nThreads, iBlock, iThread, firstHBF);
 }
 
-GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread, int bcShiftInFirstHBF)
+GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread, int firstHBF)
 {
   const unsigned int slice = clusterer.mISlice;
 #ifdef GPUCA_GPUCODE
@@ -44,18 +45,13 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
   ChargePos* positions = clusterer.mPpositions;
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   const size_t nDigits = clusterer.mPzsOffsets[iBlock].offset;
-  unsigned int rowOffsetCounter = 0;
   if (iThread == 0) {
     const int region = endpoint / 2;
     s.nRowsRegion = clusterer.Param().tpcGeometry.GetRegionRows(region);
     s.regionStartRow = clusterer.Param().tpcGeometry.GetRegionStart(region);
     s.nThreadsPerRow = CAMath::Max(1u, nThreads / ((s.nRowsRegion + (endpoint & 1)) / 2));
     s.rowStride = nThreads / s.nThreadsPerRow;
-    const unsigned char* page = (const unsigned char*)zs.zsPtr[endpoint][0];
-    const TPCZSHDR* hdr = reinterpret_cast<const TPCZSHDR*>(page + sizeof(o2::header::RAWDataHeader));
-    const bool decode12bit = hdr->version == 2;
-    s.decodeBits = decode12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
-    s.decodeBitsFactor = 1.f / (1 << (s.decodeBits - 10));
+    s.rowOffsetCounter = 0;
   }
   GPUbarrier();
   const unsigned int myRow = iThread / s.nThreadsPerRow;
@@ -66,20 +62,34 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
   {
     {
 #else
-  for (unsigned int i = 0; i < zs.count[endpoint]; i++) {
-    for (unsigned int j = 0; j < zs.nZSPtr[endpoint][i]; j++) {
+  for (unsigned int i = clusterer.mMinMaxCN[endpoint].minC; i < clusterer.mMinMaxCN[endpoint].maxC; i++) {
+    const unsigned int minJ = (i == clusterer.mMinMaxCN[endpoint].minC) ? clusterer.mMinMaxCN[endpoint].minN : 0;
+    const unsigned int maxJ = (i + 1 == clusterer.mMinMaxCN[endpoint].maxC) ? clusterer.mMinMaxCN[endpoint].maxN : zs.nZSPtr[endpoint][i];
+    for (unsigned int j = minJ; j < maxJ; j++) {
 #endif
       const unsigned int* pageSrc = (const unsigned int*)(((const unsigned char*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
-      GPUbarrier();
       CA_SHARED_CACHE_REF(&s.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, unsigned int, pageCache);
       GPUbarrier();
       const unsigned char* page = (const unsigned char*)pageCache;
       const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)page;
+      if (GPURawDataUtils::getSize(rdh) == sizeof(o2::header::RAWDataHeader)) {
+#ifdef GPUCA_GPUCODE
+        return;
+#else
+        continue;
+#endif
+      }
       const unsigned char* pagePtr = page + sizeof(o2::header::RAWDataHeader);
       const TPCZSHDR* hdr = reinterpret_cast<const TPCZSHDR*>(pagePtr);
       pagePtr += sizeof(*hdr);
-      unsigned int mask = (1 << s.decodeBits) - 1;
-      int timeBin = hdr->timeOffset + (GPURawDataUtils::getOrbit(rdh) * o2::constants::lhc::LHCMaxBunches + Constants::LHCBCPERTIMEBIN - 1 - bcShiftInFirstHBF) / Constants::LHCBCPERTIMEBIN;
+      const bool decode12bit = hdr->version == 2;
+      const unsigned int decodeBits = decode12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
+      const float decodeBitsFactor = 1.f / (1 << (decodeBits - 10));
+      unsigned int mask = (1 << decodeBits) - 1;
+      int timeBin = (hdr->timeOffset + (GPURawDataUtils::getOrbit(rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / Constants::LHCBCPERTIMEBIN;
+      const int rowOffset = s.regionStartRow + ((endpoint & 1) ? (s.nRowsRegion / 2) : 0);
+      const int nRows = (endpoint & 1) ? (s.nRowsRegion - s.nRowsRegion / 2) : (s.nRowsRegion / 2);
+
       for (int l = 0; l < hdr->nTimeBins; l++) { // TODO: Parallelize over time bins
         pagePtr += (pagePtr - page) & 1; //Ensure 16 bit alignment
         const TPCZSTBHDR* tbHdr = reinterpret_cast<const TPCZSTBHDR*>(pagePtr);
@@ -87,19 +97,32 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
           pagePtr += 2;
           continue;
         }
-        const int rowOffset = s.regionStartRow + ((endpoint & 1) ? (s.nRowsRegion / 2) : 0);
-        const int nRows = (endpoint & 1) ? (s.nRowsRegion - s.nRowsRegion / 2) : (s.nRowsRegion / 2);
         const int nRowsUsed = CAMath::Popcount((unsigned int)(tbHdr->rowMask & 0x7FFF));
         pagePtr += 2 * nRowsUsed;
+
         GPUbarrier();
-        if (iThread == 0) {
-          for (int n = 0; n < nRowsUsed; n++) {
-            s.RowClusterOffset[n] = rowOffsetCounter;
-            const unsigned char* rowData = n == 0 ? pagePtr : (page + tbHdr->rowAddr1()[n - 1]);
-            rowOffsetCounter += rowData[2 * *rowData]; // Sum up number of ADC samples per row to compute offset in target buffer
-          }
+        for (int n = iThread; n < nRowsUsed; n += nThreads) {
+          const unsigned char* rowData = n == 0 ? pagePtr : (page + tbHdr->rowAddr1()[n - 1]);
+          s.RowClusterOffset[n] = CAMath::AtomicAddShared(&s.rowOffsetCounter, rowData[2 * *rowData]);
         }
+        /*if (iThread < GPUCA_WARP_SIZE) { // TODO: Seems to miscompile with HIP, CUDA performance doesn't really change, for now sticking to the AtomicAdd
+          GPUSharedMemory& smem = s;
+          int o;
+          if (iThread < nRowsUsed) {
+            const unsigned char* rowData = iThread == 0 ? pagePtr : (page + tbHdr->rowAddr1()[iThread - 1]);
+            o = rowData[2 * *rowData];
+          } else {
+            o = 0;
+          }
+          int x = warp_scan_inclusive_add(o);
+          if (iThread < nRowsUsed) {
+            s.RowClusterOffset[iThread] = s.rowOffsetCounter + x - o;
+          } else if (iThread == GPUCA_WARP_SIZE - 1) {
+            s.rowOffsetCounter += x;
+          }
+        }*/
         GPUbarrier();
+
         if (myRow < s.rowStride) {
           for (int m = myRow; m < nRows; m += s.rowStride) {
             if ((tbHdr->rowMask & (1 << m)) == 0) {
@@ -116,9 +139,9 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
               const unsigned char* adcData = rowData + 2 * nSeqRead + 1;
               const unsigned int nSamplesStart = mySequenceStart ? rowData[2 * mySequenceStart] : 0;
               nDigitsTmp += nSamplesStart;
-              unsigned int nADCStartBits = nSamplesStart * s.decodeBits;
+              unsigned int nADCStartBits = nSamplesStart * decodeBits;
               const unsigned int nADCStart = (nADCStartBits + 7) / 8;
-              const int nADC = (rowData[2 * mySequenceEnd] * s.decodeBits + 7) / 8;
+              const int nADC = (rowData[2 * mySequenceEnd] * decodeBits + 7) / 8;
               adcData += nADCStart;
               nADCStartBits &= 0x7;
               unsigned int byte = 0, bits = 0;
@@ -132,16 +155,16 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
               for (int n = nADCStart; n < nADC; n++) {
                 byte |= *(adcData++) << bits;
                 bits += 8;
-                while (bits >= s.decodeBits) {
+                while (bits >= decodeBits) {
                   if (seqLen == 0) {
                     seqLen = rowData[(nSeq + 1) * 2] - rowData[nSeq * 2];
                     pad = rowData[nSeq++ * 2 + 1];
                   }
                   ChargePos pos(Row(rowOffset + m), Pad(pad++), Timestamp(timeBin + l));
-                  chargeMap[pos] = PackedCharge(float(byte & mask) * s.decodeBitsFactor);
+                  chargeMap[pos] = PackedCharge(float(byte & mask) * decodeBitsFactor);
                   positions[nDigitsTmp++] = pos;
-                  byte = byte >> s.decodeBits;
-                  bits -= s.decodeBits;
+                  byte = byte >> decodeBits;
+                  bits -= decodeBits;
                   seqLen--;
                 }
               }
@@ -152,7 +175,7 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
           pagePtr = page + tbHdr->rowAddr1()[nRowsUsed - 2];
         }
         pagePtr += 2 * *pagePtr;                          // Go to entry for last sequence length
-        pagePtr += 1 + (*pagePtr * s.decodeBits + 7) / 8; // Go to beginning of next time bin
+        pagePtr += 1 + (*pagePtr * decodeBits + 7) / 8;   // Go to beginning of next time bin
       }
     }
   }

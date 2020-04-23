@@ -48,7 +48,7 @@ int fastTransformQA()
 
   for (int i = 0; i < nt->GetEntriesFast(); i++) {
     if (i % 10000000 == 0) {
-      cout << "processing " << i << " out of " << nt->GetEntriesFast() << "  (" << ((long)i) * 100 / nt->GetEntriesFast() << " %)" << endl;
+      std::cout << "processing " << i << " out of " << nt->GetEntriesFast() << "  (" << ((long)i) * 100 / nt->GetEntriesFast() << " %)" << std::endl;
       canv->cd(1);
       qaX->Draw();
       canv->cd(2);
@@ -60,7 +60,7 @@ int fastTransformQA()
     }
     int ret = nt->GetEntry(i);
     if (ret <= 0) {
-      cout << "Wrong entry, ret == " << ret << endl;
+      std::cout << "Wrong entry, ret == " << ret << std::endl;
       continue;
     }
     qaX->Fill(1.e4 * (fx - x));

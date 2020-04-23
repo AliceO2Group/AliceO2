@@ -153,9 +153,9 @@ GPUhdi() float GPUCommonMath::Cos(float x) { return CHOICE(cosf(x), cosf(x), cos
 
 GPUhdi() void GPUCommonMath::SinCos(float x, float& s, float& c)
 {
-#if defined(__APPLE__)
+#if !defined(GPUCA_GPUCODE_DEVICE) && defined(__APPLE__)
   __sincosf(x, &s, &c);
-#elif defined(__GNU_SOURCE__)
+#elif !defined(GPUCA_GPUCODE_DEVICE) && defined(__GNU_SOURCE__)
   sincosf(x, &s, &c);
 #else
   CHOICE({s = sin(x); c = cos(x); }, sincosf(x, &s, &c), s = sincos(x, &c));
@@ -164,9 +164,9 @@ GPUhdi() void GPUCommonMath::SinCos(float x, float& s, float& c)
 
 GPUhdi() void GPUCommonMath::SinCos(double x, double& s, double& c)
 {
-#if defined(__APPLE__)
+#if !defined(GPUCA_GPUCODE_DEVICE) && defined(__APPLE__)
   __sincos(x, &s, &c);
-#elif defined(__GNU_SOURCE__)
+#elif !defined(GPUCA_GPUCODE_DEVICE) && defined(__GNU_SOURCE__)
   sincos(x, &s, &c);
 #else
   CHOICE({s = sin(x); c = cos(x); }, sincos(x, &s, &c), s = sincos(x, &c));

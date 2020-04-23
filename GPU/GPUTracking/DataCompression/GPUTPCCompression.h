@@ -88,7 +88,6 @@ class GPUTPCCompression : public GPUProcessor
 
   memory* mMemory = nullptr;
   unsigned int* mAttachedClusterFirstIndex = nullptr;
-  unsigned int* mClusterSortBuffer = nullptr;
   unsigned char* mClusterStatus = nullptr;
 
   unsigned int mMaxTracks = 0;

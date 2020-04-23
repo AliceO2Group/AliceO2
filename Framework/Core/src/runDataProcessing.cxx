@@ -77,8 +77,10 @@
 #include <set>
 #include <string>
 #include <type_traits>
+#include <tuple>
 #include <chrono>
 #include <utility>
+#include <numeric>
 
 #include <fcntl.h>
 #include <netinet/ip.h>
@@ -560,11 +562,15 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
 void processSigChild(DeviceInfos& infos)
 {
   while (true) {
-    pid_t pid = waitpid((pid_t)(-1), nullptr, WNOHANG);
+    int status;
+    pid_t pid = waitpid((pid_t)(-1), &status, WNOHANG);
     if (pid > 0) {
+      int es = WEXITSTATUS(status);
+
       for (auto& info : infos) {
         if (info.pid == pid) {
           info.active = false;
+          info.exitStatus = es;
         }
       }
       continue;
@@ -1252,6 +1258,80 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
   }
 }
 
+/// Helper to to detect conflicting options
+void conflicting_options(const boost::program_options::variables_map& vm,
+                         const std::string& opt1, const std::string& opt2)
+{
+  if (vm.count(opt1) && !vm[opt1].defaulted() &&
+      vm.count(opt2) && !vm[opt2].defaulted()) {
+    throw std::logic_error(std::string("Conflicting options '") +
+                           opt1 + "' and '" + opt2 + "'.");
+  }
+}
+
+template <typename T>
+void apply_permutation(
+  std::vector<T>& v,
+  std::vector<int>& indices)
+{
+  using std::swap; // to permit Koenig lookup
+  for (size_t i = 0; i < indices.size(); i++) {
+    auto current = i;
+    while (i != indices[current]) {
+      auto next = indices[current];
+      swap(v[current], v[next]);
+      indices[current] = current;
+      current = next;
+    }
+    indices[current] = current;
+  }
+}
+
+std::string debugTopoInfo(std::vector<DataProcessorSpec> const& specs,
+                          std::vector<TopoIndexInfo> const& infos,
+                          std::vector<std::pair<int, int>> const& edges)
+{
+  std::ostringstream out;
+
+  out << "\nTopological info:\n";
+  for (auto& ti : infos) {
+    out << specs[ti.index].name << " (index: " << ti.index << ", layer: " << ti.layer << ")\n";
+    out << " Inputs:\n";
+    for (auto& ii : specs[ti.index].inputs) {
+      out << "   - " << DataSpecUtils::describe(ii) << "\n";
+    }
+    out << "\n Outputs:\n";
+    for (auto& ii : specs[ti.index].outputs) {
+      out << "   - " << DataSpecUtils::describe(ii) << "\n";
+    }
+  }
+  out << "\nEdges values:\n";
+  for (auto& e : edges) {
+    out << specs[e.second].name << " depends on " << specs[e.first].name << "\n";
+  }
+  for (auto& d : specs) {
+    out << "- " << d.name << std::endl;
+  }
+  return out.str();
+}
+
+std::string debugWorkflow(std::vector<DataProcessorSpec> const& specs)
+{
+  std::ostringstream out;
+  for (auto& spec : specs) {
+    out << spec.name << "\n";
+    //    out << " Inputs:\n";
+    //    for (auto& ii : spec.inputs) {
+    //      out << "   - " << DataSpecUtils::describe(ii) << "\n";
+    //    }
+    //    out << "\n Outputs:\n";
+    //    for (auto& ii : spec.outputs) {
+    //      out << "   - " << DataSpecUtils::describe(ii) << "\n";
+    //    }
+  }
+  return out.str();
+}
+
 // This is a toy executor for the workflow spec
 // What it needs to do is:
 //
@@ -1355,7 +1435,92 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     }
   }
 
+  // We insert the hash for the internal devices.
   WorkflowHelpers::injectServiceDevices(physicalWorkflow, configContext);
+  for (auto& dp : physicalWorkflow) {
+    if (dp.name.rfind("internal-") == 0) {
+      rankIndex.insert(std::make_pair(dp.name, hash_fn("internal")));
+    }
+  }
+
+  // We sort dataprocessors and Inputs / outputs by name, so that the edges are
+  // always in the same order.
+  std::stable_sort(physicalWorkflow.begin(), physicalWorkflow.end(), [](DataProcessorSpec const& a, DataProcessorSpec const& b) {
+    return a.name < b.name;
+  });
+
+  for (auto& dp : physicalWorkflow) {
+    std::stable_sort(dp.inputs.begin(), dp.inputs.end(),
+                     [](InputSpec const& a, InputSpec const& b) { return DataSpecUtils::describe(a) < DataSpecUtils::describe(b); });
+    std::stable_sort(dp.outputs.begin(), dp.outputs.end(),
+                     [](OutputSpec const& a, OutputSpec const& b) { return DataSpecUtils::describe(a) < DataSpecUtils::describe(b); });
+  }
+
+  // check if DataProcessorSpec at i depends on j
+  auto checkDependencies = [& workflow = physicalWorkflow](int i, int j) {
+    DataProcessorSpec const& a = workflow[i];
+    DataProcessorSpec const& b = workflow[j];
+    for (size_t ii = 0; ii < a.inputs.size(); ++ii) {
+      for (size_t oi = 0; oi < b.outputs.size(); ++oi) {
+        try {
+          if (DataSpecUtils::match(a.inputs[ii], b.outputs[oi])) {
+            return true;
+          }
+        } catch (...) {
+          continue;
+        }
+      }
+    }
+    return false;
+  };
+
+  // Create a list of all the edges, so that we can do a topological sort
+  // before we create the graph.
+  std::vector<std::pair<int, int>> edges;
+
+  if (physicalWorkflow.size() > 1) {
+    for (size_t i = 0; i < physicalWorkflow.size() - 1; ++i) {
+      for (size_t j = i; j < physicalWorkflow.size(); ++j) {
+        if (i == j && checkDependencies(i, j)) {
+          throw std::runtime_error(physicalWorkflow[i].name + " depends on itself");
+        }
+        bool both = false;
+        if (checkDependencies(i, j)) {
+          edges.emplace_back(j, i);
+          both = true;
+        }
+        if (checkDependencies(j, i)) {
+          edges.emplace_back(i, j);
+          if (both) {
+            throw std::runtime_error(physicalWorkflow[i].name + " has circular dependency with " + physicalWorkflow[j].name);
+          }
+        }
+      }
+    }
+
+    auto topoInfos = WorkflowHelpers::topologicalSort(physicalWorkflow.size(), &edges[0].first, &edges[0].second, sizeof(std::pair<int, int>), edges.size());
+    if (topoInfos.size() != physicalWorkflow.size()) {
+      throw std::runtime_error("Unable to do topological sort of the resulting workflow. Do you have loops?\n" + debugTopoInfo(physicalWorkflow, topoInfos, edges));
+    }
+    // Sort by layer and then by name, to ensure stability.
+    std::stable_sort(topoInfos.begin(), topoInfos.end(), [& workflow = physicalWorkflow, &rankIndex, &topoInfos](TopoIndexInfo const& a, TopoIndexInfo const& b) {
+      auto aRank = std::make_tuple(a.layer, -workflow.at(a.index).outputs.size(), workflow.at(a.index).name);
+      auto bRank = std::make_tuple(b.layer, -workflow.at(b.index).outputs.size(), workflow.at(b.index).name);
+      return aRank < bRank;
+    });
+    // Reverse index and apply the result
+    std::vector<int> dataProcessorOrder;
+    dataProcessorOrder.resize(topoInfos.size());
+    for (size_t i = 0; i < topoInfos.size(); ++i) {
+      dataProcessorOrder[topoInfos[i].index] = i;
+    }
+    std::vector<int> newLocations;
+    newLocations.resize(dataProcessorOrder.size());
+    for (size_t i = 0; i < dataProcessorOrder.size(); ++i) {
+      newLocations[dataProcessorOrder[i]] = i;
+    }
+    apply_permutation(physicalWorkflow, newLocations);
+  }
 
   // Use the hidden options as veto, all config specs matching a definition
   // in the hidden options are skipped in order to avoid duplicate definitions
@@ -1375,6 +1540,16 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     std::cerr << "Error: " << e.what() << std::endl;
     exit(1);
   }
+  conflicting_options(varmap, "dds", "o2-control");
+  conflicting_options(varmap, "dds", "dump-workflow");
+  conflicting_options(varmap, "dds", "run");
+  conflicting_options(varmap, "dds", "graphviz");
+  conflicting_options(varmap, "o2-control", "dump-workflow");
+  conflicting_options(varmap, "o2-control", "run");
+  conflicting_options(varmap, "o2-control", "graphviz");
+  conflicting_options(varmap, "run", "dump-workflow");
+  conflicting_options(varmap, "run", "graphviz");
+  conflicting_options(varmap, "dump-workflow", "graphviz");
 
   if (varmap.count("help")) {
     printHelp(varmap, executorOptions, physicalWorkflow, currentWorkflowOptions);

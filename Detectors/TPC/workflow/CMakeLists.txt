@@ -15,6 +15,7 @@ o2_add_library(TPCWorkflow
                        src/ClustererSpec.cxx
                        src/ClusterDecoderRawSpec.cxx
                        src/CATrackerSpec.cxx
+                       src/EntropyEncoderSpec.cxx
                        src/TrackReaderSpec.cxx
                        src/RawToDigitsSpec.cxx
                        src/LinkZSToDigitsSpec.cxx
@@ -37,7 +38,8 @@ o2_add_test(workflow
             COMPONENT_NAME tpc
             LABELS tpc workflow
             SOURCES test/test_TPCWorkflow.cxx
-            PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+            PUBLIC_LINK_LIBRARIES O2::TPCWorkflow
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
 if(GPUCA_EVENT_DISPLAY OR
                        (OPENGL_FOUND AND GLFW_FOUND AND GLEW_FOUND AND OPENGL_GLU_FOUND

@@ -28,9 +28,7 @@
 
 using namespace arrow;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 TableConsumer::TableConsumer(const uint8_t* data, int64_t size)
@@ -44,9 +42,10 @@ std::shared_ptr<arrow::Table>
   std::shared_ptr<Table> inTable;
   // In case the buffer is empty, we cannot determine the schema
   // and therefore return an empty table;
+  using BackendColumnType = typename decltype(inTable->column(0))::element_type;
   if (mBuffer->size() == 0) {
     std::vector<std::shared_ptr<arrow::Field>> dummyFields{};
-    std::vector<std::shared_ptr<arrow::Column>> dummyColumns{};
+    std::vector<std::shared_ptr<BackendColumnType>> dummyColumns{};
     auto dummySchema = std::make_shared<arrow::Schema>(dummyFields);
     return arrow::Table::Make(dummySchema, dummyColumns);
   }
@@ -71,5 +70,4 @@ std::shared_ptr<arrow::Table>
   return inTable;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

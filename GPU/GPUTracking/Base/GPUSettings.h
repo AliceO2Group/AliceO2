@@ -21,6 +21,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 class GPUDisplayBackend;
+class GPUReconstruction;
 
 class GPUSettings
 {
@@ -80,6 +81,10 @@ struct GPUSettingsRec {
   unsigned char dropLoopers;             // Drop all clusters after starting from the second loop from tracks
   unsigned char mergerCovSource;         // 0 = simpleFilterErrors, 1 = use from track following
   unsigned char mergerInterpolateErrors; // Use interpolation for cluster rejection based on chi-2 instead of extrapolation
+  char fitInProjections;                 // -1 for automatic
+  char fitPropagateBzOnly;               // Use only Bz for the propagation during the fit in the first n passes, -1 = NWays -1
+  char retryRefit;                       // Retry refit with larger cluster errors when fit fails
+  char loopInterpolationInExtraPass;     // Perform the loop interpolation in an extra pass
 };
 
 // Settings describing the events / time frames
@@ -110,8 +115,9 @@ struct GPUSettingsProcessing {
   void SetDefaults();
 #endif
 
-  unsigned int deviceType; // Device type, shall use GPUDataTypes::DEVICE_TYPE constants, e.g. CPU / CUDA
-  char forceDeviceType;    // Fail if device initialization fails, otherwise falls back to CPU
+  unsigned int deviceType;   // Device type, shall use GPUDataTypes::DEVICE_TYPE constants, e.g. CPU / CUDA
+  char forceDeviceType;      // Fail if device initialization fails, otherwise falls back to CPU
+  GPUReconstruction* master; // GPUReconstruction master object
 };
 
 // Settings steering the processing once the device was selected
@@ -151,6 +157,8 @@ struct GPUSettingsDeviceProcessing {
   int tpcCompressionGatherMode;       // Modes: 0 = gather by DMA, 1 = DMA + gather on host, ...
   bool mergerSortTracks;              // Sort track indices for GPU track fit
   bool runMC;                         // Process MC labels
+  float memoryScalingFactor;          // Factor to apply to all memory scalers
+  bool fitSlowTracksInOtherPass;      // Do a second pass on tracks that are supposed to take long, an attempt to reduce divergence on the GPU
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

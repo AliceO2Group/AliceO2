@@ -134,10 +134,11 @@ For further details see  ``ITSMFT/common/simulation/MC2RawEncoder`` class and th
 ## RawFileReader
 
 A class for parsing raw data file(s) with "variable-size" CRU format.
-For very encountered link the DPL `SubSpecification` is assigned according to the formula used by DataDistribution:
+For every encountered link the DPL `SubSpecification` is assigned according to the formula used by DataDistribution:
 ```cpp
 SubSpec = (RDH.cruID<<16) | ((RDH.linkID + 1)<<(RDH.endPointID == 1 ? 8 : 0)); 
 ```
+
 This `SubSpecification` is used to define the DPL InputSpecs (and match the OutputSpecs).
 An `exception` will be thrown if 2 different link (i.e. with different RDH.feeId) of the same detector will be found to have the same SubSpec (i.e. the same cruID, linkID and PCIe EndPoint).
 Also, an `exception` is thrown if the block expected to be a RDH fails to be recognized as RDH.
@@ -253,19 +254,23 @@ o2-raw-file-reader-workflow
   ...
   --conf arg                            configuration file to init from (obligatory)
   --loop arg (=0)                       loop N times (infinite for N<0)
-  --message-per-tf                      send TF of each link as a single FMQ 
-
+  --message-per-tf                      send TF of each link as a single FMQ message rather part per HBF
+  --output-per-link                     send message per Link rather than per FMQ output route
+  --delay arg (=0)                      delay in seconds between consecutive TFs sending
 ```
 
 The workflow takes an input from the configuration file (as described in `RawFileReader` section), reads the data and sends them as DPL messages
 with the `OutputSpec`s indicated in the configuration file (or defaults). Each link data gets `SubSpecification` according to DataDistribution
 scheme.
 
-If `--loop` argument is provided, data will be re-played in loop.
+If `--loop` argument is provided, data will be re-played in loop. The delay (in seconds) can be added between sensding of consecutive TFs to avoid pile-up of TFs.
 
-At every invocation of the device `processing` callback a full TimeFrame for every link will be messaged as a multipart of N-HBFs messages (one for each HBF in the TF)
-in a single `FairMQPart` per link (as the StfBuilder ships the data).
+At every invocation of the device `processing` callback a full TimeFrame for every link will be added as N-HBFs parts (one for each HBF in the TF) to the multipart
+relayed by the `FairMQ` channel.
 In case the `--message-per-tf` option is asked, the whole TF is sent as the only part of the `FairMQPart`.
+
+Instead of sending a single output (for multiple links) per output route (which means their data will be received together) one can request sending an output per link
+by using option `--output-per-link`.
 
 The standard use case of this workflow is to provide the input for other worfklows using the piping, e.g.
 ```cpp
@@ -335,3 +340,7 @@ L11  | Spec:0x3211267  FEE:0x3201 CRU:  49 Lnk:  2 EP:0 | SPages:  31 Pages:  76
 Largest super-page: 1047008 B, largest TF: 4070048 B
 Real time 0:00:00, CP time 0.120
 ```
+
+## Miscellaneous macros
+
+*   `rawStat.C`: writes into the tree the size per HBF contained in the raw data provided in the RawFileReader config file. No check for synchronization between different links is done.

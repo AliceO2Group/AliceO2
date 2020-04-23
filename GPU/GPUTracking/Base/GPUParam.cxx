@@ -149,6 +149,9 @@ void GPUParam::SetDefaults(const GPUSettingsEvent* e, const GPUSettingsRec* r, c
   }
   if (r) {
     rec = *r;
+    if (rec.fitPropagateBzOnly == -1) {
+      rec.fitPropagateBzOnly = rec.NWays - 1;
+    }
   }
   UpdateEventSettings(e, p);
 }

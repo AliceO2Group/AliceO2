@@ -58,7 +58,6 @@ class GPUCATracking
   int runTracking(o2::gpu::GPUO2InterfaceIOPtrs* data);
 
   float getPseudoVDrift();                                              //Return artificial VDrift used to convert time to Z
-  float getTFReferenceLength() { return sContinuousTFReferenceLength; } //Return reference time frame length used to obtain Z from T in continuous data
   int getNTracksASide() { return mNTracksASide; }
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const;
 
@@ -67,7 +66,6 @@ class GPUCATracking
                                                                       //The tracking code itself is not included in the O2 package, but contained in the CA library.
                                                                       //The GPUCATracking class interfaces this library via this pointer to GPUTPCO2Interface class.
 
-  static constexpr float sContinuousTFReferenceLength = 0.023 * 5e6;
   static constexpr float sTrackMCMaxFake = 0.1;
   int mNTracksASide = 0;
 };

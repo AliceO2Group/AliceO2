@@ -28,11 +28,12 @@ namespace itsmft
 
 class ROFRecord
 {
+
+ public:
   using EvIdx = o2::dataformats::RangeReference<int, int>;
   using BCData = o2::InteractionRecord;
   using ROFtype = unsigned int;
 
- public:
   ROFRecord() = default;
   ROFRecord(const BCData& bc, ROFtype rof, int idx, int n)
     : mBCData(bc), mROFEntry(idx, n), mROFrame(rof) {}

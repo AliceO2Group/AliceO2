@@ -278,6 +278,9 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
 
 GPUd() int GPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, bool inFlyDirection)
 {
+  if (mPropagateBzOnly) {
+    return PropagateToXAlphaBz(posX, posAlpha, inFlyDirection);
+  }
   if (CAMath::Abs(posAlpha - mAlpha) > 1.e-4f) {
     if (RotateToAlpha(posAlpha) != 0) {
       return -2;

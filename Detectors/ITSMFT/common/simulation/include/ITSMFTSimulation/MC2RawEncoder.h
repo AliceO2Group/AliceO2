@@ -19,6 +19,7 @@
 #include "ITSMFTReconstruction/AlpideCoder.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
+#include "ITSMFTReconstruction/RUDecodeData.h"
 #include "DetectorsRaw/RawFileWriter.h"
 
 namespace o2
@@ -85,6 +86,18 @@ class MC2RawEncoder
   int carryOverMethod(const RDH& rdh, const gsl::span<char> data, const char* ptr, int maxSize, int splitID,
                       std::vector<char>& trailer, std::vector<char>& header) const;
 
+  // create new gbt link
+  int addGBTLink()
+  {
+    int sz = mGBTLinks.size();
+    mGBTLinks.emplace_back();
+    return sz;
+  }
+
+  // get the link pointer
+  GBTLink* getGBTLink(int i) { return i < 0 ? nullptr : &mGBTLinks[i]; }
+  const GBTLink* getGBTLink(int i) const { return i < 0 ? nullptr : &mGBTLinks[i]; }
+
  private:
   void convertEmptyChips(int fromChip, int uptoChip, RUDecodeData& ru);
   void convertChip(ChipPixelData& chipData, RUDecodeData& ru);
@@ -105,6 +118,7 @@ class MC2RawEncoder
   int mNLinks = 0;                                           /// total number of GBT links seen
   std::array<RUDecodeData, Mapping::getNRUs()> mRUDecodeVec; /// decoding buffers for all active RUs
   std::array<int, Mapping::getNRUs()> mRUEntry;              /// entry of the RU with given SW ID in the mRUDecodeVec
+  std::vector<GBTLink> mGBTLinks;
   RoMode_t mROMode = NotSet;
 
   ClassDefNV(MC2RawEncoder, 1);

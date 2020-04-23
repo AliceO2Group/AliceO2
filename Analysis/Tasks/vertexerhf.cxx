@@ -43,13 +43,34 @@ struct DecayVertexBuilder2Prong {
   OutputObj<TH1F> hchi2dca{TH1F("hchi2dca", "chi2 DCA decay", 1000, 0., 0.0002)};
 
   Produces<aod::SecVtx2Prong> secvtx2prong;
-  Configurable<std::string> triggersel{"triggersel", "test", "A string configurable"};
+  //Configurable<std::string> triggersel{"triggersel", "test", "A string configurable"};
+  Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks,
-                                                          aod::TracksCov, aod::TracksExtra> const& tracks)
+  aod::Trigger getTrigger(aod::Collision const& collision, aod::Triggers const& triggers)
   {
-    LOGP(error, "Trigger selection {}", std::string{triggersel});
-    LOGF(info, "Tracks for collision: %d", tracks.size());
+    for (auto trigger : triggers)
+      if (trigger.globalBC() == collision.globalBC())
+        return trigger;
+    aod::Trigger dummy;
+    return dummy;
+  }
+
+  void process(aod::Collision const& collision,
+               aod::Triggers const& triggers,
+               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
+  {
+    //LOGP(error, "Trigger selection {}", std::string{triggersel});
+    int trigindex = int{triggerindex};
+    if (trigindex != -1) {
+      LOGF(info, "Selecting on trigger bit %d", trigindex);
+      auto trigger = getTrigger(collision, triggers);
+      uint64_t triggerMask = trigger.triggerMask();
+      bool isTriggerClassFired = triggerMask & 1ul << (trigindex - 1);
+      if (!isTriggerClassFired)
+        return;
+    }
+
+    LOGF(info, "N. of Tracks for collision: %d", tracks.size());
     o2::vertexing::DCAFitterN<2> df;
     df.setBz(5.0);
     // After finding the vertex, propagate tracks to the DCA. This is default anyway
@@ -116,7 +137,8 @@ struct DecayVertexBuilder2Prong {
         o2::track::TrackParCov trackparvar1(x1_, alpha1_, arraypar1, covpar1);
         df.setUseAbsDCA(true);
         int nCand = df.process(trackparvar0, trackparvar1);
-        //FIXME: currently filling the table for all dca candidates.
+        if (nCand == 0)
+          continue;
         const auto& vtx = df.getPCACandidate();
         LOGF(info, "vertex x %f", vtx[0]);
         hvtx_x_out->Fill(vtx[0]);
@@ -151,7 +173,7 @@ struct CandidateBuildingDzero {
   void process(aod::SecVtx2Prong const& secVtx2Prongs,
                soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
-    LOGF(info, "NEW EVENT");
+    LOGF(info, "NEW EVENT CANDIDATE");
 
     o2::vertexing::DCAFitterN<2> df;
     df.setBz(5.0);
@@ -208,6 +230,9 @@ struct CandidateBuildingDzero {
       //select the candidate via its index. It is redundant cause the secondary
       //vertex recostruction is performed more than once for each dca candidate
       int nCand = df.process(trackparvar0, trackparvar1);
+      if (nCand == 0) {
+        LOGF(error, " DCAFitter failing in the candidate building: it should not happen");
+      }
       const auto& secvtx = df.getPCACandidate();
       float masspion = 0.140;
       float masskaon = 0.494;

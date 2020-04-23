@@ -35,6 +35,7 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "TPCBase/RDHUtils.h"
 
 namespace bpo = boost::program_options;
 
@@ -54,13 +55,13 @@ struct ProcessAttributes {
   std::unique_ptr<o2::gpu::GPUReconstructionConvert> zsEncoder;
   std::vector<int> inputIds;
   bool zs12bit = true;
-  bool verify = false;
+  float zsThreshold = 2.f;
   int verbosity = 1;
 };
 
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer);
 #include "DetectorsRaw/HBFUtils.h"
-void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath)
+void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, bool sectorBySector)
 {
 
   // ===| open file and get tree |==============================================
@@ -70,24 +71,14 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   gROOT->cd();
 
   // ===| set up branch addresses |=============================================
-  MCLabelContainer* vLabelContainers[Sector::MAXSECTOR];             // label container per sector
-  std::vector<Digit>* vDigitsPerSectorCollection[Sector::MAXSECTOR]; // container that keeps Digits per sector
+  std::vector<Digit>* vDigitsPerSectorCollection[Sector::MAXSECTOR] = {nullptr}; // container that keeps Digits per sector
 
-  for (int iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
-    vDigitsPerSectorCollection[iSec] = nullptr;
-    treeSim->SetBranchAddress(TString::Format("TPCDigit_%d", iSec), &vDigitsPerSectorCollection[iSec]);
-
-    vLabelContainers[iSec] = nullptr;
-    treeSim->SetBranchAddress(TString::Format("TPCDigitMCTruth_%d", iSec), &vLabelContainers[iSec]);
-  }
-
-  DigitArray inputDigits;
   ProcessAttributes attr;
 
   // raw data output
   o2::raw::RawFileWriter writer;
 
-  const unsigned int defaultLink = 15;
+  const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
 
   // set up raw writer
   std::string outDir{outputPath};
@@ -101,17 +92,51 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
     for (unsigned int j = 0; j < NEndpoints; j++) {
       const unsigned int cruInSector = j / 2;
       const unsigned int cruID = i * 10 + cruInSector;
-      const unsigned int feeid = (cruID << 7) | ((j & 1) << 6) | (defaultLink & 0x3F);
-      writer.registerLink(feeid, cruID, defaultLink, j % 2, fmt::format("{}cru{}.raw", outDir, cruID));
+      const rdh_utils::FEEIDType feeid = rdh_utils::getFEEID(cruID, j & 1, defaultLink);
+      writer.registerLink(feeid, cruID, defaultLink, j & 1, fmt::format("{}cru{}.raw", outDir, cruID));
     }
   }
-  for (Long64_t ievent = 0; ievent < treeSim->GetEntries(); ++ievent) {
-    treeSim->GetEntry(ievent);
 
+  treeSim->SetBranchStatus("*", 0);
+  treeSim->SetBranchStatus("TPCDigit_*", 1);
+  for (int iSecBySec = 0; iSecBySec < Sector::MAXSECTOR; ++iSecBySec) {
+    treeSim->ResetBranchAddresses();
     for (int iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
-      inputDigits[iSec] = *vDigitsPerSectorCollection[iSec]; //????
+      if (sectorBySector) {
+        iSec = iSecBySec;
+      }
+      vDigitsPerSectorCollection[iSec] = nullptr;
+      treeSim->SetBranchAddress(TString::Format("TPCDigit_%d", iSec), &vDigitsPerSectorCollection[iSec]);
+      if (sectorBySector) {
+        break;
+      }
     }
-    convert(inputDigits, &attr, writer);
+    for (Long64_t ievent = 0; ievent < treeSim->GetEntries(); ++ievent) {
+      DigitArray inputDigits;
+      if (sectorBySector) {
+        treeSim->GetBranch(TString::Format("TPCDigit_%d", iSecBySec))->GetEntry(ievent);
+      } else {
+        treeSim->GetEntry(ievent);
+      }
+
+      for (int iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
+        if (sectorBySector) {
+          iSec = iSecBySec;
+        }
+        inputDigits[iSec] = *vDigitsPerSectorCollection[iSec]; //????
+        if (sectorBySector) {
+          break;
+        }
+      }
+      convert(inputDigits, &attr, writer);
+      for (int iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
+        delete vDigitsPerSectorCollection[iSec];
+        vDigitsPerSectorCollection[iSec] = nullptr;
+      }
+    }
+    if (!sectorBySector) {
+      break;
+    }
   }
   // for further use we write the configuration file for the output
   writer.writeConfFile("TPC", "RAWDATA", fmt::format("{}tpcraw.cfg", outDir));
@@ -120,39 +145,14 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer)
 {
   auto& zsEncoder = processAttributes->zsEncoder;
-  const auto verify = processAttributes->verify;
+  const auto zsThreshold = processAttributes->zsThreshold;
   const auto zs12bit = processAttributes->zs12bit;
   GPUParam _GPUParam;
   _GPUParam.SetDefaults(5.00668);
   const GPUParam mGPUParam = _GPUParam;
 
-  std::vector<deprecated::PackedDigit> gpuDigits[NSectors];
-  GPUTrackingInOutDigits gpuDigitsMap;
-
-  //convert to GPU digits
-  const float zsThreshold = 0;
-  for (int i = 0; i < NSectors; i++) {
-    const auto& d = inputDigits[i];
-    gpuDigits[i].reserve(d.size());
-    for (int j = 0; j < d.size(); j++) {
-      if (d[j].getChargeFloat() >= zsThreshold) {
-        gpuDigits[i].emplace_back(
-          deprecated::PackedDigit{
-            d[j].getChargeFloat(),
-            (Timestamp)d[j].getTimeStamp(),
-            (Pad)d[j].getPad(),
-            (Row)d[j].getRow()});
-      }
-    }
-
-    gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
-    gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();
-  }
-
-  const GPUTrackingInOutDigits gpuDigitsMap2 = std::move(gpuDigitsMap);
   o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
-
-  zsEncoder->RunZSEncoder(&gpuDigitsMap, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, verify);
+  zsEncoder->RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, false, zsThreshold);
 }
 
 int main(int argc, char** argv)
@@ -172,6 +172,7 @@ int main(int argc, char** argv)
     add_option("verbose,v", bpo::value<uint32_t>()->default_value(0), "Select verbosity level [0 = no output]");
     add_option("input-file,i", bpo::value<std::string>()->required(), "Specifies input file.");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "Specify output directory");
+    add_option("sector-by-sector,s", bpo::value<bool>()->default_value(false), "Run one TPC sector after another");
 
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
@@ -194,7 +195,8 @@ int main(int argc, char** argv)
 
   convertDigitsToZSfinal(
     vm["input-file"].as<std::string>(),
-    vm["output-dir"].as<std::string>());
+    vm["output-dir"].as<std::string>(),
+    vm["sector-by-sector"].as<bool>());
 
   return 0;
 }

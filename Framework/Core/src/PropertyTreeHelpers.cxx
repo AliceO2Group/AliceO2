@@ -28,6 +28,9 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema, b
   for (auto& spec : schema) {
     // strip short version to get the correct key
     std::string key = spec.name.substr(0, spec.name.find(","));
+    if (vmap.count(key) == 0) {
+      continue;
+    }
     try {
       switch (spec.type) {
         case VariantType::Int:

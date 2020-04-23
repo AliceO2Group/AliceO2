@@ -77,13 +77,13 @@ bool drawConstruction = 1;
 bool ask()
 {
   canv->Update();
-  cout << "type: 'q'-exit";
-  cout << ", 's'-individual steps";
-  cout << ", 'l'-local splines";
-  cout << ", 'c'-chebychev";
-  cout << ", 'p'-construction points";
+  std::cout << "type: 'q'-exit";
+  std::cout << ", 's'-individual steps";
+  std::cout << ", 'l'-local splines";
+  std::cout << ", 'c'-chebychev";
+  std::cout << ", 'p'-construction points";
 
-  cout << endl;
+  std::cout << std::endl;
 
   std::string str;
   std::getline(std::cin, str);
@@ -112,7 +112,7 @@ int SplineDemo()
 
   using namespace o2::gpu;
 
-  cout << "Test interpolation.." << endl;
+  std::cout << "Test interpolation.." << std::endl;
 
   //TCanvas* canv = new TCanvas("cQA", "Spline1D  QA", 2000, 1000);
 
@@ -128,7 +128,7 @@ int SplineDemo()
     //seed = gRandom->Integer(100000); // 605
 
     gRandom->SetSeed(seed);
-    cout << "Random seed: " << seed << " " << gRandom->GetSeed() << endl;
+    std::cout << "Random seed: " << seed << " " << gRandom->GetSeed() << std::endl;
 
     for (int i = 0; i < 2 * (Fdegree + 1); i++) {
       Fcoeff[i] = gRandom->Uniform(-1, 1);
@@ -240,13 +240,13 @@ int SplineDemo()
     histMinMaxBestFit->Fill(statMinMaxBestFit);
     histMinMaxCheb->Fill(statMinMaxCheb);
 
-    cout << "\n"
-         << std::endl;
-    cout << "\nRandom seed: " << seed << " " << gRandom->GetSeed() << endl;
-    cout << "Classical : std dev " << sqrt(statDfClass / statN) << " minmax " << statMinMaxClass << std::endl;
-    cout << "Local     : std dev " << sqrt(statDfLocal / statN) << " minmax " << statMinMaxLocal << std::endl;
-    cout << "Best-fit  : std dev " << sqrt(statDfBestFit / statN) << " minmax " << statMinMaxBestFit << std::endl;
-    cout << "Chebyshev : std dev " << sqrt(statDfCheb / statN) << " minmax " << statMinMaxCheb << std::endl;
+    std::cout << "\n"
+              << std::endl;
+    std::cout << "\nRandom seed: " << seed << " " << gRandom->GetSeed() << std::endl;
+    std::cout << "Classical : std dev " << sqrt(statDfClass / statN) << " minmax " << statMinMaxClass << std::endl;
+    std::cout << "Local     : std dev " << sqrt(statDfLocal / statN) << " minmax " << statMinMaxLocal << std::endl;
+    std::cout << "Best-fit  : std dev " << sqrt(statDfBestFit / statN) << " minmax " << statMinMaxBestFit << std::endl;
+    std::cout << "Chebyshev : std dev " << sqrt(statDfCheb / statN) << " minmax " << statMinMaxCheb << std::endl;
 
     /*
       canv->cd(1);

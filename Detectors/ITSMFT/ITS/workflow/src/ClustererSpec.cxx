@@ -60,6 +60,7 @@ void ClustererDPL::init(InitContext& ic)
 
   mFullClusters = ic.options().get<bool>("full-clusters");
   mPatterns = !ic.options().get<bool>("no-patterns");
+  mNThreads = ic.options().get<int>("nthreads");
 
   // settings for the fired pixel overflow masking
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
@@ -79,9 +80,6 @@ void ClustererDPL::init(InitContext& ic)
 
 void ClustererDPL::run(ProcessingContext& pc)
 {
-  if (mState > 1)
-    return;
-
   auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
   auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
@@ -103,42 +101,34 @@ void ClustererDPL::run(ProcessingContext& pc)
     reader.setDigitsMCTruth(labels.get());
   }
   reader.init();
-
-  std::vector<o2::itsmft::CompClusterExt> compClusters;
-  std::vector<o2::itsmft::Cluster> clusters;
-  std::vector<o2::itsmft::ROFRecord> clusterROframes; // To be filled in future
-  std::vector<unsigned char> patterns;
-
-  if (mPatterns) {
-    LOG(INFO) << "Will save rare cluster patterns";
-    mClusterer->setPatterns(&patterns);
-  }
+  auto orig = o2::header::gDataOriginITS;
+  std::vector<o2::itsmft::Cluster> clusVec;
+  std::vector<o2::itsmft::CompClusterExt> clusCompVec;
+  std::vector<o2::itsmft::ROFRecord> clusROFVec;
+  std::vector<unsigned char> clusPattVec;
 
   std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> clusterLabels;
   if (mUseMC) {
     clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
   }
-  mClusterer->process(reader, mFullClusters ? &clusters : nullptr, &compClusters, clusterLabels.get(), &clusterROframes);
-  // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
-  // -> consider recalculationg maxROF
+  mClusterer->process(mNThreads, reader, mFullClusters ? &clusVec : nullptr, &clusCompVec, mPatterns ? &clusPattVec : nullptr, &clusROFVec, clusterLabels.get());
+  pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
+  pc.outputs().snapshot(Output{orig, "ITSClusterROF", 0, Lifetime::Timeframe}, clusROFVec);
+  pc.outputs().snapshot(Output{orig, "CLUSTERS", 0, Lifetime::Timeframe}, clusVec);
+  pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
 
-  LOG(INFO) << "ITSClusterer pushed " << clusters.size() << " clusters, in "
-            << clusterROframes.size() << " RO frames";
-
-  pc.outputs().snapshot(Output{"ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe}, compClusters);
-  pc.outputs().snapshot(Output{"ITS", "PATTERNS", 0, Lifetime::Timeframe}, patterns);
-  pc.outputs().snapshot(Output{"ITS", "CLUSTERS", 0, Lifetime::Timeframe}, clusters);
-  pc.outputs().snapshot(Output{"ITS", "ITSClusterROF", 0, Lifetime::Timeframe}, clusterROframes);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe}, *clusterLabels.get());
+    pc.outputs().snapshot(Output{orig, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, *clusterLabels.get()); // at the moment requires snapshot
     std::vector<o2::itsmft::MC2ROFRecord> clusterMC2ROframes(mc2rofs.size());
     for (int i = mc2rofs.size(); i--;) {
       clusterMC2ROframes[i] = mc2rofs[i]; // Simply, replicate it from digits ?
     }
-    pc.outputs().snapshot(Output{"ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
+    pc.outputs().snapshot(Output{orig, "ITSClusterMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
   }
 
-  mState = 2;
+  // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
+  // -> consider recalculationg maxROF
+  LOG(INFO) << "ITSClusterer pushed " << clusCompVec.size() << " clusters, in " << clusROFVec.size() << " RO frames";
 }
 
 DataProcessorSpec getClustererSpec(bool useMC)
@@ -169,7 +159,8 @@ DataProcessorSpec getClustererSpec(bool useMC)
       {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
       {"full-clusters", o2::framework::VariantType::Bool, false, {"Produce full clusters"}},
-      {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}}}};
+      {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}},
+      {"nthreads", VariantType::Int, 0, {"Number of clustering threads (<1: rely on openMP default)"}}}};
 }
 
 } // namespace its

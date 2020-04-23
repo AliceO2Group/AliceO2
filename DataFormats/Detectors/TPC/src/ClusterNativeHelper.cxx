@@ -172,7 +172,7 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex, st
   return result;
 }
 
-int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, std::vector<MCLabelContainer>& mcinput, ClusterNativeAccess& clusterIndex,
+int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, gsl::span<MCLabelContainer const> const& mcinput, ClusterNativeAccess& clusterIndex,
                                              const MCLabelContainer* (&clustersMCTruth)[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW])
 {
   if (!buffer || size == 0) {

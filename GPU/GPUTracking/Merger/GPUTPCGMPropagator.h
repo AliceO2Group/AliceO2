@@ -68,6 +68,7 @@ class GPUTPCGMPropagator
   GPUd() void SelectFieldRegion(FieldRegion region) { mFieldRegion = region; }
 
   GPUd() void SetFitInProjections(bool Flag) { mFitInProjections = Flag; }
+  GPUd() void SetPropagateBzOnly(bool Flag) { mPropagateBzOnly = Flag; }
   GPUd() void SetToyMCEventsFlag(bool Flag) { mToyMCEvents = Flag; }
   GPUd() void SetSeedingErrors(bool Flag) { mSeedingErrors = Flag; }
   GPUd() void SetMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
@@ -145,6 +146,7 @@ class GPUTPCGMPropagator
   MaterialCorrection mMaterial;
   bool mSeedingErrors = 0;
   bool mFitInProjections = 1; // fit (Y,SinPhi,QPt) and (Z,DzDs) paramteres separatelly
+  bool mPropagateBzOnly = 0;  // Use Bz only in propagation
   bool mToyMCEvents = 0;      // events are simulated with simple home-made simulation
   float mMaxSinPhi = GPUCA_MAX_SIN_PHI;
 

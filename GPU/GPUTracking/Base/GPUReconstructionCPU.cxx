@@ -80,6 +80,12 @@ int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, const Args&..
   return 0;
 }
 
+template <class T, int I>
+GPUReconstruction::krnlProperties GPUReconstructionCPUBackend::getKernelPropertiesBackend()
+{
+  return krnlProperties{1, 1};
+}
+
 size_t GPUReconstructionCPU::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) { return 0; }
 size_t GPUReconstructionCPU::GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents) { return 0; }
 size_t GPUReconstructionCPU::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
@@ -135,10 +141,12 @@ int GPUReconstructionCPU::InitDevice()
     if (mDeviceMemorySize > mHostMemorySize) {
       mHostMemorySize = mDeviceMemorySize;
     }
-    mHostMemoryPermanent = mHostMemoryBase = operator new(mHostMemorySize);
+    if (mMaster == nullptr) {
+      mHostMemoryBase = operator new(mHostMemorySize);
+    }
+    mHostMemoryPermanent = mHostMemoryBase;
     ClearAllocatedMemory();
   }
-  SetThreadCounts();
   mThreadId = GetThread();
   return 0;
 }
@@ -146,25 +154,13 @@ int GPUReconstructionCPU::InitDevice()
 int GPUReconstructionCPU::ExitDevice()
 {
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
-    operator delete(mHostMemoryBase);
+    if (mMaster == nullptr) {
+      operator delete(mHostMemoryBase);
+    }
     mHostMemoryPool = mHostMemoryBase = mHostMemoryPermanent = nullptr;
     mHostMemorySize = 0;
   }
   return 0;
-}
-
-void GPUReconstructionCPU::SetThreadCounts() { mThreadCount = mBlockCount = mConstructorBlockCount = mSelectorBlockCount = mHitsSorterBlockCount = mConstructorThreadCount = mSelectorThreadCount = mFinderThreadCount = mHitsSorterThreadCount = mHitsFinderThreadCount = mTRDThreadCount = mClustererThreadCount =
-                                                 mScanThreadCount = mConverterThreadCount = mCompression1ThreadCount = mCompression2ThreadCount = mCFDecodeThreadCount = mFitThreadCount = mITSThreadCount = mWarpSize = 1; }
-
-void GPUReconstructionCPU::SetThreadCounts(RecoStep step)
-{
-  if (IsGPU() && mRecoSteps != mRecoStepsGPU) {
-    if (!(mRecoStepsGPU & step)) {
-      GPUReconstructionCPU::SetThreadCounts();
-    } else {
-      SetThreadCounts();
-    }
-  }
 }
 
 int GPUReconstructionCPU::getRecoStepNum(RecoStep step, bool validCheck)
@@ -192,6 +188,9 @@ int GPUReconstructionCPU::RunChains()
   }
 
   timerTotal.Start();
+  if (mSlaves.size() || mMaster) {
+    WriteConstantParams(); // Reinitialize
+  }
   for (unsigned int i = 0; i < mChains.size(); i++) {
     int retVal = mChains[i]->RunChain();
     if (retVal) {
@@ -206,6 +205,9 @@ int GPUReconstructionCPU::RunChains()
 
     for (unsigned int i = 0; i < mTimers.size(); i++) {
       double time = 0;
+      if (mTimers[i] == nullptr) {
+        continue;
+      }
       for (int j = 0; j < mTimers[i]->num; j++) {
         HighResTimer& timer = mTimers[i]->timer[j];
         time += timer.GetElapsedTime();
@@ -248,8 +250,9 @@ int GPUReconstructionCPU::RunChains()
         mTimersRecoSteps[i].countToHost = 0;
       }
     }
-    printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total kernel time", (int)(kernelTotal * 1000000 / mStatNEvents));
-    printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total time", (int)(timerTotal.GetElapsedTime() * 1000000 / mStatNEvents));
+    mStatKernelTime = kernelTotal * 1000000 / mStatNEvents;
+    printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total kernel time", (int)mStatKernelTime);
+    printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total time", (int)(timerTotal.GetElapsedTime() * 1000000. / mStatNEvents));
   } else if (GetDeviceProcessingSettings().debugLevel >= 0) {
     printf("Total Time: %'d us\n", (int)(timerTotal.GetElapsedTime() * 1000000 / mStatNEvents));
   }

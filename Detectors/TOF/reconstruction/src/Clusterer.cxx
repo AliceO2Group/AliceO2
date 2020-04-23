@@ -126,17 +126,17 @@ void Clusterer::addContributingDigit(Digit* dig)
   // adding a digit to the array that stores the contributing ones
 
   if (mNumberOfContributingDigits == 6) {
-    LOG(ERROR) << "The cluster has already 6 digits associated to it, we cannot add more; returning without doing anything";
+    LOG(WARNING) << "The cluster has already 6 digits associated to it, we cannot add more; returning without doing anything";
 
     int phi, eta;
     for (int i = 0; i < mNumberOfContributingDigits; i++) {
       mContributingDigit[i]->getPhiAndEtaIndex(phi, eta);
-      LOG(ERROR) << "digit already in " << i << ", channel = " << mContributingDigit[i]->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << mContributingDigit[i]->getTDC() << ", calibrated time = " << mContributingDigit[i]->getCalibratedTime();
+      LOG(WARNING) << "digit already in " << i << ", channel = " << mContributingDigit[i]->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << mContributingDigit[i]->getTDC() << ", calibrated time = " << mContributingDigit[i]->getCalibratedTime();
     }
 
     dig->getPhiAndEtaIndex(phi, eta);
-    LOG(ERROR) << "skipped digit"
-               << ", channel = " << dig->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << dig->getTDC() << ", calibrated time = " << dig->getCalibratedTime();
+    LOG(WARNING) << "skipped digit"
+                 << ", channel = " << dig->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << dig->getTDC() << ", calibrated time = " << dig->getCalibratedTime();
 
     dig->setIsUsedInCluster(); // flag is at used in any case
 

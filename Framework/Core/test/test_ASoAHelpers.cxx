@@ -12,6 +12,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Framework/ArrowCompatibility.h"
 #include "Framework/ASoAHelpers.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/AnalysisDataModel.h"

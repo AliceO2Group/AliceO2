@@ -268,7 +268,7 @@ DataProcessorSpec
         dod->readString(keepString);
       }
     }
-    dod->setDefaultfname(fnbase);
+    dod->setFilenameBase(fnbase);
 
     // find out if any table needs to be saved
     bool hasOutputsToWrite = false;
@@ -293,7 +293,7 @@ DataProcessorSpec
 
     // end of data functor is called at the end of the data stream
     auto endofdatacb = [dod](EndOfStreamContext& context) {
-      dod->closeDataOutputFiles();
+      dod->closeDataFiles();
 
       context.services().get<ControlService>().readyToQuit(QuitRequest::All);
     };
@@ -340,15 +340,17 @@ DataProcessorSpec
 
             if (d->colnames.size() > 0) {
               for (auto cn : d->colnames) {
-                auto col = table->GetColumnByName(cn);
-                if (col) {
-                  ta2tr.AddBranch(col);
+                auto idx = table->schema()->GetFieldIndex(cn);
+                auto col = table->column(idx);
+                auto field = table->schema()->field(idx);
+                if (idx != -1) {
+                  ta2tr.addBranch(col, field);
                 }
               }
             } else {
-              ta2tr.AddAllBranches();
+              ta2tr.addAllBranches();
             }
-            ta2tr.Process();
+            ta2tr.process();
           }
         }
       }

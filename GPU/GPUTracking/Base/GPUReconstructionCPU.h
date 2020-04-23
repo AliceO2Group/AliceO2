@@ -50,6 +50,8 @@ class GPUReconstructionCPUBackend : public GPUReconstruction
   GPUReconstructionCPUBackend(const GPUSettingsProcessing& cfg) : GPUReconstruction(cfg) {}
   template <class T, int I = 0, typename... Args>
   int runKernelBackend(krnlSetup& _xyz, const Args&... args);
+  template <class T, int I>
+  krnlProperties getKernelPropertiesBackend();
 };
 
 template <class T>
@@ -67,6 +69,10 @@ class GPUReconstructionKernels : public T
   virtual int runKernelImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>, krnlSetup& _xyz GPUCA_M_STRIP(x_arguments)) \
   {                                                                                                                    \
     return T::template runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(_xyz GPUCA_M_STRIP(x_forward));                \
+  }                                                                                                                    \
+  virtual GPUReconstruction::krnlProperties getKernelPropertiesImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>)     \
+  {                                                                                                                    \
+    return T::template getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>();                                   \
   }
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
@@ -85,7 +91,9 @@ class GPUReconstructionKernels<GPUReconstructionCPUBackend> : public GPUReconstr
   GPUReconstructionKernels(const GPUSettingsProcessing& cfg) : GPUReconstructionCPUBackend(cfg) {}
 
  protected:
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) virtual int runKernelImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>, krnlSetup& _xyz GPUCA_M_STRIP(x_arguments));
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)                                                       \
+  virtual int runKernelImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>, krnlSetup& _xyz GPUCA_M_STRIP(x_arguments)); \
+  virtual krnlProperties getKernelPropertiesImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>);
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 };
@@ -113,6 +121,11 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   template <class S, int I = 0, int J = -1, typename... Args>
   int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEventNone, const Args&... args);
 #endif
+  template <class S, int I = 0>
+  const krnlProperties getKernelProperties()
+  {
+    return getKernelPropertiesImpl(GPUReconstruction::template classArgument<S, I>());
+  }
 
   template <class T, int I>
   constexpr static const char* GetKernelName();
@@ -122,7 +135,6 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   int unregisterMemoryForGPU(const void* ptr) override { return 0; }
   int GPUStuck() { return mGPUStuck; }
   int NStreams() { return mNStreams; }
-  void SetThreadCounts(RecoStep step);
   void ResetDeviceProcessorTypes();
   template <class T>
   void AddGPUEvents(T*& events);
@@ -163,8 +175,6 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) override;
   virtual size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst);
 
-  virtual void SetThreadCounts();
-
   int InitDevice() override;
   int ExitDevice() override;
   int GetThread();
@@ -176,30 +186,9 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   GPUProcessorProcessors mProcShadow; // Host copy of tracker objects that will be used on the GPU
   GPUConstantMem*& mProcessorsShadow = mProcShadow.mProcessorsProc;
 
-  unsigned int mBlockCount = 0;             // Default GPU block count
-  unsigned int mThreadCount = 0;            // Default GPU thread count
-  unsigned int mConstructorBlockCount = 0;  // GPU blocks used in Tracklet Constructor
-  unsigned int mSelectorBlockCount = 0;     // GPU blocks used in Tracklet Selector
-  unsigned int mHitsSorterBlockCount = 0;   // GPU blocks used in StartHitsSorter
-  unsigned int mConstructorThreadCount = 0; // ...
-  unsigned int mSelectorThreadCount = 0;
-  unsigned int mFinderThreadCount = 0;
-  unsigned int mHitsSorterThreadCount = 0;
-  unsigned int mHitsFinderThreadCount = 0;
-  unsigned int mTRDThreadCount = 0;
-  unsigned int mClustererThreadCount = 0;
-  unsigned int mScanThreadCount = 0;
-  unsigned int mConverterThreadCount = 0;
-  unsigned int mCompression1ThreadCount = 0;
-  unsigned int mCompression2ThreadCount = 0;
-  unsigned int mCFDecodeThreadCount = 0;
-  unsigned int mFitThreadCount = 0;
-  unsigned int mWarpSize = 0;
-  unsigned int mITSThreadCount = 0;
-
-  int mThreadId = -1; // Thread ID that is valid for the local CUDA context
-  int mGPUStuck = 0;  // Marks that the GPU is stuck, skip future events
-  int mNStreams = 1;
+  unsigned int mBlockCount = 1;
+  unsigned int mThreadCount = 1;
+  unsigned int mWarpSize = 1;
 
   struct timerMeta {
     std::unique_ptr<HighResTimer[]> timer;
@@ -244,7 +233,18 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
 template <class S, int I, int J, typename... Args>
 inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
-  if (x.nThreads > GPUCA_MAX_THREADS) {
+  unsigned int nThreads = x.nThreads;
+  unsigned int nBlocks = x.nBlocks;
+  if (nThreads == (unsigned int)-1) {
+    nThreads = getKernelProperties<S, I>().nThreads;
+  }
+  if (nBlocks == (unsigned int)-1) {
+    const int autoThreads = getKernelProperties<S, I>().nThreads;
+    nBlocks = (nThreads + autoThreads - 1) / autoThreads;
+    nThreads = autoThreads;
+  }
+
+  if (nThreads > GPUCA_MAX_THREADS) {
     throw std::runtime_error("GPUCA_MAX_THREADS exceeded");
   }
   HighResTimer* t = nullptr;
@@ -254,9 +254,9 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   }
   int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & myStep) != myStep) : 0;
   if (mDeviceProcessingSettings.debugLevel >= 3) {
-    GPUInfo("Running %s (Stream %d, Range %d/%d, Grid %d/%d) on %s", GetKernelName<S, I>(), x.stream, y.start, y.num, x.nBlocks, x.nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
+    GPUInfo("Running %s (Stream %d, Range %d/%d, Grid %d/%d) on %s", GetKernelName<S, I>(), x.stream, y.start, y.num, nBlocks, nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
   }
-  if (x.nThreads == 0 || x.nBlocks == 0) {
+  if (nThreads == 0 || nBlocks == 0) {
     return 0;
   }
   if (mDeviceProcessingSettings.debugLevel >= 0) {
@@ -265,7 +265,7 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
       t->Start();
     }
   }
-  krnlSetup setup{x, y, z, 0.};
+  krnlSetup setup{{nBlocks, nThreads, x.stream, x.device, x.step}, y, z, 0.};
   if (cpuFallback) {
     if (GPUReconstructionCPU::runKernelImpl(classArgument<S, I>(), setup, args...)) {
       return 1;

@@ -35,7 +35,6 @@ class GPUReconstructionOCL : public GPUReconstructionDeviceBase
  protected:
   int InitDevice_Runtime() override;
   int ExitDevice_Runtime() override;
-  void SetThreadCounts() override;
 
   void SynchronizeGPU() override;
   int DoStuckProtection(int stream, void* event) override;
@@ -60,9 +59,10 @@ class GPUReconstructionOCL : public GPUReconstructionDeviceBase
   unsigned int FindKernel(int num);
   template <typename K, typename... Args>
   int runKernelBackendCommon(krnlSetup& _xyz, K& k, const Args&... args);
+  template <class T, int I = 0>
+  const krnlProperties getKernelPropertiesBackend();
 
   GPUReconstructionOCLInternals* mInternals;
-  int mCoreCount = 0;
 };
 
 } // namespace GPUCA_NAMESPACE::gpu

@@ -425,7 +425,7 @@ The MCKinematicsReader needs the digitization context file, generated during dig
 A typical code example may be
 ```c++
 // init the reader from the context
-o2::steer MCKinematicsReader reader("collisioncontext.root");
+o2::steer::MCKinematicsReader reader("collisioncontext.root");
 
 // load digits from the digits file --> save in alldigits
 // load the label container from the digits file --> save in labelcontainer
@@ -450,6 +450,9 @@ Other helpful resources are the scripts used for regression testing in [prodtest
 
 | Example               | Short Description                                                                      |
 | --------------------- | -------------------------------------------------------------------------------------- |
+| [AliRoot_Hijing](../run/SimExamples/AliRoot_Hijing) | Example showing how to use Hijing from AliRoot for event generation |
+| [Adaptive_Pythia8](../run/SimExamples/Adaptive_Pythia8) | Complex example showing **generator configuration for embedding** that cat adapt the response based on the background event |
+| [HepMC_STARlight](../run/SimExamples/HepMC_STARlight) | Simple example showing **generator configuration** that runs a standalone `STARlight` generation that couples to the `o2` via a `HepMC` file |
 | [Jet_Embedding_Pythia](../run/SimExamples/Jet_Embedding_Pythia8) | Complex example showing **generator configuration**, **digitization embedding**, **MCTrack access** |
 | [sim_challenge.sh](../prodtests/sim_challenge.sh) | Basic example doing a **simple transport, digitization, reconstruction pipeline** on the full dectector. All stages use parallelism. |
 | [sim_performance.sh](../prodtests/sim_performance_test.sh) | Basic example for serial transport and linearized digitization sequence (one detector after the other). Serves as standard performance candle. |  

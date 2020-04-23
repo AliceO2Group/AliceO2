@@ -34,102 +34,46 @@ namespace o2
 {
 namespace steer
 {
-DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<std::string>& simprefixes, const std::vector<int>& tpcsectors, std::shared_ptr<std::vector<int>> tpcsubchannels)
+DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::string>& simprefixes, const std::vector<int>& tpcsectors)
 {
-  // this container will contain the TPC sector assignment per subchannel per invocation
-  // it will allow that we snapshot/send exactly one sector assignment per algorithm invocation
-  // to ensure that they all have different timeslice ids
-  auto tpcsectormessages = std::make_shared<std::vector<std::vector<int>>>();
-  tpcsectormessages->resize(tpcsubchannels->size());
-  int tpcchannelcounter = 0;
   uint64_t activeSectors = 0;
   for (const auto& tpcsector : tpcsectors) {
     activeSectors |= (uint64_t)0x1 << tpcsector;
-    auto actualchannel = (*tpcsubchannels.get())[tpcchannelcounter % tpcsubchannels->size()];
-    LOG(DEBUG) << " WILL ASSIGN SECTOR " << tpcsector << " to subchannel " << actualchannel;
-    tpcsectormessages->operator[](actualchannel).emplace_back(tpcsector);
-    tpcchannelcounter++;
   }
 
-  // this is the number of invocations of the algorithm needed for the TPC
-  size_t tpcinvocations = 0;
-  for (int i = 0; i < tpcsubchannels->size(); ++i) {
-    tpcinvocations = std::max(tpcinvocations, tpcsectormessages->operator[](i).size());
-  }
-  // in principle each channel needs to be invoked exactly the same number of times (sigh)
-  // so I am adding some kind of "NOP" sectors in case needed
-  for (int i = 0; i < tpcsubchannels->size(); ++i) {
-    auto size = tpcsectormessages->operator[](i).size();
-    if (size < tpcinvocations) {
-      for (int k = 0; k < tpcinvocations - size; ++k) {
-        tpcsectormessages->operator[](i).emplace_back(-2); // -2 is NOP
-        LOG(DEBUG) << "ADDING NOP TO CHANNEL " << i;
-      }
-      assert(tpcsectormessages->operator[](i).size() == tpcinvocations);
-    }
-  }
-  // at this moment all tpc digitizers should receive the exact same number of messages/invocations
-
-  auto doit = [fanoutsize, tpcsectormessages, tpcinvocations, tpcsubchannels, activeSectors](ProcessingContext& pc) {
+  auto doit = [range, tpcsectors, activeSectors](ProcessingContext& pc) {
     auto& mgr = steer::HitProcessingManager::instance();
     auto eventrecords = mgr.getDigitizationContext().getEventRecords();
     const auto& context = mgr.getDigitizationContext();
 
-    // counter to make sure we are sending the data only once
-    static int counter = 0;
-
-    static bool finished = false;
-    static bool tpc_end_messagesent = false;
-    if (finished) {
-      if (!tpc_end_messagesent) {
-        // we need to send this in a different time slice
-        // send message telling tpc workers that they can terminate
-        // do this only one
-        for (const auto& channel : *tpcsubchannels.get()) {
-          // -1 is marker for end of work
-          o2::tpc::TPCSectorHeader header{-1};
-          header.activeSectors = activeSectors;
-          pc.outputs().snapshot(
-            OutputRef{"collisioncontext", static_cast<SubSpecificationType>(channel), {header}},
-            context);
-        }
-        tpc_end_messagesent = true;
-      }
-      // send endOfData control event and mark the reader as ready to finish
-      pc.services().get<ControlService>().endOfStream();
-      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-      return;
+    for (auto const& sector : tpcsectors) {
+      // Note: the TPC sector header was serving the sector to lane mapping before
+      // now the only remaining purpose is to propagate the mask of valid sectors
+      // in principle even that is not necessary any more because every sector has
+      // a dedicated route bound to the sector numbers as subspecification and the
+      // merging can be done based on that. However if we in the future go over to
+      // a multipart scheme again, we again will need the information, so we keep it
+      // For the moment, sector member in the sector header is in sync with
+      // subspecification of the route
+      o2::tpc::TPCSectorHeader header{sector};
+      header.activeSectors = activeSectors;
+      pc.outputs().snapshot(OutputRef{"collisioncontext", static_cast<SubSpecificationType>(sector), {header}},
+                            context);
     }
 
-    for (int tpcchannel = 0; tpcchannel < tpcsubchannels->size(); ++tpcchannel) {
-      auto& sectors = tpcsectormessages->operator[](tpcchannel);
-      if (counter < sectors.size()) {
-        auto sector = sectors[counter];
-        // send the sectorassign as header with the collision context data
-        o2::tpc::TPCSectorHeader header{sector};
-        header.activeSectors = activeSectors;
-        pc.outputs().snapshot(
-          OutputRef{"collisioncontext", static_cast<SubSpecificationType>(tpcchannel), {header}},
-          context);
-      }
-    }
-
-    // everything not done previously treat here (this is to be seen how since other things than TPC will have
-    // a different number of invocations)
-    for (int subchannel = 0; subchannel < fanoutsize; ++subchannel) {
-      // TODO: this is temporary ... we should find a more clever+ faster + scalable mechanism
-      if (std::find(tpcsubchannels->begin(), tpcsubchannels->end(), subchannel) != tpcsubchannels->end()) {
-        continue;
-      }
+    // the first 36 channel numbers are reserved for the TPC, now publish the remaining
+    // channels
+    for (int subchannel = range.min; subchannel < range.max; ++subchannel) {
       LOG(INFO) << "SENDING SOMETHING TO OTHERS";
       pc.outputs().snapshot(
         OutputRef{"collisioncontext", static_cast<SubSpecificationType>(subchannel)},
         context);
     }
-    counter++;
-    if (tpcinvocations == 0 || counter == tpcinvocations) {
-      finished = true;
-    }
+
+    // digitizer workflow runs only once
+    // send endOfData control event and mark the reader as ready to finish
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   };
 
   // init function return a lambda taking a ProcessingContext
@@ -187,7 +131,11 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<std::string
   };
 
   std::vector<OutputSpec> outputs;
-  for (int subchannel = 0; subchannel < fanoutsize; ++subchannel) {
+  for (auto const& tpcsector : tpcsectors) {
+    outputs.emplace_back(
+      OutputSpec{{"collisioncontext"}, "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(tpcsector), Lifetime::Timeframe});
+  }
+  for (int subchannel = range.min; subchannel < range.max; ++subchannel) {
     outputs.emplace_back(
       OutputSpec{{"collisioncontext"}, "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(subchannel), Lifetime::Timeframe});
   }
