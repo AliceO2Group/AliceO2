@@ -22,6 +22,7 @@
 #include "GPUCommonAlgorithm.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace GPUCA_NAMESPACE::gpu::tpccf;
 using namespace o2::tpc;
 
 template <>

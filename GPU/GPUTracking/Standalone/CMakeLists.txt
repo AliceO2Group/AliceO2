@@ -126,6 +126,7 @@ include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/ITSMFT/ITS/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/TPC/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Headers/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/MemoryResources/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Reconstruction/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/simulation/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/Base/include

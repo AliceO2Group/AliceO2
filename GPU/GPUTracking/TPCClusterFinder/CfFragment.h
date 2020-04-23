@@ -24,14 +24,14 @@ namespace gpu
 
 struct CfFragment {
 
-  enum : TPCTime {
+  enum : tpccf::TPCTime {
     OverlapTimebins = 8,
   };
 
   // Time offset of this sub slice within the entire time slice
-  TPCTime start = 0;
+  tpccf::TPCTime start = 0;
   // Number of time bins to process in this slice
-  TPCFragmentTime length = 0;
+  tpccf::TPCFragmentTime length = 0;
 
   size_t digitsStart = 0; // Start digits in this fragment. Only used when zero suppression is skipped
 
@@ -42,55 +42,55 @@ struct CfFragment {
 
   GPUdDefault() CfFragment() CON_DEFAULT;
 
-  GPUhd() CfFragment(TPCTime totalSliceLen, TPCFragmentTime maxSubSliceLen) : CfFragment(0, false, 0, totalSliceLen, maxSubSliceLen) {}
+  GPUhd() CfFragment(tpccf::TPCTime totalSliceLen, tpccf::TPCFragmentTime maxSubSliceLen) : CfFragment(0, false, 0, totalSliceLen, maxSubSliceLen) {}
 
   GPUhdi() bool isEnd() const { return length == 0; }
 
-  GPUhdi() CfFragment next(TPCTime totalSliceLen, TPCFragmentTime maxSubSliceLen) const
+  GPUhdi() CfFragment next(tpccf::TPCTime totalSliceLen, tpccf::TPCFragmentTime maxSubSliceLen) const
   {
-    return CfFragment{index + 1, hasFuture, TPCTime(start + length - (hasFuture ? 2 * OverlapTimebins : 0)), totalSliceLen, maxSubSliceLen};
+    return CfFragment{index + 1, hasFuture, tpccf::TPCTime(start + length - (hasFuture ? 2 * OverlapTimebins : 0)), totalSliceLen, maxSubSliceLen};
   }
 
-  GPUhdi() TPCTime first() const
+  GPUhdi() tpccf::TPCTime first() const
   {
     return start;
   }
 
-  GPUhdi() TPCTime last() const
+  GPUhdi() tpccf::TPCTime last() const
   {
     return start + length;
   }
 
-  GPUhdi() bool contains(TPCTime t) const
+  GPUhdi() bool contains(tpccf::TPCTime t) const
   {
     return first() <= t && t < last();
   }
 
   // Wether a timebin falls into backlog or future
-  GPUhdi() bool isOverlap(TPCFragmentTime t) const
+  GPUhdi() bool isOverlap(tpccf::TPCFragmentTime t) const
   {
     return (hasBacklog ? t < OverlapTimebins : false) || (hasFuture ? t >= (length - OverlapTimebins) : false);
   }
 
-  GPUhdi() TPCFragmentTime toLocal(TPCTime t) const
+  GPUhdi() tpccf::TPCFragmentTime toLocal(tpccf::TPCTime t) const
   {
     return t - first();
   }
 
-  GPUhdi() TPCTime toGlobal(TPCFragmentTime t) const
+  GPUhdi() tpccf::TPCTime toGlobal(tpccf::TPCFragmentTime t) const
   {
     return t + first();
   }
 
  private:
-  GPUhd() CfFragment(uint index_, bool hasBacklog_, TPCTime start_, TPCTime totalSliceLen, TPCFragmentTime maxSubSliceLen)
+  GPUhd() CfFragment(uint index_, bool hasBacklog_, tpccf::TPCTime start_, tpccf::TPCTime totalSliceLen, tpccf::TPCFragmentTime maxSubSliceLen)
   {
     this->index = index_;
     this->hasBacklog = hasBacklog_;
     this->start = start_;
 
-    TPCTime remainder = totalSliceLen - start;
-    this->hasFuture = remainder > TPCTime(maxSubSliceLen);
+    tpccf::TPCTime remainder = totalSliceLen - start;
+    this->hasFuture = remainder > tpccf::TPCTime(maxSubSliceLen);
     this->length = hasFuture ? maxSubSliceLen : remainder;
   }
 };

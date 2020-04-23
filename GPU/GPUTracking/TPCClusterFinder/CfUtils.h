@@ -68,7 +68,7 @@ class CfUtils
     ushort ll,
     uint offset,
     uint N,
-    GPUconstexprref() const Delta2* neighbors,
+    GPUconstexprref() const tpccf::Delta2* neighbors,
     const ChargePos* posBcast,
     GPUgeneric() T* buf)
   {
@@ -76,7 +76,7 @@ class CfUtils
     GPUbarrier();
     ushort x = ll % N;
     ushort y = ll / N;
-    Delta2 d = neighbors[x + offset];
+    tpccf::Delta2 d = neighbors[x + offset];
     LOOP_UNROLL_ATTR for (unsigned int i = y; i < wgSize; i += (elems / N))
     {
       ChargePos readFrom = posBcast[i];
@@ -94,7 +94,7 @@ class CfUtils
     GPUbarrier();
 
     for (unsigned int i = 0; i < N; i++) {
-      Delta2 d = neighbors[i + offset];
+      tpccf::Delta2 d = neighbors[i + offset];
 
       uint writeTo = N * ll + i;
       buf[writeTo] = map[readFrom.delta(d)];
@@ -112,7 +112,7 @@ class CfUtils
     ushort ll,
     ushort offset,
     ushort N,
-    GPUconstexprref() const Delta2* neighbors,
+    GPUconstexprref() const tpccf::Delta2* neighbors,
     const ChargePos* posBcast,
     const uchar* aboveThreshold,
     GPUgeneric() T* buf)
@@ -121,7 +121,7 @@ class CfUtils
     GPUbarrier();
     ushort y = ll / N;
     ushort x = ll % N;
-    Delta2 d = neighbors[x + offset];
+    tpccf::Delta2 d = neighbors[x + offset];
     LOOP_UNROLL_ATTR for (unsigned int i = y; i < wgSize; i += (elems / N))
     {
       ChargePos readFrom = posBcast[i];
@@ -147,7 +147,7 @@ class CfUtils
     GPUbarrier();
 
     for (unsigned int i = 0; i < N; i++) {
-      Delta2 d = neighbors[i + offset];
+      tpccf::Delta2 d = neighbors[i + offset];
 
       uint writeTo = N * ll + i;
       T v(0);

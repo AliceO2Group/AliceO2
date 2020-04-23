@@ -70,13 +70,13 @@ class GPUTPCCFClusterizer : public GPUKernelTemplate
   static GPUd() void computeClustersImpl(int, int, int, int, const CfFragment&, GPUSharedMemory&, const Array2D<PackedCharge>&, const ChargePos*, MCLabelAccumulator*, uint, uint, uint*, tpc::ClusterNative*);
 
  private:
-  static GPUd() void addOuterCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);
+  static GPUd() void addOuterCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, tpccf::Delta2);
 
-  static GPUd() Charge addInnerCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);
+  static GPUd() tpccf::Charge addInnerCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, tpccf::Delta2);
 
-  static GPUd() void addCorner(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);
+  static GPUd() void addCorner(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, tpccf::Delta2);
 
-  static GPUd() void addLine(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);
+  static GPUd() void addLine(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, tpccf::Delta2);
 
   static GPUd() void updateClusterScratchpadInner(ushort, ushort, const PackedCharge*, const ChargePos&, ClusterAccumulator*, MCLabelAccumulator*, uchar*);
 
