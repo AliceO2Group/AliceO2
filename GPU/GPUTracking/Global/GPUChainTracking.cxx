@@ -1271,7 +1271,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     if (!(doGPU || GetDeviceProcessingSettings().debugLevel >= 1)) {
       trk.CommonMemory()->nLocalTracks = trk.CommonMemory()->nTracks;
       trk.CommonMemory()->nLocalTrackHits = trk.CommonMemory()->nTrackHits;
-      if (!param().rec.GlobalTracking) {
+      if (!param().rec.GlobalTracking && (GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks)) {
         WriteOutput(iSlice, 0);
       }
     }
@@ -1333,90 +1333,102 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
 
     mSliceSelectorReady = 0;
 
-    if (param().rec.GlobalTracking) {
-      mWriteOutputDone.fill(0);
-    }
-    RunHelperThreads(&GPUChainTracking::HelperOutput, this, NSLICES);
-
     std::array<bool, NSLICES> transferRunning;
     transferRunning.fill(true);
-    unsigned int tmpSlice = 0;
-    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      if (GetDeviceProcessingSettings().debugLevel >= 3) {
-        GPUInfo("Transfering Tracks from GPU to Host");
-      }
-
-      if (tmpSlice == iSlice) {
-        SynchronizeEvents(&mEvents->selector[iSlice]);
-      }
-      while (tmpSlice < NSLICES && (tmpSlice == iSlice || IsEventDone(&mEvents->selector[tmpSlice]))) {
-        ReleaseEvent(&mEvents->selector[tmpSlice]);
-        if (*processors()->tpcTrackers[tmpSlice].NTracks() > 0) {
-          TransferMemoryResourceLinkToHost(RecoStep::TPCSliceTracking, processors()->tpcTrackers[tmpSlice].MemoryResOutput(), streamMap[tmpSlice], &mEvents->selector[tmpSlice]);
-        } else {
-          transferRunning[tmpSlice] = false;
-        }
-        tmpSlice++;
-      }
-
-      if (GetDeviceProcessingSettings().keepAllMemory) {
-        TransferMemoryResourcesToHost(RecoStep::TPCSliceTracking, &processors()->tpcTrackers[iSlice], -1, true);
-        if (!GetDeviceProcessingSettings().trackletConstructorInPipeline) {
-          if (GetDeviceProcessingSettings().debugMask & 256 && !GetDeviceProcessingSettings().comparableDebutOutput) {
-            processors()->tpcTrackers[iSlice].DumpHitWeights(mDebugFile);
-          }
-        }
-        if (!GetDeviceProcessingSettings().trackletSelectorInPipeline) {
-          if (GetDeviceProcessingSettings().debugMask & 512) {
-            processors()->tpcTrackers[iSlice].DumpTrackHits(mDebugFile);
-          }
-        }
-      }
-
-      if (transferRunning[iSlice]) {
-        SynchronizeEvents(&mEvents->selector[iSlice]);
-      }
-      if (GetDeviceProcessingSettings().debugLevel >= 3) {
-        GPUInfo("Tracks Transfered: %d / %d", *processors()->tpcTrackers[iSlice].NTracks(), *processors()->tpcTrackers[iSlice].NTrackHits());
-      }
-
-      processors()->tpcTrackers[iSlice].CommonMemory()->nLocalTracks = processors()->tpcTrackers[iSlice].CommonMemory()->nTracks;
-      processors()->tpcTrackers[iSlice].CommonMemory()->nLocalTrackHits = processors()->tpcTrackers[iSlice].CommonMemory()->nTrackHits;
-
-      if (GetDeviceProcessingSettings().debugLevel >= 3) {
-        GPUInfo("Data ready for slice %d, helper thread %d", iSlice, iSlice % (GetDeviceProcessingSettings().nDeviceHelperThreads + 1));
-      }
-      mSliceSelectorReady = iSlice;
-
+    if ((GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks)) {
       if (param().rec.GlobalTracking) {
-        for (unsigned int tmpSlice2a = 0; tmpSlice2a <= iSlice; tmpSlice2a += GetDeviceProcessingSettings().nDeviceHelperThreads + 1) {
-          unsigned int tmpSlice2 = GPUTPCTracker::GlobalTrackingSliceOrder(tmpSlice2a);
-          unsigned int sliceLeft = (tmpSlice2 + (NSLICES / 2 - 1)) % (NSLICES / 2);
-          unsigned int sliceRight = (tmpSlice2 + 1) % (NSLICES / 2);
-          if (tmpSlice2 >= (int)NSLICES / 2) {
-            sliceLeft += NSLICES / 2;
-            sliceRight += NSLICES / 2;
-          }
+        mWriteOutputDone.fill(0);
+      }
+      RunHelperThreads(&GPUChainTracking::HelperOutput, this, NSLICES);
 
-          if (tmpSlice2 <= iSlice && sliceLeft <= iSlice && sliceRight <= iSlice && mWriteOutputDone[tmpSlice2] == 0) {
-            GlobalTracking(tmpSlice2, 0);
-            WriteOutput(tmpSlice2, 0);
-            mWriteOutputDone[tmpSlice2] = 1;
+      unsigned int tmpSlice = 0;
+      for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+        if (GetDeviceProcessingSettings().debugLevel >= 3) {
+          GPUInfo("Transfering Tracks from GPU to Host");
+        }
+
+        if (tmpSlice == iSlice) {
+          SynchronizeEvents(&mEvents->selector[iSlice]);
+        }
+        while (tmpSlice < NSLICES && (tmpSlice == iSlice || IsEventDone(&mEvents->selector[tmpSlice]))) {
+          ReleaseEvent(&mEvents->selector[tmpSlice]);
+          if (*processors()->tpcTrackers[tmpSlice].NTracks() > 0) {
+            TransferMemoryResourceLinkToHost(RecoStep::TPCSliceTracking, processors()->tpcTrackers[tmpSlice].MemoryResOutput(), streamMap[tmpSlice], &mEvents->selector[tmpSlice]);
+          } else {
+            transferRunning[tmpSlice] = false;
+          }
+          tmpSlice++;
+        }
+
+        if (GetDeviceProcessingSettings().keepAllMemory) {
+          TransferMemoryResourcesToHost(RecoStep::TPCSliceTracking, &processors()->tpcTrackers[iSlice], -1, true);
+          if (!GetDeviceProcessingSettings().trackletConstructorInPipeline) {
+            if (GetDeviceProcessingSettings().debugMask & 256 && !GetDeviceProcessingSettings().comparableDebutOutput) {
+              processors()->tpcTrackers[iSlice].DumpHitWeights(mDebugFile);
+            }
+          }
+          if (!GetDeviceProcessingSettings().trackletSelectorInPipeline) {
+            if (GetDeviceProcessingSettings().debugMask & 512) {
+              processors()->tpcTrackers[iSlice].DumpTrackHits(mDebugFile);
+            }
           }
         }
-      } else {
-        if (iSlice % (GetDeviceProcessingSettings().nDeviceHelperThreads + 1) == 0) {
-          WriteOutput(iSlice, 0);
+
+        if (transferRunning[iSlice]) {
+          SynchronizeEvents(&mEvents->selector[iSlice]);
+        }
+        if (GetDeviceProcessingSettings().debugLevel >= 3) {
+          GPUInfo("Tracks Transfered: %d / %d", *processors()->tpcTrackers[iSlice].NTracks(), *processors()->tpcTrackers[iSlice].NTrackHits());
+        }
+
+        processors()->tpcTrackers[iSlice].CommonMemory()->nLocalTracks = processors()->tpcTrackers[iSlice].CommonMemory()->nTracks;
+        processors()->tpcTrackers[iSlice].CommonMemory()->nLocalTrackHits = processors()->tpcTrackers[iSlice].CommonMemory()->nTrackHits;
+
+        if (GetDeviceProcessingSettings().debugLevel >= 3) {
+          GPUInfo("Data ready for slice %d, helper thread %d", iSlice, iSlice % (GetDeviceProcessingSettings().nDeviceHelperThreads + 1));
+        }
+        mSliceSelectorReady = iSlice;
+
+        if (param().rec.GlobalTracking) {
+          for (unsigned int tmpSlice2a = 0; tmpSlice2a <= iSlice; tmpSlice2a += GetDeviceProcessingSettings().nDeviceHelperThreads + 1) {
+            unsigned int tmpSlice2 = GPUTPCTracker::GlobalTrackingSliceOrder(tmpSlice2a);
+            unsigned int sliceLeft = (tmpSlice2 + (NSLICES / 2 - 1)) % (NSLICES / 2);
+            unsigned int sliceRight = (tmpSlice2 + 1) % (NSLICES / 2);
+            if (tmpSlice2 >= (int)NSLICES / 2) {
+              sliceLeft += NSLICES / 2;
+              sliceRight += NSLICES / 2;
+            }
+
+            if (tmpSlice2 <= iSlice && sliceLeft <= iSlice && sliceRight <= iSlice && mWriteOutputDone[tmpSlice2] == 0) {
+              GlobalTracking(tmpSlice2, 0);
+              WriteOutput(tmpSlice2, 0);
+              mWriteOutputDone[tmpSlice2] = 1;
+            }
+          }
+        } else {
+          if (iSlice % (GetDeviceProcessingSettings().nDeviceHelperThreads + 1) == 0) {
+            WriteOutput(iSlice, 0);
+          }
         }
       }
+      WaitForHelperThreads();
     }
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       if (transferRunning[iSlice]) {
         ReleaseEvent(&mEvents->selector[iSlice]);
       }
     }
-
-    WaitForHelperThreads();
+    if (!(GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks)) {
+      for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+        processors()->tpcTrackers[iSlice].CommonMemory()->nLocalTracks = processors()->tpcTrackers[iSlice].CommonMemory()->nTracks;
+        processors()->tpcTrackers[iSlice].CommonMemory()->nLocalTrackHits = processors()->tpcTrackers[iSlice].CommonMemory()->nTrackHits;
+      }
+      if (param().rec.GlobalTracking) {
+        for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+          GlobalTracking(iSlice, 0);
+        }
+      }
+    }
   } else {
     mSliceSelectorReady = NSLICES;
 #ifdef WITH_OPENMP
@@ -1426,7 +1438,9 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       if (param().rec.GlobalTracking) {
         GlobalTracking(iSlice, 0);
       }
-      WriteOutput(iSlice, 0);
+      if (GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks) {
+        WriteOutput(iSlice, 0);
+      }
     }
   }
 
