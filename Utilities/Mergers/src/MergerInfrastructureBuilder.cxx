@@ -69,7 +69,16 @@ std::string MergerInfrastructureBuilder::validateConfig()
     error += preamble + "reduction factor smaller than 2 (" + std::to_string(mConfig.topologySize.param) + ")\n";
   }
 
-  // todo check if output might be included in input matcher (it might be a common mistake)
+  if (mConfig.inputObjectTimespan.value == InputObjectsTimespan::FullHistory && mConfig.mergedObjectTimespan.value == MergedObjectTimespan::LastDifference) {
+    error += preamble + "MergedObjectTimespan::LastDifference does not apply to InputObjectsTimespan::FullHistory\n";
+  }
+
+  for (const auto& input : mInputs) {
+    if (DataSpecUtils::match(input, mOutputSpec)) {
+      error += preamble + "output '" + DataSpecUtils::label(mOutputSpec)
+               + "' matches input '" + DataSpecUtils::label(input) + "'. That will cause a circular dependency!";
+    }
+  }
 
   return error;
 }
@@ -80,7 +89,6 @@ framework::WorkflowSpec MergerInfrastructureBuilder::generateInfrastructure()
     throw std::runtime_error(error);
   }
 
-  //todo: remember about range inputs!!! // solution: check if an input is concrete?
   framework::WorkflowSpec workflow;
   auto layerInputs = mInputs;
 
