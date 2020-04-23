@@ -346,7 +346,7 @@ class MCTruthContainer
   template <typename Stream>
   void print(Stream& stream)
   {
-    stream << "MCTruthContainer index = " << getIndexedSize() << " for " << getNElements() << " elements(s), flat buffer size " << mStreamerData.size() << std::endl;
+    stream << "MCTruthContainer index = " << getIndexedSize() << " for " << getNElements() << " elements(s), flat buffer size " << mStreamerData.size() << "\n";
   }
 
   /// Inflate the object from the internal buffer
