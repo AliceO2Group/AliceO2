@@ -59,6 +59,7 @@ include(O2AddTestRootMacro)
 include(O2TargetRootDictionary)
 include(O2DataFile)
 include(O2TargetManPage)
+include(O2AddWorkflow)
 
 # Main targets of the project in various subdirectories. Order matters.
 add_subdirectory(Common)
