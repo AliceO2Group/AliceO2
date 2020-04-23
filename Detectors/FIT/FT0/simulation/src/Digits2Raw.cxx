@@ -59,10 +59,10 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 using namespace o2::ft0;
 
 ClassImp(Digits2Raw);
-void setRDH(o2::header::RAWDataHeader&, int nlink, o2::InteractionRecord const&);
+
 EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord);
 
-Digits2Raw::Digits2Raw(const std::string fileRaw, std::string fileDigitsName)
+Digits2Raw::Digits2Raw(const std::string& fileRaw, const std::string& fileDigitsName)
 {
 
   mFileDest.exceptions(std::ios_base::failbit | std::ios_base::badbit);
@@ -70,7 +70,7 @@ Digits2Raw::Digits2Raw(const std::string fileRaw, std::string fileDigitsName)
   Digits2Raw::readDigits(fileRaw.c_str(), fileDigitsName.c_str());
 }
 
-void Digits2Raw::readDigits(const std::string fileRaw, const std::string fileDigitsName)
+void Digits2Raw::readDigits(const std::string& fileRaw, const std::string& fileDigitsName)
 {
   LOG(INFO) << "**********Digits2Raw::convertDigits" << std::endl;
 
@@ -78,16 +78,13 @@ void Digits2Raw::readDigits(const std::string fileRaw, const std::string fileDig
   LOG(DEBUG) << " ##### LookUp set ";
 
   using namespace o2::raw;
-  uint32_t linkID;
-  uint16_t cruID;
-  uint32_t endPointID;
-  uint64_t feeID;
   for (int ilink = 0; ilink < NPMs; ++ilink) {
     linkID = uint32_t(ilink);
     feeID = uint64_t(ilink);
-    cruID = uint16_t(ilink);
+    cruID = uint16_t(0);
     endPointID = uint32_t(0);
     mWriter.registerLink(feeID, cruID, linkID, endPointID, fileRaw.data());
+    LOG(INFO) << linkID << " " << feeID << " " << cruID;
   }
 
   TFile* fdig = TFile::Open(fileDigitsName.data());
@@ -114,18 +111,9 @@ void Digits2Raw::readDigits(const std::string fileRaw, const std::string fileDig
     for (int ibc = 0; ibc < nbc; ibc++) {
       auto& bcd = digitsBC[ibc];
       intRecord = bcd.getIntRecord();
-      int nHBF = mSampler.fillHBIRvector(HBIRVec, lastIR, intRecord);
-      lastIR = intRecord + 1;
-      if (nHBF) {
-        for (int j = 0; j < nHBF - 1; j++) {
-          o2::InteractionRecord rdhIR = HBIRVec[j];
-        }
-        auto channels = bcd.getBunchChannelData(digitsCh);
-        int nch = channels.size();
-        if (nch) {
-          convertDigits(bcd, channels, lut, intRecord);
-        }
-      }
+      auto channels = bcd.getBunchChannelData(digitsCh);
+      if (!channels.empty())
+        convertDigits(bcd, channels, lut, intRecord);
     }
   }
 }
@@ -141,7 +129,6 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   int nchannels = 0;
   int nch = pmchannels.size();
   for (int ich = 0; ich < nch; ich++) {
-    pmchannels[ich].print();
     int nlink = lut.getLink(pmchannels[ich].ChId);
     if (nlink != oldlink) {
       if (oldlink >= 0) {
@@ -151,17 +138,19 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
           mRawEventData.mEventData[nchannels] = {};
         mRawEventData.mEventHeader.nGBTWords = nGBTWords;
         auto data = mRawEventData.to_vector(false);
-        mWriter.addData(oldlink, oldlink,
-                        oldlink, 0, intRecord, data);
+        linkID = uint32_t(oldlink);
+        feeID = uint64_t(oldlink);
+        mWriter.addData(feeID, cruID, linkID, endPointID, intRecord, data);
       }
       oldlink = nlink;
       mRawEventData.mEventHeader = makeGBTHeader(nlink, intRecord);
       nchannels = 0;
-      LOG(INFO) << " switch to new link " << nlink;
+      //  LOG(INFO) << " switch to new link " << nlink;
     }
     auto& newData = mRawEventData.mEventData[nchannels];
     bool isAside = (pmchannels[ich].ChId < 96);
     newData.charge = pmchannels[ich].QTCAmpl;
+
     newData.time = pmchannels[ich].CFDTime;
     newData.is1TimeLostEvent = 0;
     newData.is2TimeLostEvent = 0;
@@ -174,7 +163,7 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
     int chain = std::rand() % 2;
     newData.numberADC = chain ? 1 : 0;
     newData.channelID = lut.getMCP(pmchannels[ich].ChId);
-    LOG(INFO) << "packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << int(newData.numberADC) << " size " << sizeof(newData);
+    //  LOG(INFO) << "packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << int(newData.numberADC) << " size " << sizeof(newData);
     nchannels++;
   }
   // fill mEventData[nchannels] with 0s to flag that this is a dummy data
@@ -187,7 +176,14 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   mRawEventData.mEventHeader = makeGBTHeader(LinkTCM, intRecord); //TCM
   mRawEventData.mEventHeader.nGBTWords = 1;
   auto& tcmdata = mRawEventData.mTCMdata;
-  //  tcmdata = mTriggers;
+  mTriggers = bcdigits.getTriggers();
+
+  float ampA = mTriggers.amplA;
+  float ampC = mTriggers.amplC;
+  if (ampA > 131071)
+    ampA = 131071; //2^17
+  if (ampC > 131071)
+    ampC = 131071; //2^17
   tcmdata.vertex = mTriggers.getVertex();
   tcmdata.orA = mTriggers.getOrA();
   tcmdata.orC = mTriggers.getOrC();
@@ -195,20 +191,28 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   tcmdata.cen = mTriggers.getCen();
   tcmdata.nChanA = mTriggers.nChanA;
   tcmdata.nChanC = mTriggers.nChanC;
-  tcmdata.amplA = mTriggers.amplA;
-  tcmdata.amplC = mTriggers.amplC;
+  tcmdata.amplA = ampA;
+  tcmdata.amplC = ampC;
   tcmdata.timeA = mTriggers.timeA;
   tcmdata.timeC = mTriggers.timeC;
+  LOG(INFO) << " triggers read "
+            << " time A " << mTriggers.timeA << " time C " << mTriggers.timeC
+            << " amp A " << ampA << " amp C " << ampC
+            << " N A " << int(mTriggers.nChanA) << " N C " << int(mTriggers.nChanC)
+            << " trig "
+            << " ver " << mTriggers.getVertex() << " A " << mTriggers.getOrA() << " C " << mTriggers.getOrC();
+
   LOG(INFO) << "TCMdata"
-            << " time A " << int(tcmdata.timeA) << " time C " << int(tcmdata.timeC)
-            << " amp A " << int(tcmdata.amplA) << " amp C " << int(tcmdata.amplC)
+            << " time A " << tcmdata.timeA << " time C " << tcmdata.timeC
+            << " amp A " << tcmdata.amplA << " amp C " << tcmdata.amplC
             << " N A " << int(tcmdata.nChanA) << " N C " << int(tcmdata.nChanC)
             << " trig "
             << " ver " << tcmdata.vertex << " A " << tcmdata.orA << " C " << tcmdata.orC
             << " size " << sizeof(tcmdata);
   auto data = mRawEventData.to_vector(1);
-  mWriter.addData(uint16_t(LinkTCM), uint16_t(LinkTCM), uint16_t(LinkTCM), uint16_t(0), intRecord, data);
-  LOG(INFO) << " write TCM " << LinkTCM;
+  linkID = uint32_t(LinkTCM);
+  feeID = uint64_t(LinkTCM);
+  mWriter.addData(feeID, cruID, linkID, endPointID, intRecord, data);
 }
 
 //_____________________________________________________________________________________
@@ -223,21 +227,6 @@ EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord)
   LOG(DEBUG) << " makeGBTHeader " << link << " orbit " << mEventHeader.orbit << " BC " << mEventHeader.bc;
   return mEventHeader;
 }
-//_____________________________________________________________________________
-void Digits2Raw::setRDH(o2::header::RAWDataHeader& rdh, int nlink, o2::InteractionRecord rdhIR)
-{
-  rdh = mSampler.createRDH<o2::header::RAWDataHeader>(rdhIR);
-  //rdh.triggerOrbit = rdh.heartbeatOrbit = mIntRecord.orbit;
-  //rdh.triggerBC = rdh.heartbeatBC = mIntRecord.bc;
-  rdh.linkID = nlink;
-  rdh.feeId = nlink;
-
-  rdh.triggerType = o2::trigger::PhT; // ??
-  rdh.detectorField = 0xffff;         //empty for FIt yet
-  rdh.blockLength = 0xffff;           // ITS keeps this dummy
-  rdh.stop = 0;                       // ??? last package  on page
-}
-//_____________________________________________________________________________
 
 void Digits2Raw::close()
 {
