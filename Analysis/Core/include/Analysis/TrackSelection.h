@@ -37,7 +37,7 @@ class TrackSelection : public TObject
           mMinNCrossedRowsOverFindableClustersTPC &&
         (track.itsNCls() >= mMinNClustersITS) &&
         (track.itsChi2NCl() < mMaxChi2PerClusterITS) &&
-        (track.tpcChi2Ncl() < mMaxChi2PerClusterTPC) &&
+        (track.tpcChi2NCl() < mMaxChi2PerClusterTPC) &&
         (mRequireITSRefit && (track.flags() & 0x4)) &&
         (mRequireTPCRefit && (track.flags() & 0x40)) &&
         FulfillsITSHitRequirements(track.itsClusterMap())) {

@@ -232,7 +232,7 @@ struct TrackQATask {
         track.tpcCrossedRowsOverFindableCls());
       tpcFractionSharedClusters->Fill(track.tpcFractionSharedCls());
       tpcChi2PerCluster->Fill(
-        track.tpcChi2Ncl()); // todo: fix typo in AnalysisDatamodel.h
+        track.tpcChi2NCl());
 
       // ITS
       itsFoundClusters->Fill(track.itsNCls());

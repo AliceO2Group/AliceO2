@@ -132,7 +132,7 @@ DECLARE_SOA_COLUMN(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedR
 DECLARE_SOA_COLUMN(TPCNClsShared, tpcNClsShared, uint8_t);
 DECLARE_SOA_COLUMN(TRDNTracklets, trdNTracklets, uint8_t);
 DECLARE_SOA_COLUMN(ITSChi2NCl, itsChi2NCl, float);
-DECLARE_SOA_COLUMN(TPCChi2Ncl, tpcChi2Ncl, float);
+DECLARE_SOA_COLUMN(TPCChi2NCl, tpcChi2NCl, float);
 DECLARE_SOA_COLUMN(TRDChi2, trdChi2, float);
 DECLARE_SOA_COLUMN(TOFChi2, tofChi2, float);
 DECLARE_SOA_COLUMN(TPCSignal, tpcSignal, float);
@@ -191,7 +191,7 @@ DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCInnerParam, track::Flags, track::ITSClusterMap,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
                   track::TPCNClsShared, track::TRDNTracklets, track::ITSChi2NCl,
-                  track::TPCChi2Ncl, track::TRDChi2, track::TOFChi2,
+                  track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
                   track::TPCSignal, track::TRDSignal, track::TOFSignal, track::Length,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
