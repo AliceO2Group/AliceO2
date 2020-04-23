@@ -16,8 +16,16 @@ if(NOT VGM_FOUND)
   return()
 endif()
 
-set_target_properties(VGM::XmlVGM
+# VGM uses namespace since 4.7
+message(STATUS ${VGM_VERSION})
+if(${VGM_VERSION} VERSION_LESS "4.7")
+  set(targetVGM XmlVGM)
+else()
+  set(targetVGM VGM::XmlVGM)
+endif()
+
+set_target_properties(${targetVGM}
                       PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
                                 "${VGM_INCLUDE_DIRS}"
-                                INTERFACE_LINK_DIRECTORIES
-                                $<TARGET_FILE_DIR:VGM::XmlVGM>)
+                      INTERFACE_LINK_DIRECTORIES
+                                $<TARGET_FILE_DIR:${targetVGM}>)
