@@ -1,3 +1,4 @@
+
 # Copyright CERN and copyright holders of ALICE O2. This software is distributed
 # under the terms of the GNU General Public License v3 (GPL Version 3), copied
 # verbatim in the file "COPYING".
@@ -17,7 +18,6 @@ if(NOT VGM_FOUND)
 endif()
 
 # VGM uses namespace since 4.7
-message(STATUS ${VGM_VERSION})
 if(${VGM_VERSION} VERSION_LESS "4.7")
   set(targetVGM XmlVGM)
 else()
