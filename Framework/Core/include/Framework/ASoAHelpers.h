@@ -24,6 +24,27 @@
 
 namespace o2::soa
 {
+//// table slicer function
+//// FIXME: current implementation of sliceByColumn is _only_ for indices!
+//template <typename T, typename I>
+//std::vector<std::decay_t<T>> slice(T&& t, I nGroups, std::string const& columnName)
+//{
+//  arrow::compute::FunctionContext ctx;
+//  std::vector<arrow::compute::Datum> splittedDatums;
+//  std::vector<std::decay_t<T>> splittedTables;
+//  std::vector<uint64_t> offsets;
+//  auto status = o2::framework::sliceByColumn(&ctx, columnName, nGroups, arrow::compute::Datum(t.asArrowTable()), &splittedDatums, &offsets);
+//  if (status.ok() == false) {
+//    throw std::runtime_error("Unable to slice table");
+//  }
+//  splittedTables.reserve(splittedDatums.size());
+//  for (size_t ti = 0; ti < splittedDatums.size(); ++ti) {
+//    auto table = arrow::util::get<std::shared_ptr<arrow::Table>>(splittedDatums[ti].value);
+//    auto offset = offsets[ti];
+//    splittedTables.emplace_back(table, offset);
+//  }
+//  return splittedTables;
+//}
 
 // Functions to enable looping over tuples
 template <std::size_t V>
