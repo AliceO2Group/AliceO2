@@ -114,6 +114,8 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       }
 
       mgr.getInteractionSampler().init();
+      // doing a random event selection/subsampling?
+      mgr.setRandomEventSequence(ctx.options().get<int>("randomsample") > 0);
 
       // number of collisions asked?
       auto col = ctx.options().get<int>("ncollisions");
@@ -155,7 +157,8 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       {"ncollisions,n",
        VariantType::Int,
        0,
-       {"number of collisions to sample (default is given by number of entries in chain"}}}};
+       {"number of collisions to sample (default is given by number of entries in chain"}},
+      {"randomsample", VariantType::Int, 0, {"Draw collisions random instead of linear sequence. (Default no = 0)"}}}};
 }
 } // namespace steer
 } // namespace o2
