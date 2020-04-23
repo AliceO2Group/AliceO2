@@ -17,6 +17,7 @@
 #include "TPCBase/Digit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 void GPUTPCClusterFinder::DumpDigits(std::ostream& out)
 {

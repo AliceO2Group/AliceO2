@@ -14,8 +14,8 @@
 #include "ClusterAccumulator.h"
 #include "CfUtils.h"
 
-
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 GPUd() void ClusterAccumulator::toNative(const ChargePos& pos, Charge q, tpc::ClusterNative& cn) const
 {
