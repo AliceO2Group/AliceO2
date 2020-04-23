@@ -25,7 +25,7 @@ gsl::span<const ChannelData> Digit::getBunchChannelData(const gsl::span<const Ch
 void Digit::printStream(std::ostream& stream) const
 {
   stream << "FT0 Digit:  BC " << mIntRecord.bc << " orbit " << mIntRecord.orbit << std::endl;
-  stream << " A amp " << mTriggers.amplA << "  C amp " << mTriggers.amplC << " time A " << mTriggers.timeA << " time C " << mTriggers.timeC << std::endl;
+  stream << " A amp " << mTriggers.amplA << "  C amp " << mTriggers.amplC << " time A " << mTriggers.timeA << " time C " << mTriggers.timeC << " signals " << int(mTriggers.triggersignals) << std::endl;
 }
 
 std::ostream& operator<<(std::ostream& stream, const Digit& digi)

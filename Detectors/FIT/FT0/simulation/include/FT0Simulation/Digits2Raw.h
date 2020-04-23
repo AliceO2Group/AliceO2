@@ -49,8 +49,8 @@ class Digits2Raw
 
  public:
   Digits2Raw() = default;
-  Digits2Raw(const std::string fileRawName, std::string fileDigitsName);
-  void readDigits(const std::string fileRawName, const std::string fileDigitsName);
+  Digits2Raw(const std::string& fileRawName, const std::string& fileDigitsName);
+  void readDigits(const std::string& fileRawName, const std::string& fileDigitsName);
   void convertDigits(o2::ft0::Digit bcdigits,
                      gsl::span<const ChannelData> pmchannels,
                      const o2::ft0::LookUpTable& lut,
@@ -66,14 +66,18 @@ class Digits2Raw
     return o2::ft0::LookUpTable{lut_data};
   }
   o2::raw::RawFileWriter& getWriter() { return mWriter; }
-  void setRDH(o2::header::RAWDataHeader& rdh, int nlink, o2::InteractionRecord rdhIR);
 
  private:
   std::ofstream mFileDest;
   o2::ft0::RawEventData mRawEventData;
   const o2::raw::HBFUtils& mSampler = o2::raw::HBFUtils::Instance();
   o2::ft0::Triggers mTriggers;
-  o2::raw::RawFileWriter mWriter;
+  o2::raw::RawFileWriter mWriter{"FT0"};
+  uint32_t linkID = 0;
+  uint16_t cruID = 0;
+  uint32_t endPointID = 0;
+  uint64_t feeID = 0;
+
   /////////////////////////////////////////////////
 
   ClassDefNV(Digits2Raw, 1);

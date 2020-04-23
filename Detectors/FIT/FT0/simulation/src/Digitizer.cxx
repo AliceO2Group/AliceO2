@@ -59,9 +59,9 @@ Digitizer::CFDOutput Digitizer::get_time(const std::vector<double>& times, doubl
       is_positive = cfd_val > 0;
   }
   if (!result.particle) {
-    LOG(INFO) << "CFD failed to find peak ";
-    // for (double t : times)
-    // LOG(INFO) << t << ", dead time "<<deadTime;
+    LOG(DEBUG) << "CFD failed to find peak ";
+    for (double t : times)
+      LOG(DEBUG) << t << ", dead time " << deadTime;
   }
   return result;
 }
@@ -148,8 +148,8 @@ void Digitizer::storeBC(BCCache& bc,
     float amp = is_time_in_signal_gate ? parameters.mV_2_Nchannels * charge : 0;
     if (amp > 4095)
       amp = 4095;
-    LOG(INFO) << "bc " << firstBCinDeque.bc << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored;
-    digitsCh.emplace_back(ipmt, smeared_time, int(parameters.mV_2_Nchannels * amp), chain);
+    LOG(DEBUG) << "bc " << firstBCinDeque.bc << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored;
+    digitsCh.emplace_back(ipmt, smeared_time, int(amp), chain);
     nStored++;
 
     // fill triggers
@@ -175,14 +175,14 @@ void Digitizer::storeBC(BCCache& bc,
   is_SemiCentral = summ_ampl_A + summ_ampl_C >= parameters.mtrg_semicentral_trh;
   vertex_time = (mean_time_A - mean_time_C) * 0.5;
   isVertex = is_A && is_C && (vertex_time > -parameters.mTime_trg_gate && vertex_time < parameters.mTime_trg_gate);
-  uint16_t amplA = is_A ? summ_ampl_A : 0;           // sum amplitude A side
-  uint16_t amplC = is_C ? summ_ampl_C : 0;           // sum amplitude C side
+  uint32_t amplA = is_A ? summ_ampl_A : 0;           // sum amplitude A side
+  uint32_t amplC = is_C ? summ_ampl_C : 0;           // sum amplitude C side
   uint16_t timeA = is_A ? mean_time_A / n_hit_A : 0; // average time A side
   uint16_t timeC = is_C ? mean_time_C / n_hit_C : 0; // average time C side
 
   Triggers triggers;
-  triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, n_hit_A, n_hit_C,
-                       int(parameters.mV_2_Nchannels * amplA), int(parameters.mV_2_Nchannels * amplC), timeA, timeC);
+  triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, int8_t(n_hit_A), int8_t(n_hit_C),
+                       amplA, amplC, timeA, timeC);
 
   digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers, mEventID);
   size_t const nBC = digitsBC.size();

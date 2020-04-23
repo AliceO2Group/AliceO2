@@ -119,6 +119,7 @@ struct Digit {
   };
 
   void printStream(std::ostream& stream) const;
+  void setTriggers(Triggers trig) { mTriggers = trig; };
 
   ClassDefNV(Digit, 3);
 };
