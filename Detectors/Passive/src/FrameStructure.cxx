@@ -1144,8 +1144,8 @@ void FrameStructure::ConstructGeometry()
   TGeoVolume* volFB1 = new TGeoVolume("BTRD_FB1", shFB1, kMedAlu);
   //
   // tie anchors rectangular profile 4 x 8
-  TGeoVolume* volTAR11 = new TGeoVolume("BTRD_TAR11", new TGeoBBox(dyFB / 2., dxFB / 2. - 0.7, 4.), kMedAlu);
-  TGeoVolume* volTAR12 = new TGeoVolume("BTRD_TAR12", new TGeoBBox(dyFB / 2. - 0.25, dxFB / 2., 3. - 0.5), kMedAir);
+  TGeoVolume* volTAR11 = new TGeoVolume("BTRD_TAR11", new TGeoBBox(dyFB / 2., dxFB / 2., 3.), kMedAlu);
+  TGeoVolume* volTAR12 = new TGeoVolume("BTRD_TAR12", new TGeoBBox(dyFB / 2. - 0.25, dxFB / 2. - 0.7, 2.5), kMedAir);
   volTAR11->AddNode(volTAR12, 1, new TGeoTranslation(0.25, 0., 0.0));
   // clamp (about twice the length of the block), 6 mm thick (read off from a foto)
   TGeoVolume* volTAR13 = new TGeoVolume("BTRD_TAR13", new TGeoBBox(0.3, 45., 3.), kMedAlu);
@@ -1167,7 +1167,7 @@ void FrameStructure::ConstructGeometry()
   TGeoVolumeAssembly* asFB1 = new TGeoVolumeAssembly("BTRD_FBAS1");
   TGeoVolumeAssembly* asFB2 = new TGeoVolumeAssembly("BTRD_FBAS2");
   asFB1->AddNode(volFB1, 1, gGeoIdentity);
-  asFB1->AddNode(volTAR11, 1, new TGeoTranslation(0., 0., -dzFB - 3.));
+  asFB1->AddNode(volTAR11, 1, new TGeoTranslation(0., 0., -dzFB - 3.55));
   asFB1->AddNode(volTAR13, 1, new TGeoTranslation(-1.36, 4.5, -dzFB - 3.));
   asFB1->AddNode(volTAR141, 1, new TGeoTranslation(0., dxFB - 2. + 4.5, -dzFB - 3.));
   asFB1->AddNode(volTAR141, 2, new TGeoTranslation(0., -dxFB + 2. + 4.5, -dzFB - 3.));
