@@ -66,12 +66,12 @@ namespace o2
 namespace tpc
 {
 
-DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> const& tpcsectors)
+DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int> const& tpcsectors)
 {
-  auto& processMC = config.processMC;
-  auto& caClusterer = config.caClusterer;
-  auto& zsDecoder = config.zsDecoder;
-  if (config.outputCAClusters && !config.caClusterer) {
+  auto& processMC = specconfig.processMC;
+  auto& caClusterer = specconfig.caClusterer;
+  auto& zsDecoder = specconfig.zsDecoder;
+  if (specconfig.outputCAClusters && !specconfig.caClusterer) {
     throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
   }
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
@@ -595,20 +595,20 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
   // changing the binding name of the input in order to identify inputs by unique labels
   // in the processing. Think about how the processing can be made agnostic of input size,
   // e.g. by providing a span of inputs under a certain label
-  auto createInputSpecs = [&tpcsectors, &config]() {
+  auto createInputSpecs = [&tpcsectors, &specconfig]() {
     Inputs inputs;
-    if (config.caClusterer) {
+    if (specconfig.caClusterer) {
       // We accept digits and MC labels also if we run on ZS Raw data, since they are needed for MC label propagation
-      if (!config.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
+      if (!specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
         inputs.emplace_back(InputSpec{"input", gDataOriginTPC, "DIGITS", 0, Lifetime::Timeframe});
       }
     } else {
       inputs.emplace_back(InputSpec{"input", gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe});
     }
-    if (config.processMC) {
-      if (config.caClusterer) {
+    if (specconfig.processMC) {
+      if (specconfig.caClusterer) {
         constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
-        if (!config.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
+        if (!specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
           inputs.emplace_back(InputSpec{"mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe});
         }
       } else {
@@ -623,36 +623,36 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
                                        input.binding += std::to_string(tpcsectors[index]);
                                        DataSpecUtils::updateMatchingSubspec(input, tpcsectors[index]);
                                      }));
-    if (config.zsDecoder) {
+    if (specconfig.zsDecoder) {
       // We add this after the mergeInputs, since we need to keep the subspecification
       tmp.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Timeframe});
     }
     return tmp;
   };
 
-  auto createOutputSpecs = [&config, &tpcsectors, &processAttributes]() {
+  auto createOutputSpecs = [&specconfig, &tpcsectors, &processAttributes]() {
     std::vector<OutputSpec> outputSpecs{
       OutputSpec{{"outTracks"}, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe},
       OutputSpec{{"outClusRefs"}, gDataOriginTPC, "CLUSREFS", 0, Lifetime::Timeframe},
     };
-    if (!config.outputTracks) {
+    if (!specconfig.outputTracks) {
       // this case is the less unlikely one, that's why the logic this way
       outputSpecs.clear();
     }
-    if (config.processMC && config.outputTracks) {
+    if (specconfig.processMC && specconfig.outputTracks) {
       OutputLabel label{"mclblout"};
       constexpr o2::header::DataDescription datadesc("TRACKMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
-    if (config.outputCompClusters) {
+    if (specconfig.outputCompClusters) {
       outputSpecs.emplace_back(gDataOriginTPC, "COMPCLUSTERS", 0, Lifetime::Timeframe);
     }
-    if (config.outputCAClusters) {
+    if (specconfig.outputCAClusters) {
       for (auto const& sector : tpcsectors) {
         o2::header::DataHeader::SubSpecificationType id = sector;
         outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVE", id, Lifetime::Timeframe);
         processAttributes->clusterOutputIds.emplace_back(sector);
-        if (config.processMC) {
+        if (specconfig.processMC) {
           outputSpecs.emplace_back(OutputSpec{gDataOriginTPC, "CLNATIVEMCLBL", id, Lifetime::Timeframe});
         }
       }
