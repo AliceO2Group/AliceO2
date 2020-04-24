@@ -69,7 +69,7 @@ template <typename T2, typename ARRAY>
 std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const std::shared_ptr<arrow::Table>& table, const std::string& categoryColumnName, int minCatSize)
 {
   auto columnIndex = table->schema()->GetFieldIndex(categoryColumnName);
-  auto chunkedArray = table->column(columnIndex)->data();
+  auto chunkedArray = framework::getBackendColumnData(table->column(columnIndex));
 
   uint64_t ind = 0;
   std::vector<std::pair<uint64_t, uint64_t>> groupedIndices;
