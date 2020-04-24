@@ -93,6 +93,8 @@ o2_add_executable(test_CompletionPolicies
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
+o2_data_file(COPY etc/exampleDataSamplingConfig.json DESTINATION etc)
+
 o2_add_executable(datasampling-pod-and-root
                   SOURCES src/dataSamplingPodAndRoot.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework

@@ -83,8 +83,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec simpleQcTask{
     "simpleQcTask",
     Inputs{
-      { "TPC_CLUSTERS_S",   "DS", "simpleQcTask-0", 0 },
-      { "TPC_CLUSTERS_P_S", "DS", "simpleQcTask-1", 0 }
+      { "TPC_CLUSTERS_S",   { "DS", "simpleQcTask-0" } },
+      { "TPC_CLUSTERS_P_S", { "DS", "simpleQcTask-1" } }
     },
     Outputs{},
     AlgorithmSpec{
@@ -111,14 +111,25 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     }
   };
 
+  DataProcessorSpec dummyProducer{
+    "dummy",
+    Inputs{},
+    Outputs{
+      { {"tsthistos"}, "TST", "HISTOS", 0 },
+      { {"tststring"}, "TST", "STRING", 0 }
+    },
+    AlgorithmSpec{[](ProcessingContext& ctx){}}
+  };
+
   WorkflowSpec specs = {
     dataProducer,
     processingStage,
     sink,
-    simpleQcTask
+    simpleQcTask,
+    dummyProducer
   };
 
-  std::string configurationSource = std::string("json://") + getenv("BASEDIR") + "/../../O2/Framework/TestWorkflows/exampleDataSamplingConfig.json";
+  std::string configurationSource = std::string("json:/") + getenv("O2_ROOT") + "/share/etc/exampleDataSamplingConfig.json";
   DataSampling::GenerateInfrastructure(specs, configurationSource);
 
   return specs;
