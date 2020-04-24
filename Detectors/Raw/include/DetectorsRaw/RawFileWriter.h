@@ -304,7 +304,7 @@ class RawFileWriter
   int mSuperPageSize = 1024 * 1024; // super page size
   bool mStartTFOnNewSPage = true;   // every TF must start on a new SPage
   RoMode_t mROMode = NotSet;
-
+  IR mFirstIRAdded; // 1st IR seen
   ClassDefNV(RawFileWriter, 1);
 }; // namespace raw
 
