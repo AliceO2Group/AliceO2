@@ -59,9 +59,11 @@ class DigitSamplerTask
     }
 
     mUseRun2DigitUID = ic.options().get<bool>("useRun2DigitUID");
+    mPrint = ic.options().get<bool>("print");
+    mNevents = ic.options().get<int>("nevents");
 
     auto stop = [this]() {
-      /// close the input file
+      // close the input file
       LOG(INFO) << "stop digit sampler";
       this->mInputFile.close();
     };
@@ -71,8 +73,16 @@ class DigitSamplerTask
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
-    /// send the digits of the current event
+    /// check the number of processed events
 
+    if (mNevents == 0) {
+      pc.services().get<ControlService>().endOfStream();
+      return;
+    } else if (mNevents > 0) {
+      mNevents -= 1;
+    }
+
+    // send the digits of the current event
     int nDigits(0);
     mInputFile.read(reinterpret_cast<char*>(&nDigits), sizeof(int));
     if (mInputFile.fail()) {
@@ -111,6 +121,9 @@ class DigitSamplerTask
       int manuCh = (digitID & 0x3F000000) >> 24;
 
       int padID = mapping::segmentation(deID).findPadByFEE(manuID, manuCh);
+      if (mPrint) {
+        cout << deID << "  " << digitID << "  " << manuID << "  " << manuCh << "  " << padID << endl;
+      }
       if (padID < 0) {
         throw runtime_error(std::string("digitID ") + digitID + " does not exist in the mapping");
       }
@@ -121,6 +134,8 @@ class DigitSamplerTask
 
   std::ifstream mInputFile{};    ///< input file
   bool mUseRun2DigitUID = false; ///< true if Digit.mPadID = digit UID in run2 format
+  bool mPrint = false;           ///< print digits to terminal
+  int mNevents = 0;              ///< number of events to process
 };
 
 //_________________________________________________________________________________________________
@@ -132,7 +147,9 @@ o2::framework::DataProcessorSpec getDigitSamplerSpec()
     Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<DigitSamplerTask>()},
     Options{{"infile", VariantType::String, "", {"input file name"}},
-            {"useRun2DigitUID", VariantType::Bool, false, {"mPadID = digit UID in run2 format"}}}};
+            {"useRun2DigitUID", VariantType::Bool, false, {"mPadID = digit UID in run2 format"}},
+            {"print", VariantType::Bool, false, {"print digits"}},
+            {"nevents", VariantType::Int, -1, {"number of events to process (-1 = all events in the file)"}}}};
 }
 
 } // end namespace mch

@@ -37,6 +37,7 @@
 #include "MCHRawCommon/RDHManip.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHWorkflow/DataDecoderSpec.h"
+#include <array>
 
 namespace o2::header
 {
@@ -72,15 +73,19 @@ int ds2manu(int i)
   return refDs2manu_st345[i];
 }
 
+//=======================
+// Data decoder
 class DataDecoderTask
 {
+ private:
   void decodeBuffer(gsl::span<const std::byte> page, std::vector<o2::mch::Digit>& digits)
   {
     size_t ndigits{0};
 
     auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
-      if (mDs2manu)
+      if (mDs2manu) {
         channel = ds2manu(int(channel));
+      }
       if (mPrint) {
         auto s = asString(dsElecId);
         auto ch = fmt::format("{}-CH{}", s, channel);
@@ -92,8 +97,8 @@ class DataDecoderTask
         digitadc += sc.samples[d];
       }
 
-      int deId;
-      int dsIddet;
+      int deId{-1};
+      int dsIddet{-1};
       if (auto opt = mElec2Det(dsElecId); opt.has_value()) {
         DsDetId dsDetId = opt.value();
         dsIddet = dsDetId.dsId();
@@ -104,13 +109,15 @@ class DataDecoderTask
       try {
         const Segmentation& segment = segmentation(deId);
         padId = segment.findPadByFEE(dsIddet, int(channel));
-        if (mPrint)
+        if (mPrint) {
           std::cout << "DS " << (int)dsElecId.elinkId() << "  CHIP " << ((int)channel) / 32 << "  CH " << ((int)channel) % 32 << "  ADC " << digitadc << "  DE# " << deId << "  DSid " << dsIddet << "  PadId " << padId << std::endl;
+        }
       } catch (const std::exception& e) {
+        std::cout << "Failed to get padId: " << e.what() << std::endl;
         return;
       }
 
-      int time = 0;
+      int time = sc.timestamp;
 
       digits.emplace_back(o2::mch::Digit(time, deId, padId, digitadc));
 
@@ -125,27 +132,61 @@ class DataDecoderTask
       mNrdhs++;
       auto cruId = rdhCruId(rdh);
       rdhFeeId(rdh, cruId * 2 + rdhEndpoint(rdh));
-      if (true) {
+      if (mPrint) {
         std::cout << mNrdhs << "--" << rdh << "\n";
       }
     };
 
-    o2::mch::raw::PageDecoder decode = o2::mch::raw::createPageDecoder(page, channelHandler);
+    o2::mch::raw::PageDecoder decode =
+      mFee2Solar ? o2::mch::raw::createPageDecoder(page, channelHandler, mFee2Solar)
+                 : o2::mch::raw::createPageDecoder(page, channelHandler);
     patchPage(page);
     decode(page);
+  }
+
+ private:
+  std::string readFileContent(const std::string& filename)
+  {
+    std::string content;
+    std::string s;
+    std::ifstream in(filename);
+    while (std::getline(in, s)) {
+      content += s;
+    }
+    return s;
+  }
+
+  void initElec2DetMapper(const std::string& filename)
+  {
+    if (filename.empty()) {
+      mElec2Det = createElec2DetMapper<ElectronicMapperGenerated>();
+    } else {
+      ElectronicMapperString::sFecMap = readFileContent(filename);
+      mElec2Det = createElec2DetMapper<ElectronicMapperString>();
+    }
+  }
+
+  void initFee2SolarMapper(const std::string& filename)
+  {
+    if (filename.empty()) {
+      mFee2Solar = createFeeLink2SolarMapper<ElectronicMapperGenerated>();
+    } else {
+      ElectronicMapperString::sCruMap = readFileContent(filename);
+      mFee2Solar = createFeeLink2SolarMapper<ElectronicMapperString>();
+    }
   }
 
  public:
   //_________________________________________________________________________________________________
   void init(framework::InitContext& ic)
   {
-    mElec2Det = createElec2DetMapper<ElectronicMapperGenerated>();
     mNrdhs = 0;
 
     for (int i = 0; i < 64; i++) {
       for (int j = 0; j < 64; j++) {
-        if (refManu2ds_st345[j] != i)
+        if (refManu2ds_st345[j] != i) {
           continue;
+        }
         refDs2manu_st345[i] = j;
         break;
       }
@@ -153,13 +194,18 @@ class DataDecoderTask
 
     mDs2manu = ic.options().get<bool>("ds2manu");
     mPrint = ic.options().get<bool>("print");
+
+    auto mapCRUfile = ic.options().get<std::string>("cru-map");
+    auto mapFECfile = ic.options().get<std::string>("fec-map");
+
+    initElec2DetMapper(mapCRUfile);
+    initFee2SolarMapper(mapFECfile);
   }
 
   //_________________________________________________________________________________________________
-  void run(framework::ProcessingContext& pc)
+  void
+    decodeTF(framework::ProcessingContext& pc, std::vector<o2::mch::Digit>& digits)
   {
-    std::vector<o2::mch::Digit> digits;
-
     // get the input buffer
     auto& inputs = pc.inputs();
     DPLRawParser parser(inputs, o2::framework::select("TF:MCH/RAWDATA"));
@@ -172,11 +218,54 @@ class DataDecoderTask
       // size of payload
       size_t payloadSize = it.size();
 
-      if (payloadSize == 0)
+      if (payloadSize == 0) {
         continue;
+      }
 
       gsl::span<const std::byte> buffer(reinterpret_cast<const std::byte*>(raw), sizeof(o2::header::RAWDataHeaderV4) + payloadSize);
       decodeBuffer(buffer, digits);
+    }
+  }
+
+  //_________________________________________________________________________________________________
+  void decodeReadout(const o2::framework::DataRef& input, std::vector<o2::mch::Digit>& digits)
+  {
+    static int nFrame = 1;
+    // get the input buffer
+    if (input.spec->binding != "readout") {
+      return;
+    }
+
+    const auto* header = o2::header::get<header::DataHeader*>(input.header);
+    if (!header) {
+      return;
+    }
+
+    auto const* raw = input.payload;
+    // size of payload
+    size_t payloadSize = header->payloadSize;
+
+    if (mPrint) {
+      std::cout << nFrame << "  payloadSize=" << payloadSize << std::endl;
+    }
+    nFrame += 1;
+    if (payloadSize == 0) {
+      return;
+    }
+
+    gsl::span<const std::byte> buffer(reinterpret_cast<const std::byte*>(raw), payloadSize);
+    decodeBuffer(buffer, digits);
+  }
+
+  //_________________________________________________________________________________________________
+  void run(framework::ProcessingContext& pc)
+  {
+    std::vector<o2::mch::Digit> digits;
+
+    decodeTF(pc, digits);
+    for (auto&& input : pc.inputs()) {
+      if (input.spec->binding == "readout")
+        decodeReadout(input, digits);
     }
 
     if (mPrint) {
@@ -187,7 +276,7 @@ class DataDecoderTask
 
     const size_t OUT_SIZE = sizeof(o2::mch::Digit) * digits.size();
 
-    /// send the output buffer via DPL
+    // send the output buffer via DPL
     char* outbuffer = nullptr;
     outbuffer = (char*)realloc(outbuffer, OUT_SIZE);
     memcpy(outbuffer, digits.data(), OUT_SIZE);
@@ -198,25 +287,30 @@ class DataDecoderTask
   }
 
  private:
-  std::function<std::optional<DsDetId>(DsElecId)> mElec2Det;
+  Elec2DetMapper mElec2Det{nullptr};
+  FeeLink2SolarMapper mFee2Solar{nullptr};
   size_t mNrdhs{0};
 
   std::ifstream mInputFile{}; ///< input file
   bool mDs2manu = false;      ///< print convert channel numbering from Run3 to Run1-2 order
   bool mPrint = false;        ///< print digits
-};
+};                            // namespace raw
 
 //_________________________________________________________________________________________________
 o2::framework::DataProcessorSpec getDecodingSpec()
 {
   return DataProcessorSpec{
     "DataDecoder",
-    o2::framework::select("TF:MCH/RAWDATA"),
+    //o2::framework::select("TF:MCH/RAWDATA, re:ROUT/RAWDATA"),
+    o2::framework::select("readout:ROUT/RAWDATA"),
     Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<DataDecoderTask>()},
-    Options{{"print", VariantType::Bool, false, {"print digits"}}, {"ds2manu", VariantType::Bool, false, {"convert channel numbering from Run3 to Run1-2 order"}}}};
+    Options{{"print", VariantType::Bool, false, {"print digits"}},
+            {"cru-map", VariantType::String, "", {"custom CRU mapping"}},
+            {"fec-map", VariantType::String, "", {"custom FEC mapping"}},
+            {"ds2manu", VariantType::Bool, false, {"convert channel numbering from Run3 to Run1-2 order"}}}};
 }
 
-} // end namespace raw
-} // end namespace mch
+} // namespace raw
+} // namespace mch
 } // end namespace o2
