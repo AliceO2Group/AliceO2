@@ -23,18 +23,33 @@ namespace steer
 class MCKinematicsReader
 {
  public:
+  enum class Mode {
+    kDigiContext,
+    kMCKine
+  };
+
   /// default constructor
   MCKinematicsReader() = default;
 
-  /// constructor taking context and auto-initializing
-  MCKinematicsReader(std::string_view filename)
+  /// constructor taking a name and mode (either kDigiContext or kMCKine)
+  /// In case of "context", the name is the filename of the digitization context.
+  /// In case of MCKine mode, the name is the "prefix" referencing a single simulation production.
+  /// The default mode is kDigiContext.
+  MCKinematicsReader(std::string_view name, Mode mode = Mode::kDigiContext)
   {
-    init(filename);
+    if (mode == Mode::kMCKine) {
+      initFromKinematics(name);
+    } else if (mode == Mode::kDigiContext) {
+      initFromDigitContext(name);
+    }
   }
 
   /// inits the reader from a digitization context
   /// returns true if successful
-  bool init(std::string_view filename);
+  bool initFromDigitContext(std::string_view filename);
+
+  /// inits the reader from a simple kinematics file
+  bool initFromKinematics(std::string_view filename);
 
   bool isInitialized() const { return mInitialized; }
 
@@ -42,12 +57,19 @@ class MCKinematicsReader
   /// returns nullptr if no track was found
   MCTrack const* getTrack(o2::MCCompLabel const&) const;
 
-  /// query an MC track given a basic label object
+  /// query an MC track given source, event, track IDs
   /// returns nullptr if no track was found
   MCTrack const* getTrack(int source, int event, int track) const;
 
+  /// query an MC track given event, track IDs
+  /// returns nullptr if no track was found
+  MCTrack const* getTrack(int event, int track) const;
+
   /// variant returning all tracks for source and event at once
   std::vector<MCTrack> const& getTracks(int source, int event) const;
+
+  /// variant returning all tracks for source and event at once
+  std::vector<MCTrack> const& getTracks(int event) const;
 
   /// get all primaries for a certain event
 
@@ -85,12 +107,22 @@ inline MCTrack const* MCKinematicsReader::getTrack(int source, int event, int tr
   return &mTracks[source][event][track];
 }
 
+inline MCTrack const* MCKinematicsReader::getTrack(int event, int track) const
+{
+  return getTrack(0, event, track);
+}
+
 inline std::vector<MCTrack> const& MCKinematicsReader::getTracks(int source, int event) const
 {
   if (mTracks[source].size() == 0) {
     loadTracksForSource(source);
   }
   return mTracks[source][event];
+}
+
+inline std::vector<MCTrack> const& MCKinematicsReader::getTracks(int event) const
+{
+  return getTracks(0, event);
 }
 
 } // namespace steer
