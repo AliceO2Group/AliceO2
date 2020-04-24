@@ -84,3 +84,8 @@ o2_add_executable(jet-analysis
                   SOURCES src/jetAnalysis.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
                   COMPONENT_NAME AnalysisTutorial)
+
+o2_add_executable(tracks-combinations
+                  SOURCES src/tracksCombinations.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
