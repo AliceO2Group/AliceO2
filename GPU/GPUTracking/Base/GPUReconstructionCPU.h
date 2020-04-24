@@ -28,6 +28,7 @@
 #include "GPUTPCStartHitsSorter.h"
 #include "GPUTPCTrackletConstructor.h"
 #include "GPUTPCTrackletSelector.h"
+#include "GPUTPCGlobalTracking.h"
 #include "GPUTPCGMMergerGPU.h"
 #include "GPUTRDTrackerKernels.h"
 #ifdef HAVE_O2HEADERS
