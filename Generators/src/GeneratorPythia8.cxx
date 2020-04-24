@@ -67,6 +67,9 @@ Bool_t GeneratorPythia8::Init()
     mPythia.setUserHooksPtr(hooks);
   }
 
+  /** inhibit hadron decays **/
+  mPythia.readString("HadronLevel:Decay off");
+
   /** initialise **/
   if (!mPythia.init()) {
     LOG(FATAL) << "Failed to init \'Pythia8\': init returned with error";
@@ -84,7 +87,32 @@ Bool_t
 {
   /** generate event **/
 
-  return mPythia.next();
+  /** As we have inhibited all hadron decays before init,
+      the event generation stops after hadronisation.
+      We then pick all particles from here and force their
+      production vertex to be (0,0,0,0).
+      Afterwards we process the decays. **/
+
+  /** generate event **/
+  if (!mPythia.next())
+    return false;
+
+  /** force production vertices to (0,0,0,0) **/
+  auto nParticles = mPythia.event.size();
+  for (int iparticle = 0; iparticle < nParticles; iparticle++) {
+    auto& aParticle = mPythia.event[iparticle];
+    aParticle.xProd(0.);
+    aParticle.yProd(0.);
+    aParticle.zProd(0.);
+    aParticle.tProd(0.);
+  }
+
+  /** proceed with decays **/
+  if (!mPythia.moreDecays())
+    return false;
+
+  /** success **/
+  return true;
 }
 
 /*****************************************************************/
