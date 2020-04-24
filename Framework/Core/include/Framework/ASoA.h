@@ -1391,12 +1391,6 @@ template <typename T>
 using is_soa_filtered_t = typename framework::is_specialization<T, soa::Filtered>;
 
 template <typename T>
-auto filter(T&& t, framework::expressions::Filter const& expr)
-{
-  return Filtered<T>(t.asArrowTable(), expr);
-}
-
-template <typename T>
 std::vector<std::decay_t<T>> slice(T&& t, std::string const& columnName)
 {
   arrow::compute::FunctionContext ctx;

@@ -13,9 +13,12 @@
 
 #include "Framework/ASoA.h"
 #include "Framework/Kernels.h"
-#include <arrow/table.h>
 #include "Framework/ArrowCompatibility.h"
+#include "../src/ExpressionHelpers.h"
+#include "Framework/Expressions.h"
+#include "Framework/VariantHelpers.h"
 
+#include <arrow/table.h>
 #include <arrow/compute/context.h>
 
 #include <iterator>
@@ -54,6 +57,51 @@ template <typename T, typename... REST>
 struct NTupleType<T, 0, REST...> {
   using type = std::tuple<REST...>;
 };
+
+// Set constant value for a filter spec from table
+template <typename T2, typename ARRAY>
+void doSetColumnValue(const std::shared_ptr<arrow::Table>& table, const std::string& columnName, o2::framework::expressions::DatumSpec& datumSpec, uint64_t index)
+{
+  auto columnIndex = table->schema()->GetFieldIndex(columnName);
+  auto dataType = table->column(columnIndex)->type();
+  auto chunkedArray = table->column(columnIndex)->data();
+  auto chunk = chunkedArray->chunk(0);
+  T2 value;
+
+  if (chunk->length() == 0) {
+    value = T2();
+  }
+
+  uint64_t ind = 0;
+  for (uint64_t ci = 0; ci < chunkedArray->num_chunks(); ++ci) {
+    auto chunk = chunkedArray->chunk(ci);
+    if (index < ind + chunk->length()) {
+      value = std::static_pointer_cast<ARRAY>(chunk)->Value(index - ind);
+      break;
+    }
+    ind += chunk->length();
+  }
+  datumSpec.datum = (o2::framework::expressions::LiteralNode::var_t)value;
+  datumSpec.type = dataType->id();
+}
+
+template <typename T2>
+void setColumnValue(const T2& table, const std::string& columnName, o2::framework::expressions::DatumSpec& datumSpec, uint64_t index)
+{
+  auto arrowTable = table.asArrowTable();
+  auto columnIndex = arrowTable->schema()->GetFieldIndex(columnName);
+  auto dataType = arrowTable->column(columnIndex)->type();
+  if (dataType->id() == arrow::Type::INT32) {
+    doSetColumnValue<int32_t, arrow::Int32Array>(arrowTable, columnName, datumSpec, index);
+  } else if (dataType->id() == arrow::Type::FLOAT) {
+    doSetColumnValue<float, arrow::FloatArray>(arrowTable, columnName, datumSpec, index);
+  } else if (dataType->id() == arrow::Type::DOUBLE) {
+    doSetColumnValue<double, arrow::DoubleArray>(arrowTable, columnName, datumSpec, index);
+  } else if (dataType->id() == arrow::Type::BOOL) {
+    doSetColumnValue<bool, arrow::BooleanArray>(arrowTable, columnName, datumSpec, index);
+  } else
+    throw std::runtime_error("Combinations: Invalid data type in array!");
+}
 
 // Group table (C++ vector of indices)
 bool sameCategory(std::pair<uint64_t, uint64_t> const& a, std::pair<uint64_t, uint64_t> const& b)
@@ -838,6 +886,266 @@ struct CombinationsBlockFullSameIndexPolicy : public CombinationsIndexPolicyBase
   uint64_t mBeginIndex;
 };
 
+template <typename T, typename... Ts>
+struct CombinationsFilteredIndexPolicyBase {
+  using CombinationType = std::tuple<typename Filtered<T>::iterator, typename Ts::iterator...>;
+  using IndicesType = typename NTupleType<uint64_t, (sizeof...(Ts) + 1)>::type;
+
+  CombinationsFilteredIndexPolicyBase(o2::framework::expressions::Operations& operationSpecs, std::vector<int>& bindingIndices, std::vector<std::string>& columnNames, const Filtered<T>& filteredTable, const T& table, const Ts&... tables) : mIsEnd(false),
+                                                                                                                                                                                                                                                mMaxOffset(filteredTable.end().index, tables.end().index...),
+                                                                                                                                                                                                                                                mCurrent(filteredTable.begin(), tables.begin()...),
+                                                                                                                                                                                                                                                mTables({table, tables...}),
+                                                                                                                                                                                                                                                mBindingIndices(bindingIndices),
+                                                                                                                                                                                                                                                mOperationSpecs(operationSpecs),
+                                                                                                                                                                                                                                                mColumnNames(columnNames)
+  {
+    if (table.size() == 0 || ((tables.size() == 0) || ...)) {
+      mIsEnd = true;
+    }
+  }
+
+  void moveToEnd() {}
+
+  // Note: Order of adding reversed!
+  void addOne()
+  {
+    // First iterator checked separately
+    std::get<0>(this->mCurrent)++;
+    if (*std::get<1>(std::get<0>(this->mCurrent).getIndices()) == std::get<0>(this->mMaxOffset)) {
+      // Move other iterators
+      addAndUpdate();
+    }
+  }
+
+  virtual void addAndUpdate() = 0;
+
+  void updateFiltered(const o2::framework::expressions::Selection& selection, int index)
+  {
+    Filtered<T> filteredTable{{this->mTables[0].asArrowTable()}, selection};
+    // For some reason `std::get<0>(this->mCurrent) = filteredTable.begin();` gives segv or dummy values
+    auto filteredBeginIt = filteredTable.begin() + index;
+    std::get<0>(this->mCurrent) = filteredBeginIt;
+    std::get<0>(this->mMaxOffset) = filteredTable.end().index;
+  }
+
+  CombinationType mCurrent;
+  IndicesType mMaxOffset;                                 // one position past maximum acceptable position for each element of combination
+  bool mIsEnd;                                            // whether there are any more tuples available
+  std::vector<int> mBindingIndices;                       // indices to former binding nodes in operation specs
+  std::vector<std::string> mColumnNames;                  // column names to update values indexed by mBindingIndices
+  o2::framework::expressions::Operations mOperationSpecs; // all nodes from filter
+  std::vector<T> mTables;                                 // needs to store the original arrays
+};
+
+template <typename T, typename... Ts>
+struct CombinationsFilteredUpperIndexPolicy : public CombinationsFilteredIndexPolicyBase<T, Ts...> {
+  using CombinationType = std::tuple<typename Filtered<T>::iterator, typename Ts::iterator...>;
+
+  CombinationsFilteredUpperIndexPolicy(o2::framework::expressions::Operations& operationSpecs, std::vector<int>& bindingIndices, std::vector<std::string>& columnNames, const Filtered<T>& filteredTable, const T& table, const Ts&... tables) : CombinationsFilteredIndexPolicyBase<T, Ts...>(operationSpecs, bindingIndices, columnNames, filteredTable, table, tables...)
+  {
+    if (filteredTable.size() == 0) {
+      addAndUpdate();
+    }
+  }
+
+  void moveToEnd()
+  {
+    constexpr auto k = sizeof...(Ts) + 1;
+    for_<k>([&, this](auto i) {
+      std::get<i.value>(this->mCurrent).moveToEnd();
+    });
+    this->mIsEnd = true;
+  }
+
+  void addAndUpdate() override
+  {
+    constexpr auto k = sizeof...(Ts);
+    bool modify = true;
+    o2::framework::expressions::Selection selection;
+    int beginSelectionIndex = 0;
+
+    do {
+      modify = true;
+      // Other iterators need to be moved, filter updated
+      for_<k>([&, this](auto i) {
+        if (modify) {
+          constexpr auto curInd = i.value + 1;
+          std::get<curInd>(this->mCurrent)++;
+          if (*std::get<1>(std::get<curInd>(this->mCurrent).getIndices()) != std::get<curInd>(this->mMaxOffset)) {
+            if (curInd - 1 < this->mBindingIndices.size()) {
+              setColumnValue(this->mTables[curInd], this->mColumnNames[curInd - 1], this->mOperationSpecs[this->mBindingIndices[curInd - 1]].left, *std::get<1>(std::get<curInd>(this->mCurrent).getIndices()));
+            }
+            for_<i.value>([&, this](auto j) {
+              constexpr auto curJ = i.value - j.value;
+              std::get<curJ>(this->mCurrent).setCursor(*std::get<1>(std::get<curJ + 1>(this->mCurrent).getIndices()));
+              if (curJ - 1 < this->mBindingIndices.size()) {
+                setColumnValue(this->mTables[curJ], this->mColumnNames[curJ - 1], this->mOperationSpecs[this->mBindingIndices[curJ - 1]].left, *std::get<1>(std::get<curJ>(this->mCurrent).getIndices()));
+              }
+            });
+            modify = false;
+          }
+        }
+      });
+
+      selection = o2::framework::expressions::createSelection(this->mTables[0].asArrowTable(), createFilter(this->mTables[0].asArrowTable()->schema(), this->mOperationSpecs));
+
+      // Find first index bigger than the index of 1st iterator
+      for (beginSelectionIndex = 0; beginSelectionIndex < selection->GetNumSlots() &&
+                                    selection->GetIndex(beginSelectionIndex) < *std::get<1>(std::get<1>(this->mCurrent).getIndices());
+           beginSelectionIndex++)
+        ;
+    } while (!modify && beginSelectionIndex == selection->GetNumSlots());
+
+    this->updateFiltered(selection, beginSelectionIndex);
+    this->mIsEnd = modify;
+  }
+};
+
+template <typename T, typename... Ts>
+struct CombinationsFilteredStrictlyUpperIndexPolicy : public CombinationsFilteredIndexPolicyBase<T, Ts...> {
+  using CombinationType = std::tuple<typename Filtered<T>::iterator, typename Ts::iterator...>;
+
+  CombinationsFilteredStrictlyUpperIndexPolicy(o2::framework::expressions::Operations& operationSpecs, std::vector<int>& bindingIndices, std::vector<std::string>& columnNames, const Filtered<T>& filteredTable, const T& table, const Ts&... tables) : CombinationsFilteredIndexPolicyBase<T, Ts...>(operationSpecs, bindingIndices, columnNames, filteredTable, table, tables...)
+  {
+    constexpr auto k = sizeof...(Ts);
+    if (table.size() < k || ((tables.size() < k) || ...)) {
+      this->mIsEnd = true;
+      return;
+    }
+    for_<k>([&, this](auto i) {
+      constexpr auto curInd = i.value + 1;
+      std::get<curInd>(this->mMaxOffset) -= curInd;
+      std::get<curInd>(this->mCurrent).moveByIndex(k - curInd);
+      if (curInd - 1 < this->mBindingIndices.size()) {
+        setColumnValue(this->mTables[curInd], this->mColumnNames[curInd - 1], this->mOperationSpecs[this->mBindingIndices[curInd - 1]].left, k - curInd);
+      }
+    });
+
+    o2::framework::expressions::Selection selection = o2::framework::expressions::createSelection(this->mTables[0].asArrowTable(), createFilter(this->mTables[0].asArrowTable()->schema(), this->mOperationSpecs));
+    // Find first index bigger than the index of 1st iterator
+    int beginSelectionIndex = 0;
+    for (; beginSelectionIndex < selection->GetNumSlots() &&
+           selection->GetIndex(beginSelectionIndex) <= *std::get<1>(std::get<1>(this->mCurrent).getIndices());
+         beginSelectionIndex++)
+      ;
+    if (beginSelectionIndex == selection->GetNumSlots()) {
+      addAndUpdate();
+    } else {
+      this->updateFiltered(selection, beginSelectionIndex);
+    }
+  }
+
+  void moveToEnd()
+  {
+    constexpr auto k = sizeof...(Ts);
+    for_<k>([&, this](auto i) {
+      std::get<i.value + 1>(this->mCurrent).setCursor(std::get<i.value + 1>(this->mMaxOffset));
+    });
+    std::get<0>(this->mCurrent).moveToEnd();
+    this->mIsEnd = true;
+  }
+
+  void addAndUpdate() override
+  {
+    constexpr auto k = sizeof...(Ts);
+    bool modify = true;
+    o2::framework::expressions::Selection selection;
+    int beginSelectionIndex = 0;
+
+    do {
+      modify = true;
+      // Other iterators need to be moved, filter updated
+      for_<k>([&, this](auto i) {
+        if (modify) {
+          constexpr auto curInd = i.value + 1;
+          std::get<curInd>(this->mCurrent)++;
+          if (*std::get<1>(std::get<curInd>(this->mCurrent).getIndices()) != std::get<curInd>(this->mMaxOffset)) {
+            if (curInd - 1 < this->mBindingIndices.size()) {
+              setColumnValue(this->mTables[curInd], this->mColumnNames[curInd - 1], this->mOperationSpecs[this->mBindingIndices[curInd - 1]].left, *std::get<1>(std::get<curInd>(this->mCurrent).getIndices()));
+            }
+            for_<i.value>([&, this](auto j) {
+              constexpr auto curJ = i.value - j.value;
+              std::get<curJ>(this->mCurrent).setCursor(*std::get<1>(std::get<curJ + 1>(this->mCurrent).getIndices()) + 1);
+              if (curJ - 1 < this->mBindingIndices.size()) {
+                setColumnValue(this->mTables[curJ], this->mColumnNames[curJ - 1], this->mOperationSpecs[this->mBindingIndices[curJ - 1]].left, *std::get<1>(std::get<curJ>(this->mCurrent).getIndices()));
+              }
+            });
+            modify = false;
+          }
+        }
+      });
+
+      selection = o2::framework::expressions::createSelection(this->mTables[0].asArrowTable(), createFilter(this->mTables[0].asArrowTable()->schema(), this->mOperationSpecs));
+
+      // Find first index bigger than the index of 1st iterator
+      for (beginSelectionIndex = 0; beginSelectionIndex < selection->GetNumSlots() &&
+                                    selection->GetIndex(beginSelectionIndex) <= *std::get<1>(std::get<1>(this->mCurrent).getIndices());
+           beginSelectionIndex++)
+        ;
+    } while (!modify && beginSelectionIndex == selection->GetNumSlots());
+
+    this->updateFiltered(selection, beginSelectionIndex);
+    this->mIsEnd = modify;
+  }
+};
+
+template <typename T, typename... Ts>
+struct CombinationsFilteredFullIndexPolicy : public CombinationsFilteredIndexPolicyBase<T, Ts...> {
+  using CombinationType = std::tuple<typename Filtered<T>::iterator, typename Ts::iterator...>;
+
+  CombinationsFilteredFullIndexPolicy(o2::framework::expressions::Operations& operationSpecs, std::vector<int>& bindingIndices, std::vector<std::string>& columnNames, const Filtered<T>& filteredTable, const T& table, const Ts&... tables) : CombinationsFilteredIndexPolicyBase<T, Ts...>(operationSpecs, bindingIndices, columnNames, filteredTable, table, tables...)
+  {
+    if (filteredTable.size() == 0) {
+      addAndUpdate();
+    }
+  }
+
+  void moveToEnd()
+  {
+    constexpr auto k = sizeof...(Ts) + 1;
+    for_<k>([&, this](auto i) {
+      std::get<i.value>(this->mCurrent).moveToEnd();
+    });
+    this->mIsEnd = true;
+  }
+
+  void addAndUpdate() override
+  {
+    constexpr auto k = sizeof...(Ts);
+    bool modify = true;
+    o2::framework::expressions::Selection selection;
+
+    do {
+      modify = true;
+      // Other iterators need to be moved, filter updated
+      for_<k>([&, this](auto i) {
+        if (modify) {
+          constexpr auto curInd = i.value + 1;
+          std::get<curInd>(this->mCurrent)++;
+          if (*std::get<1>(std::get<curInd>(this->mCurrent).getIndices()) != std::get<curInd>(this->mMaxOffset)) {
+            if (curInd - 1 < this->mBindingIndices.size()) {
+              setColumnValue(this->mTables[curInd], this->mColumnNames[curInd - 1], this->mOperationSpecs[this->mBindingIndices[curInd - 1]].left, *std::get<1>(std::get<curInd>(this->mCurrent).getIndices()));
+            }
+            for_<i.value>([&, this](auto j) {
+              constexpr auto curJ = i.value - j.value;
+              std::get<curJ>(this->mCurrent).setCursor(0);
+              if (curJ - 1 < this->mBindingIndices.size()) {
+                setColumnValue(this->mTables[curJ], this->mColumnNames[curJ - 1], this->mOperationSpecs[this->mBindingIndices[curJ - 1]].left, 0);
+              }
+            });
+            modify = false;
+          }
+        }
+      });
+
+      selection = o2::framework::expressions::createSelection(this->mTables[0].asArrowTable(), createFilter(this->mTables[0].asArrowTable()->schema(), this->mOperationSpecs));
+    } while (!modify && selection->GetNumSlots() == 0);
+
+    this->updateFiltered(selection, 0);
+    this->mIsEnd = modify;
+  }
+};
+
 /// @return next combination of rows of tables.
 /// FIXME: move to coroutines once we have C++20
 template <typename P>
@@ -921,6 +1229,39 @@ struct CombinationsGenerator {
   iterator mBegin;
   iterator mEnd;
 };
+
+// Provisional version to enable filtering on same-table combinations with current filters API
+template <typename T2, typename... T2s>
+auto selfCombinations(const o2::framework::expressions::Filter& filter, const T2& table, const T2s&... tables)
+{
+  return selfCombinations<CombinationsFilteredStrictlyUpperIndexPolicy>(filter, table, tables...);
+}
+
+template <template <typename...> typename P2, typename T2, typename... T2s>
+auto selfCombinations(const o2::framework::expressions::Filter& filter, const T2& table, const T2s&... tables)
+{
+  static_assert(std::conjunction_v<std::is_same<T2, T2s>...>, "Input tables must be of the same type!");
+  o2::framework::expressions::Operations operationSpecs = createOperations(filter);
+  std::vector<int> bindingIndices;
+  std::vector<std::string> columnNames;
+  // Operations traverse the filter in DFS order, from right to left.
+  // So the spec corresponding to the first BindingNode is the last binding spec
+  // in a simple tree (a single condition)
+  int i = operationSpecs.size() - 1;
+  while (i >= 0 && operationSpecs[i].left.datum.index() != 3) {
+    i--;
+  }
+  for (int j = i - 1; j >= 0; j--) {
+    if (operationSpecs[j].left.datum.index() == 3) {
+      std::string columnName = std::get<std::string>(operationSpecs[j].left.datum);
+      bindingIndices.push_back(j);
+      columnNames.push_back(columnName);
+      setColumnValue(table, columnName, operationSpecs[j].left, 0);
+    }
+  }
+  Filtered<T2> filteredTable{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), o2::framework::expressions::createFilter(table.asArrowTable()->schema(), operationSpecs))};
+  return CombinationsGenerator<P2<T2, T2s...>>(P2(operationSpecs, bindingIndices, columnNames, filteredTable, table, tables...));
+}
 
 template <typename T2, typename... T2s>
 auto selfCombinations(const char* categoryColumnName, const T2& table, const T2s&... tables)

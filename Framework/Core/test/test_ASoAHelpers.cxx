@@ -90,6 +90,29 @@ BOOST_AUTO_TEST_CASE(IteratorTuple)
   BOOST_REQUIRE_NE(static_cast<test::X>(it3).getIterator().mCurrentPos, nullptr);
   BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(it3).getIterator().mCurrentPos), 4);
   BOOST_REQUIRE_EQUAL(static_cast<test::X>(it3).getIterator().mCurrentChunk, 0);
+  auto it4 = std::get<1>(filteredTuple).begin() + 1;
+  BOOST_REQUIRE_NE(static_cast<test::X>(it4).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(it4).getIterator().mCurrentPos), 5);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(it4).getIterator().mCurrentChunk, 0);
+
+  auto filteredItTuple = std::make_tuple(filtered.begin(), filtered.begin());
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(filteredItTuple)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(filteredItTuple)).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(filteredItTuple)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(filteredItTuple)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(filteredItTuple)).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(filteredItTuple)).getIterator().mCurrentChunk, 0);
+
+  expressions::Filter filter2 = test::x < 3;
+  auto filtered2 = Filtered<TestA>{{tests.asArrowTable()}, o2::framework::expressions::createSelection(tests.asArrowTable(), filter2)};
+  auto filteredBeginIt = filtered2.begin() + 1;
+  std::get<0>(filteredItTuple) = filteredBeginIt;
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(filteredItTuple)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(filteredItTuple)).getIterator().mCurrentPos), 1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(filteredItTuple)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(filteredBeginIt).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(filteredBeginIt).getIterator().mCurrentPos), 1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(filteredBeginIt).getIterator().mCurrentChunk, 0);
 }
 
 BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
@@ -280,6 +303,53 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
   BOOST_REQUIRE_NE(static_cast<test::X>(std::get<4>(endBadCombination)).getIterator().mCurrentPos, nullptr);
   BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<4>(endBadCombination)).getIterator().mCurrentPos), 4);
   BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<4>(endBadCombination)).getIterator().mCurrentChunk, 0);
+
+  o2::framework::expressions::Filter combFilter = test::x > test::x * (-1) + 9;
+  auto comb2FilterComb = selfCombinations<CombinationsFilteredFullIndexPolicy>(combFilter, testsA, testsA);
+
+  static_assert(std::is_same_v<decltype(comb2FilterComb.begin()), CombinationsGenerator<CombinationsFilteredFullIndexPolicy<TestA, TestA>>::CombinationsIterator>, "Wrong iterator type");
+  static_assert(std::is_same_v<decltype(*(comb2FilterComb.begin())), CombinationsFilteredFullIndexPolicy<TestA, TestA>::CombinationType&>, "Wrong combination type");
+
+  auto beginCombFilterCombination = *(comb2FilterComb.begin());
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginCombFilterCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(beginCombFilterCombination)).getIterator().mCurrentPos), 7);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(beginCombFilterCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(beginCombFilterCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginCombFilterCombination)).getIterator().mCurrentPos), 3);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(beginCombFilterCombination)).getIterator().mCurrentChunk, 0);
+
+  BOOST_REQUIRE(comb2FilterComb.begin() != comb2FilterComb.end());
+
+  auto endCombFilterCombination = *(comb2FilterComb.end());
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(endCombFilterCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(endCombFilterCombination)).getIterator().mCurrentPos), -1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(endCombFilterCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(endCombFilterCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endCombFilterCombination)).getIterator().mCurrentPos), 8);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endCombFilterCombination)).getIterator().mCurrentChunk, 0);
+
+  auto comb2FilterStrictlyUpperComb = selfCombinations<CombinationsFilteredStrictlyUpperIndexPolicy>(combFilter, testsA, testsA);
+
+  static_assert(std::is_same_v<decltype(comb2FilterStrictlyUpperComb.begin()), CombinationsGenerator<CombinationsFilteredStrictlyUpperIndexPolicy<TestA, TestA>>::CombinationsIterator>, "Wrong iterator type");
+  static_assert(std::is_same_v<decltype(*(comb2FilterStrictlyUpperComb.begin())), CombinationsFilteredStrictlyUpperIndexPolicy<TestA, TestA>::CombinationType&>, "Wrong combination type");
+
+  auto beginCombFilterStrictlyUpperCombination = *(comb2FilterStrictlyUpperComb.begin());
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginCombFilterStrictlyUpperCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(beginCombFilterStrictlyUpperCombination)).getIterator().mCurrentPos), 7);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(beginCombFilterStrictlyUpperCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(beginCombFilterStrictlyUpperCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginCombFilterStrictlyUpperCombination)).getIterator().mCurrentPos), 3);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(beginCombFilterStrictlyUpperCombination)).getIterator().mCurrentChunk, 0);
+
+  BOOST_REQUIRE(comb2FilterStrictlyUpperComb.begin() != comb2FilterStrictlyUpperComb.end());
+
+  auto endCombFilterStrictlyUpperCombination = *(comb2FilterStrictlyUpperComb.end());
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(endCombFilterStrictlyUpperCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(endCombFilterStrictlyUpperCombination)).getIterator().mCurrentPos), -1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(endCombFilterStrictlyUpperCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(endCombFilterStrictlyUpperCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endCombFilterStrictlyUpperCombination)).getIterator().mCurrentPos), 7);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endCombFilterStrictlyUpperCombination)).getIterator().mCurrentChunk, 0);
 }
 
 BOOST_AUTO_TEST_CASE(Combinations)
@@ -976,4 +1046,114 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
     count++;
   }
   BOOST_CHECK_EQUAL(count, expectedUpperFives.size());
+}
+
+BOOST_AUTO_TEST_CASE(FilteredCombinations)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
+  rowWriterA(0, 0, 0);
+  rowWriterA(0, 1, 0);
+  rowWriterA(0, 2, 0);
+  rowWriterA(0, 3, 0);
+  rowWriterA(0, 4, 0);
+  rowWriterA(0, 5, 0);
+  rowWriterA(0, 6, 0);
+  rowWriterA(0, 7, 0);
+  auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+
+  TestA testsA{tableA};
+
+  BOOST_REQUIRE_EQUAL(8, testsA.size());
+  int nA = testsA.size();
+
+  int count = 0;
+  expressions::Filter pairsFilter = test::x > test::x * (-1) + 9;
+  std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairs{{7, 3}, {6, 4}, {7, 4}, {6, 5}, {7, 5}, {7, 6}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedUpperPairs{{7, 3}, {6, 4}, {7, 4}, {5, 5}, {6, 5}, {7, 5}, {6, 6}, {7, 6}, {7, 7}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairs{{7, 3}, {6, 4}, {7, 4}, {5, 5}, {6, 5}, {7, 5}, {4, 6}, {5, 6}, {6, 6}, {7, 6}, {3, 7}, {4, 7}, {5, 7}, {6, 7}, {7, 7}};
+
+  for (auto& [t0, t1] : selfCombinations<CombinationsFilteredFullIndexPolicy>(pairsFilter, testsA, testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), std::get<0>(expectedFullPairs[count]));
+    BOOST_CHECK_EQUAL(t1.x(), std::get<1>(expectedFullPairs[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedFullPairs.size());
+
+  count = 0;
+  for (auto& [t0, t1] : selfCombinations<CombinationsFilteredStrictlyUpperIndexPolicy>(pairsFilter, testsA, testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), std::get<0>(expectedStrictlyUpperPairs[count]));
+    BOOST_CHECK_EQUAL(t1.x(), std::get<1>(expectedStrictlyUpperPairs[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedStrictlyUpperPairs.size());
+
+  count = 0;
+  for (auto& [t0, t1] : selfCombinations<CombinationsFilteredUpperIndexPolicy>(pairsFilter, testsA, testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), std::get<0>(expectedUpperPairs[count]));
+    BOOST_CHECK_EQUAL(t1.x(), std::get<1>(expectedUpperPairs[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedUpperPairs.size());
+
+  // TODO: Change to sum of 3 table elements once it will be possible
+  expressions::Filter triplesFilter = (test::x > 4) && (test::x > test::x * (-1) + 9);
+  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedStrictlyUpperTriples{{7, 6, 4}, {7, 6, 5}};
+  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedUpperTriples{{7, 7, 3}, {6, 6, 4}, {7, 6, 4}, {7, 7, 4}, {5, 5, 5}, {6, 5, 5}, {7, 5, 5}, {6, 6, 5}, {7, 6, 5}, {7, 7, 5}, {6, 6, 6}, {7, 6, 6}, {7, 7, 6}, {7, 7, 7}};
+
+  count = 0;
+  for (auto& [t0, t1, t2] : selfCombinations<CombinationsFilteredFullIndexPolicy>(triplesFilter, testsA, testsA, testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), count % 3 + 5);
+    BOOST_CHECK_EQUAL(t1.x(), std::get<0>(expectedFullPairs[count / 3]));
+    BOOST_CHECK_EQUAL(t2.x(), std::get<1>(expectedFullPairs[count / 3]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, 3 * expectedFullPairs.size());
+
+  count = 0;
+  for (auto& [t0, t1, t2] : selfCombinations<CombinationsFilteredStrictlyUpperIndexPolicy>(triplesFilter, testsA, testsA, testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), std::get<0>(expectedStrictlyUpperTriples[count]));
+    BOOST_CHECK_EQUAL(t1.x(), std::get<1>(expectedStrictlyUpperTriples[count]));
+    BOOST_CHECK_EQUAL(t2.x(), std::get<2>(expectedStrictlyUpperTriples[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedStrictlyUpperTriples.size());
+
+  count = 0;
+  for (auto& [t0, t1, t2] : selfCombinations<CombinationsFilteredUpperIndexPolicy>(triplesFilter, testsA, testsA, testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), std::get<0>(expectedUpperTriples[count]));
+    BOOST_CHECK_EQUAL(t1.x(), std::get<1>(expectedUpperTriples[count]));
+    BOOST_CHECK_EQUAL(t2.x(), std::get<2>(expectedUpperTriples[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedUpperTriples.size());
+
+  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedStrictlyUpperTriples2{{7, 3, 0}, {6, 4, 0}, {7, 4, 0}, {6, 5, 0}, {7, 5, 0}, {7, 6, 0}, {7, 3, 1}, {6, 4, 1}, {7, 4, 1}, {6, 5, 1}, {7, 5, 1}, {7, 6, 1}, {7, 3, 2}, {6, 4, 2}, {7, 4, 2}, {6, 5, 2}, {7, 5, 2}, {7, 6, 2}, {6, 4, 3}, {7, 4, 3}, {6, 5, 3}, {7, 5, 3}, {7, 6, 3}, {6, 5, 4}, {7, 5, 4}, {7, 6, 4}, {7, 6, 5}};
+
+  count = 0;
+  for (auto& [t0, t1, t2] : selfCombinations<CombinationsFilteredStrictlyUpperIndexPolicy>(pairsFilter, testsA, testsA, testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), std::get<0>(expectedStrictlyUpperTriples2[count]));
+    BOOST_CHECK_EQUAL(t1.x(), std::get<1>(expectedStrictlyUpperTriples2[count]));
+    BOOST_CHECK_EQUAL(t2.x(), std::get<2>(expectedStrictlyUpperTriples2[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, 27);
+
+  // Order in tuple: (t0 > 5) && (t2 + t1 > 10) && (t4 + t3 > 9)
+  expressions::Filter fivesFilter = (test::x > 5) && (test::x > (test::x * (-1) + 9)) && (test::x > (test::x * (-1) + 4));
+
+  std::vector<std::tuple<int32_t, int32_t, int32_t, int32_t, int32_t>> expectedStrictlyUpperFives{{7, 6, 5, 4, 1}, {7, 6, 4, 3, 2}, {7, 6, 5, 3, 2}, {7, 6, 5, 4, 2}, {7, 6, 5, 4, 3}};
+  count = 0;
+  for (auto& [t0, t1, t2, t3, t4] : selfCombinations<CombinationsFilteredStrictlyUpperIndexPolicy>(fivesFilter, testsA, testsA, testsA, testsA, testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), std::get<0>(expectedStrictlyUpperFives[count]));
+    BOOST_CHECK_EQUAL(t1.x(), std::get<1>(expectedStrictlyUpperFives[count]));
+    BOOST_CHECK_EQUAL(t2.x(), std::get<2>(expectedStrictlyUpperFives[count]));
+    BOOST_CHECK_EQUAL(t3.x(), std::get<3>(expectedStrictlyUpperFives[count]));
+    BOOST_CHECK_EQUAL(t4.x(), std::get<4>(expectedStrictlyUpperFives[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedStrictlyUpperFives.size());
 }

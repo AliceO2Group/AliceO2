@@ -717,4 +717,596 @@ static void BM_ASoAHelpersCombGenCollisionsFivesCategories(benchmark::State& sta
 
 BENCHMARK(BM_ASoAHelpersCombGenCollisionsFivesCategories)->RangeMultiplier(2)->Range(8, 8 << (maxFivesRange + 1));
 
+static void BM_ASoAHelpersCombGenSimplePairsFilters(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<test::X>;
+  Test tests{table};
+
+  int64_t count = 0;
+  expressions::Filter filter = test::x > (test::x * (-1.0f) + 1.0f);
+  for (auto _ : state) {
+    count = 0;
+    for (auto& [t0, t1] : selfCombinations(filter, tests, tests)) {
+      count++;
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  int64_t filteringCount = state.range(0) * state.range(0);
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenSimplePairsFilters)->RangeMultiplier(2)->Range(8, 8 << 6);
+
+static void BM_ASoAHelpersCombGenSimpleFivesFilters(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<test::X>;
+  Test tests{table};
+
+  int64_t count = 0;
+  expressions::Filter filter = (test::x > 0.3f) && (test::x > (test::x * (-1.0f) + 1.0f)) && (test::x > (test::x * (-1.0f) + 1.0f));
+  for (auto _ : state) {
+    count = 0;
+    for (auto& [t0, t1, t2, t3, t4] : selfCombinations(filter, tests, tests, tests, tests, tests)) {
+      count++;
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  int64_t filteringCount = state.range(0) * state.range(0) * state.range(0) * state.range(0) * state.range(0);
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenSimpleFivesFilters)->RangeMultiplier(2)->Range(8, 16);
+
+static void BM_ASoAHelpersCombGenTracksPairsFilters(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::Tracks tracks{table};
+
+  int64_t count = 0;
+  expressions::Filter filter = o2::aod::track::x > (o2::aod::track::x * (-1.0f) + 1.0f);
+  for (auto _ : state) {
+    count = 0;
+    for (auto& [t0, t1] : selfCombinations(filter, tracks, tracks)) {
+      count++;
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  int64_t filteringCount = state.range(0) * state.range(0);
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenTracksPairsFilters)->RangeMultiplier(2)->Range(8, 8 << 6);
+
+static void BM_ASoAHelpersCombGenTracksFivesFilters(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::Tracks tracks{table};
+
+  int64_t count = 0;
+  expressions::Filter filter = (o2::aod::track::x > 0.3f) && (o2::aod::track::x > (o2::aod::track::x * (-1.0f) + 1.0f)) && (o2::aod::track::x > (o2::aod::track::x * (-1.0f) + 1.0f));
+  for (auto _ : state) {
+    count = 0;
+    for (auto& [t0, t1, t2, t3, t4] : selfCombinations(filter, tracks, tracks, tracks, tracks, tracks)) {
+      count++;
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  int64_t filteringCount = state.range(0) * state.range(0) * state.range(0) * state.range(0) * state.range(0);
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenTracksFivesFilters)->RangeMultiplier(2)->Range(8, 16);
+
+static void BM_ASoAHelpersCombGenSimplePairsIfs(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<test::X>;
+  Test tests{table};
+
+  int64_t count = 0;
+  int64_t filteringCount = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto& [t0, t1] : combinations(tests, tests)) {
+      filteringCount++;
+      if (t0.x() > (t1.x() * (-1.0f) + 1.0f)) {
+        auto comb = std::make_tuple(t0, t1);
+        count++;
+        benchmark::DoNotOptimize(comb);
+      }
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::DoNotOptimize(filteringCount);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenSimplePairsIfs)->RangeMultiplier(2)->Range(8, 8 << 6);
+
+static void BM_ASoAHelpersCombGenSimpleFivesIfs(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<test::X>;
+  Test tests{table};
+
+  int64_t count = 0;
+  int64_t filteringCount = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto& [t0, t1, t2, t3, t4] : combinations(tests, tests, tests, tests, tests)) {
+      filteringCount++;
+      if ((t0.x() > 0.3f) && (t2.x() > (t1.x() * (-1.0f) + 1.0f)) && (t4.x() > (t3.x() * (-1.0f) + 1.0f))) {
+        auto comb = std::make_tuple(t0, t1, t2, t3, t4);
+        count++;
+        benchmark::DoNotOptimize(comb);
+      }
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::DoNotOptimize(filteringCount);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenSimpleFivesIfs)->RangeMultiplier(2)->Range(8, 16);
+
+static void BM_ASoAHelpersCombGenTracksPairsIfs(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::Tracks tracks{table};
+
+  int64_t count = 0;
+  int64_t filteringCount = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto& [t0, t1] : combinations(tracks, tracks)) {
+      filteringCount++;
+      if (t1.x() > (t0.x() * (-1.0f) + 1.0f)) {
+        auto comb = std::make_tuple(t0, t1);
+        count++;
+        benchmark::DoNotOptimize(comb);
+      }
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::DoNotOptimize(filteringCount);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenTracksPairsIfs)->RangeMultiplier(2)->Range(8, 8 << 6);
+
+static void BM_ASoAHelpersCombGenTracksFivesIfs(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::Tracks tracks{table};
+
+  int64_t count = 0;
+  int64_t filteringCount = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto& [t0, t1, t2, t3, t4] : combinations(tracks, tracks, tracks, tracks, tracks)) {
+      filteringCount++;
+      if ((t0.x() > 0.3f) && (t2.x() > (t1.x() * (-1.0f) + 1.0f)) && (t4.x() > (t3.x() * (-1.0f) + 1.0f))) {
+        auto comb = std::make_tuple(t0, t1, t2, t3, t4);
+        count++;
+        benchmark::DoNotOptimize(comb);
+      }
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::DoNotOptimize(filteringCount);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenTracksFivesIfs)->RangeMultiplier(2)->Range(8, 16);
+
+static void BM_ASoAHelpersNaiveSimplePairsIfs(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<test::X>;
+  Test tests{table};
+
+  int64_t count = 0;
+  int64_t filteringCount = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto t0 = tests.begin(); t0 + 1 != tests.end(); ++t0) {
+      for (auto t1 = t0 + 1; t1 != tests.end(); ++t1) {
+        filteringCount++;
+        if ((*t1).x() > ((*t0).x() * (-1.0f) + 1.0f)) {
+          auto comb = std::make_tuple(t0, t1);
+          count++;
+          benchmark::DoNotOptimize(comb);
+        }
+      }
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::DoNotOptimize(filteringCount);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersNaiveSimplePairsIfs)->RangeMultiplier(2)->Range(8, 8 << 6);
+
+static void BM_ASoAHelpersNaiveSimpleFivesIfs(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<test::X>;
+  Test tests{table};
+
+  int64_t count = 0;
+  int64_t filteringCount = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto t0 = tests.begin(); t0 + 4 != tests.end(); ++t0) {
+      for (auto t1 = t0 + 1; t1 + 3 != tests.end(); ++t1) {
+        for (auto t2 = t1 + 1; t2 + 2 != tests.end(); ++t2) {
+          for (auto t3 = t2 + 1; t3 + 1 != tests.end(); ++t3) {
+            for (auto t4 = t3 + 1; t4 != tests.end(); ++t4) {
+              filteringCount++;
+              if (((*t0).x() > 0.3f) && ((*t2).x() > ((*t1).x() * (-1.0f) + 1.0f)) && ((*t4).x() > ((*t3).x() * (-1.0f) + 1.0f))) {
+                auto comb = std::make_tuple(t0, t1, t2, t3, t4);
+                count++;
+                benchmark::DoNotOptimize(comb);
+              }
+            }
+          }
+        }
+      }
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::DoNotOptimize(filteringCount);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersNaiveSimpleFivesIfs)->RangeMultiplier(2)->Range(8, 16);
+
+static void BM_ASoAHelpersNaiveTracksPairsIfs(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::Tracks tracks{table};
+
+  int64_t count = 0;
+  int64_t filteringCount = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto t0 = tracks.begin(); t0 + 1 != tracks.end(); ++t0) {
+      for (auto t1 = t0 + 1; t1 != tracks.end(); ++t1) {
+        filteringCount++;
+        if ((*t1).x() > ((*t0).x() * (-1.0f) + 1.0f)) {
+          auto comb = std::make_tuple(t0, t1);
+          count++;
+          benchmark::DoNotOptimize(comb);
+        }
+      }
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::DoNotOptimize(filteringCount);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersNaiveTracksPairsIfs)->RangeMultiplier(2)->Range(8, 8 << 6);
+
+static void BM_ASoAHelpersNaiveTracksFivesIfs(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::Tracks tracks{table};
+
+  int64_t count = 0;
+  int64_t filteringCount = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto t0 = tracks.begin(); t0 + 4 != tracks.end(); ++t0) {
+      for (auto t1 = t0 + 1; t1 + 3 != tracks.end(); ++t1) {
+        for (auto t2 = t1 + 1; t2 + 2 != tracks.end(); ++t2) {
+          for (auto t3 = t2 + 1; t3 + 1 != tracks.end(); ++t3) {
+            for (auto t4 = t3 + 1; t4 != tracks.end(); ++t4) {
+              filteringCount++;
+              if (((*t0).x() > 0.3f) && ((*t2).x() > ((*t1).x() * (-1.0f) + 1.0f)) && ((*t4).x() > ((*t3).x() * (-1.0f) + 1.0f))) {
+                auto comb = std::make_tuple(t0, t1, t2, t3, t4);
+                count++;
+                benchmark::DoNotOptimize(comb);
+              }
+            }
+          }
+        }
+      }
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::DoNotOptimize(filteringCount);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersNaiveTracksFivesIfs)->RangeMultiplier(2)->Range(8, 16);
+
+static void BM_ASoAHelpersNaiveSimplePairsFilters(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<test::X>;
+  Test tests{table};
+
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    o2::framework::expressions::Filter filter = test::x > (test::x * (-1.0f) + 1.0f);
+    o2::framework::expressions::Operations operations = createOperations(filter);
+    int i = 0;
+    for (; i < operations.size() && operations[i].left.datum.index() != 3; i++)
+      ;
+
+    for (int j = 0; j < tests.size(); j++) {
+      setColumnValue(tests, "x", operations[i].left, j);
+      o2::framework::expressions::Selection selection = o2::framework::expressions::createSelection(tests.asArrowTable(), createFilter(tests.asArrowTable()->schema(), operations));
+      // Find first index bigger than the index of 1st iterator
+      int beginSelectionIndex = 0;
+      for (; beginSelectionIndex < selection->GetNumSlots() &&
+             selection->GetIndex(beginSelectionIndex) <= j;
+           beginSelectionIndex++) {
+        ;
+      }
+      if (beginSelectionIndex != selection->GetNumSlots()) {
+        Filtered<Test> filtered{{tests.asArrowTable()}, selection};
+        for (auto t0 = filtered.begin() + beginSelectionIndex; t0 != filtered.end(); ++t0) {
+          count++;
+        }
+      }
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  int64_t filteringCount = state.range(0) * state.range(0);
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersNaiveSimplePairsFilters)->RangeMultiplier(2)->Range(8, 8 << 6);
+
+static void BM_ASoAHelpersNaiveFullSimplePairsIfs(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<test::X>;
+  Test tests{table};
+
+  int64_t count = 0;
+  int64_t filteringCount = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto t0 = tests.begin(); t0 != tests.end(); ++t0) {
+      for (auto t1 = tests.begin(); t1 != tests.end(); ++t1) {
+        filteringCount++;
+        if ((*t1).x() > ((*t0).x() * (-1.0f) + 1.0f)) {
+          auto comb = std::make_tuple(t0, t1);
+          count++;
+          benchmark::DoNotOptimize(comb);
+        }
+      }
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::DoNotOptimize(filteringCount);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersNaiveFullSimplePairsIfs)->RangeMultiplier(2)->Range(8, 8 << 6);
+
+static void BM_ASoAHelpersNaiveFullSimplePairsFilters(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<test::X>;
+  Test tests{table};
+
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    o2::framework::expressions::Filter filter = test::x > (test::x * (-1.0f) + 1.0f);
+    o2::framework::expressions::Operations operations = createOperations(filter);
+    int i = 0;
+    for (; i < operations.size() && operations[i].left.datum.index() != 3; i++)
+      ;
+    for (int j = 0; j < tests.size(); j++) {
+      setColumnValue(tests, "x", operations[i].left, j);
+      o2::framework::expressions::Selection selection = o2::framework::expressions::createSelection(tests.asArrowTable(), createFilter(tests.asArrowTable()->schema(), operations));
+      Filtered<Test> filtered{{tests.asArrowTable()}, selection};
+      for (auto t0 = filtered.begin(); t0 != filtered.end(); ++t0) {
+        count++;
+      }
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  int64_t filteringCount = state.range(0) * state.range(0);
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersNaiveFullSimplePairsFilters)->RangeMultiplier(2)->Range(8, 8 << 6);
+
 BENCHMARK_MAIN();
