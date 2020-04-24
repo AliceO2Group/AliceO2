@@ -128,8 +128,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     simpleQcTask,
     dummyProducer
   };
-
-  std::string configurationSource = std::string("json:/") + getenv("O2_ROOT") + "/share/etc/exampleDataSamplingConfig.json";
+  const char* o2Root = getenv("O2_ROOT");
+  if (o2Root == nullptr) {
+    throw std::runtime_error("The O2_ROOT environment variable is not set, probably the O2 environment has not been loaded.");
+  }
+  std::string configurationSource = std::string("json:/") + o2Root + "/share/etc/exampleDataSamplingConfig.json";
   DataSampling::GenerateInfrastructure(specs, configurationSource);
 
   return specs;
