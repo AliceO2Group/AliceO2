@@ -212,8 +212,10 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<GPUTrackingInOutZS> mTPCZS;                         // TPC ZS Data Structure
 
   // Upper bounds for memory allocation
-  unsigned int mMaxTPCHits;
-  unsigned int mMaxTRDTracklets;
+  unsigned int mMaxTPCHits = 0;
+  unsigned int mMaxTRDTracklets = 0;
+
+  unsigned int mTPCMaxTimeBin = 0;
 
   // Debug
   std::ofstream mDebugFile;
