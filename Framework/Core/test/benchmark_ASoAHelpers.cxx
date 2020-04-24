@@ -35,22 +35,6 @@ constexpr unsigned int maxPairsRange = 12;
 constexpr unsigned int maxFivesRange = 3;
 #endif
 
-// Helper to reset the iterators for each benchmark loop
-template <typename... T2s>
-void resetCombination(std::tuple<T2s...>& tuple, const std::tuple<T2s...>& maxOffset, bool& isEnd, const std::array<int64_t, sizeof...(T2s)> sizes)
-{
-  for_<sizeof...(T2s)>([&](auto i) {
-    std::get<i.value>(tuple).setCursor(i.value);
-  });
-  isEnd = false;
-  for (int i = 0; i < sizeof...(T2s); i++) {
-    if (sizes[i] <= sizeof...(T2s)) {
-      isEnd = true;
-      break;
-    }
-  }
-}
-
 static void BM_ASoAHelpersEmptySimplePairs(benchmark::State& state)
 {
   int64_t count = 0;
@@ -267,7 +251,7 @@ static void BM_ASoAHelpersCombGenSimplePairs(benchmark::State& state)
 
   for (auto _ : state) {
     count = 0;
-    for (auto comb : combinations(tests, tests)) {
+    for (auto& comb : combinations(tests, tests)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -298,7 +282,7 @@ static void BM_ASoAHelpersCombGenSimpleFives(benchmark::State& state)
 
   for (auto _ : state) {
     count = 0;
-    for (auto comb : combinations(tests, tests, tests, tests, tests)) {
+    for (auto& comb : combinations(tests, tests, tests, tests, tests)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -330,7 +314,7 @@ static void BM_ASoAHelpersCombGenTracksPairs(benchmark::State& state)
 
   for (auto _ : state) {
     count = 0;
-    for (auto comb : combinations(tracks, tracks)) {
+    for (auto& comb : combinations(tracks, tracks)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -362,7 +346,7 @@ static void BM_ASoAHelpersCombGenTracksFives(benchmark::State& state)
 
   for (auto _ : state) {
     count = 0;
-    for (auto comb : combinations(tracks, tracks, tracks, tracks, tracks)) {
+    for (auto& comb : combinations(tracks, tracks, tracks, tracks, tracks)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -403,7 +387,7 @@ static void BM_ASoAHelpersCombGenSimpleFivesMultipleChunks(benchmark::State& sta
 
   for (auto _ : state) {
     count = 0;
-    for (auto comb : combinations(tests, tests, tests, tests, tests)) {
+    for (auto& comb : combinations(tests, tests, tests, tests, tests)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -446,7 +430,7 @@ static void BM_ASoAHelpersCombGenTracksFivesMultipleChunks(benchmark::State& sta
 
   for (auto _ : state) {
     count = 0;
-    for (auto comb : combinations(tracks, tracks, tracks, tracks, tracks)) {
+    for (auto& comb : combinations(tracks, tracks, tracks, tracks, tracks)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -456,5 +440,281 @@ static void BM_ASoAHelpersCombGenTracksFivesMultipleChunks(benchmark::State& sta
 }
 
 BENCHMARK(BM_ASoAHelpersCombGenTracksFivesMultipleChunks)->RangeMultiplier(2)->Range(8, 8 << (maxFivesRange - 1));
+
+static void BM_ASoAHelpersCombGenSimplePairsSameCategories(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+  std::uniform_int_distribution<int> uniform_dist_int(0, 10);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<int, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist_int(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<test::X>;
+  Test tests{table};
+
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto& comb : selfCombinations("x", tests, tests)) {
+      count++;
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenSimplePairsSameCategories)->Range(8, 8 << maxPairsRange);
+
+static void BM_ASoAHelpersCombGenSimpleFivesSameCategories(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+  std::uniform_int_distribution<int> uniform_dist_int(0, 5);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<int, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist_int(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<test::X>;
+  Test tests{table};
+
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto& comb : selfCombinations("x", tests, tests, tests, tests, tests)) {
+      count++;
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenSimpleFivesSameCategories)->RangeMultiplier(2)->Range(8, 8 << (maxFivesRange + 1));
+
+static void BM_ASoAHelpersCombGenSimplePairsCategories(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+  std::uniform_int_distribution<int> uniform_dist_int(0, 10);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<int, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist_int(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<test::X>;
+  Test tests{table};
+
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto& comb : combinations("x", tests, tests)) {
+      count++;
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenSimplePairsCategories)->Range(8, 8 << maxPairsRange);
+
+static void BM_ASoAHelpersCombGenSimpleFivesCategories(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+  std::uniform_int_distribution<int> uniform_dist_int(0, 5);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<int, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist_int(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<test::X>;
+  Test tests{table};
+
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto& comb : combinations("x", tests, tests, tests, tests, tests)) {
+      count++;
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenSimpleFivesCategories)->RangeMultiplier(2)->Range(8, 8 << (maxFivesRange + 1));
+
+static void BM_ASoAHelpersCombGenCollisionsPairsSameCategories(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+  std::uniform_int_distribution<int> uniform_dist_int(0, 10);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::Collisions>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist_int(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1),
+              uniform_dist_int(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist_int(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::Collisions collisions{table};
+
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto& comb : selfCombinations("fNumContrib", collisions, collisions)) {
+      count++;
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenCollisionsPairsSameCategories)->Range(8, 8 << maxPairsRange);
+
+static void BM_ASoAHelpersCombGenCollisionsFivesSameCategories(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+  std::uniform_int_distribution<int> uniform_dist_int(0, 5);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::Collisions>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist_int(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1),
+              uniform_dist_int(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist_int(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::Collisions collisions{table};
+
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto& comb : selfCombinations("fNumContrib", collisions, collisions, collisions, collisions, collisions)) {
+      count++;
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenCollisionsFivesSameCategories)->RangeMultiplier(2)->Range(8, 8 << (maxFivesRange + 1));
+
+static void BM_ASoAHelpersCombGenCollisionsPairsCategories(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+  std::uniform_int_distribution<int> uniform_dist_int(0, 10);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::Collisions>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist_int(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1),
+              uniform_dist_int(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist_int(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::Collisions collisions{table};
+
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto& comb : combinations("fNumContrib", collisions, collisions)) {
+      count++;
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenCollisionsPairsCategories)->Range(8, 8 << maxPairsRange);
+
+static void BM_ASoAHelpersCombGenCollisionsFivesCategories(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+  std::uniform_int_distribution<int> uniform_dist_int(0, 5);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::Collisions>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist_int(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1),
+              uniform_dist_int(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist_int(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::Collisions collisions{table};
+
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto& comb : combinations("fNumContrib", collisions, collisions, collisions, collisions, collisions)) {
+      count++;
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenCollisionsFivesCategories)->RangeMultiplier(2)->Range(8, 8 << (maxFivesRange + 1));
 
 BENCHMARK_MAIN();
