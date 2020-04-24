@@ -51,7 +51,7 @@ struct ChargePos {
   GPUdi() bool isPadding() const
   {
     tpccf::Pad pad = gpad % TPC_PADS_PER_ROW_PADDED;
-    return timePadded < PADDING_TIME || timePadded >= TPC_MAX_TIME || pad < PADDING_PAD;
+    return timePadded < PADDING_TIME || timePadded >= TPC_MAX_FRAGMENT_LEN || pad < PADDING_PAD;
   }
 
  private:
