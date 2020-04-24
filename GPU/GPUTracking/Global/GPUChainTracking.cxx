@@ -381,6 +381,9 @@ unsigned int GPUChainTracking::TPCClusterizerDecodeZSCount(unsigned int iSlice, 
           processors()->tpcClusterer[iSlice].mMinMaxCN[j].minN = l;
           firstFound = true;
         }
+        if (timeBin + hdr->nTimeBins > mTPCMaxTimeBin) {
+          mTPCMaxTimeBin = timeBin + hdr->nTimeBins;
+        }
 
         if (doGPU) {
           *(o++) = GPUTPCClusterFinder::ZSOffset{nDigits, j, num++};
@@ -431,6 +434,9 @@ int GPUChainTracking::PrepareEvent()
         }
         AllocateRegisteredMemory(processors()->tpcClusterer[iSlice].mZSOffsetId);
       }
+      mTPCMaxTimeBin = 0;
+    } else {
+      mTPCMaxTimeBin = std::max<int>(param().continuousMaxTimeBin, TPC_MAX_FRAGMENT_LEN);
     }
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       unsigned int nDigits = 0;
@@ -878,8 +884,12 @@ int GPUChainTracking::RunTPCClusterizer()
     mcLinearLabels.data.reserve(mRec->MemoryScalers()->nTPCHits * 16); // Assumption: cluster will have less than 16 labels on average
   }
 
-  tpccf::TPCTime timeSliceLen = 4000;
-  tpccf::TPCFragmentTime fragmentLen = TPC_MAX_TIME;
+  if (param().continuousMaxTimeBin > 0 && mTPCMaxTimeBin >= (unsigned int)std::max(param().continuousMaxTimeBin + 1, TPC_MAX_FRAGMENT_LEN)) {
+    GPUError("Input data has invalid time bin\n");
+    return 1;
+  }
+  tpccf::TPCTime timeSliceLen = std::max<int>(mTPCMaxTimeBin + 1, TPC_MAX_FRAGMENT_LEN);
+  tpccf::TPCFragmentTime fragmentLen = TPC_MAX_FRAGMENT_LEN;
 
   for (unsigned int iSliceBase = 0; iSliceBase < NSLICES; iSliceBase += GetDeviceProcessingSettings().nTPCClustererLanes) {
     for (CfFragment fragment{timeSliceLen, fragmentLen}; !fragment.isEnd(); fragment = fragment.next(timeSliceLen, fragmentLen)) {

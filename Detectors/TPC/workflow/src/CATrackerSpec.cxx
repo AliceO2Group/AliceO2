@@ -206,7 +206,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       config.configDeviceProcessing.debugLevel = debugLevel; // Debug verbosity
 
       config.configEvent.solenoidBz = solenoidBz;
-      int maxContTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + Constants::LHCBCPERTIMEBIN - 1) / Constants::LHCBCPERTIMEBIN;
+      int maxContTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * Constants::LHCBCPERTIMEBIN - 2) / Constants::LHCBCPERTIMEBIN;
       config.configEvent.continuousMaxTimeBin = continuous ? maxContTimeBin : 0; // Number of timebins in timeframe if continuous, 0 otherwise
 
       config.configReconstruction.NWays = 3;               // Should always be 3!
