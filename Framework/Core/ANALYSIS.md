@@ -333,7 +333,12 @@ struct MyTask : AnalysisTask {
 ```
 
 ### Getting combinations (pairs, triplets, ...)
-To get combinations of distinct tracks, helper functions from `ASoAHelpers.h` can be used. Presently, there are 3 combinations policies available: strictly upper, upper and full.
+To get combinations of distinct tracks, helper functions from `ASoAHelpers.h` can be used. Presently, there are 3 combinations policies available: strictly upper, upper and full. `CombinationsStrictlyUpperPolicy` is applied by default if all tables are of the same type, otherwise `FullIndexPolicy` is applied.
+
+```cpp
+combinations(tracks, tracks); // equivalent to combinations(CombinationsStrictlyUpperIndexPolicy(tracks, tracks));
+combinations(filter, tracks, covs); // equivalent to combinations(CombinationsFullIndexPolicy(tracks, covs), filter, tracks, covs);
+```
 
 The number of elements in a combination is deduced from the number of arguments passed to `combinations()` call. For example, to get pairs of tracks from the same source, one must specify `tracks` table twice:
 
@@ -362,6 +367,22 @@ struct MyTask : AnalysisTask {
 };
 ```
 
+One can get combinations of elements with the same value in a given column. Input tables do not need to be the same but each table must contain the column used for categorizing. Again, full, strictly upper and upper policies are available:
+
+```cpp
+for (auto& [c0, c1] : combinations(CombinationsBlockStrictlyUpperIndexPolicy("fRunNumber", collisions, collisions)));
+for (auto& [c0, t1] : combinations(CombinationsBlockFullIndexPolicy("fX", collisions, tracks)));
+```
+
+For better performance, if the same table is used, `Block{Full,StrictlyUpper,Upper}SameIndex` policies should be preferred. `selfCombinations()` are a shortuct to apply StrictlyUpperSameIndex policy:
+
+```cpp
+for (auto& [c0, c1] : combinations(CombinationsBlockFullSameIndexPolicy("fRunNumber", collisions, collisions)));
+for (auto& [c0, c1] : selfCombinations("fRunNumber", collisions, collisions)) {
+  // same as: combinations(CombinationsBlockStrictlyUpperSameIndexPolicy("fRunNumber", collisions, collisions));
+}
+```
+
 It will be possible to specify a filter for a combination as a whole, and only matching combinations will be then output. Currently, the filter is applied to each element separately. Note that for filter version the input tables are mentioned twice, both in policy constructor and in `combinations()` call itself.
 
 ```cpp
@@ -375,13 +396,6 @@ struct MyTask : AnalysisTask {
     }
   }
 };
-```
-
-Additionally, `CombinationsStrictlyUpperPolicy` is applied by default if all tables are of the same type, otherwise `FullIndexPolicy` is applied.
-
-```cpp
-combinations(tracks, tracks); // equivalent to combinations(CombinationsStrictlyUpperIndexPolicy(tracks, tracks));
-combinations(filter, tracks, covs); // equivalent to combinations(CombinationsFullIndexPolicy(tracks, covs), filter, tracks, covs);
 ```
 
 ### Saving tables to file

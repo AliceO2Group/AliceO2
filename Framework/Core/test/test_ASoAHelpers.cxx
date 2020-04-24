@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
   BOOST_REQUIRE_EQUAL(8, testsA.size());
   BOOST_REQUIRE_EQUAL(12, concatTests.size());
 
-  CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, TestA, TestA>::CombinationsIterator combIt(CombinationsStrictlyUpperIndexPolicy(testsA, testsA));
+  CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<TestA, TestA>>::CombinationsIterator combIt(CombinationsStrictlyUpperIndexPolicy(testsA, testsA));
   BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(*(combIt))).getIterator().mCurrentPos, nullptr);
   BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(*(combIt))).getIterator().mCurrentPos), 0);
   BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(*(combIt))).getIterator().mCurrentChunk, 0);
@@ -136,8 +136,8 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
 
   auto comb2 = combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsA));
 
-  static_assert(std::is_same_v<decltype(comb2.begin()), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, TestA, TestA>::CombinationsIterator>, "Wrong iterator type");
-  static_assert(std::is_same_v<decltype(*(comb2.begin())), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, TestA, TestA>::CombinationType&>, "Wrong combination type");
+  static_assert(std::is_same_v<decltype(comb2.begin()), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<TestA, TestA>>::CombinationsIterator>, "Wrong iterator type");
+  static_assert(std::is_same_v<decltype(*(comb2.begin())), CombinationsStrictlyUpperIndexPolicy<TestA, TestA>::CombinationType&>, "Wrong combination type");
 
   auto beginCombination = *(comb2.begin());
   BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginCombination)).getIterator().mCurrentPos, nullptr);
@@ -157,10 +157,10 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
   BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endCombination)).getIterator().mCurrentPos), 8);
   BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endCombination)).getIterator().mCurrentChunk, 0);
 
-  expressions::Filter filter = test::x > 3;
+  o2::framework::expressions::Filter filter = test::x > 3;
   auto filtered = Filtered<TestA>{{testsA.asArrowTable()}, o2::framework::expressions::createSelection(testsA.asArrowTable(), filter)};
 
-  CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, Filtered<TestA>, Filtered<TestA>>::CombinationsIterator combItFiltered(CombinationsStrictlyUpperIndexPolicy(filtered, filtered));
+  CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<Filtered<TestA>, Filtered<TestA>>>::CombinationsIterator combItFiltered(CombinationsStrictlyUpperIndexPolicy(filtered, filtered));
   BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(*(combItFiltered))).getIterator().mCurrentPos, nullptr);
   BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(*(combItFiltered))).getIterator().mCurrentPos), 4);
   BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(*(combItFiltered))).getIterator().mCurrentChunk, 0);
@@ -170,8 +170,8 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
 
   auto comb2Filter = combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsA), filter, testsA, testsA);
 
-  static_assert(std::is_same_v<decltype(comb2Filter.begin()), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, Filtered<TestA>, Filtered<TestA>>::CombinationsIterator>, "Wrong iterator type");
-  static_assert(std::is_same_v<decltype(*(comb2Filter.begin())), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, Filtered<TestA>, Filtered<TestA>>::CombinationType&>, "Wrong combination type");
+  static_assert(std::is_same_v<decltype(comb2Filter.begin()), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<Filtered<TestA>, Filtered<TestA>>>::CombinationsIterator>, "Wrong iterator type");
+  static_assert(std::is_same_v<decltype(*(comb2Filter.begin())), CombinationsStrictlyUpperIndexPolicy<Filtered<TestA>, Filtered<TestA>>::CombinationType&>, "Wrong combination type");
 
   auto beginFilterCombination = *(comb2Filter.begin());
   BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginFilterCombination)).getIterator().mCurrentPos, nullptr);
@@ -193,8 +193,8 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
 
   auto comb2Concat = combinations(CombinationsStrictlyUpperIndexPolicy(concatTests, concatTests));
 
-  static_assert(std::is_same_v<decltype(comb2Concat.begin()), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, ConcatTest, ConcatTest>::CombinationsIterator>, "Wrong iterator type");
-  static_assert(std::is_same_v<decltype(*(comb2Concat.begin())), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, ConcatTest, ConcatTest>::CombinationType&>, "Wrong combination type");
+  static_assert(std::is_same_v<decltype(comb2Concat.begin()), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<ConcatTest, ConcatTest>>::CombinationsIterator>, "Wrong iterator type");
+  static_assert(std::is_same_v<decltype(*(comb2Concat.begin())), CombinationsStrictlyUpperIndexPolicy<ConcatTest, ConcatTest>::CombinationType&>, "Wrong combination type");
 
   auto beginConcatCombination = *(comb2Concat.begin());
   BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginConcatCombination)).getIterator().mCurrentPos, nullptr);
@@ -218,8 +218,8 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
 
   auto comb2Diff = combinations(CombinationsFullIndexPolicy(testsA, testsB));
 
-  static_assert(std::is_same_v<decltype(comb2Diff.begin()), CombinationsGenerator<CombinationsFullIndexPolicy, TestA, TestB>::CombinationsIterator>, "Wrong iterator type");
-  static_assert(std::is_same_v<decltype(*(comb2Diff.begin())), CombinationsGenerator<CombinationsFullIndexPolicy, TestA, TestB>::CombinationType&>, "Wrong combination type");
+  static_assert(std::is_same_v<decltype(comb2Diff.begin()), CombinationsGenerator<CombinationsFullIndexPolicy<TestA, TestB>>::CombinationsIterator>, "Wrong iterator type");
+  static_assert(std::is_same_v<decltype(*(comb2Diff.begin())), CombinationsFullIndexPolicy<TestA, TestB>::CombinationType&>, "Wrong combination type");
 
   auto beginDiffCombination = *(comb2Diff.begin());
   BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginDiffCombination)).getIterator().mCurrentPos, nullptr);
@@ -242,26 +242,44 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
   // More elements required for a combination than number of elements in the table
   auto comb2Bad = combinations(CombinationsStrictlyUpperIndexPolicy(testsB, testsB, testsB, testsB, testsB));
 
-  static_assert(std::is_same_v<decltype(comb2Bad.begin()), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, TestB, TestB, TestB, TestB, TestB>::CombinationsIterator>, "Wrong iterator type");
-  static_assert(std::is_same_v<decltype(*(comb2Bad.begin())), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, TestB, TestB, TestB, TestB, TestB>::CombinationType&>, "Wrong combination type");
+  static_assert(std::is_same_v<decltype(comb2Bad.begin()), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<TestB, TestB, TestB, TestB, TestB>>::CombinationsIterator>, "Wrong iterator type");
+  static_assert(std::is_same_v<decltype(*(comb2Bad.begin())), CombinationsStrictlyUpperIndexPolicy<TestB, TestB, TestB, TestB, TestB>::CombinationType&>, "Wrong combination type");
 
   auto beginBadCombination = *(comb2Bad.begin());
   BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginBadCombination)).getIterator().mCurrentPos, nullptr);
   BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(beginBadCombination)).getIterator().mCurrentPos), 0);
   BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(beginBadCombination)).getIterator().mCurrentChunk, 0);
   BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(beginBadCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginBadCombination)).getIterator().mCurrentPos), 1);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginBadCombination)).getIterator().mCurrentPos), 0);
   BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(beginBadCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<2>(beginBadCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<2>(beginBadCombination)).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<2>(beginBadCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<3>(beginBadCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<3>(beginBadCombination)).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<3>(beginBadCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<4>(beginBadCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<4>(beginBadCombination)).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<4>(beginBadCombination)).getIterator().mCurrentChunk, 0);
 
   BOOST_REQUIRE(comb2Bad.begin() == comb2Bad.end());
 
   auto endBadCombination = *(comb2Bad.end());
   BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(endBadCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(endBadCombination)).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(endBadCombination)).getIterator().mCurrentPos), 4);
   BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(endBadCombination)).getIterator().mCurrentChunk, 0);
   BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(endBadCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endBadCombination)).getIterator().mCurrentPos), 1);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endBadCombination)).getIterator().mCurrentPos), 4);
   BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endBadCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<2>(endBadCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<2>(endBadCombination)).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<2>(endBadCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<3>(endBadCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<3>(endBadCombination)).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<3>(endBadCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<4>(endBadCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<4>(endBadCombination)).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<4>(endBadCombination)).getIterator().mCurrentChunk, 0);
 }
 
 BOOST_AUTO_TEST_CASE(Combinations)
@@ -766,6 +784,22 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
   }
   BOOST_CHECK_EQUAL(count, expectedStrictlyUpperPairs.size());
 
+  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedStrictlyUpperTriples{{0, 4, 7}};
+  count = 0;
+  for (auto& [c0, c1, c2] : combinations(CombinationsBlockStrictlyUpperIndexPolicy("y", testAux, testAux, testAux))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedStrictlyUpperTriples[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedStrictlyUpperTriples[count]));
+    BOOST_CHECK_EQUAL(c2.x(), std::get<2>(expectedStrictlyUpperTriples[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedStrictlyUpperTriples.size());
+
+  count = 0;
+  for (auto& [c0, c1, c2, c3, c4] : combinations(CombinationsBlockStrictlyUpperIndexPolicy("y", testAux, testAux, testAux, testAux, testAux))) {
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, 0);
+
   std::vector<std::tuple<int32_t, int32_t>> expectedUpperPairs{
     {0, 0}, {0, 4}, {0, 7}, {4, 4}, {4, 7}, {7, 7}, {1, 1}, {1, 6}, {6, 6}, {2, 2}, {3, 3}, {3, 5}, {5, 5}};
   count = 0;
@@ -776,40 +810,62 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
   }
   BOOST_CHECK_EQUAL(count, expectedUpperPairs.size());
 
+  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedUpperTriples{{0, 0, 0}, {0, 0, 4}, {0, 0, 7}, {0, 4, 4}, {0, 4, 7}, {0, 7, 7}, {4, 4, 4}, {4, 4, 7}, {4, 7, 7}, {7, 7, 7}, {1, 1, 1}, {1, 1, 6}, {1, 6, 6}, {6, 6, 6}, {2, 2, 2}, {3, 3, 3}, {3, 3, 5}, {3, 5, 5}, {5, 5, 5}};
+  count = 0;
+  for (auto& [c0, c1, c2] : combinations(CombinationsBlockUpperIndexPolicy("y", testAux, testAux, testAux))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedUpperTriples[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedUpperTriples[count]));
+    BOOST_CHECK_EQUAL(c2.x(), std::get<2>(expectedUpperTriples[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedUpperTriples.size());
+
+  std::vector<std::tuple<int32_t, int32_t, int32_t, int32_t, int32_t>> expectedUpperFives{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 4}, {0, 0, 0, 0, 7}, {0, 0, 0, 4, 4}, {0, 0, 0, 4, 7}, {0, 0, 0, 7, 7}, {0, 0, 4, 4, 4}, {0, 0, 4, 4, 7}, {0, 0, 4, 7, 7}, {0, 0, 7, 7, 7}, {0, 4, 4, 4, 4}, {0, 4, 4, 4, 7}, {0, 4, 4, 7, 7}, {0, 4, 7, 7, 7}, {0, 7, 7, 7, 7}, {4, 4, 4, 4, 4}, {4, 4, 4, 4, 7}, {4, 4, 4, 7, 7}, {4, 4, 7, 7, 7}, {4, 7, 7, 7, 7}, {7, 7, 7, 7, 7}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 6}, {1, 1, 1, 6, 6}, {1, 1, 6, 6, 6}, {1, 6, 6, 6, 6}, {6, 6, 6, 6, 6}, {2, 2, 2, 2, 2}, {3, 3, 3, 3, 3}, {3, 3, 3, 3, 5}, {3, 3, 3, 5, 5}, {3, 3, 5, 5, 5}, {3, 5, 5, 5, 5}, {5, 5, 5, 5, 5}};
+  count = 0;
+  for (auto& [c0, c1, c2, c3, c4] : combinations(CombinationsBlockUpperIndexPolicy("y", testAux, testAux, testAux, testAux, testAux))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedUpperFives[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedUpperFives[count]));
+    BOOST_CHECK_EQUAL(c2.x(), std::get<2>(expectedUpperFives[count]));
+    BOOST_CHECK_EQUAL(c3.x(), std::get<3>(expectedUpperFives[count]));
+    BOOST_CHECK_EQUAL(c4.x(), std::get<4>(expectedUpperFives[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedUpperFives.size());
+
   TableBuilder builderCollisions;
   auto rowWriterCol = builderCollisions.cursor<o2::aod::Collisions>();
   rowWriterCol(0, 0,
                0, 0, -6.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 25 /*uint32_t NumContrib*/,
-               0, 0, 0 /* uint8_t CollisionTimeMask */);
-  rowWriterCol(0, 1,
-               0, 0, 0.0f /*float PosZ*/,
+               0, 0, 0);
+  rowWriterCol(1, 0,
+               1.0f, 0, 0.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 18 /*uint32_t NumContrib*/,
-               0, 0, 1 /* uint8_t CollisionTimeMask */);
-  rowWriterCol(0, 2,
-               0, 0, -1.0f /*float PosZ*/,
+               0, 0, 1);
+  rowWriterCol(2, 0,
+               2.0f, 0, -1.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 48 /*uint32_t NumContrib*/,
-               0, 0, 2 /* uint8_t CollisionTimeMask */);
-  rowWriterCol(0, 3,
-               0, 0, 2.0f /*float PosZ*/,
+               0, 0, 2);
+  rowWriterCol(3, 0,
+               3.0f, 0, 2.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 3 /*uint32_t NumContrib*/,
-               0, 0, 3 /* uint8_t CollisionTimeMask */);
-  rowWriterCol(0, 0,
-               0, 0, -6.0f /*float PosZ*/,
+               0, 0, 3);
+  rowWriterCol(4, 0,
+               0.0f, 0, -6.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 28 /*uint32_t NumContrib*/,
-               0, 0, 4 /* uint8_t CollisionTimeMask */);
-  rowWriterCol(0, 3,
-               0, 0, 2.0f /*float PosZ*/,
+               0, 0, 4);
+  rowWriterCol(5, 0,
+               3.0f, 0, 2.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 2 /*uint32_t NumContrib*/,
-               0, 0, 5 /* uint8_t CollisionTimeMask */);
-  rowWriterCol(0, 1,
-               0, 0, 0.0f /*float PosZ*/,
+               0, 0, 5);
+  rowWriterCol(6, 0,
+               1.0f, 0, 0.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 12 /*uint32_t NumContrib*/,
-               0, 0, 6 /* uint8_t CollisionTimeMask */);
-  rowWriterCol(0, 0,
-               0, 0, -7.0f /*float PosZ*/,
+               0, 0, 6);
+  rowWriterCol(7, 0,
+               0.0f, 0, -7.0f /*float PosZ*/,
                0, 0, 0, 0, 0, 0, 0, 24 /*uint32_t NumContrib*/,
-               0, 0, 7 /* uint8_t CollisionTimeMask */);
+               0, 0, 7);
   auto tableCol = builderCollisions.finalize();
   BOOST_REQUIRE_EQUAL(tableCol->num_rows(), 8);
 
@@ -842,10 +898,82 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
 
   // Without hashing, taking a single column from the original table as a category
   count = 0;
-  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy("fBCsID", collisions, collisions))) {
-    BOOST_CHECK_EQUAL(c0.collisionTimeMask(), std::get<0>(expectedFullPairs[count]));
-    BOOST_CHECK_EQUAL(c1.collisionTimeMask(), std::get<1>(expectedFullPairs[count]));
+  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy("fPosX", collisions, collisions))) {
+    BOOST_CHECK_EQUAL(c0.index(), std::get<0>(expectedFullPairs[count]));
+    BOOST_CHECK_EQUAL(c1.index(), std::get<1>(expectedFullPairs[count]));
     count++;
   }
   BOOST_CHECK_EQUAL(count, expectedFullPairs.size());
+
+  // Different tables that have the same column name
+  count = 0;
+  for (auto& [x0, x1] : combinations(CombinationsBlockFullIndexPolicy("x", testA, testAux))) {
+    BOOST_CHECK_EQUAL(x0.x(), count);
+    BOOST_CHECK_EQUAL(x1.x(), count);
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, testA.size());
+
+  // Using same index combinations for better performance
+  count = 0;
+  for (auto& [c0, c1] : combinations(CombinationsBlockFullSameIndexPolicy("y", colAux, colAux))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedFullPairs[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedFullPairs[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedFullPairs.size());
+
+  count = 0;
+  for (auto& [c0, c1, c2] : combinations(CombinationsBlockFullSameIndexPolicy("y", testAux, testAux, testAux))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedFullTriples[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedFullTriples[count]));
+    BOOST_CHECK_EQUAL(c2.x(), std::get<2>(expectedFullTriples[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedFullTriples.size());
+
+  count = 0;
+  for (auto& [c0, c1] : selfCombinations("y", testAux, testAux)) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedStrictlyUpperPairs[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedStrictlyUpperPairs[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedStrictlyUpperPairs.size());
+
+  count = 0;
+  for (auto& [c0, c1, c2] : selfCombinations("y", testAux, testAux, testAux)) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedStrictlyUpperTriples[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedStrictlyUpperTriples[count]));
+    BOOST_CHECK_EQUAL(c2.x(), std::get<2>(expectedStrictlyUpperTriples[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedStrictlyUpperTriples.size());
+
+  count = 0;
+  for (auto& [c0, c1] : combinations(CombinationsBlockUpperSameIndexPolicy("y", testAux, testAux))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedUpperPairs[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedUpperPairs[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedUpperPairs.size());
+
+  count = 0;
+  for (auto& [c0, c1, c2] : combinations(CombinationsBlockUpperSameIndexPolicy("y", testAux, testAux, testAux))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedUpperTriples[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedUpperTriples[count]));
+    BOOST_CHECK_EQUAL(c2.x(), std::get<2>(expectedUpperTriples[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedUpperTriples.size());
+
+  count = 0;
+  for (auto& [c0, c1, c2, c3, c4] : combinations(CombinationsBlockUpperSameIndexPolicy("y", testAux, testAux, testAux, testAux, testAux))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedUpperFives[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedUpperFives[count]));
+    BOOST_CHECK_EQUAL(c2.x(), std::get<2>(expectedUpperFives[count]));
+    BOOST_CHECK_EQUAL(c3.x(), std::get<3>(expectedUpperFives[count]));
+    BOOST_CHECK_EQUAL(c4.x(), std::get<4>(expectedUpperFives[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedUpperFives.size());
 }
