@@ -38,16 +38,16 @@ struct PayloadDecoderImpl {
     void process(uint32_t, gsl::span<const std::byte>);
   };
 
-  type operator()(const FeeLinkId& feeLinkId, SampaChannelHandler sampaChannelHandler);
+  type operator()(const FeeLinkId& feeLinkId, SampaChannelHandler sampaChannelHandler, CruLinkHandler linkHandler);
 };
 
 template <typename CHARGESUM>
 struct PayloadDecoderImpl<UserLogicFormat, CHARGESUM> {
   using type = UserLogicEndpointDecoder<CHARGESUM>;
 
-  type operator()(const FeeLinkId& feeLinkId, SampaChannelHandler sampaChannelHandler)
+  type operator()(const FeeLinkId& feeLinkId, SampaChannelHandler sampaChannelHandler, CruLinkHandler linkHandler)
   {
-    auto fee2solar = createFeeLink2SolarMapper<ElectronicMapperGenerated>();
+    auto fee2solar = linkHandler ? linkHandler : createFeeLink2SolarMapper<ElectronicMapperGenerated>();
     return std::move(UserLogicEndpointDecoder<CHARGESUM>(feeLinkId.feeId(), fee2solar, sampaChannelHandler));
   }
 };
@@ -56,9 +56,9 @@ template <typename CHARGESUM>
 struct PayloadDecoderImpl<BareFormat, CHARGESUM> {
   using type = BareGBTDecoder<CHARGESUM>;
 
-  type operator()(const FeeLinkId& feeLinkId, SampaChannelHandler sampaChannelHandler)
+  type operator()(const FeeLinkId& feeLinkId, SampaChannelHandler sampaChannelHandler, CruLinkHandler linkHandler)
   {
-    auto fee2solar = createFeeLink2SolarMapper<ElectronicMapperGenerated>();
+    auto fee2solar = linkHandler ? linkHandler : createFeeLink2SolarMapper<ElectronicMapperGenerated>();
     auto solarId = fee2solar(feeLinkId);
     if (!solarId.has_value()) {
       throw std::logic_error(fmt::format("{} could not get solarId from feelinkid={}\n", __PRETTY_FUNCTION__, feeLinkId));
@@ -74,7 +74,9 @@ template <typename RDH, typename FORMAT, typename CHARGESUM>
 class PageDecoderImpl
 {
  public:
-  PageDecoderImpl(SampaChannelHandler sampaChannelHandler) : mSampaChannelHandler{sampaChannelHandler}
+  PageDecoderImpl(SampaChannelHandler sampaChannelHandler, CruLinkHandler linkHandler) :
+    mSampaChannelHandler{sampaChannelHandler},
+    mLinkHandler(linkHandler)
   {
   }
 
@@ -86,7 +88,7 @@ class PageDecoderImpl
     auto p = mPayloadDecoders.find(feeLinkId);
 
     if (p == mPayloadDecoders.end()) {
-      mPayloadDecoders.emplace(feeLinkId, PayloadDecoderImpl<FORMAT, CHARGESUM>()(feeLinkId, mSampaChannelHandler));
+      mPayloadDecoders.emplace(feeLinkId, PayloadDecoderImpl<FORMAT, CHARGESUM>()(feeLinkId, mSampaChannelHandler, mLinkHandler));
       p = mPayloadDecoders.find(feeLinkId);
     }
 
@@ -96,6 +98,7 @@ class PageDecoderImpl
 
  private:
   SampaChannelHandler mSampaChannelHandler;
+  CruLinkHandler mLinkHandler;
   std::map<FeeLinkId, typename PayloadDecoderImpl<FORMAT, CHARGESUM>::type> mPayloadDecoders;
 };
 
@@ -125,21 +128,21 @@ void impl::print(const V4& rdh)
   std::cout << rdhOrbit(rdh) << " " << rdhBunchCrossing(rdh) << " " << rdhFeeId(rdh) << "\n";
 }
 
-PageDecoder createPageDecoder(RawBuffer rdhBuffer, SampaChannelHandler channelHandler)
+PageDecoder createPageDecoder(RawBuffer rdhBuffer, SampaChannelHandler channelHandler, CruLinkHandler linkHandler)
 {
   auto rdh = createRDH<V4>(rdhBuffer);
   if (isValid(rdh)) {
     if (rdhLinkId(rdh) == 15) {
       if (rdhFeeId(rdh) & impl::CHARGESUM_MASK) {
-        return impl::PageDecoderImpl<V4, UserLogicFormat, ChargeSumMode>(channelHandler);
+        return impl::PageDecoderImpl<V4, UserLogicFormat, ChargeSumMode>(channelHandler, linkHandler);
       } else {
-        return impl::PageDecoderImpl<V4, UserLogicFormat, SampleMode>(channelHandler);
+        return impl::PageDecoderImpl<V4, UserLogicFormat, SampleMode>(channelHandler, linkHandler);
       }
     } else {
       if (rdhFeeId(rdh) & impl::CHARGESUM_MASK) {
-        return impl::PageDecoderImpl<V4, BareFormat, ChargeSumMode>(channelHandler);
+        return impl::PageDecoderImpl<V4, BareFormat, ChargeSumMode>(channelHandler, linkHandler);
       } else {
-        return impl::PageDecoderImpl<V4, BareFormat, SampleMode>(channelHandler);
+        return impl::PageDecoderImpl<V4, BareFormat, SampleMode>(channelHandler, linkHandler);
       }
     }
   }

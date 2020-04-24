@@ -15,6 +15,7 @@
 #include <gsl/span>
 #include <map>
 #include "MCHRawDecoder/SampaChannelHandler.h"
+#include "MCHRawDecoder/CruLinkHandler.h"
 
 namespace o2::mch::raw
 {
@@ -38,7 +39,8 @@ using RawBuffer = gsl::span<const std::byte>;
 // it does not really make sense to not provide it.
 //
 PageDecoder createPageDecoder(RawBuffer rdhBuffer,
-                              SampaChannelHandler channelHandler = nullptr);
+                              SampaChannelHandler channelHandler = nullptr,
+                              CruLinkHandler linkHandler = nullptr);
 
 // A PageParser loops over the given buffer and apply the given page decoder
 // to each page.
