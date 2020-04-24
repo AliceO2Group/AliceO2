@@ -39,11 +39,15 @@ void RawFileWriter::close()
   if (mFName2File.empty()) {
     return;
   }
-  auto irmax = getIRMax();
-  irmax--; // latest (among all links) HBF to open, we want just to close the last one
-  for (auto& lnk : mSSpec2Link) {
-    lnk.second.close(irmax);
-    lnk.second.print();
+  if (!mFirstIRAdded.isDummy()) { // flushing and completing the last HBF makes sense only if data was added.
+    auto irmax = getIRMax();
+    if (irmax.toLong()) { // should not be at 0/0
+      irmax--;            // latest (among all links) HBF to open, we want just to close the last one
+    }
+    for (auto& lnk : mSSpec2Link) {
+      lnk.second.close(irmax);
+      lnk.second.print();
+    }
   }
   //
   // close all files
@@ -131,6 +135,9 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
   }
   auto sspec = RDHUtils::getSubSpec(cru, lnk, endpoint, feeid);
   auto& link = getLinkWithSubSpec(sspec);
+  if (ir < mFirstIRAdded) {
+    mFirstIRAdded = ir;
+  }
   link.addData(ir, data, preformatted);
 }
 
