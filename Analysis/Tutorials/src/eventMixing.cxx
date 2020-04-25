@@ -36,7 +36,7 @@ struct HashTask {
   Produces<aod::Hashes> hashes;
 
   // Calculate hash for an element based on 2 properties and their bins.
-  int getHash(const std::vector<float>& xBins, const std::vector<float>& yBins, float colX, float colY)
+  int getHash(std::vector<float> const& xBins, std::vector<float> const& yBins, float colX, float colY)
   {
     for (int i = 0; i < xBins.size(); i++) {
       if (colX < xBins[i]) {
@@ -71,8 +71,9 @@ struct HashTask {
   }
 };
 
+// Version 1: Using categorised combinations
 struct CollisionsCombinationsTask {
-  void process(const aod::Hashes& hashes, aod::Collisions& collisions, aod::Tracks& tracks)
+  void process(aod::Hashes const& hashes, aod::Collisions& collisions, aod::Tracks& tracks)
   {
     collisions.bindExternalIndices(&tracks);
     auto tracksTuple = std::make_tuple(tracks);
@@ -108,12 +109,28 @@ struct CollisionsCombinationsTask {
   }
 };
 
+// Version 2: Filtering instead of combinations
+// Possible only after filters & grouping upgrades
+// struct CollisionsFilteringTask {
+// Alternatively: filter/partition directly on collisions
+// expressions::Filter aod::hash::bin{0} == aod::hash::bin{1};
+
+// Currently multiple grouping and grouping by Joins is not possible
+// void process(soa::Filtered<soa::Join<aod::Hashes, aod::Collisions>>::iterator const& hashedCol1, aod::Tracks const& tracks1,
+//              soa::Filtered<soa::Join<aod::Hashes, aod::Collisions>>::iterator const& hashedCol2, aod::Tracks const& tracks2)
+//{
+//  for (auto& [t1, t2] : combinations(CombinationsFullIndexPolicy(tracks1, tracks2))) {
+//    LOGF(info, "Mixed event tracks pair: (%d, %d) from events (%d, %d)", t1.index(), t2.index(), hashedCol1.index(), hashedCol2.index());
+//  }
+//}
+// };
+
 // What we would like to have
 struct MixedEventsTask {
   void process(aod::Collision const& col1, aod::Tracks const& tracks1, aod::Collision const& col2, aod::Tracks const& tracks2)
   {
     for (auto& [t1, t2] : combinations(CombinationsFullIndexPolicy(tracks1, tracks2))) {
-      LOGF(info, "Mixed event tracks pair: (%d, %d) from events (%d, %d)", t1.index(), t2.index(), c1.index(), c2.index());
+      LOGF(info, "Mixed event tracks pair: (%d, %d) from events (%d, %d)", t1.index(), t2.index(), col1.index(), col2.index());
     }
   }
 };
