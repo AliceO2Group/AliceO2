@@ -74,9 +74,8 @@ template <typename RDH, typename FORMAT, typename CHARGESUM>
 class PageDecoderImpl
 {
  public:
-  PageDecoderImpl(SampaChannelHandler sampaChannelHandler, CruLinkHandler linkHandler) :
-    mSampaChannelHandler{sampaChannelHandler},
-    mLinkHandler(linkHandler)
+  PageDecoderImpl(SampaChannelHandler sampaChannelHandler, CruLinkHandler linkHandler) : mSampaChannelHandler{sampaChannelHandler},
+                                                                                         mLinkHandler(linkHandler)
   {
   }
 
