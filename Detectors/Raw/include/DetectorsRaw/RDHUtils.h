@@ -16,20 +16,21 @@
 
 #include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
-#include "CommonDataFormat/InteractionRecord.h"
 #include "Headers/RAWDataHeader.h"
 #include "Headers/RDHAny.h"
 
-#ifndef GPUCA_GPUCODE
+#if !defined(GPUCA_GPUCODE)
+#include "CommonDataFormat/InteractionRecord.h"
+#endif
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 #include "Headers/DAQID.h"
-#endif // GPUCA_GPUCODE
+#endif // GPUCA_GPUCODE / GPUCA_STANDALONE
 
 namespace o2
 {
 namespace raw
 {
 using LinkSubSpec_t = uint32_t;
-using IR = o2::InteractionRecord;
 
 struct RDHUtils {
 
@@ -368,6 +369,8 @@ struct RDHUtils {
     }
   }
 
+#ifndef GPUCA_GPUCODE
+  using IR = o2::InteractionRecord;
   ///_______________________________
   template <typename H>
   GPUhdi() static IR getHeartBeatIR(const H& rdh, NOTPTR(H))
@@ -401,6 +404,7 @@ struct RDHUtils {
       return getTriggerIR(TOCREF(RDHv4, rdhP));
     }
   }
+#endif
 
   ///_______________________________
   GPUhdi() static uint16_t getTriggerBC(const RDHv4& rdh) { return rdh.triggerBC; }
@@ -647,7 +651,7 @@ struct RDHUtils {
   static bool checkRDH(const void* rdhP, bool verbose = true);
 
   ///_______________________________
-#ifndef GPUCA_GPUCODE
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   static LinkSubSpec_t getSubSpec(uint16_t cru, uint8_t link, uint8_t endpoint, uint16_t feeId, o2::header::DAQID::ID srcid = o2::header::DAQID::INVALID)
   {
     // Adapt the same definition as DataDistribution
@@ -668,7 +672,6 @@ struct RDHUtils {
   {
     return getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID, rdh.feeId, o2::header::DAQID::INVALID);
   }
-#endif // GPUCA_GPUCODE
   GPUhdi() static LinkSubSpec_t getSubSpec(const RDHv6& rdh)
   {
     return getFEEID(rdh);
@@ -683,6 +686,7 @@ struct RDHUtils {
       return getSubSpec(TOCREF(RDHv4, rdhP));
     }
   }
+#endif // GPUCA_GPUCODE / GPUCA_STANDALONE
 
  private:
   static uint32_t fletcher32(const uint16_t* data, int len);
