@@ -779,7 +779,7 @@ static void BM_ASoAHelpersCombGenSimpleFivesFilters(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
 }
 
-BENCHMARK(BM_ASoAHelpersCombGenSimpleFivesFilters)->RangeMultiplier(2)->Range(8, 16);
+BENCHMARK(BM_ASoAHelpersCombGenSimpleFivesFilters)->RangeMultiplier(2)->Range(8, 8 << 1);
 
 static void BM_ASoAHelpersCombGenTracksPairsFilters(benchmark::State& state)
 {
@@ -845,7 +845,7 @@ static void BM_ASoAHelpersCombGenTracksFivesFilters(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
 }
 
-BENCHMARK(BM_ASoAHelpersCombGenTracksFivesFilters)->RangeMultiplier(2)->Range(8, 16);
+BENCHMARK(BM_ASoAHelpersCombGenTracksFivesFilters)->RangeMultiplier(2)->Range(8, 8 << 1);
 
 static void BM_ASoAHelpersCombGenSimplePairsIfs(benchmark::State& state)
 {
@@ -921,7 +921,7 @@ static void BM_ASoAHelpersCombGenSimpleFivesIfs(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
 }
 
-BENCHMARK(BM_ASoAHelpersCombGenSimpleFivesIfs)->RangeMultiplier(2)->Range(8, 16);
+BENCHMARK(BM_ASoAHelpersCombGenSimpleFivesIfs)->RangeMultiplier(2)->Range(8, 8 << 1);
 
 static void BM_ASoAHelpersCombGenTracksPairsIfs(benchmark::State& state)
 {
@@ -999,7 +999,7 @@ static void BM_ASoAHelpersCombGenTracksFivesIfs(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
 }
 
-BENCHMARK(BM_ASoAHelpersCombGenTracksFivesIfs)->RangeMultiplier(2)->Range(8, 16);
+BENCHMARK(BM_ASoAHelpersCombGenTracksFivesIfs)->RangeMultiplier(2)->Range(8, 8 << 1);
 
 static void BM_ASoAHelpersNaiveSimplePairsIfs(benchmark::State& state)
 {
@@ -1085,7 +1085,7 @@ static void BM_ASoAHelpersNaiveSimpleFivesIfs(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
 }
 
-BENCHMARK(BM_ASoAHelpersNaiveSimpleFivesIfs)->RangeMultiplier(2)->Range(8, 16);
+BENCHMARK(BM_ASoAHelpersNaiveSimpleFivesIfs)->RangeMultiplier(2)->Range(8, 8 << 1);
 
 static void BM_ASoAHelpersNaiveTracksPairsIfs(benchmark::State& state)
 {
@@ -1173,7 +1173,7 @@ static void BM_ASoAHelpersNaiveTracksFivesIfs(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
 }
 
-BENCHMARK(BM_ASoAHelpersNaiveTracksFivesIfs)->RangeMultiplier(2)->Range(8, 16);
+BENCHMARK(BM_ASoAHelpersNaiveTracksFivesIfs)->RangeMultiplier(2)->Range(8, 8 << 1);
 
 static void BM_ASoAHelpersNaiveSimplePairsFilters(benchmark::State& state)
 {
@@ -1226,6 +1226,59 @@ static void BM_ASoAHelpersNaiveSimplePairsFilters(benchmark::State& state)
 }
 
 BENCHMARK(BM_ASoAHelpersNaiveSimplePairsFilters)->RangeMultiplier(2)->Range(8, 8 << 6);
+
+static void BM_ASoAHelpersNaiveTracksPairsFilters(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::Tracks tracks{table};
+
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    o2::framework::expressions::Filter filter = o2::aod::track::x > (o2::aod::track::x * (-1.0f) + 1.0f);
+    o2::framework::expressions::Operations operations = createOperations(filter);
+    int i = 0;
+    for (; i < operations.size() && operations[i].left.datum.index() != 3; i++)
+      ;
+
+    for (int j = 0; j < tracks.size(); j++) {
+      setColumnValue(tracks, "fX", operations[i].left, j);
+      o2::framework::expressions::Selection selection = o2::framework::expressions::createSelection(tracks.asArrowTable(), createFilter(tracks.asArrowTable()->schema(), operations));
+      // Find first index bigger than the index of 1st iterator
+      int beginSelectionIndex = 0;
+      for (; beginSelectionIndex < selection->GetNumSlots() &&
+             selection->GetIndex(beginSelectionIndex) <= j;
+           beginSelectionIndex++) {
+        ;
+      }
+      if (beginSelectionIndex != selection->GetNumSlots()) {
+        Filtered<o2::aod::Tracks> filtered{{tracks.asArrowTable()}, selection};
+        for (auto t0 = filtered.begin() + beginSelectionIndex; t0 != filtered.end(); ++t0) {
+          count++;
+        }
+      }
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  int64_t filteringCount = state.range(0) * state.range(0);
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * filteringCount);
+}
+
+BENCHMARK(BM_ASoAHelpersNaiveTracksPairsFilters)->RangeMultiplier(2)->Range(8, 8 << 6);
 
 static void BM_ASoAHelpersNaiveFullSimplePairsIfs(benchmark::State& state)
 {
