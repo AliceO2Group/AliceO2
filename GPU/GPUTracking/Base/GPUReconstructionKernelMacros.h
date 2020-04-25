@@ -125,7 +125,8 @@ GPUg() void GPUCA_ATTRRES(,GPUCA_M_SHIFT(GPUCA_M_STRIP(x_attributes))) GPUCA_M_C
 
 #define GPUCA_KRNL_PROP(x_class, x_attributes) \
   template <> const GPUReconstruction::krnlProperties GPUCA_KRNL_BACKEND_CLASS::getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>() { \
-    return krnlProperties{GPUCA_ATTRRES(_INTERNAL_PROP,GPUCA_M_SHIFT(GPUCA_M_STRIP(x_attributes)))}; \
+    krnlProperties ret = krnlProperties{GPUCA_ATTRRES(_INTERNAL_PROP,GPUCA_M_SHIFT(GPUCA_M_STRIP(x_attributes)))}; \
+    return ret.nThreads > 0 ? ret : krnlProperties{(int)mThreadCount}; \
   }
 
 
