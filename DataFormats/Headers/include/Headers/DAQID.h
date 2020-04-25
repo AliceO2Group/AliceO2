@@ -14,7 +14,9 @@
 #ifndef DETECTOR_BASE_RAWDAQID_H
 #define DETECTOR_BASE_RAWDAQID_H
 
+#ifndef GPUCA_GPUCODE
 #include "Headers/DataHeader.h"
+#endif
 
 namespace o2
 {
@@ -56,6 +58,8 @@ class DAQID
   operator ID() const { return static_cast<ID>(mID); }
 
   ID getID() const { return mID; }
+
+#ifndef GPUCA_GPUCODE
   constexpr o2::header::DataOrigin getO2Origin() { return DAQtoO2(mID); }
 
   static constexpr o2::header::DataOrigin DAQtoO2(ID daq)
@@ -67,10 +71,12 @@ class DAQID
   {
     return or2daq(o2orig, MINDAQ);
   }
+#endif
 
  private:
   ID mID = INVALID;
 
+#ifndef GPUCA_GPUCODE
   static constexpr o2::header::DataOrigin MAP_DAQtoO2[] = {
     "NIL", "NIL", "NIL",
     "TPC", "TRD", "TOF", "HMP", "PHS", "CPV",
@@ -87,6 +93,7 @@ class DAQID
   {
     return id > MAXDAQ ? INVALID : (origin == MAP_DAQtoO2[id] ? id : or2daq(origin, id + 1));
   }
+#endif
 };
 
 } // namespace header

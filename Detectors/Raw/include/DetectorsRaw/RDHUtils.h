@@ -19,10 +19,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "Headers/RAWDataHeader.h"
 #include "Headers/RDHAny.h"
-
-#ifndef GPUCA_GPUCODE
 #include "Headers/DAQID.h"
-#endif // GPUCA_GPUCODE
 
 namespace o2
 {
@@ -33,7 +30,6 @@ using IR = o2::InteractionRecord;
 
 struct RDHUtils {
 
-// disable is the type is a pointer
 #define NOTPTR(T) typename std::enable_if<!std::is_pointer<T>::value>::type* = 0
 // dereference SRC pointer as DST type reference
 #define TOREF(DST, SRC) *reinterpret_cast<DST*>(SRC)
@@ -71,6 +67,7 @@ struct RDHUtils {
   }
 
   ///_______________________________
+#pragma hd_warning_disable
   template <typename H>
   GPUhdi() static uint8_t getVersion(const H& rdh, NOTPTR(H))
   {
@@ -369,6 +366,7 @@ struct RDHUtils {
   }
 
   ///_______________________________
+#pragma hd_warning_disable
   template <typename H>
   GPUhdi() static IR getHeartBeatIR(const H& rdh, NOTPTR(H))
   {
@@ -386,6 +384,7 @@ struct RDHUtils {
   }
 
   ///_______________________________
+#pragma hd_warning_disable
   template <typename H>
   GPUhdi() static IR getTriggerIR(const H& rdh, NOTPTR(H))
   {
@@ -647,8 +646,7 @@ struct RDHUtils {
   static bool checkRDH(const void* rdhP, bool verbose = true);
 
   ///_______________________________
-#ifndef GPUCA_GPUCODE
-  static LinkSubSpec_t getSubSpec(uint16_t cru, uint8_t link, uint8_t endpoint, uint16_t feeId, o2::header::DAQID::ID srcid = o2::header::DAQID::INVALID)
+  GPUhdi() static LinkSubSpec_t getSubSpec(uint16_t cru, uint8_t link, uint8_t endpoint, uint16_t feeId, o2::header::DAQID::ID srcid = o2::header::DAQID::INVALID)
   {
     // Adapt the same definition as DataDistribution
     // meaningfull DAQ sourceID means that it comes from RDHv6, in this case we use feeID as a subspec
@@ -664,11 +662,10 @@ struct RDHUtils {
     // return fletcher32(seq, 3);
   }
   template <typename H>
-  static LinkSubSpec_t getSubSpec(const H& rdh, NOTPTR(H)) // will be used for all RDH versions but >=6
+  GPUhdi() static LinkSubSpec_t getSubSpec(const H& rdh, NOTPTR(H)) // will be used for all RDH versions but >=6
   {
     return getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID, rdh.feeId, o2::header::DAQID::INVALID);
   }
-#endif // GPUCA_GPUCODE
   GPUhdi() static LinkSubSpec_t getSubSpec(const RDHv6& rdh)
   {
     return getFEEID(rdh);
