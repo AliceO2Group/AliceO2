@@ -87,7 +87,7 @@ class MapSolar
   {
     mLink = -1;
   }
-  ~MapSolar() {}
+  ~MapSolar() = default;
 };
 
 class MapCRU
@@ -156,7 +156,7 @@ class MapDualSampa
     mBad = 1;
   }
 
-  ~MapDualSampa() {}
+  ~MapDualSampa() = default;
 };
 
 class MapFEC
