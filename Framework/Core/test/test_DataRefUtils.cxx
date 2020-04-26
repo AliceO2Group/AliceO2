@@ -12,12 +12,12 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include <TObject.h>
+#include <TObjString.h>
+#include <TMessage.h>
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/DataRefUtils.h"
 #include <boost/test/unit_test.hpp>
-#include <TMessage.h>
-#include <TObjString.h>
-#include <TObject.h>
 
 #include <memory>
 
