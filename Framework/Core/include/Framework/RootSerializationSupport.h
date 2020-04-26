@@ -20,7 +20,7 @@ namespace o2::framework
 /// compiler.
 struct RootSerializationSupport {
   using TClass = ::TClass;
-  using FairTMessage = FairTMessage;
+  using FairTMessage = o2::framework::FairTMessage;
   using TObject = ::TObject;
 };
 
