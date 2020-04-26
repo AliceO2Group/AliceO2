@@ -168,7 +168,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
   for (int jj = 0; jj < nTracklets; jj++) {
     const int j = Ids[jj];
     const auto& tracklet = Tracklets()[j];
-    out << "Tracklet " << std::setw(4) << j << " (Hits: " << std::setw(3) << Tracklets()[j].NHits() << ", Start: " << std::setw(3) << TrackletStartHit(j).RowIndex() << "-" << std::setw(3) << TrackletStartHit(j).HitIndex() << ", Rows: " << (Tracklets()[j].NHits() ? Tracklets()[j].FirstRow() : -1)
+    out << "Tracklet " << std::setw(4) << jj << " (Hits: " << std::setw(3) << Tracklets()[j].NHits() << ", Rows: " << (Tracklets()[j].NHits() ? Tracklets()[j].FirstRow() : -1)
         << " - " << (tracklet.NHits() ? tracklet.LastRow() : -1) << ") ";
     if (tracklet.NHits() == 0) {
       ;
