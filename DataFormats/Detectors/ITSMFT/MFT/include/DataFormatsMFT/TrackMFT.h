@@ -37,8 +37,8 @@ class TrackMFT
 {
   using Cluster = o2::itsmft::Cluster;
   using ClusRefs = o2::dataformats::RangeRefComp<4>;
-  using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
   using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
+  using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
 
  public:
 
@@ -227,6 +227,14 @@ class TrackMFTExt : public TrackMFT
   ClassDefNV(TrackMFTExt, 1);
 };
 } // namespace mft
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::mft::TrackMFT> : std::true_type {
+};
+} // namespace framework
 } // namespace o2
 
 #endif
