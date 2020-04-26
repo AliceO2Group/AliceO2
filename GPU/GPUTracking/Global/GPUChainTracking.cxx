@@ -1484,6 +1484,21 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
 
 int GPUChainTracking::RunTPCTrackingMerger()
 {
+  if (GetDeviceProcessingSettings().comparableDebutOutput && param().rec.mergerReadFromTrackerDirectly) {
+    for (unsigned int i = 0; i < NSLICES; i++) {
+      GPUTPCTracker& trk = processors()->tpcTrackers[i];
+      TransferMemoryResourcesToHost(RecoStep::NoRecoStep, &trk);
+      auto sorter = [&trk](GPUTPCTrack& trk1, GPUTPCTrack& trk2) {
+        if (trk1.NHits() == trk2.NHits()) {
+          return trk1.Param().Y() > trk2.Param().Y();
+        }
+        return trk1.NHits() > trk2.NHits();
+      };
+      std::sort(trk.Tracks(), trk.Tracks() + trk.CommonMemory()->nLocalTracks, sorter);
+      std::sort(trk.Tracks() + trk.CommonMemory()->nLocalTracks, trk.Tracks() + *trk.NTracks(), sorter);
+      TransferMemoryResourcesToGPU(RecoStep::NoRecoStep, &trk);
+    }
+  }
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCMerging;
   GPUTPCGMMerger& Merger = processors()->tpcMerger;
   GPUTPCGMMerger& MergerShadow = doGPU ? processorsShadow()->tpcMerger : Merger;
