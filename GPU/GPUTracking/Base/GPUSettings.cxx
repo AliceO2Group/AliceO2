@@ -103,4 +103,5 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   runMC = false;
   memoryScalingFactor = 1.f;
   fitSlowTracksInOtherPass = false;
+  fullMergerOnGPU = true;
 }
