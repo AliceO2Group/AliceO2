@@ -64,6 +64,8 @@ class GPUTPCGMMerger : public GPUProcessor
   struct memory {
     GPUAtomic(unsigned int) nRetryRefit;
     GPUAtomic(unsigned int) nLoopData;
+    GPUAtomic(unsigned int) nOutputTracks;
+    GPUAtomic(unsigned int) nOutputTrackClusters;
     const GPUTPCTrack* firstGlobalTracks[NSLICES];
   };
 
@@ -77,8 +79,9 @@ class GPUTPCGMMerger : public GPUProcessor
   void InitializeProcessor();
   void RegisterMemoryAllocation();
   void SetMaxData(const GPUTrackingInOutPointers& io);
-  void* SetPointersHostOnly(void* mem);
-  void* SetPointersGPURefit(void* mem);
+  void* SetPointersMerger(void* mem);
+  void* SetPointersRefit(void* mem);
+  void* SetPointersMemory(void* mem);
 
   void OverrideSliceTracker(GPUTPCTracker* trk) { mSliceTrackers = trk; }
   void SetTrackingChain(GPUChainTracking* c) { mChainTracking = c; }
@@ -86,7 +89,7 @@ class GPUTPCGMMerger : public GPUProcessor
 
   void SetSliceData(int index, const GPUTPCSliceOutput* SliceData);
 
-  GPUhd() int NOutputTracks() const { return mNOutputTracks; }
+  GPUhd() int NOutputTracks() const { return mMemory->nOutputTracks; }
   GPUhd() const GPUTPCGMMergedTrack* OutputTracks() const { return mOutputTracks; }
   GPUhd() GPUTPCGMMergedTrack* OutputTracks()
   {
@@ -100,7 +103,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhd() unsigned int NMaxClusters() const { return (mNMaxClusters); }
   GPUhd() unsigned int NMaxTracks() const { return (mNMaxTracks); }
   GPUhd() unsigned int NMaxOutputTrackClusters() const { return (mNMaxOutputTrackClusters); }
-  GPUhd() unsigned int NOutputTrackClusters() const { return (mNOutputTrackClusters); }
+  GPUhd() unsigned int NOutputTrackClusters() const { return (mMemory->nOutputTrackClusters); }
   GPUhd() const GPUTPCGMMergedTrackHit* Clusters() const { return (mClusters); }
   GPUhd() GPUTPCGMMergedTrackHit* Clusters()
   {
@@ -115,7 +118,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() GPUTPCGMLoopData* LoopData() const { return mLoopData; }
   GPUd() memory* Memory() const { return mMemory; }
 
-  short MemoryResRefit() { return mMemoryResRefit; }
+  short MemoryResMemory() { return mMemoryResMemory; }
 
   GPUd() int RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPCTrack* inTrack, float alpha, int slice);
   GPUd() void SetTrackClusterZT(GPUTPCGMSliceTrack& track, int iSlice, const GPUTPCTrack* sliceTr);
@@ -181,12 +184,9 @@ class GPUTPCGMMerger : public GPUProcessor
   unsigned int mNMaxOutputTrackClusters; // max number of clusters in output tracks (double-counting shared clusters)
   unsigned int mNMaxClusters;            // max total unique clusters (in event)
 
-  short mMemoryResRefit;
+  short mMemoryResMemory;
 
-  int mMaxID;
   int mNClusters; // Total number of incoming clusters (from slice tracks)
-  int mNOutputTracks;
-  int mNOutputTrackClusters;
   GPUTPCGMMergedTrack* mOutputTracks; //* array of output merged tracks
 
   GPUTPCGMSliceTrack* mSliceTrackInfos; //* additional information for slice tracks

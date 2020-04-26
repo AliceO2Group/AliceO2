@@ -39,10 +39,10 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCStartHitsFinder.cxx"
 #include "GPUTPCStartHitsSorter.cxx"
 #include "GPUTPCTrackletConstructor.cxx"
+#include "GPUTPCGlobalTracking.cxx"
 
 #if !defined(GPUCA_OPENCL1) && !defined(GPUCA_ALIROOT_LIB)
 // Files for TPC Merger
-#include "GPUTPCGlobalTracking.cxx"
 #include "GPUTPCGMMergerGPU.cxx"
 #include "GPUTPCGMMerger.cxx"
 #include "GPUTPCGMSliceTrack.cxx"
