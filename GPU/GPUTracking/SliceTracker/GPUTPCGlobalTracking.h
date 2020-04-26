@@ -21,8 +21,10 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+MEM_CLASS_PRE()
 class GPUTPCTracker;
 
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
 class GPUTPCGlobalTracking : public GPUKernelTemplate
 {
  public:
@@ -46,13 +48,15 @@ class GPUTPCGlobalTracking : public GPUKernelTemplate
   GPUd() static void PerformGlobalTracking(GPUTPCTracker& tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem);
   GPUd() static void PerformGlobalTracking(const GPUTPCTracker& tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem, GPUTPCTracker& sliceTarget, bool right);
 };
+#endif
 
 class GPUTPCGlobalTrackingCopyNumbers : public GPUKernelTemplate
 {
  public:
   typedef GPUconstantref() MEM_GLOBAL(GPUTPCTracker) processorType;
   GPUhdi() CONSTEXPRRET static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
-  GPUhdi() static processorType* Processor(GPUConstantMem& processors)
+  MEM_TEMPLATE()
+  GPUhdi() static processorType* Processor(MEM_TYPE(GPUConstantMem) & processors)
   {
     return processors.tpcTrackers;
   }
