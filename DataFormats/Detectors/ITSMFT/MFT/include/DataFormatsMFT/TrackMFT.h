@@ -41,7 +41,6 @@ class TrackMFT
   using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 
  public:
-
   TrackMFT() = default;
   TrackMFT(const TrackMFT& t) = default;
   TrackMFT(const Double_t Z, const SMatrix5 parameters, const SMatrix55 covariances, const Double_t chi2);
@@ -161,11 +160,11 @@ class TrackMFT
   void extrapHelixToZ(double zEnd, double Field);
 
  private:
-  std::uint32_t mROFrame = 0;       ///< RO Frame
-  Int_t mNPoints{0};                // Number of clusters
+  std::uint32_t mROFrame = 0;                ///< RO Frame
+  Int_t mNPoints{0};                         // Number of clusters
   std::array<MCCompLabel, 10> mMCCompLabels; // constants::mft::LayersNumber = 10
 
-  ClusRefs mClusRef;                ///< references on clusters
+  ClusRefs mClusRef; ///< references on clusters
 
   Double_t mZ = 0.; ///< Z coordinate (cm)
 
@@ -183,8 +182,8 @@ class TrackMFT
   /// <X,PHI>       <Y,PHI>         <PHI,PHI>     <TANL,PHI>      <INVQPT,PHI>
   /// <X,TANL>      <Y,TANL>       <PHI,TANL>     <TANL,TANL>     <INVQPT,TANL>
   /// <X,INVQPT>   <Y,INVQPT>     <PHI,INVQPT>   <TANL,INVQPT>   <INVQPT,INVQPT>  </pre>
-  SMatrix55 mCovariances;      ///< \brief Covariance matrix of track parameters
-  Double_t mTrackChi2 = 0.;    ///< Chi2 of the track when the associated cluster was attached
+  SMatrix55 mCovariances;   ///< \brief Covariance matrix of track parameters
+  Double_t mTrackChi2 = 0.; ///< Chi2 of the track when the associated cluster was attached
 
   // Results from quadratic regression of clusters X,Y positions
   // Chi2 of the quadratic regression used to estimate track pT and charge
