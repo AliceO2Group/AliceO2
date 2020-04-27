@@ -48,7 +48,7 @@ void IntegratingMerger::run(framework::ProcessingContext& ctx)
   auto* timerHeader = ctx.inputs().get("timer-publish").header;
 
   for (const DataRef& ref : InputRecordWalker(ctx.inputs())) {
-    if (DataRefUtils::isValid(ref) && ref.header != timerHeader) {
+    if (ref.header != timerHeader) {
       if (std::holds_alternative<std::monostate>(mMergedObject)) {
         // We try first if the object inherits MergeInterface.
         // In that case it should be used, even if it is a TObject as well.

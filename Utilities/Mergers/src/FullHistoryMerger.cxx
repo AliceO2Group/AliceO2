@@ -47,7 +47,7 @@ void FullHistoryMerger::run(framework::ProcessingContext& ctx)
   auto* timerHeader = ctx.inputs().get("timer-publish").header;
 
   for (const DataRef& ref : InputRecordWalker(ctx.inputs())) {
-    if (DataRefUtils::isValid(ref) && ref.header != timerHeader) {
+    if (ref.header != timerHeader) {
       updateCache(ref);
     }
   }
