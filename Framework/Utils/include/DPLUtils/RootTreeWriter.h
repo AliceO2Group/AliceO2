@@ -147,11 +147,14 @@ class RootTreeWriter
     BranchNameMapper getName = [](std::string base, size_t i) { return base + "_" + std::to_string(i); };
 
     /// simple constructor for single input and one branch
+    /// the definition is ignored if number of branches is zero
     /// @param key          input key
     /// @param _branchName  name of the target branch
-    BranchDef(key_type key, std::string _branchName) : keys({key}), branchName(_branchName) {}
+    /// @param _nofBranches number of branches
+    BranchDef(key_type key, std::string _branchName, size_t _nofBranches = 1) : keys({key}), branchName(_branchName), nofBranches(_nofBranches) {}
 
     /// constructor for single input and multiple output branches
+    /// the definition is ignored if number of branches is zero
     /// @param key          input key
     /// @param _branchName  name of the target branch
     /// @param _nofBranches the number of target branches
@@ -160,6 +163,7 @@ class RootTreeWriter
     BranchDef(key_type key, std::string _branchName, size_t _nofBranches, IndexExtractor _getIndex, BranchNameMapper _getName) : keys({key}), branchName(_branchName), nofBranches(_nofBranches), getIndex(_getIndex), getName(_getName) {}
 
     /// constructor for multiple inputs and multiple output branches
+    /// the definition is ignored if number of branches is zero
     /// @param key          vector of input keys
     /// @param _branchName  name of the target branch
     /// @param _nofBranches the number of target branches
@@ -208,7 +212,7 @@ class RootTreeWriter
   void setBranchName(size_t index, const char* branchName)
   {
     auto& spec = mBranchSpecs.at(index);
-    if (spec.getName) {
+    if (spec.branches.size() > 1 && spec.getName) {
       // set the branch names for this group
       size_t idx = 0;
       std::generate(spec.names.begin(), spec.names.end(), [&]() { return spec.getName(branchName, idx++); });
@@ -430,6 +434,7 @@ class RootTreeWriter
       // i.e. the base class method.
       PrevT::setupInstance(specs, tree);
       constexpr size_t SpecIndex = STAGE - 1;
+      assert(specs[SpecIndex].branches.size() > 0);
       specs[SpecIndex].classinfo = TClass::GetClass(typeid(value_type));
       if (std::is_same<value_type, const char*>::value == false && std::is_fundamental<value_type>::value == false &&
           specs[SpecIndex].classinfo == nullptr) {
@@ -555,6 +560,11 @@ class RootTreeWriter
   std::enable_if_t<std::is_base_of<BranchDef<typename T::type, typename T::key_type, typename T::key_extractor>, T>::value, std::unique_ptr<TreeStructureInterface>>
     createTreeStructure(T def, Args&&... args)
   {
+    if (def.nofBranches == 0) {
+      // a branch definition can be disabled by setting nofBranches to zero
+      // skip this definition
+      return std::move(createTreeStructure<BASE>(std::forward<Args>(args)...));
+    }
     mBranchSpecs.push_back({{}, {def.branchName}});
     auto& spec = mBranchSpecs.back();
 
