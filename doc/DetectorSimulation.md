@@ -12,7 +12,7 @@ Detector simulation, the simulation of detector response from virtual particle e
   a) the generation of simple (energy deposit) traces in the detector due to the passage of particles and the interaction with the detector material.
   b) the conversion of those traces into (electronic) signals in the detector readout (usually called digitization).
  
-The first part is handled by the `o2-sim` executable (See [SimSection](#SimSection)). The second part is handled in the `o2-sim-digitizer-workflow` executable (See [DigitSection](#DigitSection)).
+The first part is handled by the `o2-sim` executable (See [SimSection](#SimSection)). The second part is handled in the `o2-sim-digitizer-workflow` executable (See [DigitSection](#DigitSection)). References to examples are [collected here](#Examples).
 
 ## Key new features with respect to AliRoot
 
@@ -373,5 +373,86 @@ Digitization - the transformation of hits produced in the transport simulation t
 ## Embedding <a name="Embedding"></a>
 
 
-## Accessing Monte Carlo kinematics after the digitization phase
+## Monte Carlo Labels <a name="MCLabels"></a>
 
+We can associate digits to tracks/particles of the original transport simulation, so as to keep provenance information of how
+digits were triggered. This information can be passed forward to reconstruction and analysis and used to study reconstruction efficiencies etc.
+
+To this end, a special data object `MCCompLabel` is offered, which allows to encapsulate the identifiers of track, event and source kinematics files. 
+```c++
+  MCCompLabel(int trackID, int evID, int srcID, bool fake = false)
+```
+This information should be enough to lookup and load the precise Monte Carlo track ([see here](#MCReader)).
+
+Association of digits to an arbitrary number of labels is done via filling a **separate** and **dedicated** container called `MCTruthContainer` which is written as a separate branch to the output file, next to the branch for digits. This has the advantage that digits may be kept as close as possible to the raw data and we can have arbitrary number of labels at a minimal memory cost.
+
+The mechanics is as follows: For a collection of digits created for detector `foo`
+```c++
+std::vector<o2::foo::Digits> mDigits;
+```
+we keep a separate container of labels of type:
+```c++
+o2::dataformats::MCTruthContainer<o2::dataformats::MCCompLabel> mLabelContainer;
+```
+Querying the labels works by positional correspondance: Labels for the digit at position `pos` can be accessed in the following way:
+```c++
+const auto& digit = mDigits[pos];
+// returns an iterable view of labels
+const auto& labels_for_digit = mLabelContainer.getLabels(pos);
+// iterate over labels
+for (auto& label : labels_for_digit) {
+   // process label
+}
+```
+
+If positional correspondance is too weak, one may eventualy choose to record the corresponding data index in the labelcontainer inside the digit itself:
+```c++
+const auto& digit = mDigits[pos];
+// returns an iterable view of labels
+const auto& labels_for_digit = mLabelContainer.getLabels(digit.labelindex);
+// iterate over labels
+for (auto& label : labels_for_digit) {
+   // process label
+}
+```
+
+
+## Accessing Monte Carlo kinematics after the digitization phase <a name="MCReader"></a>
+
+After digitization is done, one can use the `MCKinematicsReader` class to load and access the Monte Carlo tracks.
+The MCKinematicsReader needs the digitization context file, generated during digitization. Once initialized it can return the tracks associated to a Monte Carlo label.
+
+A typical code example may be
+```c++
+// init the reader from the context
+o2::steer::MCKinematicsReader reader("collisioncontext.root");
+
+// load digits from the digits file --> save in alldigits
+// load the label container from the digits file --> save in labelcontainer
+
+// this is simply iterating over all the digits and querying the tracks that contributed to these digits
+
+for (int pos = 0; pos < alldigits.size(); ++pos) {
+  const auto& digit = alldigits[pos];
+  const auto& labels_for_digit = labelcontainer.getLabels(pos);
+  // iterate over labels
+  for (auto& label : labels_for_digit) {
+     track = reader.getTrack(label);
+     // do something with the track
+  }
+}
+```
+
+# Simulation tutorials/examples <a name="Examples"></a>
+
+Some examples for the usage of simulation and digitization are collected in an [examples folder](../run/SimExamples).
+Other helpful resources are the scripts used for regression testing in [prodtests](../prodtests). 
+
+| Example               | Short Description                                                                      |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| [AliRoot_Hijing](../run/SimExamples/AliRoot_Hijing) | Example showing how to use Hijing from AliRoot for event generation |
+| [Adaptive_Pythia8](../run/SimExamples/Adaptive_Pythia8) | Complex example showing **generator configuration for embedding** that cat adapt the response based on the background event |
+| [HepMC_STARlight](../run/SimExamples/HepMC_STARlight) | Simple example showing **generator configuration** that runs a standalone `STARlight` generation that couples to the `o2` via a `HepMC` file |
+| [Jet_Embedding_Pythia](../run/SimExamples/Jet_Embedding_Pythia8) | Complex example showing **generator configuration**, **digitization embedding**, **MCTrack access** |
+| [sim_challenge.sh](../prodtests/sim_challenge.sh) | Basic example doing a **simple transport, digitization, reconstruction pipeline** on the full dectector. All stages use parallelism. |
+| [sim_performance.sh](../prodtests/sim_performance_test.sh) | Basic example for serial transport and linearized digitization sequence (one detector after the other). Serves as standard performance candle. |  

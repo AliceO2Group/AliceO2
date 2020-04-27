@@ -37,8 +37,8 @@
 #pragma link C++ class std::vector < o2::tpc::ClusterNativeHelper::TreeWriter::BranchData> + ;
 #pragma link C++ class o2::tpc::dEdxInfo + ;
 #pragma link C++ class o2::tpc::CompressedClustersCounters + ;
-#pragma link C++ class o2::tpc::CompressedClustersPtrs_helper < o2::tpc::CompressedClustersCounters> + ;
-#pragma link C++ class o2::tpc::CompressedClusters + ;
+#pragma link C++ class o2::tpc::CompressedClustersPtrs_helper < o2::tpc::CompressedClustersCounters> - ;
+#pragma link C++ class o2::tpc::CompressedClusters - ;
 #pragma link C++ enum o2::tpc::StatisticsType;
 
 #endif

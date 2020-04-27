@@ -26,11 +26,8 @@ using ulong = unsigned long;
 #define QMAX_CUTOFF 3
 #define QTOT_CUTOFF 0
 #define NOISE_SUPPRESSION_MINIMA_EPSILON 10
-#ifdef GPUCA_GPUCODE
-#define SCRATCH_PAD_WORK_GROUP_SIZE GPUCA_THREAD_COUNT_CLUSTERER
-#else
-#define SCRATCH_PAD_WORK_GROUP_SIZE 1
-#endif
+#define SCRATCH_PAD_WORK_GROUP_SIZE GPUCA_GET_THREAD_COUNT(GPUCA_LB_CLUSTER_FINDER)
+
 #ifdef GPUCA_GPUCODE
 /* #define BUILD_CLUSTER_NAIVE */
 #define BUILD_CLUSTER_SCRATCH_PAD
@@ -96,8 +93,11 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+namespace tpccf
+{
 
-using Timestamp = short;
+using TPCTime = int;
+using TPCFragmentTime = short;
 using Pad = unsigned char;
 using GlobalPad = short;
 using Row = unsigned char;
@@ -119,6 +119,7 @@ GPUconstexpr() float OUTER_CHARGE_THRESHOLD = 0.f;
 GPUconstexpr() float QTOT_THRESHOLD = 500.f;
 GPUconstexpr() int MIN_SPLIT_NUM = 1;
 
+} // namespace tpccf
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

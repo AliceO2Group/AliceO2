@@ -18,8 +18,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   workflowOptions.push_back(ConfigParamSpec{"conf", o2::framework::VariantType::String, "", {"configuration file to init from (obligatory)"}});
-  workflowOptions.push_back(ConfigParamSpec{"loop", o2::framework::VariantType::Int, 0, {"loop N times (infinite for N<0)"}});
+  workflowOptions.push_back(ConfigParamSpec{"loop", o2::framework::VariantType::Int, 1, {"loop N times (infinite for N<0)"}});
   workflowOptions.push_back(ConfigParamSpec{"message-per-tf", o2::framework::VariantType::Bool, false, {"send TF of each link as a single FMQ message rather than multipart with message per HB"}});
+  workflowOptions.push_back(ConfigParamSpec{"output-per-link", o2::framework::VariantType::Bool, false, {"send message per Link rather than per FMQ output route"}});
+  workflowOptions.push_back(ConfigParamSpec{"delay", o2::framework::VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
 }
 
 // ------------------------------------------------------------------
@@ -31,5 +33,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto inifile = configcontext.options().get<std::string>("conf");
   auto loop = configcontext.options().get<int>("loop");
   auto tfAsMessage = configcontext.options().get<bool>("message-per-tf");
-  return std::move(o2::raw::getRawFileReaderWorkflow(inifile, tfAsMessage, loop));
+  auto outPerRoute = !configcontext.options().get<bool>("output-per-link");
+  uint32_t delay_us = uint32_t(1e6 * configcontext.options().get<int>("delay")); // delay in microseconds
+  return std::move(o2::raw::getRawFileReaderWorkflow(inifile, tfAsMessage, outPerRoute, loop, delay_us));
 }

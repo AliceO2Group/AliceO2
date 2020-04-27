@@ -17,16 +17,17 @@
 #include "GPUHostDataTypes.h"
 
 #include "DataFormatsTPC/ZeroSuppression.h"
+#include "TPCBase/Digit.h"
 
 #include "ChargePos.h"
 #include "Array2D.h"
-#include "Digit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
 void GPUTPCClusterFinder::InitializeProcessor()
 {
+  mMinMaxCN = new MinMaxCN[GPUTrackingInOutZS::NENDPOINTS];
 }
 
 GPUTPCClusterFinder::~GPUTPCClusterFinder()
@@ -53,8 +54,9 @@ void* GPUTPCClusterFinder::SetPointersInput(void* mem)
 
 void* GPUTPCClusterFinder::SetPointersZSOffset(void* mem)
 {
-  if (mNMaxPages) {
-    computePointerWithAlignment(mem, mPzsOffsets, (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding) ? mNMaxPages : GPUTrackingInOutZS::NENDPOINTS);
+  const int n = (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding) ? mNMaxPages : GPUTrackingInOutZS::NENDPOINTS;
+  if (n) {
+    computePointerWithAlignment(mem, mPzsOffsets, n);
   }
   return mem;
 }
@@ -137,4 +139,6 @@ void GPUTPCClusterFinder::clearMCMemory()
   mPlabelHeaderOffset = nullptr;
   delete[] mPlabelDataOffset;
   mPlabelDataOffset = nullptr;
+  delete[] mMinMaxCN;
+  mMinMaxCN = nullptr;
 }

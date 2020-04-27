@@ -87,7 +87,6 @@ set(HDRS_INSTALL
     SliceTracker/GPUTPCBaseTrackParam.h
     SliceTracker/GPUTPCTracklet.h
     SliceTracker/GPUTPCSliceOutCluster.h
-    SliceTracker/GPUTPCSliceOutTrack.h
     SliceTracker/GPUTPCTrackLinearisation.h
     Merger/GPUTPCGMBorderTrack.h
     Merger/GPUTPCGMOfflineStatisticalErrors.h
@@ -122,6 +121,7 @@ set(HDRS_INSTALL
     Base/GPUReconstructionKernelMacros.h
     Base/GPUO2FakeClasses.h
     Base/GPUParam.inc
+    Merger/GPUTPCGMMergerTypes.h
 )
 
 # Sources only for O2
@@ -169,10 +169,10 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      dEdx/GPUdEdxInfo.h
                      TPCClusterFinder/Array2D.h
                      TPCClusterFinder/CfConsts.h
+                     TPCClusterFinder/CfFragment.h
                      TPCClusterFinder/CfUtils.h
                      TPCClusterFinder/ChargePos.h
                      TPCClusterFinder/clusterFinderDefs.h
-                     TPCClusterFinder/Digit.h
                      TPCClusterFinder/GPUTPCClusterFinderKernels.h
                      TPCClusterFinder/PackedCharge.h)
 endif()
@@ -240,6 +240,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                  TARGETVARNAME targetName
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                        O2::DataFormatsTPC
+                                       O2::TPCBase
                                        O2::TRDBase
                                        O2::ITStracking
                                        O2::TPCFastTransformation

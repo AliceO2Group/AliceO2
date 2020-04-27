@@ -217,9 +217,9 @@ void GPUTPCClusterStatistics::Finish()
   eQCombined += Analyze(mPQU, "combined Q Unattached");
   double eRowSliceCombined = Analyze(mProwSliceA, "combined row/slice Attached");
 
-  GPUInfo("Combined Row/Slice: %6.4f --> %6.4f (%6.4f%%)", eRowSlice, eRowSliceCombined, 100. * (eRowSlice - eRowSliceCombined) / eRowSlice);
-  GPUInfo("Combined Sigma: %6.4f --> %6.4f (%6.4f%%)", eSigma, eSigmaCombined, 100. * (eSigma - eSigmaCombined) / eSigma);
-  GPUInfo("Combined Q: %6.4f --> %6.4f (%6.4f%%)", eQ, eQCombined, 100. * (eQ - eQCombined) / eQ);
+  GPUInfo("Combined Row/Slice: %6.4f --> %6.4f (%6.4f%%)", eRowSlice, eRowSliceCombined, eRowSlice > 1e-1 ? (100. * (eRowSlice - eRowSliceCombined) / eRowSlice) : 0.f);
+  GPUInfo("Combined Sigma: %6.4f --> %6.4f (%6.4f%%)", eSigma, eSigmaCombined, eSigma > 1e-3 ? (100. * (eSigma - eSigmaCombined) / eSigma) : 0.f);
+  GPUInfo("Combined Q: %6.4f --> %6.4f (%6.4f%%)", eQ, eQCombined, eQ > 1e-3 ? (100. * (eQ - eQCombined) / eQ) : 0.f);
 
   printf("\nConbined Entropy: %7.4f   (Size %'13.0f, %'lld cluster)\nCombined Huffman: %7.4f   (Size %'13.0f, %f%%)\n\n", mEntropy / mNTotalClusters, mEntropy, (long long int)mNTotalClusters, mHuffman / mNTotalClusters, mHuffman, 100. * (mHuffman - mEntropy) / mHuffman);
 }
@@ -235,29 +235,31 @@ float GPUTPCClusterStatistics::Analyze(std::vector<int>& p, const char* name, bo
   for (unsigned int i = 0; i < p.size(); i++) {
     total += p[i];
   }
-  for (unsigned int i = 0; i < prob.size(); i++) {
-    if (total && p[i]) {
-      prob[i] = (double)p[i] / total;
-      double I = -log(prob[i]) / log2;
-      double H = I * prob[i];
+  if (total) {
+    for (unsigned int i = 0; i < prob.size(); i++) {
+      if (p[i]) {
+        prob[i] = (double)p[i] / total;
+        double I = -log(prob[i]) / log2;
+        double H = I * prob[i];
 
-      entropy += H;
+        entropy += H;
+      }
     }
-  }
 
-  INode* root = BuildTree(prob.data(), prob.size());
+    INode* root = BuildTree(prob.data(), prob.size());
 
-  HuffCodeMap codes;
-  GenerateCodes(root, HuffCode(), codes);
-  delete root;
+    HuffCodeMap codes;
+    GenerateCodes(root, HuffCode(), codes);
+    delete root;
 
-  for (HuffCodeMap::const_iterator it = codes.begin(); it != codes.end(); ++it) {
-    huffmanSize += it->second.size() * prob[it->first];
-  }
+    for (HuffCodeMap::const_iterator it = codes.begin(); it != codes.end(); ++it) {
+      huffmanSize += it->second.size() * prob[it->first];
+    }
 
-  if (count) {
-    mEntropy += entropy * total;
-    mHuffman += huffmanSize * total;
+    if (count) {
+      mEntropy += entropy * total;
+      mHuffman += huffmanSize * total;
+    }
   }
   GPUInfo("Size: %30s: Entropy %7.4f Huffman %7.4f (Count) %9lld", name, entropy, huffmanSize, (long long int)total);
   return entropy;

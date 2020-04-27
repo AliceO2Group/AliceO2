@@ -33,6 +33,8 @@
 
 #endif
 
+using namespace std;
+
 float Fx(float u, float v)
 {
   const int PolynomDegree = 7;
@@ -67,11 +69,11 @@ template <typename T>
 bool equalityCheck(const string title, const T expected, const T received)
 {
   bool check = expected == received;
-  cout << "=== " << title << " ===" << endl;
-  cout << "  expected:\t" << expected << endl;
-  cout << "  received:\t" << received << endl;
-  cout << "  check:\t" << check << "\t\t\t" << (check ? "Success!" : "Error") << endl;
-  cout << endl;
+  std::cout << "=== " << title << " ===" << std::endl;
+  std::cout << "  expected:\t" << expected << std::endl;
+  std::cout << "  received:\t" << received << std::endl;
+  std::cout << "  check:\t" << check << "\t\t\t" << (check ? "Success!" : "Error") << std::endl;
+  std::cout << std::endl;
   return check;
 }
 
@@ -135,9 +137,9 @@ int SemiregularSpline2D3DTest()
     data[i] = data0[i];
   }
 
-  cout << "Start correcting edges..." << endl;
+  std::cout << "Start correcting edges..." << std::endl;
   spline.correctEdges(data);
-  cout << "corrected edges!" << endl;
+  std::cout << "corrected edges!" << std::endl;
 
   TCanvas* canv = new TCanvas("cQA", "2D splines  QA", 1500, 1500);
   canv->Draw();
@@ -171,7 +173,7 @@ int SemiregularSpline2D3DTest()
   }
 
   checker.push_back(equalityCheck("inserted points", nKnotsTot, gknotsN));
-  cout << "mean diff at knots: " << sqrt(diff) / gknotsN << endl;
+  std::cout << "mean diff at knots: " << sqrt(diff) / gknotsN << std::endl;
 
   knots->SetMarkerSize(1.);
   knots->SetMarkerStyle(8);
@@ -228,12 +230,12 @@ int SemiregularSpline2D3DTest()
   for (unsigned int i = 0; i < checker.size(); i++) {
     success = success && checker[i];
     if (!success) {
-      cout << "Something went wrong!" << endl;
+      std::cout << "Something went wrong!" << std::endl;
       break;
     }
   }
   if (success) {
-    cout << "Everything worked fine" << endl;
+    std::cout << "Everything worked fine" << std::endl;
   }
 
   return success;

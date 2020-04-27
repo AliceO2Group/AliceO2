@@ -126,6 +126,7 @@ include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/ITSMFT/ITS/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/TPC/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Headers/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/MemoryResources/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Reconstruction/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/simulation/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/Base/include
@@ -135,6 +136,7 @@ include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/cuda/src
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/hip/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/hip/src
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/Raw/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TPC/base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/src)

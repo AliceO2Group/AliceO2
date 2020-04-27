@@ -79,7 +79,6 @@ int GPUChainITS::PrepareAndRunITSTrackFit(std::vector<Road>& roads, std::array<c
 int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Cluster*, 7> clusters, std::array<const Cell*, 5> cells, const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks)
 {
   auto threadContext = GetThreadContext();
-  mRec->SetThreadCounts(RecoStep::ITSTracking);
   bool doGPU = GetRecoStepsGPU() & RecoStep::ITSTracking;
   GPUITSFitter& Fitter = processors()->itsFitter;
   GPUITSFitter& FitterShadow = doGPU ? processorsShadow()->itsFitter : Fitter;
@@ -100,7 +99,7 @@ int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Clust
 
   WriteToConstantMemory(RecoStep::ITSTracking, (char*)&processors()->itsFitter - (char*)processors(), &FitterShadow, sizeof(FitterShadow), 0);
   TransferMemoryResourcesToGPU(RecoStep::ITSTracking, &Fitter, 0);
-  runKernel<GPUITSFitterKernel>({BlockCount(), ITSThreadCount(), 0}, krnlRunRangeNone, krnlEventNone);
+  runKernel<GPUITSFitterKernel>(GetGridBlk(BlockCount(), 0), krnlRunRangeNone, krnlEventNone);
   TransferMemoryResourcesToHost(RecoStep::ITSTracking, &Fitter, 0);
 
   SynchronizeGPU();

@@ -15,7 +15,6 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
-#include "GPUTPCSliceOutTrack.h"
 #include "GPUTPCTracker.h"
 #include "GPUTPCClusterData.h"
 #include "GPUTPCTrackParam.h"
@@ -31,6 +30,7 @@
 #include "GPUTPCGMBorderTrack.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace GPUTPCGMMergerTypes;
 
 void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out)
 {
@@ -119,7 +119,12 @@ void GPUTPCGMMerger::DumpRefit(std::ostream& out)
   for (int i = 0; i < mNOutputTracks; i++) {
     const auto& trk = mOutputTracks[i];
     const auto& p = trk.GetParam();
-    out << "  Track " << i << ": OK " << trk.OK() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << " / " << trk.NClustersFitted() << "\n";
+    const auto& po = trk.OuterParam();
+    out << "  Track " << i << ": OK " << trk.OK() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << " / " << trk.NClustersFitted() << " Cov " << p.GetErr2Y() << "/" << p.GetErr2Z()
+#ifdef HAVE_O2HEADERS
+        << " dEdx " << trk.dEdxInfo().dEdxTotTPC << "/" << trk.dEdxInfo().dEdxMaxTPC
+#endif
+        << " Outer " << po.P[0] << "/" << po.P[1] << "/" << po.P[2] << "/" << po.P[3] << "/" << po.P[4] << "\n";
   }
 }
 

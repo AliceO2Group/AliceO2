@@ -17,6 +17,7 @@
 #include <sstream>
 #include <functional>
 #include <cassert>
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "CommonConstants/Triggers.h"
@@ -38,11 +39,15 @@ void RawFileWriter::close()
   if (mFName2File.empty()) {
     return;
   }
-  auto irmax = getIRMax();
-  irmax--; // latest (among all links) HBF to open, we want just to close the last one
-  for (auto& lnk : mSSpec2Link) {
-    lnk.second.close(irmax);
-    lnk.second.print();
+  if (!mFirstIRAdded.isDummy()) { // flushing and completing the last HBF makes sense only if data was added.
+    auto irmax = getIRMax();
+    if (irmax.toLong()) { // should not be at 0/0
+      irmax--;            // latest (among all links) HBF to open, we want just to close the last one
+    }
+    for (auto& lnk : mSSpec2Link) {
+      lnk.second.close(irmax);
+      lnk.second.print();
+    }
   }
   //
   // close all files
@@ -81,13 +86,13 @@ RawFileWriter::LinkData& RawFileWriter::LinkData::operator=(const LinkData& src)
 }
 
 //_____________________________________________________________________
-RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8_t endpoint, const std::string& outFileName)
+RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8_t endpoint, std::string_view outFileNameV)
 {
   // register the GBT link and its output file
-
+  std::string outFileName{outFileNameV};
   auto sspec = RDHUtils::getSubSpec(cru, link, endpoint, fee);
   auto& linkData = mSSpec2Link[sspec];
-  auto& file = mFName2File[outFileName];
+  auto& file = mFName2File[std::string(outFileName)];
   if (!file.handler) {
     if (!(file.handler = fopen(outFileName.c_str(), "wb"))) { // if file does not exist, create it
       LOG(ERROR) << "Failed to open output file " << outFileName;
@@ -105,23 +110,18 @@ RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru,
   }
   linkData.fileName = outFileName;
   linkData.subspec = sspec;
-  linkData.rdhCopy.feeId = fee;
-  linkData.rdhCopy.cruID = cru;
-  linkData.rdhCopy.linkID = link;
-  linkData.rdhCopy.endPointID = endpoint;
+  RDHUtils::setVersion(linkData.rdhCopy, mUseRDHVersion);
+  RDHUtils::setFEEID(linkData.rdhCopy, fee);
+  RDHUtils::setCRUID(linkData.rdhCopy, cru);
+  RDHUtils::setLinkID(linkData.rdhCopy, link);
+  RDHUtils::setEndPointID(linkData.rdhCopy, endpoint);
+  if (mUseRDHVersion >= 6) {
+    RDHUtils::setSourceID(linkData.rdhCopy, o2::header::DAQID::O2toDAQ(mOrigin));
+  }
   linkData.writer = this;
   linkData.updateIR = mHBFUtils.getFirstIR();
   linkData.buffer.reserve(mSuperPageSize);
   LOGF(INFO, "Registered %s with output to %s", linkData.describe(), outFileName);
-  return linkData;
-}
-
-//_____________________________________________________________________
-RawFileWriter::LinkData& RawFileWriter::registerLink(const RDH& rdh, const std::string& outFileName)
-{
-  // register the GBT link and its output file
-  auto& linkData = registerLink(rdh.feeId, rdh.cruID, rdh.linkID, rdh.endPointID, outFileName);
-  linkData.rdhCopy.detectorField = rdh.detectorField;
   return linkData;
 }
 
@@ -135,6 +135,9 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
   }
   auto sspec = RDHUtils::getSubSpec(cru, lnk, endpoint, feeid);
   auto& link = getLinkWithSubSpec(sspec);
+  if (ir < mFirstIRAdded) {
+    mFirstIRAdded = ir;
+  }
   link.addData(ir, data, preformatted);
 }
 
@@ -170,18 +173,21 @@ RawFileWriter::LinkData& RawFileWriter::getLinkWithSubSpec(LinkSubSpec_t ss)
 }
 
 //_____________________________________________________________________
-void RawFileWriter::writeConfFile(const std::string& origin, const std::string& description, const std::string& cfgname) const
+void RawFileWriter::writeConfFile(std::string_view origin, std::string_view description, std::string_view cfgname, bool fullPath) const
 {
   // write configuration file for generated data
   std::ofstream cfgfile;
-  cfgfile.open(cfgname);
-  cfgfile << "[defaults]" << std::endl;
-  cfgfile << "dataOrigin = " << origin << std::endl;
-  cfgfile << "dataDescription = " << description << std::endl;
+  cfgfile.open(cfgname.data());
+  // this is good for the global settings only, problematic for concatenation
+  cfgfile << "#[defaults]" << std::endl;
+  cfgfile << "#dataOrigin = " << origin << std::endl;
+  cfgfile << "#dataDescription = " << description << std::endl;
   for (int i = 0; i < getNOutputFiles(); i++) {
     cfgfile << std::endl
-            << "[input-" << i << "]" << std::endl;
-    cfgfile << "filePath = " << getOutputFileName(i) << std::endl;
+            << "[input-" << mOrigin.str << '-' << i << "]" << std::endl;
+    cfgfile << "dataOrigin = " << origin << std::endl;
+    cfgfile << "dataDescription = " << description << std::endl;
+    cfgfile << "filePath = " << (fullPath ? o2::base::NameConf::getFullPath(getOutputFileName(i)) : getOutputFileName(i)) << std::endl;
   }
   cfgfile.close();
 }
@@ -239,7 +245,7 @@ void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, 
       int sizeActual = sizeLeft;
       std::vector<char> carryOverTrailer;
       if (writer->carryOverFunc) {
-        sizeActual = writer->carryOverFunc(rdhCopy, data, ptr, sizeLeft, splitID++, carryOverTrailer, carryOverHeader);
+        sizeActual = writer->carryOverFunc(&rdhCopy, data, ptr, sizeLeft, splitID++, carryOverTrailer, carryOverHeader);
       }
       LOG(DEBUG) << "Adding carry-over " << splitID - 1 << " fitted payload " << sizeActual << " bytes in IR " << ir << " to " << describe();
       if (sizeActual < 0 || sizeActual + carryOverTrailer.size() > sizeLeft) {
@@ -265,12 +271,12 @@ void RawFileWriter::LinkData::addPreformattedCRUPage(const gsl::span<char> data)
   if (sizeLeftSupPage < data.size()) { // we are not allowed to split this payload
     flushSuperPage(true);              // flush all but the last added RDH
   }
-  if (data.size() > RDHUtils::MAXCRUPage - sizeof(RDH)) {
+  if (data.size() > RDHUtils::MAXCRUPage - sizeof(RDHAny)) {
     LOG(ERROR) << "Preformatted payload size of " << data.size() << " bytes for " << describe()
-               << " exceeds max. size " << RDHUtils::MAXCRUPage - sizeof(RDH);
+               << " exceeds max. size " << RDHUtils::MAXCRUPage - sizeof(RDHAny);
     throw std::runtime_error("preformatted payload exceeds max size");
   }
-  if (int(buffer.size()) - lastRDHoffset > sizeof(RDH)) { // we must start from empty page
+  if (int(buffer.size()) - lastRDHoffset > sizeof(RDHAny)) { // we must start from empty page
     addHBFPage();                                         // start new CRU page
   }
   pushBack(&data[0], data.size());
@@ -286,34 +292,36 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
     return; // no page was open
   }
   // finalize last RDH
-  auto* lastRDH = getLastRDH();
+  auto& lastRDH = *getLastRDH();
   int psize = buffer.size() - lastRDHoffset;                  // set the size for the previous header RDH
-  if (stop && psize == sizeof(RDH) && writer->emptyHBFFunc) { // we are closing an empty page, does detector want to add something?
+  if (stop && psize == sizeof(RDHAny) && writer->emptyHBFFunc) { // we are closing an empty page, does detector want to add something?
     std::vector<char> emtyHBFFiller;                          // working space for optional empty HBF filler
-    writer->emptyHBFFunc(*lastRDH, emtyHBFFiller);
+    writer->emptyHBFFunc(&lastRDH, emtyHBFFiller);
     if (emtyHBFFiller.size()) {
       LOG(DEBUG) << "Adding empty HBF filler of size " << emtyHBFFiller.size() << " for " << describe();
       pushBack(emtyHBFFiller.data(), emtyHBFFiller.size());
       psize += emtyHBFFiller.size();
     }
   }
-  lastRDH->offsetToNext = lastRDH->memorySize = psize;
+  RDHUtils::setOffsetToNext(lastRDH, psize);
+  RDHUtils::setMemorySize(lastRDH, psize);
 
   if (writer->mVerbosity > 2) {
-    RDHUtils::printRDH(*lastRDH);
+    RDHUtils::printRDH(lastRDH);
   }
-  rdhCopy = *lastRDH;
+  rdhCopy = lastRDH;
   int left = writer->mSuperPageSize - buffer.size();
   if (left <= MarginToFlush) {
     flushSuperPage();
   }
-  rdhCopy.packetCounter = packetCounter++;
-  rdhCopy.pageCnt = pageCnt++;
-  rdhCopy.stop = stop;
-  rdhCopy.offsetToNext = rdhCopy.memorySize = sizeof(RDH);
+  RDHUtils::setPacketCounter(rdhCopy, packetCounter++);
+  RDHUtils::setPageCounter(rdhCopy, pageCnt++);
+  RDHUtils::setStop(rdhCopy, stop);
+  RDHUtils::setOffsetToNext(rdhCopy, sizeof(RDHAny));
+  RDHUtils::setMemorySize(rdhCopy, sizeof(RDHAny));
   lastRDHoffset = pushBack(rdhCopy); // entry of the new RDH
   if (stop) {
-    if (rdhCopy.triggerType & o2::trigger::TF) {
+    if (RDHUtils::getTriggerType(rdhCopy) & o2::trigger::TF) {
       nTFWritten++;
     }
     if (writer->mVerbosity > 2) {
@@ -326,13 +334,13 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
 }
 
 //___________________________________________________________________________________
-void RawFileWriter::LinkData::openHBFPage(const RDH& rdhn)
+void RawFileWriter::LinkData::openHBFPage(const RDHAny& rdhn)
 {
   /// create 1st page of the new HBF
   bool forceNewPage = false;
-  if (rdhn.triggerType & o2::trigger::TF) {
+  if (RDHUtils::getTriggerType(rdhn) & o2::trigger::TF) {
     if (writer->mVerbosity > 0) {
-      LOGF(INFO, "Starting new TF for link FEEId 0x%04x", rdhn.feeId);
+      LOGF(INFO, "Starting new TF for link FEEId 0x%04x", RDHUtils::getFEEID(rdhn));
     }
     if (writer->mStartTFOnNewSPage && nTFWritten) { // don't flush if 1st TF
       forceNewPage = true;
@@ -344,15 +352,17 @@ void RawFileWriter::LinkData::openHBFPage(const RDH& rdhn)
   }
   pageCnt = 0;
   lastRDHoffset = pushBack(rdhn);
-  RDH* newRDH = getLastRDH(); // fetch new RDH
-  newRDH->packetCounter = packetCounter++;
-  newRDH->pageCnt = pageCnt++;
-  newRDH->stop = 0;
-  newRDH->memorySize = newRDH->offsetToNext = sizeof(RDH);
+  auto& newrdh = *getLastRDH(); // dress new RDH with correct counters
+  RDHUtils::setPacketCounter(newrdh, packetCounter++);
+  RDHUtils::setPageCounter(newrdh, pageCnt++);
+  RDHUtils::setStop(newrdh, 0);
+  RDHUtils::setMemorySize(newrdh, sizeof(RDHAny));
+  RDHUtils::setOffsetToNext(newrdh, sizeof(RDHAny));
   if (startOfRun && writer->isReadOutModeSet()) {
-    newRDH->triggerType |= writer->isContinuousReadout() ? o2::trigger::SOC : o2::trigger::SOT;
+    auto trg = RDHUtils::getTriggerType(newrdh) | (writer->isContinuousReadout() ? o2::trigger::SOC : o2::trigger::SOT);
+    RDHUtils::setTriggerType(newrdh, trg);
   }
-  rdhCopy = *newRDH;
+  rdhCopy = newrdh;
 }
 
 //___________________________________________________________________________________
@@ -411,8 +421,8 @@ void RawFileWriter::LinkData::fillEmptyHBHs(const IR& ir)
       LOG(INFO) << "Adding HBF " << irdummy << " for " << describe();
     }
     closeHBFPage();                                     // close current HBF: add RDH with stop and update counters
-    rdhCopy.triggerType = 0;                            // reset to avoid any detector specific flags in the dummy HBFs
-    writer->mHBFUtils.updateRDH<RDH>(rdhCopy, irdummy); // update HBF orbit/bc and trigger flags
+    RDHUtils::setTriggerType(rdhCopy, 0);               // reset to avoid any detector specific flags in the dummy HBFs
+    writer->mHBFUtils.updateRDH<RDHAny>(rdhCopy, irdummy); // update HBF orbit/bc and trigger flags
     openHBFPage(rdhCopy);                               // open new HBF
   }
   updateIR = irw.back() + o2::constants::lhc::LHCMaxBunches; // new HBF will be generated at >= this IR
@@ -423,9 +433,9 @@ std::string RawFileWriter::LinkData::describe() const
 {
   std::stringstream ss;
   ss << "Link SubSpec=0x" << std::hex << std::setw(8) << std::setfill('0')
-     << RDHUtils::getSubSpec(rdhCopy.cruID, rdhCopy.linkID, rdhCopy.endPointID, rdhCopy.feeId) << std::dec
-     << '(' << std::setw(3) << int(rdhCopy.cruID) << ':' << std::setw(2) << int(rdhCopy.linkID) << ':'
-     << int(rdhCopy.endPointID) << ") feeID=0x" << std::hex << std::setw(4) << std::setfill('0') << rdhCopy.feeId;
+     << RDHUtils::getSubSpec(rdhCopy) << std::dec
+     << '(' << std::setw(3) << int(RDHUtils::getCRUID(rdhCopy)) << ':' << std::setw(2) << int(RDHUtils::getLinkID(rdhCopy)) << ':'
+     << int(RDHUtils::getEndPointID(rdhCopy)) << ") feeID=0x" << std::hex << std::setw(4) << std::setfill('0') << RDHUtils::getFEEID(rdhCopy);
   return ss.str();
 }
 

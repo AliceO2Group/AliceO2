@@ -19,6 +19,7 @@
 #include "GPUTPCGMPhysicalTrackModel.h"
 #include "GPUTPCGMPolynomialField.h"
 #include "GPUCommonMath.h"
+#include "GPUTPCGMMergerTypes.h"
 
 namespace o2
 {
@@ -67,6 +68,7 @@ class GPUTPCGMPropagator
   GPUd() void SelectFieldRegion(FieldRegion region) { mFieldRegion = region; }
 
   GPUd() void SetFitInProjections(bool Flag) { mFitInProjections = Flag; }
+  GPUd() void SetPropagateBzOnly(bool Flag) { mPropagateBzOnly = Flag; }
   GPUd() void SetToyMCEventsFlag(bool Flag) { mToyMCEvents = Flag; }
   GPUd() void SetSeedingErrors(bool Flag) { mSeedingErrors = Flag; }
   GPUd() void SetMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
@@ -88,8 +90,9 @@ class GPUTPCGMPropagator
 
   GPUd() int PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection);
 
-  GPUd() int Update(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, bool rejectChi2, bool refit);
+  GPUd() int Update(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, char rejectChi2, GPUTPCGMMergerTypes::InterpolationErrorHit* inter, bool refit);
   GPUd() int Update(float posY, float posZ, short clusterState, bool rejectChi2, float err2Y, float err2Z);
+  GPUd() int InterpolateReject(float posY, float posZ, short clusterState, char rejectChi2, GPUTPCGMMergerTypes::InterpolationErrorHit* inter, float err2Y, float err2Z);
   GPUd() float PredictChi2(float posY, float posZ, int iRow, const GPUParam& param, short clusterState) const;
   GPUd() float PredictChi2(float posY, float posZ, float err2Y, float err2Z) const;
   GPUd() int RejectCluster(float chiY, float chiZ, unsigned char clusterState)
@@ -143,6 +146,7 @@ class GPUTPCGMPropagator
   MaterialCorrection mMaterial;
   bool mSeedingErrors = 0;
   bool mFitInProjections = 1; // fit (Y,SinPhi,QPt) and (Z,DzDs) paramteres separatelly
+  bool mPropagateBzOnly = 0;  // Use Bz only in propagation
   bool mToyMCEvents = 0;      // events are simulated with simple home-made simulation
   float mMaxSinPhi = GPUCA_MAX_SIN_PHI;
 

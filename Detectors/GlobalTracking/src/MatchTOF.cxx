@@ -739,8 +739,33 @@ void MatchTOF::doMatching(int sec)
       int indices[5];
       Geo::getVolumeIndices(mainChannel, indices);
 
-      // TO be done
-      // weighted average to be included in case of multipad clusters
+      // compute fine correction using cluster position instead of pad center
+      // this because in case of multiple-hit cluster position is averaged on all pads contributing to the cluster (then error position matrix can be used for Chi2 if nedeed)
+      int ndigits = 1;
+      float posCorr[3] = {0, 0, 0};
+
+      if (trefTOF.isBitSet(Cluster::kLeft))
+        posCorr[0] += Geo::XPAD, ndigits++;
+      if (trefTOF.isBitSet(Cluster::kUpLeft))
+        posCorr[0] += Geo::XPAD, posCorr[2] -= Geo::ZPAD, ndigits++;
+      if (trefTOF.isBitSet(Cluster::kDownLeft))
+        posCorr[0] += Geo::XPAD, posCorr[2] += Geo::ZPAD, ndigits++;
+      if (trefTOF.isBitSet(Cluster::kUp))
+        posCorr[2] -= Geo::ZPAD, ndigits++;
+      if (trefTOF.isBitSet(Cluster::kDown))
+        posCorr[2] += Geo::ZPAD, ndigits++;
+      if (trefTOF.isBitSet(Cluster::kRight))
+        posCorr[0] -= Geo::XPAD, ndigits++;
+      if (trefTOF.isBitSet(Cluster::kUpRight))
+        posCorr[0] -= Geo::XPAD, posCorr[2] -= Geo::ZPAD, ndigits++;
+      if (trefTOF.isBitSet(Cluster::kDownRight))
+        posCorr[0] -= Geo::XPAD, posCorr[2] += Geo::ZPAD, ndigits++;
+
+      if (ndigits > 1) {
+        posCorr[0] /= ndigits;
+        posCorr[1] /= ndigits;
+        posCorr[2] /= ndigits;
+      }
 
       int trackIdTOF;
       int eventIdTOF;
@@ -748,9 +773,10 @@ void MatchTOF::doMatching(int sec)
       for (auto iPropagation = 0; iPropagation < nStripsCrossedInPropagation; iPropagation++) {
         LOG(DEBUG) << "TOF Cluster [" << itof << ", " << cacheTOF[itof] << "]:      indices   = " << indices[0] << ", " << indices[1] << ", " << indices[2] << ", " << indices[3] << ", " << indices[4];
         LOG(DEBUG) << "Propagated Track [" << itrk << ", " << cacheTrk[itrk] << "]: detId[" << iPropagation << "]  = " << detId[iPropagation][0] << ", " << detId[iPropagation][1] << ", " << detId[iPropagation][2] << ", " << detId[iPropagation][3] << ", " << detId[iPropagation][4];
-        float resX = deltaPos[iPropagation][0] - (indices[4] - detId[iPropagation][4]) * Geo::XPAD; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
-        float resZ = deltaPos[iPropagation][2] - (indices[3] - detId[iPropagation][3]) * Geo::ZPAD; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
+        float resX = deltaPos[iPropagation][0] - (indices[4] - detId[iPropagation][4]) * Geo::XPAD + posCorr[0]; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
+        float resZ = deltaPos[iPropagation][2] - (indices[3] - detId[iPropagation][3]) * Geo::ZPAD + posCorr[2]; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
         float res = TMath::Sqrt(resX * resX + resZ * resZ);
+
         LOG(DEBUG) << "resX = " << resX << ", resZ = " << resZ << ", res = " << res;
 #ifdef _ALLOW_TOF_DEBUG_
         fillTOFmatchTree("match0", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trackWork, trkLTInt[iPropagation].getL(), trkLTInt[iPropagation].getTOF(o2::track::PID::Pion), trefTOF.getTime());
@@ -898,6 +924,9 @@ void MatchTOF::selectBestMatches()
       }
       if (!labelOk) {
         // we have not found the track label among those associated to the TOF cluster --> fake match! We will associate the label of the main channel, but negative
+        //assert(labelsTOF.size());
+        if (!labelsTOF.size())
+          throw std::runtime_error("TOF label not found since size of label is zero. This should not happen!!!!");
         mOutTOFLabels.emplace_back(labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID(), true);
       }
       mOutTPCLabels.push_back(labelTPC);

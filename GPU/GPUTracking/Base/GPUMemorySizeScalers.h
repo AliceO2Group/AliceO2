@@ -25,28 +25,33 @@ struct GPUMemorySizeScalers {
   double nTPCHits = 0;
   double nTRDTracklets = 0;
   double nITSTracks = 0;
+  double factor = 1;
 
   // Offset
   static constexpr double offset = 1000.;
+  static constexpr double hitOffset = 20000;
 
   // Scaling Factors
   static constexpr double tpcPeaksPerDigit = 0.2;
   static constexpr double tpcClustersPerPeak = 0.9;
-  static constexpr double tpcClustersNoiseOffset = 20000;
-  static constexpr double tpcTrackletsPerHit = 0.08;
+  static constexpr double tpcStartHitsPerHit = 0.08;
+  static constexpr double tpcTrackletsPerStartHit = 0.8;
+  static constexpr double tpcTrackletHitsPerHit = 5;
   static constexpr double tpcSectorTracksPerHit = 0.02;
   static constexpr double tpcSectorTrackHitsPerHit = 0.8f;
   static constexpr double tpcTracksPerHit = 0.012;
   static constexpr double tpcTrackHitsPerHit = 0.7;
 
-  double NTPCPeaks(double tpcDigits) { return offset + tpcDigits * tpcPeaksPerDigit + tpcClustersNoiseOffset; }
-  double NTPCClusters(double tpcDigits) { return tpcClustersPerPeak * NTPCPeaks(tpcDigits); }
-  double NTPCTracklets(double tpcHits) { return offset + tpcHits * tpcTrackletsPerHit; }
-  double NTPCSectorTracks(double tpcHits) { return offset + tpcHits * tpcSectorTracksPerHit; }
-  double NTPCSectorTrackHits(double tpcHits) { return offset + tpcHits * tpcSectorTrackHitsPerHit; }
-  double NTPCTracks(double tpcHits) { return offset + tpcHits * tpcTracksPerHit; }
-  double NTPCTrackHits(double tpcHits) { return offset + tpcHits * tpcTrackHitsPerHit; }
-  double NTPCMaxRowStartHits(double tpcHits) { return offset + NTPCTracklets(tpcHits) / GPUCA_ROW_COUNT * 3.; }
+  double NTPCPeaks(double tpcDigits) { return hitOffset + tpcDigits * tpcPeaksPerDigit * factor; }
+  double NTPCClusters(double tpcDigits) { return tpcClustersPerPeak * NTPCPeaks(tpcDigits) * factor; }
+  double NTPCStartHits(double tpcHits) { return offset + tpcHits * tpcStartHitsPerHit * factor; }
+  double NTPCTracklets(double tpcHits) { return NTPCStartHits(tpcHits) * tpcTrackletsPerStartHit * factor; }
+  double NTPCTrackletHits(double tpcHits) { return hitOffset + tpcHits * tpcTrackletHitsPerHit * factor; }
+  double NTPCSectorTracks(double tpcHits) { return offset + tpcHits * tpcSectorTracksPerHit * factor; }
+  double NTPCSectorTrackHits(double tpcHits) { return offset + tpcHits * tpcSectorTrackHitsPerHit * factor; }
+  double NTPCTracks(double tpcHits) { return offset + tpcHits * tpcTracksPerHit * factor; }
+  double NTPCTrackHits(double tpcHits) { return offset + tpcHits * tpcTrackHitsPerHit * factor; }
+  double NTPCMaxRowStartHits(double tpcHits) { return offset + NTPCStartHits(tpcHits) / GPUCA_ROW_COUNT * 3. * factor; }
 };
 
 } // namespace GPUCA_NAMESPACE::gpu

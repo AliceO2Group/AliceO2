@@ -29,7 +29,9 @@
 
 #include <fairmq/FairMQDevice.h>
 
+#include <unistd.h>
 #include <algorithm>
+#include <unordered_map>
 #include <cctype>
 #include <string>
 
@@ -41,8 +43,8 @@ namespace o2h = o2::header;
 class rawReaderSpecs : public o2f::Task
 {
  public:
-  explicit rawReaderSpecs(const std::string& config, bool tfAsMessage = false, int loop = 1)
-    : mLoop(loop), mHBFPerMessage(!tfAsMessage), mReader(std::make_unique<o2::raw::RawFileReader>(config))
+  explicit rawReaderSpecs(const std::string& config, bool tfAsMessage = false, bool outPerRoute = true, int loop = 1, uint32_t delay_us = 0)
+    : mLoop(loop < 1 ? 1 : loop), mHBFPerMessage(!tfAsMessage), mOutPerRoute(outPerRoute), mDelayUSec(delay_us), mReader(std::make_unique<o2::raw::RawFileReader>(config))
   {
     LOG(INFO) << "Number of loops over whole data requested: " << mLoop;
     if (mHBFPerMessage) {
@@ -50,6 +52,8 @@ class rawReaderSpecs : public o2f::Task
     } else {
       LOG(INFO) << "HBF of single TF of each link will be sent as a single message";
     }
+    LOG(INFO) << "A message per " << (mOutPerRoute ? "route" : "link") << " will be sent";
+    LOG(INFO) << "Delay of " << mDelayUSec << " microseconds will be added between TFs";
   }
 
   void init(o2f::InitContext& ic) final
@@ -85,10 +89,18 @@ class rawReaderSpecs : public o2f::Task
       return false;
     };
 
+    // clean-up before reading next TF
     auto tfID = mReader->getNextTFToRead();
     int nlinks = mReader->getNLinks();
+
+    std::unordered_map<std::string, std::unique_ptr<FairMQParts>> messagesPerRoute;
+    std::vector<std::unique_ptr<FairMQParts>> messagesPerLink;
+    if (!mOutPerRoute) {
+      messagesPerLink.resize(nlinks);
+    }
+
     if (tfID >= mReader->getNTimeFrames()) {
-      if (mReader->getNTimeFrames() && mLoop--) {
+      if (mReader->getNTimeFrames() && --mLoop) {
         tfID = 0;
         mReader->setNextTFToRead(tfID);
         loopsDone++;
@@ -106,17 +118,20 @@ class rawReaderSpecs : public o2f::Task
     }
 
     // read next time frame
-    size_t tfMessages = 0, tfSize = 0;
+    size_t tfNParts = 0, tfSize = 0;
     LOG(INFO) << "Reading TF#" << mTFIDaccum << " (" << tfID << " at iteration " << loopsDone << ')';
 
     for (int il = 0; il < nlinks; il++) {
       auto& link = mReader->getLink(il);
 
+      if (link.fairMQChannel.empty() && !findOutputChannel(link)) { // no output channel
+        continue;
+      }
+
       o2h::DataHeader hdrTmpl(link.description, link.origin, link.subspec); // template with 0 size
       hdrTmpl.payloadSerializationMethod = o2h::gSerializationMethodNone;
       hdrTmpl.splitPayloadParts = mHBFPerMessage ? link.getNHBFinTF() : 1;
 
-      FairMQParts parts;
       while (hdrTmpl.splitPayloadIndex < hdrTmpl.splitPayloadParts) {
 
         tfSize += hdrTmpl.payloadSize = mHBFPerMessage ? link.getNextHBFSize() : link.getNextTFSize();
@@ -134,29 +149,60 @@ class rawReaderSpecs : public o2f::Task
         // check if the RDH to send corresponds to expected orbit
         if (hdrTmpl.splitPayloadIndex == 0) {
           uint32_t hbOrbExpected = mReader->getOrbitMin() + tfID * mReader->getNominalHBFperTF();
-          uint32_t hbOrbRead = o2::raw::RDHUtils::getHBOrbit(plMessage->GetData());
+          uint32_t hbOrbRead = o2::raw::RDHUtils::getHeartBeatOrbit(plMessage->GetData());
           if (hbOrbExpected != hbOrbRead) {
             LOGF(ERROR, "Expected orbit=%u but got %u for %d-th HBF in TF#%d of %s/%s/0x%u",
                  hbOrbExpected, hbOrbRead, hdrTmpl.splitPayloadIndex, tfID,
                  link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
           }
         }
-        parts.AddPart(std::move(hdMessage));
-        parts.AddPart(std::move(plMessage));
+        FairMQParts* parts = nullptr;
+        if (mOutPerRoute) {
+          parts = messagesPerRoute[link.fairMQChannel].get(); // FairMQParts*
+          if (!parts) {
+            messagesPerRoute[link.fairMQChannel] = std::make_unique<FairMQParts>();
+            parts = messagesPerRoute[link.fairMQChannel].get();
+          }
+        } else {                             // message per link
+          parts = messagesPerLink[il].get(); // FairMQParts*
+          if (!parts) {
+            messagesPerLink[il] = std::make_unique<FairMQParts>();
+            parts = messagesPerLink[il].get();
+          }
+        }
+        parts->AddPart(std::move(hdMessage));
+        parts->AddPart(std::move(plMessage));
         hdrTmpl.splitPayloadIndex++; // prepare for next
-        tfMessages++;
+        tfNParts++;
       }
-      LOGF(INFO, "Sending %d parts for TF#%d(%d in iteration %d) of %s/%s/0x%u", hdrTmpl.splitPayloadParts, mTFIDaccum, tfID,
+      LOGF(DEBUG, "Added %d parts for TF#%d(%d in iteration %d) of %s/%s/0x%u", hdrTmpl.splitPayloadParts, mTFIDaccum, tfID,
            loopsDone, link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
-
-      if (link.fairMQChannel.empty() && !findOutputChannel(link)) { // no output channel
-        continue;
-      }
-      device->Send(parts, link.fairMQChannel);
     }
-    LOGF(INFO, "Sent payload of %zu bytes in %zu messages for TF %d", tfSize, tfMessages, mTFIDaccum);
+
+    if (mTFIDaccum) { // delay sending
+      usleep(mDelayUSec);
+    }
+
+    if (mOutPerRoute) {
+      for (auto& msgIt : messagesPerRoute) {
+        LOG(INFO) << "Sending " << msgIt.second->Size() / 2 << " parts to channel " << msgIt.first;
+        device->Send(*msgIt.second.get(), msgIt.first);
+      }
+    } else {
+      for (int il = 0; il < nlinks; il++) {
+        auto& link = mReader->getLink(il);
+        auto* parts = messagesPerLink[il].get(); // FairMQParts*
+        if (parts) {
+          LOG(INFO) << "Sending " << parts->Size() / 2 << " parts to channel " << link.fairMQChannel << " for " << link.describe();
+          device->Send(*parts, link.fairMQChannel);
+        }
+      }
+    }
+
+    LOGF(INFO, "Sent payload of %zu bytes in %zu parts in %zu messages for TF %d", tfSize, tfNParts,
+         (mOutPerRoute ? messagesPerRoute.size() : messagesPerLink.size()), mTFIDaccum);
     sentSize += tfSize;
-    sentMessages += tfMessages;
+    sentMessages += tfNParts;
 
     mReader->setNextTFToRead(++tfID);
     ++mTFIDaccum;
@@ -165,12 +211,14 @@ class rawReaderSpecs : public o2f::Task
  private:
   int mLoop = 0;                                   // once last TF reached, loop while mLoop>=0
   size_t mTFIDaccum = 0;                           // TFId accumulator (accounts for looping)
+  uint32_t mDelayUSec = 0;                         // Delay in microseconds between TFs
   bool mHBFPerMessage = true;                      // true: send TF as multipart of HBFs, false: single message per TF
+  bool mOutPerRoute = true;                        // true: send 1 large output route, otherwise 1 outpur per link
   bool mDone = false;                              // processing is over or not
   std::unique_ptr<o2::raw::RawFileReader> mReader; // matching engine
 };
 
-o2f::DataProcessorSpec getReaderSpec(std::string config, bool tfAsMessage, int loop)
+o2f::DataProcessorSpec getReaderSpec(std::string config, bool tfAsMessage, bool outPerRoute, int loop, uint32_t delay_us)
 {
   // check which inputs are present in files to read
   o2f::Outputs outputs;
@@ -187,13 +235,13 @@ o2f::DataProcessorSpec getReaderSpec(std::string config, bool tfAsMessage, int l
     "raw-file-reader",
     o2f::Inputs{},
     outputs,
-    o2f::AlgorithmSpec{o2f::adaptFromTask<rawReaderSpecs>(config, tfAsMessage, loop)},
+    o2f::AlgorithmSpec{o2f::adaptFromTask<rawReaderSpecs>(config, tfAsMessage, outPerRoute, loop, delay_us)},
     o2f::Options{}};
 }
 
-o2f::WorkflowSpec o2::raw::getRawFileReaderWorkflow(std::string inifile, bool tfAsMessage, int loop)
+o2f::WorkflowSpec o2::raw::getRawFileReaderWorkflow(std::string inifile, bool tfAsMessage, bool outPerRoute, int loop, uint32_t delay_us)
 {
   o2f::WorkflowSpec specs;
-  specs.emplace_back(getReaderSpec(inifile, tfAsMessage, loop));
+  specs.emplace_back(getReaderSpec(inifile, tfAsMessage, outPerRoute, loop, delay_us));
   return specs;
 }

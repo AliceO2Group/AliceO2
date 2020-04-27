@@ -17,12 +17,13 @@
 #include "GPUDef.h"
 #include "GPUProcessor.h"
 #include "GPUDataTypes.h"
-#include "Digit.h"
+#include "CfFragment.h"
 
-namespace GPUCA_NAMESPACE
+namespace o2
 {
 
 class MCCompLabel;
+
 namespace dataformats
 {
 template <typename TruthElement>
@@ -32,8 +33,13 @@ class MCTruthContainer;
 namespace tpc
 {
 struct ClusterNative;
-}
+class Digit;
+} // namespace tpc
 
+} // namespace o2
+
+namespace GPUCA_NAMESPACE
+{
 namespace gpu
 {
 struct GPUTPCClusterMCInterim;
@@ -46,16 +52,23 @@ class GPUTPCClusterFinder : public GPUProcessor
   struct Memory {
     struct counters_t {
       size_t nDigits = 0;
+      size_t nPositions = 0; // TODO use this instead of nDigits
       size_t nPeaks = 0;
       size_t nClusters = 0;
       unsigned int nPages = 0;
+      unsigned int nPagesSubslice = 0;
     } counters;
+    CfFragment fragment;
   };
 
   struct ZSOffset {
     unsigned int offset;
     unsigned short endpoint;
     unsigned short num;
+  };
+
+  struct MinMaxCN {
+    unsigned int minC, minN, maxC, maxN;
   };
 
 #ifndef GPUCA_GPUCODE
@@ -78,7 +91,8 @@ class GPUTPCClusterFinder : public GPUProcessor
 #endif
   unsigned char* mPzs = nullptr;
   ZSOffset* mPzsOffsets = nullptr;
-  deprecated::Digit* mPdigits = nullptr; // input digits, only set if ZS is skipped
+  MinMaxCN* mMinMaxCN = nullptr;
+  tpc::Digit* mPdigits = nullptr; // input digits, only set if ZS is skipped
   ChargePos* mPpositions = nullptr;
   ChargePos* mPpeakPositions = nullptr;
   ChargePos* mPfilteredPeakPositions = nullptr;

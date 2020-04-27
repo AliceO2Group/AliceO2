@@ -15,18 +15,17 @@
 
 #include "Array2D.h"
 #include "CfUtils.h"
-#include "Digit.h"
 #include "PackedCharge.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
-using namespace GPUCA_NAMESPACE::gpu::deprecated;
+using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 template <>
 GPUdii() void GPUTPCCFPeakFinder::Thread<GPUTPCCFPeakFinder::findPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
-  findPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPpositions, clusterer.mPmemory->counters.nDigits, clusterer.mPisPeak, isPeakMap);
+  findPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPpositions, clusterer.mPmemory->counters.nPositions, clusterer.mPisPeak, isPeakMap);
 }
 
 GPUdii() bool GPUTPCCFPeakFinder::isPeakScratchPad(
@@ -163,7 +162,7 @@ GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBl
   // number of work items is dividable by 64.
   // These dummy items also compute the last digit but discard the result.
   ChargePos pos = positions[CAMath::Min(idx, (size_t)(digitnum - 1))];
-  Charge charge = chargeMap[pos].unpack();
+  Charge charge = pos.valid() ? chargeMap[pos].unpack() : Charge(0);
 
   uchar peak;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)

@@ -60,11 +60,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
 
     for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= minHits; irow++) {
       gap++;
-#ifdef GPUCA_EXTERN_ROW_HITS
-      calink ih = tracker.TrackletRowHits()[irow * s.mNTracklets + itr];
-#else
-      calink ih = tracklet.RowHit(irow);
-#endif // GPUCA_EXTERN_ROW_HITS
+      calink ih = tracker.TrackletRowHits()[tracklet.FirstHit() + (irow - firstRow)];
       if (ih != CALINK_INVAL) {
         GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(irow);
         bool own = (tracker.HitWeight(row, ih) <= w);
@@ -89,19 +85,15 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
       if (gap > kMaxRowGap || irow == lastRow) { // store
         if (nHits >= minHits) {
           unsigned int itrout = CAMath::AtomicAdd(tracker.NTracks(), 1);
-          if (itrout + 1 >= tracker.NMaxTracks()) {
-            tracker.CommonMemory()->kernelError = GPUCA_ERROR_TRACK_OVERFLOW;
-            CAMath::AtomicExch(tracker.NTracks(), 0);
-            return;
-          }
           unsigned int nFirstTrackHit = CAMath::AtomicAdd(tracker.NTrackHits(), nHits);
-          if ((nFirstTrackHit + nHits) >= tracker.NMaxTrackHits()) {
-            tracker.CommonMemory()->kernelError = GPUCA_ERROR_TRACK_HIT_OVERFLOW;
-            CAMath::AtomicExch(tracker.NTrackHits(), tracker.NMaxTrackHits());
+          if (itrout >= tracker.NMaxTracks() || nFirstTrackHit + nHits > tracker.NMaxTrackHits()) {
+            tracker.CommonMemory()->kernelError = (itrout >= tracker.NMaxTracks()) ? GPUCA_ERROR_TRACK_OVERFLOW : GPUCA_ERROR_TRACK_HIT_OVERFLOW;
             CAMath::AtomicExch(tracker.NTracks(), 0);
+            if (nFirstTrackHit + nHits > tracker.NMaxTrackHits()) {
+              CAMath::AtomicExch(tracker.NTrackHits(), tracker.NMaxTrackHits());
+            }
             return;
           }
-          tracker.Tracks()[itrout].SetAlive(1);
           tracker.Tracks()[itrout].SetLocalTrackId(itrout);
           tracker.Tracks()[itrout].SetParam(tracklet.Param());
           tracker.Tracks()[itrout].SetFirstHitID(nFirstTrackHit);

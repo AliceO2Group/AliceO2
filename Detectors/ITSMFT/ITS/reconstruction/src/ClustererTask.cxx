@@ -78,7 +78,7 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
   if (mRawDataMode) {
 
     mReaderRaw->openInput(inpName);
-    mClusterer.process(*mReaderRaw.get(), &mFullClus, &mCompClus, nullptr, &mROFRecVec);
+    mClusterer.process(1, *mReaderRaw.get(), &mFullClus, &mCompClus, &mPatterns, &mROFRecVec, nullptr);
 
     auto basename = outName.substr(0, outName.size() - sizeof("root"));
     auto nFiles = int(mROFRecVec.size() / maxROframe);
@@ -123,14 +123,10 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
 
     // loop over entries of the input tree
     while (mReaderMC->readNextEntry()) {
-      mClusterer.process(*mReaderMC.get(), &mFullClus, &mCompClus, &mClsLabels, &mROFRecVec);
+      mClusterer.process(1, *mReaderMC.get(), &mFullClus, &mCompClus, &mPatterns, &mROFRecVec, &mClsLabels);
     }
 
-    if (mClusterer.getPatterns()) {
-      outTree.Branch("ITSClusterPatt", &mPatterns);
-    } else {
-      LOG(INFO) << Class()->GetName() << " output of cluster patterns is not requested";
-    }
+    outTree.Branch("ITSClusterPatt", &mPatterns);
 
     std::vector<o2::itsmft::MC2ROFRecord> mc2rof, *mc2rofPtr = &mc2rof;
     if (mUseMCTruth) {
@@ -178,12 +174,7 @@ void ClustererTask::writeTree(std::string basename, int i)
   std::vector<CompClusterExt> compClusBuffer, *compClusPtr = &compClusBuffer;
   compClusBuffer.assign(&mCompClus[first], &mCompClus[last]);
   outTree.Branch("ITSClusterComp", &compClusPtr);
-
-  if (mClusterer.getPatterns()) {
-    outTree.Branch("ITSClusterPatt", &mPatterns);
-  } else {
-    LOG(INFO) << Class()->GetName() << " output of cluster patterns is not requested";
-  }
+  outTree.Branch("ITSClusterPatt", &mPatterns);
 
   for (auto& rof : rofRecBuffer) {
     rof.setFirstEntry(rof.getFirstEntry() - first);

@@ -51,17 +51,20 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
           row = clustersCompressed->rowDiffA[offset - i - 1];
         }
         if (changeLeg && track.Mirror()) {
+          offset += clustersCompressed->nTrackClusters[i] - j;
           break;
         }
         if (track.Propagate(param.tpcGeometry.Row2X(row), param.SliceParam[slice].Alpha)) {
+          offset += clustersCompressed->nTrackClusters[i] - j;
           break;
         }
         unsigned int timeTmp = clustersCompressed->timeResA[offset - i - 1];
         if (timeTmp & 800000) {
           timeTmp |= 0xFF000000;
         }
-        time = timeTmp + ClusterNative::packTime(param.tpcGeometry.LinearZ2Time(slice, track.Z()));
-        pad = clustersCompressed->padResA[offset - i - 1] + ClusterNative::packPad(param.tpcGeometry.LinearY2Pad(slice, row, track.Y()));
+        time = timeTmp + ClusterNative::packTime(CAMath::Max(0.f, param.tpcGeometry.LinearZ2Time(slice, track.Z())));
+        float tmpPad = CAMath::Max(0.f, CAMath::Min((float)param.tpcGeometry.NPads(GPUCA_ROW_COUNT - 1), param.tpcGeometry.LinearY2Pad(slice, row, track.Y())));
+        pad = clustersCompressed->padResA[offset - i - 1] + ClusterNative::packPad(tmpPad);
       } else {
         time = clustersCompressed->timeA[i];
         pad = clustersCompressed->padA[i];
@@ -74,6 +77,7 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
         track.Init(param.tpcGeometry.Row2X(row), y, z, param.SliceParam[slice].Alpha, clustersCompressed->qPtA[i], param);
       }
       if (j + 1 < clustersCompressed->nTrackClusters[i] && track.Filter(y, z, row)) {
+        offset += clustersCompressed->nTrackClusters[i] - j;
         break;
       }
       offset++;
@@ -91,7 +95,9 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
       ClusterNative* buffer = &clusterBuffer[clustersNative.clusterOffset[i][j]];
-      memcpy((void*)buffer, (const void*)clusters[i][j].data(), clusters[i][j].size() * sizeof(clusterBuffer[0]));
+      if (clusters[i][j].size()) {
+        memcpy((void*)buffer, (const void*)clusters[i][j].data(), clusters[i][j].size() * sizeof(clusterBuffer[0]));
+      }
       unsigned int time = 0;
       unsigned short pad = 0;
       ClusterNative* cl = buffer + clusters[i][j].size();

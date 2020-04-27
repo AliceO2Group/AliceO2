@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "Steer/MCKinematicsReader.h"
 #include <TChain.h>
 #include <vector>
@@ -34,8 +35,13 @@ void MCKinematicsReader::loadTracksForSource(int source) const
   }
 }
 
-bool MCKinematicsReader::init(std::string_view name)
+bool MCKinematicsReader::initFromDigitContext(std::string_view name)
 {
+  if (mInitialized) {
+    LOG(INFO) << "MCKinematicsReader already initialized; doing nothing";
+    return false;
+  }
+
   auto context = DigitizationContext::loadFromFile(name);
   if (!context) {
     return false;
@@ -51,6 +57,20 @@ bool MCKinematicsReader::init(std::string_view name)
 
   // actual loading will be done only if someone asks
   // the first time for a particular source ...
+
+  return true;
+}
+
+bool MCKinematicsReader::initFromKinematics(std::string_view name)
+{
+  if (mInitialized) {
+    LOG(INFO) << "MCKinematicsReader already initialized; doing nothing";
+    return false;
+  }
+  mInputChains.emplace_back(new TChain("o2sim"));
+  mInputChains.back()->AddFile(o2::base::NameConf::getMCKinematicsFileName(name.data()).c_str());
+  mTracks.resize(1);
+  mInitialized = true;
 
   return true;
 }

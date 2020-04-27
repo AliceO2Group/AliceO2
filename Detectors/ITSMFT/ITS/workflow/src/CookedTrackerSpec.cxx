@@ -33,6 +33,8 @@
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/VertexerTraits.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/StringUtils.h"
 
 using namespace o2::framework;
 
@@ -67,26 +69,21 @@ void CookedTrackerDPL::init(InitContext& ic)
     LOG(INFO) << "ITSCookedTracker RO: continuous=" << continuous;
     mTracker.setContinuousMode(continuous);
   } else {
-    LOG(ERROR) << "Cannot retrieve GRP from the " << filename.c_str() << " file !";
-    mState = 0;
+    throw std::runtime_error(o2::utils::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
-  filename = ic.options().get<std::string>("dictionary-file");
-  std::ifstream file(filename.c_str());
-  if (file.good()) {
-    LOG(INFO) << "Running with dictionary: " << filename.c_str();
-    mDict.ReadBinaryFile(filename);
+  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  if (o2::base::NameConf::pathExists(dictFile)) {
+    mDict.readBinaryFile(dictFile);
+    LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
   } else {
-    LOG(INFO) << "Running without dictionary !";
+    LOG(INFO) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
   }
-  mState = 1;
 }
 
 void CookedTrackerDPL::run(ProcessingContext& pc)
 {
-  if (mState != 1)
-    return;
-
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto clusters = pc.inputs().get<gsl::span<o2::itsmft::Cluster>>("clusters");
@@ -152,7 +149,6 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
 
-  mState = 2;
 }
 
 DataProcessorSpec getCookedTrackerSpec(bool useMC)
@@ -184,7 +180,7 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
     AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(useMC)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"dictionary-file", VariantType::String, "complete_dictionary.bin", {"Name of the dictionary file"}},
+      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
 }
 

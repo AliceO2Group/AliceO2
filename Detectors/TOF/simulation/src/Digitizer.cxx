@@ -364,10 +364,13 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
     fillDigitsInStrip(strips, mcTruthContainer, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
 
   if (isIfOverlap > -1 && isIfOverlap < MAXWINDOWS) { // fill also a second readout window because of the overlap
-    if (!isIfOverlap)
+    if (!isIfOverlap) {
       strips = mStripsCurrent;
-    else
+      mcTruthContainer = mMCTruthContainerCurrent;
+    } else {
       strips = mStripsNext[isIfOverlap - 1];
+      mcTruthContainer = mMCTruthContainerNext[isIfOverlap - 1];
+    }
 
     int eventcounter = mReadoutWindowCurrent + isIfOverlap;
     int hittimeTDC = (nbc - eventcounter * Geo::BC_IN_WINDOW) * 1024 + tdc; // time in TDC bin within the TOF WINDOW

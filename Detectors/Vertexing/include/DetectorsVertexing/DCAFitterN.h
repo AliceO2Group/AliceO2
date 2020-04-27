@@ -78,7 +78,7 @@ class DCAFitterN
 
   using Track = o2::track::TrackParCov;
   using TrackAuxPar = o2::track::TrackAuxPar;
-  using CircleCrossInfo = o2::track::CircleCrossInfo;
+  using CrossInfo = o2::track::CrossInfo;
 
   using Vec3D = ROOT::Math::SVector<double, 3>;
   using VecND = ROOT::Math::SVector<double, N>;
@@ -138,10 +138,11 @@ class DCAFitterN
   void setMaxR(float r = 200.) { mMaxR2 = r * r; }
   void setMaxDZIni(float d = 4.) { mMaxDZIni = d; }
   void setMaxChi2(float chi2 = 999.) { mMaxChi2 = chi2; }
-  void setBz(float bz) { mBz = bz; }
+  void setBz(float bz) { mBz = std::abs(bz) > o2::constants::math::Almost0 ? bz : 0.f; }
   void setMinParamChange(float x = 1e-3) { mMinParamChange = x > 1e-4 ? x : 1.e-4; }
   void setMinRelChi2Change(float r = 0.9) { mMinRelChi2Change = r > 0.1 ? r : 999.; }
   void setUseAbsDCA(bool v) { mUseAbsDCA = v; }
+  void setMaxDistance2ToMerge(float v) { mMaxDist2ToMergeSeeds = v; }
 
   int getNCandidates() const { return mCurHyp; }
   int getMaxIter() const { return mMaxIter; }
@@ -150,6 +151,7 @@ class DCAFitterN
   float getMaxChi2() const { return mMaxChi2; }
   float getMinParamChange() const { return mMinParamChange; }
   float getBz() const { return mBz; }
+  float getMaxDistance2ToMerge() const { return mMaxDist2ToMergeSeeds; }
   bool getUseAbsDCA() const { return mUseAbsDCA; }
   bool getPropagateToPCA() const { return mPropagateToPCA; }
 
@@ -187,7 +189,11 @@ class DCAFitterN
     assign(i + 1, args...);
   }
 
-  void clear() { mCurHyp = 0; }
+  void clear()
+  {
+    mCurHyp = 0;
+    mAllowAltPreference = true;
+  }
 
   static void setTrackPos(Vec3D& pnt, const Track& tr)
   {
@@ -208,7 +214,7 @@ class DCAFitterN
   MatSymND mSinDif;    // matrix with sin(alp_j-alp_i) for j<i
   std::array<const Track*, N> mOrigTrPtr;
   std::array<TrackAuxPar, N> mTrAux; // Aux track info for each track at each cand. vertex
-  CircleCrossInfo mCrossings;        // info on track crossing
+  CrossInfo mCrossings;              // info on track crossing
 
   std::array<ArrTrackCovI, MAXHYP> mTrcEInv; // errors for each track at each cand. vertex
   std::array<ArrTrack, MAXHYP> mCandTr;      // tracks at each cond. vertex (Note: Errors are at seed XY point)
@@ -224,7 +230,8 @@ class DCAFitterN
   std::array<int, MAXHYP> mOrder{0};
   int mCurHyp = 0;
   int mCrossIDCur = 0;
-  int mCrossIDAlt = 1;
+  int mCrossIDAlt = -1;
+  bool mAllowAltPreference = true; // if the fit converges to alternative PCA seed, abandon the current one
   bool mUseAbsDCA = false;       // use abs. distance minimization rather than chi2
   bool mPropagateToPCA = true;   // create tracks version propagated to PCA
   int mMaxIter = 20;             // max number of iterations
@@ -234,6 +241,7 @@ class DCAFitterN
   float mMinParamChange = 1e-3;  // stop iterations if largest change of any X is smaller than this
   float mMinRelChi2Change = 0.9; // stop iterations is chi2/chi2old > this
   float mMaxChi2 = 100;          // abs cut on chi2 or abs distance
+  float mMaxDist2ToMergeSeeds = 1.; // merge 2 seeds to their average if their distance^2 is below the threshold
 
   ClassDefNV(DCAFitterN, 1);
 };
@@ -250,11 +258,20 @@ int DCAFitterN<N, Args...>::process(const Tr&... args)
   for (int i = 0; i < N; i++) {
     mTrAux[i].set(*mOrigTrPtr[i], mBz);
   }
-  if (!mCrossings.set(mTrAux[0], mTrAux[1])) { // even for N>2 it should be enough to test just 1 loop
+  if (!mCrossings.set(mTrAux[0], *mOrigTrPtr[0], mTrAux[1], *mOrigTrPtr[1])) { // even for N>2 it should be enough to test just 1 loop
     return 0;                                  // no crossing
   }
   if (mUseAbsDCA) {
     calcRMatrices(); // needed for fast residuals derivatives calculation in case of abs. distance minimization
+  }
+  if (mCrossings.nDCA == MAXHYP) { // if there are 2 candidates and they are too close, chose their mean as a starting point
+    auto dst2 = (mCrossings.xDCA[0] - mCrossings.xDCA[1]) * (mCrossings.xDCA[0] - mCrossings.xDCA[1]) +
+                (mCrossings.yDCA[0] - mCrossings.yDCA[1]) * (mCrossings.yDCA[0] - mCrossings.yDCA[1]);
+    if (dst2 < mMaxDist2ToMergeSeeds) {
+      mCrossings.nDCA = 1;
+      mCrossings.xDCA[0] = 0.5 * (mCrossings.xDCA[0] + mCrossings.xDCA[1]);
+      mCrossings.xDCA[0] = 0.5 * (mCrossings.xDCA[0] + mCrossings.xDCA[1]);
+    }
   }
   // check all crossings
   for (int ic = 0; ic < mCrossings.nDCA; ic++) {
@@ -263,7 +280,7 @@ int DCAFitterN<N, Args...>::process(const Tr&... args)
       continue;
     }
     mCrossIDCur = ic;
-    mCrossIDAlt = mCrossings.nDCA == 2 ? 1 - ic : -1; // works for max 2 crossings
+    mCrossIDAlt = (mCrossings.nDCA == 2 && mAllowAltPreference) ? 1 - ic : -1; // works for max 2 crossings
     mNIters[mCurHyp] = 0;
     mTrPropDone[mCurHyp] = false;
     mChi2[mCurHyp] = -1.;
@@ -698,6 +715,7 @@ bool DCAFitterN<N, Args...>::minimizeChi2()
     }
     calcPCA(); // updated PCA
     if (mCrossIDAlt >= 0 && closerToAlternative()) {
+      mAllowAltPreference = false;
       return false;
     }
     calcTrackResiduals(); // updated residuals
@@ -750,6 +768,7 @@ bool DCAFitterN<N, Args...>::minimizeChi2NoErr()
     }
     calcPCANoErr(); // updated PCA
     if (mCrossIDAlt >= 0 && closerToAlternative()) {
+      mAllowAltPreference = false;
       return false;
     }
     calcTrackResiduals();      // updated residuals

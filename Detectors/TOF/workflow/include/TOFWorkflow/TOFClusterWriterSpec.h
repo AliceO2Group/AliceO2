@@ -15,6 +15,7 @@
 
 #include "TFile.h"
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include <string>

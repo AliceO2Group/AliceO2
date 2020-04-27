@@ -11,9 +11,6 @@
 /// @file   TrackReaderSpec.cxx
 
 #include <vector>
-
-#include "TTree.h"
-
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "TPCWorkflow/TrackReaderSpec.h"
@@ -33,64 +30,41 @@ TrackReader::TrackReader(bool useMC)
 void TrackReader::init(InitContext& ic)
 {
   mInputFileName = ic.options().get<std::string>("tpc-tracks-infile");
+  connectTree(mInputFileName);
 }
 
 void TrackReader::run(ProcessingContext& pc)
 {
+  auto ent = mTree->GetReadEntry() + 1;
+  accumulate(ent, 1);                // to really accumulate all, use accumulate(ent,mTree->GetEntries());
+  assert(ent < mTree->GetEntries()); // this should not happen
+  mTree->GetEntry(ent);
 
-  if (mFinished) {
-    return;
-  }
-  accumulate();
-
-  LOG(INFO) << "TPCTrackReader pushes " << mTracksOut.size() << " tracks";
   pc.outputs().snapshot(Output{"TPC", "TRACKS", 0, Lifetime::Timeframe}, mTracksOut);
   pc.outputs().snapshot(Output{"TPC", "CLUSREFS", 0, Lifetime::Timeframe}, mCluRefVecOut);
   if (mUseMC) {
     pc.outputs().snapshot(Output{"TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe}, mMCTruthOut);
   }
 
-  mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  }
 }
 
-void TrackReader::accumulate()
+void TrackReader::accumulate(int from, int n)
 {
-  // load data from files
-  TFile trFile(mInputFileName.c_str(), "read");
-  if (trFile.IsZombie()) {
-    LOG(FATAL) << "Failed to open tracks file " << mInputFileName;
-  }
-  TTree* trTree = (TTree*)trFile.Get(mTrackTreeName.c_str());
-  if (!trTree) {
-    LOG(FATAL) << "Failed to load tracks tree " << mTrackTreeName << " from " << mInputFileName;
-  }
-  LOG(INFO) << "Loaded tracks tree " << mTrackTreeName << " from " << mInputFileName;
-
-  trTree->SetBranchAddress(mTrackBranchName.c_str(), &mTracksInp);
-  trTree->SetBranchAddress(mClusRefBranchName.c_str(), &mCluRefVecInp);
-  if (mUseMC) {
-    if (trTree->GetBranch(mTrackMCTruthBranchName.c_str())) {
-      trTree->SetBranchAddress(mTrackMCTruthBranchName.c_str(), &mMCTruthInp);
-      LOG(INFO) << "Will use MC-truth from " << mTrackMCTruthBranchName;
-    } else {
-      LOG(INFO) << "MC-truth is missing";
-      mUseMC = false;
-    }
-  }
-  int nEnt = trTree->GetEntries();
-  if (nEnt == 1) {
-    trTree->GetEntry(0);
+  assert(from + n <= mTree->GetEntries());
+  if (n == 1) {
+    mTree->GetEntry(from);
     mTracksOut.swap(*mTracksInp);
     mCluRefVecOut.swap(*mCluRefVecInp);
     if (mUseMC) {
       mMCTruthOut.mergeAtBack(*mMCTruthInp);
     }
   } else {
-    int lastEntry = -1;
-    int ntrAcc = 0;
-    for (int iev = 0; iev < nEnt; iev++) {
-      trTree->GetEntry(iev);
+    for (int iev = 0; iev < n; iev++) {
+      mTree->GetEntry(from + iev);
       //
       uint32_t shift = mCluRefVecOut.size(); // during accumulation clusters refs need to be shifted
 
@@ -113,6 +87,29 @@ void TrackReader::accumulate()
       }
     }
   }
+  LOG(INFO) << "TPCTrackReader pushes " << mTracksOut.size() << " tracks from entries " << from << " : " << from + n - 1;
+}
+
+void TrackReader::connectTree(const std::string& filename)
+{
+  mTree.reset(nullptr); // in case it was already loaded
+  mFile.reset(TFile::Open(filename.c_str()));
+  assert(mFile && !mFile->IsZombie());
+  mTree.reset((TTree*)mFile->Get(mTrackTreeName.c_str()));
+  assert(mTree);
+
+  mTree->SetBranchAddress(mTrackBranchName.c_str(), &mTracksInp);
+  mTree->SetBranchAddress(mClusRefBranchName.c_str(), &mCluRefVecInp);
+  if (mUseMC) {
+    if (mTree->GetBranch(mTrackMCTruthBranchName.c_str())) {
+      mTree->SetBranchAddress(mTrackMCTruthBranchName.c_str(), &mMCTruthInp);
+      LOG(INFO) << "Will use MC-truth from " << mTrackMCTruthBranchName;
+    } else {
+      LOG(INFO) << "MC-truth is missing";
+      mUseMC = false;
+    }
+  }
+  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getTPCTrackReaderSpec(bool useMC)

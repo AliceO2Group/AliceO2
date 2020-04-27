@@ -18,15 +18,21 @@
 #include "ITSMFTReconstruction/LookUp.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #endif
 
-void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile = "complete_dictionary.bin")
+using namespace std;
+
+void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile = "")
 {
   using o2::itsmft::Cluster;
   using o2::itsmft::CompClusterExt;
   using o2::itsmft::LookUp;
 
+  if (dictfile.empty()) {
+    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+  }
   LookUp finder(dictfile.c_str());
   ofstream time_output("time.txt");
 
@@ -77,6 +83,6 @@ void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile 
   realtime.close();
   cputime << timerLookUp.CpuTime() / nevCl << std::endl;
   cputime.close();
-  time_output << "Real time (s): " << timerLookUp.RealTime() / nevCl << "CPU time (s): " << timerLookUp.CpuTime() / nevCl << endl;
-  cout << "Real time (s): " << timerLookUp.RealTime() / nevCl << " CPU time (s): " << timerLookUp.CpuTime() / nevCl << endl;
+  time_output << "Real time (s): " << timerLookUp.RealTime() / nevCl << "CPU time (s): " << timerLookUp.CpuTime() / nevCl << std::endl;
+  std::cout << "Real time (s): " << timerLookUp.RealTime() / nevCl << " CPU time (s): " << timerLookUp.CpuTime() / nevCl << std::endl;
 }

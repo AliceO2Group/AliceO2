@@ -60,6 +60,9 @@ Bool_t
 {
   /** read event **/
 
+  /** clear particle vector **/
+  mParticles.clear();
+
   /** endless generate-and-trigger loop **/
   while (true) {
 

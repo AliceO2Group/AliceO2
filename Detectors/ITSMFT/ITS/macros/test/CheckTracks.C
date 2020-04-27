@@ -23,6 +23,8 @@
 
 #endif
 
+using namespace std;
+
 struct DataFrames {
   void update(int frame, long index)
   {

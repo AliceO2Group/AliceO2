@@ -94,7 +94,7 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
 }
 //____________________________________________________________________________
 void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const TriggerRecord> ctr,
-                             const o2::dataformats::MCTruthContainer<MCLabel>* dmc, gsl::span<const uint> mcmap,
+                             const o2::dataformats::MCTruthContainer<MCLabel>* dmc, gsl::span<const unsigned int> mcmap,
                              std::vector<Cluster>* clusters, std::vector<TriggerRecord>* trigRec,
                              o2::dataformats::MCTruthContainer<MCLabel>* cluMC)
 {
@@ -153,7 +153,7 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
   }
 }
 //____________________________________________________________________________
-void Clusterer::convertCellsToDigits(gsl::span<const Cell> cells, int firstCellInEvent, int lastCellInEvent, gsl::span<const uint> mcmap)
+void Clusterer::convertCellsToDigits(gsl::span<const Cell> cells, int firstCellInEvent, int lastCellInEvent, gsl::span<const unsigned int> mcmap)
 {
 
   mDigits.clear();

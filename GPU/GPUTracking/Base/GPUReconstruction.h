@@ -104,9 +104,9 @@ class GPUReconstruction
 
   // Functionality to create an instance of GPUReconstruction for the desired device
   static GPUReconstruction* CreateInstance(const GPUSettingsProcessing& cfg);
-  static GPUReconstruction* CreateInstance(DeviceType type = DeviceType::CPU, bool forceType = true);
-  static GPUReconstruction* CreateInstance(int type, bool forceType) { return CreateInstance((DeviceType)type, forceType); }
-  static GPUReconstruction* CreateInstance(const char* type, bool forceType);
+  static GPUReconstruction* CreateInstance(DeviceType type = DeviceType::CPU, bool forceType = true, GPUReconstruction* master = nullptr);
+  static GPUReconstruction* CreateInstance(int type, bool forceType, GPUReconstruction* master = nullptr) { return CreateInstance((DeviceType)type, forceType, master); }
+  static GPUReconstruction* CreateInstance(const char* type, bool forceType, GPUReconstruction* master = nullptr);
 
   // Helpers for kernel launches
   template <class T, int I = 0>
@@ -142,6 +142,13 @@ class GPUReconstruction
     deviceEvent* ev;
     deviceEvent* evList;
     int nEvents;
+  };
+
+  struct krnlProperties {
+    krnlProperties(int t, int b = 1) : nThreads(t), minBlocks(b) {}
+    unsigned int nThreads;
+    unsigned int minBlocks;
+    unsigned int total() { return nThreads * minBlocks; }
   };
 
   // Global steering functions
@@ -180,6 +187,7 @@ class GPUReconstruction
 
   // Helpers to fetch processors from other shared libraries
   virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits);
+  bool slavesExist() { return mSlaves.size() || mMaster; }
 
   // Getters / setters for parameters
   DeviceType GetDeviceType() const { return (DeviceType)mProcessingSettings.deviceType; }
@@ -197,7 +205,7 @@ class GPUReconstruction
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
   void SetOutputControl(void* ptr, size_t size);
   GPUOutputControl& OutputControl() { return mOutputControl; }
-  virtual int GetMaxThreads();
+  int GetMaxThreads() { return mMaxThreads; }
   const void* DeviceMemoryBase() const { return mDeviceMemoryBase; }
 
   RecoStepField GetRecoSteps() const { return mRecoSteps; }
@@ -215,10 +223,15 @@ class GPUReconstruction
 
   // Support / Debugging
   virtual void PrintKernelOccupancies() {}
+  double GetStatKernelTime() { return mStatKernelTime; }
 
  protected:
   GPUReconstruction(const GPUSettingsProcessing& cfg); // Constructor
+  int InitPhaseBeforeDevice();
   virtual int InitDevice() = 0;
+  int InitPhasePermanentMemory();
+  int InitPhaseAfterDevice();
+  void WriteConstantParams();
   virtual int ExitDevice() = 0;
   virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
 
@@ -288,19 +301,28 @@ class GPUReconstruction
   std::string mDeviceName = "CPU";
 
   // Ptrs to host and device memory;
-  void* mHostMemoryBase = nullptr;
-  void* mHostMemoryPermanent = nullptr;
-  void* mHostMemoryPool = nullptr;
-  size_t mHostMemorySize = 0;
-  void* mDeviceMemoryBase = nullptr;
-  void* mDeviceMemoryPermanent = nullptr;
-  void* mDeviceMemoryPool = nullptr;
-  size_t mDeviceMemorySize = 0;
+  void* mHostMemoryBase = nullptr;        // Ptr to begin of large host memory buffer
+  void* mHostMemoryPermanent = nullptr;   // Ptr to large host memory buffer offset by permanently allocated memory
+  void* mHostMemoryPool = nullptr;        // Ptr to next free location in host memory buffer
+  size_t mHostMemorySize = 0;             // Size of host memory buffer
+  void* mDeviceMemoryBase = nullptr;      //
+  void* mDeviceMemoryPermanent = nullptr; //
+  void* mDeviceMemoryPool = nullptr;      //
+  size_t mDeviceMemorySize = 0;           //
+
+  GPUReconstruction* mMaster = nullptr;    // Ptr to a GPUReconstruction object serving as master, sharing GPU memory, events, etc.
+  std::vector<GPUReconstruction*> mSlaves; // Ptr to slave GPUReconstructions
 
   // Others
   bool mInitialized = false;
   unsigned int mStatNEvents = 0;
   unsigned int mNEventsProcessed = 0;
+  double mStatKernelTime = 0.;
+
+  int mMaxThreads = 0; // Maximum number of threads that may be running, on CPU or GPU
+  int mThreadId = -1;  // Thread ID that is valid for the local CUDA context
+  int mGPUStuck = 0;   // Marks that the GPU is stuck, skip future events
+  int mNStreams = 1;   // Number of parallel GPU streams
 
   // Management for GPUProcessors
   struct ProcessorData {

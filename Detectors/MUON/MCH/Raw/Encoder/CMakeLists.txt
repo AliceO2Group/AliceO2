@@ -14,7 +14,7 @@ o2_add_library(MCHRawEncoder
         Payload/BitSet.cxx
         Payload/ElinkEncoder.cxx
         Payload/DataBlock.cxx
-        PUBLIC_LINK_LIBRARIES O2::MCHRawCommon O2::MCHMappingFactory
+        PUBLIC_LINK_LIBRARIES O2::MCHRawCommon O2::MCHMappingImpl4
         O2::MCHRawElecMap
         O2::MCHBase
         O2::CommonDataFormat

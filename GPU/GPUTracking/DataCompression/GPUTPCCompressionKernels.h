@@ -38,8 +38,10 @@ class GPUTPCCompressionKernels : public GPUKernelTemplate
     step1unattached = 1
   };
 
-  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int, GPUCA_THREAD_COUNT_COMPRESSION2> {
+  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionKernels_step1unattached)> {
     GPUAtomic(unsigned int) nCount;
+    unsigned int lastIndex;
+    unsigned int sortBuffer[GPUCA_TPC_COMP_CHUNK_SIZE];
   };
 
   template <int iKernel = defaultKernel>

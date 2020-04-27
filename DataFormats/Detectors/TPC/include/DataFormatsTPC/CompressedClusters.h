@@ -28,39 +28,44 @@ struct CompressedClustersCounters {
   unsigned int nAttachedClustersReduced = 0;
   unsigned int nSliceRows = 36 * 152;
   unsigned char nComppressionModes = 0;
+
   ClassDefNV(CompressedClustersCounters, 1);
 };
 
 template <class T>
 struct CompressedClustersPtrs_helper : public T {
-  unsigned short* qTotA = nullptr;        //[nAttachedClusters]
-  unsigned short* qMaxA = nullptr;        //[nAttachedClusters]
-  unsigned char* flagsA = nullptr;        //[nAttachedClusters]
-  unsigned char* rowDiffA = nullptr;      //[nAttachedClustersReduced]
-  unsigned char* sliceLegDiffA = nullptr; //[nAttachedClustersReduced]
-  unsigned short* padResA = nullptr;      //[nAttachedClustersReduced]
-  unsigned int* timeResA = nullptr;       //[nAttachedClustersReduced]
-  unsigned char* sigmaPadA = nullptr;     //[nAttachedClusters]
-  unsigned char* sigmaTimeA = nullptr;    //[nAttachedClusters]
+  unsigned short* qTotA = nullptr;        //! [nAttachedClusters]
+  unsigned short* qMaxA = nullptr;        //! [nAttachedClusters]
+  unsigned char* flagsA = nullptr;        //! [nAttachedClusters]
+  unsigned char* rowDiffA = nullptr;      //! [nAttachedClustersReduced]
+  unsigned char* sliceLegDiffA = nullptr; //! [nAttachedClustersReduced]
+  unsigned short* padResA = nullptr;      //! [nAttachedClustersReduced]
+  unsigned int* timeResA = nullptr;       //! [nAttachedClustersReduced]
+  unsigned char* sigmaPadA = nullptr;     //! [nAttachedClusters]
+  unsigned char* sigmaTimeA = nullptr;    //! [nAttachedClusters]
 
-  unsigned char* qPtA = nullptr;   //[nTracks]
-  unsigned char* rowA = nullptr;   //[nTracks]
-  unsigned char* sliceA = nullptr; //[nTracks]
-  unsigned int* timeA = nullptr;   //[nTracks]
-  unsigned short* padA = nullptr;  //[nTracks]
+  unsigned char* qPtA = nullptr;   //! [nTracks]
+  unsigned char* rowA = nullptr;   //! [nTracks]
+  unsigned char* sliceA = nullptr; //! [nTracks]
+  unsigned int* timeA = nullptr;   //! [nTracks]
+  unsigned short* padA = nullptr;  //! [nTracks]
 
-  unsigned short* qTotU = nullptr;     //[nUnattachedClusters]
-  unsigned short* qMaxU = nullptr;     //[nUnattachedClusters]
-  unsigned char* flagsU = nullptr;     //[nUnattachedClusters]
-  unsigned short* padDiffU = nullptr;  //[nUnattachedClusters]
-  unsigned int* timeDiffU = nullptr;   //[nUnattachedClusters]
-  unsigned char* sigmaPadU = nullptr;  //[nUnattachedClusters]
-  unsigned char* sigmaTimeU = nullptr; //[nUnattachedClusters]
+  unsigned short* qTotU = nullptr;     //! [nUnattachedClusters]
+  unsigned short* qMaxU = nullptr;     //! [nUnattachedClusters]
+  unsigned char* flagsU = nullptr;     //! [nUnattachedClusters]
+  unsigned short* padDiffU = nullptr;  //! [nUnattachedClusters]
+  unsigned int* timeDiffU = nullptr;   //! [nUnattachedClusters]
+  unsigned char* sigmaPadU = nullptr;  //! [nUnattachedClusters]
+  unsigned char* sigmaTimeU = nullptr; //! [nUnattachedClusters]
 
-  unsigned short* nTrackClusters = nullptr;  //[nTracks]
-  unsigned int* nSliceRowClusters = nullptr; //[nSliceRows]
+  unsigned short* nTrackClusters = nullptr;  //! [nTracks]
+  unsigned int* nSliceRowClusters = nullptr; //! [nSliceRows]
 
-  ClassDefNV(CompressedClustersPtrs_helper, 1);
+  // flatbuffer used for streaming
+  int flatdataSize = 0;
+  char* flatdata = nullptr; //[flatdataSize]
+
+  ClassDefNV(CompressedClustersPtrs_helper, 2);
 };
 
 struct CompressedClustersDummy_helper {

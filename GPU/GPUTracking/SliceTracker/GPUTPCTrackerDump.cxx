@@ -20,6 +20,8 @@
 #include <iostream>
 #include <cstring>
 #include <iomanip>
+#include <algorithm>
+#include <numeric>
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -27,11 +29,11 @@ void GPUTPCTracker::DumpOutput(std::ostream& out)
 {
   if (Param().earlyTpcTransform) {
     out << "Slice " << mISlice << "\n";
-    const GPUTPCSliceOutTrack* track = (Output())->GetFirstTrack();
+    const GPUTPCTrack* track = (Output())->GetFirstTrack();
     for (unsigned int j = 0; j < (Output())->NTracks(); j++) {
-      out << "Track " << j << " (" << track->NClusters() << "): ";
-      for (int k = 0; k < track->NClusters(); k++) {
-        out << "(" << track->Cluster(k).GetX() << "," << track->Cluster(k).GetY() << "," << track->Cluster(k).GetZ() << ") ";
+      out << "Track " << j << " (" << track->NHits() << "): ";
+      for (int k = 0; k < track->NHits(); k++) {
+        out << "(" << track->OutTrackCluster(k).GetX() << "," << track->OutTrackCluster(k).GetY() << "," << track->OutTrackCluster(k).GetZ() << ") ";
       }
       out << " - (" << track->Param().Y() << " " << track->Param().Z() << " " << track->Param().SinPhi() << " " << track->Param().DzDs() << " " << track->Param().QPt() << "\n";
       track = track->GetNextTrack();
@@ -111,11 +113,11 @@ int GPUTPCTracker::StarthitSortComparison(const void* a, const void* b)
 void GPUTPCTracker::DumpStartHits(std::ostream& out)
 {
   // sort start hits and dump to file
-  out << "Start Hits: (Slice" << mISlice << ") (" << *NTracklets() << ")" << std::endl;
+  out << "Start Hits: (Slice" << mISlice << ") (" << *NStartHits() << ")" << std::endl;
   if (mRec->GetDeviceProcessingSettings().comparableDebutOutput) {
-    qsort(TrackletStartHits(), *NTracklets(), sizeof(GPUTPCHitId), StarthitSortComparison);
+    qsort(TrackletStartHits(), *NStartHits(), sizeof(GPUTPCHitId), StarthitSortComparison);
   }
-  for (unsigned int i = 0; i < *NTracklets(); i++) {
+  for (unsigned int i = 0; i < *NStartHits(); i++) {
     out << TrackletStartHit(i).RowIndex() << "-" << TrackletStartHit(i).HitIndex() << std::endl;
   }
   out << std::endl;
@@ -128,7 +130,7 @@ void GPUTPCTracker::DumpTrackHits(std::ostream& out)
   for (int k = 0; k < GPUCA_ROW_COUNT; k++) {
     for (int l = 0; l < Row(k).NHits(); l++) {
       for (unsigned int j = 0; j < *NTracks(); j++) {
-        if (Tracks()[j].NHits() == 0 || !Tracks()[j].Alive()) {
+        if (Tracks()[j].NHits() == 0) {
           continue;
         }
         if (TrackHits()[Tracks()[j].FirstHitID()].RowIndex() == k && TrackHits()[Tracks()[j].FirstHitID()].HitIndex() == l) {
@@ -153,81 +155,44 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
     nTracklets = 0;
   }
   out << "Tracklets: (Slice" << mISlice << ") (" << nTracklets << ")" << std::endl;
+  std::vector<int> Ids(nTracklets);
+  std::iota(Ids.begin(), Ids.end(), 0);
   if (mRec->GetDeviceProcessingSettings().comparableDebutOutput) {
-    GPUTPCHitId* tmpIds = new GPUTPCHitId[nTracklets];
-    GPUTPCTracklet* tmpTracklets = new GPUTPCTracklet[nTracklets];
-    memcpy(tmpIds, TrackletStartHits(), nTracklets * sizeof(GPUTPCHitId));
-    memcpy(tmpTracklets, Tracklets(), nTracklets * sizeof(GPUTPCTracklet));
-#ifdef GPUCA_EXTERN_ROW_HITS
-    calink* tmpHits = new calink[nTracklets * GPUCA_ROW_COUNT];
-    memcpy(tmpHits, TrackletRowHits(), nTracklets * GPUCA_ROW_COUNT * sizeof(calink));
-#endif
-    qsort(TrackletStartHits(), nTracklets, sizeof(GPUTPCHitId), StarthitSortComparison);
-    for (int i = 0; i < nTracklets; i++) {
-      for (int j = 0; j < nTracklets; j++) {
-        if (tmpIds[i].RowIndex() == TrackletStartHit(j).RowIndex() && tmpIds[i].HitIndex() == TrackletStartHit(j).HitIndex()) {
-          memcpy(&Tracklets()[j], &tmpTracklets[i], sizeof(GPUTPCTracklet));
-#ifdef GPUCA_EXTERN_ROW_HITS
-          if (tmpTracklets[i].NHits()) {
-            for (int k = tmpTracklets[i].FirstRow(); k <= tmpTracklets[i].LastRow(); k++) {
-              const int pos = k * nTracklets + j;
-              if (pos < 0 || pos >= (int)mNMaxTracklets * GPUCA_ROW_COUNT) {
-                GPUError("internal error: invalid tracklet position k=%d j=%d pos=%d", k, j, pos);
-              } else {
-                mTrackletRowHits[pos] = tmpHits[k * nTracklets + i];
-              }
-            }
-          }
-#endif
-          break;
-        }
+    std::sort(Ids.begin(), Ids.end(), [this](const int& a, const int& b) {
+      if (this->Tracklets()[a].FirstRow() == this->Tracklets()[b].FirstRow()) {
+        return this->Tracklets()[a].Param().Y() > this->Tracklets()[b].Param().Y();
       }
-    }
-    delete[] tmpIds;
-    delete[] tmpTracklets;
-#ifdef GPUCA_EXTERN_ROW_HITS
-    delete[] tmpHits;
-#endif
+      return this->Tracklets()[a].FirstRow() > this->Tracklets()[b].FirstRow();
+    });
   }
-  for (int j = 0; j < nTracklets; j++) {
+  for (int jj = 0; jj < nTracklets; jj++) {
+    const int j = Ids[jj];
+    const auto& tracklet = Tracklets()[j];
     out << "Tracklet " << std::setw(4) << j << " (Hits: " << std::setw(3) << Tracklets()[j].NHits() << ", Start: " << std::setw(3) << TrackletStartHit(j).RowIndex() << "-" << std::setw(3) << TrackletStartHit(j).HitIndex() << ", Rows: " << (Tracklets()[j].NHits() ? Tracklets()[j].FirstRow() : -1)
-        << " - " << (Tracklets()[j].NHits() ? Tracklets()[j].LastRow() : -1) << ") ";
-    if (Tracklets()[j].NHits() == 0) {
+        << " - " << (tracklet.NHits() ? tracklet.LastRow() : -1) << ") ";
+    if (tracklet.NHits() == 0) {
       ;
-    } else if (Tracklets()[j].LastRow() > Tracklets()[j].FirstRow() && (Tracklets()[j].FirstRow() >= GPUCA_ROW_COUNT || Tracklets()[j].LastRow() >= GPUCA_ROW_COUNT)) {
-      GPUError("Error: Tracklet %d First %d Last %d Hits %d", j, Tracklets()[j].FirstRow(), Tracklets()[j].LastRow(), Tracklets()[j].NHits());
-      out << " (Error: Tracklet " << j << " First " << Tracklets()[j].FirstRow() << " Last " << Tracklets()[j].LastRow() << " Hits " << Tracklets()[j].NHits() << ") ";
+    } else if (tracklet.LastRow() > tracklet.FirstRow() && (tracklet.FirstRow() >= GPUCA_ROW_COUNT || tracklet.LastRow() >= GPUCA_ROW_COUNT)) {
+      GPUError("Error: Tracklet %d First %d Last %d Hits %d", j, tracklet.FirstRow(), tracklet.LastRow(), tracklet.NHits());
+      out << " (Error: Tracklet " << j << " First " << tracklet.FirstRow() << " Last " << tracklet.LastRow() << " Hits " << tracklet.NHits() << ") ";
       for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
-// if (Tracklets()[j].RowHit(i) != CALINK_INVAL)
-#ifdef GPUCA_EXTERN_ROW_HITS
-        out << i << "-" << mTrackletRowHits[i * mCommonMem->nTracklets + j] << ", ";
-#else
-        out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
-#endif
+        // if (tracklet.RowHit(i) != CALINK_INVAL)
+        out << i << "-" << mTrackletRowHits[tracklet.FirstHit() + (i - tracklet.FirstRow())] << ", ";
       }
-    } else if (Tracklets()[j].NHits() && Tracklets()[j].LastRow() >= Tracklets()[j].FirstRow()) {
+    } else if (tracklet.NHits() && tracklet.LastRow() >= tracklet.FirstRow()) {
       int nHits = 0;
-      for (int i = Tracklets()[j].FirstRow(); i <= Tracklets()[j].LastRow(); i++) {
-#ifdef GPUCA_EXTERN_ROW_HITS
-        calink ih = mTrackletRowHits[i * mCommonMem->nTracklets + j];
-#else
-        calink ih = Tracklets()[j].RowHit(i);
-#endif
+      for (int i = tracklet.FirstRow(); i <= tracklet.LastRow(); i++) {
+        calink ih = mTrackletRowHits[tracklet.FirstHit() + (i - tracklet.FirstRow())];
         if (ih != CALINK_INVAL) {
           nHits++;
         }
-
-#ifdef GPUCA_EXTERN_ROW_HITS
-        out << i << "-" << mTrackletRowHits[i * mCommonMem->nTracklets + j] << ", ";
-#else
-        out << i << "-" << Tracklets()[j].RowHit(i) << ", ";
-#endif
+        out << i << "-" << mTrackletRowHits[tracklet.FirstHit() + (i - tracklet.FirstRow())] << ", ";
       }
-      if (nHits != Tracklets()[j].NHits()) {
+      if (nHits != tracklet.NHits()) {
         std::cout << std::endl
-                  << "Wrong NHits!: Expected " << Tracklets()[j].NHits() << ", found " << nHits;
+                  << "Wrong NHits!: Expected " << tracklet.NHits() << ", found " << nHits;
         out << std::endl
-            << "Wrong NHits!: Expected " << Tracklets()[j].NHits() << ", found " << nHits;
+            << "Wrong NHits!: Expected " << tracklet.NHits() << ", found " << nHits;
       }
     }
     out << std::endl;

@@ -32,6 +32,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 namespace o2
 {
@@ -68,26 +69,21 @@ void TrackerDPL::init(InitContext& ic)
     double origD[3] = {0., 0., 0.};
     mTracker->setBz(field->getBz(origD));
   } else {
-    LOG(ERROR) << "Cannot retrieve GRP from the " << filename.c_str() << " file !";
-    mState = 0;
+    throw std::runtime_error(o2::utils::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
-  filename = ic.options().get<std::string>("dictionary-file");
-  std::ifstream file(filename.c_str());
-  if (file.good()) {
-    LOG(INFO) << "Running with dictionary: " << filename.c_str();
-    mDict.ReadBinaryFile(filename);
+  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  if (o2::base::NameConf::pathExists(dictFile)) {
+    mDict.readBinaryFile(dictFile);
+    LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
   } else {
-    LOG(INFO) << "Running without dictionary !";
+    LOG(INFO) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
   }
-  mState = 1;
 }
 
 void TrackerDPL::run(ProcessingContext& pc)
 {
-  if (mState != 1)
-    return;
-
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto clusters = pc.inputs().get<gsl::span<o2::itsmft::Cluster>>("clusters");
@@ -184,8 +180,6 @@ void TrackerDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
     pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
-
-  mState = 2;
 }
 
 DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType dType)
@@ -217,7 +211,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType d
     AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC, dType)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"dictionary-file", VariantType::String, "complete_dictionary.bin", {"Name of the dictionary file"}}}};
+      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}}}};
 }
 
 } // namespace its

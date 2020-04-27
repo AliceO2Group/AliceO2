@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/TableBuilder.h"
+#include "Framework/ArrowCompatibility.h"
 #include <memory>
 #if defined(__GNUC__)
 #pragma GCC diagnostic push
@@ -44,24 +45,21 @@ void ArrayFromVector(const std::vector<C_TYPE>& values, std::shared_ptr<arrow::A
 
 } // namespace
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 std::shared_ptr<arrow::Table>
   TableBuilder::finalize()
 {
   mFinalizer();
-  std::vector<std::shared_ptr<arrow::Column>> columns;
+  std::vector<std::shared_ptr<BackendColumnType>> columns;
   columns.reserve(mArrays.size());
   for (size_t i = 0; i < mSchema->num_fields(); ++i) {
-    auto column = std::make_shared<arrow::Column>(mSchema->field(i), mArrays[i]);
+    auto column = makeBackendColumn<BackendColumnType>(mSchema->field(i), mArrays[i]);
     columns.emplace_back(column);
   }
   auto table_ = arrow::Table::Make(mSchema, columns);
   return table_;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

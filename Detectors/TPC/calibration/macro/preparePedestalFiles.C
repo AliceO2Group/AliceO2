@@ -18,6 +18,7 @@
 #include "TFile.h"
 #include "TROOT.h"
 #include "TSystem.h"
+#include "TString.h"
 
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CalDet.h"
@@ -71,7 +72,7 @@ constexpr float fixedSizeToFloat(uint32_t value)
   return float(value) * FloatConversion;
 }
 
-void preparePedestalFiles(const std::string_view pedestalFileName, const std::string_view outputDir = "./", float sigmaNoise = 3, float minADC = 2, float pedestalOffset = 0)
+void preparePedestalFiles(const std::string_view pedestalFileName, const TString outputDir = "./", float sigmaNoise = 3, float minADC = 2, float pedestalOffset = 0)
 {
   static constexpr float FloatConversion = 1.f / float(1 << 2);
 

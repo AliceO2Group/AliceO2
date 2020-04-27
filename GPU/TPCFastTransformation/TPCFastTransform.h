@@ -25,10 +25,6 @@
 #include <string>
 #endif // !GPUCA_GPUCODE
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-//#include "Rtypes.h"
-#endif
-
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -186,7 +182,7 @@ class TPCFastTransform : public FlatObject
   /// Return a value of the last timebin where correction map is valid
   GPUd() float getLastCalibratedTimeBin(int slice) const;
 
-#if !defined(GPUCA_GPUCODE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
   int writeToFile(std::string outFName = "", std::string name = "");
 

@@ -21,7 +21,8 @@ set(SRCS
     devtools/IrregularSpline2D3DCalibrator.cxx
     TPCFastTransformGeo.cxx
     TPCFastSpaceChargeCorrection.cxx
-    TPCFastTransform.cxx)
+    TPCFastTransform.cxx
+)
 
 string(REPLACE ".cxx" ".h" HDRS_CINT_O2 "${SRCS}")
 set(HDRS_CINT_O2 ${HDRS_CINT_O2} devtools/RegularSpline1D.h)
@@ -83,13 +84,15 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "ALIROOT")
   set(SRCS ${SRCS} TPCFastTransformManager.cxx TPCFastTransformQA.cxx
            ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx
            ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCLog.cxx)
-  set(HDRS_CINT ${HDRS_CINT} TPCFastTransformManager.h TPCFastTransformQA.h)
+  #set(HDRS_CINT ${HDRS_CINT_O2} TPCFastTransformManager.h TPCFastTransformQA.h )
+  set(HDRS_CINT TPCFastTransformManager.h TPCFastTransformQA.h )
 
   # Enable Vc
   alice_usevc()
 
   include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
   include_directories(${AliRoot_SOURCE_DIR}/GPU/TPCFastTransformation
+                      ${AliRoot_SOURCE_DIR}/GPU/TPCFastTransformation/devtools
                       ${AliRoot_SOURCE_DIR}/GPU/Common
                       ${AliRoot_SOURCE_DIR}/HLT/BASE
                       ${AliRoot_SOURCE_DIR}/HLT/TPCLib
@@ -98,7 +101,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "ALIROOT")
 
   # Generate the dictionary
   get_directory_property(incdirs INCLUDE_DIRECTORIES)
-  generate_dictionary("Ali${MODULE}" "TPCFastTransformationLinkDef_AliRoot.h"
+  generate_dictionary_flat("Ali${MODULE}" "TPCFastTransformationLinkDef_AliRoot.h"
                       "${HDRS_CINT}" "${incdirs}")
 
   # Generate the ROOT map Dependecies

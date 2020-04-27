@@ -11,17 +11,12 @@
 #ifndef O2_MCH_RAW_PAYLOAD_DECODER_H
 #define O2_MCH_RAW_PAYLOAD_DECODER_H
 
-#include "BareGBTDecoder.h"
-#include "DumpBuffer.h"
 #include "Headers/RAWDataHeader.h"
-#include "MCHRawDecoder/Decoder.h"
-#include "MakeArray.h"
-#include "PayloadDecoder.h"
-#include "UserLogicGBTDecoder.h"
+#include "MCHRawDecoder/SampaChannelHandler.h"
+#include "MCHRawDecoder/PageDecoder.h"
+#include <map>
 #include <cstdlib>
-#include <fmt/format.h>
 #include <gsl/span>
-#include <iostream>
 
 namespace o2
 {
@@ -29,9 +24,16 @@ namespace mch
 {
 namespace raw
 {
+bool hasOrbitJump(uint32_t orb1, uint32_t orb2)
+{
+  return std::abs(static_cast<long int>(orb1 - orb2)) > 1;
+}
+
+using Payload = Page;
+
 /// @brief Decoder for MCH  Raw Data Format.
 
-template <typename RDH, typename GBTDECODER>
+template <typename T>
 class PayloadDecoder
 {
  public:
@@ -40,41 +42,29 @@ class PayloadDecoder
   /// piece of sampa data (a SampaCluster, i.e. a part of a time window)
   PayloadDecoder(SampaChannelHandler channelHandler);
 
-  /// decode the buffer
+  /// decode the buffer (=payload only)
   /// \return the number of bytes used from the buffer
-  size_t process(const RDH& rdh, gsl::span<uint8_t> buffer);
-
-  void reset();
+  size_t process(uint32_t orbit, Payload payload);
 
  private:
-  std::map<uint16_t, GBTDECODER> mDecoders; //< helper decoders
+  uint32_t mOrbit;
   SampaChannelHandler mChannelHandler;
 };
 
-template <typename RDH, typename GBTDECODER>
-PayloadDecoder<RDH, GBTDECODER>::PayloadDecoder(SampaChannelHandler channelHandler)
+template <typename T>
+PayloadDecoder<T>::PayloadDecoder(SampaChannelHandler channelHandler)
   : mChannelHandler(channelHandler)
 {
 }
 
-template <typename RDH, typename GBTDECODER>
-size_t PayloadDecoder<RDH, GBTDECODER>::process(const RDH& rdh, gsl::span<uint8_t> buffer)
+template <typename T>
+size_t PayloadDecoder<T>::process(uint32_t orbit, Payload payload)
 {
-  auto solarId = rdh.feeId;
-  auto c = mDecoders.find(solarId);
-  if (c == mDecoders.end()) {
-    mDecoders.emplace(solarId, GBTDECODER(solarId, mChannelHandler));
-    c = mDecoders.find(solarId);
+  if (hasOrbitJump(orbit, mOrbit)) {
+    static_cast<T*>(this)->reset();
   }
-  return c->second.append(buffer);
-}
-
-template <typename RDH, typename GBTDECODER>
-void PayloadDecoder<RDH, GBTDECODER>::reset()
-{
-  for (auto& c : mDecoders) {
-    c.second.reset();
-  }
+  mOrbit = orbit;
+  return static_cast<T*>(this)->append(payload);
 }
 
 } // namespace raw

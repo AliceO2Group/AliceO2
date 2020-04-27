@@ -7,6 +7,8 @@
 
 #include "FairLogger.h"
 
+using namespace std;
+
 void CreateBCPattern(const std::string& outFileName = "bcPattern.root", const string& objName = "")
 {
   // example of interacting BC pattern creation

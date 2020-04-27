@@ -84,12 +84,12 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     std::unique_ptr<char[]> tpcZSpages;
     std::unique_ptr<GPUTrackingInOutZS> tpcZSmeta;
     std::unique_ptr<GPUTrackingInOutZS::GPUTrackingInOutZSMeta> tpcZSmeta2;
-    std::unique_ptr<deprecated::PackedDigit[]> tpcDigits[NSLICES];
+    std::unique_ptr<o2::tpc::Digit[]> tpcDigits[NSLICES];
     std::unique_ptr<GPUTPCClusterData[]> clusterData[NSLICES];
     std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
     std::unique_ptr<o2::tpc::ClusterNative[]> clustersNative;
-    std::unique_ptr<GPUTPCTrack[]> sliceOutTracks[NSLICES];
-    std::unique_ptr<GPUTPCHitId[]> sliceOutClusters[NSLICES];
+    std::unique_ptr<GPUTPCTrack[]> sliceTracks[NSLICES];
+    std::unique_ptr<GPUTPCHitId[]> sliceClusters[NSLICES];
     std::unique_ptr<AliHLTTPCClusterMCLabel[]> mcLabelsTPC;
     std::unique_ptr<GPUTPCMCInfo[]> mcInfosTPC;
     std::unique_ptr<GPUTPCGMMergedTrack[]> mergedTracks;
@@ -186,6 +186,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void PrintDebugOutput();
 
   bool ValidateSteps();
+  bool ValidateSettings();
 
   // Pointers to tracker classes
   GPUTrackingFlatObjects mFlatObjectsShadow; // Host copy of flat objects that will be used on the GPU
@@ -225,6 +226,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
  private:
   int RunTPCTrackingSlices_internal();
   void RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int stage, bool doGPU, int lane);
+  unsigned int TPCClusterizerDecodeZSCount(unsigned int iSlice, unsigned int minTime, unsigned int maxTime);
   std::atomic_flag mLockAtomic = ATOMIC_FLAG_INIT;
 
   int HelperReadEvent(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);

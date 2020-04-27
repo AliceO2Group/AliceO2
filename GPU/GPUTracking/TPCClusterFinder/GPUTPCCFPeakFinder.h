@@ -32,7 +32,7 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
 {
 
  public:
-  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<short, GPUCA_THREAD_COUNT_CLUSTERER> {
+  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<short, GPUCA_GET_THREAD_COUNT(GPUCA_LB_CLUSTER_FINDER)> {
     ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_SEARCH_N];
   };
@@ -60,9 +60,9 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
-  static GPUd() bool isPeakScratchPad(GPUSharedMemory&, Charge, const ChargePos&, ushort, const Array2D<o2::gpu::PackedCharge>&, ChargePos*, PackedCharge*);
+  static GPUd() bool isPeakScratchPad(GPUSharedMemory&, tpccf::Charge, const ChargePos&, ushort, const Array2D<o2::gpu::PackedCharge>&, ChargePos*, PackedCharge*);
 
-  static GPUd() bool isPeak(Charge, const ChargePos&, const Array2D<PackedCharge>&);
+  static GPUd() bool isPeak(tpccf::Charge, const ChargePos&, const Array2D<PackedCharge>&);
 };
 
 } // namespace gpu

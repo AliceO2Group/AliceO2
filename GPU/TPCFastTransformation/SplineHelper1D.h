@@ -29,11 +29,10 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-
 ///
 /// The SplineHelper1D class is to initialize parameters for Spline1D class
 ///
-
+template <typename DataT>
 class SplineHelper1D
 {
  public:
@@ -56,42 +55,60 @@ class SplineHelper1D
   SplineHelper1D();
 
   /// Copy constructor: disabled
-  SplineHelper1D(const SplineHelper1D&) CON_DELETE;
+  SplineHelper1D(const SplineHelper1D&) CON_DEFAULT;
 
   /// Assignment operator: disabled
-  SplineHelper1D& operator=(const SplineHelper1D&) CON_DELETE;
+  SplineHelper1D& operator=(const SplineHelper1D&) CON_DEFAULT;
 
   /// Destructor
   ~SplineHelper1D() CON_DEFAULT;
 
   /// _______________  Main functionality  ________________________
 
-  int setSpline(const Spline1D& spline, int nAxiliaryDataPoints);
+  /// Create best-fit spline parameters for a given input function F
+  void approximateFunction(Spline1D<DataT>& spline,
+                           DataT xMin, DataT xMax, std::function<void(DataT x, DataT f[/*spline.getFdimensions()*/])> F,
+                           int nAxiliaryDataPoints = 4);
 
-  /// Create classic spline parameters for a given input function
-  std::unique_ptr<float[]> constructParametersClassic(int Ndim, std::function<void(float u, float f[/*Ndim*/])> F, float uMin, float uMax);
+  /// Create best-fit spline parameters gradually for a given input function F
+  void approximateFunctionGradually(Spline1D<DataT>& spline,
+                                    DataT xMin, DataT xMax, std::function<void(DataT x, DataT f[/*spline.getFdimensions()*/])> F,
+                                    int nAxiliaryDataPoints = 4);
 
-  /// Create compact spline parameters for a given input function
-  std::unique_ptr<float[]> constructParameters(int Ndim, std::function<void(float u, float f[/*Ndim*/])> F, float uMin, float uMax);
+  /// Create classic spline parameters for a given input function F
+  void approximateFunctionClassic(Spline1D<DataT>& spline,
+                                  DataT xMin, DataT xMax, std::function<void(DataT x, DataT f[/*spline.getFdimensions()*/])> F);
 
-  /// Create compact spline parameters gradually
-  std::unique_ptr<float[]> constructParametersGradually(int Ndim, std::function<void(float u, float f[/*Ndim*/])> F, float uMin, float uMax);
+  /// _______________   Interface for a step-wise construction of the best-fit spline   ________________________
 
-  /// _______________   Interface for a manual construction of compact splines   ________________________
+  /// precompute everything needed for the construction
+  int setSpline(const Spline1D<DataT>& spline, int nFdimensions, int nAxiliaryDataPoints);
 
+  /// approximate std::function, output in Fparameters
+  void approximateFunction(DataT* Fparameters, DataT xMin, DataT xMax, std::function<void(DataT x, DataT f[])> F) const;
+
+  /// approximate std::function gradually, output in Fparameters
+  void approximateFunctionGradually(DataT* Fparameters, DataT xMin, DataT xMax, std::function<void(DataT x, DataT f[])> F) const;
+
+  /// number of data points
   int getNumberOfDataPoints() const { return mDataPoints.size(); }
 
-  void constructParameters(int Ndim, const float DataPointF[/*getNumberOfDataPoints() x Ndim*/], float parameters[/*mSpline.getNumberOfParameters(Ndim)*/]) const;
+  /// approximate a function given as an array of values at data points
+  void approximateFunction(DataT* Fparameters, const DataT DataPointF[/*getNumberOfDataPoints() x nFdim*/]) const;
 
-  void constructParametersGradually(int Ndim, const float DataPointF[/*getNumberOfDataPoints() x Ndim */], float parameters[/*mSpline.getNumberOfParameters(Ndim)*/]) const;
+  /// gradually approximate a function given as an array of values at data points
+  void approximateFunctionGradually(DataT* Fparameters, const DataT DataPointF[/*getNumberOfDataPoints() x nFdim */]) const;
 
-  void copySfromDataPoints(int Ndim, const float DataPointF[/*getNumberOfDataPoints() x Ndim*/], float parameters[/*mSpline.getNumberOfParameters(Ndim)*/]) const;
+  /// a tool for the gradual approximation: set spline values S_i at knots == function values
+  void copySfromDataPoints(DataT* Fparameters, const DataT DataPointF[/*getNumberOfDataPoints() x nFdim*/]) const;
 
-  void constructDerivatives(int Ndim, const float DataPointF[/*getNumberOfDataPoints() x Ndim*/], float parameters[/*mSpline.getNumberOfParameters(Ndim)*/]) const;
+  /// a tool for the gradual approximation:
+  /// calibrate spline derivatives D_i using already calibrated spline values S_i
+  void approximateDerivatives(DataT* Fparameters, const DataT DataPointF[/*getNumberOfDataPoints() x nFdim*/]) const;
 
   /// _______________  Utilities   ________________________
 
-  const Spline1D& getSpline() const { return mSpline; }
+  const Spline1D<DataT>& getSpline() const { return mSpline; }
 
   int getKnotDataPoint(int iknot) const { return mKnotDataPoints[iknot]; }
 
@@ -108,7 +125,8 @@ class SplineHelper1D
 
   /// helpers for the construction of 1D spline
 
-  Spline1D mSpline;                   ///< copy of the spline
+  Spline1D<DataT> mSpline;            ///< copy of the spline
+  int mFdimensions;                   ///< n of F dimensions
   std::vector<DataPoint> mDataPoints; ///< measurement points
   std::vector<int> mKnotDataPoints;   ///< which measurement points are at knots
   std::vector<double> mLSMmatrixFull; ///< a matrix to convert the measurements into the spline parameters with the LSM method
@@ -116,11 +134,6 @@ class SplineHelper1D
   std::vector<double> mLSMmatrixSvalues;
 };
 
-inline int SplineHelper1D::storeError(int code, const char* msg)
-{
-  mError = msg;
-  return code;
-}
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
