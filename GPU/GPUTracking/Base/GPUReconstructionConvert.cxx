@@ -193,6 +193,14 @@ void GPUReconstructionConvert::ZSstreamOut(unsigned short* bufIn, unsigned int& 
   lenIn = 0;
 }
 
+void GPUReconstructionConvert::ZSfillEmpty(void* ptr, int shift)
+{
+  o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)ptr;
+  o2::raw::RDHUtils::setHeartBeatOrbit(*rdh, 0);
+  o2::raw::RDHUtils::setHeartBeatBC(*rdh, shift);
+  o2::raw::RDHUtils::setMemorySize(*rdh, sizeof(o2::header::RAWDataHeader));
+}
+
 #ifdef HAVE_O2HEADERS
 static inline auto ZSEncoderGetDigits(const GPUTrackingInOutDigits& in, int i) { return in.tpcDigits[i]; }
 static inline auto ZSEncoderGetNDigits(const GPUTrackingInOutDigits& in, int i) { return in.nTPCDigits[i]; }
@@ -358,11 +366,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
           if (buffer[i][endpoint].size() == 0 && nexthbf != 0) {
             // Emplace empty page with RDH containing beginning of TFgpuDigitsMap
             buffer[i][endpoint].emplace_back();
-            page = &buffer[i][endpoint].back();
-            o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)page;
-            o2::raw::RDHUtils::setHeartBeatOrbit(*rdh, 0);
-            o2::raw::RDHUtils::setHeartBeatBC(*rdh, bcShiftInFirstHBF);
-            o2::raw::RDHUtils::setMemorySize(*rdh, sizeof(o2::header::RAWDataHeader));
+            ZSfillEmpty(&buffer[i][endpoint].back(), bcShiftInFirstHBF);
             totalPages++;
           }
           buffer[i][endpoint].emplace_back();
@@ -418,6 +422,15 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
         streamBuffer[streamSize++] = (unsigned short)(ZSEncoderGetCharge(tmpBuffer[k + l]) * encodeBitsFactor + 0.5f);
       }
       k += seqLen - 1;
+    }
+    if (!raw) {
+      for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+        if (buffer[i][j].size() == 0) {
+          buffer[i][j].emplace_back();
+          ZSfillEmpty(&buffer[i][j].back(), bcShiftInFirstHBF);
+          totalPages++;
+        }
+      }
     }
 
     // Verification
