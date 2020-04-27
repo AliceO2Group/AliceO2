@@ -13,6 +13,7 @@
 #include "TOFWorkflow/TOFRawWriterSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "TOFBase/Geo.h"
 
 using namespace o2::framework;
@@ -49,7 +50,7 @@ void RawWriter::run(ProcessingContext& pc)
   encoder.alloc(cache);
 
   int nwindowperorbit = Geo::NWINDOW_IN_ORBIT;
-  int nwindowintimeframe = Geo::ORBIT_IN_TF * nwindowperorbit;
+  int nwindowintimeframe = o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * nwindowperorbit;
   int nwindowFilled = nwindow;
   if (nwindowFilled % nwindowintimeframe) {
     nwindowFilled = (nwindowFilled / nwindowintimeframe + 1) * nwindowintimeframe;

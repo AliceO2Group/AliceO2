@@ -18,9 +18,6 @@ ClassImp(o2::tof::Geo);
 
 using namespace o2::tof;
 
-int Geo::ORBIT_IN_TF = o2::raw::HBFUtils::Instance().getNOrbitsPerTF(); // RS This should not be in GEO!!!
-double Geo::NS_IN_TF = o2::constants::lhc::LHCOrbitNS * o2::raw::HBFUtils::Instance().getNOrbitsPerTF();
-
 constexpr Float_t Geo::ANGLES[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::HEIGHTS[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::DISTANCES[NPLATES][NMAXNSTRIP];
