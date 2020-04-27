@@ -23,6 +23,11 @@
 #include <gandiva/selection_vector.h>
 #include <gandiva/node.h>
 #include <gandiva/filter.h>
+#else
+namespace gandiva {
+class SelectionVector;
+class Filter;
+}
 #endif
 #include <variant>
 #include <string>
