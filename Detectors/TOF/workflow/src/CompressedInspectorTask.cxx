@@ -97,9 +97,9 @@ void CompressedInspectorTask<RAWDataHeader>::run(ProcessingContext& pc)
       auto payloadIn = ref.payload;
       auto payloadInSize = headerIn->payloadSize;
 
-      DecoderBase<RAWDataHeader>::setDecoderBuffer(payloadIn);
-      DecoderBase<RAWDataHeader>::setDecoderBufferSize(payloadInSize);
-      DecoderBase<RAWDataHeader>::run();
+      DecoderBaseT<RAWDataHeader>::setDecoderBuffer(payloadIn);
+      DecoderBaseT<RAWDataHeader>::setDecoderBufferSize(payloadInSize);
+      DecoderBaseT<RAWDataHeader>::run();
     }
   }
 }

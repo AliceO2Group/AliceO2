@@ -44,7 +44,7 @@ namespace compressed
 {
 
 template <typename RAWDataHeader>
-bool DecoderBase<RAWDataHeader>::processHBF()
+bool DecoderBaseT<RAWDataHeader>::processHBF()
 {
 
 #ifdef DECODER_VERBOSE
@@ -138,7 +138,7 @@ bool DecoderBase<RAWDataHeader>::processHBF()
 }
 
 template <typename RAWDataHeader>
-bool DecoderBase<RAWDataHeader>::processDRM()
+bool DecoderBaseT<RAWDataHeader>::processDRM()
 {
 
 #ifdef DECODER_VERBOSE
@@ -245,8 +245,8 @@ bool DecoderBase<RAWDataHeader>::processDRM()
   return false;
 }
 
-template class DecoderBase<o2::header::RAWDataHeaderV4>;
-template class DecoderBase<o2::header::RAWDataHeaderV6>;
+template class DecoderBaseT<o2::header::RAWDataHeaderV4>;
+template class DecoderBaseT<o2::header::RAWDataHeaderV6>;
 
 } // namespace compressed
 } // namespace tof

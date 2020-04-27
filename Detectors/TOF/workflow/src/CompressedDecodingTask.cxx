@@ -95,9 +95,9 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
       auto payloadIn = ref.payload;
       auto payloadInSize = headerIn->payloadSize;
 
-      DecoderBase<o2::header::RAWDataHeader>::setDecoderBuffer(payloadIn);
-      DecoderBase<o2::header::RAWDataHeader>::setDecoderBufferSize(payloadInSize);
-      DecoderBase<o2::header::RAWDataHeader>::run();
+      DecoderBase::setDecoderBuffer(payloadIn);
+      DecoderBase::setDecoderBufferSize(payloadInSize);
+      DecoderBase::run();
     }
   }
 
