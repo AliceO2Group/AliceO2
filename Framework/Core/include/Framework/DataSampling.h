@@ -82,6 +82,18 @@ class DataSampling
   static std::vector<InputSpec> InputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName);
   /// \brief Provides InputSpecs to receive data for given DataSamplingPolicy
   static std::vector<InputSpec> InputSpecsForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
+  /// \brief Provides OutputSpecs of given DataSamplingPolicy
+  static std::vector<OutputSpec> OutputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName);
+  /// \brief Provides OutputSpecs of given DataSamplingPolicy
+  static std::vector<OutputSpec> OutputSpecsForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
+  /// \brief Provides the port to be used for a proxy of given DataSamplingPolicy
+  static uint16_t PortForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
+  /// \brief Provides the port to be used for a proxy of given DataSamplingPolicy
+  static uint16_t PortForPolicy(const std::string& policiesSource, const std::string& policyName);
+  /// \brief Provides the machines where given DataSamplingPolicy is enabled
+  static std::vector<std::string> MachinesForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
+  /// \brief Provides the port to be used for a proxy of given DataSamplingPolicy
+  static std::vector<std::string> MachinesForPolicy(const std::string& policiesSource, const std::string& policyName);
 
  private:
   // Internal functions, used by GenerateInfrastructure()
