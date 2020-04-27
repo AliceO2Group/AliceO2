@@ -48,7 +48,7 @@ enum class TopologySize {
 template <typename V, typename P = double>
 struct ConfigEntry {
   V value;
-  P param = double();
+  P param = P();
 };
 
 // \brief MergerAlgorithm configuration structure. Default configuration should work in most cases, out of the box.
