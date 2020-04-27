@@ -245,7 +245,7 @@ foreach(b
         TableToTree
         TreeToTable
         )
-  o2_add_test(benchmark_${b} NAME test_Framework_benchmark_${b}
+  o2_add_executable(benchmark_${b} NAME test_Framework_benchmark_${b}
               SOURCES test/benchmark_${b}.cxx
               COMPONENT_NAME Framework
               LABELS framework benchmark
