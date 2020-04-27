@@ -38,12 +38,12 @@ BOOST_AUTO_TEST_CASE(TestRootSerialization)
 
   // Check by using the same type
   auto s = DataRefUtils::as<TObjString>(ref);
-  BOOST_REQUIRE_NE(s, nullptr);
+  BOOST_REQUIRE(s.get() != nullptr);
   BOOST_CHECK_EQUAL(std::string(s->GetString().Data()), "test");
   BOOST_CHECK_EQUAL(std::string(s->GetName()), "test");
 
   // Check by using the base type.
   auto o = DataRefUtils::as<TObject>(ref);
-  BOOST_REQUIRE_NE(o, nullptr);
+  BOOST_REQUIRE(o.get() != nullptr);
   BOOST_CHECK_EQUAL(std::string(o->GetName()), "test");
 }
