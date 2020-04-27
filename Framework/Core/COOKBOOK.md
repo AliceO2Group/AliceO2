@@ -361,6 +361,11 @@ some-workflow --monitoring-backend=no-op://
 
 notice that the GUI will not function properly if you do so.
 
+### Vectorised input
+
+Sometimes data processing requires to group together multiple messages in one single multipart vector, so that they can be multiplexed on the same InputSpec. This is in particular the case for the RAW data coming out of the (Sub)TFBuilder.
+In order to do so you need to make sure that the sender sends all the parts to be multiplexed in a single go. On the receiving side, you will get a single entry in the InputRecord and you can get the number of combined parts via `InputRecord::getNoParts()`. You can each of the parts by providing the entra parameter parts to the `InputRecord::get()` method.
+
 ### Using command line options in DataProcessorSpec
 
 Command line options for a given DataProcessorSpec are defined as a std::vector\<ConfigParamSpec\>.
