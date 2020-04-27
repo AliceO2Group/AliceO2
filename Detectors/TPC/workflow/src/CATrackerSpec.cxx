@@ -23,6 +23,8 @@
 #include "Framework/InputRecordWalker.h"
 #include "Framework/SerializationMethods.h"
 #include "Framework/Logger.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/DeviceSpec.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/ClusterNative.h"
@@ -52,6 +54,7 @@
 #include <vector>
 #include <iomanip>
 #include <stdexcept>
+#include <regex>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -63,23 +66,17 @@ namespace o2
 namespace tpc
 {
 
-DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> const& tpcsectors)
+DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int> const& tpcsectors)
 {
-  auto& processMC = config.processMC;
-  auto& caClusterer = config.caClusterer;
-  auto& zsDecoder = config.zsDecoder;
-  if (config.outputCAClusters && !config.caClusterer) {
+  auto& processMC = specconfig.processMC;
+  auto& caClusterer = specconfig.caClusterer;
+  auto& zsDecoder = specconfig.zsDecoder;
+  if (specconfig.outputCAClusters && !specconfig.caClusterer) {
     throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
   }
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   using ClusterGroupParser = o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>;
   struct ProcessAttributes {
-    // the input comes in individual calls and we need to buffer until
-    // data set is complete, have to think about a DPL feature to take
-    // ownership of an input
-    std::array<std::vector<char>, NSectors> bufferedInputs;
-    using CachedMCLabelContainer = decltype(std::declval<InputRecord>().get<std::vector<MCLabelContainer>>(DataRef{nullptr, nullptr, nullptr}));
-    std::array<CachedMCLabelContainer, NSectors> mcInputs;
     std::bitset<NSectors> validInputs = 0;
     std::bitset<NSectors> validMcInputs = 0;
     std::unique_ptr<ClusterGroupParser> parser;
@@ -284,7 +281,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
 
       // FIXME cleanup almost duplicated code
       auto& validMcInputs = processAttributes->validMcInputs;
-      auto& mcInputs = processAttributes->mcInputs;
+      using CachedMCLabelContainer = decltype(std::declval<InputRecord>().get<std::vector<MCLabelContainer>>(DataRef{nullptr, nullptr, nullptr}));
+      std::array<CachedMCLabelContainer, NSectors> mcInputs;
       std::array<gsl::span<const char>, NSectors> inputs;
       o2::gpu::GPUTrackingInOutZS tpcZS;
       std::vector<const void*> tpcZSmetaPointers[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
@@ -343,22 +341,11 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
       for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
         auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
         if (sectorHeader == nullptr) {
-          // FIXME: think about error policy
-          LOG(ERROR) << "sector header missing on header stack";
-          return;
+          throw std::runtime_error("sector header missing on header stack");
         }
         const int sector = sectorHeader->sector;
-        // check the current operation, this is used to either signal eod or noop
-        // FIXME: the noop is not needed any more once the lane configuration with one
-        // channel per sector is used
         if (sector < 0) {
-          if (operation < 0 && operation != sector) {
-            // we expect the same operation on all inputs
-            LOG(ERROR) << "inconsistent lane operation, got " << sector << ", expecting " << operation;
-          } else if (operation == 0) {
-            // store the operation
-            operation = sector;
-          }
+          //throw std::runtime_error("lagacy input, custom eos is not expected anymore")
           continue;
         }
         if (validInputs.test(sector)) {
@@ -374,20 +361,6 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
           inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
           LOG(INFO) << "GOT SPAN FOR SECTOR " << sector << " -> " << inputDigits[sector].size();
         }
-      }
-
-      if (operation == -1) {
-        // EOD is transmitted in the sectorHeader with sector number equal to -1
-        o2::tpc::TPCSectorHeader sh{-1};
-        sh.activeSectors = activeSectors;
-        pc.outputs().snapshot(OutputRef{"outTracks", 0, {sh}}, -1);
-        pc.outputs().snapshot(OutputRef{"outClusRefs", 0, {sh}}, -1);
-        if (processMC) {
-          pc.outputs().snapshot(OutputRef{"mclblout", 0, {sh}}, -1);
-        }
-        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-        processAttributes->readyToQuit = true;
-        return;
       }
 
       if (zsDecoder) {
@@ -475,47 +448,18 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
                       << "  active sectors: " << std::bitset<NSectors>(activeSectors);               //
           }
         };
-        auto& bufferedInputs = processAttributes->bufferedInputs;
         if (activeSectors == 0 || (activeSectors & validInputs.to_ulong()) != activeSectors ||
             (processMC && (activeSectors & validMcInputs.to_ulong()) != activeSectors)) {
-          // not all sectors available, we have to buffer the inputs
-          if (caClusterer) {
-            throw std::runtime_error("Buffering not possible with digits");
-          }
-          for (auto const& refentry : datarefs) {
-            auto& sector = refentry.first;
-            auto& ref = refentry.second;
-            auto payloadSize = DataRefUtils::getPayloadSize(ref);
-            bufferedInputs[sector].resize(payloadSize);
-            std::copy(ref.payload, ref.payload + payloadSize, bufferedInputs[sector].begin());
-            printInputLog(ref, "buffering", sector);
-          }
-
-          // not needed to send something, DPL will simply drop this timeslice, whenever the
-          // data for all sectors is available, the output is sent in that time slice
-          return;
+          throw std::runtime_error("Incomplete input data, expecting complete data set, buffering has been removed");
         }
         assert(processMC == false || validMcInputs == validInputs);
-        auto inputStatus = validInputs;
         for (auto const& refentry : datarefs) {
           auto& sector = refentry.first;
           auto& ref = refentry.second;
           inputs[sector] = gsl::span(ref.payload, DataRefUtils::getPayloadSize(ref));
-          inputStatus.reset(sector);
           printInputLog(ref, "received", sector);
         }
-        if (inputStatus.any()) {
-          // some of the inputs have been buffered
-          for (size_t sector = 0; sector < inputStatus.size(); ++sector) {
-            if (inputStatus.test(sector)) {
-              inputs[sector] = gsl::span(&bufferedInputs[sector].front(), bufferedInputs[sector].size());
-            }
-          }
-        }
         if (verbosity > 0) {
-          if (inputStatus.any()) {
-            LOG(INFO) << "using buffered data for " << inputStatus.count() << " sector(s)";
-          }
           // make human readable information from the bitfield
           std::string bitInfo;
           auto nActiveBits = validInputs.count();
@@ -651,20 +595,20 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
   // changing the binding name of the input in order to identify inputs by unique labels
   // in the processing. Think about how the processing can be made agnostic of input size,
   // e.g. by providing a span of inputs under a certain label
-  auto createInputSpecs = [&tpcsectors, &config]() {
+  auto createInputSpecs = [&tpcsectors, &specconfig]() {
     Inputs inputs;
-    if (config.caClusterer) {
+    if (specconfig.caClusterer) {
       // We accept digits and MC labels also if we run on ZS Raw data, since they are needed for MC label propagation
-      if (!config.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
+      if (!specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
         inputs.emplace_back(InputSpec{"input", gDataOriginTPC, "DIGITS", 0, Lifetime::Timeframe});
       }
     } else {
       inputs.emplace_back(InputSpec{"input", gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe});
     }
-    if (config.processMC) {
-      if (config.caClusterer) {
+    if (specconfig.processMC) {
+      if (specconfig.caClusterer) {
         constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
-        if (!config.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
+        if (!specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
           inputs.emplace_back(InputSpec{"mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe});
         }
       } else {
@@ -679,36 +623,36 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
                                        input.binding += std::to_string(tpcsectors[index]);
                                        DataSpecUtils::updateMatchingSubspec(input, tpcsectors[index]);
                                      }));
-    if (config.zsDecoder) {
+    if (specconfig.zsDecoder) {
       // We add this after the mergeInputs, since we need to keep the subspecification
       tmp.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Timeframe});
     }
     return tmp;
   };
 
-  auto createOutputSpecs = [&config, &tpcsectors, &processAttributes]() {
+  auto createOutputSpecs = [&specconfig, &tpcsectors, &processAttributes]() {
     std::vector<OutputSpec> outputSpecs{
       OutputSpec{{"outTracks"}, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe},
       OutputSpec{{"outClusRefs"}, gDataOriginTPC, "CLUSREFS", 0, Lifetime::Timeframe},
     };
-    if (!config.outputTracks) {
+    if (!specconfig.outputTracks) {
       // this case is the less unlikely one, that's why the logic this way
       outputSpecs.clear();
     }
-    if (config.processMC && config.outputTracks) {
+    if (specconfig.processMC && specconfig.outputTracks) {
       OutputLabel label{"mclblout"};
       constexpr o2::header::DataDescription datadesc("TRACKMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
-    if (config.outputCompClusters) {
+    if (specconfig.outputCompClusters) {
       outputSpecs.emplace_back(gDataOriginTPC, "COMPCLUSTERS", 0, Lifetime::Timeframe);
     }
-    if (config.outputCAClusters) {
+    if (specconfig.outputCAClusters) {
       for (auto const& sector : tpcsectors) {
         o2::header::DataHeader::SubSpecificationType id = sector;
         outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVE", id, Lifetime::Timeframe);
         processAttributes->clusterOutputIds.emplace_back(sector);
-        if (config.processMC) {
+        if (specconfig.processMC) {
           outputSpecs.emplace_back(OutputSpec{gDataOriginTPC, "CLNATIVEMCLBL", id, Lifetime::Timeframe});
         }
       }
@@ -723,6 +667,60 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
                            Options{
                              {"tracker-options", VariantType::String, "", {"Option string passed to tracker"}},
                            }};
+}
+
+o2::framework::CompletionPolicy getCATrackerCompletionPolicy()
+{
+  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
+
+  auto matcher = [](DeviceSpec const& device) -> bool {
+    return std::regex_match(device.name.begin(), device.name.end(), std::regex("tpc-tracker*"));
+  };
+
+  auto callback = [](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
+    auto op = CompletionPolicy::CompletionOp::Wait;
+    bool haveCluster = false;
+    bool haveDigit = false;
+    std::bitset<NSectors> validInputs = 0;
+    uint64_t activeSectors = 0;
+    size_t nActiveInputs = 0;
+    for (auto it = inputs.begin(), end = inputs.end(); it != end; ++it) {
+      for (auto const& ref : it) {
+        if (!DataRefUtils::isValid(ref)) {
+          continue;
+        }
+        ++nActiveInputs;
+        auto isCluster = DataRefUtils::match(ref, {"cluster", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERNATIVE"}});
+        auto isDigit = DataRefUtils::match(ref, {"digits", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}});
+        if (isCluster || isDigit) {
+          auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+          auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
+          if (sectorHeader == nullptr) {
+            // FIXME: think about error policy
+            throw std::runtime_error("TPC sector header missing on header stack");
+          }
+          activeSectors |= sectorHeader->activeSectors;
+          validInputs.set(sectorHeader->sector);
+        }
+      }
+    }
+    // TODO: introduce pedantic policy to check consistency of the data, e.g. that MC labels are available
+    // for either all data blocks or none
+
+    // Digits and clusters should never be mixed, the getCATrackerSpec function has to be cleaned
+    // up to get the input spec as parameter
+    if (haveDigit && haveDigit == haveCluster) {
+      throw std::runtime_error("routing error, the tracker can process either digits or clusters");
+    }
+
+    // we can process if there is input for all sectors
+    if (activeSectors == validInputs.to_ulong()) {
+      op = CompletionPolicy::CompletionOp::Process;
+    }
+
+    return op;
+  };
+  return CompletionPolicy{"tpc-ca-traker", matcher, callback};
 }
 
 } // namespace tpc

@@ -18,6 +18,11 @@
 
 namespace o2
 {
+namespace framework
+{
+struct CompletionPolicy;
+}
+
 namespace tpc
 {
 
@@ -101,9 +106,10 @@ struct Config {
 /// @ca::Operations, a configuration object @a ca::Config is used to pass the
 /// configuration to the processor spec.
 ///
-/// @param config     configuration option for the processor spec
+/// @param specconfig configuration options for the processor spec
 /// @param tpcsectors list of sector numbers
-framework::DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> const& tpcsectors);
+framework::DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int> const& tpcsectors);
 
+o2::framework::CompletionPolicy getCATrackerCompletionPolicy();
 } // end namespace tpc
 } // end namespace o2

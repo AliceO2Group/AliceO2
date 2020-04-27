@@ -16,6 +16,7 @@
 #include "DataFormatsMFT/TrackMFT.h"
 #include "CommonConstants/MathConstants.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "MathUtils/Utils.h"
 #include <TMath.h>
 
 using namespace o2::mft;
@@ -50,6 +51,78 @@ const SMatrix55& TrackMFT::getCovariances() const
 void TrackMFT::setCovariances(const SMatrix55& covariances)
 {
   mCovariances = covariances;
+}
+
+//_________________________________________________________________________________________________
+void TrackMFT::extrapHelixToZ(double zEnd, double Field)
+{
+  /// Track extrapolated to the plane at "zEnd" considering a helix
+
+  if (getZ() == zEnd) {
+    return; // nothing to be done if same z
+  }
+
+  // Extrapolate covariances
+  extrapHelixToZCov(zEnd, Field);
+
+  // Extrapolate track parameters
+  double dZ = (zEnd - getZ()); // Propagate in meters
+  double cosphi0, sinphi0;
+  o2::utils::sincos(getPhi(), sinphi0, cosphi0);
+  double tanl0 = getTanl();
+  double invtanl0 = 1.0 / tanl0;
+  double invqpt0 = getInvQPt();
+
+  double k = Field * o2::constants::math::B2C;
+  double deltax = dZ * cosphi0 * invtanl0 - 0.5 * dZ * dZ * k * invqpt0 * sinphi0 * invtanl0 * invtanl0;
+  double deltay = dZ * sinphi0 * invtanl0 + 0.5 * dZ * dZ * k * invqpt0 * cosphi0 * invtanl0 * invtanl0;
+
+  double x = getX() + deltax;
+  double y = getY() + deltay;
+  double deltaphi = +dZ * k * invqpt0 * invtanl0;
+
+  double phi = getPhi() + deltaphi;
+  double tanl = tanl0;
+  double invqpt = invqpt0;
+  setX(x);
+  setY(y);
+  setZ(zEnd);
+  setPhi(phi);
+  setTanl(tanl);
+  setInvQPt(invqpt);
+}
+
+//__________________________________________________________________________
+void TrackMFT::extrapHelixToZCov(double zEnd, double Field)
+{
+
+  // Calculate the jacobian related to the track parameters helix extrapolation to "zEnd"
+  double dZ = (zEnd - getZ());
+  double phi0 = getPhi();
+  double tanl0 = getTanl();
+  double invqpt0 = getInvQPt();
+  double dZ2 = dZ * dZ;
+  double cosphi0, sinphi0;
+  o2::utils::sincos(phi0, sinphi0, cosphi0);
+  double tanl0sq = tanl0 * tanl0;
+  double k = Field * o2::constants::math::B2C;
+  /*
+  TMatrixD jacob(5, 5);
+  jacob.UnitMatrix();
+  jacob(0, 2) = -dZ2 * k * invqpt0 * cosphi0 * 0.5 / tanl0sq - dZ * sinphi0 / tanl0;
+  jacob(0, 3) = dZ2 * k * invqpt0 * sinphi0 / tanl0sq / tanl0 - dZ * cosphi0 / tanl0sq;
+  jacob(0, 4) = -dZ2 * k * sinphi0 * 0.5 / tanl0sq;
+  jacob(1, 2) = -dZ2 * k * invqpt0 * sinphi0 * 0.5 / tanl0sq + dZ * cosphi0 / tanl0;
+  jacob(1, 3) = -dZ2 * k * invqpt0 * cosphi0 / tanl0sq / tanl0 - dZ * sinphi0 / tanl0sq;
+  jacob(1, 4) = dZ2 * k * cosphi0 * 0.5 / tanl0sq;
+  jacob(2, 3) = -dZ * k * invqpt0 / tanl0sq;
+  jacob(2, 4) = dZ * k / tanl0;
+
+  // Extrapolate track parameter covariances to "zEnd"
+  TMatrixD tmp(getCovariances(), TMatrixD::kMultTranspose, jacob);
+  TMatrixD tmp2(jacob, TMatrixD::kMult, tmp);
+  setCovariances(tmp2);
+*/
 }
 
 //__________________________________________________________________________

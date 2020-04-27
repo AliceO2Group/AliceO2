@@ -17,10 +17,10 @@
 #include "GPUHostDataTypes.h"
 
 #include "DataFormatsTPC/ZeroSuppression.h"
+#include "TPCBase/Digit.h"
 
 #include "ChargePos.h"
 #include "Array2D.h"
-#include "Digit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;

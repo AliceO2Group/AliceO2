@@ -108,6 +108,14 @@ class FitterTrackMFT
 
   const Int_t getNPoints() const { return mNPoints; }
 
+  // Charge and momentum from quadratic regression of clusters X,Y positions
+  void setInvQPtQuadtratic(Double_t invqpt) { mInvQPtQuadtratic = invqpt; }
+  const Double_t getInvQPtQuadtratic() const { return mInvQPtQuadtratic; } // Inverse charged pt
+  const Double_t getPtQuadtratic() const { return TMath::Abs(1.f / getInvQPtQuadtratic()); }
+  const Double_t getChargeQuadratic() const { return TMath::Sign(1., getInvQPtQuadtratic()); }
+  void setChi2QPtQuadtratic(Double_t chi2) { mQuadraticFitChi2 = chi2; }
+  const Double_t getChi2QPtQuadtratic() const { return mQuadraticFitChi2; }
+
  private:
   TrackParamMFT mParamAtVertex{};                 ///< track parameters at vertex
   std::list<TrackParamMFT> mParamAtClusters{};    ///< list of track parameters at each cluster
@@ -117,6 +125,12 @@ class FitterTrackMFT
   bool mRemovable = false;                        ///< flag telling if this track should be deleted
   Int_t mNPoints{0};                              // Number of clusters
   std::array<MCCompLabel, 10> mMCCompLabels;      // constants::mft::LayersNumber = 10
+
+  // Results from quadratic regression of clusters X,Y positions
+  // Chi2 of the quadratic regression used to estimate track pT and charge
+  Double_t mQuadraticFitChi2 = 0.;
+  // inversed charged momentum from quadratic regression
+  Double_t mInvQPtQuadtratic;
 };
 
 } // namespace mft

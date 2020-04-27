@@ -138,7 +138,8 @@ o2_add_test_root_macro(build_geometry.C
 o2_add_test_root_macro(checkTOFMatching.C
                        PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                              O2::ReconstructionDataFormats
-                                             O2::SimulationDataFormat)
+                                             O2::SimulationDataFormat
+                                             O2::DataFormatsTOF)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(compareTopologyDistributions.C

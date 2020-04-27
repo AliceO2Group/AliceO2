@@ -199,7 +199,7 @@ class GPUChain
   virtual int DoStuckProtection(int stream, void* event) { return 0; }
 
   template <class T, class S, typename... Args>
-  bool DoDebugAndDump(RecoStep step, int mask, T& processor, S T::*func, Args&... args);
+  bool DoDebugAndDump(RecoStep step, int mask, T& processor, S T::*func, Args&&... args);
 
  private:
   template <bool Always = false, class T, class S, typename... Args>
@@ -239,7 +239,7 @@ inline void GPUChain::timeCpy(RecoStep step, bool toGPU, S T::*func, Args... arg
 }
 
 template <class T, class S, typename... Args>
-bool GPUChain::DoDebugAndDump(GPUChain::RecoStep step, int mask, T& processor, S T::*func, Args&... args)
+bool GPUChain::DoDebugAndDump(GPUChain::RecoStep step, int mask, T& processor, S T::*func, Args&&... args)
 {
   if (GetDeviceProcessingSettings().keepAllMemory) {
     TransferMemoryResourcesToHost(step, &processor, -1, true);

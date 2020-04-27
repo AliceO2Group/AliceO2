@@ -8,34 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file digit.h
-/// \author Felix Weiglhofer
-//
-#if !defined(SHARED_DIGIT_H)
-#define SHARED_DIGIT_H
+/// @file   DAQID.cxx
+/// @author ruben.shahoyan@cern.ch
+/// @brief  dummy implementation for DAQ source IDs (to addit it to library)
 
-#include "clusterFinderDefs.h"
+#include "Headers/DAQID.h"
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
-namespace deprecated
-{
-
-struct PackedDigit {
-  float charge;
-  Timestamp time;
-  Pad pad;
-  Row row;
-};
-
-using Digit = PackedDigit;
-
-} // namespace deprecated
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
-
-#endif //!defined(SHARED_DIGIT_H)
-
-// vim: set ts=4 sw=4 sts=4 expandtab:
+using namespace o2::header;
