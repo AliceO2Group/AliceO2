@@ -13,8 +13,8 @@
 #ifndef TOFWORKFLOW_TOFMATCHEDWRITER_H_
 #define TOFWORKFLOW_TOFMATCHEDWRITER_H_
 
+#include "TTree.h"
 #include "TFile.h"
-
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include <string>
@@ -33,9 +33,11 @@ class TOFMatchedWriter : public Task
   ~TOFMatchedWriter() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void endOfStream(EndOfStreamContext& ec) final;
 
  private:
-  bool mFinished = false;
+  std::unique_ptr<TFile> mFile = nullptr;
+  std::unique_ptr<TTree> mTree = nullptr;
   bool mUseMC = true;
   std::string mOutFileName; // read from workflow
   std::string mOutTreeName; // read from workflow
