@@ -16,6 +16,7 @@
 #include "Framework/CheckTypes.h"
 #include <arrow/type_fwd.h>
 #include <gandiva/gandiva_aliases.h>
+#include <arrow/type.h>
 #if !defined(__CLING__) && !defined(__ROOTCLING__)
 #include <arrow/table.h>
 #include <gandiva/selection_vector.h>
