@@ -27,6 +27,7 @@
 #include "GPUHostDataTypes.h"
 #include "GPUParam.h"
 
+#include "Framework/Logger.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "TPCBase/Digit.h"
@@ -68,7 +69,15 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
 
   // ===| open file and get tree |==============================================
   std::unique_ptr<TFile> o2simDigits(TFile::Open(digitsFile.data()));
+  if (!o2simDigits || !o2simDigits->IsOpen() || o2simDigits->IsZombie()) {
+    LOGP(error, "Could not open file {}", digitsFile.data());
+    exit(1);
+  }
   auto treeSim = (TTree*)o2simDigits->Get("o2sim");
+  if (!treeSim) {
+    LOGP(error, "Could not read digits tree from file {}", digitsFile.data());
+    exit(1);
+  }
 
   gROOT->cd();
 
@@ -96,7 +105,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
       const unsigned int cruInSector = j / 2;
       const unsigned int cruID = i * 10 + cruInSector;
       const rdh_utils::FEEIDType feeid = rdh_utils::getFEEID(cruID, j & 1, defaultLink);
-      writer.registerLink(feeid, cruID, defaultLink, j & 1, fmt::format("{}cru{}.raw", outDir, cruID));
+      writer.registerLink(feeid, cruID, defaultLink, j & 1, fmt::format("{}cru{}_{}.raw", outDir, cruID, j & 1));
     }
   }
 
