@@ -13,30 +13,12 @@
 #ifndef O2_MFT_CLUSTERWRITER_H_
 #define O2_MFT_CLUSTERWRITER_H_
 
-#include "TFile.h"
-
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
 
 namespace o2
 {
 namespace mft
 {
-
-class ClusterWriter : public o2::framework::Task
-{
- public:
-  ClusterWriter(bool useMC) : mUseMC(useMC) {}
-  ~ClusterWriter() override = default;
-  void init(o2::framework::InitContext& ic) final;
-  void run(o2::framework::ProcessingContext& pc) final;
-  void endOfStream(o2::framework::EndOfStreamContext& ec) final;
-
- private:
-  bool mUseMC = true;
-  std::unique_ptr<TFile> mFile = nullptr;
-  std::unique_ptr<TTree> mTree = nullptr;
-};
 
 /// create a processor spec
 /// write MFT clusters a root file
