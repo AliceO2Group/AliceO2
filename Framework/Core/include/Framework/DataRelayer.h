@@ -10,6 +10,7 @@
 #ifndef FRAMEWORK_DATARELAYER_H
 #define FRAMEWORK_DATARELAYER_H
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/InputRoute.h"
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/ForwardRoute.h"

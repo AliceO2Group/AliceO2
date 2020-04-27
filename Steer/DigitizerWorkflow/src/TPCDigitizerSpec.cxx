@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/RootSerializationSupport.h"
 #include "TPCDigitizerSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/ParallelContext.h"
