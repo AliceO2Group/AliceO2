@@ -168,6 +168,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 
   // the first writer is configured with number of events (1)
   // it receives two routes and saves those to two branches
+  // a third route is disabled (and not published by the source)
   sChecker.addCheck(fileName, 1, 2);
   // the second writer uses a check function to determine when its ready
   // the first definition creates two branches, input data comes in over the
@@ -199,6 +200,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       "testtree",                                                                           // default tree name
       1,                                                                                    // default number of events
       BranchDefinition<Polymorphic>{InputSpec{"in", "TST", "SOMEOBJECT", 0}, "polyobject"}, // branch config
+      BranchDefinition<int>{InputSpec{"disabl", "TST", "NODATA"}, "dummy", 0},              // disabled branch config
       BranchDefinition<int>{InputSpec{"meta", "TST", "METADATA"}, "counter"}                // branch config
       )(),                                                                                  // call the generator
     MakeRootTreeWriterSpec                                                                  //
