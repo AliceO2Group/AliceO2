@@ -14,6 +14,7 @@
 #include "TOFBase/Geo.h"
 #include "TOFBase/Digit.h"
 #include "TOFBase/Strip.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 namespace o2
 {
@@ -35,7 +36,13 @@ class WindowFiller
 
   Int_t getCurrentReadoutWindow() const { return mReadoutWindowCurrent; }
   void setCurrentReadoutWindow(Double_t value) { mReadoutWindowCurrent = value; }
-  void setEventTime(double value) { mEventTime = value - mTF * Geo::NS_IN_TF; }
+  void setEventTime(double value)
+  {
+    mEventTime = value;
+    if (mTF) {
+      mEventTime -= mTF * o2::constants::lhc::LHCOrbitNS * o2::raw::HBFUtils::Instance().getNOrbitsPerTF(); // RS: is this needed?
+    }
+  }
 
   std::vector<Digit>* getDigitPerTimeFrame() { return &mDigitsPerTimeFrame; }
   std::vector<ReadoutWindowData>* getReadoutWindowData() { return &mReadoutWindowData; }
