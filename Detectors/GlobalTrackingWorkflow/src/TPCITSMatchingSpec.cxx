@@ -69,11 +69,6 @@ void TPCITSMatchingDPL::init(InitContext& ic)
 
 void TPCITSMatchingDPL::run(ProcessingContext& pc)
 {
-  LOG(INFO) << "TPCITSMatchingDPL " << mFinished << " NLanes " << mTPCClusLanes.size();
-  if (mFinished) {
-    return;
-  }
-
   const auto tracksITS = pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS");
   const auto trackClIdxITS = pc.inputs().get<gsl::span<int>>("trackClIdx");
   const auto tracksITSROF = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackITSROF");
@@ -286,9 +281,6 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe}, mMatching.getMatchedITSLabels());
     pc.outputs().snapshot(Output{"GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe}, mMatching.getMatchedTPCLabels());
   }
-  mFinished = true;
-  pc.services().get<ControlService>().endOfStream();
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcClusLanes)
