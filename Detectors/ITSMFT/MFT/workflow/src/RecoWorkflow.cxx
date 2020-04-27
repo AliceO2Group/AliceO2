@@ -10,6 +10,7 @@
 
 /// @file   RecoWorkflow.cxx
 
+#include <TTree.h>
 #include "MFTWorkflow/RecoWorkflow.h"
 
 #include "MFTWorkflow/DigitReaderSpec.h"

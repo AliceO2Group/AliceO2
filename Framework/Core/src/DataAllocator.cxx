@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/TableBuilder.h"
+#include "Framework/TableTreeHelpers.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/MessageContext.h"
 #include "Framework/ArrowContext.h"
