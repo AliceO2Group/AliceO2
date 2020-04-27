@@ -14,6 +14,7 @@
 #define O2_TRACKWRITER_TPCITS
 
 #include "TFile.h"
+#include "TTree.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -33,10 +34,12 @@ class TrackWriterTPCITS : public Task
   ~TrackWriterTPCITS() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void endOfStream(EndOfStreamContext& ec) final;
 
  private:
-  bool mFinished = false;
   bool mUseMC = true;
+  std::unique_ptr<TFile> mFile = nullptr;
+  std::unique_ptr<TTree> mTree = nullptr;
   std::string mOutFileName = "o2match_itstpc.root";
   std::string mTreeName = "matchTPCITS";
   std::string mOutTPCITSTracksBranchName = "TPCITS";        ///< name of branch containing output matched tracks
