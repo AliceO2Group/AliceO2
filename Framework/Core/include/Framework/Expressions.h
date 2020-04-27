@@ -24,10 +24,11 @@
 #include <gandiva/node.h>
 #include <gandiva/filter.h>
 #else
-namespace gandiva {
+namespace gandiva 
+{
 class SelectionVector;
 class Filter;
-}
+} // namespace gandiva
 #endif
 #include <variant>
 #include <string>
