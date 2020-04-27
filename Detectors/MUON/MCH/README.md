@@ -10,4 +10,5 @@ This is a top page for the MCH detector documentation.
 \subpage refDetectorsMUONMCHContour
 \subpage refDetectorsMUONMCHRaw
 \subpage refDetectorsMUONMCHMapping
+\subpage refDetectorsMUONMCHWorkflow
 /doxy -->
