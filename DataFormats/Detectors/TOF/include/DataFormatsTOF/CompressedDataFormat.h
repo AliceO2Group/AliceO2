@@ -36,6 +36,7 @@ struct CrateHeader_t {
   uint32_t undefined : 1;
   uint32_t drmID : 7;
   uint32_t mustBeOne : 1;
+  static const uint32_t slotEnableMask = 0x0; // deprecated
 };
 
 struct CrateOrbit_t {
