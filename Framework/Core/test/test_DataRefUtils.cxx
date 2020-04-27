@@ -12,10 +12,14 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include <TObject.h>
+#include <TObjString.h>
+#include <TMessage.h>
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/DataRefUtils.h"
 #include <boost/test/unit_test.hpp>
-#include <TMessage.h>
-#include <TObjString.h>
+
+#include <memory>
 
 using namespace o2::framework;
 
@@ -34,10 +38,12 @@ BOOST_AUTO_TEST_CASE(TestRootSerialization)
 
   // Check by using the same type
   auto s = DataRefUtils::as<TObjString>(ref);
-  BOOST_CHECK_EQUAL(s->GetString(), TString("test"));
+  BOOST_REQUIRE(s.get() != nullptr);
+  BOOST_CHECK_EQUAL(std::string(s->GetString().Data()), "test");
   BOOST_CHECK_EQUAL(std::string(s->GetName()), "test");
 
   // Check by using the base type.
   auto o = DataRefUtils::as<TObject>(ref);
+  BOOST_REQUIRE(o.get() != nullptr);
   BOOST_CHECK_EQUAL(std::string(o->GetName()), "test");
 }

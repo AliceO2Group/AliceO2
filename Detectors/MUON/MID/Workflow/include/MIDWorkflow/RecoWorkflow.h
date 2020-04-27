@@ -16,6 +16,7 @@
 #ifndef O2_MID_RECOWORKFLOWSPEC_H
 #define O2_MID_RECOWORKFLOWSPEC_H
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/WorkflowSpec.h"
 
 namespace o2

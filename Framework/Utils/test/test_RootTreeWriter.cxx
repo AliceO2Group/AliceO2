@@ -11,6 +11,8 @@
 #define BOOST_TEST_MODULE Test Framework Utils RootTreeWriter
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
+
+#include "Framework/RootSerializationSupport.h"
 #include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <iomanip>

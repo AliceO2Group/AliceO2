@@ -15,6 +15,7 @@
 /// @since  2018-05-15
 /// @brief  A generic writer for ROOT TTrees
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/InputRecord.h"
 #include "Framework/DataRef.h"
 #include <TFile.h>

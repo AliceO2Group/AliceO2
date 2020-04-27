@@ -15,6 +15,7 @@
 /// @since  2018-03-15
 /// @brief  A generic reader for ROOT TTrees
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/Output.h"
 #include "Framework/ProcessingContext.h"
 #include "Headers/DataHeader.h"

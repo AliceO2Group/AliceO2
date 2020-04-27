@@ -16,6 +16,7 @@
 #ifndef O2_TOF_COMPRESSEDINSPECTORTASK
 #define O2_TOF_COMPRESSEDINSPECTORTASK
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "TOFReconstruction/DecoderBase.h"

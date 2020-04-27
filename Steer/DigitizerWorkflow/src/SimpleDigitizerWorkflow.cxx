@@ -9,6 +9,9 @@
 // or submit itself to any jurisdiction.
 
 #include <boost/program_options.hpp>
+
+#include "Framework/RootSerializationSupport.h"
+#include "DetectorsBase/Propagator.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicy.h"

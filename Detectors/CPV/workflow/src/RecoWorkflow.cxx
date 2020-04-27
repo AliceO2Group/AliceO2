@@ -14,6 +14,7 @@
 
 #include "FairLogger.h"
 
+#include "Framework/RootSerializationSupport.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsCPV/CPVBlockHeader.h"

@@ -16,6 +16,7 @@
 #include "TFile.h"
 #include "TTree.h"
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsFT0/RecPoints.h"
