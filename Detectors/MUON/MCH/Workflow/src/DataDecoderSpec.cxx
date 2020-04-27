@@ -81,32 +81,27 @@ int ds2manu(int i)
 class MapSolar
 {
  public:
-  int mLink; // link ID
+  int mLink = {-1}; // link ID
 
-  MapSolar()
-  {
-    mLink = -1;
-  }
+  MapSolar() = default;
   ~MapSolar() = default;
 };
 
+
+// CRU mapping
 class MapCRU
 {
-  bool mInitialized;
+  bool mInitialized = {false};
   MapSolar mSolarMap[MCH_MAX_FEEID][MCH_MAX_CRU_LINK];
 
  public:
-  MapCRU();
+  MapCRU() = default;
+  ~MapCRU() = default;
   bool load(std::string mapFile);
   bool initialized() { return mInitialized; }
   int32_t getLink(int32_t c, int32_t l);
 };
 
-// CRU mapping
-MapCRU::MapCRU()
-{
-  mInitialized = false;
-}
 
 bool MapCRU::load(std::string mapFile)
 {
@@ -135,6 +130,8 @@ bool MapCRU::load(std::string mapFile)
 
 int32_t MapCRU::getLink(int32_t c, int32_t l)
 {
+  if (!initialized()) return -1;
+
   int32_t result = -1;
   if (c < 0 || c >= MCH_MAX_FEEID)
     return result;
@@ -143,39 +140,32 @@ int32_t MapCRU::getLink(int32_t c, int32_t l)
   return mSolarMap[c][l].mLink;
 }
 
+
 class MapDualSampa
 {
  public:
-  int mDE;    // detector element
-  int mIndex; // DS index
-  int mBad;   // if = 1 bad pad (not used for analysis)
+  int mDE = {-1};    // detector element
+  int mIndex = {-1}; // DS index
+  int mBad = {-1};   // if = 1 bad pad (not used for analysis)
 
-  MapDualSampa()
-  {
-    mDE = mIndex = -1;
-    mBad = 1;
-  }
-
+  MapDualSampa() = default;
   ~MapDualSampa() = default;
 };
 
+
+// Electronics mapping
 class MapFEC
 {
-  bool mInitialized;
+  bool mInitialized = {false};
   MapDualSampa mDsMap[LINKID_MAX + 1][40];
 
  public:
-  MapFEC();
+  MapFEC() = default;
+  ~MapFEC() = default;
   bool load(std::string mapFile);
   bool initialized() { return mInitialized; }
   bool getDsId(uint32_t link_id, uint32_t ds_addr, int& de, int& dsid);
 };
-
-// Electronics mapping
-MapFEC::MapFEC()
-{
-  mInitialized = false;
-}
 
 bool MapFEC::load(std::string mapFile)
 {
@@ -208,6 +198,8 @@ bool MapFEC::load(std::string mapFile)
 
 bool MapFEC::getDsId(uint32_t link_id, uint32_t ds_addr, int& de, int& dsid)
 {
+  if (!initialized()) return false;
+
   if (mDsMap[link_id][ds_addr].mBad == 1)
     return false;
   de = mDsMap[link_id][ds_addr].mDE;
@@ -398,7 +390,7 @@ class DataDecoderTask
 
     const size_t OUT_SIZE = sizeof(o2::mch::Digit) * digits.size();
 
-    /// send the output buffer via DPL
+    // send the output buffer via DPL
     char* outbuffer = nullptr;
     outbuffer = (char*)realloc(outbuffer, OUT_SIZE);
     memcpy(outbuffer, digits.data(), OUT_SIZE);
