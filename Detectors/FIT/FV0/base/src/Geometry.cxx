@@ -1259,6 +1259,6 @@ Geometry* Geometry::instance(EGeoType initType)
 {
   if (!sInstance)
     LOG(INFO) << "FV0 geometry instance created";
-    sInstance = new Geometry(initType);
+  sInstance = new Geometry(initType);
   return sInstance;
 }
