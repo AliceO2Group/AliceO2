@@ -61,11 +61,9 @@ class DigitSamplerTask
     mUseRun2DigitUID = ic.options().get<bool>("useRun2DigitUID");
     mPrint = ic.options().get<bool>("print");
     mNevents = ic.options().get<int>("nevents");
-    if (mNevents == 0)
-      mNevents = -1;
 
     auto stop = [this]() {
-      /// close the input file
+      // close the input file
       LOG(INFO) << "stop digit sampler";
       this->mInputFile.close();
     };
@@ -79,13 +77,12 @@ class DigitSamplerTask
 
     if (mNevents == 0) {
       pc.services().get<ControlService>().endOfStream();
-      return; // probably reached eof
+      return;
     } else if (mNevents > 0) {
       mNevents -= 1;
     }
 
-    /// send the digits of the current event
-
+    // send the digits of the current event
     int nDigits(0);
     mInputFile.read(reinterpret_cast<char*>(&nDigits), sizeof(int));
     if (mInputFile.fail()) {
@@ -151,7 +148,7 @@ o2::framework::DataProcessorSpec getDigitSamplerSpec()
     Options{{"infile", VariantType::String, "", {"input file name"}},
             {"useRun2DigitUID", VariantType::Bool, false, {"mPadID = digit UID in run2 format"}},
             {"print", VariantType::Bool, false, {"print digits"}},
-            {"nevents", VariantType::Int, 0, {"number of events to process (0 = all events in the file)"}}}};
+            {"nevents", VariantType::Int, -1, {"number of events to process (-1 = all events in the file)"}}}};
 }
 
 } // end namespace mch
