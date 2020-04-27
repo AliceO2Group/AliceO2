@@ -13,12 +13,7 @@
 #ifndef STEER_DIGITIZERWORKFLOW_TOFCLUSTERWRITER_H_
 #define STEER_DIGITIZERWORKFLOW_TOFCLUSTERWRITER_H_
 
-#include "TFile.h"
-
-#include "Framework/RootSerializationSupport.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
-#include <string>
 
 using namespace o2::framework;
 
@@ -26,21 +21,6 @@ namespace o2
 {
 namespace tof
 {
-
-class ClusterWriter : public Task
-{
- public:
-  ClusterWriter(bool useMC = true) : mUseMC(useMC) {}
-  ~ClusterWriter() override = default;
-  void init(InitContext& ic) final;
-  void run(ProcessingContext& pc) final;
-
- private:
-  bool mFinished = false;
-  bool mUseMC = true;
-  std::string mOutFileName; // read from workflow
-  std::string mOutTreeName; // read from workflow
-};
 
 /// create a processor spec
 /// write ITS tracks a root file
