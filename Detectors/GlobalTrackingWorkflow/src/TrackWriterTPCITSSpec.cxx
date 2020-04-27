@@ -11,15 +11,13 @@
 /// @file   TrackWriterTPCITSSpec.cxx
 
 #include <vector>
-
-#include "TTree.h"
-
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "GlobalTrackingWorkflow/TrackWriterTPCITSSpec.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "CommonUtils/StringUtils.h"
 
 using namespace o2::framework;
 
@@ -28,42 +26,50 @@ namespace o2
 namespace globaltracking
 {
 
+template <typename T>
+TBranch* getOrMakeBranch(TTree* tree, const char* brname, T* ptr)
+{
+  if (auto br = tree->GetBranch(brname)) {
+    br->SetAddress(static_cast<void*>(ptr));
+    return br;
+  }
+  return tree->Branch(brname, ptr); // otherwise make it
+}
+
 void TrackWriterTPCITS::init(InitContext& ic)
 {
   mOutFileName = ic.options().get<std::string>("tpcits-tracks-outfile");
+  mFile = std::make_unique<TFile>(mOutFileName.c_str(), "RECREATE");
+  if (!mFile->IsOpen()) {
+    throw std::runtime_error(o2::utils::concat_string("failed to open TPC-ITS matches output file ", mOutFileName));
+  }
+  mTree = std::make_unique<TTree>(mTreeName.c_str(), "Tree of ITS-TPC matches");
 }
 
 void TrackWriterTPCITS::run(ProcessingContext& pc)
 {
-  if (mFinished) {
-    return;
-  }
 
-  TFile outf(mOutFileName.c_str(), "recreate");
-  if (outf.IsZombie()) {
-    LOG(FATAL) << "Failed to open output file " << mOutFileName;
-  }
-  TTree tree(mTreeName.c_str(), "Tree of ITS-TPC matches");
-  auto tracks = pc.inputs().get<const std::vector<o2::dataformats::TrackTPCITS>>("match");
+  auto tracks = std::move(pc.inputs().get<const std::vector<o2::dataformats::TrackTPCITS>>("match"));
   auto tracksPtr = &tracks;
-  tree.Branch(mOutTPCITSTracksBranchName.c_str(), &tracksPtr);
-  tree.GetBranch(mOutTPCITSTracksBranchName.c_str())->Fill();
-  LOG(INFO) << "Writing " << tracks.size() << " TPC-ITS matches";
+  getOrMakeBranch(mTree.get(), mOutTPCITSTracksBranchName.c_str(), &tracksPtr);
+  std::vector<o2::MCCompLabel> lblITS, *lblITSPtr = &lblITS;
+  std::vector<o2::MCCompLabel> lblTPC, *lblTPCPtr = &lblTPC;
   if (mUseMC) {
-    auto lblITS = pc.inputs().get<const std::vector<o2::MCCompLabel>>("matchITSMC");
-    auto lblTPC = pc.inputs().get<const std::vector<o2::MCCompLabel>>("matchTPCMC");
-    auto lblITSPtr = &lblITS;
-    auto lblTPCPtr = &lblTPC;
-    tree.Branch(mOutITSMCTruthBranchName.c_str(), &lblITSPtr);
-    tree.Branch(mOutTPCMCTruthBranchName.c_str(), &lblTPCPtr);
-    tree.GetBranch(mOutITSMCTruthBranchName.c_str())->Fill();
-    tree.GetBranch(mOutTPCMCTruthBranchName.c_str())->Fill();
-    //
+    lblITS = std::move(pc.inputs().get<std::vector<o2::MCCompLabel>>("matchITSMC"));
+    lblTPC = std::move(pc.inputs().get<std::vector<o2::MCCompLabel>>("matchTPCMC"));
+    getOrMakeBranch(mTree.get(), mOutITSMCTruthBranchName.c_str(), &lblITSPtr);
+    getOrMakeBranch(mTree.get(), mOutTPCMCTruthBranchName.c_str(), &lblTPCPtr);
   }
-  tree.SetEntries(1);
-  tree.Write();
-  mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  LOG(INFO) << "Writing " << tracks.size() << " TPC-ITS matches";
+  mTree->Fill();
+}
+
+void TrackWriterTPCITS::endOfStream(EndOfStreamContext& ec)
+{
+  LOG(INFO) << "Finalizing TPC-ITS matched tracks writing";
+  mTree->Write();
+  mTree.release()->Delete();
+  mFile->Close();
 }
 
 DataProcessorSpec getTrackWriterTPCITSSpec(bool useMC)
