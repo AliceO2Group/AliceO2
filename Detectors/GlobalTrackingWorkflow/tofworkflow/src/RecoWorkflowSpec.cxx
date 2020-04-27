@@ -57,10 +57,6 @@ class TOFDPLRecoWorkflowTask
 
   void run(framework::ProcessingContext& pc)
   {
-    static bool finished = false;
-    if (finished) {
-      return;
-    }
 
     //>>>---------- attach input data --------------->>>
     auto tracks = pc.inputs().get<std::vector<o2::dataformats::TrackTPCITS>*>("globaltrack");
@@ -139,9 +135,6 @@ class TOFDPLRecoWorkflowTask
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBINFOS", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
 
     // declare done
-    finished = true;
-    //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    pc.services().get<ControlService>().endOfStream();
   }
 
  private:
