@@ -53,6 +53,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
   workflowOptions.push_back(ConfigParamSpec{"use-fit", o2::framework::VariantType::Bool, false, {"enable access to fit info for calibration"}});
   workflowOptions.push_back(ConfigParamSpec{"input-desc", o2::framework::VariantType::String, "CRAWDATA", {"Input specs description string"}});
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}});
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -84,7 +85,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     LOG(ERROR) << "This workflow needs a valid GRP file to start";
     return specs;
   }
-
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   //  o2::conf::ConfigurableParam::writeINI("o2tofrecoflow_configuration.ini");
 
   // the lane configuration defines the subspecification ids to be distributed among the lanes.
