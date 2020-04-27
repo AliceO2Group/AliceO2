@@ -58,13 +58,6 @@ namespace framework
 {
 class ContextRegistry;
 
-namespace
-{
-template <typename T>
-struct type_dependent : std::false_type {
-};
-} // namespace
-
 #define ERROR_STRING                                          \
   "data type T not supported by API, "                        \
   "\n specializations available for"                          \
