@@ -44,8 +44,6 @@ class TPCITSMatchingDPL : public Task
   o2::itsmft::TopologyDictionary mITSDict;   // cluster patterns dictionary
   std::vector<int> mTPCClusLanes;
   std::array<std::vector<char>, o2::tpc::Constants::MAXSECTOR> mBufferedTPCClusters; // at the moment not used
-
-  bool mFinished = false;
   bool mUseMC = true;
 };
 
