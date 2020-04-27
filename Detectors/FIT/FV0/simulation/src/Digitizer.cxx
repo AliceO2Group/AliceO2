@@ -254,3 +254,20 @@ Double_t Digitizer::SinglePhESpectrum(Double_t* x, Double_t*)
   return (TMath::Poisson(x[0], FV0DigParam::Instance().pmtNbOfSecElec) +
           FV0DigParam::Instance().pmtTransparency * TMath::Poisson(x[0], 1.0));
 }
+
+// The Distance is positive for top half-sectors (when the hit position is above the cell center (has higher y))
+// TODO: performance check needed
+float Digitizer::getDistFromCellCenter(UInt_t cellId, double hitx, double hity)
+{
+  Geometry* geo = Geometry::instance(Geometry::eUninitilized);
+
+  // Parametrize the line (ax+by+c=0) that crosses the detector center and the cell's middle point
+  Point3D<float>* pCell = &geo->getCellCenter(cellId);
+  float x0, y0, z0;
+  geo->getGlobalPosition(x0, y0, z0);
+  double a = -(y0 - pCell->Y()) / (x0 - pCell->X());
+  double b = 1;
+  double c = -(y0 - a * x0);
+  // Return the distance from hit to this line
+  return (a * hitx + b * hity + c) / TMath::Sqrt(a * a + b * b);
+}
