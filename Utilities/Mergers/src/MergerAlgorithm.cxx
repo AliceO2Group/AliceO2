@@ -42,15 +42,17 @@ void merge(TObject* const target, TObject* const other)
   // fixme: should we check if names match?
 
   // We expect that both objects follow the same structure, but we allow to add missing objects to TCollections.
-
   if (auto custom = dynamic_cast<MergeInterface*>(target)) {
 
     custom->merge(dynamic_cast<MergeInterface* const>(other));
 
   } else if (auto targetCollection = dynamic_cast<TCollection*>(target)) {
 
-    // We assume that the other has the same structure
-    auto otherCollection = reinterpret_cast<TCollection*>(other);
+    auto otherCollection = dynamic_cast<TCollection*>(other);
+    if (otherCollection == nullptr) {
+      throw std::runtime_error(std::string("The target object '") + target->GetName() +
+                               "' is a TCollection, while the other object '" + other->GetName() + "' is not.");
+    }
 
     auto otherIterator = otherCollection->MakeIterator();
     while (auto otherObject = otherIterator->Next()) {
@@ -63,7 +65,6 @@ void merge(TObject* const target, TObject* const other)
         targetCollection->Add(otherObject->Clone());
       }
     }
-
   } else {
     Long64_t errorCode = 0;
     TObjArray otherCollection;
