@@ -19,6 +19,11 @@
 #include "FlatObject.h"
 #include "Spline2D.h"
 
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#include "Rtypes.h"                                       // for ClassDefNV
+#include <boost/format.hpp>
+#endif
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -78,7 +83,7 @@ class TPCdEdxCalibrationSplines : public FlatObject
   /// Gives pointer to a spline
   GPUd() const SplineType& getSpline(int chargeType, int region) const;
 
-#if !defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   /// sets the splines from an input file
   void setSplinesFromFile(TFile& inpf);
 #endif
@@ -110,7 +115,7 @@ class TPCdEdxCalibrationSplines : public FlatObject
   };
 
     /// _______________  IO   ________________________
-#if !defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   /// write a class object to the file
   int writeToFile(TFile& outf, const char* name);
 
@@ -126,7 +131,7 @@ class TPCdEdxCalibrationSplines : public FlatObject
   ClassDefNV(TPCdEdxCalibrationSplines, 1);
 };
 
-#if !defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
 inline void TPCdEdxCalibrationSplines::setSplinesFromFile(TFile& inpf)
 {
@@ -136,16 +141,18 @@ inline void TPCdEdxCalibrationSplines::setSplinesFromFile(TFile& inpf)
   int offsets1[mFSplines];
   int offsets2[mFSplines];
 
-  for (int ireg = 0; ireg < mFSplines; ++ireg) {
-    o2::gpu::Spline2D<float, 1>* splineTmpqMax = o2::gpu::Spline2D<float, 1>::readFromFile(inpf, Form("spline_qMax_region%d", ireg));
+  for (unsigned int ireg = 0; ireg < mFSplines; ++ireg) {
+    std::string splinename = (boost::format("spline_qMax_region%d") % ireg).str();
+    o2::gpu::Spline2D<float, 1>* splineTmpqMax = o2::gpu::Spline2D<float, 1>::readFromFile(inpf, splinename.data());
     mCalibSplinesqMax[ireg] = *splineTmpqMax;
     buffSize = alignSize(buffSize, mCalibSplinesqMax[ireg].getBufferAlignmentBytes());
     offsets1[ireg] = buffSize;
     buffSize += mCalibSplinesqMax[ireg].getFlatBufferSize();
   }
 
-  for (int ireg = 0; ireg < mFSplines; ++ireg) {
-    o2::gpu::Spline2D<float, 1>* splineTmpqTot = o2::gpu::Spline2D<float, 1>::readFromFile(inpf, Form("spline_qTot_region%d", ireg));
+  for (unsigned int ireg = 0; ireg < mFSplines; ++ireg) {
+    std::string splinename = (boost::format("spline_qTot_region%d") % ireg).str();
+    o2::gpu::Spline2D<float, 1>* splineTmpqTot = o2::gpu::Spline2D<float, 1>::readFromFile(inpf, splinename.data());
     mCalibSplinesqTot[ireg] = *splineTmpqTot;
     buffSize = alignSize(buffSize, mCalibSplinesqTot[ireg].getBufferAlignmentBytes());
     offsets2[ireg] = buffSize;
@@ -154,49 +161,10 @@ inline void TPCdEdxCalibrationSplines::setSplinesFromFile(TFile& inpf)
 
   FlatObject::finishConstruction(buffSize);
 
-  for (int i = 0; i < mFSplines; i++) {
+  for (unsigned int i = 0; i < mFSplines; i++) {
     mCalibSplinesqMax[i].moveBufferTo(mFlatBufferPtr + offsets1[i]);
   }
-  for (int i = 0; i < mFSplines; i++) {
-    mCalibSplinesqTot[i].moveBufferTo(mFlatBufferPtr + offsets2[i]);
-  }
-}
-
-#endif
-
-#if !defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_STANDALONE)
-
-TPCdEdxCalibrationSplines* TPCdEdxCalibrationSplines::readFromFile(
-  TFile& inpf, const char* name)
-{
-  FlatObject::startConstruction();
-
-  int buffSize = 0;
-  int offsets1[mFSplines];
-  int offsets2[mFSplines];
-
-  for (int ireg = 0; ireg < mFSplines; ++ireg) {
-    o2::gpu::Spline2D<float, 1>* splineTmpqMax = o2::gpu::Spline2D<float, 1>::readFromFile(inpf, Form("spline_qMax_region%d", ireg));
-    mCalibSplinesqMax[ireg] = *splineTmpqMax;
-    buffSize = alignSize(buffSize, mCalibSplinesqMax[ireg].getBufferAlignmentBytes());
-    offsets1[ireg] = buffSize;
-    buffSize += mCalibSplinesqMax[ireg].getFlatBufferSize();
-  }
-
-  for (int ireg = 0; ireg < mFSplines; ++ireg) {
-    o2::gpu::Spline2D<float, 1>* splineTmpqTot = o2::gpu::Spline2D<float, 1>::readFromFile(inpf, Form("spline_qTot_region%d", ireg));
-    mCalibSplinesqTot[ireg] = *splineTmpqTot;
-    buffSize = alignSize(buffSize, mCalibSplinesqTot[ireg].getBufferAlignmentBytes());
-    offsets2[ireg] = buffSize;
-    buffSize += mCalibSplinesqTot[ireg].getFlatBufferSize();
-  }
-
-  FlatObject::finishConstruction(buffSize);
-
-  for (int i = 0; i < mFSplines; i++) {
-    mCalibSplinesqMax[i].moveBufferTo(mFlatBufferPtr + offsets1[i]);
-  }
-  for (int i = 0; i < mFSplines; i++) {
+  for (unsigned int i = 0; i < mFSplines; i++) {
     mCalibSplinesqTot[i].moveBufferTo(mFlatBufferPtr + offsets2[i]);
   }
 }

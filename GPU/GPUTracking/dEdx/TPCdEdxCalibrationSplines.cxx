@@ -15,6 +15,10 @@
 
 #include "TPCdEdxCalibrationSplines.h"
 
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#include "TFile.h"
+#endif
+
 using namespace GPUCA_NAMESPACE::gpu;
 
 #if !defined(GPUCA_GPUCODE)
@@ -150,3 +154,19 @@ void TPCdEdxCalibrationSplines::setFutureBufferAddress(char* futureFlatBufferPtr
   }
   FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
 }
+
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+
+TPCdEdxCalibrationSplines* TPCdEdxCalibrationSplines::readFromFile(
+  TFile& inpf, const char* name)
+{
+  /// read a class object from the file
+  return FlatObject::readFromFile<TPCdEdxCalibrationSplines>(inpf, name);
+}
+
+int TPCdEdxCalibrationSplines::writeToFile(TFile& outf, const char* name)
+{
+  /// write a class object to the file
+  return FlatObject::writeToFile(*this, outf, name);
+}
+#endif
