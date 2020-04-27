@@ -31,12 +31,12 @@ namespace compressed
 {
 
 template <typename RAWDataHeader>
-class DecoderBase
+class DecoderBaseT
 {
 
  public:
-  DecoderBase() = default;
-  virtual ~DecoderBase() = default;
+  DecoderBaseT() = default;
+  virtual ~DecoderBaseT() = default;
 
   inline bool run()
   {
@@ -68,6 +68,11 @@ class DecoderBase
                               const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics,
                               const Error_t* errors){};
 
+  /** old API, deprecated **/
+
+  virtual void trailerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
+                              const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics){};
+
   bool processHBF();
   bool processDRM();
 
@@ -87,6 +92,10 @@ class DecoderBase
   uint32_t mDecoderSaveBufferDataSize = 0;
   uint32_t mDecoderSaveBufferDataLeft = 0;
 };
+
+typedef DecoderBaseT<o2::header::RAWDataHeaderV4> DecoderBaseV4;
+typedef DecoderBaseT<o2::header::RAWDataHeaderV6> DecoderBaseV6;
+using DecoderBase = DecoderBaseV4;
 
 } // namespace compressed
 } // namespace tof
