@@ -21,6 +21,7 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
+#include <gsl/span>
 
 // from FIT
 #include "DataFormatsFT0/RecPoints.h"
@@ -63,21 +64,8 @@ class TOFDPLRecoWorkflowTask
     }
 
     //>>>---------- attach input data --------------->>>
-    auto tracks = pc.inputs().get<std::vector<o2::dataformats::TrackTPCITS>*>("globaltrack");
-    auto clusters = pc.inputs().get<std::vector<o2::tof::Cluster>*>("tofcluster");
-
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> toflab;
-    auto itslab = std::make_shared<std::vector<o2::MCCompLabel>>();
-    auto tpclab = std::make_shared<std::vector<o2::MCCompLabel>>();
-
-    if (mUseMC) {
-      auto toflabel = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("tofclusterlabel");
-      auto itslabel = pc.inputs().get<std::vector<o2::MCCompLabel>*>("itstracklabel");
-      auto tpclabel = pc.inputs().get<std::vector<o2::MCCompLabel>*>("tpctracklabel");
-      toflab = std::move(*toflabel);
-      *itslab.get() = std::move(*itslabel);
-      *tpclab.get() = std::move(*tpclabel);
-    }
+    const auto clustersRO = pc.inputs().get<gsl::span<o2::tof::Cluster>>("tofcluster");
+    const auto tracksRO = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("globaltrack");
 
     if (mUseFIT) {
       // Note: the particular variable will go out of scope, but the span is passed by copy to the
@@ -103,24 +91,19 @@ class TOFDPLRecoWorkflowTask
 
     // we do a copy of the input but we are looking for a way to avoid it (current problem in conversion form unique_ptr to *)
 
-    auto tracksRO = std::make_shared<std::vector<o2::dataformats::TrackTPCITS>>();
-    //  std::vector<o2::dataformats::TrackTPCITS> tracksRO;
-    *tracksRO.get() = std::move(*tracks);
-    // for (int i = 0; i < tracks->size(); i++) {
-    //   tracksRO.emplace_back(tracks->at(i));
-    // }
-    auto clustersRO = std::make_shared<std::vector<o2::tof::Cluster>>();
-    //std::vector<o2::tof::Cluster> clustersRO;
-    *clustersRO.get() = std::move(*clusters);
-    //  for (int i = 0; i < clusters->size(); i++) {
-    //    clustersRO.emplace_back(clusters->at(i));
-    // }
+    gsl::span<const o2::MCCompLabel> itslab;
+    gsl::span<const o2::MCCompLabel> tpclab;
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> toflab;
+    if (mUseMC) {
+      const auto toflabel = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("tofclusterlabel");
+      itslab = pc.inputs().get<gsl::span<o2::MCCompLabel>>("itstracklabel");
+      tpclab = pc.inputs().get<gsl::span<o2::MCCompLabel>>("tpctracklabel");
+      toflab = std::move(*toflabel);
 
-    if (mUseMC)
-      mMatcher.initWorkflow(tracksRO.get(), clustersRO.get(), &toflab, itslab.get(), tpclab.get());
-    else
-      mMatcher.initWorkflow(tracksRO.get(), clustersRO.get(), nullptr, nullptr, nullptr);
-
+      mMatcher.initWorkflow(&tracksRO, &clustersRO, &toflab, &itslab, &tpclab);
+    } else {
+      mMatcher.initWorkflow(&tracksRO, &clustersRO, nullptr, nullptr, nullptr);
+    }
     mMatcher.run();
 
     // in run_match_tof aggiugnere esplicitamente la chiamata a fill del tree (nella classe MatchTOF) e il metodo per leggere i vettori di output

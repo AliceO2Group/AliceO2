@@ -158,7 +158,7 @@ void MatchTOF::fill()
 }
 
 //______________________________________________
-void MatchTOF::initWorkflow(const std::vector<o2::dataformats::TrackTPCITS>* trackArray, const std::vector<Cluster>* clusterArray, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* toflab, const std::vector<o2::MCCompLabel>* itslab, const std::vector<o2::MCCompLabel>* tpclab)
+void MatchTOF::initWorkflow(const gsl::span<const o2::dataformats::TrackTPCITS>* trackArray, const gsl::span<const Cluster>* clusterArray, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* toflab, const gsl::span<const o2::MCCompLabel>* itslab, const gsl::span<const o2::MCCompLabel>* tpclab)
 {
 
   if (mInitDone) {
@@ -281,7 +281,7 @@ void MatchTOF::attachInputTrees()
   if (!mInputTreeTracks->GetBranch(mTracksBranchName.data())) {
     LOG(FATAL) << "Did not find tracks branch " << mTracksBranchName << " in the input tree";
   }
-  mInputTreeTracks->SetBranchAddress(mTracksBranchName.data(), &mTracksArrayInp);
+  mInputTreeTracks->SetBranchAddress(mTracksBranchName.data(), &mTracksArrayInpVect);
   LOG(INFO) << "Attached tracks " << mTracksBranchName << " branch with " << mInputTreeTracks->GetEntries()
             << " entries";
 
@@ -290,7 +290,7 @@ void MatchTOF::attachInputTrees()
   if (!mTreeTOFClusters->GetBranch(mTOFClusterBranchName.data())) {
     LOG(FATAL) << "Did not find TOF clusters branch " << mTOFClusterBranchName << " in the input tree";
   }
-  mTreeTOFClusters->SetBranchAddress(mTOFClusterBranchName.data(), &mTOFClustersArrayInp);
+  mTreeTOFClusters->SetBranchAddress(mTOFClusterBranchName.data(), &mTOFClustersArrayInpVect);
   LOG(INFO) << "Attached TOF clusters " << mTOFClusterBranchName << " branch with " << mTreeTOFClusters->GetEntries()
             << " entries";
   // is there MC info available ?
@@ -501,6 +501,9 @@ bool MatchTOF::loadTracksNextChunk()
   ///< load next chunk of tracks to be matched to TOF
   while (++mCurrTracksTreeEntry < mInputTreeTracks->GetEntries()) {
     mInputTreeTracks->GetEntry(mCurrTracksTreeEntry);
+    if (mTracksArrayInp)
+      delete mTracksArrayInp;
+    mTracksArrayInp = new const gsl::span<const o2::dataformats::TrackTPCITS>{*mTracksArrayInpVect};
     LOG(INFO) << "Loading tracks entry " << mCurrTracksTreeEntry << " -> " << mTracksArrayInp->size()
               << " tracks";
     if (!mTracksArrayInp->size()) {
@@ -518,6 +521,9 @@ bool MatchTOF::loadTOFClustersNextChunk()
   printf("Loading TOF clusters: number of entries in tree = %lld\n", mTreeTOFClusters->GetEntries());
   while (++mCurrTOFClustersTreeEntry < mTreeTOFClusters->GetEntries()) {
     mTreeTOFClusters->GetEntry(mCurrTOFClustersTreeEntry);
+    if (mTOFClustersArrayInp)
+      delete mTOFClustersArrayInp;
+    mTOFClustersArrayInp = new const gsl::span<const Cluster>{*mTOFClustersArrayInpVect};
     LOG(DEBUG) << "Loading TOF clusters entry " << mCurrTOFClustersTreeEntry << " -> " << mTOFClustersArrayInp->size()
                << " clusters";
     LOG(INFO) << "Loading TOF clusters entry " << mCurrTOFClustersTreeEntry << " -> " << mTOFClustersArrayInp->size()
