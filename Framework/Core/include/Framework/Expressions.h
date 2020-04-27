@@ -15,10 +15,21 @@
 #include "Framework/Pack.h"
 #include "Framework/CheckTypes.h"
 #include <arrow/type_fwd.h>
+#include <gandiva/gandiva_aliases.h>
+#include <arrow/type.h>
+#include <gandiva/arrow.h>
+#if !defined(__CLING__) && !defined(__ROOTCLING__)
 #include <arrow/table.h>
 #include <gandiva/selection_vector.h>
 #include <gandiva/node.h>
-#include "gandiva/filter.h"
+#include <gandiva/filter.h>
+#else
+namespace gandiva 
+{
+class SelectionVector;
+class Filter;
+} // namespace gandiva
+#endif
 #include <variant>
 #include <string>
 #include <memory>
