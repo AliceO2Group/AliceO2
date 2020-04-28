@@ -317,11 +317,11 @@ void countItems(const string& s, int& countObjects, int& countSubfolders)
   boost::property_tree::ptree pt;
   boost::property_tree::read_json(ss, pt);
 
-  if(pt.count("objects") > 0) {
+  if (pt.count("objects") > 0) {
     countObjects = pt.get_child("objects").size();
   }
 
-  if(pt.count("subfolders") > 0) {
+  if (pt.count("subfolders") > 0) {
     countSubfolders = pt.get_child("subfolders").size();
   }
 }
