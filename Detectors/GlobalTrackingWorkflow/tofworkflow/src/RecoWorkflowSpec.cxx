@@ -99,11 +99,9 @@ class TOFDPLRecoWorkflowTask
       itslab = pc.inputs().get<gsl::span<o2::MCCompLabel>>("itstracklabel");
       tpclab = pc.inputs().get<gsl::span<o2::MCCompLabel>>("tpctracklabel");
       toflab = std::move(*toflabel);
-
-      mMatcher.initWorkflow(&tracksRO, &clustersRO, &toflab, &itslab, &tpclab);
-    } else {
-      mMatcher.initWorkflow(&tracksRO, &clustersRO, nullptr, nullptr, nullptr);
     }
+
+    mMatcher.initWorkflow(tracksRO, clustersRO, toflab, itslab, tpclab);
     mMatcher.run();
 
     // in run_match_tof aggiugnere esplicitamente la chiamata a fill del tree (nella classe MatchTOF) e il metodo per leggere i vettori di output
