@@ -82,13 +82,14 @@ class Digitizer
   double mLastTime = 1.0e10; // starts in the future
   int mEventID = 0;
   int mSrcID = 0;
-  int kNpad = 0;         // Number of pads included in the pad response
-  float kAmWidth = 0;    // Width of the amplification region
-  float kDrWidth = 0;    // Width of the drift retion
-  float kDrMin = 0;      // Drift + Amplification region
-  float kDrMax = 0;      // Drift + Amplification region
-  int timeBinTRFend = 0; // time bin TRF ends
-  int nTimeTotal = 30;   // PLEASE FIX ME when CCDB is ready
+  int kNpad = 0;            // Number of pads included in the pad response
+  float kAmWidth = 0;       // Width of the amplification region
+  float kDrWidth = 0;       // Width of the drift retion
+  float kDrMin = 0;         // Drift + Amplification region
+  float kDrMax = 0;         // Drift + Amplification region
+  int timeBinTRFend = 0;    // time bin TRF ends
+  int maxTimeBins = 30;     // Maximum number of time bins for processing signals, usually set at 30 tb = 3 microseconds
+  int maxTimeBinsTRAP = 30; // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
   float samplingRate = 0;
   float elAttachProp = 0;
 
@@ -114,9 +115,7 @@ class Digitizer
   int calculateKey(const int det, const int row, const int col)
   {
     int key = ((det << 12) | (row << 8) | col);
-    if (key < KEY_MIN || key > KEY_MAX) {
-      LOG(FATAL) << "Wrong TRD key " << key << " for (det,row,col) = (" << det << ", " << row << ", " << col << ")";
-    }
+    assert(!(key < KEY_MIN || key > KEY_MAX));
     return key;
   }
   int getDetectorFromKey(const int key) { return (key >> 12) & 0xFFF; }

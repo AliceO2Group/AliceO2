@@ -80,11 +80,11 @@ void Digitizer::setSimulationParameters()
   kDrWidth = TRDGeometry::drThick();                 // Width of the drift retion
   kDrMin = -0.5 * kAmWidth;                          // Drift + Amplification region
   kDrMax = kDrWidth + 0.5 * kAmWidth;                // Drift + Amplification region
-  timeBinTRFend = 0;
   if (mSimParam->TRFOn()) {
     timeBinTRFend = ((int)(mSimParam->GetTRFhi() * mCommonParam->GetSamplingFrequency())) - 1;
   }
-  nTimeTotal = kTimeBins; // PLEASE FIX ME when CCDB is ready
+  maxTimeBins = kTimeBins;     // for signals, usually set at 30 tb = 3 microseconds
+  maxTimeBinsTRAP = kTimeBins; // for adcs; should be read from the CCDB or the TRAP config
   samplingRate = mCommonParam->GetSamplingFrequency();
   elAttachProp = mSimParam->GetElAttachProp() / 100;
 }
@@ -342,8 +342,8 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       // The time bin (always positive), with t0 distortion
       double timeBinIdeal = driftTime * samplingRate + t0;
       // Protection
-      if (std::fabs(timeBinIdeal) > (2 * nTimeTotal)) {
-        timeBinIdeal = 2 * nTimeTotal;
+      if (std::fabs(timeBinIdeal) > (2 * maxTimeBins)) {
+        timeBinIdeal = 2 * maxTimeBins;
       }
       int timeBinTruncated = ((int)timeBinIdeal);
       // The distance of the position to the middle of the timebin
@@ -351,7 +351,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       // Sample the time response inside the drift region + additional time bins before and after.
       // The sampling is done always in the middle of the time bin
       const int firstTimeBin = std::max(timeBinTruncated, 0);
-      const int lastTimeBin = std::min(timeBinTruncated + timeBinTRFend, nTimeTotal);
+      const int lastTimeBin = std::min(timeBinTruncated + timeBinTRFend, maxTimeBins);
 
       // loop over pads first then over timebins for better cache friendliness
       // and less access to signalMapCont
@@ -426,8 +426,6 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer& signalMapCon
   double baseline = mSimParam->GetADCbaseline() / adcConvert;                   // The electronics baseline in mV
   double baselineEl = baseline / convert;                                       // The electronics baseline in electrons
 
-  int nTimeTotal = kTimeBins; // fDigitsManager->GetDigitsParam()->GetNTimeBins(det);
-
   for (auto& signalMapIter : signalMapCont) {
     const auto key = signalMapIter.first;
     const int det = getDetectorFromKey(key);
@@ -459,7 +457,7 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer& signalMapCon
     SignalArray& signalData = signalMapIter.second;
     auto& signalArray = signalData.signals;
     ArrayADC adcs{};
-    for (int tb = 0; tb < nTimeTotal; ++tb) {
+    for (int tb = 0; tb < maxTimeBinsTRAP; ++tb) {
       float signalAmp = (float)signalArray[tb]; // The signal amplitude
       signalAmp *= coupling;                    // Pad and time coupling
       signalAmp *= padgain;                     // Gain factors
