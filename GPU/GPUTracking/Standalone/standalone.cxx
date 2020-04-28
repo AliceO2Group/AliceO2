@@ -19,7 +19,6 @@
 #include "GPUTPCDef.h"
 #include "GPUQA.h"
 #include "GPUDisplayBackend.h"
-#include "TPCClusterDecompressor.h"
 #include "genEvents.h"
 
 #include <iostream>
@@ -56,6 +55,7 @@
 #include "GPUO2DataTypes.h"
 #ifdef HAVE_O2HEADERS
 #include "GPUChainITS.h"
+#include "TPCClusterDecompressor.h"
 #endif
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
@@ -156,7 +156,7 @@ int ReadConfiguration(int argc, char** argv)
   }
 #endif
 #ifndef HAVE_O2HEADERS
-  configStandalone.configRec.runTRD = configStandalone.configRec.rundEdx = configStandalone.configRec.runCompression = configStandalone.configRec.runTransformation = 0;
+  configStandalone.configRec.runTRD = configStandalone.configRec.rundEdx = configStandalone.configRec.runCompression = configStandalone.configRec.runTransformation = configStandalone.testSyncAsync = 0;
   configStandalone.configRec.ForceEarlyTPCTransform = 1;
 #endif
 #ifndef GPUCA_TPC_GEOMETRY_O2
@@ -713,6 +713,7 @@ int main(int argc, char** argv)
             }
           }
 
+#ifdef HAVE_O2HEADERS
           if (tmpRetVal == 0 && configStandalone.testSyncAsync) {
             if (configStandalone.testSyncAsync) {
               printf("Running asynchronous phase\n");
@@ -751,6 +752,7 @@ int main(int argc, char** argv)
             }
             recAsync->ClearAllocatedMemory();
           }
+#endif
           rec->ClearAllocatedMemory();
 
           if (tmpRetVal == 2) {

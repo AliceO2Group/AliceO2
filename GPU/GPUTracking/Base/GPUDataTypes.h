@@ -185,7 +185,7 @@ struct GPUTrackingInOutZS {
 
 struct GPUTrackingInOutDigits {
   static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
-  const tpc::Digit* tpcDigits[NSLICES] = {nullptr};
+  const o2::tpc::Digit* tpcDigits[NSLICES] = {nullptr};
   size_t nTPCDigits[NSLICES] = {0};
   GPUTPCDigitsMCInput* tpcDigitsMC;
 };
