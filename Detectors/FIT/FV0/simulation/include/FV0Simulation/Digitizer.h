@@ -92,6 +92,7 @@ class Digitizer
   static Double_t PmtResponse(Double_t x);
   static Double_t PmtResponse(Double_t* x, Double_t*);
   static Double_t SinglePhESpectrum(Double_t* x, Double_t* par);
+  float getDistFromCellCenter(UInt_t cellId, double hitx, double hity);
 
   ClassDefNV(Digitizer, 1);
 };
