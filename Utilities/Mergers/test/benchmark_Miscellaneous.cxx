@@ -11,18 +11,10 @@
 
 #include <TObjArray.h>
 #include <TH1.h>
-#include <TH2.h>
-#include <TH3.h>
-#include <THn.h>
 #include <TTree.h>
-#include <THnSparse.h>
 #include <TF1.h>
-#include <TF2.h>
-#include <TF3.h>
 #include <TRandom.h>
-#include <TRandomGen.h>
 
-#include <boost/histogram.hpp>
 
 static void BM_dynamic_cast(benchmark::State& state)
 {
@@ -150,6 +142,52 @@ static void BM_MergeWithNoCheck(benchmark::State& state)
   delete uni;
 }
 
+static void BM_ClassComparisonCString(benchmark::State& state)
+{
+  bool thisTriesToAvoidOptimization = std::rand();
+  TH1* h;
+  if (thisTriesToAvoidOptimization) {
+    h = new TH1I("histo", "histo", 1000, 0, 1000000);
+  } else {
+    h = new TH1F("histo", "histo", 1000, 0, 1000000);
+  }
+
+  size_t entries = 0;
+
+  for (auto _ : state) {
+    const char* className = h->ClassName();
+    if (strncmp(className, "TH1", 3) == 0) {
+      entries += 1;
+    }
+  }
+
+  (void)entries;
+  delete h;
+}
+
+static void BM_ClassComparisonInterface(benchmark::State& state)
+{
+  bool thisTriesToAvoidOptimization = std::rand();
+  TH1* h;
+  if (thisTriesToAvoidOptimization) {
+    h = new TH1I("histo", "histo", 1000, 0, 1000000);
+  } else {
+    h = new TH1F("histo", "histo", 1000, 0, 1000000);
+  }
+
+  size_t entries = 0;
+
+  // not sure if compiler won't be to clever about this, making it static...
+  for (auto _ : state) {
+    if (h->InheritsFrom(TH1::Class())) {
+      entries += 1;
+    }
+  }
+
+  (void)entries;
+  delete h;
+}
+
 // TEST: See which way of casting ROOT objects is faster.
 // RESULT: dynamic_cast wins by an order of magnitude.
 BENCHMARK(BM_dynamic_cast);
@@ -162,5 +200,9 @@ BENCHMARK(BM_MergeCollectionOnStack);
 // RESULT: Probably barely
 BENCHMARK(BM_MergeWithoutNoCheck)->Arg(1)->Arg(100);
 BENCHMARK(BM_MergeWithNoCheck)->Arg(1)->Arg(100);
+// TEST: see if which way of checking the parent class is faster
+// RESULT: inherits from is 1.5x slower
+BENCHMARK(BM_ClassComparisonCString);
+BENCHMARK(BM_ClassComparisonInterface);
 
 BENCHMARK_MAIN();
