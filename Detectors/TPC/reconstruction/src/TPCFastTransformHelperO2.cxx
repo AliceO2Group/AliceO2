@@ -279,7 +279,9 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
     } // row
   }   // slice
 
-  correction.initInverse();
+  if (!mSpaceChargeCorrection) {
+    correction.initInverse();
+  }
 
   // for the future: set back the time-of-flight correction
 

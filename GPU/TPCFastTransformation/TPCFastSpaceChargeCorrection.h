@@ -229,15 +229,17 @@ GPUdi() int TPCFastSpaceChargeCorrection::getCorrection(int slice, int row, floa
 }
 
 GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvCorrectedX(
-  int slice, int row, float u, float v, float& x) const
+  int slice, int row, float cu, float cv, float& x) const
 {
   const RowInfo& rowInfo = getRowInfo(row);
   const SliceRowInfo& sliceRowInfo = getSliceRowInfo(slice, row);
   const Spline2D<float, 1, 0>& spline = reinterpret_cast<const Spline2D<float, 1, 0>&>(getSpline(slice, row));
   const float* splineData = getSplineData(slice, row, 1);
-  float gridU = (u - sliceRowInfo.CorrU0) * sliceRowInfo.scaleCorrUtoGrid;
-  float gridV = v * sliceRowInfo.scaleCorrVtoGrid;
-  spline.interpolateU(splineData, gridU, gridV, &x);
+  float gridU = (cu - sliceRowInfo.CorrU0) * sliceRowInfo.scaleCorrUtoGrid;
+  float gridV = cv * sliceRowInfo.scaleCorrVtoGrid;
+  float dx = 0;
+  spline.interpolateU(splineData, gridU, gridV, &dx);
+  x = mGeo.getRowInfo(row).x + dx;
 }
 
 GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvUV(
@@ -249,10 +251,10 @@ GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvUV(
   const float* splineData = getSplineData(slice, row, 2);
   float gridU = (corrU - sliceRowInfo.CorrU0) * sliceRowInfo.scaleCorrUtoGrid;
   float gridV = corrV * sliceRowInfo.scaleCorrVtoGrid;
-  float uv[2];
-  spline.interpolateU(splineData, gridU, gridV, uv);
-  nomU = uv[0];
-  nomV = uv[1];
+  float duv[2];
+  spline.interpolateU(splineData, gridU, gridV, duv);
+  nomU = corrU - duv[0];
+  nomV = corrV - duv[1];
 }
 
 } // namespace gpu

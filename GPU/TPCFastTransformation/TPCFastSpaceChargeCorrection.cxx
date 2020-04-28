@@ -397,13 +397,12 @@ void TPCFastSpaceChargeCorrection::print() const
 
 GPUh() void TPCFastSpaceChargeCorrection::initInverse()
 {
-  //std::cout << "mark 1" << std::endl;
 
   SplineHelper2D<float> helper;
   std::vector<float> dataPointF;
   std::vector<float> splineParameters;
 
-  ChebyshevFit1D chebFitter1, chebFitter2;
+  ChebyshevFit1D chebFitterU, chebFitterV;
 
   double tpcR2min = mGeo.getRowInfo(0).x - 1.;
   tpcR2min = tpcR2min * tpcR2min;
@@ -413,36 +412,37 @@ GPUh() void TPCFastSpaceChargeCorrection::initInverse()
 
   for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
     std::cout << "inverse transform for slice " << slice << std::endl;
-    //std::cout << "mark 2" << std::endl;
+    //if (slice != 0)
+    //continue;
     double vLength = (slice < mGeo.getNumberOfSlicesA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
     for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
-
-      float cuMin = 0., cuMax = 0, cvMax = 0.;
+      //if (row != 0)
+      //continue;
+      float cuMin = 1.e10, cuMax = -1.e10, cvMax = 0.;
       const SplineType& spline = getSpline(slice, row);
       helper.setSpline(spline, 2, 2);
 
       float u0, u1, v0, v1;
-      mGeo.convScaledUVtoUV(slice, row, 0., 0, u0, v0);
-      mGeo.convScaledUVtoUV(slice, row, 1., 1, u1, v1);
+      mGeo.convScaledUVtoUV(slice, row, 0., 0., u0, v0);
+      mGeo.convScaledUVtoUV(slice, row, 1., 1., u1, v1);
       double x = mGeo.getRowInfo(row).x;
-      double stepU = (u1 - u0) / (1. * helper.getNumberOfDataPointsU1());
-      double stepV = (v1 - v0) / (1. * helper.getNumberOfDataPointsU2());
+      double stepU = (u1 - u0) / (1. * (helper.getNumberOfDataPointsU1() - 1));
+      double stepV = (v1 - v0) / (1. * (helper.getNumberOfDataPointsU2() - 1));
 
+      //std::cout << "u0 " << u0 << " u1 " << u1 << " v0 " << v0 << " v1 " << v1 << std::endl;
       int nCheb = helper.getNumberOfDataPointsU2();
       nCheb = 20;
-      chebFitter1.reset(nCheb - 1, 0, vLength);
-      //std::cout << "mark 3" << std::endl;
+      chebFitterV.reset(nCheb - 1, 0, vLength);
 
       struct Entry {
-        double u, v, cu, cv;
+        double cu, cv, du, dv;
       };
       std::vector<Entry> dataRowsV[helper.getNumberOfDataPointsU2()];
-      //std::cout << "mark 4" << std::endl;
 
-      for (double u = u0; u < u1; u += stepU) {
-        chebFitter1.reset();
+      for (double u = u0; u <= u1; u += stepU) {
+        chebFitterV.reset();
         double vMax = 0;
-        for (double v = v0; v < v1; v += stepV) {
+        for (double v = v0; v <= v1; v += stepV) {
           float dx, du, dv;
           getCorrection(slice, row, u, v, dx, du, dv);
           double cx = x + dx;
@@ -465,18 +465,19 @@ GPUh() void TPCFastSpaceChargeCorrection::initInverse()
             vMax = v;
           }
           //std::cout << cv / vLength << " " << v / vLength << std::endl;
-          chebFitter1.addMeasurement(cv, v);
+          chebFitterV.addMeasurement(cv, dv);
         } // v
-        if (chebFitter1.getNmeasurements() < 1) {
+        //std::cout << "u " << u << " nmeas " << chebFitterV.getNmeasurements() << std::endl;
+        if (chebFitterV.getNmeasurements() < 1) {
           continue;
         }
-        chebFitter1.fit();
+        chebFitterV.fit();
         if (0) {
           std::cout << "slice " << slice << " row " << row << std::endl;
-          std::cout << "n cheb " << nCheb << " n measurements " << chebFitter1.getNmeasurements()
+          std::cout << "n cheb " << nCheb << " n measurements " << chebFitterV.getNmeasurements()
                     << std::endl;
           for (int i = 0; i < nCheb; i++) {
-            std::cout << i << " " << chebFitter1.getCoefficients()[i] << std::endl;
+            std::cout << i << " " << chebFitterV.getCoefficients()[i] << std::endl;
           }
           exit(0);
         }
@@ -486,11 +487,13 @@ GPUh() void TPCFastSpaceChargeCorrection::initInverse()
         double drow = vLength / (helper.getNumberOfDataPointsU2() - 1);
         for (int i = 0; i < helper.getNumberOfDataPointsU2(); i++) {
           double cv = i * drow;
-          double v = chebFitter1.eval(cv);
-          //std::cout<<" u "<<u<<" cv0 "<<cv<<" v "<<v<<std::endl;
+          double dvCheb = chebFitterV.eval(cv);
+          double v = cv - dvCheb;
+          /* //SG weighted combination between cheb and nominal
           if (v < 0 || v > vMax) {
             continue;
           }
+          */
           float dx, du, dv;
           getCorrection(slice, row, u, v, dx, du, dv);
           //std::cout<<" u "<<u<<" cv0 "<<cv<<" v "<<v<<" cu "<<u+du<<" cv "<<v+dv<<std::endl;
@@ -498,15 +501,18 @@ GPUh() void TPCFastSpaceChargeCorrection::initInverse()
           cv = v + dv;
           double cx = x + dx;
           double r2 = cx * cx + cu * cu;
+          /*
           if (cv < 0 || cv > vLength || r2 < tpcR2min || r2 > tpcR2max) {
             continue;
-          }
-          Entry e{u, v, cu, cv};
+          }*/
+          Entry e{cu, cv, du, dv};
           //std::cout<<"m 1, row V "<<i<<std::endl;
           dataRowsV[i].push_back(e);
         }
       } // u
-      //std::cout << "mark 5" << std::endl;
+
+      //cuMin = 0; //SG!!!
+      //std::cout << " cuMin " << cuMin << " cuMax " << cuMax << " cvMax " << cvMax << std::endl;
 
       SliceRowInfo& info = mSliceRowInfoPtr[slice * mGeo.getNumberOfRows() + row];
       info.CorrU0 = cuMin;
@@ -518,63 +524,49 @@ GPUh() void TPCFastSpaceChargeCorrection::initInverse()
       // fit u(cu)
       nCheb = helper.getNumberOfDataPointsU1();
       nCheb = 20;
-      chebFitter1.reset(nCheb - 1, cuMin, cuMax);
-      chebFitter2.reset(nCheb - 1, cuMin, cuMax);
-      //std::cout << "mark 6" << std::endl;
+      chebFitterU.reset(nCheb - 1, cuMin, cuMax);
+      chebFitterV.reset(nCheb - 1, cuMin, cuMax);
 
       double drow = vLength / (helper.getNumberOfDataPointsU2() - 1);
       double dcol = (cuMax - cuMin) / (helper.getNumberOfDataPointsU1() - 1);
       for (int iv = 0; iv < helper.getNumberOfDataPointsU2(); iv++) {
-
+        double cv = iv * drow;
         float* dataPointFrow = &dataPointF[iv * helper.getNumberOfDataPointsU1() * 3];
         for (int iu = 0; iu < helper.getNumberOfDataPointsU1(); iu++) {
-          double cu = cuMin + iu * dcol;
-          double cv = iv * drow;
-          dataPointFrow[iu * 3 + 0] = x;
-          dataPointFrow[iu * 3 + 1] = cu;
-          dataPointFrow[iu * 3 + 2] = cv;
-        } // iu
+          //double cu = cuMin + iu * dcol;
+          //double cv = iv * drow;
+          dataPointFrow[iu * 3 + 0] = 0; //x;
+          dataPointFrow[iu * 3 + 1] = 0; //cu;
+          dataPointFrow[iu * 3 + 2] = 0; //cv;
+        }                                // iu
 
-        chebFitter1.reset();
-        chebFitter2.reset();
+        chebFitterU.reset();
+        chebFitterV.reset();
         for (unsigned int i = 0; i < dataRowsV[iv].size(); i++) {
-          chebFitter1.addMeasurement(dataRowsV[iv][i].cu, dataRowsV[iv][i].u);
-          chebFitter2.addMeasurement(dataRowsV[iv][i].cu, dataRowsV[iv][i].v);
+          chebFitterU.addMeasurement(dataRowsV[iv][i].cu, dataRowsV[iv][i].du);
+          chebFitterV.addMeasurement(dataRowsV[iv][i].cu, dataRowsV[iv][i].dv);
         }
-        if (chebFitter1.getNmeasurements() < 1) {
+        if (chebFitterU.getNmeasurements() < 1) {
           continue;
         }
-        //std::cout<<"mark 1"<<std::endl;
-        chebFitter1.fit();
-        chebFitter2.fit();
-        double cv = 0 + iv * drow;
+
+        chebFitterU.fit();
+        chebFitterV.fit();
+
         // fill data points
-        int iuMin = ((int)(dataRowsV[iv].front().cu - cuMin) / dcol) - 1;
-        if (iuMin < 0) {
-          iuMin = 0;
-        }
-        int iuMax = ((int)(dataRowsV[iv].back().cu - cuMin) / dcol) + 2;
-        if (iuMax > helper.getNumberOfDataPointsU1() - 1) {
-          iuMax = helper.getNumberOfDataPointsU1() - 1;
-        }
-        iuMin = 0;
-        iuMax = helper.getNumberOfDataPointsU1() - 1;
-        for (int iu = iuMin; iu <= iuMax; iu++) {
+        for (int iu = 0; iu < helper.getNumberOfDataPointsU1(); iu++) {
           double cu = cuMin + iu * dcol;
-          double u = chebFitter1.eval(cu);
-          double v = chebFitter2.eval(cu);
+          double du0 = chebFitterU.eval(cu);
+          double dv0 = chebFitterV.eval(cu);
+          double u = cu - du0;
+          double v = cv - dv0;
           float dx, du, dv;
           getCorrection(slice, row, u, v, dx, du, dv);
-          if (fabs(dx) > 1.1) {
-            //std::cout << " x,u,v " << x << ", " << u << ", " << v << " dx " << dx << std::endl;
-          }
-          double cx = x + dx;
-          dataPointFrow[iu * 3 + 0] = cx;
-          dataPointFrow[iu * 3 + 1] = u;
-          dataPointFrow[iu * 3 + 2] = v;
+          dataPointFrow[iu * 3 + 0] = dx; //cx;
+          dataPointFrow[iu * 3 + 1] = du0;
+          dataPointFrow[iu * 3 + 2] = dv0;
         } // iu
       }   // iv
-      //std::cout << "mark 7" << std::endl;
 
       splineParameters.resize(spline.getNumberOfParameters());
       helper.approximateFunction(splineParameters.data(), dataPointF.data());
@@ -585,10 +577,8 @@ GPUh() void TPCFastSpaceChargeCorrection::initInverse()
         splineUV[2 * i + 0] = splineParameters[3 * i + 1];
         splineUV[2 * i + 1] = splineParameters[3 * i + 2];
       }
-      //std::cout << "mark 8" << std::endl;
 
     } // row
-    //std::cout << "mark 9" << std::endl;
   } // slice
 }
 
@@ -603,9 +593,14 @@ GPUh() void TPCFastSpaceChargeCorrection::testInverse()
   tpcR2max = tpcR2max * tpcR2max;
 
   for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
-    std::cout << "check inverse transform for slice " << slice << std::endl;
+    //if (slice != 0)
+    //continue;
+    //std::cout << "check inverse transform for slice " << slice << std::endl;
     double vLength = (slice < mGeo.getNumberOfSlicesA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
+    double maxDslice[3] = {0, 0, 0};
     for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
+      //if (row != 0)
+      //continue;
       const SplineType& spline = getSpline(slice, row);
       float u0, u1, v0, v1;
       mGeo.convScaledUVtoUV(slice, row, 0., 0, u0, v0);
@@ -613,10 +608,12 @@ GPUh() void TPCFastSpaceChargeCorrection::testInverse()
       double x = mGeo.getRowInfo(row).x;
       double stepU = (u1 - u0) / 100.;
       double stepV = (v1 - v0) / 100.;
+      double maxDrow[3] = {0, 0, 0};
       for (double u = u0; u < u1; u += stepU) {
         for (double v = v0; v < v1; v += stepV) {
           float dx, du, dv;
           getCorrection(slice, row, u, v, dx, du, dv);
+          //dv = 0.1*v;  //SG!!
           double cx = x + dx;
           double cu = u + du;
           double cv = v + dv;
@@ -627,13 +624,34 @@ GPUh() void TPCFastSpaceChargeCorrection::testInverse()
           float nx, nu, nv;
           getCorrectionInvCorrectedX(slice, row, cu, cv, nx);
           getCorrectionInvUV(slice, row, cu, cv, nu, nv);
-          std::cout << nx - cx << " " << nu - u << " " << nv - v
-                    << " x,u,v " << x << ", " << u << ", " << v
-                    << " cx,cu,cv " << cx << ", " << cu << ", " << cv
-                    << " nx,nu,nv " << nx << ", " << nu << ", " << nv << std::endl;
+          double d[3] = {nx - cx, nu - u, nv - v};
+          for (int i = 0; i < 3; i++) {
+            if (fabs(d[i]) > maxDrow[i])
+              maxDrow[i] = fabs(d[i]);
+          }
+          /*
+          if (fabs(d[0]) > 0.01) {
+            std::cout << nx - cx << " " << nu - u << " " << nv - v
+                      << " x,u,v " << x << ", " << u << ", " << v
+                      << " dx,du,dv " << cx - x << ", " << cu - u << ", " << cv - v
+                      << " nx,nu,nv " << nx - x << ", " << cu - nu << ", " << cv - nv << std::endl;
+          }
+          */
         }
       }
+      /*
+      std::cout << "slice " << slice << " row " << row
+                << " dx " << maxDrow[0] << " du " << maxDrow[1] << " dv " << maxDrow[2] << std::endl;
+*/
+      for (int i = 0; i < 3; i++) {
+        if (maxDrow[i] > maxDslice[i])
+          maxDslice[i] = maxDrow[i];
+      }
     }
+    /*
+    std::cout << "slice " << slice
+              << " dx " << maxDslice[0] << " du " << maxDslice[1] << " dv " << maxDslice[2] << std::endl;
+      */
   }
 }
 
