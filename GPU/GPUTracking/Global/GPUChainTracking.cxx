@@ -951,6 +951,7 @@ int GPUChainTracking::RunTPCClusterizer()
         if (propagateMCLabels || not mIOPtrs.tpcZS) {
           runKernel<GPUTPCCFChargeMapFiller, GPUTPCCFChargeMapFiller::findFragmentStart>(GetGrid(1, lane), {iSlice}, {});
           TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
+          SynchronizeStream(lane);
           if (clusterer.mPmemory->counters.nPositions == 0) {
             continue;
           }
