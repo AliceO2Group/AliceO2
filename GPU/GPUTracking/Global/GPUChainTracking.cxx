@@ -402,7 +402,7 @@ int GPUChainTracking::PrepareEvent()
 {
   mRec->MemoryScalers()->nTRDTracklets = mIOPtrs.nTRDTracklets;
   if (mIOPtrs.tpcPackedDigits || mIOPtrs.tpcZS) {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_TPC_GEOMETRY_O2
     mRec->MemoryScalers()->nTPCdigits = 0;
     size_t maxDigits = 0;
     size_t maxPages = 0;
@@ -844,7 +844,7 @@ void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clust
 
 int GPUChainTracking::RunTPCClusterizer()
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_TPC_GEOMETRY_O2
   const auto& threadContext = GetThreadContext();
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCClusterFinding;
 
@@ -1122,9 +1122,11 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       // Initialize Startup Constants
       processors()->tpcTrackers[iSlice].GPUParameters()->nextStartHit = (((getKernelProperties<GPUTPCTrackletConstructor, GPUTPCTrackletConstructor::allSlices>().minBlocks * BlockCount()) + NSLICES - 1 - iSlice) / NSLICES) * getKernelProperties<GPUTPCTrackletConstructor, GPUTPCTrackletConstructor::allSlices>().nThreads;
       processorsShadow()->tpcTrackers[iSlice].SetGPUTextureBase(mRec->DeviceMemoryBase());
+#ifdef HAVE_O2HEADERS
       if (GetRecoSteps().isSet(RecoStep::TPCConversion)) {
         processorsShadow()->tpcTrackers[iSlice].Data().SetClusterData(processorsShadow()->tpcConverter.mClusters + processors()->tpcTrackers[iSlice].Data().ClusterIdOffset(), processors()->tpcTrackers[iSlice].NHitsTotal(), processors()->tpcTrackers[iSlice].Data().ClusterIdOffset());
       }
+#endif
     }
 
     RunHelperThreads(&GPUChainTracking::HelperReadEvent, this, NSLICES);
