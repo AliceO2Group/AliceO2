@@ -230,6 +230,10 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("No TRD Tracker Output available");
     return false;
   }
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCdEdx) && processors()->calibObjects.dEdxSplines == nullptr) {
+    GPUError("Cannot run dE/dx without calibration splines");
+    return false;
+  }
   return true;
 }
 
