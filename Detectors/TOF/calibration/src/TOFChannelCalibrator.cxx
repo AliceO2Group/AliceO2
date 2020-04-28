@@ -134,6 +134,8 @@ float TOFChannelData::integral(int chmin, int chmax, float binmin, float binmax)
 
   if (binmin < -mRange || binmax > mRange || chmin < 0 || chmax >= o2::tof::Geo::NCHANNELS)
     throw std::runtime_error("Check your bins, we cannot calculate the integrals in under/overflows bins");
+  if (binmax < binmin || chmax < chmin)
+    throw std::runtime_error("Check your bin limits!");
   
   int sector = chmin / o2::tof::Geo::NPADSXSECTOR;
   if (sector != chmax / o2::tof::Geo::NPADSXSECTOR) throw std::runtime_error("We cannot integrate over channels that belong to different sectors");
@@ -146,8 +148,8 @@ float TOFChannelData::integral(int chmin, int chmax, float binmin, float binmax)
   //             ", chmin = " << chmin << ", chmax = " << chmax <<
   //             ", chinsectormin = " << chinsectormin << ", chinsector max = " << chinsectormax;
 
-  float res = 0, res1 = 0, res2 = 0;
-  TStopwatch t1, t2, t3;
+  float res2 = 0;
+  TStopwatch t3;
   int ind = -1;
   int binxmin = findBin(binmin);
   int binxmax = findBin(binmax);
@@ -163,6 +165,9 @@ float TOFChannelData::integral(int chmin, int chmax, float binmin, float binmax)
   LOG(INFO) << "Time for integral looping over axis (result = " << res2 << "):";
   t3.Print();
   
+  /* // what is below is only for alternative methods which all proved to be slower
+  float res = 0, res1 = 0;
+  TStopwatch t1, t2, 
   int startCount = chinsectormin * mNBins + binxmin;
   int endCount =  chinsectormax * mNBins + binxmax; // = startCount + (chinsectormax - chinsectormin) * mNBins + (binxmax - binxmin);
   LOG(DEBUG) << "startCount = " << startCount << " endCount = " << endCount-1;
@@ -220,14 +225,12 @@ float TOFChannelData::integral(int chmin, int chmax, float binmin, float binmax)
   t.Print();
   LOG(INFO) << "...done.";
   
-  /*
-  int sizeBeforeAxis1 = mHisto[sector].axis(1).size();
-  int sizeAfterAxis1 = hch.axis(1).size();
-  int sizeBeforeAxis0 = mHisto[sector].axis(0).size();
-  int sizeAfterAxis0 = hch.axis(0).size();
-  std::cout << "axis size before reduction: axis 0: " << sizeBeforeAxis0 << ", axis 1: " << sizeBeforeAxis1 << std::endl;
-  std::cout << "axis size after reduction:  axis 0: " << sizeAfterAxis0 << ", axis 1: " << sizeAfterAxis1 << std::endl;
-  */
+  //int sizeBeforeAxis1 = mHisto[sector].axis(1).size();
+  //int sizeAfterAxis1 = hch.axis(1).size();
+  //int sizeBeforeAxis0 = mHisto[sector].axis(0).size();
+  //int sizeAfterAxis0 = hch.axis(0).size();
+  //std::cout << "axis size before reduction: axis 0: " << sizeBeforeAxis0 << ", axis 1: " << sizeBeforeAxis1 << std::endl;
+  //std::cout << "axis size after reduction:  axis 0: " << sizeAfterAxis0 << ", axis 1: " << sizeAfterAxis1 << std::endl;
   
   t.Start();
   auto indhch = indexed(hch);
@@ -237,6 +240,7 @@ float TOFChannelData::integral(int chmin, int chmax, float binmin, float binmax)
   t.Print();
 
   return enthchInd;
+*/
 }
 
 //_____________________________________________
@@ -254,6 +258,8 @@ float TOFChannelData::integral(int chmin, int chmax, int binxmin, int binxmax) c
 
   if (binxmin < 0 || binxmax > mNBins || chmin < 0 || chmax >= o2::tof::Geo::NCHANNELS)
     throw std::runtime_error("Check your bins, we cannot calculate the integrals in under/overflows bins");
+  if (binxmax < binxmin || chmax < chmin)
+    throw std::runtime_error("Check your bin limits!");
 
   int sector = chmin / o2::tof::Geo::NPADSXSECTOR;
   if (sector != chmax / o2::tof::Geo::NPADSXSECTOR) throw std::runtime_error("We cannot integrate over channels that belong to different sectors");
@@ -265,8 +271,8 @@ float TOFChannelData::integral(int chmin, int chmax, int binxmin, int binxmax) c
   //LOG(INFO) << "Bin min = " << binmin << ", binmax = " << binmax <<
   //             ", chmin = " << chmin << ", chmax" << chmax <<
   //             ", chinsectormin = " << chinsector min << ", chinsector max = " << chinsectormax;
-  float res = 0, res1 = 0, res2 =0;
-  TStopwatch t1, t2, t3;
+  float res2 = 0;
+  TStopwatch t3;
   t3.Start();
   for (unsigned j = chinsectormin; j <= chinsectormax; ++j) {
     for (unsigned i = binxmin; i <= binxmax; ++i) {
@@ -277,7 +283,11 @@ float TOFChannelData::integral(int chmin, int chmax, int binxmin, int binxmax) c
   t3.Stop();
   LOG(INFO) << "Time for integral looping over axis (result = " << res2 << "):";
   t3.Print();
-
+  return res2;
+  
+  /* // all that is below is alternative methods, all proved to be slower
+  float res = 0, res1 = 0;
+  TStopwatch t1, t2;
   int ind = -1;
   int startCount = chinsectormin * mNBins + binxmin;
   int endCount =  chinsectormax * mNBins + binxmax; // = startCount + (chinsectormax - chinsectormin) * mNBins + (binxmax - binxmin);
@@ -328,14 +338,14 @@ float TOFChannelData::integral(int chmin, int chmax, int binxmin, int binxmax) c
   LOG(INFO) << "Time for projection with slice";
   t.Print();
   //LOG(INFO) << "...done.";
-  /*
-  int sizeBeforeAxis1 = mHisto[sector].axis(1).size();
-  int sizeAfterAxis1 = hch.axis(1).size();
-  int sizeBeforeAxis0 = mHisto[sector].axis(0).size();
-  int sizeAfterAxis0 = hch.axis(0).size();
-  std::cout << "axis size before reduction: axis 0: " << sizeBeforeAxis0 << ", axis 1: " << sizeBeforeAxis1 << std::endl;
-  std::cout << "axis size after reduction:  axis 0: " << sizeAfterAxis0 << ", axis 1: " << sizeAfterAxis1 << std::endl;
-  */
+
+  //int sizeBeforeAxis1 = mHisto[sector].axis(1).size();
+  //int sizeAfterAxis1 = hch.axis(1).size();
+  //int sizeBeforeAxis0 = mHisto[sector].axis(0).size();
+  //int sizeAfterAxis0 = hch.axis(0).size();
+  //std::cout << "axis size before reduction: axis 0: " << sizeBeforeAxis0 << ", axis 1: " << sizeBeforeAxis1 << std::endl;
+  //std::cout << "axis size after reduction:  axis 0: " << sizeAfterAxis0 << ", axis 1: " << sizeAfterAxis1 << std::endl;
+  
   // first way: using indexed (which excludes under/overflow)
   t.Start();
   auto indhch = indexed(hch);
@@ -344,6 +354,7 @@ float TOFChannelData::integral(int chmin, int chmax, int binxmin, int binxmax) c
   LOG(INFO) << "Time for accumulate (result = " << enthchInd << ")";
   t.Print();
   return enthchInd;
+  */
 }
 
 //_____________________________________________
@@ -407,6 +418,8 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
     //for (auto&& x : indexed(hch)){
     //  histoValues.push_back(x.get());
     //}
+
+    /* //less efficient way
     int startCount = chinsector * c->getNbins();
     int counts = -1;
     for (auto&& x : indexed(c->getHisto(sector))) {
@@ -418,7 +431,17 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
       }
       histoValues.push_back(x.get());
     }
-    int fitres = fitGaus(c->getNbins(), histoValues.data(), -(c->getRange()), c->getRange(), fitValues);
+    */
+    // more efficient way
+    auto histo = c->getHisto(sector);
+    for (unsigned j = chinsector; j <= chinsector; ++j) {
+      for (unsigned i = 0; i < c->getNbins(); ++i) {
+	const auto& v = histo.at(i, j);
+	histoValues.push_back(v);
+      }
+    }
+    
+  int fitres = fitGaus(c->getNbins(), histoValues.data(), -(c->getRange()), c->getRange(), fitValues);
     if (fitres >= 0) {
       LOG(INFO) << "Channel " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
     }
