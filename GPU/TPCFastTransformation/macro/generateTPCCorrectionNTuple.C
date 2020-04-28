@@ -77,7 +77,7 @@ void generateTPCCorrectionNTuple()
 
   std::unique_ptr<o2::gpu::TPCFastTransform> fastTransform(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 
-  o2::gpu::TPCFastSpaceChargeCorrection& dist = fastTransform->getCorrectionNonConst();
+  o2::gpu::TPCFastSpaceChargeCorrection& dist = fastTransform->getCorrection();
   const o2::gpu::TPCFastTransformGeo& geo = fastTransform->getGeometry();
 
   TFile* f = new TFile("tpcCorrection.root", "RECREATE");

@@ -15,6 +15,7 @@ set(SRCS
     Spline2D.cxx
     SplineHelper1D.cxx
     SplineHelper2D.cxx
+    ChebyshevFit1D.cxx  
     devtools/IrregularSpline1D.cxx
     devtools/IrregularSpline2D3D.cxx
     devtools/SemiregularSpline2D3D.cxx
@@ -32,7 +33,10 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                  TARGETVARNAME targetName
                  SOURCES ${SRCS}
                  PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR} devtools
-                 PUBLIC_LINK_LIBRARIES O2::GPUCommon Vc::Vc ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad)
+                 PUBLIC_LINK_LIBRARIES O2::GPUCommon 
+                                       Vc::Vc 
+                                       ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad
+                                       )
 
   o2_target_root_dictionary(${MODULE}
                             HEADERS ${HDRS_CINT_O2}

@@ -256,7 +256,7 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   // now calculate correction map: dx,du,dv = ( origTransform() -> x,u,v) - fastTransformNominal:x,u,v
 
-  TPCFastSpaceChargeCorrection& correction = fastTransform.getCorrectionNonConst();
+  TPCFastSpaceChargeCorrection& correction = fastTransform.getCorrection();
 
   // for the future: switch TOF correction off for a while
 
@@ -278,6 +278,10 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
       }
     } // row
   }   // slice
+
+  if (!mSpaceChargeCorrection) {
+    correction.initInverse();
+  }
 
   // for the future: set back the time-of-flight correction
 
