@@ -234,26 +234,25 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
 template <class S, int I, int J, typename... Args>
 inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
-  unsigned int nThreads = x.nThreads;
-  unsigned int nBlocks = x.nBlocks;
-  if (nThreads == (unsigned int)-1) {
-    nThreads = getKernelProperties<S, I>().nThreads;
-  }
-  if (nBlocks == (unsigned int)-1) {
-    const int autoThreads = getKernelProperties<S, I>().nThreads;
-    nBlocks = (nThreads + autoThreads - 1) / autoThreads;
-    nThreads = autoThreads;
-  }
-
-  if (nThreads > GPUCA_MAX_THREADS) {
-    throw std::runtime_error("GPUCA_MAX_THREADS exceeded");
-  }
   HighResTimer* t = nullptr;
   GPUCA_RECO_STEP myStep = S::GetRecoStep() == GPUCA_RECO_STEP::NoRecoStep ? x.step : S::GetRecoStep();
   if (myStep == GPUCA_RECO_STEP::NoRecoStep) {
     throw std::runtime_error("Failure running general kernel without defining RecoStep");
   }
   int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & myStep) != myStep) : 0;
+  unsigned int nThreads = x.nThreads;
+  unsigned int nBlocks = x.nBlocks;
+  const int autoThreads = (cpuFallback || x.device == krnlDeviceType::CPU) ? 1 : getKernelProperties<S, I>().nThreads;
+  if (nThreads == (unsigned int)-1) {
+    nThreads = autoThreads;
+  }
+  if (nBlocks == (unsigned int)-1) {
+    nBlocks = (nThreads + autoThreads - 1) / autoThreads;
+    nThreads = autoThreads;
+  }
+  if (nThreads > GPUCA_MAX_THREADS) {
+    throw std::runtime_error("GPUCA_MAX_THREADS exceeded");
+  }
   if (mDeviceProcessingSettings.debugLevel >= 3) {
     GPUInfo("Running %s (Stream %d, Range %d/%d, Grid %d/%d) on %s", GetKernelName<S, I>(), x.stream, y.start, y.num, nBlocks, nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
   }
