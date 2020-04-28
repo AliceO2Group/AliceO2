@@ -69,12 +69,17 @@ BOOST_AUTO_TEST_CASE(TestDDS)
 {
   auto workflow = defineDataProcessing();
   std::ostringstream ss{""};
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
-  auto completionPolicies = CompletionPolicy::createDefaultPolicies();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm, "workflow-id");
+  DriverInfo driverInfo;
+  driverInfo.channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  driverInfo.completionPolicies = CompletionPolicy::createDefaultPolicies();
+  driverInfo.dispatchPolicies = DispatchPolicy::createDefaultPolicies();
+  driverInfo.uniqueWorkflowId = "workflow-id";
+  driverInfo.resourcesMonitoringInterval = 0;
+
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo, devices, rm);
   std::vector<DeviceControl> controls;
   std::vector<DeviceExecution> executions;
   controls.resize(devices.size());

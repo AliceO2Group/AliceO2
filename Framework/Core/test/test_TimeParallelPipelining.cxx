@@ -48,15 +48,25 @@ WorkflowSpec defineSimplePipelining()
   return result;
 }
 
+DriverInfo prepareDefaultDriverInfo()
+{
+  DriverInfo driverInfo;
+  driverInfo.channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  driverInfo.completionPolicies = CompletionPolicy::createDefaultPolicies();
+  driverInfo.dispatchPolicies = DispatchPolicy::createDefaultPolicies();
+  driverInfo.uniqueWorkflowId = "workflow-id";
+  driverInfo.resourcesMonitoringInterval = 0;
+  return driverInfo;
+}
+
 BOOST_AUTO_TEST_CASE(TimePipeliningSimple)
 {
   auto workflow = defineSimplePipelining();
   std::vector<DeviceSpec> devices;
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
-  auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm, "workflow-id");
+  DriverInfo driverInfo = prepareDefaultDriverInfo();
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo, devices, rm);
   BOOST_REQUIRE_EQUAL(devices.size(), 4);
   auto& producer = devices[0];
   auto& layer0Consumer0 = devices[1];
@@ -104,11 +114,10 @@ BOOST_AUTO_TEST_CASE(TimePipeliningFull)
 {
   auto workflow = defineDataProcessing();
   std::vector<DeviceSpec> devices;
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
-  auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm, "workflow-id");
+  DriverInfo driverInfo = prepareDefaultDriverInfo();
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, driverInfo, devices, rm);
   BOOST_REQUIRE_EQUAL(devices.size(), 7);
   auto& producer = devices[0];
   auto& layer0Consumer0 = devices[1];

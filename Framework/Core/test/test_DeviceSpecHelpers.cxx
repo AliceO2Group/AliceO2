@@ -136,11 +136,17 @@ BOOST_AUTO_TEST_CASE(test_prepareArguments)
   std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource()};
   auto rm = std::make_unique<SimpleResourceManager>(resources);
 
+  DriverInfo driverInfo;
+  driverInfo.channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  driverInfo.completionPolicies = CompletionPolicy::createDefaultPolicies();
+  driverInfo.dispatchPolicies = DispatchPolicy::createDefaultPolicies();
+  driverInfo.uniqueWorkflowId = "workflow-id";
+  driverInfo.resourcesMonitoringInterval = 0;
+
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
-                                                    ChannelConfigurationPolicy::createDefaultPolicies(),
-                                                    CompletionPolicy::createDefaultPolicies(),
+                                                    driverInfo,
                                                     deviceSpecs,
-                                                    *rm, "workflow-id");
+                                                    *rm);
 
   // Now doing the test cases
   CheckMatrix matrix;

@@ -626,15 +626,17 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
 // Construct the list of actual devices we want, given a workflow.
 //
 // FIXME: make start port configurable?
-void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workflow,
-                                                       std::vector<ChannelConfigurationPolicy> const& channelPolicies,
-                                                       std::vector<CompletionPolicy> const& completionPolicies,
-                                                       std::vector<DispatchPolicy> const& dispatchPolicies,
+
+void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workflow,
+                                                       DriverInfo& driverInfo,
                                                        std::vector<DeviceSpec>& devices,
-                                                       ResourceManager& resourceManager,
-                                                       std::string const& uniqueWorkflowId,
-                                                       bool resourcesMonitoring)
+                                                       ResourceManager& resourceManager)
 {
+
+  const std::vector<ChannelConfigurationPolicy>& channelPolicies = driverInfo.channelPolicies;
+  const std::vector<CompletionPolicy>& completionPolicies = driverInfo.completionPolicies;
+  const std::vector<DispatchPolicy>& dispatchPolicies = driverInfo.dispatchPolicies;
+  const std::string& uniqueWorkflowId = driverInfo.uniqueWorkflowId;
 
   std::vector<LogicalForwardInfo> availableForwardsInfo;
   std::vector<DeviceConnectionEdge> logicalEdges;
@@ -710,8 +712,9 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
     }
   }
 
-
-  for(auto& device : devices){ device.resourceMonitoring = resourcesMonitoring; }
+  for (auto& device : devices) {
+    device.resourceMonitoringInterval = driverInfo.resourcesMonitoringInterval;
+  }
 
   auto findDeviceIndex = [&deviceIndex](size_t processorIndex, size_t timeslice) {
     for (auto& deviceEdge : deviceIndex) {
@@ -921,8 +924,9 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
       tmpArgs.emplace_back("dpl_" + uniqueWorkflowId);
     }
 
-    if(spec.resourceMonitoring){
+    if (spec.resourceMonitoringInterval > 0) {
       tmpArgs.emplace_back(std::string("--resources-monitoring"));
+      tmpArgs.emplace_back(std::to_string(spec.resourceMonitoringInterval));
     }
 
     // We create the final option list, depending on the channels

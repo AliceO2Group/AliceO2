@@ -26,6 +26,7 @@
 #include "DataProcessorInfo.h"
 #include "WorkflowHelpers.h"
 #include <boost/program_options.hpp>
+#include "DriverInfo.h"
 
 #include <vector>
 #include <string>
@@ -41,28 +42,12 @@ struct OutputChannelSpec;
 struct DeviceSpecHelpers {
   /// Helper to convert from an abstract dataflow specification, @a workflow,
   /// to an actual set of devices which will have to run.
-  static void dataProcessorSpecs2DeviceSpecs(
-    const WorkflowSpec& workflow,
-    std::vector<ChannelConfigurationPolicy> const& channelPolicies,
-    std::vector<CompletionPolicy> const& completionPolicies,
-    std::vector<DispatchPolicy> const& dispatchPolicies,
-    std::vector<DeviceSpec>& devices,
-    ResourceManager& resourceManager,
-    std::string const& uniqueWorkflowId,
-    bool resourcesMonitoring = false);
 
   static void dataProcessorSpecs2DeviceSpecs(
     const WorkflowSpec& workflow,
-    std::vector<ChannelConfigurationPolicy> const& channelPolicies,
-    std::vector<CompletionPolicy> const& completionPolicies,
+    DriverInfo& driverInfo,
     std::vector<DeviceSpec>& devices,
-    ResourceManager& resourceManager,
-    std::string const& uniqueWorkflowId,
-    bool resourcesMonitoring = false)
-  {
-    std::vector<DispatchPolicy> dispatchPolicies = DispatchPolicy::createDefaultPolicies();
-    dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, dispatchPolicies, devices, resourceManager, uniqueWorkflowId, resourcesMonitoring);
-  }
+    ResourceManager& resourceManager);
 
   /// Helper to provide the channel configuration string for an input channel
   static std::string inputChannel2String(const InputChannelSpec& channel);
