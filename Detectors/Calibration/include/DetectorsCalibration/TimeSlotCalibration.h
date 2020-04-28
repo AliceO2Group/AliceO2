@@ -41,6 +41,9 @@ class TimeSlotCalibration
 
   void setUpdateAtTheEndOfRunOnly() { mUpdateAtTheEndOfRunOnly = kTRUE; }
   
+  TFType getFirstTF() const { return mFirstTF; }
+  void setFirstTF(TFType v) { mFirstTF = v; }
+
   int getNSlots() const { return mSlots.size(); }
   Slot& getSlotForTF(TFType tf);
   Slot& getSlot(int i) { return (Slot&)mSlots.at(i); }
@@ -143,7 +146,6 @@ inline TFType TimeSlotCalibration<Input, Container>::tf2SlotMin(TFType tf) const
   }
   if (mUpdateAtTheEndOfRunOnly) return mFirstTF;
   return TFType((tf - mFirstTF) / mSlotLength) * mSlotLength + mFirstTF;
-
 }
 
 //_________________________________________________
@@ -162,7 +164,7 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
   if (!mSlots.empty() && mSlots.front().getTFStart() > tf) { // we need to add a slot to the beginning
     auto tfmn = tf2SlotMin(mSlots.front().getTFStart() - 1);
     auto tftgt = tf2SlotMin(tf);
-    while (tfmn >= tftgt) {   
+    while (tfmn >= tftgt) {
       LOG(INFO) << "Adding new slot for " << tfmn << " <= TF <= " << tfmn + mSlotLength - 1;
       emplaceNewSlot(true, tfmn, tfmn + mSlotLength - 1);
       if (!tfmn) {
