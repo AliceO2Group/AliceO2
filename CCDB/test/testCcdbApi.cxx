@@ -40,6 +40,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/foreach.hpp>
+#include <boost/optional/optional.hpp>
+
 using namespace std;
 using namespace o2::ccdb;
 namespace utf = boost::unit_test;
@@ -308,30 +313,16 @@ void countItems(const string& s, int& countObjects, int& countSubfolders)
   countObjects = 0;
   countSubfolders = 0;
   std::stringstream ss(s);
-  std::string line;
-  bool subfolderMode = false;
-  while (std::getline(ss, line, '\n')) {
-    o2::utils::ltrim(line);
-    o2::utils::rtrim(line);
-    if (line.length() == 0) {
-      continue;
-    }
 
-    if (line.find("subfolders") != std::string::npos) {
-      subfolderMode = true;
-      continue;
-    }
+  boost::property_tree::ptree pt;
+  boost::property_tree::read_json(ss, pt);
 
-    if (subfolderMode) {
-      countSubfolders++;
-      if (line.find(']') != std::string::npos) {
-        break;
-      }
-    }
+  if (pt.count("objects") > 0) {
+    countObjects = pt.get_child("objects").size();
+  }
 
-    if (line.find(R"("path")") == 0) {
-      countObjects++;
-    }
+  if (pt.count("subfolders") > 0) {
+    countSubfolders = pt.get_child("subfolders").size();
   }
 }
 
