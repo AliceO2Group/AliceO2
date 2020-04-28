@@ -156,7 +156,7 @@ arrow::Status sliceByColumn(arrow::compute::FunctionContext* context,
                             T size,
                             arrow::compute::Datum const& inputTable,
                             std::vector<arrow::compute::Datum>* outputSlices,
-                            std::vector<uint64_t>* offsets)
+                            std::vector<uint64_t>* offsets = nullptr)
 {
   if (inputTable.kind() != arrow::compute::Datum::TABLE) {
     return arrow::Status::Invalid("Input Datum was not a table");
