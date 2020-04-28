@@ -95,13 +95,13 @@ void merge(TObject* const target, TObject* const other)
 
 void deleteTCollections(TObject* obj)
 {
-  // this is not probably the optimal approach, but it should be ok for now
   if (auto c = dynamic_cast<TCollection*>(obj)) {
     c->SetOwner(false);
     auto iter = c->MakeIterator();
     while (auto element = iter->Next()) {
       deleteTCollections(element);
     }
+    delete c;
   } else {
     delete obj;
   }

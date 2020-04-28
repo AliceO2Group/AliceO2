@@ -68,8 +68,8 @@ o2_add_test(InfrastructureBuilder
             PUBLIC_LINK_LIBRARIES O2::Mergers
             LABELS utils)
 
-o2_add_test(Merger
-        SOURCES test/test_Algorithm.cxx
-        COMPONENT_NAME mergers
-        PUBLIC_LINK_LIBRARIES O2::Mergers
-        LABELS utils)
+o2_add_test(Algorithm
+            SOURCES test/test_Algorithm.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)

@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file test_Merger.cxx
+/// \file test_Algorithm.cxx
 /// \brief A unit test of mergers
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#define BOOST_TEST_MODULE Test Utilities Merger
+#define BOOST_TEST_MODULE Test Utilities MergerAlgorithm
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
@@ -262,4 +262,34 @@ BOOST_AUTO_TEST_CASE(MergerCollection)
   BOOST_CHECK_EQUAL(resultCustom->getSecret(), 9001);
 
   delete target;
+}
+
+BOOST_AUTO_TEST_CASE(Deleting)
+{
+  TObjArray* main = new TObjArray();
+  main->SetOwner(false);
+
+  TH1I* histo1D = new TH1I("histo 1d", "histo 1d", bins, min, max);
+  histo1D->Fill(5);
+  main->Add(histo1D);
+
+  CustomMergeableTObject* custom = new CustomMergeableTObject("custom", 9000);
+  main->Add(custom);
+
+  // Setting up the other. Histo 1D + Histo 2D + Custom stored in TList.
+  auto* collectionInside = new TList();
+  collectionInside->SetOwner(true);
+
+  TH1I* histo1DinsideCollection = new TH1I("histo 1d", "histo 1d", bins, min, max);
+  histo1DinsideCollection->Fill(2);
+  collectionInside->Add(histo1DinsideCollection);
+
+  TH2I* histo2DinsideCollection = new TH2I("histo 2d", "histo 2d", bins, min, max, bins, min, max);
+  histo2DinsideCollection->Fill(5, 5);
+  collectionInside->Add(histo2DinsideCollection);
+
+  main->Add(collectionInside);
+
+  // I am afraid we can't check more than that.
+  BOOST_CHECK_NO_THROW(algorithm::deleteTCollections(main));
 }
