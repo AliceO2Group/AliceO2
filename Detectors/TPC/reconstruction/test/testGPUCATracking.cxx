@@ -25,6 +25,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
 #include "TPCFastTransform.h"
+#include "TPCdEdxCalibrationSplines.h"
 #include "GPUO2InterfaceConfiguration.h"
 
 using namespace o2::gpu;
@@ -73,6 +74,8 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
   config.configCalib.fastTransform = fastTransform.get();
+  std::unique_ptr<o2::gpu::TPCdEdxCalibrationSplines> dEdxSplines(new TPCdEdxCalibrationSplines);
+  config.configCalib.dEdxSplines = dEdxSplines.get();
 
   tracker.initialize(config);
   std::vector<ClusterNativeContainer> cont(Constants::MAXGLOBALPADROW);
