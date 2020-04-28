@@ -17,6 +17,11 @@
 #include <memory>
 #include <vector>
 #include <fmt/format.h>
+#if __has_include(<filesystem>)
+#include <filesystem>
+#elif __has_include(<experimental/filesystem>)
+#include <experimental/filesystem>
+#endif
 
 #include "TFile.h"
 #include "TTree.h"
@@ -41,6 +46,11 @@
 #include "CommonUtils/ConfigurableParam.h"
 
 namespace bpo = boost::program_options;
+#if __has_include(<filesystem>)
+namespace fs = std::filesystem;
+#elif __has_include(<experimental/filesystem>)
+namespace fs = std::experimental::filesystem;
+#endif
 
 using namespace o2::tpc;
 using namespace o2::gpu;
@@ -64,7 +74,7 @@ struct ProcessAttributes {
 
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer);
 #include "DetectorsRaw/HBFUtils.h"
-void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, bool sectorBySector, uint32_t rdhV)
+void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, bool sectorBySector, uint32_t rdhV, bool createParentDir)
 {
 
   // ===| open file and get tree |==============================================
@@ -81,18 +91,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
 
   gROOT->cd();
 
-  // ===| set up branch addresses |=============================================
-  std::vector<Digit>* vDigitsPerSectorCollection[Sector::MAXSECTOR] = {nullptr}; // container that keeps Digits per sector
-
-  ProcessAttributes attr;
-
-  // raw data output
-  o2::raw::RawFileWriter writer{"TPC"}; // to set the RDHv6.sourceID if V6 is used
-  writer.useRDHVersion(rdhV);
-
-  const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
-
-  // set up raw writer
+  // ===| set up output directory |=============================================
   std::string outDir{outputPath};
   if (outDir.empty()) {
     outDir = "./";
@@ -100,6 +99,25 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   if (outDir.back() != '/') {
     outDir += '/';
   }
+
+  if (!fs::exists(outDir.data())) {
+    if (createParentDir) {
+      if (!fs::create_directories(outDir.data())) {
+        LOGP(error, "could not create output directory {}", outDir.data());
+        exit(1);
+      }
+    } else {
+      LOGP(error, "Requested output directory '{}' does not exists, consider removing '-n'", outDir.data());
+      exit(1);
+    }
+  }
+
+  // ===| set up raw writer |===================================================
+  o2::raw::RawFileWriter writer{"TPC"}; // to set the RDHv6.sourceID if V6 is used
+  writer.useRDHVersion(rdhV);
+
+  const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
+
   for (unsigned int i = 0; i < NSectors; i++) {
     for (unsigned int j = 0; j < NEndpoints; j++) {
       const unsigned int cruInSector = j / 2;
@@ -109,8 +127,14 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
     }
   }
 
+  // ===| set up branch addresses |=============================================
+  std::vector<Digit>* vDigitsPerSectorCollection[Sector::MAXSECTOR] = {nullptr}; // container that keeps Digits per sector
+
   treeSim->SetBranchStatus("*", 0);
   treeSim->SetBranchStatus("TPCDigit_*", 1);
+
+  ProcessAttributes attr;
+
   for (int iSecBySec = 0; iSecBySec < Sector::MAXSECTOR; ++iSecBySec) {
     treeSim->ResetBranchAddresses();
     for (int iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
@@ -184,6 +208,7 @@ int main(int argc, char** argv)
     add_option("verbose,v", bpo::value<uint32_t>()->default_value(0), "Select verbosity level [0 = no output]");
     add_option("input-file,i", bpo::value<std::string>()->required(), "Specifies input file.");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "Specify output directory");
+    add_option("no-parent-directories,n", "Do not create parent directories recursively");
     add_option("sector-by-sector,s", bpo::value<bool>()->default_value(false), "Run one TPC sector after another");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
@@ -212,7 +237,8 @@ int main(int argc, char** argv)
     vm["input-file"].as<std::string>(),
     vm["output-dir"].as<std::string>(),
     vm["sector-by-sector"].as<bool>(),
-    vm["rdh-version"].as<uint32_t>());
+    vm["rdh-version"].as<uint32_t>(),
+    !vm.count("no-parent-directories"));
 
   return 0;
 }
