@@ -94,22 +94,23 @@ GPUdi() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trac
   if (snp2 > GPUCA_MAX_SIN_PHI_LOW) {
     snp2 = GPUCA_MAX_SIN_PHI_LOW;
   }
-  float tgl2 = trackTgl * trackTgl;
+  const float tgl2 = trackTgl * trackTgl;
   float factor = CAMath::Sqrt((1 - snp2) / (1 + tgl2));
   factor /= param.tpcGeometry.PadHeight(padRow);
   qtot *= factor;
   qmax *= factor;
 
   const float sec2 = 1.f / (1.f - snp2);
-  // angleZ: z angle - dz/dx (cm/cm)
-  float angleZ = CAMath::Sqrt(tgl2 * sec2); // fast
+  // angleZ local dip angle: z angle - dz/dx (cm/cm)
+  float angleZ = CAMath::Sqrt(tgl2 * sec2);
   if (angleZ > 3) {
     angleZ = 3;
   }
-  
+
   const int region = param.tpcGeometry.GetRegion(padRow);
   z = CAMath::Abs(z);
 
+  // get the correction for qMax and qTot from the splines for given angle and drift length
   const float qMaxCorr = splines->interpolateqMax(region, angleZ, z);
   const float qTotCorr = splines->interpolateqTot(region, angleZ, z);
   qmax /= qMaxCorr;
