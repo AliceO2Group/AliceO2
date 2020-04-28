@@ -21,11 +21,11 @@ namespace o2
 namespace calibration
 {
 
+using TFType = uint64_t;
+
 template <typename Container>
 class TimeSlot
 {
-  using TFType = uint64_t;
-
  public:
   TimeSlot() = default;
   TimeSlot(TFType tfS, TFType tfE) : mTFStart(tfS), mTFEnd(tfE) {}
