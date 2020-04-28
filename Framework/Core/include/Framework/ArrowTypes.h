@@ -12,7 +12,8 @@
 #define O2_FRAMEWORK_ARROWTYPES_H
 #include "arrow/type_fwd.h"
 
-namespace o2::soa {
+namespace o2::soa
+{
 template <typename T>
 struct arrow_array_for {
 };
@@ -75,5 +76,5 @@ struct arrow_array_for<double[N]> {
 
 template <typename T>
 using arrow_array_for_t = typename arrow_array_for<T>::type;
-}
+} // namespace o2::soa
 #endif // O2_FRAMEWORK_ARROWTYPES_H
