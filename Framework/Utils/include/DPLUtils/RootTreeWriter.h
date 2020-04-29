@@ -212,7 +212,7 @@ class RootTreeWriter
   void setBranchName(size_t index, const char* branchName)
   {
     auto& spec = mBranchSpecs.at(index);
-    if (spec.branches.size() > 1 && spec.getName) {
+    if (spec.names.size() > 1 && spec.getName) {
       // set the branch names for this group
       size_t idx = 0;
       std::generate(spec.names.begin(), spec.names.end(), [&]() { return spec.getName(branchName, idx++); });
@@ -434,7 +434,10 @@ class RootTreeWriter
       // i.e. the base class method.
       PrevT::setupInstance(specs, tree);
       constexpr size_t SpecIndex = STAGE - 1;
-      assert(specs[SpecIndex].branches.size() > 0);
+      if (specs[SpecIndex].branches.size() == 0) {
+        // this definition is disabled
+        return;
+      }
       specs[SpecIndex].classinfo = TClass::GetClass(typeid(value_type));
       if (std::is_same<value_type, const char*>::value == false && std::is_fundamental<value_type>::value == false &&
           specs[SpecIndex].classinfo == nullptr) {
@@ -531,6 +534,10 @@ class RootTreeWriter
       PrevT::process(context, specs);
       constexpr size_t SpecIndex = STAGE - 1;
       BranchSpec const& spec = specs[SpecIndex];
+      if (spec.branches.size() == 0) {
+        // this definition is disabled
+        return;
+      }
       // loop over all defined inputs
       for (auto const& key : spec.keys) {
         auto keypos = context.getPos(key.c_str());
@@ -560,11 +567,9 @@ class RootTreeWriter
   std::enable_if_t<std::is_base_of<BranchDef<typename T::type, typename T::key_type, typename T::key_extractor>, T>::value, std::unique_ptr<TreeStructureInterface>>
     createTreeStructure(T def, Args&&... args)
   {
-    if (def.nofBranches == 0) {
-      // a branch definition can be disabled by setting nofBranches to zero
-      // skip this definition
-      return std::move(createTreeStructure<BASE>(std::forward<Args>(args)...));
-    }
+    // Note: a branch definition can be disabled by setting nofBranches to zero
+    // an entry of the definition is kept in the registry, but the branches vector
+    // is of size zero, which will make the writer to always skip this definition
     mBranchSpecs.push_back({{}, {def.branchName}});
     auto& spec = mBranchSpecs.back();
 
@@ -573,12 +578,13 @@ class RootTreeWriter
     spec.keys.resize(def.keys.size());
     std::generate(spec.keys.begin(), spec.keys.end(), [&def, &idx] { return T::key_extractor::asString(def.keys[idx++]); });
     mBranchSpecs.back().branches.resize(def.nofBranches, nullptr);
+    // a branch definition might be disabled by setting number of branches to 0; if enabled,
     // the number of branches has to match the number of inputs but can be larger depending
     // on the exact functionality provided with the getIndex callback. In any case, the
     // callbacks only need to be propagated if multiple branches are defined
-    assert(def.nofBranches >= spec.keys.size());
+    assert(def.nofBranches == 0 || def.nofBranches >= spec.keys.size());
     // a getIndex function makes only sense if there are multiple branches
-    assert(def.nofBranches == 1 || def.getIndex);
+    assert(def.nofBranches <= 1 || def.getIndex);
     if (def.nofBranches > 1) {
       assert(def.getIndex && def.getName);
       mBranchSpecs.back().getIndex = def.getIndex;
