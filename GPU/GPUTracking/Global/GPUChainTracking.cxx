@@ -883,6 +883,7 @@ int GPUChainTracking::RunTPCClusterizer()
   tpccf::TPCFragmentTime fragmentLen = TPC_MAX_FRAGMENT_LEN;
 
   for (unsigned int iSliceBase = 0; iSliceBase < NSLICES; iSliceBase += GetDeviceProcessingSettings().nTPCClustererLanes) {
+    std::vector<bool> laneHasData(GetDeviceProcessingSettings().nTPCClustererLanes, false);
     for (CfFragment fragment{timeSliceLen, fragmentLen}; !fragment.isEnd(); fragment = fragment.next(timeSliceLen, fragmentLen)) {
       if (GetDeviceProcessingSettings().debugLevel >= 3) {
         GPUInfo("Processing time bins [%d, %d)", fragment.start, fragment.last());
@@ -1025,6 +1026,7 @@ int GPUChainTracking::RunTPCClusterizer()
           printf("Lane %d: Found clusters: digits %d peaks %d clusters %d\n", lane, (int)clusterer.mPmemory->counters.nPositions, (int)clusterer.mPmemory->counters.nPeaks, (int)clusterer.mPmemory->counters.nClusters);
         }
         TransferMemoryResourcesToHost(RecoStep::TPCClusterFinding, &clusterer, lane);
+        laneHasData[lane] = true;
         DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpCountedPeaks, mDebugFile);
         DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpClusters, mDebugFile);
       }
@@ -1042,13 +1044,15 @@ int GPUChainTracking::RunTPCClusterizer()
       unsigned int iSlice = iSliceBase + lane;
       GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
       clsMemory.resize(nClsTotal);
-      for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
-        memcpy((void*)&clsMemory[pos], (const void*)&clusterer.mPclusterByRow[j * clusterer.mNMaxClusterPerRow], clusterer.mPclusterInRow[j] * sizeof(clsMemory[0]));
-        tmp->nClusters[iSlice][j] += clusterer.mPclusterInRow[j];
-        if (GetDeviceProcessingSettings().debugLevel >= 4) {
-          std::sort(&clsMemory[pos], &clsMemory[pos + clusterer.mPclusterInRow[j]]);
+      if (laneHasData[lane]) {
+        for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+          memcpy((void*)&clsMemory[pos], (const void*)&clusterer.mPclusterByRow[j * clusterer.mNMaxClusterPerRow], clusterer.mPclusterInRow[j] * sizeof(clsMemory[0]));
+          tmp->nClusters[iSlice][j] += clusterer.mPclusterInRow[j];
+          if (GetDeviceProcessingSettings().debugLevel >= 4) {
+            std::sort(&clsMemory[pos], &clsMemory[pos + clusterer.mPclusterInRow[j]]);
+          }
+          pos += clusterer.mPclusterInRow[j];
         }
-        pos += clusterer.mPclusterInRow[j];
       }
 
       if (not propagateMCLabels) {
