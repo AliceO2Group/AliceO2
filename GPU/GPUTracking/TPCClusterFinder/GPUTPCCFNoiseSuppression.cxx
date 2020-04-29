@@ -42,9 +42,9 @@ GPUdii() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int nBlocks, int nT
                                                              const uint peaknum,
                                                              uchar* isPeakPredicate)
 {
-  size_t idx = get_global_id(0);
+  SizeT idx = get_global_id(0);
 
-  ChargePos pos = peakPositions[CAMath::Min(idx, (size_t)(peaknum - 1))];
+  ChargePos pos = peakPositions[CAMath::Min(idx, (SizeT)(peaknum - 1))];
   Charge charge = chargeMap[pos].unpack();
 
   ulong minimas, bigger, peaksAround;
@@ -89,7 +89,7 @@ GPUd() void GPUTPCCFNoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads,
                                                       const uint peakNum,
                                                       Array2D<uchar>& peakMap)
 {
-  size_t idx = get_global_id(0);
+  SizeT idx = get_global_id(0);
 
   if (idx >= peakNum) {
     return;
@@ -145,7 +145,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findPeaksScratchPad(
   ulong* peaks)
 {
   for (int i = 0; i < N; i++, pos++) {
-    ulong p = GET_IS_PEAK(buf[N * ll + i]);
+    ulong p = CfUtils::isPeak(buf[N * ll + i]);
 
     *peaks |= (p << pos);
   }
@@ -186,7 +186,7 @@ GPUd() ulong GPUTPCCFNoiseSuppression::findPeaks(
 
     DBG_PRINT("%d, %d: %d", d.x, d.y, p);
 
-    peaks |= (ulong(GET_IS_PEAK(p)) << i);
+    peaks |= (ulong(CfUtils::isPeak(p)) << i);
   }
 
   return peaks;

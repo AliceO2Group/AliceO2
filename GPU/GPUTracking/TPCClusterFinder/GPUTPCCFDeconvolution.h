@@ -36,10 +36,6 @@ class GPUTPCCFDeconvolution : public GPUKernelTemplate
     uchar buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_COUNT_N];
   };
 
-  enum K : int {
-    countPeaks,
-  };
-
   static GPUd() void countPeaksImpl(int, int, int, int, GPUSharedMemory&, const Array2D<uchar>&, Array2D<PackedCharge>&, const ChargePos*, const uint);
 
 #ifdef HAVE_O2HEADERS
@@ -61,7 +57,7 @@ class GPUTPCCFDeconvolution : public GPUKernelTemplate
  private:
   static GPUd() char countPeaksAroundDigit(const ChargePos&, const Array2D<uchar>&);
   static GPUd() char countPeaksScratchpadInner(ushort, const uchar*, uchar*);
-  static GPUd() char countPeaksScratchpadOuter(ushort, ushort, uchar, const uchar*);
+  static GPUd() char countPeaksScratchpadOuter(ushort, uchar, const uchar*);
 };
 
 } // namespace gpu

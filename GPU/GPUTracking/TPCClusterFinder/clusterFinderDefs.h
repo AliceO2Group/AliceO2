@@ -38,21 +38,6 @@ using ulong = unsigned long;
 /* #define CHARGEMAP_TIME_MAJOR_LAYOUT */
 #define CHARGEMAP_TILING_LAYOUT
 
-#ifdef __OPENCL__
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#endif
-
-#ifndef __OPENCL__
-#define LOOP_UNROLL_ATTR
-#elif defined(UNROLL_LOOPS)
-#define LOOP_UNROLL_ATTR __attribute__((opencl_unroll_hint))
-#else
-#define LOOP_UNROLL_ATTR __attribute__((opencl_unroll_hint(1)))
-#endif
-
-#define GET_IS_PEAK(val) (val & 0x01)
-#define GET_IS_ABOVE_THRESHOLD(val) (val >> 1)
-
 #define SCRATCH_PAD_SEARCH_N 8
 #define SCRATCH_PAD_COUNT_N 16
 #if defined(GPUCA_GPUCODE)
@@ -96,6 +81,7 @@ namespace gpu
 namespace tpccf
 {
 
+using SizeT = uint;
 using TPCTime = int;
 using TPCFragmentTime = short;
 using Pad = unsigned char;
@@ -103,11 +89,7 @@ using GlobalPad = short;
 using Row = unsigned char;
 using Cru = unsigned char;
 
-#if defined(CHARGEMAP_TYPE_HALF)
-using Charge = half;
-#else
 using Charge = float;
-#endif
 
 using Delta = short;
 using Delta2 = short2;
