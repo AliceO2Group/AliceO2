@@ -218,9 +218,11 @@ class MakeRootTreeWriterSpec
     /// @param dataref  the DPL DataRef object
     /// @return true if ready
     using CheckReady = std::function<bool(o2::framework::DataRef const&)>;
+    /// default condition
+    using CheckDefault = std::function<bool()>;
 
     /// the actual evaluator
-    std::variant<CheckReady, CheckProcessing> check;
+    std::variant<CheckDefault, CheckReady, CheckProcessing> check = []() { return true; };
   };
 
   /// unary helper functor to extract the input key from the InputSpec
