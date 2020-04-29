@@ -295,22 +295,22 @@ using MuonCluster = MuonClusters::iterator;
 namespace zdc
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);
-DECLARE_SOA_COLUMN(EnergyZEM1     ,energyZEM1     ,float);
-DECLARE_SOA_COLUMN(EnergyZEM2     ,energyZEM2     ,float);
-DECLARE_SOA_COLUMN(EnergyCommonZNA,energyCommonZNA,float);
-DECLARE_SOA_COLUMN(EnergyCommonZNC,energyCommonZNC,float);
-DECLARE_SOA_COLUMN(EnergyCommonZPA,energyCommonZPA,float);
-DECLARE_SOA_COLUMN(EnergyCommonZPC,energyCommonZPC,float);
-DECLARE_SOA_COLUMN(EnergySectorZNA,energySectorZNA,float[4]);
-DECLARE_SOA_COLUMN(EnergySectorZNC,energySectorZNC,float[4]);
-DECLARE_SOA_COLUMN(EnergySectorZPA,energySectorZPA,float[4]);
-DECLARE_SOA_COLUMN(EnergySectorZPC,energySectorZPC,float[4]);
-DECLARE_SOA_COLUMN(TimeZEM1       ,timeZEM1       ,float);
-DECLARE_SOA_COLUMN(TimeZEM2       ,timeZEM2       ,float);
-DECLARE_SOA_COLUMN(TimeZNA        ,timeZNA        ,float);
-DECLARE_SOA_COLUMN(TimeZNC        ,timeZNC        ,float);
-DECLARE_SOA_COLUMN(TimeZPA        ,timeZPA        ,float);
-DECLARE_SOA_COLUMN(TimeZPC        ,timeZPC        ,float);
+DECLARE_SOA_COLUMN(EnergyZEM1, energyZEM1, float);
+DECLARE_SOA_COLUMN(EnergyZEM2, energyZEM2, float);
+DECLARE_SOA_COLUMN(EnergyCommonZNA, energyCommonZNA, float);
+DECLARE_SOA_COLUMN(EnergyCommonZNC, energyCommonZNC, float);
+DECLARE_SOA_COLUMN(EnergyCommonZPA, energyCommonZPA, float);
+DECLARE_SOA_COLUMN(EnergyCommonZPC, energyCommonZPC, float);
+DECLARE_SOA_COLUMN(EnergySectorZNA, energySectorZNA, float[4]);
+DECLARE_SOA_COLUMN(EnergySectorZNC, energySectorZNC, float[4]);
+DECLARE_SOA_COLUMN(EnergySectorZPA, energySectorZPA, float[4]);
+DECLARE_SOA_COLUMN(EnergySectorZPC, energySectorZPC, float[4]);
+DECLARE_SOA_COLUMN(TimeZEM1, timeZEM1, float);
+DECLARE_SOA_COLUMN(TimeZEM2, timeZEM2, float);
+DECLARE_SOA_COLUMN(TimeZNA, timeZNA, float);
+DECLARE_SOA_COLUMN(TimeZNC, timeZNC, float);
+DECLARE_SOA_COLUMN(TimeZPA, timeZPA, float);
+DECLARE_SOA_COLUMN(TimeZPC, timeZPC, float);
 } // namespace zdc
 
 DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", zdc::BCId, zdc::EnergyZEM1, zdc::EnergyZEM2,
