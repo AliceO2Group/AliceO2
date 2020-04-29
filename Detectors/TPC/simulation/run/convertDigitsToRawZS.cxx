@@ -17,15 +17,11 @@
 #include <memory>
 #include <vector>
 #include <fmt/format.h>
-#if __has_include(<filesystem>)
-#include <filesystem>
-#elif __has_include(<experimental/filesystem>)
-#include <experimental/filesystem>
-#endif
 
 #include "TFile.h"
 #include "TTree.h"
 #include "TROOT.h"
+#include "TSystem.h"
 
 #include "GPUO2Interface.h"
 #include "GPUReconstructionConvert.h"
@@ -46,11 +42,6 @@
 #include "CommonUtils/ConfigurableParam.h"
 
 namespace bpo = boost::program_options;
-#if __has_include(<filesystem>)
-namespace fs = std::filesystem;
-#elif __has_include(<experimental/filesystem>)
-namespace fs = std::experimental::filesystem;
-#endif
 
 using namespace o2::tpc;
 using namespace o2::gpu;
@@ -100,9 +91,9 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
     outDir += '/';
   }
 
-  if (!fs::exists(outDir.data())) {
+  if (gSystem->AccessPathName(outDir.data())) {
     if (createParentDir) {
-      if (!fs::create_directories(outDir.data())) {
+      if (gSystem->mkdir(outDir.data())) {
         LOGP(error, "could not create output directory {}", outDir.data());
         exit(1);
       }
