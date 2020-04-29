@@ -53,6 +53,15 @@ GPUdii() void GPUTPCGMMergerUnpack::Thread<0>(int nBlocks, int nThreads, int iBl
 }
 
 template <>
+GPUdii() void GPUTPCGMMergerResolve::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, char useOrigTrackParam, char mergeAll)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  merger.ResolveMergeSlices(nBlocks, nThreads, iBlock, iThread, useOrigTrackParam, mergeAll);
+}
+
+template <>
 GPUdii() void GPUTPCGMMergerMergeWithin::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
 {
   if (iThread || iBlock) {
@@ -62,12 +71,12 @@ GPUdii() void GPUTPCGMMergerMergeWithin::Thread<0>(int nBlocks, int nThreads, in
 }
 
 template <>
-GPUdii() void GPUTPCGMMergerMergeSlices::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+GPUdii() void GPUTPCGMMergerMergeSlices::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, int border0, int border1, char useOrigTrackParam)
 {
   if (iThread || iBlock) {
     return;
   }
-  merger.MergeSlices(nBlocks, nThreads, iBlock, iThread);
+  merger.MergeSlices(nBlocks, nThreads, iBlock, iThread, border0, border1, useOrigTrackParam);
 }
 
 template <>
@@ -86,6 +95,15 @@ GPUdii() void GPUTPCGMMergerMergeCE::Thread<0>(int nBlocks, int nThreads, int iB
     return;
   }
   merger.MergeCE(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerLinkGlobalTracks::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  merger.LinkGlobalTracks(nBlocks, nThreads, iBlock, iThread);
 }
 
 template <>
