@@ -16,7 +16,6 @@
 #include "MIDWorkflow/RawWriterSpec.h"
 
 #include <fstream>
-#include <cstdint>
 #include <gsl/gsl>
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -28,6 +27,7 @@
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/Encoder.h"
+#include "MIDRaw/FEEIdConfig.h"
 
 namespace of = o2::framework;
 
@@ -41,23 +41,26 @@ class RawWriterDeviceDPL
   void init(o2::framework::InitContext& ic)
   {
     auto filename = ic.options().get<std::string>("mid-raw-outfile");
-    mFile.open(filename.c_str(), std::ios::binary);
-    if (!mFile.is_open()) {
-      LOG(ERROR) << "Cannot open the " << filename << " file !";
-      mState = 1;
-      return;
-    }
-
-    auto headerOffset = ic.options().get<bool>("mid-raw-header-offset");
-    mEncoder.setHeaderOffset(headerOffset);
+    mEncoder.init(filename.c_str());
 
     auto stop = [this]() {
       mEncoder.finalize();
-      write();
-      mFile.close();
     };
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
-    mState = 0;
+
+    // Write basic config files to be used with raw data reader workflow
+    auto cfgFilename = filename;
+    auto pos = filename.find_last_of('.');
+    if (pos != std::string::npos) {
+      cfgFilename.erase(pos);
+    }
+    cfgFilename += ".cfg";
+    std::ofstream outCfgFile(cfgFilename.c_str());
+    outCfgFile << "[defaults]\n";
+    outCfgFile << "dataOrigin = " << header::gDataOriginMID.as<std::string>() << "\n\n";
+    outCfgFile << "[input-file]\n";
+    outCfgFile << "filePath = " << filename << "\n";
+    outCfgFile.close();
   }
 
   void run(o2::framework::ProcessingContext& pc)
@@ -72,24 +75,15 @@ class RawWriterDeviceDPL
       auto eventData = data.subspan(rofRecord.firstEntry, rofRecord.nEntries);
       mEncoder.process(eventData, rofRecord.interactionRecord, rofRecord.eventType);
     }
-    write();
   }
 
  private:
-  void write()
-  {
-    const auto& buffer = mEncoder.getBuffer();
-    mFile.write(reinterpret_cast<const char*>(buffer.data()), mEncoder.getBufferSize());
-    mEncoder.clear();
-  }
   Encoder mEncoder{};
-  std::ofstream mFile{};
-  int mState{0};
 };
 
 framework::DataProcessorSpec getRawWriterSpec()
 {
-  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_data", "MID", "DATA"}, of::InputSpec{"mid_data_rof", "MID", "DATAROF"}, of::InputSpec{"mid_data_labels", "MID", "DATALABELS"}};
+  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_data", header::gDataOriginMID, "DATA"}, of::InputSpec{"mid_data_rof", header::gDataOriginMID, "DATAROF"}, of::InputSpec{"mid_data_labels", header::gDataOriginMID, "DATALABELS"}};
 
   return of::DataProcessorSpec{
     "MIDRawWriter",
