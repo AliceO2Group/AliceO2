@@ -95,7 +95,6 @@ class Digitizer
   int mMaxTimeBins = 30;     // Maximum number of time bins for processing signals, usually set at 30 tb = 3 microseconds
   int mMaxTimeBinsTRAP = 30; // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
 
-  bool mSDigits{false};                                    // true: convert signals to summable digits, false by defaults
   std::vector<HitType> mHitContainer;                      // the container of hits in a given detector
   std::vector<MCLabel> mMergedLabels;                      // temporary label container
   std::array<SignalContainer, kNdet> mSignalsMapCollection; // container for caching signals over a timeframe

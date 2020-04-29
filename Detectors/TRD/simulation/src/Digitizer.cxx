@@ -69,7 +69,6 @@ void Digitizer::init()
     mDriftEstimators.emplace_back();
   }
 
-  mSDigits = false;
   setSimulationParameters();
 }
 
