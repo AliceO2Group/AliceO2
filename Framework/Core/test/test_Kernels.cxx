@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(TestWithSOATables)
 
   arrow::compute::FunctionContext ctx;
   arrow::compute::Datum outRanges;
-  SortedGroupByKernel<int64_t, arrow::Int64Array> groupBy{{"fCollisionsID", 3}};
+  SortedGroupByKernel<int32_t, arrow::Int32Array> groupBy{{"fCollisionsID", 3}};
   BOOST_CHECK_EQUAL(groupBy.Call(&ctx, arrow::compute::Datum(tracks), &outRanges).ok(), true);
   auto result = arrow::util::get<std::shared_ptr<arrow::Table>>(outRanges.value);
   BOOST_REQUIRE(result.get() != nullptr);
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(TestWithSOATables)
 
   std::vector<Datum> splitted;
   std::vector<uint64_t> offsets;
-  BOOST_CHECK_EQUAL(sliceByColumn(&ctx, "fCollisionsID", static_cast<int64_t>(3), arrow::compute::Datum(tracks), &splitted, &offsets).ok(), true);
+  BOOST_CHECK_EQUAL(sliceByColumn(&ctx, "fCollisionsID", static_cast<int32_t>(3), arrow::compute::Datum(tracks), &splitted, &offsets).ok(), true);
   BOOST_REQUIRE_EQUAL(splitted.size(), 3);
   BOOST_CHECK_EQUAL(util::get<std::shared_ptr<Table>>(splitted[0].value)->num_rows(), 2);
   BOOST_CHECK_EQUAL(util::get<std::shared_ptr<Table>>(splitted[1].value)->num_rows(), 4);

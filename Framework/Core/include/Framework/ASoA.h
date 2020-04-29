@@ -1057,7 +1057,7 @@ class TableMetadata
   static const o2::framework::expressions::BindingNode _Getter_##Id { _Label_,     \
                                                                       o2::framework::expressions::selectArrowType<_Type_>() }
 
-#define DECLARE_SOA_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, int64_t, _Name_##s, "f" #_Name_ "sID")
+#define DECLARE_SOA_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "f" #_Name_ "sID")
 /// A dynamic column is a column whose values are derived
 /// from those of other real columns. These can be used for
 /// example to provide different coordinate systems (e.g. polar,

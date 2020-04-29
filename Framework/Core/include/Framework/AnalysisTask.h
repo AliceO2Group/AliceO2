@@ -433,7 +433,7 @@ struct AnalysisDataProcessorBuilder {
           constexpr auto index = framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{});
           if (hasIndexTo<std::decay_t<G>>(typename xt::persistent_columns_t{})) {
             auto result = o2::framework::sliceByColumn(&ctx, indexColumnName,
-                                                       gt.size(),
+                                                       static_cast<int32_t>(gt.size()),
                                                        x.asArrowTable(),
                                                        &groups[index],
                                                        &offsets[index]);
