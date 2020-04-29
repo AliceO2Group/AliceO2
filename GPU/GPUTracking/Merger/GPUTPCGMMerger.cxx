@@ -758,18 +758,9 @@ GPUd() void GPUTPCGMMerger::MergeWithingSlices(int nBlocks, int nThreads, int iB
 
     MergeBorderTracks(iSlice, mBorder[iSlice], nBord, iSlice, mBorder[iSlice], nBord);
   }
-
-  ResolveMergeSlices(false, true);
 }
 
-GPUd() void GPUTPCGMMerger::MergeSlices(int nBlocks, int nThreads, int iBlock, int iThread)
-{
-  MergeSlicesStep(2, 3, false);
-  MergeSlicesStep(0, 1, false);
-  MergeSlicesStep(0, 1, true);
-}
-
-GPUd() void GPUTPCGMMerger::MergeSlicesStep(int border0, int border1, bool useOrigTrackParam)
+GPUd() void GPUTPCGMMerger::MergeSlices(int nBlocks, int nThreads, int iBlock, int iThread, int border0, int border1, char useOrigTrackParam)
 {
   ClearTrackLinks(SliceTrackInfoLocalTotal());
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
@@ -780,10 +771,9 @@ GPUd() void GPUTPCGMMerger::MergeSlicesStep(int border0, int border1, bool useOr
     MakeBorderTracks(jSlice, border1, bNext, nNext, useOrigTrackParam);
     MergeBorderTracks(iSlice, bCurr, nCurr, jSlice, bNext, nNext, useOrigTrackParam ? -1 : 0);
   }
-  ResolveMergeSlices(useOrigTrackParam, false);
 }
 
-GPUd() void GPUTPCGMMerger::ResolveMergeSlices(bool useOrigTrackParam, bool mergeAll)
+GPUd() void GPUTPCGMMerger::ResolveMergeSlices(int nBlocks, int nThreads, int iBlock, int iThread, char useOrigTrackParam, char mergeAll)
 {
   if (!mergeAll) {
     /*int neighborType = useOrigTrackParam ? 1 : 0;
@@ -1178,9 +1168,8 @@ struct GPUTPCGMMerger_CompareTracksProcess {
   }
 };
 
-GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int iBlock, int iThread)
+GPUd() void GPUTPCGMMerger::LinkGlobalTracks(int nBlocks, int nThreads, int iBlock, int iThread)
 {
-  // Resolve connections for global tracks first
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
     for (int itr = SliceTrackInfoGlobalFirst(iSlice); itr < SliceTrackInfoGlobalLast(iSlice); itr++) {
       GPUTPCGMSliceTrack& globalTrack = mSliceTrackInfos[itr];
@@ -1188,11 +1177,10 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
       localTrack.SetGlobalTrackId(localTrack.GlobalTrackId(0) != -1, itr);
     }
   }
+}
 
-  // CheckMergedTracks();
-
-  // Now collect the merged tracks
-  mMemory->nOutputTracks = 0;
+GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int iBlock, int iThread)
+{
   int nOutTrackClusters = 0;
 
   GPUTPCGMSliceTrack* trackParts[kMaxParts];

@@ -41,10 +41,12 @@
   #define GPUCA_LB_GPUTPCGMMergerTrackFit 64, 1
   #define GPUCA_LB_GPUTPCGMMergerFollowLoopers 256, 1
   #define GPUCA_LB_GPUTPCGMMergerUnpack 256
+  #define GPUCA_LB_GPUTPCGMMergerResolve 256
   #define GPUCA_LB_GPUTPCGMMergerMergeWithin 256
   #define GPUCA_LB_GPUTPCGMMergerMergeSlices 256
   #define GPUCA_LB_GPUTPCGMMergerMergeCE 256
   #define GPUCA_LB_GPUTPCGMMergerMergeCEInit 256
+  #define GPUCA_LB_GPUTPCGMMergerLinkGlobalTracks 256
   #define GPUCA_LB_GPUTPCGMMergerCollect 256
   #define GPUCA_LB_GPUTPCGMMergerSortTracks 256
   #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
@@ -72,10 +74,12 @@
   #define GPUCA_LB_GPUTPCGMMergerTrackFit 256, 1
   #define GPUCA_LB_GPUTPCGMMergerFollowLoopers 256, 1
   #define GPUCA_LB_GPUTPCGMMergerUnpack 256
+  #define GPUCA_LB_GPUTPCGMMergerResolve 256
   #define GPUCA_LB_GPUTPCGMMergerMergeWithin 256
   #define GPUCA_LB_GPUTPCGMMergerMergeSlices 256
   #define GPUCA_LB_GPUTPCGMMergerMergeCE 256
   #define GPUCA_LB_GPUTPCGMMergerMergeCEInit 256
+  #define GPUCA_LB_GPUTPCGMMergerLinkGlobalTracks 256
   #define GPUCA_LB_GPUTPCGMMergerCollect 256
   #define GPUCA_LB_GPUTPCGMMergerSortTracks 256
   #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
@@ -143,6 +147,9 @@
   #ifndef GPUCA_LB_GPUTPCGMMergerUnpack
     #define GPUCA_LB_GPUTPCGMMergerUnpack 256
   #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerResolve
+    #define GPUCA_LB_GPUTPCGMMergerResolve 256
+  #endif
   #ifndef GPUCA_LB_GPUTPCGMMergerMergeWithin
     #define GPUCA_LB_GPUTPCGMMergerMergeWithin 256
   #endif
@@ -154,6 +161,9 @@
   #endif
   #ifndef GPUCA_LB_GPUTPCGMMergerMergeCEInit
     #define GPUCA_LB_GPUTPCGMMergerMergeCEInit 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerLinkGlobalTracks
+    #define GPUCA_LB_GPUTPCGMMergerLinkGlobalTracks 256
   #endif
   #ifndef GPUCA_LB_GPUTPCGMMergerCollect
     #define GPUCA_LB_GPUTPCGMMergerCollect 256
