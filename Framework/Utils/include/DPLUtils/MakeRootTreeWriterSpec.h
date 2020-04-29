@@ -495,6 +495,9 @@ class MakeRootTreeWriterSpec
       mInputs.insert(mInputs.end(), def.keys.begin(), def.keys.end());
       mBranchNameOptions.emplace_back(def.optionKey, def.branchName);
       mNofBranches += def.nofBranches;
+    } else {
+      // insert an empty placeholder
+      mBranchNameOptions.emplace_back("", "");
     }
     parseConstructorArgs<N + 1>(std::forward<Args>(args)...);
     if constexpr (N == 0) {
