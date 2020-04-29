@@ -316,8 +316,7 @@ DECLARE_SOA_COLUMN(TimeZPC        ,timeZPC        ,float);
 DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", zdc::BCId, zdc::EnergyZEM1, zdc::EnergyZEM2,
                   zdc::EnergyCommonZNA, zdc::EnergyCommonZNC, zdc::EnergyCommonZPA, zdc::EnergyCommonZPC,
                   zdc::EnergySectorZNA, zdc::EnergySectorZNC, zdc::EnergySectorZPA, zdc::EnergySectorZPC,
-                  zdc::TimeZEM1, zdc::TimeZEM2, zdc::TimeZNA, zdc::TimeZNC, zdc::TimeZPA, zdc::TimeZPC
-);
+                  zdc::TimeZEM1, zdc::TimeZEM2, zdc::TimeZNA, zdc::TimeZNC, zdc::TimeZPA, zdc::TimeZPC);
 using Zdc = Zdcs::iterator;
 
 namespace ft0
