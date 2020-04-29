@@ -75,25 +75,25 @@ void Digitizer::init()
 
 void Digitizer::setSimulationParameters()
 {
-  kNpad = mSimParam->getNumberOfPadsInPadResponse(); // Number of pads included in the pad response
-  kAmWidth = TRDGeometry::amThick();                 // Width of the amplification region
-  kDrWidth = TRDGeometry::drThick();                 // Width of the drift retion
-  kDrMin = -0.5 * kAmWidth;                          // Drift + Amplification region
-  kDrMax = kDrWidth + 0.5 * kAmWidth;                // Drift + Amplification region
+  mNpad = mSimParam->getNumberOfPadsInPadResponse(); // Number of pads included in the pad response
+  mAmWidth = TRDGeometry::amThick();                 // Width of the amplification region
+  mDrWidth = TRDGeometry::drThick();                 // Width of the drift retion
+  mDrMin = -0.5 * mAmWidth;                          // Drift + Amplification region
+  mDrMax = mDrWidth + 0.5 * mAmWidth;                // Drift + Amplification region
   if (mSimParam->TRFOn()) {
-    timeBinTRFend = ((int)(mSimParam->GetTRFhi() * mCommonParam->GetSamplingFrequency())) - 1;
+    mTimeBinTRFend = ((int)(mSimParam->GetTRFhi() * mCommonParam->GetSamplingFrequency())) - 1;
   }
-  maxTimeBins = kTimeBins;     // for signals, usually set at 30 tb = 3 microseconds
-  maxTimeBinsTRAP = kTimeBins; // for adcs; should be read from the CCDB or the TRAP config
-  samplingRate = mCommonParam->GetSamplingFrequency();
-  elAttachProp = mSimParam->GetElAttachProp() / 100;
+  mMaxTimeBins = kTimeBins;     // for signals, usually set at 30 tb = 3 microseconds
+  mMaxTimeBinsTRAP = kTimeBins; // for adcs; should be read from the CCDB or the TRAP config
+  mSamplingRate = mCommonParam->GetSamplingFrequency();
+  mElAttachProp = mSimParam->GetElAttachProp() / 100;
 }
 
 void Digitizer::clearCollections()
 {
   for (int det = 0; det < kNdet; ++det) {
-    signalsMapCollection[det].clear();
-    digitsCollection[det].clear();
+    mSignalsMapCollection[det].clear();
+    mDigitsCollection[det].clear();
   }
   mMergedLabels.clear();
 }
@@ -111,10 +111,10 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
 #else
     const int threadid = 0;
 #endif
-    if (signalsMapCollection[det].size() == 0) {
+    if (mSignalsMapCollection[det].size() == 0) {
       continue;
     }
-    bool status = convertSignalsToADC(det, signalsMapCollection[det], digitsCollection[det], threadid);
+    bool status = convertSignalsToADC(det, mSignalsMapCollection[det], mDigitsCollection[det], threadid);
     if (!status) {
       LOG(WARN) << "TRD conversion of signals to digits failed for detector " << det;
       continue; // go to the next chamber
@@ -123,8 +123,8 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
 
   // Finalize
   for (int det = 0; det < kNdet; ++det) {
-    std::move(digitsCollection[det].begin(), digitsCollection[det].end(), std::back_inserter(digits));
-    for (const auto& it : signalsMapCollection[det]) {
+    std::move(mDigitsCollection[det].begin(), mDigitsCollection[det].end(), std::back_inserter(digits));
+    for (const auto& it : mSignalsMapCollection[det]) {
       std::move(it.second.labels.begin(), it.second.labels.end(), std::back_inserter(mMergedLabels));
     }
   }
@@ -164,7 +164,7 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits
 #else
     const int threadid = 0;
 #endif
-    auto& signalsMap = signalsMapCollection[det];
+    auto& signalsMap = mSignalsMapCollection[det];
     // Jump to the next detector if the detector is
     // switched off, not installed, etc
     if (mCalib->isChamberNoData(det)) {
@@ -204,7 +204,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
   // Convert the detector-wise sorted hits to detector signals
   //
 
-  double padSignal[kNpad];
+  double padSignal[mNpad];
 
   const double calExBDetValue = mCalib->getExB(det); // T * V/cm (check units)
   const TRDPadPlane* padPlane = mGeo->getPadPlane(det);
@@ -239,7 +239,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       if ((locR < rowEndROC) || (locR > row0)) {
         continue;
       }
-      if ((driftLength < kDrMin) || (driftLength > kDrMax)) {
+      if ((driftLength < mDrMin) || (driftLength > mDrMax)) {
         continue;
       }
     }
@@ -269,7 +269,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
     for (int el = 0; el < nElectrons; ++el) {
       // Electron attachment
       if (mSimParam->ElAttachOn()) {
-        if (mFlatRandomRings[thread].getNextValue() < absDriftLength * elAttachProp) {
+        if (mFlatRandomRings[thread].getNextValue() < absDriftLength * mElAttachProp) {
           continue;
         }
       }
@@ -314,7 +314,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           zz = 0.5 - zz;
         }
         // Use drift time map (GARFIELD)
-        driftTime = mDriftEstimators[thread].TimeStruct(driftVelocity, 0.5 * kAmWidth - 1.0 * locTd, zz) + hit.GetTime();
+        driftTime = mDriftEstimators[thread].TimeStruct(driftVelocity, 0.5 * mAmWidth - 1.0 * locTd, zz) + hit.GetTime();
       } else {
         // Use constant drift velocity
         driftTime = std::fabs(locTd) / driftVelocity + hit.GetTime(); // drift time in microseconds
@@ -340,22 +340,22 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       }
 
       // The time bin (always positive), with t0 distortion
-      double timeBinIdeal = driftTime * samplingRate + t0;
+      double timeBinIdeal = driftTime * mSamplingRate + t0;
       // Protection
-      if (std::fabs(timeBinIdeal) > (2 * maxTimeBins)) {
-        timeBinIdeal = 2 * maxTimeBins;
+      if (std::fabs(timeBinIdeal) > (2 * mMaxTimeBins)) {
+        timeBinIdeal = 2 * mMaxTimeBins;
       }
       int timeBinTruncated = ((int)timeBinIdeal);
       // The distance of the position to the middle of the timebin
-      double timeOffset = ((float)timeBinTruncated + 0.5 - timeBinIdeal) / samplingRate;
+      double timeOffset = ((float)timeBinTruncated + 0.5 - timeBinIdeal) / mSamplingRate;
       // Sample the time response inside the drift region + additional time bins before and after.
       // The sampling is done always in the middle of the time bin
       const int firstTimeBin = std::max(timeBinTruncated, 0);
-      const int lastTimeBin = std::min(timeBinTruncated + timeBinTRFend, maxTimeBins);
+      const int lastTimeBin = std::min(timeBinTruncated + mTimeBinTRFend, mMaxTimeBins);
 
       // loop over pads first then over timebins for better cache friendliness
       // and less access to signalMapCont
-      for (int pad = 0; pad < kNpad; ++pad) {
+      for (int pad = 0; pad < mNpad; ++pad) {
         int colPos = colE + pad - 1;
         if (colPos < 0) {
           continue;
@@ -376,14 +376,14 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
         // add signal with crosstalk for the non-central pads only
         if (colPos != colE) {
           for (int tb = firstTimeBin; tb < lastTimeBin; ++tb) {
-            const double t = (tb - timeBinTruncated) / samplingRate + timeOffset;
+            const double t = (tb - timeBinTruncated) / mSamplingRate + timeOffset;
             const double timeResponse = mSimParam->TRFOn() ? mSimParam->TimeResponse(t) : 1;
             const double crossTalk = mSimParam->CTOn() ? mSimParam->CrossTalk(t) : 0;
             currentSignal[tb] += padSignal[pad] * (timeResponse + crossTalk);
           } // end of loop time bins
         } else {
           for (int tb = firstTimeBin; tb < lastTimeBin; ++tb) {
-            const double t = (tb - timeBinTruncated) / samplingRate + timeOffset;
+            const double t = (tb - timeBinTruncated) / mSamplingRate + timeOffset;
             const double timeResponse = mSimParam->TRFOn() ? mSimParam->TimeResponse(t) : 1;
             currentSignal[tb] += padSignal[pad] * timeResponse;
           } // end of loop time bins
@@ -457,7 +457,7 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer& signalMapCon
     SignalArray& signalData = signalMapIter.second;
     auto& signalArray = signalData.signals;
     ArrayADC adcs{};
-    for (int tb = 0; tb < maxTimeBinsTRAP; ++tb) {
+    for (int tb = 0; tb < mMaxTimeBinsTRAP; ++tb) {
       float signalAmp = (float)signalArray[tb]; // The signal amplitude
       signalAmp *= coupling;                    // Pad and time coupling
       signalAmp *= padgain;                     // Gain factors

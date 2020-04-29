@@ -82,22 +82,24 @@ class Digitizer
   double mLastTime = 1.0e10; // starts in the future
   int mEventID = 0;
   int mSrcID = 0;
-  int kNpad = 0;            // Number of pads included in the pad response
-  float kAmWidth = 0;       // Width of the amplification region
-  float kDrWidth = 0;       // Width of the drift retion
-  float kDrMin = 0;         // Drift + Amplification region
-  float kDrMax = 0;         // Drift + Amplification region
-  int timeBinTRFend = 0;    // time bin TRF ends
-  int maxTimeBins = 30;     // Maximum number of time bins for processing signals, usually set at 30 tb = 3 microseconds
-  int maxTimeBinsTRAP = 30; // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
-  float samplingRate = 0;
-  float elAttachProp = 0;
+
+  // Simulation parameters
+  float mAmWidth = 0;        // Width of the amplification region
+  float mDrWidth = 0;        // Width of the drift retion
+  float mDrMin = 0;          // Drift + Amplification region
+  float mDrMax = 0;          // Drift + Amplification region
+  float mSamplingRate = 0;   // The sampling rate
+  float mElAttachProp = 0;   // Propability for electron attachment (for 1m)
+  int mNpad = 0;             // Number of pads included in the pad response
+  int mTimeBinTRFend = 0;    // time bin TRF ends
+  int mMaxTimeBins = 30;     // Maximum number of time bins for processing signals, usually set at 30 tb = 3 microseconds
+  int mMaxTimeBinsTRAP = 30; // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
 
   bool mSDigits{false};                                    // true: convert signals to summable digits, false by defaults
   std::vector<HitType> mHitContainer;                      // the container of hits in a given detector
   std::vector<MCLabel> mMergedLabels;                      // temporary label container
-  std::array<SignalContainer, kNdet> signalsMapCollection; // container for caching signals over a timeframe
-  std::array<DigitContainer, kNdet> digitsCollection;      // container for caching digits for paralellization
+  std::array<SignalContainer, kNdet> mSignalsMapCollection; // container for caching signals over a timeframe
+  std::array<DigitContainer, kNdet> mDigitsCollection;      // container for caching digits for paralellization
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   void clearCollections();
