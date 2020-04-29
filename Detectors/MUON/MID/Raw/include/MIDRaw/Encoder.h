@@ -16,17 +16,17 @@
 #define O2_MID_ENCODER_H
 
 #include <cstdint>
-#include <gsl/gsl>
+#include <array>
 #include <map>
+#include <gsl/gsl>
 #include "CommonDataFormat/InteractionRecord.h"
-#include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RawFileWriter.h"
 #include "DataFormatsMID/ColumnData.h"
-#include "DataFormatsMID/ROFRecord.h"
-#include "MIDRaw/CrateMapper.h"
+#include "MIDRaw/ColumnDataToLocalBoard.h"
 #include "MIDRaw/CrateParameters.h"
-#include "MIDRaw/CRUUserLogicEncoder.h"
+#include "MIDRaw/FEEIdConfig.h"
+#include "MIDRaw/GBTUserLogicEncoder.h"
 #include "MIDRaw/LocalBoardRO.h"
-#include "MIDRaw/RawUnit.h"
 
 namespace o2
 {
@@ -35,33 +35,25 @@ namespace mid
 class Encoder
 {
  public:
+  void init(const char* filename, int verbosity = 0);
   void process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType = EventType::Standard);
-  const std::vector<raw::RawUnit>& getBuffer();
-  void finalize();
-  /// Gets the size in bytes of the buffer
-  size_t getBufferSize() { return mBytes.size() * raw::sElementSizeInBytes; }
-  /// Sets the next header offset in bytes
-  void setHeaderOffset(bool headerOffset = true);
-  void clear();
   /// Sets the maximum size of the superpage
-  void setMaximumSuperpageSize(unsigned long int maxSize) { mMaxSuperpageSize = maxSize; }
-  /// Sets flag to skip empty Time Frames
-  void setSkipEmptyTFs(bool skip = true) { mSkipEmptyTFs = skip; }
+  void setSuperpageSize(int maxSize) { mRawWriter.setSuperPageSize(maxSize); }
+
+  void finalize(bool closeFile = true);
 
  private:
-  bool convertData(gsl::span<const ColumnData> data);
-  void newHeader(const InteractionRecord& ir);
-  void flushGBT(CRUUserLogicEncoder& linkEncoder);
+  void flush(uint16_t feeId, const InteractionRecord& ir);
+  void hbTrigger(const InteractionRecord& ir);
 
-  std::array<CRUUserLogicEncoder, crateparams::sNGBTs> mCRUUserLogicEncoders{}; /// Array of encoders per link
+  o2::raw::RawFileWriter mRawWriter{};        /// Raw file writer
+  std::map<uint16_t, LocalBoardRO> mROData{}; /// Map of data per board
+  ColumnDataToLocalBoard mConverter{};        /// ColumnData to LocalBoardRO converter
+  FEEIdConfig mFEEIdConfig{};                 /// Crate FEEId mapper
+  InteractionRecord mLastIR{};                /// Last interaction record
 
-  std::map<uint16_t, LocalBoardRO> mROData{};     /// Map of data per board
-  std::vector<raw::RawUnit> mBytes{};             /// Vector with encoded information
-  CrateMapper mCrateMapper{};                     /// Crate mapper
-  const o2::raw::HBFUtils& mHBFUtils = o2::raw::HBFUtils::Instance(); /// Utility for HBF
-  InteractionRecord mLastIR{};                    /// Last interaction record
-  unsigned long int mMaxSuperpageSize{0x1000000}; /// Superpage size
-  bool mSkipEmptyTFs{false};                      /// Skip empty Time Frames
+  std::array<GBTUserLogicEncoder, crateparams::sNGBTs> mGBTEncoders{}; /// Array of encoders per link
+  std::array<uint32_t, crateparams::sNGBTs> mGBTIds{};                 /// Array of GBT Ids
 };
 } // namespace mid
 } // namespace o2
