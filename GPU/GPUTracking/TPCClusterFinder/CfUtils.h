@@ -44,6 +44,10 @@ class CfUtils
     return aboveThreshold & (1 << CfConsts::OuterToInnerInv[outerIdx]);
   }
 
+  static GPUdi() bool isPeak(uchar peak) { return peak & 0x01; }
+
+  static GPUdi() bool isAboveThreshold(uchar peak) { return peak >> 1; }
+
   template <typename SharedMemory>
   static GPUdi() ushort partition(SharedMemory& smem, ushort ll, bool pred, ushort partSize, ushort* newPartSize)
   {
@@ -77,8 +81,8 @@ class CfUtils
     ushort x = ll % N;
     ushort y = ll / N;
     tpccf::Delta2 d = neighbors[x + offset];
-    LOOP_UNROLL_ATTR for (unsigned int i = y; i < wgSize; i += (elems / N))
-    {
+
+    for (unsigned int i = y; i < wgSize; i += (elems / N)) {
       ChargePos readFrom = posBcast[i];
       uint writeTo = N * i + x;
       buf[writeTo] = map[readFrom.delta(d)];
@@ -122,8 +126,7 @@ class CfUtils
     ushort y = ll / N;
     ushort x = ll % N;
     tpccf::Delta2 d = neighbors[x + offset];
-    LOOP_UNROLL_ATTR for (unsigned int i = y; i < wgSize; i += (elems / N))
-    {
+    for (unsigned int i = y; i < wgSize; i += (elems / N)) {
       ChargePos readFrom = posBcast[i];
       uchar above = aboveThreshold[i];
       uint writeTo = N * i + x;
@@ -136,7 +139,6 @@ class CfUtils
       buf[writeTo] = v;
     }
     GPUbarrier();
-
 #else
     if (ll >= wgSize) {
       return;
