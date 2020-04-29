@@ -35,6 +35,7 @@ class Geo
 
   static void rotateToSector(Float_t* xyz, Int_t isector);
   static void rotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip);
+  static void antiRotateToSector(Float_t* xyz, Int_t isector);
 
   static void antiRotate(Float_t* xyz, Double_t rotationAngles[6]);
   static void getDetID(Float_t* pos, Int_t* det);

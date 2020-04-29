@@ -78,7 +78,7 @@ class DCAFitterN
 
   using Track = o2::track::TrackParCov;
   using TrackAuxPar = o2::track::TrackAuxPar;
-  using CircleCrossInfo = o2::track::CircleCrossInfo;
+  using CrossInfo = o2::track::CrossInfo;
 
   using Vec3D = ROOT::Math::SVector<double, 3>;
   using VecND = ROOT::Math::SVector<double, N>;
@@ -138,7 +138,7 @@ class DCAFitterN
   void setMaxR(float r = 200.) { mMaxR2 = r * r; }
   void setMaxDZIni(float d = 4.) { mMaxDZIni = d; }
   void setMaxChi2(float chi2 = 999.) { mMaxChi2 = chi2; }
-  void setBz(float bz) { mBz = bz; }
+  void setBz(float bz) { mBz = std::abs(bz) > o2::constants::math::Almost0 ? bz : 0.f; }
   void setMinParamChange(float x = 1e-3) { mMinParamChange = x > 1e-4 ? x : 1.e-4; }
   void setMinRelChi2Change(float r = 0.9) { mMinRelChi2Change = r > 0.1 ? r : 999.; }
   void setUseAbsDCA(bool v) { mUseAbsDCA = v; }
@@ -214,7 +214,7 @@ class DCAFitterN
   MatSymND mSinDif;    // matrix with sin(alp_j-alp_i) for j<i
   std::array<const Track*, N> mOrigTrPtr;
   std::array<TrackAuxPar, N> mTrAux; // Aux track info for each track at each cand. vertex
-  CircleCrossInfo mCrossings;        // info on track crossing
+  CrossInfo mCrossings;              // info on track crossing
 
   std::array<ArrTrackCovI, MAXHYP> mTrcEInv; // errors for each track at each cand. vertex
   std::array<ArrTrack, MAXHYP> mCandTr;      // tracks at each cond. vertex (Note: Errors are at seed XY point)
@@ -258,7 +258,7 @@ int DCAFitterN<N, Args...>::process(const Tr&... args)
   for (int i = 0; i < N; i++) {
     mTrAux[i].set(*mOrigTrPtr[i], mBz);
   }
-  if (!mCrossings.set(mTrAux[0], mTrAux[1])) { // even for N>2 it should be enough to test just 1 loop
+  if (!mCrossings.set(mTrAux[0], *mOrigTrPtr[0], mTrAux[1], *mOrigTrPtr[1])) { // even for N>2 it should be enough to test just 1 loop
     return 0;                                  // no crossing
   }
   if (mUseAbsDCA) {

@@ -96,9 +96,9 @@ void GBTLink::clear(bool resetStat, bool resetTFRaw)
 }
 
 ///_________________________________________________________________
-void GBTLink::printRDH(const RDH* rdh)
+void GBTLink::printRDH(const RDH& rdh)
 {
-  o2::raw::RDHUtils::printRDH(*rdh);
+  o2::raw::RDHUtils::printRDH(rdh);
 }
 
 ///_________________________________________________________________
@@ -130,35 +130,35 @@ void GBTLink::printTrailer(const GBTDataTrailer* gbtT)
 
 ///_________________________________________________________________
 /// Check RDH correctness
-GBTLink::ErrorType GBTLink::checkErrorsRDH(const RDH* rdh)
+GBTLink::ErrorType GBTLink::checkErrorsRDH(const RDH& rdh)
 {
-  if (!RDHUtils::checkRDH(*rdh, true)) {
+  if (!RDHUtils::checkRDH(rdh, true)) {
     statistics.errorCounts[GBTS::ErrNoRDHAtStart]++;
     LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTS::ErrNoRDHAtStart];
     errorBits |= 0x1 << int(GBTS::ErrNoRDHAtStart);
     return Abort; // fatal error
   }
-  if ((rdh->packetCounter > packetCounter + 1) && packetCounter >= 0) {
+  if ((RDHUtils::getPacketCounter(rdh) > packetCounter + 1) && packetCounter >= 0) {
     statistics.errorCounts[GBTS::ErrPacketCounterJump]++;
     LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTS::ErrPacketCounterJump]
-               << " : jump from " << int(packetCounter) << " to " << int(rdh->packetCounter);
+               << " : jump from " << int(packetCounter) << " to " << int(RDHUtils::getPacketCounter(rdh));
     errorBits |= 0x1 << int(GBTS::ErrPacketCounterJump);
     return Warning;
   }
-  packetCounter = rdh->packetCounter;
+  packetCounter = RDHUtils::getPacketCounter(rdh);
   return NoError;
 }
 
 ///_________________________________________________________________
 /// Check RDH Stop correctness
-GBTLink::ErrorType GBTLink::checkErrorsRDHStop(const RDH* rdh)
+GBTLink::ErrorType GBTLink::checkErrorsRDHStop(const RDH& rdh)
 {
-  if (lastRDH && RDHUtils::getHeartBeatOrbit(*lastRDH) != RDHUtils::getHeartBeatOrbit(*rdh) // new HB starts
-      && !lastRDH->stop) {
+  if (lastRDH && RDHUtils::getHeartBeatOrbit(*lastRDH) != RDHUtils::getHeartBeatOrbit(rdh) // new HB starts
+      && !RDHUtils::getStop(*lastRDH)) {
     statistics.errorCounts[GBTS::ErrPageNotStopped]++;
     LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTS::ErrPageNotStopped];
     RDHUtils::printRDH(*lastRDH);
-    RDHUtils::printRDH(*rdh);
+    RDHUtils::printRDH(rdh);
     errorBits |= 0x1 << int(GBTS::ErrPageNotStopped);
     return Warning;
   }
@@ -167,13 +167,13 @@ GBTLink::ErrorType GBTLink::checkErrorsRDHStop(const RDH* rdh)
 
 ///_________________________________________________________________
 /// Check if the RDH Stop page is empty
-GBTLink::ErrorType GBTLink::checkErrorsRDHStopPageEmpty(const RDH* rdh)
+GBTLink::ErrorType GBTLink::checkErrorsRDHStopPageEmpty(const RDH& rdh)
 {
-  if (rdh->stop && rdh->memorySize != sizeof(RDH)) {
+  if (RDHUtils::getStop(rdh) && RDHUtils::getMemorySize(rdh) != sizeof(RDH)) {
     statistics.errorCounts[GBTS::ErrStopPageNotEmpty]++;
     LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTS::ErrStopPageNotEmpty];
     errorBits |= 0x1 << int(GBTS::ErrStopPageNotEmpty);
-    RDHUtils::printRDH(*rdh);
+    RDHUtils::printRDH(rdh);
     return Warning;
   }
   return NoError;
@@ -204,22 +204,23 @@ GBTLink::ErrorType GBTLink::checkErrorsHeaderWord(const GBTDataHeader* gbtH)
     errorBits |= 0x1 << int(GBTS::ErrMissingGBTHeader);
     return Abort;
   }
+  int cnt = RDHUtils::getPageCounter(*lastRDH);
   /* RSTODO: this makes sense only for old format, where every trigger has its RDH
-  if (gbtH->packetIdx != lastRDH->pageCnt) {
+  if (gbtH->packetIdx != cnt) {
     statistics.errorCounts[GBTS::ErrRDHvsGBTHPageCnt]++;
     LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTS::ErrRDHvsGBTHPageCnt] << ": diff in GBT header "
-	       << gbtH->packetIdx << " and RDH page " << lastRDH->pageCnt << " counters";
+	       << gbtH->packetIdx << " and RDH page " << cnt << " counters";
     errorBits |= 0x1<<int(GBTS::ErrRDHvsGBTHPageCnt);
     return Warning;
   }
   */
   // RSTODO CHECK
   if (lanesActive == lanesStop) { // all lanes received their stop, new page 0 expected
-    //if (lastRDH->pageCnt) { // makes sens for old format only
+    //if (cnt) { // makes sens for old format only
     if (gbtH->packetIdx) {
       statistics.errorCounts[GBTS::ErrNonZeroPageAfterStop]++;
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTS::ErrNonZeroPageAfterStop]
-                 << ": Non-0 page counter (" << lastRDH->pageCnt << ") while all lanes were stopped";
+                 << ": Non-0 page counter (" << cnt << ") while all lanes were stopped";
       errorBits |= 0x1 << int(GBTS::ErrNonZeroPageAfterStop);
       return Warning;
     }
@@ -294,7 +295,7 @@ GBTLink::ErrorType GBTLink::checkErrorsLanesStops()
   // make sure all lane stops for finished page are received
   auto err = NoError;
   if ((lanesActive & ~lanesStop)) {
-    if (lastRDH->triggerType != o2::trigger::SOT) { // only SOT trigger allows unstopped lanes?
+    if (RDHUtils::getTriggerType(*lastRDH) != o2::trigger::SOT) { // only SOT trigger allows unstopped lanes?
       statistics.errorCounts[GBTS::ErrUnstoppedLanes]++;
       std::bitset<32> active(lanesActive), stopped(lanesStop);
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTS::ErrUnstoppedLanes]

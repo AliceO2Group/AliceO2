@@ -35,7 +35,11 @@ using namespace o2::fv0;
 
 Geometry::Geometry(EGeoType initType) : mGeometryType(initType)
 {
-  initializeGeometry();
+  initializeCellCenters();
+  initializeReadoutCenters();
+  if (initType != eUninitialized) {
+    initializeGeometry();
+  }
 }
 
 Geometry::Geometry(const Geometry& geometry) : mGeometryType(geometry.mGeometryType), mLeftTransformation(nullptr), mRightTransformation(nullptr)
@@ -103,6 +107,28 @@ void Geometry::buildGeometry() const
 
   // TODO: What should the copy_no be? Currently assigned to '1'
   vALIC->AddNode(vFV0, 1, new TGeoTranslation(sXGlobal, sYGlobal, sZGlobal));
+}
+
+void Geometry::getGlobalPosition(float& x, float& y, float& z)
+{
+  x = sXGlobal;
+  y = sYGlobal;
+  z = sZGlobal;
+}
+
+Point3D<float>& Geometry::getCellCenter(UInt_t cellId)
+{
+  return mCellCenter.at(cellId);
+}
+
+Point3D<float>& Geometry::getReadoutCenter(UInt_t cellId)
+{
+  return mReadoutCenter.at(cellId);
+}
+
+bool Geometry::isRing5(UInt_t cellId)
+{
+  return cellId >= (sNumberOfCellRings - 1) * sNumberOfCellSectors * 2;
 }
 
 void Geometry::initializeGeometry()
@@ -1184,4 +1210,55 @@ TGeoRotation* Geometry::createAndRegisterRot(const std::string& name, const doub
 const std::string Geometry::createVolumeName(const std::string& volumeType, const int number) const
 {
   return sDetectorName + volumeType + ((number >= 0) ? std::to_string(number) : "");
+}
+
+void Geometry::initializeCellCenters()
+{
+  const float phi0 = 67.5 * TMath::DegToRad(); // starting phi of one of the sectors
+  const float dphi = 45. * TMath::DegToRad();  // phi difference between neighbouring sectors
+  const float lutSect2Phi[sNumberOfCellSectors * 2] = {phi0, phi0 - dphi, phi0 - 2 * dphi, phi0 - 3 * dphi, phi0 + dphi, phi0 + 2 * dphi, phi0 + 3 * dphi, phi0 + 4 * dphi};
+  for (int cellId = 0; cellId < sNumberOfCells; cellId++) {
+    float r = 0.5 * (sCellRingRadii[sCellToRing[cellId]] + sCellRingRadii[sCellToRing[cellId] + 1]);
+    double x = sXGlobal + r * TMath::Cos(lutSect2Phi[sCellToSector[cellId]]);
+    double y = sYGlobal + r * TMath::Sin(lutSect2Phi[sCellToSector[cellId]]);
+
+    Point3D<float>* p = &mCellCenter.at(cellId);
+    p->SetCoordinates(x, y, sZGlobal);
+  }
+}
+
+void Geometry::initializeReadoutCenters()
+{
+  for (int channelId = 0; channelId < sNumberOfReadoutChannels; channelId++) {
+    Point3D<float>* p = &mReadoutCenter.at(channelId);
+    if (!isRing5(channelId)) {
+      p->SetCoordinates(getCellCenter(channelId).X(), getCellCenter(channelId).Y(), getCellCenter(channelId).Z());
+    } else {
+      const int numberOfSectorsR5 = sNumberOfCellSectors * 4; // from both halves of the detector
+      const float phi0 = 78.75 * TMath::DegToRad();           // starting phi of one of the sectors
+      const float dphi = 22.5 * TMath::DegToRad();            // phi difference between neighbouring sectors
+      const float lutReadoutSect2Phi[numberOfSectorsR5] =
+        {phi0 - 0 * dphi, phi0 - 1 * dphi, phi0 - 2 * dphi, phi0 - 3 * dphi,
+         phi0 - 4 * dphi, phi0 - 5 * dphi, phi0 - 6 * dphi, phi0 - 7 * dphi,
+         phi0 + 1 * dphi, phi0 + 2 * dphi, phi0 + 3 * dphi, phi0 + 4 * dphi,
+         phi0 + 5 * dphi, phi0 + 6 * dphi, phi0 + 7 * dphi, phi0 + 8 * dphi};
+
+      int iReadoutSector = channelId - ((sNumberOfCellRings - 1) * sNumberOfCellSectors * 2);
+      float r = 0.5 * (sCellRingRadii[4] + sCellRingRadii[5]);
+      double x = sXGlobal + r * TMath::Cos(lutReadoutSect2Phi[iReadoutSector]);
+      double y = sYGlobal + r * TMath::Sin(lutReadoutSect2Phi[iReadoutSector]);
+      p->SetCoordinates(x, y, sZGlobal);
+    }
+  }
+}
+
+Geometry* Geometry::sInstance = nullptr;
+
+//Singleton access
+Geometry* Geometry::instance(EGeoType initType)
+{
+  if (!sInstance)
+    LOG(INFO) << "FV0 geometry instance created";
+  sInstance = new Geometry(initType);
+  return sInstance;
 }

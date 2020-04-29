@@ -13,6 +13,7 @@
 
 #include "FairLogger.h"
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataRefUtils.h"
 #include "DataFormatsCPV/CPVBlockHeader.h"

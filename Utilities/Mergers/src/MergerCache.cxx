@@ -13,6 +13,7 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
+#include "Framework/RootSerializationSupport.h"
 #include "Mergers/MergerCache.h"
 
 namespace o2

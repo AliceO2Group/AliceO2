@@ -43,7 +43,8 @@ namespace tof
 namespace compressed
 {
 
-bool DecoderBase::processHBF()
+template <typename RAWDataHeader>
+bool DecoderBaseT<RAWDataHeader>::processHBF()
 {
 
 #ifdef DECODER_VERBOSE
@@ -55,7 +56,7 @@ bool DecoderBase::processHBF()
   }
 #endif
 
-  mDecoderRDH = reinterpret_cast<const o2::header::RAWDataHeader*>(mDecoderPointer);
+  mDecoderRDH = reinterpret_cast<const RAWDataHeader*>(mDecoderPointer);
   auto rdh = mDecoderRDH;
 
   /** loop until RDH close **/
@@ -84,7 +85,7 @@ bool DecoderBase::processHBF()
     mDecoderSaveBufferDataSize += drmPayload;
 
     /** move to next RDH **/
-    rdh = reinterpret_cast<const o2::header::RAWDataHeader*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
+    rdh = reinterpret_cast<const RAWDataHeader*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
 
     /** check next RDH is within buffer **/
     if (reinterpret_cast<const char*>(rdh) < mDecoderBuffer + mDecoderBufferSize)
@@ -136,7 +137,8 @@ bool DecoderBase::processHBF()
   return true;
 }
 
-bool DecoderBase::processDRM()
+template <typename RAWDataHeader>
+bool DecoderBaseT<RAWDataHeader>::processDRM()
 {
 
 #ifdef DECODER_VERBOSE
@@ -184,7 +186,7 @@ bool DecoderBase::processDRM()
       auto crateTrailer = reinterpret_cast<const CrateTrailer_t*>(mDecoderPointer);
 #ifdef DECODER_VERBOSE
       if (mDecoderVerbose) {
-        printf(" %08x CrateTrailer         (numberOfDiagnostics=%d) \n ", *mDecoderPointer, crateTrailer->numberOfDiagnostics);
+        printf(" %08x CrateTrailer         (numberOfDiagnostics=%d, numberOfErrors=%d) \n ", *mDecoderPointer, crateTrailer->numberOfDiagnostics, numberOfErrors);
       }
 #endif
       mDecoderPointer++;
@@ -198,9 +200,19 @@ bool DecoderBase::processDRM()
       }
 #endif
       mDecoderPointer += crateTrailer->numberOfDiagnostics;
+      auto errors = reinterpret_cast<const Error_t*>(mDecoderPointer);
+#ifdef DECODER_VERBOSE
+      if (mDecoderVerbose) {
+        for (int i = 0; i < crateTrailer->numberOfErrors; ++i) {
+          auto error = reinterpret_cast<const Error_t*>(mDecoderPointer + i);
+          printf(" %08x Error                (slotId=%d) \n ", *(mDecoderPointer + i), error->slotID);
+        }
+      }
+#endif
+      mDecoderPointer += crateTrailer->numberOfErrors;
 
       /** trailer handler **/
-      trailerHandler(crateHeader, crateOrbit, crateTrailer, diagnostics);
+      trailerHandler(crateHeader, crateOrbit, crateTrailer, diagnostics, errors);
 
       return false;
     }
@@ -232,6 +244,9 @@ bool DecoderBase::processDRM()
   /** should never reach here **/
   return false;
 }
+
+template class DecoderBaseT<o2::header::RAWDataHeaderV4>;
+template class DecoderBaseT<o2::header::RAWDataHeaderV6>;
 
 } // namespace compressed
 } // namespace tof

@@ -44,6 +44,7 @@ void run_clus_tof(std::string outputfile = "tofclusters.root", std::string input
 
   // Setup timer
   TStopwatch timer;
+  timer.Start();
 
   std::vector<o2::tof::Digit> mDigits, *mPdigits = &mDigits;
   std::vector<o2::tof::ReadoutWindowData> mRow, *mProw = &mRow;
@@ -108,4 +109,6 @@ void run_clus_tof(std::string outputfile = "tofclusters.root", std::string input
   tout->Fill();
   tout->Write();
   fout->Close();
+  timer.Stop();
+  timer.Print();
 }

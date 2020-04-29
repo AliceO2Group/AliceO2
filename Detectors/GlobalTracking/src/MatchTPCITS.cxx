@@ -573,11 +573,11 @@ bool MatchTPCITS::prepareTPCTracks()
     auto& tbinStart = mTPCTimeBinStart[sec];
     tbinStart.resize(nbins, -1);
     int itsROF = 0;
-    tbinStart[0] = itsROF;
+
+    tbinStart[0] = 0;
     for (int itr = 0; itr < (int)indexCache.size(); itr++) {
       auto& trc = mTPCWork[indexCache[itr]];
-
-      while (itsROF < nITSROFs && trc.timeBins < mITSROFTimes[itsROF]) {
+      while (itsROF < nITSROFs && trc.timeBins > mITSROFTimes[itsROF]) {
         itsROF++;
       }
       if (tbinStart[itsROF] == -1) {
@@ -1152,6 +1152,7 @@ bool MatchTPCITS::propagateToRefX(o2::track::TrackParCov& trc)
   // is consistent with TPC sector
   bool refReached = false;
   refReached = XMatchingRef < 10.; // RS: tmp, to cover XMatchingRef~0
+  int trialsLeft = 2;
   while (o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, XMatchingRef, o2::constants::physics::MassPionCharged,
                                                               MaxSnp, 2., mUseMatCorrFlag)) {
     if (refReached) {
@@ -1161,6 +1162,9 @@ bool MatchTPCITS::propagateToRefX(o2::track::TrackParCov& trc)
     if (fabs(trc.getY()) < XMatchingRef * tan(o2::constants::math::SectorSpanRad / 2)) {
       refReached = true;
       break; // ok, within
+    }
+    if (!trialsLeft--) {
+      break;
     }
     auto alphaNew = o2::utils::Angle2Alpha(trc.getPhiPos());
     if (!trc.rotate(alphaNew) != 0) {

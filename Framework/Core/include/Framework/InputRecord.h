@@ -314,14 +314,18 @@ class InputRecord
           /// container, C++11 and beyond will implicitly apply return value optimization.
           /// @return std container object
           using NonConstT = typename std::remove_const<T>::type;
-          // we expect the unique_ptr to hold an object, exception should have been thrown
-          // otherwise
-          auto object = DataRefUtils::as<NonConstT>(ref);
-          // need to swap the content of the deserialized container to a local variable to force return
-          // value optimization
-          T container;
-          std::swap(const_cast<NonConstT&>(container), *object);
-          return container;
+          if constexpr (is_specialization<T, ROOTSerialized>::value == true || has_root_dictionary<T>::value == true) {
+            // we expect the unique_ptr to hold an object, exception should have been thrown
+            // otherwise
+            auto object = DataRefUtils::as<NonConstT>(ref);
+            // need to swap the content of the deserialized container to a local variable to force return
+            // value optimization
+            T container;
+            std::swap(const_cast<NonConstT&>(container), *object);
+            return container;
+          } else {
+            throw std::runtime_error("No supported conversion function for ROOT serialized message");
+          }
         } else {
           throw std::runtime_error("Attempt to extract object from message with unsupported serialization type");
         }

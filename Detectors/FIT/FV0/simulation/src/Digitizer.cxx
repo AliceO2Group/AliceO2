@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "FV0Simulation/Digitizer.h"
+#include "FV0Base/Geometry.h"
 
 #include <TRandom.h>
 #include <algorithm>
@@ -121,6 +122,9 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits)
     //Float_t const t = mRndScintDelay.getNextValue() + hit.GetTime() * 1e9;
     Float_t const t = hit.GetTime() * 1e9 + FV0DigParam::Instance().pmtTransitTime;
     Float_t const charge = TMath::Qe() * FV0DigParam::Instance().pmtGain * mBinSize / mPmtTimeIntegral;
+
+    // Example how to access the fields necessary to split the readout of cells in ring5 to two PMTs
+    // LOG(INFO) << detId << "   " << Geometry::instance()->isRing5(detId) << "   " << hit.GetX() << ",   " << hit.GetY() << "      " << getDistFromCellCenter(detId, hit.GetX(), hit.GetY());
 
     auto& analogSignal = mPmtChargeVsTime[detId];
 
@@ -253,4 +257,21 @@ Double_t Digitizer::SinglePhESpectrum(Double_t* x, Double_t*)
     return 0.0;
   return (TMath::Poisson(x[0], FV0DigParam::Instance().pmtNbOfSecElec) +
           FV0DigParam::Instance().pmtTransparency * TMath::Poisson(x[0], 1.0));
+}
+
+// The Distance is positive for top half-sectors (when the hit position is above the cell center (has higher y))
+// TODO: performance check needed
+float Digitizer::getDistFromCellCenter(UInt_t cellId, double hitx, double hity)
+{
+  Geometry* geo = Geometry::instance();
+
+  // Parametrize the line (ax+by+c=0) that crosses the detector center and the cell's middle point
+  Point3D<float>* pCell = &geo->getCellCenter(cellId);
+  float x0, y0, z0;
+  geo->getGlobalPosition(x0, y0, z0);
+  double a = -(y0 - pCell->Y()) / (x0 - pCell->X());
+  double b = 1;
+  double c = -(y0 - a * x0);
+  // Return the distance from hit to this line
+  return (a * hitx + b * hity + c) / TMath::Sqrt(a * a + b * b);
 }

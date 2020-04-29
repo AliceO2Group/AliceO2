@@ -111,7 +111,7 @@ constexpr int CovarMap[kNParams][kNParams] = {{0, 1, 3, 6, 10},
 // access to covariance matrix diagonal elements
 constexpr int DiagMap[kNParams] = {0, 2, 5, 9, 14};
 
-constexpr float HugeF = 1e33; // large float as dummy value
+constexpr float HugeF = o2::constants::math::VeryBig;
 
 // helper function
 float BetheBlochSolid(float bg, float rho = 2.33f, float kp1 = 0.20f, float kp2 = 3.00f, float meanI = 173e-9f,
@@ -137,6 +137,14 @@ class TrackPar
   float getSnp() const { return mP[kSnp]; }
   float getTgl() const { return mP[kTgl]; }
   float getQ2Pt() const { return mP[kQ2Pt]; }
+
+  /// calculate cos^2 and cos of track direction in rphi-tracking
+  float getCsp2() const
+  {
+    float csp2 = (1. - mP[kSnp]) * (1. + mP[kSnp]);
+    return csp2 > o2::constants::math::Almost0 ? csp2 : o2::constants::math::Almost0;
+  }
+  float getCsp() const { return sqrtf(getCsp2()); }
 
   void setX(float v) { mX = v; }
   void setParam(float v, int i) { mP[i] = v; }
@@ -318,7 +326,7 @@ inline void TrackPar::getLineParams(o2::utils::IntervalXY& ln, float& sna, float
 //_______________________________________________________
 inline void TrackPar::getCircleParams(float bz, o2::utils::CircleXY& c, float& sna, float& csa) const
 {
-  // get circle params in loc and lab frame
+  // get circle params in loc and lab frame, for straight line just set to global coordinates
   getCircleParamsLoc(bz, c);
   o2::utils::sincosf(getAlpha(), sna, csa);
   o2::utils::rotateZ(c.xC, c.yC, c.xC, c.yC, sna, csa); // center in global frame
@@ -327,12 +335,19 @@ inline void TrackPar::getCircleParams(float bz, o2::utils::CircleXY& c, float& s
 //_______________________________________________________
 inline void TrackPar::getCircleParamsLoc(float bz, o2::utils::CircleXY& c) const
 {
-  // get circle params in track local frame
-  c.rC = 1.f / getCurvature(bz);
-  float sn = getSnp(), cs = sqrtf((1. - sn) * (1. + sn));
-  c.xC = getX() - sn * c.rC; // center in tracking
-  c.yC = getY() + cs * c.rC; // frame. Note: r is signed!!!
-  c.rC = fabs(c.rC);
+  // get circle params in track local frame, for straight line just set to local coordinates
+  c.rC = getCurvature(bz);
+  if (std::abs(c.rC) > o2::constants::math::Almost0) {
+    c.rC = 1.f / getCurvature(bz);
+    float sn = getSnp(), cs = sqrtf((1. - sn) * (1. + sn));
+    c.xC = getX() - sn * c.rC; // center in tracking
+    c.yC = getY() + cs * c.rC; // frame. Note: r is signed!!!
+    c.rC = fabs(c.rC);
+  } else {
+    c.rC = 0.f; // signal straight line
+    c.xC = getX();
+    c.yC = getY();
+  }
 }
 
 //_______________________________________________________

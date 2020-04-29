@@ -15,10 +15,10 @@
 #define ALICEO2_HBFUTILS_H
 
 #include <Rtypes.h>
+#include "DetectorsRaw/RDHUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "CommonDataFormat/InteractionRecord.h"
-#include "Headers/RAWDataHeader.h"
 #include "CommonConstants/Triggers.h"
 
 namespace o2
@@ -74,11 +74,11 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   }
 
   ///< create RDH for given IR
-  template <class H>
+  template <typename H>
   H createRDH(const IR& rec) const;
 
   ///< update RDH for with given IR info
-  template <class H>
+  template <typename H>
   void updateRDH(H& rdh, const IR& rec) const;
 
   /*//-------------------------------------------------------------------------------------
@@ -101,12 +101,12 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
       for (int j=0;j<nHBF-1;j++) {
         auto rdh = sampler.createRDH<RAWDataHeader>( HBIRVec[j] );
         // dress rdh with cruID/FEE/Link ID
-        rdh.packetCounter = packetCounter++;
-        rdh.memorySize = sizeof(rdh);
-        rdh.offsetToNext = sizeof(rdh);
+        RDHUtils::setPacketCounter(rdh, packetCounter++);
+        RDHUtils::setMemorySize(rdh, sizeof(rdh));
+        RDHUtils::setOffsetToNext(rdh, sizeof(rdh));
         FLUSH_TO_SINK(&rdh, sizeof(rdh));  // open empty HBF
-        rdh.stop = 0x1;
-        rdh.pageCnt++;
+        RDHUtils::setStop(rdh, 0x1);
+        RDHUtils::setPageCounter(rdh, RDHUtils::getPageCounter()+1 );
         FLUSH_TO_SINK(&rdh, sizeof(rdh));  // close empty HBF
       }
       // write RDH for the HBF with data
@@ -128,58 +128,34 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
 };
 
 //_________________________________________________
-template <>
-inline void HBFUtils::updateRDH<o2::header::RAWDataHeaderV5>(o2::header::RAWDataHeaderV5& rdh, const o2::InteractionRecord& rec) const
+template <typename H>
+void HBFUtils::updateRDH(H& rdh, const IR& rec) const
 {
   auto tfhb = getTFandHBinTF(rec);
-  rdh.bunchCrossing = bcFirst;
-  rdh.orbit = rec.orbit;
-  //
+  RDHUtils::setHeartBeatBC(rdh, bcFirst);
+  RDHUtils::setHeartBeatOrbit(rdh, rec.orbit);
+  if (RDHUtils::getVersion(rdh) < 5) { // v3,4 have separate fields for trigger IR
+    RDHUtils::setTriggerBC(rdh, bcFirst);
+    RDHUtils::setTriggerOrbit(rdh, rec.orbit);
+  }
+
   if (rec.bc == bcFirst) { // if we are starting new HB, set the HB trigger flag
-    rdh.triggerType |= o2::trigger::ORBIT | o2::trigger::HB;
+    auto trg = RDHUtils::getTriggerType(rdh) | (o2::trigger::ORBIT | o2::trigger::HB);
     if (tfhb.second == 0) { // if we are starting new TF, set the TF trigger flag
-      rdh.triggerType |= o2::trigger::TF;
+      trg |= o2::trigger::TF;
     }
+    RDHUtils::setTriggerType(rdh, trg);
   }
 }
 
 //_________________________________________________
-template <>
-inline void HBFUtils::updateRDH<o2::header::RAWDataHeaderV4>(o2::header::RAWDataHeaderV4& rdh, const o2::InteractionRecord& rec) const
+template <typename H>
+inline H HBFUtils::createRDH(const o2::InteractionRecord& rec) const
 {
-  auto tfhb = getTFandHBinTF(rec);
-  rdh.triggerBC = rec.bc;
-  rdh.triggerOrbit = rec.orbit;
-
-  rdh.heartbeatBC = bcFirst;
-  rdh.heartbeatOrbit = rec.orbit;
-  //
-  if (rec.bc == bcFirst) { // if we are starting new HB, set the HB trigger flag
-    rdh.triggerType |= o2::trigger::ORBIT | o2::trigger::HB;
-    if (tfhb.second == 0) { // if we are starting new TF, set the TF trigger flag
-      rdh.triggerType |= o2::trigger::TF;
-    }
-  }
-}
-
-//_________________________________________________
-template <>
-inline o2::header::RAWDataHeaderV4 HBFUtils::createRDH<o2::header::RAWDataHeaderV4>(const o2::InteractionRecord& rec) const
-{
-  o2::header::RAWDataHeaderV4 rdh;
+  H rdh;
   updateRDH(rdh, rec);
   return rdh;
 }
-
-//_________________________________________________
-template <>
-inline o2::header::RAWDataHeaderV5 HBFUtils::createRDH<o2::header::RAWDataHeaderV5>(const o2::InteractionRecord& rec) const
-{
-  o2::header::RAWDataHeaderV5 rdh;
-  updateRDH(rdh, rec);
-  return rdh;
-}
-
 
 } // namespace raw
 } // namespace o2

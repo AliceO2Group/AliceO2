@@ -153,7 +153,6 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   GPUh() void testInverse();
 #endif
 
-
  private:
   /// relocate buffer pointers
   void relocateBufferPointers(const char* oldBuffer, char* newBuffer);

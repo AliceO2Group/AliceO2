@@ -15,7 +15,6 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
-#include "GPUTPCSliceOutTrack.h"
 #include "GPUTPCTracker.h"
 #include "GPUTPCClusterData.h"
 #include "GPUTPCTrackParam.h"

@@ -322,7 +322,7 @@ static void BM_ASoAGettersPhi(benchmark::State& state)
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1));
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
 
@@ -354,7 +354,7 @@ static void BM_ASoAWholeTrackForLoop(benchmark::State& state)
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1));
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
 
@@ -382,7 +382,7 @@ static void BM_ASoADynamicColumnPhi(benchmark::State& state)
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1));
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
 

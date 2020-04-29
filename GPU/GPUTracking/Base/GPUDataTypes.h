@@ -38,6 +38,7 @@ template <class T>
 struct CompressedClustersPtrs_helper;
 struct CompressedClustersCounters;
 using CompressedClusters = CompressedClustersPtrs_helper<CompressedClustersCounters>;
+class Digit;
 } // namespace tpc
 } // namespace o2
 #endif
@@ -59,17 +60,6 @@ template <class T>
 class MCTruthContainer;
 } // namespace dataformats
 } // namespace o2
-
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
-namespace deprecated
-{
-struct PackedDigit;
-}
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
 
 namespace GPUCA_NAMESPACE
 {
@@ -195,7 +185,7 @@ struct GPUTrackingInOutZS {
 
 struct GPUTrackingInOutDigits {
   static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
-  const deprecated::PackedDigit* tpcDigits[NSLICES] = {nullptr};
+  const tpc::Digit* tpcDigits[NSLICES] = {nullptr};
   size_t nTPCDigits[NSLICES] = {0};
   GPUTPCDigitsMCInput* tpcDigitsMC;
 };
@@ -212,10 +202,10 @@ struct GPUTrackingInOutPointers {
   const AliHLTTPCRawCluster* rawClusters[NSLICES] = {nullptr};
   unsigned int nRawClusters[NSLICES] = {0};
   const o2::tpc::ClusterNativeAccess* clustersNative = nullptr;
-  const GPUTPCTrack* sliceOutTracks[NSLICES] = {nullptr};
-  unsigned int nSliceOutTracks[NSLICES] = {0};
-  const GPUTPCHitId* sliceOutClusters[NSLICES] = {nullptr};
-  unsigned int nSliceOutClusters[NSLICES] = {0};
+  const GPUTPCTrack* sliceTracks[NSLICES] = {nullptr};
+  unsigned int nSliceTracks[NSLICES] = {0};
+  const GPUTPCHitId* sliceClusters[NSLICES] = {nullptr};
+  unsigned int nSliceClusters[NSLICES] = {0};
   const AliHLTTPCClusterMCLabel* mcLabelsTPC = nullptr;
   unsigned int nMCLabelsTPC = 0;
   const GPUTPCMCInfo* mcInfosTPC = nullptr;

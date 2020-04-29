@@ -97,8 +97,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec simpleQcTask{
     "simpleQcTask",
     Inputs{
-      { "TPC_CLUSTERS_S",   "DS", "simpleQcTask-0", 0, Lifetime::Timeframe },
-      { "TPC_CLUSTERS_P_S", "DS", "simpleQcTask-1", 0, Lifetime::Timeframe }
+      { "TPC_CLUSTERS_S",   { "DS", "simpleQcTask-0" } },
+      { "TPC_CLUSTERS_P_S", { "DS", "simpleQcTask-1" } }
     },
     Outputs{},
     AlgorithmSpec{
@@ -126,13 +126,28 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     }
   };
 
+  DataProcessorSpec dummyProducer{
+    "dummy",
+    Inputs{},
+    Outputs{
+      { {"tsthistos"}, "TST", "HISTOS", 0 },
+      { {"tststring"}, "TST", "STRING", 0 }
+    },
+    AlgorithmSpec{[](ProcessingContext& ctx){}}
+  };
+
   WorkflowSpec specs;
   specs.swap(dataProducers);
   specs.insert(std::end(specs), std::begin(processingStages), std::end(processingStages));
   specs.push_back(sink);
   specs.push_back(simpleQcTask);
+  specs.push_back(dummyProducer);
 
-  std::string configurationSource = std::string("json://") + getenv("BASEDIR") + "/../../O2/Framework/TestWorkflows/exampleDataSamplingConfig.json";
+  const char* o2Root = getenv("O2_ROOT");
+  if (o2Root == nullptr) {
+    throw std::runtime_error("The O2_ROOT environment variable is not set, probably the O2 environment has not been loaded.");
+  }
+  std::string configurationSource = std::string("json:/") + o2Root + "/share/etc/exampleDataSamplingConfig.json";
   DataSampling::GenerateInfrastructure(specs, configurationSource);
   return specs;
 }

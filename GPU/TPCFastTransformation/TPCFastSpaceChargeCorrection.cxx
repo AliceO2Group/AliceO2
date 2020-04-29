@@ -411,7 +411,7 @@ GPUh() void TPCFastSpaceChargeCorrection::initInverse()
   tpcR2max = tpcR2max * tpcR2max;
 
   for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
-    std::cout << "inverse transform for slice " << slice << std::endl;
+    //std::cout << "inverse transform for slice " << slice << std::endl;
     //if (slice != 0)
     //continue;
     double vLength = (slice < mGeo.getNumberOfSlicesA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
@@ -579,7 +579,7 @@ GPUh() void TPCFastSpaceChargeCorrection::initInverse()
       }
 
     } // row
-  } // slice
+  }   // slice
 }
 
 GPUh() void TPCFastSpaceChargeCorrection::testInverse()
@@ -648,10 +648,9 @@ GPUh() void TPCFastSpaceChargeCorrection::testInverse()
           maxDslice[i] = maxDrow[i];
       }
     }
-    /*
-    std::cout << "slice " << slice
+
+    std::cout << "inverse correction: slice " << slice
               << " dx " << maxDslice[0] << " du " << maxDslice[1] << " dv " << maxDslice[2] << std::endl;
-      */
   }
 }
 

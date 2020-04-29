@@ -26,8 +26,8 @@
 #include "GPUReconstructionConvert.h"
 #include "GPUHostDataTypes.h"
 #include "GPUParam.h"
-#include "Digit.h"
 
+#include "Framework/Logger.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "TPCBase/Digit.h"
@@ -35,7 +35,10 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "TPCBase/RDHUtils.h"
+#include "TPCBase/Digit.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 namespace bpo = boost::program_options;
 
@@ -61,12 +64,20 @@ struct ProcessAttributes {
 
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer);
 #include "DetectorsRaw/HBFUtils.h"
-void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, bool sectorBySector)
+void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, bool sectorBySector, uint32_t rdhV)
 {
 
   // ===| open file and get tree |==============================================
   std::unique_ptr<TFile> o2simDigits(TFile::Open(digitsFile.data()));
+  if (!o2simDigits || !o2simDigits->IsOpen() || o2simDigits->IsZombie()) {
+    LOGP(error, "Could not open file {}", digitsFile.data());
+    exit(1);
+  }
   auto treeSim = (TTree*)o2simDigits->Get("o2sim");
+  if (!treeSim) {
+    LOGP(error, "Could not read digits tree from file {}", digitsFile.data());
+    exit(1);
+  }
 
   gROOT->cd();
 
@@ -76,7 +87,8 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   ProcessAttributes attr;
 
   // raw data output
-  o2::raw::RawFileWriter writer;
+  o2::raw::RawFileWriter writer{"TPC"}; // to set the RDHv6.sourceID if V6 is used
+  writer.useRDHVersion(rdhV);
 
   const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
 
@@ -93,7 +105,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
       const unsigned int cruInSector = j / 2;
       const unsigned int cruID = i * 10 + cruInSector;
       const rdh_utils::FEEIDType feeid = rdh_utils::getFEEID(cruID, j & 1, defaultLink);
-      writer.registerLink(feeid, cruID, defaultLink, j & 1, fmt::format("{}cru{}.raw", outDir, cruID));
+      writer.registerLink(feeid, cruID, defaultLink, j & 1, fmt::format("{}cru{}_{}.raw", outDir, cruID, j & 1));
     }
   }
 
@@ -173,6 +185,9 @@ int main(int argc, char** argv)
     add_option("input-file,i", bpo::value<std::string>()->required(), "Specifies input file.");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "Specify output directory");
     add_option("sector-by-sector,s", bpo::value<bool>()->default_value(false), "Run one TPC sector after another");
+    uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
+    add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
+    add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
@@ -192,11 +207,12 @@ int main(int argc, char** argv)
     std::cerr << e.what() << ", application will now exit" << std::endl;
     exit(2);
   }
-
+  o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
   convertDigitsToZSfinal(
     vm["input-file"].as<std::string>(),
     vm["output-dir"].as<std::string>(),
-    vm["sector-by-sector"].as<bool>());
+    vm["sector-by-sector"].as<bool>(),
+    vm["rdh-version"].as<uint32_t>());
 
   return 0;
 }

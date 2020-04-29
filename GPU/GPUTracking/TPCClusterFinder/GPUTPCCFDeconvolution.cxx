@@ -18,13 +18,14 @@
 #include "GPUDefMacros.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 template <>
 GPUdii() void GPUTPCCFDeconvolution::Thread<GPUTPCCFDeconvolution::countPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
-  GPUTPCCFDeconvolution::countPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, isPeakMap, chargeMap, clusterer.mPpositions, clusterer.mPmemory->counters.nDigits);
+  GPUTPCCFDeconvolution::countPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, isPeakMap, chargeMap, clusterer.mPpositions, clusterer.mPmemory->counters.nPositions);
 }
 
 GPUdii() void GPUTPCCFDeconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,

@@ -47,10 +47,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
   const auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("match");
   const auto tracksTPCClRefs = pc.inputs().get<gsl::span<o2::tpc::TPCClRefElem>>("trackTPCClRefs");
   const auto trackMatchesTOF = pc.inputs().get<gsl::span<o2::dataformats::MatchInfoTOF>>("matchTOF"); // FIXME missing reader
-  const auto clustersTOFInp = pc.inputs().get<std::vector<o2::tof::Cluster>>("clustersTOF");          // FIXME o2::tof::Cluster is not messageable type which is required to create span
-  // make copy of TOF clusters... Is it needed?
-  std::vector<o2::tof::Cluster> clustersTOFCopy = clustersTOFInp;
-  auto clustersTOF = gsl::make_span(clustersTOFInp);
+  const auto clustersTOF = pc.inputs().get<gsl::span<o2::tof::Cluster>>("clustersTOF");
 
   // TPC Cluster loading part is copied from TPCITSMatchingSpec.cxx
   //---------------------------->> TPC Clusters loading >>------------------------------------------
