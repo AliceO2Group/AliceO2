@@ -173,7 +173,7 @@ GPUconstexpr() uint NoiseSuppressionMinima[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
     0,
     0,
     (1 << 17),
-    (1 << 18) | (1 << 19),
+    (1 << 17) | (1 << 18),
     (1 << 21) | (1 << 22),
     (1 << 22),
     0,

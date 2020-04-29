@@ -16,6 +16,7 @@
 #include "DataFormatsTPC/Digit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 template <>
 GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::fillIndexMap>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
@@ -97,9 +98,9 @@ GPUd() void GPUTPCCFChargeMapFiller::resetMapsImpl(int nBlocks, int nThreads, in
                                                    const ChargePos* positions,
                                                    Array2D<PackedCharge>& chargeMap,
                                                    Array2D<uchar>& isPeakMap,
-                                                   size_t maxDigit)
+                                                   SizeT maxDigit)
 {
-  size_t idx = get_global_id(0);
+  SizeT idx = get_global_id(0);
   if (idx >= maxDigit) {
     return;
   }

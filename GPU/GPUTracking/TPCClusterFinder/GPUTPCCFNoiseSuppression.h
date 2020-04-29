@@ -28,18 +28,18 @@ namespace gpu
 
 struct ChargePos;
 
-class GPUTPCCFNoiseSuppression : GPUKernelTemplate
+class GPUTPCCFNoiseSuppression : public GPUKernelTemplate
 {
 
  public:
+  enum K : int {
+    noiseSuppression = 0,
+    updatePeaks = 1,
+  };
+
   struct GPUSharedMemory {
     ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_NOISE_N];
-  };
-
-  enum K : int {
-    noiseSuppression,
-    updatePeaks,
   };
 
 #ifdef HAVE_O2HEADERS

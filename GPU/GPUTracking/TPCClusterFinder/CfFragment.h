@@ -42,48 +42,48 @@ struct CfFragment {
 
   GPUdDefault() CfFragment() CON_DEFAULT;
 
-  GPUhd() CfFragment(tpccf::TPCTime totalSliceLen, tpccf::TPCFragmentTime maxSubSliceLen) : CfFragment(0, false, 0, totalSliceLen, maxSubSliceLen) {}
+  GPUd() CfFragment(tpccf::TPCTime totalSliceLen, tpccf::TPCFragmentTime maxSubSliceLen) : CfFragment(0, false, 0, totalSliceLen, maxSubSliceLen) {}
 
-  GPUhdi() bool isEnd() const { return length == 0; }
+  GPUdi() bool isEnd() const { return length == 0; }
 
-  GPUhdi() CfFragment next(tpccf::TPCTime totalSliceLen, tpccf::TPCFragmentTime maxSubSliceLen) const
+  GPUdi() CfFragment next(tpccf::TPCTime totalSliceLen, tpccf::TPCFragmentTime maxSubSliceLen) const
   {
     return CfFragment{index + 1, hasFuture, tpccf::TPCTime(start + length - (hasFuture ? 2 * OverlapTimebins : 0)), totalSliceLen, maxSubSliceLen};
   }
 
-  GPUhdi() tpccf::TPCTime first() const
+  GPUdi() tpccf::TPCTime first() const
   {
     return start;
   }
 
-  GPUhdi() tpccf::TPCTime last() const
+  GPUdi() tpccf::TPCTime last() const
   {
     return start + length;
   }
 
-  GPUhdi() bool contains(tpccf::TPCTime t) const
+  GPUdi() bool contains(tpccf::TPCTime t) const
   {
     return first() <= t && t < last();
   }
 
   // Wether a timebin falls into backlog or future
-  GPUhdi() bool isOverlap(tpccf::TPCFragmentTime t) const
+  GPUdi() bool isOverlap(tpccf::TPCFragmentTime t) const
   {
     return (hasBacklog ? t < OverlapTimebins : false) || (hasFuture ? t >= (length - OverlapTimebins) : false);
   }
 
-  GPUhdi() tpccf::TPCFragmentTime toLocal(tpccf::TPCTime t) const
+  GPUdi() tpccf::TPCFragmentTime toLocal(tpccf::TPCTime t) const
   {
     return t - first();
   }
 
-  GPUhdi() tpccf::TPCTime toGlobal(tpccf::TPCFragmentTime t) const
+  GPUdi() tpccf::TPCTime toGlobal(tpccf::TPCFragmentTime t) const
   {
     return t + first();
   }
 
  private:
-  GPUhd() CfFragment(uint index_, bool hasBacklog_, tpccf::TPCTime start_, tpccf::TPCTime totalSliceLen, tpccf::TPCFragmentTime maxSubSliceLen)
+  GPUd() CfFragment(uint index_, bool hasBacklog_, tpccf::TPCTime start_, tpccf::TPCTime totalSliceLen, tpccf::TPCFragmentTime maxSubSliceLen)
   {
     this->index = index_;
     this->hasBacklog = hasBacklog_;

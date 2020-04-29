@@ -45,10 +45,6 @@ class GPUTPCCFClusterizer : public GPUKernelTemplate
     uchar innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
   };
 
-  enum K : int {
-    computeClusters = 0,
-  };
-
   static GPUd() void computeClustersImpl(int, int, int, int, GPUSharedMemory&, const Array2D<PackedCharge>&, const ChargePos*, uint, MCLabelAccumulator*, uint, uint*, tpc::ClusterNative*);
 
 #ifdef HAVE_O2HEADERS

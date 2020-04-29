@@ -25,7 +25,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 template <>
-GPUdii() void GPUTPCCFClusterizer::Thread<GPUTPCCFClusterizer::computeClusters>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFClusterizer::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   CPU_ONLY(
@@ -160,8 +160,8 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterScratchpadInner(
 {
   uchar aboveThreshold = 0;
 
-  LOOP_UNROLL_ATTR for (ushort i = 0; i < N; i++)
-  {
+  GPUCA_UNROLL(U(), U())
+  for (ushort i = 0; i < N; i++) {
     Delta2 d = CfConsts::InnerNeighbors[i];
 
     PackedCharge p = buf[N * lid + i];
@@ -189,8 +189,8 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterScratchpadOuter(
   ClusterAccumulator* cluster,
   MCLabelAccumulator* labelAcc)
 {
-  LOOP_UNROLL_ATTR for (ushort i = offset; i < M + offset; i++)
-  {
+  GPUCA_UNROLL(U(), U())
+  for (ushort i = offset; i < M + offset; i++) {
     PackedCharge p = buf[N * lid + i];
 
     Delta2 d = CfConsts::OuterNeighbors[i];

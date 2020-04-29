@@ -37,10 +37,6 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
     PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_SEARCH_N];
   };
 
-  enum K : int {
-    findPeaks,
-  };
-
   static GPUd() void findPeaksImpl(int, int, int, int, GPUSharedMemory&, const Array2D<PackedCharge>&, const ChargePos*, uint, uchar*, Array2D<uchar>&);
 
 #ifdef HAVE_O2HEADERS

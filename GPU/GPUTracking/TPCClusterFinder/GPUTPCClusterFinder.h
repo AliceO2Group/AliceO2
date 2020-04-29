@@ -52,9 +52,9 @@ class GPUTPCClusterFinder : public GPUProcessor
   struct Memory {
     struct counters_t {
       size_t nDigits = 0;
-      size_t nPositions = 0; // TODO use this instead of nDigits
-      size_t nPeaks = 0;
-      size_t nClusters = 0;
+      tpccf::SizeT nPositions = 0;
+      tpccf::SizeT nPeaks = 0;
+      tpccf::SizeT nClusters = 0;
       unsigned int maxTimeBin = 0;
       unsigned int nPages = 0;
       unsigned int nPagesSubslice = 0;
