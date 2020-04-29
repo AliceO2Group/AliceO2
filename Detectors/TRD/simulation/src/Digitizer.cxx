@@ -75,10 +75,6 @@ void Digitizer::init()
 void Digitizer::setSimulationParameters()
 {
   mNpad = mSimParam->getNumberOfPadsInPadResponse(); // Number of pads included in the pad response
-  mAmWidth = TRDGeometry::amThick();                 // Width of the amplification region
-  mDrWidth = TRDGeometry::drThick();                 // Width of the drift retion
-  mDrMin = -0.5 * mAmWidth;                          // Drift + Amplification region
-  mDrMax = mDrWidth + 0.5 * mAmWidth;                // Drift + Amplification region
   if (mSimParam->TRFOn()) {
     mTimeBinTRFend = ((int)(mSimParam->GetTRFhi() * mCommonParam->GetSamplingFrequency())) - 1;
   }

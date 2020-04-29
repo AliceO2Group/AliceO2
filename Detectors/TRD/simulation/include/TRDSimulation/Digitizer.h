@@ -83,20 +83,21 @@ class Digitizer
   int mEventID = 0;
   int mSrcID = 0;
 
-  // Simulation parameters
-  float mAmWidth = 0;        // Width of the amplification region
-  float mDrWidth = 0;        // Width of the drift retion
-  float mDrMin = 0;          // Drift + Amplification region
-  float mDrMax = 0;          // Drift + Amplification region
-  float mSamplingRate = 0;   // The sampling rate
-  float mElAttachProp = 0;   // Propability for electron attachment (for 1m)
-  int mNpad = 0;             // Number of pads included in the pad response
-  int mTimeBinTRFend = 0;    // time bin TRF ends
-  int mMaxTimeBins = 30;     // Maximum number of time bins for processing signals, usually set at 30 tb = 3 microseconds
-  int mMaxTimeBinsTRAP = 30; // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
+  // Digitization parameters
+  static constexpr float mAmWidth = TRDGeometry::amThick();  // Width of the amplification region
+  static constexpr float mDrWidth = TRDGeometry::drThick();  // Width of the drift retion
+  static constexpr float mDrMin = -0.5 * mAmWidth;           // Drift + Amplification region
+  static constexpr float mDrMax = mDrWidth + 0.5 * mAmWidth; // Drift + Amplification region
+  float mSamplingRate = 0;                                   // The sampling rate
+  float mElAttachProp = 0;                                   // Propability for electron attachment (for 1m)
+  int mNpad = 0;                                             // Number of pads included in the pad response
+  int mTimeBinTRFend = 0;                                    // time bin TRF ends
+  int mMaxTimeBins = 30;                                     // Maximum number of time bins for processing signals, usually set at 30 tb = 3 microseconds
+  int mMaxTimeBinsTRAP = 30;                                 // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
 
-  std::vector<HitType> mHitContainer;                      // the container of hits in a given detector
-  std::vector<MCLabel> mMergedLabels;                      // temporary label container
+  // Digitization containers
+  std::vector<HitType> mHitContainer;                       // the container of hits in a given detector
+  std::vector<MCLabel> mMergedLabels;                       // temporary label container
   std::array<SignalContainer, kNdet> mSignalsMapCollection; // container for caching signals over a timeframe
   std::array<DigitContainer, kNdet> mDigitsCollection;      // container for caching digits for paralellization
 
@@ -104,7 +105,7 @@ class Digitizer
   void clearCollections();
   void setSimulationParameters();
 
-  // Digitization chaing methods
+  // Digitization chain methods
   bool convertHits(const int, const std::vector<HitType>&, SignalContainer&, int thread = 0); // True if hit-to-signal conversion is successful
   bool convertSignalsToADC(const int, SignalContainer&, DigitContainer&, int thread = 0);     // True if signal-to-ADC conversion is successful
   void addLabel(const o2::trd::HitType& hit, std::vector<o2::trd::MCLabel>&, std::unordered_map<int, int>&);
