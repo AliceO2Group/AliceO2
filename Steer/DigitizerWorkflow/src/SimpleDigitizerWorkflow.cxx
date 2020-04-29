@@ -440,7 +440,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   if (isEnabled(o2::detectors::DetID::TPC)) {
     tpcsectors = o2::RangeTokenizer::tokenize<int>(configcontext.options().get<std::string>("tpc-sectors"));
-    auto lanes = getNumTPCLanes(tpcsectors, configcontext);
+    // only one lane for the help printout
+    auto lanes = helpasked ? 1 : getNumTPCLanes(tpcsectors, configcontext);
     detList.emplace_back(o2::detectors::DetID::TPC);
 
     WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, tpcsectors);
