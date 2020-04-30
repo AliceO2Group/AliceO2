@@ -17,12 +17,9 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "Mergers/MergerConfig.h"
-#include "Mergers/MergeInterface.h"
+#include "Mergers/ObjectStore.h"
 
 #include <Framework/Task.h>
-#include <TObject.h>
-
-#include <memory>
 
 namespace o2::monitoring
 {
@@ -51,9 +48,6 @@ class FullHistoryMerger : public framework::Task
  private:
   header::DataHeader::SubSpecificationType mSubSpec;
 
-  using TObjectPtr = std::shared_ptr<TObject>;
-  using MergeInterfacePtr = std::shared_ptr<MergeInterface>;
-  using ObjectStore = std::variant<std::monostate, TObjectPtr, MergeInterfacePtr>;
   ObjectStore mMergedObject = std::monostate{};
   std::pair<std::string, framework::DataRef> mFirstObjectSerialized;
   std::unordered_map<std::string, ObjectStore> mCache;
@@ -69,7 +63,6 @@ class FullHistoryMerger : public framework::Task
   void updateCache(const framework::DataRef& ref);
   void mergeCache();
   void publish(framework::DataAllocator& allocator);
-  ObjectStore extractObjectFrom(const framework::DataRef& ref);
 };
 
 } // namespace o2::mergers

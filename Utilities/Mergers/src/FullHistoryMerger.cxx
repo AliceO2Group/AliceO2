@@ -16,6 +16,7 @@
 #include "Mergers/FullHistoryMerger.h"
 #include "Mergers/MergerAlgorithm.h"
 #include "Mergers/MergerBuilder.h"
+#include "Mergers/MergeInterface.h"
 
 #include "Headers/DataHeader.h"
 #include "Framework/InputRecordWalker.h"
@@ -82,37 +83,15 @@ void FullHistoryMerger::updateCache(const DataRef& ref)
     memcpy((void*)mFirstObjectSerialized.second.payload, ref.payload, dh->payloadSize);
 
   } else {
-    mCache[sourceID] = extractObjectFrom(ref);
+    mCache[sourceID] = object_store_helpers::extractObjectFrom(ref);
   }
-}
-
-FullHistoryMerger::ObjectStore FullHistoryMerger::extractObjectFrom(const framework::DataRef& ref)
-{
-  // We try first if the object inherits MergeInterface.
-  // In that case it should be used, even if it is a TObject as well.
-  // todo: is there a more efficient way to do that?
-
-  try {
-    // todo: if I do it in one expression, what is the behaviour of operator[] when exception is thrown?
-    ObjectStore newObject = framework::DataRefUtils::as<MergeInterface>(ref);
-    return newObject;
-  } catch (std::runtime_error&) {
-  }
-
-  try {
-    ObjectStore newObject = TObjectPtr(framework::DataRefUtils::as<TObject>(ref).release(), algorithm::deleteTCollections);
-    return newObject;
-  } catch (std::runtime_error&) {
-  }
-
-  throw std::runtime_error("The received is object is neither a TObject nor inherits MergeInterface");
 }
 
 void FullHistoryMerger::mergeCache()
 {
   LOG(INFO) << "Merging " << mCache.size() + 1 << " objects.";
 
-  mMergedObject = extractObjectFrom(mFirstObjectSerialized.second);
+  mMergedObject = object_store_helpers::extractObjectFrom(mFirstObjectSerialized.second);
   assert(!std::holds_alternative<std::monostate>(mMergedObject));
   mObjectsMerged++;
 

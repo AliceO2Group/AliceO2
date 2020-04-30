@@ -18,6 +18,7 @@
 
 #include "Mergers/MergerConfig.h"
 #include "Mergers/MergeInterface.h"
+#include "Mergers/ObjectStore.h"
 
 #include "Framework/Task.h"
 
@@ -54,12 +55,7 @@ class IntegratingMerger : public framework::Task
 
  private:
   header::DataHeader::SubSpecificationType mSubSpec;
-
-  using TObjectPtr = std::shared_ptr<TObject>;
-  using MergeInterfacePtr = std::shared_ptr<MergeInterface>;
-  using MergedObjectStore = std::variant<std::monostate, TObjectPtr, MergeInterfacePtr>;
-  MergedObjectStore mMergedObject = std::monostate{};
-
+  ObjectStore mMergedObject = std::monostate{};
   MergerConfig mConfig;
   std::unique_ptr<monitoring::Monitoring> mCollector;
 

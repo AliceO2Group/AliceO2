@@ -50,29 +50,12 @@ void IntegratingMerger::run(framework::ProcessingContext& ctx)
   for (const DataRef& ref : InputRecordWalker(ctx.inputs())) {
     if (ref.header != timerHeader) {
       if (std::holds_alternative<std::monostate>(mMergedObject)) {
-        // We try first if the object inherits MergeInterface.
-        // In that case it should be used, even if it is a TObject as well.
-        // fixme: this is not very elegant, maybe implement asOptional methods in DataRefUtils?
-        try {
-          mMergedObject = framework::DataRefUtils::as<MergeInterface>(ref);
-          continue;
-        } catch (std::runtime_error&) {
-        }
-
-        try {
-          mMergedObject = TObjectPtr(framework::DataRefUtils::as<TObject>(ref).release(), algorithm::deleteTCollections);
-          continue;
-        } catch (std::runtime_error&) {
-        }
-
-        throw std::runtime_error("The received is object is neither a TObject nor inherits MergeInterface");
+        mMergedObject = object_store_helpers::extractObjectFrom(ref);
 
       } else if (std::holds_alternative<TObjectPtr>(mMergedObject)) {
         // We expect that if the first object was TObject, then all should.
-        // todo make sure that the object is deleted properly
-        auto other = framework::DataRefUtils::as<TObject>(ref);
+        auto other = TObjectPtr(framework::DataRefUtils::as<TObject>(ref).release(), algorithm::deleteTCollections);
         auto target = std::get<TObjectPtr>(mMergedObject);
-
         algorithm::merge(target.get(), other.get());
 
       } else if (std::holds_alternative<MergeInterfacePtr>(mMergedObject)) {
