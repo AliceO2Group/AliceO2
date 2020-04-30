@@ -605,17 +605,20 @@ void GPUReconstruction::UpdateEventSettings(const GPUSettingsEvent* e, const GPU
   }
 }
 
-void GPUReconstruction::ReadSettings(const char* dir)
+int GPUReconstruction::ReadSettings(const char* dir)
 {
   std::string f;
   f = dir;
   f += "settings.dump";
   mEventSettings.SetDefaults();
-  ReadStructFromFile(f.c_str(), &mEventSettings);
+  if (ReadStructFromFile(f.c_str(), &mEventSettings)) {
+    return 1;
+  }
   param().UpdateEventSettings(&mEventSettings);
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->ReadSettings(dir);
   }
+  return 0;
 }
 
 void GPUReconstruction::SetSettings(float solenoidBz)
