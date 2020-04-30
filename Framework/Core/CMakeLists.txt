@@ -248,7 +248,7 @@ foreach(b
   o2_add_executable(benchmark-${b}
                     SOURCES test/benchmark_${b}.cxx
                     COMPONENT_NAME Framework
-	            IS_BENCHMARK TRUE
+	            IS_BENCHMARK
                     PUBLIC_LINK_LIBRARIES O2::Framework benchmark::benchmark)
 endforeach()
 
