@@ -13,6 +13,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/InputRecord.h"
+#include "Framework/InputRecordWalker.h"
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/ControlService.h"
@@ -29,6 +30,7 @@
 #include <TFile.h>
 #include <vector>
 #include <stdexcept>
+#include <iostream>
 // note: std filesystem is first supported in gcc 8
 #include <boost/filesystem.hpp>
 
@@ -190,6 +192,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     return base + "_" + std::to_string(index);
   };
 
+  auto preprocessor = [](ProcessingContext& ctx) {
+    for (auto const& ref : InputRecordWalker(ctx.inputs())) {
+      auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      std::cout << "got data: "
+                << dh->dataOrigin.as<std::string>() << "/"
+                << dh->dataDescription.as<std::string>() << "/"
+                << dh->subSpecification << "  "
+                << std::endl;
+    }
+  };
+
   using Polymorphic = o2::test::Polymorphic;
   return WorkflowSpec{
     getSourceSpec(),
@@ -210,6 +223,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       "testtree",                                                                           // default tree name
       MakeRootTreeWriterSpec::TerminationPolicy::Workflow,                                  // terminate the workflow
       MakeRootTreeWriterSpec::TerminationCondition{checkReady},                             // custom termination condition
+      MakeRootTreeWriterSpec::Preprocessor{preprocessor},                                   // custom preprocessor
       BranchDefinition<Polymorphic>{
         InputSpec{"input",                                                   // key
                   ConcreteDataTypeMatcher{"TST", "SOMEOBJECT"}},             // subspec independent
