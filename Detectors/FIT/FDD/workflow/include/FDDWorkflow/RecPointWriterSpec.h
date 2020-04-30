@@ -13,10 +13,8 @@
 #ifndef O2_FDD_RECPOINTWRITER_H
 #define O2_FDD_RECPOINTWRITER_H
 
-#include "TFile.h"
 
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
 
 using namespace o2::framework;
 
@@ -24,24 +22,6 @@ namespace o2
 {
 namespace fdd
 {
-
-class FDDRecPointWriter : public Task
-{
- public:
-  FDDRecPointWriter(bool useMC = true) : mUseMC(useMC) {}
-  ~FDDRecPointWriter() override = default;
-  void init(InitContext& ic) final;
-  void run(ProcessingContext& pc) final;
-
- private:
-  bool mFinished = false;
-  bool mUseMC = true;
-
-  std::string mOutputFileName = "o2reco_fdd.root";
-  std::string mOutputTreeName = "o2sim";
-  std::string mRPOutputBranchName = "FDDCluster";
-  o2::header::DataOrigin mOrigin = o2::header::gDataOriginFDD;
-};
 
 /// create a processor spec
 /// write ITS clusters a root file
