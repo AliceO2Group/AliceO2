@@ -230,8 +230,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         "polyobject",                                                        // base name of branch
         "",                                                                  // empty option
         2,                                                                   // two branches
-        getIndex,                                                            // index retriever
-        getName                                                              // branch name retriever
+        RootTreeWriter::IndexExtractor(getIndex),                            // index retriever
+        RootTreeWriter::BranchNameMapper(getName)                            // branch name retriever
       },                                                                     //
       BranchDefinition<int>{InputSpec{"meta", "TST", "METADATA"}, "counter"} // branch config
       )()                                                                    // call the generator
