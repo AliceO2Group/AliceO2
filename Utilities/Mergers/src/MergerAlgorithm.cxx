@@ -71,21 +71,16 @@ void merge(TObject* const target, TObject* const other)
     otherCollection.SetOwner(false);
     otherCollection.Add(other);
 
-    const char* className = target->ClassName();
-    if (strncmp(className, "TH1", 3) == 0) {
+    if (target->InheritsFrom(TH1::Class())) {
+      // this includes TH1, TH2, TH3
       errorCode = reinterpret_cast<TH1*>(target)->Merge(&otherCollection);
-    } else if (strncmp(className, "TH2", 3) == 0) {
-      errorCode = reinterpret_cast<TH2*>(target)->Merge(&otherCollection);
-    } else if (strncmp(className, "TH3", 3) == 0) {
-      errorCode = reinterpret_cast<TH3*>(target)->Merge(&otherCollection);
-    } else if (strncmp(className, "THn", 3) == 0) {
-      errorCode = reinterpret_cast<THn*>(target)->Merge(&otherCollection);
-    } else if (strncmp(className, "THnSparse", 8) == 0) {
-      errorCode = reinterpret_cast<THnSparse*>(target)->Merge(&otherCollection);
-    } else if (strcmp(className, "TTree") == 0) {
+    } else if (target->InheritsFrom(THnBase::Class())) {
+      // this includes THn and THnSparse
+      errorCode = reinterpret_cast<THnBase*>(target)->Merge(&otherCollection);
+    } else if (target->InheritsFrom(TTree::Class())) {
       errorCode = reinterpret_cast<TTree*>(target)->Merge(&otherCollection);
     } else {
-      throw std::runtime_error("Object with type '" + std::string(className) + "' is not one of mergeable type.");
+      throw std::runtime_error("Object with type '" + std::string(target->ClassName()) + "' is not one of the mergeable types.");
     }
     if (errorCode == -1) {
       throw std::runtime_error("Merging object of type '" + std::string(target->ClassName()) + "' failed.");
