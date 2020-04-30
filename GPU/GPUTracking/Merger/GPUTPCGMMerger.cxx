@@ -1490,10 +1490,10 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
   mMemory->nOutputTrackClusters = nOutTrackClusters;
 }
 
-GPUd() void GPUTPCGMMerger::SortTracks(int nBlocks, int nThreads, int iBlock, int iThread)
+GPUd() void GPUTPCGMMerger::SortTracksPrepare(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   mNSlowTracks = 0;
-  for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
+  for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTracks; i += nThreads * nBlocks) {
     const GPUTPCGMMergedTrack& trk = mOutputTracks[i];
     if (trk.CCE() || trk.Legs()) {
       mNSlowTracks++;
@@ -1502,7 +1502,7 @@ GPUd() void GPUTPCGMMerger::SortTracks(int nBlocks, int nThreads, int iBlock, in
   }
 }
 
-GPUd() void GPUTPCGMMerger::SortTracksPrepare(int nBlocks, int nThreads, int iBlock, int iThread)
+GPUd() void GPUTPCGMMerger::SortTracks(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   GPUCommonAlgorithm::sort(mTrackOrderProcess, mTrackOrderProcess + mMemory->nOutputTracks, GPUTPCGMMerger_CompareTracksProcess(mOutputTracks));
 }
