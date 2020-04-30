@@ -413,93 +413,101 @@ GPUd() void GPUTPCGMMerger::SetTrackClusterZT(GPUTPCGMSliceTrack& track, int iSl
   }
 }
 
-GPUd() void GPUTPCGMMerger::UnpackSlices(int nBlocks, int nThreads, int iBlock, int iThread)
+GPUd() void GPUTPCGMMerger::UnpackSaveNumber(int id)
 {
-  //* unpack the cluster information from the slice tracks and initialize track info array
-  int nTracksCurrent = 0;
+  mSliceTrackInfoIndex[id] = mMemory->nUnpackedTracks;
+}
 
+GPUd() void GPUTPCGMMerger::UnpackSliceGlobal(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice)
+{
   int* TrackIds = (int*)mTmpMem;
-  for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    const GPUTPCTracker& trk = mSliceTrackers[iSlice];
-    unsigned int nLocalTracks = Param().rec.mergerReadFromTrackerDirectly ? trk.CommonMemory()->nLocalTracks : mkSlices[iSlice]->NLocalTracks();
-    for (unsigned int i = 0; i < nLocalTracks; i++) {
-      TrackIds[iSlice * mNMaxSingleSliceTracks + i] = -1;
+  const GPUTPCTracker& trk = mSliceTrackers[iSlice];
+  float alpha = Param().Alpha(iSlice);
+  const GPUTPCTrack* sliceTr = mMemory->firstGlobalTracks[iSlice];
+  unsigned int nLocalTracks = Param().rec.mergerReadFromTrackerDirectly ? trk.CommonMemory()->nLocalTracks : mkSlices[iSlice]->NLocalTracks();
+  unsigned int nTracks = Param().rec.mergerReadFromTrackerDirectly ? *trk.NTracks() : mkSlices[iSlice]->NTracks();
+  for (unsigned int itr = nLocalTracks + iBlock * nThreads + iThread; itr < nTracks; itr += nBlocks * nThreads) {
+    if (Param().rec.mergerReadFromTrackerDirectly) {
+      sliceTr = &trk.Tracks()[itr];
+    } else if (itr > nLocalTracks) {
+      sliceTr = sliceTr->GetNextTrack();
     }
-    mSliceTrackInfoIndex[iSlice] = nTracksCurrent;
+    int localId = TrackIds[(sliceTr->LocalTrackId() >> 24) * mNMaxSingleSliceTracks + (sliceTr->LocalTrackId() & 0xFFFFFF)];
+    if (localId == -1) {
+      continue;
+    }
+    unsigned int myTrack = CAMath::AtomicAdd(&mMemory->nUnpackedTracks, 1);
+    GPUTPCGMSliceTrack& track = mSliceTrackInfos[myTrack];
+    SetTrackClusterZT(track, iSlice, sliceTr);
+    track.Set(this, sliceTr, alpha, iSlice);
+    track.SetGlobalSectorTrackCov();
+    track.SetPrevNeighbour(-1);
+    track.SetNextNeighbour(-1);
+    track.SetNextSegmentNeighbour(-1);
+    track.SetPrevSegmentNeighbour(-1);
+    track.SetLocalTrackId(localId);
+  }
+}
 
-    float alpha = Param().Alpha(iSlice);
-    const GPUTPCTrack* sliceTr = Param().rec.mergerReadFromTrackerDirectly ? nullptr : mkSlices[iSlice]->GetFirstTrack();
+GPUd() void GPUTPCGMMerger::UnpackResetIds(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice)
+{
+  int* TrackIds = (int*)mTmpMem;
 
-    for (unsigned int itr = 0; itr < nLocalTracks; itr++) {
-      if (Param().rec.mergerReadFromTrackerDirectly) {
-        sliceTr = &trk.Tracks()[itr];
-      } else if (itr) {
-        sliceTr = sliceTr->GetNextTrack();
+  const GPUTPCTracker& trk = mSliceTrackers[iSlice];
+  unsigned int nLocalTracks = Param().rec.mergerReadFromTrackerDirectly ? trk.CommonMemory()->nLocalTracks : mkSlices[iSlice]->NLocalTracks();
+  for (unsigned int i = iBlock * nThreads + iThread; i < nLocalTracks; i += nBlocks * nThreads) {
+    TrackIds[iSlice * mNMaxSingleSliceTracks + i] = -1;
+  }
+}
+
+GPUd() void GPUTPCGMMerger::UnpackSlice(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice)
+{
+  int* TrackIds = (int*)mTmpMem;
+  const GPUTPCTracker& trk = mSliceTrackers[iSlice];
+  unsigned int nLocalTracks = Param().rec.mergerReadFromTrackerDirectly ? trk.CommonMemory()->nLocalTracks : mkSlices[iSlice]->NLocalTracks();
+
+  float alpha = Param().Alpha(iSlice);
+  const GPUTPCTrack* sliceTr = Param().rec.mergerReadFromTrackerDirectly ? nullptr : mkSlices[iSlice]->GetFirstTrack();
+
+  for (unsigned int itr = iBlock * nThreads + iThread; itr < nLocalTracks; itr += nBlocks * nThreads) {
+    if (Param().rec.mergerReadFromTrackerDirectly) {
+      sliceTr = &trk.Tracks()[itr];
+    } else if (itr) {
+      sliceTr = sliceTr->GetNextTrack();
+    }
+    GPUTPCGMSliceTrack track;
+    SetTrackClusterZT(track, iSlice, sliceTr);
+    if (Param().rec.mergerCovSource == 0) {
+      track.Set(this, sliceTr, alpha, iSlice);
+      if (!track.FilterErrors(this, iSlice, GPUCA_MAX_SIN_PHI, 0.1f)) {
+        continue;
       }
-      GPUTPCGMSliceTrack& track = mSliceTrackInfos[nTracksCurrent];
-      SetTrackClusterZT(track, iSlice, sliceTr);
-      if (Param().rec.mergerCovSource == 0) {
-        track.Set(this, sliceTr, alpha, iSlice);
+    } else if (Param().rec.mergerCovSource == 1) {
+      track.Set(this, sliceTr, alpha, iSlice);
+      track.CopyBaseTrackCov();
+    } else if (Param().rec.mergerCovSource == 2) {
+      if (RefitSliceTrack(track, sliceTr, alpha, iSlice)) {
+        track.Set(this, sliceTr, alpha, iSlice); // TODO: Why does the refit fail, it shouldn't, this workaround should be removed
         if (!track.FilterErrors(this, iSlice, GPUCA_MAX_SIN_PHI, 0.1f)) {
           continue;
         }
-      } else if (Param().rec.mergerCovSource == 1) {
-        track.Set(this, sliceTr, alpha, iSlice);
-        track.CopyBaseTrackCov();
-      } else if (Param().rec.mergerCovSource == 2) {
-        if (RefitSliceTrack(track, sliceTr, alpha, iSlice)) {
-          track.Set(this, sliceTr, alpha, iSlice); // TODO: Why does the refit fail, it shouldn't, this workaround should be removed
-          if (!track.FilterErrors(this, iSlice, GPUCA_MAX_SIN_PHI, 0.1f)) {
-            continue;
-          }
-        }
       }
+    }
 
-      CADEBUG(GPUInfo("INPUT Slice %d, Track %u, QPt %f DzDs %f", iSlice, itr, track.QPt(), track.DzDs()));
-      track.SetPrevNeighbour(-1);
-      track.SetNextNeighbour(-1);
-      track.SetNextSegmentNeighbour(-1);
-      track.SetPrevSegmentNeighbour(-1);
-      track.SetGlobalTrackId(0, -1);
-      track.SetGlobalTrackId(1, -1);
-      TrackIds[iSlice * mNMaxSingleSliceTracks + sliceTr->LocalTrackId()] = nTracksCurrent;
-      nTracksCurrent++;
-    }
-    if (!Param().rec.mergerReadFromTrackerDirectly && nLocalTracks) {
-      mMemory->firstGlobalTracks[iSlice] = sliceTr->GetNextTrack();
-    }
+    CADEBUG(GPUInfo("INPUT Slice %d, Track %u, QPt %f DzDs %f", iSlice, itr, track.QPt(), track.DzDs()));
+    track.SetPrevNeighbour(-1);
+    track.SetNextNeighbour(-1);
+    track.SetNextSegmentNeighbour(-1);
+    track.SetPrevSegmentNeighbour(-1);
+    track.SetGlobalTrackId(0, -1);
+    track.SetGlobalTrackId(1, -1);
+    unsigned int myTrack = CAMath::AtomicAdd(&mMemory->nUnpackedTracks, 1);
+    TrackIds[iSlice * mNMaxSingleSliceTracks + sliceTr->LocalTrackId()] = myTrack;
+    mSliceTrackInfos[myTrack] = track;
   }
-  for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    mSliceTrackInfoIndex[NSLICES + iSlice] = nTracksCurrent;
-    const GPUTPCTracker& trk = mSliceTrackers[iSlice];
-
-    float alpha = Param().Alpha(iSlice);
-    const GPUTPCTrack* sliceTr = mMemory->firstGlobalTracks[iSlice];
-    unsigned int nLocalTracks = Param().rec.mergerReadFromTrackerDirectly ? trk.CommonMemory()->nLocalTracks : mkSlices[iSlice]->NLocalTracks();
-    unsigned int nTracks = Param().rec.mergerReadFromTrackerDirectly ? *trk.NTracks() : mkSlices[iSlice]->NTracks();
-    for (unsigned int itr = nLocalTracks; itr < nTracks; itr++) {
-      if (Param().rec.mergerReadFromTrackerDirectly) {
-        sliceTr = &trk.Tracks()[itr];
-      } else if (itr > nLocalTracks) {
-        sliceTr = sliceTr->GetNextTrack();
-      }
-      int localId = TrackIds[(sliceTr->LocalTrackId() >> 24) * mNMaxSingleSliceTracks + (sliceTr->LocalTrackId() & 0xFFFFFF)];
-      if (localId == -1) {
-        continue;
-      }
-      GPUTPCGMSliceTrack& track = mSliceTrackInfos[nTracksCurrent];
-      SetTrackClusterZT(track, iSlice, sliceTr);
-      track.Set(this, sliceTr, alpha, iSlice);
-      track.SetGlobalSectorTrackCov();
-      track.SetPrevNeighbour(-1);
-      track.SetNextNeighbour(-1);
-      track.SetNextSegmentNeighbour(-1);
-      track.SetPrevSegmentNeighbour(-1);
-      track.SetLocalTrackId(localId);
-      nTracksCurrent++;
-    }
+  if (!Param().rec.mergerReadFromTrackerDirectly && nLocalTracks) {
+    mMemory->firstGlobalTracks[iSlice] = sliceTr->GetNextTrack();
   }
-  mSliceTrackInfoIndex[2 * NSLICES] = nTracksCurrent;
 }
 
 GPUd() void GPUTPCGMMerger::MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTrack* B, int& nB, bool useOrigTrackParam)

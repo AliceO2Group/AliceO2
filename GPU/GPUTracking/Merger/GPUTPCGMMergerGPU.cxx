@@ -44,12 +44,29 @@ GPUdii() void GPUTPCGMMergerFollowLoopers::Thread<0>(int nBlocks, int nThreads, 
 }
 
 template <>
-GPUdii() void GPUTPCGMMergerUnpack::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+GPUdii() void GPUTPCGMMergerUnpackResetIds::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, int iSlice)
 {
-  if (iThread || iBlock) {
-    return;
+  merger.UnpackResetIds(nBlocks, nThreads, iBlock, iThread, iSlice);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerUnpack::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, int iSlice)
+{
+  merger.UnpackSlice(nBlocks, nThreads, iBlock, iThread, iSlice);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerUnpackGlobal::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, int iSlice)
+{
+  merger.UnpackSliceGlobal(nBlocks, nThreads, iBlock, iThread, iSlice);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerUnpackSaveNumber::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, int id)
+{
+  if (iThread == 0 && iBlock == 0) {
+    merger.UnpackSaveNumber(id);
   }
-  merger.UnpackSlices(nBlocks, nThreads, iBlock, iThread);
 }
 
 template <>
