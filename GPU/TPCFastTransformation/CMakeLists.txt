@@ -69,7 +69,8 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
           IrregularSpline2D3DCalibratorTest.C
           IrregularSpline2D3DTest.C
           RegularSpline1DTest.C
-          SemiregularSpline2D3DTest.C)
+          SemiregularSpline2D3DTest.C
+          ChebFitTest.C )
     o2_add_test_root_macro(devtools/${m}
                            PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation
                                                  O2::DataFormatsTPC

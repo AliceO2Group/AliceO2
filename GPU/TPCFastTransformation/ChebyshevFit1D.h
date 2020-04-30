@@ -56,6 +56,8 @@ class ChebyshevFit1D
 
   const std::vector<double>& getCoefficients() const { return mC; }
 
+  void print();
+
  private:
   int mN = 0;             // n coefficients == polynom order + 1
   int mM = 0;             // number of measurenents
@@ -76,10 +78,10 @@ inline void ChebyshevFit1D::addMeasurement(double x, double m)
   for (int i = 2; i < mN; i++) {
     mT[i] = x * mT[i - 1] - mT[i - 2];
   }
-  double* rowA = mA.data();
-  for (int i = 0; i < mN; i++, rowA += mN) {
-    for (int j = 0; j <= i; j++) {
-      rowA[j] += mT[i] * mT[j];
+  double* Ai = mA.data();
+  for (int i = 0; i < mN; i++, Ai += mN) {
+    for (int j = i; j < mN; j++) {
+      Ai[j] += mT[i] * mT[j];
     }
     mB[i] += m * mT[i];
   }
@@ -100,18 +102,6 @@ inline double ChebyshevFit1D::eval(double x)
     f1 = f;
   }
   return y;
-}
-
-inline void ChebyshevFit1D::fit()
-{
-  double* rowA = mA.data();
-  for (int i = 0; i < mN; i++, rowA += mN) {
-    double s = mB[i];
-    for (int j = 0; j < i; j++) {
-      s -= mC[j] * rowA[j];
-    }
-    mC[i] = (rowA[i] > 1.e-8) ? (s / rowA[i]) : 0.;
-  }
 }
 
 } // namespace gpu
