@@ -129,7 +129,7 @@ class GPUTPCGMMergerMergeBorders : public GPUTPCGMMergerGeneral
  public:
 #if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
   template <int iKernel = defaultKernel>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger, int iSlice, char withinSlice, char useOrigTrackParam);
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger, int iSlice, char withinSlice, char mergeMode);
 #endif
 };
 

@@ -134,7 +134,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void ClearTrackLinks(int nBlocks, int nThreads, int iBlock, int iThread, bool nOutput);
   GPUd() void MergeWithinSlicesPrepare(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void MergeSlicesPrepare(int nBlocks, int nThreads, int iBlock, int iThread, int border0, int border1, char useOrigTrackParam);
-  GPUd() void MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice, char withinSlice, char useOrigTrackParam);
+  GPUd() void MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice, char withinSlice, char mergeMode);
   GPUd() void SortTracks(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void SortTracksPrepare(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void PrepareClustersForFit(int nBlocks, int nThreads, int iBlock, int iThread);
