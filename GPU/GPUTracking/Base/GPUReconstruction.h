@@ -160,7 +160,7 @@ class GPUReconstruction
   int Exit();
 
   void DumpSettings(const char* dir = "");
-  void ReadSettings(const char* dir = "");
+  int ReadSettings(const char* dir = "");
 
   void PrepareEvent();
   virtual int RunChains() = 0;
@@ -273,7 +273,7 @@ class GPUReconstruction
   template <class T>
   std::unique_ptr<T> ReadStructFromFile(const char* file);
   template <class T>
-  void ReadStructFromFile(const char* file, T* obj);
+  int ReadStructFromFile(const char* file, T* obj);
 
   // Others
   virtual RecoStepField AvailableRecoSteps() { return RecoStep::AllRecoSteps; }
@@ -565,23 +565,24 @@ inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file
 }
 
 template <class T>
-inline void GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
+inline int GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
 {
   FILE* fp = fopen(file, "rb");
   if (fp == nullptr) {
-    return;
+    return 1;
   }
   size_t size, r;
   r = fread(&size, sizeof(size), 1, fp);
   if (r == 0) {
     fclose(fp);
-    return;
+    return 1;
   }
   r = fread(obj, 1, size, fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
     GPUInfo("Read %d bytes from %s", (int)r, file);
   }
+  return 0;
 }
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
