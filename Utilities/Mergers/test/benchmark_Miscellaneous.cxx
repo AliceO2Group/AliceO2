@@ -15,7 +15,6 @@
 #include <TF1.h>
 #include <TRandom.h>
 
-
 static void BM_dynamic_cast(benchmark::State& state)
 {
   TCollection* collection = new TList();
