@@ -174,7 +174,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   int ReadEvent(int iSlice, int threadId);
   void WriteOutput(int iSlice, int threadId);
-  int GlobalTracking(int iSlice, int threadId);
+  int GlobalTracking(unsigned int iSlice, int threadId);
   void PrepareEventFromNative();
   void UpdateShadowProcessors();
 

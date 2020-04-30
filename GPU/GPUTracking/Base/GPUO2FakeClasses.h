@@ -79,11 +79,6 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-namespace deprecated
-{
-struct PackedDigit {
-};
-} // namespace deprecated
 class GPUFakeEmpty
 {
 };

@@ -166,6 +166,15 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   }
   if (GetDeviceProcessingSettings().debugLevel >= 6 && GetDeviceProcessingSettings().comparableDebutOutput) {
     mDeviceProcessingSettings.nTPCClustererLanes = 1;
+    if (mDeviceProcessingSettings.trackletConstructorInPipeline < 0) {
+      mDeviceProcessingSettings.trackletConstructorInPipeline = 1;
+    }
+    if (mDeviceProcessingSettings.trackletSelectorInPipeline < 0) {
+      mDeviceProcessingSettings.trackletSelectorInPipeline = 1;
+    }
+    if (mDeviceProcessingSettings.trackletSelectorSlices < 0) {
+      mDeviceProcessingSettings.trackletSelectorSlices = 1;
+    }
   }
   if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
     mDeviceProcessingSettings.mergerSortTracks = false;
@@ -188,6 +197,9 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   }
   if (param().rec.NonConsecutiveIDs) {
     param().rec.DisableRefitAttachment = 0xFF;
+  }
+  if (!(mRecoStepsGPU & RecoStep::TPCMerging)) {
+    mDeviceProcessingSettings.fullMergerOnGPU = false;
   }
   mMemoryScalers->factor = GetDeviceProcessingSettings().memoryScalingFactor;
 

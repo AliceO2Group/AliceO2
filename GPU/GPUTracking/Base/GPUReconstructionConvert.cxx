@@ -25,11 +25,11 @@
 #include "GPUDataTypes.h"
 #include "AliHLTTPCRawCluster.h"
 #include "GPUParam.h"
-#include "clusterFinderDefs.h"
 #include <algorithm>
 #include <vector>
 
 #ifdef HAVE_O2HEADERS
+#include "clusterFinderDefs.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/Constants.h"
 #include "GPURawData.h"
@@ -193,6 +193,7 @@ void GPUReconstructionConvert::ZSstreamOut(unsigned short* bufIn, unsigned int& 
   lenIn = 0;
 }
 
+#ifdef HAVE_O2HEADERS
 void GPUReconstructionConvert::ZSfillEmpty(void* ptr, int shift)
 {
   o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)ptr;
@@ -201,7 +202,6 @@ void GPUReconstructionConvert::ZSfillEmpty(void* ptr, int shift)
   o2::raw::RDHUtils::setMemorySize(*rdh, sizeof(o2::header::RAWDataHeader));
 }
 
-#ifdef HAVE_O2HEADERS
 static inline auto ZSEncoderGetDigits(const GPUTrackingInOutDigits& in, int i) { return in.tpcDigits[i]; }
 static inline auto ZSEncoderGetNDigits(const GPUTrackingInOutDigits& in, int i) { return in.nTPCDigits[i]; }
 template void GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit, GPUTrackingInOutDigits>(const GPUTrackingInOutDigits&, std::unique_ptr<unsigned long long int[]>*, unsigned int*, o2::raw::RawFileWriter*, const o2::InteractionRecord*, const GPUParam&, bool, bool, float);
@@ -559,7 +559,7 @@ void GPUReconstructionConvert::RunZSEncoderCreateMeta(const unsigned long long i
   }
 }
 
-void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<tpc::Digit[]>* buffers, const tpc::Digit* const* ptrs, size_t* nsb, const size_t* ns, const GPUParam& param, bool zs12bit)
+void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<o2::tpc::Digit[]>* buffers, const o2::tpc::Digit* const* ptrs, size_t* nsb, const size_t* ns, const GPUParam& param, bool zs12bit)
 {
 #ifdef HAVE_O2HEADERS
   for (unsigned int i = 0; i < NSLICES; i++) {

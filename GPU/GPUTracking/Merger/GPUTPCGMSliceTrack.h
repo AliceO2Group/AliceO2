@@ -32,47 +32,47 @@ class GPUTPCGMMerger;
 class GPUTPCGMSliceTrack
 {
  public:
-  float Alpha() const { return mAlpha; }
-  unsigned char Slice() const { return mSlice; }
-  char CSide() const { return mSlice >= 18; }
-  int NClusters() const { return mNClusters; }
-  int PrevNeighbour() const { return mNeighbour[0]; }
-  int NextNeighbour() const { return mNeighbour[1]; }
-  int Neighbour(int i) const { return mNeighbour[i]; }
-  int PrevSegmentNeighbour() const { return mSegmentNeighbour[0]; }
-  int NextSegmentNeighbour() const { return mSegmentNeighbour[1]; }
-  int SegmentNeighbour(int i) const { return mSegmentNeighbour[i]; }
-  const GPUTPCTrack* OrigTrack() const { return mOrigTrack; }
-  float X() const { return mX; }
-  float Y() const { return mY; }
-  float Z() const { return mZ; }
-  float SinPhi() const { return mSinPhi; }
-  float CosPhi() const { return mCosPhi; }
-  float SecPhi() const { return mSecPhi; }
-  float DzDs() const { return mDzDs; }
-  float QPt() const { return mQPt; }
-  float TZOffset() const { return mTZOffset; }
-  unsigned char Leg() const { return mLeg; }
+  GPUd() float Alpha() const { return mAlpha; }
+  GPUd() unsigned char Slice() const { return mSlice; }
+  GPUd() char CSide() const { return mSlice >= 18; }
+  GPUd() int NClusters() const { return mNClusters; }
+  GPUd() int PrevNeighbour() const { return mNeighbour[0]; }
+  GPUd() int NextNeighbour() const { return mNeighbour[1]; }
+  GPUd() int Neighbour(int i) const { return mNeighbour[i]; }
+  GPUd() int PrevSegmentNeighbour() const { return mSegmentNeighbour[0]; }
+  GPUd() int NextSegmentNeighbour() const { return mSegmentNeighbour[1]; }
+  GPUd() int SegmentNeighbour(int i) const { return mSegmentNeighbour[i]; }
+  GPUd() const GPUTPCTrack* OrigTrack() const { return mOrigTrack; }
+  GPUd() float X() const { return mX; }
+  GPUd() float Y() const { return mY; }
+  GPUd() float Z() const { return mZ; }
+  GPUd() float SinPhi() const { return mSinPhi; }
+  GPUd() float CosPhi() const { return mCosPhi; }
+  GPUd() float SecPhi() const { return mSecPhi; }
+  GPUd() float DzDs() const { return mDzDs; }
+  GPUd() float QPt() const { return mQPt; }
+  GPUd() float TZOffset() const { return mTZOffset; }
+  GPUd() unsigned char Leg() const { return mLeg; }
 
-  int LocalTrackId() const { return mLocalTrackId; }
-  void SetLocalTrackId(int v) { mLocalTrackId = v; }
-  int GlobalTrackId(int n) const { return mGlobalTrackIds[n]; }
-  void SetGlobalTrackId(int n, int v) { mGlobalTrackIds[n] = v; }
+  GPUd() int LocalTrackId() const { return mLocalTrackId; }
+  GPUd() void SetLocalTrackId(int v) { mLocalTrackId = v; }
+  GPUd() int GlobalTrackId(int n) const { return mGlobalTrackIds[n]; }
+  GPUd() void SetGlobalTrackId(int n, int v) { mGlobalTrackIds[n] = v; }
 
-  float MaxClusterZT() const { return CAMath::Max(mClusterZT[0], mClusterZT[1]); }
-  float MinClusterZT() const { return CAMath::Min(mClusterZT[0], mClusterZT[1]); }
-  float ClusterZT0() const { return mClusterZT[0]; }
-  float ClusterZTN() const { return mClusterZT[1]; }
-  void SetClusterZT(float v1, float v2)
+  GPUd() float MaxClusterZT() const { return CAMath::Max(mClusterZT[0], mClusterZT[1]); }
+  GPUd() float MinClusterZT() const { return CAMath::Min(mClusterZT[0], mClusterZT[1]); }
+  GPUd() float ClusterZT0() const { return mClusterZT[0]; }
+  GPUd() float ClusterZTN() const { return mClusterZT[1]; }
+  GPUd() void SetClusterZT(float v1, float v2)
   {
     mClusterZT[0] = v1;
     mClusterZT[1] = v2;
   }
 
-  void Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sliceTr, float alpha, int slice);
-  void Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sliceTr, float alpha, int slice);
+  GPUd() void Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sliceTr, float alpha, int slice);
+  GPUd() void Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sliceTr, float alpha, int slice);
 
-  void SetGlobalSectorTrackCov()
+  GPUd() void SetGlobalSectorTrackCov()
   {
     mC0 = 1;
     mC2 = 1;
@@ -85,15 +85,15 @@ class GPUTPCGMSliceTrack
     mC14 = 10;
   }
 
-  void SetNClusters(int v) { mNClusters = v; }
-  void SetPrevNeighbour(int v) { mNeighbour[0] = v; }
-  void SetNextNeighbour(int v) { mNeighbour[1] = v; }
-  void SetNeighbor(int v, int i) { mNeighbour[i] = v; }
-  void SetPrevSegmentNeighbour(int v) { mSegmentNeighbour[0] = v; }
-  void SetNextSegmentNeighbour(int v) { mSegmentNeighbour[1] = v; }
-  void SetLeg(unsigned char v) { mLeg = v; }
+  GPUd() void SetNClusters(int v) { mNClusters = v; }
+  GPUd() void SetPrevNeighbour(int v) { mNeighbour[0] = v; }
+  GPUd() void SetNextNeighbour(int v) { mNeighbour[1] = v; }
+  GPUd() void SetNeighbor(int v, int i) { mNeighbour[i] = v; }
+  GPUd() void SetPrevSegmentNeighbour(int v) { mSegmentNeighbour[0] = v; }
+  GPUd() void SetNextSegmentNeighbour(int v) { mSegmentNeighbour[1] = v; }
+  GPUd() void SetLeg(unsigned char v) { mLeg = v; }
 
-  void CopyParamFrom(const GPUTPCGMSliceTrack& t)
+  GPUd() void CopyParamFrom(const GPUTPCGMSliceTrack& t)
   {
     mX = t.mX;
     mY = t.mY;
@@ -105,10 +105,10 @@ class GPUTPCGMSliceTrack
     mAlpha = t.mAlpha;
   }
 
-  bool FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi = GPUCA_MAX_SIN_PHI, float sinPhiMargin = 0.f);
-  bool TransportToX(GPUTPCGMMerger* merger, float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov = true) const;
-  bool TransportToXAlpha(GPUTPCGMMerger* merger, float x, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const;
-  void CopyBaseTrackCov();
+  GPUd() bool FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi = GPUCA_MAX_SIN_PHI, float sinPhiMargin = 0.f);
+  GPUd() bool TransportToX(GPUTPCGMMerger* merger, float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov = true) const;
+  GPUd() bool TransportToXAlpha(GPUTPCGMMerger* merger, float x, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const;
+  GPUd() void CopyBaseTrackCov();
 
  private:
   const GPUTPCTrack* mOrigTrack;                            // pointer to original slice track

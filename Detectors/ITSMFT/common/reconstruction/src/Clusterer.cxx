@@ -31,6 +31,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
 #ifdef _PERFORM_TIMING_
   mTimer.Start(kFALSE);
 #endif
+
   constexpr int LoopPerThread = 4; // in MT mode run so many times more loops than the threads allowed
   auto autoDecode = reader.getDecodeNextAuto();
   o2::itsmft::ROFRecord* rof = nullptr;
@@ -180,7 +181,7 @@ void Clusterer::ClustererThread::process(gsl::span<ChipPixelData*> chipPtrs, Ful
     if (parent->mMaxBCSeparationToMask > 0) { // mask pixels fired from the previous ROF
       const auto& chipInPrevROF = parent->mChipsOld[chipID];
       if (std::abs(rofPtr->getBCData().differenceInBC(chipInPrevROF.getInteractionRecord())) < parent->mMaxBCSeparationToMask) {
-        curChipData->maskFiredInSample(parent->mChipsOld[chipID]);
+        parent->mMaxRowColDiffToMask ? curChipData->maskFiredInSample(parent->mChipsOld[chipID], parent->mMaxRowColDiffToMask) : curChipData->maskFiredInSample(parent->mChipsOld[chipID]);
       }
     }
     auto validPixID = curChipData->getFirstUnmasked();
@@ -536,7 +537,8 @@ void Clusterer::flushClusters(FullClusCont* fullClus, CompClusCont* compClus, MC
 void Clusterer::print() const
 {
   // print settings
-  LOG(INFO) << "Clusterizer masks overflow pixels in strobes separated by < " << mMaxBCSeparationToMask << " BC";
+  LOG(INFO) << "Clusterizer masks overflow pixels separated by < " << mMaxBCSeparationToMask << " BC and <= "
+            << mMaxRowColDiffToMask << " in row/col";
 #ifdef _PERFORM_TIMING_
   auto& tmr = const_cast<TStopwatch&>(mTimer); // ugly but this is what root does internally
   auto& tmrm = const_cast<TStopwatch&>(mTimerMerge);

@@ -34,6 +34,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_CLASS_PRE_TEMPLATE(t) template<LocalOrGlobal LG, t>
   #define MEM_LG(type) type<LG>
   #define MEM_CLASS_PRE2() template<LocalOrGlobal LG2>
+  #define MEM_CLASS_PRE2_TEMPLATE(t) template<LocalOrGlobal LG2, t>
   #define MEM_LG2(type) type<LG2>
   #define MEM_CLASS_PRE12() template<LocalOrGlobal LG> template<LocalOrGlobal LG2>
   #define MEM_CLASS_PRE23() template<LocalOrGlobal LG2, LocalOrGlobal LG3>
@@ -59,6 +60,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_CLASS_PRE_TEMPLATE(t) template<t>
   #define MEM_LG(type) type
   #define MEM_CLASS_PRE2()
+  #define MEM_CLASS_PRE2_TEMPLATE(t) template<t>
   #define MEM_LG2(type) type
   #define MEM_CLASS_PRE12()
   #define MEM_CLASS_PRE23()
