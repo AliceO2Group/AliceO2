@@ -67,6 +67,7 @@ class GPUTPCGMMerger : public GPUProcessor
     GPUAtomic(unsigned int) nUnpackedTracks;
     GPUAtomic(unsigned int) nOutputTracks;
     GPUAtomic(unsigned int) nOutputTrackClusters;
+    GPUAtomic(unsigned int) nSlowTracks;
     const GPUTPCTrack* firstGlobalTracks[NSLICES];
   };
 
@@ -114,11 +115,12 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhd() GPUAtomic(unsigned int) * ClusterAttachment() const { return mClusterAttachment; }
   GPUhd() unsigned int* TrackOrderAttach() const { return mTrackOrderAttach; }
   GPUhd() unsigned int* TrackOrderProcess() const { return mTrackOrderProcess; }
-  GPUd() unsigned int NSlowTracks() const { return mNSlowTracks; }
+  GPUd() unsigned int NSlowTracks() const { return mMemory->nSlowTracks; }
   GPUd() unsigned int* RetryRefitIds() const { return mRetryRefitIds; }
   GPUd() GPUTPCGMLoopData* LoopData() const { return mLoopData; }
   GPUd() memory* Memory() const { return mMemory; }
   GPUd() GPUAtomic(unsigned int) * TmpCounter() { return mTmpCounter; }
+  GPUd() uint4* TmpMem() { return mTmpMem; }
 
   short MemoryResMemory() { return mMemoryResMemory; }
 
@@ -136,8 +138,11 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void MergeSlicesPrepare(int nBlocks, int nThreads, int iBlock, int iThread, int border0, int border1, char useOrigTrackParam);
   GPUd() void MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice, char withinSlice, char mergeMode);
   GPUd() void SortTracks(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void SortTracksQPt(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void SortTracksPrepare(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void PrepareClustersForFit(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void PrepareClustersForFit0(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void PrepareClustersForFit1(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void PrepareClustersForFit2(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void LinkGlobalTracks(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void CollectMergedTracks(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void Finalize(int nBlocks, int nThreads, int iBlock, int iThread);
@@ -201,8 +206,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUAtomic(unsigned int) * mClusterAttachment;
   unsigned int* mTrackOrderAttach;
   unsigned int* mTrackOrderProcess;
-  unsigned int mNSlowTracks;
-  char* mTmpMem;
+  uint4* mTmpMem;
   GPUAtomic(unsigned int) * mTmpCounter;
   GPUTPCGMBorderTrack* mBorderMemory; // memory for border tracks
   GPUTPCGMBorderTrack* mBorder[2 * NSLICES];
