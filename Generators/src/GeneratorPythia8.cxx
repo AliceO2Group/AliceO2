@@ -151,7 +151,7 @@ Bool_t
   /* loop over particles */
   //  auto weight = mPythia.info.weight(); // TBD: use weights
   auto nParticles = mPythia.event.size();
-  for (Int_t iparticle = 1; iparticle < nParticles; iparticle++) { // first particle is system
+  for (Int_t iparticle = 0; iparticle < nParticles; iparticle++) { // first particle is system
     auto particle = mPythia.event[iparticle];
     auto pdg = particle.id();
     auto st = particle.statusHepMC();

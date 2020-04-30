@@ -316,8 +316,85 @@ class O2HitMerger : public FairMQDevice
   {
     to.mergeAtBack(from);
   }
-  template <typename T>
-  void remapTrackIdsAndMerge(std::string brname, TTree& origin, TTree& target, const std::vector<int>& trackoffsets)
+
+  void reorderAndMergeMCTRacks(TTree& origin, TTree& target, const std::vector<int>& nprimaries, const std::vector<int>& nsubevents)
+  {  
+    std::vector<MCTrack>* incomingdata = nullptr;
+    auto targetdata = new std::vector<MCTrack>;
+    auto originbr = origin.GetBranch("MCTrack");
+    originbr->SetAddress(&incomingdata);
+    const auto entries = origin.GetEntries();
+    //
+    // loop over subevents to store the primary events
+    //
+    Int_t nprimTot = 0;
+    for (auto entry = entries-1; entry >= 0; --entry) {
+      int index = nsubevents[entry];
+      nprimTot += nprimaries[index];
+      printf("merge %lld %5d %5d %5d \n", entry, index, nsubevents[entry], nsubevents[index]);
+      originbr->GetEntry(index);
+      for (Int_t i = 0; i < nprimaries[index]; i++) {
+	auto& track = incomingdata->at(i);
+	track.SetFirstDaughterTrackId(-1);
+	targetdata->push_back(track);
+      }
+      incomingdata->clear();
+      delete incomingdata;
+      incomingdata = nullptr;
+    }
+    //
+    // loop a second time to store the secondaries and fix the mother track IDs
+    //
+    Int_t idelta1  = nprimTot;
+    Int_t idelta0 = 0; 
+    for (auto entry = entries-1; entry >= 0; --entry) {
+      int index = nsubevents[entry];
+
+      originbr->GetEntry(index);
+      
+      Int_t npart = (int)(incomingdata->size());
+      Int_t nprim = nprimaries[index];
+      idelta1 -= nprim;
+      
+      for (Int_t i = nprim; i < npart; i++) {
+	auto& track = incomingdata->at(i);
+	Int_t cId = track.getMotherTrackId();
+	if (cId >= nprim) {
+	  cId += idelta1;
+	} else {
+	  cId += idelta0;
+	}
+	track.SetMotherTrackId(cId);
+	track.SetFirstDaughterTrackId(-1);
+	
+	Int_t hwm = (int) (targetdata->size());
+	auto& mother = targetdata->at(cId);
+	if (mother.getFirstDaughterTrackId() == -1) {
+	  mother.SetFirstDaughterTrackId(hwm);
+	}
+	mother.SetLastDaughterTrackId(hwm);
+	
+	targetdata->push_back(track);
+      }
+      idelta0 += nprim;
+      idelta1 += npart;
+      incomingdata->clear();
+      delete incomingdata;
+      incomingdata = nullptr;
+    }
+
+    //
+    // write to output    
+    auto targetbr = o2::base::getOrMakeBranch(target, "MCTrack", &targetdata);
+    targetbr->SetAddress(&targetdata);
+    targetbr->Fill();
+    targetbr->ResetAddress();
+    targetdata->clear();
+  }
+
+    template <typename T>
+    void remapTrackIdsAndMerge(std::string brname, TTree& origin, TTree& target, 
+			       const std::vector<int>& trackoffsets, const std::vector<int>& nprimaries, const std::vector<int>& subevOrdered)
   {
     //
     // Remap the mother track IDs by adding an offset.
@@ -329,24 +406,33 @@ class O2HitMerger : public FairMQDevice
     auto originbr = origin.GetBranch(brname.c_str());
     originbr->SetAddress(&incomingdata);
     const auto entries = origin.GetEntries();
+
     if (entries == 1) {
       // nothing to do in case there is only one entry
       originbr->GetEntry(0);
       targetdata = incomingdata;
     } else {
       // loop over subevents
-      Int_t ioffset = 0;
-      for (auto entry = 0; entry < entries; ++entry) {
-        originbr->GetEntry(entry);
+      Int_t nprimTot = 0;
+      for (auto entry = 0; entry < entries; entry++) nprimTot += nprimaries[entry];
+      Int_t idelta0  = 0;
+      Int_t idelta1  = nprimTot;
+      for (auto entry = entries-1; entry >= 0; --entry) {
+	Int_t index = subevOrdered[entry];
+	Int_t nprim = nprimaries[index];
+        originbr->GetEntry(index);
+	idelta1 -= nprim;
         for (auto& data : *incomingdata) {
-          updateTrackIdWithOffset(data, ioffset);
+          updateTrackIdWithOffset(data, nprim, idelta0, idelta1);
           targetdata->push_back(data);
         }
-        ioffset += trackoffsets[entry];
         incomingdata->clear();
+	idelta0 += nprim;
+	idelta1 += trackoffsets[index];
         delete incomingdata;
         incomingdata = nullptr;
       }
+
     }
     auto targetbr = o2::base::getOrMakeBranch(target, brname.c_str(), &targetdata);
     targetbr->SetAddress(&targetdata);
@@ -354,16 +440,23 @@ class O2HitMerger : public FairMQDevice
     targetbr->ResetAddress();
     targetdata->clear();
   }
-  void updateTrackIdWithOffset(MCTrack& track, Int_t ioffset)
+
+  
+  void updateTrackIdWithOffset(MCTrack& track, Int_t nprim, Int_t idelta0, Int_t idelta1)
   {
     Int_t cId = track.getMotherTrackId();
+    Int_t ioffset = (cId < nprim)? idelta0 : idelta1; 
     if (cId != -1)
       track.SetMotherTrackId(cId + ioffset);
   }
-  void updateTrackIdWithOffset(TrackReference& ref, Int_t ioffset)
+
+  void updateTrackIdWithOffset(TrackReference& ref, Int_t nprim, Int_t idelta0, Int_t idelta1)
   {
-    ref.setTrackID(ref.getTrackID() + ioffset);
+    Int_t cId = ref.getTrackID();
+    Int_t ioffset = (cId < nprim)? idelta0 : idelta1;
+    ref.setTrackID(cId + ioffset);
   }
+
   // this merges all entries from the TBranch brname from the origin TTree (containing one event only)
   // into a single entry in a target TTree / same branch
   // (assuming T is typically a vector; merging is simply done by appending)
@@ -446,6 +539,8 @@ class O2HitMerger : public FairMQDevice
     auto& confref = o2::conf::SimConfig::Instance();
 
     std::vector<int> trackoffsets; // collecting trackoffsets to be applied to correct
+    std::vector<int> nprimaries;   // collecting primary particles in each subevent
+    std::vector<int> nsubevents;   // collecting of subevent numbers
 
     std::unique_ptr<o2::dataformats::MCEventHeader> eventheader; // The event header
 
@@ -456,7 +551,8 @@ class O2HitMerger : public FairMQDevice
       infobr->GetEntry(i);
       assert(info->npersistenttracks >= 0);
       trackoffsets.emplace_back(info->npersistenttracks);
-
+      nprimaries.emplace_back(info->nprimarytracks);
+      nsubevents.emplace_back(info->part);
       if (eventheader == nullptr) {
         eventheader = std::unique_ptr<dataformats::MCEventHeader>(
           new dataformats::MCEventHeader(info->mMCEventHeader));
@@ -486,10 +582,19 @@ class O2HitMerger : public FairMQDevice
 
     // b) merge the general data
     //
-    // for MCTrack remap the motherIds and merge at the samee go
-    remapTrackIdsAndMerge<std::vector<o2::MCTrack>>("MCTrack", *tree, *mOutTree, trackoffsets);
-    remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", *tree, *mOutTree, trackoffsets);
-    merge<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", *tree, *mOutTree);
+    // for MCTrack remap the motherIds and merge at the same go
+    const auto entries = tree->GetEntries();
+    std::vector<int> subevOrdered((int)(nsubevents.size()));
+    for (auto entry = entries-1; entry >= 0; --entry) {
+      subevOrdered[nsubevents[entry]-1] = entry;
+      printf("HitMerger %lld %5d %5d \n", entry, nprimaries[entry], trackoffsets[entry]);
+    }
+
+    reorderAndMergeMCTRacks(*tree, *mOutTree, nprimaries, subevOrdered);
+    Int_t ioffset = 0;
+    remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", *tree, *mOutTree, trackoffsets, nprimaries, subevOrdered);
+
+    //    merge<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", *tree, *mOutTree);
 
     // c) do the merge procedure for all hits ... delegate this to detector specific functions
     // since they know about types; number of branches; etc.
@@ -498,7 +603,7 @@ class O2HitMerger : public FairMQDevice
       auto& det = mDetectorInstances[id];
       if (det) {
         auto hittree = mDetectorToTTreeMap[id];
-        det->mergeHitEntries(*tree, *hittree, trackoffsets);
+	det->mergeHitEntries(*tree, *mOutTree, trackoffsets, nprimaries, subevOrdered);
         hittree->SetEntries(hittree->GetEntries() + 1);
         LOG(INFO) << "flushing tree to file " << hittree->GetDirectory()->GetFile()->GetName();
         mDetectorOutFiles[id]->Write("", TObject::kOverwrite);

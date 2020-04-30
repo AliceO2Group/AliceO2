@@ -31,6 +31,7 @@ struct SubEventInfo {
   uint32_t seed = 0;      // seed for RNG
   uint32_t index = 0;
   int32_t npersistenttracks = -1; // the number of persistent tracks for this SubEvent (might be set to cache it)
+  int32_t nprimarytracks = -1;    // the number of primary tracks for this SubEvent 
   // might add more fields (such as which process treated this chunk etc)
 
   o2::dataformats::MCEventHeader mMCEventHeader; // associated FairMC header for vertex information
