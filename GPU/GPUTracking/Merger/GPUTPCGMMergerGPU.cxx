@@ -117,9 +117,6 @@ GPUdii() void GPUTPCGMMergerMergeCE::Thread<0>(int nBlocks, int nThreads, int iB
 template <>
 GPUdii() void GPUTPCGMMergerLinkGlobalTracks::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
 {
-  if (iThread || iBlock) {
-    return;
-  }
   merger.LinkGlobalTracks(nBlocks, nThreads, iBlock, iThread);
 }
 
