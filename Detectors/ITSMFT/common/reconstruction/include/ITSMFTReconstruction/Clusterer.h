@@ -159,6 +159,9 @@ class Clusterer
   int getMaxBCSeparationToMask() const { return mMaxBCSeparationToMask; }
   void setMaxBCSeparationToMask(int n) { mMaxBCSeparationToMask = n; }
 
+  int getMaxRowColDiffToMask() const { return mMaxRowColDiffToMask; }
+  void setMaxRowColDiffToMask(int v) { mMaxRowColDiffToMask = v; }
+
   void setWantFullClusters(bool v) { mWantFullClusters = v; }
   void setWantCompactClusters(bool v) { mWantCompactClusters = v; }
 
@@ -212,6 +215,7 @@ class Clusterer
 
   ///< mask continuosly fired pixels in frames separated by less than this amount of BCs (fired from hit in prev. ROF)
   int mMaxBCSeparationToMask = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;
+  int mMaxRowColDiffToMask = 0; ///< provide their difference in col/row is <= than this
 
   std::vector<std::unique_ptr<ClustererThread>> mThreads; // buffers for threads
   std::vector<ChipPixelData> mChips;                      // currently processed ROF's chips data
