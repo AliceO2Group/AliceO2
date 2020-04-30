@@ -1189,12 +1189,10 @@ struct GPUTPCGMMerger_CompareTracksProcess {
 
 GPUd() void GPUTPCGMMerger::LinkGlobalTracks(int nBlocks, int nThreads, int iBlock, int iThread)
 {
-  for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    for (int itr = SliceTrackInfoGlobalFirst(iSlice); itr < SliceTrackInfoGlobalLast(iSlice); itr++) {
-      GPUTPCGMSliceTrack& globalTrack = mSliceTrackInfos[itr];
-      GPUTPCGMSliceTrack& localTrack = mSliceTrackInfos[globalTrack.LocalTrackId()];
-      localTrack.SetGlobalTrackId(localTrack.GlobalTrackId(0) != -1, itr);
-    }
+  for (int itr = SliceTrackInfoGlobalFirst(0) + iBlock * nThreads + iThread; itr < SliceTrackInfoGlobalLast(NSLICES - 1); itr += nThreads * nBlocks) {
+    GPUTPCGMSliceTrack& globalTrack = mSliceTrackInfos[itr];
+    GPUTPCGMSliceTrack& localTrack = mSliceTrackInfos[globalTrack.LocalTrackId()];
+    localTrack.SetGlobalTrackId(localTrack.GlobalTrackId(0) != -1, itr);
   }
 }
 
