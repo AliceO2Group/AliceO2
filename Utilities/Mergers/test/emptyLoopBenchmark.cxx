@@ -82,7 +82,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
       (AlgorithmSpec::InitCallback) [](InitContext& ictx) {
         auto timer = std::make_shared<Timer>();
         timer->reset(10 * 1000000);
-        size_t loopCounter = 0;
+        uint64_t loopCounter = 0;
 
         return (AlgorithmSpec::ProcessCallback) [=](ProcessingContext& ctx) mutable {
           loopCounter++;
