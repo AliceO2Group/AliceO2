@@ -38,7 +38,6 @@ GPUCA_KRNL((GPUTPCGMMergerMergeWithinPrepare             ), (simple, REG, (GPUCA
 GPUCA_KRNL((GPUTPCGMMergerMergeSlicesPrepare             ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerMergeSlicesPrepare)), (, int border0, int border1, char useOrigTrackParam), (, border0, border1, useOrigTrackParam))
 GPUCA_KRNL((GPUTPCGMMergerMergeBorders                   ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerMergeBorders)), (, int iSlice, char withinSlice, char useOrigTrackParam), (, iSlice, withinSlice, useOrigTrackParam))
 GPUCA_KRNL((GPUTPCGMMergerMergeCE                        ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerMergeCE)), (), ())
-GPUCA_KRNL((GPUTPCGMMergerMergeCEInit                    ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerMergeCEInit)), (), ())
 GPUCA_KRNL((GPUTPCGMMergerLinkGlobalTracks               ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerLinkGlobalTracks)), (), ())
 GPUCA_KRNL((GPUTPCGMMergerCollect                        ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerCollect)), (), ())
 GPUCA_KRNL((GPUTPCGMMergerSortTracks                     ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerSortTracks)), (), ())

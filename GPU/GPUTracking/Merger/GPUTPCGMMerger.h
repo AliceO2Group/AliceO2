@@ -130,7 +130,6 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void UnpackSliceGlobal(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice);
   GPUd() void UnpackSaveNumber(int id);
   GPUd() void UnpackResetIds(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice);
-  GPUd() void MergeCEInit(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void MergeCE(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void ClearTrackLinks(int nBlocks, int nThreads, int iBlock, int iThread, bool nOutput);
   GPUd() void MergeWithinSlicesPrepare(int nBlocks, int nThreads, int iBlock, int iThread);
@@ -209,7 +208,6 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUTPCGMBorderTrack* mBorder[2 * NSLICES];
   GPUTPCGMBorderTrack::Range* mBorderRangeMemory;    // memory for border tracks
   GPUTPCGMBorderTrack::Range* mBorderRange[NSLICES]; // memory for border tracks
-  int* mBorderCETracks;
   memory* mMemory;
   unsigned int* mRetryRefitIds;
   GPUTPCGMLoopData* mLoopData;
