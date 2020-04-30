@@ -8,8 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
-/// @author  Diego Stocco
+/// \file   MID/Raw/test/testRaw.cxx
+/// \brief  Test MID raw data decoder
+/// \author Diego Stocco <Diego.Stocco at cern.ch>
+/// \date   17 March 2018
 
 #define BOOST_TEST_MODULE Test MID raw
 #define BOOST_TEST_DYN_LINK
@@ -17,19 +19,22 @@
 #include <boost/test/unit_test.hpp>
 
 #include <boost/test/data/test_case.hpp>
-#include <iostream>
 #include <vector>
 #include <map>
+#include "Framework/Logger.h"
 #include "CommonDataFormat/InteractionRecord.h"
-#include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RawFileReader.h"
 #include "DataFormatsMID/ColumnData.h"
+#include "Headers/RAWDataHeader.h"
 #include "MIDBase/DetectorParameters.h"
 #include "MIDBase/Mapping.h"
+#include "MIDRaw/ColumnDataToLocalBoard.h"
 #include "MIDRaw/CrateParameters.h"
+#include "MIDRaw/DecodedDataAggregator.h"
 #include "MIDRaw/Decoder.h"
+#include "MIDRaw/GBTUserLogicDecoder.h"
+#include "MIDRaw/GBTUserLogicEncoder.h"
 #include "MIDRaw/Encoder.h"
-#include "MIDRaw/CRUUserLogicDecoder.h"
-#include "MIDRaw/RawUnit.h"
 
 BOOST_AUTO_TEST_SUITE(o2_mid_raw)
 
@@ -53,18 +58,18 @@ std::vector<o2::mid::ColumnData> sortData(const std::vector<o2::mid::ColumnData>
   return sortedData;
 }
 
-void doTest(const o2::mid::EventType& inEventType, const std::map<uint16_t, std::vector<o2::mid::ColumnData>>& inData, const std::vector<o2::mid::ROFRecord>& rofRecords, const std::vector<o2::mid::ColumnData>& data)
+void doTest(const std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnData>>& inData, const std::vector<o2::mid::ROFRecord>& rofRecords, const std::vector<o2::mid::ColumnData>& data, const o2::mid::EventType inEventType = o2::mid::EventType::Standard)
 {
-  BOOST_TEST(rofRecords.size() == inData.size());
+  BOOST_REQUIRE(rofRecords.size() == inData.size());
   auto inItMap = inData.begin();
   for (auto rofIt = rofRecords.begin(); rofIt != rofRecords.end(); ++rofIt) {
     BOOST_TEST(static_cast<int>(rofIt->eventType) == static_cast<int>(inEventType));
-    BOOST_TEST(rofIt->interactionRecord.bc == inItMap->first);
+    BOOST_TEST(rofIt->interactionRecord == inItMap->first);
     BOOST_TEST(rofIt->nEntries == inItMap->second.size());
     auto sortedIn = sortData(inItMap->second, 0, inItMap->second.size());
     auto sortedOut = sortData(data, rofIt->firstEntry, rofIt->firstEntry + rofIt->nEntries);
+    BOOST_REQUIRE(sortedOut.size() == sortedIn.size());
     for (size_t icol = 0; icol < sortedOut.size(); ++icol) {
-      // size_t inCol = icol - rofIt->firstEntry;
       BOOST_TEST(sortedOut[icol].deId == sortedIn[icol].deId);
       BOOST_TEST(sortedOut[icol].columnId == sortedIn[icol].columnId);
       BOOST_TEST(sortedOut[icol].getNonBendPattern() == sortedIn[icol].getNonBendPattern());
@@ -76,124 +81,183 @@ void doTest(const o2::mid::EventType& inEventType, const std::map<uint16_t, std:
   }
 }
 
-BOOST_AUTO_TEST_CASE(RawBuffer)
+std::tuple<std::vector<o2::mid::ColumnData>, std::vector<o2::mid::ROFRecord>> encodeDecode(std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnData>> inData, o2::mid::EventType inEventType = o2::mid::EventType::Standard)
 {
-  std::vector<o2::InteractionRecord> HBIRVec;
-  const o2::raw::HBFUtils& hbfUtils = o2::raw::HBFUtils::Instance();
-  o2::InteractionRecord irFrom = hbfUtils.getFirstIR();
-  o2::InteractionRecord ir(5, 4);
-  hbfUtils.fillHBIRvector(HBIRVec, irFrom, ir);
-  std::vector<uint8_t> bytes;
-  unsigned int memSize = 0;
-  for (auto& hbIr : HBIRVec) {
-    auto rdh = hbfUtils.createRDH<o2::header::RAWDataHeader>(hbIr);
-    rdh.offsetToNext = (hbIr.orbit == ir.orbit) ? 0x2000 : rdh.headerSize;
-    rdh.memorySize = (hbIr.orbit == ir.orbit) ? 0x1000 : rdh.headerSize;
-    memSize = rdh.memorySize - rdh.headerSize;
-    auto rdhBuf = reinterpret_cast<const uint8_t*>(&rdh);
-    for (size_t ii = 0; ii < rdh.headerSize; ++ii) {
-      bytes.emplace_back(rdhBuf[ii]);
-    }
-    for (size_t ii = 0; ii < rdh.memorySize - rdh.headerSize; ++ii) {
-      bytes.emplace_back(ii);
-    }
-    for (size_t ii = 0; ii < rdh.offsetToNext - rdh.memorySize; ++ii) {
-      bytes.emplace_back(0);
-    }
+  auto severity = fair::Logger::GetConsoleSeverity();
+  fair::Logger::SetConsoleSeverity(fair::Severity::WARNING);
+  std::string tmpFilename = "tmp_mid_raw.dat";
+  o2::mid::Encoder encoder;
+  encoder.init(tmpFilename.c_str());
+  for (auto& item : inData) {
+    encoder.process(item.second, item.first, inEventType);
+  }
+  encoder.finalize();
 
-    if (bytes.size() < rdh.offsetToNext) {
-      o2::mid::RawBuffer<uint8_t> rb;
-      rb.setBuffer(bytes);
-      BOOST_TEST(rb.getRDH()->word0 == rdh.word0);
+  o2::raw::RawFileReader rawReader;
+  rawReader.addFile(tmpFilename.c_str());
+  rawReader.init();
+  std::vector<char> buffer;
+  for (size_t itf = 0; itf < rawReader.getNTimeFrames(); ++itf) {
+    rawReader.setNextTFToRead(itf);
+    for (size_t ilink = 0; ilink < rawReader.getNLinks(); ++ilink) {
+      auto& link = rawReader.getLink(ilink);
+      auto tfsz = link.getNextTFSize();
+      if (!tfsz) {
+        continue;
+      }
+      std::vector<char> linkBuffer(tfsz);
+      link.readNextTF(linkBuffer.data());
+      buffer.insert(buffer.end(), linkBuffer.begin(), linkBuffer.end());
     }
   }
+  fair::Logger::SetConsoleSeverity(severity);
 
-  o2::mid::RawBuffer<uint8_t> rb;
-  size_t nHeaders = 0;
-  rb.setBuffer(bytes);
-  // Reads only the headers
-  while (rb.nextHeader()) {
-    ++nHeaders;
-  }
-  BOOST_TEST(nHeaders == HBIRVec.size());
+  std::remove(tmpFilename.c_str());
 
-  // Set buffer again after full reset
-  rb.setBuffer(bytes, o2::mid::RawBuffer<uint8_t>::ResetMode::all);
-  rb.next();
-  BOOST_TEST(static_cast<int>(rb.next()) == 1);
+  o2::mid::Decoder<o2::mid::GBTUserLogicDecoder> decoder;
+  gsl::span<const uint8_t> data(reinterpret_cast<uint8_t*>(buffer.data()), buffer.size());
+  decoder.process(data);
 
-  if (!rb.hasNext(memSize - 1)) {
-    // Set buffer but keep unconsumed
-    rb.setBuffer(bytes);
-    // This should come from the last unconsumed buffer
-    BOOST_TEST(static_cast<int>(rb.next()) == 2);
+  o2::mid::DecodedDataAggregator aggregator;
+  aggregator.process(decoder.getData(), decoder.getROFRecords());
 
-    for (int ibyte = 0; ibyte < memSize; ++ibyte) {
-      rb.next();
-    }
-    // And this comes from the new buffer
-    BOOST_TEST(static_cast<int>(rb.next()) == 3);
-  }
+  return std::make_tuple(aggregator.getData(), aggregator.getROFRecords());
 }
 
-BOOST_AUTO_TEST_CASE(CRUUserLogicDecoder)
+BOOST_AUTO_TEST_CASE(ColumnDataConverter)
+{
+  std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnData>> inData;
+  o2::InteractionRecord ir(100, 0);
+  // Crate 5 link 0
+  inData[ir].emplace_back(getColData(2, 4, 0x1, 0xFFFF));
+
+  ir.bc = 200;
+  inData[ir].emplace_back(getColData(3, 4, 0xFF00, 0xFF));
+  inData[ir].emplace_back(getColData(12, 4, 0xFF));
+
+  std::vector<o2::mid::ROFRecord> rofs;
+  std::vector<o2::mid::LocalBoardRO> outData;
+  auto inEventType = o2::mid::EventType::Standard;
+  o2::mid::ColumnDataToLocalBoard converter;
+  for (auto& item : inData) {
+    converter.process(item.second);
+    auto firstEntry = outData.size();
+    for (auto& gbtItem : converter.getData()) {
+      auto crateId = o2::mid::crateparams::getCrateIdFromROId(gbtItem.first);
+      for (auto& loc : gbtItem.second) {
+        // The crate ID information is not encoded in the local board information,
+        // since it is not needed at this level (it is encoded in the feeId)
+        // However, when we put the info back together, we need to know the crate ID
+        // So we encode it in the local board ID in the output
+        outData.emplace_back(loc);
+        outData.back().boardId = o2::mid::crateparams::makeUniqueLocID(crateId, loc.boardId);
+      }
+      rofs.push_back({item.first, inEventType, firstEntry, outData.size() - firstEntry});
+    }
+  }
+
+  o2::mid::DecodedDataAggregator aggregator;
+  aggregator.process(outData, rofs);
+
+  doTest(inData, aggregator.getROFRecords(), aggregator.getData());
+}
+
+BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
 {
   /// Event with just one link fired
 
-  std::map<uint16_t, std::vector<o2::mid::ColumnData>> inData;
+  std::map<uint16_t, std::vector<o2::mid::LocalBoardRO>> inData;
   uint16_t bc = 100;
+  o2::mid::LocalBoardRO loc;
   // Crate 5 link 0
-  inData[bc].emplace_back(getColData(2, 4, 0, 0xFFFF));
+  loc.statusWord = o2::mid::raw::sSTARTBIT | o2::mid::raw::sCARDTYPE;
+  loc.triggerWord = 0;
+  loc.boardId = 2;
+  loc.firedChambers = 0x1;
+  loc.patternsBP[0] = 0xF;
+  loc.patternsNBP[0] = 0xF;
+  inData[bc].emplace_back(loc);
 
   bc = 200;
-  inData[bc].emplace_back(getColData(3, 4, 0xFF00, 0xFF));
-  o2::mid::Encoder encoder;
-  uint32_t orbit = 0;
+  loc.patternsBP.fill(0);
+  loc.patternsNBP.fill(0);
+  loc.boardId = 5;
+  loc.firedChambers = 0x4;
+  loc.patternsBP[2] = 0xF0;
+  loc.patternsNBP[2] = 0x5;
+  inData[bc].emplace_back(loc);
+
+  uint8_t crateId = 5;
+  uint8_t linkInCrate = 0;
+  uint16_t feeId = o2::mid::crateparams::makeROId(crateId, linkInCrate);
+  o2::mid::GBTUserLogicEncoder encoder;
+  encoder.setFeeId(feeId);
   for (auto& item : inData) {
-    o2::InteractionRecord ir(item.first, orbit);
-    encoder.process(item.second, ir, o2::mid::EventType::Standard);
+    encoder.process(item.second, item.first);
   }
-  o2::mid::CRUUserLogicDecoder CRUUserLogicDecoder;
-  CRUUserLogicDecoder.process(encoder.getBuffer());
-  BOOST_TEST(CRUUserLogicDecoder.getROFRecords().size() == inData.size());
+  o2::header::RAWDataHeader rdh;
+  auto memSize = encoder.getBufferSize() + 64;
+  rdh.word1 |= (memSize | (memSize << 16));
+  // Sets the feeId
+  rdh.word0 |= ((5 * 2) << 16);
+  o2::mid::GBTUserLogicDecoder decoder;
+  decoder.init(feeId);
+  decoder.process(encoder.getBuffer(), rdh);
+  BOOST_REQUIRE(decoder.getROFRecords().size() == inData.size());
+  auto inItMap = inData.begin();
+  for (auto rofIt = decoder.getROFRecords().begin(); rofIt != decoder.getROFRecords().end(); ++rofIt) {
+    BOOST_TEST(rofIt->interactionRecord.bc == inItMap->first);
+    BOOST_TEST(rofIt->nEntries == inItMap->second.size());
+    auto outLoc = decoder.getData().begin() + rofIt->firstEntry;
+    for (auto inLoc = inItMap->second.begin(); inLoc != inItMap->second.end(); ++inLoc) {
+      BOOST_TEST(inLoc->statusWord == outLoc->statusWord);
+      BOOST_TEST(inLoc->triggerWord == outLoc->triggerWord);
+      BOOST_TEST(o2::mid::crateparams::makeUniqueLocID(crateId, inLoc->boardId) == outLoc->boardId);
+      BOOST_TEST(inLoc->firedChambers == outLoc->firedChambers);
+      for (int ich = 0; ich < 4; ++ich) {
+        BOOST_TEST(inLoc->patternsBP[ich] == outLoc->patternsBP[ich]);
+        BOOST_TEST(inLoc->patternsNBP[ich] == outLoc->patternsNBP[ich]);
+      }
+      ++outLoc;
+    }
+    ++inItMap;
+  }
 }
 
 BOOST_AUTO_TEST_CASE(SmallSample)
 {
-  std::map<uint16_t, std::vector<o2::mid::ColumnData>> inData;
+  /// Event with just one link fired
+
+  std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnData>> inData;
   // Small standard event
-  uint16_t bc = 100;
+  o2::InteractionRecord ir(100, 0);
 
   // Crate 5 link 0
-  inData[bc].emplace_back(getColData(2, 4, 0, 0xFFFF));
-  inData[bc].emplace_back(getColData(11, 4, 0, 0xFFFF));
+  inData[ir].emplace_back(getColData(2, 4, 0x1, 0xFFFF));
+  inData[ir].emplace_back(getColData(11, 4, 0x3, 0xFFFF));
 
   // Crate 1 link 1 and crate 2 link 0
-  inData[bc].emplace_back(getColData(5, 1, 0xFFFF, 0, 0xF, 0xF0));
+  inData[ir].emplace_back(getColData(5, 1, 0xFFFF, 0, 0xF, 0xF0));
   // Crate 10 link 1 and crate 11 link 1
-  inData[bc].emplace_back(getColData(41, 2, 0xFF0F, 0, 0xF0FF, 0xF));
-  bc = 200;
+  inData[ir].emplace_back(getColData(41, 2, 0xFF0F, 0, 0xF0FF, 0xF));
+  ir.bc = 200;
+  ir.orbit = 1;
   // Crate 12 link 1
-  inData[bc].emplace_back(getColData(70, 3, 0xFF00, 0xFF));
-  o2::mid::EventType inEventType = o2::mid::EventType::Standard;
-  o2::mid::Encoder encoder;
-  uint32_t orbit = 0;
-  for (auto& item : inData) {
-    o2::InteractionRecord ir(item.first, orbit);
-    encoder.process(item.second, ir, o2::mid::EventType::Standard);
-  }
-  o2::mid::Decoder decoder;
-  decoder.process(encoder.getBuffer());
-  doTest(inEventType, inData, decoder.getROFRecords(), decoder.getData());
+  inData[ir].emplace_back(getColData(70, 3, 0xFF00, 0xFF));
+
+  auto [data, rofs] = encodeDecode(inData);
+
+  doTest(inData, rofs, data);
 }
 
 BOOST_AUTO_TEST_CASE(LargeBufferSample)
 {
   o2::mid::Mapping mapping;
-  std::map<uint16_t, std::vector<o2::mid::ColumnData>> inData;
+  std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnData>> inData;
   // Big event that should pass the 8kB
-  for (int irepeat = 0; irepeat < 150; ++irepeat) {
-    uint16_t bc = 1 + irepeat;
+  o2::InteractionRecord ir(0, 0);
+  for (int irepeat = 0; irepeat < 4000; ++irepeat) {
+    ++ir;
     for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
       // Since we have 1 RDH per GBT, we can put data only on 1 column
       int icol = 4;
@@ -201,32 +265,13 @@ BOOST_AUTO_TEST_CASE(LargeBufferSample)
       if (mapping.getFirstBoardBP(icol, ide) != 0) {
         continue;
       }
-      inData[bc].emplace_back(getColData(ide, icol, 0xFF00, 0xFFFF));
+      inData[ir].emplace_back(getColData(ide, icol, 0xFF00, 0xFFFF));
     }
   }
-  o2::mid::EventType inEventType = o2::mid::EventType::Standard;
-  o2::mid::Encoder encoder;
-  uint32_t orbit = 0;
-  for (auto& item : inData) {
-    o2::InteractionRecord ir(item.first, orbit);
-    encoder.process(item.second, ir, inEventType);
-  }
-  o2::mid::Decoder decoder;
-  decoder.process(encoder.getBuffer());
-  doTest(inEventType, inData, decoder.getROFRecords(), decoder.getData());
-}
 
-BOOST_AUTO_TEST_CASE(RawHeaderOnly)
-{
-  o2::mid::Encoder encoder;
-  std::vector<o2::mid::ColumnData> data;
-  for (uint32_t iorbit = 1; iorbit < 10; ++iorbit) {
-    o2::InteractionRecord ir(0, iorbit);
-    encoder.process(data, ir, o2::mid::EventType::Standard);
-  }
-  o2::mid::Decoder decoder;
-  decoder.process(encoder.getBuffer());
-  BOOST_TEST(decoder.getROFRecords().size() == 0);
+  auto [data, rofs] = encodeDecode(inData);
+
+  doTest(inData, rofs, data);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

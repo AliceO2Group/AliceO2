@@ -21,27 +21,13 @@ namespace o2
 {
 namespace mid
 {
-// Local board patterns
-static constexpr unsigned int sNBitsLocId = 4;
-static constexpr unsigned int sNBitsFiredStrips = 16;
 
-// Column info
-static constexpr unsigned int sNBitsCrateId = 4;
-static constexpr unsigned int sNBitsNFiredBoards = 4;
-
-// Chamber info
-static constexpr unsigned int sNBitsFiredChambers = 4;
-
-// Local clock
-static constexpr unsigned int sNBitsLocalClock = 16;
-
-// Event info
-static constexpr unsigned int sNBitsTriggerWord = 8;
+/// Parameters for local board encoding/decoding
+// The delays are in local clocks, and correspond to the LHC clocks (aka BCs)
 static constexpr uint16_t sDelayCalibToFET = 10;
 static constexpr uint16_t sDelayBCToLocal = 0;
+static constexpr uint16_t sDelayRegToLocal = 3;
 
-// Buffer info
-static constexpr unsigned int sMaxPageSize = 0x2000;
 } // namespace mid
 } // namespace o2
 

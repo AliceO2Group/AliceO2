@@ -21,6 +21,8 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
 #include "ITSMFTReconstruction/Clusterer.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
+#include "ITSMFTReconstruction/GBTLink.h"
 #include "ITSMFTWorkflow/STFDecoderSpec.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -60,6 +62,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   auto detID = Mapping::getDetID();
   mNThreads = ic.options().get<int>("nthreads");
   mDecoder->setNThreads(mNThreads);
+  mDecoder->setFormat(ic.options().get<bool>("old-format") ? GBTLink::OldFormat : GBTLink::NewFormat);
+  mDecoder->setVerbosity(ic.options().get<int>("decoder-verbosity"));
   if (mDoClusters) {
     o2::base::GeometryManager::loadGeometry(); // for generating full clusters
     GeometryTGeo* geom = nullptr;
@@ -76,7 +80,9 @@ void STFDecoder<Mapping>::init(InitContext& ic)
 
     // settings for the fired pixel overflow masking
     const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
-    mClusterer->setMaxBCSeparationToMask(alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + 10);
+    const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
+    mClusterer->setMaxBCSeparationToMask(alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + clParams.maxBCDiffToMaskBias);
+    mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
     std::string dictFile = o2::base::NameConf::getDictionaryFileName(detID, mDictName, ".bin");
     if (o2::base::NameConf::pathExists(dictFile)) {
@@ -134,7 +140,8 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     LOG(INFO) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs";
   }
   mTimer.Stop();
-  LOG(INFO) << mSelfName << " Total time for this TF: CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
+  LOG(INFO) << mSelfName << " Total time for TF " << mTFCounter << " : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
+  mTFCounter++;
 }
 
 ///_______________________________________
@@ -196,7 +203,9 @@ DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool do
     outputs,
     AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, dict)},
     Options{
-      {"nthreads", VariantType::Int, 0, {"Number of decoding/clustering threads (<1: rely on openMP default)"}}}};
+      {"nthreads", VariantType::Int, 0, {"Number of decoding/clustering threads (<1: rely on openMP default)"}},
+      {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
+      {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data)"}}}};
 }
 
 DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict)
@@ -224,7 +233,9 @@ DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool do
     outputs,
     AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, dict)},
     Options{
-      {"nthreads", VariantType::Int, 0, {"Number of decoding/clustering threads (<1: rely on openMP default)"}}}};
+      {"nthreads", VariantType::Int, 0, {"Number of decoding/clustering threads (<1: rely on openMP default)"}},
+      {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
+      {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data)"}}}};
 }
 
 } // namespace itsmft

@@ -64,9 +64,14 @@ void GPUTPCTracker::InitializeProcessor()
   SetupCommonMemory();
 }
 
-void* GPUTPCTracker::SetPointersDataInput(void* mem) { return mData.SetPointersInput(mem, mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TPCMerging); }
+bool GPUTPCTracker::SliceDataOnGPU()
+{
+  return (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion) && (mRec->GetConstantMem().ioPtrs.clustersNative || mRec->GetConstantMem().ioPtrs.tpcZS || mRec->GetConstantMem().ioPtrs.tpcPackedDigits);
+}
 
-void* GPUTPCTracker::SetPointersDataScratch(void* mem) { return mData.SetPointersScratch(mem); }
+void* GPUTPCTracker::SetPointersDataInput(void* mem) { return mData.SetPointersInput(mem, mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging, SliceDataOnGPU()); }
+
+void* GPUTPCTracker::SetPointersDataScratch(void* mem) { return mData.SetPointersScratch(mem, mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging, SliceDataOnGPU()); }
 
 void* GPUTPCTracker::SetPointersDataRows(void* mem) { return mData.SetPointersRows(mem); }
 
@@ -86,7 +91,7 @@ void* GPUTPCTracker::SetPointersScratch(void* mem)
 void* GPUTPCTracker::SetPointersScratchHost(void* mem)
 {
   computePointerWithAlignment(mem, mLinkTmpMemory, mRec->Res(mMemoryResLinksScratch).Size());
-  mem = mData.SetPointersScratchHost(mem, mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TPCMerging);
+  mem = mData.SetPointersScratchHost(mem, mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging);
   return mem;
 }
 
@@ -157,20 +162,6 @@ void GPUTPCTracker::UpdateMaxData()
 }
 
 void GPUTPCTracker::SetupCommonMemory() { new (mCommonMem) commonMemoryStruct; }
-
-int GPUTPCTracker::ReadEvent()
-{
-  //* Convert input hits, create grids, etc.
-  if (mData.InitFromClusterData(mConstantMem, mISlice)) {
-    GPUError("Error initializing from cluster data");
-    return 1;
-  }
-  if (mData.MaxZ() > 300 && !Param().ContinuousTracking) {
-    GPUError("Need to set continuous tracking mode for data outside of the TPC volume!");
-    return 1;
-  }
-  return 0;
-}
 
 GPUh() int GPUTPCTracker::CheckEmptySlice()
 {

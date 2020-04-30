@@ -59,7 +59,7 @@ void GPUCATracking::deinitialize()
   mTrackingCAO2Interface.reset();
 }
 
-int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
+int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* outputs)
 {
   if ((int)(data->tpcZS != nullptr) + (int)(data->o2Digits != nullptr) + (int)(data->clusters != nullptr) != 1) {
     return 0;
@@ -118,7 +118,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
     ptrs.clustersNative = clusters;
     ptrs.tpcPackedDigits = nullptr;
   }
-  int retVal = mTrackingCAO2Interface->RunTracking(&ptrs);
+  int retVal = mTrackingCAO2Interface->RunTracking(&ptrs, outputs);
   if (data->o2Digits || data->tpcZS) {
     clusters = ptrs.clustersNative;
   }
@@ -304,4 +304,14 @@ void GPUCATracking::GetClusterErrors2(int row, float z, float sinPhi, float DzDs
     return;
   }
   mTrackingCAO2Interface->GetClusterErrors2(row, z, sinPhi, DzDs, clusterState, ErrY2, ErrZ2);
+}
+
+int GPUCATracking::registerMemoryForGPU(const void* ptr, size_t size)
+{
+  return mTrackingCAO2Interface->registerMemoryForGPU(ptr, size);
+}
+
+int GPUCATracking::unregisterMemoryForGPU(const void* ptr)
+{
+  return mTrackingCAO2Interface->unregisterMemoryForGPU(ptr);
 }

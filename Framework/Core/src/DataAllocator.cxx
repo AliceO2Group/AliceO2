@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/TableBuilder.h"
+#include "Framework/TableTreeHelpers.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/MessageContext.h"
 #include "Framework/ArrowContext.h"
@@ -153,9 +154,8 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
     auto table = payload->finalize();
 
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
-    std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
-    auto outBatch = arrow::ipc::RecordBatchStreamWriter::Open(stream.get(), table->schema(), &writer);
-    auto outStatus = writer->WriteTable(*table);
+    auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
+    auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
     if (outStatus.ok() == false) {
       throw std::runtime_error("Unable to Write table");
     }
@@ -190,8 +190,8 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
 
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
     std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
-    auto outBatch = arrow::ipc::RecordBatchStreamWriter::Open(stream.get(), table->schema(), &writer);
-    auto outStatus = writer->WriteTable(*table);
+    auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
+    auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
     if (outStatus.ok() == false) {
       throw std::runtime_error("Unable to Write table");
     }
@@ -211,36 +211,12 @@ void DataAllocator::snapshot(const Output& spec, const char* payload, size_t pay
   addPartToContext(std::move(payloadMessage), spec, serializationMethod);
 }
 
-void DataAllocator::create(const Output& spec,
-                           std::shared_ptr<arrow::ipc::RecordBatchWriter>* writer,
-                           std::shared_ptr<arrow::Schema> schema)
-{
-  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
-  auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
-  auto context = mContextRegistry->get<ArrowContext>();
-
-  auto creator = [device = context->proxy().getDevice()](size_t s) -> std::unique_ptr<FairMQMessage> { return device->NewMessage(s); };
-  auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
-  auto stream = std::make_shared<arrow::io::BufferOutputStream>(buffer);
-  auto outBatch = arrow::ipc::RecordBatchStreamWriter::Open(stream.get(), schema, writer);
-
-  auto finalizer = [stream](std::shared_ptr<FairMQResizableBuffer>) -> void {
-    auto s = stream->Close();
-    if (s.ok() == false) {
-      throw std::runtime_error("Error while closing stream");
-    }
-  };
-
-  assert(context);
-  context->addBuffer(std::move(header), buffer, std::move(finalizer), channel);
-}
-
 Output DataAllocator::getOutputByBind(OutputRef&& ref)
 {
   if (ref.label.empty()) {
     throw std::runtime_error("Invalid (empty) OutputRef provided.");
   }
-  for (size_t ri = 0, re = mAllowedOutputRoutes.size(); ri != re; ++ri) {
+  for (auto ri = 0ul, re = mAllowedOutputRoutes.size(); ri != re; ++ri) {
     if (mAllowedOutputRoutes[ri].matcher.binding.value == ref.label) {
       auto spec = mAllowedOutputRoutes[ri].matcher;
       auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);

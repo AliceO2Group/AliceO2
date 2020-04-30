@@ -35,9 +35,15 @@ class SymbolStatistics
    public:
     Iterator(size_t index, const SymbolStatistics& stats);
 
+    using difference_type = int64_t;
+    using value_type = std::pair<uint32_t, uint32_t>;
+    using pointer = const std::pair<uint32_t, uint32_t>*;
+    using reference = const std::pair<uint32_t, uint32_t>&;
+    using iterator_category = std::random_access_iterator_tag;
+
     const Iterator& operator++();
 
-    std::pair<uint32_t, uint32_t> operator*() const;
+    value_type operator*() const;
 
     bool operator!=(const Iterator& other) const;
 
@@ -50,7 +56,10 @@ class SymbolStatistics
   template <typename IT>
   SymbolStatistics(const IT begin, const IT end, size_t range = 0);
 
-  void rescaleFrequencyTable(uint32_t newCumulatedFrequency);
+  template <typename IT>
+  SymbolStatistics(const IT begin, const IT end, size_t min, size_t max, size_t messageLength);
+
+  void rescaleToNBits(size_t bits);
 
   int getMinSymbol() const;
   int getMaxSymbol() const;
@@ -94,6 +103,18 @@ SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t range)
   buildCumulativeFrequencyTable();
 
   mMessageLength = mCumulativeFrequencyTable.back();
+}
+
+template <typename IT>
+SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t min, size_t max, size_t messageLength) : mMin(min), mMax(max), mNUsedAlphabetSymbols(0), mMessageLength(messageLength), mFrequencyTable(begin, end), mCumulativeFrequencyTable()
+{
+  for (auto i : mFrequencyTable) {
+    if (i > 0) {
+      mNUsedAlphabetSymbols++;
+    }
+  }
+
+  buildCumulativeFrequencyTable();
 }
 
 template <typename IT>

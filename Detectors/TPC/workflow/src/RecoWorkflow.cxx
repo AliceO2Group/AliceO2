@@ -194,7 +194,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   // output matrix
   // Note: the ClusterHardware format is probably a deprecated legacy format and also the
   // ClusterDecoderRawSpec
-  bool produceCompClusters = isEnabled(OutputType::CompClusters) || isEnabled(OutputType::EncodedClusters);
+  bool produceCompClusters = isEnabled(OutputType::CompClusters);
   bool produceTracks = isEnabled(OutputType::Tracks);
   bool runTracker = produceTracks || produceCompClusters;
   bool runHWDecoder = !caClusterer && (runTracker || isEnabled(OutputType::Clusters));
@@ -394,6 +394,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                    zsDecoder ? ca::Operation::ZSDecoder : ca::Operation::Noop,
                                                    produceTracks ? ca::Operation::OutputTracks : ca::Operation::Noop,
                                                    produceCompClusters ? ca::Operation::OutputCompClusters : ca::Operation::Noop,
+                                                   runClusterEncoder ? ca::Operation::OutputCompClustersFlat : ca::Operation::Noop,
                                                    isEnabled(OutputType::Clusters) && caClusterer ? ca::Operation::OutputCAClusters : ca::Operation::Noop,
                                                  },
                                                  laneConfiguration));
@@ -405,7 +406,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   //
   // selected by output type 'encoded-clusters'
   if (runClusterEncoder) {
-    specs.emplace_back(o2::tpc::getEntropyEncoderSpec());
+    specs.emplace_back(o2::tpc::getEntropyEncoderSpec(!runTracker));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -431,7 +432,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                        "TPCTracks", "track-branch-name"};              //
     auto clrefdef = BranchDefinition<ClusRefsOutputType>{InputSpec{"inputClusRef", "TPC", "CLUSREFS"}, //
                                                          "ClusRefs", "trackclusref-branch-name"};      //
-    auto mcdef = BranchDefinition<MCLabelContainer>{InputSpec{"mcinput", "TPC", "TRACKMCLBL"},         //
+    auto mcdef = BranchDefinition<MCLabelContainer>{InputSpec{"mcinput", "TPC", "TRACKSMCLBL"},        //
                                                     "TPCTracksMCTruth", "trackmc-branch-name"};        //
 
     // depending on the MC propagation flag, the RootTreeWriter spec is created with 3 or 2
@@ -464,7 +465,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     const char* defaultTreeName = "tpcrec";
 
     //branch definitions for RootTreeWriter spec
-    using CCluSerializedType = ROOTSerialized<CompressedClusters>;
+    using CCluSerializedType = ROOTSerialized<CompressedClustersROOT>;
     auto ccldef = BranchDefinition<CCluSerializedType>{InputSpec{"inputCompCl", "TPC", "COMPCLUSTERS"}, //
                                                        "TPCCompClusters_0", "compcluster-branch-name"}; //
 

@@ -17,6 +17,7 @@
 #include "ITSWorkflow/ClustererSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -64,7 +65,9 @@ void ClustererDPL::init(InitContext& ic)
 
   // settings for the fired pixel overflow masking
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-  mClusterer->setMaxBCSeparationToMask(alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + 10);
+  const auto& clParams = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance();
+  mClusterer->setMaxBCSeparationToMask(alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + clParams.maxBCDiffToMaskBias);
+  mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
   std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");

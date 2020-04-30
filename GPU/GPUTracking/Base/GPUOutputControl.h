@@ -15,8 +15,9 @@
 #define GPUOUTPUTCONTROL_H
 
 #include "GPUCommonDef.h"
-#ifndef GPUCA_GPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cstddef>
+#include <new>
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -28,6 +29,17 @@ struct GPUOutputControl {
                           UseExternalBuffer = 1 };
 #ifndef GPUCA_GPUCODE_DEVICE
   GPUOutputControl() = default;
+  void set(void* ptr, size_t size)
+  {
+    new (this) GPUOutputControl;
+    OutputType = GPUOutputControl::UseExternalBuffer;
+    OutputBase = OutputPtr = (char*)ptr;
+    OutputMaxSize = size;
+  }
+  void reset()
+  {
+    new (this) GPUOutputControl;
+  }
 #endif
 
   void* OutputBase = nullptr;                     // Base ptr to memory pool, occupied size is OutputPtr - OutputBase

@@ -25,8 +25,8 @@ using namespace o2::passive;
 
 Hall::~Hall() = default;
 
-Hall::Hall() : FairModule("Hall", "") {}
-Hall::Hall(const char* name, const char* Title) : FairModule(name, Title) {}
+Hall::Hall() : PassiveBase("HALL", "") {}
+Hall::Hall(const char* name, const char* Title) : PassiveBase(name, Title) {}
 Hall::Hall(const Hall& rhs) = default;
 
 Hall& Hall::operator=(const Hall& rhs)
@@ -36,7 +36,7 @@ Hall& Hall::operator=(const Hall& rhs)
     return *this;
 
   // base class assignment
-  FairModule::operator=(rhs);
+  PassiveBase::operator=(rhs);
 
   return *this;
 }

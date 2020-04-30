@@ -82,10 +82,10 @@ class TrackerTraitsHIP : public TrackerTraits
 /*
 // Not using templated kernel any more, since nvidia profiler does not resolve template names
 template <class T, int I, typename... Args>
-GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice, Args... args)
+GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice_internal, Args... args)
 {
   GPUshared() typename T::GPUSharedMemory smem;
-  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(GPUCA_CONSMEM)[iSlice], args...);
+  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(GPUCA_CONSMEM)[iSlice_internal], args...);
 }
 */
 
@@ -418,7 +418,7 @@ int GPUReconstructionHIPBackend::ExitDevice_Runtime()
   return (0);
 }
 
-size_t GPUReconstructionHIPBackend::GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+size_t GPUReconstructionHIPBackend::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
   if (mDeviceProcessingSettings.debugLevel >= 3) {
     stream = -1;
@@ -433,7 +433,7 @@ size_t GPUReconstructionHIPBackend::GPUMemCpy(void* dst, const void* src, size_t
     for (int k = 0; k < nEvents; k++) {
       GPUFailedMsg(hipStreamWaitEvent(mInternals->HIPStreams[stream], ((hipEvent_t*)evList)[k], 0));
     }
-    GPUFailedMsg(hipMemcpyAsync(dst, src, size, toGPU ? hipMemcpyHostToDevice : hipMemcpyDeviceToHost, mInternals->HIPStreams[stream]));
+    GPUFailedMsg(hipMemcpyAsync(dst, src, size, toGPU == -2 ? hipMemcpyDeviceToDevice : toGPU ? hipMemcpyHostToDevice : hipMemcpyDeviceToHost, mInternals->HIPStreams[stream]));
   }
   if (ev) {
     GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->HIPStreams[stream == -1 ? 0 : stream]));
@@ -450,7 +450,7 @@ size_t GPUReconstructionHIPBackend::TransferMemoryInternal(GPUMemoryResource* re
     return 0;
   }
   if (mDeviceProcessingSettings.debugLevel >= 3) {
-    GPUInfo(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s", res->Name());
+    GPUInfo("Copying to %s: %s - %lld bytes", toGPU ? "GPU" : "Host", res->Name(), (long long int)res->Size());
   }
   return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }

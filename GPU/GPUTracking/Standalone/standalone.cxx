@@ -245,7 +245,10 @@ int SetupReconstruction()
   if (!configStandalone.eventGenerator) {
     char filename[256];
     snprintf(filename, 256, "events/%s/", configStandalone.EventsDir);
-    rec->ReadSettings(filename);
+    if (rec->ReadSettings(filename)) {
+      printf("Error reading event config file\n");
+      return 1;
+    }
     printf("Read event settings from dir %s (solenoidBz: %f, home-made events %d, constBz %d, maxTimeBin %d)\n", filename, rec->GetEventSettings().solenoidBz, (int)rec->GetEventSettings().homemadeEvents, (int)rec->GetEventSettings().constBz, rec->GetEventSettings().continuousMaxTimeBin);
     if (configStandalone.testSyncAsync) {
       recAsync->ReadSettings(filename);
@@ -387,6 +390,7 @@ int SetupReconstruction()
     devProc.trackletSelectorInPipeline = configStandalone.configProc.selectorPipeline;
   }
   devProc.mergerSortTracks = configStandalone.configProc.mergerSortTracks;
+  devProc.tpcCompressionGatherMode = configStandalone.configProc.tpcCompressionGatherMode;
 
   steps.steps = GPUReconstruction::RecoStep::AllRecoSteps;
   if (configStandalone.configRec.runTRD != -1) {
@@ -430,6 +434,7 @@ int SetupReconstruction()
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCMergedTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCMerging));
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUReconstruction::RecoStep::TPCCompression));
   steps.outputs.setBits(GPUDataTypes::InOutType::TRDTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TRDTracking));
+  steps.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, steps.steps.isSet(GPUReconstruction::RecoStep::TPCClusterFinding));
 
   if (configStandalone.testSyncAsync) {
     // Set settings for synchronous
@@ -698,10 +703,17 @@ int main(int argc, char** argv)
           rec->SetResetTimers(j1 < configStandalone.runsInit);
 
           if (configStandalone.testSyncAsync) {
+            recAsync->SetResetTimers(j1 < configStandalone.runsInit);
             printf("Running synchronous phase\n");
           }
           chainTracking->mIOPtrs = ioPtrSave;
+          if (configStandalone.controlProfiler && j1 == configStandalone.runs - 1) {
+            rec->startGPUProfiling();
+          }
           int tmpRetVal = rec->RunChains();
+          if (configStandalone.controlProfiler && j1 == configStandalone.runs - 1) {
+            rec->endGPUProfiling();
+          }
           nEventsProcessed += (j1 == 0);
 
           if (tmpRetVal == 0 || tmpRetVal == 2) {
@@ -743,7 +755,13 @@ int main(int argc, char** argv)
               chainTrackingAsync->mIOPtrs.nRawClusters[i] = 0;
             }
             chainTrackingAsync->mIOPtrs.clustersNative = &clNativeAccess;
+            if (configStandalone.controlProfiler && j1 == configStandalone.runs - 1) {
+              rec->startGPUProfiling();
+            }
             tmpRetVal = recAsync->RunChains();
+            if (configStandalone.controlProfiler && j1 == configStandalone.runs - 1) {
+              rec->endGPUProfiling();
+            }
             if (tmpRetVal == 0 || tmpRetVal == 2) {
               OutputStat(chainTrackingAsync, nullptr, nullptr);
               if (configStandalone.memoryStat) {

@@ -15,149 +15,94 @@
 
 #include "MIDRaw/Encoder.h"
 
-#include "MIDBase/DetectorParameters.h"
+#include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RDHUtils.h"
+#include "MIDRaw/CrateMasks.h"
 
 namespace o2
 {
 namespace mid
 {
 
-void Encoder::clear()
+void Encoder::init(const char* filename, int verbosity)
 {
-  /// Reset bytes
-  for (auto& linkEnc : mCRUUserLogicEncoders) {
-    linkEnc.clear();
+  /// Initializes links
+
+  CrateMasks masks;
+  auto gbtIds = mFEEIdConfig.getConfiguredGBTIds();
+  mRawWriter.setVerbosity(verbosity);
+  for (auto& gbtId : gbtIds) {
+    auto feeId = mFEEIdConfig.getFeeId(gbtId);
+    mRawWriter.registerLink(feeId, mFEEIdConfig.getCRUId(gbtId), mFEEIdConfig.getLinkId(gbtId), mFEEIdConfig.getEndPointId(gbtId), filename);
+    mGBTEncoders[feeId].setFeeId(feeId);
+    mGBTEncoders[feeId].setMask(masks.getMask(feeId));
+    mGBTIds[feeId] = gbtId;
   }
-  mBytes.clear();
 }
 
-void Encoder::newHeader(const InteractionRecord& ir)
+void Encoder::hbTrigger(const InteractionRecord& ir)
 {
-  /// Add new RDH
+  /// Processes HB trigger
+  if (mLastIR.isDummy()) {
+    // This is the first HB
+    for (uint16_t feeId = 0; feeId < crateparams::sNGBTs; ++feeId) {
+      mGBTEncoders[feeId].processTrigger(o2::constants::lhc::LHCMaxBunches, raw::sORB);
+    }
+    mLastIR = o2::raw::HBFUtils::Instance().getFirstIR();
+    return;
+  }
+
   std::vector<InteractionRecord> HBIRVec;
-  mHBFUtils.fillHBIRvector(HBIRVec, mLastIR, ir);
-  mLastIR = ir + 1;
+  o2::raw::HBFUtils::Instance().fillHBIRvector(HBIRVec, mLastIR + 1, ir);
   for (auto& hbIr : HBIRVec) {
-    auto rdh = mHBFUtils.createRDH<header::RAWDataHeader>(hbIr);
-    for (auto linkEncIt = mCRUUserLogicEncoders.begin(); linkEncIt != mCRUUserLogicEncoders.end(); ++linkEncIt) {
-      if (rdh.triggerType & o2::trigger::TF || linkEncIt->getBufferSize() * raw::sElementSizeInBytes >= mMaxSuperpageSize) {
-        flushGBT(*linkEncIt);
-      }
-      // The link ID is sequential
-      uint16_t feeId = linkEncIt - mCRUUserLogicEncoders.begin();
-      linkEncIt->newHeader(feeId, rdh);
+    for (uint16_t feeId = 0; feeId < crateparams::sNGBTs; ++feeId) {
+      flush(feeId, mLastIR);
+      mGBTEncoders[feeId].processTrigger(o2::constants::lhc::LHCMaxBunches, raw::sORB);
     }
+    mLastIR = hbIr;
   }
+  mLastIR = ir;
 }
 
-void Encoder::setHeaderOffset(bool headerOffset)
+void Encoder::flush(uint16_t feeId, const InteractionRecord& ir)
 {
-  for (auto& linkEnc : mCRUUserLogicEncoders) {
-    linkEnc.setHeaderOffset(headerOffset);
+  /// Flushes data
+
+  if (mGBTEncoders[feeId].getBufferSize() == 0) {
+    return;
   }
+  size_t dataSize = mGBTEncoders[feeId].getBufferSize();
+  size_t resto = dataSize % o2::raw::RDHUtils::GBTWord;
+  if (dataSize % o2::raw::RDHUtils::GBTWord) {
+    dataSize += o2::raw::RDHUtils::GBTWord - resto;
+  }
+  std::vector<char> buf(dataSize);
+  memcpy(buf.data(), mGBTEncoders[feeId].getBuffer().data(), mGBTEncoders[feeId].getBufferSize());
+  mRawWriter.addData(feeId, mFEEIdConfig.getCRUId(mGBTIds[feeId]), mFEEIdConfig.getLinkId(mGBTIds[feeId]), mFEEIdConfig.getEndPointId(mGBTIds[feeId]), ir, buf);
+  mGBTEncoders[feeId].clear();
 }
 
-bool Encoder::convertData(gsl::span<const ColumnData> data)
+void Encoder::finalize(bool closeFile)
 {
-  /// Convert incoming data to FEE format
-  mROData.clear();
-  for (auto& col : data) {
-    for (int iline = 0; iline < 4; ++iline) {
-      if (col.getBendPattern(iline) == 0) {
-        continue;
-      }
-      auto uniqueLocId = mCrateMapper.deLocalBoardToRO(col.deId, col.columnId, iline);
-      auto& roData = mROData[uniqueLocId];
-      roData.boardId = crateparams::getLocId(uniqueLocId);
-      int ich = detparams::getChamber(col.deId);
-      roData.firedChambers |= (1 << ich);
-      roData.patternsBP[ich] = col.getBendPattern(iline);
-      roData.patternsNBP[ich] = col.getNonBendPattern();
-    }
+  /// Finish the flushing and closes the
+  for (uint16_t feeId = 0; feeId < crateparams::sNGBTs; ++feeId) {
+    flush(feeId, mLastIR);
   }
-  return mROData.empty();
+  if (closeFile) {
+    mRawWriter.close();
+  }
 }
 
 void Encoder::process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType)
 {
-  /// Encode data
-  if (mLastIR.isDummy()) {
-    mLastIR = mHBFUtils.getFirstIR();
-  }
-  if (mSkipEmptyTFs) {
-    // This is useful when converting Run 2 data to the new format
-    // Since the first orbit is a very large number.
-    // Moreover, many orbits are empty in pp collisions.
-    auto lastTF = mHBFUtils.getTF(mLastIR);
-    auto currentTF = mHBFUtils.getTF(ir);
-    if (currentTF > lastTF) {
-      finalize();
-      mLastIR = mHBFUtils.getIRTF(currentTF);
-    }
-  }
-  newHeader(ir);
+  /// Encodes data
+  hbTrigger(ir);
 
-  if (convertData(data)) {
-    return;
-  }
+  mConverter.process(data);
 
-  std::vector<LocalBoardRO> localBoardROs;
-  localBoardROs.reserve(8);
-  uint16_t lastROId = crateparams::sNGBTs + 1;
-  // The local board ID is defined as:
-  // board ID in crate [0-3]
-  // crate ID [4-7]
-  // With this definition, the local boards within the same crate have a sequential ID
-  // This is important since it means that the boards within the same crate are ordered in the mROData map.
-  // So, we can cumulate the strip pattern of one link, and process them when we switch to another link
-  for (auto& item : mROData) {
-    auto crateId = crateparams::getCrateId(item.first);
-    auto roId = crateparams::makeROId(crateId, crateparams::getGBTIdFromBoardInCrate(item.second.boardId));
-    if (roId != lastROId) {
-      // We are in a new link
-      // Let us check that this is not just the first board
-      if (lastROId < crateparams::sNGBTs) {
-        // We process the collected boards since they belong to the same link
-        mCRUUserLogicEncoders[lastROId].process(localBoardROs, ir.bc, eventType);
-        // And we clear the vector so that we can start collecting the board of a new link
-        localBoardROs.clear();
-      }
-      lastROId = roId;
-    }
-    localBoardROs.emplace_back(item.second);
-  }
-
-  // With the current logic, the last read link is not processed
-  // Let us process it here
-  if (!localBoardROs.empty()) {
-    mCRUUserLogicEncoders[lastROId].process(localBoardROs, ir.bc, eventType);
+  for (auto& item : mConverter.getData()) {
+    mGBTEncoders[item.first].process(item.second, ir.bc);
   }
 }
-
-const std::vector<raw::RawUnit>& Encoder::getBuffer()
-{
-  /// Gets the buffer
-  for (uint16_t roId = 0; roId < crateparams::sNGBTs; ++roId) {
-    flushGBT(mCRUUserLogicEncoders[roId]);
-  }
-  return mBytes;
-}
-
-void Encoder::flushGBT(CRUUserLogicEncoder& gbtEncoder)
-{
-  /// Gets the buffer
-  auto& buffer = gbtEncoder.getBuffer();
-  std::copy(buffer.begin(), buffer.end(), std::back_inserter(mBytes));
-  gbtEncoder.clear();
-}
-
-void Encoder::finalize()
-{
-  /// Complete the last TF with empty HBF if needed
-  int tf = mHBFUtils.getTF(mLastIR);
-  auto lastIRofTF = mHBFUtils.getIRTF(tf + 1) - 1; // last IR of the current TF
-  newHeader(lastIRofTF);
-}
-
 } // namespace mid
 } // namespace o2

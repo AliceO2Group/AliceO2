@@ -13,7 +13,13 @@
 #include "TOFWorkflow/TOFRawWriterSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "TOFBase/Geo.h"
+#include "TSystem.h"
+#include <fstream>
+#include <iostream>
+#include <iomanip>
+#include <cstring>
 
 using namespace o2::framework;
 
@@ -25,7 +31,16 @@ void RawWriter::init(InitContext& ic)
 {
   // get the option from the init context
   mOutFileName = ic.options().get<std::string>("tof-raw-outfile");
+  mOutDirName = ic.options().get<std::string>("tof-raw-outdir");
   LOG(INFO) << "Raw output file: " << mOutFileName.c_str();
+
+  if (gSystem->AccessPathName(mOutDirName.c_str())) {
+    if (gSystem->mkdir(mOutDirName.c_str(), kTRUE)) {
+      LOG(FATAL) << "could not create output directory " << mOutDirName;
+    } else {
+      LOG(INFO) << "created output directory " << mOutDirName;
+    }
+  }
 }
 
 void RawWriter::run(ProcessingContext& pc)
@@ -45,11 +60,11 @@ void RawWriter::run(ProcessingContext& pc)
   o2::tof::raw::Encoder encoder;
   encoder.setVerbose(verbosity);
 
-  encoder.open(mOutFileName.c_str());
+  encoder.open(mOutFileName, mOutDirName);
   encoder.alloc(cache);
 
   int nwindowperorbit = Geo::NWINDOW_IN_ORBIT;
-  int nwindowintimeframe = Geo::ORBIT_IN_TF * nwindowperorbit;
+  int nwindowintimeframe = o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * nwindowperorbit;
   int nwindowFilled = nwindow;
   if (nwindowFilled % nwindowintimeframe) {
     nwindowFilled = (nwindowFilled / nwindowintimeframe + 1) * nwindowintimeframe;
@@ -85,6 +100,18 @@ void RawWriter::run(ProcessingContext& pc)
   encoder.flush();
   encoder.close();
 
+  // create configuration file for rawreader
+  std::ofstream fconfig;
+  fconfig.open("TOFraw.cfg");
+
+  for (int icru = 0; icru < encoder.getNCRU(); icru++) {
+    fconfig << "[input-tof-" << icru << "]\n";
+    fconfig << "dataOrigin = TOF\n";
+    fconfig << "dataDescription = RAWDATA\n";
+    fconfig << "filePath = " << mOutDirName << "/cru" << std::setfill('0') << std::setw(2) << icru << mOutFileName << "\n\n";
+  }
+  fconfig.close();
+
   mFinished = true;
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
@@ -101,8 +128,8 @@ DataProcessorSpec getTOFRawWriterSpec()
     {}, // no output
     AlgorithmSpec{adaptFromTask<RawWriter>()},
     Options{
-      {"tof-raw-outfile", VariantType::String, "rawtof.bin", {"Name of the input file"}},
-    }};
+      {"tof-raw-outfile", VariantType::String, "rawtof.bin", {"Name of the output file"}},
+      {"tof-raw-outdir", VariantType::String, ".", {"Name of the output dir"}}}};
 }
 } // namespace tof
 } // namespace o2

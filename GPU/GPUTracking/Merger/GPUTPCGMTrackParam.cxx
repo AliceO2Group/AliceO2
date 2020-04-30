@@ -69,7 +69,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
   prop.SetPolynomialField(&merger->Param().polynomialField);
   prop.SetMaxSinPhi(maxSinPhi);
   prop.SetToyMCEventsFlag(param.ToyMCEventsFlag);
-  prop.SetMatLUT(merger->MatLUT());
+  prop.SetMatLUT(merger->GetConstantMem()->calibObjects.matLUT);
   if ((clusters[0].slice < 18) == (clusters[N - 1].slice < 18)) {
     ShiftZ2(clusters, merger, N);
   }
@@ -300,10 +300,10 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
         }
         if (dEdxOut && iWay == nWays - 1 && clusters[ihit].leg == clusters[maxN - 1].leg) {
           if (merger->GetConstantMem()->ioPtrs.clustersNative == nullptr) {
-            dEdx.fillCluster(clusters[ihit].amp, 0, clusters[ihit].row, mP[2], mP[3], param);
+            dEdx.fillCluster(clusters[ihit].amp, 0, clusters[ihit].row, mP[2], mP[3], param, merger->GetConstantMem()->calibObjects.dEdxSplines, zz);
           } else {
             const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num];
-            dEdx.fillCluster(cl.qTot, cl.qMax, clusters[ihit].row, mP[2], mP[3], param);
+            dEdx.fillCluster(cl.qTot, cl.qMax, clusters[ihit].row, mP[2], mP[3], param, merger->GetConstantMem()->calibObjects.dEdxSplines, zz);
           }
         }
       } else if (retVal == 2) { // cluster far away form the track
@@ -459,7 +459,7 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
   if (Merger->Param().rec.DisableRefitAttachment & 1) {
     return;
   }
-  const GPUTPCTracker& GPUrestrict() tracker = *(Merger->SliceTrackers() + slice);
+  const GPUTPCTracker& GPUrestrict() tracker = *(Merger->GetConstantMem()->tpcTrackers + slice);
   const GPUTPCRow& GPUrestrict() row = tracker.Row(iRow);
 #ifndef GPUCA_TEXTURE_FETCH_CONSTRUCTOR
   GPUglobalref() const cahit2* hits = tracker.HitData(row);
@@ -545,9 +545,9 @@ GPUd() bool GPUTPCGMTrackParam::FollowCircleChk(float lrFactor, float toY, float
 
 GPUd() void GPUTPCGMTrackParam::StoreAttachMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toY, float toX, int toSlice, int toRow, bool inFlyDirection, float alpha)
 {
-  unsigned int nLoopData = CAMath::AtomicAdd(&Merger->Memory()->nLoopData, 1);
+  unsigned int nLoopData = CAMath::AtomicAdd(&Merger->Memory()->nLoopData, 1u);
   if (nLoopData >= Merger->NMaxTracks()) {
-    CAMath::AtomicExch(&Merger->Memory()->nLoopData, 0);
+    CAMath::AtomicExch(&Merger->Memory()->nLoopData, 0u);
     // TODO: GPUCA_ERROR_LOOPER_OVERFLOW
     return;
   }
@@ -573,7 +573,7 @@ GPUd() void GPUTPCGMTrackParam::RefitLoop(const GPUTPCGMMerger* GPUrestrict() Me
   prop.SetPolynomialField(&Merger->Param().polynomialField);
   prop.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
   prop.SetToyMCEventsFlag(Merger->Param().ToyMCEventsFlag);
-  prop.SetMatLUT(Merger->MatLUT());
+  prop.SetMatLUT(Merger->GetConstantMem()->calibObjects.matLUT);
   prop.SetSeedingErrors(false);
   prop.SetFitInProjections(true);
   prop.SetPropagateBzOnly(false);
@@ -962,7 +962,7 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() tr
       Alpha = track.Alpha();
       ok = t.Fit(merger, iTrk, clusters + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, 1, GPUCA_MAX_SIN_PHI, &track.OuterParam(), merger->Param().dodEdx ? &track.dEdxInfo() : nullptr);
     } else {
-      unsigned int nRefit = CAMath::AtomicAdd(&merger->Memory()->nRetryRefit, 1);
+      unsigned int nRefit = CAMath::AtomicAdd(&merger->Memory()->nRetryRefit, 1u);
       merger->RetryRefitIds()[nRefit] = iTrk;
       return;
     }

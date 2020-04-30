@@ -62,13 +62,13 @@ void Encoder::nextWordNoEmpty(int icrate)
   }
 }
 
-bool Encoder::open(const std::string name)
+bool Encoder::open(const std::string name, std::string path)
 {
   bool status = false;
 
   for (int i = 0; i < NCRU; i++) {
     std::string nametmp;
-    nametmp.append(Form("cru%02d", i));
+    nametmp.append(Form("%s/cru%02d", path.c_str(), i));
     nametmp.append(name);
     printf("TOF Raw encoder: create stream to CRU: %s\n", nametmp.c_str());
     if (mFileCRU[i].is_open()) {
@@ -262,7 +262,7 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
   mEventCounter = tofwindow; // tof window index
   mIR.orbit = mEventCounter / Geo::NWINDOW_IN_ORBIT;
 
-  if (!(mIR.orbit % Geo::ORBIT_IN_TF)) { // new TF
+  if ((mIR.orbit % mHBFSampler.getNOrbitsPerTF()) == mHBFSampler.getFirstIR().orbit) { // new TF
     flush();
   }
 
@@ -419,7 +419,7 @@ void Encoder::openRDH(int icrate)
     //    mRDH[icrate]->triggerType |= mIsContinuous ? o2::trigger::SOC : o2::trigger::SOT;
     mRDH[icrate]->triggerType |= o2::trigger::SOT;
   }
-  if (!(mIR.orbit % Geo::ORBIT_IN_TF))
+  if ((mIR.orbit % mHBFSampler.getNOrbitsPerTF()) == mHBFSampler.getFirstIR().orbit)
     mRDH[icrate]->triggerType |= o2::trigger::TF;
 
   // word6
@@ -479,7 +479,7 @@ void Encoder::closeRDH(int icrate)
     //    mRDH[icrate]->triggerType |= mIsContinuous ? o2::trigger::SOC : o2::trigger::SOT;
     mRDH[icrate]->triggerType |= o2::trigger::SOT;
   }
-  if (!(mIR.orbit % Geo::ORBIT_IN_TF))
+  if ((mIR.orbit % mHBFSampler.getNOrbitsPerTF()) == mHBFSampler.getFirstIR().orbit)
     mRDH[icrate]->triggerType |= o2::trigger::TF;
 
   // word6

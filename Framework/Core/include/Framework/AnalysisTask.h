@@ -11,7 +11,7 @@
 #ifndef FRAMEWORK_ANALYSIS_TASK_H_
 #define FRAMEWORK_ANALYSIS_TASK_H_
 
-#include "Framework/ASoA.h"
+#include "Framework/Kernels.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/CallbackService.h"
@@ -21,7 +21,6 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Expressions.h"
 #include "Framework/EndOfStreamContext.h"
-#include "Framework/Kernels.h"
 #include "Framework/Logger.h"
 #include "Framework/HistogramRegistry.h"
 #include "Framework/StructToTuple.h"
@@ -393,6 +392,9 @@ struct AnalysisDataProcessorBuilder {
     return std::tuple<>{};
   }
 
+  template <typename T, typename C>
+  using is_external_index_to_t = std::is_same<typename C::binding_t, T>;
+
   template <typename G, typename... A>
   struct GroupSlicer {
     using grouping_t = std::decay_t<G>;
@@ -415,13 +417,24 @@ struct AnalysisDataProcessorBuilder {
       GroupSlicerIterator& operator=(GroupSlicerIterator const&) = default;
       GroupSlicerIterator& operator=(GroupSlicerIterator&&) = default;
 
+      auto getLabelFromType()
+      {
+        if constexpr (soa::is_type_with_originals_v<std::decay_t<G>>) {
+          using T = typename framework::pack_element_t<0, typename std::decay_t<G>::originals>;
+          using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
+          return std::string("f") + groupingMetadata::label() + "ID";
+        } else {
+          using groupingMetadata = typename aod::MetadataTrait<std::decay_t<G>>::metadata;
+          return std::string("f") + groupingMetadata::label() + "ID";
+        }
+      }
+
       GroupSlicerIterator(G& gt, std::tuple<A...>& at)
         : mAt{&at},
           mGroupingElement{gt.begin()},
           position{0}
       {
-        using groupingMetadata = typename aod::MetadataTrait<G>::metadata;
-        auto indexColumnName = std::string("f") + groupingMetadata::label() + "ID";
+        auto indexColumnName = getLabelFromType();
         arrow::compute::FunctionContext ctx;
         /// prepare slices and offsets for all associated tables that have index
         /// to grouping table
@@ -431,6 +444,7 @@ struct AnalysisDataProcessorBuilder {
           constexpr auto index = framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{});
           if (hasIndexTo<std::decay_t<G>>(typename xt::persistent_columns_t{})) {
             auto result = o2::framework::sliceByColumn(&ctx, indexColumnName,
+                                                       static_cast<int32_t>(gt.size()),
                                                        x.asArrowTable(),
                                                        &groups[index],
                                                        &offsets[index]);

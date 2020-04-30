@@ -23,7 +23,7 @@
 /Common/SimConfig    @sawenzel
 #/Common/Topologies
 #/Common/Types
-#/Common/Utils
+/Common/Utils        @sawenzel
 #/Common/maps
 
 /DataFormats                                   @AliceO2Group/framework-admins

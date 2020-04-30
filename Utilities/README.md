@@ -20,4 +20,5 @@ This module contains the following submodules:
 * \subpage refUtilitiesTools
 * \subpage refUtilitiesaliceHLTwrapper
 * \subpage refUtilitieshough
+* \subpage refUtilitiesrANS
 /doxy -->

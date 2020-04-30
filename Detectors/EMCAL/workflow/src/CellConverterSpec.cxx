@@ -27,14 +27,6 @@ void CellConverterSpec::init(framework::InitContext& ctx)
 void CellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(DEBUG) << "[EMCALCellConverter - run] called";
-  auto dataref = ctx.inputs().get("digits");
-  auto const* emcheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(dataref);
-  if (!emcheader->mHasPayload) {
-    LOG(DEBUG) << "[EMCALCellConverter - run] No more digits" << std::endl;
-    ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
-    return;
-  }
-
   mOutputCells.clear();
   mOutputTriggers.clear();
   auto digitsAll = ctx.inputs().get<gsl::span<o2::emcal::Digit>>("digits");

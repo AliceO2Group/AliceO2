@@ -96,14 +96,15 @@ class GPUChain
   inline void TransferMemoryResourcesToHost(RecoStep step, GPUProcessor* proc, int stream = -1, bool all = false) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourcesToHost, proc, stream, all); }
   inline void TransferMemoryResourceLinkToGPU(RecoStep step, short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourceLinkToGPU, res, stream, ev, evList, nEvents); }
   inline void TransferMemoryResourceLinkToHost(RecoStep step, short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourceLinkToHost, res, stream, ev, evList, nEvents); }
+  // Todo: retrieve step from proc, move kernelClass->GetStep to retrieve it from GetProcessor
   inline void WriteToConstantMemory(RecoStep step, size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) { timeCpy(step, true, &GPUReconstructionCPU::WriteToConstantMemory, offset, src, size, stream, ev); }
-  inline void GPUMemCpy(RecoStep step, void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, toGPU, &GPUReconstructionCPU::GPUMemCpy, dst, src, size, stream, toGPU, ev, evList, nEvents); }
-  inline void GPUMemCpyAlways(RecoStep step, void* dst, const void* src, size_t size, int stream, char toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1)
+  inline void GPUMemCpy(RecoStep step, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, toGPU, &GPUReconstructionCPU::GPUMemCpy, dst, src, size, stream, toGPU, ev, evList, nEvents); }
+  inline void GPUMemCpyAlways(RecoStep step, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1)
   {
-    if (toGPU >= 0) {
-      timeCpy<true>(step, toGPU, &GPUReconstructionCPU::GPUMemCpyAlways, GetRecoStepsGPU() & step, dst, src, size, stream, toGPU, ev, evList, nEvents);
-    } else {
+    if (toGPU == -1) {
       memcpy(dst, src, size);
+    } else {
+      timeCpy<true>(step, toGPU, &GPUReconstructionCPU::GPUMemCpyAlways, GetRecoStepsGPU() & step, dst, src, size, stream, toGPU, ev, evList, nEvents);
     }
   }
 
@@ -169,9 +170,9 @@ class GPUChain
   }
 
   template <class T, int I = 0, int J = -1>
-  HighResTimer& getKernelTimer(int num = 0)
+  HighResTimer& getKernelTimer(RecoStep step, int num = 0, size_t addMemorySize = 0)
   {
-    return mRec->getKernelTimer<T, I, J>(num);
+    return mRec->getKernelTimer<T, I, J>(step, num, addMemorySize);
   }
   template <class T, int J = -1>
   HighResTimer& getTimer(const char* name, int num = -1)
@@ -199,11 +200,16 @@ class GPUChain
   virtual int DoStuckProtection(int stream, void* event) { return 0; }
 
   template <class T, class S, typename... Args>
-  bool DoDebugAndDump(RecoStep step, int mask, T& processor, S T::*func, Args&&... args);
+  bool DoDebugAndDump(RecoStep step, int mask, T& processor, S T::*func, Args&&... args)
+  {
+    return DoDebugAndDump(step, mask, true, processor, func, args...);
+  }
+  template <class T, class S, typename... Args>
+  bool DoDebugAndDump(RecoStep step, int mask, bool transfer, T& processor, S T::*func, Args&&... args);
 
  private:
   template <bool Always = false, class T, class S, typename... Args>
-  void timeCpy(RecoStep step, bool toGPU, S T::*func, Args... args);
+  void timeCpy(RecoStep step, int toGPU, S T::*func, Args... args);
 };
 
 template <class T>
@@ -213,14 +219,14 @@ inline void GPUChain::RunHelperThreads(T function, GPUReconstructionHelpers::hel
 }
 
 template <bool Always, class T, class S, typename... Args>
-inline void GPUChain::timeCpy(RecoStep step, bool toGPU, S T::*func, Args... args)
+inline void GPUChain::timeCpy(RecoStep step, int toGPU, S T::*func, Args... args)
 {
   if (!Always && step != RecoStep::NoRecoStep && !(GetRecoStepsGPU() & step)) {
     return;
   }
   HighResTimer* timer = nullptr;
   size_t* bytes = nullptr;
-  if (mRec->mDeviceProcessingSettings.debugLevel >= 1) {
+  if (mRec->mDeviceProcessingSettings.debugLevel >= 1 && toGPU >= 0) { // Todo: time special cases toGPU < 0
     int id = mRec->getRecoStepNum(step, false);
     if (id != -1) {
       auto& tmp = mRec->mTimersRecoSteps[id];
@@ -239,10 +245,12 @@ inline void GPUChain::timeCpy(RecoStep step, bool toGPU, S T::*func, Args... arg
 }
 
 template <class T, class S, typename... Args>
-bool GPUChain::DoDebugAndDump(GPUChain::RecoStep step, int mask, T& processor, S T::*func, Args&&... args)
+bool GPUChain::DoDebugAndDump(GPUChain::RecoStep step, int mask, bool transfer, T& processor, S T::*func, Args&&... args)
 {
   if (GetDeviceProcessingSettings().keepAllMemory) {
-    TransferMemoryResourcesToHost(step, &processor, -1, true);
+    if (transfer) {
+      TransferMemoryResourcesToHost(step, &processor, -1, true);
+    }
     if (GetDeviceProcessingSettings().debugLevel >= 6 && (mask == 0 || (GetDeviceProcessingSettings().debugMask & mask))) {
       (processor.*func)(args...);
       return true;

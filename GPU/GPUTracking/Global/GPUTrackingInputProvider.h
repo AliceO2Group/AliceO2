@@ -17,6 +17,15 @@
 #include "GPUDef.h"
 #include "GPUProcessor.h"
 
+namespace o2
+{
+namespace tpc
+{
+struct ClusterNative;
+struct ClusterNativeAccess;
+} // namespace tpc
+} // namespace o2
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -33,16 +42,28 @@ class GPUTrackingInputProvider : public GPUProcessor
   void SetMaxData(const GPUTrackingInOutPointers& io);
 
   void* SetPointersInputZS(void* mem);
-  void* SetPointersInputGPUOnly(void* mem);
+  void* SetPointersInputClusterNativeAccess(void* mem);
+  void* SetPointersInputClusterNativeBuffer(void* mem);
+  void* SetPointersInputClusterNativeOutput(void* mem);
 #endif
 
   unsigned short mResourceZS = -1;
+  unsigned short mResourceClusterNativeAccess = -1;
+  unsigned short mResourceClusterNativeBuffer = -1;
+  unsigned short mResourceClusterNativeOutput = -1;
 
-  bool holdsTPCZS = false;
+  bool mHoldTPCZS = false;
+  bool mHoldTPCClusterNative = false;
+  bool mHoldTPCClusterNativeOutput = false;
+  unsigned int mNClusterNative = 0;
 
   GPUTrackingInOutZS* mPzsMeta = nullptr;
   unsigned int* mPzsSizes = nullptr;
   void** mPzsPtrs = nullptr;
+
+  o2::tpc::ClusterNativeAccess* mPclusterNativeAccess = nullptr;
+  o2::tpc::ClusterNative* mPclusterNativeBuffer = nullptr;
+  o2::tpc::ClusterNative* mPclusterNativeOutput = nullptr;
 };
 
 } // namespace gpu

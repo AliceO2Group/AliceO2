@@ -16,15 +16,19 @@
 #include <cstring>
 #include <iostream>
 #include <iomanip>
+#include <memory>
 #include <sstream>
 #include <iostream>
 #include "DetectorsRaw/RawFileReader.h"
 #include "Headers/DAQID.h"
 #include "CommonConstants/Triggers.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "Framework/Logger.h"
 
 #include <Common/Configuration.h>
+#include <TStopwatch.h>
+#include <fcntl.h>
 
 using namespace o2::raw;
 namespace o2h = o2::header;
@@ -231,10 +235,10 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
       }
       // check if number of HBFs in the TF is as expected
       if (newTF) {
-        if (nHBFinTF != reader->mNominalHBFperTF &&
+        if (nHBFinTF != HBFUtils::Instance().getNOrbitsPerTF() &&
             (reader->mCheckErrors & (0x1 << ErrWrongHBFsPerTF))) {
           LOG(ERROR) << ErrNames[ErrWrongHBFsPerTF] << ": "
-                     << nHBFinTF << " instead of " << reader->mNominalHBFperTF;
+                     << nHBFinTF << " instead of " << HBFUtils::Instance().getNOrbitsPerTF();
           ok = false;
           nErrors++;
         }
@@ -357,53 +361,58 @@ int RawFileReader::getLinkLocalID(const RDHAny& rdh, const o2::header::DataOrigi
 bool RawFileReader::preprocessFile(int ifl)
 {
   // preprocess file, check RDH data, build statistics
+  std::unique_ptr<char[]> buffer = std::make_unique<char[]>(mBufferSize);
   FILE* fl = mFiles[ifl];
   mCurrentFileID = ifl;
-  RDHAny rdh;
-
   LinkSpec_t specPrev = 0xffffffffffffffff;
   int lIDPrev = -1;
   mMultiLinkFile = false;
   rewind(fl);
   long int nr = 0;
   mPosInFile = 0;
-  int nRDHread = 0;
-  bool ok = true;
-  int readBytes = sizeof(RDHAny);
-  while ((nr = fread(&rdh, 1, readBytes, fl))) {
-    if (nr < readBytes) {
-      LOG(ERROR) << "EOF was unexpected, only " << nr << " bytes were read for RDH";
-      ok = false;
-      break;
-    }
-    if (!(ok = RDHUtils::checkRDH(rdh))) {
-      break;
-    }
-    nRDHread++;
-    LinkSpec_t spec = createSpec(mDataSpecs[mCurrentFileID].first, RDHUtils::getSubSpec(rdh));
-    int lID = lIDPrev;
-    if (spec != specPrev) { // link has changed
-      specPrev = spec;
-      if (lIDPrev != -1) {
-        mMultiLinkFile = true;
+  size_t nRDHread = 0, boffs;
+  bool ok = true, readMore = true;
+  while (readMore && (nr = fread(buffer.get(), 1, mBufferSize, fl))) {
+    boffs = 0;
+    while (1) {
+      auto& rdh = *reinterpret_cast<RDHUtils::RDHAny*>(&buffer[boffs]);
+      nRDHread++;
+      LinkSpec_t spec = createSpec(mDataSpecs[mCurrentFileID].first, RDHUtils::getSubSpec(rdh));
+      int lID = lIDPrev;
+      if (spec != specPrev) { // link has changed
+        specPrev = spec;
+        if (lIDPrev != -1) {
+          mMultiLinkFile = true;
+        }
+        lID = getLinkLocalID(rdh, mDataSpecs[mCurrentFileID].first);
       }
-      lID = getLinkLocalID(rdh, mDataSpecs[mCurrentFileID].first);
+      bool newSPage = lID != lIDPrev;
+      mLinksData[lID].preprocessCRUPage(rdh, newSPage);
+      if (mLinksData[lID].nTimeFrames > mMaxTFToRead) { // limit reached, discard the last read
+        mLinksData[lID].nTimeFrames--;
+        mLinksData[lID].blocks.pop_back();
+        if (mLinksData[lID].nHBFrames > 0) {
+          mLinksData[lID].nHBFrames--;
+        }
+        if (mLinksData[lID].nCRUPages > 0) {
+          mLinksData[lID].nCRUPages--;
+        }
+        lIDPrev = -1; // last block is closed
+        readMore = false;
+        break;
+      }
+      boffs += RDHUtils::getOffsetToNext(rdh);
+      mPosInFile += RDHUtils::getOffsetToNext(rdh);
+      lIDPrev = lID;
+      if (boffs + sizeof(RDHUtils::RDHAny) >= nr) {
+        if (fseek(fl, mPosInFile, SEEK_SET)) {
+          readMore = false;
+          break;
+        }
+        break;
+      }
     }
-    bool newSPage = lID != lIDPrev;
-    mLinksData[lID].preprocessCRUPage(rdh, newSPage);
-    //
-    mPosInFile += RDHUtils::getOffsetToNext(rdh);
-    if (fseek(fl, mPosInFile, SEEK_SET)) {
-      break;
-    }
-    lIDPrev = lID;
   }
-  mPosInFile = ftell(fl);
-  if (lIDPrev != -1) { // close last block
-    auto& lastBlock = mLinksData[lIDPrev].blocks.back();
-    lastBlock.size = mPosInFile - lastBlock.offset;
-  }
-
   LOGF(INFO, "File %3d : %9li bytes scanned, %6d RDH read for %4d links from %s",
        mCurrentFileID, mPosInFile, nRDHread, int(mLinkEntries.size()), mFileNames[mCurrentFileID]);
   return ok;
@@ -477,6 +486,9 @@ bool RawFileReader::init()
   for (int i = 0; i < NErrorsDefined; i++) {
     if (mCheckErrors & (0x1 << i))
       LOGF(INFO, "perform check for /%s/", ErrNames[i].data());
+  }
+  if (mMaxTFToRead < 0xffffffff) {
+    LOGF(INFO, "at most %u TF will be processed", mMaxTFToRead);
   }
 
   int nf = mFiles.size();
@@ -648,4 +660,16 @@ RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri)
   }
 
   return entries;
+}
+
+std::string RawFileReader::nochk_opt(RawFileReader::ErrTypes e)
+{
+  std::string ignore = "nocheck-";
+  return ignore + RawFileReader::ErrNamesShort[e].data();
+}
+
+std::string RawFileReader::nochk_expl(RawFileReader::ErrTypes e)
+{
+  std::string ignore = "ignore /";
+  return ignore + RawFileReader::ErrNames[e].data() + '/';
 }

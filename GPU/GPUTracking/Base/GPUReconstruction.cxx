@@ -176,6 +176,9 @@ int GPUReconstruction::InitPhaseBeforeDevice()
       mDeviceProcessingSettings.trackletSelectorSlices = 1;
     }
   }
+  if (mDeviceProcessingSettings.tpcCompressionGatherMode < 0) {
+    mDeviceProcessingSettings.tpcCompressionGatherMode = (mRecoStepsGPU & GPUDataTypes::RecoStep::TPCCompression) ? 2 : 0;
+  }
   if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
     mDeviceProcessingSettings.mergerSortTracks = false;
   }
@@ -513,6 +516,11 @@ void GPUReconstruction::FreeRegisteredMemory(short ires)
   res->mPtrDevice = nullptr;
 }
 
+void GPUReconstruction::SetMemoryExternalInput(short res, void* ptr)
+{
+  mMemoryResources[res].mPtr = ptr;
+}
+
 void GPUReconstruction::ClearAllocatedMemory(bool clearOutputs)
 {
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
@@ -602,17 +610,20 @@ void GPUReconstruction::UpdateEventSettings(const GPUSettingsEvent* e, const GPU
   }
 }
 
-void GPUReconstruction::ReadSettings(const char* dir)
+int GPUReconstruction::ReadSettings(const char* dir)
 {
   std::string f;
   f = dir;
   f += "settings.dump";
   mEventSettings.SetDefaults();
-  ReadStructFromFile(f.c_str(), &mEventSettings);
+  if (ReadStructFromFile(f.c_str(), &mEventSettings)) {
+    return 1;
+  }
   param().UpdateEventSettings(&mEventSettings);
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->ReadSettings(dir);
   }
+  return 0;
 }
 
 void GPUReconstruction::SetSettings(float solenoidBz)
@@ -645,9 +656,7 @@ void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUS
 void GPUReconstruction::SetOutputControl(void* ptr, size_t size)
 {
   GPUOutputControl outputControl;
-  outputControl.OutputType = GPUOutputControl::UseExternalBuffer;
-  outputControl.OutputBase = outputControl.OutputPtr = (char*)ptr;
-  outputControl.OutputMaxSize = size;
+  outputControl.set(ptr, size);
   SetOutputControl(outputControl);
 }
 

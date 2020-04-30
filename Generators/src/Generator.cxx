@@ -60,11 +60,11 @@ Bool_t
 {
   /** read event **/
 
-  /** clear particle vector **/
-  mParticles.clear();
-
   /** endless generate-and-trigger loop **/
   while (true) {
+
+    /** clear particle vector **/
+    mParticles.clear();
 
     /** generate event **/
     if (!generateEvent())
@@ -82,6 +82,9 @@ Bool_t
   /** add tracks **/
   if (!addTracks(primGen))
     return kFALSE;
+
+  /** update header **/
+  updateHeader(primGen->GetEvent());
 
   /** success **/
   return kTRUE;

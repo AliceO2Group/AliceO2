@@ -45,6 +45,20 @@ class Digit;
 namespace gpu
 {
 class TPCFastTransform;
+
+// This defines an output region. Ptr points to a memory buffer, which should have a proper alignment.
+// Since DPL does not respect the alignment of data types, we do not impose anything specic but just use a char data type, but it should be >= 64 bytes ideally.
+// The size defines the maximum possible buffer size when GPUReconstruction is called, and returns the number of filled bytes when it returns.
+// If ptr == nullptr, there is no region defined and GPUReconstruction will write its output to an internal buffer.
+struct GPUInterfaceOutputRegion {
+  void* ptr = nullptr;
+  size_t size = 0;
+};
+
+struct GPUInterfaceOutputs {
+  GPUInterfaceOutputRegion compressedClusters;
+};
+
 // Full configuration structure with all available settings of GPU...
 struct GPUO2InterfaceConfiguration {
   GPUO2InterfaceConfiguration() = default;
@@ -54,6 +68,7 @@ struct GPUO2InterfaceConfiguration {
   // Settings for the Interface class
   struct GPUInterfaceSettings {
     bool dumpEvents = false;
+    bool outputToPreallocatedBuffers = false;
     // These constants affect GPU memory allocation and do not limit the CPU processing
     unsigned int maxTPCHits = 1024 * 1024 * 1024;
     unsigned int maxTRDTracklets = 128 * 1024;
@@ -93,7 +108,7 @@ struct GPUO2InterfaceIOPtrs {
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* outputTracksMCTruth = nullptr;
 
   // Output for entropy-reduced clusters of TPC compression
-  const o2::tpc::CompressedClusters* compressedClusters;
+  const o2::tpc::CompressedClustersFlat* compressedClusters;
 
   // Hint for GPUCATracking to place its output in this buffer if possible.
   // This enables to create the output directly in a shared memory segment of the framework.
