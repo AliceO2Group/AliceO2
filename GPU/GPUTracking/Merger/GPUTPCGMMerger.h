@@ -64,6 +64,7 @@ class GPUTPCGMMerger : public GPUProcessor
   struct memory {
     GPUAtomic(unsigned int) nRetryRefit;
     GPUAtomic(unsigned int) nLoopData;
+    GPUAtomic(unsigned int) nUnpackedTracks;
     GPUAtomic(unsigned int) nOutputTracks;
     GPUAtomic(unsigned int) nOutputTrackClusters;
     const GPUTPCTrack* firstGlobalTracks[NSLICES];
@@ -124,7 +125,10 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void SetTrackClusterZT(GPUTPCGMSliceTrack& track, int iSlice, const GPUTPCTrack* sliceTr);
 
   int CheckSlices();
-  GPUd() void UnpackSlices(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void UnpackSlice(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice);
+  GPUd() void UnpackSliceGlobal(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice);
+  GPUd() void UnpackSaveNumber(int id);
+  GPUd() void UnpackResetIds(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice);
   GPUd() void MergeCEInit(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void MergeCE(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void MergeWithingSlices(int nBlocks, int nThreads, int iBlock, int iThread);
