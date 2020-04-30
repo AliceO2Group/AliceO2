@@ -93,7 +93,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
 
   if (gSystem->AccessPathName(outDir.data())) {
     if (createParentDir) {
-      if (gSystem->mkdir(outDir.data())) {
+      if (gSystem->mkdir(outDir.data(), kTRUE)) {
         LOGP(error, "could not create output directory {}", outDir.data());
         exit(1);
       }
