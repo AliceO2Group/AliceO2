@@ -84,16 +84,16 @@ class Digitizer
   int mSrcID = 0;
 
   // Digitization parameters
-  static constexpr float mAmWidth = TRDGeometry::amThick();  // Width of the amplification region
-  static constexpr float mDrWidth = TRDGeometry::drThick();  // Width of the drift retion
-  static constexpr float mDrMin = -0.5 * mAmWidth;           // Drift + Amplification region
-  static constexpr float mDrMax = mDrWidth + 0.5 * mAmWidth; // Drift + Amplification region
-  float mSamplingRate = 0;                                   // The sampling rate
-  float mElAttachProp = 0;                                   // Propability for electron attachment (for 1m)
-  int mNpad = 0;                                             // Number of pads included in the pad response
-  int mTimeBinTRFend = 0;                                    // time bin TRF ends
-  int mMaxTimeBins = 30;                                     // Maximum number of time bins for processing signals, usually set at 30 tb = 3 microseconds
-  int mMaxTimeBinsTRAP = 30;                                 // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
+  static constexpr float AmWidth = TRDGeometry::amThick(); // Width of the amplification region
+  static constexpr float DrWidth = TRDGeometry::drThick(); // Width of the drift retion
+  static constexpr float DrMin = -0.5 * AmWidth;           // Drift + Amplification region
+  static constexpr float DrMax = DrWidth + 0.5 * AmWidth;  // Drift + Amplification region
+  float mSamplingRate = 0;                                 // The sampling rate
+  float mElAttachProp = 0;                                 // Propability for electron attachment (for 1m)
+  int mNpad = 0;                                           // Number of pads included in the pad response
+  int mTimeBinTRFend = 0;                                  // time bin TRF ends
+  int mMaxTimeBins = 30;                                   // Maximum number of time bins for processing signals, usually set at 30 tb = 3 microseconds
+  int mMaxTimeBinsTRAP = 30;                               // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
 
   // Digitization containers
   std::vector<HitType> mHitContainer;                       // the container of hits in a given detector

@@ -234,7 +234,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       if ((locR < rowEndROC) || (locR > row0)) {
         continue;
       }
-      if ((driftLength < mDrMin) || (driftLength > mDrMax)) {
+      if ((driftLength < DrMin) || (driftLength > DrMax)) {
         continue;
       }
     }
@@ -309,7 +309,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           zz = 0.5 - zz;
         }
         // Use drift time map (GARFIELD)
-        driftTime = mDriftEstimators[thread].TimeStruct(driftVelocity, 0.5 * mAmWidth - 1.0 * locTd, zz) + hit.GetTime();
+        driftTime = mDriftEstimators[thread].TimeStruct(driftVelocity, 0.5 * AmWidth - 1.0 * locTd, zz) + hit.GetTime();
       } else {
         // Use constant drift velocity
         driftTime = std::fabs(locTd) / driftVelocity + hit.GetTime(); // drift time in microseconds
