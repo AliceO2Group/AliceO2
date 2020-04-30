@@ -747,15 +747,22 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack* 
   // GPUInfo("STAT: slices %d, %d: all %d merged %d", iSlice1, iSlice2, statAll, statMerged);
 }
 
-GPUd() void GPUTPCGMMerger::MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice, char withinSlice, char useOrigTrackParam)
+GPUd() void GPUTPCGMMerger::MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice, char withinSlice, char mergeMode)
 {
   int n1, n2;
   GPUTPCGMBorderTrack *b1, *b2;
   int jSlice;
-  if (withinSlice) {
+  if (withinSlice == 1) {
     jSlice = iSlice;
     n1 = n2 = mTmpCounter[iSlice];
     b1 = b2 = mBorder[iSlice];
+  } else if (withinSlice == -1) {
+    jSlice = (iSlice + NSLICES / 2);
+    const int offset = mergeMode == 2 ? NSLICES : 0;
+    n1 = mTmpCounter[iSlice + offset];
+    n2 = mTmpCounter[jSlice + offset];
+    b1 = mBorder[iSlice + offset];
+    b2 = mBorder[jSlice + offset];
   } else {
     jSlice = mNextSliceInd[iSlice];
     n1 = mTmpCounter[iSlice];
@@ -763,7 +770,7 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks(int nBlocks, int nThreads, int iBl
     b1 = mBorder[iSlice];
     b2 = mBorder[NSLICES + jSlice];
   }
-  MergeBorderTracks(iSlice, b1, n1, jSlice, b2, n2, useOrigTrackParam ? -1 : 0);
+  MergeBorderTracks(iSlice, b1, n1, jSlice, b2, n2, mergeMode);
 }
 
 GPUd() void GPUTPCGMMerger::MergeWithinSlicesPrepare(int nBlocks, int nThreads, int iBlock, int iThread)
@@ -992,8 +999,8 @@ GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const G
   }
   int slice = track->Slice();
   for (int attempt = 0; attempt < 2; attempt++) {
-    unsigned int nTracks = Param().rec.mergerReadFromTrackerDirectly ? *mSliceTrackers[slice].NTracks() : mkSlices[slice]->NTracks();
-    GPUTPCGMBorderTrack& b = attempt == 0 ? mBorder[slice][mTmpCounter[slice]] : mBorder[slice][nTracks - 1 - mTmpCounter[NSLICES + slice]];
+    unsigned int id = slice + attempt * NSLICES;
+    GPUTPCGMBorderTrack& b = mBorder[id][mTmpCounter[id]];
     const float x0 = Param().tpcGeometry.Row2X(attempt == 0 ? 63 : cls.row);
     if (track->TransportToX(this, x0, Param().ConstBz, b, GPUCA_MAX_SIN_PHI_LOW)) {
       b.SetTrackID(itr);
@@ -1006,7 +1013,7 @@ GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const G
         b.SetZOffsetLinear(-b.ZOffsetLinear());
       }
       b.SetRow(cls.row);
-      mTmpCounter[attempt * NSLICES + slice]++;
+      mTmpCounter[id]++;
       break;
     }
   }
@@ -1015,13 +1022,6 @@ GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const G
 GPUd() void GPUTPCGMMerger::MergeCE(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   const ClusterNative* cls = Param().earlyTpcTransform ? nullptr : mConstantMem->ioPtrs.clustersNative->clustersLinear;
-  for (int iSlice = 0; iSlice < NSLICES / 2; iSlice++) {
-    int jSlice = iSlice + NSLICES / 2;
-    unsigned int nTracksI = Param().rec.mergerReadFromTrackerDirectly ? *mSliceTrackers[iSlice].NTracks() : mkSlices[iSlice]->NTracks();
-    unsigned int nTracksJ = Param().rec.mergerReadFromTrackerDirectly ? *mSliceTrackers[jSlice].NTracks() : mkSlices[jSlice]->NTracks();
-    MergeBorderTracks(iSlice, mBorder[iSlice], mTmpCounter[iSlice], jSlice, mBorder[jSlice], mTmpCounter[jSlice], 1);
-    MergeBorderTracks(iSlice, mBorder[iSlice] + nTracksI - mTmpCounter[NSLICES + iSlice], mTmpCounter[NSLICES + iSlice], jSlice, mBorder[jSlice] + nTracksJ - mTmpCounter[NSLICES + jSlice], mTmpCounter[NSLICES + jSlice], 2);
-  }
   for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
     if (mTrackLinks[i] >= 0) {
       GPUTPCGMMergedTrack* trk[2] = {&mOutputTracks[i], &mOutputTracks[mTrackLinks[i]]};
