@@ -245,7 +245,10 @@ int SetupReconstruction()
   if (!configStandalone.eventGenerator) {
     char filename[256];
     snprintf(filename, 256, "events/%s/", configStandalone.EventsDir);
-    rec->ReadSettings(filename);
+    if (rec->ReadSettings(filename)) {
+      printf("Error reading event config file\n");
+      return 1;
+    }
     printf("Read event settings from dir %s (solenoidBz: %f, home-made events %d, constBz %d, maxTimeBin %d)\n", filename, rec->GetEventSettings().solenoidBz, (int)rec->GetEventSettings().homemadeEvents, (int)rec->GetEventSettings().constBz, rec->GetEventSettings().continuousMaxTimeBin);
     if (configStandalone.testSyncAsync) {
       recAsync->ReadSettings(filename);
