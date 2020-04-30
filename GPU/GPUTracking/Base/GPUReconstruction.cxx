@@ -176,6 +176,9 @@ int GPUReconstruction::InitPhaseBeforeDevice()
       mDeviceProcessingSettings.trackletSelectorSlices = 1;
     }
   }
+  if (mDeviceProcessingSettings.tpcCompressionGatherMode < 0) {
+    mDeviceProcessingSettings.tpcCompressionGatherMode = (mRecoStepsGPU & GPUDataTypes::RecoStep::TPCCompression) ? 2 : 0;
+  }
   if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
     mDeviceProcessingSettings.mergerSortTracks = false;
   }

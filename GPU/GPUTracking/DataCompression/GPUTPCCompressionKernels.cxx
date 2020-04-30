@@ -310,3 +310,57 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
     GPUbarrier();
   }
 }
+
+GPUd() void GPUTPCCompressionKernels::compressorMemcpy(void* GPUrestrict() dst, void* GPUrestrict() src, unsigned int size)
+{
+  char* GPUrestrict() d = (char*)dst;
+  char* GPUrestrict() s = (char*)src;
+  for (unsigned int i = 0; i < size; i++) {
+    d[i] = s[i];
+  }
+}
+
+template <>
+GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step2gather>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
+{
+  if (iBlock || iThread) {
+    return;
+  }
+  GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
+  const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = processors.tpcConverter.getClustersNative();
+  compressorMemcpy(compressor.mOutput->nSliceRowClusters, compressor.mPtrs.nSliceRowClusters, compressor.NSLICES * GPUCA_ROW_COUNT * sizeof(compressor.mOutput->nSliceRowClusters[0]));
+  compressorMemcpy(compressor.mOutput->nTrackClusters, compressor.mPtrs.nTrackClusters, compressor.mOutput->nTracks * sizeof(compressor.mOutput->nTrackClusters[0]));
+  unsigned int offset = 0;
+  for (unsigned int i = 0; i < compressor.NSLICES; i++) {
+    for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+      compressorMemcpy(compressor.mOutput->qTotU + offset, compressor.mPtrs.qTotU + clusters->clusterOffset[i][j], compressor.mPtrs.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(compressor.mOutput->qTotU[0]));
+      compressorMemcpy(compressor.mOutput->qMaxU + offset, compressor.mPtrs.qMaxU + clusters->clusterOffset[i][j], compressor.mPtrs.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(compressor.mOutput->qMaxU[0]));
+      compressorMemcpy(compressor.mOutput->flagsU + offset, compressor.mPtrs.flagsU + clusters->clusterOffset[i][j], compressor.mPtrs.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(compressor.mOutput->flagsU[0]));
+      compressorMemcpy(compressor.mOutput->padDiffU + offset, compressor.mPtrs.padDiffU + clusters->clusterOffset[i][j], compressor.mPtrs.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(compressor.mOutput->padDiffU[0]));
+      compressorMemcpy(compressor.mOutput->timeDiffU + offset, compressor.mPtrs.timeDiffU + clusters->clusterOffset[i][j], compressor.mPtrs.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(compressor.mOutput->timeDiffU[0]));
+      compressorMemcpy(compressor.mOutput->sigmaPadU + offset, compressor.mPtrs.sigmaPadU + clusters->clusterOffset[i][j], compressor.mPtrs.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(compressor.mOutput->sigmaPadU[0]));
+      compressorMemcpy(compressor.mOutput->sigmaTimeU + offset, compressor.mPtrs.sigmaTimeU + clusters->clusterOffset[i][j], compressor.mPtrs.nSliceRowClusters[i * GPUCA_ROW_COUNT + j] * sizeof(compressor.mOutput->sigmaTimeU[0]));
+      offset += compressor.mPtrs.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+    }
+  }
+  offset = 0;
+  for (unsigned int i = 0; i < compressor.mOutput->nTracks; i++) {
+    compressorMemcpy(compressor.mOutput->qTotA + offset, compressor.mPtrs.qTotA + compressor.mAttachedClusterFirstIndex[i], compressor.mPtrs.nTrackClusters[i] * sizeof(compressor.mOutput->qTotA[0]));
+    compressorMemcpy(compressor.mOutput->qMaxA + offset, compressor.mPtrs.qMaxA + compressor.mAttachedClusterFirstIndex[i], compressor.mPtrs.nTrackClusters[i] * sizeof(compressor.mOutput->qMaxA[0]));
+    compressorMemcpy(compressor.mOutput->flagsA + offset, compressor.mPtrs.flagsA + compressor.mAttachedClusterFirstIndex[i], compressor.mPtrs.nTrackClusters[i] * sizeof(compressor.mOutput->flagsA[0]));
+    compressorMemcpy(compressor.mOutput->sigmaPadA + offset, compressor.mPtrs.sigmaPadA + compressor.mAttachedClusterFirstIndex[i], compressor.mPtrs.nTrackClusters[i] * sizeof(compressor.mOutput->sigmaPadA[0]));
+    compressorMemcpy(compressor.mOutput->sigmaTimeA + offset, compressor.mPtrs.sigmaTimeA + compressor.mAttachedClusterFirstIndex[i], compressor.mPtrs.nTrackClusters[i] * sizeof(compressor.mOutput->sigmaTimeA[0]));
+
+    // First index stored with track
+    compressorMemcpy(compressor.mOutput->rowDiffA + offset - i, compressor.mPtrs.rowDiffA + compressor.mAttachedClusterFirstIndex[i] + 1, (compressor.mPtrs.nTrackClusters[i] - 1) * sizeof(compressor.mOutput->rowDiffA[0]));
+    compressorMemcpy(compressor.mOutput->sliceLegDiffA + offset - i, compressor.mPtrs.sliceLegDiffA + compressor.mAttachedClusterFirstIndex[i] + 1, (compressor.mPtrs.nTrackClusters[i] - 1) * sizeof(compressor.mOutput->sliceLegDiffA[0]));
+    compressorMemcpy(compressor.mOutput->padResA + offset - i, compressor.mPtrs.padResA + compressor.mAttachedClusterFirstIndex[i] + 1, (compressor.mPtrs.nTrackClusters[i] - 1) * sizeof(compressor.mOutput->padResA[0]));
+    compressorMemcpy(compressor.mOutput->timeResA + offset - i, compressor.mPtrs.timeResA + compressor.mAttachedClusterFirstIndex[i] + 1, (compressor.mPtrs.nTrackClusters[i] - 1) * sizeof(compressor.mOutput->timeResA[0]));
+    offset += compressor.mPtrs.nTrackClusters[i];
+  }
+  compressorMemcpy(compressor.mOutput->qPtA, compressor.mPtrs.qPtA, compressor.mOutput->nTracks * sizeof(compressor.mOutput->qPtA[0]));
+  compressorMemcpy(compressor.mOutput->rowA, compressor.mPtrs.rowA, compressor.mOutput->nTracks * sizeof(compressor.mOutput->rowA[0]));
+  compressorMemcpy(compressor.mOutput->sliceA, compressor.mPtrs.sliceA, compressor.mOutput->nTracks * sizeof(compressor.mOutput->sliceA[0]));
+  compressorMemcpy(compressor.mOutput->timeA, compressor.mPtrs.timeA, compressor.mOutput->nTracks * sizeof(compressor.mOutput->timeA[0]));
+  compressorMemcpy(compressor.mOutput->padA, compressor.mPtrs.padA, compressor.mOutput->nTracks * sizeof(compressor.mOutput->padA[0]));
+}

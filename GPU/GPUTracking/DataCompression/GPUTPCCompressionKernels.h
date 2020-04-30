@@ -35,7 +35,8 @@ class GPUTPCCompressionKernels : public GPUKernelTemplate
 
   enum K : int {
     step0attached = 0,
-    step1unattached = 1
+    step1unattached = 1,
+    step2gather = 2
   };
 
   struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionKernels_step1unattached)> {
@@ -46,6 +47,8 @@ class GPUTPCCompressionKernels : public GPUKernelTemplate
 
   template <int iKernel = defaultKernel>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors);
+
+  GPUd() static void compressorMemcpy(void* dst, void* src, unsigned int size);
 
  public:
   template <int I>

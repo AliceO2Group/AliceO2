@@ -25,8 +25,6 @@ namespace tof
 class Geo
 {
  public:
-  static int ORBIT_IN_TF; // N. orbits crossing in 1 TF
-  static double NS_IN_TF;
   //  static void updateNSinTF() { NS_IN_TF = o2::constants::lhc::LHCOrbitNS * o2::raw::HBFUtils::getNOrbitsPerTF(); }
 
   // From AliTOFGeometry
