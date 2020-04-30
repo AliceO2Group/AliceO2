@@ -14,6 +14,7 @@ o2_add_library(ITSMFTReconstruction
                        src/ChipMappingMFT.cxx
                        src/DigitPixelReader.cxx
                        src/Clusterer.cxx
+                       src/ClustererParam.cxx
                        src/PixelData.cxx
                        src/BuildTopologyDictionary.cxx
                        src/LookUp.cxx
@@ -43,6 +44,7 @@ o2_target_root_dictionary(
           include/ITSMFTReconstruction/RawPixelReader.h
           include/ITSMFTReconstruction/PixelData.h
           include/ITSMFTReconstruction/Clusterer.h
+          include/ITSMFTReconstruction/ClustererParam.h
           include/ITSMFTReconstruction/BuildTopologyDictionary.h
           include/ITSMFTReconstruction/LookUp.h
           include/ITSMFTReconstruction/TopologyFastSimulation.h
