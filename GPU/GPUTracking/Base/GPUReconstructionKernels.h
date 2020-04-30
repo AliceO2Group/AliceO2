@@ -46,6 +46,7 @@ GPUCA_KRNL((GPUITSFitterKernel                           ), (simple, REG, (GPUCA
 GPUCA_KRNL((GPUTPCConvertKernel                          ), (simple, REG, (GPUCA_LB_GPUTPCConvertKernel)), (), ())
 GPUCA_KRNL((GPUTPCCompressionKernels,   step0attached    ), (simple, REG, (GPUCA_LB_GPUTPCCompressionKernels_step0attached)), (), ())
 GPUCA_KRNL((GPUTPCCompressionKernels,   step1unattached  ), (simple, REG, (GPUCA_LB_GPUTPCCompressionKernels_step1unattached)), (), ())
+GPUCA_KRNL((GPUTPCCompressionKernels,   step2gather      ), (simple, REG, (GPUCA_LB_GPUTPCCompressionKernels_step2gather)), (), ())
 GPUCA_KRNL((GPUTPCCFChargeMapFiller,    fillIndexMap     ), (single, REG, (GPUCA_LB_GPUTPCCFChargeMapFiller)), (), ())
 GPUCA_KRNL((GPUTPCCFChargeMapFiller,    fillFromDigits   ), (single, REG, (GPUCA_LB_GPUTPCCFChargeMapFiller)), (), ())
 GPUCA_KRNL((GPUTPCCFChargeMapFiller,    resetMaps        ), (single, REG, (GPUCA_LB_GPUTPCCFChargeMapFiller)), (), ())
