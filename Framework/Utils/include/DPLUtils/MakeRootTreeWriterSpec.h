@@ -225,6 +225,30 @@ class MakeRootTreeWriterSpec
     std::variant<CheckDefault, CheckReady, CheckProcessing> check = []() { return true; };
   };
 
+  struct Preprocessor {
+    /// default no operation
+    using Noop = std::function<void()>;
+    /// processing callback
+    using Process = std::function<void(ProcessingContext&)>;
+
+    /// the callback
+    std::variant<Noop, Process> callback = []() {};
+
+    /// check if the Preprocessor can be executed
+    constexpr operator bool()
+    {
+      return std::holds_alternative<Process>(callback);
+    }
+
+    /// execute the preprocessor
+    void operator()(ProcessingContext& context)
+    {
+      if (std::holds_alternative<Process>(callback)) {
+        std::get<Process>(callback)(context);
+      }
+    }
+  };
+
   /// unary helper functor to extract the input key from the InputSpec
   struct KeyExtractor {
     static std::string asString(InputSpec const& arg) { return arg.binding; }
@@ -284,13 +308,16 @@ class MakeRootTreeWriterSpec
       TerminationPolicy terminationPolicy = TerminationPolicy::Process;
       // custom termination condition
       TerminationCondition terminationCondition;
+      // custom preprocessor
+      Preprocessor preprocessor;
       // the total number of served branches on the n inputs
       size_t nofBranches;
     };
     auto processAttributes = std::make_shared<ProcessAttributes>();
     processAttributes->writer = mWriter;
     processAttributes->branchNameOptions = mBranchNameOptions;
-    processAttributes->terminationCondition = mTerminationCondition;
+    processAttributes->terminationCondition = std::move(mTerminationCondition);
+    processAttributes->preprocessor = std::move(mPreprocessor);
 
     // set the list of active inputs, every input which is indecated as 'ready' will be removed from the list
     // the process is ready if the list is empty
@@ -338,6 +365,7 @@ class MakeRootTreeWriterSpec
         auto& writer = processAttributes->writer;
         auto& terminationPolicy = processAttributes->terminationPolicy;
         auto& terminationCondition = processAttributes->terminationCondition;
+        auto& preprocessor = processAttributes->preprocessor;
         auto& activeInputs = processAttributes->activeInputs;
         auto& counter = processAttributes->counter;
         auto& nEvents = processAttributes->nEvents;
@@ -385,6 +413,9 @@ class MakeRootTreeWriterSpec
           return activeInputs.size() == 0;
         };
 
+        if (preprocessor) {
+          preprocessor(pc);
+        }
         if (checkProcessing(pc.inputs())) {
           (*writer)(pc.inputs());
           counter = counter + 1;
@@ -474,10 +505,19 @@ class MakeRootTreeWriterSpec
 
   /// specialization for parsing optional termination condition
   template <size_t N, typename... Args>
-  void parseConstructorArgs(TerminationCondition arg, Args&&... args)
+  void parseConstructorArgs(TerminationCondition&& arg, Args&&... args)
   {
     static_assert(N == 0, "wrong argument order, default file and tree, and all options must come before branch specs");
-    mTerminationCondition = arg;
+    mTerminationCondition = std::move(arg);
+    parseConstructorArgs<N>(std::forward<Args>(args)...);
+  }
+
+  /// specialization for parsing optional preprocessor definition
+  template <size_t N, typename... Args>
+  void parseConstructorArgs(Preprocessor&& arg, Args&&... args)
+  {
+    static_assert(N == 0, "wrong argument order, default file and tree, and all options must come before branch specs");
+    mPreprocessor = std::move(arg);
     parseConstructorArgs<N>(std::forward<Args>(args)...);
   }
 
@@ -520,6 +560,7 @@ class MakeRootTreeWriterSpec
   int mDefaultNofEvents = -1;
   std::string mDefaultTerminationPolicy = "process";
   TerminationCondition mTerminationCondition;
+  Preprocessor mPreprocessor;
   size_t mNofBranches = 0;
 };
 } // namespace framework
