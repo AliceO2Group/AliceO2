@@ -25,15 +25,16 @@
 #include "GPUDataTypes.h"
 #include "AliHLTTPCRawCluster.h"
 #include "GPUParam.h"
+#include "clusterFinderDefs.h"
 #include <algorithm>
 #include <vector>
 
 #ifdef HAVE_O2HEADERS
-#include "Digit.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/Constants.h"
 #include "GPURawData.h"
 #include "CommonConstants/LHCConstants.h"
+#include "TPCBase/Digit.h"
 #include "TPCBase/RDHUtils.h"
 #endif
 
@@ -136,8 +137,8 @@ int GPUReconstructionConvert::GetMaxTimeBin(const GPUTrackingInOutDigits& digits
   float retVal = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int k = 0; k < digits.nTPCDigits[i]; k++) {
-      if (digits.tpcDigits[i][k].time > retVal) {
-        retVal = digits.tpcDigits[i][k].time;
+      if (digits.tpcDigits[i][k].getTimeStamp() > retVal) {
+        retVal = digits.tpcDigits[i][k].getTimeStamp();
       }
     }
   }
@@ -192,18 +193,24 @@ void GPUReconstructionConvert::ZSstreamOut(unsigned short* bufIn, unsigned int& 
   lenIn = 0;
 }
 
+void GPUReconstructionConvert::ZSfillEmpty(void* ptr, int shift)
+{
+  o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)ptr;
+  o2::raw::RDHUtils::setHeartBeatOrbit(*rdh, 0);
+  o2::raw::RDHUtils::setHeartBeatBC(*rdh, shift);
+  o2::raw::RDHUtils::setMemorySize(*rdh, sizeof(o2::header::RAWDataHeader));
+}
+
+#ifdef HAVE_O2HEADERS
 static inline auto ZSEncoderGetDigits(const GPUTrackingInOutDigits& in, int i) { return in.tpcDigits[i]; }
 static inline auto ZSEncoderGetNDigits(const GPUTrackingInOutDigits& in, int i) { return in.nTPCDigits[i]; }
-static inline auto ZSEncoderGetTime(const deprecated::PackedDigit a) { return a.time; }
-static inline auto ZSEncoderGetPad(const deprecated::PackedDigit a) { return a.pad; }
-static inline auto ZSEncoderGetRow(const deprecated::PackedDigit a) { return a.row; }
-static inline auto ZSEncoderGetCharge(const deprecated::PackedDigit a) { return a.charge; }
-template void GPUReconstructionConvert::RunZSEncoder<deprecated::PackedDigit, GPUTrackingInOutDigits>(const GPUTrackingInOutDigits&, std::unique_ptr<unsigned long long int[]>*, unsigned int*, o2::raw::RawFileWriter*, const o2::InteractionRecord*, const GPUParam&, bool, bool, float);
+template void GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit, GPUTrackingInOutDigits>(const GPUTrackingInOutDigits&, std::unique_ptr<unsigned long long int[]>*, unsigned int*, o2::raw::RawFileWriter*, const o2::InteractionRecord*, const GPUParam&, bool, bool, float);
 #ifdef GPUCA_O2_LIB
 using DigitArray = std::array<gsl::span<const o2::tpc::Digit>, o2::tpc::Sector::MAXSECTOR>;
 template void GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit, DigitArray>(const DigitArray&, std::unique_ptr<unsigned long long int[]>*, unsigned int*, o2::raw::RawFileWriter*, const o2::InteractionRecord*, const GPUParam&, bool, bool, float);
 static inline auto ZSEncoderGetDigits(const DigitArray& in, int i) { return in[i].data(); }
 static inline auto ZSEncoderGetNDigits(const DigitArray& in, int i) { return in[i].size(); }
+#endif
 static inline auto ZSEncoderGetTime(const o2::tpc::Digit a) { return a.getTimeStamp(); }
 static inline auto ZSEncoderGetPad(const o2::tpc::Digit a) { return a.getPad(); }
 static inline auto ZSEncoderGetRow(const o2::tpc::Digit a) { return a.getRow(); }
@@ -359,11 +366,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
           if (buffer[i][endpoint].size() == 0 && nexthbf != 0) {
             // Emplace empty page with RDH containing beginning of TFgpuDigitsMap
             buffer[i][endpoint].emplace_back();
-            page = &buffer[i][endpoint].back();
-            o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)page;
-            o2::raw::RDHUtils::setHeartBeatOrbit(*rdh, 0);
-            o2::raw::RDHUtils::setHeartBeatBC(*rdh, bcShiftInFirstHBF);
-            o2::raw::RDHUtils::setMemorySize(*rdh, sizeof(o2::header::RAWDataHeader));
+            ZSfillEmpty(&buffer[i][endpoint].back(), bcShiftInFirstHBF);
             totalPages++;
           }
           buffer[i][endpoint].emplace_back();
@@ -420,10 +423,19 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
       }
       k += seqLen - 1;
     }
+    if (!raw) {
+      for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+        if (buffer[i][j].size() == 0) {
+          buffer[i][j].emplace_back();
+          ZSfillEmpty(&buffer[i][j].back(), bcShiftInFirstHBF);
+          totalPages++;
+        }
+      }
+    }
 
     // Verification
     if (verify) {
-      std::vector<deprecated::PackedDigit> compareBuffer;
+      std::vector<o2::tpc::Digit> compareBuffer;
       compareBuffer.reserve(tmpBuffer.size());
       for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
         unsigned int firstOrbit = o2::raw::RDHUtils::getHeartBeatOrbit(*(const o2::header::RAWDataHeader*)buffer[i][j].data());
@@ -493,7 +505,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
               for (int n = 0; n < nSeqRead; n++) {
                 const int seqLen = rowData[(n + 1) * 2] - (n ? rowData[n * 2] : 0);
                 for (int o = 0; o < seqLen; o++) {
-                  compareBuffer.emplace_back(deprecated::PackedDigit{(float)streamBuffer[pos10++] * decodeBitsFactor, (Timestamp)(timeBin + l), (Pad)(rowData[n * 2 + 1] + o), (Row)(rowOffset + m)});
+                  compareBuffer.emplace_back(o2::tpc::Digit{0, (float)streamBuffer[pos10++] * decodeBitsFactor, (tpccf::Row)(rowOffset + m), (tpccf::Pad)(rowData[n * 2 + 1] + o), timeBin + l});
                 }
               }
               rowPos++;
@@ -505,13 +517,13 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
         const unsigned int decodeBits = zs12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
         const float decodeBitsFactor = (1 << (decodeBits - 10));
         const float c = zs12bit ? (float)((int)(ZSEncoderGetCharge(tmpBuffer[j]) * decodeBitsFactor + 0.5f)) / decodeBitsFactor : (float)(int)(ZSEncoderGetCharge(tmpBuffer[j]) + 0.5f);
-        int ok = c == compareBuffer[j].charge && (int)ZSEncoderGetTime(tmpBuffer[j]) == (int)ZSEncoderGetTime(compareBuffer[j]) && (int)ZSEncoderGetPad(tmpBuffer[j]) == (int)ZSEncoderGetPad(compareBuffer[j]) && (int)ZSEncoderGetRow(tmpBuffer[j]) == (int)ZSEncoderGetRow(compareBuffer[j]);
+        int ok = c == ZSEncoderGetCharge(compareBuffer[j]) && (int)ZSEncoderGetTime(tmpBuffer[j]) == (int)ZSEncoderGetTime(compareBuffer[j]) && (int)ZSEncoderGetPad(tmpBuffer[j]) == (int)ZSEncoderGetPad(compareBuffer[j]) && (int)ZSEncoderGetRow(tmpBuffer[j]) == (int)ZSEncoderGetRow(compareBuffer[j]);
         if (ok) {
           continue;
         }
         nErrors++;
         printf("%4u: OK %d: Charge %3d %3d Time %4d %4d Pad %3d %3d Row %3d %3d\n", j, ok,
-               (int)c, (int)compareBuffer[j].charge, (int)ZSEncoderGetTime(tmpBuffer[j]), (int)ZSEncoderGetTime(compareBuffer[j]), (int)ZSEncoderGetPad(tmpBuffer[j]), (int)ZSEncoderGetPad(compareBuffer[j]), (int)ZSEncoderGetRow(tmpBuffer[j]), (int)ZSEncoderGetRow(compareBuffer[j]));
+               (int)c, (int)ZSEncoderGetCharge(compareBuffer[j]), (int)ZSEncoderGetTime(tmpBuffer[j]), (int)ZSEncoderGetTime(compareBuffer[j]), (int)ZSEncoderGetPad(tmpBuffer[j]), (int)ZSEncoderGetPad(compareBuffer[j]), (int)ZSEncoderGetRow(tmpBuffer[j]), (int)ZSEncoderGetRow(compareBuffer[j]));
       }
     }
   }
@@ -547,7 +559,7 @@ void GPUReconstructionConvert::RunZSEncoderCreateMeta(const unsigned long long i
   }
 }
 
-void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<deprecated::PackedDigit[]>* buffers, const deprecated::PackedDigit* const* ptrs, size_t* nsb, const size_t* ns, const GPUParam& param, bool zs12bit)
+void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<tpc::Digit[]>* buffers, const tpc::Digit* const* ptrs, size_t* nsb, const size_t* ns, const GPUParam& param, bool zs12bit)
 {
 #ifdef HAVE_O2HEADERS
   for (unsigned int i = 0; i < NSLICES; i++) {
@@ -558,14 +570,14 @@ void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<deprecated::PackedDig
     const unsigned int decodeBits = zs12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
     const float decodeBitsFactor = (1 << (decodeBits - 10));
     for (unsigned int k = 0; k < ns[i]; k++) {
-      if (buffers[i][k].charge >= param.rec.tpcZSthreshold) {
+      if (buffers[i][k].getChargeFloat() >= param.rec.tpcZSthreshold) {
         if (k > j) {
           buffers[i][j] = buffers[i][k];
         }
         if (zs12bit) {
-          buffers[i][j].charge = (float)((int)(buffers[i][j].charge * decodeBitsFactor + 0.5f)) / decodeBitsFactor;
+          buffers[i][j].setCharge((float)((int)(buffers[i][j].getChargeFloat() * decodeBitsFactor + 0.5f)) / decodeBitsFactor);
         } else {
-          buffers[i][j].charge = (float)((int)(buffers[i][j].charge + 0.5f));
+          buffers[i][j].setCharge((float)((int)(buffers[i][j].getChargeFloat() + 0.5f)));
         }
         j++;
       }

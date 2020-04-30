@@ -18,7 +18,7 @@
 #include "ChargePos.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
-using namespace GPUCA_NAMESPACE::gpu::deprecated;
+using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 template <>
 GPUdii() void GPUTPCCFNoiseSuppression::Thread<GPUTPCCFNoiseSuppression::noiseSuppression>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)

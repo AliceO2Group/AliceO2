@@ -96,7 +96,7 @@
 #/Framework/TestWorkflows
 #/Framework/Utils
 
-/GPU                          @davidrohr @AliceO2Group/framework-admins
+/GPU                          @davidrohr
 #/GPU/Common
 #/GPU/GPUTracking
 /GPU/GPUTracking/TRDTracking  @davidrohr @martenole
@@ -110,6 +110,7 @@
 /Testing
 
 /Utilities  @AliceO2Group/framework-admins
+/Utilities/Mergers @Barthelemy @knopers8
 #/Utilities/DataCompression
 #/Utilities/DataFlow
 #/Utilities/MCStepLogger

@@ -52,7 +52,7 @@ class TilingLayout
     Width = Grid::Width,
   };
 
-  GPUdi() static size_t idx(const ChargePos& p)
+  GPUhdi() static size_t idx(const ChargePos& p)
   {
     const size_t widthInTiles = (TPC_NUM_OF_PADS + Width - 1) / Width;
 
@@ -68,7 +68,7 @@ class TilingLayout
 #if !defined(__OPENCL__)
   GPUh() static size_t items()
   {
-    return (TPC_NUM_OF_PADS + Width - 1) / Width * Width * (TPC_MAX_TIME_PADDED + Height - 1) / Height * Height;
+    return (TPC_NUM_OF_PADS + Width - 1) / Width * Width * (TPC_MAX_FRAGMENT_LEN_PADDED + Height - 1) / Height * Height;
   }
 #endif
 };
@@ -84,7 +84,7 @@ class LinearLayout
 #if !defined(__OPENCL__)
   GPUh() static size_t items()
   {
-    return TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED;
+    return TPC_NUM_OF_PADS * TPC_MAX_FRAGMENT_LEN_PADDED;
   }
 #endif
 };

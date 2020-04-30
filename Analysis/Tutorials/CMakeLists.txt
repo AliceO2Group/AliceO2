@@ -15,72 +15,79 @@
 # set(HEADERS src/o2_sim_its_ALP3.h src/o2_sim_tpc.h )
 #
 
-o2_add_executable(histogram-track-selection
-                  SOURCES src/histogramTrackSelection.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
-                  COMPONENT_NAME AnalysisTutorial)
+o2_add_dpl_workflow(histogram-track-selection
+                    SOURCES src/histogramTrackSelection.cxx
+                    PUBLIC_LINK_LIBRARIES O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME AnalysisTutorial)
 
-o2_add_executable(track-collection-iteration
+o2_add_dpl_workflow(track-collection-iteration
                   SOURCES src/trackCollectionIteration.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
-o2_add_executable(track-iteration
+o2_add_dpl_workflow(track-iteration
                   SOURCES src/trackIteration.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
-o2_add_executable(full-track-iteration
+o2_add_dpl_workflow(full-track-iteration
                   SOURCES src/fullTrackIteration.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
-o2_add_executable(collision-tracks-iteration
+o2_add_dpl_workflow(collision-tracks-iteration
                   SOURCES src/collisionTracksIteration.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
-o2_add_executable(new-collections
+o2_add_dpl_workflow(new-collections
                   SOURCES src/newCollections.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
-o2_add_executable(associated-derived
+o2_add_dpl_workflow(associated-derived
                   SOURCES src/associatedExample.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
-o2_add_executable(dynamic-columns
+o2_add_dpl_workflow(dynamic-columns
                   SOURCES src/dynamicColumns.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
-o2_add_executable(histograms
+o2_add_dpl_workflow(histograms
                   SOURCES src/histograms.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
-o2_add_executable(filters
+o2_add_dpl_workflow(filters
                   SOURCES src/filters.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
-o2_add_executable(aodwriter
+o2_add_dpl_workflow(aodwriter
                   SOURCES src/aodwriter.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
-o2_add_executable(aodreader
+o2_add_dpl_workflow(aodreader
                   SOURCES src/aodreader.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
-o2_add_executable(outputs
+o2_add_dpl_workflow(outputs
                   SOURCES src/outputs.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
-o2_add_executable(jet-analysis
+o2_add_dpl_workflow(jet-analysis
                   SOURCES src/jetAnalysis.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_executable(tracks-combinations
+                  SOURCES src/tracksCombinations.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_executable(event-mixing
+                  SOURCES src/eventMixing.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
                   COMPONENT_NAME AnalysisTutorial)

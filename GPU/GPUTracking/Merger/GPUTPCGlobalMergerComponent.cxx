@@ -304,6 +304,7 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
   rec.NWaysOuter = fNWaysOuter;
   rec.mergerInterpolateErrors = false;
   rec.NonConsecutiveIDs = true;
+  rec.mergerReadFromTrackerDirectly = false;
 
   GPURecoStepConfiguration steps;
   steps.steps.set(GPUDataTypes::RecoStep::TPCMerging);

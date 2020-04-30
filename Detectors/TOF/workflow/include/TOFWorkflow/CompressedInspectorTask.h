@@ -16,6 +16,7 @@
 #ifndef O2_TOF_COMPRESSEDINSPECTORTASK
 #define O2_TOF_COMPRESSEDINSPECTORTASK
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "TOFReconstruction/DecoderBase.h"
@@ -34,7 +35,8 @@ namespace tof
 
 using namespace compressed;
 
-class CompressedInspectorTask : public DecoderBase, public Task
+template <typename RAWDataHeader>
+class CompressedInspectorTask : public DecoderBaseT<RAWDataHeader>, public Task
 {
  public:
   CompressedInspectorTask() = default;
@@ -50,7 +52,8 @@ class CompressedInspectorTask : public DecoderBase, public Task
                     const FrameHeader_t* frameHeader, const PackedHit_t* packedHits) override;
 
   void trailerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
-                      const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics) override;
+                      const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics,
+                      const Error_t* errors) override;
 
   bool mStatus = false;
   TFile* mFile = nullptr;

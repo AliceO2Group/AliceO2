@@ -25,7 +25,7 @@ using namespace o2::ft0;
 
 ClassImp(Digitizer);
 
-auto Digitizer::get_time(const std::vector<double>& times, double deadTime) -> CFDOutput
+Digitizer::CFDOutput Digitizer::get_time(const std::vector<double>& times, double deadTime)
 {
   double min_time = std::max(deadTime, *std::min_element(begin(times),
                                                          end(times)));
@@ -33,14 +33,14 @@ auto Digitizer::get_time(const std::vector<double>& times, double deadTime) -> C
   std::vector<double> noise(std::ceil(parameters.bunchWidth / parameters.mNoisePeriod));
   for (auto& n : noise)
     n = gRandom->Gaus(0, parameters.mNoiseVar);
-  bool is_positive = false;
+  bool is_positive = true;
   auto period = parameters.mNoisePeriod;
   auto value_at = [&noise, &times, &period](double time) {
     double val = 0;
     for (double t : times)
       val += signalForm_i(time - t);
     for (size_t i = 0; i < noise.size(); ++i)
-      val += noise[i] * sinc(TMath::Pi() * ((time - 12.5) / period - i));
+      val += noise[i] * sinc(TMath::Pi() * (time - 12.5) / period - i);
     return val;
   };
   //  for (double time = min_time; time < 0.5 * parameters.bunchWidth; time += 0.001 * parameters.channelWidth) {
@@ -52,16 +52,16 @@ auto Digitizer::get_time(const std::vector<double>& times, double deadTime) -> C
       if (!result.particle) {
         result.particle = time;
       }
-      result.deadTime = time + 15.6;
-      time += 15.6 - 0.005;
-      is_positive = false;
+      result.deadTime = time + parameters.mCFDdeadTime;
+      time += parameters.mCFDdeadTime - 0.005;
+      is_positive = true;
     } else
       is_positive = cfd_val > 0;
   }
   if (!result.particle) {
-    LOG(INFO) << "CFD failed to find peak ";
+    LOG(DEBUG) << "CFD failed to find peak ";
     for (double t : times)
-      LOG(DEBUG) << t << ", ";
+      LOG(DEBUG) << t << ", dead time " << deadTime;
   }
   return result;
 }
@@ -132,16 +132,11 @@ void Digitizer::storeBC(BCCache& bc,
       continue;
     channel_times.resize(channel_end - channel_begin);
     std::transform(channel_begin, channel_end, channel_times.begin(), [](BCCache::particle const& p) { return p.hit_time; });
-    // auto out = channel_times.begin();
-    // while (channel_begin != channel_end) {
-
-    //   *out++ = channel_begin++->hit_time;
-    // }
     int chain = (std::rand() % 2) ? 1 : 0;
-    auto cfd = get_time(channel_times, (mDeadTimes[ipmt].intrec ==
-                                        firstBCinDeque)
-                                         ? mDeadTimes[ipmt].deadTime - 25.
-                                         : -25.);
+
+    auto cfd = get_time(channel_times, mDeadTimes[ipmt].intrec.bc2ns() -
+                                         firstBCinDeque.bc2ns() +
+                                         mDeadTimes[ipmt].deadTime);
     mDeadTimes[ipmt].intrec = firstBCinDeque;
     mDeadTimes[ipmt].deadTime = cfd.deadTime;
 
@@ -150,9 +145,11 @@ void Digitizer::storeBC(BCCache& bc,
     int smeared_time = 1000. * (*cfd.particle - parameters.mCfdShift) * parameters.ChannelWidthInverse;
     bool is_time_in_signal_gate = (smeared_time > -parameters.mTime_trg_gate && smeared_time < parameters.mTime_trg_gate);
     Float_t charge = measure_amplitude(channel_times) * parameters.charge2amp;
-    float amp = is_time_in_signal_gate ? charge : 0;
+    float amp = is_time_in_signal_gate ? parameters.mV_2_Nchannels * charge : 0;
+    if (amp > 4095)
+      amp = 4095;
     LOG(DEBUG) << "bc " << firstBCinDeque.bc << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored;
-    digitsCh.emplace_back(ipmt, smeared_time, int(parameters.mV_2_Nchannels * amp), chain);
+    digitsCh.emplace_back(ipmt, smeared_time, int(amp), chain);
     nStored++;
 
     // fill triggers
@@ -178,14 +175,14 @@ void Digitizer::storeBC(BCCache& bc,
   is_SemiCentral = summ_ampl_A + summ_ampl_C >= parameters.mtrg_semicentral_trh;
   vertex_time = (mean_time_A - mean_time_C) * 0.5;
   isVertex = is_A && is_C && (vertex_time > -parameters.mTime_trg_gate && vertex_time < parameters.mTime_trg_gate);
-  uint16_t amplA = is_A ? summ_ampl_A : 0;           // sum amplitude A side
-  uint16_t amplC = is_C ? summ_ampl_C : 0;           // sum amplitude C side
+  uint32_t amplA = is_A ? summ_ampl_A : 0;           // sum amplitude A side
+  uint32_t amplC = is_C ? summ_ampl_C : 0;           // sum amplitude C side
   uint16_t timeA = is_A ? mean_time_A / n_hit_A : 0; // average time A side
   uint16_t timeC = is_C ? mean_time_C / n_hit_C : 0; // average time C side
 
   Triggers triggers;
-  triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, n_hit_A, n_hit_C,
-                       int(parameters.mV_2_Nchannels * amplA), int(parameters.mV_2_Nchannels * amplC), timeA, timeC);
+  triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, int8_t(n_hit_A), int8_t(n_hit_C),
+                       amplA, amplC, timeA, timeC);
 
   digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers, mEventID);
   size_t const nBC = digitsBC.size();
@@ -239,6 +236,7 @@ void Digitizer::initParameters()
 void Digitizer::init()
 {
   LOG(INFO) << " @@@ Digitizer::init " << std::endl;
+  mDeadTimes.fill({InteractionRecord(0), -100.});
 }
 //_______________________________________________________________________
 void Digitizer::finish()

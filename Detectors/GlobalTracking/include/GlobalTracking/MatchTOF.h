@@ -33,6 +33,7 @@
 #include "GlobalTracking/MatchTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "ReconstructionDataFormats/PID.h"
+#include <gsl/span>
 
 // from FIT
 #include "DataFormatsFT0/RecPoints.h"
@@ -84,7 +85,7 @@ class MatchTOF
   void init();
 
   ///< perform all initializations
-  void initWorkflow(const std::vector<o2::dataformats::TrackTPCITS>* trackArray, const std::vector<Cluster>* clusterArray, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* toflab, const std::vector<o2::MCCompLabel>* itslab, const std::vector<o2::MCCompLabel>* tpclab);
+  void initWorkflow(const gsl::span<const o2::dataformats::TrackTPCITS>& trackArray, const gsl::span<const Cluster>& clusterArray, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& toflab, const gsl::span<const o2::MCCompLabel>& itslab, const gsl::span<const o2::MCCompLabel>& tpclab);
 
   ///< set tree/chain containing tracks
   void setInputTreeTracks(TTree* tree) { mInputTreeTracks = tree; }
@@ -237,15 +238,20 @@ class MatchTOF
 
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
-  const std::vector<o2::dataformats::TrackTPCITS>* mTracksArrayInp = nullptr; ///< input tracks
-  const std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = nullptr;         ///< input TPC tracks
-  const std::vector<Cluster>* mTOFClustersArrayInp = nullptr;                 ///< input TOF clusters
+  gsl::span<const o2::dataformats::TrackTPCITS> mTracksArrayInp;  ///< input tracks
+  std::vector<o2::dataformats::TrackTPCITS>* mTracksArrayInpVect; ///< input tracks (vector to read from tree)
+  std::vector<o2::tpc::TrackTPC> mTPCTracksArrayInp;              ///< input TPC tracks
+  gsl::span<const Cluster> mTOFClustersArrayInp;                  ///< input TOF clusters
+  std::vector<Cluster>* mTOFClustersArrayInpVect;                 ///< input TOF clusters (vector to read from tree)
 
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabels = nullptr; ///< input TOF clusters MC labels
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTOFClusLabels;                  ///< input TOF clusters MC labels
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabelsPtr;              ///< input TOF clusters MC labels (pointer to read from tree)
   std::vector<o2::MCCompLabel> mTracksLblWork;                                        ///<TPCITS track labels
 
-  const std::vector<o2::MCCompLabel>* mTPCLabels = nullptr; ///< TPC label of input tracks
-  const std::vector<o2::MCCompLabel>* mITSLabels = nullptr; ///< ITS label of input tracks
+  gsl::span<const o2::MCCompLabel> mTPCLabels;  ///< TPC label of input tracks
+  gsl::span<const o2::MCCompLabel> mITSLabels;  ///< ITS label of input tracks
+  std::vector<o2::MCCompLabel>* mTPCLabelsVect; ///< TPC label of input tracks (vector to read from tree)
+  std::vector<o2::MCCompLabel>* mITSLabelsVect; ///< ITS label of input tracks (vector to read from tree)
 
   gsl::span<o2::ft0::RecPoints const> mFITRecPoints; ///< FIT recpoints
 

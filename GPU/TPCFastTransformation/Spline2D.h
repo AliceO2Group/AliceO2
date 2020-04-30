@@ -91,7 +91,7 @@ class Spline2DBase : public FlatObject
   void recreate(int numberOfKnotsU1, const int knotsU1[], int numberOfKnotsU2, const int knotsU2[]);
 #endif
 
-#if !defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   /// approximate a function F with this spline.
   void approximateFunction(DataT x1Min, DataT x1Max, DataT x2Min, DataT x2Max,
                            std::function<void(DataT x1, DataT x2, DataT f[])> F,
@@ -100,7 +100,7 @@ class Spline2DBase : public FlatObject
 
   /// _______________  IO   ________________________
 
-#if !defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   /// write a class object to the file
   int writeToFile(TFile& outf, const char* name);
 
@@ -163,7 +163,7 @@ class Spline2DBase : public FlatObject
   /// Print method
   void print() const;
 
-#if !defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
   /// Test the class functionality
   static int test(const bool draw = 0, const bool drawDataPoints = 1);
 #endif
@@ -257,7 +257,7 @@ class Spline2D : public Spline2DBase<DataT, isConsistentT>
 
   /// _______________  IO   ________________________
 
-#if !defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   /// write a class object to the file
   using TBase::writeToFile;
 
@@ -339,8 +339,8 @@ GPUhdi() Spline2D<DataT, nFdimT, isConsistentT>::
 }
 
 template <typename DataT, int nFdimT, bool isConsistentT>
-GPUhdi() Spline2D<DataT, nFdimT, isConsistentT>& Spline2D<DataT, nFdimT, isConsistentT>::
-  operator=(const Spline2D& spline)
+GPUhd() Spline2D<DataT, nFdimT, isConsistentT>& Spline2D<DataT, nFdimT, isConsistentT>::
+  operator=(const Spline2D<DataT, nFdimT, isConsistentT>& spline)
 {
   this->cloneFromObject(spline, nullptr);
   return *this;

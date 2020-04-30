@@ -13,24 +13,18 @@
 /// @since  2019-12-18
 /// @brief  TOF raw data format
 
-/*
+/// ALICE TOF Raw Data description: master file
 
-   ALICE TOF Raw Data description: master file
+///  Header file to describe TOF event fragment: defines, macros and data structures
 
-   Header file to describe TOF event fragment: defines, macros and data structures
+/// @P. Antonioli / INFN-Bologna
+/// March 2006
 
-
-   @P. Antonioli / INFN-Bologna
-   March 2006
-
-   Dec. 2019 moved old CDH to new TDH, updated format for RUN3: new DRM2, new TRM format
-   Dec. 2019 agreed O2 format
-   20200324 fixed error on LTM_EVSIZE macro, use of __cplusplus directive
-   20200325 detField description
-   ToDo:
-   -- insert new fw upgrades in DRMH
-
-*/
+/// 20191201 moved old CDH to new TDH, updated format for RUN3: new DRM2, new TRM format
+/// 20191231 agreed O2 format
+/// 20200324 fixed error on LTM_EVSIZE macro, use of __cplusplus directive
+/// 20200325 detField description
+/// 20200403 DRMHVersion = 0x12: eventWords 16 bit, generatedPayload bit, several bit adjustments
 
 #ifndef O2_TOF_RAWDATAFORMAT
 #define O2_TOF_RAWDATAFORMAT
@@ -86,15 +80,15 @@ typedef struct {
 /* TOF Data Header (former CDH)
         |31|30|29|28|27|26|25|24|23|22|21|20|19|18|17|16|15|14|13|12|11|10|09|08|07|06|05|04|03|02|01|00|
         -------------------------------------------------------------------------------------------------
-Word 0  |   0100    |    00                       |        Event Length (Bytes)                         |
+Word 0  |   0100    |    00              |                 Event Length (Bytes)                         |
         -------------------------------------------------------------------------------------------------
 Word 1  |                                     LHC Orbit                                                 |
         -------------------------------------------------------------------------------------------------
 */
 // TDH - TOF Data Header
 typedef struct {
-  uint32_t bytePayload : 18;
-  uint32_t mbz : 10;
+  uint32_t bytePayload : 20;
+  uint32_t mbz : 8;
   uint32_t dataId : 4;
 } __attribute__((__packed__)) TOFDataHeader_t;
 
@@ -119,15 +113,15 @@ typedef struct {
 
         |31|30|29|28|27|26|25|24|23|22|21|20|19|18|17|16|15|14|13|12|11|10|09|08|07|06|05|04|03|02|01|00|
         -------------------------------------------------------------------------------------------------
-Word 0  |   0100    |   Drm Id           |                 Event Length (Words)             |  0001     |
+Word 0  |   0100    |DG|   Drm Id           |               Event Length (Words)            |  0001     |
         -------------------------------------------------------------------------------------------------
-Word 1  |   0100    | 0   | DRMHWords | DRMHVersion  | CLK |  Slot Participating Mask       |  0001     |
+Word 1  |   0100    |0 | DRMHWords | DRMHVersion  | CLK |0 |  Slot Participating Mask       |  0001     |
         -------------------------------------------------------------------------------------------------
 Word 2  |   0100    |TO|  Slot Fault Mask               |0 |  Slot Enable Mask              |  0001     |
         -------------------------------------------------------------------------------------------------
 Word 3  |   0100    |   Bunch Crossing (Local)          |    Bunch Crossing (GBTx)          |  0001     |
         -------------------------------------------------------------------------------------------------
-Word 4  |   0100    |        00       |  Temp Ad  | 00  |   Temp Value                      |  0001     |
+Word 4  |   0100    |        00             |  Temp Ad  |   Temp Value                      |  0001     |
         -------------------------------------------------------------------------------------------------
 Word 5  |   0100    |        00       |IR|                   Event CRC                      |  0001     |
         -------------------------------------------------------------------------------------------------
@@ -138,19 +132,21 @@ Trailer |   0101    |        000                        |    Event Counter (Loca
 //----------------------------------- Word 0
 typedef struct {
   uint32_t slotId : 4;
-  uint32_t eventWords : 17; // meglio portarlo a 16
-  uint32_t drmId : 7;       // 0-71== 0x0-0x47 (Bit 8 > 0x100 announnce DRM generated payload, da cambiare in 0x80 e renderlo a 8 bit)
+  uint32_t eventWords : 16;
+  uint32_t drmId : 7;      // 0-71== 0x0-0x47        (Bits 0-7 of A_DRM_ID register)
+  uint32_t drmGenData : 1; // DRM generated payload  (Bit 8 of A_DRM_ID)
   uint32_t dataId : 4;
 } __attribute__((__packed__)) DRMDataHeader_t;
 
 //----------------------------------- Word 1
 typedef struct {
   uint32_t slotId : 4;
-  uint32_t partSlotMask : 11; // meglio mettere un mbz di 1 cosi' rispetta i byte boundaries
+  uint32_t partSlotMask : 11;
+  uint32_t mbza : 1;
   uint32_t clockStatus : 2;
-  uint32_t drmhVersion : 5; // currently set to 0x11 (Bit 4 identifies RUN3/4 data format), puo' essere diminuito a 6
+  uint32_t drmhVersion : 5; // > 0x10 is for Run3-4
   uint32_t drmHSize : 4;    // it doesn't count previous word, so currently it is 5
-  uint32_t mbz : 2;
+  uint32_t mbzb : 1;
   uint32_t dataId : 4;
 } __attribute__((__packed__)) DRMHeadW1_t;
 //----------------------------------- Word 2
@@ -200,7 +196,7 @@ typedef struct {
 typedef struct {
   uint32_t slotId : 4;
   uint32_t locEvCnt : 12;
-  uint32_t mbz : 12; // qui si potrebbero mettere 8 bit di trigger received nell'orbita finora
+  uint32_t mbz : 12;
   uint32_t dataId : 4;
 } __attribute__((__packed__)) DRMDataTrailer_t;
 
@@ -209,13 +205,20 @@ typedef struct {
 #define DRM_HEAD_NW DRMH_LENGTH
 
 // Word 0
-#define DRM_DRMID(a) ((a & 0x007E00000) >> 21)  //was FE    ///CHECK
-#define DRM_EVWORDS(a) ((a & 0x0001FFFF0) >> 4) ///CHECK
+#define DRM_EVWORDS(a) ((a & 0x000FFFF0) >> 4)
+#define DRM_DRMID(a) ((a & 0x07F00000) >> 20)
+#define DRM_GENDATA(a) ((a & 0x08000000) >> 27)
+#define DRM_DRMID_OLD(a) ((a & 0x007E00000) >> 21)
+#define DRM_EVWORDS_OLD(a) ((a & 0x0001FFFF0) >> 4)
 // Word 1
 #define DRM_SLOTID(a) ((a & 0x00007FF0) >> 4)
-#define DRM_CLKFLG(a) ((a & 0x00018000) >> 15) //was 10000>>15
-#define DRM_VERSID(a) ((a & 0x003E0000) >> 17) //waa 1E0000>>16
-#define DRM_HSIZE(a) ((a & 0x03C00000) >> 22)  //was 3E0000>>21
+#define DRM_CLKFLG(a) ((a & 0x00030000) >> 16)
+#define DRM_VERSID(a) ((a & 0x007C0000) >> 18)
+#define DRM_HSIZE(a) ((a & 0x07800000) >> 23)
+#define DRM_VERSID_OLD(a) ((a & 0x003E0000) >> 17)
+#define DRM_CLKFLG_OLD(a) ((a & 0x00018000) >> 15)
+#define DRM_HSIZE_OLD(a) ((a & 0x03C00000) >> 22)
+#define DRM_NEW_VERSION(a) ((a & 0x02000000) >> 25)
 // Word 2
 #define DRM_ENABLEID(a) ((a & 0x00007FF0) >> 4)
 #define DRM_FAULTID(a) ((a & 0x07FF0000) >> 16)
@@ -225,7 +228,7 @@ typedef struct {
 #define DRM_BCLOC(a) ((a & 0x0FFF0000) >> 16)
 // Word 4
 #define DRM_TEMP(a) ((a & 0x00003FF0) >> 4)
-#define DRM_SENSAD(a) ((a & 0x00070000) >> 18)
+#define DRM_SENSAD(a) ((a & 0x00070000) >> 16)
 // Word 5
 #define DRM_EVCRC(a) ((a & 0x000FFFF0) >> 4)
 // Trailer
@@ -262,6 +265,7 @@ typedef struct {
 } __attribute__((__packed__)) TRMDataHeader_t;
 #define TRM_EVCNT_GH(a) ((a & 0x07FE0000) >> 17)
 #define TRM_EVWORDS(a) ((a & 0x0001FFF0) >> 4)
+#define TRM_EMPTYBIT(a) ((a & 0x08000000) >> 27)
 
 /* TRM Chain Header
   |31|30|29|28|27|26|25|24|23|22|21|20|19|18|17|16|15|14|13|12|11|10|09|08|07|06|05|04|03|02|01|00|
@@ -408,24 +412,23 @@ typedef struct {
 #define LTM_T_FIELD(x, n) (((x) >> ((n)*10)) & 0x3FF)
 #define LTM_OR_FIELD(x, n) (((x) >> ((n)*10)) & 0x3FF)
 
-#define ltmint unsigned int //si puo' portarlo a uint32_t rendendo la struttura piu' piccola, da verificare se non ci sono overflow
 typedef struct {
-  ltmint TagHead;
-  ltmint FaultFlag;
-  ltmint CycStatus;
-  ltmint EventSize;
-  ltmint HeadGeo;
-  ltmint PdlDelay[48];
-  ltmint Vlv[16];
-  ltmint Vth[16];
-  ltmint GndFeac[8];
-  ltmint FeacTemp[8];
-  ltmint LocalTemp[12];
-  ltmint OrRate[48];
-  ltmint EventNum;
-  ltmint EventCrc;
-  ltmint TailGeo;
-  ltmint TagTail;
+  uint32_t TagHead;
+  uint32_t FaultFlag;
+  uint32_t CycStatus;
+  uint32_t EventSize;
+  uint32_t HeadGeo;
+  uint32_t PdlDelay[48];
+  uint32_t Vlv[16];
+  uint32_t Vth[16];
+  uint32_t GndFeac[8];
+  uint32_t FeacTemp[8];
+  uint32_t LocalTemp[12];
+  uint32_t OrRate[48];
+  uint32_t EventNum;
+  uint32_t EventCrc;
+  uint32_t TailGeo;
+  uint32_t TagTail;
 } LTMEvent_t;
 
 /** union **/

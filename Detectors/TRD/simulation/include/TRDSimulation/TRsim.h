@@ -22,6 +22,8 @@
 #define ALICEO2_TRD_TRSIM_H_
 
 #include <TMath.h>
+#include <array>
+#include <vector>
 
 class TH1D;
 

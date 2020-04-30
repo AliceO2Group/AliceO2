@@ -104,64 +104,65 @@ void TrackExtrap::helixExtrapToZ(TrackParamMFT* trackParam, double zEnd)
   }
 
   // Compute track parameters
-  double dZ = (zEnd - trackParam->getZ()); // Propagate in meters
+  double dZ = (zEnd - trackParam->getZ());
   double x0 = trackParam->getX();
   double y0 = trackParam->getY();
   double phi0 = trackParam->getPhi();
-  double cosphi0 = TMath::Cos(phi0);
-  double sinphi0 = TMath::Sin(phi0);
+  double cosphi0, sinphi0;
+  o2::utils::sincos(phi0, sinphi0, cosphi0);
   double tanl0 = trackParam->getTanl();
+  double invtanl0 = 1.0 / tanl0;
   double invqpt0 = trackParam->getInvQPt();
 
-  double k = -getBz() * o2::constants::math::B2C;
-  double deltax = (dZ * cosphi0 / tanl0 - dZ * dZ * k * invqpt0 * sinphi0 / (2. * tanl0 * tanl0));
-  double deltay = (dZ * sinphi0 / tanl0 + dZ * dZ * k * invqpt0 * cosphi0 / (2. * tanl0 * tanl0));
+  double k = getBz() * o2::constants::math::B2C;
+  double deltax = dZ * cosphi0 * invtanl0 - 0.5 * dZ * dZ * k * invqpt0 * sinphi0 * invtanl0 * invtanl0;
+  double deltay = dZ * sinphi0 * invtanl0 + 0.5 * dZ * dZ * k * invqpt0 * cosphi0 * invtanl0 * invtanl0;
 
   double x = x0 + deltax;
   double y = y0 + deltay;
-  double deltaphi = +dZ * k * invqpt0 / tanl0;
+  double deltaphi = +dZ * k * invqpt0 * invtanl0;
   //std::cout << "    Deltaphi extrap = " << deltaphi << " dZ = " << dZ << std::endl;
-  //std::cout << "      Deltax extrap = " << deltax << " = " << (dZ * cosphi0 / tanl0)*100 << " + " << (- dZ * dZ * k * invqpt0 * sinphi0 / (2. * tanl0 * tanl0))*100 << std::endl;
+  //std::cout << "      Deltax extrap = " << deltax << " = " << (dZ * cosphi0 * invtanl0)*100 << " + " << (- dZ * dZ * k * invqpt0 * sinphi0 / (2. * tanl0 * tanl0))*100 << std::endl;
   //std::cout << "      Deltay extrap = " << deltay << std::endl;
 
-  float phi = phi0 + deltaphi;
+  double phi = phi0 + deltaphi;
   //o2::utils::BringToPMPi(phi);
-  double tanl = tanl0;
-  double invqpt = invqpt0;
   trackParam->setX(x);
   trackParam->setY(y);
   trackParam->setZ(zEnd);
   trackParam->setPhi(phi);
-  trackParam->setTanl(tanl);
-  trackParam->setInvQPt(invqpt);
 }
 
 //__________________________________________________________________________
 void TrackExtrap::helixExtrapToZCov(TrackParamMFT* trackParam, double zEnd, bool updatePropagator)
 {
-  helixExtrapToZ(trackParam, zEnd);
 
-  // Calculate the jacobian related to the track parameters linear extrapolation to "zEnd"
-  double dZ = (zEnd - trackParam->getZ()); // Propagate in meters
+  // Calculate the jacobian related to the track parameters extrapolated to "zEnd"
+  double dZ = 0.0; // FIXME: Disabling non diagonal terms of the covariance matrix// (zEnd - trackParam->getZ());
   double phi0 = trackParam->getPhi();
   double tanl0 = trackParam->getTanl();
+  double invtanl0 = 1.0 / tanl0;
   double invqpt0 = trackParam->getInvQPt();
-  double dZ2 = dZ * dZ;
-  double cosphi0 = TMath::Cos(phi0);
-  double sinphi0 = TMath::Sin(phi0);
-  double tanl0sq = tanl0 * tanl0;
-  double k = -getBz() * o2::constants::math::B2C;
+  double cosphi0, sinphi0;
+  o2::utils::sincos(phi0, sinphi0, cosphi0);
+  double k = getBz() * o2::constants::math::B2C;
+  double l = dZ / (tanl0 * tanl0);
+  double m = dZ * invtanl0;
+  double n = dZ * k * invqpt0 * invtanl0;
+
+  // Extrapolate track parameters to "zEnd"
+  helixExtrapToZ(trackParam, zEnd);
 
   TMatrixD jacob(5, 5);
   jacob.UnitMatrix();
-  jacob(0, 2) = -dZ2 * k * invqpt0 * cosphi0 / 2. / tanl0sq - dZ * sinphi0 / tanl0;
-  jacob(0, 3) = dZ2 * k * invqpt0 * sinphi0 / tanl0sq / tanl0 - dZ * cosphi0 / tanl0sq;
-  jacob(0, 4) = -dZ2 * k * sinphi0 / 2. / tanl0sq;
-  jacob(1, 2) = -dZ2 * k * invqpt0 * sinphi0 / 2. / tanl0sq + dZ * cosphi0 / tanl0;
-  jacob(1, 3) = -dZ2 * k * invqpt0 * cosphi0 / tanl0sq / tanl0 - dZ * sinphi0 / tanl0sq;
-  jacob(1, 4) = dZ2 * k * cosphi0 / 2. / tanl0sq;
-  jacob(2, 3) = -dZ * k * invqpt0 / tanl0sq;
-  jacob(2, 4) = dZ * k / tanl0;
+  jacob(0, 2) = -m * n * cosphi0 * 0.5 - m * sinphi0;
+  jacob(0, 3) = l * n * sinphi0 - l * cosphi0;
+  jacob(0, 4) = -k * l * dZ * sinphi0 * 0.5;
+  jacob(1, 2) = -m * n * sinphi0 * 0.5 + m * cosphi0;
+  jacob(1, 3) = -l * n * cosphi0 - l * sinphi0;
+  jacob(1, 4) = k * l * dZ * cosphi0 * 0.5;
+  jacob(2, 3) = -n * invtanl0;
+  jacob(2, 4) = k * m;
 
   // Extrapolate track parameter covariances to "zEnd"
   TMatrixD tmp(trackParam->getCovariances(), TMatrixD::kMultTranspose, jacob);
@@ -211,6 +212,7 @@ void TrackExtrap::addMCSEffect(TrackParamMFT* trackParam, double dZ, double x0, 
   /// assuming linear propagation and using the small angle approximation.
   /// dZ = zOut - zIn (sign is important) and "param" is assumed to be given zOut.
   /// If x0 <= 0., assume dZ = pathLength/x0 and consider the material thickness as negligible.
+  /// TODO: Port to MFT
 
   double xSlope = trackParam->getPx() / trackParam->getPz();
   double ySlope = trackParam->getPy() / trackParam->getPz();
@@ -229,7 +231,7 @@ void TrackExtrap::addMCSEffect(TrackParamMFT* trackParam, double dZ, double x0, 
 
   double varCoor = (x0 > 0.) ? signedPathLength * signedPathLength * theta02 / 3. : 0.;
   double varSlop = theta02;
-  double covCorrSlope = (x0 > 0.) ? signedPathLength * theta02 / 2. : 0.;
+  double covCorrSlope = (x0 > 0.) ? signedPathLength * theta02 * 0.5 : 0.;
 
   // Set MCS covariance matrix
   TMatrixD newParamCov(trackParam->getCovariances());

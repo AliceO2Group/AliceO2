@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/DataSampling.h"
 #include <thread>
 
@@ -210,11 +211,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     rootQcTask
   };
 
-  // FIXME: this should really be made a workflow configuration option, but for
-  // the moment we simply avoid crashing if BASEDIR is not set by doing
-  // a non overwriting setenv.
-  setenv("BASEDIR", ".", 0);
-  std::string configurationSource = std::string("json://") + getenv("BASEDIR") + "/../../O2/Framework/TestWorkflows/exampleDataSamplingConfig.json";
+  const char* o2Root = getenv("O2_ROOT");
+  if (o2Root == nullptr) {
+    throw std::runtime_error("The O2_ROOT environment variable is not set, probably the O2 environment has not been loaded.");
+  }
+  std::string configurationSource = std::string("json:/") + o2Root + "/share/etc/exampleDataSamplingConfig.json";
   LOG(INFO) << "Using config source: " << configurationSource;
   DataSampling::GenerateInfrastructure(specs, configurationSource, 1);
   return specs;

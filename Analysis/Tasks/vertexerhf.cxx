@@ -46,25 +46,15 @@ struct DecayVertexBuilder2Prong {
   //Configurable<std::string> triggersel{"triggersel", "test", "A string configurable"};
   Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
 
-  aod::Trigger getTrigger(aod::Collision const& collision, aod::Triggers const& triggers)
-  {
-    for (auto trigger : triggers)
-      if (trigger.globalBC() == collision.globalBC())
-        return trigger;
-    aod::Trigger dummy;
-    return dummy;
-  }
-
   void process(aod::Collision const& collision,
-               aod::Triggers const& triggers,
+               aod::BCs const& bcs,
                soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
     //LOGP(error, "Trigger selection {}", std::string{triggersel});
     int trigindex = int{triggerindex};
     if (trigindex != -1) {
       LOGF(info, "Selecting on trigger bit %d", trigindex);
-      auto trigger = getTrigger(collision, triggers);
-      uint64_t triggerMask = trigger.triggerMask();
+      uint64_t triggerMask = collision.bc().triggerMask();
       bool isTriggerClassFired = triggerMask & 1ul << (trigindex - 1);
       if (!isTriggerClassFired)
         return;

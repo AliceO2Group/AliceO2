@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/runDataProcessing.h"
@@ -27,6 +28,7 @@
 #include <vector>
 #include <chrono>
 #include <cstring>
+#include <utility> // std::declval
 #include <TNamed.h>
 
 using namespace o2::framework;
@@ -141,6 +143,11 @@ DataProcessorSpec getSourceSpec()
     pmrvec.reserve(100);
     pmrvec.emplace_back(o2::test::TriviallyCopyable{1, 2, 3});
     pc.outputs().adoptContainer(pmrOutputSpec, std::move(pmrvec));
+
+    // make a vector of POD and set some data
+    pc.outputs().make<std::vector<int>>(OutputRef{"podvector"}) = {10, 21, 42};
+
+    // now we are done and signal this downstream
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 
@@ -169,7 +176,8 @@ DataProcessorSpec getSourceSpec()
                             OutputSpec{"TST", "ROOTVECTOR", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe},
-                            OutputSpec{"TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe}},
+                            OutputSpec{"TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe},
+                            OutputSpec{{"podvector"}, "TST", "PODVECTOR", 0, Lifetime::Timeframe}},
                            AlgorithmSpec(processingFct)};
 }
 
@@ -316,6 +324,14 @@ DataProcessorSpec getSinkSpec()
     auto header = o2::header::get<const o2::header::DataHeader*>(dataref.header);
     ASSERT_ERROR((header->payloadSize == sizeof(o2::test::TriviallyCopyable)));
 
+    LOG(INFO) << "extracting POD vector";
+    // TODO: use the ReturnType helper once implemented
+    //InputRecord::ReturnType<std::vector<int>> podvector;
+    decltype(std::declval<InputRecord>().get<std::vector<int>>(DataRef{nullptr, nullptr, nullptr})) podvector;
+    podvector = pc.inputs().get<std::vector<int>>("inputPODvector");
+    ASSERT_ERROR(podvector.size() == 3);
+    ASSERT_ERROR(podvector[0] == 10 && podvector[1] == 21 && podvector[2] == 42);
+
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   };
 
@@ -336,6 +352,7 @@ DataProcessorSpec getSinkSpec()
                             InputSpec{"input14", "TST", "ROOTSERLZBLOBJ", 0, Lifetime::Timeframe},
                             InputSpec{"input15", "TST", "ROOTSERLZBLVECT", 0, Lifetime::Timeframe},
                             InputSpec{"inputPMR", "TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe},
+                            InputSpec{"inputPODvector", "TST", "PODVECTOR", 0, Lifetime::Timeframe},
                             InputSpec{"inputMP", ConcreteDataTypeMatcher{"TST", "MULTIPARTS"}, Lifetime::Timeframe}},
                            Outputs{OutputSpec{"TST", "MSGABLVECTORCPY", 0, Lifetime::Timeframe}},
                            AlgorithmSpec(processingFct)};

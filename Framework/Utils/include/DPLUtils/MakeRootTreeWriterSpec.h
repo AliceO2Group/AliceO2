@@ -218,9 +218,11 @@ class MakeRootTreeWriterSpec
     /// @param dataref  the DPL DataRef object
     /// @return true if ready
     using CheckReady = std::function<bool(o2::framework::DataRef const&)>;
+    /// default condition
+    using CheckDefault = std::function<bool()>;
 
     /// the actual evaluator
-    std::variant<CheckReady, CheckProcessing> check;
+    std::variant<CheckDefault, CheckReady, CheckProcessing> check = []() { return true; };
   };
 
   /// unary helper functor to extract the input key from the InputSpec
@@ -232,10 +234,17 @@ class MakeRootTreeWriterSpec
   template <typename T>
   struct BranchDefinition : public WriterType::BranchDef<T, InputSpec, KeyExtractor> {
     /// constructor allows to specify an optional key used to generate a command line
-    /// option, all other parameters are simply forwarded to base class
+    /// option, base class uses default parameters
     template <typename KeyType>
     BranchDefinition(KeyType&& key, std::string _branchName, std::string _optionKey = "")
       : WriterType::BranchDef<T, InputSpec, KeyExtractor>(std::forward<KeyType>(key), _branchName), optionKey(_optionKey)
+    {
+    }
+    /// constructor allows to specify number of branches and an optional key used to generate
+    /// a command line option, base class uses default parameters
+    template <typename KeyType>
+    BranchDefinition(KeyType&& key, std::string _branchName, int _nofBranches, std::string _optionKey = "")
+      : WriterType::BranchDef<T, InputSpec, KeyExtractor>(std::forward<KeyType>(key), _branchName, _nofBranches), optionKey(_optionKey)
     {
     }
     /// constructor, all parameters are simply forwarded to base class
@@ -479,11 +488,16 @@ class MakeRootTreeWriterSpec
   template <size_t N, typename T, typename... Args>
   void parseConstructorArgs(BranchDefinition<T>&& def, Args&&... args)
   {
-    mInputs.insert(mInputs.end(), def.keys.begin(), def.keys.end());
-    mBranchNameOptions.emplace_back(def.optionKey, def.branchName);
-    mNofBranches += def.nofBranches;
+    if (def.nofBranches > 0) {
+      // number of branches set to 0 will skip the definition, this allows to
+      // dynamically disable branches, while all possible definitions can
+      // be specified at compile time
+      mInputs.insert(mInputs.end(), def.keys.begin(), def.keys.end());
+      mBranchNameOptions.emplace_back(def.optionKey, def.branchName);
+      mNofBranches += def.nofBranches;
+    }
     parseConstructorArgs<N + 1>(std::forward<Args>(args)...);
-    if (N == 0) {
+    if constexpr (N == 0) {
       mWriter = std::make_shared<WriterType>(nullptr, nullptr, std::forward<BranchDefinition<T>>(def), std::forward<Args>(args)...);
     }
   }

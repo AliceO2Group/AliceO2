@@ -77,45 +77,51 @@ void TrackFitterTask::run(ProcessingContext& pc)
   auto tracksCA = pc.inputs().get<gsl::span<o2::mft::TrackCA>>("tracksca");
 
   int nTracksCA = 0;
+  int nFailedTracksCA = 0;
   int nTracksLTF = 0;
+  int nFailedTracksLTF = 0;
   std::vector<o2::mft::FitterTrackMFT> fittertracks(tracksLTF.size() + tracksCA.size());
-  auto& finalMFTtracks = pc.outputs().make<std::vector<o2::mft::TrackMFT>>(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe});
-  finalMFTtracks.resize(tracksLTF.size() + tracksCA.size());
   std::list<o2::itsmft::Cluster> clusters;
 
   // Fit LTF tracks
   for (const auto& track : tracksLTF) {
-    auto& temptrack = fittertracks.at(nTracksLTF);
+    auto& temptrack = fittertracks.at(nTracksLTF + nFailedTracksLTF);
     convertTrack(track, temptrack, clusters);
-    mTrackFitter->fit(temptrack, false);
-    nTracksLTF++;
-  }
+    mTrackFitter->fit(temptrack, false) ? nTracksLTF++ : nFailedTracksLTF++;
+  } // end fit LTF tracks
 
   // Fit CA tracks
   for (const auto& track : tracksCA) {
-    auto& temptrack = fittertracks.at(nTracksLTF + nTracksCA);
+    auto& temptrack = fittertracks.at(nTracksLTF + nFailedTracksLTF + nTracksCA + nFailedTracksCA);
     convertTrack(track, temptrack, clusters);
-    mTrackFitter->fit(temptrack, false);
-    nTracksCA++;
-  }
+    mTrackFitter->fit(temptrack, false) ? nTracksCA++ : nFailedTracksCA++;
+  } // end fit CA tracks
+
+  auto& finalMFTtracks = pc.outputs().make<std::vector<o2::mft::TrackMFT>>(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe});
+  finalMFTtracks.resize(nTracksLTF + nTracksCA);
+
   auto nTotalTracks = 0;
   // Convert fitter tracks to the final Standalone MFT Track
   for (const auto& track : fittertracks) {
-    //o2::mft::TrackMFT& temptrack = finalMFTtracks.emplace_back();
-    auto& temptrack = finalMFTtracks.at(nTotalTracks);
-
-    temptrack.setZ(track.first().getZ());
-    temptrack.setParameters(TtoSMatrix5(track.first().getParameters()));
-    temptrack.setCovariances(TtoSMatrixSym55(track.first().getCovariances()));
-    temptrack.setTrackChi2(track.first().getTrackChi2());
-    temptrack.setMCCompLabels(track.getMCCompLabels(), track.getNPoints());
-    //finalMFTtracks.back().printMCCompLabels();
-    nTotalTracks++;
+    if (!track.isRemovable()) {
+      auto& temptrack = finalMFTtracks.at(nTotalTracks);
+      temptrack.setZ(track.first().getZ());
+      temptrack.setParameters(TtoSMatrix5(track.first().getParameters()));
+      temptrack.setCovariances(TtoSMatrixSym55(track.first().getCovariances()));
+      temptrack.setTrackChi2(track.first().getTrackChi2());
+      temptrack.setMCCompLabels(track.getMCCompLabels(), track.getNPoints());
+      temptrack.setInvQPtQuadtratic(track.getInvQPtQuadtratic());
+      temptrack.setChi2QPtQuadtratic(track.getChi2QPtQuadtratic());
+      //finalMFTtracks.back().printMCCompLabels();
+      nTotalTracks++;
+    }
   }
 
   LOG(INFO) << "MFTFitter loaded " << tracksLTF.size() << " LTF tracks";
   LOG(INFO) << "MFTFitter loaded " << tracksCA.size() << " CA tracks";
   LOG(INFO) << "MFTFitter pushed " << fittertracks.size() << " tracks";
+  LOG(INFO) << "MFTFitter dropped " << nFailedTracksLTF << " LTF tracks";
+  LOG(INFO) << "MFTFitter dropped " << nFailedTracksCA << " CA tracks";
 
   mState = 2;
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -158,8 +164,8 @@ void convertTrack(const T& inTrack, O& outTrack, C& clusters)
   // TODO: get rid of this cluster vector
   for (auto cls = 0; cls < nClusters; cls++) {
     o2::itsmft::Cluster& tempcluster = clusters.emplace_back(clusterIDs[cls], xpos[cls], ypos[cls], zpos[cls]);
-    tempcluster.setSigmaY2(0.0001); // FIXME:
-    tempcluster.setSigmaZ2(0.0001); // FIXME: Use clusters errors once available
+    tempcluster.setSigmaY2(5.43e-4); // FIXME:
+    tempcluster.setSigmaZ2(5.0e-4);  // FIXME: Use clusters errors once available
     outTrack.createParamAtCluster(tempcluster);
   }
   outTrack.setMCCompLabels(inTrack.getMCCompLabels(), nClusters);

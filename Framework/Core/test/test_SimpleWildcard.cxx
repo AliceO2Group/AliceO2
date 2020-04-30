@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"

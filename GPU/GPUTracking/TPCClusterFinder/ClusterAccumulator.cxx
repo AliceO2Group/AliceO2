@@ -14,8 +14,8 @@
 #include "ClusterAccumulator.h"
 #include "CfUtils.h"
 
-
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 GPUd() void ClusterAccumulator::toNative(const ChargePos& pos, Charge q, tpc::ClusterNative& cn) const
 {
@@ -73,7 +73,7 @@ GPUd() Charge ClusterAccumulator::updateOuter(PackedCharge charge, Delta2 d)
   return q;
 }
 
-GPUd() void ClusterAccumulator::finalize(const ChargePos& pos, Charge q)
+GPUd() void ClusterAccumulator::finalize(const ChargePos& pos, Charge q, TPCTime timeOffset)
 {
   mQtot += q;
 
@@ -86,7 +86,7 @@ GPUd() void ClusterAccumulator::finalize(const ChargePos& pos, Charge q)
   mTimeSigma = CAMath::Sqrt(mTimeSigma - mTimeMean * mTimeMean);
 
   mPadMean += pos.pad();
-  mTimeMean += pos.time();
+  mTimeMean += timeOffset + pos.time();
 
 #if defined(CORRECT_EDGE_CLUSTERS)
   if (CfUtils::isAtEdge(pos)) {

@@ -47,6 +47,7 @@ install(FILES CheckClusters_mft.C
               run_digi2raw_tof.C
               run_cmp2digit_tof.C
               compareTOFDigits.C
+              compareTOFClusters.C
               run_match_tof.C
               run_primary_vertexer_ITS.C
               run_rawdecoding_its.C
@@ -138,7 +139,8 @@ o2_add_test_root_macro(build_geometry.C
 o2_add_test_root_macro(checkTOFMatching.C
                        PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                              O2::ReconstructionDataFormats
-                                             O2::SimulationDataFormat)
+                                             O2::SimulationDataFormat
+                                             O2::DataFormatsTOF)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(compareTopologyDistributions.C
@@ -300,6 +302,10 @@ o2_add_test_root_macro(run_cmp2digit_tof.C
 
 o2_add_test_root_macro(compareTOFDigits.C
                        PUBLIC_LINK_LIBRARIES O2::TOFBase
+                       LABELS tof)
+
+o2_add_test_root_macro(compareTOFClusters.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF
                        LABELS tof)
 
 # FIXME: move to subsystem dir

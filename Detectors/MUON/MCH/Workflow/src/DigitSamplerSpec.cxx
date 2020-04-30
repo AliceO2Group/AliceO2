@@ -33,7 +33,7 @@
 
 #include "MCHBase/Digit.h"
 
-#include "MCHMappingFactory/CreateSegmentation.h"
+#include "MCHMappingInterface/Segmentation.h"
 
 namespace o2
 {

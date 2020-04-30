@@ -15,113 +15,95 @@
 # set(HEADERS src/o2_sim_its_ALP3.h src/o2_sim_tpc.h )
 #
 
-o2_add_executable(dummy-workflow
+o2_add_dpl_workflow(dummy-workflow
                   SOURCES src/o2DummyWorkflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(o2rootmessage-workflow
+o2_add_dpl_workflow(o2rootmessage-workflow
                   SOURCES "src/test_o2RootMessageWorkflow.cxx"
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(diamond-workflow
+o2_add_dpl_workflow(diamond-workflow
                   SOURCES src/o2DiamondWorkflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(output-wildcard-workflow
+o2_add_dpl_workflow(output-wildcard-workflow
                   SOURCES src/o2OutputWildcardWorkflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(parallel-workflow
+o2_add_dpl_workflow(parallel-workflow
                   SOURCES src/o2ParallelWorkflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(flp-qualification
+o2_add_dpl_workflow(flp-qualification
                   SOURCES src/flpQualification.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(sync-reconstruction-dummy
+o2_add_dpl_workflow(sync-reconstruction-dummy
                   SOURCES src/o2SyncReconstructionDummy.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(aod-dummy-workflow
+o2_add_dpl_workflow(aod-dummy-workflow
                   SOURCES src/o2AODDummy.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(d0-analysis
+o2_add_dpl_workflow(d0-analysis
                   SOURCES src/o2D0Analysis.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(simple-tracks-analysis
+o2_add_dpl_workflow(simple-tracks-analysis
                   SOURCES src/o2SimpleTracksAnalysis.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(analysis-task-example
+o2_add_dpl_workflow(analysis-task-example
                   SOURCES src/o2AnalysisTaskExample.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(data-query-workflow
+o2_add_dpl_workflow(data-query-workflow
                   SOURCES src/o2DataQueryWorkflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
 # FIXME: given its name, should this one be a test instead of an executable ?
-o2_add_executable(test_MakeDPLObjects
+o2_add_dpl_workflow(test_MakeDPLObjects
                   SOURCES test/test_MakeDPLObjects.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
 # FIXME: given its name, should this one be a test instead of an executable ?
-o2_add_executable(test_RawDeviceInjector
+o2_add_dpl_workflow(test_RawDeviceInjector
                   SOURCES src/test_RawDeviceInjector.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
 # FIXME: given its name, should this one be a test instead of an executable ?
-o2_add_executable(test_CompletionPolicies
+o2_add_dpl_workflow(test_CompletionPolicies
                   SOURCES src/test_CompletionPolicies.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(datasampling-pod-and-root
+o2_data_file(COPY etc/exampleDataSamplingConfig.json DESTINATION etc)
+
+o2_add_dpl_workflow(datasampling-pod-and-root
                   SOURCES src/dataSamplingPodAndRoot.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(datasampling-parallel
+o2_add_dpl_workflow(datasampling-parallel
                   SOURCES src/dataSamplingParallel.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(datasampling-time-pipeline
+o2_add_dpl_workflow(datasampling-time-pipeline
                   SOURCES src/dataSamplingTimePipeline.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(ccdb-fetch-to-timeframe
+o2_add_dpl_workflow(ccdb-fetch-to-timeframe
                   SOURCES src/test_CCDBFetchToTimeframe.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_executable(datasampling-benchmark
+o2_add_dpl_workflow(datasampling-benchmark
                   SOURCES src/dataSamplingBenchmark.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
 # Detector specific dummy workflows
-o2_add_executable(tof-dummy-ccdb
+o2_add_dpl_workflow(tof-dummy-ccdb
                   SOURCES src/tof-dummy-ccdb.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::TOFReconstruction
+                  PUBLIC_LINK_LIBRARIES O2::TOFReconstruction
                   COMPONENT_NAME TestWorkflows)
 
 if(BUILD_SIMULATION)

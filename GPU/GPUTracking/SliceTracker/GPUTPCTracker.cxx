@@ -212,22 +212,21 @@ GPUh() void GPUTPCTracker::WriteOutput()
   int nStoredTracks = 0;
   int nStoredLocalTracks = 0;
 
-  GPUTPCSliceOutTrack* out = mOutput->FirstTrack();
+  GPUTPCTrack* out = mOutput->FirstTrack();
 
   trackSortData* trackOrder = new trackSortData[mCommonMem->nTracks];
   for (unsigned int i = 0; i < mCommonMem->nTracks; i++) {
     trackOrder[i].fTtrack = i;
     trackOrder[i].fSortVal = mTracks[trackOrder[i].fTtrack].NHits() / 1000.f + mTracks[trackOrder[i].fTtrack].Param().GetZ() * 100.f + mTracks[trackOrder[i].fTtrack].Param().GetY();
   }
-  std::sort(trackOrder, trackOrder + mCommonMem->nLocalTracks, SortComparison<trackSortData>);
+  std::sort(trackOrder, trackOrder + mCommonMem->nLocalTracks, SortComparison<trackSortData>); // TODO: Check why this sorting affects the merging efficiency!
   std::sort(trackOrder + mCommonMem->nLocalTracks, trackOrder + mCommonMem->nTracks, SortComparison<trackSortData>);
 
   for (unsigned int iTrTmp = 0; iTrTmp < mCommonMem->nTracks; iTrTmp++) {
     const int iTr = trackOrder[iTrTmp].fTtrack;
     GPUTPCTrack& iTrack = mTracks[iTr];
 
-    out->SetParam(iTrack.Param());
-    out->SetLocalTrackId(iTrack.LocalTrackId());
+    *out = iTrack;
     int nClu = 0;
     int iID = iTrack.FirstHitID();
 
@@ -237,16 +236,13 @@ GPUh() void GPUTPCTracker::WriteOutput()
       int ih = ic.HitIndex();
 
       const GPUTPCRow& row = mData.Row(iRow);
+      int clusterIndex = mData.ClusterDataIndex(row, ih);
 #ifdef GPUCA_ARRAY_BOUNDS_CHECKS
       if (ih >= row.NHits() || ih < 0) {
         GPUError("Array out of bounds access (Sector Row) (Hit %d / %d - NumC %d): Sector %d Row %d Index %d", ith, iTrack.NHits(), NHitsTotal(), mISlice, iRow, ih);
         fflush(stdout);
         continue;
       }
-#endif
-      int clusterIndex = mData.ClusterDataIndex(row, ih);
-
-#ifdef GPUCA_ARRAY_BOUNDS_CHECKS
       if (clusterIndex >= NHitsTotal() || clusterIndex < 0) {
         GPUError("Array out of bounds access (Cluster Data) (Hit %d / %d - NumC %d): Sector %d Row %d Hit %d, Clusterdata Index %d", ith, iTrack.NHits(), NHitsTotal(), mISlice, iRow, ih, clusterIndex);
         fflush(stdout);
@@ -278,7 +274,7 @@ GPUh() void GPUTPCTracker::WriteOutput()
       c.mPad = mData.ClusterData()[clusterIndex].pad;
       c.mTime = mData.ClusterData()[clusterIndex].time;
 #endif
-      out->SetCluster(nClu, c);
+      out->SetOutTrackCluster(nClu, c);
       nClu++;
     }
 
@@ -287,7 +283,7 @@ GPUh() void GPUTPCTracker::WriteOutput()
       nStoredLocalTracks++;
     }
     nStoredHits += nClu;
-    out->SetNClusters(nClu);
+    out->SetNHits(nClu);
     out = out->NextTrack();
   }
   delete[] trackOrder;
@@ -381,7 +377,6 @@ GPUh() int GPUTPCTracker::PerformGlobalTrackingRun(GPUTPCTracker& GPUrestrict() 
       }
     }
     GPUTPCTrack& GPUrestrict() track = mTracks[trackId];
-    track.SetAlive(1);
     track.SetParam(tParam.GetParam());
     track.SetNHits(nHits);
     track.SetFirstHitID(hitId);

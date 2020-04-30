@@ -267,7 +267,7 @@ void Detector::ConstructGeometry()
 {
   LOG(INFO) << "FV0: Constructing geometry";
   createMaterials();
-  mGeometry = new Geometry(Geometry::eFull);
+  mGeometry = Geometry::instance(Geometry::eFull);
   // mGeometry->enableComponent(Geometry::eScintillator, false);
   // mGeometry->enableComponent(Geometry::ePlastics, false);
   // mGeometry->enableComponent(Geometry::eFibers, false);

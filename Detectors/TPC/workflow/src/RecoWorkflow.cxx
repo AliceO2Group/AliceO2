@@ -102,8 +102,8 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   if (inputType == InputType::Clusters && (isEnabled(OutputType::Digits) || isEnabled(OutputType::ClustersHardware))) {
     throw std::invalid_argument("input/output type mismatch, can not produce 'digits', nor 'clustershardware' from 'clusters'");
   }
-  if (inputType == InputType::ZSRaw && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Digits) || isEnabled(OutputType::ClustersHardware))) {
-    throw std::invalid_argument("input/output type mismatch, can not produce 'digits', 'clusters' nor 'clustershardware' from 'zsraw'");
+  if (inputType == InputType::ZSRaw && (isEnabled(OutputType::Digits) || isEnabled(OutputType::ClustersHardware))) {
+    throw std::invalid_argument("input/output type mismatch, can not produce 'digits' nor 'clustershardware' from 'zsraw'");
   }
 
   if (inputType == InputType::ZSRaw && !caClusterer) {
@@ -112,8 +112,8 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   if (caClusterer && (inputType == InputType::Clusters || inputType == InputType::ClustersHardware)) {
     throw std::invalid_argument("ca-clusterer requires digits as input");
   }
-  if (caClusterer && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::ClustersHardware))) {
-    throw std::invalid_argument("ca-clusterer cannot produce clusters or clustershardware output");
+  if (caClusterer && (isEnabled(OutputType::ClustersHardware))) {
+    throw std::invalid_argument("ca-clusterer cannot produce clustershardware output");
   }
 
   WorkflowSpec specs;
@@ -394,6 +394,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                    zsDecoder ? ca::Operation::ZSDecoder : ca::Operation::Noop,
                                                    produceTracks ? ca::Operation::OutputTracks : ca::Operation::Noop,
                                                    produceCompClusters ? ca::Operation::OutputCompClusters : ca::Operation::Noop,
+                                                   isEnabled(OutputType::Clusters) && caClusterer ? ca::Operation::OutputCAClusters : ca::Operation::Noop,
                                                  },
                                                  laneConfiguration));
   }

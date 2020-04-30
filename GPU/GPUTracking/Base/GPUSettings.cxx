@@ -53,6 +53,7 @@ void GPUSettingsRec::SetDefaults()
   fitPropagateBzOnly = -1;
   retryRefit = 1;
   loopInterpolationInExtraPass = 0;
+  mergerReadFromTrackerDirectly = 1;
 }
 
 void GPUSettingsEvent::SetDefaults()

@@ -28,6 +28,7 @@ namespace o2
 namespace tof
 {
 
+template <typename RAWDataHeader, bool verbose>
 class Compressor
 {
 
@@ -38,6 +39,10 @@ class Compressor
   inline bool run()
   {
     rewind();
+    if (mDecoderCONET) {
+      mDecoderPointerMax = reinterpret_cast<const uint32_t*>(mDecoderBuffer + mDecoderBufferSize);
+      return processDRM();
+    }
     while (!processHBF())
       ;
     return false;
@@ -51,6 +56,12 @@ class Compressor
 
   void checkSummary();
   void resetCounters();
+
+  void setDecoderCONET(bool val)
+  {
+    mDecoderCONET = val;
+    mDecoderNextWordStep = val ? 0 : 2;
+  };
 
   void setDecoderVerbose(bool val) { mDecoderVerbose = val; };
   void setEncoderVerbose(bool val) { mEncoderVerbose = val; };
@@ -71,6 +82,9 @@ class Compressor
  protected:
   bool processHBF();
   bool processDRM();
+  bool processLTM();
+  bool processTRM();
+  bool processTRMchain(int itrm, int ichain);
 
   /** decoder private functions and data members **/
 
@@ -81,7 +95,7 @@ class Compressor
     mDecoderPointer += mDecoderNextWord;
     //    mDecoderNextWord = mDecoderNextWord == 1 ? 3 : 1;
     //    mDecoderNextWord = (mDecoderNextWord + 2) % 4;
-    mDecoderNextWord = (mDecoderNextWord + 2) & 0x3;
+    mDecoderNextWord = (mDecoderNextWord + mDecoderNextWordStep) & 0x3;
   };
 
   int mJumpRDH = 0;
@@ -93,7 +107,9 @@ class Compressor
   const uint32_t* mDecoderPointerMax = nullptr;
   const uint32_t* mDecoderPointerNext = nullptr;
   uint8_t mDecoderNextWord = 1;
-  const o2::header::RAWDataHeader* mDecoderRDH;
+  uint8_t mDecoderNextWordStep = 2;
+  const RAWDataHeader* mDecoderRDH;
+  bool mDecoderCONET = false;
   bool mDecoderVerbose = false;
   bool mDecoderError = false;
   bool mDecoderFatal = false;
@@ -114,12 +130,13 @@ class Compressor
   uint32_t* mEncoderPointerMax = nullptr;
   uint32_t* mEncoderPointerStart = nullptr;
   uint8_t mEncoderNextWord = 1;
-  o2::header::RAWDataHeader* mEncoderRDH;
+  RAWDataHeader* mEncoderRDH;
   bool mEncoderVerbose = false;
 
   /** checker private functions and data members **/
 
   bool checkerCheck();
+  void checkerCheckRDH();
 
   uint32_t mEventCounter;
   uint32_t mFatalCounter;
@@ -153,25 +170,29 @@ class Compressor
   /** summary data **/
 
   struct DecoderSummary_t {
-    uint32_t tofDataHeader;
-    uint32_t tofOrbit;
-    uint32_t drmDataHeader;
-    uint32_t drmHeadW1;
-    uint32_t drmHeadW2;
-    uint32_t drmHeadW3;
-    uint32_t drmHeadW4;
-    uint32_t drmHeadW5;
-    uint32_t drmDataTrailer;
-    uint32_t trmDataHeader[10];
-    uint32_t trmDataTrailer[10];
-    uint32_t trmChainHeader[10][2];
-    uint32_t trmChainTrailer[10][2];
-    uint32_t trmDataHit[2][15][256];
+    const uint32_t* tofDataHeader;
+    const uint32_t* tofOrbit;
+    const uint32_t* drmDataHeader;
+    const uint32_t* drmHeadW1;
+    const uint32_t* drmHeadW2;
+    const uint32_t* drmHeadW3;
+    const uint32_t* drmHeadW4;
+    const uint32_t* drmHeadW5;
+    const uint32_t* drmDataTrailer;
+    const uint32_t* ltmDataHeader;
+    const uint32_t* ltmDataTrailer;
+    const uint32_t* trmDataHeader[10];
+    const uint32_t* trmDataTrailer[10];
+    const uint32_t* trmChainHeader[10][2];
+    const uint32_t* trmChainTrailer[10][2];
+    const uint32_t* trmDataHit[2][15][256];
+    const uint32_t* trmError[10][2][32];
     uint8_t trmDataHits[2][15];
+    uint8_t trmErrors[10][2];
     bool hasHits[10][2];
     bool hasErrors[10][2];
     bool decodeError;
-  } mDecoderSummary = {0};
+  } mDecoderSummary = {nullptr};
 
   struct SpiderSummary_t {
     uint32_t FramePackedHit[256][256];
@@ -181,6 +202,7 @@ class Compressor
   struct CheckerSummary_t {
     uint32_t nDiagnosticWords;
     uint32_t DiagnosticWord[12];
+    uint32_t nTDCErrors;
   } mCheckerSummary = {0};
 };
 
