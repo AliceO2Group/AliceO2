@@ -1577,7 +1577,20 @@ int GPUChainTracking::RunTPCTrackingMerger()
     runKernel<GPUTPCGMMergerSortTracksPrepare>(GetGridBlk(BlockCount(), 0, deviceType), krnlRunRangeNone, krnlEventNone);
   }
 
-  runKernel<GPUTPCGMMergerPrepareClusters>(GetGridBlk(BlockCount(), 0, deviceType), krnlRunRangeNone, krnlEventNone);
+  unsigned int maxId = param().rec.NonConsecutiveIDs ? Merger.Memory()->nOutputTrackClusters : Merger.NMaxClusters();
+  if (maxId > Merger.NMaxClusters()) {
+    throw std::runtime_error("mNMaxClusters too small");
+  }
+  if (!param().rec.NonConsecutiveIDs) {
+    unsigned int* sharedCount = (unsigned int*)MergerShadow.TmpMem() + CAMath::nextMultipleOf<4>(Merger.Memory()->nOutputTracks);
+    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0, RecoStep::TPCMerging}, krnlRunRangeNone, {}, sharedCount, maxId * sizeof(*sharedCount));
+    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0, RecoStep::TPCMerging}, krnlRunRangeNone, {}, MergerShadow.ClusterAttachment(), maxId * sizeof(*MergerShadow.ClusterAttachment()));
+    runKernel<GPUTPCGMMergerPrepareClusters, 0>(GetGridBlk(BlockCount(), 0, deviceType), krnlRunRangeNone, krnlEventNone);
+    runKernel<GPUTPCGMMergerSortTracksQPt>(GetGridBlk(BlockCount(), 0, deviceType), krnlRunRangeNone, krnlEventNone);
+    runKernel<GPUTPCGMMergerPrepareClusters, 1>(GetGridBlk(BlockCount(), 0, deviceType), krnlRunRangeNone, krnlEventNone);
+    runKernel<GPUTPCGMMergerPrepareClusters, 2>(GetGridBlk(BlockCount(), 0, deviceType), krnlRunRangeNone, krnlEventNone);
+  }
+
   DoDebugAndDump(RecoStep::TPCMerging, 0, Merger, &GPUTPCGMMerger::DumpFitPrepare, mDebugFile);
 
   if (doGPU && !doGPUall) {

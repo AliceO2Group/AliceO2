@@ -230,8 +230,8 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   computePointerWithAlignment(mem, mBorderMemory, 2 * mNMaxSliceTracks);
   computePointerWithAlignment(mem, mBorderRangeMemory, 2 * mNMaxSliceTracks);
   computePointerWithAlignment(mem, mTrackLinks, mNMaxSliceTracks);
-  size_t tmpSize = CAMath::Max(CAMath::Max<unsigned int>(mNMaxSingleSliceTracks, 1) * NSLICES * sizeof(int), mNMaxTracks * sizeof(int) + mNMaxClusters * sizeof(char));
-  computePointerWithAlignment(mem, mTmpMem, tmpSize);
+  size_t tmpSize = CAMath::Max(CAMath::Max<unsigned int>(mNMaxSingleSliceTracks, 1) * NSLICES * sizeof(int), CAMath::nextMultipleOf<4>(mNMaxTracks) * sizeof(int) + mNMaxClusters * sizeof(unsigned int));
+  computePointerWithAlignment(mem, mTmpMem, (tmpSize + sizeof(*mTmpMem) - 1) / sizeof(*mTmpMem));
   computePointerWithAlignment(mem, mTmpCounter, 2 * NSLICES);
 
   int nTracks = 0;
@@ -1492,11 +1492,10 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
 
 GPUd() void GPUTPCGMMerger::SortTracksPrepare(int nBlocks, int nThreads, int iBlock, int iThread)
 {
-  mNSlowTracks = 0;
   for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTracks; i += nThreads * nBlocks) {
     const GPUTPCGMMergedTrack& trk = mOutputTracks[i];
     if (trk.CCE() || trk.Legs()) {
-      mNSlowTracks++;
+      CAMath::AtomicAdd(&mMemory->nSlowTracks, 1);
     }
     mTrackOrderProcess[i] = i;
   }
@@ -1507,38 +1506,39 @@ GPUd() void GPUTPCGMMerger::SortTracks(int nBlocks, int nThreads, int iBlock, in
   GPUCommonAlgorithm::sort(mTrackOrderProcess, mTrackOrderProcess + mMemory->nOutputTracks, GPUTPCGMMerger_CompareTracksProcess(mOutputTracks));
 }
 
-GPUd() void GPUTPCGMMerger::PrepareClustersForFit(int nBlocks, int nThreads, int iBlock, int iThread)
+GPUd() void GPUTPCGMMerger::PrepareClustersForFit0(int nBlocks, int nThreads, int iBlock, int iThread)
 {
-  unsigned int maxId = Param().rec.NonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
-  if (maxId > mNMaxClusters) {
-#ifdef GPUCA_GPUCODE
-    // TODO: Add overflow handling
-#else
-    throw std::runtime_error("mNMaxClusters too small");
-#endif
-  }
-
   unsigned int* trackSort = (unsigned int*)mTmpMem;
-  unsigned char* sharedCount = (unsigned char*)(trackSort + mMemory->nOutputTracks);
+  for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTracks; i += nBlocks * nThreads) {
+    trackSort[i] = i;
+  }
+}
 
-  if (!Param().rec.NonConsecutiveIDs) {
-    for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
-      trackSort[i] = i;
-      mTrackOrderAttach[trackSort[i]] = i;
-    }
-    GPUCommonAlgorithm::sort(trackSort, trackSort + mMemory->nOutputTracks, GPUTPCGMMerger_CompareTracksAttachWeight(mOutputTracks));
-    for (unsigned int i = 0; i < maxId; i++) {
-      mClusterAttachment[i] = 0;
-      sharedCount[i] = 0;
-    }
-    for (unsigned int i = 0; i < mMemory->nOutputTrackClusters; i++) {
-      mClusterAttachment[mClusters[i].num] = attachAttached | attachGood;
-      sharedCount[mClusters[i].num] = (sharedCount[mClusters[i].num] << 1) | 1;
-    }
-    for (unsigned int k = 0; k < mMemory->nOutputTrackClusters; k++) {
-      if (sharedCount[mClusters[k].num] > 1) {
-        mClusters[k].state |= GPUTPCGMMergedTrackHit::flagShared;
-      }
+GPUd() void GPUTPCGMMerger::SortTracksQPt(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  unsigned int* trackSort = (unsigned int*)mTmpMem;
+  GPUCommonAlgorithm::sort(trackSort, trackSort + mMemory->nOutputTracks, GPUTPCGMMerger_CompareTracksAttachWeight(mOutputTracks));
+}
+
+GPUd() void GPUTPCGMMerger::PrepareClustersForFit1(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  unsigned int* trackSort = (unsigned int*)mTmpMem;
+  GPUAtomic(unsigned int)* sharedCount = (GPUAtomic(unsigned int)*)(trackSort + CAMath::nextMultipleOf<4>(mMemory->nOutputTracks));
+  for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTracks; i += nBlocks * nThreads) {
+    mTrackOrderAttach[trackSort[i]] = i;
+  }
+  for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTrackClusters; i += nBlocks * nThreads) {
+    mClusterAttachment[mClusters[i].num] = attachAttached | attachGood;
+    CAMath::AtomicAdd(&sharedCount[mClusters[i].num], 1);
+  }
+}
+
+GPUd() void GPUTPCGMMerger::PrepareClustersForFit2(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  unsigned int* sharedCount = (unsigned int*)mTmpMem + CAMath::nextMultipleOf<4>(mMemory->nOutputTracks);
+  for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTrackClusters; i += nBlocks * nThreads) {
+    if (sharedCount[mClusters[i].num] > 1) {
+      mClusters[i].state |= GPUTPCGMMergedTrackHit::flagShared;
     }
   }
 }

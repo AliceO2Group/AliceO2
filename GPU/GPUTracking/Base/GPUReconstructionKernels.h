@@ -41,8 +41,11 @@ GPUCA_KRNL((GPUTPCGMMergerMergeCE                        ), (simple, REG, (GPUCA
 GPUCA_KRNL((GPUTPCGMMergerLinkGlobalTracks               ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerLinkGlobalTracks)), (), ())
 GPUCA_KRNL((GPUTPCGMMergerCollect                        ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerCollect)), (), ())
 GPUCA_KRNL((GPUTPCGMMergerSortTracks                     ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerSortTracks)), (), ())
+GPUCA_KRNL((GPUTPCGMMergerSortTracksQPt                  ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerSortTracksQPt)), (), ())
 GPUCA_KRNL((GPUTPCGMMergerSortTracksPrepare              ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerSortTracksPrepare)), (), ())
-GPUCA_KRNL((GPUTPCGMMergerPrepareClusters                ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerPrepareClusters)), (), ())
+GPUCA_KRNL((GPUTPCGMMergerPrepareClusters, step0         ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0)), (), ())
+GPUCA_KRNL((GPUTPCGMMergerPrepareClusters, step1         ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1)), (), ())
+GPUCA_KRNL((GPUTPCGMMergerPrepareClusters, step2         ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2)), (), ())
 GPUCA_KRNL((GPUTPCGMMergerFinalize                       ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerFinalize)), (), ())
 #ifdef HAVE_O2HEADERS
 GPUCA_KRNL((GPUTRDTrackerKernels                         ), (simple, REG, (GPUCA_LB_GPUTRDTrackerKernels)), (), ())

@@ -139,6 +139,15 @@ GPUdii() void GPUTPCGMMergerSortTracks::Thread<0>(int nBlocks, int nThreads, int
 }
 
 template <>
+GPUdii() void GPUTPCGMMergerSortTracksQPt::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  merger.SortTracksQPt(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
 GPUdii() void GPUTPCGMMergerSortTracksPrepare::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
 {
   merger.SortTracksPrepare(nBlocks, nThreads, iBlock, iThread);
@@ -147,10 +156,19 @@ GPUdii() void GPUTPCGMMergerSortTracksPrepare::Thread<0>(int nBlocks, int nThrea
 template <>
 GPUdii() void GPUTPCGMMergerPrepareClusters::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
 {
-  if (iThread || iBlock) {
-    return;
-  }
-  merger.PrepareClustersForFit(nBlocks, nThreads, iBlock, iThread);
+  merger.PrepareClustersForFit0(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerPrepareClusters::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  merger.PrepareClustersForFit1(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerPrepareClusters::Thread<2>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  merger.PrepareClustersForFit2(nBlocks, nThreads, iBlock, iThread);
 }
 
 template <>

@@ -52,8 +52,11 @@
   #define GPUCA_LB_GPUTPCGMMergerLinkGlobalTracks 256
   #define GPUCA_LB_GPUTPCGMMergerCollect 256
   #define GPUCA_LB_GPUTPCGMMergerSortTracks 256
+  #define GPUCA_LB_GPUTPCGMMergerSortTracksQPt 256
   #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
-  #define GPUCA_LB_GPUTPCGMMergerPrepareClusters 256
+  #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
+  #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
+  #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
   #define GPUCA_LB_GPUTPCGMMergerFinalize 256
   #define GPUCA_LB_GPUTPCCompressionKernels_step0attached 256
   #define GPUCA_LB_GPUTPCCompressionKernels_step1unattached 512
@@ -89,8 +92,11 @@
   #define GPUCA_LB_GPUTPCGMMergerLinkGlobalTracks 256
   #define GPUCA_LB_GPUTPCGMMergerCollect 256
   #define GPUCA_LB_GPUTPCGMMergerSortTracks 256
+  #define GPUCA_LB_GPUTPCGMMergerSortTracksQPt 256
   #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
-  #define GPUCA_LB_GPUTPCGMMergerPrepareClusters 256
+  #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
+  #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
+  #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
   #define GPUCA_LB_GPUTPCGMMergerFinalize 256
   #define GPUCA_LB_GPUTPCCompressionKernels_step0attached 128
   #define GPUCA_LB_GPUTPCCompressionKernels_step1unattached 448
@@ -191,11 +197,20 @@
   #ifndef GPUCA_LB_GPUTPCGMMergerSortTracks
     #define GPUCA_LB_GPUTPCGMMergerSortTracks 256
   #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerSortTracksQPt
+    #define GPUCA_LB_GPUTPCGMMergerSortTracksQPt 256
+  #endif
   #ifndef GPUCA_LB_GPUTPCGMMergerSortTracksPrepare
     #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
   #endif
-  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareClusters
-    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters 256
+  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0
+    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1
+    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2
+    #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
   #endif
   #ifndef GPUCA_LB_GPUTPCGMMergerFinalize
     #define GPUCA_LB_GPUTPCGMMergerFinalize 256

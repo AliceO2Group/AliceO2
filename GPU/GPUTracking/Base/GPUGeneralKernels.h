@@ -37,7 +37,13 @@ struct GPUConstantMem;
 class GPUKernelTemplate
 {
  public:
-  enum K { defaultKernel = 0 };
+  enum K { defaultKernel = 0,
+           step0 = 0,
+           step1 = 1,
+           step2,
+           step3,
+           step4,
+           step5 };
 
   MEM_CLASS_PRE()
   struct GPUSharedMemory {
