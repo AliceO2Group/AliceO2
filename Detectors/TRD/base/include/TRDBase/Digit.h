@@ -57,7 +57,7 @@ class Digit : public TimeStamp
   std::uint8_t mRow{0};       // pad row, 0-15
   std::uint8_t mPad{0};       // pad within pad row, 0-143
   ArrayADC mADC{};            // ADC vector (30 time-bins)
-  ClassDefNV(Digit, 1);
+  ClassDefNV(Digit, 2);
 };
 
 } // namespace trd
