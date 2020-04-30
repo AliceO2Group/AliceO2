@@ -21,6 +21,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
 #include "ITSMFTReconstruction/Clusterer.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 #include "ITSMFTWorkflow/STFDecoderSpec.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -76,7 +77,9 @@ void STFDecoder<Mapping>::init(InitContext& ic)
 
     // settings for the fired pixel overflow masking
     const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
-    mClusterer->setMaxBCSeparationToMask(alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + 10);
+    const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
+    mClusterer->setMaxBCSeparationToMask(alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + clParams.maxBCDiffToMaskBias);
+    mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
     std::string dictFile = o2::base::NameConf::getDictionaryFileName(detID, mDictName, ".bin");
     if (o2::base::NameConf::pathExists(dictFile)) {

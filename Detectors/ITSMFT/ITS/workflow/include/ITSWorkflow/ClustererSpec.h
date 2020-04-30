@@ -15,15 +15,20 @@
 
 #include <fstream>
 
+#include "ITSMFTReconstruction/Clusterer.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-
-#include "ITSMFTReconstruction/Clusterer.h"
 
 using namespace o2::framework;
 
 namespace o2
 {
+
+namespace itsmft
+{
+class Clusterer;
+}
+
 namespace its
 {
 

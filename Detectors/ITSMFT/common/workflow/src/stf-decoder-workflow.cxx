@@ -8,8 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/ConfigParamSpec.h"
 #include "ITSMFTWorkflow/STFDecoderSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "Framework/ConfigParamSpec.h"
 
 using namespace o2::framework;
 
@@ -24,7 +25,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"no-clusters", VariantType::Bool, false, {"do not produce clusters (def: produce)"}},
     ConfigParamSpec{"no-cluster-patterns", VariantType::Bool, false, {"do not produce clusters patterns (def: produce)"}},
     ConfigParamSpec{"digits", VariantType::Bool, false, {"produce digits (def: skip)"}},
-    ConfigParamSpec{"dict-file", VariantType::String, "", {"name of the cluster-topology dictionary file"}}};
+    ConfigParamSpec{"dict-file", VariantType::String, "", {"name of the cluster-topology dictionary file"}},
+    ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -40,6 +42,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto doPatterns = doClusters && !cfgc.options().get<bool>("no-cluster-patterns");
   auto doDigits = cfgc.options().get<bool>("digits");
   auto dict = cfgc.options().get<std::string>("dict-file");
+
+  // Update the (declared) parameters if changed from the command line
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   if (cfgc.options().get<bool>("mft")) {
     wf.emplace_back(o2::itsmft::getSTFDecoderMFTSpec(doClusters, doPatterns, doDigits, dict));
