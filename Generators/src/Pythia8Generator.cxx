@@ -143,53 +143,27 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
   // cout<<"debug p8 event 0 " << mPythia->event[0].id()<< " "<< mPythia->event[1].id()<< " "
   // << mPythia->event[2].id()<< " "<< npart <<endl;
   for (Int_t ii = 0; ii < mPythia->event.size(); ii++) {
-    if (mPythia->event[ii].isFinal()) {
-      Bool_t wanttracking = true;
-      if (mHNL != 0) {
-        Int_t im = mPythia->event[ii].mother1();
-        if (mPythia->event[im].id() != mHNL) {
-          wanttracking = false;
-        }
-      }
-      if (wanttracking) {
-        Double_t z = mPythia->event[ii].zProd();
-        Double_t x = mPythia->event[ii].xProd();
-        Double_t y = mPythia->event[ii].yProd();
-        Double_t pz = mPythia->event[ii].pz();
-        Double_t px = mPythia->event[ii].px();
-        Double_t py = mPythia->event[ii].py();
-        Double_t t = mPythia->event[ii].tProd();
-        x *= mm2cm;
-        y *= mm2cm;
-        z *= mm2cm;
-        t *= mm2cm / clight;
-        cpg->AddTrack((Int_t)mPythia->event[ii].id(), px, py, pz, x, y, z,
-                      (Int_t)mPythia->event[ii].mother1(), wanttracking, -9e9, t);
-        // cout<<"debug p8->geant4 "<< wanttracking << " "<< ii <<  " "
-        // << mPythia->event[ii].id()<< " "<< mPythia->event[ii].mother1()<<" "<<x<<" "<< y<<" "<< z <<endl;
-      }
-    };
-    if (mHNL != 0 && mPythia->event[ii].id() == mHNL) {
-      Int_t im = (Int_t)mPythia->event[ii].mother1();
-      Double_t z = mPythia->event[ii].zProd();
-      Double_t x = mPythia->event[ii].xProd();
-      Double_t y = mPythia->event[ii].yProd();
-      Double_t pz = mPythia->event[ii].pz();
-      Double_t px = mPythia->event[ii].px();
-      Double_t py = mPythia->event[ii].py();
-      Double_t t = mPythia->event[ii].tProd();
-      x *= mm2cm;
-      y *= mm2cm;
-      z *= mm2cm;
-      t *= mm2cm / clight;
-      cpg->AddTrack((Int_t)mPythia->event[im].id(), px, py, pz, x, y, z, 0, false, -9e9, t);
-      cpg->AddTrack((Int_t)mPythia->event[ii].id(), px, py, pz, x, y, z, im, false, -9e9, t);
-      //cout<<"debug p8->geant4 "<< 0 << " "<< ii <<  " " << fake<< " "<< mPythia->event[ii].mother1()<<endl;
-    };
-  }
-
-  // make separate container ??
-  //    FairRootManager *ioman =FairRootManager::Instance();
+    Bool_t wanttracking = true;
+    if (!mPythia->event[ii].isFinal()) wanttracking = false;
+    Double_t z = mPythia->event[ii].zProd();
+    Double_t x = mPythia->event[ii].xProd();
+    Double_t y = mPythia->event[ii].yProd();
+    Double_t pz = mPythia->event[ii].pz();
+    Double_t px = mPythia->event[ii].px();
+    Double_t py = mPythia->event[ii].py();
+    Double_t t = mPythia->event[ii].tProd();
+    x *= mm2cm;
+    y *= mm2cm;
+    z *= mm2cm;
+    t *= mm2cm / clight;
+    Double_t e = -9e9;
+    // handle system entry separately
+    if (!wanttracking) e = mPythia->event[ii].e();
+    //
+    printf("AddTrack from Pythia8 %5d \n",(Int_t)mPythia->event[ii].id());
+    cpg->AddTrack((Int_t)mPythia->event[ii].id(), px, py, pz, x, y, z,
+		  (Int_t)mPythia->event[ii].mother1(), wanttracking, e, t);
+  } // particle lloop
 
   return kTRUE;
 }
