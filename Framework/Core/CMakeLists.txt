@@ -245,11 +245,11 @@ foreach(b
         TableToTree
         TreeToTable
         )
-  o2_add_test(benchmark_${b} NAME test_Framework_benchmark_${b}
-              SOURCES test/benchmark_${b}.cxx
-              COMPONENT_NAME Framework
-              LABELS framework benchmark
-              PUBLIC_LINK_LIBRARIES O2::Framework benchmark::benchmark)
+  o2_add_executable(benchmark-${b}
+                    SOURCES test/benchmark_${b}.cxx
+                    COMPONENT_NAME Framework
+	            IS_BENCHMARK
+                    PUBLIC_LINK_LIBRARIES O2::Framework benchmark::benchmark)
 endforeach()
 
 # #####################################################@
