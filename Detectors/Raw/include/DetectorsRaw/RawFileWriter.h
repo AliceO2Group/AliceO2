@@ -100,7 +100,7 @@ class RawFileWriter
     void addHBFPage(bool stop = false);
     void closeHBFPage() { addHBFPage(true); }
     void flushSuperPage(bool keepLastPage = false);
-    void fillEmptyHBHs(const IR& ir);
+    void fillEmptyHBHs(const IR& ir, bool dataAdded);
     void addPreformattedCRUPage(const gsl::span<char> data);
 
     /// expand buffer by positive increment and return old size
@@ -285,6 +285,9 @@ class RawFileWriter
     mUseRDHVersion = v;
   }
 
+  bool getDontFillEmptyHBF() const { return mDontFillEmptyHBF; }
+  void setDontFillEmptyHBF(bool v) { mDontFillEmptyHBF = v; }
+
  private:
   enum RoMode_t { NotSet,
                   Continuous,
@@ -303,6 +306,7 @@ class RawFileWriter
   int mUseRDHVersion = RDHUtils::getVersion<o2::header::RAWDataHeader>(); // by default, use default version
   int mSuperPageSize = 1024 * 1024; // super page size
   bool mStartTFOnNewSPage = true;   // every TF must start on a new SPage
+  bool mDontFillEmptyHBF = false;   // skipp adding empty HBFs (uness it must have TF flag)
   RoMode_t mROMode = NotSet;
   IR mFirstIRAdded; // 1st IR seen
   ClassDefNV(RawFileWriter, 1);

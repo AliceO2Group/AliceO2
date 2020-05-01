@@ -138,6 +138,8 @@ rdh     : RDH of the CRU page opening empty RDH
 toAdd   : a vector (supplied empty) to be filled to a size multipe of 16 bytes
 ```
 
+Adding empty HBF pages for HB's w/o data can be avoided by setting `writer.setDontFillEmptyHBF(true)` before starting conversion. Note that the empty HBFs still will be added for HBs which are supposed to open a new TF.
+
 The data `toAdd` will be inserted between the star/stop RDHs of the empty HBF.
 
 The behaviour descibed above can be modified by providing an extra argument in the `addData` method
