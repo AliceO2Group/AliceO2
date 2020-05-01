@@ -708,6 +708,7 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int nBlocks, int nThreads, int 
           CADEBUG2(continue, printf("!NCl1\n"));
         }
         if (mergeMode > 0) {
+          // Merging CE tracks
           int maxRowDiff = mergeMode == 2 ? 1 : 3; // TODO: check cut
           if (CAMath::Abs(b1.Row() - b2.Row()) > maxRowDiff) {
             CADEBUG2(continue, printf("!ROW\n"));
@@ -753,6 +754,9 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int nBlocks, int nThreads, int 
     CADEBUG(GPUInfo("Found match %d %d", b1.TrackID(), iBest2));
 
     mTrackLinks[b1.TrackID()] = iBest2;
+    if (mergeMode > 0) {
+      mTrackLinks[iBest2] = b1.TrackID();
+    }
   }
   // GPUInfo("STAT: slices %d, %d: all %d merged %d", iSlice1, iSlice2, statAll, statMerged);
 }
@@ -1038,16 +1042,25 @@ GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const G
 GPUd() void GPUTPCGMMerger::MergeCE(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   const ClusterNative* cls = Param().earlyTpcTransform ? nullptr : mConstantMem->ioPtrs.clustersNative->clustersLinear;
-  for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
-    if (mTrackLinks[i] >= 0) {
+  for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTracks; i += nThreads * nBlocks) {
+    if (mOutputTracks[i].CSide() == 0 && mTrackLinks[i] >= 0) {
+      if (mTrackLinks[mTrackLinks[i]] != (int)i) {
+        continue;
+      }
       GPUTPCGMMergedTrack* trk[2] = {&mOutputTracks[i], &mOutputTracks[mTrackLinks[i]]};
 
       if (!trk[1]->OK() || trk[1]->CCE()) {
         continue;
       }
 
-      if (mMemory->nOutputTrackClusters + trk[0]->NClusters() + trk[1]->NClusters() >= mNMaxOutputTrackClusters) {
+      unsigned int newRef = CAMath::AtomicAdd(&mMemory->nOutputTrackClusters, trk[0]->NClusters() + trk[1]->NClusters());
+      if (newRef + trk[0]->NClusters() + trk[1]->NClusters() >= mNMaxOutputTrackClusters) {
+#ifndef GPUCA_GPUCODE
         printf("Insufficient cluster memory for merging CE tracks (OutputClusters %d, max clusters %u)\n", mMemory->nOutputTrackClusters, mNMaxOutputTrackClusters);
+#else
+        // TODO: proper overflow handling
+#endif
+        CAMath::AtomicExch(&mMemory->nOutputTrackClusters, mNMaxOutputTrackClusters);
         return;
       }
 
@@ -1104,15 +1117,15 @@ GPUd() void GPUTPCGMMerger::MergeCE(int nBlocks, int nThreads, int iBlock, int i
         }
       }
 
-      int newRef = mMemory->nOutputTrackClusters;
+      int pos = newRef;
       for (int k = 1; k >= 0; k--) {
         if (reverse[k]) {
           for (int j = trk[k]->NClusters() - 1; j >= 0; j--) {
-            mClusters[mMemory->nOutputTrackClusters++] = mClusters[trk[k]->FirstClusterRef() + j];
+            mClusters[pos++] = mClusters[trk[k]->FirstClusterRef() + j];
           }
         } else {
           for (unsigned int j = 0; j < trk[k]->NClusters(); j++) {
-            mClusters[mMemory->nOutputTrackClusters++] = mClusters[trk[k]->FirstClusterRef() + j];
+            mClusters[pos++] = mClusters[trk[k]->FirstClusterRef() + j];
           }
         }
       }
