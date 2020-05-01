@@ -35,10 +35,14 @@ class GPUCommonAlgorithm
   GPUd() static void sort(T* begin, T* end);
   template <class T>
   GPUd() static void sortInBlock(T* begin, T* end);
+  template <class T>
+  GPUd() static void sortDeviceDynamic(T* begin, T* end);
   template <class T, class S>
   GPUd() static void sort(T* begin, T* end, const S& comp);
   template <class T, class S>
   GPUd() static void sortInBlock(T* begin, T* end, const S& comp);
+  template <class T, class S>
+  GPUd() static void sortDeviceDynamic(T* begin, T* end, const S& comp);
   template <class T>
   GPUd() static void swap(T& a, T& b);
 
@@ -208,14 +212,42 @@ typedef GPUCommonAlgorithm CAAlgo;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#if 0 //(defined(__CUDACC__) && !defined(__clang__)) || defined(__HIPCC__) // disables
-// thrust currently disabled:
-// - broken on HIP
-// - Our quicksort and bubble sort implementations are faster
+#if (defined(__CUDACC__) && !defined(__clang__)) || defined(__HIPCC__)
 
 #include "GPUCommonAlgorithmThrust.h"
 
 #else
+
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+
+template <class T>
+GPUdi() void GPUCommonAlgorithm::sortDeviceDynamic(T* begin, T* end)
+{
+#ifndef GPUCA_GPUCODE_DEVICE
+  GPUCommonAlgorithm::sort(begin, end);
+#else
+  GPUCommonAlgorithm::sortDeviceDynamic(begin, end, [](auto&& x, auto&& y) { return x < y; });
+#endif
+}
+
+template <class T, class S>
+GPUdi() void GPUCommonAlgorithm::sortDeviceDynamic(T* begin, T* end, const S& comp)
+{
+#ifndef GPUCA_GPUCODE_DEVICE
+  GPUCommonAlgorithm::sort(begin, end, comp);
+#else
+  GPUCommonAlgorithm::sortInBlock(begin, end, comp);
+#endif
+}
+
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
+
+#endif // THRUST
+// sort and sortInBlock below are not taken from Thrust, since our implementations are faster
 
 namespace GPUCA_NAMESPACE
 {
@@ -294,8 +326,6 @@ GPUdi() void GPUCommonAlgorithm::swap(T& a, T& b)
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
-
-#endif // ifdef __CUDACC__
 
 // ----------------------------- WORK GROUP FUNCTIONS -----------------------------
 
