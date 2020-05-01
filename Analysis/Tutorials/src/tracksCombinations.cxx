@@ -84,7 +84,7 @@ struct BTask {
   void process(soa::Join<aod::Hashes, aod::Tracks> const& hashedTracks)
   {
     // Strictly upper categorised tracks
-    for (auto& [t0, t1] : selfCombinations("fBin", 20, -1, hashedTracks, hashedTracks)) {
+    for (auto& [t0, t1] : selfCombinations("fBin", 5, -1, hashedTracks, hashedTracks)) {
       LOGF(info, "Tracks bin: %d pair: %d (%f, %f, %f), %d (%f, %f, %f)", t0.bin(), t0.index(), t0.x(), t0.y(), t0.z(), t1.index(), t1.x(), t1.y(), t1.z());
     }
   }

@@ -462,7 +462,7 @@ static void BM_ASoAHelpersCombGenSimplePairsSameCategories(benchmark::State& sta
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : selfCombinations("x", state.range(0), -1, tests, tests)) {
+    for (auto& comb : selfCombinations("x", 2, -1, tests, tests)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -494,7 +494,7 @@ static void BM_ASoAHelpersCombGenSimpleFivesSameCategories(benchmark::State& sta
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : selfCombinations("x", state.range(0), -1, tests, tests, tests, tests, tests)) {
+    for (auto& comb : selfCombinations("x", 5, -1, tests, tests, tests, tests, tests)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -526,7 +526,7 @@ static void BM_ASoAHelpersCombGenSimplePairsCategories(benchmark::State& state)
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations("x", state.range(0), -1, tests, tests)) {
+    for (auto& comb : combinations("x", 2, -1, tests, tests)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -558,7 +558,7 @@ static void BM_ASoAHelpersCombGenSimpleFivesCategories(benchmark::State& state)
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations("x", state.range(0), -1, tests, tests, tests, tests, tests)) {
+    for (auto& comb : combinations("x", 5, -1, tests, tests, tests, tests, tests)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -595,7 +595,7 @@ static void BM_ASoAHelpersCombGenCollisionsPairsSameCategories(benchmark::State&
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : selfCombinations("fNumContrib", state.range(0), -1, collisions, collisions)) {
+    for (auto& comb : selfCombinations("fNumContrib", 2, -1, collisions, collisions)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -632,7 +632,7 @@ static void BM_ASoAHelpersCombGenCollisionsFivesSameCategories(benchmark::State&
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : selfCombinations("fNumContrib", state.range(0), -1, collisions, collisions, collisions, collisions, collisions)) {
+    for (auto& comb : selfCombinations("fNumContrib", 5, -1, collisions, collisions, collisions, collisions, collisions)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -669,7 +669,7 @@ static void BM_ASoAHelpersCombGenCollisionsPairsCategories(benchmark::State& sta
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations("fNumContrib", state.range(0), -1, collisions, collisions)) {
+    for (auto& comb : combinations("fNumContrib", 2, -1, collisions, collisions)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -706,7 +706,7 @@ static void BM_ASoAHelpersCombGenCollisionsFivesCategories(benchmark::State& sta
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations("fNumContrib", state.range(0), -1, collisions, collisions, collisions, collisions, collisions)) {
+    for (auto& comb : combinations("fNumContrib", 5, -1, collisions, collisions, collisions, collisions, collisions)) {
       count++;
     }
     benchmark::DoNotOptimize(count);

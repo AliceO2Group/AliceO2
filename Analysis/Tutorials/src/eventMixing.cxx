@@ -76,7 +76,7 @@ struct CollisionsCombinationsTask {
     AnalysisDataProcessorBuilder::GroupSlicer slicer(collisions, tracksTuple);
 
     // Strictly upper categorised collisions
-    for (auto& [c1, c2] : selfCombinations("fBin", 2, -1, join(hashes, collisions), join(hashes, collisions))) {
+    for (auto& [c1, c2] : selfCombinations("fBin", 5, -1, join(hashes, collisions), join(hashes, collisions))) {
       LOGF(info, "Collisions bin: %d pair: %d (%f, %f, %f), %d (%f, %f, %f)", c1.bin(), c1.index(), c1.posX(), c1.posY(), c1.posZ(), c2.index(), c2.posX(), c2.posY(), c2.posZ());
 
       auto it1 = slicer.begin();
