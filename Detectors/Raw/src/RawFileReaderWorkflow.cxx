@@ -21,6 +21,7 @@
 
 #include "DetectorsRaw/RawFileReader.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
@@ -43,9 +44,10 @@ namespace o2h = o2::header;
 class rawReaderSpecs : public o2f::Task
 {
  public:
-  explicit rawReaderSpecs(const std::string& config, bool tfAsMessage = false, bool outPerRoute = true, int loop = 1, uint32_t delay_us = 0)
+  explicit rawReaderSpecs(const std::string& config, bool tfAsMessage = false, bool outPerRoute = true, int loop = 1, uint32_t delay_us = 0, uint32_t errmap = 0xffffffff)
     : mLoop(loop < 1 ? 1 : loop), mHBFPerMessage(!tfAsMessage), mOutPerRoute(outPerRoute), mDelayUSec(delay_us), mReader(std::make_unique<o2::raw::RawFileReader>(config))
   {
+    mReader->setCheckErrors(errmap);
     LOG(INFO) << "Number of loops over whole data requested: " << mLoop;
     if (mHBFPerMessage) {
       LOG(INFO) << "Every link TF will be sent as multipart of HBF messages";
@@ -66,11 +68,10 @@ class rawReaderSpecs : public o2f::Task
   {
     assert(mReader);
     static size_t loopsDone = 0, sentSize = 0, sentMessages = 0;
-
     if (mDone) {
       return;
     }
-
+    int nhbexp = HBFUtils::Instance().getNOrbitsPerTF();
     auto device = ctx.services().get<o2f::RawDeviceService>().device();
     assert(device);
 
@@ -148,7 +149,7 @@ class rawReaderSpecs : public o2f::Task
         }
         // check if the RDH to send corresponds to expected orbit
         if (hdrTmpl.splitPayloadIndex == 0) {
-          uint32_t hbOrbExpected = mReader->getOrbitMin() + tfID * mReader->getNominalHBFperTF();
+          uint32_t hbOrbExpected = mReader->getOrbitMin() + tfID * nhbexp;
           uint32_t hbOrbRead = o2::raw::RDHUtils::getHeartBeatOrbit(plMessage->GetData());
           if (hbOrbExpected != hbOrbRead) {
             LOGF(ERROR, "Expected orbit=%u but got %u for %d-th HBF in TF#%d of %s/%s/0x%u",
@@ -218,7 +219,7 @@ class rawReaderSpecs : public o2f::Task
   std::unique_ptr<o2::raw::RawFileReader> mReader; // matching engine
 };
 
-o2f::DataProcessorSpec getReaderSpec(std::string config, bool tfAsMessage, bool outPerRoute, int loop, uint32_t delay_us)
+o2f::DataProcessorSpec getReaderSpec(std::string config, bool tfAsMessage, bool outPerRoute, int loop, uint32_t delay_us, uint32_t errmap)
 {
   // check which inputs are present in files to read
   o2f::Outputs outputs;
@@ -235,13 +236,14 @@ o2f::DataProcessorSpec getReaderSpec(std::string config, bool tfAsMessage, bool 
     "raw-file-reader",
     o2f::Inputs{},
     outputs,
-    o2f::AlgorithmSpec{o2f::adaptFromTask<rawReaderSpecs>(config, tfAsMessage, outPerRoute, loop, delay_us)},
+    o2f::AlgorithmSpec{o2f::adaptFromTask<rawReaderSpecs>(config, tfAsMessage, outPerRoute, loop, delay_us, errmap)},
     o2f::Options{}};
 }
 
-o2f::WorkflowSpec o2::raw::getRawFileReaderWorkflow(std::string inifile, bool tfAsMessage, bool outPerRoute, int loop, uint32_t delay_us)
+o2f::WorkflowSpec o2::raw::getRawFileReaderWorkflow(std::string inifile, bool tfAsMessage, bool outPerRoute,
+                                                    int loop, uint32_t delay_us, uint32_t errmap)
 {
   o2f::WorkflowSpec specs;
-  specs.emplace_back(getReaderSpec(inifile, tfAsMessage, outPerRoute, loop, delay_us));
+  specs.emplace_back(getReaderSpec(inifile, tfAsMessage, outPerRoute, loop, delay_us, errmap));
   return specs;
 }
