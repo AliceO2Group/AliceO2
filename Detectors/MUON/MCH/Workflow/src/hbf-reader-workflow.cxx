@@ -38,11 +38,15 @@
 
 #include "DPLUtils/DPLRawParser.h"
 #include "Headers/RAWDataHeader.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 namespace o2::header
 {
 extern std::ostream& operator<<(std::ostream&, const o2::header::RAWDataHeaderV4&);
 }
+
+using namespace o2;
+using namespace o2::framework;
 
 namespace o2
 {
@@ -51,73 +55,7 @@ namespace mch
 namespace raw
 {
 
-/// RAWDataHeaderV4V5V6
-/// RDH structure with fields common to V4, V5 and V6
-/// The common fields are enough to determine the size of the payload
-/// and the offset of the next HB frame
-/// Description of the fields can be found here
-/// https://gitlab.cern.ch/AliceO2Group/wp6-doc/-/blob/master/rdh/RDHv6.md
-//
-///
-///       63     56      48      40      32      24      16       8       0
-///       |---------------|---------------|---------------|---------------|
-///
-///       | reserved              | priori|               |    header     |
-/// 0     | reserve zero  |Source | ty bit|    FEE id     | size  |version|
-///
-/// 1     |ep | cru id    |pcount|link id |  memory size  |offset nxt pack|
-///
-struct RAWDataHeaderV4V5V6 {
-  union {
-    // default value
-    uint64_t word0 = 0x00000000ffff4006;
-    //                       | |     | version 6
-    //                       | |   | 8x64 bit words = 64 (0x40) byte
-    //                       | | invalid FEE id
-    //                       | priority bit 0
-    struct {
-      uint64_t version : 8;       /// bit  0 to  7: header version
-      uint64_t headerSize : 8;    /// bit  8 to 15: header size
-      uint64_t feeId : 16;        /// bit 16 to 31: FEE identifier
-      uint64_t priority : 8;      /// bit 32 to 39: priority bit
-      uint64_t sourceID : 8;      /// bit 40 to 47: source ID
-      uint64_t zero0 : 16;        /// bit 48 to 63: zeroed
-    };                            ///
-  };                              ///
-  union {                         ///
-    uint64_t word1 = 0x0;         /// data written by the CRU
-    struct {                      ///
-      uint32_t offsetToNext : 16; /// bit 64 to 79:  offset to next packet in memory
-      uint32_t memorySize : 16;   /// bit 80 to 95:  memory size
-      uint32_t linkID : 8;        /// bit 96 to 103: link id
-      uint32_t packetCounter : 8; /// bit 104 to 111: packet counter
-      uint16_t cruID : 12;        /// bit 112 to 123: CRU ID
-      uint32_t endPointID : 4;    /// bit 124 to 127: DATAPATH WRAPPER ID: number used to
-    };                            ///                 identify one of the 2 End Points [0/1]
-  };                              ///
-  union {                         ///
-    uint64_t word2 = 0x0;         ///
-  };                              ///
-  union {                         ///
-    uint64_t word3 = 0x0;         /// bit  0 to 63: zeroed
-  };                              ///
-  union {                         ///
-    uint64_t word4 = 0x0;         ///
-  };                              ///
-  union {                         ///
-    uint64_t word5 = 0x0;         /// bit  0 to 63: zeroed
-  };                              ///
-  union {                         ///
-    uint64_t word6 = 0x0;         ///
-  };                              ///
-  union {                         ///
-    uint64_t word7 = 0x0;         /// bit  0 to 63: zeroed
-  };
-};
-
-using namespace o2;
-using namespace o2::framework;
-using RDH = RAWDataHeaderV4V5V6;
+using RDH = o2::header::RDHAny;
 
 class FileReaderTask
 {
@@ -150,9 +88,6 @@ class FileReaderTask
     /// send one RDH block via DPL
     RDH rdh;
 
-    // size of the HB frame to be sent
-    int frameSize = {0};
-
     // stop if the required number of frames has been reached
     if (mFrameMax == 0) {
       pc.services().get<ControlService>().endOfStream();
@@ -168,17 +103,19 @@ class FileReaderTask
 
     // read the next RDH
     mInputFile.read((char*)(&rdh), sizeof(RDH));
-    if (mPrint) {
-      std::cout << "header_version=" << (int)rdh.version << std::endl;
-    }
 
+    auto rdhVersion = o2::raw::RDHUtils::getVersion(rdh);
+    auto rdhHeaderSize = o2::raw::RDHUtils::getHeaderSize(rdh);
+    if (mPrint) {
+      std::cout << "header_version=" << (int)rdhVersion << std::endl;
+    }
     // only RDH versions from 4 to 6 are supported
-    if (rdh.version < 4 || rdh.version > 6 || rdh.headerSize != 64) {
+    if (rdhVersion < 4 || rdhVersion > 6 || rdhHeaderSize != 64) {
       return;
     }
 
     // get the frame size from the RDH offsetToNext field
-    frameSize = rdh.offsetToNext;
+    auto frameSize = o2::raw::RDHUtils::getOffsetToNext(rdh);
     if (mPrint) {
       std::cout << "frameSize=" << frameSize << std::endl;
     }
@@ -187,10 +124,10 @@ class FileReaderTask
     char* buf = (char*)malloc(frameSize);
 
     // copy the RDH into the output buffer
-    memcpy(buf, &rdh, rdh.headerSize);
+    memcpy(buf, &rdh, rdhHeaderSize);
 
     // read the frame payload into the output buffer
-    mInputFile.read(buf + rdh.headerSize, frameSize - rdh.headerSize);
+    mInputFile.read(buf + rdhHeaderSize, frameSize - rdhHeaderSize);
 
     // stop if data cannot be read completely
     if (mInputFile.fail()) {
