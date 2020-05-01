@@ -22,6 +22,7 @@
 #include "Headers/DAQID.h"
 #include "CommonConstants/Triggers.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "Framework/Logger.h"
 
 #include <Common/Configuration.h>
@@ -231,10 +232,10 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
       }
       // check if number of HBFs in the TF is as expected
       if (newTF) {
-        if (nHBFinTF != reader->mNominalHBFperTF &&
+        if (nHBFinTF != HBFUtils::Instance().getNOrbitsPerTF() &&
             (reader->mCheckErrors & (0x1 << ErrWrongHBFsPerTF))) {
           LOG(ERROR) << ErrNames[ErrWrongHBFsPerTF] << ": "
-                     << nHBFinTF << " instead of " << reader->mNominalHBFperTF;
+                     << nHBFinTF << " instead of " << HBFUtils::Instance().getNOrbitsPerTF();
           ok = false;
           nErrors++;
         }
@@ -648,4 +649,16 @@ RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri)
   }
 
   return entries;
+}
+
+std::string RawFileReader::nochk_opt(RawFileReader::ErrTypes e)
+{
+  std::string ignore = "nocheck-";
+  return ignore + RawFileReader::ErrNamesShort[e].data();
+}
+
+std::string RawFileReader::nochk_expl(RawFileReader::ErrTypes e)
+{
+  std::string ignore = "ignore /";
+  return ignore + RawFileReader::ErrNames[e].data() + '/';
 }
