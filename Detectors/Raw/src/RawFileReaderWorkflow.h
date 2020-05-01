@@ -20,7 +20,8 @@ namespace o2
 namespace raw
 {
 
-framework::WorkflowSpec getRawFileReaderWorkflow(std::string inifile, bool tfAsMessage = false, bool outPerRoute = true, int loop = 1, uint32_t delay_us = 0);
+framework::WorkflowSpec getRawFileReaderWorkflow(std::string inifile, bool tfAsMessage = false, bool outPerRoute = true,
+                                                 int loop = 1, uint32_t delay_us = 0, uint32_t noerr = 0);
 
 } // namespace raw
 } // namespace o2

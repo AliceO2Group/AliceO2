@@ -180,9 +180,6 @@ class RawFileReader
   void setNominalSPageSize(int n = 0x1 << 20) { mNominalSPageSize = n > (0x1 << 15) ? n : (0x1 << 15); }
   int getNominalSPageSize() const { return mNominalSPageSize; }
 
-  void setNominalHBFperTF(int n = 256) { mNominalHBFperTF = n > 1 ? n : 1; }
-  int getNominalHBFperTF() const { return mNominalHBFperTF; }
-
   uint32_t getNTimeFrames() const { return mNTimeFrames; }
   uint32_t getOrbitMin() const { return mOrbitMin; }
   uint32_t getOrbitMax() const { return mOrbitMax; }
@@ -193,6 +190,8 @@ class RawFileReader
   static o2::header::DataOrigin getDataOrigin(const std::string& ors);
   static o2::header::DataDescription getDataDescription(const std::string& ors);
   static InputsMap parseInput(const std::string& confUri);
+  static std::string nochk_opt(ErrTypes e);
+  static std::string nochk_expl(ErrTypes e);
 
  private:
   int getLinkLocalID(const RDHAny& rdh, o2::header::DataOrigin orig);
@@ -217,7 +216,6 @@ class RawFileReader
   uint32_t mOrbitMin = 0xffffffff;                  // lowest orbit seen by any link
   uint32_t mOrbitMax = 0;                           // highest orbit seen by any link
   int mNominalSPageSize = 0x1 << 20;                // expected super-page size in B
-  int mNominalHBFperTF = 256;                       // expected N HBF per TF
   int mCurrentFileID = 0;                           // current file being processed
   long int mPosInFile = 0;                          // current position in the file
   bool mMultiLinkFile = false;                      // was > than 1 link seen in the file?
