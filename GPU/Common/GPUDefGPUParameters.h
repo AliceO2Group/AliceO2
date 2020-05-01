@@ -57,7 +57,9 @@
   #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
   #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
   #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
-  #define GPUCA_LB_GPUTPCGMMergerFinalize 256
+  #define GPUCA_LB_GPUTPCGMMergerFinalize_0 256
+  #define GPUCA_LB_GPUTPCGMMergerFinalize_1 256
+  #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
   #define GPUCA_LB_GPUTPCCompressionKernels_step0attached 256
   #define GPUCA_LB_GPUTPCCompressionKernels_step1unattached 512
   #define GPUCA_LB_GPUTPCCompressionKernels_step2gather 128
@@ -97,7 +99,9 @@
   #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
   #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
   #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
-  #define GPUCA_LB_GPUTPCGMMergerFinalize 256
+  #define GPUCA_LB_GPUTPCGMMergerFinalize_0 256
+  #define GPUCA_LB_GPUTPCGMMergerFinalize_1 256
+  #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
   #define GPUCA_LB_GPUTPCCompressionKernels_step0attached 128
   #define GPUCA_LB_GPUTPCCompressionKernels_step1unattached 448
   #define GPUCA_LB_GPUTPCCompressionKernels_step2gather 128
@@ -212,8 +216,14 @@
   #ifndef GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2
     #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2 256
   #endif
-  #ifndef GPUCA_LB_GPUTPCGMMergerFinalize
-    #define GPUCA_LB_GPUTPCGMMergerFinalize 256
+  #ifndef GPUCA_LB_GPUTPCGMMergerFinalize_step0
+    #define GPUCA_LB_GPUTPCGMMergerFinalize_step0 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerFinalize_step1
+    #define GPUCA_LB_GPUTPCGMMergerFinalize_step1 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerFinalize_step2
+    #define GPUCA_LB_GPUTPCGMMergerFinalize_step2 256
   #endif
   #ifndef GPUCA_LB_GPUITSFitterKernel
     #define GPUCA_LB_GPUITSFitterKernel 256

@@ -1544,46 +1544,54 @@ GPUd() void GPUTPCGMMerger::PrepareClustersForFit2(int nBlocks, int nThreads, in
   }
 }
 
-GPUd() void GPUTPCGMMerger::Finalize(int nBlocks, int nThreads, int iBlock, int iThread)
+GPUd() void GPUTPCGMMerger::Finalize0(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   if (Param().rec.NonConsecutiveIDs) {
-    for (unsigned int i = 0; i < mMemory->nOutputTrackClusters; i++) {
+    for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTrackClusters; i += nThreads * nBlocks) {
       mClusters[i].num = mGlobalClusterIDs[i];
     }
   } else {
-    unsigned int maxId = mNMaxClusters;
     int* trkOrderReverse = (int*)mTmpMem;
-    for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
+    for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTracks; i += nThreads * nBlocks) {
       trkOrderReverse[mTrackOrderAttach[i]] = i;
     }
-    for (unsigned int i = 0; i < mMemory->nOutputTrackClusters; i++) {
+    for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTrackClusters; i += nThreads * nBlocks) {
       mClusterAttachment[mClusters[i].num] = 0; // Reset adjacent attachment for attached clusters, set correctly below
     }
-    for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
-      const GPUTPCGMMergedTrack& trk = mOutputTracks[i];
-      if (!trk.OK() || trk.NClusters() == 0) {
-        continue;
-      }
-      char goodLeg = mClusters[trk.FirstClusterRef() + trk.NClusters() - 1].leg;
-      for (unsigned int j = 0; j < trk.NClusters(); j++) {
-        int id = mClusters[trk.FirstClusterRef() + j].num;
-        int weight = mTrackOrderAttach[i] | attachAttached;
-        unsigned char clusterState = mClusters[trk.FirstClusterRef() + j].state;
-        if (!(clusterState & GPUTPCGMMergedTrackHit::flagReject)) {
-          weight |= attachGood;
-        } else if (clusterState & GPUTPCGMMergedTrackHit::flagNotFit) {
-          weight |= attachHighIncl;
-        }
-        if (mClusters[trk.FirstClusterRef() + j].leg == goodLeg) {
-          weight |= attachGoodLeg;
-        }
-        CAMath::AtomicMax(&mClusterAttachment[id], weight);
-      }
+  }
+}
+
+GPUd() void GPUTPCGMMerger::Finalize1(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTracks; i += nThreads * nBlocks) {
+    const GPUTPCGMMergedTrack& trk = mOutputTracks[i];
+    if (!trk.OK() || trk.NClusters() == 0) {
+      continue;
     }
-    for (unsigned int i = 0; i < maxId; i++) {
-      if (mClusterAttachment[i] != 0) {
-        mClusterAttachment[i] = (mClusterAttachment[i] & attachFlagMask) | trkOrderReverse[mClusterAttachment[i] & attachTrackMask];
+    char goodLeg = mClusters[trk.FirstClusterRef() + trk.NClusters() - 1].leg;
+    for (unsigned int j = 0; j < trk.NClusters(); j++) {
+      int id = mClusters[trk.FirstClusterRef() + j].num;
+      int weight = mTrackOrderAttach[i] | attachAttached;
+      unsigned char clusterState = mClusters[trk.FirstClusterRef() + j].state;
+      if (!(clusterState & GPUTPCGMMergedTrackHit::flagReject)) {
+        weight |= attachGood;
+      } else if (clusterState & GPUTPCGMMergedTrackHit::flagNotFit) {
+        weight |= attachHighIncl;
       }
+      if (mClusters[trk.FirstClusterRef() + j].leg == goodLeg) {
+        weight |= attachGoodLeg;
+      }
+      CAMath::AtomicMax(&mClusterAttachment[id], weight);
+    }
+  }
+}
+
+GPUd() void GPUTPCGMMerger::Finalize2(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  int* trkOrderReverse = (int*)mTmpMem;
+  for (unsigned int i = iBlock * nThreads + iThread; i < mNMaxClusters; i += nThreads * nBlocks) {
+    if (mClusterAttachment[i] != 0) {
+      mClusterAttachment[i] = (mClusterAttachment[i] & attachFlagMask) | trkOrderReverse[mClusterAttachment[i] & attachTrackMask];
     }
   }
 }
