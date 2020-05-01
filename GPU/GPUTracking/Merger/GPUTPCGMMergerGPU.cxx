@@ -108,9 +108,6 @@ template GPUd() void GPUTPCGMMergerMergeBorders::Thread<2>(int nBlocks, int nThr
 template <>
 GPUdii() void GPUTPCGMMergerMergeCE::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
 {
-  if (iThread || iBlock) {
-    return;
-  }
   merger.MergeCE(nBlocks, nThreads, iBlock, iThread);
 }
 
