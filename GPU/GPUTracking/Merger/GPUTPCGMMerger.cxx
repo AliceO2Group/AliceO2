@@ -999,8 +999,7 @@ GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const G
   }
   int slice = track->Slice();
   for (int attempt = 0; attempt < 2; attempt++) {
-    unsigned int id = slice + attempt * NSLICES;
-    GPUTPCGMBorderTrack& b = mBorder[id][mTmpCounter[id]];
+    GPUTPCGMBorderTrack b;
     const float x0 = Param().tpcGeometry.Row2X(attempt == 0 ? 63 : cls.row);
     if (track->TransportToX(this, x0, Param().ConstBz, b, GPUCA_MAX_SIN_PHI_LOW)) {
       b.SetTrackID(itr);
@@ -1013,7 +1012,9 @@ GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const G
         b.SetZOffsetLinear(-b.ZOffsetLinear());
       }
       b.SetRow(cls.row);
-      mTmpCounter[id]++;
+      unsigned int id = slice + attempt * NSLICES;
+      unsigned int myTrack = CAMath::AtomicAdd(&mTmpCounter[id], 1);
+      mBorder[id][myTrack] = b;
       break;
     }
   }
