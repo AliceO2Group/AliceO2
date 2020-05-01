@@ -38,27 +38,21 @@ struct HashTask {
   // Calculate hash for an element based on 2 properties and their bins.
   int getHash(std::vector<float> const& xBins, std::vector<float> const& yBins, float colX, float colY)
   {
-    for (int i = 0; i < xBins.size(); i++) {
+    if (colX < xBins[0] || colY < yBins[0]) {
+      return -1;
+    }
+    for (int i = 1; i < xBins.size(); i++) {
       if (colX < xBins[i]) {
-        for (int j = 0; j < yBins.size(); j++) {
+        for (int j = 1; j < yBins.size(); j++) {
           if (colY < yBins[j]) {
             return i + j * (xBins.size() + 1);
           }
         }
-        // overflow for yBins only
-        return i + yBins.size() * (xBins.size() + 1);
+        return -1;
       }
     }
 
-    // overflow for xBins only
-    for (int j = 0; j < yBins.size(); j++) {
-      if (colY < yBins[j]) {
-        return xBins.size() + j * (xBins.size() + 1);
-      }
-    }
-
-    // overflow for both bins
-    return (yBins.size() + 1) * (xBins.size() + 1) - 1;
+    return -1;
   }
 
   void process(aod::Collisions const& collisions)
@@ -73,14 +67,16 @@ struct HashTask {
 
 // Version 1: Using categorised combinations
 struct CollisionsCombinationsTask {
-  void process(aod::Hashes const& hashes, aod::Collisions& collisions, aod::Tracks& tracks)
+  o2::framework::expressions::Filter trackFilter = (aod::track::x > -0.8f) && (aod::track::x < 0.8f) && (aod::track::y > 1.0f);
+
+  void process(aod::Hashes const& hashes, aod::Collisions& collisions, soa::Filtered<aod::Tracks>& tracks)
   {
     collisions.bindExternalIndices(&tracks);
     auto tracksTuple = std::make_tuple(tracks);
     AnalysisDataProcessorBuilder::GroupSlicer slicer(collisions, tracksTuple);
 
     // Strictly upper categorised collisions
-    for (auto& [c1, c2] : selfCombinations("fBin", join(hashes, collisions), join(hashes, collisions))) {
+    for (auto& [c1, c2] : selfCombinations("fBin", 2, -1, join(hashes, collisions), join(hashes, collisions))) {
       LOGF(info, "Collisions bin: %d pair: %d (%f, %f, %f), %d (%f, %f, %f)", c1.bin(), c1.index(), c1.posX(), c1.posY(), c1.posZ(), c2.index(), c2.posX(), c2.posY(), c2.posZ());
 
       auto it1 = slicer.begin();
@@ -97,9 +93,9 @@ struct CollisionsCombinationsTask {
           break;
         }
       }
-      auto tracks1 = std::get<aod::Tracks>(it1.associatedTables());
+      auto tracks1 = std::get<soa::Filtered<aod::Tracks>>(it1.associatedTables());
       tracks1.bindExternalIndices(&collisions);
-      auto tracks2 = std::get<aod::Tracks>(it2.associatedTables());
+      auto tracks2 = std::get<soa::Filtered<aod::Tracks>>(it2.associatedTables());
       tracks2.bindExternalIndices(&collisions);
 
       for (auto& [t1, t2] : combinations(CombinationsFullIndexPolicy(tracks1, tracks2))) {

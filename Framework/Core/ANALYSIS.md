@@ -367,19 +367,21 @@ struct MyTask : AnalysisTask {
 };
 ```
 
-One can get combinations of elements with the same value in a given column. Input tables do not need to be the same but each table must contain the column used for categorizing. Again, full, strictly upper and upper policies are available:
+One can get combinations of elements with the same value in a given column. Input tables do not need to be the same but each table must contain the column used for categorizing. Additionally, you can specify a value to be skipped for grouping as well as upper limit on number of combinations per category. Again, full, strictly upper and upper policies are available:
 
 ```cpp
-for (auto& [c0, c1] : combinations(CombinationsBlockStrictlyUpperIndexPolicy("fRunNumber", collisions, collisions)));
-for (auto& [c0, t1] : combinations(CombinationsBlockFullIndexPolicy("fX", collisions, tracks)));
+for (auto& [c0, c1] : combinations(CombinationsBlockStrictlyUpperIndexPolicy("fRunNumber", 3, -1, collisions, collisions))) {
+  // Pairs of collisions with same fRunNumber, max 3 pairs for each fRunNumber. Entries with fRunNumber == -1 are skipped.
+}
+for (auto& [c0, t1] : combinations(CombinationsBlockFullIndexPolicy("fX", 200, -1, collisions, tracks)));
 ```
 
 For better performance, if the same table is used, `Block{Full,StrictlyUpper,Upper}SameIndex` policies should be preferred. `selfCombinations()` are a shortuct to apply StrictlyUpperSameIndex policy:
 
 ```cpp
-for (auto& [c0, c1] : combinations(CombinationsBlockFullSameIndexPolicy("fRunNumber", collisions, collisions)));
-for (auto& [c0, c1] : selfCombinations("fRunNumber", collisions, collisions)) {
-  // same as: combinations(CombinationsBlockStrictlyUpperSameIndexPolicy("fRunNumber", collisions, collisions));
+for (auto& [c0, c1] : combinations(CombinationsBlockFullSameIndexPolicy("fRunNumber", 3, -1, collisions, collisions)));
+for (auto& [c0, c1] : selfCombinations("fRunNumber", 3, -1, collisions, collisions)) {
+  // same as: combinations(CombinationsBlockStrictlyUpperSameIndexPolicy("fRunNumber", 3, -1, collisions, collisions));
 }
 ```
 
