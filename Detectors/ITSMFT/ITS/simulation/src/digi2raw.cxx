@@ -13,6 +13,7 @@
 
 #include <boost/program_options.hpp>
 #include <TTree.h>
+#include <TSystem.h>
 #include <TChain.h>
 #include <TFile.h>
 #include <TStopwatch.h>
@@ -37,7 +38,8 @@ using MAP = o2::itsmft::ChipMappingITS;
 namespace bpo = boost::program_options;
 
 void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, bool filePerCRU);
-void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU, int verbosity, uint32_t rdhV = 4, int superPageSizeInB = 1024 * 1024);
+void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU, int verbosity, uint32_t rdhV = 4, bool noEmptyHBF = false,
+              int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
 {
@@ -55,9 +57,10 @@ int main(int argc, char** argv)
     add_option("input-file,i", bpo::value<std::string>()->default_value("itsdigits.root"), "input ITS digits file");
     add_option("file-per-cru,c", bpo::value<bool>()->default_value(false)->implicit_value(true), "create output file per CRU (default: per layer)");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
-    add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
+    add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
+    add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
@@ -82,12 +85,13 @@ int main(int argc, char** argv)
            vm["output-dir"].as<std::string>(),
            vm["file-per-cru"].as<bool>(),
            vm["verbosity"].as<uint32_t>(),
-           vm["rdh-version"].as<uint32_t>());
+           vm["rdh-version"].as<uint32_t>(),
+           vm["no-empty-hbf"].as<bool>());
 
   return 0;
 }
 
-void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU, int verbosity, uint32_t rdhV, int superPageSizeInB)
+void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU, int verbosity, uint32_t rdhV, bool noEmptyHBF, int superPageSizeInB)
 {
   TStopwatch swTot;
   swTot.Start();
@@ -98,6 +102,14 @@ void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU
   LOG(INFO) << "HBFUtil settings:";
   o2::raw::HBFUtils::Instance().print();
 
+  // if needed, create output directory
+  if (gSystem->AccessPathName(outDir.data())) {
+    if (gSystem->mkdir(outDir.data(), kTRUE)) {
+      LOG(FATAL) << "could not create output directory " << outDir;
+    } else {
+      LOG(INFO) << "created output directory " << outDir;
+    }
+  }
   ///-------> input
   std::string digTreeName{o2::base::NameConf::MCTTREENAME.data()};
   TChain digTree(digTreeName.c_str());
@@ -129,6 +141,7 @@ void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU
   m2r.setMinMaxRUSW(ruSWMin, ruSWMax);
   m2r.getWriter().setSuperPageSize(superPageSizeInB);
   m2r.getWriter().useRDHVersion(rdhV);
+  m2r.getWriter().setDontFillEmptyHBF(noEmptyHBF);
 
   m2r.setVerbosity(verbosity);
   setupLinks(m2r, outDir, MAP::getName(), filePerCRU);
