@@ -200,11 +200,11 @@ void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, 
   // add payload corresponding to IR
   LOG(DEBUG) << "Adding " << data.size() << " bytes in IR " << ir << " to " << describe();
   std::lock_guard<std::mutex> lock(mtx);
+  int dataSize = data.size();
   if (ir >= updateIR) { // new IR exceeds or equal IR of next HBF to open, insert missed HBFs if needed
-    fillEmptyHBHs(ir);
+    fillEmptyHBHs(ir, dataSize > 0);
   }
   // we are guaranteed to be under the valid RDH + possibly some data
-  int dataSize = data.size();
   if (!dataSize) {
     return;
   }
@@ -403,13 +403,13 @@ void RawFileWriter::LinkData::close(const IR& irf)
   }
   int tf = writer->mHBFUtils.getTF(irfin);
   auto finalIR = writer->mHBFUtils.getIRTF(tf + 1) - 1; // last IR of the current TF
-  fillEmptyHBHs(finalIR);
+  fillEmptyHBHs(finalIR, false);
   closeHBFPage(); // close last HBF
   flushSuperPage();
 }
 
 //___________________________________________________________________________________
-void RawFileWriter::LinkData::fillEmptyHBHs(const IR& ir)
+void RawFileWriter::LinkData::fillEmptyHBHs(const IR& ir, bool dataAdded)
 {
   // fill HBFs from last processed one to requested ir
   std::vector<o2::InteractionRecord> irw;
@@ -417,6 +417,12 @@ void RawFileWriter::LinkData::fillEmptyHBHs(const IR& ir)
     return;
   }
   for (const auto& irdummy : irw) {
+    if (writer->mDontFillEmptyHBF && writer->mHBFUtils.getTFandHBinTF(irdummy).second != 0 && (!dataAdded || irdummy < ir)) {
+      // even if requested, we skip empty HBF filling only if
+      // 1) we are not at the new TF start
+      // 2) method was called from addData and the current IR is the one for which it was called
+      continue;
+    }
     if (writer->mVerbosity > 2) {
       LOG(INFO) << "Adding HBF " << irdummy << " for " << describe();
     }
