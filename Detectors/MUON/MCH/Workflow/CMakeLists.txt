@@ -24,6 +24,12 @@ o2_add_executable(
                               O2::MCHMappingImpl3 O2::MCHRawElecMap O2::MCHBase)
 
 o2_add_executable(
+        hbf-reader-workflow
+        SOURCES src/hbf-reader-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils Boost::program_options)
+
+o2_add_executable(
         digits-sink-workflow
         SOURCES src/digits-sink-workflow.cxx
         COMPONENT_NAME mch
