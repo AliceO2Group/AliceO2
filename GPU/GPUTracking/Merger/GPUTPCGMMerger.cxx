@@ -642,8 +642,8 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<1>(int iSlice1, GPUTPCGMBorderTrac
   GPUTPCGMBorderTrack::Range* range1 = mBorderRange[iSlice1];
   GPUTPCGMBorderTrack::Range* range2 = mBorderRange[iSlice2] + (Param().rec.mergerReadFromTrackerDirectly ? *mSliceTrackers[iSlice2].NTracks() : mkSlices[iSlice2]->NTracks());
 
-  GPUCommonAlgorithm::sort(range1, range1 + N1, [](const GPUTPCGMBorderTrack::Range& a, const GPUTPCGMBorderTrack::Range& b) { return a.fMin < b.fMin; });
-  GPUCommonAlgorithm::sort(range2, range2 + N2, [](const GPUTPCGMBorderTrack::Range& a, const GPUTPCGMBorderTrack::Range& b) { return a.fMax < b.fMax; });
+  GPUCommonAlgorithm::sortDeviceDynamic(range1, range1 + N1, [](const GPUTPCGMBorderTrack::Range& a, const GPUTPCGMBorderTrack::Range& b) { return a.fMin < b.fMin; });
+  GPUCommonAlgorithm::sortDeviceDynamic(range2, range2 + N2, [](const GPUTPCGMBorderTrack::Range& a, const GPUTPCGMBorderTrack::Range& b) { return a.fMax < b.fMax; });
 }
 
 template <>
