@@ -19,6 +19,7 @@
 #include <cstddef>
 
 #include <TMatrixD.h>
+#include "MFTTracking/MFTTrackingParam.h"
 
 namespace o2
 {
@@ -42,7 +43,7 @@ class TrackExtrap
 
   void setBz(float bZ) { mBZField = bZ; } /// Set the magnetic field for the MFT
   const float getBz() const { return mBZField; }
-
+  const int getSignBz() const { return std::copysign(1, mBZField); }
   /// Return true if the field is switched ON
   const bool isFieldON() { return mIsFieldON; }
 
@@ -50,6 +51,8 @@ class TrackExtrap
   bool extrapToZCov(TrackParamMFT* TrackParamMFT, double zEnd, bool updatePropagator = false, bool isFieldON = true);
   void linearExtrapToZ(TrackParamMFT* TrackParamMFT, double zEnd);
   void linearExtrapToZCov(TrackParamMFT* TrackParamMFT, double zEnd, bool updatePropagator);
+  void quadraticExtrapToZ(TrackParamMFT* TrackParamMFT, double zEnd);
+  void quadraticExtrapToZCov(TrackParamMFT* TrackParamMFT, double zEnd, bool updatePropagator);
   void helixExtrapToZ(TrackParamMFT* TrackParamMFT, double zEnd);
   void helixExtrapToZCov(TrackParamMFT* TrackParamMFT, double zEnd, bool updatePropagator);
   void addMCSEffect(TrackParamMFT* TrackParamMFT, double dZ, double x0, bool isFieldON = true);
