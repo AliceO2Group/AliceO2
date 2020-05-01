@@ -46,7 +46,9 @@ GPUCA_KRNL((GPUTPCGMMergerSortTracksPrepare              ), (simple, REG, (GPUCA
 GPUCA_KRNL((GPUTPCGMMergerPrepareClusters, step0         ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0)), (), ())
 GPUCA_KRNL((GPUTPCGMMergerPrepareClusters, step1         ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1)), (), ())
 GPUCA_KRNL((GPUTPCGMMergerPrepareClusters, step2         ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerPrepareClusters_step2)), (), ())
-GPUCA_KRNL((GPUTPCGMMergerFinalize                       ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerFinalize)), (), ())
+GPUCA_KRNL((GPUTPCGMMergerFinalize, step0                ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerFinalize_step0)), (), ())
+GPUCA_KRNL((GPUTPCGMMergerFinalize, step1                ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerFinalize_step1)), (), ())
+GPUCA_KRNL((GPUTPCGMMergerFinalize, step2                ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerFinalize_step2)), (), ())
 #ifdef HAVE_O2HEADERS
 GPUCA_KRNL((GPUTRDTrackerKernels                         ), (simple, REG, (GPUCA_LB_GPUTRDTrackerKernels)), (), ())
 GPUCA_KRNL((GPUITSFitterKernel                           ), (simple, REG, (GPUCA_LB_GPUITSFitterKernel)), (), ())

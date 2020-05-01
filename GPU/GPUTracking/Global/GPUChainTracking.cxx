@@ -1614,8 +1614,11 @@ int GPUChainTracking::RunTPCTrackingMerger()
   }
 
   DoDebugAndDump(RecoStep::TPCMerging, 0, Merger, &GPUTPCGMMerger::DumpRefit, mDebugFile);
-
-  runKernel<GPUTPCGMMergerFinalize>(GetGridBlk(BlockCount(), 0, deviceType), krnlRunRangeNone, krnlEventNone);
+  runKernel<GPUTPCGMMergerFinalize, 0>(GetGridBlk(BlockCount(), 0, deviceType), krnlRunRangeNone, krnlEventNone);
+  if (!param().rec.NonConsecutiveIDs) {
+    runKernel<GPUTPCGMMergerFinalize, 1>(GetGridBlk(BlockCount(), 0, deviceType), krnlRunRangeNone, krnlEventNone);
+    runKernel<GPUTPCGMMergerFinalize, 2>(GetGridBlk(BlockCount(), 0, deviceType), krnlRunRangeNone, krnlEventNone);
+  }
   DoDebugAndDump(RecoStep::TPCMerging, 0, Merger, &GPUTPCGMMerger::DumpFinal, mDebugFile);
 
   if (doGPUall) {

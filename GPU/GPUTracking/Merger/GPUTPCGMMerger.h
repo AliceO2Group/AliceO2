@@ -145,7 +145,9 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void PrepareClustersForFit2(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void LinkGlobalTracks(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void CollectMergedTracks(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void Finalize(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void Finalize0(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void Finalize1(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void Finalize2(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void ResolveMergeSlices(int nBlocks, int nThreads, int iBlock, int iThread, char useOrigTrackParam, char mergeAll);
 
 #ifndef GPUCA_GPUCODE
