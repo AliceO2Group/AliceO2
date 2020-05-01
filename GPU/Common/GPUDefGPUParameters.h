@@ -48,7 +48,6 @@
   #define GPUCA_LB_GPUTPCGMMergerMergeWithinPrepare 256
   #define GPUCA_LB_GPUTPCGMMergerMergeSlicesPrepare 256
   #define GPUCA_LB_GPUTPCGMMergerMergeBorders_step0 256
-  #define GPUCA_LB_GPUTPCGMMergerMergeBorders_step1 256
   #define GPUCA_LB_GPUTPCGMMergerMergeBorders_step2 256
   #define GPUCA_LB_GPUTPCGMMergerMergeCE 256
   #define GPUCA_LB_GPUTPCGMMergerLinkGlobalTracks 256
@@ -92,7 +91,6 @@
   #define GPUCA_LB_GPUTPCGMMergerMergeWithinPrepare 256
   #define GPUCA_LB_GPUTPCGMMergerMergeSlicesPrepare 256
   #define GPUCA_LB_GPUTPCGMMergerMergeBorders_step0 256
-  #define GPUCA_LB_GPUTPCGMMergerMergeBorders_step1 256
   #define GPUCA_LB_GPUTPCGMMergerMergeBorders_step2 256
   #define GPUCA_LB_GPUTPCGMMergerMergeCE 256
   #define GPUCA_LB_GPUTPCGMMergerLinkGlobalTracks 256
@@ -192,9 +190,6 @@
   #endif
   #ifndef GPUCA_LB_GPUTPCGMMergerMergeBorders_step0
     #define GPUCA_LB_GPUTPCGMMergerMergeBorders_step0 256
-  #endif
-  #ifndef GPUCA_LB_GPUTPCGMMergerMergeBorders_step1
-    #define GPUCA_LB_GPUTPCGMMergerMergeBorders_step1 256
   #endif
   #ifndef GPUCA_LB_GPUTPCGMMergerMergeBorders_step2
     #define GPUCA_LB_GPUTPCGMMergerMergeBorders_step2 256
