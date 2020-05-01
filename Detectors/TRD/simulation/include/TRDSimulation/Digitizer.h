@@ -83,25 +83,43 @@ class Digitizer
   int mEventID = 0;
   int mSrcID = 0;
 
-  bool mSDigits{false};                                    // true: convert signals to summable digits, false by defaults
-  std::vector<HitType> mHitContainer;                      // the container of hits in a given detector
-  std::vector<MCLabel> mMergedLabels;                      // temporary label container
-  std::array<SignalContainer, kNdet> signalsMapCollection; // container for caching signals over a timeframe
-  std::array<DigitContainer, kNdet> digitsCollection;      // container for caching digits for paralellization
+  // Digitization parameters
+  static constexpr float AmWidth = TRDGeometry::amThick(); // Width of the amplification region
+  static constexpr float DrWidth = TRDGeometry::drThick(); // Width of the drift retion
+  static constexpr float DrMin = -0.5 * AmWidth;           // Drift + Amplification region
+  static constexpr float DrMax = DrWidth + 0.5 * AmWidth;  // Drift + Amplification region
+  float mSamplingRate = 0;                                 // The sampling rate
+  float mElAttachProp = 0;                                 // Propability for electron attachment (for 1m)
+  int mNpad = 0;                                           // Number of pads included in the pad response
+  int mTimeBinTRFend = 0;                                  // time bin TRF ends
+  int mMaxTimeBins = 30;                                   // Maximum number of time bins for processing signals, usually set at 30 tb = 3 microseconds
+  int mMaxTimeBinsTRAP = 30;                               // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
+
+  // Digitization containers
+  std::vector<HitType> mHitContainer;                       // the container of hits in a given detector
+  std::vector<MCLabel> mMergedLabels;                       // temporary label container
+  std::array<SignalContainer, kNdet> mSignalsMapCollection; // container for caching signals over a timeframe
+  std::array<DigitContainer, kNdet> mDigitsCollection;      // container for caching digits for paralellization
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   void clearCollections();
+  void setSimulationParameters();
 
-  // Digitization chaing methods
+  // Digitization chain methods
   bool convertHits(const int, const std::vector<HitType>&, SignalContainer&, int thread = 0); // True if hit-to-signal conversion is successful
   bool convertSignalsToADC(const int, SignalContainer&, DigitContainer&, int thread = 0);     // True if signal-to-ADC conversion is successful
-
+  void addLabel(const o2::trd::HitType& hit, std::vector<o2::trd::MCLabel>&, std::unordered_map<int, int>&);
   bool diffusion(float, float, float, float, float, float, double&, double&, double&, int thread = 0); // True if diffusion is applied successfully
 
   // Helpers for signal handling
   static constexpr int KEY_MIN = 0;
   static constexpr int KEY_MAX = 2211727;
-  int calculateKey(const int det, const int row, const int col) { return ((det << 12) | (row << 8) | col); }
+  int calculateKey(const int det, const int row, const int col)
+  {
+    int key = ((det << 12) | (row << 8) | col);
+    assert(!(key < KEY_MIN || key > KEY_MAX));
+    return key;
+  }
   int getDetectorFromKey(const int key) { return (key >> 12) & 0xFFF; }
   int getRowFromKey(const int key) { return (key >> 8) & 0xF; }
   int getColFromKey(const int key) { return key & 0xFF; }
