@@ -37,6 +37,7 @@ class GPUTPCSliceData
   ~GPUTPCSliceData() CON_DEFAULT;
   void InitializeRows(const MEM_CONSTANT(GPUParam) & p);
   void SetMaxData();
+  unsigned int GetGridSize();
   void SetClusterData(const GPUTPCClusterData* data, int nClusters, int clusterIdOffset);
   void* SetPointersInput(void* mem, bool idsOnGPU);
   void* SetPointersScratch(GPUconstantref() const MEM_CONSTANT(GPUConstantMem)& cm, void* mem);
@@ -137,9 +138,11 @@ class GPUTPCSliceData
 #ifndef GPUCA_GPUCODE
   GPUTPCSliceData& operator=(const GPUTPCSliceData&) CON_DELETE; // ROOT 5 tries to use this if it is not private
   GPUTPCSliceData(const GPUTPCSliceData&) CON_DELETE;            //
-  void CreateGrid(GPUTPCRow* row, const float2* data, int ClusterDataHitNumberOffset);
-  int PackHitData(GPUTPCRow* row, const GPUTPCHit* binSortedHits);
 #endif
+  void CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow)* row, const float2* data, int ClusterDataHitNumberOffset);
+  void GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, int& maxY, int& maxZ);
+  int PackHitData(MEM_GLOBAL(GPUTPCRow)* row, const GPUTPCHit* binSortedHits);
+
   friend class GPUTPCNeighboursFinder;
   friend class GPUTPCStartHitsFinder;
 
