@@ -108,8 +108,8 @@ class RawFileReader
     LinkSubSpec_t subspec = 0; // subspec according to DataDistribution
     uint32_t nTimeFrames = 0;
     uint32_t nHBFrames = 0;
-    uint32_t nCRUPages = 0;
     uint32_t nSPages = 0;
+    uint64_t nCRUPages = 0;
     o2::header::DataOrigin origin = o2::header::gDataOriginInvalid;
     o2::header::DataDescription description = o2::header::gDataDescriptionInvalid;
     std::string fairMQChannel{}; // name of the fairMQ channel for the output
@@ -180,6 +180,8 @@ class RawFileReader
   void setNominalSPageSize(int n = 0x1 << 20) { mNominalSPageSize = n > (0x1 << 15) ? n : (0x1 << 15); }
   int getNominalSPageSize() const { return mNominalSPageSize; }
 
+  void setMaxTFToRead(uint32_t n) { mMaxTFToRead = n; }
+  uint32_t getMaxTFToRead() const { return mMaxTFToRead; }
   uint32_t getNTimeFrames() const { return mNTimeFrames; }
   uint32_t getOrbitMin() const { return mOrbitMin; }
   uint32_t getOrbitMax() const { return mOrbitMax; }
@@ -211,6 +213,7 @@ class RawFileReader
   std::unordered_map<LinkSpec_t, int> mLinkEntries; // mapping between RDH specs and link entry in the mLinksData
   std::vector<LinkData> mLinksData;                 // info on links data in the files
   std::vector<int> mOrderedIDs;                     // links entries ordered in Specs
+  uint32_t mMaxTFToRead = 0xffffffff;               // max TFs to process
   uint32_t mNTimeFrames = 0;                        // total number of time frames
   uint32_t mNextTF2Read = 0;                        // next TF to read
   uint32_t mOrbitMin = 0xffffffff;                  // lowest orbit seen by any link

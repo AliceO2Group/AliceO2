@@ -658,14 +658,15 @@ struct RDHUtils {
     // meaningfull DAQ sourceID means that it comes from RDHv6, in this case we use feeID as a subspec
     if (srcid != o2::header::DAQID::INVALID) {
       return feeId;
-    } else {
-      int linkValue = (LinkSubSpec_t(link) + 1) << (endpoint == 1 ? 8 : 0);
-      return (LinkSubSpec_t(cru) << 16) | linkValue;
     }
+    //else { // this may lead to ambiguities
+    //  int linkValue = (LinkSubSpec_t(link) + 1) << (endpoint == 1 ? 8 : 0);
+    //  return (LinkSubSpec_t(cru) << 16) | linkValue;
+    //}
     //
     // RS At the moment suppress getting the subspec as a hash
-    // uint16_t seq[3] = {cru, uint16_t((uint16_t(link) << 8) | endpoint), feeId};
-    // return fletcher32(seq, 3);
+    uint16_t seq[3] = {cru, uint16_t((uint16_t(link) << 8) | endpoint), feeId};
+    return fletcher32(seq, 3);
   }
   template <typename H>
   static LinkSubSpec_t getSubSpec(const H& rdh, NOTPTR(H)) // will be used for all RDH versions but >=6

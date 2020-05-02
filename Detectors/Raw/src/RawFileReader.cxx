@@ -392,6 +392,18 @@ bool RawFileReader::preprocessFile(int ifl)
     }
     bool newSPage = lID != lIDPrev;
     mLinksData[lID].preprocessCRUPage(rdh, newSPage);
+    if (mLinksData[lID].nTimeFrames > mMaxTFToRead) { // limit reached, discard the last read
+      mLinksData[lID].nTimeFrames--;
+      mLinksData[lID].blocks.pop_back();
+      if (mLinksData[lID].nHBFrames > 0) {
+        mLinksData[lID].nHBFrames--;
+      }
+      if (mLinksData[lID].nCRUPages > 0) {
+        mLinksData[lID].nCRUPages--;
+      }
+      lIDPrev = -1; // last block is closed
+      break;
+    }
     //
     mPosInFile += RDHUtils::getOffsetToNext(rdh);
     if (fseek(fl, mPosInFile, SEEK_SET)) {
@@ -478,6 +490,9 @@ bool RawFileReader::init()
   for (int i = 0; i < NErrorsDefined; i++) {
     if (mCheckErrors & (0x1 << i))
       LOGF(INFO, "perform check for /%s/", ErrNames[i].data());
+  }
+  if (mMaxTFToRead < 0xffffffff) {
+    LOGF(INFO, "at most %u TF will be processed", mMaxTFToRead);
   }
 
   int nf = mFiles.size();
