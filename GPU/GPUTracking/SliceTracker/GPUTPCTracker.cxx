@@ -66,7 +66,7 @@ void GPUTPCTracker::InitializeProcessor()
 
 void* GPUTPCTracker::SetPointersDataInput(void* mem) { return mData.SetPointersInput(mem, mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TPCMerging); }
 
-void* GPUTPCTracker::SetPointersDataScratch(void* mem) { return mData.SetPointersScratch(mem); }
+void* GPUTPCTracker::SetPointersDataScratch(void* mem) { return mData.SetPointersScratch(mRec->GetConstantMem(), mem); }
 
 void* GPUTPCTracker::SetPointersDataRows(void* mem) { return mData.SetPointersRows(mem); }
 

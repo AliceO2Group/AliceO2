@@ -50,6 +50,27 @@ class GPUTPCTracker : public GPUProcessor
   ~GPUTPCTracker();
   GPUTPCTracker(const GPUTPCTracker&) CON_DELETE;
   GPUTPCTracker& operator=(const GPUTPCTracker&) CON_DELETE;
+
+  MEM_CLASS_PRE2()
+  void SetSlice(int iSlice);
+  MEM_CLASS_PRE2()
+  void InitializeProcessor();
+  MEM_CLASS_PRE2()
+  void InitializeRows(const MEM_CONSTANT(GPUParam) * param) { mData.InitializeRows(*param); }
+
+  int ReadEvent();
+  int CheckEmptySlice();
+  void WriteOutputPrepare();
+  void WriteOutput();
+
+  // Debugging Stuff
+  void DumpSliceData(std::ostream& out);    // Dump Input Slice Data
+  void DumpLinks(std::ostream& out);        // Dump all links to file (for comparison after NeighboursFinder/Cleaner)
+  void DumpStartHits(std::ostream& out);    // Same for Start Hits
+  void DumpHitWeights(std::ostream& out);   //....
+  void DumpTrackHits(std::ostream& out);    // Same for Track Hits
+  void DumpTrackletHits(std::ostream& out); // Same for Track Hits
+  void DumpOutput(std::ostream& out);       // Similar for output
 #endif
 
   struct StructGPUParameters {
@@ -74,30 +95,6 @@ class GPUTPCTracker : public GPUProcessor
     StructGPUParameters gpuParameters;  // GPU parameters
   };
 
-  MEM_CLASS_PRE2()
-  void SetSlice(int iSlice);
-  MEM_CLASS_PRE2()
-  void InitializeProcessor();
-  MEM_CLASS_PRE2()
-  void InitializeRows(const MEM_CONSTANT(GPUParam) * param) { mData.InitializeRows(*param); }
-
-  int CheckEmptySlice();
-  void WriteOutputPrepare();
-  void WriteOutput();
-
-// GPU Tracker Interface
-#if !defined(GPUCA_GPUCODE_DEVICE)
-  // Debugging Stuff
-  void DumpSliceData(std::ostream& out);    // Dump Input Slice Data
-  void DumpLinks(std::ostream& out);        // Dump all links to file (for comparison after NeighboursFinder/Cleaner)
-  void DumpStartHits(std::ostream& out);    // Same for Start Hits
-  void DumpHitWeights(std::ostream& out);   //....
-  void DumpTrackHits(std::ostream& out);    // Same for Track Hits
-  void DumpTrackletHits(std::ostream& out); // Same for Track Hits
-  void DumpOutput(std::ostream& out);       // Similar for output
-
-  int ReadEvent();
-#endif
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
   GPUhdi() GPUglobalref() const GPUTPCClusterData* ClusterData() const
