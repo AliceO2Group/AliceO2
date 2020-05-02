@@ -193,6 +193,7 @@ class GPUReconstruction
   DeviceType GetDeviceType() const { return (DeviceType)mProcessingSettings.deviceType; }
   bool IsGPU() const { return GetDeviceType() != DeviceType::INVALID_DEVICE && GetDeviceType() != DeviceType::CPU; }
   const GPUParam& GetParam() const { return mHostConstantMem->param; }
+  const GPUConstantMem& GetConstantMem() const { return *mHostConstantMem; }
   const GPUSettingsEvent& GetEventSettings() const { return mEventSettings; }
   const GPUSettingsProcessing& GetProcessingSettings() { return mProcessingSettings; }
   const GPUSettingsDeviceProcessing& GetDeviceProcessingSettings() const { return mDeviceProcessingSettings; }
