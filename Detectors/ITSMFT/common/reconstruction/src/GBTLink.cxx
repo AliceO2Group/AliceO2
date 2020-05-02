@@ -164,7 +164,7 @@ GBTLink::ErrorType GBTLink::checkErrorsRDH(const RDH& rdh)
 /// Check RDH Stop correctness
 GBTLink::ErrorType GBTLink::checkErrorsRDHStop(const RDH& rdh)
 {
-  if (lastRDH && RDHUtils::getHeartBeatOrbit(*lastRDH) != RDHUtils::getHeartBeatOrbit(rdh) // new HB starts
+  if (format == NewFormat && lastRDH && RDHUtils::getHeartBeatOrbit(*lastRDH) != RDHUtils::getHeartBeatOrbit(rdh) // new HB starts
       && !RDHUtils::getStop(*lastRDH)) {
     statistics.errorCounts[GBTS::ErrPageNotStopped]++;
     if (verbosity >= VerboseErrors) {
@@ -182,7 +182,7 @@ GBTLink::ErrorType GBTLink::checkErrorsRDHStop(const RDH& rdh)
 /// Check if the RDH Stop page is empty
 GBTLink::ErrorType GBTLink::checkErrorsRDHStopPageEmpty(const RDH& rdh)
 {
-  if (format != OldFormat && RDHUtils::getStop(rdh) && RDHUtils::getMemorySize(rdh) != sizeof(RDH)) {
+  if (format == NewFormat && RDHUtils::getStop(rdh) && RDHUtils::getMemorySize(rdh) != sizeof(RDH)) {
     statistics.errorCounts[GBTS::ErrStopPageNotEmpty]++;
     if (verbosity >= VerboseErrors) {
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTS::ErrStopPageNotEmpty];

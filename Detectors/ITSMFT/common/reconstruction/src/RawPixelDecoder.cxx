@@ -295,7 +295,7 @@ void RawPixelDecoder<Mapping>::setNThreads(int n)
 template <class Mapping>
 void RawPixelDecoder<Mapping>::setFormat(GBTLink::Format f)
 {
-  assert(int(f) >= 0 && int(f) < NFormats);
+  assert(int(f) >= 0 && int(f) < GBTLink::NFormats);
   mFormat = f;
 }
 
