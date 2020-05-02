@@ -50,6 +50,7 @@ class STFDecoder : public Task
   bool mDoPatterns = false;
   bool mDoDigits = false;
   int mNThreads = 1;
+  size_t mTFCounter = 0;
   std::string mSelfName;
   std::string mDictName;
   std::unique_ptr<RawPixelDecoder<Mapping>> mDecoder;
