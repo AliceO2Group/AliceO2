@@ -33,24 +33,16 @@ class GPUTPCSliceData
  public:
   GPUTPCSliceData() : mNumberOfHits(0), mNumberOfHitsPlusAlign(0), mClusterIdOffset(0), mMaxZ(0.f), mGPUTextureBase(nullptr), mRows(nullptr), mLinkUpData(nullptr), mLinkDownData(nullptr), mClusterData(nullptr) {}
 
-#ifndef GPUCA_GPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
   ~GPUTPCSliceData() CON_DEFAULT;
-#endif //! GPUCA_GPUCODE
-
-  MEM_CLASS_PRE2()
-  void InitializeRows(const MEM_LG2(GPUParam) & parameters);
-
-  /**
- * (Re)Create the data that is tuned for optimal performance of the algorithm from the cluster
- * data.
- */
-
+  void InitializeRows(const MEM_CONSTANT(GPUParam) & p);
   void SetMaxData();
   void SetClusterData(const GPUTPCClusterData* data, int nClusters, int clusterIdOffset);
   void* SetPointersInput(void* mem, bool idsOnGPU);
-  void* SetPointersScratch(void* mem);
+  void* SetPointersScratch(GPUconstantref() const MEM_CONSTANT(GPUConstantMem)& cm, void* mem);
   void* SetPointersScratchHost(void* mem, bool idsOnGPU);
   void* SetPointersRows(void* mem);
+#endif
 
   int InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, int iSlice);
 
@@ -165,7 +157,9 @@ class GPUTPCSliceData
   GPUglobalref() calink* mLinkDownData;  // hit index in the row below which is linked to the given (global) hit index
   GPUglobalref() cahit2* mHitData;       // packed y,z coordinate of the given (global) hit index
   GPUglobalref() int* mClusterDataIndex; // see ClusterDataIndex()
-
+  
+  uint4* mTmpMem;
+  
   /*
  * The size of the array is row.Grid.N + row.Grid.Ny + 3. The row.Grid.Ny + 3 is an optimization
  * to remove the need for bounds checking. The last values are the same as the entry at [N - 1].
