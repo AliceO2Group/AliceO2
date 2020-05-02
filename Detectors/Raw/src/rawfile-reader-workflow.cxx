@@ -23,6 +23,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options;
   options.push_back(ConfigParamSpec{"conf", o2::framework::VariantType::String, "", {"configuration file to init from (obligatory)"}});
+  options.push_back(ConfigParamSpec{"max-tf", o2::framework::VariantType::Int64, 0xffffffffL, {"max number of TF to process"}});
   options.push_back(ConfigParamSpec{"loop", o2::framework::VariantType::Int, 1, {"loop N times (infinite for N<0)"}});
   options.push_back(ConfigParamSpec{"message-per-tf", o2::framework::VariantType::Bool, false, {"send TF of each link as a single FMQ message rather than multipart with message per HB"}});
   options.push_back(ConfigParamSpec{"output-per-link", o2::framework::VariantType::Bool, false, {"send message per Link rather than per FMQ output route"}});
@@ -49,10 +50,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   auto inifile = configcontext.options().get<std::string>("conf");
   auto loop = configcontext.options().get<int>("loop");
+  uint32_t maxTF = uint32_t(configcontext.options().get<int64_t>("max-tf"));
   auto tfAsMessage = configcontext.options().get<bool>("message-per-tf");
   auto outPerRoute = !configcontext.options().get<bool>("output-per-link");
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  uint32_t delay_us = uint32_t(1e6 * configcontext.options().get<int>("delay")); // delay in microseconds
+  uint32_t delay_us = uint32_t(1e6 * configcontext.options().get<float>("delay")); // delay in microseconds
 
   uint32_t errmap = 0xffffffff;
   for (int i = RawFileReader::NErrorsDefined; i--;) {
@@ -62,5 +64,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  return std::move(o2::raw::getRawFileReaderWorkflow(inifile, tfAsMessage, outPerRoute, loop, delay_us, errmap));
+  return std::move(o2::raw::getRawFileReaderWorkflow(inifile, tfAsMessage, outPerRoute, loop, delay_us, errmap, maxTF));
 }
