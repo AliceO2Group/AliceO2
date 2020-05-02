@@ -35,6 +35,7 @@ int main(int argc, char* argv[])
   descOpt.add_options()(
     "help,h", "print this help message.")(
     "conf,c", bpo::value(&config)->default_value(""), "read input from configuration file")(
+    "max-tf,m", bpo::value<uint32_t>()->default_value(0xffffffff), "max.number of TF to read")(
     "verbosity,v", bpo::value<int>()->default_value(reader.getVerbosity()), "1: long report, 2 or 3: print or dump all RDH")(
     "spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes")(
     "configKeyValues", bpo::value(&configKeyValues)->default_value(""), "semicolon separated key=value strings")(
@@ -88,7 +89,7 @@ int main(int argc, char* argv[])
 
   reader.setVerbosity(vm["verbosity"].as<int>());
   reader.setNominalSPageSize(vm["spsize"].as<int>());
-
+  reader.setMaxTFToRead(vm["max-tf"].as<uint32_t>());
   uint32_t errmap = 0xffffffff;
   for (int i = RawFileReader::NErrorsDefined; i--;) {
     if (vm.count(RawFileReader::nochk_opt(RawFileReader::ErrTypes(i)).c_str())) {
