@@ -46,6 +46,7 @@ class GPUCommonMath
   template <class T, class S>
   GPUhd() static T MaxWithRef(T x, T y, S refX, S refY, S& r);
   GPUhdni() static float Sqrt(float x);
+  GPUhdni() static float FastInvSqrt(float x);
   template <class T>
   GPUhd() static T Abs(T x);
   GPUhdni() static float ASin(float x);
@@ -239,6 +240,19 @@ GPUhdi() T GPUCommonMath::MaxWithRef(T x, T y, S refX, S refY, S& r)
 }
 
 GPUhdi() float GPUCommonMath::Sqrt(float x) { return CHOICE(sqrtf(x), sqrtf(x), sqrt(x)); }
+
+GPUhdi() float GPUCommonMath::FastInvSqrt(float _x)
+{
+  // the function calculates fast inverse sqrt
+  union {
+    float f;
+    int i;
+  } x = {_x};
+  const float xhalf = 0.5f * x.f;
+  x.i = 0x5f3759df - (x.i >> 1);
+  x.f = x.f * (1.5f - xhalf * x.f * x.f);
+  return x.f;
+}
 
 template <>
 GPUhdi() float GPUCommonMath::Abs<float>(float x)
