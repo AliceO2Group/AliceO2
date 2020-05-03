@@ -37,7 +37,6 @@ class GPUTPCSliceData
   ~GPUTPCSliceData() CON_DEFAULT;
   void InitializeRows(const MEM_CONSTANT(GPUParam) & p);
   void SetMaxData();
-  unsigned int GetGridSize();
   void SetClusterData(const GPUTPCClusterData* data, int nClusters, int clusterIdOffset);
   void* SetPointersInput(void* mem, bool idsOnGPU);
   void* SetPointersScratch(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) & cm, void* mem);
@@ -45,7 +44,7 @@ class GPUTPCSliceData
   void* SetPointersRows(void* mem);
 #endif
 
-  int InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, int iSlice);
+  GPUd() int InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, int iSlice);
 
   /**
  * Return the number of hits in this slice.
@@ -139,8 +138,9 @@ class GPUTPCSliceData
   GPUTPCSliceData& operator=(const GPUTPCSliceData&) CON_DELETE; // ROOT 5 tries to use this if it is not private
   GPUTPCSliceData(const GPUTPCSliceData&) CON_DELETE;            //
 #endif
-  void CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow) * row, const float2* data, int ClusterDataHitNumberOffset);
-  static void GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, GPUTPCRow* GPUrestrict() row, int& maxY, int& maxZ);
+  GPUd() void CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow) * GPUrestrict() row, const float2* data, int ClusterDataHitNumberOffset);
+  GPUd() static void GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow) * GPUrestrict() row, int& maxY, int& maxZ);
+  GPUd() unsigned int GetGridSize();
 
   friend class GPUTPCNeighboursFinder;
   friend class GPUTPCStartHitsFinder;
@@ -159,8 +159,6 @@ class GPUTPCSliceData
   GPUglobalref() calink* mLinkDownData;  // hit index in the row below which is linked to the given (global) hit index
   GPUglobalref() cahit2* mHitData;       // packed y,z coordinate of the given (global) hit index
   GPUglobalref() int* mClusterDataIndex; // see ClusterDataIndex()
-
-  uint4* mTmpMem;
 
   /*
  * The size of the array is row.Grid.N + row.Grid.Ny + 3. The row.Grid.Ny + 3 is an optimization

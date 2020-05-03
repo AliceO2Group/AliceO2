@@ -20,7 +20,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #endif
 
 MEM_CLASS_PRE()
-void MEM_LG(GPUTPCGrid)::CreateEmpty()
+GPUd() void MEM_LG(GPUTPCGrid)::CreateEmpty()
 {
   // Create an empty grid
   mYMin = 0.f;
