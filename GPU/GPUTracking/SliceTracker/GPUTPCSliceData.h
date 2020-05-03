@@ -40,7 +40,7 @@ class GPUTPCSliceData
   unsigned int GetGridSize();
   void SetClusterData(const GPUTPCClusterData* data, int nClusters, int clusterIdOffset);
   void* SetPointersInput(void* mem, bool idsOnGPU);
-  void* SetPointersScratch(GPUconstantref() const MEM_CONSTANT(GPUConstantMem)& cm, void* mem);
+  void* SetPointersScratch(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) & cm, void* mem);
   void* SetPointersScratchHost(void* mem, bool idsOnGPU);
   void* SetPointersRows(void* mem);
 #endif
@@ -139,9 +139,8 @@ class GPUTPCSliceData
   GPUTPCSliceData& operator=(const GPUTPCSliceData&) CON_DELETE; // ROOT 5 tries to use this if it is not private
   GPUTPCSliceData(const GPUTPCSliceData&) CON_DELETE;            //
 #endif
-  void CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow)* row, const float2* data, int ClusterDataHitNumberOffset);
-  void GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, int& maxY, int& maxZ);
-  int PackHitData(MEM_GLOBAL(GPUTPCRow)* row, const GPUTPCHit* binSortedHits);
+  void CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow) * row, const float2* data, int ClusterDataHitNumberOffset);
+  static void GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, GPUTPCRow* GPUrestrict() row, int& maxY, int& maxZ);
 
   friend class GPUTPCNeighboursFinder;
   friend class GPUTPCStartHitsFinder;
@@ -160,9 +159,9 @@ class GPUTPCSliceData
   GPUglobalref() calink* mLinkDownData;  // hit index in the row below which is linked to the given (global) hit index
   GPUglobalref() cahit2* mHitData;       // packed y,z coordinate of the given (global) hit index
   GPUglobalref() int* mClusterDataIndex; // see ClusterDataIndex()
-  
+
   uint4* mTmpMem;
-  
+
   /*
  * The size of the array is row.Grid.N + row.Grid.Ny + 3. The row.Grid.Ny + 3 is an optimization
  * to remove the need for bounds checking. The last values are the same as the entry at [N - 1].

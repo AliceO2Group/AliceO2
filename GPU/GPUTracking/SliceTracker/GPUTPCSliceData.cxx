@@ -76,10 +76,6 @@ void* GPUTPCSliceData::SetPointersScratch(const GPUConstantMem& cm, void* mem)
   GPUProcessor::computePointerWithAlignment(mem, mLinkDownData, mNumberOfHitsPlusAlign);
   GPUProcessor::computePointerWithAlignment(mem, mHitWeights, mNumberOfHitsPlusAlign + 16 / sizeof(*mHitWeights));
   size_t tmpMemMaxSize = CAMath::nextMultipleOf<4>(mNumberOfHits + 256) * (sizeof(float2) + sizeof(int) + sizeof(GPUTPCHit));
-  int maxbiny, maxbinz;
-  GetMaxNBins(&cm, maxbiny, maxbinz);
-  size_t binMemoryMaxSize = (2 * (maxbiny * maxbinz + 3) + mNumberOfHits) * sizeof(calink) + GPUCA_ROW_COUNT * GPUCA_ROWALIGNMENT;
-  tmpMemMaxSize += binMemoryMaxSize;
   GPUProcessor::computePointerWithAlignment(mem, mTmpMem, (tmpMemMaxSize + sizeof(*mTmpMem) - 1) / sizeof(*mTmpMem));
   return mem;
 }
@@ -115,9 +111,9 @@ static inline float fastInvSqrt(float _x)
   return x.f;
 }
 
-void GPUTPCSliceData::GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, int& maxY, int& maxZ)
+void GPUTPCSliceData::GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, GPUTPCRow* GPUrestrict() row, int& maxY, int& maxZ)
 {
-  maxY = mRows[GPUCA_ROW_COUNT - 1].mMaxY * 2.f / GPUCA_MIN_BIN_SIZE + 1;
+  maxY = row->mMaxY * 2.f / GPUCA_MIN_BIN_SIZE + 1;
   maxZ = mem->param.continuousMaxTimeBin > 0 ? mem->calibObjects.fastTransform->convTimeToZinTimeFrame(0, 0, mem->param.continuousMaxTimeBin) + 50 : 300;
   maxZ = maxZ / GPUCA_MIN_BIN_SIZE + 1;
 }
@@ -162,46 +158,10 @@ inline void GPUTPCSliceData::CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUC
   float sy = CAMath::Min(CAMath::Max((yMax - yMin) * norm, GPUCA_MIN_BIN_SIZE), GPUCA_MAX_BIN_SIZE);
   float sz = CAMath::Min(CAMath::Max(dz * norm, GPUCA_MIN_BIN_SIZE), GPUCA_MAX_BIN_SIZE);
   int maxy, maxz;
-  GetMaxNBins(mem, maxy, maxz);
+  GetMaxNBins(mem, row, maxy, maxz);
   int ny = CAMath::Max(1, CAMath::Min<int>(maxy, (yMax - yMin) / sy + 1));
   int nz = CAMath::Max(1, CAMath::Min<int>(maxz, (zMax - zMin) / sz + 1));
   row->mGrid.Create(yMin, yMax, zMin, zMax, ny, nz);
-}
-
-inline int GPUTPCSliceData::PackHitData(GPUTPCRow* const GPUrestrict() row, const GPUTPCHit* GPUrestrict() binSortedHits)
-{
-  // hit data packing
-  static const float maxVal = (((long long int)1 << CAMath::Min((size_t)24, sizeof(cahit) * 8)) - 1); // Stay within float precision in any case!
-  static const float packingConstant = 1.f / (maxVal - 2.);
-  const float y0 = row->mGrid.YMin();
-  const float z0 = row->mGrid.ZMin();
-  const float stepY = (row->mGrid.YMax() - y0) * packingConstant;
-  const float stepZ = (row->mGrid.ZMax() - z0) * packingConstant;
-  const float stepYi = 1.f / stepY;
-  const float stepZi = 1.f / stepZ;
-
-  row->mHy0 = y0;
-  row->mHz0 = z0;
-  row->mHstepY = stepY;
-  row->mHstepZ = stepZ;
-  row->mHstepYi = stepYi;
-  row->mHstepZi = stepZi;
-
-  for (int hitIndex = 0; hitIndex < row->mNHits; ++hitIndex) {
-    // bin sorted index!
-    const int globalHitIndex = row->mHitNumberOffset + hitIndex;
-    const GPUTPCHit& hh = binSortedHits[hitIndex];
-    const float xx = ((hh.Y() - y0) * stepYi) + .5;
-    const float yy = ((hh.Z() - z0) * stepZi) + .5;
-    if (xx < 0 || yy < 0 || xx > maxVal || yy > maxVal) {
-      std::cout << "!!!! hit packing error!!! " << xx << " " << yy << " (" << maxVal << ")" << std::endl;
-      return 1;
-    }
-    // HitData is bin sorted
-    mHitData[globalHitIndex].x = (cahit)xx;
-    mHitData[globalHitIndex].y = (cahit)yy;
-  }
-  return 0;
 }
 
 int GPUTPCSliceData::InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GPUrestrict() mem, int iSlice)
@@ -277,20 +237,14 @@ int GPUTPCSliceData::InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPU
   // 2. fill HitData and FirstHitInBin
   ////////////////////////////////////
 
-  vecpod<GPUTPCHit> binSortedHits(mNumberOfHits + GPUCA_ROWALIGNMENT);
-
   unsigned int gridContentOffset = 0;
   unsigned int hitOffset = 0;
-
-  unsigned int binCreationMemorySize = 103 * 2 + mNumberOfHits;
-  vecpod<calink> binCreationMemory(binCreationMemorySize);
 
   for (int rowIndex = 0; rowIndex < GPUCA_ROW_COUNT; ++rowIndex) {
     GPUTPCRow& row = mRows[rowIndex];
     if (NumberOfClustersInRow[rowIndex] == 0) {
       row.mGrid.CreateEmpty();
       row.mNHits = 0;
-      row.mFullSize = 0;
       row.mHitNumberOffset = 0;
       row.mFirstHitInBinOffset = 0;
       row.mHy0 = 0.f;
@@ -320,60 +274,65 @@ int GPUTPCSliceData::InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPU
       return 1;
     }
 
-    int binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.mNHits + GPUCA_ROWALIGNMENT / sizeof(unsigned short) * (GPUCA_ROW_COUNT + 1) + 1;
-    if (binCreationMemorySizeNew > binCreationMemorySize) {
-      binCreationMemorySize = binCreationMemorySizeNew;
-      binCreationMemory.resize(binCreationMemorySize);
-    }
+    calink* c = mFirstHitInBin + row.mFirstHitInBinOffset; // number of hits in all previous bins
+    calink* bins = mLinkUpData + RowOffset[rowIndex];      // Reuse mLinkUpData memory as temporary memory
 
-    calink* c = binCreationMemory.data(); // number of hits in all previous bins
-    calink* bins = c + numberOfBins + 3;  // cache for the bin index for every hit in this row, 3 extra empty bins at the end!!!
-    calink* filled = bins + row.mNHits;   // counts how many hits there are per bin
-
-    for (unsigned int bin = 0; bin < row.mGrid.N() + 3; ++bin) {
-      filled[bin] = 0; // initialize filled[] to 0
+    for (int bin = 0; bin < numberOfBins; ++bin) {
+      c[bin] = 0; // initialize filled[] to 0
     }
     for (int hitIndex = 0; hitIndex < row.mNHits; ++hitIndex) {
       const int globalHitIndex = RowOffset[rowIndex] + hitIndex;
       const calink bin = row.mGrid.GetBin(YZData[globalHitIndex].x, YZData[globalHitIndex].y);
 
       bins[hitIndex] = bin;
-      ++filled[bin];
+      ++c[bin];
     }
 
     calink n = 0;
-    for (int bin = 0; bin < numberOfBins + 3; ++bin) {
+    for (int bin = 0; bin < numberOfBins; ++bin) {
+      n += c[bin];
       c[bin] = n;
-      n += filled[bin];
     }
+    for (int bin = numberOfBins; bin < nn; bin++) {
+      c[bin] = n;
+    }
+
+    static const float maxVal = (((long long int)1 << CAMath::Min((size_t)24, sizeof(cahit) * 8)) - 1); // Stay within float precision in any case!
+    static const float packingConstant = 1.f / (maxVal - 2.);
+    const float y0 = row.mGrid.YMin();
+    const float z0 = row.mGrid.ZMin();
+    const float stepY = (row.mGrid.YMax() - y0) * packingConstant;
+    const float stepZ = (row.mGrid.ZMax() - z0) * packingConstant;
+    const float stepYi = 1.f / stepY;
+    const float stepZi = 1.f / stepZ;
+
+    row.mHy0 = y0;
+    row.mHz0 = z0;
+    row.mHstepY = stepY;
+    row.mHstepZ = stepZ;
+    row.mHstepYi = stepYi;
+    row.mHstepZi = stepZi;
 
     for (int hitIndex = 0; hitIndex < row.mNHits; ++hitIndex) {
       const calink bin = bins[hitIndex];
-      --filled[bin];
-      const calink ind = c[bin] + filled[bin]; // generate an index for this hit that is >= c[bin] and < c[bin + 1]
+      const calink ind = --c[bin]; // generate an index for this hit that is >= c[bin] and < c[bin + 1]
       const int globalBinsortedIndex = row.mHitNumberOffset + ind;
       const int globalHitIndex = RowOffset[rowIndex] + hitIndex;
 
       // allows to find the global hit index / coordinates from a global bin sorted hit index
       mClusterDataIndex[globalBinsortedIndex] = tmpHitIndex[globalHitIndex];
-      binSortedHits[ind].SetY(YZData[globalHitIndex].x);
-      binSortedHits[ind].SetZ(YZData[globalHitIndex].y);
+
+      const float xx = ((YZData[globalHitIndex].x - y0) * stepYi) + .5;
+      const float yy = ((YZData[globalHitIndex].y - z0) * stepZi) + .5;
+      if (xx < 0 || yy < 0 || xx > maxVal || yy > maxVal) {
+        std::cout << "!!!! hit packing error!!! " << xx << " " << yy << " (" << maxVal << ")" << std::endl;
+        return 1;
+      }
+      // HitData is bin sorted
+      mHitData[globalBinsortedIndex].x = (cahit)xx;
+      mHitData[globalBinsortedIndex].y = (cahit)yy;
     }
 
-    if (PackHitData(&row, binSortedHits.data())) {
-      return 1;
-    }
-
-    for (int i = 0; i < numberOfBins; ++i) {
-      mFirstHitInBin[row.mFirstHitInBinOffset + i] = c[i]; // global bin-sorted hit index
-    }
-    const calink a = c[numberOfBins];
-    // grid.N is <= row.mNHits
-    for (int i = numberOfBins; i < nn; ++i) {
-      mFirstHitInBin[row.mFirstHitInBinOffset + i] = a;
-    }
-
-    row.mFullSize = nn;
     gridContentOffset += nn;
 
     // Make pointer aligned
