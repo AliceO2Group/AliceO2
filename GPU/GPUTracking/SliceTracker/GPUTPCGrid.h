@@ -32,7 +32,7 @@ MEM_CLASS_PRE()
 class GPUTPCGrid
 {
  public:
-  void CreateEmpty();
+  GPUd() void CreateEmpty();
   GPUd() void Create(float yMin, float yMax, float zMin, float zMax, int ny, int nz);
 
   GPUd() int GetBin(float Y, float Z) const;
