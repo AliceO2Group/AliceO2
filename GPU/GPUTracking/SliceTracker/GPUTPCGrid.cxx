@@ -45,7 +45,7 @@ GPUd() void MEM_LG(GPUTPCGrid)::Create(float yMin, float yMax, float zMin, float
 
   float sy = CAMath::Max((yMax + 0.1f - yMin) / ny, GPUCA_MIN_BIN_SIZE);
   float sz = CAMath::Max((zMax + 0.1f - zMin) / nz, GPUCA_MIN_BIN_SIZE);
-  
+
   mStepYInv = 1.f / sy;
   mStepZInv = 1.f / sz;
 
