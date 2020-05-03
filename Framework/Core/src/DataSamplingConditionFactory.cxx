@@ -14,7 +14,7 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include <memory>
-
+#include <stdexcept>
 #include "Framework/DataSamplingConditionFactory.h"
 
 namespace o2::framework

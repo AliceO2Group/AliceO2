@@ -17,6 +17,7 @@
 
 #include <map>
 #include <array>
+#include <cinttypes>
 
 namespace o2
 {

@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <array>
+#include <iosfwd>
 
 namespace o2
 {
