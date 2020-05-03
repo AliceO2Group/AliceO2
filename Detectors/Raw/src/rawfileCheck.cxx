@@ -38,6 +38,7 @@ int main(int argc, char* argv[])
     "max-tf,m", bpo::value<uint32_t>()->default_value(0xffffffff), "max.number of TF to read")(
     "verbosity,v", bpo::value<int>()->default_value(reader.getVerbosity()), "1: long report, 2 or 3: print or dump all RDH")(
     "spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes")(
+    "buffer-size,b", bpo::value<size_t>()->default_value(reader.getNominalSPageSize()), "buffer size for files preprocessing")(
     "configKeyValues", bpo::value(&configKeyValues)->default_value(""), "semicolon separated key=value strings")(
     RawFileReader::nochk_opt(RawFileReader::ErrWrongPacketCounterIncrement).c_str(), RawFileReader::nochk_expl(RawFileReader::ErrWrongPacketCounterIncrement).c_str())(
     RawFileReader::nochk_opt(RawFileReader::ErrWrongPageCounterIncrement).c_str(), RawFileReader::nochk_expl(RawFileReader::ErrWrongPageCounterIncrement).c_str())(
@@ -90,6 +91,7 @@ int main(int argc, char* argv[])
   reader.setVerbosity(vm["verbosity"].as<int>());
   reader.setNominalSPageSize(vm["spsize"].as<int>());
   reader.setMaxTFToRead(vm["max-tf"].as<uint32_t>());
+  reader.setBufferSize(vm["buffer-size"].as<size_t>());
   uint32_t errmap = 0xffffffff;
   for (int i = RawFileReader::NErrorsDefined; i--;) {
     if (vm.count(RawFileReader::nochk_opt(RawFileReader::ErrTypes(i)).c_str())) {
