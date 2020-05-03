@@ -28,6 +28,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"message-per-tf", o2::framework::VariantType::Bool, false, {"send TF of each link as a single FMQ message rather than multipart with message per HB"}});
   options.push_back(ConfigParamSpec{"output-per-link", o2::framework::VariantType::Bool, false, {"send message per Link rather than per FMQ output route"}});
   options.push_back(ConfigParamSpec{"delay", o2::framework::VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
+  options.push_back(ConfigParamSpec{"buffer-size", o2::framework::VariantType::Int64, 1024L * 1024L, {"buffer size for files preprocessing"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}});
   // options for error-check suppression
   options.push_back(ConfigParamSpec{RawFileReader::nochk_opt(RawFileReader::ErrWrongPacketCounterIncrement), VariantType::Bool, false, {RawFileReader::nochk_expl(RawFileReader::ErrWrongPacketCounterIncrement)}});
@@ -51,6 +52,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto inifile = configcontext.options().get<std::string>("conf");
   auto loop = configcontext.options().get<int>("loop");
   uint32_t maxTF = uint32_t(configcontext.options().get<int64_t>("max-tf"));
+  uint64_t buffSize = uint64_t(configcontext.options().get<int64_t>("buffer-size"));
   auto tfAsMessage = configcontext.options().get<bool>("message-per-tf");
   auto outPerRoute = !configcontext.options().get<bool>("output-per-link");
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
@@ -64,5 +66,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  return std::move(o2::raw::getRawFileReaderWorkflow(inifile, tfAsMessage, outPerRoute, loop, delay_us, errmap, maxTF));
+  return std::move(o2::raw::getRawFileReaderWorkflow(inifile, tfAsMessage, outPerRoute, loop, delay_us, errmap, maxTF, buffSize));
 }

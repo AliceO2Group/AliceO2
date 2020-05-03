@@ -45,11 +45,13 @@ class rawReaderSpecs : public o2f::Task
 {
  public:
   explicit rawReaderSpecs(const std::string& config, bool tfAsMessage = false, bool outPerRoute = true, int loop = 1, uint32_t delay_us = 0,
-                          uint32_t errmap = 0xffffffff, uint32_t maxTF = 0xffffffff)
+                          uint32_t errmap = 0xffffffff, uint32_t maxTF = 0xffffffff, size_t buffSize = 1024L * 1024L)
     : mLoop(loop < 1 ? 1 : loop), mHBFPerMessage(!tfAsMessage), mOutPerRoute(outPerRoute), mDelayUSec(delay_us), mReader(std::make_unique<o2::raw::RawFileReader>(config))
   {
     mReader->setCheckErrors(errmap);
     mReader->setMaxTFToRead(maxTF);
+    mReader->setBufferSize(buffSize);
+    LOG(INFO) << "Will preprocess files with buffer size of " << buffSize << " bytes";
     LOG(INFO) << "Number of loops over whole data requested: " << mLoop;
     if (mHBFPerMessage) {
       LOG(INFO) << "Every link TF will be sent as multipart of HBF messages";
@@ -221,7 +223,7 @@ class rawReaderSpecs : public o2f::Task
   std::unique_ptr<o2::raw::RawFileReader> mReader; // matching engine
 };
 
-o2f::DataProcessorSpec getReaderSpec(std::string config, bool tfAsMessage, bool outPerRoute, int loop, uint32_t delay_us, uint32_t errmap, uint32_t maxTF)
+o2f::DataProcessorSpec getReaderSpec(std::string config, bool tfAsMessage, bool outPerRoute, int loop, uint32_t delay_us, uint32_t errmap, uint32_t maxTF, size_t buffSize)
 {
   // check which inputs are present in files to read
   o2f::Outputs outputs;
@@ -238,14 +240,14 @@ o2f::DataProcessorSpec getReaderSpec(std::string config, bool tfAsMessage, bool 
     "raw-file-reader",
     o2f::Inputs{},
     outputs,
-    o2f::AlgorithmSpec{o2f::adaptFromTask<rawReaderSpecs>(config, tfAsMessage, outPerRoute, loop, delay_us, errmap, maxTF)},
+    o2f::AlgorithmSpec{o2f::adaptFromTask<rawReaderSpecs>(config, tfAsMessage, outPerRoute, loop, delay_us, errmap, maxTF, buffSize)},
     o2f::Options{}};
 }
 
 o2f::WorkflowSpec o2::raw::getRawFileReaderWorkflow(std::string inifile, bool tfAsMessage, bool outPerRoute,
-                                                    int loop, uint32_t delay_us, uint32_t errmap, uint32_t maxTF)
+                                                    int loop, uint32_t delay_us, uint32_t errmap, uint32_t maxTF, size_t buffSize)
 {
   o2f::WorkflowSpec specs;
-  specs.emplace_back(getReaderSpec(inifile, tfAsMessage, outPerRoute, loop, delay_us, errmap, maxTF));
+  specs.emplace_back(getReaderSpec(inifile, tfAsMessage, outPerRoute, loop, delay_us, errmap, maxTF, buffSize));
   return specs;
 }
