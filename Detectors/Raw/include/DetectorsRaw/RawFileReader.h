@@ -180,6 +180,9 @@ class RawFileReader
   void setNominalSPageSize(int n = 0x1 << 20) { mNominalSPageSize = n > (0x1 << 15) ? n : (0x1 << 15); }
   int getNominalSPageSize() const { return mNominalSPageSize; }
 
+  void setBufferSize(size_t s) { mBufferSize = s < sizeof(RDHAny) ? sizeof(RDHAny) : s; }
+  size_t getBufferSize() const { return mBufferSize; }
+
   void setMaxTFToRead(uint32_t n) { mMaxTFToRead = n; }
   uint32_t getMaxTFToRead() const { return mMaxTFToRead; }
   uint32_t getNTimeFrames() const { return mNTimeFrames; }
@@ -218,6 +221,7 @@ class RawFileReader
   uint32_t mNextTF2Read = 0;                        // next TF to read
   uint32_t mOrbitMin = 0xffffffff;                  // lowest orbit seen by any link
   uint32_t mOrbitMax = 0;                           // highest orbit seen by any link
+  size_t mBufferSize = 1024 * 1024;                 // size of the buffer for files preprocessing
   int mNominalSPageSize = 0x1 << 20;                // expected super-page size in B
   int mCurrentFileID = 0;                           // current file being processed
   long int mPosInFile = 0;                          // current position in the file
