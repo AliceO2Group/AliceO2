@@ -1,7 +1,9 @@
-command=$*
-echo $command
+#!/bin/bash
+
+command="$*"
+echo ${command}
 # launch the command in the background
-$command &
+eval ${command} &
 # get the PID
 PID=$!
 
@@ -30,7 +32,7 @@ while [ 1 ] ; do
   childprocs ${PID}
 
   # sum up memory from all child processes
-  mem=`for pid in $child_pid_list; do cat /proc/$pid/smaps | awk -v pid=$pid '/Pss/{mem+=$2} END {print mem/1024.}'; done | tr '\n' ' '`
+  mem=`for pid in $child_pid_list; do cat /proc/$pid/smaps 2>/dev/null | awk -v pid=$pid '/Pss/{mem+=$2} END {print mem/1024.}'; done | tr '\n' ' '`
   echo "${mem}" >> ${memlogfile}
  
   # check if the job is still there
