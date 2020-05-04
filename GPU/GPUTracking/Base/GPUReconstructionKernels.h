@@ -25,6 +25,7 @@ GPUCA_KRNL((GPUTPCTrackletSelector                       ), (both, REG, (GPUCA_L
 GPUCA_KRNL((GPUMemClean16                                ), (simple, REG, (GPUCA_THREAD_COUNT, 1)), (, GPUPtr1(void*, ptr), unsigned long size), (, GPUPtr2(void*, ptr), size))
 GPUCA_KRNL((GPUTPCGlobalTrackingCopyNumbers              ), (single), (, int n), (, n))
 #if !defined(GPUCA_OPENCL1) && (!defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE))
+GPUCA_KRNL((GPUTPCCreateSliceData                        ), (single, REG, (GPUCA_LB_GPUTPCCreateSliceData)), (), ())
 GPUCA_KRNL((GPUTPCGlobalTracking                         ), (single, REG, (GPUCA_LB_GPUTPCGlobalTracking)), (), ())
 GPUCA_KRNL((GPUTPCGMMergerTrackFit                       ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerTrackFit)), (, int mode), (, mode))
 GPUCA_KRNL((GPUTPCGMMergerFollowLoopers                  ), (simple, REG, (GPUCA_LB_GPUTPCGMMergerFollowLoopers)), (), ())

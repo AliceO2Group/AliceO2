@@ -158,20 +158,6 @@ void GPUTPCTracker::UpdateMaxData()
 
 void GPUTPCTracker::SetupCommonMemory() { new (mCommonMem) commonMemoryStruct; }
 
-int GPUTPCTracker::ReadEvent()
-{
-  //* Convert input hits, create grids, etc.
-  if (mData.InitFromClusterData(mConstantMem, mISlice)) {
-    GPUError("Error initializing from cluster data");
-    return 1;
-  }
-  if (mData.MaxZ() > 300 && !Param().ContinuousTracking) {
-    GPUError("Need to set continuous tracking mode for data outside of the TPC volume!");
-    return 1;
-  }
-  return 0;
-}
-
 GPUh() int GPUTPCTracker::CheckEmptySlice()
 {
   // Check if the Slice is empty, if so set the output apropriate and tell the reconstuct procesdure to terminate

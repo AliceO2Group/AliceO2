@@ -31,7 +31,7 @@ MEM_CLASS_PRE()
 class GPUTPCSliceData
 {
  public:
-  GPUTPCSliceData() : mNumberOfHits(0), mNumberOfHitsPlusAlign(0), mClusterIdOffset(0), mMaxZ(0.f), mGPUTextureBase(nullptr), mRows(nullptr), mLinkUpData(nullptr), mLinkDownData(nullptr), mClusterData(nullptr) {}
+  GPUTPCSliceData() : mNumberOfHits(0), mNumberOfHitsPlusAlign(0), mClusterIdOffset(0), mGPUTextureBase(nullptr), mRows(nullptr), mLinkUpData(nullptr), mLinkDownData(nullptr), mClusterData(nullptr) {}
 
 #ifndef GPUCA_GPUCODE_DEVICE
   ~GPUTPCSliceData() CON_DEFAULT;
@@ -44,7 +44,7 @@ class GPUTPCSliceData
   void* SetPointersRows(void* mem);
 #endif
 
-  GPUd() int InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, int iSlice);
+  GPUd() int InitFromClusterData(int nBlocks, int nThreads, int iBlock, int iThread, GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, int iSlice);
 
   /**
  * Return the number of hits in this slice.
@@ -131,7 +131,6 @@ class GPUTPCSliceData
   GPUhdi() char* GPUTextureBaseConst() const { return ((char*)mGPUTextureBase); }
 
   GPUhdi() GPUglobalref() const GPUTPCClusterData* ClusterData() const { return mClusterData; }
-  float MaxZ() const { return mMaxZ; }
 
  private:
 #ifndef GPUCA_GPUCODE
@@ -148,8 +147,6 @@ class GPUTPCSliceData
   int mNumberOfHits; // the number of hits in this slice
   int mNumberOfHitsPlusAlign;
   int mClusterIdOffset;
-
-  float mMaxZ;
 
   GPUglobalref() const void* mGPUTextureBase; // pointer to start of GPU texture
 
