@@ -139,7 +139,7 @@ class GPUTPCSliceData
 #endif
   GPUd() void CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow) * GPUrestrict() row, const float2* data, int ClusterDataHitNumberOffset, float yMin, float yMax, float zMin, float zMax);
   GPUd() static void GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow) * GPUrestrict() row, int& maxY, int& maxZ);
-  GPUd() unsigned int GetGridSize();
+  GPUd() unsigned int GetGridSize(unsigned int nHits, unsigned int nRows);
 
   friend class GPUTPCNeighboursFinder;
   friend class GPUTPCStartHitsFinder;
