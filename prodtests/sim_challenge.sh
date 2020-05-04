@@ -29,10 +29,11 @@ taskwrapper() {
 
   local logfile=$1
   shift 1
-  local command=$*
+  local command="$*"
 
   # launch the actual command in the background
   echo "Launching task: ${command} &> $logfile &"
+  command="TIME=\"#walltime %e\" ${O2_ROOT}/share/scripts/monitor-mem.sh /usr/bin/time --output=${logfile}_time '${command}'"
   eval ${command} &> $logfile &
 
   # THE NEXT PART IS THE SUPERVISION PART
@@ -46,9 +47,9 @@ taskwrapper() {
     # - all sorts of exceptions (may need to fine-tune)  
     # - segmentation violation
     # - there was a crash
-    pattern='-e "xception"               \
-             -e "segmentation violation" \
-             -e "There was a crash."'
+    pattern="-e \"xception\"               \
+             -e \"segmentation violation\" \
+             -e \"There was a crash.\""
       
     grepcommand="grep -H ${pattern} $logfile >> encountered_exceptions_list 2>/dev/null"
     eval ${grepcommand}
@@ -148,7 +149,7 @@ fi
 
 #---------------------------------------------------
 echo "Running simulation for $nev $collSyst events with $gener generator and engine $engine"
-o2-sim -n"$nev" --configKeyValue "Diamond.width[2]=6." -g "$gener" -e "$engine" &> sim.log
+taskwrapper sim.log o2-sim -n"$nev" --configKeyValue "Diamond.width[2]=6." -g "$gener" -e "$engine"
 
 ##------ extract number of hits
 root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C > hitstats.log
