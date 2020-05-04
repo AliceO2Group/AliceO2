@@ -257,7 +257,7 @@ BOOST_AUTO_TEST_CASE(retrieveTemplatedWithHeaders, *utf::precondition(if_reachab
   cout << "from+1 : " << from+1 << endl;
   auto* object = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>(basePath + "CCDBPathUnitTest", meta, from+1, &headers);
   BOOST_CHECK(headers.count("Hello") == 1);
-  cout << "header Hello : " << headers["Hello"] << endl;
+  BOOST_CHECK(headers["Hello"] == "World");
 }
 
 BOOST_AUTO_TEST_CASE(retrieveTMemFile_test, *utf::precondition(if_reachable()))
