@@ -1,0 +1,82 @@
+/// \author R+Preghenella - May 2020
+
+// Example of an implementation of an external event generator
+// that is used and adapts it behavior in an embedding scenario.
+//
+//   usage: o2sim -g extgen --extGenFile signal_impactb.C
+// options:                 --extGenFunc "signal_impactb(\"20. / (x + 1.)\")
+
+using namespace o2::eventgen;
+
+class Signal_ImpactB : public Generator
+{
+public:
+  Signal_ImpactB(int pdg = 333, const char *formula = "20. / (x + 1.)") :
+    Generator(), mNSignals(1), mPDG(pdg), mMass(0.), mFormula("formula", formula) {};
+  ~Signal_ImpactB() = default;
+
+  // override init to get mass from PDG
+  Bool_t Init() override {
+    Generator::Init();
+    if (!TDatabasePDG::Instance()->GetParticle(mPDG)) {
+      std::cout << " --- unknown PDG: " << mPDG << std::endl;
+      return false;
+    }
+    mMass = TDatabasePDG::Instance()->GetParticle(mPDG)->Mass();
+    std::cout << " --- initialised Signal_ImpactB: pdg = " << mPDG << ", mass = " << mMass << std::endl;
+    return true;
+  }
+  
+  // update the number of particles to be generated
+  // according to impact parameter and formula
+  void notifyEmbedding(const FairMCEventHeader *bkgHeader) override {
+    auto b = bkgHeader->GetB();
+    mNSignals = mFormula.Eval(b);
+    std::cout << " --- notify embedding: b = " << b << ", nparticles = " << mNSignals << std::endl;
+  };
+  
+  // generate event must be overridden but does nothing
+  Bool_t generateEvent() override { return true; };
+
+  // import particles will add the particles
+  Bool_t importParticles() override {
+    int st = 1; // status
+    int m1 = -1, m2 = -1; // mothers
+    int d1 = -1, d2 = -1; // daughters
+    double vx = 0., vy = 0., vz = 0., vt = 0.; // vertex
+
+    // generated uniform pt, eta, phi
+    double pt  = gRandom->Uniform(0., 10.);
+    double eta = gRandom->Uniform(-1., 1.);
+    double phi = gRandom->Uniform(-M_PI, M_PI);
+
+    // tranform to px, py, pz
+    double px = pt * cos(phi);
+    double py = pt * sin(phi);
+    double pz = pt * sinh(eta);
+
+    // calculate energy
+    double et = sqrt(px * px + py * py + pz * pz + mMass * mMass);
+
+    // add particles
+    for (int ipart = 0; ipart < mNSignals; ++ipart)
+      mParticles.push_back(TParticle(mPDG, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt));
+    return true;
+  }
+
+private:
+
+  int mNSignals = 1;
+  int mPDG = 0;
+  double mMass = 0.;
+  TFormula mFormula;
+  
+};
+
+FairGenerator*
+signal_impactb(int pdg = 333, const char *formula = "20. / (x + 1.)")
+{
+  std::cout << " --- signal_impactb initialising with pdg / formula: " << pdg << " / " << formula << std::endl;
+  auto gen = new Signal_ImpactB(pdg, formula);
+  return gen;
+}

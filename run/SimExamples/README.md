@@ -5,6 +5,7 @@
 # Simulation Examples
 
 <!-- doxy
+* \subpage refrunSimExamplesSignal_ImpactB
 * \subpage refrunSimExamplesAdaptive_Pythia8
 * \subpage refrunSimExamplesAliRoot_Hijing
 * \subpage refrunSimExamplesHepMC_STARlight

@@ -14,6 +14,8 @@
 #include "Generators/ConfigurationMacroHelper.h"
 #include "FairLogger.h"
 #include "TParticle.h"
+#include "FairMCEventHeader.h"
+#include "Pythia8/HIUserHooks.h"
 
 namespace o2
 {
@@ -146,6 +148,18 @@ Bool_t
 
   /** success **/
   return kTRUE;
+}
+
+/*****************************************************************/
+
+void GeneratorPythia8::updateHeader(FairMCEventHeader* eventHeader)
+{
+  /** update header **/
+
+  /** set impact parameter if in heavy-ion mode **/
+  auto hiinfo = mPythia.info.hiinfo;
+  if (hiinfo)
+    eventHeader->SetB(mPythia.info.hiinfo->b());
 }
 
 /*****************************************************************/
