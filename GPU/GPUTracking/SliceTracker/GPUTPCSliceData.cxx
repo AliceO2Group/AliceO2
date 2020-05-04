@@ -104,36 +104,8 @@ GPUd() unsigned int GPUTPCSliceData::GetGridSize()
   return (23 + GPUCA_ROWALIGNMENT / sizeof(int)) * GPUCA_ROW_COUNT + 4 * mNumberOfHits + 3;
 }
 
-GPUdi() void GPUTPCSliceData::CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, GPUTPCRow* GPUrestrict() row, const float2* GPUrestrict() data, int ClusterDataHitNumberOffset)
+GPUdi() void GPUTPCSliceData::CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, GPUTPCRow* GPUrestrict() row, const float2* GPUrestrict() data, int ClusterDataHitNumberOffset, float yMin, float yMax, float zMin, float zMax)
 {
-  // grid creation
-  if (row->NHits() <= 0) { // no hits or invalid data
-    // grid coordinates don't matter, since there are no hits
-    row->mGrid.CreateEmpty();
-    return;
-  }
-
-  float yMin = 1.e6f;
-  float yMax = -1.e6f;
-  float zMin = 1.e6f;
-  float zMax = -1.e6f;
-  for (int i = ClusterDataHitNumberOffset; i < ClusterDataHitNumberOffset + row->mNHits; ++i) {
-    const float y = data[i].x;
-    const float z = data[i].y;
-    if (yMax < y) {
-      yMax = y;
-    }
-    if (yMin > y) {
-      yMin = y;
-    }
-    if (zMax < z) {
-      zMax = z;
-    }
-    if (zMin > z) {
-      zMin = z;
-    }
-  }
-
   float dz = zMax - zMin;
   float tfFactor = 1.;
   if (dz > 270.) {
@@ -150,6 +122,22 @@ GPUdi() void GPUTPCSliceData::CreateGrid(GPUconstantref() const MEM_CONSTANT(GPU
   row->mGrid.Create(yMin, yMax, zMin, zMax, ny, nz);
 }
 
+GPUdi() static void UpdateMinMaxYZ(float& yMin, float& yMax, float& zMin, float& zMax, float y, float z)
+{
+  if (yMax < y) {
+    yMax = y;
+  }
+  if (yMin > y) {
+    yMin = y;
+  }
+  if (zMax < z) {
+    zMax = z;
+  }
+  if (zMin > z) {
+    zMin = z;
+  }
+}
+
 GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int iBlock, int iThread, GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GPUrestrict() mem, int iSlice)
 {
 #ifdef GPUCA_GPUCODE
@@ -161,8 +149,6 @@ GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int i
 #else
   bool EarlyTransformWithoutClusterNative = mem->param.earlyTpcTransform && mem->ioPtrs.clustersNative == nullptr;
 #endif
-  float maxAbsZ = 0.f;
-
   int* tmpHitIndex = nullptr;
   const unsigned int* NumberOfClustersInRow = nullptr;
   const unsigned int* RowOffsets = nullptr;
@@ -172,6 +158,7 @@ GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int i
   float2* YZData = YZData_p.get();
   unsigned int RowOffsetsA[GPUCA_ROW_COUNT];
   unsigned int NumberOfClustersInRowA[GPUCA_ROW_COUNT];
+
   std::unique_ptr<int[]> tmpHitIndex_p(new int[mNumberOfHits]);
   if (EarlyTransformWithoutClusterNative) { // Implies mem->param.earlyTpcTransform but no ClusterNative present
     NumberOfClustersInRow = NumberOfClustersInRowA;
@@ -194,9 +181,6 @@ GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int i
       float2 tmp;
       tmp.x = mClusterData[i].y;
       tmp.y = mClusterData[i].z;
-      if (CAMath::Abs((float)tmp.y) > maxAbsZ) {
-        maxAbsZ = CAMath::Abs((float)tmp.y);
-      }
       int tmpRow = mClusterData[i].row;
       int newIndex = RowOffsetsA[tmpRow] + (RowsFilled[tmpRow])++;
       YZData[newIndex] = tmp;
@@ -211,6 +195,12 @@ GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int i
   unsigned int hitOffset = 0;
 
   for (int rowIndex = 0; rowIndex < GPUCA_ROW_COUNT; ++rowIndex) {
+
+    float yMin = 1.e6f;
+    float yMax = -1.e6f;
+    float zMin = 1.e6f;
+    float zMax = -1.e6f;
+
     const unsigned int NumberOfClusters = EarlyTransformWithoutClusterNative ? NumberOfClustersInRow[rowIndex] : mem->ioPtrs.clustersNative->nClusters[iSlice][rowIndex];
     const unsigned int RowOffset = EarlyTransformWithoutClusterNative ? RowOffsets[rowIndex] : (mem->ioPtrs.clustersNative->clusterOffset[iSlice][rowIndex] - mem->ioPtrs.clustersNative->clusterOffset[iSlice][0]);
     if ((long long int)NumberOfClusters >= ((long long int)1 << (sizeof(calink) * 8))) {
@@ -237,24 +227,24 @@ GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int i
       continue;
     }
 
-    if (!EarlyTransformWithoutClusterNative) {
+    if (EarlyTransformWithoutClusterNative) {
+      for (unsigned int i = 0; i < NumberOfClusters; i++) {
+        UpdateMinMaxYZ(yMin, yMax, zMin, zMax, YZData[RowOffset - i].x, YZData[RowOffset - i].y);
+      }
+    } else {
       if (mem->param.earlyTpcTransform) { // Early transform case with ClusterNative present
         for (unsigned int i = 0; i < NumberOfClusters; i++) {
           float2 tmp;
           tmp.x = mClusterData[RowOffset + i].y;
           tmp.y = mClusterData[RowOffset + i].z;
-          if (CAMath::Abs((float)tmp.y) > maxAbsZ) {
-            maxAbsZ = CAMath::Abs((float)tmp.y);
-          }
+          UpdateMinMaxYZ(yMin, yMax, zMin, zMax, tmp.x, tmp.y);
           YZData[RowOffset + i] = tmp;
         }
       } else {
         for (unsigned int i = 0; i < NumberOfClusters; i++) {
           float x, y, z;
           GPUTPCConvertImpl::convert(*mem, iSlice, rowIndex, mem->ioPtrs.clustersNative->clusters[iSlice][rowIndex][i].getPad(), mem->ioPtrs.clustersNative->clusters[iSlice][rowIndex][i].getTime(), x, y, z);
-          if (CAMath::Abs(z) > maxAbsZ) {
-            maxAbsZ = CAMath::Abs(z);
-          }
+          UpdateMinMaxYZ(yMin, yMax, zMin, zMax, y, z);
           YZData[RowOffset + i] = CAMath::MakeFloat2(y, z);
         }
       }
@@ -265,7 +255,7 @@ GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int i
     row.mFirstHitInBinOffset = gridContentOffset;
     hitOffset += CAMath::nextMultipleOf<GPUCA_ROWALIGNMENT / sizeof(calink)>(NumberOfClusters);
 
-    CreateGrid(mem, &row, YZData, RowOffset);
+    CreateGrid(mem, &row, YZData, RowOffset, yMin, yMax, zMin, zMax);
     const GPUTPCGrid& grid = row.mGrid;
     const int numberOfBins = grid.N();
     if ((long long int)numberOfBins >= ((long long int)1 << (sizeof(calink) * 8))) {
@@ -344,11 +334,12 @@ GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int i
 
     // Make pointer aligned
     gridContentOffset = CAMath::nextMultipleOf<GPUCA_ROWALIGNMENT / sizeof(calink)>(gridContentOffset);
-  }
 
-  if (maxAbsZ > 300 && mem->param.ContinuousTracking) {
-    GPUError("Need to set continuous tracking mode for data outside of the TPC volume!"); // TODO: Set GPU error code
-    return 1;
+    const float maxAbsZ = CAMath::Max(CAMath::Abs(zMin), CAMath::Abs(zMax));
+    if (maxAbsZ > 300 && !mem->param.ContinuousTracking) {
+      GPUError("Need to set continuous tracking mode for data outside of the TPC volume!"); // TODO: Set GPU error code
+      return 1;
+    }
   }
 
   return 0;
