@@ -44,7 +44,7 @@ class GPUTPCSliceData
   void* SetPointersRows(void* mem);
 #endif
 
-  GPUd() int InitFromClusterData(int nBlocks, int nThreads, int iBlock, int iThread, GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, int iSlice);
+  GPUd() int InitFromClusterData(int nBlocks, int nThreads, int iBlock, int iThread, GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, int iSlice, float* tmpMinMax);
 
   /**
  * Return the number of hits in this slice.
@@ -137,7 +137,7 @@ class GPUTPCSliceData
   GPUTPCSliceData& operator=(const GPUTPCSliceData&) CON_DELETE; // ROOT 5 tries to use this if it is not private
   GPUTPCSliceData(const GPUTPCSliceData&) CON_DELETE;            //
 #endif
-  GPUd() void CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow) * GPUrestrict() row, const float2* data, int ClusterDataHitNumberOffset, float yMin, float yMax, float zMin, float zMax);
+  GPUd() void CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow) * GPUrestrict() row, float yMin, float yMax, float zMin, float zMax);
   GPUd() static void GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow) * GPUrestrict() row, int& maxY, int& maxZ);
   GPUd() unsigned int GetGridSize(unsigned int nHits, unsigned int nRows);
 

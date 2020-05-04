@@ -28,6 +28,10 @@ class GPUTPCTracker;
 class GPUTPCCreateSliceData : public GPUKernelTemplate
 {
  public:
+  struct GPUSharedMemory {
+    float tmp[4];
+  };
+
   typedef GPUconstantref() MEM_GLOBAL(GPUTPCTracker) processorType;
   GPUhdi() CONSTEXPRRET static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
   MEM_TEMPLATE()
