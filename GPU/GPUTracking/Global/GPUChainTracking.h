@@ -177,7 +177,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   GPUChainTracking(GPUReconstruction* rec, unsigned int maxTPCHits = GPUCA_MAX_CLUSTERS, unsigned int maxTRDTracklets = GPUCA_MAX_TRD_TRACKLETS);
 
-  int ReadEvent(int iSlice, int threadId);
+  int ReadEvent(unsigned int iSlice, int threadId);
   void WriteOutput(int iSlice, int threadId);
   int GlobalTracking(unsigned int iSlice, int threadId);
   void PrepareEventFromNative();

@@ -58,7 +58,6 @@ class GPUTPCTracker : public GPUProcessor
   MEM_CLASS_PRE2()
   void InitializeRows(const MEM_CONSTANT(GPUParam) * param) { mData.InitializeRows(*param); }
 
-  int ReadEvent();
   int CheckEmptySlice();
   void WriteOutputPrepare();
   void WriteOutput();
