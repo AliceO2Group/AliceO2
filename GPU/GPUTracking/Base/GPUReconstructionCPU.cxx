@@ -226,7 +226,11 @@ int GPUReconstructionCPU::RunChains()
         kernelStepTimes[stepNum] += time;
       }
       type = type == 0 ? 'K' : 'C';
-      printf("Execution Time: Task (%c %8ux): %50s Time: %'10d us\n", type, count, mTimers[i]->name.c_str(), (int)(time * 1000000 / mStatNEvents));
+      char bandwidth[256] = "";
+      if (mTimers[i]->memSize && mStatNEvents && time != 0.) {
+        snprintf(bandwidth, 256, " (%6.3f GB/s - %'14lu bytes)", mTimers[i]->memSize / time * 1e-9, (unsigned long)(mTimers[i]->memSize / mStatNEvents));
+      }
+      printf("Execution Time: Task (%c %8ux): %50s Time: %'10d us%s\n", type, count, mTimers[i]->name.c_str(), (int)(time * 1000000 / mStatNEvents), bandwidth);
     }
     for (int i = 0; i < N_RECO_STEPS; i++) {
       if (kernelStepTimes[i] != 0.) {
@@ -295,7 +299,7 @@ GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::insertTimer(unsigned int 
     if (J >= 0) {
       name += std::to_string(J);
     }
-    mTimers[id].reset(new timerMeta{std::unique_ptr<HighResTimer[]>{new HighResTimer[num]}, name, num, type, 1u, step});
+    mTimers[id].reset(new timerMeta{std::unique_ptr<HighResTimer[]>{new HighResTimer[num]}, name, num, type, 1u, step, (size_t)0});
   }
   timerMeta* retVal = mTimers[id].get();
   timerFlag.clear();
