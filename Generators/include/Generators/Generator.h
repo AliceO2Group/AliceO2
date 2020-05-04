@@ -84,6 +84,9 @@ class Generator : public FairGenerator
   virtual Bool_t generateEvent() = 0;
   virtual Bool_t importParticles() = 0;
 
+  /** methods that can be overridded **/
+  virtual void updateHeader(FairMCEventHeader* eventHeader){};
+
   /** internal methods **/
   Bool_t addTracks(FairPrimaryGenerator* primGen);
   Bool_t boostEvent();
