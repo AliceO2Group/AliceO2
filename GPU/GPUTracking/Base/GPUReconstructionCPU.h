@@ -199,6 +199,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
     int type;           // 0 = kernel, 1 = CPU step, 2 = DMA transfer
     unsigned int count; // How often was the timer queried
     RecoStep step;      // Which RecoStep is this
+    size_t memSize;     // Memory size for memory bandwidth computation
   };
 
   struct RecoStepTimerMeta {
@@ -216,7 +217,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   RecoStepTimerMeta mTimersRecoSteps[N_RECO_STEPS];
   HighResTimer timerTotal;
   template <class T, int I = 0, int J = -1>
-  HighResTimer& getKernelTimer(RecoStep step, int num = 0);
+  HighResTimer& getKernelTimer(RecoStep step, int num = 0, size_t addMemorySize = 0);
   template <class T, int J = -1>
   HighResTimer& getTimer(const char* name, int num = -1);
   int getRecoStepNum(RecoStep step, bool validCheck = true);
@@ -308,13 +309,16 @@ inline void GPUReconstructionCPU::AddGPUEvents(T*& events)
 }
 
 template <class T, int I, int J>
-HighResTimer& GPUReconstructionCPU::getKernelTimer(RecoStep step, int num)
+HighResTimer& GPUReconstructionCPU::getKernelTimer(RecoStep step, int num, size_t addMemorySize)
 {
   static int id = getNextTimerId();
   timerMeta* timer = getTimerById(id);
   if (timer == nullptr) {
     int max = step == GPUCA_RECO_STEP::NoRecoStep || step == GPUCA_RECO_STEP::TPCSliceTracking || step == GPUCA_RECO_STEP::TPCClusterFinding ? NSLICES : 1;
     timer = insertTimer(id, GetKernelName<T, I>(), J, max, 0, step);
+  }
+  if (addMemorySize) {
+    timer->memSize += addMemorySize;
   }
   if (num < 0 || num >= timer->num) {
     throw std::runtime_error("Invalid timer requested");
