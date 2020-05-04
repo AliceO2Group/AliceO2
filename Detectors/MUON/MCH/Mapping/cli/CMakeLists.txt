@@ -8,11 +8,9 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Interface)
-add_subdirectory(Impl3)
-add_subdirectory(Impl4)
-add_subdirectory(SegContour)
-add_subdirectory(cli)
-if(BUILD_TESTING)
-  add_subdirectory(test)
-endif()
+foreach(impl RANGE 3 4)
+        o2_add_executable(mapping-cli${impl}
+                SOURCES cli.cxx
+                COMPONENT_NAME mch
+                PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl${impl} Boost::program_options)
+endforeach()
