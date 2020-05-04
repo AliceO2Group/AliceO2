@@ -57,6 +57,9 @@ class GeneratorPythia8 : public Generator
   Bool_t generateEvent() override;
   Bool_t importParticles() override;
 
+  /** methods that can be overridded **/
+  void updateHeader(FairMCEventHeader* eventHeader) override;
+
   /** Pythia8 **/
   Pythia8::Pythia mPythia; //!
 
