@@ -83,6 +83,9 @@ Bool_t
   if (!addTracks(primGen))
     return kFALSE;
 
+  /** update header **/
+  updateHeader(primGen->GetEvent());
+
   /** success **/
   return kTRUE;
 }
