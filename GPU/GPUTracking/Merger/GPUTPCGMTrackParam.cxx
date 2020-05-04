@@ -545,9 +545,9 @@ GPUd() bool GPUTPCGMTrackParam::FollowCircleChk(float lrFactor, float toY, float
 
 GPUd() void GPUTPCGMTrackParam::StoreAttachMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toY, float toX, int toSlice, int toRow, bool inFlyDirection, float alpha)
 {
-  unsigned int nLoopData = CAMath::AtomicAdd(&Merger->Memory()->nLoopData, 1);
+  unsigned int nLoopData = CAMath::AtomicAdd(&Merger->Memory()->nLoopData, 1u);
   if (nLoopData >= Merger->NMaxTracks()) {
-    CAMath::AtomicExch(&Merger->Memory()->nLoopData, 0);
+    CAMath::AtomicExch(&Merger->Memory()->nLoopData, 0u);
     // TODO: GPUCA_ERROR_LOOPER_OVERFLOW
     return;
   }
@@ -962,7 +962,7 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() tr
       Alpha = track.Alpha();
       ok = t.Fit(merger, iTrk, clusters + track.FirstClusterRef(), nTrackHits, NTolerated, Alpha, 1, GPUCA_MAX_SIN_PHI, &track.OuterParam(), merger->Param().dodEdx ? &track.dEdxInfo() : nullptr);
     } else {
-      unsigned int nRefit = CAMath::AtomicAdd(&merger->Memory()->nRetryRefit, 1);
+      unsigned int nRefit = CAMath::AtomicAdd(&merger->Memory()->nRetryRefit, 1u);
       merger->RetryRefitIds()[nRefit] = iTrk;
       return;
     }

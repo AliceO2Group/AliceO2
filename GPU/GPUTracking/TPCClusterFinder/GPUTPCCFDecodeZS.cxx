@@ -104,7 +104,7 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
         GPUbarrier();
         for (int n = iThread; n < nRowsUsed; n += nThreads) {
           const unsigned char* rowData = n == 0 ? pagePtr : (page + tbHdr->rowAddr1()[n - 1]);
-          s.RowClusterOffset[n] = CAMath::AtomicAddShared(&s.rowOffsetCounter, rowData[2 * *rowData]);
+          s.RowClusterOffset[n] = CAMath::AtomicAddShared<unsigned int>(&s.rowOffsetCounter, rowData[2 * *rowData]);
         }
         /*if (iThread < GPUCA_WARP_SIZE) { // TODO: Seems to miscompile with HIP, CUDA performance doesn't really change, for now sticking to the AtomicAdd
           GPUSharedMemory& smem = s;
