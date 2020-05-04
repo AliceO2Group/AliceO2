@@ -20,8 +20,5 @@ using namespace GPUCA_NAMESPACE::gpu;
 template <>
 GPUdii() void GPUTPCCreateSliceData::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() s, processorType& GPUrestrict() tracker)
 {
-  if (iThread || iBlock) {
-    return;
-  }
-  tracker.Data().InitFromClusterData(nBlocks, nThreads, iBlock, iThread, tracker.GetConstantMem(), tracker.ISlice());
+  tracker.Data().InitFromClusterData(nBlocks, nThreads, iBlock, iThread, tracker.GetConstantMem(), tracker.ISlice(), s.tmp);
 }
