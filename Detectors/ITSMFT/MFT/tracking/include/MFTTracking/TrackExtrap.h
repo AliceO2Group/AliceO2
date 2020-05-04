@@ -48,7 +48,7 @@ class TrackExtrap
   const bool isFieldON() { return mIsFieldON; }
 
   bool extrapToZ(TrackParamMFT* TrackParamMFT, double zEnd, bool isFieldON = true);
-  bool extrapToZCov(TrackParamMFT* TrackParamMFT, double zEnd, bool updatePropagator = false, bool isFieldON = true);
+  void extrapToZCov(TrackParamMFT* TrackParamMFT, double zEnd, bool updatePropagator = false, bool isFieldON = true);
   void linearExtrapToZ(TrackParamMFT* TrackParamMFT, double zEnd);
   void linearExtrapToZCov(TrackParamMFT* TrackParamMFT, double zEnd, bool updatePropagator);
   void quadraticExtrapToZ(TrackParamMFT* TrackParamMFT, double zEnd);
