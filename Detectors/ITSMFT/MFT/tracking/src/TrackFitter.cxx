@@ -272,9 +272,7 @@ bool TrackFitter::addCluster(const TrackParamMFT& startingParam, const o2::itsmf
   */
 
   // extrapolate to the z position of the new cluster
-  if (!mTrackExtrap.extrapToZCov(&param, cl.getZ(), mSmooth)) {
-    return false;
-  }
+  mTrackExtrap.extrapToZCov(&param, cl.getZ(), mSmooth);
 
   if (mVerbose)
     std::cout << "   AfterExtrap: X = " << param.getX() << " Y = " << param.getY() << " Z = " << param.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << " pz = " << param.getPz() << " qpt = " << 1.0 / param.getInvQPt() << std::endl;

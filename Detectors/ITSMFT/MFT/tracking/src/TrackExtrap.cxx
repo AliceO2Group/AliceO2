@@ -188,19 +188,6 @@ void TrackExtrap::quadraticExtrapToZCov(TrackParamMFT* trackParam, double zEnd, 
   auto Hz = getSignBz();
 
   quadraticExtrapToZ(trackParam, zEnd);
-  /*
-  double x0 = trackParam->getX();
-  double y0 = trackParam->getY();
-  double deltax = n * cosphi0 - 0.5 * n * theta * Hz * sinphi0;
-  double deltay = n * sinphi0 + 0.5 * n * theta * Hz * cosphi0;
-  double x = x0 + deltax;
-  double y = y0 + deltay;
-  double phi = phi0 + theta;
-  trackParam->setX(x);
-  trackParam->setY(y);
-  trackParam->setZ(zEnd);
-  trackParam->setPhi(phi);
-  */
 
   // Calculate Jacobian
   TMatrixD jacob(5, 5);
@@ -304,7 +291,7 @@ bool TrackExtrap::extrapToZ(TrackParamMFT* trackParam, double zEnd, bool isField
 }
 
 //__________________________________________________________________________
-bool TrackExtrap::extrapToZCov(TrackParamMFT* trackParam, double zEnd, bool updatePropagator, bool isFieldON)
+void TrackExtrap::extrapToZCov(TrackParamMFT* trackParam, double zEnd, bool updatePropagator, bool isFieldON)
 {
   /// Track parameters and their covariances extrapolated to the plane at "zEnd".
   /// On return, results from the extrapolation are updated in trackParam.
@@ -313,18 +300,18 @@ bool TrackExtrap::extrapToZCov(TrackParamMFT* trackParam, double zEnd, bool upda
 
   if (!isFieldON) { // linear extrapolation if no magnetic field
     linearExtrapToZCov(trackParam, zEnd, updatePropagator);
-    return true;
+    return;
   } else {
     // Extrapolate track parameters to "zEnd"
 
     switch (mftTrackingParam.trackmodel) {
       case Helix:
         helixExtrapToZCov(trackParam, zEnd, updatePropagator);
-        return true;
+        return;
         break;
       case Quadratic:
         quadraticExtrapToZCov(trackParam, zEnd, updatePropagator);
-        return true;
+        return;
         break;
     }
   }
