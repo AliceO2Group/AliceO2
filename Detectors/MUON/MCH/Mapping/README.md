@@ -113,3 +113,8 @@ of the segmentations.
 ## Tests
 
 A collection of [tests](test/README.md) (with or without input) are available.
+
+## Command line interface (CLI)
+
+A very basic CLI is provided for each implementation :  `o2-mch-mapping-cli3` or
+ `o2-mch-mapping-cli4`.
