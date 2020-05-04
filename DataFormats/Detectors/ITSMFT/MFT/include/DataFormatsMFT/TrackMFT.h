@@ -191,9 +191,6 @@ class TrackMFT
   // inversed charged momentum from quadratic regression
   Double_t mInvQPtQuadtratic;
 
-  // Extrapolate covariances
-  void extrapHelixToZCov(double zEnd, double Field);
-
   ClassDefNV(TrackMFT, 1);
 };
 
