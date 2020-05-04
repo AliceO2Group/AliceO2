@@ -72,13 +72,13 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
   int nHits = GPUTPCTrackletConstructor::GPUTPCTrackletConstructorGlobalTracking(tracker, smem, tParam, rowIndex, direction, 0, rowHits);
   if (nHits >= GPUCA_GLOBAL_TRACKING_MIN_HITS) {
     // GPUInfo("%d hits found", nHits);
-    unsigned int hitId = CAMath::AtomicAdd(&tracker.CommonMemory()->nTrackHits, nHits);
+    unsigned int hitId = CAMath::AtomicAdd(&tracker.CommonMemory()->nTrackHits, (unsigned int)nHits);
     if (hitId + nHits > tracker.NMaxTrackHits()) {
       tracker.CommonMemory()->kernelError = GPUCA_ERROR_GLOBAL_TRACKING_TRACK_HIT_OVERFLOW;
       CAMath::AtomicExch(&tracker.CommonMemory()->nTrackHits, tracker.NMaxTrackHits());
       return (0);
     }
-    unsigned int trackId = CAMath::AtomicAdd(&tracker.CommonMemory()->nTracks, 1);
+    unsigned int trackId = CAMath::AtomicAdd(&tracker.CommonMemory()->nTracks, 1u);
     if (direction == 1) {
       int i = 0;
       while (i < nHits) {

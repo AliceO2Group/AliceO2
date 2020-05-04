@@ -107,6 +107,8 @@
     #define GPUCA_USE_TEMPLATE_ADDRESS_SPACES // TODO: check if we can make this (partially, where it is already implemented) compatible with OpenCL CPP
     #define GPUsharedref() GPUshared()
     #define GPUglobalref() GPUglobal()
+    #undef GPUgeneric()
+    #define GPUgeneric()
   #endif
   #if (!defined(__OPENCLCPP__) || !defined(GPUCA_NO_CONSTANT_MEMORY))
     #define GPUconstantref() GPUconstant()
