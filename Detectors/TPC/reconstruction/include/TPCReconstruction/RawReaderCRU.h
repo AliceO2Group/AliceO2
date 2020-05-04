@@ -58,16 +58,21 @@ enum DebugLevel : uint8_t {
 
 /// data type
 enum class DataType : uint8_t {
-  TryToDetect = 0, ///< try to auto detect the mode
-  Continuous = 1,  ///< continuous data taking
-  HBScaling = 2,   ///< heart beat sclaing mode
-  Triggered = 3    ///< triggered data
+  Continuous = 1, ///< continuous data taking
+  HBScaling = 2,  ///< heart beat sclaing mode
+  Triggered = 3,  ///< triggered data
 };
 
 /// file type
 enum class ReaderType : uint8_t {
-  FLPData = 0, ///< single files from FLP as 8k pages with RAWDataHeader
-  EPNData = 1  ///< STF builder data merged on EPN
+  FLP = 0, ///< single files from FLP as 8k pages with RAWDataHeader
+  EPN = 1, ///< STF builder data merged on EPN
+};
+
+/// data type
+enum class RAWDataType : uint8_t {
+  GBT = 0,    ///< GBT encoded raw data
+  LinkZS = 1, ///< Link based zero suppression
 };
 
 using RDH = o2::header::RAWDataHeader;
@@ -919,7 +924,12 @@ class RawReaderCRUManager
   void setDebugLevel(uint32_t debugLevel) { mDebugLevel = debugLevel; }
 
   /// set data type
-  void setDataType(DataType dataType) { mDataType = dataType; }
+  void setDataType(DataType dataType, RAWDataType rawType)
+  {
+    mDataType = dataType;
+    mRawDataType = rawType;
+    mDetectDataType = false;
+  }
 
   /// get data type
   DataType getDataType() const { return mDataType; }
@@ -937,7 +947,9 @@ class RawReaderCRUManager
   std::vector<std::unique_ptr<RawReaderCRU>> mRawReadersCRU{}; ///< cru type raw readers
   RawReaderCRUEventSync mEventSync{};                          ///< event synchronisation
   uint32_t mDebugLevel{0};                                     ///< debug level
-  DataType mDataType{DataType::TryToDetect};                   ///< data type
+  DataType mDataType{DataType::Continuous};                    ///< data type
+  RAWDataType mRawDataType{RAWDataType::GBT};                  ///< raw data type
+  bool mDetectDataType{true};                                  ///< try to detect data types
   bool mIsInitialized{false};                                  ///< if init was called already
   ADCDataCallback mADCDataCallback{nullptr};                   ///< callback function for filling the ADC data
 
