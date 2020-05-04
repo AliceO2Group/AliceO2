@@ -137,7 +137,7 @@ class GPUTPCSliceData
   GPUTPCSliceData& operator=(const GPUTPCSliceData&) CON_DELETE; // ROOT 5 tries to use this if it is not private
   GPUTPCSliceData(const GPUTPCSliceData&) CON_DELETE;            //
 #endif
-  GPUd() void CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow) * GPUrestrict() row, const float2* data, int ClusterDataHitNumberOffset);
+  GPUd() void CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow) * GPUrestrict() row, const float2* data, int ClusterDataHitNumberOffset, float yMin, float yMax, float zMin, float zMax);
   GPUd() static void GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow) * GPUrestrict() row, int& maxY, int& maxZ);
   GPUd() unsigned int GetGridSize();
 
