@@ -45,6 +45,7 @@ set(SRCS
     SliceTracker/GPUTPCTrackletSelector.cxx
     SliceTracker/GPUTPCRow.cxx
     SliceTracker/GPUTPCGlobalTracking.cxx
+    SliceTracker/GPUTPCCreateSliceData.cxx
     Merger/GPUTPCGMMerger.cxx
     Merger/GPUTPCGMSliceTrack.cxx
     Merger/GPUTPCGMTrackParam.cxx

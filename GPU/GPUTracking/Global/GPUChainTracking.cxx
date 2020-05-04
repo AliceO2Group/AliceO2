@@ -713,17 +713,12 @@ void GPUChainTracking::SetTRDGeometry(std::unique_ptr<o2::trd::TRDGeometryFlat>&
   processors()->calibObjects.trdGeometry = mTRDGeometryU.get();
 }
 
-int GPUChainTracking::ReadEvent(int iSlice, int threadId)
+int GPUChainTracking::ReadEvent(unsigned int iSlice, int threadId)
 {
   if (GetDeviceProcessingSettings().debugLevel >= 5) {
     GPUInfo("Running ReadEvent for slice %d on thread %d\n", iSlice, threadId);
   }
-  HighResTimer& timer = getTimer<GPUTPCSliceData>("ReadEvent", threadId);
-  timer.Start();
-  if (processors()->tpcTrackers[iSlice].ReadEvent()) {
-    return (1);
-  }
-  timer.Stop();
+  runKernel<GPUTPCCreateSliceData>({GetGridBlk(1, 0, GPUReconstruction::krnlDeviceType::CPU)}, {iSlice});
   if (GetDeviceProcessingSettings().debugLevel >= 5) {
     GPUInfo("Finished ReadEvent for slice %d on thread %d\n", iSlice, threadId);
   }
