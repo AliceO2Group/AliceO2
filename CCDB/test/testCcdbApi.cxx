@@ -254,8 +254,8 @@ BOOST_AUTO_TEST_CASE(retrieveTemplatedWithHeaders, *utf::precondition(if_reachab
   std::map<std::string, std::string> headers;
   std::map<std::string, std::string> meta;
   cout << "basePath + \"CCDBPathUnitTest\" : " << basePath + "CCDBPathUnitTest" << endl;
-  cout << "from+1 : " << from+1 << endl;
-  auto* object = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>(basePath + "CCDBPathUnitTest", meta, from+1, &headers);
+  cout << "from+1 : " << from + 1 << endl;
+  auto* object = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>(basePath + "CCDBPathUnitTest", meta, from + 1, &headers);
   BOOST_CHECK(headers.count("Hello") == 1);
   BOOST_CHECK(headers["Hello"] == "World");
 }
