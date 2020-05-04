@@ -364,7 +364,7 @@ GPUd() void GPUTPCCFClusterizer::buildClusterNaive(
 
 GPUd() uint GPUTPCCFClusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, uint row, uint maxElemsPerBucket, uint* elemsInBucket, tpc::ClusterNative* buckets)
 {
-  uint index = CAMath::AtomicAdd(&elemsInBucket[row], 1);
+  uint index = CAMath::AtomicAdd(&elemsInBucket[row], 1u);
   if (index < maxElemsPerBucket) {
     buckets[maxElemsPerBucket * row + index] = cluster;
   }
