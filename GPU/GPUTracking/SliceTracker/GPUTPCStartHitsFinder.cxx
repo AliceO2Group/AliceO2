@@ -42,18 +42,18 @@ GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, in
     if (tracker.mData.mLinkDownData[lHitNumberOffset + ih] == CALINK_INVAL && linkUpData != CALINK_INVAL && tracker.mData.mLinkUpData[rowUp.mHitNumberOffset + linkUpData] != CALINK_INVAL) {
 #ifdef GPUCA_SORT_STARTHITS
       GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.mTrackletTmpStartHits + s.mIRow * tracker.mNMaxRowStartHits;
-      unsigned int nextRowStartHits = CAMath::AtomicAddShared(&s.mNRowStartHits, 1);
+      unsigned int nextRowStartHits = CAMath::AtomicAddShared(&s.mNRowStartHits, 1u);
       CONSTEXPR int errCode = GPUCA_ERROR_ROWSTARTHIT_OVERFLOW;
       if (nextRowStartHits >= tracker.mNMaxRowStartHits)
 #else
       GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.mTrackletStartHits;
-      unsigned int nextRowStartHits = CAMath::AtomicAdd(&tracker.mCommonMem->nStartHits, 1);
+      unsigned int nextRowStartHits = CAMath::AtomicAdd(&tracker.mCommonMem->nStartHits, 1u);
       CONSTEXPR int errCode = GPUCA_ERROR_STARTHIT_OVERFLOW;
       if (nextRowStartHits >= tracker.mNMaxStartHits)
 #endif
       {
         trackerX.CommonMemory()->kernelError = errCode;
-        CAMath::AtomicExch(&tracker.mCommonMem->nStartHits, 0);
+        CAMath::AtomicExch(&tracker.mCommonMem->nStartHits, 0u);
         break;
       }
       startHits[nextRowStartHits].Set(s.mIRow, ih);
@@ -67,7 +67,7 @@ GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, in
     tracker.mRowStartHitCountOffset[s.mIRow] = s.mNRowStartHits;
     if (nOffset + s.mNRowStartHits > tracker.mNMaxStartHits) {
       trackerX.CommonMemory()->kernelError = GPUCA_ERROR_STARTHIT_OVERFLOW;
-      CAMath::AtomicExch(&tracker.mCommonMem->nStartHits, 0);
+      CAMath::AtomicExch(&tracker.mCommonMem->nStartHits, 0u);
     }
   }
 #endif

@@ -66,14 +66,46 @@ class GPUCommonMath
   GPUhdni() static unsigned int Popcount(unsigned int val);
 
   GPUhdni() static float Log(float x);
-  GPUdi() static unsigned int AtomicExch(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val) { return GPUCommonMath::AtomicExchInt(addr, val); }
-  GPUdi() static unsigned int AtomicAdd(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val) { return GPUCommonMath::AtomicAddInt(addr, val); }
-  GPUdi() static void AtomicMax(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val) { GPUCommonMath::AtomicMaxInt(addr, val); }
-  GPUdi() static void AtomicMin(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val) { GPUCommonMath::AtomicMinInt(addr, val); }
-  GPUdi() static unsigned int AtomicExchShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val) { return GPUCommonMath::AtomicExchInt(addr, val); }
-  GPUdi() static unsigned int AtomicAddShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val) { return GPUCommonMath::AtomicAddInt(addr, val); }
-  GPUdi() static void AtomicMaxShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val) { GPUCommonMath::AtomicMaxInt(addr, val); }
-  GPUdi() static void AtomicMinShared(GPUsharedref() GPUAtomic(unsigned int) * addr, unsigned int val) { GPUCommonMath::AtomicMinInt(addr, val); }
+  template <class T>
+  GPUdi() static T AtomicExch(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T val)
+  {
+    return GPUCommonMath::AtomicExchInt(addr, val);
+  }
+  template <class T>
+  GPUdi() static T AtomicAdd(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T val)
+  {
+    return GPUCommonMath::AtomicAddInt(addr, val);
+  }
+  template <class T>
+  GPUdi() static void AtomicMax(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T val)
+  {
+    GPUCommonMath::AtomicMaxInt(addr, val);
+  }
+  template <class T>
+  GPUdi() static void AtomicMin(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T val)
+  {
+    GPUCommonMath::AtomicMinInt(addr, val);
+  }
+  template <class T>
+  GPUdi() static T AtomicExchShared(GPUsharedref() GPUgeneric() GPUAtomic(T) * addr, T val)
+  {
+    return GPUCommonMath::AtomicExchInt(addr, val);
+  }
+  template <class T>
+  GPUdi() static T AtomicAddShared(GPUsharedref() GPUgeneric() GPUAtomic(T) * addr, T val)
+  {
+    return GPUCommonMath::AtomicAddInt(addr, val);
+  }
+  template <class T>
+  GPUdi() static void AtomicMaxShared(GPUsharedref() GPUgeneric() GPUAtomic(T) * addr, T val)
+  {
+    GPUCommonMath::AtomicMaxInt(addr, val);
+  }
+  template <class T>
+  GPUdi() static void AtomicMinShared(GPUsharedref() GPUgeneric() GPUAtomic(T) * addr, T val)
+  {
+    GPUCommonMath::AtomicMinInt(addr, val);
+  }
   GPUd() static int Mul24(int a, int b);
   GPUd() static float FMulRZ(float a, float b);
 

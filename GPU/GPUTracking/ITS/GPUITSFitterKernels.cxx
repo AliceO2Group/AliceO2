@@ -189,7 +189,7 @@ GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBloc
       continue;
     }
     CA_DEBUGGER(refitCounters[nClusters - 4]++);
-    int trackId = CAMath::AtomicAdd(&Fitter.NumberOfTracks(), 1);
+    int trackId = CAMath::AtomicAdd(&Fitter.NumberOfTracks(), 1u);
     Fitter.tracks()[trackId] = temporaryTrack;
   }
 #ifdef CA_DEBUG

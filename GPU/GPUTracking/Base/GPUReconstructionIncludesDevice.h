@@ -50,6 +50,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCGMPhysicalTrackModel.cxx"
 #include "GPUTPCGMPropagator.cxx"
 #include "GPUTPCSliceData.cxx"
+#include "GPUTPCCreateSliceData.cxx"
 
 #if defined(HAVE_O2HEADERS)
 // Files for propagation with material

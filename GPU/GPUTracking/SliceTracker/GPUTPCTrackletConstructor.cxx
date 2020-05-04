@@ -65,12 +65,12 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
           tParam.Cov()[0], tParam.Cov()[1], tParam.Cov()[2], tParam.Cov()[3], tParam.Cov()[4], tParam.Cov()[5], tParam.Cov()[6], tParam.Cov()[7], tParam.Cov()[8], tParam.Cov()[9],
           tParam.Cov()[10], tParam.Cov()[11], tParam.Cov()[12], tParam.Cov()[13], tParam.Cov()[14]);*/
 
-  unsigned int itrout = CAMath::AtomicAdd(tracker.NTracklets(), 1);
+  unsigned int itrout = CAMath::AtomicAdd(tracker.NTracklets(), 1u);
   const unsigned int nHits = r.mLastRow + 1 - r.mFirstRow;
   unsigned int hitout = CAMath::AtomicAdd(tracker.NRowHits(), nHits);
   if (itrout >= tracker.NMaxTracklets() || hitout + nHits > tracker.NMaxRowHits()) {
     tracker.CommonMemory()->kernelError = itrout >= tracker.NMaxTracklets() ? GPUCA_ERROR_TRACKLET_OVERFLOW : GPUCA_ERROR_TRACKLET_HIT_OVERFLOW;
-    CAMath::AtomicExch(tracker.NTracklets(), 0);
+    CAMath::AtomicExch(tracker.NTracklets(), 0u);
     if (hitout + nHits > tracker.NMaxRowHits()) {
       CAMath::AtomicExch(tracker.NRowHits(), tracker.NMaxRowHits());
     }
@@ -488,7 +488,7 @@ GPUd() int GPUTPCTrackletConstructor::FetchTracklet(GPUconstantref() MEM_GLOBAL(
       sMem.mNextStartHitFirstRun = 0;
     } else {
       if (tracker.GPUParameters()->nextStartHit < nStartHit) {
-        firstStartHit = CAMath::AtomicAdd(&tracker.GPUParameters()->nextStartHit, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCTrackletConstructor));
+        firstStartHit = CAMath::AtomicAdd<unsigned int>(&tracker.GPUParameters()->nextStartHit, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCTrackletConstructor));
       }
     }
     sMem.mNextStartHitFirst = firstStartHit < (int)nStartHit ? firstStartHit : -2;

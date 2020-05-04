@@ -439,7 +439,7 @@ GPUd() void GPUTPCGMMerger::UnpackSliceGlobal(int nBlocks, int nThreads, int iBl
     if (localId == -1) {
       continue;
     }
-    unsigned int myTrack = CAMath::AtomicAdd(&mMemory->nUnpackedTracks, 1);
+    unsigned int myTrack = CAMath::AtomicAdd(&mMemory->nUnpackedTracks, 1u);
     GPUTPCGMSliceTrack& track = mSliceTrackInfos[myTrack];
     SetTrackClusterZT(track, iSlice, sliceTr);
     track.Set(this, sliceTr, alpha, iSlice);
@@ -504,7 +504,7 @@ GPUd() void GPUTPCGMMerger::RefitSliceTracks(int nBlocks, int nThreads, int iBlo
     track.SetPrevSegmentNeighbour(-1);
     track.SetGlobalTrackId(0, -1);
     track.SetGlobalTrackId(1, -1);
-    unsigned int myTrack = CAMath::AtomicAdd(&mMemory->nUnpackedTracks, 1);
+    unsigned int myTrack = CAMath::AtomicAdd(&mMemory->nUnpackedTracks, 1u);
     TrackIds[iSlice * mNMaxSingleSliceTracks + sliceTr->LocalTrackId()] = myTrack;
     mSliceTrackInfos[myTrack] = track;
   }
@@ -586,7 +586,7 @@ GPUd() void GPUTPCGMMerger::MakeBorderTracks(int nBlocks, int nThreads, int iBlo
       if (CAMath::Abs(b.Cov()[4]) >= 0.5) {
         b.SetCov(4, 0.5);
       }
-      unsigned int myTrack = CAMath::AtomicAdd(&nB[iSlice], 1);
+      unsigned int myTrack = CAMath::AtomicAdd(&nB[iSlice], 1u);
       B[iSlice][myTrack] = b;
     }
   }
@@ -807,7 +807,7 @@ GPUd() void GPUTPCGMMerger::MergeWithinSlicesPrepare(int nBlocks, int nThreads, 
       CADEBUG(
         printf("WITHIN SLICE %d Track %d - ", iSlice, itr); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Cov()[i]); } printf("\n"));
       b.SetNClusters(track.NClusters());
-      unsigned int myTrack = CAMath::AtomicAdd(&mTmpCounter[iSlice], 1);
+      unsigned int myTrack = CAMath::AtomicAdd(&mTmpCounter[iSlice], 1u);
       mBorder[iSlice][myTrack] = b;
     }
   }
@@ -1032,7 +1032,7 @@ GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const G
       }
       b.SetRow(cls.row);
       unsigned int id = slice + attempt * NSLICES;
-      unsigned int myTrack = CAMath::AtomicAdd(&mTmpCounter[id], 1);
+      unsigned int myTrack = CAMath::AtomicAdd(&mTmpCounter[id], 1u);
       mBorder[id][myTrack] = b;
       break;
     }
@@ -1524,7 +1524,7 @@ GPUd() void GPUTPCGMMerger::SortTracksPrepare(int nBlocks, int nThreads, int iBl
   for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTracks; i += nThreads * nBlocks) {
     const GPUTPCGMMergedTrack& trk = mOutputTracks[i];
     if (trk.CCE() || trk.Legs()) {
-      CAMath::AtomicAdd(&mMemory->nSlowTracks, 1);
+      CAMath::AtomicAdd(&mMemory->nSlowTracks, 1u);
     }
     mTrackOrderProcess[i] = i;
   }
@@ -1558,7 +1558,7 @@ GPUd() void GPUTPCGMMerger::PrepareClustersForFit1(int nBlocks, int nThreads, in
   }
   for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTrackClusters; i += nBlocks * nThreads) {
     mClusterAttachment[mClusters[i].num] = attachAttached | attachGood;
-    CAMath::AtomicAdd(&sharedCount[mClusters[i].num], 1);
+    CAMath::AtomicAdd(&sharedCount[mClusters[i].num], 1u);
   }
 }
 
@@ -1599,7 +1599,7 @@ GPUd() void GPUTPCGMMerger::Finalize1(int nBlocks, int nThreads, int iBlock, int
     char goodLeg = mClusters[trk.FirstClusterRef() + trk.NClusters() - 1].leg;
     for (unsigned int j = 0; j < trk.NClusters(); j++) {
       int id = mClusters[trk.FirstClusterRef() + j].num;
-      int weight = mTrackOrderAttach[i] | attachAttached;
+      unsigned int weight = mTrackOrderAttach[i] | attachAttached;
       unsigned char clusterState = mClusters[trk.FirstClusterRef() + j].state;
       if (!(clusterState & GPUTPCGMMergedTrackHit::flagReject)) {
         weight |= attachGood;

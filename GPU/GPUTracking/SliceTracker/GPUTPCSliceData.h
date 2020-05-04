@@ -101,9 +101,9 @@ class GPUTPCSliceData
  * If the given weight is higher than what is currently stored replace with the new weight.
  */
   MEM_TEMPLATE()
-  GPUd() void MaximizeHitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex, int weight);
+  GPUd() void MaximizeHitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex, unsigned int weight);
   MEM_TEMPLATE()
-  GPUd() void SetHitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex, int weight);
+  GPUd() void SetHitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex, unsigned int weight);
 
   /**
  * Return the maximal weight the given hit got from one tracklet
@@ -210,14 +210,14 @@ GPUhdi() int MEM_LG(GPUTPCSliceData)::ClusterDataIndex(const MEM_TYPE(GPUTPCRow)
 
 MEM_CLASS_PRE()
 MEM_TEMPLATE()
-GPUdi() void MEM_LG(GPUTPCSliceData)::MaximizeHitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex, int weight)
+GPUdi() void MEM_LG(GPUTPCSliceData)::MaximizeHitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex, unsigned int weight)
 {
   CAMath::AtomicMax(&mHitWeights[row.mHitNumberOffset + hitIndex], weight);
 }
 
 MEM_CLASS_PRE()
 MEM_TEMPLATE()
-GPUdi() void MEM_LG(GPUTPCSliceData)::SetHitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex, int weight)
+GPUdi() void MEM_LG(GPUTPCSliceData)::SetHitWeight(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex, unsigned int weight)
 {
   mHitWeights[row.mHitNumberOffset + hitIndex] = weight;
 }
