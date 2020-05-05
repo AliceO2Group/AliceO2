@@ -1060,6 +1060,10 @@ GPUd() void GPUTPCGMMerger::MergeCE(int nBlocks, int nThreads, int iBlock, int i
 #else
         // TODO: proper overflow handling
 #endif
+        for (unsigned int k = newRef; k < mNMaxOutputTrackClusters; k++) {
+          mClusters[k].num = 0;
+          mClusters[k].state = 0;
+        }
         CAMath::AtomicExch(&mMemory->nOutputTrackClusters, mNMaxOutputTrackClusters);
         return;
       }
