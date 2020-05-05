@@ -1,3 +1,7 @@
+<!-- doxy
+\page refrunSimExamplesAdaptive_Pythia8 Example Adaptive_Pythia8
+/doxy -->
+
 This is a simple simulation example showing
 
 a) how to run a simple background event simulation with some parameter customization
