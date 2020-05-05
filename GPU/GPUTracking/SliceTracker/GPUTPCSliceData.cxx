@@ -200,14 +200,6 @@ GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int i
     float yMax = -1.e6f;
     float zMin = 1.e6f;
     float zMax = -1.e6f;
-    GPUbarrier();
-    if (iThread == 0) {
-      tmpMinMax[0] = -yMin;
-      tmpMinMax[1] = yMax;
-      tmpMinMax[2] = -zMin;
-      tmpMinMax[3] = zMax;
-    }
-    GPUbarrier();
 
     const unsigned int NumberOfClusters = EarlyTransformWithoutClusterNative ? NumberOfClustersInRow[rowIndex] : mem->ioPtrs.clustersNative->nClusters[iSlice][rowIndex];
     const unsigned int RowOffset = EarlyTransformWithoutClusterNative ? RowOffsets[rowIndex] : (mem->ioPtrs.clustersNative->clusterOffset[iSlice][rowIndex] - mem->ioPtrs.clustersNative->clusterOffset[iSlice][0]);
@@ -221,18 +213,29 @@ GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int i
     }
 
     GPUTPCRow& row = mRows[rowIndex];
+    if (iThread == 0) {
+      tmpMinMax[0] = -yMin;
+      tmpMinMax[1] = yMax;
+      tmpMinMax[2] = -zMin;
+      tmpMinMax[3] = zMax;
+      row.mFirstHitInBinOffset = CAMath::nextMultipleOf<GPUCA_ROWALIGNMENT / sizeof(calink)>(GetGridSize(RowOffset, rowIndex) + rowIndex * GPUCA_ROWALIGNMENT / sizeof(int));
+    }
+    GPUbarrier();
+    GPUAtomic(calink)* c = (GPUAtomic(calink)*)mFirstHitInBin + row.mFirstHitInBinOffset;
     if (NumberOfClusters == 0) {
       if (iThread == 0) {
         row.mGrid.CreateEmpty();
         row.mNHits = 0;
         row.mHitNumberOffset = 0;
-        row.mFirstHitInBinOffset = 0;
         row.mHy0 = 0.f;
         row.mHz0 = 0.f;
         row.mHstepY = 1.f;
         row.mHstepZ = 1.f;
         row.mHstepYi = 1.f;
         row.mHstepZi = 1.f;
+        for (int i = 0; i < 4; i++) {
+          c[i] = 0;
+        }
       }
       continue;
     }
@@ -263,7 +266,6 @@ GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int i
     if (iThread == 0) {
       row.mNHits = NumberOfClusters;
       row.mHitNumberOffset = CAMath::nextMultipleOf<GPUCA_ROWALIGNMENT / sizeof(calink)>(RowOffset + rowIndex * GPUCA_ROWALIGNMENT / sizeof(calink));
-      row.mFirstHitInBinOffset = CAMath::nextMultipleOf<GPUCA_ROWALIGNMENT / sizeof(calink)>(GetGridSize(RowOffset, rowIndex) + rowIndex * GPUCA_ROWALIGNMENT / sizeof(int));
     }
 
     /* CAMath::AtomicMaxShared(&tmpMinMax[0], -yMin); // Atomic max not supported for float
@@ -304,7 +306,6 @@ GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int i
       return 1;
     }
 
-    GPUAtomic(calink)* c = (GPUAtomic(calink)*)mFirstHitInBin + row.mFirstHitInBinOffset; // number of hits in all previous bins
     calink* bins = &binMemory[RowOffset]; // Reuse mLinkUpData memory as temporary memory
 
     for (int bin = iThread; bin < numberOfBins; bin += nThreads) {
