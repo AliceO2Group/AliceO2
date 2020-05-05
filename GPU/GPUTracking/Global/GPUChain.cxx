@@ -30,10 +30,10 @@ GPUChain::krnlExec GPUChain::GetGrid(unsigned int totalItems, int stream, GPURec
 
 GPUChain::krnlExec GPUChain::GetGridBlk(unsigned int nBlocks, int stream, GPUReconstruction::krnlDeviceType d, GPUCA_RECO_STEP st)
 {
-  return {nBlocks, (unsigned int)-1, stream, d, st};
+  return {(unsigned int)-2, nBlocks, stream, d, st};
 }
 
 GPUChain::krnlExec GPUChain::GetGridBlkStep(unsigned int nBlocks, int stream, GPUCA_RECO_STEP st)
 {
-  return {nBlocks, (unsigned int)-1, stream, GPUReconstruction::krnlDeviceType::Auto, st};
+  return {(unsigned int)-2, nBlocks, stream, GPUReconstruction::krnlDeviceType::Auto, st};
 }

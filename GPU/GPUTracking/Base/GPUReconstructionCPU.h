@@ -244,13 +244,15 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & myStep) != myStep) : 0;
   unsigned int nThreads = x.nThreads;
   unsigned int nBlocks = x.nBlocks;
-  const int autoThreads = (cpuFallback || x.device == krnlDeviceType::CPU) ? 1 : getKernelProperties<S, I>().nThreads;
-  if (nThreads == (unsigned int)-1) {
-    nThreads = autoThreads;
-  }
+  const int autoThreads = cpuFallback ? 1 : getKernelProperties<S, I>().nThreads;
   if (nBlocks == (unsigned int)-1) {
     nBlocks = (nThreads + autoThreads - 1) / autoThreads;
     nThreads = autoThreads;
+  } else if (nBlocks == (unsigned int)-2) {
+    nBlocks = nThreads;
+    nThreads = autoThreads;
+  } else if ((int)nThreads < 0) {
+    nThreads = cpuFallback ? 1 : -nThreads;
   }
   if (nThreads > GPUCA_MAX_THREADS) {
     throw std::runtime_error("GPUCA_MAX_THREADS exceeded");
