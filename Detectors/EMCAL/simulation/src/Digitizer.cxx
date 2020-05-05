@@ -200,7 +200,7 @@ void Digitizer::addNoiseDigits(LabeledDigit& d1)
     sigma = mSimParam->getPinNoiseLG();
   }
 
-  double noise = mRandomGenerator->Gaus(0, sigma);
+  double noise = std::abs(mRandomGenerator->Gaus(0, sigma));
   MCLabel label(true, 1.0);
   LabeledDigit d(d1.getTower(), noise, d1.getTimeStamp(), label);
   d1 += d;
