@@ -379,6 +379,7 @@ GPUdi() T work_group_scan_inclusive_add(T v)
 {
   return v;
 }
+
 template <class T>
 GPUdi() T work_group_broadcast(T v, int i)
 {
@@ -390,6 +391,7 @@ GPUdi() T warp_scan_inclusive_add(T v)
 {
   return v;
 }
+
 #endif
 
 #endif
