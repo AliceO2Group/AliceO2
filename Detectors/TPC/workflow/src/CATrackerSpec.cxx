@@ -547,7 +547,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       if (pc.outputs().isAllowed({gDataOriginTPC, "TRACKS", 0})) {
         pc.outputs().snapshot(OutputRef{"outTracks"}, tracks);
         pc.outputs().snapshot(OutputRef{"outClusRefs"}, clusRefs);
-        if (pc.outputs().isAllowed({gDataOriginTPC, "TRACKMCLBL", 0})) {
+        if (pc.outputs().isAllowed({gDataOriginTPC, "TRACKSMCLBL", 0})) {
           LOG(INFO) << "sending " << tracksMCTruth.getIndexedSize() << " track label(s)";
           pc.outputs().snapshot(OutputRef{"mclblout"}, tracksMCTruth);
         }
@@ -655,7 +655,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     }
     if (specconfig.processMC && specconfig.outputTracks) {
       OutputLabel label{"mclblout"};
-      constexpr o2::header::DataDescription datadesc("TRACKMCLBL");
+      constexpr o2::header::DataDescription datadesc("TRACKSMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
     if (specconfig.outputCompClusters) {
