@@ -316,8 +316,7 @@ HighResTimer& GPUReconstructionCPU::getKernelTimer(RecoStep step, int num, size_
   static int id = getNextTimerId();
   timerMeta* timer = getTimerById(id);
   if (timer == nullptr) {
-    int max = step == GPUCA_RECO_STEP::NoRecoStep || step == GPUCA_RECO_STEP::TPCSliceTracking || step == GPUCA_RECO_STEP::TPCClusterFinding ? NSLICES : 1;
-    timer = insertTimer(id, GetKernelName<T, I>(), J, max, 0, step);
+    timer = insertTimer(id, GetKernelName<T, I>(), J, NSLICES, 0, step);
   }
   if (addMemorySize) {
     timer->memSize += addMemorySize;
