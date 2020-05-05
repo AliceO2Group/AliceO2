@@ -508,8 +508,8 @@ GPUd() void GPUTPCGMMerger::RefitSliceTracks(int nBlocks, int nThreads, int iBlo
     TrackIds[iSlice * mNMaxSingleSliceTracks + sliceTr->LocalTrackId()] = myTrack;
     mSliceTrackInfos[myTrack] = track;
   }
-  if (!Param().rec.mergerReadFromTrackerDirectly && nLocalTracks) {
-    mMemory->firstGlobalTracks[iSlice] = sliceTr->GetNextTrack();
+  if (!Param().rec.mergerReadFromTrackerDirectly) {
+    mMemory->firstGlobalTracks[iSlice] = nLocalTracks ? sliceTr->GetNextTrack() : mkSlices[iSlice]->GetFirstTrack();
   }
 }
 
