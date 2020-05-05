@@ -1192,34 +1192,6 @@ struct GPUTPCGMMerger_CompareClusterIds {
   }
 };
 
-struct GPUTPCGMMerger_CompareTracksAttachWeight {
-  const GPUTPCGMMergedTrack* const mCmp;
-  GPUd() GPUTPCGMMerger_CompareTracksAttachWeight(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
-  GPUd() bool operator()(const int aa, const int bb)
-  {
-    const GPUTPCGMMergedTrack& GPUrestrict() a = mCmp[aa];
-    const GPUTPCGMMergedTrack& GPUrestrict() b = mCmp[bb];
-    return (CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt()));
-  }
-};
-
-struct GPUTPCGMMerger_CompareTracksProcess {
-  const GPUTPCGMMergedTrack* const mCmp;
-  GPUd() GPUTPCGMMerger_CompareTracksProcess(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
-  GPUd() bool operator()(const int aa, const int bb)
-  {
-    const GPUTPCGMMergedTrack& GPUrestrict() a = mCmp[aa];
-    const GPUTPCGMMergedTrack& GPUrestrict() b = mCmp[bb];
-    if (a.CCE() != b.CCE()) {
-      return a.CCE() > b.CCE();
-    }
-    if (a.Legs() != b.Legs()) {
-      return a.Legs() > b.Legs();
-    }
-    return a.NClusters() > b.NClusters();
-  }
-};
-
 GPUd() void GPUTPCGMMerger::LinkGlobalTracks(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   for (int itr = SliceTrackInfoGlobalFirst(0) + iBlock * nThreads + iThread; itr < SliceTrackInfoGlobalLast(NSLICES - 1); itr += nThreads * nBlocks) {
@@ -1536,7 +1508,19 @@ GPUd() void GPUTPCGMMerger::SortTracksPrepare(int nBlocks, int nThreads, int iBl
 
 GPUd() void GPUTPCGMMerger::SortTracks(int nBlocks, int nThreads, int iBlock, int iThread)
 {
-  GPUCommonAlgorithm::sort(mTrackOrderProcess, mTrackOrderProcess + mMemory->nOutputTracks, GPUTPCGMMerger_CompareTracksProcess(mOutputTracks));
+  auto comp = [cmp = mOutputTracks](const int aa, const int bb) {
+    const GPUTPCGMMergedTrack& GPUrestrict() a = cmp[aa];
+    const GPUTPCGMMergedTrack& GPUrestrict() b = cmp[bb];
+    if (a.CCE() != b.CCE()) {
+      return a.CCE() > b.CCE();
+    }
+    if (a.Legs() != b.Legs()) {
+      return a.Legs() > b.Legs();
+    }
+    return a.NClusters() > b.NClusters();
+  };
+
+  GPUCommonAlgorithm::sortDeviceDynamic(mTrackOrderProcess, mTrackOrderProcess + mMemory->nOutputTracks, comp);
 }
 
 GPUd() void GPUTPCGMMerger::PrepareClustersForFit0(int nBlocks, int nThreads, int iBlock, int iThread)
@@ -1550,7 +1534,13 @@ GPUd() void GPUTPCGMMerger::PrepareClustersForFit0(int nBlocks, int nThreads, in
 GPUd() void GPUTPCGMMerger::SortTracksQPt(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   unsigned int* trackSort = (unsigned int*)mTmpMem;
-  GPUCommonAlgorithm::sort(trackSort, trackSort + mMemory->nOutputTracks, GPUTPCGMMerger_CompareTracksAttachWeight(mOutputTracks));
+  auto comp = [cmp = mOutputTracks](const int aa, const int bb) {
+    const GPUTPCGMMergedTrack& GPUrestrict() a = cmp[aa];
+    const GPUTPCGMMergedTrack& GPUrestrict() b = cmp[bb];
+    return (CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt()));
+  };
+
+  GPUCommonAlgorithm::sortDeviceDynamic(trackSort, trackSort + mMemory->nOutputTracks, comp);
 }
 
 GPUd() void GPUTPCGMMerger::PrepareClustersForFit1(int nBlocks, int nThreads, int iBlock, int iThread)
