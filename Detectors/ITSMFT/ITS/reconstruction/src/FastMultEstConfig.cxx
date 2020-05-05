@@ -8,19 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "ITSReconstruction/FastMultEstConfig.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::its::ClustererTask + ;
-#pragma link C++ class o2::its::CookedTracker + ;
-
-#pragma link C++ class o2::its::RecoGeomHelper + ;
-
-#pragma link C++ class o2::its::FastMultEst + ;
-#pragma link C++ class o2::its::FastMultEstConfig + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its::FastMultEstConfig> + ;
-
-#endif
+O2ParamImpl(o2::its::FastMultEstConfig);
