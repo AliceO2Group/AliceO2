@@ -46,12 +46,12 @@ To access the resulting documentation, open doc/html/index.html in your
 build directory. To install the documentation when calling `cmake --build . -- install` (or `cmake --install` for CMake >= 3.15)
 turn on the variable `DOC_INSTALL`.
 
-The instruction how to add the documentation pages (README.md) are available [here](https://aliceo2group.github.io/AliceO2/refdocDoxygenInstructions.html).
+The instruction how to add the documentation pages (README.md) are available [here](https://github.com/AliceO2Group/AliceO2/blob/dev/doc/DoxygenInstructions.md).
 
 ### Build system (cmake) and directory structure
 
-The code organisation is described [here](https://aliceo2group.github.io/AliceO2/refdocCodeOrganization.html).
-The build system (cmake) is described [here](https://aliceo2group.github.io/AliceO2/refdocCMakeInstructions.html).
+The code organisation is described [here](https://github.com/AliceO2Group/AliceO2/blob/dev/doc/CodeOrganization.md).
+The build system (cmake) is described [here](https://github.com/AliceO2Group/AliceO2/blob/dev/doc/CMakeInstructions.md).
 
 ### Formatting
 

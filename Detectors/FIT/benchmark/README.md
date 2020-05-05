@@ -1,3 +1,7 @@
+<!-- doxy
+\page refFITbenchmark Performace testing
+/doxy -->
+
 # Documentation for Performance testing
 This document will summarize the tools that can be used to get information about the memory and CPU time evolution of simulations in ALICE O2.
 
