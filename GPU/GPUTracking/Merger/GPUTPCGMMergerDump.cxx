@@ -40,7 +40,7 @@ void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out)
   out << std::setprecision(2);
   out << "\nTPC Merger Slice Tracks\n";
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    out << "Slice Track Info Index" << mSliceTrackInfoIndex[iSlice] << " / " << mSliceTrackInfoIndex[NSLICES + iSlice] << "\n";
+    out << "Slice Track Info Index " << (mSliceTrackInfoIndex[iSlice + 1] - mSliceTrackInfoIndex[iSlice]) << " / " << (mSliceTrackInfoIndex[NSLICES + iSlice + 1] - mSliceTrackInfoIndex[NSLICES + iSlice]) << "\n";
     for (int iGlobal = 0; iGlobal < 2; iGlobal++) {
       out << "  Track type " << iGlobal << "\n";
       for (int j = mSliceTrackInfoIndex[iSlice + NSLICES * iGlobal]; j < mSliceTrackInfoIndex[iSlice + NSLICES * iGlobal + 1]; j++) {
