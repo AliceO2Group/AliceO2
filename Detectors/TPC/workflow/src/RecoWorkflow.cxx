@@ -431,7 +431,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                        "TPCTracks", "track-branch-name"};              //
     auto clrefdef = BranchDefinition<ClusRefsOutputType>{InputSpec{"inputClusRef", "TPC", "CLUSREFS"}, //
                                                          "ClusRefs", "trackclusref-branch-name"};      //
-    auto mcdef = BranchDefinition<MCLabelContainer>{InputSpec{"mcinput", "TPC", "TRACKMCLBL"},         //
+    auto mcdef = BranchDefinition<MCLabelContainer>{InputSpec{"mcinput", "TPC", "TRACKSMCLBL"},        //
                                                     "TPCTracksMCTruth", "trackmc-branch-name"};        //
 
     // depending on the MC propagation flag, the RootTreeWriter spec is created with 3 or 2
