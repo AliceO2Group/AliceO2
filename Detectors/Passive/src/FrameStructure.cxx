@@ -39,6 +39,7 @@ const char* TOPNAME = "cave";
 #define kRaddeg TMath::RadToDeg()
 #define kDegrad TMath::DegToRad()
 
+FrameStructure::FrameStructure() : PassiveBase("FRAME", "") {}
 FrameStructure::FrameStructure(const char* name, const char* Title) : PassiveBase(name, Title)
 {
 }

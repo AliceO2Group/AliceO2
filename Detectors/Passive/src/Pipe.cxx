@@ -40,7 +40,7 @@
 using namespace o2::passive;
 
 Pipe::~Pipe() = default;
-Pipe::Pipe() : PassiveBase() {}
+Pipe::Pipe() : PassiveBase("PIPE", "") {}
 Pipe::Pipe(const char* name, const char* title, float rho, float thick)
   : PassiveBase(name, title), mBePipeRmax(rho), mBePipeThick(thick)
 {
