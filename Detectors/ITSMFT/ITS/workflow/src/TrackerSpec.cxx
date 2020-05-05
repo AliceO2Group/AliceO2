@@ -34,6 +34,9 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 
+#include "ITSReconstruction/FastMultEstConfig.h"
+#include "ITSReconstruction/FastMultEst.h"
+
 namespace o2
 {
 using namespace framework;
@@ -122,6 +125,9 @@ void TrackerDPL::run(ProcessingContext& pc)
   bool continuous = mGRP->isDetContinuousReadOut("ITS");
   LOG(INFO) << "ITSTracker RO: continuous=" << continuous;
 
+  const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
+  FastMultEst multEst;                                     // mult estimator
+
   // snippet to convert found tracks to final output tracks with separate cluster indices
   auto copyTracks = [](auto& tracks, auto& allTracks, auto& allClusIdx, int offset = 0) {
     for (auto& trc : tracks) {
@@ -136,29 +142,63 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
   if (continuous) {
-    for (const auto& rof : rofs) {
+    for (auto& rof : rofs) {
       int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
+      // prepare in advance output ROFRecords, even if this ROF to be rejected
+      int first = allTracks.size();
+
       if (nclUsed) {
         LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+
+        // for vertices output
+        auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
+        vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
+        vtxROF.setNEntries(0);
+
+        if (multEstConf.cutMultClusLow > 0 || multEstConf.cutMultClusHigh > 0) { // cut was requested
+          auto mult = multEst.process(rof.getROFData(compClusters));
+          if (mult < multEstConf.cutMultClusLow || mult > multEstConf.cutMultClusHigh) {
+            LOG(INFO) << "Estimated cluster mult. " << mult << " is outside of requested range "
+                      << multEstConf.cutMultClusLow << " : " << multEstConf.cutMultClusHigh << " | ROF " << rof.getBCData();
+            rof.setFirstEntry(first);
+            rof.setNEntries(0);
+            continue;
+          }
+        }
+
         mVertexer->clustersToVertices(event);
         auto vtxVecLoc = mVertexer->exportVertices();
+
+        if (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0) { // cut was requested
+          std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecSel;
+          vtxVecSel.swap(vtxVecLoc);
+          for (const auto& vtx : vtxVecSel) {
+            if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
+              LOG(INFO) << "Found vertex mult. " << vtx.getNContributors() << " is outside of requested range "
+                        << multEstConf.cutMultVtxLow << " : " << multEstConf.cutMultVtxHigh << " | ROF " << rof.getBCData();
+              continue; // skip vertex of unwanted multiplicity
+            }
+            vtxVecLoc.push_back(vtx);
+          }
+          if (vtxVecLoc.empty()) { // reject ROF
+            rof.setFirstEntry(first);
+            rof.setNEntries(0);
+            continue;
+          }
+        }
+
         event.addPrimaryVertices(vtxVecLoc);
         mTracker->setROFrame(roFrame);
         mTracker->clustersToTracks(event);
         tracks.swap(mTracker->getTracks());
         LOG(INFO) << "Found tracks: " << tracks.size();
-        int first = allTracks.size();
         int number = tracks.size();
         trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
         int shiftIdx = -rof.getFirstEntry();
-        rofs[roFrame].setFirstEntry(first);
-        rofs[roFrame].setNEntries(number);
+        rof.setNEntries(number);
         copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
         allTrackLabels.mergeAtBack(trackLabels);
 
-        // for vertices output
-        auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
-        vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
         vtxROF.setNEntries(vtxVecLoc.size());
         for (const auto& vtx : vtxVecLoc) {
           vertices.push_back(vtx);
@@ -168,6 +208,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
   } else {
     ioutils::loadEventData(event, compClusters, pattIt, mDict, labels);
+    // RS: FIXME: this part seems to be not functional !!!
     event.addPrimaryVertex(0.f, 0.f, 0.f); //FIXME :  run an actual vertex finder !
     mTracker->clustersToTracks(event);
     tracks.swap(mTracker->getTracks());
