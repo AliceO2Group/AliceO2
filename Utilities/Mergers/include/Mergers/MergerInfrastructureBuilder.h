@@ -22,9 +22,7 @@
 
 #include <string>
 
-namespace o2
-{
-namespace experimental::mergers
+namespace o2::mergers
 {
 
 /// \brief Builder class for Merger topologies
@@ -51,7 +49,6 @@ class MergerInfrastructureBuilder
   /// \brief Default destructor.
   ~MergerInfrastructureBuilder() = default;
 
-  // todo: consider another interface - showing to the builder dataprocessorspecs which should be joined together
   void setInfrastructureName(std::string name);
   void setInputSpecs(const framework::Inputs& inputs);
   void setOutputSpec(const framework::OutputSpec& outputSpec);
@@ -71,7 +68,6 @@ class MergerInfrastructureBuilder
   MergerConfig mConfig;
 };
 
-} // namespace experimental::mergers
-} // namespace o2
+} // namespace o2::mergers
 
 #endif //ALICEO2_INFRASTRUCTUREBUILDER_H

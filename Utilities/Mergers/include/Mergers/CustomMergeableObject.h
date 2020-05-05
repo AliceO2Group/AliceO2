@@ -11,52 +11,35 @@
 #ifndef ALICEO2_MERGEINTERFACEOVERRIDEEXAMPLE_H
 #define ALICEO2_MERGEINTERFACEOVERRIDEEXAMPLE_H
 
-/// \file MergeInterfaceOverrideExample.h
+/// \file CustomMergeableObject.h
 /// \brief An example of overriding O2 Mergers merging interface, v0.1
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "Mergers/MergeInterface.h"
 
-namespace o2
-{
-namespace experimental::mergers
+namespace o2::mergers
 {
 
-class MergeInterfaceOverrideExample : public TObject, public MergeInterface
+class CustomMergeableObject : public MergeInterface
 {
  public:
-  MergeInterfaceOverrideExample(int secret = 9000) : TObject(), MergeInterface(), mSecret(secret) {}
-  ~MergeInterfaceOverrideExample() override = default;
+  CustomMergeableObject(int secret = 9000) : MergeInterface(), mSecret(secret) {}
+  ~CustomMergeableObject() override = default;
 
-  std::vector<TObject*> unpack() override
+  void merge(MergeInterface* const other) override
   {
-    return {this};
+    mSecret += dynamic_cast<const CustomMergeableObject* const>(other)->getSecret();
   }
-
-  Long64_t merge(TCollection* list) override
-  {
-    auto iter = list->MakeIterator();
-    while (auto element = iter->Next()) {
-      mSecret += reinterpret_cast<MergeInterfaceOverrideExample*>(element)->getSecret();
-    }
-    return 0;
-  }
-
-  double getTimestamp() override
-  {
-    return 0;
-  };
 
   int getSecret() const { return mSecret; }
 
  private:
   int mSecret = 0;
 
-  ClassDefOverride(MergeInterfaceOverrideExample, 1);
+  ClassDefOverride(CustomMergeableObject, 1);
 };
 
-} // namespace experimental::mergers
-} // namespace o2
+} // namespace o2::mergers
 
 #endif //ALICEO2_MERGEINTERFACEOVERRIDEEXAMPLE_H

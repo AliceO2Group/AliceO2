@@ -8,14 +8,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef ALICEO2_MERGERS_H
+#define ALICEO2_MERGERS_H
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+/// \file MergerAlgorithm.h
+/// \brief Algorithms for merging objects.
+///
+/// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#pragma link C++ class o2::mergers::MergeInterface + ;
-#pragma link C++ class o2::mergers::CustomMergeableObject + ;
-#pragma link C++ class o2::mergers::CustomMergeableTObject + ;
+#include "Mergers/MergeInterface.h"
 
-#endif
+class TObject;
+
+namespace o2::mergers::algorithm
+{
+
+/// \brief A function which merges TObjects
+void merge(TObject* const target, TObject* const other);
+void deleteTCollections(TObject* obj);
+
+} // namespace o2::mergers::algorithm
+
+#endif //ALICEO2_MERGERS_H

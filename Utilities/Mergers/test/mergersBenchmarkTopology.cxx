@@ -19,12 +19,8 @@
 
 #include <Framework/CompletionPolicy.h>
 
-#include <TH1F.h>
-#include <memory>
-#include <random>
-
 using namespace o2::framework;
-using namespace o2::experimental::mergers;
+using namespace o2::mergers;
 
 void customize(std::vector<CompletionPolicy>& policies)
 {
@@ -39,17 +35,17 @@ void customize(std::vector<ConfigParamSpec>& options)
   options.push_back({"obj-producers", VariantType::Int, 4, {"Number of objects producers"}});
 
   options.push_back({"mergers-layers", VariantType::Int, 2, {"Number of layers in the merger topology"}});
-  options.push_back({"mergers-merge-decision", VariantType::String, "publication", {"At which occasion objects are merged: 'arrival' or 'publication'"}});
-  options.push_back({"mergers-publication-decision", VariantType::String, "interval", {"When merged objects are published: interval or all-updated"}});
   options.push_back({"mergers-publication-interval", VariantType::Double, 10.0, {"Publication interval of merged object [s]. It takes effect with --mergers-publication-decision interval"}});
   options.push_back(
-    {"mergers-ownership-mode", VariantType::String, "diffs", {"Should the topology use 'diffs' or 'full' objects"}});
+    {"mergers-input-timespan", VariantType::String, "diffs", {"Should the topology use 'diffs' or 'full' objects"}});
 }
 
-#include <Framework/runDataProcessing.h>
-#include <fairmq/FairMQLogger.h>
-#include <Mergers/MergeInterfaceOverrideExample.h>
+#include "Framework/runDataProcessing.h"
 
+#include <TH1F.h>
+#include <memory>
+#include <random>
+#include <fairmq/FairMQLogger.h>
 #include "Mergers/MergerInfrastructureBuilder.h"
 
 using namespace std::chrono;
@@ -61,13 +57,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   int objectsProducers = config.options().get<int>("obj-producers");
 
   int mergersLayers = config.options().get<int>("mergers-layers");
-  MergingTime mergersMergeDecision =
-    config.options().get<std::string>("mergers-merge-decision") == "publication" ? MergingTime::BeforePublication : MergingTime::AfterArrival;
-  PublicationDecision mergersPublicationDecision =
-    config.options().get<std::string>("mergers-publication-decision") == "all-updated" ? PublicationDecision::WhenXInputsUpdated : PublicationDecision::EachNSeconds;
+  PublicationDecision mergersPublicationDecision = PublicationDecision::EachNSeconds;
   double mergersPublicationInterval = config.options().get<double>("mergers-publication-interval");
-  OwnershipMode mergersOwnershipMode =
-    config.options().get<std::string>("mergers-ownership-mode") == "full" ? OwnershipMode::Full : OwnershipMode::Integral;
+  InputObjectsTimespan mergersInputObjectTimespan =
+    config.options().get<std::string>("mergers-input-timespan") == "full" ? InputObjectsTimespan::FullHistory : InputObjectsTimespan::LastDifference;
 
   WorkflowSpec specs;
   // clang-format off
@@ -96,7 +89,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
               auto subspec = static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1);
               TH1F& histo = processingContext.outputs().make<TH1F>(Output{ "TST", "HISTO", subspec }, "gauss", "gauss", objectsBins, -3, 3);
-              histo.FillRandom("gaus", 1000);
+              histo.FillRandom("gaus", 10000);
             }
           }
         }
@@ -109,10 +102,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     mergersBuilder.setInputSpecs(mergersInputs);
     mergersBuilder.setOutputSpec({{ "main" }, "TST", "HISTO", 0 });
     MergerConfig mergerConfig;
-    mergerConfig.ownershipMode = { mergersOwnershipMode };
+    mergerConfig.inputObjectTimespan = { mergersInputObjectTimespan };
     mergerConfig.publicationDecision = { mergersPublicationDecision, mergersPublicationDecision == PublicationDecision::EachNSeconds ? mergersPublicationInterval : 1.0 };
-    mergerConfig.mergingTime = { mergersMergeDecision };
-    mergerConfig.timespan = { Timespan::FullHistory };
+    mergerConfig.mergedObjectTimespan = { MergedObjectTimespan::FullHistory };
     mergerConfig.topologySize = { TopologySize::NumberOfLayers, mergersLayers };
     mergersBuilder.setConfig(mergerConfig);
 
@@ -127,11 +119,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
       AlgorithmSpec{
         (AlgorithmSpec::InitCallback) [](InitContext&) {
           return (AlgorithmSpec::ProcessCallback) [](ProcessingContext& processingContext) mutable {
-//            LOG(INFO) << "printer invoked";
             auto histo = processingContext.inputs().get<TH1F*>("histo");
             std::string bins = "BINS:";
             for (int i = 1; i <= histo->GetNbinsX(); i++) {
               bins += " " + std::to_string((int) histo->GetBinContent(i));
+              if (i >= 100) {
+                LOG(INFO) << "Trimming the output to 100 entries, total is: " << histo->GetNbinsX();
+                break;
+              }
             }
             LOG(INFO) << bins;
           };
