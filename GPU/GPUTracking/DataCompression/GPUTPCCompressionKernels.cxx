@@ -329,7 +329,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step2ga
   GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
   const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = processors.tpcConverter.getClustersNative();
   compressorMemcpy(compressor.mOutput->nSliceRowClusters, compressor.mPtrs.nSliceRowClusters, compressor.NSLICES * GPUCA_ROW_COUNT * sizeof(compressor.mOutput->nSliceRowClusters[0]));
-  compressorMemcpy(compressor.mOutput->nTrackClusters, compressor.mPtrs.nTrackClusters, compressor.mOutput->nTracks * sizeof(compressor.mOutput->nTrackClusters[0]));
+  compressorMemcpy(compressor.mOutput->nTrackClusters, compressor.mPtrs.nTrackClusters, compressor.mMemory->nStoredTracks * sizeof(compressor.mOutput->nTrackClusters[0]));
   unsigned int offset = 0;
   for (unsigned int i = 0; i < compressor.NSLICES; i++) {
     for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
@@ -344,7 +344,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step2ga
     }
   }
   offset = 0;
-  for (unsigned int i = 0; i < compressor.mOutput->nTracks; i++) {
+  for (unsigned int i = 0; i < compressor.mMemory->nStoredTracks; i++) {
     compressorMemcpy(compressor.mOutput->qTotA + offset, compressor.mPtrs.qTotA + compressor.mAttachedClusterFirstIndex[i], compressor.mPtrs.nTrackClusters[i] * sizeof(compressor.mOutput->qTotA[0]));
     compressorMemcpy(compressor.mOutput->qMaxA + offset, compressor.mPtrs.qMaxA + compressor.mAttachedClusterFirstIndex[i], compressor.mPtrs.nTrackClusters[i] * sizeof(compressor.mOutput->qMaxA[0]));
     compressorMemcpy(compressor.mOutput->flagsA + offset, compressor.mPtrs.flagsA + compressor.mAttachedClusterFirstIndex[i], compressor.mPtrs.nTrackClusters[i] * sizeof(compressor.mOutput->flagsA[0]));
@@ -358,9 +358,9 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step2ga
     compressorMemcpy(compressor.mOutput->timeResA + offset - i, compressor.mPtrs.timeResA + compressor.mAttachedClusterFirstIndex[i] + 1, (compressor.mPtrs.nTrackClusters[i] - 1) * sizeof(compressor.mOutput->timeResA[0]));
     offset += compressor.mPtrs.nTrackClusters[i];
   }
-  compressorMemcpy(compressor.mOutput->qPtA, compressor.mPtrs.qPtA, compressor.mOutput->nTracks * sizeof(compressor.mOutput->qPtA[0]));
-  compressorMemcpy(compressor.mOutput->rowA, compressor.mPtrs.rowA, compressor.mOutput->nTracks * sizeof(compressor.mOutput->rowA[0]));
-  compressorMemcpy(compressor.mOutput->sliceA, compressor.mPtrs.sliceA, compressor.mOutput->nTracks * sizeof(compressor.mOutput->sliceA[0]));
-  compressorMemcpy(compressor.mOutput->timeA, compressor.mPtrs.timeA, compressor.mOutput->nTracks * sizeof(compressor.mOutput->timeA[0]));
-  compressorMemcpy(compressor.mOutput->padA, compressor.mPtrs.padA, compressor.mOutput->nTracks * sizeof(compressor.mOutput->padA[0]));
+  compressorMemcpy(compressor.mOutput->qPtA, compressor.mPtrs.qPtA, compressor.mMemory->nStoredTracks * sizeof(compressor.mOutput->qPtA[0]));
+  compressorMemcpy(compressor.mOutput->rowA, compressor.mPtrs.rowA, compressor.mMemory->nStoredTracks * sizeof(compressor.mOutput->rowA[0]));
+  compressorMemcpy(compressor.mOutput->sliceA, compressor.mPtrs.sliceA, compressor.mMemory->nStoredTracks * sizeof(compressor.mOutput->sliceA[0]));
+  compressorMemcpy(compressor.mOutput->timeA, compressor.mPtrs.timeA, compressor.mMemory->nStoredTracks * sizeof(compressor.mOutput->timeA[0]));
+  compressorMemcpy(compressor.mOutput->padA, compressor.mPtrs.padA, compressor.mMemory->nStoredTracks * sizeof(compressor.mOutput->padA[0]));
 }
