@@ -1,3 +1,7 @@
+<!-- doxy
+\page refrunSimExamplesHepMC_STARlight Example HepMC_STARlight
+/doxy -->
+
 This is a simple simulation example showing how to run event simulation using the `STARlight` event generator.
 The `STARlight` event generation process is launched in a clean environment by the script `run-starlight.sh`.
 
