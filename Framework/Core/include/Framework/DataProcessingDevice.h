@@ -45,6 +45,7 @@ class DataProcessingDevice : public FairMQDevice
  public:
   DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry&, DeviceState& state);
   void Init() final;
+  void InitTask() final;
   void PreRun() final;
   void PostRun() final;
   void Reset() final;
@@ -84,6 +85,7 @@ class DataProcessingDevice : public FairMQDevice
   uint64_t mBeginIterationTimestamp = 0;     /// The timestamp of when the current ConditionalRun was started
   DataProcessingStats mStats;                /// Stats about the actual data processing.
   int mCurrentBackoff = 0;                   /// The current exponential backoff value.
+  std::vector<FairMQRegionInfo> mPendingRegionInfos; /// A list of the region infos not yet notified.
 };
 
 } // namespace o2::framework
