@@ -61,6 +61,9 @@ class GPUCATracking
   int getNTracksASide() { return mNTracksASide; }
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const;
 
+  int registerMemoryForGPU(const void* ptr, size_t size);
+  int unregisterMemoryForGPU(const void* ptr);
+
  private:
   std::unique_ptr<o2::gpu::GPUTPCO2Interface> mTrackingCAO2Interface; //Pointer to Interface class in HLT O2 CA Tracking library.
                                                                       //The tracking code itself is not included in the O2 package, but contained in the CA library.

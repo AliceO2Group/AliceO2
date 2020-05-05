@@ -122,3 +122,13 @@ void GPUTPCO2Interface::GetClusterErrors2(int row, float z, float sinPhi, float 
   mRec->GetParam().GetClusterErrors2(row, z, sinPhi, DzDs, ErrY2, ErrZ2);
   mRec->GetParam().UpdateClusterError2ByState(clusterState, ErrY2, ErrZ2);
 }
+
+int GPUTPCO2Interface::registerMemoryForGPU(const void* ptr, size_t size)
+{
+  return mRec->registerMemoryForGPU(ptr, size);
+}
+
+int GPUTPCO2Interface::unregisterMemoryForGPU(const void* ptr)
+{
+  return mRec->unregisterMemoryForGPU(ptr);
+}

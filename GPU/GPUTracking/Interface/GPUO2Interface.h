@@ -55,6 +55,9 @@ class GPUTPCO2Interface
   bool GetParamContinuous() { return (mContinuous); }
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const;
 
+  int registerMemoryForGPU(const void* ptr, size_t size);
+  int unregisterMemoryForGPU(const void* ptr);
+
   const GPUO2InterfaceConfiguration& getConfig() const { return *mConfig; }
 
  private:
