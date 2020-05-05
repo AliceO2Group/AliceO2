@@ -165,6 +165,7 @@ class GPUReconstruction
   void PrepareEvent();
   virtual int RunChains() = 0;
   unsigned int getNEventsProcessed() { return mNEventsProcessed; }
+  unsigned int getNEventsProcessedInStat() { return mStatNEvents; }
   virtual int registerMemoryForGPU(const void* ptr, size_t size) = 0;
   virtual int unregisterMemoryForGPU(const void* ptr) = 0;
 

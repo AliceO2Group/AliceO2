@@ -701,6 +701,7 @@ int main(int argc, char** argv)
           rec->SetResetTimers(j1 < configStandalone.runsInit);
 
           if (configStandalone.testSyncAsync) {
+            recAsync->SetResetTimers(j1 < configStandalone.runsInit);
             printf("Running synchronous phase\n");
           }
           chainTracking->mIOPtrs = ioPtrSave;
