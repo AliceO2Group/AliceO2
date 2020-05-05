@@ -74,7 +74,7 @@ void TOFMatchedWriter::run(ProcessingContext& pc)
     getOrMakeBranch(mTree.get(), "MatchTPCMCTruth", &labeltpcPtr);
     getOrMakeBranch(mTree.get(), "MatchITSMCTruth", &labelitsPtr);
   }
-  mTree->Write();
+  mTree->Fill();
 }
 
 void TOFMatchedWriter::endOfStream(EndOfStreamContext& ec)
