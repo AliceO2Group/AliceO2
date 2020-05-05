@@ -14,12 +14,11 @@
 #include "FairModule.h" // for FairModule
 #include "DetectorsPassive/PassiveBase.h"
 
-
 namespace o2
 {
 namespace passive
 {
-  class Hall : public PassiveBase
+class Hall : public PassiveBase
 {
  public:
   enum EMedium { kSTST_C2 = 50,
