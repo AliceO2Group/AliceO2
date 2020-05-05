@@ -108,7 +108,7 @@
   #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
   #define GPUCA_LB_GPUTPCCompressionKernels_step0attached 128
   #define GPUCA_LB_GPUTPCCompressionKernels_step1unattached 448
-  #define GPUCA_LB_GPUTPCCompressionKernels_step2gather 128
+  #define GPUCA_LB_GPUTPCCompressionKernels_step2gather 1024
   #define GPUCA_LB_CLUSTER_FINDER 512
   #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 4
   #define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 20
@@ -250,7 +250,10 @@
   #define GPUCA_GET_THREAD_COUNT(...) 1
 #endif
 
+#define GPUCA_GET_WARP_COUNT(...) (GPUCA_GET_THREAD_COUNT(__VA_ARGS__) / GPUCA_WARP_SIZE)
+
 #define GPUCA_THREAD_COUNT_SCAN 512 // TODO: WARNING!!! Must not be GPUTYPE-dependent right now! // TODO: Fix!
+
 
 #define GPUCA_LB_GPUTPCCFChargeMapFiller GPUCA_LB_CLUSTER_FINDER
 #define GPUCA_LB_GPUTPCCFChargeMapFiller GPUCA_LB_CLUSTER_FINDER
