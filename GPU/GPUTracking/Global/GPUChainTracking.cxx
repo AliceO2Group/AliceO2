@@ -1854,9 +1854,8 @@ int GPUChainTracking::RunChain()
     }
   }
   static HighResTimer timerTracking, timerMerger, timerQA, timerTransform, timerCompression, timerClusterer;
-  int nCount = mRec->getNEventsProcessed();
   if (GetDeviceProcessingSettings().debugLevel >= 6) {
-    mDebugFile << "\n\nProcessing event " << nCount << std::endl;
+    mDebugFile << "\n\nProcessing event " << mRec->getNEventsProcessed() << std::endl;
   }
   if (mRec->slavesExist() && mRec->IsGPU()) {
     const auto threadContext = GetThreadContext();
@@ -1930,6 +1929,7 @@ int GPUChainTracking::RunChain()
   }
 
   if (GetDeviceProcessingSettings().debugLevel >= 0) {
+    int nCount = mRec->getNEventsProcessedInStat();
     char nAverageInfo[16] = "";
     if (nCount > 1) {
       sprintf(nAverageInfo, " (%d)", nCount);
