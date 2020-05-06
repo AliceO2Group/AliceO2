@@ -20,6 +20,7 @@
 #include <unordered_map>
 #include <gsl/gsl>
 #include "DataFormatsMID/ColumnData.h"
+#include "MIDBase/Mapping.h"
 #include "MIDRaw/CrateMapper.h"
 #include "MIDRaw/LocalBoardRO.h"
 
@@ -38,6 +39,7 @@ class ColumnDataToLocalBoard
   std::unordered_map<uint16_t, LocalBoardRO> mLocalBoardsMap{};      /// Map of data per board
   std::unordered_map<uint16_t, std::vector<LocalBoardRO>> mGBTMap{}; /// Map of data per GBT link
   CrateMapper mCrateMapper{};                                        /// Crate mapper
+  Mapping mMapping{};                                                /// Segmentation
 };
 } // namespace mid
 } // namespace o2
