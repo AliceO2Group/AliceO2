@@ -29,7 +29,7 @@ using namespace o2::passive;
 
 Shil::~Shil() = default;
 
-Shil::Shil() : PassiveBase("Shil", "") {}
+Shil::Shil() : PassiveBase("SHIL", "") {}
 Shil::Shil(const char* name, const char* Title) : PassiveBase(name, Title) {}
 Shil::Shil(const Shil& rhs) = default;
 

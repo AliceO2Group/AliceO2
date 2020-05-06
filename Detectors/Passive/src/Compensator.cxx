@@ -29,7 +29,7 @@ using namespace o2::passive;
 
 Compensator::~Compensator() = default;
 
-Compensator::Compensator() : PassiveBase("Compensator", "") {}
+Compensator::Compensator() : PassiveBase("COMP", "") {}
 Compensator::Compensator(const char* name, const char* Title) : PassiveBase(name, Title) {}
 Compensator::Compensator(const Compensator& rhs) = default;
 
