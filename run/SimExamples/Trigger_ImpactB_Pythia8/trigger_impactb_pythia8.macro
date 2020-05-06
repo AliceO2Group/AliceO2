@@ -1,0 +1,31 @@
+/// \author R+Preghenella - May 2020
+
+#include "Generators/Trigger.h"
+#include "Pythia8/Pythia.h"
+#include "Pythia8/HIUserHooks.h"
+#include "FairLogger.h"
+
+o2::eventgen::DeepTrigger
+  trigger_impactb_pythia8(double bmin = 5., double bmax = 10.)
+{
+  return [bmin, bmax](void* interface, std::string name) -> bool {
+    if (!name.compare("pythia8")) {
+      auto py8 = reinterpret_cast<Pythia8::Pythia*>(interface);
+#if PYTHIA_VERSION_INTEGER < 8300
+      auto hiinfo = py8->info.hiinfo;
+#else
+      auto hiinfo = py8->info.hiInfo;
+#endif
+      if (!hiinfo) {
+        LOG(FATAL) << "Cannot define impact parameter: is \'pythia8\' running in heavy-ion mode?";
+      }
+      auto b = hiinfo->b();
+      auto selected = (b > bmin && b < bmax);
+      LOG(INFO) << "Impact parameter = " << b << " fm: " << (selected ? "selected" : "rejected");
+      return selected;
+    } else {
+      LOG(FATAL) << "Cannot define impact parameter for generator interface \'" << name << "\'";
+    }
+    return false;
+  };
+}
