@@ -262,7 +262,7 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
   mEventCounter = tofwindow; // tof window index
   mIR.orbit = mEventCounter / Geo::NWINDOW_IN_ORBIT;
 
-  if (!(mIR.orbit % mHBFSampler.getNOrbitsPerTF())) { // new TF
+  if ((mIR.orbit % mHBFSampler.getNOrbitsPerTF()) == mHBFSampler.getFirstIR().orbit) { // new TF
     flush();
   }
 
@@ -419,7 +419,7 @@ void Encoder::openRDH(int icrate)
     //    mRDH[icrate]->triggerType |= mIsContinuous ? o2::trigger::SOC : o2::trigger::SOT;
     mRDH[icrate]->triggerType |= o2::trigger::SOT;
   }
-  if (!(mIR.orbit % mHBFSampler.getNOrbitsPerTF()))
+  if ((mIR.orbit % mHBFSampler.getNOrbitsPerTF()) == mHBFSampler.getFirstIR().orbit)
     mRDH[icrate]->triggerType |= o2::trigger::TF;
 
   // word6
@@ -479,7 +479,7 @@ void Encoder::closeRDH(int icrate)
     //    mRDH[icrate]->triggerType |= mIsContinuous ? o2::trigger::SOC : o2::trigger::SOT;
     mRDH[icrate]->triggerType |= o2::trigger::SOT;
   }
-  if (!(mIR.orbit % mHBFSampler.getNOrbitsPerTF()))
+  if ((mIR.orbit % mHBFSampler.getNOrbitsPerTF()) == mHBFSampler.getFirstIR().orbit)
     mRDH[icrate]->triggerType |= o2::trigger::TF;
 
   // word6
