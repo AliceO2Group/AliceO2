@@ -157,6 +157,7 @@ target_compile_definitions(standalone_support PUBLIC $<TARGET_PROPERTY:O2::GPUTr
 # Add all sources and dependencies to to support based on Config File
 if(CONFIG_O2_EXTENSIONS)
   target_sources(standalone_support PRIVATE
+               ../../..//DataFormats/Detectors/TPC/src/CompressedClusters.cxx
                ../../..//DataFormats/simulation/src/MCCompLabel.cxx
                ../../..//Detectors/TRD/base/src/TRDGeometryBase.cxx
                ../../..//Detectors/Base/src/MatLayerCylSet.cxx

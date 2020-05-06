@@ -52,7 +52,7 @@ DataProcessorSpec getEntropyEncoderSpec()
     auto processAttributes = std::make_shared<ProcessAttributes>();
 
     auto processingFct = [processAttributes](ProcessingContext& pc) {
-      auto clusters = pc.inputs().get<CompressedClusters*>("input");
+      auto clusters = pc.inputs().get<CompressedClustersROOT*>("input");
       if (clusters == nullptr) {
         LOG(ERROR) << "invalid input";
         return;
