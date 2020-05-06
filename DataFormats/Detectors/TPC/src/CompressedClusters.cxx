@@ -12,20 +12,46 @@
 /// \brief Container to store compressed TPC cluster data
 
 #include "DataFormatsTPC/CompressedClusters.h"
+
+#ifndef GPUCA_STANDALONE
 #include "DataFormatsTPC/CompressedClustersHelpers.h"
 #include "TBuffer.h"
 #include <vector>
 #include <gsl/span>
+#endif
 
 namespace o2::tpc
 {
 
-template <>
-void CompressedClusters::Streamer(TBuffer& R__b)
+CompressedClusters::CompressedClusters(const CompressedClustersFlat& c)
 {
-  // the custom streamer for CompressedClusters
+  CompressedClustersCounters& cc = *this;
+  CompressedClustersPtrs& cp = *this;
+  const CompressedClustersOffsets& offsets = c;
+  cc = c;
+  for (unsigned int i = 0; i < sizeof(cp) / sizeof(size_t); i++) {
+    reinterpret_cast<void**>(&cp)[i] = reinterpret_cast<void*>(reinterpret_cast<const size_t*>(&offsets)[i] + reinterpret_cast<size_t>(&c)); // Restore pointers from offsets
+  }
+};
+
+void CompressedClustersFlat::set(size_t bufferSize, const CompressedClusters& v)
+{
+  CompressedClustersCounters& cc = *this;
+  CompressedClustersOffsets& offsets = *this;
+  const CompressedClustersPtrs& ptrs = v;
+  cc = v;
+  for (unsigned int i = 0; i < sizeof(offsets) / sizeof(size_t); i++) {
+    reinterpret_cast<size_t*>(&offsets)[i] = (reinterpret_cast<const size_t*>(&ptrs)[i] - reinterpret_cast<size_t>(this)); // Compute offsets from beginning of structure
+  }
+  totalDataSize = bufferSize;
+}
+
+#ifndef GPUCA_STANDALONE
+void CompressedClustersROOT::Streamer(TBuffer& R__b)
+{
+  // the custom streamer for CompressedClustersROOT
   if (R__b.IsReading()) {
-    R__b.ReadClassBuffer(CompressedClusters::Class(), this);
+    R__b.ReadClassBuffer(CompressedClustersROOT::Class(), this);
     gsl::span flatdata{this->flatdata, this->flatdataSize};
     CompressedClustersHelpers::restoreFrom(flatdata, *this);
   } else {
@@ -44,12 +70,13 @@ void CompressedClusters::Streamer(TBuffer& R__b)
       this->flatdataSize = flatdata.size();
       this->flatdata = flatdata.data();
     }
-    R__b.WriteClassBuffer(CompressedClusters::Class(), this);
+    R__b.WriteClassBuffer(CompressedClustersROOT::Class(), this);
     if (!isflat) {
       this->flatdataSize = 0;
       this->flatdata = nullptr;
     }
   }
 }
+#endif
 
 } // namespace o2::tpc

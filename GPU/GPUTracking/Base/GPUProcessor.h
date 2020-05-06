@@ -106,14 +106,9 @@ class GPUProcessor
   }
 
   template <size_t alignment = GPUCA_BUFFER_ALIGNMENT, class T, class S>
-  static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1, bool runConstructor = false)
+  static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1)
   {
     objPtr = getPointerWithAlignment<alignment, S>(reinterpret_cast<size_t&>(basePtr), nEntries);
-    if (runConstructor) {
-      for (size_t i = 0; i < nEntries; i++) {
-        new (objPtr + i) S;
-      }
-    }
   }
 #endif
 

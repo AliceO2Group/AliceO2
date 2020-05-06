@@ -464,7 +464,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     const char* defaultTreeName = "tpcrec";
 
     //branch definitions for RootTreeWriter spec
-    using CCluSerializedType = ROOTSerialized<CompressedClusters>;
+    using CCluSerializedType = ROOTSerialized<CompressedClustersROOT>;
     auto ccldef = BranchDefinition<CCluSerializedType>{InputSpec{"inputCompCl", "TPC", "COMPCLUSTERS"}, //
                                                        "TPCCompClusters_0", "compcluster-branch-name"}; //
 

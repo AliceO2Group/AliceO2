@@ -21,6 +21,12 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
+int TPCClusterDecompressor::decompress(const CompressedClustersFlat* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::vector<o2::tpc::ClusterNative>& clusterBuffer, const GPUParam& param)
+{
+  CompressedClusters c = *clustersCompressed;
+  return decompress(&c, clustersNative, clusterBuffer, param);
+}
+
 int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::vector<o2::tpc::ClusterNative>& clusterBuffer, const GPUParam& param)
 {
   std::vector<ClusterNative> clusters[NSLICES][GPUCA_ROW_COUNT];

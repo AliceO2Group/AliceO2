@@ -64,7 +64,7 @@ struct ClustersData {
   std::vector<unsigned int> nSliceRowClusters; //! [nSliceRows]
 };
 
-void fillClusters(CompressedClusters& clusters, ClustersData& data)
+void fillClusters(CompressedClustersROOT& clusters, ClustersData& data)
 {
   clusters.nAttachedClusters = rand() % 32;
   fillRandom(data.qTotA, clusters.nAttachedClusters);
@@ -125,12 +125,14 @@ void fillClusters(CompressedClusters& clusters, ClustersData& data)
 
 BOOST_AUTO_TEST_CASE(test_tpc_compressedclusters)
 {
-  CompressedClusters clusters;
+  CompressedClustersROOT clusters;
   ClustersData data;
   fillClusters(clusters, data);
   std::vector<char> buffer;
   CompressedClustersHelpers::flattenTo(buffer, clusters);
-  CompressedClusters restored{static_cast<CompressedClustersCounters&>(clusters)};
+  CompressedClustersROOT restored;
+  CompressedClustersCounters& x = restored;
+  x = static_cast<CompressedClustersCounters&>(clusters);
   BOOST_REQUIRE(restored.qTotA == nullptr);
   CompressedClustersHelpers::restoreFrom(buffer, restored);
 
@@ -147,7 +149,7 @@ BOOST_AUTO_TEST_CASE(test_tpc_compressedclusters)
 
 BOOST_AUTO_TEST_CASE(test_tpc_compressedclusters_root_streaming)
 {
-  CompressedClusters clusters;
+  CompressedClustersROOT clusters;
   ClustersData data;
   fillClusters(clusters, data);
 
@@ -172,12 +174,12 @@ BOOST_AUTO_TEST_CASE(test_tpc_compressedclusters_root_streaming)
     BOOST_REQUIRE(tree != nullptr);
     TBranch* branch = tree->GetBranch("compclusters");
     BOOST_REQUIRE(branch != nullptr);
-    CompressedClusters* readback = nullptr;
+    CompressedClustersROOT* readback = nullptr;
     branch->SetAddress(&readback);
     branch->GetEntry(0);
     BOOST_REQUIRE(readback != nullptr);
 
-    CompressedClusters& restored = *readback;
+    CompressedClustersROOT& restored = *readback;
     // check one entry from each category
     BOOST_CHECK(restored.nAttachedClusters == data.qMaxA.size());
     BOOST_CHECK(memcmp(restored.qMaxA, data.qMaxA.data(), restored.nAttachedClusters * sizeof(decltype(data.qMaxA)::value_type)) == 0);

@@ -35,7 +35,7 @@ struct CompressedClustersHelpers {
   /// @param ptr      buffer pointer, passed onto to operation
   /// @param counters the counters object CompressedClustersCounters
   template <typename Op, typename BufferType>
-  static size_t apply(Op op, BufferType& ptr, CompressedClusters& c)
+  static size_t apply(Op op, BufferType& ptr, CompressedClustersROOT& c)
   {
     size_t size = 0;
     size += op(ptr, c.nAttachedClusters, c.qTotA, c.qMaxA, c.flagsA, c.sigmaPadA, c.sigmaTimeA);
@@ -49,7 +49,7 @@ struct CompressedClustersHelpers {
   /// Create a flat copy of the class
   /// The target container is resized accordingly
   template <typename ContainerType>
-  static size_t flattenTo(ContainerType& container, CompressedClusters& clusters)
+  static size_t flattenTo(ContainerType& container, CompressedClustersROOT& clusters)
   {
     static_assert(sizeof(typename ContainerType::value_type) == 1);
     char* dummyptr = nullptr;
@@ -65,7 +65,7 @@ struct CompressedClustersHelpers {
 
   /// Restore the array pointers from the data in the container
   template <typename ContainerType>
-  static size_t restoreFrom(ContainerType& container, CompressedClusters& clusters)
+  static size_t restoreFrom(ContainerType& container, CompressedClustersROOT& clusters)
   {
     static_assert(sizeof(typename ContainerType::value_type) == 1);
     char* dummyptr = nullptr;
