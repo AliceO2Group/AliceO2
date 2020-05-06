@@ -84,6 +84,7 @@ struct CompressedClusters : public CompressedClustersCounters, public Compressed
 struct CompressedClustersROOT : public CompressedClusters {
   CompressedClustersROOT() CON_DEFAULT;
   CompressedClustersROOT(const CompressedClustersFlat& v) : CompressedClusters(v) {}
+  CompressedClustersROOT(const CompressedClusters& v) : CompressedClusters(v) {}
   // flatbuffer used for streaming
   int flatdataSize = 0;
   char* flatdata = nullptr; //[flatdataSize]
