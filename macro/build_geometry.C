@@ -117,49 +117,49 @@ void build_geometry(FairRunSim* run = nullptr)
 
   // the experimental hall
   if (isActivated("HALL")) {
-    auto hall = new o2::passive::Hall("Hall", "Experimental Hall");
+    auto hall = new o2::passive::Hall("HALL", "Experimental Hall");
     run->AddModule(hall);
   }
 
   // the magnet
   if (isActivated("MAG")) {
     // the frame structure to support other detectors
-    auto magnet = new o2::passive::Magnet("Magnet", "L3 Magnet");
+    auto magnet = new o2::passive::Magnet("MAG", "L3 Magnet");
     run->AddModule(magnet);
   }
 
   // the dipole
   if (isActivated("DIPO")) {
-    auto dipole = new o2::passive::Dipole("Dipole", "Alice Dipole");
+    auto dipole = new o2::passive::Dipole("DIPO", "Alice Dipole");
     run->AddModule(dipole);
   }
 
   // the compensator dipole
   if (isActivated("COMP")) {
-    run->AddModule(new o2::passive::Compensator("Comp", "Alice Compensator Dipole"));
+    run->AddModule(new o2::passive::Compensator("COMP", "Alice Compensator Dipole"));
   }
 
   // beam pipe
   if (isActivated("PIPE")) {
-    run->AddModule(new o2::passive::Pipe("Pipe", "Beam pipe"));
+    run->AddModule(new o2::passive::Pipe("PIPE", "Beam pipe"));
   }
 
   // the absorber
   if (isActivated("ABSO")) {
     // the frame structure to support other detectors
-    auto abso = new o2::passive::Absorber("Absorber", "Absorber");
+    auto abso = new o2::passive::Absorber("ABSO", "Absorber");
     run->AddModule(abso);
   }
 
   // the shil
   if (isActivated("SHIL")) {
-    auto shil = new o2::passive::Shil("Shield", "Small angle beam shield");
+    auto shil = new o2::passive::Shil("SHIL", "Small angle beam shield");
     run->AddModule(shil);
   }
 
   if (isActivated("TOF") || isActivated("TRD") || isActivated("FRAME")) {
     // the frame structure to support other detectors
-    auto frame = new o2::passive::FrameStructure("Frame", "Frame");
+    auto frame = new o2::passive::FrameStructure("FRAME", "Frame");
     run->AddModule(frame);
   }
 

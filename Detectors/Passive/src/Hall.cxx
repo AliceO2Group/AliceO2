@@ -25,7 +25,7 @@ using namespace o2::passive;
 
 Hall::~Hall() = default;
 
-Hall::Hall() : PassiveBase("Hall", "") {}
+Hall::Hall() : PassiveBase("HALL", "") {}
 Hall::Hall(const char* name, const char* Title) : PassiveBase(name, Title) {}
 Hall::Hall(const Hall& rhs) = default;
 
