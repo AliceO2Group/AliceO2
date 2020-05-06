@@ -1,5 +1,6 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "TFile.h"
+#include "TF1.h"
 #include "TTree.h"
 #include "TH1F.h"
 #include "TH2F.h"
@@ -16,7 +17,7 @@
 
 //#define DEBUG
 
-void checkTOFMatching()
+void checkTOFMatching(bool batchMode = true)
 {
 
   // macro to check the matching TOF-ITSTPC tracks
@@ -379,85 +380,137 @@ void checkTOFMatching()
     }
   }
 
+  new TCanvas;
+
   Printf("Number of      matches = %d", nMatches);
   Printf("Number of GOOD matches = %d (%.2f)", nGoodMatches, (float)nGoodMatches / nMatches);
   Printf("Number of BAD  matches = %d (%.2f)", nBadMatches, (float)nBadMatches / nMatches);
 
+  TFile* fout = nullptr;
+  if (batchMode)
+    fout = new TFile("tofmatching_qa.root", "RECREATE");
+
   htofMism->Divide(htofMism, htof, 1, 1, "B");
   htof->Divide(htofGood, htrack, 1, 1, "B");
   htof->SetMarkerStyle(20);
-  htof->Draw("P");
-  htofMism->Draw("SAME");
+  if (batchMode) {
+    htof->Write();
+    htofMism->Write();
+  } else {
+    htof->Draw("P");
+    htofMism->Draw("SAME");
+  }
 
-  new TCanvas;
   htof_eta->Divide(htof_eta, htrack_eta, 1, 1, "B");
   htof_etaMism->Divide(htof_etaMism, htrack_eta, 1, 1, "B");
   htof_eta->SetMarkerStyle(20);
-  htof_eta->Draw("P");
-  htof_etaMism->Draw("same");
+  if (batchMode) {
+    htof_eta->Write();
+    htof_etaMism->Write();
+  } else {
+    new TCanvas;
+    htof_eta->Draw("P");
+    htof_etaMism->Draw("same");
+  }
 
-  new TCanvas;
   htof_t->Divide(htof_t, htrack_t, 1, 1, "B");
   htof_tMism->Divide(htof_tMism, htrack_t, 1, 1, "B");
   htof_t->SetMarkerStyle(20);
-  htof_t->Draw("P");
-  htof_tMism->Draw("same");
+  if (batchMode) {
+    htof_t->Write();
+    htof_tMism->Write();
+    hdeltatime->Write();
+    hdeltatimeMism->Write();
+    hdeltatime_sigma->Write();
+    hdeltatime_sigmaMism->Write();
+  } else {
+    new TCanvas;
+    htof_t->Draw("P");
+    htof_tMism->Draw("same");
+    new TCanvas;
+    hdeltatime->Draw();
+    hdeltatimeMism->Draw("SAME");
 
-  new TCanvas;
-  hdeltatime->Draw();
-  hdeltatimeMism->Draw("SAME");
+    new TCanvas;
+    hdeltatime_sigma->Draw();
+    hdeltatime_sigmaMism->Draw("SAME");
+  }
+  if (batchMode) {
+    hchi2->Write();
+    hchi2sh->Write();
+    hchi2dh->Write();
+    hchi2th->Write();
+  } else {
+    TCanvas* cres = new TCanvas();
+    cres->Divide(2, 2);
+    cres->cd(1)->SetLogz();
+    hchi2->Draw("colz");
+    hchi2->ProfileX()->Draw("same");
+    TLine* l = new TLine(0, 0.983575, 5, 0.983575);
+    l->Draw("SAME");
+    l->SetLineStyle(2);
+    l->SetLineWidth(2);
+    l->SetLineColor(4);
+    cres->cd(2)->SetLogz();
+    hchi2sh->Draw("colz");
+    hchi2sh->ProfileX()->Draw("same");
+    TLine* l2 = new TLine(0, 1.044939, 5, 1.044939);
+    l2->Draw("SAME");
+    l2->SetLineStyle(2);
+    l2->SetLineWidth(2);
+    l2->SetLineColor(4);
+    cres->cd(3)->SetLogz();
+    hchi2dh->Draw("colz");
+    hchi2dh->ProfileX()->Draw("same");
+    TLine* l3 = new TLine(0, 0.73811975, 5, 0.73811975);
+    l3->Draw("SAME");
+    l3->SetLineStyle(2);
+    l3->SetLineWidth(2);
+    l3->SetLineColor(4);
+    cres->cd(4)->SetLogz();
+    hchi2th->Draw("colz");
+    hchi2th->ProfileX()->Draw("same");
+    TLine* l4 = new TLine(0, 0.3, 5, 0.3);
+    l4->Draw("SAME");
+    l4->SetLineStyle(2);
+    l4->SetLineWidth(2);
+    l4->SetLineColor(4);
+  }
 
-  new TCanvas;
-  hdeltatime_sigma->Draw();
-  hdeltatime_sigmaMism->Draw("SAME");
+  if (batchMode) {
+    htof_res->Write();
+    htof_resMism->Write();
 
-  TCanvas* cres = new TCanvas();
-  cres->Divide(2, 2);
-  cres->cd(1)->SetLogz();
-  hchi2->Draw("colz");
-  hchi2->ProfileX()->Draw("same");
-  TLine* l = new TLine(0, 0.983575, 5, 0.983575);
-  l->Draw("SAME");
-  l->SetLineStyle(2);
-  l->SetLineWidth(2);
-  l->SetLineColor(4);
-  cres->cd(2)->SetLogz();
-  hchi2sh->Draw("colz");
-  hchi2sh->ProfileX()->Draw("same");
-  TLine* l2 = new TLine(0, 1.044939, 5, 1.044939);
-  l2->Draw("SAME");
-  l2->SetLineStyle(2);
-  l2->SetLineWidth(2);
-  l2->SetLineColor(4);
-  cres->cd(3)->SetLogz();
-  hchi2dh->Draw("colz");
-  hchi2dh->ProfileX()->Draw("same");
-  TLine* l3 = new TLine(0, 0.73811975, 5, 0.73811975);
-  l3->Draw("SAME");
-  l3->SetLineStyle(2);
-  l3->SetLineWidth(2);
-  l3->SetLineColor(4);
-  cres->cd(4)->SetLogz();
-  hchi2th->Draw("colz");
-  hchi2th->ProfileX()->Draw("same");
-  TLine* l4 = new TLine(0, 0.3, 5, 0.3);
-  l4->Draw("SAME");
-  l4->SetLineStyle(2);
-  l4->SetLineWidth(2);
-  l4->SetLineColor(4);
+    hMaterial->Write();
+    hMismVsMaterial->Write();
+    hResVsMaterial->Write();
+  } else {
+    TCanvas* cresiduals = new TCanvas("cresiduals", "cresiduals");
+    htof_res->Draw();
+    htof_resMism->Draw("SAME");
 
-  TCanvas* cresiduals = new TCanvas("cresiduals", "cresiduals");
-  htof_res->Draw();
-  htof_resMism->Draw("SAME");
-
-  TCanvas* cmaterial = new TCanvas("cmaterial", "cmaterial");
-  hMaterial->DrawNormalized("", 10);
-  hMismVsMaterial->Draw("SAME");
-  hResVsMaterial->Draw("SAME");
+    TCanvas* cmaterial = new TCanvas("cmaterial", "cmaterial");
+    hMaterial->DrawNormalized("", 10);
+    hMismVsMaterial->Draw("SAME");
+    hResVsMaterial->Draw("SAME");
+  }
 
   float fraction = hchi2dh->GetEntries() * 1. / hchi2->GetEntries();
   float fractionErr = TMath::Sqrt(fraction * (1 - fraction) / hchi2->GetEntries());
   printf("Fraction of multiple hits = (%.1f +/- %.1f)%c\n", fraction * 100, fractionErr * 100, '%');
+
+  htof->Fit("pol0", "", "", 1, 5);
+  float effMatch = ((TF1*)htof->GetListOfFunctions()->At(0))->GetParameter(0);
+  float effMatchErr = ((TF1*)htof->GetListOfFunctions()->At(0))->GetParError(0);
+  printf("TOF matching eff (pt > 1) = %f +/- %f\n", effMatch, effMatchErr);
+
+  htofMism->Fit("pol0", "", "", 1, 5);
+  float mismMatch = ((TF1*)htofMism->GetListOfFunctions()->At(0))->GetParameter(0);
+  float mismMatchErr = ((TF1*)htofMism->GetListOfFunctions()->At(0))->GetParError(0);
+  printf("TOF-track mismatch (pt > 1) = %f +/- %f\n", mismMatch, mismMatchErr);
+
+  if (fout)
+    fout->Close();
 
   return;
 }
