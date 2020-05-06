@@ -33,7 +33,7 @@ struct ParamDataMember {
   std::string value;
   std::string provenance;
 
-  std::string toString(bool showProv) const;
+  std::string toString(std::string const& prefix, bool showProv) const;
 };
 
 // ----------------------------------------------------------------
@@ -43,20 +43,20 @@ struct ParamDataMember {
 class _ParamHelper
 {
  private:
-  static std::vector<ParamDataMember>* getDataMembersImpl(std::string mainkey, TClass* cl, void*,
+  static std::vector<ParamDataMember>* getDataMembersImpl(std::string const& mainkey, TClass* cl, void*,
                                                           std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap);
 
-  static void fillKeyValuesImpl(std::string mainkey, TClass* cl, void*, boost::property_tree::ptree*,
+  static void fillKeyValuesImpl(std::string const& mainkey, TClass* cl, void*, boost::property_tree::ptree*,
                                 std::map<std::string, std::pair<std::type_info const&, void*>>*,
                                 EnumRegistry*);
 
   static void printWarning(std::type_info const&);
 
-  static void assignmentImpl(std::string mainkey, TClass* cl, void* to, void* from,
+  static void assignmentImpl(std::string const& mainkey, TClass* cl, void* to, void* from,
                              std::map<std::string, ConfigurableParam::EParamProvenance>* provmap);
 
-  static void outputMembersImpl(std::ostream& out, std::vector<ParamDataMember> const* members, bool showProv);
-  static void printMembersImpl(std::vector<ParamDataMember> const* members, bool showProv);
+  static void outputMembersImpl(std::ostream& out, std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv);
+  static void printMembersImpl(std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv);
 
   template <typename P>
   friend class ConfigurableParamHelper;
@@ -85,10 +85,13 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
   // ----------------------------------------------------------------
 
   // one of the key methods, using introspection to print itself
-  void printKeyValues(bool showProv) const final
+  void printKeyValues(bool showProv = true) const final
   {
+    if (!isInitialized()) {
+      initialize();
+    }
     auto members = getDataMembers();
-    _ParamHelper::printMembersImpl(members, showProv);
+    _ParamHelper::printMembersImpl(getName(), members, showProv);
   }
 
   // ----------------------------------------------------------------
@@ -96,7 +99,7 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
   void output(std::ostream& out) const final
   {
     auto members = getDataMembers();
-    _ParamHelper::outputMembersImpl(out, members, true);
+    _ParamHelper::outputMembersImpl(out, getName(), members, true);
   }
 
   // ----------------------------------------------------------------

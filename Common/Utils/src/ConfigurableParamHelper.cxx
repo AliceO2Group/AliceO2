@@ -33,12 +33,12 @@ using namespace o2::conf;
 
 // ----------------------------------------------------------------------
 
-std::string ParamDataMember::toString(bool showProv) const
+std::string ParamDataMember::toString(std::string const& prefix, bool showProv) const
 {
   std::string nil = "<null>";
 
   std::ostringstream out;
-  out << name << " : " << value;
+  out << prefix << "." << name << " : " << value;
 
   if (showProv) {
     std::string prov = (provenance.compare("") == 0 ? nil : provenance);
@@ -51,7 +51,7 @@ std::string ParamDataMember::toString(bool showProv) const
 
 std::ostream& operator<<(std::ostream& out, const ParamDataMember& pdm)
 {
-  out << pdm.toString(false);
+  out << pdm.toString("", false);
   return out;
 }
 
@@ -159,7 +159,7 @@ const char* asString(TDataMember const& dm, char* pointer)
 
 // ----------------------------------------------------------------------
 
-std::vector<ParamDataMember>* _ParamHelper::getDataMembersImpl(std::string mainkey, TClass* cl, void* obj,
+std::vector<ParamDataMember>* _ParamHelper::getDataMembersImpl(std::string const& mainkey, TClass* cl, void* obj,
                                                                std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap)
 {
   std::vector<ParamDataMember>* members = new std::vector<ParamDataMember>;
@@ -251,7 +251,7 @@ std::type_info const& nameToTypeInfo(const char* tname, TDataType const* dt)
 
 // ----------------------------------------------------------------------
 
-void _ParamHelper::fillKeyValuesImpl(std::string mainkey, TClass* cl, void* obj, boost::property_tree::ptree* tree,
+void _ParamHelper::fillKeyValuesImpl(std::string const& mainkey, TClass* cl, void* obj, boost::property_tree::ptree* tree,
                                      std::map<std::string, std::pair<std::type_info const&, void*>>* keytostoragemap,
                                      EnumRegistry* enumRegistry)
 {
@@ -281,19 +281,19 @@ void _ParamHelper::fillKeyValuesImpl(std::string mainkey, TClass* cl, void* obj,
 
 // ----------------------------------------------------------------------
 
-void _ParamHelper::printMembersImpl(std::vector<ParamDataMember> const* members, bool showProv)
+void _ParamHelper::printMembersImpl(std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv)
 {
-  _ParamHelper::outputMembersImpl(std::cout, members, showProv);
+  _ParamHelper::outputMembersImpl(std::cout, mainkey, members, showProv);
 }
 
-void _ParamHelper::outputMembersImpl(std::ostream& out, std::vector<ParamDataMember> const* members, bool showProv)
+void _ParamHelper::outputMembersImpl(std::ostream& out, std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv)
 {
   if (members == nullptr) {
     return;
   }
 
   for (auto& member : *members) {
-    out << member.toString(showProv);
+    out << member.toString(mainkey, showProv);
   }
 }
 
@@ -312,7 +312,7 @@ bool isMemblockDifferent(char const* block1, char const* block2, int sizeinbytes
 
 // ----------------------------------------------------------------------
 
-void _ParamHelper::assignmentImpl(std::string mainkey, TClass* cl, void* to, void* from,
+void _ParamHelper::assignmentImpl(std::string const& mainkey, TClass* cl, void* to, void* from,
                                   std::map<std::string, ConfigurableParam::EParamProvenance>* provmap)
 {
   auto assignifchanged = [to, from, &mainkey, provmap](const TDataMember* dm, int index, int size) {

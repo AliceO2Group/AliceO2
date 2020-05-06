@@ -274,6 +274,7 @@ class ConfigurableParam
   static EnumRegistry* sEnumRegistry;
 
   void setRegisterMode(bool b) { sRegisterMode = b; }
+  bool isInitialized() const { return sIsFullyInitialized; }
 
  private:
   // static registry for implementations of this type
