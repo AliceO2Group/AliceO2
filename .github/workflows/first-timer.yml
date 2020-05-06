@@ -1,4 +1,4 @@
-name: Display a message on the first PR / Issue
+name: Verify user
 on:
   pull_request:
     branches:
