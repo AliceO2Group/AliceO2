@@ -52,13 +52,14 @@ DataProcessorSpec getEntropyEncoderSpec()
     auto processAttributes = std::make_shared<ProcessAttributes>();
 
     auto processingFct = [processAttributes](ProcessingContext& pc) {
-      auto clusters = pc.inputs().get<CompressedClustersROOT*>("input");
-      if (clusters == nullptr) {
+      auto tmp = pc.inputs().get<CompressedClustersFlat*>("input");
+      if (tmp == nullptr) {
         LOG(ERROR) << "invalid input";
         return;
       }
+      CompressedClusters clusters(*tmp);
 
-      auto encodedClusters = o2::tpc::TPCEntropyEncoder::encode(*clusters);
+      auto encodedClusters = o2::tpc::TPCEntropyEncoder::encode(clusters);
 
       const char* outFileName = "tpc-encoded-clusters.root";
 

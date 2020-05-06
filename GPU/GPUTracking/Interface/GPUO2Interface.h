@@ -39,6 +39,8 @@ namespace o2::gpu
 class GPUReconstruction;
 class GPUChainTracking;
 struct GPUO2InterfaceConfiguration;
+struct GPUInterfaceOutputs;
+struct GPUOutputControl;
 
 class GPUTPCO2Interface
 {
@@ -49,7 +51,7 @@ class GPUTPCO2Interface
   int Initialize(const GPUO2InterfaceConfiguration& config);
   void Deinitialize();
 
-  int RunTracking(GPUTrackingInOutPointers* data);
+  int RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs = nullptr);
   void Clear(bool clearOutputs);
 
   bool GetParamContinuous() { return (mContinuous); }
@@ -65,12 +67,12 @@ class GPUTPCO2Interface
   GPUTPCO2Interface& operator=(const GPUTPCO2Interface&);
 
   bool mInitialized = false;
-  bool mDumpEvents = false;
   bool mContinuous = false;
 
   std::unique_ptr<GPUReconstruction> mRec;
   GPUChainTracking* mChain = nullptr;
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
+  std::unique_ptr<GPUOutputControl> mOutputCompressedClusters;
 };
 } // namespace o2::gpu
 

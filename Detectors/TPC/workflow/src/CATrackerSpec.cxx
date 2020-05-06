@@ -230,6 +230,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       config.configReconstruction.tpcSigBitsWidth = 3;                                // Number of significant bits in TPC cluster width
 
       config.configInterface.dumpEvents = dump;
+      config.configInterface.outputToPreallocatedBuffers = true;
 
       // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU) with this instance of GPUCATracking
       config.configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
@@ -538,7 +539,12 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clustersMCBuffer, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
         ptrs.clusters = &clusterIndex;
       }
-      int retVal = tracker->runTracking(&ptrs);
+      GPUInterfaceOutputs outputRegions;
+      auto bufferCompressedClusters = pc.outputs().make<std::vector<GPUO2InterfaceConfiguration::bufferType>>(Output{gDataOriginTPC, "COMPCLUSTERS", 0});
+      bufferCompressedClusters.resize(2048ul * 1024 * 1024 / sizeof(GPUO2InterfaceConfiguration::bufferType)); // TODO: Just allocated some large buffer for now, should estimate this correctly
+      outputRegions.compressedClusters.ptr = bufferCompressedClusters.data();
+      outputRegions.compressedClusters.size = bufferCompressedClusters.size() * sizeof(GPUO2InterfaceConfiguration::bufferType);
+      int retVal = tracker->runTracking(&ptrs, &outputRegions);
       if (retVal != 0) {
         throw std::runtime_error("tracker returned error code " + std::to_string(retVal));
       }
@@ -562,8 +568,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       //mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param); // Run decompressor
       if (pc.outputs().isAllowed({gDataOriginTPC, "COMPCLUSTERS", 0})) {
         if (ptrs.compressedClusters != nullptr) {
-          o2::tpc::CompressedClustersROOT compressedClusters = *ptrs.compressedClusters;
-          pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<o2::tpc::CompressedClustersROOT const>(compressedClusters));
+          bufferCompressedClusters.resize(outputRegions.compressedClusters.size);
         } else {
           LOG(ERROR) << "unable to get compressed cluster info from track";
         }

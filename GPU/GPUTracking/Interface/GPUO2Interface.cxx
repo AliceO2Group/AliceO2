@@ -15,6 +15,7 @@
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
 #include "GPUMemorySizeScalers.h"
+#include "GPUOutputControl.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUParam.inc"
 #include <iostream>
@@ -37,7 +38,6 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
     return (1);
   }
   mConfig.reset(new GPUO2InterfaceConfiguration(config));
-  mDumpEvents = mConfig->configInterface.dumpEvents;
   mContinuous = mConfig->configEvent.continuousMaxTimeBin != 0;
   mRec.reset(GPUReconstruction::CreateInstance(mConfig->configProcessing));
   if (mRec == nullptr) {
@@ -55,6 +55,11 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   mChain->SetdEdxSplines(mConfig->configCalib.dEdxSplines);
   mChain->SetMatLUT(mConfig->configCalib.matLUT);
   mChain->SetTRDGeometry(mConfig->configCalib.trdGeometry);
+  if (mConfig->configInterface.outputToPreallocatedBuffers) {
+    mOutputCompressedClusters.reset(new GPUOutputControl);
+    mChain->SetOutputControlCompressedClusters(mOutputCompressedClusters.get());
+  }
+
   if (mRec->Init()) {
     return (1);
   }
@@ -74,13 +79,13 @@ void GPUTPCO2Interface::Deinitialize()
   mInitialized = false;
 }
 
-int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data)
+int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs)
 {
   if (!mInitialized) {
     return (1);
   }
   static int nEvent = 0;
-  if (mDumpEvents) {
+  if (mConfig->configInterface.dumpEvents) {
     mChain->ClearIOPointers();
     mChain->mIOPtrs.clustersNative = data->clustersNative;
     mChain->mIOPtrs.tpcPackedDigits = data->tpcPackedDigits;
@@ -95,6 +100,9 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data)
   }
 
   mChain->mIOPtrs = *data;
+  if (mConfig->configInterface.outputToPreallocatedBuffers) {
+    mOutputCompressedClusters->set(outputs->compressedClusters.ptr, outputs->compressedClusters.size);
+  }
   int retVal = mRec->RunChains();
   if (retVal == 2) {
     retVal = 0; // 2 signals end of event display, ignore
@@ -102,6 +110,9 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data)
   if (retVal) {
     mRec->ClearAllocatedMemory();
     return retVal;
+  }
+  if (mConfig->configInterface.outputToPreallocatedBuffers) {
+    outputs->compressedClusters.size = mOutputCompressedClusters->EndOfSpace ? 0 : mChain->mIOPtrs.tpcCompressedClusters->totalDataSize;
   }
   *data = mChain->mIOPtrs;
 
