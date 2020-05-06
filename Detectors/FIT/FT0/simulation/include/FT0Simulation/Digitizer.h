@@ -33,7 +33,7 @@ namespace ft0
 class Digitizer
 {
  public:
-  Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), parameters(params) { initParameters(); };
+  Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), mParameters(params) { initParameters(); };
   ~Digitizer() = default;
 
   void process(const std::vector<o2::ft0::HitType>* hits, std::vector<o2::ft0::Digit>& digitsBC,
@@ -98,7 +98,7 @@ class Digitizer
   std::deque<BCCache> mCache;
   std::array<GoodInteractionTimeRecord, 208> mDeadTimes;
 
-  DigitizationParameters parameters;
+  DigitizationParameters mParameters;
 
   void storeBC(BCCache& bc,
                std::vector<o2::ft0::Digit>& digitsBC,
