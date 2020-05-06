@@ -40,7 +40,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
     }
     bool rejectTrk = CAMath::Abs(trk.GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt;
     unsigned int nClustersStored = 0;
-    CompressedClustersPtrsOnly& GPUrestrict() c = compressor.mPtrs;
+    CompressedClustersPtrs& GPUrestrict() c = compressor.mPtrs;
     unsigned int lastRow = 0, lastSlice = 0; // BUG: These should be unsigned char, but then CUDA breaks
     GPUTPCCompressionTrackModel track;
     for (int k = trk.NClusters() - 1; k >= 0; k--) {
@@ -190,7 +190,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
     unsigned int totalCount = 0;
     GPUbarrier();
 
-    CompressedClustersPtrsOnly& GPUrestrict() c = compressor.mPtrs;
+    CompressedClustersPtrs& GPUrestrict() c = compressor.mPtrs;
 
     const unsigned int nn = GPUCommonMath::nextMultipleOf<GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCompressionKernels_step1unattached)>(clusters->nClusters[iSlice][iRow]);
     for (unsigned int i = iThread; i < nn + nThreads; i += nThreads) {
