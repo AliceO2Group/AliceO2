@@ -59,7 +59,7 @@ void GPUCATracking::deinitialize()
   mTrackingCAO2Interface.reset();
 }
 
-int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
+int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* outputs)
 {
   if ((int)(data->tpcZS != nullptr) + (int)(data->o2Digits != nullptr) + (int)(data->clusters != nullptr) != 1) {
     return 0;
@@ -118,7 +118,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
     ptrs.clustersNative = clusters;
     ptrs.tpcPackedDigits = nullptr;
   }
-  int retVal = mTrackingCAO2Interface->RunTracking(&ptrs);
+  int retVal = mTrackingCAO2Interface->RunTracking(&ptrs, outputs);
   if (data->o2Digits || data->tpcZS) {
     clusters = ptrs.clustersNative;
   }

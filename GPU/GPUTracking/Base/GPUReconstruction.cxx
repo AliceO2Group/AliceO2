@@ -651,9 +651,7 @@ void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUS
 void GPUReconstruction::SetOutputControl(void* ptr, size_t size)
 {
   GPUOutputControl outputControl;
-  outputControl.OutputType = GPUOutputControl::UseExternalBuffer;
-  outputControl.OutputBase = outputControl.OutputPtr = (char*)ptr;
-  outputControl.OutputMaxSize = size;
+  outputControl.set(ptr, size);
   SetOutputControl(outputControl);
 }
 
