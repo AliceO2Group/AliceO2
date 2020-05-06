@@ -217,4 +217,9 @@ if [ "$doreco" == "1" ]; then
   #needs results of TOF digitized data and results of o2-tpcits-match-workflow
   taskwrapper tofMatch.log o2-tof-reco-workflow $gloOpt
   echo "Return status of its-tpc-tof match: $?"
+
+  echo "Running TOF matching QA"
+  #need results of ITSTPC-TOF matching (+ TOF clusters and ITS-TPC tracks)
+  root -b -q -l $O2_ROOT/share/macro/checkTOFMatching.C 1>tofmatch_qa.log 2>&1
+  echo "Return status of TOF matching qa: $?"
 fi
