@@ -32,18 +32,17 @@ void ColumnDataToLocalBoard::process(gsl::span<const ColumnData> data)
   // First fill the map with the active local boards.
   // Each local board gets a unique id.
   for (auto& col : data) {
-    for (int iline = 0; iline < 4; ++iline) {
-      if (col.getBendPattern(iline) == 0) {
-        continue;
+    for (int iline = mMapping.getFirstBoardBP(col.columnId, col.deId); iline <= mMapping.getLastBoardBP(col.columnId, col.deId); ++iline) {
+      if (col.getBendPattern(iline) || col.getNonBendPattern()) {
+        auto uniqueLocId = mCrateMapper.deLocalBoardToRO(col.deId, col.columnId, iline);
+        auto& roData = mLocalBoardsMap[uniqueLocId];
+        roData.statusWord = raw::sSTARTBIT | raw::sCARDTYPE;
+        roData.boardId = crateparams::getLocId(uniqueLocId);
+        int ich = detparams::getChamber(col.deId);
+        roData.firedChambers |= (1 << ich);
+        roData.patternsBP[ich] = col.getBendPattern(iline);
+        roData.patternsNBP[ich] = col.getNonBendPattern();
       }
-      auto uniqueLocId = mCrateMapper.deLocalBoardToRO(col.deId, col.columnId, iline);
-      auto& roData = mLocalBoardsMap[uniqueLocId];
-      roData.statusWord = raw::sSTARTBIT | raw::sCARDTYPE;
-      roData.boardId = crateparams::getLocId(uniqueLocId);
-      int ich = detparams::getChamber(col.deId);
-      roData.firedChambers |= (1 << ich);
-      roData.patternsBP[ich] = col.getBendPattern(iline);
-      roData.patternsNBP[ich] = col.getNonBendPattern();
     }
   }
 
