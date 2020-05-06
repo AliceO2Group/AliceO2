@@ -30,7 +30,7 @@ using namespace o2::passive;
 
 Dipole::~Dipole() = default;
 
-Dipole::Dipole() : PassiveBase("Dipole", "") {}
+Dipole::Dipole() : PassiveBase("DIPO", "") {}
 Dipole::Dipole(const char* name, const char* Title) : PassiveBase(name, Title) {}
 Dipole::Dipole(const Dipole& rhs) = default;
 

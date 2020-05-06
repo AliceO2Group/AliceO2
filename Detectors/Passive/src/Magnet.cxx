@@ -39,7 +39,7 @@ using namespace o2::passive;
 
 Magnet::~Magnet() = default;
 
-Magnet::Magnet() : PassiveBase("Magnet", "") {}
+Magnet::Magnet() : PassiveBase("MAG", "") {}
 Magnet::Magnet(const char* name, const char* Title) : PassiveBase(name, Title) {}
 Magnet::Magnet(const Magnet& rhs) = default;
 
