@@ -152,6 +152,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void SetMatLUT(const o2::base::MatLayerCylSet* lut) { processors()->calibObjects.matLUT = lut; }
   void SetTRDGeometry(const o2::trd::TRDGeometryFlat* geo) { processors()->calibObjects.trdGeometry = geo; }
   void LoadClusterErrors();
+  void SetOutputControlCompressedClusters(GPUOutputControl* v) { mOutputCompressedClusters = v; }
 
   const void* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
   const void* mConfigQA = nullptr;      // Abstract pointer to Standalone QA Configuration Structure
@@ -216,6 +217,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<unsigned int[]> mTPCZSSizes;                        // Array with TPC ZS numbers of pages
   std::unique_ptr<void*[]> mTPCZSPtrs;                                // Array with pointers to TPC ZS pages
   std::unique_ptr<GPUTrackingInOutZS> mTPCZS;                         // TPC ZS Data Structure
+
+  GPUOutputControl* mOutputCompressedClusters = nullptr;
 
   // Upper bounds for memory allocation
   unsigned int mMaxTPCHits = 0;

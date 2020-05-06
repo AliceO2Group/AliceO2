@@ -283,6 +283,10 @@ int GPUChainTracking::Init()
     mEventDisplay.reset(new GPUDisplay(GetDeviceProcessingSettings().eventDisplay, this, mQA.get()));
   }
 
+  if (mOutputCompressedClusters == nullptr) {
+    mOutputCompressedClusters = &mRec->OutputControl();
+  }
+
   if (mRec->IsGPU()) {
     if (processors()->calibObjects.fastTransform) {
       memcpy((void*)mFlatObjectsShadow.mCalibObjects.fastTransform, (const void*)processors()->calibObjects.fastTransform, sizeof(*processors()->calibObjects.fastTransform));
@@ -1697,7 +1701,7 @@ int GPUChainTracking::RunTPCCompression()
   O->nAttachedClustersReduced = O->nAttachedClusters - O->nTracks;
   O->nSliceRows = NSLICES * GPUCA_ROW_COUNT;
   O->nComppressionModes = param().rec.tpcCompressionModes;
-  size_t outputSize = AllocateRegisteredMemory(Compressor.mMemoryResOutputHost, &mRec->OutputControl());
+  size_t outputSize = AllocateRegisteredMemory(Compressor.mMemoryResOutputHost, mOutputCompressedClusters);
   Compressor.mOutputFlat->set(outputSize, *Compressor.mOutput);
   const o2::tpc::CompressedClustersPtrs* P = nullptr;
   if (DeviceProcessingSettings().tpcCompressionGatherMode == 2) {
