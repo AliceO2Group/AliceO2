@@ -561,9 +561,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       //std::vector<o2::tpc::ClusterNative> clusterBuffer; // std::vector that will hold the actual clusters, clustersNativeDecoded will point inside here
       //mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param); // Run decompressor
       if (pc.outputs().isAllowed({gDataOriginTPC, "COMPCLUSTERS", 0})) {
-        const o2::tpc::CompressedClusters* compressedClusters = ptrs.compressedClusters;
-        if (compressedClusters != nullptr) {
-          pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<o2::tpc::CompressedClusters const>(*compressedClusters));
+        if (ptrs.compressedClusters != nullptr) {
+          o2::tpc::CompressedClustersROOT compressedClusters = *ptrs.compressedClusters;
+          pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<o2::tpc::CompressedClustersROOT const>(compressedClusters));
         } else {
           LOG(ERROR) << "unable to get compressed cluster info from track";
         }
