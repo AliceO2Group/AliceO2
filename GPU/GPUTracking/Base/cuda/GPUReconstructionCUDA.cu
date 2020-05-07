@@ -36,7 +36,8 @@
 #include "GPUReconstructionIncludes.h"
 
 static constexpr size_t REQUIRE_MIN_MEMORY = 1024u * 1024 * 1024;
-static constexpr size_t REQUIRE_FREE_MEMORY_RESERVED = 2048u * 1024 * 1024;
+static constexpr size_t REQUIRE_MEMORY_RESERVED = 512u * 1024 * 1024;
+static constexpr size_t REQUIRE_FREE_MEMORY_RESERVED = 1280u * 1024 * 1024;
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -237,7 +238,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
         continue;
       }
       devicesOK[i] = true;
-      devMemory[i] = std::min(free, total - REQUIRE_FREE_MEMORY_RESERVED);
+      devMemory[i] = std::min(free, total - REQUIRE_MEMORY_RESERVED);
       if (deviceSpeed > bestDeviceSpeed) {
         bestDevice = i;
         bestDeviceSpeed = deviceSpeed;
@@ -331,7 +332,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     if (mDeviceMemorySize == 2) {
       mDeviceMemorySize = devMemory[mDeviceId] * 2 / 3; // Leave 1/3 of GPU memory for event display
     } else if (mDeviceMemorySize == 1) {
-      mDeviceMemorySize = devMemory[mDeviceId] - 1024 * 1024 * 1024; // Take all GPU memory but 1/2 GB
+      mDeviceMemorySize = devMemory[mDeviceId] - REQUIRE_FREE_MEMORY_RESERVED; // Take all GPU memory but 1/2 GB
     }
 
     if (mDeviceMemorySize > cudaDeviceProp.totalGlobalMem || GPUFailedMsgI(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
