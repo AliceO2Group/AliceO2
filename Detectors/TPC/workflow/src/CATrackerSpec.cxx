@@ -540,10 +540,10 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         ptrs.clusters = &clusterIndex;
       }
       GPUInterfaceOutputs outputRegions;
-      auto bufferCompressedClusters = pc.outputs().make<std::vector<GPUO2InterfaceConfiguration::bufferType>>(Output{gDataOriginTPC, "COMPCLUSTERS", 0});
-      bufferCompressedClusters.resize(2048ul * 1024 * 1024 / sizeof(GPUO2InterfaceConfiguration::bufferType)); // TODO: Just allocated some large buffer for now, should estimate this correctly
+      size_t bufferSize = 2048ul * 1024 * 1024; // TODO: Just allocated some large buffer for now, should estimate this correctly;
+      auto& bufferCompressedClusters = pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, bufferSize);
       outputRegions.compressedClusters.ptr = bufferCompressedClusters.data();
-      outputRegions.compressedClusters.size = bufferCompressedClusters.size() * sizeof(GPUO2InterfaceConfiguration::bufferType);
+      outputRegions.compressedClusters.size = bufferCompressedClusters.size();
       int retVal = tracker->runTracking(&ptrs, &outputRegions);
       if (retVal != 0) {
         throw std::runtime_error("tracker returned error code " + std::to_string(retVal));
@@ -568,7 +568,11 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       //mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param); // Run decompressor
       if (pc.outputs().isAllowed({gDataOriginTPC, "COMPCLUSTERS", 0})) {
         if (ptrs.compressedClusters != nullptr) {
+          if ((void*)ptrs.compressedClusters != (void*)bufferCompressedClusters.data()) {
+            throw std::runtime_error("output ptrs out of sync"); // sanity check
+          }
           bufferCompressedClusters.resize(outputRegions.compressedClusters.size);
+          CompressedClustersFlat* tmp = (CompressedClustersFlat*)bufferCompressedClusters.data();
         } else {
           LOG(ERROR) << "unable to get compressed cluster info from track";
         }
