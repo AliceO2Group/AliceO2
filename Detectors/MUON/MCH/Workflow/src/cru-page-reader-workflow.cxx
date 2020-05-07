@@ -9,15 +9,15 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file    hbf-reader-workflow.cxx
+/// \file    cru-page-reader-workflow.cxx
 /// \author  Andrea Ferrero
 ///
-/// \brief This is an executable that reads a data file from disk and sends the individual HB frames via DPL.
+/// \brief This is an executable that reads a data file from disk and sends the individual CRU pages via DPL.
 ///
-/// This is an executable that reads a data file from disk and sends the individual HB frames via the Data Processing Layer.
+/// This is an executable that reads a data file from disk and sends the individual CRU pages via the Data Processing Layer.
 /// It can be used as a data source for O2 development. For example, one can do:
 /// \code{.sh}
-/// o2-mch-hbf-reader-workflow --infile=some_data_file | o2-mch-raw-to-digits-workflow
+/// o2-mch-cru-page-reader-workflow --infile=some_data_file | o2-mch-raw-to-digits-workflow
 /// \endcode
 ///
 
