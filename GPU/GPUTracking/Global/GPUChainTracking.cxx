@@ -1723,13 +1723,7 @@ int GPUChainTracking::RunTPCCompression()
   if (DeviceProcessingSettings().tpcCompressionGatherMode == 2) {
     TransferMemoryResourcesToGPU(myStep, &Compressor, 0);
     runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step2gather>(GetGridBlk(BlockCount(), 0), krnlRunRangeNone, krnlEventNone);
-    getKernelTimer<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step2gather>(RecoStep::TPCCompression, 0,
-                                                                                    NSLICES * GPUCA_ROW_COUNT * sizeof(O->nSliceRowClusters[0]) +
-                                                                                      O->nTracks * sizeof(O->nTrackClusters[0]) +
-                                                                                      O->nUnattachedClusters * (sizeof(O->qTotU[0]) + sizeof(O->qMaxU[0]) + sizeof(O->flagsU[0]) + sizeof(O->padDiffU[0]) + sizeof(O->timeDiffU[0]) + sizeof(O->sigmaPadU[0]) + sizeof(O->sigmaTimeU[0])) +
-                                                                                      O->nAttachedClusters * (sizeof(O->qTotA[0]) + sizeof(O->qMaxA[0]) + sizeof(O->flagsA[0]) + sizeof(O->sigmaPadA[0]) + sizeof(O->sigmaTimeA[0])) +
-                                                                                      O->nAttachedClustersReduced * (sizeof(O->rowDiffA[0]) + sizeof(O->sliceLegDiffA[0]) + sizeof(O->padResA[0]) + sizeof(O->timeResA[0])) +
-                                                                                      O->nTracks * (sizeof(O->qPtA[0]) + sizeof(O->rowA[0]) + sizeof(O->sliceA[0]) + sizeof(O->timeA[0]) + sizeof(O->padA[0])));
+    getKernelTimer<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step2gather>(RecoStep::TPCCompression, 0, outputSize);
   } else {
     char direction = 0;
     if (DeviceProcessingSettings().tpcCompressionGatherMode == 0) {
