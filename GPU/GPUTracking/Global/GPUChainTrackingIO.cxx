@@ -44,12 +44,12 @@
 #include "Headers/RAWDataHeader.h"
 #include "GPUHostDataTypes.h"
 #include "TPCBase/Digit.h"
+#include "TPCdEdxCalibrationSplines.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif
 
 #include "TPCFastTransform.h"
-#include "TPCdEdxCalibrationSplines.h"
 
 #include "utils/linux_helpers.h"
 

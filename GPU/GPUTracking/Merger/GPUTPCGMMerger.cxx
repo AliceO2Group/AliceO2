@@ -1305,8 +1305,8 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
           unsigned int id = trk.Data().ClusterDataIndex(trk.Data().Row(ic.RowIndex()), ic.HitIndex()) + GetConstantMem()->ioPtrs.clustersNative->clusterOffset[t->Slice()][0];
           *c2 = trackCluster{id, (unsigned char)ic.RowIndex(), t->Slice(), t->Leg()};
         } else {
-          const GPUTPCSliceOutCluster c = t->OrigTrack()->OutTrackClusters()[i];
-          unsigned int id = Param().rec.NonConsecutiveIDs ? ((int)((int*)&c - (int*)mkSlices[t->Slice()]->GetFirstTrack())) : c.GetId();
+          const GPUTPCSliceOutCluster& c = t->OrigTrack()->OutTrackClusters()[i];
+          unsigned int id = Param().rec.NonConsecutiveIDs ? ((unsigned int)((unsigned int*)&c - (unsigned int*)mkSlices[t->Slice()]->GetFirstTrack())) : c.GetId();
           *c2 = trackCluster{id, c.GetRow(), t->Slice(), t->Leg()};
         }
       }
@@ -1416,11 +1416,12 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
     for (int i = 0; i < nHits; i++) {
       unsigned char state;
       if (Param().rec.NonConsecutiveIDs) {
-        const GPUTPCSliceOutCluster* c = (const GPUTPCSliceOutCluster*)((int*)mkSlices[trackClusters[i].slice]->GetFirstTrack() + trackClusters[i].id);
+        const GPUTPCSliceOutCluster* c = (const GPUTPCSliceOutCluster*)((const int*)mkSlices[trackClusters[i].slice]->GetFirstTrack() + trackClusters[i].id);
         cl[i].x = c->GetX();
         cl[i].y = c->GetY();
         cl[i].z = c->GetZ();
         cl[i].amp = c->GetAmp();
+        trackClusters[i].id = c->GetId();
 #ifdef GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME
         cl[i].pad = c->mPad;
         cl[i].time = c->mTime;

@@ -191,8 +191,9 @@ class Spline2DBase : public FlatObject
   Spline1D<DataT> mGridU1; ///< grid for U axis
   Spline1D<DataT> mGridU2; ///< grid for V axis
   DataT* mFparameters;     //! (transient!!) F-dependent parameters of the spline
-
+#ifndef GPUCA_ALIROOT_LIB
   ClassDefNV(Spline2DBase, 1);
+#endif
 };
 
 ///

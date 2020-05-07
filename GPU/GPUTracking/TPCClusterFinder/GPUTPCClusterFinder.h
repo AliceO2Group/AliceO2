@@ -84,7 +84,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   void* SetPointersMemory(void* mem);
   void* SetPointersZSOffset(void* mem);
 
-  size_t getNSteps(size_t items) const;
+  unsigned int getNSteps(size_t items) const;
   void SetNMaxDigits(size_t nDigits, size_t nPages);
 
   void PrepareMC();
@@ -113,13 +113,13 @@ class GPUTPCClusterFinder : public GPUProcessor
 
   int mISlice = 0;
   constexpr static int mScanWorkGroupSize = GPUCA_THREAD_COUNT_SCAN;
-  size_t mNMaxClusterPerRow = 0;
+  unsigned int mNMaxClusterPerRow = 0;
+  unsigned int mNMaxClusters = 0;
   size_t mNMaxPages = 0;
   size_t mNMaxDigits = 0;
   size_t mNMaxPeaks = 0;
-  size_t mNMaxClusters = 0;
   size_t mBufSize = 0;
-  size_t mNBufs = 0;
+  unsigned int mNBufs = 0;
 
   short mMemoryId = -1;
   short mZSOffsetId = -1;

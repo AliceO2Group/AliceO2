@@ -58,8 +58,7 @@ set(SRCS
     TRDTracking/GPUTRDTracker.cxx
     TRDTracking/GPUTRDTrackletWord.cxx
     TRDTracking/GPUTRDTrackerKernels.cxx
-    Base/GPUParam.cxx
-    dEdx/TPCdEdxCalibrationSplines.cxx)
+    Base/GPUParam.cxx)
 
 set(SRCS_NO_CINT
     Base/GPUDataTypes.cxx
@@ -163,7 +162,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCCFClusterizer.cxx
         TPCClusterFinder/GPUTPCCFDeconvolution.cxx
         TPCClusterFinder/GPUTPCCFMCLabelFlattener.cxx
-        TPCClusterFinder/GPUTPCCFDecodeZS.cxx)
+        TPCClusterFinder/GPUTPCCFDecodeZS.cxx
+        dEdx/TPCdEdxCalibrationSplines.cxx)
 
     set(SRCS_NO_H ${SRCS_NO_H}
         TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
