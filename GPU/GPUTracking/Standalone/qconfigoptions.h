@@ -96,6 +96,7 @@ AddOption(selectorPipeline, int, -1, "selectorPipeline", 0, "Run tracklet select
 AddOption(mergerSortTracks, bool, false, "mergerSortTracks", 0, "Sort track indizes for GPU track fit")
 AddOption(recoSteps, int, -1, "recoSteps", 0, "Bitmask for RecoSteps")
 AddOption(recoStepsGPU, int, -1, "recoStepsGPU", 0, "Bitmask for RecoSteps")
+AddOption(tpcCompressionGatherMode, int, -1, "tpcCompressionGatherMode", 0, "TPC Compressed Clusters Gather Mode")
 AddOption(runMC, bool, false, "runMC", 0, "Process MC labels")
 AddHelp("help", 'h')
 EndConfig()
