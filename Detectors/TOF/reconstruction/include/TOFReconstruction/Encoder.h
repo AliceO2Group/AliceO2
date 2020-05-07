@@ -40,7 +40,7 @@ class Encoder
   Encoder();
   ~Encoder() = default;
 
-  bool open(std::string name);
+  bool open(std::string name, std::string path = ".");
   bool alloc(long size);
 
   bool encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int tofwindow = 0);
@@ -63,6 +63,8 @@ class Encoder
 
   void setContinuous(bool value) { mIsContinuous = value; }
   bool isContinuous() const { return mIsContinuous; }
+
+  static int getNCRU() { return NCRU; }
 
  protected:
   // benchmarks
