@@ -48,7 +48,8 @@ void DigitsPrinterSpec<InputType>::run(framework::ProcessingContext& pc)
   auto const* emcheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(dataref);
   if (!emcheader->mHasPayload) {
     LOG(DEBUG) << "[EMCALDigitsPrinter - process] No more digits" << std::endl;
-    pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
+    // RS: QuitRequest on the end of data should be determined by the input supplier, not the processor
+    // pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
     return;
   }
 
