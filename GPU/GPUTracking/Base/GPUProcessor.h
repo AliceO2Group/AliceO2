@@ -99,6 +99,7 @@ class GPUProcessor
     basePtr += nEntries * sizeof(S);
     return retVal;
   }
+
   template <size_t alignment = GPUCA_BUFFER_ALIGNMENT, class S>
   static inline S* getPointerWithAlignment(void*& basePtr, size_t nEntries = 1)
   {
@@ -109,6 +110,12 @@ class GPUProcessor
   static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1)
   {
     objPtr = getPointerWithAlignment<alignment, S>(reinterpret_cast<size_t&>(basePtr), nEntries);
+  }
+
+  template <class T, class S>
+  static inline void computePointerWithoutAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1)
+  {
+    objPtr = reinterpret_cast<S*>(getPointerWithAlignment<1, char>(reinterpret_cast<size_t&>(basePtr), nEntries * sizeof(S)));
   }
 #endif
 
