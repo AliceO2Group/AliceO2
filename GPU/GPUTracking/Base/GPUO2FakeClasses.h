@@ -79,6 +79,9 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+class TPCdEdxCalibrationSplines
+{
+};
 class GPUFakeEmpty
 {
 };
