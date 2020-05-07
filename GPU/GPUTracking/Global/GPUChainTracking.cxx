@@ -1720,6 +1720,7 @@ int GPUChainTracking::RunTPCCompression()
   size_t outputSize = AllocateRegisteredMemory(Compressor.mMemoryResOutputHost, mOutputCompressedClusters);
   Compressor.mOutputFlat->set(outputSize, *Compressor.mOutput);
   const o2::tpc::CompressedClustersPtrs* P = nullptr;
+  HighResTimer* gatherTimer = nullptr;
   if (DeviceProcessingSettings().tpcCompressionGatherMode == 2) {
     TransferMemoryResourcesToGPU(myStep, &Compressor, 0);
     runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step2gather>(GetGridBlk(BlockCount(), 0), krnlRunRangeNone, krnlEventNone);
@@ -1731,6 +1732,8 @@ int GPUChainTracking::RunTPCCompression()
     } else if (DeviceProcessingSettings().tpcCompressionGatherMode == 1) {
       P = &Compressor.mPtrs;
       direction = -1;
+      gatherTimer = &getTimer<GPUTPCCompressionKernels>("GPUTPCCompression_GatherOnCPU", 0);
+      gatherTimer->Start();
     }
     GPUMemCpyAlways(myStep, O->nSliceRowClusters, P->nSliceRowClusters, NSLICES * GPUCA_ROW_COUNT * sizeof(O->nSliceRowClusters[0]), 0, direction);
     GPUMemCpyAlways(myStep, O->nTrackClusters, P->nTrackClusters, O->nTracks * sizeof(O->nTrackClusters[0]), 0, direction);
@@ -1770,6 +1773,9 @@ int GPUChainTracking::RunTPCCompression()
     GPUMemCpyAlways(myStep, O->padA, P->padA, O->nTracks * sizeof(O->padA[0]), 0, direction);
   }
   SynchronizeGPU();
+  if (DeviceProcessingSettings().tpcCompressionGatherMode == 1) {
+    gatherTimer->Stop();
+  }
 
   mIOPtrs.tpcCompressedClusters = Compressor.mOutputFlat;
 #endif
