@@ -316,7 +316,6 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
   if (fRec->Init()) {
     return -EINVAL;
   }
-  fChain->GetTPCMerger().OverrideSliceTracker(nullptr);
 
   return 0;
 }

@@ -84,7 +84,7 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
     const GPUTPCSliceOutCluster* clo;
     int row, index;
     if (merger->Param().rec.mergerReadFromTrackerDirectly) {
-      const GPUTPCTracker& trk = merger->SliceTrackers()[iSlice];
+      const GPUTPCTracker& trk = merger->GetConstantMem()->tpcTrackers[iSlice];
       const GPUTPCHitId& ic = trk.TrackHits()[mOrigTrack->FirstHitID() + mOrigTrack->NHits() - 1];
       index = trk.Data().ClusterDataIndex(trk.Data().Row(ic.RowIndex()), ic.HitIndex()) + merger->GetConstantMem()->ioPtrs.clustersNative->clusterOffset[iSlice][0];
       row = ic.RowIndex();

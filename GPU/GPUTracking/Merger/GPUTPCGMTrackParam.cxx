@@ -69,7 +69,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
   prop.SetPolynomialField(&merger->Param().polynomialField);
   prop.SetMaxSinPhi(maxSinPhi);
   prop.SetToyMCEventsFlag(param.ToyMCEventsFlag);
-  prop.SetMatLUT(merger->MatLUT());
+  prop.SetMatLUT(merger->GetConstantMem()->calibObjects.matLUT);
   if ((clusters[0].slice < 18) == (clusters[N - 1].slice < 18)) {
     ShiftZ2(clusters, merger, N);
   }
@@ -459,7 +459,7 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
   if (Merger->Param().rec.DisableRefitAttachment & 1) {
     return;
   }
-  const GPUTPCTracker& GPUrestrict() tracker = *(Merger->SliceTrackers() + slice);
+  const GPUTPCTracker& GPUrestrict() tracker = *(Merger->GetConstantMem()->tpcTrackers + slice);
   const GPUTPCRow& GPUrestrict() row = tracker.Row(iRow);
 #ifndef GPUCA_TEXTURE_FETCH_CONSTRUCTOR
   GPUglobalref() const cahit2* hits = tracker.HitData(row);
@@ -573,7 +573,7 @@ GPUd() void GPUTPCGMTrackParam::RefitLoop(const GPUTPCGMMerger* GPUrestrict() Me
   prop.SetPolynomialField(&Merger->Param().polynomialField);
   prop.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
   prop.SetToyMCEventsFlag(Merger->Param().ToyMCEventsFlag);
-  prop.SetMatLUT(Merger->MatLUT());
+  prop.SetMatLUT(Merger->GetConstantMem()->calibObjects.matLUT);
   prop.SetSeedingErrors(false);
   prop.SetFitInProjections(true);
   prop.SetPropagateBzOnly(false);

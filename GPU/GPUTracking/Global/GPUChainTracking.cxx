@@ -85,7 +85,6 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
     }
   }
   if (GetRecoSteps() & RecoStep::TPCMerging) {
-    processors()->tpcMerger.SetTrackingChain(this);
     mRec->RegisterGPUProcessor(&processors()->tpcMerger, GetRecoStepsGPU() & RecoStep::TPCMerging);
   }
   if (GetRecoSteps() & RecoStep::TRDTracking) {
@@ -1530,12 +1529,7 @@ int GPUChainTracking::RunTPCTrackingMerger()
   }
   const auto& threadContext = GetThreadContext();
 
-  Merger.SetMatLUT(processors()->calibObjects.matLUT);
   SetupGPUProcessor(&Merger, true);
-  if (doGPU) {
-    MergerShadow.OverrideSliceTracker(processorsDevice()->tpcTrackers);
-    MergerShadow.SetMatLUT(mFlatObjectsShadow.mCalibObjects.matLUT);
-  }
 
   if (Merger.CheckSlices()) {
     return 1;
