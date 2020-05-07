@@ -48,12 +48,12 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "GPUHostDataTypes.h"
 #include "TPCBase/Digit.h"
+#include "TPCdEdxCalibrationSplines.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif
 
 #include "TPCFastTransform.h"
-#include "TPCdEdxCalibrationSplines.h"
 
 #include "utils/linux_helpers.h"
 using namespace GPUCA_NAMESPACE::gpu;
@@ -787,7 +787,7 @@ void GPUChainTracking::ForwardTPCDigits()
   mClusterNativeAccess->setOffsetPtrs();
   mIOPtrs.tpcPackedDigits = nullptr;
   mIOPtrs.clustersNative = mClusterNativeAccess.get();
-  printf("Forwarded %u TPC clusters\n", nTotal);
+  GPUInfo("Forwarded %u TPC clusters", nTotal);
   PrepareEventFromNative();
 #endif
 }
@@ -824,7 +824,7 @@ void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clust
 
     unsigned int nSteps = clusterer.getNSteps(count);
     if (nSteps > clusterer.mNBufs) {
-      printf("Clusterer buffers exceeded (%d > %d)\n", nSteps, (int)clusterer.mNBufs);
+      GPUError("Clusterer buffers exceeded (%u > %u)", nSteps, (int)clusterer.mNBufs);
       exit(1);
     }
 
@@ -1051,7 +1051,7 @@ int GPUChainTracking::RunTPCClusterizer()
 
         runKernel<GPUTPCCFClusterizer, GPUTPCCFClusterizer::computeClusters>(GetGrid(clusterer.mPmemory->counters.nClusters, lane), {iSlice}, {});
         if (GetDeviceProcessingSettings().debugLevel >= 3) {
-          printf("Lane %d: Found clusters: digits %d peaks %d clusters %d\n", lane, (int)clusterer.mPmemory->counters.nPositions, (int)clusterer.mPmemory->counters.nPeaks, (int)clusterer.mPmemory->counters.nClusters);
+          GPUInfo("Lane %d: Found clusters: digits %u peaks %u clusters %u", lane, (int)clusterer.mPmemory->counters.nPositions, (int)clusterer.mPmemory->counters.nPeaks, (int)clusterer.mPmemory->counters.nClusters);
         }
         TransferMemoryResourcesToHost(RecoStep::TPCClusterFinding, &clusterer, lane);
         laneHasData[lane] = true;
@@ -1615,8 +1615,8 @@ int GPUChainTracking::RunTPCTrackingMerger()
   DoDebugAndDump(RecoStep::TPCMerging, 0, doGPUall, Merger, &GPUTPCGMMerger::DumpMergeCE, mDebugFile);
 
   if (GetDeviceProcessingSettings().mergerSortTracks) {
-    runKernel<GPUTPCGMMergerSortTracks>(GetGridBlk(numBlocks, 0, deviceType), krnlRunRangeNone, krnlEventNone);
     runKernel<GPUTPCGMMergerSortTracksPrepare>(GetGridBlk(numBlocks, 0, deviceType), krnlRunRangeNone, krnlEventNone);
+    runKernel<GPUTPCGMMergerSortTracks>(GetGridBlk(numBlocks, 0, deviceType), krnlRunRangeNone, krnlEventNone);
   }
 
   unsigned int maxId = param().rec.NonConsecutiveIDs ? Merger.Memory()->nOutputTrackClusters : Merger.NMaxClusters();
