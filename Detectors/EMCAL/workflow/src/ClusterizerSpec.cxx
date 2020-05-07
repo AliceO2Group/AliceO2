@@ -64,12 +64,13 @@ void ClusterizerSpec<InputType>::run(framework::ProcessingContext& ctx)
 
   auto dataref = ctx.inputs().get(inputname.c_str());
   auto const* emcheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(dataref);
+
   if (!emcheader->mHasPayload) {
     LOG(DEBUG) << "[EMCALClusterizer - run] No more cells/digits" << std::endl;
-    ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
+    // RS: QuitRequest on the end of data should be determined by the input supplier, not the processor
+    //ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
     return;
   }
-
   auto Inputs = ctx.inputs().get<gsl::span<InputType>>(inputname.c_str());
   LOG(DEBUG) << "[EMCALClusterizer - run]  Received " << Inputs.size() << " Cells/digits, running clusterizer ...";
 

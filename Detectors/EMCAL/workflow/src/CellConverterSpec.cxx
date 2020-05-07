@@ -31,10 +31,10 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   auto const* emcheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(dataref);
   if (!emcheader->mHasPayload) {
     LOG(DEBUG) << "[EMCALCellConverter - run] No more digits" << std::endl;
-    ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
+    // RS: QuitRequest on the end of data should be determined by the input supplier, not the processor
+    // ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
     return;
   }
-
   mOutputCells.clear();
   mOutputTriggers.clear();
   auto digitsAll = ctx.inputs().get<gsl::span<o2::emcal::Digit>>("digits");
