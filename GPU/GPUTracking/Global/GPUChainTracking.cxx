@@ -88,7 +88,6 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
     mRec->RegisterGPUProcessor(&processors()->tpcMerger, GetRecoStepsGPU() & RecoStep::TPCMerging);
   }
   if (GetRecoSteps() & RecoStep::TRDTracking) {
-    processors()->trdTracker.SetTrackingChain(this);
     mRec->RegisterGPUProcessor(&processors()->trdTracker, GetRecoStepsGPU() & RecoStep::TRDTracking);
   }
 #ifdef HAVE_O2HEADERS
@@ -1805,7 +1804,7 @@ int GPUChainTracking::RunTRDTracking()
     }
   }
 
-  Tracker.DoTracking();
+  Tracker.DoTracking(this);
 
   mIOPtrs.nTRDTracks = Tracker.NTracks();
   mIOPtrs.trdTracks = Tracker.Tracks();
