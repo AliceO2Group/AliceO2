@@ -61,8 +61,8 @@ void Decoder<GBTDECODER>::process(gsl::span<const uint8_t> bytes)
     if (it.size() == 0) {
       continue;
     }
-    auto* rdhPtr = it.template get_if<o2::header::RAWDataHeader>();
     gsl::span<const uint8_t> payload(it.data(), it.size());
+    auto const* rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
     process(payload, *rdhPtr);
   }
   flush();
