@@ -592,10 +592,10 @@ int GPUChainTracking::ConvertNativeToClusterData()
     }
     return 1;
   }
-  convert.set(tmpExt, processors()->calibObjects.fastTransform);
+  convert.set(tmpExt);
   SetupGPUProcessor(&convert, false);
   if (doGPU) {
-    convertShadow.set(convertShadow.mClustersNativeBuffer, mFlatObjectsDevice.mCalibObjects.fastTransform);
+    convertShadow.set(convertShadow.mClustersNativeBuffer);
     processorsShadow()->ioPtrs.clustersNative = convertShadow.mClustersNativeBuffer;
     WriteToConstantMemory(RecoStep::TPCConversion, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
     *convert.mClustersNativeBuffer = *mClusterNativeAccess.get();
