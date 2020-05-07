@@ -46,7 +46,8 @@ namespace gpu
 {
 class TPCFastTransform;
 
-// This defines an output region. Ptr points to a memory buffer, which should have a proper alignment of at least BUFFER_ALIGNMENT bytes.
+// This defines an output region. Ptr points to a memory buffer, which should have a proper alignment.
+// Since DPL does not respect the alignment of data types, we do not impose anything specic but just use a char data type, but it should be >= 64 bytes ideally.
 // The size defines the maximum possible buffer size when GPUReconstruction is called, and returns the number of filled bytes when it returns.
 // If ptr == nullptr, there is no region defined and GPUReconstruction will write its output to an internal buffer.
 struct GPUInterfaceOutputRegion {
@@ -63,12 +64,6 @@ struct GPUO2InterfaceConfiguration {
   GPUO2InterfaceConfiguration() = default;
   ~GPUO2InterfaceConfiguration() = default;
   GPUO2InterfaceConfiguration(const GPUO2InterfaceConfiguration&) = default;
-
-  static constexpr size_t BUFFER_ALIGNMENT = 64;
-  class alignas(BUFFER_ALIGNMENT) bufferType
-  {
-    char x[BUFFER_ALIGNMENT];
-  };
 
   // Settings for the Interface class
   struct GPUInterfaceSettings {
