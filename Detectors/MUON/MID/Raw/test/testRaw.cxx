@@ -58,13 +58,13 @@ std::vector<o2::mid::ColumnData> sortData(const std::vector<o2::mid::ColumnData>
   return sortedData;
 }
 
-void doTest(const std::map<uint16_t, std::vector<o2::mid::ColumnData>>& inData, const std::vector<o2::mid::ROFRecord>& rofRecords, const std::vector<o2::mid::ColumnData>& data, const o2::mid::EventType inEventType = o2::mid::EventType::Standard)
+void doTest(const std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnData>>& inData, const std::vector<o2::mid::ROFRecord>& rofRecords, const std::vector<o2::mid::ColumnData>& data, const o2::mid::EventType inEventType = o2::mid::EventType::Standard)
 {
   BOOST_REQUIRE(rofRecords.size() == inData.size());
   auto inItMap = inData.begin();
   for (auto rofIt = rofRecords.begin(); rofIt != rofRecords.end(); ++rofIt) {
     BOOST_TEST(static_cast<int>(rofIt->eventType) == static_cast<int>(inEventType));
-    BOOST_TEST(rofIt->interactionRecord.bc == inItMap->first);
+    BOOST_TEST(rofIt->interactionRecord == inItMap->first);
     BOOST_TEST(rofIt->nEntries == inItMap->second.size());
     auto sortedIn = sortData(inItMap->second, 0, inItMap->second.size());
     auto sortedOut = sortData(data, rofIt->firstEntry, rofIt->firstEntry + rofIt->nEntries);
@@ -81,17 +81,15 @@ void doTest(const std::map<uint16_t, std::vector<o2::mid::ColumnData>>& inData, 
   }
 }
 
-std::tuple<std::vector<o2::mid::ColumnData>, std::vector<o2::mid::ROFRecord>> encodeDecode(std::map<uint16_t, std::vector<o2::mid::ColumnData>> inData, o2::mid::EventType inEventType = o2::mid::EventType::Standard)
+std::tuple<std::vector<o2::mid::ColumnData>, std::vector<o2::mid::ROFRecord>> encodeDecode(std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnData>> inData, o2::mid::EventType inEventType = o2::mid::EventType::Standard)
 {
   auto severity = fair::Logger::GetConsoleSeverity();
   fair::Logger::SetConsoleSeverity(fair::Severity::WARNING);
   std::string tmpFilename = "tmp_mid_raw.dat";
   o2::mid::Encoder encoder;
   encoder.init(tmpFilename.c_str());
-  uint32_t orbit = 0;
   for (auto& item : inData) {
-    o2::InteractionRecord ir(item.first, orbit);
-    encoder.process(item.second, ir, inEventType);
+    encoder.process(item.second, item.first, inEventType);
   }
   encoder.finalize();
 
@@ -128,17 +126,17 @@ std::tuple<std::vector<o2::mid::ColumnData>, std::vector<o2::mid::ROFRecord>> en
 
 BOOST_AUTO_TEST_CASE(ColumnDataConverter)
 {
-  std::map<uint16_t, std::vector<o2::mid::ColumnData>> inData;
-  uint16_t bc = 100;
+  std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnData>> inData;
+  o2::InteractionRecord ir(100, 0);
   // Crate 5 link 0
-  inData[bc].emplace_back(getColData(2, 4, 0x1, 0xFFFF));
+  inData[ir].emplace_back(getColData(2, 4, 0x1, 0xFFFF));
 
-  bc = 200;
-  inData[bc].emplace_back(getColData(3, 4, 0xFF00, 0xFF));
+  ir.bc = 200;
+  inData[ir].emplace_back(getColData(3, 4, 0xFF00, 0xFF));
+  inData[ir].emplace_back(getColData(12, 4, 0xFF));
 
   std::vector<o2::mid::ROFRecord> rofs;
   std::vector<o2::mid::LocalBoardRO> outData;
-  size_t ientry = 0;
   auto inEventType = o2::mid::EventType::Standard;
   o2::mid::ColumnDataToLocalBoard converter;
   for (auto& item : inData) {
@@ -154,7 +152,7 @@ BOOST_AUTO_TEST_CASE(ColumnDataConverter)
         outData.emplace_back(loc);
         outData.back().boardId = o2::mid::crateparams::makeUniqueLocID(crateId, loc.boardId);
       }
-      rofs.push_back({{item.first, 0}, inEventType, firstEntry, outData.size() - firstEntry});
+      rofs.push_back({item.first, inEventType, firstEntry, outData.size() - firstEntry});
     }
   }
 
@@ -194,7 +192,6 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
   uint16_t feeId = o2::mid::crateparams::makeROId(crateId, linkInCrate);
   o2::mid::GBTUserLogicEncoder encoder;
   encoder.setFeeId(feeId);
-  uint32_t orbit = 0;
   for (auto& item : inData) {
     encoder.process(item.second, item.first);
   }
@@ -231,21 +228,22 @@ BOOST_AUTO_TEST_CASE(SmallSample)
 {
   /// Event with just one link fired
 
-  std::map<uint16_t, std::vector<o2::mid::ColumnData>> inData;
+  std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnData>> inData;
   // Small standard event
-  uint16_t bc = 100;
+  o2::InteractionRecord ir(100, 0);
 
   // Crate 5 link 0
-  inData[bc].emplace_back(getColData(2, 4, 0x1, 0xFFFF));
-  inData[bc].emplace_back(getColData(11, 4, 0x3, 0xFFFF));
+  inData[ir].emplace_back(getColData(2, 4, 0x1, 0xFFFF));
+  inData[ir].emplace_back(getColData(11, 4, 0x3, 0xFFFF));
 
   // Crate 1 link 1 and crate 2 link 0
-  inData[bc].emplace_back(getColData(5, 1, 0xFFFF, 0, 0xF, 0xF0));
+  inData[ir].emplace_back(getColData(5, 1, 0xFFFF, 0, 0xF, 0xF0));
   // Crate 10 link 1 and crate 11 link 1
-  inData[bc].emplace_back(getColData(41, 2, 0xFF0F, 0, 0xF0FF, 0xF));
-  bc = 200;
+  inData[ir].emplace_back(getColData(41, 2, 0xFF0F, 0, 0xF0FF, 0xF));
+  ir.bc = 200;
+  ir.orbit = 1;
   // Crate 12 link 1
-  inData[bc].emplace_back(getColData(70, 3, 0xFF00, 0xFF));
+  inData[ir].emplace_back(getColData(70, 3, 0xFF00, 0xFF));
 
   auto [data, rofs] = encodeDecode(inData);
 
@@ -255,10 +253,11 @@ BOOST_AUTO_TEST_CASE(SmallSample)
 BOOST_AUTO_TEST_CASE(LargeBufferSample)
 {
   o2::mid::Mapping mapping;
-  std::map<uint16_t, std::vector<o2::mid::ColumnData>> inData;
+  std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnData>> inData;
   // Big event that should pass the 8kB
-  for (int irepeat = 0; irepeat < 150; ++irepeat) {
-    uint16_t bc = 1 + irepeat;
+  o2::InteractionRecord ir(0, 0);
+  for (int irepeat = 0; irepeat < 4000; ++irepeat) {
+    ++ir;
     for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
       // Since we have 1 RDH per GBT, we can put data only on 1 column
       int icol = 4;
@@ -266,7 +265,7 @@ BOOST_AUTO_TEST_CASE(LargeBufferSample)
       if (mapping.getFirstBoardBP(icol, ide) != 0) {
         continue;
       }
-      inData[bc].emplace_back(getColData(ide, icol, 0xFF00, 0xFFFF));
+      inData[ir].emplace_back(getColData(ide, icol, 0xFF00, 0xFFFF));
     }
   }
 
