@@ -375,6 +375,7 @@ int GPUTPCGlobalMergerComponent::DoEvent(const AliHLTComponentEventData& evtData
 
   fChain->GetTPCMerger().Clear();
 
+  int nSlicesSet = 0;
   const AliHLTComponentBlockData* const blocksEnd = blocks + evtData.fBlockCnt;
   for (const AliHLTComponentBlockData* block = blocks; block < blocksEnd; ++block) {
     if (block->fDataType != GPUTPCDefinitions::fgkTrackletsDataType) {
@@ -397,6 +398,14 @@ int GPUTPCGlobalMergerComponent::DoEvent(const AliHLTComponentEventData& evtData
     }
     GPUTPCSliceOutput* sliceOut = reinterpret_cast<GPUTPCSliceOutput*>(block->fPtr);
     fChain->GetTPCMerger().SetSliceData(slice, sliceOut);
+    nSlicesSet++;
+  }
+  if (nSlicesSet != 36) {
+    if (nSlicesSet != 0) {
+      HLTError("Incomplete input data");
+      return (-EINVAL);
+    }
+    return 0;
   }
   fBenchmark.Start(1);
   fChain->RunTPCTrackingMerger();
