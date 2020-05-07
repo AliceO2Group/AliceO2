@@ -62,13 +62,13 @@ void Encoder::nextWordNoEmpty(int icrate)
   }
 }
 
-bool Encoder::open(const std::string name)
+bool Encoder::open(const std::string name, std::string path)
 {
   bool status = false;
 
   for (int i = 0; i < NCRU; i++) {
     std::string nametmp;
-    nametmp.append(Form("cru%02d", i));
+    nametmp.append(Form("%s/cru%02d", path.c_str(), i));
     nametmp.append(name);
     printf("TOF Raw encoder: create stream to CRU: %s\n", nametmp.c_str());
     if (mFileCRU[i].is_open()) {
