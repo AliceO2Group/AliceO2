@@ -357,7 +357,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   }
 
   fBenchmark.Start(1);
-  fTracker->DoTracking();
+  fTracker->DoTracking(NULL);
   fBenchmark.Stop(1);
 
   GPUTRDTrack* trackArray = fTracker->Tracks();

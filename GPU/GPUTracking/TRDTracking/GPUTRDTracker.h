@@ -68,11 +68,10 @@ class GPUTRDTracker_t : public GPUProcessor
 
   bool Init(TRD_GEOMETRY_CONST GPUTRDGeometry* geo = nullptr);
   void CountMatches(const int trackID, std::vector<int>* matches) const;
-  void DoTracking();
+  void DoTracking(GPUChainTracking* chainTracking);
   void SetNCandidates(int n);
   void PrintSettings() const;
   bool IsInitialized() const { return mIsInitialized; }
-  void SetTrackingChain(GPUChainTracking* c) { mChainTracking = c; }
   void StartDebugging() { mDebug->CreateStreamer(); }
 #endif
 
@@ -241,7 +240,6 @@ class GPUTRDTracker_t : public GPUProcessor
   float mZCorrCoefNRC;                     // tracklet z-position depends linearly on track dip angle
   AliMCEvent* mMCEvent;                    //! externaly supplied optional MC event
   GPUTRDTrackerDebug<TRDTRK>* mDebug;      // debug output
-  GPUChainTracking* mChainTracking;        // Tracking chain with access to input data / parameters
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
