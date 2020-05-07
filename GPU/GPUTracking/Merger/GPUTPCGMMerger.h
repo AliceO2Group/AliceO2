@@ -85,10 +85,6 @@ class GPUTPCGMMerger : public GPUProcessor
   void* SetPointersRefit(void* mem);
   void* SetPointersMemory(void* mem);
 
-  void OverrideSliceTracker(GPUTPCTracker* trk) { mSliceTrackers = trk; }
-  void SetTrackingChain(GPUChainTracking* c) { mChainTracking = c; }
-  const GPUChainTracking* GetTrackingChain() const { return mChainTracking; }
-
   void SetSliceData(int index, const GPUTPCSliceOutput* SliceData);
 
   GPUhd() int NOutputTracks() const { return mMemory->nOutputTracks; }
@@ -97,9 +93,6 @@ class GPUTPCGMMerger : public GPUProcessor
   {
     return mOutputTracks;
   }
-
-  GPUhd() void SetMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
-  GPUhd() const o2::base::MatLayerCylSet* MatLUT() const { return mMatLUT; }
 
   GPUhd() unsigned int NClusters() const { return mNClusters; }
   GPUhd() unsigned int NMaxClusters() const { return mNMaxClusters; }
@@ -111,7 +104,6 @@ class GPUTPCGMMerger : public GPUProcessor
   {
     return (mClusters);
   }
-  GPUhd() const GPUTPCTracker* SliceTrackers() const { return (mSliceTrackers); }
   GPUhd() GPUAtomic(unsigned int) * ClusterAttachment() const { return mClusterAttachment; }
   GPUhd() unsigned int* TrackOrderAttach() const { return mTrackOrderAttach; }
   GPUhd() unsigned int* TrackOrderProcess() const { return mTrackOrderProcess; }
@@ -219,10 +211,6 @@ class GPUTPCGMMerger : public GPUProcessor
   memory* mMemory;
   unsigned int* mRetryRefitIds;
   GPUTPCGMLoopData* mLoopData;
-
-  const GPUTPCTracker* mSliceTrackers;
-  const o2::base::MatLayerCylSet* mMatLUT;
-  GPUChainTracking* mChainTracking; // Tracking chain with access to input data / parameters
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
