@@ -48,10 +48,9 @@ class GPUTPCConvert : public GPUProcessor
   void* SetPointersOutput(void* mem);
   void* SetPointersMemory(void* mem);
 
-  void set(o2::tpc::ClusterNativeAccess* clustersNative, const TPCFastTransform* transform)
+  void set(o2::tpc::ClusterNativeAccess* clustersNative)
   {
     mClustersNative = clustersNative;
-    mTransform = transform;
   }
 #endif
   GPUd() const o2::tpc::ClusterNativeAccess* getClustersNative() const
@@ -69,7 +68,6 @@ class GPUTPCConvert : public GPUProcessor
   o2::tpc::ClusterNativeAccess* mClustersNative = nullptr;
   o2::tpc::ClusterNativeAccess* mClustersNativeBuffer;
 
-  const TPCFastTransform* mTransform = nullptr;
   Memory* mMemory = nullptr;
   o2::tpc::ClusterNative* mInputClusters;
   GPUTPCClusterData* mClusters = nullptr;
