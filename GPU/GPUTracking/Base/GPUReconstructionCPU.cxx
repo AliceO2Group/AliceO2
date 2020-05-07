@@ -214,10 +214,6 @@ int GPUReconstructionCPU::RunChains()
           timer.Reset();
         }
       }
-      unsigned int count = mTimers[i]->count;
-      if (mDeviceProcessingSettings.resetTimers) {
-        mTimers[i]->count = 0;
-      }
 
       char type = mTimers[i]->type;
       if (type == 0) {
@@ -230,7 +226,11 @@ int GPUReconstructionCPU::RunChains()
       if (mTimers[i]->memSize && mStatNEvents && time != 0.) {
         snprintf(bandwidth, 256, " (%6.3f GB/s - %'14lu bytes)", mTimers[i]->memSize / time * 1e-9, (unsigned long)(mTimers[i]->memSize / mStatNEvents));
       }
-      printf("Execution Time: Task (%c %8ux): %50s Time: %'10d us%s\n", type, count, mTimers[i]->name.c_str(), (int)(time * 1000000 / mStatNEvents), bandwidth);
+      printf("Execution Time: Task (%c %8ux): %50s Time: %'10d us%s\n", type, mTimers[i]->count, mTimers[i]->name.c_str(), (int)(time * 1000000 / mStatNEvents), bandwidth);
+      if (mDeviceProcessingSettings.resetTimers) {
+        mTimers[i]->count = 0;
+        mTimers[i]->memSize = 0;
+      }
     }
     for (int i = 0; i < N_RECO_STEPS; i++) {
       if (kernelStepTimes[i] != 0.) {
