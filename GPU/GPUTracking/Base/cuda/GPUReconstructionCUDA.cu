@@ -94,6 +94,20 @@ GPUg() void runKernelCUDA(GPUCA_CONSMEM_PTR int iSlice_internal, Args... args)
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 
+// Example to specialize a kernel for a backend
+/*template <> int GPUReconstructionCUDABackend::runKernelBackend<GPUTPCGMMergerSortTracksQPt, 0>(krnlSetup& _xyz)
+{
+  HighResTimer timer;
+  if (mDeviceProcessingSettings.deviceTimers) {
+    timer.ResetStart();
+  }
+  printf("TEST\n");
+  if (mDeviceProcessingSettings.deviceTimers) {
+    _xyz.t = timer.GetCurrentElapsedTime();
+  }
+  return 0;
+}*/
+
 template <class T, int I, typename... Args>
 int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
 {
