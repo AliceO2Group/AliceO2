@@ -84,7 +84,6 @@ class GPUTPCCompression : public GPUProcessor
   o2::tpc::CompressedClustersPtrs mPtrs;
   o2::tpc::CompressedClusters* mOutput = nullptr;
   o2::tpc::CompressedClustersFlat* mOutputFlat = nullptr;
-  const GPUTPCGMMerger* mMerger = nullptr;
 
   memory* mMemory = nullptr;
   unsigned int* mAttachedClusterFirstIndex = nullptr;

@@ -1667,7 +1667,6 @@ int GPUChainTracking::RunTPCCompression()
   GPUTPCCompression& CompressorShadow = doGPU ? processorsShadow()->tpcCompressor : Compressor;
   const auto& threadContext = GetThreadContext();
 
-  Compressor.mMerger = &processors()->tpcMerger;
   Compressor.mNGPUBlocks = BlockCount();
   Compressor.mNMaxClusterSliceRow = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
