@@ -184,6 +184,7 @@ class GPUReconstruction
   void ResetRegisteredMemoryPointers(short res);
   void PrintMemoryStatistics();
   void PrintMemoryOverview();
+  void SetMemoryExternalInput(short res, void* ptr);
   GPUMemorySizeScalers* MemoryScalers() { return mMemoryScalers.get(); }
 
   // Helpers to fetch processors from other shared libraries
