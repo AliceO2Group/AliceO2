@@ -24,8 +24,8 @@ o2_add_executable(
                               O2::MCHMappingImpl3 O2::MCHRawElecMap O2::MCHBase)
 
 o2_add_executable(
-        hbf-reader-workflow
-        SOURCES src/hbf-reader-workflow.cxx
+        cru-page-reader-workflow
+        SOURCES src/cru-page-reader-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsRaw O2::DPLUtils Boost::program_options)
 
