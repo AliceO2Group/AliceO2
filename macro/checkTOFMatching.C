@@ -500,13 +500,21 @@ void checkTOFMatching(bool batchMode = true)
   printf("Fraction of multiple hits = (%.1f +/- %.1f)%c\n", fraction * 100, fractionErr * 100, '%');
 
   htof->Fit("pol0", "", "", 1, 5);
-  float effMatch = ((TF1*)htof->GetListOfFunctions()->At(0))->GetParameter(0);
-  float effMatchErr = ((TF1*)htof->GetListOfFunctions()->At(0))->GetParError(0);
+  float effMatch = 0;
+  if (htof->GetListOfFunctions()->At(0))
+    effMatch = ((TF1*)htof->GetListOfFunctions()->At(0))->GetParameter(0);
+  float effMatchErr = 0;
+  if (htof->GetListOfFunctions()->At(0))
+    effMatchErr = ((TF1*)htof->GetListOfFunctions()->At(0))->GetParError(0);
   printf("TOF matching eff (pt > 1) = %f +/- %f\n", effMatch, effMatchErr);
 
   htofMism->Fit("pol0", "", "", 1, 5);
-  float mismMatch = ((TF1*)htofMism->GetListOfFunctions()->At(0))->GetParameter(0);
-  float mismMatchErr = ((TF1*)htofMism->GetListOfFunctions()->At(0))->GetParError(0);
+  float mismMatch = 0;
+  if (htofMism->GetListOfFunctions()->At(0))
+    mismMatch = ((TF1*)htofMism->GetListOfFunctions()->At(0))->GetParameter(0);
+  float mismMatchErr = 0;
+  if (htofMism->GetListOfFunctions()->At(0))
+    mismMatchErr = ((TF1*)htofMism->GetListOfFunctions()->At(0))->GetParError(0);
   printf("TOF-track mismatch (pt > 1) = %f +/- %f\n", mismMatch, mismMatchErr);
 
   if (fout)
