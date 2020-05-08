@@ -40,11 +40,6 @@
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
 
-namespace o2::header
-{
-extern std::ostream& operator<<(std::ostream&, const o2::header::RAWDataHeaderV4&);
-}
-
 using namespace o2;
 using namespace o2::framework;
 
@@ -101,15 +96,22 @@ class FileReaderTask
       mFrameMax -= 1;
     }
 
-    // read the next RDH
+    // read the next RDH, stop if no more data is available
     mInputFile.read((char*)(&rdh), sizeof(RDH));
+    if (mInputFile.fail()) {
+      if (mPrint) {
+        std::cout << "end of file reached" << std::endl;
+      }
+      pc.services().get<ControlService>().endOfStream();
+      return; // probably reached eof
+    }
 
+    // check that the RDH version is ok (only RDH versions from 4 to 6 are supported at the moment)
     auto rdhVersion = o2::raw::RDHUtils::getVersion(rdh);
     auto rdhHeaderSize = o2::raw::RDHUtils::getHeaderSize(rdh);
     if (mPrint) {
       std::cout << "header_version=" << (int)rdhVersion << std::endl;
     }
-    // only RDH versions from 4 to 6 are supported
     if (rdhVersion < 4 || rdhVersion > 6 || rdhHeaderSize != 64) {
       return;
     }
@@ -118,6 +120,13 @@ class FileReaderTask
     auto frameSize = o2::raw::RDHUtils::getOffsetToNext(rdh);
     if (mPrint) {
       std::cout << "frameSize=" << frameSize << std::endl;
+    }
+
+    // stop if the frame size is too small
+    if (frameSize < rdhHeaderSize) {
+      std::cout << mFrameMax << " - frameSize too small: " << frameSize << std::endl;
+      pc.services().get<ControlService>().endOfStream();
+      return;
     }
 
     // allocate the output buffer
