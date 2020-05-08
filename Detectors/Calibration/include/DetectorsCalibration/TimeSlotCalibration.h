@@ -40,9 +40,6 @@ class TimeSlotCalibration
   void setFirstTF(TFType v) { mFirstTF = v; }
 
   void setUpdateAtTheEndOfRunOnly() { mUpdateAtTheEndOfRunOnly = kTRUE; }
-  
-  TFType getFirstTF() const { return mFirstTF; }
-  void setFirstTF(TFType v) { mFirstTF = v; }
 
   int getNSlots() const { return mSlots.size(); }
   Slot& getSlotForTF(TFType tf);
@@ -156,7 +153,7 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
   if (mUpdateAtTheEndOfRunOnly) {
     if (!mSlots.empty() && mSlots.back().getTFEnd() < tf) mSlots.back().setTFEnd(tf);
     else if (mSlots.empty()) {
-      emplaceNewSlot(true, mTFStart, tf);
+      emplaceNewSlot(true, mFirstTF, tf);
     }
     return mSlots.back();
   }

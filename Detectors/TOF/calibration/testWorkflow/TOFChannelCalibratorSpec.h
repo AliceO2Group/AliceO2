@@ -37,12 +37,14 @@ class TOFChannelCalibDevice : public o2::framework::Task
  public:
   void init(o2::framework::InitContext& ic) final
   {
-    int minEnt = std::max(300, ic.options().get<int>("min-entries"));
+    int minEnt = std::max(50, ic.options().get<int>("min-entries"));
     int nb = std::max(500, ic.options().get<int>("nbins"));
+    int isTest = ic.options().get<bool>("do-TOF-channel-calib-in-test-mode");
     //int slotL = ic.options().get<int>("tf-per-slot");
     //int delay = ic.options().get<int>("max-delay");
     mCalibrator = std::make_unique<o2::tof::TOFChannelCalibrator>(minEnt, nb);
     mCalibrator->setUpdateAtTheEndOfRunOnly();
+    mCalibrator->isTest(isTest);
     //    mCalibrator->setSlotLength(slotL); // to be done: we need to configure this so that it just does the calibration at the end of the run
     // mCalibrator->setMaxSlotsDelay(delay); // to be done: we need to configure this so that it just does the calibration at the end of the run
   }
@@ -53,7 +55,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
     auto data = pc.inputs().get<gsl::span<o2::dataformats::CalibInfoTOF>>("input");
     LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
     mCalibrator->process(tfcounter, data);
-    sendOutput(pc.outputs());
+    //sendOutput(pc.outputs());
     const auto& infoVec = mCalibrator->getTimeSlewingInfoVector();
     LOG(INFO) << "Created " << infoVec.size() << " objects for TF " << tfcounter;
   }
@@ -82,7 +84,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
     for (uint32_t i = 0; i < payloadVec.size(); i++) {
       auto& w = infoVec[i];
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-      LOG(INFO) << "Senging object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+      LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
       output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, i}, *image.get()); // vector<char>
       output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, i}, w);               // root-serialized
@@ -106,16 +108,22 @@ DataProcessorSpec getTOFChannelCalibDeviceSpec()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("input", "DUM", "CALIBDATA");
+  //  inputs.emplace_back("testFlag", "DUM", "TESTFLAG");
+		      
   return DataProcessorSpec{
     "calib-tofchannel-calibration",
-    Inputs{{"input", "DUM", "CALIBDATA"}},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{
       //      {"tf-per-slot", VariantType::Int, 5, {"number of TFs per calibration time slot"}},
       //{"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit channel histos"}},
-      {"nbins", VariantType::Int, 1000, {"number of bins for t-texp"}}}};
+      {"nbins", VariantType::Int, 1000, {"number of bins for t-texp"}},
+      {"do-TOF-channel-calib-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}}}};
 }
 
 } // namespace framework
