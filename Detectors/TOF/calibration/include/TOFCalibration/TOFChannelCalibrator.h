@@ -56,6 +56,7 @@ public:
 
   void print() const;
   void print(int isect) const;
+  void printEntries() const;
   void fill(const gsl::span<const o2::dataformats::CalibInfoTOF> data);
   void merge(const TOFChannelData* prev);
   int findBin(float v) const;
@@ -76,6 +77,8 @@ public:
   const boostHisto& getHisto(int isect) const { return mHisto[isect]; }
   //const boostHisto getHisto() const { return &mHisto[0]; }
   // boostHisto* getHisto(int isect) const { return &mHisto[isect]; }
+
+  std::vector<int> getEntriesPerChannel() const { return mEntries; }
 
  private:
   float mRange = 24400;
@@ -114,10 +117,14 @@ class TOFChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::dat
   const CcdbObjectInfoVector& getTimeSlewingInfoVector() const { return mInfoVector; }
   CcdbObjectInfoVector& getTimeSlewingInfoVector() { return mInfoVector; }
 
+  void isTest(bool isTest) { mTest = isTest; }
+  bool isTest() const { return mTest; }
+  
  private:
   int mMinEntries = 0;  // min number of entries to calibrate the TimeSlot
   int mNBins = 0;  // bins of the histogram with the t-text per channel
   float mRange = 0.;  // range of the histogram with the t-text per channel
+  bool mTest; // flag to be used when running in test mode: it simplify the processing (e.g. does not go through all channels)
   CalibTOFapi mCalibTOFapi; 
   CcdbObjectInfoVector mInfoVector; // vector of CCDB Infos , each element is filled with the CCDB description of the accompanying TimeSlewing object
   TimeSlewingVector mTimeSlewingVector;   // vector of TimeSlewing, each element is filled in "process"
