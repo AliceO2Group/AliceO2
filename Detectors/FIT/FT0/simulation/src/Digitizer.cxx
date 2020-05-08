@@ -40,7 +40,7 @@ Digitizer::CFDOutput Digitizer::get_time(const std::vector<double>& times, doubl
     for (double t : times)
       val += signalForm_i(time - t);
     for (size_t i = 0; i < noise.size(); ++i)
-      val += noise[i] * sinc(TMath::Pi() * (time - 12.5) / period - i);
+      val += noise[i] * sinc(TMath::Pi() * (time + 12.5) / period - TMath::Pi() * i);
     return val;
   };
   //  for (double time = min_time; time < 0.5 * mParameters.bunchWidth; time += 0.001 * mParameters.channelWidth) {

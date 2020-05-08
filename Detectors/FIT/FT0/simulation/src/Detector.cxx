@@ -69,8 +69,8 @@ void Detector::ConstructGeometry()
   LOG(DEBUG) << "Creating FT0 geometry\n";
   CreateMaterials();
 
-  Float_t zdetA = 335;
-  Float_t zdetC = 82.;
+  Float_t zdetA = Geometry::ZdetA;
+  Float_t zdetC = Geometry::ZdetC;
 
   Int_t idrotm[999];
   Double_t x, y, z;
@@ -88,7 +88,7 @@ void Detector::ConstructGeometry()
 
   // C side Concave Geometry
 
-  Double_t crad = 82; // define concave c-side radius here
+  Double_t crad = Geometry::ZdetC; // define concave c-side radius here
 
   Double_t dP = pmcp[0]; // side length of mcp divided by 2
 
