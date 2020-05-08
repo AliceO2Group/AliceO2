@@ -66,7 +66,16 @@ class TFProcessor : public o2::framework::Task
     gRandom->SetSeed(mDevCopy);
     mMeanLatency = std::max(1, ic.options().get<int>("mean-latency"));
     mLatencyRMS = std::max(1, ic.options().get<int>("latency-spread"));
-    LOG(INFO) << "TFProcessorCopy: " << mDevCopy << " MeanLatency: " << mMeanLatency << " LatencyRMS: " << mLatencyRMS;
+    mTOFChannelCalib = ic.options().get<bool>("do-TOF-channel-calib");
+    mTOFChannelCalibInTestMode = ic.options().get<bool>("do-TOF-channel-calib-in-test-mode");
+    LOG(INFO) << "TFProcessorCopy: " << mDevCopy << " MeanLatency: " << mMeanLatency << " LatencyRMS: " << mLatencyRMS << " DoTOFChannelCalib: " << mTOFChannelCalib
+	      << " DoTOFChannelCalibInTestMode: " << mTOFChannelCalibInTestMode;
+
+    for (int i = 0; i < o2::tof::Geo::NCHANNELS; i++) {
+      //mChannelShifts[i] = gRandom->Gaus(0., 100.);
+      mChannelShifts[i] = (2000./o2::tof::Geo::NCHANNELS)*i + (-1000.); // shift needs to be always the same for a channel; in this way we make them all in [-1000, 1000], and shifting with the channel index
+      if (i < 100) LOG(INFO) << "Simulated shift for channel " << i << " = " << mChannelShifts[i];
+    }
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -85,7 +94,15 @@ class TFProcessor : public o2::framework::Task
     double clockShift = 1e3 * std::sin(tfcounter / 100. * o2::constants::math::PI);
 
     for (int i = size; i--;) {
-      output.emplace_back(gRandom->Integer(o2::tof::Geo::NCHANNELS), 0, gRandom->Gaus(clockShift, 100.), 0, 0);
+      if (!mTOFChannelCalib) {
+	output.emplace_back(gRandom->Integer(o2::tof::Geo::NCHANNELS), 0, gRandom->Gaus(clockShift, 100.), 0, 0);
+      }
+      else {
+	int channel = mTOFChannelCalibInTestMode? gRandom->Integer(100) : gRandom->Integer(o2::tof::Geo::NCHANNELS);
+	double value = gRandom->Gaus(mChannelShifts[channel], 100.);
+	//LOG(INFO) << "channel = " << channel << ", value = " << value;
+	output.emplace_back(channel, 0, value, 0, 0);
+      }
     }
   }
 
@@ -93,6 +110,9 @@ class TFProcessor : public o2::framework::Task
   int mDevCopy = 0;
   uint32_t mMeanLatency = 0;
   uint32_t mLatencyRMS = 1;
+  bool mTOFChannelCalib = false;
+  bool mTOFChannelCalibInTestMode = false;
+  double mChannelShifts[o2::tof::Geo::NCHANNELS];
 };
 
 } // namespace calibration
@@ -119,7 +139,9 @@ DataProcessorSpec getTFProcessorSpec()
     AlgorithmSpec{adaptFromTask<o2::calibration::TFProcessor>()},
     Options{
       {"mean-latency", VariantType::Int, 1000, {"mean latency of the generator in microseconds"}},
-      {"latency-spread", VariantType::Int, 100, {"latency gaussian RMS of the generator in microseconds"}}}};
+      {"latency-spread", VariantType::Int, 100, {"latency gaussian RMS of the generator in microseconds"}},
+      {"do-TOF-channel-calib", VariantType::Bool, false, {"flag to do TOF ChannelCalib"}},
+      {"do-TOF-channel-calib-in-test-mode", VariantType::Bool, false, {"flag to do TOF ChannelCalib in testMode"}}}};
 }
 
 } // namespace framework

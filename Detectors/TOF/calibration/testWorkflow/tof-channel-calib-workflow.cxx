@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/DataProcessorSpec.h"
 #include "TOFChannelCalibratorSpec.h"
+#include "Framework/DataProcessorSpec.h"
 
 using namespace o2::framework;
 

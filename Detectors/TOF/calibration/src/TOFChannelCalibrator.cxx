@@ -63,12 +63,12 @@ void TOFChannelData::merge(const TOFChannelData* prev)
   // true if all channels can be fitted --> have enough statistics
   
   // we can simply check if the min of the elements of the mEntries vector is >= minEntries
+  printEntries();
   auto minElementIndex = std::min_element(mEntries.begin(), mEntries.end());
   LOG(INFO) << "minElement is at position " << std::distance(mEntries.begin(), minElementIndex) <<
     " and is " << *minElementIndex;
   bool enough = *minElementIndex < minEntries ? false : true;
   LOG(INFO) << "hasEnough = " << (int)enough; 
-  LOG(INFO) << "previous channel has " << *(minElementIndex-1) << " entries"; 
   return enough;
 }
   
@@ -80,17 +80,26 @@ void TOFChannelData::print() const
   for (int isect = 0; isect < o2::tof::Geo::NSECTORS; isect++) {
     LOG(INFO) << "Sector: " << isect;
     os << mHisto[isect];
+    auto nentriesInSec = boost::histogram::algorithm::sum(mHisto[isect]);
     LOG(INFO) << "Number of entries in histogram: " << boost::histogram::algorithm::sum(mHisto[isect]);
     int cnt = 0;
-    for (auto&& x : indexed(mHisto[isect])) { // does not work also when I use indexed(*(mHisto[sector]))
-      cnt++;
-      if (x.get() > 0) {
-	LOG(INFO) << "x = " << x.get() << " c " << cnt;
+    if (nentriesInSec != 0) {
+      for (auto&& x : indexed(mHisto[isect])) { 
+	if (x.get() > 0) {
+	  const auto i = x.index(0); // current index along first axis --> t-texp
+	  const auto j = x.index(1); // current index along second axis --> channel
+	  const auto b0 = x.bin(0);  // current bin interval along first axis --> t-texp
+	  const auto b1 = x.bin(1);  // current bin interval along second axis --> channel
+	  LOG(INFO) << "bin " << cnt << ": channel = " << j << " in [" << b1.lower() << ", " << b1.upper()
+		    << "], t-texp in [" << b0.lower() << ", " << b0.upper() << "], has entries = " << x.get();
+	}
+	cnt++;
       }
     }
     LOG(INFO) << cnt << " bins inspected";
   }
 }
+
 //_____________________________________________
 void TOFChannelData::print(int isect) const
 {
@@ -107,6 +116,14 @@ void TOFChannelData::print(int isect) const
     }
   }
   LOG(INFO) << cnt << " bins inspected";
+}
+
+//_____________________________________________
+void TOFChannelData::printEntries() const
+{
+  // to print number of entries per channel
+  for(int i = 0; i < mEntries.size(); ++i)
+    LOG(INFO) << "channel " << i << " has " << mEntries[i] << " entries";
 }
 
 //_____________________________________________
@@ -392,7 +409,8 @@ bool TOFChannelCalibrator::hasEnoughData(const Slot& slot) const
   // Delegating this to TOFChannelData
   
   const o2::tof::TOFChannelData* c = slot.getContainer();
-  return c->hasEnoughData(mMinEntries);
+  return (mTest ? true : c->hasEnoughData(mMinEntries));
+  //  return c->hasEnoughData(mMinEntries);
   
 }
   
@@ -413,12 +431,6 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
     int chinsector = ich % o2::tof::Geo::NPADSXSECTOR;
     std::vector<float> fitValues;
     std::vector<float> histoValues;
-    // reduction is very slow
-    //auto hch = boost::histogram::algorithm::reduce( c->getHisto(sector), boost::histogram::algorithm::shrink(1, float(ich), float(ich)+0.1));
-    //for (auto&& x : indexed(hch)){
-    //  histoValues.push_back(x.get());
-    //}
-
     /* //less efficient way
     int startCount = chinsector * c->getNbins();
     int counts = -1;
@@ -432,6 +444,15 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
       histoValues.push_back(x.get());
     }
     */
+    std::vector<int> entriesPerChannel = c->getEntriesPerChannel();
+    if (entriesPerChannel.at(ich) == 0) {
+      if (mTest) {
+	LOG(DEBUG) << "Skipping channel " << ich << " because it has zero entries, but it should not be"; // should become error!
+	continue;
+      }
+      else throw std::runtime_error("We found one channel with no entries, we cannot calibrate!");
+    }
+    
     // more efficient way
     auto histo = c->getHisto(sector);
     for (unsigned j = chinsector; j <= chinsector; ++j) {
@@ -441,7 +462,7 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
       }
     }
     
-  int fitres = fitGaus(c->getNbins(), histoValues.data(), -(c->getRange()), c->getRange(), fitValues);
+    int fitres = fitGaus(c->getNbins(), histoValues.data(), -(c->getRange()), c->getRange(), fitValues);
     if (fitres >= 0) {
       LOG(INFO) << "Channel " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
     }
@@ -476,6 +497,7 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
   mTimeSlewingVector.emplace_back(ts);
 
   slot.print();
+
 }
 
 //_____________________________________________
