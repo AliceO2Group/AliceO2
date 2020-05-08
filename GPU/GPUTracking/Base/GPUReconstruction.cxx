@@ -516,6 +516,11 @@ void GPUReconstruction::FreeRegisteredMemory(short ires)
   res->mPtrDevice = nullptr;
 }
 
+void GPUReconstruction::SetMemoryExternalInput(short res, void* ptr)
+{
+  mMemoryResources[res].mPtr = ptr;
+}
+
 void GPUReconstruction::ClearAllocatedMemory(bool clearOutputs)
 {
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {

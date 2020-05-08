@@ -332,7 +332,6 @@ void GPUChainTracking::PrepareEventFromNative()
     *tmp = *mIOPtrs.clustersNative;
     mIOPtrs.clustersNative = tmp;
   }
-  processors()->tpcConverter.mClustersNative = tmp;
 
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
     processors()->tpcTrackers[iSlice].Data().SetClusterData(nullptr, mIOPtrs.clustersNative->nClustersSector[iSlice], mIOPtrs.clustersNative->clusterOffset[iSlice][0]);
@@ -582,8 +581,7 @@ int GPUChainTracking::ConvertNativeToClusterData()
   GPUTPCConvert& convert = processors()->tpcConverter;
   GPUTPCConvert& convertShadow = doGPU ? processorsShadow()->tpcConverter : convert;
 
-  ClusterNativeAccess* tmpExt = mClusterNativeAccess.get();
-  if (tmpExt->nClustersTotal > convert.mNClustersTotal) {
+  if (mIOPtrs.clustersNative->nClustersTotal > convert.mNClustersTotal) {
     GPUError("Too many input clusters in conversion (expected <= %ld)\n", convert.mNClustersTotal);
     for (unsigned int i = 0; i < NSLICES; i++) {
       mIOPtrs.nClusterData[i] = 0;
@@ -591,25 +589,26 @@ int GPUChainTracking::ConvertNativeToClusterData()
     }
     return 1;
   }
-  convert.set(tmpExt);
   SetupGPUProcessor(&convert, false);
   if (doGPU) {
-    convertShadow.set(convertShadow.mClustersNativeBuffer);
-    processorsShadow()->ioPtrs.clustersNative = convertShadow.mClustersNativeBuffer;
+    mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = mIOPtrs.clustersNative->nClustersTotal;
+    AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
+    processorsShadow()->ioPtrs.clustersNative = mInputsShadow->mPclusterNativeAccess;
     WriteToConstantMemory(RecoStep::TPCConversion, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
-    *convert.mClustersNativeBuffer = *mClusterNativeAccess.get();
-    convert.mClustersNativeBuffer->clustersLinear = convertShadow.mInputClusters; // We overwrite the pointers of the host buffer, this will be moved to the GPU, should be cleaned up
+    *mInputsHost->mPclusterNativeAccess = *mIOPtrs.clustersNative;
+    mInputsHost->mPclusterNativeAccess->clustersLinear = mInputsShadow->mPclusterNativeBuffer;
     for (unsigned int i = 0; i < NSLICES; i++) {
-      convert.mMemory->clusters[i] = convertShadow.mClusters + tmpExt->clusterOffset[i][0];
+      convert.mMemory->clusters[i] = convertShadow.mClusters + mIOPtrs.clustersNative->clusterOffset[i][0];
       for (unsigned int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
-        ClusterNative* ptr = convertShadow.mInputClusters + convert.mClustersNativeBuffer->clusterOffset[i][j];
-        convert.mClustersNativeBuffer->clusters[i][j] = ptr; // We overwrite the pointers of the host buffer, this will be moved to the GPU, should be cleaned up
-        GPUMemCpy(RecoStep::TPCConversion, ptr, mClusterNativeAccess->clusters[i][j], sizeof(mClusterNativeAccess->clusters[i][j][0]) * mClusterNativeAccess->nClusters[i][j], 0, true);
+        ClusterNative* ptr = mInputsShadow->mPclusterNativeBuffer + mIOPtrs.clustersNative->clusterOffset[i][j];
+        mInputsHost->mPclusterNativeAccess->clusters[i][j] = ptr; // We overwrite the pointers of the host buffer, this will be moved to the GPU, should be cleaned up
       }
     }
+    GPUMemCpy(RecoStep::TPCConversion, mInputsShadow->mPclusterNativeBuffer, mIOPtrs.clustersNative->clustersLinear, sizeof(mIOPtrs.clustersNative->clustersLinear[0]) * mIOPtrs.clustersNative->nClustersTotal, 0, true);
+    TransferMemoryResourceLinkToGPU(RecoStep::TPCConversion, mInputsHost->mResourceClusterNativeAccess, 0);
   } else {
     for (unsigned int i = 0; i < NSLICES; i++) {
-      convert.mMemory->clusters[i] = convert.mClusters + tmpExt->clusterOffset[i][0];
+      convert.mMemory->clusters[i] = convert.mClusters + mIOPtrs.clustersNative->clusterOffset[i][0];
     }
   }
 
@@ -620,9 +619,9 @@ int GPUChainTracking::ConvertNativeToClusterData()
   SynchronizeGPU();
 
   for (unsigned int i = 0; i < NSLICES; i++) {
-    mIOPtrs.nClusterData[i] = (i == NSLICES - 1 ? tmpExt->nClustersTotal : tmpExt->clusterOffset[i + 1][0]) - tmpExt->clusterOffset[i][0];
-    mIOPtrs.clusterData[i] = convert.mClusters + mClusterNativeAccess->clusterOffset[i][0];
-    processors()->tpcTrackers[i].Data().SetClusterData(mIOPtrs.clusterData[i], mIOPtrs.nClusterData[i], mClusterNativeAccess->clusterOffset[i][0]);
+    mIOPtrs.nClusterData[i] = (i == NSLICES - 1 ? mIOPtrs.clustersNative->nClustersTotal : mIOPtrs.clustersNative->clusterOffset[i + 1][0]) - mIOPtrs.clustersNative->clusterOffset[i][0];
+    mIOPtrs.clusterData[i] = convert.mClusters + mIOPtrs.clustersNative->clusterOffset[i][0];
+    processors()->tpcTrackers[i].Data().SetClusterData(mIOPtrs.clusterData[i], mIOPtrs.nClusterData[i], mIOPtrs.clustersNative->clusterOffset[i][0]);
   }
 #endif
   return 0;
