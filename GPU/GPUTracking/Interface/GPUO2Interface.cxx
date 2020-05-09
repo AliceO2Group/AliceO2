@@ -101,7 +101,11 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
 
   mChain->mIOPtrs = *data;
   if (mConfig->configInterface.outputToPreallocatedBuffers) {
-    mOutputCompressedClusters->set(outputs->compressedClusters.ptr, outputs->compressedClusters.size);
+    if (outputs->compressedClusters.ptr) {
+      mOutputCompressedClusters->set(outputs->compressedClusters.ptr, outputs->compressedClusters.size);
+    } else {
+      mOutputCompressedClusters->reset();
+    }
   }
   int retVal = mRec->RunChains();
   if (retVal == 2) {
