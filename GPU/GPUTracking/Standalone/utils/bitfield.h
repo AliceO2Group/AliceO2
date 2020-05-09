@@ -27,6 +27,7 @@ class bitfield
   bitfield(const bitfield&) = default;
   bitfield& operator=(const bitfield&) = default;
   bitfield operator|(const bitfield v) const { return bits | v.bits; }
+  bitfield operator|(const T v) const { return bits | static_cast<S>(v); }
   bitfield& operator|=(const bitfield v)
   {
     bits |= v.bits;

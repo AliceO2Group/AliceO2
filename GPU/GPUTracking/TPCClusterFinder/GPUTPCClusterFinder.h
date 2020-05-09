@@ -121,8 +121,9 @@ class GPUTPCClusterFinder : public GPUProcessor
   size_t mBufSize = 0;
   size_t mNBufs = 0;
 
-  unsigned short mMemoryId = 0;
-  unsigned short mZSOffsetId = 0;
+  short mMemoryId = -1;
+  short mZSOffsetId = -1;
+  short mOutputId = -1;
 
 #ifndef GPUCA_GPUCODE
   void DumpDigits(std::ostream& out);

@@ -246,6 +246,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       if (caClusterer) { // Override some settings if we have raw data as input
         config.configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCRaw);
         config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCClusterFinding, true);
+        config.configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, true);
       }
 
       // Create and forward data objects for TPC transformation, material LUT, ...
