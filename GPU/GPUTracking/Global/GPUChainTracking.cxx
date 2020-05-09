@@ -603,6 +603,15 @@ int GPUChainTracking::ConvertNativeToClusterData()
       TransferMemoryResourceLinkToGPU(RecoStep::TPCConversion, mInputsHost->mResourceClusterNativeAccess, 0);
     }
   }
+  if (!param().earlyTpcTransform) {
+    if (GetDeviceProcessingSettings().debugLevel >= 3) {
+      GPUInfo("Early transform inactive, skipping TPC Early transformation kernel, transformed on the fly during slice data creation / refit");
+    }
+    for (unsigned int i = 0; i < NSLICES; i++) {
+      processors()->tpcTrackers[i].Data().SetClusterData(nullptr, mIOPtrs.clustersNative->nClustersSector[i], mIOPtrs.clustersNative->clusterOffset[i][0]);
+    }
+    return 0;
+  }
   for (unsigned int i = 0; i < NSLICES; i++) {
     convert.mMemory->clusters[i] = convertShadow.mClusters + mIOPtrs.clustersNative->clusterOffset[i][0];
   }
