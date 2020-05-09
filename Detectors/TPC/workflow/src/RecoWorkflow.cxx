@@ -194,7 +194,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   // output matrix
   // Note: the ClusterHardware format is probably a deprecated legacy format and also the
   // ClusterDecoderRawSpec
-  bool produceCompClusters = isEnabled(OutputType::CompClusters) || isEnabled(OutputType::EncodedClusters);
+  bool produceCompClusters = isEnabled(OutputType::CompClusters);
   bool produceTracks = isEnabled(OutputType::Tracks);
   bool runTracker = produceTracks || produceCompClusters;
   bool runHWDecoder = !caClusterer && (runTracker || isEnabled(OutputType::Clusters));
@@ -394,6 +394,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                    zsDecoder ? ca::Operation::ZSDecoder : ca::Operation::Noop,
                                                    produceTracks ? ca::Operation::OutputTracks : ca::Operation::Noop,
                                                    produceCompClusters ? ca::Operation::OutputCompClusters : ca::Operation::Noop,
+                                                   runClusterEncoder ? ca::Operation::OutputCompClustersFlat : ca::Operation::Noop,
                                                    isEnabled(OutputType::Clusters) && caClusterer ? ca::Operation::OutputCAClusters : ca::Operation::Noop,
                                                  },
                                                  laneConfiguration));
@@ -405,7 +406,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   //
   // selected by output type 'encoded-clusters'
   if (runClusterEncoder) {
-    specs.emplace_back(o2::tpc::getEntropyEncoderSpec());
+    specs.emplace_back(o2::tpc::getEntropyEncoderSpec(!runTracker));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
