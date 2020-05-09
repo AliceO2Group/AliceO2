@@ -128,6 +128,7 @@ class GPUTPCTracker : public GPUProcessor
   }
 
   void SetupCommonMemory();
+  bool SliceDataOnGPU();
   void* SetPointersDataInput(void* mem);
   void* SetPointersDataScratch(void* mem);
   void* SetPointersDataRows(void* mem);

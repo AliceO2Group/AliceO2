@@ -1157,7 +1157,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     GPUInfo("Running TPC Slice Tracker");
   }
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCSliceTracking;
-  bool doSliceDataOnGPU = doGPU && (GetRecoStepsGPU() & RecoStep::TPCConversion) && mIOPtrs.clustersNative;
+  bool doSliceDataOnGPU = processors()->tpcTrackers[0].SliceDataOnGPU();
 
   bool streamInit[GPUCA_MAX_STREAMS] = {false};
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
