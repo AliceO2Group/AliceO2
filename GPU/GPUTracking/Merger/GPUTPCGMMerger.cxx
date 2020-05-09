@@ -251,17 +251,33 @@ void* GPUTPCGMMerger::SetPointersMemory(void* mem)
   return mem;
 }
 
-void* GPUTPCGMMerger::SetPointersRefit(void* mem)
+void* GPUTPCGMMerger::SetPointersRefitScratch(void* mem)
 {
   computePointerWithAlignment(mem, mRetryRefitIds, mNMaxTracks);
   computePointerWithAlignment(mem, mLoopData, mNMaxTracks);
-  computePointerWithAlignment(mem, mOutputTracks, mNMaxTracks);
-  computePointerWithAlignment(mem, mClusters, mNMaxOutputTrackClusters);
+  if (mRec->GetDeviceProcessingSettings().fullMergerOnGPU) {
+    mem = SetPointersRefitScratch2(mem);
+  }
+  return mem;
+}
+
+void* GPUTPCGMMerger::SetPointersRefitScratch2(void* mem)
+{
   computePointerWithAlignment(mem, mTrackOrderAttach, mNMaxTracks);
   if (mRec->GetDeviceProcessingSettings().mergerSortTracks) {
     computePointerWithAlignment(mem, mTrackOrderProcess, mNMaxTracks);
   }
+  return mem;
+}
+
+void* GPUTPCGMMerger::SetPointersRefit(void* mem)
+{
+  computePointerWithAlignment(mem, mOutputTracks, mNMaxTracks);
+  computePointerWithAlignment(mem, mClusters, mNMaxOutputTrackClusters);
   computePointerWithAlignment(mem, mClusterAttachment, mNMaxClusters);
+  if (!mRec->GetDeviceProcessingSettings().fullMergerOnGPU) {
+    mem = SetPointersRefitScratch2(mem);
+  }
 
   return mem;
 }
@@ -269,9 +285,9 @@ void* GPUTPCGMMerger::SetPointersRefit(void* mem)
 void GPUTPCGMMerger::RegisterMemoryAllocation()
 {
   AllocateAndInitializeLate();
-  auto mergerMemory = mRec->GetDeviceProcessingSettings().fullMergerOnGPU ? GPUMemoryResource::MEMORY_SCRATCH : (GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_HOST);
-  mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersMerger, mergerMemory, "TPCMerger");
-  mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersRefit, GPUMemoryResource::MEMORY_INOUT, "TPCMergerRefit");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersMerger, mRec->GetDeviceProcessingSettings().fullMergerOnGPU ? GPUMemoryResource::MEMORY_SCRATCH : (GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_HOST), "TPCMerger");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersRefitScratch, GPUMemoryResource::MEMORY_SCRATCH, "TPCMergerRefitScratch");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersRefit, mRec->GetDeviceProcessingSettings().fullMergerOnGPU ? GPUMemoryResource::MEMORY_OUTPUT : GPUMemoryResource::MEMORY_INOUT, "TPCMergerRefit");
   mMemoryResMemory = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersMemory, GPUMemoryResource::MEMORY_PERMANENT, "TPCMergerMemory");
 }
 

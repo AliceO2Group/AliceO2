@@ -82,6 +82,8 @@ class GPUTPCGMMerger : public GPUProcessor
   void RegisterMemoryAllocation();
   void SetMaxData(const GPUTrackingInOutPointers& io);
   void* SetPointersMerger(void* mem);
+  void* SetPointersRefitScratch(void* mem);
+  void* SetPointersRefitScratch2(void* mem);
   void* SetPointersRefit(void* mem);
   void* SetPointersMemory(void* mem);
 
