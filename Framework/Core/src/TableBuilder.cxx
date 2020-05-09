@@ -35,7 +35,7 @@ template <typename TYPE, typename C_TYPE>
 void ArrayFromVector(const std::vector<C_TYPE>& values, std::shared_ptr<arrow::Array>* out)
 {
   typename arrow::TypeTraits<TYPE>::BuilderType builder;
-  for (size_t i = 0; i < values.size(); ++i) {
+  for (std::size_t i = 0; i < values.size(); ++i) {
     auto status = builder.Append(values[i]);
     assert(status.ok());
   }
@@ -54,7 +54,7 @@ std::shared_ptr<arrow::Table>
   mFinalizer();
   std::vector<std::shared_ptr<BackendColumnType>> columns;
   columns.reserve(mArrays.size());
-  for (size_t i = 0; i < mSchema->num_fields(); ++i) {
+  for (std::size_t i = 0; i < mSchema->num_fields(); ++i) {
     auto column = makeBackendColumn<BackendColumnType>(mSchema->field(i), mArrays[i]);
     columns.emplace_back(column);
   }

@@ -84,10 +84,10 @@ class DataRelayer
   const std::vector<int>& forwardingMask();
 
   /// Returns how many timeslices we can handle in parallel
-  size_t getParallelTimeslices() const;
+  std::size_t getParallelTimeslices() const;
 
   /// Tune the maximum number of in flight timeslices this can handle.
-  void setPipelineLength(size_t s);
+  void setPipelineLength(std::size_t s);
 
   /// @return the current stats about the data relaying process
   DataRelayerStats const& getStats() const;
@@ -113,7 +113,7 @@ class DataRelayer
   TimesliceIndex& mTimesliceIndex;
 
   CompletionPolicy mCompletionPolicy;
-  std::vector<size_t> mDistinctRoutesIndex;
+  std::vector<std::size_t> mDistinctRoutesIndex;
   std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
   std::vector<data_matcher::VariableContext> mVariableContextes;
   std::vector<int> mCachedStateMetrics;

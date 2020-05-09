@@ -33,26 +33,26 @@ FairMQResizableBuffer::FairMQResizableBuffer(Creator creator)
   this->size_ = 0;
 }
 
-arrow::Status FairMQResizableBuffer::Resize(const int64_t newSize, bool shrink_to_fit)
+arrow::Status FairMQResizableBuffer::Resize(const int64_t new_size, bool shrink_to_fit)
 {
-  if (newSize < this->capacity_ && shrink_to_fit == true) {
-    auto newMessage = mCreator(newSize);
-    memcpy(newMessage->GetData(), mMessage->GetData(), newSize);
+  if (new_size < this->capacity_ && shrink_to_fit == true) {
+    auto newMessage = mCreator(new_size);
+    memcpy(newMessage->GetData(), mMessage->GetData(), new_size);
     mMessage = std::move(newMessage);
     this->mutable_data_ = reinterpret_cast<uint8_t*>(mMessage->GetData());
     this->data_ = this->mutable_data_;
     assert(this->data_);
     this->capacity_ = static_cast<int64_t>(mMessage->GetSize());
-    assert(newSize == this->capacity_);
-  } else if (newSize > this->capacity_) {
-    auto status = this->Reserve(newSize);
+    assert(new_size == this->capacity_);
+  } else if (new_size > this->capacity_) {
+    auto status = this->Reserve(new_size);
     if (status.ok() == false) {
       return status;
     }
   }
-  assert(newSize <= this->capacity_);
+  assert(new_size <= this->capacity_);
 
-  this->size_ = newSize;
+  this->size_ = new_size;
   assert(this->size_ <= mMessage->GetSize());
   return arrow::Status::OK();
 }

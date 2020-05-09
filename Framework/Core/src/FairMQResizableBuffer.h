@@ -29,7 +29,7 @@ namespace framework
 class FairMQResizableBuffer : public ::arrow::ResizableBuffer
 {
  public:
-  using Creator = std::function<std::unique_ptr<FairMQMessage>(size_t)>;
+  using Creator = std::function<std::unique_ptr<FairMQMessage>(std::size_t)>;
 
   FairMQResizableBuffer(Creator);
   ~FairMQResizableBuffer() override;

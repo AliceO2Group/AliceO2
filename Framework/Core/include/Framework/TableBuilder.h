@@ -127,7 +127,7 @@ struct BuilderUtils {
   }
 
   template <typename BuilderType, typename PTR>
-  static arrow::Status bulkAppend(BuilderType& builder, size_t bulkSize, const PTR ptr)
+  static arrow::Status bulkAppend(BuilderType& builder, std::size_t bulkSize, const PTR ptr)
   {
     return builder->AppendValues(ptr, bulkSize, nullptr);
   }
@@ -298,7 +298,7 @@ struct TableBuilderHelpers {
   {
     std::vector<std::shared_ptr<arrow::DataType>> types{BuilderMaker<ARGS>::make_datatype()...};
     std::vector<std::shared_ptr<arrow::Field>> result;
-    for (size_t i = 0; i < names.size(); ++i) {
+    for (std::size_t i = 0; i < names.size(); ++i) {
       result.emplace_back(std::make_shared<arrow::Field>(names[i], types[i], true, nullptr));
     }
     return std::move(result);
@@ -321,7 +321,7 @@ struct TableBuilderHelpers {
   }
 
   template <std::size_t... Is, typename BUILDERS, typename PTRS>
-  static bool bulkAppend(BUILDERS& builders, size_t bulkSize, std::index_sequence<Is...>, PTRS ptrs)
+  static bool bulkAppend(BUILDERS& builders, std::size_t bulkSize, std::index_sequence<Is...>, PTRS ptrs)
   {
     return (BuilderUtils::bulkAppend(std::get<Is>(builders), bulkSize, std::get<Is>(ptrs)).ok() && ...);
   }
@@ -334,7 +334,7 @@ struct TableBuilderHelpers {
   }
 
   template <typename BUILDERS, std::size_t... Is>
-  static bool reserveAll(BUILDERS& builders, size_t s, std::index_sequence<Is...>)
+  static bool reserveAll(BUILDERS& builders, std::size_t s, std::index_sequence<Is...>)
   {
     return (std::get<Is>(builders)->Reserve(s).ok() && ...);
   }
@@ -390,7 +390,7 @@ class TableBuilder
   }
 
   template <typename... ARGS>
-  auto makeBuilders(std::vector<std::string> const& columnNames, size_t nRows)
+  auto makeBuilders(std::vector<std::string> const& columnNames, std::size_t nRows)
   {
     mSchema = std::make_shared<arrow::Schema>(TableBuilderHelpers::makeFields<ARGS...>(columnNames));
 
@@ -512,7 +512,7 @@ class TableBuilder
   }
 
   template <typename... ARGS>
-  auto bulkPersist(std::vector<std::string> const& columnNames, size_t nRows)
+  auto bulkPersist(std::vector<std::string> const& columnNames, std::size_t nRows)
   {
     constexpr int nColumns = sizeof...(ARGS);
     validate<ARGS...>(columnNames);
@@ -520,7 +520,7 @@ class TableBuilder
     makeBuilders<ARGS...>(columnNames, nRows);
     makeFinalizer<ARGS...>();
 
-    return [builders = (BuildersTuple<ARGS...>*)mBuilders](unsigned int slot, size_t batchSize, typename BuilderMaker<ARGS>::FillType const*... args) -> void {
+    return [builders = (BuildersTuple<ARGS...>*)mBuilders](unsigned int slot, std::size_t batchSize, typename BuilderMaker<ARGS>::FillType const*... args) -> void {
       TableBuilderHelpers::bulkAppend(*builders, batchSize, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
     };
   }
@@ -548,14 +548,14 @@ class TableBuilder
   /// Helper which actually creates the insertion cursor. Notice that the
   /// template argument T is a o2::soa::Table which contains only the
   /// persistent columns.
-  template <typename T, size_t... Is>
+  template <typename T, std::size_t... Is>
   auto cursorHelper(std::index_sequence<Is...> s)
   {
     std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::label()...};
     return this->template persist<typename pack_element_t<Is, typename T::columns>::type...>(columnNames);
   }
 
-  template <typename T, typename E, size_t... Is>
+  template <typename T, typename E, std::size_t... Is>
   auto cursorHelper(std::index_sequence<Is...> s)
   {
     std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::label()...};

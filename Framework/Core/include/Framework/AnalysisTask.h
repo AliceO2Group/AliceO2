@@ -285,7 +285,7 @@ struct AnalysisDataProcessorBuilder {
     (doAppendInputWithMetadata<Args>(inputs), ...);
   }
 
-  template <typename T, size_t At>
+  template <typename T, std::size_t At>
   static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
     using dT = std::decay_t<T>;
@@ -355,7 +355,7 @@ struct AnalysisDataProcessorBuilder {
     }
   }
 
-  template <typename T, size_t At>
+  template <typename T, std::size_t At>
   static auto extractSomethingFromRecord(InputRecord& record, std::vector<ExpressionInfo> const infos)
   {
     using decayed = std::decay_t<T>;
@@ -534,7 +534,7 @@ struct AnalysisDataProcessorBuilder {
             return typedTable;
           } else {
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[position]).value);
-            std::decay_t<A1> typedTable{{groupedElementsTable}, (offsets[index])[position]};
+            A1 typedTable{{groupedElementsTable}, (offsets[index])[position]};
             return typedTable;
           }
         } else {

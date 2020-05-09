@@ -481,7 +481,7 @@ struct BaseHeader {
 /// use like this:
 /// HeaderType* h = get<HeaderType*>(buffer)
 template <typename HeaderType, typename std::enable_if_t<std::is_pointer<HeaderType>::value, int> = 0>
-auto get(const o2::byte* buffer, size_t /*len*/ = 0)
+auto get(const o2::byte* buffer, std::size_t /*len*/ = 0)
 {
   using HeaderConstPtrType = const typename std::remove_pointer<HeaderType>::type*;
   using HeaderValueType = typename std::remove_pointer<HeaderType>::type;
@@ -499,7 +499,7 @@ auto get(const o2::byte* buffer, size_t /*len*/ = 0)
 }
 
 template <typename HeaderType, typename std::enable_if_t<std::is_pointer<HeaderType>::value, int> = 0>
-auto get(const void* buffer, size_t len = 0)
+auto get(const void* buffer, std::size_t len = 0)
 {
   return get<HeaderType>(reinterpret_cast<const byte*>(buffer), len);
 }

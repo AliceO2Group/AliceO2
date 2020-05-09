@@ -42,7 +42,7 @@ class FairMQDeviceProxy
   FairMQTransportFactory* getTransport();
   FairMQTransportFactory* getTransport(const std::string& channel, int index = 0);
   std::unique_ptr<FairMQMessage> createMessage() const;
-  std::unique_ptr<FairMQMessage> createMessage(const size_t size) const;
+  std::unique_ptr<FairMQMessage> createMessage(const std::size_t size) const;
 
  private:
   FairMQDevice* mDevice;

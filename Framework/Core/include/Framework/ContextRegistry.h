@@ -46,7 +46,7 @@ class ContextRegistry
   T* get() const
   {
     void* instance = nullptr;
-    for (size_t i = 0; i < mRegistryCount; ++i) {
+    for (std::size_t i = 0; i < mRegistryCount; ++i) {
       if (mRegistryKey[i] == typeid(T*).hash_code()) {
         return reinterpret_cast<T*>(mRegistryValue[i]);
       }
@@ -65,7 +65,7 @@ class ContextRegistry
   void set(T* instance)
   {
     static_assert(std::is_void<T>::value == false, "can not register a void object");
-    size_t i = 0;
+    std::size_t i = 0;
     for (i = 0; i < mRegistryCount; ++i) {
       if (typeid(T*).hash_code() == mRegistryKey[i]) {
         return;
@@ -80,9 +80,9 @@ class ContextRegistry
   }
 
  private:
-  static constexpr size_t MAX_REGISTRY_SIZE = 8;
-  size_t mRegistryCount = 0;
-  std::array<size_t, MAX_REGISTRY_SIZE> mRegistryKey;
+  static constexpr std::size_t MAX_REGISTRY_SIZE = 8;
+  std::size_t mRegistryCount = 0;
+  std::array<std::size_t, MAX_REGISTRY_SIZE> mRegistryKey;
   std::array<void*, MAX_REGISTRY_SIZE> mRegistryValue;
 };
 
