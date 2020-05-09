@@ -92,7 +92,7 @@ int main(int argc, char** argv)
   if (!comparisonFileName.empty()) {
     // read compressed clusters from ROOT file:
     TFile file{comparisonFileName.c_str()};
-    o2::tpc::CompressedClusters* c;
+    o2::tpc::CompressedClustersROOT* c;
     file.GetObject("TPCCompressedClusters", c);
 
     size_t numErrors = 0;

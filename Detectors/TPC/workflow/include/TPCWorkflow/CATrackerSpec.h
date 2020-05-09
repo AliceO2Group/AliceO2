@@ -31,13 +31,14 @@ namespace ca
 // The CA tracker is now a wrapper to not only the actual tracking on GPU but
 // also the decoding of the zero-suppressed raw format and the clusterer.
 enum struct Operation {
-  CAClusterer,        // run the CA clusterer
-  ZSDecoder,          // run the ZS raw data decoder
-  OutputTracks,       // publish tracks
-  OutputCAClusters,   // publish the clusters produced by CA clusterer
-  OutputCompClusters, // publish CompClusters container
-  ProcessMC,          // process MC labels
-  Noop,               // skip argument on the constructor
+  CAClusterer,            // run the CA clusterer
+  ZSDecoder,              // run the ZS raw data decoder
+  OutputTracks,           // publish tracks
+  OutputCAClusters,       // publish the clusters produced by CA clusterer
+  OutputCompClusters,     // publish CompClusters container
+  OutputCompClustersFlat, // publish CompClusters container
+  ProcessMC,              // process MC labels
+  Noop,                   // skip argument on the constructor
 };
 
 /// Helper struct to pass the individual ca::Operation flags to
@@ -66,6 +67,9 @@ struct Config {
       case Operation::OutputCompClusters:
         outputCompClusters = true;
         break;
+      case Operation::OutputCompClustersFlat:
+        outputCompClustersFlat = true;
+        break;
       case Operation::OutputCAClusters:
         outputCAClusters = true;
         break;
@@ -86,6 +90,7 @@ struct Config {
   bool zsDecoder = false;
   bool outputTracks = false;
   bool outputCompClusters = false;
+  bool outputCompClustersFlat = false;
   bool outputCAClusters = false;
   bool processMC = false;
 };

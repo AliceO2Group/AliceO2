@@ -512,6 +512,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         }
       }
 
+      bool doOutputCompressedClustersFlat = pc.outputs().isAllowed({gDataOriginTPC, "COMPCLUSTERSFLAT", 0});
+      bool doOutputCompressedClustersROOT = pc.outputs().isAllowed({gDataOriginTPC, "COMPCLUSTERS", 0});
+
       std::vector<TrackTPC> tracks;
       std::vector<uint32_t> clusRefs;
       MCLabelContainer tracksMCTruth;
@@ -541,9 +544,11 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       }
       GPUInterfaceOutputs outputRegions;
       size_t bufferSize = 2048ul * 1024 * 1024; // TODO: Just allocated some large buffer for now, should estimate this correctly;
-      auto& bufferCompressedClusters = pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, bufferSize);
-      outputRegions.compressedClusters.ptr = bufferCompressedClusters.data();
-      outputRegions.compressedClusters.size = bufferCompressedClusters.size();
+      auto* bufferCompressedClusters = doOutputCompressedClustersFlat ? &pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, bufferSize) : nullptr;
+      if (doOutputCompressedClustersFlat) {
+        outputRegions.compressedClusters.ptr = bufferCompressedClusters->data();
+        outputRegions.compressedClusters.size = bufferCompressedClusters->size();
+      }
       int retVal = tracker->runTracking(&ptrs, &outputRegions);
       if (retVal != 0) {
         throw std::runtime_error("tracker returned error code " + std::to_string(retVal));
@@ -566,16 +571,20 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       //o2::tpc::ClusterNativeAccess clustersNativeDecoded; // Cluster native access structure as used by the tracker
       //std::vector<o2::tpc::ClusterNative> clusterBuffer; // std::vector that will hold the actual clusters, clustersNativeDecoded will point inside here
       //mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param); // Run decompressor
-      if (pc.outputs().isAllowed({gDataOriginTPC, "COMPCLUSTERS", 0})) {
-        if (ptrs.compressedClusters != nullptr) {
-          if ((void*)ptrs.compressedClusters != (void*)bufferCompressedClusters.data()) {
+      if (ptrs.compressedClusters != nullptr) {
+        if (doOutputCompressedClustersFlat) {
+          if ((void*)ptrs.compressedClusters != (void*)bufferCompressedClusters->data()) {
             throw std::runtime_error("output ptrs out of sync"); // sanity check
           }
-          bufferCompressedClusters.resize(outputRegions.compressedClusters.size);
-          CompressedClustersFlat* tmp = (CompressedClustersFlat*)bufferCompressedClusters.data();
-        } else {
-          LOG(ERROR) << "unable to get compressed cluster info from track";
+          bufferCompressedClusters->resize(outputRegions.compressedClusters.size);
         }
+        if (doOutputCompressedClustersROOT) {
+          o2::tpc::CompressedClustersROOT compressedClusters = *ptrs.compressedClusters;
+          printf("FOOOO %d\n", compressedClusters.nTracks);
+          pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<o2::tpc::CompressedClustersROOT const>(compressedClusters));
+        }
+      } else {
+        LOG(ERROR) << "unable to get compressed cluster info from track";
       }
 
       // publish clusters produced by CA clusterer sector-wise if the outputs are configured
@@ -669,6 +678,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     }
     if (specconfig.outputCompClusters) {
       outputSpecs.emplace_back(gDataOriginTPC, "COMPCLUSTERS", 0, Lifetime::Timeframe);
+    }
+    if (specconfig.outputCompClustersFlat) {
+      outputSpecs.emplace_back(gDataOriginTPC, "COMPCLUSTERSFLAT", 0, Lifetime::Timeframe);
     }
     if (specconfig.outputCAClusters) {
       for (auto const& sector : tpcsectors) {

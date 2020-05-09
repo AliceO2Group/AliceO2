@@ -60,10 +60,13 @@ int main(int argc, char** argv)
   // read compressed clusters from ROOT file:
   auto clusters = [&]() {
     TFile srcFile{inputFileName.c_str()};
-    o2::tpc::CompressedClusters* c;
+    o2::tpc::CompressedClustersROOT* c;
     srcFile.GetObject("TPCCompressedClusters", c);
     srcFile.Close();
-    return std::unique_ptr<o2::tpc::CompressedClusters>(c);
+    if (c == nullptr) {
+      throw std::runtime_error("Cannot read clusters from root file");
+    }
+    return std::unique_ptr<o2::tpc::CompressedClustersROOT>(c);
   }();
 
   std::cout << "nAttachedClusters: " << clusters->nAttachedClusters << std::endl;
