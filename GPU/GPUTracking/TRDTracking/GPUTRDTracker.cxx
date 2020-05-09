@@ -235,7 +235,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
 
   auto timeStart = std::chrono::high_resolution_clock::now();
 
-  if (mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TRDTracking) {
+  if (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TRDTracking) {
     chainTracking->DoTRDGPUTracking();
   } else {
 #ifdef WITH_OPENMP
