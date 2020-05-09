@@ -19,5 +19,5 @@ struct DigitizationConstants {
   static constexpr int SIGNAL_TABLE_SIZE = 4096;
   static constexpr double SIGNAL_CACHE_DT = 0.005;
 };
-} // namespace o2::fv0
+} // namespace o2::ft0
 #endif
