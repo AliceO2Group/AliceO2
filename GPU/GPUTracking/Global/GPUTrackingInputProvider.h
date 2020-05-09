@@ -44,14 +44,17 @@ class GPUTrackingInputProvider : public GPUProcessor
   void* SetPointersInputZS(void* mem);
   void* SetPointersInputClusterNativeAccess(void* mem);
   void* SetPointersInputClusterNativeBuffer(void* mem);
+  void* SetPointersInputClusterNativeOutput(void* mem);
 #endif
 
   unsigned short mResourceZS = -1;
   unsigned short mResourceClusterNativeAccess = -1;
   unsigned short mResourceClusterNativeBuffer = -1;
+  unsigned short mResourceClusterNativeOutput = -1;
 
   bool mHoldTPCZS = false;
   bool mHoldTPCClusterNative = false;
+  bool mHoldTPCClusterNativeOutput = false;
   unsigned int mNClusterNative = 0;
 
   GPUTrackingInOutZS* mPzsMeta = nullptr;
@@ -60,6 +63,7 @@ class GPUTrackingInputProvider : public GPUProcessor
 
   o2::tpc::ClusterNativeAccess* mPclusterNativeAccess = nullptr;
   o2::tpc::ClusterNative* mPclusterNativeBuffer = nullptr;
+  o2::tpc::ClusterNative* mPclusterNativeOutput = nullptr;
 };
 
 } // namespace gpu
