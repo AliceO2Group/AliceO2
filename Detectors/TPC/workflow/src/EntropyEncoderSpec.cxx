@@ -42,22 +42,33 @@ namespace o2
 namespace tpc
 {
 
-DataProcessorSpec getEntropyEncoderSpec()
+DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile)
 {
   struct ProcessAttributes {
     int verbosity = 1;
   };
 
-  auto initFunction = [](InitContext& ic) {
+  auto initFunction = [inputFromFile](InitContext& ic) {
     auto processAttributes = std::make_shared<ProcessAttributes>();
 
-    auto processingFct = [processAttributes](ProcessingContext& pc) {
-      auto tmp = pc.inputs().get<CompressedClustersFlat*>("input");
-      if (tmp == nullptr) {
-        LOG(ERROR) << "invalid input";
-        return;
+    auto processingFct = [processAttributes, inputFromFile](ProcessingContext& pc) {
+      CompressedClusters clusters;
+
+      if (inputFromFile) {
+        auto tmp = pc.inputs().get<CompressedClustersROOT*>("input");
+        if (tmp == nullptr) {
+          LOG(ERROR) << "invalid input";
+          return;
+        }
+        clusters = *tmp;
+      } else {
+        auto tmp = pc.inputs().get<CompressedClustersFlat*>("input");
+        if (tmp == nullptr) {
+          LOG(ERROR) << "invalid input";
+          return;
+        }
+        clusters = *tmp;
       }
-      CompressedClusters clusters(*tmp);
 
       auto encodedClusters = o2::tpc::TPCEntropyEncoder::encode(clusters);
 
@@ -74,8 +85,9 @@ DataProcessorSpec getEntropyEncoderSpec()
     return processingFct;
   };
 
+  header::DataDescription inputType = inputFromFile ? header::DataDescription("COMPCLUSTERS") : header::DataDescription("COMPCLUSTERSFLAT");
   return DataProcessorSpec{"tpc-entropy-encoder", // process id
-                           {{"input", "TPC", "COMPCLUSTERS", 0, Lifetime::Timeframe}},
+                           {{"input", "TPC", inputType, 0, Lifetime::Timeframe}},
                            {},
                            AlgorithmSpec(initFunction)};
 }

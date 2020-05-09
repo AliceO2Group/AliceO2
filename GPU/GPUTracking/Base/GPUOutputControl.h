@@ -36,6 +36,10 @@ struct GPUOutputControl {
     OutputBase = OutputPtr = (char*)ptr;
     OutputMaxSize = size;
   }
+  void reset()
+  {
+    new (this) GPUOutputControl;
+  }
 #endif
 
   void* OutputBase = nullptr;                     // Base ptr to memory pool, occupied size is OutputPtr - OutputBase

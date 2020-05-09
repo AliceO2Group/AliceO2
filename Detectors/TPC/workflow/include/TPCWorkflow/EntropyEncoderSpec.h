@@ -23,7 +23,7 @@ namespace tpc
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyEncoderSpec();
+framework::DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile);
 
 } // end namespace tpc
 } // end namespace o2
