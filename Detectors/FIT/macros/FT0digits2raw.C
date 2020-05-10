@@ -12,5 +12,5 @@ void FT0digits2raw()
 {
   FairLogger* logger = FairLogger::GetLogger();
   logger->SetLogScreenLevel("DEBUG");
-  o2::ft0::Digits2Raw mreader("ft0raw.bin", "ft0digits.root");
+  o2::ft0::Digits2Raw mreader("./", "ft0digits.root");
 }
