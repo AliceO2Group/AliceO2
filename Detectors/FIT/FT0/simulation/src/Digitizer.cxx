@@ -102,13 +102,13 @@ Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float 
   for (double time = min_time; time < 0.5 * mParameters.bunchWidth; time += DP::SIGNAL_CACHE_DT) {
     float const val = value_at(time);
     int const index = std::lround((time + 0.5 * mParameters.bunchWidth) / DP::SIGNAL_CACHE_DT);
-    if (index >= 0) { // save the value for later use
+    if (index >= 0 && index < mSignalCache.size()) { // save the value for later use
       mSignalCache[index] = val;
     }
     // look up the time-shifted signal value from the past
     float val_prev = 0.0;
     int const index_prev = std::lround((time - mParameters.mCFDShiftPos + 0.5 * mParameters.bunchWidth) / DP::SIGNAL_CACHE_DT);
-    val_prev = ((index_prev < 0 || mSignalCache[index_prev] < 0.0f)
+    val_prev = ((index_prev < 0 || index_prev >= mSignalCache.size() || mSignalCache[index_prev] < 0.0f)
                   ? value_at(time - mParameters.mCFDShiftPos) //  was not computed before
                   : mSignalCache[index_prev]);                //  is available in the cache
     float const cfd_val = 5 * val_prev - val;
@@ -330,8 +330,8 @@ void Digitizer::initParameters()
     mSignalTable[i] = signalForm_i(x);
   }
 
-  // cache for signal time series used by the CFD +- BC
-  mSignalCache.resize(std::lround(mParameters.bunchWidth / DP::SIGNAL_CACHE_DT));
+  // cache for signal time series used by the CFD -BC/2 .. +3BC/2
+  mSignalCache.resize(std::lround(2 * mParameters.bunchWidth / DP::SIGNAL_CACHE_DT));
 }
 //_______________________________________________________________________
 void Digitizer::init()
