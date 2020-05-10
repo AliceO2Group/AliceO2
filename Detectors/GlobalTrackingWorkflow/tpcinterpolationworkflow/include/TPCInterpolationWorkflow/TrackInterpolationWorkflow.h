@@ -20,7 +20,7 @@ namespace o2
 namespace tpc
 {
 
-framework::WorkflowSpec getTPCInterpolationWorkflow(bool useMC);
+framework::WorkflowSpec getTPCInterpolationWorkflow(bool disableRootInp, bool disableRootOut);
 
 } // namespace tpc
 } // namespace o2
