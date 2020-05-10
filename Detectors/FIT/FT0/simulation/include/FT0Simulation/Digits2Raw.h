@@ -49,13 +49,13 @@ class Digits2Raw
 
  public:
   Digits2Raw() = default;
-  Digits2Raw(const std::string& fileRawName, const std::string& fileDigitsName);
-  void readDigits(const std::string& fileRawName, const std::string& fileDigitsName);
+  Digits2Raw(const std::string& outDir, const std::string& fileDigitsName);
+  void readDigits(const std::string& outDir, const std::string& fileDigitsName);
   void convertDigits(o2::ft0::Digit bcdigits,
                      gsl::span<const ChannelData> pmchannels,
                      const o2::ft0::LookUpTable& lut,
                      o2::InteractionRecord const& mIntRecord);
-  void close();
+
   static o2::ft0::LookUpTable linear()
   {
     std::vector<o2::ft0::Topo> lut_data(Nchannels_PM * (NPMs - 1));
@@ -67,16 +67,25 @@ class Digits2Raw
   }
   o2::raw::RawFileWriter& getWriter() { return mWriter; }
 
+  void setFilePerLink(bool v) { mOutputPerLink = v; }
+  bool getFilePerLink() const { return mOutputPerLink; }
+
+  void setVerbosity(int v) { mVerbosity = v; }
+  int getVerbosity() const { return mVerbosity; }
+
  private:
-  std::ofstream mFileDest;
+  EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord);
+
   o2::ft0::RawEventData mRawEventData;
   const o2::raw::HBFUtils& mSampler = o2::raw::HBFUtils::Instance();
   o2::ft0::Triggers mTriggers;
   o2::raw::RawFileWriter mWriter{"FT0"};
-  uint32_t linkID = 0;
-  uint16_t cruID = 0;
-  uint32_t endPointID = 0;
-  uint64_t feeID = 0;
+  bool mOutputPerLink = false;
+  int mVerbosity = 0;
+  uint32_t mLinkID = 0;
+  uint16_t mCruID = 0;
+  uint32_t mEndPointID = 0;
+  uint64_t mFeeID = 0;
 
   /////////////////////////////////////////////////
 
