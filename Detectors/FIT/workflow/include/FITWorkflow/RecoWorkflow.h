@@ -19,7 +19,7 @@ namespace o2
 {
 namespace fit
 {
-framework::WorkflowSpec getRecoWorkflow(bool useMC);
+framework::WorkflowSpec getRecoWorkflow(bool useMC, bool disableRootInp, bool disableRootOut);
 } // namespace fit
 } // namespace o2
 #endif
