@@ -45,6 +45,7 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 #include "CommonConstants/Triggers.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
+#include "CommonUtils/StringUtils.h"
 #include <Framework/Logger.h>
 #include <TStopwatch.h>
 #include <cassert>
@@ -64,27 +65,28 @@ EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord);
 
 Digits2Raw::Digits2Raw(const std::string& fileRaw, const std::string& fileDigitsName)
 {
-
-  mFileDest.exceptions(std::ios_base::failbit | std::ios_base::badbit);
-  mFileDest.open(fileRaw, std::fstream::out | std::fstream::binary);
-  Digits2Raw::readDigits(fileRaw.c_str(), fileDigitsName.c_str());
+  readDigits(fileRaw.c_str(), fileDigitsName.c_str());
 }
 
-void Digits2Raw::readDigits(const std::string& fileRaw, const std::string& fileDigitsName)
+void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDigitsName)
 {
   LOG(INFO) << "**********Digits2Raw::convertDigits" << std::endl;
 
   o2::ft0::LookUpTable lut{o2::ft0::Digits2Raw::linear()};
   LOG(DEBUG) << " ##### LookUp set ";
 
+  std::string outd = outDir;
+  if (outd.back() != '/') {
+    outd += '/';
+  }
   using namespace o2::raw;
   for (int ilink = 0; ilink < NPMs; ++ilink) {
-    linkID = uint32_t(ilink);
-    feeID = uint64_t(ilink);
-    cruID = uint16_t(0);
-    endPointID = uint32_t(0);
-    mWriter.registerLink(feeID, cruID, linkID, endPointID, fileRaw.data());
-    LOG(INFO) << linkID << " " << feeID << " " << cruID;
+    mLinkID = uint32_t(ilink);
+    mFeeID = uint64_t(ilink);
+    mCruID = uint16_t(0);
+    mEndPointID = uint32_t(0);
+    std::string outFileLink = mOutputPerLink ? o2::utils::concat_string(outDir, "ft0_link", std::to_string(ilink), ".raw") : o2::utils::concat_string(outDir, "ft0.raw");
+    mWriter.registerLink(mFeeID, mCruID, mLinkID, mEndPointID, outFileLink);
   }
 
   TFile* fdig = TFile::Open(fileDigitsName.data());
@@ -138,9 +140,9 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
           mRawEventData.mEventData[nchannels] = {};
         mRawEventData.mEventHeader.nGBTWords = nGBTWords;
         auto data = mRawEventData.to_vector(false);
-        linkID = uint32_t(oldlink);
-        feeID = uint64_t(oldlink);
-        mWriter.addData(feeID, cruID, linkID, endPointID, intRecord, data);
+        mLinkID = uint32_t(oldlink);
+        mFeeID = uint64_t(oldlink);
+        mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, data);
       }
       oldlink = nlink;
       mRawEventData.mEventHeader = makeGBTHeader(nlink, intRecord);
@@ -195,28 +197,30 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   tcmdata.amplC = ampC;
   tcmdata.timeA = mTriggers.timeA;
   tcmdata.timeC = mTriggers.timeC;
-  LOG(INFO) << " triggers read "
-            << " time A " << mTriggers.timeA << " time C " << mTriggers.timeC
-            << " amp A " << ampA << " amp C " << ampC
-            << " N A " << int(mTriggers.nChanA) << " N C " << int(mTriggers.nChanC)
-            << " trig "
-            << " ver " << mTriggers.getVertex() << " A " << mTriggers.getOrA() << " C " << mTriggers.getOrC();
+  if (mVerbosity > 0) {
+    LOG(INFO) << " triggers read "
+              << " time A " << mTriggers.timeA << " time C " << mTriggers.timeC
+              << " amp A " << ampA << " amp C " << ampC
+              << " N A " << int(mTriggers.nChanA) << " N C " << int(mTriggers.nChanC)
+              << " trig "
+              << " ver " << mTriggers.getVertex() << " A " << mTriggers.getOrA() << " C " << mTriggers.getOrC();
 
-  LOG(INFO) << "TCMdata"
-            << " time A " << tcmdata.timeA << " time C " << tcmdata.timeC
-            << " amp A " << tcmdata.amplA << " amp C " << tcmdata.amplC
-            << " N A " << int(tcmdata.nChanA) << " N C " << int(tcmdata.nChanC)
-            << " trig "
-            << " ver " << tcmdata.vertex << " A " << tcmdata.orA << " C " << tcmdata.orC
-            << " size " << sizeof(tcmdata);
+    LOG(INFO) << "TCMdata"
+              << " time A " << tcmdata.timeA << " time C " << tcmdata.timeC
+              << " amp A " << tcmdata.amplA << " amp C " << tcmdata.amplC
+              << " N A " << int(tcmdata.nChanA) << " N C " << int(tcmdata.nChanC)
+              << " trig "
+              << " ver " << tcmdata.vertex << " A " << tcmdata.orA << " C " << tcmdata.orC
+              << " size " << sizeof(tcmdata);
+  }
   auto data = mRawEventData.to_vector(1);
-  linkID = uint32_t(LinkTCM);
-  feeID = uint64_t(LinkTCM);
-  mWriter.addData(feeID, cruID, linkID, endPointID, intRecord, data);
+  mLinkID = uint32_t(LinkTCM);
+  mFeeID = uint64_t(LinkTCM);
+  mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, data);
 }
 
 //_____________________________________________________________________________________
-EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord)
+EventHeader Digits2Raw::makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord)
 {
   EventHeader mEventHeader{};
   mEventHeader.startDescriptor = 0xf;
@@ -224,12 +228,8 @@ EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord)
   mEventHeader.reservedField2 = 0;
   mEventHeader.bc = mIntRecord.bc;
   mEventHeader.orbit = mIntRecord.orbit;
-  LOG(DEBUG) << " makeGBTHeader " << link << " orbit " << mEventHeader.orbit << " BC " << mEventHeader.bc;
+  if (mVerbosity > 0) {
+    LOG(INFO) << " makeGBTHeader " << link << " orbit " << mEventHeader.orbit << " BC " << mEventHeader.bc;
+  }
   return mEventHeader;
-}
-
-void Digits2Raw::close()
-{
-  if (mFileDest.is_open())
-    mFileDest.close();
 }
