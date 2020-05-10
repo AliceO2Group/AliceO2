@@ -133,7 +133,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     for (auto& trc : tracks) {
       trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
       int ncl = trc.getNumberOfClusters();
-      for (int ic = 0; ic < ncl; ic++) {
+      for (int ic = ncl; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
         allClusIdx.push_back(trc.getClusterIndex(ic) + offset);
       }
       allTracks.emplace_back(trc);
@@ -194,7 +194,8 @@ void TrackerDPL::run(ProcessingContext& pc)
         LOG(INFO) << "Found tracks: " << tracks.size();
         int number = tracks.size();
         trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
-        int shiftIdx = -rof.getFirstEntry();
+        int shiftIdx = -rof.getFirstEntry();      // cluster entry!!!
+        rof.setFirstEntry(first);
         rof.setNEntries(number);
         copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
         allTrackLabels.mergeAtBack(trackLabels);

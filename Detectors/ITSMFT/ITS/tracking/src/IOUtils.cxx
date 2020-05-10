@@ -31,6 +31,7 @@
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "Framework/Logger.h"
 
 namespace
 {
@@ -75,8 +76,8 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
       o2::itsmft::ClusterPattern patt(pattIt);
       locXYZ = dict.getClusterCoordinates(c, patt);
     }
-    auto cl3d = output.emplace_back(c.getSensorID(), geom->getMatrixT2L(c.getSensorID()) ^ locXYZ); // local --> tracking
-    cl3d.setErrors(sigmaY2, sigmaYZ, sigmaZ2);
+    auto& cl3d = output.emplace_back(c.getSensorID(), geom->getMatrixT2L(c.getSensorID()) ^ locXYZ); // local --> tracking
+    cl3d.setErrors(sigmaY2, sigmaZ2, sigmaYZ);
   }
 }
 
