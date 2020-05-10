@@ -439,11 +439,6 @@ class DataAllocator
   void addPartToContext(FairMQMessagePtr&& payload,
                         const Output& spec,
                         o2::header::SerializationMethod serializationMethod);
-
-  /// Fills the passed arrow::ipc::BatchRecordWriter in the framework and
-  /// have it serialise / send data as RecordBatches to all consumers
-  /// of @a spec once done.
-  void create(const Output& spec, std::shared_ptr<arrow::ipc::RecordBatchWriter>*, std::shared_ptr<arrow::Schema>);
 };
 
 } // namespace framework
