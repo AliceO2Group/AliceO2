@@ -417,13 +417,24 @@ struct AnalysisDataProcessorBuilder {
       GroupSlicerIterator& operator=(GroupSlicerIterator const&) = default;
       GroupSlicerIterator& operator=(GroupSlicerIterator&&) = default;
 
+      auto getLabelFromType()
+      {
+        if constexpr (soa::is_type_with_originals_v<std::decay_t<G>>) {
+          using T = typename framework::pack_element_t<0, typename std::decay_t<G>::originals>;
+          using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
+          return std::string("f") + groupingMetadata::label() + "ID";
+        } else {
+          using groupingMetadata = typename aod::MetadataTrait<std::decay_t<G>>::metadata;
+          return std::string("f") + groupingMetadata::label() + "ID";
+        }
+      }
+
       GroupSlicerIterator(G& gt, std::tuple<A...>& at)
         : mAt{&at},
           mGroupingElement{gt.begin()},
           position{0}
       {
-        using groupingMetadata = typename aod::MetadataTrait<G>::metadata;
-        auto indexColumnName = std::string("f") + groupingMetadata::label() + "ID";
+        auto indexColumnName = getLabelFromType();
         arrow::compute::FunctionContext ctx;
         /// prepare slices and offsets for all associated tables that have index
         /// to grouping table
