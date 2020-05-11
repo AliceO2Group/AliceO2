@@ -15,6 +15,12 @@
 #define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##CUDA
 
 #include <cuda.h>
+#include <cuda_profiler_api.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+#include <thrust/sort.h>
+#pragma GCC diagnostic pop
+
 #ifdef __clang__
 #define assert(...)
 #endif
@@ -616,4 +622,14 @@ void GPUReconstructionCUDABackend::PrintKernelOccupancies()
 #undef GPUCA_KRNL
 #undef GPUCA_KRNL_LOAD_single
 #undef GPUCA_KRNL_LOAD_multi
+}
+
+void GPUReconstructionCUDABackend::startGPUProfiling()
+{
+  GPUFailedMsg(cudaProfilerStart());
+}
+
+void GPUReconstructionCUDABackend::endGPUProfiling()
+{
+  GPUFailedMsg(cudaProfilerStop());
 }
