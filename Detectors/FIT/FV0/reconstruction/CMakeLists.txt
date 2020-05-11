@@ -8,7 +8,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(simulation)
-add_subdirectory(macro)
-add_subdirectory(reconstruction)
+o2_add_library(FV0Reconstruction
+        SOURCES src/ReadRaw.cxx
+        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+                              O2::Framework
+                              O2::FV0Base
+                              O2::DataFormatsFV0
+                              O2::Headers)
+
+o2_target_root_dictionary(FV0Reconstruction
+        HEADERS include/FV0Reconstruction/ReadRaw.h
+)
