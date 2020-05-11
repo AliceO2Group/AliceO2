@@ -58,7 +58,7 @@ class Digit
 
   void merge(Int_t tdc, Int_t tot);
 
-  void getPhiAndEtaIndex(int& phi, int& eta);
+  void getPhiAndEtaIndex(int& phi, int& eta) const;
 
   Bool_t isUsedInCluster() const { return mIsUsedInCluster; }
 
