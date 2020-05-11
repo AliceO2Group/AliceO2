@@ -172,6 +172,7 @@ AddOption(compressionStat, bool, false, "compressionStat", 0, "Run statistics an
 AddOption(memoryStat, bool, false, "memoryStat", 0, "Print memory statistics")
 AddOption(testSyncAsync, bool, false, "syncAsync", 0, "Test first synchronous and then asynchronous processing")
 AddOption(timeFrameTime, bool, false, "tfTime", 0, "Print some debug information about time frame processing time")
+AddOption(controlProfiler, bool, false, "controlProfiler", 0, "Issues GPU profiler stop and start commands to profile only the relevant processing part")
 AddHelp("help", 'h')
 AddHelpAll("helpall", 'H')
 AddSubConfig(structConfigTF, configTF)
