@@ -10,6 +10,7 @@
 
 #include "FV0Simulation/Digitizer.h"
 #include "FV0Base/Geometry.h"
+#include "FV0Base/Constants.h"
 
 #include <TRandom.h>
 #include <algorithm>
@@ -36,7 +37,7 @@ void Digitizer::init()
   mNBins = FV0DigParam::Instance().waveformNbins;      //Will be computed using detector set-up from CDB
   mBinSize = FV0DigParam::Instance().waveformBinWidth; //Will be set-up from CDB
 
-  for (Int_t i = 0; i < DP::NCHANNELS; i++) {
+  for (Int_t i = 0; i < Constants::nFv0Channels; i++) {
     mPmtChargeVsTime[i].resize(mNBins);
   }
 
@@ -194,7 +195,7 @@ void Digitizer::analyseWaveformsAndStore(std::vector<fv0::BCData>& digitsBC,
   // Sum charge of all time bins to get total charge collected for a given channel
   size_t const first = digitsCh.size();
   size_t nStored = 0;
-  for (Int_t ipmt = 0; ipmt < DP::NCHANNELS; ++ipmt) {
+  for (Int_t ipmt = 0; ipmt < Constants::nFv0Channels; ++ipmt) {
     Float_t totalCharge = 0.0f;
     auto const& analogSignal = mPmtChargeVsTime[ipmt];
     for (Int_t iTimeBin = 0; iTimeBin < mNBins; ++iTimeBin) {
@@ -284,10 +285,10 @@ float Digitizer::getDistFromCellCenter(UInt_t cellId, double hitx, double hity)
   Geometry* geo = Geometry::instance();
 
   // Parametrize the line (ax+by+c=0) that crosses the detector center and the cell's middle point
-  Point3D<float>* pCell = &geo->getCellCenter(cellId);
+  Point3Dsimple* pCell = &geo->getCellCenter(cellId);
   float x0, y0, z0;
   geo->getGlobalPosition(x0, y0, z0);
-  double a = -(y0 - pCell->Y()) / (x0 - pCell->X());
+  double a = -(y0 - pCell->y) / (x0 - pCell->x);
   double b = 1;
   double c = -(y0 - a * x0);
   // Return the distance from hit to this line

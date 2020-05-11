@@ -23,12 +23,24 @@
 #include <TGeoMatrix.h>
 #include <TGeoVolume.h>
 #include <TVirtualMC.h>
-#include "MathUtils/Cartesian3D.h"
 
 namespace o2
 {
 namespace fv0
 {
+
+struct Point3Dsimple {
+  float x;
+  float y;
+  float z;
+  void SetCoordinates(float x, float y, float z)
+  {
+    this->x = x;
+    this->y = y;
+    this->z = z;
+  };
+};
+
 /// FV0 Geometry
 class Geometry
 {
@@ -98,8 +110,9 @@ class Geometry
   /// \param  y   y [cm].
   /// \param  z   z [cm].
   void getGlobalPosition(float& x, float& y, float& z);
-  Point3D<float>& getCellCenter(UInt_t cellId);
-  Point3D<float>& getReadoutCenter(UInt_t cellId);
+  Point3Dsimple& getCellCenter(UInt_t cellId);
+  Point3Dsimple& getReadoutCenter(UInt_t cellId);
+  static constexpr int getNumberOfReadoutChannels() { return sNumberOfReadoutChannels; };
 
   /// Helper function to check if the cellId belongs to ring 5.
   /// \param  cellId  Id of the cell in range from 0 to 39.
@@ -459,8 +472,8 @@ class Geometry
   TGeoMatrix* mRightTransformation;                 ///< Transformation for the right part of the detector
 
   /// Utility arrays derived from constants
-  std::array<Point3D<float>, sNumberOfCells> mCellCenter;              ///< Center of each scintillator cell
-  std::array<Point3D<float>, sNumberOfReadoutChannels> mReadoutCenter; ///< Similar to mCellCenter, cells in r5 are additionally divided
+  std::array<Point3Dsimple, sNumberOfCells> mCellCenter;              ///< Center of each scintillator cell
+  std::array<Point3Dsimple, sNumberOfReadoutChannels> mReadoutCenter; ///< Similar to mCellCenter, cells in r5 are additionally divided
 
   static Geometry* sInstance; ///< \brief  Singleton instance
 

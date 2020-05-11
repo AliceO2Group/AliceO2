@@ -15,7 +15,6 @@ namespace o2::fv0
 {
 struct DigitizationConstant {
   static constexpr int NCELLSA = 40;                        // number of scintillator cells
-  static constexpr int NCHANNELS = 48;                      // number of readout channels
   static constexpr float INV_CHARGE_PER_ADC = 1. / 0.6e-12; // charge
   static constexpr float N_PHOTONS_PER_MEV = 10400;         // average #photons generated per 1 MeV of deposited energy
 
