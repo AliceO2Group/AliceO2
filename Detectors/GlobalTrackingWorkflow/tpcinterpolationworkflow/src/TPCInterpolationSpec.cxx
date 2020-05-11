@@ -35,13 +35,14 @@ void TPCInterpolationDPL::init(InitContext& ic)
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
-
+  mTimer.Stop();
+  mTimer.Reset();
   mInterpolation.init();
 }
 
 void TPCInterpolationDPL::run(ProcessingContext& pc)
 {
-
+  mTimer.Start(false);
   const auto tracksITS = pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS");
   const auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
   const auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("match");
@@ -63,7 +64,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
     if (sectorHeader == nullptr) {
       // FIXME: think about error policy
       LOG(ERROR) << "sector header missing on header stack";
-      return;
+      throw std::runtime_error("sector header missing on header stack");
     }
     const int& sector = sectorHeader->sector;
     // check the current operation, this is used to either signal eod or noop
@@ -210,6 +211,13 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{"GLO", "TPCINT_TRK", 0, Lifetime::Timeframe}, mInterpolation.getReferenceTracks());
   pc.outputs().snapshot(Output{"GLO", "TPCINT_RES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResiduals());
+  mTimer.Stop();
+}
+
+void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "TPC residuals extraction total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getTPCInterpolationSpec(bool useMC, const std::vector<int>& tpcClusLanes)
