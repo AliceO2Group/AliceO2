@@ -106,15 +106,15 @@ class GPUTPCGMMerger : public GPUProcessor
   {
     return (mClusters);
   }
-  GPUhd() GPUAtomic(unsigned int) * ClusterAttachment() const { return mClusterAttachment; }
-  GPUhd() unsigned int* TrackOrderAttach() const { return mTrackOrderAttach; }
-  GPUhd() unsigned int* TrackOrderProcess() const { return mTrackOrderProcess; }
-  GPUd() unsigned int NSlowTracks() const { return mMemory->nSlowTracks; }
-  GPUd() unsigned int* RetryRefitIds() const { return mRetryRefitIds; }
-  GPUd() GPUTPCGMLoopData* LoopData() const { return mLoopData; }
-  GPUd() memory* Memory() const { return mMemory; }
-  GPUd() GPUAtomic(unsigned int) * TmpCounter() { return mTmpCounter; }
-  GPUd() uint4* TmpMem() { return mTmpMem; }
+  GPUhdi() GPUAtomic(unsigned int) * ClusterAttachment() const { return mClusterAttachment; }
+  GPUhdi() unsigned int* TrackOrderAttach() const { return mTrackOrderAttach; }
+  GPUhdi() unsigned int* TrackOrderProcess() const { return mTrackOrderProcess; }
+  GPUhdi() unsigned int NSlowTracks() const { return mMemory->nSlowTracks; }
+  GPUhdi() unsigned int* RetryRefitIds() const { return mRetryRefitIds; }
+  GPUhdi() GPUTPCGMLoopData* LoopData() const { return mLoopData; }
+  GPUhdi() memory* Memory() const { return mMemory; }
+  GPUhdi() GPUAtomic(unsigned int) * TmpCounter() { return mTmpCounter; }
+  GPUhdi() uint4* TmpMem() { return mTmpMem; }
 
   short MemoryResMemory() { return mMemoryResMemory; }
 
