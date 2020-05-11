@@ -16,7 +16,7 @@ namespace o2::ft0
 struct DigitizationConstants {
   static constexpr int NOISE_RANDOM_RING_SIZE = 1e6;
   static constexpr int SINC_TABLE_SIZE = 1024;
-  static constexpr int SIGNAL_TABLE_SIZE = 4096;
+  static constexpr int SIGNAL_TABLE_SIZE = 8192;
   static constexpr double SIGNAL_CACHE_DT = 0.005;
 };
 } // namespace o2::ft0

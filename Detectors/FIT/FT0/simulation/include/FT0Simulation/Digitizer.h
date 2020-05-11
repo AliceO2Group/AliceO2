@@ -107,7 +107,7 @@ class Digitizer
   inline Vc::float_v signalFormVc(Vc::float_v x) const
   { // table lookup for the signal shape (SIMD version)
     auto const y = x / mParameters.bunchWidth * DP::SIGNAL_TABLE_SIZE;
-    auto const index = Vc::round(y);
+    float_v::IndexType const index = Vc::round(y);
     auto const rem = y - index;
     Vc::float_v val(0);
     for (int i = 0; i < float_v::size(); ++i) {
