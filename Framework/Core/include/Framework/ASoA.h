@@ -17,8 +17,8 @@
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Traits.h"
 #include "Framework/Expressions.h"
-#include "Framework/Kernels.h"
 #include "Framework/ArrowCompatibility.h"
+#include "Framework/ArrowTypes.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
 #include <arrow/util/variant.h>
@@ -93,69 +93,6 @@ constexpr auto make_originals_from_type()
     return framework::concatenate_pack(framework::pack<decayed>{}, make_originals_from_type<T...>());
   }
 }
-
-template <typename T>
-struct arrow_array_for {
-};
-template <>
-struct arrow_array_for<bool> {
-  using type = arrow::BooleanArray;
-};
-template <>
-struct arrow_array_for<int8_t> {
-  using type = arrow::Int8Array;
-};
-template <>
-struct arrow_array_for<uint8_t> {
-  using type = arrow::UInt8Array;
-};
-template <>
-struct arrow_array_for<int16_t> {
-  using type = arrow::Int16Array;
-};
-template <>
-struct arrow_array_for<uint16_t> {
-  using type = arrow::UInt16Array;
-};
-template <>
-struct arrow_array_for<int32_t> {
-  using type = arrow::Int32Array;
-};
-template <>
-struct arrow_array_for<int64_t> {
-  using type = arrow::Int64Array;
-};
-template <>
-struct arrow_array_for<uint32_t> {
-  using type = arrow::UInt32Array;
-};
-template <>
-struct arrow_array_for<uint64_t> {
-  using type = arrow::UInt64Array;
-};
-template <>
-struct arrow_array_for<float> {
-  using type = arrow::FloatArray;
-};
-template <>
-struct arrow_array_for<double> {
-  using type = arrow::DoubleArray;
-};
-template <int N>
-struct arrow_array_for<float[N]> {
-  using type = arrow::FixedSizeBinaryArray;
-};
-template <int N>
-struct arrow_array_for<int[N]> {
-  using type = arrow::FixedSizeBinaryArray;
-};
-template <int N>
-struct arrow_array_for<double[N]> {
-  using type = arrow::FixedSizeBinaryArray;
-};
-
-template <typename T>
-using arrow_array_for_t = typename arrow_array_for<T>::type;
 
 /// Policy class for columns which are chunked. This
 /// will make the compiler take the most generic (and
@@ -852,6 +789,12 @@ class Table
     RowViewBase& operator=(RowViewBase const&) = default;
     RowViewBase& operator=(RowViewBase&&) = default;
 
+    RowViewBase& operator=(RowViewSentinel const& other)
+    {
+      this->mRowIndex = other.index;
+      return *this;
+    }
+
     using RowViewCore<IP, C...>::operator++;
 
     /// Allow incrementing by more than one the iterator
@@ -885,15 +828,22 @@ class Table
   using filtered_iterator = RowViewFiltered<table_t, table_t>;
   using filtered_const_iterator = RowViewFiltered<table_t, table_t>;
 
+  template <typename Col>
+  using column_pair_t = std::pair<Col*, BackendColumnType*>;
+  using column_index_t = std::tuple<column_pair_t<C>...>;
+
   Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : mTable(table),
-      mColumnIndex{
-        std::pair<C*, BackendColumnType*>{nullptr,
-                                          lookupColumn<C>()}...},
-      mBegin(mColumnIndex, {table->num_rows(), offset}),
       mEnd{static_cast<uint64_t>(table->num_rows())},
       mOffset(offset)
   {
+    if (mTable->num_rows() == 0) {
+      mColumnIndex = column_index_t{column_pair_t<C>{nullptr, nullptr}...};
+      mBegin = mEnd;
+    } else {
+      mColumnIndex = column_index_t{column_pair_t<C>{nullptr, lookupColumn<C>()}...};
+      mBegin = unfiltered_iterator{mColumnIndex, {table->num_rows(), offset}};
+    }
   }
 
   /// FIXME: this is to be able to construct a Filtered without explicit Join
@@ -1394,26 +1344,6 @@ template <typename T>
 auto filter(T&& t, framework::expressions::Filter const& expr)
 {
   return Filtered<T>(t.asArrowTable(), expr);
-}
-
-template <typename T>
-std::vector<std::decay_t<T>> slice(T&& t, std::string const& columnName)
-{
-  arrow::compute::FunctionContext ctx;
-  std::vector<arrow::compute::Datum> splittedDatums;
-  std::vector<std::decay_t<T>> splittedTables;
-  std::vector<uint64_t> offsets;
-  auto status = framework::sliceByColumn(&ctx, columnName, arrow::compute::Datum(t.asArrowTable()), &splittedDatums, &offsets);
-  if (status.ok() == false) {
-    throw std::runtime_error("Unable to slice table");
-  }
-  splittedTables.reserve(splittedDatums.size());
-  for (size_t ti = 0; ti < splittedDatums.size(); ++ti) {
-    auto table = arrow::util::get<std::shared_ptr<arrow::Table>>(splittedDatums[ti].value);
-    auto offset = offsets[ti];
-    splittedTables.emplace_back(table, offset);
-  }
-  return splittedTables;
 }
 
 } // namespace o2::soa
