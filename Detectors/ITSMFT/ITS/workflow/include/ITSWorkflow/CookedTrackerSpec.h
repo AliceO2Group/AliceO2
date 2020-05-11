@@ -18,6 +18,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "Framework/Task.h"
+#include "TStopwatch.h"
 
 using namespace o2::framework;
 
@@ -33,6 +34,7 @@ class CookedTrackerDPL : public Task
   ~CookedTrackerDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
   int mState = 0;
@@ -40,6 +42,7 @@ class CookedTrackerDPL : public Task
   o2::itsmft::TopologyDictionary mDict;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   o2::its::CookedTracker mTracker;
+  TStopwatch mTimer;
 };
 
 /// create a processor spec
