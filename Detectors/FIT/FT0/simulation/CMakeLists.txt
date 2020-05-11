@@ -23,6 +23,7 @@ o2_target_root_dictionary(FT0Simulation HEADERS
   include/FT0Simulation/Detector.h
   include/FT0Simulation/Digitizer.h
   include/FT0Simulation/Digits2Raw.h
+  include/FT0Simulation/DigitizationConstants.h
   include/FT0Simulation/DigitizationParameters.h
    )
 
