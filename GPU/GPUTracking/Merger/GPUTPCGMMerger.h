@@ -136,6 +136,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void ClearTrackLinks(int nBlocks, int nThreads, int iBlock, int iThread, bool nOutput);
   GPUd() void MergeWithinSlicesPrepare(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void MergeSlicesPrepare(int nBlocks, int nThreads, int iBlock, int iThread, int border0, int border1, char useOrigTrackParam);
+  template <int I>
   GPUd() void MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice, char withinSlice, char mergeMode);
   GPUd() void SortTracks(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void SortTracksQPt(int nBlocks, int nThreads, int iBlock, int iThread);
@@ -145,7 +146,9 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void PrepareClustersForFit2(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void LinkGlobalTracks(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void CollectMergedTracks(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void Finalize(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void Finalize0(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void Finalize1(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void Finalize2(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void ResolveMergeSlices(int nBlocks, int nThreads, int iBlock, int iThread, char useOrigTrackParam, char mergeAll);
 
 #ifndef GPUCA_GPUCODE
@@ -161,7 +164,8 @@ class GPUTPCGMMerger : public GPUProcessor
 
  private:
   GPUd() void MakeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iBorder, GPUTPCGMBorderTrack** B, GPUAtomic(unsigned int) * nB, bool useOrigTrackParam = false);
-  GPUd() void MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack* B1, int N1, int iSlice2, GPUTPCGMBorderTrack* B2, int N2, int mergeMode = 0);
+  template <int I>
+  GPUd() void MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice1, GPUTPCGMBorderTrack* B1, int N1, int iSlice2, GPUTPCGMBorderTrack* B2, int N2, int mergeMode = 0);
 
   GPUd() void MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGMMergedTrackHit& cls, int itr);
 

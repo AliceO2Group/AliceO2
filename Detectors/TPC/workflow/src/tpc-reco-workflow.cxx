@@ -41,8 +41,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   using namespace o2::framework;
 
   std::vector<ConfigParamSpec> options{
-    {"input-type", VariantType::String, "digits", {"digitizer, digits, clustershw, clustersnative, zsraw"}},
-    {"output-type", VariantType::String, "tracks", {"digits, clustershw, clustersnative, tracks, disable-writer"}},
+    {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, clustershw, clustersnative, compressed-clusters"}},
+    {"output-type", VariantType::String, "tracks", {"digits, clustershw, clustersnative, tracks, compressed-clusters, encoded-clusters, disable-writer"}},
     {"ca-clusterer", VariantType::Bool, false, {"Use clusterer of GPUCATracking"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
     {"tpc-sectors", VariantType::String, "0-35", {"TPC sector range, e.g. 5-7,8,9"}},
@@ -80,7 +80,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   using CompletionPolicyHelpers = o2::framework::CompletionPolicyHelpers;
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-cluster-decoder.*", CompletionPolicy::CompletionOp::Consume));
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-clusterer.*", CompletionPolicy::CompletionOp::Consume));
-  policies.push_back(o2::tpc::getCATrackerCompletionPolicy());
+  //  policies.push_back(o2::tpc::getCATrackerCompletionPolicy());
 }
 
 #include "Framework/runDataProcessing.h" // the main driver

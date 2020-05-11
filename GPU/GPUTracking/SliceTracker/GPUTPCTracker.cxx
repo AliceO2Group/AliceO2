@@ -66,7 +66,7 @@ void GPUTPCTracker::InitializeProcessor()
 
 void* GPUTPCTracker::SetPointersDataInput(void* mem) { return mData.SetPointersInput(mem, mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TPCMerging); }
 
-void* GPUTPCTracker::SetPointersDataScratch(void* mem) { return mData.SetPointersScratch(mem); }
+void* GPUTPCTracker::SetPointersDataScratch(void* mem) { return mData.SetPointersScratch(mRec->GetConstantMem(), mem); }
 
 void* GPUTPCTracker::SetPointersDataRows(void* mem) { return mData.SetPointersRows(mem); }
 
@@ -157,20 +157,6 @@ void GPUTPCTracker::UpdateMaxData()
 }
 
 void GPUTPCTracker::SetupCommonMemory() { new (mCommonMem) commonMemoryStruct; }
-
-int GPUTPCTracker::ReadEvent()
-{
-  //* Convert input hits, create grids, etc.
-  if (mData.InitFromClusterData(mConstantMem, mISlice)) {
-    GPUError("Error initializing from cluster data");
-    return 1;
-  }
-  if (mData.MaxZ() > 300 && !Param().ContinuousTracking) {
-    GPUError("Need to set continuous tracking mode for data outside of the TPC volume!");
-    return 1;
-  }
-  return 0;
-}
 
 GPUh() int GPUTPCTracker::CheckEmptySlice()
 {

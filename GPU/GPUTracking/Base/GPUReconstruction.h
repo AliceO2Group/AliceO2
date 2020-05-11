@@ -165,6 +165,7 @@ class GPUReconstruction
   void PrepareEvent();
   virtual int RunChains() = 0;
   unsigned int getNEventsProcessed() { return mNEventsProcessed; }
+  unsigned int getNEventsProcessedInStat() { return mStatNEvents; }
   virtual int registerMemoryForGPU(const void* ptr, size_t size) = 0;
   virtual int unregisterMemoryForGPU(const void* ptr) = 0;
 
@@ -193,6 +194,7 @@ class GPUReconstruction
   DeviceType GetDeviceType() const { return (DeviceType)mProcessingSettings.deviceType; }
   bool IsGPU() const { return GetDeviceType() != DeviceType::INVALID_DEVICE && GetDeviceType() != DeviceType::CPU; }
   const GPUParam& GetParam() const { return mHostConstantMem->param; }
+  const GPUConstantMem& GetConstantMem() const { return *mHostConstantMem; }
   const GPUSettingsEvent& GetEventSettings() const { return mEventSettings; }
   const GPUSettingsProcessing& GetProcessingSettings() { return mProcessingSettings; }
   const GPUSettingsDeviceProcessing& GetDeviceProcessingSettings() const { return mDeviceProcessingSettings; }

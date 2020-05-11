@@ -295,25 +295,28 @@ using MuonCluster = MuonClusters::iterator;
 namespace zdc
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);
-DECLARE_SOA_COLUMN(ZEM1Energy, zem1Energy, float);
-DECLARE_SOA_COLUMN(ZEM2Energy, zem2Energy, float);
-DECLARE_SOA_COLUMN(ZNCTowerEnergy, zncTowerEnergy, float[5]);
-DECLARE_SOA_COLUMN(ZNATowerEnergy, znaTowerEnergy, float[5]);
-DECLARE_SOA_COLUMN(ZPCTowerEnergy, zpcTowerEnergy, float[5]);
-DECLARE_SOA_COLUMN(ZPATowerEnergy, zpaTowerEnergy, float[5]);
-DECLARE_SOA_COLUMN(ZNCTowerEnergyLR, zncTowerEnergyLR, float[5]);
-DECLARE_SOA_COLUMN(ZNATowerEnergyLR, znaTowerEnergyLR, float[5]);
-DECLARE_SOA_COLUMN(ZPCTowerEnergyLR, zpcTowerEnergyLR, float[5]);
-DECLARE_SOA_COLUMN(ZPATowerEnergyLR, zpaTowerEnergyLR, float[5]);
-//DECLARE_SOA_COLUMN(fZDCTDCCorrected, fZDCTDCCorrected, float[32][4]);
-DECLARE_SOA_COLUMN(Fired, fired, uint8_t);
+DECLARE_SOA_COLUMN(EnergyZEM1, energyZEM1, float);
+DECLARE_SOA_COLUMN(EnergyZEM2, energyZEM2, float);
+DECLARE_SOA_COLUMN(EnergyCommonZNA, energyCommonZNA, float);
+DECLARE_SOA_COLUMN(EnergyCommonZNC, energyCommonZNC, float);
+DECLARE_SOA_COLUMN(EnergyCommonZPA, energyCommonZPA, float);
+DECLARE_SOA_COLUMN(EnergyCommonZPC, energyCommonZPC, float);
+DECLARE_SOA_COLUMN(EnergySectorZNA, energySectorZNA, float[4]);
+DECLARE_SOA_COLUMN(EnergySectorZNC, energySectorZNC, float[4]);
+DECLARE_SOA_COLUMN(EnergySectorZPA, energySectorZPA, float[4]);
+DECLARE_SOA_COLUMN(EnergySectorZPC, energySectorZPC, float[4]);
+DECLARE_SOA_COLUMN(TimeZEM1, timeZEM1, float);
+DECLARE_SOA_COLUMN(TimeZEM2, timeZEM2, float);
+DECLARE_SOA_COLUMN(TimeZNA, timeZNA, float);
+DECLARE_SOA_COLUMN(TimeZNC, timeZNC, float);
+DECLARE_SOA_COLUMN(TimeZPA, timeZPA, float);
+DECLARE_SOA_COLUMN(TimeZPC, timeZPC, float);
 } // namespace zdc
 
-DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", zdc::BCId,
-                  zdc::ZEM1Energy, zdc::ZEM2Energy,
-                  zdc::ZNCTowerEnergy, zdc::ZNATowerEnergy, zdc::ZPCTowerEnergy, zdc::ZPATowerEnergy,
-                  zdc::ZNCTowerEnergyLR, zdc::ZNATowerEnergyLR, zdc::ZPCTowerEnergyLR, zdc::ZPATowerEnergyLR,
-                  zdc::Fired);
+DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", zdc::BCId, zdc::EnergyZEM1, zdc::EnergyZEM2,
+                  zdc::EnergyCommonZNA, zdc::EnergyCommonZNC, zdc::EnergyCommonZPA, zdc::EnergyCommonZPC,
+                  zdc::EnergySectorZNA, zdc::EnergySectorZNC, zdc::EnergySectorZPA, zdc::EnergySectorZPC,
+                  zdc::TimeZEM1, zdc::TimeZEM2, zdc::TimeZNA, zdc::TimeZNC, zdc::TimeZPA, zdc::TimeZPC);
 using Zdc = Zdcs::iterator;
 
 namespace ft0
@@ -382,12 +385,18 @@ DECLARE_SOA_INDEX_COLUMN(BC, bc);
 DECLARE_SOA_COLUMN(Adc, adc, float[64]);
 DECLARE_SOA_COLUMN(Time, time, float[64]);
 DECLARE_SOA_COLUMN(Width, width, float[64]);
+DECLARE_SOA_COLUMN(MultA, multA, float);
+DECLARE_SOA_COLUMN(MultC, multC, float);
+DECLARE_SOA_COLUMN(TimeA, timeA, float);
+DECLARE_SOA_COLUMN(TimeC, timeC, float);
 DECLARE_SOA_COLUMN(BBFlag, bbFlag, uint64_t);
 DECLARE_SOA_COLUMN(BGFlag, bgFlag, uint64_t);
 } // namespace run2v0
 
 DECLARE_SOA_TABLE(Run2V0s, "AOD", "RUN2V0", run2v0::BCId,
                   run2v0::Adc, run2v0::Time, run2v0::Width,
+                  run2v0::MultA, run2v0::MultC,
+                  run2v0::TimeA, run2v0::TimeC,
                   run2v0::BBFlag, run2v0::BGFlag);
 using Run2V0 = Run2V0s::iterator;
 

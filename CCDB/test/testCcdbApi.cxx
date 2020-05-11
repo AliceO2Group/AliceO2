@@ -239,6 +239,27 @@ BOOST_AUTO_TEST_CASE(timestamptest, *utf::precondition(if_reachable()))
   BOOST_CHECK(pupper == nullptr);
 }
 
+BOOST_AUTO_TEST_CASE(retrieveTemplatedWithHeaders, *utf::precondition(if_reachable()))
+{
+  test_fixture f;
+
+  // first store something
+  o2::ccdb::IdPath path;
+  path.setPath("HelloWorld");
+  long from = o2::ccdb::getCurrentTimestamp();
+  long to = o2::ccdb::getFutureTimestamp(60 * 60 * 24 * 365 * 10);
+  f.api.storeAsTFileAny(&path, basePath + "CCDBPathUnitTest", f.metadata, from, to);
+
+  // then try to retrieve, including the headers
+  std::map<std::string, std::string> headers;
+  std::map<std::string, std::string> meta;
+  cout << "basePath + \"CCDBPathUnitTest\" : " << basePath + "CCDBPathUnitTest" << endl;
+  cout << "from+1 : " << from + 1 << endl;
+  auto* object = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>(basePath + "CCDBPathUnitTest", meta, from + 1, &headers);
+  BOOST_CHECK(headers.count("Hello") == 1);
+  BOOST_CHECK(headers["Hello"] == "World");
+}
+
 BOOST_AUTO_TEST_CASE(retrieveTMemFile_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;

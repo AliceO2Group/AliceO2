@@ -45,8 +45,7 @@ class GPUTPCGlobalTracking : public GPUKernelTemplate
 
  private:
   GPUd() static int PerformGlobalTrackingRun(GPUTPCTracker& tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem, const GPUTPCTracker& sliceSource, int iTrack, int rowIndex, float angle, int direction);
-  GPUd() static void PerformGlobalTracking(GPUTPCTracker& tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem);
-  GPUd() static void PerformGlobalTracking(const GPUTPCTracker& tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem, GPUTPCTracker& sliceTarget, bool right);
+  GPUd() static void PerformGlobalTracking(int nBlocks, int nThreads, int iBlock, int iThread, const GPUTPCTracker& tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem, GPUTPCTracker& sliceTarget, bool right);
 };
 #endif
 

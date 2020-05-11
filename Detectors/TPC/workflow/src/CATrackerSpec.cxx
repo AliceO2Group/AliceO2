@@ -36,6 +36,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "TPCBase/Digit.h"
 #include "TPCFastTransform.h"
+#include "TPCdEdxCalibrationSplines.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "DetectorsRaw/HBFUtils.h"
@@ -83,6 +84,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     std::unique_ptr<o2::tpc::GPUCATracking> tracker;
     std::unique_ptr<o2::gpu::GPUDisplayBackend> displayBackend;
     std::unique_ptr<TPCFastTransform> fastTransform;
+    std::unique_ptr<o2::gpu::TPCdEdxCalibrationSplines> dEdxSplines;
     int verbosity = 1;
     std::vector<int> clusterOutputIds;
     bool readyToQuit = false;
@@ -116,6 +118,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       bool readTransformationFromFile = false;   // Read the TPC transformation from the file
       char tpcTransformationFileName[1024] = ""; // A file with the TPC transformation
       char matBudFileName[1024] = "";            // Material budget file name
+      char dEdxSplinesFile[1024] = "";           // File containing dEdx splines
 
       const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
       if (grp) {
@@ -176,6 +179,10 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
             int len = std::min(optLen - 11, 1023);
             memcpy(matBudFileName, optPtr + 11, len);
             matBudFileName[len] = 0;
+          } else if (optLen > 8 && strncmp(optPtr, "dEdxFile=", 9) == 0) {
+            int len = std::min(optLen - 9, 1023);
+            memcpy(dEdxSplinesFile, optPtr + 9, len);
+            dEdxSplinesFile[len] = 0;
           } else if (optLen > 15 && strncmp(optPtr, "transformation=", 15) == 0) {
             int len = std::min(optLen - 15, 1023);
             memcpy(tpcTransformationFileName, optPtr + 15, len);
@@ -223,6 +230,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       config.configReconstruction.tpcSigBitsWidth = 3;                                // Number of significant bits in TPC cluster width
 
       config.configInterface.dumpEvents = dump;
+      config.configInterface.outputToPreallocatedBuffers = true;
 
       // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU) with this instance of GPUCATracking
       config.configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
@@ -254,6 +262,13 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       if (strlen(matBudFileName)) {
         config.configCalib.matLUT = o2::base::MatLayerCylSet::loadFromFile(matBudFileName, "MatBud");
       }
+      processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines);
+      if (strlen(dEdxSplinesFile)) {
+        TFile dEdxFile(dEdxSplinesFile);
+        processAttributes->dEdxSplines->setSplinesFromFile(dEdxFile);
+      }
+      config.configCalib.dEdxSplines = processAttributes->dEdxSplines.get();
+
       // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
       /*o2::base::GeometryManager::loadGeometry();
       o2::trd::TRDGeometry gm;
@@ -497,6 +512,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         }
       }
 
+      bool doOutputCompressedClustersFlat = pc.outputs().isAllowed({gDataOriginTPC, "COMPCLUSTERSFLAT", 0});
+      bool doOutputCompressedClustersROOT = pc.outputs().isAllowed({gDataOriginTPC, "COMPCLUSTERS", 0});
+
       std::vector<TrackTPC> tracks;
       std::vector<uint32_t> clusRefs;
       MCLabelContainer tracksMCTruth;
@@ -524,7 +542,14 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clustersMCBuffer, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
         ptrs.clusters = &clusterIndex;
       }
-      int retVal = tracker->runTracking(&ptrs);
+      GPUInterfaceOutputs outputRegions;
+      size_t bufferSize = 2048ul * 1024 * 1024; // TODO: Just allocated some large buffer for now, should estimate this correctly;
+      auto* bufferCompressedClusters = doOutputCompressedClustersFlat ? &pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, bufferSize) : nullptr;
+      if (doOutputCompressedClustersFlat) {
+        outputRegions.compressedClusters.ptr = bufferCompressedClusters->data();
+        outputRegions.compressedClusters.size = bufferCompressedClusters->size();
+      }
+      int retVal = tracker->runTracking(&ptrs, &outputRegions);
       if (retVal != 0) {
         throw std::runtime_error("tracker returned error code " + std::to_string(retVal));
       }
@@ -533,7 +558,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       if (pc.outputs().isAllowed({gDataOriginTPC, "TRACKS", 0})) {
         pc.outputs().snapshot(OutputRef{"outTracks"}, tracks);
         pc.outputs().snapshot(OutputRef{"outClusRefs"}, clusRefs);
-        if (pc.outputs().isAllowed({gDataOriginTPC, "TRACKMCLBL", 0})) {
+        if (pc.outputs().isAllowed({gDataOriginTPC, "TRACKSMCLBL", 0})) {
           LOG(INFO) << "sending " << tracksMCTruth.getIndexedSize() << " track label(s)";
           pc.outputs().snapshot(OutputRef{"mclblout"}, tracksMCTruth);
         }
@@ -546,13 +571,20 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       //o2::tpc::ClusterNativeAccess clustersNativeDecoded; // Cluster native access structure as used by the tracker
       //std::vector<o2::tpc::ClusterNative> clusterBuffer; // std::vector that will hold the actual clusters, clustersNativeDecoded will point inside here
       //mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param); // Run decompressor
-      if (pc.outputs().isAllowed({gDataOriginTPC, "COMPCLUSTERS", 0})) {
-        const o2::tpc::CompressedClusters* compressedClusters = ptrs.compressedClusters;
-        if (compressedClusters != nullptr) {
-          pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<o2::tpc::CompressedClusters const>(*compressedClusters));
-        } else {
-          LOG(ERROR) << "unable to get compressed cluster info from track";
+      if (ptrs.compressedClusters != nullptr) {
+        if (doOutputCompressedClustersFlat) {
+          if ((void*)ptrs.compressedClusters != (void*)bufferCompressedClusters->data()) {
+            throw std::runtime_error("output ptrs out of sync"); // sanity check
+          }
+          bufferCompressedClusters->resize(outputRegions.compressedClusters.size);
         }
+        if (doOutputCompressedClustersROOT) {
+          o2::tpc::CompressedClustersROOT compressedClusters = *ptrs.compressedClusters;
+          printf("FOOOO %d\n", compressedClusters.nTracks);
+          pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<o2::tpc::CompressedClustersROOT const>(compressedClusters));
+        }
+      } else {
+        LOG(ERROR) << "unable to get compressed cluster info from track";
       }
 
       // publish clusters produced by CA clusterer sector-wise if the outputs are configured
@@ -641,11 +673,14 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     }
     if (specconfig.processMC && specconfig.outputTracks) {
       OutputLabel label{"mclblout"};
-      constexpr o2::header::DataDescription datadesc("TRACKMCLBL");
+      constexpr o2::header::DataDescription datadesc("TRACKSMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
     if (specconfig.outputCompClusters) {
       outputSpecs.emplace_back(gDataOriginTPC, "COMPCLUSTERS", 0, Lifetime::Timeframe);
+    }
+    if (specconfig.outputCompClustersFlat) {
+      outputSpecs.emplace_back(gDataOriginTPC, "COMPCLUSTERSFLAT", 0, Lifetime::Timeframe);
     }
     if (specconfig.outputCAClusters) {
       for (auto const& sector : tpcsectors) {

@@ -274,6 +274,14 @@ BOOST_AUTO_TEST_CASE(headerStack_test)
   Stack s2{s1, meta};
   BOOST_CHECK(s2.size() == s1.size() + sizeof(decltype(meta)));
 
+  //check dynamic construction - where we don't have the type information and need to
+  //work with BaseHeader pointers
+  const test::MetaHeader thead{2};
+  o2::header::BaseHeader const* bname = reinterpret_cast<BaseHeader const*>(&thead);
+  Stack ds2(s1, *bname);
+  BOOST_CHECK(ds2.size() == s1.size() + sizeof(thead));
+  BOOST_CHECK(std::memcmp(get<test::MetaHeader*>(ds2.data()), &thead, sizeof(thead)) == 0);
+
   auto* h3 = get<test::MetaHeader*>(s1.data());
   BOOST_CHECK(h3 == nullptr);
   h3 = get<test::MetaHeader*>(s2.data());

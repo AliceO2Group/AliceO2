@@ -13,7 +13,6 @@
 #include "Analysis/EventSelection.h"
 #include "TFile.h"
 #include "TTree.h"
-#include "TH1F.h"
 #include <map>
 
 using std::map;
@@ -96,10 +95,8 @@ struct EventSelectionTask {
 
     // ZDC info
     auto zdc = getZdc(collision.bc(), zdcs);
-    // TODO replace it with timing checks when time arrays become available
-    uint8_t zdcFired = zdc.fired();
-    bool bbZNA = zdcFired & 1 << 0;
-    bool bbZNC = zdcFired & 1 << 1;
+    bool bbZNA = zdc.timeZNA() > -2. && zdc.timeZNA() < 2.;
+    bool bbZNC = zdc.timeZNC() > -2. && zdc.timeZNC() < 2.;
 
     // VZERO info
     auto vzero = getVZero(collision.bc(), vzeros);

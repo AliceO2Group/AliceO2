@@ -21,6 +21,7 @@ void GPUTPCCompression::InitializeProcessor() {}
 
 void* GPUTPCCompression::SetPointersOutputHost(void* mem)
 {
+  computePointerWithoutAlignment(mem, mOutputFlat);
   SetPointersCompressedClusters(mem, *mOutput, mOutput->nAttachedClusters, mOutput->nTracks, mOutput->nUnattachedClusters, true);
   return mem;
 }

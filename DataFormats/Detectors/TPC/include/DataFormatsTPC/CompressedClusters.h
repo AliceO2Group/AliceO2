@@ -15,6 +15,7 @@
 #ifndef ALICEO2_DATAFORMATSTPC_COMPRESSED_CLUSTERS_H
 #define ALICEO2_DATAFORMATSTPC_COMPRESSED_CLUSTERS_H
 
+#include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
 
 namespace o2
@@ -29,52 +30,76 @@ struct CompressedClustersCounters {
   unsigned int nSliceRows = 36 * 152;
   unsigned char nComppressionModes = 0;
 
-  ClassDefNV(CompressedClustersCounters, 1);
+  ClassDefNV(CompressedClustersCounters, 2);
 };
 
-template <class T>
-struct CompressedClustersPtrs_helper : public T {
-  unsigned short* qTotA = nullptr;        //! [nAttachedClusters]
-  unsigned short* qMaxA = nullptr;        //! [nAttachedClusters]
-  unsigned char* flagsA = nullptr;        //! [nAttachedClusters]
-  unsigned char* rowDiffA = nullptr;      //! [nAttachedClustersReduced]
-  unsigned char* sliceLegDiffA = nullptr; //! [nAttachedClustersReduced]
-  unsigned short* padResA = nullptr;      //! [nAttachedClustersReduced]
-  unsigned int* timeResA = nullptr;       //! [nAttachedClustersReduced]
-  unsigned char* sigmaPadA = nullptr;     //! [nAttachedClusters]
-  unsigned char* sigmaTimeA = nullptr;    //! [nAttachedClusters]
+template <class TCHAR, class TSHORT, class TINT>
+struct CompressedClustersPtrs_x {
+  TSHORT qTotA = 0;        //!
+  TSHORT qMaxA = 0;        //!
+  TCHAR flagsA = 0;        //!
+  TCHAR rowDiffA = 0;      //!
+  TCHAR sliceLegDiffA = 0; //!
+  TSHORT padResA = 0;      //!
+  TINT timeResA = 0;       //!
+  TCHAR sigmaPadA = 0;     //!
+  TCHAR sigmaTimeA = 0;    //!
 
-  unsigned char* qPtA = nullptr;   //! [nTracks]
-  unsigned char* rowA = nullptr;   //! [nTracks]
-  unsigned char* sliceA = nullptr; //! [nTracks]
-  unsigned int* timeA = nullptr;   //! [nTracks]
-  unsigned short* padA = nullptr;  //! [nTracks]
+  TCHAR qPtA = 0;   //!
+  TCHAR rowA = 0;   //!
+  TCHAR sliceA = 0; //!
+  TINT timeA = 0;   //!
+  TSHORT padA = 0;  //!
 
-  unsigned short* qTotU = nullptr;     //! [nUnattachedClusters]
-  unsigned short* qMaxU = nullptr;     //! [nUnattachedClusters]
-  unsigned char* flagsU = nullptr;     //! [nUnattachedClusters]
-  unsigned short* padDiffU = nullptr;  //! [nUnattachedClusters]
-  unsigned int* timeDiffU = nullptr;   //! [nUnattachedClusters]
-  unsigned char* sigmaPadU = nullptr;  //! [nUnattachedClusters]
-  unsigned char* sigmaTimeU = nullptr; //! [nUnattachedClusters]
+  TSHORT qTotU = 0;     //!
+  TSHORT qMaxU = 0;     //!
+  TCHAR flagsU = 0;     //!
+  TSHORT padDiffU = 0;  //!
+  TINT timeDiffU = 0;   //!
+  TCHAR sigmaPadU = 0;  //!
+  TCHAR sigmaTimeU = 0; //!
 
-  unsigned short* nTrackClusters = nullptr;  //! [nTracks]
-  unsigned int* nSliceRowClusters = nullptr; //! [nSliceRows]
+  TSHORT nTrackClusters = 0;  //!
+  TINT nSliceRowClusters = 0; //!
 
+  ClassDefNV(CompressedClustersPtrs_x, 2);
+};
+
+struct CompressedClustersPtrs : public CompressedClustersPtrs_x<unsigned char*, unsigned short*, unsigned int*> {
+};
+
+struct CompressedClustersOffsets : public CompressedClustersPtrs_x<size_t, size_t, size_t> {
+};
+
+struct CompressedClustersFlat;
+
+struct CompressedClusters : public CompressedClustersCounters, public CompressedClustersPtrs {
+  CompressedClusters() CON_DEFAULT;
+  ~CompressedClusters() CON_DEFAULT;
+  CompressedClusters(const CompressedClustersFlat& c);
+
+  ClassDefNV(CompressedClusters, 2);
+};
+
+struct CompressedClustersROOT : public CompressedClusters {
+  CompressedClustersROOT() CON_DEFAULT;
+  CompressedClustersROOT(const CompressedClustersFlat& v) : CompressedClusters(v) {}
+  CompressedClustersROOT(const CompressedClusters& v) : CompressedClusters(v) {}
   // flatbuffer used for streaming
   int flatdataSize = 0;
   char* flatdata = nullptr; //[flatdataSize]
 
-  ClassDefNV(CompressedClustersPtrs_helper, 2);
+  ClassDefNV(CompressedClustersROOT, 2);
 };
 
-struct CompressedClustersDummy_helper {
+struct CompressedClustersFlat : private CompressedClustersCounters, private CompressedClustersOffsets {
+  friend struct CompressedClusters;    // We don't want anyone to access the members directly, should only be used to construct a CompressedClusters struct
+  CompressedClustersFlat() CON_DELETE; // Must not be constructed, but just reinterpret_casted from void* array (void* to enforce alignment)
+  size_t totalDataSize = 0;
+
+  void set(size_t bufferSize, const CompressedClusters& v);
 };
 
-//Version with valid ROOT streamers for storage
-using CompressedClusters = CompressedClustersPtrs_helper<CompressedClustersCounters>;
-//Slightly smaller version with pointers only for GPU constant cache
-using CompressedClustersPtrsOnly = CompressedClustersPtrs_helper<CompressedClustersDummy_helper>;
 } // namespace tpc
 } // namespace o2
 

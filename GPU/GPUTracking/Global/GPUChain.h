@@ -170,9 +170,9 @@ class GPUChain
   }
 
   template <class T, int I = 0, int J = -1>
-  HighResTimer& getKernelTimer(int num = 0)
+  HighResTimer& getKernelTimer(RecoStep step, int num = 0, size_t addMemorySize = 0)
   {
-    return mRec->getKernelTimer<T, I, J>(num);
+    return mRec->getKernelTimer<T, I, J>(step, num, addMemorySize);
   }
   template <class T, int J = -1>
   HighResTimer& getTimer(const char* name, int num = -1)
@@ -200,7 +200,12 @@ class GPUChain
   virtual int DoStuckProtection(int stream, void* event) { return 0; }
 
   template <class T, class S, typename... Args>
-  bool DoDebugAndDump(RecoStep step, int mask, T& processor, S T::*func, Args&&... args);
+  bool DoDebugAndDump(RecoStep step, int mask, T& processor, S T::*func, Args&&... args)
+  {
+    return DoDebugAndDump(step, mask, true, processor, func, args...);
+  }
+  template <class T, class S, typename... Args>
+  bool DoDebugAndDump(RecoStep step, int mask, bool transfer, T& processor, S T::*func, Args&&... args);
 
  private:
   template <bool Always = false, class T, class S, typename... Args>
@@ -240,10 +245,12 @@ inline void GPUChain::timeCpy(RecoStep step, bool toGPU, S T::*func, Args... arg
 }
 
 template <class T, class S, typename... Args>
-bool GPUChain::DoDebugAndDump(GPUChain::RecoStep step, int mask, T& processor, S T::*func, Args&&... args)
+bool GPUChain::DoDebugAndDump(GPUChain::RecoStep step, int mask, bool transfer, T& processor, S T::*func, Args&&... args)
 {
   if (GetDeviceProcessingSettings().keepAllMemory) {
-    TransferMemoryResourcesToHost(step, &processor, -1, true);
+    if (transfer) {
+      TransferMemoryResourcesToHost(step, &processor, -1, true);
+    }
     if (GetDeviceProcessingSettings().debugLevel >= 6 && (mask == 0 || (GetDeviceProcessingSettings().debugMask & mask))) {
       (processor.*func)(args...);
       return true;

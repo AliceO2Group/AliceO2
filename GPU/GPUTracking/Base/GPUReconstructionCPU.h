@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "GPUGeneralKernels.h"
+#include "GPUTPCCreateSliceData.h"
 #include "GPUTPCNeighboursFinder.h"
 #include "GPUTPCNeighboursCleaner.h"
 #include "GPUTPCStartHitsFinder.h"
@@ -198,6 +199,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
     int type;           // 0 = kernel, 1 = CPU step, 2 = DMA transfer
     unsigned int count; // How often was the timer queried
     RecoStep step;      // Which RecoStep is this
+    size_t memSize;     // Memory size for memory bandwidth computation
   };
 
   struct RecoStepTimerMeta {
@@ -215,7 +217,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   RecoStepTimerMeta mTimersRecoSteps[N_RECO_STEPS];
   HighResTimer timerTotal;
   template <class T, int I = 0, int J = -1>
-  HighResTimer& getKernelTimer(RecoStep step, int num = 0);
+  HighResTimer& getKernelTimer(RecoStep step, int num = 0, size_t addMemorySize = 0);
   template <class T, int J = -1>
   HighResTimer& getTimer(const char* name, int num = -1);
   int getRecoStepNum(RecoStep step, bool validCheck = true);
@@ -242,19 +244,21 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & myStep) != myStep) : 0;
   unsigned int nThreads = x.nThreads;
   unsigned int nBlocks = x.nBlocks;
-  const int autoThreads = (cpuFallback || x.device == krnlDeviceType::CPU) ? 1 : getKernelProperties<S, I>().nThreads;
-  if (nThreads == (unsigned int)-1) {
-    nThreads = autoThreads;
-  }
+  const int autoThreads = cpuFallback ? 1 : getKernelProperties<S, I>().nThreads;
   if (nBlocks == (unsigned int)-1) {
     nBlocks = (nThreads + autoThreads - 1) / autoThreads;
     nThreads = autoThreads;
+  } else if (nBlocks == (unsigned int)-2) {
+    nBlocks = nThreads;
+    nThreads = autoThreads;
+  } else if ((int)nThreads < 0) {
+    nThreads = cpuFallback ? 1 : -nThreads;
   }
   if (nThreads > GPUCA_MAX_THREADS) {
     throw std::runtime_error("GPUCA_MAX_THREADS exceeded");
   }
   if (mDeviceProcessingSettings.debugLevel >= 3) {
-    GPUInfo("Running %s (Stream %d, Range %d/%d, Grid %d/%d) on %s", GetKernelName<S, I>(), x.stream, y.start, y.num, nBlocks, nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
+    GPUInfo("Running kernel %s (Stream %d, Range %d/%d, Grid %d/%d) on %s", GetKernelName<S, I>(), x.stream, y.start, y.num, nBlocks, nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
   }
   if (nThreads == 0 || nBlocks == 0) {
     return 0;
@@ -307,13 +311,15 @@ inline void GPUReconstructionCPU::AddGPUEvents(T*& events)
 }
 
 template <class T, int I, int J>
-HighResTimer& GPUReconstructionCPU::getKernelTimer(RecoStep step, int num)
+HighResTimer& GPUReconstructionCPU::getKernelTimer(RecoStep step, int num, size_t addMemorySize)
 {
   static int id = getNextTimerId();
   timerMeta* timer = getTimerById(id);
   if (timer == nullptr) {
-    int max = step == GPUCA_RECO_STEP::NoRecoStep || step == GPUCA_RECO_STEP::TPCSliceTracking || step == GPUCA_RECO_STEP::TPCClusterFinding ? NSLICES : 1;
-    timer = insertTimer(id, GetKernelName<T, I>(), J, max, 0, step);
+    timer = insertTimer(id, GetKernelName<T, I>(), J, NSLICES, 0, step);
+  }
+  if (addMemorySize) {
+    timer->memSize += addMemorySize;
   }
   if (num < 0 || num >= timer->num) {
     throw std::runtime_error("Invalid timer requested");

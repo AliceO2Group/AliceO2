@@ -116,6 +116,7 @@ struct Stack {
   template <typename T>
   constexpr static size_t calculateSize(T&& h) noexcept
   {
+    //if it's a pointer (to a stack) traverse it
     if constexpr (std::is_convertible_v<T, o2::byte*>) {
       const BaseHeader* next = BaseHeader::get(std::forward<T>(h));
       if (!next) {
@@ -126,6 +127,7 @@ struct Stack {
         size += next->size();
       }
       return size;
+      //otherwise get the size directly
     } else {
       return h.size();
     }
@@ -156,6 +158,10 @@ struct Stack {
       if (!last)
         return here;
       last->flagsNextHeader = more;
+      return here + h.size();
+    } else if constexpr (std::is_same_v<BaseHeader, headerType>) {
+      std::copy(h.data(), h.data() + h.size(), here);
+      reinterpret_cast<BaseHeader*>(here)->flagsNextHeader = more;
       return here + h.size();
     } else if constexpr (std::is_base_of_v<BaseHeader, headerType>) {
       ::new (static_cast<void*>(here)) headerType(std::forward<T>(h));

@@ -311,7 +311,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
 
     if (isnext < 0) {
       LOG(ERROR) << "error: isnext =" << isnext << "(current window = " << mReadoutWindowCurrent << ")"
-                 << " nbc = " << nbc << " -- event time = " << mEventTime << " -- TF = " << mTF << "\n";
+                 << " nbc = " << nbc << " -- event time = " << mEventTime << "\n";
 
       return;
     }

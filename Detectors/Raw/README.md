@@ -138,6 +138,8 @@ rdh     : RDH of the CRU page opening empty RDH
 toAdd   : a vector (supplied empty) to be filled to a size multipe of 16 bytes
 ```
 
+Adding empty HBF pages for HB's w/o data can be avoided by setting `writer.setDontFillEmptyHBF(true)` before starting conversion. Note that the empty HBFs still will be added for HBs which are supposed to open a new TF.
+
 The data `toAdd` will be inserted between the star/stop RDHs of the empty HBF.
 
 The behaviour descibed above can be modified by providing an extra argument in the `addData` method
@@ -276,11 +278,23 @@ Data from the same detector may be split to multiple files link-wise and/or time
 ```cpp
 o2-raw-file-reader-workflow
   ...
-  --conf arg                            configuration file to init from (obligatory)
-  --loop arg (=0)                       loop N times (infinite for N<0)
-  --message-per-tf                      send TF of each link as a single FMQ message rather part per HBF
+  --loop arg (=1)                       loop N times (infinite for N<0)
+  --max-tf (=0xffffffff)                max number of TF to process
+  --message-per-tf                      send TF of each link as a single FMQ message rather than multipart with message per HB
   --output-per-link                     send message per Link rather than per FMQ output route
   --delay arg (=0)                      delay in seconds between consecutive TFs sending
+  --configKeyValues arg                 semicolon separated key=value strings
+
+  # to suppress various error checks / reporting
+  --nocheck-packet-increment            ignore /Wrong RDH.packetCounter increment/
+  --nocheck-page-increment              ignore /Wrong RDH.pageCnt increment/
+  --nocheck-stop-on-page0               ignore /RDH.stop set of 1st HBF page/
+  --nocheck-missing-stop                ignore /New HBF starts w/o closing old one/
+  --nocheck-starts-with-tf              ignore /Data does not start with TF/HBF/
+  --nocheck-hbf-per-tf                  ignore /Number of HBFs per TF not as expected/
+  --nocheck-tf-per-link                 ignore /Number of TFs is less than expected/
+  --nocheck-hbf-jump                    ignore /Wrong HBF orbit increment/
+  --nocheck-no-spage-for-tf             ignore /TF does not start by new superpage/
 ```
 
 The workflow takes an input from the configuration file (as described in `RawFileReader` section), reads the data and sends them as DPL messages
@@ -308,6 +322,7 @@ Usage:   o2-raw-file-check [options] file0 [... fileN]
 Options:
   -h [ --help ]                     print this help message.
   -c [ --conf ] arg                 read input from configuration file
+  -m [ --max-tf] arg (=0xffffffff)  max.number of TF to read
   -v [ --verbosity ] arg (=0)    1: long report, 2 or 3: print or dump all RDH
   -s [ --spsize ]    arg (=1048576) nominal super-page size in bytes
   -t [ --hbfpertf ]  arg (=256)     nominal number of HBFs per TF
