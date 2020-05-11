@@ -24,7 +24,6 @@
 
 namespace o2::soa
 {
-
 // Functions to enable looping over tuples
 template <std::size_t V>
 struct Num {
