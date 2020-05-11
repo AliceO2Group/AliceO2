@@ -46,7 +46,8 @@ namespace globaltracking
 
 void TPCITSMatchingDPL::init(InitContext& ic)
 {
-
+  mTimer.Stop();
+  mTimer.Reset();
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
@@ -69,6 +70,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
 
 void TPCITSMatchingDPL::run(ProcessingContext& pc)
 {
+  mTimer.Start(false);
   const auto tracksITS = pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS");
   const auto trackClIdxITS = pc.inputs().get<gsl::span<int>>("trackClIdx");
   const auto tracksITSROF = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackITSROF");
@@ -91,7 +93,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     if (sectorHeader == nullptr) {
       // FIXME: think about error policy
       LOG(ERROR) << "sector header missing on header stack";
-      return;
+      throw std::runtime_error("sector header missing on header stack");
     }
     const int& sector = sectorHeader->sector;
     // check the current operation, this is used to either signal eod or noop
@@ -281,6 +283,13 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe}, mMatching.getMatchedITSLabels());
     pc.outputs().snapshot(Output{"GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe}, mMatching.getMatchedTPCLabels());
   }
+  mTimer.Stop();
+}
+
+void TPCITSMatchingDPL::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "TPC-ITS matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcClusLanes)

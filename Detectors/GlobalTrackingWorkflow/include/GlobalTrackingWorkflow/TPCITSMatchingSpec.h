@@ -22,6 +22,7 @@
 #include "Framework/Task.h"
 #include <string>
 #include <vector>
+#include "TStopwatch.h"
 
 using namespace o2::framework;
 
@@ -38,6 +39,7 @@ class TPCITSMatchingDPL : public Task
   ~TPCITSMatchingDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
   o2::globaltracking::MatchTPCITS mMatching; // matching engine
@@ -45,6 +47,7 @@ class TPCITSMatchingDPL : public Task
   std::vector<int> mTPCClusLanes;
   std::array<std::vector<char>, o2::tpc::Constants::MAXSECTOR> mBufferedTPCClusters; // at the moment not used
   bool mUseMC = true;
+  TStopwatch mTimer;
 };
 
 /// create a processor spec
