@@ -1614,15 +1614,15 @@ int GPUChainTracking::RunTPCTrackingMerger()
   runKernel<GPUTPCGMMergerLinkGlobalTracks>(GetGridBlk(numBlocks, 0, deviceType), krnlRunRangeNone, krnlEventNone);
   runKernel<GPUTPCGMMergerCollect>(GetGridBlk(numBlocks, 0, deviceType), krnlRunRangeNone, krnlEventNone);
   DoDebugAndDump(RecoStep::TPCMerging, 0, doGPUall, Merger, &GPUTPCGMMerger::DumpCollected, mDebugFile);
-  if (doGPUall) {
-    TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory());
-  }
 
   runKernel<GPUTPCGMMergerClearLinks>(GetGridBlk(numBlocks, 0, deviceType), krnlRunRangeNone, krnlEventNone, 1);
   RunTPCTrackingMerger_MergeBorderTracks(-1, 1, deviceType);
   RunTPCTrackingMerger_MergeBorderTracks(-1, 2, deviceType);
   runKernel<GPUTPCGMMergerMergeCE>(GetGridBlk(numBlocks, 0, deviceType), krnlRunRangeNone, krnlEventNone);
   DoDebugAndDump(RecoStep::TPCMerging, 0, doGPUall, Merger, &GPUTPCGMMerger::DumpMergeCE, mDebugFile);
+  if (doGPUall) {
+    TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory());
+  }
 
   if (GetDeviceProcessingSettings().mergerSortTracks) {
     runKernel<GPUTPCGMMergerSortTracksPrepare>(GetGridBlk(numBlocks, 0, deviceType), krnlRunRangeNone, krnlEventNone);
