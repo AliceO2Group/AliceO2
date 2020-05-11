@@ -52,14 +52,14 @@ BOOST_AUTO_TEST_CASE(TestHashByColumnKernel)
   BOOST_CHECK_EQUAL(uniqueValues->length(), 3);
 
   arrow::compute::Datum outRanges;
-  SortedGroupByKernel groupBy{{"x"}};
+  SortedGroupByKernel<uint64_t, arrow::UInt64Array> groupBy{{"x", 3}};
   BOOST_CHECK_EQUAL(groupBy.Call(&ctx, arrow::compute::Datum(table), &outRanges).ok(), true);
   auto result = arrow::util::get<std::shared_ptr<arrow::Table>>(outRanges.value);
   BOOST_REQUIRE(result.get() != nullptr);
   BOOST_CHECK_EQUAL(result->num_rows(), 3);
 
   std::vector<Datum> splitted;
-  BOOST_CHECK_EQUAL(sliceByColumn(&ctx, "x", arrow::compute::Datum(table), &splitted).ok(), true);
+  BOOST_CHECK_EQUAL(sliceByColumn(&ctx, "x", static_cast<uint64_t>(3), arrow::compute::Datum(table), &splitted).ok(), true);
   BOOST_REQUIRE_EQUAL(splitted.size(), 3);
   BOOST_CHECK_EQUAL(util::get<std::shared_ptr<Table>>(splitted[0].value)->num_rows(), 4);
   BOOST_CHECK_EQUAL(util::get<std::shared_ptr<Table>>(splitted[1].value)->num_rows(), 4);
@@ -69,11 +69,6 @@ BOOST_AUTO_TEST_CASE(TestHashByColumnKernel)
 BOOST_AUTO_TEST_CASE(TestWithSOATables)
 {
   using namespace o2;
-  TableBuilder builder1;
-  auto collisionsCursor = builder1.cursor<aod::Collisions>();
-  collisionsCursor(0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
-  collisionsCursor(0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
-  auto collisions = builder1.finalize();
   TableBuilder builder2;
   auto tracksCursor = builder2.cursor<aod::Tracks>();
   tracksCursor(0, 0, 2, 3, 4, 5, 6, 7, 8, 9);
@@ -87,7 +82,7 @@ BOOST_AUTO_TEST_CASE(TestWithSOATables)
 
   arrow::compute::FunctionContext ctx;
   arrow::compute::Datum outRanges;
-  SortedGroupByKernel groupBy{{"fCollisionsID"}};
+  SortedGroupByKernel<int32_t, arrow::Int32Array> groupBy{{"fCollisionsID", 3}};
   BOOST_CHECK_EQUAL(groupBy.Call(&ctx, arrow::compute::Datum(tracks), &outRanges).ok(), true);
   auto result = arrow::util::get<std::shared_ptr<arrow::Table>>(outRanges.value);
   BOOST_REQUIRE(result.get() != nullptr);
@@ -95,7 +90,7 @@ BOOST_AUTO_TEST_CASE(TestWithSOATables)
 
   std::vector<Datum> splitted;
   std::vector<uint64_t> offsets;
-  BOOST_CHECK_EQUAL(sliceByColumn(&ctx, "fCollisionsID", arrow::compute::Datum(tracks), &splitted, &offsets).ok(), true);
+  BOOST_CHECK_EQUAL(sliceByColumn(&ctx, "fCollisionsID", static_cast<int32_t>(3), arrow::compute::Datum(tracks), &splitted, &offsets).ok(), true);
   BOOST_REQUIRE_EQUAL(splitted.size(), 3);
   BOOST_CHECK_EQUAL(util::get<std::shared_ptr<Table>>(splitted[0].value)->num_rows(), 2);
   BOOST_CHECK_EQUAL(util::get<std::shared_ptr<Table>>(splitted[1].value)->num_rows(), 4);
