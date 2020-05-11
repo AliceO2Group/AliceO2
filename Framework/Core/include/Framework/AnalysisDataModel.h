@@ -400,6 +400,62 @@ DECLARE_SOA_TABLE(Run2V0s, "AOD", "RUN2V0", run2v0::BCId,
                   run2v0::BBFlag, run2v0::BGFlag);
 using Run2V0 = Run2V0s::iterator;
 
+// ---- MC tables ----
+
+namespace mcvtx
+{
+DECLARE_SOA_INDEX_COLUMN(BC, bc);
+DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);
+DECLARE_SOA_COLUMN(X, x, float);
+DECLARE_SOA_COLUMN(Y, y, float);
+DECLARE_SOA_COLUMN(Z, z, float);
+DECLARE_SOA_COLUMN(T, t, float);
+DECLARE_SOA_COLUMN(Weight, weight, float);
+DECLARE_SOA_COLUMN(NProduced, nProduced, int);
+} // namespace mcvtx
+
+DECLARE_SOA_TABLE(McVtxs, "AOD", "MCVTX", o2::soa::Index<>, mcvtx::BCId,
+		  mcvtx::GeneratorsID,
+                  mcvtx::X, mcvtx::Y, mcvtx::Z, mcvtx::T, mcvtx::Weight,
+                  mcvtx::NProduced);
+using McVtx = McVtxs::iterator;
+
+namespace label
+{
+DECLARE_SOA_COLUMN(Label, label, int);
+DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
+} // namespace label
+
+DECLARE_SOA_TABLE(Labels, "AOD", "LABEL", o2::soa::Index<>,
+		  label::Label, label::LabelMask);
+using Label = Labels::iterator;
+
+namespace mcparticle
+{
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_COLUMN(PdgCode, pdgCode, int);
+DECLARE_SOA_COLUMN(StatusCode, statusCode, int);
+DECLARE_SOA_COLUMN(Mother, mother, int[2]);
+DECLARE_SOA_COLUMN(Daughter, daughter, int[2]);
+DECLARE_SOA_COLUMN(Weight, weight, float);
+DECLARE_SOA_COLUMN(Px, px, float);
+DECLARE_SOA_COLUMN(Py, py, float);
+DECLARE_SOA_COLUMN(Pz, pz, float);
+DECLARE_SOA_COLUMN(E, e, float);
+DECLARE_SOA_COLUMN(Vx, vx, float);
+DECLARE_SOA_COLUMN(Vy, vy, float);
+DECLARE_SOA_COLUMN(Vz, vz, float);
+DECLARE_SOA_COLUMN(Vt, vt, float);
+} // namespace mcparticle
+
+DECLARE_SOA_TABLE(McParticles, "AOD", "MCPARTICLE",
+                  o2::soa::Index<>, mcparticle::CollisionId,
+		  mcparticle::PdgCode, mcparticle::StatusCode,
+		  mcparticle::Mother, mcparticle::Daughter, mcparticle::Weight,
+                  mcparticle::Px,mcparticle::Py, mcparticle::Pz, mcparticle::E,
+		  mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt);
+using McParticle = McParticles::iterator;
+
 } // namespace aod
 
 } // namespace o2
