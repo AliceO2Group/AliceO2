@@ -40,7 +40,7 @@ class Digitizer
   typedef math_utils::RandomRing<float_v::size() * DP::NOISE_RANDOM_RING_SIZE> NoiseRandomRingType;
 
  public:
-  Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), mParameters(params), mRndGaus(NoiseRandomRingType::RandomType::Gaus), mNumNoiseSamples(), mNoiseSamples(), mSincTable(), mSignalTable(), mSignalCache() { initParameters(); };
+  Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), mParameters(params), mRndGaus(NoiseRandomRingType::RandomType::Gaus), mNumNoiseSamples(), mNoiseSamples(), mSincTable(), mSignalTable(), mSignalCache() { initParameters(); }
   ~Digitizer() = default;
 
   void process(const std::vector<o2::ft0::HitType>* hits, std::vector<o2::ft0::Digit>& digitsBC,
@@ -97,20 +97,21 @@ class Digitizer
     if (x <= 0.0f)
       return 0.0f;
     float const y = x / mParameters.bunchWidth * DP::SIGNAL_TABLE_SIZE;
-    int const index = std::lround(y);
+    int const index = std::floor(y);
     if (index + 1 >= DP::SIGNAL_TABLE_SIZE) {
       return mSignalTable.back();
     }
-    return mSignalTable[index] + (y - index) * (mSignalTable[index + 1] - mSignalTable[index]);
+    float const rem = y - index;
+    return mSignalTable[index] + rem * (mSignalTable[index + 1] - mSignalTable[index]);
   }
 
   inline Vc::float_v signalFormVc(Vc::float_v x) const
   { // table lookup for the signal shape (SIMD version)
     auto const y = x / mParameters.bunchWidth * DP::SIGNAL_TABLE_SIZE;
-    float_v::IndexType const index = Vc::round(y);
+    Vc::float_v::IndexType const index = Vc::floor(y);
     auto const rem = y - index;
     Vc::float_v val(0);
-    for (int i = 0; i < float_v::size(); ++i) {
+    for (size_t i = 0; i < float_v::size(); ++i) {
       if (y[i] < 0.0f)
         continue;
       if (index[i] + 1 < DP::SIGNAL_TABLE_SIZE) {
@@ -180,8 +181,8 @@ inline Vc::float_v signalForm_integralVc(Vc::float_v x)
   auto const mask = (x >= 0.0f);
   Vc::float_v arg(0);
   arg.assign(x, mask); // branchless if
-  float const a = -0.45458f;
-  float const b = -0.83344945f;
+  Vc::float_v const a(-0.45458f);
+  Vc::float_v const b(-0.83344945f);
   Vc::float_v result = -(Vc::exp(b * arg) / b - Vc::exp(a * arg) / a) / 7.8446501f;
   return result;
 };

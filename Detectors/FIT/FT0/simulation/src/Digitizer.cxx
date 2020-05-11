@@ -28,7 +28,7 @@ ClassImp(Digitizer);
 
 Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float deadTime)
 {
-  assert(std::is_sorted(begin(times), end(times)));
+  assert(std::is_sorted(std::begin(times), std::end(times)));
 
   // get a new batch of random values
   for (float& n : mNoiseSamples) {
@@ -42,8 +42,8 @@ Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float 
     Vc::float_v acc(0);
     Vc::float_v tableVal(0);
     const float* tp = times.data();
-    int i = 0;
-    for (; i < times.size() / Vc::float_v::size(); ++i) {
+    size_t m = times.size() / Vc::float_v::size();
+    for (size_t i = 0; i < m; ++i) {
       tableVal.load(tp);
       tp += Vc::float_v::size();
       Vc::prefetchForOneRead(tp);
@@ -51,9 +51,8 @@ Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float 
     }
     val += acc.sum();
     // non-SIMD tail
-    i *= Vc::float_v::size();
-    for (; i < times.size(); ++i) {
-      val += signalForm(time - times[i]);
+    for (size_t i = Vc::float_v::size() * m; i < times.size(); ++i, ++tp) {
+      val += signalForm(time - (*tp));
     }
     // (2) add noise
     // find the right indices into the sinc table
@@ -70,33 +69,32 @@ Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float 
     }
     Vc::float_v noiseVal(0);
     const float* np = mNoiseSamples.data();
-    acc = 0;
     tp = mSincTable[timeIndex].data() + mNumNoiseSamples - timeOffset;
-    i = 0;
-    for (; i < mNumNoiseSamples / Vc::float_v::Size; ++i) {
+    acc = 0.0f;
+    m = mNumNoiseSamples / Vc::float_v::Size;
+    for (size_t i = 0; i < m; ++i) {
       tableVal.load(tp);
-      noiseVal.load(np);
       tp += Vc::float_v::Size;
       Vc::prefetchForOneRead(tp);
+      noiseVal.load(np);
       np += Vc::float_v::Size;
       Vc::prefetchForOneRead(np);
       acc += noiseVal * tableVal;
     }
     val += acc.sum(); // horizontal sum
     // non-SIMD tail
-    i *= Vc::float_v::Size;
-    for (; i < mNumNoiseSamples; ++i) {
-      val += mNoiseSamples[i] * *(tp++);
+    for (size_t i = Vc::float_v::Size * m; i < mNumNoiseSamples; ++i, ++tp, ++np) {
+      val += (*np) * (*tp);
     }
     return val;
   };
   auto const min_time = std::max(deadTime, *std::min_element(std::begin(times),
                                                              std::end(times)));
-  CFDOutput result{std::nullopt, -0.5 * mParameters.bunchWidth};
+  CFDOutput result{std::nullopt, -0.5f * mParameters.bunchWidth};
   bool is_positive = true;
 
   // reset the chache
-  std::fill_n(mSignalCache.begin(), mSignalCache.size(), -1.0f);
+  std::fill_n(std::begin(mSignalCache), std::size(mSignalCache), -1.0f);
 
   // we need double precision for time in order to match previous behaviour
   for (double time = min_time; time < 0.5 * mParameters.bunchWidth; time += DP::SIGNAL_CACHE_DT) {
@@ -106,13 +104,13 @@ Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float 
       mSignalCache[index] = val;
     }
     // look up the time-shifted signal value from the past
-    float val_prev = 0.0;
-    int const index_prev = std::lround((time - mParameters.mCFDShiftPos + 0.5 * mParameters.bunchWidth) / DP::SIGNAL_CACHE_DT);
+    float val_prev = 0.0f;
+    int const index_prev = std::lround((time - mParameters.mCFDShiftPos + 0.5f * mParameters.bunchWidth) / DP::SIGNAL_CACHE_DT);
     val_prev = ((index_prev < 0 || index_prev >= mSignalCache.size() || mSignalCache[index_prev] < 0.0f)
                   ? value_at(time - mParameters.mCFDShiftPos) //  was not computed before
                   : mSignalCache[index_prev]);                //  is available in the cache
-    float const cfd_val = 5 * val_prev - val;
-    if (std::abs(val) > mParameters.mCFD_trsh && !is_positive && cfd_val > 0) {
+    float const cfd_val = 5.0f * val_prev - val;
+    if (std::abs(val) > mParameters.mCFD_trsh && !is_positive && cfd_val > 0.0f) {
       if (!result.particle) {
         result.particle = time;
       }
@@ -120,7 +118,7 @@ Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float 
       time += mParameters.mCFDdeadTime - DP::SIGNAL_CACHE_DT;
       is_positive = true;
     } else {
-      is_positive = cfd_val > 0;
+      is_positive = cfd_val > 0.0f;
     }
   }
   if (!result.particle) {
@@ -140,8 +138,8 @@ double Digitizer::measure_amplitude(const std::vector<float>& times) const
   Vc::float_v acc(0);
   Vc::float_v tv(0);
   const float* tp = times.data();
-  int i = 0;
-  for (; i < times.size() / Vc::float_v::Size; ++i) {
+  size_t const m = times.size() / Vc::float_v::Size;
+  for (size_t i = 0; i < m; ++i) {
     tv.load(tp);
     tp += Vc::float_v::Size;
     Vc::prefetchForOneRead(tp);
@@ -149,9 +147,8 @@ double Digitizer::measure_amplitude(const std::vector<float>& times) const
   }
   float result = acc.sum(); // horizontal sum
   // non-SIMD tail
-  i *= Vc::float_v::Size;
-  for (; i < times.size(); ++i) {
-    result += signalForm_integral(to - times[i]) - signalForm_integral(from - times[i]);
+  for (size_t i = Vc::float_v::Size * m; i < times.size(); ++i, ++tp) {
+    result += signalForm_integral(to - (*tp)) - signalForm_integral(from - (*tp));
   }
   return result;
 }
@@ -200,7 +197,7 @@ void Digitizer::storeBC(BCCache& bc,
 
   int first = digitsCh.size(), nStored = 0;
   auto& particles = bc.hits;
-  std::sort(particles.begin(), particles.end());
+  std::sort(std::begin(particles), std::end(particles));
   auto channel_end = particles.begin();
   std::vector<float> channel_times;
   for (Int_t ipmt = 0; ipmt < mParameters.mMCPs; ++ipmt) {
@@ -316,22 +313,22 @@ void Digitizer::initParameters()
 
   // set up tables with sinc function values (times noiseVar)
   for (size_t i = 0, n = mSincTable.size(); i < n; ++i) {
-    double const time = i / double(n) * mParameters.mNoisePeriod; // [0 .. 1/mParameters.mNoisePeriod)
+    float const time = i / float(n) * mParameters.mNoisePeriod; // [0 .. 1/mParameters.mNoisePeriod)
     std::cout << "initParameters " << i << "/" << n << " " << time << std::endl;
     // we make a table of sinc values between -num_noise_samples and 2*num_noise_samples
     mSincTable[i].resize(3 * mNumNoiseSamples);
     for (int j = -mNumNoiseSamples; j < 2 * mNumNoiseSamples; ++j) {
-      mSincTable[i][mNumNoiseSamples + j] = mParameters.mNoiseVar * sinc((time + 0.5 * mParameters.bunchWidth) / mParameters.mNoisePeriod - j);
+      mSincTable[i][mNumNoiseSamples + j] = mParameters.mNoiseVar * sinc((time + 0.5f * mParameters.bunchWidth) / mParameters.mNoisePeriod - j);
     }
   }
   // set up the lookup table for the signal form
-  for (int i = 0, n = mSignalTable.size(); i < n; ++i) {
-    double const x = i / double(n) * mParameters.bunchWidth;
+  for (size_t i = 0; i < DP::SIGNAL_TABLE_SIZE; ++i) {
+    float const x = float(i) / float(DP::SIGNAL_TABLE_SIZE) * mParameters.bunchWidth;
     mSignalTable[i] = signalForm_i(x);
   }
 
   // cache for signal time series used by the CFD -BC/2 .. +3BC/2
-  mSignalCache.resize(std::lround(2 * mParameters.bunchWidth / DP::SIGNAL_CACHE_DT));
+  mSignalCache.resize(std::lround(mParameters.bunchWidth / DP::SIGNAL_CACHE_DT));
 }
 //_______________________________________________________________________
 void Digitizer::init()
