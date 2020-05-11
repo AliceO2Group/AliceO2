@@ -11,6 +11,7 @@
 #ifndef ALICEO2_FV0_DIGITIZER_H
 #define ALICEO2_FV0_DIGITIZER_H
 
+#include "FV0Base/Constants.h"
 #include <FV0Simulation/MCLabel.h>
 #include <FV0Simulation/DigitizationConstant.h>
 #include <FV0Simulation/FV0DigParam.h>
@@ -71,10 +72,10 @@ class Digitizer
   Int_t mSrcId;                 // signal, background or QED
   std::vector<fv0::MCLabel> mMCLabels;
 
-  std::array<std::vector<Float_t>, DP::NCHANNELS> mPmtChargeVsTime; // Charge time series aka analogue signal pulse from PM
-  UInt_t mNBins;                                                    // Number of bins in pulse series
-  Float_t mBinSize;                                                 // Time width of the pulse bin - HPTDC resolution
-  Float_t mPmtTimeIntegral;                                         //
+  std::array<std::vector<Float_t>, Constants::nFv0Channels> mPmtChargeVsTime; // Charge time series: analog pulse from PM
+  UInt_t mNBins;                                                              // Number of bins in pulse series
+  Float_t mBinSize;                                                           // Time width of pulse bin: HPTDC resolution
+  Float_t mPmtTimeIntegral;                                                   //
 
   // Random rings
   HitRandomRingType mRndScintDelay;

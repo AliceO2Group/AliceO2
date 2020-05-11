@@ -12,15 +12,30 @@ o2_add_library(FV0Simulation
         SOURCES src/Detector.cxx
                 src/Digitizer.cxx
                 src/FV0DigParam.cxx
+                src/Digits2Raw.cxx
         PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
                               O2::FV0Base
                               O2::DataFormatsFV0
-                              ROOT::Physics)
+                              O2::DetectorsRaw
+                              ROOT::Physics
+                              O2::Headers
+                              O2::Framework)
 
 o2_target_root_dictionary(FV0Simulation
-                          HEADERS include/FV0Simulation/Detector.h
-                                  include/FV0Simulation/DigitizationConstant.h
-                                  include/FV0Simulation/Digitizer.h
-                                  include/FV0Simulation/FV0DigParam.h)
+        HEADERS include/FV0Simulation/Detector.h
+                include/FV0Simulation/DigitizationConstant.h
+                include/FV0Simulation/Digitizer.h
+                include/FV0Simulation/FV0DigParam.h
+                include/FV0Simulation/Digits2Raw.h)
 
+o2_add_executable(digi2raw
+        COMPONENT_NAME fv0
+        SOURCES src/digit2raw.cxx
+        PUBLIC_LINK_LIBRARIES O2::FV0Simulation
+                              O2::DetectorsRaw
+                              O2::DetectorsCommonDataFormats
+                              O2::CommonUtils
+                              Boost::program_options)
+                  
 o2_data_file(COPY data  DESTINATION Detectors/FV0/simulation)
+                  

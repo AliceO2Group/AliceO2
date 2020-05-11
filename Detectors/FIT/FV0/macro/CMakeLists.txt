@@ -11,6 +11,7 @@
 o2_add_test_root_macro(readFV0Hits.C
                        PUBLIC_LINK_LIBRARIES O2::FV0Simulation
                        LABELS fv0)
+
 o2_add_test_root_macro(readFV0Digits.C
                        PUBLIC_LINK_LIBRARIES O2::FV0Simulation
                        LABELS fv0)                    

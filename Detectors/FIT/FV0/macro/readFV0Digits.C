@@ -21,7 +21,7 @@
 #include "DataFormatsFV0/ChannelData.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "FV0Simulation/DigitizationConstant.h"
+#include "FV0Base/Constants.h"
 #include "FV0Simulation/MCLabel.h"
 #include "FairLogger.h"
 
@@ -55,7 +55,7 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
   // Settings for drawing, used with SetRangeUser()
   const float tMin = 0, tMax = 50, chargeMin = 5, chargeMax = 800;
   const float chargePerMip = 1. / 16; // Assumes 1-MIP-peak is at 16th ADC channel
-  const int nChannels = o2::fv0::DigitizationConstant::NCHANNELS;
+  const int nChannels = o2::fv0::Constants::nFv0Channels;
 
   // Init histos
   std::vector<std::string> vHistoNames;
@@ -118,11 +118,12 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
 
     // Fill histos
     for (int ibc = 0; ibc < nbc; ibc++) {
-      if (ibc % (nbc / 10) == 0) {
+      if ((nbc > 10) && (ibc % (nbc / 10) == 0)) {
         std::cout << "  Progress reading tree: " << ibc << "/" << nbc << " [";
         std::cout << 100.0 * ibc / nbc << "%]" << std::endl;
       }
       const auto& bcd = fv0BCData[ibc];
+      std::cout << ibc << " " << nbc << " - " << bcd.ir << std::endl;
       int chEnt = bcd.ref.getFirstEntry();
       int nchPrec = 0;
       int nchReal = 0;
@@ -131,6 +132,7 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
         if ((chd.time == -1024.f) && (chd.chargeAdc == 0.f)) {
           continue;
         }
+        std::cout << chd.pmtNumber << "  " << chd.chargeAdc << "  " << chd.time << std::endl;
         hTimeCharge->Fill(chd.time, chd.chargeAdc);
         hTimeCh->Fill(chd.time, chd.pmtNumber);
         hChargeCh->Fill(chd.chargeAdc, chd.pmtNumber);
@@ -253,6 +255,7 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
   hNchReal->Write();
   hNchPrec->Write();
   fout->Close();
+  std::cout << "Digits read" << std::endl;
 }
 
 // Root files generated in the previous stage (readFV0Digits()) are used as inputs here
@@ -308,7 +311,7 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
   const float statX1 = 1. - rmargin, statX2 = statX1 - 0.18;
   const float statH = 0.3, statY1 = 1. - tmargin, statY2 = statY1 - statH;
 
-  // Draw side-by-side comparison of TH2's
+  /*  // Draw side-by-side comparison of TH2's
   for (UInt_t ih = 0; ih < 4; ih++) {
     std::stringstream ss;
     ss << "fv0digi-cmp" << ih;
@@ -323,7 +326,7 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
       AdjustStatBox(h, statX1, statX2, statY1, statY2);
     }
   }
-
+*/
   // Draw the comparison of TH1's
   Color_t col[3] = {kBlack, kRed, kBlue};
   TCanvas* c = new TCanvas("fv0digi-cmp-th1", "fv0digi-cmp-th1", 1800, 500);
@@ -336,6 +339,7 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
     ss << "p" << ifile;
     TH1D* ht = h2->ProjectionX((ss.str() + "t_" + h2->GetName()).c_str());
     TH1D* hc = h2->ProjectionY((ss.str() + "c_" + h2->GetName()).c_str());
+    hc->GetXaxis()->SetRangeUser(0, 100);
     c->cd(1);
     gPad->SetMargin(lmargin, rmargin, bmargin, tmargin);
     gPad->SetLogy();
@@ -344,6 +348,7 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
     c->cd(2);
     gPad->SetMargin(lmargin, rmargin, bmargin, tmargin);
     gPad->SetLogy();
+    hc->SetLineWidth(3.5 - ifile);
     hc->Draw((ifile == 0) ? "" : "sames");
     AdjustStatBox(hc, statX1, statX2, statY1 - statH * ifile, statY2 - statH * ifile);
   }
