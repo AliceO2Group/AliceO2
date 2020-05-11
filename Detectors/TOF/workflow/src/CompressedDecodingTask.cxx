@@ -22,6 +22,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/Logger.h"
 
 using namespace o2::framework;
 
@@ -38,6 +39,8 @@ void CompressedDecodingTask::init(InitContext& ic)
     LOG(INFO) << "CompressedDecoding finish";
   };
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
+  mTimer.Stop();
+  mTimer.Reset();
 }
 
 void CompressedDecodingTask::postData(ProcessingContext& pc)
@@ -76,12 +79,7 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
 void CompressedDecodingTask::run(ProcessingContext& pc)
 {
   LOG(INFO) << "CompressedDecoding run";
-
-  /** check status **/
-  if (mStatus) {
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    return;
-  }
+  mTimer.Start(false);
 
   /** loop over inputs routes **/
   for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
@@ -107,6 +105,13 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
   if (mHasToBePosted) {
     postData(pc);
   }
+  mTimer.Stop();
+}
+
+void CompressedDecodingTask::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "TOF CompressedDecoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
@@ -115,7 +120,7 @@ void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
   // rdh close
   if (rdh->stop && rdh->heartbeatOrbit == o2::raw::HBFUtils::Instance().getNOrbitsPerTF() - 1 + mInitOrbit) {
     mNCrateCloseTF++;
-    printf("New TF close RDH %d\n", int(rdh->feeId));
+    //    printf("New TF close RDH %d\n", int(rdh->feeId));
     return;
   }
 
@@ -123,7 +128,7 @@ void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
   if ((rdh->pageCnt == 0) && (rdh->triggerType & o2::trigger::TF)) {
     mNCrateOpenTF++;
     mInitOrbit = rdh->heartbeatOrbit;
-    printf("New TF open RDH %d\n", int(rdh->feeId));
+    //    printf("New TF open RDH %d\n", int(rdh->feeId));
   }
 };
 

@@ -22,6 +22,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include <gsl/span>
+#include "TStopwatch.h"
 
 // from FIT
 #include "DataFormatsFT0/RecPoints.h"
@@ -54,11 +55,13 @@ class TOFDPLRecoWorkflowTask
     // nothing special to be set up
     o2::base::GeometryManager::loadGeometry();
     o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
+    mTimer.Stop();
+    mTimer.Reset();
   }
 
   void run(framework::ProcessingContext& pc)
   {
-
+    mTimer.Start(false);
     //>>>---------- attach input data --------------->>>
     const auto clustersRO = pc.inputs().get<gsl::span<o2::tof::Cluster>>("tofcluster");
     const auto tracksRO = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("globaltrack");
@@ -114,12 +117,18 @@ class TOFDPLRecoWorkflowTask
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHITSINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedITSLabelsVector());
     }
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBINFOS", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
+    mTimer.Stop();
+  }
 
-    // declare done
+  void endOfStream(EndOfStreamContext& ec)
+  {
+    LOGF(INFO, "TOF Matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
+         mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   }
 
  private:
   o2::globaltracking::MatchTOF mMatcher; ///< Cluster finder
+  TStopwatch mTimer;
 };
 
 o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT)
