@@ -1529,9 +1529,83 @@ GPUd() void GPUTPCGMMerger::SortTracksPrepare(int nBlocks, int nThreads, int iBl
   }
 }
 
+GPUd() void GPUTPCGMMerger::PrepareClustersForFit0(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  unsigned int* trackSort = (unsigned int*)mTmpMem;
+  for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTracks; i += nBlocks * nThreads) {
+    trackSort[i] = i;
+  }
+}
+
+#ifdef __CUDACC__
+struct GPUTPCGMMergerSortTracks_comp {
+  const GPUTPCGMMergedTrack* const mCmp;
+  GPUhd() GPUTPCGMMergerSortTracks_comp(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
+  GPUd() bool operator()(const int aa, const int bb)
+  {
+    const GPUTPCGMMergedTrack& GPUrestrict() a = mCmp[aa];
+    const GPUTPCGMMergedTrack& GPUrestrict() b = mCmp[bb];
+    if (a.CCE() != b.CCE()) {
+      return a.CCE() > b.CCE();
+    }
+    if (a.Legs() != b.Legs()) {
+      return a.Legs() > b.Legs();
+    }
+    return a.NClusters() > b.NClusters();
+  }
+};
+
+template <>
+int GPUReconstructionCUDABackend::runKernelBackend<GPUTPCGMMergerSortTracks, 0>(krnlSetup& _xyz)
+{
+  HighResTimer timer;
+  if (mDeviceProcessingSettings.deviceTimers) {
+    timer.ResetStart();
+  }
+
+  thrust::device_ptr<unsigned int> trackSort((unsigned int*)mProcessorsShadow->tpcMerger.TrackOrderProcess());
+  thrust::sort(thrust::cuda::par.on(mInternals->Streams[_xyz.x.stream]), trackSort, trackSort + processors()->tpcMerger.NOutputTracks(), GPUTPCGMMergerSortTracks_comp(mProcessorsShadow->tpcMerger.OutputTracks()));
+
+  if (mDeviceProcessingSettings.deviceTimers) {
+    SynchronizeStream(_xyz.x.stream);
+    _xyz.t = timer.GetCurrentElapsedTime();
+  }
+  return 0;
+}
+
+struct GPUTPCGMMergerSortTracksQPt_comp {
+  const GPUTPCGMMergedTrack* const mCmp;
+  GPUhd() GPUTPCGMMergerSortTracksQPt_comp(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
+  GPUd() bool operator()(const int aa, const int bb)
+  {
+    const GPUTPCGMMergedTrack& GPUrestrict() a = mCmp[aa];
+    const GPUTPCGMMergedTrack& GPUrestrict() b = mCmp[bb];
+    return (CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt()));
+  }
+};
+
+template <>
+int GPUReconstructionCUDABackend::runKernelBackend<GPUTPCGMMergerSortTracksQPt, 0>(krnlSetup& _xyz)
+{
+  HighResTimer timer;
+  if (mDeviceProcessingSettings.deviceTimers) {
+    timer.ResetStart();
+  }
+
+  thrust::device_ptr<unsigned int> trackSort((unsigned int*)mProcessorsShadow->tpcMerger.TmpMem());
+  thrust::sort(thrust::cuda::par.on(mInternals->Streams[_xyz.x.stream]), trackSort, trackSort + processors()->tpcMerger.NOutputTracks(), GPUTPCGMMergerSortTracksQPt_comp(mProcessorsShadow->tpcMerger.OutputTracks()));
+
+  if (mDeviceProcessingSettings.deviceTimers) {
+    SynchronizeStream(_xyz.x.stream);
+    _xyz.t = timer.GetCurrentElapsedTime();
+  }
+  return 0;
+}
+#endif
+
 GPUd() void GPUTPCGMMerger::SortTracks(int nBlocks, int nThreads, int iBlock, int iThread)
 {
-  auto comp = [cmp = mOutputTracks](const int aa, const int bb) {
+  auto comp = [cmp = mOutputTracks](const int aa, const int bb) { // Have to duplicate sort comparison: Thrust cannot use the Lambda but OpenCL cannot use the object
     const GPUTPCGMMergedTrack& GPUrestrict() a = cmp[aa];
     const GPUTPCGMMergedTrack& GPUrestrict() b = cmp[bb];
     if (a.CCE() != b.CCE()) {
@@ -1546,18 +1620,10 @@ GPUd() void GPUTPCGMMerger::SortTracks(int nBlocks, int nThreads, int iBlock, in
   GPUCommonAlgorithm::sortDeviceDynamic(mTrackOrderProcess, mTrackOrderProcess + mMemory->nOutputTracks, comp);
 }
 
-GPUd() void GPUTPCGMMerger::PrepareClustersForFit0(int nBlocks, int nThreads, int iBlock, int iThread)
-{
-  unsigned int* trackSort = (unsigned int*)mTmpMem;
-  for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTracks; i += nBlocks * nThreads) {
-    trackSort[i] = i;
-  }
-}
-
 GPUd() void GPUTPCGMMerger::SortTracksQPt(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   unsigned int* trackSort = (unsigned int*)mTmpMem;
-  auto comp = [cmp = mOutputTracks](const int aa, const int bb) {
+  auto comp = [cmp = mOutputTracks](const int aa, const int bb) { // Have to duplicate sort comparison: Thrust cannot use the Lambda but OpenCL cannot use the object
     const GPUTPCGMMergedTrack& GPUrestrict() a = cmp[aa];
     const GPUTPCGMMergedTrack& GPUrestrict() b = cmp[bb];
     return (CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt()));
