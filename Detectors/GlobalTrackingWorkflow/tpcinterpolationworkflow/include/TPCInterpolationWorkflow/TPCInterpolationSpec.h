@@ -17,6 +17,7 @@
 #include "SpacePoints/TrackInterpolation.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "TStopwatch.h"
 
 using namespace o2::framework;
 
@@ -31,13 +32,14 @@ class TPCInterpolationDPL : public Task
   ~TPCInterpolationDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void endOfStream(EndOfStreamContext& ec) final;
 
  private:
   o2::tpc::TrackInterpolation mInterpolation; // track interpolation engine
   std::vector<int> mTPCClusLanes;
   std::array<std::vector<char>, o2::tpc::Constants::MAXSECTOR> mBufferedTPCClusters;
-
   bool mUseMC{false}; ///< MC flag
+  TStopwatch mTimer;
 };
 
 /// create a processor spec
