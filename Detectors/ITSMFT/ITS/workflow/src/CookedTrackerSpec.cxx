@@ -50,6 +50,8 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void CookedTrackerDPL::init(InitContext& ic)
 {
+  mTimer.Stop();
+  mTimer.Reset();
   auto nthreads = ic.options().get<int>("nthreads");
   mTracker.setNumberOfThreads(nthreads);
   auto filename = ic.options().get<std::string>("grp-file");
@@ -87,6 +89,7 @@ void CookedTrackerDPL::init(InitContext& ic)
 
 void CookedTrackerDPL::run(ProcessingContext& pc)
 {
+  mTimer.Start(false);
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto clusters = pc.inputs().get<gsl::span<o2::itsmft::Cluster>>("clusters");
@@ -108,8 +111,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
 
-  LOG(INFO) << "ITSCookedTracker pulled " << clusters.size() << " clusters, in "
-            << rofs.size() << " RO frames";
+  LOG(INFO) << "ITSCookedTracker pulled " << compClusters.size() << " clusters, in " << rofs.size() << " RO frames";
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
   if (mUseMC) {
@@ -185,7 +187,13 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, trackLabels);
     pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
+  mTimer.Stop();
+}
 
+void CookedTrackerDPL::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "ITS Cooked-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getCookedTrackerSpec(bool useMC)
