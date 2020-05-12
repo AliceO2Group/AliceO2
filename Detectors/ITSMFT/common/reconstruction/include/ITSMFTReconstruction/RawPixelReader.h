@@ -493,7 +493,7 @@ class RawPixelReader : public PixelReader
   ///================================== Decoding methods ========================
 
   //_____________________________________
-  size_t cacheLinksData(PayLoadCont& buffer)
+  std::size_t cacheLinksData(PayLoadCont& buffer)
   {
     // distribute data from the single buffer among the links caches
 
@@ -682,7 +682,7 @@ class RawPixelReader : public PixelReader
   bool findNextRDH(PayLoadCont& buffer)
   {
     // keep reading GRB words until RDH is found
-    size_t nRead = 0;
+    std::size_t nRead = 0;
     int scan = 0;
     bool goodRDH = false;
     auto ptr = buffer.getPtr();
@@ -1346,7 +1346,7 @@ class RawPixelReader : public PixelReader
   }
 
   //_____________________________________
-  size_t loadInput(PayLoadCont& buffer)
+  std::size_t loadInput(PayLoadCont& buffer)
   {
     /// assure the buffers are large enough
     static_assert(RawBufferMargin > MaxGBTPacketBytes * 100 &&

@@ -60,7 +60,7 @@ std::vector<MCCompLabel> TrackLabeler::findLabels(const Track& track, const o2::
         continue;
       }
       bool isNew = true;
-      for (size_t idx = 0; idx < allLabels.size(); ++idx) {
+      for (std::size_t idx = 0; idx < allLabels.size(); ++idx) {
         if (allLabels[idx] == label) {
           ++counts[idx];
           isNew = false;
@@ -76,7 +76,7 @@ std::vector<MCCompLabel> TrackLabeler::findLabels(const Track& track, const o2::
 
   std::vector<MCCompLabel> labels;
 
-  for (size_t idx = 0; idx < allLabels.size(); ++idx) {
+  for (std::size_t idx = 0; idx < allLabels.size(); ++idx) {
     if (counts[idx] >= 3) {
       labels.emplace_back(allLabels[idx]);
     }

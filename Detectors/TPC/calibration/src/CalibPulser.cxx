@@ -156,7 +156,7 @@ TH2S* CalibPulser::getHistogram(ROC roc, CalibPulser::PtrVectorType& rocVector,
   if (vec || !create)
     return vec;
 
-  const size_t nChannels = mMapper.getNumberOfPads(roc);
+  const std::size_t nChannels = mMapper.getNumberOfPads(roc);
   rocVector[roc] = std::make_unique<TH2S>(Form("hCalib%s%02d", type.data(), roc.getRoc()),
                                           Form("%s calibration histogram ROC %02d", type.data(), roc.getRoc()),
                                           nbins, min, max,

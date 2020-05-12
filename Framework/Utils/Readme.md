@@ -74,7 +74,7 @@ on the version field of the header.
 ```
 // option 1: parse method
 RawParser parser(buffer, size);
-auto processor = [&count](auto data, size_t length) {
+auto processor = [&count](auto data, std::size_t length) {
   std::cout << "Processing block of length " << length << std::endl;
 };
 parser.parse(processor);
@@ -123,9 +123,9 @@ for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
   // retrieving payload pointer of the page
   auto const* payload = it.data();
   // size of payload
-  size_t payloadSize = it.size();
+  std::size_t payloadSize = it.size();
   // offset of payload in the raw page
-  size_t offset = it.offset();
+  std::size_t offset = it.offset();
 }
 ```
 

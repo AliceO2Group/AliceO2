@@ -49,7 +49,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   WorkflowSpec specs;
   // clang-format off
   // one 1D histo
-  for (size_t p = 0; p < objectsProducers; p++) {
+  for (std::size_t p = 0; p < objectsProducers; p++) {
     DataProcessorSpec producer{
       "producer-histo" + std::to_string(subSpec),
       Inputs{},
@@ -65,14 +65,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
             static auto lastTime = steady_clock::now();
             auto now = steady_clock::now();
 
-            const size_t randoms = 10000;
+            const std::size_t randoms = 10000;
 
             if (duration_cast<microseconds>(now - lastTime).count() > periodus) {
 
               lastTime += microseconds(periodus);
 
               TH1F& histo = pctx.outputs().make<TH1F>({ "TST", "HISTO", subSpec }, "uni", "uni", objectsBins, 0, 1000);
-              for (size_t i = 0; i < randoms; i++) {
+              for (std::size_t i = 0; i < randoms; i++) {
                 histo.Fill(gen.Rndm() * 1000);
               }
             }

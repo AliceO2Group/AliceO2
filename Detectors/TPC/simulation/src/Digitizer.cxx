@@ -72,7 +72,7 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
 
   for (auto& hitGroup : hits) {
     const int MCTrackID = hitGroup.GetTrackID();
-    for (size_t hitindex = 0; hitindex < hitGroup.getSize(); ++hitindex) {
+    for (std::size_t hitindex = 0; hitindex < hitGroup.getSize(); ++hitindex) {
       const auto& eh = hitGroup.getHit(hitindex);
 
       GlobalPosition3D posEle(eh.GetX(), eh.GetY(), eh.GetZ());

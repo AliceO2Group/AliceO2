@@ -27,8 +27,8 @@
     #define constant __constant
     #define private __private
     //#include <clc/clc.h> //Use -finclude-default-header instead! current clang libclc.h is incompatible to SPIR-V
-    typedef __SIZE_TYPE__ size_t; //BUG: OpenCL C++ does not declare placement new
-    void* operator new (size_t size, void *ptr);
+    typedef __SIZE_TYPE__ std::size_t; //BUG: OpenCL C++ does not declare placement new
+    void* operator new (std::size_t size, void *ptr);
     #undef global
     #undef local
     #undef constant

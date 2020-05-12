@@ -41,7 +41,7 @@ void MergerBuilder::setName(std::string name)
   mName = name;
 }
 
-void MergerBuilder::setTopologyPosition(size_t layer, size_t id)
+void MergerBuilder::setTopologyPosition(std::size_t layer, std::size_t id)
 {
   mLayer = layer;
   mId = id;

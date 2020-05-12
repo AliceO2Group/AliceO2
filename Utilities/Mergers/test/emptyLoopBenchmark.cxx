@@ -54,11 +54,11 @@ using SubSpec = o2::header::DataHeader::SubSpecificationType;
 // clang-format off
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
-  size_t producers = config.options().get<int>("producers");
-  size_t testDuration = config.options().get<int>("test-duration");
+  std::size_t producers = config.options().get<int>("producers");
+  std::size_t testDuration = config.options().get<int>("test-duration");
 
   WorkflowSpec specs;
-  for (size_t p = 0; p < producers; p++) {
+  for (std::size_t p = 0; p < producers; p++) {
     specs.push_back(DataProcessorSpec{
       "dataProducer" + std::to_string(p),
       Inputs{},

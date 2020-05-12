@@ -56,13 +56,13 @@ void GBTOutputHandler::setIR(uint16_t bc, uint32_t orbit, int pageCnt)
   }
 }
 
-bool GBTOutputHandler::checkLoc(size_t ilink, const ELinkDecoder& decoder)
+bool GBTOutputHandler::checkLoc(std::size_t ilink, const ELinkDecoder& decoder)
 {
   /// Performs checks on the local board
   return (ilink == decoder.getId() % 8);
 }
 
-void GBTOutputHandler::addBoard(size_t ilink, const ELinkDecoder& decoder)
+void GBTOutputHandler::addBoard(std::size_t ilink, const ELinkDecoder& decoder)
 {
   /// Adds the local or regional board to the output data vector
   uint16_t localClock = decoder.getCounter();
@@ -79,7 +79,7 @@ void GBTOutputHandler::addBoard(size_t ilink, const ELinkDecoder& decoder)
   mROFRecords.emplace_back(intRec, eventType, firstEntry, 1);
 }
 
-void GBTOutputHandler::addLoc(size_t ilink, const ELinkDecoder& decoder)
+void GBTOutputHandler::addLoc(std::size_t ilink, const ELinkDecoder& decoder)
 {
   /// Adds the local board to the output data vector
   addBoard(ilink, decoder);
@@ -97,7 +97,7 @@ void GBTOutputHandler::addLoc(size_t ilink, const ELinkDecoder& decoder)
   }
 }
 
-bool GBTOutputHandler::updateIR(size_t ilink, const ELinkDecoder& decoder)
+bool GBTOutputHandler::updateIR(std::size_t ilink, const ELinkDecoder& decoder)
 {
   /// Updates the interaction record for the link
   if (decoder.getTriggerWord() & raw::sORB) {
@@ -112,7 +112,7 @@ bool GBTOutputHandler::updateIR(size_t ilink, const ELinkDecoder& decoder)
   return false;
 }
 
-void GBTOutputHandler::onDoneLoc(size_t ilink, const ELinkDecoder& decoder)
+void GBTOutputHandler::onDoneLoc(std::size_t ilink, const ELinkDecoder& decoder)
 {
   /// Performs action on decoded local board
   if (updateIR(ilink, decoder)) {
@@ -123,7 +123,7 @@ void GBTOutputHandler::onDoneLoc(size_t ilink, const ELinkDecoder& decoder)
   }
 }
 
-void GBTOutputHandler::onDoneLocDebug(size_t ilink, const ELinkDecoder& decoder)
+void GBTOutputHandler::onDoneLocDebug(std::size_t ilink, const ELinkDecoder& decoder)
 {
 
   /// This always adds the local board to the output, without performing tests
@@ -131,7 +131,7 @@ void GBTOutputHandler::onDoneLocDebug(size_t ilink, const ELinkDecoder& decoder)
   addLoc(ilink, decoder);
 }
 
-void GBTOutputHandler::onDoneRegDebug(size_t ilink, const ELinkDecoder& decoder)
+void GBTOutputHandler::onDoneRegDebug(std::size_t ilink, const ELinkDecoder& decoder)
 {
   /// Performs action on decoded regional board in debug mode.
   updateIR(ilink, decoder);

@@ -74,7 +74,7 @@ struct TMessageSerializer {
   template <typename T = TObject>
   static std::unique_ptr<T> deserialize(gsl::span<o2::byte> buffer);
   template <typename T = TObject>
-  static inline std::unique_ptr<T> deserialize(byte* buffer, size_t size);
+  static inline std::unique_ptr<T> deserialize(byte* buffer, std::size_t size);
 
   // load the schema information from a message/buffer
   static void loadSchema(const FairMQMessage& msg);
@@ -161,7 +161,7 @@ inline std::unique_ptr<T> TMessageSerializer::deserialize(gsl::span<o2::byte> bu
 }
 
 template <typename T>
-inline std::unique_ptr<T> TMessageSerializer::deserialize(byte* buffer, size_t size)
+inline std::unique_ptr<T> TMessageSerializer::deserialize(byte* buffer, std::size_t size)
 {
   return deserialize<T>(gsl::span<o2::byte>(buffer, gsl::narrow<gsl::span<o2::byte>::index_type>(size)));
 }

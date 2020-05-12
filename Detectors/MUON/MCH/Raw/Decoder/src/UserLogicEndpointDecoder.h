@@ -59,7 +59,7 @@ class UserLogicEndpointDecoder : public PayloadDecoder<UserLogicEndpointDecoder<
     *
     * @return the number of bytes used in the bytes span
     */
-  size_t append(Payload bytes);
+  std::size_t append(Payload bytes);
   ///@}
 
   /** @name Methods for testing
@@ -95,14 +95,14 @@ UserLogicEndpointDecoder<CHARGESUM>::UserLogicEndpointDecoder(uint16_t feeId,
 }
 
 template <typename CHARGESUM>
-size_t UserLogicEndpointDecoder<CHARGESUM>::append(Payload buffer)
+std::size_t UserLogicEndpointDecoder<CHARGESUM>::append(Payload buffer)
 {
   if (buffer.size() % 8) {
     throw std::invalid_argument("buffer size should be a multiple of 8");
   }
-  size_t n{0};
+  std::size_t n{0};
 
-  for (size_t i = 0; i < buffer.size(); i += 8) {
+  for (std::size_t i = 0; i < buffer.size(); i += 8) {
     uint64_t word = (static_cast<uint64_t>(buffer[i + 0])) |
                     (static_cast<uint64_t>(buffer[i + 1]) << 8) |
                     (static_cast<uint64_t>(buffer[i + 2]) << 16) |
@@ -142,7 +142,7 @@ size_t UserLogicEndpointDecoder<CHARGESUM>::append(Payload buffer)
       }
 
       mElinkDecoders.emplace(static_cast<uint16_t>(gbt),
-                             impl::makeArray<40>([=](size_t i) {
+                             impl::makeArray<40>([=](std::size_t i) {
                                DsElecId dselec{solarId.value(), static_cast<uint8_t>(i / 5), static_cast<uint8_t>(i % 5)};
                                return ElinkDecoder(dselec, mChannelHandler);
                              }));

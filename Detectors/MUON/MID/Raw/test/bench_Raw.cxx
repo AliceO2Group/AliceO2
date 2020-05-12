@@ -37,7 +37,7 @@ o2::mid::ColumnData getColData(uint8_t deId, uint8_t columnId, uint16_t nbp = 0,
   return col;
 }
 
-std::vector<uint8_t> generateTestData(size_t nTF, size_t nDataInTF, size_t nColDataInEvent, size_t nLinks = o2::mid::crateparams::sNGBTs)
+std::vector<uint8_t> generateTestData(std::size_t nTF, std::size_t nDataInTF, std::size_t nColDataInEvent, std::size_t nLinks = o2::mid::crateparams::sNGBTs)
 {
   std::vector<o2::mid::ColumnData> colData;
   colData.reserve(nColDataInEvent);
@@ -65,7 +65,7 @@ std::vector<uint8_t> generateTestData(size_t nTF, size_t nDataInTF, size_t nColD
   encoder.init(tmpFilename.c_str());
 
   // Fill TF
-  for (size_t itf = 0; itf < nTF; ++itf) {
+  for (std::size_t itf = 0; itf < nTF; ++itf) {
     for (int ilocal = 0; ilocal < nDataInTF; ++ilocal) {
       o2::InteractionRecord ir(ilocal, itf);
       encoder.process(colData, ir, o2::mid::EventType::Standard);
@@ -76,11 +76,11 @@ std::vector<uint8_t> generateTestData(size_t nTF, size_t nDataInTF, size_t nColD
   o2::raw::RawFileReader rawReader;
   rawReader.addFile(tmpFilename.c_str());
   rawReader.init();
-  size_t nActiveLinks = rawReader.getNLinks() < nLinks ? rawReader.getNLinks() : nLinks;
+  std::size_t nActiveLinks = rawReader.getNLinks() < nLinks ? rawReader.getNLinks() : nLinks;
   std::vector<char> buffer;
-  for (size_t itf = 0; itf < rawReader.getNTimeFrames(); ++itf) {
+  for (std::size_t itf = 0; itf < rawReader.getNTimeFrames(); ++itf) {
     rawReader.setNextTFToRead(itf);
-    for (size_t ilink = 0; ilink < nActiveLinks; ++ilink) {
+    for (std::size_t ilink = 0; ilink < nActiveLinks; ++ilink) {
       auto& link = rawReader.getLink(ilink);
       auto tfsz = link.getNextTFSize();
       if (!tfsz) {

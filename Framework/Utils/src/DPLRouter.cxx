@@ -25,7 +25,7 @@ namespace workflows
 {
 // This is a possible implementation of a DPL compliant and generic gatherer
 o2f::DataProcessorSpec defineRouter(std::string devName, o2f::Inputs usrInput, o2f::Outputs usrOutputs,
-                                    std::function<size_t(const o2f::DataRef)> const mappingFunc)
+                                    std::function<std::size_t(const o2f::DataRef)> const mappingFunc)
 {
   return {devName,               // Device name from user
           o2f::Inputs{usrInput}, // User defined input as a vector of one InputSpec
@@ -34,7 +34,7 @@ o2f::DataProcessorSpec defineRouter(std::string devName, o2f::Inputs usrInput, o
           o2f::AlgorithmSpec{[usrOutputs, mappingFunc](o2f::InitContext&) {
             // Creating shared ptrs to useful parameters
             auto outputsPtr = getOutputList(usrOutputs);
-            auto mappingFuncPtr = std::make_shared<std::function<size_t(o2f::DataRef)> const>(mappingFunc);
+            auto mappingFuncPtr = std::make_shared<std::function<std::size_t(o2f::DataRef)> const>(mappingFunc);
 
             // Defining the ProcessCallback as returned object of InitCallback
             return [outputsPtr, mappingFuncPtr](o2f::ProcessingContext& ctx) {

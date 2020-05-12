@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(TestTableBuilder)
 
   auto readBack = TestTable{table};
 
-  size_t i = 0;
+  std::size_t i = 0;
   for (auto& row : readBack) {
     BOOST_CHECK_EQUAL(row.x(), i * 10);
     BOOST_CHECK_EQUAL(row.y(), i);
@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderStruct)
 
   auto readBack = TestTable{table};
 
-  size_t i = 0;
+  std::size_t i = 0;
   for (auto& row : readBack) {
     BOOST_CHECK_EQUAL(row.x(), i * 10);
     BOOST_CHECK_EQUAL(row.y(), i);
@@ -167,7 +167,7 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderBulk)
   BOOST_REQUIRE_EQUAL(table->schema()->field(0)->type()->id(), arrow::int32()->id());
   BOOST_REQUIRE_EQUAL(table->schema()->field(1)->type()->id(), arrow::int32()->id());
 
-  for (size_t i = 0; i < 8; ++i) {
+  for (std::size_t i = 0; i < 8; ++i) {
     auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(getBackendColumnData(table->column(0))->chunk(0));
     BOOST_CHECK_EQUAL(p->Value(i), i);
   }
@@ -248,20 +248,20 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
   using namespace o2::framework;
   TableBuilder builder1;
   auto rowWriter1 = builder1.persist<int, int, int>({"x", "y", "event"});
-  for (size_t i = 0; i < 8; ++i) {
+  for (std::size_t i = 0; i < 8; ++i) {
     rowWriter1(0, i, i, i / 4);
   }
   auto table1 = builder1.finalize();
 
   TableBuilder builder2;
   auto rowWriter2 = builder2.persist<int, int>({"x", "y"});
-  for (size_t i = 0; i < 8; ++i) {
+  for (std::size_t i = 0; i < 8; ++i) {
     rowWriter2(0, i, i);
   }
   auto table2 = builder2.finalize();
   BOOST_REQUIRE_EQUAL(table2->num_columns(), 2);
   BOOST_REQUIRE_EQUAL(table2->num_rows(), 8);
-  for (size_t i = 0; i < 8; ++i) {
+  for (std::size_t i = 0; i < 8; ++i) {
     auto p2 = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(getBackendColumnData(table2->column(0))->chunk(0));
     BOOST_CHECK_EQUAL(p2->Value(i), i);
   }
@@ -325,7 +325,7 @@ BOOST_AUTO_TEST_CASE(TestSoAIntegration)
   auto table = builder.finalize();
   auto readBack = TestTable{table};
 
-  size_t i = 0;
+  std::size_t i = 0;
   for (auto& row : readBack) {
     BOOST_CHECK_EQUAL(row.x(), i * 10);
     BOOST_CHECK_EQUAL(row.y(), i);
@@ -361,7 +361,7 @@ BOOST_AUTO_TEST_CASE(TestPodInjestion)
   auto table = builder.finalize();
   auto readBack = TestTable{table};
 
-  size_t i = 0;
+  std::size_t i = 0;
   for (auto& row : readBack) {
     BOOST_CHECK_EQUAL(row.x(), i * 10);
     BOOST_CHECK_EQUAL(row.y(), i);

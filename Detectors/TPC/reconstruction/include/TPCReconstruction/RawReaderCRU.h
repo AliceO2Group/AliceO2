@@ -290,8 +290,8 @@ class RawReaderCRUManager;
 class RawReaderCRUEventSync
 {
  public:
-  static constexpr size_t ExpectedNumberOfPacketsPerHBFrame{8}; ///< expected number of packets in one HB frame per link for HB scaling mode
-  static constexpr size_t ExpectedPayloadSize{64000};           ///< expected payload size in case of triggered mode (4000 GBT Frames of 16byte)
+  static constexpr std::size_t ExpectedNumberOfPacketsPerHBFrame{8}; ///< expected number of packets in one HB frame per link for HB scaling mode
+  static constexpr std::size_t ExpectedPayloadSize{64000};           ///< expected payload size in case of triggered mode (4000 GBT Frames of 16byte)
 
   using RDH = o2::header::RAWDataHeader;
 
@@ -299,14 +299,14 @@ class RawReaderCRUEventSync
   /// \struct LinkInfo
   /// \brief helper to store link information in an event
   struct LinkInfo {
-    size_t PayloadSize{};                  ///< total payload size of the link in the present event
+    std::size_t PayloadSize{};             ///< total payload size of the link in the present event
     bool HBEndSeen{false};                 ///< if HB end frame was seen
     bool IsPresent{false};                 ///< if the link is present in the current event
     bool WasSeen{false};                   ///< if the link was seen in any event
-    std::vector<size_t> PacketPositions{}; ///< all packet positions of this link in an event
+    std::vector<std::size_t> PacketPositions{}; ///< all packet positions of this link in an event
 
     /// number of packets in the link
-    size_t getNumberOfPackets() const { return PacketPositions.size(); }
+    std::size_t getNumberOfPackets() const { return PacketPositions.size(); }
 
     /// if link data is complete
     bool isComplete() const { return HBEndSeen && (((PacketPositions.size() == ExpectedNumberOfPacketsPerHBFrame)) || (PayloadSize == ExpectedPayloadSize)); }
@@ -343,9 +343,9 @@ class RawReaderCRUEventSync
       return true;
     }
 
-    size_t totalPayloadSize() const
+    std::size_t totalPayloadSize() const
     {
-      size_t totalPayloadSize = 0;
+      std::size_t totalPayloadSize = 0;
       for (const auto& link : LinkInformation) {
         if (link.IsPresent) {
           totalPayloadSize += link.PayloadSize;
@@ -393,15 +393,15 @@ class RawReaderCRUEventSync
   }
 
   /// get array with all link informaiton for a specific event number and cru
-  const LinkInfoArray_t& getLinkInfoArrayForEvent(size_t eventNumber, int cru) const { return mEventInformation[eventNumber].CRUInfoArray[cru].LinkInformation; }
+  const LinkInfoArray_t& getLinkInfoArrayForEvent(std::size_t eventNumber, int cru) const { return mEventInformation[eventNumber].CRUInfoArray[cru].LinkInformation; }
 
   /// get number of all events
-  size_t getNumberOfEvents() const { return mEventInformation.size(); }
+  std::size_t getNumberOfEvents() const { return mEventInformation.size(); }
 
   /// get number of complete events
-  size_t getNumberOfCompleteEvents() const
+  std::size_t getNumberOfCompleteEvents() const
   {
-    size_t nComplete = 0;
+    std::size_t nComplete = 0;
     for (const auto& event : mEventInformation) {
       nComplete += event.IsComplete;
     }
@@ -410,10 +410,10 @@ class RawReaderCRUEventSync
 
   /// get number of events for a certain CRU
   /// \todo extract correct number
-  size_t getNumberOfEvents(CRU /*cru*/) const { return mEventInformation.size(); }
+  std::size_t getNumberOfEvents(CRU /*cru*/) const { return mEventInformation.size(); }
 
   /// check if eent is complete
-  bool isEventComplete(size_t eventNumber) const
+  bool isEventComplete(std::size_t eventNumber) const
   {
     if (eventNumber >= mEventInformation.size()) {
       return false;
@@ -540,7 +540,7 @@ class RawReaderCRU
   uint32_t getEventNumber() const { return mEventNumber; }
 
   /// get number of events
-  size_t getNumberOfEvents() const;
+  std::size_t getNumberOfEvents() const;
 
   /// status bits of present links
   bool checkLinkPresent(uint32_t link) { return mLinkPresent[link]; }
@@ -904,13 +904,13 @@ class RawReaderCRUManager
   }
 
   /// get number of all events
-  size_t getNumberOfEvents() const { return mEventSync.getNumberOfEvents(); }
+  std::size_t getNumberOfEvents() const { return mEventSync.getNumberOfEvents(); }
 
   /// get number of complete events
-  size_t getNumberOfCompleteEvents() const { return mEventSync.getNumberOfCompleteEvents(); }
+  std::size_t getNumberOfCompleteEvents() const { return mEventSync.getNumberOfCompleteEvents(); }
 
   /// check if event is complete
-  bool isEventComplete(size_t eventNumber) const { return mEventSync.isEventComplete(eventNumber); }
+  bool isEventComplete(std::size_t eventNumber) const { return mEventSync.isEventComplete(eventNumber); }
 
   /// set debug level
   void setDebugLevel(uint32_t debugLevel) { mDebugLevel = debugLevel; }

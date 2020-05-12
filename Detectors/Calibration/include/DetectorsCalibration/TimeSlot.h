@@ -70,7 +70,7 @@ class TimeSlot
  private:
   TFType mTFStart = 0;
   TFType mTFEnd = 0;
-  size_t mEntries = 0;
+  std::size_t mEntries = 0;
   std::unique_ptr<Container> mContainer; // user object to accumulate the calibration data for this slot
 
   ClassDefNV(TimeSlot, 1);

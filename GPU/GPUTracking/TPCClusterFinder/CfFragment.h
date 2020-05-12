@@ -33,7 +33,7 @@ struct CfFragment {
   // Number of time bins to process in this slice
   tpccf::TPCFragmentTime length = 0;
 
-  size_t digitsStart = 0; // Start digits in this fragment. Only used when zero suppression is skipped
+  std::size_t digitsStart = 0; // Start digits in this fragment. Only used when zero suppression is skipped
 
   unsigned int index = 0;
 

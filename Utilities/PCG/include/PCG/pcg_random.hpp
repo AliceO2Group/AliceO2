@@ -213,9 +213,9 @@ class unique_stream
 
   static constexpr bool can_specify_stream = false;
 
-  static constexpr size_t streams_pow2()
+  static constexpr std::size_t streams_pow2()
   {
-    return (sizeof(itype) < sizeof(size_t) ? sizeof(itype) : sizeof(size_t)) * 8 - 1u;
+    return (sizeof(itype) < sizeof(std::size_t) ? sizeof(itype) : sizeof(std::size_t)) * 8 - 1u;
   }
 
  protected:
@@ -248,7 +248,7 @@ class no_stream
 
   static constexpr bool can_specify_stream = false;
 
-  static constexpr size_t streams_pow2()
+  static constexpr std::size_t streams_pow2()
   {
     return 0u;
   }
@@ -283,7 +283,7 @@ class oneseq_stream : public default_increment<itype>
 
   static constexpr bool can_specify_stream = false;
 
-  static constexpr size_t streams_pow2()
+  static constexpr std::size_t streams_pow2()
   {
     return 0u;
   }
@@ -325,7 +325,7 @@ class specific_stream
 
   static constexpr bool can_specify_stream = true;
 
-  static constexpr size_t streams_pow2()
+  static constexpr std::size_t streams_pow2()
   {
     return (sizeof(itype) * 8) - 1u;
   }
@@ -380,7 +380,7 @@ class engine : protected output_mixin,
   typedef xtype result_type;
   typedef itype state_type;
 
-  static constexpr size_t period_pow2()
+  static constexpr std::size_t period_pow2()
   {
     return sizeof(state_type) * 8 - 2 * stream_mixin::is_mcg;
   }
@@ -1132,7 +1132,7 @@ struct inside_out : private baseclass {
   static_assert(sizeof(result_type) == sizeof(state_type),
                 "Require a RNG whose output function is a permutation");
 
-  static bool external_step(result_type& randval, size_t i)
+  static bool external_step(result_type& randval, std::size_t i)
   {
     state_type state = baseclass::unoutput(randval);
     state = state * baseclass::multiplier() + baseclass::increment() + state_type(i * 2);
@@ -1143,7 +1143,7 @@ struct inside_out : private baseclass {
     return result == zero;
   }
 
-  static bool external_advance(result_type& randval, size_t i,
+  static bool external_advance(result_type& randval, std::size_t i,
                                result_type delta, bool forwards = true)
   {
     state_type state = baseclass::unoutput(randval);
@@ -1177,14 +1177,14 @@ class extended : public baseclass
 
   static constexpr bitcount_t tick_limit_pow2 = 64U;
 
-  static constexpr size_t table_size = 1UL << table_pow2;
-  static constexpr size_t table_shift = stypebits - table_pow2;
+  static constexpr std::size_t table_size = 1UL << table_pow2;
+  static constexpr std::size_t table_shift = stypebits - table_pow2;
   static constexpr state_type table_mask =
     (state_type(1U) << table_pow2) - state_type(1U);
 
   static constexpr bool may_tick =
     (advance_pow2 < stypebits) && (advance_pow2 < tick_limit_pow2);
-  static constexpr size_t tick_shift = stypebits - advance_pow2;
+  static constexpr std::size_t tick_shift = stypebits - advance_pow2;
   static constexpr state_type tick_mask =
     may_tick ? state_type(
                  (uint64_t(1) << (advance_pow2 * may_tick)) - 1)
@@ -1206,8 +1206,8 @@ class extended : public baseclass
       // The low order bits of an MCG are constant, so drop them.
       state >>= 2;
     }
-    size_t index = kdd ? state & table_mask
-                       : state >> table_shift;
+    std::size_t index = kdd ? state & table_mask
+                            : state >> table_shift;
 
     if (may_tick) {
       bool tick = kdd ? (state & tick_mask) == state_type(0u)
@@ -1224,7 +1224,7 @@ class extended : public baseclass
   }
 
  public:
-  static constexpr size_t period_pow2()
+  static constexpr std::size_t period_pow2()
   {
     return baseclass::period_pow2() + table_size * extvalclass::period_pow2();
   }
@@ -1348,7 +1348,7 @@ template <bitcount_t table_pow2, bitcount_t advance_pow2,
 void extended<table_pow2, advance_pow2, baseclass, extvalclass, kdd>::datainit(
   const result_type* data)
 {
-  for (size_t i = 0; i < table_size; ++i)
+  for (std::size_t i = 0; i < table_size; ++i)
     data_[i] = data[i];
 }
 
@@ -1369,7 +1369,7 @@ void extended<table_pow2, advance_pow2, baseclass, extvalclass, kdd>::selfinit()
   result_type lhs = baseclass::operator()();
   result_type rhs = baseclass::operator()();
   result_type xdiff = lhs - rhs;
-  for (size_t i = 0; i < table_size; ++i) {
+  for (std::size_t i = 0; i < table_size; ++i) {
     data_[i] = baseclass::operator()() ^ xdiff;
   }
 }
@@ -1457,7 +1457,7 @@ template <bitcount_t table_pow2, bitcount_t advance_pow2,
 void extended<table_pow2, advance_pow2, baseclass, extvalclass, kdd>::advance_table()
 {
   bool carry = false;
-  for (size_t i = 0; i < table_size; ++i) {
+  for (std::size_t i = 0; i < table_size; ++i) {
     if (carry) {
       carry = insideout::external_step(data_[i], i + 1);
     }
@@ -1479,7 +1479,7 @@ void extended<table_pow2, advance_pow2, baseclass, extvalclass, kdd>::advance_ta
                 "Current implementation might overflow its carry");
 
   base_state_t carry = 0;
-  for (size_t i = 0; i < table_size; ++i) {
+  for (std::size_t i = 0; i < table_size; ++i) {
     base_state_t total_delta = carry + delta;
     ext_state_t trunc_delta = ext_state_t(total_delta);
     if (basebits > extbits) {

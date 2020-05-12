@@ -30,13 +30,13 @@ class PreClustersDE
 {
  public:
   struct NBP {
-    size_t index;               ///< Index of input pre-cluster
+    std::size_t index;          ///< Index of input pre-cluster
     int paired;                 /// Is paired flag
     std::array<MpArea, 7> area; ///< 2D area containing the PreCluster per column
   };
 
   struct BP {
-    size_t index; ///< Index of input pre-cluster
+    std::size_t index; ///< Index of input pre-cluster
     int paired;   /// Is paired flag
     MpArea area;  ///< 2D area containing the PreCluster per column
   };
@@ -55,10 +55,10 @@ class PreClustersDE
     getPreClusterBP(int icolumn, int idx) const { return mPreClustersBP[icolumn][idx]; }
 
   /// Gets the number of pre-clusters in the NBP
-  size_t getNPreClustersNBP() const { return mPreClustersNBP.size(); }
+  std::size_t getNPreClustersNBP() const { return mPreClustersNBP.size(); }
 
   /// Gets the number of pre-clusters in the BP
-  size_t getNPreClustersBP(int icolumn) const { return mPreClustersBP[icolumn].size(); }
+  std::size_t getNPreClustersBP(int icolumn) const { return mPreClustersBP[icolumn].size(); }
 
   /// Sets the detection element ID
   void setDEId(int deIndex) { mDEId = deIndex; }

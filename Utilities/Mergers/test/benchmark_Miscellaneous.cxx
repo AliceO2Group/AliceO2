@@ -23,7 +23,7 @@ static void BM_dynamic_cast(benchmark::State& state)
   collection->Add(h);
 
   TObject* collectionObj = collection;
-  size_t entries = 0;
+  std::size_t entries = 0;
 
   for (auto _ : state) {
     if (auto* list = dynamic_cast<TList*>(collectionObj)) {
@@ -43,7 +43,7 @@ static void BM_InheritsFrom(benchmark::State& state)
   collection->Add(h);
 
   TObject* collectionObj = collection;
-  size_t entries = 0;
+  std::size_t entries = 0;
   for (auto _ : state) {
     if (collectionObj->InheritsFrom("TCollection")) {
       entries += reinterpret_cast<TList*>(collectionObj)->GetEntries();
@@ -93,13 +93,13 @@ static void BM_MergeCollectionOnStack(benchmark::State& state)
 
 static void BM_MergeWithoutNoCheck(benchmark::State& state)
 {
-  size_t collectionSize = state.range(0);
-  size_t bins = 62500; // makes 250kB
+  std::size_t collectionSize = state.range(0);
+  std::size_t bins = 62500; // makes 250kB
 
   TCollection* collection = new TObjArray();
   collection->SetOwner(true);
   TF1* uni = new TF1("uni", "1", 0, 1000000);
-  for (size_t i = 0; i < collectionSize; i++) {
+  for (std::size_t i = 0; i < collectionSize; i++) {
     TH1I* h = new TH1I(("test" + std::to_string(i)).c_str(), "test", bins, 0, 1000000);
     h->FillRandom("uni", 50000);
     collection->Add(h);
@@ -118,13 +118,13 @@ static void BM_MergeWithoutNoCheck(benchmark::State& state)
 
 static void BM_MergeWithNoCheck(benchmark::State& state)
 {
-  size_t collectionSize = state.range(0);
-  size_t bins = 62500; // makes 250kB
+  std::size_t collectionSize = state.range(0);
+  std::size_t bins = 62500; // makes 250kB
 
   TCollection* collection = new TObjArray();
   collection->SetOwner(true);
   TF1* uni = new TF1("uni", "1", 0, 1000000);
-  for (size_t i = 0; i < collectionSize; i++) {
+  for (std::size_t i = 0; i < collectionSize; i++) {
     TH1I* h = new TH1I(("test" + std::to_string(i)).c_str(), "test", bins, 0, 1000000);
     h->FillRandom("uni", 50000);
     collection->Add(h);
@@ -151,7 +151,7 @@ static void BM_ClassComparisonCString(benchmark::State& state)
     h = new TH1F("histo", "histo", 1000, 0, 1000000);
   }
 
-  size_t entries = 0;
+  std::size_t entries = 0;
 
   for (auto _ : state) {
     const char* className = h->ClassName();
@@ -174,7 +174,7 @@ static void BM_ClassComparisonInterface(benchmark::State& state)
     h = new TH1F("histo", "histo", 1000, 0, 1000000);
   }
 
-  size_t entries = 0;
+  std::size_t entries = 0;
 
   // not sure if compiler won't be to clever about this, making it static...
   for (auto _ : state) {

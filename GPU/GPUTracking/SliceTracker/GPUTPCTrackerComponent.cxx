@@ -513,10 +513,10 @@ int GPUTPCTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
       size = 0;
       return (-ENODEV);
     } else {
-      retVal = (int)(size_t)asyncRetVal;
+      retVal = (int)(std::size_t)asyncRetVal;
     }
   } else {
-    retVal = (int)(size_t)TrackerDoEvent(&tmpPar);
+    retVal = (int)(std::size_t)TrackerDoEvent(&tmpPar);
   }
   return (retVal);
 }
@@ -650,7 +650,7 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
     fRec->PrepareEvent();
   } catch (const std::bad_alloc& e) {
     printf("Memory Allocation Error\n");
-    return ((void*)(size_t)-EINVAL);
+    return ((void*)(std::size_t)-EINVAL);
   }
   if (fChain->RunTPCTrackingSlices()) {
     HLTError("Error running tracking!");
@@ -699,5 +699,5 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
   fBenchmark.Stop(0);
   HLTInfo(fBenchmark.GetStatistics());
 
-  return ((void*)(size_t)ret);
+  return ((void*)(std::size_t)ret);
 }

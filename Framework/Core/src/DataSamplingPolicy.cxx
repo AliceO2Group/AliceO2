@@ -48,7 +48,7 @@ void DataSamplingPolicy::configure(const ptree& config)
   auto subSpec = subSpecString.find_first_of("-*") != std::string::npos ? -1 : std::strtoull(subSpecString.c_str(), nullptr, 10);
 
   mPaths.clear();
-  size_t outputId = 0;
+  std::size_t outputId = 0;
   std::vector<InputSpec> inputSpecs = DataDescriptorQueryBuilder::parse(config.get<std::string>("query").c_str());
 
   for (const auto& inputSpec : inputSpecs) {
@@ -133,8 +133,8 @@ const std::string& DataSamplingPolicy::getFairMQOutputChannel() const
 
 std::string DataSamplingPolicy::getFairMQOutputChannelName() const
 {
-  size_t nameBegin = mFairMQOutputChannel.find("name=") + sizeof("name=") - 1;
-  size_t nameEnd = mFairMQOutputChannel.find_first_of(',', nameBegin);
+  std::size_t nameBegin = mFairMQOutputChannel.find("name=") + sizeof("name=") - 1;
+  std::size_t nameEnd = mFairMQOutputChannel.find_first_of(',', nameBegin);
   std::string name = mFairMQOutputChannel.substr(nameBegin, nameEnd - nameBegin);
   return name;
 }
@@ -153,7 +153,7 @@ header::DataOrigin DataSamplingPolicy::createPolicyDataOrigin()
   return header::DataOrigin("DS");
 }
 
-header::DataDescription DataSamplingPolicy::createPolicyDataDescription(std::string policyName, size_t id)
+header::DataDescription DataSamplingPolicy::createPolicyDataDescription(std::string policyName, std::size_t id)
 {
   if (policyName.size() > 14) {
     LOG(WARNING) << "DataSamplingPolicy name '" << policyName << "' is longer than 14 characters, we have to trim it. "

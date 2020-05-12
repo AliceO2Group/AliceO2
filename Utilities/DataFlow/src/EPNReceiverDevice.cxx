@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <cstddef> // size_t
+#include <cstddef> // std::size_t
 #include <fstream> // writing to file (DEBUG)
 #include <cstring>
 #include <iomanip>
@@ -119,7 +119,7 @@ void EPNReceiverDevice::Run()
       // every two parts to populate the index. Moreover we know that
       // the SubframeMetadata is always in the second part, so we can
       // extract the flpId from there.
-      for (size_t i = 0; i < subtimeframeParts.Size(); ++i) {
+      for (std::size_t i = 0; i < subtimeframeParts.Size(); ++i) {
         if (i % 2 == 0) {
           const auto* adh = o2::header::get<header::DataHeader*>(subtimeframeParts.At(i)->GetData());
           auto ie = std::make_pair(*adh, index.count(id) * 2);

@@ -79,8 +79,8 @@ class VisualisationTrack
   // PID (particle identification code) getter
   int getPID() const { return mPID; }
 
-  size_t getPointCount() const { return mPolyX.size(); }
-  std::array<double, 3> getPoint(size_t i) const { return std::array<double, 3>{mPolyX[i], mPolyY[i], mPolyZ[i]}; }
+  std::size_t getPointCount() const { return mPolyX.size(); }
+  std::array<double, 3> getPoint(std::size_t i) const { return std::array<double, 3>{mPolyX[i], mPolyY[i], mPolyZ[i]}; }
 
  private:
   // Set coordinates of the beginning of the track

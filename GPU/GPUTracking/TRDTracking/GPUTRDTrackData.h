@@ -49,11 +49,11 @@ struct GPUTRDTrackData {
 #else
   GPUTRDTrackDataRecord fTracks[0]; // array of tracklets
 #endif
-  static size_t GetSize(unsigned int nTracks)
+  static std::size_t GetSize(unsigned int nTracks)
   {
     return sizeof(GPUTRDTrackData) + nTracks * sizeof(GPUTRDTrackDataRecord);
   }
-  size_t GetSize() const { return GetSize(fCount); }
+  std::size_t GetSize() const { return GetSize(fCount); }
 };
 
 typedef struct GPUTRDTrackData GPUTRDTrackData;

@@ -29,7 +29,7 @@ template <typename source_t>
 class ReverseSymbolLookupTable
 {
  public:
-  ReverseSymbolLookupTable(size_t probabilityBits,
+  ReverseSymbolLookupTable(std::size_t probabilityBits,
                            const SymbolStatistics& stats)
   {
     mLut.resize(bitsToRange(probabilityBits));
@@ -45,7 +45,7 @@ class ReverseSymbolLookupTable
     }
   };
 
-  inline source_t operator[](size_t cummulative) const
+  inline source_t operator[](std::size_t cummulative) const
   {
     return mLut[cummulative];
   };

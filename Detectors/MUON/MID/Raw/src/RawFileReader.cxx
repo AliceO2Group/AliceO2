@@ -40,10 +40,10 @@ bool RawFileReader<T>::init(const char* inFilename, bool readContinuous)
 }
 
 template <typename T>
-void RawFileReader<T>::read(size_t nBytes)
+void RawFileReader<T>::read(std::size_t nBytes)
 {
   /// Reads nBytes of the file
-  size_t currentIndex = mBytes.size();
+  std::size_t currentIndex = mBytes.size();
   mBytes.resize(currentIndex + nBytes / sizeof(T));
   mFile.read(reinterpret_cast<char*>(&(mBytes[currentIndex])), nBytes);
 }
@@ -91,7 +91,7 @@ bool RawFileReader<T>::readAllGBTs(bool reset)
 }
 
 template <typename T>
-bool RawFileReader<T>::replaceRDH(size_t headerIndex)
+bool RawFileReader<T>::replaceRDH(std::size_t headerIndex)
 {
   /// Replaces the current RDH with a custom one if needed.
   /// This is done to be able to correctly read test data
@@ -115,7 +115,7 @@ bool RawFileReader<T>::readHB(bool sendCompleteHBs)
   bool isHBClosed = false;
   while (!isHBClosed) {
     // Read header
-    size_t headerIndex = mBytes.size();
+    std::size_t headerIndex = mBytes.size();
     read(raw::sHeaderSizeInBytes);
 
     // The check on the eof needs to be placed here and not at the beginning of the function.

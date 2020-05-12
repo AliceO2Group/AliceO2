@@ -47,7 +47,7 @@ static void BM_SimpleForLoop(benchmark::State& state)
   std::default_random_engine e1(1234567891);
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
-  for (size_t i = 0; i < state.range(0); ++i) {
+  for (std::size_t i = 0; i < state.range(0); ++i) {
     foo[i] = XYZ{uniform_dist(e1), uniform_dist(e1), uniform_dist(e1)};
   }
 
@@ -79,7 +79,7 @@ static void BM_TrackForLoop(benchmark::State& state)
   std::default_random_engine e1(1234567891);
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
-  for (size_t i = 0; i < state.range(0); ++i) {
+  for (std::size_t i = 0; i < state.range(0); ++i) {
     foo[i] = TestTrack{
       uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
       uniform_dist(e1), uniform_dist(e1), uniform_dist(e1)};
@@ -156,7 +156,7 @@ static void BM_TrackForPhi(benchmark::State& state)
   }
 
   for (auto _ : state) {
-    size_t i = 0;
+    std::size_t i = 0;
     std::vector<float> result;
     result.resize(state.range(0));
     for (auto& track : foo) {

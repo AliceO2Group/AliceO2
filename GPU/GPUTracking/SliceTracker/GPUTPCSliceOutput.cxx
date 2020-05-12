@@ -27,7 +27,7 @@ unsigned int GPUTPCSliceOutput::EstimateSize(unsigned int nOfTracks, unsigned in
 void GPUTPCSliceOutput::Allocate(GPUTPCSliceOutput*& ptrOutput, int nTracks, int nTrackHits, GPUOutputControl* outputControl, void*& internalMemory)
 {
   // Allocate All memory needed for slice output
-  const size_t memsize = EstimateSize(nTracks, nTrackHits);
+  const std::size_t memsize = EstimateSize(nTracks, nTrackHits);
 
   if (outputControl && outputControl->OutputType != GPUOutputControl::AllocateInternal) {
     if (outputControl->OutputMaxSize - ((char*)outputControl->OutputPtr - (char*)outputControl->OutputBase) < memsize) {

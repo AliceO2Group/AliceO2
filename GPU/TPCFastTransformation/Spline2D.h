@@ -117,13 +117,13 @@ class Spline2DBase : public FlatObject
   GPUhd() static constexpr bool isConsistent() { return isConsistentT; }
 
   /// Get minimal required alignment for the spline parameters
-  GPUhd() static constexpr size_t getParameterAlignmentBytes() { return 16; }
+  GPUhd() static constexpr std::size_t getParameterAlignmentBytes() { return 16; }
 
   /// Number of parameters
   GPUhd() int getNumberOfParameters() const { return (4 * mFdim) * getNumberOfKnots(); }
 
   /// Size of the parameter array in bytes
-  GPUhd() size_t getSizeOfParameters() const { return sizeof(DataT) * getNumberOfParameters(); }
+  GPUhd() std::size_t getSizeOfParameters() const { return sizeof(DataT) * getNumberOfParameters(); }
 
   /// Get number total of knots: UxV
   GPUhd() int getNumberOfKnots() const { return mGridU1.getNumberOfKnots() * mGridU2.getNumberOfKnots(); }
@@ -152,10 +152,10 @@ class Spline2DBase : public FlatObject
   /// _______________  Technical stuff  ________________________
 
   /// Get offset of GridU flat data in the flat buffer
-  GPUhd() size_t getGridU1Offset() const { return mGridU1.getFlatBufferPtr() - mFlatBufferPtr; }
+  GPUhd() std::size_t getGridU1Offset() const { return mGridU1.getFlatBufferPtr() - mFlatBufferPtr; }
 
   /// Get offset of GridU2 flat data in the flat buffer
-  GPUhd() size_t getGridU2Offset() const { return mGridU2.getFlatBufferPtr() - mFlatBufferPtr; }
+  GPUhd() std::size_t getGridU2Offset() const { return mGridU2.getFlatBufferPtr() - mFlatBufferPtr; }
 
   /// Set X range
   GPUhd() void setXrange(DataT x1Min, DataT x1Max, DataT x2Min, DataT x2Max);

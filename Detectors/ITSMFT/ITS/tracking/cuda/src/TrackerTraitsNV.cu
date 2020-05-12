@@ -281,7 +281,7 @@ void TrackerTraitsNV::computeLayerTracklets()
   PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
 
   cudaMemcpyToSymbol(GPU::kTrkPar, &mTrkParams, sizeof(TrackingParameters));
-  std::array<size_t, constants::its::CellsPerRoad> tempSize;
+  std::array<std::size_t, constants::its::CellsPerRoad> tempSize;
   std::array<int, constants::its::CellsPerRoad> trackletsNum;
   std::array<GPU::Stream, constants::its::TrackletsPerRoad> streamArray;
 
@@ -369,7 +369,7 @@ void TrackerTraitsNV::computeLayerCells()
 {
 
   PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
-  std::array<size_t, constants::its::CellsPerRoad - 1> tempSize;
+  std::array<std::size_t, constants::its::CellsPerRoad - 1> tempSize;
   std::array<int, constants::its::CellsPerRoad - 1> trackletsNum;
   std::array<int, constants::its::CellsPerRoad - 1> cellsNum;
   std::array<GPU::Stream, constants::its::CellsPerRoad> streamArray;

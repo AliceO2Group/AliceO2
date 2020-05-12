@@ -47,9 +47,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   {
 //    WorkflowSpec specs; // enable comment to disable the workflow
 
-    size_t producersAmount = 8;
+    std::size_t producersAmount = 8;
     Inputs mergersInputs;
-    for (size_t p = 0; p < producersAmount; p++) {
+    for (std::size_t p = 0; p < producersAmount; p++) {
       mergersInputs.push_back({ "mo",               "TST",
                                 "HISTO",            static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1),
                                 Lifetime::Timeframe });
@@ -118,9 +118,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   {
 //    WorkflowSpec specs; // enable comment to disable the workflow
 
-    size_t producersAmount = 4;
+    std::size_t producersAmount = 4;
     Inputs mergersInputs;
-    for (size_t p = 0; p < producersAmount; p++) {
+    for (std::size_t p = 0; p < producersAmount; p++) {
       mergersInputs.push_back({ "mo",               "TST",
                                 "CUSTOM",           static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1),
                                 Lifetime::Timeframe });

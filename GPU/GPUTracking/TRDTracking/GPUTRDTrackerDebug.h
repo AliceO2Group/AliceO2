@@ -305,7 +305,7 @@ class GPUTRDTrackerDebug
       fUpdates(iLy) = up[iLy];
     }
   }
-  void SetNmatchAvail(size_t i, int ly) { fNmatchesAvail(ly) = (int)i; };
+  void SetNmatchAvail(std::size_t i, int ly) { fNmatchesAvail(ly) = (int)i; };
   void SetFindableMC(bool* findableMC)
   {
     for (int iLy = 0; iLy < 6; iLy++) {
@@ -517,7 +517,7 @@ class GPUTRDTrackerDebug
   // other infos
   GPUd() void SetRoad(float roadY, float roadZ, int ly) {}
   GPUd() void SetUpdates(int* up) {}
-  GPUd() void SetNmatchAvail(size_t i, int ly) {}
+  GPUd() void SetNmatchAvail(std::size_t i, int ly) {}
   GPUd() void SetFindable(bool* findable) {}
   GPUd() void SetFindableMC(bool* findableMC) {}
   GPUd() void SetMCinfo(float xv, float yv, float zv, int pdg) {}

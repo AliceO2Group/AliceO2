@@ -56,7 +56,7 @@ ColumnData& operator|=(ColumnData& col1, const ColumnData& col2)
   if (col1.deId != col2.deId || col1.columnId != col2.columnId) {
     throw std::runtime_error("Cannot merge ColumnData");
   }
-  for (size_t ipat = 0; ipat < col1.patterns.size(); ++ipat) {
+  for (std::size_t ipat = 0; ipat < col1.patterns.size(); ++ipat) {
     col1.patterns[ipat] |= col2.patterns[ipat];
   }
   return col1;

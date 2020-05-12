@@ -28,8 +28,8 @@ struct DeviceGUIState {
 /// State for the workspace
 struct WorkspaceGUIState {
   int selectedMetric;
-  size_t metricMinRange;
-  size_t metricMaxRange;
+  std::size_t metricMinRange;
+  std::size_t metricMaxRange;
   std::vector<DeviceGUIState> devices;
   float leftPaneSize;
   float rightPaneSize;

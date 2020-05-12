@@ -107,7 +107,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
       //Now we know the size of all output buffers, allocate them
       if (outMCLabels)
         outMCLabels->resize(numberOfOutputContainers);
-      size_t rawOutputBufferSize = numberOfOutputContainers * sizeof(ClusterNativeBuffer) + nTotalClusters * sizeof(ClusterNative);
+      std::size_t rawOutputBufferSize = numberOfOutputContainers * sizeof(ClusterNativeBuffer) + nTotalClusters * sizeof(ClusterNative);
       char* rawOutputBuffer = outputAllocator(rawOutputBufferSize);
       char* rawOutputBufferIterator = rawOutputBuffer;
       numberOfOutputContainers = 0;
@@ -132,7 +132,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
   return (0);
 }
 
-void HardwareClusterDecoder::sortClustersAndMC(ClusterNative* clusters, size_t nClusters,
+void HardwareClusterDecoder::sortClustersAndMC(ClusterNative* clusters, std::size_t nClusters,
                                                o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcTruth)
 {
   std::vector<unsigned int> indizes(nClusters);

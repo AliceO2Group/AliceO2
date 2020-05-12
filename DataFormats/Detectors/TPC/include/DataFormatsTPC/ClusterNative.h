@@ -15,7 +15,7 @@
 #define ALICEO2_DATAFORMATSTPC_CLUSTERNATIVE_H
 #ifndef __OPENCL__
 #include <cstdint>
-#include <cstddef> // for size_t
+#include <cstddef> // for std::size_t
 #endif
 #include "DataFormatsTPC/Constants.h"
 #include "GPUCommonDef.h"

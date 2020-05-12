@@ -95,7 +95,7 @@ int main(int argc, char** argv)
     o2::tpc::CompressedClustersROOT* c;
     file.GetObject("TPCCompressedClusters", c);
 
-    size_t numErrors = 0;
+    std::size_t numErrors = 0;
     auto checker = [&numErrors](int expr, std::string name) { if (expr != 0){LOG(ERROR) << name << " failed consistency check."; ++numErrors;} };
 
     checker(std::memcmp(cc->qTotA, c->qTotA, cc->nAttachedClusters * sizeof(unsigned short)), "qTotA");

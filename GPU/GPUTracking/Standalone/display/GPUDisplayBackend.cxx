@@ -23,7 +23,7 @@ void* GPUDisplayBackend::OpenGLWrapper(void* ptr)
   if (retVal == -1) {
     me->InitGL(true);
   }
-  return ((void*)(size_t)retVal);
+  return ((void*)(std::size_t)retVal);
 }
 
 void GPUDisplayBackend::HandleSendKey()

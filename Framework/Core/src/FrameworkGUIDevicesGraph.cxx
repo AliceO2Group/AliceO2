@@ -103,8 +103,8 @@ void displayGrid(bool show_grid, ImVec2 offset, ImDrawList* draw_list)
 struct Group {
   int ID;
   char name[MAX_GROUP_NAME_SIZE];
-  size_t metadataId;
-  Group(int id, char const* n, size_t mid)
+  std::size_t metadataId;
+  Group(int id, char const* n, std::size_t mid)
   {
     ID = id;
     strncpy(name, n, MAX_GROUP_NAME_SIZE);
@@ -210,7 +210,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     // Prepare the list of groups.
     std::string workflow = "Ungrouped";
     int groupId = 0;
-    for (size_t mi = 0; mi < metadata.size(); ++mi) {
+    for (std::size_t mi = 0; mi < metadata.size(); ++mi) {
       auto const& metadatum = metadata[mi];
       if (metadatum.executable == workflow) {
         continue;
@@ -219,7 +219,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       char* groupBasename = strrchr(workflow.data(), '/');
       char const* groupName = groupBasename ? groupBasename + 1 : workflow.data();
       bool hasDuplicate = false;
-      for (size_t gi = 0; gi < groupList.Size; ++gi) {
+      for (std::size_t gi = 0; gi < groupList.Size; ++gi) {
         if (strncmp(groupName, groupList[gi].name, MAX_GROUP_NAME_SIZE - 1) == 0) {
           hasDuplicate = true;
           break;
@@ -237,7 +237,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       auto metadatum = std::find_if(metadata.begin(), metadata.end(),
                                     [& name = spec.name](DataProcessorInfo const& info) { return info.name == name; });
 
-      for (size_t gi = 0; gi < groupList.Size; ++gi) {
+      for (std::size_t gi = 0; gi < groupList.Size; ++gi) {
         if (metadatum == metadata.end()) {
           break;
         }

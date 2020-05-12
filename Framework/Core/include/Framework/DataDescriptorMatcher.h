@@ -35,7 +35,7 @@ struct None {
 
 /// A typesafe reference to an element of the context.
 struct ContextRef {
-  size_t index;
+  std::size_t index;
 
   /// Two context refs are the same if they point to the
   /// same element in the context
@@ -53,7 +53,7 @@ struct ContextElement {
 };
 
 struct ContextUpdate {
-  size_t position;
+  std::size_t position;
   ContextElement::Value newValue;
 };
 
@@ -65,7 +65,7 @@ class VariableContext
  public:
   inline VariableContext();
 
-  ContextElement::Value const& get(size_t pos) const;
+  ContextElement::Value const& get(std::size_t pos) const;
 
   inline void put(ContextUpdate&& update);
 

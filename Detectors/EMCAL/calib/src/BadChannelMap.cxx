@@ -69,7 +69,7 @@ TH2* BadChannelMap::getHistogramRepresentation() const
     return hist;
   }
 
-  for (size_t cellID = 0; cellID < mBadCells.size(); cellID++) {
+  for (std::size_t cellID = 0; cellID < mBadCells.size(); cellID++) {
     int value(0);
     if (mBadCells.test(cellID))
       value = 1;
@@ -87,7 +87,7 @@ TH2* BadChannelMap::getHistogramRepresentation() const
 
 BadChannelMap& BadChannelMap::operator+=(const BadChannelMap& rhs)
 {
-  for (size_t cellID = 0; cellID < mDeadCells.size(); cellID++) {
+  for (std::size_t cellID = 0; cellID < mDeadCells.size(); cellID++) {
     if (rhs.mDeadCells.test(cellID)) {
       mDeadCells.set(cellID);
       if (mBadCells.test(cellID))
@@ -117,7 +117,7 @@ void BadChannelMap::PrintStream(std::ostream& stream) const
   stream << "Number of bad cells:  " << mBadCells.count() << "\n";
   stream << "Number of dead cells: " << mDeadCells.count() << "\n";
   stream << "Number of warm cells: " << mWarmCells.count() << "\n";
-  for (size_t cellID = 0; cellID < mBadCells.size(); cellID++) {
+  for (std::size_t cellID = 0; cellID < mBadCells.size(); cellID++) {
     if (mBadCells.test(cellID))
       stream << "Channel " << cellID << ": Bad cell\n";
     if (mDeadCells.test(cellID))

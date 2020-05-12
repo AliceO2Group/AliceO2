@@ -93,7 +93,7 @@ GPUd() void printOnThread(const int tId, const char* str, Args... args)
   }
 }
 
-GPUd() void printVectorOnThread(const char* name, Vector<int>& vector, size_t size, const int tId = 0)
+GPUd() void printVectorOnThread(const char* name, Vector<int>& vector, std::size_t size, const int tId = 0)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
     printf("vector %s :", name);
@@ -137,11 +137,11 @@ GPUg() void trackleterKernel(
   const TrackletingLayerOrder layerOrder,
   const float phiCut)
 {
-  const size_t nClustersMiddleLayer = store.getClusters()[1].size();
-  for (size_t currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < nClustersMiddleLayer; currentClusterIndex += blockDim.x * gridDim.x) {
+  const std::size_t nClustersMiddleLayer = store.getClusters()[1].size();
+  for (std::size_t currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < nClustersMiddleLayer; currentClusterIndex += blockDim.x * gridDim.x) {
     if (currentClusterIndex < nClustersMiddleLayer) {
       int storedTracklets{0};
-      const size_t stride{currentClusterIndex * store.getConfig().maxTrackletsPerCluster};
+      const std::size_t stride{currentClusterIndex * store.getConfig().maxTrackletsPerCluster};
       const Cluster& currentCluster = store.getClusters()[1][currentClusterIndex]; // assign-constructor may be a problem, check
       const VertexerLayerName adjacentLayerIndex{layerOrder == TrackletingLayerOrder::fromInnermostToMiddleLayer ? VertexerLayerName::innermostLayer : VertexerLayerName::outerLayer};
       const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, static_cast<int>(adjacentLayerIndex), 0.f, 50.f, phiCut / 2)};
@@ -150,12 +150,12 @@ GPUg() void trackleterKernel(
         if (phiBinsNum < 0) {
           phiBinsNum += PhiBins;
         }
-        const size_t nClustersAdjacentLayer = store.getClusters()[static_cast<int>(adjacentLayerIndex)].size();
-        for (size_t iPhiBin{selectedBinsRect.y}, iPhiCount{0}; iPhiCount < phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
+        const std::size_t nClustersAdjacentLayer = store.getClusters()[static_cast<int>(adjacentLayerIndex)].size();
+        for (std::size_t iPhiBin{selectedBinsRect.y}, iPhiCount{0}; iPhiCount < phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
           const int firstBinIndex{index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin)};
           const int firstRowClusterIndex{store.getIndexTable(adjacentLayerIndex)[firstBinIndex]};
           const int maxRowClusterIndex{store.getIndexTable(adjacentLayerIndex)[firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1]};
-          for (size_t iAdjacentCluster{firstRowClusterIndex}; iAdjacentCluster < maxRowClusterIndex && iAdjacentCluster < nClustersAdjacentLayer; ++iAdjacentCluster) {
+          for (std::size_t iAdjacentCluster{firstRowClusterIndex}; iAdjacentCluster < maxRowClusterIndex && iAdjacentCluster < nClustersAdjacentLayer; ++iAdjacentCluster) {
             const Cluster& adjacentCluster = store.getClusters()[static_cast<int>(adjacentLayerIndex)][iAdjacentCluster]; // assign-constructor may be a problem, check
             if (gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - adjacentCluster.phiCoordinate) < phiCut) {
               if (storedTracklets < store.getConfig().maxTrackletsPerCluster) {
@@ -183,8 +183,8 @@ GPUg() void trackletSelectionKernel(
   const float tanLambdaCut = 0.025f,
   const float phiCut = 0.002f)
 {
-  const size_t nClustersMiddleLayer = store.getClusters()[1].size();
-  for (size_t currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < nClustersMiddleLayer; currentClusterIndex += blockDim.x * gridDim.x) {
+  const std::size_t nClustersMiddleLayer = store.getClusters()[1].size();
+  for (std::size_t currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < nClustersMiddleLayer; currentClusterIndex += blockDim.x * gridDim.x) {
     const int stride{static_cast<int>(currentClusterIndex * store.getConfig().maxTrackletsPerCluster)};
     int validTracklets{0};
     for (int iTracklet12{0}; iTracklet12 < store.getNFoundTracklets(TrackletingLayerOrder::fromMiddleToOuterLayer)[currentClusterIndex]; ++iTracklet12) {
@@ -222,7 +222,7 @@ GPUg() void computeCentroidsKernel(DeviceStoreVertexerGPU& store,
 {
   const int nLines = store.getNExclusiveFoundLines()[store.getClusters()[1].size() - 1] + store.getNFoundLines()[store.getClusters()[1].size() - 1];
   const int maxIterations{nLines * (nLines - 1) / 2};
-  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < maxIterations; currentThreadIndex += blockDim.x * gridDim.x) {
+  for (std::size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < maxIterations; currentThreadIndex += blockDim.x * gridDim.x) {
     int iFirstLine = currentThreadIndex / nLines;
     int iSecondLine = currentThreadIndex % nLines;
     if (iSecondLine <= iFirstLine) {
@@ -252,7 +252,7 @@ GPUg() void computeZCentroidsKernel(DeviceStoreVertexerGPU& store,
                                     const float pairCut, const int binOpeningX, const int binOpeningY)
 {
   const int nLines = store.getNExclusiveFoundLines()[store.getClusters()[1].size() - 1] + store.getNFoundLines()[store.getClusters()[1].size() - 1];
-  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < nLines; currentThreadIndex += blockDim.x * gridDim.x) {
+  for (std::size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < nLines; currentThreadIndex += blockDim.x * gridDim.x) {
     if (store.getTmpVertexPositionBins()[0].value || store.getTmpVertexPositionBins()[1].value) {
       float tmpX{store.getConfig().histConf.lowHistBoundariesXYZ[0] + store.getTmpVertexPositionBins()[0].key * store.getConfig().histConf.binSizeHistX + store.getConfig().histConf.binSizeHistX / 2};
       int sumWX{store.getTmpVertexPositionBins()[0].value};
@@ -289,7 +289,7 @@ GPUg() void computeZCentroidsKernel(DeviceStoreVertexerGPU& store,
 
 GPUg() void computeVertexKernel(DeviceStoreVertexerGPU& store, const int vertIndex, const int minContributors, const int binOpeningZ)
 {
-  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < binOpeningZ; currentThreadIndex += blockDim.x * gridDim.x) {
+  for (std::size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < binOpeningZ; currentThreadIndex += blockDim.x * gridDim.x) {
     if (currentThreadIndex == 0) {
       if (store.getTmpVertexPositionBins()[2].value > 1 && (store.getTmpVertexPositionBins()[0].value || store.getTmpVertexPositionBins()[1].value)) {
         float z{store.getConfig().histConf.lowHistBoundariesXYZ[2] + store.getTmpVertexPositionBins()[2].key * store.getConfig().histConf.binSizeHistZ + store.getConfig().histConf.binSizeHistZ / 2};
@@ -357,7 +357,7 @@ void VertexerTraitsGPU::computeTrackletMatching()
   }
   const dim3 threadsPerBlock{GPU::Utils::Host::getBlockSize(mClusters[1].capacity())};
   const dim3 blocksGrid{GPU::Utils::Host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
-  size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
+  std::size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
 
   GPU::trackletSelectionKernel<<<blocksGrid, threadsPerBlock>>>(
     getDeviceContext(),
@@ -405,7 +405,7 @@ void VertexerTraitsGPU::computeVertices()
   }
   const dim3 threadsPerBlock{GPU::Utils::Host::getBlockSize(mClusters[1].capacity())};
   const dim3 blocksGrid{GPU::Utils::Host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
-  size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
+  std::size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
   int nLines = mStoreVertexerGPU.getNExclusiveFoundLines().getElementFromDevice(mClusters[1].size() - 1) + mStoreVertexerGPU.getNFoundLines().getElementFromDevice(mClusters[1].size() - 1);
   int nCentroids{static_cast<int>(nLines * (nLines - 1) / 2)};
   int* histogramXY[2] = {mStoreVertexerGPU.getHistogramXYZ()[0].get(), mStoreVertexerGPU.getHistogramXYZ()[1].get()};

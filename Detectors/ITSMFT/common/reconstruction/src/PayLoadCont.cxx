@@ -15,7 +15,7 @@
 
 using namespace o2::itsmft;
 
-constexpr size_t PayLoadCont::MinCapacity;
+constexpr std::size_t PayLoadCont::MinCapacity;
 
 PayLoadCont::PayLoadCont(const PayLoadCont& src)
 {
@@ -42,7 +42,7 @@ PayLoadCont& PayLoadCont::operator=(const PayLoadCont& src)
   return *this;
 }
 
-void PayLoadCont::expand(size_t sz)
+void PayLoadCont::expand(std::size_t sz)
 {
   ///< increase the buffer size
   auto* oldHead = mBuffer.data();

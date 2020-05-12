@@ -34,12 +34,12 @@ DECLARE_SOA_DYNAMIC_COLUMN(D, d, [](float x, float y, float z) { return std::sqr
 using TT = o2::soa::Table<test::X, test::Y, test::Z, test::D<test::X, test::Y, test::Z>>;
 using RT = o2::soa::Table<test::X, test::Y, test::Z, test::cD, test::D<test::X, test::Y, test::Z>>;
 
-const static size_t maxrows = 100;
+const static std::size_t maxrows = 100;
 
 static std::default_random_engine e(1234567890);
 static std::normal_distribution<float> G;
 
-auto createTable = [](size_t nrows) {
+auto createTable = [](std::size_t nrows) {
   static TableBuilder builder;
   auto static rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
 

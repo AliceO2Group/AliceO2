@@ -47,10 +47,10 @@ class TimeframeWriterDevice : public base::O2Device
   std::string mInChannelName;
   std::string mOutFileName;
   std::fstream mFile;
-  size_t mMaxTimeframes;
-  size_t mMaxFileSize;
-  size_t mMaxFiles;
-  size_t mFileCount;
+  std::size_t mMaxTimeframes;
+  std::size_t mMaxFileSize;
+  std::size_t mMaxFiles;
+  std::size_t mFileCount;
 };
 
 } // namespace data_flow

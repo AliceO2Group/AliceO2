@@ -129,7 +129,7 @@ class HitGroup : public o2::BaseHit
 #endif
   }
 
-  size_t getSize() const
+  std::size_t getSize() const
   {
 #ifdef HIT_AOS
     return mHits.size();
@@ -138,7 +138,7 @@ class HitGroup : public o2::BaseHit
 #endif
   }
 
-  ElementalHit getHit(size_t index) const
+  ElementalHit getHit(std::size_t index) const
   {
 #ifdef HIT_AOS
     // std::vector storage

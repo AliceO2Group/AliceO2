@@ -306,7 +306,7 @@ void GPUCATracking::GetClusterErrors2(int row, float z, float sinPhi, float DzDs
   mTrackingCAO2Interface->GetClusterErrors2(row, z, sinPhi, DzDs, clusterState, ErrY2, ErrZ2);
 }
 
-int GPUCATracking::registerMemoryForGPU(const void* ptr, size_t size)
+int GPUCATracking::registerMemoryForGPU(const void* ptr, std::size_t size)
 {
   return mTrackingCAO2Interface->registerMemoryForGPU(ptr, size);
 }

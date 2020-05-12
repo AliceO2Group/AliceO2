@@ -29,10 +29,10 @@ struct HeatMapHelper {
   template <typename RECORD, typename ITEM>
   static void draw(const char* name,
                    ImVec2 const& sizeHint,
-                   std::function<size_t()> const& getNumRecords,
-                   std::function<RECORD(size_t)> const& getRecord,
-                   std::function<size_t(RECORD const&)> const& getNumItems,
-                   std::function<ITEM const&(RECORD const&, size_t)> const& getItem,
+                   std::function<std::size_t()> const& getNumRecords,
+                   std::function<RECORD(std::size_t)> const& getRecord,
+                   std::function<std::size_t(RECORD const&)> const& getNumItems,
+                   std::function<ITEM const&(RECORD const&, std::size_t)> const& getItem,
                    std::function<int(ITEM const&)> const& getValue,
                    std::function<ImU32(int value)> const& getColor,
                    std::function<void(int row, int column)> const& describeCell)
@@ -64,12 +64,12 @@ struct HeatMapHelper {
       ImVec2{size.x - 1, size.y} + winPos,
       BORDER_COLOR);
     float padding = 1;
-    for (size_t ri = 0, re = getNumRecords(); ri < re; ri++) {
+    for (std::size_t ri = 0, re = getNumRecords(); ri < re; ri++) {
       auto record = getRecord(ri);
       ImVec2 xOffset{(ri * boxSizeX) + padding, 0};
       ImVec2 xSize{boxSizeX - 2 * padding, 0};
       auto boxSizeY = std::min(size.y / getNumItems(record), MAX_BOX_Y_SIZE);
-      for (size_t mi = 0, me = getNumItems(record); mi < me; mi++) {
+      for (std::size_t mi = 0, me = getNumItems(record); mi < me; mi++) {
         ImVec2 yOffSet{0, (mi * boxSizeY) + padding};
         ImVec2 ySize{0, boxSizeY - 2 * padding};
 
@@ -92,13 +92,13 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
   auto& variablesIndex = info.variablesViewIndex;
   auto& queriesIndex = info.queriesViewIndex;
 
-  auto getNumRecords = [&viewIndex]() -> size_t {
+  auto getNumRecords = [&viewIndex]() -> std::size_t {
     if (viewIndex.isComplete()) {
       return viewIndex.w;
     }
     return 0;
   };
-  auto getRecord = [&metrics](size_t i) -> int {
+  auto getRecord = [&metrics](std::size_t i) -> int {
     return i;
   };
   auto getNumItems = [&viewIndex](int record) -> int {
@@ -107,7 +107,7 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
     }
     return 0;
   };
-  auto getItem = [&metrics, &viewIndex](int const& record, size_t i) -> int const& {
+  auto getItem = [&metrics, &viewIndex](int const& record, std::size_t i) -> int const& {
     // Calculate the index in the viewIndex.
     auto idx = record * viewIndex.h + i;
     assert(viewIndex.indexes.size() > idx);
@@ -137,7 +137,7 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
   };
   auto describeCell = [&metrics, &variablesIndex, &queriesIndex](int input, int slot) -> void {
     ImGui::BeginTooltip();
-    for (size_t vi = 0; vi < variablesIndex.w; ++vi) {
+    for (std::size_t vi = 0; vi < variablesIndex.w; ++vi) {
       auto idx = (slot * variablesIndex.w) + vi;
       assert(idx < variablesIndex.indexes.size());
       MetricInfo const& metricInfo = metrics.metrics[variablesIndex.indexes[idx]];

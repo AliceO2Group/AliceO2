@@ -175,7 +175,7 @@ BOOST_AUTO_TEST_CASE(TestWorkflowHelpers)
   BOOST_TEST(result6 == expected6, boost::test_tools::per_element());
 
   /// We actually support using node indexes which are not
-  /// std::pair<size_t, size_t> as long as they occupy 64 bit
+  /// std::pair<std::size_t, std::size_t> as long as they occupy 64 bit
   struct SlotEdge {
     int nodeIn;
     int slotIn;
@@ -230,11 +230,11 @@ BOOST_AUTO_TEST_CASE(TestSimpleConnection)
     {0, 1, 0, 0, 0, 0, false, ConnectionKind::Out},
   };
   BOOST_REQUIRE_EQUAL(expectedOutputs.size(), outputs.size());
-  for (size_t oi = 0, oe = expectedOutputs.size(); oi != oe; ++oi) {
+  for (std::size_t oi = 0, oe = expectedOutputs.size(); oi != oe; ++oi) {
     BOOST_CHECK(expectedOutputs[oi].lifetime == outputs[oi].lifetime);
   }
   BOOST_REQUIRE_EQUAL(expectedEdges.size(), logicalEdges.size());
-  for (size_t ei = 0, ee = expectedEdges.size(); ei != ee; ++ei) {
+  for (std::size_t ei = 0, ee = expectedEdges.size(); ei != ee; ++ei) {
     BOOST_CHECK_EQUAL(expectedEdges[ei].consumer, logicalEdges[ei].consumer);
     BOOST_CHECK_EQUAL(expectedEdges[ei].producer, logicalEdges[ei].producer);
     BOOST_CHECK_EQUAL(expectedEdges[ei].outputGlobalIndex, logicalEdges[ei].outputGlobalIndex);
@@ -274,7 +274,7 @@ BOOST_AUTO_TEST_CASE(TestSimpleForward)
   };
   BOOST_REQUIRE_EQUAL(expectedOutputs.size(), outputs.size());
   BOOST_REQUIRE_EQUAL(expectedEdges.size(), logicalEdges.size());
-  for (size_t ei = 0, ee = expectedEdges.size(); ei != ee; ++ei) {
+  for (std::size_t ei = 0, ee = expectedEdges.size(); ei != ee; ++ei) {
     BOOST_CHECK_EQUAL(expectedEdges[ei].consumer, logicalEdges[ei].consumer);
     BOOST_CHECK_EQUAL(expectedEdges[ei].producer, logicalEdges[ei].producer);
     BOOST_CHECK_EQUAL(expectedEdges[ei].outputGlobalIndex, logicalEdges[ei].outputGlobalIndex);
@@ -337,7 +337,7 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   BOOST_CHECK_EQUAL(outputs.size(), expectedMatchers.size()); // FIXME: Is this what we actually want? We need
                                                               // different matchers depending on the different timeframe ID.
 
-  for (size_t i = 0; i < outputs.size(); ++i) {
+  for (std::size_t i = 0; i < outputs.size(); ++i) {
     auto concrete = DataSpecUtils::asConcreteDataMatcher(outputs[i]);
     BOOST_CHECK_EQUAL(concrete.origin.as<std::string>(), expectedMatchers[i].origin.as<std::string>());
     BOOST_CHECK_EQUAL(concrete.description.as<std::string>(), expectedMatchers[i].description.as<std::string>());
@@ -345,7 +345,7 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
     BOOST_CHECK_EQUAL(static_cast<int>(outputs[i].lifetime), static_cast<int>(expectedLifetimes[i]));
   }
 
-  for (size_t i = 0; i < logicalEdges.size(); ++i) {
+  for (std::size_t i = 0; i < logicalEdges.size(); ++i) {
     BOOST_CHECK_EQUAL(logicalEdges[i].producer, expected[i].producer);
     BOOST_CHECK_EQUAL(logicalEdges[i].consumer, expected[i].consumer);
     BOOST_CHECK_EQUAL(logicalEdges[i].timeIndex, expected[i].timeIndex);
@@ -353,24 +353,24 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
     BOOST_CHECK_EQUAL(logicalEdges[i].outputGlobalIndex, expected[i].outputGlobalIndex);
   }
 
-  std::vector<size_t> inIndex;
-  std::vector<size_t> outIndex;
+  std::vector<std::size_t> inIndex;
+  std::vector<std::size_t> outIndex;
   WorkflowHelpers::sortEdges(inIndex, outIndex, logicalEdges);
   // Notice that zero is at the end because the first edge in the topological
   // sort is the timer and that gets added last.
-  std::vector<size_t> expectedOutIndex{
+  std::vector<std::size_t> expectedOutIndex{
     1, 2, 3, 4, 7, 5, 8, 6, 9, 0};
 
-  std::vector<size_t> expectedInIndex{
+  std::vector<std::size_t> expectedInIndex{
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
   BOOST_CHECK_EQUAL(expectedOutIndex.size(), outIndex.size());
   BOOST_CHECK_EQUAL(expectedInIndex.size(), inIndex.size());
 
-  for (size_t i = 0; i < outIndex.size(); ++i) {
+  for (std::size_t i = 0; i < outIndex.size(); ++i) {
     BOOST_CHECK_EQUAL(expectedOutIndex[i], outIndex[i]);
   }
-  for (size_t i = 0; i < inIndex.size(); ++i) {
+  for (std::size_t i = 0; i < inIndex.size(); ++i) {
     BOOST_CHECK_EQUAL(expectedInIndex[i], inIndex[i]);
   }
   auto actions = WorkflowHelpers::computeOutEdgeActions(logicalEdges,
@@ -390,8 +390,8 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   };
 
   BOOST_REQUIRE_EQUAL(expectedActionsOut.size(), actions.size());
-  for (size_t i = 0; i < outIndex.size(); i++) {
-    size_t j = outIndex[i];
+  for (std::size_t i = 0; i < outIndex.size(); i++) {
+    std::size_t j = outIndex[i];
     BOOST_CHECK_EQUAL_MESSAGE(expectedActionsOut[j].requiresNewDevice, actions[j].requiresNewDevice, i << " " << j);
   }
 
@@ -411,8 +411,8 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
                                                          inIndex);
 
   BOOST_REQUIRE_EQUAL(expectedActionsIn.size(), inActions.size());
-  for (size_t i = 0; i < inIndex.size(); i++) {
-    size_t j = inIndex[i];
+  for (std::size_t i = 0; i < inIndex.size(); i++) {
+    std::size_t j = inIndex[i];
     auto expectedValue = expectedActionsIn[j].requiresNewDevice;
     auto actualValue = inActions[j].requiresNewDevice;
 
@@ -530,7 +530,7 @@ BOOST_AUTO_TEST_CASE(TestOriginWildcard)
   BOOST_CHECK_EQUAL(workflow[0].name, "A");
   BOOST_CHECK_EQUAL(workflow[1].name, "B");
   BOOST_CHECK_EQUAL(workflow[2].name, "internal-dpl-clock");
-  for (size_t wi = 3; wi < workflow.size(); ++wi) {
+  for (std::size_t wi = 3; wi < workflow.size(); ++wi) {
     BOOST_CHECK_EQUAL(workflow[wi].name, "");
   }
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
@@ -543,7 +543,7 @@ BOOST_AUTO_TEST_CASE(TestOriginWildcard)
     {0, 1, 0, 0, 1, 0, false, ConnectionKind::Out},
   };
 
-  std::vector<size_t> expectedOutEdgeIndex = {1, 2, 0};
+  std::vector<std::size_t> expectedOutEdgeIndex = {1, 2, 0};
   std::vector<EdgeAction> expectedActions = {
     {true, true},  // to go from timer to A (new channel and new device)
     {true, true},  // to go from A/1 to B (new channel and new device)
@@ -559,25 +559,25 @@ BOOST_AUTO_TEST_CASE(TestOriginWildcard)
 
   BOOST_REQUIRE_EQUAL(expectedOutputs.size(), outputs.size());
   BOOST_REQUIRE_EQUAL(expectedEdges.size(), logicalEdges.size());
-  for (size_t ei = 0, ee = expectedEdges.size(); ei != ee; ++ei) {
+  for (std::size_t ei = 0, ee = expectedEdges.size(); ei != ee; ++ei) {
     BOOST_CHECK_EQUAL(expectedEdges[ei].consumer, logicalEdges[ei].consumer);
     BOOST_CHECK_EQUAL(expectedEdges[ei].producer, logicalEdges[ei].producer);
     BOOST_CHECK_EQUAL(expectedEdges[ei].outputGlobalIndex, logicalEdges[ei].outputGlobalIndex);
     BOOST_CHECK_EQUAL(expectedEdges[ei].consumerInputIndex, logicalEdges[ei].consumerInputIndex);
   }
 
-  std::vector<size_t> inEdgeIndex;
-  std::vector<size_t> outEdgeIndex;
+  std::vector<std::size_t> inEdgeIndex;
+  std::vector<std::size_t> outEdgeIndex;
   WorkflowHelpers::sortEdges(inEdgeIndex, outEdgeIndex, logicalEdges);
   BOOST_REQUIRE_EQUAL(inEdgeIndex.size(), 3);
   BOOST_REQUIRE_EQUAL(outEdgeIndex.size(), 3);
-  for (size_t ei = 0; ei < outEdgeIndex.size(); ++ei) {
+  for (std::size_t ei = 0; ei < outEdgeIndex.size(); ++ei) {
     BOOST_CHECK_EQUAL(outEdgeIndex[ei], expectedOutEdgeIndex[ei]);
   }
 
   std::vector<EdgeAction> outActions = WorkflowHelpers::computeOutEdgeActions(logicalEdges, outEdgeIndex);
   BOOST_REQUIRE_EQUAL(outActions.size(), expectedActions.size());
-  for (size_t ai = 0; ai < outActions.size(); ++ai) {
+  for (std::size_t ai = 0; ai < outActions.size(); ++ai) {
     BOOST_CHECK_EQUAL(outActions[ai].requiresNewDevice, expectedActions[ai].requiresNewDevice);
     BOOST_CHECK_EQUAL(outActions[ai].requiresNewChannel, expectedActions[ai].requiresNewChannel);
   }
@@ -586,7 +586,7 @@ BOOST_AUTO_TEST_CASE(TestOriginWildcard)
   // lookup for port and add as input of the current device.
   std::vector<EdgeAction> inActions = WorkflowHelpers::computeInEdgeActions(logicalEdges, inEdgeIndex);
   BOOST_REQUIRE_EQUAL(inActions.size(), expectedInActions.size());
-  for (size_t ai = 0; ai < inActions.size(); ++ai) {
+  for (std::size_t ai = 0; ai < inActions.size(); ++ai) {
     BOOST_CHECK_EQUAL(inActions[ai].requiresNewDevice, expectedInActions[ai].requiresNewDevice);
     BOOST_CHECK_EQUAL(inActions[ai].requiresNewChannel, expectedInActions[ai].requiresNewChannel);
   }

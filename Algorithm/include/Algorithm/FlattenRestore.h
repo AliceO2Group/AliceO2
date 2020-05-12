@@ -34,9 +34,9 @@ namespace flatten
 ///   size = value_size(array1, array2, array3);
 ///   // size is sizeof(char) + sizeof(int) + sizeof(float)
 template <typename ValueType, typename... Args>
-constexpr size_t value_size(ValueType const& value, Args&&... args)
+constexpr std::size_t value_size(ValueType const& value, Args&&... args)
 {
-  size_t size = sizeof(typename std::remove_pointer<typename std::remove_reference<ValueType>::type>::type);
+  std::size_t size = sizeof(typename std::remove_pointer<typename std::remove_reference<ValueType>::type>::type);
   if constexpr (sizeof...(Args) > 0) {
     size += value_size(std::forward<Args>(args)...);
   }
@@ -50,12 +50,12 @@ constexpr size_t value_size(ValueType const& value, Args&&... args)
 /// @param args   a variable number of pointers to arrays
 /// @return copied size in bytes
 template <typename TargetType, typename ValueType, typename... Args>
-static size_t copy_to(TargetType& wrtptr, size_t count, ValueType* array, Args&&... args)
+static std::size_t copy_to(TargetType& wrtptr, std::size_t count, ValueType* array, Args&&... args)
 {
   static_assert(std::is_pointer<TargetType>::value == true, "need reference to pointer");
   static_assert(sizeof(typename std::remove_pointer<TargetType>::type) == 1, "need char-like pointer");
 
-  size_t copySize = 0;
+  std::size_t copySize = 0;
   if (array != nullptr) {
     copySize = count * value_size(array);
     memcpy(wrtptr, array, copySize);
@@ -78,11 +78,11 @@ static size_t copy_to(TargetType& wrtptr, size_t count, ValueType* array, Args&&
 /// @param args    a variable number of references of pointers to arrays
 /// @return handled raw size in bytes
 template <typename BufferType, typename ValueType, typename... Args>
-static size_t set_from(BufferType& readptr, size_t count, ValueType& array, Args&&... args)
+static std::size_t set_from(BufferType& readptr, std::size_t count, ValueType& array, Args&&... args)
 {
   static_assert(std::is_pointer<typename std::remove_reference<ValueType>::type>::value == true, "need reference to pointer");
   array = reinterpret_cast<typename std::remove_reference<ValueType>::type>(readptr);
-  size_t readSize = count * value_size(array);
+  std::size_t readSize = count * value_size(array);
   readptr += readSize;
   if constexpr (sizeof...(Args) > 0) {
     readSize += set_from(readptr, count, std::forward<Args>(args)...);
@@ -98,7 +98,7 @@ static size_t set_from(BufferType& readptr, size_t count, ValueType& array, Args
 /// @param args     a variable number of references of pointers to arrays
 /// @return total size
 template <typename BufferType, typename... Args>
-static size_t calc_size(BufferType const& dummyptr, size_t count, Args&&... args)
+static std::size_t calc_size(BufferType const& dummyptr, std::size_t count, Args&&... args)
 {
   return count * value_size(std::forward<Args>(args)...);
 }

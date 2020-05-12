@@ -36,7 +36,7 @@ void addCustomOptions(bpo::options_description& options)
      bpo::value<std::string>()->default_value("TPC"),
      "Name of detector as data source")
     (o2::data_flow::SubframeBuilderDevice::OptionKeyFLPId,
-     bpo::value<size_t>()->default_value(0),
+     bpo::value<std::size_t>()->default_value(0),
      "ID of the FLP used as data source")
     (o2::data_flow::SubframeBuilderDevice::OptionKeyStripHBF,
      bpo::bool_switch()->default_value(false),

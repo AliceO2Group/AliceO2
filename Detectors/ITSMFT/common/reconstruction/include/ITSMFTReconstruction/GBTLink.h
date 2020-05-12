@@ -163,8 +163,8 @@ struct GBTLink {
   RUDecodeData* ruPtr = nullptr;  // pointer on the parent RU
 
   PayLoadSG rawData;         // scatter-gatter buffer for cached CRU pages, each starting with RDH
-  size_t dataOffset = 0;     //
-  size_t currOffsWrtRDH = 0; // index of 1st unread element in the current CRU page
+  std::size_t dataOffset = 0;     //
+  std::size_t currOffsWrtRDH = 0; // index of 1st unread element in the current CRU page
   //------------------------------------------------------------------------
 
   GBTLink() = default;
@@ -175,7 +175,7 @@ struct GBTLink {
   template <class Mapping>
   CollectedDataStatus collectROFCableData(const Mapping& chmap);
 
-  void cacheData(const void* ptr, size_t sz)
+  void cacheData(const void* ptr, std::size_t sz)
   {
     rawData.add(reinterpret_cast<const PayLoadSG::DataType*>(ptr), sz);
   }

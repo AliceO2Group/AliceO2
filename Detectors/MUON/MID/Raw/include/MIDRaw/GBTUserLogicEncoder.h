@@ -36,7 +36,7 @@ class GBTUserLogicEncoder
   const std::vector<uint8_t>& getBuffer() { return mBytes; }
 
   /// Gets the buffer size in bytes
-  size_t getBufferSize() const { return mBytes.size(); }
+  std::size_t getBufferSize() const { return mBytes.size(); }
 
   /// Sets the mask
   void setMask(uint8_t mask) { mMask = mask; }

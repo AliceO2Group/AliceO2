@@ -18,7 +18,7 @@ void rawStat(const std::string& conf)
   reader.init();
   int nLinks = reader.getNLinks();
   std::vector<char> buff;
-  size_t hbfSize, cnt = 0;
+  std::size_t hbfSize, cnt = 0;
   TreeStreamRedirector strm("hbfstat.root", "recreate");
 
   do {

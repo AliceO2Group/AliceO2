@@ -19,7 +19,7 @@
 namespace o2::framework
 {
 
-constexpr size_t PageSize = 8192;
+constexpr std::size_t PageSize = 8192;
 using V6 = header::RAWDataHeaderV6;
 using V5 = header::RAWDataHeaderV5;
 using V4 = header::RAWDataHeaderV4;
@@ -28,7 +28,7 @@ template <typename RDH, typename Container>
 void fillPages(Container& buffer)
 {
   RDH defaultHeader;
-  size_t const NofPages = buffer.size() / PageSize;
+  std::size_t const NofPages = buffer.size() / PageSize;
   memset(buffer.data(), 0, buffer.size());
   for (int pageNo = 0; pageNo < NofPages; pageNo++) {
     auto* rdh = reinterpret_cast<RDH*>(buffer.data() + pageNo * PageSize);
@@ -39,7 +39,7 @@ void fillPages(Container& buffer)
     rdh->pageCnt = NofPages;
     rdh->packetCounter = pageNo;
     rdh->stop = pageNo + 1 == NofPages;
-    auto* data = reinterpret_cast<size_t*>(buffer.data() + pageNo * PageSize + rdh->headerSize);
+    auto* data = reinterpret_cast<std::size_t*>(buffer.data() + pageNo * PageSize + rdh->headerSize);
     *data = pageNo;
   }
 }
@@ -48,14 +48,14 @@ typedef boost::mpl::list<V5, V6> testTypes;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_RawParser, RDH, testTypes)
 {
-  constexpr size_t NofPages = 3;
+  constexpr std::size_t NofPages = 3;
   std::array<unsigned char, NofPages * PageSize> buffer;
   fillPages<RDH>(buffer);
 
-  size_t count = 0;
-  auto processor = [&count](auto data, size_t size) {
+  std::size_t count = 0;
+  auto processor = [&count](auto data, std::size_t size) {
     BOOST_CHECK(size == PageSize - sizeof(RDH));
-    BOOST_CHECK(*reinterpret_cast<size_t const*>(data) == count);
+    BOOST_CHECK(*reinterpret_cast<std::size_t const*>(data) == count);
     std::cout << "Processing block of size " << size << std::endl;
     count++;
   };
@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_RawParser, RDH, testTypes)
   count = 0;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it, ++count) {
     BOOST_CHECK(it.size() == PageSize - sizeof(RDH));
-    BOOST_CHECK(*reinterpret_cast<size_t const*>(it.data()) == count);
+    BOOST_CHECK(*reinterpret_cast<std::size_t const*>(it.data()) == count);
     // FIXME: there is a problem with invoking get_if<T>, but only if the code is templatized
     // and called from within boost unit test macros.
     //    expected primary-expression before ‘>’ token

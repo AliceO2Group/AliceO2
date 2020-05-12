@@ -33,7 +33,7 @@ class ElinkEncoder<UserLogicFormat, CHARGESUM>
 
   void addChannelData(uint8_t chId, const std::vector<SampaCluster>& data);
 
-  size_t moveToBuffer(std::vector<uint64_t>& buffer, uint64_t prefix);
+  std::size_t moveToBuffer(std::vector<uint64_t>& buffer, uint64_t prefix);
 
   void clear();
 
@@ -130,7 +130,7 @@ void ElinkEncoder<UserLogicFormat, CHARGESUM>::clear()
 }
 
 template <typename CHARGESUM>
-size_t ElinkEncoder<UserLogicFormat, CHARGESUM>::moveToBuffer(std::vector<uint64_t>& buffer, uint64_t prefix)
+std::size_t ElinkEncoder<UserLogicFormat, CHARGESUM>::moveToBuffer(std::vector<uint64_t>& buffer, uint64_t prefix)
 {
   if (mBuffer.empty()) {
     return 0;

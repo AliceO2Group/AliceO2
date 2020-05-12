@@ -217,7 +217,7 @@ ShmManager::~ShmManager()
 
 // This implements a very malloc/free mechanism ...
 // ... but we are using available boost functionality
-void* ShmManager::getmemblock(size_t size)
+void* ShmManager::getmemblock(std::size_t size)
 {
   void* addr = nullptr;
   try {
@@ -228,7 +228,7 @@ void* ShmManager::getmemblock(size_t size)
   return addr;
 }
 
-void ShmManager::freememblock(void* ptr, size_t s)
+void ShmManager::freememblock(void* ptr, std::size_t s)
 {
   boostallocator->deallocate((char*)ptr, s);
 }

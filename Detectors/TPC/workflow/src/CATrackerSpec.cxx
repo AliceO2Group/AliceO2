@@ -75,7 +75,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
   if (specconfig.outputCAClusters && !specconfig.caClusterer) {
     throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
   }
-  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
+  constexpr static std::size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   using ClusterGroupParser = o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>;
   struct ProcessAttributes {
     std::bitset<NSectors> validInputs = 0;
@@ -397,7 +397,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           rdh_utils::FEEIDType lastFEE = -1;
           int rawcru = 0;
           int rawendpoint = 0;
-          size_t totalSize = 0;
+          std::size_t totalSize = 0;
           for (auto it = parser.begin(); it != parser.end(); it++) {
             const unsigned char* current = it.raw();
             const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)current;
@@ -443,9 +443,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           // retrieving payload pointer of the page
           auto const* payload = it.data();
           // size of payload
-          size_t payloadSize = it.size();
+          std::size_t payloadSize = it.size();
           // offset of payload in the raw page
-          size_t offset = it.offset();
+          std::size_t offset = it.offset();
           const auto* dh = it.o2DataHeader();
           unsigned long subspec = dh->subSpecification;
           printf("Test: rdh %p, raw %p, payload %p, payloadSize %lld, offset %lld, %s %s %lld\n", rdh, raw, payload, (long long int)payloadSize, (long long int)offset, dh->dataOrigin.as<std::string>().c_str(), dh->dataDescription.as<std::string>().c_str(), (long long int)dh->subSpecification);
@@ -485,7 +485,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           } else {
             int rangeStart = -1;
             int rangeEnd = -1;
-            for (size_t sector = 0; sector < validInputs.size(); sector++) {
+            for (std::size_t sector = 0; sector < validInputs.size(); sector++) {
               if (validInputs.test(sector)) {
                 if (rangeStart < 0) {
                   if (rangeEnd >= 0) {
@@ -544,7 +544,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         ptrs.clusters = &clusterIndex;
       }
       GPUInterfaceOutputs outputRegions;
-      size_t bufferSize = 2048ul * 1024 * 1024; // TODO: Just allocated some large buffer for now, should estimate this correctly;
+      std::size_t bufferSize = 2048ul * 1024 * 1024; // TODO: Just allocated some large buffer for now, should estimate this correctly;
       auto* bufferCompressedClusters = doOutputCompressedClustersFlat ? &pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, bufferSize) : nullptr;
       if (doOutputCompressedClustersFlat) {
         outputRegions.compressedClusters.ptr = bufferCompressedClusters->data();
@@ -650,7 +650,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     }
 
     auto tmp = std::move(mergeInputs(inputs, tpcsectors.size(),
-                                     [tpcsectors](InputSpec& input, size_t index) {
+                                     [tpcsectors](InputSpec& input, std::size_t index) {
                                        // using unique input names for the moment but want to find
                                        // an input-multiplicity-agnostic way of processing
                                        input.binding += std::to_string(tpcsectors[index]);
@@ -707,7 +707,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
 
 o2::framework::CompletionPolicy getCATrackerCompletionPolicy()
 {
-  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
+  constexpr static std::size_t NSectors = o2::tpc::Sector::MAXSECTOR;
 
   auto matcher = [](DeviceSpec const& device) -> bool {
     return std::regex_match(device.name.begin(), device.name.end(), std::regex("tpc-tracker*"));
@@ -719,7 +719,7 @@ o2::framework::CompletionPolicy getCATrackerCompletionPolicy()
     bool haveDigit = false;
     std::bitset<NSectors> validInputs = 0;
     uint64_t activeSectors = 0;
-    size_t nActiveInputs = 0;
+    std::size_t nActiveInputs = 0;
     for (auto it = inputs.begin(), end = inputs.end(); it != end; ++it) {
       for (auto const& ref : it) {
         if (!DataRefUtils::isValid(ref)) {

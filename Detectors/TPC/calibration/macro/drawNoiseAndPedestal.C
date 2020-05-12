@@ -69,7 +69,7 @@ TObjArray* drawNoiseAndPedestal(std::string_view pedestalFile, int mode = 0, std
   }
 
   // ===| loop over all ROCs |==================================================
-  for (size_t iroc = 0; iroc < calPedestal->getData().size(); ++iroc) {
+  for (std::size_t iroc = 0; iroc < calPedestal->getData().size(); ++iroc) {
     const auto& rocPedestal = calPedestal->getCalArray(iroc);
     const auto& rocNoise = calNoise->getCalArray(iroc);
 

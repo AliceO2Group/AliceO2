@@ -10,7 +10,7 @@ This is a work in progress entrypoint for common DPL related tasks.
 
 Get payload size:
 ```cpp
-size_t payloadSize = DataRefUtils::getPayloadSize(ref);
+std::size_t payloadSize = DataRefUtils::getPayloadSize(ref);
 ```
 
 Extract a header from the header stack:
@@ -295,7 +295,7 @@ parallel(
     {InputSpec{"c", "TPC", "CLUSTERS"}}
   },
   18,
-  [](DataProcessorSpec &spec, size_t idx) {
+  [](DataProcessorSpec &spec, std::size_t idx) {
     spec.outputs[0].subSpec = idx; // Each of the 18 DataProcessorSpecs should have a different subSpec
   }
 )
@@ -309,7 +309,7 @@ DataProcessorSpec{
   "merger",
   mergeInputs({"a", "TST", "A", 0, Lifetime::Timeframe},
               4,
-              [](InputSpec &input, size_t index) {
+              [](InputSpec &input, std::size_t index) {
                  input.subSpec = index;
               }
           ),
@@ -326,8 +326,8 @@ DataProcessorSpec{
 When one declares a parallel set of devices you can retrieve the rank (i.e. parallel id) or the number of parallel devices by using the `ParalleContext`, which can be retrieved from the `ServiceRegistry` (see also the `Services` section below), e.g.:
 
 ```cpp
-size_t whoAmI = services.get<ParallelContext>().index1D();
-size_t howManyAreWe = services.get<ParallelContext>().index1DSize();
+std::size_t whoAmI = services.get<ParallelContext>().index1D();
+std::size_t howManyAreWe = services.get<ParallelContext>().index1DSize();
 ```
 
 ### Time pipelining

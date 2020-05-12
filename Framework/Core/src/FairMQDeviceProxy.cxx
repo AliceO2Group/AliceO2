@@ -32,7 +32,7 @@ std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createMessage() const
   return mDevice->Transport()->CreateMessage();
 }
 
-std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createMessage(const size_t size) const
+std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createMessage(const std::size_t size) const
 {
   return mDevice->Transport()->CreateMessage(size);
 }

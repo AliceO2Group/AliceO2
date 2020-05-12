@@ -24,14 +24,14 @@ namespace framework
 
 struct TimesliceId {
   static constexpr uint64_t INVALID = -1;
-  size_t value;
+  std::size_t value;
   static bool isValid(TimesliceId const& timeslice);
 };
 
 struct TimesliceSlot {
   static constexpr uint64_t INVALID = -1;
   static constexpr uint64_t ANY = -2;
-  size_t index;
+  std::size_t index;
   static bool isValid(TimesliceSlot const& slot);
   bool operator==(const TimesliceSlot that) const;
   bool operator!=(const TimesliceSlot that) const;
@@ -54,8 +54,8 @@ class TimesliceIndex
     DropObsolete     /// An obsolete context is not inserted in the index and dropped
   };
 
-  inline void resize(size_t s);
-  inline size_t size() const;
+  inline void resize(std::size_t s);
+  inline std::size_t size() const;
   inline bool isValid(TimesliceSlot const& slot) const;
   inline bool isDirty(TimesliceSlot const& slot) const;
   inline void markAsDirty(TimesliceSlot slot, bool value);

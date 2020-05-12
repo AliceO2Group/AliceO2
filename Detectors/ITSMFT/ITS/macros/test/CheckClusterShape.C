@@ -88,7 +88,7 @@ class Cluster
     bool found = false;
     if (m_pixels.find(l) == m_pixels.end())
       m_pixels[l] = std::vector<Pixel>();
-    for (size_t i = 0; i < m_pixels[l].size(); ++i) {
+    for (std::size_t i = 0; i < m_pixels[l].size(); ++i) {
       if (m_pixels[l][i] == p)
         found = true;
     }

@@ -81,7 +81,7 @@ class GPUMemoryResource
   void* SetDevicePointers(void* ptr) { return (mProcessor->mDeviceProcessor->*mSetPointers)(ptr); }
   void* Ptr() { return mPtr; }
   void* PtrDevice() { return mPtrDevice; }
-  size_t Size() const { return mSize; }
+  std::size_t Size() const { return mSize; }
   const char* Name() const { return mName; }
   MemoryType Type() const { return mType; }
 #endif
@@ -93,7 +93,7 @@ class GPUMemoryResource
   void* mPtrDevice;
   void* (GPUProcessor::*mSetPointers)(void*);
   MemoryType mType;
-  size_t mSize;
+  std::size_t mSize;
   const char* mName;
 };
 } // namespace gpu

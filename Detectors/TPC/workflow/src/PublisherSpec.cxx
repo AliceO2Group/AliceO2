@@ -42,7 +42,7 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
   if (config.tpcSectors.size() == 0 || config.outputIds.size() == 0) {
     throw std::invalid_argument("need TPC sector and output id configuration");
   }
-  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
+  constexpr static std::size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   struct ProcessAttributes {
     std::vector<int> sectors;
     std::vector<int> outputIds;
@@ -87,7 +87,7 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
       // TODO: parallelism on sectors needs to be implemented as selector in the reader
       // the data is now in parallel branches, as first attempt use an array of readers
       auto outputId = outputIds.begin();
-      for (size_t sector = 0; sector < NSectors; ++sector) {
+      for (std::size_t sector = 0; sector < NSectors; ++sector) {
         if ((activeSectors & ((uint64_t)0x1 << sector)) == 0) {
           continue;
         }
@@ -159,7 +159,7 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
 
   auto createOutputSpecs = [&config, propagateMC]() {
     std::vector<OutputSpec> outputSpecs;
-    for (size_t n = 0; n < config.outputIds.size(); ++n) {
+    for (std::size_t n = 0; n < config.outputIds.size(); ++n) {
       o2::header::DataHeader::SubSpecificationType subSpec = config.outputIds[n];
       auto dto = DataSpecUtils::asConcreteDataTypeMatcher(config.dataoutput);
       auto mco = DataSpecUtils::asConcreteDataTypeMatcher(config.mcoutput);

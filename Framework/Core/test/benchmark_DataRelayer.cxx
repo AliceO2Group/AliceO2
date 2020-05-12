@@ -139,7 +139,7 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
   dh.subSpecification = 0;
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  size_t timeslice = 0;
+  std::size_t timeslice = 0;
 
   for (auto _ : state) {
     // FIXME: Understand why pausing the timer makes it slower..
@@ -197,7 +197,7 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
   dh2.subSpecification = 0;
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  size_t timeslice = 0;
+  std::size_t timeslice = 0;
 
   for (auto _ : state) {
     // FIXME: Understand why pausing the timer makes it slower..

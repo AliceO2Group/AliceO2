@@ -45,7 +45,7 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
   }
   ChargePos* positions = clusterer.mPpositions;
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
-  const size_t nDigits = clusterer.mPzsOffsets[iBlock].offset;
+  const std::size_t nDigits = clusterer.mPzsOffsets[iBlock].offset;
   if (iThread == 0) {
     const int region = endpoint / 2;
     s.nRowsRegion = clusterer.Param().tpcGeometry.GetRegionRows(region);
@@ -130,7 +130,7 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
               continue;
             }
             const int rowPos = CAMath::Popcount((unsigned int)(tbHdr->rowMask & ((1 << m) - 1)));
-            size_t nDigitsTmp = nDigits + s.RowClusterOffset[rowPos];
+            std::size_t nDigitsTmp = nDigits + s.RowClusterOffset[rowPos];
             const unsigned char* rowData = rowPos == 0 ? pagePtr : (page + tbHdr->rowAddr1()[rowPos - 1]);
             const int nSeqRead = *rowData;
             const int nSeqPerThread = (nSeqRead + s.nThreadsPerRow - 1) / s.nThreadsPerRow;

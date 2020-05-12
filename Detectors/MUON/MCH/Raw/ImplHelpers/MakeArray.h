@@ -17,15 +17,15 @@
 namespace o2::mch::raw::impl
 {
 
-template <typename CTOR, size_t... S>
-std::array<std::invoke_result_t<CTOR, size_t>, sizeof...(S)> makeArray(CTOR&& ctor,
-                                                                       std::index_sequence<S...>)
+template <typename CTOR, std::size_t... S>
+std::array<std::invoke_result_t<CTOR, std::size_t>, sizeof...(S)> makeArray(CTOR&& ctor,
+                                                                            std::index_sequence<S...>)
 {
-  return std::array<std::invoke_result_t<CTOR, size_t>, sizeof...(S)>{{ctor(S)...}};
+  return std::array<std::invoke_result_t<CTOR, std::size_t>, sizeof...(S)>{{ctor(S)...}};
 }
 
-template <size_t N, typename CTOR>
-std::array<std::invoke_result_t<CTOR, size_t>, N> makeArray(CTOR&& ctor)
+template <std::size_t N, typename CTOR>
+std::array<std::invoke_result_t<CTOR, std::size_t>, N> makeArray(CTOR&& ctor)
 {
   return makeArray(std::forward<CTOR>(ctor), std::make_index_sequence<N>());
 }

@@ -21,12 +21,12 @@ namespace o2
 namespace mid
 {
 
-void ClusterLabeler::process(gsl::span<const PreCluster> preClusters, const o2::dataformats::MCTruthContainer<MCCompLabel>& inMCContainer, gsl::span<const Cluster2D> clusters, gsl::span<const std::array<size_t, 2>> correlations)
+void ClusterLabeler::process(gsl::span<const PreCluster> preClusters, const o2::dataformats::MCTruthContainer<MCCompLabel>& inMCContainer, gsl::span<const Cluster2D> clusters, gsl::span<const std::array<std::size_t, 2>> correlations)
 {
   /// Applies labels to the clusters
   mMCContainer.clear();
 
-  std::map<size_t, std::vector<size_t>> reordered;
+  std::map<std::size_t, std::vector<std::size_t>> reordered;
   for (auto& corr : correlations) {
     reordered[corr[0]].emplace_back(corr[1]);
   }
@@ -40,7 +40,7 @@ void ClusterLabeler::process(gsl::span<const PreCluster> preClusters, const o2::
   }
 }
 
-MCClusterLabel* ClusterLabeler::findLabel(size_t idx, const MCCompLabel& pcLabel)
+MCClusterLabel* ClusterLabeler::findLabel(std::size_t idx, const MCCompLabel& pcLabel)
 {
   /// Checks if the label is already there
   if (idx >= mMCContainer.getIndexedSize()) {
@@ -56,7 +56,7 @@ MCClusterLabel* ClusterLabeler::findLabel(size_t idx, const MCCompLabel& pcLabel
   return nullptr;
 }
 
-void ClusterLabeler::addLabels(size_t idx, int cathode, gsl::span<const MCCompLabel>& labels)
+void ClusterLabeler::addLabels(std::size_t idx, int cathode, gsl::span<const MCCompLabel>& labels)
 {
   /// Adds the labels
   for (auto& pcLabel : labels) {

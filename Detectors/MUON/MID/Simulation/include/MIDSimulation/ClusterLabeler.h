@@ -30,13 +30,13 @@ namespace mid
 class ClusterLabeler
 {
  public:
-  void process(gsl::span<const PreCluster> preClusters, const o2::dataformats::MCTruthContainer<MCCompLabel>& inMCContainer, gsl::span<const Cluster2D> clusters, gsl::span<const std::array<size_t, 2>> correlations);
+  void process(gsl::span<const PreCluster> preClusters, const o2::dataformats::MCTruthContainer<MCCompLabel>& inMCContainer, gsl::span<const Cluster2D> clusters, gsl::span<const std::array<std::size_t, 2>> correlations);
 
   const o2::dataformats::MCTruthContainer<MCClusterLabel>& getContainer() { return mMCContainer; }
 
  private:
-  MCClusterLabel* findLabel(size_t idx, const MCCompLabel& pcLabel);
-  void addLabels(size_t idx, int cathode, gsl::span<const MCCompLabel>& labels);
+  MCClusterLabel* findLabel(std::size_t idx, const MCCompLabel& pcLabel);
+  void addLabels(std::size_t idx, int cathode, gsl::span<const MCCompLabel>& labels);
 
   o2::dataformats::MCTruthContainer<MCClusterLabel> mMCContainer; ///< Clusters labels
 };

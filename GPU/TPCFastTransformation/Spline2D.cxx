@@ -63,7 +63,7 @@ void Spline2DBase<DataT, isConsistentT>::setActualBufferAddress(char* actualFlat
 
   FlatObject::setActualBufferAddress(actualFlatBufferPtr);
 
-  const size_t u2Offset = alignSize(mGridU1.getFlatBufferSize(), mGridU2.getBufferAlignmentBytes());
+  const std::size_t u2Offset = alignSize(mGridU1.getFlatBufferSize(), mGridU2.getBufferAlignmentBytes());
   int parametersOffset = u2Offset;
   //int bufferSize = parametersOffset;
   mFparameters = nullptr;
@@ -153,7 +153,7 @@ void Spline2DBase<DataT, isConsistentT>::recreate(
   mGridU1.recreate(numberOfKnotsU1, knotsU1, 0);
   mGridU2.recreate(numberOfKnotsU2, knotsU2, 0);
 
-  const size_t u2Offset = alignSize(mGridU1.getFlatBufferSize(), mGridU2.getBufferAlignmentBytes());
+  const std::size_t u2Offset = alignSize(mGridU1.getFlatBufferSize(), mGridU2.getBufferAlignmentBytes());
   int parametersOffset = u2Offset + mGridU2.getFlatBufferSize();
   int bufferSize = parametersOffset;
   mFparameters = nullptr;
@@ -187,7 +187,7 @@ void Spline2DBase<DataT, isConsistentT>::recreate(
 
   mGridU2.recreate(numberOfKnotsU2, 0);
 
-  const size_t u2Offset = alignSize(mGridU1.getFlatBufferSize(), mGridU2.getBufferAlignmentBytes());
+  const std::size_t u2Offset = alignSize(mGridU1.getFlatBufferSize(), mGridU2.getBufferAlignmentBytes());
   int parametersOffset = u2Offset + mGridU2.getFlatBufferSize();
   int bufferSize = parametersOffset;
   mFparameters = nullptr;

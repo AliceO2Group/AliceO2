@@ -83,11 +83,11 @@ class DataAllocator
                 ContextRegistry* contextes,
                 const AllowedOutputRoutes& routes);
 
-  DataChunk& newChunk(const Output&, size_t);
+  DataChunk& newChunk(const Output&, std::size_t);
 
-  inline DataChunk& newChunk(OutputRef&& ref, size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
+  inline DataChunk& newChunk(OutputRef&& ref, std::size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
 
-  void adoptChunk(const Output&, char*, size_t, fairmq_free_fn*, void*);
+  void adoptChunk(const Output&, char*, std::size_t, fairmq_free_fn*, void*);
 
   /// Generic helper to create an object which is owned by the framework and
   /// returned as a reference to the own object.
@@ -348,7 +348,7 @@ class DataAllocator
   /// Take a snapshot of a raw data array which can be either POD or may contain a serialized
   /// object (in such case the serialization method should be specified accordingly). Changes
   /// to the data after the call will not be sent.
-  void snapshot(const Output& spec, const char* payload, size_t payloadSize,
+  void snapshot(const Output& spec, const char* payload, std::size_t payloadSize,
                 o2::header::SerializationMethod serializationMethod = o2::header::gSerializationMethodNone);
 
   /// make an object of type T and route to output specified by OutputRef
@@ -429,11 +429,11 @@ class DataAllocator
   TimingInfo* mTimingInfo;
   ContextRegistry* mContextRegistry;
 
-  std::string const& matchDataHeader(const Output& spec, size_t timeframeId);
+  std::string const& matchDataHeader(const Output& spec, std::size_t timeframeId);
   FairMQMessagePtr headerMessageFromOutput(Output const& spec,                                  //
                                            std::string const& channel,                          //
                                            o2::header::SerializationMethod serializationMethod, //
-                                           size_t payloadSize);                                 //
+                                           std::size_t payloadSize);                            //
 
   Output getOutputByBind(OutputRef&& ref);
   void addPartToContext(FairMQMessagePtr&& payload,

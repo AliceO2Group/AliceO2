@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_SUITE(testDPLSerializer)
 
 //   BOOST_TEST(inputV.size() == inputV2.size());
 
-//   size_t i = 0;
+//   std::size_t i = 0;
 //   for (auto const& test : inputV) {
 //     BOOST_TEST(test == inputV2[i]);
 //     i++;
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_SUITE(testDPLSerializer)
 
 //   BOOST_TEST(inputV.size() == inputV2.size());
 
-//   size_t i = 0;
+//   std::size_t i = 0;
 //   for (auto const& test : inputV) {
 //     BOOST_TEST(test == inputV2[i]);
 //     i++;
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_SUITE(testDPLSerializer)
 
 //   BOOST_TEST(inputV.size() == inputV2.size());
 
-//   size_t i = 0;
+//   std::size_t i = 0;
 //   for (auto const& test : inputV) {
 //     auto value = std::next(std::begin(inputV2), i).operator*();
 //     BOOST_TEST(test == value);
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(testBoostSerialisedType)
 
   contType inputV;
 
-  for (size_t i = 0; i < 17; i++) {
+  for (std::size_t i = 0; i < 17; i++) {
     float iFloat = (float)i;
     inputV.emplace_back(TestCluster{(uint8_t)i, 0.3f * iFloat, 0.5f * iFloat, 0.7f / iFloat, 0.9f / iFloat});
   }
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(testBoostSerialisedType)
 
   BOOST_TEST(inputV.size() == inputV2.size());
 
-  size_t i = 0;
+  std::size_t i = 0;
   for (auto const& test : inputV) {
     BOOST_TEST(test.deId == inputV2[i].deId);
     BOOST_TEST(test.xCoor == inputV2[i].xCoor);

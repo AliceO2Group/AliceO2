@@ -105,7 +105,7 @@ class PageParser
  public:
   void operator()(RawBuffer buffer, PageDecoder pageDecoder)
   {
-    size_t pos{0};
+    std::size_t pos{0};
     while (pos < buffer.size_bytes() - sizeof(RDH)) {
       auto rdh = createRDH<RDH>(buffer.subspan(pos, sizeof(RDH)));
       auto payloadSize = rdhPayloadSize(rdh);

@@ -50,16 +50,16 @@ class CRUBareDecoder
   uint8_t mCrateId{0};                                                    /// Crate ID
   std::array<uint16_t, crateparams::sNELinksPerGBT> mCalibClocks{};       /// Calibration clock
   std::array<ELinkDecoder, crateparams::sNELinksPerGBT> mELinkDecoders{}; /// E-link decoders
-  std::function<void(size_t)> mAddReg{[](size_t) {}};                     ///! Add regional board
+  std::function<void(std::size_t)> mAddReg{[](std::size_t) {}};           ///! Add regional board
 
-  std::function<bool(size_t)> mCheckBoard{std::bind(&CRUBareDecoder::checkBoard, this, std::placeholders::_1)}; ///! Check board
+  std::function<bool(std::size_t)> mCheckBoard{std::bind(&CRUBareDecoder::checkBoard, this, std::placeholders::_1)}; ///! Check board
 
   bool nextGBTWord();
-  void processGBT(size_t offset);
+  void processGBT(std::size_t offset);
   void reset();
-  void addBoard(size_t ilink);
-  bool checkBoard(size_t ilink);
-  void addLoc(size_t ilink);
+  void addBoard(std::size_t ilink);
+  bool checkBoard(std::size_t ilink);
+  void addLoc(std::size_t ilink);
   uint16_t getPattern(uint16_t pattern, bool invert) const;
 };
 } // namespace mid

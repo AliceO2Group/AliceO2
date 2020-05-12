@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(test_o2formatparser)
                            0,
                            strlen(thedata[dataidx++]));
 
-  std::vector<std::pair<const char*, size_t>> messages;
+  std::vector<std::pair<const char*, std::size_t>> messages;
   for (dataidx = 0; dataidx < thedata.size(); ++dataidx) {
     messages.emplace_back(reinterpret_cast<char*>(&dataheaders[dataidx]),
                           sizeof(o2::header::DataHeader));

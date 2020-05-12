@@ -35,9 +35,9 @@ struct CompressedClustersHelpers {
   /// @param ptr      buffer pointer, passed onto to operation
   /// @param counters the counters object CompressedClustersCounters
   template <typename Op, typename BufferType>
-  static size_t apply(Op op, BufferType& ptr, CompressedClustersROOT& c)
+  static std::size_t apply(Op op, BufferType& ptr, CompressedClustersROOT& c)
   {
-    size_t size = 0;
+    std::size_t size = 0;
     size += op(ptr, c.nAttachedClusters, c.qTotA, c.qMaxA, c.flagsA, c.sigmaPadA, c.sigmaTimeA);
     size += op(ptr, c.nUnattachedClusters, c.qTotU, c.qMaxU, c.flagsU, c.padDiffU, c.timeDiffU, c.sigmaPadU, c.sigmaTimeU);
     size += op(ptr, c.nAttachedClustersReduced, c.rowDiffA, c.sliceLegDiffA, c.padResA, c.timeResA);
@@ -49,36 +49,36 @@ struct CompressedClustersHelpers {
   /// Create a flat copy of the class
   /// The target container is resized accordingly
   template <typename ContainerType>
-  static size_t flattenTo(ContainerType& container, CompressedClustersROOT& clusters)
+  static std::size_t flattenTo(ContainerType& container, CompressedClustersROOT& clusters)
   {
     static_assert(sizeof(typename ContainerType::value_type) == 1);
     char* dummyptr = nullptr;
     auto calc_size = [](auto&... args) { return flatten::calc_size(args...); };
     auto copy_to = [](auto&... args) { return flatten::copy_to(args...); };
-    size_t size = apply(calc_size, dummyptr, clusters);
+    std::size_t size = apply(calc_size, dummyptr, clusters);
     container.resize(size);
     auto wrtptr = container.data();
-    size_t copySize = apply(copy_to, wrtptr, clusters);
+    std::size_t copySize = apply(copy_to, wrtptr, clusters);
     assert(copySize == size);
     return copySize;
   }
 
   /// Restore the array pointers from the data in the container
   template <typename ContainerType>
-  static size_t restoreFrom(ContainerType& container, CompressedClustersROOT& clusters)
+  static std::size_t restoreFrom(ContainerType& container, CompressedClustersROOT& clusters)
   {
     static_assert(sizeof(typename ContainerType::value_type) == 1);
     char* dummyptr = nullptr;
     auto calc_size = [](auto&... args) { return flatten::calc_size(args...); };
     auto set_from = [](auto&... args) { return flatten::set_from(args...); };
-    size_t size = apply(calc_size, dummyptr, clusters);
+    std::size_t size = apply(calc_size, dummyptr, clusters);
     if (container.size() != size) {
       // for the moment we don not support changes in the member layout, we can implement the
       // handling in the custom streamer
       throw std::runtime_error("mismatch between raw buffer size and counters, schema evolution is not yet supported");
     }
     auto readptr = container.data();
-    size_t checkSize = apply(set_from, readptr, clusters);
+    std::size_t checkSize = apply(set_from, readptr, clusters);
     assert(checkSize == size);
     return checkSize;
   }

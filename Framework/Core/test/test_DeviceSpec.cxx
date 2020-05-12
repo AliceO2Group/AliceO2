@@ -378,7 +378,7 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
   std::vector<OutputSpec> globalOutputs = {OutputSpec{"TST", "A"},
                                            OutputSpec{"TST", "B"}};
 
-  std::vector<size_t> edgeOutIndex{0, 1, 2, 3, 6, 4, 7, 5, 8};
+  std::vector<std::size_t> edgeOutIndex{0, 1, 2, 3, 6, 4, 7, 5, 8};
   std::vector<DeviceConnectionEdge> logicalEdges = {
     {0, 1, 0, 0, 0, 0, false, ConnectionKind::Out},
     {0, 1, 1, 0, 0, 0, false, ConnectionKind::Out},
@@ -419,7 +419,7 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
   BOOST_REQUIRE_EQUAL(devices.size(), 4); // For producers
   BOOST_REQUIRE_EQUAL(expectedDeviceIndex.size(), deviceIndex.size());
 
-  for (size_t i = 0; i < expectedDeviceIndex.size(); ++i) {
+  for (std::size_t i = 0; i < expectedDeviceIndex.size(); ++i) {
     DeviceId& expected = expectedDeviceIndex[i];
     DeviceId& actual = deviceIndex[i];
     BOOST_CHECK_EQUAL_MESSAGE(expected.processorIndex, actual.processorIndex, i);
@@ -444,7 +444,7 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
   BOOST_CHECK_EQUAL(offers[0].startPort, 22009);
 
   // Not sure this is correct, but lets assume that's the case..
-  std::vector<size_t> edgeInIndex{0, 1, 2, 3, 4, 5, 6, 7, 8};
+  std::vector<std::size_t> edgeInIndex{0, 1, 2, 3, 4, 5, 6, 7, 8};
 
   std::vector<EdgeAction> inActions{
     EdgeAction{true, true},
@@ -466,7 +466,7 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
   std::vector<DeviceId> expectedDeviceIndexFinal = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {1, 0, 1}, {1, 0, 1}, {1, 1, 2}, {1, 1, 2}, {1, 2, 3}, {1, 2, 3}, {2, 0, 4}, {2, 1, 5}};
   BOOST_REQUIRE_EQUAL(expectedDeviceIndexFinal.size(), deviceIndex.size());
 
-  for (size_t i = 0; i < expectedDeviceIndexFinal.size(); ++i) {
+  for (std::size_t i = 0; i < expectedDeviceIndexFinal.size(); ++i) {
     DeviceId& expected = expectedDeviceIndexFinal[i];
     DeviceId& actual = deviceIndex[i];
     BOOST_CHECK_EQUAL_MESSAGE(expected.processorIndex, actual.processorIndex, i);
@@ -479,7 +479,7 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
   BOOST_CHECK_EQUAL(devices.size(), 6);
   std::vector<std::string> expectedDeviceNames = {"A", "B_t0", "B_t1", "B_t2", "C_t0", "C_t1"};
 
-  for (size_t i = 0; i < devices.size(); ++i) {
+  for (std::size_t i = 0; i < devices.size(); ++i) {
     BOOST_CHECK_EQUAL(devices[i].id, expectedDeviceNames[i]);
   }
 
@@ -520,10 +520,10 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
     },
   };
 
-  for (size_t di = 0; di < expectedRoutes.size(); di++) {
+  for (std::size_t di = 0; di < expectedRoutes.size(); di++) {
     auto& routes = expectedRoutes[di];
     auto& device = devices[di];
-    for (size_t ri = 0; ri < device.outputs.size(); ri++) {
+    for (std::size_t ri = 0; ri < device.outputs.size(); ri++) {
       // FIXME: check that the matchers are the same
       auto concreteA = DataSpecUtils::asConcreteDataTypeMatcher(device.outputs[ri].matcher);
       auto concreteB = DataSpecUtils::asConcreteDataTypeMatcher(routes[ri].matcher);
@@ -702,8 +702,8 @@ BOOST_AUTO_TEST_CASE(TestSimpleWildcard)
                                            OutputSpec{"DPL", "TIMER", 0, Lifetime::Timer}};
 
   // See values in test_WorkflowHelpers.cxx
-  std::vector<size_t> edgeOutIndex{1, 2, 0};
-  std::vector<size_t> edgeInIndex{0, 1, 2};
+  std::vector<std::size_t> edgeOutIndex{1, 2, 0};
+  std::vector<std::size_t> edgeInIndex{0, 1, 2};
   std::vector<DeviceConnectionEdge> logicalEdges = {
     {2, 0, 0, 0, 2, 0, false, ConnectionKind::Out},
     {0, 1, 0, 0, 0, 0, false, ConnectionKind::Out},

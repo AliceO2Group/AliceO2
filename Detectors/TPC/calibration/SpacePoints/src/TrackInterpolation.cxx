@@ -86,8 +86,8 @@ void TrackInterpolation::process()
   LOG(INFO) << "Could process " << tracksDone.size() << " ITS-TPC-TOF matched tracks successfully";
 
   if (mDoITSOnlyTracks) {
-    size_t nTracksDoneITS = 0;
-    size_t nTracksSkipped = 0;
+    std::size_t nTracksDoneITS = 0;
+    std::size_t nTracksSkipped = 0;
     for (std::size_t iTrk = 0; iTrk < mITSTPCTracksArray.size(); ++iTrk) {
       // process ITS-TPC matched tracks that were not matched to TOF
       if (tracksDone.find(iTrk) != tracksDone.end()) {
@@ -148,7 +148,7 @@ bool TrackInterpolation::trackPassesQualityCuts(const o2::dataformats::TrackTPCI
 bool TrackInterpolation::interpolateTrackITSTOF(const o2::dataformats::MatchInfoTOF& matchTOF)
 {
   // get TPC cluster residuals to ITS-TOF only tracks
-  size_t trkIdx = mTrackData.size() - 1;
+  std::size_t trkIdx = mTrackData.size() - 1;
   auto propagator = o2::base::Propagator::Instance();
   const auto& matchITSTPC = mITSTPCTracksArray[matchTOF.getTrackIndex()];
   const auto& clTOF = mTOFClustersArray[matchTOF.getTOFClIndex()];
@@ -297,7 +297,7 @@ bool TrackInterpolation::interpolateTrackITSTOF(const o2::dataformats::MatchInfo
 bool TrackInterpolation::extrapolateTrackITS(const o2::its::TrackITS& trkITS, const TrackTPC& trkTPC, float trkTime, int trkIdTPC)
 {
   // extrapolate ITS-only track through TPC and store residuals to TPC clusters in the output vectors
-  size_t trkIdx = mTrackData.size() - 1;
+  std::size_t trkIdx = mTrackData.size() - 1;
   mTrackData[trkIdx].clIdx.setFirstEntry(mClRes.size());
   auto trk = trkITS.getParamOut();
   float clusterTimeBinOffset = trkTime / mTPCTimeBinMUS;

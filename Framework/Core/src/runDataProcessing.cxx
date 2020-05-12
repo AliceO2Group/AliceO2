@@ -289,7 +289,7 @@ static void handle_sigchld(int) { sigchld_requested = true; }
 
 void spawnRemoteDevice(std::string const& forwardedStdin,
                        DeviceSpec const& spec,
-                       std::map<int, size_t>& socket2DeviceInfo,
+                       std::map<int, std::size_t>& socket2DeviceInfo,
                        DeviceControl& control,
                        DeviceExecution& execution,
                        std::vector<DeviceInfo>& deviceInfos,
@@ -316,7 +316,7 @@ void spawnRemoteDevice(std::string const& forwardedStdin,
 /// new child
 void spawnDevice(std::string const& forwardedStdin,
                  DeviceSpec const& spec,
-                 std::map<int, size_t>& socket2DeviceInfo,
+                 std::map<int, std::size_t>& socket2DeviceInfo,
                  DeviceControl& control,
                  DeviceExecution& execution,
                  std::vector<DeviceInfo>& deviceInfos,
@@ -390,7 +390,7 @@ void spawnDevice(std::string const& forwardedStdin,
   close(childstdin[0]);
   close(childstdout[1]);
   close(childstderr[1]);
-  size_t result = write(childstdin[1], forwardedStdin.data(), forwardedStdin.size());
+  std::size_t result = write(childstdin[1], forwardedStdin.data(), forwardedStdin.size());
   if (result != forwardedStdin.size()) {
     LOG(ERROR) << "Unable to pass configuration to children";
   }
@@ -467,7 +467,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
   ParsedMetricMatch metricMatch;
   const std::string delimiter("\n");
   bool hasNewMetric = false;
-  for (size_t di = 0, de = infos.size(); di < de; ++di) {
+  for (std::size_t di = 0, de = infos.size(); di < de; ++di) {
     DeviceInfo& info = infos[di];
     DeviceControl& control = controls[di];
     DeviceMetricsInfo& metrics = metricsInfos[di];
@@ -481,7 +481,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
     O2_SIGNPOST_START(DriverStatus::ID, DriverStatus::BYTES_PROCESSED, info.pid, 0, 0);
 
     std::string_view s = info.unprinted;
-    size_t pos = 0;
+    std::size_t pos = 0;
     info.history.resize(info.historySize);
     info.historyLevel.resize(info.historySize);
 
@@ -490,7 +490,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
                                      &info.variablesViewIndex,
                                      &info.queriesViewIndex});
 
-    auto newMetricCallback = [&updateMetricsViews, &driverInfo, &metricsInfos, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
+    auto newMetricCallback = [&updateMetricsViews, &driverInfo, &metricsInfos, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, std::size_t metricIndex) {
       updateMetricsViews(name, metric, value, metricIndex);
       hasNewMetric = true;
     };
@@ -557,7 +557,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
       }
       s.remove_prefix(pos + delimiter.length());
     }
-    size_t oldSize = info.unprinted.size();
+    std::size_t oldSize = info.unprinted.size();
     info.unprinted = s;
     O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_PROCESSED, oldSize - info.unprinted.size(), 0, 0);
   }
@@ -965,7 +965,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
         std::ostringstream forwardedStdin;
         WorkflowSerializationHelpers::dump(forwardedStdin, workflow, dataProcessorInfos);
-        for (size_t di = 0; di < deviceSpecs.size(); ++di) {
+        for (std::size_t di = 0; di < deviceSpecs.size(); ++di) {
           if (deviceSpecs[di].resource.hostname != driverInfo.deployHostname) {
             spawnRemoteDevice(forwardedStdin.str(),
                               deviceSpecs[di], driverInfo.socket2DeviceInfo, controls[di], deviceExecutions[di], infos,
@@ -1148,7 +1148,7 @@ void overridePipeline(ConfigContext& ctx, WorkflowSpec& workflow)
   std::vector<PipelineSpec> specs;
   std::string delimiter = ",";
 
-  size_t pos = 0;
+  std::size_t pos = 0;
   while (s.empty() == false) {
     auto newPos = s.find(delimiter);
     auto token = s.substr(0, newPos);
@@ -1158,7 +1158,7 @@ void overridePipeline(ConfigContext& ctx, WorkflowSpec& workflow)
     }
     auto key = token.substr(0, split);
     token.erase(0, split + 1);
-    size_t error;
+    std::size_t error;
     auto value = std::stoll(token, &error, 10);
     if (token[error] != '\0') {
       throw std::runtime_error("Bad pipeline definition. Expecting integer");
@@ -1292,7 +1292,7 @@ void apply_permutation(
   std::vector<int>& indices)
 {
   using std::swap; // to permit Koenig lookup
-  for (size_t i = 0; i < indices.size(); i++) {
+  for (std::size_t i = 0; i < indices.size(); i++) {
     auto current = i;
     while (i != indices[current]) {
       auto next = indices[current];
@@ -1367,7 +1367,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
 {
   O2_SIGNPOST_INIT();
   std::vector<std::string> currentArgs;
-  for (size_t ai = 1; ai < argc; ++ai) {
+  for (std::size_t ai = 1; ai < argc; ++ai) {
     currentArgs.push_back(argv[ai]);
   }
 
@@ -1410,14 +1410,14 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   visibleOptions.add(executorOptions);
 
   auto physicalWorkflow = workflow;
-  std::map<std::string, size_t> rankIndex;
+  std::map<std::string, std::size_t> rankIndex;
   // We remove the duplicates because for the moment child get themself twice:
   // once from the actual definition in the child, a second time from the
   // configuration they get passed by their parents.
   // Notice that we do not know in which order we will get the workflows, so
   // while we keep the order of DataProcessors we reshuffle them based on
   // some hopefully unique hash.
-  size_t workflowHashA = 0;
+  std::size_t workflowHashA = 0;
   std::hash<std::string> hash_fn;
 
   for (auto& dp : workflow) {
@@ -1433,7 +1433,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     std::vector<DataProcessorSpec> importedWorkflow;
     WorkflowSerializationHelpers::import(std::cin, importedWorkflow, dataProcessorInfos);
 
-    size_t workflowHashB = 0;
+    std::size_t workflowHashB = 0;
     for (auto& dp : importedWorkflow) {
       workflowHashB += hash_fn(dp.name);
     }
@@ -1477,8 +1477,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   auto checkDependencies = [& workflow = physicalWorkflow](int i, int j) {
     DataProcessorSpec const& a = workflow[i];
     DataProcessorSpec const& b = workflow[j];
-    for (size_t ii = 0; ii < a.inputs.size(); ++ii) {
-      for (size_t oi = 0; oi < b.outputs.size(); ++oi) {
+    for (std::size_t ii = 0; ii < a.inputs.size(); ++ii) {
+      for (std::size_t oi = 0; oi < b.outputs.size(); ++oi) {
         try {
           if (DataSpecUtils::match(a.inputs[ii], b.outputs[oi])) {
             return true;
@@ -1496,8 +1496,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   std::vector<std::pair<int, int>> edges;
 
   if (physicalWorkflow.size() > 1) {
-    for (size_t i = 0; i < physicalWorkflow.size() - 1; ++i) {
-      for (size_t j = i; j < physicalWorkflow.size(); ++j) {
+    for (std::size_t i = 0; i < physicalWorkflow.size() - 1; ++i) {
+      for (std::size_t j = i; j < physicalWorkflow.size(); ++j) {
         if (i == j && checkDependencies(i, j)) {
           throw std::runtime_error(physicalWorkflow[i].name + " depends on itself");
         }
@@ -1528,12 +1528,12 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     // Reverse index and apply the result
     std::vector<int> dataProcessorOrder;
     dataProcessorOrder.resize(topoInfos.size());
-    for (size_t i = 0; i < topoInfos.size(); ++i) {
+    for (std::size_t i = 0; i < topoInfos.size(); ++i) {
       dataProcessorOrder[topoInfos[i].index] = i;
     }
     std::vector<int> newLocations;
     newLocations.resize(dataProcessorOrder.size());
-    for (size_t i = 0; i < dataProcessorOrder.size(); ++i) {
+    for (std::size_t i = 0; i < dataProcessorOrder.size(); ++i) {
       newLocations[dataProcessorOrder[i]] = i;
     }
     apply_permutation(physicalWorkflow, newLocations);

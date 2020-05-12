@@ -38,8 +38,8 @@ class FakeTimeframeGeneratorDevice : public base::O2Device
   bool ConditionalRun() final;
 
   std::string mOutChannelName;
-  size_t mMaxTimeframes;
-  size_t mTimeframeCount;
+  std::size_t mMaxTimeframes;
+  std::size_t mTimeframeCount;
 };
 
 } // namespace data_flow

@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
       rawFileReader.readHB(onlyClosedHBs);
       decoder.process(rawFileReader.getData());
       rawFileReader.clear();
-      size_t offset = data.size();
+      std::size_t offset = data.size();
       std::copy(decoder.getData().begin(), decoder.getData().end(), std::back_inserter(data));
       for (auto& rof : decoder.getROFRecords()) {
         rofRecords.emplace_back(rof.interactionRecord, rof.eventType, rof.firstEntry + offset, rof.nEntries);

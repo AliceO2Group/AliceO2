@@ -123,7 +123,7 @@ void CcdbApi::storeAsTFile_impl(const void* obj, std::type_info const& tinfo, st
                     path, metadata, startValidityTimestamp, endValidityTimestamp);
 }
 
-void CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::string& filename, const std::string& objectType,
+void CcdbApi::storeAsBinaryFile(const char* buffer, std::size_t size, const std::string& filename, const std::string& objectType,
                                 const std::string& path, const std::map<std::string, std::string>& metadata,
                                 long startValidityTimestamp, long endValidityTimestamp) const
 {
@@ -265,9 +265,9 @@ struct MemoryStruct {
  * @param userp a MemoryStruct where data is stored.
  * @return the size of the data we received and stored at userp.
  */
-static size_t WriteMemoryCallback(void* contents, size_t size, size_t nmemb, void* userp)
+static std::size_t WriteMemoryCallback(void* contents, std::size_t size, std::size_t nmemb, void* userp)
 {
-  size_t realsize = size * nmemb;
+  std::size_t realsize = size * nmemb;
   auto* mem = (struct MemoryStruct*)userp;
 
   mem->memory = (char*)realloc(mem->memory, mem->size + realsize + 1);
@@ -292,9 +292,9 @@ static size_t WriteMemoryCallback(void* contents, size_t size, size_t nmemb, voi
  * @param userp a MemoryStruct where data is stored.
  * @return the size of the data we received and stored at userp.
  */
-static size_t WriteToFileCallback(void* ptr, size_t size, size_t nmemb, FILE* stream)
+static std::size_t WriteToFileCallback(void* ptr, std::size_t size, std::size_t nmemb, FILE* stream)
 {
-  size_t written = fwrite(ptr, size, nmemb, stream);
+  std::size_t written = fwrite(ptr, size, nmemb, stream);
   return written;
 }
 
@@ -391,7 +391,7 @@ std::string CcdbApi::generateFileName(const std::string& inp)
 
 namespace
 {
-size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userdata)
+std::size_t header_map_callback(char* buffer, std::size_t size, std::size_t nitems, void* userdata)
 {
   auto* headers = static_cast<std::map<std::string, std::string>*>(userdata);
   auto header = std::string(buffer, size * nitems);
@@ -736,10 +736,10 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   return result;
 }
 
-size_t CurlWrite_CallbackFunc_StdString2(void* contents, size_t size, size_t nmemb, std::string* s)
+std::size_t CurlWrite_CallbackFunc_StdString2(void* contents, std::size_t size, std::size_t nmemb, std::string* s)
 {
-  size_t newLength = size * nmemb;
-  size_t oldLength = s->size();
+  std::size_t newLength = size * nmemb;
+  std::size_t oldLength = s->size();
   try {
     s->resize(oldLength + newLength);
   } catch (std::bad_alloc& e) {
@@ -834,7 +834,7 @@ void CcdbApi::truncate(std::string const& path) const
   }
 }
 
-size_t write_data(void* buffer, size_t size, size_t nmemb, void* userp)
+std::size_t write_data(void* buffer, std::size_t size, std::size_t nmemb, void* userp)
 {
   return size * nmemb;
 }
@@ -866,7 +866,7 @@ std::vector<std::string> CcdbApi::parseSubFolders(std::string const& reply) cons
   std::string line;
   std::vector<std::string> folders;
 
-  size_t numberoflines = std::count(reply.begin(), reply.end(), '\n');
+  std::size_t numberoflines = std::count(reply.begin(), reply.end(), '\n');
   bool inSubFolderSection = false;
 
   int counter = 0;
@@ -886,7 +886,7 @@ std::vector<std::string> CcdbApi::parseSubFolders(std::string const& reply) cons
 
 namespace
 {
-size_t header_callback(char* buffer, size_t size, size_t nitems, void* userdata)
+std::size_t header_callback(char* buffer, std::size_t size, std::size_t nitems, void* userdata)
 {
   std::vector<std::string>* headers = static_cast<std::vector<std::string>*>(userdata);
   auto header = std::string(buffer, size * nitems);

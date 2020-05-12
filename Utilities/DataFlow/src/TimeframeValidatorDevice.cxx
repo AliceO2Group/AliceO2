@@ -110,7 +110,7 @@ void o2::data_flow::TimeframeValidatorDevice::Run()
     if (tpcHeader->payloadSize % sizeof(TPCTestCluster))
       LOG(ERROR) << "TPC - CLUSTERS Size Mismatch\n";
     auto numOfClusters = tpcHeader->payloadSize / sizeof(TPCTestCluster);
-    for (size_t ci = 0; ci < numOfClusters; ++ci) {
+    for (std::size_t ci = 0; ci < numOfClusters; ++ci) {
       TPCTestCluster& cluster = tpcPayload[ci];
       if (cluster.z != 1.5) {
         LOG(ERROR) << "TPC Data mismatch. Expecting z = 1.5 got " << cluster.z << "\n";
@@ -133,7 +133,7 @@ void o2::data_flow::TimeframeValidatorDevice::Run()
     if (itsHeader->payloadSize % sizeof(ITSRawData))
       LOG(ERROR) << "ITS - CLUSTERS Size Mismatch.\n";
     numOfClusters = itsHeader->payloadSize / sizeof(ITSRawData);
-    for (size_t ci = 0; ci < numOfClusters; ++ci) {
+    for (std::size_t ci = 0; ci < numOfClusters; ++ci) {
       ITSRawData& cluster = itsPayload[ci];
       if (cluster.timeStamp != ci) {
         LOG(ERROR) << "ITS Data mismatch. Expecting " << ci

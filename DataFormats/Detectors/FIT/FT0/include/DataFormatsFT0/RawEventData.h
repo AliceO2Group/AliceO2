@@ -67,8 +67,8 @@ struct EventData {
     };
   };
   uint64_t word_zeros = 0x0;
-  static const size_t PayloadSizeSecondWord = 11;
-  static const size_t PayloadSizeFirstWord = 5;
+  static const std::size_t PayloadSizeSecondWord = 11;
+  static const std::size_t PayloadSizeFirstWord = 5;
 
   ClassDefNV(EventData, 1);
 };

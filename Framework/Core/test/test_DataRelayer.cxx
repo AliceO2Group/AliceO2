@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(TestRelay)
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
 
-  auto createMessage = [&transport, &relayer](DataHeader& dh, size_t time) {
+  auto createMessage = [&transport, &relayer](DataHeader& dh, std::size_t time) {
     DataProcessingHeader dph{time, 1};
     Stack stack{dh, dph};
     FairMQMessagePtr header = transport->CreateMessage(stack.size());
@@ -209,7 +209,7 @@ BOOST_AUTO_TEST_CASE(TestRelayBug)
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
 
-  auto createMessage = [&transport, &relayer](DataHeader& dh, size_t time) {
+  auto createMessage = [&transport, &relayer](DataHeader& dh, std::size_t time) {
     DataProcessingHeader dph{time, 1};
     Stack stack{dh, dph};
     FairMQMessagePtr header = transport->CreateMessage(stack.size());
@@ -303,7 +303,7 @@ BOOST_AUTO_TEST_CASE(TestCache)
   BOOST_CHECK_EQUAL(ready[1].slot.index, 1);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
   BOOST_CHECK_EQUAL(ready[1].op, CompletionPolicy::CompletionOp::Consume);
-  for (size_t i = 0; i < ready.size(); ++i) {
+  for (std::size_t i = 0; i < ready.size(); ++i) {
     auto result = relayer.getInputsForTimeslice(ready[i].slot);
   }
 

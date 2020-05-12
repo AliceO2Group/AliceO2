@@ -26,7 +26,7 @@ ROframe::ROframe(const Int_t ROframeId) : mROframeId{ROframeId}
 
 Int_t ROframe::getTotalClusters() const
 {
-  size_t totalClusters{0};
+  std::size_t totalClusters{0};
   for (auto& clusters : mClusters)
     totalClusters += clusters.size();
   return Int_t(totalClusters);

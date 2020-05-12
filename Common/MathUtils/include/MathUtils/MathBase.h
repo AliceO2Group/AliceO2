@@ -56,7 +56,7 @@ namespace math_base
 ///
 ///
 template <typename T>
-TFitResultPtr fit(const size_t nBins, const T* arr, const T xMin, const T xMax, TF1& func, std::string_view option = "")
+TFitResultPtr fit(const std::size_t nBins, const T* arr, const T xMin, const T xMax, TF1& func, std::string_view option = "")
 {
   Foption_t fitOption;
   ROOT::Fit::FitOptionsMake(ROOT::Fit::kHistogram, option.data(), fitOption);
@@ -138,9 +138,9 @@ TFitResultPtr fit(const size_t nBins, const T* arr, const T xMin, const T xMax, 
 ///          -4: invalid result!!
 ///
 //template <typename T>
-//Double_t  fitGaus(const size_t nBins, const T *arr, const T xMin, const T xMax, std::vector<T>& param);
+//Double_t  fitGaus(const std::size_t nBins, const T *arr, const T xMin, const T xMax, std::vector<T>& param);
 template <typename T>
-Double_t fitGaus(const size_t nBins, const T* arr, const T xMin, const T xMax, std::vector<T>& param)
+Double_t fitGaus(const std::size_t nBins, const T* arr, const T xMin, const T xMax, std::vector<T>& param)
 {
   static TLinearFitter fitter(3, "pol2");
   static TMatrixD mat(3, 3);
@@ -276,12 +276,12 @@ struct StatisticsData {
 /// \param xMax upper histogram bound
 /// \todo make return type templated?
 template <typename T>
-StatisticsData getStatisticsData(const T* arr, const size_t nBins, const double xMin, const double xMax)
+StatisticsData getStatisticsData(const T* arr, const std::size_t nBins, const double xMin, const double xMax)
 {
   double mean = 0;
   double rms2 = 0;
   double sum = 0;
-  size_t npoints = 0;
+  std::size_t npoints = 0;
 
   double binWidth = (xMax - xMin) / (double)nBins;
 
@@ -289,7 +289,7 @@ StatisticsData getStatisticsData(const T* arr, const size_t nBins, const double 
   // in case something went wrong the COG is the histogram lower limit
   data.mCOG = xMin;
 
-  for (size_t ibin = 0; ibin < nBins; ++ibin) {
+  for (std::size_t ibin = 0; ibin < nBins; ++ibin) {
     double entriesI = (double)arr[ibin];
     double xcenter = xMin + (ibin + 0.5) * binWidth; // +0.5 to shift to bin centre
     if (entriesI > 0) {
@@ -344,14 +344,14 @@ R median(std::vector<T> v)
 /// \param values Vector to be indexed
 /// \param index Vector to hold the sorted indices (must have the same size as values)
 template <typename T>
-void SortData(std::vector<T> const& values, std::vector<size_t>& index)
+void SortData(std::vector<T> const& values, std::vector<std::size_t>& index)
 {
   if (values.size() != index.size()) {
     LOG(error) << "Vector with values must have same size as vector for indices";
     return;
   }
-  std::iota(index.begin(), index.end(), static_cast<size_t>(0));
-  std::sort(index.begin(), index.end(), [&](size_t a, size_t b) { return values[a] < values[b]; });
+  std::iota(index.begin(), index.end(), static_cast<std::size_t>(0));
+  std::sort(index.begin(), index.end(), [&](std::size_t a, std::size_t b) { return values[a] < values[b]; });
 }
 
 /// LTM : Trimmed mean of unbinned array
@@ -374,7 +374,7 @@ void SortData(std::vector<T> const& values, std::vector<size_t>& index)
 /// -# first accepted element (of sorted array)
 /// -# last accepted  element (of sorted array)
 template <typename T>
-bool LTMUnbinned(const std::vector<T>& data, std::vector<size_t>& index, std::array<float, 7>& params, float fracKeep)
+bool LTMUnbinned(const std::vector<T>& data, std::vector<std::size_t>& index, std::array<float, 7>& params, float fracKeep)
 {
   int nPoints = data.size();
   std::vector<float> w(2 * nPoints);
@@ -430,7 +430,7 @@ bool LTMUnbinned(const std::vector<T>& data, std::vector<size_t>& index, std::ar
 /// \param data Input vector
 /// \param index Index vector
 template <typename T>
-void Reorder(std::vector<T>& data, const std::vector<size_t>& index)
+void Reorder(std::vector<T>& data, const std::vector<std::size_t>& index)
 {
   // rearange data in order given by index
   if (data.size() != index.size()) {
@@ -438,7 +438,7 @@ void Reorder(std::vector<T>& data, const std::vector<size_t>& index)
     return;
   }
   std::vector<T> tmp(data);
-  for (size_t i = 0; i < data.size(); ++i) {
+  for (std::size_t i = 0; i < data.size(); ++i) {
     data[i] = tmp[index[i]];
   }
 }
@@ -453,7 +453,7 @@ void Reorder(std::vector<T>& data, const std::vector<size_t>& index)
 /// \param sorted Flag if the data is already sorted
 /// \return Flag if successfull
 template <typename T>
-bool LTMUnbinnedSig(const std::vector<T>& data, std::vector<size_t>& index, std::array<float, 7>& params, float fracKeepMin, float sigTgt, bool sorted = false)
+bool LTMUnbinnedSig(const std::vector<T>& data, std::vector<std::size_t>& index, std::array<float, 7>& params, float fracKeepMin, float sigTgt, bool sorted = false)
 {
   int nPoints = data.size();
   std::vector<double> wx(nPoints);

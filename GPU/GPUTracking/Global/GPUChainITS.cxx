@@ -36,7 +36,7 @@ void GPUChainITS::RegisterGPUProcessors()
   }
 }
 
-void GPUChainITS::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
+void GPUChainITS::MemorySize(std::size_t& gpuMem, std::size_t& pageLockedHostMem)
 {
   gpuMem = mMaxTracks * sizeof(GPUITSTrack) + GPUCA_MEMALIGN;
   pageLockedHostMem = gpuMem;

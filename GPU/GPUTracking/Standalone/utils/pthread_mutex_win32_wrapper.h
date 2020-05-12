@@ -64,7 +64,7 @@ static inline int pthread_mutex_destroy(pthread_mutex_t* mutex) { return (CloseH
 
 static inline int pthread_create(pthread_t* thread, const void* attr, void* (*start_routine)(void*), void* arg) { return ((*thread = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)start_routine, arg, 0, nullptr)) == 0); }
 
-static inline int pthread_exit(void* ret) { ExitThread((DWORD)(size_t)ret); }
+static inline int pthread_exit(void* ret) { ExitThread((DWORD)(std::size_t)ret); }
 
 static inline int pthread_join(pthread_t thread, void** retval)
 {

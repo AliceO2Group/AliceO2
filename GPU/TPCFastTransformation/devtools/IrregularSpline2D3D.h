@@ -160,27 +160,27 @@ class IrregularSpline2D3D : public FlatObject
   GPUd() void getKnotUV(int iKnot, float& u, float& v) const;
 
   /// Get size of the mFlatBuffer data
-  size_t getFlatBufferSize() const { return mFlatBufferSize; }
+  std::size_t getFlatBufferSize() const { return mFlatBufferSize; }
 
   /// Get pointer to the flat buffer
   const char* getFlatBufferPtr() const { return mFlatBufferPtr; }
 
   /// Get minimal required alignment for the class
-  static constexpr size_t getClassAlignmentBytes() { return 8; }
+  static constexpr std::size_t getClassAlignmentBytes() { return 8; }
 
   /// Get minimal required alignment for the flat buffer
-  static constexpr size_t getBufferAlignmentBytes() { return 8; }
+  static constexpr std::size_t getBufferAlignmentBytes() { return 8; }
 
   /// Get minimal required alignment for the spline data
-  static constexpr size_t getDataAlignmentBytes() { return 8; }
+  static constexpr std::size_t getDataAlignmentBytes() { return 8; }
 
   /// technical stuff
 
   /// Get offset of GridU flat data in the flat buffer
-  size_t getGridUOffset() const { return mGridU.getFlatBufferPtr() - mFlatBufferPtr; }
+  std::size_t getGridUOffset() const { return mGridU.getFlatBufferPtr() - mFlatBufferPtr; }
 
   /// Get offset of GridV flat data in the flat buffer
-  size_t getGridVOffset() const { return mGridV.getFlatBufferPtr() - mFlatBufferPtr; }
+  std::size_t getGridVOffset() const { return mGridV.getFlatBufferPtr() - mFlatBufferPtr; }
 
   /// Print method
   void print() const;

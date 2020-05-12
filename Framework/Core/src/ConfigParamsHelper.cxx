@@ -38,7 +38,7 @@ void ConfigParamsHelper::populateBoostProgramOptions(
     const char* help = spec.help.c_str();
 
     switch (spec.type) {
-      // FIXME: Should we handle int and size_t diffently?
+      // FIXME: Should we handle int and std::size_t diffently?
       // FIXME: We should probably raise an error if the type is unknown
       case VariantType::Int:
         addConfigSpecOption<VariantType::Int>(spec, options);

@@ -162,7 +162,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       // Each parallel reader reads the files whose index is associated to
       // their inputTimesliceId
       assert(device.inputTimesliceId < device.maxInputTimeslices);
-      size_t fi = (*counter * device.maxInputTimeslices) + device.inputTimesliceId;
+      std::size_t fi = (*counter * device.maxInputTimeslices) + device.inputTimesliceId;
       *counter += 1;
 
       if (didir->atEnd(fi)) {

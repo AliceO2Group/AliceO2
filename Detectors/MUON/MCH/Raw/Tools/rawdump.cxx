@@ -103,12 +103,12 @@ std::map<std::string, ChannelStat> rawdump(std::string input, DumpOptions opt)
     std::cout << "could not open file " << input << "\n";
     return {};
   }
-  constexpr size_t pageSize = 8192;
+  constexpr std::size_t pageSize = 8192;
 
   std::array<std::byte, pageSize> buffer;
   gsl::span<const std::byte> page(buffer);
 
-  size_t nrdhs{0};
+  std::size_t nrdhs{0};
   const auto patchPage = [&](gsl::span<std::byte> rdhBuffer) {
     auto rdhPtr = reinterpret_cast<o2::header::RAWDataHeaderV4*>(&rdhBuffer[0]);
     auto& rdh = *rdhPtr;
@@ -150,7 +150,7 @@ std::map<std::string, ChannelStat> rawdump(std::string input, DumpOptions opt)
 
   o2::mch::raw::PageDecoder decode = nullptr;
 
-  size_t npages{0};
+  std::size_t npages{0};
   uint64_t bytesRead{0};
 
   // warning : we currently assume fixed-size pages for reading the file...

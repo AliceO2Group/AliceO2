@@ -40,7 +40,7 @@ DataProcessorSpec templateProducer()
                            AlgorithmSpec{[](InitContext& setup) {
                              return [](ProcessingContext& ctx) {
                                // Create a single output.
-                               size_t index = ctx.services().get<ParallelContext>().index1D();
+                               std::size_t index = ctx.services().get<ParallelContext>().index1D();
                                std::this_thread::sleep_for(std::chrono::seconds(1));
                                auto& aData = ctx.outputs().make<int>(
                                  Output{"TST", "A", static_cast<o2::header::DataHeader::SubSpecificationType>(index)}, 1);
@@ -59,14 +59,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& context)
   // instances in order to modify it. Parallel will also make sure the name of
   // the instance is amended from "some-producer" to "some-producer-<index>".
   auto jobs = context.options().get<int>("jobs");
-  WorkflowSpec workflow = parallel(templateProducer(), jobs, [](DataProcessorSpec& spec, size_t index) {
+  WorkflowSpec workflow = parallel(templateProducer(), jobs, [](DataProcessorSpec& spec, std::size_t index) {
     DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
   });
   workflow.push_back(DataProcessorSpec{
     "merger",
     mergeInputs(InputSpec{"x", "TST", "A", 0, Lifetime::Timeframe},
                 jobs,
-                [](InputSpec& input, size_t index) {
+                [](InputSpec& input, std::size_t index) {
                   DataSpecUtils::updateMatchingSubspec(input, index);
                 }),
     {},

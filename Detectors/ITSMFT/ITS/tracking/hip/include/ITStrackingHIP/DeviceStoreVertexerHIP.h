@@ -157,7 +157,7 @@ inline std::vector<Tracklet> DeviceStoreVertexerHIP::getRawDupletsFromGPU(const 
   sizes.resize(constants::its::LayersNumberVertexer);
   mSizes.copyIntoSizedVector(sizes);
   std::vector<Tracklet> tmpDuplets;
-  tmpDuplets.resize(static_cast<size_t>(mGPUConf.dupletsCapacity));
+  tmpDuplets.resize(static_cast<std::size_t>(mGPUConf.dupletsCapacity));
   std::vector<int> nFoundDuplets;
   nFoundDuplets.resize(sizes[1]);
 
@@ -179,7 +179,7 @@ inline std::vector<Tracklet> DeviceStoreVertexerHIP::getDupletsFromGPU(const Ord
   sizes.resize(constants::its::LayersNumberVertexer);
   mSizes.copyIntoSizedVector(sizes);
   std::vector<Tracklet> tmpDuplets;
-  tmpDuplets.resize(static_cast<size_t>(mGPUConf.dupletsCapacity));
+  tmpDuplets.resize(static_cast<std::size_t>(mGPUConf.dupletsCapacity));
   std::vector<int> nFoundDuplets;
   nFoundDuplets.resize(sizes[1]);
   std::vector<Tracklet> shrinkedDuplets;
@@ -213,7 +213,7 @@ inline std::vector<std::array<int, 2>> DeviceStoreVertexerHIP::getDupletIndicesF
     mDupletIndices[iAllowed].resize(nLines);
     mDupletIndices[iAllowed].copyIntoSizedVector(allowedLines[iAllowed]);
   }
-  for (size_t iPair{0}; iPair < allowedLines[0].size(); ++iPair) {
+  for (std::size_t iPair{0}; iPair < allowedLines[0].size(); ++iPair) {
     allowedPairIndices.emplace_back(std::array<int, 2>{allowedLines[0][iPair], allowedLines[1][iPair]});
   }
   return allowedPairIndices;

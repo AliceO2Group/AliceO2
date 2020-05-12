@@ -29,7 +29,7 @@ int main(int argc, char** argv)
   // Construct a dummy timeframe.
   // Stream it and get the parts
   FairMQParts parts;
-  auto onAddParts = [](FairMQParts& p, char* buffer, size_t size) {
+  auto onAddParts = [](FairMQParts& p, char* buffer, std::size_t size) {
     LOG(INFO) << "Adding part to those to be sent.\n";
   };
   auto onSend = [](FairMQParts& p) {
@@ -37,14 +37,14 @@ int main(int argc, char** argv)
   };
 
   // Prepare a test timeframe to be streamed
-  auto zeroFiller = [](char* b, size_t s) { memset(b, 0, s); };
+  auto zeroFiller = [](char* b, std::size_t s) { memset(b, 0, s); };
   std::vector<o2::data_flow::FakeTimeframeSpec> specs = {
     {.origin = "TPC",
      .dataDescription = "CLUSTERS",
      .bufferFiller = zeroFiller,
      .bufferSize = 1000}};
 
-  size_t testBufferSize;
+  std::size_t testBufferSize;
   auto testBuffer = fakeTimeframeGenerator(specs, testBufferSize);
 
   OneShotReadBuf osrb(testBuffer.get(), testBufferSize);

@@ -80,7 +80,7 @@ std::string DataSpecUtils::describe(OutputSpec const& spec)
                     spec.matcher);
 }
 
-void DataSpecUtils::describe(char* buffer, size_t size, InputSpec const& spec)
+void DataSpecUtils::describe(char* buffer, std::size_t size, InputSpec const& spec)
 {
   if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
     char origin[5];

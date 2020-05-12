@@ -46,7 +46,7 @@ SOFTWARE.
 #include <algorithm>        // all_of, find, for_each
 #include <cassert>          // assert
 #include <ciso646>          // and, not, or
-#include <cstddef>          // nullptr_t, ptrdiff_t, size_t
+#include <cstddef>          // nullptr_t, ptrdiff_t, std::size_t
 #include <functional>       // hash, less
 #include <initializer_list> // initializer_list
 #include <iosfwd>           // istream, ostream
@@ -242,7 +242,7 @@ contains a `mapped_type`, whereas `std::vector` fails the test.
 // #include <nlohmann/detail/meta.hpp>
 
 #include <ciso646>     // not
-#include <cstddef>     // size_t
+#include <cstddef>     // std::size_t
 #include <limits>      // numeric_limits
 #include <type_traits> // conditional, enable_if, false_type, integral_constant, is_constructible, is_integral, is_same, remove_cv, remove_reference, true_type
 #include <utility>     // declval
@@ -845,7 +845,7 @@ class other_error : public exception
 
 #include <array>   // array
 #include <ciso646> // and
-#include <cstddef> // size_t
+#include <cstddef> // std::size_t
 #include <cstdint> // uint8_t
 
 namespace nlohmann
@@ -1556,7 +1556,7 @@ constexpr const auto& to_json = detail::static_const<detail::to_json_fn>::value;
 #include <algorithm>   // min
 #include <array>       // array
 #include <cassert>     // assert
-#include <cstddef>     // size_t
+#include <cstddef>     // std::size_t
 #include <cstring>     // strlen
 #include <ios>         // streamsize, streamoff, streampos
 #include <istream>     // istream
@@ -1767,7 +1767,7 @@ class input_adapter
       sizeof(typename std::iterator_traits<IteratorType>::value_type) == 1,
       "each element in the iterator range must have the size of 1 byte");
 
-    const auto len = static_cast<size_t>(std::distance(first, last));
+    const auto len = static_cast<std::size_t>(std::distance(first, last));
     if (JSON_LIKELY(len > 0)) {
       // there is at least one element: use the address of first
       ia = std::make_shared<input_buffer_adapter>(reinterpret_cast<const char*>(&(*first)), len);
@@ -1808,7 +1808,7 @@ class input_adapter
 // #include <nlohmann/detail/input/lexer.hpp>
 
 #include <clocale>          // localeconv
-#include <cstddef>          // size_t
+#include <cstddef>          // std::size_t
 #include <cstdlib>          // strtof, strtod, strtold, strtoll, strtoull
 #include <initializer_list> // initializer_list
 #include <ios>              // hex, uppercase
@@ -4229,7 +4229,7 @@ class iter_impl
 
 // #include <nlohmann/detail/iterators/iteration_proxy.hpp>
 
-#include <cstddef> // size_t
+#include <cstddef> // std::size_t
 #include <string>  // string, to_string
 
 // #include <nlohmann/detail/value_t.hpp>
@@ -4449,7 +4449,7 @@ class json_reverse_iterator : public std::reverse_iterator<Base>
 // #include <nlohmann/detail/output/output_adapters.hpp>
 
 #include <algorithm> // copy
-#include <cstddef>   // size_t
+#include <cstddef>   // std::size_t
 #include <ios>       // streamsize
 #include <iterator>  // back_inserter
 #include <memory>    // shared_ptr, make_shared
@@ -4566,7 +4566,7 @@ class output_adapter
 #include <array>     // array
 #include <cassert>   // assert
 #include <cmath>     // ldexp
-#include <cstddef>   // size_t
+#include <cstddef>   // std::size_t
 #include <cstdint>   // uint8_t, uint16_t, uint32_t, uint64_t
 #include <cstring>   // memcpy
 #include <iomanip>   // setw, setfill
@@ -6608,7 +6608,7 @@ class binary_writer
 #include <ciso646>     // and, or
 #include <clocale>     // localeconv, lconv
 #include <cmath>       // labs, isfinite, isnan, signbit
-#include <cstddef>     // size_t, ptrdiff_t
+#include <cstddef>     // std::size_t, ptrdiff_t
 #include <cstdint>     // uint8_t
 #include <cstdio>      // snprintf
 #include <iomanip>     // setfill
@@ -7567,7 +7567,7 @@ inline char* format_buffer(char* buf, int len, int decimal_exponent,
     // digits[000]
     // len <= max_exp + 2
 
-    std::memset(buf + k, '0', static_cast<size_t>(n - k));
+    std::memset(buf + k, '0', static_cast<std::size_t>(n - k));
     // Make it look like a floating-point number (#362, #378)
     buf[n + 0] = '.';
     buf[n + 1] = '0';
@@ -7580,7 +7580,7 @@ inline char* format_buffer(char* buf, int len, int decimal_exponent,
 
     assert(k > n);
 
-    std::memmove(buf + (n + 1), buf + n, static_cast<size_t>(k - n));
+    std::memmove(buf + (n + 1), buf + n, static_cast<std::size_t>(k - n));
     buf[n] = '.';
     return buf + (k + 1);
   }
@@ -7589,10 +7589,10 @@ inline char* format_buffer(char* buf, int len, int decimal_exponent,
     // 0.[000]digits
     // len <= 2 + (-min_exp - 1) + max_digits10
 
-    std::memmove(buf + (2 + -n), buf, static_cast<size_t>(k));
+    std::memmove(buf + (2 + -n), buf, static_cast<std::size_t>(k));
     buf[0] = '0';
     buf[1] = '.';
-    std::memset(buf + 2, '0', static_cast<size_t>(-n));
+    std::memset(buf + 2, '0', static_cast<std::size_t>(-n));
     return buf + (2 + (-n) + k);
   }
 
@@ -7605,7 +7605,7 @@ inline char* format_buffer(char* buf, int len, int decimal_exponent,
     // d.igitsE+123
     // len <= max_digits10 + 1 + 5
 
-    std::memmove(buf + 2, buf + 1, static_cast<size_t>(k - 1));
+    std::memmove(buf + 2, buf + 1, static_cast<std::size_t>(k - 1));
     buf[1] = '.';
     buf += 1 + k;
   }
@@ -8112,7 +8112,7 @@ class serializer
     char* begin = number_buffer.data();
     char* end = ::nlohmann::detail::to_chars(begin, begin + number_buffer.size(), x);
 
-    o->write_characters(begin, static_cast<size_t>(end - begin));
+    o->write_characters(begin, static_cast<std::size_t>(end - begin));
   }
 
   void dump_float(number_float_t x, std::false_type /*is_ieee_single_or_double*/)
@@ -10100,7 +10100,7 @@ class basic_json
       containers can be used.
     - **numbers**: @ref number_integer_t, @ref number_unsigned_t,
       @ref number_float_t, and all convertible number types such as `int`,
-      `size_t`, `int64_t`, `float` or `double` can be used.
+      `std::size_t`, `int64_t`, `float` or `double` can be used.
     - **boolean**: @ref boolean_t / `bool` can be used.
 
     See the examples below.
@@ -15096,7 +15096,7 @@ class basic_json
     vector in MessagePack format.,to_msgpack}
 
     @sa http://msgpack.org
-    @sa @ref from_msgpack(const std::vector<uint8_t>&, const size_t) for the
+    @sa @ref from_msgpack(const std::vector<uint8_t>&, const std::size_t) for the
         analogous deserialization
     @sa @ref to_cbor(const basic_json& for the related CBOR format
     @sa @ref to_ubjson(const basic_json&, const bool, const bool) for the

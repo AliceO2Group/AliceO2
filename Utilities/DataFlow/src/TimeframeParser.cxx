@@ -61,7 +61,7 @@ struct StreamingState {
 };
 
 void streamTimeframe(std::istream& stream,
-                     std::function<void(FairMQParts& parts, char* buffer, size_t size)> onAddPart,
+                     std::function<void(FairMQParts& parts, char* buffer, std::size_t size)> onAddPart,
                      std::function<void(FairMQParts& parts)> onSend)
 {
   FairMQParts parts;
@@ -194,7 +194,7 @@ void streamTimeframe(std::ostream& stream, FairMQParts& parts)
   }
 
   LOG(INFO) << "Everything is fine with received timeframe\n";
-  for (size_t i = 0; i < parts.Size(); ++i) {
+  for (std::size_t i = 0; i < parts.Size(); ++i) {
     stream.write(reinterpret_cast<const char*>(parts.At(i)->GetData()),
                  parts.At(i)->GetSize());
   }

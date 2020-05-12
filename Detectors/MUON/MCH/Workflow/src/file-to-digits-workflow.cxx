@@ -105,7 +105,7 @@ class FileReaderTask
 {
   void decodeBuffer(gsl::span<const std::byte> page, std::vector<o2::mch::Digit>& digits)
   {
-    size_t ndigits{0};
+    std::size_t ndigits{0};
 
     auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
       auto s = asString(dsElecId);
@@ -260,7 +260,7 @@ class FileReaderTask
       }
     }
 
-    const size_t OUT_SIZE = sizeof(o2::mch::Digit) * digits.size();
+    const std::size_t OUT_SIZE = sizeof(o2::mch::Digit) * digits.size();
 
     /// send the output buffer via DPL
     char* outbuffer = nullptr;
@@ -276,7 +276,7 @@ class FileReaderTask
   std::function<std::optional<DsDetId>(DsElecId)> Elec2Det;
   std::function<std::optional<uint16_t>(FeeLinkId id)> fee2Solar;
   std::optional<o2::mch::raw::PageDecoder> decoder;
-  size_t nrdhs{0};
+  std::size_t nrdhs{0};
 
   std::ifstream mInputFile{}; ///< input file
   int mFrameMax;              ///< number of frames to process

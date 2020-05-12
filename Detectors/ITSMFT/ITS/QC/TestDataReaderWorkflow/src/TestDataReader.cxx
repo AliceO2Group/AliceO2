@@ -228,7 +228,7 @@ void TestDataReader::run(ProcessingContext& pc)
       cout << "File Location = " << mDiffFileNames[i][0] << endl;
 
       //Getting the RunID
-      size_t last_index1 = mRunID.find_last_not_of("0123456789");
+      std::size_t last_index1 = mRunID.find_last_not_of("0123456789");
       string RunIDS = mRunID.substr(last_index1 + 1);
 
       //Getting the FileID
@@ -239,7 +239,7 @@ void TestDataReader::run(ProcessingContext& pc)
 
       cout << "Before FileIDS = " << FileIDS << endl;
 
-      size_t last_index2 = FileIDS.find_last_not_of("0123456789");
+      std::size_t last_index2 = FileIDS.find_last_not_of("0123456789");
       FileIDS = FileIDS.substr(last_index2 + 1);
 
       //Extracting the RunID and File to integer in order to make it possible to inject to the QC

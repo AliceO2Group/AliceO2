@@ -186,7 +186,7 @@ std::vector<uint10_t> createBuffer10(const std::vector<SampaCluster>& clustersFi
 template <typename CHARGESUM>
 std::string testPayloadDecode(const std::vector<SampaCluster>& clustersFirstChannel,
                               const std::vector<SampaCluster>& clustersSecondChannel = {},
-                              std::optional<size_t> insertSync = std::nullopt)
+                              std::optional<std::size_t> insertSync = std::nullopt)
 {
   auto b10 = createBuffer10(clustersFirstChannel, clustersSecondChannel);
   auto b64 = b10to64(b10, PREFIX);

@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_SUITE(electronicmapperdummy)
 
 auto dslist = createDualSampaMapper();
 
-template <size_t N>
+template <std::size_t N>
 std::set<int> nofDualSampas(std::array<int, N> deIds)
 {
   std::set<int> ds;
@@ -82,7 +82,7 @@ std::set<int> nofDualSampasFromMapper(gsl::span<int> deids)
   auto d2e = o2::mch::raw::createDet2ElecMapper<T>();
 
   for (auto deid : deids) {
-    size_t nref = dslist(deid).size();
+    std::size_t nref = dslist(deid).size();
     std::set<int> dsForOneDE;
     for (auto dsid : dslist(deid)) {
       DsDetId id{static_cast<uint16_t>(deid), static_cast<uint16_t>(dsid)};

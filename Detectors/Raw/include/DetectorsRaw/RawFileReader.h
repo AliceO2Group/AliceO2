@@ -96,14 +96,14 @@ class RawFileReader
            StartHB = 0x1 << 1,
            StartSP = 0x1 << 2,
            EndHB = 0x1 << 3 };
-    size_t offset = 0;    // where data of the block starts
+    std::size_t offset = 0; // where data of the block starts
     uint32_t size = 0;    // block size
     uint32_t tfID = 0;    // tf counter (from 0)
     uint32_t orbit = 0;   // orbit starting the block
     uint16_t fileID = 0;  // file id where the block is located
     uint8_t flags = 0;    // different flags
     LinkBlock() = default;
-    LinkBlock(int fid, size_t offs) : offset(offs), fileID(fid) {}
+    LinkBlock(int fid, std::size_t offs) : offset(offs), fileID(fid) {}
     void setFlag(uint8_t fl, bool v = true)
     {
       if (v)
@@ -141,19 +141,18 @@ class RawFileReader
     {
     }
     bool preprocessCRUPage(const RDHAny& rdh, bool newSPage);
-    size_t getLargestSuperPage() const;
-    size_t getLargestTF() const;
-    size_t getNextHBFSize() const;
-    size_t getNextTFSize() const;
+    std::size_t getLargestSuperPage() const;
+    std::size_t getLargestTF() const;
+    std::size_t getNextHBFSize() const;
+    std::size_t getNextTFSize() const;
     int getNHBFinTF() const;
 
-    size_t readNextHBF(char* buff);
-    size_t readNextTF(char* buff);
-    size_t skipNextHBF();
-    size_t skipNextTF();
+    std::size_t readNextHBF(char* buff);
+    std::size_t readNextTF(char* buff);
+    std::size_t skipNextHBF();
+    std::size_t skipNextTF();
 
     void rewindToTF(uint32_t tf);
-
     void print(bool verbose = false, const std::string& pref = "") const;
     std::string describe() const;
 
@@ -198,8 +197,8 @@ class RawFileReader
   void setNominalSPageSize(int n = 0x1 << 20) { mNominalSPageSize = n > (0x1 << 15) ? n : (0x1 << 15); }
   int getNominalSPageSize() const { return mNominalSPageSize; }
 
-  void setBufferSize(size_t s) { mBufferSize = s < sizeof(RDHAny) ? sizeof(RDHAny) : s; }
-  size_t getBufferSize() const { return mBufferSize; }
+  void setBufferSize(std::size_t s) { mBufferSize = s < sizeof(RDHAny) ? sizeof(RDHAny) : s; }
+  std::size_t getBufferSize() const { return mBufferSize; }
 
   void setMaxTFToRead(uint32_t n) { mMaxTFToRead = n; }
   uint32_t getMaxTFToRead() const { return mMaxTFToRead; }
@@ -239,7 +238,7 @@ class RawFileReader
   uint32_t mNextTF2Read = 0;                        // next TF to read
   uint32_t mOrbitMin = 0xffffffff;                  // lowest orbit seen by any link
   uint32_t mOrbitMax = 0;                           // highest orbit seen by any link
-  size_t mBufferSize = 1024 * 1024;                 // size of the buffer for files preprocessing
+  std::size_t mBufferSize = 1024 * 1024;            // size of the buffer for files preprocessing
   int mNominalSPageSize = 0x1 << 20;                // expected super-page size in B
   int mCurrentFileID = 0;                           // current file being processed
   long int mPosInFile = 0;                          // current position in the file

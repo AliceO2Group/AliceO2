@@ -97,11 +97,11 @@ framework::WorkflowSpec MergerInfrastructureBuilder::generateInfrastructure()
   // actual topology generation
   MergerBuilder mergerBuilder;
   mergerBuilder.setName(mInfrastructureName);
-  for (size_t layer = 1; layer < mergersPerLayer.size(); layer++) {
+  for (std::size_t layer = 1; layer < mergersPerLayer.size(); layer++) {
 
-    size_t numberOfMergers = mergersPerLayer[layer];
-    size_t inputsPerMerger = layerInputs.size() / numberOfMergers;
-    size_t inputsPerMergerRemainder = layerInputs.size() % numberOfMergers;
+    std::size_t numberOfMergers = mergersPerLayer[layer];
+    std::size_t inputsPerMerger = layerInputs.size() / numberOfMergers;
+    std::size_t inputsPerMergerRemainder = layerInputs.size() % numberOfMergers;
 
     MergerConfig layerConfig = mConfig;
     if (layer > 1 && mConfig.inputObjectTimespan.value == InputObjectsTimespan::LastDifference) {
@@ -113,7 +113,7 @@ framework::WorkflowSpec MergerInfrastructureBuilder::generateInfrastructure()
     framework::Inputs nextLayerInputs;
     auto inputsRangeBegin = layerInputs.begin();
 
-    for (size_t m = 0; m < numberOfMergers; m++) {
+    for (std::size_t m = 0; m < numberOfMergers; m++) {
 
       mergerBuilder.setTopologyPosition(layer, m);
 
@@ -141,9 +141,9 @@ framework::WorkflowSpec MergerInfrastructureBuilder::generateInfrastructure()
   return workflow;
 }
 
-std::vector<size_t> MergerInfrastructureBuilder::computeNumberOfMergersPerLayer(const size_t inputs) const
+std::vector<std::size_t> MergerInfrastructureBuilder::computeNumberOfMergersPerLayer(const std::size_t inputs) const
 {
-  std::vector<size_t> mergersPerLayer{inputs};
+  std::vector<std::size_t> mergersPerLayer{inputs};
   if (mConfig.topologySize.value == TopologySize::NumberOfLayers) {
     //              _          _
     //             |    L - i   |  where:
@@ -153,9 +153,9 @@ std::vector<size_t> MergerInfrastructureBuilder::computeNumberOfMergersPerLayer(
     //             |            |
     //
 
-    size_t L = mConfig.topologySize.param;
-    for (size_t i = 1; i <= L; i++) {
-      mergersPerLayer.push_back(static_cast<size_t>(ceil(pow(inputs, (L - i) / static_cast<double>(L)))));
+    std::size_t L = mConfig.topologySize.param;
+    for (std::size_t i = 1; i <= L; i++) {
+      mergersPerLayer.push_back(static_cast<std::size_t>(ceil(pow(inputs, (L - i) / static_cast<double>(L)))));
     }
 
   } else { // mConfig.topologySize.value == TopologySize::ReductionFactor
@@ -167,9 +167,9 @@ std::vector<size_t> MergerInfrastructureBuilder::computeNumberOfMergersPerLayer(
     //
 
     double R = mConfig.topologySize.param;
-    size_t Mi, prevMi = inputs;
+    std::size_t Mi, prevMi = inputs;
     do {
-      Mi = static_cast<size_t>(ceil(prevMi / R));
+      Mi = static_cast<std::size_t>(ceil(prevMi / R));
       mergersPerLayer.push_back(Mi);
       prevMi = Mi;
     } while (Mi > 1);

@@ -37,14 +37,14 @@ struct DataSet {
   using Messages = std::vector<TaggedSet>;
   using CheckType = std::vector<std::string>;
   DataSet(std::vector<InputRoute>&& s, Messages&& m, CheckType&& v)
-    : schema{std::move(s)}, messages{std::move(m)}, record{schema, {[this](size_t i, size_t part) {
+    : schema{std::move(s)}, messages{std::move(m)}, record{schema, {[this](std::size_t i, std::size_t part) {
                                                                       BOOST_REQUIRE(i < this->messages.size());
                                                                       BOOST_REQUIRE(part < this->messages[i].second.size() / 2);
                                                                       auto header = static_cast<char const*>(this->messages[i].second.at(2 * part)->data());
                                                                       auto payload = static_cast<char const*>(this->messages[i].second.at(2 * part + 1)->data());
                                                                       return DataRef{nullptr, header, payload};
                                                                     },
-                                                                    [this](size_t i) { return i < this->messages.size() ? messages[i].second.size() / 2 : 0; }, this->messages.size()}},
+                                                                    [this](std::size_t i) { return i < this->messages.size() ? messages[i].second.size() / 2 : 0; }, this->messages.size()}},
       values{std::move(v)}
   {
     BOOST_REQUIRE(messages.size() == schema.size());
@@ -64,7 +64,7 @@ DataSet createData()
     InputSpec{"its", ConcreteDataTypeMatcher{"ITS", "SOMEDATA"}, Lifetime::Timeframe},
     InputSpec{"tof", "TOF", "SOMEDATA", 1, Lifetime::Timeframe}};
 
-  size_t i = 0;
+  std::size_t i = 0;
   auto createRoute = [&i](const char* source, InputSpec& spec) {
     return InputRoute{
       spec,

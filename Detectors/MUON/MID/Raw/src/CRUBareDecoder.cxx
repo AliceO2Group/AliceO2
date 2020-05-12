@@ -34,7 +34,7 @@ void CRUBareDecoder::init(bool debugMode)
   /// Initializes the task
   if (debugMode == true) {
     mAddReg = std::bind(&CRUBareDecoder::addBoard, this, std::placeholders::_1);
-    mCheckBoard = [](size_t) { return true; };
+    mCheckBoard = [](std::size_t) { return true; };
   }
 }
 
@@ -58,7 +58,7 @@ void CRUBareDecoder::process(gsl::span<const uint8_t> bytes)
   }
 }
 
-void CRUBareDecoder::processGBT(size_t offset)
+void CRUBareDecoder::processGBT(std::size_t offset)
 {
   /// Processes the GBT
 
@@ -67,8 +67,8 @@ void CRUBareDecoder::processGBT(size_t offset)
   std::array<uint8_t, 5> bytes{mBuffer.next(), mBuffer.next(), mBuffer.next(), mBuffer.next(), mBuffer.next()};
 
   // Byte corresponding to regional
-  size_t ibyte = 4;
-  size_t ilink = offset + ibyte;
+  std::size_t ibyte = 4;
+  std::size_t ilink = offset + ibyte;
 
   if (mELinkDecoders[ilink].add(bytes[ibyte], 0x80) && mELinkDecoders[ilink].isComplete()) {
     // In principle, in the same HB we should have the info of only 1 crate
@@ -91,14 +91,14 @@ void CRUBareDecoder::processGBT(size_t offset)
   }
 }
 
-bool CRUBareDecoder::checkBoard(size_t ilink)
+bool CRUBareDecoder::checkBoard(std::size_t ilink)
 {
   /// Performs checks on the board
   uint8_t expectedId = ilink - (ilink / 5);
   return (expectedId == mELinkDecoders[ilink].getId() % 8);
 }
 
-void CRUBareDecoder::addBoard(size_t ilink)
+void CRUBareDecoder::addBoard(std::size_t ilink)
 {
   /// Adds the local or regional board to the output data vector
   uint16_t localClock = mELinkDecoders[ilink].getCounter();
@@ -115,7 +115,7 @@ void CRUBareDecoder::addBoard(size_t ilink)
   mROFRecords.emplace_back(intRec, eventType, firstEntry, 1);
 }
 
-void CRUBareDecoder::addLoc(size_t ilink)
+void CRUBareDecoder::addLoc(std::size_t ilink)
 {
   /// Adds the local board to the output data vector
   addBoard(ilink);

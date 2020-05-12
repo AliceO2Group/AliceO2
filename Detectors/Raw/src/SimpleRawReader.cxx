@@ -80,7 +80,7 @@ bool SimpleRawReader::loadNextTF()
   partsRef.reserve(nLinks);
   inpRoutes.reserve(nLinks);
   messages.reserve(2 * (mHBFPerMessage ? nHB * nLinks : nLinks));
-  size_t totSize = 0;
+  std::size_t totSize = 0;
   for (int il = 0; il < nLinks; il++) {
     auto& link = mReader->getLink(il);
     auto tfsz = link.getNextTFSize();
@@ -88,7 +88,7 @@ bool SimpleRawReader::loadNextTF()
       continue;
     }
     InputSpec inps(std::string("inpSpec") + std::to_string(il), link.origin, link.description, link.subspec, Lifetime::Timeframe);
-    inpRoutes.emplace_back(InputRoute{inps, size_t(il), std::string("src") + std::to_string(il)});
+    inpRoutes.emplace_back(InputRoute{inps, std::size_t(il), std::string("src") + std::to_string(il)});
 
     o2::header::DataHeader hdrTmpl(link.description, link.origin, link.subspec); // template with 0 size
     hdrTmpl.payloadSerializationMethod = o2::header::gSerializationMethodNone;

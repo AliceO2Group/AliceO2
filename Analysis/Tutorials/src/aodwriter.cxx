@@ -146,7 +146,7 @@ struct ATask {
     LOGF(INFO, "ATask Processed %i data points from Tracks", cnt);
   }
 
-  size_t cnt = 0;
+  std::size_t cnt = 0;
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)

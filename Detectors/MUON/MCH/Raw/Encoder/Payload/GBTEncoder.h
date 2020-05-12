@@ -66,7 +66,7 @@ class GBTEncoder
   /// The internal GBT words that have been accumulated so far are
   /// _moved_ (i.e. deleted from this object) to the external buffer of bytes.
   /// Returns the number of bytes added to buffer
-  size_t moveToBuffer(std::vector<uint8_t>& buffer);
+  std::size_t moveToBuffer(std::vector<uint8_t>& buffer);
   ///@}
 
   /** @name Methods for testing.
@@ -80,7 +80,7 @@ class GBTEncoder
   uint16_t id() const { return mGbtId; }
 
   /// return the number of bytes our current buffer is
-  size_t size() const { return mGbtWords.size(); }
+  std::size_t size() const { return mGbtWords.size(); }
 
  private:
   uint16_t mGbtId;                                         //< id of this GBT (0..23)
@@ -112,7 +112,7 @@ bool GBTEncoder<FORMAT, CHARGESUM>::forceNoPhase = false;
 template <typename FORMAT, typename CHARGESUM>
 GBTEncoder<FORMAT, CHARGESUM>::GBTEncoder(uint16_t linkId)
   : mGbtId(linkId),
-    mElinks{impl::makeArray<40>([](size_t i) { return ElinkEncoder<FORMAT, CHARGESUM>(i, phase(i, GBTEncoder<FORMAT, CHARGESUM>::forceNoPhase)); })},
+    mElinks{impl::makeArray<40>([](std::size_t i) { return ElinkEncoder<FORMAT, CHARGESUM>(i, phase(i, GBTEncoder<FORMAT, CHARGESUM>::forceNoPhase)); })},
     mGbtWords{},
     mElinkMerger{}
 {
@@ -129,7 +129,7 @@ void GBTEncoder<FORMAT, CHARGESUM>::addChannelData(uint8_t elinkGroupId, uint8_t
 }
 
 template <typename FORMAT, typename CHARGESUM>
-size_t GBTEncoder<FORMAT, CHARGESUM>::moveToBuffer(std::vector<uint8_t>& buffer)
+std::size_t GBTEncoder<FORMAT, CHARGESUM>::moveToBuffer(std::vector<uint8_t>& buffer)
 {
   auto s = gsl::span(mElinks.begin(), mElinks.end());
   mElinkMerger(mGbtId, s, mGbtWords);

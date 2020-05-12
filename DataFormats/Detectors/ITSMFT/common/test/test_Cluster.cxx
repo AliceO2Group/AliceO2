@@ -24,16 +24,16 @@ BOOST_AUTO_TEST_CASE(Cluster_messageable)
   using ElementType = Cluster;
   static_assert(o2::framework::is_messageable<ElementType>::value == true);
   std::vector<ElementType> clusters(10);
-  auto makeElement = [](size_t idx) {
+  auto makeElement = [](std::size_t idx) {
     return ElementType{};
   };
-  size_t idx = 0;
+  std::size_t idx = 0;
   for (auto& cluster : clusters) {
     cluster.setXYZ(idx, idx + 10, idx + 20);
     idx++;
   }
 
-  size_t memsize = sizeof(ElementType) * clusters.size();
+  std::size_t memsize = sizeof(ElementType) * clusters.size();
   auto buffer = std::make_unique<char[]>(memsize);
   memcpy(buffer.get(), (char*)clusters.data(), memsize);
   auto* pclone = reinterpret_cast<ElementType*>(buffer.get());

@@ -39,10 +39,10 @@ class DecodedDataAggregator
   const std::vector<ROFRecord>& getROFRecords() { return mROFRecords; }
 
  private:
-  void addData(const LocalBoardRO& col, size_t firstEntry);
-  ColumnData& FindColumnData(uint8_t deId, uint8_t columnId, size_t firstEntry);
+  void addData(const LocalBoardRO& col, std::size_t firstEntry);
+  ColumnData& FindColumnData(uint8_t deId, uint8_t columnId, std::size_t firstEntry);
 
-  std::map<uint64_t, std::vector<size_t>> mOrderIndexes; /// Map for time ordering the entries
+  std::map<uint64_t, std::vector<std::size_t>> mOrderIndexes; /// Map for time ordering the entries
   std::vector<ColumnData> mData{};                       /// Vector of output column data
   std::vector<ROFRecord> mROFRecords{};                  /// Vector of ROF records
   CrateMapper mCrateMapper;                              /// Mapper to convert the RO info to ColumnData

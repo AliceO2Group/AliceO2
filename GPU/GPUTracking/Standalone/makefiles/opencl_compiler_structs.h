@@ -23,5 +23,5 @@ struct _makefiles_opencl_device_info {
   char device_name[64];
   char device_vendor[64];
   cl_uint nbits;
-  size_t binary_size;
+  std::size_t binary_size;
 };

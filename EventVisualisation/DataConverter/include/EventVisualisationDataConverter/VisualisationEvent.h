@@ -52,12 +52,12 @@ class VisualisationEvent
   // Returns track with index i
   const VisualisationTrack& getTrack(int i) const { return mTracks[i]; };
   // Returns number of tracks
-  size_t getTrackCount() const { return mTracks.size(); }
+  std::size_t getTrackCount() const { return mTracks.size(); }
 
   // Returns cluster with index i
   const VisualisationCluster& getCluster(int i) const { return mClusters[i]; };
   // Returns number of clusters
-  size_t getClusterCount() const { return mClusters.size(); }
+  std::size_t getClusterCount() const { return mClusters.size(); }
 
  private:
   int mEventNumber;                            /// event number in file

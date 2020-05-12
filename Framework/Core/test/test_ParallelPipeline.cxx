@@ -44,9 +44,9 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 using DataHeader = o2::header::DataHeader;
 using namespace o2::framework;
 
-size_t nPipelines = 4;
-size_t nParallelChannels = 6;
-size_t nRolls = 1;
+std::size_t nPipelines = 4;
+std::size_t nParallelChannels = 6;
+std::size_t nRolls = 1;
 
 std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
 {
@@ -102,7 +102,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
   // this is checked in the final consumer
   auto checkMap = std::make_shared<std::unordered_map<o2::header::DataHeader::SubSpecificationType, int>>();
   {
-    size_t pipeline = 0;
+    std::size_t pipeline = 0;
     for (auto const& subspec : subspecs) {
       (*checkMap)[subspec] = pipeline;
       pipeline++;
@@ -114,7 +114,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
   workflowSpecs = parallelPipeline(
     workflowSpecs, nPipelines,
     [&subspecs]() { return subspecs.size(); },
-    [&subspecs](size_t index) { return subspecs[index]; });
+    [&subspecs](std::size_t index) { return subspecs[index]; });
 
   // define a producer process with outputs for all subspecs
   auto producerOutputs = [&subspecs]() {
@@ -131,15 +131,15 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     producerOutputs(),
     AlgorithmSpec{[subspecs, counter = std::make_shared<int>(0)](ProcessingContext& ctx) {
       if (*counter < nRolls) {
-        size_t pipeline = 0;
-        size_t channels = subspecs.size();
-        std::vector<size_t> multiplicities(nPipelines);
+        std::size_t pipeline = 0;
+        std::size_t channels = subspecs.size();
+        std::vector<std::size_t> multiplicities(nPipelines);
         for (pipeline = 0; pipeline < nPipelines; pipeline++) {
           multiplicities[pipeline] = channels / (nPipelines - pipeline) + ((channels % (nPipelines - pipeline)) > 0 ? 1 : 0);
           channels -= multiplicities[pipeline];
         }
         ASSERT_ERROR(channels == 0);
-        size_t index = 0;
+        std::size_t index = 0;
         auto end = subspecs.size();
         for (pipeline = 0; index < end; index++) {
           if (multiplicities[pipeline] == 0) {
@@ -171,7 +171,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     mergeInputs({{"datain", "TST", "DATA", 0, Lifetime::Timeframe},
                  {"metain", "TST", "META", 0, Lifetime::Timeframe}},
                 subspecs.size(),
-                [&subspecs, &bindings](InputSpec& input, size_t index) {
+                [&subspecs, &bindings](InputSpec& input, std::size_t index) {
                   input.binding += std::to_string(index);
                   DataSpecUtils::updateMatchingSubspec(input, subspecs[index]);
                   if (input.binding.compare(0, 6, "datain") == 0) {

@@ -27,14 +27,14 @@ void ClusterNativeHelper::convert(const char* fromFile, const char* toFile, cons
   TreeWriter writer;
   reader.init(fromFile);
   writer.init(toFile, toTreeName);
-  size_t nEntries = reader.getTreeSize();
+  std::size_t nEntries = reader.getTreeSize();
   ClusterNativeAccess clusterIndex;
   std::unique_ptr<ClusterNative[]> clusterBuffer;
   MCLabelContainer mcBuffer;
 
   int result = 0;
   int nClusters = 0;
-  for (size_t entry = 0; entry < nEntries; ++entry) {
+  for (std::size_t entry = 0; entry < nEntries; ++entry) {
     LOG(INFO) << "converting entry " << entry;
     reader.read(entry);
     result = reader.fillIndex(clusterIndex, clusterBuffer, mcBuffer);
@@ -113,9 +113,9 @@ void ClusterNativeHelper::Reader::init(const char* filename, const char* treenam
     LOG(ERROR) << "can not find tree " << mTreeName << " in file " << filename;
     return;
   }
-  size_t nofDataBranches = 0;
-  size_t nofMCBranches = 0;
-  for (size_t sector = 0; sector < NSectors; ++sector) {
+  std::size_t nofDataBranches = 0;
+  std::size_t nofMCBranches = 0;
+  for (std::size_t sector = 0; sector < NSectors; ++sector) {
     auto branchname = mDataBranchName + "_" + std::to_string(sector);
     TBranch* branch = mTree->GetBranch(branchname.c_str());
     if (branch) {
@@ -139,7 +139,7 @@ void ClusterNativeHelper::Reader::init(const char* filename, const char* treenam
   LOG(INFO) << "reading " << nofDataBranches << " data branch(es) and " << nofMCBranches << " mc branch(es)";
 }
 
-void ClusterNativeHelper::Reader::read(size_t entry)
+void ClusterNativeHelper::Reader::read(std::size_t entry)
 {
   if (entry >= getTreeSize()) {
     return;
@@ -162,7 +162,7 @@ void ClusterNativeHelper::Reader::clear()
 int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex, std::unique_ptr<ClusterNative[]>& clusterBuffer,
                                            MCLabelContainer& mcBuffer)
 {
-  for (size_t index = 0; index < mSectorRaw.size(); ++index) {
+  for (std::size_t index = 0; index < mSectorRaw.size(); ++index) {
     if (mSectorRaw[index] && mSectorRaw[index]->size() != mSectorRawSize[index]) {
       LOG(ERROR) << "inconsistent raw size for sector " << index << ": " << mSectorRaw[index]->size() << " v.s. " << mSectorRawSize[index];
       mSectorRaw[index]->clear();
@@ -172,7 +172,7 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex, st
   return result;
 }
 
-int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, gsl::span<MCLabelContainer const> const& mcinput, ClusterNativeAccess& clusterIndex,
+int ClusterNativeHelper::Reader::parseSector(const char* buffer, std::size_t size, gsl::span<MCLabelContainer const> const& mcinput, ClusterNativeAccess& clusterIndex,
                                              const MCLabelContainer* (&clustersMCTruth)[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW])
 {
   if (!buffer || size == 0) {
@@ -182,7 +182,7 @@ int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, gs
   auto mcIterator = mcinput.begin();
   using ClusterGroupParser = o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>;
   ClusterGroupParser parser;
-  size_t numberOfClusters = 0;
+  std::size_t numberOfClusters = 0;
   parser.parse(
     buffer, size,
     [](const typename ClusterGroupParser::HeaderType& h) {
@@ -240,8 +240,8 @@ int ClusterNativeHelper::TreeWriter::fillFrom(ClusterNativeAccess const& cluster
     return -1;
   }
   int result = 0;
-  for (size_t sector = 0; sector < Constants::MAXSECTOR; ++sector) {
-    for (size_t padrow = 0; padrow < Constants::MAXGLOBALPADROW; ++padrow) {
+  for (std::size_t sector = 0; sector < Constants::MAXSECTOR; ++sector) {
+    for (std::size_t padrow = 0; padrow < Constants::MAXGLOBALPADROW; ++padrow) {
       int locres = fillFrom(sector, padrow, clusterIndex.clusters[sector][padrow], clusterIndex.nClusters[sector][padrow]);
       if (result >= 0 && locres >= 0) {
         result += locres;
@@ -253,7 +253,7 @@ int ClusterNativeHelper::TreeWriter::fillFrom(ClusterNativeAccess const& cluster
   return result;
 }
 
-int ClusterNativeHelper::TreeWriter::fillFrom(int sector, int padrow, ClusterNative const* clusters, size_t nClusters, MCLabelContainer*)
+int ClusterNativeHelper::TreeWriter::fillFrom(int sector, int padrow, ClusterNative const* clusters, std::size_t nClusters, MCLabelContainer*)
 {
   if (!mTree) {
     return -1;

@@ -61,11 +61,11 @@ class Mapper
     /// \brief Functor implementation
     /// \param s Channel for which to determine a hash value
     /// \return hash value for channel ID
-    size_t operator()(const ChannelID& s) const
+    std::size_t operator()(const ChannelID& s) const
     {
-      size_t h1 = std::hash<int>()(s.mRow);
-      size_t h2 = std::hash<int>()(s.mColumn);
-      size_t h3 = std::hash<int>()(o2::emcal::channelTypeToInt(s.mChannelType));
+      std::size_t h1 = std::hash<int>()(s.mRow);
+      std::size_t h2 = std::hash<int>()(s.mColumn);
+      std::size_t h3 = std::hash<int>()(o2::emcal::channelTypeToInt(s.mChannelType));
       return ((h1 ^ (h2 << 1)) >> 1) ^ (h3 << 1);
       return h1 ^ (h2 << 1);
     }

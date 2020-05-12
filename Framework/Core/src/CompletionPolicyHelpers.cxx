@@ -75,7 +75,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, Compl
 CompletionPolicy CompletionPolicyHelpers::processWhenAny(const char* name, CompletionPolicy::Matcher matcher)
 {
   auto callback = [](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
-    size_t present = 0;
+    std::size_t present = 0;
     for (auto& input : inputs) {
       if (input.header != nullptr) {
         present++;

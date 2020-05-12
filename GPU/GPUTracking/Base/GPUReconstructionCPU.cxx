@@ -85,20 +85,20 @@ GPUReconstruction::krnlProperties GPUReconstructionCPUBackend::getKernelProperti
   return krnlProperties{1, 1};
 }
 
-size_t GPUReconstructionCPU::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) { return 0; }
-size_t GPUReconstructionCPU::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents) { return 0; }
-size_t GPUReconstructionCPU::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+std::size_t GPUReconstructionCPU::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) { return 0; }
+std::size_t GPUReconstructionCPU::GPUMemCpy(void* dst, const void* src, std::size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents) { return 0; }
+std::size_t GPUReconstructionCPU::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, std::size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
   memcpy(dst, src, size);
   return 0;
 }
-size_t GPUReconstructionCPU::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) { return 0; }
+std::size_t GPUReconstructionCPU::WriteToConstantMemory(std::size_t offset, const void* src, std::size_t size, int stream, deviceEvent* ev) { return 0; }
 int GPUReconstructionCPU::GPUDebug(const char* state, int stream) { return 0; }
-size_t GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU)
+std::size_t GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU)
 {
   int inc = toGPU ? GPUMemoryResource::MEMORY_INPUT_FLAG : GPUMemoryResource::MEMORY_OUTPUT_FLAG;
   int exc = toGPU ? GPUMemoryResource::MEMORY_OUTPUT_FLAG : GPUMemoryResource::MEMORY_INPUT_FLAG;
-  size_t n = 0;
+  std::size_t n = 0;
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
     GPUMemoryResource& res = mMemoryResources[i];
     if (res.mPtr == nullptr) {
@@ -128,7 +128,7 @@ int GPUReconstructionCPU::GetThread()
 #if defined(__APPLE__)
   return (0); // syscall is deprecated on MacOS..., only needed for GPU support which we don't do on Mac anyway
 #elif defined(_WIN32)
-  return ((int)(size_t)GetCurrentThread());
+  return ((int)(std::size_t)GetCurrentThread());
 #else
   return ((int)syscall(SYS_gettid));
 #endif
@@ -299,7 +299,7 @@ GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::insertTimer(unsigned int 
     if (J >= 0) {
       name += std::to_string(J);
     }
-    mTimers[id].reset(new timerMeta{std::unique_ptr<HighResTimer[]>{new HighResTimer[num]}, name, num, type, 1u, step, (size_t)0});
+    mTimers[id].reset(new timerMeta{std::unique_ptr<HighResTimer[]>{new HighResTimer[num]}, name, num, type, 1u, step, (std::size_t)0});
   }
   timerMeta* retVal = mTimers[id].get();
   timerFlag.clear();

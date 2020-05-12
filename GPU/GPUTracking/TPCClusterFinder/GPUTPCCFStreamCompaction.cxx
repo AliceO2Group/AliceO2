@@ -119,7 +119,7 @@ template <>
 GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::compact>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int iBuf, int stage, ChargePos* in, ChargePos* out)
 {
   unsigned int nElems = compactionElems(clusterer, stage);
-  size_t bufferSize = (stage) ? clusterer.mNMaxClusters : clusterer.mNMaxPeaks;
+  std::size_t bufferSize = (stage) ? clusterer.mNMaxClusters : clusterer.mNMaxPeaks;
   compactImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, in, out, clusterer.mPisPeak, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, nElems, bufferSize);
   unsigned int lastId = get_global_size(0) - 1;
   if ((unsigned int)get_global_id(0) == lastId) {
@@ -138,7 +138,7 @@ GPUdii() void GPUTPCCFStreamCompaction::compactImpl(int nBlocks, int nThreads, i
                                                     int* newIdx,
                                                     const int* incr,
                                                     int nElems,
-                                                    size_t bufferSize)
+                                                    std::size_t bufferSize)
 {
   int gid = get_group_id(0);
   int idx = get_global_id(0);
@@ -150,12 +150,12 @@ GPUdii() void GPUTPCCFStreamCompaction::compactImpl(int nBlocks, int nThreads, i
   int pred = (iAmDummy) ? 0 : predicate[idx];
   int scanRes = work_group_scan_inclusive_add(pred);
 
-  size_t compIdx = scanRes;
+  std::size_t compIdx = scanRes;
   if (gid) {
     compIdx += incr[gid - 1];
   }
 
-  size_t tgtIdx = compIdx - 1;
+  std::size_t tgtIdx = compIdx - 1;
   if (pred && tgtIdx < bufferSize) {
     out[tgtIdx] = in[idx];
   }

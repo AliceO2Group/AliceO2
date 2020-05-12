@@ -59,7 +59,7 @@ class CalibRawBase
     IncompleteEvent ///< Read data is incomplete
   };
 
-  CalibRawBase(PadSubset padSubset = PadSubset::ROC) : mMapper(Mapper::instance()), mDebugLevel(0), mNevents(0), mTimeBinsPerCall(500), mProcessedTimeBins(0), mPresentEventNumber(std::numeric_limits<size_t>::max()), mPadSubset(padSubset), mGBTFrameContainers(), mRawReaders() { ; }
+  CalibRawBase(PadSubset padSubset = PadSubset::ROC) : mMapper(Mapper::instance()), mDebugLevel(0), mNevents(0), mTimeBinsPerCall(500), mProcessedTimeBins(0), mPresentEventNumber(std::numeric_limits<std::size_t>::max()), mPadSubset(padSubset), mGBTFrameContainers(), mRawReaders() { ; }
 
   virtual ~CalibRawBase() = default;
 
@@ -124,19 +124,19 @@ class CalibRawBase
   void incrementNEvents() { ++mNevents; }
 
   /// number of processed events
-  size_t getNumberOfProcessedEvents() const { return mNevents; }
+  std::size_t getNumberOfProcessedEvents() const { return mNevents; }
 
   /// get present event number
-  size_t getPresentEventNumber() const { return mPresentEventNumber; }
+  std::size_t getPresentEventNumber() const { return mPresentEventNumber; }
 
   /// check if present event is complete
   bool isPresentEventComplete() const { return mRawReaderCRUManager.isEventComplete(mPresentEventNumber); }
 
   /// number of processed time bins in last event
-  void setNumberOfProcessedTimeBins(size_t timeBins) { mProcessedTimeBins = timeBins; }
+  void setNumberOfProcessedTimeBins(std::size_t timeBins) { mProcessedTimeBins = timeBins; }
 
   /// number of processed time bins in last event
-  size_t getNumberOfProcessedTimeBins() const { return mProcessedTimeBins; }
+  std::size_t getNumberOfProcessedTimeBins() const { return mProcessedTimeBins; }
 
   /// Debug level
   int getDebugLevel() const { return mDebugLevel; }
@@ -152,10 +152,10 @@ class CalibRawBase
   int mDebugLevel;       //!< debug level
 
  private:
-  size_t mNevents;            //!< number of processed events
+  std::size_t mNevents;       //!< number of processed events
   int mTimeBinsPerCall;       //!< number of time bins to process in processEvent
-  size_t mProcessedTimeBins;  //!< number of processed time bins in last event
-  size_t mPresentEventNumber; //!< present event number
+  std::size_t mProcessedTimeBins;  //!< number of processed time bins in last event
+  std::size_t mPresentEventNumber; //!< present event number
   bool mSkipIncomplete{true}; //!< skip incomplete events
 
   PadSubset mPadSubset;                                                //!< pad subset type used
@@ -297,7 +297,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReader(int event
   ProcessStatus status = ProcessStatus::Ok;
 
   mProcessedTimeBins = 0;
-  size_t processedReaders = 0;
+  std::size_t processedReaders = 0;
   bool hasData = false;
 
   int64_t lastEvent = 0;
@@ -375,7 +375,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReader(int event
     return ProcessStatus::NoMoreData;
   } else if (processedReaders < mRawReaders.size()) {
     status = ProcessStatus::Truncated;
-  } else if (mPresentEventNumber == size_t(lastEvent)) {
+  } else if (mPresentEventNumber == std::size_t(lastEvent)) {
     status = ProcessStatus::LastEvent;
   }
 
@@ -398,7 +398,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
   ProcessStatus status = ProcessStatus::Ok;
 
   mProcessedTimeBins = 0;
-  size_t processedReaders = 0;
+  std::size_t processedReaders = 0;
   bool hasData = false;
 
   const int64_t numberOfEvents = mRawReaderCRUManager.getNumberOfEvents();
@@ -407,7 +407,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
   if (eventNumber >= 0) {
     mPresentEventNumber = eventNumber;
   } else if (eventNumber == -1) {
-    if (mPresentEventNumber == std::numeric_limits<size_t>::max()) {
+    if (mPresentEventNumber == std::numeric_limits<std::size_t>::max()) {
       mPresentEventNumber = 0;
     } else {
       mPresentEventNumber = (mPresentEventNumber + 1) % numberOfEvents;
@@ -430,7 +430,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
       if (eventNumber >= 0) {
         mPresentEventNumber = eventNumber;
       } else if (eventNumber == -1) {
-        if (mPresentEventNumber == std::numeric_limits<size_t>::max()) {
+        if (mPresentEventNumber == std::numeric_limits<std::size_t>::max()) {
           mPresentEventNumber = 0;
         } else {
           mPresentEventNumber = (reader->getEventNumber() + 1) % reader->getNumberOfEvents();
@@ -517,7 +517,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
       status = ProcessStatus::Truncated;
     } else if (!isPresentEventComplete()) {
       status = ProcessStatus::IncompleteEvent;
-    } else if (mPresentEventNumber == size_t(lastEvent)) {
+    } else if (mPresentEventNumber == std::size_t(lastEvent)) {
       status = ProcessStatus::LastEvent;
     }
 
@@ -525,7 +525,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
     ++mNevents;
   } else {
     status = ProcessStatus::IncompleteEvent;
-    if (mPresentEventNumber == size_t(lastEvent)) {
+    if (mPresentEventNumber == std::size_t(lastEvent)) {
       status = ProcessStatus::LastEvent;
     }
   }
@@ -559,7 +559,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int event
   if (eventNumber >= 0) {
     mPresentEventNumber = eventNumber;
   } else if (eventNumber == -1) {
-    if (mPresentEventNumber == std::numeric_limits<size_t>::max()) {
+    if (mPresentEventNumber == std::numeric_limits<std::size_t>::max()) {
       mPresentEventNumber = 0;
     } else {
       mPresentEventNumber = (mPresentEventNumber + 1) % numberOfEvents;
@@ -592,7 +592,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int event
       const int roc = cru.roc();
       const int row = digit.getRow(); // row is global in sector
       const int pad = digit.getPad();
-      const size_t timeBin = digit.getTimeStamp();
+      const std::size_t timeBin = digit.getTimeStamp();
       //
       mProcessedTimeBins = std::max(mProcessedTimeBins, timeBin);
 
@@ -631,7 +631,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int event
   // set status, don't overwrite decision
   if (!hasData) {
     return ProcessStatus::NoMoreData;
-  } else if (mPresentEventNumber == size_t(lastEvent)) {
+  } else if (mPresentEventNumber == std::size_t(lastEvent)) {
     status = ProcessStatus::LastEvent;
   }
 

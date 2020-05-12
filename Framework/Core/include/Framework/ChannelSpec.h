@@ -62,7 +62,7 @@ struct OutputChannelSpec {
   enum ChannelMethod method;
   std::string hostname;
   unsigned short port;
-  size_t listeners;
+  std::size_t listeners;
   ChannelProtocol protocol = ChannelProtocol::Network;
 };
 

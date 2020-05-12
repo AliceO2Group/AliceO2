@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test1)
   std::vector<o2::tpc::CommonMode> commonMode;
   digitContainer.fillOutputContainer(mDigitsArray, mMCTruthArray, commonMode, 0, 0, true, true);
 
-  for (size_t i = 0; i < commonMode.size(); ++i) {
+  for (std::size_t i = 0; i < commonMode.size(); ++i) {
     auto digit = mDigitsArray[i];
     const CRU cru = digit.getCRU();
     const auto gemStack = cru.gemStack();
@@ -161,7 +161,7 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test2)
     ++digits;
   }
 
-  for (size_t i = 0; i < commonMode.size(); ++i) {
+  for (std::size_t i = 0; i < commonMode.size(); ++i) {
     const float nPads = mapper.getNumberOfPads(GEMstack(i));
     BOOST_CHECK_CLOSE(commonMode[i].getCommonMode(), chargeSum[i] / nPads, 1E-6);
   }

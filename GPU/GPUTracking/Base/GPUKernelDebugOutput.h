@@ -54,7 +54,7 @@ class GPUKernelDebugOutput : public GPUProcessor
   {
     return mDebugOutMemory;
   }
-  GPUdi() static size_t memorySize() { return 100 * 1024 * 1024; }
+  GPUdi() static std::size_t memorySize() { return 100 * 1024 * 1024; }
 
   GPUd() void Add(unsigned int id, int val) const
   {

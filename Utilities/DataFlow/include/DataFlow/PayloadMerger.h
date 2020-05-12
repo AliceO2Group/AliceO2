@@ -33,7 +33,7 @@ class PayloadMerger
  public:
   using MergeableId = ID;
   using MessageMap = std::multimap<MergeableId, std::unique_ptr<FairMQMessage>>;
-  using PayloadExtractor = std::function<size_t(char**, char*, size_t)>;
+  using PayloadExtractor = std::function<std::size_t(char**, char*, std::size_t)>;
   using IdExtractor = std::function<MergeableId(std::unique_ptr<FairMQMessage>&)>;
   using MergeCompletionCheker = std::function<bool(MergeableId, MessageMap&)>;
 
@@ -67,7 +67,7 @@ class PayloadMerger
   /// to merge when a certain number of subparts are reached.
   /// Merging at the moment requires an extra copy, but in principle this could
   /// be easily extended to support scatter - gather.
-  size_t finalise(char** out, MergeableId& id)
+  std::size_t finalise(char** out, MergeableId& id)
   {
     *out = nullptr;
     if (mCheckIfComplete(id, mPartsMap) == false) {
@@ -83,20 +83,20 @@ class PayloadMerger
     // - Create the header part
     // - Create the payload part
     // - Send
-    std::vector<std::pair<char*, size_t>> parts;
+    std::vector<std::pair<char*, std::size_t>> parts;
 
-    size_t sum = 0;
+    std::size_t sum = 0;
     auto range = mPartsMap.equal_range(id);
     for (auto hi = range.first, he = range.second; hi != he; ++hi) {
       std::unique_ptr<FairMQMessage>& payload = hi->second;
-      std::pair<char*, size_t> part;
+      std::pair<char*, std::size_t> part;
       part.second = mExtractPayload(&part.first, reinterpret_cast<char*>(payload->GetData()), payload->GetSize());
       parts.push_back(part);
       sum += part.second;
     }
 
     auto* payload = new char[sum]();
-    size_t offset = 0;
+    std::size_t offset = 0;
     for (auto& part : parts) {
       // Right now this does a copy. In principle this could be done with some sort of
       // vectorized I/O
@@ -112,7 +112,7 @@ class PayloadMerger
   // Helper method which leaves the payload untouched
   static int64_t fullPayloadExtractor(char** payload,
                                       char* buffer,
-                                      size_t bufferSize)
+                                      std::size_t bufferSize)
   {
     *payload = buffer;
     return bufferSize;

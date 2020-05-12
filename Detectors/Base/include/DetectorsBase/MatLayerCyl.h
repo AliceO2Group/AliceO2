@@ -129,7 +129,7 @@ class MatLayerCyl : public o2::gpu::FlatObject
   }
   static std::size_t estimateFlatBufferSize(int nPhiBins, int nPhiSlices, int nZBins)
   {
-    size_t sz = 0;
+    std::size_t sz = 0;
     sz += alignSize(sz + nPhiBins * sizeof(short), getBufferAlignmentBytes());              // mPhiBin2Slice
     sz += alignSize(sz + nPhiSlices * sizeof(float), getBufferAlignmentBytes());            // mSliceCos
     sz += alignSize(sz + nPhiSlices * sizeof(float), getBufferAlignmentBytes());            // mSliceSin
@@ -147,9 +147,9 @@ class MatLayerCyl : public o2::gpu::FlatObject
   }
 
   /// Gives minimal alignment in bytes required for the class object
-  static constexpr size_t getClassAlignmentBytes() { return 8; }
+  static constexpr std::size_t getClassAlignmentBytes() { return 8; }
   /// Gives minimal alignment in bytes required for the flat buffer
-  static constexpr size_t getBufferAlignmentBytes() { return 8; }
+  static constexpr std::size_t getBufferAlignmentBytes() { return 8; }
 #endif
 
  protected:

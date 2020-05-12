@@ -93,11 +93,11 @@ GPUd() void printOnThread(const unsigned int tId, const char* str, Args... args)
   }
 }
 
-GPUd() void printVectorOnThread(const char* name, VectorHIP<int>& vector, size_t size, const unsigned int tId = 0)
+GPUd() void printVectorOnThread(const char* name, VectorHIP<int>& vector, std::size_t size, const unsigned int tId = 0)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
     printf("vector %s :", name);
-    for (size_t i{0}; i < size; ++i) {
+    for (std::size_t i{0}; i < size; ++i) {
       printf("%d ", vector[i]);
     }
     printf("\n");
@@ -137,7 +137,7 @@ GPUg() void trackleterKernel(
   const TrackletingLayerOrder layerOrder,
   const float phiCut)
 {
-  const size_t nClustersMiddleLayer = store->getClusters()[1].size();
+  const std::size_t nClustersMiddleLayer = store->getClusters()[1].size();
   for (unsigned int currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < nClustersMiddleLayer; currentClusterIndex += blockDim.x * gridDim.x) {
     if (currentClusterIndex < nClustersMiddleLayer) {
       int storedTracklets{0};
@@ -151,7 +151,7 @@ GPUg() void trackleterKernel(
           phiBinsNum += PhiBins;
         }
         const int nClustersAdjacentLayer = store->getClusters()[static_cast<int>(adjacentLayerIndex)].size();
-        for (size_t iPhiBin{static_cast<size_t>(selectedBinsRect.y)}, iPhiCount{0}; (int)iPhiCount < phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
+        for (std::size_t iPhiBin{static_cast<std::size_t>(selectedBinsRect.y)}, iPhiCount{0}; (int)iPhiCount < phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
           const int firstBinIndex{index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin)};
           const int firstRowClusterIndex{store->getIndexTable(adjacentLayerIndex)[firstBinIndex]};
           const int maxRowClusterIndex{store->getIndexTable(adjacentLayerIndex)[firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1]};
@@ -183,8 +183,8 @@ GPUg() void trackletSelectionKernel(
   const float tanLambdaCut = 0.025f,
   const float phiCut = 0.002f)
 {
-  const size_t nClustersMiddleLayer = store->getClusters()[1].size();
-  for (size_t currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < nClustersMiddleLayer; currentClusterIndex += blockDim.x * gridDim.x) {
+  const std::size_t nClustersMiddleLayer = store->getClusters()[1].size();
+  for (std::size_t currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < nClustersMiddleLayer; currentClusterIndex += blockDim.x * gridDim.x) {
     const int stride{static_cast<int>(currentClusterIndex * store->getConfig().maxTrackletsPerCluster)};
     int validTracklets{0};
     for (int iTracklet12{0}; iTracklet12 < store->getNFoundTracklets(TrackletingLayerOrder::fromMiddleToOuterLayer)[currentClusterIndex]; ++iTracklet12) {
@@ -358,7 +358,7 @@ void VertexerTraitsHIP::computeTrackletMatching()
   }
   const dim3 threadsPerBlock{GPU::Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
   const dim3 blocksGrid{GPU::Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
-  size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
+  std::size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
 
   hipLaunchKernelGGL((GPU::trackletSelectionKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0,
                      getDeviceContextPtr(),
@@ -406,7 +406,7 @@ void VertexerTraitsHIP::computeVertices()
   }
   const dim3 threadsPerBlock{GPU::Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
   const dim3 blocksGrid{GPU::Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
-  size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
+  std::size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
   int nLines = mStoreVertexerGPU.getNExclusiveFoundLines().getElementFromDevice(mClusters[1].size() - 1) + mStoreVertexerGPU.getNFoundLines().getElementFromDevice(mClusters[1].size() - 1);
   int nCentroids{static_cast<int>(nLines * (nLines - 1) / 2)};
   int* histogramXY[2] = {mStoreVertexerGPU.getHistogramXYZ()[0].get(), mStoreVertexerGPU.getHistogramXYZ()[1].get()};

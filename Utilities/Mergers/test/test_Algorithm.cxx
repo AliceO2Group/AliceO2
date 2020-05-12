@@ -35,9 +35,9 @@
 //using namespace o2::framework;
 using namespace o2::mergers;
 
-const size_t bins = 10;
-const size_t min = 0;
-const size_t max = 10;
+const std::size_t bins = 10;
+const std::size_t min = 0;
+const std::size_t max = 10;
 
 BOOST_AUTO_TEST_CASE(MergerEmptyObjects)
 {
@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE(MergerSingularObjects)
     delete target;
   }
   {
-    const size_t dim = 5;
+    const std::size_t dim = 5;
     const Int_t binsDims[dim] = {bins, bins, bins, bins, bins};
     const Double_t mins[dim] = {min, min, min, min, min};
     const Double_t maxs[dim] = {max, max, max, max, max};
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(MergerSingularObjects)
     delete target;
   }
   {
-    const size_t dim = 5;
+    const std::size_t dim = 5;
     const Int_t binsDims[dim] = {bins, bins, bins, bins, bins};
     const Double_t mins[dim] = {min, min, min, min, min};
     const Double_t maxs[dim] = {max, max, max, max, max};

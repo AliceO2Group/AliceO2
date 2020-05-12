@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingConditionPayloadSize)
   config.put("lowerLimit", 30);
   conditionPayloadSize->configure(config);
 
-  std::vector<std::pair<size_t, bool>> testCases{
+  std::vector<std::pair<std::size_t, bool>> testCases{
     {0, false},
     {29, false},
     {30, true},
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingConditionNConsecutive)
   config.put("cycleSize", 10);
   conditionNConsecutive->configure(config);
 
-  std::vector<std::pair<size_t, bool>> testCases{
+  std::vector<std::pair<std::size_t, bool>> testCases{
     {0, true},
     {1, true},
     {2, true},

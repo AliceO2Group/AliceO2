@@ -84,7 +84,7 @@ class Tracker
   std::vector<Track> mTracks{};                ///< Vector of tracks
   std::vector<ROFRecord> mTrackROFRecords{};   ///< List of track RO frame records
   std::vector<ROFRecord> mClusterROFRecords{}; ///< List of cluster RO frame records
-  size_t mTrackOffset{0};                      ///! Offset for the track in the current event
+  std::size_t mTrackOffset{0};                 ///! Offset for the track in the current event
 
   GeometryTransformer mTransformer{}; ///< Geometry transformer
 

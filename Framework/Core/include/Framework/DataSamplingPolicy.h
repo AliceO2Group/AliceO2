@@ -75,7 +75,7 @@ class DataSamplingPolicy
   uint32_t getTotalEvaluatedMessages() const;
 
   static header::DataOrigin createPolicyDataOrigin();
-  static header::DataDescription createPolicyDataDescription(std::string policyName, size_t id);
+  static header::DataDescription createPolicyDataDescription(std::string policyName, std::size_t id);
 
  private:
   std::string mName;

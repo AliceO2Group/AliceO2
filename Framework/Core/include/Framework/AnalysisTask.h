@@ -289,7 +289,7 @@ struct AnalysisDataProcessorBuilder {
     (doAppendInputWithMetadata<Args>(inputs), ...);
   }
 
-  template <typename T, size_t At>
+  template <typename T, std::size_t At>
   static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
     using dT = std::decay_t<T>;
@@ -359,7 +359,7 @@ struct AnalysisDataProcessorBuilder {
     }
   }
 
-  template <typename T, size_t At>
+  template <typename T, std::size_t At>
   static auto extractSomethingFromRecord(InputRecord& record, std::vector<ExpressionInfo> const infos)
   {
     using decayed = std::decay_t<T>;

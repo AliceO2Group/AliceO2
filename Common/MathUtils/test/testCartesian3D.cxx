@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(Point3D_messageable)
   };
   std::generate(pts.begin(), pts.end(), [makeElement, idx = std::make_shared<int>(0)]() { return makeElement(++(*idx)); });
 
-  size_t memsize = sizeof(ElementType) * pts.size();
+  std::size_t memsize = sizeof(ElementType) * pts.size();
   auto buffer = std::make_unique<char[]>(memsize);
   memcpy(buffer.get(), (char*)pts.data(), memsize);
   auto* pp = reinterpret_cast<ElementType*>(buffer.get());

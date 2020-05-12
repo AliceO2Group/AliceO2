@@ -25,8 +25,8 @@ void PreClusterLabeler::process(gsl::span<const PreCluster> preClusters, const o
   mMCContainer.clear();
   auto dataROFIt = rofRecordsData.begin();
   for (auto pcROFIt = rofRecordsPC.begin(); pcROFIt != rofRecordsPC.end(); ++pcROFIt) {
-    for (size_t ipc = pcROFIt->firstEntry; ipc < pcROFIt->firstEntry + pcROFIt->nEntries; ++ipc) {
-      for (size_t idata = dataROFIt->firstEntry; idata < dataROFIt->firstEntry + dataROFIt->nEntries; ++idata) {
+    for (std::size_t ipc = pcROFIt->firstEntry; ipc < pcROFIt->firstEntry + pcROFIt->nEntries; ++ipc) {
+      for (std::size_t idata = dataROFIt->firstEntry; idata < dataROFIt->firstEntry + dataROFIt->nEntries; ++idata) {
         auto labels = inMCContainer.getLabels(idata);
         for (auto& label : labels) {
           if (label.getCathode() != preClusters[ipc].cathode) {
@@ -53,7 +53,7 @@ void PreClusterLabeler::process(gsl::span<const PreCluster> preClusters, const o
   }
 }
 
-bool PreClusterLabeler::isDuplicated(size_t idx, const MCLabel& label) const
+bool PreClusterLabeler::isDuplicated(std::size_t idx, const MCLabel& label) const
 {
   /// Checks if the label is already there
   if (idx >= mMCContainer.getIndexedSize()) {
@@ -69,7 +69,7 @@ bool PreClusterLabeler::isDuplicated(size_t idx, const MCLabel& label) const
   return false;
 }
 
-bool PreClusterLabeler::addLabel(size_t idx, const MCLabel& label)
+bool PreClusterLabeler::addLabel(std::size_t idx, const MCLabel& label)
 {
   /// Converts MCLabel into MCCompLabel
   if (isDuplicated(idx, label)) {

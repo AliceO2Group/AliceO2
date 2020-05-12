@@ -27,15 +27,15 @@ using WorkflowSpec = std::vector<DataProcessorSpec>;
 /// original as many times as specified in maxIndex and to amend each
 /// instance by invoking amendCallback on them with their own @a id.
 WorkflowSpec parallel(DataProcessorSpec original,
-                      size_t maxIndex,
-                      std::function<void(DataProcessorSpec&, size_t id)> amendCallback);
+                      std::size_t maxIndex,
+                      std::function<void(DataProcessorSpec&, std::size_t id)> amendCallback);
 
 /// The purpose of this helper is to duplicate a sequence of DataProcessorSpec
 /// as many times as specified in maxIndex and to amend each instance by invoking
 /// amendCallback on them with their own @a id.
 WorkflowSpec parallel(WorkflowSpec specs,
-                      size_t maxIndex,
-                      std::function<void(DataProcessorSpec&, size_t id)> amendCallback);
+                      std::size_t maxIndex,
+                      std::function<void(DataProcessorSpec&, std::size_t id)> amendCallback);
 
 /// create parallel pipelines of processors from a template sequence for a number of
 /// parallel sub specification IDs. The sub specifications are distributed among the
@@ -71,25 +71,25 @@ WorkflowSpec parallel(WorkflowSpec specs,
 /// @param getNumberOfSubspecs callback function to return the number of subspecs
 /// @param getSubSpec          callback function to return the subspecs at index
 WorkflowSpec parallelPipeline(const WorkflowSpec& specs,
-                              size_t nPipelines,
-                              std::function<size_t()> getNumberOfSubspecs,
-                              std::function<size_t(size_t)> getSubSpec);
+                              std::size_t nPipelines,
+                              std::function<std::size_t()> getNumberOfSubspecs,
+                              std::function<std::size_t(std::size_t)> getSubSpec);
 
 /// The purpose of this helper is to duplicate an InputSpec @a original
 /// as many times as specified in maxIndex and to amend each instance
 /// by invoking amendCallback on them with their own @a id. This can be
 /// used to programmatically create mergers.
 Inputs mergeInputs(InputSpec original,
-                   size_t maxIndex,
-                   std::function<void(InputSpec&, size_t)> amendCallback);
+                   std::size_t maxIndex,
+                   std::function<void(InputSpec&, std::size_t)> amendCallback);
 
 /// The purpose of this helper is to duplicate a list of InputSpec
 /// as many times as specified in maxIndex and to amend each instance
 /// by invoking amendCallback on them with their own @a id. This can be
 /// used to programmatically create mergers.
 Inputs mergeInputs(Inputs inputs,
-                   size_t maxIndex,
-                   std::function<void(InputSpec&, size_t)> amendCallback);
+                   std::size_t maxIndex,
+                   std::function<void(InputSpec&, std::size_t)> amendCallback);
 
 /// The purpose of this helper is to duplicate a DataProcessorSpec @a original
 /// as many times as @a count and make sure that each one of those is picking up
@@ -99,7 +99,7 @@ Inputs mergeInputs(Inputs inputs,
 /// to each one of the parallel workers or a "TimeMerger" device will have to do that for
 /// you.
 DataProcessorSpec timePipeline(DataProcessorSpec original,
-                               size_t count);
+                               std::size_t count);
 
 /// The purpose of this helper is to create a query on the data via a properly formatted
 /// @a matcher string which describes data in terms of the O2 Data Model descriptor.

@@ -46,7 +46,7 @@ class CRUBareDataChecker
   bool checkPatterns(const LocalBoardRO& board, uint8_t expected = 0xFF) const;
   bool checkPatterns(const std::vector<LocalBoardRO>& boards, uint8_t expected = 0xFF) const;
 
-  std::map<uint64_t, std::vector<size_t>> mOrderIndexes; /// Map for time ordering the entries
+  std::map<uint64_t, std::vector<std::size_t>> mOrderIndexes; /// Map for time ordering the entries
   std::string mDebugMsg{};                               /// Debug message
   std::array<unsigned long int, 2> mStatistics{};        /// Processed events statistics
 };

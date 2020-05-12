@@ -77,8 +77,8 @@ class RawPixelDecoder : public PixelReader
   TStopwatch& getTimerExtract() { return mTimerFetchData; }
   uint32_t getNChipsFiredROF() const { return mNChipsFiredROF; }
   uint32_t getNPixelsFiredROF() const { return mNPixelsFiredROF; }
-  size_t getNChipsFired() const { return mNChipsFired; }
-  size_t getNPixelsFired() const { return mNPixelsFired; }
+  std::size_t getNChipsFired() const { return mNChipsFired; }
+  std::size_t getNPixelsFired() const { return mNPixelsFired; }
 
   struct LinkEntry {
     int entry = -1;
@@ -109,8 +109,8 @@ class RawPixelDecoder : public PixelReader
   o2::itsmft::ROFRecord::ROFtype mROFCounter = 0; // RSTODO is this needed? eliminate from ROFRecord ?
   uint32_t mNChipsFiredROF = 0;                   // counter within the ROF
   uint32_t mNPixelsFiredROF = 0;                  // counter within the ROF
-  size_t mNChipsFired = 0;                        // global counter
-  size_t mNPixelsFired = 0;                       // global counter
+  std::size_t mNChipsFired = 0;                   // global counter
+  std::size_t mNPixelsFired = 0;                  // global counter
   TStopwatch mTimerTFStart;
   TStopwatch mTimerDecode;
   TStopwatch mTimerFetchData;

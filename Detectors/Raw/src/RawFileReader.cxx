@@ -71,11 +71,11 @@ void RawFileReader::LinkData::print(bool verbose, const std::string& pref) const
 }
 
 //____________________________________________
-size_t RawFileReader::LinkData::getNextHBFSize() const
+std::size_t RawFileReader::LinkData::getNextHBFSize() const
 {
   // estimate the memory size of the next HBF to read
   // The blocks are guaranteed to not cover more than 1 HB
-  size_t sz = 0;
+  std::size_t sz = 0;
   int ibl = nextBlock2Read, nbl = blocks.size();
   while (ibl < nbl && (blocks[ibl].orbit == blocks[nextBlock2Read].orbit)) {
     sz += blocks[ibl].size;
@@ -85,10 +85,10 @@ size_t RawFileReader::LinkData::getNextHBFSize() const
 }
 
 //____________________________________________
-size_t RawFileReader::LinkData::readNextHBF(char* buff)
+std::size_t RawFileReader::LinkData::readNextHBF(char* buff)
 {
   // read data of the next complete HB, buffer of getNextHBFSize() must be allocated in advance
-  size_t sz = 0;
+  std::size_t sz = 0;
   int ibl = nextBlock2Read, nbl = blocks.size();
   bool error = false;
   while (ibl < nbl) {
@@ -110,10 +110,10 @@ size_t RawFileReader::LinkData::readNextHBF(char* buff)
 }
 
 //____________________________________________
-size_t RawFileReader::LinkData::skipNextHBF()
+std::size_t RawFileReader::LinkData::skipNextHBF()
 {
   // skip next complete HB
-  size_t sz = 0;
+  std::size_t sz = 0;
   int ibl = nextBlock2Read, nbl = blocks.size();
   while (ibl < nbl) {
     const auto& blc = blocks[ibl];
@@ -128,11 +128,11 @@ size_t RawFileReader::LinkData::skipNextHBF()
 }
 
 //____________________________________________
-size_t RawFileReader::LinkData::getNextTFSize() const
+std::size_t RawFileReader::LinkData::getNextTFSize() const
 {
   // estimate the memory size of the next TF to read
   // (assuming nextBlock2Read is at the start of the TF)
-  size_t sz = 0;
+  std::size_t sz = 0;
   int ibl = nextBlock2Read, nbl = blocks.size();
   while (ibl < nbl && (blocks[ibl].tfID == blocks[nextBlock2Read].tfID)) {
     sz += blocks[ibl].size;
@@ -142,10 +142,10 @@ size_t RawFileReader::LinkData::getNextTFSize() const
 }
 
 //_____________________________________________________________________
-size_t RawFileReader::LinkData::readNextTF(char* buff)
+std::size_t RawFileReader::LinkData::readNextTF(char* buff)
 {
   // read next complete TF, buffer of getNextTFSize() must be allocated in advance
-  size_t sz = 0;
+  std::size_t sz = 0;
   int ibl0 = nextBlock2Read, nbl = blocks.size();
   bool error = false;
   while (nextBlock2Read < nbl && (blocks[nextBlock2Read].tfID == blocks[ibl0].tfID)) { // nextBlock2Read is incremented by the readNextHBF!
@@ -200,10 +200,10 @@ int RawFileReader::LinkData::getNHBFinTF() const
 }
 
 //____________________________________________
-size_t RawFileReader::LinkData::getLargestSuperPage() const
+std::size_t RawFileReader::LinkData::getLargestSuperPage() const
 {
   // estimate largest super page size
-  size_t szMax = 0, szLast = 0;
+  std::size_t szMax = 0, szLast = 0;
   for (const auto& bl : blocks) {
     if (bl.testFlag(LinkBlock::StartSP)) { // account previous SPage and start accumulation of the next one
       if (szLast > szMax) {
@@ -217,10 +217,10 @@ size_t RawFileReader::LinkData::getLargestSuperPage() const
 }
 
 //____________________________________________
-size_t RawFileReader::LinkData::getLargestTF() const
+std::size_t RawFileReader::LinkData::getLargestTF() const
 {
   // estimate largest TF
-  size_t szMax = 0, szLast = 0;
+  std::size_t szMax = 0, szLast = 0;
   for (const auto& bl : blocks) {
     if (bl.testFlag(LinkBlock::StartTF)) { // account previous TF and start accumulation of the next one
       if (szLast > szMax) {
@@ -415,7 +415,7 @@ bool RawFileReader::preprocessFile(int ifl)
   rewind(fl);
   long int nr = 0;
   mPosInFile = 0;
-  size_t nRDHread = 0, boffs;
+  std::size_t nRDHread = 0, boffs;
   bool ok = true, readMore = true;
   while (readMore && (nr = fread(buffer.get(), 1, mBufferSize, fl))) {
     boffs = 0;
@@ -551,7 +551,7 @@ bool RawFileReader::init()
   std::sort(mOrderedIDs.begin(), mOrderedIDs.end(),
             [& links = mLinksData](int a, int b) { return links[a].spec < links[b].spec; });
 
-  size_t maxSP = 0, maxTF = 0;
+  std::size_t maxSP = 0, maxTF = 0;
 
   LOGF(INFO, "Summary of preprocessing:");
   for (int i = 0; i < int(mLinksData.size()); i++) {

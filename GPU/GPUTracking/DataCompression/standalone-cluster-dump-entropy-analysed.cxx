@@ -254,10 +254,10 @@ int main(int argc, char** argv)
   }
 
   fseek(fp, 0, SEEK_END);
-  size_t nFileSize = ftell(fp);
+  std::size_t nFileSize = ftell(fp);
   fseek(fp, 0, SEEK_SET);
 
-  size_t nClusters = nFileSize / sizeof(cluster_struct);
+  std::size_t nClusters = nFileSize / sizeof(cluster_struct);
   if (max_clusters && nClusters > max_clusters) {
     nClusters = max_clusters;
   }
@@ -356,11 +356,11 @@ int main(int argc, char** argv)
         used[i] = 0;
       }
 
-      size_t nClustersUsed = 0;
+      std::size_t nClustersUsed = 0;
 
       int lastRow = 0, lastPad = 0, lastTime = 0, lastSlice = 0, lastResPad = 0, lastResTime = 0, lastQTot = 0, lastQMax = 0, lastSigmaPad = 0, lastSigmaTime = 0, lastTrack = -1, lastEvent = 0;
 
-      for (size_t i = 0; i < nClusters; i++) {
+      for (std::size_t i = 0; i < nClusters; i++) {
         const cluster_struct& cluster_org = clusters[i];
         cluster_struct cluster = clusters[i];
         if (cluster.pad >= 32768) {

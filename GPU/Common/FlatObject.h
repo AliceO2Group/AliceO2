@@ -185,10 +185,10 @@ class FlatObject
   /// _____________  Memory alignment  __________________________
 
   /// Gives minimal alignment in bytes required for the class object
-  static constexpr size_t getClassAlignmentBytes() { return 8; }
+  static constexpr std::size_t getClassAlignmentBytes() { return 8; }
 
   /// Gives minimal alignment in bytes required for the flat buffer
-  static constexpr size_t getBufferAlignmentBytes() { return 8; }
+  static constexpr std::size_t getBufferAlignmentBytes() { return 8; }
 
   /// _____________ Construction _________
 
@@ -247,7 +247,7 @@ class FlatObject
 
  public:
   /// Gives size of the flat buffer
-  size_t getFlatBufferSize() const { return mFlatBufferSize; }
+  std::size_t getFlatBufferSize() const { return mFlatBufferSize; }
 
   /// Gives pointer to the flat buffer
   const char* getFlatBufferPtr() const { return mFlatBufferPtr; }
@@ -268,7 +268,7 @@ class FlatObject
 
  public:
   /// Increases given size to achieve required alignment
-  static size_t alignSize(size_t sizeBytes, size_t alignmentBytes)
+  static std::size_t alignSize(std::size_t sizeBytes, std::size_t alignmentBytes)
   {
     auto res = sizeBytes % alignmentBytes;
     return res ? sizeBytes + (alignmentBytes - res) : sizeBytes;

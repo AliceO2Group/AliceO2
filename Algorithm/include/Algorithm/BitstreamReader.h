@@ -53,7 +53,7 @@ class BitstreamReader
   // containers
   using value_type = BufferType;
   using iterator = const value_type*;
-  static constexpr size_t value_size = sizeof(value_type) * 8;
+  static constexpr std::size_t value_size = sizeof(value_type) * 8;
   BitstreamReader() = delete;
   BitstreamReader(iterator start, iterator end)
     : mStart(start), mEnd(end), mCurrent(mStart), mBitPosition(value_size)
@@ -89,8 +89,8 @@ class BitstreamReader
   /// all cases.
   /// @param v  target variable passed by reference
   /// @return number of poked bits
-  template <typename T, size_t N = sizeof(T) * 8>
-  size_t peek(T& v)
+  template <typename T, std::size_t N = sizeof(T) * 8>
+  std::size_t peek(T& v)
   {
     static_assert(N <= sizeof(T) * 8);
     return peek<T, false>(v, N);
@@ -102,14 +102,14 @@ class BitstreamReader
   /// @param bitlength  number of bits to read
   /// @return number of poked bits
   template <typename T>
-  size_t peek(T& v, size_t bitlength)
+  std::size_t peek(T& v, std::size_t bitlength)
   {
     return peek<T, true>(v, bitlength);
   }
 
   /// Move read position
   /// @param bitlength  move count in number of bits
-  void seek(size_t bitlength)
+  void seek(std::size_t bitlength)
   {
     while (good() && bitlength > 0 && mCurrent != mEnd) {
       if (bitlength >= mBitPosition) {
@@ -131,7 +131,7 @@ class BitstreamReader
   }
 
   /// Get the next n bits and move the read position
-  template <typename T, size_t N = sizeof(T) * 8>
+  template <typename T, std::size_t N = sizeof(T) * 8>
   T get()
   {
     T result;
@@ -142,7 +142,7 @@ class BitstreamReader
 
   /// Get the next n and move the read position
   template <typename T>
-  T get(size_t bitlength = sizeof(T) * 8)
+  T get(std::size_t bitlength = sizeof(T) * 8)
   {
     T result;
     peek<T>(result, bitlength);
@@ -156,7 +156,7 @@ class BitstreamReader
   /// The class holds both the extracted value access via peek method and the number of used
   /// bits. The reader will be incremented when the object is destroyed.
   /// The number of bits can be adjusted by using markUsed method
-  template <typename FieldType, size_t N = sizeof(FieldType) * 8, typename ParentType = self_type>
+  template <typename FieldType, std::size_t N = sizeof(FieldType) * 8, typename ParentType = self_type>
   class Bits
   {
    public:
@@ -200,7 +200,7 @@ class BitstreamReader
       return mData;
     }
 
-    void markUsed(size_t length)
+    void markUsed(std::size_t length)
     {
       mLength = length;
     }
@@ -208,7 +208,7 @@ class BitstreamReader
    private:
     ParentType* mParent;
     FieldType mData;
-    size_t mLength;
+    std::size_t mLength;
   };
 
   /// Read an integral value from the stream
@@ -220,7 +220,7 @@ class BitstreamReader
   }
 
   /// Read a bitstream value from the stream
-  template <size_t N>
+  template <std::size_t N>
   self_type& operator>>(std::bitset<N>& target)
   {
     target = get<std::bitset<N>, N>();
@@ -240,7 +240,7 @@ class BitstreamReader
  private:
   /// The internal peek method
   template <typename T, bool RuntimeCheck>
-  size_t peek(T& result, size_t bitlength)
+  std::size_t peek(T& result, std::size_t bitlength)
   {
     if constexpr (RuntimeCheck) {
       // the runtime check is disabled if bitlength is derived at compile time
@@ -249,7 +249,7 @@ class BitstreamReader
       }
     }
     result = 0;
-    size_t bitsToWrite = bitlength;
+    std::size_t bitsToWrite = bitlength;
     auto current = mCurrent;
     auto bitsAvailable = mBitPosition;
     while (bitsToWrite > 0 && current != mEnd) {
@@ -282,7 +282,7 @@ class BitstreamReader
   /// current position in resource
   iterator mCurrent;
   /// bit position in current element
-  size_t mBitPosition;
+  std::size_t mBitPosition;
 };
 } // namespace algorithm
 } // namespace o2

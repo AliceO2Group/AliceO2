@@ -26,17 +26,17 @@ BOOST_AUTO_TEST_CASE(TestInputSpan)
   int routeNo = 0;
   for (auto& list : inputs) {
     int nParts = routeNo != 1 ? 1 : 3;
-    for (size_t part = 0; part < nParts; ++part) {
+    for (std::size_t part = 0; part < nParts; ++part) {
       list.emplace_back("header_" + std::to_string(routeNo) + "-" + std::to_string(part));
       list.emplace_back("payload_" + std::to_string(routeNo) + "-" + std::to_string(part));
     }
     routeNo++;
   }
 
-  auto getter = [&inputs](size_t i, size_t part) {
+  auto getter = [&inputs](std::size_t i, std::size_t part) {
     return DataRef{nullptr, inputs[i].at(part * 2).data(), inputs[i].at(part * 2 + 1).data()};
   };
-  auto nPartsGetter = [&inputs](size_t i) {
+  auto nPartsGetter = [&inputs](std::size_t i) {
     return inputs[i].size() / 2;
   };
 
@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(TestInputSpan)
 
   routeNo = 0;
   for (auto it = span.begin(), end = span.end(); it != end; ++it) {
-    size_t partNo = 0;
+    std::size_t partNo = 0;
     BOOST_CHECK(it.size() * 2 == inputs[routeNo].size());
     for (auto const& ref : it) {
       BOOST_CHECK(inputs[routeNo].at(partNo++) == ref.header);

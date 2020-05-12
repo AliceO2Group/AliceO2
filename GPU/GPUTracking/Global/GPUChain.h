@@ -43,7 +43,7 @@ class GPUChain
   virtual int PrepareEvent() = 0;
   virtual int Finalize() = 0;
   virtual int RunChain() = 0;
-  virtual void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) = 0;
+  virtual void MemorySize(std::size_t& gpuMem, std::size_t& pageLockedHostMem) = 0;
   virtual void PrintMemoryStatistics(){};
 
   constexpr static int NSLICES = GPUReconstruction::NSLICES;
@@ -97,9 +97,9 @@ class GPUChain
   inline void TransferMemoryResourceLinkToGPU(RecoStep step, short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourceLinkToGPU, res, stream, ev, evList, nEvents); }
   inline void TransferMemoryResourceLinkToHost(RecoStep step, short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourceLinkToHost, res, stream, ev, evList, nEvents); }
   // Todo: retrieve step from proc, move kernelClass->GetStep to retrieve it from GetProcessor
-  inline void WriteToConstantMemory(RecoStep step, size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) { timeCpy(step, true, &GPUReconstructionCPU::WriteToConstantMemory, offset, src, size, stream, ev); }
-  inline void GPUMemCpy(RecoStep step, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, toGPU, &GPUReconstructionCPU::GPUMemCpy, dst, src, size, stream, toGPU, ev, evList, nEvents); }
-  inline void GPUMemCpyAlways(RecoStep step, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1)
+  inline void WriteToConstantMemory(RecoStep step, std::size_t offset, const void* src, std::size_t size, int stream = -1, deviceEvent* ev = nullptr) { timeCpy(step, true, &GPUReconstructionCPU::WriteToConstantMemory, offset, src, size, stream, ev); }
+  inline void GPUMemCpy(RecoStep step, void* dst, const void* src, std::size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, toGPU, &GPUReconstructionCPU::GPUMemCpy, dst, src, size, stream, toGPU, ev, evList, nEvents); }
+  inline void GPUMemCpyAlways(RecoStep step, void* dst, const void* src, std::size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1)
   {
     if (toGPU == -1) {
       memcpy(dst, src, size);
@@ -119,7 +119,7 @@ class GPUChain
     mRec->DumpData<T>(fp, entries, num, type);
   }
   template <class T, class S>
-  inline size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
+  inline std::size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
   {
     return mRec->ReadData<T>(fp, entries, num, mem, type);
   }
@@ -170,7 +170,7 @@ class GPUChain
   }
 
   template <class T, int I = 0, int J = -1>
-  HighResTimer& getKernelTimer(RecoStep step, int num = 0, size_t addMemorySize = 0)
+  HighResTimer& getKernelTimer(RecoStep step, int num = 0, std::size_t addMemorySize = 0)
   {
     return mRec->getKernelTimer<T, I, J>(step, num, addMemorySize);
   }
@@ -188,8 +188,8 @@ class GPUChain
   inline unsigned int WarpSize() const { return mRec->mWarpSize; }
   inline unsigned int ThreadCount() const { return mRec->mThreadCount; }
 
-  inline size_t AllocateRegisteredMemory(GPUProcessor* proc) { return mRec->AllocateRegisteredMemory(proc); }
-  inline size_t AllocateRegisteredMemory(short res, GPUOutputControl* control = nullptr) { return mRec->AllocateRegisteredMemory(res, control); }
+  inline std::size_t AllocateRegisteredMemory(GPUProcessor* proc) { return mRec->AllocateRegisteredMemory(proc); }
+  inline std::size_t AllocateRegisteredMemory(short res, GPUOutputControl* control = nullptr) { return mRec->AllocateRegisteredMemory(res, control); }
   template <class T>
   inline void SetupGPUProcessor(T* proc, bool allocate)
   {
@@ -225,7 +225,7 @@ inline void GPUChain::timeCpy(RecoStep step, int toGPU, S T::*func, Args... args
     return;
   }
   HighResTimer* timer = nullptr;
-  size_t* bytes = nullptr;
+  std::size_t* bytes = nullptr;
   if (mRec->mDeviceProcessingSettings.debugLevel >= 1 && toGPU >= 0) { // Todo: time special cases toGPU < 0
     int id = mRec->getRecoStepNum(step, false);
     if (id != -1) {
@@ -236,7 +236,7 @@ inline void GPUChain::timeCpy(RecoStep step, int toGPU, S T::*func, Args... args
       timer->Start();
     }
   }
-  size_t n = (mRec->*func)(args...);
+  std::size_t n = (mRec->*func)(args...);
   if (timer) {
     SynchronizeGPU();
     timer->Stop();

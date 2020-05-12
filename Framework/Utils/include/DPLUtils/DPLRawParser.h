@@ -56,9 +56,9 @@ namespace o2::framework
 ///     // retrieving payload pointer of the page
 ///     auto const* payload = it.data();
 ///     // size of payload
-///     size_t payloadSize = it.size();
+///     std::size_t payloadSize = it.size();
 ///     // offset of payload in the raw page
-///     size_t offset = it.offset();
+///     std::size_t offset = it.offset();
 ///   }
 class DPLRawParser
 {
@@ -161,13 +161,13 @@ class DPLRawParser
     }
 
     /// offset of payload at current position
-    size_t offset() const
+    std::size_t offset() const
     {
       return mCurrent.offset();
     }
 
     /// get size of payload at current position
-    size_t size() const
+    std::size_t size() const
     {
       return mCurrent.size();
     }

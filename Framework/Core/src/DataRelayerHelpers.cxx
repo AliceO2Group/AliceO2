@@ -36,11 +36,11 @@ DataDescriptorMatcher fromConcreteMatcher(ConcreteDataMatcher const& matcher)
 }
 } // namespace
 
-std::vector<size_t>
+std::vector<std::size_t>
   DataRelayerHelpers::createDistinctRouteIndex(std::vector<InputRoute> const& routes)
 {
-  std::vector<size_t> result;
-  for (size_t ri = 0; ri < routes.size(); ++ri) {
+  std::vector<std::size_t> result;
+  for (std::size_t ri = 0; ri < routes.size(); ++ri) {
     auto& route = routes[ri];
     if (route.timeslice == 0) {
       result.push_back(ri);

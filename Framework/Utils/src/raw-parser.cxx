@@ -52,9 +52,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
             // retrieving payload pointer of the page
             auto const* payload = it.data();
             // size of payload
-            size_t payloadSize = it.size();
+            std::size_t payloadSize = it.size();
             // offset of payload in the raw page
-            size_t offset = it.offset();
+            std::size_t offset = it.offset();
 
             // Note: the following code is only for printing out raw page information
             const auto* dh = it.o2DataHeader();

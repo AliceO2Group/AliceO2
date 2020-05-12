@@ -267,7 +267,7 @@ void Tracker::findTracks(const ROframe& event)
 
     /// FIXME!
     TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf)};
-    for (size_t iC = 0; iC < clusters.size(); ++iC) {
+    for (std::size_t iC = 0; iC < clusters.size(); ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
     }
     bool fitSuccess = fitTrack(event, temporaryTrack, constants::its::LayersNumber - 4, -1, -1);
@@ -363,7 +363,7 @@ void Tracker::findTracks(const ROframe& event)
   std::cout << std::endl;
 
   std::cout << "+++ Cross check counters for 4, 5, 6 and 7 clusters:\t";
-  for (size_t iCount = 0; iCount < refitCounters.size(); ++iCount) {
+  for (std::size_t iCount = 0; iCount < refitCounters.size(); ++iCount) {
     std::cout << xcheckCounters[iCount] << "\t";
     //assert(refitCounters[iCount] == xcheckCounters[iCount]);
   }

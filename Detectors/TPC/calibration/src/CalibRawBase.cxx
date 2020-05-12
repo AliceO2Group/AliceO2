@@ -71,7 +71,7 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
       mRawReaderCRUManager.setDebugLevel(debugLevel);
       mRawReaderCRUManager.setADCDataCallback([this](const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data) -> Int_t {
         Int_t timeBins = update(padROCPos, cru, data);
-        mProcessedTimeBins = std::max(mProcessedTimeBins, size_t(timeBins));
+        mProcessedTimeBins = std::max(mProcessedTimeBins, std::size_t(timeBins));
         return timeBins;
       });
       for (auto file : *arr) {

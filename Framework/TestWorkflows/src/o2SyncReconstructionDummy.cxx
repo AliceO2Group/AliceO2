@@ -25,7 +25,7 @@ AlgorithmSpec simplePipe(std::string const& what)
       auto tEnd = std::chrono::high_resolution_clock::now();
       auto& msg = ctx.outputs().make<char>(OutputRef{what}, messageSize);
       while (std::chrono::duration_cast<std::chrono::seconds>(tEnd - tStart) < std::chrono::seconds(delay)) {
-        for (size_t i = 0; i < messageSize; ++i) {
+        for (std::size_t i = 0; i < messageSize; ++i) {
           msg[i] = 0;
         }
         tEnd = std::chrono::high_resolution_clock::now();

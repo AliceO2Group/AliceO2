@@ -75,7 +75,7 @@ std::ostream& operator<<(std::ostream& os, DatumSpec const& spec)
           [&os](auto&& arg) { os << arg; },
           arg);
       },
-      [&os](size_t&& arg) { os << arg; },
+      [&os](std::size_t&& arg) { os << arg; },
       [&os](std::string&& arg) { os << arg; },
       [](auto&&) {}},
     spec.datum);
@@ -88,8 +88,8 @@ namespace
 struct NodeRecord {
   /// pointer to the actual tree node
   Node* node_ptr = nullptr;
-  size_t index = 0;
-  explicit NodeRecord(Node* node_, size_t index_) : node_ptr(node_), index{index_} {}
+  std::size_t index = 0;
+  explicit NodeRecord(Node* node_, std::size_t index_) : node_ptr(node_), index{index_} {}
 };
 } // namespace
 
@@ -110,7 +110,7 @@ Operations createOperations(Filter const& expression)
       node->self);
   };
 
-  size_t index = 0;
+  std::size_t index = 0;
   // insert the top node into stack
   path.emplace(expression.node.get(), index++);
 
@@ -131,7 +131,7 @@ Operations createOperations(Filter const& expression)
 
     auto left = top.node_ptr->left.get();
     bool leftLeaf = isLeaf(left);
-    size_t li = 0;
+    std::size_t li = 0;
     if (leftLeaf) {
       operationSpec.left = processLeaf(left);
     } else {
@@ -145,7 +145,7 @@ Operations createOperations(Filter const& expression)
     bool rightLeaf = true;
     if (right != nullptr)
       rightLeaf = isLeaf(right);
-    size_t ri = 0;
+    std::size_t ri = 0;
     auto isUnary = false;
     if (top.node_ptr->right == nullptr) {
       operationSpec.right = DatumSpec{};
@@ -178,10 +178,10 @@ Operations createOperations(Filter const& expression)
 
     // check if the datums are references
     if (left.datum.index() == 1)
-      left.type = resultTypes[std::get<size_t>(left.datum)];
+      left.type = resultTypes[std::get<std::size_t>(left.datum)];
 
     if (right.datum.index() == 1)
-      right.type = resultTypes[std::get<size_t>(right.datum)];
+      right.type = resultTypes[std::get<std::size_t>(right.datum)];
 
     auto t1 = left.type;
     auto t2 = right.type;
@@ -219,7 +219,7 @@ Operations createOperations(Filter const& expression)
       it->type = type;
     }
     it->result.type = it->type;
-    resultTypes[std::get<size_t>(it->result.datum)] = it->type;
+    resultTypes[std::get<std::size_t>(it->result.datum)] = it->type;
   }
 
   return OperationSpecs;
@@ -296,7 +296,7 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
 
   auto datumNode = [Schema, &opNodes, &fieldNodes](DatumSpec const& spec) {
     if (spec.datum.index() == 1) {
-      return opNodes[std::get<size_t>(spec.datum)];
+      return opNodes[std::get<std::size_t>(spec.datum)];
     }
 
     if (spec.datum.index() == 2) {
@@ -343,7 +343,7 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
         }
         break;
     }
-    opNodes[std::get<size_t>(it->result.datum)] = tree;
+    opNodes[std::get<std::size_t>(it->result.datum)] = tree;
   }
 
   return tree;

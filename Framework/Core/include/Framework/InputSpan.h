@@ -33,10 +33,10 @@ class InputSpan
   /// @a getter is the mapping between an element of the span referred by
   /// index and the buffer associated.
   /// @a size is the number of elements in the span.
-  InputSpan(std::function<DataRef(size_t)> getter, size_t size)
+  InputSpan(std::function<DataRef(std::size_t)> getter, std::size_t size)
     : mGetter{}, mNofPartsGetter{}, mSize{size}
   {
-    mGetter = [getter](size_t index, size_t) -> DataRef {
+    mGetter = [getter](std::size_t index, std::size_t) -> DataRef {
       return getter(index);
     };
   }
@@ -44,7 +44,7 @@ class InputSpan
   /// @a getter is the mapping between an element of the span referred by
   /// index and the buffer associated.
   /// @a size is the number of elements in the span.
-  InputSpan(std::function<DataRef(size_t, size_t)> getter, size_t size)
+  InputSpan(std::function<DataRef(std::size_t, std::size_t)> getter, std::size_t size)
     : mGetter{getter}, mNofPartsGetter{}, mSize{size}
   {
   }
@@ -53,19 +53,19 @@ class InputSpan
   /// index and the buffer associated.
   /// @nofPartsGetter is the getter for the number of parts associated with an index
   /// @a size is the number of elements in the span.
-  InputSpan(std::function<DataRef(size_t, size_t)> getter, std::function<size_t(size_t)> nofPartsGetter, size_t size)
+  InputSpan(std::function<DataRef(std::size_t, std::size_t)> getter, std::function<std::size_t(std::size_t)> nofPartsGetter, std::size_t size)
     : mGetter{getter}, mNofPartsGetter{nofPartsGetter}, mSize{size}
   {
   }
 
   /// @a i-th element of the InputSpan
-  DataRef get(size_t i, size_t partidx = 0) const
+  DataRef get(std::size_t i, std::size_t partidx = 0) const
   {
     return mGetter(i, partidx);
   }
 
   /// @a number of parts in the i-th element of the InputSpan
-  size_t getNofParts(size_t i) const
+  std::size_t getNofParts(std::size_t i) const
   {
     if (i >= mSize) {
       return 0;
@@ -77,17 +77,17 @@ class InputSpan
   }
 
   /// Number of elements in the InputSpan
-  size_t size() const
+  std::size_t size() const
   {
     return mSize;
   }
 
-  const char* header(size_t i) const
+  const char* header(std::size_t i) const
   {
     return get(i).header;
   }
 
-  const char* payload(size_t i) const
+  const char* payload(std::size_t i) const
   {
     return get(i).payload;
   }
@@ -109,7 +109,7 @@ class InputSpan
 
     Iterator() = delete;
 
-    Iterator(ParentType const* parent, size_t position = 0, size_t size = 0)
+    Iterator(ParentType const* parent, std::size_t position = 0, std::size_t size = 0)
       : mParent(parent), mPosition(position), mSize(size > position ? size : position), mElement{}
     {
       if (mPosition < mSize) {
@@ -163,14 +163,14 @@ class InputSpan
     }
 
     // return current position
-    size_t position() const
+    std::size_t position() const
     {
       return mPosition;
     }
 
    private:
-    size_t mPosition;
-    size_t mSize;
+    std::size_t mPosition;
+    std::size_t mSize;
     ParentType const* mParent;
     ElementType mElement;
   };
@@ -191,19 +191,19 @@ class InputSpan
     using iterator = Iterator<SelfType, T>;
     using const_iterator = Iterator<SelfType, const T>;
 
-    InputSpanIterator(InputSpan const* parent, size_t position = 0, size_t size = 0)
+    InputSpanIterator(InputSpan const* parent, std::size_t position = 0, std::size_t size = 0)
       : BaseType(parent, position, size)
     {
     }
 
     /// Get element at {slotindex, partindex}
-    ElementType get(size_t pos) const
+    ElementType get(std::size_t pos) const
     {
       return this->parent()->get(this->position(), pos);
     }
 
     /// Check if slot is valid, index of part is not used
-    bool isValid(size_t = 0) const
+    bool isValid(std::size_t = 0) const
     {
       if (this->position() < this->parent()->size()) {
         return this->parent()->isValid(this->position());
@@ -212,7 +212,7 @@ class InputSpan
     }
 
     /// Get number of parts in input slot
-    size_t size() const
+    std::size_t size() const
     {
       return this->parent()->getNofParts(this->position());
     }
@@ -245,9 +245,9 @@ class InputSpan
   }
 
  private:
-  std::function<DataRef(size_t, size_t)> mGetter;
-  std::function<size_t(size_t)> mNofPartsGetter;
-  size_t mSize;
+  std::function<DataRef(std::size_t, std::size_t)> mGetter;
+  std::function<std::size_t(std::size_t)> mNofPartsGetter;
+  std::size_t mSize;
 };
 
 } // namespace framework

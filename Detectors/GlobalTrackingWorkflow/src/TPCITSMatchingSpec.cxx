@@ -168,7 +168,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   if (sectorStatus.any()) {
     LOG(ERROR) << "Reading bufferized TPC clusters, this should not happen";
     // some of the inputs have been buffered
-    for (size_t sector = 0; sector < sectorStatus.size(); ++sector) {
+    for (std::size_t sector = 0; sector < sectorStatus.size(); ++sector) {
       if (sectorStatus.test(sector)) {
         clustersTPC[sector] = gsl::span(&mBufferedTPCClusters[sector].front(), mBufferedTPCClusters[sector].size());
       }
@@ -186,7 +186,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     } else {
       int rangeStart = -1;
       int rangeEnd = -1;
-      for (size_t sector = 0; sector < validSectors.size(); sector++) {
+      for (std::size_t sector = 0; sector < validSectors.size(); sector++) {
         if (validSectors.test(sector)) {
           if (rangeStart < 0) {
             if (rangeEnd >= 0) {

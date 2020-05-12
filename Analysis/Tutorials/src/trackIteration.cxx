@@ -31,7 +31,7 @@ struct ATask {
     count++;
   }
 
-  size_t count = 2016927;
+  std::size_t count = 2016927;
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)

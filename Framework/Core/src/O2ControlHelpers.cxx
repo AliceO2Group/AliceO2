@@ -28,7 +28,7 @@ void dumpDeviceSpec2O2Control(std::ostream& out,
       << "\n";
   assert(specs.size() == executions.size());
 
-  for (size_t di = 0; di < specs.size(); ++di) {
+  for (std::size_t di = 0; di < specs.size(); ++di) {
     auto& spec = specs[di];
     auto& execution = executions[di];
 
@@ -61,7 +61,7 @@ void dumpDeviceSpec2O2Control(std::ostream& out,
         << "\n";
     out << R"(          - no-op://)"
         << "\n";
-    for (size_t ai = 1; ai < execution.args.size(); ++ai) {
+    for (std::size_t ai = 1; ai < execution.args.size(); ++ai) {
       const char* option = execution.args[ai];
       const char* value = nullptr; // no value by default (i.e. a boolean)
       // If the subsequent option exists and does not start with -, we assume
@@ -91,7 +91,7 @@ void dumpDeviceSpec2O2Control(std::ostream& out,
   out << "    o2-workflow:\n";
   out << "      name: \"o2-workflow-roles\"\n";
   out << "      roles: \"\n";
-  for (size_t di = 0; di < specs.size(); ++di) {
+  for (std::size_t di = 0; di < specs.size(); ++di) {
     auto& spec = specs[di];
     out << "        - name: \"" << spec.name << "\"\n";
     out << "          connect:\n";

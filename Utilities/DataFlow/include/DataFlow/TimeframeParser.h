@@ -25,7 +25,7 @@ namespace data_flow
 /// to a naively persisted timeframe and pumps its parts to
 /// FairMQParts, ready to be shipped via FairMQ.
 void streamTimeframe(std::istream& stream,
-                     std::function<void(FairMQParts& parts, char* buffer, size_t size)> onAddPart,
+                     std::function<void(FairMQParts& parts, char* buffer, std::size_t size)> onAddPart,
                      std::function<void(FairMQParts& parts)> onSend);
 
 void streamTimeframe(std::ostream& stream, FairMQParts& parts);

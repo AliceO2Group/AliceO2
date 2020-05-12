@@ -29,8 +29,8 @@ struct FakeCluster {
 };
 using DataHeader = o2::header::DataHeader;
 
-size_t parallelSize = 4;
-size_t collectionChunkSize = 1000;
+std::size_t parallelSize = 4;
+std::size_t collectionChunkSize = 1000;
 void someDataProducerAlgorithm(ProcessingContext& ctx);
 void someProcessingStageAlgorithm(ProcessingContext& ctx);
 
@@ -45,7 +45,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       AlgorithmSpec{
         (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm}},
     parallelSize,
-    [](DataProcessorSpec& spec, size_t index) {
+    [](DataProcessorSpec& spec, std::size_t index) {
       DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
     });
 
@@ -60,7 +60,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
         //CLion says it ambiguous without (AlgorithmSpec::ProcessCallback), but cmake compiles fine anyway.
         (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm}},
     parallelSize,
-    [](DataProcessorSpec& spec, size_t index) {
+    [](DataProcessorSpec& spec, std::size_t index) {
       DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
       DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
     });
@@ -68,13 +68,13 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
   auto inputsDataSampler = mergeInputs(
     {"dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe},
     parallelSize,
-    [](InputSpec& input, size_t index) {
+    [](InputSpec& input, std::size_t index) {
       DataSpecUtils::updateMatchingSubspec(input, index);
     });
   auto inputsTpcProc = mergeInputs(
     {"dataTPC-proc", "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe},
     parallelSize,
-    [](InputSpec& input, size_t index) {
+    [](InputSpec& input, std::size_t index) {
       DataSpecUtils::updateMatchingSubspec(input, index);
     });
   inputsDataSampler.insert(std::end(inputsDataSampler), std::begin(inputsTpcProc), std::end(inputsTpcProc));
@@ -96,7 +96,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     o2::header::DataDescription outputDescription = matcher.description;
 
     //todo: better sampled data flagging
-    size_t len = strlen(outputDescription.str);
+    std::size_t len = strlen(outputDescription.str);
     if (len < outputDescription.size - 2) {
       outputDescription.str[len] = '_';
       outputDescription.str[len + 1] = 'S';
@@ -146,7 +146,7 @@ DataProcessorSpec sink{
   mergeInputs(
     {"dataTPC-proc", "TPC", "CLUSTERS_P"},
     parallelSize,
-    [](InputSpec& input, size_t index) {
+    [](InputSpec& input, std::size_t index) {
       DataSpecUtils::updateMatchingSubspec(input, index);
     }),
   Outputs{},
@@ -174,7 +174,7 @@ return specs;
 
 void someDataProducerAlgorithm(ProcessingContext& ctx)
 {
-  size_t index = ctx.services().get<ParallelContext>().index1D();
+  std::size_t index = ctx.services().get<ParallelContext>().index1D();
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
   auto& tpcClusters = ctx.outputs().make<FakeCluster>(
@@ -194,7 +194,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
 
 void someProcessingStageAlgorithm(ProcessingContext& ctx)
 {
-  size_t index = ctx.services().get<ParallelContext>().index1D();
+  std::size_t index = ctx.services().get<ParallelContext>().index1D();
 
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
 

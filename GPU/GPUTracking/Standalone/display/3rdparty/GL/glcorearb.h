@@ -614,7 +614,7 @@ GLAPI void APIENTRY glBlendEquation(GLenum mode);
 
 #ifndef GL_VERSION_1_5
 #define GL_VERSION_1_5 1
-typedef khronos_ssize_t GLsizeiptr;
+typedef khronos_sstd::size_t GLsizeiptr;
 typedef khronos_intptr_t GLintptr;
 #define GL_BUFFER_SIZE 0x8764
 #define GL_BUFFER_USAGE 0x8765

@@ -49,7 +49,7 @@ int MapFEC::index(uint32_t linkId, uint32_t dsAddr) const
   return linkId * sMaxDs + dsAddr;
 }
 
-size_t MapFEC::size() const
+std::size_t MapFEC::size() const
 {
   return std::count_if(mDsMap.begin(), mDsMap.end(), [](const MapDualSampa& m) {
     return m.deId >= 0 && m.dsId >= 0 && m.bad == 0;

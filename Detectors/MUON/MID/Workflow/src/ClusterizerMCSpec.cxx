@@ -49,7 +49,7 @@ class ClusterizerMCDeviceDPL
 
     mCorrelation.clear();
 
-    bool isClusterizerInit = mClusterizer.init([&](size_t baseIndex, size_t relatedIndex) { mCorrelation.push_back({baseIndex, relatedIndex}); });
+    bool isClusterizerInit = mClusterizer.init([&](std::size_t baseIndex, std::size_t relatedIndex) { mCorrelation.push_back({baseIndex, relatedIndex}); });
 
     if (!isClusterizerInit) {
       LOG(ERROR) << "Initialization of MID clusterizer device failed";
@@ -92,7 +92,7 @@ class ClusterizerMCDeviceDPL
   Clusterizer mClusterizer{};
   PreClusterLabeler mPreClusterLabeler{};
   ClusterLabeler mClusterLabeler{};
-  std::vector<std::array<size_t, 2>> mCorrelation{};
+  std::vector<std::array<std::size_t, 2>> mCorrelation{};
 };
 
 framework::DataProcessorSpec getClusterizerMCSpec()

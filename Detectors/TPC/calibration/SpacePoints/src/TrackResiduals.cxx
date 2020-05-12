@@ -868,7 +868,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
 
   LOG(info) << "Done reading input data (accepted " << nAccepted << " points)";
 
-  std::vector<size_t> binIndices(nAccepted);
+  std::vector<std::size_t> binIndices(nAccepted);
 
   dyData.resize(nAccepted);
   dzData.resize(nAccepted);
@@ -998,7 +998,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
 //______________________________________________________________________________
 void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<float>& dz, std::vector<float>& tg, VoxRes& resVox)
 {
-  size_t nPoints = dy.size();
+  std::size_t nPoints = dy.size();
   //LOG(debug) << "processing voxel residuals for vox " << getGlbVoxBin(resVox.bvox) << " with " << nPoints << " points";
   if (nPoints < mMinEntriesPerVoxel) {
     LOG(info) << "voxel " << getGlbVoxBin(resVox.bvox) << " is skipped due to too few entries (" << nPoints << " < " << mMinEntriesPerVoxel << ")";
@@ -1006,7 +1006,7 @@ void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<f
   }
   std::array<float, 7> zResults;
   resVox.flags = 0;
-  std::vector<size_t> indices(dz.size());
+  std::vector<std::size_t> indices(dz.size());
   if (!o2::math_utils::math_base::LTMUnbinned(dz, indices, zResults, mLTMCut)) {
     LOG(debug) << "failed trimming input array for voxel " << getGlbVoxBin(resVox.bvox);
     return;
@@ -1041,12 +1041,12 @@ void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<f
 
 void TrackResiduals::processVoxelDispersions(std::vector<float>& tg, std::vector<float>& dy, VoxRes& resVox)
 {
-  size_t nPoints = tg.size();
+  std::size_t nPoints = tg.size();
   LOG(debug) << "processing voxel dispersions for vox " << getGlbVoxBin(resVox.bvox) << " with " << nPoints << " points";
   if (nPoints < 2) {
     return;
   }
-  for (size_t i = nPoints; i--;) {
+  for (std::size_t i = nPoints; i--;) {
     dy[i] -= resVox.DS[ResY] - resVox.DS[ResX] * tg[i];
   }
   resVox.D[ResD] = getMAD2Sigma(dy);
@@ -1589,7 +1589,7 @@ double TrackResiduals::getKernelWeight(std::array<double, 3> u2vec) const
 {
   double w = 1.;
   if (mKernelType == KernelType::Epanechnikov) {
-    for (size_t i = u2vec.size(); i--;) {
+    for (std::size_t i = u2vec.size(); i--;) {
       if (u2vec[i] > 1) {
         return 0.;
       }
@@ -1597,7 +1597,7 @@ double TrackResiduals::getKernelWeight(std::array<double, 3> u2vec) const
     }
   } else if (mKernelType == KernelType::Gaussian) {
     double u2 = 0.;
-    for (size_t i = u2vec.size(); i--;) {
+    for (std::size_t i = u2vec.size(); i--;) {
       u2 += u2vec[i];
     }
     w = u2 < mMaxGaussStdDev * mMaxGaussStdDev * u2vec.size() ? std::exp(-u2) / std::sqrt(2. * M_PI) : 0;
@@ -1706,13 +1706,13 @@ float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& 
   if (x.size() != y.size()) {
     LOG(error) << "x and y must not have different sizes for fitPoly1Robust (" << x.size() << " != " << y.size() << ")";
   }
-  size_t nPoints = x.size();
+  std::size_t nPoints = x.size();
   res[0] = res[1] = 0.f;
   if (nPoints < 2) {
     return -1;
   }
   std::array<float, 7> yResults;
-  std::vector<size_t> indY(nPoints);
+  std::vector<std::size_t> indY(nPoints);
   if (!o2::math_utils::math_base::LTMUnbinned(y, indY, yResults, cutLTM)) {
     return -1;
   }
@@ -1728,10 +1728,10 @@ float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& 
   medFit(nPointsUsed, vecOffset, x, y, a, b, err);
   //
   std::vector<float> ycm(nPoints);
-  for (size_t i = nPoints; i-- > 0;) {
+  for (std::size_t i = nPoints; i-- > 0;) {
     ycm[i] = y[i] - (a + b * x[i]);
   }
-  std::vector<size_t> indices(nPoints);
+  std::vector<std::size_t> indices(nPoints);
   o2::math_utils::math_base::SortData(ycm, indices);
   o2::math_utils::math_base::Reorder(ycm, indices);
   o2::math_utils::math_base::Reorder(y, indices);

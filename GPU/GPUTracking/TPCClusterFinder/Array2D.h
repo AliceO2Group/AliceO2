@@ -52,21 +52,21 @@ class TilingLayout
     Width = Grid::Width,
   };
 
-  GPUhdi() static size_t idx(const ChargePos& p)
+  GPUhdi() static std::size_t idx(const ChargePos& p)
   {
-    const size_t widthInTiles = (TPC_NUM_OF_PADS + Width - 1) / Width;
+    const std::size_t widthInTiles = (TPC_NUM_OF_PADS + Width - 1) / Width;
 
-    const size_t tilePad = p.gpad / Width;
-    const size_t tileTime = p.timePadded / Height;
+    const std::size_t tilePad = p.gpad / Width;
+    const std::size_t tileTime = p.timePadded / Height;
 
-    const size_t inTilePad = p.gpad % Width;
-    const size_t inTileTime = p.timePadded % Height;
+    const std::size_t inTilePad = p.gpad % Width;
+    const std::size_t inTileTime = p.timePadded % Height;
 
     return (tileTime * widthInTiles + tilePad) * (Width * Height) + inTileTime * Width + inTilePad;
   }
 
 #if !defined(__OPENCL__)
-  GPUh() static size_t items()
+  GPUh() static std::size_t items()
   {
     return (TPC_NUM_OF_PADS + Width - 1) / Width * Width * (TPC_MAX_FRAGMENT_LEN_PADDED + Height - 1) / Height * Height;
   }
@@ -76,20 +76,20 @@ class TilingLayout
 class LinearLayout
 {
  public:
-  GPUdi() static size_t idx(const ChargePos& p)
+  GPUdi() static std::size_t idx(const ChargePos& p)
   {
     return TPC_NUM_OF_PADS * p.timePadded + p.gpad;
   }
 
 #if !defined(__OPENCL__)
-  GPUh() static size_t items()
+  GPUh() static std::size_t items()
   {
     return TPC_NUM_OF_PADS * TPC_MAX_FRAGMENT_LEN_PADDED;
   }
 #endif
 };
 
-template <size_t S>
+template <std::size_t S>
 struct GridSize;
 
 template <>

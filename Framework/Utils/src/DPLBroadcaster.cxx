@@ -28,7 +28,7 @@ namespace workflows
 // This is a possible implementation of a DPL compliant and generic broadcaster.
 // Every other implementation should fall back to this one, after required translations.
 o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usrInput, o2f::Outputs usrOutputs,
-                                         std::function<size_t(o2f::DataRef)> const func)
+                                         std::function<std::size_t(o2f::DataRef)> const func)
 {
   return {devName,               // Device name from user
           o2f::Inputs{usrInput}, // User defined input as a vector of one InputSpec
@@ -37,7 +37,7 @@ o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usr
           o2f::AlgorithmSpec{[usrOutputs, func](o2f::InitContext&) {
             // Creating shared ptrs to useful parameters
             auto outputsPtr = getOutputList(usrOutputs);
-            auto funcPtr = std::make_shared<std::function<size_t(o2f::DataRef)> const>(func);
+            auto funcPtr = std::make_shared<std::function<std::size_t(o2f::DataRef)> const>(func);
 
             // Defining the ProcessCallback as returned object of InitCallback
             return [outputsPtr, funcPtr](o2f::ProcessingContext& ctx) {
@@ -56,10 +56,10 @@ o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usr
 
 // This is a shortcut for messages with fixed user-defined size
 o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usrInput, o2f::Outputs usrOutputs,
-                                         size_t fixMsgSize)
+                                         std::size_t fixMsgSize)
 {
   // This lambda returns a fixed message size
-  auto funcSize = [fixMsgSize](o2f::DataRef d) -> size_t { return fixMsgSize; };
+  auto funcSize = [fixMsgSize](o2f::DataRef d) -> std::size_t { return fixMsgSize; };
   // Callling complete implementation
   return defineBroadcaster(devName, usrInput, usrOutputs, funcSize);
 }
@@ -68,7 +68,7 @@ o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usr
 o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usrInput, o2f::Outputs usrOutputs)
 {
   // This lambda retrieves the message size using the API
-  auto funcSize = [](o2f::DataRef d) -> size_t {
+  auto funcSize = [](o2f::DataRef d) -> std::size_t {
     return (o2::header::get<o2::header::DataHeader*>(d.header))->payloadSize;
   };
   // Callling complete implementation

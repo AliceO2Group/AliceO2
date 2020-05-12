@@ -143,9 +143,9 @@ void sendOnChannel(FairMQDevice& device, FairMQMessagePtr&& headerMessage, FairM
 
 InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, uint64_t step)
 {
-  auto timesliceId = std::make_shared<size_t>(startTime);
+  auto timesliceId = std::make_shared<std::size_t>(startTime);
   return [timesliceId, step, spec](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
-    for (size_t i = 0; i < parts.Size() / 2; ++i) {
+    for (std::size_t i = 0; i < parts.Size() / 2; ++i) {
       auto dh = o2::header::get<DataHeader*>(parts.At(i * 2)->GetData());
 
       DataProcessingHeader dph{*timesliceId, 0};
@@ -157,14 +157,14 @@ InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, 
   };
 }
 
-std::tuple<std::vector<size_t>, size_t> findSplitParts(FairMQParts& parts, size_t start, std::vector<bool>& indicesDone)
+std::tuple<std::vector<std::size_t>, std::size_t> findSplitParts(FairMQParts& parts, std::size_t start, std::vector<bool>& indicesDone)
 {
   std::optional<ConcreteDataMatcher> matcher = std::nullopt;
-  size_t nofParts = 0;
+  std::size_t nofParts = 0;
   bool isGood = true;
-  std::vector<size_t> indexList;
-  size_t payloadSize = 0;
-  size_t index = start;
+  std::vector<std::size_t> indexList;
+  std::size_t payloadSize = 0;
+  std::size_t index = start;
   do {
     auto dh = o2::header::get<DataHeader*>(parts.At(index * 2)->GetData());
     if (!dh) {
@@ -204,16 +204,16 @@ std::tuple<std::vector<size_t>, size_t> findSplitParts(FairMQParts& parts, size_
   return std::make_tuple(std::move(indexList), payloadSize);
 }
 
-FairMQMessagePtr mergePayloads(FairMQDevice& device, FairMQParts& parts, std::vector<size_t> const& indexList, size_t payloadSize, std::string const channel)
+FairMQMessagePtr mergePayloads(FairMQDevice& device, FairMQParts& parts, std::vector<std::size_t> const& indexList, std::size_t payloadSize, std::string const channel)
 {
   auto message = device.NewMessageFor(channel, 0, payloadSize);
   if (!message) {
     return message;
   }
-  size_t copied = 0;
+  std::size_t copied = 0;
   char* data = reinterpret_cast<char*>(message->GetData());
   for (auto const& index : indexList) {
-    size_t partSize = parts.At(index * 2 + 1)->GetSize();
+    std::size_t partSize = parts.At(index * 2 + 1)->GetSize();
     memcpy(data, parts.At(index * 2 + 1)->GetData(), partSize);
     data += partSize;
     copied += partSize;
@@ -259,7 +259,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
     std::unordered_map<std::string, FairMQParts> outputs;
     std::vector<bool> indicesDone(parts.Size() / 2, false);
     std::vector<std::string> unmatchedDescriptions;
-    for (size_t msgidx = 0; msgidx < parts.Size() / 2; ++msgidx) {
+    for (std::size_t msgidx = 0; msgidx < parts.Size() / 2; ++msgidx) {
       if (indicesDone[msgidx]) {
         continue;
       }
@@ -294,7 +294,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
               }
             }
             if (payloadSize > 0) {
-              size_t headerSize = parts.At(msgidx * 2)->GetSize();
+              std::size_t headerSize = parts.At(msgidx * 2)->GetSize();
               auto headerMessage = device.NewMessageFor(channelName, 0, headerSize);
               memcpy(headerMessage->GetData(), parts.At(msgidx * 2)->GetData(), headerSize);
               auto clonedh = const_cast<DataHeader*>(o2::header::get<DataHeader*>(headerMessage->GetData()));
@@ -353,12 +353,12 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
 
 InjectorFunction incrementalConverter(OutputSpec const& spec, uint64_t startTime, uint64_t step)
 {
-  auto timesliceId = std::make_shared<size_t>(startTime);
+  auto timesliceId = std::make_shared<std::size_t>(startTime);
 
   return [timesliceId, spec, step](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
     // We iterate on all the parts and we send them two by two,
     // adding the appropriate O2 header.
-    for (size_t i = 0; i < parts.Size(); ++i) {
+    for (std::size_t i = 0; i < parts.Size(); ++i) {
       DataHeader dh;
 
       // FIXME: this only supports fully specified output specs...
@@ -465,14 +465,14 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
         // TODO: we need to make a copy of the messages, maybe we can implement functionality in
         // the RawDeviceService to forward messages, but this also needs to take into account that
         // other consumers might exist
-        size_t headerMsgSize = o2::header::Stack::headerStackSize(reinterpret_cast<o2::byte const*>(input.header));
+        std::size_t headerMsgSize = o2::header::Stack::headerStackSize(reinterpret_cast<o2::byte const*>(input.header));
         auto* dh = o2::header::get<DataHeader*>(input.header);
         if (!dh) {
           std::stringstream errorMessage;
           errorMessage << "no data header in " << *input.spec;
           throw std::runtime_error(errorMessage.str());
         }
-        size_t payloadMsgSize = dh->payloadSize;
+        std::size_t payloadMsgSize = dh->payloadSize;
         // we could probably do something like this but we do not know when the message is going to be sent
         // and if DPL is still owning a valid copy.
         //auto headerMessage = device.NewMessageFor(input.spec->binding, input.header, headerMsgSize, [](void*, void*) {});

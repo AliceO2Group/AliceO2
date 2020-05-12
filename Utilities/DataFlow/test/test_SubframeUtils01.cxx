@@ -27,14 +27,14 @@ BOOST_AUTO_TEST_CASE(SubframeUtils01)
   BOOST_CHECK(a < b);
   char* buf = new char[1000];
   memset(buf, 126, 1000);
-  for (size_t i = sizeof(o2::header::HeartbeatHeader); i < 1000 - sizeof(o2::header::HeartbeatHeader); ++i) {
+  for (std::size_t i = sizeof(o2::header::HeartbeatHeader); i < 1000 - sizeof(o2::header::HeartbeatHeader); ++i) {
     buf[i] = 0;
   }
   BOOST_CHECK(buf[0] == 126);
   BOOST_CHECK(buf[sizeof(o2::header::HeartbeatHeader)] == 0);
   BOOST_CHECK(buf[sizeof(o2::header::HeartbeatHeader) - 1] == 126);
   char* realPayload = nullptr;
-  size_t realSize = o2::dataflow::extractDetectorPayloadStrip(&realPayload, buf, 1000);
+  std::size_t realSize = o2::dataflow::extractDetectorPayloadStrip(&realPayload, buf, 1000);
   BOOST_CHECK(realPayload != nullptr);
   BOOST_CHECK(realSize == 1000 - sizeof(o2::header::HeartbeatHeader) - sizeof(o2::header::HeartbeatTrailer));
   BOOST_CHECK(realPayload == buf + sizeof(o2::header::HeartbeatHeader));

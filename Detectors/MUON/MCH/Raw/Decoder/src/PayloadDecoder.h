@@ -44,7 +44,7 @@ class PayloadDecoder
 
   /// decode the buffer (=payload only)
   /// \return the number of bytes used from the buffer
-  size_t process(uint32_t orbit, Payload payload);
+  std::size_t process(uint32_t orbit, Payload payload);
 
  private:
   uint32_t mOrbit;
@@ -58,7 +58,7 @@ PayloadDecoder<T>::PayloadDecoder(SampaChannelHandler channelHandler)
 }
 
 template <typename T>
-size_t PayloadDecoder<T>::process(uint32_t orbit, Payload payload)
+std::size_t PayloadDecoder<T>::process(uint32_t orbit, Payload payload)
 {
   if (hasOrbitJump(orbit, mOrbit)) {
     static_cast<T*>(this)->reset();

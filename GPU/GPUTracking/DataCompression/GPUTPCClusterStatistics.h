@@ -43,9 +43,9 @@ class GPUTPCClusterStatistics
 
  protected:
   template <class T, int I = 0>
-  void FillStatistic(std::vector<int>& p, const T* ptr, size_t n);
+  void FillStatistic(std::vector<int>& p, const T* ptr, std::size_t n);
   template <class T, class S, int I = 0>
-  void FillStatisticCombined(std::vector<int>& p, const T* ptr1, const S* ptr2, size_t n, int max1);
+  void FillStatisticCombined(std::vector<int>& p, const T* ptr1, const S* ptr2, std::size_t n, int max1);
   float Analyze(std::vector<int>& p, const char* name, bool count = true);
 
   TPCClusterDecompressor mDecoder;
@@ -90,7 +90,7 @@ class GPUTPCClusterStatistics
 
   double mEntropy = 0;
   double mHuffman = 0;
-  size_t mNTotalClusters = 0;
+  std::size_t mNTotalClusters = 0;
 #endif
 };
 } // namespace gpu

@@ -36,10 +36,10 @@ class GBTOutputHandler
 
   void setIR(uint16_t bc, uint32_t orbit, int pageCnt);
 
-  void onDoneLoc(size_t ilink, const ELinkDecoder& decoder);
-  void onDoneLocDebug(size_t ilink, const ELinkDecoder& decoder);
-  void onDoneReg(size_t, const ELinkDecoder&){}; /// Dummy function
-  void onDoneRegDebug(size_t ilink, const ELinkDecoder& decoder);
+  void onDoneLoc(std::size_t ilink, const ELinkDecoder& decoder);
+  void onDoneLocDebug(std::size_t ilink, const ELinkDecoder& decoder);
+  void onDoneReg(std::size_t, const ELinkDecoder&){}; /// Dummy function
+  void onDoneRegDebug(std::size_t ilink, const ELinkDecoder& decoder);
 
   /// Gets the vector of data
   const std::vector<LocalBoardRO>& getData() const { return mData; }
@@ -59,10 +59,10 @@ class GBTOutputHandler
   std::array<uint16_t, crateparams::sNELinksPerGBT> mCalibClocks{};  /// Calibration clock
   std::array<uint16_t, crateparams::sNELinksPerGBT> mLastClock{};    /// Last clock per link
 
-  void addBoard(size_t ilink, const ELinkDecoder& decoder);
-  void addLoc(size_t ilink, const ELinkDecoder& decoder);
-  bool checkLoc(size_t ilink, const ELinkDecoder& decoder);
-  bool updateIR(size_t ilink, const ELinkDecoder& decoder);
+  void addBoard(std::size_t ilink, const ELinkDecoder& decoder);
+  void addLoc(std::size_t ilink, const ELinkDecoder& decoder);
+  bool checkLoc(std::size_t ilink, const ELinkDecoder& decoder);
+  bool updateIR(std::size_t ilink, const ELinkDecoder& decoder);
   bool invertPattern(LocalBoardRO& loc);
 };
 } // namespace mid

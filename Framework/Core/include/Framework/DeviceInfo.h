@@ -36,9 +36,9 @@ struct DeviceInfo {
   /// are guaranteed to be between 0 and 255.
   int exitStatus = -1;
   /// The position inside the history circular buffer of this device
-  size_t historyPos;
+  std::size_t historyPos;
   /// The size of the history circular buffer
-  size_t historySize;
+  std::size_t historySize;
   /// The maximum log level ever seen by this device
   LogParsingHelpers::LogLevel maxLogLevel;
   /// A circular buffer for the history of logs entries received

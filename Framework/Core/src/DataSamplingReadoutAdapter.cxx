@@ -22,7 +22,7 @@ using DataHeader = o2::header::DataHeader;
 InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
 {
   return [spec](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
-    for (size_t i = 0; i < parts.Size() / 2; ++i) {
+    for (std::size_t i = 0; i < parts.Size() / 2; ++i) {
 
       auto dbh = reinterpret_cast<DataBlockHeaderBase*>(parts.At(2 * i)->GetData());
       assert(dbh->dataSize == parts.At(2 * i + 1)->GetSize());

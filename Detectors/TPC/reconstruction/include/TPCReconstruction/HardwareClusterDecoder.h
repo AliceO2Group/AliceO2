@@ -48,7 +48,7 @@ class MCTruthContainer;
 ///
 ///     HardwareClusterDecoder decoder;
 ///     std::vector<char> outputBuffer;
-///     auto outputAllocator = [&outputBuffer](size_t size) -> char* {
+///     auto outputAllocator = [&outputBuffer](std::size_t size) -> char* {
 ///       outputBuffer.resize(size);
 ///       return outputBuffer.data();
 ///     }
@@ -63,7 +63,7 @@ class HardwareClusterDecoder
   ~HardwareClusterDecoder() = default;
 
   /// @brief Allocator function object to provide the output buffer
-  using OutputAllocator = std::function<char*(size_t)>;
+  using OutputAllocator = std::function<char*(std::size_t)>;
 
   /// @brief Decode clusters provided in raw pages
   /// The function uses an allocator object to request a raw char buffer of needed size. Inside this buffer,
@@ -82,7 +82,7 @@ class HardwareClusterDecoder
   /// @brief Sort clusters and MC labels in place
   /// ClusterNative defines the smaller-than relation used in the sorting, with time being the more significant
   /// condition in the comparison.
-  static void sortClustersAndMC(ClusterNative* clusters, size_t nClusters,
+  static void sortClustersAndMC(ClusterNative* clusters, std::size_t nClusters,
                                 o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcTruth);
 
  private:

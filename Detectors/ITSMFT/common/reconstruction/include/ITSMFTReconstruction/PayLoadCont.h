@@ -31,11 +31,11 @@ class PayLoadCont
   // Big endian is used.
 
  public:
-  static constexpr size_t MinCapacity = 16;
+  static constexpr std::size_t MinCapacity = 16;
 
   ///< allocate buffer
   PayLoadCont() = default;
-  PayLoadCont(size_t sz) { expand(sz); }
+  PayLoadCont(std::size_t sz) { expand(sz); }
   ~PayLoadCont() = default;
 
   PayLoadCont(const PayLoadCont& src);
@@ -45,7 +45,7 @@ class PayLoadCont
   const uint8_t* data() const { return mBuffer.data(); }
 
   ///< increase the buffer size
-  void expand(size_t sz);
+  void expand(std::size_t sz);
 
   bool isEmpty() const { return mPtr >= mEnd; }
 
@@ -57,22 +57,22 @@ class PayLoadCont
   }
 
   ///< get unused size
-  size_t getUnusedSize() const { return mEnd > mPtr ? mEnd - mPtr : 0; }
+  std::size_t getUnusedSize() const { return mEnd > mPtr ? mEnd - mPtr : 0; }
 
   ///< get filled size
-  size_t getSize() const { return mEnd - mBuffer.data(); }
+  std::size_t getSize() const { return mEnd - mBuffer.data(); }
 
   ///< get offset of the current ptr from the head
-  size_t getOffset() const { return mPtr - mBuffer.data(); }
+  std::size_t getOffset() const { return mPtr - mBuffer.data(); }
 
   ///< booked capacity
-  size_t getCapacity() const { return mBuffer.size(); }
+  std::size_t getCapacity() const { return mBuffer.size(); }
 
   ///< number of bytes still can accept w/o expanding the buffer
-  size_t getFreeCapacity() const { return mBuffer.size() - getSize(); }
+  std::size_t getFreeCapacity() const { return mBuffer.size() - getSize(); }
 
   ///< make sure buffer may accept at least n bytes
-  void ensureFreeCapacity(size_t n)
+  void ensureFreeCapacity(std::size_t n)
   {
     if (getFreeCapacity() < n) {
       expand(getCapacity() + 2 * n);
@@ -80,14 +80,14 @@ class PayLoadCont
   }
 
   ///< fill n bytes with given symbol w/o checking for the size
-  void fillFast(const uint8_t c, size_t n)
+  void fillFast(const uint8_t c, std::size_t n)
   {
     std::memset(mEnd, c, n);
     mEnd += n;
   }
 
   ///< add n bytes to the buffer w/o checking for the size
-  void addFast(const uint8_t* ptr, size_t n)
+  void addFast(const uint8_t* ptr, std::size_t n)
   {
     std::memcpy(mEnd, ptr, n);
     mEnd += n;
@@ -104,10 +104,10 @@ class PayLoadCont
   }
 
   ///< erase n bytes w/o checking for the underflow
-  void eraseFast(size_t n) { mEnd -= n; }
+  void eraseFast(std::size_t n) { mEnd -= n; }
 
   ///< erase n bytes
-  void erase(size_t n)
+  void erase(std::size_t n)
   {
     if (n > getSize()) {
       clear();
@@ -117,14 +117,14 @@ class PayLoadCont
   }
 
   ///< fill n bytes with given symbol
-  void fill(const uint8_t c, size_t n)
+  void fill(const uint8_t c, std::size_t n)
   {
     ensureFreeCapacity(n);
     fillFast(c, n);
   }
 
   ///< add n bytes to the buffer, expand if needed. no check for overlap
-  void add(const uint8_t* ptr, size_t n)
+  void add(const uint8_t* ptr, std::size_t n)
   {
     ensureFreeCapacity(n);
     addFast(ptr, n);
@@ -145,16 +145,16 @@ class PayLoadCont
   }
 
   ///< shrink buffer to requested size, no check on over/under flow
-  void shrinkToSize(size_t sz)
+  void shrinkToSize(std::size_t sz)
   {
     mEnd = mPtr + sz;
   }
 
   ///< direct const access to value at a given slot, w/o checking for overflow
-  uint8_t operator[](size_t i) const { return mBuffer[i]; }
+  uint8_t operator[](std::size_t i) const { return mBuffer[i]; }
 
   ///< direct access to value at a given slot, w/o checking for overflow
-  uint8_t& operator[](size_t i) { return mBuffer[i]; }
+  uint8_t& operator[](std::size_t i) { return mBuffer[i]; }
 
   ///< read current character value from buffer w/o stepping forward
   bool current(uint8_t& v) const
@@ -205,7 +205,7 @@ class PayLoadCont
 
   ///< move unused data to the head and upload new chunk of data
   // (attemtint to use all free capacity) using the method provided via getNext
-  size_t append(std::function<size_t(uint8_t*, size_t)> getNext)
+  std::size_t append(std::function<std::size_t(uint8_t*, std::size_t)> getNext)
   {
     moveUnusedToHead();
     auto nRead = getNext(mEnd, getFreeCapacity());

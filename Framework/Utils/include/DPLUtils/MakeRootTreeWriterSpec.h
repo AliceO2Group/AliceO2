@@ -133,9 +133,9 @@ namespace framework
 ///   - number n of branches controlled by definition
 ///   - callback to calculate an index in the range [0,n-1] from the DataRef
 ///       argument(s): o2::framework::DataRef const&
-///       result: size_t index, data set is skipped if ~(size_t)0
+///       result: std::size_t index, data set is skipped if ~(std::size_t)0
 ///   - callback to return the branch name for an index
-///       argument(s): std::string basename, size_t index
+///       argument(s): std::string basename, std::size_t index
 ///       result: std::string with branchname
 ///
 /// \par Examples:
@@ -154,7 +154,7 @@ namespace framework
 ///     };
 ///
 ///     // the callback for the branch name
-///     auto getName = [](std::string base, size_t index) {
+///     auto getName = [](std::string base, std::size_t index) {
 ///       return base + " " + std::to_string(index);
 ///     };
 ///
@@ -311,7 +311,7 @@ class MakeRootTreeWriterSpec
       // custom preprocessor
       Preprocessor preprocessor;
       // the total number of served branches on the n inputs
-      size_t nofBranches;
+      std::size_t nofBranches;
     };
     auto processAttributes = std::make_shared<ProcessAttributes>();
     processAttributes->writer = mWriter;
@@ -345,7 +345,7 @@ class MakeRootTreeWriterSpec
       if (filename.empty() || treename.empty()) {
         throw std::invalid_argument("output file name and tree name are mandatory options");
       }
-      for (size_t branchIndex = 0; branchIndex < branchNameOptions.size(); branchIndex++) {
+      for (std::size_t branchIndex = 0; branchIndex < branchNameOptions.size(); branchIndex++) {
         // pair of key (first) - value (second)
         if (branchNameOptions[branchIndex].first.empty()) {
           continue;
@@ -437,7 +437,7 @@ class MakeRootTreeWriterSpec
       {"nevents", VariantType::Int, mDefaultNofEvents, {"Number of events to execute"}},
       {"terminate", VariantType::String, mDefaultTerminationPolicy.c_str(), {"Terminate the 'process' or 'workflow'"}},
     };
-    for (size_t branchIndex = 0; branchIndex < mBranchNameOptions.size(); branchIndex++) {
+    for (std::size_t branchIndex = 0; branchIndex < mBranchNameOptions.size(); branchIndex++) {
       // adding option definitions for those ones defined in the branch definition
       if (mBranchNameOptions[branchIndex].first.empty()) {
         continue;
@@ -462,7 +462,7 @@ class MakeRootTreeWriterSpec
  private:
   /// helper function to recursively parse constructor arguments
   /// the default file and tree name can come before all the branch specs
-  template <size_t N, typename... Args>
+  template <std::size_t N, typename... Args>
   void parseConstructorArgs(const char* name, Args&&... args)
   {
     static_assert(N == 0, "wrong argument order, default file and tree options must come before branch specs");
@@ -479,7 +479,7 @@ class MakeRootTreeWriterSpec
 
   /// helper function to recursively parse constructor arguments
   /// specialization for the in argument as default for nevents option
-  template <size_t N, typename... Args>
+  template <std::size_t N, typename... Args>
   void parseConstructorArgs(int arg, Args&&... args)
   {
     static_assert(N == 0, "wrong argument order, default file and tree options must come before branch specs");
@@ -489,7 +489,7 @@ class MakeRootTreeWriterSpec
   }
 
   /// specialization for parsing default for termination policy
-  template <size_t N, typename... Args>
+  template <std::size_t N, typename... Args>
   void parseConstructorArgs(TerminationPolicy arg, Args&&... args)
   {
     static_assert(N == 0, "wrong argument order, default file and tree, and all options must come before branch specs");
@@ -504,7 +504,7 @@ class MakeRootTreeWriterSpec
   }
 
   /// specialization for parsing optional termination condition
-  template <size_t N, typename... Args>
+  template <std::size_t N, typename... Args>
   void parseConstructorArgs(TerminationCondition&& arg, Args&&... args)
   {
     static_assert(N == 0, "wrong argument order, default file and tree, and all options must come before branch specs");
@@ -525,7 +525,7 @@ class MakeRootTreeWriterSpec
   /// parse the branch definitions and store the input specs.
   /// Note: all other properties of the branch definition are handled in the
   /// constructor of the writer itself
-  template <size_t N, typename T, typename... Args>
+  template <std::size_t N, typename T, typename... Args>
   void parseConstructorArgs(BranchDefinition<T>&& def, Args&&... args)
   {
     if (def.nofBranches > 0) {
@@ -546,7 +546,7 @@ class MakeRootTreeWriterSpec
   }
 
   // this terminates the argument parsing
-  template <size_t N>
+  template <std::size_t N>
   void parseConstructorArgs()
   {
   }
@@ -561,7 +561,7 @@ class MakeRootTreeWriterSpec
   std::string mDefaultTerminationPolicy = "process";
   TerminationCondition mTerminationCondition;
   Preprocessor mPreprocessor;
-  size_t mNofBranches = 0;
+  std::size_t mNofBranches = 0;
 };
 } // namespace framework
 } // namespace o2

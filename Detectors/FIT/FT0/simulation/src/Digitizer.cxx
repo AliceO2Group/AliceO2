@@ -42,8 +42,8 @@ Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float 
     Vc::float_v acc(0);
     Vc::float_v tableVal(0);
     const float* tp = times.data();
-    size_t m = times.size() / Vc::float_v::size();
-    for (size_t i = 0; i < m; ++i) {
+    std::size_t m = times.size() / Vc::float_v::size();
+    for (std::size_t i = 0; i < m; ++i) {
       tableVal.load(tp);
       tp += Vc::float_v::size();
       Vc::prefetchForOneRead(tp);
@@ -51,7 +51,7 @@ Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float 
     }
     val += acc.sum();
     // non-SIMD tail
-    for (size_t i = Vc::float_v::size() * m; i < times.size(); ++i, ++tp) {
+    for (std::size_t i = Vc::float_v::size() * m; i < times.size(); ++i, ++tp) {
       val += signalForm(time - (*tp));
     }
     // (2) add noise
@@ -72,7 +72,7 @@ Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float 
     tp = mSincTable[timeIndex].data() + mNumNoiseSamples - timeOffset;
     acc = 0.0f;
     m = mNumNoiseSamples / Vc::float_v::Size;
-    for (size_t i = 0; i < m; ++i) {
+    for (std::size_t i = 0; i < m; ++i) {
       tableVal.load(tp);
       tp += Vc::float_v::Size;
       Vc::prefetchForOneRead(tp);
@@ -83,7 +83,7 @@ Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float 
     }
     val += acc.sum(); // horizontal sum
     // non-SIMD tail
-    for (size_t i = Vc::float_v::Size * m; i < mNumNoiseSamples; ++i, ++tp, ++np) {
+    for (std::size_t i = Vc::float_v::Size * m; i < mNumNoiseSamples; ++i, ++tp, ++np) {
       val += (*np) * (*tp);
     }
     return val;
@@ -138,8 +138,8 @@ double Digitizer::measure_amplitude(const std::vector<float>& times) const
   Vc::float_v acc(0);
   Vc::float_v tv(0);
   const float* tp = times.data();
-  size_t const m = times.size() / Vc::float_v::Size;
-  for (size_t i = 0; i < m; ++i) {
+  std::size_t const m = times.size() / Vc::float_v::Size;
+  for (std::size_t i = 0; i < m; ++i) {
     tv.load(tp);
     tp += Vc::float_v::Size;
     Vc::prefetchForOneRead(tp);
@@ -147,7 +147,7 @@ double Digitizer::measure_amplitude(const std::vector<float>& times) const
   }
   float result = acc.sum(); // horizontal sum
   // non-SIMD tail
-  for (size_t i = Vc::float_v::Size * m; i < times.size(); ++i, ++tp) {
+  for (std::size_t i = Vc::float_v::Size * m; i < times.size(); ++i, ++tp) {
     result += signalForm_integral(to - (*tp)) - signalForm_integral(from - (*tp));
   }
   return result;
@@ -261,7 +261,7 @@ void Digitizer::storeBC(BCCache& bc,
                        amplA, amplC, timeA, timeC);
 
   digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers, mEventID);
-  size_t const nBC = digitsBC.size();
+  std::size_t const nBC = digitsBC.size();
   for (auto const& lbl : bc.labels)
     labels.addElement(nBC - 1, lbl);
 

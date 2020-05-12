@@ -130,7 +130,7 @@ int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes
   vertexer.setParameters(parameters);
   itsClusters.GetEntry(0);
   mcHeaderTree.GetEntry(0);
-  for (size_t iROfCount{static_cast<size_t>(startAt)}; iROfCount < static_cast<size_t>(stopAt); ++iROfCount) {
+  for (std::size_t iROfCount{static_cast<std::size_t>(startAt)}; iROfCount < static_cast<std::size_t>(stopAt); ++iROfCount) {
     auto& rof = (*rofs)[iROfCount];
     o2::its::ROframe frame(iROfCount); // to get meaningful roframeId
     std::cout << "ROframe: " << iROfCount << std::endl;
@@ -161,7 +161,7 @@ int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes
     total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findVertices, "Vertex finding", std::cout);
 
     std::vector<Vertex> vertITS = vertexer.exportVertices();
-    const size_t numVert = vertITS.size();
+    const std::size_t numVert = vertITS.size();
     foundVerticesBenchmark.Fill(static_cast<float>(iROfCount), static_cast<float>(numVert));
     verticesITS->swap(vertITS);
     //   // TODO: get vertexer postion form MC truth

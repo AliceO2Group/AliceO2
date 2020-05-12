@@ -42,17 +42,17 @@ class ELinkDecoder
   uint8_t getInputs() const { return (mBytes[4] & 0xF); }
   uint16_t getPattern(int cathode, int chamber) const;
   /// Gets the number of bytes read
-  size_t getNBytes() const { return mBytes.size(); }
+  std::size_t getNBytes() const { return mBytes.size(); }
 
   void reset();
 
  private:
   inline uint16_t joinBytes(int idx) const { return (mBytes[idx] << 8 | mBytes[idx + 1]); };
 
-  static constexpr size_t sMinimumSize{5};  /// Minimum size of the buffer
-  static constexpr size_t sMaximumSize{21}; /// Maximum size of the buffer
+  static constexpr std::size_t sMinimumSize{5};  /// Minimum size of the buffer
+  static constexpr std::size_t sMaximumSize{21}; /// Maximum size of the buffer
   std::vector<uint8_t> mBytes{};            /// Vector with encoded information
-  size_t mTotalSize{sMinimumSize};          /// Expected size of the read-out buffer
+  std::size_t mTotalSize{sMinimumSize};     /// Expected size of the read-out buffer
 };
 } // namespace mid
 } // namespace o2

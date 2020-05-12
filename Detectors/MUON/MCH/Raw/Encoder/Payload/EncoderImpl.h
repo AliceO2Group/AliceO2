@@ -46,7 +46,7 @@ class EncoderImpl : public Encoder
 
   void startHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing) override;
 
-  size_t moveToBuffer(std::vector<uint8_t>& buffer) override;
+  std::size_t moveToBuffer(std::vector<uint8_t>& buffer) override;
 
  private:
   void closeHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing);
@@ -103,7 +103,7 @@ void EncoderImpl<FORMAT, CHARGESUM>::gbts2buffer(uint32_t orbit, uint16_t bunchC
 }
 
 template <typename FORMAT, typename CHARGESUM>
-size_t EncoderImpl<FORMAT, CHARGESUM>::moveToBuffer(std::vector<uint8_t>& buffer)
+std::size_t EncoderImpl<FORMAT, CHARGESUM>::moveToBuffer(std::vector<uint8_t>& buffer)
 {
   closeHeartbeatFrame(mOrbit, mBunchCrossing);
   buffer.insert(buffer.end(), mBuffer.begin(), mBuffer.end());

@@ -54,7 +54,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
                if (n != 2) {
                  LOG(ERROR) << "Bad number of parts" << inputs.getNofParts(0);
                }
-               for (size_t i = 0; i < n; ++i) {
+               for (std::size_t i = 0; i < n; ++i) {
                  auto ref = inputs.getByPos(0, i);
                  auto dh = o2::header::get<o2::header::DataHeader*>(ref.header);
                  LOG(INFO) << "String is " << s->GetString().Data() << " " << dh->subSpecification;

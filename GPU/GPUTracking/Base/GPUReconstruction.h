@@ -166,7 +166,7 @@ class GPUReconstruction
   virtual int RunChains() = 0;
   unsigned int getNEventsProcessed() { return mNEventsProcessed; }
   unsigned int getNEventsProcessedInStat() { return mStatNEvents; }
-  virtual int registerMemoryForGPU(const void* ptr, size_t size) = 0;
+  virtual int registerMemoryForGPU(const void* ptr, std::size_t size) = 0;
   virtual int unregisterMemoryForGPU(const void* ptr) = 0;
   virtual void startGPUProfiling() {}
   virtual void endGPUProfiling() {}
@@ -175,10 +175,10 @@ class GPUReconstruction
   GPUMemoryResource& Res(short num) { return mMemoryResources[num]; }
   template <class T>
   short RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name = "", const GPUMemoryReuse& re = GPUMemoryReuse());
-  size_t AllocateMemoryResources();
-  size_t AllocateRegisteredMemory(GPUProcessor* proc);
-  size_t AllocateRegisteredMemory(short res, GPUOutputControl* control = nullptr);
-  void* AllocateUnmanagedMemory(size_t size, int type);
+  std::size_t AllocateMemoryResources();
+  std::size_t AllocateRegisteredMemory(GPUProcessor* proc);
+  std::size_t AllocateRegisteredMemory(short res, GPUOutputControl* control = nullptr);
+  void* AllocateUnmanagedMemory(std::size_t size, int type);
   void FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom = false, bool freePermanent = false);
   void FreeRegisteredMemory(short res);
   void ClearAllocatedMemory(bool clearOutputs = true);
@@ -208,7 +208,7 @@ class GPUReconstruction
   void SetDebugLevelTmp(int level) { mDeviceProcessingSettings.debugLevel = level; } // Temporarily, before calling SetSettings()
   void UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsDeviceProcessing* p = nullptr);
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
-  void SetOutputControl(void* ptr, size_t size);
+  void SetOutputControl(void* ptr, std::size_t size);
   GPUOutputControl& OutputControl() { return mOutputControl; }
   int GetMaxThreads() { return mMaxThreads; }
   const void* DeviceMemoryBase() const { return mDeviceMemoryBase; }
@@ -238,7 +238,7 @@ class GPUReconstruction
   int InitPhaseAfterDevice();
   void WriteConstantParams();
   virtual int ExitDevice() = 0;
-  virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
+  virtual std::size_t WriteToConstantMemory(std::size_t offset, const void* src, std::size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
 
   struct krnlSetup {
     krnlExec x;
@@ -257,14 +257,14 @@ class GPUReconstruction
   virtual std::unique_ptr<GPUThreadContext> GetThreadContext();
 
   // Private helper functions for memory management
-  size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*));
-  size_t AllocateRegisteredPermanentMemory();
+  std::size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, std::size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*));
+  std::size_t AllocateRegisteredPermanentMemory();
 
   // Private helper functions for reading / writing / allocating IO buffer from/to file
   template <class T, class S>
   void DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type);
   template <class T, class S>
-  size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type);
+  std::size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type);
   template <class T>
   void AllocateIOMemoryHelper(unsigned int n, const T*& ptr, std::unique_ptr<T[]>& u);
 
@@ -309,11 +309,11 @@ class GPUReconstruction
   void* mHostMemoryBase = nullptr;        // Ptr to begin of large host memory buffer
   void* mHostMemoryPermanent = nullptr;   // Ptr to large host memory buffer offset by permanently allocated memory
   void* mHostMemoryPool = nullptr;        // Ptr to next free location in host memory buffer
-  size_t mHostMemorySize = 0;             // Size of host memory buffer
+  std::size_t mHostMemorySize = 0;        // Size of host memory buffer
   void* mDeviceMemoryBase = nullptr;      //
   void* mDeviceMemoryPermanent = nullptr; //
   void* mDeviceMemoryPool = nullptr;      //
-  size_t mDeviceMemorySize = 0;           //
+  std::size_t mDeviceMemorySize = 0;      //
 
   GPUReconstruction* mMaster = nullptr;    // Ptr to a GPUReconstruction object serving as master, sharing GPU memory, events, etc.
   std::vector<GPUReconstruction*> mSlaves; // Ptr to slave GPUReconstructions
@@ -462,13 +462,13 @@ inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const
 }
 
 template <class T, class S>
-inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
+inline std::size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
 {
   if (feof(fp)) {
     return 0;
   }
   InOutPointerType inType;
-  size_t r, pos = ftell(fp);
+  std::size_t r, pos = ftell(fp);
   r = fread(&inType, sizeof(inType), 1, fp);
   if (r != 1 || inType != type) {
     fseek(fp, pos, SEEK_SET);
@@ -476,7 +476,7 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, s
   }
 
   int count = getNIOTypeMultiplicity(type);
-  size_t numTotal = 0;
+  std::size_t numTotal = 0;
   for (int i = 0; i < count; i++) {
     r = fread(&num[i], sizeof(num[i]), 1, fp);
     AllocateIOMemoryHelper(num[i], entries[i], mem[i]);
@@ -499,7 +499,7 @@ inline void GPUReconstruction::DumpFlatObjectToFile(const T* obj, const char* fi
   if (fp == nullptr) {
     return;
   }
-  size_t size[2] = {sizeof(*obj), obj->getFlatBufferSize()};
+  std::size_t size[2] = {sizeof(*obj), obj->getFlatBufferSize()};
   fwrite(size, sizeof(size[0]), 2, fp);
   fwrite(obj, 1, size[0], fp);
   fwrite(obj->getFlatBufferPtr(), 1, size[1], fp);
@@ -513,7 +513,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   if (fp == nullptr) {
     return nullptr;
   }
-  size_t size[2] = {0}, r;
+  std::size_t size[2] = {0}, r;
   r = fread(size, sizeof(size[0]), 2, fp);
   if (r == 0 || size[0] != sizeof(T)) {
     fclose(fp);
@@ -541,7 +541,7 @@ inline void GPUReconstruction::DumpStructToFile(const T* obj, const char* file)
   if (fp == nullptr) {
     return;
   }
-  size_t size = sizeof(*obj);
+  std::size_t size = sizeof(*obj);
   fwrite(&size, sizeof(size), 1, fp);
   fwrite(obj, 1, size, fp);
   fclose(fp);
@@ -554,7 +554,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file
   if (fp == nullptr) {
     return nullptr;
   }
-  size_t size, r;
+  std::size_t size, r;
   r = fread(&size, sizeof(size), 1, fp);
   if (r == 0 || size != sizeof(T)) {
     fclose(fp);
@@ -576,7 +576,7 @@ inline int GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
   if (fp == nullptr) {
     return 1;
   }
-  size_t size, r;
+  std::size_t size, r;
   r = fread(&size, sizeof(size), 1, fp);
   if (r == 0) {
     fclose(fp);

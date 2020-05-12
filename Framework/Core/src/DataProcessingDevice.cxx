@@ -155,7 +155,7 @@ void DataProcessingDevice::Init()
   /// Internal channels which will never create an actual message
   /// should be considered as in "Pull" mode, since we do not
   /// expect them to create any data.
-  for (size_t ci = 0; ci < mSpec.inputChannels.size(); ++ci) {
+  for (std::size_t ci = 0; ci < mSpec.inputChannels.size(); ++ci) {
     auto& name = mSpec.inputChannels[ci].name;
     if (name.find("from_internal-dpl-clock") == 0) {
       mState.inputChannelInfos[ci].state = InputChannelState::Pull;
@@ -245,7 +245,7 @@ bool DataProcessingDevice::ConditionalRun()
     // Send all the relevant metrics for the relayer to update the GUI
     // FIXME: do a delta with the previous version if too many metrics are still
     // sent...
-    for (size_t si = 0; si < stats.relayerState.size(); ++si) {
+    for (std::size_t si = 0; si < stats.relayerState.size(); ++si) {
       auto state = stats.relayerState[si];
       monitoring.send({state, "data_relayer/" + std::to_string(si)});
     }
@@ -283,7 +283,7 @@ bool DataProcessingDevice::ConditionalRun()
     return info.state != InputChannelState::Pull;
   });
   // Whether or not all the channels are completed
-  for (size_t ci = 0; ci < mSpec.inputChannels.size(); ++ci) {
+  for (std::size_t ci = 0; ci < mSpec.inputChannels.size(); ++ci) {
     auto& channel = mSpec.inputChannels[ci];
     auto& info = mState.inputChannelInfos[ci];
 
@@ -410,7 +410,7 @@ bool DataProcessingDevice::handleData(FairMQParts& parts, InputChannelInfo& info
     }
     std::vector<InputType> results(parts.Size() / 2, InputType::Invalid);
 
-    for (size_t hi = 0; hi < parts.Size() / 2; ++hi) {
+    for (std::size_t hi = 0; hi < parts.Size() / 2; ++hi) {
       auto pi = hi * 2;
       auto sih = o2::header::get<SourceInfoHeader*>(parts.At(pi)->GetData());
       if (sih) {
@@ -447,7 +447,7 @@ bool DataProcessingDevice::handleData(FairMQParts& parts, InputChannelInfo& info
   auto handleValidMessages = [&parts, &relayer = mRelayer, &reportError](std::vector<InputType> const& types) {
     // We relay execution to make sure we have a complete set of parts
     // available.
-    for (size_t pi = 0; pi < (parts.Size() / 2); ++pi) {
+    for (std::size_t pi = 0; pi < (parts.Size() / 2); ++pi) {
       switch (types[pi]) {
         case InputType::Data: {
           auto headerIndex = 2 * pi;
@@ -551,7 +551,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   // the execution.
   auto fillInputs = [&relayer, &inputsSchema, &currentSetOfInputs](TimesliceSlot slot) -> InputRecord {
     currentSetOfInputs = std::move(relayer.getInputsForTimeslice(slot));
-    auto getter = [&currentSetOfInputs](size_t i, size_t partindex) -> DataRef {
+    auto getter = [&currentSetOfInputs](std::size_t i, std::size_t partindex) -> DataRef {
       if (currentSetOfInputs[i].size() > partindex) {
         return DataRef{nullptr,
                        static_cast<char const*>(currentSetOfInputs[i].at(partindex).header->GetData()),
@@ -559,7 +559,7 @@ bool DataProcessingDevice::tryDispatchComputation()
       }
       return DataRef{nullptr, nullptr, nullptr};
     };
-    auto nofPartsGetter = [&currentSetOfInputs](size_t i) -> size_t {
+    auto nofPartsGetter = [&currentSetOfInputs](std::size_t i) -> std::size_t {
       return currentSetOfInputs[i].size();
     };
     InputSpan span{getter, nofPartsGetter, currentSetOfInputs.size()};
@@ -624,7 +624,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   // O2-646.
   auto cleanTimers = [&currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
     assert(record.size() == currentSetOfInputs.size());
-    for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
+    for (std::size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
       if (input.spec->lifetime != Lifetime::Timer) {
         continue;
@@ -647,7 +647,7 @@ bool DataProcessingDevice::tryDispatchComputation()
     // because the forwards are stable during this function, we use the pointer
     // to channel string as key to avoid string allocation in the map
     std::unordered_map<const std::string*, FairMQParts> forwardedParts;
-    for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
+    for (std::size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
 
       // If is now possible that the record is not complete when
@@ -731,7 +731,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   };
 
   auto calculateTotalInputRecordSize = [](InputRecord const& record) -> int {
-    size_t totalInputSize = 0;
+    std::size_t totalInputSize = 0;
     for (auto& item : record) {
       auto* header = o2::header::get<DataHeader*>(item.header);
       if (header == nullptr) {
@@ -766,7 +766,7 @@ bool DataProcessingDevice::tryDispatchComputation()
       }
     }
     auto tStart = std::chrono::high_resolution_clock::now();
-    for (size_t ai = 0; ai != record.size(); ai++) {
+    for (std::size_t ai = 0; ai != record.size(); ai++) {
       auto cacheId = action.slot.index * record.size() + ai;
       auto state = record.isValid(ai) ? 2 : 0;
       mStats.relayerState.resize(std::max(cacheId + 1, mStats.relayerState.size()), 0);
@@ -779,7 +779,7 @@ bool DataProcessingDevice::tryDispatchComputation()
     } catch (std::exception& e) {
       errorHandling(e, record);
     }
-    for (size_t ai = 0; ai != record.size(); ai++) {
+    for (std::size_t ai = 0; ai != record.size(); ai++) {
       auto cacheId = action.slot.index * record.size() + ai;
       auto state = record.isValid(ai) ? 3 : 0;
       mStats.relayerState.resize(std::max(cacheId + 1, mStats.relayerState.size()), 0);

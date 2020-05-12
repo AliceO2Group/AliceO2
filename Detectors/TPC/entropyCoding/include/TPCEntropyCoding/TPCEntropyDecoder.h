@@ -45,11 +45,11 @@ class TPCEntropyDecoder
   static std::unique_ptr<std::vector<source_T>> decodeEntry(source_T** destPPtr,
                                                             const std::string& name,
                                                             const EncodedClusters& ec,
-                                                            size_t msgLength);
+                                                            std::size_t msgLength);
 };
 
 template <typename source_T>
-std::unique_ptr<std::vector<source_T>> TPCEntropyDecoder::decodeEntry(source_T** destPPtr, const std::string& name, const EncodedClusters& ec, size_t msgLength)
+std::unique_ptr<std::vector<source_T>> TPCEntropyDecoder::decodeEntry(source_T** destPPtr, const std::string& name, const EncodedClusters& ec, std::size_t msgLength)
 {
   // find which array we are dealing with
   auto it = std::find(ec.NAMES.begin(), ec.NAMES.end(), name);

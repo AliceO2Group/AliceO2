@@ -63,7 +63,7 @@ o2::framework::DataProcessorSpec getRawToDigitsSpec(int channel, const std::stri
       processAttributes->rawReader.createReader("");
       processAttributes->rawReader.setADCDataCallback([&digitDump](const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data) -> Int_t {
         Int_t timeBins = digitDump.update(padROCPos, cru, data);
-        digitDump.setNumberOfProcessedTimeBins(std::max(digitDump.getNumberOfProcessedTimeBins(), size_t(timeBins)));
+        digitDump.setNumberOfProcessedTimeBins(std::max(digitDump.getNumberOfProcessedTimeBins(), std::size_t(timeBins)));
         return timeBins;
       });
       processAttributes->maxEvents = static_cast<uint32_t>(ic.options().get<int>("max-events"));

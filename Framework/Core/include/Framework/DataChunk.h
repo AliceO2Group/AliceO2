@@ -33,7 +33,7 @@ class DataChunk : public std::vector<char, o2::pmr::polymorphic_allocator<char>>
   //}
 
   // DataChunk is special and for the moment it's enough to declare the constructor with size and allocator
-  DataChunk(size_t size, const o2::pmr::polymorphic_allocator<char>& allocator) : std::vector<char, o2::pmr::polymorphic_allocator<char>>(size, allocator)
+  DataChunk(std::size_t size, const o2::pmr::polymorphic_allocator<char>& allocator) : std::vector<char, o2::pmr::polymorphic_allocator<char>>(size, allocator)
   {
   }
   DataChunk(const DataChunk&) = delete;

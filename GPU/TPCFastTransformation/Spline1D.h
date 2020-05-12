@@ -206,16 +206,16 @@ class Spline1D : public FlatObject
   GPUhd() int getUmax() const { return mUmax; }
 
   /// Get minimal required alignment for the spline parameters
-  static size_t getParameterAlignmentBytes(int nFdim)
+  static std::size_t getParameterAlignmentBytes(int nFdim)
   {
-    size_t s = 2 * sizeof(DataT) * nFdim;
+    std::size_t s = 2 * sizeof(DataT) * nFdim;
     return (s < 16) ? s : 16;
   }
 
   /// Size of the parameter array in bytes
-  GPUhd() size_t getSizeOfParameters(int nFdim) const
+  GPUhd() std::size_t getSizeOfParameters(int nFdim) const
   {
-    return sizeof(DataT) * (size_t)getNumberOfParameters(nFdim);
+    return sizeof(DataT) * (std::size_t)getNumberOfParameters(nFdim);
   }
 
   /// Number of parameters

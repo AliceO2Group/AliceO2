@@ -39,8 +39,8 @@ namespace gui
 // Type erased information for the plotting
 struct MultiplotData {
   int mod;
-  size_t first;
-  size_t size;
+  std::size_t first;
+  std::size_t size;
   const void* Y;
   const void* X;
   MetricType type;
@@ -122,9 +122,9 @@ void displayHistory(const DeviceInfo& info, DeviceControl& control)
 
   // We start from the last trigger found. Eventually this is the first
   // line in the ring buffer, if no trigger is specified.
-  size_t ji = triggerStartPos % historySize;
-  size_t je = triggerStopPos % historySize;
-  size_t iterations = 0;
+  std::size_t ji = triggerStartPos % historySize;
+  std::size_t je = triggerStopPos % historySize;
+  std::size_t iterations = 0;
   while (historySize && ((ji % historySize) != je)) {
     assert(iterations < historySize);
     iterations++;
@@ -155,8 +155,8 @@ void displayHistory(const DeviceInfo& info, DeviceControl& control)
 template <typename T>
 struct HistoData {
   int mod;
-  size_t first;
-  size_t size;
+  std::size_t first;
+  std::size_t size;
   const T* points;
 };
 
@@ -168,7 +168,7 @@ enum struct MetricsDisplayStyle : int {
 };
 
 void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string const& selectedMetricName,
-                          size_t rangeBegin, size_t rangeEnd, size_t bins, MetricsDisplayStyle displayType,
+                          std::size_t rangeBegin, std::size_t rangeEnd, std::size_t bins, MetricsDisplayStyle displayType,
                           std::vector<DeviceSpec> const& specs, std::vector<DeviceMetricsInfo> const& metricsInfos)
 {
   static std::vector<ImColor> palette = {
@@ -184,12 +184,12 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
   std::vector<MultiplotData> userData;
   std::vector<ImColor> colors;
   MetricType metricType;
-  size_t metricSize = 0;
+  std::size_t metricSize = 0;
   assert(specs.size() == metricsInfos.size());
   float maxValue = std::numeric_limits<float>::lowest();
   float minValue = 0;
-  size_t maxDomain = std::numeric_limits<size_t>::lowest();
-  size_t minDomain = std::numeric_limits<size_t>::max();
+  std::size_t maxDomain = std::numeric_limits<std::size_t>::lowest();
+  std::size_t minDomain = std::numeric_limits<std::size_t>::max();
 
   for (int mi = 0; mi < metricsInfos.size(); ++mi) {
     auto vi = DeviceMetricsHelper::metricIdxByName(selectedMetricName, metricsInfos[mi]);
@@ -237,13 +237,13 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
 
   maxDomain = std::max(minDomain + 1024, maxDomain);
 
-  for (size_t ui = 0; ui < userData.size(); ++ui) {
+  for (std::size_t ui = 0; ui < userData.size(); ++ui) {
     metricsToDisplay.push_back(&(userData[ui]));
   }
   auto getterY = [](const void* hData, int idx) -> float {
     auto histoData = reinterpret_cast<const MultiplotData*>(hData);
-    size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
-    // size_t pos = (static_cast<size_t>(idx)) % histoData->mod;
+    std::size_t pos = (histoData->first + static_cast<std::size_t>(idx)) % histoData->mod;
+    // std::size_t pos = (static_cast<std::size_t>(idx)) % histoData->mod;
     assert(pos >= 0 && pos < 1024);
     if (histoData->type == MetricType::Int) {
       return static_cast<const int*>(histoData->Y)[pos];
@@ -253,12 +253,12 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
       return 0;
     }
   };
-  auto getterX = [](const void* hData, int idx) -> size_t {
+  auto getterX = [](const void* hData, int idx) -> std::size_t {
     auto histoData = reinterpret_cast<const MultiplotData*>(hData);
-    size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
-    //size_t pos = (static_cast<size_t>(idx)) % histoData->mod;
+    std::size_t pos = (histoData->first + static_cast<std::size_t>(idx)) % histoData->mod;
+    //std::size_t pos = (static_cast<std::size_t>(idx)) % histoData->mod;
     assert(pos >= 0 && pos < 1024);
-    return static_cast<const size_t*>(histoData->X)[pos];
+    return static_cast<const std::size_t*>(histoData->X)[pos];
   };
   switch (displayType) {
     case MetricsDisplayStyle::Histos:
@@ -310,7 +310,7 @@ void metricsTableRow(std::vector<ColumnInfo> columnInfos,
   ImGui::Text("%d", row);
   ImGui::NextColumn();
 
-  for (size_t j = 0; j < columnInfos.size(); j++) {
+  for (std::size_t j = 0; j < columnInfos.size(); j++) {
     auto& info = columnInfos[j];
     auto& metricsInfo = metricsInfos[j];
 
@@ -340,7 +340,7 @@ void metricsTableRow(std::vector<ColumnInfo> columnInfos,
 }
 
 void historyBar(gui::WorkspaceGUIState& globalGUIState,
-                size_t rangeBegin, size_t rangeEnd,
+                std::size_t rangeBegin, std::size_t rangeEnd,
                 gui::DeviceGUIState& state,
                 DriverInfo const& driverInfo,
                 DeviceSpec const& spec,
@@ -360,7 +360,7 @@ void historyBar(gui::WorkspaceGUIState& globalGUIState,
 
   auto currentMetricName = driverInfo.availableMetrics[globalGUIState.selectedMetric];
 
-  size_t i = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricsInfo);
+  std::size_t i = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricsInfo);
   // We did not find any plot, skipping this.
   if (i == metricsInfo.metricLabelsIdx.size()) {
     ImGui::NextColumn();
@@ -378,7 +378,7 @@ void historyBar(gui::WorkspaceGUIState& globalGUIState,
 
       auto getter = [](void* hData, int idx) -> float {
         auto histoData = reinterpret_cast<HistoData<int>*>(hData);
-        size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
+        std::size_t pos = (histoData->first + static_cast<std::size_t>(idx)) % histoData->mod;
         assert(pos >= 0 && pos < 1024);
         return histoData->points[pos];
       };
@@ -394,7 +394,7 @@ void historyBar(gui::WorkspaceGUIState& globalGUIState,
 
       auto getter = [](void* hData, int idx) -> float {
         auto histoData = reinterpret_cast<HistoData<float>*>(hData);
-        size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
+        std::size_t pos = (histoData->first + static_cast<std::size_t>(idx)) % histoData->mod;
         assert(pos >= 0 && pos < 1024);
         return histoData->points[pos];
       };
@@ -415,7 +415,7 @@ std::vector<ColumnInfo> calculateTableIndex(gui::WorkspaceGUIState& globalGUISta
                                             std::vector<DeviceMetricsInfo> const& metricsInfos)
 {
   std::vector<ColumnInfo> columns;
-  for (size_t j = 0; j < globalGUIState.devices.size(); ++j) {
+  for (std::size_t j = 0; j < globalGUIState.devices.size(); ++j) {
     const DeviceMetricsInfo& metricsInfo = metricsInfos[j];
     /// Nothing to draw, if no metric selected.
     if (selectedMetric == -1) {
@@ -423,7 +423,7 @@ std::vector<ColumnInfo> calculateTableIndex(gui::WorkspaceGUIState& globalGUISta
       continue;
     }
     auto currentMetricName = driverInfo.availableMetrics[selectedMetric];
-    size_t idx = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricsInfo);
+    std::size_t idx = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricsInfo);
 
     // We did not find any plot, skipping this.
     if (idx == metricsInfo.metricLabelsIdx.size()) {
@@ -460,7 +460,7 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
     currentMetric = "Click to select metric";
   }
   if (ImGui::BeginCombo("###Select metric", currentMetric, 0)) {
-    for (size_t mi = 0; mi < driverInfo.availableMetrics.size(); ++mi) {
+    for (std::size_t mi = 0; mi < driverInfo.availableMetrics.size(); ++mi) {
       auto metric = driverInfo.availableMetrics[mi];
       bool isSelected = mi == state.selectedMetric;
       if (ImGui::Selectable(driverInfo.availableMetrics[mi].c_str(), isSelected)) {
@@ -483,22 +483,22 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
   ImGui::Combo("##Select style", reinterpret_cast<int*>(&currentStyle), plotStyles, IM_ARRAYSIZE(plotStyles));
 
   // Calculate the full timestamp range for the selected metric
-  size_t minTime = -1;
-  size_t maxTime = 0;
+  std::size_t minTime = -1;
+  std::size_t maxTime = 0;
   std::string currentMetricName;
   if (state.selectedMetric >= 0) {
     currentMetricName = driverInfo.availableMetrics[state.selectedMetric];
     for (auto& metricInfo : metricsInfos) {
-      size_t mi = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricInfo);
+      std::size_t mi = DeviceMetricsHelper::metricIdxByName(currentMetricName, metricInfo);
       if (mi == metricInfo.metricLabelsIdx.size()) {
         continue;
       }
       auto& metric = metricInfo.metrics[mi];
       auto& timestamps = metricInfo.timestamps[mi];
 
-      for (size_t ti = 0; ti != metricInfo.timestamps.size(); ++ti) {
-        size_t minRangePos = (metric.pos + ti) % metricInfo.timestamps.size();
-        size_t curMinTime = timestamps[minRangePos];
+      for (std::size_t ti = 0; ti != metricInfo.timestamps.size(); ++ti) {
+        std::size_t minRangePos = (metric.pos + ti) % metricInfo.timestamps.size();
+        std::size_t curMinTime = timestamps[minRangePos];
         if (curMinTime == 0) {
           continue;
         }
@@ -507,8 +507,8 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
           break;
         }
       }
-      size_t maxRangePos = (size_t)(metric.pos) - 1 % metricInfo.timestamps.size();
-      size_t curMaxTime = timestamps[maxRangePos];
+      std::size_t maxRangePos = (std::size_t)(metric.pos) - 1 % metricInfo.timestamps.size();
+      std::size_t curMaxTime = timestamps[maxRangePos];
       maxTime = maxTime > curMaxTime ? maxTime : curMaxTime;
     }
   }
@@ -529,7 +529,7 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
                           ImGuiWindowFlags_HorizontalScrollbar);
         ImGui::Columns(2);
         ImGui::SetColumnOffset(1, 300);
-        for (size_t i = 0; i < state.devices.size(); ++i) {
+        for (std::size_t i = 0; i < state.devices.size(); ++i) {
           gui::DeviceGUIState& deviceGUIState = state.devices[i];
           const DeviceSpec& spec = devices[i];
           const DeviceMetricsInfo& metricsInfo = metricsInfos[i];
@@ -550,7 +550,7 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
         ImVec2 textsize = ImGui::CalcTextSize("extry", nullptr, true);
         float offset = 0.f;
         offset += std::max(100.f, textsize.x);
-        for (size_t j = 0; j < state.devices.size(); ++j) {
+        for (std::size_t j = 0; j < state.devices.size(); ++j) {
           gui::DeviceGUIState& deviceGUIState = state.devices[j];
           const DeviceSpec& spec = devices[j];
 
@@ -566,7 +566,7 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
 
         // Calculate which columns we want to see.
         // FIXME: only one column for now.
-        for (size_t i = 0; i < 10; ++i) {
+        for (std::size_t i = 0; i < 10; ++i) {
           metricsTableRow(columns, metricsInfos, i);
         }
         ImGui::Columns(1);
@@ -668,7 +668,7 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
     kill(0, SIGCONT);
   }
 
-  for (size_t i = 0; i < driverInfo.states.size(); ++i) {
+  for (std::size_t i = 0; i < driverInfo.states.size(); ++i) {
     ImGui::Text("#%lu: %s", i, DriverHelper::stateToString(driverInfo.states[i]));
   }
 
@@ -693,7 +693,7 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
   guiState.metricMinRange = -1;
   // FIXME: this should probaly have a better mapping between our window state and
   guiState.devices.resize(infos.size());
-  for (size_t i = 0; i < guiState.devices.size(); ++i) {
+  for (std::size_t i = 0; i < guiState.devices.size(); ++i) {
     gui::DeviceGUIState& state = guiState.devices[i];
     state.label = devices[i].id + "(" + std::to_string(infos[i].pid) + ")";
   }
@@ -718,7 +718,7 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
 
     int windowPosStepping = (ImGui::GetIO().DisplaySize.y - 500) / guiState.devices.size();
 
-    for (size_t i = 0; i < guiState.devices.size(); ++i) {
+    for (std::size_t i = 0; i < guiState.devices.size(); ++i) {
       gui::DeviceGUIState& state = guiState.devices[i];
       assert(i < infos.size());
       assert(i < devices.size());

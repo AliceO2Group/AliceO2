@@ -232,8 +232,8 @@ class GPUDisplay
   const GPUTRDTrackerGPU& trdTracker();
   const GPUTrackingInOutPointers ioptrs();
   void drawVertices(const vboList& v, const GLenum t);
-  void insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, size_t first, size_t last);
-  void insertVertexList(int iSlice, size_t first, size_t last);
+  void insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, std::size_t first, std::size_t last);
+  void insertVertexList(int iSlice, std::size_t first, std::size_t last);
   template <typename... Args>
   void SetInfo(Args... args)
   {

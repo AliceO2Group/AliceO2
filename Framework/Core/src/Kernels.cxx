@@ -43,6 +43,5 @@ Status HashByColumnKernel::Call(FunctionContext* ctx, Datum const& inputTable, D
   }
   return Status::Invalid("Input Datum was not a table");
 }
-
 } // namespace framework
 } // namespace o2

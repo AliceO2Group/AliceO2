@@ -93,7 +93,7 @@ void preparePedestalFiles(const std::string_view pedestalFileName, const TString
   DataMap thresholdlValues;
 
   // ===| prepare values |===
-  for (size_t iroc = 0; iroc < calPedestal->getData().size(); ++iroc) {
+  for (std::size_t iroc = 0; iroc < calPedestal->getData().size(); ++iroc) {
     const ROC roc(iroc);
 
     const auto& rocPedestal = calPedestal->getCalArray(iroc);
@@ -108,7 +108,7 @@ void preparePedestalFiles(const std::string_view pedestalFileName, const TString
     }
 
     //loop over pads
-    for (size_t ipad = 0; ipad < rocPedestal.getData().size(); ++ipad) {
+    for (std::size_t ipad = 0; ipad < rocPedestal.getData().size(); ++ipad) {
       const int globalPad = ipad + padOffset;
       const FECInfo& fecInfo = mapper.fecInfo(globalPad);
       const CRU cru = mapper.getCRU(roc.getSector(), globalPad);
@@ -218,7 +218,7 @@ void testChannelMapping(int cruID = 0)
     const int channel = (ichannel % 2) + 2 * (ichannel / 10);
     const int channelOnSAMPA = channel + channelOffset[partitionStream];
 
-    const size_t outch = getHWChannel(sampaOnFEC, channelOnSAMPA, regionIter);
+    const std::size_t outch = getHWChannel(sampaOnFEC, channelOnSAMPA, regionIter);
     printf("%4zu %4d %4d : %4zu %s\n", outch, sampaOnFEC, channelOnSAMPA, ichannel, (outch != ichannel) ? "============" : "");
   }
 }
@@ -293,7 +293,7 @@ void debugDiff(std::string_view file1, std::string_view file2, std::string_view 
   tFile1->GetObject(objName.data(), calPad1);
   tFile2->GetObject(objName.data(), calPad2);
 
-  for (size_t iroc = 0; iroc < calPad1->getData().size(); ++iroc) {
+  for (std::size_t iroc = 0; iroc < calPad1->getData().size(); ++iroc) {
     const auto& calArray1 = calPad1->getCalArray(iroc);
     const auto& calArray2 = calPad2->getCalArray(iroc);
     // skip empty
@@ -301,7 +301,7 @@ void debugDiff(std::string_view file1, std::string_view file2, std::string_view 
       continue;
     }
 
-    for (size_t ipad = 0; ipad < calArray1.getData().size(); ++ipad) {
+    for (std::size_t ipad = 0; ipad < calArray1.getData().size(); ++ipad) {
       const auto val1 = calArray1.getValue(ipad);
       const auto val2 = calArray2.getValue(ipad);
 

@@ -83,11 +83,11 @@ class MessageResource : public FairMQMemoryResource
   FairMQMessagePtr getMessage(void* p) override { return mUpstream->getMessage(p); }
   void* setMessage(FairMQMessagePtr message) override { return mUpstream->setMessage(std::move(message)); }
   FairMQTransportFactory* getTransportFactory() noexcept override { return nullptr; }
-  size_t getNumberOfMessages() const noexcept override { return mMessageData ? 1 : 0; }
+  std::size_t getNumberOfMessages() const noexcept override { return mMessageData ? 1 : 0; }
 
  protected:
   FairMQMemoryResource* mUpstream{nullptr};
-  size_t mMessageSize{0};
+  std::size_t mMessageSize{0};
   void* mMessageData{nullptr};
   bool initialImport{true};
 
@@ -133,7 +133,7 @@ class SpectatorMemoryResource : public boost::container::pmr::memory_resource
 
   // the resource is the pointer managed by unique_ptr
   template <typename T>
-  SpectatorMemoryResource(std::unique_ptr<T, typename buffer_type::deleter_type>&& buffer, size_t size)
+  SpectatorMemoryResource(std::unique_ptr<T, typename buffer_type::deleter_type>&& buffer, std::size_t size)
     : mBuffer{std::move(buffer)}, mPointer{mBuffer.get()}, mSize{size}
   {
   }
@@ -180,7 +180,7 @@ class SpectatorMemoryResource : public boost::container::pmr::memory_resource
  private:
   buffer_type mBuffer;
   void* mPointer = nullptr;
-  size_t mSize = 0;
+  std::size_t mSize = 0;
 };
 
 //__________________________________________________________________________________________________
@@ -208,8 +208,8 @@ class SpectatorAllocator : public boost::container::pmr::polymorphic_allocator<T
   {
   }
 
-  T* allocate(size_t size) { return reinterpret_cast<T*>(this->resource()->allocate(size * sizeof(T), 0)); }
-  void deallocate(T* ptr, size_t size)
+  T* allocate(std::size_t size) { return reinterpret_cast<T*>(this->resource()->allocate(size * sizeof(T), 0)); }
+  void deallocate(T* ptr, std::size_t size)
   {
     this->resource()->deallocate(const_cast<typename std::remove_cv<T>::type*>(ptr), size);
   }
@@ -264,8 +264,8 @@ class OwningMessageSpectatorAllocator
   {
   }
 
-  T* allocate(size_t size) { return reinterpret_cast<T*>(mResource.allocate(size * sizeof(T), 0)); }
-  void deallocate(T* ptr, size_t size)
+  T* allocate(std::size_t size) { return reinterpret_cast<T*>(mResource.allocate(size * sizeof(T), 0)); }
+  void deallocate(T* ptr, std::size_t size)
   {
     mResource.deallocate(const_cast<typename std::remove_cv<T>::type*>(ptr), size);
   }
@@ -284,7 +284,7 @@ using vector = std::vector<T, o2::pmr::polymorphic_allocator<T>>;
 //__________________________________________________________________________________________________
 /// Return a std::vector spanned over the contents of the message, takes ownership of the message
 template <typename ElemT>
-auto adoptVector(size_t nelem, FairMQMessagePtr message)
+auto adoptVector(std::size_t nelem, FairMQMessagePtr message)
 {
   static_assert(std::is_trivially_destructible<ElemT>::value);
   return std::vector<ElemT, OwningMessageSpectatorAllocator<ElemT>>(

@@ -138,7 +138,7 @@ bool Tracker::processSide(bool isRight, bool isInward)
   Track track;
   for (int irpc = 0; irpc < 9; ++irpc) {
     int deId1 = rpcOffset1 + irpc;
-    for (size_t icl1 = 0; icl1 < mClusterIndexes[deId1].size(); ++icl1) {
+    for (std::size_t icl1 = 0; icl1 < mClusterIndexes[deId1].size(); ++icl1) {
       // loop on clusters of the RPC in the first plane
       auto& cl1 = mClusters[mClusterIndexes[deId1][icl1].first];
       int firstRpc = getFirstNeighbourRPC(irpc);
@@ -146,7 +146,7 @@ bool Tracker::processSide(bool isRight, bool isInward)
       for (int irpc2 = firstRpc; irpc2 <= lastRpc; ++irpc2) {
         // loop on (neighbour) RPCs in second plane
         int deId2 = rpcOffset2 + irpc2;
-        for (size_t icl2 = 0; icl2 < mClusterIndexes[deId2].size(); ++icl2) {
+        for (std::size_t icl2 = 0; icl2 < mClusterIndexes[deId2].size(); ++icl2) {
           // loop on clusters of the RPC in the second plane
           auto& cl2 = mClusters[mClusterIndexes[deId2][icl2].first];
 
@@ -295,7 +295,7 @@ bool Tracker::findNextCluster(const Track& track, bool isRight, bool isInward, i
   Track newTrack;
   for (int irpc = firstRPC; irpc <= lastRPC; ++irpc) {
     int deId = rpcOffset + irpc;
-    for (size_t icl = 0; icl < mClusterIndexes[deId].size(); ++icl) {
+    for (std::size_t icl = 0; icl < mClusterIndexes[deId].size(); ++icl) {
       auto& cl = mClusters[mClusterIndexes[deId][icl].first];
       double addChi2AtCluster = tryOneCluster(track, cl, newTrack);
       newTrack.setChi2(track.getChi2() + addChi2AtCluster);
@@ -345,7 +345,7 @@ bool Tracker::findAllClusters(Track& track, int clIdx, bool isRight, bool isInwa
     Track bestTrack;
     for (int jrpc = getFirstNeighbourRPC(irpc); jrpc <= getLastNeighbourRPC(irpc); ++jrpc) {
       int deId2 = rpcOffset + jrpc;
-      for (size_t idx = 0; idx < mClusterIndexes[deId2].size(); ++idx) {
+      for (std::size_t idx = 0; idx < mClusterIndexes[deId2].size(); ++idx) {
         addChi2AtCluster = tryOneCluster(track, mClusters[mClusterIndexes[deId2][idx].first], newTrack);
         if (addChi2AtCluster < bestChi2AtCluster) {
           bestChi2AtCluster = addChi2AtCluster;

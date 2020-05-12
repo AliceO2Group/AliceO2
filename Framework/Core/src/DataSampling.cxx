@@ -34,7 +34,7 @@ std::string DataSampling::createDispatcherName()
   return std::string("Dispatcher"); //_") + getenv("HOSTNAME");
 }
 
-void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::string& policiesSource, size_t threads)
+void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::string& policiesSource, std::size_t threads)
 {
   LOG(DEBUG) << "Generating Data Sampling infrastructure...";
   Dispatcher dispatcher(createDispatcherName(), policiesSource);

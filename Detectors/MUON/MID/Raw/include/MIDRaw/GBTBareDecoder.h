@@ -55,15 +55,15 @@ class GBTBareDecoder
   // Here we are using a function pointer instead of a std::function because it is faster.
   // The std::function adds an overhead at each function call,
   // which results in a considerable slowing done of the code if the function is executed often
-  typedef void (GBTOutputHandler::*OnDoneFunction)(size_t, const ELinkDecoder&);
-  typedef void (GBTBareDecoder::*ProcessFunction)(size_t, uint8_t);
+  typedef void (GBTOutputHandler::*OnDoneFunction)(std::size_t, const ELinkDecoder&);
+  typedef void (GBTBareDecoder::*ProcessFunction)(std::size_t, uint8_t);
 
   OnDoneFunction mOnDoneLoc{&GBTOutputHandler::onDoneLoc};  ///! Processes the local board
   ProcessFunction mProcessReg{&GBTBareDecoder::processReg}; ///! Processes the regional board
 
-  void processLoc(size_t ilink, uint8_t byte);
-  void processReg(size_t, uint8_t){}; /// Dummy function. We usually do not process the regional cards, except when we are debugging the code
-  void processRegDebug(size_t ilink, uint8_t byte);
+  void processLoc(std::size_t ilink, uint8_t byte);
+  void processReg(std::size_t, uint8_t){}; /// Dummy function. We usually do not process the regional cards, except when we are debugging the code
+  void processRegDebug(std::size_t ilink, uint8_t byte);
 };
 } // namespace mid
 } // namespace o2

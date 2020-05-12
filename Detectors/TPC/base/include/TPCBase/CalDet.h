@@ -56,8 +56,8 @@ class CalDet
   // void setValue(const unsigned int channel, const T value) { mData[channel] = value; }
   // const T& getValue(const unsigned int channel) const { return mData[channel]; }
 
-  const CalType& getCalArray(size_t position) const { return mData[position]; }
-  CalType& getCalArray(size_t position) { return mData[position]; }
+  const CalType& getCalArray(std::size_t position) const { return mData[position]; }
+  CalType& getCalArray(std::size_t position) { return mData[position]; }
 
   ///
   ///
@@ -65,8 +65,8 @@ class CalDet
 
   /// \todo return value of T& not possible if a default value should be returned, e.g. T{}:
   ///       warning: returning reference to temporary
-  const T getValue(const ROC roc, const size_t row, const size_t pad) const;
-  const T getValue(const CRU cru, const size_t row, const size_t pad) const;
+  const T getValue(const ROC roc, const std::size_t row, const std::size_t pad) const;
+  const T getValue(const CRU cru, const std::size_t row, const std::size_t pad) const;
 
   void setName(const std::string_view name) { mName = name.data(); }
   const std::string& getName() const { return mName; }
@@ -110,16 +110,16 @@ inline const T CalDet<T>::getValue(const int sector, const int globalPadInSector
 
 //______________________________________________________________________________
 template <class T>
-inline const T CalDet<T>::getValue(const ROC roc, const size_t row, const size_t pad) const
+inline const T CalDet<T>::getValue(const ROC roc, const std::size_t row, const std::size_t pad) const
 {
   // TODO: might need speedup and beautification
   static const Mapper& mapper = Mapper::instance();
 
   // bind row and pad to the maximum rows and pads in the requested region
-  const size_t nRows = mapper.getNumberOfRowsROC(roc);
-  const size_t mappedRow = row % nRows;
-  const size_t nPads = mapper.getNumberOfPadsInRowROC(roc, row);
-  const size_t mappedPad = pad % nPads;
+  const std::size_t nRows = mapper.getNumberOfRowsROC(roc);
+  const std::size_t mappedRow = row % nRows;
+  const std::size_t nPads = mapper.getNumberOfPadsInRowROC(roc, row);
+  const std::size_t mappedPad = pad % nPads;
 
   // TODO: implement missing cases
   switch (mPadSubset) {
@@ -141,24 +141,24 @@ inline const T CalDet<T>::getValue(const ROC roc, const size_t row, const size_t
 
 //______________________________________________________________________________
 template <class T>
-inline const T CalDet<T>::getValue(const CRU cru, const size_t row, const size_t pad) const
+inline const T CalDet<T>::getValue(const CRU cru, const std::size_t row, const std::size_t pad) const
 {
   // TODO: might need speedup and beautification
   static const Mapper& mapper = Mapper::instance();
   const auto& info = mapper.getPadRegionInfo(cru.region());
 
   // bind row and pad to the maximum rows and pads in the requested region
-  const size_t nRows = info.getNumberOfPadRows();
-  const size_t mappedRow = row % nRows;
-  const size_t nPads = info.getPadsInRowRegion(mappedRow);
-  const size_t mappedPad = pad % nPads;
+  const std::size_t nRows = info.getNumberOfPadRows();
+  const std::size_t mappedRow = row % nRows;
+  const std::size_t nPads = info.getPadsInRowRegion(mappedRow);
+  const std::size_t mappedPad = pad % nPads;
 
   switch (mPadSubset) {
     case PadSubset::ROC: {
       const ROC roc = cru.roc();
-      const size_t irocOffset = (cru.rocType() == RocType::IROC) ? 0 : mapper.getNumberOfRowsROC(0);
-      const size_t rowROC = mappedRow + info.getGlobalRowOffset() - irocOffset;
-      const size_t channel = mapper.getPadNumberInROC(PadROCPos(roc, rowROC, mappedPad));
+      const std::size_t irocOffset = (cru.rocType() == RocType::IROC) ? 0 : mapper.getNumberOfRowsROC(0);
+      const std::size_t rowROC = mappedRow + info.getGlobalRowOffset() - irocOffset;
+      const std::size_t channel = mapper.getPadNumberInROC(PadROCPos(roc, rowROC, mappedPad));
       // printf("roc %2d, row %2zu, pad %3zu, channel: %3zu\n", roc.getRoc(), rowROC, mappedPad, channel);
       return mData[roc].getValue(channel);
       break;
@@ -185,7 +185,7 @@ inline const CalDet<T>& CalDet<T>::operator+=(const CalDet& other)
     return *this;
   }
 
-  for (size_t i = 0; i < mData.size(); ++i) {
+  for (std::size_t i = 0; i < mData.size(); ++i) {
     mData[i] += other.mData[i];
   }
   return *this;
@@ -202,7 +202,7 @@ inline const CalDet<T>& CalDet<T>::operator-=(const CalDet& other)
     return *this;
   }
 
-  for (size_t i = 0; i < mData.size(); ++i) {
+  for (std::size_t i = 0; i < mData.size(); ++i) {
     mData[i] -= other.mData[i];
   }
   return *this;
@@ -219,7 +219,7 @@ inline const CalDet<T>& CalDet<T>::operator*=(const CalDet& other)
     return *this;
   }
 
-  for (size_t i = 0; i < mData.size(); ++i) {
+  for (std::size_t i = 0; i < mData.size(); ++i) {
     mData[i] *= other.mData[i];
   }
   return *this;
@@ -236,7 +236,7 @@ inline const CalDet<T>& CalDet<T>::operator/=(const CalDet& other)
     return *this;
   }
 
-  for (size_t i = 0; i < mData.size(); ++i) {
+  for (std::size_t i = 0; i < mData.size(); ++i) {
     mData[i] /= other.mData[i];
   }
   return *this;
@@ -289,7 +289,7 @@ void CalDet<T>::initData()
   const auto& mapper = Mapper::instance();
 
   // ---| Define number of sub pad regions |------------------------------------
-  size_t size = 0;
+  std::size_t size = 0;
   std::string frmt;
   switch (mPadSubset) {
     case PadSubset::ROC: {
@@ -309,7 +309,7 @@ void CalDet<T>::initData()
     }
   }
 
-  for (size_t i = 0; i < size; ++i) {
+  for (std::size_t i = 0; i < size; ++i) {
     mData.push_back(CalType(mPadSubset, i));
     mData.back().setName(boost::str(format(frmt) % mName % i));
   }

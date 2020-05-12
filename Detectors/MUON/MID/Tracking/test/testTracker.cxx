@@ -146,17 +146,17 @@ BOOST_DATA_TEST_CASE(TestMultipleTracks, boost::unit_test::data::xrange(1, 9), n
 
     // Further strings for debugging
     ss << "  Reconstructed tracks:\n";
-    for (size_t ireco = 0; ireco < helper.tracker.getTracks().size(); ++ireco) {
+    for (std::size_t ireco = 0; ireco < helper.tracker.getTracks().size(); ++ireco) {
       ss << "  " << helper.tracker.getTracks()[ireco] << "\n";
     }
 
     // Check that all reconstructible tracks are reconstructed
-    size_t nReconstructible = 0;
+    std::size_t nReconstructible = 0;
     itr = -1;
     for (auto& trCl : trackClusters) {
       ++itr;
       bool isReco = false;
-      for (size_t ireco = 0; ireco < helper.tracker.getTracks().size(); ++ireco) {
+      for (std::size_t ireco = 0; ireco < helper.tracker.getTracks().size(); ++ireco) {
         if (helper.tracker.getTracks()[ireco].isCompatible(trCl.track, chi2Cut)) {
           isReco = true;
           break;

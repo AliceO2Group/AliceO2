@@ -61,7 +61,7 @@ Bool_t ClusterShape::IsValidShape()
 
   // Check for duplicates and the validity of the position
   std::sort(mShape.begin(), mShape.end());
-  for (size_t i = 0; i < mShape.size() - 1; i++) {
+  for (std::size_t i = 0; i < mShape.size() - 1; i++) {
     if (mShape[i] >= mNrows * mNcols || mShape[i + 1] >= mNrows * mNcols)
       return false;
     if (mShape[i] == mShape[i + 1])

@@ -42,9 +42,9 @@ GPUdii() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int nBlocks, int nT
                                                              const uint peaknum,
                                                              uchar* isPeakPredicate)
 {
-  size_t idx = get_global_id(0);
+  std::size_t idx = get_global_id(0);
 
-  ChargePos pos = peakPositions[CAMath::Min(idx, (size_t)(peaknum - 1))];
+  ChargePos pos = peakPositions[CAMath::Min(idx, (std::size_t)(peaknum - 1))];
   Charge charge = chargeMap[pos].unpack();
 
   ulong minimas, bigger, peaksAround;
@@ -89,7 +89,7 @@ GPUd() void GPUTPCCFNoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads,
                                                       const uint peakNum,
                                                       Array2D<uchar>& peakMap)
 {
-  size_t idx = get_global_id(0);
+  std::size_t idx = get_global_id(0);
 
   if (idx >= peakNum) {
     return;

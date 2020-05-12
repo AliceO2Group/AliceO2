@@ -29,12 +29,12 @@ namespace algorithm
 /// void returning 0
 template <typename T>
 struct typesize {
-  static const size_t size = sizeof(T);
+  static const std::size_t size = sizeof(T);
 };
 // specialization for void
 template <>
 struct typesize<void> {
-  static const size_t size = 0;
+  static const std::size_t size = 0;
 };
 
 /**
@@ -110,15 +110,15 @@ class ForwardParser
     const HeaderType* header = nullptr;
     const TrailerType* trailer = nullptr;
     PtrT payload = nullptr;
-    size_t length = 0;
+    std::size_t length = 0;
   };
 
   /// the length offset due to header
-  static const size_t headOffset = typesize<HeaderType>::size;
+  static const std::size_t headOffset = typesize<HeaderType>::size;
   /// the length offset due to trailer
-  static const size_t tailOffset = typesize<TrailerType>::size;
+  static const std::size_t tailOffset = typesize<TrailerType>::size;
   /// total length offset due to header and trailer
-  static const size_t totalOffset = headOffset + tailOffset;
+  static const std::size_t totalOffset = headOffset + tailOffset;
 
   /// alias for callback checking the header, return true if the object
   /// is a valid header
@@ -140,7 +140,7 @@ class ForwardParser
 
   /// alias for callback to get the complete frame size including header,
   /// trailer and the data
-  using GetFrameSizeFct = std::function<size_t(const HeaderType&)>;
+  using GetFrameSizeFct = std::function<std::size_t(const HeaderType&)>;
 
   /// function callback to insert/handle one frame into, sequentially called
   /// for all frames if the whole block has a valid format
@@ -150,7 +150,7 @@ class ForwardParser
   /// trailer, the frame size, and insert callback to handle a FrameInfo
   /// object.
   template <typename InputType>
-  int parse(const InputType* buffer, size_t bufferSize,
+  int parse(const InputType* buffer, std::size_t bufferSize,
             CheckHeaderFct checkHeader,
             CheckTrailerFct<TrailerType> checkTrailer,
             GetFrameSizeFct getFrameSize,
@@ -160,7 +160,7 @@ class ForwardParser
                   "ForwardParser currently only supports byte type buffer");
     if (buffer == nullptr || bufferSize == 0)
       return 0;
-    size_t position = 0;
+    std::size_t position = 0;
     std::vector<FrameInfo> frames;
     do {
       FrameInfo entry;
@@ -221,7 +221,7 @@ class ForwardParser
   /// insert callback to handle a FrameInfo object.
   template <typename InputType, typename U = TrailerType>
   typename std::enable_if<std::is_void<U>::value, int>::type
-    parse(const InputType* buffer, size_t bufferSize,
+    parse(const InputType* buffer, std::size_t bufferSize,
           CheckHeaderFct checkHeader,
           GetFrameSizeFct getFrameSize,
           InsertFct insert)
@@ -299,14 +299,14 @@ class ReverseParser
     const HeaderType* header = nullptr;
     const TrailerType* trailer = nullptr;
     PtrT payload = nullptr;
-    size_t length = 0;
+    std::size_t length = 0;
   };
   /// the length offset due to header
-  static const size_t headOffset = typesize<HeaderType>::size;
+  static const std::size_t headOffset = typesize<HeaderType>::size;
   /// the length offset due to trailer
-  static const size_t tailOffset = typesize<TrailerType>::size;
+  static const std::size_t tailOffset = typesize<TrailerType>::size;
   /// total length offset due to header and trailer
-  static const size_t totalOffset = headOffset + tailOffset;
+  static const std::size_t totalOffset = headOffset + tailOffset;
 
   /// alias for callback checking the header, return true if the object
   /// is a valid header
@@ -315,7 +315,7 @@ class ReverseParser
   using CheckTrailerFct = std::function<bool(const TrailerType&)>;
   /// alias for callback to get the complete frame size including header,
   /// trailer and the data
-  using GetFrameSizeFct = std::function<size_t(const TrailerType&)>;
+  using GetFrameSizeFct = std::function<std::size_t(const TrailerType&)>;
   /// function callback to insert/handle one frame into, sequentially called
   /// for all frames if the whole block has a valid format
   using InsertFct = std::function<bool(const FrameInfo&)>;
@@ -324,7 +324,7 @@ class ReverseParser
   /// trailer, the frame size, and insert callback to handle a FrameInfo
   /// object.
   template <typename InputType>
-  int parse(const InputType* buffer, size_t bufferSize,
+  int parse(const InputType* buffer, std::size_t bufferSize,
             CheckHeaderFct checkHeader,
             CheckTrailerFct checkTrailer,
             GetFrameSizeFct getFrameSize,

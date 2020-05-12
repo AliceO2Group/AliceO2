@@ -67,8 +67,8 @@ using namespace o2::framework;
     LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
-constexpr size_t nPipelines = 3;
-constexpr size_t nChannels = 10;
+constexpr std::size_t nPipelines = 3;
+constexpr std::size_t nChannels = 10;
 
 std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
 {
@@ -116,7 +116,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     // since we publish with delays, and two channels are always sent together
     ASSERT_ERROR(nActiveInputs == 2);
   };
-  auto amendSinkInput = [subspecs](InputSpec& input, size_t index) {
+  auto amendSinkInput = [subspecs](InputSpec& input, std::size_t index) {
     input.binding += std::to_string(subspecs[index]);
     DataSpecUtils::updateMatchingSubspec(input, subspecs[index]);
   };
@@ -141,7 +141,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       AlgorithmSpec{processorFct}}},
     nPipelines,
     [&subspecs]() { return subspecs.size(); },
-    [&subspecs](size_t index) { return subspecs[index]; });
+    [&subspecs](std::size_t index) { return subspecs[index]; });
 
   workflow.emplace_back(DataProcessorSpec{
     "producer",

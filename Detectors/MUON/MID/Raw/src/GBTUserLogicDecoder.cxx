@@ -51,7 +51,7 @@ void GBTUserLogicDecoder::process(gsl::span<const uint8_t> bytes, uint16_t bc, u
       if (raw::isLoc(mELinkDecoder.getStatusWord())) {
         std::invoke(mOnDoneLoc, mOutputHandler, mELinkDecoder.getId() % 8, mELinkDecoder);
       } else {
-        size_t ilink = 8 + mELinkDecoder.getId() % 8;
+        std::size_t ilink = 8 + mELinkDecoder.getId() % 8;
         if (ilink > 9) {
           continue;
         }

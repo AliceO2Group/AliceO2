@@ -298,7 +298,7 @@ bool CDBStorage::checkMetaData(MetaData_t metaData) const
 
   std::array<int, 3> counts{};
 
-  for (size_t i = 0; i < requirements.size(); ++i) {
+  for (std::size_t i = 0; i < requirements.size(); ++i) {
     for (const auto& test : tests[i]) {
       if (!metaData[test.data()].size()) {
         const auto message = fmt::format("{} field {} not set in meta data", requirements[i], test);

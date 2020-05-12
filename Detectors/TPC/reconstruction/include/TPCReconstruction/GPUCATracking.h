@@ -62,7 +62,7 @@ class GPUCATracking
   int getNTracksASide() { return mNTracksASide; }
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const;
 
-  int registerMemoryForGPU(const void* ptr, size_t size);
+  int registerMemoryForGPU(const void* ptr, std::size_t size);
   int unregisterMemoryForGPU(const void* ptr);
 
  private:

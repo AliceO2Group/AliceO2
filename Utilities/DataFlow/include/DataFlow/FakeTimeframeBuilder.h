@@ -24,8 +24,8 @@ namespace data_flow
 struct FakeTimeframeSpec {
   const char* origin;
   const char* dataDescription;
-  std::function<void(char*, size_t)> bufferFiller;
-  size_t bufferSize;
+  std::function<void(char*, std::size_t)> bufferFiller;
+  std::size_t bufferSize;
 };
 
 /** Generate a timeframe from the provided specification

@@ -42,7 +42,7 @@ namespace o2
 namespace math_utils
 {
 
-template <size_t N = float_v::size() * 100000>
+template <std::size_t N = float_v::size() * 100000>
 class RandomRing
 {
  public:
@@ -113,12 +113,12 @@ class RandomRing
 
   RandomType mRandomType;              ///< Type of random numbers used
   std::array<float, N> mRandomNumbers; ///< Ring with random gaus numbers
-  size_t mRingPosition = 0;            ///< presently accessed position in the ring
+  std::size_t mRingPosition = 0;       ///< presently accessed position in the ring
 
 }; // end class RandomRing
 
 //______________________________________________________________________________
-template <size_t N>
+template <std::size_t N>
 inline RandomRing<N>::RandomRing(const RandomType randomType)
   : mRandomType(randomType),
     mRandomNumbers()
@@ -128,7 +128,7 @@ inline RandomRing<N>::RandomRing(const RandomType randomType)
 }
 
 //______________________________________________________________________________
-template <size_t N>
+template <std::size_t N>
 inline RandomRing<N>::RandomRing(TF1& function)
   : mRandomType(RandomType::CustomTF1),
     mRandomNumbers()
@@ -137,7 +137,7 @@ inline RandomRing<N>::RandomRing(TF1& function)
 }
 
 //______________________________________________________________________________
-template <size_t N>
+template <std::size_t N>
 inline void RandomRing<N>::initialize(const RandomType randomType)
 {
 
@@ -161,7 +161,7 @@ inline void RandomRing<N>::initialize(const RandomType randomType)
 }
 
 //______________________________________________________________________________
-template <size_t N>
+template <std::size_t N>
 inline void RandomRing<N>::initialize(TF1& function)
 {
   mRandomType = RandomType::CustomTF1;
@@ -171,7 +171,7 @@ inline void RandomRing<N>::initialize(TF1& function)
 }
 
 //______________________________________________________________________________
-template <size_t N>
+template <std::size_t N>
 inline void RandomRing<N>::initialize(std::function<float()> function)
 {
   mRandomType = RandomType::CustomLambda;

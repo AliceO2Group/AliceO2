@@ -18,7 +18,7 @@ namespace o2
 {
 namespace mid
 {
-void DigitsMerger::mergeDigit(size_t idigit, const std::vector<ColumnDataMC>& inDigitStore)
+void DigitsMerger::mergeDigit(std::size_t idigit, const std::vector<ColumnDataMC>& inDigitStore)
 {
   /// Merges the current digit
   for (auto& pair : mDigitsLabels) {
@@ -29,7 +29,7 @@ void DigitsMerger::mergeDigit(size_t idigit, const std::vector<ColumnDataMC>& in
       return;
     }
   }
-  std::vector<size_t> vec = {idigit};
+  std::vector<std::size_t> vec = {idigit};
   mDigitsLabels.emplace_back(std::make_pair(inDigitStore[idigit], vec));
 }
 
@@ -50,7 +50,7 @@ void DigitsMerger::process(const std::vector<ColumnDataMC>& inDigitStore, const 
     auto nextRofIt = rofIt + 1;
     bool mergeInteractions = mergeInBunchPileup && nextRofIt != inROFRecords.end() && rofIt->interactionRecord == nextRofIt->interactionRecord;
 
-    for (size_t idigit = rofIt->firstEntry; idigit < rofIt->firstEntry + rofIt->nEntries; ++idigit) {
+    for (std::size_t idigit = rofIt->firstEntry; idigit < rofIt->firstEntry + rofIt->nEntries; ++idigit) {
       mergeDigit(idigit, inDigitStore);
     }
 

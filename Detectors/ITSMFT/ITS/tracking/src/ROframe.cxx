@@ -50,7 +50,7 @@ void ROframe::printPrimaryVertices() const
 
 int ROframe::getTotalClusters() const
 {
-  size_t totalClusters{0};
+  std::size_t totalClusters{0};
   for (auto& clusters : mClusters)
     totalClusters += clusters.size();
   return int(totalClusters);

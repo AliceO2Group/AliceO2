@@ -41,9 +41,9 @@
 #include "GPUReconstructionCUDAInternals.h"
 #include "GPUReconstructionIncludes.h"
 
-static constexpr size_t REQUIRE_MIN_MEMORY = 1024u * 1024 * 1024;
-static constexpr size_t REQUIRE_MEMORY_RESERVED = 512u * 1024 * 1024;
-static constexpr size_t REQUIRE_FREE_MEMORY_RESERVED = 1280u * 1024 * 1024;
+static constexpr std::size_t REQUIRE_MIN_MEMORY = 1024u * 1024 * 1024;
+static constexpr std::size_t REQUIRE_MEMORY_RESERVED = 512u * 1024 * 1024;
+static constexpr std::size_t REQUIRE_FREE_MEMORY_RESERVED = 1280u * 1024 * 1024;
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -198,13 +198,13 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     const int reqVerMaj = 2;
     const int reqVerMin = 0;
     std::vector<bool> devicesOK(count, false);
-    std::vector<size_t> devMemory(count, 0);
+    std::vector<std::size_t> devMemory(count, 0);
     bool contextCreated = false;
     for (int i = 0; i < count; i++) {
       if (mDeviceProcessingSettings.debugLevel >= 4) {
         GPUInfo("Examining device %d", i);
       }
-      size_t free, total;
+      std::size_t free, total;
       CUdevice tmpDevice;
       if (GPUFailedMsgI(cuDeviceGet(&tmpDevice, i))) {
         GPUError("Could not set CUDA device!");
@@ -326,7 +326,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     }
 
 #ifdef GPUCA_USE_TEXTURES
-    if (GPUCA_SLICE_DATA_MEMORY * NSLICES > (size_t)cudaDeviceProp.maxTexture1DLinear) {
+    if (GPUCA_SLICE_DATA_MEMORY * NSLICES > (std::size_t)cudaDeviceProp.maxTexture1DLinear) {
       GPUError("Invalid maximum texture size of device: %lld < %lld\n", (long long int)cudaDeviceProp.maxTexture1DLinear, (long long int)(GPUCA_SLICE_DATA_MEMORY * NSLICES));
       return (1);
     }
@@ -473,7 +473,7 @@ int GPUReconstructionCUDABackend::ExitDevice_Runtime()
   return (0);
 }
 
-size_t GPUReconstructionCUDABackend::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+std::size_t GPUReconstructionCUDABackend::GPUMemCpy(void* dst, const void* src, std::size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
   if (mDeviceProcessingSettings.debugLevel >= 3) {
     stream = -1;
@@ -496,7 +496,7 @@ size_t GPUReconstructionCUDABackend::GPUMemCpy(void* dst, const void* src, size_
   return size;
 }
 
-size_t GPUReconstructionCUDABackend::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
+std::size_t GPUReconstructionCUDABackend::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
 {
   if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
     if (mDeviceProcessingSettings.debugLevel >= 4) {
@@ -510,7 +510,7 @@ size_t GPUReconstructionCUDABackend::TransferMemoryInternal(GPUMemoryResource* r
   return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }
 
-size_t GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
+std::size_t GPUReconstructionCUDABackend::WriteToConstantMemory(std::size_t offset, const void* src, std::size_t size, int stream, deviceEvent* ev)
 {
 #ifndef GPUCA_NO_CONSTANT_MEMORY
   if (stream == -1) {
@@ -588,7 +588,7 @@ int GPUReconstructionCUDABackend::PrepareTextures()
 {
 #ifdef GPUCA_USE_TEXTURES
   cudaChannelFormatDesc channelDescu2 = cudaCreateChannelDesc<cahit2>();
-  size_t offset;
+  std::size_t offset;
   GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu2, mProcessorsShadow->tpcTrackers[0].Data().Memory(), &channelDescu2, NSLICES * GPUCA_SLICE_DATA_MEMORY));
   cudaChannelFormatDesc channelDescu = cudaCreateChannelDesc<calink>();
   GPUFailedMsg(cudaBindTexture(&offset, &gAliTexRefu, mProcessorsShadow->tpcTrackers[0].Data().Memory(), &channelDescu, NSLICES * GPUCA_SLICE_DATA_MEMORY));
@@ -596,7 +596,7 @@ int GPUReconstructionCUDABackend::PrepareTextures()
   return (0);
 }
 
-int GPUReconstructionCUDABackend::registerMemoryForGPU(const void* ptr, size_t size)
+int GPUReconstructionCUDABackend::registerMemoryForGPU(const void* ptr, std::size_t size)
 {
   return GPUFailedMsgI(cudaHostRegister((void*)ptr, size, cudaHostRegisterDefault));
 }

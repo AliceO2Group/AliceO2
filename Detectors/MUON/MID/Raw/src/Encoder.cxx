@@ -71,8 +71,8 @@ void Encoder::flush(uint16_t feeId, const InteractionRecord& ir)
   if (mGBTEncoders[feeId].getBufferSize() == 0) {
     return;
   }
-  size_t dataSize = mGBTEncoders[feeId].getBufferSize();
-  size_t resto = dataSize % o2::raw::RDHUtils::GBTWord;
+  std::size_t dataSize = mGBTEncoders[feeId].getBufferSize();
+  std::size_t resto = dataSize % o2::raw::RDHUtils::GBTWord;
   if (dataSize % o2::raw::RDHUtils::GBTWord) {
     dataSize += o2::raw::RDHUtils::GBTWord - resto;
   }

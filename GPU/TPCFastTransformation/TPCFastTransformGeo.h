@@ -65,7 +65,7 @@ class TPCFastTransformGeo
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
   /// Gives minimal alignment in bytes required for an object of the class
-  static constexpr size_t getClassAlignmentBytes() { return 8; }
+  static constexpr std::size_t getClassAlignmentBytes() { return 8; }
 
   /// _______________  Construction interface  ________________________
 

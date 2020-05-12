@@ -42,12 +42,12 @@ FakeTimeframeGeneratorDevice::FakeTimeframeGeneratorDevice()
 void FakeTimeframeGeneratorDevice::InitTask()
 {
   mOutChannelName = GetConfig()->GetValue<std::string>(OptionKeyOutputChannelName);
-  mMaxTimeframes = GetConfig()->GetValue<size_t>(OptionKeyMaxTimeframes);
+  mMaxTimeframes = GetConfig()->GetValue<std::size_t>(OptionKeyMaxTimeframes);
 }
 
 bool FakeTimeframeGeneratorDevice::ConditionalRun()
 {
-  auto addPartFn = [this](FairMQParts& parts, char* buffer, size_t size) {
+  auto addPartFn = [this](FairMQParts& parts, char* buffer, std::size_t size) {
     parts.AddPart(this->NewMessage(
       buffer,
       size,
@@ -55,7 +55,7 @@ bool FakeTimeframeGeneratorDevice::ConditionalRun()
       nullptr));
   };
   auto sendFn = [this](FairMQParts& parts) { this->Send(parts, this->mOutChannelName); };
-  auto zeroFiller = [](char* b, size_t s) { memset(b, 0, s); };
+  auto zeroFiller = [](char* b, std::size_t s) { memset(b, 0, s); };
 
   std::vector<o2::data_flow::FakeTimeframeSpec> specs = {
     {.origin = "TPC",
@@ -68,7 +68,7 @@ bool FakeTimeframeGeneratorDevice::ConditionalRun()
      .bufferSize = 500}};
 
   try {
-    size_t totalSize;
+    std::size_t totalSize;
     auto buffer = fakeTimeframeGenerator(specs, totalSize);
     OneShotReadBuf osrb(buffer.get(), totalSize);
     std::istream s(&osrb);

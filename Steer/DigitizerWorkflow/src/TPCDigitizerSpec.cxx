@@ -389,7 +389,7 @@ o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> con
   // override the predefined name, index will be added by parallelPipeline method
   pipelineTemplate[0].name = "TPCDigitizer";
   WorkflowSpec pipelines = parallelPipeline(
-    pipelineTemplate, nLanes, [size = sectors.size()]() { return size; }, [&sectors](size_t index) { return sectors[index]; });
+    pipelineTemplate, nLanes, [size = sectors.size()]() { return size; }, [&sectors](std::size_t index) { return sectors[index]; });
   // add the channel for the GRP information to the first processor
   pipelines[0].outputs.emplace_back("TPC", "ROMode", 0, Lifetime::Timeframe);
   return pipelines;

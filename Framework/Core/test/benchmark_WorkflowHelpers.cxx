@@ -36,7 +36,7 @@ static void BM_CreateGraphOverhead(benchmark::State& state)
     std::vector<InputSpec> inputSpecs;
     std::vector<OutputSpec> outputSpecs;
 
-    for (size_t i = 0; i < state.range(); ++i) {
+    for (std::size_t i = 0; i < state.range(); ++i) {
       auto subSpec = static_cast<o2::header::DataHeader::SubSpecificationType>(i);
       inputSpecs.emplace_back(InputSpec{"y", "TST", "A", subSpec});
       outputSpecs.emplace_back(OutputSpec{{"y"}, "TST", "A", subSpec});
@@ -71,7 +71,7 @@ static void BM_CreateGraphReverseOverhead(benchmark::State& state)
     std::vector<InputSpec> inputSpecs;
     std::vector<OutputSpec> outputSpecs;
 
-    for (size_t i = 0; i < state.range(); ++i) {
+    for (std::size_t i = 0; i < state.range(); ++i) {
       auto subSpec = static_cast<o2::header::DataHeader::SubSpecificationType>(i);
       auto subSpecReverse = static_cast<o2::header::DataHeader::SubSpecificationType>(state.range() - i - 1);
       inputSpecs.emplace_back(InputSpec{"y", "TST", "A", subSpec});

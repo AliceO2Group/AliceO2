@@ -24,7 +24,7 @@ namespace o2
 namespace mid
 {
 
-ColumnData& DecodedDataAggregator::FindColumnData(uint8_t deId, uint8_t columnId, size_t firstEntry)
+ColumnData& DecodedDataAggregator::FindColumnData(uint8_t deId, uint8_t columnId, std::size_t firstEntry)
 {
   /// Gets the matching column data
   /// Adds one if not found
@@ -37,7 +37,7 @@ ColumnData& DecodedDataAggregator::FindColumnData(uint8_t deId, uint8_t columnId
   return mData.back();
 }
 
-void DecodedDataAggregator::addData(const LocalBoardRO& loc, size_t firstEntry)
+void DecodedDataAggregator::addData(const LocalBoardRO& loc, std::size_t firstEntry)
 {
   /// Converts the local board data to ColumnData
   uint8_t uniqueLocId = loc.boardId;
@@ -73,11 +73,11 @@ void DecodedDataAggregator::process(gsl::span<const LocalBoardRO> localBoards, g
 
   const ROFRecord* rof = nullptr;
   for (auto& item : mOrderIndexes) {
-    size_t firstEntry = mData.size();
+    std::size_t firstEntry = mData.size();
     for (auto& idx : item.second) {
       // In principle all of these ROF records have the same timestamp
       rof = &rofRecords[idx];
-      for (size_t iloc = rof->firstEntry; iloc < rof->firstEntry + rof->nEntries; ++iloc) {
+      for (std::size_t iloc = rof->firstEntry; iloc < rof->firstEntry + rof->nEntries; ++iloc) {
         addData(localBoards[iloc], firstEntry);
       }
     }

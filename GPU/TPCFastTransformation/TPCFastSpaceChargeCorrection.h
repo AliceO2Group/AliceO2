@@ -42,7 +42,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   ///
   struct RowSplineInfo {
     int splineScenarioID;   ///< scenario index (which of Spline2D splines to use)
-    size_t dataOffsetBytes; ///< offset for the spline data withing a TPC slice
+    std::size_t dataOffsetBytes; ///< offset for the spline data withing a TPC slice
   };
 
   typedef Spline2D<float, 3, 0> SplineType;
@@ -156,7 +156,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   long int mTimeStamp; ///< time stamp of the current calibration
 
   char* mSplineData;          //! (transient!!) pointer to the spline data in the flat buffer
-  size_t mSliceDataSizeBytes; ///< size of the data for one slice in the flat buffer
+  std::size_t mSliceDataSizeBytes; ///< size of the data for one slice in the flat buffer
 };
 
 /// ====================================================

@@ -85,7 +85,7 @@ struct EncodedClusters {
   // count of each object
   Counters* counters = nullptr;
 
-  static constexpr size_t NUM_ARRAYS = 23;
+  static constexpr std::size_t NUM_ARRAYS = 23;
   static constexpr std::array<const char*, NUM_ARRAYS> NAMES{"qTotA", "qMaxA",
                                                              "flagsA", "rowDiffA", "sliceLegDiffA", "padResA", "timeResA", "sigmaPadA",
                                                              "sigmaTimeA", "qPtA", "rowA", "sliceA", "timeA", "padA", "qTotU", "qMaxU",

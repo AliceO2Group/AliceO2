@@ -231,7 +231,7 @@ float GPUTPCClusterStatistics::Analyze(std::vector<int>& p, const char* name, bo
 
   std::vector<double> prob(p.size());
   double log2 = log(2.);
-  size_t total = 0;
+  std::size_t total = 0;
   for (unsigned int i = 0; i < p.size(); i++) {
     total += p[i];
   }
@@ -266,9 +266,9 @@ float GPUTPCClusterStatistics::Analyze(std::vector<int>& p, const char* name, bo
 }
 
 template <class T, int I>
-void GPUTPCClusterStatistics::FillStatistic(std::vector<int>& p, const T* ptr, size_t n)
+void GPUTPCClusterStatistics::FillStatistic(std::vector<int>& p, const T* ptr, std::size_t n)
 {
-  for (size_t i = 0; i < n; i++) {
+  for (std::size_t i = 0; i < n; i++) {
     unsigned int val = ptr[i];
     if (val >= p.size()) {
       if (I) {
@@ -283,9 +283,9 @@ void GPUTPCClusterStatistics::FillStatistic(std::vector<int>& p, const T* ptr, s
 }
 
 template <class T, class S, int I>
-void GPUTPCClusterStatistics::FillStatisticCombined(std::vector<int>& p, const T* ptr1, const S* ptr2, size_t n, int max1)
+void GPUTPCClusterStatistics::FillStatisticCombined(std::vector<int>& p, const T* ptr1, const S* ptr2, std::size_t n, int max1)
 {
-  for (size_t i = 0; i < n; i++) {
+  for (std::size_t i = 0; i < n; i++) {
     unsigned int val = ptr1[i] + ptr2[i] * max1;
     if (val >= p.size()) {
       if (I) {

@@ -287,7 +287,7 @@ int MC2RawEncoder<Mapping>::carryOverMethod(const header::RDHAny* rdh, const gsl
 
   int offs = ptr - &data[0]; // offset wrt the head of the payload
   // make sure ptr and end of the suggested block are within the payload
-  assert(offs >= 0 && size_t(offs + maxSize) <= data.size());
+  assert(offs >= 0 && std::size_t(offs + maxSize) <= data.size());
 
   if ((maxSize <= TotServiceSize)) {  // we cannot split trigger+header
     return 0;                         // suggest moving the whole payload to the new CRU page

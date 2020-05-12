@@ -46,7 +46,7 @@ DataProcessorSpec getClustererSpec(bool sendMC)
 {
   std::string processorName = "tpc-clusterer";
 
-  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
+  constexpr static std::size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   struct ProcessAttributes {
     std::vector<o2::tpc::ClusterHardwareContainer8kb> clusterArray;
     MCLabelContainer mctruthArray;
@@ -120,7 +120,7 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       clusterer->finishProcess(emptyDigits, nullptr, false); // keep here the false, otherwise the clusters are lost of they are not stored in the meantime
       if (verbosity > 0) {
         LOG(INFO) << "clusterer produced "
-                  << std::accumulate(clusterArray.begin(), clusterArray.end(), size_t(0), [](size_t l, auto const& r) { return l + r.getContainer()->numberOfClusters; })
+                  << std::accumulate(clusterArray.begin(), clusterArray.end(), std::size_t(0), [](std::size_t l, auto const& r) { return l + r.getContainer()->numberOfClusters; })
                   << " cluster(s)"
                   << " for sector " << sectorHeader->sector
                   << " total size " << sizeof(ClusterHardwareContainer8kb) * clusterArray.size();

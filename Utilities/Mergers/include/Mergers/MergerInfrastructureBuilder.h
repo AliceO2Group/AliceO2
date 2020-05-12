@@ -59,7 +59,7 @@ class MergerInfrastructureBuilder
 
  private:
   std::string validateConfig();
-  std::vector<size_t> computeNumberOfMergersPerLayer(const size_t inputs) const;
+  std::vector<std::size_t> computeNumberOfMergersPerLayer(const std::size_t inputs) const;
 
  private:
   std::string mInfrastructureName;

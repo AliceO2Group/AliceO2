@@ -23,9 +23,9 @@ namespace its
 {
 namespace GPU
 {
-GPUg() void defaultInitArrayKernel(int* array, const size_t arraySize, const int initValue = 0)
+GPUg() void defaultInitArrayKernel(int* array, const std::size_t arraySize, const int initValue = 0)
 {
-  for (size_t i{blockIdx.x * blockDim.x + threadIdx.x}; i < arraySize; i += blockDim.x * gridDim.x) {
+  for (std::size_t i{blockIdx.x * blockDim.x + threadIdx.x}; i < arraySize; i += blockDim.x * gridDim.x) {
     if (i < arraySize) {
       array[i] = initValue;
     }

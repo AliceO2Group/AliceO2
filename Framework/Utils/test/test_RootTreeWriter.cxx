@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
     {InputSpec{"input8", "TST", "SRLZDVEC"}, 8, "input8", 0},  //
   };
 
-  auto getter = [&store](size_t i) -> DataRef {
+  auto getter = [&store](std::size_t i) -> DataRef {
     return DataRef{nullptr, static_cast<char const*>(store[2 * i]->GetData()), static_cast<char const*>(store[2 * i + 1]->GetData())};
   };
 

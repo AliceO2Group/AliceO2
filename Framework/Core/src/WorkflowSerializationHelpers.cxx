@@ -514,7 +514,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   std::string binding;
   header::DataOrigin origin;
   header::DataDescription description;
-  size_t subspec;
+  std::size_t subspec;
   Lifetime lifetime;
   std::string optionName;
   VariantType optionType;

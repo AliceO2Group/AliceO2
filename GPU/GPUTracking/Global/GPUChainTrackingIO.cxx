@@ -86,7 +86,7 @@ void GPUChainTracking::DumpData(const char* filename)
     DumpData(fp, mIOPtrs.tpcPackedDigits->tpcDigits, mIOPtrs.tpcPackedDigits->nTPCDigits, InOutPointerType::TPC_DIGIT);
   }
   if (mIOPtrs.tpcZS) {
-    size_t total = 0;
+    std::size_t total = 0;
     for (int i = 0; i < NSLICES; i++) {
       for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
         for (unsigned int k = 0; k < mIOPtrs.tpcZS->slice[i].count[j]; k++) {
@@ -168,7 +168,7 @@ int GPUChainTracking::ReadData(const char* filename)
   }*/
 
   char buf[DUMP_HEADER_SIZE + 1] = "";
-  size_t r = fread(buf, 1, DUMP_HEADER_SIZE, fp);
+  std::size_t r = fread(buf, 1, DUMP_HEADER_SIZE, fp);
   if (strncmp(DUMP_HEADER, buf, DUMP_HEADER_SIZE)) {
     GPUError("Invalid file header");
     fclose(fp);
@@ -195,7 +195,7 @@ int GPUChainTracking::ReadData(const char* filename)
     mIOPtrs.tpcPackedDigits = mDigitMap.get();
   }
   const char* ptr;
-  size_t total;
+  std::size_t total;
   if (ReadData(fp, &ptr, &total, &mIOMem.tpcZSpages, InOutPointerType::TPC_ZS)) {
     GPUTrackingInOutZS::GPUTrackingInOutZSCounts counts;
     r = fread(&counts, sizeof(counts), 1, fp);

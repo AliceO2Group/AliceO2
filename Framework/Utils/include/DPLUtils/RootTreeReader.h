@@ -182,7 +182,7 @@ class GenericRootTreeReader
   class BranchConfigurationInterface
   {
    public:
-    static const size_t STAGE = 0;
+    static const std::size_t STAGE = 0;
     BranchConfigurationInterface() = default;
     BranchConfigurationInterface(ConstructorArgs const&){};
     virtual ~BranchConfigurationInterface() = default;
@@ -208,7 +208,7 @@ class GenericRootTreeReader
     using PrevT = BASE;
     using value_type = DataT;
     using publish_type = void;
-    static const size_t STAGE = BASE::STAGE + 1;
+    static const std::size_t STAGE = BASE::STAGE + 1;
     BranchConfigurationElement() = default;
     BranchConfigurationElement(ConstructorArgs const& args)
       : PrevT(args), mKey(args[STAGE - 1].key), mName(args[STAGE - 1].name)
@@ -292,7 +292,7 @@ class GenericRootTreeReader
       mBranch->SetAddress(&data);
       mBranch->GetEntry(entry);
       if (mSizeBranch != nullptr) {
-        size_t datasize = 0;
+        std::size_t datasize = 0;
         mSizeBranch->SetAddress(&datasize);
         mSizeBranch->GetEntry(entry);
         auto* buffer = reinterpret_cast<BinaryDataStoreType*>(data);
@@ -459,7 +459,7 @@ class GenericRootTreeReader
   }
 
   /// helper function to recursively parse constructor arguments
-  template <size_t skip, typename U, typename... Args>
+  template <std::size_t skip, typename U, typename... Args>
   void parseConstructorArgs(U key, Args&&... args)
   {
     // all argument parsing is done in the creation of the branch configuration
@@ -469,7 +469,7 @@ class GenericRootTreeReader
   /// recursively step through all branch definitions from the command line arguments
   /// and build all types nested into a mixin type. Each level of the mixin derives
   /// from the previous level and by that one can later step through the list.
-  template <size_t skip, typename BASE, typename U, typename... Args>
+  template <std::size_t skip, typename BASE, typename U, typename... Args>
   std::unique_ptr<BranchConfigurationInterface> createBranchConfiguration(ConstructorArgs&& cargs, U def, Args&&... args)
   {
     if constexpr (skip > 0) {
@@ -500,7 +500,7 @@ class GenericRootTreeReader
 
   /// the final method of the recursive argument parsing
   /// the mixin type is now fully constructed and the configuration object is created
-  template <size_t skip, typename T>
+  template <std::size_t skip, typename T>
   std::unique_ptr<BranchConfigurationInterface> createBranchConfiguration(ConstructorArgs&& cargs)
   {
     static_assert(skip == 0);

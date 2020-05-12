@@ -34,12 +34,12 @@ enum class EventType {
 struct ROFRecord {
   o2::InteractionRecord interactionRecord{}; //< Interaction record
   EventType eventType{EventType::Standard};  //< Event type
-  size_t firstEntry{0};                      //< First associated entry
-  size_t nEntries{0};                        //< Number of associated entries
+  std::size_t firstEntry{0};                 //< First associated entry
+  std::size_t nEntries{0};                   //< Number of associated entries
 
   ROFRecord() = default;
-  ROFRecord(const o2::InteractionRecord& intRecord, const EventType& evtType, size_t first, size_t nElements) : interactionRecord(intRecord), eventType(evtType), firstEntry(first), nEntries(nElements) {}
-  ROFRecord(const ROFRecord& other, size_t first, size_t nElements) : interactionRecord(other.interactionRecord), eventType(other.eventType), firstEntry(first), nEntries(nElements) {}
+  ROFRecord(const o2::InteractionRecord& intRecord, const EventType& evtType, std::size_t first, std::size_t nElements) : interactionRecord(intRecord), eventType(evtType), firstEntry(first), nEntries(nElements) {}
+  ROFRecord(const ROFRecord& other, std::size_t first, std::size_t nElements) : interactionRecord(other.interactionRecord), eventType(other.eventType), firstEntry(first), nEntries(nElements) {}
 
   ClassDefNV(ROFRecord, 1);
 };

@@ -92,7 +92,7 @@ union GPUConstantMemCopyable {
 #endif
 
 #if defined(GPUCA_GPUCODE) && defined(GPUCA_NOCOMPAT)
-static constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
+static constexpr std::size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
 #if defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

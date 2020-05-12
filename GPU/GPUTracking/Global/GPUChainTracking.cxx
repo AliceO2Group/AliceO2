@@ -145,7 +145,7 @@ void GPUChainTracking::RegisterGPUProcessors()
 #endif
 }
 
-void GPUChainTracking::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
+void GPUChainTracking::MemorySize(std::size_t& gpuMem, std::size_t& pageLockedHostMem)
 {
   gpuMem = GPUCA_MEMORY_SIZE;
   pageLockedHostMem = GPUCA_HOST_MEMORY_SIZE;
@@ -417,16 +417,16 @@ int GPUChainTracking::PrepareEvent()
   if (mIOPtrs.tpcPackedDigits || mIOPtrs.tpcZS) {
 #ifdef GPUCA_TPC_GEOMETRY_O2
     mRec->MemoryScalers()->nTPCdigits = 0;
-    size_t maxDigits = 0;
-    size_t maxPages = 0;
-    size_t nPagesTotal = 0;
+    std::size_t maxDigits = 0;
+    std::size_t maxPages = 0;
+    std::size_t nPagesTotal = 0;
     unsigned int maxClusters[NSLICES] = {0};
     if (mIOPtrs.tpcZS) {
       if (param().rec.fwdTPCDigitsAsClusters) {
         throw std::runtime_error("Forwading zero-suppressed hits not supported");
       }
       for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-        size_t nPages = 0;
+        std::size_t nPages = 0;
         for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
           for (unsigned int k = 0; k < mIOPtrs.tpcZS->slice[iSlice].count[j]; k++) {
             nPages += mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k];
@@ -820,7 +820,7 @@ void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clust
     const unsigned int iSlice = clusterer.mISlice;
     auto& count = stage ? clusterer.mPmemory->counters.nPeaks : clusterer.mPmemory->counters.nPositions;
 
-    std::vector<size_t> counts;
+    std::vector<std::size_t> counts;
 
     unsigned int nSteps = clusterer.getNSteps(count);
     if (nSteps > clusterer.mNBufs) {
@@ -828,7 +828,7 @@ void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clust
       exit(1);
     }
 
-    size_t tmpCount = count;
+    std::size_t tmpCount = count;
     if (nSteps > 1) {
       for (unsigned int i = 1; i < nSteps; i++) {
         counts.push_back(tmpCount);
@@ -852,8 +852,8 @@ void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clust
   } else {
     auto& nOut = stage ? clusterer.mPmemory->counters.nClusters : clusterer.mPmemory->counters.nPeaks;
     auto& nIn = stage ? clusterer.mPmemory->counters.nPeaks : clusterer.mPmemory->counters.nPositions;
-    size_t count = 0;
-    for (size_t i = 0; i < nIn; i++) {
+    std::size_t count = 0;
+    for (std::size_t i = 0; i < nIn; i++) {
       if (clusterer.mPisPeak[i]) {
         out[count++] = in[i];
       }
@@ -878,10 +878,9 @@ int GPUChainTracking::RunTPCClusterizer()
   }
   SynchronizeGPU();
 
-  size_t nClsTotal = 0;
+  std::size_t nClsTotal = 0;
   ClusterNativeAccess* tmp = mClusterNativeAccess.get();
   std::fill(&tmp->nClusters[0][0], &tmp->nClusters[tpc::Constants::MAXSECTOR][tpc::Constants::MAXGLOBALPADROW], 0);
-
   // setup MC Labels
   bool propagateMCLabels = !doGPU && GetDeviceProcessingSettings().runMC && processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC != nullptr;
 
@@ -942,7 +941,7 @@ int GPUChainTracking::RunTPCClusterizer()
         }
         if (not mIOPtrs.tpcZS || propagateMCLabels) {
           auto* inDigits = mIOPtrs.tpcPackedDigits;
-          size_t numDigits = inDigits->nTPCDigits[iSlice];
+          std::size_t numDigits = inDigits->nTPCDigits[iSlice];
           clusterer.mPmemory->counters.nDigits = numDigits;
           if (doGPU) {
             GPUMemCpy(RecoStep::TPCClusterFinding, clustererShadow.mPdigits, inDigits->tpcDigits[iSlice], sizeof(clustererShadow.mPdigits[0]) * numDigits, lane, true);
@@ -1717,7 +1716,7 @@ int GPUChainTracking::RunTPCCompression()
   O->nAttachedClustersReduced = O->nAttachedClusters - O->nTracks;
   O->nSliceRows = NSLICES * GPUCA_ROW_COUNT;
   O->nComppressionModes = param().rec.tpcCompressionModes;
-  size_t outputSize = AllocateRegisteredMemory(Compressor.mMemoryResOutputHost, mOutputCompressedClusters);
+  std::size_t outputSize = AllocateRegisteredMemory(Compressor.mMemoryResOutputHost, mOutputCompressedClusters);
   Compressor.mOutputFlat->set(outputSize, *Compressor.mOutput);
   const o2::tpc::CompressedClustersPtrs* P = nullptr;
   HighResTimer* gatherTimer = nullptr;

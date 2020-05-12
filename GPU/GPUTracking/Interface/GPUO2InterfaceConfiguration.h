@@ -52,7 +52,7 @@ class TPCFastTransform;
 // If ptr == nullptr, there is no region defined and GPUReconstruction will write its output to an internal buffer.
 struct GPUInterfaceOutputRegion {
   void* ptr = nullptr;
-  size_t size = 0;
+  std::size_t size = 0;
 };
 
 struct GPUInterfaceOutputs {
@@ -117,7 +117,7 @@ struct GPUO2InterfaceIOPtrs {
   // If outputBuffer = nullptr, GPUCATracking will allocate the output internally and own the memory.
   // TODO: Make this mandatory if outputBuffer != nullptr, and throw an error if outputBufferSize is too small.
   void* outputBuffer = nullptr;
-  size_t outputBufferSize = 0;
+  std::size_t outputBufferSize = 0;
 };
 } // namespace gpu
 } // namespace o2

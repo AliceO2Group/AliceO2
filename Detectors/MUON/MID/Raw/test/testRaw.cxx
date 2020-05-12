@@ -51,7 +51,7 @@ o2::mid::ColumnData getColData(uint8_t deId, uint8_t columnId, uint16_t nbp = 0,
   return col;
 }
 
-std::vector<o2::mid::ColumnData> sortData(const std::vector<o2::mid::ColumnData>& data, size_t first, size_t last)
+std::vector<o2::mid::ColumnData> sortData(const std::vector<o2::mid::ColumnData>& data, std::size_t first, std::size_t last)
 {
   std::vector<o2::mid::ColumnData> sortedData(data.begin() + first, data.begin() + last);
   std::sort(sortedData.begin(), sortedData.end(), [](o2::mid::ColumnData& a, o2::mid::ColumnData& b) { if (a.deId == b.deId ) return (a.columnId < b.columnId); return (a.deId < b.deId); });
@@ -69,7 +69,7 @@ void doTest(const std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnDat
     auto sortedIn = sortData(inItMap->second, 0, inItMap->second.size());
     auto sortedOut = sortData(data, rofIt->firstEntry, rofIt->firstEntry + rofIt->nEntries);
     BOOST_REQUIRE(sortedOut.size() == sortedIn.size());
-    for (size_t icol = 0; icol < sortedOut.size(); ++icol) {
+    for (std::size_t icol = 0; icol < sortedOut.size(); ++icol) {
       BOOST_TEST(sortedOut[icol].deId == sortedIn[icol].deId);
       BOOST_TEST(sortedOut[icol].columnId == sortedIn[icol].columnId);
       BOOST_TEST(sortedOut[icol].getNonBendPattern() == sortedIn[icol].getNonBendPattern());
@@ -97,9 +97,9 @@ std::tuple<std::vector<o2::mid::ColumnData>, std::vector<o2::mid::ROFRecord>> en
   rawReader.addFile(tmpFilename.c_str());
   rawReader.init();
   std::vector<char> buffer;
-  for (size_t itf = 0; itf < rawReader.getNTimeFrames(); ++itf) {
+  for (std::size_t itf = 0; itf < rawReader.getNTimeFrames(); ++itf) {
     rawReader.setNextTFToRead(itf);
-    for (size_t ilink = 0; ilink < rawReader.getNLinks(); ++ilink) {
+    for (std::size_t ilink = 0; ilink < rawReader.getNLinks(); ++ilink) {
       auto& link = rawReader.getLink(ilink);
       auto tfsz = link.getNextTFSize();
       if (!tfsz) {
@@ -137,6 +137,7 @@ BOOST_AUTO_TEST_CASE(ColumnDataConverter)
 
   std::vector<o2::mid::ROFRecord> rofs;
   std::vector<o2::mid::LocalBoardRO> outData;
+
   auto inEventType = o2::mid::EventType::Standard;
   o2::mid::ColumnDataToLocalBoard converter;
   for (auto& item : inData) {

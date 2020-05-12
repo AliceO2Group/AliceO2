@@ -53,7 +53,7 @@ class GPUTPCSliceOutput
     return (GPUTPCTrack*)((char*)this + sizeof(*this));
   }
 #endif
-  GPUhd() size_t Size() const
+  GPUhd() std::size_t Size() const
   {
     return (mMemorySize);
   }
@@ -71,12 +71,12 @@ class GPUTPCSliceOutput
   GPUTPCSliceOutput(const GPUTPCSliceOutput&) CON_DELETE;            // NOLINT
   GPUTPCSliceOutput& operator=(const GPUTPCSliceOutput&) CON_DELETE; // NOLINT
 
-  GPUhd() void SetMemorySize(size_t val) { mMemorySize = val; }
+  GPUhd() void SetMemorySize(std::size_t val) { mMemorySize = val; }
 
   unsigned int mNTracks; // number of reconstructed tracks
   unsigned int mNLocalTracks;
   unsigned int mNTrackClusters; // total number of track clusters
-  size_t mMemorySize;           // Amount of memory really used
+  std::size_t mMemorySize;      // Amount of memory really used
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

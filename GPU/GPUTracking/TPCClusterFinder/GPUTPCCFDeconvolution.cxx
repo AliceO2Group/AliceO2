@@ -34,7 +34,7 @@ GPUdii() void GPUTPCCFDeconvolution::countPeaksImpl(int nBlocks, int nThreads, i
                                                     const ChargePos* positions,
                                                     const uint digitnum)
 {
-  size_t idx = get_global_id(0);
+  std::size_t idx = get_global_id(0);
 
   bool iamDummy = (idx >= digitnum);
   idx = iamDummy ? digitnum - 1 : idx;

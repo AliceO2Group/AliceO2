@@ -1118,8 +1118,8 @@ class TableMetadata
       return boundGetter(std::make_index_sequence<std::tuple_size_v<decltype(boundIterators)>>{}, freeArgs...);            \
     }                                                                                                                      \
                                                                                                                            \
-    template <size_t... Is, typename... FreeArgs>                                                                          \
-    type boundGetter(std::integer_sequence<size_t, Is...>&&, FreeArgs... freeArgs) const                                   \
+    template <std::size_t... Is, typename... FreeArgs>                                                                     \
+    type boundGetter(std::integer_sequence<std::size_t, Is...>&&, FreeArgs... freeArgs) const                              \
     {                                                                                                                      \
       return __VA_ARGS__((**std::get<Is>(boundIterators))..., freeArgs...);                                                \
     }                                                                                                                      \
@@ -1345,7 +1345,6 @@ auto filter(T&& t, framework::expressions::Filter const& expr)
 {
   return Filtered<T>(t.asArrowTable(), expr);
 }
-
 } // namespace o2::soa
 
 #endif // O2_FRAMEWORK_ASOA_H_

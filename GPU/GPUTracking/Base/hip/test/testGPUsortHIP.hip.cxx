@@ -50,7 +50,7 @@ struct TestEnvironment {
     hipCheckErrorFatal(hipHostMalloc(&data, size * sizeof(float), hipHostRegisterDefault));
 
     // create an array of unordered floats with negative and positive values
-    for (size_t i = 0; i < size; i++) {
+    for (std::size_t i = 0; i < size; i++) {
       data[i] = size / 2.0 - i;
     }
     // create copy
@@ -64,15 +64,15 @@ struct TestEnvironment {
     hipCheckErrorFatal(hipFree(data));
   };
 
-  const size_t size;
+  const std::size_t size;
   float* data;
   std::vector<float> sorted;
 };
 
 template <typename T>
-void testAlmostEqualArray(T* correct, T* testing, size_t size)
+void testAlmostEqualArray(T* correct, T* testing, std::size_t size)
 {
-  for (size_t i = 0; i < size; i++) {
+  for (std::size_t i = 0; i < size; i++) {
     if (std::fabs(correct[i]) < TOLERANCE) {
       BOOST_CHECK_SMALL(testing[i], TOLERANCE);
     } else {
@@ -83,7 +83,7 @@ void testAlmostEqualArray(T* correct, T* testing, size_t size)
 
 ///////////////////////////////////////////////////////////////
 
-__global__ void sortInThread(float* data, size_t dataLength)
+__global__ void sortInThread(float* data, std::size_t dataLength)
 {
   // make sure only one thread is working on this.
   if (hipBlockIdx_x == 0 && hipBlockIdx_y == 0 && hipBlockIdx_z == 0 && hipThreadIdx_x == 0 && hipThreadIdx_y == 0 && hipThreadIdx_z == 0) {
@@ -91,7 +91,7 @@ __global__ void sortInThread(float* data, size_t dataLength)
   }
 }
 
-__global__ void sortInThreadWithOperator(float* data, size_t dataLength)
+__global__ void sortInThreadWithOperator(float* data, std::size_t dataLength)
 {
   // make sure only one thread is working on this.
   if (hipBlockIdx_x == 0 && hipBlockIdx_y == 0 && hipBlockIdx_z == 0 && hipThreadIdx_x == 0 && hipThreadIdx_y == 0 && hipThreadIdx_z == 0) {
@@ -101,12 +101,12 @@ __global__ void sortInThreadWithOperator(float* data, size_t dataLength)
 
 ///////////////////////////////////////////////////////////////
 
-__global__ void sortInBlock(float* data, size_t dataLength)
+__global__ void sortInBlock(float* data, std::size_t dataLength)
 {
   o2::gpu::CAAlgo::sortInBlock<float>(data, data + dataLength);
 }
 
-__global__ void sortInBlockWithOperator(float* data, size_t dataLength)
+__global__ void sortInBlockWithOperator(float* data, std::size_t dataLength)
 {
   o2::gpu::CAAlgo::sortInBlock(data, data + dataLength, [](float a, float b) { return a < b; });
 }

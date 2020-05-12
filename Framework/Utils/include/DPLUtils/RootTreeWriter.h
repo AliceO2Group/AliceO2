@@ -87,11 +87,11 @@ class RootTreeWriter
  public:
   // use string as input binding to be used with DPL input API
   using key_type = std::string;
-  // extract the branch index from DataRef, ~(size_t)) indicates "no data", then nothing
+  // extract the branch index from DataRef, ~(std::size_t)) indicates "no data", then nothing
   // is extracted from input and writing is skipped
-  using IndexExtractor = std::function<size_t(o2::framework::DataRef const&)>;
+  using IndexExtractor = std::function<std::size_t(o2::framework::DataRef const&)>;
   // mapper between branch name and base/index
-  using BranchNameMapper = std::function<std::string(std::string, size_t)>;
+  using BranchNameMapper = std::function<std::string(std::string, std::size_t)>;
 
   /// DefaultKeyExtractor maps a data type used as key in the branch definition
   /// to the default internal key type std::string
@@ -147,11 +147,11 @@ class RootTreeWriter
     std::vector<key_type> keys;
     std::string branchName;
     /// number of branches controlled by this definition for the same type
-    size_t nofBranches = 1;
+    std::size_t nofBranches = 1;
     /// extractor function for the index for parallel branches
     IndexExtractor getIndex; // = [](o2::framework::DataRef const&) {return 0;}
     /// get name of branch from base name and index
-    BranchNameMapper getName = [](std::string base, size_t i) { return base + "_" + std::to_string(i); };
+    BranchNameMapper getName = [](std::string base, std::size_t i) { return base + "_" + std::to_string(i); };
 
     using Fill = std::function<void(TBranch& branch, T const&)>;
     using Spectator = std::function<void(T const&)>;
@@ -163,7 +163,7 @@ class RootTreeWriter
     /// @param key          input key
     /// @param _branchName  name of the target branch
     /// @param _nofBranches number of branches
-    BranchDef(key_type key, std::string _branchName, size_t _nofBranches = 1) : keys({key}), branchName(_branchName), nofBranches(_nofBranches) {}
+    BranchDef(key_type key, std::string _branchName, std::size_t _nofBranches = 1) : keys({key}), branchName(_branchName), nofBranches(_nofBranches) {}
 
     /// constructor for single input and multiple output branches
     /// the definition is ignored if number of branches is zero
@@ -176,11 +176,10 @@ class RootTreeWriter
     ///                     Fill: fill handler
     ///                     Spectator: spectator handler
     template <typename... Args>
-    BranchDef(key_type key, std::string _branchName, size_t _nofBranches, Args&&... args) : keys({key}), branchName(_branchName), nofBranches(_nofBranches)
+    BranchDef(key_type key, std::string _branchName, std::size_t _nofBranches, Args&&... args) : keys({key}), branchName(_branchName), nofBranches(_nofBranches)
     {
       init(std::forward<Args>(args)...);
     }
-
     /// constructor for multiple inputs and multiple output branches
     /// the definition is ignored if number of branches is zero
     /// @param key          vector of input keys
@@ -192,7 +191,7 @@ class RootTreeWriter
     ///                     Fill: fill handler
     ///                     Spectator: spectator handler
     template <typename... Args>
-    BranchDef(std::vector<key_type> vec, std::string _branchName, size_t _nofBranches, Args&&... args) : keys(vec), branchName(_branchName), nofBranches(_nofBranches)
+    BranchDef(std::vector<key_type> vec, std::string _branchName, std::size_t _nofBranches, Args&&... args) : keys(vec), branchName(_branchName), nofBranches(_nofBranches)
     {
       init(std::forward<Args>(args)...);
     }
@@ -256,12 +255,12 @@ class RootTreeWriter
   ///
   /// If the branch definition handles multiple output branches, the getName callback
   /// of the definition is used to build the names of the output branches
-  void setBranchName(size_t index, const char* branchName)
+  void setBranchName(std::size_t index, const char* branchName)
   {
     auto& spec = mBranchSpecs.at(index);
     if (spec.names.size() > 1 && spec.getName) {
       // set the branch names for this group
-      size_t idx = 0;
+      std::size_t idx = 0;
       std::generate(spec.names.begin(), spec.names.end(), [&]() { return spec.getName(branchName, idx++); });
     } else {
       // single branch for this definition
@@ -307,7 +306,7 @@ class RootTreeWriter
     return mIsClosed;
   }
 
-  size_t getStoreSize() const
+  std::size_t getStoreSize() const
   {
     return (mTreeStructure != nullptr ? mTreeStructure->size() : 0);
   }
@@ -330,7 +329,7 @@ class RootTreeWriter
   class TreeStructureInterface
   {
    public:
-    static const size_t STAGE = 0;
+    static const std::size_t STAGE = 0;
     TreeStructureInterface() = default;
     virtual ~TreeStructureInterface() = default;
 
@@ -344,7 +343,7 @@ class RootTreeWriter
     virtual void exec(InputContext&, std::vector<BranchSpec>&) {}
     /// get the size of the branch structure, i.e. the number of registered branch
     /// definitions
-    virtual size_t size() const { return STAGE; }
+    virtual std::size_t size() const { return STAGE; }
 
     // a dummy method called in the recursive processing
     void setupInstance(std::vector<BranchSpec>&, TTree*) {}
@@ -353,7 +352,7 @@ class RootTreeWriter
   };
 
   template <typename T = char>
-  using BinaryBranchStoreType = std::tuple<std::vector<T>, TBranch*, size_t>;
+  using BinaryBranchStoreType = std::tuple<std::vector<T>, TBranch*, std::size_t>;
 
   // type trait to determine the type of the storage
   // the storage type is different depending on the type, because
@@ -431,7 +430,7 @@ class RootTreeWriter
     using value_type = typename StructureElementTypeTrait<DataT>::value_type;
     using store_type = typename StructureElementTypeTrait<DataT>::store_type;
     using specialization_id = typename StructureElementTypeTrait<DataT>::specialization_id;
-    static const size_t STAGE = BASE::STAGE + 1;
+    static const std::size_t STAGE = BASE::STAGE + 1;
     TreeStructureElement() = default;
     ~TreeStructureElement() override = default;
 
@@ -446,14 +445,14 @@ class RootTreeWriter
     {
       process(context, specs);
     }
-    size_t size() const override { return STAGE; }
+    std::size_t size() const override { return STAGE; }
 
     // the default method creates branch using address to store variable
     // Note: the type of the store variable is pointer to object for objects with a ROOT TClass
     // interface, or plain type for all others
     // specialized on specialization_id
     template <typename S, typename std::enable_if_t<!std::is_same<S, BinaryBranchSpecialization>::value, int> = 0>
-    TBranch* createBranch(TTree* tree, const char* name, size_t branchIdx)
+    TBranch* createBranch(TTree* tree, const char* name, std::size_t branchIdx)
     {
       return tree->Branch(name, &(mStore.at(branchIdx)));
     }
@@ -462,7 +461,7 @@ class RootTreeWriter
     // a variable binary data branch is written, the size of each entry is stored in a size branch
     // specialized on specialization_id
     template <typename S, typename std::enable_if_t<std::is_same<S, BinaryBranchSpecialization>::value, int> = 0>
-    TBranch* createBranch(TTree* tree, const char* name, size_t branchIdx)
+    TBranch* createBranch(TTree* tree, const char* name, std::size_t branchIdx)
     {
       // size variable to write the size of the data branch
       std::get<2>(mStore.at(branchIdx)) = 1;
@@ -480,7 +479,7 @@ class RootTreeWriter
       // recursing through the tree structure by simply using method of the previous type,
       // i.e. the base class method.
       PrevT::setupInstance(specs, tree);
-      constexpr size_t SpecIndex = STAGE - 1;
+      constexpr std::size_t SpecIndex = STAGE - 1;
       if (specs[SpecIndex].branches.size() == 0) {
         // this definition is disabled
         return;
@@ -496,7 +495,7 @@ class RootTreeWriter
         // Unfortunately, a class info object can be extracted for the type, so this check does not help
         throw std::runtime_error(std::to_string(SpecIndex) + ": no dictionary available for non-fundamental type " + typeid(value_type).name());
       }
-      size_t branchIdx = 0;
+      std::size_t branchIdx = 0;
       mStore.resize(specs[SpecIndex].names.size());
       for (auto const& name : specs[SpecIndex].names) {
         specs[SpecIndex].branches.at(branchIdx) = createBranch<specialization_id>(tree, name.c_str(), branchIdx);
@@ -526,7 +525,7 @@ class RootTreeWriter
     // specialization for trivial structs or serialized objects without a TClass interface
     // the extracted object is copied to store variable
     template <typename S, typename std::enable_if_t<std::is_same<S, MessageableTypeSpecialization>::value, int> = 0>
-    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, std::size_t branchIdx)
     {
       auto data = context.get<value_type>(ref);
       if (!runCallback(branch, data)) {
@@ -540,7 +539,7 @@ class RootTreeWriter
     // in order to directly use the pointer to extracted object
     // store is a pointer to object
     template <typename S, typename std::enable_if_t<std::is_same<S, ROOTTypeSpecialization>::value, int> = 0>
-    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, std::size_t branchIdx)
     {
       auto data = context.get<typename std::add_pointer<value_type>::type>(ref);
       if (!runCallback(branch, *data)) {
@@ -554,7 +553,7 @@ class RootTreeWriter
     // specialization for binary buffers using const char*
     // this writes both the data branch and a size branch
     template <typename S, typename std::enable_if_t<std::is_same<S, BinaryBranchSpecialization>::value, int> = 0>
-    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, std::size_t branchIdx)
     {
       auto data = context.get<gsl::span<char>>(ref);
       std::get<2>(mStore.at(branchIdx)) = data.size();
@@ -566,7 +565,7 @@ class RootTreeWriter
 
     // specialization for vectors of messageable types
     template <typename S, typename std::enable_if_t<std::is_same<S, MessageableVectorSpecialization>::value, int> = 0>
-    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, std::size_t branchIdx)
     {
       using ValueType = typename value_type::value_type;
       static_assert(is_messageable<ValueType>::value, "logical error: should be correctly selected by StructureElementTypeTrait");
@@ -602,7 +601,7 @@ class RootTreeWriter
       // recursing through the tree structure by simply using method of the previous type,
       // i.e. the base class method.
       PrevT::process(context, specs);
-      constexpr size_t SpecIndex = STAGE - 1;
+      constexpr std::size_t SpecIndex = STAGE - 1;
       BranchSpec const& spec = specs[SpecIndex];
       if (spec.branches.size() == 0) {
         // this definition is disabled
@@ -614,10 +613,10 @@ class RootTreeWriter
         auto parts = context.getNofParts(keypos);
         for (decltype(parts) part = 0; part < parts; part++) {
           auto dataref = context.get(key.c_str(), part);
-          size_t branchIdx = 0;
+          std::size_t branchIdx = 0;
           if (spec.getIndex) {
             branchIdx = spec.getIndex(dataref);
-            if (branchIdx == ~(size_t)0) {
+            if (branchIdx == ~(std::size_t)0) {
               // this indicates skipping
               continue;
             }
@@ -675,7 +674,7 @@ class RootTreeWriter
     auto& spec = mBranchSpecs.back();
 
     // extract the internal keys for the list of provided input definitions
-    size_t idx = 0;
+    std::size_t idx = 0;
     spec.keys.resize(def.keys.size());
     std::generate(spec.keys.begin(), spec.keys.end(), [&def, &idx] { return T::key_extractor::asString(def.keys[idx++]); });
     mBranchSpecs.back().branches.resize(def.nofBranches, nullptr);

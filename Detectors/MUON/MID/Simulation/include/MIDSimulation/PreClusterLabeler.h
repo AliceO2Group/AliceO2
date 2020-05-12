@@ -34,8 +34,8 @@ class PreClusterLabeler
   const o2::dataformats::MCTruthContainer<MCCompLabel>& getContainer() { return mMCContainer; }
 
  private:
-  bool isDuplicated(size_t idx, const MCLabel& label) const;
-  bool addLabel(size_t idx, const MCLabel& label);
+  bool isDuplicated(std::size_t idx, const MCLabel& label) const;
+  bool addLabel(std::size_t idx, const MCLabel& label);
 
   o2::dataformats::MCTruthContainer<MCCompLabel> mMCContainer{}; ///< Labels
 };

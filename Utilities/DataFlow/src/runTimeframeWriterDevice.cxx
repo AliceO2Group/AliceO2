@@ -26,15 +26,15 @@ void addCustomOptions(bpo::options_description& options)
      "Name of the input channel");
   options.add_options()
     (o2::data_flow::TimeframeWriterDevice::OptionKeyMaxFiles,
-     bpo::value<size_t>()->default_value(1),
+     bpo::value<std::size_t>()->default_value(1),
      "Maximum number of files to write");
   options.add_options()
     (o2::data_flow::TimeframeWriterDevice::OptionKeyMaxTimeframesPerFile,
-     bpo::value<size_t>()->default_value(1),
+     bpo::value<std::size_t>()->default_value(1),
      "Maximum number of timeframes per file");
   options.add_options()
     (o2::data_flow::TimeframeWriterDevice::OptionKeyMaxFileSize,
-     bpo::value<size_t>()->default_value(-1),
+     bpo::value<std::size_t>()->default_value(-1),
      "Maximum size per file");
   // clang-format on
 }

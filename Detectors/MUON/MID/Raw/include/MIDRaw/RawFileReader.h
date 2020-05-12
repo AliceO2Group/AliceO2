@@ -47,9 +47,9 @@ class RawFileReader
   void setCustomRDH(const header::RAWDataHeader& rdh) { mCustomRDH = rdh; }
 
  private:
-  void read(size_t nBytes);
+  void read(std::size_t nBytes);
   bool hasFullInfo();
-  bool replaceRDH(size_t headerIndex);
+  bool replaceRDH(std::size_t headerIndex);
 
   std::ifstream mFile{};                                            /// Raw file
   std::vector<T> mBytes;                                            /// Buffer

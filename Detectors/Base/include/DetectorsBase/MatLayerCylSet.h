@@ -107,9 +107,9 @@ class MatLayerCylSet : public o2::gpu::FlatObject
   void fixPointers(char* oldPtr, char* newPtr, bool newPtrValid = true);
 
   /// Gives minimal alignment in bytes required for the class object
-  static constexpr size_t getClassAlignmentBytes() { return 8; }
+  static constexpr std::size_t getClassAlignmentBytes() { return 8; }
   /// Gives minimal alignment in bytes required for the flat buffer
-  static constexpr size_t getBufferAlignmentBytes() { return 8; }
+  static constexpr std::size_t getBufferAlignmentBytes() { return 8; }
 #endif // !GPUCA_GPUCODE
 
   ClassDefNV(MatLayerCylSet, 1);

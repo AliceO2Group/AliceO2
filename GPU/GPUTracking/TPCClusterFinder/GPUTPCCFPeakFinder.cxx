@@ -156,12 +156,12 @@ GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBl
                                               uchar* isPeakPredicate,
                                               Array2D<uchar>& peakMap)
 {
-  size_t idx = get_global_id(0);
+  std::size_t idx = get_global_id(0);
 
   // For certain configurations dummy work items are added, so the total
   // number of work items is dividable by 64.
   // These dummy items also compute the last digit but discard the result.
-  ChargePos pos = positions[CAMath::Min(idx, (size_t)(digitnum - 1))];
+  ChargePos pos = positions[CAMath::Min(idx, (std::size_t)(digitnum - 1))];
   Charge charge = pos.valid() ? chargeMap[pos].unpack() : Charge(0);
 
   uchar peak;

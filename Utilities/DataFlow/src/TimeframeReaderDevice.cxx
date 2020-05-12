@@ -37,7 +37,7 @@ void TimeframeReaderDevice::InitTask()
 
 bool TimeframeReaderDevice::ConditionalRun()
 {
-  auto addPartFn = [this](FairMQParts& parts, char* buffer, size_t size) {
+  auto addPartFn = [this](FairMQParts& parts, char* buffer, std::size_t size) {
     parts.AddPart(this->NewMessage(
       buffer,
       size,

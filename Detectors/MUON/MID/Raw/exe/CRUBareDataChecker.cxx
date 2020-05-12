@@ -159,7 +159,7 @@ bool CRUBareDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl:
   for (auto& item : mOrderIndexes) {
     for (auto& idx : item.second) {
       // In principle all of these ROF records have the same timestamp
-      for (size_t iloc = rofRecords[idx].firstEntry; iloc < rofRecords[idx].firstEntry + rofRecords[idx].nEntries; ++iloc) {
+      for (std::size_t iloc = rofRecords[idx].firstEntry; iloc < rofRecords[idx].firstEntry + rofRecords[idx].nEntries; ++iloc) {
         if (raw::isLoc(localBoards[iloc].statusWord)) {
           // This is a local card
           locs.push_back(localBoards[iloc]);

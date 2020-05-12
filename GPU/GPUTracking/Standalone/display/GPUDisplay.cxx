@@ -124,7 +124,7 @@ inline void GPUDisplay::drawVertices(const vboList& v, const GLenum t)
   }
 
   if (mUseGLIndirectDraw) {
-    CHKERR(glMultiDrawArraysIndirect(t, (void*)(size_t)((mIndirectSliceOffset[iSlice] + first) * sizeof(DrawArraysIndirectCommand)), count, 0));
+    CHKERR(glMultiDrawArraysIndirect(t, (void*)(std::size_t)((mIndirectSliceOffset[iSlice] + first) * sizeof(DrawArraysIndirectCommand)), count, 0));
   } else if (OPENGL_EMULATE_MULTI_DRAW) {
     for (int k = 0; k < count; k++) {
       CHKERR(glDrawArrays(t, mVertexBufferStart[iSlice][first + k], mVertexBufferCount[iSlice][first + k]));
@@ -133,7 +133,7 @@ inline void GPUDisplay::drawVertices(const vboList& v, const GLenum t)
     CHKERR(glMultiDrawArrays(t, mVertexBufferStart[iSlice].data() + first, mVertexBufferCount[iSlice].data() + first, count));
   }
 }
-inline void GPUDisplay::insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, size_t first, size_t last)
+inline void GPUDisplay::insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, std::size_t first, std::size_t last)
 {
   if (first == last) {
     return;
@@ -141,7 +141,7 @@ inline void GPUDisplay::insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsize
   vBuf.first->emplace_back(first);
   vBuf.second->emplace_back(last - first);
 }
-inline void GPUDisplay::insertVertexList(int iSlice, size_t first, size_t last)
+inline void GPUDisplay::insertVertexList(int iSlice, std::size_t first, std::size_t last)
 {
   std::pair<vecpod<GLint>*, vecpod<GLsizei>*> vBuf(mVertexBufferStart + iSlice, mVertexBufferCount + iSlice);
   insertVertexList(vBuf, first, last);
@@ -677,8 +677,8 @@ inline void GPUDisplay::drawPointLinestrip(int iSlice, int cid, int id, int id_l
 
 GPUDisplay::vboList GPUDisplay::DrawSpacePointsTRD(int iSlice, int select, int iCol)
 {
-  size_t startCount = mVertexBufferStart[iSlice].size();
-  size_t startCountInner = mVertexBuffer[iSlice].size();
+  std::size_t startCount = mVertexBufferStart[iSlice].size();
+  std::size_t startCountInner = mVertexBuffer[iSlice].size();
 
   if (iCol == 0) {
     for (int i = 0; i < trdTracker().NTracklets(); i++) {
@@ -698,8 +698,8 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsTRD(int iSlice, int select, int i
 GPUDisplay::vboList GPUDisplay::DrawClusters(const GPUTPCTracker& tracker, int select, int iCol)
 {
   int iSlice = tracker.ISlice();
-  size_t startCount = mVertexBufferStart[iSlice].size();
-  size_t startCountInner = mVertexBuffer[iSlice].size();
+  std::size_t startCount = mVertexBufferStart[iSlice].size();
+  std::size_t startCountInner = mVertexBuffer[iSlice].size();
   const int firstCluster = (mNCollissions > 1 && iCol > 0) ? mCollisionClusters[iCol - 1][iSlice] : 0;
   const int lastCluster = (mNCollissions > 1 && iCol + 1 < mNCollissions) ? mCollisionClusters[iCol][iSlice] : tracker.Data().NumberOfHits();
   for (int cidInSlice = firstCluster; cidInSlice < lastCluster; cidInSlice++) {
@@ -755,8 +755,8 @@ GPUDisplay::vboList GPUDisplay::DrawLinks(const GPUTPCTracker& tracker, int id, 
   if (mConfig.clustersOnly) {
     return (vboList(0, 0, iSlice));
   }
-  size_t startCount = mVertexBufferStart[iSlice].size();
-  size_t startCountInner = mVertexBuffer[iSlice].size();
+  std::size_t startCount = mVertexBufferStart[iSlice].size();
+  std::size_t startCountInner = mVertexBuffer[iSlice].size();
   for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
     const GPUTPCRow& row = tracker.Data().Row(i);
 
@@ -794,10 +794,10 @@ GPUDisplay::vboList GPUDisplay::DrawSeeds(const GPUTPCTracker& tracker)
   if (mConfig.clustersOnly) {
     return (vboList(0, 0, iSlice));
   }
-  size_t startCount = mVertexBufferStart[iSlice].size();
+  std::size_t startCount = mVertexBufferStart[iSlice].size();
   for (unsigned int i = 0; i < *tracker.NStartHits(); i++) {
     const GPUTPCHitId& hit = tracker.TrackletStartHit(i);
-    size_t startCountInner = mVertexBuffer[iSlice].size();
+    std::size_t startCountInner = mVertexBuffer[iSlice].size();
     int ir = hit.RowIndex();
     calink ih = hit.HitIndex();
     do {
@@ -818,13 +818,13 @@ GPUDisplay::vboList GPUDisplay::DrawTracklets(const GPUTPCTracker& tracker)
   if (mConfig.clustersOnly) {
     return (vboList(0, 0, iSlice));
   }
-  size_t startCount = mVertexBufferStart[iSlice].size();
+  std::size_t startCount = mVertexBufferStart[iSlice].size();
   for (unsigned int i = 0; i < *tracker.NTracklets(); i++) {
     const GPUTPCTracklet& tracklet = tracker.Tracklet(i);
     if (tracklet.NHits() == 0) {
       continue;
     }
-    size_t startCountInner = mVertexBuffer[iSlice].size();
+    std::size_t startCountInner = mVertexBuffer[iSlice].size();
     float4 oldpos;
     for (int j = tracklet.FirstRow(); j <= tracklet.LastRow(); j++) {
       const calink rowHit = tracker.TrackletRowHits()[tracklet.FirstHit() + (j - tracklet.FirstRow())];
@@ -846,10 +846,10 @@ GPUDisplay::vboList GPUDisplay::DrawTracks(const GPUTPCTracker& tracker, int glo
   if (mConfig.clustersOnly) {
     return (vboList(0, 0, iSlice));
   }
-  size_t startCount = mVertexBufferStart[iSlice].size();
+  std::size_t startCount = mVertexBufferStart[iSlice].size();
   for (unsigned int i = (global ? tracker.CommonMemory()->nLocalTracks : 0); i < (global ? *tracker.NTracks() : tracker.CommonMemory()->nLocalTracks); i++) {
     GPUTPCTrack& track = tracker.Tracks()[i];
-    size_t startCountInner = mVertexBuffer[iSlice].size();
+    std::size_t startCountInner = mVertexBuffer[iSlice].size();
     for (int j = 0; j < track.NHits(); j++) {
       const GPUTPCHitId& hit = tracker.TrackHits()[track.FirstHitID() + j];
       const GPUTPCRow& row = tracker.Data().Row(hit.RowIndex());
@@ -880,7 +880,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       i = trackList[0][ii];
       track = &mMerger.OutputTracks()[i];
 
-      size_t startCountInner = mVertexBuffer[iSlice].size();
+      std::size_t startCountInner = mVertexBuffer[iSlice].size();
       bool drawing = false;
       if (mTRDTrackIds[i]) {
         auto& trk = trdTracker().Tracks()[mTRDTrackIds[i]];
@@ -942,7 +942,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         }
       }
 
-      size_t startCountInner = mVertexBuffer[iSlice].size();
+      std::size_t startCountInner = mVertexBuffer[iSlice].size();
       for (int inFlyDirection = 0; inFlyDirection < 2; inFlyDirection++) {
         GPUTPCGMPhysicalTrackModel trkParam;
         float ZOffset = 0;
@@ -1063,8 +1063,8 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
 GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
 {
   int iSlice = tracker.ISlice();
-  size_t startCount = mVertexBufferStart[iSlice].size();
-  size_t startCountInner = mVertexBuffer[iSlice].size();
+  std::size_t startCount = mVertexBufferStart[iSlice].size();
+  std::size_t startCountInner = mVertexBuffer[iSlice].size();
   for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
     const GPUTPCRow& row = tracker.Data().Row(i);
     for (int j = 0; j <= (signed)row.Grid().Ny(); j++) {
@@ -1151,7 +1151,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       mGlobalPosTRD = mGlobalPosPtrTRD.get();
       mGlobalPosTRD2 = mGlobalPosPtrTRD2.get();
     }
-    if ((size_t)mMerger.NOutputTracks() > mTRDTrackIds.size()) {
+    if ((std::size_t)mMerger.NOutputTracks() > mTRDTrackIds.size()) {
       mTRDTrackIds.resize(mMerger.NOutputTracks());
     }
     memset(mTRDTrackIds.data(), 0, sizeof(mTRDTrackIds[0]) * mMerger.NOutputTracks());
@@ -1658,7 +1658,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
           }
           vboList* list = &mGlDLFinal[iSlice][iCol][0];
           for (int i = 0; i < N_FINAL_TYPE; i++) {
-            size_t startCount = mVertexBufferStart[iSlice].size();
+            std::size_t startCount = mVertexBufferStart[iSlice].size();
             for (unsigned int j = 0; j < mThreadBuffers[numThread].start[i].size(); j++) {
               mVertexBufferStart[iSlice].emplace_back(mThreadBuffers[numThread].start[i][j]);
               mVertexBufferCount[iSlice].emplace_back(mThreadBuffers[numThread].count[i][j]);
@@ -1692,7 +1692,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     }
 
     mGlDLrecent = 1;
-    size_t totalVertizes = 0;
+    std::size_t totalVertizes = 0;
     for (int i = 0; i < NSLICES; i++) {
       totalVertizes += mVertexBuffer[i].size();
     }
@@ -1704,7 +1704,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         mVertexBuffer[i].clear();
       }
     } else {
-      size_t totalYet = mVertexBuffer[0].size();
+      std::size_t totalYet = mVertexBuffer[0].size();
       mVertexBuffer[0].resize(totalVertizes);
       for (int i = 1; i < NSLICES; i++) {
         for (unsigned int j = 0; j < mVertexBufferStart[i].size(); j++) {
@@ -2045,7 +2045,7 @@ void GPUDisplay::DoScreenshot(char* filename, float mAnimateTime)
     glViewport(0, 0, mRenderwidth, mRenderheight);
     DrawGLScene(false, mAnimateTime);
   }
-  size_t size = 4 * mScreenwidth * mScreenheight;
+  std::size_t size = 4 * mScreenwidth * mScreenheight;
   unsigned char* pixels = new unsigned char[size];
   CHKERR(glPixelStorei(GL_PACK_ALIGNMENT, 1));
   CHKERR(glReadBuffer(needBuffer ? GL_COLOR_ATTACHMENT0 : GL_BACK));

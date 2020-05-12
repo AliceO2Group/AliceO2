@@ -21,7 +21,7 @@
 
 using namespace o2::tpc;
 
-void runClusters(std::string_view outputFile = "ClusterQC.root", std::string_view fileName = "tpc-native-clusters.root", const size_t maxNClusters = 0)
+void runClusters(std::string_view outputFile = "ClusterQC.root", std::string_view fileName = "tpc-native-clusters.root", const std::size_t maxNClusters = 0)
 {
   ClusterNativeHelper::Reader tpcClusterReader;
   tpcClusterReader.init(fileName.data());
@@ -37,7 +37,7 @@ void runClusters(std::string_view outputFile = "ClusterQC.root", std::string_vie
     std::cout << "Event " << i << "\n";
     tpcClusterReader.read(i);
     tpcClusterReader.fillIndex(clusterIndex, clusterBuffer, clusterMCBuffer);
-    size_t iClusters = 0;
+    std::size_t iClusters = 0;
     for (int isector = 0; isector < Constants::MAXSECTOR; ++isector) {
       for (int irow = 0; irow < Constants::MAXGLOBALPADROW; ++irow) {
         const int nClusters = clusterIndex.nClusters[isector][irow];

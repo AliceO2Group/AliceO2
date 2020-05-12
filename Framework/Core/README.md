@@ -266,7 +266,7 @@ The `DataChunk` class resembles a `iovec`:
 ```cpp
 struct DataChunk {
   char *data;
-  size_t size;
+  std::size_t size;
 };
 ```
 

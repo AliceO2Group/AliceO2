@@ -60,13 +60,13 @@ RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const RDH& 
 void RawReaderCRUEventSync::analyse()
 {
   //expected number of packets in one HBorbit
-  const size_t numberOfPackets = ExpectedNumberOfPacketsPerHBFrame;
+  const std::size_t numberOfPackets = ExpectedNumberOfPacketsPerHBFrame;
 
   for (int iEvent = mEventInformation.size() - 1; iEvent >= 0; --iEvent) {
     auto& event = mEventInformation[iEvent];
     event.IsComplete = true;
-    size_t totalPayloadSize = 0;
-    for (size_t iCRU = 0; iCRU < event.CRUInfoArray.size(); ++iCRU) {
+    std::size_t totalPayloadSize = 0;
+    for (std::size_t iCRU = 0; iCRU < event.CRUInfoArray.size(); ++iCRU) {
       const auto& cruInfo = event.CRUInfoArray[iCRU];
       if (!cruInfo.isPresent()) {
         if (mCRUSeen[iCRU]) {
@@ -133,7 +133,7 @@ void RawReaderCRUEventSync::streamTo(std::ostream& output) const
               << "    Is complete: " << isComplete << "\n";
 
     // cru loop
-    for (size_t iCRU = 0; iCRU < event.CRUInfoArray.size(); ++iCRU) {
+    for (std::size_t iCRU = 0; iCRU < event.CRUInfoArray.size(); ++iCRU) {
       const auto& cruInfo = event.CRUInfoArray[iCRU];
       if (!cruInfo.isPresent()) {
         continue;
@@ -146,7 +146,7 @@ void RawReaderCRUEventSync::streamTo(std::ostream& output) const
       const auto& cruLinks = cruInfo.LinkInformation;
 
       // link loop
-      for (size_t iLink = 0; iLink < cruLinks.size(); ++iLink) {
+      for (std::size_t iLink = 0; iLink < cruLinks.size(); ++iLink) {
         const auto& linkInfo = event.CRUInfoArray[iCRU].LinkInformation[iLink];
         if (!linkInfo.IsPresent) {
           continue;
@@ -214,8 +214,8 @@ int RawReaderCRU::scanFile()
     // ===| read in the RawDataHeader at the current position |=================
     file >> rdh;
 
-    const size_t packetSize = rdh.offsetToNext;
-    const size_t offset = packetSize - rdh.headerSize;
+    const std::size_t packetSize = rdh.offsetToNext;
+    const std::size_t offset = packetSize - rdh.headerSize;
 
     // ===| try to detect data type if not already set |========================
     //
@@ -484,7 +484,7 @@ int RawReaderCRU::processMemory(const std::vector<o2::byte>& data, ADCRawData& r
   return 0;
 }
 
-size_t RawReaderCRU::getNumberOfEvents() const
+std::size_t RawReaderCRU::getNumberOfEvents() const
 {
   return mManager ? mManager->mEventSync.getNumberOfEvents(mCRU) : 0;
 }
@@ -632,7 +632,7 @@ void RawReaderCRU::processDataMemory()
     std::cout << "Num packets : " << mPacketsPerLink[mLink] << std::endl;
   }
 
-  size_t dataSize = 4000 * 16;
+  std::size_t dataSize = 4000 * 16;
   //if (mDataType == DataType::HBScaling) {
   //dataSize =
   //} else if (mDataType == DataType::Triggered) {
@@ -668,7 +668,7 @@ void RawReaderCRU::collectGBTData(std::vector<o2::byte>& data)
   if (!file.good())
     throw std::runtime_error("Unable to open or access file " + mInputFileName);
 
-  size_t presentDataPosition = 0;
+  std::size_t presentDataPosition = 0;
 
   // loop over the packets for each link and process them
   //for (const auto& packet : mPacketDescriptorMaps[link]) {
@@ -676,7 +676,7 @@ void RawReaderCRU::collectGBTData(std::vector<o2::byte>& data)
     const auto& packet = mPacketDescriptorMaps[link][packetNumber];
 
     const auto payloadStart = packet.getPayloadOffset();
-    const auto payloadSize = std::min(size_t(packet.getPayloadSize()), data.size() - presentDataPosition);
+    const auto payloadSize = std::min(std::size_t(packet.getPayloadSize()), data.size() - presentDataPosition);
     // jump to the start position of the packet
     file.seekg(payloadStart, std::ios::beg);
 

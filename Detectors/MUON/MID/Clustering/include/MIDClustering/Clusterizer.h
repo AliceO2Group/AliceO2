@@ -35,7 +35,7 @@ namespace mid
 class Clusterizer
 {
  public:
-  bool init(std::function<void(size_t, size_t)> func = [](size_t, size_t) {});
+  bool init(std::function<void(std::size_t, std::size_t)> func = [](std::size_t, std::size_t) {});
   void process(gsl::span<const PreCluster> preClusters, bool accumulate = false);
   void process(gsl::span<const PreCluster> preClusters, gsl::span<const ROFRecord> rofRecords);
 
@@ -59,8 +59,8 @@ class Clusterizer
   PreClusterHelper mPreClusterHelper{};                     ///! Helper for pre-clusters
   std::vector<Cluster2D> mClusters{};                       ///< List of clusters
   std::vector<ROFRecord> mROFRecords{};                     ///< List of cluster RO frame records
-  size_t mPreClusterOffset{0};                              //!< RO offset for pre-cluster
-  std::function<void(size_t, size_t)> mFunction;            ///! Function to keep track of input-output relation
+  std::size_t mPreClusterOffset{0};                         //!< RO offset for pre-cluster
+  std::function<void(std::size_t, std::size_t)> mFunction;  ///! Function to keep track of input-output relation
 };
 } // namespace mid
 } // namespace o2

@@ -51,9 +51,9 @@ __global__ void gGPUConstantMemBuffer_dummy(int* p) { *p = *(int*)&gGPUConstantM
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-__global__ void gHIPMemSetWorkaround(char* ptr, char val, size_t size)
+__global__ void gHIPMemSetWorkaround(char* ptr, char val, std::size_t size)
 {
-  for (size_t i = get_global_id(); i < size; i += get_global_size()) {
+  for (std::size_t i = get_global_id(); i < size; i += get_global_size()) {
     ptr[i] = val;
   }
 }
@@ -418,7 +418,7 @@ int GPUReconstructionHIPBackend::ExitDevice_Runtime()
   return (0);
 }
 
-size_t GPUReconstructionHIPBackend::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+std::size_t GPUReconstructionHIPBackend::GPUMemCpy(void* dst, const void* src, std::size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
   if (mDeviceProcessingSettings.debugLevel >= 3) {
     stream = -1;
@@ -441,7 +441,7 @@ size_t GPUReconstructionHIPBackend::GPUMemCpy(void* dst, const void* src, size_t
   return size;
 }
 
-size_t GPUReconstructionHIPBackend::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
+std::size_t GPUReconstructionHIPBackend::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
 {
   if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
     if (mDeviceProcessingSettings.debugLevel >= 4) {
@@ -455,7 +455,7 @@ size_t GPUReconstructionHIPBackend::TransferMemoryInternal(GPUMemoryResource* re
   return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }
 
-size_t GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
+std::size_t GPUReconstructionHIPBackend::WriteToConstantMemory(std::size_t offset, const void* src, std::size_t size, int stream, deviceEvent* ev)
 {
 #ifdef GPUCA_CONSTANT_AS_ARGUMENT
   memcpy(((char*)&gGPUConstantMemBufferHost) + offset, src, size);
@@ -528,7 +528,7 @@ int GPUReconstructionHIPBackend::GPUDebug(const char* state, int stream)
   return (0);
 }
 
-int GPUReconstructionHIPBackend::registerMemoryForGPU(const void* ptr, size_t size)
+int GPUReconstructionHIPBackend::registerMemoryForGPU(const void* ptr, std::size_t size)
 {
   return GPUFailedMsgI(hipHostRegister((void*)ptr, size, hipHostRegisterDefault));
 }

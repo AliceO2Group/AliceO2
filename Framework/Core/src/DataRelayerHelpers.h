@@ -19,7 +19,7 @@ namespace o2::framework
 struct DataRelayerHelpers {
   /// Calculate how many input routes there are, doublecounting different
   /// timeslices.
-  static std::vector<size_t> createDistinctRouteIndex(std::vector<InputRoute> const&);
+  static std::vector<std::size_t> createDistinctRouteIndex(std::vector<InputRoute> const&);
   /// This converts from InputRoute to the associated DataDescriptorMatcher.
   static std::vector<data_matcher::DataDescriptorMatcher> createInputMatchers(std::vector<InputRoute> const&);
 };

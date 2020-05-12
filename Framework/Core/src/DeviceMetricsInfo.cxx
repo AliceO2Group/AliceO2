@@ -31,7 +31,7 @@ bool DeviceMetricsHelper::parseMetric(std::string_view const s, ParsedMetricMatc
 {
   /// Must start with "[METRIC] "
   ///                  012345678
-  constexpr size_t PREFIXSIZE = 9;
+  constexpr std::size_t PREFIXSIZE = 9;
   if (s.size() < PREFIXSIZE) {
     return false;
   }
@@ -109,7 +109,7 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
                                         DeviceMetricsHelper::NewMetricCallback newMetricsCallback)
 {
   // get the type
-  size_t metricIndex = -1;
+  std::size_t metricIndex = -1;
 
   StringMetric stringValue;
   switch (match.type) {
@@ -161,11 +161,11 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
         return false;
     };
     // Add the timestamp buffer for it
-    info.timestamps.emplace_back(std::array<size_t, 1024>{});
+    info.timestamps.emplace_back(std::array<std::size_t, 1024>{});
     info.max.push_back(std::numeric_limits<float>::lowest());
     info.min.push_back(std::numeric_limits<float>::max());
-    info.maxDomain.push_back(std::numeric_limits<size_t>::lowest());
-    info.minDomain.push_back(std::numeric_limits<size_t>::max());
+    info.maxDomain.push_back(std::numeric_limits<std::size_t>::lowest());
+    info.minDomain.push_back(std::numeric_limits<std::size_t>::max());
 
     // Add the index by name in the correct position
     // this will require moving the tail of the index,
@@ -193,8 +193,8 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
   MetricInfo& metricInfo = info.metrics[metricIndex];
 
   //  auto mod = info.timestamps[metricIndex].size();
-  info.minDomain[metricIndex] = std::min(info.minDomain[metricIndex], (size_t)match.timestamp);
-  info.maxDomain[metricIndex] = std::max(info.maxDomain[metricIndex], (size_t)match.timestamp);
+  info.minDomain[metricIndex] = std::min(info.minDomain[metricIndex], (std::size_t)match.timestamp);
+  info.maxDomain[metricIndex] = std::max(info.maxDomain[metricIndex], (std::size_t)match.timestamp);
 
   switch (metricInfo.type) {
     case MetricType::Int: {
@@ -232,10 +232,10 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
 }
 
 /// @return the index in metrics for the information of given metric
-size_t
+std::size_t
   DeviceMetricsHelper::metricIdxByName(const std::string& name, const DeviceMetricsInfo& info)
 {
-  size_t i = 0;
+  std::size_t i = 0;
   while (i < info.metricLabelsIdx.size()) {
     auto& metricName = info.metricLabelsIdx[i];
     if (metricName.label == name) {

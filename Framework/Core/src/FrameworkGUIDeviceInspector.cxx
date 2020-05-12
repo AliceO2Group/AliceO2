@@ -51,7 +51,7 @@ struct ChannelsTableHelper {
 void deviceInfoTable(DeviceInfo const& info, DeviceMetricsInfo const& metrics)
 {
   if (info.queriesViewIndex.indexes.empty() == false && ImGui::CollapsingHeader("Inputs:", ImGuiTreeNodeFlags_DefaultOpen)) {
-    for (size_t i = 0; i < info.queriesViewIndex.indexes.size(); ++i) {
+    for (std::size_t i = 0; i < info.queriesViewIndex.indexes.size(); ++i) {
       auto& metric = metrics.metrics[info.queriesViewIndex.indexes[i]];
       ImGui::Text("%zu: %s", i, metrics.stringMetrics[metric.storeIdx][0].data);
       if (ImGui::IsItemHovered()) {

@@ -29,7 +29,7 @@ namespace o2::tpc
 {
 
 template <typename ContainerType>
-void fillRandom(ContainerType& target, size_t size)
+void fillRandom(ContainerType& target, std::size_t size)
 {
   target.resize(size);
   std::generate(target.begin(), target.end(), []() { return rand() % 256; });

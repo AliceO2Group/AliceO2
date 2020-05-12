@@ -128,7 +128,7 @@ class SemiregularSpline2D3D : public FlatObject
   void getKnotUV(int iKnot, float& u, float& v) const;
 
   /// Get size of the mFlatBuffer data
-  size_t getFlatBufferSize() const { return mFlatBufferSize; }
+  std::size_t getFlatBufferSize() const { return mFlatBufferSize; }
 
   ///Gets the knot index which is the i-th knot in v-space and the j-th knot in u-space
   int getDataIndex(int i, int j) const;
@@ -141,13 +141,13 @@ class SemiregularSpline2D3D : public FlatObject
   const char* getFlatBufferPtr() const { return mFlatBufferPtr; }
 
   /// Get minimal required alignment for the class
-  static constexpr size_t getClassAlignmentBytes() { return 8; }
+  static constexpr std::size_t getClassAlignmentBytes() { return 8; }
 
   /// Get minimal required alignment for the flat buffer
-  static constexpr size_t getBufferAlignmentBytes() { return 8; }
+  static constexpr std::size_t getBufferAlignmentBytes() { return 8; }
 
   /// Get minimal required alignment for the spline data
-  static constexpr size_t getDataAlignmentBytes() { return 8; }
+  static constexpr std::size_t getDataAlignmentBytes() { return 8; }
 
   // Gets the spline array for u-coordinates
   const RegularSpline1D* getSplineArray() const

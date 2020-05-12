@@ -30,7 +30,7 @@ template class std::unique_ptr<FairMQMessage>;
 BOOST_AUTO_TEST_CASE(TestCreation)
 {
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  FairMQResizableBuffer buffer{[&transport](size_t size) -> std::unique_ptr<FairMQMessage> {
+  FairMQResizableBuffer buffer{[&transport](std::size_t size) -> std::unique_ptr<FairMQMessage> {
     return std::move(transport->CreateMessage(size));
   }};
 }
@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(TestCreation)
 BOOST_AUTO_TEST_CASE(TestInvariants)
 {
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  FairMQResizableBuffer buffer{[&transport](size_t size) -> std::unique_ptr<FairMQMessage> {
+  FairMQResizableBuffer buffer{[&transport](std::size_t size) -> std::unique_ptr<FairMQMessage> {
     return std::move(transport->CreateMessage(size));
   }};
 
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(TestInvariants)
 BOOST_AUTO_TEST_CASE(TestContents)
 {
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  FairMQResizableBuffer buffer{[&transport](size_t size) -> std::unique_ptr<FairMQMessage> {
+  FairMQResizableBuffer buffer{[&transport](std::size_t size) -> std::unique_ptr<FairMQMessage> {
     return std::move(transport->CreateMessage(size));
   }};
 
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(TestStreaming)
 
   auto table = builder.finalize();
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  auto creator = [&transport](size_t size) -> std::unique_ptr<FairMQMessage> {
+  auto creator = [&transport](std::size_t size) -> std::unique_ptr<FairMQMessage> {
     return std::move(transport->CreateMessage(size));
   };
   auto buffer = std::make_shared<FairMQResizableBuffer>(creator);

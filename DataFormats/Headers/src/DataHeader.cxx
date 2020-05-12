@@ -112,9 +112,9 @@ void o2::header::DataIdentifier::print() const
 }
 
 //__________________________________________________________________________________________________
-void o2::header::hexDump(const char* desc, const void* voidaddr, size_t len, size_t max)
+void o2::header::hexDump(const char* desc, const void* voidaddr, std::size_t len, std::size_t max)
 {
-  size_t i;
+  std::size_t i;
   unsigned char buff[17]; // stores the ASCII data
   memset(&buff[0], '\0', 17);
   const byte* addr = reinterpret_cast<const byte*>(voidaddr);

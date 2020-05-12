@@ -60,7 +60,7 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   sQueriesMetricsNames.resize(numInputTypes * 1);
   mMetrics.send({(int)numInputTypes, "data_queries/h"});
   mMetrics.send({(int)1, "data_queries/w"});
-  for (size_t i = 0; i < numInputTypes; ++i) {
+  for (std::size_t i = 0; i < numInputTypes; ++i) {
     sQueriesMetricsNames[i] = std::string("data_queries/") + std::to_string(i);
     char buffer[128];
     assert(mDistinctRoutesIndex[i] < routes.size());
@@ -85,7 +85,7 @@ bool DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
   bool didWork = slotsCreatedByHandlers.empty() == false;
   // Outer loop, we process all the records because the fact that the record
   // expires is independent from having received data for it.
-  for (size_t ti = 0; ti < mTimesliceIndex.size(); ++ti) {
+  for (std::size_t ti = 0; ti < mTimesliceIndex.size(); ++ti) {
     TimesliceSlot slot{ti};
     if (mTimesliceIndex.isValid(slot) == false) {
       continue;
@@ -93,7 +93,7 @@ bool DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
     assert(mDistinctRoutesIndex.empty() == false);
     auto timestamp = mTimesliceIndex.getTimesliceForSlot(slot);
     // We iterate on all the hanlders checking if they need to be expired.
-    for (size_t ei = 0; ei < expirationHandlers.size(); ++ei) {
+    for (std::size_t ei = 0; ei < expirationHandlers.size(); ++ei) {
       auto& expirator = expirationHandlers[ei];
       // We check that no data is already there for the given cell
       // it is enough to check the first element
@@ -134,11 +134,11 @@ bool DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
 /// This does the mapping between a route and a InputSpec. The
 /// reason why these might diffent is that when you have timepipelining
 /// you have one route per timeslice, even if the type is the same.
-size_t matchToContext(void* data,
-                      std::vector<DataDescriptorMatcher> const& matchers,
-                      VariableContext& context)
+std::size_t matchToContext(void* data,
+                           std::vector<DataDescriptorMatcher> const& matchers,
+                           VariableContext& context)
 {
-  for (size_t ri = 0, re = matchers.size(); ri < re; ++ri) {
+  for (std::size_t ri = 0, re = matchers.size(); ri < re; ++ri) {
     auto& matcher = matchers[ri];
 
     if (matcher.match(reinterpret_cast<char const*>(data), context)) {
@@ -157,7 +157,7 @@ void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
 {
   const std::string nullstring{"null"};
 
-  for (size_t i = 0; i < MAX_MATCHING_VARIABLE; i++) {
+  for (std::size_t i = 0; i < MAX_MATCHING_VARIABLE; i++) {
     auto& var = context.get(i);
     if (auto pval = std::get_if<uint64_t>(&var)) {
       metrics.send(monitoring::Metric{std::to_string(*pval), names[16 * slot.index + i]});
@@ -230,7 +230,7 @@ DataRelayer::RelayChoice
     // We set the current slot to the timeslice value, so that old stuff
     // will be ignored.
     assert(numInputTypes * slot.index < cache.size());
-    for (size_t ai = slot.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
+    for (std::size_t ai = slot.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
       cache[ai].clear();
       cachedStateMetrics[ai] = 0;
     }
@@ -283,7 +283,7 @@ DataRelayer::RelayChoice
 
   // First look for matching slots which already have some
   // partial match.
-  for (size_t ci = 0; ci < index.size(); ++ci) {
+  for (std::size_t ci = 0; ci < index.size(); ++ci) {
     slot = TimesliceSlot{ci};
     if (index.isValid(slot) == false) {
       continue;
@@ -297,7 +297,7 @@ DataRelayer::RelayChoice
   // If we did not find anything, look for slots which
   // are invalid.
   if (input == INVALID_INPUT) {
-    for (size_t ci = 0; ci < index.size(); ++ci) {
+    for (std::size_t ci = 0; ci < index.size(); ++ci) {
       slot = TimesliceSlot{ci};
       if (index.isValid(slot) == true) {
         continue;
@@ -419,10 +419,10 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
   if (numInputTypes == 0) {
     return {};
   }
-  size_t cacheLines = cache.size() / numInputTypes;
+  std::size_t cacheLines = cache.size() / numInputTypes;
   assert(cacheLines * numInputTypes == cache.size());
 
-  for (size_t li = 0; li < cacheLines; ++li) {
+  for (std::size_t li = 0; li < cacheLines; ++li) {
     TimesliceSlot slot{li};
     // We only check the cachelines which have been updated by an incoming
     // message.
@@ -430,7 +430,7 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
       continue;
     }
     auto partial = getPartialRecord(li);
-    auto getter = [&partial](size_t idx, size_t part) {
+    auto getter = [&partial](std::size_t idx, std::size_t part) {
       if (partial[idx].size() > 0 && partial[idx].at(part).header && partial[idx].at(part).payload) {
         return DataRef{nullptr,
                        reinterpret_cast<const char*>(partial[idx].at(part).header->GetData()),
@@ -438,10 +438,10 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
       }
       return DataRef{};
     };
-    auto nPartsGetter = [&partial](size_t idx) {
+    auto nPartsGetter = [&partial](std::size_t idx) {
       return partial[idx].size();
     };
-    auto action = mCompletionPolicy.callback({getter, nPartsGetter, static_cast<size_t>(partial.size())});
+    auto action = mCompletionPolicy.callback({getter, nPartsGetter, static_cast<std::size_t>(partial.size())});
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
       case CompletionPolicy::CompletionOp::Process:
@@ -478,7 +478,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(Timesl
   // cache where to put them.
   auto moveHeaderPayloadToOutput = [&messages,
                                     &cachedStateMetrics = mCachedStateMetrics,
-                                    &cache, &index, &numInputTypes, &metrics](TimesliceSlot s, size_t arg) {
+                                    &cache, &index, &numInputTypes, &metrics](TimesliceSlot s, std::size_t arg) {
     auto cacheId = s.index * numInputTypes + arg;
     cachedStateMetrics[cacheId] = 2;
     // TODO: in the original implementation of the cache, there have been only two messages per entry,
@@ -494,7 +494,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(Timesl
   // we should have dispatched the timeslice already!
   // FIXME: what happens when we have enough timeslices to hit the invalid one?
   auto invalidateCacheFor = [&numInputTypes, &index, &cache](TimesliceSlot s) {
-    for (size_t ai = s.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
+    for (std::size_t ai = s.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
       assert(std::accumulate(cache[ai].begin(), cache[ai].end(), true, [](bool result, auto const& element) { return result && element.header.get() == nullptr && element.payload.get() == nullptr; }));
       cache[ai].clear();
     }
@@ -503,7 +503,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(Timesl
 
   // Outer loop here.
   jumpToCacheEntryAssociatedWith(slot);
-  for (size_t ai = 0, ae = numInputTypes; ai != ae; ++ai) {
+  for (std::size_t ai = 0, ae = numInputTypes; ai != ae; ++ai) {
     moveHeaderPayloadToOutput(slot, ai);
   }
   invalidateCacheFor(slot);
@@ -516,12 +516,12 @@ void DataRelayer::clear()
   for (auto& cache : mCache) {
     cache.clear();
   }
-  for (size_t s = 0; s < mTimesliceIndex.size(); ++s) {
+  for (std::size_t s = 0; s < mTimesliceIndex.size(); ++s) {
     mTimesliceIndex.markAsInvalid(TimesliceSlot{s});
   }
 }
 
-size_t
+std::size_t
   DataRelayer::getParallelTimeslices() const
 {
   return mCache.size() / mDistinctRoutesIndex.size();
@@ -531,7 +531,7 @@ size_t
 /// Notice that in case we have time pipelining we need to count
 /// the actual number of different types, without taking into account
 /// the time pipelining.
-void DataRelayer::setPipelineLength(size_t s)
+void DataRelayer::setPipelineLength(std::size_t s)
 {
   mTimesliceIndex.resize(s);
   mVariableContextes.resize(s);
@@ -546,7 +546,7 @@ void DataRelayer::publishMetrics()
   mMetrics.send({(int)mTimesliceIndex.size(), "data_relayer/w"});
   sMetricsNames.resize(mCache.size());
   mCachedStateMetrics.resize(mCache.size());
-  for (size_t i = 0; i < sMetricsNames.size(); ++i) {
+  for (std::size_t i = 0; i < sMetricsNames.size(); ++i) {
     sMetricsNames[i] = std::string("data_relayer/") + std::to_string(i);
   }
   // There is maximum 16 variables available. We keep them row-wise so that
@@ -555,16 +555,16 @@ void DataRelayer::publishMetrics()
   sVariablesMetricsNames.resize(mVariableContextes.size() * 16);
   mMetrics.send({(int)16, "matcher_variables/w"});
   mMetrics.send({(int)mVariableContextes.size(), "matcher_variables/h"});
-  for (size_t i = 0; i < sVariablesMetricsNames.size(); ++i) {
+  for (std::size_t i = 0; i < sVariablesMetricsNames.size(); ++i) {
     sVariablesMetricsNames[i] = std::string("matcher_variables/") + std::to_string(i);
     mMetrics.send({std::string("null"), sVariablesMetricsNames[i % 16]});
   }
 
-  for (size_t ci = 0; ci < mCache.size(); ci++) {
+  for (std::size_t ci = 0; ci < mCache.size(); ci++) {
     assert(ci < sMetricsNames.size());
     mMetrics.send({0, sMetricsNames[ci]});
   }
-  for (size_t ci = 0; ci < mVariableContextes.size() * 16; ci++) {
+  for (std::size_t ci = 0; ci < mVariableContextes.size() * 16; ci++) {
     assert(ci < sVariablesMetricsNames.size());
     mMetrics.send({std::string("null"), sVariablesMetricsNames[ci]});
   }
@@ -577,12 +577,12 @@ DataRelayerStats const& DataRelayer::getStats() const
 
 void DataRelayer::sendContextState()
 {
-  for (size_t ci = 0; ci < mTimesliceIndex.size(); ++ci) {
+  for (std::size_t ci = 0; ci < mTimesliceIndex.size(); ++ci) {
     auto slot = TimesliceSlot{ci};
     sendVariableContextMetrics(mTimesliceIndex.getPublishedVariablesForSlot(slot), slot,
                                mMetrics, sVariablesMetricsNames);
   }
-  for (size_t si = 0; si < mCachedStateMetrics.size(); ++si) {
+  for (std::size_t si = 0; si < mCachedStateMetrics.size(); ++si) {
     mMetrics.send({mCachedStateMetrics[si], sMetricsNames[si]});
   }
 }

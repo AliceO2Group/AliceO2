@@ -345,7 +345,7 @@ class CcdbApi //: public DatabaseInterface
   /**
    * A generic method to store a binary buffer (e.g. an image of the TMemFile)
    */
-  void storeAsBinaryFile(const char* buffer, size_t size, const std::string& fileName, const std::string& objectType,
+  void storeAsBinaryFile(const char* buffer, std::size_t size, const std::string& fileName, const std::string& objectType,
                          const std::string& path, const std::map<std::string, std::string>& metadata,
                          long startValidityTimestamp, long endValidityTimestamp) const;
 

@@ -186,11 +186,11 @@ BOOST_DATA_TEST_CASE_F(MyFixture, MID_Clustering_Fixed, boost::unit_test::data::
   clusterizer.process(preClusters);
   std::vector<Cluster2D> clusters = getClusters(sample);
   BOOST_TEST(clusters.size() == clusterizer.getClusters().size());
-  size_t minNcl = clusters.size();
+  std::size_t minNcl = clusters.size();
   if (clusterizer.getClusters().size() < minNcl) {
     minNcl = clusterizer.getClusters().size();
   }
-  for (size_t icl = 0; icl < minNcl; ++icl) {
+  for (std::size_t icl = 0; icl < minNcl; ++icl) {
     BOOST_TEST(areClustersEqual(clusters[icl], clusterizer.getClusters()[icl]));
   }
 }

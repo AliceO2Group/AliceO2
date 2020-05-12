@@ -38,13 +38,12 @@ int main(int argc, char* argv[])
   desc_add_option("max-tf,m", bpo::value<uint32_t>()->default_value(0xffffffff), " ID to read (counts from 0)");
   desc_add_option("verbosity,v", bpo::value<int>()->default_value(reader.getVerbosity()), "1: long report, 2 or 3: print or dump all RDH");
   desc_add_option("spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes");
-  desc_add_option("buffer-size,b", bpo::value<size_t>()->default_value(reader.getNominalSPageSize()), "buffer size for files preprocessing");
+  desc_add_option("buffer-size,b", bpo::value<std::size_t>()->default_value(reader.getNominalSPageSize()), "buffer size for files preprocessing");
   desc_add_option("configKeyValues", bpo::value(&configKeyValues)->default_value(""), "semicolon separated key=value strings");
   for (int i = 0; i < RawFileReader::NErrorsDefined; i++) {
     auto ei = RawFileReader::ErrTypes(i);
     desc_add_option(RawFileReader::nochk_opt(ei).c_str(), RawFileReader::nochk_expl(ei).c_str());
   }
-
   bpo::options_description hiddenOpt("hidden");
   hiddenOpt.add_options()("files", bpo::value(&fnames)->composing(), "");
 
@@ -86,7 +85,7 @@ int main(int argc, char* argv[])
   reader.setVerbosity(vm["verbosity"].as<int>());
   reader.setNominalSPageSize(vm["spsize"].as<int>());
   reader.setMaxTFToRead(vm["max-tf"].as<uint32_t>());
-  reader.setBufferSize(vm["buffer-size"].as<size_t>());
+  reader.setBufferSize(vm["buffer-size"].as<std::size_t>());
   uint32_t errmap = 0;
   for (int i = RawFileReader::NErrorsDefined; i--;) {
     auto ei = RawFileReader::ErrTypes(i);

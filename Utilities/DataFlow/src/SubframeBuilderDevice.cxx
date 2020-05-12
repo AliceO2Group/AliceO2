@@ -42,7 +42,7 @@ void o2::data_flow::SubframeBuilderDevice::InitTask()
   mOrbitsPerTimeframe = GetConfig()->GetValue<uint32_t>(OptionKeyOrbitsPerTimeframe);
   mInputChannelName = GetConfig()->GetValue<std::string>(OptionKeyInputChannelName);
   mOutputChannelName = GetConfig()->GetValue<std::string>(OptionKeyOutputChannelName);
-  mFLPId = GetConfig()->GetValue<size_t>(OptionKeyFLPId);
+  mFLPId = GetConfig()->GetValue<std::size_t>(OptionKeyFLPId);
   mStripHBF = GetConfig()->GetValue<bool>(OptionKeyStripHBF);
 
   LOG(INFO) << "Obtaining data from DataPublisher\n";
@@ -60,7 +60,7 @@ void o2::data_flow::SubframeBuilderDevice::InitTask()
 
   // We extract the payload differently depending on wether we want to strip
   // the header or not.
-  Merger::PayloadExtractor payloadExtractor = [this](char** out, char* in, size_t inSize) -> size_t {
+  Merger::PayloadExtractor payloadExtractor = [this](char** out, char* in, std::size_t inSize) -> std::size_t {
     if (!this->mStripHBF) {
       return Merger::fullPayloadExtractor(out, in, inSize);
     }
@@ -83,7 +83,7 @@ bool o2::data_flow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts& inPart
   auto id = mMerger->aggregate(inParts.At(1));
 
   char** outBuffer;
-  size_t outSize = mMerger->finalise(outBuffer, id);
+  std::size_t outSize = mMerger->finalise(outBuffer, id);
   // In this case we do not have enough subtimeframes for id,
   // so we simply return.
   if (outSize == 0)

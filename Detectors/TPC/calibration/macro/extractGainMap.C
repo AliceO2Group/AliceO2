@@ -142,7 +142,7 @@ void plotExtractedGainmap(std::string gainmapfile, std::string outFileType)
   }
 
   //fill the histograms
-  for (size_t iSec = 0; iSec < 72; iSec++) {
+  for (std::size_t iSec = 0; iSec < 72; iSec++) {
     ROC rocTemp(static_cast<unsigned char>(iSec)); // only this region!!! 0-72
     ROC rocIROC(0);
 
@@ -276,7 +276,7 @@ void compareMaps(std::string gainmapfile, std::string refMap, std::string gainma
   }
 
   //fill the histograms
-  for (size_t iSec = 0; iSec < 72; iSec++) {
+  for (std::size_t iSec = 0; iSec < 72; iSec++) {
     ROC rocTemp(static_cast<unsigned char>(iSec)); // only this region!!! 0-72
     ROC rocIROC(0);
 

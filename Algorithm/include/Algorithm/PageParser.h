@@ -33,7 +33,7 @@ namespace pageparser
 // a function to extract the number of elements from the group type
 // this is the version for all but integral types
 template <typename T>
-typename std::enable_if<std::is_void<T>::value, size_t>::type
+typename std::enable_if<std::is_void<T>::value, std::size_t>::type
   extractNElements(T* v)
 {
   return 0;
@@ -48,13 +48,13 @@ typename std::enable_if<std::is_integral<T>::value, T>::type
 }
 
 template <typename GroupT>
-using DefaultGetNElementsFctT = size_t (*)(const GroupT*);
+using DefaultGetNElementsFctT = std::size_t (*)(const GroupT*);
 
 // the default function to extract the number of elements in a group
 // where the group header is a single integral type holding number of
 // elements
 auto defaultGetNElementsFct = [](const auto* groupdata) {
-  using ReturnType = size_t;
+  using ReturnType = std::size_t;
   using T = typename std::remove_pointer<decltype(groupdata)>::type;
   // this default function is only for integral types
   static_assert(std::is_integral<T>::value || std::is_void<T>::value,
@@ -91,25 +91,25 @@ void free<void>(void*)
 }
 
 template <typename T>
-size_t sizeofGroupHeader()
+std::size_t sizeofGroupHeader()
 {
   return sizeof(T);
 }
 
 template <>
-size_t sizeofGroupHeader<void>()
+std::size_t sizeofGroupHeader<void>()
 {
   return 0;
 }
 
 template <typename T>
-void set(T* h, size_t v)
+void set(T* h, std::size_t v)
 {
   *h = v;
 }
 
 template <>
-void set<void>(void*, size_t)
+void set<void>(void*, std::size_t)
 {
 }
 } // namespace pageparser
@@ -155,7 +155,7 @@ void set<void>(void*, size_t)
  *   }
  */
 template <typename PageHeaderT,
-          size_t PageSize,
+          std::size_t PageSize,
           typename ElementT,
           typename GroupT = void,
           typename GetNElementsFctT = pageparser::DefaultGetNElementsFctT<GroupT>>
@@ -167,7 +167,7 @@ class PageParser
   using value_type = ElementT;
   using GroupType = GroupT;
   using GetNElements = GetNElementsFctT;
-  static const size_t page_size = PageSize;
+  static const std::size_t page_size = PageSize;
 
   // at the moment an object can only be split among two pages
   static_assert(PageSize >= sizeof(PageHeaderType) + sizeof(value_type),
@@ -179,7 +179,7 @@ class PageParser
 
   PageParser() = delete;
   template <typename T>
-  PageParser(T* buffer, size_t size,
+  PageParser(T* buffer, std::size_t size,
              GetNElements getNElementsFct = pageparser::defaultGetNElementsFct)
     : mBuffer(nullptr), mBufferIsConst(std::is_const<T>::value), mSize(size), mGetNElementsFct(getNElementsFct), mNPages(size > 0 ? ((size - 1) / page_size) + 1 : 0), mGroupHeader(pageparser::alloc<GroupType>())
   {
@@ -211,11 +211,11 @@ class PageParser
 
     Iterator() = delete;
 
-    Iterator(ParentType const* parent, size_t position = 0)
+    Iterator(ParentType const* parent, std::size_t position = 0)
       : mParent(parent)
     {
       mPosition = position;
-      size_t argument = mPosition;
+      std::size_t argument = mPosition;
       if (!mParent->getElement(argument, mElement)) {
         // eof, both mPosition and mNextPosition point to buffer end
         mPosition = argument;
@@ -233,7 +233,7 @@ class PageParser
     {
       sync();
       mPosition = mNextPosition;
-      size_t argument = mPosition;
+      std::size_t argument = mPosition;
       if (!mParent->getElement(argument, mElement)) {
         // eof, both mPosition and mNextPosition point to buffer end
         mPosition = argument;
@@ -308,7 +308,7 @@ class PageParser
   };
 
   /// set an object at position
-  size_t setElement(size_t position, const value_type& element) const
+  std::size_t setElement(std::size_t position, const value_type& element) const
   {
     // write functionality not yet implemented for grouped elements
     assert(std::is_void<GroupType>::value);
@@ -330,7 +330,7 @@ class PageParser
   }
 
   template <typename T>
-  size_t readGroupHeader(size_t position, T* groupHeader) const
+  std::size_t readGroupHeader(std::size_t position, T* groupHeader) const
   {
     assert((position % page_size) == sizeof(PageHeaderType));
     if (std::is_void<T>::value) {
@@ -342,7 +342,7 @@ class PageParser
   }
 
   /// retrieve an object at position
-  bool getElement(size_t& position, value_type& element) const
+  bool getElement(std::size_t& position, value_type& element) const
   {
     // check if we are at the end
     if (position >= mSize) {
@@ -374,8 +374,8 @@ class PageParser
           position += pageparser::sizeofGroupHeader<GroupType>();
         } while (mNGroupElements == 0);
 
-        size_t nPages = 0;
-        size_t required = pageparser::sizeofGroupHeader<GroupType>() + mNGroupElements * sizeof(value_type);
+        std::size_t nPages = 0;
+        std::size_t required = pageparser::sizeofGroupHeader<GroupType>() + mNGroupElements * sizeof(value_type);
         do {
           // the block of elements can go beyond the current page, find out
           // how many additional pages are required
@@ -413,9 +413,9 @@ class PageParser
   // pointer are treated as pointer in the raw page, i.e. can be additionally
   // incremented by the page header
   template <typename SwitchT>
-  size_t copy(const BufferType* source, BufferType* target, size_t pageCapacity) const
+  std::size_t copy(const BufferType* source, BufferType* target, std::size_t pageCapacity) const
   {
-    size_t position = 0;
+    std::size_t position = 0;
     auto copySize = sizeof(value_type);
     // choose which of the pointers needs additional PageHeader offsets
     auto pageOffsetTarget = SwitchT::value ? &target : const_cast<BufferType**>(&source);
@@ -485,11 +485,11 @@ class PageParser
  private:
   BufferType* mBuffer = nullptr;
   bool mBufferIsConst = false;
-  size_t mSize = 0;
+  std::size_t mSize = 0;
   GetNElements mGetNElementsFct = nullptr;
-  size_t mNPages = 0;
+  std::size_t mNPages = 0;
   GroupType* mGroupHeader = nullptr;
-  size_t mNGroupElements = 0;
+  std::size_t mNGroupElements = 0;
 };
 
 } // namespace algorithm

@@ -67,7 +67,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // one 1D histo, binwise
   {
     Inputs mergersInputs;
-    for (size_t p = 0; p < objectsProducers; p++) {
+    for (std::size_t p = 0; p < objectsProducers; p++) {
       mergersInputs.push_back({ "mo",               "TST",
                                 "HISTO",            static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1),
                                 Lifetime::Timeframe });

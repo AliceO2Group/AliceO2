@@ -16,12 +16,12 @@ namespace o2
 namespace framework
 {
 
-FairMQMessagePtr MessageContext::createMessage(const std::string& channel, int index, size_t size)
+FairMQMessagePtr MessageContext::createMessage(const std::string& channel, int index, std::size_t size)
 {
   return proxy().getDevice()->NewMessageFor(channel, 0, size);
 }
 
-FairMQMessagePtr MessageContext::createMessage(const std::string& channel, int index, void* data, size_t size, fairmq_free_fn* ffn, void* hint)
+FairMQMessagePtr MessageContext::createMessage(const std::string& channel, int index, void* data, std::size_t size, fairmq_free_fn* ffn, void* hint)
 {
   return proxy().getDevice()->NewMessageFor(channel, 0, data, size, ffn, hint);
 }

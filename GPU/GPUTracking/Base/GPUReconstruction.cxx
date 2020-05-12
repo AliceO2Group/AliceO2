@@ -220,7 +220,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   mDeviceMemorySize = mHostMemorySize = 0;
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->RegisterPermanentMemoryAndProcessors();
-    size_t memGpu, memHost;
+    std::size_t memGpu, memHost;
     mChains[i]->MemorySize(memGpu, memHost);
     mDeviceMemorySize += memGpu;
     mHostMemorySize += memHost;
@@ -323,12 +323,12 @@ int GPUReconstruction::Exit()
 void GPUReconstruction::RegisterGPUDeviceProcessor(GPUProcessor* proc, GPUProcessor* slaveProcessor) { proc->InitGPUProcessor(this, GPUProcessor::PROCESSOR_TYPE_DEVICE, slaveProcessor); }
 void GPUReconstruction::ConstructGPUProcessor(GPUProcessor* proc) { proc->mConstantMem = proc->mGPUProcessorType == GPUProcessor::PROCESSOR_TYPE_DEVICE ? mDeviceConstantMem : mHostConstantMem.get(); }
 
-size_t GPUReconstruction::AllocateRegisteredMemory(GPUProcessor* proc)
+std::size_t GPUReconstruction::AllocateRegisteredMemory(GPUProcessor* proc)
 {
   if (mDeviceProcessingSettings.debugLevel >= 5) {
     GPUInfo("Allocating memory %p", (void*)proc);
   }
-  size_t total = 0;
+  std::size_t total = 0;
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
     if ((proc == nullptr ? !mMemoryResources[i].mProcessor->mAllocateAndInitializeLate : mMemoryResources[i].mProcessor == proc) && !(mMemoryResources[i].mType & GPUMemoryResource::MEMORY_CUSTOM)) {
       total += AllocateRegisteredMemory(i);
@@ -340,7 +340,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(GPUProcessor* proc)
   return total;
 }
 
-size_t GPUReconstruction::AllocateRegisteredPermanentMemory()
+std::size_t GPUReconstruction::AllocateRegisteredPermanentMemory()
 {
   if (mDeviceProcessingSettings.debugLevel >= 5) {
     GPUInfo("Allocating Permanent Memory");
@@ -359,11 +359,11 @@ size_t GPUReconstruction::AllocateRegisteredPermanentMemory()
   return total;
 }
 
-size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*setPtr)(void*))
+std::size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, std::size_t memorysize, void* (GPUMemoryResource::*setPtr)(void*))
 {
   if (res->mReuse != -1) {
     ptr = (&ptr == &res->mPtrDevice) ? mMemoryResources[res->mReuse].mPtrDevice : mMemoryResources[res->mReuse].mPtr;
-    size_t retVal = (char*)((res->*setPtr)(ptr)) - (char*)(ptr);
+    std::size_t retVal = (char*)((res->*setPtr)(ptr)) - (char*)(ptr);
     if (retVal > mMemoryResources[res->mReuse].mSize) {
       throw std::bad_alloc();
     }
@@ -378,11 +378,11 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
   }
   ptr = memorypool;
   memorypool = (char*)((res->*setPtr)(memorypool));
-  size_t retVal = (char*)memorypool - (char*)ptr;
+  std::size_t retVal = (char*)memorypool - (char*)ptr;
   if (IsGPU() && retVal == 0) { // Transferring 0 bytes might break some GPU backends, but we cannot simply skip the transfer, or we will break event dependencies
     GPUProcessor::getPointerWithAlignment<GPUCA_BUFFER_ALIGNMENT, char>(memorypool, retVal = GPUCA_BUFFER_ALIGNMENT);
   }
-  if ((size_t)((char*)memorypool - (char*)memorybase) > memorysize) {
+  if ((std::size_t)((char*)memorypool - (char*)memorybase) > memorysize) {
     std::cout << "Memory pool size exceeded (" << res->mName << ": " << (char*)memorypool - (char*)memorybase << " < " << memorysize << "\n";
     throw std::bad_alloc();
   }
@@ -393,7 +393,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
   return retVal;
 }
 
-size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl* control)
+std::size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl* control)
 {
   GPUMemoryResource* res = &mMemoryResources[ires];
   if ((res->mType & GPUMemoryResource::MEMORY_PERMANENT) && res->mPtr != nullptr) {
@@ -403,7 +403,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
       if (res->mPtrDevice && res->mReuse == -1) {
         operator delete(res->mPtrDevice);
       }
-      res->mSize = (size_t)res->SetPointers((void*)1) - 1;
+      res->mSize = (std::size_t)res->SetPointers((void*)1) - 1;
       if (res->mReuse != -1) {
         if (res->mSize > mMemoryResources[res->mReuse].mSize) {
           GPUError("Invalid reuse, insufficient size: %lld < %lld", (long long int)mMemoryResources[res->mReuse].mSize, (long long int)res->mSize);
@@ -436,7 +436,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
         GPUError("Device Processor not set (%s)", res->mName);
         throw std::bad_alloc();
       }
-      size_t size = AllocateRegisteredMemoryHelper(res, res->mPtrDevice, mDeviceMemoryPool, mDeviceMemoryBase, mDeviceMemorySize, &GPUMemoryResource::SetDevicePointers);
+      std::size_t size = AllocateRegisteredMemoryHelper(res, res->mPtrDevice, mDeviceMemoryPool, mDeviceMemoryBase, mDeviceMemorySize, &GPUMemoryResource::SetDevicePointers);
 
       if (!(res->mType & GPUMemoryResource::MEMORY_HOST) || (res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
         res->mSize = size;
@@ -453,7 +453,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
   }
 }
 
-void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
+void* GPUReconstruction::AllocateUnmanagedMemory(std::size_t size, int type)
 {
   if (type != GPUMemoryResource::MEMORY_HOST && (!IsGPU() || type != GPUMemoryResource::MEMORY_GPU)) {
     throw std::bad_alloc();
@@ -464,10 +464,10 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
   } else {
     void* pool = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryPool : mHostMemoryPool;
     void* base = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryBase : mHostMemoryBase;
-    size_t poolsize = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemorySize : mHostMemorySize;
+    std::size_t poolsize = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemorySize : mHostMemorySize;
     char* retVal;
     GPUProcessor::computePointerWithAlignment(pool, retVal, size);
-    if ((size_t)((char*)pool - (char*)base) > poolsize) {
+    if ((std::size_t)((char*)pool - (char*)base) > poolsize) {
       throw std::bad_alloc();
     }
     return retVal;
@@ -546,7 +546,7 @@ void GPUReconstruction::PrintMemoryOverview()
 
 void GPUReconstruction::PrintMemoryStatistics()
 {
-  std::map<std::string, std::array<size_t, 3>> sizes;
+  std::map<std::string, std::array<std::size_t, 3>> sizes;
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
     auto& res = mMemoryResources[i];
     if (res.mReuse != -1) {
@@ -653,7 +653,7 @@ void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUS
   param().SetDefaults(&mEventSettings, rec, proc, workflow);
 }
 
-void GPUReconstruction::SetOutputControl(void* ptr, size_t size)
+void GPUReconstruction::SetOutputControl(void* ptr, std::size_t size)
 {
   GPUOutputControl outputControl;
   outputControl.set(ptr, size);
@@ -803,7 +803,7 @@ int GPUReconstruction::LibraryLoader::LoadLibrary()
       LIBRARY_CLOSE(hGPULib);
       return 1;
     } else {
-      mGPULib = (void*)(size_t)hGPULib;
+      mGPULib = (void*)(std::size_t)hGPULib;
       mGPUEntry = createFunc;
       GPUInfo("GPU Tracker library loaded and GPU tracker object created sucessfully");
     }
@@ -828,7 +828,7 @@ int GPUReconstruction::LibraryLoader::CloseLibrary()
   if (mGPUEntry == nullptr) {
     return 1;
   }
-  LIBRARY_CLOSE((LIBRARY_TYPE)(size_t)mGPULib);
+  LIBRARY_CLOSE((LIBRARY_TYPE)(std::size_t)mGPULib);
   mGPULib = nullptr;
   mGPUEntry = nullptr;
   return 0;

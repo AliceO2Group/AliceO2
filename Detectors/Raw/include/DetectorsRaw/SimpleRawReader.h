@@ -52,7 +52,7 @@ class SimpleRawReader
   bool mDone = false;
   std::string mCFGName{};
   std::unique_ptr<o2::raw::RawFileReader> mReader;
-  size_t mLoopsDone = 0, mSentSize = 0, mSentMessages = 0, mTFIDaccum = 0; // statistics
+  std::size_t mLoopsDone = 0, mSentSize = 0, mSentMessages = 0, mTFIDaccum = 0; // statistics
 
   std::unique_ptr<SimpleSTF> mSTF;
 

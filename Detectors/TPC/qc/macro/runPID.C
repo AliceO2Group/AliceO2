@@ -24,7 +24,7 @@
 
 using namespace o2::tpc;
 
-void runPID(std::string outputFileName = "PID", std::string_view inputFileName = "tpctracks.root", const size_t maxTracks = 0)
+void runPID(std::string outputFileName = "PID", std::string_view inputFileName = "tpctracks.root", const std::size_t maxTracks = 0)
 {
   // ===| track file and tree |=================================================
   auto file = TFile::Open(inputFileName.data());
@@ -49,7 +49,7 @@ void runPID(std::string outputFileName = "PID", std::string_view inputFileName =
   // ===| event loop |============================================================
   for (int i = 0; i < tree->GetEntriesFast(); ++i) {
     tree->GetEntry(i);
-    size_t nTracks = (maxTracks > 0) ? std::min(tpcTracks->size(), maxTracks) : tpcTracks->size();
+    std::size_t nTracks = (maxTracks > 0) ? std::min(tpcTracks->size(), maxTracks) : tpcTracks->size();
     // ---| track loop |---
     for (int k = 0; k < nTracks; k++) {
       auto track = (*tpcTracks)[k];

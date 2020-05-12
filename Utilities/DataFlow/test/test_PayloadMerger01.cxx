@@ -33,10 +33,10 @@ SubframeId fakeAddition(o2::dataflow::PayloadMerger<SubframeId>& merger,
   // Create a message
   //
   // We set orbit to be always the same and the actual contents to be 127
-  static size_t dummyMessageSize = 1000;
+  static std::size_t dummyMessageSize = 1000;
   auto msg = transport->CreateMessage(dummyMessageSize);
   char* b = reinterpret_cast<char*>(msg->GetData()) + sizeof(HeartbeatHeader);
-  for (size_t i = 0; i < (dummyMessageSize - sizeof(HeartbeatHeader)); ++i) {
+  for (std::size_t i = 0; i < (dummyMessageSize - sizeof(HeartbeatHeader)); ++i) {
     b[i] = orbit;
   }
   b[0] = 127;
@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(PayloadMergerTest)
 
   o2::dataflow::PayloadMerger<SubframeId> merger(makeId, checkIfComplete, o2::dataflow::extractDetectorPayloadStrip);
   char* finalBuf = new char[3000];
-  size_t finalSize = 0;
+  std::size_t finalSize = 0;
   auto id = fakeAddition(merger, zmq, 1);
   finalSize = merger.finalise(&finalBuf, id);
   BOOST_CHECK(finalSize == 0); // Not enough parts, not merging yet.
@@ -75,9 +75,9 @@ BOOST_AUTO_TEST_CASE(PayloadMergerTest)
   id = fakeAddition(merger, zmq, 1);
   finalSize = merger.finalise(&finalBuf, id);
   BOOST_CHECK(finalSize); // Now we merge!
-  size_t partSize = (1000 - sizeof(HeartbeatHeader) - sizeof(HeartbeatTrailer));
+  std::size_t partSize = (1000 - sizeof(HeartbeatHeader) - sizeof(HeartbeatTrailer));
   BOOST_CHECK(finalSize == 3 * partSize); // This should be the calculated size
-  for (size_t i = 0; i < finalSize; ++i) {
+  for (std::size_t i = 0; i < finalSize; ++i) {
     BOOST_CHECK(finalBuf[i] == ((i % partSize) == 0 ? 127 : 1));
   }
 }

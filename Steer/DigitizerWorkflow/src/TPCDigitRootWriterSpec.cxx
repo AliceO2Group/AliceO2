@@ -283,7 +283,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
     inputs.emplace_back("labelinput", "TPC", "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
 
-  auto amendInput = [&laneConfiguration](InputSpec& spec, size_t index) {
+  auto amendInput = [&laneConfiguration](InputSpec& spec, std::size_t index) {
     spec.binding += std::to_string(laneConfiguration[index]);
     DataSpecUtils::updateMatchingSubspec(spec, laneConfiguration[index]);
   };

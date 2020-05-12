@@ -251,7 +251,7 @@ class RCombinedDSBlockJoinIndex : public RCombinedDSIndex
         case BlockCombinationRule::Diagonal:
           auto sizeRow = std::distance(outerRange.first, outerRange.second);
           auto sizeCol = std::distance(innerRange.first, innerRange.second);
-          for (size_t i = 0, e = std::min(sizeRow, sizeCol); i < e; ++i) {
+          for (std::size_t i = 0, e = std::min(sizeRow, sizeCol); i < e; ++i) {
             fAssociations.emplace_back(Association{(outerRange.first + i)->second, (innerRange.first + i)->second});
           }
           break;
@@ -278,7 +278,7 @@ class RCombinedDSBlockJoinIndex : public RCombinedDSIndex
     categories = *df->template Take<INDEX_TYPE>(column);
     pairs.reserve(categories.size());
     // Fill the pairs according tho the actual category
-    for (size_t i = 0; i < categories.size(); ++i) {
+    for (std::size_t i = 0; i < categories.size(); ++i) {
       pairs.emplace_back(categories[i], i);
     }
     // Do a stable sort so that same categories entries are
@@ -309,7 +309,7 @@ class RCombinedDS final : public ROOT::RDF::RDataSource
   std::unique_ptr<RDataFrame> fRightDF;
   ULong64_t fLeftCount;
   ULong64_t fRightCount;
-  size_t fNSlots = 0U;
+  std::size_t fNSlots = 0U;
   std::vector<std::string> fColumnNames;
   std::vector<std::pair<ULong64_t, ULong64_t>> fEntryRanges;
   std::unique_ptr<RCombinedDSIndex> fIndex;

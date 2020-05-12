@@ -40,7 +40,7 @@ int main(int argc, char** argv)
   }
 
   std::vector<std::string> filenames;
-  for (size_t index = optind; index < argc; index++) {
+  for (std::size_t index = optind; index < argc; index++) {
     filenames.emplace_back(std::string(argv[index]));
   }
 
@@ -48,7 +48,7 @@ int main(int argc, char** argv)
     LOG(INFO) << "Processing file" << fn << "\n";
     std::ifstream s(fn);
     FairMQParts parts;
-    auto onAddParts = [](FairMQParts& p, char* buffer, size_t size) {
+    auto onAddParts = [](FairMQParts& p, char* buffer, std::size_t size) {
     };
     auto onSend = [](FairMQParts& p) {
     };

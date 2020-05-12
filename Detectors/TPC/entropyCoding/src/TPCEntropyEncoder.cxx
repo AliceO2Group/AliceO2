@@ -73,7 +73,7 @@ void TPCEntropyEncoder::appendToTTree(TTree& tree, EncodedClusters& encodedClust
   tree.Branch("Counters", &encodedClusters.counters);
   tree.Branch("Metadata", &encodedClusters.metadata);
 
-  for (size_t i = 0; i < encodedClusters.NUM_ARRAYS; i++) {
+  for (std::size_t i = 0; i < encodedClusters.NUM_ARRAYS; i++) {
     const auto name = encodedClusters.NAMES[i];
     const auto dictName = std::string(name) + "Dict";
 
@@ -92,7 +92,7 @@ void TPCEntropyEncoder::appendToTTree(TTree& tree, EncodedClusters& encodedClust
   tree.Fill();
 }
 
-size_t TPCEntropyEncoder::calculateMaxBufferSize(size_t num, size_t rangeBits, size_t sizeofStreamT)
+std::size_t TPCEntropyEncoder::calculateMaxBufferSize(std::size_t num, std::size_t rangeBits, std::size_t sizeofStreamT)
 {
   return std::ceil(1.20 * (num * rangeBits * 1.0) / (sizeofStreamT * 8.0));
 }

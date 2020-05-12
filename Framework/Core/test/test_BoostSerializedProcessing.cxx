@@ -76,7 +76,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         // auto& out1 = ctx.outputs().make_boost<std::array<int,6>>({ "TES", "BOOST" });
         // auto& out1 = ctx.outputs().make<BoostSerialized<std::array<int,6>>>({ "TES", "BOOST" });
         // auto& out1 = ctx.outputs().make<std::array<int,6>>({ "TES", "BOOST" });
-        for (size_t i = 0; i < 17; i++) {
+        for (std::size_t i = 0; i < 17; i++) {
           float iFloat = (float)i;
           std::vector<float> floatVect = {iFloat * 3.f, iFloat * 3.1f, iFloat * 3.2f};
           std::string string = "This is Foo!";
@@ -96,19 +96,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 
           auto in = ctx.inputs().get<BoostSerialized<std::vector<Foo>>>("make");
           std::vector<Foo> check;
-          for (size_t i = 0; i < 17; i++) {
+          for (std::size_t i = 0; i < 17; i++) {
             float iFloat = (float)i;
             std::vector<float> floatVect = {iFloat * 3.f, iFloat * 3.1f, iFloat * 3.2f};
             std::string string = "This is Foo!";
             check.emplace_back(Foo{(int)i, 2. * iFloat, 2.1 * iFloat, floatVect, string});
           }
 
-          size_t i = 0;
+          std::size_t i = 0;
           for (auto const& test : in) {
             assert((test.fBar1 == check[i].fBar1));       // fBar1 wrong
             assert((test.fBar2[0] == check[i].fBar2[0])); // fBar2[0] wrong
             assert((test.fBar2[1] == check[i].fBar2[1])); // fBar2[1] wrong
-            size_t j = 0;
+            std::size_t j = 0;
             for (auto const& fBar3It : test.fBar3) {
               assert((fBar3It == check[i].fBar3[j])); // fBar3[j] wrong
               j++;

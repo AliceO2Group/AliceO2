@@ -175,7 +175,7 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<HitGroup>* mHitsPerSectorCollection[Sector::MAXSECTOR]; //! container that keeps track-grouped hits per sector
 
   TString mGeoFileName; ///< Name of the file containing the TPC geometry
-  // size_t mEventNr;                       //!< current event number
+  // std::size_t mEventNr;                       //!< current event number
   // Events are not successive in MT mode
 
   /// copy constructor (used in MT)

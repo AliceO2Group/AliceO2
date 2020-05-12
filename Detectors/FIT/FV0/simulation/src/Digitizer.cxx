@@ -192,8 +192,8 @@ void Digitizer::analyseWaveformsAndStore(std::vector<fv0::BCData>& digitsBC,
                                          dataformats::MCTruthContainer<fv0::MCLabel>& labels)
 {
   // Sum charge of all time bins to get total charge collected for a given channel
-  size_t const first = digitsCh.size();
-  size_t nStored = 0;
+  std::size_t const first = digitsCh.size();
+  std::size_t nStored = 0;
   for (Int_t ipmt = 0; ipmt < DP::NCHANNELS; ++ipmt) {
     Float_t totalCharge = 0.0f;
     auto const& analogSignal = mPmtChargeVsTime[ipmt];
@@ -207,7 +207,7 @@ void Digitizer::analyseWaveformsAndStore(std::vector<fv0::BCData>& digitsBC,
   }
 
   // Send MClabels and digitsBC to storage
-  size_t const nBC = digitsBC.size();
+  std::size_t const nBC = digitsBC.size();
   digitsBC.emplace_back(first, nStored, mIntRecord);
   for (auto const& lbl : mMCLabels) {
     labels.addElement(nBC, lbl);

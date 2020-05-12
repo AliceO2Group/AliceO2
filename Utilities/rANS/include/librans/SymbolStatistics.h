@@ -33,7 +33,7 @@ class SymbolStatistics
   class Iterator
   {
    public:
-    Iterator(size_t index, const SymbolStatistics& stats);
+    Iterator(std::size_t index, const SymbolStatistics& stats);
 
     using difference_type = int64_t;
     using value_type = std::pair<uint32_t, uint32_t>;
@@ -48,28 +48,28 @@ class SymbolStatistics
     bool operator!=(const Iterator& other) const;
 
    private:
-    size_t mIndex;
+    std::size_t mIndex;
     const SymbolStatistics& mStats;
   };
 
  public:
   template <typename IT>
-  SymbolStatistics(const IT begin, const IT end, size_t range = 0);
+  SymbolStatistics(const IT begin, const IT end, std::size_t range = 0);
 
   template <typename IT>
-  SymbolStatistics(const IT begin, const IT end, size_t min, size_t max, size_t messageLength);
+  SymbolStatistics(const IT begin, const IT end, std::size_t min, std::size_t max, std::size_t messageLength);
 
-  void rescaleToNBits(size_t bits);
+  void rescaleToNBits(std::size_t bits);
 
   int getMinSymbol() const;
   int getMaxSymbol() const;
-  size_t getAlphabetSize() const;
-  size_t getAlphabetRangeBits() const;
-  size_t getNUsedAlphabetSymbols() const;
+  std::size_t getAlphabetSize() const;
+  std::size_t getAlphabetRangeBits() const;
+  std::size_t getNUsedAlphabetSymbols() const;
 
-  size_t getMessageLength() const;
+  std::size_t getMessageLength() const;
 
-  std::pair<uint32_t, uint32_t> operator[](size_t index) const;
+  std::pair<uint32_t, uint32_t> operator[](std::size_t index) const;
 
   SymbolStatistics::Iterator begin() const;
   SymbolStatistics::Iterator end() const;
@@ -78,19 +78,19 @@ class SymbolStatistics
   void buildCumulativeFrequencyTable();
 
   template <typename IT>
-  void buildFrequencyTable(const IT begin, const IT end, size_t range);
+  void buildFrequencyTable(const IT begin, const IT end, std::size_t range);
 
   int mMin;
   int mMax;
-  size_t mNUsedAlphabetSymbols;
-  size_t mMessageLength;
+  std::size_t mNUsedAlphabetSymbols;
+  std::size_t mMessageLength;
 
   std::vector<uint32_t> mFrequencyTable;
   std::vector<uint32_t> mCumulativeFrequencyTable;
 };
 
 template <typename IT>
-SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t range)
+SymbolStatistics::SymbolStatistics(const IT begin, const IT end, std::size_t range)
 {
   buildFrequencyTable(begin, end, range);
 
@@ -106,7 +106,7 @@ SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t range)
 }
 
 template <typename IT>
-SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t min, size_t max, size_t messageLength) : mMin(min), mMax(max), mNUsedAlphabetSymbols(0), mMessageLength(messageLength), mFrequencyTable(begin, end), mCumulativeFrequencyTable()
+SymbolStatistics::SymbolStatistics(const IT begin, const IT end, std::size_t min, std::size_t max, std::size_t messageLength) : mMin(min), mMax(max), mNUsedAlphabetSymbols(0), mMessageLength(messageLength), mFrequencyTable(begin, end), mCumulativeFrequencyTable()
 {
   for (auto i : mFrequencyTable) {
     if (i > 0) {
@@ -119,7 +119,7 @@ SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t min, siz
 
 template <typename IT>
 void SymbolStatistics::buildFrequencyTable(const IT begin, const IT end,
-                                           size_t range)
+                                           std::size_t range)
 {
   // find min_ and max_
   const auto minmax = std::minmax_element(begin, end);

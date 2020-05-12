@@ -107,14 +107,14 @@ class SubframeBuilderDevice : public base::O2Device
   uint32_t mOrbitDuration;
   std::string mInputChannelName = "";
   std::string mOutputChannelName = "";
-  size_t mFLPId = 0;
+  std::size_t mFLPId = 0;
   bool mStripHBF = false;
   std::unique_ptr<Merger> mMerger;
 
   uint64_t mHeartbeatStart = DefaultHeartbeatStart;
 
   template <typename T>
-  size_t fakeHBHPayloadHBT(char** buffer, std::function<void(T&, int)> filler, int numOfElements)
+  std::size_t fakeHBHPayloadHBT(char** buffer, std::function<void(T&, int)> filler, int numOfElements)
   {
     // LOG(INFO) << "SENDING TPC PAYLOAD\n";
     auto payloadSize = sizeof(header::HeartbeatHeader) + sizeof(T) * numOfElements + sizeof(header::HeartbeatTrailer);

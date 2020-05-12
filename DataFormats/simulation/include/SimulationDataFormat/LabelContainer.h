@@ -135,7 +135,7 @@ class LabelContainer
     }
 
     // get number of labels
-    size_t size() const { return dataindex < mHeaderArrayRef.size() ? mHeaderArrayRef[dataindex].size : 0; }
+    std::size_t size() const { return dataindex < mHeaderArrayRef.size() ? mHeaderArrayRef[dataindex].size : 0; }
   };
 
   static void addLabelImpl(int dataindex, std::vector<HeaderElementContinuous>& headerv, std::vector<LabelType>& labelv, LabelType const& label)

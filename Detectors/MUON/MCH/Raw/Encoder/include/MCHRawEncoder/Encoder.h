@@ -52,7 +52,7 @@ class Encoder
   /// The internal words that have been accumulated so far are
   /// _moved_ (i.e. deleted from this object) to the external buffer of bytes
   /// Returns the number of bytes added to buffer.
-  virtual size_t moveToBuffer(std::vector<uint8_t>& buffer) = 0;
+  virtual std::size_t moveToBuffer(std::vector<uint8_t>& buffer) = 0;
   ///@}
 };
 

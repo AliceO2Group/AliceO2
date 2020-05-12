@@ -25,7 +25,7 @@ namespace dataformats
 {
 BOOST_AUTO_TEST_CASE(MessageSizePair_test)
 {
-  size_t S = 100;
+  std::size_t S = 100;
   auto* buffer = new char[S];
 
   // fill the buffer with something

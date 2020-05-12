@@ -59,9 +59,9 @@ template <typename ListT,
           typename PageHeaderT,
           typename GroupT = void,
           bool GroupHeaderPerPage = false>
-std::pair<std::unique_ptr<uint8_t[]>, size_t> MakeBuffer(size_t pagesize,
-                                                         PageHeaderT pageheader,
-                                                         const ListT& dataset)
+std::pair<std::unique_ptr<uint8_t[]>, std::size_t> MakeBuffer(std::size_t pagesize,
+                                                              PageHeaderT pageheader,
+                                                              const ListT& dataset)
 {
   static_assert(std::is_void<GroupT>::value || std::is_integral<GroupT>::value,
                 "Invalid group type");
@@ -89,7 +89,7 @@ std::pair<std::unique_ptr<uint8_t[]>, size_t> MakeBuffer(size_t pagesize,
   unsigned position = 0;
   auto target = buffer.get();
   GroupT* groupHeader = nullptr;
-  size_t nElementsInCurrentGroup = 0;
+  std::size_t nElementsInCurrentGroup = 0;
   for (auto element : dataset) {
     if (GroupHeaderPerPage && nElementsInCurrentGroup == maxElementsPerPage) {
       // write the number of elements in the group and forward to next
@@ -141,7 +141,7 @@ std::pair<std::unique_ptr<uint8_t[]>, size_t> MakeBuffer(size_t pagesize,
     o2::algorithm::pageparser::set(groupHeader, nElementsInCurrentGroup);
   }
 
-  std::pair<std::unique_ptr<uint8_t[]>, size_t> result;
+  std::pair<std::unique_ptr<uint8_t[]>, std::size_t> result;
   result.first = std::move(buffer);
   result.second = totalSize;
   return result;
@@ -158,7 +158,7 @@ void FillData(ListT& dataset, unsigned entries)
 template <typename DataSetT,
           typename PageHeaderT,
           typename GroupHeaderT,
-          size_t pagesize,
+          std::size_t pagesize,
           bool GroupHeaderPerPage = false>
 void runParserTest(const DataSetT& dataset)
 {

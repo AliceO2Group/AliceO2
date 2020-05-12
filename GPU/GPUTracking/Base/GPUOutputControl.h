@@ -29,7 +29,7 @@ struct GPUOutputControl {
                           UseExternalBuffer = 1 };
 #ifndef GPUCA_GPUCODE_DEVICE
   GPUOutputControl() = default;
-  void set(void* ptr, size_t size)
+  void set(void* ptr, std::size_t size)
   {
     new (this) GPUOutputControl;
     OutputType = GPUOutputControl::UseExternalBuffer;
@@ -44,7 +44,7 @@ struct GPUOutputControl {
 
   void* OutputBase = nullptr;                     // Base ptr to memory pool, occupied size is OutputPtr - OutputBase
   void* OutputPtr = nullptr;                      // Pointer to Output Space
-  size_t OutputMaxSize = 0;                       // Max Size of Output Data if Pointer to output space is given
+  std::size_t OutputMaxSize = 0;                  // Max Size of Output Data if Pointer to output space is given
   OutputTypeStruct OutputType = AllocateInternal; // How to perform the output
   char EndOfSpace = 0;                            // end of space flag
 };

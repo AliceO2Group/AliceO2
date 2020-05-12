@@ -43,15 +43,15 @@ void TimeframeWriterDevice::InitTask()
 {
   mInChannelName = GetConfig()->GetValue<std::string>(OptionKeyInputChannelName);
   mOutFileName = GetConfig()->GetValue<std::string>(OptionKeyOutputFileName);
-  mMaxTimeframes = GetConfig()->GetValue<size_t>(OptionKeyMaxTimeframesPerFile);
-  mMaxFileSize = GetConfig()->GetValue<size_t>(OptionKeyMaxFileSize);
-  mMaxFiles = GetConfig()->GetValue<size_t>(OptionKeyMaxFiles);
+  mMaxTimeframes = GetConfig()->GetValue<std::size_t>(OptionKeyMaxTimeframesPerFile);
+  mMaxFileSize = GetConfig()->GetValue<std::size_t>(OptionKeyMaxFileSize);
+  mMaxFiles = GetConfig()->GetValue<std::size_t>(OptionKeyMaxFiles);
 }
 
 void TimeframeWriterDevice::Run()
 {
   boost::filesystem::path p(mOutFileName);
-  size_t streamedTimeframes = 0;
+  std::size_t streamedTimeframes = 0;
   bool needsNewFile = true;
   while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this) && mFileCount < mMaxFiles) {
     // In case we need to process more than one file,

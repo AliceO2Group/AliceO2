@@ -50,7 +50,7 @@ class Graph
 {
  public:
   Graph() = delete;
-  explicit Graph(const size_t nThreads = 1);
+  explicit Graph(const std::size_t nThreads = 1);
   void init(std::vector<T>&);
   std::vector<unsigned char> getCluster(const int);
   std::vector<int> getClusterIndices(const int);
@@ -63,10 +63,10 @@ class Graph
   std::vector<std::thread> mExecutors; // Difficult to pass
 
  private:
-  void findVertexEdges(std::vector<Edge>& localEdges, const T& vertex, const size_t vId, const size_t size);
+  void findVertexEdges(std::vector<Edge>& localEdges, const T& vertex, const std::size_t vId, const std::size_t size);
 
   // Multithread block
-  size_t mNThreads;
+  std::size_t mNThreads;
   char mIsMultiThread;
 
   // Common data members
@@ -76,7 +76,7 @@ class Graph
 };
 
 template <typename T>
-Graph<T>::Graph(const size_t nThreads) : mNThreads{nThreads}
+Graph<T>::Graph(const std::size_t nThreads) : mNThreads{nThreads}
 {
   mIsMultiThread = nThreads > 1 ? true : false;
 }
@@ -88,7 +88,7 @@ void Graph<T>::init(std::vector<T>& vertices)
   // Graph initialization
   mVertices = &vertices;
   if (mIsMultiThread) {
-    mNThreads = std::min(static_cast<const size_t>(std::thread::hardware_concurrency()), mNThreads);
+    mNThreads = std::min(static_cast<const std::size_t>(std::thread::hardware_concurrency()), mNThreads);
     mExecutors.resize(mNThreads);
   }
 
@@ -101,22 +101,22 @@ void Graph<T>::computeEdges(std::function<bool(const T& v1, const T& v2)> linkFu
 {
   mLinkFunction = linkFunction;
   int tot_nedges = 0;
-  const size_t size = {mVertices->size()};
+  const std::size_t size = {mVertices->size()};
   if (!mIsMultiThread) {
-    for (size_t iVertex{0}; iVertex < size; ++iVertex) {
+    for (std::size_t iVertex{0}; iVertex < size; ++iVertex) {
       findVertexEdges(mEdges[iVertex], (*mVertices)[iVertex], iVertex, size);
       tot_nedges += static_cast<int>(mEdges[iVertex].size());
     }
   } else {
-    mNThreads = std::min(static_cast<const size_t>(std::thread::hardware_concurrency()), mNThreads);
+    mNThreads = std::min(static_cast<const std::size_t>(std::thread::hardware_concurrency()), mNThreads);
     mExecutors.resize(mNThreads);
-    const size_t stride{static_cast<size_t>(std::ceil(mVertices->size() / static_cast<size_t>(mExecutors.size())))};
-    for (size_t iExecutor{0}; iExecutor < mExecutors.size(); ++iExecutor) {
+    const std::size_t stride{static_cast<std::size_t>(std::ceil(mVertices->size() / static_cast<std::size_t>(mExecutors.size())))};
+    for (std::size_t iExecutor{0}; iExecutor < mExecutors.size(); ++iExecutor) {
       // We cannot pass a template function to std::thread(), using lambda instead
       mExecutors[iExecutor] = std::thread(
         [iExecutor, stride, this](const auto& linkFunction) {
-          for (size_t iVertex1{iExecutor * stride}; iVertex1 < stride * (iExecutor + 1) && iVertex1 < mVertices->size(); ++iVertex1) {
-            for (size_t iVertex2{0}; iVertex2 < mVertices->size(); ++iVertex2) {
+          for (std::size_t iVertex1{iExecutor * stride}; iVertex1 < stride * (iExecutor + 1) && iVertex1 < mVertices->size(); ++iVertex1) {
+            for (std::size_t iVertex2{0}; iVertex2 < mVertices->size(); ++iVertex2) {
               if (iVertex1 != iVertex2 && linkFunction((*mVertices)[iVertex1], (*mVertices)[iVertex2])) {
                 mEdges[iVertex1].emplace_back(iVertex2);
               }
@@ -131,9 +131,9 @@ void Graph<T>::computeEdges(std::function<bool(const T& v1, const T& v2)> linkFu
   }
 }
 template <typename T>
-void Graph<T>::findVertexEdges(std::vector<Edge>& localEdges, const T& vertex, const size_t vId, const size_t size)
+void Graph<T>::findVertexEdges(std::vector<Edge>& localEdges, const T& vertex, const std::size_t vId, const std::size_t size)
 {
-  for (size_t iVertex2{0}; iVertex2 < size; ++iVertex2) {
+  for (std::size_t iVertex2{0}; iVertex2 < size; ++iVertex2) {
     if (vId != iVertex2 && mLinkFunction(vertex, (*mVertices)[iVertex2])) {
       localEdges.emplace_back(iVertex2);
     }
@@ -166,7 +166,7 @@ std::vector<unsigned char> Graph<T>::getCluster(const int vertexId)
       }
     }
   } else {
-    const size_t stride{static_cast<size_t>(std::ceil(static_cast<float>(this->mVertices->size()) / static_cast<size_t>(this->mExecutors.size())))};
+    const std::size_t stride{static_cast<std::size_t>(std::ceil(static_cast<float>(this->mVertices->size()) / static_cast<std::size_t>(this->mExecutors.size())))};
     std::vector<unsigned char> frontier(mVertices->size(), false);
     std::vector<unsigned char> flags(mVertices->size(), false);
 
@@ -175,10 +175,10 @@ std::vector<unsigned char> Graph<T>::getCluster(const int vertexId)
     while (std::any_of(frontier.begin(), frontier.end(), [](const char t) { return t; })) {
       flags.resize(mVertices->size(), false);
       Barrier barrier(mExecutors.size());
-      for (size_t iExecutor{0}; iExecutor < this->mExecutors.size(); ++iExecutor) {
+      for (std::size_t iExecutor{0}; iExecutor < this->mExecutors.size(); ++iExecutor) {
         mExecutors[iExecutor] = std::thread(
           [&stride, &frontier, &visited, &barrier, &flags, this](const int executorId) {
-            for (size_t iVertex{executorId * stride}; iVertex < stride * (executorId + 1) && iVertex < this->mVertices->size(); ++iVertex) {
+            for (std::size_t iVertex{executorId * stride}; iVertex < stride * (executorId + 1) && iVertex < this->mVertices->size(); ++iVertex) {
               if (frontier[iVertex]) {
                 flags[iVertex] = true;
                 frontier[iVertex] = false;
@@ -186,7 +186,7 @@ std::vector<unsigned char> Graph<T>::getCluster(const int vertexId)
               }
             }
             barrier.Wait();
-            for (size_t iVertex{executorId * stride}; iVertex < stride * (executorId + 1) && iVertex < this->mVertices->size(); ++iVertex) {
+            for (std::size_t iVertex{executorId * stride}; iVertex < stride * (executorId + 1) && iVertex < this->mVertices->size(); ++iVertex) {
               if (flags[iVertex]) {
                 for (auto& edge : mEdges[iVertex]) {
                   if (!visited[edge]) {
@@ -211,7 +211,7 @@ std::vector<int> Graph<T>::getClusterIndices(const std::vector<unsigned char> vi
 {
   // Return a smaller vector only with the int IDs of the vertices belonging to cluster
   std::vector<int> indices;
-  for (size_t iVisited{0}; iVisited < visited.size(); ++iVisited) {
+  for (std::size_t iVisited{0}; iVisited < visited.size(); ++iVisited) {
     if (visited[iVisited]) {
       indices.emplace_back(iVisited);
     }

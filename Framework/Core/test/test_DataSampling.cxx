@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
       Inputs{{"dataTPC", "TPC", "CLUSTERS"}},
       Outputs{{"TPC", "CLUSTERS_P"}}},
     3,
-    [](DataProcessorSpec& spec, size_t index) {
+    [](DataProcessorSpec& spec, std::size_t index) {
       DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
       DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
     });

@@ -56,7 +56,7 @@ struct ExpirationHandlerHelpers {
     };
   }
 
-  static RouteConfigurator::CreationConfigurator enumDrivenConfigurator(InputSpec const& matcher, size_t inputTimeslice, size_t maxInputTimeslices)
+  static RouteConfigurator::CreationConfigurator enumDrivenConfigurator(InputSpec const& matcher, std::size_t inputTimeslice, std::size_t maxInputTimeslices)
   {
     return [matcher, inputTimeslice, maxInputTimeslices](ConfigParamRegistry const& options) {
       std::string startName = std::string{"start-value-"} + matcher.binding;
@@ -198,7 +198,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
                                               std::vector<DeviceId>& deviceIndex,
                                               std::vector<DeviceConnectionId>& connections,
                                               ResourceManager& resourceManager,
-                                              const std::vector<size_t>& outEdgeIndex,
+                                              const std::vector<std::size_t>& outEdgeIndex,
                                               const std::vector<DeviceConnectionEdge>& logicalEdges,
                                               const std::vector<EdgeAction>& actions, const WorkflowSpec& workflow,
                                               const std::vector<OutputSpec>& outputsMatchers,
@@ -212,7 +212,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
 
   // Edges are navigated in order for each device, so the device associaited to
   // an edge is always the last one created.
-  auto deviceForEdge = [&actions, &workflow, &devices, &logicalEdges, &resourceManager, &defaultOffer](size_t ei, ComputingOffer& acceptedOffer) {
+  auto deviceForEdge = [&actions, &workflow, &devices, &logicalEdges, &resourceManager, &defaultOffer](std::size_t ei, ComputingOffer& acceptedOffer) {
     auto& edge = logicalEdges[ei];
     auto& action = actions[ei];
 
@@ -285,7 +285,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
     return std::move(channel);
   };
 
-  auto isDifferentDestinationDeviceReferredBy = [&actions](size_t ei) { return actions[ei].requiresNewChannel; };
+  auto isDifferentDestinationDeviceReferredBy = [&actions](std::size_t ei) { return actions[ei].requiresNewChannel; };
 
   // This creates a new channel for a given edge, if needed. Notice that we
   // navigate edges in a per device fashion (creating those if they are not
@@ -294,7 +294,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
   // in the action.requiresNewChannel field.
   auto createChannelForDeviceEdge = [&devices, &logicalEdges, &channelFromDeviceEdgeAndPort,
                                      &outputsMatchers, &deviceIndex,
-                                     &workflow](size_t di, size_t ei, ComputingOffer& offer) {
+                                     &workflow](std::size_t di, std::size_t ei, ComputingOffer& offer) {
     auto& device = devices[di];
     auto& edge = logicalEdges[ei];
 
@@ -311,7 +311,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
   // a previous consumer device.
   // FIXME: where do I find the InputSpec for the forward?
   auto appendOutputRouteToSourceDeviceChannel = [&outputsMatchers, &workflow, &devices, &logicalEdges](
-                                                  size_t ei, size_t di, size_t ci) {
+                                                  std::size_t ei, std::size_t di, std::size_t ci) {
     assert(ei < logicalEdges.size());
     assert(di < devices.size());
     assert(ci < devices[di].outputChannels.size());
@@ -341,7 +341,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
 
   auto sortDeviceIndex = [&deviceIndex]() { std::sort(deviceIndex.begin(), deviceIndex.end()); };
 
-  auto lastChannelFor = [&devices](size_t di) {
+  auto lastChannelFor = [&devices](std::size_t di) {
     assert(di < devices.size());
     assert(devices[di].outputChannels.empty() == false);
     return devices[di].outputChannels.size() - 1;
@@ -360,7 +360,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
   ComputingOffer acceptedOffer;
   for (auto edge : outEdgeIndex) {
     auto device = deviceForEdge(edge, acceptedOffer);
-    size_t channel = -1;
+    std::size_t channel = -1;
     if (isDifferentDestinationDeviceReferredBy(edge)) {
       channel = createChannelForDeviceEdge(device, edge, acceptedOffer);
     } else {
@@ -376,7 +376,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
                                              std::vector<DeviceId>& deviceIndex,
                                              const std::vector<DeviceConnectionId>& connections,
                                              ResourceManager& resourceManager,
-                                             const std::vector<size_t>& inEdgeIndex,
+                                             const std::vector<std::size_t>& inEdgeIndex,
                                              const std::vector<DeviceConnectionEdge>& logicalEdges,
                                              const std::vector<EdgeAction>& actions, const WorkflowSpec& workflow,
                                              std::vector<LogicalForwardInfo> const& availableForwardsInfo,
@@ -385,7 +385,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
 {
   auto const& constDeviceIndex = deviceIndex;
 
-  auto findProducerForEdge = [&logicalEdges, &constDeviceIndex](size_t ei) {
+  auto findProducerForEdge = [&logicalEdges, &constDeviceIndex](std::size_t ei) {
     auto& edge = logicalEdges[ei];
 
     DeviceId pid{edge.producer, edge.producerTimeIndex, 0};
@@ -403,9 +403,9 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
   //
   // Notice this is not thread safe.
   decltype(deviceIndex.begin()) lastConsumerSearch;
-  size_t lastConsumerSearchEdge;
+  std::size_t lastConsumerSearchEdge;
   auto hasConsumerForEdge = [&lastConsumerSearch, &lastConsumerSearchEdge, &deviceIndex,
-                             &logicalEdges](size_t ei) -> int {
+                             &logicalEdges](std::size_t ei) -> int {
     auto& edge = logicalEdges[ei];
     DeviceId cid{edge.consumer, edge.timeIndex, 0};
     lastConsumerSearchEdge = ei; // This will invalidate the cache
@@ -416,12 +416,12 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
 
   // The passed argument is there just to check. We do know that the last searched
   // is the one we want.
-  auto getConsumerForEdge = [&lastConsumerSearch, &lastConsumerSearchEdge](size_t ei) {
+  auto getConsumerForEdge = [&lastConsumerSearch, &lastConsumerSearchEdge](std::size_t ei) {
     assert(ei == lastConsumerSearchEdge);
     return lastConsumerSearch->deviceIndex;
   };
 
-  auto createNewDeviceForEdge = [&workflow, &logicalEdges, &devices, &deviceIndex, &resourceManager, &defaultOffer](size_t ei, ComputingOffer& acceptedOffer) {
+  auto createNewDeviceForEdge = [&workflow, &logicalEdges, &devices, &deviceIndex, &resourceManager, &defaultOffer](std::size_t ei, ComputingOffer& acceptedOffer) {
     auto& edge = logicalEdges[ei];
 
     if (acceptedOffer.hostname != "") {
@@ -472,7 +472,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
   // This is to retrieve the port of the source.
   // This has to exists, because we already created all the outgoing connections
   // so it's just a matter of looking it up.
-  auto findMatchingOutgoingPortForEdge = [&logicalEdges, &connections](size_t ei) {
+  auto findMatchingOutgoingPortForEdge = [&logicalEdges, &connections](std::size_t ei) {
     auto const& edge = logicalEdges[ei];
     DeviceConnectionId connectionId{edge.producer, edge.consumer, edge.timeIndex, edge.producerTimeIndex, 0};
 
@@ -495,7 +495,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     return true;
   };
   auto appendInputChannelForConsumerDevice = [&devices, &connections, &checkNoDuplicatesFor, &channelPolicies](
-                                               size_t pi, size_t ci, unsigned short port) {
+                                               std::size_t pi, std::size_t ci, unsigned short port) {
     auto const& producerDevice = devices[pi];
     auto& consumerDevice = devices[ci];
     InputChannelSpec channel;
@@ -516,7 +516,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
   // I think this is trivial, since I think it should always be the last one,
   // in case it's not actually the case, I should probably do an actual lookup
   // here.
-  auto getChannelForEdge = [&devices](size_t pi, size_t ci) {
+  auto getChannelForEdge = [&devices](std::size_t pi, std::size_t ci) {
     auto& consumerDevice = devices[ci];
     return consumerDevice.inputChannels.size() - 1;
   };
@@ -525,7 +525,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
   // to back. Notice also that this is the place where it makes sense to
   // assign the forwarding, given that the forwarded stuff comes from some
   // input.
-  auto appendInputRouteToDestDeviceChannel = [&devices, &logicalEdges, &workflow](size_t ei, size_t di, size_t ci) {
+  auto appendInputRouteToDestDeviceChannel = [&devices, &logicalEdges, &workflow](std::size_t ei, std::size_t di, std::size_t ci) {
     auto const& edge = logicalEdges[ei];
     auto const& consumer = workflow[edge.consumer];
     auto& consumerDevice = devices[di];
@@ -579,7 +579,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     // produced the same route, i.e. has the same matcher.  Without this,
     // otherwise, we would end up with as many input routes as the outputs that
     // can be matched by the wildcard.
-    for (size_t iri = 0; iri < consumerDevice.inputs.size(); ++iri) {
+    for (std::size_t iri = 0; iri < consumerDevice.inputs.size(); ++iri) {
       auto& existingRoute = consumerDevice.inputs[iri];
       if (existingRoute.timeslice != edge.producerTimeIndex) {
         continue;
@@ -597,10 +597,10 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
   // New InputChannels need to refer to preexisting OutputChannels we create
   // previously.
   ComputingOffer acceptedOffer;
-  for (size_t edge : inEdgeIndex) {
+  for (std::size_t edge : inEdgeIndex) {
     auto& action = actions[edge];
 
-    size_t consumerDevice;
+    std::size_t consumerDevice;
 
     if (action.requiresNewDevice) {
       if (hasConsumerForEdge(edge)) {
@@ -609,9 +609,9 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
         consumerDevice = createNewDeviceForEdge(edge, acceptedOffer);
       }
     }
-    size_t producerDevice = findProducerForEdge(edge);
+    std::size_t producerDevice = findProducerForEdge(edge);
 
-    size_t channel = -1;
+    std::size_t channel = -1;
     if (action.requiresNewChannel) {
       int16_t port = findMatchingOutgoingPortForEdge(edge);
       channel = appendInputChannelForConsumerDevice(producerDevice, consumerDevice, port);
@@ -658,15 +658,15 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
   // port (me, other) and add an input.
 
   // Fill an index to do the sorting
-  std::vector<size_t> inEdgeIndex;
-  std::vector<size_t> outEdgeIndex;
+  std::vector<std::size_t> inEdgeIndex;
+  std::vector<std::size_t> outEdgeIndex;
   WorkflowHelpers::sortEdges(inEdgeIndex, outEdgeIndex, logicalEdges);
 
   std::vector<EdgeAction> outActions = WorkflowHelpers::computeOutEdgeActions(logicalEdges, outEdgeIndex);
   // Crete the connections on the inverse map for all of them
   // lookup for port and add as input of the current device.
   std::vector<EdgeAction> inActions = WorkflowHelpers::computeInEdgeActions(logicalEdges, inEdgeIndex);
-  size_t deviceCount = 0;
+  std::size_t deviceCount = 0;
   for (auto& action : outActions) {
     deviceCount += action.requiresNewDevice ? 1 : 0;
   }
@@ -709,7 +709,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
     }
   }
 
-  auto findDeviceIndex = [&deviceIndex](size_t processorIndex, size_t timeslice) {
+  auto findDeviceIndex = [&deviceIndex](std::size_t processorIndex, std::size_t timeslice) {
     for (auto& deviceEdge : deviceIndex) {
       if (deviceEdge.processorIndex != processorIndex) {
         continue;
@@ -753,7 +753,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
 {
   assert(deviceSpecs.size() == deviceExecutions.size());
   assert(deviceControls.size() == deviceExecutions.size());
-  for (size_t si = 0; si < deviceSpecs.size(); ++si) {
+  for (std::size_t si = 0; si < deviceSpecs.size(); ++si) {
     auto& spec = deviceSpecs[si];
     auto& control = deviceControls[si];
     auto& execution = deviceExecutions[si];
@@ -772,7 +772,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         argc = processorInfo.cmdLineArgs.size() + 1;
         argv = (char**)malloc(sizeof(char**) * (argc + 1));
         argv[0] = strdup(processorInfo.executable.data());
-        for (size_t ai = 0; ai < processorInfo.cmdLineArgs.size(); ++ai) {
+        for (std::size_t ai = 0; ai < processorInfo.cmdLineArgs.size(); ++ai) {
           auto& arg = processorInfo.cmdLineArgs[ai];
           argv[ai + 1] = strdup(arg.data());
         }
@@ -929,7 +929,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
 
     // FIXME: this should probably be reflected in the GUI
     std::ostringstream str;
-    for (size_t ai = 0; ai < execution.args.size() - 1; ai++) {
+    for (std::size_t ai = 0; ai < execution.args.size() - 1; ai++) {
       if (execution.args[ai] == nullptr) {
         LOG(ERROR) << "Bad argument for " << execution.args[ai - 1];
       }

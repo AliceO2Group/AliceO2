@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   BOOST_CHECK_EQUAL(tests.y(), 1);
   using Test = o2::soa::Table<test::X, test::Y>;
   Test tests2{table};
-  size_t value = 0;
+  std::size_t value = 0;
   auto b = tests2.begin();
   auto e = tests2.end();
   BOOST_CHECK(b != e);

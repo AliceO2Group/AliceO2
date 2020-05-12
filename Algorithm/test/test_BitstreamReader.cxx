@@ -34,8 +34,8 @@ BOOST_AUTO_TEST_CASE(test_BitstreamReader_basic)
   std::array<uint8_t, 8> data = {'d', 'e', 'a', 'd', 'b', 'e', 'e', 'f'};
   std::array<uint8_t, 10> expected7bit = {0x32, 0x19, 0x2c, 0x16, 0x23, 0x09, 0x4a, 0x65, 0x33, 0x0};
   auto reference = expected7bit.begin();
-  constexpr size_t totalBits = data.size() * sizeof(decltype(data)::value_type) * 8;
-  size_t bitsRead = 0;
+  constexpr std::size_t totalBits = data.size() * sizeof(decltype(data)::value_type) * 8;
+  std::size_t bitsRead = 0;
 
   BitstreamReader<uint8_t> reader(data.data(), data.data() + data.size());
   while (bitsRead < totalBits) {
@@ -61,8 +61,8 @@ BOOST_AUTO_TEST_CASE(test_BitstreamReader_operator)
   std::array<uint8_t, 8> data = {'d', 'e', 'a', 'd', 'b', 'e', 'e', 'f'};
   std::array<uint8_t, 10> expected7bit = {0x32, 0x19, 0x2c, 0x16, 0x23, 0x09, 0x4a, 0x65, 0x33, 0x0};
   auto reference = expected7bit.begin();
-  constexpr size_t totalBits = data.size() * sizeof(decltype(data)::value_type) * 8;
-  size_t bitsRead = 0;
+  constexpr std::size_t totalBits = data.size() * sizeof(decltype(data)::value_type) * 8;
+  std::size_t bitsRead = 0;
 
   BitstreamReader<uint8_t> reader(data.data(), data.data() + data.size());
   while (bitsRead < totalBits) {
@@ -90,8 +90,8 @@ BOOST_AUTO_TEST_CASE(test_BitstreamReader_bitset)
   std::array<uint8_t, 8> data = {'d', 'e', 'a', 'd', 'b', 'e', 'e', 'f'};
   std::array<uint8_t, 10> expected7bit = {0x32, 0x19, 0x2c, 0x16, 0x23, 0x09, 0x4a, 0x65, 0x33, 0x0};
   auto reference = expected7bit.begin();
-  constexpr size_t totalBits = data.size() * sizeof(decltype(data)::value_type) * 8;
-  size_t bitsRead = 0;
+  constexpr std::size_t totalBits = data.size() * sizeof(decltype(data)::value_type) * 8;
+  std::size_t bitsRead = 0;
 
   BitstreamReader<uint8_t> reader(data.data(), data.data() + data.size());
   while (bitsRead < totalBits) {

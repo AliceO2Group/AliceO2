@@ -43,7 +43,7 @@ std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared
     // Let's do this with stable sorting.
     return (!f1->Equals(f2)) && (f1->name() < f2->name());
   };
-  for (size_t i = 1; i < tables.size(); ++i) {
+  for (std::size_t i = 1; i < tables.size(); ++i) {
     auto& fields = tables[i]->schema()->fields();
     std::vector<std::shared_ptr<arrow::Field>> intersection;
 

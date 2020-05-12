@@ -41,9 +41,9 @@ class Encoder
   Encoder<coder_T, stream_T, source_T>& operator=(const Encoder& e);
   Encoder<coder_T, stream_T, source_T>& operator=(Encoder&& e) = default;
 
-  Encoder(const encoderSymbolTable_t& e, size_t probabilityBits);
-  Encoder(encoderSymbolTable_t&& e, size_t probabilityBits);
-  Encoder(const SymbolStatistics& stats, size_t probabilityBits);
+  Encoder(const encoderSymbolTable_t& e, std::size_t probabilityBits);
+  Encoder(encoderSymbolTable_t&& e, std::size_t probabilityBits);
+  Encoder(const SymbolStatistics& stats, std::size_t probabilityBits);
 
   template <typename stream_IT, typename source_IT>
   const stream_IT process(const stream_IT outputBegin, const stream_IT outputEnd,
@@ -55,7 +55,7 @@ class Encoder
 
  private:
   std::unique_ptr<encoderSymbolTable_t> mSymbolTable;
-  size_t mProbabilityBits;
+  std::size_t mProbabilityBits;
 
   using ransCoder = Coder<coder_T, stream_T>;
 };
@@ -75,17 +75,17 @@ Encoder<coder_T, stream_T, source_T>& Encoder<coder_T, stream_T, source_T>::oper
 };
 
 template <typename coder_T, typename stream_T, typename source_T>
-Encoder<coder_T, stream_T, source_T>::Encoder(const encoderSymbolTable_t& e, size_t probabilityBits) : mSymbolTable(nullptr), mProbabilityBits(probabilityBits)
+Encoder<coder_T, stream_T, source_T>::Encoder(const encoderSymbolTable_t& e, std::size_t probabilityBits) : mSymbolTable(nullptr), mProbabilityBits(probabilityBits)
 {
   mSymbolTable = std::make_unique<encoderSymbolTable_t>(e);
 };
 
 template <typename coder_T, typename stream_T, typename source_T>
-Encoder<coder_T, stream_T, source_T>::Encoder(encoderSymbolTable_t&& e, size_t probabilityBits) : mSymbolTable(std::move(e.mSymbolTable)), mProbabilityBits(probabilityBits){};
+Encoder<coder_T, stream_T, source_T>::Encoder(encoderSymbolTable_t&& e, std::size_t probabilityBits) : mSymbolTable(std::move(e.mSymbolTable)), mProbabilityBits(probabilityBits){};
 
 template <typename coder_T, typename stream_T, typename source_T>
 Encoder<coder_T, stream_T, source_T>::Encoder(const SymbolStatistics& stats,
-                                              size_t probabilityBits) : mSymbolTable(nullptr), mProbabilityBits(probabilityBits)
+                                              std::size_t probabilityBits) : mSymbolTable(nullptr), mProbabilityBits(probabilityBits)
 {
   mSymbolTable = std::make_unique<encoderSymbolTable_t>(stats, probabilityBits);
 }

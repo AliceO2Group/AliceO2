@@ -34,8 +34,8 @@ std::ostream& operator<<(std::ostream& oss, MetricType const& val);
 
 struct MetricInfo {
   enum MetricType type;
-  size_t storeIdx; // Index in the actual store
-  size_t pos;      // Last position in the circular buffer
+  std::size_t storeIdx; // Index in the actual store
+  std::size_t pos;      // Last position in the circular buffer
 };
 
 // We keep only fixed lenght strings for metrics, as in the end this is not
@@ -48,8 +48,8 @@ struct StringMetric {
 // Also for the keys it does not make much sense to keep more than 256 chars.
 // They should be nevertheless 0 terminated.
 struct MetricLabelIndex {
-  static constexpr size_t MAX_METRIC_LABEL_SIZE = 256 - sizeof(size_t); // Maximum size for a metric name.
-  size_t index;
+  static constexpr std::size_t MAX_METRIC_LABEL_SIZE = 256 - sizeof(std::size_t); // Maximum size for a metric name.
+  std::size_t index;
   char label[MAX_METRIC_LABEL_SIZE];
 };
 
@@ -57,7 +57,7 @@ struct MetricLabelIndex {
 struct ParsedMetricMatch {
   char const* beginKey;
   char const* endKey;
-  size_t timestamp;
+  std::size_t timestamp;
   MetricType type;
   int intValue;
   float floatValue;
@@ -73,11 +73,11 @@ struct DeviceMetricsInfo {
   std::vector<std::array<int, 1024>> intMetrics;
   std::vector<std::array<StringMetric, 32>> stringMetrics; // We do not keep so many strings as metrics as history is less relevant.
   std::vector<std::array<float, 1024>> floatMetrics;
-  std::vector<std::array<size_t, 1024>> timestamps;
+  std::vector<std::array<std::size_t, 1024>> timestamps;
   std::vector<float> max;
   std::vector<float> min;
-  std::vector<size_t> minDomain;
-  std::vector<size_t> maxDomain;
+  std::vector<std::size_t> minDomain;
+  std::vector<std::size_t> maxDomain;
   std::vector<MetricLabelIndex> metricLabelsIdx;
   std::vector<MetricInfo> metrics;
 };
@@ -85,7 +85,7 @@ struct DeviceMetricsInfo {
 struct DeviceMetricsHelper {
   /// Type of the callback which can be provided to be invoked every time a new
   /// metric is found by the system.
-  using NewMetricCallback = std::function<void(std::string const&, MetricInfo const&, int value, size_t metricIndex)>;
+  using NewMetricCallback = std::function<void(std::string const&, MetricInfo const&, int value, std::size_t metricIndex)>;
 
   /// Helper function to parse a metric string.
   static bool parseMetric(std::string_view const s, ParsedMetricMatch& results);
@@ -98,8 +98,8 @@ struct DeviceMetricsHelper {
   static bool processMetric(ParsedMetricMatch& results,
                             DeviceMetricsInfo& info,
                             NewMetricCallback newMetricCallback = nullptr);
-  static size_t metricIdxByName(const std::string& name,
-                                const DeviceMetricsInfo& info);
+  static std::size_t metricIdxByName(const std::string& name,
+                                     const DeviceMetricsInfo& info);
 };
 
 } // namespace framework

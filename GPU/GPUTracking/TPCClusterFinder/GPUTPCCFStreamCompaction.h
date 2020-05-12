@@ -55,7 +55,7 @@ class GPUTPCCFStreamCompaction
   static GPUd() void compactImpl(int, int, int, int, GPUSharedMemory&,
                                  const ChargePos*, ChargePos*,
                                  const uchar*, int*, const int*,
-                                 int, size_t);
+                                 int, std::size_t);
 
 #ifdef HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;

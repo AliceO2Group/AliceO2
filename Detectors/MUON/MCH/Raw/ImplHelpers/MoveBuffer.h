@@ -20,9 +20,9 @@ namespace o2::mch::raw::impl
 
 /// Copy the content of b64 to b8
 /// Returns the number of bytes copied into b8.
-size_t copyBuffer(const std::vector<uint64_t>& b64,
-                  std::vector<std::byte>& b8,
-                  uint64_t prefix = 0)
+std::size_t copyBuffer(const std::vector<uint64_t>& b64,
+                       std::vector<std::byte>& b8,
+                       uint64_t prefix = 0)
 {
   constexpr uint64_t m = 0xFF;
   auto s8 = b8.size();
@@ -39,9 +39,9 @@ size_t copyBuffer(const std::vector<uint64_t>& b64,
 
 /// Move the content of b64 to b8 and clears b64.
 /// Returns the number of bytes moved into b8.
-size_t moveBuffer(std::vector<uint64_t>& b64,
-                  std::vector<std::byte>& b8,
-                  uint64_t prefix = 0)
+std::size_t moveBuffer(std::vector<uint64_t>& b64,
+                       std::vector<std::byte>& b8,
+                       uint64_t prefix = 0)
 {
   auto s = copyBuffer(b64, b8, prefix);
   b64.clear();

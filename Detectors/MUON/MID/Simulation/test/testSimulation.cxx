@@ -72,7 +72,7 @@ struct SimDigitizer {
 static SimDigitizer simDigitizer;
 
 struct SimClustering {
-  std::vector<std::array<size_t, 2>> correlation;
+  std::vector<std::array<std::size_t, 2>> correlation;
   PreClusterizer preClusterizer;
   Clusterizer clusterizer;
   PreClusterHelper preClusterHelper;
@@ -82,7 +82,7 @@ struct SimClustering {
   {
     correlation.clear();
     preClusterizer.init();
-    clusterizer.init([&](size_t baseIndex, size_t relatedIndex) { correlation.push_back({baseIndex, relatedIndex}); });
+    clusterizer.init([&](std::size_t baseIndex, std::size_t relatedIndex) { correlation.push_back({baseIndex, relatedIndex}); });
   }
 };
 
@@ -109,7 +109,7 @@ struct GenTrack {
   bool isReconstructible() { return nFiredChambers > 2; }
 };
 
-std::vector<Hit> generateHits(size_t nHits, int deId, const Mapping& mapping, const GeometryTransformer geoTrans)
+std::vector<Hit> generateHits(std::size_t nHits, int deId, const Mapping& mapping, const GeometryTransformer geoTrans)
 {
   std::vector<Hit> hits;
   std::random_device rd;
@@ -192,7 +192,7 @@ bool checkLabel(const ColumnData& digit, MCLabel& label, std::string& errorMessa
 std::vector<PreCluster> getRelatedPreClusters(const Hit& hit, int cathode, const std::vector<PreCluster>& preClusters, const o2::dataformats::MCTruthContainer<MCCompLabel>& labels, const ROFRecord& rofRecord)
 {
   std::vector<PreCluster> sortedPC;
-  for (size_t ipc = rofRecord.firstEntry; ipc < rofRecord.firstEntry + rofRecord.nEntries; ++ipc) {
+  for (std::size_t ipc = rofRecord.firstEntry; ipc < rofRecord.firstEntry + rofRecord.nEntries; ++ipc) {
     for (auto& label : labels.getLabels(ipc)) {
       if (label.getTrackID() == hit.GetTrackID() && preClusters[ipc].cathode == cathode) {
         sortedPC.emplace_back(preClusters[ipc]);
@@ -235,13 +235,13 @@ bool isInside(double localX, double localY, const std::vector<PreCluster>& sorte
 std::string getDebugInfo(const std::vector<GenTrack>& genTracks, Tracker& tracker, TrackLabeler& trackLabeler, const ROFRecord& rofTrack, const ROFRecord& rofCluster)
 {
   std::stringstream debug;
-  for (size_t igen = 0; igen < genTracks.size(); ++igen) {
+  for (std::size_t igen = 0; igen < genTracks.size(); ++igen) {
     debug << "Gen: " << genTracks[igen].track << "\n  hits:\n";
     for (auto& hit : genTracks[igen].hits) {
       debug << "    " << hit << "\n";
     }
     debug << "  clusters:\n";
-    for (size_t icl = rofCluster.firstEntry; icl < rofCluster.firstEntry + rofCluster.nEntries; ++icl) {
+    for (std::size_t icl = rofCluster.firstEntry; icl < rofCluster.firstEntry + rofCluster.nEntries; ++icl) {
       bool matches = false;
       for (auto& label : trackLabeler.getTrackClustersLabels().getLabels(icl)) {
         if (label.getTrackID() == igen) {
@@ -255,7 +255,7 @@ std::string getDebugInfo(const std::vector<GenTrack>& genTracks, Tracker& tracke
     }
   }
 
-  for (size_t itrack = rofTrack.firstEntry; itrack < rofTrack.firstEntry + rofTrack.nEntries; ++itrack) {
+  for (std::size_t itrack = rofTrack.firstEntry; itrack < rofTrack.firstEntry + rofTrack.nEntries; ++itrack) {
     debug << "reco: " << tracker.getTracks()[itrack] << "  matches:";
     for (auto& label : trackLabeler.getTracksLabels().getLabels(itrack)) {
       debug << "  " << label.getTrackID();
@@ -292,13 +292,13 @@ BOOST_AUTO_TEST_SUITE(o2_mid_simulation)
 BOOST_DATA_TEST_CASE(MID_DigitMerger, boost::unit_test::data::make(getDEList()), deId)
 {
   // Test the merging of the MC digits
-  size_t nEvents = 20;
+  std::size_t nEvents = 20;
   std::vector<std::vector<ColumnDataMC>> digitsCollection;
   std::vector<o2::dataformats::MCTruthContainer<MCLabel>> mcContainerCollection;
   std::vector<ColumnDataMC> digits;
   o2::dataformats::MCTruthContainer<MCLabel> mcContainer;
   std::vector<ROFRecord> rofRecords;
-  for (size_t ievent = 0; ievent < nEvents; ++ievent) {
+  for (std::size_t ievent = 0; ievent < nEvents; ++ievent) {
     // Generate digits per event. Each event has a different timestamp
     auto hits = generateHits(1, deId, simBase.mapping, simBase.geoTrans);
     digitsCollection.push_back({});
@@ -334,7 +334,7 @@ BOOST_DATA_TEST_CASE(MID_Digitizer, boost::unit_test::data::make(getDEList()), d
   rofRecords.emplace_back(1, EventType::Standard, 0, digitStoreMC.size());
   // We check that we have as many sets of labels as digits
   BOOST_TEST(digitStoreMC.size() == digitLabelsMC.getIndexedSize());
-  for (size_t idig = 0; idig < digitLabelsMC.getIndexedSize(); ++idig) {
+  for (std::size_t idig = 0; idig < digitLabelsMC.getIndexedSize(); ++idig) {
     auto labels = digitLabelsMC.getLabels(idig);
     auto digit = digitStoreMC[idig];
     // Then for each label we check that the parameters correctly identify the digit
@@ -445,7 +445,7 @@ BOOST_DATA_TEST_CASE(MID_SimClusters, boost::unit_test::data::make(getDEList()),
   // Check that all pre-clusters have a label
   BOOST_TEST(simClustering.preClusterizer.getPreClusters().size() == simClustering.preClusterLabeler.getContainer().getIndexedSize());
   // Check that the pre-clusters contain the hits from which they were generated
-  for (size_t ievent = 0; ievent < hitsCollection.size(); ++ievent) {
+  for (std::size_t ievent = 0; ievent < hitsCollection.size(); ++ievent) {
     for (auto& hit : hitsCollection[ievent]) {
       auto pt = simBase.geoTrans.globalToLocal(hit.GetDetectorID(), hit.middlePoint());
       // Check only the NBP, since in the BP we can have 1 pre-cluster per column
@@ -514,7 +514,7 @@ BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5,
 
   unsigned long int nGood = 0, nUntagged = 0, nTaggedNonCompatible = 0, nReconstructible = 0;
 
-  for (size_t ievent = 0; ievent < 100; ++ievent) {
+  for (std::size_t ievent = 0; ievent < 100; ++ievent) {
     auto genTracks = generateTracks(nTracks);
     std::vector<Hit> hits;
     for (auto& genTrack : genTracks) {
@@ -548,12 +548,12 @@ BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5,
 
   std::string debugInfo = "";
   // Test that all reconstructible tracks are reconstructed
-  for (size_t ievent = 0; ievent < genTrackCollection.size(); ++ievent) {
+  for (std::size_t ievent = 0; ievent < genTrackCollection.size(); ++ievent) {
     auto firstTrack = simTracking.tracker.getTrackROFRecords()[ievent].firstEntry;
     auto nTracks = simTracking.tracker.getTrackROFRecords()[ievent].nEntries;
-    for (size_t igen = 0; igen < genTrackCollection[ievent].size(); ++igen) {
+    for (std::size_t igen = 0; igen < genTrackCollection[ievent].size(); ++igen) {
       bool isReco = false;
-      for (size_t itrack = firstTrack; itrack < firstTrack + nTracks; ++itrack) {
+      for (std::size_t itrack = firstTrack; itrack < firstTrack + nTracks; ++itrack) {
         for (auto& label : simTracking.trackLabeler.getTracksLabels().getLabels(itrack)) {
           if (label.getTrackID() == igen) {
             if (simTracking.tracker.getTracks()[itrack].isCompatible(genTrackCollection[ievent][igen].track, chi2Cut)) {
@@ -577,7 +577,7 @@ BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5,
     } // loop on generated tracks
 
     // Perform some statistics
-    for (size_t itrack = firstTrack; itrack < firstTrack + nTracks; ++itrack) {
+    for (std::size_t itrack = firstTrack; itrack < firstTrack + nTracks; ++itrack) {
       for (auto& label : simTracking.trackLabeler.getTracksLabels().getLabels(itrack)) {
         if (label.isEmpty()) {
           ++nUntagged;

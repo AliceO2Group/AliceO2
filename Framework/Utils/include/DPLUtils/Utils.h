@@ -31,9 +31,9 @@ std::shared_ptr<std::vector<o2f::Output>> getOutputList(const o2f::Outputs outpu
 
 // Broadcaster implementations
 o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usrInput, o2f::Outputs usrOutputs,
-                                         std::function<size_t(o2f::DataRef)> const func);
+                                         std::function<std::size_t(o2f::DataRef)> const func);
 o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usrInput, o2f::Outputs usrOutputs,
-                                         size_t fixMsgSize);
+                                         std::size_t fixMsgSize);
 o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usrInput, o2f::Outputs usrOutputs);
 
 using OutputBuffer = o2::vector<char>;
@@ -44,7 +44,7 @@ o2f::DataProcessorSpec defineMerger(std::string devName, o2f::Inputs usrInputs, 
 
 // Splitter implementation
 o2f::DataProcessorSpec defineRouter(std::string devName, o2f::Inputs usrInput, o2f::Outputs usrOutputs,
-                                    std::function<size_t(const o2f::DataRef)> const mappingFunc);
+                                    std::function<std::size_t(const o2f::DataRef)> const mappingFunc);
 
 // Gatherer implementation
 o2f::DataProcessorSpec defineGatherer(std::string devName, o2f::Inputs usrInputs, o2f::OutputSpec usrOutput);

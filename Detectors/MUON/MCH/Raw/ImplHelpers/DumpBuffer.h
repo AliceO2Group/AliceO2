@@ -39,7 +39,7 @@ void dumpByteBuffer(gsl::span<T> buffer)
   std::cout << "\n";
 }
 
-uint64_t b8to64(gsl::span<const std::byte> buffer, size_t i)
+uint64_t b8to64(gsl::span<const std::byte> buffer, std::size_t i)
 {
   return (static_cast<uint64_t>(buffer[i + 0])) |
          (static_cast<uint64_t>(buffer[i + 1]) << 8) |
@@ -64,10 +64,10 @@ void append(std::vector<std::byte>& buffer, uint64_t w)
 }
 
 template <typename FORMAT>
-void dumpBuffer(gsl::span<const std::byte> buffer, std::ostream& out = std::cout, size_t maxbytes = std::numeric_limits<size_t>::max());
+void dumpBuffer(gsl::span<const std::byte> buffer, std::ostream& out = std::cout, std::size_t maxbytes = std::numeric_limits<std::size_t>::max());
 
 template <>
-void dumpBuffer<o2::mch::raw::BareFormat>(gsl::span<const std::byte> buffer, std::ostream& out, size_t maxbytes)
+void dumpBuffer<o2::mch::raw::BareFormat>(gsl::span<const std::byte> buffer, std::ostream& out, std::size_t maxbytes)
 {
   int i{0};
   int inRDH{0};
@@ -121,7 +121,7 @@ void dumpBuffer<o2::mch::raw::BareFormat>(gsl::span<const std::byte> buffer, std
 }
 
 template <>
-void dumpBuffer<o2::mch::raw::UserLogicFormat>(gsl::span<const std::byte> buffer, std::ostream& out, size_t maxbytes)
+void dumpBuffer<o2::mch::raw::UserLogicFormat>(gsl::span<const std::byte> buffer, std::ostream& out, std::size_t maxbytes)
 {
   int i{0};
   int inRDH{0};
@@ -169,7 +169,7 @@ void dumpBuffer<o2::mch::raw::UserLogicFormat>(gsl::span<const std::byte> buffer
 }
 
 template <typename FORMAT>
-void dumpBuffer(const std::vector<uint64_t>& buffer, std::ostream& out = std::cout, size_t maxbytes = std::numeric_limits<size_t>::max())
+void dumpBuffer(const std::vector<uint64_t>& buffer, std::ostream& out = std::cout, std::size_t maxbytes = std::numeric_limits<std::size_t>::max())
 {
   std::vector<std::byte> b8;
   for (auto w : buffer) {

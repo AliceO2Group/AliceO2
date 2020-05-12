@@ -55,7 +55,7 @@ class GBTUserLogicDecoder
 
   ELinkDecoder mELinkDecoder{}; /// E-link decoder
 
-  typedef void (GBTOutputHandler::*OnDoneFunction)(size_t, const ELinkDecoder&);
+  typedef void (GBTOutputHandler::*OnDoneFunction)(std::size_t, const ELinkDecoder&);
 
   OnDoneFunction mOnDoneLoc{&GBTOutputHandler::onDoneLoc}; ///! Processes the local board
   OnDoneFunction mOnDoneReg{&GBTOutputHandler::onDoneReg}; ///! Processes the regional board

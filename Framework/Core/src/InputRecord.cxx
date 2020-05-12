@@ -51,7 +51,7 @@ int InputRecord::getPos(const char* binding) const
 
 int InputRecord::getPos(std::string const& binding) const
 {
-  for (size_t i = 0; i < mInputsSchema.size(); ++i) {
+  for (std::size_t i = 0; i < mInputsSchema.size(); ++i) {
     auto& route = mInputsSchema[i];
     if (route.matcher.binding == binding) {
       return i;

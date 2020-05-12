@@ -146,7 +146,7 @@ namespace std
 template <>
 struct hash<o2::MCCompLabel> {
  public:
-  size_t operator()(o2::MCCompLabel const& label) const
+  std::size_t operator()(o2::MCCompLabel const& label) const
   {
     return static_cast<uint64_t>(label);
   }

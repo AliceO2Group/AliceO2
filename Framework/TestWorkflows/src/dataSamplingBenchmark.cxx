@@ -81,7 +81,7 @@ inline std::string buildShmIdFromSessionIdAndUserId(const std::string& sessionId
   return shmId;
 }
 
-std::function<size_t(void)> createFreeMemoryGetter(InitContext& ictx)
+std::function<std::size_t(void)> createFreeMemoryGetter(InitContext& ictx)
 {
   std::string sessionID;
   std::string channelConfig;
@@ -123,12 +123,12 @@ std::function<size_t(void)> createFreeMemoryGetter(InitContext& ictx)
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   double samplingFraction = config.options().get<double>("sampling-fraction");
-  size_t payloadSize = config.options().get<int>("payload-size");
-  size_t producers = config.options().get<int>("producers");
-  size_t dispatchers = config.options().get<int>("dispatchers");
-  size_t usleepTime = config.options().get<int>("usleep");
-  size_t testDuration = config.options().get<int>("test-duration");
-  size_t throttlingMB = config.options().get<int>("throttling");
+  std::size_t payloadSize = config.options().get<int>("payload-size");
+  std::size_t producers = config.options().get<int>("producers");
+  std::size_t dispatchers = config.options().get<int>("dispatchers");
+  std::size_t usleepTime = config.options().get<int>("usleep");
+  std::size_t testDuration = config.options().get<int>("test-duration");
+  std::size_t throttlingMB = config.options().get<int>("throttling");
   bool fill = config.options().get<bool>("fill");
 
   std::string configurationPath = "/tmp/dataSamplingBenchmark-" + std::to_string(samplingFraction) + ".json";
@@ -160,7 +160,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   WorkflowSpec specs;
 
-  for (size_t p = 0; p < producers; p++) {
+  for (std::size_t p = 0; p < producers; p++) {
     specs.push_back(DataProcessorSpec{
       "dataProducer" + std::to_string(p),
       Inputs{},
@@ -172,12 +172,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
           sleep(5); // wait a few seconds before trying to open a shmem segment to make sure it is there
 
-          std::function<size_t(void)> getFreeMemory = createFreeMemoryGetter(ictx);
-          const size_t maxFreeMemory = getFreeMemory(); // that may vary on the process sync
-          size_t maximumAllowedMessages = (maxFreeMemory - throttlingMB * 1000000) / payloadSize / producers;
+          std::function<std::size_t(void)> getFreeMemory = createFreeMemoryGetter(ictx);
+          const std::size_t maxFreeMemory = getFreeMemory(); // that may vary on the process sync
+          std::size_t maximumAllowedMessages = (maxFreeMemory - throttlingMB * 1000000) / payloadSize / producers;
           LOG(INFO) << "First cycle, this producer will send " << maximumAllowedMessages << " messages";
 
-          auto messagesProducedSinceLastCycle = std::make_shared<size_t>(0);
+          auto messagesProducedSinceLastCycle = std::make_shared<std::size_t>(0);
           std::shared_ptr<bool> mightSaturate = nullptr;
 
           return (AlgorithmSpec::ProcessCallback) [=](ProcessingContext& pctx) mutable {
@@ -208,7 +208,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
               *messagesProducedSinceLastCycle = 0;
               maximumAllowedMessages = -1;
               LOG(INFO) << "The memory usage should not reach the limits, we allow to produce as much messages as possible";
-            } else if (size_t freeMemory = getFreeMemory(); freeMemory > 4 * throttlingMB * 1000000) {
+            } else if (std::size_t freeMemory = getFreeMemory(); freeMemory > 4 * throttlingMB * 1000000) {
               // if we are here, then the maximumAllowedMessages has been reached and we have waited until
               // the memory usage dropped to the safe level again.
               *messagesProducedSinceLastCycle = 0;

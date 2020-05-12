@@ -27,8 +27,8 @@ struct FakeCluster {
 };
 using DataHeader = o2::header::DataHeader;
 
-size_t parallelSize = 4;
-size_t collectionChunkSize = 1000;
+std::size_t parallelSize = 4;
+std::size_t collectionChunkSize = 1000;
 void someDataProducerAlgorithm(ProcessingContext& ctx);
 void someProcessingStageAlgorithm(ProcessingContext& ctx);
 

@@ -50,9 +50,9 @@ struct InputRoute {
   //        whenever we pass the input routes we also have the associated
   //        input specs available.
   InputSpec matcher;
-  size_t inputSpecIndex;
+  std::size_t inputSpecIndex;
   std::string sourceChannel;
-  size_t timeslice;
+  std::size_t timeslice;
   std::optional<RouteConfigurator> configurator;
 };
 

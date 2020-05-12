@@ -17,9 +17,9 @@ class TestPages
 {
  public:
   using V4 = o2::header::RAWDataHeaderV4;
-  static constexpr size_t MaxNPages = 256 * 1024;
-  static constexpr size_t PageSize = 8192;
-  static constexpr size_t PageDataSize = PageSize - sizeof(V4);
+  static constexpr std::size_t MaxNPages = 256 * 1024;
+  static constexpr std::size_t PageSize = 8192;
+  static constexpr std::size_t PageDataSize = PageSize - sizeof(V4);
   struct RawPage {
     V4 rdh;
     char data[PageDataSize];
@@ -33,7 +33,7 @@ class TestPages
       mPages[pageNo].rdh.version = 4;
       mPages[pageNo].rdh.headerSize = sizeof(V4);
       mPages[pageNo].rdh.offsetToNext = PageSize;
-      auto* data = reinterpret_cast<size_t*>(&mPages[pageNo].data);
+      auto* data = reinterpret_cast<std::size_t*>(&mPages[pageNo].data);
       *data = pageNo;
     }
   }
@@ -43,7 +43,7 @@ class TestPages
     return reinterpret_cast<const char*>(mPages.data());
   }
 
-  size_t size() const
+  std::size_t size() const
   {
     return mPages.size() * sizeof(decltype(mPages)::value_type);
   }
@@ -56,14 +56,14 @@ TestPages gPages;
 
 static void BM_RawParserAuto(benchmark::State& state)
 {
-  size_t nofPages = state.range(0);
+  std::size_t nofPages = state.range(0);
   if (nofPages > TestPages::MaxNPages) {
     return;
   }
   using Parser = RawParser<TestPages::PageSize>;
   Parser parser(reinterpret_cast<const char*>(gPages.data()), nofPages * TestPages::PageSize);
-  size_t count = 0;
-  auto processor = [&count](auto data, size_t length) {
+  std::size_t count = 0;
+  auto processor = [&count](auto data, std::size_t length) {
     count++;
   };
   for (auto _ : state) {
@@ -73,14 +73,14 @@ static void BM_RawParserAuto(benchmark::State& state)
 
 static void BM_RawParserV4(benchmark::State& state)
 {
-  size_t nofPages = state.range(0);
+  std::size_t nofPages = state.range(0);
   if (nofPages > TestPages::MaxNPages) {
     return;
   }
   using Parser = raw_parser::ConcreteRawParser<TestPages::V4, TestPages::PageSize>;
   Parser parser(reinterpret_cast<const char*>(gPages.data()), nofPages * TestPages::PageSize);
-  size_t count = 0;
-  auto processor = [&count](auto data, size_t length) {
+  std::size_t count = 0;
+  auto processor = [&count](auto data, std::size_t length) {
     count++;
   };
   for (auto _ : state) {

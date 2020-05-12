@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(RootTree2Table)
   }
   {
     auto values = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(getBackendColumnData(table->column(1))->chunk(0));
-    for (size_t i = 0; i < 1000; i++) {
+    for (std::size_t i = 0; i < 1000; i++) {
       const int* ptr = reinterpret_cast<int const*>(values->Value(i));
       BOOST_CHECK_EQUAL(ptr[0], i);
       BOOST_CHECK_EQUAL(ptr[1], i + 1);

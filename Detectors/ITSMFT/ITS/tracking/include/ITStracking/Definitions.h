@@ -84,12 +84,12 @@ typedef cudaStream_t GPUStream;
 #endif
 
 #ifndef __OPENCL__
-template <typename T, size_t Size>
+template <typename T, std::size_t Size>
 using GPUArray = std::array<T, Size>;
 #else
 #include "ITStrackingCUDA/Array.h"
 
-template <typename T, size_t Size>
+template <typename T, std::size_t Size>
 using GPUArray = o2::its::GPU::Array<T, Size>;
 #endif
 

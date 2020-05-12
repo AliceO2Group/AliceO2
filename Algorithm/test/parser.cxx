@@ -26,9 +26,9 @@
 // header test class
 struct Header {
   unsigned identifier = 0xdeadbeef;
-  size_t payloadSize = 0;
+  std::size_t payloadSize = 0;
 
-  Header(size_t ps) : payloadSize(ps) {}
+  Header(std::size_t ps) : payloadSize(ps) {}
 };
 
 // trailer test class
@@ -43,9 +43,9 @@ struct Trailer {
 struct SizedTrailer {
   unsigned identifier = 0xaaffee00;
   unsigned char flags = 0xaa;
-  size_t payloadSize = 0;
+  std::size_t payloadSize = 0;
 
-  SizedTrailer(size_t s, unsigned char f) : payloadSize(s), flags(f) {}
+  SizedTrailer(std::size_t s, unsigned char f) : payloadSize(s), flags(f) {}
 };
 
 BOOST_AUTO_TEST_CASE(test_forwardparser_header_and_trailer)

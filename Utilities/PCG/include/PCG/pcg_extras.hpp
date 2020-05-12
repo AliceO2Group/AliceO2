@@ -147,7 +147,7 @@ std::basic_ostream<CharT, Traits>&
     }
     return out;
   }
-  constexpr size_t MAX_CHARS_128BIT = 40;
+  constexpr std::size_t MAX_CHARS_128BIT = 40;
 
   char buffer[MAX_CHARS_128BIT];
   char* pos = buffer + sizeof(buffer);
@@ -421,7 +421,7 @@ SrcIter uneven_copy_impl(
   constexpr bitcount_t DEST_BITS = DEST_SIZE * 8;
   constexpr bitcount_t SCALE = SRC_SIZE / DEST_SIZE;
 
-  size_t count = 0;
+  std::size_t count = 0;
   src_t value = 0;
 
   while (dest_first != dest_last) {
@@ -454,7 +454,7 @@ SrcIter uneven_copy_impl(
     dest_t value(0UL);
     unsigned int shift = 0;
 
-    for (size_t i = 0; i < SCALE; ++i) {
+    for (std::size_t i = 0; i < SCALE; ++i) {
       value |= dest_t(*src_first++) << shift;
       shift += SRC_BITS;
     }
@@ -483,14 +483,14 @@ inline SrcIter uneven_copy(SrcIter src_first,
  * (actually works for any random-access iterator)
  */
 
-template <size_t size, typename SeedSeq, typename DestIter>
+template <std::size_t size, typename SeedSeq, typename DestIter>
 inline void generate_to_impl(SeedSeq&& generator, DestIter dest,
                              std::true_type)
 {
   generator.generate(dest, dest + size);
 }
 
-template <size_t size, typename SeedSeq, typename DestIter>
+template <std::size_t size, typename SeedSeq, typename DestIter>
 void generate_to_impl(SeedSeq&& generator, DestIter dest,
                       std::false_type)
 {
@@ -499,7 +499,7 @@ void generate_to_impl(SeedSeq&& generator, DestIter dest,
   constexpr auto GEN_SIZE = sizeof(uint32_t);
 
   constexpr bool GEN_IS_SMALLER = GEN_SIZE < DEST_SIZE;
-  constexpr size_t FROM_ELEMS =
+  constexpr std::size_t FROM_ELEMS =
     GEN_IS_SMALLER
       ? size * ((DEST_SIZE + GEN_SIZE - 1) / GEN_SIZE)
       : (size + (GEN_SIZE / DEST_SIZE) - 1) / ((GEN_SIZE / DEST_SIZE) + GEN_IS_SMALLER);
@@ -518,7 +518,7 @@ void generate_to_impl(SeedSeq&& generator, DestIter dest,
   }
 }
 
-template <size_t size, typename SeedSeq, typename DestIter>
+template <std::size_t size, typename SeedSeq, typename DestIter>
 inline void generate_to(SeedSeq&& generator, DestIter dest)
 {
   typedef typename std::iterator_traits<DestIter>::value_type dest_t;
@@ -533,7 +533,7 @@ inline void generate_to(SeedSeq&& generator, DestIter dest)
  * we want)
  */
 
-template <typename UInt, size_t i = 0UL, size_t N = i + 1UL, typename SeedSeq>
+template <typename UInt, std::size_t i = 0UL, std::size_t N = i + 1UL, typename SeedSeq>
 inline UInt generate_one(SeedSeq&& generator)
 {
   UInt result[N];
@@ -603,11 +603,11 @@ class seed_seq_from
       *i = result_type(rng_());
   }
 
-  constexpr size_t size() const
+  constexpr std::size_t size() const
   {
-    return (sizeof(typename RngType::result_type) > sizeof(result_type) && RngType::max() > ~size_t(0UL))
-             ? ~size_t(0UL)
-             : size_t(RngType::max());
+    return (sizeof(typename RngType::result_type) > sizeof(result_type) && RngType::max() > ~std::size_t(0UL))
+             ? ~std::size_t(0UL)
+             : std::size_t(RngType::max());
   }
 };
 

@@ -84,10 +84,10 @@ void AlpideSimResponse::initData()
 
   // load response data
   int nz = 0;
-  size_t cnt = 0;
+  std::size_t cnt = 0;
   float val, gx, gy, gz;
   int lost, untrck, dead, nele;
-  size_t dataSize = 0;
+  std::size_t dataSize = 0;
   mDptMax = -2.e9;
   mDptMin = 2.e9;
   const int npix = AlpideRespSimMat::getNPix();
@@ -189,7 +189,7 @@ string AlpideSimResponse::composeDataName(int colBin, int rowBin)
 
   // ugly but safe way to compose the file name
   float vcol = colBin / mStepInvCol, vrow = rowBin / mStepInvRow;
-  size_t size = snprintf(nullptr, 0, mColRowDataFmt.data(), vcol, vrow) + 1;
+  std::size_t size = snprintf(nullptr, 0, mColRowDataFmt.data(), vcol, vrow) + 1;
   unique_ptr<char[]> tmp(new char[size]);
   snprintf(tmp.get(), size, mColRowDataFmt.data(), vcol, vrow);
   return mDataPath + string(tmp.get(), tmp.get() + size - 1);
@@ -221,7 +221,7 @@ bool AlpideSimResponse::getResponse(float vRow, float vCol, float vDepth, Alpide
   if (vRow > mRowMax)
     return false;
 
-  size_t bin = getDepthBin(vDepth) + mNBinDpt * (getRowBin(vRow) + mNBinRow * getColBin(vCol));
+  std::size_t bin = getDepthBin(vDepth) + mNBinDpt * (getRowBin(vRow) + mNBinRow * getColBin(vCol));
   if (bin >= mData.size()) {
     // this should not happen
     LOG(FATAL) << "requested bin " << bin << "row/col/depth: " << getRowBin(vRow) << ":" << getColBin(vCol)
@@ -264,7 +264,7 @@ const AlpideRespSimMat* AlpideSimResponse::getResponse(float vRow, float vCol, f
   if (vRow > mRowMax)
     return nullptr;
 
-  size_t bin = getDepthBin(vDepth) + mNBinDpt * (getRowBin(vRow) + mNBinRow * getColBin(vCol));
+  std::size_t bin = getDepthBin(vDepth) + mNBinDpt * (getRowBin(vRow) + mNBinRow * getColBin(vCol));
   if (bin >= mData.size()) {
     // this should not happen
     LOG(FATAL) << "requested bin " << bin << "row/col/depth: " << getRowBin(vRow) << ":" << getColBin(vCol)

@@ -54,7 +54,7 @@ struct Stack {
   Stack& operator=(Stack&&) = default;
 
   value_type* data() const { return buffer.get(); }
-  size_t size() const { return bufferSize; }
+  std::size_t size() const { return bufferSize; }
   allocator_type get_allocator() const { return allocator; }
   const BaseHeader* first() const { return reinterpret_cast<const BaseHeader*>(this->data()); }
   static const BaseHeader* firstHeader(o2::byte const* buf) { return BaseHeader::get(buf); }
@@ -66,9 +66,9 @@ struct Stack {
     }
     return last;
   }
-  static size_t headerStackSize(o2::byte const* buf)
+  static std::size_t headerStackSize(o2::byte const* buf)
   {
-    size_t result = 0;
+    std::size_t result = 0;
     const BaseHeader* last{firstHeader(buf)};
     if (last) {
       while (last->flagsNextHeader) {
@@ -107,14 +107,14 @@ struct Stack {
 
   //______________________________________________________________________________________________
   template <typename T, typename... Args>
-  constexpr static size_t calculateSize(T&& h, Args&&... args) noexcept
+  constexpr static std::size_t calculateSize(T&& h, Args&&... args) noexcept
   {
     return calculateSize(std::forward<T>(h)) + calculateSize(std::forward<Args>(args)...);
   }
 
   //______________________________________________________________________________________________
   template <typename T>
-  constexpr static size_t calculateSize(T&& h) noexcept
+  constexpr static std::size_t calculateSize(T&& h) noexcept
   {
     //if it's a pointer (to a stack) traverse it
     if constexpr (std::is_convertible_v<T, o2::byte*>) {
@@ -122,7 +122,7 @@ struct Stack {
       if (!next) {
         return 0;
       }
-      size_t size = next->size();
+      std::size_t size = next->size();
       while ((next = next->next())) {
         size += next->size();
       }
@@ -134,11 +134,11 @@ struct Stack {
   }
 
   //recursion terminator
-  constexpr static size_t calculateSize() { return 0; }
+  constexpr static std::size_t calculateSize() { return 0; }
 
  private:
   allocator_type allocator{boost::container::pmr::new_delete_resource()};
-  size_t bufferSize{0};
+  std::size_t bufferSize{0};
   BufferType buffer{nullptr, freeobj{allocator.resource()}};
 
   //______________________________________________________________________________________________

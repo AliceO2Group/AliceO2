@@ -159,7 +159,7 @@ void DumpFlatObjectToFile(const TPCFastTransform* obj, const char* file)
   if (fp == nullptr) {
     return;
   }
-  size_t size[2] = {sizeof(*obj), obj->getFlatBufferSize()};
+  std::size_t size[2] = {sizeof(*obj), obj->getFlatBufferSize()};
   fwrite(size, sizeof(size[0]), 2, fp);
   fwrite(obj, 1, size[0], fp);
   fwrite(obj->getFlatBufferPtr(), 1, size[1], fp);
@@ -175,7 +175,7 @@ std::unique_ptr<TPCFastTransform> ReadFlatObjectFromFile(const char* file)
   if (fp == nullptr) {
     return nullptr;
   }
-  size_t size0[2], r;
+  std::size_t size0[2], r;
   r = fread(size0, sizeof(size0[0]), 2, fp);
   if (r == 0 || size0[0] != sizeof(TPCFastTransform)) {
     fclose(fp);

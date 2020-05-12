@@ -80,7 +80,7 @@ class DataDecoderTask
  private:
   void decodeBuffer(gsl::span<const std::byte> page, std::vector<o2::mch::Digit>& digits)
   {
-    size_t ndigits{0};
+    std::size_t ndigits{0};
 
     auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
       if (mDs2manu) {
@@ -216,7 +216,7 @@ class DataDecoderTask
       // retrieving the raw pointer of the page
       auto const* raw = it.raw();
       // size of payload
-      size_t payloadSize = it.size();
+      std::size_t payloadSize = it.size();
 
       if (payloadSize == 0) {
         continue;
@@ -243,7 +243,7 @@ class DataDecoderTask
 
     auto const* raw = input.payload;
     // size of payload
-    size_t payloadSize = header->payloadSize;
+    std::size_t payloadSize = header->payloadSize;
 
     if (mPrint) {
       std::cout << nFrame << "  payloadSize=" << payloadSize << std::endl;
@@ -274,7 +274,7 @@ class DataDecoderTask
       }
     }
 
-    const size_t OUT_SIZE = sizeof(o2::mch::Digit) * digits.size();
+    const std::size_t OUT_SIZE = sizeof(o2::mch::Digit) * digits.size();
 
     // send the output buffer via DPL
     char* outbuffer = nullptr;
@@ -289,7 +289,7 @@ class DataDecoderTask
  private:
   Elec2DetMapper mElec2Det{nullptr};
   FeeLink2SolarMapper mFee2Solar{nullptr};
-  size_t mNrdhs{0};
+  std::size_t mNrdhs{0};
 
   std::ifstream mInputFile{}; ///< input file
   bool mDs2manu = false;      ///< print convert channel numbering from Run3 to Run1-2 order

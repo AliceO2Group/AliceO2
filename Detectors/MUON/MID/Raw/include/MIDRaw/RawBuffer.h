@@ -54,11 +54,11 @@ class RawBuffer
   gsl::span<const T> mBytes{};                                    /// gsl span with encoded information
   gsl::span<const T> mCurrentBuffer{};                            /// gsl span with the current encoded information
   std::vector<T> mUnconsumed{};                                   /// Unconsumed buffer
-  size_t mElementIndex{0};                                        /// Index of the current element in the buffer
-  size_t mBitIndex{0};                                            /// Index of the current bit
-  size_t mHeaderIndex{0};                                         /// Index of the current header
-  size_t mNextHeaderIndex{0};                                     /// Index of the next header
-  size_t mEndOfPayloadIndex{0};                                   /// Index of the end of payload
+  std::size_t mElementIndex{0};                                   /// Index of the current element in the buffer
+  std::size_t mBitIndex{0};                                       /// Index of the current bit
+  std::size_t mHeaderIndex{0};                                    /// Index of the current header
+  std::size_t mNextHeaderIndex{0};                                /// Index of the next header
+  std::size_t mEndOfPayloadIndex{0};                              /// Index of the end of payload
   const unsigned int mElementSizeInBytes{sizeof(T)};              /// Element size in bytes
   const unsigned int mElementSizeInBits{mElementSizeInBytes * 8}; /// Element size in bits
   const header::RAWDataHeader* mRDH{nullptr};                     /// Current header (not owner)

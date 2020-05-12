@@ -62,7 +62,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
   std::optional<std::string> currentDescription;
   std::optional<header::DataHeader::SubSpecificationType> currentSubSpec;
   std::optional<uint64_t> currentTimeModulo;
-  size_t currentNumber;
+  std::size_t currentNumber;
 
   auto error = [&errorString, &states](std::string const& s) {
     errorString = s;
@@ -78,7 +78,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
     expectedSeparators = sep;
   };
 
-  auto assignLastStringMatch = [&next, &cur, &error, &pushState, &nodes](std::string const& what, size_t maxSize, std::optional<std::string>& s, QueryBuilderState nextState) {
+  auto assignLastStringMatch = [&next, &cur, &error, &pushState, &nodes](std::string const& what, std::size_t maxSize, std::optional<std::string>& s, QueryBuilderState nextState) {
     if ((next - cur == 0) || (next - cur > maxSize)) {
       error(what + " needs to be between 1 and " + std::to_string(maxSize) + " char long");
       return false;
@@ -115,7 +115,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
     auto lastMatcher =
       std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
                                               StartTimeValueMatcher(ContextRef{0}));
-    for (size_t ni = 0, ne = nodes.size(); ni < ne; ++ni) {
+    for (std::size_t ni = 0, ne = nodes.size(); ni < ne; ++ni) {
       auto& node = nodes[nodes.size() - 1 - ni];
       auto tmp = std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::And,
                                                          std::move(node),

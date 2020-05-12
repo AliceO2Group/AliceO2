@@ -91,11 +91,11 @@ class CalArray
   /// \return pad subset number (e.g. ROC number)
   int getPadSubsetNumber() const { return mPadSubsetNumber; }
 
-  void setValue(const size_t channel, const T& value) { mData[channel] = value; }
-  const T getValue(const size_t channel) const { return mData[channel]; }
+  void setValue(const std::size_t channel, const T& value) { mData[channel] = value; }
+  const T getValue(const std::size_t channel) const { return mData[channel]; }
 
-  void setValue(const size_t row, const size_t pad, const T& value);
-  const T getValue(const size_t row, const size_t pad) const;
+  void setValue(const std::size_t row, const std::size_t pad, const T& value);
+  const T getValue(const std::size_t row, const std::size_t pad) const;
 
   void setName(const std::string& name) { mName = name; }
   const std::string& getName() const { return mName; }
@@ -178,21 +178,21 @@ void CalArray<T>::initData()
 }
 //______________________________________________________________________________
 template <class T>
-inline void CalArray<T>::setValue(const size_t row, const size_t pad, const T& value)
+inline void CalArray<T>::setValue(const std::size_t row, const std::size_t pad, const T& value)
 {
   /// \todo might need check for row, pad or position limits
   static const auto& mapper = Mapper::instance();
-  size_t position = mapper.getPadNumber(mPadSubset, mPadSubsetNumber, row, pad);
+  std::size_t position = mapper.getPadNumber(mPadSubset, mPadSubsetNumber, row, pad);
   setValue(position, value);
 }
 
 //______________________________________________________________________________
 template <class T>
-inline const T CalArray<T>::getValue(const size_t row, const size_t pad) const
+inline const T CalArray<T>::getValue(const std::size_t row, const std::size_t pad) const
 {
   /// \todo might need check for row, pad or position limits
   static const auto& mapper = Mapper::instance();
-  size_t position = mapper.getPadNumber(mPadSubset, mPadSubsetNumber, row, pad);
+  std::size_t position = mapper.getPadNumber(mPadSubset, mPadSubsetNumber, row, pad);
   return getValue(position);
 }
 
@@ -204,7 +204,7 @@ inline const CalArray<T>& CalArray<T>::operator+=(const CalArray<T>& other)
     LOG(ERROR) << "You are trying to operate on incompatible objects: Pad subset type and number must be the same on both objects";
     return *this;
   }
-  for (size_t i = 0; i < mData.size(); ++i) {
+  for (std::size_t i = 0; i < mData.size(); ++i) {
     mData[i] += other.getValue(i);
   }
   return *this;
@@ -218,7 +218,7 @@ inline const CalArray<T>& CalArray<T>::operator-=(const CalArray<T>& other)
     LOG(ERROR) << "You are trying to operate on incompatible objects: Pad subset type and number must be the same on both objects";
     return *this;
   }
-  for (size_t i = 0; i < mData.size(); ++i) {
+  for (std::size_t i = 0; i < mData.size(); ++i) {
     mData[i] -= other.getValue(i);
   }
   return *this;
@@ -232,7 +232,7 @@ inline const CalArray<T>& CalArray<T>::operator*=(const CalArray<T>& other)
     LOG(ERROR) << "pad subste type of the objects it not compatible";
     return *this;
   }
-  for (size_t i = 0; i < mData.size(); ++i) {
+  for (std::size_t i = 0; i < mData.size(); ++i) {
     mData[i] *= other.getValue(i);
   }
   return *this;
@@ -246,7 +246,7 @@ inline const CalArray<T>& CalArray<T>::operator/=(const CalArray<T>& other)
     LOG(ERROR) << "pad subste type of the objects it not compatible";
     return *this;
   }
-  for (size_t i = 0; i < mData.size(); ++i) {
+  for (std::size_t i = 0; i < mData.size(); ++i) {
     mData[i] /= other.getValue(i);
   }
   return *this;

@@ -85,7 +85,7 @@ void check(const std::vector<std::string>& arguments,
 
   std::cout << "created execution for " << deviceSpecs.size() << " device(s)" << std::endl;
 
-  for (size_t index = 0; index < deviceSpecs.size(); index++) {
+  for (std::size_t index = 0; index < deviceSpecs.size(); index++) {
     const auto& deviceSpec = deviceSpecs[index];
     const auto& deviceExecution = deviceExecutions[index];
     std::cout << deviceSpec.name << std::endl;

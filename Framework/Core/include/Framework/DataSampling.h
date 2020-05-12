@@ -73,7 +73,7 @@ class DataSampling
   ///                              QC tasks.
   /// \param policiesSource        Path to configuration file.
   /// \param threads               Number of dispatcher threads, that will handle the data
-  static void GenerateInfrastructure(WorkflowSpec& workflow, const std::string& policiesSource, size_t threads = 1);
+  static void GenerateInfrastructure(WorkflowSpec& workflow, const std::string& policiesSource, std::size_t threads = 1);
   /// \brief Configures dispatcher to consume any data immediately.
   static void CustomizeInfrastructure(std::vector<CompletionPolicy>&);
   /// \brief Applies blocking/nonblocking data sampling configuration to the workflow.

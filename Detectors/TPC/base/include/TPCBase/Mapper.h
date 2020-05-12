@@ -64,7 +64,7 @@ class Mapper
     const auto row = mMapGlobalPadToPadPos[globalPad].getRow();
     const auto nCRUPerSector = mMapPadRegionInfo.size();
     int region = 0;
-    for (size_t i = 1; i < nCRUPerSector; ++i) {
+    for (std::size_t i = 1; i < nCRUPerSector; ++i) {
       if (row < mMapPadRegionInfo[i].getGlobalRowOffset()) {
         break;
       }
@@ -79,8 +79,8 @@ class Mapper
   /// \todo add check for row and pad limits
   GlobalPadNumber getPadNumberInROC(const PadROCPos& rocPadPosition) const
   {
-    const size_t padOffset = (rocPadPosition.getROCType() == RocType::IROC) ? 0 : mPadsInIROC;
-    const size_t rowOffset = (rocPadPosition.getROCType() == RocType::IROC) ? 0 : mNumberOfPadRowsIROC;
+    const std::size_t padOffset = (rocPadPosition.getROCType() == RocType::IROC) ? 0 : mPadsInIROC;
+    const std::size_t rowOffset = (rocPadPosition.getROCType() == RocType::IROC) ? 0 : mNumberOfPadRowsIROC;
 
     return mMapPadOffsetPerRow[rocPadPosition.getRow() + rowOffset] + rocPadPosition.getPad() - padOffset;
   }
@@ -91,8 +91,8 @@ class Mapper
   GlobalPadNumber getPadNumberInPartition(int partition, int row, int pad) const
   {
     const auto& info = mMapPartitionInfo[partition % mMapPartitionInfo.size()];
-    const size_t rowOffset = info.getGlobalRowOffset();
-    const size_t padOffset = mMapPadOffsetPerRow[rowOffset];
+    const std::size_t rowOffset = info.getGlobalRowOffset();
+    const std::size_t padOffset = mMapPadOffsetPerRow[rowOffset];
 
     return mMapPadOffsetPerRow[row + rowOffset] + pad - padOffset;
   }
@@ -103,8 +103,8 @@ class Mapper
   GlobalPadNumber getPadNumberInRegion(CRU cru, int row, int pad) const
   {
     const auto& info = mMapPadRegionInfo[cru.region() % mMapPadRegionInfo.size()];
-    const size_t rowOffset = info.getGlobalRowOffset();
-    const size_t padOffset = mMapPadOffsetPerRow[rowOffset];
+    const std::size_t rowOffset = info.getGlobalRowOffset();
+    const std::size_t padOffset = mMapPadOffsetPerRow[rowOffset];
 
     return mMapPadOffsetPerRow[row + rowOffset] + pad - padOffset;
   }
@@ -115,7 +115,7 @@ class Mapper
   /// \param padSubsetNumber number of the pad subset (e.g. 10 for ROC 10)
   /// \param row row
   /// \param pad pad
-  GlobalPadNumber getPadNumber(const PadSubset padSubset, const size_t padSubsetNumber, const int row,
+  GlobalPadNumber getPadNumber(const PadSubset padSubset, const std::size_t padSubsetNumber, const int row,
                                const int pad) const
   {
     switch (padSubset) {

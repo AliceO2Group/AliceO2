@@ -27,14 +27,14 @@ inline bool TimesliceSlot::operator!=(const TimesliceSlot that) const
   return !(*this == that);
 }
 
-inline void TimesliceIndex::resize(size_t s)
+inline void TimesliceIndex::resize(std::size_t s)
 {
   mVariables.resize(s);
   mPublishedVariables.resize(s);
   mDirty.resize(s, false);
 }
 
-inline size_t TimesliceIndex::size() const
+inline std::size_t TimesliceIndex::size() const
 {
   assert(mVariables.size() == mDirty.size());
   return mVariables.size();
@@ -92,7 +92,7 @@ inline TimesliceSlot TimesliceIndex::findOldestSlot() const
   }
   uint64_t oldTimestamp = *oldPVal;
 
-  for (size_t i = 1; i < mVariables.size(); ++i) {
+  for (std::size_t i = 1; i < mVariables.size(); ++i) {
     auto newPVal = std::get_if<uint64_t>(&mVariables[i].get(0));
     if (newPVal == nullptr) {
       return TimesliceSlot{i};

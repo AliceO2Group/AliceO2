@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(EncodeABufferInChargeSumMode, T, testTypes)
 {
   auto buffer = createGBTBuffer<T, ChargeSumMode>();
   auto ref = REF_BUFFER_GBT<T, ChargeSumMode>();
-  size_t n = ref.size();
+  std::size_t n = ref.size();
   BOOST_CHECK_GE(buffer.size(), n);
   BOOST_CHECK(std::equal(begin(buffer), end(buffer), begin(ref)));
 }
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(GBTEncoderMoveToBufferClearsTheInternalBuffer, T, 
   GBTEncoder<T, ChargeSumMode> enc(0);
   enc.addChannelData(0, 0, 0, {SampaCluster(0, 10)});
   std::vector<uint8_t> buffer;
-  size_t n = enc.moveToBuffer(buffer);
+  std::size_t n = enc.moveToBuffer(buffer);
   BOOST_CHECK_GE(n, 0);
   n = enc.moveToBuffer(buffer);
   BOOST_CHECK_EQUAL(n, 0);

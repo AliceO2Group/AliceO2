@@ -57,7 +57,7 @@ int MapCRU::indexFeeLink(int feeid, int linkid) const
   return feeid * sMaxLinkId + linkid;
 }
 
-size_t MapCRU::size() const
+std::size_t MapCRU::size() const
 {
   return std::count_if(mFeeLink2Solar.begin(), mFeeLink2Solar.end(), [](uint16_t a) { return a != std::numeric_limits<uint16_t>::max(); });
 }

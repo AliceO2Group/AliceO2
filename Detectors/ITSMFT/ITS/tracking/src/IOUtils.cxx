@@ -313,13 +313,13 @@ void ioutils::generateSimpleData(ROframe& event, const int phiDivs, const int zD
   const float zOffsetFirstLayer = (zDivs == 1) ? 0 : 1.5 * (LayersZCoordinate()[6] * LayersRCoordinate()[0]) / (LayersRCoordinate()[6] * (static_cast<float>(zDivs) - 1));
   std::vector<float> x, y;
   std::array<std::vector<float>, 7> z;
-  for (size_t j{0}; j < zDivs; ++j) {
-    for (size_t i{0}; i < phiDivs; ++i) {
+  for (std::size_t j{0}; j < zDivs; ++j) {
+    for (std::size_t i{0}; i < phiDivs; ++i) {
       x.emplace_back(cos(i * angleOffset + 0.001)); // put an epsilon to move from periods (e.g. 20 clusters vs 20 cells)
       y.emplace_back(sin(i * angleOffset + 0.001));
       const float zFirstLayer{-static_cast<float>((zDivs - 1.) / 2.) * zOffsetFirstLayer + zOffsetFirstLayer * static_cast<float>(j)};
       z[0].emplace_back(zFirstLayer);
-      for (size_t iLayer{1}; iLayer < constants::its::LayersNumber; ++iLayer) {
+      for (std::size_t iLayer{1}; iLayer < constants::its::LayersNumber; ++iLayer) {
         z[iLayer].emplace_back(zFirstLayer * LayersRCoordinate()[iLayer] / LayersRCoordinate()[0]);
       }
     }

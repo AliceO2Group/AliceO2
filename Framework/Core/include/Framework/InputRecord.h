@@ -181,7 +181,7 @@ class InputRecord
     return ref;
   }
 
-  size_t getNofParts(int pos) const
+  std::size_t getNofParts(int pos) const
   {
     if (pos < 0 || pos >= mSpan.size()) {
       return 0;
@@ -440,7 +440,7 @@ class InputRecord
   bool isValid(char const* s) const;
   bool isValid(int pos) const;
 
-  size_t size() const
+  std::size_t size() const
   {
     return mSpan.size();
   }
@@ -461,7 +461,7 @@ class InputRecord
 
     Iterator() = delete;
 
-    Iterator(ParentType const* parent, size_t position = 0, size_t size = 0)
+    Iterator(ParentType const* parent, std::size_t position = 0, std::size_t size = 0)
       : mParent(parent), mPosition(position), mSize(size > position ? size : position), mElement{nullptr, nullptr, nullptr}
     {
       if (mPosition < mSize) {
@@ -546,14 +546,14 @@ class InputRecord
       return mParent;
     }
 
-    size_t position() const
+    std::size_t position() const
     {
       return mPosition;
     }
 
    private:
-    size_t mPosition;
-    size_t mSize;
+    std::size_t mPosition;
+    std::size_t mSize;
     ParentType const* mParent;
     ElementType mElement;
   };
@@ -574,19 +574,19 @@ class InputRecord
     using iterator = Iterator<SelfType, T>;
     using const_iterator = Iterator<SelfType, const T>;
 
-    InputRecordIterator(InputRecord const* parent, size_t position = 0, size_t size = 0)
+    InputRecordIterator(InputRecord const* parent, std::size_t position = 0, std::size_t size = 0)
       : BaseType(parent, position, size)
     {
     }
 
     /// Get element at {slotindex, partindex}
-    ElementType getByPos(size_t pos) const
+    ElementType getByPos(std::size_t pos) const
     {
       return this->parent()->getByPos(this->position(), pos);
     }
 
     /// Check if slot is valid, index of part is not used
-    bool isValid(size_t = 0) const
+    bool isValid(std::size_t = 0) const
     {
       if (this->position() < this->parent()->size()) {
         return this->parent()->isValid(this->position());
@@ -595,7 +595,7 @@ class InputRecord
     }
 
     /// Get number of parts in input slot
-    size_t size() const
+    std::size_t size() const
     {
       return this->parent()->getNofParts(this->position());
     }

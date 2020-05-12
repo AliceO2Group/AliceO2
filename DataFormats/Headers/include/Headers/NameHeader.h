@@ -34,7 +34,7 @@ namespace header
 /// to get it out of a buffer. May improve in the future if enough people complain.
 /// If the compiler decides to pad the end of struct, the length of padding is stored in the last byte
 /// @ingroup aliceo2_dataformats_dataheader
-template <size_t N>
+template <std::size_t N>
 struct NameHeader : public BaseHeader {
   static const uint32_t sVersion;
   static const o2::header::HeaderType sHeaderType;
@@ -61,7 +61,7 @@ struct NameHeader : public BaseHeader {
   }
 
   const char* getName() const { return name; }
-  size_t getNameLength() const
+  std::size_t getNameLength() const
   {
     const uint8_t* lastByte = reinterpret_cast<const uint8_t*>(this) + size() - 1;
     return (lastByte - reinterpret_cast<const uint8_t*>(name)) - *lastByte + 1;
@@ -71,7 +71,7 @@ struct NameHeader : public BaseHeader {
   char name[N];
 };
 
-template <size_t N>
+template <std::size_t N>
 const o2::header::HeaderType NameHeader<N>::sHeaderType = "NameHead";
 
 // dirty trick to always have access to the headertypeID of a templated header type
@@ -80,10 +80,10 @@ const o2::header::HeaderType NameHeader<N>::sHeaderType = "NameHead";
 template <>
 const o2::header::HeaderType NameHeader<0>::sHeaderType;
 
-template <size_t N>
+template <std::size_t N>
 const SerializationMethod NameHeader<N>::sSerializationMethod = gSerializationMethodNone;
 
-template <size_t N>
+template <std::size_t N>
 const uint32_t NameHeader<N>::sVersion = 1;
 } // namespace header
 } // namespace o2

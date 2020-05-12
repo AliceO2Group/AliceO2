@@ -161,7 +161,7 @@ GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBloc
       prop.SetTrack(&temporaryTrack, cluster3.alphaTrackingFrame);
     }
 
-    for (size_t iC = 0; iC < 7; ++iC) {
+    for (std::size_t iC = 0; iC < 7; ++iC) {
       temporaryTrack.mClusters[iC] = clusters[iC];
     }
     bool fitSuccess = fitTrack(Fitter, prop, temporaryTrack, o2::its::constants::its::LayersNumber - 4, -1, -1);

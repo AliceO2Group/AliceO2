@@ -241,7 +241,7 @@ class MessageContext
     SpanObject() = delete;
     /// constructor taking header message by move and creating the payload message for the span
     template <typename ContextType>
-    SpanObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, int index, size_t nElements)
+    SpanObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, int index, std::size_t nElements)
       : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), context->getChannelRef(bindingChannel))
     {
       // create the span object for the memory of the payload message
@@ -435,7 +435,7 @@ class MessageContext
     return std::move(mMessages);
   }
 
-  size_t size()
+  std::size_t size()
   {
     return mMessages.size();
   }
@@ -475,8 +475,8 @@ class MessageContext
   /// we don't implement in the header to avoid including the FairMQDevice header here
   /// that's why the different versions need to be implemented as individual functions
   // FIXME: can that be const?
-  FairMQMessagePtr createMessage(const std::string& channel, int index, size_t size);
-  FairMQMessagePtr createMessage(const std::string& channel, int index, void* data, size_t size, fairmq_free_fn* ffn, void* hint);
+  FairMQMessagePtr createMessage(const std::string& channel, int index, std::size_t size);
+  FairMQMessagePtr createMessage(const std::string& channel, int index, void* data, std::size_t size, fairmq_free_fn* ffn, void* hint);
 
  private:
   FairMQDeviceProxy mProxy;

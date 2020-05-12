@@ -37,9 +37,9 @@ void GBTBareDecoder::process(gsl::span<const uint8_t> bytes, uint16_t bc, uint32
   mOutputHandler.setIR(bc, orbit, pageCnt);
 
   uint8_t byte = 0;
-  size_t ilink = 0, linkMask = 0, byteOffset = 0;
+  std::size_t ilink = 0, linkMask = 0, byteOffset = 0;
 
-  for (size_t idx = 0; idx < bytes.size(); idx += 16) {
+  for (std::size_t idx = 0; idx < bytes.size(); idx += 16) {
     for (int ireg = 0; ireg < 2; ++ireg) {
       byteOffset = idx + 5 * ireg;
       for (int ib = 0; ib < 4; ++ib) {
@@ -60,7 +60,7 @@ void GBTBareDecoder::process(gsl::span<const uint8_t> bytes, uint16_t bc, uint32
   }   // loop on buffer index
 }
 
-void GBTBareDecoder::processLoc(size_t ilink, uint8_t byte)
+void GBTBareDecoder::processLoc(std::size_t ilink, uint8_t byte)
 {
   /// Processes the local board information
   if (mELinkDecoders[ilink].getNBytes() > 0) {
@@ -76,7 +76,7 @@ void GBTBareDecoder::processLoc(size_t ilink, uint8_t byte)
   }
 }
 
-void GBTBareDecoder::processRegDebug(size_t ilink, uint8_t byte)
+void GBTBareDecoder::processRegDebug(std::size_t ilink, uint8_t byte)
 {
   /// Processes the regional board information in debug mode
   if (mELinkDecoders[ilink].getNBytes() > 0) {

@@ -28,11 +28,11 @@ namespace GPU
 
 namespace
 {
-template <typename T, size_t Size>
+template <typename T, std::size_t Size>
 struct ArrayTraitsHIP final {
   typedef T InternalArray[Size];
 
-  GPUhd() static constexpr T& getReference(const InternalArray& internalArray, size_t index) noexcept
+  GPUhd() static constexpr T& getReference(const InternalArray& internalArray, std::size_t index) noexcept
   {
     return const_cast<T&>(internalArray[index]);
   }
@@ -44,13 +44,13 @@ struct ArrayTraitsHIP final {
 };
 } // namespace
 
-template <typename T, size_t Size>
+template <typename T, std::size_t Size>
 struct ArrayHIP final {
 
   void copy(const ArrayHIP<T, Size>& t)
   {
 #ifdef __OPENCL__
-    for (size_t i{0}; i < Size; ++i) {
+    for (std::size_t i{0}; i < Size; ++i) {
       InternalArray[i] = t[i];
     }
 #else
@@ -62,7 +62,7 @@ struct ArrayHIP final {
   GPUhd() const T* data() const noexcept { return const_cast<T*>(InternalArray); }
   GPUhd() T& operator[](const int index) noexcept { return const_cast<T&>(InternalArray[index]); }
   GPUhd() constexpr T& operator[](const int index) const noexcept { return const_cast<T&>(InternalArray[index]); }
-  GPUhd() size_t size() const noexcept { return Size; }
+  GPUhd() std::size_t size() const noexcept { return Size; }
 
   T InternalArray[Size];
 };

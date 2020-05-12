@@ -246,7 +246,7 @@ T decodeShmMessage(FairMQParts& dataparts, int index, bool*& busy)
 
 // this goes into the source
 void attachMessageBufferToParts(FairMQParts& parts, FairMQChannel& channel,
-                                void* data, size_t size, void (*func_ptr)(void* data, void* hint), void* hint);
+                                void* data, std::size_t size, void (*func_ptr)(void* data, void* hint), void* hint);
 
 template <typename Container>
 void attachTMessage(Container const& hits, FairMQChannel& channel, FairMQParts& parts)

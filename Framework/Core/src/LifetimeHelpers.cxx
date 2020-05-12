@@ -35,7 +35,7 @@ namespace framework
 
 namespace
 {
-size_t getCurrentTime()
+std::size_t getCurrentTime()
 {
   auto now = std::chrono::system_clock::now();
   auto duration = now.time_since_epoch();
@@ -50,11 +50,11 @@ ExpirationHandler::Creator LifetimeHelpers::dataDrivenCreation()
   };
 }
 
-ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, size_t end, size_t step, size_t inputTimeslice, size_t maxInputTimeslices)
+ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(std::size_t start, std::size_t end, std::size_t step, std::size_t inputTimeslice, std::size_t maxInputTimeslices)
 {
-  auto last = std::make_shared<size_t>(start + inputTimeslice * step);
+  auto last = std::make_shared<std::size_t>(start + inputTimeslice * step);
   return [start, end, step, last, inputTimeslice, maxInputTimeslices](TimesliceIndex& index) -> TimesliceSlot {
-    for (size_t si = 0; si < index.size(); si++) {
+    for (std::size_t si = 0; si < index.size(); si++) {
       if (*last > end) {
         return TimesliceSlot{TimesliceSlot::INVALID};
       }
@@ -85,7 +85,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
     // We first check if the current time is not already present
     // FIXME: this should really be done by query matching? Ok
     //        for now to avoid duplicate entries.
-    for (size_t i = 0; i < index.size(); ++i) {
+    for (std::size_t i = 0; i < index.size(); ++i) {
       TimesliceSlot slot{i};
       if (index.isValid(slot) == false) {
         continue;
@@ -148,7 +148,7 @@ ExpirationHandler::Handler LifetimeHelpers::doNothing()
 }
 
 // We simply put everything in a stringstream and read it afterwards.
-size_t readToMessage(void* p, size_t size, size_t nmemb, void* userdata)
+std::size_t readToMessage(void* p, std::size_t size, std::size_t nmemb, void* userdata)
 {
   if (nmemb == 0) {
     return 0;
@@ -157,7 +157,7 @@ size_t readToMessage(void* p, size_t size, size_t nmemb, void* userdata)
     return 0;
   }
   o2::vector<char>* buffer = (o2::vector<char>*)userdata;
-  size_t oldSize = buffer->size();
+  std::size_t oldSize = buffer->size();
   buffer->resize(oldSize + nmemb * size);
   memcpy(buffer->data() + oldSize, userdata, nmemb * size);
   return size * nmemb;

@@ -25,7 +25,7 @@ void dumpDeviceSpec2DDS(std::ostream& out,
          "\n";
   assert(specs.size() == executions.size());
 
-  for (size_t di = 0; di < specs.size(); ++di) {
+  for (std::size_t di = 0; di < specs.size(); ++di) {
     auto& spec = specs[di];
     auto& execution = executions[di];
 
@@ -36,7 +36,7 @@ void dumpDeviceSpec2DDS(std::ostream& out,
                                         "\n";
     out << "       "
         << R"(<exe reachable="true">)";
-    for (size_t ai = 0; ai < execution.args.size(); ++ai) {
+    for (std::size_t ai = 0; ai < execution.args.size(); ++ai) {
       const char* arg = execution.args[ai];
       if (!arg) {
         break;
@@ -53,7 +53,7 @@ void dumpDeviceSpec2DDS(std::ostream& out,
     out << "   </decltask>\n";
   }
   out << "   <declcollection name=\"DPL\">\n       <tasks>\n";
-  for (size_t di = 0; di < specs.size(); ++di) {
+  for (std::size_t di = 0; di < specs.size(); ++di) {
     out << "          <name>" << specs[di].name << "</name>\n";
   }
   out << "       </tasks>\n   </declcollection>\n";

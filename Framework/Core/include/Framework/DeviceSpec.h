@@ -49,12 +49,12 @@ struct DeviceSpec {
   std::vector<InputRoute> inputs;
   std::vector<OutputRoute> outputs;
   std::vector<ForwardRoute> forwards;
-  size_t rank;   // Id of a parallel processing I am part of
-  size_t nSlots; // Total number of parallel units I am part of
+  std::size_t rank;   // Id of a parallel processing I am part of
+  std::size_t nSlots; // Total number of parallel units I am part of
   /// The time pipelining id of this particular device.
-  size_t inputTimesliceId;
+  std::size_t inputTimesliceId;
   /// The maximum number of time pipelining for this device.
-  size_t maxInputTimeslices;
+  std::size_t maxInputTimeslices;
   /// The completion policy to use for this device.
   CompletionPolicy completionPolicy;
   DispatchPolicy dispatchPolicy;

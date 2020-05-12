@@ -29,19 +29,19 @@ CompressedClusters::CompressedClusters(const CompressedClustersFlat& c)
   CompressedClustersPtrs& cp = *this;
   const CompressedClustersOffsets& offsets = c;
   cc = c;
-  for (unsigned int i = 0; i < sizeof(cp) / sizeof(size_t); i++) {
-    reinterpret_cast<void**>(&cp)[i] = reinterpret_cast<void*>(reinterpret_cast<const size_t*>(&offsets)[i] + reinterpret_cast<size_t>(&c)); // Restore pointers from offsets
+  for (unsigned int i = 0; i < sizeof(cp) / sizeof(std::size_t); i++) {
+    reinterpret_cast<void**>(&cp)[i] = reinterpret_cast<void*>(reinterpret_cast<const std::size_t*>(&offsets)[i] + reinterpret_cast<std::size_t>(&c)); // Restore pointers from offsets
   }
 };
 
-void CompressedClustersFlat::set(size_t bufferSize, const CompressedClusters& v)
+void CompressedClustersFlat::set(std::size_t bufferSize, const CompressedClusters& v)
 {
   CompressedClustersCounters& cc = *this;
   CompressedClustersOffsets& offsets = *this;
   const CompressedClustersPtrs& ptrs = v;
   cc = v;
-  for (unsigned int i = 0; i < sizeof(offsets) / sizeof(size_t); i++) {
-    reinterpret_cast<size_t*>(&offsets)[i] = (reinterpret_cast<const size_t*>(&ptrs)[i] - reinterpret_cast<size_t>(this)); // Compute offsets from beginning of structure
+  for (unsigned int i = 0; i < sizeof(offsets) / sizeof(std::size_t); i++) {
+    reinterpret_cast<std::size_t*>(&offsets)[i] = (reinterpret_cast<const std::size_t*>(&ptrs)[i] - reinterpret_cast<std::size_t>(this)); // Compute offsets from beginning of structure
   }
   totalDataSize = bufferSize;
 }

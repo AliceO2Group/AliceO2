@@ -27,7 +27,7 @@ AliceO2 - module
   const HeaderType* header = nullptr;
   const TrailerType* trailer = nullptr;
   PtrT payload = nullptr;
-  size_t length = 0;
+  std::size_t length = 0;
 
 .B };
 
@@ -38,7 +38,7 @@ alias for callback checking the header, return true if the object is a valid hea
 .B using CheckTrailerFct = std::function<bool(const TrailerType&)>;
 alias for callback checking the trailer
 .TP 2
-.B using GetFrameSizeFct = std::function<size_t(const HeaderType& )>;
+.B using GetFrameSizeFct = std::function<std::size_t(const HeaderType& )>;
 alias for callback to get the complete frame size including header, trailer and the data
 .TP 2
 .B using InsertFct = std::function<bool(FrameInfo&)>;
@@ -47,17 +47,17 @@ function callback to insert/handle one frame into, sequentially called for all f
 .SS Public member functions
 .TP 2
 .B template<typename InputType>
-.B int parse(const InputType* \fIbuffer\fB, size_t \fIbufferSize\fB, CheckHeaderFct \fIcheckHeader\fB, CheckTrailerFct \fIcheckTrailer\fB, GetFrameSizeFct \fIgetFrameSize\fB, InsertFct \fIinsert\fB)
+.B int parse(const InputType* \fIbuffer\fB, std::size_t \fIbufferSize\fB, CheckHeaderFct \fIcheckHeader\fB, CheckTrailerFct \fIcheckTrailer\fB, GetFrameSizeFct \fIgetFrameSize\fB, InsertFct \fIinsert\fB)
 
 .SS Public member variables
 .TP 2
-.B static const size_t headOffset = typesize<HeaderType>::size;
+.B static const std::size_t headOffset = typesize<HeaderType>::size;
 the length offset due to header
 .TP 2
-.B static const size_t tailOffset = typesize<TrailerType>::size;
+.B static const std::size_t tailOffset = typesize<TrailerType>::size;
 the length offset due to trailer
 .TP 2
-.B static const size_t totalOffset = headOffset + tailOffset;
+.B static const std::size_t totalOffset = headOffset + tailOffset;
 total length offset due to header and trailer
 
 .SH DESCRIPTION

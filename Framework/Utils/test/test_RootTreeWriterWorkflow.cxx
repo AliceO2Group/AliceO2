@@ -186,9 +186,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 
   auto getIndex = [](auto const& ref) {
     auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-    return static_cast<size_t>(dh->subSpecification);
+    return static_cast<std::size_t>(dh->subSpecification);
   };
-  auto getName = [](std::string base, size_t index) {
+  auto getName = [](std::string base, std::size_t index) {
     return base + "_" + std::to_string(index);
   };
 

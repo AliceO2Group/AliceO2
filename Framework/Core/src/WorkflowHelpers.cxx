@@ -41,13 +41,13 @@ std::ostream& operator<<(std::ostream& out, TopoIndexInfo const& info)
 }
 
 std::vector<TopoIndexInfo>
-  WorkflowHelpers::topologicalSort(size_t nodeCount,
+  WorkflowHelpers::topologicalSort(std::size_t nodeCount,
                                    int const* edgeIn,
                                    int const* edgeOut,
-                                   size_t byteStride,
-                                   size_t edgesCount)
+                                   std::size_t byteStride,
+                                   std::size_t edgesCount)
 {
-  size_t stride = byteStride / sizeof(int);
+  std::size_t stride = byteStride / sizeof(int);
   using EdgeIndex = int;
   // Create the index which will be returned.
   std::vector<TopoIndexInfo> index(nodeCount);
@@ -206,7 +206,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   outputTasks outTskMap;
   outputObjects outObjMap;
 
-  for (size_t wi = 0; wi < workflow.size(); ++wi) {
+  for (std::size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
     auto name = processor.name;
     auto hash = compile_time_hash(name.c_str());
@@ -220,7 +220,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       processor.options.push_back(ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}});
     }
     bool hasConditionOption = false;
-    for (size_t ii = 0; ii < processor.inputs.size(); ++ii) {
+    for (std::size_t ii = 0; ii < processor.inputs.size(); ++ii) {
       auto& input = processor.inputs[ii];
       switch (input.lifetime) {
         case Lifetime::Timer: {
@@ -259,7 +259,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     }
     std::stable_sort(timer.outputs.begin(), timer.outputs.end(), [](OutputSpec const& a, OutputSpec const& b) { return *DataSpecUtils::getOptionalSubSpec(a) < *DataSpecUtils::getOptionalSubSpec(b); });
 
-    for (size_t oi = 0; oi < processor.outputs.size(); ++oi) {
+    for (std::size_t oi = 0; oi < processor.outputs.size(); ++oi) {
       auto& output = processor.outputs[oi];
       if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AOD"})) {
         providedAODs.emplace_back(output);
@@ -383,10 +383,10 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
   // Notice that availableOutputsInfo MUST be updated first, since it relies on
   // the size of outputs to be the one before the update.
   auto enumerateAvailableOutputs = [&workflow, &outputs, &availableOutputsInfo]() {
-    for (size_t wi = 0; wi < workflow.size(); ++wi) {
+    for (std::size_t wi = 0; wi < workflow.size(); ++wi) {
       auto& producer = workflow[wi];
 
-      for (size_t oi = 0; oi < producer.outputs.size(); ++oi) {
+      for (std::size_t oi = 0; oi < producer.outputs.size(); ++oi) {
         auto& out = producer.outputs[oi];
         auto uniqueOutputId = outputs.size();
         availableOutputsInfo.emplace_back(LogicalOutputInfo{wi, uniqueOutputId, false});
@@ -400,7 +400,7 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
   // channel we need to connect it too.
   auto hasMatchingOutputFor = [&workflow, &constOutputs,
                                &availableOutputsInfo, &oif,
-                               &forwardedInputsInfo](size_t ci, size_t ii) {
+                               &forwardedInputsInfo](std::size_t ci, std::size_t ii) {
     assert(ci < workflow.size());
     assert(ii < workflow[ci].inputs.size());
     auto& input = workflow[ci].inputs[ii];
@@ -424,7 +424,7 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
   // We have consumed the input, therefore we remove it from the list.
   // We will insert the forwarded inputs only at the end of the iteration.
   auto findNextOutputFor = [&availableOutputsInfo, &constOutputs, &oif, &workflow](
-                             size_t ci, size_t& ii) {
+                             std::size_t ci, std::size_t& ii) {
     auto& input = workflow[ci].inputs[ii];
     auto matcher = [&input, &constOutputs](const LogicalOutputInfo& outputInfo) -> bool {
       auto& output = constOutputs[outputInfo.outputGlobalIndex];
@@ -435,12 +435,12 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
     return oif;
   };
 
-  auto numberOfInputsFor = [&workflow](size_t ci) {
+  auto numberOfInputsFor = [&workflow](std::size_t ci) {
     auto& consumer = workflow[ci];
     return consumer.inputs.size();
   };
 
-  auto maxInputTimeslicesFor = [&workflow](size_t pi) {
+  auto maxInputTimeslicesFor = [&workflow](std::size_t pi) {
     auto& processor = workflow[pi];
     return processor.maxInputTimeslices;
   };
@@ -460,12 +460,12 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
   };
 
   // Trivial but makes reasing easier in the outer loop.
-  auto createEdge = [&logicalEdges](size_t producer,
-                                    size_t consumer,
-                                    size_t tpi,
-                                    size_t ptpi,
-                                    size_t uniqueOutputId,
-                                    size_t matchingInputInConsumer,
+  auto createEdge = [&logicalEdges](std::size_t producer,
+                                    std::size_t consumer,
+                                    std::size_t tpi,
+                                    std::size_t ptpi,
+                                    std::size_t uniqueOutputId,
+                                    std::size_t matchingInputInConsumer,
                                     bool doForward) {
     logicalEdges.emplace_back(
       DeviceConnectionEdge{producer,
@@ -477,7 +477,7 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
                            doForward});
   };
 
-  auto errorDueToMissingOutputFor = [&workflow, &constOutputs](size_t ci, size_t ii) {
+  auto errorDueToMissingOutputFor = [&workflow, &constOutputs](std::size_t ci, std::size_t ii) {
     auto input = workflow[ci].inputs[ii];
     std::ostringstream str;
     str << "No matching output found for "
@@ -511,7 +511,7 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
     forwards.clear();
   };
 
-  auto forwardOutputFrom = [&forwards](size_t consumer, size_t uniqueOutputId) {
+  auto forwardOutputFrom = [&forwards](std::size_t consumer, std::size_t uniqueOutputId) {
     forwards.push_back(LogicalOutputInfo{consumer, uniqueOutputId, true});
   };
 
@@ -528,15 +528,15 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
   // parallel pipeline and add an edge for each.
   enumerateAvailableOutputs();
 
-  for (size_t consumer = 0; consumer < workflow.size(); ++consumer) {
-    for (size_t input = 0; input < numberOfInputsFor(consumer); ++input) {
+  for (std::size_t consumer = 0; consumer < workflow.size(); ++consumer) {
+    for (std::size_t input = 0; input < numberOfInputsFor(consumer); ++input) {
       newEdgeBetweenDevices();
 
       while (hasMatchingOutputFor(consumer, input)) {
         auto producer = getOutputAssociatedProducer();
         auto uniqueOutputId = getAssociateOutput();
-        for (size_t tpi = 0; tpi < maxInputTimeslicesFor(consumer); ++tpi) {
-          for (size_t ptpi = 0; ptpi < maxInputTimeslicesFor(producer); ++ptpi) {
+        for (std::size_t tpi = 0; tpi < maxInputTimeslicesFor(consumer); ++tpi) {
+          for (std::size_t ptpi = 0; ptpi < maxInputTimeslicesFor(producer); ++ptpi) {
             createEdge(producer, consumer, tpi, ptpi, uniqueOutputId, input, isForward());
           }
           forwardOutputFrom(consumer, uniqueOutputId);
@@ -554,13 +554,13 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
 std::vector<EdgeAction>
   WorkflowHelpers::computeOutEdgeActions(
     const std::vector<DeviceConnectionEdge>& edges,
-    const std::vector<size_t>& index)
+    const std::vector<std::size_t>& index)
 {
   DeviceConnectionEdge last{ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX};
 
   assert(edges.size() == index.size());
   std::vector<EdgeAction> actions(edges.size(), EdgeAction{false, false});
-  for (size_t i : index) {
+  for (std::size_t i : index) {
     auto& edge = edges[i];
     auto& action = actions[i];
     action.requiresNewDevice = last.producer != edge.producer || last.producerTimeIndex != edge.producerTimeIndex;
@@ -573,13 +573,13 @@ std::vector<EdgeAction>
 std::vector<EdgeAction>
   WorkflowHelpers::computeInEdgeActions(
     const std::vector<DeviceConnectionEdge>& edges,
-    const std::vector<size_t>& index)
+    const std::vector<std::size_t>& index)
 {
   DeviceConnectionEdge last{ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX};
 
   assert(edges.size() == index.size());
   std::vector<EdgeAction> actions(edges.size(), EdgeAction{false, false});
-  for (size_t i : index) {
+  for (std::size_t i : index) {
     auto& edge = edges[i];
     auto& action = actions[i];
     // Calculate which actions need to be taken for this edge.
@@ -592,8 +592,8 @@ std::vector<EdgeAction>
   return actions;
 }
 
-void WorkflowHelpers::sortEdges(std::vector<size_t>& inEdgeIndex,
-                                std::vector<size_t>& outEdgeIndex,
+void WorkflowHelpers::sortEdges(std::vector<std::size_t>& inEdgeIndex,
+                                std::vector<std::size_t>& outEdgeIndex,
                                 const std::vector<DeviceConnectionEdge>& edges)
 {
   inEdgeIndex.resize(edges.size());
@@ -603,12 +603,12 @@ void WorkflowHelpers::sortEdges(std::vector<size_t>& inEdgeIndex,
 
   // Two indexes, one to bind the outputs, the other
   // one to connect the inputs. The
-  auto outSorter = [&edges](size_t i, size_t j) {
+  auto outSorter = [&edges](std::size_t i, std::size_t j) {
     auto& a = edges[i];
     auto& b = edges[j];
     return std::tie(a.producer, a.producerTimeIndex, a.timeIndex, a.consumer) < std::tie(b.producer, b.producerTimeIndex, b.timeIndex, b.consumer);
   };
-  auto inSorter = [&edges](size_t i, size_t j) {
+  auto inSorter = [&edges](std::size_t i, std::size_t j) {
     auto& a = edges[i];
     auto& b = edges[j];
     return std::tie(a.consumer, a.timeIndex, a.producer, a.producerTimeIndex) < std::tie(b.consumer, b.timeIndex, b.producer, b.producerTimeIndex);
@@ -629,9 +629,9 @@ void WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec& workflow
 
   // An index many to one index to go from a given input to the
   // associated spec
-  std::map<size_t, size_t> inputToSpec;
+  std::map<std::size_t, std::size_t> inputToSpec;
   // A one to one index to go from a given output to the Spec emitting it
-  std::map<size_t, size_t> outputToSpec;
+  std::map<std::size_t, std::size_t> outputToSpec;
 
   std::ostringstream ss;
 
@@ -651,7 +651,7 @@ void WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec& workflow
         throw std::runtime_error(ss.str());
       }
     }
-    for (size_t ii = 0; ii < spec.inputs.size(); ++ii) {
+    for (std::size_t ii = 0; ii < spec.inputs.size(); ++ii) {
       InputSpec const& input = spec.inputs[ii];
       if (DataSpecUtils::validate(input) == false) {
         ss << "In spec " << spec.name << " input specification "
@@ -665,15 +665,15 @@ void WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec& workflow
 
 using UnifiedDataSpecType = std::variant<InputSpec, OutputSpec>;
 struct DataMatcherId {
-  size_t workflowId;
-  size_t id;
+  std::size_t workflowId;
+  std::size_t id;
 };
 
 std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::analyzeOutputs(WorkflowSpec const& workflow)
 {
   // compute total number of input/output
-  size_t totalInputs = 0;
-  size_t totalOutputs = 0;
+  std::size_t totalInputs = 0;
+  std::size_t totalOutputs = 0;
   for (auto& spec : workflow) {
     totalInputs += spec.inputs.size();
     totalOutputs += spec.outputs.size();
@@ -690,17 +690,17 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
   outputtypes.reserve(totalOutputs);
 
   /// Prepare an index to do the iterations quickly.
-  for (size_t wi = 0, we = workflow.size(); wi != we; ++wi) {
+  for (std::size_t wi = 0, we = workflow.size(); wi != we; ++wi) {
     auto& spec = workflow[wi];
-    for (size_t ii = 0, ie = spec.inputs.size(); ii != ie; ++ii) {
+    for (std::size_t ii = 0, ie = spec.inputs.size(); ii != ie; ++ii) {
       inputs.emplace_back(DataMatcherId{wi, ii});
     }
-    for (size_t oi = 0, oe = spec.outputs.size(); oi != oe; ++oi) {
+    for (std::size_t oi = 0, oe = spec.outputs.size(); oi != oe; ++oi) {
       outputs.emplace_back(DataMatcherId{wi, oi});
     }
   }
 
-  for (size_t oi = 0, oe = outputs.size(); oi != oe; ++oi) {
+  for (std::size_t oi = 0, oe = outputs.size(); oi != oe; ++oi) {
     auto& output = outputs[oi];
     auto& outputSpec = workflow[output.workflowId].outputs[output.id];
 
@@ -714,7 +714,7 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
 
     // is dangling output?
     bool matched = false;
-    for (size_t ii = 0, ie = inputs.size(); ii != ie; ++ii) {
+    for (std::size_t ii = 0, ie = inputs.size(); ii != ie; ++ii) {
       auto& input = inputs[ii];
       // Inputs of the same workflow cannot match outputs
       if (output.workflowId == input.workflowId) {

@@ -92,7 +92,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
       processAttributes->rawReader.createReader("");
       processAttributes->rawReader.setADCDataCallback([&pedestal](const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data) -> Int_t {
         Int_t timeBins = pedestal.update(padROCPos, cru, data);
-        pedestal.setNumberOfProcessedTimeBins(std::max(pedestal.getNumberOfProcessedTimeBins(), size_t(timeBins)));
+        pedestal.setNumberOfProcessedTimeBins(std::max(pedestal.getNumberOfProcessedTimeBins(), std::size_t(timeBins)));
         return timeBins;
       });
       processAttributes->maxEvents = static_cast<uint32_t>(ic.options().get<int>("max-events"));

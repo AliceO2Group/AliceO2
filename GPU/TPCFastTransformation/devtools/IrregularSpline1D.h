@@ -220,13 +220,13 @@ class IrregularSpline1D : public FlatObject
   GPUd() const IrregularSpline1D::Knot* getKnots() const { return reinterpret_cast<const IrregularSpline1D::Knot*>(mFlatBufferPtr); }
 
   /// Get minimal required alignment for the class
-  static constexpr size_t getClassAlignmentBytes() { return 8; }
+  static constexpr std::size_t getClassAlignmentBytes() { return 8; }
 
   /// Get minimal required alignment for the flat buffer
-  static constexpr size_t getBufferAlignmentBytes() { return 8; }
+  static constexpr std::size_t getBufferAlignmentBytes() { return 8; }
 
   /// Get minimal required alignment for the spline data
-  static constexpr size_t getDataAlignmentBytes() { return 8; }
+  static constexpr std::size_t getDataAlignmentBytes() { return 8; }
 
   /// technical stuff
 

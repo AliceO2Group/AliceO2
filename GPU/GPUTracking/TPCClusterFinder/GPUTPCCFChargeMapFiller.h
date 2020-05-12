@@ -62,11 +62,11 @@ class GPUTPCCFChargeMapFiller : public GPUKernelTemplate
   template <int iKernel = defaultKernel, typename... Args>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
-  static GPUd() void fillIndexMapImpl(int, int, int, int, const CfFragment&, const tpc::Digit*, Array2D<uint>&, size_t);
+  static GPUd() void fillIndexMapImpl(int, int, int, int, const CfFragment&, const tpc::Digit*, Array2D<uint>&, std::size_t);
 
-  static GPUd() void fillFromDigitsImpl(int, int, int, int, const CfFragment&, size_t, const tpc::Digit*, ChargePos*, Array2D<PackedCharge>&);
+  static GPUd() void fillFromDigitsImpl(int, int, int, int, const CfFragment&, std::size_t, const tpc::Digit*, ChargePos*, Array2D<PackedCharge>&);
 
-  static GPUd() void resetMapsImpl(int, int, int, int, const ChargePos*, Array2D<PackedCharge>&, Array2D<uchar>&, size_t);
+  static GPUd() void resetMapsImpl(int, int, int, int, const ChargePos*, Array2D<PackedCharge>&, Array2D<uchar>&, std::size_t);
 };
 
 } // namespace gpu

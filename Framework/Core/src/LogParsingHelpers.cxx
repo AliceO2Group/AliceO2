@@ -27,8 +27,8 @@ LogLevel LogParsingHelpers::parseTokenLevel(std::string_view const s)
 {
 
   // Example format: [99:99:99][ERROR] (string begins with that, longest is 17 chars)
-  constexpr size_t MAXPREFLEN = 17;
-  constexpr size_t LABELPOS = 10;
+  constexpr std::size_t MAXPREFLEN = 17;
+  constexpr std::size_t LABELPOS = 10;
   if (s.size() < MAXPREFLEN) {
     return LogLevel::Unknown;
   }

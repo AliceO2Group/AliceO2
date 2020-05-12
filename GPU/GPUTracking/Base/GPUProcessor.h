@@ -59,63 +59,63 @@ class GPUProcessor
   void InitGPUProcessor(GPUReconstruction* rec, ProcessorType type = PROCESSOR_TYPE_CPU, GPUProcessor* slaveProcessor = nullptr);
   void Clear();
 
-  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT>
-  static inline size_t getAlignment(size_t addr)
+  template <std::size_t alignment = GPUCA_BUFFER_ALIGNMENT>
+  static inline std::size_t getAlignment(std::size_t addr)
   {
     static_assert((alignment & (alignment - 1)) == 0, "Invalid alignment, not power of 2");
     if (alignment <= 1) {
       return 0;
     }
-    size_t mod = addr & (alignment - 1);
+    std::size_t mod = addr & (alignment - 1);
     if (mod == 0) {
       return 0;
     }
     return (alignment - mod);
   }
-  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT>
-  static inline size_t nextMultipleOf(size_t size)
+  template <std::size_t alignment = GPUCA_BUFFER_ALIGNMENT>
+  static inline std::size_t nextMultipleOf(std::size_t size)
   {
     return size + getAlignment<alignment>(size);
   }
-  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT>
+  template <std::size_t alignment = GPUCA_BUFFER_ALIGNMENT>
   static inline void* alignPointer(void* ptr)
   {
-    return (reinterpret_cast<void*>(nextMultipleOf<alignment>(reinterpret_cast<size_t>(ptr))));
+    return (reinterpret_cast<void*>(nextMultipleOf<alignment>(reinterpret_cast<std::size_t>(ptr))));
   }
-  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT>
-  static inline size_t getAlignment(void* addr)
+  template <std::size_t alignment = GPUCA_BUFFER_ALIGNMENT>
+  static inline std::size_t getAlignment(void* addr)
   {
-    return (getAlignment<alignment>(reinterpret_cast<size_t>(addr)));
+    return (getAlignment<alignment>(reinterpret_cast<std::size_t>(addr)));
   }
-  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT, class S>
-  static inline S* getPointerWithAlignment(size_t& basePtr, size_t nEntries = 1)
+  template <std::size_t alignment = GPUCA_BUFFER_ALIGNMENT, class S>
+  static inline S* getPointerWithAlignment(std::size_t& basePtr, std::size_t nEntries = 1)
   {
     if (basePtr == 0) {
       basePtr = 1;
     }
-    CONSTEXPR size_t maxAlign = (alignof(S) > alignment) ? alignof(S) : alignment;
+    CONSTEXPR std::size_t maxAlign = (alignof(S) > alignment) ? alignof(S) : alignment;
     basePtr += getAlignment<maxAlign>(basePtr);
     S* retVal = (S*)(basePtr);
     basePtr += nEntries * sizeof(S);
     return retVal;
   }
 
-  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT, class S>
-  static inline S* getPointerWithAlignment(void*& basePtr, size_t nEntries = 1)
+  template <std::size_t alignment = GPUCA_BUFFER_ALIGNMENT, class S>
+  static inline S* getPointerWithAlignment(void*& basePtr, std::size_t nEntries = 1)
   {
-    return getPointerWithAlignment<alignment, S>(reinterpret_cast<size_t&>(basePtr), nEntries);
+    return getPointerWithAlignment<alignment, S>(reinterpret_cast<std::size_t&>(basePtr), nEntries);
   }
 
-  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT, class T, class S>
-  static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1)
+  template <std::size_t alignment = GPUCA_BUFFER_ALIGNMENT, class T, class S>
+  static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, std::size_t nEntries = 1)
   {
-    objPtr = getPointerWithAlignment<alignment, S>(reinterpret_cast<size_t&>(basePtr), nEntries);
+    objPtr = getPointerWithAlignment<alignment, S>(reinterpret_cast<std::size_t&>(basePtr), nEntries);
   }
 
   template <class T, class S>
-  static inline void computePointerWithoutAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1)
+  static inline void computePointerWithoutAlignment(T*& basePtr, S*& objPtr, std::size_t nEntries = 1)
   {
-    objPtr = reinterpret_cast<S*>(getPointerWithAlignment<1, char>(reinterpret_cast<size_t&>(basePtr), nEntries * sizeof(S)));
+    objPtr = reinterpret_cast<S*>(getPointerWithAlignment<1, char>(reinterpret_cast<std::size_t&>(basePtr), nEntries * sizeof(S)));
   }
 #endif
 

@@ -23,22 +23,22 @@
 
 #include <ctime>
 
-const size_t entriesInDiff = 50;
-const size_t entriesInFull = 5000;
-const size_t collectionSize = 100;
+const std::size_t entriesInDiff = 50;
+const std::size_t entriesInFull = 5000;
+const std::size_t collectionSize = 100;
 
 #define DIFF_OBJECTS 0
 #define FULL_OBJECTS 1
 
 static void BM_MergingTH1I(benchmark::State& state)
 {
-  const size_t entries = state.range(0) == FULL_OBJECTS ? entriesInFull : entriesInDiff;
-  const size_t bins = 62500; // makes 250kB
+  const std::size_t entries = state.range(0) == FULL_OBJECTS ? entriesInFull : entriesInDiff;
+  const std::size_t bins = 62500; // makes 250kB
 
   TCollection* collection = new TObjArray();
   collection->SetOwner(true);
   TF1* uni = new TF1("uni", "1", 0, 1000000);
-  for (size_t i = 0; i < collectionSize; i++) {
+  for (std::size_t i = 0; i < collectionSize; i++) {
     TH1I* h = new TH1I(("test" + std::to_string(i)).c_str(), "test", bins, 0, 1000000);
     h->FillRandom("uni", entries);
     collection->Add(h);
@@ -63,13 +63,13 @@ static void BM_MergingTH1I(benchmark::State& state)
 
 static void BM_MergingTH2I(benchmark::State& state)
 {
-  const size_t entries = state.range(0) == FULL_OBJECTS ? entriesInFull : entriesInDiff;
-  size_t bins = 250; // 250 bins * 250 bins * 4B makes 250kB
+  const std::size_t entries = state.range(0) == FULL_OBJECTS ? entriesInFull : entriesInDiff;
+  std::size_t bins = 250; // 250 bins * 250 bins * 4B makes 250kB
 
   TCollection* collection = new TObjArray();
   collection->SetOwner(true);
   TF2* uni = new TF2("uni", "1", 0, 1000000, 0, 1000000);
-  for (size_t i = 0; i < collectionSize; i++) {
+  for (std::size_t i = 0; i < collectionSize; i++) {
     TH2I* h = new TH2I(("test" + std::to_string(i)).c_str(), "test", bins, 0, 1000000, bins, 0, 1000000);
     h->FillRandom("uni", entries);
     collection->Add(h);
@@ -93,13 +93,13 @@ static void BM_MergingTH2I(benchmark::State& state)
 
 static void BM_MergingTH3I(benchmark::State& state)
 {
-  const size_t entries = state.range(0) == FULL_OBJECTS ? entriesInFull : entriesInDiff;
-  size_t bins = 40; // 40 bins * 40 bins * 40 bins * 4B makes 256kB
+  const std::size_t entries = state.range(0) == FULL_OBJECTS ? entriesInFull : entriesInDiff;
+  std::size_t bins = 40; // 40 bins * 40 bins * 40 bins * 4B makes 256kB
 
   TCollection* collection = new TObjArray();
   collection->SetOwner(true);
   TF3* uni = new TF3("uni", "1", 0, 1000000, 0, 1000000, 0, 1000000);
-  for (size_t i = 0; i < collectionSize; i++) {
+  for (std::size_t i = 0; i < collectionSize; i++) {
     TH3I* h = new TH3I(("test" + std::to_string(i)).c_str(), "test",
                        bins, 0, 1000000,
                        bins, 0, 1000000,
@@ -126,11 +126,11 @@ static void BM_MergingTH3I(benchmark::State& state)
 
 static void BM_MergingTHnSparse(benchmark::State& state)
 {
-  const size_t entries = state.range(0) == FULL_OBJECTS ? entriesInFull : entriesInDiff;
+  const std::size_t entries = state.range(0) == FULL_OBJECTS ? entriesInFull : entriesInDiff;
 
   const Double_t min = 0.0;
   const Double_t max = 1000000.0;
-  const size_t dim = 10;
+  const std::size_t dim = 10;
   const Int_t bins = 250;
   const Int_t binsDims[dim] = {bins, bins, bins, bins, bins, bins, bins, bins, bins, bins};
   const Double_t mins[dim] = {min, min, min, min, min, min, min, min, min, min};
@@ -145,10 +145,10 @@ static void BM_MergingTHnSparse(benchmark::State& state)
     state.PauseTiming();
     TCollection* collection = new TObjArray();
     collection->SetOwner(true);
-    for (size_t i = 0; i < collectionSize; i++) {
+    for (std::size_t i = 0; i < collectionSize; i++) {
 
       auto* h = new THnSparseI(("test" + std::to_string(i)).c_str(), "test", dim, binsDims, mins, maxs);
-      for (size_t entry = 0; entry < entries; entry++) {
+      for (std::size_t entry = 0; entry < entries; entry++) {
         gen.RndmArray(dim, randomArray);
         for (double r : randomArray) {
           r *= max;
@@ -174,7 +174,7 @@ static void BM_MergingTHnSparse(benchmark::State& state)
 
 static void BM_MergingTTree(benchmark::State& state)
 {
-  const size_t entries = state.range(0) == FULL_OBJECTS ? entriesInFull : entriesInDiff;
+  const std::size_t entries = state.range(0) == FULL_OBJECTS ? entriesInFull : entriesInDiff;
 
   struct format1 {
     Int_t a;
@@ -201,9 +201,9 @@ static void BM_MergingTTree(benchmark::State& state)
     state.PauseTiming();
     TCollection* collection = new TObjArray();
     collection->SetOwner(true);
-    for (size_t i = 0; i < collectionSize; i++) {
+    for (std::size_t i = 0; i < collectionSize; i++) {
       TTree* t = createTree(std::to_string(i));
-      for (size_t entry = 0; entry < entries; entry++) {
+      for (std::size_t entry = 0; entry < entries; entry++) {
         gen.RndmArray(5, randomArray);
         branch1 = {static_cast<Int_t>(randomArray[0]), static_cast<Long64_t>(randomArray[1]), static_cast<Float_t>(randomArray[2]), randomArray[3]};
         branch2 = randomArray[4];

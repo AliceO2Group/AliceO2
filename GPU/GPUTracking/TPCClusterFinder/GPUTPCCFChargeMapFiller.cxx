@@ -28,9 +28,9 @@ GPUd() void GPUTPCCFChargeMapFiller::fillIndexMapImpl(int nBlocks, int nThreads,
                                                       const CfFragment& fragment,
                                                       const tpc::Digit* digits,
                                                       Array2D<uint>& indexMap,
-                                                      size_t maxDigit)
+                                                      std::size_t maxDigit)
 {
-  size_t idx = get_global_id(0);
+  std::size_t idx = get_global_id(0);
   if (idx >= maxDigit) {
     return;
   }
@@ -47,12 +47,12 @@ GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::fillFromD
   fillFromDigitsImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPmemory->fragment, clusterer.mPmemory->counters.nPositions, clusterer.mPdigits, clusterer.mPpositions, chargeMap);
 }
 
-GPUd() void GPUTPCCFChargeMapFiller::fillFromDigitsImpl(int nBlocks, int nThreads, int iBlock, int iThread, const CfFragment& fragment, size_t digitNum,
+GPUd() void GPUTPCCFChargeMapFiller::fillFromDigitsImpl(int nBlocks, int nThreads, int iBlock, int iThread, const CfFragment& fragment, std::size_t digitNum,
                                                         const tpc::Digit* digits,
                                                         ChargePos* positions,
                                                         Array2D<PackedCharge>& chargeMap)
 {
-  size_t idx = get_global_id(0);
+  std::size_t idx = get_global_id(0);
   if (idx >= digitNum) {
     return;
   }
@@ -71,13 +71,13 @@ GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::findFragm
     return;
   }
 
-  size_t nDigits = clusterer.mPmemory->counters.nDigits;
+  std::size_t nDigits = clusterer.mPmemory->counters.nDigits;
   const tpc::Digit* digits = clusterer.mPdigits;
-  size_t st = 0;
+  std::size_t st = 0;
   for (; st < nDigits && digits[st].getTimeStamp() < clusterer.mPmemory->fragment.first(); st++) {
   }
 
-  size_t end = st;
+  std::size_t end = st;
   for (; end < nDigits && digits[end].getTimeStamp() < clusterer.mPmemory->fragment.last(); end++) {
   }
 
@@ -97,9 +97,9 @@ GPUd() void GPUTPCCFChargeMapFiller::resetMapsImpl(int nBlocks, int nThreads, in
                                                    const ChargePos* positions,
                                                    Array2D<PackedCharge>& chargeMap,
                                                    Array2D<uchar>& isPeakMap,
-                                                   size_t maxDigit)
+                                                   std::size_t maxDigit)
 {
-  size_t idx = get_global_id(0);
+  std::size_t idx = get_global_id(0);
   if (idx >= maxDigit) {
     return;
   }

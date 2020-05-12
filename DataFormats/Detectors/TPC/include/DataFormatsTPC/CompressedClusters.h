@@ -68,7 +68,7 @@ struct CompressedClustersPtrs_x {
 struct CompressedClustersPtrs : public CompressedClustersPtrs_x<unsigned char*, unsigned short*, unsigned int*> {
 };
 
-struct CompressedClustersOffsets : public CompressedClustersPtrs_x<size_t, size_t, size_t> {
+struct CompressedClustersOffsets : public CompressedClustersPtrs_x<std::size_t, std::size_t, std::size_t> {
 };
 
 struct CompressedClustersFlat;
@@ -95,9 +95,9 @@ struct CompressedClustersROOT : public CompressedClusters {
 struct CompressedClustersFlat : private CompressedClustersCounters, private CompressedClustersOffsets {
   friend struct CompressedClusters;    // We don't want anyone to access the members directly, should only be used to construct a CompressedClusters struct
   CompressedClustersFlat() CON_DELETE; // Must not be constructed, but just reinterpret_casted from void* array (void* to enforce alignment)
-  size_t totalDataSize = 0;
+  std::size_t totalDataSize = 0;
 
-  void set(size_t bufferSize, const CompressedClusters& v);
+  void set(std::size_t bufferSize, const CompressedClusters& v);
 };
 
 } // namespace tpc

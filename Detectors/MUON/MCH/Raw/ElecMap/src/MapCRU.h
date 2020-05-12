@@ -24,7 +24,7 @@ class MapCRU
  public:
   MapCRU(std::string_view content);
   std::optional<uint16_t> operator()(const FeeLinkId& feeLinkId) const;
-  size_t size() const;
+  std::size_t size() const;
 
  private:
   int indexFeeLink(int feeid, int linkid) const;

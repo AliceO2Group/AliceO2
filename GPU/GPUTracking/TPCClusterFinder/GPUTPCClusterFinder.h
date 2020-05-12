@@ -51,10 +51,10 @@ class GPUTPCClusterFinder : public GPUProcessor
  public:
   struct Memory {
     struct counters_t {
-      size_t nDigits = 0;
-      size_t nPositions = 0; // TODO use this instead of nDigits
-      size_t nPeaks = 0;
-      size_t nClusters = 0;
+      std::size_t nDigits = 0;
+      std::size_t nPositions = 0; // TODO use this instead of nDigits
+      std::size_t nPeaks = 0;
+      std::size_t nClusters = 0;
       unsigned int maxTimeBin = 0;
       unsigned int nPages = 0;
       unsigned int nPagesSubslice = 0;
@@ -84,8 +84,8 @@ class GPUTPCClusterFinder : public GPUProcessor
   void* SetPointersMemory(void* mem);
   void* SetPointersZSOffset(void* mem);
 
-  unsigned int getNSteps(size_t items) const;
-  void SetNMaxDigits(size_t nDigits, size_t nPages);
+  unsigned int getNSteps(std::size_t items) const;
+  void SetNMaxDigits(std::size_t nDigits, std::size_t nPages);
 
   void PrepareMC();
   void clearMCMemory();
@@ -115,10 +115,10 @@ class GPUTPCClusterFinder : public GPUProcessor
   constexpr static int mScanWorkGroupSize = GPUCA_THREAD_COUNT_SCAN;
   unsigned int mNMaxClusterPerRow = 0;
   unsigned int mNMaxClusters = 0;
-  size_t mNMaxPages = 0;
-  size_t mNMaxDigits = 0;
-  size_t mNMaxPeaks = 0;
-  size_t mBufSize = 0;
+  std::size_t mNMaxPages = 0;
+  std::size_t mNMaxDigits = 0;
+  std::size_t mNMaxPeaks = 0;
+  std::size_t mBufSize = 0;
   unsigned int mNBufs = 0;
 
   short mMemoryId = -1;

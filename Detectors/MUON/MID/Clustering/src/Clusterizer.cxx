@@ -33,7 +33,7 @@ bool Clusterizer::loadPreClusters(gsl::span<const PreCluster>& preClusters)
     int deIndex = pc.deId;
     de = &mPreClustersDE[deIndex];
     de->setDEId(deIndex);
-    size_t idx = &pc - &preClusters[0];
+    std::size_t idx = &pc - &preClusters[0];
     if (pc.cathode == 0) {
       de->getPreClustersBP(pc.firstColumn).push_back({idx, 0, mPreClusterHelper.getArea(pc)});
     } else {
@@ -187,7 +187,7 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
 }
 
 //______________________________________________________________________________
-bool Clusterizer::init(std::function<void(size_t, size_t)> func)
+bool Clusterizer::init(std::function<void(std::size_t, std::size_t)> func)
 {
   /// Initializes the class
 

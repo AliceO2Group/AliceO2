@@ -42,7 +42,7 @@ struct LHCClockDataHisto {
     histo.resize(nbins, 0.);
   }
 
-  size_t getEntries() const { return entries; }
+  std::size_t getEntries() const { return entries; }
   void print() const;
   void fill(const gsl::span<const o2::dataformats::CalibInfoTOF> data);
   void merge(const LHCClockDataHisto* prev);

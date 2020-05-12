@@ -32,7 +32,7 @@ class DecoderLogic
   bool moreDataAvailable() const;
   bool moreSampleToRead() const;
   bool moreWordsToRead() const;
-  uint16_t data10(uint64_t value, size_t index) const;
+  uint16_t data10(uint64_t value, std::size_t index) const;
   uint16_t pop10();
   void addHeaderPart(uint16_t a);
   template <typename CHARGESUM>
@@ -63,7 +63,7 @@ class DecoderLogic
   uint16_t mClusterSize{0};
   uint16_t mClusterTime{0};
   uint64_t mData{0};
-  size_t mMaskIndex{mMasks.size()};
+  std::size_t mMaskIndex{mMasks.size()};
   std::vector<uint16_t> mSamples;
   std::vector<uint16_t> mHeaderParts;
   SampaChannelHandler mSampaChannelHandler;

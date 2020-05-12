@@ -47,12 +47,12 @@ class TPCEntropyEncoder
                        uint8_t probabilityBits,           // encoding into
                        EncodedClusters& ec);              // structure to hold encoded data
 
-  static size_t calculateMaxBufferSize(size_t num, size_t rangeBits, size_t sizeofStreamT);
+  static std::size_t calculateMaxBufferSize(std::size_t num, std::size_t rangeBits, std::size_t sizeofStreamT);
 
   //rans default values
-  const static inline size_t sProbabilityBits8Bit = 10;
-  const static inline size_t sProbabilityBits16Bit = 22;
-  const static inline size_t sProbabilityBits25Bit = 25;
+  const static inline std::size_t sProbabilityBits8Bit = 10;
+  const static inline std::size_t sProbabilityBits16Bit = 22;
+  const static inline std::size_t sProbabilityBits25Bit = 25;
 };
 
 template <typename source_T>

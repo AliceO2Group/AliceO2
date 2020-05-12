@@ -37,8 +37,8 @@ class DataSamplingConditionPayloadSize : public DataSamplingCondition
   /// \brief Reads 'lowerLimit' and 'UpperLimit' of allowed payload size.
   void configure(const boost::property_tree::ptree& config) override
   {
-    mLowerLimit = config.get<size_t>("lowerLimit");
-    mUpperLimit = config.get<size_t>("upperLimit");
+    mLowerLimit = config.get<std::size_t>("lowerLimit");
+    mUpperLimit = config.get<std::size_t>("upperLimit");
     if (mLowerLimit > mUpperLimit) {
       LOG(WARN) << "Lower limit is higher than upper limit.";
     }
@@ -53,8 +53,8 @@ class DataSamplingConditionPayloadSize : public DataSamplingCondition
   }
 
  private:
-  size_t mLowerLimit;
-  size_t mUpperLimit;
+  std::size_t mLowerLimit;
+  std::size_t mUpperLimit;
 };
 
 std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::createDataSamplingConditionPayloadSize()

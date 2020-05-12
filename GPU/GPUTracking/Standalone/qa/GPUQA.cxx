@@ -555,7 +555,7 @@ void GPUQA::RunQA(bool matchOnly)
     mMCParam[iCol].resize(GetNMCTracks(iCol));
     memset(mRecTracks[iCol].data(), 0, mRecTracks[iCol].size() * sizeof(mRecTracks[iCol][0]));
     memset(mFakeTracks[iCol].data(), 0, mFakeTracks[iCol].size() * sizeof(mFakeTracks[iCol][0]));
-    for (size_t i = 0; i < mTrackMCLabelsReverse[iCol].size(); i++) {
+    for (std::size_t i = 0; i < mTrackMCLabelsReverse[iCol].size(); i++) {
       mTrackMCLabelsReverse[iCol][i] = -1;
     }
   }

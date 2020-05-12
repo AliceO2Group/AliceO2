@@ -186,7 +186,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
 
     cl_ulong constantBuffer, globalMem, localMem;
     char deviceVersion[64];
-    size_t maxWorkGroup, maxWorkItems[3];
+    std::size_t maxWorkGroup, maxWorkItems[3];
     clGetDeviceInfo(mInternals->device, CL_DEVICE_NAME, 64, device_name, nullptr);
     clGetDeviceInfo(mInternals->device, CL_DEVICE_VENDOR, 64, device_vendor, nullptr);
     clGetDeviceInfo(mInternals->device, CL_DEVICE_TYPE, sizeof(cl_device_type), &device_type, nullptr);
@@ -274,7 +274,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
       quit("Error allocating pinned host memory");
     }
 
-    const char* krnlGetPtr = "__kernel void krnlGetPtr(__global char* gpu_mem, __global char* constant_mem, __global size_t* host_mem) {if (get_global_id(0) == 0) {host_mem[0] = (size_t) gpu_mem; host_mem[1] = (size_t) constant_mem;}}";
+    const char* krnlGetPtr = "__kernel void krnlGetPtr(__global char* gpu_mem, __global char* constant_mem, __global std::size_t* host_mem) {if (get_global_id(0) == 0) {host_mem[0] = (std::size_t) gpu_mem; host_mem[1] = (std::size_t) constant_mem;}}";
     cl_program program = clCreateProgramWithSource(mInternals->context, 1, (const char**)&krnlGetPtr, nullptr, &ocl_error);
     if (GPUFailedMsgI(ocl_error)) {
       quit("Error creating program object");
@@ -361,7 +361,7 @@ int GPUReconstructionOCL::ExitDevice_Runtime()
   return (0);
 }
 
-size_t GPUReconstructionOCL::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+std::size_t GPUReconstructionOCL::GPUMemCpy(void* dst, const void* src, std::size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
   if (evList == nullptr) {
     nEvents = 0;
@@ -382,7 +382,7 @@ size_t GPUReconstructionOCL::GPUMemCpy(void* dst, const void* src, size_t size, 
   return size;
 }
 
-size_t GPUReconstructionOCL::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
+std::size_t GPUReconstructionOCL::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
 {
   if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
     if (mDeviceProcessingSettings.debugLevel >= 4) {
@@ -396,7 +396,7 @@ size_t GPUReconstructionOCL::TransferMemoryInternal(GPUMemoryResource* res, int 
   return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }
 
-size_t GPUReconstructionOCL::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
+std::size_t GPUReconstructionOCL::WriteToConstantMemory(std::size_t offset, const void* src, std::size_t size, int stream, deviceEvent* ev)
 {
   if (stream == -1) {
     SynchronizeGPU();

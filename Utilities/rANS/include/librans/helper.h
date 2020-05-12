@@ -29,7 +29,7 @@ constexpr bool needs64Bit()
   return sizeof(T) > 4;
 }
 
-constexpr size_t bitsToRange(size_t bits)
+constexpr std::size_t bitsToRange(std::size_t bits)
 {
   return 1 << bits;
 }

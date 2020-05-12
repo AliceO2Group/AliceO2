@@ -141,7 +141,7 @@ int main(int argc, char** argv)
       return (1);
     }
     fseek(fp, 0, SEEK_END);
-    size_t file_size = ftell(fp);
+    std::size_t file_size = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
     buffers[i] = (char*)malloc(file_size + 1);
@@ -183,7 +183,7 @@ int main(int argc, char** argv)
       cl_build_status status;
       clGetProgramBuildInfo(program, devices[i], CL_PROGRAM_BUILD_STATUS, sizeof(status), &status, nullptr);
       if (status == CL_BUILD_ERROR) {
-        size_t log_size;
+        std::size_t log_size;
         clGetProgramBuildInfo(program, devices[i], CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
         char* build_log = (char*)malloc(log_size + 1);
         if (build_log == nullptr) {
@@ -204,11 +204,11 @@ int main(int argc, char** argv)
   }
 
   printf("Obtaining program binaries\n");
-  size_t* binary_sizes = (size_t*)malloc(pinfo.count * sizeof(size_t));
+  std::size_t* binary_sizes = (std::size_t*)malloc(pinfo.count * sizeof(std::size_t));
   if (binary_sizes == nullptr) {
     quit("Memory allocation error");
   }
-  clGetProgramInfo(program, CL_PROGRAM_BINARY_SIZES, pinfo.count * sizeof(size_t), binary_sizes, nullptr);
+  clGetProgramInfo(program, CL_PROGRAM_BINARY_SIZES, pinfo.count * sizeof(std::size_t), binary_sizes, nullptr);
   char** binary_buffers = (char**)malloc(pinfo.count * sizeof(char*));
   if (binary_buffers == nullptr) {
     quit("Memory allocation error");

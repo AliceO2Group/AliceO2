@@ -74,9 +74,9 @@ void Decoder<GBTDECODER>::flush()
   /// Flushes the GBT data
   for (auto& gbtDec : mGBTDecoders) {
     if (!gbtDec.getData().empty()) {
-      size_t firstEntry = mData.size();
+      std::size_t firstEntry = mData.size();
       mData.insert(mData.end(), gbtDec.getData().begin(), gbtDec.getData().end());
-      size_t lastRof = mROFRecords.size();
+      std::size_t lastRof = mROFRecords.size();
       mROFRecords.insert(mROFRecords.end(), gbtDec.getROFRecords().begin(), gbtDec.getROFRecords().end());
       for (auto rofIt = mROFRecords.begin() + lastRof; rofIt != mROFRecords.end(); ++rofIt) {
         rofIt->firstEntry += firstEntry;

@@ -93,7 +93,7 @@ struct DataIdentifier;
 
 //__________________________________________________________________________________________________
 ///helper function to print a hex/ASCII dump of some memory
-void hexDump(const char* desc, const void* voidaddr, size_t len, size_t max = 0);
+void hexDump(const char* desc, const void* voidaddr, std::size_t len, std::size_t max = 0);
 
 //__________________________________________________________________________________________________
 // internal implementations
@@ -341,7 +341,7 @@ struct Descriptor {
     // backward search to find first non-zero char
     // FIXME: can optimize this by using the int value to start at e.g. size/2
     // if the upper part of the string is just zeros.
-    size_t len = size;
+    std::size_t len = size;
     while (len > 1 && str[len - 1] == 0) {
       --len;
     }
@@ -445,7 +445,7 @@ struct BaseHeader {
   /// @brief access header in buffer
   ///
   /// this is to guess if the buffer starting at b looks like a header
-  inline static const BaseHeader* get(const o2::byte* b, size_t /*len*/ = 0)
+  inline static const BaseHeader* get(const o2::byte* b, std::size_t /*len*/ = 0)
   {
     return (b != nullptr && *(reinterpret_cast<const uint32_t*>(b)) == sMagicString)
              ? reinterpret_cast<const BaseHeader*>(b)
@@ -455,7 +455,7 @@ struct BaseHeader {
   /// @brief access header in buffer
   ///
   /// this is to guess if the buffer starting at b looks like a header
-  inline static BaseHeader* get(o2::byte* b, size_t /*len*/ = 0)
+  inline static BaseHeader* get(o2::byte* b, std::size_t /*len*/ = 0)
   {
     return (b != nullptr && *(reinterpret_cast<uint32_t*>(b)) == sMagicString) ? reinterpret_cast<BaseHeader*>(b)
                                                                                : nullptr;
@@ -481,7 +481,7 @@ struct BaseHeader {
 /// use like this:
 /// HeaderType* h = get<HeaderType*>(buffer)
 template <typename HeaderType, typename std::enable_if_t<std::is_pointer<HeaderType>::value, int> = 0>
-auto get(const o2::byte* buffer, size_t /*len*/ = 0)
+auto get(const o2::byte* buffer, std::size_t /*len*/ = 0)
 {
   using HeaderConstPtrType = const typename std::remove_pointer<HeaderType>::type*;
   using HeaderValueType = typename std::remove_pointer<HeaderType>::type;
@@ -499,7 +499,7 @@ auto get(const o2::byte* buffer, size_t /*len*/ = 0)
 }
 
 template <typename HeaderType, typename std::enable_if_t<std::is_pointer<HeaderType>::value, int> = 0>
-auto get(const void* buffer, size_t len = 0)
+auto get(const void* buffer, std::size_t len = 0)
 {
   return get<HeaderType>(reinterpret_cast<const byte*>(buffer), len);
 }
@@ -534,7 +534,7 @@ T strtoui(const char* str, char** str_end, int base) noexcept
 };
 
 template <typename T>
-T stoui(const std::string& str, size_t* pos = nullptr, int base = 10)
+T stoui(const std::string& str, std::size_t* pos = nullptr, int base = 10)
 {
   static_assert(std::numeric_limits<T>::is_integer && !std::numeric_limits<T>::is_signed,
                 "Target must be an unsigned integer type");

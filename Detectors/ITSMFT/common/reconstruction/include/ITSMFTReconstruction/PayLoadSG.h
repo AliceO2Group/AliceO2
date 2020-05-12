@@ -34,7 +34,7 @@ class PayLoadSG
   ~PayLoadSG() = default;
 
   ///< add n bytes to the buffer
-  void add(const DataType* ptr, size_t n)
+  void add(const DataType* ptr, std::size_t n)
   {
     if (n) {
       mBuffer.emplace_back(ptr, n);
@@ -106,11 +106,11 @@ class PayLoadSG
 
   void setDone() { mCurrentPieceID = mBuffer.size(); }
 
-  size_t& currentPieceID() { return mCurrentPieceID; }
-  size_t currentPieceID() const { return mCurrentPieceID; }
+  std::size_t& currentPieceID() { return mCurrentPieceID; }
+  std::size_t currentPieceID() const { return mCurrentPieceID; }
 
-  size_t& currentEntryInPiece() { return mCurrentEntryInPiece; }
-  size_t currentEntryInPiece() const { return mCurrentEntryInPiece; }
+  std::size_t& currentEntryInPiece() { return mCurrentEntryInPiece; }
+  std::size_t currentEntryInPiece() const { return mCurrentEntryInPiece; }
 
   const SGPiece* currentPiece() const { return mCurrentPieceID < mBuffer.size() ? &mBuffer[mCurrentPieceID] : nullptr; }
 
@@ -124,8 +124,8 @@ class PayLoadSG
 
  private:
   std::vector<SGPiece> mBuffer;   // list of pieces to fetch
-  size_t mCurrentPieceID = 0;     // current piece
-  size_t mCurrentEntryInPiece = 0; // offset within current piece
+  std::size_t mCurrentPieceID = 0;      // current piece
+  std::size_t mCurrentEntryInPiece = 0; // offset within current piece
 
   ClassDefNV(PayLoadSG, 1);
 };

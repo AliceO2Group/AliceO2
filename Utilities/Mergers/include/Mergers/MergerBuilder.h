@@ -48,7 +48,7 @@ class MergerBuilder
   void setName(std::string);
   void setInputSpecs(const framework::Inputs&);
   void setOutputSpec(const framework::OutputSpec&);
-  void setTopologyPosition(size_t layer, size_t id);
+  void setTopologyPosition(std::size_t layer, std::size_t id);
   void setConfig(MergerConfig);
 
   framework::DataProcessorSpec buildSpec();
@@ -65,15 +65,15 @@ class MergerBuilder
     description.runtimeInit(name.substr(0, 16).c_str());
     return description;
   };
-  static inline header::DataHeader::SubSpecificationType mergerSubSpec(size_t layer, size_t id)
+  static inline header::DataHeader::SubSpecificationType mergerSubSpec(std::size_t layer, std::size_t id)
   {
     return (layer << 16) + id;
   };
 
  private:
   std::string mName;
-  size_t mId{0};
-  size_t mLayer{1};
+  std::size_t mId{0};
+  std::size_t mLayer{1};
   framework::Inputs mInputSpecs;
   framework::OutputSpec mOutputSpec;
   MergerConfig mConfig;

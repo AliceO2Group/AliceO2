@@ -77,7 +77,7 @@ class DigitContainer
   void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth, std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin eventTimeBin = 0, bool isContinuous = true, bool finalFlush = false);
 
   /// Get the size of the container for one event
-  size_t size() const { return mTimeBins.size(); }
+  std::size_t size() const { return mTimeBins.size(); }
 
  private:
   TimeBin mFirstTimeBin = 0;       ///< First time bin to consider

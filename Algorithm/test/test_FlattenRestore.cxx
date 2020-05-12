@@ -26,7 +26,7 @@ namespace flatten = o2::algorithm::flatten;
 namespace o2::test
 {
 struct DataAccess {
-  size_t count = 0;
+  std::size_t count = 0;
   char* chars = nullptr;
   int* ints = nullptr;
   float* floats = nullptr;
@@ -34,7 +34,7 @@ struct DataAccess {
 } // namespace o2::test
 BOOST_AUTO_TEST_CASE(test_flattenrestore)
 {
-  o2::test::DataAccess access{static_cast<size_t>(rand() % 32)};
+  o2::test::DataAccess access{static_cast<std::size_t>(rand() % 32)};
   std::vector<char> chars(access.count);
   std::generate(chars.begin(), chars.end(), []() { return rand() % 256; });
   std::vector<int> ints(access.count);

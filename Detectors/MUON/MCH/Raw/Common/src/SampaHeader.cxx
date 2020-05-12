@@ -453,7 +453,7 @@ int computeHammingCode3(uint64_t value)
   return hamming;
 }
 
-template <size_t N>
+template <std::size_t N>
 int partialOddParity2(uint64_t value, const std::array<int, N>& pos)
 {
   uint64_t one{1};
@@ -465,7 +465,7 @@ int partialOddParity2(uint64_t value, const std::array<int, N>& pos)
   return (n + 1) % 2 == 0;
 }
 
-template <size_t N>
+template <std::size_t N>
 int partialOddParity(uint64_t value, const std::array<uint64_t, N>& masks)
 {
   int n{0};
@@ -522,7 +522,7 @@ int computeHammingCode1(uint64_t value)
   return h0 + h1 * 2 + h2 * 4 + h3 * 8 + h4 * 16 + h5 * 32;
 }
 
-template <size_t N>
+template <std::size_t N>
 uint64_t computeMask(const std::array<uint64_t, N>& masks)
 {
   uint64_t v{0};

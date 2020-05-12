@@ -78,7 +78,7 @@ class TableView
   /// descriptor pointing to payload of one frame
   struct FrameData {
     const byte* buffer = nullptr;
-    size_t size = 0;
+    std::size_t size = 0;
   };
 
   /**
@@ -92,7 +92,7 @@ class TableView
    * @param seqSize    Length of sequence
    * @return number of inserted elements
    */
-  size_t addRow(RowDescType rowData, byte* seqData, size_t seqSize)
+  std::size_t addRow(RowDescType rowData, byte* seqData, std::size_t seqSize)
   {
     unsigned nFrames = mFrames.size();
     unsigned currentRow = mRowData.size();
@@ -135,13 +135,13 @@ class TableView
   }
 
   /// get number of columns in the created index
-  size_t getNColumns() const { return mColumns.size(); }
+  std::size_t getNColumns() const { return mColumns.size(); }
 
   /// get number of rows, i.e. number rows in the created index
-  size_t getNRows() const { return mRowData.size(); }
+  std::size_t getNRows() const { return mRowData.size(); }
 
   /// get row data for a data set
-  const RowDescType& getRowData(size_t row) const
+  const RowDescType& getRowData(std::size_t row) const
   {
     if (row < mRowData.size())
       return mRowData[row];

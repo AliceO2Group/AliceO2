@@ -26,21 +26,21 @@ using DataHeader = o2::header::DataHeader;
 using Stack = o2::header::Stack;
 using RAWDataHeaderV4 = o2::header::RAWDataHeaderV4;
 
-static const size_t PAGESIZE = 8192;
+static const std::size_t PAGESIZE = 8192;
 
 // simple helper struct to keep the InputRecord and ownership of messages
 struct DataSet {
   // not nice with the double vector but for quick unit test ok
   using Messages = std::vector<std::vector<std::unique_ptr<std::vector<char>>>>;
   DataSet(std::vector<InputRoute>&& s, Messages&& m, std::vector<int>&& v)
-    : schema{std::move(s)}, messages{std::move(m)}, record{schema, {[this](size_t i, size_t part) {
+    : schema{std::move(s)}, messages{std::move(m)}, record{schema, {[this](std::size_t i, std::size_t part) {
                                                                       BOOST_REQUIRE(i < this->messages.size());
                                                                       BOOST_REQUIRE(part < this->messages[i].size() / 2);
                                                                       auto header = static_cast<char const*>(this->messages[i].at(2 * part)->data());
                                                                       auto payload = static_cast<char const*>(this->messages[i].at(2 * part + 1)->data());
                                                                       return DataRef{nullptr, header, payload};
                                                                     },
-                                                                    [this](size_t i) { return i < this->messages.size() ? messages[i].size() / 2 : 0; }, this->messages.size()}},
+                                                                    [this](std::size_t i) { return i < this->messages.size() ? messages[i].size() / 2 : 0; }, this->messages.size()}},
       values{std::move(v)}
   {
     BOOST_REQUIRE(messages.size() == schema.size());
@@ -60,7 +60,7 @@ DataSet createData()
     InputSpec{"its1", "ITS", "RAWDATA", 0, Lifetime::Timeframe},
     InputSpec{"its1", "ITS", "RAWDATA", 1, Lifetime::Timeframe}};
 
-  size_t i = 0;
+  std::size_t i = 0;
   auto createRoute = [&i](const char* source, InputSpec& spec) {
     return InputRoute{
       spec,
@@ -76,7 +76,7 @@ DataSet createData()
   std::vector<int> checkValues;
   DataSet::Messages messages;
 
-  auto initRawPage = [&checkValues](char* buffer, size_t size, int value) {
+  auto initRawPage = [&checkValues](char* buffer, std::size_t size, int value) {
     char* wrtptr = buffer;
     while (wrtptr < buffer + size) {
       auto* header = reinterpret_cast<RAWDataHeaderV4*>(wrtptr);
@@ -158,9 +158,9 @@ BOOST_AUTO_TEST_CASE(test_DPLRawParser)
     // retrieving payload pointer of the page
     auto const* payload = it.data();
     // size of payload
-    size_t payloadSize = it.size();
+    std::size_t payloadSize = it.size();
     // offset of payload in the raw page
-    size_t offset = it.offset();
+    std::size_t offset = it.offset();
     BOOST_REQUIRE(rdh != nullptr);
     BOOST_REQUIRE(offset == sizeof(o2::header::RAWDataHeaderV4));
     BOOST_REQUIRE(payload == raw + offset);

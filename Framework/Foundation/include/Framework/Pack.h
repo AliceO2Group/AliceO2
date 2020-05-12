@@ -129,13 +129,13 @@ template <typename T, typename... Us>
 inline constexpr bool has_type_v = has_type<T, Us...>::value;
 
 template <typename T>
-constexpr size_t has_type_at(pack<> const&)
+constexpr std::size_t has_type_at(pack<> const&)
 {
-  return static_cast<size_t>(-1);
+  return static_cast<std::size_t>(-1);
 }
 
 template <typename T, typename T1, typename... Ts>
-constexpr size_t has_type_at(pack<T1, Ts...> const&)
+constexpr std::size_t has_type_at(pack<T1, Ts...> const&)
 {
   if constexpr (std::is_same_v<T, T1>)
     return 0;

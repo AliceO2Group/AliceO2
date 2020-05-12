@@ -26,11 +26,11 @@ template <typename HeaderT, typename TrailerT = void>
 struct Composite {
   using HeaderType = HeaderT;
   using TrailerType = TrailerT;
-  size_t compositeLength = 0;
-  size_t trailerLength = 0;
-  size_t dataLength = 0;
+  std::size_t compositeLength = 0;
+  std::size_t trailerLength = 0;
+  std::size_t dataLength = 0;
 
-  template <size_t N,
+  template <std::size_t N,
             typename U = TrailerType>
   constexpr Composite(const HeaderType h, const char (&d)[N],
                       typename std::conditional<!std::is_void<U>::value, const TrailerType, int>::type t,
@@ -42,7 +42,7 @@ struct Composite {
     compositeLength = sizeof(HeaderType) + dataLength + trailerLength;
   }
 
-  template <size_t N,
+  template <std::size_t N,
             typename U = TrailerType>
   constexpr Composite(const HeaderType& h, const char (&d)[N],
                       typename std::enable_if<std::is_void<U>::value>::type* = nullptr)
@@ -53,21 +53,21 @@ struct Composite {
     compositeLength = sizeof(HeaderType) + dataLength + trailerLength;
   }
 
-  constexpr size_t getLength() const noexcept
+  constexpr std::size_t getLength() const noexcept
   {
     return compositeLength;
   }
 
-  constexpr size_t getDataLength() const noexcept
+  constexpr std::size_t getDataLength() const noexcept
   {
     return dataLength;
   }
 
   template <typename BufferT>
-  constexpr size_t insert(BufferT* buffer) const noexcept
+  constexpr std::size_t insert(BufferT* buffer) const noexcept
   {
     static_assert(sizeof(BufferT) == 1, "buffer required to be of byte-type");
-    size_t length = 0;
+    std::size_t length = 0;
     memcpy(buffer + length, &header, sizeof(HeaderType));
     length += sizeof(HeaderType);
     memcpy(buffer + length, data, dataLength);
@@ -89,7 +89,7 @@ struct Composite {
 /// sequence. The function is recursively invoked for all arguments of the
 // variable list
 template <typename T, typename... TArgs>
-constexpr size_t sequenceLength(const T& first, const TArgs... args) noexcept
+constexpr std::size_t sequenceLength(const T& first, const TArgs... args) noexcept
 {
   return sequenceLength(first) + sequenceLength(args...);
 }
@@ -98,14 +98,14 @@ constexpr size_t sequenceLength(const T& first, const TArgs... args) noexcept
 /// this is also the terminating instance for the last argument of the recursive
 /// invocation of the function template.
 template <typename T>
-constexpr size_t sequenceLength(const T& first) noexcept
+constexpr std::size_t sequenceLength(const T& first) noexcept
 {
   return first.getLength();
 }
 
 /// recursive insert of variable number of objects
 template <typename BufferT, typename T, typename... TArgs>
-constexpr size_t sequenceInsert(BufferT* buffer, const T& first, const TArgs... args) noexcept
+constexpr std::size_t sequenceInsert(BufferT* buffer, const T& first, const TArgs... args) noexcept
 {
   static_assert(sizeof(BufferT) == 1, "buffer required to be of byte-type");
   auto length = sequenceInsert(buffer, first);
@@ -115,7 +115,7 @@ constexpr size_t sequenceInsert(BufferT* buffer, const T& first, const TArgs... 
 
 /// terminating template specialization, i.e. for the last element
 template <typename BufferT, typename T>
-constexpr size_t sequenceInsert(BufferT* buffer, const T& element) noexcept
+constexpr std::size_t sequenceInsert(BufferT* buffer, const T& element) noexcept
 {
   // TODO: make a general algorithm, at the moment this serves the
   // Composite class as a special case
@@ -137,9 +137,9 @@ struct StaticSequenceAllocator {
   using BufferType = std::unique_ptr<value_type[]>;
 
   BufferType buffer;
-  size_t bufferSize;
+  std::size_t bufferSize;
 
-  size_t size() const { return bufferSize; }
+  std::size_t size() const { return bufferSize; }
 
   StaticSequenceAllocator() = delete;
 

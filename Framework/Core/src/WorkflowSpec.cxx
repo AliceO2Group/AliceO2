@@ -22,12 +22,12 @@ namespace framework
 {
 
 WorkflowSpec parallel(DataProcessorSpec original,
-                      size_t maxIndex,
-                      std::function<void(DataProcessorSpec&, size_t)> amendCallback)
+                      std::size_t maxIndex,
+                      std::function<void(DataProcessorSpec&, std::size_t)> amendCallback)
 {
   WorkflowSpec results;
   results.reserve(maxIndex);
-  for (size_t i = 0; i < maxIndex; ++i) {
+  for (std::size_t i = 0; i < maxIndex; ++i) {
     results.push_back(original);
     results.back().name = original.name + "_" + std::to_string(i);
     results.back().rank = i;
@@ -38,8 +38,8 @@ WorkflowSpec parallel(DataProcessorSpec original,
 }
 
 WorkflowSpec parallel(WorkflowSpec specs,
-                      size_t maxIndex,
-                      std::function<void(DataProcessorSpec&, size_t)> amendCallback)
+                      std::size_t maxIndex,
+                      std::function<void(DataProcessorSpec&, std::size_t)> amendCallback)
 {
   WorkflowSpec results;
   results.reserve(specs.size() * maxIndex);
@@ -52,30 +52,30 @@ WorkflowSpec parallel(WorkflowSpec specs,
 }
 
 WorkflowSpec parallelPipeline(const WorkflowSpec& specs,
-                              size_t nPipelines,
-                              std::function<size_t()> getNumberOfSubspecs,
-                              std::function<size_t(size_t)> getSubSpec)
+                              std::size_t nPipelines,
+                              std::function<std::size_t()> getNumberOfSubspecs,
+                              std::function<std::size_t(std::size_t)> getSubSpec)
 {
   WorkflowSpec result;
-  size_t numberOfSubspecs = getNumberOfSubspecs();
+  std::size_t numberOfSubspecs = getNumberOfSubspecs();
   if (numberOfSubspecs < nPipelines) {
     // no need to create more pipelines than the number of parallel Ids, in that case
     // each pipeline serves one id
     nPipelines = numberOfSubspecs;
   }
   for (auto process : specs) {
-    size_t channels = numberOfSubspecs;
-    size_t inputMultiplicity = numberOfSubspecs / nPipelines;
+    std::size_t channels = numberOfSubspecs;
+    std::size_t inputMultiplicity = numberOfSubspecs / nPipelines;
     if (numberOfSubspecs % nPipelines) {
       // some processes will get one more channel to handle all channels
       inputMultiplicity += 1;
     }
-    auto amendProcess = [numberOfSubspecs, nPipelines, &channels, &inputMultiplicity, getSubSpec](DataProcessorSpec& spec, size_t pipeline) {
+    auto amendProcess = [numberOfSubspecs, nPipelines, &channels, &inputMultiplicity, getSubSpec](DataProcessorSpec& spec, std::size_t pipeline) {
       auto inputs = std::move(spec.inputs);
       auto outputs = std::move(spec.outputs);
       spec.inputs.reserve(inputMultiplicity);
       spec.outputs.reserve(inputMultiplicity);
-      for (size_t inputNo = 0; inputNo < inputMultiplicity; ++inputNo) {
+      for (std::size_t inputNo = 0; inputNo < inputMultiplicity; ++inputNo) {
         for (auto& input : inputs) {
           spec.inputs.push_back(input);
           spec.inputs.back().binding += std::to_string(inputNo);
@@ -111,12 +111,12 @@ WorkflowSpec parallelPipeline(const WorkflowSpec& specs,
 }
 
 Inputs mergeInputs(InputSpec original,
-                   size_t maxIndex,
-                   std::function<void(InputSpec&, size_t)> amendCallback)
+                   std::size_t maxIndex,
+                   std::function<void(InputSpec&, std::size_t)> amendCallback)
 {
   Inputs results;
   results.reserve(maxIndex);
-  for (size_t i = 0; i < maxIndex; ++i) {
+  for (std::size_t i = 0; i < maxIndex; ++i) {
     results.push_back(original);
     amendCallback(results.back(), i);
   }
@@ -124,12 +124,12 @@ Inputs mergeInputs(InputSpec original,
 }
 
 Inputs mergeInputs(Inputs inputs,
-                   size_t maxIndex,
-                   std::function<void(InputSpec&, size_t)> amendCallback)
+                   std::size_t maxIndex,
+                   std::function<void(InputSpec&, std::size_t)> amendCallback)
 {
   Inputs results;
   results.reserve(inputs.size() * maxIndex);
-  for (size_t i = 0; i < maxIndex; ++i) {
+  for (std::size_t i = 0; i < maxIndex; ++i) {
     for (auto const& original : inputs) {
       results.push_back(original);
       amendCallback(results.back(), i);
@@ -139,7 +139,7 @@ Inputs mergeInputs(Inputs inputs,
 }
 
 DataProcessorSpec timePipeline(DataProcessorSpec original,
-                               size_t count)
+                               std::size_t count)
 {
   if (original.maxInputTimeslices != 1) {
     std::runtime_error("You can time slice only once");

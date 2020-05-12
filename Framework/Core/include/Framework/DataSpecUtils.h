@@ -120,7 +120,7 @@ struct DataSpecUtils {
   static bool validate(OutputSpec const& output);
 
   /// Same as the other describe, but uses a buffer to reduce memory churn.
-  static void describe(char* buffer, size_t size, InputSpec const& spec);
+  static void describe(char* buffer, std::size_t size, InputSpec const& spec);
 
   /// If possible extract the ConcreteDataMatcher from an InputSpec. This
   /// can be done either if the InputSpec is defined in terms for a ConcreteDataMatcher

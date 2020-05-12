@@ -87,7 +87,7 @@ struct DriverInfo {
   std::vector<DriverState> states;
   // Mapping between various pipes and the actual device information.
   // Key is the file description, value is index in the previous vector.
-  std::map<int, size_t> socket2DeviceInfo;
+  std::map<int, std::size_t> socket2DeviceInfo;
   /// The first unused file descriptor
   int maxFd;
   fd_set childFdset;

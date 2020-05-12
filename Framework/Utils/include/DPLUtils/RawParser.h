@@ -81,21 +81,21 @@ struct RDHFormatter<header::RAWDataHeaderV4> {
 /// We expect the actual page size to be variable up to the maximum size,
 /// actual size given by fields of the RAWDataHeader.
 ///
-template <typename HeaderType, size_t MAX_SIZE>
+template <typename HeaderType, std::size_t MAX_SIZE>
 class ConcreteRawParser
 {
  public:
   using buffer_type = unsigned char;
   using header_type = HeaderType;
   using self_type = ConcreteRawParser;
-  static constexpr size_t max_size = MAX_SIZE;
+  static constexpr std::size_t max_size = MAX_SIZE;
 
   ConcreteRawParser() = delete;
 
   /// Constructor
   /// Raw buffer is provided by pointer and size, read-only access
   template <typename T>
-  ConcreteRawParser(T const* buffer, size_t size)
+  ConcreteRawParser(T const* buffer, std::size_t size)
     : mRawBuffer(reinterpret_cast<buffer_type const*>(buffer)), mSize(size)
   {
     static_assert(sizeof(T) == sizeof(buffer_type), "buffer required to be byte-type");
@@ -118,7 +118,7 @@ class ConcreteRawParser
   }
 
   /// Get size of payload at current position
-  size_t size() const
+  std::size_t size() const
   {
     if (mPosition == mRawBuffer + mSize) {
       return 0;
@@ -133,7 +133,7 @@ class ConcreteRawParser
   /// Get pointer to payload data at current position
   buffer_type const* data() const
   {
-    size_t size = this->size();
+    std::size_t size = this->size();
     if (size == 0) {
       return nullptr;
     }
@@ -154,7 +154,7 @@ class ConcreteRawParser
   }
 
   /// Get offset of payload in the raw buffer at current position
-  size_t offset() const
+  std::size_t offset() const
   {
     if (mPosition < mRawBuffer + mSize) {
       header_type const& h = header();
@@ -166,7 +166,7 @@ class ConcreteRawParser
   /// Parse the complete buffer
   /// For each page, the processor function is called with the payload buffer and size,
   /// processor has signature
-  ///     void(unsigned char const*, size_t)
+  ///     void(unsigned char const*, std::size_t)
   template <typename Processor>
   void parse(Processor&& processor)
   {
@@ -237,7 +237,7 @@ class ConcreteRawParser
  private:
   buffer_type const* mRawBuffer;
   buffer_type const* mPosition = nullptr;
-  size_t mSize;
+  std::size_t mSize;
 };
 
 using V6 = header::RAWDataHeaderV6;
@@ -247,23 +247,23 @@ using V4 = header::RAWDataHeaderV4;
 // needs to be defined in the header, have to check if we need to support this
 //using V3 = header::RAWDataHeaderV3;
 
-template <size_t N>
+template <std::size_t N>
 using V6Parser = ConcreteRawParser<header::RAWDataHeaderV6, N>;
-template <size_t N>
+template <std::size_t N>
 using V5Parser = ConcreteRawParser<header::RAWDataHeaderV5, N>;
-template <size_t N>
+template <std::size_t N>
 using V4Parser = ConcreteRawParser<header::RAWDataHeaderV4, N>;
-//template <size_t N>
+//template <std::size_t N>
 //using V3Parser = ConcreteRawParser<header::RAWDataHeaderV3, N>;
 
 /// Parser instance type for the raw parser main class, all supported versions of
 /// RAWDataHeader are handled in a variant
-template <size_t N>
+template <std::size_t N>
 using ConcreteParserVariants = std::variant<V6Parser<N>, V5Parser<N>, V4Parser<N>>;
 
 /// create a raw parser depending on version of RAWDataHeader found at beginning of data
-template <size_t PageSize, typename T>
-ConcreteParserVariants<PageSize> create(T const* buffer, size_t size)
+template <std::size_t PageSize, typename T>
+ConcreteParserVariants<PageSize> create(T const* buffer, std::size_t size)
 {
   // we use v5 for checking the matching version
   if (buffer == nullptr || size < sizeof(header::RAWDataHeaderV5)) {
@@ -285,8 +285,8 @@ ConcreteParserVariants<PageSize> create(T const* buffer, size_t size)
 
 /// iteratively walk through the available instances and parse with instance
 /// specified by index
-template <size_t N, typename T, typename P>
-void walk_parse(T& instances, P&& processor, size_t index)
+template <std::size_t N, typename T, typename P>
+void walk_parse(T& instances, P&& processor, std::size_t index)
 {
   if constexpr (N > 0) {
     if (index == N - 1) {
@@ -297,7 +297,7 @@ void walk_parse(T& instances, P&& processor, size_t index)
   }
 }
 
-template <typename U, typename T, size_t N = std::variant_size_v<T>>
+template <typename U, typename T, std::size_t N = std::variant_size_v<T>>
 U const* get_if(T& instances)
 {
   if constexpr (N > 0) {
@@ -332,7 +332,7 @@ U const* get_if(T& instances)
 ///
 ///     // option 1: parse method
 ///     RawParser parser(buffer, size);
-///     auto processor = [&count](auto data, size_t size) {
+///     auto processor = [&count](auto data, std::size_t size) {
 ///       std::cout << "Processing block of size " << size << std::endl;
 ///     };
 ///     parser.parse(processor);
@@ -347,19 +347,19 @@ U const* get_if(T& instances)
 /// TODO:
 /// - iterators are not independent at the moment and this can cause conflicts, this must be
 ///   improved
-template <size_t MAX_SIZE = 8192>
+template <std::size_t MAX_SIZE = 8192>
 class RawParser
 {
  public:
   using buffer_type = unsigned char;
-  size_t max_size = MAX_SIZE;
+  std::size_t max_size = MAX_SIZE;
   using self_type = RawParser<MAX_SIZE>;
 
   RawParser() = delete;
 
   /// Constructor, raw buffer provided by pointer and size
   template <typename T>
-  RawParser(T const* buffer, size_t size)
+  RawParser(T const* buffer, std::size_t size)
     : mParser(raw_parser::create<MAX_SIZE>(buffer, size))
   {
     static_assert(sizeof(T) == sizeof(buffer_type), "buffer required to be byte-type");
@@ -370,7 +370,7 @@ class RawParser
   template <typename Processor>
   void parse(Processor&& processor)
   {
-    constexpr size_t NofAlternatives = std::variant_size_v<decltype(mParser)>;
+    constexpr std::size_t NofAlternatives = std::variant_size_v<decltype(mParser)>;
     static_assert(NofAlternatives == 3);
     raw_parser::walk_parse<NofAlternatives>(mParser, processor, mParser.index());
     // it turned out that using a iterative function is faster than using std::visit
@@ -463,13 +463,13 @@ class RawParser
     }
 
     /// offset of payload at current position
-    size_t offset() const
+    std::size_t offset() const
     {
       return std::visit([](auto& parser) { return parser.offset(); }, mParser);
     }
 
     /// get size of payload at current position
-    size_t size() const
+    std::size_t size() const
     {
       return std::visit([](auto& parser) { return parser.size(); }, mParser);
     }

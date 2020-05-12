@@ -161,7 +161,7 @@ static inline int OCLsetKernelParameters(cl_kernel& kernel, const Args&... args)
   return OCLsetKernelParameters_helper(kernel, 0, args...);
 }
 
-static inline int clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, size_t local_size, size_t global_size, cl_event* pEvent, cl_event* wait = nullptr, cl_int nWaitEvents = 1)
+static inline int clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, std::size_t local_size, std::size_t global_size, cl_event* pEvent, cl_event* wait = nullptr, cl_int nWaitEvents = 1)
 {
   GPUFailedMsg(clEnqueueNDRangeKernel(queue, krnl, 1, nullptr, &global_size, &local_size, wait == nullptr ? 0 : nWaitEvents, wait, pEvent));
   return 0;

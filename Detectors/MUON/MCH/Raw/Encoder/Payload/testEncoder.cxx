@@ -82,20 +82,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MultipleOrbitsWithNoDataIsAnEmptyBufferIfPhaseIsZe
 
 int estimateUserLogicSize(int nofDS, int maxNofChPerDS)
 {
-  size_t headerSize = 2; // equivalent to 2 64-bits words
+  std::size_t headerSize = 2; // equivalent to 2 64-bits words
   // one 64-bits header and one 64-bits data per channel
   // plus one sync per DS
   // (assuming data = just one sample)
-  size_t ndata = (maxNofChPerDS * 2) + nofDS;
+  std::size_t ndata = (maxNofChPerDS * 2) + nofDS;
   return 8 * (ndata + headerSize); // size in bytes
 }
 
 int estimateBareSize(int nofDS, int maxNofChPerGBT)
 {
-  size_t headerSize = 2; // equivalent to 2 64-bits words
-  size_t nbits = nofDS * 50 + maxNofChPerGBT * 90;
-  size_t n128bitwords = nbits / 2;
-  size_t n64bitwords = n128bitwords * 2;
+  std::size_t headerSize = 2; // equivalent to 2 64-bits words
+  std::size_t nbits = nofDS * 50 + maxNofChPerGBT * 90;
+  std::size_t n128bitwords = nbits / 2;
+  std::size_t n64bitwords = n128bitwords * 2;
   return 8 * (n64bitwords + headerSize); // size in bytes
 }
 
@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(CheckNumberOfPayloadHeaders, T, testTypes)
 BOOST_AUTO_TEST_CASE_TEMPLATE(CheckSize, T, testTypes)
 {
   auto buffer = test::CruBufferCreator<T, ChargeSumMode>::makeBuffer();
-  size_t expectedSize = estimateSize<T>();
+  std::size_t expectedSize = estimateSize<T>();
   BOOST_CHECK_EQUAL(buffer.size(), expectedSize);
 }
 

@@ -28,13 +28,13 @@ namespace raw
 typedef uint32_t RawUnit;
 
 // Buffer size
-static constexpr size_t sElementSizeInBytes = sizeof(RawUnit);
-static constexpr size_t sMaxBufferSize = 8192 / sElementSizeInBytes;
-static constexpr size_t sElementSizeInBits = 8 * sElementSizeInBytes;
+static constexpr std::size_t sElementSizeInBytes = sizeof(RawUnit);
+static constexpr std::size_t sMaxBufferSize = 8192 / sElementSizeInBytes;
+static constexpr std::size_t sElementSizeInBits = 8 * sElementSizeInBytes;
 
 // Header size
-static constexpr size_t sHeaderSizeInBytes = sizeof(header::RAWDataHeader);
-static constexpr size_t sHeaderSizeInElements = sHeaderSizeInBytes / sElementSizeInBytes;
+static constexpr std::size_t sHeaderSizeInBytes = sizeof(header::RAWDataHeader);
+static constexpr std::size_t sHeaderSizeInElements = sHeaderSizeInBytes / sElementSizeInBytes;
 
 } // namespace raw
 } // namespace mid

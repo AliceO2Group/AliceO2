@@ -32,18 +32,18 @@ class ParallelContext
 {
  public:
   // FIXME: find better names... rank1D and rank1DSize?
-  ParallelContext(size_t index1D, size_t index1DSize)
+  ParallelContext(std::size_t index1D, std::size_t index1DSize)
     : mIndex1D{index1D},
       mIndex1DSize{index1DSize}
   {
   }
 
-  size_t index1D() const { return mIndex1D; }
-  size_t index1DSize() const { return mIndex1DSize; };
+  std::size_t index1D() const { return mIndex1D; }
+  std::size_t index1DSize() const { return mIndex1DSize; };
 
  private:
-  size_t mIndex1D;
-  size_t mIndex1DSize;
+  std::size_t mIndex1D;
+  std::size_t mIndex1DSize;
 };
 
 } // namespace framework

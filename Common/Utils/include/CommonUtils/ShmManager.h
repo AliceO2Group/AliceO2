@@ -32,7 +32,7 @@ namespace utils
 {
 
 // the size dedicated to each attached worker/process
-constexpr size_t SHMPOOLSIZE = 1024 * 1024 * 1024; // 1 GB
+constexpr std::size_t SHMPOOLSIZE = 1024 * 1024 * 1024; // 1 GB
 
 // some meta info stored at the beginning of the global shared mem segment
 struct ShmMetaInfo {
@@ -69,7 +69,7 @@ class ShmManager
   bool attachToGlobalSegment();
 
   // the equivalent of malloc
-  void* getmemblock(size_t size);
+  void* getmemblock(std::size_t size);
   // the equivalent of free
   void freememblock(void*, std::size_t = 1);
 
@@ -109,7 +109,7 @@ class ShmManager
   bool mIsOperational = false;
   // helper function
   void* tryAttach(bool& success);
-  size_t getPointerOffset(void* ptr) const { return (size_t)((char*)ptr - (char*)mBufferPtr); }
+  std::size_t getPointerOffset(void* ptr) const { return (std::size_t)((char*)ptr - (char*)mBufferPtr); }
 
   boost::interprocess::wmanaged_external_buffer* boostmanagedbuffer;
   boost::interprocess::allocator<char, boost::interprocess::wmanaged_external_buffer::segment_manager>* boostallocator;

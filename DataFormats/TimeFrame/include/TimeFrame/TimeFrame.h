@@ -27,7 +27,7 @@ typedef std::pair<o2::header::DataHeader, PartPosition> IndexElement;
 // stream messages using ROOT
 struct MessageSizePair {
   MessageSizePair() : size(0), buffer(nullptr) {}
-  MessageSizePair(size_t s, char* b) : size(s), buffer(b) {}
+  MessageSizePair(std::size_t s, char* b) : size(s), buffer(b) {}
   Int_t size;   // size of buffer in bytes (must be Int_t due to ROOT requirement)
   char* buffer; //[size]
 };
@@ -70,16 +70,16 @@ class TimeFrame
     return false;
   }
   // return the number of message parts in this TimeFrame
-  size_t GetNumParts() const { return mParts.size(); }
+  std::size_t GetNumParts() const { return mParts.size(); }
   // access to the raw data
-  MessageSizePair& GetPart(size_t i) { return mParts[i]; }
+  MessageSizePair& GetPart(std::size_t i) { return mParts[i]; }
   // Get total payload size in bytes
-  size_t GetPayloadSize() const
+  std::size_t GetPayloadSize() const
   { /* FIXME: implement */
     return 0;
   }
   // Get payload size of part i
-  size_t GetPayloadSize(size_t i) const
+  std::size_t GetPayloadSize(std::size_t i) const
   { /* FIXME: implement */
     return 0;
   }
@@ -88,7 +88,7 @@ class TimeFrame
   // FIXME: enable this when we have a dictionary for TimeStamp etc
   o2::header::TimeStamp mTimeStamp; //! the TimeStamp for this TimeFrame
 
-  size_t mEpnId;                       // EPN origin of TimeFrame
+  std::size_t mEpnId;                  // EPN origin of TimeFrame
   std::vector<MessageSizePair> mParts; // the message parts as accumulated by the EPN
 
   // FIXME: add Index data structure

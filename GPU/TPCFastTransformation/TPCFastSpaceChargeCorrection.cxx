@@ -122,26 +122,26 @@ void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBuffer
 
   FlatObject::setActualBufferAddress(actualFlatBufferPtr);
 
-  size_t rowsOffset = 0;
-  size_t rowsSize = sizeof(RowSplineInfo) * mGeo.getNumberOfRows();
+  std::size_t rowsOffset = 0;
+  std::size_t rowsSize = sizeof(RowSplineInfo) * mGeo.getNumberOfRows();
 
   mRowSplineInfoPtr = reinterpret_cast<RowSplineInfo*>(mFlatBufferPtr + rowsOffset);
 
-  size_t scOffset = alignSize(rowsOffset + rowsSize, SplineType::getClassAlignmentBytes());
-  size_t scSize = sizeof(SplineType) * mNumberOfScenarios;
+  std::size_t scOffset = alignSize(rowsOffset + rowsSize, SplineType::getClassAlignmentBytes());
+  std::size_t scSize = sizeof(SplineType) * mNumberOfScenarios;
 
   mScenarioPtr = reinterpret_cast<SplineType*>(mFlatBufferPtr + scOffset);
 
-  size_t scBufferOffset = alignSize(scOffset + scSize, SplineType::getBufferAlignmentBytes());
-  size_t scBufferSize = 0;
+  std::size_t scBufferOffset = alignSize(scOffset + scSize, SplineType::getBufferAlignmentBytes());
+  std::size_t scBufferSize = 0;
 
   for (int i = 0; i < mNumberOfScenarios; i++) {
     SplineType& sp = mScenarioPtr[i];
     sp.setActualBufferAddress(mFlatBufferPtr + scBufferOffset + scBufferSize);
     scBufferSize = alignSize(scBufferSize + sp.getFlatBufferSize(), sp.getBufferAlignmentBytes());
   }
-  size_t dataAlignment = SplineType::getParameterAlignmentBytes();
-  size_t sliceDataOffset = alignSize(scBufferOffset + scBufferSize, dataAlignment);
+  std::size_t dataAlignment = SplineType::getParameterAlignmentBytes();
+  std::size_t sliceDataOffset = alignSize(scBufferOffset + scBufferSize, dataAlignment);
 
   mSplineData = reinterpret_cast<char*>(mFlatBufferPtr + sliceDataOffset);
 }
@@ -244,23 +244,23 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
 
   // organize memory for the flat buffer and caculate its size
 
-  size_t rowsOffset = 0;
-  size_t rowsSize = sizeof(RowSplineInfo) * mGeo.getNumberOfRows();
+  std::size_t rowsOffset = 0;
+  std::size_t rowsSize = sizeof(RowSplineInfo) * mGeo.getNumberOfRows();
 
-  size_t scOffset = alignSize(rowsOffset + rowsSize, SplineType::getClassAlignmentBytes());
-  size_t scSize = sizeof(SplineType) * mNumberOfScenarios;
+  std::size_t scOffset = alignSize(rowsOffset + rowsSize, SplineType::getClassAlignmentBytes());
+  std::size_t scSize = sizeof(SplineType) * mNumberOfScenarios;
 
-  size_t scBufferOffsets[mNumberOfScenarios];
+  std::size_t scBufferOffsets[mNumberOfScenarios];
 
   scBufferOffsets[0] = alignSize(scOffset + scSize, SplineType::getBufferAlignmentBytes());
-  size_t scBufferSize = 0;
+  std::size_t scBufferSize = 0;
   for (int i = 0; i < mNumberOfScenarios; i++) {
     SplineType& sp = mConstructionScenarios[i];
     scBufferOffsets[i] = scBufferOffsets[0] + scBufferSize;
     scBufferSize = alignSize(scBufferSize + sp.getFlatBufferSize(), sp.getBufferAlignmentBytes());
   }
 
-  size_t sliceDataOffset = alignSize(scBufferOffsets[0] + scBufferSize, SplineType::getParameterAlignmentBytes());
+  std::size_t sliceDataOffset = alignSize(scBufferOffsets[0] + scBufferSize, SplineType::getParameterAlignmentBytes());
 
   mSliceDataSizeBytes = 0;
   for (int i = 0; i < mGeo.getNumberOfRows(); i++) {

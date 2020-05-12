@@ -38,8 +38,8 @@ class DigitsMerger
   const std::vector<ROFRecord>& getROFRecords() const { return mROFRecords; }
 
  private:
-  void mergeDigit(size_t idigit, const std::vector<ColumnDataMC>& inDigitStore);
-  std::vector<std::pair<ColumnDataMC, std::vector<size_t>>> mDigitsLabels{}; //! Temporary digits store
+  void mergeDigit(std::size_t idigit, const std::vector<ColumnDataMC>& inDigitStore);
+  std::vector<std::pair<ColumnDataMC, std::vector<std::size_t>>> mDigitsLabels{}; //! Temporary digits store
   std::vector<ColumnDataMC> mDigitStore{};                                   ///< Digit store
   o2::dataformats::MCTruthContainer<MCLabel> mMCContainer{};                 ///< MC Container
   std::vector<ROFRecord> mROFRecords{};                                      ///< RO frame records

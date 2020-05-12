@@ -111,7 +111,7 @@ void launchThreadMonitoringEvents(int pipefd, std::string text)
   auto lambda = [pipefd, text]() {
     int eventcounter;
     while (1) {
-      ssize_t count = read(pipefd, &eventcounter, sizeof(eventcounter));
+      std::size_t count = read(pipefd, &eventcounter, sizeof(eventcounter));
       if (count == -1) {
         LOG(INFO) << "ERROR READING";
         if (errno == EINTR) {

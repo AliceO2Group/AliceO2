@@ -26,11 +26,11 @@ namespace GPU
 
 namespace
 {
-template <typename T, size_t Size>
+template <typename T, std::size_t Size>
 struct ArrayTraits final {
   typedef T InternalArray[Size];
 
-  GPU_HOST_DEVICE static constexpr T& getReference(const InternalArray& internalArray, size_t index) noexcept
+  GPU_HOST_DEVICE static constexpr T& getReference(const InternalArray& internalArray, std::size_t index) noexcept
   {
     return const_cast<T&>(internalArray[index]);
   }
@@ -42,13 +42,13 @@ struct ArrayTraits final {
 };
 } // namespace
 
-template <typename T, size_t Size>
+template <typename T, std::size_t Size>
 struct Array final {
 
   void copy(const Array<T, Size>& t)
   {
 #ifdef __OPENCL__
-    for (size_t i{0}; i < Size; ++i) {
+    for (std::size_t i{0}; i < Size; ++i) {
       InternalArray[i] = t[i];
     }
 #else
@@ -60,7 +60,7 @@ struct Array final {
   GPU_HOST_DEVICE const T* data() const noexcept { return const_cast<T*>(InternalArray); }
   GPU_HOST_DEVICE T& operator[](const int index) noexcept { return const_cast<T&>(InternalArray[index]); }
   GPU_HOST_DEVICE constexpr T& operator[](const int index) const noexcept { return const_cast<T&>(InternalArray[index]); }
-  GPU_HOST_DEVICE size_t size() const noexcept { return Size; }
+  GPU_HOST_DEVICE std::size_t size() const noexcept { return Size; }
 
   T InternalArray[Size];
 };

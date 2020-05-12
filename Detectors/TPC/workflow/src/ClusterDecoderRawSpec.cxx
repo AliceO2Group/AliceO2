@@ -51,7 +51,7 @@ using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 /// MC labels are received as MCLabelContainers
 DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
 {
-  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
+  constexpr static std::size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   using DataDescription = o2::header::DataDescription;
   std::string processorName = "tpc-cluster-decoder";
   struct ProcessAttributes {
@@ -107,7 +107,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       // each specified as a pair of pointer to ClusterHardwareContainer and the number
       // of pages in that buffer
       // FIXME: better description of the raw page
-      size_t nPages = size / 8192;
+      std::size_t nPages = size / 8192;
       std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>> inputList;
       if (verbosity > 0 && !DataRefUtils::isValid(mclabelref)) {
         LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages for sector " << sectorHeader->sector;
@@ -130,9 +130,9 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       // Furthermore, the current decoder implementation supports handling of MC labels
       // only for single 8kb pages. So we have to add the raw pages individually and create
       // MC label containers for the corresponding clusters.
-      size_t mcinPos = 0;
-      size_t totalNumberOfClusters = 0;
-      for (size_t page = 0; page < nPages; page++) {
+      std::size_t mcinPos = 0;
+      std::size_t totalNumberOfClusters = 0;
+      for (std::size_t page = 0; page < nPages; page++) {
         inputList.emplace_back(reinterpret_cast<const ClusterHardwareContainer*>(ref.payload + page * 8192), 1);
         const ClusterHardwareContainer& container = *(inputList.back().first);
         if (verbosity > 1) {
@@ -142,7 +142,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
         }
         totalNumberOfClusters += container.numberOfClusters;
         if (mcin) {
-          for (size_t mccopyPos = 0;
+          for (std::size_t mccopyPos = 0;
                mccopyPos < container.numberOfClusters && mcinPos < mcin->getIndexedSize();
                mccopyPos++, mcinPos++) {
             for (auto const& label : mcin->getLabels(mcinPos)) {
@@ -161,7 +161,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       // output of the decoder is sorted in (sector,globalPadRow) coordinates, individual
       // containers are created for clusters and MC labels per (sector,globalPadRow) address
       char* outputBuffer = nullptr;
-      auto outputAllocator = [&pc, &fanSpec, &outputBuffer, &rawHeaderStack](size_t size) -> char* {
+      auto outputAllocator = [&pc, &fanSpec, &outputBuffer, &rawHeaderStack](std::size_t size) -> char* {
         outputBuffer = pc.outputs().newChunk(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack)}, size).data();
         return outputBuffer;
       };
@@ -178,7 +178,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       if (DataRefUtils::isValid(mclabelref)) {
         if (verbosity > 0) {
           LOG(INFO) << "sending " << mcoutList.size() << " MC label container(s) with in total "
-                    << std::accumulate(mcoutList.begin(), mcoutList.end(), size_t(0), [](size_t l, auto const& r) { return l + r.getIndexedSize(); })
+                    << std::accumulate(mcoutList.begin(), mcoutList.end(), std::size_t(0), [](std::size_t l, auto const& r) { return l + r.getIndexedSize(); })
                     << " label object(s)" << std::endl;
         }
         // serialize the complete list of MC label containers

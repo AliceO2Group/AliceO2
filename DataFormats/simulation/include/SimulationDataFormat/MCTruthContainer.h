@@ -91,7 +91,7 @@ class MCTruthContainer
   /// e.g. directly on the memory of the incoming message.
   std::vector<char> mStreamerData; // buffer used for streaming a flat raw buffer
 
-  size_t getSize(uint32_t dataindex) const
+  std::size_t getSize(uint32_t dataindex) const
   {
     // calculate size / number of labels from a difference in pointed indices
     const auto size = (dataindex < getIndexedSize() - 1)
@@ -135,9 +135,9 @@ class MCTruthContainer
   // which can be obtained from the MCTruthHeader startposition and size
   TruthElement const& getElement(uint32_t elementindex) const { return mTruthArray[elementindex]; }
   // return the number of original data indexed here
-  size_t getIndexedSize() const { return mHeaderArray.size(); }
+  std::size_t getIndexedSize() const { return mHeaderArray.size(); }
   // return the number of elements managed in this container
-  size_t getNElements() const { return mTruthArray.size(); }
+  std::size_t getNElements() const { return mTruthArray.size(); }
 
   // get individual "view" container for a given data index
   // the caller can do modifications on this view (such as sorting)
@@ -288,9 +288,9 @@ class MCTruthContainer
   /// The flattened data starts with a specific header @ref FlatHeader describing
   /// size and content of the two vectors within the raw buffer.
   template <typename ContainerType>
-  size_t flatten_to(ContainerType& container)
+  std::size_t flatten_to(ContainerType& container)
   {
-    size_t bufferSize = sizeof(FlatHeader) + sizeof(MCTruthHeaderElement) * mHeaderArray.size() + sizeof(TruthElement) * mTruthArray.size();
+    std::size_t bufferSize = sizeof(FlatHeader) + sizeof(MCTruthHeaderElement) * mHeaderArray.size() + sizeof(TruthElement) * mTruthArray.size();
     container.resize((bufferSize / sizeof(typename ContainerType::value_type)) + ((bufferSize % sizeof(typename ContainerType::value_type)) > 0 ? 1 : 0));
     char* target = reinterpret_cast<char*>(container.data());
     auto& flatheader = *reinterpret_cast<FlatHeader*>(target);
@@ -301,7 +301,7 @@ class MCTruthContainer
     flatheader.reserved = 0;
     flatheader.nofHeaderElements = mHeaderArray.size();
     flatheader.nofTruthElements = mTruthArray.size();
-    size_t copySize = flatheader.sizeofHeaderElement * flatheader.nofHeaderElements;
+    std::size_t copySize = flatheader.sizeofHeaderElement * flatheader.nofHeaderElements;
     memcpy(target, mHeaderArray.data(), copySize);
     target += copySize;
     copySize = flatheader.sizeofTruthElement * flatheader.nofTruthElements;
@@ -312,7 +312,7 @@ class MCTruthContainer
   /// Resore internal vectors from a raw buffer
   /// The two vectors are resized according to the information in the \a FlatHeader
   /// struct at the beginning of the buffer. Data is copied to the vectors.
-  void restore_from(const char* buffer, size_t bufferSize)
+  void restore_from(const char* buffer, std::size_t bufferSize)
   {
     if (buffer == nullptr || bufferSize < sizeof(FlatHeader)) {
       return;
@@ -335,7 +335,7 @@ class MCTruthContainer
     // for now doing a copy
     mHeaderArray.resize(flatheader.nofHeaderElements);
     mTruthArray.resize(flatheader.nofTruthElements);
-    size_t copySize = flatheader.sizeofHeaderElement * flatheader.nofHeaderElements;
+    std::size_t copySize = flatheader.sizeofHeaderElement * flatheader.nofHeaderElements;
     memcpy(mHeaderArray.data(), source, copySize);
     source += copySize;
     copySize = flatheader.sizeofTruthElement * flatheader.nofTruthElements;

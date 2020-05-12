@@ -60,7 +60,7 @@ class RawFileWriter
       }
       return *this;
     }
-    void write(const char* data, size_t size);
+    void write(const char* data, std::size_t size);
   };
 
   ///=====================================================================================
@@ -76,9 +76,9 @@ class RawFileWriter
     LinkSubSpec_t subspec = 0;                            // subspec according to DataDistribution
     int counter = 0;                                      //RSREM
     //
-    size_t nTFWritten = 0;    // number of TFs written
-    size_t nRDHWritten = 0;   // number of RDHs written
-    size_t nBytesWritten = 0; // number of bytes written
+    std::size_t nTFWritten = 0;    // number of TFs written
+    std::size_t nRDHWritten = 0;   // number of RDHs written
+    std::size_t nBytesWritten = 0; // number of bytes written
     //
     std::string fileName{};                // file name associated with this link
     std::vector<char> buffer;              // buffer to accumulate superpage data
@@ -104,7 +104,7 @@ class RawFileWriter
     void addPreformattedCRUPage(const gsl::span<char> data);
 
     /// expand buffer by positive increment and return old size
-    size_t expandBufferBy(size_t by)
+    std::size_t expandBufferBy(std::size_t by)
     {
       auto offs = buffer.size();
       buffer.resize(offs + by);
@@ -112,7 +112,7 @@ class RawFileWriter
     }
 
     /// append to the end of the buffer and return the point where appended to
-    size_t pushBack(const char* ptr, size_t sz, bool keepLastOnFlash = true)
+    std::size_t pushBack(const char* ptr, std::size_t sz, bool keepLastOnFlash = true)
     {
       if (!sz) {
         return buffer.size();
@@ -128,7 +128,7 @@ class RawFileWriter
     }
 
     /// add RDH to buffer. In case this requires flushing of the superpage, do not keep the previous page
-    size_t pushBack(const RDHAny& rdh)
+    std::size_t pushBack(const RDHAny& rdh)
     {
       nRDHWritten++;
       return pushBack(reinterpret_cast<const char*>(&rdh), sizeof(RDHAny), false);

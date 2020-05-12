@@ -373,7 +373,7 @@ void RawFileWriter::LinkData::openHBFPage(const RDHAny& rdhn)
 void RawFileWriter::LinkData::flushSuperPage(bool keepLastPage)
 {
   // write link superpage data to file (if requested, only up to the last page)
-  size_t pgSize = (lastRDHoffset < 0 || !keepLastPage) ? buffer.size() : lastRDHoffset;
+  std::size_t pgSize = (lastRDHoffset < 0 || !keepLastPage) ? buffer.size() : lastRDHoffset;
   if (writer->mVerbosity) {
     LOGF(INFO, "Flushing super page of %u bytes for %s", pgSize, describe());
   }
@@ -457,7 +457,7 @@ void RawFileWriter::LinkData::print() const
 
 //================================================
 
-void RawFileWriter::OutputFile::write(const char* data, size_t sz)
+void RawFileWriter::OutputFile::write(const char* data, std::size_t sz)
 {
   std::lock_guard<std::mutex> lock(fileMtx);
   fwrite(data, 1, sz, handler); // flush to file

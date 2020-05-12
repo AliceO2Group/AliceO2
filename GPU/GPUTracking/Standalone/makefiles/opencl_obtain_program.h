@@ -35,7 +35,7 @@ static int _makefiles_opencl_obtain_program_helper(cl_context context, cl_uint n
   }
   // printf("Obtaining program for OpenCL Platform: (%s %s) %s %s\n", pinfo->platform_profile, pinfo->platform_version, pinfo->platform_vendor, pinfo->platform_name);
 
-  std::vector<size_t> program_sizes(pinfo->count);
+  std::vector<std::size_t> program_sizes(pinfo->count);
   std::vector<char*> program_binaries(pinfo->count);
 
   for (unsigned int i = 0; i < pinfo->count; i++) {

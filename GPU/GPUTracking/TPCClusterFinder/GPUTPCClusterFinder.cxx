@@ -98,7 +98,7 @@ void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
   mNBufs = getNSteps(mBufSize);
 }
 
-void GPUTPCClusterFinder::SetNMaxDigits(size_t nDigits, size_t nPages)
+void GPUTPCClusterFinder::SetNMaxDigits(std::size_t nDigits, std::size_t nPages)
 {
   mNMaxDigits = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN, mScanWorkGroupSize)>(nDigits);
   mNMaxPages = nPages;
@@ -110,7 +110,7 @@ unsigned int GPUTPCClusterFinder::getNSteps(size_t items) const
     return 0;
   }
   unsigned int c = 1;
-  size_t capacity = mScanWorkGroupSize;
+  std::size_t capacity = mScanWorkGroupSize;
   while (items > capacity) {
     capacity *= mScanWorkGroupSize;
     c++;

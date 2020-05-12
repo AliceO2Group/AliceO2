@@ -60,7 +60,7 @@ void IrregularSpline2D3D::setActualBufferAddress(char* actualFlatBufferPtr)
 {
   /// See FlatObject for description
   FlatObject::setActualBufferAddress(actualFlatBufferPtr);
-  size_t vOffset = alignSize(mGridU.getFlatBufferSize(), mGridV.getBufferAlignmentBytes());
+  std::size_t vOffset = alignSize(mGridU.getFlatBufferSize(), mGridV.getBufferAlignmentBytes());
   mGridU.setActualBufferAddress(mFlatBufferPtr);
   mGridV.setActualBufferAddress(mFlatBufferPtr + vOffset);
 }
@@ -107,7 +107,7 @@ void IrregularSpline2D3D::construct(int numberOfKnotsU, const float knotsU[], in
   mGridU.construct(numberOfKnotsU, knotsU, numberOfAxisBinsU);
   mGridV.construct(numberOfKnotsV, knotsV, numberOfAxisBinsV);
 
-  size_t vOffset = alignSize(mGridU.getFlatBufferSize(), mGridV.getBufferAlignmentBytes());
+  std::size_t vOffset = alignSize(mGridU.getFlatBufferSize(), mGridV.getBufferAlignmentBytes());
 
   FlatObject::finishConstruction(vOffset + mGridV.getFlatBufferSize());
 
@@ -127,7 +127,7 @@ void IrregularSpline2D3D::constructRegular(int numberOfKnotsU, int numberOfKnots
   mGridU.constructRegular(numberOfKnotsU);
   mGridV.constructRegular(numberOfKnotsV);
 
-  size_t vOffset = alignSize(mGridU.getFlatBufferSize(), mGridV.getBufferAlignmentBytes());
+  std::size_t vOffset = alignSize(mGridU.getFlatBufferSize(), mGridV.getBufferAlignmentBytes());
 
   FlatObject::finishConstruction(vOffset + mGridV.getFlatBufferSize());
 

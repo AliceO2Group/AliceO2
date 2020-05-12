@@ -23,7 +23,7 @@ namespace framework
 struct MessageSet {
   std::vector<PartRef> parts;
 
-  size_t size() const
+  std::size_t size() const
   {
     return parts.size();
   }
@@ -33,22 +33,22 @@ struct MessageSet {
     parts.clear();
   }
 
-  PartRef& operator[](size_t index)
+  PartRef& operator[](std::size_t index)
   {
     return parts[index];
   }
 
-  PartRef const& operator[](size_t index) const
+  PartRef const& operator[](std::size_t index) const
   {
     return parts[index];
   }
 
-  PartRef& at(size_t index)
+  PartRef& at(std::size_t index)
   {
     return parts.at(index);
   }
 
-  PartRef const& at(size_t index) const
+  PartRef const& at(std::size_t index) const
   {
     return parts.at(index);
   }

@@ -199,7 +199,7 @@ namespace o2
 namespace base
 {
 // this goes into the source
-void attachMessageBufferToParts(FairMQParts& parts, FairMQChannel& channel, void* data, size_t size,
+void attachMessageBufferToParts(FairMQParts& parts, FairMQChannel& channel, void* data, std::size_t size,
                                 void (*free_func)(void* data, void* hint), void* hint)
 {
   std::unique_ptr<FairMQMessage> message(channel.NewMessage(data, size, free_func, hint));

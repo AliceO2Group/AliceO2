@@ -167,7 +167,7 @@ TH2* painter::getHistogram2D(const CalArray<T>& calArray)
 {
   static const Mapper& mapper = Mapper::instance();
 
-  const size_t position = calArray.getPadSubsetNumber();
+  const std::size_t position = calArray.getPadSubsetNumber();
 
   const PadSubset padSubset = calArray.getPadSubset();
   // ===| maximum number of rows and pads |=====================================
@@ -219,7 +219,7 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const CalDet<T>& calDet, int 
 
   if (onlyFilled) {
     nROCs = 0;
-    for (size_t iroc = 0; iroc < calDet.getData().size(); ++iroc) {
+    for (std::size_t iroc = 0; iroc < calDet.getData().size(); ++iroc) {
       const auto& roc = calDet.getCalArray(iroc);
 
       if (hasData(roc)) {
@@ -245,8 +245,8 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const CalDet<T>& calDet, int 
   cROCs2D->DivideSquare(nROCs);
 
   // ===| produce plots for each ROC |===
-  size_t pad = 1;
-  for (size_t iroc = 0; iroc < calDet.getData().size(); ++iroc) {
+  std::size_t pad = 1;
+  for (std::size_t iroc = 0; iroc < calDet.getData().size(); ++iroc) {
     const auto& roc = calDet.getCalArray(iroc);
 
     if (onlyFilled && !hasData(roc)) {

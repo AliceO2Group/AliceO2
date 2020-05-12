@@ -98,7 +98,7 @@ void DecoderLogic::setData(uint64_t data)
 #endif
 }
 
-uint16_t DecoderLogic::data10(uint64_t value, size_t index) const
+uint16_t DecoderLogic::data10(uint64_t value, std::size_t index) const
 {
   uint64_t m = mMasks.at(index);
   return static_cast<uint16_t>((value & m) >> (index * 10) & 0x3FF);

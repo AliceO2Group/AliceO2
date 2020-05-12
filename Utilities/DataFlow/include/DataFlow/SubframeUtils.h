@@ -19,15 +19,15 @@ namespace o2
 namespace dataflow
 {
 
-int64_t extractDetectorPayloadStrip(char** payload, char* buffer, size_t bufferSize)
+int64_t extractDetectorPayloadStrip(char** payload, char* buffer, std::size_t bufferSize)
 {
   *payload = buffer + sizeof(o2::header::HeartbeatHeader);
   return bufferSize - sizeof(o2::header::HeartbeatHeader) - sizeof(o2::header::HeartbeatTrailer);
 }
 
 struct SubframeId {
-  size_t timeframeId;
-  size_t socketId;
+  std::size_t timeframeId;
+  std::size_t socketId;
 
   // operator needed for the equal_range algorithm/ multimap method
   bool operator<(const SubframeId& rhs) const
@@ -36,7 +36,7 @@ struct SubframeId {
   }
 };
 
-SubframeId makeIdFromHeartbeatHeader(const header::HeartbeatHeader& header, size_t socketId, size_t orbitsPerTimeframe)
+SubframeId makeIdFromHeartbeatHeader(const header::HeartbeatHeader& header, std::size_t socketId, std::size_t orbitsPerTimeframe)
 {
   SubframeId id = {
     .timeframeId = header.orbit / orbitsPerTimeframe,

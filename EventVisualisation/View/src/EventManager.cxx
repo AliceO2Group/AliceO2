@@ -160,12 +160,12 @@ void EventManager::DropEvent()
 
 void EventManager::displayVisualisationEvent(VisualisationEvent& event, const std::string& detectorName)
 {
-  size_t trackCount = event.getTrackCount();
+  std::size_t trackCount = event.getTrackCount();
 
   auto* list = new TEveTrackList(detectorName.c_str());
   list->IncDenyDestroy();
 
-  for (size_t i = 0; i < trackCount; ++i) {
+  for (std::size_t i = 0; i < trackCount; ++i) {
     VisualisationTrack track = event.getTrack(i);
     TEveRecTrackD t;
     double* p = track.getMomentum();
@@ -173,10 +173,10 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
     t.fSign = track.getCharge() > 0 ? 1 : -1;
     auto* vistrack = new TEveTrack(&t, &TEveTrackPropagator::fgDefault);
     vistrack->SetLineColor(kMagenta);
-    size_t pointCount = track.getPointCount();
+    std::size_t pointCount = track.getPointCount();
     vistrack->Reset(pointCount);
 
-    for (size_t j = 0; j < pointCount; ++j) {
+    for (std::size_t j = 0; j < pointCount; ++j) {
       auto point = track.getPoint(j);
       vistrack->SetNextPoint(point[0], point[1], point[2]);
     }
@@ -187,12 +187,12 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
     dataTypeLists[EVisualisationDataType::ESD]->AddElement(list);
   }
 
-  size_t clusterCount = event.getClusterCount();
+  std::size_t clusterCount = event.getClusterCount();
   auto* point_list = new TEvePointSet(detectorName.c_str());
   point_list->IncDenyDestroy();
   point_list->SetMarkerColor(kBlue);
 
-  for (size_t i = 0; i < clusterCount; ++i) {
+  for (std::size_t i = 0; i < clusterCount; ++i) {
     VisualisationCluster cluster = event.getCluster(i);
     point_list->SetNextPoint(cluster.X(), cluster.Y(), cluster.Z());
   }

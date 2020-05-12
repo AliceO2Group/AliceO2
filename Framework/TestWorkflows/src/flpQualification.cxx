@@ -62,7 +62,7 @@ DataProcessorSpec templateProcessor(std::string const& inputType)
                              return adaptStateless([counter = std::make_shared<int>(0)](ParallelContext& parallelInfo, InputRecord& inputs, DataAllocator& outputs) {
                                auto values = inputs.get("x");
                                // Create a single output.
-                               size_t index = parallelInfo.index1D();
+                               std::size_t index = parallelInfo.index1D();
                                const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(values);
                                if (dh) {
                                  LOG(INFO) << "some-processor" << index << ": "
@@ -88,8 +88,8 @@ DataProcessorSpec templateProcessor(std::string const& inputType)
 ///   the to the data distribution.
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
-  size_t jobs = config.options().get<int>("2-layer-jobs");
-  size_t stages = config.options().get<int>("3-layer-pipelining");
+  std::size_t jobs = config.options().get<int>("2-layer-jobs");
+  std::size_t stages = config.options().get<int>("3-layer-pipelining");
   std::string inputType = config.options().get<std::string>("input-type");
   if (inputType != "readout" && inputType != "stfb") {
     throw std::runtime_error("Unknown input type " + inputType + ". Available options are `readout' and `stfb'.");
@@ -134,7 +134,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // the instance is amended from "some-processor" to "some-processor-<index>".
   // This is to simulate processing of different input channels in parallel on
   // the FLP.
-  auto dataParallelLayer = parallel(templateProcessor(inputType), jobs, [](DataProcessorSpec& spec, size_t index) {
+  auto dataParallelLayer = parallel(templateProcessor(inputType), jobs, [](DataProcessorSpec& spec, std::size_t index) {
     DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
     DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
   });
@@ -147,7 +147,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
       "merger",
       mergeInputs(InputSpec{"x", "TST", "P"},
                   jobs,
-                  [](InputSpec& input, size_t index) {
+                  [](InputSpec& input, std::size_t index) {
                     DataSpecUtils::updateMatchingSubspec(input, index);
                   }),
       {OutputSpec{{"label"}, "TST", "merger_output"}},

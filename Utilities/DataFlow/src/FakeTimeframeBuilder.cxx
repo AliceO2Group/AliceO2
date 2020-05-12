@@ -69,13 +69,13 @@ std::unique_ptr<char[]> fakeTimeframeGenerator(std::vector<FakeTimeframeSpec>& s
   // - The size of the index header
   // - N*sizeof(dataheader)
   // Assuming all the data header
-  size_t sizeOfHeaders = specs.size() * sizeof(DataHeader);
-  size_t sizeOfBuffers = 0;
+  std::size_t sizeOfHeaders = specs.size() * sizeof(DataHeader);
+  std::size_t sizeOfBuffers = 0;
   for (auto&& spec : specs) {
     sizeOfBuffers += spec.bufferSize;
   }
-  size_t sizeOfIndexHeader = sizeof(DataHeader);
-  size_t sizeOfIndex = sizeof(IndexElement) * specs.size();
+  std::size_t sizeOfIndexHeader = sizeof(DataHeader);
+  std::size_t sizeOfIndex = sizeof(IndexElement) * specs.size();
   totalSize = sizeOfHeaders + sizeOfBuffers + sizeOfIndexHeader + sizeOfIndex;
 
   // Add the actual - data

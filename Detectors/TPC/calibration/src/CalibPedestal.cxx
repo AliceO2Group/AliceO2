@@ -81,7 +81,7 @@ CalibPedestal::vectorType* CalibPedestal::getVector(ROC roc, bool create /*=kFAL
   if (vec || !create)
     return vec;
 
-  const size_t numberOfPads = (roc.rocType() == RocType::IROC) ? mMapper.getPadsInIROC() : mMapper.getPadsInOROC();
+  const std::size_t numberOfPads = (roc.rocType() == RocType::IROC) ? mMapper.getPadsInIROC() : mMapper.getPadsInOROC();
 
   vec = new vectorType;
   vec->resize(numberOfPads * mNumberOfADCs);
@@ -110,7 +110,7 @@ void CalibPedestal::analyse()
 
     float* array = vec->data();
 
-    const size_t numberOfPads = (roc.rocType() == RocType::IROC) ? mMapper.getPadsInIROC() : mMapper.getPadsInOROC();
+    const std::size_t numberOfPads = (roc.rocType() == RocType::IROC) ? mMapper.getPadsInIROC() : mMapper.getPadsInOROC();
 
     float pedestal{};
     float noise{};
@@ -119,7 +119,7 @@ void CalibPedestal::analyse()
     fg.SetRange(mADCMin - 0.5f, mADCMax + 1.5f);
 
     for (Int_t ichannel = 0; ichannel < numberOfPads; ++ichannel) {
-      size_t offset = ichannel * mNumberOfADCs;
+      std::size_t offset = ichannel * mNumberOfADCs;
       if (mStatisticsType == StatisticsType::GausFit) {
         fit(mNumberOfADCs, array + offset, float(mADCMin) - 0.5f, float(mADCMax + 1) - 0.5f, fg); // -0.5 since ADC values are discrete
         pedestal = fg.GetParameter(1);
@@ -175,11 +175,11 @@ TH2* CalibPedestal::createControlHistogram(ROC roc)
 {
   auto* data = mADCdata[roc.getRoc()]->data();
 
-  const size_t numberOfPads = (roc.rocType() == RocType::IROC) ? mMapper.getPadsInIROC() : mMapper.getPadsInOROC();
+  const std::size_t numberOfPads = (roc.rocType() == RocType::IROC) ? mMapper.getPadsInIROC() : mMapper.getPadsInOROC();
   TH2F* h2 = new TH2F(fmt::format("hADCValues_ROC{:02}", roc.getRoc()).data(), fmt::format("ADC values of ROC {:02}", roc.getRoc()).data(), numberOfPads, 0, numberOfPads, mNumberOfADCs, mADCMin, mADCMax);
   h2->SetDirectory(nullptr);
   for (int ichannel = 0; ichannel < numberOfPads; ++ichannel) {
-    size_t offset = ichannel * mNumberOfADCs;
+    std::size_t offset = ichannel * mNumberOfADCs;
 
     for (int iADC = 0; iADC < mNumberOfADCs; ++iADC) {
       h2->Fill(ichannel, mADCMin + iADC, (data + offset)[iADC]);

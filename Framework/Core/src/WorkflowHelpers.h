@@ -27,8 +27,8 @@ struct ConfigContext;
 // Structure to hold information which was derived
 // for output channels.
 struct LogicalOutputInfo {
-  size_t specIndex;
-  size_t outputGlobalIndex;
+  std::size_t specIndex;
+  std::size_t outputGlobalIndex;
   bool forward;
 };
 
@@ -40,9 +40,9 @@ struct LogicalOutputInfo {
 // @a inputGlobalIndex is pointer to a unique id for the input the forward
 //    refers to.
 struct LogicalForwardInfo {
-  size_t consumer;
-  size_t inputLocalIndex;
-  size_t outputGlobalIndex;
+  std::size_t consumer;
+  std::size_t inputLocalIndex;
+  std::size_t outputGlobalIndex;
 };
 
 enum struct ConnectionKind {
@@ -54,17 +54,17 @@ enum struct ConnectionKind {
 
 struct DeviceConnectionEdge {
   // the index in the workflow of the producer DataProcessorSpec
-  size_t producer;
+  std::size_t producer;
   // the index in the workflow of the consumer DataProcessorSpec
-  size_t consumer;
+  std::size_t consumer;
   // The timeindex for the consumer
-  size_t timeIndex;
+  std::size_t timeIndex;
   // The timeindex of the producer
-  size_t producerTimeIndex;
+  std::size_t producerTimeIndex;
   // An absolute id for the output
-  size_t outputGlobalIndex;
+  std::size_t outputGlobalIndex;
   // A DataProcessor relative id for the input
-  size_t consumerInputIndex;
+  std::size_t consumerInputIndex;
   // Whether this is the result of a forwarding operation or not
   bool isForward;
   enum ConnectionKind kind;
@@ -72,10 +72,10 @@ struct DeviceConnectionEdge {
 
 // Unique identifier for a connection
 struct DeviceConnectionId {
-  size_t producer;
-  size_t consumer;
-  size_t timeIndex;
-  size_t producerTimeIndex;
+  std::size_t producer;
+  std::size_t consumer;
+  std::size_t timeIndex;
+  std::size_t producerTimeIndex;
   uint16_t port;
 
   bool operator<(const DeviceConnectionId& rhs) const
@@ -88,9 +88,9 @@ struct DeviceConnectionId {
 // A device is uniquely identified by its DataProcessorSpec and
 // the timeslice it consumes.
 struct DeviceId {
-  size_t processorIndex;
-  size_t timeslice;
-  size_t deviceIndex;
+  std::size_t processorIndex;
+  std::size_t timeslice;
+  std::size_t deviceIndex;
 
   bool operator<(const DeviceId& rhs) const
   {
@@ -137,11 +137,11 @@ struct WorkflowHelpers {
   /// sort according to the information provided in edges. The first element of
   /// the pair is the index in the nodes array, the second one is the layer in the topological
   /// sort.
-  static std::vector<TopoIndexInfo> topologicalSort(size_t nodeCount,
+  static std::vector<TopoIndexInfo> topologicalSort(std::size_t nodeCount,
                                                     int const* edgeIn,
                                                     int const* edgeOut,
-                                                    size_t stride,
-                                                    size_t edgesCount);
+                                                    std::size_t stride,
+                                                    std::size_t edgesCount);
 
   // Helper method to verify that a given workflow is actually valid e.g. that
   // it contains no empty labels.
@@ -161,17 +161,17 @@ struct WorkflowHelpers {
 
   // FIXME: this is an implementation detail for compute edge action,
   //        actually. It should be moved to the cxx. Comes handy for testing things though..
-  static void sortEdges(std::vector<size_t>& inEdgeIndex,
-                        std::vector<size_t>& outEdgeIndex,
+  static void sortEdges(std::vector<std::size_t>& inEdgeIndex,
+                        std::vector<std::size_t>& outEdgeIndex,
                         const std::vector<DeviceConnectionEdge>& edges);
 
   static std::vector<EdgeAction> computeOutEdgeActions(
     const std::vector<DeviceConnectionEdge>& edges,
-    const std::vector<size_t>& index);
+    const std::vector<std::size_t>& index);
 
   static std::vector<EdgeAction> computeInEdgeActions(
     const std::vector<DeviceConnectionEdge>& edges,
-    const std::vector<size_t>& index);
+    const std::vector<std::size_t>& index);
 
   /// Given @a workflow it gathers all the OutputSpec and in addition provides
   /// the information whether and output is dangling and/or of type AOD

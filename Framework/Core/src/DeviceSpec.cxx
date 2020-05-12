@@ -23,16 +23,16 @@ namespace o2
 namespace framework
 {
 
-using LogicalChannelsMap = std::map<LogicalChannelRange, size_t>;
+using LogicalChannelsMap = std::map<LogicalChannelRange, std::size_t>;
 
 // This calculates the distance between two strings. See:
 //
 // https://en.wikipedia.org/wiki/Levenshtein_distance
 //
 // For the full description
-size_t levenshteinDistance(const char* s, int len_s, const char* t, int len_t)
+std::size_t levenshteinDistance(const char* s, int len_s, const char* t, int len_t)
 {
-  size_t cost;
+  std::size_t cost;
 
   /* base case: empty strings */
   if (len_s == 0)
@@ -54,7 +54,7 @@ size_t levenshteinDistance(const char* s, int len_s, const char* t, int len_t)
 std::string findBestCandidate(const std::string& candidate, const LogicalChannelsMap& map)
 {
   std::string result;
-  size_t score = -1;
+  std::size_t score = -1;
   for (const auto& pair : map) {
     auto newScore = levenshteinDistance(candidate.c_str(), candidate.size(),
                                         pair.first.name.c_str(), pair.first.name.size());

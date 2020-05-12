@@ -34,7 +34,7 @@ std::unique_ptr<EncodedClusters> TPCEntropyDecoder::fromTree(TTree& tree)
   assert(tree.GetBranch("Metadata"));
   tree.SetBranchAddress("Metadata", &ec->metadata);
 
-  for (size_t i = 0; i < ec->NUM_ARRAYS; ++i) {
+  for (std::size_t i = 0; i < ec->NUM_ARRAYS; ++i) {
     const auto name = ec->NAMES[i];
     const auto dictName = std::string(name) + "Dict";
 

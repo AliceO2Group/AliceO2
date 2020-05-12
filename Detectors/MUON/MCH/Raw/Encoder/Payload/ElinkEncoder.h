@@ -28,7 +28,7 @@ class ElinkEncoder
 
   void addChannelData(uint8_t chId, const std::vector<SampaCluster>& data);
 
-  size_t moveToBuffer(std::vector<uint64_t>& buffer, uint64_t prefix);
+  std::size_t moveToBuffer(std::vector<uint64_t>& buffer, uint64_t prefix);
 
   void clear();
 };

@@ -74,7 +74,7 @@ class RawBufferContext
     return mMessages.end();
   }
 
-  size_t size()
+  std::size_t size()
   {
     return mMessages.size();
   }

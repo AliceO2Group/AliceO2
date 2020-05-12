@@ -68,8 +68,8 @@ class DataPublisherDevice : public base::O2Device
   bool HandleData(FairMQParts& msgParts, int index);
 
   /// handle one logical O2 block of the input, consists of header and payload
-  bool HandleO2LogicalBlock(const byte* headerBuffer, size_t headerBufferSize,
-                            const byte* dataBuffer, size_t dataBufferSize);
+  bool HandleO2LogicalBlock(const byte* headerBuffer, std::size_t headerBufferSize,
+                            const byte* dataBuffer, std::size_t dataBufferSize);
 
   /// Read file and append to the buffer
   static bool AppendFile(const char* name, std::vector<o2::byte>& buffer);

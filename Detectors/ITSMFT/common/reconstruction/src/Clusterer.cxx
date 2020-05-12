@@ -44,7 +44,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
     // pre-fetch all non-empty chips of current ROF
     ChipPixelData* curChipData = nullptr;
     mFiredChipsPtr.clear();
-    size_t nPix = 0;
+    std::size_t nPix = 0;
     while ((curChipData = reader.getNextChipData(mChips))) {
       mFiredChipsPtr.push_back(curChipData);
       nPix += curChipData->getData().size();
@@ -75,7 +75,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
     loopLim.reserve(nLoops + nLoops);
     loopLim.push_back(0);
     // decide actual workshare between the threads, trying to process the same number of pixels in each
-    size_t nAvPixPerLoop = nPix / nLoops, smt = 0;
+    std::size_t nAvPixPerLoop = nPix / nLoops, smt = 0;
     for (int i = 0; i < nFired; i++) {
       smt += mFiredChipsPtr[i]->getData().size();
       if (smt >= nAvPixPerLoop) { // define threads boundary
@@ -125,7 +125,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
 #ifdef _PERFORM_TIMING_
       mTimerMerge.Start(false);
 #endif
-      size_t nClTot = compClus->size(), nPattTot = patterns ? patterns->size() : 0;
+      std::size_t nClTot = compClus->size(), nPattTot = patterns ? patterns->size() : 0;
       for (int ith = 1; ith < nLoops; ith++) {
         nClTot += mThreads[ith]->compClusters.size();
         nPattTot += mThreads[ith]->patterns.size();

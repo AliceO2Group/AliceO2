@@ -102,7 +102,7 @@ void DataProcessor::doSend(FairMQDevice& device, RawBufferContext& context)
     FairMQMessagePtr payload(device.NewMessage());
     auto buffer = messageRef.serializeMsg().str();
     // Rebuild the message using the serialized ostringstream as input. For now it involves a copy.
-    size_t size = buffer.length();
+    std::size_t size = buffer.length();
     payload->Rebuild(size);
     std::memcpy(payload->GetData(), buffer.c_str(), size);
     const DataHeader* cdh = o2::header::get<DataHeader*>(messageRef.header->GetData());

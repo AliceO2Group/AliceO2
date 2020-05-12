@@ -193,7 +193,7 @@ void ReadRaw::writeDigits(std::string fileDataOut)
   std::vector<o2::ft0::Digit> digitVec;
   std::vector<o2::ft0::ChannelData> chDataVec;
   digitVec.reserve(mDigitAccum.size());
-  size_t numberOfChData = 0;
+  std::size_t numberOfChData = 0;
   for (auto const& [intrec, digit] : mDigitAccum)
     numberOfChData += digit.getChDgData().size();
   chDataVec.reserve(numberOfChData);

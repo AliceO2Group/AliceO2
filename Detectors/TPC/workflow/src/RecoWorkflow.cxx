@@ -236,7 +236,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   parallelProcessors = parallelPipeline(
     parallelProcessors, nLanes,
     [&laneConfiguration]() { return laneConfiguration.size(); },
-    [&laneConfiguration](size_t index) { return laneConfiguration[index]; });
+    [&laneConfiguration](std::size_t index) { return laneConfiguration[index]; });
   specs.insert(specs.end(), parallelProcessors.begin(), parallelProcessors.end());
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -257,9 +257,9 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     }
     if (tpcSectorHeader->sector < 0) {
       // special data sets, don't write
-      return ~(size_t)0;
+      return ~(std::size_t)0;
     }
-    size_t index = 0;
+    std::size_t index = 0;
     for (auto const& sector : tpcSectors) {
       if (sector == tpcSectorHeader->sector) {
         return index;
@@ -268,7 +268,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     }
     throw std::runtime_error("sector " + std::to_string(tpcSectorHeader->sector) + " not configured for writing");
   };
-  auto getName = [tpcSectors](std::string base, size_t index) {
+  auto getName = [tpcSectors](std::string base, std::size_t index) {
     return base + "_" + std::to_string(tpcSectors.at(index));
   };
 
@@ -302,7 +302,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
       throw std::invalid_argument(std::string("writer process configuration needs list of TPC sectors"));
     }
 
-    auto amendInput = [tpcSectors, laneConfiguration](InputSpec& input, size_t index) {
+    auto amendInput = [tpcSectors, laneConfiguration](InputSpec& input, std::size_t index) {
       input.binding += std::to_string(laneConfiguration[index]);
       DataSpecUtils::updateMatchingSubspec(input, laneConfiguration[index]);
     };

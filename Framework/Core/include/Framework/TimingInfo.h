@@ -16,7 +16,7 @@
 /// This class holds the information about timing
 /// of the messages being processed.
 struct TimingInfo {
-  size_t timeslice; /// the timeslice associated to current processing
+  std::size_t timeslice; /// the timeslice associated to current processing
 };
 
 #endif // Timing information for the current computation

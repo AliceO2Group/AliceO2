@@ -24,7 +24,7 @@ class MapFEC
  public:
   MapFEC(std::string_view content);
   std::optional<DsDetId> operator()(const DsElecId& elecId) const;
-  size_t size() const;
+  std::size_t size() const;
 
  private:
   int index(uint32_t linkId, uint32_t dsAddr) const;

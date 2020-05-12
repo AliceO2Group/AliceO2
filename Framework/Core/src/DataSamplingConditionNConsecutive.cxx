@@ -39,8 +39,8 @@ class DataSamplingConditionNConsecutive : public DataSamplingCondition
   /// \brief Reads 'samplesNumber' and 'cycleSize'.
   void configure(const boost::property_tree::ptree& config) override
   {
-    mSamplesNumber = config.get<size_t>("samplesNumber");
-    mCycleSize = config.get<size_t>("cycleSize");
+    mSamplesNumber = config.get<std::size_t>("samplesNumber");
+    mCycleSize = config.get<std::size_t>("cycleSize");
     if (mSamplesNumber > mCycleSize) {
       LOG(WARN) << "Consecutive number of samples is higher than cycle size.";
     }
@@ -56,8 +56,8 @@ class DataSamplingConditionNConsecutive : public DataSamplingCondition
   }
 
  private:
-  size_t mSamplesNumber;
-  size_t mCycleSize;
+  std::size_t mSamplesNumber;
+  std::size_t mCycleSize;
 };
 
 std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::createDataSamplingConditionNConsecutive()

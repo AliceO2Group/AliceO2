@@ -196,7 +196,7 @@ void VertexerTraits::arrangeClusters(ROframe* event)
   mEvent = event;
   for (int iLayer{0}; iLayer < constants::its::LayersNumberVertexer; ++iLayer) {
     const auto& currentLayer{event->getClustersOnLayer(iLayer)};
-    const size_t clustersNum{currentLayer.size()};
+    const std::size_t clustersNum{currentLayer.size()};
     if (clustersNum > 0) {
       if (clustersNum > mClusters[iLayer].capacity()) {
         mClusters[iLayer].reserve(clustersNum);
@@ -367,7 +367,7 @@ void VertexerTraits::computeTrackletMatching()
 void VertexerTraits::computeMCFiltering()
 {
   assert(mEvent != nullptr);
-  for (size_t iTracklet{0}; iTracklet < mComb01.size(); ++iTracklet) {
+  for (std::size_t iTracklet{0}; iTracklet < mComb01.size(); ++iTracklet) {
     const auto& lbl0 = mEvent->getClusterLabels(0, mClusters[0][mComb01[iTracklet].firstClusterIndex].clusterId);
     const auto& lbl1 = mEvent->getClusterLabels(1, mClusters[1][mComb01[iTracklet].secondClusterIndex].clusterId);
     if (!(lbl0.compare(lbl1) == 1 && lbl0.getSourceID() == 0)) { // evtId && trackId && isValid
@@ -376,7 +376,7 @@ void VertexerTraits::computeMCFiltering()
     }
   }
 
-  for (size_t iTracklet{0}; iTracklet < mComb12.size(); ++iTracklet) {
+  for (std::size_t iTracklet{0}; iTracklet < mComb12.size(); ++iTracklet) {
     const auto& lbl1 = mEvent->getClusterLabels(1, mClusters[1][mComb12[iTracklet].firstClusterIndex].clusterId);
     const auto& lbl2 = mEvent->getClusterLabels(2, mClusters[2][mComb12[iTracklet].secondClusterIndex].clusterId);
     if (!(lbl1.compare(lbl2) == 1 && lbl1.getSourceID() == 0)) { // evtId && trackId && isValid
@@ -497,7 +497,7 @@ void VertexerTraits::computeHistVertices()
 #endif
   std::vector<boost::histogram::axis::regular<float>> axes;
   axes.reserve(3);
-  for (size_t iAxis{0}; iAxis < 3; ++iAxis) {
+  for (std::size_t iAxis{0}; iAxis < 3; ++iAxis) {
     axes.emplace_back(histConf.nBinsXYZ[iAxis] - 1, histConf.lowHistBoundariesXYZ[iAxis], histConf.highHistBoundariesXYZ[iAxis]);
   }
 
@@ -506,8 +506,8 @@ void VertexerTraits::computeHistVertices()
   auto histZ = boost::histogram::make_histogram(axes[2]);
 
   // Loop over lines, calculate transverse vertices within beampipe and fill XY histogram to find pseudobeam projection
-  for (size_t iTracklet1{0}; iTracklet1 < mTracklets.size(); ++iTracklet1) {
-    for (size_t iTracklet2{iTracklet1 + 1}; iTracklet2 < mTracklets.size(); ++iTracklet2) {
+  for (std::size_t iTracklet1{0}; iTracklet1 < mTracklets.size(); ++iTracklet1) {
+    for (std::size_t iTracklet2{iTracklet1 + 1}; iTracklet2 < mTracklets.size(); ++iTracklet2) {
       if (Line::getDCA(mTracklets[iTracklet1], mTracklets[iTracklet2]) < mVrtParams.histPairCut) {
         ClusterLines cluster{mTracklets[iTracklet1], mTracklets[iTracklet2]};
         if (cluster.getVertex()[0] * cluster.getVertex()[0] + cluster.getVertex()[1] * cluster.getVertex()[1] < 1.98f * 1.98f) {
@@ -686,12 +686,12 @@ void VertexerTraits::filterTrackletsWithMC(std::vector<Tracklet>& tracklets01,
 {
   // Tracklets 01
   assert(mEvent != nullptr);
-  for (size_t iFoundTrackletIndex{0}; iFoundTrackletIndex < indices01.size(); ++iFoundTrackletIndex) // access indices vector to get numfoundtracklets
+  for (std::size_t iFoundTrackletIndex{0}; iFoundTrackletIndex < indices01.size(); ++iFoundTrackletIndex) // access indices vector to get numfoundtracklets
   {
-    const size_t offset = iFoundTrackletIndex * stride;
+    const std::size_t offset = iFoundTrackletIndex * stride;
     int removed{0};
-    for (size_t iTrackletIndex{0}; iTrackletIndex < indices01[iFoundTrackletIndex]; ++iTrackletIndex) {
-      const size_t iTracklet{offset + iTrackletIndex};
+    for (std::size_t iTrackletIndex{0}; iTrackletIndex < indices01[iFoundTrackletIndex]; ++iTrackletIndex) {
+      const std::size_t iTracklet{offset + iTrackletIndex};
       const auto& lbl0 = mEvent->getClusterLabels(0, mClusters[0][tracklets01[iTracklet].firstClusterIndex].clusterId);
       const auto& lbl1 = mEvent->getClusterLabels(1, mClusters[1][tracklets01[iTracklet].secondClusterIndex].clusterId);
       if (!(lbl0.compare(lbl1) == 1 && lbl0.getSourceID() == 0)) {
@@ -704,12 +704,12 @@ void VertexerTraits::filterTrackletsWithMC(std::vector<Tracklet>& tracklets01,
   }
 
   // Tracklets 12
-  for (size_t iFoundTrackletIndex{0}; iFoundTrackletIndex < indices12.size(); ++iFoundTrackletIndex) // access indices vector to get numfoundtracklets
+  for (std::size_t iFoundTrackletIndex{0}; iFoundTrackletIndex < indices12.size(); ++iFoundTrackletIndex) // access indices vector to get numfoundtracklets
   {
-    const size_t offset = iFoundTrackletIndex * stride;
+    const std::size_t offset = iFoundTrackletIndex * stride;
     int removed{0};
-    for (size_t iTrackletIndex{0}; iTrackletIndex < indices12[iFoundTrackletIndex]; ++iTrackletIndex) {
-      const size_t iTracklet{offset + iTrackletIndex};
+    for (std::size_t iTrackletIndex{0}; iTrackletIndex < indices12[iFoundTrackletIndex]; ++iTrackletIndex) {
+      const std::size_t iTracklet{offset + iTrackletIndex};
       const auto& lbl1 = mEvent->getClusterLabels(1, mClusters[1][tracklets12[iTracklet].firstClusterIndex].clusterId);
       const auto& lbl2 = mEvent->getClusterLabels(2, mClusters[2][tracklets12[iTracklet].secondClusterIndex].clusterId);
       if (!(lbl1.compare(lbl2) == 1 && lbl1.getSourceID() == 0)) {
