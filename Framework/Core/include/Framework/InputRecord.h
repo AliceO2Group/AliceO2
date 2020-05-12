@@ -351,8 +351,7 @@ class InputRecord
       return *reinterpret_cast<T const*>(ref.payload);
 
       // implementation (i)
-    } else if constexpr (std::is_pointer<T>::value &&
-                         (is_messageable<typename std::remove_pointer<T>::type>::value || has_root_dictionary<typename std::remove_pointer<T>::type>::value)) {
+    } else if constexpr (std::is_pointer<T>::value && is_messageable<typename std::remove_pointer<T>::type>::value) {
       // extract a messageable type or object with ROOT dictionary by pointer
       // return unique_ptr to message content with custom deleter
       using DataHeader = o2::header::DataHeader;
@@ -377,6 +376,28 @@ class InputRecord
         }
         throw std::runtime_error("unsupported code path");
       } else if (method == o2::header::gSerializationMethodROOT) {
+        // This supports the common case of retrieving a root object and getting pointer.
+        // Notice that this will return a copy of the actual contents of the buffer, because
+        // the buffer is actually serialised, for this reason we return a unique_ptr<T>.
+        // FIXME: does it make more sense to keep ownership of all the deserialised
+        // objects in a single place so that we can avoid duplicate deserializations?
+        // explicitely specify serialization method to ROOT-serialized because type T
+        // is messageable and a different method would be deduced in DataRefUtils
+        // return type with owning Deleter instance, forwarding to default_deleter
+        std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<ROOTSerialized<ValueT>>(ref).release());
+        return result;
+      } else {
+        throw std::runtime_error("Attempt to extract object from message with unsupported serialization type");
+      }
+    } else if constexpr (std::is_pointer<T>::value && has_root_dictionary<typename std::remove_pointer<T>::type>::value) {
+      // extract an object with ROOT dictionary by pointer
+      // return unique_ptr to message content with custom deleter
+      using DataHeader = o2::header::DataHeader;
+      using ValueT = typename std::remove_pointer<T>::type;
+
+      auto header = o2::header::get<const DataHeader*>(ref.header);
+      auto method = header->payloadSerializationMethod;
+      if (method == o2::header::gSerializationMethodROOT) {
         // This supports the common case of retrieving a root object and getting pointer.
         // Notice that this will return a copy of the actual contents of the buffer, because
         // the buffer is actually serialised, for this reason we return a unique_ptr<T>.
