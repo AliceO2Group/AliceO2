@@ -13,7 +13,7 @@
 namespace o2::aod::track
 {
 enum TrackTypeEnum : uint8_t {
-  GlobalTrack,
+  GlobalTrack = 0,
   ITSStandalone,
   MFTStandalone,
   Run2Tracklet
