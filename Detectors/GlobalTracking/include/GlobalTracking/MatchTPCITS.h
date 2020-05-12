@@ -646,10 +646,17 @@ class MatchTPCITS
   static constexpr float MaxTgp = 2.064;               // max tg corresponting to MaxSnp = MaxSnp/std::sqrt(1.-MaxSnp^2)
   static constexpr float MinTBToCleanCache = 600.;     // keep in AB ITS cluster refs cache at most this number of TPC bins
 
-  TStopwatch mTimerTot;
-  TStopwatch mTimerIO;
-  TStopwatch mTimerDBG;
-  TStopwatch mTimerRefit;
+  enum TimerIDs { SWTot,
+                  SWPrepITS,
+                  SWPrepTPC,
+                  SWDoMatching,
+                  SWSelectBest,
+                  SWRefit,
+                  SWIO,
+                  SWDBG,
+                  NStopWatches };
+  static constexpr std::string_view TimerName[] = {"Total", "PrepareITS", "PrepareTPC", "DoMatching", "SelectBest", "Refit", "IO", "Debug"};
+  TStopwatch mTimer[NStopWatches];
 
   ClassDefNV(MatchTPCITS, 1);
 };
