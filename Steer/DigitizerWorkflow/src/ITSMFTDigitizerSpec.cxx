@@ -143,8 +143,10 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     // here we have all digits and labels and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe}, mDigitsAccum);
     pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0, Lifetime::Timeframe}, mROFRecordsAccum);
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0, Lifetime::Timeframe}, mMC2ROFRecordsAccum);
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabelsAccum);
+    if (mWithMCTruth) {
+      pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0, Lifetime::Timeframe}, mMC2ROFRecordsAccum);
+      pc.outputs().snapshot(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabelsAccum);
+    }
     LOG(INFO) << mID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{mOrigin, "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
@@ -158,7 +160,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   }
 
  protected:
-  ITSMFTDPLDigitizerTask() : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM) {}
+  ITSMFTDPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth) {}
 
   void processQED(double tMax)
   {
@@ -226,7 +228,9 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
       }
     }
     std::copy(mROFRecords.begin(), mROFRecords.end(), std::back_inserter(mROFRecordsAccum));
-    mLabelsAccum.mergeAtBack(mLabels);
+    if (mWithMCTruth) {
+      mLabelsAccum.mergeAtBack(mLabels);
+    }
     LOG(INFO) << "Added " << mDigits.size() << " digits ";
     // clean containers from already accumulated stuff
     mLabels.clear();
@@ -234,6 +238,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     mROFRecords.clear();
   }
 
+  bool mWithMCTruth = true;
   bool mFinished = false;
   o2::detectors::DetID mID;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
@@ -266,7 +271,7 @@ class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask
   // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
   static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::ITS;
   static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginITS;
-  ITSDPLDigitizerTask()
+  ITSDPLDigitizerTask(bool mctruth = true) : ITSMFTDPLDigitizerTask(mctruth)
   {
     mID = DETID;
     mOrigin = DETOR;
@@ -299,7 +304,7 @@ class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask
   // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
   static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::MFT;
   static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginMFT;
-  MFTDPLDigitizerTask()
+  MFTDPLDigitizerTask(bool mctruth) : ITSMFTDPLDigitizerTask(mctruth)
   {
     mID = DETID;
     mOrigin = DETOR;
@@ -326,7 +331,20 @@ class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask
 constexpr o2::detectors::DetID::ID MFTDPLDigitizerTask::DETID;
 constexpr o2::header::DataOrigin MFTDPLDigitizerTask::DETOR;
 
-DataProcessorSpec getITSDigitizerSpec(int channel)
+std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mctruth)
+{
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back(detOrig, "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(detOrig, "DIGITSROF", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back(detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back(detOrig, "ROMode", 0, Lifetime::Timeframe);
+  return outputs;
+}
+
+DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth)
 {
   std::string detStr = o2::detectors::DetID::getName(ITSDPLDigitizerTask::DETID);
   auto detOrig = ITSDPLDigitizerTask::DETOR;
@@ -335,23 +353,19 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
             << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
             << "\n or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
             << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
+
   return DataProcessorSpec{(detStr + "Digitizer").c_str(),
                            Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT",
                                             static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
-                           Outputs{
-                             OutputSpec{detOrig, "DIGITS", 0, Lifetime::Timeframe},
-                             OutputSpec{detOrig, "DIGITSROF", 0, Lifetime::Timeframe},
-                             OutputSpec{detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe},
-                             OutputSpec{detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe},
-                             OutputSpec{detOrig, "ROMode", 0, Lifetime::Timeframe}},
-                           AlgorithmSpec{adaptFromTask<ITSDPLDigitizerTask>()},
+                           makeOutChannels(detOrig, mctruth),
+                           AlgorithmSpec{adaptFromTask<ITSDPLDigitizerTask>(mctruth)},
                            Options{
                              {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}},
                              //  { "configKeyValues", VariantType::String, "", { parHelper.str().c_str() } }
                            }};
 }
 
-DataProcessorSpec getMFTDigitizerSpec(int channel)
+DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth)
 {
   std::string detStr = o2::detectors::DetID::getName(MFTDPLDigitizerTask::DETID);
   auto detOrig = MFTDPLDigitizerTask::DETOR;
@@ -364,13 +378,8 @@ DataProcessorSpec getMFTDigitizerSpec(int channel)
   return DataProcessorSpec{(detStr + "Digitizer").c_str(),
                            Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT",
                                             static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
-                           Outputs{
-                             OutputSpec{detOrig, "DIGITS", 0, Lifetime::Timeframe},
-                             OutputSpec{detOrig, "DIGITSROF", 0, Lifetime::Timeframe},
-                             OutputSpec{detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe},
-                             OutputSpec{detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe},
-                             OutputSpec{detOrig, "ROMode", 0, Lifetime::Timeframe}},
-                           AlgorithmSpec{adaptFromTask<MFTDPLDigitizerTask>()},
+                           makeOutChannels(detOrig, mctruth),
+                           AlgorithmSpec{adaptFromTask<MFTDPLDigitizerTask>(mctruth)},
                            Options{
                              {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}}}};
 }
