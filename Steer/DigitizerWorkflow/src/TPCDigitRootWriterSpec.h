@@ -21,14 +21,14 @@ namespace tpc
 {
 /// get the processor spec
 /// the laneConfiguration is a vector of subspecs which the processor subscribes to
-o2::framework::DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfiguration);
+o2::framework::DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfiguration, bool mctruth);
 
 // numberofsourcedevices is the number of devices we receive digits from
 inline o2::framework::DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices = 1)
 {
   std::vector<int> defaultConfiguration(numberofsourcedevices);
   std::iota(defaultConfiguration.begin(), defaultConfiguration.end(), 0);
-  return getTPCDigitRootWriterSpec(defaultConfiguration);
+  return getTPCDigitRootWriterSpec(defaultConfiguration, true);
 }
 
 } // namespace tpc

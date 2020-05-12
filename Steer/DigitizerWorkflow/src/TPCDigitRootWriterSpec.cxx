@@ -65,7 +65,7 @@ TBranch* getOrMakeBranch(TTree& tree, std::string basename, int sector, T* ptr)
 /// create the processor spec
 /// describing a processor aggregating digits for various TPC sectors and writing them to file
 /// MC truth information is also aggregated and written out
-DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfiguration)
+DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfiguration, bool mctruth)
 {
   auto initFunction = [](InitContext& ic) {
     // get the option from the init context
@@ -277,9 +277,12 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
   std::vector<InputSpec> inputs = {
     {"digitinput", "TPC", "DIGITS", 0, Lifetime::Timeframe},        // digit input
     {"triggerinput", "TPC", "DIGTRIGGERS", 0, Lifetime::Timeframe}, // groupping in triggers
-    {"labelinput", "TPC", "DIGITSMCTR", 0, Lifetime::Timeframe},
     {"commonmodeinput", "TPC", "COMMONMODE", 0, Lifetime::Timeframe},
   };
+  if (mctruth) {
+    inputs.emplace_back("labelinput", "TPC", "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+
   auto amendInput = [&laneConfiguration](InputSpec& spec, size_t index) {
     spec.binding += std::to_string(laneConfiguration[index]);
     DataSpecUtils::updateMatchingSubspec(spec, laneConfiguration[index]);

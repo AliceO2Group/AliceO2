@@ -157,6 +157,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{"configFile", VariantType::String, "", {"configuration file for configurable parameters"}});
 
+  // option to disable MC truth
+  workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable  mc-truth"}});
+
   // option to use/not use CCDB for TOF
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
 
@@ -389,6 +392,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto geomfilename = o2::base::NameConf::getGeomFileName(simPrefixes[0]);
   ConfigurableParam::setValue("DigiParams.digitizationgeometry", geomfilename);
   ConfigurableParam::setValue("DigiParams.grpfile", grpfile);
+  LOG(INFO) << "MC-TRUTH " << !configcontext.options().get<bool>("disable-mc");
+  bool mctruth = !configcontext.options().get<bool>("disable-mc");
+  ConfigurableParam::setValue("DigiParams", "mctruth", mctruth);
 
   // write the configuration used for the digitizer workflow
   if (ismaster) {
@@ -444,13 +450,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto lanes = helpasked ? 1 : getNumTPCLanes(tpcsectors, configcontext);
     detList.emplace_back(o2::detectors::DetID::TPC);
 
-    WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, tpcsectors);
+    WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, tpcsectors, mctruth);
     specs.insert(specs.end(), tpcPipelines.begin(), tpcPipelines.end());
 
     auto tpcRecoOutputType = configcontext.options().get<std::string>("tpc-reco-type");
     if (tpcRecoOutputType.empty()) {
       // for writing digits to disc
-      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(tpcsectors));
+      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(tpcsectors, mctruth));
     } else {
       // attach the TPC reco workflow
       auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(tpcsectors, tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
@@ -466,18 +472,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::ITS)) {
     detList.emplace_back(o2::detectors::DetID::ITS);
     // connect the ITS digitization
-    specs.emplace_back(o2::itsmft::getITSDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::itsmft::getITSDigitizerSpec(fanoutsize++, mctruth));
     // connect ITS digit writer
-    specs.emplace_back(o2::itsmft::getITSDigitWriterSpec());
+    specs.emplace_back(o2::itsmft::getITSDigitWriterSpec(mctruth));
   }
 
   // the MFT part
   if (isEnabled(o2::detectors::DetID::MFT)) {
     detList.emplace_back(o2::detectors::DetID::MFT);
     // connect the MFT digitization
-    specs.emplace_back(o2::itsmft::getMFTDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::itsmft::getMFTDigitizerSpec(fanoutsize++, mctruth));
     // connect MFT digit writer
-    specs.emplace_back(o2::itsmft::getMFTDigitWriterSpec());
+    specs.emplace_back(o2::itsmft::getMFTDigitWriterSpec(mctruth));
   }
 
   // the TOF part
