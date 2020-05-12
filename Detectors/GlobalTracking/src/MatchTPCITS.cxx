@@ -252,23 +252,23 @@ void MatchTPCITS::run()
   constexpr uint64_t kMB = 1024 * 1024;
   printf("Memory (GB) at entrance: RSS: %.3f VMem: %.3f\n", float(procInfoStart.fMemResident) / kMB, float(procInfoStart.fMemVirtual) / kMB);
 
-  mTimerTot.Start();
+  mTimer[SWTot].Start(false);
 
   clear();
 
   if (!prepareITSTracks() || !prepareTPCTracks() || !prepareFITInfo()) {
     return;
   }
-
+  mTimer[SWDoMatching].Start(false);
   for (int sec = o2::constants::math::NSectors; sec--;) {
     doMatching(sec);
   }
-
+  mTimer[SWDoMatching].Stop();
   if (0) { // enabling this creates very verbose output
-    mTimerTot.Stop();
+    mTimer[SWTot].Stop();
     printCandidatesTPC();
     printCandidatesITS();
-    mTimerTot.Start(false);
+    mTimer[SWTot].Start(false);
   }
 
   selectBestMatches();
@@ -287,20 +287,14 @@ void MatchTPCITS::run()
 #endif
 
   gSystem->GetProcInfo(&procInfoStop);
-  mTimerTot.Stop();
+  mTimer[SWTot].Stop();
 
-  printf("Timing:\n");
-  printf("Total:        ");
-  mTimerTot.Print();
-  printf("Refits      : ");
-  mTimerRefit.Print();
-  printf("DBG trees:    ");
-  mTimerDBG.Print();
-
-  printf("Memory (GB) at exit: RSS: %.3f VMem: %.3f\n", float(procInfoStop.fMemResident) / kMB, float(procInfoStop.fMemVirtual) / kMB);
-  printf("Memory increment: RSS: %.3f VMem: %.3f\n",
-         float(procInfoStop.fMemResident - procInfoStart.fMemResident) / kMB,
-         float(procInfoStop.fMemVirtual - procInfoStart.fMemVirtual) / kMB);
+  for (int i = 0; i < NStopWatches; i++) {
+    LOGF(INFO, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1);
+  }
+  LOGF(INFO, "Memory (GB) at exit: RSS: %.3f VMem: %.3f", float(procInfoStop.fMemResident) / kMB, float(procInfoStop.fMemVirtual) / kMB);
+  LOGF(INFO, "Memory increment: RSS: %.3f VMem: %.3f", float(procInfoStop.fMemResident - procInfoStart.fMemResident) / kMB,
+       float(procInfoStop.fMemVirtual - procInfoStart.fMemVirtual) / kMB);
 }
 
 //______________________________________________
@@ -324,6 +318,10 @@ void MatchTPCITS::init()
   if (mInitDone) {
     LOG(ERROR) << "Initialization was already done";
     return;
+  }
+  for (int i = NStopWatches; i--;) {
+    mTimer[i].Stop();
+    mTimer[i].Reset();
   }
   mParams = &Params::Instance();
 
@@ -372,15 +370,6 @@ void MatchTPCITS::init()
 
   mInitDone = true;
 
-  {
-    mTimerTot.Stop();
-    mTimerDBG.Stop();
-    mTimerRefit.Stop();
-    mTimerTot.Reset();
-    mTimerDBG.Reset();
-    mTimerRefit.Reset();
-  }
-
   print();
 }
 
@@ -388,6 +377,7 @@ void MatchTPCITS::init()
 void MatchTPCITS::selectBestMatches()
 {
   ///< loop over match records and select the ones with best chi2
+  mTimer[SWSelectBest].Start(false);
   LOG(INFO) << "Selecting best matches";
   int nValidated = 0, iter = 0;
 
@@ -406,9 +396,10 @@ void MatchTPCITS::selectBestMatches()
         continue;
       }
     }
-    printf("iter %d Validated %d of %d remaining matches\n", iter, nValidated, nremaining);
+    LOGF(INFO, "iter %d Validated %d of %d remaining matches", iter, nValidated, nremaining);
     iter++;
   } while (nValidated);
+  mTimer[SWSelectBest].Stop();
 }
 
 //______________________________________________
@@ -481,6 +472,7 @@ int MatchTPCITS::getNMatchRecordsITS(const TrackLocITS& tTPC) const
 bool MatchTPCITS::prepareTPCTracks()
 {
   ///< load next chunk of TPC data and prepare for matching
+  mTimer[SWPrepTPC].Start(false);
   mMatchRecordsTPC.clear();
 
   int ntr = mTPCTracksArray.size();
@@ -605,6 +597,7 @@ bool MatchTPCITS::prepareTPCTracks()
     }
     mITSROFofTPCBin[ib] = itsROF;
   }
+  mTimer[SWPrepTPC].Stop();
   return true;
 }
 
@@ -619,7 +612,7 @@ bool MatchTPCITS::prepareITSTracks()
     LOG(INFO) << "Empty TF";
     return false;
   }
-
+  mTimer[SWPrepITS].Start(false);
   mITSWork.clear();
   mITSROFTimes.clear();
   // number of records might be actually more than N tracks!
@@ -741,7 +734,7 @@ bool MatchTPCITS::prepareITSTracks()
     */
   } // loop over tracks of single sector
   mMatchRecordsITS.reserve(mITSWork.size() * mParams->maxMatchCandidates);
-
+  mTimer[SWPrepITS].Stop();
   return true;
 }
 
@@ -1226,7 +1219,7 @@ void MatchTPCITS::refitWinners(bool loopInITS)
 {
   ///< refit winning tracks
 
-  mTimerRefit.Start(false);
+  mTimer[SWRefit].Start(false);
   LOG(INFO) << "Refitting winner matches";
   mWinnerChi2Refit.resize(mITSWork.size(), -1.f);
   if (loopInITS) {
@@ -1249,7 +1242,7 @@ void MatchTPCITS::refitWinners(bool loopInITS)
   /*
   */
   // flush last tracks
-  mTimerRefit.Stop();
+  mTimer[SWRefit].Stop();
 }
 
 //______________________________________________
@@ -2600,7 +2593,7 @@ void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float c
 {
   ///< fill debug tree for ITS TPC tracks matching check
 
-  mTimerDBG.Start(false);
+  mTimer[SWDBG].Start(false);
 
   auto& trackITS = mITSWork[itsID];
   auto& trackTPC = mTPCWork[tpcID];
@@ -2619,7 +2612,7 @@ void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float c
   (*mDBGOut) << "match"
              << "rejFlag=" << rejFlag << "\n";
 
-  mTimerDBG.Stop();
+  mTimer[SWDBG].Stop();
 }
 
 //______________________________________________
@@ -2627,7 +2620,7 @@ void MatchTPCITS::dumpWinnerMatches()
 {
   ///< write winner matches into debug tree
 
-  mTimerDBG.Start(false);
+  mTimer[SWDBG].Start(false);
 
   LOG(INFO) << "Dumping debug tree for winner matches";
   for (int iits = 0; iits < int(mITSWork.size()); iits++) {
@@ -2653,7 +2646,7 @@ void MatchTPCITS::dumpWinnerMatches()
     (*mDBGOut) << "matchWin"
                << "\n";
   }
-  mTimerDBG.Stop();
+  mTimer[SWDBG].Stop();
 }
 
 //_________________________________________________________
