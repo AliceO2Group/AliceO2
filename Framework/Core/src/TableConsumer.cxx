@@ -52,10 +52,10 @@ std::shared_ptr<arrow::Table>
 
   /// Reading back from the stream
   std::shared_ptr<io::InputStream> bufferReader = std::make_shared<io::BufferReader>(mBuffer);
-  std::shared_ptr<ipc::RecordBatchReader> batchReader;
 
-  auto readerOk = ipc::RecordBatchStreamReader::Open(bufferReader, &batchReader);
+  auto readerResult = ipc::RecordBatchStreamReader::Open(bufferReader);
   std::vector<std::shared_ptr<RecordBatch>> batches;
+  auto batchReader = readerResult.ValueOrDie();
   while (true) {
     std::shared_ptr<RecordBatch> batch;
     auto next = batchReader->ReadNext(&batch);
@@ -65,9 +65,9 @@ std::shared_ptr<arrow::Table>
     batches.push_back(batch);
   }
 
-  auto inStatus = Table::FromRecordBatches(batches, &inTable);
+  auto tableResult = Table::FromRecordBatches(batches);
 
-  return inTable;
+  return tableResult.ValueOrDie();
 }
 
 } // namespace o2::framework
