@@ -490,7 +490,7 @@ struct AnalysisDataProcessorBuilder {
       {
         if constexpr (soa::is_type_with_binding_v<C>) {
           if constexpr (soa::is_type_with_originals_v<std::decay_t<B>>) {
-            using TT = typename framework::pack_element_t<0, typename std::decay_t<G>::originals>;
+            using TT = typename framework::pack_element_t<0, typename std::decay_t<B>::originals>;
             return std::is_same_v<typename C::binding_t, TT>;
           } else {
             using TT = std::decay_t<B>;
