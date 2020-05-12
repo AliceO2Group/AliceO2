@@ -400,6 +400,64 @@ DECLARE_SOA_TABLE(Run2V0s, "AOD", "RUN2V0", run2v0::BCId,
                   run2v0::BBFlag, run2v0::BGFlag);
 using Run2V0 = Run2V0s::iterator;
 
+// ---- MC tables ----
+
+namespace mccollision
+{
+DECLARE_SOA_INDEX_COLUMN(BC, bc);
+DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);
+DECLARE_SOA_COLUMN(X, x, float);
+DECLARE_SOA_COLUMN(Y, y, float);
+DECLARE_SOA_COLUMN(Z, z, float);
+DECLARE_SOA_COLUMN(T, t, float);
+DECLARE_SOA_COLUMN(Weight, weight, float);
+} // namespace mccollision
+
+DECLARE_SOA_TABLE(McCollisions, "AOD", "MCCOLLISION", o2::soa::Index<>, mccollision::BCId,
+                  mccollision::GeneratorsID,
+                  mccollision::X, mccollision::Y, mccollision::Z, mccollision::T, mccollision::Weight);
+using McCollision = McCollisions::iterator;
+
+namespace mclabel
+{
+DECLARE_SOA_COLUMN(Label, label, int);
+DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
+/// Bit mask to indicate detector mismatches (bit ON means mismatch)
+/// Bit 0-6: mismatch at ITS layer
+/// Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64
+/// Bit 10: TRD, bit 11: TOF
+} // namespace mclabel
+
+DECLARE_SOA_TABLE(McLabels, "AOD", "MCLABEL", o2::soa::Index<>,
+                  mclabel::Label, mclabel::LabelMask);
+using McLabel = McLabels::iterator;
+
+namespace mcparticle
+{
+DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);
+DECLARE_SOA_COLUMN(PdgCode, pdgCode, int);
+DECLARE_SOA_COLUMN(StatusCode, statusCode, int);
+DECLARE_SOA_COLUMN(Mother, mother, int[2]);
+DECLARE_SOA_COLUMN(Daughter, daughter, int[2]);
+DECLARE_SOA_COLUMN(Weight, weight, float);
+DECLARE_SOA_COLUMN(Px, px, float);
+DECLARE_SOA_COLUMN(Py, py, float);
+DECLARE_SOA_COLUMN(Pz, pz, float);
+DECLARE_SOA_COLUMN(E, e, float);
+DECLARE_SOA_COLUMN(Vx, vx, float);
+DECLARE_SOA_COLUMN(Vy, vy, float);
+DECLARE_SOA_COLUMN(Vz, vz, float);
+DECLARE_SOA_COLUMN(Vt, vt, float);
+} // namespace mcparticle
+
+DECLARE_SOA_TABLE(McParticles, "AOD", "MCPARTICLE",
+                  o2::soa::Index<>, mcparticle::McCollisionId,
+                  mcparticle::PdgCode, mcparticle::StatusCode,
+                  mcparticle::Mother, mcparticle::Daughter, mcparticle::Weight,
+                  mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
+                  mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt);
+using McParticle = McParticles::iterator;
+
 } // namespace aod
 
 } // namespace o2
