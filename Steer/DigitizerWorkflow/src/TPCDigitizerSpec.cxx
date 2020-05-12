@@ -70,6 +70,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
   {
     LOG(INFO) << "Initializing TPC digitization";
 
+    mWithMCTruth = o2::conf::DigiParams::Instance().mctruth;
     auto useDistortions = ic.options().get<int>("distortionType");
     auto triggeredMode = ic.options().get<bool>("TPCtriggered");
 
@@ -220,9 +221,11 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     auto snapshotLabels = [this, &sector, &pc, activeSectors, &dh](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
       o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
-      pc.outputs().snapshot(Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(dh->subSpecification),
-                                   Lifetime::Timeframe, header},
-                            const_cast<o2::dataformats::MCTruthContainer<o2::MCCompLabel>&>(labels));
+      if (mWithMCTruth) {
+        pc.outputs().snapshot(Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(dh->subSpecification),
+                                     Lifetime::Timeframe, header},
+                              const_cast<o2::dataformats::MCTruthContainer<o2::MCCompLabel>&>(labels));
+      }
     };
     // lambda that snapshots digits grouping (triggers) to be sent out; prepares and attaches header with sector information
     auto snapshotEvents = [this, sector, &pc, activeSectors, &dh](const std::vector<DigiGroupRef>& events) {
@@ -267,7 +270,9 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       mDigitizer.flush(mDigits, mLabels, mCommonMode, finalFlush);
       LOG(INFO) << "TPC: Flushed " << mDigits.size() << " digits, " << mLabels.getNElements() << " labels and " << mCommonMode.size() << " common mode entries";
       std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
-      labelAccum.mergeAtBack(mLabels);
+      if (mWithMCTruth) {
+        labelAccum.mergeAtBack(mLabels);
+      }
       std::copy(mCommonMode.begin(), mCommonMode.end(), std::back_inserter(commonModeAccum));
     };
 
@@ -336,9 +341,10 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
   std::vector<o2::tpc::CommonMode> mCommonMode;
   bool mWriteGRP = false;
+  bool mWithMCTruth = true;
 };
 
-o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP)
+o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -349,9 +355,12 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP)
   id << "TPCDigitizer" << channel;
 
   std::vector<OutputSpec> outputs; // define channel by triple of (origin, type id of data to be sent on this channel, subspecification)
+
   outputs.emplace_back("TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   outputs.emplace_back("TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
-  outputs.emplace_back("TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  }
   outputs.emplace_back("TPC", "COMMONMODE", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   if (writeGRP) {
     outputs.emplace_back("TPC", "ROMode", 0, Lifetime::Timeframe);
@@ -370,13 +379,13 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP)
             {"TPCtriggered", VariantType::Bool, false, {"Impose triggered RO mode (default: continuous)"}}}};
 }
 
-o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors)
+o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors, bool mctruth)
 {
   // channel parameter is deprecated in the TPCDigitizer processor, all descendants
   // are initialized not to publish GRP mode, but the channel will be added to the first
   // processor after the pipelines have been created. The processor will decide upon
   // the index in the ParallelContext whether to publish
-  WorkflowSpec pipelineTemplate{getTPCDigitizerSpec(0, false)};
+  WorkflowSpec pipelineTemplate{getTPCDigitizerSpec(0, false, mctruth)};
   // override the predefined name, index will be added by parallelPipeline method
   pipelineTemplate[0].name = "TPCDigitizer";
   WorkflowSpec pipelines = parallelPipeline(

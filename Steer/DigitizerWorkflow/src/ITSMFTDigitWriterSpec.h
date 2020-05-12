@@ -18,8 +18,8 @@ namespace o2
 namespace itsmft
 {
 
-o2::framework::DataProcessorSpec getITSDigitWriterSpec();
-o2::framework::DataProcessorSpec getMFTDigitWriterSpec();
+o2::framework::DataProcessorSpec getITSDigitWriterSpec(bool mctruth = true);
+o2::framework::DataProcessorSpec getMFTDigitWriterSpec(bool mctruth = true);
 
 } // end namespace itsmft
 } // end namespace o2

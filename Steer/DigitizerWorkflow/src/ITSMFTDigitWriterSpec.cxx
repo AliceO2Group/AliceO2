@@ -76,21 +76,24 @@ class ITSMFTDPLDigitWriter
     // retrieve the digits from the input
     auto inDigits = pc.inputs().get<std::vector<o2::itsmft::Digit>>((detStr + "digits").c_str());
     auto inROFs = pc.inputs().get<std::vector<o2::itsmft::ROFRecord>>((detStr + "digitsROF").c_str());
-    auto inMC2ROFs = pc.inputs().get<std::vector<o2::itsmft::MC2ROFRecord>>((detStr + "digitsMC2ROF").c_str());
-    auto inLabels = pc.inputs().get<MCCont*>((detStr + "digitsMCTR").c_str());
+
+    if (mWithMCTruth) {
+      auto inLabels = pc.inputs().get<MCCont*>((detStr + "digitsMCTR").c_str());
+      auto labelsRaw = inLabels.get();
+
+      auto inMC2ROFs = pc.inputs().get<std::vector<o2::itsmft::MC2ROFRecord>>((detStr + "digitsMC2ROF").c_str());
+      auto mc2rofP = &inMC2ROFs;
+      fillBranch(*mOutTreeDig.get(), (detStr + "DigitMCTruth").c_str(), &labelsRaw);
+      fillBranch(*mOutTreeDig.get(), (detStr + "DigitMC2ROF").c_str(), &mc2rofP);
+    }
     LOG(INFO) << "RECEIVED DIGITS SIZE " << inDigits.size();
 
     auto digitsP = &inDigits;
-    auto labelsRaw = inLabels.get();
     auto rofP = &inROFs;
-    auto mc2rofP = &inMC2ROFs;
+    fillBranch(*mOutTreeDig.get(), (detStr + "Digit").c_str(), &digitsP);
+    fillBranch(*mOutTreeDig.get(), (detStr + "DigitROF").c_str(), &rofP);
 
-    getOrMakeBranch(*mOutTreeDig.get(), (detStr + "Digit").c_str(), &digitsP);
-    getOrMakeBranch(*mOutTreeDig.get(), (detStr + "DigitMCTruth").c_str(), &labelsRaw);
-    getOrMakeBranch(*mOutTreeDig.get(), (detStr + "DigitROF").c_str(), &rofP);
-    getOrMakeBranch(*mOutTreeDig.get(), (detStr + "DigitMC2ROF").c_str(), &mc2rofP);
-
-    mOutTreeDig->Fill();
+    mOutTreeDig->SetEntries(mOutTreeDig->GetEntries() + 1);
 
     mOutTreeDig->Write();
     mOutTreeDig.reset(); // delete the trees before closing the file
@@ -101,16 +104,20 @@ class ITSMFTDPLDigitWriter
   }
 
  protected:
-  ITSMFTDPLDigitWriter() = default;
+  ITSMFTDPLDigitWriter(bool mctruth = true) : mWithMCTruth(mctruth) {}
   template <typename T>
-  TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
+  void fillBranch(TTree& tree, std::string brname, T* ptr)
   {
-    if (auto br = tree.GetBranch(brname.c_str())) {
+    auto br = tree.GetBranch(brname.c_str());
+    if (br) {
       br->SetAddress(static_cast<void*>(ptr));
-      return br;
+    } else {
+      // otherwise make it
+      br = tree.Branch(brname.c_str(), ptr);
     }
-    // otherwise make it
-    return tree.Branch(brname.c_str(), ptr);
+    // fill data and reset
+    br->Fill();
+    br->ResetAddress();
   }
 
   std::string mFileName = "ditigs.root";  // output file name
@@ -122,6 +129,7 @@ class ITSMFTDPLDigitWriter
   std::vector<o2::itsmft::Digit> mDigits; // input digits
   std::unique_ptr<TFile> mOutFile;
   std::unique_ptr<TTree> mOutTreeDig;    // output tree with digits
+  bool mWithMCTruth = true;
 };
 
 //_______________________________________________
@@ -131,7 +139,7 @@ class ITSDPLDigitWriter : public ITSMFTDPLDigitWriter
   // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
   static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::ITS;
   static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginITS;
-  ITSDPLDigitWriter()
+  ITSDPLDigitWriter(bool mctruth = true) : ITSMFTDPLDigitWriter(mctruth)
   {
     mID = DETID;
     mOrigin = DETOR;
@@ -149,7 +157,7 @@ class MFTDPLDigitWriter : public ITSMFTDPLDigitWriter
   // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
   static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::MFT;
   static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginMFT;
-  MFTDPLDigitWriter()
+  MFTDPLDigitWriter(bool mctruth = true) : ITSMFTDPLDigitWriter(mctruth)
   {
     mID = DETID;
     mOrigin = DETOR;
@@ -160,50 +168,50 @@ class MFTDPLDigitWriter : public ITSMFTDPLDigitWriter
 constexpr o2::detectors::DetID::ID MFTDPLDigitWriter::DETID;
 constexpr o2::header::DataOrigin MFTDPLDigitWriter::DETOR;
 
+std::vector<InputSpec> makeInputs(std::string const& detStr, o2::header::DataOrigin detOrig, bool mctruth)
+{
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back(InputSpec{(detStr + "digits").c_str(), detOrig, "DIGITS", 0, Lifetime::Timeframe});
+  inputs.emplace_back(InputSpec{(detStr + "digitsROF").c_str(), detOrig, "DIGITSROF", 0, Lifetime::Timeframe});
+  if (mctruth) {
+    inputs.emplace_back(InputSpec{(detStr + "digitsMCTR").c_str(), detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe});
+    inputs.emplace_back(InputSpec{(detStr + "digitsMC2ROF").c_str(), detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe});
+  }
+  return inputs;
+}
+
 /// create the processor spec
 /// describing a processor receiving digits for ITS/MFT and writing them to file
-DataProcessorSpec getITSDigitWriterSpec()
+DataProcessorSpec getITSDigitWriterSpec(bool mctruth)
 {
   std::string detStr = o2::detectors::DetID::getName(ITSDPLDigitWriter::DETID);
   std::string detStrL = detStr;
   std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
   auto detOrig = ITSDPLDigitWriter::DETOR;
 
-  std::vector<InputSpec> inputs;
-  inputs.emplace_back(InputSpec{(detStr + "digits").c_str(), detOrig, "DIGITS", 0, Lifetime::Timeframe});
-  inputs.emplace_back(InputSpec{(detStr + "digitsROF").c_str(), detOrig, "DIGITSROF", 0, Lifetime::Timeframe});
-  inputs.emplace_back(InputSpec{(detStr + "digitsMC2ROF").c_str(), detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe});
-  inputs.emplace_back(InputSpec{(detStr + "digitsMCTR").c_str(), detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe});
-
   return DataProcessorSpec{
     (detStr + "DigitWriter").c_str(),
-    inputs,
+    makeInputs(detStr, detOrig, mctruth),
     {}, // no output
-    AlgorithmSpec(adaptFromTask<ITSDPLDigitWriter>()),
+    AlgorithmSpec(adaptFromTask<ITSDPLDigitWriter>(mctruth)),
     Options{
       {(detStrL + "-digit-outfile").c_str(), VariantType::String, (detStrL + "digits.root").c_str(), {"Name of the input file"}},
       {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
     }};
 }
 
-DataProcessorSpec getMFTDigitWriterSpec()
+DataProcessorSpec getMFTDigitWriterSpec(bool mctruth)
 {
   std::string detStr = o2::detectors::DetID::getName(MFTDPLDigitWriter::DETID);
   std::string detStrL = detStr;
   std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
   auto detOrig = MFTDPLDigitWriter::DETOR;
 
-  std::vector<InputSpec> inputs;
-  inputs.emplace_back(InputSpec{(detStr + "digits").c_str(), detOrig, "DIGITS", 0, Lifetime::Timeframe});
-  inputs.emplace_back(InputSpec{(detStr + "digitsROF").c_str(), detOrig, "DIGITSROF", 0, Lifetime::Timeframe});
-  inputs.emplace_back(InputSpec{(detStr + "digitsMC2ROF").c_str(), detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe});
-  inputs.emplace_back(InputSpec{(detStr + "digitsMCTR").c_str(), detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe});
-
   return DataProcessorSpec{
     (detStr + "DigitWriter").c_str(),
-    inputs,
+    makeInputs(detStr, detOrig, mctruth),
     {}, // no output
-    AlgorithmSpec(adaptFromTask<MFTDPLDigitWriter>()),
+    AlgorithmSpec(adaptFromTask<MFTDPLDigitWriter>(mctruth)),
     Options{
       {(detStrL + "-digit-outfile").c_str(), VariantType::String, (detStrL + "digits.root").c_str(), {"Name of the input file"}},
       {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},

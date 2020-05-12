@@ -28,6 +28,7 @@ struct DigiParams : public o2::conf::ConfigurableParamHelper<DigiParams> {
   std::string ccdb = "http://ccdb-test.cern.ch:8080"; // URL for CCDB acces
   std::string digitizationgeometry = "";              // with with geometry file to digitize -> leave empty as this needs to be filled by the digitizer workflow
   std::string grpfile = "";                           // which GRP file to use --> leave empty as this needs to be filled by the digitizer workflow
+  bool mctruth = true;                                // whether to create labels
 
   O2ParamDef(DigiParams, "DigiParams");
 };
