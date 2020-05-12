@@ -23,6 +23,14 @@ DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
                   etaphi::Eta, etaphi::Phi);
 DECLARE_SOA_TABLE(EtaPhiPt, "AOD", "ETAPHIPT",
                   etaphi::Eta, etaphi::Phi, etaphi::Pt);
+
+namespace collision
+{
+DECLARE_SOA_COLUMN(Mult, mult, int32_t);
+} // namespace collision
+
+DECLARE_SOA_TABLE(CollisionsExtra, "AOD", "COLEXTRA",
+                  collision::Mult);
 } // namespace o2::aod
 
 using namespace o2;
@@ -48,11 +56,20 @@ struct ATask {
   }
 };
 
+struct MTask {
+  Produces<aod::CollisionsExtra> colextra;
+
+  void process(aod::Collision const& collision, aod::Tracks const& tracks)
+  {
+    colextra(tracks.size());
+  }
+};
+
 struct BTask {
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::EtaPhi> const& extTracks)
   {
-    //    LOG(INFO) << "TF: " << collision.timeframeID() << std::endl;
-    LOG(INFO) << "Rows: " << extTracks.asArrowTable()->num_rows() << std::endl;
+    LOGF(INFO, "ID: %d", collision.globalIndex());
+    LOGF(INFO, "Tracks: %d", extTracks.size());
     for (auto& track : extTracks) {
       LOGF(INFO, "(%f, %f) - (%f, %f)", track.eta(), track.phi(), track.etas(), track.phis());
     }
@@ -62,8 +79,15 @@ struct BTask {
 struct CTask {
   void process(aod::Collision const& collision, soa::Concat<aod::EtaPhi, aod::EtaPhiPt> const& concatenated)
   {
-    //    LOG(INFO) << "TF: " << collision.timeframeID() << std::endl;
-    LOG(INFO) << "Rows: " << concatenated.asArrowTable()->num_rows() << std::endl;
+    LOGF(INFO, "ID: %d", collision.globalIndex());
+    LOGF(INFO, "Tracks: %d", concatenated.size());
+  }
+};
+
+struct TTask {
+  void process(soa::Join<aod::Collisions, aod::CollisionsExtra>::iterator const& col, aod::Tracks const& tracks)
+  {
+    LOGF(INFO, "ID: %d; %d == %d", col.globalIndex(), col.mult(), tracks.size());
   }
 };
 
@@ -72,5 +96,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     adaptAnalysisTask<ATask>("produce-etaphi"),
     adaptAnalysisTask<BTask>("consume-etaphi"),
-    adaptAnalysisTask<CTask>("consume-etaphi-twice")};
+    adaptAnalysisTask<CTask>("consume-etaphi-twice"),
+    adaptAnalysisTask<MTask>("produce-mult"),
+    adaptAnalysisTask<TTask>("consume-mult")};
 }
