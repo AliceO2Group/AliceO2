@@ -385,7 +385,7 @@ class InputRecord
         // explicitely specify serialization method to ROOT-serialized because type T
         // is messageable and a different method would be deduced in DataRefUtils
         // return type with owning Deleter instance, forwarding to default_deleter
-        std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<ROOTSerialized<ValueT>>(ref).release());
+        std::unique_ptr<ValueT, Deleter<ValueT>> result(DataRefUtils::as<ROOTSerialized<ValueT>>(ref).release());
         return result;
       } else {
         throw std::runtime_error("Attempt to extract object from message with unsupported serialization type");
