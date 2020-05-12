@@ -18,8 +18,8 @@ namespace o2
 namespace itsmft
 {
 
-o2::framework::DataProcessorSpec getITSDigitizerSpec(int channel);
-o2::framework::DataProcessorSpec getMFTDigitizerSpec(int channel);
+o2::framework::DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth = true);
+o2::framework::DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth = true);
 
 } // end namespace itsmft
 } // end namespace o2
