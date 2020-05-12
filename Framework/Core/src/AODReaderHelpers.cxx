@@ -56,8 +56,8 @@ enum AODTypeMask : uint64_t {
   FDD = 1 << 12,
   UnassignedTrack = 1 << 13,
   Run2V0 = 1 << 14,
-  McVtx = 1 << 15,
-  Label = 1 << 16,
+  McCollision = 1 << 15,
+  McLabel = 1 << 16,
   McParticle = 1 << 17,
   Unknown = 1 << 18
 };
@@ -95,10 +95,10 @@ uint64_t getMask(header::DataDescription description)
     return AODTypeMask::UnassignedTrack;
   } else if (description == header::DataDescription{"RUN2V0"}) {
     return AODTypeMask::Run2V0;
-  } else if (description == header::DataDescription{"MCVTX"}) {
-    return AODTypeMask::McVtx;
-  } else if (description == header::DataDescription{"LABEL"}) {
-    return AODTypeMask::Label;
+  } else if (description == header::DataDescription{"MCCOLLISION"}) {
+    return AODTypeMask::McCollision;
+  } else if (description == header::DataDescription{"MCLABEL"}) {
+    return AODTypeMask::McLabel;
   } else if (description == header::DataDescription{"MCPARTICLE"}) {
     return AODTypeMask::McParticle;
   } else {
@@ -203,9 +203,9 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       tableMaker(o2::aod::FDDsMetadata{}, AODTypeMask::FDD, "O2fdd");
       tableMaker(o2::aod::UnassignedTracksMetadata{}, AODTypeMask::UnassignedTrack, "O2unassignedtrack");
       tableMaker(o2::aod::Run2V0sMetadata{}, AODTypeMask::Run2V0, "Run2v0");
-      tableMaker(o2::aod::McVtxsMetadata{}, AODTypeMask::McVtx, "O2mcvtx");
-      tableMaker(o2::aod::LabelsMetadata{}, AODTypeMask::Label, "O2labels");
-      tableMaker(o2::aod::McParticlesMetadata{}, AODTypeMask::McParticle, "O2kine");
+      tableMaker(o2::aod::McCollisionsMetadata{}, AODTypeMask::McCollision, "O2mccollision");
+      tableMaker(o2::aod::McLabelsMetadata{}, AODTypeMask::McLabel, "O2mclabel");
+      tableMaker(o2::aod::McParticlesMetadata{}, AODTypeMask::McParticle, "O2mcparticle");
 
       // tables not included in the DataModel
       if (readMask & AODTypeMask::Unknown) {

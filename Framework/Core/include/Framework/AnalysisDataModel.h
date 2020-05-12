@@ -402,7 +402,7 @@ using Run2V0 = Run2V0s::iterator;
 
 // ---- MC tables ----
 
-namespace mcvtx
+namespace mccollision
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);
 DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);
@@ -411,28 +411,30 @@ DECLARE_SOA_COLUMN(Y, y, float);
 DECLARE_SOA_COLUMN(Z, z, float);
 DECLARE_SOA_COLUMN(T, t, float);
 DECLARE_SOA_COLUMN(Weight, weight, float);
-DECLARE_SOA_COLUMN(NProduced, nProduced, int);
-} // namespace mcvtx
+} // namespace mccollision
 
-DECLARE_SOA_TABLE(McVtxs, "AOD", "MCVTX", o2::soa::Index<>, mcvtx::BCId,
-		  mcvtx::GeneratorsID,
-                  mcvtx::X, mcvtx::Y, mcvtx::Z, mcvtx::T, mcvtx::Weight,
-                  mcvtx::NProduced);
-using McVtx = McVtxs::iterator;
+DECLARE_SOA_TABLE(McCollisions, "AOD", "MCCOLLISION", o2::soa::Index<>, mccollision::BCId,
+                  mccollision::GeneratorsID,
+                  mccollision::X, mccollision::Y, mccollision::Z, mccollision::T, mccollision::Weight);
+using McCollision = McCollisions::iterator;
 
-namespace label
+namespace mclabel
 {
 DECLARE_SOA_COLUMN(Label, label, int);
 DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
+/// Bit mask to indicate detector mismatches (bit ON means mismatch)
+/// Bit 0-6: mismatch at ITS layer
+/// Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64
+/// Bit 10: TRD, bit 11: TOF
 } // namespace label
 
-DECLARE_SOA_TABLE(Labels, "AOD", "LABEL", o2::soa::Index<>,
-		  label::Label, label::LabelMask);
-using Label = Labels::iterator;
+DECLARE_SOA_TABLE(McLabels, "AOD", "MCLABEL", o2::soa::Index<>,
+                  mclabel::Label, mclabel::LabelMask);
+using McLabel = McLabels::iterator;
 
 namespace mcparticle
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);
 DECLARE_SOA_COLUMN(PdgCode, pdgCode, int);
 DECLARE_SOA_COLUMN(StatusCode, statusCode, int);
 DECLARE_SOA_COLUMN(Mother, mother, int[2]);
@@ -449,11 +451,11 @@ DECLARE_SOA_COLUMN(Vt, vt, float);
 } // namespace mcparticle
 
 DECLARE_SOA_TABLE(McParticles, "AOD", "MCPARTICLE",
-                  o2::soa::Index<>, mcparticle::CollisionId,
-		  mcparticle::PdgCode, mcparticle::StatusCode,
-		  mcparticle::Mother, mcparticle::Daughter, mcparticle::Weight,
-                  mcparticle::Px,mcparticle::Py, mcparticle::Pz, mcparticle::E,
-		  mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt);
+                  o2::soa::Index<>, mcparticle::McCollisionId,
+                  mcparticle::PdgCode, mcparticle::StatusCode,
+                  mcparticle::Mother, mcparticle::Daughter, mcparticle::Weight,
+                  mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
+                  mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt);
 using McParticle = McParticles::iterator;
 
 } // namespace aod
