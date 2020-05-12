@@ -489,7 +489,13 @@ struct AnalysisDataProcessorBuilder {
       constexpr bool isIndexTo()
       {
         if constexpr (soa::is_type_with_binding_v<C>) {
-          return std::is_same_v<typename C::binding_t, B>;
+          if constexpr (soa::is_type_with_originals_v<std::decay_t<B>>) {
+            using TT = typename framework::pack_element_t<0, typename std::decay_t<B>::originals>;
+            return std::is_same_v<typename C::binding_t, TT>;
+          } else {
+            using TT = std::decay_t<B>;
+            return std::is_same_v<typename C::binding_t, TT>;
+          }
         }
         return false;
       }
@@ -601,7 +607,7 @@ struct AnalysisDataProcessorBuilder {
       static_assert(((soa::is_soa_iterator_t<std::decay_t<Associated>>::value == false) && ...),
                     "Associated arguments of process() should not be iterators");
       auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, &C::process, infos);
-      if constexpr (soa::is_soa_iterator_t<G>::value) {
+      if constexpr (soa::is_soa_iterator_t<std::decay_t<G>>::value) {
         // grouping case
         (groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedTables)), ...);
         auto slicer = GroupSlicer(groupingTable, associatedTables);
