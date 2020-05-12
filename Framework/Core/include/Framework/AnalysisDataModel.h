@@ -426,7 +426,7 @@ DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
 /// Bit 0-6: mismatch at ITS layer
 /// Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64
 /// Bit 10: TRD, bit 11: TOF
-} // namespace label
+} // namespace mclabel
 
 DECLARE_SOA_TABLE(McLabels, "AOD", "MCLABEL", o2::soa::Index<>,
                   mclabel::Label, mclabel::LabelMask);
