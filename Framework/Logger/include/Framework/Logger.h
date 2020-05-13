@@ -15,7 +15,7 @@
 // If FairLogger is not available, we use fmt::printf directly, with no level.
 #if __has_include(<fairlogger/Logger.h>)
 #include <fairlogger/Logger.h>
-#if __has_include(<fmt/format.h>)
+#if (!defined(LOGP)) && __has_include(<fmt/format.h>)
 #include <fmt/format.h>
 #include <fmt/printf.h>
 FMT_BEGIN_NAMESPACE
@@ -75,7 +75,7 @@ FMT_END_NAMESPACE
   for (bool fairLOggerunLikelyvariable = false; fair::Logger::Logging(fair::Severity::severity) && !fairLOggerunLikelyvariable; fairLOggerunLikelyvariable = true) \
   fmt::fprintf(fair::Logger(fair::Severity::severity, __FILE__, CONVERTTOSTRING(__LINE__), __FUNCTION__).Log(), __VA_ARGS__)
 #define LOGP(level, ...) LOG(level) << fmt::format(__VA_ARGS__)
-#else
+#elif (!defined(LOGP))
 #define O2_FIRST_ARG(N, ...) N
 #define LOGF(level, ...) LOG(level) << O2_FIRST_ARG(__VA_ARGS__)
 #define LOGP(level, ...) LOG(level) << O2_FIRST_ARG(__VA_ARGS__)
@@ -83,7 +83,7 @@ FMT_END_NAMESPACE
 #define O2DEBUG(...) LOGF(debug, __VA_ARGS__)
 #define O2INFO(...) LOGF(info, __VA_ARGS__)
 #define O2ERROR(...) LOGF(error, __VA_ARGS__)
-#elif __has_include(<fmt/format.h>)
+#elif (!defined(LOGP)) && __has_include(<fmt/format.h>)
 #include <fmt/format.h>
 #define LOGF(level, ...) fmt::printf(__VA_ARGS__)
 #define LOGP(level, ...) fmt::print(__VA_ARGS__)
