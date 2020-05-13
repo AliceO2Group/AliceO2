@@ -11,6 +11,7 @@
 #define FRAMEWORK_DATAALLOCATOR_H
 
 #include "Framework/ContextRegistry.h"
+#include "Framework/DataDump.h"
 #include "Framework/MessageContext.h"
 #include "Framework/StringContext.h"
 #include "Framework/RawBufferContext.h"
@@ -342,6 +343,7 @@ class DataAllocator
                     "\n - std::vector of messageable structures or pointers to those"
                     "\n - types with ROOT dictionary and implementing ROOT ClassDef interface");
     }
+    dumpData(object);
     addPartToContext(std::move(payloadMessage), spec, serializationType);
   }
 
