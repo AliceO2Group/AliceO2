@@ -265,6 +265,7 @@ endif()
 foreach(w
         BoostSerializedProcessing
         CallbackService
+        RegionInfoCallbackService
         DanglingInputs
         DanglingOutputs
         DataAllocator
