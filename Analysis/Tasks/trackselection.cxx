@@ -73,9 +73,9 @@ TrackSelection getGlobalTrackSelectionSDD()
  */
 //****************************************************************************************
 struct TrackExtensionTask {
-  
+
   Produces<aod::TracksExtended> extendedTrackQuantities;
-  
+
   void process(aod::Collision const& collision,
                soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov> const& tracks)
   {
@@ -87,19 +87,18 @@ struct TrackExtensionTask {
     float dcaZ = 0.f;
 
     for (auto& track : tracks) {
-      
+
       sinAlpha = sin(track.alpha());
       cosAlpha = cos(track.alpha());
       globalX = track.x() * cosAlpha - track.y() * sinAlpha;
       globalY = track.x() * sinAlpha + track.y() * cosAlpha;
 
       dcaXY = track.charge() * sqrt(pow((globalX - collision.posX()), 2) +
-                                        pow((globalY - collision.posY()), 2));
+                                    pow((globalY - collision.posY()), 2));
       dcaZ = track.charge() * sqrt(pow(track.z() - collision.posZ(), 2));
-      
+
       extendedTrackQuantities(dcaXY, dcaZ);
     }
-
   }
 };
 
@@ -184,7 +183,7 @@ struct TrackQATask {
 
   OutputObj<TH1F> dcaz{TH1F(
                          "track-dcaZ", "distance of closest approach in z;dca-z [cm];",
-                            200, -3., 3.),
+                         200, -3., 3.),
                        OutputObjHandlingPolicy::QAObject};
 
   OutputObj<TH1F> flag{TH1F("track-flags", "track flag;flag bit", 64, -0.5, 63.5), OutputObjHandlingPolicy::QAObject};
@@ -245,7 +244,7 @@ struct TrackQATask {
 
   void process(aod::Collision const& collision,
                soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended,
-               aod::TrackSelection> const& tracks)
+                         aod::TrackSelection> const& tracks)
   {
 
     collisionPos->Fill(collision.posX(), collision.posY());

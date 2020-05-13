@@ -20,14 +20,13 @@ namespace track
 DECLARE_SOA_COLUMN(DcaXY, dcaXY, float);
 DECLARE_SOA_COLUMN(DcaZ, dcaZ, float);
 
-
 // Columns to store track filter decisions
 DECLARE_SOA_COLUMN(IsGlobalTrack, isGlobalTrack, bool);
 DECLARE_SOA_COLUMN(IsGlobalTrackSDD, isGlobalTrackSDD, bool);
 
 } // namespace track
 DECLARE_SOA_TABLE(TracksExtended, "AOD", "TRACKEXTENDED", track::DcaXY,
-track::DcaZ);
+                  track::DcaZ);
 
 DECLARE_SOA_TABLE(TrackSelection, "AOD", "TRACKSELECTION", track::IsGlobalTrack,
                   track::IsGlobalTrackSDD);

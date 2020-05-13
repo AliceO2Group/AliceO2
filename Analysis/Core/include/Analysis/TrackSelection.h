@@ -44,9 +44,7 @@ class TrackSelection : public TObject
         (mRequireITSRefit && (track.flags() & 0x4)) &&
         (mRequireTPCRefit && (track.flags() & 0x40)) &&
         FulfillsITSHitRequirements(track.itsClusterMap()) &&
-        abs(track.dcaXY()) < mMaxDcaXY && abs(track.dcaZ()) < mMaxDcaZ
-        )
-    {
+        abs(track.dcaXY()) < mMaxDcaXY && abs(track.dcaZ()) < mMaxDcaZ) {
       return true;
     } else {
       return false;
