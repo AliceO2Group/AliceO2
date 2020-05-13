@@ -141,18 +141,20 @@ void sendOnChannel(FairMQDevice& device, FairMQMessagePtr&& headerMessage, FairM
   sendOnChannel(device, out, spec, channelRetriever);
 }
 
-InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, uint64_t step)
+InjectorFunction o2DataModelAdaptor(OutputSpec const& spec)
 {
-  auto timesliceId = std::make_shared<size_t>(startTime);
-  return [timesliceId, step, spec](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
+  return [spec](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
     for (size_t i = 0; i < parts.Size() / 2; ++i) {
       auto dh = o2::header::get<DataHeader*>(parts.At(i * 2)->GetData());
-
-      DataProcessingHeader dph{*timesliceId, 0};
+      if (!dh) {
+        LOG(ERROR) << "o2DataModelAdaptor: Expecting a DataHeader but not found. Skipping.";
+        continue;
+      }
+      // Now that the first orbit is part of the DataHeader, we can use that
+      // in this case, because the header is guaranteed to be present.
+      DataProcessingHeader dph{dh->firstTForbit, 0};
       o2::header::Stack headerStack{*dh, dph};
       sendOnChannel(device, std::move(headerStack), std::move(parts.At(i * 2 + 1)), spec, channelRetriever);
-      auto oldTimesliceId = *timesliceId;
-      *timesliceId += 1;
     }
   };
 }
@@ -366,6 +368,8 @@ InjectorFunction incrementalConverter(OutputSpec const& spec, uint64_t startTime
       dh.dataOrigin = matcher.origin;
       dh.dataDescription = matcher.description;
       dh.subSpecification = matcher.subSpec;
+      /// No one sets the orbit for us, so we invent one.
+      dh.firstTForbit = *timesliceId;
       dh.payloadSize = parts.At(i)->GetSize();
 
       DataProcessingHeader dph{*timesliceId, 0};

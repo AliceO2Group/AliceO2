@@ -56,7 +56,7 @@ FairMQMessagePtr mergePayloads(FairMQDevice& device, FairMQParts& parts, std::ve
 /// not be required. Notice that as a requirement the tuple (origin, data
 /// description, data subspecification) must be unique for each message in a given
 /// multipart ensemble.
-InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, uint64_t step);
+InjectorFunction o2DataModelAdaptor(OutputSpec const& spec);
 
 /// This is to be used when the input data is already formatted like DPL
 /// expects it, i.e. with the DataProcessingHeader in the header stack

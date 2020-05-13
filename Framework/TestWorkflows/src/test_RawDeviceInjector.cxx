@@ -31,7 +31,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
     specifyExternalFairMQDeviceProxy("foreign-source",
                                      {outspec},
                                      "type=sub,method=connect,address=tcp://localhost:5450,rateLogging=1",
-                                     o2DataModelAdaptor(outspec, 0, 1)),
+                                     o2DataModelAdaptor(outspec)),
     DataProcessorSpec{
       "foreign-consumer",
       Inputs{inspec},
