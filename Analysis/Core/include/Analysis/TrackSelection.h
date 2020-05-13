@@ -16,6 +16,8 @@
 #define TrackSelection_H
 
 #include "Framework/Logger.h"
+#include "Framework/DataTypes.h"
+#include "Analysis/TrackSelectionTables.h"
 #include "TObject.h"
 #include <set>
 
@@ -30,7 +32,8 @@ class TrackSelection : public TObject
   template <typename T>
   bool IsSelected(T const& track)
   {
-    if (track.pt() >= mMinPt && track.pt() < mMaxPt && track.eta() >= mMinEta &&
+    if (track.trackType() == o2::aod::track::TrackTypeEnum::GlobalTrack &&
+        track.pt() >= mMinPt && track.pt() < mMaxPt && track.eta() >= mMinEta &&
         track.eta() < mMaxEta && track.tpcNClsFound() >= mMinNClustersTPC &&
         track.tpcNClsCrossedRows() >= mMinNCrossedRowsTPC &&
         track.tpcCrossedRowsOverFindableCls() >=
@@ -40,7 +43,10 @@ class TrackSelection : public TObject
         (track.tpcChi2NCl() < mMaxChi2PerClusterTPC) &&
         (mRequireITSRefit && (track.flags() & 0x4)) &&
         (mRequireTPCRefit && (track.flags() & 0x40)) &&
-        FulfillsITSHitRequirements(track.itsClusterMap())) {
+        FulfillsITSHitRequirements(track.itsClusterMap()) &&
+        abs(track.dcaXY()) < mMaxDcaXY && abs(track.dcaZ()) < mMaxDcaZ
+        )
+    {
       return true;
     } else {
       return false;
