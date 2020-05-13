@@ -21,6 +21,7 @@
 #include "Framework/ChannelMatching.h"
 #include "Framework/ConfigParamsHelper.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/DataDump.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/Lifetime.h"
@@ -764,20 +765,23 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     int argc;
     char** argv;
     std::vector<ConfigParamSpec> workflowOptions;
+    bool dataDump{false};
     /// Lookup the executable name in the metadata associated with the workflow.
     /// If we find it, we rewrite the command line arguments to be processed
     /// so that they look like the ones passed to the merged workflow.
     for (auto& processorInfo : processorInfos) {
       if (processorInfo.name == spec.id) {
-        argc = processorInfo.cmdLineArgs.size() + 1;
+        const std::vector<std::string>& cmdArgs = processorInfo.cmdLineArgs;
+        argc = cmdArgs.size() + 1;
         argv = (char**)malloc(sizeof(char**) * (argc + 1));
         argv[0] = strdup(processorInfo.executable.data());
-        for (size_t ai = 0; ai < processorInfo.cmdLineArgs.size(); ++ai) {
-          auto& arg = processorInfo.cmdLineArgs[ai];
+        for (size_t ai = 0; ai < cmdArgs.size(); ++ai) {
+          auto& arg = cmdArgs[ai];
           argv[ai + 1] = strdup(arg.data());
         }
         argv[argc] = nullptr;
         workflowOptions = processorInfo.workflowOptions;
+        dataDump = std::any_of(std::begin(cmdArgs), std::end(cmdArgs), isDataDumpFlag);
         break;
       }
     }
@@ -915,6 +919,10 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     if (!haveSessionArg) {
       tmpArgs.emplace_back(std::string("--session"));
       tmpArgs.emplace_back("dpl_" + uniqueWorkflowId);
+    }
+
+    if (dataDump) {
+      tmpArgs.emplace_back(std::string("--data-dump"));
     }
 
     // We create the final option list, depending on the channels

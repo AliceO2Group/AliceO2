@@ -83,6 +83,7 @@ enum struct TerminationPolicy { QUIT,
 /// Information about the driver process (i.e.  / the one which calculates the
 /// topology and actually spawns the devices )
 struct DriverInfo {
+  bool dataDump{false};
   /// Stack with the states to be processed next.
   std::vector<DriverState> states;
   // Mapping between various pipes and the actual device information.
