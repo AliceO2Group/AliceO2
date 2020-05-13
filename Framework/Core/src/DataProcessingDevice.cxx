@@ -165,6 +165,20 @@ void DataProcessingDevice::Init()
   }
 }
 
+void DataProcessingDevice::InitTask()
+{
+  for (auto& channel : fChannels) {
+    channel.second.at(0).Transport()->SubscribeToRegionEvents([& pendingRegionInfos = mPendingRegionInfos](FairMQRegionInfo info) {
+      LOG(debug) << ">>> Region info event" << info.event;
+      LOG(debug) << "id: " << info.id;
+      LOG(debug) << "ptr: " << info.ptr;
+      LOG(debug) << "size: " << info.size;
+      LOG(debug) << "flags: " << info.flags;
+      pendingRegionInfos.push_back(info);
+    });
+  }
+}
+
 void DataProcessingDevice::PreRun() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Start); }
 
 void DataProcessingDevice::PostRun() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Stop); }
@@ -250,6 +264,13 @@ bool DataProcessingDevice::ConditionalRun()
   auto now = std::chrono::high_resolution_clock::now();
   mBeginIterationTimestamp = (uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
 
+  if (mPendingRegionInfos.empty() == false) {
+    std::vector<FairMQRegionInfo> toBeNotified;
+    toBeNotified.swap(mPendingRegionInfos); // avoid any MT issue.
+    for (auto& info : toBeNotified) {
+      mServiceRegistry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
+    }
+  }
   mServiceRegistry.get<CallbackService>()(CallbackService::Id::ClockTick);
   // Whether or not we had something to do.
   bool active = false;
