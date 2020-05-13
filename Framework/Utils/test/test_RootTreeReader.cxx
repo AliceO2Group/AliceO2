@@ -120,7 +120,7 @@ DataProcessorSpec getSinkSpec()
         ASSERT_ERROR(std::string("extended_info") == auxHeader->getName());
         o2::header::hexDump("", auxHeader, auxHeader->headerSize);
         auto dummyheader = auxHeader->next();
-        ASSERT_ERROR(dummyheader != nullptr && dummyheader->size() == 80);
+        ASSERT_ERROR(dummyheader != nullptr && dummyheader->size() == sizeof(o2::header::DataHeader));
       }
     }
 
