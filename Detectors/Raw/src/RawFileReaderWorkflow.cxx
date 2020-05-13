@@ -134,8 +134,9 @@ class rawReaderSpecs : public o2f::Task
       }
 
       o2h::DataHeader hdrTmpl(link.description, link.origin, link.subspec); // template with 0 size
+      int nhb = link.getNHBFinTF();
       hdrTmpl.payloadSerializationMethod = o2h::gSerializationMethodNone;
-      hdrTmpl.splitPayloadParts = mHBFPerMessage ? link.getNHBFinTF() : 1;
+      hdrTmpl.splitPayloadParts = mHBFPerMessage ? nhb : 1;
 
       while (hdrTmpl.splitPayloadIndex < hdrTmpl.splitPayloadParts) {
 
@@ -160,6 +161,8 @@ class rawReaderSpecs : public o2f::Task
                  hbOrbExpected, hbOrbRead, hdrTmpl.splitPayloadIndex, tfID,
                  link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
           }
+          hdrTmpl.firstTForbit = hbOrbRead + loopsDone * nhbexp; // for next parts
+          reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->firstTForbit = hdrTmpl.firstTForbit;
         }
         FairMQParts* parts = nullptr;
         if (mOutPerRoute) {
