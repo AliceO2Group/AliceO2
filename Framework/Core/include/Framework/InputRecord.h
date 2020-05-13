@@ -397,7 +397,18 @@ class InputRecord
 
       auto header = o2::header::get<const DataHeader*>(ref.header);
       auto method = header->payloadSerializationMethod;
-      if (method == o2::header::gSerializationMethodROOT) {
+      if (method == o2::header::gSerializationMethodNone) {
+        if constexpr (is_specialization<ValueT, std::vector>::value && has_messageable_value_type<ValueT>::value) {
+          // TODO: construct a vector spectator
+          // this is a quick solution now which makes a copy of the plain vector data
+          auto* start = reinterpret_cast<typename ValueT::value_type const*>(ref.payload);
+          auto* end = start + header->payloadSize / sizeof(typename ValueT::value_type);
+          auto container = std::make_unique<ValueT>(start, end);
+          std::unique_ptr<ValueT, Deleter<ValueT>> result(container.release(), Deleter<ValueT>(true));
+          return result;
+        }
+        throw std::runtime_error("unsupported code path");
+      } else if (method == o2::header::gSerializationMethodROOT) {
         // This supports the common case of retrieving a root object and getting pointer.
         // Notice that this will return a copy of the actual contents of the buffer, because
         // the buffer is actually serialised, for this reason we return a unique_ptr<T>.
