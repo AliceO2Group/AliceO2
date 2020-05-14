@@ -284,7 +284,6 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
 {
   /// Add new page (RDH) to existing one for the link (possibly stop page)
 
-  // check if the superpage reached the size where it hase to be flushed
   if (lastRDHoffset < 0) {
     return; // no page was open
   }
@@ -303,25 +302,33 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
   RDHUtils::setOffsetToNext(lastRDH, psize);
   RDHUtils::setMemorySize(lastRDH, psize);
 
+  rdhCopy = lastRDH;
+  bool add = true;
+  if (stop && !writer->mAddSeparateHBFStopPage) {
+    RDHUtils::setStop(lastRDH, stop);
+    add = false;
+  }
   if (writer->mVerbosity > 2) {
     RDHUtils::printRDH(lastRDH);
   }
-  rdhCopy = lastRDH;
-  int left = writer->mSuperPageSize - buffer.size();
-  if (left <= MarginToFlush) {
-    flushSuperPage();
+  if (add) { // if we are in stopping HBF and new page is needed, add it
+    // check if the superpage reached the size where it hase to be flushed
+    int left = writer->mSuperPageSize - buffer.size();
+    if (left <= MarginToFlush) {
+      flushSuperPage();
+    }
+    RDHUtils::setPacketCounter(rdhCopy, packetCounter++);
+    RDHUtils::setPageCounter(rdhCopy, pageCnt++);
+    RDHUtils::setStop(rdhCopy, stop);
+    RDHUtils::setOffsetToNext(rdhCopy, sizeof(RDHAny));
+    RDHUtils::setMemorySize(rdhCopy, sizeof(RDHAny));
+    lastRDHoffset = pushBack(rdhCopy); // entry of the new RDH
   }
-  RDHUtils::setPacketCounter(rdhCopy, packetCounter++);
-  RDHUtils::setPageCounter(rdhCopy, pageCnt++);
-  RDHUtils::setStop(rdhCopy, stop);
-  RDHUtils::setOffsetToNext(rdhCopy, sizeof(RDHAny));
-  RDHUtils::setMemorySize(rdhCopy, sizeof(RDHAny));
-  lastRDHoffset = pushBack(rdhCopy); // entry of the new RDH
   if (stop) {
     if (RDHUtils::getTriggerType(rdhCopy) & o2::trigger::TF) {
       nTFWritten++;
     }
-    if (writer->mVerbosity > 2) {
+    if (writer->mVerbosity > 2 && add) {
       RDHUtils::printRDH(rdhCopy);
     }
     lastRDHoffset = -1; // after closing, the previous RDH is not valid anymore
