@@ -65,7 +65,7 @@ struct ProcessAttributes {
 
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer);
 #include "DetectorsRaw/HBFUtils.h"
-void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, bool sectorBySector, uint32_t rdhV, bool createParentDir)
+void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, bool sectorBySector, uint32_t rdhV, bool stopPage, bool createParentDir)
 {
 
   // ===| open file and get tree |==============================================
@@ -106,7 +106,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   // ===| set up raw writer |===================================================
   o2::raw::RawFileWriter writer{"TPC"}; // to set the RDHv6.sourceID if V6 is used
   writer.useRDHVersion(rdhV);
-
+  writer.setAddSeparateHBFStopPage(stopPage);
   const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
 
   for (unsigned int i = 0; i < NSectors; i++) {
@@ -200,7 +200,8 @@ int main(int argc, char** argv)
     add_option("input-file,i", bpo::value<std::string>()->required(), "Specifies input file.");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "Specify output directory");
     add_option("no-parent-directories,n", "Do not create parent directories recursively");
-    add_option("sector-by-sector,s", bpo::value<bool>()->default_value(false), "Run one TPC sector after another");
+    add_option("sector-by-sector,s", bpo::value<bool>()->default_value(false)->implicit_value(true), "Run one TPC sector after another");
+    add_option("stop-page,p", bpo::value<bool>()->default_value(false)->implicit_value(true), "HBF stop on separate CRU page");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
@@ -229,6 +230,7 @@ int main(int argc, char** argv)
     vm["output-dir"].as<std::string>(),
     vm["sector-by-sector"].as<bool>(),
     vm["rdh-version"].as<uint32_t>(),
+    vm["stop-page"].as<bool>(),
     !vm.count("no-parent-directories"));
 
   return 0;
