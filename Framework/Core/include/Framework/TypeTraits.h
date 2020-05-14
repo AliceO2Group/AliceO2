@@ -139,6 +139,23 @@ class has_root_dictionary<T, typename std::enable_if<is_container<T>::value>::ty
 {
 };
 
+// Detect whether a class is a ROOT class implementing SetOwner
+// This member detector idiom is implemented using SFINAE idiom to look for
+// a 'SetOwner()' method.
+template <typename T, typename _ = void>
+struct has_root_setowner : std::false_type {
+};
+
+template <typename T>
+struct has_root_setowner<
+  T,
+  std::conditional_t<
+    false,
+    class_member_checker<
+      decltype(std::declval<T>().SetOwner(true))>,
+    void>> : public std::true_type {
+};
+
 /// Helper class to deal with the case we are creating the first instance of a
 /// (possibly) shared resource.
 ///
