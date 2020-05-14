@@ -71,20 +71,20 @@ std::map<uint32_t, uint16_t> buildFeeLinkId2SolarIdMap()
   auto dslist = createDualSampaMapper();
 
   for (auto deId : o2::mch::raw::deIdsForAllMCH) {
-    // assign a tuple (solarId,groupId,index) to the pair (deId,dsId)
+    // assign a tuple (fee,link) to each solarId
     for (auto dsId : dslist(deId)) {
       if (n % 40 == 0) {
         solarId++;
-        auto cruId = solarId / 24;
-        auto linkId = solarId - cruId * 24;
-        c2s[encode(o2::mch::raw::FeeLinkId(cruId, linkId))] = solarId;
+        auto feeId = solarId / 12;
+        auto linkId = solarId - feeId * 12;
+        c2s[encode(o2::mch::raw::FeeLinkId(feeId, linkId))] = solarId;
       }
       n++;
     };
   };
-  auto cruId = solarId / 24;
-  auto linkId = solarId - cruId * 24;
-  c2s[encode(o2::mch::raw::FeeLinkId(cruId, linkId))] = solarId;
+  auto feeId = solarId / 12;
+  auto linkId = solarId - feeId * 12;
+  c2s[encode(o2::mch::raw::FeeLinkId(feeId, linkId))] = solarId;
   return c2s;
 }
 } // namespace

@@ -42,9 +42,10 @@ using Elec2DetMapper = std::function<std::optional<DsDetId>(DsElecId)>;
 template <typename T>
 Elec2DetMapper createElec2DetMapper(uint64_t timestamp = 0);
 
-/// From (deId,dsId) to (solarId,groupId,index) for all detection elements
+/// From (deId,dsId) to (solarId,groupId,index)
+using Det2ElecMapper = std::function<std::optional<DsElecId>(DsDetId id)>;
 template <typename T>
-std::function<std::optional<DsElecId>(DsDetId id)> createDet2ElecMapper();
+Det2ElecMapper createDet2ElecMapper();
 
 /// From (feeId,linkId) to solarId
 using FeeLink2SolarMapper = std::function<std::optional<uint16_t>(FeeLinkId id)>;
@@ -52,8 +53,9 @@ template <typename T>
 FeeLink2SolarMapper createFeeLink2SolarMapper();
 
 /// From solarId to (feeId,linkId)
+using Solar2FeeLinkMapper = std::function<std::optional<FeeLinkId>(uint16_t solarId)>;
 template <typename T>
-std::function<std::optional<FeeLinkId>(uint16_t solarId)> createSolar2FeeLinkMapper();
+Solar2FeeLinkMapper createSolar2FeeLinkMapper();
 ///@}
 
 /**@name Actual mapper types.
