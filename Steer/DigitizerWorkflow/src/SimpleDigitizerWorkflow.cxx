@@ -578,9 +578,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::FDD)) {
     detList.emplace_back(o2::detectors::DetID::FDD);
     // connect the FDD digitization
-    specs.emplace_back(o2::fdd::getFDDDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::fdd::getFDDDigitizerSpec(fanoutsize++, mctruth));
     // connect the FDD digit writer
-    specs.emplace_back(o2::fdd::getFDDDigitWriterSpec());
+    specs.emplace_back(o2::fdd::getFDDDigitWriterSpec(mctruth));
   }
 
   // the PHOS part
