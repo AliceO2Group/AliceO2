@@ -27,7 +27,7 @@ namespace fdd
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getFDDDigitWriterSpec()
+o2::framework::DataProcessorSpec getFDDDigitWriterSpec(bool mctruth = true)
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
@@ -37,7 +37,7 @@ o2::framework::DataProcessorSpec getFDDDigitWriterSpec()
                                 1,
                                 BranchDefinition<std::vector<o2::fdd::Digit>>{InputSpec{"digitBCinput", "FDD", "DIGITSBC"}, "FDDDigit"},
                                 BranchDefinition<std::vector<o2::fdd::ChannelData>>{InputSpec{"digitChinput", "FDD", "DIGITSCH"}, "FDDDigitCh"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>>{InputSpec{"labelinput", "FDD", "DIGITLBL"}, "FDDDigitLabels"})();
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>>{InputSpec{"labelinput", "FDD", "DIGITLBL"}, "FDDDigitLabels", mctruth ? 1 : 0})();
 }
 
 } // end namespace fdd

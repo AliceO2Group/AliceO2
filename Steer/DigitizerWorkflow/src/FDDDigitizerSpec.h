@@ -18,7 +18,7 @@ namespace o2
 namespace fdd
 {
 
-o2::framework::DataProcessorSpec getFDDDigitizerSpec(int channel);
+o2::framework::DataProcessorSpec getFDDDigitizerSpec(int channel, bool mctruth = true);
 
 } // end namespace fdd
 } // end namespace o2
