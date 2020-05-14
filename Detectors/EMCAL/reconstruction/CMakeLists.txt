@@ -21,6 +21,7 @@ o2_add_library(EMCALReconstruction
                        src/CaloFitResults.cxx
                        src/CaloRawFitter.cxx
                        src/CaloRawFitterStandard.cxx
+                       src/CaloRawFitterGamma2.cxx
 		       src/ClusterizerParameters.cxx 
                        src/Clusterizer.cxx 
                        src/ClusterizerTask.cxx
@@ -43,6 +44,7 @@ o2_target_root_dictionary(
                                   include/EMCALReconstruction/CaloFitResults.h
                                   include/EMCALReconstruction/CaloRawFitter.h
                                   include/EMCALReconstruction/CaloRawFitterStandard.h
+                                  include/EMCALReconstruction/CaloRawFitterGamma2.h
                                   include/EMCALReconstruction/ClusterizerParameters.h
                                   include/EMCALReconstruction/Clusterizer.h
                                   include/EMCALReconstruction/ClusterizerTask.h

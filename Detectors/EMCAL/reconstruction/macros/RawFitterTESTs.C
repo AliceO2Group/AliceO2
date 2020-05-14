@@ -19,6 +19,7 @@
 #include "EMCALReconstruction/Bunch.h"
 #include "EMCALReconstruction/CaloRawFitterStandard.h"
 #include "EMCALReconstruction/AltroDecoder.h"
+#include "EMCALReconstruction/CaloRawFitterGamma2.h"
 //#include "EMCALReconstruction/RawHeaderStream.h"
 #endif
 
@@ -40,7 +41,8 @@ void RawFitterTESTs()
   o2::emcal::RawReaderFile<o2::header::RAWDataHeaderV4> rawreader(inputDir + "emcal.raw");
 
   // define the standard raw fitter
-  o2::emcal::CaloRawFitterStandard RawFitter;
+  //o2::emcal::CaloRawFitterStandard RawFitter;
+  o2::emcal::CaloRawFitterGamma2 RawFitter;
   RawFitter.setAmpCut(NoiseThreshold);
   RawFitter.setL1Phase(0.);
 
