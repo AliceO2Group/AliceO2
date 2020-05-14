@@ -279,7 +279,8 @@ Data from the same detector may be split to multiple files link-wise and/or time
 o2-raw-file-reader-workflow
   ...
   --loop arg (=1)                       loop N times (infinite for N<0)
-  --max-tf (=0xffffffff)                max number of TF to process
+  --min-tf arg (=0)                     min TF ID to process
+  --max-tf arg (=4294967295)            max TF ID to process
   --message-per-tf                      send TF of each link as a single FMQ message rather than multipart with message per HB
   --output-per-link                     send message per Link rather than per FMQ output route
   --delay arg (=0)                      delay in seconds between consecutive TFs sending
@@ -322,7 +323,7 @@ Usage:   o2-raw-file-check [options] file0 [... fileN]
 Options:
   -h [ --help ]                     print this help message.
   -c [ --conf ] arg                 read input from configuration file
-  -m [ --max-tf] arg (=0xffffffff)  max.number of TF to read
+  -m [ --max-tf] arg (=0xffffffff)  max. TF ID to read (counts from 0)
   -v [ --verbosity ] arg (=0)    1: long report, 2 or 3: print or dump all RDH
   -s [ --spsize ]    arg (=1048576) nominal super-page size in bytes
   -t [ --hbfpertf ]  arg (=256)     nominal number of HBFs per TF

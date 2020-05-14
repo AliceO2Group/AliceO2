@@ -45,8 +45,8 @@ class rawReaderSpecs : public o2f::Task
 {
  public:
   explicit rawReaderSpecs(const std::string& config, bool tfAsMessage = false, bool outPerRoute = true, int loop = 1, uint32_t delay_us = 0,
-                          uint32_t errmap = 0xffffffff, uint32_t maxTF = 0xffffffff, size_t buffSize = 1024L * 1024L)
-    : mLoop(loop < 1 ? 1 : loop), mHBFPerMessage(!tfAsMessage), mOutPerRoute(outPerRoute), mDelayUSec(delay_us), mReader(std::make_unique<o2::raw::RawFileReader>(config))
+                          uint32_t errmap = 0xffffffff, uint32_t minTF = 0, uint32_t maxTF = 0xffffffff, size_t buffSize = 1024L * 1024L)
+    : mLoop(loop < 1 ? 1 : loop), mHBFPerMessage(!tfAsMessage), mOutPerRoute(outPerRoute), mDelayUSec(delay_us), mMinTFID(minTF), mMaxTFID(maxTF), mReader(std::make_unique<o2::raw::RawFileReader>(config))
   {
     mReader->setCheckErrors(errmap);
     mReader->setMaxTFToRead(maxTF);
@@ -66,6 +66,9 @@ class rawReaderSpecs : public o2f::Task
   {
     assert(mReader);
     mReader->init();
+    if (mMaxTFID >= mReader->getNTimeFrames()) {
+      mMaxTFID = mReader->getNTimeFrames() - 1;
+    }
   }
 
   void run(o2f::ProcessingContext& ctx) final
@@ -104,14 +107,10 @@ class rawReaderSpecs : public o2f::Task
       messagesPerLink.resize(nlinks);
     }
 
-    if (tfID >= mReader->getNTimeFrames()) {
+    if (tfID > mMaxTFID) {
       if (mReader->getNTimeFrames() && --mLoop) {
-        tfID = 0;
-        mReader->setNextTFToRead(tfID);
         loopsDone++;
-        for (int il = 0; il < nlinks; il++) {
-          mReader->getLink(il).nextBlock2Read = 0; // think about more elaborate looping scheme, e.g. incrementing the orbits in RDHs
-        }
+        tfID = 0;
         LOG(INFO) << "Starting new loop " << loopsDone << " from the beginning of data";
       } else {
         LOGF(INFO, "Finished: payload of %zu bytes in %zu messages sent for %d TFs", sentSize, sentMessages, mTFIDaccum);
@@ -119,6 +118,14 @@ class rawReaderSpecs : public o2f::Task
         ctx.services().get<o2f::ControlService>().readyToQuit(o2f::QuitRequest::Me);
         mDone = true;
         return;
+      }
+    }
+
+    if (tfID < mMinTFID) {
+      tfID = mMinTFID;
+      mReader->setNextTFToRead(tfID);
+      for (int il = 0; il < nlinks; il++) {
+        mReader->getLink(il).rewindToTF(tfID);
       }
     }
 
@@ -216,17 +223,28 @@ class rawReaderSpecs : public o2f::Task
     ++mTFIDaccum;
   }
 
+  uint32_t getMinTFID() const { return mMinTFID; }
+  uint32_t getMaxTFID() const { return mMaxTFID; }
+  void setMinMaxTFID(uint32_t mn, uint32_t mx)
+  {
+    mMinTFID = mn;
+    mMaxTFID = mx >= mn ? mx : mn;
+  }
+
  private:
   int mLoop = 0;                                   // once last TF reached, loop while mLoop>=0
   size_t mTFIDaccum = 0;                           // TFId accumulator (accounts for looping)
   uint32_t mDelayUSec = 0;                         // Delay in microseconds between TFs
+  uint32_t mMinTFID = 0;                           // 1st TF to extract
+  uint32_t mMaxTFID = 0xffffffff;                  // last TF to extrct
   bool mHBFPerMessage = true;                      // true: send TF as multipart of HBFs, false: single message per TF
   bool mOutPerRoute = true;                        // true: send 1 large output route, otherwise 1 outpur per link
   bool mDone = false;                              // processing is over or not
   std::unique_ptr<o2::raw::RawFileReader> mReader; // matching engine
 };
 
-o2f::DataProcessorSpec getReaderSpec(std::string config, bool tfAsMessage, bool outPerRoute, int loop, uint32_t delay_us, uint32_t errmap, uint32_t maxTF, size_t buffSize)
+o2f::DataProcessorSpec getReaderSpec(std::string config, bool tfAsMessage, bool outPerRoute, int loop, uint32_t delay_us, uint32_t errmap,
+                                     uint32_t minTF, uint32_t maxTF, size_t buffSize)
 {
   // check which inputs are present in files to read
   o2f::Outputs outputs;
@@ -243,14 +261,14 @@ o2f::DataProcessorSpec getReaderSpec(std::string config, bool tfAsMessage, bool 
     "raw-file-reader",
     o2f::Inputs{},
     outputs,
-    o2f::AlgorithmSpec{o2f::adaptFromTask<rawReaderSpecs>(config, tfAsMessage, outPerRoute, loop, delay_us, errmap, maxTF, buffSize)},
+    o2f::AlgorithmSpec{o2f::adaptFromTask<rawReaderSpecs>(config, tfAsMessage, outPerRoute, loop, delay_us, errmap, minTF, maxTF, buffSize)},
     o2f::Options{}};
 }
 
 o2f::WorkflowSpec o2::raw::getRawFileReaderWorkflow(std::string inifile, bool tfAsMessage, bool outPerRoute,
-                                                    int loop, uint32_t delay_us, uint32_t errmap, uint32_t maxTF, size_t buffSize)
+                                                    int loop, uint32_t delay_us, uint32_t errmap, uint32_t minTF, uint32_t maxTF, size_t buffSize)
 {
   o2f::WorkflowSpec specs;
-  specs.emplace_back(getReaderSpec(inifile, tfAsMessage, outPerRoute, loop, delay_us, errmap, maxTF, buffSize));
+  specs.emplace_back(getReaderSpec(inifile, tfAsMessage, outPerRoute, loop, delay_us, errmap, minTF, maxTF, buffSize));
   return specs;
 }
