@@ -270,7 +270,7 @@ int DCAFitterN<N, Args...>::process(const Tr&... args)
     if (dst2 < mMaxDist2ToMergeSeeds) {
       mCrossings.nDCA = 1;
       mCrossings.xDCA[0] = 0.5 * (mCrossings.xDCA[0] + mCrossings.xDCA[1]);
-      mCrossings.xDCA[0] = 0.5 * (mCrossings.xDCA[0] + mCrossings.xDCA[1]);
+      mCrossings.yDCA[0] = 0.5 * (mCrossings.yDCA[0] + mCrossings.yDCA[1]);
     }
   }
   // check all crossings
