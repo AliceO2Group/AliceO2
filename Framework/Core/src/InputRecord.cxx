@@ -63,7 +63,7 @@ int InputRecord::getPos(std::string const& binding) const
 bool InputRecord::isValid(char const* s) const
 {
   DataRef ref = get(s);
-  if (ref.header == nullptr || ref.payload == nullptr) {
+  if (ref.header == nullptr) {
     return false;
   }
   return true;
@@ -75,7 +75,7 @@ bool InputRecord::isValid(int s) const
     return false;
   }
   DataRef ref = getByPos(s);
-  if (ref.header == nullptr || ref.payload == nullptr) {
+  if (ref.header == nullptr) {
     return false;
   }
   return true;
