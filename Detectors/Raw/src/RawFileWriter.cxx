@@ -41,9 +41,6 @@ void RawFileWriter::close()
   }
   if (!mFirstIRAdded.isDummy()) { // flushing and completing the last HBF makes sense only if data was added.
     auto irmax = getIRMax();
-    if (irmax.toLong()) { // should not be at 0/0
-      irmax--;            // latest (among all links) HBF to open, we want just to close the last one
-    }
     for (auto& lnk : mSSpec2Link) {
       lnk.second.close(irmax);
       lnk.second.print();
