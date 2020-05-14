@@ -14,6 +14,7 @@
 
 #include <TObject.h>
 #include <TObjString.h>
+#include <TObjArray.h>
 #include <TMessage.h>
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/DataRefUtils.h"
@@ -46,4 +47,31 @@ BOOST_AUTO_TEST_CASE(TestRootSerialization)
   auto o = DataRefUtils::as<TObject>(ref);
   BOOST_REQUIRE(o.get() != nullptr);
   BOOST_CHECK_EQUAL(std::string(o->GetName()), "test");
+}
+
+// Simple test for ROOT container deserialization.
+BOOST_AUTO_TEST_CASE(TestRootContainerSerialization)
+{
+  DataRef ref;
+  TMessage* tm = new TMessage(kMESS_OBJECT);
+  TObjArray container;
+  // the original container is explicitly non-owning, its owning
+  // flag is preserved during serialization
+  container.SetOwner(false);
+  auto object = std::make_unique<TObjString>("test");
+  container.Add(object.get());
+  tm->WriteObject(&container);
+  o2::header::DataHeader dh;
+  dh.payloadSerializationMethod = o2::header::gSerializationMethodROOT;
+  ref.payload = tm->Buffer();
+  dh.payloadSize = tm->BufferSize();
+  ref.header = reinterpret_cast<char const*>(&dh);
+
+  auto s = DataRefUtils::as<TObjArray>(ref);
+  BOOST_REQUIRE(s.get() != nullptr);
+  BOOST_REQUIRE(s->GetEntries() == 1);
+  BOOST_CHECK_EQUAL(std::string(s->At(0)->GetName()), "test");
+  // the extracted object must be owning to avoid memory leaks
+  // the get method takes care of this
+  BOOST_CHECK(s->IsOwner());
 }
