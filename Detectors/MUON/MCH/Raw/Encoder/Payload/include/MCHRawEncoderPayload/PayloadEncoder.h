@@ -8,29 +8,32 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_RAW_ENCODER_H
-#define O2_MCH_RAW_ENCODER_H
+#ifndef O2_MCH_RAW_PAYLOAD_ENCODER_H
+#define O2_MCH_RAW_PAYLOAD_ENCODER_H
 
 #include <memory>
 #include <set>
 #include "MCHRawElecMap/DsElecId.h"
 #include "MCHRawCommon/SampaCluster.h"
+#include "MCHRawElecMap/Mapper.h"
 #include <functional>
 #include <optional>
 
 namespace o2::mch::raw
 {
 
-/// @brief An Encoder builds MCH raw data
+/// @brief A PayloadEncoder builds MCH raw data (payload part only)
 ///
 /// Data is added using the addChannelData() method.
 /// Then it can be exported using the moveToBuffer() method.
+/// The output buffer contains pairs of (DataBlockHeader,payload)
+///
 /// \nosubgrouping
 
-class Encoder
+class PayloadEncoder
 {
  public:
-  virtual ~Encoder() {}
+  virtual ~PayloadEncoder() = default;
 
   /** @name Main interface.
     */
@@ -52,19 +55,21 @@ class Encoder
   /// The internal words that have been accumulated so far are
   /// _moved_ (i.e. deleted from this object) to the external buffer of bytes
   /// Returns the number of bytes added to buffer.
-  virtual size_t moveToBuffer(std::vector<uint8_t>& buffer) = 0;
+  virtual size_t moveToBuffer(std::vector<std::byte>& buffer) = 0;
   ///@}
 };
 
-/// createEncoder creates an encoder
+/// createPayloadEncoder creates a payload encoder
 ///
 /// template parameters :
 ///
 /// \tparam FORMAT defines the data format (either BareFormat or UserLogic)
 /// \tparam CHARGESUM defines the data format mode (either SampleMode or ChargeSumMode)
 /// \tparam forceNoPhase to be deprecated ?
+/// \param solar2feelink a mapper to convert solarId values into FeeLinkId objects
 ///
 template <typename FORMAT, typename CHARGESUM, bool forceNoPhase = false>
-std::unique_ptr<Encoder> createEncoder();
+std::unique_ptr<PayloadEncoder> createPayloadEncoder(Solar2FeeLinkMapper solar2feelink =
+                                                       createSolar2FeeLinkMapper<ElectronicMapperGenerated>());
 } // namespace o2::mch::raw
 #endif
