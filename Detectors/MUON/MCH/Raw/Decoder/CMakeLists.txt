@@ -31,6 +31,7 @@ if(BUILD_TESTING)
                 SOURCES src/testUserLogicEndpointDecoder.cxx
                 COMPONENT_NAME mchraw
                 LABELS "muon;mch;raw"
-                PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder O2::MCHRawImplHelpers)
+                PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder O2::MCHRawImplHelpers
+                O2::MCHRawEncoderPayload)
 
 endif()
