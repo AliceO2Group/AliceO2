@@ -1473,7 +1473,7 @@ void Geometry::RecalculateTowerPosition(Float_t drow, Float_t dcol, const Int_t 
 
     const Int_t nSMod = mNumberOfSuperModules;
 
-    gGeoManager->cd("/cave");
+    gGeoManager->cd("/cave/barrel/");
     TGeoNode* geoXEn1 = gGeoManager->GetCurrentNode();
     TGeoNodeMatrix* geoSM[nSMod];
     TGeoVolume* geoSMVol[nSMod];

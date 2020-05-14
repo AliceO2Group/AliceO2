@@ -320,7 +320,7 @@ void Detector::IdealPosition(Int_t iCh, TGeoHMatrix* pMatrix) // ideal position 
   const double kAngHor = 19.5;          //  horizontal angle between chambers  19.5 grad
   const double kAngVer = 20;            //  vertical angle between chambers    20   grad
   const double kAngCom = 30;            //  common HMPID rotation with respect to x axis  30   grad
-  const double kTrans[3] = {490, 0, 0}; //  center of the chamber is on window-gap surface
+  const double kTrans[3] = {490, 30., 0}; //  center of the chamber is on window-gap surface
   pMatrix->RotateY(90);                 //  rotate around y since initial position is in XY plane -> now in YZ plane
   pMatrix->SetTranslation(kTrans);      //  now plane in YZ is shifted along x
   switch (iCh) {
@@ -1190,11 +1190,11 @@ void Detector::ConstructGeometry()
     TGeoVolume* hmpid = createChamber(iCh);
     TGeoHMatrix* pMatrix = new TGeoHMatrix;
     IdealPosition(iCh, pMatrix);
-    gGeoManager->GetVolume("cave")->AddNode(hmpid, 0, pMatrix);
+    gGeoManager->GetVolume("barrel")->AddNode(hmpid, 0, pMatrix);
     if (iCh == 1 || iCh == 3 || iCh == 5) {
       TGeoHMatrix* pCradleMatrix = new TGeoHMatrix;
       IdealPositionCradle(iCh, pCradleMatrix);
-      gGeoManager->GetVolume("cave")->AddNode(hmpcradle, iCh, pCradleMatrix);
+      gGeoManager->GetVolume("barrel")->AddNode(hmpcradle, iCh, pCradleMatrix);
     }
   }
   // }
