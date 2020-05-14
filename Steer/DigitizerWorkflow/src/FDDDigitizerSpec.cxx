@@ -102,7 +102,9 @@ class FDDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // send out to next stage
     pc.outputs().snapshot(Output{"FDD", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"FDD", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"FDD", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
+    if (pc.outputs().isAllowed({"FDD", "DIGITLBL", 0})) {
+      pc.outputs().snapshot(Output{"FDD", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
+    }
 
     LOG(INFO) << "FDD: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"FDD", "ROMode", 0, Lifetime::Timeframe}, mROMode);
@@ -124,22 +126,25 @@ class FDDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 };
 
-o2::framework::DataProcessorSpec getFDDDigitizerSpec(int channel)
+o2::framework::DataProcessorSpec getFDDDigitizerSpec(int channel, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("FDD", "DIGITSBC", 0, Lifetime::Timeframe);
+  outputs.emplace_back("FDD", "DIGITSCH", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("FDD", "DIGITLBL", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("FDD", "ROMode", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "FDDDigitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
-
-    Outputs{OutputSpec{"FDD", "DIGITSBC", 0, Lifetime::Timeframe},
-            OutputSpec{"FDD", "DIGITSCH", 0, Lifetime::Timeframe},
-            OutputSpec{"FDD", "DIGITLBL", 0, Lifetime::Timeframe},
-            OutputSpec{"FDD", "ROMode", 0, Lifetime::Timeframe}},
-
+    outputs,
     AlgorithmSpec{adaptFromTask<FDDDPLDigitizerTask>()},
     Options{}};
 }
