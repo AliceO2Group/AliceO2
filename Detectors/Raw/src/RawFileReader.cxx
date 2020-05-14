@@ -110,6 +110,24 @@ size_t RawFileReader::LinkData::readNextHBF(char* buff)
 }
 
 //____________________________________________
+size_t RawFileReader::LinkData::skipNextHBF()
+{
+  // skip next complete HB
+  size_t sz = 0;
+  int ibl = nextBlock2Read, nbl = blocks.size();
+  while (ibl < nbl) {
+    const auto& blc = blocks[ibl];
+    if (blc.orbit != blocks[nextBlock2Read].orbit) {
+      break;
+    }
+    ibl++;
+    sz += blc.size;
+  }
+  nextBlock2Read = ibl;
+  return sz;
+}
+
+//____________________________________________
 size_t RawFileReader::LinkData::getNextTFSize() const
 {
   // estimate the memory size of the next TF to read
@@ -138,6 +156,33 @@ size_t RawFileReader::LinkData::readNextTF(char* buff)
     sz += szb;
   }
   return error ? 0 : sz; // in case of the error we ignore the data
+}
+
+//_____________________________________________________________________
+size_t RawFileReader::LinkData::skipNextTF()
+{
+  // skip next complete TF
+  size_t sz = 0;
+  int ibl0 = nextBlock2Read, nbl = blocks.size();
+  bool error = false;
+  while (nextBlock2Read < nbl && (blocks[nextBlock2Read].tfID == blocks[ibl0].tfID)) { // nextBlock2Read is incremented by the readNextHBF!
+    auto szb = skipNextHBF();
+    if (!szb) {
+      error = true;
+    }
+    sz += szb;
+  }
+  return error ? 0 : sz; // in case of the error we ignore the data
+}
+
+//_____________________________________________________________________
+void RawFileReader::LinkData::rewindToTF(uint32_t tf)
+{
+  // go to given TF
+  nextBlock2Read = 0;
+  for (uint32_t i = 0; i < tf; i++) {
+    skipNextTF();
+  }
 }
 
 //____________________________________________
@@ -388,7 +433,7 @@ bool RawFileReader::preprocessFile(int ifl)
       }
       bool newSPage = lID != lIDPrev;
       mLinksData[lID].preprocessCRUPage(rdh, newSPage);
-      if (mLinksData[lID].nTimeFrames > mMaxTFToRead) { // limit reached, discard the last read
+      if (mLinksData[lID].nTimeFrames && (mLinksData[lID].nTimeFrames - 1 > mMaxTFToRead)) { // limit reached, discard the last read
         mLinksData[lID].nTimeFrames--;
         mLinksData[lID].blocks.pop_back();
         if (mLinksData[lID].nHBFrames > 0) {
