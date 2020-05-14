@@ -13,6 +13,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/Logger.h"
 #include <string>
+#include <bitset>
 
 using namespace o2::framework;
 using namespace o2::raw;
@@ -32,15 +33,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"buffer-size", o2::framework::VariantType::Int64, 1024L * 1024L, {"buffer size for files preprocessing"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}});
   // options for error-check suppression
-  options.push_back(ConfigParamSpec{RawFileReader::nochk_opt(RawFileReader::ErrWrongPacketCounterIncrement), VariantType::Bool, false, {RawFileReader::nochk_expl(RawFileReader::ErrWrongPacketCounterIncrement)}});
-  options.push_back(ConfigParamSpec{RawFileReader::nochk_opt(RawFileReader::ErrWrongPageCounterIncrement), VariantType::Bool, false, {RawFileReader::nochk_expl(RawFileReader::ErrWrongPageCounterIncrement)}});
-  options.push_back(ConfigParamSpec{RawFileReader::nochk_opt(RawFileReader::ErrHBFStopOnFirstPage), VariantType::Bool, false, {RawFileReader::nochk_expl(RawFileReader::ErrHBFStopOnFirstPage)}});
-  options.push_back(ConfigParamSpec{RawFileReader::nochk_opt(RawFileReader::ErrHBFNoStop), VariantType::Bool, false, {RawFileReader::nochk_expl(RawFileReader::ErrHBFNoStop)}});
-  options.push_back(ConfigParamSpec{RawFileReader::nochk_opt(RawFileReader::ErrWrongFirstPage), VariantType::Bool, false, {RawFileReader::nochk_expl(RawFileReader::ErrWrongFirstPage)}});
-  options.push_back(ConfigParamSpec{RawFileReader::nochk_opt(RawFileReader::ErrWrongHBFsPerTF), VariantType::Bool, false, {RawFileReader::nochk_expl(RawFileReader::ErrWrongHBFsPerTF)}});
-  options.push_back(ConfigParamSpec{RawFileReader::nochk_opt(RawFileReader::ErrWrongNumberOfTF), VariantType::Bool, false, {RawFileReader::nochk_expl(RawFileReader::ErrWrongNumberOfTF)}});
-  options.push_back(ConfigParamSpec{RawFileReader::nochk_opt(RawFileReader::ErrHBFJump), VariantType::Bool, false, {RawFileReader::nochk_expl(RawFileReader::ErrHBFJump)}});
-  options.push_back(ConfigParamSpec{RawFileReader::nochk_opt(RawFileReader::ErrNoSuperPageForTF), VariantType::Bool, false, {RawFileReader::nochk_expl(RawFileReader::ErrNoSuperPageForTF)}});
+  for (int i = 0; i < RawFileReader::NErrorsDefined; i++) {
+    auto ei = RawFileReader::ErrTypes(i);
+    options.push_back(ConfigParamSpec{RawFileReader::nochk_opt(ei), VariantType::Bool, RawFileReader::ErrCheckDefaults[i], {RawFileReader::nochk_expl(ei)}});
+  }
   std::swap(workflowOptions, options);
 }
 
@@ -60,12 +56,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   uint32_t delay_us = uint32_t(1e6 * configcontext.options().get<float>("delay")); // delay in microseconds
 
-  uint32_t errmap = 0xffffffff;
+  uint32_t errmap = 0;
   for (int i = RawFileReader::NErrorsDefined; i--;) {
-    if (configcontext.options().get<bool>(RawFileReader::nochk_opt(RawFileReader::ErrTypes(i)).c_str())) {
-      errmap ^= 0x1 << i;
-      LOGF(INFO, "ignore  check for /%s/", RawFileReader::ErrNames[i].data());
+    auto ei = RawFileReader::ErrTypes(i);
+    if (configcontext.options().get<bool>(RawFileReader::nochk_opt(ei).c_str())) {
+      errmap |= 0x1 << i;
     }
+    LOG(INFO) << ((errmap & (0x1 << i)) ? "apply " : "ignore") << " check for " << RawFileReader::ErrNames[i].data();
   }
 
   return std::move(o2::raw::getRawFileReaderWorkflow(inifile, tfAsMessage, outPerRoute, loop, delay_us, errmap, minTF, maxTF, buffSize));

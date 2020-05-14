@@ -63,16 +63,30 @@ class RawFileReader
     "Wrong HBF orbit increment",             // ErrHBFJump
     "TF does not start by new superpage"     // ErrNoSuperPageForTF
   };
-  static constexpr std::string_view ErrNamesShort[] = { // short names for error codes
-    "packet-increment",
-    "page-increment",
-    "stop-on-page0",
-    "missing-stop",
-    "starts-with-tf",
-    "hbf-per-tf",
-    "tf-per-link",
-    "hbf-jump",
-    "no-spage-for-tf"};
+  static constexpr std::string_view ErrNamesShort[] = {
+    // short names for error codes
+    "packet-increment", // ErrWrongPacketCounterIncrement
+    "page-increment",   // ErrWrongPageCounterIncrement
+    "stop-on-page0",    // ErrHBFStopOnFirstPage
+    "missing-stop",     // ErrHBFNoStop
+    "starts-with-tf",   // ErrWrongFirstPage
+    "hbf-per-tf",       // ErrWrongHBFsPerTF
+    "tf-per-link",      // ErrWrongNumberOfTF
+    "hbf-jump",         // ErrHBFJump
+    "no-spage-for-tf"   // ErrNoSuperPageForTF
+  };
+  static constexpr bool ErrCheckDefaults[] = {
+    true,  // ErrWrongPacketCounterIncrement
+    true,  // ErrWrongPageCounterIncrement
+    false, // ErrHBFStopOnFirstPage
+    true,  // ErrHBFNoStop
+    true,  // ErrWrongFirstPage
+    true,  // ErrWrongHBFsPerTF
+    true,  // ErrWrongNumberOfTF
+    true,  // ErrHBFJump
+    true   // ErrNoSuperPageForTF
+  };
+
   //================================================================================
 
   //=====================================================================================

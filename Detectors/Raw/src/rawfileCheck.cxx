@@ -32,23 +32,18 @@ int main(int argc, char* argv[])
   std::string config, configKeyValues;
   bpo::variables_map vm;
   bpo::options_description descOpt("Options");
-  descOpt.add_options()(
-    "help,h", "print this help message.")(
-    "conf,c", bpo::value(&config)->default_value(""), "read input from configuration file")(
-    "max-tf,m", bpo::value<uint32_t>()->default_value(0xffffffff), " ID to read (counts from 0)")(
-    "verbosity,v", bpo::value<int>()->default_value(reader.getVerbosity()), "1: long report, 2 or 3: print or dump all RDH")(
-    "spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes")(
-    "buffer-size,b", bpo::value<size_t>()->default_value(reader.getNominalSPageSize()), "buffer size for files preprocessing")(
-    "configKeyValues", bpo::value(&configKeyValues)->default_value(""), "semicolon separated key=value strings")(
-    RawFileReader::nochk_opt(RawFileReader::ErrWrongPacketCounterIncrement).c_str(), RawFileReader::nochk_expl(RawFileReader::ErrWrongPacketCounterIncrement).c_str())(
-    RawFileReader::nochk_opt(RawFileReader::ErrWrongPageCounterIncrement).c_str(), RawFileReader::nochk_expl(RawFileReader::ErrWrongPageCounterIncrement).c_str())(
-    RawFileReader::nochk_opt(RawFileReader::ErrHBFStopOnFirstPage).c_str(), RawFileReader::nochk_expl(RawFileReader::ErrHBFStopOnFirstPage).c_str())(
-    RawFileReader::nochk_opt(RawFileReader::ErrHBFNoStop).c_str(), RawFileReader::nochk_expl(RawFileReader::ErrHBFNoStop).c_str())(
-    RawFileReader::nochk_opt(RawFileReader::ErrWrongFirstPage).c_str(), RawFileReader::nochk_expl(RawFileReader::ErrWrongFirstPage).c_str())(
-    RawFileReader::nochk_opt(RawFileReader::ErrWrongHBFsPerTF).c_str(), RawFileReader::nochk_expl(RawFileReader::ErrWrongHBFsPerTF).c_str())(
-    RawFileReader::nochk_opt(RawFileReader::ErrWrongNumberOfTF).c_str(), RawFileReader::nochk_expl(RawFileReader::ErrWrongNumberOfTF).c_str())(
-    RawFileReader::nochk_opt(RawFileReader::ErrHBFJump).c_str(), RawFileReader::nochk_expl(RawFileReader::ErrHBFJump).c_str())(
-    RawFileReader::nochk_opt(RawFileReader::ErrNoSuperPageForTF).c_str(), RawFileReader::nochk_expl(RawFileReader::ErrNoSuperPageForTF).c_str());
+  auto desc_add_option = descOpt.add_options();
+  desc_add_option("help,h", "print this help message.");
+  desc_add_option("conf,c", bpo::value(&config)->default_value(""), "read input from configuration file");
+  desc_add_option("max-tf,m", bpo::value<uint32_t>()->default_value(0xffffffff), " ID to read (counts from 0)");
+  desc_add_option("verbosity,v", bpo::value<int>()->default_value(reader.getVerbosity()), "1: long report, 2 or 3: print or dump all RDH");
+  desc_add_option("spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes");
+  desc_add_option("buffer-size,b", bpo::value<size_t>()->default_value(reader.getNominalSPageSize()), "buffer size for files preprocessing");
+  desc_add_option("configKeyValues", bpo::value(&configKeyValues)->default_value(""), "semicolon separated key=value strings");
+  for (int i = 0; i < RawFileReader::NErrorsDefined; i++) {
+    auto ei = RawFileReader::ErrTypes(i);
+    desc_add_option(RawFileReader::nochk_opt(ei).c_str(), RawFileReader::nochk_expl(ei).c_str());
+  }
 
   bpo::options_description hiddenOpt("hidden");
   hiddenOpt.add_options()("files", bpo::value(&fnames)->composing(), "");
@@ -92,12 +87,16 @@ int main(int argc, char* argv[])
   reader.setNominalSPageSize(vm["spsize"].as<int>());
   reader.setMaxTFToRead(vm["max-tf"].as<uint32_t>());
   reader.setBufferSize(vm["buffer-size"].as<size_t>());
-  uint32_t errmap = 0xffffffff;
+  uint32_t errmap = 0;
   for (int i = RawFileReader::NErrorsDefined; i--;) {
-    if (vm.count(RawFileReader::nochk_opt(RawFileReader::ErrTypes(i)).c_str())) {
-      errmap ^= 0x1 << i;
-      LOGF(INFO, "ignore  check for /%s/", RawFileReader::ErrNames[i].data());
+    auto ei = RawFileReader::ErrTypes(i);
+    if (RawFileReader::ErrCheckDefaults[i]) {
+      errmap |= 0x1 << i;
     }
+    if (vm.count(RawFileReader::nochk_opt(ei).c_str())) { // toggle
+      errmap ^= 0x1 << i;
+    }
+    LOG(INFO) << ((errmap & (0x1 << i)) ? "apply " : "ignore") << " check for " << RawFileReader::ErrNames[i].data();
   }
 
   if (!config.empty()) {

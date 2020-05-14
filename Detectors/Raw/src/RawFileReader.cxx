@@ -568,7 +568,7 @@ bool RawFileReader::init()
     counts << "Lnk" << std::setw(4) << std::left << i << "| ";
     link.print(mVerbosity, counts.str());
     if (msp > mNominalSPageSize) {
-      LOGF(WARNING, "       Attention: largest superpage %zu B exceeds expected %d B",
+      LOGF(DEBUG, "       Attention: largest superpage %zu B exceeds expected %d B",
            msp, mNominalSPageSize);
     }
     // min max orbits
@@ -709,12 +709,12 @@ RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri)
 
 std::string RawFileReader::nochk_opt(RawFileReader::ErrTypes e)
 {
-  std::string ignore = "nocheck-";
-  return ignore + RawFileReader::ErrNamesShort[e].data();
+  std::string opt = ErrCheckDefaults[e] ? "nocheck-" : "check-";
+  return opt + RawFileReader::ErrNamesShort[e].data();
 }
 
 std::string RawFileReader::nochk_expl(RawFileReader::ErrTypes e)
 {
-  std::string ignore = "ignore /";
-  return ignore + RawFileReader::ErrNames[e].data() + '/';
+  std::string opt = ErrCheckDefaults[e] ? "ignore /" : "check  /";
+  return opt + RawFileReader::ErrNames[e].data() + '/';
 }
