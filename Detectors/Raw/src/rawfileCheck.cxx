@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
   descOpt.add_options()(
     "help,h", "print this help message.")(
     "conf,c", bpo::value(&config)->default_value(""), "read input from configuration file")(
-    "max-tf,m", bpo::value<uint32_t>()->default_value(0xffffffff), "max.number of TF to read")(
+    "max-tf,m", bpo::value<uint32_t>()->default_value(0xffffffff), " ID to read (counts from 0)")(
     "verbosity,v", bpo::value<int>()->default_value(reader.getVerbosity()), "1: long report, 2 or 3: print or dump all RDH")(
     "spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes")(
     "buffer-size,b", bpo::value<size_t>()->default_value(reader.getNominalSPageSize()), "buffer size for files preprocessing")(
