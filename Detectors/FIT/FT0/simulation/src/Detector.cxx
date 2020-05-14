@@ -211,10 +211,10 @@ void Detector::ConstructGeometry()
     stlinC->AddNode(ins, itr, ph);
   }
 
-  TGeoVolume* alice = gGeoManager->GetVolume("cave");
-  alice->AddNode(stlinA, 1, new TGeoTranslation(0, 0, zdetA));
+  TGeoVolume* alice = gGeoManager->GetVolume("barrel");
+  alice->AddNode(stlinA, 1, new TGeoTranslation(0, 30., zdetA));
   TGeoRotation* rotC = new TGeoRotation("rotC", 90., 0., 90., 90., 180., 0.);
-  alice->AddNode(stlinC, 1, new TGeoCombiTrans(0., 0., -zdetC, rotC));
+  alice->AddNode(stlinC, 1, new TGeoCombiTrans(0., 30., -zdetC, rotC));
 
   // MCP + 4 x wrapped radiator + 4xphotocathod + MCP + Al top in front of radiators
   SetOneMCP(ins);
