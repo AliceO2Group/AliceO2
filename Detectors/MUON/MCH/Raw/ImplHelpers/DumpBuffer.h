@@ -20,6 +20,8 @@
 #include "MCHRawCommon/RDHManip.h"
 #include "Headers/RAWDataHeader.h"
 #include "MCHRawCommon/DataFormats.h"
+#include "MCHRawElecMap/DsElecId.h"
+#include "MoveBuffer.h"
 
 namespace o2::mch::raw::impl
 {
@@ -37,18 +39,6 @@ void dumpByteBuffer(gsl::span<T> buffer)
     i++;
   }
   std::cout << "\n";
-}
-
-uint64_t b8to64(gsl::span<const std::byte> buffer, size_t i)
-{
-  return (static_cast<uint64_t>(buffer[i + 0])) |
-         (static_cast<uint64_t>(buffer[i + 1]) << 8) |
-         (static_cast<uint64_t>(buffer[i + 2]) << 16) |
-         (static_cast<uint64_t>(buffer[i + 3]) << 24) |
-         (static_cast<uint64_t>(buffer[i + 4]) << 32) |
-         (static_cast<uint64_t>(buffer[i + 5]) << 40) |
-         (static_cast<uint64_t>(buffer[i + 6]) << 48) |
-         (static_cast<uint64_t>(buffer[i + 7]) << 56);
 }
 
 void append(std::vector<std::byte>& buffer, uint64_t w)
@@ -76,7 +66,7 @@ void dumpBuffer<o2::mch::raw::BareFormat>(gsl::span<const std::byte> buffer, std
     std::cout << "Should at least get 8 bytes to be able to dump\n";
     return;
   }
-  while ((i < buffer.size() - 7) && i < maxbytes) {
+  while ((i < buffer.size()) && i < maxbytes) {
     if (i % 8 == 0) {
       out << fmt::format("\n{:8d} : ", i);
     }
@@ -124,7 +114,7 @@ template <>
 void dumpBuffer<o2::mch::raw::UserLogicFormat>(gsl::span<const std::byte> buffer, std::ostream& out, size_t maxbytes)
 {
   int i{0};
-  int inRDH{0};
+  int inRDH{-1};
   o2::header::RAWDataHeaderV4 rdh;
 
   if (buffer.size() < 8) {
@@ -143,30 +133,35 @@ void dumpBuffer<o2::mch::raw::UserLogicFormat>(gsl::span<const std::byte> buffer
                        (w & 0x3FF00000) >> 20,
                        (w & 0xFFC00) >> 10,
                        (w & 0x3FF));
-    if ((w & 0xFFFF) == 0x4004) {
-      inRDH = 8;
-    }
-    if (inRDH) {
+    if (inRDH >= 0) {
       --inRDH;
-      if (inRDH == 7) {
+    }
+
+    if (buffer.size() >= i + 64) {
+      rdh = o2::mch::raw::createRDH<o2::header::RAWDataHeaderV4>(buffer.subspan(i, 64));
+      if (isValid(rdh)) {
+        inRDH = 8;
         out << "Begin RDH ";
-        rdh = o2::mch::raw::createRDH<o2::header::RAWDataHeaderV4>(buffer.subspan(i, 64));
         std::cout << fmt::format("ORBIT {} BX {} PAYLOADSIZE {}", rdhOrbit(rdh), rdhBunchCrossing(rdh), rdhPayloadSize(rdh));
       }
-      if (inRDH == 0) {
-        out << "End RDH ";
-      }
-    } else {
+    }
+    if (inRDH <= 0) {
       constexpr uint64_t FIFTYBITSATONE = (static_cast<uint64_t>(1) << 50) - 1;
       SampaHeader h(w & FIFTYBITSATONE);
       if (h == sampaSync()) {
-        out << "SYNC !!";
+        out << "SYNC --- ";
       }
+
+      std::cout << fmt::format("GBT(0.11) {:2d} ELINKID(0..39) {:4d} ERR {:2d}",
+                               (w >> 59) & 0x1F,
+                               (w >> 53) & 0x3F,
+                               (w >> 50) & 0x7);
     }
+
     i += 8;
   }
   out << "\n";
-}
+} // namespace o2::mch::raw::impl
 
 template <typename FORMAT>
 void dumpBuffer(const std::vector<uint64_t>& buffer, std::ostream& out = std::cout, size_t maxbytes = std::numeric_limits<size_t>::max())

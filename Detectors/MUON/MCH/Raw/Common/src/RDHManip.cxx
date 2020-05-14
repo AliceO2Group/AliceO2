@@ -108,7 +108,7 @@ std::string triggerTypeAsString(uint32_t triggerType)
 template <>
 bool isValid(const RAWDataHeaderV4& rdh)
 {
-  return rdh.version == 4 && rdh.headerSize == 64;
+  return rdh.version == 4 && rdh.headerSize == 64 && rdh.zero0 == 0 && rdh.word3 == 0 && rdh.zero41 == 0 && rdh.zero42 == 0 && rdh.word5 == 0 && rdh.zero6 == 0 && rdh.word7 == 0;
 }
 
 template <>
@@ -233,7 +233,7 @@ int countRDHs(gsl::span<const std::byte> buffer)
 }
 
 template <typename RDH>
-int forEachRDH(gsl::span<uint8_t> buffer, std::function<void(RDH&, gsl::span<uint8_t>::size_type offset)> f)
+int forEachRDH(gsl::span<std::byte> buffer, std::function<void(RDH&, gsl::span<std::byte>::size_type offset)> f)
 {
   int index{0};
   int nrdh{0};
@@ -310,7 +310,7 @@ int forEachRDH(gsl::span<const std::byte> buffer, std::function<void(const RDH&,
 template int showRDHs<RAWDataHeaderV4>(gsl::span<const std::byte> buffer);
 template int countRDHs<RAWDataHeaderV4>(gsl::span<const std::byte> buffer);
 template int forEachRDH(gsl::span<const std::byte> buffer, std::function<void(const RAWDataHeaderV4&)> f);
-template int forEachRDH(gsl::span<uint8_t> buffer, std::function<void(RAWDataHeaderV4&, gsl::span<uint8_t>::size_type)> f);
+template int forEachRDH(gsl::span<std::byte> buffer, std::function<void(RAWDataHeaderV4&, gsl::span<std::byte>::size_type)> f);
 template int forEachRDH(gsl::span<const std::byte> buffer, std::function<void(const RAWDataHeaderV4&, gsl::span<const std::byte>::size_type)> f);
 
 } // namespace o2::mch::raw
