@@ -288,6 +288,9 @@ class RawFileWriter
   bool getDontFillEmptyHBF() const { return mDontFillEmptyHBF; }
   void setDontFillEmptyHBF(bool v) { mDontFillEmptyHBF = v; }
 
+  bool getAddSeparateHBFStopPage() const { return mAddSeparateHBFStopPage; }
+  void setAddSeparateHBFStopPage(bool v) { mAddSeparateHBFStopPage = v; }
+
  private:
   enum RoMode_t { NotSet,
                   Continuous,
@@ -307,6 +310,7 @@ class RawFileWriter
   int mSuperPageSize = 1024 * 1024; // super page size
   bool mStartTFOnNewSPage = true;   // every TF must start on a new SPage
   bool mDontFillEmptyHBF = false;   // skipp adding empty HBFs (uness it must have TF flag)
+  bool mAddSeparateHBFStopPage = true; // HBF stop is added on a separate CRU page
   RoMode_t mROMode = NotSet;
   IR mFirstIRAdded; // 1st IR seen
   ClassDefNV(RawFileWriter, 1);
