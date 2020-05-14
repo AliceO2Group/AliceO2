@@ -135,6 +135,10 @@ class RawFileReader
 
     size_t readNextHBF(char* buff);
     size_t readNextTF(char* buff);
+    size_t skipNextHBF();
+    size_t skipNextTF();
+
+    void rewindToTF(uint32_t tf);
 
     void print(bool verbose = false, const std::string& pref = "") const;
     std::string describe() const;
