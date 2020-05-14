@@ -267,7 +267,7 @@ bool DataProcessingDevice::ConditionalRun()
   if (mPendingRegionInfos.empty() == false) {
     std::vector<FairMQRegionInfo> toBeNotified;
     toBeNotified.swap(mPendingRegionInfos); // avoid any MT issue.
-    for (auto& info : toBeNotified) {
+    for (auto const& info : toBeNotified) {
       mServiceRegistry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
     }
   }
