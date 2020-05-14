@@ -29,6 +29,12 @@ o2_add_library(MCHRawElecMap
         src/dslist.cxx
         PUBLIC_LINK_LIBRARIES O2::MCHRawImplHelpers ms_gsl::ms_gsl)
 
+
+o2_add_executable(elecmap-cli
+        SOURCES src/cli.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHRawElecMap Boost::program_options)
+
 if(BUILD_TESTING)
         o2_add_test(elecmap
                 SOURCES src/testElectronicMapper.cxx
