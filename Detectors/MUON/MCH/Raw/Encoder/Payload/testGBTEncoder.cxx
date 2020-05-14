@@ -29,10 +29,10 @@
 using namespace o2::mch::raw;
 
 template <typename FORMAT, typename MODE>
-std::vector<uint8_t> createGBTBuffer()
+std::vector<std::byte> createGBTBuffer(bool verbose = true)
 {
   GBTEncoder<FORMAT, MODE>::forceNoPhase = true;
-  uint8_t gbtId{23};
+  uint8_t gbtId{11};
   GBTEncoder<FORMAT, MODE> enc(gbtId);
   uint32_t bx(0);
   uint16_t ts(12);
@@ -44,17 +44,19 @@ std::vector<uint8_t> createGBTBuffer()
   enc.addChannelData(elinkGroupId, elinkIndexInGroup, 13, {SampaCluster(ts, 13)});
   enc.addChannelData(elinkGroupId, elinkIndexInGroup, 33, {SampaCluster(ts, 133)});
   enc.addChannelData(elinkGroupId, elinkIndexInGroup, 63, {SampaCluster(ts, 163)});
-  std::vector<uint8_t> words;
+  std::vector<std::byte> words;
   enc.moveToBuffer(words);
-  // std::cout << "createGBTBuffer<" << typeid(FORMAT).name() << "," << std::boolalpha << typeid(MODE).name() << ">\n";
-  // impl::dumpBuffer(gsl::make_span(words));
-  // int i{0};
-  // for (auto v : words) {
-  //   fmt::printf("0x%02X, ", v);
-  //   if (++i % 12 == 0) {
-  //     fmt::printf("\n");
-  //   }
-  // }
+  if (verbose) {
+    std::cout << "createGBTBuffer<" << typeid(FORMAT).name() << "," << std::boolalpha << typeid(MODE).name() << ">\n";
+    impl::dumpBuffer<FORMAT>(words);
+    int i{0};
+    for (auto v : words) {
+      fmt::printf("0x%02X, ", std::to_integer<uint8_t>(v));
+      if (++i % 12 == 0) {
+        fmt::printf("\n");
+      }
+    }
+  }
   return words;
 }
 
@@ -103,7 +105,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(GBTEncoderAddFewChannels, T, testTypes)
   enc.addChannelData(elinkGroupId, elinkIndexInGroup, 13, {SampaCluster(ts, 133)});
   enc.addChannelData(elinkGroupId, elinkIndexInGroup, 23, {SampaCluster(ts, 163)});
   BOOST_CHECK_THROW(enc.addChannelData(8, 0, 0, {SampaCluster(ts, 10)}), std::invalid_argument);
-  std::vector<uint8_t> buffer;
+  std::vector<std::byte> buffer;
   enc.moveToBuffer(buffer);
   float e = expectedSize<T, ChargeSumMode>();
   BOOST_CHECK_EQUAL(buffer.size(), e);
@@ -121,14 +123,14 @@ float expectedMaxSize<BareFormat, ChargeSumMode>()
 template <>
 float expectedMaxSize<UserLogicFormat, ChargeSumMode>()
 {
-  return 1032;
+  return 944;
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(GBTEncoderAdd64Channels, T, testTypes)
 {
   GBTEncoder<T, ChargeSumMode>::forceNoPhase = true;
   GBTEncoder<T, ChargeSumMode> enc(0);
-  std::vector<uint8_t> buffer;
+  std::vector<std::byte> buffer;
   enc.moveToBuffer(buffer);
   uint32_t bx(0);
   uint16_t ts(0);
@@ -137,7 +139,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(GBTEncoderAdd64Channels, T, testTypes)
     enc.addChannelData(elinkGroupId, 0, i, {SampaCluster(ts, i * 10)});
   }
   enc.moveToBuffer(buffer);
-  impl::dumpBuffer(buffer);
+  //  impl::dumpBuffer<T>(buffer);
   float e = expectedMaxSize<T, ChargeSumMode>();
   BOOST_CHECK_EQUAL(buffer.size(), e);
 }
@@ -146,7 +148,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(GBTEncoderMoveToBufferClearsTheInternalBuffer, T, 
 {
   GBTEncoder<T, ChargeSumMode> enc(0);
   enc.addChannelData(0, 0, 0, {SampaCluster(0, 10)});
-  std::vector<uint8_t> buffer;
+  std::vector<std::byte> buffer;
   size_t n = enc.moveToBuffer(buffer);
   BOOST_CHECK_GE(n, 0);
   n = enc.moveToBuffer(buffer);

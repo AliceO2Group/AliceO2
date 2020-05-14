@@ -8,13 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_RAW_CRU_ENCODER_IMPL_H
-#define O2_MCH_RAW_CRU_ENCODER_IMPL_H
+#ifndef O2_MCH_RAW_PAYLOAD_ENCODER_IMPL_H
+#define O2_MCH_RAW_PAYLOAD_ENCODER_IMPL_H
 
 #include "Assertions.h"
 #include "GBTEncoder.h"
-#include "MCHRawEncoder/DataBlock.h"
-#include "MCHRawEncoder/Encoder.h"
+#include "MCHRawEncoderPayload/DataBlock.h"
+#include "MCHRawEncoderPayload/PayloadEncoder.h"
+#include "MCHRawElecMap/Mapper.h"
 #include "MakeArray.h"
 #include <algorithm>
 #include <cstdlib>
@@ -28,6 +29,7 @@
 #include <set>
 #include <vector>
 #include <cassert>
+#include <stdexcept>
 
 namespace o2::mch::raw
 {
@@ -37,16 +39,16 @@ namespace o2::mch::raw
 /// \nosubgrouping
 
 template <typename FORMAT, typename CHARGESUM>
-class EncoderImpl : public Encoder
+class PayloadEncoderImpl : public PayloadEncoder
 {
  public:
-  EncoderImpl();
+  PayloadEncoderImpl(Solar2FeeLinkMapper solar2feelink);
 
   void addChannelData(DsElecId dsId, uint8_t chId, const std::vector<SampaCluster>& data) override;
 
   void startHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing) override;
 
-  size_t moveToBuffer(std::vector<uint8_t>& buffer) override;
+  size_t moveToBuffer(std::vector<std::byte>& buffer) override;
 
  private:
   void closeHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing);
@@ -55,55 +57,61 @@ class EncoderImpl : public Encoder
  private:
   uint32_t mOrbit;
   uint16_t mBunchCrossing;
-  std::vector<uint8_t> mBuffer;
+  std::vector<std::byte> mBuffer;
   std::map<uint16_t, std::unique_ptr<GBTEncoder<FORMAT, CHARGESUM>>> mGBTs;
   bool mFirstHBFrame;
+  Solar2FeeLinkMapper mSolar2FeeLink;
 };
 
 template <typename FORMAT, typename CHARGESUM>
-EncoderImpl<FORMAT, CHARGESUM>::EncoderImpl()
+PayloadEncoderImpl<FORMAT, CHARGESUM>::PayloadEncoderImpl(Solar2FeeLinkMapper solar2feelink)
   : mOrbit{},
     mBunchCrossing{},
     mBuffer{},
     mGBTs{},
-    mFirstHBFrame{true}
+    mFirstHBFrame{true},
+    mSolar2FeeLink{solar2feelink}
 {
 }
 
 template <typename FORMAT, typename CHARGESUM>
-void EncoderImpl<FORMAT, CHARGESUM>::addChannelData(DsElecId dsId, uint8_t chId, const std::vector<SampaCluster>& data)
+void PayloadEncoderImpl<FORMAT, CHARGESUM>::addChannelData(DsElecId dsId, uint8_t chId, const std::vector<SampaCluster>& data)
 {
   auto solarId = dsId.solarId();
   auto gbt = mGBTs.find(solarId);
   if (gbt == mGBTs.end()) {
-    mGBTs.emplace(solarId, std::make_unique<GBTEncoder<FORMAT, CHARGESUM>>(solarId));
+    auto f = mSolar2FeeLink(solarId);
+    if (!f.has_value()) {
+      throw std::invalid_argument(fmt::format("Could not get fee,link for solarId={}\n", solarId));
+    }
+    mGBTs.emplace(solarId, std::make_unique<GBTEncoder<FORMAT, CHARGESUM>>(f->linkId()));
     gbt = mGBTs.find(solarId);
   }
   gbt->second->addChannelData(dsId.elinkGroupId(), dsId.elinkIndexInGroup(), chId, data);
 }
 
 template <typename FORMAT, typename CHARGESUM>
-void EncoderImpl<FORMAT, CHARGESUM>::gbts2buffer(uint32_t orbit, uint16_t bunchCrossing)
+void PayloadEncoderImpl<FORMAT, CHARGESUM>::gbts2buffer(uint32_t orbit, uint16_t bunchCrossing)
 {
   // append to our own buffer all the words buffers from all our gbts,
   // prepending each one with a corresponding payload header
 
   for (auto& p : mGBTs) {
     auto& gbt = p.second;
-    std::vector<uint8_t> gbtBuffer;
+    std::vector<std::byte> gbtBuffer;
     gbt->moveToBuffer(gbtBuffer);
     if (gbtBuffer.empty()) {
       continue;
     }
     assert(gbtBuffer.size() % 4 == 0);
-    DataBlockHeader header{orbit, bunchCrossing, gbt->id(), gbtBuffer.size()};
+    DataBlockHeader header{orbit, bunchCrossing, p.first, gbtBuffer.size()};
     appendDataBlockHeader(mBuffer, header);
     mBuffer.insert(mBuffer.end(), gbtBuffer.begin(), gbtBuffer.end());
   }
 }
 
 template <typename FORMAT, typename CHARGESUM>
-size_t EncoderImpl<FORMAT, CHARGESUM>::moveToBuffer(std::vector<uint8_t>& buffer)
+size_t PayloadEncoderImpl<FORMAT, CHARGESUM>::moveToBuffer(std::vector<std::byte>& buffer)
 {
   closeHeartbeatFrame(mOrbit, mBunchCrossing);
   buffer.insert(buffer.end(), mBuffer.begin(), mBuffer.end());
@@ -113,13 +121,13 @@ size_t EncoderImpl<FORMAT, CHARGESUM>::moveToBuffer(std::vector<uint8_t>& buffer
 }
 
 template <typename FORMAT, typename CHARGESUM>
-void EncoderImpl<FORMAT, CHARGESUM>::closeHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing)
+void PayloadEncoderImpl<FORMAT, CHARGESUM>::closeHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing)
 {
   gbts2buffer(orbit, bunchCrossing);
 }
 
 template <typename FORMAT, typename CHARGESUM>
-void EncoderImpl<FORMAT, CHARGESUM>::startHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing)
+void PayloadEncoderImpl<FORMAT, CHARGESUM>::startHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing)
 {
   impl::assertIsInRange("bunchCrossing", bunchCrossing, 0, 0xFFF);
   // build a buffer with the _previous_ (orbit,bx)

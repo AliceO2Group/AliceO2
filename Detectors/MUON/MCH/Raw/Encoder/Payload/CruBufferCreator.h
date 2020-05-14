@@ -9,30 +9,17 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHRawCommon/DataFormats.h"
-#include "MCHRawEncoder/Encoder.h"
+#include "MCHRawEncoderPayload/PayloadEncoder.h"
 #include <vector>
 #include <cstdint>
 
 namespace o2::mch::raw::test
 {
 
-std::vector<uint8_t> fillChargeSum(Encoder& encoder, int norbit);
-
 template <typename FORMAT, typename CHARGESUM>
 struct CruBufferCreator {
-  static std::vector<uint8_t> makeBuffer(int norbit = 1);
-};
-
-std::vector<uint8_t> fillChargeSum(Encoder& encoder);
-
-template <typename FORMAT>
-struct CruBufferCreator<FORMAT, ChargeSumMode> {
-  static std::vector<uint8_t> makeBuffer(int norbit = 1)
-  {
-    auto encoder = createEncoder<FORMAT, ChargeSumMode, true>();
-
-    return fillChargeSum(*(encoder.get()), norbit);
-  }
+  static std::vector<std::byte> makeBuffer(int norbit = 1,
+                                           uint32_t firstOrbit = 12345, uint16_t firstBC = 678);
 };
 
 } // namespace o2::mch::raw::test
