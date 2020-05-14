@@ -81,7 +81,7 @@ void elink2gbt(gsl::span<ElinkEncoder<BareFormat, CHARGESUM>> elinks, std::vecto
 
 template <typename CHARGESUM>
 struct ElinkEncoderMerger<BareFormat, CHARGESUM> {
-  void operator()(uint16_t gbtId,
+  void operator()(uint16_t /*gbtId*/,
                   gsl::span<ElinkEncoder<BareFormat, CHARGESUM>> elinks,
                   std::vector<uint64_t>& b64)
   {
