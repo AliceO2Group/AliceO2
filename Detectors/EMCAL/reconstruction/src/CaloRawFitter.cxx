@@ -262,7 +262,7 @@ std::tuple<int, int, float, short, short, float, int, int> CaloRawFitter::preFit
     int length = bunchvector.at(index).getBunchLength();
     const std::vector<uint16_t>& sig = bunchvector.at(index).getADC();
 
-    double ped = evaluatePedestal(sig, length);
+    ped = evaluatePedestal(sig, length);
 
     for (int i = 0; i < length; i++) {
       mReversed[i] = sig[length - i - 1] - ped;
