@@ -121,11 +121,6 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
     }
     LOG(INFO) << Class()->GetName() << " | MCTruth: " << (mUseMCTruth ? "ON" : "OFF");
 
-    // loop over entries of the input tree
-    while (mReaderMC->readNextEntry()) {
-      mClusterer.process(1, *mReaderMC.get(), &mFullClus, &mCompClus, &mPatterns, &mROFRecVec, &mClsLabels);
-    }
-
     outTree.Branch("ITSClusterPatt", &mPatterns);
 
     std::vector<o2::itsmft::MC2ROFRecord> mc2rof, *mc2rofPtr = &mc2rof;
@@ -136,6 +131,11 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
         mc2rof.push_back(m2r);
       }
       outTree.Branch("ITSClustersMC2ROF", mc2rofPtr);
+    }
+
+    // loop over entries of the input tree
+    while (mReaderMC->readNextEntry()) {
+      mClusterer.process(1, *mReaderMC.get(), &mFullClus, &mCompClus, &mPatterns, &mROFRecVec, &mClsLabels);
     }
 
     outTree.Fill();

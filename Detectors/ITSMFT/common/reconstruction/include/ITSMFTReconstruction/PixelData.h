@@ -204,7 +204,7 @@ class ChipPixelData
           continue;
         } else {
           pix0.setMask();
-          if (mFirstUnmasked == itC) { // mFirstUnmasked should flag 1st unmasked pixel entry
+          if (int(mFirstUnmasked) == itC) { // mFirstUnmasked should flag 1st unmasked pixel entry
             mFirstUnmasked = itC + 1;
           }
           break;
