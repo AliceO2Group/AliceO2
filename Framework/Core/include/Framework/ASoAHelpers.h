@@ -204,11 +204,16 @@ struct CombinationsUpperIndexPolicy : public CombinationsIndexPolicyBase<Ts...> 
         constexpr auto curInd = k - i.value - 1;
         std::get<curInd>(this->mCurrent)++;
         if (*std::get<1>(std::get<curInd>(this->mCurrent).getIndices()) != std::get<curInd>(this->mMaxOffset)) {
+          modify = false;
           for_<i.value>([&, this](auto j) {
             constexpr auto curJ = k - i.value + j.value;
-            std::get<curJ>(this->mCurrent).setCursor(*std::get<1>(std::get<curJ - 1>(this->mCurrent).getIndices()));
+            int64_t nextInd = *std::get<1>(std::get<curJ - 1>(this->mCurrent).getIndices());
+            if (nextInd < std::get<curJ>(this->mMaxOffset)) {
+              std::get<curJ>(this->mCurrent).setCursor(nextInd);
+            } else {
+              modify = true;
+            }
           });
-          modify = false;
         }
       }
     });
@@ -242,11 +247,16 @@ struct CombinationsStrictlyUpperIndexPolicy : public CombinationsIndexPolicyBase
         constexpr auto curInd = k - i.value - 1;
         std::get<curInd>(this->mCurrent)++;
         if (*std::get<1>(std::get<curInd>(this->mCurrent).getIndices()) != std::get<curInd>(this->mMaxOffset)) {
+          modify = false;
           for_<i.value>([&, this](auto j) {
             constexpr auto curJ = k - i.value + j.value;
-            std::get<curJ>(this->mCurrent).setCursor(*std::get<1>(std::get<curJ - 1>(this->mCurrent).getIndices()) + 1);
+            int64_t nextInd = *std::get<1>(std::get<curJ - 1>(this->mCurrent).getIndices()) + 1;
+            if (nextInd < std::get<curJ>(this->mMaxOffset)) {
+              std::get<curJ>(this->mCurrent).setCursor(nextInd);
+            } else {
+              modify = true;
+            }
           });
-          modify = false;
         }
       }
     });
@@ -943,7 +953,7 @@ auto combinations(const T2& table, const T2s&... tables)
   if constexpr (std::conjunction_v<std::is_same<T2, T2s>...>) {
     return CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<T2, T2s...>>(CombinationsStrictlyUpperIndexPolicy(table, tables...));
   } else {
-    return CombinationsGenerator<CombinationsFullIndexPolicy<T2, T2s...>>(CombinationsFullIndexPolicy(table, tables...));
+    return CombinationsGenerator<CombinationsUpperIndexPolicy<T2, T2s...>>(CombinationsUpperIndexPolicy(table, tables...));
   }
 }
 
@@ -953,7 +963,7 @@ auto combinations(const o2::framework::expressions::Filter& filter, const T2& ta
   if constexpr (std::conjunction_v<std::is_same<T2, T2s>...>) {
     return CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<Filtered<T2>, Filtered<T2s>...>>(CombinationsStrictlyUpperIndexPolicy(Filtered<T2>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)}, Filtered<T2s>{{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
   } else {
-    return CombinationsGenerator<CombinationsFullIndexPolicy<Filtered<T2>, Filtered<T2s>...>>(CombinationsFullIndexPolicy(Filtered<T2>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)}, Filtered<T2s>{{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
+    return CombinationsGenerator<CombinationsUpperIndexPolicy<Filtered<T2>, Filtered<T2s>...>>(CombinationsUpperIndexPolicy(Filtered<T2>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)}, Filtered<T2s>{{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
   }
 }
 

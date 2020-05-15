@@ -403,10 +403,12 @@ BOOST_AUTO_TEST_CASE(Combinations)
   ConcatTest concatTests{tableA, tableB};
 
   BOOST_REQUIRE_EQUAL(8, testsA.size());
-  int nA = testsA.size();
   BOOST_REQUIRE_EQUAL(4, testsB.size());
   BOOST_REQUIRE_EQUAL(4, testsC.size());
   BOOST_REQUIRE_EQUAL(12, concatTests.size());
+  int nA = testsA.size();
+  int nB = testsB.size();
+  int nC = testsC.size();
 
   int count = 0;
   int i = 0;
@@ -558,63 +560,9 @@ BOOST_AUTO_TEST_CASE(Combinations)
       m = l + 1;
     }
   }
-
   BOOST_CHECK_EQUAL(count, 56);
 
-  int nB = testsB.size();
-  count = 0;
-  i = 0;
-  j = 0 + nA;
-  for (auto& [t0, t1] : combinations(CombinationsFullIndexPolicy(testsA, testsB))) {
-    BOOST_CHECK_EQUAL(t0.x(), i);
-    BOOST_CHECK_EQUAL(t1.x(), j);
-    count++;
-    j++;
-    if (j == nA + nB) {
-      i++;
-      j = 0 + nA;
-    }
-  }
-  BOOST_CHECK_EQUAL(count, 32);
-
-  int nC = testsC.size();
-  count = 0;
-  i = 0;
-  j = 0 + nA;
-  k = 0 + nA + nB;
-  for (auto& [t0, t1, t2] : combinations(CombinationsFullIndexPolicy(testsA, testsB, testsC))) {
-    BOOST_CHECK_EQUAL(t0.x(), i);
-    BOOST_CHECK_EQUAL(t1.x(), j);
-    BOOST_CHECK_EQUAL(t2.x(), k);
-    count++;
-    k++;
-    if (k == nA + nB + nC) {
-      if (j == nA + nB - 1) {
-        i++;
-        j = 0 + nA;
-      } else {
-        j++;
-      }
-      k = 0 + nA + nB;
-    }
-  }
-  BOOST_CHECK_EQUAL(count, 128);
-
-  count = 0;
-  i = 0;
-  j = 0 + nA;
-  for (auto& [t0, t1] : combinations(testsA, testsB)) {
-    BOOST_CHECK_EQUAL(t0.x(), i);
-    BOOST_CHECK_EQUAL(t1.x(), j);
-    count++;
-    j++;
-    if (j == nA + nB) {
-      i++;
-      j = 0 + nA;
-    }
-  }
-  BOOST_CHECK_EQUAL(count, 32);
-
+  // Combinations shortcut
   count = 0;
   i = 0;
   j = 1;
@@ -644,6 +592,244 @@ BOOST_AUTO_TEST_CASE(Combinations)
     }
   }
   BOOST_CHECK_EQUAL(count, 6);
+
+  count = 0;
+  i = 0;
+  j = 0 + nA;
+  for (auto& [t0, t1] : combinations(testsA, testsB)) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == nA + nB) {
+      i++;
+      j = nA + i;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 10);
+
+  // Different tables of different size
+  count = 0;
+  i = 0;
+  j = 0 + nA;
+  for (auto& [t0, t1] : combinations(CombinationsFullIndexPolicy(testsA, testsB))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == 0 + nA + nB) {
+      i++;
+      j = 0 + nA;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 32);
+
+  count = 0;
+  i = 0 + nA;
+  j = 0;
+  for (auto& [t0, t1] : combinations(CombinationsFullIndexPolicy(testsB, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == 0 + nA) {
+      i++;
+      j = 0;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 32);
+
+  count = 0;
+  i = 0;
+  j = 0 + nA;
+  k = 0 + nA + nB;
+  for (auto& [t0, t1, t2] : combinations(CombinationsFullIndexPolicy(testsA, testsB, testsC))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == nA + nB + nC) {
+      if (j == nA + nB - 1) {
+        i++;
+        j = 0 + nA;
+      } else {
+        j++;
+      }
+      k = 0 + nA + nB;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 128);
+
+  count = 0;
+  i = 0 + nA + nB;
+  j = 0 + nA;
+  k = 0;
+  for (auto& [t0, t1, t2] : combinations(CombinationsFullIndexPolicy(testsC, testsB, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == nA) {
+      if (j == nA + nB - 1) {
+        i++;
+        j = 0 + nA;
+      } else {
+        j++;
+      }
+      k = 0;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 128);
+
+  count = 0;
+  i = 0;
+  j = 0 + nA;
+  for (auto& [t0, t1] : combinations(CombinationsUpperIndexPolicy(testsA, testsB))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == 0 + nA + nB) {
+      i++;
+      j = nA + i;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 10);
+
+  count = 0;
+  i = 0 + nA;
+  j = 0;
+  for (auto& [t0, t1] : combinations(CombinationsUpperIndexPolicy(testsB, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == 0 + nA) {
+      i++;
+      j = -nA + i;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 26);
+
+  count = 0;
+  i = 0;
+  j = 0 + nA;
+  k = 0 + nA + nB;
+  for (auto& [t0, t1, t2] : combinations(CombinationsUpperIndexPolicy(testsA, testsB, testsC))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == nA + nB + nC) {
+      if (j == nA + nB - 1) {
+        i++;
+        j = nA + i;
+      } else {
+        j++;
+      }
+      k = nB + j;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 20);
+
+  count = 0;
+  i = 0 + nA + nB;
+  j = 0 + nA;
+  k = 0;
+  for (auto& [t0, t1, t2] : combinations(CombinationsUpperIndexPolicy(testsC, testsB, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == nA) {
+      if (j == nA + nB - 1) {
+        i++;
+        j = -nB + i;
+      } else {
+        j++;
+      }
+      k = -nA + j;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 60);
+
+  count = 0;
+  i = 0;
+  j = 0 + nA + 1;
+  for (auto& [t0, t1] : combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsB))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == 0 + nA + nB) {
+      i++;
+      j = nA + i + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 6);
+
+  count = 0;
+  i = 0 + nA;
+  j = 1;
+  for (auto& [t0, t1] : combinations(CombinationsStrictlyUpperIndexPolicy(testsB, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == 0 + nA) {
+      i++;
+      j = -nA + i + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 18);
+
+  count = 0;
+  i = 0;
+  j = 0 + nA + 1;
+  k = 0 + nA + nB + 2;
+  for (auto& [t0, t1, t2] : combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsB, testsC))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == nA + nB + nC) {
+      if (j == nA + nB - 2) {
+        i++;
+        j = nA + i + 1;
+      } else {
+        j++;
+      }
+      k = nB + j + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 4);
+
+  count = 0;
+  i = 0 + nA + nB;
+  j = 0 + nA + 1;
+  k = 2;
+  for (auto& [t0, t1, t2] : combinations(CombinationsStrictlyUpperIndexPolicy(testsC, testsB, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == nA) {
+      if (j == nA + nB - 2) {
+        i++;
+        j = -nB + i + 1;
+      } else {
+        j++;
+      }
+      k = -nA + j + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 16);
 }
 
 BOOST_AUTO_TEST_CASE(BreakingCombinations)
