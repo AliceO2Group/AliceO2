@@ -66,6 +66,7 @@ void merge(TObject* const target, TObject* const other)
         targetCollection->Add(otherObject->Clone());
       }
     }
+    delete otherIterator;
   } else {
     Long64_t errorCode = 0;
     TObjArray otherCollection;
@@ -97,6 +98,7 @@ void deleteTCollections(TObject* obj)
     while (auto element = iter->Next()) {
       deleteTCollections(element);
     }
+    delete iter;
     delete c;
   } else {
     delete obj;
