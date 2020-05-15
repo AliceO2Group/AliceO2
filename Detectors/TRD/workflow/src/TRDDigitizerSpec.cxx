@@ -56,6 +56,8 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     }
     LOG(INFO) << "Doing TRD digitization";
 
+    bool mctruth = pc.outputs().isAllowed({"TRD", "LABELS", 0});
+
     Calibrations simcal;
     simcal.setCCDBForSimulation(297595);
     mDigitizer.setCalibrations(&simcal);
@@ -102,8 +104,9 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         triggers.emplace_back(irecords[collID], digitsAccum.size(), digits.size());
 
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
-        labelsAccum.mergeAtBack(labels);
-
+        if (mctruth) {
+          labelsAccum.mergeAtBack(labels);
+        }
         digits.clear();
         labels.clear();
       }
@@ -113,15 +116,18 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDigitizer.flush(digits, labels);
     triggers.emplace_back(irecords[irecords.size() - 1], digitsAccum.size(), digits.size());
     std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
-    labelsAccum.mergeAtBack(labels);
-
+    if (mctruth) {
+      labelsAccum.mergeAtBack(labels);
+    }
     timer.Stop();
     LOG(INFO) << "TRD: Digitization took " << timer.RealTime() << "s";
 
     LOG(INFO) << "TRD: Sending " << digitsAccum.size() << " digits";
     pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
-    LOG(INFO) << "TRD: Sending " << labelsAccum.getNElements() << " labels";
-    pc.outputs().snapshot(Output{"TRD", "LABELS", 0, Lifetime::Timeframe}, labelsAccum);
+    if (mctruth) {
+      LOG(INFO) << "TRD: Sending " << labelsAccum.getNElements() << " labels";
+      pc.outputs().snapshot(Output{"TRD", "LABELS", 0, Lifetime::Timeframe}, labelsAccum);
+    }
     LOG(INFO) << "TRD: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"TRD", "ROMode", 0, Lifetime::Timeframe}, mROMode);
     LOG(INFO) << "TRD: Sending trigger records";
@@ -139,21 +145,26 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 };
 
-o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel)
+o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TRD", "TRGRDIG", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("TRD", "LABELS", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("TRD", "ROMode", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "TRDDigitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{OutputSpec{"TRD", "DIGITS", 0, Lifetime::Timeframe},
-            OutputSpec{"TRD", "TRGRDIG", 0, Lifetime::Timeframe},
-            OutputSpec{"TRD", "LABELS", 0, Lifetime::Timeframe},
-            OutputSpec{"TRD", "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
 
     AlgorithmSpec{adaptFromTask<TRDDPLDigitizerTask>()},
     Options{}};
