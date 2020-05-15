@@ -273,6 +273,18 @@ static void handle_sigint(int)
   }
 }
 
+/// Helper to invoke shared memory cleanup
+void cleanupSHM(std::string const& uniqueWorkflowId)
+{
+  auto shmCleanup = fmt::format("fairmq-shmmonitor --cleanup -s dpl_{} 2>&1 >/dev/null", uniqueWorkflowId);
+  LOG(debug)
+    << "Cleaning up shm memory session with " << shmCleanup;
+  auto result = system(shmCleanup.c_str());
+  if (result != 0) {
+    LOG(error) << "Unable to cleanup shared memory, run " << shmCleanup << "by hand to fix";
+  }
+}
+
 static void handle_sigchld(int) { sigchld_requested = true; }
 
 void spawnRemoteDevice(std::string const& forwardedStdin,
@@ -848,6 +860,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         FD_ZERO(&(driverInfo.childFdset));
 
+        /// Cleanup the shared memory for the uniqueWorkflowId, in
+        /// case we are unlucky and an old one is already present.
+        cleanupSHM(driverInfo.uniqueWorkflowId);
         /// After INIT we go into RUNNING and eventually to SCHEDULE from
         /// there and back into running. This is because the general case
         /// would be that we start an application and then we wait for
@@ -1057,8 +1072,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::GUI);
         }
         break;
-      case DriverState::EXIT:
+      case DriverState::EXIT: {
+        cleanupSHM(driverInfo.uniqueWorkflowId);
         return calculateExitCode(infos);
+      }
       case DriverState::PERFORM_CALLBACKS:
         for (auto& callback : driverControl.callbacks) {
           callback(workflow, deviceSpecs, deviceExecutions, dataProcessorInfos);
