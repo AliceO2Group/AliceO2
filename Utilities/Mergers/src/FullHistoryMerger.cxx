@@ -50,6 +50,7 @@ void FullHistoryMerger::run(framework::ProcessingContext& ctx)
   for (const DataRef& ref : InputRecordWalker(ctx.inputs())) {
     if (ref.header != timerHeader) {
       updateCache(ref);
+      mUpdatesReceived++;
     }
   }
 
@@ -133,9 +134,13 @@ void FullHistoryMerger::publish(framework::DataAllocator& allocator)
   }
 
   mTotalObjectsMerged += mObjectsMerged;
+  mTotalUpdatesReceived += mUpdatesReceived;
   mCollector->send({mTotalObjectsMerged, "total_objects_merged"}, monitoring::DerivedMetricMode::RATE);
   mCollector->send({mObjectsMerged, "objects_merged_since_last_publication"});
+  mCollector->send({mTotalUpdatesReceived, "total_updates_received"}, monitoring::DerivedMetricMode::RATE);
+  mCollector->send({mUpdatesReceived, "updates_received_since_last_publication"});
   mObjectsMerged = 0;
+  mUpdatesReceived = 0;
 }
 
 } // namespace o2::mergers
