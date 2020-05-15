@@ -64,6 +64,7 @@
 #include <boost/program_options.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
+#include <boost/exception/diagnostic_information.hpp>
 
 #include <cinttypes>
 #include <cstdint>
@@ -725,6 +726,10 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
 
     runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
     return runner.Run();
+  } catch (boost::exception& e) {
+    LOG(ERROR) << "Unhandled exception reached the top of main, device shutting down. Details follow: \n"
+      << boost::current_exception_diagnostic_information(true);
+    return 1;
   } catch (std::exception& e) {
     LOG(ERROR) << "Unhandled exception reached the top of main: " << e.what() << ", device shutting down.";
     return 1;

@@ -22,6 +22,7 @@
 
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
+#include <boost/exception/diagnostic_information.hpp>
 
 #include <unistd.h>
 #include <vector>
@@ -141,6 +142,8 @@ int main(int argc, char** argv)
     o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
     overridePipeline(configContext, specs);
     result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, workflowOptions, configContext);
+  } catch (boost::exception& e) {
+    LOG(ERROR) << "error while setting up workflow: \n" << boost::current_exception_diagnostic_information(true);
   } catch (std::exception const& error) {
     LOG(ERROR) << "error while setting up workflow: " << error.what();
   } catch (...) {
