@@ -125,6 +125,18 @@ class DigitDump : public CalibRawBase
   /// return digits for specific sector
   std::vector<Digit>& getDigits(int sector) { return mDigits[sector]; }
 
+  /// directly add a digit
+  void addDigit(const CRU& cru, const float signal, const int rowInSector, const int padInRow, const int timeBin)
+  {
+    mDigits[cru.sector()].emplace_back(cru, signal, rowInSector, padInRow, timeBin);
+  }
+
+  /// initialize
+  void initInputOutput();
+
+  /// End event function
+  void endEvent() final;
+
  private:
   std::unique_ptr<CalPad> mPedestal{}; ///< CalDet object with pedestal information
   std::unique_ptr<CalPad> mNoise{};    ///< CalDet object with noise
@@ -151,12 +163,6 @@ class DigitDump : public CalibRawBase
 
   /// load noise and pedestal
   void loadNoiseAndPedestal();
-
-  /// initialize
-  void initInputOutput();
-
-  /// End event function
-  void endEvent() final;
 
   /// dummy reset
   void resetEvent() final {}

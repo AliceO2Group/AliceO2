@@ -89,7 +89,7 @@ Int_t DigitDump::updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
   //printf("updateCRU: %d, %d (%d, %d), %d, %d, %f, %f\n", int(cru), row, globalRow, sectorRow, pad, timeBin, signal, pedestal);
 
   // fill digits
-  mDigits[cru.sector()].emplace_back(cru, signalCorr, globalRow, pad, timeBin);
+  addDigit(cru, signalCorr, globalRow, pad, timeBin);
 
   return 0;
 }
