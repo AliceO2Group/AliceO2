@@ -38,7 +38,6 @@ struct InvMassAnalysis {
   // *reset* to OutputObj label - needed for correct placement in the output file
   OutputObj<TH1F> centV0M{TH1F("centV0M", "centrality V0", 100, 0.0, 100.0)};
   OutputObj<TH1F> vtxZ{TH1F("vtxZ", "vtx Z", 200, -20.0, 20.0)};
-
   OutputObj<TH1F> ptH{TH1F("pt", "pt", 100, -0.01, 10.01)};
   OutputObj<TH2F> ptCorr{TH2F("ptToPt", "ptToPt", 100, -0.01, 10.01, 100, -0.01, 10.01)};
   OutputObj<TH2F> tpcDedx{TH2F("tpcDedx", "TPC de/dx", 100, 0.0, 10.0, 100, 0.0, 200.0)};
@@ -56,7 +55,6 @@ struct InvMassAnalysis {
   OutputObj<TH1F> trZ{"trZ", OutputObjHandlingPolicy::QAObject};
   //Configurable<float> ptlow{"ptlow", 1.0f, "Lower pT limit"};
   //Configurable<float> pthigh{"pthigh", 1.0f, "Higher pT limit"};
-
   float ptlow = 1.0;
   float pthigh = 5.0;
   Filter ptFilter = ((1.0f / aod::track::signed1Pt > ptlow) && (1.0f / aod::track::signed1Pt < pthigh)) || ((1.0f / aod::track::signed1Pt > -1.0f * pthigh) && (1.0f / aod::track::signed1Pt < -1.0f * ptlow));
@@ -75,7 +73,6 @@ struct InvMassAnalysis {
 
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra>> const& tracks)
   {
-
     if (!collision.sel7())
       return;
 
@@ -93,6 +90,7 @@ struct InvMassAnalysis {
           itsHits->Fill(i);
         if (track.itsClusterMap() & (uint8_t(1) << i))
           itsHitsVsPt->Fill(i, track.pt());
+
       }
       tpcDedx->Fill(track.tpcInnerParam(), track.tpcSignal());
       tpcChi2->Fill(track.tpcChi2NCl());
