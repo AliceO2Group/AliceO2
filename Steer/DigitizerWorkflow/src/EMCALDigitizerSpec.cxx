@@ -135,7 +135,9 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   // here we have all digits and we can send them to consumer (aka snapshot it onto output)
   ctx.outputs().snapshot(Output{"EMC", "DIGITS", 0, Lifetime::Timeframe}, mAccumulatedDigits);
   ctx.outputs().snapshot(Output{"EMC", "TRGRDIG", 0, Lifetime::Timeframe}, triggers);
-  ctx.outputs().snapshot(Output{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+  if (ctx.outputs().isAllowed({"EMC", "DIGITSMCTR", 0})) {
+    ctx.outputs().snapshot(Output{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+  }
   // EMCAL is always a triggering detector
   const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::TRIGGERING;
   LOG(INFO) << "EMCAL: Sending ROMode= " << roMode << " to GRPUpdater";
@@ -148,19 +150,24 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   mFinished = true;
 }
 
-DataProcessorSpec getEMCALDigitizerSpec(int channel)
+DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("EMC", "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EMC", "TRGRDIG", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("EMC", "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("EMC", "ROMode", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "EMCALDigitizer", Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
-    Outputs{OutputSpec{"EMC", "DIGITS", 0, Lifetime::Timeframe},
-            OutputSpec{"EMC", "TRGRDIG", 0, Lifetime::Timeframe},
-            OutputSpec{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe},
-            OutputSpec{"EMC", "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
     AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>()},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
     // I can't use VariantType::Bool as it seems to have a problem
