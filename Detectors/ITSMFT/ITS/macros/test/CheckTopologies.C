@@ -136,6 +136,8 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
       }
     } // << build min and max MC events used by each ROF
 
+    auto pattIdx = patternsPtr->cbegin();
+
     for (int irof = 0; irof < nROFRec; irof++) {
       const auto& rofRec = rofRecVec[irof];
       rofRec.print();
@@ -155,7 +157,6 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
         }
       } // << cache MC events contributing to this ROF
 
-      auto pattIdx = patternsPtr->cbegin();
       for (int icl = 0; icl < rofRec.getNEntries(); icl++) {
         int clEntry = rofRec.getFirstEntry() + icl; // entry of icl-th cluster of this ROF in the vector of clusters
         // do we read MC data?
