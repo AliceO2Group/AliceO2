@@ -26,7 +26,7 @@ namespace eventgen
 {
 
 template <typename T>
-T GetFromMacro(const std::string file, const std::string funcname, const std::string type, const std::string unique)
+T GetFromMacro(const std::string& file, const std::string& funcname, const std::string& type, const std::string& unique)
 {
 
   /** tweak the string to get the required global function **/
