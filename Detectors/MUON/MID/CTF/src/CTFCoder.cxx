@@ -28,7 +28,8 @@ void CTFCoder::appendToTree(TTree& tree, CTF& ec)
 
 ///___________________________________________________________________________________
 // extract and decode data from the tree
-void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<ROFRecord>& rofVec, std::vector<ColumnData>& colVec)
+void CTFCoder::readFromTree(TTree& tree, int entry, std::array<std::vector<ROFRecord>, NEvTypes>& rofVec,
+                            std::array<std::vector<ColumnData>, NEvTypes>& colVec)
 {
   assert(entry >= 0 && entry < tree.GetEntries());
   CTF ec;
@@ -66,7 +67,7 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
   uint8_t evType = 0, deId = 0, colId = 0;
 #define MAKECODER(part, slot) createCoder<decltype(part)>(op, getFreq(slot), getProbBits(slot), int(slot))
   // clang-format off
-  MAKECODER(bcInc,    CTF::BLC_bcIncROF); 
+  MAKECODER(bcInc,    CTF::BLC_bcIncROF);
   MAKECODER(orbitInc, CTF::BLC_orbitIncROF);
   MAKECODER(entries,  CTF::BLC_entriesROF);
   MAKECODER(evType,   CTF::BLC_evtypeROF);

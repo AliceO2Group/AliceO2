@@ -27,8 +27,9 @@ using namespace o2::mid;
 
 BOOST_AUTO_TEST_CASE(CTFTest)
 {
-  std::vector<ROFRecord> rofs;
-  std::vector<ColumnData> cols;
+  std::array<std::vector<ColumnData>, NEvTypes> colData{};
+  std::array<std::vector<ROFRecord>, NEvTypes> rofData{};
+  CTFHelper::TFData tfData;
   // RS: don't understand why, but this library is not loaded automatically, although the dependencies are clearly
   // indicated. What it more weird is that for similar tests of other detectors the library is loaded!
   // Absence of the library leads to complains about the StreamerInfo and eventually segm.faul when appending the
@@ -40,27 +41,37 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   std::array<uint16_t, 5> pattern;
   for (int irof = 0; irof < 1000; irof++) {
     ir += 1 + gRandom->Integer(200);
-    uint8_t nch = 0, evtyp = gRandom->Integer(3);
-    while (nch == 0) {
-      nch = gRandom->Poisson(10);
-    }
-    auto start = cols.size();
-    for (int ich = 0; ich < nch; ich++) {
-      uint8_t deId = gRandom->Integer(128);
-      uint8_t columnId = gRandom->Integer(128);
-      for (int i = 0; i < 5; i++) {
-        pattern[i] = gRandom->Integer(0x7fff);
+    for (uint8_t evtyp = 0; evtyp < NEvTypes; evtyp++) {
+      if (gRandom->Rndm() > 0.8) {
+        continue; // sometimes skip some event types
       }
-      cols.emplace_back(ColumnData{deId, columnId, pattern});
+      uint8_t nch = 0;
+      while (nch == 0) {
+        nch = gRandom->Poisson(10);
+      }
+      auto start = colData[evtyp].size();
+      for (int ich = 0; ich < nch; ich++) {
+        uint8_t deId = gRandom->Integer(128);
+        uint8_t columnId = gRandom->Integer(128);
+        for (int i = 0; i < 5; i++) {
+          pattern[i] = gRandom->Integer(0x7fff);
+        }
+        colData[evtyp].emplace_back(ColumnData{deId, columnId, pattern});
+      }
+      rofData[evtyp].emplace_back(ROFRecord{ir, EventType(evtyp), start, colData[evtyp].size() - start});
     }
-    rofs.emplace_back(ROFRecord{ir, EventType(evtyp), start, cols.size() - start});
   }
+  for (uint32_t i = 0; i < NEvTypes; i++) {
+    tfData.colData[i] = {colData[i].data(), colData[i].size()};
+    tfData.rofData[i] = {rofData[i].data(), rofData[i].size()};
+  }
+  tfData.buildReferences();
 
   sw.Start();
   std::vector<o2::ctf::BufferType> vec;
   {
     CTFCoder coder;
-    coder.encode(vec, rofs, cols); // compress
+    coder.encode(vec, tfData); // compress
   }
   sw.Stop();
   LOG(INFO) << "Compressed in " << sw.CpuTime() << " s";
@@ -90,42 +101,49 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     LOG(INFO) << "Read back from tree in " << sw.CpuTime() << " s";
   }
 
-  std::vector<ROFRecord> rofsD;
-  std::vector<ColumnData> colsD;
+  std::array<std::vector<ColumnData>, NEvTypes> colDataD{};
+  std::array<std::vector<ROFRecord>, NEvTypes> rofDataD{};
 
   sw.Start();
   const auto ctfImage = o2::mid::CTF::getImage(vec.data());
   {
     CTFCoder coder;
-    coder.decode(ctfImage, rofsD, colsD); // decompress
+    coder.decode(ctfImage, rofDataD, colDataD); // decompress
   }
   sw.Stop();
   LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";
 
-  BOOST_CHECK(rofsD.size() == rofs.size());
-  BOOST_CHECK(colsD.size() == cols.size());
-  LOG(INFO) << " BOOST_CHECK rofsD.size() " << rofsD.size() << " rofs.size() " << rofs.size()
-            << " BOOST_CHECK(colsD.size() " << colsD.size() << " cols.size()) " << cols.size();
+  for (uint32_t it = 0; it < NEvTypes; it++) {
+    const auto& rofsD = rofDataD[it];
+    const auto& rofs = rofData[it];
+    const auto& colsD = colDataD[it];
+    const auto& cols = colData[it];
+    LOG(INFO) << "Test for event type " << it;
+    BOOST_CHECK(rofsD.size() == rofs.size());
+    BOOST_CHECK(colsD.size() == cols.size());
+    LOG(INFO) << " BOOST_CHECK rofsD.size() " << rofsD.size() << " rofs.size() " << rofData[0].size()
+              << " BOOST_CHECK(colsD.size() " << colsD.size() << " cols.size()) " << colData[0].size();
 
-  for (size_t i = 0; i < rofs.size(); i++) {
-    const auto& dor = rofs[i];
-    const auto& ddc = rofsD[i];
-    LOG(DEBUG) << " Orig.ROFRecord " << i << " " << dor.interactionRecord << " " << dor.firstEntry << " " << dor.nEntries;
-    LOG(DEBUG) << " Deco.ROFRecord " << i << " " << ddc.interactionRecord << " " << ddc.firstEntry << " " << ddc.nEntries;
+    for (size_t i = 0; i < rofs.size(); i++) {
+      const auto& dor = rofs[i];
+      const auto& ddc = rofsD[i];
+      LOG(DEBUG) << " Orig.ROFRecord " << i << " " << dor.interactionRecord << " " << dor.firstEntry << " " << dor.nEntries;
+      LOG(DEBUG) << " Deco.ROFRecord " << i << " " << ddc.interactionRecord << " " << ddc.firstEntry << " " << ddc.nEntries;
 
-    BOOST_CHECK(dor.interactionRecord == ddc.interactionRecord);
-    BOOST_CHECK(dor.firstEntry == ddc.firstEntry);
-    BOOST_CHECK(dor.nEntries == dor.nEntries);
-  }
+      BOOST_CHECK(dor.interactionRecord == ddc.interactionRecord);
+      BOOST_CHECK(dor.firstEntry == ddc.firstEntry);
+      BOOST_CHECK(dor.nEntries == dor.nEntries);
+    }
 
-  for (size_t i = 0; i < cols.size(); i++) {
-    const auto& cor = cols[i];
-    const auto& cdc = colsD[i];
-    BOOST_CHECK(cor.deId == cdc.deId);
-    BOOST_CHECK(cor.columnId == cdc.columnId);
-    for (int j = 0; j < 5; j++) {
-      BOOST_CHECK(cor.patterns[j] == cdc.patterns[j]);
-      LOG(DEBUG) << "col " << i << " pat " << j << " : " << cor.patterns[j] << " : " << cdc.patterns[j];
+    for (size_t i = 0; i < cols.size(); i++) {
+      const auto& cor = cols[i];
+      const auto& cdc = colsD[i];
+      BOOST_CHECK(cor.deId == cdc.deId);
+      BOOST_CHECK(cor.columnId == cdc.columnId);
+      for (int j = 0; j < 5; j++) {
+        BOOST_CHECK(cor.patterns[j] == cdc.patterns[j]);
+        LOG(DEBUG) << "col " << i << " pat " << j << " : " << cor.patterns[j] << " : " << cdc.patterns[j];
+      }
     }
   }
 }

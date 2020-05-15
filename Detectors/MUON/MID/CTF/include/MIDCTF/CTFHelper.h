@@ -19,6 +19,7 @@
 #include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/CTF.h"
+#include "CommonDataFormat/AbstractRef.h"
 #include <gsl/span>
 
 namespace o2
@@ -30,21 +31,32 @@ class CTFHelper
 {
 
  public:
-  CTFHelper(const gsl::span<const o2::mid::ROFRecord>& rofData, const gsl::span<const o2::mid::ColumnData>& colData)
-    : mROFData(rofData), mColData(colData) {}
+  using OrderRef = o2::dataformats::AbstractRef<29, 2, 1>; // 29 bits for index in event type span, 2 bits for event type, 1 bit flag
+  struct TFData {
+    std::vector<OrderRef> colDataRefs{};
+    std::vector<OrderRef> rofDataRefs{};
+    std::array<gsl::span<const o2::mid::ColumnData>, NEvTypes> colData{};
+    std::array<gsl::span<const o2::mid::ROFRecord>, NEvTypes> rofData{};
+    void buildReferences();
+  };
+
+  CTFHelper(const TFData& data) : mTFData(data) {}
+  CTFHelper() = delete;
 
   CTFHeader createHeader()
   {
     CTFHeader h{0, 1, 0, // dummy timestamp, version 1.0
-                uint32_t(mROFData.size()), uint32_t(mColData.size()), 0, 0};
-    if (mROFData.size()) {
-      h.firstOrbit = mROFData[0].interactionRecord.orbit;
-      h.firstBC = mROFData[0].interactionRecord.bc;
+                uint32_t(mTFData.rofDataRefs.size()), uint32_t(mTFData.colDataRefs.size()), 0, 0};
+    if (h.nROFs) {
+      auto id0 = mTFData.rofDataRefs.front();
+      const auto& rof = mTFData.rofData[id0.getSource()][id0.getIndex()];
+      h.firstOrbit = rof.interactionRecord.orbit;
+      h.firstBC = rof.interactionRecord.bc;
     }
     return h;
   }
 
-  size_t getSize() const { return mROFData.size() * sizeof(o2::mid::ROFRecord) + mColData.size() * sizeof(o2::mid::ColumnData); }
+  size_t getSize() const { return mTFData.rofDataRefs.size() * sizeof(o2::mid::ROFRecord) + mTFData.colDataRefs.size() * sizeof(o2::mid::ColumnData); }
 
   //>>> =========================== ITERATORS ========================================
 
@@ -58,7 +70,7 @@ class CTFHelper
     using reference = const T&;
     using iterator_category = std::random_access_iterator_tag;
 
-    _Iter(const gsl::span<const D>& data, bool end = false) : mData(data), mIndex(end ? M * data.size() : 0){};
+    _Iter(const std::vector<OrderRef>& ord, const std::array<gsl::span<const D>, NEvTypes>& data, bool end = false) : mOrder(ord), mData(&data), mIndex(end ? M * ord.size() : 0) {}
     _Iter() = default;
 
     const I& operator++()
@@ -89,7 +101,8 @@ class CTFHelper
     bool operator<(const I& other) const { return mIndex < other.mIndex; }
 
    protected:
-    gsl::span<const D> mData{};
+    gsl::span<const OrderRef> mOrder{};
+    const std::array<gsl::span<const D>, NEvTypes>* mData{};
     size_t mIndex = 0;
   };
 
@@ -102,11 +115,13 @@ class CTFHelper
     using _Iter<Iter_bcIncROF, ROFRecord, uint16_t>::_Iter;
     value_type operator*() const
     {
+      const auto ir = (*mData)[mOrder[mIndex].getSource()][mOrder[mIndex].getIndex()].interactionRecord;
       if (mIndex) {
-        if (mData[mIndex].interactionRecord.orbit == mData[mIndex - 1].interactionRecord.orbit) {
-          return mData[mIndex].interactionRecord.bc - mData[mIndex - 1].interactionRecord.bc;
+        const auto irP = (*mData)[mOrder[mIndex - 1].getSource()][mOrder[mIndex - 1].getIndex()].interactionRecord;
+        if (ir.orbit == irP.orbit) {
+          return ir.bc - irP.bc;
         } else {
-          return mData[mIndex].interactionRecord.bc;
+          return ir.bc;
         }
       }
       return 0;
@@ -119,7 +134,15 @@ class CTFHelper
   {
    public:
     using _Iter<Iter_orbitIncROF, ROFRecord, uint32_t>::_Iter;
-    value_type operator*() const { return mIndex ? mData[mIndex].interactionRecord.orbit - mData[mIndex - 1].interactionRecord.orbit : 0; }
+    value_type operator*() const
+    {
+      if (mIndex) {
+        const auto ir = (*mData)[mOrder[mIndex].getSource()][mOrder[mIndex].getIndex()].interactionRecord;
+        const auto irP = (*mData)[mOrder[mIndex - 1].getSource()][mOrder[mIndex - 1].getIndex()].interactionRecord;
+        return ir.orbit - irP.orbit;
+      }
+      return 0;
+    }
   };
 
   //_______________________________________________
@@ -128,7 +151,7 @@ class CTFHelper
   {
    public:
     using _Iter<Iter_entriesROF, ROFRecord, uint16_t>::_Iter;
-    value_type operator*() const { return mData[mIndex].nEntries; }
+    value_type operator*() const { return (*mData)[mOrder[mIndex].getSource()][mOrder[mIndex].getIndex()].nEntries; }
   };
 
   //_______________________________________________
@@ -137,7 +160,7 @@ class CTFHelper
   {
    public:
     using _Iter<Iter_evtypeROF, ROFRecord, uint8_t>::_Iter;
-    value_type operator*() const { return value_type(mData[mIndex].eventType); }
+    value_type operator*() const { return value_type((*mData)[mOrder[mIndex].getSource()][mOrder[mIndex].getIndex()].eventType); }
   };
 
   //_______________________________________________
@@ -145,7 +168,11 @@ class CTFHelper
   {
    public:
     using _Iter<Iter_pattern, ColumnData, uint16_t, 5>::_Iter;
-    value_type operator*() const { return mData[mIndex / 5].patterns[mIndex % 5]; }
+    value_type operator*() const
+    {
+      auto idx = mOrder[mIndex / 5];
+      return (*mData)[idx.getSource()][idx.getIndex()].patterns[mIndex % 5];
+    }
   };
 
   //_______________________________________________
@@ -153,7 +180,11 @@ class CTFHelper
   {
    public:
     using _Iter<Iter_deId, ColumnData, uint8_t>::_Iter;
-    value_type operator*() const { return mData[mIndex].deId; }
+    value_type operator*() const
+    {
+      auto idx = mOrder[mIndex];
+      return (*mData)[idx.getSource()][idx.getIndex()].deId;
+    }
   };
 
   //_______________________________________________
@@ -161,35 +192,38 @@ class CTFHelper
   {
    public:
     using _Iter<Iter_colId, ColumnData, uint8_t>::_Iter;
-    value_type operator*() const { return mData[mIndex].columnId; }
+    value_type operator*() const
+    {
+      auto idx = mOrder[mIndex];
+      return (*mData)[idx.getSource()][idx.getIndex()].columnId;
+    }
   };
 
   //<<< =========================== ITERATORS ========================================
 
-  Iter_bcIncROF begin_bcIncROF() const { return Iter_bcIncROF(mROFData, false); }
-  Iter_bcIncROF end_bcIncROF() const { return Iter_bcIncROF(mROFData, true); }
+  Iter_bcIncROF begin_bcIncROF() const { return Iter_bcIncROF(mTFData.rofDataRefs, mTFData.rofData, false); }
+  Iter_bcIncROF end_bcIncROF() const { return Iter_bcIncROF(mTFData.rofDataRefs, mTFData.rofData, true); }
 
-  Iter_orbitIncROF begin_orbitIncROF() const { return Iter_orbitIncROF(mROFData, false); }
-  Iter_orbitIncROF end_orbitIncROF() const { return Iter_orbitIncROF(mROFData, true); }
+  Iter_orbitIncROF begin_orbitIncROF() const { return Iter_orbitIncROF(mTFData.rofDataRefs, mTFData.rofData, false); }
+  Iter_orbitIncROF end_orbitIncROF() const { return Iter_orbitIncROF(mTFData.rofDataRefs, mTFData.rofData, true); }
 
-  Iter_entriesROF begin_entriesROF() const { return Iter_entriesROF(mROFData, false); }
-  Iter_entriesROF end_entriesROF() const { return Iter_entriesROF(mROFData, true); }
+  Iter_entriesROF begin_entriesROF() const { return Iter_entriesROF(mTFData.rofDataRefs, mTFData.rofData, false); }
+  Iter_entriesROF end_entriesROF() const { return Iter_entriesROF(mTFData.rofDataRefs, mTFData.rofData, true); }
 
-  Iter_evtypeROF begin_evtypeROF() const { return Iter_evtypeROF(mROFData, false); }
-  Iter_evtypeROF end_evtypeROF() const { return Iter_evtypeROF(mROFData, true); }
+  Iter_evtypeROF begin_evtypeROF() const { return Iter_evtypeROF(mTFData.rofDataRefs, mTFData.rofData, false); }
+  Iter_evtypeROF end_evtypeROF() const { return Iter_evtypeROF(mTFData.rofDataRefs, mTFData.rofData, true); }
 
-  Iter_pattern begin_pattern() const { return Iter_pattern(mColData, false); }
-  Iter_pattern end_pattern() const { return Iter_pattern(mColData, true); }
+  Iter_pattern begin_pattern() const { return Iter_pattern(mTFData.colDataRefs, mTFData.colData, false); }
+  Iter_pattern end_pattern() const { return Iter_pattern(mTFData.colDataRefs, mTFData.colData, true); }
 
-  Iter_deId begin_deId() const { return Iter_deId(mColData, false); }
-  Iter_deId end_deId() const { return Iter_deId(mColData, true); }
+  Iter_deId begin_deId() const { return Iter_deId(mTFData.colDataRefs, mTFData.colData, false); }
+  Iter_deId end_deId() const { return Iter_deId(mTFData.colDataRefs, mTFData.colData, true); }
 
-  Iter_colId begin_colId() const { return Iter_colId(mColData, false); }
-  Iter_colId end_colId() const { return Iter_colId(mColData, true); }
+  Iter_colId begin_colId() const { return Iter_colId(mTFData.colDataRefs, mTFData.colData, false); }
+  Iter_colId end_colId() const { return Iter_colId(mTFData.colDataRefs, mTFData.colData, true); }
 
  private:
-  const gsl::span<const o2::mid::ROFRecord> mROFData;
-  const gsl::span<const o2::mid::ColumnData> mColData;
+  const TFData& mTFData;
 };
 
 } // namespace mid
