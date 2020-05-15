@@ -18,7 +18,7 @@ namespace o2
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getMCHDigitizerSpec(int channel);
+o2::framework::DataProcessorSpec getMCHDigitizerSpec(int channel, bool mctruth = true);
 
 } // end namespace mch
 } // end namespace o2

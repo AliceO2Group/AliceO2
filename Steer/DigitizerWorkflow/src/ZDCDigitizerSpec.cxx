@@ -104,7 +104,9 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // send out to next stage
     pc.outputs().snapshot(Output{"ZDC", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"ZDC", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"ZDC", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
+    if (pc.outputs().isAllowed({"ZDC", "DIGITLBL", 0})) {
+      pc.outputs().snapshot(Output{"ZDC", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
+    }
 
     LOG(INFO) << "ZDC: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"ZDC", "ROMode", 0, Lifetime::Timeframe}, mROMode);
@@ -126,21 +128,26 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 };
 
-o2::framework::DataProcessorSpec getZDCDigitizerSpec(int channel)
+o2::framework::DataProcessorSpec getZDCDigitizerSpec(int channel, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("ZDC", "DIGITSBC", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "DIGITSCH", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("ZDC", "DIGITLBL", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("ZDC", "ROMode", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "ZDCDigitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{OutputSpec{"ZDC", "DIGITSBC", 0, Lifetime::Timeframe},
-            OutputSpec{"ZDC", "DIGITSCH", 0, Lifetime::Timeframe},
-            OutputSpec{"ZDC", "DIGITLBL", 0, Lifetime::Timeframe},
-            OutputSpec{"ZDC", "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
 
     AlgorithmSpec{adaptFromTask<ZDCDPLDigitizerTask>()},
     Options{}};

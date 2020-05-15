@@ -72,7 +72,7 @@ class DigitizerSpec : public o2::base::BaseDPLDigitizer
 
 /// \brief Create new digitizer spec
 /// \return Digitizer spec
-o2::framework::DataProcessorSpec getCPVDigitizerSpec(int channel);
+o2::framework::DataProcessorSpec getCPVDigitizerSpec(int channel, bool mctruth = true);
 
 } // end namespace cpv
 } // end namespace o2
