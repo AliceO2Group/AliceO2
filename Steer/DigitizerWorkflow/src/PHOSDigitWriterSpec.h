@@ -28,7 +28,7 @@ namespace phos
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getPHOSDigitWriterSpec()
+o2::framework::DataProcessorSpec getPHOSDigitWriterSpec(bool mctruth)
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
@@ -38,7 +38,7 @@ o2::framework::DataProcessorSpec getPHOSDigitWriterSpec()
                                 1,
                                 BranchDefinition<std::vector<o2::phos::Digit>>{InputSpec{"phosdigits", "PHS", "DIGITS"}, "PHOSDigit"},
                                 BranchDefinition<std::vector<o2::phos::TriggerRecord>>{InputSpec{"phosdigitstrigrec", "PHS", "DIGITTRIGREC"}, "PHOSDigitTrigRecords"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>>{InputSpec{"phosdigitsmc", "PHS", "DIGITSMCTR"}, "PHOSDigitMCTruth"})();
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>>{InputSpec{"phosdigitsmc", "PHS", "DIGITSMCTR"}, "PHOSDigitMCTruth", mctruth ? 1 : 0})();
 }
 
 } // namespace phos

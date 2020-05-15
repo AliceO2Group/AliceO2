@@ -29,7 +29,7 @@ namespace ft0
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getFT0DigitWriterSpec()
+o2::framework::DataProcessorSpec getFT0DigitWriterSpec(bool mctruth)
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
@@ -39,7 +39,7 @@ o2::framework::DataProcessorSpec getFT0DigitWriterSpec()
                                 1,
                                 BranchDefinition<std::vector<o2::ft0::Digit>>{InputSpec{"digitBCinput", "FT0", "DIGITSBC"}, "FT0DIGITSBC"},
                                 BranchDefinition<std::vector<o2::ft0::ChannelData>>{InputSpec{"digitChinput", "FT0", "DIGITSCH"}, "FT0DIGITSCH"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>>{InputSpec{"labelinput", "FT0", "DIGITSMCTR"}, "FT0DIGITSMCTR"})();
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>>{InputSpec{"labelinput", "FT0", "DIGITSMCTR"}, "FT0DIGITSMCTR", mctruth ? 1 : 0})();
 }
 
 } // namespace ft0

@@ -26,7 +26,7 @@ namespace hmpid
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getHMPIDDigitWriterSpec()
+o2::framework::DataProcessorSpec getHMPIDDigitWriterSpec(bool mctruth = true)
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
@@ -35,7 +35,7 @@ o2::framework::DataProcessorSpec getHMPIDDigitWriterSpec()
                                 "o2sim",
                                 1,
                                 BranchDefinition<std::vector<o2::hmpid::Digit>>{InputSpec{"digitinput", "HMP", "DIGITS"}, "HMPDigit"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"labelinput", "HMP", "DIGITLBL"}, "HMPDigitLabels"})();
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"labelinput", "HMP", "DIGITLBL"}, "HMPDigitLabels", mctruth ? 1 : 0})();
 }
 
 } // end namespace hmpid

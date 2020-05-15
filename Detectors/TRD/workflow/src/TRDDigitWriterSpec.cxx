@@ -28,7 +28,7 @@ namespace trd
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getTRDDigitWriterSpec()
+o2::framework::DataProcessorSpec getTRDDigitWriterSpec(bool mctruth)
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
@@ -38,7 +38,7 @@ o2::framework::DataProcessorSpec getTRDDigitWriterSpec()
                                 1,
                                 BranchDefinition<std::vector<o2::trd::Digit>>{InputSpec{"input", "TRD", "DIGITS"}, "TRDDigit"},
                                 BranchDefinition<std::vector<o2::trd::TriggerRecord>>{InputSpec{"trinput", "TRD", "TRGRDIG"}, "TriggerRecord"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>>{InputSpec{"labelinput", "TRD", "LABELS"}, "TRDMCLabels"})();
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>>{InputSpec{"labelinput", "TRD", "LABELS"}, "TRDMCLabels", mctruth ? 1 : 0})();
 }
 
 } // end namespace trd

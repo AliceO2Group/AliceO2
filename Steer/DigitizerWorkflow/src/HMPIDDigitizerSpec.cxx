@@ -119,8 +119,9 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     // send out to next stage
     pc.outputs().snapshot(Output{"HMP", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
-    pc.outputs().snapshot(Output{"HMP", "DIGITLBL", 0, Lifetime::Timeframe}, labelAccum);
-
+    if (pc.outputs().isAllowed({"HMP", "DIGITLBL", 0})) {
+      pc.outputs().snapshot(Output{"HMP", "DIGITLBL", 0, Lifetime::Timeframe}, labelAccum);
+    }
     LOG(INFO) << "HMP: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"HMP", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
@@ -139,20 +140,25 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 };
 
-o2::framework::DataProcessorSpec getHMPIDDigitizerSpec(int channel)
+o2::framework::DataProcessorSpec getHMPIDDigitizerSpec(int channel, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("HMP", "DIGITS", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("HMP", "DIGITLBL", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("HMP", "ROMode", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "HMPIDDigitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{OutputSpec{"HMP", "DIGITS", 0, Lifetime::Timeframe},
-            OutputSpec{"HMP", "DIGITLBL", 0, Lifetime::Timeframe},
-            OutputSpec{"HMP", "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
     AlgorithmSpec{adaptFromTask<HMPIDDPLDigitizerTask>()}, Options{}};
 }
 

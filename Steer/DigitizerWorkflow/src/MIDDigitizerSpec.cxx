@@ -101,8 +101,9 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     LOG(DEBUG) << "MID: Sending " << digitsAccum.size() << " digits.";
     pc.outputs().snapshot(Output{"MID", "DIGITS", 0, Lifetime::Timeframe}, mDigitsMerger.getColumnData());
     pc.outputs().snapshot(Output{"MID", "DIGITSROF", 0, Lifetime::Timeframe}, mDigitsMerger.getROFRecords());
-    pc.outputs().snapshot(Output{"MID", "DIGITLABELS", 0, Lifetime::Timeframe}, mDigitsMerger.getMCContainer());
-
+    if (pc.outputs().isAllowed({"MID", "DIGITLABELS", 0})) {
+      pc.outputs().snapshot(Output{"MID", "DIGITLABELS", 0, Lifetime::Timeframe}, mDigitsMerger.getMCContainer());
+    }
     LOG(DEBUG) << "MID: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"MID", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
@@ -119,21 +120,27 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 };
 
-o2::framework::DataProcessorSpec getMIDDigitizerSpec(int channel)
+o2::framework::DataProcessorSpec getMIDDigitizerSpec(int channel, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
+
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("MID", "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("MID", "DIGITSROF", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("MID", "DIGITLABELS", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("MID", "ROMode", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "MIDDigitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{OutputSpec{"MID", "DIGITS", 0, Lifetime::Timeframe},
-            OutputSpec{"MID", "DIGITLABELS", 0, Lifetime::Timeframe},
-            OutputSpec{"MID", "DIGITSROF", 0, Lifetime::Timeframe},
-            OutputSpec{"MID", "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
 
     AlgorithmSpec{adaptFromTask<MIDDPLDigitizerTask>()},
     Options{}};

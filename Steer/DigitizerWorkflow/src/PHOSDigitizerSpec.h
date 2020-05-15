@@ -73,7 +73,7 @@ class DigitizerSpec : public o2::base::BaseDPLDigitizer
 
 /// \brief Create new digitizer spec
 /// \return Digitizer spec
-o2::framework::DataProcessorSpec getPHOSDigitizerSpec(int channel);
+o2::framework::DataProcessorSpec getPHOSDigitizerSpec(int channel, bool mctruth = true);
 
 } // end namespace phos
 } // end namespace o2

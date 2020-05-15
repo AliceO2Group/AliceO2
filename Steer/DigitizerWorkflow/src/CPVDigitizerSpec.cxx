@@ -136,7 +136,9 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   // here we have all digits and we can send them to consumer (aka snapshot it onto output)
   pc.outputs().snapshot(Output{"CPV", "DIGITS", 0, Lifetime::Timeframe}, mDigits);
   pc.outputs().snapshot(Output{"CPV", "DIGITTRIGREC", 0, Lifetime::Timeframe}, triggers);
-  pc.outputs().snapshot(Output{"CPV", "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
+  if (pc.outputs().isAllowed({"CPV", "DIGITSMCTR", 0})) {
+    pc.outputs().snapshot(Output{"CPV", "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
+  }
   // CPV is always a triggering detector
   const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::TRIGGERING;
   LOG(DEBUG) << "CPV: Sending ROMode= " << roMode << " to GRPUpdater";
@@ -151,7 +153,7 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   mFinished = true;
 }
 
-DataProcessorSpec getCPVDigitizerSpec(int channel)
+DataProcessorSpec getCPVDigitizerSpec(int channel, bool mctruth)
 {
 
   // create the full data processor spec using
@@ -159,12 +161,17 @@ DataProcessorSpec getCPVDigitizerSpec(int channel)
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("CPV", "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("CPV", "DIGITTRIGREC", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("CPV", "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("CPV", "ROMode", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "CPVDigitizer", Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
-    Outputs{OutputSpec{"CPV", "DIGITS", 0, Lifetime::Timeframe},
-            OutputSpec{"CPV", "DIGITTRIGREC", 0, Lifetime::Timeframe},
-            OutputSpec{"CPV", "DIGITSMCTR", 0, Lifetime::Timeframe},
-            OutputSpec{"CPV", "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
     AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>()},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}};
 }

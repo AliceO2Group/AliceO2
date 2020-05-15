@@ -19,7 +19,7 @@ namespace emcal
 
 /// \brief Create new digits writer spec
 /// \return digits writer spec
-o2::framework::DataProcessorSpec getEMCALDigitWriterSpec();
+o2::framework::DataProcessorSpec getEMCALDigitWriterSpec(bool mctruth = true);
 
 } // end namespace emcal
 } // end namespace o2
