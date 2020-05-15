@@ -25,7 +25,7 @@
 #if defined(__APPLE__) && __has_include(<os/signpost.h>) && (__MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_10_15)
 #include <os/signpost.h>
 #include <os/log.h>
-#ifdef OS_LOG_TARGET_HAS_10_15_FEATURES
+#if defined(OS_LOG_TARGET_HAS_10_15_FEATURES) && defined(OS_LOG_CATEGORY_DYNAMIC_TRACING)
 #define O2_SIGNPOST_TYPE OS_LOG_CATEGORY_DYNAMIC_TRACING
 #else
 #define O2_SIGNPOST_TYPE OS_LOG_CATEGORY_POINTS_OF_INTEREST
