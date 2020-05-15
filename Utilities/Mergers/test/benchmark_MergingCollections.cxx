@@ -179,7 +179,7 @@ static void BM_mergingCollectionsTTree(benchmark::State& state)
     collection->SetOwner(true);
     for (size_t i = 0; i < collectionSize; i++) {
       TTree* t = createTree(std::to_string(i));
-      for (size_t entry = 0; entry < 50000; entry++) {
+      for (size_t entry = 0; entry < 6250; entry++) {
         gen.RndmArray(5, randomArray);
         branch1 = {static_cast<Int_t>(randomArray[0]), static_cast<Long64_t>(randomArray[1]), static_cast<Float_t>(randomArray[2]), randomArray[3]};
         branch2 = randomArray[4];
