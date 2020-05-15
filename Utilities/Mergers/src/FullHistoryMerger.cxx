@@ -34,8 +34,14 @@ FullHistoryMerger::FullHistoryMerger(const MergerConfig& config, const header::D
   : mConfig(config),
     mSubSpec(subSpec)
 {
-  mCollector = monitoring::MonitoringFactory::Get("infologger:///debug?qc");
-  //  mCollector->enableProcessMonitoring();
+  mCollector = monitoring::MonitoringFactory::Get("infologger:///debug?mergers");
+}
+
+FullHistoryMerger::~FullHistoryMerger()
+{
+  delete mFirstObjectSerialized.second.header;
+  delete mFirstObjectSerialized.second.payload;
+  delete mFirstObjectSerialized.second.spec;
 }
 
 void FullHistoryMerger::init(framework::InitContext& ictx)
