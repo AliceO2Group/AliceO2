@@ -80,6 +80,22 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   mergersBuilder.generateInfrastructure(specs);
 
+  auto printHisto = [](const TH1* histo) {
+    if (histo) {
+      std::string bins = "BINS:";
+      for (int i = 1; i <= histo->GetNbinsX(); i++) {
+        bins += " " + std::to_string((int)histo->GetBinContent(i));
+        if (i >= 100) {
+          LOG(INFO) << "Trimming the output to 100 entries, total is: " << histo->GetNbinsX();
+          break;
+        }
+      }
+      LOG(INFO) << bins;
+    } else {
+      LOG(INFO) << "they asked me to print a nullptr";
+    }
+  };
+
   // clang-format off
   DataProcessorSpec printer{
     "printer-bins",
@@ -88,18 +104,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     },
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::InitCallback) [](InitContext&) {
-        return (AlgorithmSpec::ProcessCallback) [](ProcessingContext& processingContext) mutable {
-          auto histo = processingContext.inputs().get<TH1F*>("histo");
-          std::string bins = "BINS:";
-          for (int i = 1; i <= histo->GetNbinsX(); i++) {
-            bins += " " + std::to_string((int) histo->GetBinContent(i));
-            if (i >= 100) {
-              LOG(INFO) << "Trimming the output to 100 entries, total is: " << histo->GetNbinsX();
-              break;
-            }
+      (AlgorithmSpec::InitCallback) [&](InitContext&) {
+        return (AlgorithmSpec::ProcessCallback) [&](ProcessingContext& processingContext) mutable {
+          auto ref = processingContext.inputs().get<DataRef>("histo");
+          auto tobject = DataRefUtils::as<TObject>(ref);
+          if (auto histo = dynamic_cast<const TH1F*>(tobject.get())) {
+            printHisto(histo);
+          } else if (auto collection = dynamic_cast<TCollection*>(tobject.get())) {
+            LOG(INFO) << "Received a collection, printing the first and the last histogram, total is: " << std::to_string(collection->GetEntries());
+            printHisto(dynamic_cast<TH1*>(collection->begin()()));
+            printHisto(dynamic_cast<TH1*>(collection->FindObject(std::to_string(collection->GetEntries() - 1).c_str())));
+            collection->SetOwner(true);
           }
-          LOG(INFO) << bins;
         };
       }
     }
