@@ -64,8 +64,10 @@ Bool_t GeneratorPythia8::Init()
   /** user hooks via configuration macro **/
   if (!mHooksFileName.empty()) {
     auto hooks = GetFromMacro<Pythia8::UserHooks*>(mHooksFileName, mHooksFuncName, "Pythia8::UserHooks*", "pythia8_user_hooks");
-    if (!hooks)
+    if (!hooks) {
       LOG(FATAL) << "Failed to init \'Pythia8\': problem with user hooks configuration ";
+      return false;
+    }
 #if PYTHIA_VERSION_INTEGER < 8300
     mPythia.setUserHooksPtr(hooks);
 #else
