@@ -58,6 +58,8 @@ class FullHistoryMerger : public framework::Task
   // stats
   int mTotalObjectsMerged = 0;
   int mObjectsMerged = 0;
+  int mTotalUpdatesReceived = 0;
+  int mUpdatesReceived = 0;
 
  private:
   void updateCache(const framework::DataRef& ref);
