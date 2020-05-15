@@ -54,16 +54,15 @@ class GBTOutputHandler
   std::vector<ROFRecord> mROFRecords{}; /// List of ROF records
   uint16_t mFeeId{0};                   /// FEE ID
   InteractionRecord mIRFirstPage{};     /// Interaction record of the first page
+  uint16_t mReceivedCalibration{0};     /// Flag to test if a calibration trigger was received
 
-  std::array<InteractionRecord, crateparams::sNELinksPerGBT> mIRs{}; /// Interaction records per link
-  std::array<uint16_t, crateparams::sNELinksPerGBT> mCalibClocks{};  /// Calibration clock
-  std::array<uint16_t, crateparams::sNELinksPerGBT> mLastClock{};    /// Last clock per link
+  std::array<InteractionRecord, crateparams::sNELinksPerGBT> mIRs{};     /// Interaction records per link
+  std::array<uint16_t, crateparams::sNELinksPerGBT> mExpectedFETClock{}; /// Expected FET clock
+  std::array<uint16_t, crateparams::sNELinksPerGBT> mLastClock{};        /// Last clock per link
 
-  void addBoard(size_t ilink, const ELinkDecoder& decoder);
-  void addLoc(size_t ilink, const ELinkDecoder& decoder);
+  void addLoc(size_t ilink, const ELinkDecoder& decoder, EventType eventType, uint16_t correctedClock);
   bool checkLoc(size_t ilink, const ELinkDecoder& decoder);
-  bool updateIR(size_t ilink, const ELinkDecoder& decoder);
-  bool invertPattern(LocalBoardRO& loc);
+  bool processTrigger(size_t ilink, const ELinkDecoder& decoder, EventType& eventType, uint16_t& correctedClock);
 };
 } // namespace mid
 } // namespace o2
