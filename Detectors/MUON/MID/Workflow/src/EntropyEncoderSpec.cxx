@@ -16,8 +16,12 @@
 #include "MIDWorkflow/EntropyEncoderSpec.h"
 
 #include <vector>
+#include <unordered_map>
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/DataRef.h"
+#include "Framework/InputRecordWalker.h"
+#include "Headers/DataHeader.h"
 #include "DetectorsBase/CTFCoderBase.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 
@@ -46,11 +50,30 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-  auto rofs = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>("rofs");
-  auto cols = pc.inputs().get<gsl::span<o2::mid::ColumnData>>("cols");
 
-  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"MID", "CTFDATA", 0, Lifetime::Timeframe});
-  mCTFCoder.encode(buffer, rofs, cols);
+  CTFHelper::TFData tfData;
+  std::vector<InputSpec>
+    filter = {
+      {"check", ConcreteDataTypeMatcher{header::gDataOriginMID, "DATA"}, Lifetime::Timeframe},
+      {"check", ConcreteDataTypeMatcher{header::gDataOriginMID, "DATAROF"}, Lifetime::Timeframe},
+    };
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), filter)) {
+    auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
+    if (dh->subSpecification >= NEvTypes) {
+      throw std::runtime_error(fmt::format("SubSpecification={} does not match EvenTypes for {}", dh->subSpecification, dh->dataDescription.as<std::string>()));
+    }
+    if (DataRefUtils::match(inputRef, "cols")) {
+      tfData.colData[dh->subSpecification] = pc.inputs().get<gsl::span<o2::mid::ColumnData>>(inputRef);
+    }
+    if (DataRefUtils::match(inputRef, "rofs")) {
+      tfData.rofData[dh->subSpecification] = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>(inputRef);
+    }
+  }
+  // build references for looping over the data in BC increasing direction
+  tfData.buildReferences();
+
+  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{header::gDataOriginMID, "CTFDATA", 0, Lifetime::Timeframe});
+  mCTFCoder.encode(buffer, tfData);
   auto eeb = CTF::get(buffer.data()); // cast to container pointer
   eeb->compactify();                  // eliminate unnecessary padding
   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
@@ -68,13 +91,13 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getEntropyEncoderSpec()
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("rofs", "MID", "DATAROF", 0, Lifetime::Timeframe);
-  inputs.emplace_back("cols", "MID", "DATA", 0, Lifetime::Timeframe);
+  inputs.emplace_back("rofs", ConcreteDataTypeMatcher(header::gDataOriginMID, "DATAROF"), Lifetime::Timeframe);
+  inputs.emplace_back("cols", ConcreteDataTypeMatcher(header::gDataOriginMID, "DATA"), Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "mid-entropy-encoder",
     inputs,
-    Outputs{{"MID", "CTFDATA", 0, Lifetime::Timeframe}},
+    Outputs{{header::gDataOriginMID, "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF encoding dictionary"}}}};
 }

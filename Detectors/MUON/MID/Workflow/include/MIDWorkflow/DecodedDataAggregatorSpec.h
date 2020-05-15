@@ -9,13 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDWorkflow/RawAggregatorSpec.h
-/// \brief  Data processor spec for MID raw data aggregator devices
+/// \file   MIDWorkflow/DecodedDataAggregatorSpec.h
+/// \brief  Data processor spec for MID decoded data aggregator devices
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   26 February 2020
 
-#ifndef O2_MID_RAWAGGREGATORSPEC_H
-#define O2_MID_RAWAGGREGATORSPEC_H
+#ifndef O2_MID_DecodedDataAggregatorSpec_H
+#define O2_MID_DecodedDataAggregatorSpec_H
 
 #include "Framework/DataProcessorSpec.h"
 
@@ -23,8 +23,8 @@ namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getRawAggregatorSpec();
+framework::DataProcessorSpec getDecodedDataAggregatorSpec();
 } // namespace mid
 } // namespace o2
 
-#endif //O2_MID_RAWAGGREGATORSPEC_H
+#endif //O2_MID_DecodedDataAggregatorSpec_H

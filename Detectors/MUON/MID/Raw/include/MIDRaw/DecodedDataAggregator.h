@@ -20,9 +20,9 @@
 #include <map>
 #include <gsl/gsl>
 #include "DataFormatsMID/ColumnData.h"
+#include "DataFormatsMID/ROBoard.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/CrateMapper.h"
-#include "DataFormatsMID/ROBoard.h"
 
 namespace o2
 {
@@ -34,19 +34,20 @@ class DecodedDataAggregator
   void process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords);
 
   /// Gets the vector of data
-  const std::vector<ColumnData>& getData() { return mData; }
+  const std::vector<ColumnData>& getData(EventType eventType = EventType::Standard) { return mData[static_cast<int>(eventType)]; }
 
   /// Gets the vector of data RO frame records
-  const std::vector<ROFRecord>& getROFRecords() { return mROFRecords; }
+  const std::vector<ROFRecord>& getROFRecords(EventType eventType = EventType::Standard) { return mROFRecords[static_cast<int>(eventType)]; }
 
  private:
-  void addData(const ROBoard& col, size_t firstEntry);
-  ColumnData& FindColumnData(uint8_t deId, uint8_t columnId, size_t firstEntry);
+  void addData(const ROBoard& col, size_t firstEntry, size_t evtTypeIdx);
+  ColumnData& FindColumnData(uint8_t deId, uint8_t columnId, size_t firstEntry, size_t evtTypeIdx);
 
-  std::map<uint64_t, std::vector<size_t>> mOrderIndexes; /// Map for time ordering the entries
-  std::vector<ColumnData> mData{};                       /// Vector of output column data
-  std::vector<ROFRecord> mROFRecords{};                  /// Vector of ROF records
-  CrateMapper mCrateMapper;                              /// Mapper to convert the RO info to ColumnData
+  std::array<std::map<uint64_t, std::vector<size_t>>, 3> mEventIndexes{}; /// Event indexes
+
+  std::array<std::vector<ColumnData>, 3> mData{};      /// Vector of output column data
+  std::array<std::vector<ROFRecord>, 3> mROFRecords{}; /// Vector of ROF records
+  CrateMapper mCrateMapper;                            /// Mapper to convert the RO info to ColumnData
 };
 } // namespace mid
 } // namespace o2

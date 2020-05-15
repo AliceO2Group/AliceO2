@@ -43,22 +43,22 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
-  void encode(VEC& buff, const gsl::span<const ROFRecord>& rofData, const gsl::span<const ColumnData>& colData);
+  void encode(VEC& buff, const CTFHelper::TFData& tfData);
 
   /// entropy decode data from buffer with CTF
   template <typename VROF, typename VCOL>
-  void decode(const CTF::base& ec, VROF& rofVec, VCOL& colVec);
+  void decode(const CTF::base& ec, std::array<VROF, NEvTypes>& rofVec, std::array<VCOL, NEvTypes>& colVec);
 
   void createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
 
  private:
   void appendToTree(TTree& tree, CTF& ec);
-  void readFromTree(TTree& tree, int entry, std::vector<ROFRecord>& rofVec, std::vector<ColumnData>& colVec);
+  void readFromTree(TTree& tree, int entry, std::array<std::vector<ROFRecord>, NEvTypes>& rofVec, std::array<std::vector<ColumnData>, NEvTypes>& colVec);
 };
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofData, const gsl::span<const ColumnData>& colData)
+void CTFCoder::encode(VEC& buff, const CTFHelper::TFData& tfData)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -71,7 +71,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofData, cons
     MD::EENCODE, // BLC_deId
     MD::EENCODE  // BLC_colId
   };
-  CTFHelper helper(rofData, colData);
+  CTFHelper helper(tfData);
 
   // book output size with some margin
   auto szIni = sizeof(CTFHeader) + helper.getSize() * 2. / 3; // will be autoexpanded if needed
@@ -101,7 +101,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofData, cons
 
 /// decode entropy-encoded clusters to standard compact clusters
 template <typename VROF, typename VCOL>
-void CTFCoder::decode(const CTF::base& ec, VROF& rofVec, VCOL& colVec)
+void CTFCoder::decode(const CTF::base& ec, std::array<VROF, NEvTypes>& rofVec, std::array<VCOL, NEvTypes>& colVec)
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
@@ -122,10 +122,12 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofVec, VCOL& colVec)
   DECODEMID(colId,       CTF::BLC_colId);
   // clang-format on
   //
-  rofVec.clear();
-  colVec.clear();
-  rofVec.reserve(header.nROFs);
-  colVec.reserve(header.nColumns);
+  for (uint32_t i = 0; i < NEvTypes; i++) {
+    rofVec[i].clear();
+    colVec[i].clear();
+    rofVec[i].reserve(header.nROFs);
+    colVec[i].reserve(header.nColumns);
+  }
 
   uint32_t firstEntry = 0, rofCount = 0, colCount = 0, pCount = 0;
   o2::InteractionRecord ir(header.firstBC, header.firstOrbit);
@@ -138,14 +140,14 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofVec, VCOL& colVec)
     } else {
       ir.bc += bcInc[irof];
     }
-
-    firstEntry = colVec.size();
+    auto& cv = colVec[evType[irof]];
+    firstEntry = cv.size();
     for (uint8_t ic = 0; ic < entries[irof]; ic++) {
-      colVec.emplace_back(ColumnData{deId[colCount], colId[colCount], std::array{pattern[pCount], pattern[pCount + 1], pattern[pCount + 2], pattern[pCount + 3], pattern[pCount + 4]}});
+      cv.emplace_back(ColumnData{deId[colCount], colId[colCount], std::array{pattern[pCount], pattern[pCount + 1], pattern[pCount + 2], pattern[pCount + 3], pattern[pCount + 4]}});
       pCount += 5;
       colCount++;
     }
-    rofVec.emplace_back(ROFRecord{ir, EventType(evType[irof]), firstEntry, entries[irof]});
+    rofVec[evType[irof]].emplace_back(ROFRecord{ir, EventType(evType[irof]), firstEntry, entries[irof]});
   }
   assert(colCount == header.nColumns);
 }

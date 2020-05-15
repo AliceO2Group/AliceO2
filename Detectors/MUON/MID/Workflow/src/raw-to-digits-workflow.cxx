@@ -19,7 +19,7 @@
 #include "Framework/Variant.h"
 #include "Framework/ConfigParamSpec.h"
 #include "MIDWorkflow/RawDecoderSpec.h"
-#include "MIDWorkflow/RawAggregatorSpec.h"
+#include "MIDWorkflow/DecodedDataAggregatorSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
@@ -64,7 +64,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::framework::WorkflowSpec specs;
   specs.emplace_back(o2::mid::getRawDecoderSpec(false, feeIdConfig, crateMasks, electronicsDelay, askDISTSTF));
   if (!decodeOnly) {
-    specs.emplace_back(o2::mid::getRawAggregatorSpec());
+    specs.emplace_back(o2::mid::getDecodedDataAggregatorSpec());
   }
   return specs;
 }
