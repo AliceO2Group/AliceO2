@@ -116,8 +116,8 @@ static void BM_mergingCollectionsTHNSparse(benchmark::State& state)
   const Double_t mins[dim] = {min, min, min, min, min, min, min, min, min, min};
   const Double_t maxs[dim] = {max, max, max, max, max, max, max, max, max, max};
 
-  TRandomMT64 gen;
-  gen.SetSeed(std::time(nullptr));
+  TRandomMixMax gen;
+  gen.SetSeed(std::random_device()());
   Double_t randomArray[dim];
 
   for (auto _ : state) {
@@ -130,7 +130,7 @@ static void BM_mergingCollectionsTHNSparse(benchmark::State& state)
       auto* h = new THnSparseI(("test" + std::to_string(i)).c_str(), "test", dim, binsDims, mins, maxs);
       for (size_t entry = 0; entry < 50000; entry++) {
         gen.RndmArray(dim, randomArray);
-        for (double r : randomArray) {
+        for (double& r : randomArray) {
           r *= max;
         }
         h->Fill(randomArray);
@@ -169,8 +169,8 @@ static void BM_mergingCollectionsTTree(benchmark::State& state)
     return tree;
   };
 
-  TRandomMT64 gen;
-  gen.SetSeed(std::time(nullptr));
+  TRandomMixMax gen;
+  gen.SetSeed(std::random_device()());
   Double_t randomArray[5];
 
   for (auto _ : state) {
@@ -208,8 +208,8 @@ static void BM_mergingPODCollections(benchmark::State& state)
   TF1* uni = new TF1("uni", "1", 0, 1000000);
 
   const size_t randoms = 50000;
-  TRandomMT64 gen;
-  gen.SetSeed(std::time(nullptr));
+  TRandomMixMax gen;
+  gen.SetSeed(std::random_device()());
   Double_t randomArray[randoms];
 
   for (size_t i = 0; i < collectionSize; i++) {
@@ -259,8 +259,8 @@ static void BM_mergingBoostRegular1DCollections(benchmark::State& state)
   TF1* uni = new TF1("uni", "1", 0, 1000000);
 
   const size_t randoms = 50000;
-  TRandomMT64 gen;
-  gen.SetSeed(std::time(nullptr));
+  TRandomMixMax gen;
+  gen.SetSeed(std::random_device()());
   Double_t randomArray[randoms];
 
   for (size_t i = 0; i < collectionSize; i++) {
@@ -301,8 +301,8 @@ static void BM_mergingBoostRegular2DCollections(benchmark::State& state)
   TF1* uni = new TF1("uni", "1", 0, 1000000);
 
   const size_t randoms = 50000;
-  TRandomMT64 gen;
-  gen.SetSeed(std::time(nullptr));
+  TRandomMixMax gen;
+  gen.SetSeed(std::random_device()());
   Double_t randomArrayX[randoms];
   Double_t randomArrayY[randoms];
 

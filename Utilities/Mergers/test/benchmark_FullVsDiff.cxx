@@ -136,8 +136,8 @@ static void BM_MergingTHnSparse(benchmark::State& state)
   const Double_t mins[dim] = {min, min, min, min, min, min, min, min, min, min};
   const Double_t maxs[dim] = {max, max, max, max, max, max, max, max, max, max};
 
-  TRandomMT64 gen;
-  gen.SetSeed(std::time(nullptr));
+  TRandomMixMax gen;
+  gen.SetSeed(std::random_device()());
   Double_t randomArray[dim];
   auto* m = new THnSparseI("merged", "merged", dim, binsDims, mins, maxs);
   for (auto _ : state) {
@@ -192,8 +192,8 @@ static void BM_MergingTTree(benchmark::State& state)
     return tree;
   };
 
-  TRandomMT64 gen;
-  gen.SetSeed(std::time(nullptr));
+  TRandomMixMax gen;
+  gen.SetSeed(std::random_device()());
   Double_t randomArray[5];
   TTree* merged = createTree("merged");
 
