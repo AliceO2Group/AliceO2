@@ -18,9 +18,7 @@
 #include <vector>
 #include <string>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema, boost::property_tree::ptree& pt, boost::program_options::variables_map const& vmap)
@@ -68,5 +66,49 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema, b
   }
 }
 
-} // namespace framework
-} // namespace o2
+void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema, boost::property_tree::ptree& pt, boost::property_tree::ptree const& in)
+{
+  for (auto& spec : schema) {
+    // strip short version to get the correct key
+    std::string key = spec.name.substr(0, spec.name.find(","));
+    auto it = in.get_child_optional(key);
+    if (!it) {
+      continue;
+    }
+    auto& value = *it;
+    try {
+      switch (spec.type) {
+        case VariantType::Int:
+          pt.put(key, value.get_value<int>());
+          break;
+        case VariantType::Int64:
+          pt.put(key, value.get_value<int64_t>());
+          break;
+        case VariantType::Float:
+          pt.put(key, value.get_value<float>());
+          break;
+        case VariantType::Double:
+          pt.put(key, value.get_value<double>());
+          break;
+        case VariantType::String:
+          pt.put(key, value.get_value<std::string>());
+          break;
+        case VariantType::Bool:
+          pt.put(key, value.get_value<bool>());
+          break;
+        case VariantType::Unknown:
+        case VariantType::Empty:
+        default:
+          throw std::runtime_error("Unknown variant type");
+      }
+    } catch (std::runtime_error& re) {
+      throw re;
+    } catch (std::exception& e) {
+      throw std::invalid_argument(std::string("missing option: ") + key + " (" + e.what() + ")");
+    } catch (...) {
+      throw std::invalid_argument(std::string("missing option: ") + key);
+    }
+  }
+}
+
+} // namespace o2::framework
