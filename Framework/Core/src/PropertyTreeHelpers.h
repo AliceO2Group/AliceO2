@@ -7,17 +7,15 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef o2_framework_PropertyTreeHelpers_H_INCLUDED
-#define o2_framework_PropertyTreeHelpers_H_INCLUDED
+#ifndef O2_FRAMEWORK_PROPERTYTREEHELPERS_H_
+#define O2_FRAMEWORK_PROPERTYTREEHELPERS_H_
 
 #include "Framework/ConfigParamSpec.h"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/program_options/variables_map.hpp>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// Helpers to manipulate property_trees
@@ -26,9 +24,13 @@ struct PropertyTreeHelpers {
   /// @a tree with the contents of @a vmap, which is populated via boost
   /// program options.
   static void populate(std::vector<ConfigParamSpec> const& schema, boost::property_tree::ptree& tree, boost::program_options::variables_map const& vmap);
+
+  /// For all the options specified in @a schama, this fills
+  /// @a tree with the contents of @a in, which is another ptree
+  /// e.g. populated using ConfigurationInterface
+  static void populate(std::vector<ConfigParamSpec> const& schema, boost::property_tree::ptree& tree, boost::property_tree::ptree const& in);
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // o2_framework_PropertyTreeHelpers_H_INCLUDED
+#endif // O2_FRAMEWORK_PROPERTYTREEHELPERS_H_
