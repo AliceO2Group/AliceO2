@@ -17,18 +17,10 @@
 using namespace o2;
 using namespace o2::framework;
 
-namespace o2
-{
-namespace aod
-{
-using CollisionEvSelMult = soa::Join<aod::Collisions, aod::EvSels, aod::Mults>::iterator;
-}
-} // namespace o2
-
 struct MultiplicityQaTask {
   OutputObj<TH1F> hMultV0M{TH1F("hMultV0M", "", 55000, 0., 55000.)};
 
-  void process(aod::CollisionEvSelMult const& col)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Mults>::iterator const& col)
   {
     if (!col.alias()[0])
       return;
