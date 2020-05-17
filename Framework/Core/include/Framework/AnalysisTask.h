@@ -28,6 +28,7 @@
 #include "Framework/Traits.h"
 #include "Framework/VariantHelpers.h"
 #include "Framework/OutputObjHeader.h"
+#include "Framework/RootConfigParamHelpers.h"
 
 #include <arrow/compute/context.h>
 #include <arrow/compute/kernel.h>
@@ -252,6 +253,10 @@ struct Configurable {
   operator T()
   {
     return value;
+  }
+  T const* operator->() const
+  {
+    return &value;
   }
 };
 
@@ -784,13 +789,23 @@ template <typename T>
 struct OptionManager<Configurable<T>> {
   static bool appendOption(std::vector<ConfigParamSpec>& options, Configurable<T>& what)
   {
-    options.emplace_back(ConfigParamSpec{what.name, variant_trait_v<typename std::decay<T>::type>, what.value, {what.help}});
+    if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
+      options.emplace_back(ConfigParamSpec{what.name, variant_trait_v<typename std::decay<T>::type>, what.value, {what.help}});
+    } else {
+      auto specs = RootConfigParamHelpers::asConfigParamSpecs<T>(what.name, what.value);
+      options.insert(options.end(), specs.begin(), specs.end());
+    }
     return true;
   }
 
   static bool prepare(InitContext& context, Configurable<T>& what)
   {
-    what.value = context.options().get<T>(what.name.c_str());
+    if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
+      what.value = context.options().get<T>(what.name.c_str());
+    } else {
+      auto pt = context.options().get<boost::property_tree::ptree>(what.name.c_str());
+      what.value = RootConfigParamHelpers::as<T>(pt);
+    }
     return true;
   }
 };
