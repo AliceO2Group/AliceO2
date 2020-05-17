@@ -54,6 +54,8 @@
 #include "SimpleResourceManager.h"
 #include "WorkflowSerializationHelpers.h"
 
+#include <Configuration/ConfigurationInterface.h>
+#include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/MonitoringFactory.h>
 #include <InfoLogger/InfoLogger.hxx>
 
@@ -95,6 +97,7 @@
 #include <unistd.h>
 
 using namespace o2::monitoring;
+using namespace o2::configuration;
 using namespace AliceO2::InfoLogger;
 
 using namespace o2::framework;
@@ -662,6 +665,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
       optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("infologger://"), "monitoring backend info") //
         ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")       //
+        ("configuration", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                             //
         ("infologger-mode", bpo::value<std::string>()->default_value(""), "INFOLOGGER_MODE override");
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
@@ -677,6 +681,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     std::unique_ptr<ParallelContext> parallelContext;
     std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
     std::unique_ptr<CallbackService> callbackService;
+    std::unique_ptr<ConfigurationInterface> configurationService;
     std::unique_ptr<Monitoring> monitoringService;
     std::unique_ptr<InfoLogger> infoLoggerService;
     std::unique_ptr<InfoLoggerContext> infoLoggerContext;
@@ -688,6 +693,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
                                        &parallelContext,
                                        &simpleRawDeviceService,
                                        &callbackService,
+                                       &configurationService,
                                        &monitoringService,
                                        &infoLoggerService,
                                        &spec,
@@ -702,6 +708,9 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
       callbackService = std::make_unique<CallbackService>();
       monitoringService = MonitoringFactory::Get(r.fConfig.GetStringValue("monitoring-backend"));
+      if (r.fConfig.GetStringValue("configuration") != "command-line") {
+        configurationService = ConfigurationFactory::getConfiguration(r.fConfig.GetStringValue("configuration"));
+      }
       auto infoLoggerMode = r.fConfig.GetStringValue("infologger-mode");
       if (infoLoggerMode != "") {
         setenv("INFOLOGGER_MODE", r.fConfig.GetStringValue("infologger-mode").c_str(), 1);
@@ -716,6 +725,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       timesliceIndex = std::make_unique<TimesliceIndex>();
 
       serviceRegistry.registerService<Monitoring>(monitoringService.get());
+      serviceRegistry.registerService<ConfigurationInterface>(configurationService.get());
       serviceRegistry.registerService<InfoLogger>(infoLoggerService.get());
       serviceRegistry.registerService<RootFileService>(localRootFileService.get());
       serviceRegistry.registerService<ControlService>(textControlService.get());
