@@ -81,13 +81,12 @@ std::string getName(const TDataMember* dm, int index, int size)
   return namestream.str();
 }
 
-void ptreeToMember(boost::property_tree::ptree::const_assoc_iterator const& overrideValue,
+void ptreeToMember(boost::property_tree::ptree const& value,
                    char const* tname,
                    TDataMember const* dm,
                    void* ptr)
 {
   auto dt = dm->GetDataType();
-  auto& value = overrideValue->second;
   if (dt != nullptr) {
     switch (dt->GetType()) {
       case kChar_t: {
@@ -249,11 +248,11 @@ void RootConfigParamHelpers::fillFromPtree(TClass* cl, void* obj, boost::propert
     auto TS = dt ? dt->Size() : 0;
     char* ptr = ((char*)obj) + dm->GetOffset() + index * TS;
     const std::string name = getName(dm, index, size);
-    auto overrideValue = pt.find(name);
-    if (overrideValue == pt.not_found()) {
+    auto it = pt.get_child_optional(name);
+    if (!it) {
       return;
     }
-    ptreeToMember(overrideValue, dm->GetTrueTypeName(), dm, ptr);
+    ptreeToMember(*it, dm->GetTrueTypeName(), dm, ptr);
   };
 
   loopOverMembers(cl, obj, toDataMember);
