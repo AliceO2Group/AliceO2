@@ -75,6 +75,7 @@ o2_add_library(Framework
                        src/Kernels.cxx
                        src/LifetimeHelpers.cxx
                        src/LocalRootFileService.cxx
+                       src/RootConfigParamHelpers.cxx
                        src/LogParsingHelpers.cxx
                        src/MessageContext.cxx
                        src/Metric2DViewIndex.cxx
@@ -168,6 +169,7 @@ foreach(t
         LogParsingHelpers
         PtrHelpers
         Root2ArrowTable
+        RootConfigParamHelpers
         Services
         StringHelpers
         SuppressionGenerator
