@@ -107,6 +107,22 @@ class ServiceRegistry
                              typeid(T).name() +
                              " did you register one as non-const reference?");
   }
+
+  /// Check if service of type T is currently active.
+  template <typename T>
+  std::enable_if_t<std::is_const_v<T> == false, bool> active() const
+  {
+    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
+    auto serviceId = typeHash & MAX_SERVICES_MASK;
+    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
+      if (mServices[i + serviceId].first == typeHash) {
+        return mServices[i + serviceId].second != nullptr;
+      }
+    }
+    throw std::runtime_error(std::string("Unable to find service of kind ") +
+                             typeid(T).name() +
+                             " did you register one as non-const reference?");
+  }
   /// Get a service for the given interface T. The returned reference exposed to
   /// the user is actually of the last concrete type C registered, however this
   /// should not be a problem.
