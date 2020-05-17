@@ -254,7 +254,8 @@ struct Configurable {
   {
     return value;
   }
-  T const* operator->() const {
+  T const* operator->() const
+  {
     return &value;
   }
 };
