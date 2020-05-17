@@ -67,6 +67,7 @@ o2_add_library(Framework
                        src/FairMQDeviceProxy.cxx
                        src/FairMQResizableBuffer.cxx
                        src/FairOptionsRetriever.cxx
+                       src/ConfigurationOptionsRetriever.cxx
                        src/FreePortFinder.cxx
                        src/GraphvizHelpers.cxx
                        src/InputRecord.cxx
@@ -136,6 +137,7 @@ foreach(t
         ASoA
         ASoAHelpers
         BoostOptionsRetriever
+        ConfigurationOptionsRetriever
         CallbackRegistry
         ChannelSpecHelpers
         CompletionPolicy
