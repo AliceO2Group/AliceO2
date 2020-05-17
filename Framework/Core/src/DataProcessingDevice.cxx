@@ -18,6 +18,7 @@
 #include "Framework/DispatchControl.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/FairOptionsRetriever.h"
+#include "ConfigurationOptionsRetriever.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/CallbackService.h"
 #include "Framework/TMessageSerializer.h"
@@ -34,6 +35,8 @@
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQSocket.h>
 #include <options/FairMQProgOptions.h>
+#include <Configuration/ConfigurationInterface.h>
+#include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/Monitoring.h>
 #include <TMessage.h>
 #include <TClonesArray.h>
@@ -48,6 +51,7 @@ using Key = o2::monitoring::tags::Key;
 using Value = o2::monitoring::tags::Value;
 using Metric = o2::monitoring::Metric;
 using Monitoring = o2::monitoring::Monitoring;
+using ConfigurationInterface = o2::configuration::ConfigurationInterface;
 using DataHeader = o2::header::DataHeader;
 
 constexpr unsigned int MONITORING_QUEUE_SIZE = 100;
@@ -119,8 +123,16 @@ void DataProcessingDevice::Init()
       }
     }
   }
-  auto optionsRetriever(std::make_unique<FairOptionsRetriever>(mSpec.options, GetConfig()));
-  mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
+  // If available use the ConfigurationInterface, otherwise go for
+  // the command line options.
+  if (mServiceRegistry.active<ConfigurationInterface>()) {
+    auto& cfg = mServiceRegistry.get<ConfigurationInterface>();
+    auto optionsRetriever(std::make_unique<ConfigurationOptionsRetriever>(mSpec.options, &cfg, mSpec.name));
+    mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
+  } else {
+    auto optionsRetriever(std::make_unique<FairOptionsRetriever>(mSpec.options, GetConfig()));
+    mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
+  }
 
   mExpirationHandlers.clear();
 

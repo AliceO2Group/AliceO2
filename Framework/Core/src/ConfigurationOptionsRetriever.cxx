@@ -34,7 +34,13 @@ ConfigurationOptionsRetriever::ConfigurationOptionsRetriever(std::vector<ConfigP
   : mCfg{cfg},
     mStore{}
 {
-  PropertyTreeHelpers::populate(schema, mStore, cfg->getRecursive(mainKey));
+  boost::property_tree::ptree in;
+  try {
+    in = cfg->getRecursive(mainKey);
+  } catch (...) {
+    in.clear();
+  }
+  PropertyTreeHelpers::populate(schema, mStore, in);
 }
 
 bool ConfigurationOptionsRetriever::isSet(const char* key) const

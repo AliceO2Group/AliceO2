@@ -72,29 +72,25 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema, b
     // strip short version to get the correct key
     std::string key = spec.name.substr(0, spec.name.find(","));
     auto it = in.get_child_optional(key);
-    if (!it) {
-      continue;
-    }
-    auto& value = *it;
     try {
       switch (spec.type) {
         case VariantType::Int:
-          pt.put(key, value.get_value<int>());
+          pt.put(key, it ? (*it).get_value<int>() : spec.defaultValue.get<int>());
           break;
         case VariantType::Int64:
-          pt.put(key, value.get_value<int64_t>());
+          pt.put(key, it ? (*it).get_value<int64_t>() : spec.defaultValue.get<int64_t>());
           break;
         case VariantType::Float:
-          pt.put(key, value.get_value<float>());
+          pt.put(key, it ? (*it).get_value<float>() : spec.defaultValue.get<float>());
           break;
         case VariantType::Double:
-          pt.put(key, value.get_value<double>());
+          pt.put(key, it ? (*it).get_value<double>() : spec.defaultValue.get<double>());
           break;
         case VariantType::String:
-          pt.put(key, value.get_value<std::string>());
+          pt.put(key, it ? (*it).get_value<std::string>() : spec.defaultValue.get<char*>());
           break;
         case VariantType::Bool:
-          pt.put(key, value.get_value<bool>());
+          pt.put(key, it ? (*it).get_value<bool>() : spec.defaultValue.get<bool>());
           break;
         case VariantType::Unknown:
         case VariantType::Empty:
