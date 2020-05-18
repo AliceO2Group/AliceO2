@@ -22,7 +22,6 @@
 #include <cmath>
 #include <vector>
 
-
 const float gkMass = 0.0005;
 
 using namespace o2;
@@ -39,7 +38,7 @@ struct InvMassAnalysis {
   // *reset* to OutputObj label - needed for correct placement in the output file
   OutputObj<TH1F> centV0M{TH1F("centV0M", "centrality V0", 100, 0.0, 100.0)};
   OutputObj<TH1F> vtxZ{TH1F("vtxZ", "vtx Z", 200, -20.0, 20.0)};
-  
+
   OutputObj<TH1F> ptH{TH1F("pt", "pt", 100, -0.01, 10.01)};
   OutputObj<TH2F> ptCorr{TH2F("ptToPt", "ptToPt", 100, -0.01, 10.01, 100, -0.01, 10.01)};
   OutputObj<TH2F> tpcDedx{TH2F("tpcDedx", "TPC de/dx", 100, 0.0, 10.0, 100, 0.0, 200.0)};
@@ -57,7 +56,7 @@ struct InvMassAnalysis {
   OutputObj<TH1F> trZ{"trZ", OutputObjHandlingPolicy::QAObject};
   //Configurable<float> ptlow{"ptlow", 1.0f, "Lower pT limit"};
   //Configurable<float> pthigh{"pthigh", 1.0f, "Higher pT limit"};
-  
+
   float ptlow = 1.0;
   float pthigh = 5.0;
   Filter ptFilter = ((1.0f / aod::track::signed1Pt > ptlow) && (1.0f / aod::track::signed1Pt < pthigh)) || ((1.0f / aod::track::signed1Pt > -1.0f * pthigh) && (1.0f / aod::track::signed1Pt < -1.0f * ptlow));
@@ -68,7 +67,7 @@ struct InvMassAnalysis {
   float tpcChi2Max = 4.0;
   float itsChi2Max = 36;
   Filter qualityFilter = (aod::track::tpcChi2NCl < tpcChi2Max) && (aod::track::itsChi2NCl < itsChi2Max);
-  
+
   void init(InitContext const&)
   {
     trZ.setObject(new TH1F("Z", "Z", 100, -10., 10.));
@@ -76,54 +75,54 @@ struct InvMassAnalysis {
 
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra>> const& tracks)
   {
-    
+
     if (!collision.sel7()) 
-        return;  
-        
+      return;  
+
     centV0M->Fill(collision.centV0M());
     vtxZ->Fill(collision.posZ());
-      
+
     for (auto& track : tracks) {
       //if (track.pt() < ptlow)
       // continue;
       ptH->Fill(track.pt());
       trZ->Fill(track.z());
       itsChi2->Fill(track.itsChi2NCl());
-      for(int i = 0; i < 6; i++) {
+      for (int i = 0; i < 6; i++) {
         if (track.itsClusterMap() & (uint8_t(1) << i)) 
-            itsHits->Fill(i);
+          itsHits->Fill(i);
         if (track.itsClusterMap() & (uint8_t(1) << i)) 
-            itsHitsVsPt->Fill(i, track.pt());    
+          itsHitsVsPt->Fill(i, track.pt());    
       }
       tpcDedx->Fill(track.tpcInnerParam(), track.tpcSignal());
       tpcChi2->Fill(track.tpcChi2NCl());
       tpcCls->Fill(track.tpcNClsFound());
       for (int i = 0; i < 64; i++) {
-          if (track.flags() & (uint64_t(1) << i)) 
-              flagsHist->Fill(i);
+        if (track.flags() & (uint64_t(1) << i)) 
+          flagsHist->Fill(i);
       }
     }
     for (auto& [t0, t1] : combinations(tracks, tracks)) {
       ptCorr->Fill(t0.pt(), t1.pt());
-      if (!((t0.itsClusterMap() & (uint8_t(1)<<0)) || (t0.itsClusterMap() & (uint8_t(1)<<1)))) 
+      if (!((t0.itsClusterMap() & (uint8_t(1) << 0)) || (t0.itsClusterMap() & (uint8_t(1) << 1)))) 
           continue;
-      if (!((t1.itsClusterMap() & (uint8_t(1)<<0)) || (t1.itsClusterMap() & (uint8_t(1)<<1)))) 
+      if (!((t1.itsClusterMap() & (uint8_t(1) << 0)) || (t1.itsClusterMap() & (uint8_t(1) << 1)))) 
           continue;
-      
+
       TLorentzVector p1, p2, p;
       p1.SetXYZM(t0.px(), t0.py(), t0.pz(), gkMass);
       p2.SetXYZM(t1.px(), t1.py(), t1.pz(), gkMass);
       p = p1 + p2;
-      
+
       if (t0.charge() * t1.charge() < 0) {
         invMassPM->Fill(p.M());
         invMassVsPt->Fill(p.M(), p.Pt());
-        invMassVsCentrality->Fill(p.M(), collision.centV0M());  
+        invMassVsCentrality->Fill(p.M(), collision.centV0M());
       } else {
-        if (t0.charge() > 0) 
-            invMassPP->Fill(p.M());    
-        if( t0.charge() < 0) 
-            invMassMM->Fill(p.M());
+        if (t0.charge() > 0)
+          invMassPP->Fill(p.M());
+        if( t0.charge() < 0)
+          invMassMM->Fill(p.M());
       }
     }
   }
