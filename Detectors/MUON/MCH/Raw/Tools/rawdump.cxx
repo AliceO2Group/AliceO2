@@ -11,22 +11,23 @@
 ///
 /// @author  Laurent Aphecetche
 
+#include "DetectorsRaw/RDHUtils.h"
 #include "DumpBuffer.h"
 #include "Headers/RAWDataHeader.h"
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawDecoder/PageDecoder.h"
 #include "MCHRawElecMap/Mapper.h"
 #include "boost/program_options.hpp"
+#include <cstdint>
 #include <fmt/format.h>
 #include <fstream>
 #include <gsl/span>
 #include <iostream>
+#include <map>
+#include <optional>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
-#include <optional>
-#include <cstdint>
-#include <map>
 #include <string>
 
 namespace po = boost::program_options;
@@ -109,18 +110,20 @@ std::map<std::string, ChannelStat> rawdump(std::string input, DumpOptions opt)
   gsl::span<const std::byte> page(buffer);
 
   size_t nrdhs{0};
+
   const auto patchPage = [&](gsl::span<std::byte> rdhBuffer) {
-    auto rdhPtr = reinterpret_cast<o2::header::RAWDataHeaderV4*>(&rdhBuffer[0]);
-    auto& rdh = *rdhPtr;
+    auto rdhPtr = const_cast<void*>(reinterpret_cast<const void*>(rdhBuffer.data()));
     nrdhs++;
-    auto cruId = rdhCruId(rdh);
+    auto cruId = o2::raw::RDHUtils::getCRUID(rdhPtr);
     if (opt.cruId().has_value()) {
       cruId = opt.cruId().value();
-      rdhLinkId(rdh, 0);
+      o2::raw::RDHUtils::setLinkID(rdhPtr, 0);
     }
-    rdhFeeId(rdh, cruId * 2 + rdhEndpoint(rdh));
+    auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhPtr);
+    o2::raw::RDHUtils::setFEEID(rdhPtr, cruId * 2 + endpoint);
     if (opt.showRDHs()) {
-      std::cout << nrdhs << "--" << rdh << "\n";
+      std::cout << nrdhs << "--\n";
+      o2::raw::RDHUtils::printRDH(rdhPtr);
     }
   };
 
@@ -153,8 +156,24 @@ std::map<std::string, ChannelStat> rawdump(std::string input, DumpOptions opt)
   size_t npages{0};
   uint64_t bytesRead{0};
 
-  // warning : we currently assume fixed-size pages for reading the file...
-  while (npages < opt.maxNofRDHs() && in.read(reinterpret_cast<char*>(&buffer[0]), pageSize) && in.gcount() == pageSize) {
+  char* cbuffer = reinterpret_cast<char*>(&buffer[0]);
+  char* cpayload = reinterpret_cast<char*>(&buffer[sizeof(o2::header::RDHAny)]);
+  const void* rdhPtr = reinterpret_cast<const void*>(&buffer[0]);
+
+  while (npages < opt.maxNofRDHs()) {
+
+    // read the next RDH, stop if no more data is available
+    in.read(cbuffer, sizeof(o2::header::RDHAny));
+    if (in.fail()) {
+      break;
+    }
+
+    auto readSize = o2::raw::RDHUtils::getOffsetToNext(rdhPtr) - sizeof(o2::header::RDHAny);
+    in.read(cpayload, readSize);
+    if (in.fail()) {
+      break;
+    }
+
     npages++;
     bytesRead += in.gcount();
     if (!decode) {

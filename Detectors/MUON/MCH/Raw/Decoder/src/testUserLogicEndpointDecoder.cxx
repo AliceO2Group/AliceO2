@@ -16,15 +16,17 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-
 #include "Assertions.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "DumpBuffer.h"
 #include "MCHRawCommon/DataFormats.h"
+#include "MCHRawCommon/SampaHeader.h"
+#include "MCHRawDecoder/PageDecoder.h"
 #include "MCHRawDecoder/SampaChannelHandler.h"
-#include "MCHRawElecMap/Mapper.h"
 #include "MCHRawEncoderPayload/DataBlock.h"
 #include "MCHRawEncoderPayload/PayloadEncoder.h"
 #include "MoveBuffer.h"
+#include "RDHManip.h"
 #include "UserLogicEndpointDecoder.h"
 #include <fmt/printf.h>
 #include <fstream>
@@ -132,7 +134,6 @@ std::string testPayloadDecode(DsElecId ds1,
 
   std::vector<std::byte> buffer;
   encoder->moveToBuffer(buffer);
-
   auto payloadBuffer = convertBuffer2PayloadBuffer(buffer, insertSync);
 
   return decodeBuffer<CHARGESUM>(feeId, payloadBuffer);
