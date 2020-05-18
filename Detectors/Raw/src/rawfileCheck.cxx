@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
   bpo::options_description descOpt("Options");
   auto desc_add_option = descOpt.add_options();
   desc_add_option("help,h", "print this help message.");
-  desc_add_option("conf,c", bpo::value(&config)->default_value(""), "read input from configuration file");
+  desc_add_option("input-conf,c", bpo::value(&config)->default_value(""), "read input from configuration file");
   desc_add_option("max-tf,m", bpo::value<uint32_t>()->default_value(0xffffffff), " ID to read (counts from 0)");
   desc_add_option("verbosity,v", bpo::value<int>()->default_value(reader.getVerbosity()), "1: long report, 2 or 3: print or dump all RDH");
   desc_add_option("spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes");
