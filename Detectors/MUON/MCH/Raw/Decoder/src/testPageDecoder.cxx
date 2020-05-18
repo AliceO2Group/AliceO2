@@ -13,24 +13,22 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include <iostream>
-#include <fstream>
-#include <fmt/printf.h>
-#include "MCHRawCommon/RDHManip.h"
-#include "MCHRawCommon/DataFormats.h"
-#include "MCHRawDecoder/PageDecoder.h"
-#include "Headers/RAWDataHeader.h"
-#include "RefBuffers.h"
 #include "BareGBTDecoder.h"
+#include "Headers/RAWDataHeader.h"
+#include "MCHRawCommon/DataFormats.h"
+#include "RDHManip.h"
+#include "MCHRawDecoder/PageDecoder.h"
+#include "RefBuffers.h"
+#include <fmt/printf.h>
+#include <fstream>
+#include <iostream>
 #include <random>
+#include "DetectorsRaw/RDHUtils.h"
+#include "DumpBuffer.h"
 
 using namespace o2::mch::raw;
-using o2::header::RAWDataHeaderV4;
 
-namespace o2::header
-{
-extern std::ostream& operator<<(std::ostream&, const o2::header::RAWDataHeaderV4&);
-}
+std::ostream& operator<<(std::ostream&, const o2::header::RAWDataHeaderV4&);
 
 SampaChannelHandler handlePacketStoreAsVec(std::vector<std::string>& result)
 {
@@ -58,8 +56,15 @@ BOOST_AUTO_TEST_CASE(Test1)
   uint32_t orbit{12};
   uint16_t bunchCrossing{34};
 
-  auto rdh = createRDH<RAWDataHeaderV4>(dummyCruId, dummyEndpoint, dummyLinkId, dummyFeeId,
-                                        orbit, bunchCrossing, buffer.size());
+  o2::header::RDHAny rdh;
+  o2::raw::RDHUtils::setCRUID(rdh, dummyCruId);
+  o2::raw::RDHUtils::setEndPointID(rdh, dummyEndpoint);
+  o2::raw::RDHUtils::setFEEID(rdh, dummyFeeId);
+  o2::raw::RDHUtils::setLinkID(rdh, dummyLinkId);
+  o2::raw::RDHUtils::setHeartBeatOrbit(rdh, orbit);
+  o2::raw::RDHUtils::setHeartBeatBC(rdh, bunchCrossing);
+  o2::raw::RDHUtils::setMemorySize(rdh, buffer.size() + sizeof(rdh));
+  o2::raw::RDHUtils::setOffsetToNext(rdh, buffer.size() + sizeof(rdh));
 
   std::vector<std::byte> testBuffer;
 
@@ -70,11 +75,11 @@ BOOST_AUTO_TEST_CASE(Test1)
     std::copy(begin(buffer), end(buffer), std::back_inserter(testBuffer));
   }
 
-  int n = countRDHs<RAWDataHeaderV4>(testBuffer);
+  int n = countRDHs(testBuffer);
 
   BOOST_CHECK_EQUAL(n, nrdhs);
 
-  //   showRDHs<RAWDataHeaderV4>(testBuffer);
+  showRDHs(testBuffer);
 }
 
 bool testDecode(gsl::span<const std::byte> testBuffer)
@@ -100,7 +105,7 @@ bool testDecode(gsl::span<const std::byte> testBuffer)
 
   auto pageDecoder = createPageDecoder(testBuffer, handlePacketStoreAsVec(result));
 
-  auto parser = createPageParser(testBuffer);
+  auto parser = createPageParser();
 
   parser(testBuffer, pageDecoder);
 
@@ -125,7 +130,7 @@ bool testDecode(gsl::span<const std::byte> testBuffer)
 BOOST_AUTO_TEST_CASE(TestBareDecoding)
 {
   auto testBuffer = REF_BUFFER_CRU<BareFormat, ChargeSumMode>();
-  int n = countRDHs<RAWDataHeaderV4>(testBuffer);
+  int n = countRDHs(testBuffer);
   BOOST_CHECK_EQUAL(n, 28);
   testDecode(testBuffer);
 }
@@ -133,7 +138,7 @@ BOOST_AUTO_TEST_CASE(TestBareDecoding)
 BOOST_AUTO_TEST_CASE(TestUserLogicDecoding)
 {
   auto testBuffer = REF_BUFFER_CRU<UserLogicFormat, ChargeSumMode>();
-  int n = countRDHs<RAWDataHeaderV4>(testBuffer);
+  int n = countRDHs(testBuffer);
   BOOST_CHECK_EQUAL(n, 4);
   testDecode(testBuffer);
 }
