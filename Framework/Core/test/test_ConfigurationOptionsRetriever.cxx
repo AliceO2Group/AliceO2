@@ -12,6 +12,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "../src/ConfigurationOptionsRetriever.h"
+#include "Framework/ConfigParamStore.h"
 #include <boost/test/unit_test.hpp>
 #include <Configuration/ConfigurationFactory.h>
 #include <Configuration/ConfigurationInterface.h>
@@ -38,17 +39,25 @@ BOOST_AUTO_TEST_CASE(TestOptionsRetriever)
 
   std::vector<ConfigParamSpec> specs{
     ConfigParamSpec{"key", VariantType::String, "someDifferentValue", {"a string option"}},
-    ConfigParamSpec{"section.key_int", VariantType::Int, 1ll, {"an int64_t option"}},
+    ConfigParamSpec{"section.key_int", VariantType::Int64, 1ll, {"an int64_t option"}},
     ConfigParamSpec{"section.key_float", VariantType::Float, 2.0f, {"a float option"}},
     ConfigParamSpec{"section.key_string", VariantType::String, "foo", {"a string option"}},
   };
-  ConfigurationOptionsRetriever retriever(specs, conf.get(), ".");
-  BOOST_CHECK_EQUAL(retriever.getString("key"), "value");
-  BOOST_CHECK_EQUAL(retriever.getInt("section.key_int"), 123);
-  BOOST_CHECK_EQUAL(retriever.getFloat("section.key_float"), 4.56f);
-  BOOST_CHECK_EQUAL(retriever.getString("section.key_string"), "hello");
+
+  std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+  std::unique_ptr<ParamRetriever> fairmqRetriver{new ConfigurationOptionsRetriever(conf.get(), ".")};
+  retrievers.emplace_back(std::move(fairmqRetriver));
+
+  ConfigParamStore store{specs, std::move(retrievers)};
+  store.preload();
+  store.activate();
+
+  BOOST_CHECK_EQUAL(store.store().get<std::string>("key"), "value");
+  BOOST_CHECK_EQUAL(store.store().get<int>("section.key_int"), 123);
+  BOOST_CHECK_EQUAL(store.store().get<float>("section.key_float"), 4.56f);
+  BOOST_CHECK_EQUAL(store.store().get<std::string>("section.key_string"), "hello");
   // We can get nested objects also via their top-level ptree.
-  auto pt = retriever.getPTree("section");
+  auto pt = store.store().get_child("section");
   BOOST_CHECK_EQUAL(pt.get<int>("key_int"), 123);
   BOOST_CHECK_EQUAL(pt.get<float>("key_float"), 4.56f);
 }

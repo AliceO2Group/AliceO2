@@ -13,7 +13,7 @@
 
 #include "PropertyTreeHelpers.h"
 
-#include <boost/program_options.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include <string>
 #include <vector>
@@ -26,79 +26,11 @@ namespace bpo = boost::program_options;
 namespace o2::framework
 {
 
-bool SimpleOptionsRetriever::isSet(const char* key) const
+void SimpleOptionsRetriever::update(std::vector<ConfigParamSpec> const& schema,
+                                    boost::property_tree::ptree& store,
+                                    boost::property_tree::ptree& provenance)
 {
-  return (mStore.find(key) != mStore.not_found());
-}
-
-int SimpleOptionsRetriever::getInt(char const* key) const
-{
-  return mStore.get<int>(key);
-}
-
-int64_t SimpleOptionsRetriever::getInt64(char const* key) const
-{
-  return mStore.get<int64_t>(key);
-}
-
-float SimpleOptionsRetriever::getFloat(char const* key) const
-{
-  return mStore.get<float>(key);
-}
-
-double SimpleOptionsRetriever::getDouble(char const* key) const
-{
-  return mStore.get<double>(key);
-}
-
-bool SimpleOptionsRetriever::getBool(char const* key) const
-{
-  return mStore.get<bool>(key);
-}
-
-std::string SimpleOptionsRetriever::getString(char const* key) const
-{
-  return mStore.get<std::string>(key);
-}
-
-boost::property_tree::ptree SimpleOptionsRetriever::getPTree(char const* key) const
-{
-  return mStore.get_child(key);
-}
-
-void SimpleOptionsRetriever::setInt(char const* key, int value)
-{
-  mStore.put<int>(key, value);
-}
-
-void SimpleOptionsRetriever::setInt64(char const* key, int64_t value)
-{
-  mStore.put<int64_t>(key, value);
-}
-
-void SimpleOptionsRetriever::setFloat(char const* key, float value)
-{
-  mStore.put<float>(key, value);
-}
-
-void SimpleOptionsRetriever::setDouble(char const* key, double value)
-{
-  mStore.put<double>(key, value);
-}
-
-void SimpleOptionsRetriever::setBool(char const* key, bool value)
-{
-  mStore.put<bool>(key, value);
-}
-
-void SimpleOptionsRetriever::setString(char const* key, std::string const& value)
-{
-  mStore.put<std::string>(key, value);
-}
-
-void SimpleOptionsRetriever::setPTree(char const* key, boost::property_tree::ptree const& value)
-{
-  mStore.put_child(key, value);
+  PropertyTreeHelpers::populate(schema, store, mTree, provenance, mProvenanceLabel);
 }
 
 } // namespace o2::framework

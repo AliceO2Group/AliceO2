@@ -7,20 +7,21 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_CONFIGPARAMREGISTRY_H
-#define FRAMEWORK_CONFIGPARAMREGISTRY_H
+#ifndef O2_FRAMEWORK_CONFIGPARAMREGISTRY_H_
+#define O2_FRAMEWORK_CONFIGPARAMREGISTRY_H_
 
 #include "Framework/ParamRetriever.h"
+#include "Framework/ConfigParamStore.h"
 
 #include <boost/property_tree/ptree.hpp>
 #include <memory>
 #include <string>
 #include <cassert>
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
+
+class ConfigParamStore;
 
 /// This provides unified access to the parameters specified in the workflow
 /// specification.
@@ -28,46 +29,43 @@ namespace framework
 /// will actually get the options. For example it could get them from the
 /// FairMQ ProgOptions plugin or (to run "device-less", e.g. in batch simulation
 /// jobs).
-/// FIXME: Param is a bad name as FairRoot uses it for conditions data.
-///        Use options? YES! OptionsRegistry...
 class ConfigParamRegistry
 {
  public:
-  ConfigParamRegistry(std::unique_ptr<ParamRetriever> retriever)
-    : mRetriever{std::move(retriever)}
+  ConfigParamRegistry(std::unique_ptr<ConfigParamStore> store)
+    : mStore{std::move(store)}
   {
   }
 
-  int isSet(const char* key) const
+  bool isSet(const char* key) const
   {
-    return mRetriever->isSet(key);
+    return mStore->store().count(key);
+  }
+
+  bool isDefault(const char* key) const
+  {
+    return mStore->store().count(key) > 0 && mStore->provenance(key) != "default";
   }
 
   template <typename T>
   T get(const char* key) const
   {
-    assert(mRetriever);
+    assert(mStore.get());
     try {
-      if constexpr (std::is_same_v<T, int>) {
-        return mRetriever->getInt(key);
-      } else if constexpr (std::is_same_v<T, int64_t>) {
-        return mRetriever->getInt64(key);
-      } else if constexpr (std::is_same_v<T, float>) {
-        return mRetriever->getFloat(key);
-      } else if constexpr (std::is_same_v<T, double>) {
-        return mRetriever->getDouble(key);
+      if constexpr (std::is_same_v<T, int> ||
+                    std::is_same_v<T, int64_t> ||
+                    std::is_same_v<T, float> ||
+                    std::is_same_v<T, double> ||
+                    std::is_same_v<T, bool>) {
+        return mStore->store().get<T>(key);
       } else if constexpr (std::is_same_v<T, std::string>) {
-        return mRetriever->getString(key);
+        return mStore->store().get<std::string>(key);
       } else if constexpr (std::is_same_v<T, std::string_view>) {
-        return std::string_view{mRetriever->getString(key)};
-      } else if constexpr (std::is_same_v<T, std::string>) {
-        return std::string{mRetriever->getString(key)};
-      } else if constexpr (std::is_same_v<T, bool>) {
-        return mRetriever->getBool(key);
+        return std::string_view{mStore->store().get<std::string>(key)};
       } else if constexpr (std::is_same_v<T, boost::property_tree::ptree>) {
-        return mRetriever->getPTree(key);
+        return mStore->store().get_child(key);
       } else if constexpr (std::is_constructible_v<T, boost::property_tree::ptree>) {
-        return T{mRetriever->getPTree(key)};
+        return T{mStore->store().get_child(key)};
       } else if constexpr (std::is_constructible_v<T, boost::property_tree::ptree> == false) {
         static_assert(std::is_constructible_v<T, boost::property_tree::ptree> == false,
                       "Not a basic type and no constructor from ptree provided");
@@ -78,12 +76,10 @@ class ConfigParamRegistry
       throw std::invalid_argument(std::string("error parsing option: ") + key);
     }
   }
-
  private:
-  std::unique_ptr<ParamRetriever> mRetriever;
+  std::unique_ptr<ConfigParamStore> mStore;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_CONFIGPARAMREGISTRY_H
+#endif // O2_FRAMEWORK_CONFIGPARAMREGISTRY_H_
