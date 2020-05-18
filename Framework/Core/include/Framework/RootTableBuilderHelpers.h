@@ -149,7 +149,7 @@ template <typename C>
 struct ColumnReaderTrait {
   static auto createReader(TTreeReader& reader)
   {
-    return std::move(HolderMaker<Remap64Bit_t<typename C::type>>::make(reader, C::base::label()));
+    return std::move(HolderMaker<Remap64Bit_t<typename C::type>>::make(reader, C::base::columnLabel()));
   }
 };
 

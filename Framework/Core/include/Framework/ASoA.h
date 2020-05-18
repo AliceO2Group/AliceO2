@@ -254,7 +254,7 @@ struct Column {
 
   using persistent = std::true_type;
   using type = T;
-  static constexpr const char* const& label() { return INHERIT::mLabel; }
+  static constexpr const char* const& columnLabel() { return INHERIT::mLabel; }
   ColumnIterator<T> const& getIterator() const
   {
     return mColumnIterator;
@@ -271,7 +271,7 @@ struct DynamicColumn {
   using inherited_t = INHERIT;
 
   using persistent = std::false_type;
-  static constexpr const char* const& label() { return INHERIT::mLabel; }
+  static constexpr const char* const& columnLabel() { return INHERIT::mLabel; }
 };
 
 template <typename INHERIT>
@@ -279,7 +279,7 @@ struct IndexColumn {
   using inherited_t = INHERIT;
 
   using persistent = std::false_type;
-  static constexpr const char* const& label() { return INHERIT::mLabel; }
+  static constexpr const char* const& columnLabel() { return INHERIT::mLabel; }
 };
 
 template <int64_t START = 0, int64_t END = -1>
@@ -913,7 +913,7 @@ class Table
   BackendColumnType* lookupColumn()
   {
     if constexpr (T::persistent::value) {
-      auto label = T::label();
+      auto label = T::columnLabel();
       auto index = mTable->schema()->GetFieldIndex(label);
       if (index == -1) {
         throw std::runtime_error(std::string("Unable to find column with label ") + label);
@@ -963,7 +963,7 @@ template <typename INHERIT>
 class TableMetadata
 {
  public:
-  static constexpr char const* const label() { return INHERIT::mLabel; }
+  static constexpr char const* const tableLabel() { return INHERIT::mLabel; }
   static constexpr char const (&origin())[4] { return INHERIT::mOrigin; }
   static constexpr char const (&description())[16] { return INHERIT::mDescription; }
 };

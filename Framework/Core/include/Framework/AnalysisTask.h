@@ -136,12 +136,12 @@ struct Produces<soa::Table<C...>> : WritingCursor<typename soa::FilterPersistent
   // @return the associated OutputSpec
   OutputSpec const spec()
   {
-    return OutputSpec{OutputLabel{metadata::label()}, metadata::origin(), metadata::description()};
+    return OutputSpec{OutputLabel{metadata::tableLabel()}, metadata::origin(), metadata::description()};
   }
 
   OutputRef ref()
   {
-    return OutputRef{metadata::label(), 0};
+    return OutputRef{metadata::tableLabel(), 0};
   }
 };
 
@@ -280,7 +280,7 @@ struct AnalysisDataProcessorBuilder {
     using metadata = typename aod::MetadataTrait<std::decay_t<Arg>>::metadata;
     static_assert(std::is_same_v<metadata, void> == false,
                   "Could not find metadata. Did you register your type?");
-    inputs.push_back({metadata::label(), "AOD", metadata::description()});
+    inputs.push_back({metadata::tableLabel(), "AOD", metadata::description()});
   }
 
   template <typename... Args>
@@ -332,7 +332,7 @@ struct AnalysisDataProcessorBuilder {
   static auto extractTableFromRecord(InputRecord& record)
   {
     if constexpr (soa::is_type_with_metadata_v<aod::MetadataTrait<T>>) {
-      return record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::label())->asArrowTable();
+      return record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::tableLabel())->asArrowTable();
     } else if constexpr (soa::is_type_with_originals_v<T>) {
       return extractFromRecord<T>(record, typename T::originals{});
     }
@@ -427,10 +427,10 @@ struct AnalysisDataProcessorBuilder {
         if constexpr (soa::is_type_with_originals_v<std::decay_t<G>>) {
           using T = typename framework::pack_element_t<0, typename std::decay_t<G>::originals>;
           using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
-          return std::string("f") + groupingMetadata::label() + "ID";
+          return std::string("f") + groupingMetadata::tableLabel() + "ID";
         } else {
           using groupingMetadata = typename aod::MetadataTrait<std::decay_t<G>>::metadata;
-          return std::string("f") + groupingMetadata::label() + "ID";
+          return std::string("f") + groupingMetadata::tableLabel() + "ID";
         }
       }
 

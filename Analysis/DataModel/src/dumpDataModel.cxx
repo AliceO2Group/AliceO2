@@ -23,7 +23,7 @@ template <typename C>
 void printColumn(char const* fg, char const* bg)
 {
   if constexpr (!is_index_column_v<C>) {
-    fmt::printf("<TR><TD color='%s' bgcolor='%s'>%s</TD></TR>", fg, bg, C::label());
+    fmt::printf("<TR><TD color='%s' bgcolor='%s'>%s</TD></TR>", fg, bg, C::columnLabel());
   }
 }
 
@@ -31,7 +31,7 @@ template <typename C>
 void printIndexColumn(char const* fg, char const* bg)
 {
   if constexpr (is_index_column_v<C>) {
-    fmt::printf("<TR><TD color='%s' bgcolor='%s'>%s</TD></TR>", fg, bg, C::label());
+    fmt::printf("<TR><TD color='%s' bgcolor='%s'>%s</TD></TR>", fg, bg, C::columnLabel());
   }
 }
 
@@ -39,13 +39,13 @@ template <typename C, typename T>
 void printIndex()
 {
   if constexpr (!is_type_with_originals_v<typename C::binding_t>) {
-    auto a = MetadataTrait<typename C::binding_t>::metadata::label();
-    auto b = MetadataTrait<T>::metadata::label();
+    auto a = MetadataTrait<typename C::binding_t>::metadata::tableLabel();
+    auto b = MetadataTrait<T>::metadata::tableLabel();
     fmt::printf("%s -> %s []\n", a, b);
   } else {
     using main_original = pack_element_t<0, typename C::binding_t::originals>;
-    auto a = MetadataTrait<main_original>::metadata::label();
-    auto b = MetadataTrait<T>::metadata::label();
+    auto a = MetadataTrait<main_original>::metadata::tableLabel();
+    auto b = MetadataTrait<T>::metadata::tableLabel();
     fmt::printf("%s -> %s []\n", a, b);
   }
 }
@@ -107,7 +107,7 @@ void dumpTable(bool index = true, enum StyleType styleId = StyleType::DEFAULT)
 {
   auto style = styles[static_cast<int>(styleId)];
   //  nodes.push_back({MetadataTrait<T>::metadata::label(), nodeCount});
-  auto label = MetadataTrait<T>::metadata::label();
+  auto label = MetadataTrait<T>::metadata::tableLabel();
   fmt::printf(R"(%s[color="%s" cellpadding="0" fillcolor="%s" fontcolor="%s" label = <
 <TABLE cellpadding='2' cellspacing='0' cellborder='0' ><TH cellpadding='0' bgcolor="black"><TD bgcolor="%s"><font color="%s">%s</font></TD></TH>)",
               label, style.color, style.background, style.fontcolor, style.headerbgcolor, style.headerfontcolor, label);
