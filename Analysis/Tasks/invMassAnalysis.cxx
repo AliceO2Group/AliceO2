@@ -90,7 +90,6 @@ struct InvMassAnalysis {
           itsHits->Fill(i);
         if (track.itsClusterMap() & (uint8_t(1) << i))
           itsHitsVsPt->Fill(i, track.pt());
-
       }
       tpcDedx->Fill(track.tpcInnerParam(), track.tpcSignal());
       tpcChi2->Fill(track.tpcChi2NCl());
@@ -111,7 +110,6 @@ struct InvMassAnalysis {
       p1.SetXYZM(t0.px(), t0.py(), t0.pz(), gkMass);
       p2.SetXYZM(t1.px(), t1.py(), t1.pz(), gkMass);
       p = p1 + p2;
-
       if (t0.charge() * t1.charge() < 0) {
         invMassPM->Fill(p.M());
         invMassVsPt->Fill(p.M(), p.Pt());
