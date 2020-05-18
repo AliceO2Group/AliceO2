@@ -406,16 +406,16 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     auto logger = BranchDefinition<TrackOutputType>::Spectator([](TrackOutputType const& tracks) {
       LOG(INFO) << "writing " << tracks.size() << " track(s)";
     });
-    auto tracksdef = BranchDefinition<TrackOutputType>{InputSpec{"inputTracks", "TPC", "TRACKS"},      //
-                                                       "TPCTracks", "track-branch-name",               //
-                                                       1,                                              //
-                                                       logger};                                        //
-    auto clrefdef = BranchDefinition<ClusRefsOutputType>{InputSpec{"inputClusRef", "TPC", "CLUSREFS"}, //
-                                                         "ClusRefs", "trackclusref-branch-name"};      //
-    auto mcdef = BranchDefinition<MCLabelContainer>{InputSpec{"mcinput", "TPC", "TRACKSMCLBL"},        //
-                                                    "TPCTracksMCTruth",                                //
-                                                    (propagateMC ? 1 : 0),                             //
-                                                    "trackmc-branch-name"};                            //
+    auto tracksdef = BranchDefinition<TrackOutputType>{InputSpec{"inputTracks", "TPC", "TRACKS", 0},      //
+                                                       "TPCTracks", "track-branch-name",                  //
+                                                       1,                                                 //
+                                                       logger};                                           //
+    auto clrefdef = BranchDefinition<ClusRefsOutputType>{InputSpec{"inputClusRef", "TPC", "CLUSREFS", 0}, //
+                                                         "ClusRefs", "trackclusref-branch-name"};         //
+    auto mcdef = BranchDefinition<MCLabelContainer>{InputSpec{"mcinput", "TPC", "TRACKSMCLBL", 0},        //
+                                                    "TPCTracksMCTruth",                                   //
+                                                    (propagateMC ? 1 : 0),                                //
+                                                    "trackmc-branch-name"};                               //
 
     // depending on the MC propagation flag, branch definition for MC labels is disabled
     specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
