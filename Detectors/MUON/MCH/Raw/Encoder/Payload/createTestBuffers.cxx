@@ -13,7 +13,6 @@
 #include "DumpBuffer.h"
 #include "Headers/RAWDataHeader.h"
 #include "MCHRawCommon/DataFormats.h"
-#include "MCHRawCommon/RDHManip.h"
 #include "MCHRawEncoderPayload/DataBlock.h"
 #include "MCHRawEncoderPayload/PayloadPaginator.h"
 #include <boost/program_options.hpp>
@@ -87,19 +86,6 @@ void generateCxxFile(std::ostream& out, gsl::span<const std::byte> pages, bool u
 };
 )";
 }
-void generate(gsl::span<std::byte> pages, bool userLogic)
-{
-  // set the chargesum mask for each rdh
-  int n{0};
-  o2::mch::raw::forEachRDH<V4>(pages,
-                               [&](V4& rdh, gsl::span<std::byte>::size_type offset) {
-                                 rdhFeeId(rdh, rdhFeeId(rdh) | 0x100);
-                                 n++;
-                               });
-
-  generateCxxFile(std::cout, pages, userLogic);
-  std::cout << "constexpr int generatedRDH=" << n << ";\n";
-}
 
 std::vector<std::byte> paginate(gsl::span<const std::byte> buffer,
                                 bool userLogic)
@@ -129,7 +115,7 @@ std::vector<std::byte> paginate(gsl::span<const std::byte> buffer,
 
   auto tmpfile = "mch.cru.testbuffer.1.raw";
   {
-    PayloadPaginator p(fw, tmpfile, solar2feelink);
+    PayloadPaginator p(fw, tmpfile, solar2feelink, userLogic);
     p(buffer);
     fw.close();
   }
@@ -218,6 +204,6 @@ int main(int argc, char** argv)
     return 0;
   }
 
-  generate(pages, userLogic);
+  generateCxxFile(std::cout, pages, userLogic);
   return 0;
 }

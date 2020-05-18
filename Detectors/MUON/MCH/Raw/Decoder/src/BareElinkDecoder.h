@@ -217,9 +217,8 @@ void BareElinkDecoder<CHARGESUM>::clear(int checkpoint)
 template <typename CHARGESUM>
 void BareElinkDecoder<CHARGESUM>::findSync()
 {
-  const uint64_t sync = sampaSync().uint64();
   assert(mState == State::LookingForSync);
-  if (mBitBuffer != sync) {
+  if (mBitBuffer != sampaSyncWord) {
     mBitBuffer >>= 1;
     mMask /= 2;
     return;

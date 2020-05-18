@@ -9,8 +9,8 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MCHRawDecoder
-        SOURCES src/PageDecoder.cxx src/DecoderLogic.cxx
-        PUBLIC_LINK_LIBRARIES O2::MCHRawCommon O2::MCHRawElecMap
+        SOURCES src/PageDecoder.cxx src/DecoderLogic.cxx src/RDHManip.cxx
+        PUBLIC_LINK_LIBRARIES O2::MCHRawCommon O2::MCHRawElecMap O2::DetectorsRaw
         PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
 
 if(BUILD_TESTING)
@@ -33,5 +33,11 @@ if(BUILD_TESTING)
                 LABELS "muon;mch;raw"
                 PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder O2::MCHRawImplHelpers
                 O2::MCHRawEncoderPayload)
+
+        o2_add_test(rdh-manip
+                SOURCES src/testRDHManip.cxx
+                COMPONENT_NAME mchraw
+                LABELS "muon;mch;raw"
+                PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder Boost::boost)
 
 endif()

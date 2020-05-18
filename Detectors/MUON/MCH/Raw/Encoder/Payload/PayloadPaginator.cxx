@@ -17,9 +17,11 @@ namespace o2::mch::raw
 
 PayloadPaginator::PayloadPaginator(o2::raw::RawFileWriter& fw,
                                    const std::string outputFileName,
-                                   Solar2FeeLinkMapper solar2feelink) : mRawFileWriter(fw),
-                                                                        mOutputFileName{outputFileName},
-                                                                        mSolar2FeeLink{solar2feelink}
+                                   Solar2FeeLinkMapper solar2feelink,
+                                   bool userLogic) : mRawFileWriter(fw),
+                                                     mOutputFileName{outputFileName},
+                                                     mSolar2FeeLink{solar2feelink},
+                                                     mExtraFeeIdMask{userLogic ? static_cast<uint16_t>(0x100) : static_cast<uint16_t>(0)}
 {
 }
 
@@ -37,11 +39,12 @@ void PayloadPaginator::operator()(gsl::span<const std::byte> buffer)
     auto feelink = mSolar2FeeLink(r.block.header.solarId).value();
     int endpoint = feelink.feeId() % 2;
     int cru = (feelink.feeId() - endpoint) / 2;
+    auto feeId = feelink.feeId() | mExtraFeeIdMask;
     if (mFeeLinkIds.find(feelink) == mFeeLinkIds.end()) {
-      mRawFileWriter.registerLink(feelink.feeId(), cru, feelink.linkId(), endpoint, mOutputFileName);
+      mRawFileWriter.registerLink(feeId, cru, feelink.linkId(), endpoint, mOutputFileName);
       mFeeLinkIds.insert(feelink);
     }
-    mRawFileWriter.addData(feelink.feeId(), cru, feelink.linkId(), endpoint,
+    mRawFileWriter.addData(feeId, cru, feelink.linkId(), endpoint,
                            {h.bc, h.orbit},
                            gsl::span<char>(const_cast<char*>(reinterpret_cast<const char*>(&b.payload[0])),
                                            b.payload.size()));
