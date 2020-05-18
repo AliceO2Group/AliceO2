@@ -36,9 +36,11 @@ class PayloadPaginator
   /// used to store the produced RAW data
   /// @param solar2feelink a mapper that converts a solarId value into
   /// a FeeLinkId object
+  /// @param userLogic whether or not the format to emulate is the UL one
   PayloadPaginator(o2::raw::RawFileWriter& fw,
                    const std::string outputFileName,
-                   Solar2FeeLinkMapper solar2feelink);
+                   Solar2FeeLinkMapper solar2feelink,
+                   bool userLogic = true);
 
   /// Convert the buffer to raw data
   ///
@@ -51,6 +53,7 @@ class PayloadPaginator
   Solar2FeeLinkMapper mSolar2FeeLink;
   std::string mOutputFileName;
   std::set<FeeLinkId> mFeeLinkIds{};
+  uint16_t mExtraFeeIdMask{0};
 };
 } // namespace o2::mch::raw
 #endif
