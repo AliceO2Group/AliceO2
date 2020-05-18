@@ -11,6 +11,9 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
+
+#include "Analysis/EventSelection.h"
+#include "Analysis/Centrality.h"
 #include "Analysis/StepTHn.h"
 #include "Analysis/CorrelationContainer.h"
 
@@ -53,13 +56,13 @@ struct ATask {
 
 struct CorrelationTask {
 
-  // Input definitions
-  using myTracks = soa::Join<aod::Tracks, aod::EtaPhi>;
-
-  // Filters
+  // Filters and input definitions
 #define MYFILTER
 #ifdef MYFILTER
   Filter trackFilter = (aod::etaphi::eta2 > -0.8f) && (aod::etaphi::eta2 < 0.8f) && (aod::etaphi::pt2 > 1.0f);
+  using myTracks = soa::Filtered<soa::Join<aod::Tracks, aod::EtaPhi>>;
+#else
+  using myTracks = soa::Join<aod::Tracks, aod::EtaPhi>;
 #endif
 
   // Output definitions
@@ -134,24 +137,23 @@ struct CorrelationTask {
     }
   }
 
-// Version with explicit nested loop
-#ifdef MYFILTER
-  void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Run2V0s const& vzeros, soa::Filtered<soa::Join<aod::Tracks, aod::EtaPhi>> const& tracks)
-#else
-  void process(aod::Collision const& collision, aod::Run2V0s const& vzeros, soa::Join<aod::Tracks, aod::EtaPhi> const& tracks)
-#endif
+  // Version with explicit nested loop
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, aod::BCs const& bcs, aod::Run2V0s const& vzeros, myTracks const& tracks)
   {
-    LOGF(info, "Tracks for collision: %d | Trigger mask: %lld", tracks.size(), collision.bc().triggerMask());
+    LOGF(info, "Tracks for collision: %d | Trigger mask: %lld | INT7: %d | V0M: %.1f", tracks.size(), collision.bc().triggerMask(), collision.sel7(), collision.centV0M());
     //     for (auto& vzero : vzeros)
     //       if (vzero.bc() == collision.bc())
     //         LOGF(info, "V0: %f %f", vzero.adc()[0], vzero.adc()[1]);
+
+    if (!collision.sel7())
+      return;
 
     int bSign = 1; // TODO magnetic field from CCDB
     const float pTCut = 1.0;
 
     for (auto track1 = tracks.begin(); track1 != tracks.end(); ++track1) {
 
-#ifdef MYFILTER
+#ifndef MYFILTER
       if (track1.pt2() < pTCut)
         continue;
       if (track1.eta2() < -0.8 || track1.eta2() > 0.8)
@@ -165,14 +167,14 @@ struct CorrelationTask {
 
       double eventValues[3];
       eventValues[0] = track1.pt2();
-      eventValues[1] = 0; // collision.v0mult();
+      eventValues[1] = collision.centV0M();
       eventValues[2] = collision.posZ();
 
       same->getEventHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
       //mixed->getEventHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
 
       for (auto track2 = track1 + 1; track2 != tracks.end(); ++track2) {
-#ifdef MYFILTER
+#ifndef MYFILTER
         if (track2.pt2() < pTCut)
           continue;
         if (track2.eta2() < -0.8 || track2.eta2() > 0.8)
@@ -195,7 +197,7 @@ struct CorrelationTask {
         values[0] = track1.eta2() - track2.eta2();
         values[1] = track1.pt2();
         values[2] = track2.pt2();
-        values[3] = 0; // collision.v0mult();
+        values[3] = collision.centV0M();
 
         values[4] = track1.phi2() - track2.phi2();
         if (values[4] > 1.5 * TMath::Pi())
