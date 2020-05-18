@@ -28,8 +28,12 @@ std::unique_ptr<ConfigContext> makeEmptyConfigContext()
 {
   // FIXME: Ugly... We need to fix ownership and make sure the ConfigContext
   //        either owns or shares ownership of the registry.
-  static std::unique_ptr<ParamRetriever> retriever(new SimpleOptionsRetriever);
-  static ConfigParamRegistry registry{std::move(retriever)};
+  std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+  static std::vector<ConfigParamSpec> specs;
+  auto store = std::make_unique<ConfigParamStore>(specs, std::move(retrievers));
+  store->preload();
+  store->activate();
+  static ConfigParamRegistry registry(std::move(store));
   auto context = std::make_unique<ConfigContext>(registry, 0, nullptr);
   return context;
 }
