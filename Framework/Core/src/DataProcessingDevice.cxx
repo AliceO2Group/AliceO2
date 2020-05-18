@@ -125,14 +125,31 @@ void DataProcessingDevice::Init()
   }
   // If available use the ConfigurationInterface, otherwise go for
   // the command line options.
+  bool hasConfiguration = false;
+  bool hasOverrides = false;
   if (mServiceRegistry.active<ConfigurationInterface>()) {
     auto& cfg = mServiceRegistry.get<ConfigurationInterface>();
-    auto optionsRetriever(std::make_unique<ConfigurationOptionsRetriever>(mSpec.options, &cfg, mSpec.name));
-    mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
-  } else {
-    auto optionsRetriever(std::make_unique<FairOptionsRetriever>(mSpec.options, GetConfig()));
-    mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
+    hasConfiguration = true;
+    try {
+      cfg.getRecursive(mSpec.name);
+      hasOverrides = true;
+    } catch (...) {
+      // No overrides...
+    }
   }
+  // We only use the configuration file if we have a stanza for the given
+  // dataprocessor
+  std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+  if (hasConfiguration && hasOverrides) {
+    auto& cfg = mServiceRegistry.get<ConfigurationInterface>();
+    retrievers.emplace_back(std::make_unique<ConfigurationOptionsRetriever>(&cfg, mSpec.name));
+  } else {
+    retrievers.emplace_back(std::make_unique<FairOptionsRetriever>(GetConfig()));
+  }
+  auto configStore = std::move(std::make_unique<ConfigParamStore>(mSpec.options, std::move(retrievers)));
+  configStore->preload();
+  configStore->activate();
+  mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
 
   mExpirationHandlers.clear();
 

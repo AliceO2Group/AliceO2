@@ -38,8 +38,14 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
 
   std::vector<ConfigParamSpec> specs = RootConfigParamHelpers::asConfigParamSpecs<o2::test::SimplePODClass>("foo");
 
-  auto retriever = std::make_unique<FairOptionsRetriever>(specs, options);
-  ConfigParamRegistry registry(std::move(retriever));
+  std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+  std::unique_ptr<ParamRetriever> fairmqRetriver{new FairOptionsRetriever(options)};
+  retrievers.emplace_back(std::move(fairmqRetriver));
+
+  auto store = std::make_unique<ConfigParamStore>(specs, std::move(retrievers));
+  store->preload();
+  store->activate();
+  ConfigParamRegistry registry(std::move(store));
 
   BOOST_CHECK_EQUAL(registry.get<int>("foo.x"), 1);
   BOOST_CHECK_EQUAL(registry.get<float>("foo.y"), 2.f);

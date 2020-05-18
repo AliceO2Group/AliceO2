@@ -162,7 +162,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
   }
 
   deviceInfoTable(info, metrics);
-  optionsTable("Options", spec.options, control);
+  //optionsTable("Options", spec.options, control);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
   if (ImGui::CollapsingHeader("Command line arguments", ImGuiTreeNodeFlags_DefaultOpen)) {
     for (auto& arg : metadata.cmdLineArgs) {
