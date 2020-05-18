@@ -22,6 +22,7 @@
 #include "TOFBase/Digit.h"
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RawFileWriter.h"
 
 namespace o2
 {
@@ -91,9 +92,13 @@ class Encoder
 
   o2::header::RAWDataHeader* mRDH[72];
   const o2::raw::HBFUtils& mHBFSampler = o2::raw::HBFUtils::Instance();
+  o2::raw::RawFileWriter mFileWriter {o2::header::gDataOriginTOF};
+
   int mNRDH[72];
+  bool mCrateOn[72];
 
   bool mStartRun = true;
+  int mFirstBC = 0;
 
   // temporary variable for encoding
   int mEventCounter;         //!
