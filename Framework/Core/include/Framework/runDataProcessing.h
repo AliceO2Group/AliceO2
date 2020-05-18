@@ -22,12 +22,15 @@
 
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
-#include <boost/exception/diagnostic_information.hpp>
 
 #include <unistd.h>
 #include <vector>
 #include <cstring>
 #include <exception>
+
+namespace boost{
+  class exception;
+}
 
 namespace o2
 {
@@ -106,6 +109,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
            std::vector<o2::framework::ConfigParamSpec> const& workflowOptions,
            o2::framework::ConfigContext& configContext);
 
+void doBoostException(boost::exception &e);
+
 int main(int argc, char** argv)
 {
   using namespace o2::framework;
@@ -143,7 +148,7 @@ int main(int argc, char** argv)
     overridePipeline(configContext, specs);
     result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, workflowOptions, configContext);
   } catch (boost::exception& e) {
-    LOG(ERROR) << "error while setting up workflow: \n" << boost::current_exception_diagnostic_information(true);
+    doBoostException(e);
   } catch (std::exception const& error) {
     LOG(ERROR) << "error while setting up workflow: " << error.what();
   } catch (...) {
