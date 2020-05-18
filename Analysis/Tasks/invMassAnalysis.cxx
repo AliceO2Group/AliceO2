@@ -76,8 +76,8 @@ struct InvMassAnalysis {
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra>> const& tracks)
   {
 
-    if (!collision.sel7()) 
-      return;  
+    if (!collision.sel7())
+      return;
 
     centV0M->Fill(collision.centV0M());
     vtxZ->Fill(collision.posZ());
@@ -89,25 +89,25 @@ struct InvMassAnalysis {
       trZ->Fill(track.z());
       itsChi2->Fill(track.itsChi2NCl());
       for (int i = 0; i < 6; i++) {
-        if (track.itsClusterMap() & (uint8_t(1) << i)) 
+        if (track.itsClusterMap() & (uint8_t(1) << i))
           itsHits->Fill(i);
-        if (track.itsClusterMap() & (uint8_t(1) << i)) 
-          itsHitsVsPt->Fill(i, track.pt());    
+        if (track.itsClusterMap() & (uint8_t(1) << i))
+          itsHitsVsPt->Fill(i, track.pt());
       }
       tpcDedx->Fill(track.tpcInnerParam(), track.tpcSignal());
       tpcChi2->Fill(track.tpcChi2NCl());
       tpcCls->Fill(track.tpcNClsFound());
       for (int i = 0; i < 64; i++) {
-        if (track.flags() & (uint64_t(1) << i)) 
+        if (track.flags() & (uint64_t(1) << i))
           flagsHist->Fill(i);
       }
     }
     for (auto& [t0, t1] : combinations(tracks, tracks)) {
       ptCorr->Fill(t0.pt(), t1.pt());
-      if (!((t0.itsClusterMap() & (uint8_t(1) << 0)) || (t0.itsClusterMap() & (uint8_t(1) << 1)))) 
-          continue;
-      if (!((t1.itsClusterMap() & (uint8_t(1) << 0)) || (t1.itsClusterMap() & (uint8_t(1) << 1)))) 
-          continue;
+      if (!((t0.itsClusterMap() & (uint8_t(1) << 0)) || (t0.itsClusterMap() & (uint8_t(1) << 1))))
+        continue;
+      if (!((t1.itsClusterMap() & (uint8_t(1) << 0)) || (t1.itsClusterMap() & (uint8_t(1) << 1))))
+        continue;
 
       TLorentzVector p1, p2, p;
       p1.SetXYZM(t0.px(), t0.py(), t0.pz(), gkMass);
@@ -121,7 +121,7 @@ struct InvMassAnalysis {
       } else {
         if (t0.charge() > 0)
           invMassPP->Fill(p.M());
-        if( t0.charge() < 0)
+        if (t0.charge() < 0)
           invMassMM->Fill(p.M());
       }
     }
