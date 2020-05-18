@@ -13,7 +13,7 @@
 
 #include "GPUTPCCFChargeMapFiller.h"
 #include "ChargePos.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 

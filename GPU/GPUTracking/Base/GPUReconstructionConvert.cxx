@@ -15,7 +15,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "TPCBase/Sector.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #endif
 
 #include "GPUReconstructionConvert.h"
@@ -34,7 +34,7 @@
 #include "DataFormatsTPC/Constants.h"
 #include "GPURawData.h"
 #include "CommonConstants/LHCConstants.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCBase/RDHUtils.h"
 #endif
 
