@@ -420,8 +420,8 @@ using McCollision = McCollisions::iterator;
 
 namespace mclabel
 {
-DECLARE_SOA_COLUMN(Label, label, int);
-DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
+DECLARE_SOA_COLUMN(Lbl, lbl, int);
+DECLARE_SOA_COLUMN(LblMask, lblMask, uint16_t);
 /// Bit mask to indicate detector mismatches (bit ON means mismatch)
 /// Bit 0-6: mismatch at ITS layer
 /// Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64
@@ -429,7 +429,7 @@ DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
 } // namespace mclabel
 
 DECLARE_SOA_TABLE(McLabels, "AOD", "MCLABEL", o2::soa::Index<>,
-                  mclabel::Label, mclabel::LabelMask);
+                  mclabel::Lbl, mclabel::LblMask);
 using McLabel = McLabels::iterator;
 
 namespace mcparticle
