@@ -142,8 +142,13 @@ int main(int argc, char** argv)
     auto defaultDispatchPolicies = DispatchPolicy::createDefaultPolicies();
     dispatchPolicies.insert(std::end(dispatchPolicies), std::begin(defaultDispatchPolicies), std::end(defaultDispatchPolicies));
 
-    std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(workflowOptions, true, argc, argv)};
-    ConfigParamRegistry workflowOptionsRegistry(std::move(retriever));
+    std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+    std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(true, argc, argv)};
+    retrievers.emplace_back(std::move(retriever));
+    auto workflowOptionsStore = std::make_unique<ConfigParamStore>(workflowOptions, std::move(retrievers));
+    workflowOptionsStore->preload();
+    workflowOptionsStore->activate();
+    ConfigParamRegistry workflowOptionsRegistry(std::move(workflowOptionsStore));
     ConfigContext configContext(workflowOptionsRegistry, argc, argv);
     o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
     overridePipeline(configContext, specs);

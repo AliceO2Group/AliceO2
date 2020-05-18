@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "ConfigurationOptionsRetriever.h"
 
+#include "Configuration/ConfigurationInterface.h"
 #include "Framework/ConfigParamSpec.h"
 #include "PropertyTreeHelpers.h"
 
@@ -28,59 +29,24 @@ namespace bpt = boost::property_tree;
 namespace o2::framework
 {
 
-ConfigurationOptionsRetriever::ConfigurationOptionsRetriever(std::vector<ConfigParamSpec> const& schema,
-                                                             ConfigurationInterface* cfg,
+ConfigurationOptionsRetriever::ConfigurationOptionsRetriever(ConfigurationInterface* cfg,
                                                              std::string const& mainKey)
   : mCfg{cfg},
-    mStore{}
+    mMainKey{mainKey}
+{
+}
+
+void ConfigurationOptionsRetriever::update(std::vector<ConfigParamSpec> const& schema,
+                                           boost::property_tree::ptree& store,
+                                           boost::property_tree::ptree& provenance)
 {
   boost::property_tree::ptree in;
   try {
-    in = cfg->getRecursive(mainKey);
+    in = mCfg->getRecursive(mMainKey);
   } catch (...) {
     in.clear();
   }
-  PropertyTreeHelpers::populate(schema, mStore, in);
-}
-
-bool ConfigurationOptionsRetriever::isSet(const char* key) const
-{
-  return (mStore.count(key) > 0);
-}
-
-int ConfigurationOptionsRetriever::getInt(const char* key) const
-{
-  return mStore.get<int>(key);
-}
-
-int64_t ConfigurationOptionsRetriever::getInt64(const char* key) const
-{
-  return mStore.get<int64_t>(key);
-}
-
-float ConfigurationOptionsRetriever::getFloat(const char* key) const
-{
-  return mStore.get<float>(key);
-}
-
-double ConfigurationOptionsRetriever::getDouble(const char* key) const
-{
-  return mStore.get<double>(key);
-}
-
-bool ConfigurationOptionsRetriever::getBool(const char* key) const
-{
-  return mStore.get<bool>(key);
-}
-
-std::string ConfigurationOptionsRetriever::getString(const char* key) const
-{
-  return mStore.get<std::string>(key);
-}
-
-boost::property_tree::ptree ConfigurationOptionsRetriever::getPTree(const char* key) const
-{
-  return mStore.get_child(key);
+  PropertyTreeHelpers::populate(schema, store, in, provenance, "configuration:" + mMainKey);
 }
 
 } // namespace o2::framework

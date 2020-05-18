@@ -7,34 +7,27 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_PARAMETERRETRIEVER_H
-#define FRAMEWORK_PARAMETERRETRIEVER_H
+#ifndef O2_FRAMEWORK_PARAMRETRIEVER_H_
+#define O2_FRAMEWORK_PARAMRETRIEVER_H_
 
-#include <boost/property_tree/ptree.hpp>
+#include "Framework/ConfigParamSpec.h"
+
+#include <boost/property_tree/ptree_fwd.hpp>
 #include <string>
 #include <vector>
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
-
 /// Base class for extracting Configuration options from a given backend (e.g.
 /// command line options).
 class ParamRetriever
 {
  public:
-  virtual bool isSet(const char* name) const = 0;
-  virtual int getInt(const char* name) const = 0;
-  virtual int64_t getInt64(const char* name) const = 0;
-  virtual float getFloat(const char* name) const = 0;
-  virtual double getDouble(const char* name) const = 0;
-  virtual bool getBool(const char* name) const = 0;
-  virtual std::string getString(const char* name) const = 0;
-  virtual boost::property_tree::ptree getPTree(const char* name) const = 0;
+  virtual void update(std::vector<ConfigParamSpec> const& specs,
+                      boost::property_tree::ptree& store,
+                      boost::property_tree::ptree& provenance) = 0;
   virtual ~ParamRetriever() = default;
 };
 
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_PARAMETERRETRIEVER_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_PARAMRETRIEVER_H_

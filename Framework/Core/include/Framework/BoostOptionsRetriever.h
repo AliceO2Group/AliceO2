@@ -13,14 +13,11 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ParamRetriever.h"
 
-#include <boost/program_options.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <string>
+#include <boost/property_tree/ptree_fwd.hpp>
+#include <boost/program_options/options_description.hpp>
 #include <vector>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// This extracts the specified ConfigParams from (argc, argv) and makes them
@@ -28,25 +25,18 @@ namespace framework
 class BoostOptionsRetriever : public ParamRetriever
 {
  public:
-  BoostOptionsRetriever(std::vector<ConfigParamSpec> const& specs,
-                        bool ignoreUnknown,
-                        int& argc, char**& argv);
-
-  bool isSet(const char* name) const final;
-  int getInt(const char* name) const final;
-  int64_t getInt64(const char* name) const final;
-  float getFloat(const char* name) const final;
-  double getDouble(const char* name) const final;
-  bool getBool(const char* name) const final;
-  std::string getString(const char* name) const final;
-  boost::property_tree::ptree getPTree(const char* name) const final;
+  BoostOptionsRetriever(bool ignoreUnknown,
+                        int argc, char** argv);
+  void update(std::vector<ConfigParamSpec> const& specs,
+              boost::property_tree::ptree& store,
+              boost::property_tree::ptree& provenance) override;
 
  private:
-  boost::property_tree::ptree mStore;
   boost::program_options::options_description mDescription;
+  int mArgc;
+  char** mArgv;
   bool mIgnoreUnknown;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 #endif // FRAMEWORK_BOOSTOPTIONSRETRIEVER_H

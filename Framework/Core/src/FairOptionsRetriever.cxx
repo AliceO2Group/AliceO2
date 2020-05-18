@@ -21,57 +21,14 @@ using namespace o2::framework;
 namespace bpo = boost::program_options;
 namespace bpt = boost::property_tree;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
-FairOptionsRetriever::FairOptionsRetriever(std::vector<ConfigParamSpec> const& schema, const FairMQProgOptions* opts)
-  : mOpts{opts},
-    mStore{}
+void FairOptionsRetriever::update(std::vector<ConfigParamSpec> const& schema,
+                                  boost::property_tree::ptree& store,
+                                  boost::property_tree::ptree& provenance)
 {
-  PropertyTreeHelpers::populate(schema, mStore, mOpts->GetVarMap());
+  PropertyTreeHelpers::populate(schema, store, mOpts->GetVarMap(), provenance);
 }
 
-bool FairOptionsRetriever::isSet(const char* key) const
-{
-  return (mOpts->Count(key) > 0);
-}
-
-int FairOptionsRetriever::getInt(const char* key) const
-{
-  return mStore.get<int>(key);
-}
-
-int64_t FairOptionsRetriever::getInt64(const char* key) const
-{
-  return mStore.get<int64_t>(key);
-}
-
-float FairOptionsRetriever::getFloat(const char* key) const
-{
-  return mStore.get<float>(key);
-}
-
-double FairOptionsRetriever::getDouble(const char* key) const
-{
-  return mStore.get<double>(key);
-}
-
-bool FairOptionsRetriever::getBool(const char* key) const
-{
-  return mStore.get<bool>(key);
-}
-
-std::string FairOptionsRetriever::getString(const char* key) const
-{
-  return mStore.get<std::string>(key);
-}
-
-boost::property_tree::ptree FairOptionsRetriever::getPTree(const char* key) const
-{
-  return mStore.get_child(key);
-}
-
-} // namespace framework
 } // namespace o2

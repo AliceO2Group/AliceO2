@@ -34,6 +34,7 @@ o2_add_library(Framework
                        src/CompletionPolicyHelpers.cxx
                        src/ComputingResourceHelpers.cxx
                        src/DispatchPolicy.cxx
+                       src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
                        src/DDSConfigHelpers.cxx
                        src/DataAllocator.cxx
@@ -142,6 +143,7 @@ foreach(t
         ChannelSpecHelpers
         CompletionPolicy
         ComputingResourceHelpers
+        ConfigParamStore
         ConfigParamRegistry
         ContextRegistry
         DataDescriptorMatcher

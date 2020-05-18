@@ -7,33 +7,23 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework ConfigParamRegistry
+#define BOOST_TEST_MODULE Test Framework ConfigParamStore
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
 #include "Framework/FairOptionsRetriever.h"
-#include "Framework/ConfigParamRegistry.h"
+#include "Framework/ConfigParamStore.h"
 
 #include <fairmq/options/FairMQProgOptions.h>
 #include <boost/program_options.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 namespace bpo = boost::program_options;
 using namespace o2::framework;
 
-struct Foo {
-  // Providing a class with a constructor which takes a ptree
-  // allows for getting the object
-  explicit Foo(boost::property_tree::ptree in)
-    : x{in.get<int>("x")},
-      y{in.get<float>("y")}
-  {
-  }
-  int x;
-  float y;
-};
-
-BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
+BOOST_AUTO_TEST_CASE(TestConfigParamStore)
 {
   bpo::options_description testOptions("Test options");
   testOptions.add_options()                                               //
@@ -73,26 +63,33 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
   std::unique_ptr<ParamRetriever> fairmqRetriver{new FairOptionsRetriever(options)};
   retrievers.emplace_back(std::move(fairmqRetriver));
 
-  auto store = std::make_unique<ConfigParamStore>(specs, std::move(retrievers));
-  store->preload();
-  store->activate();
-  ConfigParamRegistry registry(std::move(store));
+  ConfigParamStore store{specs, std::move(retrievers)};
+  store.preload();
+  store.activate();
 
-  BOOST_CHECK_EQUAL(registry.get<float>("aFloat"), 1.0);
-  BOOST_CHECK_EQUAL(registry.get<double>("aDouble"), 2.0);
-  BOOST_CHECK_EQUAL(registry.get<int>("anInt"), 10);
-  BOOST_CHECK_EQUAL(registry.get<int64_t>("anInt64"), 50000000000000ll);
-  BOOST_CHECK_EQUAL(registry.get<bool>("aBoolean"), true);
-  BOOST_CHECK_EQUAL(registry.get<std::string>("aString"), "somethingelse");
-  BOOST_CHECK_EQUAL(registry.get<int>("aNested.x"), 1);
-  BOOST_CHECK_EQUAL(registry.get<float>("aNested.y"), 2.f);
-  BOOST_CHECK_EQUAL(registry.get<float>("aNested.z"), 4.f);
+  BOOST_CHECK_EQUAL(store.store().get<float>("aFloat"), 1.0);
+  BOOST_CHECK_EQUAL(store.store().get<double>("aDouble"), 2.0);
+  BOOST_CHECK_EQUAL(store.store().get<int>("anInt"), 10);
+  BOOST_CHECK_EQUAL(store.store().get<int64_t>("anInt64"), 50000000000000ll);
+  BOOST_CHECK_EQUAL(store.store().get<bool>("aBoolean"), true);
+  BOOST_CHECK_EQUAL(store.store().get<std::string>("aString"), "somethingelse");
+  BOOST_CHECK_EQUAL(store.store().get<int>("aNested.x"), 1);
+  BOOST_CHECK_EQUAL(store.store().get<int>("aNested.y"), 2.f);
   // We can get nested objects also via their top-level ptree.
-  auto pt = registry.get<boost::property_tree::ptree>("aNested");
+  auto pt = store.store().get_child("aNested");
   BOOST_CHECK_EQUAL(pt.get<int>("x"), 1);
   BOOST_CHECK_EQUAL(pt.get<float>("y"), 2.f);
-  // And we can get it as a generic object as well.
-  Foo obj = registry.get<Foo>("aNested");
-  BOOST_CHECK_EQUAL(obj.x, 1);
-  BOOST_CHECK_EQUAL(obj.y, 2.f);
+  //
+  boost::property_tree::json_parser::write_json(std::cout, store.store());
+  boost::property_tree::json_parser::write_json(std::cout, store.provenanceTree());
+  std::cout << store.provenanceTree().get_value("aFloat");
+  BOOST_CHECK_EQUAL(store.provenance("aFloat"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("aDouble"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("anInt"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("anInt64"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("aBoolean"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("aString"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("aNested.x"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("aNested.y"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("aNested.z"), "default");
 }
