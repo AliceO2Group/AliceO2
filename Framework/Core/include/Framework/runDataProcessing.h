@@ -28,8 +28,9 @@
 #include <cstring>
 #include <exception>
 
-namespace boost{
-  class exception;
+namespace boost
+{
+class exception;
 }
 
 namespace o2
@@ -109,7 +110,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
            std::vector<o2::framework::ConfigParamSpec> const& workflowOptions,
            o2::framework::ConfigContext& configContext);
 
-void doBoostException(boost::exception &e);
+void doBoostException(boost::exception& e);
 
 int main(int argc, char** argv)
 {
