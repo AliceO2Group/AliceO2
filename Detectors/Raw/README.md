@@ -316,7 +316,7 @@ by using option `--output-per-link`.
 
 The standard use case of this workflow is to provide the input for other worfklows using the piping, e.g.
 ```cpp
-o2-raw-file-reader-workflow --conf myConf.cfg | o2-dpl-raw-parser
+o2-raw-file-reader-workflow --input-conf myConf.cfg | o2-dpl-raw-parser
 ```
 
 ## Raw data file checker (standalone executable)
@@ -325,7 +325,7 @@ o2-raw-file-reader-workflow --conf myConf.cfg | o2-dpl-raw-parser
 Usage:   o2-raw-file-check [options] file0 [... fileN]
 Options:
   -h [ --help ]                     print this help message.
-  -c [ --conf ] arg                 read input from configuration file
+  -c [ --input-conf ] arg           read input from configuration file
   -m [ --max-tf] arg (=0xffffffff)  max. TF ID to read (counts from 0)
   -v [ --verbosity ] arg (=0)    1: long report, 2 or 3: print or dump all RDH
   -s [ --spsize ]    arg (=1048576) nominal super-page size in bytes
