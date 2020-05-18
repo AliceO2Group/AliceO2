@@ -24,7 +24,7 @@
 #include "TPCWorkflow/CATrackerSpec.h"
 #include "TPCWorkflow/EntropyEncoderSpec.h"
 #include "Algorithm/RangeTokenizer.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "DataFormatsTPC/Constants.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/TrackTPC.h"

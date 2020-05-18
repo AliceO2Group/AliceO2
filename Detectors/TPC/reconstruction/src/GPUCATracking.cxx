@@ -25,7 +25,7 @@
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/Sector.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "DetectorsRaw/HBFUtils.h"
 
 #include "GPUO2Interface.h"
