@@ -97,7 +97,6 @@ void RawWriter::run(ProcessingContext& pc)
     encoder.encode(digitWindows, i);
   }
 
-  //  encoder.flush();
   encoder.close();
 
   // create configuration file for rawreader
