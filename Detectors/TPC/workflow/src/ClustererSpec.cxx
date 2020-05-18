@@ -17,7 +17,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/InputRecordWalker.h"
 #include "Headers/DataHeader.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCReconstruction/HwClusterer.h"
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"

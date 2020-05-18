@@ -17,7 +17,7 @@
 #include "DPLUtils/RawParser.h"
 #include "Headers/DataHeader.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCCalibration/DigitDump.h"
 #include "TPCReconstruction/RawReaderCRU.h"
 #include "TPCWorkflow/RawToDigitsSpec.h"

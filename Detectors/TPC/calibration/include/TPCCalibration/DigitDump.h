@@ -26,7 +26,7 @@
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/Sector.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCCalibration/CalibRawBase.h"
 
 class TTree;

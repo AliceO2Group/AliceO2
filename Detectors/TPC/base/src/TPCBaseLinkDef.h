@@ -31,8 +31,6 @@
 #pragma link C++ class o2::tpc::CDBInterface;
 #pragma link C++ class o2::tpc::ContainerFactory;
 #pragma link C++ class o2::tpc::CRU;
-#pragma link C++ class o2::tpc::Digit + ;
-#pragma link C++ class std::vector < o2::tpc::Digit> + ;
 #pragma link C++ class o2::tpc::DigitPos;
 #pragma link C++ class o2::tpc::ModelGEM;
 #pragma link C++ class o2::tpc::FECInfo;

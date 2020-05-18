@@ -17,7 +17,7 @@
 #include "GPUHostDataTypes.h"
 
 #include "DataFormatsTPC/ZeroSuppression.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 
 #include "ChargePos.h"
 #include "Array2D.h"

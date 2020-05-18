@@ -14,7 +14,6 @@ o2_add_library(TPCBase
                        src/CDBInterface.cxx
                        src/ContainerFactory.cxx
                        src/CRU.cxx
-                       src/Digit.cxx
                        src/DigitPos.cxx
                        src/ModelGEM.cxx
                        src/FECInfo.cxx
@@ -42,7 +41,6 @@ o2_target_root_dictionary(TPCBase
                                   include/TPCBase/CDBInterface.h
                                   include/TPCBase/ContainerFactory.h
                                   include/TPCBase/CRU.h
-                                  include/TPCBase/Digit.h
                                   include/TPCBase/DigitPos.h
                                   include/TPCBase/ModelGEM.h
                                   include/TPCBase/FECInfo.h

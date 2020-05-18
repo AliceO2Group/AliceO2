@@ -17,7 +17,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "DataFormatsTPC/Helpers.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCBase/Mapper.h"
 #include "TPCReconstruction/HwClusterer.h"
 

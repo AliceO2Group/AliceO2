@@ -23,7 +23,7 @@
 #include "Framework/InputRecordWalker.h"
 #include "Framework/WorkflowSpec.h"
 #include "TPCBase/Sector.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCSimulation/CommonMode.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>

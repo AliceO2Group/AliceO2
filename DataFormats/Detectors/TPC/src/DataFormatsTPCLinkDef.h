@@ -20,11 +20,13 @@
 #pragma link C++ class o2::tpc::ClusterHardwareContainer8kb + ;
 #pragma link C++ class o2::tpc::ClusterHardwareContainerFixedSize < 8192> + ;
 #pragma link C++ class o2::tpc::ClusterNativeContainer + ;
+#pragma link C++ class o2::tpc::Digit + ;
 #pragma link C++ class std::vector < o2::tpc::ClusterNative> + ;
 #pragma link C++ class std::vector < o2::tpc::ClusterNativeContainer> + ;
 #pragma link C++ class std::vector < o2::tpc::ClusterHardware> + ;
 #pragma link C++ class std::vector < o2::tpc::ClusterHardwareContainerFixedSize < 8192>> + ;
 #pragma link C++ class std::vector < o2::tpc::ClusterHardwareContainer8kb> + ;
+#pragma link C++ class std::vector < o2::tpc::Digit> + ;
 #pragma link C++ class o2::tpc::TrackTPC + ;
 #pragma link C++ class o2::tpc::LaserTrack + ;
 #pragma link C++ class o2::tpc::LaserTrackContainer + ;

@@ -31,14 +31,14 @@
 #include "Framework/Logger.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "TPCBase/RDHUtils.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "CommonUtils/ConfigurableParam.h"
 
 namespace bpo = boost::program_options;

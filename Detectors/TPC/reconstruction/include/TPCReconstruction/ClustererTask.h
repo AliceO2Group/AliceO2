@@ -18,7 +18,7 @@
 #include "FairTask.h" // for FairTask, InitStatus
 #include "Rtypes.h"   // for ClustererTask::Class, ClassDef, etc
 
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCReconstruction/HwClusterer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"

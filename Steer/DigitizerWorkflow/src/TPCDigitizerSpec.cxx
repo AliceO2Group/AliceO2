@@ -27,7 +27,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "TPCBase/CDBInterface.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCSimulation/Digitizer.h"
 #include "TPCSimulation/Detector.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"

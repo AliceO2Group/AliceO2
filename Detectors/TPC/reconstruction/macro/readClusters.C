@@ -17,7 +17,7 @@
 #include "TCanvas.h"
 #include "TH1F.h"
 
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCBase/Mapper.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "SimulationDataFormat/MCTruthContainer.h"

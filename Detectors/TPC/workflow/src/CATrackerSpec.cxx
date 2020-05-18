@@ -35,7 +35,7 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "TPCReconstruction/GPUCATracking.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCFastTransform.h"
 #include "TPCdEdxCalibrationSplines.h"
 #include "DPLUtils/DPLRawParser.h"
