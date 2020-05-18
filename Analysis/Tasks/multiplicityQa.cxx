@@ -17,18 +17,12 @@
 using namespace o2;
 using namespace o2::framework;
 
-namespace o2
-{
-namespace aod
-{
-using CollisionEvSelMult = soa::Join<aod::Collisions, aod::EvSels, aod::Mults>::iterator;
-}
-} // namespace o2
-
 struct MultiplicityQaTask {
-  OutputObj<TH1F> hMultV0M{TH1F("hMultV0M", "", 55000, 0., 55000.)};
+  OutputObj<TH1F> hMultV0M{TH1F("hMultV0M", "", 40000, 0., 40000.)};
+  OutputObj<TH1F> hMultZNA{TH1F("hMultZNA", "", 500, 0., 200000.)};
+  OutputObj<TH1F> hMultZNC{TH1F("hMultZNC", "", 500, 0., 200000.)};
 
-  void process(aod::CollisionEvSelMult const& col)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Mults>::iterator const& col)
   {
     if (!col.alias()[0])
       return;
@@ -38,6 +32,8 @@ struct MultiplicityQaTask {
     LOGF(info, "multV0A=%5.0f multV0C=%5.0f multV0M=%5.0f", col.multV0A(), col.multV0C(), col.multV0M());
     // fill calibration histos
     hMultV0M->Fill(col.multV0M());
+    hMultZNA->Fill(col.multZNA());
+    hMultZNC->Fill(col.multZNC());
   }
 };
 

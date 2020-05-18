@@ -26,7 +26,7 @@ struct CentralityTableTask {
   {
     // TODO read multiplicity histos from CCDB
     TFile f("multiplicity.root");
-    TH1F* hMultV0M = (TH1F*)f.Get("multiplicity/hMultV0M");
+    TH1F* hMultV0M = (TH1F*)f.Get("multiplicity-qa/hMultV0M");
     // TODO produce cumulative histos in the post processing macro
     hCumMultV0M = (TH1F*)hMultV0M->GetCumulative(false);
     hCumMultV0M->Scale(100. / hCumMultV0M->GetMaximum());

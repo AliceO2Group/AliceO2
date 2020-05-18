@@ -18,9 +18,11 @@ namespace mult
 {
 DECLARE_SOA_COLUMN(MultV0A, multV0A, float);
 DECLARE_SOA_COLUMN(MultV0C, multV0C, float);
+DECLARE_SOA_COLUMN(MultZNA, multZNA, float);
+DECLARE_SOA_COLUMN(MultZNC, multZNC, float);
 DECLARE_SOA_DYNAMIC_COLUMN(MultV0M, multV0M, [](float multV0A, float multV0C) -> float { return multV0A + multV0C; });
 } // namespace mult
-DECLARE_SOA_TABLE(Mults, "AOD", "MULT", mult::MultV0A, mult::MultV0C, mult::MultV0M<mult::MultV0A, mult::MultV0C>);
+DECLARE_SOA_TABLE(Mults, "AOD", "MULT", mult::MultV0A, mult::MultV0C, mult::MultZNA, mult::MultZNC, mult::MultV0M<mult::MultV0A, mult::MultV0C>);
 using Mult = Mults::iterator;
 } // namespace o2::aod
 

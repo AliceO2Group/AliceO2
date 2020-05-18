@@ -16,17 +16,10 @@
 
 using namespace o2;
 using namespace o2::framework;
-namespace o2
-{
-namespace aod
-{
-using CollisionEvSelCent = soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator;
-}
-} // namespace o2
 
 struct CentralityQaTask {
   OutputObj<TH1F> hCentV0M{TH1F("hCentV0M", "", 21, 0, 105.)};
-  void process(aod::CollisionEvSelCent const& col)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& col)
   {
     if (!col.alias()[0])
       return;

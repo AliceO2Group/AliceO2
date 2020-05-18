@@ -25,6 +25,7 @@ struct EventSelectionTask {
   Produces<aod::EvSels> evsel;
   map<string, int> mClasses;
   map<int, string> mAliases;
+  map<int, vector<int>> mAliasToClassIds;
 
   aod::Run2V0 getVZero(aod::BC const& bc, aod::Run2V0s const& vzeros)
   {
@@ -64,60 +65,47 @@ struct EventSelectionTask {
     t->BuildIndex("run");
     // TODO read run number from configurables
     t->GetEntryWithIndex(244918);
-    LOGF(info, "List of trigger classes");
+    LOGF(debug, "List of trigger classes");
     for (auto& cl : mClasses) {
-      LOGF(info, "class %d %s", cl.second, cl.first);
+      LOGF(debug, "class %d %s", cl.second, cl.first);
     }
-  }
 
-  void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros)
-  {
-    LOGF(info, "Starting new event");
-    // CTP info
-    uint64_t triggerMask = collision.bc().triggerMask();
-    LOGF(info, "triggerMask=%llu", triggerMask);
-    // fill fired aliases
-    int32_t alias[nAliases] = {0};
+    LOGF(debug, "Fill map of alias-to-class-indices");
     for (auto& al : mAliases) {
-      LOGF(info, "alias classes: %s", al.second.data());
+      LOGF(debug, "alias classes: %s", al.second.data());
       TObjArray* tokens = TString(al.second).Tokenize(",");
       for (int iClasses = 0; iClasses < tokens->GetEntriesFast(); iClasses++) {
         string className = tokens->At(iClasses)->GetName();
         int index = mClasses[className] - 1;
         if (index < 0 || index > 49)
           continue;
-        bool isTriggerClassFired = triggerMask & (1ul << index);
-        LOGF(info, "class=%s index=%d fired=%d", className.data(), index, isTriggerClassFired);
-        alias[al.first] |= isTriggerClassFired;
+        mAliasToClassIds[al.first].push_back(index);
       }
       delete tokens;
     }
+  }
 
+  void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros)
+  {
+    LOGF(debug, "Starting new event");
+    // CTP info
+    uint64_t triggerMask = collision.bc().triggerMask();
+    LOGF(debug, "triggerMask=%llu", triggerMask);
+    // fill fired aliases
+    int32_t alias[nAliases] = {0};
+    for (auto& al : mAliasToClassIds) {
+      for (auto& classIndex : al.second) {
+        alias[al.first] |= triggerMask & (1ul << classIndex);
+      }
+    }
     // ZDC info
     auto zdc = getZdc(collision.bc(), zdcs);
     bool bbZNA = zdc.timeZNA() > -2. && zdc.timeZNA() < 2.;
     bool bbZNC = zdc.timeZNC() > -2. && zdc.timeZNC() < 2.;
-
     // VZERO info
     auto vzero = getVZero(collision.bc(), vzeros);
-    // TODO use properly calibrated average times
-    float timeV0A = 0;
-    float timeV0C = 0;
-    int nHitsV0A = 0;
-    int nHitsV0C = 0;
-    for (int i = 0; i < 32; i++) {
-      if (vzero.time()[i + 32] > -998) {
-        nHitsV0A++;
-        timeV0A += vzero.time()[i + 32];
-      }
-      if (vzero.time()[i] > -998) {
-        nHitsV0C++;
-        timeV0C += vzero.time()[i];
-      }
-    }
-    timeV0A = nHitsV0A > 0 ? timeV0A / nHitsV0A : -999;
-    timeV0C = nHitsV0C > 0 ? timeV0C / nHitsV0C : -999;
-
+    float timeV0A = vzero.timeA();
+    float timeV0C = vzero.timeC();
     // TODO replace it with configurable cuts from CCDB
     bool bbV0A = timeV0A > 0. && timeV0A < 25.;  // ns
     bool bbV0C = timeV0C > 0. && timeV0C < 25.;  // ns
