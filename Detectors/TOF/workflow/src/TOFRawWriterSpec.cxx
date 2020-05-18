@@ -76,7 +76,7 @@ void RawWriter::run(ProcessingContext& pc)
 
   std::vector<std::vector<o2::tof::Digit>> digitWindows;
 
-  for (int i = 0; i < nwindowFilled; i += nwindowperorbit) { // encode 3 tof windows (1 orbit)
+  for (int i = 0; i < nwindow; i += nwindowperorbit) { // encode 3 tof windows (1 orbit)
     if (verbosity)
       printf("----------\nwindow = %d - %d\n----------\n", i, i + nwindowperorbit - 1);
 
@@ -97,7 +97,7 @@ void RawWriter::run(ProcessingContext& pc)
     encoder.encode(digitWindows, i);
   }
 
-  encoder.flush();
+  //  encoder.flush();
   encoder.close();
 
   // create configuration file for rawreader
