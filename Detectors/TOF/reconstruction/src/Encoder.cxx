@@ -31,11 +31,9 @@ Encoder::Encoder()
 {
   // intialize 72 buffers (one per crate)
   for (int i = 0; i < 72; i++) {
-    mIntegratedBytes[i] = 0;
     mBuffer[i] = nullptr;
     mUnion[i] = nullptr;
     mStart[i] = nullptr;
-    mNRDH[i] = 0;
     mCrateOn[i] = true;
   }
 }
@@ -53,50 +51,23 @@ void Encoder::nextWord(int icrate)
   mNextWordStatus[icrate] = !mNextWordStatus[icrate];
 }
 
-void Encoder::nextWordNoEmpty(int icrate)
-{
-  mUnion[icrate]++;
-
-  // check if you went over the buffer size
-  int csize = getSize(mStart[icrate], mUnion[icrate]);
-  if (csize >= Geo::RAW_PAGE_MAX_SIZE) {
-    addPage(icrate);
-  }
-}
-
 bool Encoder::open(const std::string name, std::string path)
 {
   bool status = false;
 
-  // for (int i = 0; i < NCRU; i++) {
-  //   std::string nametmp;
-  //   nametmp.append(Form("%s/cru%02d", path.c_str(), i));
-  //   nametmp.append(name);
-  //   printf("TOF Raw encoder: create stream to CRU: %s\n", nametmp.c_str());
-  //   if (mFileCRU[i].is_open()) {
-  //     std::cout << "Warning: a file (" << i << ") was already open, closing" << std::endl;
-  //     mFileCRU[i].close();
-  //   }
-  //   mFileCRU[i].open(nametmp.c_str(), std::fstream::out | std::fstream::binary);
-  //   if (!mFileCRU[i].is_open()) {
-  //     std::cerr << "Cannot open " << nametmp << std::endl;
-  //     status = true;
-  //   }
-  // }
-
   // register links
   o2::header::RAWDataHeader rdh;
-  for(int feeid=0; feeid < 72; feeid++){
+  for (int feeid = 0; feeid < 72; feeid++) {
     // cru=0 --> FLP 0, endpoint 0 --> 18 links -> fees 0-17
     // cru=1 --> FLP 0, endpoint 1 --> 18 links -> fees 18-35
     // cru=2 --> FLP 1, endpoint 0 --> 18 links -> fees 36-53
     // cru=3 --> FLP 1, endpoint 1 --> 18 links -> fees 54-71
     rdh.feeId = feeid;
-    rdh.cruID = feeid/NLINKSPERCRU;
-    rdh.linkID = feeid%NLINKSPERCRU;
-    rdh.endPointID = rdh.cruID%2;
+    rdh.cruID = feeid / NLINKSPERCRU;
+    rdh.linkID = feeid % NLINKSPERCRU;
+    rdh.endPointID = rdh.cruID % 2;
     // currently storing each CRU in a separate file
-    if(mCrateOn[feeid])
+    if (mCrateOn[feeid])
       mFileWriter.registerLink(rdh, Form("%s/cru%02d%s", path.c_str(), rdh.cruID, name.c_str()));
   }
 
@@ -106,11 +77,11 @@ bool Encoder::open(const std::string name, std::string path)
 bool Encoder::flush(int icrate)
 {
   int nbyte = getSize(mStart[icrate], mUnion[icrate]);
-  int cru = icrate/NLINKSPERCRU;
-  if(nbyte){
-    if(mCrateOn[icrate]){
+  int cru = icrate / NLINKSPERCRU;
+  if (nbyte) {
+    if (mCrateOn[icrate]) {
       //printf("flush crate %d -- byte = %d -- orbit = %d, bc = %d\n",icrate, nbyte, mIR.orbit, mIR.bc);
-      mFileWriter.addData(icrate, cru, icrate%NLINKSPERCRU, cru%2, mIR, gsl::span(mBuffer[icrate], nbyte) );
+      mFileWriter.addData(icrate, cru, icrate % NLINKSPERCRU, cru % 2, mIR, gsl::span(mBuffer[icrate], nbyte));
     }
     mIntegratedAllBytes += nbyte;
   }
@@ -118,36 +89,9 @@ bool Encoder::flush(int icrate)
   return false;
 }
 
-bool Encoder::flush()
-{
-  bool allempty = true;
-  for (int i = 0; i < 72; i++)
-    if (mIntegratedBytes[i])
-      allempty = false;
-
-  if (allempty)
-    return true;
-
-  // write superpages
-  for (int i = 0; i < 72; i++) {
-    int icru = i / NLINKSPERCRU;
-    mFileCRU[icru].write(mBuffer[i], mIntegratedBytes[i]);
-  }
-
-  for (int i = 0; i < 72; i++)
-    flush(i);
-
-  memset(mBuffer[0], 0, mSize * 72);
-
-  return false;
-}
-
 bool Encoder::close()
 {
   mFileWriter.close();
-  // for (int i = 0; i < NCRU; i++)
-  //   if (mFileCRU[i].is_open())
-  //     mFileCRU[i].close();
   return false;
 }
 
@@ -259,11 +203,6 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
     return 999;
   }
 
-  // for (int i = 0; i < 72; i++) {
-  //   if (mIntegratedBytes[i] + 100000 > mSize)
-  //     flush();
-  // }
-
   for (int iwin = 0; iwin < Geo::NWINDOW_IN_ORBIT; iwin++) {
     std::vector<o2::tof::Digit>& summary = digitWindow.at(iwin);
     // caching electronic indexes in digit array
@@ -286,16 +225,8 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
   mEventCounter = tofwindow; // tof window index
   mIR.orbit = mEventCounter / Geo::NWINDOW_IN_ORBIT;
 
-  // if ((mIR.orbit % mHBFSampler.getNOrbitsPerTF()) == mHBFSampler.getFirstIR().orbit) { // new TF
-  //   flush();
-  // }
-
-  for (int i = 0; i < 72; i++) {
-  //   // add RDH open
-  //   mRDH[i] = reinterpret_cast<o2::header::RAWDataHeader*>(mUnion[i]);
+  for (int i = 0; i < 72; i++)
     mNextWordStatus[i] = false;
-  //   openRDH(i);
-  }
 
   int bcFirstWin;
 
@@ -305,9 +236,10 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
 
     std::vector<o2::tof::Digit>& summary = digitWindow.at(iwin);
 
-    mIR.bc = ((mEventCounter % Geo::NWINDOW_IN_ORBIT) * Geo::BC_IN_ORBIT) / Geo::NWINDOW_IN_ORBIT + mFirstBC; // bunch crossing in the current orbit at the beginning of the window. 
+    mIR.bc = ((mEventCounter % Geo::NWINDOW_IN_ORBIT) * Geo::BC_IN_ORBIT) / Geo::NWINDOW_IN_ORBIT + mFirstBC; // bunch crossing in the current orbit at the beginning of the window.
 
-    if(iwin == 0) bcFirstWin = mIR.bc;
+    if (iwin == 0)
+      bcFirstWin = mIR.bc;
 
     int icurrentdigit = 0;
     // TOF data header
@@ -392,21 +324,8 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
 
   mIR.bc = bcFirstWin;
 
-  for (int i = 0; i < 72; i++) {
-    // // adjust RDH open with the size
-    // mRDH[i]->memorySize = getSize(mRDH[i], mUnion[i]);
-    // mRDH[i]->offsetToNext = mRDH[i]->memorySize;
-    // mIntegratedBytes[i] += mRDH[i]->offsetToNext;
-
-    // // add RDH close
-    // closeRDH(i);
-    // mIntegratedBytes[i] += mRDH[i]->offsetToNext;
-    // mUnion[i] = reinterpret_cast<Union_t*>(nextPage(mRDH[i], mRDH[i]->offsetToNext));
-
-    // flush payload
+  for (int i = 0; i < 72; i++)
     flush(i);
-
-  }
 
   mStartRun = false;
 
@@ -414,119 +333,7 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
   std::chrono::duration<double> elapsed = finish - start;
   mIntegratedTime = elapsed.count();
 
-#ifdef VERBOSE
-  int allBytes = mIntegratedAllBytes;
-  for (int i = 0; i < 72; i++)
-    allBytes += mIntegratedBytes[i];
-  if (mVerbose && mIntegratedTime)
-    std::cout << "-------- END ENCODE EVENT ------------------------------------------"
-              << " " << allBytes << " words"
-              << " | " << 1.e3 * mIntegratedTime << " ms"
-              << " | " << 1.e-6 * allBytes / mIntegratedTime << " MB/s (average)"
-              << std::endl;
-#endif
-
   return false;
-}
-
-void Encoder::openRDH(int icrate)
-{
-  *mRDH[icrate] = mHBFSampler.createRDH<o2::header::RAWDataHeader>(mIR);
-
-  // word1
-  mRDH[icrate]->memorySize = mRDH[icrate]->headerSize;
-  mRDH[icrate]->offsetToNext = mRDH[icrate]->memorySize;
-  mRDH[icrate]->linkID = icrate % NLINKSPERCRU;
-  mRDH[icrate]->packetCounter = mNRDH[icrate];
-  mRDH[icrate]->cruID = icrate / NLINKSPERCRU;
-  mRDH[icrate]->feeId = icrate;
-
-  // word2
-  mRDH[icrate]->triggerOrbit = mIR.orbit; // to be checked
-  mRDH[icrate]->heartbeatOrbit = mIR.orbit;
-
-  // word4
-  mRDH[icrate]->triggerBC = 0; // to be checked (it should be constant)
-  mRDH[icrate]->heartbeatBC = 0;
-  mRDH[icrate]->triggerType = o2::trigger::HB | o2::trigger::ORBIT;
-  if (mStartRun) {
-    //    mRDH[icrate]->triggerType |= mIsContinuous ? o2::trigger::SOC : o2::trigger::SOT;
-    mRDH[icrate]->triggerType |= o2::trigger::SOT;
-  }
-  if ((mIR.orbit % mHBFSampler.getNOrbitsPerTF()) == mHBFSampler.getFirstIR().orbit)
-    mRDH[icrate]->triggerType |= o2::trigger::TF;
-
-  // word6
-  mRDH[icrate]->pageCnt = 0;
-
-  char* shift = reinterpret_cast<char*>(mRDH[icrate]);
-
-  mUnion[icrate] = reinterpret_cast<Union_t*>(shift + mRDH[icrate]->headerSize);
-  mNRDH[icrate]++;
-}
-
-void Encoder::addPage(int icrate)
-{
-  // adjust RDH open with the size
-  mRDH[icrate]->memorySize = getSize(mRDH[icrate], mUnion[icrate]);
-  mRDH[icrate]->offsetToNext = mRDH[icrate]->memorySize;
-  mIntegratedBytes[icrate] += mRDH[icrate]->offsetToNext;
-
-  // printf("add page (crate = %d - current size = %d)\n",icrate,mRDH[icrate]->offsetToNext);
-
-  int pgCnt = mRDH[icrate]->pageCnt + 1;
-
-  // move to next RDH
-  mRDH[icrate] = reinterpret_cast<o2::header::RAWDataHeader*>(nextPage(mRDH[icrate], mRDH[icrate]->offsetToNext));
-
-  openRDH(icrate);
-  mRDH[icrate]->pageCnt = pgCnt;
-}
-
-void Encoder::closeRDH(int icrate)
-{
-  int pgCnt = mRDH[icrate]->pageCnt + 1;
-
-  mRDH[icrate] = reinterpret_cast<o2::header::RAWDataHeader*>(nextPage(mRDH[icrate], mRDH[icrate]->offsetToNext));
-
-  *mRDH[icrate] = mHBFSampler.createRDH<o2::header::RAWDataHeader>(mIR);
-
-  mRDH[icrate]->stop = 0x1;
-
-  // word1
-  mRDH[icrate]->memorySize = mRDH[icrate]->headerSize;
-  mRDH[icrate]->offsetToNext = mRDH[icrate]->memorySize;
-  mRDH[icrate]->linkID = icrate % NLINKSPERCRU;
-  mRDH[icrate]->packetCounter = mNRDH[icrate];
-  mRDH[icrate]->cruID = icrate / NLINKSPERCRU;
-  mRDH[icrate]->feeId = icrate;
-
-  // word2
-  mRDH[icrate]->triggerOrbit = mIR.orbit; // to be checked
-  mRDH[icrate]->heartbeatOrbit = mIR.orbit;
-
-  // word4
-  mRDH[icrate]->triggerBC = 0; // to be checked (it should be constant)
-  mRDH[icrate]->heartbeatBC = 0;
-  mRDH[icrate]->triggerType = o2::trigger::HB | o2::trigger::ORBIT;
-  if (mStartRun) {
-    //    mRDH[icrate]->triggerType |= mIsContinuous ? o2::trigger::SOC : o2::trigger::SOT;
-    mRDH[icrate]->triggerType |= o2::trigger::SOT;
-  }
-  if ((mIR.orbit % mHBFSampler.getNOrbitsPerTF()) == mHBFSampler.getFirstIR().orbit)
-    mRDH[icrate]->triggerType |= o2::trigger::TF;
-
-  // word6
-  mRDH[icrate]->pageCnt = pgCnt;
-  mNRDH[icrate]++;
-}
-
-char* Encoder::nextPage(void* current, int step)
-{
-  char* point = reinterpret_cast<char*>(current);
-  point += step;
-
-  return point;
 }
 
 int Encoder::getSize(void* first, void* last)
