@@ -130,7 +130,10 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   // here we have all digits and we can send them to consumer (aka snapshot it onto output)
   pc.outputs().snapshot(Output{"PHS", "DIGITS", 0, Lifetime::Timeframe}, mDigits);
   pc.outputs().snapshot(Output{"PHS", "DIGITTRIGREC", 0, Lifetime::Timeframe}, triggers);
-  pc.outputs().snapshot(Output{"PHS", "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
+  if (pc.outputs().isAllowed({"PHS", "DIGITSMCTR", 0})) {
+    pc.outputs().snapshot(Output{"PHS", "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
+  }
+
   // PHOS is always a triggering detector
   const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::TRIGGERING;
   LOG(DEBUG) << "PHOS: Sending ROMode= " << roMode << " to GRPUpdater";
@@ -144,8 +147,15 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   mFinished = true;
 }
 
-DataProcessorSpec getPHOSDigitizerSpec(int channel)
+DataProcessorSpec getPHOSDigitizerSpec(int channel, bool mctruth)
 {
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("PHS", "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("PHS", "DIGITTRIGREC", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("PHS", "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("PHS", "ROMode", 0, Lifetime::Timeframe);
 
   // create the full data processor spec using
   //  a name identifier
@@ -154,10 +164,7 @@ DataProcessorSpec getPHOSDigitizerSpec(int channel)
   //  options that can be used for this processor (here: input file names where to take the hits)
   return DataProcessorSpec{
     "PHOSDigitizer", Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
-    Outputs{OutputSpec{"PHS", "DIGITS", 0, Lifetime::Timeframe},
-            OutputSpec{"PHS", "DIGITTRIGREC", 0, Lifetime::Timeframe},
-            OutputSpec{"PHS", "DIGITSMCTR", 0, Lifetime::Timeframe},
-            OutputSpec{"PHS", "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
     AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>()},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}};
 }

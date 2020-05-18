@@ -165,5 +165,8 @@ edge[dir=back, arrowtail=empty]
   dumpTable<Jets>(true, StyleType::BLUE);
   dumpTable<JetConstituents>(true, StyleType::BLUE);
   dumpTable<UnassignedTracks>();
+  dumpTable<McCollisions>();
+  dumpTable<McLabels>();
+  dumpTable<McParticles>();
   fmt::printf("%s\n", R"(})");
 }

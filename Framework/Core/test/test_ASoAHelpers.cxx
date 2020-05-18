@@ -403,10 +403,12 @@ BOOST_AUTO_TEST_CASE(Combinations)
   ConcatTest concatTests{tableA, tableB};
 
   BOOST_REQUIRE_EQUAL(8, testsA.size());
-  int nA = testsA.size();
   BOOST_REQUIRE_EQUAL(4, testsB.size());
   BOOST_REQUIRE_EQUAL(4, testsC.size());
   BOOST_REQUIRE_EQUAL(12, concatTests.size());
+  int nA = testsA.size();
+  int nB = testsB.size();
+  int nC = testsC.size();
 
   int count = 0;
   int i = 0;
@@ -558,63 +560,9 @@ BOOST_AUTO_TEST_CASE(Combinations)
       m = l + 1;
     }
   }
-
   BOOST_CHECK_EQUAL(count, 56);
 
-  int nB = testsB.size();
-  count = 0;
-  i = 0;
-  j = 0 + nA;
-  for (auto& [t0, t1] : combinations(CombinationsFullIndexPolicy(testsA, testsB))) {
-    BOOST_CHECK_EQUAL(t0.x(), i);
-    BOOST_CHECK_EQUAL(t1.x(), j);
-    count++;
-    j++;
-    if (j == nA + nB) {
-      i++;
-      j = 0 + nA;
-    }
-  }
-  BOOST_CHECK_EQUAL(count, 32);
-
-  int nC = testsC.size();
-  count = 0;
-  i = 0;
-  j = 0 + nA;
-  k = 0 + nA + nB;
-  for (auto& [t0, t1, t2] : combinations(CombinationsFullIndexPolicy(testsA, testsB, testsC))) {
-    BOOST_CHECK_EQUAL(t0.x(), i);
-    BOOST_CHECK_EQUAL(t1.x(), j);
-    BOOST_CHECK_EQUAL(t2.x(), k);
-    count++;
-    k++;
-    if (k == nA + nB + nC) {
-      if (j == nA + nB - 1) {
-        i++;
-        j = 0 + nA;
-      } else {
-        j++;
-      }
-      k = 0 + nA + nB;
-    }
-  }
-  BOOST_CHECK_EQUAL(count, 128);
-
-  count = 0;
-  i = 0;
-  j = 0 + nA;
-  for (auto& [t0, t1] : combinations(testsA, testsB)) {
-    BOOST_CHECK_EQUAL(t0.x(), i);
-    BOOST_CHECK_EQUAL(t1.x(), j);
-    count++;
-    j++;
-    if (j == nA + nB) {
-      i++;
-      j = 0 + nA;
-    }
-  }
-  BOOST_CHECK_EQUAL(count, 32);
-
+  // Combinations shortcut
   count = 0;
   i = 0;
   j = 1;
@@ -644,6 +592,244 @@ BOOST_AUTO_TEST_CASE(Combinations)
     }
   }
   BOOST_CHECK_EQUAL(count, 6);
+
+  count = 0;
+  i = 0;
+  j = 0 + nA;
+  for (auto& [t0, t1] : combinations(testsA, testsB)) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == nA + nB) {
+      i++;
+      j = nA + i;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 10);
+
+  // Different tables of different size
+  count = 0;
+  i = 0;
+  j = 0 + nA;
+  for (auto& [t0, t1] : combinations(CombinationsFullIndexPolicy(testsA, testsB))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == 0 + nA + nB) {
+      i++;
+      j = 0 + nA;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 32);
+
+  count = 0;
+  i = 0 + nA;
+  j = 0;
+  for (auto& [t0, t1] : combinations(CombinationsFullIndexPolicy(testsB, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == 0 + nA) {
+      i++;
+      j = 0;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 32);
+
+  count = 0;
+  i = 0;
+  j = 0 + nA;
+  k = 0 + nA + nB;
+  for (auto& [t0, t1, t2] : combinations(CombinationsFullIndexPolicy(testsA, testsB, testsC))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == nA + nB + nC) {
+      if (j == nA + nB - 1) {
+        i++;
+        j = 0 + nA;
+      } else {
+        j++;
+      }
+      k = 0 + nA + nB;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 128);
+
+  count = 0;
+  i = 0 + nA + nB;
+  j = 0 + nA;
+  k = 0;
+  for (auto& [t0, t1, t2] : combinations(CombinationsFullIndexPolicy(testsC, testsB, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == nA) {
+      if (j == nA + nB - 1) {
+        i++;
+        j = 0 + nA;
+      } else {
+        j++;
+      }
+      k = 0;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 128);
+
+  count = 0;
+  i = 0;
+  j = 0 + nA;
+  for (auto& [t0, t1] : combinations(CombinationsUpperIndexPolicy(testsA, testsB))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == 0 + nA + nB) {
+      i++;
+      j = nA + i;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 10);
+
+  count = 0;
+  i = 0 + nA;
+  j = 0;
+  for (auto& [t0, t1] : combinations(CombinationsUpperIndexPolicy(testsB, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == 0 + nA) {
+      i++;
+      j = -nA + i;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 26);
+
+  count = 0;
+  i = 0;
+  j = 0 + nA;
+  k = 0 + nA + nB;
+  for (auto& [t0, t1, t2] : combinations(CombinationsUpperIndexPolicy(testsA, testsB, testsC))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == nA + nB + nC) {
+      if (j == nA + nB - 1) {
+        i++;
+        j = nA + i;
+      } else {
+        j++;
+      }
+      k = nB + j;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 20);
+
+  count = 0;
+  i = 0 + nA + nB;
+  j = 0 + nA;
+  k = 0;
+  for (auto& [t0, t1, t2] : combinations(CombinationsUpperIndexPolicy(testsC, testsB, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == nA) {
+      if (j == nA + nB - 1) {
+        i++;
+        j = -nB + i;
+      } else {
+        j++;
+      }
+      k = -nA + j;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 60);
+
+  count = 0;
+  i = 0;
+  j = 0 + nA + 1;
+  for (auto& [t0, t1] : combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsB))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == 0 + nA + nB) {
+      i++;
+      j = nA + i + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 6);
+
+  count = 0;
+  i = 0 + nA;
+  j = 1;
+  for (auto& [t0, t1] : combinations(CombinationsStrictlyUpperIndexPolicy(testsB, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == 0 + nA) {
+      i++;
+      j = -nA + i + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 18);
+
+  count = 0;
+  i = 0;
+  j = 0 + nA + 1;
+  k = 0 + nA + nB + 2;
+  for (auto& [t0, t1, t2] : combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsB, testsC))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == nA + nB + nC) {
+      if (j == nA + nB - 2) {
+        i++;
+        j = nA + i + 1;
+      } else {
+        j++;
+      }
+      k = nB + j + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 4);
+
+  count = 0;
+  i = 0 + nA + nB;
+  j = 0 + nA + 1;
+  k = 2;
+  for (auto& [t0, t1, t2] : combinations(CombinationsStrictlyUpperIndexPolicy(testsC, testsB, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == nA) {
+      if (j == nA + nB - 2) {
+        i++;
+        j = -nB + i + 1;
+      } else {
+        j++;
+      }
+      k = -nA + j + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 16);
 }
 
 BOOST_AUTO_TEST_CASE(BreakingCombinations)
@@ -788,24 +974,35 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
   BOOST_REQUIRE_EQUAL(10, testA.size());
 
   // Grouped data:
-  // [3, 5] [0, 4, 7], [1, 6], [2]
+  // [3, 5] [0, 4, 7], [1, 6], [2, 8, 9]
   // Assuming bins intervals: [ , )
   std::vector<uint32_t> yBins{0, 5, 10, 20, 30, 40, 50, 101};
   std::vector<float> zBins{-7.0f, -5.0f, -3.0f, -1.0f, 1.0f, 3.0f, 5.0f, 7.0f};
 
   TableBuilder builderAux;
+  TableBuilder builderAuxHalf;
   auto rowWriterAux = builderAux.persist<int32_t, int32_t>({"x", "y"});
+  auto rowWriterAuxHalf = builderAuxHalf.persist<int32_t, int32_t>({"x", "y"});
+  int size = 0;
   for (auto it = testA.begin(); it != testA.end(); it++) {
     auto& elem = *it;
     rowWriterAux(0, elem.x(), getHash(yBins, zBins, elem.y(), elem.floatZ()));
+    if (size < 5) {
+      rowWriterAuxHalf(0, elem.x(), getHash(yBins, zBins, elem.y(), elem.floatZ()));
+    }
+    size++;
   }
   auto tableAux = builderAux.finalize();
+  auto tableAuxHalf = builderAuxHalf.finalize();
   BOOST_REQUIRE_EQUAL(tableAux->num_rows(), 10);
+  BOOST_REQUIRE_EQUAL(tableAuxHalf->num_rows(), 5);
 
   // Auxiliary table: testsAux with id and hash, hash is the category for grouping
   using TestsAux = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
   TestsAux testAux{tableAux};
+  TestsAux testAuxHalf{tableAuxHalf};
   BOOST_REQUIRE_EQUAL(10, testAux.size());
+  BOOST_REQUIRE_EQUAL(5, testAuxHalf.size());
 
   // Omitting values outside bins
   TableBuilder builderAuxNoOverflows;
@@ -822,7 +1019,7 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
 
   // 2, 3, 5, 8, 9 have overflows in testA
   std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsNoOverflows{
-    {0, 0}, {0, 4}, {4, 4}, {4, 7}, {1, 1}, {1, 6}};
+    {0, 0}, {0, 4}, {4, 0}, {4, 4}, {4, 7}, {7, 4}, {7, 7}, {1, 1}, {1, 6}, {6, 1}, {6, 6}};
   int count = 0;
   for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy("y", 1, -1, testAuxNoOverflows, testAuxNoOverflows))) {
     BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedFullPairsNoOverflows[count]));
@@ -831,12 +1028,8 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
   }
   BOOST_CHECK_EQUAL(count, expectedFullPairsNoOverflows.size());
 
-  // TODO: What about repetitions for full? ((4, 4) and (8, 8) here)
-  //std::vector<std::tuple<int32_t, int32_t>> expectedFullPairs{
-  //  {0, 0}, {0, 4}, {4, 0}, {4, 4}, {4, 4}, {4, 7}, {7, 4}, {7, 7}, {1, 1}, {1, 6}, {6, 1}, {6, 6}, {3, 3}, {3, 5}, {5, 3}, {5, 5}, {2, 2}, {2, 8}, {8, 2}, {8, 8}, {8, 8}, {8, 9}, {9, 8}, {9, 9}};
-  // TODO: Or should it be equivalent to upper? (Then possibly not implemented at all)
   std::vector<std::tuple<int32_t, int32_t>> expectedFullPairs{
-    {0, 0}, {0, 4}, {0, 7}, {2, 2}, {2, 8}, {2, 9}};
+    {0, 0}, {0, 4}, {0, 7}, {4, 0}, {7, 0}, {4, 4}, {4, 7}, {7, 4}, {7, 7}, {1, 1}, {1, 6}, {6, 1}, {6, 6}, {3, 3}, {3, 5}, {5, 3}, {5, 5}, {2, 2}, {2, 8}, {2, 9}, {8, 2}, {9, 2}, {8, 8}, {8, 9}, {9, 8}, {9, 9}};
   count = 0;
   for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy("y", 2, -1, testAux, testAux))) {
     BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedFullPairs[count]));
@@ -846,7 +1039,7 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
   BOOST_CHECK_EQUAL(count, expectedFullPairs.size());
 
   std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedFullTriples{
-    {0, 0, 0}, {0, 0, 4}, {0, 0, 7}, {0, 4, 0}, {0, 4, 4}, {0, 4, 7}, {0, 7, 0}, {0, 7, 4}, {0, 7, 7}, {2, 2, 2}, {2, 2, 8}, {2, 2, 9}, {2, 8, 2}, {2, 8, 8}, {2, 8, 9}, {2, 9, 2}, {2, 9, 8}, {2, 9, 9}};
+    {0, 0, 0}, {0, 0, 4}, {0, 0, 7}, {0, 4, 0}, {0, 4, 4}, {0, 4, 7}, {0, 7, 0}, {0, 7, 4}, {0, 7, 7}, {4, 0, 0}, {4, 0, 4}, {4, 0, 7}, {7, 0, 0}, {7, 0, 4}, {7, 0, 7}, {4, 4, 0}, {4, 7, 0}, {7, 4, 0}, {7, 7, 0}, {4, 4, 4}, {4, 4, 7}, {4, 7, 4}, {4, 7, 7}, {7, 4, 4}, {7, 4, 7}, {7, 7, 4}, {7, 7, 7}, {1, 1, 1}, {1, 1, 6}, {1, 6, 1}, {1, 6, 6}, {6, 1, 1}, {6, 1, 6}, {6, 6, 1}, {6, 6, 6}, {3, 3, 3}, {3, 3, 5}, {3, 5, 3}, {3, 5, 5}, {5, 3, 3}, {5, 3, 5}, {5, 5, 3}, {5, 5, 5}, {2, 2, 2}, {2, 2, 8}, {2, 2, 9}, {2, 8, 2}, {2, 8, 8}, {2, 8, 9}, {2, 9, 2}, {2, 9, 8}, {2, 9, 9}, {8, 2, 2}, {8, 2, 8}, {8, 2, 9}, {9, 2, 2}, {9, 2, 8}, {9, 2, 9}, {8, 8, 2}, {8, 9, 2}, {9, 8, 2}, {9, 9, 2}, {8, 8, 8}, {8, 8, 9}, {8, 9, 8}, {8, 9, 9}, {9, 8, 8}, {9, 8, 9}, {9, 9, 8}, {9, 9, 9}};
   count = 0;
   for (auto& [c0, c1, c2] : combinations(CombinationsBlockFullIndexPolicy("y", 2, -1, testAux, testAux, testAux))) {
     BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedFullTriples[count]));
@@ -857,7 +1050,7 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
   BOOST_CHECK_EQUAL(count, expectedFullTriples.size());
 
   std::vector<std::tuple<int32_t, int32_t>> expectedUpperPairs{
-    {0, 0}, {0, 4}, {0, 7}, {2, 2}, {2, 8}, {2, 9}};
+    {0, 0}, {0, 4}, {0, 7}, {4, 4}, {4, 7}, {7, 7}, {1, 1}, {1, 6}, {6, 6}, {3, 3}, {3, 5}, {5, 5}, {2, 2}, {2, 8}, {2, 9}, {8, 8}, {8, 9}, {9, 9}};
   count = 0;
   for (auto& [c0, c1] : combinations(CombinationsBlockUpperIndexPolicy("y", 2, -1, testAux, testAux))) {
     BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedUpperPairs[count]));
@@ -867,7 +1060,7 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
   BOOST_CHECK_EQUAL(count, expectedUpperPairs.size());
 
   std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedUpperTriples{
-    {0, 0, 0}, {0, 0, 4}, {0, 4, 4}, {4, 4, 4}, {4, 4, 7}, {4, 7, 7}, {1, 1, 1}, {1, 1, 6}, {1, 6, 6}, {3, 3, 3}, {3, 3, 5}, {3, 5, 5}, {2, 2, 2}, {2, 2, 8}, {2, 8, 8}, {8, 8, 8}, {8, 8, 9}, {8, 9, 9}};
+    {0, 0, 0}, {0, 0, 4}, {0, 4, 4}, {4, 4, 4}, {4, 4, 7}, {4, 7, 7}, {7, 7, 7}, {1, 1, 1}, {1, 1, 6}, {1, 6, 6}, {6, 6, 6}, {3, 3, 3}, {3, 3, 5}, {3, 5, 5}, {5, 5, 5}, {2, 2, 2}, {2, 2, 8}, {2, 8, 8}, {8, 8, 8}, {8, 8, 9}, {8, 9, 9}, {9, 9, 9}};
   count = 0;
   for (auto& [c0, c1, c2] : combinations(CombinationsBlockUpperIndexPolicy("y", 1, -1, testAux, testAux, testAux))) {
     BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedUpperTriples[count]));
@@ -877,7 +1070,7 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
   }
   BOOST_CHECK_EQUAL(count, expectedUpperTriples.size());
 
-  std::vector<std::tuple<int32_t, int32_t, int32_t, int32_t, int32_t>> expectedUpperFives{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 4}, {0, 0, 0, 0, 7}, {0, 0, 0, 4, 4}, {0, 0, 0, 4, 7}, {0, 0, 0, 7, 7}, {0, 0, 4, 4, 4}, {0, 0, 4, 4, 7}, {0, 0, 4, 7, 7}, {0, 0, 7, 7, 7}, {0, 4, 4, 4, 4}, {0, 4, 4, 4, 7}, {0, 4, 4, 7, 7}, {0, 4, 7, 7, 7}, {0, 7, 7, 7, 7}, {2, 2, 2, 2, 2}, {2, 2, 2, 2, 8}, {2, 2, 2, 2, 9}, {2, 2, 2, 8, 8}, {2, 2, 2, 8, 9}, {2, 2, 2, 9, 9}, {2, 2, 8, 8, 8}, {2, 2, 8, 8, 9}, {2, 2, 8, 9, 9}, {2, 2, 9, 9, 9}, {2, 8, 8, 8, 8}, {2, 8, 8, 8, 9}, {2, 8, 8, 9, 9}, {2, 8, 9, 9, 9}, {2, 9, 9, 9, 9}};
+  std::vector<std::tuple<int32_t, int32_t, int32_t, int32_t, int32_t>> expectedUpperFives{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 4}, {0, 0, 0, 0, 7}, {0, 0, 0, 4, 4}, {0, 0, 0, 4, 7}, {0, 0, 0, 7, 7}, {0, 0, 4, 4, 4}, {0, 0, 4, 4, 7}, {0, 0, 4, 7, 7}, {0, 0, 7, 7, 7}, {0, 4, 4, 4, 4}, {0, 4, 4, 4, 7}, {0, 4, 4, 7, 7}, {0, 4, 7, 7, 7}, {0, 7, 7, 7, 7}, {4, 4, 4, 4, 4}, {4, 4, 4, 4, 7}, {4, 4, 4, 7, 7}, {4, 4, 7, 7, 7}, {4, 7, 7, 7, 7}, {7, 7, 7, 7, 7}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 6}, {1, 1, 1, 6, 6}, {1, 1, 6, 6, 6}, {1, 6, 6, 6, 6}, {6, 6, 6, 6, 6}, {3, 3, 3, 3, 3}, {3, 3, 3, 3, 5}, {3, 3, 3, 5, 5}, {3, 3, 5, 5, 5}, {3, 5, 5, 5, 5}, {5, 5, 5, 5, 5}, {2, 2, 2, 2, 2}, {2, 2, 2, 2, 8}, {2, 2, 2, 2, 9}, {2, 2, 2, 8, 8}, {2, 2, 2, 8, 9}, {2, 2, 2, 9, 9}, {2, 2, 8, 8, 8}, {2, 2, 8, 8, 9}, {2, 2, 8, 9, 9}, {2, 2, 9, 9, 9}, {2, 8, 8, 8, 8}, {2, 8, 8, 8, 9}, {2, 8, 8, 9, 9}, {2, 8, 9, 9, 9}, {2, 9, 9, 9, 9}, {8, 8, 8, 8, 8}, {8, 8, 8, 8, 9}, {8, 8, 8, 9, 9}, {8, 8, 9, 9, 9}, {8, 9, 9, 9, 9}, {9, 9, 9, 9, 9}};
   count = 0;
   for (auto& [c0, c1, c2, c3, c4] : combinations(CombinationsBlockUpperIndexPolicy("y", 2, -1, testAux, testAux, testAux, testAux, testAux))) {
     BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedUpperFives[count]));
@@ -889,10 +1082,20 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
   }
   BOOST_CHECK_EQUAL(count, expectedUpperFives.size());
 
-  std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairs{
-    {0, 4}, {0, 7}, {2, 8}, {2, 9}};
+  std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairsSmaller{
+    {0, 4}, {4, 7}, {1, 6}, {3, 5}, {2, 8}, {8, 9}};
   count = 0;
-  for (auto& [c0, c1] : combinations(CombinationsBlockStrictlyUpperIndexPolicy("y", 2, -1, testAux, testAux))) {
+  for (auto& [c0, c1] : combinations(CombinationsBlockStrictlyUpperSameIndexPolicy("y", 1, -1, testAux, testAux))) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedStrictlyUpperPairsSmaller[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedStrictlyUpperPairsSmaller[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedStrictlyUpperPairsSmaller.size());
+
+  std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairs{
+    {0, 4}, {0, 7}, {4, 7}, {1, 6}, {3, 5}, {2, 8}, {2, 9}, {8, 9}};
+  count = 0;
+  for (auto& [c0, c1] : combinations(CombinationsBlockStrictlyUpperSameIndexPolicy("y", 2, -1, testAux, testAux))) {
     BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedStrictlyUpperPairs[count]));
     BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedStrictlyUpperPairs[count]));
     count++;
@@ -902,7 +1105,7 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
   std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedStrictlyUpperTriples{
     {0, 4, 7}, {2, 8, 9}};
   count = 0;
-  for (auto& [c0, c1, c2] : combinations(CombinationsBlockStrictlyUpperIndexPolicy("y", 2, -1, testAux, testAux, testAux))) {
+  for (auto& [c0, c1, c2] : combinations(CombinationsBlockStrictlyUpperSameIndexPolicy("y", 2, -1, testAux, testAux, testAux))) {
     BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedStrictlyUpperTriples[count]));
     BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedStrictlyUpperTriples[count]));
     BOOST_CHECK_EQUAL(c2.x(), std::get<2>(expectedStrictlyUpperTriples[count]));
@@ -911,104 +1114,55 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
   BOOST_CHECK_EQUAL(count, expectedStrictlyUpperTriples.size());
 
   count = 0;
-  for (auto& [c0, c1, c2, c3, c4] : combinations(CombinationsBlockStrictlyUpperIndexPolicy("y", 1, -1, testAux, testAux, testAux, testAux, testAux))) {
+  for (auto& [c0, c1, c2, c3, c4] : combinations(CombinationsBlockStrictlyUpperSameIndexPolicy("y", 1, -1, testAux, testAux, testAux, testAux, testAux))) {
     count++;
   }
   BOOST_CHECK_EQUAL(count, 0);
 
-  TableBuilder builderCollisions;
-  auto rowWriterCol = builderCollisions.cursor<o2::aod::Collisions>();
-  rowWriterCol(0, 0,
-               0, 0, -6.0f /*float PosZ*/,
-               0, 0, 0, 0, 0, 0, 0, 25 /*uint32_t NumContrib*/,
-               0, 0, 0);
-  rowWriterCol(1, 0,
-               1.0f, 0, 0.0f /*float PosZ*/,
-               0, 0, 0, 0, 0, 0, 0, 18 /*uint32_t NumContrib*/,
-               0, 0, 1);
-  rowWriterCol(2, 0,
-               3.0f, 0, 8.0f /*float PosZ*/,
-               0, 0, 0, 0, 0, 0, 0, 48 /*uint32_t NumContrib*/,
-               0, 0, 2);
-  rowWriterCol(3, 0,
-               2.0f, 0, 2.0f /*float PosZ*/,
-               0, 0, 0, 0, 0, 0, 0, 103 /*uint32_t NumContrib*/,
-               0, 0, 3);
-  rowWriterCol(4, 0,
-               0.0f, 0, -6.0f /*float PosZ*/,
-               0, 0, 0, 0, 0, 0, 0, 28 /*uint32_t NumContrib*/,
-               0, 0, 4);
-  rowWriterCol(5, 0,
-               2.0f, 0, 2.0f /*float PosZ*/,
-               0, 0, 0, 0, 0, 0, 0, 102 /*uint32_t NumContrib*/,
-               0, 0, 5);
-  rowWriterCol(6, 0,
-               1.0f, 0, 0.0f /*float PosZ*/,
-               0, 0, 0, 0, 0, 0, 0, 12 /*uint32_t NumContrib*/,
-               0, 0, 6);
-  rowWriterCol(7, 0,
-               0.0f, 0, -7.0f /*float PosZ*/,
-               0, 0, 0, 0, 0, 0, 0, 24 /*uint32_t NumContrib*/,
-               0, 0, 7);
-  rowWriterCol(8, 0,
-               3.0f, 0, 8.0f /*float PosZ*/,
-               0, 0, 0, 0, 0, 0, 0, 41 /*uint32_t NumContrib*/,
-               0, 0, 8);
-  rowWriterCol(9, 0,
-               3.0f, 0, 8.0f /*float PosZ*/,
-               0, 0, 0, 0, 0, 0, 0, 49 /*uint32_t NumContrib*/,
-               0, 0, 9);
-  auto tableCol = builderCollisions.finalize();
-  BOOST_REQUIRE_EQUAL(tableCol->num_rows(), 10);
-
-  o2::aod::Collisions collisions{tableCol};
-  BOOST_REQUIRE_EQUAL(10, collisions.size());
-
-  TableBuilder builderColAux;
-  auto rowWriterColAux = builderColAux.persist<int32_t, int32_t>({"x", "y"});
-  int ind = 0;
-  for (auto it = collisions.begin(); it != collisions.end(); it++) {
-    auto& collision = *it;
-    rowWriterColAux(0, ind, getHash(yBins, zBins, collision.numContrib(), collision.posZ()));
-    ind++;
-  }
-  auto tableColAux = builderColAux.finalize();
-  BOOST_REQUIRE_EQUAL(tableColAux->num_rows(), 10);
-
-  // Auxiliary table: testAux with id and hash, hash is the category for grouping
-  TestsAux colAux{tableColAux};
-  BOOST_REQUIRE_EQUAL(10, colAux.size());
-
+  // Different tables of different size
+  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsFirstSmaller{
+    {0, 0}, {0, 4}, {4, 0}, {4, 4}, {4, 7}, {1, 1}, {1, 6}, {3, 3}, {3, 5}, {2, 2}, {2, 8}};
   count = 0;
-  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy("y", 2, -1, colAux, colAux))) {
-    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedFullPairs[count]));
-    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedFullPairs[count]));
-    // Corresponding collisions: collisions.begin() + c0.x(), collisions.begin() + c1.x()
+  for (auto& [x0, x1] : combinations(CombinationsBlockFullIndexPolicy("y", 1, -1, testAuxHalf, testAux))) {
+    BOOST_CHECK_EQUAL(x0.x(), std::get<0>(expectedFullPairsFirstSmaller[count]));
+    BOOST_CHECK_EQUAL(x1.x(), std::get<1>(expectedFullPairsFirstSmaller[count]));
     count++;
   }
-  BOOST_CHECK_EQUAL(count, expectedFullPairs.size());
+  BOOST_CHECK_EQUAL(count, expectedFullPairsFirstSmaller.size());
 
-  // Without hashing, taking a single column from the original table as a category
   count = 0;
-  for (auto& [c0, c1] : combinations(CombinationsBlockFullIndexPolicy("fPosX", 2, -1.0f, collisions, collisions))) {
-    BOOST_CHECK_EQUAL(c0.index(), std::get<0>(expectedFullPairs[count]));
-    BOOST_CHECK_EQUAL(c1.index(), std::get<1>(expectedFullPairs[count]));
+  std::vector<std::tuple<int32_t, int32_t>> expectedFullPairsSecondSmaller{
+    {0, 0}, {0, 4}, {4, 0}, {4, 4}, {7, 4}, {1, 1}, {6, 1}, {3, 3}, {5, 3}, {2, 2}, {8, 2}};
+  for (auto& [x0, x1] : combinations(CombinationsBlockFullIndexPolicy("y", 1, -1, testAux, testAuxHalf))) {
+    BOOST_CHECK_EQUAL(x0.x(), std::get<0>(expectedFullPairsSecondSmaller[count]));
+    BOOST_CHECK_EQUAL(x1.x(), std::get<1>(expectedFullPairsSecondSmaller[count]));
     count++;
   }
-  BOOST_CHECK_EQUAL(count, expectedFullPairs.size());
+  BOOST_CHECK_EQUAL(count, expectedFullPairsSecondSmaller.size());
 
-  // Different tables that have the same column name
+  std::vector<std::tuple<int32_t, int32_t>> expectedUpperPairsFirstSmaller{
+    {0, 0}, {0, 4}, {4, 4}, {4, 7}, {1, 1}, {1, 6}, {3, 3}, {3, 5}, {2, 2}, {2, 8}};
   count = 0;
-  for (auto& [x0, x1] : combinations(CombinationsBlockFullIndexPolicy("x", 0, -1, testA, testAux))) {
-    BOOST_CHECK_EQUAL(x0.x(), count);
-    BOOST_CHECK_EQUAL(x1.x(), count);
+  for (auto& [x0, x1] : combinations(CombinationsBlockUpperIndexPolicy("y", 1, -1, testAuxHalf, testAux))) {
+    BOOST_CHECK_EQUAL(x0.x(), std::get<0>(expectedUpperPairsFirstSmaller[count]));
+    BOOST_CHECK_EQUAL(x1.x(), std::get<1>(expectedUpperPairsFirstSmaller[count]));
     count++;
   }
-  BOOST_CHECK_EQUAL(count, testA.size());
+  BOOST_CHECK_EQUAL(count, expectedUpperPairsFirstSmaller.size());
+
+  count = 0;
+  std::vector<std::tuple<int32_t, int32_t>> expectedUpperPairsSecondSmaller{
+    {0, 0}, {0, 4}, {4, 4}, {1, 1}, {3, 3}, {2, 2}};
+  for (auto& [x0, x1] : combinations(CombinationsBlockUpperIndexPolicy("y", 1, -1, testAux, testAuxHalf))) {
+    BOOST_CHECK_EQUAL(x0.x(), std::get<0>(expectedUpperPairsSecondSmaller[count]));
+    BOOST_CHECK_EQUAL(x1.x(), std::get<1>(expectedUpperPairsSecondSmaller[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedUpperPairsSecondSmaller.size());
 
   // Using same index combinations for better performance
   count = 0;
-  for (auto& [c0, c1] : combinations(CombinationsBlockFullSameIndexPolicy("y", 2, -1, colAux, colAux))) {
+  for (auto& [c0, c1] : combinations(CombinationsBlockFullSameIndexPolicy("y", 2, -1, testAux, testAux))) {
     BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedFullPairs[count]));
     BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedFullPairs[count]));
     count++;
@@ -1023,29 +1177,6 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
     count++;
   }
   BOOST_CHECK_EQUAL(count, expectedFullTriples.size());
-
-  count = 0;
-  for (auto& [c0, c1] : selfCombinations("y", 2, -1, testAux, testAux)) {
-    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedStrictlyUpperPairs[count]));
-    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedStrictlyUpperPairs[count]));
-    count++;
-  }
-  BOOST_CHECK_EQUAL(count, expectedStrictlyUpperPairs.size());
-
-  count = 0;
-  for (auto& [c0, c1, c2] : selfCombinations("y", 2, -1, testAux, testAux, testAux)) {
-    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedStrictlyUpperTriples[count]));
-    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedStrictlyUpperTriples[count]));
-    BOOST_CHECK_EQUAL(c2.x(), std::get<2>(expectedStrictlyUpperTriples[count]));
-    count++;
-  }
-  BOOST_CHECK_EQUAL(count, expectedStrictlyUpperTriples.size());
-
-  count = 0;
-  for (auto& [c0, c1, c2, c3, c4] : selfCombinations("y", 2, -1, testAux, testAux, testAux, testAux, testAux)) {
-    count++;
-  }
-  BOOST_CHECK_EQUAL(count, 0);
 
   count = 0;
   for (auto& [c0, c1] : combinations(CombinationsBlockUpperSameIndexPolicy("y", 2, -1, testAux, testAux))) {
@@ -1074,4 +1205,27 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
     count++;
   }
   BOOST_CHECK_EQUAL(count, expectedUpperFives.size());
+
+  count = 0;
+  for (auto& [c0, c1] : selfCombinations("y", 2, -1, testAux, testAux)) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedStrictlyUpperPairs[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedStrictlyUpperPairs[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedStrictlyUpperPairs.size());
+
+  count = 0;
+  for (auto& [c0, c1, c2] : selfCombinations("y", 2, -1, testAux, testAux, testAux)) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedStrictlyUpperTriples[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedStrictlyUpperTriples[count]));
+    BOOST_CHECK_EQUAL(c2.x(), std::get<2>(expectedStrictlyUpperTriples[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedStrictlyUpperTriples.size());
+
+  count = 0;
+  for (auto& [c0, c1, c2, c3, c4] : selfCombinations("y", 2, -1, testAux, testAux, testAux, testAux, testAux)) {
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, 0);
 }
