@@ -680,9 +680,13 @@ int main(int argc, char** argv)
 
         if (configStandalone.overrideMaxTimebin && (chainTracking->mIOPtrs.clustersNative || chainTracking->mIOPtrs.tpcPackedDigits || chainTracking->mIOPtrs.tpcZS)) {
           GPUSettingsEvent ev = rec->GetEventSettings();
-          ev.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
-          printf("Max time bin set to %d\n", (int)ev.continuousMaxTimeBin);
-          rec->UpdateEventSettings(&ev);
+          if (ev.continuousMaxTimeBin == 0) {
+            printf("Cannot override max time bin for non-continuous data!\n");
+          } else {
+            ev.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
+            printf("Max time bin set to %d\n", (int)ev.continuousMaxTimeBin);
+            rec->UpdateEventSettings(&ev);
+          }
         }
         if (!rec->GetParam().earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr && chainTracking->mIOPtrs.tpcZS == nullptr) {
           printf("Need cluster native data for on-the-fly TPC transform\n");
