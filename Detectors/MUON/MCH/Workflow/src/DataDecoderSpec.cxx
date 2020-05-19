@@ -145,7 +145,7 @@ class DataDecoderTask
 
     if (!mDecoder) {
       mDecoder = mFee2Solar ? o2::mch::raw::createPageDecoder(page, channelHandler, mFee2Solar)
-      : o2::mch::raw::createPageDecoder(page, channelHandler);
+                            : o2::mch::raw::createPageDecoder(page, channelHandler);
     }
 
     patchPage(page);
@@ -160,8 +160,9 @@ class DataDecoderTask
     std::ifstream in(filename);
     while (std::getline(in, s)) {
       content += s;
+      content += " ";
     }
-    return s;
+    return content;
   }
 
   void initElec2DetMapper(const std::string& filename)
@@ -206,8 +207,8 @@ class DataDecoderTask
     auto mapCRUfile = ic.options().get<std::string>("cru-map");
     auto mapFECfile = ic.options().get<std::string>("fec-map");
 
-    initElec2DetMapper(mapCRUfile);
-    initFee2SolarMapper(mapFECfile);
+    initFee2SolarMapper(mapCRUfile);
+    initElec2DetMapper(mapFECfile);
   }
 
   //_________________________________________________________________________________________________
