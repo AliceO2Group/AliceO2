@@ -89,7 +89,7 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         for (auto& d : digits) {
           LOG(DEBUG) << "ADC " << d.getADC();
           LOG(DEBUG) << "PAD " << d.getPadID();
-          LOG(DEBUG) << "TIME " << d.getTimeStamp();
+          LOG(DEBUG) << "TIME " << d.getTime().sampaTime;
           LOG(DEBUG) << "DetID " << d.getDetID();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));

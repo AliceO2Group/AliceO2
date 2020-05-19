@@ -160,7 +160,9 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
       }
       auto signal = (unsigned long)q * resp.getInverseChargeThreshold();
       if (signal > 0) {
-        digits.emplace_back(time, detID, padid, signal);
+        Digit::Time dtime;
+        dtime.sampaTime = static_cast<uint16_t>(time) & 0x3FF;
+        digits.emplace_back(detID, padid, signal, dtime);
         ++ndigits;
       }
     }
@@ -195,7 +197,7 @@ void Digitizer::mergeDigits()
   int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
-    while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID())) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())) && (std::fabs(sortedDigits(i).getTimeStamp() - sortedDigits(j).getTimeStamp()) < mDeltat)) {
+    while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID())) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())) && (std::fabs(sortedDigits(i).getTime().sampaTime - sortedDigits(j).getTime().sampaTime) < mDeltat)) {
       j++;
     }
     unsigned long adc{0};
@@ -217,7 +219,7 @@ void Digitizer::mergeDigits()
     padc = adc * resp.getChargeThreshold();
     adc = TMath::Nint(padc);
     adc = resp.response(adc);
-    mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
+    mDigits.emplace_back(sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc, sortedDigits(i).getTime());
     i = j;
     ++count;
   }
@@ -232,7 +234,7 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruth
 
   for (int index = 0; index < digits.size(); ++index) {
     auto digit = digits.at(index);
-    mDigits.emplace_back(digit.getTimeStamp(), digit.getDetID(), digit.getPadID(), digit.getADC());
+    mDigits.emplace_back(digit.getDetID(), digit.getPadID(), digit.getADC(), digit.getTime());
   }
   for (int index = 0; index < mcContainer.getNElements(); ++index) {
     auto label = mcContainer.getElement(index);

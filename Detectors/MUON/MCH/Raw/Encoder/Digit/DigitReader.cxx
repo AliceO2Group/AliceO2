@@ -37,7 +37,7 @@ void DigitReader::readNextEntry()
   const o2::raw::HBFUtils& hbfutils = o2::raw::HBFUtils::Instance();
 
   for (auto d : (*mDigits)) {
-    o2::InteractionTimeRecord ir(d.getTimeStamp());
+    o2::InteractionTimeRecord ir(d.getTime().sampaTime);
     // get the closest (previous) HBF from this IR
     // and assign the digits to that one
     auto hbf = hbfutils.getIRHBF(hbfutils.getHBF(ir));

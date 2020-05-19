@@ -38,7 +38,7 @@ using o2::header::RAWDataHeaderV4;
 SampaChannelHandler handlePacket(std::string& result)
 {
   return [&result](DsElecId dsId, uint8_t channel, SampaCluster sc) {
-    result += fmt::format("{}-ch-{}-ts-{}-q", asString(dsId), channel, sc.timestamp);
+    result += fmt::format("{}-ch-{}-ts-{}-q", asString(dsId), channel, sc.sampaTime);
     if (sc.isClusterSum()) {
       result += fmt::format("-{}", sc.chargeSum);
     } else {
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(SampleModeSimplest)
 {
   // only one channel with one very small cluster
   // fitting within one 64-bits word
-  SampaCluster cl(345, {123, 456});
+  SampaCluster cl(345, 6789, {123, 456});
   auto r = testPayloadDecode<SampleMode>(DsElecId{728, 1, 0}, 63, {cl});
   BOOST_CHECK_EQUAL(r, "S728-J1-DS0-ch-63-ts-345-q-123-456\n");
 }
@@ -156,7 +156,7 @@ BOOST_AUTO_TEST_CASE(SampleModeSimple)
 {
   // only one channel with one cluster, but the cluster
   // spans 2 64-bits words.
-  SampaCluster cl(345, {123, 456, 789, 901, 902});
+  SampaCluster cl(345, 6789, {123, 456, 789, 901, 902});
   auto r = testPayloadDecode<SampleMode>(DsElecId{448, 6, 4}, 63, {cl});
   BOOST_CHECK_EQUAL(r, "S448-J6-DS4-ch-63-ts-345-q-123-456-789-901-902\n");
 }
@@ -164,8 +164,8 @@ BOOST_AUTO_TEST_CASE(SampleModeSimple)
 BOOST_AUTO_TEST_CASE(SampleModeTwoChannels)
 {
   // 2 channels with one cluster
-  SampaCluster cl(345, {123, 456, 789, 901, 902});
-  SampaCluster cl2(346, {1001, 1002, 1003, 1004, 1005, 1006, 1007});
+  SampaCluster cl(345, 6789, {123, 456, 789, 901, 902});
+  SampaCluster cl2(346, 6789, {1001, 1002, 1003, 1004, 1005, 1006, 1007});
   auto r = testPayloadDecode<SampleMode>(DsElecId{361, 6, 2}, 63, {cl}, DsElecId{361, 6, 2}, 47, {cl2});
   BOOST_CHECK_EQUAL(r,
                     "S361-J6-DS2-ch-63-ts-345-q-123-456-789-901-902\n"
@@ -176,7 +176,7 @@ BOOST_AUTO_TEST_CASE(ChargeSumModeSimplest)
 {
   // only one channel with one cluster
   // (hence fitting within one 64 bits word)
-  SampaCluster cl(345, 123456);
+  SampaCluster cl(345, 6789, 123456);
   auto r = testPayloadDecode<ChargeSumMode>(DsElecId{728, 1, 0}, 63, {cl});
   BOOST_CHECK_EQUAL(r, "S728-J1-DS0-ch-63-ts-345-q-123456\n");
 }
@@ -185,8 +185,8 @@ BOOST_AUTO_TEST_CASE(ChargeSumModeSimple)
 {
   // only one channel with 2 clusters
   // (hence spanning 2 64-bits words)
-  SampaCluster cl1(345, 123456);
-  SampaCluster cl2(346, 789012);
+  SampaCluster cl1(345, 6789, 123456);
+  SampaCluster cl2(346, 6789, 789012);
   auto r = testPayloadDecode<ChargeSumMode>(DsElecId{448, 6, 4}, 63, {cl1, cl2});
   BOOST_CHECK_EQUAL(r,
                     "S448-J6-DS4-ch-63-ts-345-q-123456\n"
@@ -196,10 +196,10 @@ BOOST_AUTO_TEST_CASE(ChargeSumModeSimple)
 BOOST_AUTO_TEST_CASE(ChargeSumModeTwoChannels)
 {
   // two channels with 2 clusters
-  SampaCluster cl1(345, 123456);
-  SampaCluster cl2(346, 789012);
-  SampaCluster cl3(347, 1357);
-  SampaCluster cl4(348, 7912);
+  SampaCluster cl1(345, 6789, 123456);
+  SampaCluster cl2(346, 6789, 789012);
+  SampaCluster cl3(347, 6789, 1357);
+  SampaCluster cl4(348, 6789, 7912);
   auto r = testPayloadDecode<ChargeSumMode>(DsElecId{361, 6, 2}, 63, {cl1, cl2}, DsElecId{361, 6, 2}, 47, {cl3, cl4});
   BOOST_CHECK_EQUAL(r,
                     "S361-J6-DS2-ch-63-ts-345-q-123456\n"
@@ -214,12 +214,14 @@ BOOST_AUTO_TEST_CASE(SyncInTheMiddleChargeSumModeTwoChannels)
   // the TwoChannels case and check the decoder is handling this fine
   // (by just returning to wait for sync mode, i.e. dropping the 2nd part
   // of the communication until a second sync)
-  SampaCluster cl1(345, 123456);
-  SampaCluster cl2(346, 789012);
-  SampaCluster cl3(347, 1357);
-  SampaCluster cl4(348, 7912);
-  auto r = testPayloadDecode<ChargeSumMode>(DsElecId{361, 6, 2}, 63, {cl1, cl2}, DsElecId{361, 6, 2}, 47, {cl3, cl4},
-                                            5);
+  SampaCluster cl1(345, 6789, 123456);
+  SampaCluster cl2(346, 6789, 789012);
+  SampaCluster cl3(347, 6789, 1357);
+  SampaCluster cl4(348, 6789, 7912);
+  auto r = testPayloadDecode<ChargeSumMode>(
+    DsElecId{361, 6, 2}, 63, {cl1, cl2},
+    DsElecId{361, 6, 2}, 47, {cl3, cl4},
+    5);
   BOOST_CHECK_EQUAL(r,
                     "S361-J6-DS2-ch-63-ts-345-q-123456\n"
                     "S361-J6-DS2-ch-63-ts-346-q-789012\n");

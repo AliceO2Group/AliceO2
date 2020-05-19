@@ -8,7 +8,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(MCHTestRawRefBuffers
-        SOURCES RefBufferGBT.cxx RefBufferCRUBare.cxx RefBufferCRUUserLogic.cxx
-        PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
-        PUBLIC_LINK_LIBRARIES O2::MCHRawCommon)
+# closure tests, thus depending on both Encoder and Decoder
+
+o2_add_test(closure-codec
+                SOURCES testClosureCoDec.cxx
+                COMPONENT_NAME mchraw
+                LABELS "muon;mch;raw"
+                PUBLIC_LINK_LIBRARIES O2::MCHRawEncoderPayload O2::MCHRawDecoder)

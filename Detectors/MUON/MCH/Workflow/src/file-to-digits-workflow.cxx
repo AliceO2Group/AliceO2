@@ -146,9 +146,9 @@ class FileReaderTask
         return;
       }
 
-      int time = 0;
+      o2::mch::Digit::Time time;
 
-      digits.emplace_back(o2::mch::Digit(time, deId, padId, digitadc));
+      digits.emplace_back(o2::mch::Digit(deId, padId, digitadc, time));
       //o2::mch::Digit& mchdigit = digits.back();
       //mchdigit.setDetID(deId);
       //mchdigit.setPadID(padId);
@@ -156,7 +156,7 @@ class FileReaderTask
       //mchdigit.setTimeStamp(time);
 
       if (mPrint)
-        std::cout << "DIGIT STORED:\nADC " << digits.back().getADC() << " DE# " << digits.back().getDetID() << " PadId " << digits.back().getPadID() << " time " << digits.back().getTimeStamp() << std::endl;
+        std::cout << "DIGIT STORED:\nADC " << digits.back().getADC() << " DE# " << digits.back().getDetID() << " PadId " << digits.back().getPadID() << " time " << digits.back().getTime().sampaTime << std::endl;
       ++ndigits;
     };
 
@@ -257,7 +257,7 @@ class FileReaderTask
 
     if (mPrint) {
       for (auto d : digits) {
-        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTimeStamp() << std::endl;
+        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTime().sampaTime << std::endl;
       }
     }
 

@@ -82,6 +82,8 @@ class DataDecoderTask
   {
     size_t ndigits{0};
 
+    uint32_t orbit;
+
     auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
       if (mDs2manu) {
         channel = ds2manu(int(channel));
@@ -117,12 +119,15 @@ class DataDecoderTask
         return;
       }
 
-      int time = sc.timestamp;
+      Digit::Time time;
+      time.sampaTime = sc.sampaTime;
+      time.bunchCrossing = sc.bunchCrossing;
+      time.orbit = orbit;
 
-      digits.emplace_back(o2::mch::Digit(time, deId, padId, digitadc));
+      digits.emplace_back(o2::mch::Digit(deId, padId, digitadc, time));
 
       if (mPrint)
-        std::cout << "DIGIT STORED:\nADC " << digits.back().getADC() << " DE# " << digits.back().getDetID() << " PadId " << digits.back().getPadID() << " time " << digits.back().getTimeStamp() << std::endl;
+        std::cout << "DIGIT STORED:\nADC " << digits.back().getADC() << " DE# " << digits.back().getDetID() << " PadId " << digits.back().getPadID() << " time " << digits.back().getTime().sampaTime << std::endl;
       ++ndigits;
     };
 
@@ -132,17 +137,20 @@ class DataDecoderTask
       auto cruId = o2::raw::RDHUtils::getCRUID(rdhPtr);
       auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhPtr);
       o2::raw::RDHUtils::setFEEID(rdhPtr, cruId * 2 + endpoint);
+      orbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdhPtr);
       if (mPrint) {
         std::cout << mNrdhs << "--\n";
         o2::raw::RDHUtils::printRDH(rdhPtr);
       }
     };
 
-    o2::mch::raw::PageDecoder decode =
-      mFee2Solar ? o2::mch::raw::createPageDecoder(page, channelHandler, mFee2Solar)
-                 : o2::mch::raw::createPageDecoder(page, channelHandler);
+    if (!mDecoder) {
+      mDecoder = mFee2Solar ? o2::mch::raw::createPageDecoder(page, channelHandler, mFee2Solar)
+                            : o2::mch::raw::createPageDecoder(page, channelHandler);
+    }
+
     patchPage(page);
-    decode(page);
+    mDecoder(page);
   }
 
  private:
@@ -153,6 +161,7 @@ class DataDecoderTask
     std::ifstream in(filename);
     while (std::getline(in, s)) {
       content += s;
+      content += " ";
     }
     return content;
   }
@@ -199,8 +208,8 @@ class DataDecoderTask
     auto mapCRUfile = ic.options().get<std::string>("cru-map");
     auto mapFECfile = ic.options().get<std::string>("fec-map");
 
-    initElec2DetMapper(mapCRUfile);
-    initFee2SolarMapper(mapFECfile);
+    initFee2SolarMapper(mapCRUfile);
+    initElec2DetMapper(mapFECfile);
   }
 
   //_________________________________________________________________________________________________
@@ -271,7 +280,7 @@ class DataDecoderTask
 
     if (mPrint) {
       for (auto d : digits) {
-        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTimeStamp() << std::endl;
+        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTime().sampaTime << std::endl;
       }
     }
 
@@ -290,6 +299,7 @@ class DataDecoderTask
  private:
   Elec2DetMapper mElec2Det{nullptr};
   FeeLink2SolarMapper mFee2Solar{nullptr};
+  o2::mch::raw::PageDecoder mDecoder;
   size_t mNrdhs{0};
 
   std::ifstream mInputFile{}; ///< input file

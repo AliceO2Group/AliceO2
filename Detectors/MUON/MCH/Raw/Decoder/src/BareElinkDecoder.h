@@ -301,7 +301,7 @@ void BareElinkDecoder<CHARGESUM>::handleReadSample()
   }
   oneLess10BitWord();
   if (mNofSamples) {
-    handleReadData();
+    changeToReadingData();
   } else {
     sendCluster();
     if (mNof10BitsWordsToRead) {
@@ -422,7 +422,7 @@ void BareElinkDecoder<ChargeSumMode>::sendCluster()
   if (mSampaChannelHandler) {
     mSampaChannelHandler(mDsId,
                          channelNumber64(mSampaHeader),
-                         SampaCluster(mTimestamp, mClusterSum));
+                         SampaCluster(mTimestamp, mSampaHeader.bunchCrossingCounter(), mClusterSum));
   }
 }
 
@@ -432,7 +432,7 @@ void BareElinkDecoder<SampleMode>::sendCluster()
   if (mSampaChannelHandler) {
     mSampaChannelHandler(mDsId,
                          channelNumber64(mSampaHeader),
-                         SampaCluster(mTimestamp, mSamples));
+                         SampaCluster(mTimestamp, mSampaHeader.bunchCrossingCounter(), mSamples));
   }
   mSamples.clear();
 }

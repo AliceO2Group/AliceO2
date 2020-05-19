@@ -9,17 +9,11 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MCHRawDecoder
-        SOURCES src/PageDecoder.cxx src/DecoderLogic.cxx src/RDHManip.cxx
+        SOURCES src/PageDecoder.cxx src/RDHManip.cxx
         PUBLIC_LINK_LIBRARIES O2::MCHRawCommon O2::MCHRawElecMap O2::DetectorsRaw
         PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
 
 if(BUILD_TESTING)
-        o2_add_test(page-decoder
-                SOURCES src/testPageDecoder.cxx
-                COMPONENT_NAME mchraw
-                LABELS "muon;mch;raw"
-                PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder O2::MCHTestRawRefBuffers
-                O2::DPLUtils)
 
         o2_add_test(bare-elink-decoder
                 SOURCES src/testBareElinkDecoder.cxx

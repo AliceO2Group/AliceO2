@@ -27,10 +27,11 @@ ElinkEncoder<BareFormat, SampleMode> createBareElinkEncoder10()
 
   ElinkEncoder<BareFormat, SampleMode> enc(linkId);
 
-  enc.addChannelData(1, {SampaCluster{20, std::vector<uint16_t>{20}}});
-  enc.addChannelData(5, {SampaCluster{100, std::vector<uint16_t>{100, 101}}});
-  enc.addChannelData(13, {SampaCluster{260, std::vector<uint16_t>{260, 261, 262}}});
-  enc.addChannelData(31, {SampaCluster{620, std::vector<uint16_t>{620, 621, 622, 623}}});
+  enc.addChannelData(1, {SampaCluster{20, 21, std::vector<uint16_t>{20}},
+                         SampaCluster{24, 21, std::vector<uint16_t>{10}}});
+  enc.addChannelData(5, {SampaCluster{100, 101, std::vector<uint16_t>{100, 101}}});
+  enc.addChannelData(13, {SampaCluster{260, 261, std::vector<uint16_t>{260, 261, 262}}});
+  enc.addChannelData(31, {SampaCluster{620, 621, std::vector<uint16_t>{620, 621, 622, 623}}});
 
   return enc;
 }
@@ -41,10 +42,10 @@ ElinkEncoder<BareFormat, ChargeSumMode> createBareElinkEncoder20()
 
   ElinkEncoder<BareFormat, ChargeSumMode> enc(linkId);
 
-  enc.addChannelData(1, {SampaCluster{20, 101}});
-  enc.addChannelData(5, {SampaCluster{100, 505}});
-  enc.addChannelData(13, {SampaCluster{260, 1313}});
-  enc.addChannelData(31, {SampaCluster{620, 3131}});
+  enc.addChannelData(1, {SampaCluster{20, 21, 101}});
+  enc.addChannelData(5, {SampaCluster{100, 101, 505}});
+  enc.addChannelData(13, {SampaCluster{260, 261, 1313}});
+  enc.addChannelData(31, {SampaCluster{620, 621, 3131}});
 
   return enc;
 }
@@ -63,7 +64,7 @@ BOOST_AUTO_TEST_CASE(AddSingleHitShouldIncreaseSizeBy140Bits)
 {
   ElinkEncoder<BareFormat, ChargeSumMode> enc(0);
   auto initialSize = enc.len();
-  std::vector<SampaCluster> data = {SampaCluster(20, 10)};
+  std::vector<SampaCluster> data = {SampaCluster(20, 21, 10)};
   enc.addChannelData(31, data);
   // 100 = 50 (sync) + 50 (header)
   // 40 = 10 (ts) + 10 (cluster size) + 20 (charge sum)
@@ -78,9 +79,9 @@ BOOST_AUTO_TEST_CASE(AddMultipleHitsShouldIncreateSizeBy40BitsTimeN)
   uint8_t chId{31};
 
   std::vector<SampaCluster> data = {
-    SampaCluster(10, 1000),
-    SampaCluster(20, 2000),
-    SampaCluster(30, 3000),
+    SampaCluster(10, 11, 1000),
+    SampaCluster(20, 11, 2000),
+    SampaCluster(30, 11, 3000),
   };
 
   enc.addChannelData(chId, data);
@@ -93,10 +94,10 @@ BOOST_AUTO_TEST_CASE(OneChipChargeSumOneCluster)
 {
   ElinkEncoder<BareFormat, ChargeSumMode> enc(9, 20);
   auto initialSize = enc.len();
-  enc.addChannelData(1, {SampaCluster(20, 101)});
-  enc.addChannelData(5, {SampaCluster(100, 505)});
-  enc.addChannelData(13, {SampaCluster(260, 1313)});
-  enc.addChannelData(31, {SampaCluster(620, 3131)});
+  enc.addChannelData(1, {SampaCluster(20, 21, 101)});
+  enc.addChannelData(5, {SampaCluster(100, 101, 505)});
+  enc.addChannelData(13, {SampaCluster(260, 261, 1313)});
+  enc.addChannelData(31, {SampaCluster(620, 621, 3131)});
   // 50 = 50 (sync)
   // 90 = 50 (header) + 10 (ts) + 10 (cluster size) + 20 (charge sum)
   BOOST_CHECK_EQUAL(enc.len(), initialSize + 50 + 4 * 90);
@@ -107,11 +108,10 @@ BOOST_AUTO_TEST_CASE(OneChipSamplesOneCluster)
   uint8_t linkId{0};
   ElinkEncoder<BareFormat, SampleMode> enc(linkId);
   auto initialSize = enc.len();
-  enc.addChannelData(1, {SampaCluster(20, std::vector<uint16_t>{1, 10, 100, 10, 1})});
-  enc.addChannelData(5, {SampaCluster(100, std::vector<uint16_t>{5, 50, 5})});
-  enc.addChannelData(13, {SampaCluster(260, std::vector<uint16_t>{
-                                              13, 14, 15, 15, 13})});
-  enc.addChannelData(31, {SampaCluster(620, std::vector<uint16_t>{31})});
+  enc.addChannelData(1, {SampaCluster(20, 21, std::vector<uint16_t>{1, 10, 100, 10, 1})});
+  enc.addChannelData(5, {SampaCluster(100, 101, std::vector<uint16_t>{5, 50, 5})});
+  enc.addChannelData(13, {SampaCluster(260, 261, std::vector<uint16_t>{13, 14, 15, 15, 13})});
+  enc.addChannelData(31, {SampaCluster(620, 621, std::vector<uint16_t>{31})});
   BOOST_CHECK_EQUAL(enc.len(), initialSize + 50 + 4 * (50 + 20) + 14 * 10);
 }
 
