@@ -181,7 +181,7 @@ void Digitizer::digitizeBC(BCCache& bc)
   auto& bcdata = bc.data;
   // apply gain
   for (int idet : {ZNA, ZPA, ZNC, ZPC}) {
-    for (int ic : {Ch1, Ch2, Ch3, Ch4}) {
+    for (int ic : {Common, Ch1, Ch2, Ch3, Ch4}) {
       int chan = toChannel(idet, ic);
       auto gain = mSimCondition->channels[chan].gain;
       for (int ib = NTimeBinsPerBC; ib--;) {
