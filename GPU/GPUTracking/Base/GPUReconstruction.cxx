@@ -152,11 +152,11 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_AUTO) {
     mDeviceProcessingSettings.memoryAllocationStrategy = IsGPU() ? GPUMemoryResource::ALLOCATION_GLOBAL : GPUMemoryResource::ALLOCATION_INDIVIDUAL;
   }
-  if (mDeviceProcessingSettings.eventDisplay) {
-    mDeviceProcessingSettings.keepAllMemory = true;
-  }
   if (mDeviceProcessingSettings.debugLevel >= 4) {
     mDeviceProcessingSettings.keepAllMemory = true;
+  }
+  if (mDeviceProcessingSettings.eventDisplay || mDeviceProcessingSettings.keepAllMemory) {
+    mDeviceProcessingSettings.keepDisplayMemory = true;
   }
   if (mDeviceProcessingSettings.debugLevel < 6) {
     mDeviceProcessingSettings.debugMask = 0;
@@ -424,7 +424,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
       GPUError("Double allocation! (%s)", res->mName);
       throw std::bad_alloc();
     }
-    if ((!IsGPU() || (res->mType & GPUMemoryResource::MEMORY_HOST) || mDeviceProcessingSettings.keepAllMemory) && !(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
+    if ((!IsGPU() || (res->mType & GPUMemoryResource::MEMORY_HOST) || mDeviceProcessingSettings.keepDisplayMemory) && !(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) { // keepAllMemory --> keepDisplayMemory
       if (control && control->OutputType == GPUOutputControl::UseExternalBuffer) {
         res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->OutputPtr, control->OutputBase, control->OutputMaxSize, &GPUMemoryResource::SetPointers);
       } else {

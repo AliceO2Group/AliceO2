@@ -147,6 +147,7 @@ struct GPUSettingsDeviceProcessing {
   int stuckProtection;                // Timeout in us, When AMD GPU is stuck, just continue processing and skip tracking, do not crash or stall the chain
   int memoryAllocationStrategy;       // 0 = auto, 1 = new/delete per resource (default for CPU), 2 = big chunk single allocation (default for device)
   bool keepAllMemory;                 // Allocate all memory on both device and host, and do not reuse
+  bool keepDisplayMemory;             // Like keepAllMemory, but only for memory required for event display
   int nStreams;                       // Number of parallel GPU streams
   char trackletConstructorInPipeline; // Run tracklet constructor in pileline like the preceeding tasks instead of as one big block
   char trackletSelectorInPipeline;    // Run tracklet selector in pipeline, requres also tracklet constructor in pipeline
