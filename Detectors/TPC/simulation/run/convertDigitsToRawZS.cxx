@@ -60,12 +60,13 @@ struct ProcessAttributes {
   std::vector<int> inputIds;
   bool zs12bit = true;
   float zsThreshold = 2.f;
+  bool padding = true;
   int verbosity = 1;
 };
 
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer);
 #include "DetectorsRaw/HBFUtils.h"
-void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, bool sectorBySector, uint32_t rdhV, bool stopPage, bool createParentDir)
+void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, bool sectorBySector, uint32_t rdhV, bool stopPage, bool noPadding, bool createParentDir)
 {
 
   // ===| open file and get tree |==============================================
@@ -125,6 +126,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   treeSim->SetBranchStatus("TPCDigit_*", 1);
 
   ProcessAttributes attr;
+  attr.padding = !noPadding;
 
   for (int iSecBySec = 0; iSecBySec < Sector::MAXSECTOR; ++iSecBySec) {
     treeSim->ResetBranchAddresses();
@@ -179,7 +181,7 @@ void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::
   const GPUParam mGPUParam = _GPUParam;
 
   o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
-  zsEncoder->RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, false, zsThreshold);
+  zsEncoder->RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, false, zsThreshold, processAttributes->padding);
 }
 
 int main(int argc, char** argv)
@@ -202,6 +204,7 @@ int main(int argc, char** argv)
     add_option("no-parent-directories,n", "Do not create parent directories recursively");
     add_option("sector-by-sector,s", bpo::value<bool>()->default_value(false)->implicit_value(true), "Run one TPC sector after another");
     add_option("stop-page,p", bpo::value<bool>()->default_value(false)->implicit_value(true), "HBF stop on separate CRU page");
+    add_option("no-padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "Don't pad pages to 8kb");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
@@ -231,6 +234,7 @@ int main(int argc, char** argv)
     vm["sector-by-sector"].as<bool>(),
     vm["rdh-version"].as<uint32_t>(),
     vm["stop-page"].as<bool>(),
+    vm["no-padding"].as<bool>(),
     !vm.count("no-parent-directories"));
 
   return 0;
