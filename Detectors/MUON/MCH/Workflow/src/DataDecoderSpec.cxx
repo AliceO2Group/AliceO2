@@ -82,6 +82,8 @@ class DataDecoderTask
   {
     size_t ndigits{0};
 
+    uint32_t orbit;
+
     auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
       if (mDs2manu) {
         channel = ds2manu(int(channel));
@@ -117,7 +119,10 @@ class DataDecoderTask
         return;
       }
 
-      int time = sc.timestamp;
+      HitTime time;
+      time.sampaTime = sc.timestamp;
+      time.bunchCrossing = sc.bunchCrossing;
+      time.orbit = orbit;
 
       digits.emplace_back(o2::mch::Digit(time, deId, padId, digitadc));
 
@@ -132,16 +137,19 @@ class DataDecoderTask
       mNrdhs++;
       auto cruId = rdhCruId(rdh);
       rdhFeeId(rdh, cruId * 2 + rdhEndpoint(rdh));
+      orbit = rdhOrbit(rdh);
       if (mPrint) {
         std::cout << mNrdhs << "--" << rdh << "\n";
       }
     };
 
-    o2::mch::raw::PageDecoder decode =
-      mFee2Solar ? o2::mch::raw::createPageDecoder(page, channelHandler, mFee2Solar)
-                 : o2::mch::raw::createPageDecoder(page, channelHandler);
+    if (!mDecoder) {
+      mDecoder = mFee2Solar ? o2::mch::raw::createPageDecoder(page, channelHandler, mFee2Solar)
+      : o2::mch::raw::createPageDecoder(page, channelHandler);
+    }
+
     patchPage(page);
-    decode(page);
+    mDecoder(page);
   }
 
  private:
@@ -289,6 +297,7 @@ class DataDecoderTask
  private:
   Elec2DetMapper mElec2Det{nullptr};
   FeeLink2SolarMapper mFee2Solar{nullptr};
+  o2::mch::raw::PageDecoder mDecoder;
   size_t mNrdhs{0};
 
   std::ifstream mInputFile{}; ///< input file

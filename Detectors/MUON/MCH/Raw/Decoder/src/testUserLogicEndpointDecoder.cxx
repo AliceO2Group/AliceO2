@@ -241,7 +241,7 @@ BOOST_AUTO_TEST_CASE(SampleModeSimplest)
 {
   // only one channel with one very small cluster
   // fitting within one 64-bits word
-  SampaCluster cl(345, {123, 456});
+  SampaCluster cl(345, 6789, {123, 456});
   auto r = testPayloadDecode<SampleMode>({cl});
   BOOST_CHECK_EQUAL(r, "S0-J0-DS2-ch-63-ts-345-q-123-456\n");
 }
@@ -250,7 +250,7 @@ BOOST_AUTO_TEST_CASE(SampleModeSimple)
 {
   // only one channel with one cluster, but the cluster
   // spans 2 64-bits words.
-  SampaCluster cl(345, {123, 456, 789, 901, 902});
+  SampaCluster cl(345, 6789, {123, 456, 789, 901, 902});
   auto r = testPayloadDecode<SampleMode>({cl});
   BOOST_CHECK_EQUAL(r, "S0-J0-DS2-ch-63-ts-345-q-123-456-789-901-902\n");
 }
@@ -258,8 +258,8 @@ BOOST_AUTO_TEST_CASE(SampleModeSimple)
 BOOST_AUTO_TEST_CASE(SampleModeTwoChannels)
 {
   // 2 channels with one cluster
-  SampaCluster cl(345, {123, 456, 789, 901, 902});
-  SampaCluster cl2(346, {1001, 1002, 1003, 1004, 1005, 1006, 1007});
+  SampaCluster cl(345, 6789, {123, 456, 789, 901, 902});
+  SampaCluster cl2(346, 6789, {1001, 1002, 1003, 1004, 1005, 1006, 1007});
   auto r = testPayloadDecode<SampleMode>({cl}, {cl2});
   BOOST_CHECK_EQUAL(r,
                     "S0-J0-DS2-ch-63-ts-345-q-123-456-789-901-902\n"
@@ -270,7 +270,7 @@ BOOST_AUTO_TEST_CASE(ChargeSumModeSimplest)
 {
   // only one channel with one cluster
   // (hence fitting within one 64 bits word)
-  SampaCluster cl(345, 123456);
+  SampaCluster cl(345, 6789, 123456);
   auto r = testPayloadDecode<ChargeSumMode>({cl});
   BOOST_CHECK_EQUAL(r, "S0-J0-DS2-ch-63-ts-345-q-123456\n");
 }
@@ -279,8 +279,8 @@ BOOST_AUTO_TEST_CASE(ChargeSumModeSimple)
 {
   // only one channel with 2 clusters
   // (hence spanning 2 64-bits words)
-  SampaCluster cl1(345, 123456);
-  SampaCluster cl2(346, 789012);
+  SampaCluster cl1(345, 6789, 123456);
+  SampaCluster cl2(346, 6789, 789012);
   auto r = testPayloadDecode<ChargeSumMode>({cl1, cl2});
   BOOST_CHECK_EQUAL(r,
                     "S0-J0-DS2-ch-63-ts-345-q-123456\n"
@@ -290,10 +290,10 @@ BOOST_AUTO_TEST_CASE(ChargeSumModeSimple)
 BOOST_AUTO_TEST_CASE(ChargeSumModeTwoChannels)
 {
   // two channels with 2 clusters
-  SampaCluster cl1(345, 123456);
-  SampaCluster cl2(346, 789012);
-  SampaCluster cl3(347, 1357);
-  SampaCluster cl4(348, 791);
+  SampaCluster cl1(345, 6789, 123456);
+  SampaCluster cl2(346, 6789, 789012);
+  SampaCluster cl3(347, 6789, 1357);
+  SampaCluster cl4(348, 6789, 791);
   auto r = testPayloadDecode<ChargeSumMode>({cl1, cl2}, {cl3, cl4});
   BOOST_CHECK_EQUAL(r,
                     "S0-J0-DS2-ch-63-ts-345-q-123456\n"
@@ -306,7 +306,7 @@ BOOST_AUTO_TEST_CASE(DecodeSampleModeSimplest)
 {
   // only one channel with one very small cluster
   // fitting within one 64-bits word
-  SampaCluster cl(345, {123, 456});
+  SampaCluster cl(345, 6789, {123, 456});
   testDecode<SampleMode>({cl});
   BOOST_CHECK(true);
 }
@@ -317,10 +317,10 @@ BOOST_AUTO_TEST_CASE(SyncInTheMiddleChargeSumModeTwoChannels)
   // the TwoChannels case and check the decoder is handling this fine
   // (by just returning to wait for sync mode, i.e. dropping the 2nd part
   // of the communication until a second sync)
-  SampaCluster cl1(345, 123456);
-  SampaCluster cl2(346, 789012);
-  SampaCluster cl3(347, 1357);
-  SampaCluster cl4(348, 791);
+  SampaCluster cl1(345, 6789, 123456);
+  SampaCluster cl2(346, 6789, 789012);
+  SampaCluster cl3(347, 6789, 1357);
+  SampaCluster cl4(348, 6789, 791);
   auto r = testPayloadDecode<ChargeSumMode>({cl1, cl2}, {cl3, cl4},
                                             5);
   BOOST_CHECK_EQUAL(r,

@@ -21,16 +21,18 @@ namespace mch
 namespace raw
 {
 
-SampaCluster::SampaCluster(uint16_t timestamp, uint32_t chargeSum)
-  : timestamp(impl::assertIsInRange("timestamp", timestamp, 0, 0x3FF)),   // 10 bits
+SampaCluster::SampaCluster(uint16_t timestamp, uint32_t bunchCrossing, uint32_t chargeSum)
+  : timestamp(impl::assertIsInRange("timestamp", timestamp, 0, 0x3FF)),
+    bunchCrossing(impl::assertIsInRange("bunchCrossing", bunchCrossing, 0, 0xFFFFF)),
     chargeSum(impl::assertIsInRange("chargeSum", chargeSum, 0, 0xFFFFF)), // 20 bits
     samples{}
 
 {
 }
 
-SampaCluster::SampaCluster(uint16_t timestamp, const std::vector<uint16_t>& samples)
+SampaCluster::SampaCluster(uint16_t timestamp, uint32_t bunchCrossing, const std::vector<uint16_t>& samples)
   : timestamp(impl::assertIsInRange("timestamp", timestamp, 0, 0x3FF)),
+    bunchCrossing(impl::assertIsInRange("bunchCrossing", bunchCrossing, 0, 0xFFFFF)),
     chargeSum(0),
     samples(samples.begin(), samples.end())
 {

@@ -133,7 +133,7 @@ void DecoderLogic::addSample<SampleMode>(uint16_t sample)
   mSamples.emplace_back(sample);
 
   if (mClusterSize == 0) {
-    SampaCluster sc(mClusterTime, mSamples);
+    SampaCluster sc(mClusterTime, mSampaHeader.bunchCrossingCounter(), mSamples);
     sendCluster(sc);
     mSamples.clear();
   }
@@ -152,7 +152,7 @@ void DecoderLogic::addSample<ChargeSumMode>(uint16_t sample)
       throw std::invalid_argument(fmt::format("expected sample size to be 2 but it is {}", mSamples.size()));
     }
     uint32_t q = (((static_cast<uint32_t>(mSamples[1]) & 0x3FF) << 10) | (static_cast<uint32_t>(mSamples[0]) & 0x3FF));
-    SampaCluster sc(mClusterTime, q);
+    SampaCluster sc(mClusterTime, mSampaHeader.bunchCrossingCounter(), q);
     sendCluster(sc);
     mSamples.clear();
   }

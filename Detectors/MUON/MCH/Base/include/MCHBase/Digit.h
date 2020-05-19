@@ -17,6 +17,7 @@
 #define ALICEO2_MCH_BASE_DIGIT_H_
 
 #include "Rtypes.h"
+#include "MCHBase/HitTime.h"
 
 namespace o2
 {
@@ -30,12 +31,15 @@ class Digit
  public:
   Digit() = default;
 
-  Digit(double time, int detid, int pad, unsigned long adc);
+  Digit(int sampaTime, int detid, int pad, unsigned long adc);
+  Digit(HitTime time, int detid, int pad, unsigned long adc);
   ~Digit() = default;
 
   bool operator==(const Digit&) const;
 
-  double getTimeStamp() const { return mTime; }
+  uint32_t getTimeStamp() const { return mTime.sampaTime; }
+
+  HitTime getTime() const { return mTime; }
 
   int getDetID() const { return mDetID; }
 
@@ -46,7 +50,7 @@ class Digit
   void setADC(unsigned long adc) { mADC = adc; }
 
  private:
-  double mTime;
+  HitTime mTime;
   int mDetID;
   int mPadID;         /// PadIndex to which the digit corresponds to
   unsigned long mADC; /// Amplitude of signal

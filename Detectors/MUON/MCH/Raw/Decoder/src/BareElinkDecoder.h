@@ -423,7 +423,7 @@ void BareElinkDecoder<ChargeSumMode>::sendCluster()
   if (mSampaChannelHandler) {
     mSampaChannelHandler(mDsId,
                          channelNumber64(mSampaHeader),
-                         SampaCluster(mTimestamp, mClusterSum));
+                         SampaCluster(mTimestamp, mSampaHeader.bunchCrossingCounter(), mClusterSum));
   }
 }
 
@@ -433,7 +433,7 @@ void BareElinkDecoder<SampleMode>::sendCluster()
   if (mSampaChannelHandler) {
     mSampaChannelHandler(mDsId,
                          channelNumber64(mSampaHeader),
-                         SampaCluster(mTimestamp, mSamples));
+                         SampaCluster(mTimestamp, mSampaHeader.bunchCrossingCounter(), mSamples));
   }
   mSamples.clear();
 }
