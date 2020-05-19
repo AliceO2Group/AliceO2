@@ -78,3 +78,10 @@ o2_add_test(Geometry
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             LABELS trd
             )
+o2_add_test(RawData
+            COMPONENT_NAME trd
+            PUBLIC_LINK_LIBRARIES O2::TRDBase O2::DataFormatsTRD
+            SOURCES test/testRawData.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            LABELS trd
+            )

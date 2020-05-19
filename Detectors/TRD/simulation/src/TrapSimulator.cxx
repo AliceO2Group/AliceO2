@@ -886,17 +886,6 @@ int TrapSimulator::getCol(int adc)
     return col;
 }
 
-int TrapSimulator::packData(std::vector<uint32_t>& buf)
-{
-  //
-  //given the, up to 3 tracklets, pack them according to the define data format.
-  //
-  //TODO this is left blank so that the dataformats etc. can come in a seperate PR
-  //to keep different work seperate.
-  LOG(fatal) << "Called packData of TrapSimualtor ... why? I am going to die, till next pr.";
-  return 1;
-}
-
 int TrapSimulator::produceRawStream(std::vector<uint32_t>& buf, unsigned int iEv) const
 {
   //
@@ -1004,8 +993,28 @@ int TrapSimulator::produceTrackletStream(std::vector<uint32_t>& buf)
   // A MCM Header followed by at most 3 tracklet words.
   // Although a little confusingly some of the tracklet data is in the header.
 
-  numberWordsWritten = packData(buf);
+//  numberWordsWritten = packData(buf);
+  //
+  //given the, up to 3 tracklets, pack them according to the define data format.
+  //
+  // produce a MCM Header, then the 1 to 3 tracklet words.
+//
+    std::array<uint32_t,3> pid;
+//    std::array<TrackletRawDataHeader,3> tracklet;
+//  MCMRawDataHeader mcmheader;
+//  TrackletRawDataHeader tracklet[3]; // at most 3 tracklets
+//  mcmheader.checkbits=0x3;
+//  mcmheader.y=;
+//  mcmheader z=;
+/* for(auto track mTrackletArray)
+  {
+      tracklet[].checkbit=0x1;
+      tracklet[].pid=0x1;
+      tracklet[].dy=0x1;
+      tracklet[].y=0x1;
+      mcmheader.pid[]=0x1; // part of the tracklet pid is stored in the chip header.
 
+*/
   return numberWordsWritten;
 }
 
