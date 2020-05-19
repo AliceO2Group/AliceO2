@@ -94,9 +94,13 @@ void TrackReader::connectTree(const std::string& filename)
 {
   mTree.reset(nullptr); // in case it was already loaded
   mFile.reset(TFile::Open(filename.c_str()));
-  assert(mFile && !mFile->IsZombie());
+  if (!(mFile && !mFile->IsZombie())) {
+    throw std::runtime_error("Error opening tree file");
+  }
   mTree.reset((TTree*)mFile->Get(mTrackTreeName.c_str()));
-  assert(mTree);
+  if (!mTree) {
+    throw std::runtime_error("Error opening tree");
+  }
 
   mTree->SetBranchAddress(mTrackBranchName.c_str(), &mTracksInp);
   mTree->SetBranchAddress(mClusRefBranchName.c_str(), &mCluRefVecInp);
