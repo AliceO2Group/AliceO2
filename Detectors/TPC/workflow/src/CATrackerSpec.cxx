@@ -476,9 +476,16 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
                       << "  active sectors: " << std::bitset<NSectors>(activeSectors);               //
           }
         };
-        if (activeSectors == 0 || (activeSectors & validInputs.to_ulong()) != activeSectors ||
-            (processMC && (activeSectors & validMcInputs.to_ulong()) != activeSectors)) {
-          throw std::runtime_error("Incomplete input data, expecting complete data set, buffering has been removed");
+        // for digits and clusters we always have the sector information, activeSectors being zero
+        // is thus an error condition. The completion policy makes sure that the data set is complete
+        if (activeSectors == 0 || (activeSectors & validInputs.to_ulong()) != activeSectors) {
+          throw std::runtime_error("Incomplete input data, expecting complete data set, buffering has been removed ");
+        }
+        // MC label blocks must be in the same multimessage with the corresponding data, the completion
+        // policy does not check for the MC labels and expects them to be present and thus complete if
+        // the data is complete
+        if (processMC && (activeSectors & validMcInputs.to_ulong()) != activeSectors) {
+          throw std::runtime_error("Incomplete mc label input, expecting complete data set, buffering has been removed");
         }
         assert(processMC == false || validMcInputs == validInputs);
         for (auto const& refentry : datarefs) {
@@ -731,17 +738,20 @@ o2::framework::CompletionPolicy getCATrackerCompletionPolicy()
     bool haveDigit = false;
     std::bitset<NSectors> validInputs = 0;
     uint64_t activeSectors = 0;
-    size_t nActiveInputs = 0;
+    size_t nActiveInputRoutes = 0;
+    size_t nMaxPartsPerRoute = 0;
     for (auto it = inputs.begin(), end = inputs.end(); it != end; ++it) {
+      nMaxPartsPerRoute = it.size() > nMaxPartsPerRoute ? it.size() : nMaxPartsPerRoute;
+      bool haveActivePart = false;
       for (auto const& ref : it) {
         if (!DataRefUtils::isValid(ref)) {
           continue;
         }
-        ++nActiveInputs;
+        haveActivePart = true;
+        auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
         auto isCluster = DataRefUtils::match(ref, {"cluster", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERNATIVE"}});
         auto isDigit = DataRefUtils::match(ref, {"digits", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}});
         if (isCluster || isDigit) {
-          auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
           auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
           if (sectorHeader == nullptr) {
             // FIXME: think about error policy
@@ -750,25 +760,40 @@ o2::framework::CompletionPolicy getCATrackerCompletionPolicy()
           activeSectors |= sectorHeader->activeSectors;
           validInputs.set(sectorHeader->sector);
         }
+        haveDigit = haveDigit || isDigit;
+        haveCluster = haveCluster || isCluster;
+      }
+      if (haveActivePart) {
+        ++nActiveInputRoutes;
       }
     }
-    // TODO: introduce pedantic policy to check consistency of the data, e.g. that MC labels are available
-    // for either all data blocks or none
-
-    // Digits and clusters should never be mixed, the getCATrackerSpec function has to be cleaned
-    // up to get the input spec as parameter
+    // TODO: this is a temporary check, the getCATrackerSpec function has to be cleaned up to get the input
+    // spec as parameter, Digits and clusters should never be mixed
     if (haveDigit && haveDigit == haveCluster) {
       throw std::runtime_error("routing error, the tracker can process either digits or clusters");
     }
 
-    // we can process if there is input for all sectors
-    if (activeSectors == validInputs.to_ulong()) {
+    if ((haveDigit || haveCluster) && activeSectors == validInputs.to_ulong()) {
+      // we can process if there is input for all sectors, the required sectors are
+      // transported as part of the sector header
+      op = CompletionPolicy::CompletionOp::Process;
+    } else if (activeSectors == 0 && nActiveInputRoutes == inputs.size()) {
+      // no sector header is transmitted, this is the case for e.g. the ZS raw data
+      // we simply require input on all routes, this is also the default of DPL DataRelayer
+      // Because DPL can not do more without knowing how many parts are required for a complete
+      // data set, the workflow should be such that exactly one O2 message arrives per input route.
+      // Currently, the workflow has multiple O2 messages per input route, but they all come in
+      // a single multipart message. So it works fine, and we disable the warning below, but there
+      // is a potential problem. Need to fix this on the level of the workflow.
+      //if (nMaxPartsPerRoute > 1) {
+      //  LOG(WARNING) << "No sector information is provided with the data, data set is complete with data on all input routes. But there are multiple parts on at least one route and this policy might not be complete, no check possible if other parts on some routes are still missing. It is adviced to add a custom policy.";
+      //}
       op = CompletionPolicy::CompletionOp::Process;
     }
 
     return op;
   };
-  return CompletionPolicy{"tpc-ca-traker", matcher, callback};
+  return CompletionPolicy{"tpc-ca-tracker-completion-policy", matcher, callback};
 }
 
 } // namespace tpc
