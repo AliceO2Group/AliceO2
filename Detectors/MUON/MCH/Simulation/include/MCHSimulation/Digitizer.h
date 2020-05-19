@@ -40,6 +40,7 @@ class Digitizer
   void process(const std::vector<Hit> hits, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
   void provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
   void mergeDigits();
+  void generateNoiseDigits();
   //external pile-up adding up
   void mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
 
@@ -72,6 +73,13 @@ class Digitizer
 
   //number of detector elements
   const static int mNdE = 156;
+
+  //noise above threshold probability within read-out window
+  float mProbNoise = 1e-5;
+  //sum_i 1/padcount_i where i is the detelemID
+  float mInvPadSum = 0.0450832;
+  float mNormProbNoise = mProbNoise / mInvPadSum;
+  
   // digit per pad
   std::vector<Digit> mDigits;
 
