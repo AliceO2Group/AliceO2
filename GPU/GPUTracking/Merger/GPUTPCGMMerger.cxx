@@ -1129,9 +1129,12 @@ GPUd() void GPUTPCGMMerger::MergeCE(int nBlocks, int nThreads, int iBlock, int i
           trk[1]->Param().Z() += trk[1]->Param().TZOffset() - offset;
           trk[1]->Param().TZOffset() = offset;
         } else {
-          const float t0 = CAMath::Max(cls[mClusters[trk[0]->FirstClusterRef()].num].getTime(), cls[mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].num].getTime());
-          const float t1 = CAMath::Max(cls[mClusters[trk[1]->FirstClusterRef()].num].getTime(), cls[mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].num].getTime());
-          const float offset = CAMath::Max(CAMath::Max(t0, t1) - 250.f / mConstantMem->calibObjects.fastTransform->getVDrift(), 0.f); // TODO: Replace me by correct drift time
+          GPUTPCGMMergedTrackHit* clsmax;
+          const float tmax = CAMath::MaxWithRef(cls[mClusters[trk[0]->FirstClusterRef()].num].getTime(), cls[mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1].num].getTime(),
+                                                cls[mClusters[trk[1]->FirstClusterRef()].num].getTime(), cls[mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1].num].getTime(),
+                                                &mClusters[trk[0]->FirstClusterRef()], &mClusters[trk[0]->FirstClusterRef() + trk[0]->NClusters() - 1],
+                                                &mClusters[trk[1]->FirstClusterRef()], &mClusters[trk[1]->FirstClusterRef() + trk[1]->NClusters() - 1], clsmax);
+          const float offset = CAMath::Max(tmax - mConstantMem->calibObjects.fastTransform->getMaxDriftTime(clsmax->slice, clsmax->row, cls[clsmax->num].getPad()), 0.f);
           trk[1]->Param().Z() += mConstantMem->calibObjects.fastTransform->convDeltaTimeToDeltaZinTimeFrame(trk[1]->CSide() * NSLICES / 2, trk[1]->Param().TZOffset() - offset);
           trk[1]->Param().TZOffset() = offset;
         }
