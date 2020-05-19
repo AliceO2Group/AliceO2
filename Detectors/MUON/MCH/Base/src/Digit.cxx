@@ -19,14 +19,8 @@ bool closeEnough(double x, double y, double eps = 1E-6)
   return std::fabs(x - y) <= eps * std::max(1.0, std::max(std::fabs(x), std::fabs(y)));
 }
 
-Digit::Digit(int sampaTime, int detid, int pad, unsigned long adc)
-  : mDetID(detid), mPadID(pad), mADC(adc)
-{
-  mTime.sampaTime = sampaTime;
-}
-
-Digit::Digit(HitTime time, int detid, int pad, unsigned long adc)
-  : mTime(time), mDetID(detid), mPadID(pad), mADC(adc)
+Digit::Digit(int detid, int pad, unsigned long adc, Time time)
+  : mDetID(detid), mPadID(pad), mADC(adc), mTime(time)
 {
 }
 
@@ -35,7 +29,7 @@ bool Digit::operator==(const Digit& other) const
   return mDetID == other.mDetID &&
          mPadID == other.mPadID &&
          mADC == other.mADC &&
-         closeEnough(mTime.sampaTime, other.mTime.sampaTime);
+         mTime.time == other.mTime.time;
 }
 
 } // namespace o2::mch

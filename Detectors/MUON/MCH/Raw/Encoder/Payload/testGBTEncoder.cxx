@@ -38,12 +38,12 @@ std::vector<std::byte> createGBTBuffer(bool verbose = true)
   uint16_t ts(12);
   int elinkGroupId = 0;
   int elinkIndexInGroup = 0;
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 0, {SampaCluster(ts, 10)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 31, {SampaCluster(ts, 160)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 0, {SampaCluster(ts, 0, 10)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 31, {SampaCluster(ts, 0, 160)});
   elinkIndexInGroup = 3;
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 13, {SampaCluster(ts, 13)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 33, {SampaCluster(ts, 133)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 63, {SampaCluster(ts, 163)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 13, {SampaCluster(ts, 0, 13)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 33, {SampaCluster(ts, 0, 133)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 63, {SampaCluster(ts, 0, 163)});
   std::vector<std::byte> words;
   enc.moveToBuffer(words);
   if (verbose) {
@@ -98,13 +98,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(GBTEncoderAddFewChannels, T, testTypes)
   uint16_t ts(0);
   int elinkGroupId = 0;
   int elinkIndexInGroup = 0;
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 0, {SampaCluster(ts, 10)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 31, {SampaCluster(ts, 160)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 0, {SampaCluster(ts, 0, 10)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 31, {SampaCluster(ts, 0, 160)});
   elinkIndexInGroup = 3;
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 3, {SampaCluster(ts, 13)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 13, {SampaCluster(ts, 133)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 23, {SampaCluster(ts, 163)});
-  BOOST_CHECK_THROW(enc.addChannelData(8, 0, 0, {SampaCluster(ts, 10)}), std::invalid_argument);
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 3, {SampaCluster(ts, 0, 13)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 13, {SampaCluster(ts, 0, 133)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 23, {SampaCluster(ts, 0, 163)});
+  BOOST_CHECK_THROW(enc.addChannelData(8, 0, 0, {SampaCluster(ts, 0, 10)}), std::invalid_argument);
   std::vector<std::byte> buffer;
   enc.moveToBuffer(buffer);
   float e = expectedSize<T, ChargeSumMode>();
@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(GBTEncoderAdd64Channels, T, testTypes)
   uint16_t ts(0);
   int elinkGroupId = 0;
   for (int i = 0; i < 64; i++) {
-    enc.addChannelData(elinkGroupId, 0, i, {SampaCluster(ts, i * 10)});
+    enc.addChannelData(elinkGroupId, 0, i, {SampaCluster(ts, 0, i * 10)});
   }
   enc.moveToBuffer(buffer);
   //  impl::dumpBuffer<T>(buffer);
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(GBTEncoderAdd64Channels, T, testTypes)
 BOOST_AUTO_TEST_CASE_TEMPLATE(GBTEncoderMoveToBufferClearsTheInternalBuffer, T, testTypes)
 {
   GBTEncoder<T, ChargeSumMode> enc(0);
-  enc.addChannelData(0, 0, 0, {SampaCluster(0, 10)});
+  enc.addChannelData(0, 0, 0, {SampaCluster(0, 0, 10)});
   std::vector<std::byte> buffer;
   size_t n = enc.moveToBuffer(buffer);
   BOOST_CHECK_GE(n, 0);

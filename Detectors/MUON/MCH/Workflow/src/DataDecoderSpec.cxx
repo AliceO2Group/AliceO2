@@ -119,15 +119,15 @@ class DataDecoderTask
         return;
       }
 
-      HitTime time;
+      Digit::Time time;
       time.sampaTime = sc.timestamp;
       time.bunchCrossing = sc.bunchCrossing;
       time.orbit = orbit;
 
-      digits.emplace_back(o2::mch::Digit(time, deId, padId, digitadc));
+      digits.emplace_back(o2::mch::Digit(deId, padId, digitadc, time));
 
       if (mPrint)
-        std::cout << "DIGIT STORED:\nADC " << digits.back().getADC() << " DE# " << digits.back().getDetID() << " PadId " << digits.back().getPadID() << " time " << digits.back().getTimeStamp() << std::endl;
+        std::cout << "DIGIT STORED:\nADC " << digits.back().getADC() << " DE# " << digits.back().getDetID() << " PadId " << digits.back().getPadID() << " time " << digits.back().getTime().sampaTime << std::endl;
       ++ndigits;
     };
 
@@ -279,7 +279,7 @@ class DataDecoderTask
 
     if (mPrint) {
       for (auto d : digits) {
-        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTimeStamp() << std::endl;
+        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTime().sampaTime << std::endl;
       }
     }
 
