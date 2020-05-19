@@ -28,14 +28,32 @@ namespace mch
 class Digit
 {
  public:
+  struct Time {
+    union {
+      // default value
+      uint64_t time = 0x0000000000000000;
+      struct {                       ///
+        uint32_t sampaTime : 10;     /// bit 0 to 9: sampa time
+        uint32_t bunchCrossing : 20; /// bit 10 to 29: bunch crossing counter
+        uint32_t reserved : 2;       /// bit 30 to 31: reserved
+        uint32_t orbit;              /// bit 32 to 63: orbit
+      };                             ///
+    };
+    uint64_t getBXTime()
+    {
+      uint64_t result = bunchCrossing;
+      return (bunchCrossing + (sampaTime * 4));
+    }
+  };
+
   Digit() = default;
 
-  Digit(double time, int detid, int pad, unsigned long adc);
+  Digit(int detid, int pad, unsigned long adc, Time time);
   ~Digit() = default;
 
   bool operator==(const Digit&) const;
 
-  double getTimeStamp() const { return mTime; }
+  Time getTime() const { return mTime; }
 
   int getDetID() const { return mDetID; }
 
@@ -46,7 +64,7 @@ class Digit
   void setADC(unsigned long adc) { mADC = adc; }
 
  private:
-  double mTime;
+  Time mTime;
   int mDetID;
   int mPadID;         /// PadIndex to which the digit corresponds to
   unsigned long mADC; /// Amplitude of signal

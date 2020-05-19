@@ -19,15 +19,79 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "MCHRawEncoderPayload/PayloadEncoder.h"
+#include "BareElinkEncoder.h"
+#include "BareElinkEncoderMerger.h"
+#include "EncoderImplHelper.h"
+#include "GBTEncoder.h"
+#include "MCHRawCommon/DataFormats.h"
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawEncoderPayload/DataBlock.h"
-#include <fmt/printf.h>
+#include "MCHRawEncoderPayload/PayloadEncoder.h"
+#include "UserLogicElinkEncoder.h"
+#include "UserLogicElinkEncoderMerger.h"
 #include <boost/mpl/list.hpp>
-#include "CruBufferCreator.h"
-#include "EncoderImplHelper.h"
+#include <cstdint>
+#include <fmt/printf.h>
+#include <vector>
 
 using namespace o2::mch::raw;
+
+template <typename FORMAT, typename CHARGESUM>
+struct CruBufferCreator {
+  static std::vector<std::byte> makeBuffer(int norbit, uint32_t firstOrbit, uint16_t firstBC);
+};
+
+template <typename FORMAT>
+struct CruBufferCreator<FORMAT, ChargeSumMode> {
+  static std::vector<std::byte> makeBuffer(int norbit = 1,
+                                           uint32_t firstOrbit = 12345,
+                                           uint16_t firstBC = 678)
+  {
+    auto encoder = createPayloadEncoder<FORMAT, ChargeSumMode, true>();
+
+    uint16_t sampaTime{24};
+    uint32_t bunchCrossing = 567;
+    uint16_t bc(firstBC);
+
+    encoder->startHeartbeatFrame(firstOrbit, bc);
+
+    encoder->addChannelData(DsElecId{728, 1, 0}, 3, {SampaCluster(sampaTime, bunchCrossing, 13)});
+    encoder->addChannelData(DsElecId{728, 1, 0}, 13, {SampaCluster(sampaTime, bunchCrossing, 133)});
+    encoder->addChannelData(DsElecId{728, 1, 0}, 23, {SampaCluster(sampaTime, bunchCrossing, 163)});
+
+    encoder->addChannelData(DsElecId{361, 0, 4}, 0, {SampaCluster(sampaTime, bunchCrossing, 10)});
+    encoder->addChannelData(DsElecId{361, 0, 4}, 1, {SampaCluster(sampaTime, bunchCrossing, 20)});
+    encoder->addChannelData(DsElecId{361, 0, 4}, 2, {SampaCluster(sampaTime, bunchCrossing, 30)});
+    encoder->addChannelData(DsElecId{361, 0, 4}, 3, {SampaCluster(sampaTime, bunchCrossing, 40)});
+
+    encoder->addChannelData(DsElecId{448, 6, 2}, 22, {SampaCluster(sampaTime, bunchCrossing, 420)});
+    encoder->addChannelData(DsElecId{448, 6, 2}, 23, {SampaCluster(sampaTime, bunchCrossing, 430)});
+    encoder->addChannelData(DsElecId{448, 6, 2}, 24, {SampaCluster(sampaTime, bunchCrossing, 440)});
+    encoder->addChannelData(DsElecId{448, 6, 2}, 25, {SampaCluster(sampaTime, bunchCrossing, 450)});
+    encoder->addChannelData(DsElecId{448, 6, 2}, 26, {SampaCluster(sampaTime, bunchCrossing, 460)});
+    encoder->addChannelData(DsElecId{448, 6, 2}, 42, {SampaCluster(sampaTime, bunchCrossing, 420)});
+
+    if (norbit > 1) {
+      encoder->startHeartbeatFrame(firstOrbit + 1, bc);
+      encoder->addChannelData(DsElecId{728, 1, 2}, 0, {SampaCluster(sampaTime, bunchCrossing, 10)});
+      encoder->addChannelData(DsElecId{728, 1, 2}, 1, {SampaCluster(sampaTime, bunchCrossing, 10)});
+      encoder->addChannelData(DsElecId{361, 0, 4}, 0, {SampaCluster(sampaTime, bunchCrossing, 10)});
+      encoder->addChannelData(DsElecId{361, 0, 4}, 1, {SampaCluster(sampaTime, bunchCrossing, 20)});
+      encoder->addChannelData(DsElecId{361, 0, 4}, 2, {SampaCluster(sampaTime, bunchCrossing, 30)});
+      encoder->addChannelData(DsElecId{361, 0, 4}, 3, {SampaCluster(sampaTime, bunchCrossing, 40)});
+    }
+
+    if (norbit > 2) {
+      encoder->startHeartbeatFrame(firstOrbit + 2, bc);
+      encoder->addChannelData(DsElecId{448, 6, 2}, 12, {SampaCluster(sampaTime, bunchCrossing, 420)});
+    }
+
+    std::vector<std::byte> buffer;
+    encoder->moveToBuffer(buffer);
+
+    return buffer;
+  }
+};
 
 template <typename FORMAT>
 std::unique_ptr<PayloadEncoder> defaultEncoder()
@@ -127,14 +191,14 @@ int estimateSize<UserLogicFormat>()
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(CheckNumberOfPayloadHeaders, T, testTypes)
 {
-  auto buffer = test::CruBufferCreator<T, ChargeSumMode>::makeBuffer();
+  auto buffer = CruBufferCreator<T, ChargeSumMode>::makeBuffer();
   int nheaders = o2::mch::raw::countHeaders(buffer);
   BOOST_CHECK_EQUAL(nheaders, 3);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(CheckSize, T, testTypes)
 {
-  auto buffer = test::CruBufferCreator<T, ChargeSumMode>::makeBuffer();
+  auto buffer = CruBufferCreator<T, ChargeSumMode>::makeBuffer();
   size_t expectedSize = estimateSize<T>();
   BOOST_CHECK_EQUAL(buffer.size(), expectedSize);
 }
