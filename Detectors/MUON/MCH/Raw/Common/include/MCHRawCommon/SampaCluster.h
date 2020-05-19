@@ -37,21 +37,24 @@ namespace raw
 
 struct SampaCluster {
 
+  using uint10_t = uint16_t;
+  using uint20_t = uint32_t;
+
   /// Constructs a cluster which holds only a charge sum (aka cluster sum)
-  /// \param timestamp must fit within 10 bits
+  /// \param sampaTime must fit within 10 bits
   /// \param chargeSum must fit within 20 bits
   ///
   /// if some parameter does not fit within its expected range
   /// a std::invalid_argument exception is thrown.
-  explicit SampaCluster(uint16_t timestamp, uint32_t bunchCrossing, uint32_t chargeSum);
+  explicit SampaCluster(uint10_t sampaTime, uint20_t bunchCrossing, uint20_t chargeSum);
 
   /// Constructs a cluster which holds a vector of raw samples
-  /// \param timestamp must fit within 10 bits
+  /// \param sampaTime must fit within 10 bits
   /// \param samples : each sample must fit within 10 bits
   ///
   /// if some parameter does not fit within its expected range
   /// a std::invalid_argument exception is thrown.
-  SampaCluster(uint16_t timestamp, uint32_t bunchCrossing, const std::vector<uint16_t>& samples);
+  SampaCluster(uint10_t sampaTime, uint20_t bunchCrossing, const std::vector<uint10_t>& samples);
 
   /// nofSamples gives the number of samples of this cluster.
   /// Can be > 1 even in chargesum mode (it then indicates the number
@@ -65,9 +68,9 @@ struct SampaCluster {
   /// needed to store this cluster
   uint16_t nof10BitWords() const;
 
-  uint16_t timestamp;            //< 10 bits for a local timestamp
-  uint32_t bunchCrossing;        //< 20 bits for bunch crossing counter
-  uint32_t chargeSum;            //< 20 bits for a cluster sum
+  uint10_t sampaTime;            //< 10 bits for a local time stamp
+  uint20_t bunchCrossing;        //< 20 bits for bunch crossing counter
+  uint20_t chargeSum;            //< 20 bits for a cluster sum
   std::vector<uint16_t> samples; //< 10 bits for each sample
 };
 

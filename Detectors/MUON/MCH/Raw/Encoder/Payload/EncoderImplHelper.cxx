@@ -88,7 +88,7 @@ void bufferizeClusters(gsl::span<const SampaCluster> clusters, std::vector<uint1
 {
   for (auto& c : clusters) {
     b10.emplace_back(c.nofSamples());
-    b10.emplace_back(c.timestamp);
+    b10.emplace_back(c.sampaTime);
     if (c.isClusterSum()) {
       b10.emplace_back(c.chargeSum & 0x3FF);
       b10.emplace_back((c.chargeSum & 0xFFC00) >> 10);

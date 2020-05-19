@@ -36,7 +36,7 @@ using o2::header::RAWDataHeaderV4;
 SampaChannelHandler handlePacket(std::string& result)
 {
   return [&result](DsElecId dsId, uint8_t channel, SampaCluster sc) {
-    result += fmt::format("{}-ch-{}-ts-{}-q", asString(dsId), channel, sc.timestamp);
+    result += fmt::format("{}-ch-{}-ts-{}-q", asString(dsId), channel, sc.sampaTime);
     if (sc.isClusterSum()) {
       result += fmt::format("-{}", sc.chargeSum);
     } else {

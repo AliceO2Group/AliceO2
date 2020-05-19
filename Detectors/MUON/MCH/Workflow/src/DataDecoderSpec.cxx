@@ -120,7 +120,7 @@ class DataDecoderTask
       }
 
       Digit::Time time;
-      time.sampaTime = sc.timestamp;
+      time.sampaTime = sc.sampaTime;
       time.bunchCrossing = sc.bunchCrossing;
       time.orbit = orbit;
 

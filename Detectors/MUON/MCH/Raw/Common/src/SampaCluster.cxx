@@ -21,8 +21,8 @@ namespace mch
 namespace raw
 {
 
-SampaCluster::SampaCluster(uint16_t timestamp, uint32_t bunchCrossing, uint32_t chargeSum)
-  : timestamp(impl::assertIsInRange("timestamp", timestamp, 0, 0x3FF)),
+SampaCluster::SampaCluster(uint10_t sampaTime, uint20_t bunchCrossing, uint20_t chargeSum)
+  : sampaTime(impl::assertIsInRange("sampaTime", sampaTime, 0, 0x3FF)),
     bunchCrossing(impl::assertIsInRange("bunchCrossing", bunchCrossing, 0, 0xFFFFF)),
     chargeSum(impl::assertIsInRange("chargeSum", chargeSum, 0, 0xFFFFF)), // 20 bits
     samples{}
@@ -30,8 +30,8 @@ SampaCluster::SampaCluster(uint16_t timestamp, uint32_t bunchCrossing, uint32_t 
 {
 }
 
-SampaCluster::SampaCluster(uint16_t timestamp, uint32_t bunchCrossing, const std::vector<uint16_t>& samples)
-  : timestamp(impl::assertIsInRange("timestamp", timestamp, 0, 0x3FF)),
+SampaCluster::SampaCluster(uint10_t sampaTime, uint20_t bunchCrossing, const std::vector<uint10_t>& samples)
+  : sampaTime(impl::assertIsInRange("sampaTime", sampaTime, 0, 0x3FF)),
     bunchCrossing(impl::assertIsInRange("bunchCrossing", bunchCrossing, 0, 0xFFFFF)),
     chargeSum(0),
     samples(samples.begin(), samples.end())
@@ -59,7 +59,7 @@ bool SampaCluster::isClusterSum() const
 
 uint16_t SampaCluster::nof10BitWords() const
 {
-  uint16_t n10{2}; // 10 bits (nsamples) + 10 bits (timestamp)
+  uint16_t n10{2}; // 10 bits (nsamples) + 10 bits (sampaTime)
   if (isClusterSum()) {
     n10 += 2; // 20 bits (chargesum)
   } else {
@@ -72,7 +72,7 @@ uint16_t SampaCluster::nof10BitWords() const
 
 std::ostream& operator<<(std::ostream& os, const SampaCluster& sc)
 {
-  os << fmt::format("ts {:4d} ", sc.timestamp);
+  os << fmt::format("ts {:4d} ", sc.sampaTime);
   if (sc.isClusterSum()) {
     os << fmt::format("q {:6d}", sc.chargeSum);
   } else {
