@@ -54,9 +54,12 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
 
   int getParentID() const { return mParentID; }
   int getSector() const { return mSectorID; }
-  float getPMCLightYield() const { return mNphePMC; }
-  float getPMQLightYield() const { return mNphePMQ; }
+  int getPMCLightYield() const { return mNphePMC; }
+  int getPMQLightYield() const { return mNphePMQ; }
   int getNumContributingSteps() const { return mNoContributingSteps; }
+  float getPrimaryEnergy() const { return mPrimaryEnergy;}
+  Vector3D<float> getImpactCoordinate() const { return mXImpact; }
+  Vector3D<float> getMomentum() const { return mXImpact; }
 
  private:
   Int_t mParentID;
