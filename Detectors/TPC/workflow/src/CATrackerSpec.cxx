@@ -718,18 +718,21 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
 
 o2::framework::CompletionPolicy getCATrackerCompletionPolicy()
 {
+  bool doMC = true;
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
 
   auto matcher = [](DeviceSpec const& device) -> bool {
     return std::regex_match(device.name.begin(), device.name.end(), std::regex("tpc-tracker*"));
   };
 
-  auto callback = [](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
+  auto callback = [doMC](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
     auto op = CompletionPolicy::CompletionOp::Wait;
     bool haveCluster = false;
     bool haveDigit = false;
     std::bitset<NSectors> validInputs = 0;
+    std::bitset<NSectors> validInputsMC = 0;
     uint64_t activeSectors = 0;
+    uint64_t activeSectorsMC = 0;
     size_t nActiveInputs = 0;
     for (auto it = inputs.begin(), end = inputs.end(); it != end; ++it) {
       for (auto const& ref : it) {
@@ -739,20 +742,31 @@ o2::framework::CompletionPolicy getCATrackerCompletionPolicy()
         ++nActiveInputs;
         auto isCluster = DataRefUtils::match(ref, {"cluster", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERNATIVE"}});
         auto isDigit = DataRefUtils::match(ref, {"digits", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}});
-        if (isCluster || isDigit) {
+        auto isClusterMC = DataRefUtils::match(ref, {"cluster", ConcreteDataTypeMatcher{gDataOriginTPC, "CLNATIVEMCLBL"}});
+        auto isDigitMC = DataRefUtils::match(ref, {"digits", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITSMCTR"}});
+        if (isCluster || isDigit || isClusterMC || isDigitMC) {
           auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
           auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
           if (sectorHeader == nullptr) {
             // FIXME: think about error policy
             throw std::runtime_error("TPC sector header missing on header stack");
           }
-          activeSectors |= sectorHeader->activeSectors;
-          validInputs.set(sectorHeader->sector);
+          if (isCluster || isDigit) {
+            activeSectors |= sectorHeader->activeSectors;
+            validInputs.set(sectorHeader->sector);
+          } else {
+            activeSectorsMC |= sectorHeader->activeSectors;
+            validInputsMC.set(sectorHeader->sector);
+          }
+        }
+        if (isCluster || isClusterMC) {
+          haveCluster = true;
+        }
+        if (isDigit || isDigitMC) {
+          haveDigit = true;
         }
       }
     }
-    // TODO: introduce pedantic policy to check consistency of the data, e.g. that MC labels are available
-    // for either all data blocks or none
 
     // Digits and clusters should never be mixed, the getCATrackerSpec function has to be cleaned
     // up to get the input spec as parameter
@@ -761,7 +775,7 @@ o2::framework::CompletionPolicy getCATrackerCompletionPolicy()
     }
 
     // we can process if there is input for all sectors
-    if (activeSectors == validInputs.to_ulong()) {
+    if (activeSectors == validInputs.to_ulong() && (!doMC || (activeSectors == activeSectorsMC && activeSectors == validInputsMC.to_ulong()))) {
       op = CompletionPolicy::CompletionOp::Process;
     }
 
