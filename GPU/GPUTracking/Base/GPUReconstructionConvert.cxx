@@ -204,10 +204,10 @@ void GPUReconstructionConvert::ZSfillEmpty(void* ptr, int shift)
 
 static inline auto ZSEncoderGetDigits(const GPUTrackingInOutDigits& in, int i) { return in.tpcDigits[i]; }
 static inline auto ZSEncoderGetNDigits(const GPUTrackingInOutDigits& in, int i) { return in.nTPCDigits[i]; }
-template void GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit, GPUTrackingInOutDigits>(const GPUTrackingInOutDigits&, std::unique_ptr<unsigned long long int[]>*, unsigned int*, o2::raw::RawFileWriter*, const o2::InteractionRecord*, const GPUParam&, bool, bool, float);
+template void GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit, GPUTrackingInOutDigits>(const GPUTrackingInOutDigits&, std::unique_ptr<unsigned long long int[]>*, unsigned int*, o2::raw::RawFileWriter*, const o2::InteractionRecord*, const GPUParam&, bool, bool, float, bool);
 #ifdef GPUCA_O2_LIB
 using DigitArray = std::array<gsl::span<const o2::tpc::Digit>, o2::tpc::Sector::MAXSECTOR>;
-template void GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit, DigitArray>(const DigitArray&, std::unique_ptr<unsigned long long int[]>*, unsigned int*, o2::raw::RawFileWriter*, const o2::InteractionRecord*, const GPUParam&, bool, bool, float);
+template void GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit, DigitArray>(const DigitArray&, std::unique_ptr<unsigned long long int[]>*, unsigned int*, o2::raw::RawFileWriter*, const o2::InteractionRecord*, const GPUParam&, bool, bool, float, bool);
 static inline auto ZSEncoderGetDigits(const DigitArray& in, int i) { return in[i].data(); }
 static inline auto ZSEncoderGetNDigits(const DigitArray& in, int i) { return in[i].size(); }
 #endif
@@ -218,7 +218,7 @@ static inline auto ZSEncoderGetCharge(const o2::tpc::Digit a) { return a.getChar
 #endif
 
 template <class T, class S>
-void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigned long long int[]>* outBuffer, unsigned int* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, const GPUParam& param, bool zs12bit, bool verify, float threshold)
+void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigned long long int[]>* outBuffer, unsigned int* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, const GPUParam& param, bool zs12bit, bool verify, float threshold, bool padding)
 {
   // Pass in either outBuffer / outSizes, to fill standalone output buffers, or raw / ir to use RawFileWriter
   // ir is the interaction record for time bin 0
@@ -307,7 +307,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
         if (ZSEncoderGetTime(tmpBuffer[k]) != lastTime) {
           nexthbf = ((long)ZSEncoderGetTime(tmpBuffer[k]) * Constants::LHCBCPERTIMEBIN + bcShiftInFirstHBF) / o2::constants::lhc::LHCMaxBunches;
           if (hbf != nexthbf) {
-            lastEndpoint = -1;
+            lastEndpoint = -2;
           }
         }
         if (endpoint == lastEndpoint) {
@@ -345,7 +345,9 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
 #ifdef GPUCA_O2_LIB
           if (raw) {
             const rdh_utils::FEEIDType rawfeeid = rdh_utils::getFEEID(rawcru, rawendpoint, rawlnk);
-            raw->addData(rawfeeid, rawcru, rawlnk, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + TPCZSHDR::TPC_ZS_PAGE_SIZE), true);
+            size_t size = (padding || lastEndpoint == -1) ? TPCZSHDR::TPC_ZS_PAGE_SIZE : (pagePtr - (unsigned char*)page);
+            size = CAMath::nextMultipleOf<o2::raw::RDHUtils::GBTWord>(size);
+            raw->addData(rawfeeid, rawcru, rawlnk, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true);
           } else
 #endif
           {
