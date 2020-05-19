@@ -30,6 +30,7 @@ struct HitTime {
     struct {                       ///
       uint32_t sampaTime : 10;     /// bit 0 to 9: sampa time
       uint32_t bunchCrossing : 20; /// bit 10 to 29: bunch crossing counter
+      uint32_t reserved : 2;       /// bit 30 to 31: reserved
       uint32_t orbit;              /// bit 32 to 63: orbit
     };                             ///
   };
