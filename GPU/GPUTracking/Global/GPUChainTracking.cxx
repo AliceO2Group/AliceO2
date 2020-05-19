@@ -1515,6 +1515,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       TransferMemoryResourcesToHost(RecoStep::TPCSliceTracking, &processors()->tpcTrackers[i], -1, true);
     }
   }
+  SynchronizeGPU(); // Todo: why needed? processing small data fails otherwise
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Slice Tracker finished");
   }
