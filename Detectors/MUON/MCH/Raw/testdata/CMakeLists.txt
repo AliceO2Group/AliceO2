@@ -9,6 +9,6 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MCHTestRawRefBuffers
-               SOURCES RefBufferGBT.cxx RefBufferCRU.cxx
-               PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
-               PUBLIC_LINK_LIBRARIES O2::MCHRawCommon)
+        SOURCES RefBufferGBT.cxx RefBufferCRUBare.cxx RefBufferCRUUserLogic.cxx
+        PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
+        PUBLIC_LINK_LIBRARIES O2::MCHRawCommon)

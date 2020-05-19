@@ -27,7 +27,10 @@
 using namespace o2::mch::raw;
 using o2::header::RAWDataHeaderV4;
 
-std::ostream& operator<<(std::ostream&, const RAWDataHeaderV4&);
+namespace o2::header
+{
+extern std::ostream& operator<<(std::ostream&, const o2::header::RAWDataHeaderV4&);
+}
 
 SampaChannelHandler handlePacketStoreAsVec(std::vector<std::string>& result)
 {
@@ -74,11 +77,8 @@ BOOST_AUTO_TEST_CASE(Test1)
   //   showRDHs<RAWDataHeaderV4>(testBuffer);
 }
 
-BOOST_AUTO_TEST_CASE(TestDecoding)
+bool testDecode(gsl::span<const std::byte> testBuffer)
 {
-  auto testBuffer = REF_BUFFER_CRU<BareFormat, ChargeSumMode>();
-  int n = countRDHs<RAWDataHeaderV4>(testBuffer);
-  BOOST_CHECK_EQUAL(n, 28);
   std::vector<std::string> result;
   std::vector<std::string> expected{
 
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(TestDecoding)
     "S448-J6-DS2-ch-24-ts-0-q-440",
     "S448-J6-DS2-ch-25-ts-0-q-450",
     "S448-J6-DS2-ch-26-ts-0-q-460",
-    "S448-J6-DS2-ch-12-ts-0-q-420"};
+    "S448-J6-DS2-ch-42-ts-0-q-420"};
 
   auto pageDecoder = createPageDecoder(testBuffer, handlePacketStoreAsVec(result));
 
@@ -104,16 +104,38 @@ BOOST_AUTO_TEST_CASE(TestDecoding)
 
   parser(testBuffer, pageDecoder);
 
-  BOOST_CHECK_EQUAL(result.size(), expected.size());
-  BOOST_CHECK(std::is_permutation(begin(result), end(result), begin(expected)));
-  // std::cout << "Got:\n";
-  // for (auto s : result) {
-  //   std::cout << s << "\n";
-  // }
-  // std::cout << "Expected:\n";
-  // for (auto s : expected) {
-  //   std::cout << s << "\n";
-  // }
+  bool sameSize = result.size() == expected.size();
+  bool permutation = std::is_permutation(begin(result), end(result), begin(expected));
+  BOOST_CHECK_EQUAL(sameSize, true);
+  BOOST_CHECK_EQUAL(permutation, true);
+  if (!permutation || !sameSize) {
+    std::cout << "Got:\n";
+    for (auto s : result) {
+      std::cout << s << "\n";
+    }
+    std::cout << "Expected:\n";
+    for (auto s : expected) {
+      std::cout << s << "\n";
+    }
+    return false;
+  }
+  return true;
+}
+
+BOOST_AUTO_TEST_CASE(TestBareDecoding)
+{
+  auto testBuffer = REF_BUFFER_CRU<BareFormat, ChargeSumMode>();
+  int n = countRDHs<RAWDataHeaderV4>(testBuffer);
+  BOOST_CHECK_EQUAL(n, 28);
+  testDecode(testBuffer);
+}
+
+BOOST_AUTO_TEST_CASE(TestUserLogicDecoding)
+{
+  auto testBuffer = REF_BUFFER_CRU<UserLogicFormat, ChargeSumMode>();
+  int n = countRDHs<RAWDataHeaderV4>(testBuffer);
+  BOOST_CHECK_EQUAL(n, 4);
+  testDecode(testBuffer);
 }
 
 BOOST_AUTO_TEST_CASE(BareGBTDecoderFromBuffer)

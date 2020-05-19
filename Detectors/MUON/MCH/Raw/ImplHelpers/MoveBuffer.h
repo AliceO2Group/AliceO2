@@ -48,6 +48,35 @@ size_t moveBuffer(std::vector<uint64_t>& b64,
   return s;
 }
 
+uint64_t b8to64(gsl::span<const std::byte> buffer, size_t i)
+{
+  return (static_cast<uint64_t>(buffer[i + 0])) |
+         (static_cast<uint64_t>(buffer[i + 1]) << 8) |
+         (static_cast<uint64_t>(buffer[i + 2]) << 16) |
+         (static_cast<uint64_t>(buffer[i + 3]) << 24) |
+         (static_cast<uint64_t>(buffer[i + 4]) << 32) |
+         (static_cast<uint64_t>(buffer[i + 5]) << 40) |
+         (static_cast<uint64_t>(buffer[i + 6]) << 48) |
+         (static_cast<uint64_t>(buffer[i + 7]) << 56);
+}
+
+/// Copy the content of b8 to b64
+/// Returns the number of 64-bits words copied into b64
+size_t copyBuffer(gsl::span<const std::byte> b8,
+                  std::vector<uint64_t>& b64,
+                  uint64_t prefix = 0)
+{
+  if (b8.size() % 8) {
+    throw std::invalid_argument("b8 span must have a size that is a multiple of 8");
+  }
+  auto s = b64.size();
+  for (auto i = 0; i < b8.size(); i += 8) {
+    uint64_t w = b8to64(b8, i);
+    b64.emplace_back(w | prefix);
+  }
+  return b64.size() - s;
+}
+
 } // namespace o2::mch::raw::impl
 
 #endif

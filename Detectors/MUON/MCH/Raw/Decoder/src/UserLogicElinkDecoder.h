@@ -273,8 +273,6 @@ void UserLogicElinkDecoder<CHARGESUM>::completeHeader()
 template <typename CHARGESUM>
 std::ostream& UserLogicElinkDecoder<CHARGESUM>::debugHeader() const
 {
-  //std::cout << fmt::format("--ULDEBUG--{:p}-----------", reinterpret_cast<const void*>(this));
-  //return std::cout;
   return std::cout << "---";
 }
 

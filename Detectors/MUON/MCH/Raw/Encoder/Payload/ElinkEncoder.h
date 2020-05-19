@@ -17,24 +17,8 @@
 
 namespace o2::mch::raw
 {
-class SampaCluster;
-class SampaHeader;
-
 template <typename FORMAT, typename CHARGESUM>
-class ElinkEncoder
-{
- public:
-  explicit ElinkEncoder(uint8_t elinkId, uint8_t chip, int phase = 0);
-
-  void addChannelData(uint8_t chId, const std::vector<SampaCluster>& data);
-
-  size_t moveToBuffer(std::vector<uint64_t>& buffer, uint64_t prefix);
-
-  void clear();
-};
-
-SampaHeader buildHeader(uint8_t elinkId, uint8_t chId, const std::vector<SampaCluster>& data);
-
+class ElinkEncoder;
 } // namespace o2::mch::raw
 
 #endif
