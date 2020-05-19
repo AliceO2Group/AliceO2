@@ -1164,7 +1164,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     mMaxClusterZ = 0;
     for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
       int row = 0;
-      for (unsigned int i = 0; i < ioptrs().nClusterData[iSlice]; i++) {
+      unsigned int nCls = mMerger.Param().earlyTpcTransform ? ioptrs().nClusterData[iSlice] : ioptrs().clustersNative->nClustersSector[iSlice];
+      for (unsigned int i = 0; i < nCls; i++) {
         int cid;
         if (mMerger.Param().earlyTpcTransform) {
           const auto& cl = ioptrs().clusterData[iSlice][i];
