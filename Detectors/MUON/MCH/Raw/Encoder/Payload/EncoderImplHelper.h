@@ -21,9 +21,6 @@ namespace o2::mch::raw
 
 {
 
-using uint10_t = uint16_t;
-using uint50_t = uint64_t;
-
 namespace impl
 {
 void append(std::vector<uint10_t>& b10, uint50_t value);

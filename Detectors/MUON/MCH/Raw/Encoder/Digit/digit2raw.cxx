@@ -51,7 +51,7 @@ std::ostream& operator<<(std::ostream& os, const o2::mch::Digit& d)
 {
   os << fmt::format("DE {:4d} PADUID {:8d} ADC {:6d} TS {:g}",
                     d.getDetID(), d.getPadID(), d.getADC(),
-                    d.getTimeStamp());
+                    d.getTime().sampaTime);
   return os;
 }
 
@@ -78,6 +78,7 @@ int main(int argc, char* argv[])
   po::options_description generic("options");
   bool userLogic{false};
   bool dummyElecMap{false};
+  bool chargeSumMode{true};
   std::string input;
   po::variables_map vm;
 
@@ -147,7 +148,7 @@ int main(int argc, char* argv[])
   fw.writeConfFile("MCH", "RAWDATA", fmt::format("{}/MCHraw.cfg", outDirName));
 
   std::string output = fmt::format("{}/mch.raw", outDirName);
-  PayloadPaginator paginator(fw, output, solar2feelink);
+  PayloadPaginator paginator(fw, output, solar2feelink, userLogic, chargeSumMode);
 
   digit2raw(input, encoder, paginator);
 

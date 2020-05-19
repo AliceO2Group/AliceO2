@@ -20,60 +20,16 @@
 #include <array>
 #include <array>
 #include <fmt/printf.h>
-#include "RefBuffers.h"
 #include <boost/mpl/list.hpp>
-#include "MoveBuffer.h"
 #include "GBTEncoder.h"
-#include "DumpBuffer.h"
 
 using namespace o2::mch::raw;
-
-template <typename FORMAT, typename MODE>
-std::vector<std::byte> createGBTBuffer(bool verbose = true)
-{
-  GBTEncoder<FORMAT, MODE>::forceNoPhase = true;
-  uint8_t gbtId{11};
-  GBTEncoder<FORMAT, MODE> enc(gbtId);
-  uint32_t bx(0);
-  uint16_t ts(12);
-  int elinkGroupId = 0;
-  int elinkIndexInGroup = 0;
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 0, {SampaCluster(ts, 10)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 31, {SampaCluster(ts, 160)});
-  elinkIndexInGroup = 3;
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 13, {SampaCluster(ts, 13)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 33, {SampaCluster(ts, 133)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 63, {SampaCluster(ts, 163)});
-  std::vector<std::byte> words;
-  enc.moveToBuffer(words);
-  if (verbose) {
-    std::cout << "createGBTBuffer<" << typeid(FORMAT).name() << "," << std::boolalpha << typeid(MODE).name() << ">\n";
-    impl::dumpBuffer<FORMAT>(words);
-    int i{0};
-    for (auto v : words) {
-      fmt::printf("0x%02X, ", std::to_integer<uint8_t>(v));
-      if (++i % 12 == 0) {
-        fmt::printf("\n");
-      }
-    }
-  }
-  return words;
-}
 
 BOOST_AUTO_TEST_SUITE(o2_mch_raw)
 
 BOOST_AUTO_TEST_SUITE(gbtencoder)
 
 typedef boost::mpl::list<BareFormat, UserLogicFormat> testTypes;
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(EncodeABufferInChargeSumMode, T, testTypes)
-{
-  auto buffer = createGBTBuffer<T, ChargeSumMode>();
-  auto ref = REF_BUFFER_GBT<T, ChargeSumMode>();
-  size_t n = ref.size();
-  BOOST_CHECK_GE(buffer.size(), n);
-  BOOST_CHECK(std::equal(begin(buffer), end(buffer), begin(ref)));
-}
 
 template <typename FORMAT, typename CHARGESUM>
 float expectedSize();
@@ -98,13 +54,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(GBTEncoderAddFewChannels, T, testTypes)
   uint16_t ts(0);
   int elinkGroupId = 0;
   int elinkIndexInGroup = 0;
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 0, {SampaCluster(ts, 10)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 31, {SampaCluster(ts, 160)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 0, {SampaCluster(ts, 0, 10)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 31, {SampaCluster(ts, 0, 160)});
   elinkIndexInGroup = 3;
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 3, {SampaCluster(ts, 13)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 13, {SampaCluster(ts, 133)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 23, {SampaCluster(ts, 163)});
-  BOOST_CHECK_THROW(enc.addChannelData(8, 0, 0, {SampaCluster(ts, 10)}), std::invalid_argument);
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 3, {SampaCluster(ts, 0, 13)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 13, {SampaCluster(ts, 0, 133)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 23, {SampaCluster(ts, 0, 163)});
+  BOOST_CHECK_THROW(enc.addChannelData(8, 0, 0, {SampaCluster(ts, 0, 10)}), std::invalid_argument);
   std::vector<std::byte> buffer;
   enc.moveToBuffer(buffer);
   float e = expectedSize<T, ChargeSumMode>();
@@ -136,7 +92,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(GBTEncoderAdd64Channels, T, testTypes)
   uint16_t ts(0);
   int elinkGroupId = 0;
   for (int i = 0; i < 64; i++) {
-    enc.addChannelData(elinkGroupId, 0, i, {SampaCluster(ts, i * 10)});
+    enc.addChannelData(elinkGroupId, 0, i, {SampaCluster(ts, 0, i * 10)});
   }
   enc.moveToBuffer(buffer);
   //  impl::dumpBuffer<T>(buffer);
@@ -147,7 +103,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(GBTEncoderAdd64Channels, T, testTypes)
 BOOST_AUTO_TEST_CASE_TEMPLATE(GBTEncoderMoveToBufferClearsTheInternalBuffer, T, testTypes)
 {
   GBTEncoder<T, ChargeSumMode> enc(0);
-  enc.addChannelData(0, 0, 0, {SampaCluster(0, 10)});
+  enc.addChannelData(0, 0, 0, {SampaCluster(0, 0, 10)});
   std::vector<std::byte> buffer;
   size_t n = enc.moveToBuffer(buffer);
   BOOST_CHECK_GE(n, 0);
