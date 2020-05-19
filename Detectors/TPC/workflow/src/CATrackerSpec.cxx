@@ -212,6 +212,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       config.configDeviceProcessing.runMC = processMC;       // Propagate MC labels
       config.configDeviceProcessing.eventDisplay = display;  // Ptr to event display backend, for running standalone OpenGL event display
       config.configDeviceProcessing.debugLevel = debugLevel; // Debug verbosity
+      config.configDeviceProcessing.forceMemoryPoolSize = 1; // Some memory auto-detection
 
       config.configEvent.solenoidBz = solenoidBz;
       int maxContTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * Constants::LHCBCPERTIMEBIN - 2) / Constants::LHCBCPERTIMEBIN;
