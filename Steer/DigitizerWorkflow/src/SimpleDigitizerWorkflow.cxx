@@ -157,6 +157,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{"configFile", VariantType::String, "", {"configuration file for configurable parameters"}});
 
+  // option to disable MC truth
+  workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable  mc-truth"}});
+
   // option to use/not use CCDB for TOF
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
 
@@ -389,6 +392,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto geomfilename = o2::base::NameConf::getGeomFileName(simPrefixes[0]);
   ConfigurableParam::setValue("DigiParams.digitizationgeometry", geomfilename);
   ConfigurableParam::setValue("DigiParams.grpfile", grpfile);
+  LOG(INFO) << "MC-TRUTH " << !configcontext.options().get<bool>("disable-mc");
+  bool mctruth = !configcontext.options().get<bool>("disable-mc");
+  ConfigurableParam::setValue("DigiParams", "mctruth", mctruth);
 
   // write the configuration used for the digitizer workflow
   if (ismaster) {
@@ -444,13 +450,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto lanes = helpasked ? 1 : getNumTPCLanes(tpcsectors, configcontext);
     detList.emplace_back(o2::detectors::DetID::TPC);
 
-    WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, tpcsectors);
+    WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, tpcsectors, mctruth);
     specs.insert(specs.end(), tpcPipelines.begin(), tpcPipelines.end());
 
     auto tpcRecoOutputType = configcontext.options().get<std::string>("tpc-reco-type");
     if (tpcRecoOutputType.empty()) {
       // for writing digits to disc
-      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(tpcsectors));
+      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(tpcsectors, mctruth));
     } else {
       // attach the TPC reco workflow
       auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(tpcsectors, tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
@@ -466,18 +472,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::ITS)) {
     detList.emplace_back(o2::detectors::DetID::ITS);
     // connect the ITS digitization
-    specs.emplace_back(o2::itsmft::getITSDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::itsmft::getITSDigitizerSpec(fanoutsize++, mctruth));
     // connect ITS digit writer
-    specs.emplace_back(o2::itsmft::getITSDigitWriterSpec());
+    specs.emplace_back(o2::itsmft::getITSDigitWriterSpec(mctruth));
   }
 
   // the MFT part
   if (isEnabled(o2::detectors::DetID::MFT)) {
     detList.emplace_back(o2::detectors::DetID::MFT);
     // connect the MFT digitization
-    specs.emplace_back(o2::itsmft::getMFTDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::itsmft::getMFTDigitizerSpec(fanoutsize++, mctruth));
     // connect MFT digit writer
-    specs.emplace_back(o2::itsmft::getMFTDigitWriterSpec());
+    specs.emplace_back(o2::itsmft::getMFTDigitWriterSpec(mctruth));
   }
 
   // the TOF part
@@ -485,63 +491,63 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto useCCDB = configcontext.options().get<bool>("use-ccdb-tof");
     detList.emplace_back(o2::detectors::DetID::TOF);
     // connect the TOF digitization
-    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB));
+    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth));
     // add TOF digit writer
-    specs.emplace_back(o2::tof::getTOFDigitWriterSpec());
+    specs.emplace_back(o2::tof::getTOFDigitWriterSpec(mctruth));
   }
 
   // the FT0 part
   if (isEnabled(o2::detectors::DetID::FT0)) {
     detList.emplace_back(o2::detectors::DetID::FT0);
     // connect the FIT digitization
-    specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++, mctruth));
     // connect the FIT digit writer
-    specs.emplace_back(o2::ft0::getFT0DigitWriterSpec());
+    specs.emplace_back(o2::ft0::getFT0DigitWriterSpec(mctruth));
   }
 
   // the FV0 part
   if (isEnabled(o2::detectors::DetID::FV0)) {
     detList.emplace_back(o2::detectors::DetID::FV0);
     // connect the FV0 digitization
-    specs.emplace_back(o2::fv0::getFV0DigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::fv0::getFV0DigitizerSpec(fanoutsize++, mctruth));
     // connect the FV0 digit writer
-    specs.emplace_back(o2::fv0::getFV0DigitWriterSpec());
+    specs.emplace_back(o2::fv0::getFV0DigitWriterSpec(mctruth));
   }
 
   // the EMCal part
   if (isEnabled(o2::detectors::DetID::EMC)) {
     detList.emplace_back(o2::detectors::DetID::EMC);
     // connect the EMCal digitization
-    specs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++, mctruth));
     // connect the EMCal digit writer
-    specs.emplace_back(o2::emcal::getEMCALDigitWriterSpec());
+    specs.emplace_back(o2::emcal::getEMCALDigitWriterSpec(mctruth));
   }
 
   // add HMPID
   if (isEnabled(o2::detectors::DetID::HMP)) {
     detList.emplace_back(o2::detectors::DetID::HMP);
     // connect the HMP digitization
-    specs.emplace_back(o2::hmpid::getHMPIDDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::hmpid::getHMPIDDigitizerSpec(fanoutsize++, mctruth));
     // connect the HMP digit writer
-    specs.emplace_back(o2::hmpid::getHMPIDDigitWriterSpec());
+    specs.emplace_back(o2::hmpid::getHMPIDDigitWriterSpec(mctruth));
   }
 
   // add ZDC
   if (isEnabled(o2::detectors::DetID::ZDC)) {
     detList.emplace_back(o2::detectors::DetID::ZDC);
     // connect the ZDC digitization
-    specs.emplace_back(o2::zdc::getZDCDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::zdc::getZDCDigitizerSpec(fanoutsize++, mctruth));
     // connect the ZDC digit writer
-    specs.emplace_back(o2::zdc::getZDCDigitWriterSpec());
+    specs.emplace_back(o2::zdc::getZDCDigitWriterSpec(mctruth));
   }
 
   // add TRD
   if (isEnabled(o2::detectors::DetID::TRD)) {
     detList.emplace_back(o2::detectors::DetID::TRD);
     // connect the TRD digitization
-    specs.emplace_back(o2::trd::getTRDDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::trd::getTRDDigitizerSpec(fanoutsize++, mctruth));
     // connect the TRD digit writer
-    specs.emplace_back(o2::trd::getTRDDigitWriterSpec());
+    specs.emplace_back(o2::trd::getTRDDigitWriterSpec(mctruth));
     auto enableTrapSim = configcontext.options().get<bool>("enable-trd-trapsim");
     if (enableTrapSim) {
       // connect the TRD Trap SimulatorA
@@ -555,44 +561,45 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::MCH)) {
     detList.emplace_back(o2::detectors::DetID::MCH);
     //connect the MUON MCH digitization
-    specs.emplace_back(o2::mch::getMCHDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::mch::getMCHDigitizerSpec(fanoutsize++, mctruth));
     //connect the MUON MCH digit writer
-    specs.emplace_back(o2::mch::getMCHDigitWriterSpec());
+    specs.emplace_back(o2::mch::getMCHDigitWriterSpec(mctruth));
   }
 
   // add MID
   if (isEnabled(o2::detectors::DetID::MID)) {
     detList.emplace_back(o2::detectors::DetID::MID);
     // connect the MID digitization
-    specs.emplace_back(o2::mid::getMIDDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::mid::getMIDDigitizerSpec(fanoutsize++, mctruth));
     // connect the MID digit writer
-    specs.emplace_back(o2::mid::getMIDDigitWriterSpec());
+    specs.emplace_back(o2::mid::getMIDDigitWriterSpec(mctruth));
   }
+
   // add FDD
   if (isEnabled(o2::detectors::DetID::FDD)) {
     detList.emplace_back(o2::detectors::DetID::FDD);
     // connect the FDD digitization
-    specs.emplace_back(o2::fdd::getFDDDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::fdd::getFDDDigitizerSpec(fanoutsize++, mctruth));
     // connect the FDD digit writer
-    specs.emplace_back(o2::fdd::getFDDDigitWriterSpec());
+    specs.emplace_back(o2::fdd::getFDDDigitWriterSpec(mctruth));
   }
 
   // the PHOS part
   if (isEnabled(o2::detectors::DetID::PHS)) {
     detList.emplace_back(o2::detectors::DetID::PHS);
     // connect the PHOS digitization
-    specs.emplace_back(o2::phos::getPHOSDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::phos::getPHOSDigitizerSpec(fanoutsize++, mctruth));
     // add PHOS writer
-    specs.emplace_back(o2::phos::getPHOSDigitWriterSpec());
+    specs.emplace_back(o2::phos::getPHOSDigitWriterSpec(mctruth));
   }
 
   // the CPV part
   if (isEnabled(o2::detectors::DetID::CPV)) {
     detList.emplace_back(o2::detectors::DetID::CPV);
     // connect the PHOS digitization
-    specs.emplace_back(o2::cpv::getCPVDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::cpv::getCPVDigitizerSpec(fanoutsize++, mctruth));
     // add PHOS writer
-    specs.emplace_back(o2::cpv::getCPVDigitWriterSpec());
+    specs.emplace_back(o2::cpv::getCPVDigitWriterSpec(mctruth));
   }
 
   // GRP updater: must come after all detectors since requires their list

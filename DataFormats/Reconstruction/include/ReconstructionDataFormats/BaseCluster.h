@@ -121,9 +121,10 @@ template <class T>
 std::ostream& operator<<(std::ostream& os, const BaseCluster<T>& c)
 {
   // stream itself
-  os << "SId" << std::setw(5) << c.getSensorID() << " (" << std::showpos << std::scientific << c.getX() << ","
-     << std::scientific << c.getY() << "," << std::scientific << c.getZ() << ") cnt:" << std::setw(4) << +c.getCount()
-     << " bits:" << std::bitset<8>(c.getBits());
+  os << "SId" << std::setw(5) << c.getSensorID() << " (" << std::showpos << std::scientific
+     << c.getX() << "," << c.getY() << "," << c.getZ() << ")/("
+     << c.getSigmaY2() << "," << c.getSigmaYZ() << "," << c.getSigmaZ2()
+     << ") cnt:" << std::setw(4) << +c.getCount() << " bits:" << std::bitset<8>(c.getBits());
   return os;
 }
 } // namespace o2

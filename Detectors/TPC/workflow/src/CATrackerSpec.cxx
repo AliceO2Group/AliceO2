@@ -25,6 +25,7 @@
 #include "Framework/Logger.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/CallbackService.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/ClusterNative.h"
@@ -34,7 +35,7 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "TPCReconstruction/GPUCATracking.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCFastTransform.h"
 #include "TPCdEdxCalibrationSplines.h"
 #include "DPLUtils/DPLRawParser.h"
@@ -246,6 +247,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       if (caClusterer) { // Override some settings if we have raw data as input
         config.configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCRaw);
         config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCClusterFinding, true);
+        config.configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, true);
       }
 
       // Create and forward data objects for TPC transformation, material LUT, ...
@@ -284,6 +286,16 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       processAttributes->validInputs.reset();
       processAttributes->validMcInputs.reset();
     }
+
+    auto& callbacks = ic.services().get<CallbackService>();
+    callbacks.set(CallbackService::Id::RegionInfoCallback, [processAttributes](FairMQRegionInfo const& info) {
+      if (info.size) {
+        auto& tracker = processAttributes->tracker;
+        if (tracker->registerMemoryForGPU(info.ptr, info.size)) {
+          throw std::runtime_error("Error registering memory for GPU");
+        }
+      }
+    });
 
     auto processingFct = [processAttributes, processMC, caClusterer, zsDecoder](ProcessingContext& pc) {
       if (processAttributes->readyToQuit) {

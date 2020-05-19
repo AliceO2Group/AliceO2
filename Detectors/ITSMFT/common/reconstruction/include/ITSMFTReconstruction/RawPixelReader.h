@@ -615,7 +615,10 @@ class RawPixelReader : public PixelReader
   {
     // Decode next trigger from the cached links data and decrease cached triggers counter, return N links decoded
     if (mMinTriggersCached < 1) {
-      return 0;
+      cacheLinksData(mRawBuffer);
+      if (mMinTriggersCached < 1) {
+        return 0;
+      }
     }
     int nlinks = 0;
     for (int ir = mNRUs; ir--;) {

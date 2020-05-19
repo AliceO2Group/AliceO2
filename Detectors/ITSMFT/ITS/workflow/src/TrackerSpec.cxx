@@ -51,6 +51,8 @@ TrackerDPL::TrackerDPL(bool isMC, o2::gpu::GPUDataTypes::DeviceType dType) : mIs
 
 void TrackerDPL::init(InitContext& ic)
 {
+  mTimer.Stop();
+  mTimer.Reset();
   auto filename = ic.options().get<std::string>("grp-file");
   const auto grp = parameters::GRPObject::loadFrom(filename.c_str());
   if (grp) {
@@ -87,6 +89,7 @@ void TrackerDPL::init(InitContext& ic)
 
 void TrackerDPL::run(ProcessingContext& pc)
 {
+  mTimer.Start(false);
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto clusters = pc.inputs().get<gsl::span<o2::itsmft::Cluster>>("clusters");
@@ -98,8 +101,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
-  LOG(INFO) << "ITSTracker pulled " << clusters.size() << " clusters, "
-            << rofs.size() << " RO frames and ";
+  LOG(INFO) << "ITSTracker pulled " << compClusters.size() << " clusters, " << rofs.size() << " RO frames";
 
   const dataformats::MCTruthContainer<MCCompLabel>* labels = nullptr;
   gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
@@ -133,7 +135,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     for (auto& trc : tracks) {
       trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
       int ncl = trc.getNumberOfClusters();
-      for (int ic = 0; ic < ncl; ic++) {
+      for (int ic = ncl; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
         allClusIdx.push_back(trc.getClusterIndex(ic) + offset);
       }
       allTracks.emplace_back(trc);
@@ -194,7 +196,8 @@ void TrackerDPL::run(ProcessingContext& pc)
         LOG(INFO) << "Found tracks: " << tracks.size();
         int number = tracks.size();
         trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
-        int shiftIdx = -rof.getFirstEntry();
+        int shiftIdx = -rof.getFirstEntry();      // cluster entry!!!
+        rof.setFirstEntry(first);
         rof.setNEntries(number);
         copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
         allTrackLabels.mergeAtBack(trackLabels);
@@ -221,6 +224,13 @@ void TrackerDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
     pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
+  mTimer.Stop();
+}
+
+void TrackerDPL::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "ITS CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType dType)

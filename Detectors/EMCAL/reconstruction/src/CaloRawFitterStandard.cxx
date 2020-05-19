@@ -92,7 +92,7 @@ CaloFitResults CaloRawFitterStandard::evaluate(const std::vector<Bunch>& bunchli
     time = time * constants::EMCAL_TIMESAMPLE;
     time -= mL1Phase;
 
-    return CaloFitResults(-99, pedEstimate, mAlgo, amp, time, (int)time, chi2, ndf);
+    return CaloFitResults(maxADC, pedEstimate, mAlgo, amp, time, (int)time, chi2, ndf);
   }
   return CaloFitResults(-1, -1);
 }

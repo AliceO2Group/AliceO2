@@ -107,8 +107,9 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // send out to next stage
     pc.outputs().snapshot(Output{"FT0", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"FT0", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
-
+    if (pc.outputs().isAllowed({"FT0", "DIGITSMCTR", 0})) {
+      pc.outputs().snapshot(Output{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
+    }
     LOG(INFO) << "FT0: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"FT0", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
@@ -135,7 +136,7 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
   std::vector<TChain*> mSimChains;
 };
 
-o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel)
+o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -143,13 +144,18 @@ o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel)
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
 
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("FT0", "DIGITSBC", 0, Lifetime::Timeframe);
+  outputs.emplace_back("FT0", "DIGITSCH", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("FT0", "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("FT0", "ROMode", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "FT0Digitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
-    Outputs{OutputSpec{"FT0", "DIGITSBC", 0, Lifetime::Timeframe},
-            OutputSpec{"FT0", "DIGITSCH", 0, Lifetime::Timeframe},
-            OutputSpec{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe},
-            OutputSpec{"FT0", "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
     AlgorithmSpec{adaptFromTask<FT0DPLDigitizerTask>()},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}};
 }

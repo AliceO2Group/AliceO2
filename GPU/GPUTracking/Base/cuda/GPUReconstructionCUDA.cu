@@ -15,6 +15,12 @@
 #define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##CUDA
 
 #include <cuda.h>
+#include <cuda_profiler_api.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+#include <thrust/sort.h>
+#pragma GCC diagnostic pop
+
 #ifdef __clang__
 #define assert(...)
 #endif
@@ -36,7 +42,8 @@
 #include "GPUReconstructionIncludes.h"
 
 static constexpr size_t REQUIRE_MIN_MEMORY = 1024u * 1024 * 1024;
-static constexpr size_t REQUIRE_FREE_MEMORY_RESERVED = 2048u * 1024 * 1024;
+static constexpr size_t REQUIRE_MEMORY_RESERVED = 512u * 1024 * 1024;
+static constexpr size_t REQUIRE_FREE_MEMORY_RESERVED = 1280u * 1024 * 1024;
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -92,6 +99,20 @@ GPUg() void runKernelCUDA(GPUCA_CONSMEM_PTR int iSlice_internal, Args... args)
 
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
+
+// Example to specialize a kernel for a backend
+/*template <> int GPUReconstructionCUDABackend::runKernelBackend<GPUTPCGMMergerSortTracksQPt, 0>(krnlSetup& _xyz)
+{
+  HighResTimer timer;
+  if (mDeviceProcessingSettings.deviceTimers) {
+    timer.ResetStart();
+  }
+  printf("TEST\n");
+  if (mDeviceProcessingSettings.deviceTimers) {
+    _xyz.t = timer.GetCurrentElapsedTime();
+  }
+  return 0;
+}*/
 
 template <class T, int I, typename... Args>
 int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
@@ -237,7 +258,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
         continue;
       }
       devicesOK[i] = true;
-      devMemory[i] = std::min(free, total - REQUIRE_FREE_MEMORY_RESERVED);
+      devMemory[i] = std::min(free, total - REQUIRE_MEMORY_RESERVED);
       if (deviceSpeed > bestDeviceSpeed) {
         bestDevice = i;
         bestDeviceSpeed = deviceSpeed;
@@ -331,7 +352,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     if (mDeviceMemorySize == 2) {
       mDeviceMemorySize = devMemory[mDeviceId] * 2 / 3; // Leave 1/3 of GPU memory for event display
     } else if (mDeviceMemorySize == 1) {
-      mDeviceMemorySize = devMemory[mDeviceId] - 1024 * 1024 * 1024; // Take all GPU memory but 1/2 GB
+      mDeviceMemorySize = devMemory[mDeviceId] - REQUIRE_FREE_MEMORY_RESERVED; // Take all GPU memory but 1/2 GB
     }
 
     if (mDeviceMemorySize > cudaDeviceProp.totalGlobalMem || GPUFailedMsgI(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
@@ -452,7 +473,7 @@ int GPUReconstructionCUDABackend::ExitDevice_Runtime()
   return (0);
 }
 
-size_t GPUReconstructionCUDABackend::GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+size_t GPUReconstructionCUDABackend::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
   if (mDeviceProcessingSettings.debugLevel >= 3) {
     stream = -1;
@@ -467,7 +488,7 @@ size_t GPUReconstructionCUDABackend::GPUMemCpy(void* dst, const void* src, size_
     for (int k = 0; k < nEvents; k++) {
       GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[stream], ((cudaEvent_t*)evList)[k], 0));
     }
-    GPUFailedMsg(cudaMemcpyAsync(dst, src, size, toGPU ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost, mInternals->CudaStreams[stream]));
+    GPUFailedMsg(cudaMemcpyAsync(dst, src, size, toGPU == -2 ? cudaMemcpyDeviceToDevice : toGPU ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost, mInternals->CudaStreams[stream]));
   }
   if (ev) {
     GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)ev, mInternals->CudaStreams[stream == -1 ? 0 : stream]));
@@ -484,7 +505,7 @@ size_t GPUReconstructionCUDABackend::TransferMemoryInternal(GPUMemoryResource* r
     return 0;
   }
   if (mDeviceProcessingSettings.debugLevel >= 3) {
-    GPUInfo(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s", res->Name());
+    GPUInfo("Copying to %s: %s - %lld bytes", toGPU ? "GPU" : "Host", res->Name(), (long long int)res->Size());
   }
   return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }
@@ -601,4 +622,14 @@ void GPUReconstructionCUDABackend::PrintKernelOccupancies()
 #undef GPUCA_KRNL
 #undef GPUCA_KRNL_LOAD_single
 #undef GPUCA_KRNL_LOAD_multi
+}
+
+void GPUReconstructionCUDABackend::startGPUProfiling()
+{
+  GPUFailedMsg(cudaProfilerStart());
+}
+
+void GPUReconstructionCUDABackend::endGPUProfiling()
+{
+  GPUFailedMsg(cudaProfilerStop());
 }

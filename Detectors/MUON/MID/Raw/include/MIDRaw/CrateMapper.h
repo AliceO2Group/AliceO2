@@ -16,7 +16,7 @@
 #define O2_MID_CRATEMAPPER_H
 
 #include <cstdint>
-#include <map>
+#include <unordered_map>
 
 namespace o2
 {
@@ -42,8 +42,8 @@ class CrateMapper
 
  private:
   void init();
-  std::map<uint16_t, uint16_t> mROToDEMap; /// Correspondence between RO and DE board
-  std::map<uint16_t, uint16_t> mDEToROMap; /// Correspondence between DE and RO board
+  std::unordered_map<uint16_t, uint16_t> mROToDEMap; /// Correspondence between RO and DE board
+  std::unordered_map<uint16_t, uint16_t> mDEToROMap; /// Correspondence between DE and RO board
 };
 } // namespace mid
 } // namespace o2

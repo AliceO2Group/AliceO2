@@ -529,7 +529,7 @@ class TableBuilder
   template <typename... ARGS>
   auto reserve(o2::framework::pack<ARGS...> pack, int s)
   {
-    visitBuilders(pack, overloaded{[s](auto& builder) { return builder.Reserve(s).ok(); }});
+    visitBuilders(pack, [s](auto& builder) { return builder.Reserve(s).ok(); });
   }
 
   /// Invoke the appropriate visitor on the various builders
@@ -537,8 +537,9 @@ class TableBuilder
   auto visitBuilders(o2::framework::pack<ARGS...> pack, V&& visitor)
   {
     auto builders = getBuilders(pack);
-    auto visitAll = [visitor](std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>&... args) { (visitor(*args), ...); };
-    return std::apply(visitAll, *builders);
+    return std::apply(overloaded{
+                        [visitor](std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>&... args) { (visitor(*args), ...); }},
+                      *builders);
   }
 
   /// Actually creates the arrow::Table from the builders
@@ -551,14 +552,14 @@ class TableBuilder
   template <typename T, size_t... Is>
   auto cursorHelper(std::index_sequence<Is...> s)
   {
-    std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::label()...};
+    std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
     return this->template persist<typename pack_element_t<Is, typename T::columns>::type...>(columnNames);
   }
 
   template <typename T, typename E, size_t... Is>
   auto cursorHelper(std::index_sequence<Is...> s)
   {
-    std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::label()...};
+    std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
     return this->template persist<E>(columnNames);
   }
 

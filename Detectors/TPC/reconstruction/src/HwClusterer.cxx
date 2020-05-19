@@ -13,7 +13,7 @@
 
 #include "TPCReconstruction/HwClusterer.h"
 #include "TPCReconstruction/HwClustererParam.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/Mapper.h"
 #include "DataFormatsTPC/ClusterHardware.h"

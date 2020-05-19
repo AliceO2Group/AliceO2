@@ -38,6 +38,7 @@ class RawWriter : public Task
  private:
   bool mFinished = false;
   std::string mOutFileName; // read from workflow
+  std::string mOutDirName;  // read from workflow
 };
 
 /// create a processor spec

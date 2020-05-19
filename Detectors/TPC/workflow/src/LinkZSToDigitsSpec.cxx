@@ -20,7 +20,7 @@
 #include "Headers/DataHeader.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ZeroSuppressionLinkBased.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/PadSecPos.h"
 #include "TPCBase/Mapper.h"

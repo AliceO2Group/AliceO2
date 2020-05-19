@@ -54,8 +54,8 @@ static const float piMass = 0.139f;
 template <class TRDTRK, class PROP>
 void GPUTRDTracker_t<TRDTRK, PROP>::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  mNMaxTracks = mChainTracking->mIOPtrs.nMergedTracks;
-  mNMaxSpacePoints = mChainTracking->mIOPtrs.nTRDTracklets;
+  mNMaxTracks = io.nMergedTracks;
+  mNMaxSpacePoints = io.nTRDTracklets;
   if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
     mNMaxTracks = 50000;
     mNMaxSpacePoints = 100000;
@@ -77,7 +77,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::RegisterMemoryAllocation()
 template <class TRDTRK, class PROP>
 void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
 {
-  Init((TRD_GEOMETRY_CONST GPUTRDGeometry*)mChainTracking->GetTRDGeometry());
+  Init((TRD_GEOMETRY_CONST GPUTRDGeometry*)GetConstantMem()->calibObjects.trdGeometry);
 }
 
 template <class TRDTRK, class PROP>
@@ -120,7 +120,7 @@ void* GPUTRDTracker_t<TRDTRK, PROP>::SetPointersTracks(void* base)
 
 template <class TRDTRK, class PROP>
 GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t()
-  : mR(nullptr), mIsInitialized(false), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mNCandidates(1), mNTracks(0), mNEvents(0), mTracklets(nullptr), mMaxThreads(100), mNTracklets(0), mNTrackletsInChamber(nullptr), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mTrackletLabels(nullptr), mGeo(nullptr), mDebugOutput(false), mRadialOffset(-0.1), mMinPt(2.f), mMaxEta(0.84f), mExtraRoadY(2.f), mRoadZ(18.f), mMaxChi2(15.0f), mMaxMissingLy(6), mChi2Penalty(12.0f), mZCorrCoefNRC(1.4f), mMCEvent(nullptr), mDebug(new GPUTRDTrackerDebug<TRDTRK>()), mChainTracking(nullptr)
+  : mR(nullptr), mIsInitialized(false), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mNCandidates(1), mNTracks(0), mNEvents(0), mTracklets(nullptr), mMaxThreads(100), mNTracklets(0), mNTrackletsInChamber(nullptr), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mTrackletLabels(nullptr), mGeo(nullptr), mDebugOutput(false), mRadialOffset(-0.1), mMinPt(2.f), mMaxEta(0.84f), mExtraRoadY(2.f), mRoadZ(18.f), mMaxChi2(15.0f), mMaxMissingLy(6), mChi2Penalty(12.0f), mZCorrCoefNRC(1.4f), mMCEvent(nullptr), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
 {
   //--------------------------------------------------------------------
   // Default constructor
@@ -213,7 +213,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::Reset(bool fast)
 }
 
 template <class TRDTRK, class PROP>
-void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking()
+void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
 {
   //--------------------------------------------------------------------
   // Steering function for the tracking
@@ -235,8 +235,8 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking()
 
   auto timeStart = std::chrono::high_resolution_clock::now();
 
-  if (mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TRDTracking) {
-    mChainTracking->DoTRDGPUTracking();
+  if (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TRDTracking) {
+    chainTracking->DoTRDGPUTracking();
   } else {
 #ifdef WITH_OPENMP
 #pragma omp parallel for

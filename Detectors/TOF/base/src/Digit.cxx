@@ -53,7 +53,7 @@ void Digit::merge(Int_t tdc, Int_t tot)
 
 //______________________________________________________________________
 
-void Digit::getPhiAndEtaIndex(int& phi, int& eta)
+void Digit::getPhiAndEtaIndex(int& phi, int& eta) const
 {
 
   // method that returns the index in phi and eta of the digit

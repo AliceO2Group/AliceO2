@@ -67,6 +67,7 @@ o2_add_library(Framework
                        src/FairMQDeviceProxy.cxx
                        src/FairMQResizableBuffer.cxx
                        src/FairOptionsRetriever.cxx
+                       src/ConfigurationOptionsRetriever.cxx
                        src/FreePortFinder.cxx
                        src/GraphvizHelpers.cxx
                        src/InputRecord.cxx
@@ -75,6 +76,7 @@ o2_add_library(Framework
                        src/Kernels.cxx
                        src/LifetimeHelpers.cxx
                        src/LocalRootFileService.cxx
+                       src/RootConfigParamHelpers.cxx
                        src/LogParsingHelpers.cxx
                        src/MessageContext.cxx
                        src/Metric2DViewIndex.cxx
@@ -135,6 +137,7 @@ foreach(t
         ASoA
         ASoAHelpers
         BoostOptionsRetriever
+        ConfigurationOptionsRetriever
         CallbackRegistry
         ChannelSpecHelpers
         CompletionPolicy
@@ -168,6 +171,7 @@ foreach(t
         LogParsingHelpers
         PtrHelpers
         Root2ArrowTable
+        RootConfigParamHelpers
         Services
         StringHelpers
         SuppressionGenerator
@@ -265,6 +269,7 @@ endif()
 foreach(w
         BoostSerializedProcessing
         CallbackService
+        RegionInfoCallbackService
         DanglingInputs
         DanglingOutputs
         DataAllocator
@@ -307,12 +312,6 @@ set_property(TEST test_Framework_test_SimpleTracksED PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUIGL PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUISokol PROPERTY DISABLED TRUE)
 endif()
-
-# there is a problem in the termination of the FairMQDevice by signals because
-# the pending input polling is aborted and this throws an error
-#    [ERROR] Failed receiving on socket input-proxy.input-proxy[0].pull, reason: Interrupted system call, nbytes = -1
-# this can either be fixed in FairMQ or in the DPL driver
-set_property(TEST test_Framework_test_ExternalFairMQDeviceWorkflow PROPERTY DISABLED TRUE)
 
 # TODO: investigate the problem and re-enable
 set_property(TEST test_Framework_test_BoostSerializedProcessing

@@ -54,6 +54,8 @@
 #include "SimpleResourceManager.h"
 #include "WorkflowSerializationHelpers.h"
 
+#include <Configuration/ConfigurationInterface.h>
+#include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/MonitoringFactory.h>
 #include <InfoLogger/InfoLogger.hxx>
 
@@ -64,6 +66,7 @@
 #include <boost/program_options.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
+#include <boost/exception/diagnostic_information.hpp>
 
 #include <cinttypes>
 #include <cstdint>
@@ -95,6 +98,7 @@
 #include <unistd.h>
 
 using namespace o2::monitoring;
+using namespace o2::configuration;
 using namespace AliceO2::InfoLogger;
 
 using namespace o2::framework;
@@ -270,6 +274,18 @@ static void handle_sigint(int)
     graceful_exit = true;
   } else {
     forceful_exit = true;
+  }
+}
+
+/// Helper to invoke shared memory cleanup
+void cleanupSHM(std::string const& uniqueWorkflowId)
+{
+  auto shmCleanup = fmt::format("fairmq-shmmonitor --cleanup -s dpl_{} 2>&1 >/dev/null", uniqueWorkflowId);
+  LOG(debug)
+    << "Cleaning up shm memory session with " << shmCleanup;
+  auto result = system(shmCleanup.c_str());
+  if (result != 0) {
+    LOG(error) << "Unable to cleanup shared memory, run " << shmCleanup << "by hand to fix";
   }
 }
 
@@ -650,6 +666,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
       optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("infologger://"), "monitoring backend info") //
         ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")       //
+        ("configuration", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                             //
         ("infologger-mode", bpo::value<std::string>()->default_value(""), "INFOLOGGER_MODE override");
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
@@ -665,6 +682,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
     std::unique_ptr<ParallelContext> parallelContext;
     std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
     std::unique_ptr<CallbackService> callbackService;
+    std::unique_ptr<ConfigurationInterface> configurationService;
     std::unique_ptr<Monitoring> monitoringService;
     std::unique_ptr<InfoLogger> infoLoggerService;
     std::unique_ptr<InfoLoggerContext> infoLoggerContext;
@@ -676,6 +694,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
                                        &parallelContext,
                                        &simpleRawDeviceService,
                                        &callbackService,
+                                       &configurationService,
                                        &monitoringService,
                                        &infoLoggerService,
                                        &spec,
@@ -690,6 +709,9 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
       callbackService = std::make_unique<CallbackService>();
       monitoringService = MonitoringFactory::Get(r.fConfig.GetStringValue("monitoring-backend"));
+      if (r.fConfig.GetStringValue("configuration") != "command-line") {
+        configurationService = ConfigurationFactory::getConfiguration(r.fConfig.GetStringValue("configuration"));
+      }
       auto infoLoggerMode = r.fConfig.GetStringValue("infologger-mode");
       if (infoLoggerMode != "") {
         setenv("INFOLOGGER_MODE", r.fConfig.GetStringValue("infologger-mode").c_str(), 1);
@@ -704,6 +726,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       timesliceIndex = std::make_unique<TimesliceIndex>();
 
       serviceRegistry.registerService<Monitoring>(monitoringService.get());
+      serviceRegistry.registerService<ConfigurationInterface>(configurationService.get());
       serviceRegistry.registerService<InfoLogger>(infoLoggerService.get());
       serviceRegistry.registerService<RootFileService>(localRootFileService.get());
       serviceRegistry.registerService<ControlService>(textControlService.get());
@@ -725,6 +748,10 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
 
     runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
     return runner.Run();
+  } catch (boost::exception& e) {
+    LOG(ERROR) << "Unhandled exception reached the top of main, device shutting down. Details follow: \n"
+               << boost::current_exception_diagnostic_information(true);
+    return 1;
   } catch (std::exception& e) {
     LOG(ERROR) << "Unhandled exception reached the top of main: " << e.what() << ", device shutting down.";
     return 1;
@@ -848,6 +875,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         FD_ZERO(&(driverInfo.childFdset));
 
+        /// Cleanup the shared memory for the uniqueWorkflowId, in
+        /// case we are unlucky and an old one is already present.
+        cleanupSHM(driverInfo.uniqueWorkflowId);
         /// After INIT we go into RUNNING and eventually to SCHEDULE from
         /// there and back into running. This is because the general case
         /// would be that we start an application and then we wait for
@@ -1057,8 +1087,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::GUI);
         }
         break;
-      case DriverState::EXIT:
+      case DriverState::EXIT: {
+        cleanupSHM(driverInfo.uniqueWorkflowId);
         return calculateExitCode(infos);
+      }
       case DriverState::PERFORM_CALLBACKS:
         for (auto& callback : driverControl.callbacks) {
           callback(workflow, deviceSpecs, deviceExecutions, dataProcessorInfos);
@@ -1595,4 +1627,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
                          driverInfo,
                          gDeviceMetricsInfos,
                          frameworkId);
+}
+
+void doBoostException(boost::exception& e)
+{
+  LOG(ERROR) << "error while setting up workflow: \n"
+             << boost::current_exception_diagnostic_information(true);
 }

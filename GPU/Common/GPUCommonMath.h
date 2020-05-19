@@ -110,7 +110,7 @@ class GPUCommonMath
   GPUd() static float FMulRZ(float a, float b);
 
   template <int I, class T>
-  GPUd() CONSTEXPR static T nextMultipleOf(T val);
+  GPUd() CONSTEXPR17 static T nextMultipleOf(T val);
 
  private:
   template <class S, class T>
@@ -134,7 +134,7 @@ typedef GPUCommonMath CAMath;
 #endif // clang-format on
 
 template <int I, class T>
-GPUdi() CONSTEXPR T GPUCommonMath::nextMultipleOf(T val)
+GPUdi() CONSTEXPR17 T GPUCommonMath::nextMultipleOf(T val)
 {
   CONSTEXPRIF(I & (I - 1))
   {

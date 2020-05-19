@@ -154,6 +154,9 @@ writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ), preformat
 In this case provided span is interpretted as a fully formatted CRU page payload (i.e. it lacks the RDH which will be added by the writer) of the maximum size `8192-sizeof(RDH) = 8128` bytes.
 The writer will create a new CRU page with provided payload equipping it with the proper RDH: copying already stored RDH of the current HBF, if the interaction record `ir` belongs to the same HBF or generating new RDH for new HBF otherwise (and filling all missing HBFs in-between). In case the payload size exceeds maximum, an exception will be thrown w/o any attempt to split the page.
 
+Some detectors signal the end of the HBF by adding an empty CRU page containing just a header with ``RDH.stop=1`` while others may simply set the ``RDH.stop=1`` in the last CRU page of the HBF (it may appear to be also the 1st and the only page of the HBF and may or may not contain the payload).
+This behaviour is steered by ``writer.setAddSeparateHBFStopPage(bool v)`` switch. By default end of the HBF is signaled on separate page.
+
 For further details see  ``ITSMFT/common/simulation/MC2RawEncoder`` class and the macro
 `Detectors/ITSMFT/ITS/macros/test/run_digi2rawVarPage_its.C` to steer the MC to raw data conversion.
 
@@ -279,7 +282,8 @@ Data from the same detector may be split to multiple files link-wise and/or time
 o2-raw-file-reader-workflow
   ...
   --loop arg (=1)                       loop N times (infinite for N<0)
-  --max-tf (=0xffffffff)                max number of TF to process
+  --min-tf arg (=0)                     min TF ID to process
+  --max-tf arg (=4294967295)            max TF ID to process
   --message-per-tf                      send TF of each link as a single FMQ message rather than multipart with message per HB
   --output-per-link                     send message per Link rather than per FMQ output route
   --delay arg (=0)                      delay in seconds between consecutive TFs sending
@@ -288,7 +292,7 @@ o2-raw-file-reader-workflow
   # to suppress various error checks / reporting
   --nocheck-packet-increment            ignore /Wrong RDH.packetCounter increment/
   --nocheck-page-increment              ignore /Wrong RDH.pageCnt increment/
-  --nocheck-stop-on-page0               ignore /RDH.stop set of 1st HBF page/
+  --check-stop-on-page0                 check  /RDH.stop set of 1st HBF page/
   --nocheck-missing-stop                ignore /New HBF starts w/o closing old one/
   --nocheck-starts-with-tf              ignore /Data does not start with TF/HBF/
   --nocheck-hbf-per-tf                  ignore /Number of HBFs per TF not as expected/
@@ -312,7 +316,7 @@ by using option `--output-per-link`.
 
 The standard use case of this workflow is to provide the input for other worfklows using the piping, e.g.
 ```cpp
-o2-raw-file-reader-workflow --conf myConf.cfg | o2-dpl-raw-parser
+o2-raw-file-reader-workflow --input-conf myConf.cfg | o2-dpl-raw-parser
 ```
 
 ## Raw data file checker (standalone executable)
@@ -321,14 +325,14 @@ o2-raw-file-reader-workflow --conf myConf.cfg | o2-dpl-raw-parser
 Usage:   o2-raw-file-check [options] file0 [... fileN]
 Options:
   -h [ --help ]                     print this help message.
-  -c [ --conf ] arg                 read input from configuration file
-  -m [ --max-tf] arg (=0xffffffff)  max.number of TF to read
+  -c [ --input-conf ] arg           read input from configuration file
+  -m [ --max-tf] arg (=0xffffffff)  max. TF ID to read (counts from 0)
   -v [ --verbosity ] arg (=0)    1: long report, 2 or 3: print or dump all RDH
   -s [ --spsize ]    arg (=1048576) nominal super-page size in bytes
   -t [ --hbfpertf ]  arg (=256)     nominal number of HBFs per TF
   --nocheck-packet-increment        ignore /Wrong RDH.packetCounter increment/
   --nocheck-page-increment          ignore /Wrong RDH.pageCnt increment/
-  --nocheck-stop-on-page0           ignore /RDH.stop set of 1st HBF page/
+  --check-stop-on-page0             check  /RDH.stop set of 1st HBF page/
   --nocheck-missing-stop            ignore /New HBF starts w/o closing old one/
   --nocheck-starts-with-tf          ignore /Data does not start with TF/HBF/
   --nocheck-hbf-per-tf              ignore /Number of HBFs per TF not as expected/

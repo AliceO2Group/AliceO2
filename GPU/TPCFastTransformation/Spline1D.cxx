@@ -232,7 +232,7 @@ void Spline1D<DataT>::print() const
   printf("\n");
 }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
 template <typename DataT>
 int Spline1D<DataT>::writeToFile(TFile& outf, const char* name)
 {
@@ -246,9 +246,6 @@ Spline1D<DataT>* Spline1D<DataT>::readFromFile(TFile& inpf, const char* name)
   /// read a class object from the file
   return FlatObject::readFromFile<Spline1D<DataT>>(inpf, name);
 }
-#endif
-
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
 template <typename DataT>
 void Spline1D<DataT>::approximateFunction(DataT xMin, DataT xMax,

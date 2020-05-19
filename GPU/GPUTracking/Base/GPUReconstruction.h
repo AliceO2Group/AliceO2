@@ -168,6 +168,8 @@ class GPUReconstruction
   unsigned int getNEventsProcessedInStat() { return mStatNEvents; }
   virtual int registerMemoryForGPU(const void* ptr, size_t size) = 0;
   virtual int unregisterMemoryForGPU(const void* ptr) = 0;
+  virtual void startGPUProfiling() {}
+  virtual void endGPUProfiling() {}
 
   // Helpers for memory allocation
   GPUMemoryResource& Res(short num) { return mMemoryResources[num]; }
@@ -184,6 +186,7 @@ class GPUReconstruction
   void ResetRegisteredMemoryPointers(short res);
   void PrintMemoryStatistics();
   void PrintMemoryOverview();
+  void SetMemoryExternalInput(short res, void* ptr);
   GPUMemorySizeScalers* MemoryScalers() { return mMemoryScalers.get(); }
 
   // Helpers to fetch processors from other shared libraries

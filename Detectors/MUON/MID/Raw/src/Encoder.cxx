@@ -42,13 +42,22 @@ void Encoder::init(const char* filename, int verbosity)
 
 void Encoder::hbTrigger(const InteractionRecord& ir)
 {
-  /// Add new RDH
+  /// Processes HB trigger
+  if (mLastIR.isDummy()) {
+    // This is the first HB
+    for (uint16_t feeId = 0; feeId < crateparams::sNGBTs; ++feeId) {
+      mGBTEncoders[feeId].processTrigger(o2::constants::lhc::LHCMaxBunches, raw::sORB);
+    }
+    mLastIR = o2::raw::HBFUtils::Instance().getFirstIR();
+    return;
+  }
+
   std::vector<InteractionRecord> HBIRVec;
-  o2::raw::HBFUtils::Instance().fillHBIRvector(HBIRVec, mLastIR, ir);
+  o2::raw::HBFUtils::Instance().fillHBIRvector(HBIRVec, mLastIR + 1, ir);
   for (auto& hbIr : HBIRVec) {
     for (uint16_t feeId = 0; feeId < crateparams::sNGBTs; ++feeId) {
       flush(feeId, mLastIR);
-      mGBTEncoders[feeId].processTrigger(ir.bc, raw::sORB);
+      mGBTEncoders[feeId].processTrigger(o2::constants::lhc::LHCMaxBunches, raw::sORB);
     }
     mLastIR = hbIr;
   }
@@ -87,9 +96,6 @@ void Encoder::finalize(bool closeFile)
 void Encoder::process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType)
 {
   /// Encodes data
-  if (mLastIR.isDummy()) {
-    mLastIR = o2::raw::HBFUtils::Instance().getFirstIR();
-  }
   hbTrigger(ir);
 
   mConverter.process(data);

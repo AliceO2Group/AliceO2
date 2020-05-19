@@ -159,7 +159,9 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *digitsVector);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, *mcLabVecOfVec);
+    if (pc.outputs().isAllowed({o2::header::gDataOriginTOF, "DIGITSMCTR", 0})) {
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, *mcLabVecOfVec);
+    }
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *readoutwindow);
     LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
@@ -181,7 +183,7 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   bool mUseCCDB = false;
 };
 
-DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
+DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -194,13 +196,17 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
     inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
     inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
   }
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back(o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
     "TOFDigitizer",
     inputs,
-    Outputs{OutputSpec{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe},
-            OutputSpec{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe},
-            OutputSpec{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe},
-            OutputSpec{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
     AlgorithmSpec{adaptFromTask<TOFDPLDigitizerTask>(useCCDB)},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
     // I can't use VariantType::Bool as it seems to have a problem

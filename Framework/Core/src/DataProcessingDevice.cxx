@@ -18,6 +18,7 @@
 #include "Framework/DispatchControl.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/FairOptionsRetriever.h"
+#include "ConfigurationOptionsRetriever.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/CallbackService.h"
 #include "Framework/TMessageSerializer.h"
@@ -34,6 +35,8 @@
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQSocket.h>
 #include <options/FairMQProgOptions.h>
+#include <Configuration/ConfigurationInterface.h>
+#include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/Monitoring.h>
 #include <TMessage.h>
 #include <TClonesArray.h>
@@ -48,6 +51,7 @@ using Key = o2::monitoring::tags::Key;
 using Value = o2::monitoring::tags::Value;
 using Metric = o2::monitoring::Metric;
 using Monitoring = o2::monitoring::Monitoring;
+using ConfigurationInterface = o2::configuration::ConfigurationInterface;
 using DataHeader = o2::header::DataHeader;
 
 constexpr unsigned int MONITORING_QUEUE_SIZE = 100;
@@ -119,8 +123,16 @@ void DataProcessingDevice::Init()
       }
     }
   }
-  auto optionsRetriever(std::make_unique<FairOptionsRetriever>(mSpec.options, GetConfig()));
-  mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
+  // If available use the ConfigurationInterface, otherwise go for
+  // the command line options.
+  if (mServiceRegistry.active<ConfigurationInterface>()) {
+    auto& cfg = mServiceRegistry.get<ConfigurationInterface>();
+    auto optionsRetriever(std::make_unique<ConfigurationOptionsRetriever>(mSpec.options, &cfg, mSpec.name));
+    mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
+  } else {
+    auto optionsRetriever(std::make_unique<FairOptionsRetriever>(mSpec.options, GetConfig()));
+    mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
+  }
 
   mExpirationHandlers.clear();
 
@@ -162,6 +174,20 @@ void DataProcessingDevice::Init()
     } else if (name.find("from_internal-dpl-ccdb-backend") == 0) {
       mState.inputChannelInfos[ci].state = InputChannelState::Pull;
     }
+  }
+}
+
+void DataProcessingDevice::InitTask()
+{
+  for (auto& channel : fChannels) {
+    channel.second.at(0).Transport()->SubscribeToRegionEvents([& pendingRegionInfos = mPendingRegionInfos](FairMQRegionInfo info) {
+      LOG(debug) << ">>> Region info event" << info.event;
+      LOG(debug) << "id: " << info.id;
+      LOG(debug) << "ptr: " << info.ptr;
+      LOG(debug) << "size: " << info.size;
+      LOG(debug) << "flags: " << info.flags;
+      pendingRegionInfos.push_back(info);
+    });
   }
 }
 
@@ -250,6 +276,13 @@ bool DataProcessingDevice::ConditionalRun()
   auto now = std::chrono::high_resolution_clock::now();
   mBeginIterationTimestamp = (uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
 
+  if (mPendingRegionInfos.empty() == false) {
+    std::vector<FairMQRegionInfo> toBeNotified;
+    toBeNotified.swap(mPendingRegionInfos); // avoid any MT issue.
+    for (auto const& info : toBeNotified) {
+      mServiceRegistry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
+    }
+  }
   mServiceRegistry.get<CallbackService>()(CallbackService::Id::ClockTick);
   // Whether or not we had something to do.
   bool active = false;
