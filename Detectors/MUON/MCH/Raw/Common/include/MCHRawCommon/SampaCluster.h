@@ -15,6 +15,7 @@
 #include <vector>
 #include <iostream>
 #include <fmt/format.h>
+#include "MCHRawCommon/DataFormats.h"
 
 namespace o2
 {
@@ -38,20 +39,20 @@ namespace raw
 struct SampaCluster {
 
   /// Constructs a cluster which holds only a charge sum (aka cluster sum)
-  /// \param timestamp must fit within 10 bits
+  /// \param sampaTime must fit within 10 bits
   /// \param chargeSum must fit within 20 bits
   ///
   /// if some parameter does not fit within its expected range
   /// a std::invalid_argument exception is thrown.
-  explicit SampaCluster(uint16_t timestamp, uint32_t chargeSum);
+  explicit SampaCluster(uint10_t sampaTime, uint20_t bunchCrossing, uint20_t chargeSum);
 
   /// Constructs a cluster which holds a vector of raw samples
-  /// \param timestamp must fit within 10 bits
+  /// \param sampaTime must fit within 10 bits
   /// \param samples : each sample must fit within 10 bits
   ///
   /// if some parameter does not fit within its expected range
   /// a std::invalid_argument exception is thrown.
-  SampaCluster(uint16_t timestamp, const std::vector<uint16_t>& samples);
+  SampaCluster(uint10_t sampaTime, uint20_t bunchCrossing, const std::vector<uint10_t>& samples);
 
   /// nofSamples gives the number of samples of this cluster.
   /// Can be > 1 even in chargesum mode (it then indicates the number
@@ -65,21 +66,31 @@ struct SampaCluster {
   /// needed to store this cluster
   uint16_t nof10BitWords() const;
 
-  uint16_t timestamp;            //< 10 bits for a local timestamp
-  uint32_t chargeSum;            //< 20 bits for a cluster sum
+  uint10_t sampaTime;            //< 10 bits for a local time stamp
+  uint20_t bunchCrossing;        //< 20 bits for bunch crossing counter
+  uint20_t chargeSum;            //< 20 bits for a cluster sum
   std::vector<uint16_t> samples; //< 10 bits for each sample
 };
 
 // ensure all clusters are either in sample mode or in
 // chargesum mode, no mixing allowed
+// and that all clusters share a single bunch crossing counter value
 template <typename CHARGESUM>
 void assertNotMixingClusters(const std::vector<SampaCluster>& data)
 {
   CHARGESUM a;
   auto refValue = a();
+  uint32_t bunchCrossingCounter{0};
   for (auto i = 0; i < data.size(); i++) {
     if (data[i].isClusterSum() != refValue) {
       throw std::invalid_argument(fmt::format("all cluster of this encoder should be of the same type ({}) but {}-th does not match ", (refValue ? "clusterSum" : "samples"), i));
+    }
+    auto bc = data[i].bunchCrossing;
+    if (i == 0) {
+      bunchCrossingCounter = bc;
+    }
+    if (bc != bunchCrossingCounter) {
+      throw std::invalid_argument(fmt::format("all sampa clusters should have the same bunch crossing number : first is {} and got {}\n", bunchCrossingCounter, bc));
     }
   }
 }

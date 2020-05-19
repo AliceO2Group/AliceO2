@@ -26,6 +26,10 @@ uint16_t chipAddress(uint8_t elinkId, uint8_t chId)
   return opt.value() * 2 + (chId > 31);
 }
 
+/// Build a sampa header for one channel
+/// The vector of SampaCluster is assumed to be valid, i.e. :
+/// - all clusters are all of the same kind (ChargeSumMode or SampleMode)
+/// - all clusters have the same bunchCrossingCounter
 SampaHeader buildSampaHeader(uint8_t elinkId, uint8_t chId, gsl::span<const SampaCluster> data)
 {
   assertIsInRange("chId", chId, 0, 63);
@@ -37,14 +41,19 @@ SampaHeader buildSampaHeader(uint8_t elinkId, uint8_t chId, gsl::span<const Samp
   for (const auto& s : data) {
     n10 += s.nof10BitWords();
   }
+  uint32_t bunchCrossingCounter{0};
+  if (data.size()) {
+    bunchCrossingCounter = data[0].bunchCrossing;
+  }
   assertNofBits("nof10BitWords", n10, 10);
   header.nof10BitWords(n10);
   header.chipAddress(chipAddress(elinkId, chId));
   header.channelAddress(chId % 32);
   header.hammingCode(computeHammingCode(header.uint64()));
   header.headerParity(computeHeaderParity(header.uint64()));
+  assertNofBits("bunchCrossingCounter", bunchCrossingCounter, 20);
+  header.bunchCrossingCounter(bunchCrossingCounter);
 
-  //header.bunchCrossingCounter(mLocalBunchCrossing); //FIXME: how is this one evolving ?
   // FIXME: compute payload parity
   return header;
 }
@@ -88,7 +97,7 @@ void bufferizeClusters(gsl::span<const SampaCluster> clusters, std::vector<uint1
 {
   for (auto& c : clusters) {
     b10.emplace_back(c.nofSamples());
-    b10.emplace_back(c.timestamp);
+    b10.emplace_back(c.sampaTime);
     if (c.isClusterSum()) {
       b10.emplace_back(c.chargeSum & 0x3FF);
       b10.emplace_back((c.chargeSum & 0xFFC00) >> 10);

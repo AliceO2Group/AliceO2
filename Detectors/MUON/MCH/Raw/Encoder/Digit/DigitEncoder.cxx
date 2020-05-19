@@ -29,7 +29,7 @@ std::vector<SampaCluster> createSampaClusters(uint16_t ts, float adc);
 template <>
 std::vector<SampaCluster> createSampaClusters<raw::ChargeSumMode>(uint16_t ts, float adc)
 {
-  return {raw::SampaCluster(ts, static_cast<uint32_t>(adc))};
+  return {raw::SampaCluster(ts, 0, static_cast<uint32_t>(adc))};
 }
 
 template <>
@@ -40,7 +40,7 @@ std::vector<SampaCluster> createSampaClusters<raw::SampleMode>(uint16_t ts, floa
 
   samples.emplace_back(static_cast<uint16_t>((a & 0xFFC00) >> 10));
   samples.emplace_back(static_cast<uint16_t>(a & 0x3FF));
-  return {raw::SampaCluster(ts, samples)};
+  return {raw::SampaCluster(ts, 0, samples)};
 }
 
 // create a function that return the (DsElecId,chid) of a digit
@@ -82,7 +82,7 @@ DigitEncoder createDigitEncoder(Det2ElecMapper det2elec)
       auto elecId = optElecId.value().first;
       int dschid = optElecId.value().second;
       // FIXME: add a warning if timestamp is not in range
-      uint16_t ts(static_cast<int>(d.getTimeStamp()) & 0x3FF);
+      uint16_t ts(static_cast<int>(d.getTime().sampaTime) & 0x3FF);
       int sampachid = dschid % 32;
       // FIXME: add a warning if ADC is not in range
       auto clusters = createSampaClusters<CHARGESUM>(ts, d.getADC() & 0xFFFFF);
