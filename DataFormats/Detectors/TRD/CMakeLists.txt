@@ -10,10 +10,14 @@
 
 o2_add_library(DataFormatsTRD
                SOURCES src/TriggerRecord.cxx
+                       src/RawData.cxx
+                       src/Tracklet64.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat 
                                      O2::SimulationDataFormat
                                      )
 
 o2_target_root_dictionary(DataFormatsTRD
-                          HEADERS include/DataFormatsTRD/TriggerRecord.h)
+                          HEADERS include/DataFormatsTRD/TriggerRecord.h 
+                          include/DataFormatsTRD/RawData.h 
+                                  include/DataFormatsTRD/Tracklet64.h)
 

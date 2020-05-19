@@ -15,6 +15,11 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::trd::TriggerRecord + ;
+#pragma link C++ struct o2::trd::HalfCRUHeader + ;
+#pragma link C++ struct o2::trd::HalfChamberHeader + ;
+#pragma link C++ struct o2::trd::MCMRawDataHeader + ;
+#pragma link C++ struct o2::trd::TrapRawTracklet + ;
+#pragma link C++ class  o2::trd::Tracklet64 + ;
 #pragma link C++ class std::vector < o2::trd::TriggerRecord > +;
 
 #endif
