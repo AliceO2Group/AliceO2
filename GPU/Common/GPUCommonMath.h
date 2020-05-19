@@ -41,10 +41,12 @@ class GPUCommonMath
   GPUhd() static T Min(const T x, const T y);
   template <class T>
   GPUhd() static T Max(const T x, const T y);
-  template <class T, class S>
-  GPUhd() static T MinWithRef(T x, T y, S refX, S refY, S& r);
-  template <class T, class S>
-  GPUhd() static T MaxWithRef(T x, T y, S refX, S refY, S& r);
+  template <class T, class S, class R>
+  GPUhd() static T MinWithRef(T x, T y, S refX, S refY, R& r);
+  template <class T, class S, class R>
+  GPUhd() static T MaxWithRef(T x, T y, S refX, S refY, R& r);
+  template <class T, class S, class R>
+  GPUhd() static T MaxWithRef(T x, T y, T z, T w, S refX, S refY, S refZ, S refW, R& r);
   GPUhdni() static float Sqrt(float x);
   GPUhdni() static float FastInvSqrt(float x);
   template <class T>
@@ -249,8 +251,8 @@ GPUhdi() T GPUCommonMath::Max(const T x, const T y)
   return CHOICE(std::max(x, y), std::max(x, y), (x > y ? x : y));
 }
 
-template <class T, class S>
-GPUhdi() T GPUCommonMath::MinWithRef(T x, T y, S refX, S refY, S& r)
+template <class T, class S, class R>
+GPUhdi() T GPUCommonMath::MinWithRef(T x, T y, S refX, S refY, R& r)
 {
   if (x < y) {
     r = refX;
@@ -260,8 +262,8 @@ GPUhdi() T GPUCommonMath::MinWithRef(T x, T y, S refX, S refY, S& r)
   return y;
 }
 
-template <class T, class S>
-GPUhdi() T GPUCommonMath::MaxWithRef(T x, T y, S refX, S refY, S& r)
+template <class T, class S, class R>
+GPUhdi() T GPUCommonMath::MaxWithRef(T x, T y, S refX, S refY, R& r)
 {
   if (x > y) {
     r = refX;
@@ -269,6 +271,27 @@ GPUhdi() T GPUCommonMath::MaxWithRef(T x, T y, S refX, S refY, S& r)
   }
   r = refY;
   return y;
+}
+
+template <class T, class S, class R>
+GPUhdi() T GPUCommonMath::MaxWithRef(T x, T y, T z, T w, S refX, S refY, S refZ, S refW, R& r)
+{
+  T retVal = x;
+  S retRef = refX;
+  if (y > retVal) {
+    retVal = y;
+    retRef = refY;
+  }
+  if (z > retVal) {
+    retVal = z;
+    retRef = refZ;
+  }
+  if (w > retVal) {
+    retVal = w;
+    retRef = refW;
+  }
+  r = retRef;
+  return retVal;
 }
 
 GPUhdi() float GPUCommonMath::Sqrt(float x) { return CHOICE(sqrtf(x), sqrtf(x), sqrt(x)); }
