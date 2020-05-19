@@ -1565,9 +1565,16 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
 
   // FIXME: decide about the policy for handling unrecognized arguments
   // command_line_parser with option allow_unregistered() can be used
+  using namespace bpo::command_line_style;
+  auto style = (allow_short | short_allow_adjacent | short_allow_next | allow_long | long_allow_adjacent | long_allow_next | allow_sticky | allow_dash_for_short);
   bpo::variables_map varmap;
   try {
-    bpo::store(bpo::parse_command_line(argc, argv, od), varmap);
+    bpo::store(
+      bpo::command_line_parser(argc, argv)
+        .options(od)
+        .style(style)
+        .run(),
+      varmap);
   } catch (std::exception const& e) {
     std::cerr << "Error: " << e.what() << std::endl;
     exit(1);
