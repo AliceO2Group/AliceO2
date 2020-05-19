@@ -42,7 +42,7 @@ set_package_properties(O2arrow PROPERTIES TYPE REQUIRED)
 find_package(Vc)
 set_package_properties(Vc PROPERTIES TYPE REQUIRED)
 
-find_package(ROOT 6.16.00 MODULE)
+find_package(ROOT 6.20.02)
 set_package_properties(ROOT PROPERTIES TYPE REQUIRED)
 
 find_package(fmt)
