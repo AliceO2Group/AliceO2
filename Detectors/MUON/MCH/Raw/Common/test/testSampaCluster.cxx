@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_SUITE(o2_mch_raw)
 BOOST_AUTO_TEST_SUITE(sampacluster)
 
 uint16_t defaultTimestamp{0x3FF};
-uint32_t defaultBunchCrossing{0xFFFF};
+uint32_t defaultBunchCrossing{0xFFFFF};
 uint32_t defaultChargeSum{0xFFFF};
 std::vector<uint16_t> defaultSamples = {0x3FF, 0x3FF, 0x3FF};
 
