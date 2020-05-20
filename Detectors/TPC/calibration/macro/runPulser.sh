@@ -21,6 +21,7 @@ usage() {
   echo "    -p, --pedestalFile=  : pedestal and noise file"
   echo "    -v, --verbosity=     : set verbosity level for raw reader"
   echo "    -d, --debugLevel=    : set debug level for raw reader"
+  echo "    -t, --type=          : run type (pulser: 0, laser: 1)"
   echo "    -h, --help           : show this help message"
 }
 
@@ -45,8 +46,10 @@ debugLevel=0
 adcMin=0
 adcMax=1100
 
+dataType=0
+
 # ===| parse command line options |=============================================
-OPTIONS=$(getopt -l "fileInfo:,outputFile:,firstTimeBin:,lastTimeBin:,nevents:,adcMin:,adcMax:,pedestalFile:,verbosity:,debugLevel:,help" -o "i:o:f:l:n:m:x:p:v:d:h" -n "runPulser.sh" -- "$@")
+OPTIONS=$(getopt -l "fileInfo:,outputFile:,firstTimeBin:,lastTimeBin:,nevents:,adcMin:,adcMax:,pedestalFile:,verbosity:,debugLevel:,type:,help" -o "i:o:f:l:n:m:x:p:v:d:t:h" -n "runPulser.sh" -- "$@")
 
 if [ $? != 0 ] ; then
   usageAndExit
@@ -67,6 +70,7 @@ while true; do
     -p|--pedestalFile) pedestalFile=$2; shift 2;;
     -v|--verbosity) verbosity=$2; shift 2;;
     -d|--debugLevel) debugLevel=$2; shift 2;;
+    -t|--type) dataType=$2; shift 2;;
     -h|--help) usageAndExit;;
      *) echo "Internal error!" ; exit 1 ;;
    esac
@@ -89,6 +93,6 @@ fi
 fileInfo=$(echo $fileInfo | sed "s|^|{\"|;s|,|:$lastTimeBin\",\"|g;s|$|\"}|")
 
 # ===| command building and execution |=========================================
-cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPulser.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, \"$pedestalFile\", $verbosity, $debugLevel)'"
+cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPulser.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, \"$pedestalFile\", $verbosity, $debugLevel, $dataType)'"
 echo "running: $cmd"
 eval $cmd

@@ -25,7 +25,7 @@
 /// Open pedestalFile and retrieve noise and pedestal values
 /// Draw then in separate canvases and add an executable to be able to add
 /// FEC information to the title
-TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir = "")
+TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir = "", int type = 0)
 {
   if ((mode != 0) && (mode != 1)) {
     return 0x0;
@@ -47,9 +47,25 @@ TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir 
 
   // mode 1 handling
   if (mode == 1) {
-    auto arrT0 = painter::makeSummaryCanvases(*calT0, 100, 238.f, 240.f);
-    auto arrWidth = painter::makeSummaryCanvases(*calWidth, 100, 0.38f, 0.57f);
-    auto arrQtot = painter::makeSummaryCanvases(*calQtot, 100, 20.f, 280.f);
+    float tMin = 238.f;
+    float tMax = 240.f;
+    float wMin = 0.38f;
+    float wMax = 0.57f;
+    float qMin = 20.f;
+    float qMax = 280.f;
+
+    if (type == 1) {
+      tMin = 455.f;
+      tMax = 465.f;
+      wMin = 0.6;
+      wMax = 0.8;
+      qMin = 2.f;
+      qMax = 180.f;
+    }
+
+    auto arrT0 = painter::makeSummaryCanvases(*calT0, 100, tMin, tMax);
+    auto arrWidth = painter::makeSummaryCanvases(*calWidth, 100, wMin, wMax);
+    auto arrQtot = painter::makeSummaryCanvases(*calQtot, 100, qMin, qMax);
 
     for (auto c : arrT0) {
       arrCanvases->Add(c);

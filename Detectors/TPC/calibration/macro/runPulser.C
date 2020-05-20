@@ -21,7 +21,7 @@ void runPulser(std::vector<std::string_view> fileInfos, TString outputFileName =
                Int_t adcMin = 0, Int_t adcMax = 1100,
                Int_t firstTimeBin = 0, Int_t lastTimeBin = 500,
                TString pedestalAndNoiseFile = "",
-               uint32_t verbosity = 0, uint32_t debugLevel = 0)
+               uint32_t verbosity = 0, uint32_t debugLevel = 0, int type = 0)
 {
   using namespace o2::tpc;
   // ===| set up calibration class |============================================
@@ -29,6 +29,10 @@ void runPulser(std::vector<std::string_view> fileInfos, TString outputFileName =
   calib.setADCRange(adcMin, adcMax);
   calib.setTimeBinRange(firstTimeBin, lastTimeBin);
   calib.setDebugLevel();
+  if (type == 1) {
+    calib.setQtotBinning(150,2,302);
+    calib.setMinQtot(4);
+  }
   //calib.setDebugLevel(debugLevel);
 
   // ===| load pedestal if requested |==========================================
