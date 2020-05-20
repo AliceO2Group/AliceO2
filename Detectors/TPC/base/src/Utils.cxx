@@ -12,6 +12,7 @@
 #include <regex>
 #include <string>
 #include <fmt/format.h>
+#include <fmt/printf.h>
 
 #include "TObject.h"
 #include "TObjArray.h"
@@ -101,10 +102,13 @@ void utils::addFECInfo()
 
   const auto& fecInfo = mapper.getFECInfo(PadROCPos(roc, row, pad));
 
-  std::string title("#splitline{#lower[.1]{#scale[.5]{");
-  title += (roc / 18 % 2 == 0) ? "A" : "C";
-  title += fmt::format("{:02d} ({:02d}) row: {:02d}, pad: {:03d}, globalpad: {:05d} (in roc)}}}{#scale[.5]{FEC: {:02d}, Chip: {:02d}, Chn: {:02d}, Value: {:.3f}}}",
-                       roc % 18, roc, row, pad, channel, fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel(), binValue);
+  const std::string title = fmt::format(
+    "#splitline{{#lower[.1]{{#scale[.5]{{"
+    "{}{:02d} ({:02d}) row: {:02d}, pad: {:03d}, globalpad: {:05d} (in roc)"
+    "}}}}}}{{#scale[.5]{{FEC: "
+    "{:02d}, Chip: {:02d}, Chn: {:02d}, Value: {:.3f}"
+    "}}}}",
+    (roc / 18 % 2 == 0) ? "A" : "C", roc % 18, roc, row, pad, channel, fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel(), binValue);
 
   h->SetTitle(title.data());
 }
