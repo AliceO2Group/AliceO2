@@ -19,8 +19,9 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/PartRef.h"
+#include "Framework/ConcreteDataMatcher.h"
 #include "TPCWorkflow/RecoWorkflow.h"
-#include "TPCWorkflow/CATrackerSpec.h"
+#include "TPCWorkflow/TPCSectorCompletionPolicy.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"
@@ -80,7 +81,10 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   using CompletionPolicyHelpers = o2::framework::CompletionPolicyHelpers;
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-cluster-decoder.*", CompletionPolicy::CompletionOp::Consume));
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-clusterer.*", CompletionPolicy::CompletionOp::Consume));
-  policies.push_back(o2::tpc::getCATrackerCompletionPolicy());
+  // the custom completion policy for the tracker
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("tpc-tracker.*",
+                                                        o2::framework::InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}},
+                                                        o2::framework::InputSpec{"digits", o2::framework::ConcreteDataTypeMatcher{"TPC", "DIGITS"}})());
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
