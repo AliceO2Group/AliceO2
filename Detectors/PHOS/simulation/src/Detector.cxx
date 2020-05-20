@@ -934,7 +934,7 @@ void Detector::addAlignableVolumes() const
 
   o2::detectors::DetID::ID idPHOS = o2::detectors::DetID::PHS;
 
-  TString physModulePath = "/cave_1/barrel_1PHOS_";
+  TString physModulePath = "/cave_1/barrel_1/PHOS_";
 
   TString symbModuleName = "PHOS/Module";
 
