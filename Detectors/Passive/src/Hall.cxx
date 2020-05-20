@@ -99,6 +99,8 @@ void Hall::createMaterials()
   matmgr.Mixture("HALL", kCC_C2, "CONCRETE2", aconc, zconc, 2.35, 10, wconc);
   matmgr.Medium("HALL", kCC_C2, "CC_C2", kCC_C2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
+  matmgr.Mixture("HALL", kCC_C0, "CONCRETE0", aconc, zconc, 2.35, 10, wconc);
+  matmgr.Medium("HALL", kCC_C0, "CC_C0", kCC_C0, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   //  Iron
   matmgr.Material("HALL", kFE_C2, "IRON", 55.85, 26., 7.87, 1.76, 17.1);
   matmgr.Medium("HALL", kFE_C2, "FE_C2", kFE_C2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
@@ -131,6 +133,7 @@ void Hall::ConstructGeometry()
   // Media
   auto& matmgr = o2::base::MaterialManager::Instance();
   TGeoMedium* kMedCC = matmgr.getTGeoMedium("HALL_CC_C2");
+  TGeoMedium* kMedCClc = matmgr.getTGeoMedium("HALL_CC_C0");
   TGeoMedium* kMedST = matmgr.getTGeoMedium("HALL_STST_C2");
   TGeoMedium* kMedAir = matmgr.getTGeoMedium("HALL_AIR_C2");
   TGeoMedium* kMedFe = matmgr.getTGeoMedium("HALL_FE_C2");
@@ -457,7 +460,7 @@ void Hall::ConstructGeometry()
     shRb24PlSS = new TGeoCompositeShape("Rb24PlSS", "ShRb24Pl4-ShRb24Pl2:trPl5");
   }
 
-  TGeoVolume* voRb24Pl = new TGeoVolume("Rb24Pl", shRb24Pl, kMedCC);
+  TGeoVolume* voRb24Pl = new TGeoVolume("Rb24Pl", shRb24Pl, kMedCClc);
 
   asShRb24->AddNode(voRb24Pl, 1, new TGeoTranslation(0., 0., 520. - 40.));
   if (mNewShield24) {
