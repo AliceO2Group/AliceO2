@@ -1219,11 +1219,11 @@ GPUd() void GPUTPCGMMerger::LinkGlobalTracks(int nBlocks, int nThreads, int iBlo
 
 GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int iBlock, int iThread)
 {
-  int nOutTrackClusters = 0;
 
   GPUTPCGMSliceTrack* trackParts[kMaxParts];
 
-  for (int itr = 0; itr < SliceTrackInfoLocalTotal(); itr++) {
+  for (int itr = iBlock * nThreads + iThread; itr < SliceTrackInfoLocalTotal(); itr += nThreads * nBlocks) {
+
     GPUTPCGMSliceTrack& track = mSliceTrackInfos[itr];
 
     if (track.PrevSegmentNeighbour() >= 0) {
@@ -1412,7 +1412,10 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
       nHits = nFilteredHits;
     }
 
-    GPUTPCGMMergedTrackHit* cl = mClusters + nOutTrackClusters;
+    int iOutTrackFirstCluster = CAMath::AtomicAdd(&mMemory->nOutputTrackClusters, (unsigned int)nHits);
+
+    GPUTPCGMMergedTrackHit* cl = mClusters + iOutTrackFirstCluster;
+
     for (int i = 0; i < nHits; i++) {
       unsigned char state;
       if (Param().rec.NonConsecutiveIDs) {
@@ -1448,20 +1451,23 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
       {
         cl[i].num = trackClusters[i].id;
       } else { // Produce consecutive numbers for shared cluster flagging
-        cl[i].num = nOutTrackClusters + i;
+        cl[i].num = iOutTrackFirstCluster + i;
         mGlobalClusterIDs[cl[i].num] = trackClusters[i].id;
       }
       cl[i].slice = trackClusters[i].slice;
       cl[i].leg = trackClusters[i].leg;
-    }
+    } // nHits
 
-    GPUTPCGMMergedTrack& mergedTrack = mOutputTracks[mMemory->nOutputTracks];
+    int iOutputTrack = CAMath::AtomicAdd(&mMemory->nOutputTracks, 1u);
+
+    GPUTPCGMMergedTrack& mergedTrack = mOutputTracks[iOutputTrack];
+
     mergedTrack.SetFlags(0);
     mergedTrack.SetOK(1);
     mergedTrack.SetLooper(leg > 0);
     mergedTrack.SetLegs(leg);
     mergedTrack.SetNClusters(nHits);
-    mergedTrack.SetFirstClusterRef(nOutTrackClusters);
+    mergedTrack.SetFirstClusterRef(iOutTrackFirstCluster);
     GPUTPCGMTrackParam& p1 = mergedTrack.Param();
     const GPUTPCGMSliceTrack& p2 = *trackParts[firstTrackIndex];
     mergedTrack.SetCSide(p2.CSide());
@@ -1504,12 +1510,9 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
         auto& cls = mConstantMem->ioPtrs.clustersNative->clustersLinear;
         CEside = cls[cl[0].num].getTime() < cls[cl[nHits - 1].num].getTime();
       }
-      MergeCEFill(trackParts[CEside ? lastTrackIndex : firstTrackIndex], cl[CEside ? (nHits - 1) : 0], mMemory->nOutputTracks);
+      MergeCEFill(trackParts[CEside ? lastTrackIndex : firstTrackIndex], cl[CEside ? (nHits - 1) : 0], iOutputTrack);
     }
-    mMemory->nOutputTracks++;
-    nOutTrackClusters += nHits;
-  }
-  mMemory->nOutputTrackClusters = nOutTrackClusters;
+  } // itr
 }
 
 GPUd() void GPUTPCGMMerger::SortTracksPrepare(int nBlocks, int nThreads, int iBlock, int iThread)
