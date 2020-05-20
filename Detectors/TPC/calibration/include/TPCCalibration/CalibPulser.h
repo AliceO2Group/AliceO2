@@ -119,6 +119,9 @@ class CalibPulser : public CalibRawBase
     mXmaxQtot = max;
   }
 
+  /// set minimum Qtot signal for the signal
+  void setMinQtot(int minQtot) { mMinimumQtot = minQtot; }
+
   /// Analyse the buffered pulser information
   void analyse();
 
