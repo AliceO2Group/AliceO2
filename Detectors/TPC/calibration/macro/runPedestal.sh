@@ -18,7 +18,7 @@ usage() {
   echo "    -n, --nevents=       : number of events to process (default: 1000)"
   echo "    -m, --adcMin=        : minimal ADC values accepted (default: 0)"
   echo "    -x, --adcMax=        : maximal ADC values accepted (default: 1100)"
-  echo "    -s, --statType=      : statistics type - 0: Gaus fit (default), 1: Mean and StdDev"
+  echo "    -s, --statType=      : statistics type - 0: Gaus fit (default), 1: Gaus fit fast, 2: Mean and StdDev"
   echo "    -v, --verbosity=     : set verbosity level for raw reader"
   echo "    -d, --debugLevel=    : set debug level for raw reader"
   echo "    -w, --writeDebug     : write debug output histograms"
