@@ -23,8 +23,6 @@
 #include "Framework/InputRecordWalker.h"
 #include "Framework/SerializationMethods.h"
 #include "Framework/Logger.h"
-#include "Framework/CompletionPolicy.h"
-#include "Framework/DeviceSpec.h"
 #include "Framework/CallbackService.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
@@ -56,7 +54,6 @@
 #include <vector>
 #include <iomanip>
 #include <stdexcept>
-#include <regex>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -716,78 +713,6 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
                            Options{
                              {"tracker-options", VariantType::String, "", {"Option string passed to tracker"}},
                            }};
-}
-
-o2::framework::CompletionPolicy getCATrackerCompletionPolicy()
-{
-  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
-
-  auto matcher = [](DeviceSpec const& device) -> bool {
-    return std::regex_match(device.name.begin(), device.name.end(), std::regex("tpc-tracker*"));
-  };
-
-  auto callback = [](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
-    auto op = CompletionPolicy::CompletionOp::Wait;
-    bool haveCluster = false;
-    bool haveDigit = false;
-    std::bitset<NSectors> validInputs = 0;
-    uint64_t activeSectors = 0;
-    size_t nActiveInputRoutes = 0;
-    size_t nMaxPartsPerRoute = 0;
-    for (auto it = inputs.begin(), end = inputs.end(); it != end; ++it) {
-      nMaxPartsPerRoute = it.size() > nMaxPartsPerRoute ? it.size() : nMaxPartsPerRoute;
-      bool haveActivePart = false;
-      for (auto const& ref : it) {
-        if (!DataRefUtils::isValid(ref)) {
-          continue;
-        }
-        haveActivePart = true;
-        auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-        auto isCluster = DataRefUtils::match(ref, {"cluster", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERNATIVE"}});
-        auto isDigit = DataRefUtils::match(ref, {"digits", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}});
-        if (isCluster || isDigit) {
-          auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
-          if (sectorHeader == nullptr) {
-            // FIXME: think about error policy
-            throw std::runtime_error("TPC sector header missing on header stack");
-          }
-          activeSectors |= sectorHeader->activeSectors;
-          validInputs.set(sectorHeader->sector);
-        }
-        haveDigit = haveDigit || isDigit;
-        haveCluster = haveCluster || isCluster;
-      }
-      if (haveActivePart) {
-        ++nActiveInputRoutes;
-      }
-    }
-    // TODO: this is a temporary check, the getCATrackerSpec function has to be cleaned up to get the input
-    // spec as parameter, Digits and clusters should never be mixed
-    if (haveDigit && haveDigit == haveCluster) {
-      throw std::runtime_error("routing error, the tracker can process either digits or clusters");
-    }
-
-    if ((haveDigit || haveCluster) && activeSectors == validInputs.to_ulong()) {
-      // we can process if there is input for all sectors, the required sectors are
-      // transported as part of the sector header
-      op = CompletionPolicy::CompletionOp::Process;
-    } else if (activeSectors == 0 && nActiveInputRoutes == inputs.size()) {
-      // no sector header is transmitted, this is the case for e.g. the ZS raw data
-      // we simply require input on all routes, this is also the default of DPL DataRelayer
-      // Because DPL can not do more without knowing how many parts are required for a complete
-      // data set, the workflow should be such that exactly one O2 message arrives per input route.
-      // Currently, the workflow has multiple O2 messages per input route, but they all come in
-      // a single multipart message. So it works fine, and we disable the warning below, but there
-      // is a potential problem. Need to fix this on the level of the workflow.
-      //if (nMaxPartsPerRoute > 1) {
-      //  LOG(WARNING) << "No sector information is provided with the data, data set is complete with data on all input routes. But there are multiple parts on at least one route and this policy might not be complete, no check possible if other parts on some routes are still missing. It is adviced to add a custom policy.";
-      //}
-      op = CompletionPolicy::CompletionOp::Process;
-    }
-
-    return op;
-  };
-  return CompletionPolicy{"tpc-ca-tracker-completion-policy", matcher, callback};
 }
 
 } // namespace tpc
