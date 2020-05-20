@@ -560,7 +560,7 @@ void Detector::addAlignableVolumes() const
 
   o2::detectors::DetID::ID idCPV = o2::detectors::DetID::CPV;
 
-  TString physModulePath = "/cave_1/barrel_/CPV_";
+  TString physModulePath = "/cave_1/barrel_1/CPV_";
 
   TString symbModuleName = "CPV/Module";
 
