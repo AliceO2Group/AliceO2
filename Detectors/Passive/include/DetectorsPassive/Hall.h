@@ -24,6 +24,7 @@ class Hall : public PassiveBase
   enum EMedium { kSTST_C2 = 50,
                  kAIR_C2 = 55,
                  kCC_C2 = 57,
+		 kCC_C0 = 17,
                  kFE_C2 = 52 };
 
   Hall(const char* name, const char* Title = "ALICE Experimental Hall");
