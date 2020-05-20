@@ -132,7 +132,7 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
     for (int scenario = 0; scenario < nCorrectionScenarios; scenario++) {
       int row = scenario * 10;
       TPCFastSpaceChargeCorrection::SplineType spline;
-      if (!mSpaceChargeCorrection || row >= nRows) { //SG!!!
+      if (!mSpaceChargeCorrection || row >= nRows) {
         spline.recreate(8, 20);
       } else {
         // TODO: update the calibrator
@@ -256,7 +256,7 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   // now calculate correction map: dx,du,dv = ( origTransform() -> x,u,v) - fastTransformNominal:x,u,v
 
-  TPCFastSpaceChargeCorrection& correction = fastTransform.getCorrectionNonConst();
+  TPCFastSpaceChargeCorrection& correction = fastTransform.getCorrection();
 
   // for the future: switch TOF correction off for a while
 
@@ -278,6 +278,10 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
       }
     } // row
   }   // slice
+
+  if (!mSpaceChargeCorrection) {
+    correction.initInverse();
+  }
 
   // for the future: set back the time-of-flight correction
 
@@ -336,6 +340,7 @@ int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, float
   dx = x1 - x;
   du = u1 - u;
   dv = v1 - v;
+
   return 0;
 }
 

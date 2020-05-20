@@ -20,12 +20,12 @@
 #include <vector>
 
 #include "GPUCommonDef.h"
-#include "Rtypes.h"
-#include "TString.h"
+#include "GPUCommonRtypes.h"
 #include "Spline1D.h"
 #include "Spline2D.h"
 #include "SplineHelper1D.h"
 #include <functional>
+#include <string>
 
 namespace GPUCA_NAMESPACE
 {
@@ -96,14 +96,14 @@ class SplineHelper2D
   /// _______________  Utilities   ________________________
 
   ///  Gives error string
-  const char* getLastError() const { return mError.Data(); }
+  const char* getLastError() const { return mError.c_str(); }
 
  private:
   /// Stores an error message
-  int storeError(Int_t code, const char* msg);
+  int storeError(int code, const char* msg);
 
-  TString mError = ""; ///< error string
-  int mFdimensions;    ///< n of F dimensions
+  std::string mError = ""; ///< error string
+  int mFdimensions;        ///< n of F dimensions
   SplineHelper1D<DataT> mHelperU1;
   SplineHelper1D<DataT> mHelperU2;
 };

@@ -40,6 +40,8 @@
 #pragma link C++ class o2::gpu::SplineHelper2D < float>;
 #pragma link C++ class o2::gpu::SplineHelper2D < double>;
 
+#pragma link C++ class o2::gpu::ChebyshevFit1D;
+
 #pragma link C++ class o2::gpu::RegularSpline1D + ;
 #pragma link C++ class o2::gpu::IrregularSpline1D + ;
 #pragma link C++ class o2::gpu::IrregularSpline2D3D + ;
@@ -49,6 +51,7 @@
 #pragma link C++ class o2::gpu::TPCFastTransformGeo::SliceInfo + ;
 #pragma link C++ class o2::gpu::TPCFastTransformGeo::RowInfo + ;
 #pragma link C++ class o2::gpu::TPCFastTransform + ;
+#pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection::SliceInfo + ;
 #pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection + ;
 
 #endif

@@ -265,7 +265,7 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
   const TPCFastTransformGeo& geo = fastTransform.getGeometry();
 
   TPCFastSpaceChargeCorrection& correction =
-    fastTransform.getCorrectionNonConst();
+    fastTransform.getCorrection();
 
   // switch TOF correction off for a while
 
@@ -323,9 +323,10 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
       };
 
       helper.approximateFunction(data, 0., 1., 0., 1., F);
-
     } // row
   }   // slice
+
+  correction.initInverse();
 
   // set back the time-of-flight correction;
 

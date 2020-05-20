@@ -20,10 +20,10 @@
 #include <vector>
 
 #include "GPUCommonDef.h"
-#include "Rtypes.h"
-#include "TString.h"
+#include "GPUCommonRtypes.h"
 #include "Spline1D.h"
 #include <functional>
+#include <string>
 
 namespace GPUCA_NAMESPACE
 {
@@ -115,13 +115,13 @@ class SplineHelper1D
   const DataPoint& getDataPoint(int ip) const { return mDataPoints[ip]; }
 
   ///  Gives error string
-  const char* getLastError() const { return mError.Data(); }
+  const char* getLastError() const { return mError.c_str(); }
 
  private:
   /// Stores an error message
-  int storeError(Int_t code, const char* msg);
+  int storeError(int code, const char* msg);
 
-  TString mError = ""; ///< error string
+  std::string mError = ""; ///< error string
 
   /// helpers for the construction of 1D spline
 
