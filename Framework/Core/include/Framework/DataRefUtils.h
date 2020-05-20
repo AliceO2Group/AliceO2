@@ -92,7 +92,8 @@ struct DataRefUtils {
           if (r) {
             result.reset(r);
           }
-        } else if (storedClass == requestedClass) {
+          // This check includes the case: storedClass == requestedClass
+        } else if (storedClass->InheritsFrom(requestedClass)) {
           result.reset(static_cast<T*>(object));
         }
         if (result == nullptr) {
