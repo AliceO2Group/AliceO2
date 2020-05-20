@@ -656,9 +656,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   auto forwardInputs = [&reportError, &forwards, &device, &currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
     assert(record.size() == currentSetOfInputs.size());
     // we collect all messages per forward in a map and send them together
-    // because the forwards are stable during this function, we use the pointer
-    // to channel string as key to avoid string allocation in the map
-    std::unordered_map<const std::string*, FairMQParts> forwardedParts;
+    std::unordered_map<std::string, FairMQParts> forwardedParts;
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
 
@@ -709,9 +707,8 @@ bool DataProcessingDevice::tryDispatchComputation()
             LOG(ERROR) << "Forwarded data does not have a DataHeader";
             continue;
           }
-          const std::string* key = &(forward.channel);
-          forwardedParts[key].AddPart(std::move(header));
-          forwardedParts[key].AddPart(std::move(payload));
+          forwardedParts[forward.channel].AddPart(std::move(header));
+          forwardedParts[forward.channel].AddPart(std::move(payload));
         }
       }
     }
@@ -722,7 +719,7 @@ bool DataProcessingDevice::tryDispatchComputation()
       assert(channelParts.Size() % 2 == 0);
       assert(o2::header::get<DataProcessingHeader*>(channelParts.At(0)->GetData()));
       // in DPL we are using subchannel 0 only
-      device.Send(channelParts, *channelName, 0);
+      device.Send(channelParts, channelName, 0);
     }
   };
 
