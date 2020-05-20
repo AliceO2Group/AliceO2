@@ -652,34 +652,28 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     if (specconfig.caClusterer) {
       // We accept digits and MC labels also if we run on ZS Raw data, since they are needed for MC label propagation
       if (!specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
-        inputs.emplace_back(InputSpec{"input", gDataOriginTPC, "DIGITS", 0, Lifetime::Timeframe});
+        inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}, Lifetime::Timeframe});
       }
     } else {
-      inputs.emplace_back(InputSpec{"input", gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe});
+      inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERNATIVE"}, Lifetime::Timeframe});
     }
     if (specconfig.processMC) {
       if (specconfig.caClusterer) {
         constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
         if (!specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
-          inputs.emplace_back(InputSpec{"mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe});
+          inputs.emplace_back(InputSpec{"mclblin", ConcreteDataTypeMatcher{gDataOriginTPC, datadesc}, Lifetime::Timeframe});
         }
       } else {
-        inputs.emplace_back(InputSpec{"mclblin", gDataOriginTPC, "CLNATIVEMCLBL", 0, Lifetime::Timeframe});
+        inputs.emplace_back(InputSpec{"mclblin", ConcreteDataTypeMatcher{gDataOriginTPC, "CLNATIVEMCLBL"}, Lifetime::Timeframe});
       }
     }
 
-    auto tmp = std::move(mergeInputs(inputs, tpcsectors.size(),
-                                     [tpcsectors](InputSpec& input, size_t index) {
-                                       // using unique input names for the moment but want to find
-                                       // an input-multiplicity-agnostic way of processing
-                                       input.binding += std::to_string(tpcsectors[index]);
-                                       DataSpecUtils::updateMatchingSubspec(input, tpcsectors[index]);
-                                     }));
     if (specconfig.zsDecoder) {
-      // We add this after the mergeInputs, since we need to keep the subspecification
-      tmp.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Timeframe});
+      // All ZS raw data is published with subspec 0 by the o2-raw-file-reader-workflow and DataDistribution
+      // creates subspec fom CRU and endpoint id, we create one single input route subscribing to all TPC/RAWDATA
+      inputs.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Timeframe});
     }
-    return tmp;
+    return inputs;
   };
 
   auto createOutputSpecs = [&specconfig, &tpcsectors, &processAttributes]() {
