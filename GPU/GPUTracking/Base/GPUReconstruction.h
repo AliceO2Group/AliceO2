@@ -390,7 +390,7 @@ template <class T>
 inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name, const GPUMemoryReuse& re)
 {
   if (!(type & (GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_GPU))) {
-    if ((type & GPUMemoryResource::MEMORY_SCRATCH) && !mDeviceProcessingSettings.keepAllMemory) {
+    if ((type & GPUMemoryResource::MEMORY_SCRATCH) && !mDeviceProcessingSettings.keepDisplayMemory) { // keepAllMemory --> keepDisplayMemory
       type |= (proc->mGPUProcessorType == GPUProcessor::PROCESSOR_TYPE_CPU ? GPUMemoryResource::MEMORY_HOST : GPUMemoryResource::MEMORY_GPU);
     } else {
       type |= GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_GPU;
@@ -518,7 +518,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   if (r == 0 || size[0] != sizeof(T)) {
     fclose(fp);
     GPUError("ERROR reading %s, invalid size: %lld (%lld expected)", file, (long long int)size[0], (long long int)sizeof(T));
-    return nullptr;
+    throw std::runtime_error("invalid size");
   }
   std::unique_ptr<T> retVal(new T);
   char* buf = new char[size[1]]; // Not deleted as ownership is transferred to FlatObject
@@ -558,7 +558,8 @@ inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file
   r = fread(&size, sizeof(size), 1, fp);
   if (r == 0 || size != sizeof(T)) {
     fclose(fp);
-    return nullptr;
+    GPUError("ERROR reading %s, invalid size: %lld (%lld expected)", file, (long long int)size, (long long int)sizeof(T));
+    throw std::runtime_error("invalid size");
   }
   std::unique_ptr<T> newObj(new T);
   r = fread(newObj.get(), 1, size, fp);

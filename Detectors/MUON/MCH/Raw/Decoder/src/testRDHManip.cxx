@@ -13,8 +13,9 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "MCHRawCommon/RDHManip.h"
+#include "RDHManip.h"
 #include "Headers/RAWDataHeader.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 using namespace o2::mch::raw;
 
@@ -42,10 +43,10 @@ BOOST_AUTO_TEST_SUITE(o2_mch_raw)
 
 BOOST_AUTO_TEST_SUITE(rawdataheader)
 
-o2::header::RAWDataHeaderV4 getTestRDH()
+o2::header::RDHAny getTestRDH(int version)
 {
-  o2::header::RAWDataHeaderV4 rdh;
-
+  o2::header::RDHAny rdh;
+  o2::raw::RDHUtils::setVersion(rdh, version);
   rdh.word0 = 0x0706050403020100;
   rdh.word1 = 0x0F0E0D0C0B0A0908;
   rdh.word2 = 0x1716151413121110;
@@ -59,9 +60,9 @@ o2::header::RAWDataHeaderV4 getTestRDH()
 
 BOOST_AUTO_TEST_CASE(AppendRDH8)
 {
-  auto rdh = getTestRDH();
+  auto rdh = getTestRDH(4);
   std::vector<std::byte> buffer;
-  appendRDH<o2::header::RAWDataHeaderV4>(buffer, rdh);
+  appendRDH(buffer, rdh);
   auto tb = testBufferByte();
   BOOST_CHECK_EQUAL(buffer.size(), tb.size());
   BOOST_CHECK(std::equal(begin(buffer), end(buffer), begin(tb)));
@@ -70,7 +71,7 @@ BOOST_AUTO_TEST_CASE(AppendRDH8)
 BOOST_AUTO_TEST_CASE(CreateRDHFromBuffer8)
 {
   auto buffer = testBufferByte();
-  auto rdh = createRDH<o2::header::RAWDataHeaderV4>(buffer);
+  auto rdh = createRDH(buffer, 4);
   BOOST_CHECK_EQUAL(rdh.word0, 0x0706050403020100);
   BOOST_CHECK_EQUAL(rdh.word1, 0x0F0E0D0C0B0A0908);
   BOOST_CHECK_EQUAL(rdh.word2, 0x1716151413121110);

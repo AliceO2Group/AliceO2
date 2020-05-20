@@ -64,9 +64,9 @@ if(BUILD_TESTING)
                 LABELS "muon;mch;raw"
                 PUBLIC_LINK_LIBRARIES O2::MCHRawEncoderPayload O2::MCHRawImplHelpers)
 
-        add_test(NAME o2-test-mch-create-test-buffers-userlogic COMMAND ${createTestBuffers} -u)
+        add_test(NAME o2-test-mch-create-test-buffers-userlogic COMMAND ${createTestBuffers} -u -o RefBufferCRUUserLogic.cxx)
         set_property(TEST o2-test-mch-create-test-buffers-userlogic APPEND PROPERTY LABELS "muon;mch;raw")
-        add_test(NAME o2-test-mch-create-test-buffers-bare COMMAND ${createTestBuffers})
+        add_test(NAME o2-test-mch-create-test-buffers-bare COMMAND ${createTestBuffers} -o RefBufferCRUBare.cxx)
         set_property(TEST o2-test-mch-create-test-buffers-bare APPEND PROPERTY LABELS "muon;mch;raw")
                 
 endif()

@@ -34,10 +34,10 @@
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawDecoder/PageDecoder.h"
 #include "MCHRawElecMap/Mapper.h"
-#include "MCHRawCommon/RDHManip.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHWorkflow/DataDecoderSpec.h"
 #include <array>
+#include "DetectorsRaw/RDHUtils.h"
 
 namespace o2::header
 {
@@ -132,14 +132,15 @@ class DataDecoderTask
     };
 
     const auto patchPage = [&](gsl::span<const std::byte> rdhBuffer) {
-      auto rdhPtr = reinterpret_cast<o2::header::RAWDataHeaderV4*>(const_cast<std::byte*>(&rdhBuffer[0]));
-      auto& rdh = *rdhPtr;
+      auto rdhPtr = const_cast<void*>(reinterpret_cast<const void*>(rdhBuffer.data()));
       mNrdhs++;
-      auto cruId = rdhCruId(rdh);
-      rdhFeeId(rdh, cruId * 2 + rdhEndpoint(rdh));
-      orbit = rdhOrbit(rdh);
+      auto cruId = o2::raw::RDHUtils::getCRUID(rdhPtr);
+      auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhPtr);
+      o2::raw::RDHUtils::setFEEID(rdhPtr, cruId * 2 + endpoint);
+      orbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdhPtr);
       if (mPrint) {
-        std::cout << mNrdhs << "--" << rdh << "\n";
+        std::cout << mNrdhs << "--\n";
+        o2::raw::RDHUtils::printRDH(rdhPtr);
       }
     };
 

@@ -76,14 +76,23 @@ struct SampaCluster {
 
 // ensure all clusters are either in sample mode or in
 // chargesum mode, no mixing allowed
+// and that all clusters share a single bunch crossing counter value
 template <typename CHARGESUM>
 void assertNotMixingClusters(const std::vector<SampaCluster>& data)
 {
   CHARGESUM a;
   auto refValue = a();
+  uint32_t bunchCrossingCounter{0};
   for (auto i = 0; i < data.size(); i++) {
     if (data[i].isClusterSum() != refValue) {
       throw std::invalid_argument(fmt::format("all cluster of this encoder should be of the same type ({}) but {}-th does not match ", (refValue ? "clusterSum" : "samples"), i));
+    }
+    auto bc = data[i].bunchCrossing;
+    if (i == 0) {
+      bunchCrossingCounter = bc;
+    }
+    if (bc != bunchCrossingCounter) {
+      throw std::invalid_argument(fmt::format("all sampa clusters should have the same bunch crossing number : first is {} and got {}\n", bunchCrossingCounter, bc));
     }
   }
 }

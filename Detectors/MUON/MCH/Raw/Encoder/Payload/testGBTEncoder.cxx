@@ -34,16 +34,16 @@ std::vector<std::byte> createGBTBuffer(bool verbose = true)
   GBTEncoder<FORMAT, MODE>::forceNoPhase = true;
   uint8_t gbtId{11};
   GBTEncoder<FORMAT, MODE> enc(gbtId);
-  uint32_t bx(0);
+  uint32_t bx(6789);
   uint16_t ts(12);
   int elinkGroupId = 0;
   int elinkIndexInGroup = 0;
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 0, {SampaCluster(ts, 0, 10)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 31, {SampaCluster(ts, 0, 160)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 0, {SampaCluster(ts, bx, 10)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 31, {SampaCluster(ts, bx, 160)});
   elinkIndexInGroup = 3;
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 13, {SampaCluster(ts, 0, 13)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 33, {SampaCluster(ts, 0, 133)});
-  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 63, {SampaCluster(ts, 0, 163)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 13, {SampaCluster(ts, bx, 13)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 33, {SampaCluster(ts, bx, 133)});
+  enc.addChannelData(elinkGroupId, elinkIndexInGroup, 63, {SampaCluster(ts, bx, 163)});
   std::vector<std::byte> words;
   enc.moveToBuffer(words);
   if (verbose) {
@@ -56,6 +56,7 @@ std::vector<std::byte> createGBTBuffer(bool verbose = true)
         fmt::printf("\n");
       }
     }
+    fmt::printf("\n");
   }
   return words;
 }

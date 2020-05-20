@@ -42,6 +42,12 @@ BOOST_AUTO_TEST_CASE(CtorWithInvalidTimeStampMustThrow)
   BOOST_CHECK_THROW(SampaCluster sc(1 << 10, defaultBunchCrossing, defaultSamples), std::invalid_argument);
 }
 
+BOOST_AUTO_TEST_CASE(CtorWithInvalidBunchCrossingMustThrow)
+{
+  BOOST_CHECK_THROW(SampaCluster sc(defaultTimestamp, 1 << 20, defaultChargeSum), std::invalid_argument);
+  BOOST_CHECK_THROW(SampaCluster sc(defaultTimestamp, 1 << 20, defaultSamples), std::invalid_argument);
+}
+
 BOOST_AUTO_TEST_CASE(ElementarySizeShouldBe40BitsInClusterSumMode)
 {
   SampaCluster sc(defaultTimestamp, defaultBunchCrossing, defaultChargeSum);

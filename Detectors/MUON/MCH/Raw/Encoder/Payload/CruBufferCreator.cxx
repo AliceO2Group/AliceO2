@@ -16,41 +16,41 @@ namespace o2::mch::raw::test
 std::vector<std::byte> fillChargeSum(PayloadEncoder& encoder, int norbit,
                                      uint32_t firstOrbit, uint16_t firstBC)
 {
-  uint16_t ts(0);
-  uint32_t bcs(0);
+  uint16_t sampaTime{24};
+  uint32_t bunchCrossing = 567;
   uint16_t bc(firstBC);
 
   encoder.startHeartbeatFrame(firstOrbit, bc);
 
-  encoder.addChannelData(DsElecId{728, 1, 0}, 3, {SampaCluster(ts, bcs, 13)});
-  encoder.addChannelData(DsElecId{728, 1, 0}, 13, {SampaCluster(ts, bcs, 133)});
-  encoder.addChannelData(DsElecId{728, 1, 0}, 23, {SampaCluster(ts, bcs, 163)});
+  encoder.addChannelData(DsElecId{728, 1, 0}, 3, {SampaCluster(sampaTime, bunchCrossing, 13)});
+  encoder.addChannelData(DsElecId{728, 1, 0}, 13, {SampaCluster(sampaTime, bunchCrossing, 133)});
+  encoder.addChannelData(DsElecId{728, 1, 0}, 23, {SampaCluster(sampaTime, bunchCrossing, 163)});
 
-  encoder.addChannelData(DsElecId{361, 0, 4}, 0, {SampaCluster(ts, bcs, 10)});
-  encoder.addChannelData(DsElecId{361, 0, 4}, 1, {SampaCluster(ts, bcs, 20)});
-  encoder.addChannelData(DsElecId{361, 0, 4}, 2, {SampaCluster(ts, bcs, 30)});
-  encoder.addChannelData(DsElecId{361, 0, 4}, 3, {SampaCluster(ts, bcs, 40)});
+  encoder.addChannelData(DsElecId{361, 0, 4}, 0, {SampaCluster(sampaTime, bunchCrossing, 10)});
+  encoder.addChannelData(DsElecId{361, 0, 4}, 1, {SampaCluster(sampaTime, bunchCrossing, 20)});
+  encoder.addChannelData(DsElecId{361, 0, 4}, 2, {SampaCluster(sampaTime, bunchCrossing, 30)});
+  encoder.addChannelData(DsElecId{361, 0, 4}, 3, {SampaCluster(sampaTime, bunchCrossing, 40)});
 
-  encoder.addChannelData(DsElecId{448, 6, 2}, 22, {SampaCluster(ts, bcs, 420)});
-  encoder.addChannelData(DsElecId{448, 6, 2}, 23, {SampaCluster(ts, bcs, 430)});
-  encoder.addChannelData(DsElecId{448, 6, 2}, 24, {SampaCluster(ts, bcs, 440)});
-  encoder.addChannelData(DsElecId{448, 6, 2}, 25, {SampaCluster(ts, bcs, 450)});
-  encoder.addChannelData(DsElecId{448, 6, 2}, 26, {SampaCluster(ts, bcs, 460)});
-  encoder.addChannelData(DsElecId{448, 6, 2}, 42, {SampaCluster(ts, bcs, 420)});
+  encoder.addChannelData(DsElecId{448, 6, 2}, 22, {SampaCluster(sampaTime, bunchCrossing, 420)});
+  encoder.addChannelData(DsElecId{448, 6, 2}, 23, {SampaCluster(sampaTime, bunchCrossing, 430)});
+  encoder.addChannelData(DsElecId{448, 6, 2}, 24, {SampaCluster(sampaTime, bunchCrossing, 440)});
+  encoder.addChannelData(DsElecId{448, 6, 2}, 25, {SampaCluster(sampaTime, bunchCrossing, 450)});
+  encoder.addChannelData(DsElecId{448, 6, 2}, 26, {SampaCluster(sampaTime, bunchCrossing, 460)});
+  encoder.addChannelData(DsElecId{448, 6, 2}, 42, {SampaCluster(sampaTime, bunchCrossing, 420)});
 
   if (norbit > 1) {
     encoder.startHeartbeatFrame(firstOrbit + 1, bc);
-    encoder.addChannelData(DsElecId{728, 1, 2}, 0, {SampaCluster(ts, bcs, 10)});
-    encoder.addChannelData(DsElecId{728, 1, 2}, 1, {SampaCluster(ts, bcs, 10)});
-    encoder.addChannelData(DsElecId{361, 0, 4}, 0, {SampaCluster(ts, bcs, 10)});
-    encoder.addChannelData(DsElecId{361, 0, 4}, 1, {SampaCluster(ts, bcs, 20)});
-    encoder.addChannelData(DsElecId{361, 0, 4}, 2, {SampaCluster(ts, bcs, 30)});
-    encoder.addChannelData(DsElecId{361, 0, 4}, 3, {SampaCluster(ts, bcs, 40)});
+    encoder.addChannelData(DsElecId{728, 1, 2}, 0, {SampaCluster(sampaTime, bunchCrossing, 10)});
+    encoder.addChannelData(DsElecId{728, 1, 2}, 1, {SampaCluster(sampaTime, bunchCrossing, 10)});
+    encoder.addChannelData(DsElecId{361, 0, 4}, 0, {SampaCluster(sampaTime, bunchCrossing, 10)});
+    encoder.addChannelData(DsElecId{361, 0, 4}, 1, {SampaCluster(sampaTime, bunchCrossing, 20)});
+    encoder.addChannelData(DsElecId{361, 0, 4}, 2, {SampaCluster(sampaTime, bunchCrossing, 30)});
+    encoder.addChannelData(DsElecId{361, 0, 4}, 3, {SampaCluster(sampaTime, bunchCrossing, 40)});
   }
 
   if (norbit > 2) {
     encoder.startHeartbeatFrame(firstOrbit + 2, bc);
-    encoder.addChannelData(DsElecId{448, 6, 2}, 12, {SampaCluster(ts, bcs, 420)});
+    encoder.addChannelData(DsElecId{448, 6, 2}, 12, {SampaCluster(sampaTime, bunchCrossing, 420)});
   }
 
   std::vector<std::byte> buffer;

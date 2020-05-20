@@ -16,15 +16,17 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-
 #include "Assertions.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "DumpBuffer.h"
 #include "MCHRawCommon/DataFormats.h"
+#include "MCHRawCommon/SampaHeader.h"
+#include "MCHRawDecoder/PageDecoder.h"
 #include "MCHRawDecoder/SampaChannelHandler.h"
-#include "MCHRawElecMap/Mapper.h"
 #include "MCHRawEncoderPayload/DataBlock.h"
 #include "MCHRawEncoderPayload/PayloadEncoder.h"
 #include "MoveBuffer.h"
+#include "RDHManip.h"
 #include "UserLogicEndpointDecoder.h"
 #include <fmt/printf.h>
 #include <fstream>
@@ -132,7 +134,6 @@ std::string testPayloadDecode(DsElecId ds1,
 
   std::vector<std::byte> buffer;
   encoder->moveToBuffer(buffer);
-
   auto payloadBuffer = convertBuffer2PayloadBuffer(buffer, insertSync);
 
   return decodeBuffer<CHARGESUM>(feeId, payloadBuffer);
@@ -217,8 +218,10 @@ BOOST_AUTO_TEST_CASE(SyncInTheMiddleChargeSumModeTwoChannels)
   SampaCluster cl2(346, 6789, 789012);
   SampaCluster cl3(347, 6789, 1357);
   SampaCluster cl4(348, 6789, 7912);
-  auto r = testPayloadDecode<ChargeSumMode>(DsElecId{361, 6, 2}, 63, {cl1, cl2}, DsElecId{361, 6, 2}, 47, {cl3, cl4},
-                                            5);
+  auto r = testPayloadDecode<ChargeSumMode>(
+    DsElecId{361, 6, 2}, 63, {cl1, cl2},
+    DsElecId{361, 6, 2}, 47, {cl3, cl4},
+    5);
   BOOST_CHECK_EQUAL(r,
                     "S361-J6-DS2-ch-63-ts-345-q-123456\n"
                     "S361-J6-DS2-ch-63-ts-346-q-789012\n");
