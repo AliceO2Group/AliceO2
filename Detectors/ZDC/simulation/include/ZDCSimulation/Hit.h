@@ -59,7 +59,7 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   int getNumContributingSteps() const { return mNoContributingSteps; }
   float getPrimaryEnergy() const { return mPrimaryEnergy;}
   Vector3D<float> getImpactCoordinate() const { return mXImpact; }
-  Vector3D<float> getMomentum() const { return mXImpact; }
+  Vector3D<float> getMomentum() const { return mom; }
 
  private:
   Int_t mParentID;
