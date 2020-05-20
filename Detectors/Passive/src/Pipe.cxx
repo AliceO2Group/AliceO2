@@ -81,14 +81,27 @@ void Pipe::ConstructGeometry()
   const TGeoMedium* kMedAir = matmgr.getTGeoMedium("PIPE_AIR");
   const TGeoMedium* kMedAirNF = matmgr.getTGeoMedium("PIPE_AIR_NF");
   const TGeoMedium* kMedAirHigh = matmgr.getTGeoMedium("PIPE_AIR_HIGH");
+
   const TGeoMedium* kMedVac = matmgr.getTGeoMedium("PIPE_VACUUM");
   const TGeoMedium* kMedVacNF = matmgr.getTGeoMedium("PIPE_VACUUM_NF");
+  const TGeoMedium* kMedVacHC = matmgr.getTGeoMedium("PIPE_VACUUM_HC");
+  const TGeoMedium* kMedVacNFHC = matmgr.getTGeoMedium("PIPE_VACUUM_NFHC");
+  
   const TGeoMedium* kMedInsu = matmgr.getTGeoMedium("PIPE_INS_C0");
+
   const TGeoMedium* kMedSteel = matmgr.getTGeoMedium("PIPE_INOX");
   const TGeoMedium* kMedSteelNF = matmgr.getTGeoMedium("PIPE_INOX_NF");
+  const TGeoMedium* kMedSteelHC = matmgr.getTGeoMedium("PIPE_INOX_HC");
+  const TGeoMedium* kMedSteelNFHC = matmgr.getTGeoMedium("PIPE_INOX_NFHC");
+
   const TGeoMedium* kMedBe = matmgr.getTGeoMedium("PIPE_BE");
+
   const TGeoMedium* kMedCu = matmgr.getTGeoMedium("PIPE_CU");
   const TGeoMedium* kMedCuNF = matmgr.getTGeoMedium("PIPE_CU_NF");
+  const TGeoMedium* kMedCuHC = matmgr.getTGeoMedium("PIPE_CU_HC");
+  const TGeoMedium* kMedCuNFHC = matmgr.getTGeoMedium("PIPE_CU_NFHC");
+
+
   const TGeoMedium* kMedAlu2219 = matmgr.getTGeoMedium("PIPE_AA2219"); // fm
   const TGeoMedium* kMedRohacell = matmgr.getTGeoMedium("PIPE_ROHACELL");
   const TGeoMedium* kMedPolyimide = matmgr.getTGeoMedium("PIPE_POLYIMIDE");
@@ -635,16 +648,16 @@ void Pipe::ConstructGeometry()
   voRB24CuTubeM->AddNode(voRB24CuTube, 1, gGeoIdentity);
   // outside barrel
   TGeoVolume* voRB24cCuTubeM =
-    new TGeoVolume("voRB24cCuTubeM", new TGeoTube(0., kRB24CuTubeRo, kRB24cCuTubeL / 2.), kMedVacNF);
+    new TGeoVolume("voRB24cCuTubeM", new TGeoTube(0., kRB24CuTubeRo, kRB24cCuTubeL / 2.), kMedVacNFHC);
   voRB24CuTubeM->SetVisibility(0);
   TGeoVolume* voRB24cCuTube =
-    new TGeoVolume("voRB24cCuTube", new TGeoTube(kRB24CuTubeRi, kRB24CuTubeRo, kRB24cCuTubeL / 2.), kMedCuNF);
+    new TGeoVolume("voRB24cCuTube", new TGeoTube(kRB24CuTubeRi, kRB24CuTubeRo, kRB24cCuTubeL / 2.), kMedCuNFHC);
   voRB24cCuTubeM->AddNode(voRB24cCuTube, 1, gGeoIdentity);
   
   // Air outside tube with higher transport cuts
-  TGeoVolume* voRB24CuTubeA = new TGeoVolume("voRB24CuTubeA", new TGeoTube(25., 100., kRB24bCuTubeL / 2.), kMedAir);
+  TGeoVolume* voRB24CuTubeA = new TGeoVolume("voRB24CuTubeA", new TGeoTube(80., 81., kRB24bCuTubeL / 2.), kMedAirHigh);
   voRB24CuTubeA->SetVisibility(0);
-  TGeoVolume* voRB24cCuTubeA = new TGeoVolume("voRB24cCuTubeA", new TGeoTube(25., 100., kRB24cCuTubeL / 2.), kMedAir);
+  TGeoVolume* voRB24cCuTubeA = new TGeoVolume("voRB24cCuTubeA", new TGeoTube(80., 81., 450.), kMedAirHigh);
   voRB24CuTubeA->SetVisibility(0);
 
   // Simplified DN 100 Flange
@@ -1428,7 +1441,7 @@ void Pipe::ConstructGeometry()
   // ->
   TGeoVolumeAssembly* voRB24C = new TGeoVolumeAssembly("RB24C");
   voRB24C->AddNode(voRB24cCuTubeM, 1, gGeoIdentity);
-  voRB24C->AddNode(voRB24cCuTubeA, 1, gGeoIdentity);
+  voRB24C->AddNode(voRB24cCuTubeA, 1, new TGeoTranslation(0., 0., -(900.-kRB24cCuTubeL)/2.));
   z = -kRB24cCuTubeL / 2 + kRB24CuTubeFL / 2.;
   voRB24C->AddNode(voRB24CuTubeF, 1, new TGeoTranslation(0., 0., z));
   //   z = +kRB24cCuTubeL / 2 - kRB24CuTubeFL / 2.;
@@ -1458,10 +1471,10 @@ void Pipe::ConstructGeometry()
   const Float_t kRB242CuTubeL = 330.0;
 
   TGeoVolume* voRB242CuTubeM =
-    new TGeoVolume("voRB242CuTubeM", new TGeoTube(0., kRB24CuTubeRo, kRB242CuTubeL / 2.), kMedVac);
+    new TGeoVolume("voRB242CuTubeM", new TGeoTube(0., kRB24CuTubeRo, kRB242CuTubeL / 2.), kMedVacHC);
   voRB24CuTubeM->SetVisibility(0);
   TGeoVolume* voRB242CuTube =
-    new TGeoVolume("voRB242CuTube", new TGeoTube(kRB24CuTubeRi, kRB24CuTubeRo, kRB242CuTubeL / 2.), kMedCu);
+    new TGeoVolume("voRB242CuTube", new TGeoTube(kRB24CuTubeRi, kRB24CuTubeRo, kRB242CuTubeL / 2.), kMedCuHC);
   voRB242CuTubeM->AddNode(voRB242CuTube, 1, gGeoIdentity);
 
   TGeoVolumeAssembly* voRB242 = new TGeoVolumeAssembly("RB242");
@@ -2596,7 +2609,7 @@ void Pipe::createMaterials()
   // ****************
   //     Defines tracking media parameters.
   //
-  Float_t epsil = .001;   // Tracking precision,
+  Float_t epsil = .1;   // Tracking precision,
   Float_t stemax = -0.01; // Maximum displacement for multiple scat
   Float_t tmaxfd = -20.;  // Maximum angle due to field deflection
   Float_t deemax = -.3;   // Maximum fractional energy loss, DLS
@@ -2613,15 +2626,20 @@ void Pipe::createMaterials()
   //    Copper
   matmgr.Material("PIPE", 10, "COPPER", 63.55, 29, 8.96, 1.43, 85.6 / 8.96);
   matmgr.Material("PIPE", 30, "COPPER_NF", 63.55, 29, 8.96, 1.43, 85.6 / 8.96);
-  matmgr.Medium("PIPE", 10, "CU", 10, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("PIPE", 50, "COPPER_HC", 63.55, 29, 8.96, 1.43, 85.6 / 8.96);
+  matmgr.Material("PIPE", 70, "COPPER_NFHC", 63.55, 29, 8.96, 1.43, 85.6 / 8.96);
+
+  matmgr.Medium("PIPE", 10, "CU", 10, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("PIPE", 30, "CU_NF", 30, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("PIPE", 50, "CU_HC", 50, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("PIPE", 70, "CU_NFHC", 70, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Air
   matmgr.Mixture("PIPE", 15, "AIR$      ", aAir, zAir, dAir, 4, wAir);
   matmgr.Mixture("PIPE", 35, "AIR_HIGH$ ", aAir, zAir, dAir, 4, wAir);
   matmgr.Mixture("PIPE", 55, "AIR_NF ", aAir, zAir, dAir, 4, wAir);
   matmgr.Medium("PIPE", 15, "AIR", 15, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("PIPE", 35, "AIR_HIGH", 35, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("PIPE", 35, "AIR_HIGH", 35, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("PIPE", 55, "AIR_NF", 55, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Insulation
@@ -2632,15 +2650,25 @@ void Pipe::createMaterials()
   //    Vacuum
   matmgr.Mixture("PIPE", 16, "VACUUM$ ", aAir, zAir, dAir1, 4, wAir);
   matmgr.Mixture("PIPE", 36, "VACUUM$_NF", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Mixture("PIPE", 56, "VACUUM$_HC ", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Mixture("PIPE", 76, "VACUUM$_NFHC", aAir, zAir, dAir1, 4, wAir);
+
   matmgr.Medium("PIPE", 16, "VACUUM", 16, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("PIPE", 36, "VACUUM_NF", 36, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("PIPE", 56, "VACUUM_HC", 56, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("PIPE", 76, "VACUUM_NFHC", 76, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Steel
   matmgr.Mixture("PIPE", 19, "STAINLESS STEEL$", asteel, zsteel, 7.88, 4, wsteel);
   matmgr.Mixture("PIPE", 39, "STAINLESS STEEL$_NF", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Mixture("PIPE", 59, "STAINLESS STEEL$_HC", asteel, zsteel, 7.88, 4, wsteel);
+  matmgr.Mixture("PIPE", 79, "STAINLESS STEEL$_NFHC", asteel, zsteel, 7.88, 4, wsteel);
+
   matmgr.Medium("PIPE", 19, "INOX", 19, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("PIPE", 39, "INOX_NF", 39, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("PIPE", 59, "INOX_HC", 59, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("PIPE", 79, "INOX_NFHC", 79, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   
 
   //----------------- for the MFT ----------------------
