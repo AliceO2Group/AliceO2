@@ -67,7 +67,7 @@ class GPUMemoryResource
                         ALLOCATION_GLOBAL = 2 };
 
 #ifndef GPUCA_GPUCODE
-  GPUMemoryResource(GPUProcessor* proc, void* (GPUProcessor::*setPtr)(void*), MemoryType type, const char* name = "") : mProcessor(proc), mReuse(-1), mPtr(nullptr), mPtrDevice(nullptr), mSetPointers(setPtr), mType(type), mSize(0), mName(name)
+  GPUMemoryResource(GPUProcessor* proc, void* (GPUProcessor::*setPtr)(void*), MemoryType type, const char* name = "") : mProcessor(proc), mPtr(nullptr), mPtrDevice(nullptr), mSetPointers(setPtr), mName(name), mSize(0), mOverrideSize(0), mReuse(-1), mType(type)
   {
   }
   GPUMemoryResource(const GPUMemoryResource&) CON_DEFAULT;
@@ -88,13 +88,14 @@ class GPUMemoryResource
 
  private:
   GPUProcessor* mProcessor;
-  int mReuse;
   void* mPtr;
   void* mPtrDevice;
   void* (GPUProcessor::*mSetPointers)(void*);
-  MemoryType mType;
-  size_t mSize;
   const char* mName;
+  size_t mSize;
+  size_t mOverrideSize;
+  int mReuse;
+  MemoryType mType;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

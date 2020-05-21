@@ -184,6 +184,7 @@ class GPUReconstruction
   void ClearAllocatedMemory(bool clearOutputs = true);
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
   void ResetRegisteredMemoryPointers(short res);
+  void ComputeReuseMax(GPUProcessor* proc);
   void PrintMemoryStatistics();
   void PrintMemoryOverview();
   void SetMemoryExternalInput(short res, void* ptr);
@@ -339,7 +340,11 @@ class GPUReconstruction
     void (GPUProcessor::*SetMaxData)(const GPUTrackingInOutPointers&);
   };
   std::vector<ProcessorData> mProcessors;
-  std::unordered_map<GPUMemoryReuse::ID, int> mMemoryReuse1to1;
+  struct MemoryReuseMeta {
+    GPUProcessor* proc = nullptr;
+    std::vector<unsigned short> res;
+  };
+  std::unordered_map<GPUMemoryReuse::ID, MemoryReuseMeta> mMemoryReuse1to1;
 
   // Helpers for loading device library via dlopen
   class LibraryLoader
@@ -404,13 +409,14 @@ inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*set
   if (mMemoryResources.size() >= 32768) {
     throw std::bad_alloc();
   }
-  short retVal = mMemoryResources.size() - 1;
+  unsigned short retVal = mMemoryResources.size() - 1;
   if (re.type != GPUMemoryReuse::NONE) {
     const auto& it = mMemoryReuse1to1.find(re.id);
     if (it == mMemoryReuse1to1.end()) {
-      mMemoryReuse1to1[re.id] = retVal;
+      mMemoryReuse1to1[re.id] = {proc, {retVal}};
     } else {
-      mMemoryResources[retVal].mReuse = mMemoryReuse1to1[re.id];
+      mMemoryResources[retVal].mReuse = it->second.res[0];
+      it->second.res.emplace_back(retVal);
     }
   }
   return retVal;

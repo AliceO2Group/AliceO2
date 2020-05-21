@@ -416,57 +416,38 @@ int GPUChainTracking::PrepareEvent()
   mRec->MemoryScalers()->nTRDTracklets = mIOPtrs.nTRDTracklets;
   if (mIOPtrs.tpcPackedDigits || mIOPtrs.tpcZS) {
 #ifdef GPUCA_TPC_GEOMETRY_O2
+    if (mIOPtrs.tpcZS && param().rec.fwdTPCDigitsAsClusters) {
+      throw std::runtime_error("Forwading zero-suppressed hits not supported");
+    }
     mRec->MemoryScalers()->nTPCdigits = 0;
-    size_t maxDigits = 0;
-    size_t maxPages = 0;
     size_t nPagesTotal = 0;
-    unsigned int maxClusters[NSLICES] = {0};
-    if (mIOPtrs.tpcZS) {
-      if (param().rec.fwdTPCDigitsAsClusters) {
-        throw std::runtime_error("Forwading zero-suppressed hits not supported");
-      }
-      for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-        size_t nPages = 0;
+    mTPCMaxTimeBin = mIOPtrs.tpcZS ? 0 : std::max<int>(param().continuousMaxTimeBin, TPC_MAX_FRAGMENT_LEN);
+    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+      unsigned int nDigits = 0;
+      unsigned int nPages = 0;
+      if (mIOPtrs.tpcZS) {
         for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
           for (unsigned int k = 0; k < mIOPtrs.tpcZS->slice[iSlice].count[j]; k++) {
             nPages += mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k];
           }
         }
         processors()->tpcClusterer[iSlice].mPmemory->counters.nPages = nPages;
-        if (nPages > maxPages) {
-          maxPages = nPages;
-        }
-        nPagesTotal += nPages;
-      }
-      for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-        processors()->tpcClusterer[iSlice].SetNMaxDigits(0, maxPages);
+        processors()->tpcClusterer[iSlice].SetNMaxDigits(0, nPages);
         if (mRec->IsGPU()) {
-          processorsShadow()->tpcClusterer[iSlice].SetNMaxDigits(0, maxPages);
+          processorsShadow()->tpcClusterer[iSlice].SetNMaxDigits(0, nPages);
         }
         AllocateRegisteredMemory(processors()->tpcClusterer[iSlice].mZSOffsetId);
-      }
-      mTPCMaxTimeBin = 0;
-    } else {
-      mTPCMaxTimeBin = std::max<int>(param().continuousMaxTimeBin, TPC_MAX_FRAGMENT_LEN);
-    }
-    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      unsigned int nDigits = 0;
-      if (mIOPtrs.tpcZS) {
+        nPagesTotal += nPages;
         nDigits = TPCClusterizerDecodeZSCount(iSlice, 0, -1);
         processors()->tpcClusterer[iSlice].mPmemory->counters.nDigits = nDigits;
       } else {
         nDigits = mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice];
       }
       mRec->MemoryScalers()->nTPCdigits += nDigits;
-      if (nDigits > maxDigits) {
-        maxDigits = nDigits;
-      }
-      maxClusters[iSlice] = param().rec.fwdTPCDigitsAsClusters ? nDigits : mRec->MemoryScalers()->NTPCClusters(nDigits);
-    }
-    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      processors()->tpcTrackers[iSlice].Data().SetClusterData(nullptr, maxClusters[iSlice], 0); // TODO: fixme
+      unsigned int maxClusters = param().rec.fwdTPCDigitsAsClusters ? nDigits : mRec->MemoryScalers()->NTPCClusters(nDigits);
+      processors()->tpcTrackers[iSlice].Data().SetClusterData(nullptr, maxClusters, 0); // TODO: fixme
       // Distribute maximum digits, so that we can reuse the memory easily
-      processors()->tpcClusterer[iSlice].SetNMaxDigits(maxDigits, maxPages);
+      processors()->tpcClusterer[iSlice].SetNMaxDigits(nDigits, nPages);
     }
     mRec->MemoryScalers()->nTPCHits = param().rec.fwdTPCDigitsAsClusters ? mRec->MemoryScalers()->nTPCdigits : mRec->MemoryScalers()->NTPCClusters(mRec->MemoryScalers()->nTPCdigits);
     processors()->tpcCompressor.mMaxClusters = mRec->MemoryScalers()->nTPCHits;
