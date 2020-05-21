@@ -52,9 +52,40 @@ DECLARE_SOA_COLUMN(NumContrib, numContrib, uint32_t);
 DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);
 DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float);
 DECLARE_SOA_COLUMN(CollisionTimeMask, collisionTimeMask, uint8_t); // TODO put nature of CollisionTimeRes here, e.g. MSB 0 = exact range / 1 = Gaussian uncertainty
+DECLARE_SOA_COLUMN(CollisionTime0, collisionTime0, float);
+DECLARE_SOA_COLUMN(CollisionTimeRes0, collisionTimeRes0, float);
+DECLARE_SOA_COLUMN(CollisionTime1, collisionTime1, float);
+DECLARE_SOA_COLUMN(CollisionTimeRes1, collisionTimeRes1, float);
+DECLARE_SOA_COLUMN(CollisionTime2, collisionTime2, float);
+DECLARE_SOA_COLUMN(CollisionTimeRes2, collisionTimeRes2, float);
+DECLARE_SOA_COLUMN(CollisionTime3, collisionTime3, float);
+DECLARE_SOA_COLUMN(CollisionTimeRes3, collisionTimeRes3, float);
+DECLARE_SOA_COLUMN(CollisionTime4, collisionTime4, float);
+DECLARE_SOA_COLUMN(CollisionTimeRes4, collisionTimeRes4, float);
+DECLARE_SOA_COLUMN(CollisionTime5, collisionTime5, float);
+DECLARE_SOA_COLUMN(CollisionTimeRes5, collisionTimeRes5, float);
+DECLARE_SOA_COLUMN(CollisionTime6, collisionTime6, float);
+DECLARE_SOA_COLUMN(CollisionTimeRes6, collisionTimeRes6, float);
+DECLARE_SOA_COLUMN(CollisionTime7, collisionTime7, float);
+DECLARE_SOA_COLUMN(CollisionTimeRes7, collisionTimeRes7, float);
+DECLARE_SOA_COLUMN(CollisionTime8, collisionTime8, float);
+DECLARE_SOA_COLUMN(CollisionTimeRes8, collisionTimeRes8, float);
+DECLARE_SOA_COLUMN(CollisionTime9, collisionTime9, float);
+DECLARE_SOA_COLUMN(CollisionTimeRes9, collisionTimeRes9, float);
 } // namespace collision
 
-DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", o2::soa::Index<>, collision::BCId, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2, collision::NumContrib, collision::CollisionTime, collision::CollisionTimeRes, collision::CollisionTimeMask);
+DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", o2::soa::Index<>, collision::BCId, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2, collision::NumContrib, collision::CollisionTime, collision::CollisionTimeRes, collision::CollisionTimeMask, collision::CollisionTime0, collision::CollisionTimeRes0);
+// collision::CollisionTime1, collision::CollisionTimeRes1,
+// collision::CollisionTime2, collision::CollisionTimeRes2,
+// collision::CollisionTime3, collision::CollisionTimeRes3,
+// collision::CollisionTime4, collision::CollisionTimeRes4,
+// collision::CollisionTime5, collision::CollisionTimeRes5,
+// collision::CollisionTime6, collision::CollisionTimeRes6,
+// collision::CollisionTime7, collision::CollisionTimeRes7,
+// collision::CollisionTime8, collision::CollisionTimeRes8,
+// collision::CollisionTime9, collision::CollisionTimeRes9
+//
+// );
 
 using Collision = Collisions::iterator;
 
@@ -139,6 +170,15 @@ DECLARE_SOA_COLUMN(TPCSignal, tpcSignal, float);
 DECLARE_SOA_COLUMN(TRDSignal, trdSignal, float);
 DECLARE_SOA_COLUMN(TOFSignal, tofSignal, float);
 DECLARE_SOA_COLUMN(Length, length, float);
+DECLARE_SOA_COLUMN(TOFexpEl, tofExpEl, float);
+DECLARE_SOA_COLUMN(TOFexpMu, tofExpMu, float);
+DECLARE_SOA_COLUMN(TOFexpPi, tofExpPi, float);
+DECLARE_SOA_COLUMN(TOFexpKa, tofExpKa, float);
+DECLARE_SOA_COLUMN(TOFexpPr, tofExpPr, float);
+DECLARE_SOA_COLUMN(TOFexpDe, tofExpDe, float);
+DECLARE_SOA_COLUMN(TOFexpTr, tofExpTr, float);
+DECLARE_SOA_COLUMN(TOFexpHe, tofExpHe, float);
+DECLARE_SOA_COLUMN(TOFexpAl, tofExpAl, float);
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, [](uint8_t tpcNClsFindable, uint8_t tpcNClsFindableMinusFound) -> int16_t { return tpcNClsFindable - tpcNClsFindableMinusFound; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, [](uint8_t tpcNClsFindable, uint8_t TPCNClsFindableMinusCrossedRows) -> int16_t { return tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, [](uint8_t itsClusterMap) -> uint8_t {
@@ -193,6 +233,15 @@ DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCNClsShared, track::TRDNTracklets, track::ITSChi2NCl,
                   track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
                   track::TPCSignal, track::TRDSignal, track::TOFSignal, track::Length,
+                  track::TOFexpEl,
+                  track::TOFexpMu,
+                  track::TOFexpPi,
+                  track::TOFexpKa,
+                  track::TOFexpPr,
+                  track::TOFexpDe,
+                  track::TOFexpTr,
+                  // track::TOFexpHe,
+                  // track::TOFexpAl,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                   track::ITSNCls<track::ITSClusterMap>,
