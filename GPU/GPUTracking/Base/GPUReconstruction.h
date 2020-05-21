@@ -151,6 +151,13 @@ class GPUReconstruction
     unsigned int total() { return nThreads * minBlocks; }
   };
 
+  struct krnlSetup {
+    krnlExec x;
+    krnlRunRange y;
+    krnlEvent z;
+    double t;
+  };
+
   // Global steering functions
   template <class T, typename... Args>
   T* AddChain(Args... args);
@@ -242,13 +249,6 @@ class GPUReconstruction
   void WriteConstantParams();
   virtual int ExitDevice() = 0;
   virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
-
-  struct krnlSetup {
-    krnlExec x;
-    krnlRunRange y;
-    krnlEvent z;
-    double t;
-  };
 
   // Management for GPU thread contexts
   class GPUThreadContext
