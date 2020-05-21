@@ -29,11 +29,20 @@ struct GPUMemoryReuse {
     REUSE_1TO1 = 1
   };
   enum Group : unsigned short {
-    ClustererScratch
+    ClustererScratch,
+    TrackerScratch,
+    TrackerDataLinks,
+    TrackerDataWeights
   };
   using ID = unsigned int;
 
-  GPUMemoryReuse(Type t, Group g, unsigned short i) : type(t), id(((int)g << 16) | ((int)i & 0xFFFF)) {}
+  GPUMemoryReuse(Type t, Group g, unsigned short i) : type(t), id(((unsigned int)g << 16) | ((unsigned int)i & 0xFFFF)) {}
+  GPUMemoryReuse(bool condition, Type t, Group g, unsigned short i) : GPUMemoryReuse()
+  {
+    if (condition) {
+      *this = GPUMemoryReuse{t, g, i};
+    }
+  }
   constexpr GPUMemoryReuse() = default;
 
   Type type = NONE;

@@ -1552,9 +1552,9 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 #endif
       for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
         GPUTPCTracker& tracker = (GPUTPCTracker&)sliceTracker(iSlice);
-        tracker.SetPointersDataScratch(tracker.LinkTmpMemory());
+        tracker.SetPointersDataLinks(tracker.LinkTmpMemory());
         mGlDLLines[iSlice][tINITLINK] = DrawLinks(tracker, tINITLINK, true);
-        tracker.SetPointersDataScratch(mChain->rec()->Res(tracker.MemoryResLinksScratch()).Ptr());
+        tracker.SetPointersDataLinks(mChain->rec()->Res(tracker.MemoryResLinks()).Ptr());
       }
       GPUTPCGMPropagator prop;
       const float kRho = 1.025e-3;  // 0.9e-3;
