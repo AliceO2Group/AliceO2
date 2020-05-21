@@ -136,7 +136,6 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   int registerMemoryForGPU(const void* ptr, size_t size) override { return 0; }
   int unregisterMemoryForGPU(const void* ptr) override { return 0; }
   int GPUStuck() { return mGPUStuck; }
-  int NStreams() { return mNStreams; }
   void ResetDeviceProcessorTypes();
   template <class T>
   void AddGPUEvents(T*& events);
@@ -280,7 +279,7 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
     }
   }
   if (mDeviceProcessingSettings.debugLevel >= 0) {
-    if (GPUDebug(typeid(S).name(), x.stream)) {
+    if (GPUDebug(GetKernelName<S, I>(), x.stream)) {
       throw std::runtime_error("kernel failure");
     }
     if (t) {
