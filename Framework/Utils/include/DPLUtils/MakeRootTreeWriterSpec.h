@@ -218,21 +218,17 @@ class MakeRootTreeWriterSpec
     /// @param dataref  the DPL DataRef object
     /// @return true if ready
     using CheckReady = std::function<bool(o2::framework::DataRef const&)>;
-    /// default condition
-    using CheckDefault = std::function<bool()>;
 
     /// the actual evaluator
-    std::variant<CheckDefault, CheckReady, CheckProcessing> check = []() { return true; };
+    std::variant<std::monostate, CheckReady, CheckProcessing> check;
   };
 
   struct Preprocessor {
-    /// default no operation
-    using Noop = std::function<void()>;
     /// processing callback
     using Process = std::function<void(ProcessingContext&)>;
 
     /// the callback
-    std::variant<Noop, Process> callback = []() {};
+    std::variant<std::monostate, Process> callback;
 
     /// check if the Preprocessor can be executed
     constexpr operator bool()
@@ -280,6 +276,18 @@ class MakeRootTreeWriterSpec
     /// key for command line option
     std::string optionKey = "";
   };
+
+  // helper to define auxiliary inputs, i.e. inputs not connected to a branch
+  struct AuxInputRoute {
+    InputSpec mSpec;
+    operator InputSpec() const
+    {
+      return mSpec;
+    }
+  };
+
+  // callback with signature void(TFile*, TTree*)
+  using CustomClose = WriterType::CustomClose;
 
   /// default constructor forbidden
   MakeRootTreeWriterSpec() = delete;
@@ -449,10 +457,11 @@ class MakeRootTreeWriterSpec
                                         ));
     }
 
+    mInputRoutes.insert(mInputRoutes.end(), mInputs.begin(), mInputs.end());
     return DataProcessorSpec{
       // processing spec generated from the class configuartion
       mProcessName.c_str(),   // name of the process
-      mInputs,                // list of inputs
+      mInputRoutes,           // list of inputs
       Outputs{},              // no outputs
       AlgorithmSpec(initFct), // return the init function
       std::move(options),     // processor options
@@ -521,6 +530,20 @@ class MakeRootTreeWriterSpec
     parseConstructorArgs<N>(std::forward<Args>(args)...);
   }
 
+  template <size_t N, typename... Args>
+  void parseConstructorArgs(AuxInputRoute&& aux, Args&&... args)
+  {
+    mInputRoutes.emplace_back(aux);
+    parseConstructorArgs<N>(std::forward<Args>(args)...);
+  }
+
+  template <size_t N, typename... Args>
+  void parseConstructorArgs(CustomClose&& callback, Args&&... args)
+  {
+    mCustomClose = callback;
+    parseConstructorArgs<N>(std::forward<Args>(args)...);
+  }
+
   /// helper function to recursively parse constructor arguments
   /// parse the branch definitions and store the input specs.
   /// Note: all other properties of the branch definition are handled in the
@@ -541,7 +564,7 @@ class MakeRootTreeWriterSpec
     }
     parseConstructorArgs<N + 1>(std::forward<Args>(args)...);
     if constexpr (N == 0) {
-      mWriter = std::make_shared<WriterType>(nullptr, nullptr, std::forward<BranchDefinition<T>>(def), std::forward<Args>(args)...);
+      mWriter = std::make_shared<WriterType>(nullptr, nullptr, mCustomClose, std::forward<BranchDefinition<T>>(def), std::forward<Args>(args)...);
     }
   }
 
@@ -554,6 +577,7 @@ class MakeRootTreeWriterSpec
   std::shared_ptr<WriterType> mWriter;
   std::string mProcessName;
   std::vector<InputSpec> mInputs;
+  std::vector<InputSpec> mInputRoutes;
   std::vector<std::pair<std::string, std::string>> mBranchNameOptions;
   std::string mDefaultFileName;
   std::string mDefaultTreeName;
@@ -562,6 +586,7 @@ class MakeRootTreeWriterSpec
   TerminationCondition mTerminationCondition;
   Preprocessor mPreprocessor;
   size_t mNofBranches = 0;
+  CustomClose mCustomClose;
 };
 } // namespace framework
 } // namespace o2
