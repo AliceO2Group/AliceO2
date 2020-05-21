@@ -102,23 +102,34 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   // first definition is for a single input and simple type written to one branch
   // second branch handles two inputs of the same data type, the mapping of the
   // input data to the target branch is taken from the sub specification
-  auto getIndex = [](o2::framework::DataRef const& ref) {
+  auto getIndex = [](o2::framework::DataRef const& ref) -> size_t {
     auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     return dataHeader->subSpecification;
   };
-  auto getName = [](std::string base, size_t i) {
+  auto getName = [](std::string base, size_t i) -> std::string {
     return base + "_" + std::to_string(i);
   };
+  auto customClose = [](TFile* file, TTree* tree) {
+    // branches are filled independently of the tree, so the tree state needs to be
+    // synchronized with the branch states
+    tree->SetEntries();
+    std::cout << "Custom close, tree has " << tree->GetEntries() << " entries" << std::endl;
+    // there was one write cycle and each branch should have one entry
+    BOOST_CHECK(tree->GetEntries() == 1);
+    tree->Write();
+    file->Close();
+  };
   RootTreeWriter writer(filename.c_str(), treename, // file and tree name
+                        customClose,
                         RootTreeWriter::BranchDef<int>{"input1", "intbranch"},
                         RootTreeWriter::BranchDef<Container>{
                           std::vector<std::string>({"input2", "input3"}), "containerbranch",
                           // define two target branches (this matches the input list)
                           2,
                           // the callback extracts the sub specification from the DataHeader as index
-                          RootTreeWriter::IndexExtractor(getIndex),
+                          getIndex,
                           // the branch names are simply built by adding the index
-                          RootTreeWriter::BranchNameMapper(getName)},
+                          getName},
                         RootTreeWriter::BranchDef<const char*>{"input4", "binarybranch"},
                         RootTreeWriter::BranchDef<o2::test::TriviallyCopyable>{"input6", "msgablebranch"},
                         RootTreeWriter::BranchDef<std::vector<int>>{"input6", "intvecbranch"},
@@ -234,7 +245,9 @@ BOOST_AUTO_TEST_CASE(test_MakeRootTreeWriterSpec)
   struct Printer {
     Printer()
     {
-      std::cout << "setting up" << std::endl;
+      // TODO: to be fully correct we need to check at exit if we have been here instead
+      // of a thumb log message
+      std::cout << "Setting up a spectator" << std::endl;
     }
   };
   auto logger = [printer = std::make_shared<Printer>()](float const&) {
@@ -243,7 +256,7 @@ BOOST_AUTO_TEST_CASE(test_MakeRootTreeWriterSpec)
                          BranchDefinition<int>{InputSpec{"input1", "TST", "INTDATA"}, "intbranch"}, //
                          BranchDefinition<float>{InputSpec{"input2", "TST", "FLOATDATA"},           //
                                                  "floatbranch", "floatbranchname",                  //
-                                                 1, BranchDefinition<float>::Spectator(logger)}     //
+                                                 1, logger}                                         //
                          )();
 }
 
