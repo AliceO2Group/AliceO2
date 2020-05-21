@@ -27,6 +27,7 @@
 #include "Framework/DeviceExecution.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceConfigInfo.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
 #include "Framework/FrameworkGUIDebugger.h"
@@ -469,6 +470,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
   assert(infos.size() == controls.size());
   std::smatch match;
   ParsedMetricMatch metricMatch;
+  ParsedConfigMatch configMatch;
   const std::string delimiter("\n");
   bool hasNewMetric = false;
   for (size_t di = 0, de = infos.size(); di < de; ++di) {
@@ -541,6 +543,8 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
           // FIXME: this should really be a policy...
           doToMatchingPid(info.pid, [](DeviceInfo& info) { info.streamingState = StreamingState::EndOfStreaming; });
         }
+      } else if (logLevel == LogParsingHelpers::LogLevel::Info && DeviceConfigHelper::parseConfig(token, configMatch)) {
+        DeviceConfigHelper::processConfig(configMatch, info);
       } else if (!control.quiet && (token.find(control.logFilter) != std::string::npos) &&
                  logLevel >= control.logLevel) {
         assert(info.historyPos >= 0);

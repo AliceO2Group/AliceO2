@@ -58,6 +58,7 @@ o2_add_library(Framework
                        src/DataSamplingPolicy.cxx
                        src/DataSamplingReadoutAdapter.cxx
                        src/DataSpecUtils.cxx
+                       src/DeviceConfigInfo.cxx
                        src/DeviceMetricsInfo.cxx
                        src/DeviceSpec.cxx
                        src/DeviceSpecHelpers.cxx
@@ -153,6 +154,7 @@ foreach(t
         DataSamplingCondition
         DataSamplingHeader
         DataSamplingPolicy
+        DeviceConfigInfo
         DeviceMetricsInfo
         DeviceSpec
         DeviceSpecHelpers

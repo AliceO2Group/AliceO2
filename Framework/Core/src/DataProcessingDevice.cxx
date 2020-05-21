@@ -149,6 +149,10 @@ void DataProcessingDevice::Init()
   auto configStore = std::move(std::make_unique<ConfigParamStore>(mSpec.options, std::move(retrievers)));
   configStore->preload();
   configStore->activate();
+  /// Dump the configuration so that we can get it from the driver.
+  for (auto& entry : configStore->store()) {
+    LOG(INFO) << "[CONFIG] " << entry.first << "=" << configStore->store().get<std::string>(entry.first) << " 1";
+  }
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
 
   mExpirationHandlers.clear();
