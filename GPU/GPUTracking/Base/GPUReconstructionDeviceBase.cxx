@@ -245,6 +245,10 @@ int GPUReconstructionDeviceBase::InitDevice()
     return (1);
   }
 
+  if (mDeviceProcessingSettings.debugLevel >= 1) {
+    AddGPUEvents(mDebugEvents);
+  }
+
   int retVal = InitDevice_Runtime();
   if (retVal) {
     GPUImportant("GPU Tracker initialization failed");
