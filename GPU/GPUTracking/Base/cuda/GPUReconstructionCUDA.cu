@@ -75,6 +75,44 @@ class VertexerTraitsGPU : public VertexerTraits
 } // namespace o2
 #endif
 
+class GPUDebugTiming
+{
+ public:
+  GPUDebugTiming(bool d, void** t, cudaStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionCUDABackend* r = nullptr) : mDo(d), mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r)
+  {
+    if (mDo) {
+      if (mDeviceTimers) {
+        GPUFailedMsg(cudaEventRecord((cudaEvent_t)mDeviceTimers[0], mStreams[mXYZ.x.stream]));
+      } else {
+        mTimer.ResetStart();
+      }
+    }
+  }
+  ~GPUDebugTiming()
+  {
+    if (mDo) {
+      if (mDeviceTimers) {
+        GPUFailedMsg(cudaEventRecord((cudaEvent_t)mDeviceTimers[1], mStreams[mXYZ.x.stream]));
+        GPUFailedMsg(cudaEventSynchronize((cudaEvent_t)mDeviceTimers[1]));
+        float v;
+        GPUFailedMsg(cudaEventElapsedTime(&v, (cudaEvent_t)mDeviceTimers[0], (cudaEvent_t)mDeviceTimers[1]));
+        mXYZ.t = v * 1.e-3;
+      } else {
+        GPUFailedMsg(cudaStreamSynchronize(mStreams[mXYZ.x.stream]));
+        mXYZ.t = mTimer.GetCurrentElapsedTime();
+      }
+    }
+  }
+
+ private:
+  void** mDeviceTimers;
+  cudaStream_t* mStreams;
+  GPUReconstruction::krnlSetup& mXYZ;
+  GPUReconstructionCUDABackend* mRec;
+  bool mDo;
+  HighResTimer mTimer;
+};
+
 #include "GPUReconstructionIncludesDevice.h"
 
 /*
@@ -110,16 +148,9 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, const Args&.
       GPUFailedMsg(cudaStreamWaitEvent(mInternals->Streams[x.stream], ((cudaEvent_t*)z.evList)[k], 0));
     }
   }
-  if (mDeviceProcessingSettings.deviceTimers) {
-    GPUFailedMsg(cudaEventRecord((cudaEvent_t)mDebugEvents->DebugStart, mInternals->Streams[x.stream]));
-  }
-  backendInternal<T, I>::runKernelBackendInternal(_xyz, this, args...);
-  if (mDeviceProcessingSettings.deviceTimers) {
-    GPUFailedMsg(cudaEventRecord((cudaEvent_t)mDebugEvents->DebugStop, mInternals->Streams[x.stream]));
-    GPUFailedMsg(cudaEventSynchronize((cudaEvent_t)mDebugEvents->DebugStop));
-    float v;
-    GPUFailedMsg(cudaEventElapsedTime(&v, (cudaEvent_t)mDebugEvents->DebugStart, (cudaEvent_t)mDebugEvents->DebugStop));
-    _xyz.t = v * 1.e-3;
+  {
+    GPUDebugTiming timer(mDeviceProcessingSettings.deviceTimers, (void**)mDebugEvents, mInternals->Streams, _xyz);
+    backendInternal<T, I>::runKernelBackendInternal(_xyz, this, args...);
   }
   GPUFailedMsg(cudaGetLastError());
   if (z.ev) {
