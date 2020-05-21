@@ -204,6 +204,13 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (!(mRecoStepsGPU & RecoStep::TPCMerging)) {
     mDeviceProcessingSettings.fullMergerOnGPU = false;
   }
+
+  UpdateSettings();
+  GPUCA_GPUReconstructionUpdateDefailts();
+  if (!mDeviceProcessingSettings.trackletConstructorInPipeline) {
+    mDeviceProcessingSettings.trackletSelectorInPipeline = false;
+  }
+
   mMemoryScalers->factor = GetDeviceProcessingSettings().memoryScalingFactor;
 
 #ifdef WITH_OPENMP
@@ -243,11 +250,6 @@ int GPUReconstruction::InitPhaseBeforeDevice()
 
 int GPUReconstruction::InitPhasePermanentMemory()
 {
-  GPUCA_GPUReconstructionUpdateDefailts();
-  if (!mDeviceProcessingSettings.trackletConstructorInPipeline) {
-    mDeviceProcessingSettings.trackletSelectorInPipeline = false;
-  }
-
   if (IsGPU()) {
     for (unsigned int i = 0; i < mChains.size(); i++) {
       mChains[i]->RegisterGPUProcessors();
