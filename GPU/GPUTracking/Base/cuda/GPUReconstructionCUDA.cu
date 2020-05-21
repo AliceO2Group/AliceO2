@@ -110,21 +110,16 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, const Args&.
       GPUFailedMsg(cudaStreamWaitEvent(mInternals->Streams[x.stream], ((cudaEvent_t*)z.evList)[k], 0));
     }
   }
-  cudaEvent_t start, stop;
   if (mDeviceProcessingSettings.deviceTimers) {
-    GPUFailedMsg(cudaEventCreate(&start));
-    GPUFailedMsg(cudaEventCreate(&stop));
-    GPUFailedMsg(cudaEventRecord(start, mInternals->Streams[x.stream]));
+    GPUFailedMsg(cudaEventRecord((cudaEvent_t)mDebugEvents->DebugStart, mInternals->Streams[x.stream]));
   }
   backendInternal<T, I>::runKernelBackendInternal(_xyz, this, args...);
   if (mDeviceProcessingSettings.deviceTimers) {
-    GPUFailedMsg(cudaEventRecord(stop, mInternals->Streams[x.stream]));
-    GPUFailedMsg(cudaEventSynchronize(stop));
+    GPUFailedMsg(cudaEventRecord((cudaEvent_t)mDebugEvents->DebugStop, mInternals->Streams[x.stream]));
+    GPUFailedMsg(cudaEventSynchronize((cudaEvent_t)mDebugEvents->DebugStop));
     float v;
-    GPUFailedMsg(cudaEventElapsedTime(&v, start, stop));
+    GPUFailedMsg(cudaEventElapsedTime(&v, (cudaEvent_t)mDebugEvents->DebugStart, (cudaEvent_t)mDebugEvents->DebugStop));
     _xyz.t = v * 1.e-3;
-    GPUFailedMsg(cudaEventDestroy(start));
-    GPUFailedMsg(cudaEventDestroy(stop));
   }
   GPUFailedMsg(cudaGetLastError());
   if (z.ev) {
@@ -402,6 +397,8 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     GPUFailedMsgI(cuCtxPushCurrent(mInternals->CudaContext));
   }
 
+  if (mDeviceProcessingSettings.debugLevel >= 1) {
+  }
   for (unsigned int i = 0; i < mEvents.size(); i++) {
     cudaEvent_t* events = (cudaEvent_t*)mEvents[i].data();
     for (unsigned int j = 0; j < mEvents[i].size(); j++) {

@@ -70,6 +70,11 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   int mDeviceId = -1;                                             // Device ID used by backend
   GPUReconstructionHelpers::helperParam* mHelperParams = nullptr; // Control Struct for helper threads
   int mNSlaveThreads = 0;                                         // Number of slave threads currently active
+
+  struct DebugEvents {
+    void *DebugStart, *DebugStop; // Debug timer events
+  };
+  DebugEvents* mDebugEvents = nullptr;
 };
 
 inline size_t GPUReconstructionDeviceBase::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
