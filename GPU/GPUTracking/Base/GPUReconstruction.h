@@ -233,6 +233,7 @@ class GPUReconstruction
  protected:
   GPUReconstruction(const GPUSettingsProcessing& cfg); // Constructor
   int InitPhaseBeforeDevice();
+  virtual void UpdateSettings() {}
   virtual int InitDevice() = 0;
   int InitPhasePermanentMemory();
   int InitPhaseAfterDevice();

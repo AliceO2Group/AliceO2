@@ -179,11 +179,13 @@ void GPUReconstructionHIPBackend::GetITSTraits(std::unique_ptr<o2::its::TrackerT
   }
 }
 
+void GPUReconstructionHIPBackend::UpdateSettings()
+{
+  GPUCA_GPUReconstructionUpdateDefailts();
+}
+
 int GPUReconstructionHIPBackend::InitDevice_Runtime()
 {
-  // Find best HIP device, initialize and allocate memory
-  GPUCA_GPUReconstructionUpdateDefailts();
-
   if (mMaster == nullptr) {
     hipDeviceProp_t hipDeviceProp;
     int count, bestDevice = -1;
