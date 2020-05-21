@@ -124,23 +124,18 @@ int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
       GPUFailedMsg(hipStreamWaitEvent(mInternals->Streams[x.stream], ((hipEvent_t*)z.evList)[k], 0));
     }
   }
-  hipEvent_t start, stop;
   if (mDeviceProcessingSettings.deviceTimers) {
-    GPUFailedMsg(hipEventCreate(&start));
-    GPUFailedMsg(hipEventCreate(&stop));
 #ifdef __CUDACC__
-    GPUFailedMsg(hipEventRecord(start, mInternals->Streams[x.stream]));
+    GPUFailedMsg(hipEventRecord((hipEvent_t)mDebugEvents->DebugStart, mInternals->Streams[x.stream]));
 #endif
-    backendInternal<T, I>::runKernelBackendInternal(_xyz, this, &start, &stop, args...);
+    backendInternal<T, I>::runKernelBackendInternal(_xyz, this, (hipEvent_t*)&mDebugEvents->DebugStart, (hipEvent_t*)&mDebugEvents->DebugStop, args...);
 #ifdef __CUDACC__
-    GPUFailedMsg(hipEventRecord(stop, mInternals->Streams[x.stream]));
+    GPUFailedMsg(hipEventRecord((hipEvent_t)mDebugEvents->DebugStop, mInternals->Streams[x.stream]));
 #endif
-    GPUFailedMsg(hipEventSynchronize(stop));
+    GPUFailedMsg(hipEventSynchronize((hipEvent_t)mDebugEvents->DebugStop));
     float v;
-    GPUFailedMsg(hipEventElapsedTime(&v, start, stop));
+    GPUFailedMsg(hipEventElapsedTime(&v, (hipEvent_t)mDebugEvents->DebugStart, (hipEvent_t)mDebugEvents->DebugStop));
     _xyz.t = v * 1.e-3;
-    GPUFailedMsg(hipEventDestroy(start));
-    GPUFailedMsg(hipEventDestroy(stop));
   } else {
     backendInternal<T, I>::runKernelBackendInternal(_xyz, this, nullptr, nullptr, args...);
   }
