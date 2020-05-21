@@ -161,11 +161,13 @@ void GPUReconstructionCUDABackend::GetITSTraits(std::unique_ptr<o2::its::Tracker
   }
 }
 
+void GPUReconstructionCUDABackend::UpdateSettings()
+{
+  GPUCA_GPUReconstructionUpdateDefailts();
+}
+
 int GPUReconstructionCUDABackend::InitDevice_Runtime()
 {
-  // Find best CUDA device, initialize and allocate memory
-  GPUCA_GPUReconstructionUpdateDefailts();
-
   if (mMaster == nullptr) {
     cudaDeviceProp cudaDeviceProp;
     int count, bestDevice = -1;
