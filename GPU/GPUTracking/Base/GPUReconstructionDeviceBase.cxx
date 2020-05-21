@@ -245,7 +245,7 @@ int GPUReconstructionDeviceBase::InitDevice()
     return (1);
   }
 
-  if (mDeviceProcessingSettings.debugLevel >= 1) {
+  if (mDeviceProcessingSettings.deviceTimers) {
     AddGPUEvents(mDebugEvents);
   }
 
