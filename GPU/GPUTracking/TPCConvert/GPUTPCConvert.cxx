@@ -23,7 +23,9 @@ void GPUTPCConvert::InitializeProcessor() {}
 
 void* GPUTPCConvert::SetPointersOutput(void* mem)
 {
-  computePointerWithAlignment(mem, mClusters, mNClustersTotal);
+  if (mRec->GetParam().earlyTpcTransform) {
+    computePointerWithAlignment(mem, mClusters, mNClustersTotal);
+  }
   return mem;
 }
 

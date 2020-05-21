@@ -211,7 +211,8 @@ class GPUReconstruction
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
   void SetOutputControl(void* ptr, size_t size);
   GPUOutputControl& OutputControl() { return mOutputControl; }
-  int GetMaxThreads() { return mMaxThreads; }
+  int GetMaxThreads() const { return mMaxThreads; }
+  int NStreams() const { return mNStreams; }
   const void* DeviceMemoryBase() const { return mDeviceMemoryBase; }
 
   RecoStepField GetRecoSteps() const { return mRecoSteps; }

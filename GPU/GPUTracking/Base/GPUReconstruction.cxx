@@ -223,6 +223,9 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   mDeviceProcessingSettings.nThreads = 1;
 #endif
   mMaxThreads = std::max(mMaxThreads, mDeviceProcessingSettings.nThreads);
+  if (IsGPU()) {
+    mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
+  }
 
   mDeviceMemorySize = mHostMemorySize = 0;
   for (unsigned int i = 0; i < mChains.size(); i++) {
@@ -242,9 +245,6 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     (mProcessors[i].proc->*(mProcessors[i].RegisterMemoryAllocation))();
   }
 
-  if (IsGPU()) {
-    mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
-  }
   return 0;
 }
 
