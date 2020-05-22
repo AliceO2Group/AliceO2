@@ -52,6 +52,7 @@
 #include "DriverInfo.h"
 #include "DataProcessorInfo.h"
 #include "GraphvizHelpers.h"
+#include "PropertyTreeHelpers.h"
 #include "SimpleResourceManager.h"
 #include "WorkflowSerializationHelpers.h"
 
@@ -68,6 +69,7 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
 #include <boost/exception/diagnostic_information.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <cinttypes>
 #include <cstdint>
@@ -1092,6 +1094,18 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         break;
       case DriverState::EXIT: {
+        // This is a clean exit. Before we do so, if required,
+        // we dump the configuration of all the devices so that
+        // we can reuse it
+        boost::property_tree::ptree finalConfig;
+        assert(infos.size() == deviceSpecs.size());
+        for (size_t di = 0; di < infos.size(); ++di) {
+          auto info = infos[di];
+          auto spec = deviceSpecs[di];
+          PropertyTreeHelpers::merge(finalConfig, info.currentConfig, spec.name);
+        }
+        LOG(INFO) << "Dumping used configuration in dpl-config.json";
+        boost::property_tree::write_json("dpl-config.json", finalConfig);
         cleanupSHM(driverInfo.uniqueWorkflowId);
         return calculateExitCode(infos);
       }
