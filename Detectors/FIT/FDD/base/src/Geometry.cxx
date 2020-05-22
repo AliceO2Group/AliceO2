@@ -38,7 +38,7 @@ Geometry::Geometry(const Geometry& geom)
 void Geometry::buildGeometry()
 {
 
-   LOG(INFO) << "Geometry::buildGeometry()::Volume name = FDD";
+  LOG(INFO) << "Geometry::buildGeometry()::Volume name = FDD";
 
   //Rotations used
   //TGeoRotation* Rx90m = new TGeoRotation("Rx90m", 0., -90., 0.);
@@ -148,7 +148,7 @@ void Geometry::buildGeometry()
   vFDCarray->AddNode(voFDC, 3, Rz180);                   // --------------->  x
   vFDCarray->AddNode(voFDC, 4, Rx180);                   //   3    |   4
                                                          //        |
-  // A side 
+  // A side
   TGeoVolume* vCaveRB24 = gGeoManager->GetVolume("caveRB24");
   if (!vCaveRB24) {
     LOG(FATAL) << "Could not find the top volume for A-side";
@@ -157,7 +157,7 @@ void Geometry::buildGeometry()
   vCaveRB24->AddNode(vFDAarray, 1, new TGeoTranslation(0., 0., kPosFDA - kFDACelldz / 2. - 0.1));
   vCaveRB24->AddNode(vFDAarray, 2, new TGeoTranslation(0., 0., kPosFDA + kFDACelldz / 2. + 0.1));
 
- // C side                                                                                                                                                                                                 
+  // C side
   TGeoVolume* vCave = gGeoManager->GetVolume("cave");
   if (!vCave) {
     LOG(FATAL) << "Could not find the top volume for C-side";

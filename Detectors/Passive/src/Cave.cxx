@@ -95,18 +95,18 @@ void Cave::ConstructGeometry()
   // mother volune for RB24 side (FDD, Compensator)
   const Float_t kRB24CL = 2. * 598.74752;
   auto shCaveRB24 = new TGeoPcon(0., 360., 6);
-  Float_t z0 = kRB24CL/2 + 714.6;
-  shCaveRB24->DefineSection(0, -kRB24CL/2., 0., 90.);
+  Float_t z0 = kRB24CL / 2 + 714.6;
+  shCaveRB24->DefineSection(0, -kRB24CL / 2., 0., 90.);
   shCaveRB24->DefineSection(1, -z0 + 1705., 0., 90.);
   shCaveRB24->DefineSection(2, -z0 + 1705., 0., 14.5);
   shCaveRB24->DefineSection(3, -z0 + 1880., 0., 14.5);
   shCaveRB24->DefineSection(4, -z0 + 1880., 0., 40.0);
-  shCaveRB24->DefineSection(5,  kRB24CL/2         , 0., 40.0);
-  
+  shCaveRB24->DefineSection(5, kRB24CL / 2, 0., 40.0);
+
   TGeoVolume* caveRB24 = new TGeoVolume("caveRB24", shCaveRB24, kMedAir);
   caveRB24->SetVisibility(0);
   cavevol->AddNode(caveRB24, 1, new TGeoTranslation(0., 0., z0));
-  //        
+  //
 }
 
 Cave::Cave() : FairDetector() {}
