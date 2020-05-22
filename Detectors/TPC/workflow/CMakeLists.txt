@@ -7,6 +7,7 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
+                     
 
 # FIXME: do we really need a library here ? Is the exe not enough ?
 o2_add_library(TPCWorkflow
@@ -20,6 +21,7 @@ o2_add_library(TPCWorkflow
                        src/RawToDigitsSpec.cxx
                        src/LinkZSToDigitsSpec.cxx
                        src/TPCSectorCompletionPolicy.cxx
+                       src/ZSSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
