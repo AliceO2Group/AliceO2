@@ -181,68 +181,68 @@ struct pidTOFTask {
       float EVTIME = collision.collisionTime();
       float BETA = beta(i.length(), i.tofSignal(), EVTIME);
       float BETAERROR = betaerror(i.length(), i.tofSignal(), EVTIME);
-      float EXPBETAEL = expbeta(p(i.eta(), i.signed1Pt()), kElectronMass);
+      float EXPBETAEL = expbeta(p(i.eta(), i.signed1Pt()), kMassEl);
       float EXPBETAELERROR = 0;
-      //  resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes0(), kPionMass),
-      //  resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes0(), kKaonMass),
-      //  resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes0(), kProtonMass),
+      //  resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes0(), kMassPi),
+      //  resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes0(), kMassKa),
+      //  resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes0(), kMassPr),
       //
       //  0,0,0
-      //  resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPi(), collision.collisionTime0(), collision.collisionTimeRes0(), kPionMass),
-      //  resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpKa(), collision.collisionTime0(), collision.collisionTimeRes0(), kKaonMass),
-      //  resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPr(), collision.collisionTime0(), collision.collisionTimeRes0(), kProtonMass)
+      //  resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPi(), collision.collisionTime0(), collision.collisionTimeRes0(), kMassPi),
+      //  resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpKa(), collision.collisionTime0(), collision.collisionTimeRes0(), kMassKa),
+      //  resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPr(), collision.collisionTime0(), collision.collisionTimeRes0(), kMassPr)
       tofpid(BETA,
              BETAERROR,
              EXPBETAEL,
              EXPBETAELERROR,
              BETA > 0 ? (BETA - EXPBETAEL) / sqrt(BETAERROR * BETAERROR + EXPBETAELERROR * EXPBETAELERROR) : -999,
-             resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), kPionMass),
-             resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), kKaonMass),
-             resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), kProtonMass),
-             resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPi(), collision.collisionTime(), collision.collisionTimeRes(), kPionMass),
-             resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpKa(), collision.collisionTime(), collision.collisionTimeRes(), kKaonMass),
-             resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPr(), collision.collisionTime(), collision.collisionTimeRes(), kProtonMass)
-            //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpEl(), i.length(), kElectronMass), i.length(), kElectronMass),
-            //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpEl(), i.length(), kElectronMass), i.length(), kMuonMass),
-            //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpEl(), i.length(), kElectronMass), i.length(), kPionMass),
-            //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpEl(), i.length(), kElectronMass), i.length(), kKaonMass),
-            //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpEl(), i.length(), kElectronMass), i.length(), kProtonMass),
-            //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpEl(), i.length(), kElectronMass), i.length(), kDeuteronMass)
+             resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), kMassPi),
+             resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), kMassKa),
+             resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), kMassPr),
+             resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPi(), collision.collisionTime(), collision.collisionTimeRes(), kMassPi),
+             resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpKa(), collision.collisionTime(), collision.collisionTimeRes(), kMassKa),
+             resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPr(), collision.collisionTime(), collision.collisionTimeRes(), kMassPr)
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpEl(), i.length(), kMassEl), i.length(), kMassEl),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpEl(), i.length(), kMassEl), i.length(), kMassMu),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpEl(), i.length(), kMassEl), i.length(), kMassPi),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpEl(), i.length(), kMassEl), i.length(), kMassKa),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpEl(), i.length(), kMassEl), i.length(), kMassPr),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpEl(), i.length(), kMassEl), i.length(), kMassDe)
              //  //
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMuonMass), i.length(), kElectronMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMuonMass), i.length(), kMuonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMuonMass), i.length(), kPionMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMuonMass), i.length(), kKaonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMuonMass), i.length(), kProtonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMuonMass), i.length(), kDeuteronMass),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMassMu), i.length(), kMassEl),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMassMu), i.length(), kMassMu),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMassMu), i.length(), kMassPi),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMassMu), i.length(), kMassKa),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMassMu), i.length(), kMassPr),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMassMu), i.length(), kMassDe),
              //  //
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPi(), i.length(), kPionMass), i.length(), kElectronMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPi(), i.length(), kPionMass), i.length(), kMuonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPi(), i.length(), kPionMass), i.length(), kPionMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPi(), i.length(), kPionMass), i.length(), kKaonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPi(), i.length(), kPionMass), i.length(), kProtonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPi(), i.length(), kPionMass), i.length(), kDeuteronMass),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPi(), i.length(), kMassPi), i.length(), kMassEl),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPi(), i.length(), kMassPi), i.length(), kMassMu),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPi(), i.length(), kMassPi), i.length(), kMassPi),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPi(), i.length(), kMassPi), i.length(), kMassKa),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPi(), i.length(), kMassPi), i.length(), kMassPr),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPi(), i.length(), kMassPi), i.length(), kMassDe),
              //  //
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpKa(), i.length(), kKaonMass), i.length(), kElectronMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpKa(), i.length(), kKaonMass), i.length(), kMuonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpKa(), i.length(), kKaonMass), i.length(), kPionMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpKa(), i.length(), kKaonMass), i.length(), kKaonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpKa(), i.length(), kKaonMass), i.length(), kProtonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpKa(), i.length(), kKaonMass), i.length(), kDeuteronMass),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpKa(), i.length(), kMassKa), i.length(), kMassEl),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpKa(), i.length(), kMassKa), i.length(), kMassMu),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpKa(), i.length(), kMassKa), i.length(), kMassPi),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpKa(), i.length(), kMassKa), i.length(), kMassKa),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpKa(), i.length(), kMassKa), i.length(), kMassPr),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpKa(), i.length(), kMassKa), i.length(), kMassDe),
              //  //
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPr(), i.length(), kProtonMass), i.length(), kElectronMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPr(), i.length(), kProtonMass), i.length(), kMuonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPr(), i.length(), kProtonMass), i.length(), kPionMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPr(), i.length(), kProtonMass), i.length(), kKaonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPr(), i.length(), kProtonMass), i.length(), kProtonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPr(), i.length(), kProtonMass), i.length(), kDeuteronMass),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPr(), i.length(), kMassPr), i.length(), kMassEl),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPr(), i.length(), kMassPr), i.length(), kMassMu),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPr(), i.length(), kMassPr), i.length(), kMassPi),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPr(), i.length(), kMassPr), i.length(), kMassKa),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPr(), i.length(), kMassPr), i.length(), kMassPr),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpPr(), i.length(), kMassPr), i.length(), kMassDe),
              //  //
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpDe(), i.length(), kDeuteronMass), i.length(), kElectronMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpDe(), i.length(), kDeuteronMass), i.length(), kMuonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpDe(), i.length(), kDeuteronMass), i.length(), kPionMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpDe(), i.length(), kDeuteronMass), i.length(), kKaonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpDe(), i.length(), kDeuteronMass), i.length(), kProtonMass),
-             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpDe(), i.length(), kDeuteronMass), i.length(), kDeuteronMass)
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpDe(), i.length(), kMassDe), i.length(), kMassEl),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpDe(), i.length(), kMassDe), i.length(), kMassMu),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpDe(), i.length(), kMassDe), i.length(), kMassPi),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpDe(), i.length(), kMassDe), i.length(), kMassKa),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpDe(), i.length(), kMassDe), i.length(), kMassPr),
+             //  ComputeTOFExpTime(ComputeExpectedMomentum(i.tofExpDe(), i.length(), kMassDe), i.length(), kMassDe)
              //  //
       );
     }
