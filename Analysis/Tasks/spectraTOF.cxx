@@ -110,34 +110,34 @@ struct ExpectedTOFQATask {
       if (!issel)
         continue;
       // Diff
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpEl(), i.length(), kElectronMass);
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMuonMass);
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpPi(), i.length(), kPionMass);
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpKa(), i.length(), kKaonMass);
-      const Float_t expp = ComputeExpectedMomentum(i.tofExpPr(), i.length(), kProtonMass);
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpDe(), i.length(), kDeuteronMass);
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpTr(), i.length(), kH3Mass);
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpHe(), i.length(), kHe3Mass);
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpAl(), i.length(), kHe4Mass);
-      h_p_expdiff_El->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kElectronMass) - i.tofExpEl());
-      h_p_expdiff_Mu->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMuonMass) - i.tofExpMu());
-      h_p_expdiff_Pi->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kPionMass) - i.tofExpPi());
-      h_p_expdiff_Ka->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kKaonMass) - i.tofExpKa());
-      h_p_expdiff_Pr->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kProtonMass) - i.tofExpPr());
-      h_p_expdiff_De->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kDeuteronMass) - i.tofExpDe());
-      h_p_expdiff_Tr->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kH3Mass) - i.tofExpTr());
-      // h_p_expdiff_He->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kHe3Mass) - i.tofExpHe());
-      // h_p_expdiff_Al->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kHe4Mass) - i.tofExpAl());
+      // const Float_t expp = ComputeExpectedMomentum(i.tofExpEl(), i.length(), kMassEl);
+      // const Float_t expp = ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMassMu);
+      // const Float_t expp = ComputeExpectedMomentum(i.tofExpPi(), i.length(), kMassPi);
+      // const Float_t expp = ComputeExpectedMomentum(i.tofExpKa(), i.length(), kMassKa);
+      const Float_t expp = ComputeExpectedMomentum(i.tofExpPr(), i.length(), kMassPr);
+      // const Float_t expp = ComputeExpectedMomentum(i.tofExpDe(), i.length(), kMassDe);
+      // const Float_t expp = ComputeExpectedMomentum(i.tofExpTr(), i.length(), kMassTr);
+      // const Float_t expp = ComputeExpectedMomentum(i.tofExpHe(), i.length(), kMassHe);
+      // const Float_t expp = ComputeExpectedMomentum(i.tofExpAl(), i.length(), kMassHe);
+      h_p_expdiff_El->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassEl) - i.tofExpEl());
+      h_p_expdiff_Mu->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassMu) - i.tofExpMu());
+      h_p_expdiff_Pi->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassPi) - i.tofExpPi());
+      h_p_expdiff_Ka->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassKa) - i.tofExpKa());
+      h_p_expdiff_Pr->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassPr) - i.tofExpPr());
+      h_p_expdiff_De->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassDe) - i.tofExpDe());
+      h_p_expdiff_Tr->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassTr) - i.tofExpTr());
+      // h_p_expdiff_He->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassHe) - i.tofExpHe());
+      // h_p_expdiff_Al->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassHe) - i.tofExpAl());
       // Diff Rel
-      h_p_expdiff_El_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kElectronMass) - i.tofExpEl()) / i.tofExpEl());
-      h_p_expdiff_Mu_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMuonMass) - i.tofExpMu()) / i.tofExpMu());
-      h_p_expdiff_Pi_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kPionMass) - i.tofExpPi()) / i.tofExpPi());
-      h_p_expdiff_Ka_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kKaonMass) - i.tofExpKa()) / i.tofExpKa());
-      h_p_expdiff_Pr_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kProtonMass) - i.tofExpPr()) / i.tofExpPr());
-      h_p_expdiff_De_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kDeuteronMass) - i.tofExpDe()) / i.tofExpDe());
-      h_p_expdiff_Tr_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kH3Mass) - i.tofExpTr()) / i.tofExpTr());
-      // h_p_expdiff_He_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kHe3Mass) - i.tofExpHe()) / i.tofExpHe());
-      // h_p_expdiff_Al_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kHe4Mass) - i.tofExpAl()) / i.tofExpAl());
+      h_p_expdiff_El_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassEl) - i.tofExpEl()) / i.tofExpEl());
+      h_p_expdiff_Mu_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassMu) - i.tofExpMu()) / i.tofExpMu());
+      h_p_expdiff_Pi_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassPi) - i.tofExpPi()) / i.tofExpPi());
+      h_p_expdiff_Ka_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassKa) - i.tofExpKa()) / i.tofExpKa());
+      h_p_expdiff_Pr_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassPr) - i.tofExpPr()) / i.tofExpPr());
+      h_p_expdiff_De_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassDe) - i.tofExpDe()) / i.tofExpDe());
+      h_p_expdiff_Tr_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassTr) - i.tofExpTr()) / i.tofExpTr());
+      // h_p_expdiff_He_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassHe) - i.tofExpHe()) / i.tofExpHe());
+      // h_p_expdiff_Al_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassHe) - i.tofExpAl()) / i.tofExpAl());
     }
   }
 };
