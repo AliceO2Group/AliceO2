@@ -164,4 +164,37 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
   }
 }
 
+namespace
+{
+void traverseRecursive(const boost::property_tree::ptree& parent,
+                       const boost::property_tree::ptree::path_type& childPath,
+                       const boost::property_tree::ptree& child,
+                       PropertyTreeHelpers::WalkerFunction& method)
+{
+  using boost::property_tree::ptree;
+
+  method(parent, childPath, child);
+  for (ptree::const_iterator it = child.begin(); it != child.end(); ++it) {
+    ptree::path_type curPath = childPath / ptree::path_type(it->first);
+    traverseRecursive(parent, curPath, it->second, method);
+  }
+}
+} // namespace
+
+void PropertyTreeHelpers::traverse(const boost::property_tree::ptree& parent, PropertyTreeHelpers::WalkerFunction& method)
+{
+  traverseRecursive(parent, "", parent, method);
+}
+
+void PropertyTreeHelpers::merge(boost::property_tree::ptree& dest,
+                                boost::property_tree::ptree const& source,
+                                boost::property_tree::ptree::path_type const& mergePoint)
+{
+  using boost::property_tree::ptree;
+  WalkerFunction merge = [&dest, &mergePoint](ptree const& parent, ptree::path_type childPath, ptree const& child) {
+    dest.put(mergePoint / childPath, child.data());
+  };
+  traverse(source, merge);
+}
+
 } // namespace o2::framework
