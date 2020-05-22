@@ -108,8 +108,9 @@ void Pipe::ConstructGeometry()
   const TGeoMedium* kMedCarbonFiber = matmgr.getTGeoMedium("PIPE_M55J6K");
 
   // Top volume
-  TGeoVolume* top    = gGeoManager->GetVolume("cave");
-  TGeoVolume* barrel = gGeoManager->GetVolume("barrel");
+  TGeoVolume* top      = gGeoManager->GetVolume("cave");
+  TGeoVolume* barrel   = gGeoManager->GetVolume("barrel");
+  TGeoVolume* caveRB24 = gGeoManager->GetVolume("caveRB24");
   //
   //
   ////////////////////////////////////////////////////////////////////////////////
@@ -636,6 +637,7 @@ void Pipe::ConstructGeometry()
   const Float_t kRB24CuTubeRo = 8.4 / 2.;
   const Float_t kRB24CuTubeFRo = 7.6;
   const Float_t kRB24CuTubeFL = 1.86;
+  const Float_t kRB24CL = 2. * 598.74752;
   //
   // introduce cut at end of barrel 714.6m
   //
@@ -656,8 +658,6 @@ void Pipe::ConstructGeometry()
   
   // Air outside tube with higher transport cuts
   TGeoVolume* voRB24CuTubeA = new TGeoVolume("voRB24CuTubeA", new TGeoTube(80., 81., kRB24bCuTubeL / 2.), kMedAirHigh);
-  voRB24CuTubeA->SetVisibility(0);
-  TGeoVolume* voRB24cCuTubeA = new TGeoVolume("voRB24cCuTubeA", new TGeoTube(80., 81., 450.), kMedAirHigh);
   voRB24CuTubeA->SetVisibility(0);
 
   // Simplified DN 100 Flange
@@ -1435,13 +1435,13 @@ void Pipe::ConstructGeometry()
   // Cu Tube with two simplified flanges in central barrel
   voRB24->AddNode(voRB24CuTubeM, 1, gGeoIdentity);
   voRB24->AddNode(voRB24CuTubeA, 1, gGeoIdentity);
-  // Flange missing ??
+
   
   // part which is placed in the cave
   // ->
   TGeoVolumeAssembly* voRB24C = new TGeoVolumeAssembly("RB24C");
   voRB24C->AddNode(voRB24cCuTubeM, 1, gGeoIdentity);
-  voRB24C->AddNode(voRB24cCuTubeA, 1, new TGeoTranslation(0., 0., -(900.-kRB24cCuTubeL)/2.));
+  //  voRB24C->AddNode(voRB24cCuTubeA, 1, new TGeoTranslation(0., 0., -(900.-kRB24cCuTubeL)/2.));
   z = -kRB24cCuTubeL / 2 + kRB24CuTubeFL / 2.;
   voRB24C->AddNode(voRB24CuTubeF, 1, new TGeoTranslation(0., 0., z));
   //   z = +kRB24cCuTubeL / 2 - kRB24CuTubeFL / 2.;
@@ -1522,9 +1522,8 @@ void Pipe::ConstructGeometry()
 
   //
   //
+  caveRB24->AddNode(voRB24C, 1, new TGeoCombiTrans(0., 0., -kRB24CL/2 + kRB24cCuTubeL/2, rot180));
   barrel->AddNode(voRB24, 1, new TGeoCombiTrans(0., 30., kRB24bCuTubeL / 2 + 88.5 + 400. + 0.375, rot180));
-  top->AddNode(voRB24C, 1, new TGeoCombiTrans(0., 0., kRB24cCuTubeL / 2 + 714.6, rot180));
-
   //
   ////////////////////////////////////////////////////////////////////////////////
   //                                                                            //
