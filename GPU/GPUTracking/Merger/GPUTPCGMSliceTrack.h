@@ -43,14 +43,14 @@ class GPUTPCGMSliceTrack
   GPUd() int NextSegmentNeighbour() const { return mSegmentNeighbour[1]; }
   GPUd() int SegmentNeighbour(int i) const { return mSegmentNeighbour[i]; }
   GPUd() const GPUTPCTrack* OrigTrack() const { return mOrigTrack; }
-  GPUd() float X() const { return mX; }
-  GPUd() float Y() const { return mY; }
-  GPUd() float Z() const { return mZ; }
-  GPUd() float SinPhi() const { return mSinPhi; }
-  GPUd() float CosPhi() const { return mCosPhi; }
-  GPUd() float SecPhi() const { return mSecPhi; }
-  GPUd() float DzDs() const { return mDzDs; }
-  GPUd() float QPt() const { return mQPt; }
+  GPUd() float X() const { return mParam.mX; }
+  GPUd() float Y() const { return mParam.mY; }
+  GPUd() float Z() const { return mParam.mZ; }
+  GPUd() float SinPhi() const { return mParam.mSinPhi; }
+  GPUd() float CosPhi() const { return mParam.mCosPhi; }
+  GPUd() float SecPhi() const { return mParam.mSecPhi; }
+  GPUd() float DzDs() const { return mParam.mDzDs; }
+  GPUd() float QPt() const { return mParam.mQPt; }
   GPUd() float TZOffset() const { return mTZOffset; }
   GPUd() unsigned char Leg() const { return mLeg; }
 
@@ -70,19 +70,23 @@ class GPUTPCGMSliceTrack
   }
 
   GPUd() void Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sliceTr, float alpha, int slice);
+  GPUd() void SetParam2(const GPUTPCGMTrackParam& trk);
   GPUd() void Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sliceTr, float alpha, int slice);
+  GPUd() void UseParam2() { mParam = mParam2; }
+  GPUd() void SetX2(float v) { mParam2.mX = v; }
+  GPUd() float X2() const { return mParam2.mX; }
 
   GPUd() void SetGlobalSectorTrackCov()
   {
-    mC0 = 1;
-    mC2 = 1;
-    mC3 = 0;
-    mC5 = 1;
-    mC7 = 0;
-    mC9 = 1;
-    mC10 = 0;
-    mC12 = 0;
-    mC14 = 10;
+    mParam.mC0 = 1;
+    mParam.mC2 = 1;
+    mParam.mC3 = 0;
+    mParam.mC5 = 1;
+    mParam.mC7 = 0;
+    mParam.mC9 = 1;
+    mParam.mC10 = 0;
+    mParam.mC12 = 0;
+    mParam.mC14 = 10;
   }
 
   GPUd() void SetNClusters(int v) { mNClusters = v; }
@@ -95,13 +99,14 @@ class GPUTPCGMSliceTrack
 
   GPUd() void CopyParamFrom(const GPUTPCGMSliceTrack& t)
   {
-    mX = t.mX;
-    mY = t.mY;
-    mZ = t.mZ;
-    mSinPhi = t.mSinPhi;
-    mDzDs = t.mDzDs;
-    mQPt = t.mQPt;
-    mCosPhi = t.mCosPhi, mSecPhi = t.mSecPhi;
+    mParam.mX = t.mParam.mX;
+    mParam.mY = t.mParam.mY;
+    mParam.mZ = t.mParam.mZ;
+    mParam.mSinPhi = t.mParam.mSinPhi;
+    mParam.mDzDs = t.mParam.mDzDs;
+    mParam.mQPt = t.mParam.mQPt;
+    mParam.mCosPhi = t.mParam.mCosPhi;
+    mParam.mSecPhi = t.mParam.mSecPhi;
     mAlpha = t.mAlpha;
   }
 
@@ -111,10 +116,14 @@ class GPUTPCGMSliceTrack
   GPUd() void CopyBaseTrackCov();
 
  private:
+  struct sliceTrackParam {
+    float mX, mY, mZ, mSinPhi, mDzDs, mQPt, mCosPhi, mSecPhi; // parameters
+    float mC0, mC2, mC3, mC5, mC7, mC9, mC10, mC12, mC14;     // covariances
+  };
   const GPUTPCTrack* mOrigTrack;                            // pointer to original slice track
-  float mX, mY, mZ, mSinPhi, mDzDs, mQPt, mCosPhi, mSecPhi; // parameters
+  sliceTrackParam mParam;                                   // Track parameters
+  sliceTrackParam mParam2;                                  // Parameters at other side
   float mTZOffset;                                          // Z offset with early transform, T offset otherwise
-  float mC0, mC2, mC3, mC5, mC7, mC9, mC10, mC12, mC14;     // covariances
   float mAlpha;                                             // alpha angle
   float mClusterZT[2];                                      // Minimum maximum cluster Z / T
   int mNClusters;                                           // N clusters
