@@ -14,6 +14,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/program_options/variables_map.hpp>
+#include <functional>
 
 namespace o2::framework
 {
@@ -46,6 +47,16 @@ struct PropertyTreeHelpers {
                        boost::property_tree::ptree const& in,
                        boost::property_tree::ptree& provenance,
                        std::string const& propertyLabel);
+
+  //using WalkerFunction = std::function<void(boost::property_tree::ptree const&, boost::property_tree::ptree::path_type, boost::property_tree::ptree const&)>;
+  using WalkerFunction = std::function<void(boost::property_tree::ptree const&, boost::property_tree::ptree::path_type, boost::property_tree::ptree const&)>;
+  /// Traverse the tree recursively calling @a WalkerFunction on each leaf.
+  static void traverse(boost::property_tree::ptree const& parent, WalkerFunction& method);
+
+  /// Merge @a source ptree into @a dest
+  static void merge(boost::property_tree::ptree& dest,
+                    boost::property_tree::ptree const& source,
+                    boost::property_tree::ptree::path_type const& mergePoint);
 };
 
 } // namespace o2::framework
