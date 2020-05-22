@@ -24,7 +24,9 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       "simple",
       Inputs{},
       Outputs{OutputSpec{{"phase"}, "TOF", "LHCphase"},
-              OutputSpec{{"timeSlewing"}, "TOF", "ChannelCalib"}},
+              OutputSpec{{"timeSlewing"}, "TOF", "ChannelCalib"},
+              OutputSpec{{"startLHCphase"}, "TOF", "StartLHCphase"},
+              OutputSpec{{"startTimeChCal"}, "TOF", "StartChCalib"}},
       adaptStateless([](DataAllocator& outputs, ControlService& control) {
         // Create and fill a dummy LHCphase object
         auto& lhcPhase = outputs.make<o2::dataformats::CalibLHCphaseTOF>(OutputRef{"phase", 0});
@@ -37,6 +39,8 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
           int channelInSector = ich % o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
           calibTimeSlewing.setFractionUnderPeak(sector, channelInSector, 1);
         }
+	auto& startTimeLHCphase = outputs.make<long>(OutputRef{"startLHCphase", 0});  // we send also the start validity of the LHC phase
+	auto& startTimeChCalib = outputs.make<long>(OutputRef{"startTimeChCal", 0});  // we send also the start validity of the channel calibration
         control.endOfStream();
         control.readyToQuit(QuitRequest::Me);
       })}};

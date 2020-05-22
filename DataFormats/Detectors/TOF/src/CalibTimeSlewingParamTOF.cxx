@@ -21,7 +21,6 @@ using namespace o2::dataformats;
 
 CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF()
 {
-
   mTimeSlewing[0] = &mTimeSlewingSec00;
   mTimeSlewing[1] = &mTimeSlewingSec01;
   mTimeSlewing[2] = &mTimeSlewingSec02;
@@ -50,6 +49,78 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF()
   }
 }
 //______________________________________________
+CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTOF& source)
+{
+  mTimeSlewingSec00 = source.mTimeSlewingSec00;
+  mTimeSlewingSec01 = source.mTimeSlewingSec01;
+  mTimeSlewingSec02 = source.mTimeSlewingSec02;
+  mTimeSlewingSec03 = source.mTimeSlewingSec03;
+  mTimeSlewingSec04 = source.mTimeSlewingSec04;
+  mTimeSlewingSec05 = source.mTimeSlewingSec05;
+  mTimeSlewingSec06 = source.mTimeSlewingSec06;
+  mTimeSlewingSec07 = source.mTimeSlewingSec07;
+  mTimeSlewingSec08 = source.mTimeSlewingSec08;
+  mTimeSlewingSec09 = source.mTimeSlewingSec09;
+  mTimeSlewingSec10 = source.mTimeSlewingSec10;
+  mTimeSlewingSec11 = source.mTimeSlewingSec11;
+  mTimeSlewingSec12 = source.mTimeSlewingSec12;
+  mTimeSlewingSec13 = source.mTimeSlewingSec13;
+  mTimeSlewingSec14 = source.mTimeSlewingSec14;
+  mTimeSlewingSec15 = source.mTimeSlewingSec15;
+  mTimeSlewingSec16 = source.mTimeSlewingSec16;
+  mTimeSlewingSec17 = source.mTimeSlewingSec17;
+  /*
+  for (int i = 0; i < source.mTimeSlewingSec00.size(); i++) {
+    //printf("i = %d, value first = %f, value second = %f\n", i, source.mTimeSlewingSec00[i].first, source.mTimeSlewingSec00[i].second);
+    mTimeSlewingSec00.push_back(source.mTimeSlewingSec00[i]);
+  }
+  
+  for (int i = 0; i < source.mTimeSlewingSec01.size(); i++) mTimeSlewingSec01.push_back(source.mTimeSlewingSec01[i]);
+  for (int i = 0; i < source.mTimeSlewingSec02.size(); i++) mTimeSlewingSec02.push_back(source.mTimeSlewingSec02[i]);
+  for (int i = 0; i < source.mTimeSlewingSec03.size(); i++) mTimeSlewingSec03.push_back(source.mTimeSlewingSec03[i]);
+  for (int i = 0; i < source.mTimeSlewingSec04.size(); i++) mTimeSlewingSec04.push_back(source.mTimeSlewingSec04[i]);
+  for (int i = 0; i < source.mTimeSlewingSec05.size(); i++) mTimeSlewingSec05.push_back(source.mTimeSlewingSec05[i]);
+  for (int i = 0; i < source.mTimeSlewingSec06.size(); i++) mTimeSlewingSec06.push_back(source.mTimeSlewingSec06[i]);
+  for (int i = 0; i < source.mTimeSlewingSec07.size(); i++) mTimeSlewingSec07.push_back(source.mTimeSlewingSec07[i]);
+  for (int i = 0; i < source.mTimeSlewingSec08.size(); i++) mTimeSlewingSec08.push_back(source.mTimeSlewingSec08[i]);
+  for (int i = 0; i < source.mTimeSlewingSec09.size(); i++) mTimeSlewingSec09.push_back(source.mTimeSlewingSec09[i]);
+  for (int i = 0; i < source.mTimeSlewingSec10.size(); i++) mTimeSlewingSec10.push_back(source.mTimeSlewingSec10[i]);
+  for (int i = 0; i < source.mTimeSlewingSec11.size(); i++) mTimeSlewingSec11.push_back(source.mTimeSlewingSec11[i]);
+  for (int i = 0; i < source.mTimeSlewingSec12.size(); i++) mTimeSlewingSec12.push_back(source.mTimeSlewingSec12[i]);
+  for (int i = 0; i < source.mTimeSlewingSec13.size(); i++) mTimeSlewingSec13.push_back(source.mTimeSlewingSec13[i]);
+  for (int i = 0; i < source.mTimeSlewingSec14.size(); i++) mTimeSlewingSec14.push_back(source.mTimeSlewingSec14[i]);
+  for (int i = 0; i < source.mTimeSlewingSec15.size(); i++) mTimeSlewingSec15.push_back(source.mTimeSlewingSec15[i]);
+  for (int i = 0; i < source.mTimeSlewingSec16.size(); i++) mTimeSlewingSec16.push_back(source.mTimeSlewingSec16[i]);
+  for (int i = 0; i < source.mTimeSlewingSec17.size(); i++) mTimeSlewingSec17.push_back(source.mTimeSlewingSec17[i]);
+  */
+  mTimeSlewing[0] = &mTimeSlewingSec00;
+  mTimeSlewing[1] = &mTimeSlewingSec01;
+  mTimeSlewing[2] = &mTimeSlewingSec02;
+  mTimeSlewing[3] = &mTimeSlewingSec03;
+  mTimeSlewing[4] = &mTimeSlewingSec04;
+  mTimeSlewing[5] = &mTimeSlewingSec05;
+  mTimeSlewing[6] = &mTimeSlewingSec06;
+  mTimeSlewing[7] = &mTimeSlewingSec07;
+  mTimeSlewing[8] = &mTimeSlewingSec08;
+  mTimeSlewing[9] = &mTimeSlewingSec09;
+  mTimeSlewing[10] = &mTimeSlewingSec10;
+  mTimeSlewing[11] = &mTimeSlewingSec11;
+  mTimeSlewing[12] = &mTimeSlewingSec12;
+  mTimeSlewing[13] = &mTimeSlewingSec13;
+  mTimeSlewing[14] = &mTimeSlewingSec14;
+  mTimeSlewing[15] = &mTimeSlewingSec15;
+  mTimeSlewing[16] = &mTimeSlewingSec16;
+  mTimeSlewing[17] = &mTimeSlewingSec17;
+
+  for (int i = 0; i < NSECTORS; i++) {
+    for (int j = 0; j < NCHANNELXSECTOR; j++) {
+      mChannelStart[i][j] = source.mChannelStart[i][j];
+      mFractionUnderPeak[i][j] = source.mFractionUnderPeak[i][j];
+      mSigmaPeak[i][j] = source.mSigmaPeak[i][j];
+    }
+  }
+}
+//______________________________________________
 CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator=(const CalibTimeSlewingParamTOF& source)
 {
   for (int i = 0; i < NSECTORS; i++) {
@@ -64,6 +135,13 @@ CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator=(const CalibTimeSle
   }
   return *this;
 }
+
+//______________________________________________
+float CalibTimeSlewingParamTOF::getChannelOffset(int channel) const
+{
+  return evalTimeSlewing(channel, 0);
+}
+
 //______________________________________________
 float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float tot) const
 {
@@ -76,6 +154,10 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float tot) const
   int n = mChannelStart[sector][channel];
   if (n < 0)
     return 0.;
+
+  if (tot == 0) {
+    return (*(mTimeSlewing[sector]))[n].second;
+  }
 
   int nstop = (*(mTimeSlewing[sector])).size();
   if (channel < NCHANNELXSECTOR - 1)
@@ -124,6 +206,34 @@ void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float 
   }
   // printf("DBG: emplace back (%f,%f)\n",tot,time);
   (*(mTimeSlewing[sector])).emplace_back(tot, time);
+}
+//______________________________________________
+
+bool CalibTimeSlewingParamTOF::updateOffsetInfo(int channel, float residualOffset)
+{
+  
+  // to update only the channel offset info in an existing CCDB object
+
+  int sector = channel / NCHANNELXSECTOR;
+  channel = channel % NCHANNELXSECTOR;
+  //  printf("sector = %d, channel = %d\n", sector, channel);
+
+  // printf("DBG: addTimeSlewinginfo sec=%i\n",sector);
+
+  int n = mChannelStart[sector][channel]; // first time slewing entry for the current channel. this corresponds to tot = 0
+  if ((*(mTimeSlewing[sector]))[n].first != 0) {
+    printf("DBG: there was no time offset set yet! first tot is %f\n", (*(mTimeSlewing[sector]))[n].first);
+    std::pair<float, float> offsetToBeInserted(0, residualOffset);
+    auto it = (*(mTimeSlewing[sector])).begin();
+    (*(mTimeSlewing[sector])).insert(it+n, offsetToBeInserted);
+    // now we have to increase by 1 all the mChannelStart for the channels that come after this
+    for (auto ch = channel+1; ch < NCHANNELXSECTOR; ch++){
+      mChannelStart[sector][ch]++;
+    }
+    return false;
+  }
+  (*(mTimeSlewing[sector]))[n].second += residualOffset;
+  return true;
 }
 //______________________________________________
 

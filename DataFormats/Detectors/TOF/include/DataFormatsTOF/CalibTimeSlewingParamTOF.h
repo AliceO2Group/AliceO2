@@ -30,11 +30,17 @@ class CalibTimeSlewingParamTOF
 
   CalibTimeSlewingParamTOF();
 
+  CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTOF& source);
+
   CalibTimeSlewingParamTOF& operator=(const CalibTimeSlewingParamTOF& source);
+
+  float getChannelOffset(int channel) const;
 
   float evalTimeSlewing(int channel, float tot) const;
 
   void addTimeSlewingInfo(int channel, float tot, float time);
+
+  bool updateOffsetInfo(int channel, float residualOffset);
 
   const std::vector<std::pair<float, float>>* getVector(int sector) const { return mTimeSlewing[sector]; }
 
