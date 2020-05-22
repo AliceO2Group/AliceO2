@@ -11,7 +11,7 @@
 /// \file ZeroSuppress.cxx
 /// \brief Class for the TPC zero suppressed data format
 
-#include <math.h>
+#include <cmath>
 #include <iostream>
 #include <array>
 
