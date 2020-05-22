@@ -129,10 +129,10 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int ForceInitQA();
 
   // Processing functions
-  int RunTPCClusterizer();
+  int RunTPCClusterizer(bool synchronizeOutput = true);
   void ForwardTPCDigits();
   int RunTPCTrackingSlices();
-  int RunTPCTrackingMerger();
+  int RunTPCTrackingMerger(bool synchronizeOutput = true);
   int RunTRDTracking();
   int DoTRDGPUTracking();
   int RunTPCCompression();
@@ -170,17 +170,17 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   struct eventStruct // Must consist only of void* ptr that will hold the GPU event ptrs!
   {
-    void* selector[NSLICES];
+    void* slice[NSLICES];
     void* stream[GPUCA_MAX_STREAMS];
     void* init;
-    void* constructor;
+    void* single;
   };
 
   GPUChainTracking(GPUReconstruction* rec, unsigned int maxTPCHits = GPUCA_MAX_CLUSTERS, unsigned int maxTRDTracklets = GPUCA_MAX_TRD_TRACKLETS);
 
   int ReadEvent(unsigned int iSlice, int threadId);
   void WriteOutput(int iSlice, int threadId);
-  int GlobalTracking(unsigned int iSlice, int threadId);
+  int GlobalTracking(unsigned int iSlice, int threadId, bool synchronizeOutput = true);
   void PrepareEventFromNative();
   void UpdateShadowProcessors();
 
