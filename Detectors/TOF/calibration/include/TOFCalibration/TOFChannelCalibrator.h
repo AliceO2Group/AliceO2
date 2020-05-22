@@ -14,10 +14,11 @@
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
-#include "TOFCalibration/CalibTOFapi.h"
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
 #include "TOFBase/Geo.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "TOFCalibration/CalibTOFapi.h"
+
 #include <array>
 #include <boost/histogram.hpp>
 
@@ -29,6 +30,7 @@ namespace tof
 class TOFChannelData {
 
 using Slot = o2::calibration::TimeSlot<o2::tof::TOFChannelData>;
+using CalibTOFapi = o2::tof::CalibTOFapi;
 using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::integer<> >, boost::histogram::unlimited_storage<std::allocator<char> > >;
 
 public:
@@ -39,7 +41,7 @@ public:
     LOG(INFO) << "Default c-tor, not to be used";
   }
 
-  TOFChannelData(int nb, float r) : mNBins(nb), mRange(r)
+  TOFChannelData(int nb, float r,  CalibTOFapi* cta) : mNBins(nb), mRange(r), mCalibTOFapi(cta)
   {
     if (r <= 0. || nb < 1) {
       throw std::runtime_error("Wrong initialization of the histogram");
@@ -81,13 +83,15 @@ public:
   std::vector<int> getEntriesPerChannel() const { return mEntries; }
 
  private:
-  float mRange = 24400;
+  float mRange = o2::tof::Geo::BC_TIME_INPS * 0.5;
   int mNBins = 1000;
   float mV2Bin;
   // do I really have to initialize it like below?
   std::array<boostHisto,18> mHisto;
   std::vector<int> mEntries; // vector containing number of entries per channel
 
+  CalibTOFapi* mCalibTOFapi = nullptr;   // calibTOFapi to correct the t-text
+  
   ClassDefNV(TOFChannelData, 1);
 };
 
@@ -104,7 +108,7 @@ class TOFChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::dat
  public:
 
   static const int NCHANNELSXSECTOR = o2::tof::Geo::NCHANNELS / o2::tof::Geo::NSECTORS;
-  TOFChannelCalibrator(int minEnt = 500, int nb = 1000, float r = 24400, const std::string path = "http://ccdb-test.cern.ch:8080") : mMinEntries(minEnt), mNBins(nb), mRange(r) { mCalibTOFapi.setURL(path); }
+  TOFChannelCalibrator(int minEnt = 500, int nb = 1000, float r = 24400) : mMinEntries(minEnt), mNBins(nb), mRange(r) {} ;
 
   ~TOFChannelCalibrator() final = default;
 
@@ -119,13 +123,22 @@ class TOFChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::dat
 
   void isTest(bool isTest) { mTest = isTest; }
   bool isTest() const { return mTest; }
+
+  void setCalibTOFapi(CalibTOFapi* api) { mCalibTOFapi = api; }
+  CalibTOFapi* getCalibTOFapi() const { return mCalibTOFapi; }
+  
+  void setRange(float r) { mRange = r; }
+  float getRange() const { return mRange; }
   
  private:
   int mMinEntries = 0;  // min number of entries to calibrate the TimeSlot
   int mNBins = 0;  // bins of the histogram with the t-text per channel
   float mRange = 0.;  // range of the histogram with the t-text per channel
-  bool mTest; // flag to be used when running in test mode: it simplify the processing (e.g. does not go through all channels)
-  CalibTOFapi mCalibTOFapi; 
+  bool mTest = false; // flag to be used when running in test mode: it simplify the processing (e.g. does not go through all channels)
+
+  CalibTOFapi* mCalibTOFapi = nullptr; // CalibTOFapi needed to get the previous calibrations read from CCDB (do we need that it is a pointer?)
+
+  // output 
   CcdbObjectInfoVector mInfoVector; // vector of CCDB Infos , each element is filled with the CCDB description of the accompanying TimeSlewing object
   TimeSlewingVector mTimeSlewingVector;   // vector of TimeSlewing, each element is filled in "process"
                                           // when we finalize one slot (multiple can be finalized

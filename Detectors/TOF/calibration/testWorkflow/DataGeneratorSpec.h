@@ -100,8 +100,9 @@ class TFProcessor : public o2::framework::Task
       else {
 	int channel = mTOFChannelCalibInTestMode? gRandom->Integer(100) : gRandom->Integer(o2::tof::Geo::NCHANNELS);
 	double value = gRandom->Gaus(mChannelShifts[channel], 100.);
+	double tot = gRandom->Gaus(12, 2);
 	//LOG(INFO) << "channel = " << channel << ", value = " << value;
-	output.emplace_back(channel, 0, value, 0, 0);
+	output.emplace_back(channel, 0, value, tot, 0);
       }
     }
   }
