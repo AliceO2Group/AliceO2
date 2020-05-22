@@ -62,6 +62,8 @@ void Cave::ConstructGeometry()
 {
   createMaterials();
   auto& matmgr = o2::base::MaterialManager::Instance();
+  auto kMedAir = gGeoManager->GetMedium("CAVE_Air");
+
   Float_t dALIC[3];
 
   if (mHasZDC) {
@@ -76,7 +78,7 @@ void Cave::ConstructGeometry()
     dALIC[1] = 2000;
     dALIC[2] = 3000;
   }
-  auto cavevol = gGeoManager->MakeBox("cave", gGeoManager->GetMedium("CAVE_Air_NF"), dALIC[0], dALIC[1], dALIC[2]);
+  auto cavevol = gGeoManager->MakeBox("cave", kMedAir, dALIC[0], dALIC[1], dALIC[2]);
   gGeoManager->SetTopVolume(cavevol);
 
   TGeoPgon* shCaveTR1 = new TGeoPgon("shCaveTR1", 22.5, 360.,8., 2);
@@ -87,11 +89,24 @@ void Cave::ConstructGeometry()
   TGeoTranslation* transCaveTR2 = new TGeoTranslation("transTR2", 0, 30., -505.-110.);
   transCaveTR2->RegisterYourself();
   TGeoCompositeShape* shCaveTR = new TGeoCompositeShape("shCaveTR", "shCaveTR1-shCaveTR2:transTR2");
-  TGeoVolume* voBarrel = new TGeoVolume("barrel", shCaveTR, gGeoManager->GetMedium("CAVE_Air"));
+  TGeoVolume* voBarrel = new TGeoVolume("barrel", shCaveTR, kMedAir);
   cavevol->AddNode(voBarrel, 1, new TGeoTranslation(0., -30., 0.));
- 
-  //        
+
+  // mother volune for RB24 side (FDD, Compensator)
+  const Float_t kRB24CL = 2. * 598.74752;
+  auto shCaveRB24 = new TGeoPcon(0., 360., 6);
+  Float_t z0 = kRB24CL/2 + 714.6;
+  shCaveRB24->DefineSection(0, -kRB24CL/2., 0., 90.);
+  shCaveRB24->DefineSection(1, -z0 + 1705., 0., 90.);
+  shCaveRB24->DefineSection(2, -z0 + 1705., 0., 14.5);
+  shCaveRB24->DefineSection(3, -z0 + 1880., 0., 14.5);
+  shCaveRB24->DefineSection(4, -z0 + 1880., 0., 40.0);
+  shCaveRB24->DefineSection(5,  kRB24CL/2         , 0., 40.0);
   
+  TGeoVolume* caveRB24 = new TGeoVolume("caveRB24", shCaveRB24, kMedAir);
+  caveRB24->SetVisibility(0);
+  cavevol->AddNode(caveRB24, 1, new TGeoTranslation(0., 0., z0));
+  //        
 }
 
 Cave::Cave() : FairDetector() {}
