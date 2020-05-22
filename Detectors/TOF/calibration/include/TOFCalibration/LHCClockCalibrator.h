@@ -16,6 +16,7 @@
 #include "DataFormatsTOF/CalibInfoTOF.h"
 #include "TOFCalibration/CalibTOFapi.h"
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
+#include "TOFBase/Geo.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include <array>
 
@@ -25,7 +26,7 @@ namespace tof
 {
 
 struct LHCClockDataHisto {
-  float range = 24400;
+  float range = o2::tof::Geo::BC_TIME_INPS * 0.5;
   int nbins = 1000;
   float v2Bin = nbins / (2 * range);
   int entries = 0;

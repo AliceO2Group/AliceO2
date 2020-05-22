@@ -39,13 +39,18 @@ void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> d
 {
   // fill container
   for (int i = data.size(); i--;) {
-    auto dt = data[i].getDeltaTimePi();
     auto ch = data[i].getTOFChIndex();
     int sector = ch / o2::tof::Geo::NPADSXSECTOR;
     int chInSect = ch % o2::tof::Geo::NPADSXSECTOR;
-    mHisto[sector](dt, chInSect);
+    auto dt = data[i].getDeltaTimePi();
+    auto tot = data[i].getTot();
+    // TO BE DISCUSSED: could it be that the LHCphase is too old? If we ar ein sync mode, it could be that it is not yet created for the current run, so the one from the previous run (which could be very old) is used. But maybe it does not matter much, since soon enough a calibrated LHC phase should be produced
+    auto corr = mCalibTOFapi->getTimeCalibration(ch, tot); // we take into account LHCphase, offsets and time slewing
+    //    LOG(INFO) << "inserting dt = " << dt << ", tot = " << tot << ", corr = " << corr << ", corrected dt = " << dt-corr;
+    mHisto[sector](dt - corr, chInSect); // we pass the calibrated time
     mEntries[ch] += 1;
   }
+
 }
 
 //_____________________________________________
@@ -423,9 +428,13 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
 
   // for the CCDB entry
   std::map<std::string, std::string> md;
-  TimeSlewing ts;
+  TimeSlewing& ts = mCalibTOFapi->getSlewParamObj(); // we take the current CCDB object, since we want to simply update the offset
+  for (int ich = 0; ich < 10; ich++){
+    LOG(INFO) << "for test, checking channel " << ich << ": offset = " << ts.evalTimeSlewing(ich, 0);
+  }
   
   for (int ich = 0; ich < o2::tof::Geo::NCHANNELS; ich++) {
+    //    LOG(INFO) << "ich = " << ich;
     // make the slice of the 2D histogram so that we have the 1D of the current channel
     int sector = ich / o2::tof::Geo::NPADSXSECTOR;
     int chinsector = ich % o2::tof::Geo::NPADSXSECTOR;
@@ -489,23 +498,28 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
     // now we need to store the results in the TimeSlewingObject
     ts.setFractionUnderPeak(ich / o2::tof::Geo::NPADSXSECTOR, ich % o2::tof::Geo::NPADSXSECTOR, fractionUnderPeak);
     ts.setSigmaPeak(ich / o2::tof::Geo::NPADSXSECTOR, ich % o2::tof::Geo::NPADSXSECTOR, abs(fitValues[2]));
-    ts.addTimeSlewingInfo(ich, 0, fitValues[1]);
+    //    ts.addTimeSlewingInfo(ich, 0, fitValues[1]);
+    ts.updateOffsetInfo(ich, fitValues[1]);
+  }
+  for (int ich = 0; ich < 10; ich++){
+    LOG(INFO) << "for test, checking channel " << ich << ": offset = " << ts.evalTimeSlewing(ich, 0);
   }
   auto clName = o2::utils::MemFileHelper::getClassName(ts);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   mInfoVector.emplace_back("TOF/ChannelCalib", clName, flName, md, slot.getTFStart(), 99999999999999);
   mTimeSlewingVector.emplace_back(ts);
-
-  slot.print();
+  
+  //  slot.print();
 
 }
 
 //_____________________________________________
 Slot& TOFChannelCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
+
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
-  slot.setContainer(std::make_unique<TOFChannelData>(mNBins, mRange));
+  slot.setContainer(std::make_unique<TOFChannelData>(mNBins, mRange, mCalibTOFapi));
   return slot;
 }
 
