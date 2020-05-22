@@ -613,7 +613,7 @@ struct AnalysisDataProcessorBuilder {
                     "Associated arguments of process() should not be iterators");
       auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, &C::process, infos);
       auto binder = [&](auto&& x) {
-        x.bindExteranlIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
+        x.bindExternalIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
       };
       groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedTables)...);
 
