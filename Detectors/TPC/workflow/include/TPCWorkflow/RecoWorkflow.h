@@ -44,6 +44,7 @@ enum struct InputType { Digitizer,        // directly read digits from channel {
 /// - Tracks           tracks
 /// - CompClusters     compressed clusters, CompClusters container
 /// - EncodedClusters  the encoded CompClusters container
+/// - ZSRaw            TPC zero-suppressed raw data
 enum struct OutputType { Digits,
                          ClustersHardware,
                          Clusters,
@@ -51,6 +52,7 @@ enum struct OutputType { Digits,
                          CompClusters,
                          EncodedClusters,
                          DisableWriter,
+                         ZSRaw,
 };
 
 /// create the workflow for TPC reconstruction
@@ -59,32 +61,38 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,         
                                     bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
                                     std::string const& cfgOutput = "tracks",      //
-                                    int caClusterer = 0                           //
-);
+                                    int caClusterer = 0,                          //
+                                    int zsOnTheFly = 0,
+                                    int zs10bit = 0,
+                                    float zsThreshold = 2.0f);
 
 static inline framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,           //
                                                   bool propagateMC = true, unsigned nLanes = 1, //
                                                   std::string const& cfgInput = "digitizer",    //
                                                   std::string const& cfgOutput = "tracks",      //
-                                                  int caClusterer = 0                           //
-)
+                                                  int caClusterer = 0,                          //
+                                                  int zsOnTheFly = 0,
+                                                  int zs10bit = 0,
+                                                  float zsThreshold = 2.0f)
 {
   // create a default lane configuration with ids [0, nLanes-1]
   std::vector<int> laneConfiguration(nLanes);
   std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
-  return getWorkflow(tpcSectors, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer);
+  return getWorkflow(tpcSectors, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer, zsOnTheFly, zs10bit, zsThreshold);
 }
 
 static inline framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1, //
                                                   std::string const& cfgInput = "digitizer",    //
                                                   std::string const& cfgOutput = "tracks",      //
-                                                  int caClusterer = 0                           //
-)
+                                                  int caClusterer = 0,                          //
+                                                  int zsOnTheFly = 0,
+                                                  int zs10bit = 0,
+                                                  float zsThreshold = 2.0f)
 {
   // create a default lane configuration with ids [0, nLanes-1]
   std::vector<int> laneConfiguration(nLanes);
   std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
-  return getWorkflow({}, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer);
+  return getWorkflow({}, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer, zsOnTheFly, zs10bit, zsThreshold);
 }
 
 } // end namespace reco_workflow
