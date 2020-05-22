@@ -35,6 +35,13 @@ TPCdEdxCalibrationSplines::TPCdEdxCalibrationSplines()
   setDefaultSplines();
 }
 
+TPCdEdxCalibrationSplines::TPCdEdxCalibrationSplines(const char* dEdxSplinesFile)
+  : FlatObject()
+{
+  TFile dEdxFile(dEdxSplinesFile);
+  setSplinesFromFile(dEdxFile);
+}
+
 TPCdEdxCalibrationSplines::TPCdEdxCalibrationSplines(const TPCdEdxCalibrationSplines& obj)
   : FlatObject()
 {

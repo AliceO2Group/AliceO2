@@ -76,6 +76,10 @@ class TPCdEdxCalibrationSplines : public FlatObject
   /// Default constructor
   TPCdEdxCalibrationSplines();
 
+  /// constructor with initialization of the splines from file
+  /// \param dEdxSplinesFile path to root file containing the splines
+  TPCdEdxCalibrationSplines(const char* dEdxSplinesFile);
+
   /// Copy constructor
   TPCdEdxCalibrationSplines(const TPCdEdxCalibrationSplines&);
 
