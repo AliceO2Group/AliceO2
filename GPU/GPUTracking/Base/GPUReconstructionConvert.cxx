@@ -222,7 +222,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
 {
   // Pass in either outBuffer / outSizes, to fill standalone output buffers, or raw / ir to use RawFileWriter
   // ir is the interaction record for time bin 0
-  if (((outBuffer == nullptr) ^ (outSizes == nullptr)) || ((raw == nullptr) ^ (ir == nullptr)) || !((outBuffer == nullptr) ^ (raw == nullptr)) || (raw && verify) || (threshold > 0.f && verify)) {
+  if (((outBuffer == nullptr) ^ (outSizes == nullptr)) || ((raw != nullptr) ^ (ir == nullptr)) || !((outBuffer == nullptr) ^ (raw == nullptr)) || (raw && verify) || (threshold > 0.f && verify)) {
     throw std::runtime_error("Invalid parameters");
   }
 #ifdef GPUCA_TPC_GEOMETRY_O2

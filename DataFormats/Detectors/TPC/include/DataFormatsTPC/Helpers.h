@@ -55,6 +55,11 @@ class ClusterHardwareContainerFixedSize
   static_assert(size >= sizeof(ClusterHardwareContainer), "Size must be at least sizeof(ClusterHardwareContainer)");
 };
 typedef ClusterHardwareContainerFixedSize<8192> ClusterHardwareContainer8kb;
+
+struct ZeroSuppressedContainer8kb {
+  char data[8192];
+};
+
 } // namespace tpc
 } // namespace o2
 

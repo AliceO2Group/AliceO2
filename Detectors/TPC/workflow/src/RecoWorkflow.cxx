@@ -23,6 +23,7 @@
 #include "TPCWorkflow/ClusterDecoderRawSpec.h"
 #include "TPCWorkflow/CATrackerSpec.h"
 #include "TPCWorkflow/EntropyEncoderSpec.h"
+#include "TPCWorkflow/ZSSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "DataFormatsTPC/Digit.h"
 #include "DataFormatsTPC/Constants.h"
@@ -30,8 +31,11 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/CompressedClusters.h"
+#include "DataFormatsTPC/ZeroSuppression.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "DataFormatsTPC/Helpers.h"
+#include "DataFormatsTPC/ZeroSuppression.h"
 
 #include <string>
 #include <stdexcept>
@@ -41,6 +45,9 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <algorithm> // std::find
+#include <tuple>     // make_tuple
+#include <array>
+#include <gsl/span>
 
 namespace o2
 {
@@ -72,11 +79,12 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   {"compressed-clusters", OutputType::CompClusters},
   {"encoded-clusters", OutputType::EncodedClusters},
   {"disable-writer", OutputType::DisableWriter},
+  {"zsraw", OutputType::ZSRaw},
 };
 
 framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vector<int> const& laneConfiguration,
                                     bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput,
-                                    int caClusterer)
+                                    int caClusterer, int zsOnTheFly, int zs10bit, float zsThreshold)
 {
   InputType inputType;
 
@@ -101,8 +109,8 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   if (inputType == InputType::Clusters && (isEnabled(OutputType::Digits) || isEnabled(OutputType::ClustersHardware))) {
     throw std::invalid_argument("input/output type mismatch, can not produce 'digits', nor 'clustershardware' from 'clusters'");
   }
-  if (inputType == InputType::ZSRaw && (isEnabled(OutputType::Digits) || isEnabled(OutputType::ClustersHardware))) {
-    throw std::invalid_argument("input/output type mismatch, can not produce 'digits' nor 'clustershardware' from 'zsraw'");
+  if (inputType == InputType::ZSRaw && isEnabled(OutputType::ClustersHardware)) {
+    throw std::invalid_argument("input/output type mismatch, can not produce 'clustershardware' from 'zsraw'");
   }
 
   if (inputType == InputType::ZSRaw && !caClusterer) {
@@ -200,11 +208,14 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   bool runClusterer = !caClusterer && (runHWDecoder || isEnabled(OutputType::ClustersHardware));
   bool zsDecoder = inputType == InputType::ZSRaw;
   bool runClusterEncoder = isEnabled(OutputType::EncodedClusters);
-
   // input matrix
   runClusterer &= inputType == InputType::Digitizer || inputType == InputType::Digits;
   runHWDecoder &= runClusterer || inputType == InputType::ClustersHardware;
   runTracker &= caClusterer || (runHWDecoder || inputType == InputType::Clusters);
+
+  bool outRaw = inputType == InputType::Digits && isEnabled(OutputType::ZSRaw);
+  //bool runZSDecode = inputType == InputType::ZSRaw;
+  bool zsToDigit = inputType == InputType::ZSRaw && isEnabled(OutputType::Digits);
 
   WorkflowSpec parallelProcessors;
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -309,7 +320,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     using DigitOutputType = std::vector<o2::tpc::Digit>;
     using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
     specs.push_back(makeWriterSpec("tpc-digits-writer",
-                                   inputType == InputType::Digits ? "tpc-filtered-digits.root" : "tpcdigits.root",
+                                   inputType == InputType::ZSRaw ? "tpc-zs-digits.root" : inputType == InputType::Digits ? "tpc-filtered-digits.root" : "tpcdigits.root",
                                    "o2sim",
                                    BranchDefinition<DigitOutputType>{InputSpec{"data", "TPC", "DIGITS", 0},
                                                                      "TPCDigit",
@@ -355,6 +366,14 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                                        "mcbranch"}));
   }
 
+  if (zsOnTheFly) {
+    specs.emplace_back(o2::tpc::getZSEncoderSpec(laneConfiguration, zs10bit, zsThreshold, outRaw));
+  }
+
+  if (zsToDigit) {
+    specs.emplace_back(o2::tpc::getZStoDigitsSpec(laneConfiguration));
+  }
+
   //////////////////////////////////////////////////////////////////////////////////////////////
   //
   // tracker process
@@ -365,6 +384,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                    propagateMC ? ca::Operation::ProcessMC : ca::Operation::Noop,
                                                    caClusterer ? ca::Operation::CAClusterer : ca::Operation::Noop,
                                                    zsDecoder ? ca::Operation::ZSDecoder : ca::Operation::Noop,
+                                                   zsOnTheFly ? ca::Operation::ZSOnTheFly : ca::Operation::Noop,
                                                    produceTracks ? ca::Operation::OutputTracks : ca::Operation::Noop,
                                                    produceCompClusters ? ca::Operation::OutputCompClusters : ca::Operation::Noop,
                                                    runClusterEncoder ? ca::Operation::OutputCompClustersFlat : ca::Operation::Noop,

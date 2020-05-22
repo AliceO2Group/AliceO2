@@ -33,6 +33,7 @@ namespace ca
 enum struct Operation {
   CAClusterer,            // run the CA clusterer
   ZSDecoder,              // run the ZS raw data decoder
+  ZSOnTheFly,             // use zs on the fly
   OutputTracks,           // publish tracks
   OutputCAClusters,       // publish the clusters produced by CA clusterer
   OutputCompClusters,     // publish CompClusters container
@@ -61,6 +62,9 @@ struct Config {
       case Operation::ZSDecoder:
         zsDecoder = true;
         break;
+      case Operation::ZSOnTheFly:
+        zsOnTheFly = true;
+        break;
       case Operation::OutputTracks:
         outputTracks = true;
         break;
@@ -88,6 +92,7 @@ struct Config {
 
   bool caClusterer = false;
   bool zsDecoder = false;
+  bool zsOnTheFly = false;
   bool outputTracks = false;
   bool outputCompClusters = false;
   bool outputCompClustersFlat = false;
