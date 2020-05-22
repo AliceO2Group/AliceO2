@@ -612,16 +612,16 @@ struct AnalysisDataProcessorBuilder {
       static_assert(((soa::is_soa_iterator_t<std::decay_t<Associated>>::value == false) && ...),
                     "Associated arguments of process() should not be iterators");
       auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, &C::process, infos);
+      auto binder = [&](auto&& x) {
+        x.bindExternalIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
+      };
+      groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedTables)...);
+
       if constexpr (soa::is_soa_iterator_t<std::decay_t<G>>::value) {
         // grouping case
-        (groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedTables)), ...);
         auto slicer = GroupSlicer(groupingTable, associatedTables);
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
-          (std::get<std::decay_t<Associated>>(associatedSlices).bindExternalIndices(&groupingTable), ...);
-          auto binder = [&](auto&& x) {
-            (std::get<std::decay_t<Associated>>(associatedSlices).bindExternalIndices(&x), ...);
-          };
           std::apply(
             [&](auto&&... x) {
               (binder(x), ...);
@@ -632,11 +632,6 @@ struct AnalysisDataProcessorBuilder {
         }
       } else {
         // non-grouping case
-        (std::get<std::decay_t<Associated>>(associatedTables).bindExternalIndices(&groupingTable), ...);
-        (groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedTables)), ...);
-        auto binder = [&](auto&& x) {
-          (std::get<std::decay_t<Associated>>(associatedTables).bindExternalIndices(&x), ...);
-        };
         std::apply(
           [&](auto&&... x) {
             (binder(x), ...);
