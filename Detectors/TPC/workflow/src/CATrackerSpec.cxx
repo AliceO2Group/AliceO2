@@ -54,6 +54,8 @@
 #include <vector>
 #include <iomanip>
 #include <stdexcept>
+#include <regex>
+#include "GPUReconstructionConvert.h"
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -70,10 +72,13 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
   auto& processMC = specconfig.processMC;
   auto& caClusterer = specconfig.caClusterer;
   auto& zsDecoder = specconfig.zsDecoder;
+  auto& zsOnTheFly = specconfig.zsOnTheFly;
   if (specconfig.outputCAClusters && !specconfig.caClusterer) {
     throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
   }
+
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
+  constexpr static size_t NEndpoints = 20; //TODO: get from mapper?
   using ClusterGroupParser = o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>;
   struct ProcessAttributes {
     std::bitset<NSectors> validInputs = 0;
@@ -89,9 +94,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
   };
 
   auto processAttributes = std::make_shared<ProcessAttributes>();
-  auto initFunction = [processAttributes, processMC, caClusterer, zsDecoder](InitContext& ic) {
+  auto initFunction = [processAttributes, processMC, caClusterer, zsDecoder, zsOnTheFly](InitContext& ic) {
     auto options = ic.options().get<std::string>("tracker-options");
-
     {
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
@@ -295,7 +299,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       }
     });
 
-    auto processingFct = [processAttributes, processMC, caClusterer, zsDecoder](ProcessingContext& pc) {
+    auto processingFct = [processAttributes, processMC, caClusterer, zsDecoder, zsOnTheFly](ProcessingContext& pc) {
       if (processAttributes->readyToQuit) {
         return;
       }
@@ -303,7 +307,6 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       auto& tracker = processAttributes->tracker;
       uint64_t activeSectors = 0;
       auto& verbosity = processAttributes->verbosity;
-
       // FIXME cleanup almost duplicated code
       auto& validMcInputs = processAttributes->validMcInputs;
       using CachedMCLabelContainer = decltype(std::declval<InputRecord>().get<std::vector<MCLabelContainer>>(DataRef{nullptr, nullptr, nullptr}));
@@ -316,6 +319,10 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       const unsigned int* tpcZSmetaSizes2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
       std::array<gsl::span<const o2::tpc::Digit>, NSectors> inputDigits;
       std::array<std::unique_ptr<const MCLabelContainer>, NSectors> inputDigitsMC;
+      std::array<unsigned int, NEndpoints * NSectors> sizes;
+      gsl::span<const ZeroSuppressedContainer8kb> inputZS;
+
+      // unsigned int totalZSPages = 0;
       if (processMC) {
         std::vector<InputSpec> filter = {
           {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITSMCTR"}, Lifetime::Timeframe},
@@ -363,6 +370,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}, Lifetime::Timeframe},
         {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERNATIVE"}, Lifetime::Timeframe},
       };
+
       for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
         auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
         if (sectorHeader == nullptr) {
@@ -382,12 +390,45 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         activeSectors |= sectorHeader->activeSectors;
         validInputs.set(sector);
         datarefs[sector] = ref;
-        if (caClusterer) {
+        if (caClusterer && !zsOnTheFly) {
           inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
           LOG(INFO) << "GOT SPAN FOR SECTOR " << sector << " -> " << inputDigits[sector].size();
         }
       }
+      if (zsOnTheFly) {
+        sizes = {0};
+        // sizes: #zs pages per endpoint:
+        std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "ZSSIZES"}, Lifetime::Timeframe}};
+        for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
+          sizes = pc.inputs().get<std::array<unsigned int, NEndpoints * NSectors>>(ref);
+        }
+        // zs pages
+        std::vector<InputSpec> filter2 = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "TPCZS"}, Lifetime::Timeframe}};
+        for (auto const& ref : InputRecordWalker(pc.inputs(), filter2)) {
+          inputZS = pc.inputs().get<gsl::span<ZeroSuppressedContainer8kb>>(ref);
+        }
+        //set all sectors as active and as valid inputs
+        for (int s = 0; s < NSectors; s++) {
+          activeSectors |= 1 << s;
+          validInputs.set(s);
+        }
+        for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
+          for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+            tpcZSmetaPointers[i][j].clear();
+            tpcZSmetaSizes[i][j].clear();
+          }
+        }
 
+        unsigned int offset = 0;
+        for (unsigned int i = 0; i < NSectors; i++) {
+          unsigned int pageSector = 0;
+          for (unsigned int j = 0; j < NEndpoints; j++) {
+            pageSector += sizes[i * NEndpoints + j];
+            offset += sizes[i * NEndpoints + j];
+          }
+          LOG(INFO) << "GOT ZS pages FOR SECTOR " << i << " ->  pages: " << pageSector;
+        }
+      }
       if (zsDecoder) {
         for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
           for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
@@ -416,9 +457,10 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
                 tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
               }
               count = 0;
-              lastFEE = o2::raw::RDHUtils::getFEEID(*rdh);
-              rawcru = rdh_utils::getCRU(lastFEE);
-              rawendpoint = rdh_utils::getEndPoint(lastFEE);
+              //lastFEE = o2::raw::RDHUtils::getFEEID(*rdh);
+              lastFEE = int(rdh->feeId);
+              rawcru = int(rdh->cruID);
+              rawendpoint = int(rdh->endPointID);
               if (it.size() == 0 && tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].size()) {
                 ptr = nullptr;
                 continue;
@@ -459,8 +501,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           unsigned long subspec = dh->subSpecification;
           printf("Test: rdh %p, raw %p, payload %p, payloadSize %lld, offset %lld, %s %s %lld\n", rdh, raw, payload, (long long int)payloadSize, (long long int)offset, dh->dataOrigin.as<std::string>().c_str(), dh->dataDescription.as<std::string>().c_str(), (long long int)dh->subSpecification);
         }*/
-
-      } else {
+      } else if (!zsOnTheFly) {
         // FIXME: We can have digits input in zs decoder mode for MC labels
         // This code path should run optionally also for the zs decoder version
         auto printInputLog = [&verbosity, &validInputs, &activeSectors](auto& r, const char* comment, auto& s) {
@@ -539,11 +580,21 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       ClusterNativeAccess clusterIndex;
       std::unique_ptr<ClusterNative[]> clusterBuffer;
       MCLabelContainer clustersMCBuffer;
+      void* ptrEp[NSectors * NEndpoints] = {};
       ptrs.outputTracks = &tracks;
       ptrs.outputClusRefs = &clusRefs;
       ptrs.outputTracksMCTruth = (processMC ? &tracksMCTruth : nullptr);
       if (caClusterer) {
-        if (zsDecoder) {
+        if (zsOnTheFly) {
+          std::cout << "inputZS size: " << inputZS.size() << std::endl;
+          const unsigned long long int* buffer = reinterpret_cast<const unsigned long long int*>(&inputZS[0]);
+          o2::gpu::GPUReconstructionConvert::RunZSEncoderCreateMeta(buffer, sizes.data(), *&ptrEp, &tpcZS);
+          ptrs.tpcZS = &tpcZS;
+          if (processMC) {
+            throw std::runtime_error("Currently unable to process MC information, tpc-tracker crashing when MC propagated");
+            ptrs.o2DigitsMC = &inputDigitsMC;
+          }
+        } else if (zsDecoder) {
           ptrs.tpcZS = &tpcZS;
           if (processMC) {
             throw std::runtime_error("Cannot process MC information, none available"); // In fact, passing in MC data with ZS TPC Raw is not yet available
@@ -554,6 +605,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
             ptrs.o2DigitsMC = &inputDigitsMC;
           }
         }
+
       } else {
         memset(&clusterIndex, 0, sizeof(clusterIndex));
         ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clustersMCBuffer, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
@@ -648,14 +700,14 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     Inputs inputs;
     if (specconfig.caClusterer) {
       // We accept digits and MC labels also if we run on ZS Raw data, since they are needed for MC label propagation
-      if (!specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
+      if (!specconfig.zsOnTheFly && !specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
         inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}, Lifetime::Timeframe});
       }
     } else {
       inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERNATIVE"}, Lifetime::Timeframe});
     }
     if (specconfig.processMC) {
-      if (specconfig.caClusterer) {
+      if (!specconfig.zsOnTheFly && specconfig.caClusterer) {
         constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
         if (!specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
           inputs.emplace_back(InputSpec{"mclblin", ConcreteDataTypeMatcher{gDataOriginTPC, datadesc}, Lifetime::Timeframe});
@@ -669,6 +721,10 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       // All ZS raw data is published with subspec 0 by the o2-raw-file-reader-workflow and DataDistribution
       // creates subspec fom CRU and endpoint id, we create one single input route subscribing to all TPC/RAWDATA
       inputs.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Timeframe});
+    }
+    if (specconfig.zsOnTheFly) {
+      inputs.emplace_back(InputSpec{"zsinput", ConcreteDataTypeMatcher{"TPC", "TPCZS"}, Lifetime::Timeframe});
+      inputs.emplace_back(InputSpec{"zsinputsizes", ConcreteDataTypeMatcher{"TPC", "ZSSIZES"}, Lifetime::Timeframe});
     }
     return inputs;
   };
