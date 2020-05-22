@@ -58,7 +58,7 @@ void ZeroSuppress::DecodeZSPages(gsl::span<const ZeroSuppressedContainer8kb>* z0
     uint16_t _CRUID = z0Container->hdr.cruID;
     uint16_t _timeOffset = z0Container->hdr.timeOffset;
     unsigned int mask = static_cast<unsigned int>(pow(2, _adcBits)) - 1;
-    float decodeFactor = 1.0 / (1 << _adcBits - 10);
+    float decodeFactor = 1.0 / (1 << (_adcBits - 10));
 
     const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)&inputPage;
     auto orbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdh);
