@@ -1809,7 +1809,7 @@ int GPUChainTracking::RunTPCCompression()
   HighResTimer* gatherTimer = nullptr;
   if (DeviceProcessingSettings().tpcCompressionGatherMode == 2) {
     TransferMemoryResourcesToGPU(myStep, &Compressor, 0);
-    unsigned int nBlocks = 1;
+    unsigned int nBlocks = 2;
     runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step2gather>(GetGridBlk(nBlocks, 0), krnlRunRangeNone, krnlEventNone);
     getKernelTimer<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step2gather>(RecoStep::TPCCompression, 0, outputSize);
   } else {
