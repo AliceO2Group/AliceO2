@@ -69,6 +69,7 @@ class GPUTPCGMMerger : public GPUProcessor
     GPUAtomic(unsigned int) nOutputTrackClusters;
     GPUAtomic(unsigned int) nSlowTracks;
     const GPUTPCTrack* firstGlobalTracks[NSLICES];
+    GPUAtomic(unsigned int) tmpCounter[2 * NSLICES];
   };
 
   struct trackCluster {
@@ -113,8 +114,9 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() unsigned int* RetryRefitIds() const { return mRetryRefitIds; }
   GPUhdi() GPUTPCGMLoopData* LoopData() const { return mLoopData; }
   GPUhdi() memory* Memory() const { return mMemory; }
-  GPUhdi() GPUAtomic(unsigned int) * TmpCounter() { return mTmpCounter; }
+  GPUhdi() GPUAtomic(unsigned int) * TmpCounter() { return mMemory->tmpCounter; }
   GPUhdi() uint4* TmpMem() { return mTmpMem; }
+  GPUhdi() GPUTPCGMBorderTrack::Range* BorderRange(int i) { return mBorderRange[i]; }
 
   GPUd() unsigned short MemoryResMemory() { return mMemoryResMemory; }
   GPUd() unsigned short MemoryResOutput() const { return mMemoryResOutput; }
@@ -133,6 +135,9 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void MergeSlicesPrepare(int nBlocks, int nThreads, int iBlock, int iThread, int border0, int border1, char useOrigTrackParam);
   template <int I>
   GPUd() void MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice, char withinSlice, char mergeMode);
+  GPUd() void MergeBorderTracksSetup(int& n1, int& n2, GPUTPCGMBorderTrack*& b1, GPUTPCGMBorderTrack*& b2, int& jSlice, int iSlice, char withinSlice, char mergeMode);
+  template <int I>
+  GPUd() void MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCGMBorderTrack::Range* range, int N, int cmpMax);
   GPUd() void SortTracks(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void SortTracksQPt(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void SortTracksPrepare(int nBlocks, int nThreads, int iBlock, int iThread);
@@ -207,7 +212,6 @@ class GPUTPCGMMerger : public GPUProcessor
   unsigned int* mTrackOrderAttach;
   unsigned int* mTrackOrderProcess;
   uint4* mTmpMem;
-  GPUAtomic(unsigned int) * mTmpCounter;
   GPUTPCGMBorderTrack* mBorderMemory; // memory for border tracks
   GPUTPCGMBorderTrack* mBorder[2 * NSLICES];
   GPUTPCGMBorderTrack::Range* mBorderRangeMemory;    // memory for border tracks
