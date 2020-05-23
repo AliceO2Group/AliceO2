@@ -373,6 +373,11 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       GPUFailedMsgI(cudaDeviceReset());
       return (1);
     }
+    if (GPUFailedMsgI(cudaDeviceSetLimit(cudaLimitMallocHeapSize, GPUCA_GPU_HEAP_SIZE))) {
+      GPUError("Error setting CUDA stack size");
+      GPUFailedMsgI(cudaDeviceReset());
+      return (1);
+    }
 
     if (mDeviceMemorySize == 2) {
       mDeviceMemorySize = devMemory[mDeviceId] * 2 / 3; // Leave 1/3 of GPU memory for event display
