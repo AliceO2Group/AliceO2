@@ -138,6 +138,20 @@ GPUg() void runKernelCUDA(GPUCA_CONSMEM_PTR int iSlice_internal, Args... args)
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 
+template <>
+void GPUReconstructionCUDABackend::runKernelBackendInternal<GPUMemClean16, 0>(krnlSetup& _xyz, void* const& ptr, unsigned long const& size)
+{
+  GPUDebugTiming timer(mDeviceProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
+  GPUFailedMsg(cudaMemsetAsync(ptr, 0, size, mInternals->Streams[_xyz.x.stream]));
+}
+
+template <class T, int I, typename... Args>
+void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
+{
+  GPUDebugTiming timer(mDeviceProcessingSettings.deviceTimers, (void**)mDebugEvents, mInternals->Streams, _xyz);
+  backendInternal<T, I>::runKernelBackendMacro(_xyz, this, args...);
+}
+
 template <class T, int I, typename... Args>
 int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
 {
@@ -148,10 +162,7 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, const Args&.
       GPUFailedMsg(cudaStreamWaitEvent(mInternals->Streams[x.stream], ((cudaEvent_t*)z.evList)[k], 0));
     }
   }
-  {
-    GPUDebugTiming timer(mDeviceProcessingSettings.deviceTimers, (void**)mDebugEvents, mInternals->Streams, _xyz);
-    backendInternal<T, I>::runKernelBackendInternal(_xyz, this, args...);
-  }
+  runKernelBackendInternal<T, I>(_xyz, args...);
   GPUFailedMsg(cudaGetLastError());
   if (z.ev) {
     GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)z.ev, mInternals->Streams[x.stream]));

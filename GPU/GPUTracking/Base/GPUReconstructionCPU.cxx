@@ -79,6 +79,13 @@ int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, const Args&..
   return 0;
 }
 
+template <>
+int GPUReconstructionCPUBackend::runKernelBackend<GPUMemClean16, 0>(krnlSetup& _xyz, void* const& ptr, unsigned long const& size)
+{
+  memset(ptr, 0, size);
+  return 0;
+}
+
 template <class T, int I>
 GPUReconstruction::krnlProperties GPUReconstructionCPUBackend::getKernelPropertiesBackend()
 {
