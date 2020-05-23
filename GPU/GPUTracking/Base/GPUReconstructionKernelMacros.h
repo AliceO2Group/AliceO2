@@ -78,7 +78,7 @@ GPUg() void GPUCA_ATTRRES(,GPUCA_M_SHIFT(GPUCA_M_STRIP(x_attributes))) GPUCA_M_C
   template <> class GPUCA_KRNL_BACKEND_CLASS::backendInternal<GPUCA_M_KRNL_TEMPLATE(x_class)> { \
    public: \
     template <typename T, typename... Args> \
-    static inline void runKernelBackendInternal(krnlSetup& _xyz, T* me, GPUCA_KRNL_BACKEND_XARGS const Args&... args) \
+    static inline void runKernelBackendMacro(krnlSetup& _xyz, T* me, GPUCA_KRNL_BACKEND_XARGS const Args&... args) \
     { \
       auto& x = _xyz.x; \
       auto& y = _xyz.y;
