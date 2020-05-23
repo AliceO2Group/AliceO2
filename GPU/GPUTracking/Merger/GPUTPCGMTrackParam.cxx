@@ -39,7 +39,6 @@
 
 #ifdef GPUCA_CADEBUG_ENABLED
 #include "../utils/qconfig.h"
-#include "GPUChainTracking.h"
 #include "AliHLTTPCClusterMCData.h"
 #endif
 

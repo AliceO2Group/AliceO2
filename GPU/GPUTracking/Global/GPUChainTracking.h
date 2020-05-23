@@ -176,6 +176,13 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     void* single;
   };
 
+  struct outputQueueEntry {
+    void* dst;
+    void* src;
+    size_t size;
+    RecoStep step;
+  };
+
   GPUChainTracking(GPUReconstruction* rec, unsigned int maxTPCHits = GPUCA_MAX_CLUSTERS, unsigned int maxTRDTracklets = GPUCA_MAX_TRD_TRACKLETS);
 
   int ReadEvent(unsigned int iSlice, int threadId);
@@ -233,6 +240,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   eventStruct* mEvents = nullptr;
   VOLATILE int mSliceSelectorReady = 0;
   std::array<char, NSLICES> mWriteOutputDone;
+
+  std::vector<outputQueueEntry> mOutputQueue;
 
  private:
   int RunTPCTrackingSlices_internal();

@@ -60,7 +60,6 @@ static constexpr int kMaxClusters = GPUCA_MERGER_MAX_TRACK_CLUSTERS;
 
 #ifndef GPUCA_GPUCODE
 
-#include "GPUChainTracking.h"
 #include "GPUQA.h"
 
 GPUTPCGMMerger::GPUTPCGMMerger()

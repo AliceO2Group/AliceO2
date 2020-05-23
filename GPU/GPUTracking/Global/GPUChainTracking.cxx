@@ -1109,7 +1109,11 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       }
     }
     if (buildNativeHost && buildNativeGPU && anyLaneHasData) {
-      GPUMemCpy(RecoStep::TPCClusterFinding, (void*)&mInputsHost->mPclusterNativeOutput[nClsFirst], (void*)&mInputsShadow->mPclusterNativeBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(mInputsHost->mPclusterNativeOutput[nClsFirst]), mRec->NStreams() - 1, false);
+      if (GetDeviceProcessingSettings().delayedOutput) {
+        mOutputQueue.emplace_back(outputQueueEntry{&mInputsHost->mPclusterNativeOutput[nClsFirst], &mInputsShadow->mPclusterNativeBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(mInputsHost->mPclusterNativeOutput[nClsFirst]), RecoStep::TPCClusterFinding});
+      } else {
+        GPUMemCpy(RecoStep::TPCClusterFinding, (void*)&mInputsHost->mPclusterNativeOutput[nClsFirst], (void*)&mInputsShadow->mPclusterNativeBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(mInputsHost->mPclusterNativeOutput[nClsFirst]), mRec->NStreams() - 1, false);
+      }
     }
   }
   for (int i = 0; i < GetDeviceProcessingSettings().nTPCClustererLanes; i++) {
@@ -1717,6 +1721,14 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   } else if (doGPU) {
     TransferMemoryResourcesToGPU(RecoStep::TPCMerging, &Merger);
   }
+
+  if (GetDeviceProcessingSettings().delayedOutput) {
+    for (unsigned int i = 0; i < mOutputQueue.size(); i++) {
+      GPUMemCpy(mOutputQueue[i].step, mOutputQueue[i].dst, mOutputQueue[i].src, mOutputQueue[i].size, mRec->NStreams() - 1, false);
+    }
+    mOutputQueue.clear();
+  }
+
   if (GetDeviceProcessingSettings().fitSlowTracksInOtherPass && GetDeviceProcessingSettings().mergerSortTracks) {
     runKernel<GPUTPCGMMergerTrackFit>(GetGrid(Merger.NSlowTracks(), -WarpSize(), 0), krnlRunRangeNone, krnlEventNone, -1);
     runKernel<GPUTPCGMMergerTrackFit>(GetGridBlk(Merger.NOutputTracks() - Merger.NSlowTracks(), 0), krnlRunRangeNone, krnlEventNone, 1);
@@ -2029,7 +2041,7 @@ int GPUChainTracking::RunChain()
     timerCompression.Stop();
   }
 
-  {
+  { // Synchronize with output copies running asynchronously
     const auto& threadContext = GetThreadContext();
     SynchronizeStream(mRec->NStreams() - 1);
   }

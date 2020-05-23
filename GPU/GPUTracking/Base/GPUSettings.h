@@ -163,6 +163,7 @@ struct GPUSettingsDeviceProcessing {
   bool fitSlowTracksInOtherPass;      // Do a second pass on tracks that are supposed to take long, an attempt to reduce divergence on the GPU
   bool fullMergerOnGPU;               // Perform full TPC track merging on GPU instead of only refit
   bool alternateBorderSort;           // Alternative scheduling for sorting of border tracks
+  bool delayedOutput;                 // Delay output to be parallel to track fit
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
