@@ -905,6 +905,10 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         GPUInfo("Processing time bins [%d, %d)", fragment.start, fragment.last());
       }
       for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
+        if (fragment.index != 0) {
+          SynchronizeStream(lane); // Don't overwrite charge map from previous iteration until cluster computation is finished
+        }
+
         unsigned int iSlice = iSliceBase + lane;
         GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
         GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
