@@ -164,7 +164,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (mDeviceProcessingSettings.debugLevel < 1) {
     mDeviceProcessingSettings.deviceTimers = false;
   }
-  if (GetDeviceProcessingSettings().debugLevel >= 6 && GetDeviceProcessingSettings().comparableDebutOutput) {
+  if (mDeviceProcessingSettings.debugLevel >= 6 && mDeviceProcessingSettings.comparableDebutOutput) {
     mDeviceProcessingSettings.nTPCClustererLanes = 1;
     if (mDeviceProcessingSettings.trackletConstructorInPipeline < 0) {
       mDeviceProcessingSettings.trackletConstructorInPipeline = 1;
@@ -204,6 +204,9 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (!(mRecoStepsGPU & RecoStep::TPCMerging)) {
     mDeviceProcessingSettings.fullMergerOnGPU = false;
   }
+  if (mDeviceProcessingSettings.debugLevel || !mDeviceProcessingSettings.fullMergerOnGPU) {
+    mDeviceProcessingSettings.delayedOutput = false;
+  }
 
   UpdateSettings();
   GPUCA_GPUReconstructionUpdateDefailts();
@@ -211,7 +214,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mDeviceProcessingSettings.trackletSelectorInPipeline = false;
   }
 
-  mMemoryScalers->factor = GetDeviceProcessingSettings().memoryScalingFactor;
+  mMemoryScalers->factor = mDeviceProcessingSettings.memoryScalingFactor;
 
 #ifdef WITH_OPENMP
   if (mDeviceProcessingSettings.nThreads <= 0) {
@@ -554,7 +557,7 @@ static long long int ptrDiff(void* a, void* b) { return (long long int)((char*)a
 
 void GPUReconstruction::PrintMemoryOverview()
 {
-  if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
+  if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
     printf("Memory Allocation: Host %'lld / %'lld (Permanent %'lld), Device %'lld / %'lld, (Permanent %'lld) %d chunks\n",
            ptrDiff(mHostMemoryPool, mHostMemoryBase), (long long int)mHostMemorySize, ptrDiff(mHostMemoryPermanent, mHostMemoryBase),
            ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase), (long long int)mDeviceMemorySize, ptrDiff(mDeviceMemoryPermanent, mDeviceMemoryBase), (int)mMemoryResources.size());
