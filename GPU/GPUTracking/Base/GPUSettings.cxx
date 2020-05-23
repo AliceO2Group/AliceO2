@@ -107,4 +107,5 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   fullMergerOnGPU = true;
   alternateBorderSort = false;
   delayedOutput = true;
+  tpccfGatherKernel = true;
 }

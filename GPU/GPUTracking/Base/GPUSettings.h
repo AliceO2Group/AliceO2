@@ -164,6 +164,7 @@ struct GPUSettingsDeviceProcessing {
   bool fullMergerOnGPU;               // Perform full TPC track merging on GPU instead of only refit
   bool alternateBorderSort;           // Alternative scheduling for sorting of border tracks
   bool delayedOutput;                 // Delay output to be parallel to track fit
+  bool tpccfGatherKernel;             // Use a kernel instead of the DMA engine to gather the clusters
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

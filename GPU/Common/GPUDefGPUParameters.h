@@ -39,6 +39,7 @@
   #define GPUCA_LB_GPUTPCNeighboursCleaner 896
   #define GPUCA_LB_GPUTPCGlobalTracking 256
   #define GPUCA_LB_GPUTPCCFDecodeZS 64, 4
+  #define GPUCA_LB_GPUTPCCFGather 1024, 1
   #define GPUCA_LB_GPUTPCGMMergerTrackFit 64, 1
   #define GPUCA_LB_GPUTPCGMMergerFollowLoopers 256, 1
   #define GPUCA_LB_GPUTPCGMMergerSliceRefit 256
@@ -83,6 +84,7 @@
   #define GPUCA_LB_GPUTPCNeighboursCleaner 512
   #define GPUCA_LB_GPUTPCGlobalTracking 192, 2
   #define GPUCA_LB_GPUTPCCFDecodeZS 64, 8
+  #define GPUCA_LB_GPUTPCCFGather 1024, 1
   #define GPUCA_LB_GPUTPCGMMergerTrackFit 64, 1
   #define GPUCA_LB_GPUTPCGMMergerFollowLoopers 256, 1
   #define GPUCA_LB_GPUTPCGMMergerSliceRefit 64
@@ -162,6 +164,9 @@
   #endif
   #ifndef GPUCA_LB_GPUTPCCFDecodeZS
     #define GPUCA_LB_GPUTPCCFDecodeZS 128, 4
+  #endif
+  #ifndef GPUCA_LB_GPUTPCCFGather
+    #define GPUCA_LB_GPUTPCCFGather 1024, 1
   #endif
   #ifndef GPUCA_LB_CLUSTER_FINDER
     #define GPUCA_LB_CLUSTER_FINDER 128
