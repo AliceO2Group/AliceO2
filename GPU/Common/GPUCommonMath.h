@@ -91,22 +91,42 @@ class GPUCommonMath
   template <class T>
   GPUdi() static T AtomicExchShared(GPUsharedref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
+#ifdef GPUCA_GPUCODE_DEVICE
     return GPUCommonMath::AtomicExchInt(addr, val);
+#else
+    T retVal = *addr;
+    *addr = val;
+    return retVal;
+#endif
   }
   template <class T>
   GPUdi() static T AtomicAddShared(GPUsharedref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
+#ifdef GPUCA_GPUCODE_DEVICE
     return GPUCommonMath::AtomicAddInt(addr, val);
+#else
+    T retVal = *addr;
+    *addr += val;
+    return retVal;
+#endif
   }
   template <class T>
   GPUdi() static void AtomicMaxShared(GPUsharedref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
+#ifdef GPUCA_GPUCODE_DEVICE
     GPUCommonMath::AtomicMaxInt(addr, val);
+#else
+    *addr = std::max(*addr, val);
+#endif
   }
   template <class T>
   GPUdi() static void AtomicMinShared(GPUsharedref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
+#ifdef GPUCA_GPUCODE_DEVICE
     GPUCommonMath::AtomicMinInt(addr, val);
+#else
+    *addr = std::min(*addr, val);
+#endif
   }
   GPUd() static int Mul24(int a, int b);
   GPUd() static float FMulRZ(float a, float b);
@@ -405,14 +425,14 @@ GPUdi() void GPUCommonMath::AtomicMaxInt(S* addr, T val)
   ::atomic_max(addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   ::atomicMax(addr, val);
-#else
-#ifdef WITH_OPENMP
-  while (*addr < val)
+#elif defined(WITH_OPENMP)
+  while (*addr < val) {
     AtomicExch(addr, val);
+  }
 #else
-  if (*addr < val)
+  if (*addr < val) {
     *addr = val;
-#endif
+  }
 #endif // GPUCA_GPUCODE
 }
 
@@ -425,14 +445,14 @@ GPUdi() void GPUCommonMath::AtomicMinInt(S* addr, T val)
   ::atomic_min(addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   ::atomicMin(addr, val);
-#else
-#ifdef WITH_OPENMP
-  while (*addr > val)
+#elif defined(WITH_OPENMP)
+  while (*addr > val) {
     AtomicExch(addr, val);
+  }
 #else
-  if (*addr > val)
+  if (*addr > val) {
     *addr = val;
-#endif
+  }
 #endif // GPUCA_GPUCODE
 }
 
