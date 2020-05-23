@@ -96,8 +96,8 @@ void Cave::ConstructGeometry()
   const Float_t kRB24CL = 2. * 598.74752;
   auto shCaveRB24 = new TGeoPcon(0., 360., 6);
   Float_t z0 = kRB24CL / 2 + 714.6;
-  shCaveRB24->DefineSection(0, -kRB24CL / 2., 0., 90.);
-  shCaveRB24->DefineSection(1, -z0 + 1705., 0., 90.);
+  shCaveRB24->DefineSection(0, -kRB24CL / 2., 0., 105.);
+  shCaveRB24->DefineSection(1, -z0 + 1705., 0., 105.);
   shCaveRB24->DefineSection(2, -z0 + 1705., 0., 14.5);
   shCaveRB24->DefineSection(3, -z0 + 1880., 0., 14.5);
   shCaveRB24->DefineSection(4, -z0 + 1880., 0., 40.0);
