@@ -1574,12 +1574,11 @@ struct GPUTPCGMMergerSortTracks_comp {
 };
 
 template <>
-int GPUReconstructionCUDABackend::runKernelBackend<GPUTPCGMMergerSortTracks, 0>(krnlSetup& _xyz)
+void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerSortTracks, 0>(krnlSetup& _xyz)
 {
   GPUDebugTiming timer(mDeviceProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
   thrust::device_ptr<unsigned int> trackSort((unsigned int*)mProcessorsShadow->tpcMerger.TrackOrderProcess());
   thrust::sort(thrust::cuda::par.on(mInternals->Streams[_xyz.x.stream]), trackSort, trackSort + processors()->tpcMerger.NOutputTracks(), GPUTPCGMMergerSortTracks_comp(mProcessorsShadow->tpcMerger.OutputTracks()));
-  return 0;
 }
 
 struct GPUTPCGMMergerSortTracksQPt_comp {
@@ -1594,12 +1593,11 @@ struct GPUTPCGMMergerSortTracksQPt_comp {
 };
 
 template <>
-int GPUReconstructionCUDABackend::runKernelBackend<GPUTPCGMMergerSortTracksQPt, 0>(krnlSetup& _xyz)
+void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerSortTracksQPt, 0>(krnlSetup& _xyz)
 {
   GPUDebugTiming timer(mDeviceProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
   thrust::device_ptr<unsigned int> trackSort((unsigned int*)mProcessorsShadow->tpcMerger.TmpMem());
   thrust::sort(thrust::cuda::par.on(mInternals->Streams[_xyz.x.stream]), trackSort, trackSort + processors()->tpcMerger.NOutputTracks(), GPUTPCGMMergerSortTracksQPt_comp(mProcessorsShadow->tpcMerger.OutputTracks()));
-  return 0;
 }
 #endif
 

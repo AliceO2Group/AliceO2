@@ -128,7 +128,7 @@ int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
 #ifdef __CUDACC__
     GPUFailedMsg(hipEventRecord((hipEvent_t)mDebugEvents->DebugStart, mInternals->Streams[x.stream]));
 #endif
-    backendInternal<T, I>::runKernelBackendInternal(_xyz, this, (hipEvent_t*)&mDebugEvents->DebugStart, (hipEvent_t*)&mDebugEvents->DebugStop, args...);
+    backendInternal<T, I>::runKernelBackendMacro(_xyz, this, (hipEvent_t*)&mDebugEvents->DebugStart, (hipEvent_t*)&mDebugEvents->DebugStop, args...);
 #ifdef __CUDACC__
     GPUFailedMsg(hipEventRecord((hipEvent_t)mDebugEvents->DebugStop, mInternals->Streams[x.stream]));
 #endif
@@ -137,7 +137,7 @@ int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
     GPUFailedMsg(hipEventElapsedTime(&v, (hipEvent_t)mDebugEvents->DebugStart, (hipEvent_t)mDebugEvents->DebugStop));
     _xyz.t = v * 1.e-3;
   } else {
-    backendInternal<T, I>::runKernelBackendInternal(_xyz, this, nullptr, nullptr, args...);
+    backendInternal<T, I>::runKernelBackendMacro(_xyz, this, nullptr, nullptr, args...);
   }
   GPUFailedMsg(hipGetLastError());
   if (z.ev) {
