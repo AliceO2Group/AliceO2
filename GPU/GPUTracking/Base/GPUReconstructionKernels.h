@@ -77,6 +77,7 @@ GPUCA_KRNL_LB((GPUTPCCFStreamCompaction,   nativeScanTop    ), (single), (, int 
 GPUCA_KRNL_LB((GPUTPCCFStreamCompaction,   nativeScanDown   ), (single), (, int iBuf, unsigned int offset, int nElems), (, iBuf, offset, nElems))
 GPUCA_KRNL_LB((GPUTPCCFStreamCompaction,   compact          ), (single), (, int iBuf, int stage, GPUPtr1(ChargePos*, in), GPUPtr1(ChargePos*, out)), (, iBuf, stage, GPUPtr2(ChargePos*, in), GPUPtr2(ChargePos*, out)))
 GPUCA_KRNL_LB((GPUTPCCFDecodeZS                             ), (single), (, int firstHBF), (, firstHBF))
+GPUCA_KRNL_LB((GPUTPCCFGather                               ), (single), (, GPUPtr1(o2::tpc::ClusterNative*, dest)), (, GPUPtr2(o2::tpc::ClusterNative*, dest)))
 #endif
 #endif
 // clang-format on

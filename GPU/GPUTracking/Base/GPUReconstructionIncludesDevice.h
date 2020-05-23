@@ -78,6 +78,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCCFDeconvolution.cxx"
 #include "GPUTPCCFMCLabelFlattener.cxx"
 #include "GPUTPCCFDecodeZS.cxx"
+#include "GPUTPCCFGather.cxx"
 
 // Files for TRD Tracking
 #include "GPUTRDTrackerKernels.cxx"
