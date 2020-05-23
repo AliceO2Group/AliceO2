@@ -15,7 +15,7 @@
 #ifndef ALICEO2_DATAFORMATSTPC_ZEROSUPPRESS_H
 #define ALICEO2_DATAFORMATSTPC_ZEROSUPPRESS_H
 
-#include <math.h>
+#include <cmath>
 #include <vector>
 #include <array>
 
