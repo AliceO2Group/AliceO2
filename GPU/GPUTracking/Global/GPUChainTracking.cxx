@@ -1070,21 +1070,20 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         }
       }
     }
+    size_t nClsFirst = nClsTotal;
+    bool anyLaneHasData = false;
     for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
       SynchronizeStream(lane);
       unsigned int iSlice = iSliceBase + lane;
       GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
       GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
       if (laneHasData[lane]) {
+        anyLaneHasData = true;
         for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
           if (buildNativeGPU) {
             GPUMemCpyAlways(RecoStep::TPCClusterFinding, (void*)&mInputsShadow->mPclusterNativeBuffer[nClsTotal], (const void*)&clustererShadow.mPclusterByRow[j * clusterer.mNMaxClusterPerRow], sizeof(mIOPtrs.clustersNative->clustersLinear[0]) * clusterer.mPclusterInRow[j], mRec->NStreams() - 1, -2);
-          }
-          if (buildNativeHost) {
+          } else if (buildNativeHost) {
             GPUMemCpyAlways(RecoStep::TPCClusterFinding, (void*)&mInputsHost->mPclusterNativeOutput[nClsTotal], (const void*)&clustererShadow.mPclusterByRow[j * clusterer.mNMaxClusterPerRow], sizeof(mIOPtrs.clustersNative->clustersLinear[0]) * clusterer.mPclusterInRow[j], mRec->NStreams() - 1, false);
-            if (GetDeviceProcessingSettings().debugLevel >= 4) {
-              std::sort(&mInputsHost->mPclusterNativeOutput[nClsTotal], &mInputsHost->mPclusterNativeOutput[nClsTotal + clusterer.mPclusterInRow[j]]);
-            }
           }
           tmp->nClusters[iSlice][j] += clusterer.mPclusterInRow[j];
           nClsTotal += clusterer.mPclusterInRow[j];
@@ -1108,6 +1107,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         }
         runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::flatten>(GetGrid(clusterer.mPclusterInRow[j], lane), {iSlice}, {}, j, &mcLinearLabels);
       }
+    }
+    if (buildNativeHost && buildNativeGPU && anyLaneHasData) {
+      GPUMemCpy(RecoStep::TPCClusterFinding, (void*)&mInputsHost->mPclusterNativeOutput[nClsFirst], (void*)&mInputsShadow->mPclusterNativeBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(mInputsHost->mPclusterNativeOutput[nClsFirst]), mRec->NStreams() - 1, false);
     }
   }
   for (int i = 0; i < GetDeviceProcessingSettings().nTPCClustererLanes; i++) {
@@ -1140,6 +1142,14 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   if (synchronizeOutput) {
     SynchronizeStream(mRec->NStreams() - 1);
   }
+  if (buildNativeHost && GetDeviceProcessingSettings().debugLevel >= 4) {
+    for (unsigned int i = 0; i < NSLICES; i++) {
+      for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+        std::sort(&mInputsHost->mPclusterNativeOutput[tmp->clusterOffset[i][j]], &mInputsHost->mPclusterNativeOutput[tmp->clusterOffset[i][j] + tmp->nClusters[i][j]]);
+      }
+    }
+  }
+
 #endif
   return 0;
 }
