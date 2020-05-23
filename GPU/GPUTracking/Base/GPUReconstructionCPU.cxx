@@ -198,6 +198,7 @@ int GPUReconstructionCPU::RunChains()
   }
   timerTotal.Stop();
 
+  mStatWallTime = (timerTotal.GetElapsedTime() * 1000000. / mStatNEvents);
   if (GetDeviceProcessingSettings().debugLevel >= 1) {
     double kernelTotal = 0;
     std::vector<double> kernelStepTimes(N_RECO_STEPS);
@@ -254,10 +255,10 @@ int GPUReconstructionCPU::RunChains()
       }
     }
     mStatKernelTime = kernelTotal * 1000000 / mStatNEvents;
-    printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total kernel time", (int)mStatKernelTime);
-    printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total time", (int)(timerTotal.GetElapsedTime() * 1000000. / mStatNEvents));
+    printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total Kernel", (int)mStatKernelTime);
+    printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total Wall", (int)mStatWallTime);
   } else if (GetDeviceProcessingSettings().debugLevel >= 0) {
-    printf("Total Time: %'d us\n", (int)(timerTotal.GetElapsedTime() * 1000000 / mStatNEvents));
+    printf("Total Wall Time: %'d us\n", (int)mStatWallTime);
   }
   if (mDeviceProcessingSettings.resetTimers) {
     mStatNEvents = 0;

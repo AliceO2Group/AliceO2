@@ -238,6 +238,7 @@ class GPUReconstruction
   // Support / Debugging
   virtual void PrintKernelOccupancies() {}
   double GetStatKernelTime() { return mStatKernelTime; }
+  double GetStatWallTime() { return mStatWallTime; }
 
  protected:
   GPUReconstruction(const GPUSettingsProcessing& cfg); // Constructor
@@ -326,6 +327,7 @@ class GPUReconstruction
   unsigned int mStatNEvents = 0;
   unsigned int mNEventsProcessed = 0;
   double mStatKernelTime = 0.;
+  double mStatWallTime = 0.;
 
   int mMaxThreads = 0; // Maximum number of threads that may be running, on CPU or GPU
   int mThreadId = -1;  // Thread ID that is valid for the local CUDA context
