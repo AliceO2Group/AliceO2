@@ -77,11 +77,11 @@
   #define GPUCA_LB_GPUTPCCreateSliceData 256
   #define GPUCA_LB_GPUTPCStartHitsSorter 512, 1
   #define GPUCA_LB_GPUTPCStartHitsFinder 512
-  #define GPUCA_LB_GPUTPCTrackletConstructor 512, 1
-  #define GPUCA_LB_GPUTPCTrackletSelector 192, 2
+  #define GPUCA_LB_GPUTPCTrackletConstructor 256, 2
+  #define GPUCA_LB_GPUTPCTrackletSelector 192, 3
   #define GPUCA_LB_GPUTPCNeighboursFinder 640, 1
   #define GPUCA_LB_GPUTPCNeighboursCleaner 512
-  #define GPUCA_LB_GPUTPCGlobalTracking 192
+  #define GPUCA_LB_GPUTPCGlobalTracking 192, 2
   #define GPUCA_LB_GPUTPCCFDecodeZS 64, 8
   #define GPUCA_LB_GPUTPCGMMergerTrackFit 64, 1
   #define GPUCA_LB_GPUTPCGMMergerFollowLoopers 256, 1
@@ -91,12 +91,12 @@
   #define GPUCA_LB_GPUTPCGMMergerResolve 256
   #define GPUCA_LB_GPUTPCGMMergerClearLinks 256
   #define GPUCA_LB_GPUTPCGMMergerMergeWithinPrepare 256
-  #define GPUCA_LB_GPUTPCGMMergerMergeSlicesPrepare 256
+  #define GPUCA_LB_GPUTPCGMMergerMergeSlicesPrepare 256, 2
   #define GPUCA_LB_GPUTPCGMMergerMergeBorders_step0 192
   #define GPUCA_LB_GPUTPCGMMergerMergeBorders_step2 256
   #define GPUCA_LB_GPUTPCGMMergerMergeCE 256
   #define GPUCA_LB_GPUTPCGMMergerLinkGlobalTracks 256
-  #define GPUCA_LB_GPUTPCGMMergerCollect 256
+  #define GPUCA_LB_GPUTPCGMMergerCollect 256, 2
   #define GPUCA_LB_GPUTPCGMMergerSortTracks 256
   #define GPUCA_LB_GPUTPCGMMergerSortTracksQPt 256
   #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
@@ -107,7 +107,7 @@
   #define GPUCA_LB_GPUTPCGMMergerFinalize_1 256
   #define GPUCA_LB_GPUTPCGMMergerFinalize_2 256
   #define GPUCA_LB_GPUTPCCompressionKernels_step0attached 128
-  #define GPUCA_LB_GPUTPCCompressionKernels_step1unattached 512
+  #define GPUCA_LB_GPUTPCCompressionKernels_step1unattached 512, 2
   #define GPUCA_LB_GPUTPCCompressionKernels_step2gather 1024
   #define GPUCA_LB_CLUSTER_FINDER 512
   #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 4

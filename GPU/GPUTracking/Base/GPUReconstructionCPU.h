@@ -243,12 +243,17 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & myStep) != myStep) : 0;
   unsigned int nThreads = x.nThreads;
   unsigned int nBlocks = x.nBlocks;
-  const int autoThreads = cpuFallback ? 1 : getKernelProperties<S, I>().nThreads;
+  auto prop = getKernelProperties<S, I>();
+  const int autoThreads = cpuFallback ? 1 : prop.nThreads;
+  const int autoBlocks = cpuFallback ? 1 : (prop.minBlocks * mBlockCount);
   if (nBlocks == (unsigned int)-1) {
     nBlocks = (nThreads + autoThreads - 1) / autoThreads;
     nThreads = autoThreads;
   } else if (nBlocks == (unsigned int)-2) {
     nBlocks = nThreads;
+    nThreads = autoThreads;
+  } else if (nBlocks == (unsigned int)-3) {
+    nBlocks = autoBlocks;
     nThreads = autoThreads;
   } else if ((int)nThreads < 0) {
     nThreads = cpuFallback ? 1 : -nThreads;
