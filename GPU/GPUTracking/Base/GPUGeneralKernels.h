@@ -40,10 +40,10 @@ class GPUKernelTemplate
   enum K { defaultKernel = 0,
            step0 = 0,
            step1 = 1,
-           step2,
-           step3,
-           step4,
-           step5 };
+           step2 = 2,
+           step3 = 3,
+           step4 = 4,
+           step5 = 5 };
 
   MEM_CLASS_PRE()
   struct GPUSharedMemory {

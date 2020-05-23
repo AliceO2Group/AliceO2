@@ -43,8 +43,8 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #if !defined(GPUCA_OPENCL1) && !defined(GPUCA_ALIROOT_LIB)
 // Files for TPC Merger
-#include "GPUTPCGMMergerGPU.cxx"
 #include "GPUTPCGMMerger.cxx"
+#include "GPUTPCGMMergerGPU.cxx"
 #include "GPUTPCGMSliceTrack.cxx"
 #include "GPUTPCGMTrackParam.cxx"
 #include "GPUTPCGMPhysicalTrackModel.cxx"

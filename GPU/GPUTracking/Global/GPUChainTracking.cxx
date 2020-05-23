@@ -1545,12 +1545,50 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
 void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(char withinSlice, char mergeMode, GPUReconstruction::krnlDeviceType deviceType)
 {
   unsigned int n = withinSlice == -1 ? NSLICES / 2 : NSLICES;
-  for (unsigned int i = 0; i < n; i++) {
-    runKernel<GPUTPCGMMergerMergeBorders, 0>(GetGridBlk(BlockCount(), 0, deviceType), krnlRunRangeNone, krnlEventNone, i, withinSlice, mergeMode);
-  }
-  runKernel<GPUTPCGMMergerMergeBorders, 1>({2 * n, -WarpSize(), 0, deviceType}, krnlRunRangeNone, krnlEventNone, 0, withinSlice, mergeMode);
-  for (unsigned int i = 0; i < n; i++) {
-    runKernel<GPUTPCGMMergerMergeBorders, 2>(GetGridBlk(BlockCount(), 0, deviceType), krnlRunRangeNone, krnlEventNone, i, withinSlice, mergeMode);
+  if (GetDeviceProcessingSettings().alternateBorderSort) {
+    bool doGPUall = GetRecoStepsGPU() & RecoStep::TPCMerging && GetDeviceProcessingSettings().fullMergerOnGPU;
+    GPUTPCGMMerger& Merger = processors()->tpcMerger;
+    GPUTPCGMMerger& MergerShadow = doGPUall ? processorsShadow()->tpcMerger : Merger;
+    TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory(), 0, nullptr, &mEvents->init);
+    RecordMarker(&mEvents->single, 0);
+    for (unsigned int i = 0; i < n; i++) {
+      int stream = i % mRec->NStreams();
+      runKernel<GPUTPCGMMergerMergeBorders, 0>(GetGridBlk(BlockCount(), stream, deviceType), krnlRunRangeNone, {nullptr, stream ? &mEvents->single : nullptr}, i, withinSlice, mergeMode);
+    }
+    ReleaseEvent(&mEvents->single);
+    SynchronizeEvents(&mEvents->init);
+    ReleaseEvent(&mEvents->init);
+    for (unsigned int i = 0; i < n; i++) {
+      int stream = i % mRec->NStreams();
+      int n1, n2;
+      GPUTPCGMBorderTrack *b1, *b2;
+      int jSlice;
+      Merger.MergeBorderTracksSetup(n1, n2, b1, b2, jSlice, i, withinSlice, mergeMode);
+      GPUTPCGMBorderTrack::Range* range1 = MergerShadow.BorderRange(i);
+      GPUTPCGMBorderTrack::Range* range2 = MergerShadow.BorderRange(jSlice) + *processors()->tpcTrackers[jSlice].NTracks();
+      runKernel<GPUTPCGMMergerMergeBorders, 3>({1, -WarpSize(), 0, deviceType}, krnlRunRangeNone, krnlEventNone, range1, n1, 0);
+      runKernel<GPUTPCGMMergerMergeBorders, 3>({1, -WarpSize(), 0, deviceType}, krnlRunRangeNone, krnlEventNone, range2, n2, 1);
+      deviceEvent** e = nullptr;
+      int ne = 0;
+      if (i == n - 1) { // Synchronize all execution on stream 0 with the last kernel
+        ne = std::min<int>(n, mRec->NStreams());
+        for (int j = 1; j < ne; j++) {
+          RecordMarker(&mEvents->slice[j], j);
+        }
+        e = &mEvents->slice[1];
+        ne--;
+        stream = 0;
+      }
+      runKernel<GPUTPCGMMergerMergeBorders, 2>(GetGridBlk(BlockCount(), stream, deviceType), krnlRunRangeNone, {nullptr, e, ne}, i, withinSlice, mergeMode);
+    }
+  } else {
+    for (unsigned int i = 0; i < n; i++) {
+      runKernel<GPUTPCGMMergerMergeBorders, 0>(GetGridBlk(BlockCount(), 0, deviceType), krnlRunRangeNone, krnlEventNone, i, withinSlice, mergeMode);
+    }
+    runKernel<GPUTPCGMMergerMergeBorders, 1>({2 * n, -WarpSize(), 0, deviceType}, krnlRunRangeNone, krnlEventNone, 0, withinSlice, mergeMode);
+    for (unsigned int i = 0; i < n; i++) {
+      runKernel<GPUTPCGMMergerMergeBorders, 2>(GetGridBlk(BlockCount(), 0, deviceType), krnlRunRangeNone, krnlEventNone, i, withinSlice, mergeMode);
+    }
   }
 }
 
