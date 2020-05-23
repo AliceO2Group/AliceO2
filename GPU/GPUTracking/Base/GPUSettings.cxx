@@ -106,4 +106,5 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   fitSlowTracksInOtherPass = false;
   fullMergerOnGPU = true;
   alternateBorderSort = false;
+  delayedOutput = true;
 }
