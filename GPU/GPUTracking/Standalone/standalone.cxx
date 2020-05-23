@@ -335,6 +335,7 @@ int SetupReconstruction()
   devProc.runMC = configStandalone.configProc.runMC;
   devProc.runCompressionStatistics = configStandalone.compressionStat;
   devProc.memoryScalingFactor = configStandalone.memoryScalingFactor;
+  devProc.alternateBorderSort = configStandalone.alternateBorderSort;
   if (configStandalone.eventDisplay) {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef _WIN32

@@ -64,7 +64,7 @@ static constexpr int kMaxClusters = GPUCA_MERGER_MAX_TRACK_CLUSTERS;
 #include "GPUQA.h"
 
 GPUTPCGMMerger::GPUTPCGMMerger()
-  : mTrackLinks(nullptr), mNMaxSliceTracks(0), mNMaxTracks(0), mNMaxSingleSliceTracks(0), mNMaxOutputTrackClusters(0), mNMaxClusters(0), mMemoryResMemory(-1), mNClusters(0), mOutputTracks(nullptr), mSliceTrackInfos(nullptr), mSliceTrackInfoIndex(nullptr), mClusters(nullptr), mGlobalClusterIDs(nullptr), mClusterAttachment(nullptr), mTrackOrderAttach(nullptr), mTrackOrderProcess(nullptr), mTmpMem(nullptr), mTmpCounter(nullptr), mBorderMemory(nullptr), mBorderRangeMemory(nullptr), mMemory(nullptr), mRetryRefitIds(nullptr), mLoopData(nullptr)
+  : mTrackLinks(nullptr), mNMaxSliceTracks(0), mNMaxTracks(0), mNMaxSingleSliceTracks(0), mNMaxOutputTrackClusters(0), mNMaxClusters(0), mMemoryResMemory(-1), mNClusters(0), mOutputTracks(nullptr), mSliceTrackInfos(nullptr), mSliceTrackInfoIndex(nullptr), mClusters(nullptr), mGlobalClusterIDs(nullptr), mClusterAttachment(nullptr), mTrackOrderAttach(nullptr), mTrackOrderProcess(nullptr), mTmpMem(nullptr), mBorderMemory(nullptr), mBorderRangeMemory(nullptr), mMemory(nullptr), mRetryRefitIds(nullptr), mLoopData(nullptr)
 {
   //* constructor
 
@@ -232,7 +232,6 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   computePointerWithAlignment(mem, mTrackLinks, mNMaxSliceTracks);
   size_t tmpSize = CAMath::Max(CAMath::Max<unsigned int>(mNMaxSingleSliceTracks, 1) * NSLICES * sizeof(int), CAMath::nextMultipleOf<4>(mNMaxTracks) * sizeof(int) + mNMaxClusters * sizeof(unsigned int));
   computePointerWithAlignment(mem, mTmpMem, (tmpSize + sizeof(*mTmpMem) - 1) / sizeof(*mTmpMem));
-  computePointerWithAlignment(mem, mTmpCounter, 2 * NSLICES);
 
   int nTracks = 0;
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
@@ -677,10 +676,49 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<1>(int nBlocks, int nThreads, int 
   GPUTPCGMBorderTrack::Range* range2 = mBorderRange[iSlice2] + (Param().rec.mergerReadFromTrackerDirectly ? *GetConstantMem()->tpcTrackers[iSlice2].NTracks() : mkSlices[iSlice2]->NTracks());
 
   if (iThread == 0) {
-    if (iBlock == 1) {
+    if (iBlock == 0) {
       GPUCommonAlgorithm::sortDeviceDynamic(range1, range1 + N1, [](const GPUTPCGMBorderTrack::Range& a, const GPUTPCGMBorderTrack::Range& b) { return a.fMin < b.fMin; });
-    } else if (iBlock == 0) {
+    } else if (iBlock == 1) {
       GPUCommonAlgorithm::sortDeviceDynamic(range2, range2 + N2, [](const GPUTPCGMBorderTrack::Range& a, const GPUTPCGMBorderTrack::Range& b) { return a.fMax < b.fMax; });
+    }
+  }
+}
+
+#ifdef __CUDACC__ // Specialize MergeBorderTracks<3>
+struct MergeBorderTracks_compMax {
+  GPUd() bool operator()(const GPUTPCGMBorderTrack::Range& a, const GPUTPCGMBorderTrack::Range& b)
+  {
+    return a.fMax < b.fMax;
+  }
+};
+struct MergeBorderTracks_compMin {
+  GPUd() bool operator()(const GPUTPCGMBorderTrack::Range& a, const GPUTPCGMBorderTrack::Range& b)
+  {
+    return a.fMin < b.fMin;
+  }
+};
+
+template <>
+void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerMergeBorders, 3>(krnlSetup& _xyz, GPUTPCGMBorderTrack::Range* const& range, int const& N, int const& cmpMax)
+{
+  GPUDebugTiming timer(mDeviceProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
+  thrust::device_ptr<GPUTPCGMBorderTrack::Range> p(range);
+  if (cmpMax) {
+    thrust::sort(thrust::cuda::par.on(mInternals->Streams[_xyz.x.stream]), p, p + N, MergeBorderTracks_compMax());
+  } else {
+    thrust::sort(thrust::cuda::par.on(mInternals->Streams[_xyz.x.stream]), p, p + N, MergeBorderTracks_compMin());
+  }
+}
+#endif // __CUDACC__ - MergeBorderTracks<3>
+
+template <>
+GPUd() void GPUTPCGMMerger::MergeBorderTracks<3>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCGMBorderTrack::Range* range, int N, int cmpMax)
+{
+  if (iThread == 0) {
+    if (cmpMax) {
+      GPUCommonAlgorithm::sortDeviceDynamic(range, range + N, [](const GPUTPCGMBorderTrack::Range& a, const GPUTPCGMBorderTrack::Range& b) { return a.fMax < b.fMax; });
+    } else {
+      GPUCommonAlgorithm::sortDeviceDynamic(range, range + N, [](const GPUTPCGMBorderTrack::Range& a, const GPUTPCGMBorderTrack::Range& b) { return a.fMin < b.fMin; });
     }
   }
 }
@@ -795,30 +833,35 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int nBlocks, int nThreads, int 
   // GPUInfo("STAT: slices %d, %d: all %d merged %d", iSlice1, iSlice2, statAll, statMerged);
 }
 
+GPUdii() void GPUTPCGMMerger::MergeBorderTracksSetup(int& n1, int& n2, GPUTPCGMBorderTrack*& b1, GPUTPCGMBorderTrack*& b2, int& jSlice, int iSlice, char withinSlice, char mergeMode)
+{
+  if (withinSlice == 1) {
+    jSlice = iSlice;
+    n1 = n2 = mMemory->tmpCounter[iSlice];
+    b1 = b2 = mBorder[iSlice];
+  } else if (withinSlice == -1) {
+    jSlice = (iSlice + NSLICES / 2);
+    const int offset = mergeMode == 2 ? NSLICES : 0;
+    n1 = mMemory->tmpCounter[iSlice + offset];
+    n2 = mMemory->tmpCounter[jSlice + offset];
+    b1 = mBorder[iSlice + offset];
+    b2 = mBorder[jSlice + offset];
+  } else {
+    jSlice = mNextSliceInd[iSlice];
+    n1 = mMemory->tmpCounter[iSlice];
+    n2 = mMemory->tmpCounter[NSLICES + jSlice];
+    b1 = mBorder[iSlice];
+    b2 = mBorder[NSLICES + jSlice];
+  }
+}
+
 template <int I>
 GPUd() void GPUTPCGMMerger::MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice, char withinSlice, char mergeMode)
 {
   int n1, n2;
   GPUTPCGMBorderTrack *b1, *b2;
   int jSlice;
-  if (withinSlice == 1) {
-    jSlice = iSlice;
-    n1 = n2 = mTmpCounter[iSlice];
-    b1 = b2 = mBorder[iSlice];
-  } else if (withinSlice == -1) {
-    jSlice = (iSlice + NSLICES / 2);
-    const int offset = mergeMode == 2 ? NSLICES : 0;
-    n1 = mTmpCounter[iSlice + offset];
-    n2 = mTmpCounter[jSlice + offset];
-    b1 = mBorder[iSlice + offset];
-    b2 = mBorder[jSlice + offset];
-  } else {
-    jSlice = mNextSliceInd[iSlice];
-    n1 = mTmpCounter[iSlice];
-    n2 = mTmpCounter[NSLICES + jSlice];
-    b1 = mBorder[iSlice];
-    b2 = mBorder[NSLICES + jSlice];
-  }
+  MergeBorderTracksSetup(n1, n2, b1, b2, jSlice, iSlice, withinSlice, mergeMode);
   MergeBorderTracks<I>(nBlocks, nThreads, iBlock, iThread, iSlice, b1, n1, jSlice, b2, n2, mergeMode);
 }
 
@@ -841,7 +884,7 @@ GPUd() void GPUTPCGMMerger::MergeWithinSlicesPrepare(int nBlocks, int nThreads, 
       CADEBUG(
         printf("WITHIN SLICE %d Track %d - ", iSlice, itr); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Cov()[i]); } printf("\n"));
       b.SetNClusters(track.NClusters());
-      unsigned int myTrack = CAMath::AtomicAdd(&mTmpCounter[iSlice], 1u);
+      unsigned int myTrack = CAMath::AtomicAdd(&mMemory->tmpCounter[iSlice], 1u);
       mBorder[iSlice][myTrack] = b;
     }
   }
@@ -851,7 +894,7 @@ GPUd() void GPUTPCGMMerger::MergeSlicesPrepare(int nBlocks, int nThreads, int iB
 {
   bool part2 = iBlock & 1;
   int border = part2 ? border1 : border0;
-  GPUAtomic(unsigned int)* n = mTmpCounter;
+  GPUAtomic(unsigned int)* n = mMemory->tmpCounter;
   GPUTPCGMBorderTrack** b = mBorder;
   if (part2) {
     n += NSLICES;
@@ -1066,7 +1109,7 @@ GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const G
       }
       b.SetRow(cls.row);
       unsigned int id = slice + attempt * NSLICES;
-      unsigned int myTrack = CAMath::AtomicAdd(&mTmpCounter[id], 1u);
+      unsigned int myTrack = CAMath::AtomicAdd(&mMemory->tmpCounter[id], 1u);
       mBorder[id][myTrack] = b;
       break;
     }
@@ -1555,7 +1598,7 @@ GPUd() void GPUTPCGMMerger::PrepareClustersForFit0(int nBlocks, int nThreads, in
   }
 }
 
-#ifdef __CUDACC__
+#ifdef __CUDACC__ // Specialize GPUTPCGMMergerSortTracks and GPUTPCGMMergerSortTracksQPt
 struct GPUTPCGMMergerSortTracks_comp {
   const GPUTPCGMMergedTrack* const mCmp;
   GPUhd() GPUTPCGMMergerSortTracks_comp(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
@@ -1599,7 +1642,7 @@ void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerSortTracks
   thrust::device_ptr<unsigned int> trackSort((unsigned int*)mProcessorsShadow->tpcMerger.TmpMem());
   thrust::sort(thrust::cuda::par.on(mInternals->Streams[_xyz.x.stream]), trackSort, trackSort + processors()->tpcMerger.NOutputTracks(), GPUTPCGMMergerSortTracksQPt_comp(mProcessorsShadow->tpcMerger.OutputTracks()));
 }
-#endif
+#endif // __CUDACC__ - Specialize GPUTPCGMMergerSortTracks and GPUTPCGMMergerSortTracksQPt
 
 GPUd() void GPUTPCGMMerger::SortTracks(int nBlocks, int nThreads, int iBlock, int iThread)
 {
