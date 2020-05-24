@@ -151,7 +151,7 @@ void DataProcessingDevice::Init()
   configStore->activate();
   /// Dump the configuration so that we can get it from the driver.
   for (auto& entry : configStore->store()) {
-    LOG(INFO) << "[CONFIG] " << entry.first << "=" << configStore->store().get<std::string>(entry.first) << " 1";
+    LOG(INFO) << "[CONFIG] " << entry.first << "=" << configStore->store().get<std::string>(entry.first) << " 1 " << configStore->provenance(entry.first.c_str());
   }
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
 
