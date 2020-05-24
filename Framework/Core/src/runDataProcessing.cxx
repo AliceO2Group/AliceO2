@@ -666,7 +666,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
       optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("infologger://"), "monitoring backend info") //
         ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")       //
-        ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                         //
+        ("dpl-configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                     //
         ("infologger-mode", bpo::value<std::string>()->default_value(""), "INFOLOGGER_MODE override");
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
@@ -709,8 +709,8 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
       callbackService = std::make_unique<CallbackService>();
       monitoringService = MonitoringFactory::Get(r.fConfig.GetStringValue("monitoring-backend"));
-      if (r.fConfig.GetStringValue("configuration") != "command-line") {
-        configurationService = ConfigurationFactory::getConfiguration(r.fConfig.GetStringValue("configuration"));
+      if (r.fConfig.GetStringValue("dpl-configuration") != "command-line") {
+        configurationService = ConfigurationFactory::getConfiguration(r.fConfig.GetStringValue("dpl-configuration"));
       }
       auto infoLoggerMode = r.fConfig.GetStringValue("infologger-mode");
       if (infoLoggerMode != "") {
@@ -1566,7 +1566,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   // FIXME: decide about the policy for handling unrecognized arguments
   // command_line_parser with option allow_unregistered() can be used
   using namespace bpo::command_line_style;
-  auto style = (allow_short | short_allow_adjacent | short_allow_next | allow_long | long_allow_adjacent | long_allow_next | allow_sticky | allow_dash_for_short);
+  auto style = (allow_short | allow_guessing | short_allow_adjacent | short_allow_next | allow_long | long_allow_adjacent | long_allow_next | allow_sticky | allow_dash_for_short);
   bpo::variables_map varmap;
   try {
     bpo::store(
