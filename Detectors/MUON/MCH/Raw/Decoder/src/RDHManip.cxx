@@ -16,7 +16,7 @@
 #include <iostream>
 #include <string>
 #include "CommonConstants/Triggers.h"
-#include "Headers/RDHAny.h"
+#include "DetectorsRaw/RDHAny.h"
 #include "DetectorsRaw/RDHUtils.h"
 
 namespace

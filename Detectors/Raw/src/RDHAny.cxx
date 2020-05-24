@@ -11,7 +11,7 @@
 // @brief implementations for placeholder class of arbitraty-version 64B-lonh RDH
 // @author ruben.shahoyan@cern.ch
 
-#include "Headers/RDHAny.h"
+#include "DetectorsRaw/RDHAny.h"
 #include <string>
 #include <cstring>
 
