@@ -29,7 +29,8 @@ enum MFTTrackingSeed {
 
 enum MFTTrackModel {
   Helix,
-  Quadratic
+  Quadratic,
+  Linear
 };
 
 // **
@@ -40,6 +41,8 @@ struct MFTTrackingParam : public o2::conf::ConfigurableParamHelper<MFTTrackingPa
   Int_t trackmodel = MFTTrackModel::Helix;
   double sigmaboost = 1e0;
   double seedH_k = 1.0;
+  double MFTRadLenghts = 0.041; // MFT average material budget within acceptance
+  bool verbose = false;
 
   O2ParamDef(MFTTrackingParam, "MFTTracking");
 };

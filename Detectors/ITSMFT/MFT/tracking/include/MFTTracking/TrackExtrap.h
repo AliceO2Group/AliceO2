@@ -55,7 +55,7 @@ class TrackExtrap
   void quadraticExtrapToZCov(TrackParamMFT* TrackParamMFT, double zEnd, bool updatePropagator);
   void helixExtrapToZ(TrackParamMFT* TrackParamMFT, double zEnd);
   void helixExtrapToZCov(TrackParamMFT* TrackParamMFT, double zEnd, bool updatePropagator);
-  void addMCSEffect(TrackParamMFT* TrackParamMFT, double dZ, double x0, bool isFieldON = true);
+  void addMCSEffect(TrackParamMFT* TrackParamMFT, double dZ, double x0);
 
  private:
   Float_t mBZField;        // kiloGauss.

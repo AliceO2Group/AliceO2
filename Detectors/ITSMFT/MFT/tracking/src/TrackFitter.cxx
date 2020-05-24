@@ -40,10 +40,13 @@ namespace mft
 //_________________________________________________________________________________________________
 void TrackFitter::setBz(float bZ)
 {
+  auto& mftTrackingParam = MFTTrackingParam::Instance();
+
   /// Set the magnetic field for the MFT
   mBZField = bZ;
   mTrackExtrap.setBz(bZ);
-  if (mVerbose) {
+
+  if (mftTrackingParam.verbose) {
     LOG(INFO) << "Setting Fitter field = " << bZ;
   }
 }
@@ -58,8 +61,11 @@ bool TrackFitter::fit(FitterTrackMFT& track, bool smooth, bool finalize,
   /// Fit the entire track or only the part upstream itStartingParam
   /// Returns false in case of failure
 
-  if (mVerbose) {
+  auto& mftTrackingParam = MFTTrackingParam::Instance();
+
+  if (mftTrackingParam.verbose) {
     std::cout << "\n ***************************** Start Fitting new track ***************************** \n";
+    std::cout << "N Clusters = " << track.getNPoints() << std::endl;
   }
 
   // initialize the starting track parameters and cluster
@@ -87,7 +93,7 @@ bool TrackFitter::fit(FitterTrackMFT& track, bool smooth, bool finalize,
     initTrack(*itParam->getClusterPtr(), *itParam);
   }
 
-  if (mVerbose) {
+  if (mftTrackingParam.verbose) {
     std::cout << "Seed covariances:";
     itParam->getCovariances().Print();
   }
@@ -103,7 +109,7 @@ bool TrackFitter::fit(FitterTrackMFT& track, bool smooth, bool finalize,
   }
 
   itParam--;
-  if (mVerbose) {
+  if (mftTrackingParam.verbose) {
     std::cout << "Track covariances:";
     itParam->getCovariances().Print();
     std::cout << "Track Chi2 = " << itParam->getTrackChi2() << std::endl;
@@ -147,7 +153,7 @@ void TrackFitter::initTrack(const o2::itsmft::Cluster& cl, TrackParamMFT& param)
   double sigmay0sq = cl.getSigmaY2(); // FIXME: from cluster
   double sigmaDeltaZsq = 5.0;         // Primary vertex distribution: beam interaction diamond
   double sigmaboost = mftTrackingParam.sigmaboost; // Boost q/pt seed covariances
-  double seedH_k = mftTrackingParam.sigmaboost;    // SeedH constant
+  double seedH_k = mftTrackingParam.seedH_k;       // SeedH constant
 
   param.setX(cl.getX());
   param.setY(cl.getY());
@@ -158,28 +164,28 @@ void TrackFitter::initTrack(const o2::itsmft::Cluster& cl, TrackParamMFT& param)
   // Configure the track seed
   switch (mftTrackingParam.seed) {
     case AB:
-      if (mVerbose)
+      if (mftTrackingParam.verbose)
         std::cout << " Init track with Seed A / B; sigmaboost = " << sigmaboost << ".\n";
       param.setInvQPt(1.0 / pt); // Seeds A & B
       break;
     case CE:
-      if (mVerbose)
+      if (mftTrackingParam.verbose)
         std::cout << " Init track with Seed C / E; sigmaboost = " << sigmaboost << ".\n";
       param.setInvQPt(std::copysign(1.0, param.getInvQPt()) / pt); // Seeds C & E
       break;
     case DH:
-      if (mVerbose)
+      if (mftTrackingParam.verbose)
         std::cout << " Init track with Seed H; (k = " << seedH_k << "); sigmaboost = " << sigmaboost << ".\n";
       param.setInvQPt(param.getInvQPt() / seedH_k); // SeedH
       break;
     default:
-      if (mVerbose)
+      if (mftTrackingParam.verbose)
         std::cout << " Init track with Seed D.\n";
       break;
   }
 
-  if (mVerbose) {
-    auto model = mftTrackingParam.trackmodel == Helix ? "Helix" : "Quadratic";
+  if (mftTrackingParam.verbose) {
+    auto model = (mftTrackingParam.trackmodel == Helix) ? "Helix" : (mftTrackingParam.trackmodel == Quadratic) ? "Quadratic" : "Linear";
     std::cout << "Track Model: " << model << std::endl;
     std::cout << "initTrack Cluster    X =  " << cl.getX() << "   Y = " << cl.getY() << "   Z = " << cl.getZ() << std::endl;
     std::cout << "  seed Phi, Tanl, InvQpt = " << param.getPhi() << " " << param.getTanl() << " " << param.getInvQPt() << std::endl;
@@ -234,11 +240,13 @@ bool TrackFitter::addCluster(const TrackParamMFT& startingParam, const o2::itsmf
   /// Recompute the parameters adding the cluster constraint with the Kalman filter
   /// Returns false in case of failure
 
+  auto& mftTrackingParam = MFTTrackingParam::Instance();
+
   if (cl.getZ() <= startingParam.getZ()) {
     LOG(INFO) << "AddCluster ERROR: The new cluster must be upstream! Bug on TrackFinder. ";
     return false;
   }
-  if (mVerbose)
+  if (mftTrackingParam.verbose)
     std::cout << "addCluster:     X = " << cl.getX() << " Y = " << cl.getY() << " Z = " << cl.getZ() << std::endl;
   // copy the current parameters into the new ones
   param.setParameters(startingParam.getParameters());
@@ -246,39 +254,47 @@ bool TrackFitter::addCluster(const TrackParamMFT& startingParam, const o2::itsmf
   param.setCovariances(startingParam.getCovariances());
   param.setTrackChi2(startingParam.getTrackChi2());
 
-  // add MCS effect in the current layer
-  //o2::itsmft::ChipMappingMFT mftChipMapper;
-  //int currentLayer(mftChipMapper.chip2Layer(startingParam.getClusterPtr()->getSensorID()));
-  //mTrackExtrap.addMCSEffect(&param, SLayerThicknessInX0[currentLayer], -1.);
+  // add MCS effects for the new cluster
+  using o2::mft::constants::LayerZPosition;
+  int startingLayerID, newLayerID;
+
+  double dZ = TMath::Abs(cl.getZ() - startingParam.getZ());
+  //LayerID of each cluster from ZPosition // TODO: Use ChipMapping
+  for (auto layer = 10; layer--;)
+    if (startingParam.getZ() < LayerZPosition[layer] + .3 & startingParam.getZ() > LayerZPosition[layer] - .3)
+      startingLayerID = layer;
+  for (auto layer = 10; layer--;)
+    if (cl.getZ() < LayerZPosition[layer] + .3 & cl.getZ() > LayerZPosition[layer] - .3)
+      newLayerID = layer;
+  // Number of disks crossed by this tracklet
+  int NDisksMS = (startingLayerID % 2 == 0) ? (startingLayerID - newLayerID) / 2 : (startingLayerID - newLayerID + 1) / 2;
+
+  double MFTDiskThicknessInX0 = mftTrackingParam.MFTRadLenghts / 5.0;
+  if (mftTrackingParam.verbose) {
+    std::cout << "startingLayerID = " << startingLayerID << " ; "
+              << "newLayerID = " << newLayerID << " ; ";
+    std::cout << "cl.getZ() = " << cl.getZ() << " ; ";
+    std::cout << "startingParam.getZ() = " << startingParam.getZ() << " ; ";
+    std::cout << "NDisksMS = " << NDisksMS << std::endl;
+  }
+
+  // Add MCS effects
+  if ((NDisksMS * MFTDiskThicknessInX0) != 0)
+    mTrackExtrap.addMCSEffect(&param, -1, NDisksMS * MFTDiskThicknessInX0);
 
   // reset propagator for smoother
   if (mSmooth) {
     param.resetPropagator();
   }
 
-  if (mVerbose)
+  if (mftTrackingParam.verbose)
     std::cout << "  BeforeExtrap: X = " << param.getX() << " Y = " << param.getY() << " Z = " << param.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << " pz = " << param.getPz() << " qpt = " << 1.0 / param.getInvQPt() << std::endl;
-  //param.getCovariances().Print();
-
-  /*
-  // add MCS in missing layers if any
-  int expectedLayer(currentLayer - 1);
-  currentLayer = mftChipMapper.chip2Layer(cl.getSensorID());
-  while (currentLayer < expectedLayer) {
-    if (!mTrackExtrap.extrapToZCov(&param, o2::mft::constants::LayerZPosition[expectedLayer], mSmooth)) {
-      return false;
-    }
-    //mTrackExtrap.addMCSEffect(&param, SLayerThicknessInX0[expectedLayer], -1.);
-    expectedLayer--;
-  }
-  */
 
   // extrapolate to the z position of the new cluster
   mTrackExtrap.extrapToZCov(&param, cl.getZ(), mSmooth);
 
-  if (mVerbose)
+  if (mftTrackingParam.verbose)
     std::cout << "   AfterExtrap: X = " << param.getX() << " Y = " << param.getY() << " Z = " << param.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << " pz = " << param.getPz() << " qpt = " << 1.0 / param.getInvQPt() << std::endl;
-  //param.getCovariances().Print();
 
   // save extrapolated parameters and covariances for smoother
   if (mSmooth) {
@@ -289,11 +305,12 @@ bool TrackFitter::addCluster(const TrackParamMFT& startingParam, const o2::itsmf
   // recompute the parameters
   param.setClusterPtr(&cl);
   if (runKalmanFilter(param)) {
-    if (mVerbose) {
+    if (mftTrackingParam.verbose) {
       std::cout << "   New Cluster: X = " << cl.getX() << " Y = " << cl.getY() << " Z = " << cl.getZ() << std::endl;
       std::cout << "   AfterKalman: X = " << param.getX() << " Y = " << param.getY() << " Z = " << param.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << " pz = " << param.getPz() << " qpt = " << 1.0 / param.getInvQPt() << std::endl;
-      //param.getCovariances().Print();
       std::cout << std::endl;
+      // Outputs track covariance matrix:
+      // param.getCovariances().Print();
     }
     return true;
   } else

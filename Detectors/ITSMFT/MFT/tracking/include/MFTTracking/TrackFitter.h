@@ -75,7 +75,6 @@ class TrackFitter
 
   bool mSmooth = false; ///< switch ON/OFF the smoother
   bool mFieldON = true;
-  bool mVerbose = true;
   o2::mft::TrackExtrap mTrackExtrap;
 };
 
