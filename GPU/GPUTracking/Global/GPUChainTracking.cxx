@@ -18,6 +18,9 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #endif
+#ifndef GPUCA_NO_VC
+#include <Vc/Vc>
+#endif
 
 #include "GPUChainTracking.h"
 #include "GPUTPCClusterData.h"
@@ -358,6 +361,7 @@ unsigned int GPUChainTracking::TPCClusterizerDecodeZSCount(unsigned int iSlice, 
   processors()->tpcClusterer[iSlice].mPmemory->counters.nPagesSubslice = 0;
   GPUTPCClusterFinder::ZSOffset* o = processors()->tpcClusterer[iSlice].mPzsOffsets;
   int firstHBF = mIOPtrs.tpcZS->slice[iSlice].count[0] ? o2::raw::RDHUtils::getHeartBeatOrbit(*(const o2::header::RAWDataHeader*)mIOPtrs.tpcZS->slice[iSlice].zsPtr[0][0]) : 0;
+
   for (unsigned short j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
     if (!doGPU) {
       processors()->tpcClusterer[iSlice].mPzsOffsets[j] = GPUTPCClusterFinder::ZSOffset{nDigits, j, 0};
@@ -366,6 +370,17 @@ unsigned int GPUChainTracking::TPCClusterizerDecodeZSCount(unsigned int iSlice, 
     processors()->tpcClusterer[iSlice].mMinMaxCN[j].minC = processors()->tpcClusterer[iSlice].mMinMaxCN[j].maxC;
     processors()->tpcClusterer[iSlice].mMinMaxCN[j].maxN = mIOPtrs.tpcZS->slice[iSlice].count[j] ? mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][mIOPtrs.tpcZS->slice[iSlice].count[j] - 1] : 0;
     processors()->tpcClusterer[iSlice].mMinMaxCN[j].minN = processors()->tpcClusterer[iSlice].mMinMaxCN[j].minN;
+
+#ifndef GPUCA_NO_VC
+    if (GetDeviceProcessingSettings().prefetchTPCpageScan && j < GPUTrackingInOutZS::NENDPOINTS - 1) {
+      for (unsigned int k = 0; k < mIOPtrs.tpcZS->slice[iSlice].count[j + 1]; k++) {
+        for (unsigned int l = 0; l < mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j + 1][k]; l++) {
+          Vc::Common::prefetchForOneRead(((const unsigned char*)mIOPtrs.tpcZS->slice[iSlice].zsPtr[j + 1][k]) + l * TPCZSHDR::TPC_ZS_PAGE_SIZE);
+          Vc::Common::prefetchForOneRead(((const unsigned char*)mIOPtrs.tpcZS->slice[iSlice].zsPtr[j + 1][k]) + l * TPCZSHDR::TPC_ZS_PAGE_SIZE + sizeof(o2::header::RAWDataHeader));
+        }
+      }
+    }
+#endif
 
     bool firstFound = false;
     unsigned short num = 0;
@@ -442,6 +457,18 @@ int GPUChainTracking::PrepareEvent()
         }
         AllocateRegisteredMemory(processors()->tpcClusterer[iSlice].mZSOffsetId);
         nPagesTotal += nPages;
+#ifndef GPUCA_NO_VC
+        if (GetDeviceProcessingSettings().prefetchTPCpageScan && iSlice < NSLICES - 1) {
+          for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+            for (unsigned int k = 0; k < mIOPtrs.tpcZS->slice[iSlice].count[j]; k++) {
+              for (unsigned int l = 0; l < mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k]; l++) {
+                Vc::Common::prefetchFar(((const unsigned char*)mIOPtrs.tpcZS->slice[iSlice + 1].zsPtr[j][k]) + l * TPCZSHDR::TPC_ZS_PAGE_SIZE);
+                Vc::Common::prefetchFar(((const unsigned char*)mIOPtrs.tpcZS->slice[iSlice + 1].zsPtr[j][k]) + l * TPCZSHDR::TPC_ZS_PAGE_SIZE + sizeof(o2::header::RAWDataHeader));
+              }
+            }
+          }
+        }
+#endif
         nDigits = TPCClusterizerDecodeZSCount(iSlice, 0, -1);
         processors()->tpcClusterer[iSlice].mPmemory->counters.nDigits = nDigits;
       } else {

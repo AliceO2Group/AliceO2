@@ -118,7 +118,7 @@ int ReadConfiguration(int argc, char** argv)
     CPU_ZERO(&mask);
     CPU_SET(configStandalone.affinity, &mask);
 
-    printf("Setting affinitiy to restrict on CPU %d\n", configStandalone.affinity);
+    printf("Setting affinitiy to restrict on CPU core %d\n", configStandalone.affinity);
     if (0 != sched_setaffinity(0, sizeof(mask), &mask)) {
       printf("Error setting CPU affinity\n");
       return 1;

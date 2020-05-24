@@ -108,4 +108,5 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   alternateBorderSort = false;
   delayedOutput = true;
   tpccfGatherKernel = true;
+  prefetchTPCpageScan = false;
 }
