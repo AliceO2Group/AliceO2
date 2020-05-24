@@ -77,8 +77,6 @@ class FitterTrackMFT
   /// Remove the given track parameters from the internal list and return an iterator to the parameters that follow
   auto removeParamAtCluster(std::list<TrackParamMFT>::iterator& itParam) { return mParamAtClusters.erase(itParam); }
 
-  const int getNClustersInCommon(const FitterTrackMFT& track, int stMin = 0, int stMax = 4) const;
-
   bool isBetter(const FitterTrackMFT& track) const;
 
   void tagRemovableClusters(uint8_t requestedStationMask);
@@ -103,8 +101,6 @@ class FitterTrackMFT
   void removable(bool removable = true) { mRemovable = removable; }
   /// return the flag telling if this track should be deleted
   bool isRemovable() const { return mRemovable; }
-
-  void printMCCompLabels() const;
 
   const Int_t getNPoints() const { return mNPoints; }
 
