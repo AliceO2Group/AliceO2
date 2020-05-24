@@ -151,7 +151,7 @@ AddOption(forceMemorySize, unsigned long long int, 1, "memSize", 0, "Force size 
 AddOption(memoryScalingFactor, float, 1.f, "memoryScalingFactor", 0, "Factor to apply to all memory scalers")
 AddOption(outputcontrolmem, unsigned long long int, 0, "outputMemory", 0, "Use predefined output buffer of this size", min(0ull), message("Using %lld bytes as output memory"))
 AddOption(registerInputMemory, bool, false, "registerInputMemory", 0, "Automatically register input memory buffers for the GPU")
-AddOption(affinity, int, -1, "cpuAffinity", 0, "Pin CPU affinity to this CPU core", min(-1), message("Setting affinity to restrict on CPU %d"))
+AddOption(affinity, int, -1, "cpuAffinity", 0, "Pin CPU affinity to this CPU core", min(-1))
 AddOption(fifo, bool, false, "fifoScheduler", 0, "Use FIFO realtime scheduler", message("Setting FIFO scheduler: %s"))
 AddOption(fpe, bool, true, "fpe", 0, "Trap on floating point exceptions")
 AddOption(flushDenormals, bool, true, "flushDenormals", 0, "Enable FTZ and DAZ (Flush all denormals to zero)")
