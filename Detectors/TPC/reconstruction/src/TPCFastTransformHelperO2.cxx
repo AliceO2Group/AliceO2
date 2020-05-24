@@ -260,27 +260,22 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   // for the future: switch TOF correction off for a while
 
-  for (int slice = 0; slice < correction.getGeometry().getNumberOfSlices(); slice++) {
-    for (int row = 0; row < correction.getGeometry().getNumberOfRows(); row++) {
-      const TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSpline(slice, row);
-      float* data = correction.getSplineData(slice, row);
-      if (mSpaceChargeCorrection) {
+  if (mSpaceChargeCorrection) {
+    for (int slice = 0; slice < correction.getGeometry().getNumberOfSlices(); slice++) {
+      for (int row = 0; row < correction.getGeometry().getNumberOfRows(); row++) {
+        const TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSpline(slice, row);
+        float* data = correction.getSplineData(slice, row);
         SplineHelper2D<float> helper;
         helper.setSpline(spline, 3, 3);
         auto F = [&](float su, float sv, float dxuv[3]) {
           getSpaceChargeCorrection(slice, row, su, sv, dxuv[0], dxuv[1], dxuv[2]);
         };
         helper.approximateFunction(data, 0., 1., 0., 1., F);
-      } else {
-        for (int i = 0; i < spline.getNumberOfParameters(); i++) {
-          data[i] = 0;
-        }
-      }
-    } // row
-  }   // slice
-
-  if (!mSpaceChargeCorrection) {
+      } // row
+    }   // slice
     correction.initInverse();
+  } else {
+    correction.setNoCorrection();
   }
 
   // for the future: set back the time-of-flight correction
