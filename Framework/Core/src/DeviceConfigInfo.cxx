@@ -25,28 +25,33 @@ namespace o2::framework
 
 // Parses a config entry in the form
 //
-// [CONFIG] <key>=<vaue> <timestamp>
+// [CONFIG] <key>=<vaue> <timestamp> <provenance>
 bool DeviceConfigHelper::parseConfig(std::string_view s, ParsedConfigMatch& match)
 {
+  const char* begin = s.begin();
   const char* end = s.end();
-  if (s.size() > 17 && (strncmp("[CONFIG] ", s.data() + 17, 9) != 0)) {
+  if (s.size() > 17 && (strncmp("[CONFIG] ", begin + 17, 9) != 0)) {
     return false;
   }
   match.beginKey = s.data() + 9 + 17;
   match.endKey = (char const*)memchr(match.beginKey, '=', s.size() - 9);
-  if (match.endKey == 0) {
+  if (match.endKey == nullptr) {
     return false;
   }
   match.beginValue = match.endKey + 1;
   match.endValue = (char const*)memchr(match.beginValue, ' ', end - match.beginValue);
-  if (match.endValue == 0) {
+  if (match.endValue == nullptr) {
     return false;
   }
-  char* err = 0;
-  match.timestamp = strtoll(match.endValue, &err, 10);
-  if (err != s.end()) {
+  char* next = nullptr;
+  match.timestamp = strtoll(match.endValue, &next, 10);
+
+  if (!next || *next != ' ') {
     return false;
   }
+
+  match.beginProvenance = next + 1;
+  match.endProvenance = end;
 
   return true;
 }
@@ -55,11 +60,14 @@ bool DeviceConfigHelper::processConfig(ParsedConfigMatch& match,
                                        DeviceInfo& info)
 {
   if (match.beginKey == nullptr || match.endKey == nullptr ||
-      match.beginValue == nullptr || match.endValue == nullptr) {
+      match.beginValue == nullptr || match.endValue == nullptr ||
+      match.beginProvenance == nullptr || match.endProvenance == nullptr) {
     return false;
   }
   info.currentConfig.put(std::string(match.beginKey, match.endKey - match.beginKey),
                          std::string(match.beginValue, match.endValue - match.beginValue));
+  info.currentProvenance.put(std::string(match.beginKey, match.endKey - match.beginKey),
+                             std::string(match.beginProvenance, match.endProvenance - match.beginProvenance));
   return true;
 }
 

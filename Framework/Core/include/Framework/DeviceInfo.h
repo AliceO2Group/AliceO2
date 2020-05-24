@@ -65,6 +65,8 @@ struct DeviceInfo {
   Metric2DViewIndex queriesViewIndex;
   /// Current configuration for the device
   boost::property_tree::ptree currentConfig;
+  /// Current provenance for the configuration keys
+  boost::property_tree::ptree currentProvenance;
 };
 
 } // namespace framework

@@ -63,12 +63,13 @@ void deviceInfoTable(DeviceInfo const& info, DeviceMetricsInfo const& metrics)
   }
 }
 
-void configurationTable(boost::property_tree::ptree const& currentConfig)
+void configurationTable(boost::property_tree::ptree const& currentConfig,
+                        boost::property_tree::ptree const& currentProvenance)
 {
+  if (currentConfig.empty()) {
+    return;
+  }
   if (ImGui::CollapsingHeader("Current Config", ImGuiTreeNodeFlags_DefaultOpen)) {
-    if (currentConfig.empty()) {
-      return;
-    }
     ImGui::Columns(2);
     auto labels = {"Name", "Value"};
     for (auto& label : labels) {
@@ -83,7 +84,12 @@ void configurationTable(boost::property_tree::ptree const& currentConfig)
         ImGui::EndTooltip();
       }
       ImGui::NextColumn();
-      ImGui::TextUnformatted(option.second.data().c_str());
+      ImGui::Text("%s (%s)", option.second.data().c_str(), currentProvenance.get<std::string>(option.first).c_str());
+      if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("%s (%s)", option.second.data().c_str(), currentProvenance.get<std::string>(option.first).c_str());
+        ImGui::EndTooltip();
+      }
       ImGui::NextColumn();
     }
     ImGui::Columns(1);
@@ -192,7 +198,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
   for (auto& option : info.currentConfig) {
     ImGui::Text("%s: %s", option.first.c_str(), option.second.data().c_str());
   }
-  configurationTable(info.currentConfig);
+  configurationTable(info.currentConfig, info.currentProvenance);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
   if (ImGui::CollapsingHeader("Command line arguments", ImGuiTreeNodeFlags_DefaultOpen)) {
     for (auto& arg : metadata.cmdLineArgs) {
