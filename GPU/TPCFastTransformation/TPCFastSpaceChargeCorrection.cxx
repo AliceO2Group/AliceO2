@@ -376,11 +376,20 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
 
   mTimeStamp = -1;
 
+  setNoCorrection();
+}
+
+GPUd() void TPCFastSpaceChargeCorrection::setNoCorrection()
+{
   // initialise all corrections to 0.
-  for (int is = 0; is < 3; is++) {
-    for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
-      for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
-        const SplineType& spline = getSpline(slice, row);
+  for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
+    double vLength = (slice < mGeo.getNumberOfSlicesA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
+    SliceInfo& sliceInfo = getSliceInfo(slice);
+    sliceInfo.vMax = vLength;
+    for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
+      const SplineType& spline = getSpline(slice, row);
+
+      for (int is = 0; is < 3; is++) {
         float* data = getSplineData(slice, row, is);
         int nPar = spline.getNumberOfParameters();
         if (is == 1) {
@@ -394,6 +403,19 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
         }
       }
 
+      SliceRowInfo& info = getSliceRowInfo(slice, row);
+      RowActiveArea& area = info.activeArea;
+      for (int i = 1; i < 5; i++) {
+        area.maxDriftLengthCheb[i] = 0;
+      }
+      area.maxDriftLengthCheb[0] = vLength;
+      mGeo.convPadToU(row, 0., area.cuMin);
+      area.cuMax = -area.cuMin;
+      area.vMax = vLength;
+      area.cvMax = vLength;
+      info.CorrU0 = area.cuMin;
+      info.scaleCorrUtoGrid = (spline.getGridU1().getNumberOfKnots() - 1) / (area.cuMax - area.cuMin);
+      info.scaleCorrVtoGrid = (spline.getGridU2().getNumberOfKnots() - 1) / area.cvMax;
     } // row
   }   // slice
 }
@@ -672,8 +694,6 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
   if (prn) {
     std::cout << "Test inverse transform " << std::endl;
   }
-
-  initInverse(prn);
 
   double tpcR2min = mGeo.getRowInfo(0).x - 1.;
   tpcR2min = tpcR2min * tpcR2min;

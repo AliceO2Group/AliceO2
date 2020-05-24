@@ -118,8 +118,11 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
   /// _______________  Initialization interface  ________________________
 
+  /// Set no correction
+  GPUd() void setNoCorrection();
+
   /// Sets the time stamp of the current calibaration
-  void setTimeStamp(long int v) { mTimeStamp = v; }
+  GPUd() void setTimeStamp(long int v) { mTimeStamp = v; }
 
   /// Gives pointer to a spline
   GPUd() const SplineType& getSpline(int slice, int row) const;
