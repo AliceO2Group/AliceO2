@@ -17,7 +17,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include <boost/property_tree/ptree.hpp>
 
 namespace o2::framework
 {
@@ -30,18 +29,22 @@ struct ParsedConfigMatch {
   char const* endKey;
   char const* beginValue;
   char const* endValue;
+  char const* beginProvenance;
+  char const* endProvenance;
   std::size_t timestamp;
 };
 
 struct DeviceConfigHelper {
-  /// Helper function to parse a metric string.
+  /// Helper function to parse a configuration parameter reported by
+  /// a given device. The format is the following:
+  ///
+  /// [CONFIG]: key=value timestamp provenance
   static bool parseConfig(std::string_view const s, ParsedConfigMatch& results);
 
   /// Processes a parsed configuration and stores in the backend store.
   ///
   /// @matches is the regexp_matches from the metric identifying regex
   /// @info is the DeviceInfo associated to the device posting the metric
-  /// @newMetricsCallback is a callback that will be invoked every time a new metric is added to the list.
   static bool processConfig(ParsedConfigMatch& results,
                             DeviceInfo& info);
 };
