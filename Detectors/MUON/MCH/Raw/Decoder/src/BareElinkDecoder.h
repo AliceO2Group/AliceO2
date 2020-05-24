@@ -301,7 +301,7 @@ void BareElinkDecoder<CHARGESUM>::handleReadSample()
   }
   oneLess10BitWord();
   if (mNofSamples) {
-    handleReadData();
+    changeToReadingData();
   } else {
     sendCluster();
     if (mNof10BitsWordsToRead) {
