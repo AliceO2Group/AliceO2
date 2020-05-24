@@ -17,7 +17,7 @@
 #include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
 #include "Headers/RAWDataHeader.h"
-#include "Headers/RDHAny.h"
+#include "DetectorsRaw/RDHAny.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include "CommonDataFormat/InteractionRecord.h"

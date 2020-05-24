@@ -14,12 +14,14 @@ o2_add_library(DetectorsRaw
 	       	       src/SimpleRawReader.cxx
 		       src/SimpleSTF.cxx
 	               src/HBFUtils.cxx
-	               src/RDHUtils.cxx		       
+	               src/RDHUtils.cxx
+	               src/RDHAny.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::Headers
                                      O2::CommonDataFormat
                                      O2::DetectorsCommonDataFormats
                                      O2::Framework
+                                     O2::GPUCommon
                                      FairMQ::FairMQ)
 
 o2_target_root_dictionary(DetectorsRaw

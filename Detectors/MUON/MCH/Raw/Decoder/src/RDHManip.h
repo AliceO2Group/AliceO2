@@ -16,7 +16,7 @@
 #include <gsl/span>
 #include <vector>
 #include <cstddef>
-#include "Headers/RDHAny.h"
+#include "DetectorsRaw/RDHAny.h"
 
 namespace o2::mch::raw
 {
