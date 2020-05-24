@@ -28,9 +28,9 @@ class SimpleOptionsRetriever : public ParamRetriever
   {
   }
 
-  virtual void update(std::vector<ConfigParamSpec> const& specs,
-                      boost::property_tree::ptree& store,
-                      boost::property_tree::ptree& provenance) override;
+  void update(std::vector<ConfigParamSpec> const& specs,
+              boost::property_tree::ptree& store,
+              boost::property_tree::ptree& provenance) override;
 
  private:
   boost::property_tree::ptree mTree;
