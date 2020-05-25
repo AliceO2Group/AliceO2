@@ -19,6 +19,9 @@ childprocs() {
   fi
 }
 
+# accumulate return codes
+RC_ACUM=0
+
 taskwrapper() {
   # A simple task wrapper launching a DPL workflow in the background 
   # and checking the output for exceptions. If exceptions are found,
@@ -74,6 +77,7 @@ taskwrapper() {
         kill $p
       done      
 
+      RC_ACUM=$((RC_ACUM+1))
       return 1
     fi
 
@@ -88,7 +92,12 @@ taskwrapper() {
   # wait for PID and fetch return code
   # ?? should directly exit here?
   wait $PID
-  return $?
+  # return code
+  RC=$?
+  RC_ACUM=$((RC_ACUM+RC))
+  [ ! "${RC} -eq 0" ] && echo "command ${command} had nonzero exit code ${RC}"
+
+  return ${RC}
 }
 
 # ----------- START WITH ACTUAL SCRIPT ----------------------------
@@ -166,6 +175,7 @@ else
   Usage
 fi
 
+
 if [ "$dosim" == "1" ]; then
   #---------------------------------------------------
   echo "Running simulation for $nev $collSyst events with $gener generator and engine $engine"
@@ -223,3 +233,5 @@ if [ "$doreco" == "1" ]; then
   root -b -q -l $O2_ROOT/share/macro/checkTOFMatching.C 1>tofmatch_qa.log 2>&1
   echo "Return status of TOF matching qa: $?"
 fi
+
+exit ${RC_ACUM}
