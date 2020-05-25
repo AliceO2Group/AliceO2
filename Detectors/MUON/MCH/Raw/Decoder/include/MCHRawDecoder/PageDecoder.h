@@ -53,8 +53,8 @@ PageDecoder createPageDecoder(RawBuffer rdhBuffer,
 // to each page.
 using PageParser = std::function<void(RawBuffer buffer, PageDecoder pageDecoder)>;
 
-// Create a PageParser depending on the first rdh found in the buffer.
-PageParser createPageParser(RawBuffer rdhBuffer);
+// Create a PageParser
+PageParser createPageParser();
 
 } // namespace o2::mch::raw
 

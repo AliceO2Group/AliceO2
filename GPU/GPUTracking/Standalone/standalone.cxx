@@ -201,10 +201,6 @@ int ReadConfiguration(int argc, char** argv)
     printf("Can only produce QA pdf output when input files are specified!\n");
     return 1;
   }
-  if (configStandalone.timeFrameTime && configStandalone.DebugLevel == 0) {
-    printf("tfTime needs debug >= 1 currently\n");
-    return 1;
-  }
   if (configStandalone.eventDisplay) {
     configStandalone.noprompt = 1;
   }
@@ -680,9 +676,13 @@ int main(int argc, char** argv)
 
         if (configStandalone.overrideMaxTimebin && (chainTracking->mIOPtrs.clustersNative || chainTracking->mIOPtrs.tpcPackedDigits || chainTracking->mIOPtrs.tpcZS)) {
           GPUSettingsEvent ev = rec->GetEventSettings();
-          ev.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
-          printf("Max time bin set to %d\n", (int)ev.continuousMaxTimeBin);
-          rec->UpdateEventSettings(&ev);
+          if (ev.continuousMaxTimeBin == 0) {
+            printf("Cannot override max time bin for non-continuous data!\n");
+          } else {
+            ev.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
+            printf("Max time bin set to %d\n", (int)ev.continuousMaxTimeBin);
+            rec->UpdateEventSettings(&ev);
+          }
         }
         if (!rec->GetParam().earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr && chainTracking->mIOPtrs.tpcZS == nullptr) {
           printf("Need cluster native data for on-the-fly TPC transform\n");
@@ -788,15 +788,15 @@ int main(int argc, char** argv)
           double nClusters = chainTracking->GetTPCMerger().NMaxClusters();
           if (nClusters > 0) {
             double nClsPerTF = 550000. * 1138.3;
-            double timePerTF = rec->GetStatKernelTime() / 1000000. * nClsPerTF / nClusters;
+            double timePerTF = (configStandalone.DebugLevel ? rec->GetStatKernelTime() : rec->GetStatWallTime()) / 1000000. * nClsPerTF / nClusters;
             double nGPUsReq = timePerTF / 0.02277;
             char stat[1024];
             snprintf(stat, 1024, "Sync phase: %.2f sec per 256 orbit TF, %.1f GPUs required", timePerTF, nGPUsReq);
             if (configStandalone.testSyncAsync) {
-              timePerTF = recAsync->GetStatKernelTime() / 1000000. * nClsPerTF / nClusters;
+              timePerTF = (configStandalone.DebugLevel ? recAsync->GetStatKernelTime() : recAsync->GetStatWallTime()) / 1000000. * nClsPerTF / nClusters;
               snprintf(stat + strlen(stat), 1024 - strlen(stat), " - Async phase: %f sec per TF", timePerTF);
             }
-            printf("%s (Extrapolated from %d clusters to %d)\n", stat, (int)nClusters, (int)nClsPerTF);
+            printf("%s (Measured %s time - Extrapolated from %d clusters to %d)\n", stat, configStandalone.DebugLevel ? "kernel" : "wall", (int)nClusters, (int)nClsPerTF);
           }
         }
       }

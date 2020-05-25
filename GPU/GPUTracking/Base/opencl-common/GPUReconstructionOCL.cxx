@@ -52,11 +52,13 @@ GPUReconstructionOCL::~GPUReconstructionOCL()
   }
 }
 
+void GPUReconstructionOCL::UpdateSettings()
+{
+  GPUCA_GPUReconstructionUpdateDefailts();
+}
+
 int GPUReconstructionOCL::InitDevice_Runtime()
 {
-  // Find best OPENCL device, initialize and allocate memory
-  GPUCA_GPUReconstructionUpdateDefailts();
-
   if (mMaster == nullptr) {
     cl_int ocl_error;
     cl_uint num_platforms;

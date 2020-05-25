@@ -22,6 +22,7 @@
 #include "TOFBase/Digit.h"
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RawFileWriter.h"
 
 namespace o2
 {
@@ -46,20 +47,13 @@ class Encoder
   bool encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int tofwindow = 0);
   void encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t itrm, int& istart); // return next trm index
 
-  void openRDH(int icrate);
-  void addPage(int icrate);
-  void closeRDH(int icrate);
-
-  bool flush();
   bool flush(int icrate);
   bool close();
   void setVerbose(bool val) { mVerbose = val; };
 
-  char* nextPage(void* current, int step);
   int getSize(void* first, void* last);
 
   void nextWord(int icrate);
-  void nextWordNoEmpty(int icrate);
 
   void setContinuous(bool value) { mIsContinuous = value; }
   bool isContinuous() const { return mIsContinuous; }
@@ -68,13 +62,11 @@ class Encoder
 
  protected:
   // benchmarks
-  double mIntegratedBytes[72];
   double mIntegratedAllBytes = 0;
   double mIntegratedTime = 0.;
 
   static constexpr int NCRU = 4;
   static constexpr int NLINKSPERCRU = 72 / NCRU;
-  std::ofstream mFileCRU[NCRU];
 
   bool mVerbose = false;
 
@@ -91,9 +83,12 @@ class Encoder
 
   o2::header::RAWDataHeader* mRDH[72];
   const o2::raw::HBFUtils& mHBFSampler = o2::raw::HBFUtils::Instance();
-  int mNRDH[72];
+  o2::raw::RawFileWriter mFileWriter{o2::header::gDataOriginTOF};
+
+  bool mCrateOn[72];
 
   bool mStartRun = true;
+  int mFirstBC = 0;
 
   // temporary variable for encoding
   int mEventCounter;         //!

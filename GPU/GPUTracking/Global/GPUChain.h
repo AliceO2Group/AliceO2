@@ -78,6 +78,14 @@ class GPUChain
   inline GPUSettingsDeviceProcessing& DeviceProcessingSettings() { return mRec->mDeviceProcessingSettings; }
   inline void SynchronizeStream(int stream) { mRec->SynchronizeStream(stream); }
   inline void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) { mRec->SynchronizeEvents(evList, nEvents); }
+  template <class T>
+  inline void CondWaitEvent(T& cond, deviceEvent* ev)
+  {
+    if (cond == true) {
+      SynchronizeEvents(ev);
+      cond = 2;
+    }
+  }
   inline bool IsEventDone(deviceEvent* evList, int nEvents = 1) { return mRec->IsEventDone(evList, nEvents); }
   inline void RecordMarker(deviceEvent* ev, int stream) { mRec->RecordMarker(ev, stream); }
   virtual inline std::unique_ptr<GPUReconstruction::GPUThreadContext> GetThreadContext() { return mRec->GetThreadContext(); }

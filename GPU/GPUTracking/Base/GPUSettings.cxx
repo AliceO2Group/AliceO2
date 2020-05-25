@@ -81,7 +81,7 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   gpuDeviceOnly = false;
   nDeviceHelperThreads = 2;
   debugLevel = -1;
-  deviceTimers = false;
+  deviceTimers = true;
   debugMask = -1;
   comparableDebutOutput = true;
   resetTimers = 1;
@@ -91,6 +91,7 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   stuckProtection = 0;
   memoryAllocationStrategy = 0;
   keepAllMemory = false;
+  keepDisplayMemory = false;
   nStreams = 8;
   trackletConstructorInPipeline = -1;
   trackletSelectorInPipeline = -1;

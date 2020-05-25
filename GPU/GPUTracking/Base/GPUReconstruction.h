@@ -151,6 +151,13 @@ class GPUReconstruction
     unsigned int total() { return nThreads * minBlocks; }
   };
 
+  struct krnlSetup {
+    krnlExec x;
+    krnlRunRange y;
+    krnlEvent z;
+    double t;
+  };
+
   // Global steering functions
   template <class T, typename... Args>
   T* AddChain(Args... args);
@@ -184,6 +191,7 @@ class GPUReconstruction
   void ClearAllocatedMemory(bool clearOutputs = true);
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
   void ResetRegisteredMemoryPointers(short res);
+  void ComputeReuseMax(GPUProcessor* proc);
   void PrintMemoryStatistics();
   void PrintMemoryOverview();
   void SetMemoryExternalInput(short res, void* ptr);
@@ -210,7 +218,8 @@ class GPUReconstruction
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
   void SetOutputControl(void* ptr, size_t size);
   GPUOutputControl& OutputControl() { return mOutputControl; }
-  int GetMaxThreads() { return mMaxThreads; }
+  int GetMaxThreads() const { return mMaxThreads; }
+  int NStreams() const { return mNStreams; }
   const void* DeviceMemoryBase() const { return mDeviceMemoryBase; }
 
   RecoStepField GetRecoSteps() const { return mRecoSteps; }
@@ -229,23 +238,18 @@ class GPUReconstruction
   // Support / Debugging
   virtual void PrintKernelOccupancies() {}
   double GetStatKernelTime() { return mStatKernelTime; }
+  double GetStatWallTime() { return mStatWallTime; }
 
  protected:
   GPUReconstruction(const GPUSettingsProcessing& cfg); // Constructor
   int InitPhaseBeforeDevice();
+  virtual void UpdateSettings() {}
   virtual int InitDevice() = 0;
   int InitPhasePermanentMemory();
   int InitPhaseAfterDevice();
   void WriteConstantParams();
   virtual int ExitDevice() = 0;
   virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
-
-  struct krnlSetup {
-    krnlExec x;
-    krnlRunRange y;
-    krnlEvent z;
-    double t;
-  };
 
   // Management for GPU thread contexts
   class GPUThreadContext
@@ -323,6 +327,7 @@ class GPUReconstruction
   unsigned int mStatNEvents = 0;
   unsigned int mNEventsProcessed = 0;
   double mStatKernelTime = 0.;
+  double mStatWallTime = 0.;
 
   int mMaxThreads = 0; // Maximum number of threads that may be running, on CPU or GPU
   int mThreadId = -1;  // Thread ID that is valid for the local CUDA context
@@ -338,7 +343,11 @@ class GPUReconstruction
     void (GPUProcessor::*SetMaxData)(const GPUTrackingInOutPointers&);
   };
   std::vector<ProcessorData> mProcessors;
-  std::unordered_map<GPUMemoryReuse::ID, int> mMemoryReuse1to1;
+  struct MemoryReuseMeta {
+    GPUProcessor* proc = nullptr;
+    std::vector<unsigned short> res;
+  };
+  std::unordered_map<GPUMemoryReuse::ID, MemoryReuseMeta> mMemoryReuse1to1;
 
   // Helpers for loading device library via dlopen
   class LibraryLoader
@@ -390,7 +399,7 @@ template <class T>
 inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name, const GPUMemoryReuse& re)
 {
   if (!(type & (GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_GPU))) {
-    if ((type & GPUMemoryResource::MEMORY_SCRATCH) && !mDeviceProcessingSettings.keepAllMemory) {
+    if ((type & GPUMemoryResource::MEMORY_SCRATCH) && !mDeviceProcessingSettings.keepDisplayMemory) { // keepAllMemory --> keepDisplayMemory
       type |= (proc->mGPUProcessorType == GPUProcessor::PROCESSOR_TYPE_CPU ? GPUMemoryResource::MEMORY_HOST : GPUMemoryResource::MEMORY_GPU);
     } else {
       type |= GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_GPU;
@@ -403,13 +412,14 @@ inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*set
   if (mMemoryResources.size() >= 32768) {
     throw std::bad_alloc();
   }
-  short retVal = mMemoryResources.size() - 1;
+  unsigned short retVal = mMemoryResources.size() - 1;
   if (re.type != GPUMemoryReuse::NONE) {
     const auto& it = mMemoryReuse1to1.find(re.id);
     if (it == mMemoryReuse1to1.end()) {
-      mMemoryReuse1to1[re.id] = retVal;
+      mMemoryReuse1to1[re.id] = {proc, {retVal}};
     } else {
-      mMemoryResources[retVal].mReuse = mMemoryReuse1to1[re.id];
+      mMemoryResources[retVal].mReuse = it->second.res[0];
+      it->second.res.emplace_back(retVal);
     }
   }
   return retVal;
@@ -518,7 +528,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   if (r == 0 || size[0] != sizeof(T)) {
     fclose(fp);
     GPUError("ERROR reading %s, invalid size: %lld (%lld expected)", file, (long long int)size[0], (long long int)sizeof(T));
-    return nullptr;
+    throw std::runtime_error("invalid size");
   }
   std::unique_ptr<T> retVal(new T);
   char* buf = new char[size[1]]; // Not deleted as ownership is transferred to FlatObject
@@ -558,7 +568,8 @@ inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file
   r = fread(&size, sizeof(size), 1, fp);
   if (r == 0 || size != sizeof(T)) {
     fclose(fp);
-    return nullptr;
+    GPUError("ERROR reading %s, invalid size: %lld (%lld expected)", file, (long long int)size, (long long int)sizeof(T));
+    throw std::runtime_error("invalid size");
   }
   std::unique_ptr<T> newObj(new T);
   r = fread(newObj.get(), 1, size, fp);

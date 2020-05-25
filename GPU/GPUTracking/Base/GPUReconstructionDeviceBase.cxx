@@ -55,7 +55,7 @@ void* GPUReconstructionDeviceBase::helperWrapper_static(void* arg)
 
 void* GPUReconstructionDeviceBase::helperWrapper(GPUReconstructionHelpers::helperParam* par)
 {
-  if (mDeviceProcessingSettings.debugLevel >= 2) {
+  if (mDeviceProcessingSettings.debugLevel >= 3) {
     GPUInfo("\tHelper thread %d starting", par->num);
   }
 
@@ -80,7 +80,7 @@ void* GPUReconstructionDeviceBase::helperWrapper(GPUReconstructionHelpers::helpe
     ResetThisHelperThread(par);
     par->mutex[0].lock();
   }
-  if (mDeviceProcessingSettings.debugLevel >= 2) {
+  if (mDeviceProcessingSettings.debugLevel >= 3) {
     GPUInfo("\tHelper thread %d terminating", par->num);
   }
   par->mutex[1].unlock();
@@ -243,6 +243,10 @@ int GPUReconstructionDeviceBase::InitDevice()
   void* semLock = nullptr;
   if (mDeviceProcessingSettings.globalInitMutex && GetGlobalLock(semLock)) {
     return (1);
+  }
+
+  if (mDeviceProcessingSettings.deviceTimers) {
+    AddGPUEvents(mDebugEvents);
   }
 
   int retVal = InitDevice_Runtime();

@@ -42,8 +42,8 @@
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawDecoder/PageDecoder.h"
 #include "MCHRawElecMap/Mapper.h"
-#include "MCHRawCommon/RDHManip.h"
 #include "MCHMappingInterface/Segmentation.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -161,13 +161,14 @@ class FileReaderTask
     };
 
     const auto patchPage = [&](gsl::span<const std::byte> rdhBuffer) {
-      auto rdhPtr = reinterpret_cast<o2::header::RAWDataHeaderV4*>(const_cast<std::byte*>(&rdhBuffer[0]));
-      auto& rdh = *rdhPtr;
+      auto rdhPtr = const_cast<void*>(reinterpret_cast<const void*>(rdhBuffer.data()));
       nrdhs++;
-      auto cruId = rdhCruId(rdh);
-      rdhFeeId(rdh, cruId * 2 + rdhEndpoint(rdh));
+      auto cruId = o2::raw::RDHUtils::getCRUID(rdhPtr);
+      auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhPtr);
+      o2::raw::RDHUtils::setFEEID(rdhPtr, cruId * 2 + endpoint);
       if (mPrint) {
-        std::cout << nrdhs << "--" << rdh << "\n";
+        std::cout << nrdhs << "--\n";
+        o2::raw::RDHUtils::printRDH(rdhPtr);
       }
     };
 

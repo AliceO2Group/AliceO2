@@ -35,6 +35,7 @@ class GPUReconstructionOCL : public GPUReconstructionDeviceBase
  protected:
   int InitDevice_Runtime() override;
   int ExitDevice_Runtime() override;
+  void UpdateSettings() override;
 
   void SynchronizeGPU() override;
   int DoStuckProtection(int stream, void* event) override;

@@ -38,6 +38,7 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
 
   int InitDevice_Runtime() override;
   int ExitDevice_Runtime() override;
+  void UpdateSettings() override;
 
   class GPUThreadContextCUDA : public GPUThreadContext
   {

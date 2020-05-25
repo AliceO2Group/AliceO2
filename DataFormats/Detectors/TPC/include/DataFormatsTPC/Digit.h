@@ -71,7 +71,7 @@ class Digit : public DigitBase
   GPUdi() int getPad() const { return mPad; }
 
  protected:
-  float mCharge = 0.f;      ///< ADC value of the Digit
+  float mCharge = 0.f;             ///< ADC value of the Digit
   unsigned short mCRU = USHRT_MAX; ///< CRU of the Digit
   unsigned char mRow = UCHAR_MAX;  ///< Global pad row of the Digit
   unsigned char mPad = UCHAR_MAX;  ///< Pad of the Digit

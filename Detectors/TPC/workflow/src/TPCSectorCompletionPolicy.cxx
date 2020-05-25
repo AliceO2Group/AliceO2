@@ -8,8 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Digit.cxx
-/// \brief Implementation of the TPC Digit
-/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
+/// @file   TPCSectorCompletionPolicy.cxx
+/// @author Matthias Richter
+/// @since  2020-05-20
+/// @brief  DPL completion policy helper for TPC scetor data
 
-#include "TPCBase/Digit.h"
+#include "TPCWorkflow/TPCSectorCompletionPolicy.h"
+#include "Framework/CompletionPolicy.h"
+
+namespace o2
+{
+namespace tpc
+{
+
+} // namespace tpc
+} // namespace o2
