@@ -42,6 +42,7 @@ void merge(TObject* const target, TObject* const other)
   // fixme: should we check if names match?
 
   // We expect that both objects follow the same structure, but we allow to add missing objects to TCollections.
+  // First we check if an object contains a MergeInterface, as it should overlap default Merge() methods of TObject.
   if (auto custom = dynamic_cast<MergeInterface*>(target)) {
 
     custom->merge(dynamic_cast<MergeInterface* const>(other));
@@ -65,6 +66,7 @@ void merge(TObject* const target, TObject* const other)
         targetCollection->Add(otherObject->Clone());
       }
     }
+    delete otherIterator;
   } else {
     Long64_t errorCode = 0;
     TObjArray otherCollection;
@@ -96,6 +98,7 @@ void deleteTCollections(TObject* obj)
     while (auto element = iter->Next()) {
       deleteTCollections(element);
     }
+    delete iter;
     delete c;
   } else {
     delete obj;
