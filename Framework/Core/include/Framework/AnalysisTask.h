@@ -37,12 +37,8 @@
 #include <type_traits>
 #include <utility>
 #include <memory>
-#if (defined(__GNUC__) && (__GNUC___ > 8 || (__GNUC__ == 8 && __GNUC_MINOR__ >= 1))) || defined(__clang__)
-#include <charconv>
-#else
 #include <sstream>
 #include <iomanip>
-#endif
 namespace o2::framework
 {
 
@@ -200,19 +196,12 @@ struct OutputObj {
   {
     header::DataDescription desc{};
     auto lhash = compile_time_hash(label.c_str());
-    memset(desc.str, '_', 16);
-#if (defined(__GNUC__) && (__GNUC___ > 8 || (__GNUC__ == 8 && __GNUC_MINOR__ >= 1))) || defined(__clang__)
-    std::to_chars(desc.str, desc.str + 2, lhash, 16);
-    std::to_chars(desc.str + 2, desc.str + 4, mTaskHash, 16);
-    std::to_chars(desc.str + 4, desc.str + 12, reinterpret_cast<uint64_t>(this), 16);
-#else
+    std::memset(desc.str, '_', 16);
     std::stringstream s;
     s << std::hex << lhash;
     s << std::hex << mTaskHash;
     s << std::hex << reinterpret_cast<uint64_t>(this);
     std::memcpy(desc.str, s.str().c_str(), 12);
-#endif
-
     return OutputSpec{OutputLabel{label}, "ATSK", desc, 0};
   }
 
