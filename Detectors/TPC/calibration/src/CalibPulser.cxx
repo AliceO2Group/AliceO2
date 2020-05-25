@@ -45,9 +45,11 @@ CalibPulser::CalibPulser(PadSubset padSubset)
     mPeakIntMinus{2},
     mPeakIntPlus{2},
     mMinimumQtot{20},
-    mT0{"PulserT0"},
-    mWidth{"PulserWidth"},
-    mQtot{"PulserQtot"},
+    mMinimumQmax{10},
+    mMaxTimeBinRange{5},
+    mT0{"T0"},
+    mWidth{"Width"},
+    mQtot{"Qtot"},
     mPedestal{nullptr},
     mNoise{nullptr},
     mPulserData{},
@@ -87,6 +89,7 @@ void CalibPulser::init()
   mPeakIntMinus = param.PeakIntMinus;
   mPeakIntPlus = param.PeakIntPlus;
   mMinimumQtot = param.MinimumQtot;
+  mMinimumQmax = param.MinimumQmax;
 }
 
 //______________________________________________________________________________
@@ -118,6 +121,14 @@ Int_t CalibPulser::updateROC(const Int_t roc, const Int_t row, const Int_t pad,
 
   adcData[timeBin - mFirstTimeBin] = signal;
   //printf("%2d, %3d, %3d, %3d: %.2f\n", roc, row, pad, timeBin, signal);
+
+  // ---| entries per time bin |---
+  auto& timeBinEntries = mTimeBinEntries[roc];
+  if (!timeBinEntries.size()) {
+    timeBinEntries.resize(mLastTimeBin - mFirstTimeBin + 1);
+  }
+  ++timeBinEntries[timeBin - mFirstTimeBin];
+
   return 1;
 }
 
@@ -125,26 +136,36 @@ Int_t CalibPulser::updateROC(const Int_t roc, const Int_t row, const Int_t pad,
 void CalibPulser::endReader()
 {
   // loop over all signals of all pads filled for the present raw reader
-  for (auto& keyValue : mPulserData) {
-    const auto& padROCPos = keyValue.first;
-    const auto& adcData = keyValue.second;
+  //for (auto& keyValue : mPulserData) {
+  //const auto& padROCPos = keyValue.first;
+  //const auto& adcData = keyValue.second;
+  //
+  auto timeRangeROCs = getTimeRangeROCs();
+
+  for (const auto& [padROCPos, adcData] : mPulserData) {
     const auto currentChannel = mMapper.getPadNumberInROC(padROCPos);
 
     //std::cout << (int)padROCPos.getROC().getRoc() << ", " << padROCPos.getRow() << ", " << padROCPos.getPad() << std::endl;
     //for (auto& val: adcData) std::cout << val << ", ";
     //std::cout << std::endl;
 
-    const auto data = processPadData(padROCPos, adcData);
+    const auto& elemPair = timeRangeROCs[int(padROCPos.getROC())];
+    const auto data = processPadData(padROCPos, adcData, elemPair);
     //std::cout << data.mT0+mFirstTimeBin << " : " << data.mQtot << " : " << data.mWidth << "\n";
 
     // fill histograms
-    getHistoT0(padROCPos.getROC(), true)->Fill(data.mT0 + mFirstTimeBin, currentChannel);
-    getHistoQtot(padROCPos.getROC(), true)->Fill(data.mQtot, currentChannel);
-    getHistoSigma(padROCPos.getROC(), true)->Fill(data.mWidth, currentChannel);
+    if (data.isValid()) {
+      getHistoT0(padROCPos.getROC(), true)->Fill(data.mT0 + mFirstTimeBin, currentChannel);
+      getHistoQtot(padROCPos.getROC(), true)->Fill(data.mQtot, currentChannel);
+      getHistoSigma(padROCPos.getROC(), true)->Fill(data.mWidth, currentChannel);
+    }
   }
 
   // reset the adc data to free space
   mPulserData.clear();
+  for (auto& v : mTimeBinEntries) {
+    std::fill(v.begin(), v.end(), 0);
+  }
 }
 
 //______________________________________________________________________________
@@ -166,13 +187,21 @@ TH2S* CalibPulser::getHistogram(ROC roc, CalibPulser::PtrVectorType& rocVector,
 }
 
 //______________________________________________________________________________
-CalibPulser::PulserData CalibPulser::processPadData(const PadROCPos& padROCPos, const CalibPulser::VectorType& adcData)
+CalibPulser::PulserData CalibPulser::processPadData(const PadROCPos& padROCPos, const CalibPulser::VectorType& adcData, const CalibPulser::ElemPair& range)
 {
   // data to return
   PulserData data;
 
+  // find time bin with maximum number of entreis
+
   const auto vectorSize = adcData.size();
-  const auto maxElement = std::max_element(std::begin(adcData), std::end(adcData));
+  //const auto maxElement = std::max_element(std::begin(adcData), std::end(adcData));
+  const auto maxElement = std::max_element(std::begin(adcData) + range.first, std::begin(adcData) + range.last);
+
+  if (*maxElement < mMinimumQmax) {
+    return data;
+  }
+
   const auto maxPosition = std::distance(std::begin(adcData), maxElement);
 
   double weightedSum = 0.;
@@ -201,9 +230,30 @@ CalibPulser::PulserData CalibPulser::processPadData(const PadROCPos& padROCPos, 
 }
 
 //______________________________________________________________________________
+std::array<CalibPulser::ElemPair, ROC::MaxROC> CalibPulser::getTimeRangeROCs()
+{
+  std::array<ElemPair, ROC::MaxROC> maxTimeBin;
+
+  for (size_t iROC = 0; iROC < mTimeBinEntries.size(); ++iROC) {
+    const auto& timeBinEntries = mTimeBinEntries[iROC];
+    const auto size = timeBinEntries.size();
+    const auto maxElement = std::max_element(std::begin(timeBinEntries), std::end(timeBinEntries));
+    const auto maxPosition = std::distance(std::begin(timeBinEntries), maxElement);
+
+    maxTimeBin[iROC].first = (maxPosition > mMaxTimeBinRange) ? maxPosition - mMaxTimeBinRange : 0;
+    maxTimeBin[iROC].last = std::min(size_t(maxPosition + mMaxTimeBinRange), size - 1);
+  }
+
+  return maxTimeBin;
+}
+
+//______________________________________________________________________________
 void CalibPulser::resetData()
 {
   mPulserData.clear();
+  for (auto& v : mTimeBinEntries) {
+    std::fill(v.begin(), v.end(), 0);
+  }
 
   std::vector<PtrVectorType*> v{&mT0Histograms, &mWidthHistograms, &mQtotHistograms};
   for (auto histArray : v) {
