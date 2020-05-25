@@ -16,6 +16,7 @@ o2_add_library(TPCReconstruction
                        src/HalfSAMPAData.cxx
                        src/HwClusterer.cxx
                        src/HwClustererParam.cxx
+                       src/KrBoxClusterFinder.cxx
                        src/RawReader.cxx
                        src/RawReaderCRU.cxx
                        src/RawReaderEventSync.cxx
@@ -38,6 +39,8 @@ o2_target_root_dictionary(
           include/TPCReconstruction/HalfSAMPAData.h
           include/TPCReconstruction/HwClusterer.h
           include/TPCReconstruction/HwClustererParam.h
+          include/TPCReconstruction/KrBoxClusterFinder.h
+          include/TPCReconstruction/KrCluster.h
           include/TPCReconstruction/RawReader.h
           include/TPCReconstruction/RawReaderCRU.h
           include/TPCReconstruction/RawReaderEventSync.h
@@ -121,6 +124,9 @@ o2_add_test_root_macro(macro/createTPCSpaceChargeCorrection.C
                                              O2::TPCSpaceChargeBase
                        LABELS tpc)
 
+o2_add_test_root_macro(macro/findKrBoxCluster.C
+                      PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
+                      LABELS tpc)
 
 # FIXME: should be moved to TPCSimulation as it requires O2::TPCSimulation
 # target which is built after reconstruction
