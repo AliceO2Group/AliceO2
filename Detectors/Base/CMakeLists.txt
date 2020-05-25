@@ -22,6 +22,7 @@ o2_add_library(DetectorsBase
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
                                      O2::GPUCommon
+                                     O2::GPUUtils
                                      O2::ReconstructionDataFormats
                                      O2::Field
                                      O2::Framework
