@@ -8,15 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUCommonLinkDef.h
+/// \file GPUUtils.cxx
 /// \author David Rohr
 
-#ifdef __CLING__
-
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::gpu::FlatObject + ;
-
-#endif
+// Empty file, needed for AliRoot
