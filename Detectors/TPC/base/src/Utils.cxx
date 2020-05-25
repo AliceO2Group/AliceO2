@@ -14,6 +14,7 @@
 #include <fmt/format.h>
 #include <fmt/printf.h>
 
+#include "TSystem.h"
 #include "TObject.h"
 #include "TObjArray.h"
 #include "TCanvas.h"
@@ -164,4 +165,53 @@ std::vector<CalPad*> utils::readCalPads(const std::string_view fileName, const s
 {
   auto calPadNamesVec = tokenize(calPadNames, ",");
   return readCalPads(fileName, calPadNamesVec);
+}
+
+/// macro to merge cal pad objects from different files
+///
+/// requires that all objects have the same name in the differnet files.
+/// Objects are simply added.
+/// \param outputFileName name of the output file
+/// \param inputFileNames input file names. Perforams file system 'ls' in case the string includes '.root'. Otherwise it assumes a text input file with line by line file names.
+/// \param calPadNames comma separated list of names of the CalPad objects as stored in the file.
+void utils::mergeCalPads(std::string_view outputFileName, std::string_view inputFileNames, std::string_view calPadNames)
+{
+  using namespace o2::tpc;
+
+  auto calPadNamesVec = utils::tokenize(calPadNames, ",");
+
+  std::string_view cmd = "ls";
+  if (inputFileNames.rfind(".root") == std::string_view::npos) {
+    cmd = "cat";
+  }
+  auto files = gSystem->GetFromPipe(TString::Format("%s %s", cmd.data(), inputFileNames.data()));
+  std::unique_ptr<TObjArray> arrFiles(files.Tokenize("\n"));
+  
+  std::vector<CalPad*> mergedCalPads;
+
+  for (auto ofile : *arrFiles) {
+    auto calPads = utils::readCalPads(ofile->GetName(), calPadNamesVec);
+    if (!calPads.size()) {
+      continue;
+    }
+    if (!mergedCalPads.size()) {
+      mergedCalPads = calPads;
+    } else {
+      for (size_t iCalPad = 0; iCalPad<calPads.size(); ++iCalPad) {
+        auto calPadName = calPadNamesVec[iCalPad];
+        auto calPadMerged = mergedCalPads[iCalPad];
+        calPadMerged->setName(calPadName);
+        auto calPadToMerge = calPads[iCalPad];
+
+        *calPadMerged += *calPadToMerge;
+
+        delete calPadToMerge;
+      }
+    }
+  }
+
+  std::unique_ptr<TFile> outFile(TFile::Open(outputFileName.data(), "recreate"));
+  for (auto calPad : mergedCalPads) {
+    outFile->WriteObject(calPad, calPad->getName().data());
+  }
 }
