@@ -49,7 +49,7 @@ constexpr const char* const GPUReconstruction::GEOMETRY_TYPE_NAMES[];
 constexpr const char* const GPUReconstruction::IOTYPENAMES[];
 constexpr GPUReconstruction::GeometryType GPUReconstruction::geometryType;
 
-GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostConstantMem(new GPUConstantMem), mProcessingSettings(cfg)
+GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostConstantMem(new GPUCA_NEW_ALIGNMENT GPUConstantMem), mProcessingSettings(cfg)
 {
   if (cfg.master) {
     if (cfg.master->mProcessingSettings.deviceType != cfg.deviceType) {
@@ -64,7 +64,7 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostCo
   mDeviceProcessingSettings.SetDefaults();
   mEventSettings.SetDefaults();
   param().SetDefaults(&mEventSettings);
-  mMemoryScalers.reset(new GPUMemorySizeScalers);
+  mMemoryScalers.reset(new GPUCA_NEW_ALIGNMENT GPUMemorySizeScalers);
   for (unsigned int i = 0; i < NSLICES; i++) {
     processors()->tpcTrackers[i].SetSlice(i); // TODO: Move to a better place
 #ifdef HAVE_O2HEADERS
@@ -83,10 +83,10 @@ GPUReconstruction::~GPUReconstruction()
 void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits)
 {
   if (trackerTraits) {
-    trackerTraits->reset(new o2::its::TrackerTraitsCPU);
+    trackerTraits->reset(new GPUCA_NEW_ALIGNMENT o2::its::TrackerTraitsCPU);
   }
   if (vertexerTraits) {
-    vertexerTraits->reset(new o2::its::VertexerTraits);
+    vertexerTraits->reset(new GPUCA_NEW_ALIGNMENT o2::its::VertexerTraits);
   }
 }
 
@@ -435,7 +435,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
         }
         res->mPtrDevice = mMemoryResources[res->mReuse].mPtrDevice;
       } else {
-        res->mPtrDevice = operator new(res->mSize + GPUCA_BUFFER_ALIGNMENT);
+        res->mPtrDevice = operator new(res->mSize + GPUCA_BUFFER_ALIGNMENT GPUCA_OPERATOR_NEW_ALIGNMENT);
       }
       res->mPtr = GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(res->mPtrDevice);
       res->SetPointers(res->mPtr);

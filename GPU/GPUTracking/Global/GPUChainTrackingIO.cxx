@@ -190,7 +190,7 @@ int GPUChainTracking::ReadData(const char* filename)
     r = fread(&mClusterNativeAccess->nClusters[0][0], sizeof(mClusterNativeAccess->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
     mClusterNativeAccess->setOffsetPtrs();
   }
-  mDigitMap.reset(new GPUTrackingInOutDigits);
+  mDigitMap.reset(new GPUCA_NEW_ALIGNMENT GPUTrackingInOutDigits);
   if (ReadData(fp, mDigitMap->tpcDigits, mDigitMap->nTPCDigits, mIOMem.tpcDigits, InOutPointerType::TPC_DIGIT)) {
     mIOPtrs.tpcPackedDigits = mDigitMap.get();
   }
@@ -199,8 +199,8 @@ int GPUChainTracking::ReadData(const char* filename)
   if (ReadData(fp, &ptr, &total, &mIOMem.tpcZSpages, InOutPointerType::TPC_ZS)) {
     GPUTrackingInOutZS::GPUTrackingInOutZSCounts counts;
     r = fread(&counts, sizeof(counts), 1, fp);
-    mIOMem.tpcZSmeta.reset(new GPUTrackingInOutZS);
-    mIOMem.tpcZSmeta2.reset(new GPUTrackingInOutZS::GPUTrackingInOutZSMeta);
+    mIOMem.tpcZSmeta.reset(new GPUCA_NEW_ALIGNMENT GPUTrackingInOutZS);
+    mIOMem.tpcZSmeta2.reset(new GPUCA_NEW_ALIGNMENT GPUTrackingInOutZS::GPUTrackingInOutZSMeta);
     total = 0;
     for (int i = 0; i < NSLICES; i++) {
       for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
