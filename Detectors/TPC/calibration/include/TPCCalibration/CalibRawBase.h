@@ -636,6 +636,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int event
   }
 
   endEvent();
+  endReader();
   ++mNevents;
 
   LOG(INFO) << "Present event number : " << mPresentEventNumber;
