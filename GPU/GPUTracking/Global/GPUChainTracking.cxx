@@ -1985,7 +1985,7 @@ int GPUChainTracking::RunChain()
       return 1;
     }
   }
-  static HighResTimer timerTracking, timerMerger, timerQA, timerTransform, timerCompression, timerClusterer;
+  HighResTimer timerTracking, timerMerger, timerQA, timerTransform, timerCompression, timerClusterer, timerPrepare;
   if (GetDeviceProcessingSettings().debugLevel >= 6) {
     mDebugFile << "\n\nProcessing event " << mRec->getNEventsProcessed() << std::endl;
   }
@@ -1994,6 +1994,7 @@ int GPUChainTracking::RunChain()
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->calibObjects - (char*)processors(), &mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects), -1); // Reinitialize
   }
 
+  timerPrepare.Start();
 #ifdef GPUCA_STANDALONE
   mRec->PrepareEvent();
 #else
@@ -2004,6 +2005,7 @@ int GPUChainTracking::RunChain()
     return (1);
   }
 #endif
+  timerPrepare.Stop();
 
   PrepareDebugOutput();
 
@@ -2066,24 +2068,20 @@ int GPUChainTracking::RunChain()
   }
 
   if (GetDeviceProcessingSettings().debugLevel >= 0) {
-    int nCount = mRec->getNEventsProcessedInStat();
-    char nAverageInfo[16] = "";
-    if (nCount > 1) {
-      sprintf(nAverageInfo, " (%d)", nCount);
-    }
-    printf("Tracking Time: %'d us%s\n", (int)(1000000 * timerTracking.GetElapsedTime() / nCount), nAverageInfo);
-    printf("Merging and Refit Time: %'d us\n", (int)(1000000 * timerMerger.GetElapsedTime() / nCount));
+    printf("Prepare Time: %'d us\n", (int)(1000000 * timerPrepare.GetElapsedTime()));
+    printf("Tracking Time: %'d us\n", (int)(1000000 * timerTracking.GetElapsedTime()));
+    printf("Merging and Refit Time: %'d us\n", (int)(1000000 * timerMerger.GetElapsedTime()));
     if (GetDeviceProcessingSettings().runQA) {
-      printf("QA Time: %'d us\n", (int)(1000000 * timerQA.GetElapsedTime() / nCount));
+      printf("QA Time: %'d us\n", (int)(1000000 * timerQA.GetElapsedTime()));
     }
     if (mIOPtrs.tpcPackedDigits) {
-      printf("TPC Clusterizer Time: %'d us\n", (int)(1000000 * timerClusterer.GetElapsedTime() / nCount));
+      printf("TPC Clusterizer Time: %'d us\n", (int)(1000000 * timerClusterer.GetElapsedTime()));
     }
     if (mIOPtrs.clustersNative) {
-      printf("TPC Transformation Time: %'d us\n", (int)(1000000 * timerTransform.GetElapsedTime() / nCount));
+      printf("TPC Transformation Time: %'d us\n", (int)(1000000 * timerTransform.GetElapsedTime()));
     }
     if (mIOPtrs.clustersNative && GetRecoSteps() & RecoStep::TPCCompression) {
-      printf("TPC Compression Time: %'d us\n", (int)(1000000 * timerCompression.GetElapsedTime() / nCount));
+      printf("TPC Compression Time: %'d us\n", (int)(1000000 * timerCompression.GetElapsedTime()));
     }
   }
 
