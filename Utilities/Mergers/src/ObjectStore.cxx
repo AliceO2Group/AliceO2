@@ -27,21 +27,48 @@ namespace object_store_helpers
 
 ObjectStore extractObjectFrom(const framework::DataRef& ref)
 {
-  // We try first if the object inherits MergeInterface.
-  // In that case it should be used, even if it is a TObject as well.
-  // todo: is there a more efficient way to do that?
+  // We do extraction on the low level to efficiently determine if the message
+  // contains an object inheriting MergeInterface or TObject. If we did it the
+  // the following way and catch an exception:
+  // framework::DataRefUtils::as<MergeInterface>(ref)
+  // it could cause a memory leak if `ref` contained a non-owning TCollection.
+  // This way we also avoid doing most of the checks twice.
+  const static std::string errorPrefix = "Could not extract object to be merged: ";
 
-  try {
-    return framework::DataRefUtils::as<MergeInterface>(ref);
-  } catch (std::runtime_error&) {
+  using DataHeader = o2::header::DataHeader;
+  auto header = o2::header::get<const DataHeader*>(ref.header);
+  if (header->payloadSerializationMethod != o2::header::gSerializationMethodROOT) {
+    throw std::runtime_error(errorPrefix + "It is not ROOT-serialized");
   }
 
-  try {
-    return TObjectPtr(framework::DataRefUtils::as<TObject>(ref).release(), algorithm::deleteTCollections);
-  } catch (std::runtime_error&) {
+  o2::framework::FairTMessage ftm(const_cast<char*>(ref.payload), header->payloadSize);
+  auto* storedClass = ftm.GetClass();
+  if (storedClass == nullptr) {
+    throw std::runtime_error(errorPrefix + "Unknown stored class");
   }
 
-  throw std::runtime_error("The received is object is neither a TObject nor inherits MergeInterface");
+  auto* mergeInterfaceClass = TClass::GetClass(typeid(MergeInterface));
+  auto* tObjectClass = TClass::GetClass(typeid(TObject));
+
+  bool inheritsFromMergeInterface = storedClass->InheritsFrom(mergeInterfaceClass);
+  bool inheritsFromTObject = storedClass->InheritsFrom(tObjectClass);
+
+  if (!inheritsFromMergeInterface && !inheritsFromTObject) {
+    throw std::runtime_error(
+      errorPrefix + "Class '" + storedClass->GetName() + "'does not inherit from MergeInterface nor TObject");
+  }
+
+  auto* object = ftm.ReadObjectAny(storedClass);
+  if (object == nullptr) {
+    throw std::runtime_error(
+      errorPrefix + "Failed to read object with name '" + storedClass->GetName() + "' from message using ROOT serialization.");
+  }
+
+  if (inheritsFromTObject) {
+    return TObjectPtr(static_cast<TObject*>(object), algorithm::deleteTCollections);
+  } else {
+    return MergeInterfacePtr(static_cast<MergeInterface*>(object));
+  }
 }
 
 } // namespace object_store_helpers
