@@ -17,7 +17,6 @@
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Traits.h"
 #include "Framework/Expressions.h"
-#include "Framework/ArrowCompatibility.h"
 #include "Framework/ArrowTypes.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
@@ -30,7 +29,6 @@
 namespace o2::soa
 {
 
-using BackendColumnType = framework::BackendColumnType;
 using SelectionVector = std::vector<int64_t>;
 
 template <typename, typename = void>
@@ -118,17 +116,16 @@ class ColumnIterator : ChunkingPolicy
 
  public:
   /// Constructor of the column iterator. Notice how it takes a pointer
-  /// to the BackendColumnType (for the data store) and to the index inside
+  /// to the ChunkedArray (for the data store) and to the index inside
   /// it. This means that a ColumnIterator is actually only available
   /// as part of a RowView.
-  ColumnIterator(BackendColumnType const* column)
+  ColumnIterator(arrow::ChunkedArray const* column)
     : mColumn{column},
       mCurrentPos{nullptr},
       mFirstIndex{0},
       mCurrentChunk{0}
   {
-    auto chunks = framework::getBackendColumnPtrData<BackendColumnType>(mColumn);
-    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(mColumn->chunk(mCurrentChunk));
     mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset();
     mLast = mCurrent + array->length();
   }
@@ -143,22 +140,20 @@ class ColumnIterator : ChunkingPolicy
   /// Move the iterator to the next chunk.
   void nextChunk() const
   {
-    auto chunks = framework::getBackendColumnPtrData<BackendColumnType>(mColumn);
-    auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(mColumn->chunk(mCurrentChunk));
     mFirstIndex += previousArray->length();
     mCurrentChunk++;
-    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(mColumn->chunk(mCurrentChunk));
     mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
   void prevChunk() const
   {
-    auto chunks = framework::getBackendColumnPtrData<BackendColumnType>(mColumn);
-    auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(mColumn->chunk(mCurrentChunk));
     mFirstIndex -= previousArray->length();
     mCurrentChunk--;
-    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(mColumn->chunk(mCurrentChunk));
     mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
@@ -179,9 +174,8 @@ class ColumnIterator : ChunkingPolicy
   /// Move the iterator to the end of the column.
   void moveToEnd()
   {
-    auto chunks = framework::getBackendColumnPtrData<BackendColumnType>(mColumn);
-    mCurrentChunk = chunks->num_chunks() - 1;
-    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    mCurrentChunk = mColumn->num_chunks() - 1;
+    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(mColumn->chunk(mCurrentChunk));
     assert(array.get());
     mFirstIndex = mColumn->length() - array->length();
     mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
@@ -232,7 +226,7 @@ class ColumnIterator : ChunkingPolicy
   mutable T const* mCurrent;
   int64_t const* mCurrentPos;
   mutable T const* mLast;
-  BackendColumnType const* mColumn;
+  arrow::ChunkedArray const* mColumn;
   mutable int mFirstIndex;
   mutable int mCurrentChunk;
 };
@@ -295,7 +289,7 @@ struct Index : o2::soa::IndexColumn<Index<START, END>> {
   Index& operator=(Index const&) = default;
   Index& operator=(Index&&) = default;
 
-  Index(BackendColumnType const*)
+  Index(arrow::ChunkedArray const*)
   {
   }
 
@@ -573,9 +567,9 @@ struct RowViewCore : public IP, C... {
   constexpr inline static bool has_index_v = !std::is_same_v<index_columns_t, framework::pack<>>;
   using external_index_columns_t = framework::selected_pack<is_external_index_t, C...>;
 
-  RowViewCore(std::tuple<std::pair<C*, BackendColumnType*>...> const& columnIndex, IP&& policy)
+  RowViewCore(std::tuple<std::pair<C*, arrow::ChunkedArray*>...> const& columnIndex, IP&& policy)
     : IP{policy},
-      C(std::get<std::pair<C*, BackendColumnType*>>(columnIndex).second)...
+      C(std::get<std::pair<C*, arrow::ChunkedArray*>>(columnIndex).second)...
   {
     bindIterators(persistent_columns_t{});
     bindAllDynamicColumns(dynamic_columns_t{});
@@ -765,7 +759,7 @@ class Table
     using parent_t = Parent;
     using originals = originals_pack_t<T...>;
 
-    RowViewBase(std::tuple<std::pair<C*, BackendColumnType*>...> const& columnIndex, IP&& policy)
+    RowViewBase(std::tuple<std::pair<C*, arrow::ChunkedArray*>...> const& columnIndex, IP&& policy)
       : RowViewCore<IP, C...>(columnIndex, std::forward<decltype(policy)>(policy))
     {
     }
@@ -829,7 +823,7 @@ class Table
   using filtered_const_iterator = RowViewFiltered<table_t, table_t>;
 
   template <typename Col>
-  using column_pair_t = std::pair<Col*, BackendColumnType*>;
+  using column_pair_t = std::pair<Col*, arrow::ChunkedArray*>;
   using column_index_t = std::tuple<column_pair_t<C>...>;
 
   Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
@@ -910,7 +904,7 @@ class Table
 
  private:
   template <typename T>
-  BackendColumnType* lookupColumn()
+  arrow::ChunkedArray* lookupColumn()
   {
     if constexpr (T::persistent::value) {
       auto label = T::columnLabel();
@@ -925,7 +919,7 @@ class Table
   }
   std::shared_ptr<arrow::Table> mTable;
   /// This is a cached lookup of the column index in a given
-  std::tuple<std::pair<C*, BackendColumnType*>...>
+  std::tuple<std::pair<C*, arrow::ChunkedArray*>...>
     mColumnIndex;
   /// Cached begin iterator for this table.
   unfiltered_iterator mBegin;
@@ -982,7 +976,7 @@ class TableMetadata
     using base = o2::soa::Column<_Type_, _Name_>;                              \
     using type = _Type_;                                                       \
     using column_t = _Name_;                                                   \
-    _Name_(o2::soa::BackendColumnType const* column)                           \
+    _Name_(arrow::ChunkedArray const* column)                                  \
       : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(column)) \
     {                                                                          \
     }                                                                          \
@@ -1022,7 +1016,7 @@ class TableMetadata
     using type = _Type_;                                                           \
     using column_t = _Name_##Id;                                                   \
     using binding_t = _Table_;                                                     \
-    _Name_##Id(o2::soa::BackendColumnType const* column)                           \
+    _Name_##Id(arrow::ChunkedArray const* column)                                  \
       : o2::soa::Column<_Type_, _Name_##Id>(o2::soa::ColumnIterator<type>(column)) \
     {                                                                              \
     }                                                                              \
@@ -1103,7 +1097,7 @@ class TableMetadata
     using callable_t = helper::callable_t;                                                                                 \
     using callback_t = callable_t::type;                                                                                   \
                                                                                                                            \
-    _Name_(o2::soa::BackendColumnType const*)                                                                              \
+    _Name_(arrow::ChunkedArray const*)                                                                                     \
     {                                                                                                                      \
     }                                                                                                                      \
     _Name_() = default;                                                                                                    \

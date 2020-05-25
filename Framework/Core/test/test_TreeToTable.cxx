@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
 
   // count number of rows with ok==true
   int ntrueout = 0;
-  auto chunks = getBackendColumnData(table->column(0));
+  auto chunks = table->column(0);
   BOOST_REQUIRE_NE(chunks.get(), nullptr);
   auto oks =
     std::dynamic_pointer_cast<arrow::BooleanArray>(chunks->chunk(0));
