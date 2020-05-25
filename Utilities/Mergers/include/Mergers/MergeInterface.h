@@ -28,6 +28,8 @@ namespace o2::mergers
 class MergeInterface
 {
  public:
+  // Please make sure to properly delete an object. If the inheriting class object is a container,
+  // make sure that all entries are correctly deleted as well.
   virtual ~MergeInterface() = default;
 
   /// \brief Custom merge function. Can return a number of merged entries/bins/etc for statistics.

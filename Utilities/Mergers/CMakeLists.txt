@@ -73,3 +73,9 @@ o2_add_test(Algorithm
             COMPONENT_NAME mergers
             PUBLIC_LINK_LIBRARIES O2::Mergers
             LABELS utils)
+
+o2_add_test(ObjectStore
+  SOURCES test/test_ObjectStore.cxx
+  COMPONENT_NAME mergers
+  PUBLIC_LINK_LIBRARIES O2::Mergers
+  LABELS utils)

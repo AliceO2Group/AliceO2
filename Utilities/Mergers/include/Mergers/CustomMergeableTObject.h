@@ -25,6 +25,7 @@ namespace o2::mergers
 class CustomMergeableTObject : public TObject, public MergeInterface
 {
  public:
+  CustomMergeableTObject() = default;
   CustomMergeableTObject(std::string name, int secret = 9000)
     : TObject(), MergeInterface(), mSecret(secret), mName(name)
   {

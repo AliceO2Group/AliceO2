@@ -38,7 +38,7 @@ class FullHistoryMerger : public framework::Task
   /// \brief Default constructor. It expects Merger configuration and subSpec of output channel.
   FullHistoryMerger(const MergerConfig&, const header::DataHeader::SubSpecificationType&);
   /// \brief Default destructor.
-  ~FullHistoryMerger() override = default;
+  ~FullHistoryMerger() override;
 
   /// \brief FullHistoryMerger init callback.
   void init(framework::InitContext& ctx) override;
