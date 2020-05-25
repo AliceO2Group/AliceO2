@@ -243,6 +243,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
                  TARGETVARNAME targetName
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                                       O2::GPUUtils
                                        O2::DataFormatsTPC
                                        O2::TPCBase
                                        O2::TRDBase
@@ -321,6 +322,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/TPC/TPCcalib
                       ${CMAKE_SOURCE_DIR}/TPC/TPCrec
                       ${CMAKE_SOURCE_DIR}/GPU/Common
+                      ${CMAKE_SOURCE_DIR}/GPU/Utils
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/SliceTracker
