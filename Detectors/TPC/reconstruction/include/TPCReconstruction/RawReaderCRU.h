@@ -712,6 +712,8 @@ class RawReaderCRU
   std::map<PadPos, std::vector<uint16_t>> mADCdata; ///< decoded ADC data
   RawReaderCRUManager* mManager{nullptr};           ///< event synchronization information
 
+  std::ifstream mFileHandle; ///< file handle for input file
+
   /// collect raw GBT data
   void collectGBTData(std::vector<o2::byte>& data);
 
