@@ -232,7 +232,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   Float_t pmcpbase[3] = {2.949, 2.949, 0.1};
   Float_t pmcptopglass[3] = {2.949, 2.949, 0.1}; // MCP top glass optical
 
-  Float_t preg[3] = {1.324, 1.324, 0.05}; // Photcathode
+  Float_t preg[3] = {1.324, 1.324, 0.005}; // Photcathode
   Double_t pal[3] = {2.648, 2.648, 0.25}; // 5mm Al on top of each radiator
   // Entry window (glass)
   TVirtualMC::GetMC()->Gsvolu("0TOP", "BOX", getMediumID(kOpGlass), ptop, 3); // Glass radiator
