@@ -50,6 +50,15 @@ void saveCanvas(TCanvas& c, std::string_view outDir, std::string_view types);
 std::vector<CalPad*> readCalPads(const std::string_view fileName, const std::vector<std::string>& calPadNames);
 std::vector<CalPad*> readCalPads(const std::string_view fileName, const std::string_view calPadNames);
 
+/// Merge cal pad objects from different files
+///
+/// Requires that all objects have the same name in the differnet files.
+/// Objects are simply added.
+/// \param outputFileName name of the output file
+/// \param inputFileNames input file names. Perforams file system 'ls' in case the string includes '.root'. Otherwise it assumes a text input file with line by line file names.
+/// \param calPadNames comma separated list of names of the CalPad objects as stored in the file.
+void mergeCalPads(std::string_view outputFileName, std::string_view inputFileNames, std::string_view calPadNames);
+
 } // namespace utils
 } // namespace tpc
 } // namespace o2
