@@ -30,6 +30,7 @@ o2_add_library(TRDBase
                        src/CalOnlineGainTables.cxx
                        src/Tracklet.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                                     O2::GPUUtils
                                      O2::DetectorsCommonDataFormats
                                      O2::Field
                                      O2::DetectorsBase
@@ -77,6 +78,3 @@ o2_add_test(Geometry
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             LABELS trd
             )
-
-
-
