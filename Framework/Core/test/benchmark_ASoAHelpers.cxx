@@ -585,6 +585,7 @@ static void BM_ASoAHelpersCombGenCollisionsPairsSameCategories(benchmark::State&
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1),
               uniform_dist_int(e1),
+              uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist_int(e1));
   }
   auto table = builder.finalize();
@@ -622,6 +623,7 @@ static void BM_ASoAHelpersCombGenCollisionsFivesSameCategories(benchmark::State&
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1),
               uniform_dist_int(e1),
+              uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist_int(e1));
   }
   auto table = builder.finalize();
@@ -659,6 +661,7 @@ static void BM_ASoAHelpersCombGenCollisionsPairsCategories(benchmark::State& sta
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1),
               uniform_dist_int(e1),
+              uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist_int(e1));
   }
   auto table = builder.finalize();
@@ -696,6 +699,7 @@ static void BM_ASoAHelpersCombGenCollisionsFivesCategories(benchmark::State& sta
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1),
               uniform_dist_int(e1),
+              uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist_int(e1));
   }
   auto table = builder.finalize();
