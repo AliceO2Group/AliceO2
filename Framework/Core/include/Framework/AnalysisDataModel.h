@@ -452,7 +452,7 @@ DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
 /// Bit 0-6: mismatch at ITS layer
 /// Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64
 /// Bit 10: TRD, bit 11: TOF, bit 15: indicates negative label
-} // namespace mclabel
+} // namespace mctracklabel
 
 DECLARE_SOA_TABLE(McTrackLabels, "AOD", "MCTRACKLABEL",
                   mctracklabel::LabelId, mctracklabel::LabelMask);
@@ -464,7 +464,7 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McParticles, "fLabel");
 DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
 /// Bit mask to indicate detector mismatches (bit ON means mismatch)
 /// Bit 15: indicates negative label
-} // namespace mclabel
+} // namespace mccalolabel
 
 DECLARE_SOA_TABLE(McCaloLabels, "AOD", "MCCALOLABEL",
                   mccalolabel::LabelId, mccalolabel::LabelMask);
