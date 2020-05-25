@@ -16,6 +16,8 @@ cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 # C++ as we _do_ have some C files to compile explicitely as C (e.g. gl3w.c)
 project(O2 LANGUAGES C CXX VERSION 1.2.0)
 
+set(CMAKE_CXX_FLAGS -ftemplate-backtrace-limit=0)
+
 include(CTest)
 
 # Project wide setup
@@ -99,7 +101,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     add_subdirectory(tests)
   endif()
   if(BUILD_TEST_ROOT_MACROS)
-    add_subdirectory(macro)
+add_subdirectory (macro)
     include(O2ReportNonTestedMacros)
     o2_report_non_tested_macros()
   endif()
