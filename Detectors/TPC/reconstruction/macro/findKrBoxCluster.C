@@ -12,7 +12,6 @@
 /// \brief This macro retrieves clusters from Krypton and X-Ray runs, input tpcdigits.root
 /// \author Philip Hauer <philip.hauer@cern.ch>
 
-#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "TCanvas.h"
 #include "TFile.h"
 #include "TTree.h"
@@ -25,7 +24,6 @@
 #include <iostream>
 #include <tuple>
 #include <vector>
-#endif
 
 void findKrBoxCluster()
 {
