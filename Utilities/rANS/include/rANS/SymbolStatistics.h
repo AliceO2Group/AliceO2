@@ -21,6 +21,10 @@
 #include <iostream>
 #include <numeric>
 #include <vector>
+#include <cmath>
+#include <iterator>
+
+#include <fairlogger/Logger.h>
 
 namespace o2
 {
@@ -91,9 +95,12 @@ class SymbolStatistics
   std::vector<uint32_t> mCumulativeFrequencyTable;
 };
 
+std::ostream& operator<<(std::ostream& strm, const SymbolStatistics& a);
+
 template <typename IT>
-SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t range)
+SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t range) : mMin(0), mMax(0), mNUsedAlphabetSymbols(0), mMessageLength(0), mFrequencyTable(), mCumulativeFrequencyTable()
 {
+  LOG(trace) << "start building symbol statistics";
   buildFrequencyTable(begin, end, range);
 
   for (auto i : mFrequencyTable) {
@@ -105,11 +112,52 @@ SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t range)
   buildCumulativeFrequencyTable();
 
   mMessageLength = mCumulativeFrequencyTable.back();
+
+// advanced diagnostics in debug builds
+#if !defined(NDEBUG)
+  [&]() {
+    const uint messageRange = [&]() -> uint {
+      if (range > 0) {
+        return range;
+      } else if (mMax - mMin == 0) {
+        return 1;
+      } else {
+        return std::ceil(std::log2(mMax - mMin));
+      } }();
+
+    double entropy = 0;
+    for (auto frequency : mFrequencyTable) {
+      if (frequency > 0) {
+        const double p = (frequency * 1.0) / mMessageLength;
+        entropy -= p * std::log2(p);
+      }
+    }
+
+    LOG(debug2) << "messageProperties: {"
+                << "numSymbols: " << mMessageLength << ", "
+                << "alphabetRange: " << messageRange << ", "
+                << "alphabetSize: " << mNUsedAlphabetSymbols << ", "
+                << "minSymbol: " << mMin << ", "
+                << "maxSymbol: " << mMax << ", "
+                << "entropy: " << entropy << ", "
+                << "bufferSizeB: " << mMessageLength * sizeof(typename std::iterator_traits<IT>::value_type) << ", "
+                << "actualSizeB: " << static_cast<int>(mMessageLength * messageRange / 8) << ", "
+                << "entropyMessageB: " << static_cast<int>(std::ceil(entropy * mMessageLength / 8)) << "}";
+
+    LOG(debug2) << "SymbolStatistics: {"
+                << "entries: " << mFrequencyTable.size() << ", "
+                << "frequencyTableSizeB: " << mFrequencyTable.size() * sizeof(std::decay_t<decltype(mFrequencyTable)>::value_type) << ", "
+                << "CumulativeFrequencyTableSizeB: " << mCumulativeFrequencyTable.size() * sizeof(std::decay_t<decltype(mCumulativeFrequencyTable)>::value_type) << "}";
+  }();
+#endif
+
+  LOG(trace) << "done building symbol statistics";
 }
 
 template <typename IT>
 SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t min, size_t max, size_t messageLength) : mMin(min), mMax(max), mNUsedAlphabetSymbols(0), mMessageLength(messageLength), mFrequencyTable(begin, end), mCumulativeFrequencyTable()
 {
+  LOG(trace) << "start loading external symbol statistics";
   for (auto i : mFrequencyTable) {
     if (i > 0) {
       mNUsedAlphabetSymbols++;
@@ -117,12 +165,15 @@ SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t min, siz
   }
 
   buildCumulativeFrequencyTable();
+
+  LOG(trace) << "done loading external symbol statistics";
 }
 
 template <typename IT>
 void SymbolStatistics::buildFrequencyTable(const IT begin, const IT end,
                                            size_t range)
 {
+  LOG(trace) << "start building frequency table";
   // find min_ and max_
   const auto minmax = std::minmax_element(begin, end);
 
@@ -148,8 +199,8 @@ void SymbolStatistics::buildFrequencyTable(const IT begin, const IT end,
   for (IT it = begin; it != end; it++) {
     mFrequencyTable[*it - mMin]++;
   }
+  LOG(trace) << "done building frequency table";
 }
-
 } // namespace rans
 } // namespace o2
 
