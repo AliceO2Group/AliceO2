@@ -491,6 +491,13 @@ void GPUReconstructionHIPBackend::SynchronizeEvents(deviceEvent* evList, int nEv
   }
 }
 
+void GPUReconstructionHIPBackend::StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents)
+{
+  for (int i = 0; i < nEvents; i++) {
+    GPUFailedMsg(hipStreamWaitEvent(mInternals->Streams[stream], ((hipEvent_t*)evList)[i], 0));
+  }
+}
+
 bool GPUReconstructionHIPBackend::IsEventDone(deviceEvent* evList, int nEvents)
 {
   for (int i = 0; i < nEvents; i++) {

@@ -443,6 +443,13 @@ void GPUReconstructionOCL::SynchronizeStream(int stream) { GPUFailedMsg(clFinish
 
 void GPUReconstructionOCL::SynchronizeEvents(deviceEvent* evList, int nEvents) { GPUFailedMsg(clWaitForEvents(nEvents, (cl_event*)evList)); }
 
+void GPUReconstructionOCL::StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents)
+{
+  if (nEvents) {
+    GPUFailedMsg(clEnqueueMarkerWithWaitList(mInternals->command_queue[stream], nEvents, (cl_event*)evList, nullptr));
+  }
+}
+
 bool GPUReconstructionOCL::IsEventDone(deviceEvent* evList, int nEvents)
 {
   cl_int eventdone;

@@ -44,6 +44,7 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
   int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override;
   void SynchronizeStream(int stream) override;
   void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) override;
+  void StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents = 1) override;
   bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
   int registerMemoryForGPU(const void* ptr, size_t size) override;
   int unregisterMemoryForGPU(const void* ptr) override;
