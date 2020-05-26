@@ -156,7 +156,7 @@ int ReadConfiguration(int argc, char** argv)
   }
 #endif
 #ifndef HAVE_O2HEADERS
-  configStandalone.configRec.runTRD = configStandalone.configRec.rundEdx = configStandalone.configRec.runCompression = configStandalone.configRec.runTransformation = configStandalone.testSyncAsync = 0;
+  configStandalone.configRec.runTRD = configStandalone.configRec.rundEdx = configStandalone.configRec.runCompression = configStandalone.configRec.runTransformation = configStandalone.testSyncAsync = configStandalone.testSync = 0;
   configStandalone.configRec.ForceEarlyTPCTransform = 1;
 #endif
 #ifndef GPUCA_TPC_GEOMETRY_O2
@@ -433,10 +433,12 @@ int SetupReconstruction()
   steps.outputs.setBits(GPUDataTypes::InOutType::TRDTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TRDTracking));
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, steps.steps.isSet(GPUReconstruction::RecoStep::TPCClusterFinding));
 
-  if (configStandalone.testSyncAsync) {
+  if (configStandalone.testSyncAsync || configStandalone.testSync) {
     // Set settings for synchronous
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, 0);
-    devProc.eventDisplay = nullptr;
+    if (configStandalone.testSyncAsync) {
+      devProc.eventDisplay = nullptr;
+    }
   }
   rec->SetSettings(&ev, &recSet, &devProc, &steps);
   if (configStandalone.testSyncAsync) {
