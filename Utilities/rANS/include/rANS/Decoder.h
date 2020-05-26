@@ -20,6 +20,8 @@
 #include <type_traits>
 #include <iostream>
 
+#include <fairlogger/Logger.h>
+
 #include "SymbolTable.h"
 #include "DecoderSymbol.h"
 #include "ReverseSymbolLookupTable.h"
@@ -86,6 +88,8 @@ template <typename coder_T, typename stream_T, typename source_T>
 template <typename stream_IT, typename source_IT>
 void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, const stream_IT inputBegin, size_t numSymbols) const
 {
+  LOG(trace) << "start decoding";
+
   static_assert(std::is_same<typename std::iterator_traits<source_IT>::value_type, source_T>::value);
   static_assert(std::is_same<typename std::iterator_traits<stream_IT>::value_type, stream_T>::value);
 
@@ -118,6 +122,8 @@ void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, 
     ransDecoder::decAdvanceSymbol(&rans0, &ptr, &(*mSymbolTable)[s0],
                                   mProbabilityBits);
   }
+
+  LOG(trace) << "done decoding";
 }
 } // namespace rans
 } // namespace o2
