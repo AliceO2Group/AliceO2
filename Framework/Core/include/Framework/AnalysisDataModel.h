@@ -418,20 +418,6 @@ DECLARE_SOA_TABLE(McCollisions, "AOD", "MCCOLLISION", o2::soa::Index<>, mccollis
                   mccollision::X, mccollision::Y, mccollision::Z, mccollision::T, mccollision::Weight);
 using McCollision = McCollisions::iterator;
 
-namespace mclabel
-{
-DECLARE_SOA_COLUMN(Lbl, lbl, int);
-DECLARE_SOA_COLUMN(LblMask, lblMask, uint16_t);
-/// Bit mask to indicate detector mismatches (bit ON means mismatch)
-/// Bit 0-6: mismatch at ITS layer
-/// Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64
-/// Bit 10: TRD, bit 11: TOF
-} // namespace mclabel
-
-DECLARE_SOA_TABLE(McLabels, "AOD", "MCLABEL", o2::soa::Index<>,
-                  mclabel::Lbl, mclabel::LblMask);
-using McLabel = McLabels::iterator;
-
 namespace mcparticle
 {
 DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);
@@ -457,6 +443,32 @@ DECLARE_SOA_TABLE(McParticles, "AOD", "MCPARTICLE",
                   mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
                   mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt);
 using McParticle = McParticles::iterator;
+
+namespace mctracklabel
+{
+DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McParticles, "fLabel");
+DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
+/// Bit mask to indicate detector mismatches (bit ON means mismatch)
+/// Bit 0-6: mismatch at ITS layer
+/// Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64
+/// Bit 10: TRD, bit 11: TOF, bit 15: indicates negative label
+} // namespace mctracklabel
+
+DECLARE_SOA_TABLE(McTrackLabels, "AOD", "MCTRACKLABEL",
+                  mctracklabel::LabelId, mctracklabel::LabelMask);
+using McTrackLabel = McTrackLabels::iterator;
+
+namespace mccalolabel
+{
+DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McParticles, "fLabel");
+DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
+/// Bit mask to indicate detector mismatches (bit ON means mismatch)
+/// Bit 15: indicates negative label
+} // namespace mccalolabel
+
+DECLARE_SOA_TABLE(McCaloLabels, "AOD", "MCCALOLABEL",
+                  mccalolabel::LabelId, mccalolabel::LabelMask);
+using McCaloLabel = McCaloLabels::iterator;
 
 } // namespace aod
 
