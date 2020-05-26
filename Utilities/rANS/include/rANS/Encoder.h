@@ -19,6 +19,8 @@
 #include <memory>
 #include <algorithm>
 
+#include <fairlogger/Logger.h>
+
 #include "SymbolTable.h"
 #include "EncoderSymbol.h"
 #include "Coder.h"
@@ -96,6 +98,8 @@ template <typename stream_IT, typename source_IT>
 const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
   const stream_IT outputBegin, const stream_IT outputEnd, const source_IT inputBegin, const source_IT inputEnd) const
 {
+  LOG(trace) << "start encoding";
+
   static_assert(std::is_same<typename std::iterator_traits<source_IT>::value_type, source_T>::value);
   static_assert(std::is_same<typename std::iterator_traits<stream_IT>::value_type, stream_T>::value);
 
@@ -106,7 +110,7 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
   stream_T* ptr = &(*outputEnd);
   source_IT inputIT = inputEnd;
 
-  const auto inputBufferSize = inputEnd - inputBegin;
+  const auto inputBufferSize = std::distance(inputBegin, inputEnd);
 
   // odd number of bytes?
   if (inputBufferSize & 1) {
@@ -137,6 +141,19 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
     std::cerr << "Exception is thrown: " << e.what() << '\n';
     throw;
   }
+
+// advanced diagnostics for debug builds
+#if !defined(NDEBUG)
+  LOG(debug2) << "EncoderProperties: {"
+              << "sourceTypeB: " << sizeof(source_T) << ", "
+              << "streamTypeB: " << sizeof(stream_T) << ", "
+              << "coderTypeB: " << sizeof(coder_T) << ", "
+              << "probabilityBits: " << mProbabilityBits << ", "
+              << "inputBufferSizeB: " << inputBufferSize * sizeof(source_T) << ", "
+              << "outputBufferSizeB: " << std::distance(ptr, &(*outputEnd)) * sizeof(stream_T) << "}";
+#endif
+
+  LOG(trace) << "done encoding";
 
   return outputBegin + std::distance(&(*outputBegin), ptr);
 };

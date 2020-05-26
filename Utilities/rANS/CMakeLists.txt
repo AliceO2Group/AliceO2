@@ -10,8 +10,8 @@
 
 o2_add_library(rANS  
                SOURCES src/SymbolStatistics.cxx
-               PUBLIC_LINK_LIBRARIES O2::CommonUtils)
-             
+               PUBLIC_LINK_LIBRARIES O2::CommonUtils FairLogger::FairLogger)
+
 o2_add_test(EncodeDecode
             NAME EncodeDecode
             SOURCES test/test_ransEncodeDecode.cxx
