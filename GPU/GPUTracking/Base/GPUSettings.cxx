@@ -75,6 +75,7 @@ void GPUSettingsProcessing::SetDefaults()
 void GPUSettingsDeviceProcessing::SetDefaults()
 {
   nThreads = 1;
+  ompKernels = false;
   deviceNum = -1;
   platformNum = -1;
   globalInitMutex = false;

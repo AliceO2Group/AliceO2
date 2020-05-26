@@ -71,9 +71,17 @@ int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, const Args&..
   }
   unsigned int num = y.num == 0 || y.num == -1 ? 1 : y.num;
   for (unsigned int k = 0; k < num; k++) {
-    for (unsigned int iB = 0; iB < x.nBlocks; iB++) {
-      typename T::GPUSharedMemory smem;
-      T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Processor(*mHostConstantMem)[y.start + k], args...);
+    if (mDeviceProcessingSettings.ompKernels) {
+      GPUCA_OPENMP(parallel for num_threads(mDeviceProcessingSettings.nThreads))
+      for (unsigned int iB = 0; iB < x.nBlocks; iB++) {
+        typename T::GPUSharedMemory smem;
+        T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Processor(*mHostConstantMem)[y.start + k], args...);
+      }
+    } else {
+      for (unsigned int iB = 0; iB < x.nBlocks; iB++) {
+        typename T::GPUSharedMemory smem;
+        T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Processor(*mHostConstantMem)[y.start + k], args...);
+      }
     }
   }
   return 0;
@@ -152,6 +160,9 @@ int GPUReconstructionCPU::InitDevice()
     }
     mHostMemoryPermanent = mHostMemoryBase;
     ClearAllocatedMemory();
+  }
+  if (mDeviceProcessingSettings.ompKernels) {
+    mBlockCount = getOMPMaxThreads();
   }
   mThreadId = GetThread();
   return 0;

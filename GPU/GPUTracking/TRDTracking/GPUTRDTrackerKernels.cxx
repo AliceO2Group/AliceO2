@@ -23,7 +23,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 template <>
 GPUdii() void GPUTRDTrackerKernels::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
 {
-  GPUCA_OPENMP(parallel for num_threads(processors.trdTracker.GetRec().GetDeviceProcessingSettings().nThreads))
+  GPUCA_OPENMP(parallel for num_threads(processors.trdTracker.GetRec().GetDeviceProcessingSettings().ompKernels ? 1 : processors.trdTracker.GetRec().GetDeviceProcessingSettings().nThreads))
   for (int i = get_global_id(0); i < processors.trdTracker.NTracks(); i += get_global_size(0)) {
     processors.trdTracker.DoTrackingThread(i, get_global_id(0));
   }

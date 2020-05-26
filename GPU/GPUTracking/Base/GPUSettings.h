@@ -132,6 +132,7 @@ struct GPUSettingsDeviceProcessing {
 #endif
 
   int nThreads;                       // Numnber of threads on CPU, 0 = auto-detect
+  bool ompKernels;                    // OMP Parallelization inside kernels
   int deviceNum;                      // Device number to use, in case the backend provides multiple devices (-1 = auto-select)
   int platformNum;                    // Platform to use, in case the backend provides multiple platforms (-1 = auto-select)
   bool globalInitMutex;               // Global mutex to synchronize initialization over multiple instances
