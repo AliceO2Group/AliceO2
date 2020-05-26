@@ -107,20 +107,6 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
           return;
         }
         const int& sector = sectorHeader->sector();
-        // check the current operation, this is used to either signal eod or noop
-        // FIXME: the noop is not needed any more once the lane configuration with one
-        // channel per sector is used
-        if (sector < 0) {
-          if (operation < 0 && operation != sector) {
-            // we expect the same operation on all inputs
-            LOG(ERROR) << "inconsistent lane operation, got "
-                       << sector << ", expecting " << operation;
-          } else if (operation == 0) {
-            // store the operation
-            operation = sector;
-          }
-          continue;
-        }
         // the TPCSectorHeader now allows to transport information for more than one sector,
         // e.g. for transporting clusters in one single data block. Digits are however grouped
         // on sector level
@@ -131,11 +117,6 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
         inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
         LOG(INFO) << "GOT SPAN FOR SECTOR " << sector << " -> "
                   << inputDigits[sector].size();
-      }
-      if (operation == -1) {
-        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-        processAttributes->finished = true;
-        return;
       }
       for (int i = 0; i < NSectors; i++) {
         inDigitsGPU.tpcDigits[i] = inputDigits[i].data();
