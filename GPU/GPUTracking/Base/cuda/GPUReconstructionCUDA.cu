@@ -407,7 +407,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     }
 
     for (int i = 0; i < mNStreams; i++) {
-      if (GPUFailedMsgI(cudaStreamCreate(&mInternals->Streams[i]))) {
+      if (GPUFailedMsgI(cudaStreamCreateWithFlags(&mInternals->Streams[i], cudaStreamNonBlocking))) {
         GPUError("Error creating CUDA Stream");
         GPUFailedMsgI(cudaDeviceReset());
         return (1);
