@@ -556,6 +556,14 @@ struct FilteredIndexPolicy : IndexPolicyBase {
 template <typename... C>
 class Table;
 
+/// Similar to a pair but not a pair, to avoid
+/// exposing the second type everywhere.
+template <typename C>
+struct ColumnDataHolder {
+  C* first;
+  arrow::ChunkedArray* second;
+};
+
 template <typename IP, typename... C>
 struct RowViewCore : public IP, C... {
  public:
@@ -567,9 +575,9 @@ struct RowViewCore : public IP, C... {
   constexpr inline static bool has_index_v = !std::is_same_v<index_columns_t, framework::pack<>>;
   using external_index_columns_t = framework::selected_pack<is_external_index_t, C...>;
 
-  RowViewCore(std::tuple<std::pair<C*, arrow::ChunkedArray*>...> const& columnIndex, IP&& policy)
+  RowViewCore(std::tuple<ColumnDataHolder<C>...> const& columnIndex, IP&& policy)
     : IP{policy},
-      C(std::get<std::pair<C*, arrow::ChunkedArray*>>(columnIndex).second)...
+      C(std::get<ColumnDataHolder<C>>(columnIndex).second)...
   {
     bindIterators(persistent_columns_t{});
     bindAllDynamicColumns(dynamic_columns_t{});
@@ -759,7 +767,7 @@ class Table
     using parent_t = Parent;
     using originals = originals_pack_t<T...>;
 
-    RowViewBase(std::tuple<std::pair<C*, arrow::ChunkedArray*>...> const& columnIndex, IP&& policy)
+    RowViewBase(std::tuple<ColumnDataHolder<C>...> const& columnIndex, IP&& policy)
       : RowViewCore<IP, C...>(columnIndex, std::forward<decltype(policy)>(policy))
     {
     }
@@ -822,9 +830,7 @@ class Table
   using filtered_iterator = RowViewFiltered<table_t, table_t>;
   using filtered_const_iterator = RowViewFiltered<table_t, table_t>;
 
-  template <typename Col>
-  using column_pair_t = std::pair<Col*, arrow::ChunkedArray*>;
-  using column_index_t = std::tuple<column_pair_t<C>...>;
+  using column_index_t = std::tuple<ColumnDataHolder<C>...>;
 
   Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : mTable(table),
@@ -832,10 +838,10 @@ class Table
       mOffset(offset)
   {
     if (mTable->num_rows() == 0) {
-      mColumnIndex = column_index_t{column_pair_t<C>{nullptr, nullptr}...};
+      mColumnIndex = column_index_t{ColumnDataHolder<C>{nullptr, nullptr}...};
       mBegin = mEnd;
     } else {
-      mColumnIndex = column_index_t{column_pair_t<C>{nullptr, lookupColumn<C>()}...};
+      mColumnIndex = column_index_t{ColumnDataHolder<C>{nullptr, lookupColumn<C>()}...};
       mBegin = unfiltered_iterator{mColumnIndex, {table->num_rows(), offset}};
     }
   }
@@ -919,7 +925,7 @@ class Table
   }
   std::shared_ptr<arrow::Table> mTable;
   /// This is a cached lookup of the column index in a given
-  std::tuple<std::pair<C*, arrow::ChunkedArray*>...>
+  std::tuple<ColumnDataHolder<C>...>
     mColumnIndex;
   /// Cached begin iterator for this table.
   unfiltered_iterator mBegin;
