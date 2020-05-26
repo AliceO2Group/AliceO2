@@ -35,14 +35,21 @@ using namespace o2::dataformats;
 int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>>& inputClusters,
                                            HardwareClusterDecoder::OutputAllocator outputAllocator,
                                            const std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* inMCLabels,
-                                           std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* outMCLabels)
+                                           o2::dataformats::MCTruthContainer<o2::MCCompLabel>* outMCLabels)
 {
   if (mIntegrator == nullptr)
     mIntegrator.reset(new DigitalCurrentClusterIntegrator);
-  if (!inMCLabels)
+  // MCLabelContainer does only allow appending new labels, so we need to write to separate
+  // containers per {sector,padrow} and merge at the end;
+  std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> outMCLabelContainers;
+  if (!inMCLabels) {
     outMCLabels = nullptr;
-  std::vector<ClusterNativeBuffer*> outputBufferMap;
+  }
+  ClusterNative* outputClusterBuffer = nullptr;
+  // the number of clusters in a {sector,row}
   int nRowClusters[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW] = {0};
+  // offset of first cluster of {sector,row} in the output buffer
+  size_t clusterOffsets[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW] = {0};
   int containerRowCluster[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW] = {0};
   Mapper& mapper = Mapper::instance();
   int numberOfOutputContainers = 0;
@@ -62,13 +69,16 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
         const PadRegionInfo& region = mapper.getPadRegionInfo(cru.region());
         const int rowOffset = region.getGlobalRowOffset();
 
+        // TODO: make sure that input clusters are sorted in ascending row, so we
+        // can write the MCLabels directly in consecutive order following the cluster sequence
+        // Note: also the sorting below would need to be adjusted.
         for (int k = 0; k < cont.numberOfClusters; k++) {
           const int padRowGlobal = rowOffset + cont.clusters[k].getRow();
           int& nCls = nRowClusters[sector][padRowGlobal];
           if (loop == 1) {
             //Fill cluster in the respective output buffer
             const ClusterHardware& cIn = cont.clusters[k];
-            ClusterNative& cOut = outputBufferMap[containerRowCluster[sector][padRowGlobal]]->clusters[nCls];
+            ClusterNative& cOut = outputClusterBuffer[clusterOffsets[sector][padRowGlobal] + nCls];
             float pad = cIn.getPad();
             cOut.setPad(pad);
             cOut.setTimeFlags(cIn.getTimeLocal() + cont.timeBinOffset, cIn.getFlags());
@@ -78,7 +88,7 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
             cOut.qTot = cIn.getQTot();
             mIntegrator->integrateCluster(sector, padRowGlobal, pad, cIn.getQTot());
             if (outMCLabels) {
-              auto& mcOut = (*outMCLabels)[containerRowCluster[sector][padRowGlobal]];
+              auto& mcOut = outMCLabelContainers[containerRowCluster[sector][padRowGlobal]];
               for (const auto& element : (*inMCLabels)[i].getLabels(k)) {
                 mcOut.addElement(nCls, element);
               }
@@ -95,38 +105,63 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
     }
     if (loop == 1) {
       //We are done with filling the buffers, sort all output buffers
-      for (int i = 0; i < outputBufferMap.size(); i++) {
-        if (outMCLabels) {
-          sortClustersAndMC(outputBufferMap[i]->clusters, outputBufferMap[i]->nClusters, (*outMCLabels)[i]);
-        } else {
-          auto* cl = outputBufferMap[i]->clusters;
-          std::sort(cl, cl + outputBufferMap[i]->nClusters);
+      for (int i = 0; i < Constants::MAXSECTOR; i++) {
+        for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
+          if (nRowClusters[i][j] == 0) {
+            continue;
+          }
+          if (outMCLabels) {
+            sortClustersAndMC(outputClusterBuffer + clusterOffsets[i][j], nRowClusters[i][j], outMCLabelContainers[containerRowCluster[i][j]]);
+          } else {
+            auto* cl = outputClusterBuffer + clusterOffsets[i][j];
+            std::sort(cl, cl + nRowClusters[i][j]);
+          }
         }
       }
     } else {
       //Now we know the size of all output buffers, allocate them
-      if (outMCLabels)
-        outMCLabels->resize(numberOfOutputContainers);
-      size_t rawOutputBufferSize = numberOfOutputContainers * sizeof(ClusterNativeBuffer) + nTotalClusters * sizeof(ClusterNative);
+      if (outMCLabels) {
+        outMCLabelContainers.resize(numberOfOutputContainers);
+      }
+      size_t rawOutputBufferSize = sizeof(ClusterCountIndex) + nTotalClusters * sizeof(ClusterNative);
       char* rawOutputBuffer = outputAllocator(rawOutputBufferSize);
-      char* rawOutputBufferIterator = rawOutputBuffer;
+      auto& clusterCounts = *(reinterpret_cast<ClusterCountIndex*>(rawOutputBuffer));
+      outputClusterBuffer = reinterpret_cast<ClusterNative*>(rawOutputBuffer + sizeof(ClusterCountIndex));
+      nTotalClusters = 0;
       numberOfOutputContainers = 0;
       for (int i = 0; i < Constants::MAXSECTOR; i++) {
         for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
-          if (nRowClusters[i][j] == 0)
+          clusterCounts.nClusters[i][j] = nRowClusters[i][j];
+          if (nRowClusters[i][j] == 0) {
             continue;
-          outputBufferMap.push_back(reinterpret_cast<ClusterNativeBuffer*>(rawOutputBufferIterator));
-          ClusterNativeBuffer& container = *outputBufferMap.back();
-          container.sector = i;
-          container.globalPadRow = j;
-          container.nClusters = nRowClusters[i][j];
+          }
           containerRowCluster[i][j] = numberOfOutputContainers++;
-          rawOutputBufferIterator += container.getFlatSize();
+          clusterOffsets[i][j] = nTotalClusters;
+          nTotalClusters += nRowClusters[i][j];
           mIntegrator->initRow(i, j);
         }
       }
-      assert(rawOutputBufferIterator == rawOutputBuffer + rawOutputBufferSize);
       memset(nRowClusters, 0, sizeof(nRowClusters));
+    }
+  }
+  // Finally merge MC label containers into one container following the cluster sequence in the
+  // output buffer
+  if (outMCLabels) {
+    auto& labels = *outMCLabels;
+    int nCls = 0;
+    for (int i = 0; i < Constants::MAXSECTOR; i++) {
+      for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
+        if (nRowClusters[i][j] == 0) {
+          continue;
+        }
+        for (int k = 0, end = outMCLabelContainers[containerRowCluster[i][j]].getIndexedSize(); k < end; k++, nCls++) {
+          assert(end == nRowClusters[i][j]);
+          assert(clusterOffsets[i][j] + k == nCls);
+          for (const auto& element : outMCLabelContainers[containerRowCluster[i][j]].getLabels(k)) {
+            labels.addElement(nCls, element);
+          }
+        }
+      }
     }
   }
   return (0);

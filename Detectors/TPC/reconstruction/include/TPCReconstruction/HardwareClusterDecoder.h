@@ -77,7 +77,7 @@ class HardwareClusterDecoder
   int decodeClusters(std::vector<std::pair<const o2::tpc::ClusterHardwareContainer*, std::size_t>>& inputClusters,
                      OutputAllocator outputAllocator,
                      const std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* inMCLabels = nullptr,
-                     std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* outMCLabels = nullptr);
+                     o2::dataformats::MCTruthContainer<o2::MCCompLabel>* outMCLabels = nullptr);
 
   /// @brief Sort clusters and MC labels in place
   /// ClusterNative defines the smaller-than relation used in the sorting, with time being the more significant

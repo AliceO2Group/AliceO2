@@ -309,7 +309,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       auto& verbosity = processAttributes->verbosity;
       // FIXME cleanup almost duplicated code
       auto& validMcInputs = processAttributes->validMcInputs;
-      using CachedMCLabelContainer = decltype(std::declval<InputRecord>().get<std::vector<MCLabelContainer>>(DataRef{nullptr, nullptr, nullptr}));
+      using CachedMCLabelContainer = decltype(std::declval<InputRecord>().get<MCLabelContainer*>(DataRef{nullptr, nullptr, nullptr}));
       std::array<CachedMCLabelContainer, NSectors> mcInputs;
       std::array<gsl::span<const char>, NSectors> inputs;
       o2::gpu::GPUTrackingInOutZS tpcZS;
@@ -354,7 +354,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           if (caClusterer) {
             inputDigitsMC[sector] = std::move(pc.inputs().get<const MCLabelContainer*>(ref));
           } else {
-            mcInputs[sector] = std::move(pc.inputs().get<std::vector<MCLabelContainer>>(ref));
+            mcInputs[sector] = std::move(pc.inputs().get<const MCLabelContainer*>(ref));
           }
           validMcInputs.set(sector);
           activeSectors |= sectorHeader->activeSectors;
@@ -696,7 +696,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       if (processMC) {
         validMcInputs.reset();
         for (auto& mcInput : mcInputs) {
-          mcInput.clear();
+          mcInput.reset();
         }
       }
     };
