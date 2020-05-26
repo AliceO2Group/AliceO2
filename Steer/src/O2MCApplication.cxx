@@ -13,7 +13,6 @@
 #include <FairMQMessage.h>
 #include <FairMQDevice.h>
 #include <FairMQParts.h>
-#include <TPCSimulation/Point.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <TMessage.h>
 #include <sstream>
