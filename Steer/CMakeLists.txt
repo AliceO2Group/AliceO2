@@ -14,8 +14,7 @@ o2_add_library(Steer
 		       PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
 		                     O2::CommonConstants
                                      O2::SimulationDataFormat
-                                     O2::DetectorsCommonDataFormats
-                                     O2::TPCSimulation)
+                                     O2::DetectorsCommonDataFormats)
 
 o2_target_root_dictionary(Steer
                           HEADERS include/Steer/InteractionSampler.h
