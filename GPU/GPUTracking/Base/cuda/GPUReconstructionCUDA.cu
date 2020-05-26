@@ -583,6 +583,13 @@ void GPUReconstructionCUDABackend::SynchronizeEvents(deviceEvent* evList, int nE
   }
 }
 
+void GPUReconstructionCUDABackend::StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents)
+{
+  for (int i = 0; i < nEvents; i++) {
+    GPUFailedMsg(cudaStreamWaitEvent(mInternals->Streams[stream], ((cudaEvent_t*)evList)[i], 0));
+  }
+}
+
 bool GPUReconstructionCUDABackend::IsEventDone(deviceEvent* evList, int nEvents)
 {
   for (int i = 0; i < nEvents; i++) {

@@ -91,6 +91,7 @@ class GPUChain
   virtual inline std::unique_ptr<GPUReconstruction::GPUThreadContext> GetThreadContext() { return mRec->GetThreadContext(); }
   inline void SynchronizeGPU() { mRec->SynchronizeGPU(); }
   inline void ReleaseEvent(deviceEvent* ev) { mRec->ReleaseEvent(ev); }
+  inline void StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents = 1) { mRec->StreamWaitForEvents(stream, evList, nEvents); }
   template <class T>
   void RunHelperThreads(T function, GPUReconstructionHelpers::helperDelegateBase* functionCls, int count);
   inline void WaitForHelperThreads() { mRec->WaitForHelperThreads(); }
