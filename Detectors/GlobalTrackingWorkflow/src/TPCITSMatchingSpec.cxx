@@ -95,7 +95,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
       LOG(ERROR) << "sector header missing on header stack";
       throw std::runtime_error("sector header missing on header stack");
     }
-    const int& sector = sectorHeader->sector;
+    const int& sector = sectorHeader->sector();
     // check the current operation, this is used to either signal eod or noop
     // FIXME: the noop is not needed any more once the lane configuration with one
     // channel per sector is used
@@ -108,6 +108,12 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
         operation = sector;
       }
       continue;
+    }
+    // the TPCSectorHeader now allows to transport information for more than one sector,
+    // e.g. for transporting clusters in one single data block. For the moment, the
+    // implemenation here requires single sectors
+    if (sector >= o2::tpc::TPCSectorHeader::NSectors) {
+      throw std::runtime_error("Expecting data for single sectors");
     }
     if (validSectors.test(sector)) {
       // have already data for this sector, this should not happen in the current

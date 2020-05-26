@@ -265,18 +265,18 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     if (!tpcSectorHeader) {
       throw std::runtime_error("TPC sector header missing in header stack");
     }
-    if (tpcSectorHeader->sector < 0) {
+    if (tpcSectorHeader->sector() < 0) {
       // special data sets, don't write
       return ~(size_t)0;
     }
     size_t index = 0;
     for (auto const& sector : tpcSectors) {
-      if (sector == tpcSectorHeader->sector) {
+      if (sector == tpcSectorHeader->sector()) {
         return index;
       }
       ++index;
     }
-    throw std::runtime_error("sector " + std::to_string(tpcSectorHeader->sector) + " not configured for writing");
+    throw std::runtime_error("sector " + std::to_string(tpcSectorHeader->sector()) + " not configured for writing");
   };
   auto getName = [tpcSectors](std::string base, size_t index) {
     return base + "_" + std::to_string(tpcSectors.at(index));

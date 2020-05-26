@@ -113,7 +113,7 @@ class TPCSectorCompletionPolicy
                 throw std::runtime_error("TPC sector header missing on header stack");
               }
               activeSectors |= sectorHeader->activeSectors;
-              validSectors.set(sectorHeader->sector);
+              validSectors.set(sectorHeader->sector());
               break;
             }
           }
