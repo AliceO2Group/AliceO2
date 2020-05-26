@@ -10,6 +10,8 @@
 
 #include "GlobalTrackingWorkflow/MatchTPCITSWorkflow.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "Framework/CompletionPolicy.h"
+#include "TPCWorkflow/TPCSectorCompletionPolicy.h"
 
 using namespace o2::framework;
 
@@ -26,6 +28,17 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
   std::swap(workflowOptions, options);
+}
+
+// the matcher process requires the TPC sector completion to trigger and data on
+// all defined routes
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // the TPC sector completion policy checks when the set of TPC/CLUSTERNATIVE data is complete
+  // in addition we require to have input from all other routes
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("itstpc-track-matcher",
+                                                        o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll,
+                                                        InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}})());
 }
 
 // ------------------------------------------------------------------
