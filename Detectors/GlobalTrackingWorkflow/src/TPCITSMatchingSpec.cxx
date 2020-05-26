@@ -96,19 +96,6 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
       throw std::runtime_error("sector header missing on header stack");
     }
     const int& sector = sectorHeader->sector();
-    // check the current operation, this is used to either signal eod or noop
-    // FIXME: the noop is not needed any more once the lane configuration with one
-    // channel per sector is used
-    if (sector < 0) {
-      if (operation < 0 && operation != sector) {
-        // we expect the same operation on all inputs
-        LOG(ERROR) << "inconsistent lane operation, got " << sector << ", expecting " << operation;
-      } else if (operation == 0) {
-        // store the operation
-        operation = sector;
-      }
-      continue;
-    }
     // the TPCSectorHeader now allows to transport information for more than one sector,
     // e.g. for transporting clusters in one single data block. For the moment, the
     // implemenation here requires single sectors
@@ -124,11 +111,6 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     activeSectors |= sectorHeader->activeSectors;
     validSectors.set(sector);
     datarefs[sector] = ref;
-  }
-
-  if (operation == -1) {
-    // EOD is transmitted in the sectorHeader with sector number equal to -1
-    LOG(WARNING) << "operation = " << operation;
   }
 
   auto printInputLog = [&validSectors, &activeSectors](auto& r, const char* comment, auto& s) {
