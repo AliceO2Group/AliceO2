@@ -10,6 +10,8 @@
 
 #include "TPCInterpolationWorkflow/TrackInterpolationWorkflow.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "Framework/CompletionPolicy.h"
+#include "TPCWorkflow/TPCSectorCompletionPolicy.h"
 
 using namespace o2::framework;
 
@@ -25,6 +27,17 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     "disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}});
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
+}
+
+// the matcher process requires the TPC sector completion to trigger and data on
+// all defined routes
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // the TPC sector completion policy checks when the set of TPC/CLUSTERNATIVE data is complete
+  // in addition we require to have input from all other routes
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("tpc-track-interpolation",
+                                                        o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll,
+                                                        InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}})());
 }
 
 // ------------------------------------------------------------------
