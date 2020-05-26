@@ -88,7 +88,7 @@ class ARROW_EXPORT SortedGroupByKernel : public arrow::compute::UnaryKernel
     if (table.kind() == arrow::compute::Datum::TABLE) {
       auto atable = util::get<std::shared_ptr<arrow::Table>>(table.value);
       auto columnIndex = atable->schema()->GetFieldIndex(mOptions.columnName);
-      auto chunkedArray = getBackendColumnData(atable->column(columnIndex));
+      auto chunkedArray = atable->column(columnIndex);
       return doGrouping(chunkedArray, outputRanges);
     };
     return arrow::Status::OK();
@@ -173,9 +173,9 @@ arrow::Status sliceByColumn(arrow::compute::FunctionContext* context,
     offsets->reserve(ranges->num_rows());
   }
 
-  auto startChunks = getBackendColumnData(ranges->column(0));
+  auto startChunks = ranges->column(0);
   assert(startChunks->num_chunks() == 1);
-  auto countChunks = getBackendColumnData(ranges->column(1));
+  auto countChunks = ranges->column(1);
   assert(countChunks->num_chunks() == 1);
   auto startData = std::static_pointer_cast<soa::arrow_array_for_t<T>>(startChunks->chunk(0))->raw_values();
   auto countData = std::static_pointer_cast<soa::arrow_array_for_t<T>>(countChunks->chunk(0))->raw_values();
@@ -184,7 +184,7 @@ arrow::Status sliceByColumn(arrow::compute::FunctionContext* context,
     auto start = startData[ri];
     auto count = countData[ri];
     auto schema = table->schema();
-    std::vector<std::shared_ptr<BackendColumnType>> slicedColumns;
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> slicedColumns;
     slicedColumns.reserve(schema->num_fields());
     //    if (count != 0) {
     for (auto ci = 0; ci < schema->num_fields(); ++ci) {

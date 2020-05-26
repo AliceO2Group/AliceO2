@@ -15,11 +15,11 @@ namespace o2
 namespace framework
 {
 
-branchIterator::branchIterator(TTree* tree, std::shared_ptr<BackendColumnType> col, std::shared_ptr<arrow::Field> field)
+branchIterator::branchIterator(TTree* tree, std::shared_ptr<arrow::ChunkedArray> col, std::shared_ptr<arrow::Field> field)
 {
   mbranchName = field->name().c_str();
   marrowType = field->type()->id();
-  mchunks = getBackendColumnData(col)->chunks();
+  mchunks = col->chunks();
   mnumberChuncs = mchunks.size();
 
   // initialize the branch
@@ -243,7 +243,7 @@ TableToTree::~TableToTree()
   mbranchIterators.clear();
 }
 
-bool TableToTree::addBranch(std::shared_ptr<BackendColumnType> col, std::shared_ptr<arrow::Field> field)
+bool TableToTree::addBranch(std::shared_ptr<arrow::ChunkedArray> col, std::shared_ptr<arrow::Field> field)
 {
   branchIterator* brit = new branchIterator(mtreePtr, col, field);
   if (brit->getStatus()) {

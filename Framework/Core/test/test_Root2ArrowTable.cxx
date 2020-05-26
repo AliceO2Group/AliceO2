@@ -88,13 +88,13 @@ BOOST_AUTO_TEST_CASE(RootTree2Table)
   BOOST_REQUIRE_EQUAL(table->schema()->field(6)->type()->id(), arrow::int32()->id());
 
   {
-    auto array = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(getBackendColumnData(table->column(0))->chunk(0));
+    auto array = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(table->column(0)->chunk(0));
     BOOST_CHECK_EQUAL(array->byte_width(), sizeof(float[3]));
     const float* c = reinterpret_cast<float const*>(array->Value(0));
     BOOST_CHECK_EQUAL(c[0], 1);
   }
   {
-    auto values = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(getBackendColumnData(table->column(1))->chunk(0));
+    auto values = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(table->column(1)->chunk(0));
     for (size_t i = 0; i < 1000; i++) {
       const int* ptr = reinterpret_cast<int const*>(values->Value(i));
       BOOST_CHECK_EQUAL(ptr[0], i);
