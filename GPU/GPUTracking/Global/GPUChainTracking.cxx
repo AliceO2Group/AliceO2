@@ -1076,17 +1076,17 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
         SynchronizeStream(lane);
 
+        if (fragment.index == 0) {
+          runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {nullptr, transferRunning[lane] == 1 ? &mEvents->stream[lane] : nullptr}, clustererShadow.mPclusterInRow, GPUCA_ROW_COUNT * sizeof(*clustererShadow.mPclusterInRow));
+          transferRunning[lane] = 2;
+        }
+
         if (clusterer.mPmemory->counters.nClusters == 0) {
           continue;
         }
 
         runKernel<GPUTPCCFDeconvolution, GPUTPCCFDeconvolution::countPeaks>(GetGrid(clusterer.mPmemory->counters.nPositions, lane), {iSlice}, {});
         DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpChargeMap, mDebugFile, "Split Charges");
-
-        if (fragment.index == 0) {
-          runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {nullptr, transferRunning[lane] == 1 ? &mEvents->slice[lane] : nullptr}, clustererShadow.mPclusterInRow, GPUCA_ROW_COUNT * sizeof(*clustererShadow.mPclusterInRow));
-          transferRunning[lane] = 2;
-        }
 
         runKernel<GPUTPCCFClusterizer, GPUTPCCFClusterizer::computeClusters>(GetGrid(clusterer.mPmemory->counters.nClusters, lane), {iSlice}, {});
         if (GetDeviceProcessingSettings().debugLevel >= 3) {
