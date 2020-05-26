@@ -335,9 +335,15 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
             LOG(ERROR) << "sector header missing on header stack";
             return;
           }
-          const int sector = sectorHeader->sector;
+          const int sector = sectorHeader->sector();
           if (sector < 0) {
             continue;
+          }
+          // the TPCSectorHeader now allows to transport information for more than one sector,
+          // e.g. for transporting clusters in one single data block. For the moment, the
+          // implemenation here requires single sectors
+          if (sector >= TPCSectorHeader::NSectors) {
+            throw std::runtime_error("Expecting data for single sectors");
           }
           if (validMcInputs.test(sector)) {
             // have already data for this sector, this should not happen in the current
@@ -376,10 +382,16 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         if (sectorHeader == nullptr) {
           throw std::runtime_error("sector header missing on header stack");
         }
-        const int sector = sectorHeader->sector;
+        const int sector = sectorHeader->sector();
         if (sector < 0) {
           //throw std::runtime_error("lagacy input, custom eos is not expected anymore")
           continue;
+        }
+        // the TPCSectorHeader now allows to transport information for more than one sector,
+        // e.g. for transporting clusters in one single data block. For the moment, the
+        // implemenation here requires single sectors
+        if (sector >= TPCSectorHeader::NSectors) {
+          throw std::runtime_error("Expecting data for single sectors");
         }
         if (validInputs.test(sector)) {
           // have already data for this sector, this should not happen in the current
