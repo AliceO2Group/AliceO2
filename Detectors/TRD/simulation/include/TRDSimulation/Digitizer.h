@@ -56,7 +56,6 @@ class Digitizer
   void setEventID(int entryID) { mEventID = entryID; }
   void setSrcID(int sourceID) { mSrcID = sourceID; }
   void setCalibrations(Calibrations* calibrations) { mCalib = calibrations; }
-
   int getEventTime() const { return mTime; }
   int getEventID() const { return mEventID; }
   int getSrcID() const { return mSrcID; }
@@ -75,13 +74,17 @@ class Digitizer
   std::vector<math_utils::RandomRing<>> mGausRandomRings; // pre-generated normal distributed random numbers
   std::vector<math_utils::RandomRing<>> mFlatRandomRings; // pre-generated flat distributed random numbers
   std::vector<math_utils::RandomRing<>> mLogRandomRings;  // pre-generated exp distributed random number
-
   std::vector<TRDDiffusionAndTimeStructEstimator> mDriftEstimators;
 
-  double mTime = 0.;
-  double mLastTime = 1.0e10; // starts in the future
+  double mTime = 0.;                   // time in nanoseconds
+  double mLastTime = 1.0e10;           // starts in the future
+  double mCurrentTriggerTime = 1.0e10; // starts in the future
   int mEventID = 0;
   int mSrcID = 0;
+
+  // Trigger parameters
+  static constexpr double READOUT_TIME = 3000;            // the time the readout takes, as 30 TB = 3 micro-s.
+  static constexpr double BUSY_TIME = READOUT_TIME + 200; // the time for which no new trigger can be received in nanoseconds
 
   // Digitization parameters
   static constexpr float AmWidth = TRDGeometry::amThick(); // Width of the amplification region
@@ -96,16 +99,19 @@ class Digitizer
   int mMaxTimeBinsTRAP = 30;                               // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
 
   // Digitization containers
-  std::vector<HitType> mHitContainer;                       // the container of hits in a given detector
-  std::vector<MCLabel> mMergedLabels;                       // temporary label container
-  std::array<SignalContainer, kNdet> mSignalsMapCollection; // container for caching signals over a timeframe
-  std::array<DigitContainer, kNdet> mDigitsCollection;      // container for caching digits for paralellization
+  std::vector<HitType> mHitContainer;                            // the container of hits in a given detector
+  std::vector<MCLabel> mMergedLabels;                            // temporary label container
+  std::array<SignalContainer, kNdet> mSignalsMapCollection;      // container for caching signals over a timeframe
+  std::array<DigitContainer, kNdet> mDigitsCollection;           // container for caching digits for paralellization
+  std::deque<std::array<SignalContainer, kNdet>> mPileupSignals; // container for piled up signals
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   void clearCollections();
   void setSimulationParameters();
 
   // Digitization chain methods
+  void triggerEventProcessing(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
+  void pileup();
   bool convertHits(const int, const std::vector<HitType>&, SignalContainer&, int thread = 0); // True if hit-to-signal conversion is successful
   bool convertSignalsToADC(const int, SignalContainer&, DigitContainer&, int thread = 0);     // True if signal-to-ADC conversion is successful
   void addLabel(const o2::trd::HitType& hit, std::vector<o2::trd::MCLabel>&, std::unordered_map<int, int>&);

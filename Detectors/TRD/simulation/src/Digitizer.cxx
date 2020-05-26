@@ -86,10 +86,8 @@ void Digitizer::setSimulationParameters()
 
 void Digitizer::clearCollections()
 {
-  for (int det = 0; det < kNdet; ++det) {
-    mSignalsMapCollection[det].clear();
-    mDigitsCollection[det].clear();
-  }
+  std::for_each(mSignalsMapCollection.begin(), mSignalsMapCollection.end(), [](SignalContainer& sc) { sc.clear(); });
+  std::for_each(mDigitsCollection.begin(), mDigitsCollection.end(), [](DigitContainer& dc) { dc.clear(); });
   mMergedLabels.clear();
 }
 
@@ -127,22 +125,36 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
   clearCollections();
 }
 
+void Digitizer::pileup()
+{
+  mPileupSignals.push_back(mSignalsMapCollection);
+  std::for_each(mSignalsMapCollection.begin(), mSignalsMapCollection.end(), [](SignalContainer& sc) { sc.clear(); });
+}
+
+void Digitizer::triggerEventProcessing(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+{
+  if ((mTime - mCurrentTriggerTime) < BUSY_TIME) {
+    // do not change the current trigger time and add send the signal containers to the pileup container
+    pileup();
+    mLastTime = mTime;
+  } else {
+    // flush the digits: signals from the pileup container are converted to adcs
+    // digits and labels are produced
+    // the current trigger time is changed after the flush is completed
+    flush(digits, labels);
+    assert(digits.size() == 0); // sanity cross-check, this should never happen
+    mCurrentTriggerTime = mTime;
+    mLastTime = mTime;
+  }
+}
+
 void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
   if (!mCalib) {
     LOG(FATAL) << "TRD Calibration database not available";
   }
 
-  // if there are digits for longer than 3 microseconds, flush them
-  // todo: check for pileup
-  // constexpr double totalSamplingTime = kTimeBins / mCommonParam->GetSamplingFrequency();
-  if ((mTime - mLastTime) > 0) {
-    flush(digits, labels);
-    if (digits.size() == 0) {
-      LOG(WARN) << "Digit container is empty after flushing signals";
-    }
-  }
-  mLastTime = mTime; // always update the last time to the curret time for the next iteration
+  triggerEventProcessing(digits, labels);
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   std::array<std::vector<HitType>, kNdet> hitsPerDetector;
