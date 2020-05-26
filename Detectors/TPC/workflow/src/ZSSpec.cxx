@@ -106,7 +106,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
           LOG(ERROR) << "sector header missing on header stack";
           return;
         }
-        const int& sector = sectorHeader->sector;
+        const int& sector = sectorHeader->sector();
         // check the current operation, this is used to either signal eod or noop
         // FIXME: the noop is not needed any more once the lane configuration with one
         // channel per sector is used
@@ -120,6 +120,12 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
             operation = sector;
           }
           continue;
+        }
+        // the TPCSectorHeader now allows to transport information for more than one sector,
+        // e.g. for transporting clusters in one single data block. Digits are however grouped
+        // on sector level
+        if (sectorHeader->sector() >= TPCSectorHeader::NSectors) {
+          throw std::runtime_error("Expecting data for single sectors");
         }
 
         inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
