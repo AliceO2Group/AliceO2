@@ -16,7 +16,6 @@
 #ifndef GPURECONSTRUCTIONCUDAINTERNALS_H
 #define GPURECONSTRUCTIONCUDAINTERNALS_H
 
-#include <cuda.h>
 #include "GPULogging.h"
 
 namespace GPUCA_NAMESPACE
@@ -49,6 +48,21 @@ static void GPUFailedMsgA(const long long int error, const char* file, int line)
 }
 
 static_assert(std::is_convertible<cudaEvent_t, void*>::value, "CUDA event type incompatible to deviceEvent");
+
+class ThrustVolatileAllocator
+{
+ public:
+  typedef char value_type;
+
+  ThrustVolatileAllocator(GPUReconstruction* r) : mRec(r) {}
+  char* allocate(std::ptrdiff_t n) { return (char*)mRec->AllocateVolatileDeviceMemory(n); }
+
+  void deallocate(char* ptr, size_t) {}
+
+ private:
+  GPUReconstruction* mRec;
+};
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

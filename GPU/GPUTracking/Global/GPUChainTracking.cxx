@@ -1634,6 +1634,7 @@ void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(char withinSlice, 
       runKernel<GPUTPCGMMergerMergeBorders, 2>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone, i, withinSlice, mergeMode);
     }
   }
+  mRec->ReturnVolatileDeviceMemory();
 }
 
 int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
@@ -1807,6 +1808,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   if (GetDeviceProcessingSettings().keepDisplayMemory && !GetDeviceProcessingSettings().keepAllMemory) {
     TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, -1, true);
   }
+  mRec->ReturnVolatileDeviceMemory();
 
   mIOPtrs.mergedTracks = Merger.OutputTracks();
   mIOPtrs.nMergedTracks = Merger.NOutputTracks();

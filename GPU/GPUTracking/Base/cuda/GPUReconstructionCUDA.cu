@@ -19,6 +19,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 #include <thrust/sort.h>
+#include <thrust/device_ptr.h>
 #pragma GCC diagnostic pop
 
 #ifdef __clang__
