@@ -14,7 +14,6 @@
 #include "Framework/ASoA.h"
 #include "Framework/Kernels.h"
 #include <arrow/table.h>
-#include "Framework/ArrowCompatibility.h"
 
 #include <arrow/compute/context.h>
 
@@ -68,7 +67,7 @@ template <typename T2, typename ARRAY>
 std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const std::shared_ptr<arrow::Table>& table, const std::string& categoryColumnName, int minCatSize, const T2& outsider)
 {
   auto columnIndex = table->schema()->GetFieldIndex(categoryColumnName);
-  auto chunkedArray = framework::getBackendColumnData(table->column(columnIndex));
+  auto chunkedArray = table->column(columnIndex);
 
   uint64_t ind = 0;
   std::vector<std::pair<uint64_t, uint64_t>> groupedIndices;

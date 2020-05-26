@@ -73,7 +73,7 @@ class branchIterator
   bool initDataBuffer(Int_t ib);
 
  public:
-  branchIterator(TTree* tree, std::shared_ptr<BackendColumnType> col, std::shared_ptr<arrow::Field> field);
+  branchIterator(TTree* tree, std::shared_ptr<arrow::ChunkedArray> col, std::shared_ptr<arrow::Field> field);
   ~branchIterator();
 
   // has the iterator been properly initialized
@@ -103,7 +103,7 @@ class TableToTree
   ~TableToTree();
 
   // add branches
-  bool addBranch(std::shared_ptr<BackendColumnType> col, std::shared_ptr<arrow::Field> field);
+  bool addBranch(std::shared_ptr<arrow::ChunkedArray> col, std::shared_ptr<arrow::Field> field);
   bool addAllBranches();
 
   // write table to tree
