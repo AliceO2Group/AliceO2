@@ -19,6 +19,7 @@
 #include "GPUDataTypes.h"
 #include <atomic>
 #include <array>
+#include <utility>
 
 namespace o2
 {
@@ -170,7 +171,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   struct eventStruct // Must consist only of void* ptr that will hold the GPU event ptrs!
   {
-    void* slice[NSLICES];
+    void* slice[NSLICES]; // TODO: Proper type for events
     void* stream[GPUCA_MAX_STREAMS];
     void* init;
     void* single;
@@ -232,6 +233,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   unsigned int mMaxTRDTracklets = 0;
 
   unsigned int mTPCMaxTimeBin = 0;
+  bool mTPSHasZSPages[NSLICES];
 
   // Debug
   std::ofstream mDebugFile;
@@ -245,8 +247,9 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
  private:
   int RunTPCTrackingSlices_internal();
+  std::pair<unsigned int, unsigned int> RunTPCClusterizer_transferZS(int iSlice, unsigned int start, unsigned int end, int lane);
   void RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int stage, bool doGPU, int lane);
-  unsigned int TPCClusterizerDecodeZSCount(unsigned int iSlice, unsigned int minTime, unsigned int maxTime);
+  std::pair<unsigned int, unsigned int> TPCClusterizerDecodeZSCount(unsigned int iSlice, unsigned int minTime, unsigned int maxTime);
   void RunTPCTrackingMerger_MergeBorderTracks(char withinSlice, char mergeMode, GPUReconstruction::krnlDeviceType deviceType);
 
   std::atomic_flag mLockAtomic = ATOMIC_FLAG_INIT;

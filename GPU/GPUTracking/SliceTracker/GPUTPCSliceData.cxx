@@ -318,7 +318,7 @@ GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int i
     }
     const unsigned int nn = numberOfBins + grid.Ny() + 3;
     if (nn >= GetGridSize(NumberOfClusters, 1)) {
-      GPUError("firstHitInBin overflow");
+      GPUError("firstHitInBin overflow"); // TODO: Proper overflow handling
       return 1;
     }
 
