@@ -494,6 +494,19 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
   }
 }
 
+void* GPUReconstruction::AllocateVolatileDeviceMemory(size_t size)
+{
+  if (mVolatileMemoryStart == nullptr) {
+    mVolatileMemoryStart = mDeviceMemoryPool;
+  }
+  void* retVal = GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(mDeviceMemoryPool);
+  mDeviceMemoryPool = (char*)retVal + size;
+  if ((size_t)((char*)mDeviceMemoryPool - (char*)mDeviceMemoryBase) > mDeviceMemorySize) {
+    throw std::bad_alloc();
+  }
+  return retVal;
+}
+
 void GPUReconstruction::ResetRegisteredMemoryPointers(GPUProcessor* proc)
 {
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
@@ -536,6 +549,14 @@ void GPUReconstruction::FreeRegisteredMemory(short ires)
   res->mPtrDevice = nullptr;
 }
 
+void GPUReconstruction::ReturnVolatileDeviceMemory()
+{
+  if (mVolatileMemoryStart) {
+    mDeviceMemoryPool = mVolatileMemoryStart;
+    mVolatileMemoryStart = nullptr;
+  }
+}
+
 void GPUReconstruction::SetMemoryExternalInput(short res, void* ptr)
 {
   mMemoryResources[res].mPtr = ptr;
@@ -551,6 +572,7 @@ void GPUReconstruction::ClearAllocatedMemory(bool clearOutputs)
   mHostMemoryPool = GPUProcessor::alignPointer<GPUCA_MEMALIGN>(mHostMemoryPermanent);
   mDeviceMemoryPool = GPUProcessor::alignPointer<GPUCA_MEMALIGN>(mDeviceMemoryPermanent);
   mUnmanagedChunks.clear();
+  mVolatileMemoryStart = nullptr;
 }
 
 static long long int ptrDiff(void* a, void* b) { return (long long int)((char*)a - (char*)b); }
