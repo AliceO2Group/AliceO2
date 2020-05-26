@@ -333,6 +333,7 @@ int SetupReconstruction()
   devProc.deviceTimers = configStandalone.DeviceTiming;
   devProc.runQA = configStandalone.qa;
   devProc.runMC = configStandalone.configProc.runMC;
+  devProc.ompKernels = configStandalone.configProc.ompKernels;
   devProc.runCompressionStatistics = configStandalone.compressionStat;
   devProc.memoryScalingFactor = configStandalone.memoryScalingFactor;
   devProc.alternateBorderSort = configStandalone.alternateBorderSort;
