@@ -118,7 +118,13 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
         if (!sectorHeader) {
           throw std::runtime_error("Missing sector header in TPC data");
         }
-        return sectorHeader->sector;
+        // the TPCSectorHeader now allows to transport information for more than one sector,
+        // e.g. for transporting clusters in one single data block. The digitization is however
+        // only on sector level
+        if (sectorHeader->sector() >= TPCSectorHeader::NSectors) {
+          throw std::runtime_error("Digitizer can only work on single sectors");
+        }
+        return sectorHeader->sector();
       };
 
       // read the trigger data first
