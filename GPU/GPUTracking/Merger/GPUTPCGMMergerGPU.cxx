@@ -23,9 +23,7 @@ GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int nBlocks, int nThreads, int i
 {
   const int iStart = mode <= 0 ? 0 : merger.NSlowTracks();
   const int iEnd = mode == -2 ? merger.Memory()->nRetryRefit : mode >= 0 ? merger.NOutputTracks() : merger.NSlowTracks();
-#if defined(WITH_OPENMP) && !defined(GPUCA_GPUCODE)
-#pragma omp parallel for num_threads(merger.GetRec().GetDeviceProcessingSettings().nThreads)
-#endif
+  GPUCA_OPENMP(parallel for num_threads(merger.GetRec().GetDeviceProcessingSettings().nThreads))
   for (int ii = iStart + get_global_id(0); ii < iEnd; ii += get_global_size(0)) {
     const int i = mode == -2 ? merger.RetryRefitIds()[ii] : mode ? merger.TrackOrderProcess()[ii] : ii;
     GPUTPCGMTrackParam::RefitTrack(merger.OutputTracks()[i], i, &merger, merger.Clusters(), mode == -2);
@@ -35,9 +33,7 @@ GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int nBlocks, int nThreads, int i
 template <>
 GPUdii() void GPUTPCGMMergerFollowLoopers::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
 {
-#if defined(WITH_OPENMP) && !defined(GPUCA_GPUCODE)
-#pragma omp parallel for num_threads(merger.GetRec().GetDeviceProcessingSettings().nThreads)
-#endif
+  GPUCA_OPENMP(parallel for num_threads(merger.GetRec().GetDeviceProcessingSettings().nThreads))
   for (unsigned int i = get_global_id(0); i < merger.Memory()->nLoopData; i += get_global_size(0)) {
     GPUTPCGMTrackParam::RefitLoop(&merger, i);
   }

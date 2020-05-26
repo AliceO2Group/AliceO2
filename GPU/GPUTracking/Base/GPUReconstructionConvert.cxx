@@ -232,7 +232,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
   int encodeBits = zs12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
   const float encodeBitsFactor = (1 << (encodeBits - 10));
   // clang-format off
-#pragma omp parallel for reduction(+ : totalPages) reduction(+ : nErrors)
+  GPUCA_OPENMP(parallel for reduction(+ : totalPages) reduction(+ : nErrors))
   // clang-format on
   for (unsigned int i = 0; i < NSLICES; i++) {
     std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)> singleBuffer;
