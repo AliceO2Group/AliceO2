@@ -19,7 +19,6 @@
 #include "Framework/DataAllocator.h"
 #include "Framework/OutputRoute.h"
 #include <arrow/table.h>
-#include "Framework/ArrowCompatibility.h"
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RArrowDS.hxx>
 #include "Framework/RCombinedDS.h"
@@ -88,7 +87,7 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderArray)
   BOOST_REQUIRE_EQUAL(table->num_rows(), 3);
   BOOST_REQUIRE_EQUAL(table->schema()->field(0)->name(), "pos");
   BOOST_REQUIRE_EQUAL(table->schema()->field(0)->type()->id(), arrow::fixed_size_binary(12)->id());
-  auto data = getBackendColumnData(table->column(0))->chunk(0)->data();
+  auto data = table->column(0)->chunk(0)->data();
   BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[0], 1);
   BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[1], 10);
   BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[2], 300);
@@ -168,7 +167,7 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderBulk)
   BOOST_REQUIRE_EQUAL(table->schema()->field(1)->type()->id(), arrow::int32()->id());
 
   for (size_t i = 0; i < 8; ++i) {
-    auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(getBackendColumnData(table->column(0))->chunk(0));
+    auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(table->column(0)->chunk(0));
     BOOST_CHECK_EQUAL(p->Value(i), i);
   }
 }
@@ -262,7 +261,7 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
   BOOST_REQUIRE_EQUAL(table2->num_columns(), 2);
   BOOST_REQUIRE_EQUAL(table2->num_rows(), 8);
   for (size_t i = 0; i < 8; ++i) {
-    auto p2 = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(getBackendColumnData(table2->column(0))->chunk(0));
+    auto p2 = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(table2->column(0)->chunk(0));
     BOOST_CHECK_EQUAL(p2->Value(i), i);
   }
 

@@ -37,7 +37,7 @@ Status HashByColumnKernel::Call(FunctionContext* ctx, Datum const& inputTable, D
   if (inputTable.kind() == Datum::TABLE) {
     auto table = arrow::util::get<std::shared_ptr<arrow::Table>>(inputTable.value);
     auto columnIndex = table->schema()->GetFieldIndex(mOptions.columnName);
-    auto chunkedArray = getBackendColumnData(table->column(columnIndex));
+    auto chunkedArray = table->column(columnIndex);
     *hashes = std::move(chunkedArray);
     return arrow::Status::OK();
   }
