@@ -603,7 +603,7 @@ class O2HitMerger : public FairMQDevice
       auto& det = mDetectorInstances[id];
       if (det) {
         auto hittree = mDetectorToTTreeMap[id];
-	det->mergeHitEntries(*tree, *hittree, trackoffsets, nprimaries, subevOrdered);
+        det->mergeHitEntries(*tree, *hittree, trackoffsets, nprimaries, subevOrdered);
         hittree->SetEntries(hittree->GetEntries() + 1);
         LOG(INFO) << "flushing tree to file " << hittree->GetDirectory()->GetFile()->GetName();
         mDetectorOutFiles[id]->Write("", TObject::kOverwrite);
