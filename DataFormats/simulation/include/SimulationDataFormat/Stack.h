@@ -289,6 +289,10 @@ class Stack : public FairGenericStack
   /// returns false if some tracks are discarded
   bool selectTracks();
 
+  bool isPrimary(const MCTrack& part);
+  bool isFromPrimaryDecayChain(const MCTrack& part);
+  bool isFromPrimaryPairProduction(const MCTrack& part);
+
   bool keepPhysics(const MCTrack& part);
 
   Stack(const Stack&);
