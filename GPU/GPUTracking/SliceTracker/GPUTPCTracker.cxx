@@ -105,6 +105,7 @@ void* GPUTPCTracker::SetPointersCommon(void* mem)
 
 void GPUTPCTracker::RegisterMemoryAllocation()
 {
+  AllocateAndInitializeLate();
   bool reuseCondition = !mRec->GetDeviceProcessingSettings().keepDisplayMemory && mRec->GetDeviceProcessingSettings().trackletSelectorInPipeline && ((mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) || mRec->GetDeviceProcessingSettings().nThreads == 1);
   GPUMemoryReuse reLinks{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerDataLinks, (unsigned short)(mISlice % mRec->GetDeviceProcessingSettings().nStreams)};
   mMemoryResLinks = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataLinks, GPUMemoryResource::MEMORY_SCRATCH, "TPCSliceLinks", reLinks);

@@ -332,7 +332,7 @@ void GPUReconstruction::ComputeReuseMax(GPUProcessor* proc)
 {
   for (auto it = mMemoryReuse1to1.begin(); it != mMemoryReuse1to1.end(); it++) {
     auto& re = it->second;
-    if (proc == nullptr ? !re.proc->mAllocateAndInitializeLate : re.proc == proc) {
+    if (proc == nullptr || re.proc == proc) {
       GPUMemoryResource& resMain = mMemoryResources[re.res[0]];
       resMain.mOverrideSize = 0;
       for (unsigned int i = 0; i < re.res.size(); i++) {
