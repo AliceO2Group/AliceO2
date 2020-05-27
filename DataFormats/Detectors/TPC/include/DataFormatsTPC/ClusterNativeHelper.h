@@ -180,6 +180,20 @@ class ClusterNativeHelper
       MCLabelContainer& mcBuffer, DataArrayType& inputs, MCArrayType const& mcinputs,
       CheckFct checkFct = [](auto&) { return true; });
 
+    template <typename DataArrayType, typename CheckFct>
+    static int fillIndex(
+      ClusterNativeAccess& clusterIndex, std::unique_ptr<ClusterNative[]>& clusterBuffer,
+      DataArrayType& inputs, CheckFct checkFct = [](auto&) { return true; })
+    {
+      // just use a dummy array of zero-size containers as default with the same extent
+      // as the data container collection
+      // TODO: maybe do in one function with conditional template parameter
+      std::array<std::vector<MCLabelContainer>, std::tuple_size<DataArrayType>::value> dummy;
+      // another default, nothing will be added to the container
+      MCLabelContainer mcBuffer;
+      return fillIndex(clusterIndex, clusterBuffer, mcBuffer, inputs, dummy, checkFct);
+    }
+
     // Process data for one sector.
     // This function does not copy any data but sets the corresponding poiters in the index.
     // Cluster data are provided as a raw buffer of consecutive ClusterNative arrays preceded by ClusterGroupHeader
