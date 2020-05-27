@@ -41,7 +41,6 @@ class Digit
     };
     uint64_t getBXTime()
     {
-      uint64_t result = bunchCrossing;
       return (bunchCrossing + (sampaTime * 4));
     }
   };
