@@ -99,8 +99,6 @@ Bool_t
 
   /** loop over particles **/
   for (const auto& particle : mParticles) {
-    if (particle.GetStatusCode() != 1)
-      continue;
     primGen->AddTrack(particle.GetPdgCode(),
                       particle.Px() * mMomentumUnit,
                       particle.Py() * mMomentumUnit,
