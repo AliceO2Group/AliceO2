@@ -37,15 +37,14 @@ void* GPUTPCConvert::SetPointersMemory(void* mem)
 
 void GPUTPCConvert::RegisterMemoryAllocation()
 {
+  AllocateAndInitializeLate();
   mMemoryResMemory = mRec->RegisterMemoryAllocation(this, &GPUTPCConvert::SetPointersMemory, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_PERMANENT, "TPCConvertMemory");
   mMemoryResOutput = mRec->RegisterMemoryAllocation(this, &GPUTPCConvert::SetPointersOutput, GPUMemoryResource::MEMORY_OUTPUT, "TPCConvertOutput");
 }
 
 void GPUTPCConvert::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  if (io.tpcPackedDigits || io.tpcZS) {
-    // TODO: Don't do anything for now, set from the outside, should be fixed
-  } else if (io.clustersNative) {
+  if (io.clustersNative) {
     mNClustersTotal = io.clustersNative->nClustersTotal;
   } else {
     mNClustersTotal = 0;
