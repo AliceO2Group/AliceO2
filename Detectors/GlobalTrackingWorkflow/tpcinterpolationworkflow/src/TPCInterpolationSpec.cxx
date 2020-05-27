@@ -12,7 +12,7 @@
 
 #include <vector>
 
-#include "Framework/ControlService.h"
+#include "Framework/InputRecordWalker.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
@@ -56,10 +56,10 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
   uint64_t activeSectors = 0;
   std::bitset<o2::tpc::Constants::MAXSECTOR> validSectors = 0;
   std::map<int, DataRef> datarefs;
-  for (auto const& lane : mTPCClusLanes) {
-    std::string inputLabel = "clusTPC" + std::to_string(lane);
-    LOG(INFO) << "Reading lane " << lane << " " << inputLabel;
-    auto ref = pc.inputs().get(inputLabel);
+  std::vector<InputSpec> filter = {
+    {"check", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe},
+  };
+  for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
     auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
     if (sectorHeader == nullptr) {
       // FIXME: think about error policy
@@ -73,6 +73,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
     if (sector >= o2::tpc::TPCSectorHeader::NSectors) {
       throw std::runtime_error("Expecting data for single sectors");
     }
+    LOG(INFO) << "Reading cluster data for sector " << sector;
     if (validSectors.test(sector)) {
       // have already data for this sector, this should not happen in the current
       // sequential implementation, for parallel path merged at the tracker stage
@@ -113,7 +114,6 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
     */
   }
   //------------------------------------------------------------------------------
-  std::array<std::vector<MCLabelContainer>, o2::tpc::Constants::MAXSECTOR> mcInputs; // DUMMY
   std::array<gsl::span<const char>, o2::tpc::Constants::MAXSECTOR> clustersTPC;
   auto sectorStatus = validSectors;
 
@@ -174,9 +174,8 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
 
   o2::tpc::ClusterNativeAccess clusterIndex;
   std::unique_ptr<o2::tpc::ClusterNative[]> clusterBuffer;
-  o2::tpc::MCLabelContainer clusterMCBuffer;
   memset(&clusterIndex, 0, sizeof(clusterIndex));
-  o2::tpc::ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clusterMCBuffer, clustersTPC, mcInputs, [&validSectors](auto& index) { return validSectors.test(index); });
+  o2::tpc::ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clustersTPC, [&validSectors](auto& index) { return validSectors.test(index); });
   //----------------------------<< TPC Clusters loading <<------------------------------------------
 
   // pass input data to TrackInterpolation object
@@ -217,10 +216,7 @@ DataProcessorSpec getTPCInterpolationSpec(bool useMC, const std::vector<int>& tp
   inputs.emplace_back("trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackTPCClRefs", "TPC", "CLUSREFS", 0, Lifetime::Timeframe);
 
-  for (auto lane : tpcClusLanes) {
-    std::string clusBind = "clusTPC" + std::to_string(lane);
-    inputs.emplace_back(clusBind.c_str(), "TPC", "CLUSTERNATIVE", lane, Lifetime::Timeframe);
-  }
+  inputs.emplace_back("clusTPC", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe);
 
   inputs.emplace_back("match", "GLO", "TPCITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("matchTOF", "TOF", "MATCHINFOS", 0, Lifetime::Timeframe);
@@ -243,7 +239,7 @@ DataProcessorSpec getTPCInterpolationSpec(bool useMC, const std::vector<int>& tp
     "tpc-track-interpolation",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(useMC, tpcClusLanes)},
+    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(useMC)},
     Options{}};
 }
 

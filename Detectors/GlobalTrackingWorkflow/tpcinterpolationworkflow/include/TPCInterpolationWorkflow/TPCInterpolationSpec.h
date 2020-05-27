@@ -28,7 +28,7 @@ namespace tpc
 class TPCInterpolationDPL : public Task
 {
  public:
-  TPCInterpolationDPL(bool useMC, const std::vector<int>& tpcClusLanes) : mUseMC(useMC), mTPCClusLanes(tpcClusLanes) {}
+  TPCInterpolationDPL(bool useMC) : mUseMC(useMC) {}
   ~TPCInterpolationDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -36,7 +36,6 @@ class TPCInterpolationDPL : public Task
 
  private:
   o2::tpc::TrackInterpolation mInterpolation; // track interpolation engine
-  std::vector<int> mTPCClusLanes;
   std::array<std::vector<char>, o2::tpc::Constants::MAXSECTOR> mBufferedTPCClusters;
   bool mUseMC{false}; ///< MC flag
   TStopwatch mTimer;
