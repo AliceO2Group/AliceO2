@@ -122,14 +122,52 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
 {
   /** add track **/
 
-  /** check if particle exists in PDG database **/
-  if (!TDatabasePDG::Instance()->GetParticle(pdgid)) {
-    LOG(WARN) << "Skipping particle undefined in PDG: pdg = " << pdgid;
-    return;
+  /** add event vertex to track vertex **/
+  vx += fVertex.X();
+  vy += fVertex.Y();
+  vz += fVertex.Z();
+
+  /** check if particle to be tracked exists in PDG database **/
+  if (wanttracking && !TDatabasePDG::Instance()->GetParticle(pdgid)) {
+    LOG(WARN) << "Particle to be tracked is not defined in PDG: pdg = " << pdgid;
+    wanttracking = false;
   }
 
-  /** success **/
-  FairPrimaryGenerator::AddTrack(pdgid, px, py, pz, vx, vy, vz, parent, wanttracking, e, tof, weight, proc);
+  /** set all other parameters required by PushTrack **/
+  Int_t doTracking = 0; // Go to tracking
+  if (fdoTracking && wanttracking) {
+    doTracking = 1;
+  }
+  Int_t dummyparent = -1; // Primary particle (now the value is -1 by default)
+  Double_t polx = 0.;     // Polarisation
+  Double_t poly = 0.;
+  Double_t polz = 0.;
+  Int_t ntr = 0;    // Track number; to be filled by the stack
+  Int_t status = 0; // Generation status
+
+  if (parent != -1) {
+    parent += fMCIndexOffset;
+  } // correct for tracks which are in list before generator is called
+
+  /** if it is a K0/antiK0 to be tracked, convert it into K0s/K0L.
+      
+      NOTE: we could think of pushing the K0/antiK0 without tracking first
+      and then push she K0s/K0L for tracking.
+      In this way we would properly keep track of this conversion,
+      but there is the risk of messing up with the indices, so this
+      is not done for the time being.
+  **/
+  if (abs(pdgid) == 311 && doTracking) {
+    LOG(WARN) << "K0/antiK0 requested for tracking: converting into K0s/K0L";
+    pdgid = gRandom->Uniform() < 0.5 ? 310 : 130;
+  }
+
+  /** add track to stack **/
+  fStack->PushTrack(doTracking, dummyparent, pdgid, px, py, pz,
+                    e, vx, vy, vz, tof, polx, poly, polz, proc, ntr,
+                    weight, status, parent);
+
+  fNTracks++;
 }
 
 /*****************************************************************/
