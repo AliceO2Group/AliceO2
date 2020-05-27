@@ -163,7 +163,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   }
 
   /** add track to stack **/
-  fStack->PushTrack(doTracking, dummyparent, pdgid, px, py, pz,
+  fStack->PushTrack(doTracking, parent, pdgid, px, py, pz,
                     e, vx, vy, vz, tof, polx, poly, polz, proc, ntr,
                     weight, status, parent);
 
