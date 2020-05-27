@@ -45,17 +45,29 @@ namespace tpc
 /// stack describing the current sector and defining the active sectors in the setup. The completion
 /// policy callback will wait until there is data for all active sectors.
 ///
+/// If config flag ConFig::RequireAll is specified in the constructor parameters, data from all inputs
+/// will be required in addition to the matching TPC sector policy. With this flag, the policy can be
+/// used for processors with TPC input and other inputs, without checking for complex multimessages on
+/// the other inputs.
+///
 /// Parameters:
 ///   processor name   rexexp to match a name of the processor for which the policy should be applied
 ///   input matchers   provided as an argument pack
 ///                    Note: it is important to use ConcreteDataTypeMatcher to define input spec with
 ///                          wildcard on subSpecification
+///   config param     Parameters like Config::RequireAll
 /// Usage:
-///   TPCSectorCompletionPolicy("processor-name-regexp", InputSpec{"", ConcreteDataTypeMatcher{"DET", "RAWDATA"}}, ...)();
+///   TPCSectorCompletionPolicy("processor-name-regexp",
+///                             TPCSectorCompletionPolicy::Config::RequireAll,
+///                             InputSpec{"", ConcreteDataTypeMatcher{"DET", "RAWDATA"}}, ...)();
 ///
 class TPCSectorCompletionPolicy
 {
  public:
+  enum struct Config {
+    // require data on all other inputs in addition to the ones checked for the sector completion
+    RequireAll,
+  };
   TPCSectorCompletionPolicy() = delete;
   template <typename... Args>
   TPCSectorCompletionPolicy(const char* processorName, Args&&... args)
@@ -72,7 +84,7 @@ class TPCSectorCompletionPolicy
       return std::regex_match(device.name.begin(), device.name.end(), std::regex(expression.c_str()));
     };
 
-    auto callback = [inputMatchers = mInputMatchers](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
+    auto callback = [inputMatchers = mInputMatchers, bRequireAll = this->mRequireAll](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
       auto op = CompletionPolicy::CompletionOp::Wait;
       std::bitset<NSectors> validSectors = 0;
       bool haveMatchedInput = false;
@@ -123,10 +135,17 @@ class TPCSectorCompletionPolicy
         }
       }
 
-      if (haveMatchedInput && activeSectors == validSectors.to_ulong()) {
+      // If the flag Config::RequireAll is set in the constructor arguments we require
+      // data from all inputs in addition to the sector matching condition
+      // To be fully correct we would need to require data from all inputs not going
+      // into the TPC policy, but that is not possible for the moment. That's why there is a possibly
+      // unhandled case if multiple TPC input routes are defined but a complete data set is coming over
+      // one of them. Not likely to be a use case, though.
+      if (haveMatchedInput && activeSectors == validSectors.to_ulong() &&
+          (!bRequireAll || nActiveInputRoutes == inputs.size())) {
         // we can process if there is input for all sectors, the required sectors are
         // transported as part of the sector header
-        op = CompletionPolicy::CompletionOp::Process;
+        op = CompletionPolicy::CompletionOp::Consume;
       } else if (activeSectors == 0 && nActiveInputRoutes == inputs.size()) {
         // no sector header is transmitted, this is the case for e.g. the ZS raw data
         // we simply require input on all routes, this is also the default of DPL DataRelayer
@@ -138,7 +157,7 @@ class TPCSectorCompletionPolicy
         //if (nMaxPartsPerRoute > 1) {
         //  LOG(WARNING) << "No sector information is provided with the data, data set is complete with data on all input routes. But there are multiple parts on at least one route and this policy might not be complete, no check possible if other parts on some routes are still missing. It is adviced to add a custom policy.";
         //}
-        op = CompletionPolicy::CompletionOp::Process;
+        op = CompletionPolicy::CompletionOp::Consume;
       }
 
       return op;
@@ -148,10 +167,21 @@ class TPCSectorCompletionPolicy
 
  private:
   /// recursively init list of input routes from parameter pack
-  template <typename... Args>
-  void init(InputSpec&& spec, Args&&... args)
+  template <typename Arg, typename... Args>
+  void init(Arg&& arg, Args&&... args)
   {
-    mInputMatchers.emplace_back(std::move(spec));
+    using Type = std::decay_t<Arg>;
+    if constexpr (std::is_same<Type, InputSpec>::value) {
+      mInputMatchers.emplace_back(std::move(arg));
+    } else if constexpr (std::is_same<Type, TPCSectorCompletionPolicy::Config>::value) {
+      switch (arg) {
+        case Config::RequireAll:
+          mRequireAll = true;
+          break;
+      }
+    } else {
+      static_assert(always_static_assert_v<Type>);
+    }
     if constexpr (sizeof...(args) > 0) {
       init(std::forward<Args>(args)...);
     }
@@ -159,6 +189,7 @@ class TPCSectorCompletionPolicy
 
   std::string mProcessorName;
   std::vector<InputSpec> mInputMatchers;
+  bool mRequireAll = false;
 };
 } // namespace tpc
 } // namespace o2
