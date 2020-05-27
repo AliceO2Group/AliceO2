@@ -587,7 +587,7 @@ class O2HitMerger : public FairMQDevice
     std::vector<int> subevOrdered((int)(nsubevents.size()));
     for (auto entry = entries-1; entry >= 0; --entry) {
       subevOrdered[nsubevents[entry]-1] = entry;
-      printf("HitMerger %lld %5d %5d \n", entry, nprimaries[entry], trackoffsets[entry]);
+      printf("HitMerger entry: %lld nprimry: %5d trackoffset: %5d \n", entry, nprimaries[entry], trackoffsets[entry]);
     }
 
     reorderAndMergeMCTRacks(*tree, *mOutTree, nprimaries, subevOrdered);
@@ -603,7 +603,7 @@ class O2HitMerger : public FairMQDevice
       auto& det = mDetectorInstances[id];
       if (det) {
         auto hittree = mDetectorToTTreeMap[id];
-	det->mergeHitEntries(*tree, *mOutTree, trackoffsets, nprimaries, subevOrdered);
+	det->mergeHitEntries(*tree, *hittree, trackoffsets, nprimaries, subevOrdered);
         hittree->SetEntries(hittree->GetEntries() + 1);
         LOG(INFO) << "flushing tree to file " << hittree->GetDirectory()->GetFile()->GetName();
         mDetectorOutFiles[id]->Write("", TObject::kOverwrite);
