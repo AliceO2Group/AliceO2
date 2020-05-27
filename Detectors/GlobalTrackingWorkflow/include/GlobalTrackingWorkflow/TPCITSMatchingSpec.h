@@ -13,8 +13,6 @@
 #ifndef O2_MATCHING_TPCITS_SPEC
 #define O2_MATCHING_TPCITS_SPEC
 
-#include "TFile.h"
-
 #include "GlobalTracking/MatchTPCITS.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsTPC/Constants.h"
@@ -34,8 +32,8 @@ namespace globaltracking
 class TPCITSMatchingDPL : public Task
 {
  public:
-  TPCITSMatchingDPL(bool useMC, const std::vector<int>& tpcClusLanes)
-    : mUseMC(useMC), mTPCClusLanes(tpcClusLanes) {}
+  TPCITSMatchingDPL(bool useMC)
+    : mUseMC(useMC) {}
   ~TPCITSMatchingDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -44,7 +42,6 @@ class TPCITSMatchingDPL : public Task
  private:
   o2::globaltracking::MatchTPCITS mMatching; // matching engine
   o2::itsmft::TopologyDictionary mITSDict;   // cluster patterns dictionary
-  std::vector<int> mTPCClusLanes;
   std::array<std::vector<char>, o2::tpc::Constants::MAXSECTOR> mBufferedTPCClusters; // at the moment not used
   bool mUseMC = true;
   TStopwatch mTimer;
