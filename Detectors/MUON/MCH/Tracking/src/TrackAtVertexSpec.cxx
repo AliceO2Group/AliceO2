@@ -35,7 +35,7 @@
 #include "Field/MagneticField.h"
 #include "MCHBase/ClusterBlock.h"
 #include "MCHBase/TrackBlock.h"
-#include "TrackParam.h"
+#include "MCHTracking/TrackParam.h"
 #include "TrackExtrap.h"
 
 namespace o2
