@@ -977,6 +977,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         controls.resize(deviceSpecs.size());
         deviceExecutions.resize(deviceSpecs.size());
 
+        DeviceSpecHelpers::reworkShmSegmentSize(dataProcessorInfos);
         DeviceSpecHelpers::prepareArguments(driverControl.defaultQuiet,
                                             driverControl.defaultStopped,
                                             dataProcessorInfos,
