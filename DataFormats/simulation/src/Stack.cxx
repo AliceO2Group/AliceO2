@@ -150,11 +150,9 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
                       Double_t vx, Double_t vy, Double_t vz, Double_t time, Double_t polx, Double_t poly, Double_t polz,
                       TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondparentID)
 {
-  //  if (proc == kPPrimary) {
-  //    printf("Push from Generator Device:  toBeDone %5d parentId %5d pdgCode %5d is %5d entries %5d \n", toBeDone, parentId, pdgCode, is, mNumberOfEntriesInParticles);
-  //  } else {
-  //    printf("Pushing Secondary: toBeDone %5d parentId %5d pdgCode %5d is %5d entries %5d \n", toBeDone, parentId, pdgCode, is, mNumberOfEntriesInParticles);
-  //  }
+  //  printf("Pushing %s toBeDone %5d parentId %5d pdgCode %5d is %5d entries %5d \n",
+  //	 proc == kPPrimary ? "Primary:   " : "Secondary: ",
+  //	 toBeDone, parentId, pdgCode, is, mNumberOfEntriesInParticles);
 
   //
   // This method is called
@@ -698,38 +696,65 @@ bool Stack::selectTracks()
   return !tracksdiscarded;
 }
 
+bool Stack::isPrimary(const MCTrack& part)
+{
+  /** check if primary **/
+  if (part.getProcess() == kPPrimary || part.getMotherTrackId() < 0)
+    return true;
+  /** not primary **/
+  return false;
+}
+
+bool Stack::isFromPrimaryDecayChain(const MCTrack& part)
+{
+  /** check if the particle is from the 
+      decay chain of a primary particle **/
+
+  /** check if from decay **/
+  if (part.getProcess() != kPDecay)
+    return false;
+  /** check if mother is primary **/
+  auto imother = part.getMotherTrackId();
+  auto mother = mParticles[imother];
+  if (isPrimary(mother))
+    return true;
+  /** else check if mother is from primary decay **/
+  return isFromPrimaryDecayChain(mother);
+}
+
+bool Stack::isFromPrimaryPairProduction(const MCTrack& part)
+{
+  /** check if the particle is from 
+      pair production from a particle
+      belonging to the primary decay chain **/
+
+  /** check if from pair production **/
+  if (part.getProcess() != kPPair)
+    return false;
+  /** check if mother is primary **/
+  auto imother = part.getMotherTrackId();
+  auto mother = mParticles[imother];
+  if (isPrimary(mother))
+    return true;
+  /** else check if mother is from primary decay **/
+  return isFromPrimaryDecayChain(mother);
+}
+
 bool Stack::keepPhysics(const MCTrack& part)
 {
   //
   // Some particles have to kept on the stack for reasons motivated
   // by physics analysis. Decision is put here.
   //
-  Bool_t keep = false;
-  auto parent = part.getMotherTrackId();
-  //
-  // e+e- from pair production of primary gammas
-  //
-  if ((parent < 0) && (part.getProcess() == kPPair))  keep = true;
-  //
-  // Decay(cascade) from primaries
-  // 
-  if ((part.getProcess() == kPDecay)) {
-    // Particles from decay
-    if (parent < 0) {
-      // direct decendant of primary particle
-      keep = true;
-    } else {
-      // check if it is decay chain starting at a primary
-      auto father = mParticles[parent];
-      Int_t imo = parent;
-      while((imo > 0) && (father.getProcess() == kPDecay)) {
-	imo =  father.getMotherTrackId();
-	father = mParticles[imo];
-      }
-      if (imo < 0) keep = true;
-    }
-  }
-  return keep;
+
+  if (isPrimary(part))
+    return true;
+  if (isFromPrimaryDecayChain(part))
+    return true;
+  if (isFromPrimaryPairProduction(part))
+    return true;
+
+  return false;
 }
 
 TClonesArray* Stack::GetListOfParticles()
