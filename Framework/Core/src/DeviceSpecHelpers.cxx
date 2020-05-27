@@ -744,6 +744,34 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
   }
 }
 
+void DeviceSpecHelpers::reworkShmSegmentSize(std::vector<DataProcessorInfo>& infos)
+{
+  int64_t segmentSize = 0;
+  for (auto& info : infos) {
+    auto it = std::find(info.cmdLineArgs.begin(), info.cmdLineArgs.end(), "--shm-segment-size");
+    if (it == info.cmdLineArgs.end()) {
+      continue;
+    }
+    auto value = it + 1;
+    if (value == info.cmdLineArgs.end()) {
+      throw std::runtime_error("--shm-segment-size requires an argument");
+    }
+    char* err = nullptr;
+    int64_t size = strtoll(value->c_str(), &err, 10);
+    if (size > segmentSize) {
+      segmentSize = size;
+    }
+    info.cmdLineArgs.erase(it, it + 2);
+  }
+  if (segmentSize == 0) {
+    segmentSize = 2000000000LL;
+  }
+  for (auto& info : infos) {
+    info.cmdLineArgs.push_back("--shm-segment-size");
+    info.cmdLineArgs.push_back(std::to_string(segmentSize));
+  }
+}
+
 void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
                                          std::vector<DataProcessorInfo> const& processorInfos,
                                          std::vector<DeviceSpec> const& deviceSpecs,
