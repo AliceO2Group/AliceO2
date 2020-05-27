@@ -68,6 +68,9 @@ struct DeviceSpecHelpers {
   /// Helper to provide the channel configuration string for an output channel
   static std::string outputChannel2String(const OutputChannelSpec& channel);
 
+  /// Rework the infos so that they have a consisten --shm-section-size
+  /// which is the maximum of the specified value.
+  static void reworkShmSegmentSize(std::vector<DataProcessorInfo>& infos);
   /// Helper to prepare the arguments which will be used to
   /// start the various devices.
   static void prepareArguments(
