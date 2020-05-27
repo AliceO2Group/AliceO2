@@ -190,8 +190,6 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int ReadEvent(unsigned int iSlice, int threadId);
   void WriteOutput(int iSlice, int threadId);
   int GlobalTracking(unsigned int iSlice, int threadId, bool synchronizeOutput = true);
-  void PrepareEventFromNative();
-  void UpdateShadowProcessors();
 
   int PrepareProfile();
   int DoProfile();
@@ -210,8 +208,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<GPUTrackingInputProvider> mInputsShadow;
 
   // Display / QA
-  std::unique_ptr<GPUDisplay> mEventDisplay;
   bool mDisplayRunning = false;
+  std::unique_ptr<GPUDisplay> mEventDisplay;
   std::unique_ptr<GPUQA> mQA;
   std::unique_ptr<GPUTPCClusterStatistics> mCompressionStatistics;
 
@@ -235,7 +233,6 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   unsigned int mMaxTRDTracklets = 0;
 
   unsigned int mTPCMaxTimeBin = 0;
-  bool mTPSHasZSPages[NSLICES];
 
   // Debug
   std::ofstream mDebugFile;
