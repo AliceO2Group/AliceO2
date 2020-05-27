@@ -129,7 +129,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   }
 
   /** success **/
-  FairPrimaryGenerator::AddTrack(pdgid, px, py, pz, vx, vy, vz, parent, wanttracking + 10, e, tof, weight, proc);
+  FairPrimaryGenerator::AddTrack(pdgid, px, py, pz, vx, vy, vz, parent, wanttracking, e, tof, weight, proc);
 }
 
 /*****************************************************************/

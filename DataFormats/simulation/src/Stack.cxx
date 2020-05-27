@@ -150,12 +150,11 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
                       Double_t vx, Double_t vy, Double_t vz, Double_t time, Double_t polx, Double_t poly, Double_t polz,
                       TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondparentID)
 {
-  if (toBeDone < 10) {
-    //    printf("Pushing Secondary: toBeDone %5d parentId %5d pdgCode %5d is %5d entries %5d \n", toBeDone, parentId, pdgCode, is, mNumberOfEntriesInParticles);
-  } else {
-    // printf("Push from Generator Device:  toBeDone %5d parentId %5d pdgCode %5d is %5d entries %5d \n", toBeDone, parentId, pdgCode, is, mNumberOfEntriesInParticles);
-  }
-
+  //  if (proc == kPPrimary) {
+  //    printf("Push from Generator Device:  toBeDone %5d parentId %5d pdgCode %5d is %5d entries %5d \n", toBeDone, parentId, pdgCode, is, mNumberOfEntriesInParticles);
+  //  } else {
+  //    printf("Pushing Secondary: toBeDone %5d parentId %5d pdgCode %5d is %5d entries %5d \n", toBeDone, parentId, pdgCode, is, mNumberOfEntriesInParticles);
+  //  }
 
   //
   // This method is called
@@ -184,7 +183,7 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
 
       
   // Push particle on the stack if toBeDone is set
-  if (toBeDone >= 10) {
+  if (proc == kPPrimary) {
     // This is a particle from the primary particle generator
     //
     // SetBit is used to pass information about the primary particle to the stack during transport.
@@ -194,7 +193,6 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
     mIndexMap[trackId] = trackId;
     p.SetBit(ParticleStatus::kKeep);
     p.SetBit(ParticleStatus::kPrimary);
-    toBeDone-=10;
     if (toBeDone == 1)  {
       p.SetBit(ParticleStatus::kToBeDone, 1); 
       mNumberOfPrimariesforTracking++; 
