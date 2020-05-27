@@ -13,7 +13,7 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "TrackParam.h"
+#include "MCHTracking/TrackParam.h"
 
 #include <iomanip>
 #include <iostream>
@@ -22,7 +22,7 @@
 
 #include <FairMQLogger.h>
 
-#include "Cluster.h"
+#include "MCHTracking/Cluster.h"
 
 namespace o2
 {

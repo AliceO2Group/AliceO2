@@ -13,7 +13,7 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "Cluster.h"
+#include "MCHTracking/Cluster.h"
 
 namespace o2
 {

@@ -24,7 +24,7 @@
 
 #include <FairMQLogger.h>
 
-#include "TrackParam.h"
+#include "MCHTracking/TrackParam.h"
 
 namespace o2
 {

@@ -16,9 +16,9 @@
 #ifndef ALICEO2_MCH_TRACKFITTER_H_
 #define ALICEO2_MCH_TRACKFITTER_H_
 
-#include "Cluster.h"
-#include "Track.h"
-#include "TrackParam.h"
+#include "MCHTracking/Cluster.h"
+#include "MCHTracking/Track.h"
+#include "MCHTracking/TrackParam.h"
 
 namespace o2
 {
