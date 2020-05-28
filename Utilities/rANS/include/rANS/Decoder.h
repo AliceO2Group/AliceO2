@@ -80,8 +80,15 @@ Decoder<coder_T, stream_T, source_T>& Decoder<coder_T, stream_T, source_T>::oper
 template <typename coder_T, typename stream_T, typename source_T>
 Decoder<coder_T, stream_T, source_T>::Decoder(const SymbolStatistics& stats, size_t probabilityBits) : mSymbolTable(nullptr), mReverseLUT(nullptr), mProbabilityBits(probabilityBits)
 {
+  RANSTimer t;
+  t.start();
   mSymbolTable = std::make_unique<decoderSymbol_t>(stats, probabilityBits);
+  t.stop();
+  LOG(debug1) << "Decoder SymbolTable inclusive time (ms): " << t.getDurationMS();
+  t.start();
   mReverseLUT = std::make_unique<reverseSymbolLookupTable_t>(probabilityBits, stats);
+  t.stop();
+  LOG(debug1) << "ReverseSymbolLookupTable inclusive time (ms): " << t.getDurationMS();
 };
 
 template <typename coder_T, typename stream_T, typename source_T>
@@ -89,7 +96,8 @@ template <typename stream_IT, typename source_IT>
 void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, const stream_IT inputBegin, size_t numSymbols) const
 {
   LOG(trace) << "start decoding";
-
+  RANSTimer t;
+  t.start();
   static_assert(std::is_same<typename std::iterator_traits<source_IT>::value_type, source_T>::value);
   static_assert(std::is_same<typename std::iterator_traits<stream_IT>::value_type, stream_T>::value);
 
@@ -122,6 +130,8 @@ void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, 
     ransDecoder::decAdvanceSymbol(&rans0, &ptr, &(*mSymbolTable)[s0],
                                   mProbabilityBits);
   }
+  t.stop();
+  LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();
 
   LOG(trace) << "done decoding";
 }
