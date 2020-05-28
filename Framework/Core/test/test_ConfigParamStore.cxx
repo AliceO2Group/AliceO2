@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(TestConfigParamStore)
                      "-s", "somethingelse",
                      "--aNested.x", "1",
                      "--aNested.y", "2"},
-                    false);
+                    true);
   std::vector<ConfigParamSpec> specs{
     ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}},
     ConfigParamSpec{"anInt64", VariantType::Int64, 1ll, {"an int64_t option"}},

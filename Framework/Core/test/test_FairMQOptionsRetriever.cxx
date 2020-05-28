@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(TestOptionsRetriever)
                      "--aString", "somethingelse",
                      "--aNested.int", "1",
                      "--aNested.float", "2"},
-                    false);
+                    true);
   std::vector<ConfigParamSpec> specs{
     ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}},
     ConfigParamSpec{"anInt64", VariantType::Int64, 1ll, {"an int64_t option"}},
@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(TestOptionsDefaults)
 
   FairMQProgOptions* options = new FairMQProgOptions();
   options->AddToCmdLineOptions(testOptions);
-  options->ParseAll({"cmd"}, false);
+  options->ParseAll({"cmd"}, true);
   std::vector<ConfigParamSpec> specs{
     ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}},
     ConfigParamSpec{"anInt64", VariantType::Int64, -50000000000000ll, {"an int64_t option"}},
