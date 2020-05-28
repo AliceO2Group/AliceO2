@@ -126,12 +126,12 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     throw std::runtime_error("Did not receive TPC clusters data for all sectors");
   }
   //------------------------------------------------------------------------------
-  std::array<gsl::span<const char>, o2::tpc::Constants::MAXSECTOR> clustersTPC;
+  std::vector<gsl::span<const char>> clustersTPC;
 
   for (auto const& refentry : datarefs) {
     auto& sector = refentry.first;
     auto& ref = refentry.second;
-    clustersTPC[sector] = gsl::span(ref.payload, DataRefUtils::getPayloadSize(ref));
+    clustersTPC.emplace_back(ref.payload, DataRefUtils::getPayloadSize(ref));
     printInputLog(ref, "received", sector);
   }
 
@@ -176,7 +176,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   o2::tpc::ClusterNativeAccess clusterIndex;
   std::unique_ptr<o2::tpc::ClusterNative[]> clusterBuffer;
   memset(&clusterIndex, 0, sizeof(clusterIndex));
-  o2::tpc::ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clustersTPC, [&validSectors](auto& index) { return validSectors.test(index); });
+  o2::tpc::ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clustersTPC);
   //----------------------------<< TPC Clusters loading <<------------------------------------------
 
   //
