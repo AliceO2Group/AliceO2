@@ -25,7 +25,9 @@ namespace rans
 
 void SymbolStatistics::rescaleToNBits(size_t bits)
 {
-  LOG(trace) << "rescaling frequency table";
+  LOG(trace) << "start rescaling frequency table";
+  RANSTimer t;
+  t.start();
 
   const size_t newCumulatedFrequency = bitsToRange(bits);
   assert(newCumulatedFrequency >= mFrequencyTable.size());
@@ -93,7 +95,10 @@ void SymbolStatistics::rescaleToNBits(size_t bits)
   //	    }
   //	    std::cout <<  cummulatedFrequencies_.back() << std::endl;
 
-  LOG(trace) << "rescaled frequency table";
+  t.stop();
+  LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();
+
+  LOG(trace) << "done rescaling frequency table";
 }
 
 int SymbolStatistics::getMinSymbol() const { return mMin; }
@@ -129,14 +134,14 @@ std::pair<uint32_t, uint32_t> SymbolStatistics::operator[](size_t index) const
 
 void SymbolStatistics::buildCumulativeFrequencyTable()
 {
-  LOG(trace) << "building cumulative frequency table";
+  LOG(trace) << "start building cumulative frequency table";
 
   mCumulativeFrequencyTable.resize(mFrequencyTable.size() + 1);
   mCumulativeFrequencyTable[0] = 0;
   std::partial_sum(mFrequencyTable.begin(), mFrequencyTable.end(),
                    mCumulativeFrequencyTable.begin() + 1);
 
-  LOG(trace) << "built cumulative frequency table";
+  LOG(trace) << "done building cumulative frequency table";
 }
 
 SymbolStatistics::Iterator SymbolStatistics::begin() const
