@@ -178,17 +178,16 @@ class ClusterNativeHelper
     static int fillIndex(
       ClusterNativeAccess& clusterIndex, std::unique_ptr<ClusterNative[]>& clusterBuffer,
       MCLabelContainer& mcBuffer, DataArrayType& inputs, MCArrayType const& mcinputs,
-      CheckFct checkFct = [](auto&) { return true; });
+      CheckFct checkFct = [](auto const&) { return true; });
 
-    template <typename DataArrayType, typename CheckFct>
+    template <typename DataArrayType, typename CheckFct = std::function<bool(size_t&)>>
     static int fillIndex(
       ClusterNativeAccess& clusterIndex, std::unique_ptr<ClusterNative[]>& clusterBuffer,
-      DataArrayType& inputs, CheckFct checkFct = [](auto&) { return true; })
+      DataArrayType& inputs, CheckFct checkFct = [](auto const&) { return true; })
     {
-      // just use a dummy array of zero-size containers as default with the same extent
-      // as the data container collection
-      // TODO: maybe do in one function with conditional template parameter
-      std::array<std::vector<MCLabelContainer>, std::tuple_size<DataArrayType>::value> dummy;
+      // just use a dummy parameter with empty vectors, the ugly double vector will be removed
+      // soon. TODO: maybe do in one function with conditional template parameter
+      std::vector<std::vector<MCLabelContainer>> dummy(inputs.size());
       // another default, nothing will be added to the container
       MCLabelContainer mcBuffer;
       return fillIndex(clusterIndex, clusterBuffer, mcBuffer, inputs, dummy, checkFct);
@@ -313,11 +312,13 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
                                            std::unique_ptr<ClusterNative[]>& clusterBuffer, MCLabelContainer& mcBuffer,
                                            DataArrayType& inputs, MCArrayType const& mcinputs, CheckFct checkFct)
 {
-  static_assert(std::tuple_size<DataArrayType>::value == std::tuple_size<MCArrayType>::value);
+  if (mcinputs.size() > 0 && mcinputs.size() != inputs.size()) {
+    std::runtime_error("inconsistent size of MC label array " + std::to_string(mcinputs.size()) + ", expected " + std::to_string(inputs.size()));
+  }
   memset(&clusterIndex, 0, sizeof(clusterIndex));
   const MCLabelContainer* clustersMCTruth[NSectors][NPadRows] = {};
   int result = 0;
-  for (size_t index = 0; index < NSectors; index++) {
+  for (size_t index = 0, end = inputs.size(); index < end; index++) {
     if (!checkFct(index)) {
       continue;
     }
