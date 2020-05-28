@@ -56,7 +56,7 @@ void Dispatcher::init(InitContext& ctx)
     policiesTree = cfg->getRecursive("dataSamplingPolicies");
     mPolicies.clear();
   } else {
-    policiesTree = ctx.options().get<boost::property_tree::ptree>("qc-config-ptree");
+    policiesTree = ctx.options().get<boost::property_tree::ptree>("sampling-config-ptree");
     mPolicies.clear();
   }
 
