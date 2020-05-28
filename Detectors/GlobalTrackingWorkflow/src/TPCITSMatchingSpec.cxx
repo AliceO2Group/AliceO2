@@ -124,40 +124,15 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     // not all sectors available
     // Since we expect complete input, this should not happen (why does the bufferization considered for TPC CA tracker? Ask Matthias)
     throw std::runtime_error("Did not receive TPC clusters data for all sectors");
-    /*
-    for (auto const& refentry : datarefs) {
-      auto& sector = refentry.first;
-      auto& ref = refentry.second;
-      auto payploadSize = DataRefUtils::getPayloadSize(ref);
-      mBufferedTPCClusters[sector].resize(payploadSize);
-      std::copy(ref.payload, ref.payload + payploadSize, mBufferedTPCClusters[sector].begin());
-      
-      printInputLog(ref, "buffering", sector);
-    }
-    // not needed to send something, DPL will simply drop this timeslice, whenever the
-    // data for all sectors is available, the output is sent in that time slice
-    return;
-    */
   }
   //------------------------------------------------------------------------------
   std::array<gsl::span<const char>, o2::tpc::Constants::MAXSECTOR> clustersTPC;
-  auto sectorStatus = validSectors;
 
   for (auto const& refentry : datarefs) {
     auto& sector = refentry.first;
     auto& ref = refentry.second;
     clustersTPC[sector] = gsl::span(ref.payload, DataRefUtils::getPayloadSize(ref));
-    sectorStatus.reset(sector);
     printInputLog(ref, "received", sector);
-  }
-  if (sectorStatus.any()) {
-    LOG(ERROR) << "Reading bufferized TPC clusters, this should not happen";
-    // some of the inputs have been buffered
-    for (size_t sector = 0; sector < sectorStatus.size(); ++sector) {
-      if (sectorStatus.test(sector)) {
-        clustersTPC[sector] = gsl::span(&mBufferedTPCClusters[sector].front(), mBufferedTPCClusters[sector].size());
-      }
-    }
   }
 
   // Just print TPC clusters status
@@ -255,12 +230,6 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   }
 
   mMatching.run();
-
-  /* // at the moment we don't assume need for bufferization, no nead to clear
-  for (auto& secClBuf : mBufferedTPCClusters) {
-    secClBuf.clear();
-  }
-  */
 
   pc.outputs().snapshot(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe}, mMatching.getMatchedTracks());
   if (mUseMC) {
