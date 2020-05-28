@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cmath>
+#include <chrono>
 
 namespace o2
 {
@@ -46,6 +47,22 @@ inline size_t calculateMaxBufferSize(size_t num, size_t rangeBits, size_t sizeof
 constexpr size_t ProbabilityBits8Bit = 10;
 constexpr size_t ProbabilityBits16Bit = 22;
 constexpr size_t ProbabilityBits25Bit = 25;
+
+class RANSTimer
+{
+ public:
+  void start() { mStart = std::chrono::high_resolution_clock::now(); };
+  void stop() { mStop = std::chrono::high_resolution_clock::now(); };
+  double getDurationMS()
+  {
+    std::chrono::duration<double, std::milli> duration = mStop - mStart;
+    return duration.count();
+  }
+
+ private:
+  std::chrono::time_point<std::chrono::high_resolution_clock> mStart;
+  std::chrono::time_point<std::chrono::high_resolution_clock> mStop;
+};
 
 } // namespace rans
 } // namespace o2

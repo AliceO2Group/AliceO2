@@ -26,6 +26,8 @@
 
 #include <fairlogger/Logger.h>
 
+#include "helper.h"
+
 namespace o2
 {
 namespace rans
@@ -101,6 +103,9 @@ template <typename IT>
 SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t range) : mMin(0), mMax(0), mNUsedAlphabetSymbols(0), mMessageLength(0), mFrequencyTable(), mCumulativeFrequencyTable()
 {
   LOG(trace) << "start building symbol statistics";
+  RANSTimer t;
+  t.start();
+
   buildFrequencyTable(begin, end, range);
 
   for (auto i : mFrequencyTable) {
@@ -112,6 +117,9 @@ SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t range) :
   buildCumulativeFrequencyTable();
 
   mMessageLength = mCumulativeFrequencyTable.back();
+
+  t.stop();
+  LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();
 
 // advanced diagnostics in debug builds
 #if !defined(NDEBUG)

@@ -25,6 +25,7 @@
 #include "EncoderSymbol.h"
 #include "Coder.h"
 #include "CommonUtils/StringUtils.h"
+#include "helper.h"
 
 namespace o2
 {
@@ -90,7 +91,11 @@ template <typename coder_T, typename stream_T, typename source_T>
 Encoder<coder_T, stream_T, source_T>::Encoder(const SymbolStatistics& stats,
                                               size_t probabilityBits) : mSymbolTable(nullptr), mProbabilityBits(probabilityBits)
 {
+  RANSTimer t;
+  t.start();
   mSymbolTable = std::make_unique<encoderSymbolTable_t>(stats, probabilityBits);
+  t.stop();
+  LOG(debug1) << "Encoder SymbolTable inclusive time (ms): " << t.getDurationMS();
 }
 
 template <typename coder_T, typename stream_T, typename source_T>
@@ -99,6 +104,8 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
   const stream_IT outputBegin, const stream_IT outputEnd, const source_IT inputBegin, const source_IT inputEnd) const
 {
   LOG(trace) << "start encoding";
+  RANSTimer t;
+  t.start();
 
   static_assert(std::is_same<typename std::iterator_traits<source_IT>::value_type, source_T>::value);
   static_assert(std::is_same<typename std::iterator_traits<stream_IT>::value_type, stream_T>::value);
@@ -141,6 +148,9 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
     std::cerr << "Exception is thrown: " << e.what() << '\n';
     throw;
   }
+
+  t.stop();
+  LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();
 
 // advanced diagnostics for debug builds
 #if !defined(NDEBUG)
