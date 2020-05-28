@@ -593,8 +593,7 @@ class O2HitMerger : public FairMQDevice
     reorderAndMergeMCTRacks(*tree, *mOutTree, nprimaries, subevOrdered);
     Int_t ioffset = 0;
     remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", *tree, *mOutTree, trackoffsets, nprimaries, subevOrdered);
-
-    //    merge<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", *tree, *mOutTree);
+    merge<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", *tree, *mOutTree);
 
     // c) do the merge procedure for all hits ... delegate this to detector specific functions
     // since they know about types; number of branches; etc.
