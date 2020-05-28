@@ -310,8 +310,13 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       // FIXME cleanup almost duplicated code
       auto& validMcInputs = processAttributes->validMcInputs;
       using CachedMCLabelContainer = decltype(std::declval<InputRecord>().get<MCLabelContainer*>(DataRef{nullptr, nullptr, nullptr}));
-      std::array<CachedMCLabelContainer, NSectors> mcInputs;
-      std::array<gsl::span<const char>, NSectors> inputs;
+      std::vector<CachedMCLabelContainer> mcInputs;
+      std::vector<gsl::span<const char>> inputs;
+      struct InputRef {
+        DataRef data;
+        DataRef labels;
+      };
+      std::map<int, InputRef> inputrefs;
       o2::gpu::GPUTrackingInOutZS tpcZS;
       std::vector<const void*> tpcZSmetaPointers[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
       std::vector<unsigned int> tpcZSmetaSizes[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
@@ -339,28 +344,23 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           if (sector < 0) {
             continue;
           }
-          // the TPCSectorHeader now allows to transport information for more than one sector,
-          // e.g. for transporting clusters in one single data block. For the moment, the
-          // implemenation here requires single sectors
-          if (sector >= TPCSectorHeader::NSectors) {
-            throw std::runtime_error("Expecting data for single sectors");
-          }
-          if (validMcInputs.test(sector)) {
+          std::bitset<NSectors> sectorMask(sectorHeader->sectorBits);
+          if ((validMcInputs & sectorMask).any()) {
             // have already data for this sector, this should not happen in the current
             // sequential implementation, for parallel path merged at the tracker stage
             // multiple buffers need to be handled
             throw std::runtime_error("can only have one MC data set per sector");
           }
+          inputrefs[sector].labels = ref;
           if (caClusterer) {
             inputDigitsMC[sector] = std::move(pc.inputs().get<const MCLabelContainer*>(ref));
           } else {
-            mcInputs[sector] = std::move(pc.inputs().get<const MCLabelContainer*>(ref));
           }
-          validMcInputs.set(sector);
+          validMcInputs |= sectorMask;
           activeSectors |= sectorHeader->activeSectors;
           if (verbosity > 1) {
             LOG(INFO) << "received " << *(ref.spec) << " MC label containers"
-                      << " for sector " << sector                                      //
+                      << " for sectors " << sectorMask                                 //
                       << std::endl                                                     //
                       << "  mc input status:   " << validMcInputs                      //
                       << std::endl                                                     //
@@ -371,7 +371,6 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
 
       auto& validInputs = processAttributes->validInputs;
       int operation = 0;
-      std::map<int, DataRef> datarefs;
       std::vector<InputSpec> filter = {
         {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}, Lifetime::Timeframe},
         {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERNATIVE"}, Lifetime::Timeframe},
@@ -384,24 +383,18 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         }
         const int sector = sectorHeader->sector();
         if (sector < 0) {
-          //throw std::runtime_error("lagacy input, custom eos is not expected anymore")
           continue;
         }
-        // the TPCSectorHeader now allows to transport information for more than one sector,
-        // e.g. for transporting clusters in one single data block. For the moment, the
-        // implemenation here requires single sectors
-        if (sector >= TPCSectorHeader::NSectors) {
-          throw std::runtime_error("Expecting data for single sectors");
-        }
-        if (validInputs.test(sector)) {
+        std::bitset<NSectors> sectorMask(sectorHeader->sectorBits);
+        if ((validInputs & sectorMask).any()) {
           // have already data for this sector, this should not happen in the current
           // sequential implementation, for parallel path merged at the tracker stage
           // multiple buffers need to be handled
           throw std::runtime_error("can only have one cluster data set per sector");
         }
         activeSectors |= sectorHeader->activeSectors;
-        validInputs.set(sector);
-        datarefs[sector] = ref;
+        validInputs |= sectorMask;
+        inputrefs[sector].data = ref;
         if (caClusterer && !zsOnTheFly) {
           inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
           LOG(INFO) << "GOT SPAN FOR SECTOR " << sector << " -> " << inputDigits[sector].size();
@@ -538,12 +531,20 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           throw std::runtime_error("Incomplete mc label input, expecting complete data set, buffering has been removed");
         }
         assert(processMC == false || validMcInputs == validInputs);
-        for (auto const& refentry : datarefs) {
+        for (auto const& refentry : inputrefs) {
           auto& sector = refentry.first;
-          auto& ref = refentry.second;
-          inputs[sector] = gsl::span(ref.payload, DataRefUtils::getPayloadSize(ref));
+          auto& ref = refentry.second.data;
+          if (ref.payload == nullptr) {
+            // skip zero-length message
+            continue;
+          }
+          if (refentry.second.labels.header != nullptr && refentry.second.labels.payload != nullptr) {
+            mcInputs.emplace_back(std::move(pc.inputs().get<const MCLabelContainer*>(refentry.second.labels)));
+          }
+          inputs.emplace_back(gsl::span(ref.payload, DataRefUtils::getPayloadSize(ref)));
           printInputLog(ref, "received", sector);
         }
+        assert(mcInputs.size() == 0 || mcInputs.size() == inputs.size());
         if (verbosity > 0) {
           // make human readable information from the bitfield
           std::string bitInfo;
@@ -680,15 +681,27 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           activeSectors |= 0x1 << sector;
         }
       }
-      for (auto const& sector : processAttributes->clusterOutputIds) {
-        o2::tpc::TPCSectorHeader header{sector};
-        o2::header::DataHeader::SubSpecificationType subspec = sector;
+      // previously, clusters have been published individually for the enabled sectors
+      // clusters are now published as one block, subspec is NSectors
+      if (processAttributes->clusterOutputIds.size() > 0) {
+        o2::tpc::TPCSectorHeader header{0};
+        header.sectorBits = activeSectors;
+        // subspecs [0, NSectors - 1] are used to identify sector data, we use NSectors
+        // to indicate the full TPC
+        o2::header::DataHeader::SubSpecificationType subspec = NSectors;
         header.activeSectors = activeSectors;
+        // doing a copy for now, in the future the tracker uses the output buffer directly
         auto& target = pc.outputs().make<std::vector<char>>({gDataOriginTPC, "CLUSTERNATIVE", subspec, Lifetime::Timeframe, {header}});
-        std::vector<MCLabelContainer> labels;
-        ClusterNativeHelper::copySectorData(*ptrs.clusters, sector, target, labels);
-        if (pc.outputs().isAllowed({gDataOriginTPC, "CLNATIVEMCLBL", subspec})) {
-          pc.outputs().snapshot({gDataOriginTPC, "CLNATIVEMCLBL", subspec, Lifetime::Timeframe, {header}}, labels);
+        ClusterNativeAccess const& accessIndex = *ptrs.clusters;
+        size_t outputSize = accessIndex.nClustersTotal * sizeof(ClusterNative) + sizeof(ClusterCountIndex);
+        target.resize(outputSize);
+        ClusterCountIndex* outIndex = reinterpret_cast<ClusterCountIndex*>(target.data());
+        ClusterNative* outClusters = reinterpret_cast<ClusterNative*>(target.data() + sizeof(ClusterCountIndex));
+        static_assert(sizeof(ClusterCountIndex) == sizeof(accessIndex.nClusters));
+        memcpy(outIndex, &accessIndex.nClusters[0][0], sizeof(ClusterCountIndex));
+        memcpy(outClusters, accessIndex.clustersLinear, accessIndex.nClustersTotal * sizeof(ClusterNative));
+        if (pc.outputs().isAllowed({gDataOriginTPC, "CLNATIVEMCLBL", subspec}) && accessIndex.clustersMCTruth) {
+          pc.outputs().snapshot({gDataOriginTPC, "CLNATIVEMCLBL", subspec, Lifetime::Timeframe, {header}}, *accessIndex.clustersMCTruth);
         }
       }
 
@@ -763,12 +776,11 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     }
     if (specconfig.outputCAClusters) {
       for (auto const& sector : tpcsectors) {
-        o2::header::DataHeader::SubSpecificationType id = sector;
-        outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVE", id, Lifetime::Timeframe);
         processAttributes->clusterOutputIds.emplace_back(sector);
-        if (specconfig.processMC) {
-          outputSpecs.emplace_back(OutputSpec{gDataOriginTPC, "CLNATIVEMCLBL", id, Lifetime::Timeframe});
-        }
+      }
+      outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVE", NSectors, Lifetime::Timeframe);
+      if (specconfig.processMC) {
+        outputSpecs.emplace_back(OutputSpec{gDataOriginTPC, "CLNATIVEMCLBL", NSectors, Lifetime::Timeframe});
       }
     }
     return std::move(outputSpecs);
