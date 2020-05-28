@@ -42,7 +42,6 @@ class TPCITSMatchingDPL : public Task
  private:
   o2::globaltracking::MatchTPCITS mMatching; // matching engine
   o2::itsmft::TopologyDictionary mITSDict;   // cluster patterns dictionary
-  std::array<std::vector<char>, o2::tpc::Constants::MAXSECTOR> mBufferedTPCClusters; // at the moment not used
   bool mUseMC = true;
   TStopwatch mTimer;
 };
