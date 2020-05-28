@@ -92,22 +92,17 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
       LOG(ERROR) << "sector header missing on header stack";
       throw std::runtime_error("sector header missing on header stack");
     }
-    const int& sector = sectorHeader->sector();
-    // the TPCSectorHeader now allows to transport information for more than one sector,
-    // e.g. for transporting clusters in one single data block. For the moment, the
-    // implemenation here requires single sectors
-    if (sector >= o2::tpc::TPCSectorHeader::NSectors) {
-      throw std::runtime_error("Expecting data for single sectors");
-    }
-    LOG(INFO) << "Reading cluster data for sector " << sector;
-    if (validSectors.test(sector)) {
+    int sector = sectorHeader->sector();
+    std::bitset<o2::tpc::Constants::MAXSECTOR> sectorMask(sectorHeader->sectorBits);
+    LOG(INFO) << "Reading TPC cluster data, sector mask is " << sectorMask;
+    if ((validSectors & sectorMask).any()) {
       // have already data for this sector, this should not happen in the current
       // sequential implementation, for parallel path merged at the tracker stage
       // multiple buffers need to be handled
       throw std::runtime_error("can only have one data set per sector");
     }
     activeSectors |= sectorHeader->activeSectors;
-    validSectors.set(sector);
+    validSectors |= sectorMask;
     datarefs[sector] = ref;
   }
 
