@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
   options->ParseAll({"cmd",
                      "--foo.x", "1",
                      "--foo.y", "2"},
-                    false);
+                    true);
 
   std::vector<ConfigParamSpec> specs = RootConfigParamHelpers::asConfigParamSpecs<o2::test::SimplePODClass>("foo");
 
