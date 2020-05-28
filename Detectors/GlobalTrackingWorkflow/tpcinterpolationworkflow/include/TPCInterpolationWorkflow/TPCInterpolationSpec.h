@@ -36,7 +36,6 @@ class TPCInterpolationDPL : public Task
 
  private:
   o2::tpc::TrackInterpolation mInterpolation; // track interpolation engine
-  std::array<std::vector<char>, o2::tpc::Constants::MAXSECTOR> mBufferedTPCClusters;
   bool mUseMC{false}; ///< MC flag
   TStopwatch mTimer;
 };
