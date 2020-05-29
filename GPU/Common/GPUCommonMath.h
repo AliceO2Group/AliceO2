@@ -73,6 +73,13 @@ class GPUCommonMath
   {
     return GPUCommonMath::AtomicExchInt(addr, val);
   }
+
+  template <class T>
+  GPUdi() static T AtomicCAS(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T cmp, T val)
+  {
+    return GPUCommonMath::AtomicCASInt(addr, cmp, val);
+  }
+
   template <class T>
   GPUdi() static T AtomicAdd(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
@@ -137,6 +144,8 @@ class GPUCommonMath
  private:
   template <class S, class T>
   GPUd() static unsigned int AtomicExchInt(S* addr, T val);
+  template <class S, class T>
+  GPUd() static T AtomicCASInt(S* addr, T cmp, T val);
   template <class S, class T>
   GPUd() static unsigned int AtomicAddInt(S* addr, T val);
   template <class S, class T>
@@ -367,9 +376,10 @@ GPUhdi() float GPUCommonMath::Copysign(float x, float y)
 #endif // GPUCA_GPUCODE
 }
 
-#ifndef GPUCA_GPUCODE
+#if !defined(GPUCA_GPUCODE) && defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-value" // GCC BUG in omp atomic capture gives false warning
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
 template <class S, class T>
@@ -389,6 +399,28 @@ GPUdi() unsigned int GPUCommonMath::AtomicExchInt(S* addr, T val)
   {
     old = *addr;
     *addr = val;
+  }
+  return old;
+#endif // GPUCA_GPUCODE
+}
+
+template <class S, class T>
+GPUdi() T GPUCommonMath::AtomicCASInt(S* addr, T cmp, T val)
+{
+#if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && (!defined(__clang__) || defined(GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS))
+  return ::atomic_compare_exchange(addr, cmp, val);
+#elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
+  return ::atomic_cmpxchg(addr, cmp, val);
+#elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
+  return ::atomicCAS(addr, cmp, val);
+#else
+  T old;
+#ifdef WITH_OPENMP
+#pragma omp atomic capture
+#endif
+  {
+    old = *addr;
+    *addr = (old == cmp) ? val : old;
   }
   return old;
 #endif // GPUCA_GPUCODE
@@ -456,7 +488,7 @@ GPUdi() void GPUCommonMath::AtomicMinInt(S* addr, T val)
 #endif // GPUCA_GPUCODE
 }
 
-#ifndef GPUCA_GPUCODE
+#if !defined(GPUCA_GPUCODE) && defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 
