@@ -144,7 +144,8 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
   // << mPythia->event[2].id()<< " "<< npart <<endl;
   for (Int_t ii = 0; ii < mPythia->event.size(); ii++) {
     Bool_t wanttracking = true;
-    if (!mPythia->event[ii].isFinal()) wanttracking = false;
+    if (!mPythia->event[ii].isFinal())
+      wanttracking = false;
     Double_t z = mPythia->event[ii].zProd();
     Double_t x = mPythia->event[ii].xProd();
     Double_t y = mPythia->event[ii].yProd();
@@ -158,11 +159,12 @@ Bool_t Pythia8Generator::ReadEvent(FairPrimaryGenerator* cpg)
     t *= mm2cm / clight;
     Double_t e = -9e9;
     // handle system entry separately
-    if (!wanttracking) e = mPythia->event[ii].e();
+    if (!wanttracking)
+      e = mPythia->event[ii].e();
     //
-    printf("AddTrack from Pythia8 %5d \n",(Int_t)mPythia->event[ii].id());
+    printf("AddTrack from Pythia8 %5d \n", (Int_t)mPythia->event[ii].id());
     cpg->AddTrack((Int_t)mPythia->event[ii].id(), px, py, pz, x, y, z,
-		  (Int_t)mPythia->event[ii].mother1(), wanttracking, e, t);
+                  (Int_t)mPythia->event[ii].mother1(), wanttracking, e, t);
   } // particle lloop
 
   return kTRUE;
