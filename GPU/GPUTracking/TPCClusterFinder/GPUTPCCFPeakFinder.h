@@ -57,8 +57,6 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
 
  private:
   static GPUd() bool isPeakScratchPad(GPUSharedMemory&, tpccf::Charge, const ChargePos&, ushort, const Array2D<o2::gpu::PackedCharge>&, ChargePos*, PackedCharge*);
-
-  static GPUd() bool isPeak(tpccf::Charge, const ChargePos&, const Array2D<PackedCharge>&);
 };
 
 } // namespace gpu
