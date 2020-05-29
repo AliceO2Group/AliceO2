@@ -318,7 +318,7 @@ class O2HitMerger : public FairMQDevice
   }
 
   void reorderAndMergeMCTRacks(TTree& origin, TTree& target, const std::vector<int>& nprimaries, const std::vector<int>& nsubevents)
-  {  
+  {
     std::vector<MCTrack>* incomingdata = nullptr;
     auto targetdata = new std::vector<MCTrack>;
     auto originbr = origin.GetBranch("MCTrack");
@@ -328,15 +328,15 @@ class O2HitMerger : public FairMQDevice
     // loop over subevents to store the primary events
     //
     Int_t nprimTot = 0;
-    for (auto entry = entries-1; entry >= 0; --entry) {
+    for (auto entry = entries - 1; entry >= 0; --entry) {
       int index = nsubevents[entry];
       nprimTot += nprimaries[index];
       printf("merge %lld %5d %5d %5d \n", entry, index, nsubevents[entry], nsubevents[index]);
       originbr->GetEntry(index);
       for (Int_t i = 0; i < nprimaries[index]; i++) {
-	auto& track = incomingdata->at(i);
-	track.SetFirstDaughterTrackId(-1);
-	targetdata->push_back(track);
+        auto& track = incomingdata->at(i);
+        track.SetFirstDaughterTrackId(-1);
+        targetdata->push_back(track);
       }
       incomingdata->clear();
       delete incomingdata;
@@ -345,36 +345,36 @@ class O2HitMerger : public FairMQDevice
     //
     // loop a second time to store the secondaries and fix the mother track IDs
     //
-    Int_t idelta1  = nprimTot;
-    Int_t idelta0 = 0; 
-    for (auto entry = entries-1; entry >= 0; --entry) {
+    Int_t idelta1 = nprimTot;
+    Int_t idelta0 = 0;
+    for (auto entry = entries - 1; entry >= 0; --entry) {
       int index = nsubevents[entry];
 
       originbr->GetEntry(index);
-      
+
       Int_t npart = (int)(incomingdata->size());
       Int_t nprim = nprimaries[index];
       idelta1 -= nprim;
-      
+
       for (Int_t i = nprim; i < npart; i++) {
-	auto& track = incomingdata->at(i);
-	Int_t cId = track.getMotherTrackId();
-	if (cId >= nprim) {
-	  cId += idelta1;
-	} else {
-	  cId += idelta0;
-	}
-	track.SetMotherTrackId(cId);
-	track.SetFirstDaughterTrackId(-1);
-	
-	Int_t hwm = (int) (targetdata->size());
-	auto& mother = targetdata->at(cId);
-	if (mother.getFirstDaughterTrackId() == -1) {
-	  mother.SetFirstDaughterTrackId(hwm);
-	}
-	mother.SetLastDaughterTrackId(hwm);
-	
-	targetdata->push_back(track);
+        auto& track = incomingdata->at(i);
+        Int_t cId = track.getMotherTrackId();
+        if (cId >= nprim) {
+          cId += idelta1;
+        } else {
+          cId += idelta0;
+        }
+        track.SetMotherTrackId(cId);
+        track.SetFirstDaughterTrackId(-1);
+
+        Int_t hwm = (int)(targetdata->size());
+        auto& mother = targetdata->at(cId);
+        if (mother.getFirstDaughterTrackId() == -1) {
+          mother.SetFirstDaughterTrackId(hwm);
+        }
+        mother.SetLastDaughterTrackId(hwm);
+
+        targetdata->push_back(track);
       }
       idelta0 += nprim;
       idelta1 += npart;
@@ -384,7 +384,7 @@ class O2HitMerger : public FairMQDevice
     }
 
     //
-    // write to output    
+    // write to output
     auto targetbr = o2::base::getOrMakeBranch(target, "MCTrack", &targetdata);
     targetbr->SetAddress(&targetdata);
     targetbr->Fill();
@@ -392,9 +392,9 @@ class O2HitMerger : public FairMQDevice
     targetdata->clear();
   }
 
-    template <typename T>
-    void remapTrackIdsAndMerge(std::string brname, TTree& origin, TTree& target, 
-			       const std::vector<int>& trackoffsets, const std::vector<int>& nprimaries, const std::vector<int>& subevOrdered)
+  template <typename T>
+  void remapTrackIdsAndMerge(std::string brname, TTree& origin, TTree& target,
+                             const std::vector<int>& trackoffsets, const std::vector<int>& nprimaries, const std::vector<int>& subevOrdered)
   {
     //
     // Remap the mother track IDs by adding an offset.
@@ -414,25 +414,25 @@ class O2HitMerger : public FairMQDevice
     } else {
       // loop over subevents
       Int_t nprimTot = 0;
-      for (auto entry = 0; entry < entries; entry++) nprimTot += nprimaries[entry];
-      Int_t idelta0  = 0;
-      Int_t idelta1  = nprimTot;
-      for (auto entry = entries-1; entry >= 0; --entry) {
-	Int_t index = subevOrdered[entry];
-	Int_t nprim = nprimaries[index];
+      for (auto entry = 0; entry < entries; entry++)
+        nprimTot += nprimaries[entry];
+      Int_t idelta0 = 0;
+      Int_t idelta1 = nprimTot;
+      for (auto entry = entries - 1; entry >= 0; --entry) {
+        Int_t index = subevOrdered[entry];
+        Int_t nprim = nprimaries[index];
         originbr->GetEntry(index);
-	idelta1 -= nprim;
+        idelta1 -= nprim;
         for (auto& data : *incomingdata) {
           updateTrackIdWithOffset(data, nprim, idelta0, idelta1);
           targetdata->push_back(data);
         }
         incomingdata->clear();
-	idelta0 += nprim;
-	idelta1 += trackoffsets[index];
+        idelta0 += nprim;
+        idelta1 += trackoffsets[index];
         delete incomingdata;
         incomingdata = nullptr;
       }
-
     }
     auto targetbr = o2::base::getOrMakeBranch(target, brname.c_str(), &targetdata);
     targetbr->SetAddress(&targetdata);
@@ -441,11 +441,10 @@ class O2HitMerger : public FairMQDevice
     targetdata->clear();
   }
 
-  
   void updateTrackIdWithOffset(MCTrack& track, Int_t nprim, Int_t idelta0, Int_t idelta1)
   {
     Int_t cId = track.getMotherTrackId();
-    Int_t ioffset = (cId < nprim)? idelta0 : idelta1; 
+    Int_t ioffset = (cId < nprim) ? idelta0 : idelta1;
     if (cId != -1)
       track.SetMotherTrackId(cId + ioffset);
   }
@@ -453,7 +452,7 @@ class O2HitMerger : public FairMQDevice
   void updateTrackIdWithOffset(TrackReference& ref, Int_t nprim, Int_t idelta0, Int_t idelta1)
   {
     Int_t cId = ref.getTrackID();
-    Int_t ioffset = (cId < nprim)? idelta0 : idelta1;
+    Int_t ioffset = (cId < nprim) ? idelta0 : idelta1;
     ref.setTrackID(cId + ioffset);
   }
 
@@ -585,8 +584,8 @@ class O2HitMerger : public FairMQDevice
     // for MCTrack remap the motherIds and merge at the same go
     const auto entries = tree->GetEntries();
     std::vector<int> subevOrdered((int)(nsubevents.size()));
-    for (auto entry = entries-1; entry >= 0; --entry) {
-      subevOrdered[nsubevents[entry]-1] = entry;
+    for (auto entry = entries - 1; entry >= 0; --entry) {
+      subevOrdered[nsubevents[entry] - 1] = entry;
       printf("HitMerger entry: %lld nprimry: %5d trackoffset: %5d \n", entry, nprimaries[entry], trackoffsets[entry]);
     }
 

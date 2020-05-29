@@ -40,9 +40,9 @@ class MCTrackT
   MCTrackT();
 
   ///  Standard constructor
-  MCTrackT(Int_t pdgCode, Int_t motherID, Int_t firstDaighterID, Int_t lastDaughterID, 
-	   Double_t px, Double_t py, Double_t pz, Double_t x, Double_t y, Double_t z, Double_t t, 
-	   Int_t nPoints);
+  MCTrackT(Int_t pdgCode, Int_t motherID, Int_t firstDaighterID, Int_t lastDaughterID,
+           Double_t px, Double_t py, Double_t pz, Double_t x, Double_t y, Double_t z, Double_t t,
+           Int_t nPoints);
 
   ///  Copy constructor
   MCTrackT(const MCTrackT& track) = default;
@@ -61,7 +61,7 @@ class MCTrackT
   Int_t getMotherTrackId() const { return mMotherTrackId; }
   bool isSecondary() const { return mMotherTrackId != -1; }
   Int_t getFirstDaughterTrackId() const { return mFirstDaughterTrackId; }
-  Int_t getLastDaughterTrackId()  const { return mLastDaughterTrackId; }
+  Int_t getLastDaughterTrackId() const { return mLastDaughterTrackId; }
   Double_t GetStartVertexMomentumX() const { return mStartVertexMomentumX; }
   Double_t GetStartVertexMomentumY() const { return mStartVertexMomentumY; }
   Double_t GetStartVertexMomentumZ() const { return mStartVertexMomentumZ; }
@@ -101,22 +101,23 @@ class MCTrackT
   {
     double mx(mStartVertexMomentumX);
     double my(mStartVertexMomentumY);
-    return (TMath::Pi()+TMath::ATan2(-mx,-my));  
+    return (TMath::Pi() + TMath::ATan2(-mx, -my));
   }
-
 
   Double_t GetEta() const
   {
-      double_t pmom = GetP();
-      double mz(mStartVertexMomentumZ);
-      if (pmom != TMath::Abs(mz)) return 0.5*std::log((pmom+mz)/(pmom-mz));
-      else                         return 1.e30;
+    double_t pmom = GetP();
+    double mz(mStartVertexMomentumZ);
+    if (pmom != TMath::Abs(mz))
+      return 0.5 * std::log((pmom + mz) / (pmom - mz));
+    else
+      return 1.e30;
   }
 
   Double_t GetTheta() const
   {
     double mz(mStartVertexMomentumZ);
-    return (mz==0)? TMath::PiOver2() : TMath::ACos(mz/GetP());
+    return (mz == 0) ? TMath::PiOver2() : TMath::ACos(mz / GetP());
   }
 
   Double_t GetRapidity() const;
@@ -131,9 +132,9 @@ class MCTrackT
   Int_t getHitMask() const { return ((PropEncoding)mProp).hitmask; }
   void setHitMask(Int_t m) { ((PropEncoding)mProp).hitmask = m; }
   ///  Modifiers
-  void SetMotherTrackId(Int_t id)        { mMotherTrackId = id; }
+  void SetMotherTrackId(Int_t id) { mMotherTrackId = id; }
   void SetFirstDaughterTrackId(Int_t id) { mFirstDaughterTrackId = id; }
-  void SetLastDaughterTrackId(Int_t id)  { mLastDaughterTrackId  = id; }
+  void SetLastDaughterTrackId(Int_t id) { mLastDaughterTrackId = id; }
   // set bit indicating that this track
   // left a hit in detector with id iDet
   void setHit(Int_t iDet)
@@ -192,7 +193,7 @@ class MCTrackT
   ///  PDG particle code
   Int_t mPdgCode;
 
-  ///  Index of mother track. 
+  ///  Index of mother track.
   Int_t mMotherTrackId;
 
   Int_t mFirstDaughterTrackId;
@@ -262,7 +263,7 @@ inline MCTrackT<T>::MCTrackT()
 
 template <typename T>
 inline MCTrackT<T>::MCTrackT(Int_t pdgCode, Int_t motherId, Int_t firstDaughterId, Int_t lastDaughterId,
-			     Double_t px, Double_t py, Double_t pz, Double_t x,
+                             Double_t px, Double_t py, Double_t pz, Double_t x,
                              Double_t y, Double_t z, Double_t t, Int_t mask)
   : mPdgCode(pdgCode),
     mMotherTrackId(motherId),

@@ -361,38 +361,39 @@ class DetImpl : public o2::base::Detector
         originbr->GetEntry(0);
         filladdress = incomingdata;
       } else {
-	Int_t entries = origin.GetEntries();
-	Int_t nprimTot = 0;
-	for (auto entry = 0; entry < entries; entry++) nprimTot += nprimaries[entry];
-	// offset for pimary track index
-	Int_t idelta0  = 0;
-	// offset for secondary track index
-	Int_t idelta1  = nprimTot;
+        Int_t entries = origin.GetEntries();
+        Int_t nprimTot = 0;
+        for (auto entry = 0; entry < entries; entry++)
+          nprimTot += nprimaries[entry];
+        // offset for pimary track index
+        Int_t idelta0 = 0;
+        // offset for secondary track index
+        Int_t idelta1 = nprimTot;
         for (int entry = entries - 1; entry >= 0; --entry) {
-	  // proceed in the order of subevent Ids
-	  Int_t index = subevtsOrdered[entry];
-	  // numbe of primaries for this event
-	  Int_t nprim = nprimaries[index];
-	  idelta1 -= nprim;
+          // proceed in the order of subevent Ids
+          Int_t index = subevtsOrdered[entry];
+          // numbe of primaries for this event
+          Int_t nprim = nprimaries[index];
+          idelta1 -= nprim;
           filladdress = targetdata;
           originbr->GetEntry(index);
           if (incomingdata) {
-	    // fix the trackIDs for this data
-	    for (auto& hit : *incomingdata) {
-	      const auto oldID = hit.GetTrackID();
-	      // offset depends on whether the trackis a primary or secondary
-	      Int_t offset =  (oldID < nprim) ? idelta0 : idelta1;
-	      hit.SetTrackID(oldID + offset);
-	    }
-	    // this could be further generalized by using a policy for T
+            // fix the trackIDs for this data
+            for (auto& hit : *incomingdata) {
+              const auto oldID = hit.GetTrackID();
+              // offset depends on whether the trackis a primary or secondary
+              Int_t offset = (oldID < nprim) ? idelta0 : idelta1;
+              hit.SetTrackID(oldID + offset);
+            }
+            // this could be further generalized by using a policy for T
             std::copy(incomingdata->begin(), incomingdata->end(), std::back_inserter(*targetdata));
             // adjust offset
             delete incomingdata;
             incomingdata = nullptr;
           }
-	  // adjust offsets for next subevent
-	  idelta0 += nprim;
-	  idelta1 += trackoffsets[index];
+          // adjust offsets for next subevent
+          idelta0 += nprim;
+          idelta1 += trackoffsets[index];
         } // subevent loop
       }
       // fill target for this event
