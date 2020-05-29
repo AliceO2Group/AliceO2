@@ -87,68 +87,6 @@ GPUdii() bool GPUTPCCFPeakFinder::isPeakScratchPad(
   return peak;
 }
 
-GPUdii() bool GPUTPCCFPeakFinder::isPeak(
-  Charge myCharge,
-  const ChargePos& pos,
-  const Array2D<PackedCharge>& chargeMap)
-{
-  if (myCharge <= QMAX_CUTOFF) {
-    return false;
-  }
-
-  bool peak = true;
-
-#define CMP_NEIGHBOR(dp, dt, cmpOp)                        \
-  do {                                                     \
-    PackedCharge p = chargeMap[pos.delta(Delta2{dp, dt})]; \
-    const Charge otherCharge = p.unpack();                 \
-    peak &= (otherCharge cmpOp myCharge);                  \
-  } while (false)
-
-#define CMP_LT CMP_NEIGHBOR(-1, -1, <=)
-#define CMP_T CMP_NEIGHBOR(-1, 0, <=)
-#define CMP_RT CMP_NEIGHBOR(-1, 1, <=)
-
-#define CMP_L CMP_NEIGHBOR(0, -1, <=)
-#define CMP_R CMP_NEIGHBOR(0, 1, <)
-
-#define CMP_LB CMP_NEIGHBOR(1, -1, <)
-#define CMP_B CMP_NEIGHBOR(1, 0, <)
-#define CMP_RB CMP_NEIGHBOR(1, 1, <)
-
-#if defined(CHARGEMAP_TILING_LAYOUT)
-  CMP_LT;
-  CMP_T;
-  CMP_RT;
-  CMP_R;
-  CMP_RB;
-  CMP_B;
-  CMP_LB;
-  CMP_L;
-#else
-  CMP_LT;
-  CMP_T;
-  CMP_RT;
-  CMP_L;
-  CMP_R;
-  CMP_LB;
-  CMP_B;
-  CMP_RB;
-#endif
-
-#undef CMP_LT
-#undef CMP_T
-#undef CMP_RT
-#undef CMP_L
-#undef CMP_R
-#undef CMP_LB
-#undef CMP_B
-#undef CMP_RB
-#undef CMP_NEIGHBOR
-
-  return peak;
-}
-
 GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
                                               const Array2D<PackedCharge>& chargeMap,
                                               const ChargePos* positions,
@@ -165,11 +103,7 @@ GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBl
   Charge charge = pos.valid() ? chargeMap[pos].unpack() : Charge(0);
 
   uchar peak;
-#if defined(BUILD_CLUSTER_SCRATCH_PAD)
   peak = isPeakScratchPad(smem, charge, pos, SCRATCH_PAD_SEARCH_N, chargeMap, smem.posBcast, smem.buf);
-#else
-  peak = isPeak(charge, pos, chargeMap);
-#endif
 
   // Exit early if dummy. See comment above.
   bool iamDummy = (idx >= digitnum);

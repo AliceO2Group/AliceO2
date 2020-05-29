@@ -58,20 +58,16 @@ class GPUTPCCFNoiseSuppression : public GPUKernelTemplate
   template <int iKernel = defaultKernel, typename... Args>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
+ private:
   static GPUd() void noiseSuppressionImpl(int, int, int, int, GPUSharedMemory&, const Array2D<PackedCharge>&, const Array2D<uchar>&, const ChargePos*, const uint, uchar*);
 
   static GPUd() void updatePeaksImpl(int, int, int, int, const ChargePos*, const uchar*, const uint, Array2D<uchar>&);
 
- private:
   static GPUd() void checkForMinima(float, float, PackedCharge, int, ulong*, ulong*);
 
   static GPUd() void findMinimaScratchPad(const PackedCharge*, const ushort, const int, int, const float, const float, ulong*, ulong*);
 
   static GPUd() void findPeaksScratchPad(const uchar*, const ushort, const int, int, ulong*);
-
-  static GPUd() void findMinima(const Array2D<PackedCharge>&, const ChargePos&, const float, const float, ulong*, ulong*);
-
-  static GPUd() ulong findPeaks(const Array2D<uchar>&, const ChargePos&);
 
   static GPUd() bool keepPeak(ulong, ulong);
 

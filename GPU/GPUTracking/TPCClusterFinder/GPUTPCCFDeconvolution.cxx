@@ -45,9 +45,6 @@ GPUdii() void GPUTPCCFDeconvolution::countPeaksImpl(int nBlocks, int nThreads, i
 
   char peakCount = (iamPeak) ? 1 : 0;
 
-#if defined(BUILD_CLUSTER_SCRATCH_PAD)
-  /* #if defined(BUILD_CLUSTER_SCRATCH_PAD) && defined(GPUCA_GPUCODE) */
-  /* #if 0 */
   ushort ll = get_local_id(0);
   ushort partId = ll;
 
@@ -101,11 +98,6 @@ GPUdii() void GPUTPCCFDeconvolution::countPeaksImpl(int nBlocks, int nThreads, i
     peakCount *= -1;
   }
 
-#else
-  peakCount = countPeaksAroundDigit(pos, peakMap);
-  peakCount = iamPeak ? 1 : peakCount;
-#endif
-
   if (iamDummy) {
     return;
   }
@@ -120,38 +112,6 @@ GPUdii() void GPUTPCCFDeconvolution::countPeaksImpl(int nBlocks, int nThreads, i
   PackedCharge p(charge.unpack() / peakCount, has3x3, split);
 
   chargeMap[pos] = p;
-}
-
-GPUd() char GPUTPCCFDeconvolution::countPeaksAroundDigit(
-  const ChargePos& pos,
-  const Array2D<uchar>& peakMap)
-{
-  char peakCount = 0;
-
-  uchar aboveThreshold = 0;
-  GPUCA_UNROLL(, U())
-  for (uchar i = 0; i < 8; i++) {
-    Delta2 d = CfConsts::InnerNeighbors[i];
-
-    uchar p = peakMap[pos.delta(d)];
-    peakCount += GET_IS_PEAK(p);
-    aboveThreshold |= GET_IS_ABOVE_THRESHOLD(p) << i;
-  }
-
-  if (peakCount > 0) {
-    return peakCount;
-  }
-
-  GPUCA_UNROLL(, U())
-  for (uchar i = 0; i < 16; i++) {
-    Delta2 d = CfConsts::OuterNeighbors[i];
-
-    if (CfUtils::innerAboveThresholdInv(aboveThreshold, i)) {
-      peakCount -= GET_IS_PEAK(peakMap[pos.delta(d)]);
-    }
-  }
-
-  return peakCount;
 }
 
 GPUd() char GPUTPCCFDeconvolution::countPeaksScratchpadInner(

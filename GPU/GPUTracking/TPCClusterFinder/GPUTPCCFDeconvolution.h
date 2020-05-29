@@ -55,7 +55,6 @@ class GPUTPCCFDeconvolution : public GPUKernelTemplate
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
-  static GPUd() char countPeaksAroundDigit(const ChargePos&, const Array2D<uchar>&);
   static GPUd() char countPeaksScratchpadInner(ushort, const uchar*, uchar*);
   static GPUd() char countPeaksScratchpadOuter(ushort, uchar, const uchar*);
 };
