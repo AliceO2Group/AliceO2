@@ -315,20 +315,6 @@ DetFilterer blacklister(std::string optionVal, std::string unsetValue, char sepa
   return DetFilterer(optionVal, unsetValue, separator, false);
 }
 
-bool helpOnCommandLine(ConfigContext const& configcontext)
-{
-  int argc = configcontext.argc();
-  auto argv = configcontext.argv();
-  bool helpasked = false;
-  for (int argi = 0; argi < argc; ++argi) {
-    if (strcmp(argv[argi], "--help") == 0 || (strcmp(argv[argi], "-h") == 0)) {
-      helpasked = true;
-      break;
-    }
-  }
-  return helpasked;
-}
-
 // Finding out if the current process is the master DPL driver process,
 // first setting up the topology. Might be important to know when we write
 // files (to prevent that multiple processes write the same file)
@@ -356,7 +342,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   // check if we merely construct the topology to create help options
   // if this is the case we don't need to read from GRP
-  bool helpasked = helpOnCommandLine(configcontext);
+  bool helpasked = configcontext.helpOnCommandLine();
   bool ismaster = isMasterWorkflowDefinition(configcontext);
   gIsMaster = ismaster;
 

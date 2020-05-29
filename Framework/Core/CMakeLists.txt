@@ -33,6 +33,7 @@ o2_add_library(Framework
                        src/CompletionPolicy.cxx
                        src/CompletionPolicyHelpers.cxx
                        src/ComputingResourceHelpers.cxx
+                       src/ConfigContext.cxx
                        src/DispatchPolicy.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
