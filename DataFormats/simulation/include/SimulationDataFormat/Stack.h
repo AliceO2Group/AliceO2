@@ -56,7 +56,11 @@ namespace data
 /// The storage of secondaries can be switched off.
 /// The storage of all mothers can be switched off.
 /// By default, the minimal number of hits is 1 and the energy cut is 0.
-  enum ParticleStatus {kKeep=BIT(14), kDaughters=BIT(15), kToBeDone=BIT(16), kPrimary=BIT(17), kTransport=BIT(18)};
+enum ParticleStatus { kKeep = BIT(14),
+                      kDaughters = BIT(15),
+                      kToBeDone = BIT(16),
+                      kPrimary = BIT(17),
+                      kTransport = BIT(18) };
 class Stack : public FairGenericStack
 {
  public:
@@ -90,7 +94,7 @@ class Stack : public FairGenericStack
                  TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondParentId) override;
 
   // similar function taking a particle
-  void PushTrack(Int_t toBeDone, TParticle &);
+  void PushTrack(Int_t toBeDone, TParticle&);
 
   /// Get next particle for tracking from the stack.
   /// Declared in TVirtualMCStack
@@ -182,19 +186,20 @@ class Stack : public FairGenericStack
   const std::vector<TParticle>& getPrimaries() const { return mPrimaryParticles; }
 
   // initialize Stack from external vector containing primaries
-  
-  void initFromPrimaries(std::vector<TParticle> & primaries)
+
+  void initFromPrimaries(std::vector<TParticle>& primaries)
   {
     Reset();
     for (auto p : primaries) {
       Int_t doTrack = 0;
-      if (p.TestBit(ParticleStatus::kToBeDone)) doTrack = 1;
+      if (p.TestBit(ParticleStatus::kToBeDone))
+        doTrack = 1;
       PushTrack(doTrack, p);
     }
     mNumberOfPrimaryParticles = primaries.size();
     mNumberOfEntriesInParticles = mNumberOfPrimaryParticles;
   }
-  
+
   void setExternalMode(bool m) { mIsExternalMode = m; }
 
   /// Allow to query the **direct** mother track ID of an arbitrary trackID managed by stack
@@ -249,14 +254,14 @@ class Stack : public FairGenericStack
   std::vector<o2::base::Detector*> mActiveDetectors; //!
 
   /// Some indices and counters
-  Int_t mIndexOfCurrentTrack;           //! Global index of current track
-  Int_t mIndexOfCurrentPrimary;         //! Global index of current primry
-  Int_t mNumberOfPrimaryParticles;      //! Number of primary particles
-  Int_t mNumberOfEntriesInParticles;    //! Number of entries in mParticles
-  Int_t mNumberOfEntriesInTracks;       //! Number of entries in mTracks
-  Int_t mNumberOfPrimariesforTracking;  //! Number of primaries for tracking (ie without shirtlived particles and partons)
-  Int_t mNumberOfPrimariesPopped;       //! Number of primaries popped from stack
-  Int_t mIndex;                         //! Used for merging
+  Int_t mIndexOfCurrentTrack;          //! Global index of current track
+  Int_t mIndexOfCurrentPrimary;        //! Global index of current primry
+  Int_t mNumberOfPrimaryParticles;     //! Number of primary particles
+  Int_t mNumberOfEntriesInParticles;   //! Number of entries in mParticles
+  Int_t mNumberOfEntriesInTracks;      //! Number of entries in mTracks
+  Int_t mNumberOfPrimariesforTracking; //! Number of primaries for tracking (ie without shirtlived particles and partons)
+  Int_t mNumberOfPrimariesPopped;      //! Number of primaries popped from stack
+  Int_t mIndex;                        //! Used for merging
 
   /// Variables defining the criteria for output selection
   Bool_t mStoreMothers;
@@ -298,7 +303,7 @@ class Stack : public FairGenericStack
   Stack(const Stack&);
 
   Stack& operator=(const Stack&);
- 
+
   /// Increment number of hits for an arbitrary track in a given detector
   /// \param iDet    Detector unique identifier
   /// \param iTrack  Track number

@@ -27,7 +27,7 @@
 #include "TParticle.h"      // for TParticle
 #include "TRefArray.h"      // for TRefArray
 #include "TVirtualMC.h"     // for VMC
-#include "TMCProcess.h"    // for VMC Particle Production Process
+#include "TMCProcess.h"     // for VMC Particle Production Process
 
 #include <algorithm>
 #include <cassert>
@@ -156,14 +156,14 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
 
   //
   // This method is called
-  // 
+  //
   // - during serial   simulation directly from the event generator
-  // - during parallel simulation to fill the stack of the primary generator device 
+  // - during parallel simulation to fill the stack of the primary generator device
   // - in all cases to push a secondary particle
   //
   //
   // Create new TParticle and add it to the TParticle array
- 
+
   Int_t trackId = mNumberOfEntriesInParticles;
   // Set track variable
   ntr = trackId;
@@ -176,36 +176,34 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
   p.SetUniqueID(proc); // using the unique ID to transfer process ID
   mNumberOfEntriesInParticles++;
 
-  
   insertInVector(mTrackIDtoParticlesEntry, trackId, (int)(mParticles.size()));
 
-      
   // Push particle on the stack if toBeDone is set
   if (proc == kPPrimary) {
     // This is a particle from the primary particle generator
     //
     // SetBit is used to pass information about the primary particle to the stack during transport.
-    // Sime particles have already decayed or are partons from a shower. They are needed for the 
+    // Sime particles have already decayed or are partons from a shower. They are needed for the
     // event history in the stack, but not for transport.
-    // 
+    //
     mIndexMap[trackId] = trackId;
     p.SetBit(ParticleStatus::kKeep);
     p.SetBit(ParticleStatus::kPrimary);
-    if (toBeDone == 1)  {
-      p.SetBit(ParticleStatus::kToBeDone, 1); 
-      mNumberOfPrimariesforTracking++; 
+    if (toBeDone == 1) {
+      p.SetBit(ParticleStatus::kToBeDone, 1);
+      mNumberOfPrimariesforTracking++;
     } else {
-      p.SetBit(ParticleStatus::kToBeDone, 0);  
+      p.SetBit(ParticleStatus::kToBeDone, 0);
     }
     mNumberOfPrimaryParticles++;
     mPrimaryParticles.push_back(p);
     mTracks->emplace_back(p);
   } else {
     p.SetBit(ParticleStatus::kPrimary, 0);
-    if (toBeDone == 1)  {
-      p.SetBit(ParticleStatus::kToBeDone, 1); 
+    if (toBeDone == 1) {
+      p.SetBit(ParticleStatus::kToBeDone, 1);
     } else {
-      p.SetBit(ParticleStatus::kToBeDone, 0);  
+      p.SetBit(ParticleStatus::kToBeDone, 0);
     }
     mParticles.emplace_back(p);
     mCurrentParticle = p;
@@ -218,7 +216,7 @@ void Stack::PushTrack(int toBeDone, TParticle& p)
   //  printf("stack -> Pushing Primary toBeDone %5d %5d parentId %5d pdgCode %5d is %5d entries %5d \n", toBeDone, p.TestBit(ParticleStatus::kToBeDone), p.GetFirstMother(), p.GetPdgCode(), p.GetStatusCode(),  mNumberOfEntriesInParticles);
 
   // This method is called
-  // 
+  //
   // - during parallel simulation to push primary particles (called by the stack itself)
   if (p.GetUniqueID() == 0) {
     // one to one mapping for primaries
@@ -226,7 +224,8 @@ void Stack::PushTrack(int toBeDone, TParticle& p)
     mNumberOfPrimaryParticles++;
     mPrimaryParticles.push_back(p);
     // Push particle on the stack
-    if (p.TestBit(ParticleStatus::kPrimary) &&  p.TestBit(ParticleStatus::kToBeDone)) mNumberOfPrimariesforTracking++;
+    if (p.TestBit(ParticleStatus::kPrimary) && p.TestBit(ParticleStatus::kToBeDone))
+      mNumberOfPrimariesforTracking++;
     mStack.push(p);
     mTracks->emplace_back(p);
   }
@@ -271,8 +270,8 @@ TParticle* Stack::PopNextTrack(Int_t& iTrack)
 {
 
   // This functions is mainly used by Geant3?
-  Int_t nprod = (int) (mParticles.size());
-  
+  Int_t nprod = (int)(mParticles.size());
+
   // If end of stack: Return empty pointer
   if (mStack.empty()) {
     iTrack = -1;
@@ -281,7 +280,7 @@ TParticle* Stack::PopNextTrack(Int_t& iTrack)
   Bool_t found = kFALSE;
 
   TParticle* nextParticle = nullptr;
-  while(!found && !mStack.empty()) {
+  while (!found && !mStack.empty()) {
     // get next particle from stack
     mCurrentParticle = mStack.top();
     // remove particle from the top
@@ -289,27 +288,27 @@ TParticle* Stack::PopNextTrack(Int_t& iTrack)
     // test if primary to be transported
     if (mCurrentParticle.TestBit(ParticleStatus::kToBeDone)) {
       if (mCurrentParticle.TestBit(ParticleStatus::kPrimary)) {
-	// particle is primary and needs to be tracked -> indicates that previous particle finished
-	  mNumberOfPrimariesPopped++;
-	  mIndexOfCurrentPrimary = mCurrentParticle.GetStatusCode();
+        // particle is primary and needs to be tracked -> indicates that previous particle finished
+        mNumberOfPrimariesPopped++;
+        mIndexOfCurrentPrimary = mCurrentParticle.GetStatusCode();
       } else {
-	//printf("........ it's a secondary \n");
+        //printf("........ it's a secondary \n");
       }
       mIndexOfCurrentTrack = mCurrentParticle.GetStatusCode();
       iTrack = mIndexOfCurrentTrack;
-      
+
       if (o2::conf::SimCutParams::Instance().trackSeed) {
-	auto hash = getHash(mCurrentParticle);
-	// LOG(INFO) << "SEEDING NEW TRACK USING HASH" << hash;
-	// init seed per track
-	gRandom->SetSeed(hash);
-	
-	// NOTE: THE BETTER PLACE WOULD BE IN PRETRACK HOOK BUT THIS DOES NOT SEEM TO WORK
-	// WORKS ONLY WITH G3 SINCE G4 DOES NOT CALL THIS FUNCTION
+        auto hash = getHash(mCurrentParticle);
+        // LOG(INFO) << "SEEDING NEW TRACK USING HASH" << hash;
+        // init seed per track
+        gRandom->SetSeed(hash);
+
+        // NOTE: THE BETTER PLACE WOULD BE IN PRETRACK HOOK BUT THIS DOES NOT SEEM TO WORK
+        // WORKS ONLY WITH G3 SINCE G4 DOES NOT CALL THIS FUNCTION
       } // .trackSeed ?
-      nextParticle =  &mCurrentParticle;
+      nextParticle = &mCurrentParticle;
       found = kTRUE;
-    }  else {
+    } else {
       iTrack = -1;
       nextParticle = nullptr;
     }
@@ -331,7 +330,7 @@ TParticle* Stack::PopPrimaryForTracking(Int_t iPrim)
   }
   // Return the iPrim-th TParticle from the fParticle array. This should be
   // a primary.
-  auto particle =  &mPrimaryParticles[iPrim];
+  auto particle = &mPrimaryParticles[iPrim];
   if (particle->TestBit(ParticleStatus::kToBeDone)) {
     return particle;
   } else {
@@ -363,7 +362,6 @@ void Stack::FinishPrimary()
   LOG(DEBUG) << "Finish primary hook " << mPrimariesDone;
   // preserve particles and theire ancestors that produced hits
 
-  
   auto selected = selectTracks();
 
   // loop over current particle buffer
@@ -373,13 +371,13 @@ void Stack::FinishPrimary()
   int indexNew = 0;
   int indexoffset = mTracks->size();
   int neglected = 0;
-  std::vector<int>     indicesKept((int)(mParticles.size())) ;
+  std::vector<int> indicesKept((int)(mParticles.size()));
   std::vector<MCTrack> tmpTracks;
   Int_t ic = 0;
 
   // mTrackIDtoParticlesEntry
   // trackID to mTrack -> index in mParticles
-  // 
+  //
   // indicesKept
   // index in mParticles -> index in mTrack - highWaterMark
   //
@@ -387,18 +385,17 @@ void Stack::FinishPrimary()
   // old (mTrack-highWaterMark) -> new (mTrack-highWaterMark)
   //
 
-
   for (auto& particle : mParticles) {
     if (particle.getStore() || !mPruneKinematics) {
       // map the global track index to the new persistent index
       auto imother = particle.getMotherTrackId();
       // here mother is relative to the mParticles array
       if (imother >= 0) {
-	// daughter of a secondary: obtain index from lookup table
-       	imother = indicesKept[imother];
-	particle.SetMotherTrackId(imother);
-      } 
-      // at this point we have the correct mother index in mParticles or 
+        // daughter of a secondary: obtain index from lookup table
+        imother = indicesKept[imother];
+        particle.SetMotherTrackId(imother);
+      }
+      // at this point we have the correct mother index in mParticles or
       // a negative one which is a pointer to a primary
       tmpTracks.emplace_back(particle);
       indicesKept[indexOld] = indexNew;
@@ -412,12 +409,11 @@ void Stack::FinishPrimary()
   }
   Int_t ntr = (int)(tmpTracks.size());
   std::vector<int> reOrderedIndices(ntr);
-  std::vector<int> invreOrderedIndices(ntr); 
+  std::vector<int> invreOrderedIndices(ntr);
   for (Int_t i = 0; i < ntr; i++) {
     invreOrderedIndices[i] = i;
-    reOrderedIndices[i]    = i;
+    reOrderedIndices[i] = i;
   }
-  
 
   if (mIsG4Like) {
     ReorderKine(tmpTracks, reOrderedIndices);
@@ -425,38 +421,37 @@ void Stack::FinishPrimary()
       Int_t index = reOrderedIndices[i];
       invreOrderedIndices[index] = i;
     }
-  }    
+  }
   for (Int_t i = 0; i < ntr; i++) {
     Int_t index = reOrderedIndices[i];
     auto& particle = tmpTracks[index];
     Int_t imo = particle.getMotherTrackId();
     Int_t imo0 = imo;
-    if (imo >= 0) { 
+    if (imo >= 0) {
       imo = invreOrderedIndices[imo];
-    } 
-    imo+=indexoffset;
+    }
+    imo += indexoffset;
     particle.SetMotherTrackId(imo);
     mTracks->emplace_back(particle);
     auto& mother = mTracks->at(imo);
     if (mother.getFirstDaughterTrackId() == -1) {
-      mother.SetFirstDaughterTrackId((int)(mTracks->size())-1);
+      mother.SetFirstDaughterTrackId((int)(mTracks->size()) - 1);
     }
-    mother.SetLastDaughterTrackId((int)(mTracks->size())-1);
+    mother.SetLastDaughterTrackId((int)(mTracks->size()) - 1);
   }
-
-
 
   //
   // Update index map
   //
-  Int_t imax =  mNumberOfEntriesInParticles;
-  Int_t imin = imax-mParticles.size();
+  Int_t imax = mNumberOfEntriesInParticles;
+  Int_t imin = imax - mParticles.size();
   for (Int_t idTrack = imin; idTrack < imax; idTrack++) {
     Int_t index1 = mTrackIDtoParticlesEntry[idTrack];
     Int_t index2 = indicesKept[index1];
-    if (index2 == -1) continue;
-    Int_t index3 = (mIsG4Like)? invreOrderedIndices[index2] : index2;
-    mIndexMap[idTrack]= index3 + indexoffset;
+    if (index2 == -1)
+      continue;
+    Int_t index3 = (mIsG4Like) ? invreOrderedIndices[index2] : index2;
+    mIndexMap[idTrack] = index3 + indexoffset;
   }
 
   // we can now clear the particles buffer!
@@ -588,7 +583,8 @@ void Stack::Print(Option_t* option) const
   Print(verbose);
 }
 
-void Stack::addHit(int iDet) {
+void Stack::addHit(int iDet)
+{
   if (mIndexOfCurrentTrack < mNumberOfPrimaryParticles) {
     auto& part = mTracks->at(mIndexOfCurrentTrack);
     part.setHit(iDet);
@@ -626,11 +622,11 @@ bool Stack::selectTracks()
   for (auto& thisPart : mParticles) {
     Bool_t store = kTRUE;
     // Get track parameters
-    Bool_t isPrimary        = (thisPart.getProcess() == 0);
-    Int_t  iMother          = thisPart.getMotherTrackId(); 
-    auto&  mother           = mParticles[iMother];
-    Bool_t motherIsPrimary  = (iMother < mNumberOfPrimaryParticles);
-    
+    Bool_t isPrimary = (thisPart.getProcess() == 0);
+    Int_t iMother = thisPart.getMotherTrackId();
+    auto& mother = mParticles[iMother];
+    Bool_t motherIsPrimary = (iMother < mNumberOfPrimaryParticles);
+
     if (isPrimary) {
       prim++;
       // for primaries we are done quickly
@@ -639,12 +635,12 @@ bool Stack::selectTracks()
       store = kTRUE;
     } else {
       // for other particles we potentially need to correct the mother indices
-      if (!motherIsPrimary) { 
-	// the mapping is from the index in the stack to the index in mParticles
-	thisPart.SetMotherTrackId(mTrackIDtoParticlesEntry[iMother]);
+      if (!motherIsPrimary) {
+        // the mapping is from the index in the stack to the index in mParticles
+        thisPart.SetMotherTrackId(mTrackIDtoParticlesEntry[iMother]);
       } else {
-	// for a secondary which is a direct decendant of a primary use a negative index which will be restored later 
-	thisPart.SetMotherTrackId(iMother - (int)(mTracks->size()));
+        // for a secondary which is a direct decendant of a primary use a negative index which will be restored later
+        thisPart.SetMotherTrackId(iMother - (int)(mTracks->size()));
       }
       // no secondaries; also done
       if (!mStoreSecondaries) {
@@ -668,18 +664,18 @@ bool Stack::selectTracks()
             store = kFALSE;
             tracksdiscarded = true;
           }
-	}
-	if (keepPhysics(thisPart)) {
-	  store = kTRUE;
-	  tracksdiscarded = false;
-	}
+        }
+        if (keepPhysics(thisPart)) {
+          store = kTRUE;
+          tracksdiscarded = false;
+        }
       }
     }
     thisPart.setStore(store);
   }
 
   // If flag is set, flag recursively mothers of selected tracks
-  // 
+  //
   if (mStoreMothers) {
     for (auto& particle : mParticles) {
       if (particle.getStore()) {
@@ -689,8 +685,8 @@ bool Stack::selectTracks()
           mother.setStore(true);
           iMother = mother.getMotherTrackId();
         } // while mother
-      } // store ?
-    } // particle loop
+      }   // store ?
+    }     // particle loop
   }
 
   return !tracksdiscarded;
@@ -803,7 +799,7 @@ void Stack::ReorderKine(std::vector<MCTrack>& particles, std::vector<int>& reOrd
   // This has the advantage that their position in the stack can be identified by two number,
   // for example the index of the first and last descentant.
   // The result of the ordering is returned via the look-up table reOrderedIndices
-  // 
+  //
 
   Int_t ntr = (int)(particles.size());
   std::vector<bool> done(ntr, false);
@@ -811,34 +807,34 @@ void Stack::ReorderKine(std::vector<MCTrack>& particles, std::vector<int>& reOrd
   int indexoffset = mTracks->size();
   Int_t index = 0;
   Int_t imoOld = 0;
-  for (Int_t i = 0; i < ntr; i++) reOrderedIndices[i] = i;
+  for (Int_t i = 0; i < ntr; i++)
+    reOrderedIndices[i] = i;
 
   for (Int_t i = -1; i < ntr; i++) {
     if (i != -1) {
       // secondaries
       if (!done[i]) {
-	reOrderedIndices[index] = i;
-	index++;
-	done[i] = true; 
+        reOrderedIndices[index] = i;
+        index++;
+        done[i] = true;
       }
       imoOld = i;
     } else {
       // current primary
       imoOld = mIndexOfCurrentPrimary - indexoffset;
     }
-    for (Int_t j = i+1; j < ntr; j++) {
+    for (Int_t j = i + 1; j < ntr; j++) {
       if (!done[j]) {
-	if ((particles[j]).getMotherTrackId() == imoOld) {
-	  reOrderedIndices[index] = j;
-	  index++;
-	  done[j] = true;
-	} // child found
-      } // done 
-    } // j
-  } // i
+        if ((particles[j]).getMotherTrackId() == imoOld) {
+          reOrderedIndices[index] = j;
+          index++;
+          done[j] = true;
+        } // child found
+      }   // done
+    }     // j
+  }       // i
 }
 
 FairGenericStack* Stack::CloneStack() const { return new o2::data::Stack(*this); }
-
 
 ClassImp(o2::data::Stack);
