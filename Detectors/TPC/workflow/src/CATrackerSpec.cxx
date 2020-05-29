@@ -624,6 +624,28 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clustersMCBuffer, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
         ptrs.clusters = &clusterIndex;
       }
+      // a byte size resizable vector object, the DataAllocator returns reference to internal object
+      // initialize optional pointer to the vector object
+      using ClusterOutputChunkType = std::decay_t<decltype(pc.outputs().make<std::vector<char>>(Output{"", "", 0}))>;
+      ClusterOutputChunkType* clusterOutput = nullptr;
+      o2::tpc::TPCSectorHeader clusterOutputSectorHeader{0};
+      if (processAttributes->clusterOutputIds.size() > 0) {
+        if (activeSectors == 0) {
+          // there is no sector header shipped with the ZS raw data and thus we do not have
+          // a valid activeSector variable, though it will be needed downstream
+          // FIXME: check if this can be provided upstream
+          for (auto const& sector : processAttributes->clusterOutputIds) {
+            activeSectors |= 0x1 << sector;
+          }
+        }
+        clusterOutputSectorHeader.sectorBits = activeSectors;
+        // subspecs [0, NSectors - 1] are used to identify sector data, we use NSectors
+        // to indicate the full TPC
+        o2::header::DataHeader::SubSpecificationType subspec = NSectors;
+        clusterOutputSectorHeader.activeSectors = activeSectors;
+        clusterOutput = &pc.outputs().make<std::vector<char>>({gDataOriginTPC, "CLUSTERNATIVE", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}});
+      }
+
       GPUInterfaceOutputs outputRegions;
       size_t bufferSize = 2048ul * 1024 * 1024; // TODO: Just allocated some large buffer for now, should estimate this correctly;
       auto* bufferCompressedClusters = doOutputCompressedClustersFlat ? &pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, bufferSize) : nullptr;
@@ -673,25 +695,12 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       if (processAttributes->clusterOutputIds.size() > 0 && ptrs.clusters == nullptr) {
         throw std::logic_error("No cluster index object provided by GPU processor");
       }
-      if (processAttributes->clusterOutputIds.size() > 0 && activeSectors == 0) {
-        // there is no sector header shipped with the ZS raw data and thus we do not have
-        // a valid activeSector variable, though it will be needed downstream
-        // FIXME: check if this can be provided upstream
-        for (auto const& sector : processAttributes->clusterOutputIds) {
-          activeSectors |= 0x1 << sector;
-        }
-      }
       // previously, clusters have been published individually for the enabled sectors
       // clusters are now published as one block, subspec is NSectors
-      if (processAttributes->clusterOutputIds.size() > 0) {
-        o2::tpc::TPCSectorHeader header{0};
-        header.sectorBits = activeSectors;
-        // subspecs [0, NSectors - 1] are used to identify sector data, we use NSectors
-        // to indicate the full TPC
+      if (clusterOutput != nullptr) {
         o2::header::DataHeader::SubSpecificationType subspec = NSectors;
-        header.activeSectors = activeSectors;
         // doing a copy for now, in the future the tracker uses the output buffer directly
-        auto& target = pc.outputs().make<std::vector<char>>({gDataOriginTPC, "CLUSTERNATIVE", subspec, Lifetime::Timeframe, {header}});
+        auto& target = *clusterOutput;
         ClusterNativeAccess const& accessIndex = *ptrs.clusters;
         size_t outputSize = accessIndex.nClustersTotal * sizeof(ClusterNative) + sizeof(ClusterCountIndex);
         target.resize(outputSize);
@@ -701,7 +710,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         memcpy(outIndex, &accessIndex.nClusters[0][0], sizeof(ClusterCountIndex));
         memcpy(outClusters, accessIndex.clustersLinear, accessIndex.nClustersTotal * sizeof(ClusterNative));
         if (pc.outputs().isAllowed({gDataOriginTPC, "CLNATIVEMCLBL", subspec}) && accessIndex.clustersMCTruth) {
-          pc.outputs().snapshot({gDataOriginTPC, "CLNATIVEMCLBL", subspec, Lifetime::Timeframe, {header}}, *accessIndex.clustersMCTruth);
+          pc.outputs().snapshot({gDataOriginTPC, "CLNATIVEMCLBL", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}}, *accessIndex.clustersMCTruth);
         }
       }
 
