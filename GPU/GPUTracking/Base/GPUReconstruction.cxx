@@ -450,7 +450,13 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
     }
     if ((!IsGPU() || (res->mType & GPUMemoryResource::MEMORY_HOST) || mDeviceProcessingSettings.keepDisplayMemory) && !(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) { // keepAllMemory --> keepDisplayMemory
       if (control && control->OutputType == GPUOutputControl::UseExternalBuffer) {
-        res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->OutputPtr, control->OutputBase, control->OutputMaxSize, &GPUMemoryResource::SetPointers);
+        if (control->OutputAllocator) {
+          res->mSize = std::max((size_t)res->SetPointers((void*)1) - 1, res->mOverrideSize);
+          res->mPtr = control->OutputAllocator(res->mSize);
+          res->SetPointers(res->mPtr);
+        } else {
+          res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->OutputPtr, control->OutputBase, control->OutputMaxSize, &GPUMemoryResource::SetPointers);
+        }
       } else {
         res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, mHostMemoryPool, mHostMemoryBase, mHostMemorySize, &GPUMemoryResource::SetPointers);
       }

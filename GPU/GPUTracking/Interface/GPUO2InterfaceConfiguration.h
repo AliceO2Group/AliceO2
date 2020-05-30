@@ -27,6 +27,7 @@
 #include <memory>
 #include <array>
 #include <vector>
+#include <functional>
 #include <gsl/gsl>
 #include "GPUSettings.h"
 #include "GPUDisplayConfig.h"
@@ -50,9 +51,11 @@ class TPCFastTransform;
 // Since DPL does not respect the alignment of data types, we do not impose anything specic but just use a char data type, but it should be >= 64 bytes ideally.
 // The size defines the maximum possible buffer size when GPUReconstruction is called, and returns the number of filled bytes when it returns.
 // If ptr == nullptr, there is no region defined and GPUReconstruction will write its output to an internal buffer.
+// If allocator is set, it is called as a callback to provide a ptr to the memory.
 struct GPUInterfaceOutputRegion {
   void* ptr = nullptr;
   size_t size = 0;
+  std::function<void*(size_t)> allocator = nullptr;
 };
 
 struct GPUInterfaceOutputs {
