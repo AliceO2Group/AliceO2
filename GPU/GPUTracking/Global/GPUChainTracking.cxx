@@ -66,7 +66,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 using namespace o2::trd;
 
-GPUChainTracking::GPUChainTracking(GPUReconstruction* rec, unsigned int maxTPCHits, unsigned int maxTRDTracklets) : GPUChain(rec), mIOPtrs(processors()->ioPtrs), mInputsHost(new GPUCA_NEW_ALIGNMENT GPUTrackingInputProvider), mInputsShadow(new GPUCA_NEW_ALIGNMENT GPUTrackingInputProvider), mClusterNativeAccess(new GPUCA_NEW_ALIGNMENT ClusterNativeAccess), mMaxTPCHits(maxTPCHits), mMaxTRDTracklets(maxTRDTracklets)
+GPUChainTracking::GPUChainTracking(GPUReconstruction* rec, unsigned int maxTPCHits, unsigned int maxTRDTracklets) : GPUChain(rec), mIOPtrs(processors()->ioPtrs), mInputsHost(new GPUTrackingInputProvider), mInputsShadow(new GPUTrackingInputProvider), mClusterNativeAccess(new ClusterNativeAccess), mMaxTPCHits(maxTPCHits), mMaxTRDTracklets(maxTRDTracklets)
 {
   ClearIOPointers();
   mFlatObjectsShadow.mChainTracking = this;
@@ -282,10 +282,10 @@ int GPUChainTracking::Init()
   }
 
   if (GPUQA::QAAvailable() && (GetDeviceProcessingSettings().runQA || GetDeviceProcessingSettings().eventDisplay)) {
-    mQA.reset(new GPUCA_NEW_ALIGNMENT GPUQA(this));
+    mQA.reset(new GPUQA(this));
   }
   if (GetDeviceProcessingSettings().eventDisplay) {
-    mEventDisplay.reset(new GPUCA_NEW_ALIGNMENT GPUDisplay(GetDeviceProcessingSettings().eventDisplay, this, mQA.get()));
+    mEventDisplay.reset(new GPUDisplay(GetDeviceProcessingSettings().eventDisplay, this, mQA.get()));
   }
 
   if (mOutputCompressedClusters == nullptr) {
@@ -688,9 +688,9 @@ void GPUChainTracking::ConvertRun2RawToNative()
 void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
 {
 #ifdef HAVE_O2HEADERS
-  mTPCZSSizes.reset(new GPUCA_NEW_ALIGNMENT unsigned int[NSLICES * GPUTrackingInOutZS::NENDPOINTS]);
-  mTPCZSPtrs.reset(new GPUCA_NEW_ALIGNMENT void*[NSLICES * GPUTrackingInOutZS::NENDPOINTS]);
-  mTPCZS.reset(new GPUCA_NEW_ALIGNMENT GPUTrackingInOutZS);
+  mTPCZSSizes.reset(new unsigned int[NSLICES * GPUTrackingInOutZS::NENDPOINTS]);
+  mTPCZSPtrs.reset(new void*[NSLICES * GPUTrackingInOutZS::NENDPOINTS]);
+  mTPCZS.reset(new GPUTrackingInOutZS);
   GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(*mIOPtrs.tpcPackedDigits, &mTPCZSBuffer, mTPCZSSizes.get(), nullptr, nullptr, param(), zs12bit, true);
   GPUReconstructionConvert::RunZSEncoderCreateMeta(mTPCZSBuffer.get(), mTPCZSSizes.get(), mTPCZSPtrs.get(), mTPCZS.get());
   mIOPtrs.tpcZS = mTPCZS.get();
@@ -793,7 +793,7 @@ void GPUChainTracking::ForwardTPCDigits()
       }
     }
   }
-  mIOMem.clustersNative.reset(new GPUCA_NEW_ALIGNMENT ClusterNative[nTotal]);
+  mIOMem.clustersNative.reset(new ClusterNative[nTotal]);
   nTotal = 0;
   mClusterNativeAccess->clustersLinear = mIOMem.clustersNative.get();
   for (int i = 0; i < NSLICES; i++) {
@@ -2040,7 +2040,7 @@ int GPUChainTracking::DoTRDGPUTracking()
 int GPUChainTracking::RunChain()
 {
   if (GetDeviceProcessingSettings().runCompressionStatistics && mCompressionStatistics == nullptr) {
-    mCompressionStatistics.reset(new GPUCA_NEW_ALIGNMENT GPUTPCClusterStatistics);
+    mCompressionStatistics.reset(new GPUTPCClusterStatistics);
   }
   const bool needQA = GPUQA::QAAvailable() && (GetDeviceProcessingSettings().runQA || (GetDeviceProcessingSettings().eventDisplay && mIOPtrs.nMCInfosTPC));
   if (needQA && mQA->IsInitialized() == false) {
