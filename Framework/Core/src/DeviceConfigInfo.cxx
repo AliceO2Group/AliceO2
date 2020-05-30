@@ -33,6 +33,9 @@ bool DeviceConfigHelper::parseConfig(std::string_view s, ParsedConfigMatch& matc
   if (s.size() > 17 && (strncmp("[CONFIG] ", begin + 17, 9) != 0)) {
     return false;
   }
+  if (s.size() < 17 + 9) {
+    return false;
+  }
   match.beginKey = s.data() + 9 + 17;
   match.endKey = (char const*)memchr(match.beginKey, '=', s.size() - 9);
   if (match.endKey == nullptr) {
