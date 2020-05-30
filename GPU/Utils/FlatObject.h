@@ -200,9 +200,6 @@ class FlatObject
   ///
   void finishConstruction(int flatBufferSize);
 
-  /// Set the object to NotConstructed state, release the buffer
-  void destroy();
-
 /// Initializes from another object, copies data to newBufferPtr
 /// When newBufferPtr==nullptr, an internal container will be created, the data will be copied there.
 /// A daughter class should relocate pointers inside the buffer.
@@ -246,6 +243,9 @@ class FlatObject
   /// _______________  Utilities  _______________________________________________
 
  public:
+  /// Set the object to NotConstructed state, release the buffer
+  void destroy();
+
   /// Gives size of the flat buffer
   size_t getFlatBufferSize() const { return mFlatBufferSize; }
 

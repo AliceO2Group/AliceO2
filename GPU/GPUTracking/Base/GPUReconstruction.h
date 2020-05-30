@@ -533,8 +533,9 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
     GPUError("ERROR reading %s, invalid size: %lld (%lld expected)", file, (long long int)size[0], (long long int)sizeof(T));
     throw std::runtime_error("invalid size");
   }
-  std::unique_ptr<T> retVal(new GPUCA_NEW_ALIGNMENT T);
-  char* buf = new GPUCA_NEW_ALIGNMENT char[size[1]]; // Not deleted as ownership is transferred to FlatObject
+  std::unique_ptr<T> retVal(new T);
+  retVal->destroy();
+  char* buf = new char[size[1]]; // Not deleted as ownership is transferred to FlatObject
   r = fread((void*)retVal.get(), 1, size[0], fp);
   r = fread(buf, 1, size[1], fp);
   fclose(fp);
