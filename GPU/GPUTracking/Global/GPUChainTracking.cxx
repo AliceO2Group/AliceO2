@@ -291,6 +291,9 @@ int GPUChainTracking::Init()
   if (mOutputCompressedClusters == nullptr) {
     mOutputCompressedClusters = &mRec->OutputControl();
   }
+  if (mOutputClustersNative == nullptr) {
+    mOutputClustersNative = &mRec->OutputControl();
+  }
 
   if (mRec->IsGPU()) {
     if (processors()->calibObjects.fastTransform) {
@@ -962,7 +965,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     buildNativeGPU = true;
   }
   if (mRec->GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCClusters) { // TODO: Should do this also when clusters are needed for later steps on the host but not requested as output
-    AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput);
+    AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, mOutputClustersNative);
     buildNativeHost = true;
   }
 
