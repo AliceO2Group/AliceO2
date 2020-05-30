@@ -2102,20 +2102,20 @@ int GPUChainTracking::RunChain()
   }
 
   if (GetDeviceProcessingSettings().debugLevel >= 0) {
-    printf("Prepare Time: %'d us\n", (int)(1000000 * timerPrepare.GetElapsedTime()));
-    printf("Tracking Time: %'d us\n", (int)(1000000 * timerTracking.GetElapsedTime()));
-    printf("Merging and Refit Time: %'d us\n", (int)(1000000 * timerMerger.GetElapsedTime()));
-    if (GetDeviceProcessingSettings().runQA) {
-      printf("QA Time: %'d us\n", (int)(1000000 * timerQA.GetElapsedTime()));
-    }
-    if (mIOPtrs.tpcPackedDigits) {
-      printf("TPC Clusterizer Time: %'d us\n", (int)(1000000 * timerClusterer.GetElapsedTime()));
+    printf("%25s: %'10d us\n", "Prepare Time", (int)(1000000 * timerPrepare.GetElapsedTime()));
+    if (mIOPtrs.tpcPackedDigits || mIOPtrs.tpcZS) {
+      printf("%25s: %'10d us\n", "TPC Clusterizer Time", (int)(1000000 * timerClusterer.GetElapsedTime()));
     }
     if (mIOPtrs.clustersNative) {
-      printf("TPC Transformation Time: %'d us\n", (int)(1000000 * timerTransform.GetElapsedTime()));
+      printf("%25s: %'10d us\n", "TPC Transformation Time", (int)(1000000 * timerTransform.GetElapsedTime()));
     }
+    printf("%25s: %'10d us\n", "Tracking Time", (int)(1000000 * timerTracking.GetElapsedTime()));
+    printf("%25s: %'10d us\n", "Merging and Refit Time", (int)(1000000 * timerMerger.GetElapsedTime()));
     if (mIOPtrs.clustersNative && GetRecoSteps() & RecoStep::TPCCompression) {
-      printf("TPC Compression Time: %'d us\n", (int)(1000000 * timerCompression.GetElapsedTime()));
+      printf("%25s: %'10d us\n", "TPC Compression Time", (int)(1000000 * timerCompression.GetElapsedTime()));
+    }
+    if (GetDeviceProcessingSettings().runQA) {
+      printf("%25s: %'10d us\n", "QA Time", (int)(1000000 * timerQA.GetElapsedTime()));
     }
   }
 
@@ -2127,7 +2127,7 @@ int GPUChainTracking::RunChain()
         return 1;
       }
       if (GetDeviceProcessingSettings().debugLevel >= 0) {
-        printf("TRD tracking time: %'d us\n", (int)(1000000 * timer.GetCurrentElapsedTime()));
+        printf("%25s: %'10d us\n", "TRD tracking time", (int)(1000000 * timer.GetCurrentElapsedTime()));
       }
     } else {
       processors()->trdTracker.Reset();
