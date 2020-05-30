@@ -73,20 +73,21 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
   }
 
-  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
+  constexpr static size_t NSectors = Sector::MAXSECTOR;
   constexpr static size_t NEndpoints = 20; //TODO: get from mapper?
-  using ClusterGroupParser = o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>;
+  using ClusterGroupParser = o2::algorithm::ForwardParser<ClusterGroupHeader>;
   struct ProcessAttributes {
     std::bitset<NSectors> validInputs = 0;
     std::bitset<NSectors> validMcInputs = 0;
     std::unique_ptr<ClusterGroupParser> parser;
-    std::unique_ptr<o2::tpc::GPUCATracking> tracker;
-    std::unique_ptr<o2::gpu::GPUDisplayBackend> displayBackend;
+    std::unique_ptr<GPUCATracking> tracker;
+    std::unique_ptr<GPUDisplayBackend> displayBackend;
     std::unique_ptr<TPCFastTransform> fastTransform;
-    std::unique_ptr<o2::gpu::TPCdEdxCalibrationSplines> dEdxSplines;
+    std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
     int verbosity = 1;
     std::vector<int> clusterOutputIds;
     bool readyToQuit = false;
+    bool allocateOutputOnTheFly = false;
   };
 
   auto processAttributes = std::make_shared<ProcessAttributes>();
@@ -96,7 +97,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       parser = std::make_unique<ClusterGroupParser>();
-      tracker = std::make_unique<o2::tpc::GPUCATracking>();
+      tracker = std::make_unique<GPUCATracking>();
 
       // Prepare initialization of CATracker - we parse the deprecated option string here,
       // and create the proper configuration objects for compatibility.
@@ -114,6 +115,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       GPUDisplayBackend* display = nullptr;      // Ptr to display backend (enables event display)
       bool qa = false;                           // Run the QA after tracking
       bool readTransformationFromFile = false;   // Read the TPC transformation from the file
+      bool allocateOutputOnTheFly = true;        // Provide a callback to allocate output buffer on the fly instead of preallocating
       char tpcTransformationFileName[1024] = ""; // A file with the TPC transformation
       char matBudFileName[1024] = "";            // Material budget file name
       char dEdxSplinesFile[1024] = "";           // File containing dEdx splines
@@ -196,6 +198,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       }
 
       // Create configuration object and fill settings
+      processAttributes->allocateOutputOnTheFly = allocateOutputOnTheFly;
       GPUO2InterfaceConfiguration config;
       if (useGPU) {
         config.configProcessing.deviceType = GPUDataTypes::GetDeviceType(gpuType);
@@ -330,7 +333,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "CLNATIVEMCLBL"}, Lifetime::Timeframe},
         };
         for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
-          auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
+          auto const* sectorHeader = DataRefUtils::getHeader<TPCSectorHeader*>(ref);
           if (sectorHeader == nullptr) {
             // FIXME: think about error policy
             LOG(ERROR) << "sector header missing on header stack";
@@ -373,7 +376,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       };
 
       for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
-        auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
+        auto const* sectorHeader = DataRefUtils::getHeader<TPCSectorHeader*>(ref);
         if (sectorHeader == nullptr) {
           throw std::runtime_error("sector header missing on header stack");
         }
@@ -621,7 +624,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       // initialize optional pointer to the vector object
       using ClusterOutputChunkType = std::decay_t<decltype(pc.outputs().make<std::vector<char>>(Output{"", "", 0}))>;
       ClusterOutputChunkType* clusterOutput = nullptr;
-      o2::tpc::TPCSectorHeader clusterOutputSectorHeader{0};
+      TPCSectorHeader clusterOutputSectorHeader{0};
       if (processAttributes->clusterOutputIds.size() > 0) {
         if (activeSectors == 0) {
           // there is no sector header shipped with the ZS raw data and thus we do not have
@@ -640,16 +643,24 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       }
 
       GPUInterfaceOutputs outputRegions;
-      size_t bufferSize = 2048ul * 1024 * 1024; // TODO: Just allocated some large buffer for now, should estimate this correctly;
-      auto* bufferCompressedClusters = specconfig.outputCompClustersFlat ? &pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, bufferSize) : nullptr;
-      if (specconfig.outputCompClustersFlat) {
+      // TODO: For output to preallocated buffer, just allocated some large buffer for now.
+      // This should be estimated correctly, but it is not the default for now, so it doesn't matter much.
+      size_t bufferSize = 256ul * 1024 * 1024;
+      auto* bufferCompressedClusters = !processAttributes->allocateOutputOnTheFly && specconfig.outputCompClustersFlat ? &pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, bufferSize) : nullptr;
+      if (processAttributes->allocateOutputOnTheFly && specconfig.outputCompClustersFlat) {
+        outputRegions.compressedClusters.allocator = [&bufferCompressedClusters, &pc](size_t size) -> void* {bufferCompressedClusters = &pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, size); return bufferCompressedClusters->data(); };
+      } else if (specconfig.outputCompClustersFlat) {
         outputRegions.compressedClusters.ptr = bufferCompressedClusters->data();
         outputRegions.compressedClusters.size = bufferCompressedClusters->size();
       }
       if (clusterOutput != nullptr) {
-        clusterOutput->resize(bufferSize);
-        outputRegions.clustersNative.ptr = (char*)clusterOutput->data() + sizeof(o2::tpc::ClusterCountIndex);
-        outputRegions.clustersNative.size = clusterOutput->size() * sizeof(*clusterOutput->data()) - sizeof(o2::tpc::ClusterCountIndex);
+        if (processAttributes->allocateOutputOnTheFly) {
+          outputRegions.clustersNative.allocator = [&clusterOutput, &pc](size_t size) -> void* {clusterOutput->resize(size + sizeof(ClusterCountIndex)); return (char*)clusterOutput->data() + sizeof(ClusterCountIndex); };
+        } else {
+          clusterOutput->resize(bufferSize);
+          outputRegions.clustersNative.ptr = (char*)clusterOutput->data() + sizeof(ClusterCountIndex);
+          outputRegions.clustersNative.size = clusterOutput->size() * sizeof(*clusterOutput->data()) - sizeof(ClusterCountIndex);
+        }
       }
 
       int retVal = tracker->runTracking(&ptrs, &outputRegions);
@@ -667,13 +678,6 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         }
       }
 
-      // The tracker produces a ROOT-serializable container with compressed TPC clusters
-      // It is published if the output channel for the CompClusters container is configured
-      // Example to decompress clusters
-      //#include "TPCClusterDecompressor.cxx"
-      //o2::tpc::ClusterNativeAccess clustersNativeDecoded; // Cluster native access structure as used by the tracker
-      //std::vector<o2::tpc::ClusterNative> clusterBuffer; // std::vector that will hold the actual clusters, clustersNativeDecoded will point inside here
-      //mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param); // Run decompressor
       if (ptrs.compressedClusters != nullptr) {
         if (specconfig.outputCompClustersFlat) {
           if ((void*)ptrs.compressedClusters != (void*)bufferCompressedClusters->data()) {
@@ -682,8 +686,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           bufferCompressedClusters->resize(outputRegions.compressedClusters.size);
         }
         if (specconfig.outputCompClusters) {
-          o2::tpc::CompressedClustersROOT compressedClusters = *ptrs.compressedClusters;
-          pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<o2::tpc::CompressedClustersROOT const>(compressedClusters));
+          CompressedClustersROOT compressedClusters = *ptrs.compressedClusters;
+          pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<CompressedClustersROOT const>(compressedClusters));
         }
       } else {
         LOG(ERROR) << "unable to get compressed cluster info from track";
@@ -696,10 +700,10 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       // previously, clusters have been published individually for the enabled sectors
       // clusters are now published as one block, subspec is NSectors
       if (clusterOutput != nullptr) {
-        if ((void*)ptrs.clusters->clustersLinear != (void*)((char*)clusterOutput->data() + sizeof(o2::tpc::ClusterCountIndex))) {
+        if ((void*)ptrs.clusters->clustersLinear != (void*)((char*)clusterOutput->data() + sizeof(ClusterCountIndex))) {
           throw std::runtime_error("cluster native output ptrs out of sync"); // sanity check
         }
-        clusterOutput->resize(sizeof(o2::tpc::ClusterCountIndex) + outputRegions.clustersNative.size);
+        clusterOutput->resize(sizeof(ClusterCountIndex) + outputRegions.clustersNative.size);
 
         o2::header::DataHeader::SubSpecificationType subspec = NSectors;
         // doing a copy for now, in the future the tracker uses the output buffer directly
