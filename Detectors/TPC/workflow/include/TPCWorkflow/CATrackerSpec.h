@@ -46,6 +46,7 @@ enum struct Operation {
 /// the processor spec. The struct is initialized by a variable list of
 /// constructor arguments.
 struct Config {
+  Config(const Config&) = default;
   template <typename... Args>
   Config(Args&&... args)
   {
@@ -89,6 +90,9 @@ struct Config {
       init(std::forward<Args>(args)...);
     }
   }
+
+  // Cannot specialize constructor to create proper copy constructor directly --> must overload init
+  void init(const Config& x) { *this = x; }
 
   bool caClusterer = false;
   bool zsDecoder = false;
