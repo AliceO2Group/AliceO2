@@ -49,7 +49,7 @@ constexpr const char* const GPUReconstruction::GEOMETRY_TYPE_NAMES[];
 constexpr const char* const GPUReconstruction::IOTYPENAMES[];
 constexpr GPUReconstruction::GeometryType GPUReconstruction::geometryType;
 
-GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostConstantMem(new GPUCA_NEW_ALIGNMENT GPUConstantMem), mProcessingSettings(cfg)
+GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostConstantMem(new GPUConstantMem), mProcessingSettings(cfg)
 {
   if (cfg.master) {
     if (cfg.master->mProcessingSettings.deviceType != cfg.deviceType) {
@@ -64,7 +64,7 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostCo
   mDeviceProcessingSettings.SetDefaults();
   mEventSettings.SetDefaults();
   param().SetDefaults(&mEventSettings);
-  mMemoryScalers.reset(new GPUCA_NEW_ALIGNMENT GPUMemorySizeScalers);
+  mMemoryScalers.reset(new GPUMemorySizeScalers);
   for (unsigned int i = 0; i < NSLICES; i++) {
     processors()->tpcTrackers[i].SetSlice(i); // TODO: Move to a better place
 #ifdef HAVE_O2HEADERS
@@ -83,10 +83,10 @@ GPUReconstruction::~GPUReconstruction()
 void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits)
 {
   if (trackerTraits) {
-    trackerTraits->reset(new GPUCA_NEW_ALIGNMENT o2::its::TrackerTraitsCPU);
+    trackerTraits->reset(new o2::its::TrackerTraitsCPU);
   }
   if (vertexerTraits) {
-    vertexerTraits->reset(new GPUCA_NEW_ALIGNMENT o2::its::VertexerTraits);
+    vertexerTraits->reset(new o2::its::VertexerTraits);
   }
 }
 
@@ -313,7 +313,7 @@ int GPUReconstruction::Exit()
       if (mMemoryResources[i].mReuse >= 0) {
         continue;
       }
-      operator delete(mMemoryResources[i].mPtrDevice);
+      operator delete(mMemoryResources[i].mPtrDevice GPUCA_OPERATOR_NEW_ALIGNMENT);
       mMemoryResources[i].mPtr = mMemoryResources[i].mPtrDevice = nullptr;
     }
   }
@@ -425,7 +425,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
   } else if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && (control == nullptr || control->OutputType == GPUOutputControl::AllocateInternal)) {
     if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
       if (res->mPtrDevice && res->mReuse < 0) {
-        operator delete(res->mPtrDevice);
+        operator delete(res->mPtrDevice GPUCA_OPERATOR_NEW_ALIGNMENT);
       }
       res->mSize = std::max((size_t)res->SetPointers((void*)1) - 1, res->mOverrideSize);
       if (res->mReuse >= 0) {
@@ -549,7 +549,7 @@ void GPUReconstruction::FreeRegisteredMemory(short ires)
     std::cout << "Freeing " << res->mName << ": size " << res->mSize << " (reused " << res->mReuse << ")\n";
   }
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && res->mReuse < 0) {
-    operator delete(res->mPtrDevice);
+    operator delete(res->mPtrDevice GPUCA_OPERATOR_NEW_ALIGNMENT);
   }
   res->mPtr = nullptr;
   res->mPtrDevice = nullptr;
