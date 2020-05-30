@@ -135,8 +135,8 @@ class ClusterNativeHelper
   ClusterNativeHelper() = default;
   ~ClusterNativeHelper() = default;
 
-  constexpr static unsigned int NSectors = o2::tpc::Constants::MAXSECTOR;
-  constexpr static unsigned int NPadRows = o2::tpc::Constants::MAXGLOBALPADROW;
+  constexpr static unsigned int NSectors = Constants::MAXSECTOR;
+  constexpr static unsigned int NPadRows = Constants::MAXGLOBALPADROW;
 
   /// convert clusters stored in binary cluster native format to a tree and write to root file
   /// the cluster parameters are stored in the tree together with sector and padrow numbers.
@@ -354,11 +354,11 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
   }
   memset(&clusterIndex, 0, sizeof(clusterIndex));
   if (inputs.size() == 1) {
-    if (inputs[0].size() >= sizeof(o2::tpc::ClusterCountIndex)) {
+    if (inputs[0].size() >= sizeof(ClusterCountIndex)) {
       // there is only one data block and we can set the index directly from it
-      const o2::tpc::ClusterCountIndex* hdr = reinterpret_cast<o2::tpc::ClusterCountIndex const*>(inputs[0].data());
+      const ClusterCountIndex* hdr = reinterpret_cast<ClusterCountIndex const*>(inputs[0].data());
       memcpy((void*)&clusterIndex.nClusters[0][0], hdr, sizeof(*hdr));
-      clusterIndex.clustersLinear = reinterpret_cast<const o2::tpc::ClusterNative*>(inputs[0].data() + sizeof(*hdr));
+      clusterIndex.clustersLinear = reinterpret_cast<const ClusterNative*>(inputs[0].data() + sizeof(*hdr));
       clusterIndex.setOffsetPtrs();
       if (mcinputs.size() > 0) {
         clusterIndex.clustersMCTruth = mcinputs[0].get();
