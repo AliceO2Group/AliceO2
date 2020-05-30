@@ -233,7 +233,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       config.configReconstruction.tpcSigBitsWidth = 3;                                // Number of significant bits in TPC cluster width
 
       config.configInterface.dumpEvents = dump;
-      config.configInterface.outputToPreallocatedBuffers = true;
+      config.configInterface.outputToExternalBuffers = true;
 
       // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU) with this instance of GPUCATracking
       config.configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
@@ -653,6 +653,12 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         outputRegions.compressedClusters.ptr = bufferCompressedClusters->data();
         outputRegions.compressedClusters.size = bufferCompressedClusters->size();
       }
+      if (clusterOutput != nullptr) {
+        clusterOutput->resize(bufferSize);
+        outputRegions.clustersNative.ptr = (char*)clusterOutput->data() + sizeof(o2::tpc::ClusterCountIndex);
+        outputRegions.clustersNative.size = clusterOutput->size() * sizeof(*clusterOutput->data()) - sizeof(o2::tpc::ClusterCountIndex);
+      }
+
       int retVal = tracker->runTracking(&ptrs, &outputRegions);
       if (retVal != 0) {
         throw std::runtime_error("tracker returned error code " + std::to_string(retVal));
@@ -678,13 +684,12 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       if (ptrs.compressedClusters != nullptr) {
         if (doOutputCompressedClustersFlat) {
           if ((void*)ptrs.compressedClusters != (void*)bufferCompressedClusters->data()) {
-            throw std::runtime_error("output ptrs out of sync"); // sanity check
+            throw std::runtime_error("compressed cluster output ptrs out of sync"); // sanity check
           }
           bufferCompressedClusters->resize(outputRegions.compressedClusters.size);
         }
         if (doOutputCompressedClustersROOT) {
           o2::tpc::CompressedClustersROOT compressedClusters = *ptrs.compressedClusters;
-          printf("FOOOO %d\n", compressedClusters.nTracks);
           pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<o2::tpc::CompressedClustersROOT const>(compressedClusters));
         }
       } else {
@@ -698,17 +703,18 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       // previously, clusters have been published individually for the enabled sectors
       // clusters are now published as one block, subspec is NSectors
       if (clusterOutput != nullptr) {
+        if ((void*)ptrs.clusters->clustersLinear != (void*)((char*)clusterOutput->data() + sizeof(o2::tpc::ClusterCountIndex))) {
+          throw std::runtime_error("cluster native output ptrs out of sync"); // sanity check
+        }
+        clusterOutput->resize(sizeof(o2::tpc::ClusterCountIndex) + outputRegions.clustersNative.size);
+
         o2::header::DataHeader::SubSpecificationType subspec = NSectors;
         // doing a copy for now, in the future the tracker uses the output buffer directly
         auto& target = *clusterOutput;
         ClusterNativeAccess const& accessIndex = *ptrs.clusters;
-        size_t outputSize = accessIndex.nClustersTotal * sizeof(ClusterNative) + sizeof(ClusterCountIndex);
-        target.resize(outputSize);
         ClusterCountIndex* outIndex = reinterpret_cast<ClusterCountIndex*>(target.data());
-        ClusterNative* outClusters = reinterpret_cast<ClusterNative*>(target.data() + sizeof(ClusterCountIndex));
         static_assert(sizeof(ClusterCountIndex) == sizeof(accessIndex.nClusters));
         memcpy(outIndex, &accessIndex.nClusters[0][0], sizeof(ClusterCountIndex));
-        memcpy(outClusters, accessIndex.clustersLinear, accessIndex.nClustersTotal * sizeof(ClusterNative));
         if (pc.outputs().isAllowed({gDataOriginTPC, "CLNATIVEMCLBL", subspec}) && accessIndex.clustersMCTruth) {
           pc.outputs().snapshot({gDataOriginTPC, "CLNATIVEMCLBL", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}}, *accessIndex.clustersMCTruth);
         }
