@@ -196,6 +196,7 @@ class GPUReconstruction
   void ComputeReuseMax(GPUProcessor* proc);
   void PrintMemoryStatistics();
   void PrintMemoryOverview();
+  void PrintMemoryMax();
   void SetMemoryExternalInput(short res, void* ptr);
   GPUMemorySizeScalers* MemoryScalers() { return mMemoryScalers.get(); }
 
@@ -252,6 +253,7 @@ class GPUReconstruction
   void WriteConstantParams();
   virtual int ExitDevice() = 0;
   virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
+  void UpdateMaxMemoryUsed();
 
   // Management for GPU thread contexts
   class GPUThreadContext
@@ -316,11 +318,13 @@ class GPUReconstruction
   void* mHostMemoryPermanent = nullptr;   // Ptr to large host memory buffer offset by permanently allocated memory
   void* mHostMemoryPool = nullptr;        // Ptr to next free location in host memory buffer
   size_t mHostMemorySize = 0;             // Size of host memory buffer
+  size_t mHostMemoryUsedMax = 0;          // Maximum host memory size used over time
   void* mDeviceMemoryBase = nullptr;      //
   void* mDeviceMemoryPermanent = nullptr; //
   void* mDeviceMemoryPool = nullptr;      //
   size_t mDeviceMemorySize = 0;           //
   void* mVolatileMemoryStart = nullptr;   // Ptr to beginning of temporary volatile memory allocation, nullptr if uninitialized
+  size_t mDeviceMemoryUsedMax = 0;        //
 
   GPUReconstruction* mMaster = nullptr;    // Ptr to a GPUReconstruction object serving as master, sharing GPU memory, events, etc.
   std::vector<GPUReconstruction*> mSlaves; // Ptr to slave GPUReconstructions

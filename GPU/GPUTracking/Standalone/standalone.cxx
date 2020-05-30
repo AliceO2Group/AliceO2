@@ -811,6 +811,10 @@ int main(int argc, char** argv)
   }
 breakrun:
 
+  if (rec->GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
+    rec->PrintMemoryMax();
+  }
+
 #ifndef _WIN32
   if (configStandalone.qa && configStandalone.fpe) {
     fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);

@@ -475,6 +475,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
         throw std::bad_alloc();
       }
     }
+    UpdateMaxMemoryUsed();
   }
   return res->mReuse >= 0 ? 0 : res->mSize;
 }
@@ -496,6 +497,7 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
     if ((size_t)((char*)pool - (char*)base) > poolsize) {
       throw std::bad_alloc();
     }
+    UpdateMaxMemoryUsed();
     return retVal;
   }
 }
@@ -510,6 +512,7 @@ void* GPUReconstruction::AllocateVolatileDeviceMemory(size_t size)
   if ((size_t)((char*)mDeviceMemoryPool - (char*)mDeviceMemoryBase) > mDeviceMemorySize) {
     throw std::bad_alloc();
   }
+  UpdateMaxMemoryUsed();
   return retVal;
 }
 
@@ -582,6 +585,17 @@ void GPUReconstruction::ClearAllocatedMemory(bool clearOutputs)
 }
 
 static long long int ptrDiff(void* a, void* b) { return (long long int)((char*)a - (char*)b); }
+
+void GPUReconstruction::UpdateMaxMemoryUsed()
+{
+  mHostMemoryUsedMax = std::max<size_t>(mHostMemoryUsedMax, ptrDiff(mHostMemoryPool, mHostMemoryBase));
+  mDeviceMemoryUsedMax = std::max<size_t>(mDeviceMemoryUsedMax, ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase));
+}
+
+void GPUReconstruction::PrintMemoryMax()
+{
+  printf("Maximum Memory Allocation: Host %'lld / Device %'lld\n", (long long int)mHostMemoryUsedMax, (long long int)mDeviceMemoryUsedMax);
+}
 
 void GPUReconstruction::PrintMemoryOverview()
 {
