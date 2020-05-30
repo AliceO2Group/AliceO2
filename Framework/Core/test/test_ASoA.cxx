@@ -87,10 +87,10 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   pos++;
   BOOST_CHECK_EQUAL(*i, 1);
 
-  auto rowIndex = std::make_tuple(
-    ColumnDataHolder<test::X>{nullptr, table->column(0).get()},
-    ColumnDataHolder<test::Y>{nullptr, table->column(1).get()});
-  Points::iterator tests(rowIndex, {table->num_rows(), 0});
+  arrow::ChunkedArray* chunks[2] = {
+    table->column(0).get(),
+    table->column(1).get()};
+  Points::iterator tests(chunks, {table->num_rows(), 0});
   BOOST_CHECK_EQUAL(tests.x(), 0);
   BOOST_CHECK_EQUAL(tests.y(), 0);
   ++tests;

@@ -571,15 +571,16 @@ struct RowViewCore : public IP, C... {
  public:
   using policy_t = IP;
   using table_t = o2::soa::Table<C...>;
+  using all_columns = framework::pack<C...>;
   using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
   using dynamic_columns_t = framework::selected_pack<is_dynamic_t, C...>;
   using index_columns_t = framework::selected_pack<is_index_t, C...>;
   constexpr inline static bool has_index_v = !std::is_same_v<index_columns_t, framework::pack<>>;
   using external_index_columns_t = framework::selected_pack<is_external_index_t, C...>;
 
-  RowViewCore(std::tuple<ColumnDataHolder<C>...> const& columnIndex, IP&& policy)
+  RowViewCore(arrow::ChunkedArray* columnData[sizeof...(C)], IP&& policy)
     : IP{policy},
-      C(std::get<ColumnDataHolder<C>>(columnIndex).second)...
+      C(columnData[framework::has_type_at<C>(all_columns{})])...
   {
     bindIterators(persistent_columns_t{});
     bindAllDynamicColumns(dynamic_columns_t{});
@@ -769,8 +770,8 @@ class Table
     using parent_t = Parent;
     using originals = originals_pack_t<T...>;
 
-    RowViewBase(std::tuple<ColumnDataHolder<C>...> const& columnIndex, IP&& policy)
-      : RowViewCore<IP, C...>(columnIndex, std::forward<decltype(policy)>(policy))
+    RowViewBase(arrow::ChunkedArray* columnData[sizeof...(C)], IP&& policy)
+      : RowViewCore<IP, C...>(columnData, std::forward<decltype(policy)>(policy))
     {
     }
 
@@ -832,19 +833,22 @@ class Table
   using filtered_iterator = RowViewFiltered<table_t, table_t>;
   using filtered_const_iterator = RowViewFiltered<table_t, table_t>;
 
-  using column_index_t = std::tuple<ColumnDataHolder<C>...>;
-
   Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : mTable(table),
       mEnd{static_cast<uint64_t>(table->num_rows())},
       mOffset(offset)
   {
     if (mTable->num_rows() == 0) {
-      mColumnIndex = column_index_t{ColumnDataHolder<C>{nullptr, nullptr}...};
+      for (size_t ci = 0; ci < sizeof...(C); ++ci) {
+        mColumnChunks[ci] = nullptr;
+      }
       mBegin = mEnd;
     } else {
-      mColumnIndex = column_index_t{ColumnDataHolder<C>{nullptr, lookupColumn<C>()}...};
-      mBegin = unfiltered_iterator{mColumnIndex, {table->num_rows(), offset}};
+      arrow::ChunkedArray* lookups[] = {lookupColumn<C>()...};
+      for (size_t ci = 0; ci < sizeof...(C); ++ci) {
+        mColumnChunks[ci] = lookups[ci];
+      }
+      mBegin = unfiltered_iterator{mColumnChunks, {table->num_rows(), offset}};
     }
   }
 
@@ -872,7 +876,7 @@ class Table
     // is held by the table, so we are safe passing the bare pointer. If it does it
     // means that the iterator on a table is outliving the table itself, which is
     // a bad idea.
-    return filtered_iterator(mColumnIndex, {selection, mOffset});
+    return filtered_iterator(mColumnChunks, {selection, mOffset});
   }
 
   RowViewSentinel filtered_end(SelectionVector selection)
@@ -926,9 +930,8 @@ class Table
     }
   }
   std::shared_ptr<arrow::Table> mTable;
-  /// This is a cached lookup of the column index in a given
-  std::tuple<ColumnDataHolder<C>...>
-    mColumnIndex;
+  // Cached pointers to the ChunkedArray associated to a column
+  arrow::ChunkedArray* mColumnChunks[sizeof...(C)];
   /// Cached begin iterator for this table.
   unfiltered_iterator mBegin;
   /// Cached end iterator for this table.
