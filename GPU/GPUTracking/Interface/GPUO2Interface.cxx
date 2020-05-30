@@ -55,9 +55,11 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   mChain->SetdEdxSplines(mConfig->configCalib.dEdxSplines);
   mChain->SetMatLUT(mConfig->configCalib.matLUT);
   mChain->SetTRDGeometry(mConfig->configCalib.trdGeometry);
-  if (mConfig->configInterface.outputToPreallocatedBuffers) {
+  if (mConfig->configInterface.outputToExternalBuffers) {
     mOutputCompressedClusters.reset(new GPUOutputControl);
     mChain->SetOutputControlCompressedClusters(mOutputCompressedClusters.get());
+    mOutputClustersNative.reset(new GPUOutputControl);
+    mChain->SetOutputControlClustersNative(mOutputClustersNative.get());
   }
 
   if (mRec->Init()) {
@@ -100,11 +102,16 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
   }
 
   mChain->mIOPtrs = *data;
-  if (mConfig->configInterface.outputToPreallocatedBuffers) {
+  if (mConfig->configInterface.outputToExternalBuffers) {
     if (outputs->compressedClusters.ptr) {
       mOutputCompressedClusters->set(outputs->compressedClusters.ptr, outputs->compressedClusters.size);
     } else {
       mOutputCompressedClusters->reset();
+    }
+    if (outputs->clustersNative.ptr) {
+      mOutputClustersNative->set(outputs->clustersNative.ptr, outputs->clustersNative.size);
+    } else {
+      mOutputClustersNative->reset();
     }
   }
   int retVal = mRec->RunChains();
@@ -115,8 +122,9 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
     mRec->ClearAllocatedMemory();
     return retVal;
   }
-  if (mConfig->configInterface.outputToPreallocatedBuffers) {
+  if (mConfig->configInterface.outputToExternalBuffers) {
     outputs->compressedClusters.size = mOutputCompressedClusters->EndOfSpace ? 0 : mChain->mIOPtrs.tpcCompressedClusters->totalDataSize;
+    outputs->clustersNative.size = mOutputClustersNative->EndOfSpace ? 0 : (mChain->mIOPtrs.clustersNative->nClustersTotal * sizeof(*mChain->mIOPtrs.clustersNative->clustersLinear));
   }
   *data = mChain->mIOPtrs;
 
