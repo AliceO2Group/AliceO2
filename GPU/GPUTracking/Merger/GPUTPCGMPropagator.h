@@ -55,13 +55,17 @@ class GPUTPCGMPropagator
   GPUdDefault() GPUTPCGMPropagator() CON_DEFAULT;
 
   struct MaterialCorrection {
-    GPUhd() MaterialCorrection() : radLen(29.532f), rho(1.025e-3f), rhoOverRadLen(rho / radLen), DLMax(0.f), EP2(0.f), sigmadE2(0.f), k22(0.f), k33(0.f), k43(0.f), k44(0.f) {}
+    GPUhd() MaterialCorrection() : radLen(28811.7f), rho(1.025e-3f), radLenInv(1.f / radLen), DLMax(0.f), EP2(0.f), sigmadE2(0.f), k22(0.f), k33(0.f), k43(0.f), k44(0.f) {}
 
-    float radLen, rho, rhoOverRadLen, DLMax, EP2, sigmadE2, k22, k33, k43, k44; // precalculated values for MS and EnergyLoss correction
+    float radLen;                                              // [cm]
+    float rho;                                                 // [g/cm^3]
+    float radLenInv, DLMax, EP2, sigmadE2, k22, k33, k43, k44; // precalculated values for MS and EnergyLoss correction
   };
 
   GPUd() void SetMaterial(float radLen, float rho);
-  GPUd() o2::base::MatBudget getMatBudget(float* p1, float* p2);
+  GPUd() void SetMaterialTPC() { SetMaterial(28811.7f, 1.025e-3f); }
+
+  GPUd() o2::base::MatBudget getMatBudget(const float* p1, const float* p2);
 
   GPUd() void SetPolynomialField(const GPUTPCGMPolynomialField* field) { mField = field; }
 
@@ -109,7 +113,14 @@ class GPUTPCGMPropagator
     return 0;
   }
 
+  /// Bz in local coordinates rotated to mAlpha
+  GPUd() float GetBz(float X, float Y, float Z) const;
+  /// Bx,By,Bz in local coordinates rotated to mAlpha
+  GPUd() void GetBxByBz(float X, float Y, float Z, float B[3]) const;
+
+  /// Bz in local coordinates rotated to Alpha
   GPUd() float GetBz(float Alpha, float X, float Y, float Z) const;
+  /// Bx,By,Bz in local coordinates rotated to Alpha
   GPUd() void GetBxByBz(float Alpha, float X, float Y, float Z, float B[3]) const;
 
   GPUd() void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float posZ, int iRow, short clusterState) const;
@@ -137,11 +148,26 @@ class GPUTPCGMPropagator
   GPUd() static float ApproximateBetheBloch(float beta2);
   GPUd() int FollowLinearization(const GPUTPCGMPhysicalTrackModel& t0e, float Bz, float dLp, bool inFlyDirection);
 
+  /// Bz in local coordinates rotated to cosAlpha, sinAlpha
+  GPUd() float GetBzBase(float cosAlpha, float sinAlpha, float X, float Y, float Z) const;
+  /// Bx,By,Bz in local coordinates rotated to cosAlpha, sinAlpha
+  GPUd() void GetBxByBzBase(float cosAlpha, float sinAlpha, float X, float Y, float Z, float B[3]) const;
+  // X in global coordinates
+  GPUd() float getGlobalX(float cosAlpha, float sinAlpha, float X, float Y) const;
+  // Y in global coordinates
+  GPUd() float getGlobalY(float cosAlpha, float sinAlpha, float X, float Y) const;
+  // X in global coordinates
+  GPUd() float getGlobalX(float X, float Y) const;
+  // Y in global coordinates
+  GPUd() float getGlobalY(float X, float Y) const;
+
   const GPUTPCGMPolynomialField* mField = nullptr;
   FieldRegion mFieldRegion = TPC;
 
   GPUTPCGMTrackParam* mT = nullptr;
-  float mAlpha = 0; // rotation angle of the track coordinate system
+  float mAlpha = 0.f;    // rotation angle of the track coordinate system
+  float mCosAlpha = 1.f; // cos of the rotation angle
+  float mSinAlpha = 0.f; // sin of the rotation angle
   GPUTPCGMPhysicalTrackModel mT0;
   MaterialCorrection mMaterial;
   bool mSeedingErrors = 0;
@@ -154,11 +180,31 @@ class GPUTPCGMPropagator
   const o2::base::MatLayerCylSet* mMatLUT = nullptr;
 };
 
+GPUdi() void GPUTPCGMPropagator::GetBxByBz(float Alpha, float X, float Y, float Z, float B[3]) const
+{
+  GetBxByBzBase(CAMath::Cos(Alpha), CAMath::Sin(Alpha), X, Y, Z, B);
+}
+
+GPUdi() float GPUTPCGMPropagator::GetBz(float Alpha, float X, float Y, float Z) const
+{
+  return GetBzBase(CAMath::Cos(Alpha), CAMath::Sin(Alpha), X, Y, Z);
+}
+
+GPUdi() void GPUTPCGMPropagator::GetBxByBz(float X, float Y, float Z, float B[3]) const
+{
+  GetBxByBzBase(mCosAlpha, mSinAlpha, X, Y, Z, B);
+}
+
+GPUdi() float GPUTPCGMPropagator::GetBz(float X, float Y, float Z) const
+{
+  return GetBzBase(mCosAlpha, mSinAlpha, X, Y, Z);
+}
+
 GPUdi() void GPUTPCGMPropagator::SetMaterial(float radLen, float rho)
 {
   mMaterial.rho = rho;
   mMaterial.radLen = radLen;
-  mMaterial.rhoOverRadLen = (radLen > 1.e-4f) ? rho / radLen : 0.f;
+  mMaterial.radLenInv = (radLen > 1.e-4f) ? 1.f / radLen : 0.f;
   CalculateMaterialCorrection();
 }
 
@@ -170,12 +216,14 @@ GPUdi() void GPUTPCGMPropagator::SetTrack(GPUTPCGMTrackParam* GPUrestrict() trac
   }
   mT0.Set(*mT);
   mAlpha = Alpha;
+  mCosAlpha = CAMath::Cos(mAlpha);
+  mSinAlpha = CAMath::Sin(mAlpha);
   CalculateMaterialCorrection();
 }
 
 GPUdi() float GPUTPCGMPropagator::GetMirroredYModel() const
 {
-  float Bz = GetBz(mAlpha, mT0.GetX(), mT0.GetY(), mT0.GetZ());
+  float Bz = GetBz(mT0.GetX(), mT0.GetY(), mT0.GetZ());
   return mT0.GetMirroredY(Bz);
 }
 
@@ -184,9 +232,30 @@ GPUdi() float GPUTPCGMPropagator::GetMirroredYTrack() const
   if (!mT) {
     return -1.E10f;
   }
-  float Bz = GetBz(mAlpha, mT->GetX(), mT->GetY(), mT->GetZ());
+  float Bz = GetBz(mT->GetX(), mT->GetY(), mT->GetZ());
   return mT->GetMirroredY(Bz);
 }
+
+GPUdi() float GPUTPCGMPropagator::getGlobalX(float cosAlpha, float sinAlpha, float X, float Y) const
+{
+  return X * cosAlpha - Y * sinAlpha;
+}
+
+GPUdi() float GPUTPCGMPropagator::getGlobalY(float cosAlpha, float sinAlpha, float X, float Y) const
+{
+  return X * sinAlpha + Y * cosAlpha;
+}
+
+GPUdi() float GPUTPCGMPropagator::getGlobalX(float X, float Y) const
+{
+  return getGlobalX(mCosAlpha, mSinAlpha, X, Y);
+}
+
+GPUdi() float GPUTPCGMPropagator::getGlobalY(float X, float Y) const
+{
+  return getGlobalY(mCosAlpha, mSinAlpha, X, Y);
+}
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

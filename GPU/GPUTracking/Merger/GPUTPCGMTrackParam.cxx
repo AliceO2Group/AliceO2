@@ -50,8 +50,6 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-static constexpr float kRho = 1.025e-3f;  // 0.9e-3;
-static constexpr float kRadLen = 29.532f; // 28.94;
 static constexpr float kDeg2Rad = M_PI / 180.f;
 static constexpr float kSectAngle = 2 * M_PI / 18.f;
 
@@ -64,7 +62,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
   GPUdEdx dEdx;
   GPUTPCGMPropagator prop;
   GPUTPCGMMergerTypes::InterpolationErrors interpolation;
-  prop.SetMaterial(kRadLen, kRho);
+  prop.SetMaterialTPC();
   prop.SetPolynomialField(&merger->Param().polynomialField);
   prop.SetMaxSinPhi(maxSinPhi);
   prop.SetToyMCEventsFlag(param.ToyMCEventsFlag);
@@ -576,7 +574,7 @@ GPUd() void GPUTPCGMTrackParam::StoreAttachMirror(const GPUTPCGMMerger* GPUrestr
 GPUd() void GPUTPCGMTrackParam::RefitLoop(const GPUTPCGMMerger* GPUrestrict() Merger, int loopIdx)
 {
   GPUTPCGMPropagator prop;
-  prop.SetMaterial(kRadLen, kRho);
+  prop.SetMaterialTPC();
   prop.SetPolynomialField(&Merger->Param().polynomialField);
   prop.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
   prop.SetToyMCEventsFlag(Merger->Param().ToyMCEventsFlag);

@@ -310,16 +310,17 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToXWithMaterial(float x, GPUTPCTr
 {
   //* Transport the track parameters to X=x  taking into account material budget
 
-  const float kRho = 1.025e-3f;  // 0.9e-3;
-  const float kRadLen = 29.532f; // 28.94;
-  const float kRhoOverRadLen = kRho / kRadLen;
+  static constexpr float kRho = 1.025e-3f;   // [g/cm^3]
+  static constexpr float kRadLen = 28811.7f; //[cm]
+
+  static constexpr float kRadLenInv = 1. / kRadLen;
   float dl;
 
   if (!TransportToX(x, t0, Bz, maxSinPhi, &dl)) {
     return 0;
   }
 
-  CorrectForMeanMaterial(dl * kRhoOverRadLen, dl * kRho, par);
+  CorrectForMeanMaterial(dl * kRadLenInv, dl * kRho, par);
   return 1;
 }
 
@@ -731,7 +732,7 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::CheckNumericalQuality() const
 MEM_CLASS_PRE()
 GPUd() void MEM_LG(GPUTPCTrackParam)::Print() const
 {
-  //* print parameters
+//* print parameters
 
 #if !defined(GPUCA_GPUCODE)
   std::cout << "track: x=" << GetX() << " c=" << GetSignCosPhi() << ", P= " << GetY() << " " << GetZ() << " " << GetSinPhi() << " " << GetDzDs() << " " << GetQPt() << std::endl;
