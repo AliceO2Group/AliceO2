@@ -367,11 +367,6 @@ GPUhdi() float GPUCommonMath::Copysign(float x, float y)
 #endif // GPUCA_GPUCODE
 }
 
-#ifndef GPUCA_GPUCODE
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-value" // GCC BUG in omp atomic capture gives false warning
-#endif
-
 template <class S, class T>
 GPUdi() unsigned int GPUCommonMath::AtomicExchInt(S* addr, T val)
 {
@@ -381,17 +376,15 @@ GPUdi() unsigned int GPUCommonMath::AtomicExchInt(S* addr, T val)
   return ::atomic_xchg(addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return ::atomicExch(addr, val);
-#else
+#elif defined(WITH_OPENMP)
   unsigned int old;
-#ifdef WITH_OPENMP
-#pragma omp atomic capture
-#endif
-  {
-    old = *addr;
-    *addr = val;
-  }
+  __atomic_exchange(addr, &val, &old, __ATOMIC_SEQ_CST);
   return old;
-#endif // GPUCA_GPUCODE
+#else
+  unsigned int old = *addr;
+  *addr = val;
+  return old;
+#endif
 }
 
 template <class S, class T>
@@ -403,17 +396,13 @@ GPUdi() unsigned int GPUCommonMath::AtomicAddInt(S* addr, T val)
   return ::atomic_add(addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return ::atomicAdd(addr, val);
+#elif defined(WITH_OPENMP)
+  return __atomic_add_fetch(addr, val, __ATOMIC_SEQ_CST) - val;
 #else
-  unsigned int old;
-#ifdef WITH_OPENMP
-#pragma omp atomic capture
-#endif
-  {
-    old = *addr;
-    *addr += val;
-  }
+  unsigned int old = *addr;
+  *addr += val;
   return old;
-#endif // GPUCA_GPUCODE
+#endif
 }
 
 template <class S, class T>
@@ -455,10 +444,6 @@ GPUdi() void GPUCommonMath::AtomicMinInt(S* addr, T val)
   }
 #endif // GPUCA_GPUCODE
 }
-
-#ifndef GPUCA_GPUCODE
-#pragma GCC diagnostic pop
-#endif
 
 #undef CHOICE
 
