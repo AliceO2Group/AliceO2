@@ -73,6 +73,7 @@
 
 #include <tuple>
 #include <vector>
+#include <array>
 
 namespace o2
 {
