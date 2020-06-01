@@ -1663,7 +1663,7 @@ GPUd() void GPUTPCGMMerger::SortTracksQPt(int nBlocks, int nThreads, int iBlock,
 {
   unsigned int* trackSort = (unsigned int*)mTmpMem;
   // Have to duplicate sort comparison: Thrust cannot use the Lambda but OpenCL cannot use the object
-  auto comp = [cmp = mOutputTracks](const int aa, const int bb) { 
+  auto comp = [cmp = mOutputTracks](const int aa, const int bb) {
     const GPUTPCGMMergedTrack& GPUrestrict() a = cmp[aa];
     const GPUTPCGMMergedTrack& GPUrestrict() b = cmp[bb];
     return (CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt()));
