@@ -320,9 +320,7 @@ class propagatorInterface<GPUTPCGMPropagator> : public GPUTPCGMPropagator
  public:
   GPUd() propagatorInterface<GPUTPCGMPropagator>(const GPUTPCGMPolynomialField* pField) : GPUTPCGMPropagator(), mTrack(nullptr)
   {
-    constexpr float kRho = 1.025e-3f;
-    constexpr float kRadLen = 29.532f;
-    this->SetMaterial(kRadLen, kRho);
+    this->SetMaterialTPC();
     this->SetPolynomialField(pField);
     this->SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
     this->SetToyMCEventsFlag(0);

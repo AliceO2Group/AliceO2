@@ -1556,10 +1556,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         tracker.SetPointersDataLinks(mChain->rec()->Res(tracker.MemoryResLinks()).Ptr());
       }
       GPUTPCGMPropagator prop;
-      const float kRho = 1.025e-3;  // 0.9e-3;
-      const float kRadLen = 29.532; // 28.94;
       prop.SetMaxSinPhi(.999);
-      prop.SetMaterial(kRadLen, kRho);
+      prop.SetMaterialTPC();
       prop.SetPolynomialField(&mMerger.Param().polynomialField);
       prop.SetToyMCEventsFlag(mMerger.Param().ToyMCEventsFlag);
 

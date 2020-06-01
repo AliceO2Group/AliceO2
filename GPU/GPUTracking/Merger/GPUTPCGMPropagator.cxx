@@ -29,16 +29,16 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-GPUd() void GPUTPCGMPropagator::GetBxByBz(float Alpha, float X, float Y, float Z, float B[3]) const
+GPUd() void GPUTPCGMPropagator::GetBxByBzBase(float cosAlpha, float sinAlpha, float X, float Y, float Z, float B[3]) const
 {
   // get global coordinates
 
-  float cs = CAMath::Cos(Alpha);
-  float sn = CAMath::Sin(Alpha);
+  float gx = getGlobalX(cosAlpha, sinAlpha, X, Y);
+  float gy = getGlobalY(cosAlpha, sinAlpha, X, Y);
 
 #if defined(GPUCA_GM_USE_FULL_FIELD)
   const double kCLight = 0.000299792458;
-  double r[3] = {X * cs - Y * sn, X * sn + Y * cs, Z};
+  double r[3] = {gx, gy, Z};
   double bb[3];
   AliTracker::GetBxByBz(r, bb);
   bb[0] *= kCLight;
@@ -57,22 +57,22 @@ GPUd() void GPUTPCGMPropagator::GetBxByBz(float Alpha, float X, float Y, float Z
   float bb[3];
   switch (mFieldRegion) {
     case ITS:
-      mField->GetFieldIts(X * cs - Y * sn, X * sn + Y * cs, Z, bb);
+      mField->GetFieldIts(gx, gy, Z, bb);
       break;
     case TRD:
-      mField->GetFieldTrd(X * cs - Y * sn, X * sn + Y * cs, Z, bb);
+      mField->GetFieldTrd(gx, gy, Z, bb);
       break;
     case TPC:
     default:
-      mField->GetField(X * cs - Y * sn, X * sn + Y * cs, Z, bb);
+      mField->GetField(gx, gy, Z, bb);
   }
 
 #endif
 
   // rotate field to local coordinates
 
-  B[0] = bb[0] * cs + bb[1] * sn;
-  B[1] = -bb[0] * sn + bb[1] * cs;
+  B[0] = bb[0] * cosAlpha + bb[1] * sinAlpha;
+  B[1] = -bb[0] * sinAlpha + bb[1] * cosAlpha;
   B[2] = bb[2];
   /*if( mToyMCEvents ){ // special treatment for toy monte carlo
     B[0] = 0;
@@ -81,36 +81,35 @@ GPUd() void GPUTPCGMPropagator::GetBxByBz(float Alpha, float X, float Y, float Z
   }*/
 }
 
-GPUd() float GPUTPCGMPropagator::GetBz(float Alpha, float X, float Y, float Z) const
+GPUd() float GPUTPCGMPropagator::GetBzBase(float cosAlpha, float sinAlpha, float X, float Y, float Z) const
 {
   if (mToyMCEvents) { // special treatment for toy monte carlo
     float B[3];
-    GetBxByBz(Alpha, X, Y, Z, B);
+    GetBxByBzBase(cosAlpha, sinAlpha, X, Y, Z, B);
     return B[2];
   }
 
   // get global coordinates
 
-  float cs = CAMath::Cos(Alpha);
-  float sn = CAMath::Sin(Alpha);
+  float gx = getGlobalX(cosAlpha, sinAlpha, X, Y);
+  float gy = getGlobalY(cosAlpha, sinAlpha, X, Y);
 
 #if defined(GPUCA_GM_USE_FULL_FIELD)
   const double kCLight = 0.000299792458;
-  double r[3] = {X * cs - Y * sn, X * sn + Y * cs, Z};
+  double r[3] = {gx, gy, Z};
   double bb[3];
   AliTracker::GetBxByBz(r, bb);
   return bb[2] * kCLight;
 #else
   switch (mFieldRegion) {
     case ITS:
-      return mField->GetFieldItsBz(X * cs - Y * sn, X * sn + Y * cs, Z);
+      return mField->GetFieldItsBz(gx, gy, Z);
     case TRD:
-      return mField->GetFieldTrdBz(X * cs - Y * sn, X * sn + Y * cs, Z);
+      return mField->GetFieldTrdBz(gx, gy, Z);
     case TPC:
     default:
-      return mField->GetFieldBz(X * cs - Y * sn, X * sn + Y * cs, Z);
+      return mField->GetFieldBz(gx, gy, Z);
   }
-
 #endif
 }
 
@@ -121,8 +120,11 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
   // return value is error code (0==no error)
   //
 
-  float cc = CAMath::Cos(newAlpha - mAlpha);
-  float ss = CAMath::Sin(newAlpha - mAlpha);
+  float newCosAlpha = CAMath::Cos(newAlpha);
+  float newSinAlpha = CAMath::Sin(newAlpha);
+
+  float cc = newCosAlpha * mCosAlpha + newSinAlpha * mSinAlpha; // cos(newAlpha - mAlpha);
+  float ss = newSinAlpha * mCosAlpha - newCosAlpha * mSinAlpha; //sin(newAlpha - mAlpha);
 
   GPUTPCGMPhysicalTrackModel t0 = mT0;
 
@@ -271,6 +273,8 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
   }
 
   mAlpha = newAlpha;
+  mCosAlpha = newCosAlpha;
+  mSinAlpha = newSinAlpha;
   mT0 = t0;
 
   return 0;
@@ -288,7 +292,7 @@ GPUd() int GPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, boo
   }
 
   float B[3];
-  GetBxByBz(mAlpha, mT0.X(), mT0.Y(), mT0.Z(), B);
+  GetBxByBz(mT0.X(), mT0.Y(), mT0.Z(), B);
 
   // propagate mT0 to t0e
 
@@ -313,7 +317,7 @@ GPUd() int GPUTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha, b
     }
   }
 
-  float Bz = GetBz(mAlpha, mT0.X(), mT0.Y(), mT0.Z());
+  float Bz = GetBz(mT0.X(), mT0.Y(), mT0.Z());
 
   // propagate mT0 to t0e
 
@@ -373,6 +377,17 @@ GPUd() int GPUTPCGMPropagator::FollowLinearization(const GPUTPCGMPhysicalTrackMo
   float newSinPhi = ey1 + d2 + j24 * d4;
   if (mT->NDF() >= 15 && CAMath::Abs(newSinPhi) > GPUCA_MAX_SIN_PHI) {
     return -4;
+  }
+
+  if (mMatLUT) {
+    float xyz1[3] = {getGlobalX(mT0.GetX(), mT0.GetY()), getGlobalY(mT0.GetX(), mT0.GetY()), mT0.GetZ()};
+    float xyz2[3] = {getGlobalX(t0e.GetX(), t0e.GetY()), getGlobalY(t0e.GetX(), t0e.GetY()), t0e.GetZ()};
+    o2::base::MatBudget mat = getMatBudget(xyz1, xyz2);
+    if (mat.meanX2X0 > 1.e-8) {
+      SetMaterial(mat.length / mat.meanX2X0, mat.meanRho);
+    } else {
+      SetMaterialTPC();
+    }
   }
 
   mT0 = t0e;
@@ -538,7 +553,7 @@ GPUd() int GPUTPCGMPropagator::FollowLinearization(const GPUTPCGMPhysicalTrackMo
 
 GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& GPUrestrict() projY, float& GPUrestrict() projZ)
 {
-  float bz = GetBz(mAlpha, mT->X(), mT->Y(), mT->Z());
+  float bz = GetBz(mT->X(), mT->Y(), mT->Z());
   float k = mT0.QPt() * bz;
   float dx = x - mT->X();
   float kdx = k * dx;
@@ -882,7 +897,7 @@ GPUd() void GPUTPCGMPropagator::CalculateMaterialCorrection()
   float p2 = w2 / pti2; // impuls 2
   float betheRho = ApproximateBetheBloch(p2 / mass2) * mMaterial.rho;
   float E = CAMath::Sqrt(p2 + mass2);
-  float theta2 = (14.1f * 14.1f / 1.e6f) / (beta2 * p2) * mMaterial.rhoOverRadLen;
+  float theta2 = (14.1f * 14.1f / 1.e6f) / (beta2 * p2) * mMaterial.radLenInv;
 
   mMaterial.EP2 = E / p2;
 
@@ -923,6 +938,8 @@ GPUd() void GPUTPCGMPropagator::Rotate180()
   while (mAlpha < -M_PI) {
     mAlpha += 2 * M_PI;
   }
+  mCosAlpha = -mCosAlpha;
+  mSinAlpha = -mSinAlpha;
 
   float* c = mT->Cov();
   c[6] = -c[6];
@@ -956,7 +973,7 @@ GPUd() void GPUTPCGMPropagator::Mirror(bool inFlyDirection)
 {
   // mirror the track and the track approximation to the point which has the same X, but located on the other side of trajectory
   float B[3];
-  GetBxByBz(mAlpha, mT0.X(), mT0.Y(), mT0.Z(), B);
+  GetBxByBz(mT0.X(), mT0.Y(), mT0.Z(), B);
   float Bz = B[2];
   if (CAMath::Abs(Bz) < 1.e-8f) {
     Bz = 1.e-8f;
@@ -1036,7 +1053,7 @@ GPUd() void GPUTPCGMPropagator::Mirror(bool inFlyDirection)
   }
 }
 
-GPUd() o2::base::MatBudget GPUTPCGMPropagator::getMatBudget(float* p1, float* p2)
+GPUd() o2::base::MatBudget GPUTPCGMPropagator::getMatBudget(const float* p1, const float* p2)
 {
 #ifdef HAVE_O2HEADERS
   return mMatLUT->getMatBudget(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);

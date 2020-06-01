@@ -24,9 +24,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #ifdef GPUCA_COMPRESSION_TRACK_MODEL_MERGER
 GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float alpha, unsigned char qPt, const GPUParam& GPUrestrict() param)
 {
-  static constexpr float kRho = 1.025e-3f;  // 0.9e-3;
-  static constexpr float kRadLen = 29.532f; // 28.94;
-  mProp.SetMaterial(kRadLen, kRho);
+  mProp.SetMaterialTPC();
   mProp.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
   mProp.SetToyMCEventsFlag(false);
   mProp.SetSeedingErrors(true); // Larger errors for seeds, better since we don't start with good hypothesis
