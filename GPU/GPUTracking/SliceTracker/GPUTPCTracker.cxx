@@ -108,13 +108,13 @@ void GPUTPCTracker::RegisterMemoryAllocation()
   AllocateAndInitializeLate();
   bool reuseCondition = !mRec->GetDeviceProcessingSettings().keepDisplayMemory && mRec->GetDeviceProcessingSettings().trackletSelectorInPipeline && ((mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) || mRec->GetDeviceProcessingSettings().nThreads == 1);
   GPUMemoryReuse reLinks{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerDataLinks, (unsigned short)(mISlice % mRec->GetDeviceProcessingSettings().nStreams)};
-  mMemoryResLinks = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataLinks, GPUMemoryResource::MEMORY_SCRATCH, "TPCSliceLinks", reLinks);
+  mMemoryResLinks = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataLinks, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCSliceLinks", reLinks);
   mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataScratch, GPUMemoryResource::MEMORY_SCRATCH, "TPCSliceScratch");
   GPUMemoryReuse reWeights{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerDataWeights, (unsigned short)(mISlice % mRec->GetDeviceProcessingSettings().nStreams)};
-  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataWeights, GPUMemoryResource::MEMORY_SCRATCH, "TPCSliceWeights", reWeights);
-  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataInput, GPUMemoryResource::MEMORY_INPUT, "TPCSliceInput");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataWeights, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCSliceWeights", reWeights);
+  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataInput, GPUMemoryResource::MEMORY_INPUT, "TPCSliceInput"); // TODO: Mark as MEMORY_STACK with 2 levels
   GPUMemoryReuse reScratch{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerScratch, (unsigned short)(mISlice % mRec->GetDeviceProcessingSettings().nStreams)};
-  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH, "TPCTrackerScratch", reScratch);
+  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCTrackerScratch", reScratch);
   mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratchHost, GPUMemoryResource::MEMORY_SCRATCH_HOST, "TPCTrackerHost");
   mMemoryResCommon = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersCommon, GPUMemoryResource::MEMORY_PERMANENT, "TPCTrackerCommon");
   mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataRows, GPUMemoryResource::MEMORY_PERMANENT, "TPCSliceRows");
