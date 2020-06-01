@@ -121,10 +121,10 @@ class Coder
 
   // Initializes a rANS decoder.
   // Unlike the encoder, the decoder works forwards as you'd expect.
-  static void decInit(State<T>* r, Stream_t** pptr)
+  static void decInit(State<T>* r, const Stream_t** pptr)
   {
     T x;
-    Stream_t* ptr = *pptr;
+    const Stream_t* ptr = *pptr;
 
     if constexpr (needs64Bit<T>()) {
       x = static_cast<T>(ptr[0]) << 0;
@@ -151,7 +151,7 @@ class Coder
   // Advances in the bit stream by "popping" a single symbol with range start
   // "start" and frequency "freq". All frequencies are assumed to sum to "1 << scale_bits",
   // and the resulting bytes get written to ptr (which is updated).
-  static void decAdvance(State<T>* r, Stream_t** pptr, uint32_t start, uint32_t freq, uint32_t scale_bits)
+  static void decAdvance(State<T>* r, const Stream_t** pptr, uint32_t start, uint32_t freq, uint32_t scale_bits)
   {
     T mask = (1ull << scale_bits) - 1;
 
@@ -192,7 +192,7 @@ class Coder
   };
 
   // Equivalent to Rans32DecAdvance that takes a symbol.
-  static void decAdvanceSymbol(State<T>* r, Stream_t** pptr, DecoderSymbol const* sym, uint32_t scale_bits)
+  static void decAdvanceSymbol(State<T>* r, const Stream_t** pptr, DecoderSymbol const* sym, uint32_t scale_bits)
   {
     decAdvance(r, pptr, sym->start, sym->freq, scale_bits);
   };
@@ -216,7 +216,7 @@ class Coder
   };
 
   // Renormalize.
-  static inline void decRenorm(State<T>* r, Stream_t** pptr)
+  static inline void decRenorm(State<T>* r, const Stream_t** pptr)
   {
     // renormalize
     T x = *r;
@@ -226,7 +226,7 @@ class Coder
         *pptr += 1;
         assert(x >= LOWER_BOUND);
       } else {
-        Stream_t* ptr = *pptr;
+        const Stream_t* ptr = *pptr;
         do
           x = (x << STREAM_BITS) | *ptr++;
         while (x < LOWER_BOUND);

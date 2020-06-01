@@ -15,8 +15,8 @@
 
 #include <cmath>
 
-#include "librans/SymbolStatistics.h"
-#include "librans/helper.h"
+#include "rANS/SymbolStatistics.h"
+#include "rANS/helper.h"
 
 namespace o2
 {

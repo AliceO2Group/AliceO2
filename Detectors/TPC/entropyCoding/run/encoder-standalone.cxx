@@ -25,7 +25,7 @@
 #include "TPCEntropyCoding/EncodedClusters.h"
 #include "TPCEntropyCoding/TPCEntropyEncoder.h"
 #include "Framework/Logger.h"
-#include "librans/rans.h"
+#include "rANS/rans.h"
 
 namespace po = boost::program_options;
 

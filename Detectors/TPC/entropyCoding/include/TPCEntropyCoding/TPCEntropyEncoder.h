@@ -23,7 +23,7 @@
 #include "Framework/Logger.h"
 #include "EncodedClusters.h"
 #include "DataFormatsTPC/CompressedClusters.h"
-#include "librans/rans.h"
+#include "rANS/rans.h"
 
 namespace o2
 {
