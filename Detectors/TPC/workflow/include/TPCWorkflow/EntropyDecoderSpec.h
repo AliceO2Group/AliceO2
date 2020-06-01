@@ -8,36 +8,32 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TPC_ENTROPYENCODERSPEC_H
-#define O2_TPC_ENTROPYENCODERSPEC_H
-/// @file   EntropyEncoderSpec.h
-/// @author Michael Lettrich, Matthias Richter
-/// @since  2020-01-16
-/// @brief  ProcessorSpec for the TPC cluster entropy encoding
+/// @file   EntropyDecoder.h
+
+#ifndef O2_TPC_ENTROPYDECODER_SPEC
+#define O2_TPC_ENTROPYDECODER_SPEC
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "Headers/DataHeader.h"
 
 namespace o2
 {
 namespace tpc
 {
 
-class EntropyEncoderSpec : public o2::framework::Task
+class EntropyDecoderSpec : public o2::framework::Task
 {
  public:
-  EntropyEncoderSpec(bool fromFile) : mFromFile(fromFile) {}
-  ~EntropyEncoderSpec() override = default;
+  ~EntropyDecoderSpec() override = default;
+  void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
-
- private:
-  bool mFromFile = false;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile);
+framework::DataProcessorSpec getEntropyDecoderSpec();
 
-} // end namespace tpc
-} // end namespace o2
+} // namespace tpc
+} // namespace o2
 
-#endif // O2_TPC_ENTROPYENCODERSPEC_H
+#endif
