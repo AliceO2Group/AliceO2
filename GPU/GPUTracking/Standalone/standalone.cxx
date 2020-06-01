@@ -316,9 +316,7 @@ int SetupReconstruction()
   if (configStandalone.configRec.retryRefit != -1) {
     recSet.retryRefit = configStandalone.configRec.retryRefit;
   }
-  if (configStandalone.configRec.loopInterpolationInExtraPass != -1) {
-    recSet.loopInterpolationInExtraPass = configStandalone.configRec.loopInterpolationInExtraPass;
-  }
+  recSet.loopInterpolationInExtraPass = configStandalone.configRec.loopInterpolationInExtraPass;
   recSet.mergerReadFromTrackerDirectly = configStandalone.configRec.mergerReadFromTrackerDirectly;
   if (!recSet.mergerReadFromTrackerDirectly) {
     devProc.fullMergerOnGPU = false;
