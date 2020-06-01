@@ -1097,7 +1097,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       if (laneHasData[lane]) {
         anyLaneHasData = true;
         if (buildNativeGPU && GetDeviceProcessingSettings().tpccfGatherKernel) {
-          runKernel<GPUTPCCFGather>(GetGridBlk(GPUCA_ROW_COUNT, lane), {iSlice}, {}, &mInputsShadow->mPclusterNativeBuffer[nClsTotal]);
+          runKernel<GPUTPCCFGather>(GetGridBlk(GPUCA_ROW_COUNT, mRec->NStreams() - 1), {iSlice}, {}, &mInputsShadow->mPclusterNativeBuffer[nClsTotal]);
         }
         for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
           if (buildNativeGPU) {
@@ -1132,7 +1132,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     }
     if (buildNativeHost && buildNativeGPU && anyLaneHasData) {
       if (GetDeviceProcessingSettings().delayedOutput) {
-        mOutputQueue.emplace_back(outputQueueEntry{nullptr, &mInputsShadow->mPclusterNativeBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(mInputsHost->mPclusterNativeOutput[nClsFirst]), RecoStep::TPCClusterFinding});
+        mOutputQueue.emplace_back(outputQueueEntry{(void*)((char*)&mInputsHost->mPclusterNativeOutput[nClsFirst] - (char*)&mInputsHost->mPclusterNativeOutput[0]), &mInputsShadow->mPclusterNativeBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(mInputsHost->mPclusterNativeOutput[nClsFirst]), RecoStep::TPCClusterFinding});
       } else {
         GPUMemCpy(RecoStep::TPCClusterFinding, (void*)&mInputsHost->mPclusterNativeOutput[nClsFirst], (void*)&mInputsShadow->mPclusterNativeBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(mInputsHost->mPclusterNativeOutput[nClsFirst]), mRec->NStreams() - 1, false);
       }
@@ -2042,7 +2042,7 @@ int GPUChainTracking::RunChain()
       return 1;
     }
   }
-  HighResTimer timerTracking, timerMerger, timerQA, timerTransform, timerCompression, timerClusterer, timerPrepare;
+  HighResTimer timerTracking, timerMerger, timerQA, timerTransform, timerCompression, timerClusterer, timerPrepare, timerTRD;
   if (GetDeviceProcessingSettings().debugLevel >= 6) {
     mDebugFile << "\n\nProcessing event " << mRec->getNEventsProcessed() << std::endl;
   }
@@ -2113,6 +2113,18 @@ int GPUChainTracking::RunChain()
     timerCompression.Stop();
   }
 
+  if (GetRecoSteps().isSet(RecoStep::TRDTracking)) {
+    timerTRD.Start();
+    if (mIOPtrs.nTRDTracklets) {
+      if (RunTRDTracking()) {
+        return 1;
+      }
+    } else {
+      processors()->trdTracker.Reset();
+    }
+    timerTRD.Stop();
+  }
+
   { // Synchronize with output copies running asynchronously
     const auto& threadContext = GetThreadContext();
     SynchronizeStream(mRec->NStreams() - 1);
@@ -2137,32 +2149,12 @@ int GPUChainTracking::RunChain()
     if (mIOPtrs.clustersNative && GetRecoSteps() & RecoStep::TPCCompression) {
       printf("%25s: %'10d us\n", "TPC Compression Time", (int)(1000000 * timerCompression.GetElapsedTime()));
     }
+    if (mIOPtrs.nTRDTracklets && GetRecoSteps() & RecoStep::TRDTracking) {
+      printf("%25s: %'10d us\n", "TRD tracking time", (int)(1000000 * timerTRD.GetCurrentElapsedTime()));
+    }
     if (GetDeviceProcessingSettings().runQA) {
       printf("%25s: %'10d us\n", "QA Time", (int)(1000000 * timerQA.GetElapsedTime()));
     }
-  }
-
-  if (GetRecoSteps().isSet(RecoStep::TRDTracking)) {
-    if (mIOPtrs.nTRDTracklets) {
-      HighResTimer timer;
-      timer.Start();
-      if (RunTRDTracking()) {
-        return 1;
-      }
-      if (GetDeviceProcessingSettings().debugLevel >= 0) {
-        printf("%25s: %'10d us\n", "TRD tracking time", (int)(1000000 * timer.GetCurrentElapsedTime()));
-      }
-    } else {
-      processors()->trdTracker.Reset();
-    }
-  }
-
-  if (GetDeviceProcessingSettings().resetTimers) {
-    timerTracking.Reset();
-    timerMerger.Reset();
-    timerQA.Reset();
-    timerTransform.Reset();
-    timerCompression.Reset();
   }
 
   if (GetDeviceProcessingSettings().eventDisplay) {
