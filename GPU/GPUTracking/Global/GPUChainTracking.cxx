@@ -1203,7 +1203,6 @@ int GPUChainTracking::RunTPCTrackingSlices()
 
   const auto& threadContext = GetThreadContext();
 
-  mRec->PushNonPersistentMemory();
   int retVal = RunTPCTrackingSlices_internal();
   if (retVal) {
     SynchronizeGPU();
@@ -1211,7 +1210,6 @@ int GPUChainTracking::RunTPCTrackingSlices()
   if (retVal >= 2) {
     ResetHelperThreads(retVal >= 3);
   }
-  mRec->PopNonPersistentMemory();
   return (retVal != 0);
 }
 
@@ -1250,7 +1248,14 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   }
   mRec->ComputeReuseMax(nullptr); // Resolve maximums for shared buffers
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+    SetupGPUProcessor(&processors()->tpcTrackers[iSlice], false); // Prepare custom allocation for 1st stack level
+    mRec->AllocateRegisteredMemory(processors()->tpcTrackers[iSlice].MemoryResSliceScratch());
+    mRec->AllocateRegisteredMemory(processors()->tpcTrackers[iSlice].MemoryResSliceInput());
+  }
+  mRec->PushNonPersistentMemory();
+  for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
     SetupGPUProcessor(&processors()->tpcTrackers[iSlice], true); // Now we allocate
+    mRec->ResetRegisteredMemoryPointers(&processors()->tpcTrackers[iSlice]); // TODO: The above call breaks the GPU ptrs to already allocated memory. This fixes them. Should actually be cleaner up at the source.
     processors()->tpcTrackers[iSlice].SetupCommonMemory();
   }
 
@@ -1598,6 +1603,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Slice Tracker finished");
   }
+  mRec->PopNonPersistentMemory();
   return 0;
 }
 
@@ -2086,6 +2092,7 @@ int GPUChainTracking::RunChain()
     timerTransform.Stop();
   }
 
+  mRec->PushNonPersistentMemory(); // 1st stack level for TPC tracking slice data
   timerTracking.Start();
   if (GetRecoSteps().isSet(RecoStep::TPCSliceTracking) && RunTPCTrackingSlices()) {
     return 1;
@@ -2101,6 +2108,7 @@ int GPUChainTracking::RunChain()
     return 1;
   }
   timerMerger.Stop();
+  mRec->PopNonPersistentMemory(); // Release 1st stack level, TPC slice data not needed after merger
 
   if (GetRecoSteps().isSet(RecoStep::TPCCompression) && mIOPtrs.clustersNative) {
     timerCompression.Start();
