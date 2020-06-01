@@ -15,7 +15,7 @@
 #
 # * GPUCommonDef -> GPUCommonDef to follow more closely the rest of the AliceO2
 #   code, but probably the name should be simplified to remove some common ...
-
+add_compile_options(-O0 -g -fPIC)
 o2_add_library(
   DataFormatsTPC
   SOURCES src/Helpers.cxx
@@ -44,6 +44,7 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/Defs.h
           include/DataFormatsTPC/dEdxInfo.h
           include/DataFormatsTPC/CompressedClusters.h
+          include/DataFormatsTPC/CTF.h
           include/DataFormatsTPC/ZeroSuppression.h
           include/DataFormatsTPC/ZeroSuppressionLinkBased.h)
 
