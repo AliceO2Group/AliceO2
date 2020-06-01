@@ -921,10 +921,8 @@ GPUCA_OPENMP(parallel for)
 
     // Fill Resolution Histograms
     GPUTPCGMPropagator prop;
-    const float kRho = 1.025e-3;  // 0.9e-3;
-    const float kRadLen = 29.532; // 28.94;
     prop.SetMaxSinPhi(.999);
-    prop.SetMaterial(kRadLen, kRho);
+    prop.SetMaterialTPC();
     prop.SetPolynomialField(&merger.Param().polynomialField);
     prop.SetToyMCEventsFlag(merger.Param().ToyMCEventsFlag);
 
