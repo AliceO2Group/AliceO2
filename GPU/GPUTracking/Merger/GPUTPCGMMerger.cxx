@@ -1136,7 +1136,7 @@ GPUd() void GPUTPCGMMerger::MergeCE(int nBlocks, int nThreads, int iBlock, int i
 #ifndef GPUCA_GPUCODE
         printf("Insufficient cluster memory for merging CE tracks (OutputClusters %d, max clusters %u)\n", mMemory->nOutputTrackClusters, mNMaxOutputTrackClusters);
 #else
-// TODO: proper overflow handling
+        // TODO: proper overflow handling
 #endif
         for (unsigned int k = newRef; k < mNMaxOutputTrackClusters; k++) {
           mClusters[k].num = 0;
@@ -1643,8 +1643,8 @@ void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerSortTracks
 
 GPUd() void GPUTPCGMMerger::SortTracks(int nBlocks, int nThreads, int iBlock, int iThread)
 {
-  auto comp = [cmp = mOutputTracks](const int aa, const int bb)
-  { // Have to duplicate sort comparison: Thrust cannot use the Lambda but OpenCL cannot use the object
+  // Have to duplicate sort comparison: Thrust cannot use the Lambda but OpenCL cannot use the object
+  auto comp = [cmp = mOutputTracks](const int aa, const int bb) {
     const GPUTPCGMMergedTrack& GPUrestrict() a = cmp[aa];
     const GPUTPCGMMergedTrack& GPUrestrict() b = cmp[bb];
     if (a.CCE() != b.CCE()) {
@@ -1662,8 +1662,8 @@ GPUd() void GPUTPCGMMerger::SortTracks(int nBlocks, int nThreads, int iBlock, in
 GPUd() void GPUTPCGMMerger::SortTracksQPt(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   unsigned int* trackSort = (unsigned int*)mTmpMem;
-  auto comp = [cmp = mOutputTracks](const int aa, const int bb)
-  { // Have to duplicate sort comparison: Thrust cannot use the Lambda but OpenCL cannot use the object
+  // Have to duplicate sort comparison: Thrust cannot use the Lambda but OpenCL cannot use the object
+  auto comp = [cmp = mOutputTracks](const int aa, const int bb) { 
     const GPUTPCGMMergedTrack& GPUrestrict() a = cmp[aa];
     const GPUTPCGMMergedTrack& GPUrestrict() b = cmp[bb];
     return (CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt()));
