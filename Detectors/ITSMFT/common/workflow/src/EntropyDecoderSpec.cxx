@@ -29,10 +29,15 @@ namespace itsmft
 EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig) : mOrigin(orig)
 {
   assert(orig == o2::header::gDataOriginITS || orig == o2::header::gDataOriginMFT);
+  mTimer.Stop();
+  mTimer.Reset();
 }
 
 void EntropyDecoderSpec::run(ProcessingContext& pc)
 {
+  auto cput = mTimer.CpuTime();
+  mTimer.Start(false);
+
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(OutputRef{"ROframes"});
@@ -44,7 +49,14 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   const auto ctfImage = o2::itsmft::CTF::getImage(buff.data());
   CTFCoder::decode(ctfImage, rofs, compcl, patterns);
 
-  LOG(INFO) << "Decoded " << compcl.size() << " clusters in " << rofs.size() << " RO frames";
+  mTimer.Stop();
+  LOG(INFO) << "Decoded " << compcl.size() << " clusters in " << rofs.size() << " RO frames in " << mTimer.CpuTime() - cput << " s";
+}
+
+void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "%s Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mOrigin.as<std::string>(), mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig)

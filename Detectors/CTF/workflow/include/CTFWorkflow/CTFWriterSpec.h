@@ -19,6 +19,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include <TStopwatch.h>
 
 namespace o2
 {
@@ -30,15 +31,21 @@ using DetID = o2::detectors::DetID;
 class CTFWriterSpec : public o2::framework::Task
 {
  public:
-  CTFWriterSpec(DetID::mask_t dm, uint64_t r) : mDets(dm), mRun(r) {}
+  CTFWriterSpec(DetID::mask_t dm, uint64_t r) : mDets(dm), mRun(r)
+  {
+    mTimer.Stop();
+    mTimer.Reset();
+  }
   ~CTFWriterSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final;
   bool isPresent(DetID id) const { return mDets[id]; }
 
  private:
   DetID::mask_t mDets; // detectors
   uint64_t mRun = 0;
+  TStopwatch mTimer;
 };
 
 /// create a processor spec

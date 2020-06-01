@@ -16,6 +16,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
+#include <TStopwatch.h>
 
 namespace o2
 {
@@ -25,9 +26,17 @@ namespace tpc
 class EntropyDecoderSpec : public o2::framework::Task
 {
  public:
+  EntropyDecoderSpec()
+  {
+    mTimer.Stop();
+    mTimer.Reset();
+  }
   ~EntropyDecoderSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
+
+ private:
+  TStopwatch mTimer;
 };
 
 /// create a processor spec

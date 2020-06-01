@@ -31,9 +31,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options;
-  options.push_back(ConfigParamSpec{"onlyDet", VariantType::String, std::string{DetID::NONE}, {"comma separated list of detectors to accept. Overrides skipDet"}});
-  options.push_back(ConfigParamSpec{"skipDet", VariantType::String, std::string{DetID::NONE}, {"comma separate list of detectors to skip"}});
-  options.push_back(ConfigParamSpec{"ctf-input", VariantType::String, "", {"name of the CTF input file"}});
+  options.push_back(ConfigParamSpec{"onlyDet", VariantType::String, std::string{DetID::NONE}, {"comma-separated list of detectors to accept. Overrides skipDet"}});
+  options.push_back(ConfigParamSpec{"skipDet", VariantType::String, std::string{DetID::NONE}, {"comma-separate list of detectors to skip"}});
+  options.push_back(ConfigParamSpec{"ctf-input", VariantType::String, "", {"comma-separated list CTF input files"}});
 
   std::swap(workflowOptions, options);
 }
@@ -44,7 +44,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   DetID::mask_t dets;
-  std::string inpName = configcontext.options().get<std::string>("ctf-input");
+  std::string inpNames = configcontext.options().get<std::string>("ctf-input");
   if (!configcontext.helpOnCommandLine()) {
     dets.set(); // by default read all
     auto mskOnly = DetID::getMask(configcontext.options().get<std::string>("onlyDet"));
@@ -54,12 +54,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     } else {
       dets ^= mskSkip;
     }
-  } else if (inpName.empty()) {
-    throw std::runtime_error("--ctf-input <file> is not provided");
+  } else if (inpNames.empty()) {
+    throw std::runtime_error("--ctf-input <file,...> is not provided");
   }
 
   WorkflowSpec specs;
-  specs.push_back(o2::ctf::getCTFReaderSpec(dets, inpName));
+  specs.push_back(o2::ctf::getCTFReaderSpec(dets, inpNames));
   // add decodors for all allowed detectors.
   if (dets[DetID::ITS]) {
     specs.push_back(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::ITS)));

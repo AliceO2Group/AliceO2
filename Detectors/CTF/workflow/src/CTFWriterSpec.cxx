@@ -53,6 +53,9 @@ void CTFWriterSpec::init(InitContext& ic)
 
 void CTFWriterSpec::run(ProcessingContext& pc)
 {
+  auto cput = mTimer.CpuTime();
+  mTimer.Start(false);
+
   auto tfOrb = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getByPos(0))->firstTForbit;
   TFile flOut(o2::base::NameConf::getCTFFileName(tfOrb).c_str(), "recreate");
   TTree ctfTree(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
