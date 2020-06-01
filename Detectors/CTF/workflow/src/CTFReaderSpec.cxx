@@ -25,6 +25,7 @@
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "DataFormatsITSMFT/CTF.h"
 #include "DataFormatsTPC/CTF.h"
+#include "Algorithm/RangeTokenizer.h"
 
 using namespace o2::framework;
 
@@ -48,6 +49,14 @@ bool readFromTree(TTree& tree, const std::string brname, T& dest, int ev = 0)
 }
 
 ///_______________________________________
+CTFReaderSpec::CTFReaderSpec(DetID::mask_t dm, const std::string& inp) : mDets(dm)
+{
+  mTimer.Stop();
+  mTimer.Reset();
+  mInput = RangeTokenizer::tokenize<std::string>(inp);
+}
+
+///_______________________________________
 void CTFReaderSpec::init(InitContext& ic)
 {
 }
@@ -55,9 +64,18 @@ void CTFReaderSpec::init(InitContext& ic)
 ///_______________________________________
 void CTFReaderSpec::run(ProcessingContext& pc)
 {
-  TFile flIn(mInput.c_str());
+  if (mNextToProcess >= mInput.size()) {
+    return;
+  }
+
+  auto cput = mTimer.CpuTime();
+  mTimer.Start(false);
+  const auto& inputFile = mInput[mNextToProcess];
+  LOG(INFO) << "Reading CTF input " << mNextToProcess << ' ' << inputFile;
+
+  TFile flIn(inputFile.c_str());
   if (!flIn.IsOpen() || flIn.IsZombie()) {
-    LOG(ERROR) << "Failed to open file " << mInput;
+    LOG(ERROR) << "Failed to open file " << inputFile;
     throw std::runtime_error("failed to open CTF file");
   }
   std::unique_ptr<TTree> tree((TTree*)flIn.Get(std::string(o2::base::NameConf::CTFTREENAME).c_str()));
@@ -68,6 +86,10 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   if (!readFromTree(*tree, "CTFHeader", ctfHeader)) {
     throw std::runtime_error("did not find CTFHeader");
   }
+  LOG(INFO) << ctfHeader;
+
+  // send CTF Header
+  pc.outputs().snapshot({"header"}, ctfHeader);
   DetID::mask_t detsTF = mDets & ctfHeader.detectors;
   DetID det;
 
@@ -89,8 +111,15 @@ void CTFReaderSpec::run(ProcessingContext& pc)
     o2::tpc::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
   }
 
-  pc.services().get<ControlService>().endOfStream();
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  mTimer.Stop();
+  LOG(INFO) << "Read CTF " << inputFile << " in " << mTimer.CpuTime() - cput << " s";
+
+  if (++mNextToProcess >= mInput.size()) {
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    LOGF(INFO, "CTF reading total timing: Cpu: %.3e Real: %.3e s in %d slots",
+         mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  }
 }
 
 ///_______________________________________

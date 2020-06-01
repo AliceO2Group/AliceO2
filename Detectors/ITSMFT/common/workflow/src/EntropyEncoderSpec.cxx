@@ -28,10 +28,14 @@ namespace itsmft
 EntropyEncoderSpec::EntropyEncoderSpec(o2::header::DataOrigin orig) : mOrigin(orig)
 {
   assert(orig == o2::header::gDataOriginITS || orig == o2::header::gDataOriginMFT);
+  mTimer.Stop();
+  mTimer.Reset();
 }
 
 void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
+  auto cput = mTimer.CpuTime();
+  mTimer.Start(false);
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   auto pspan = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
@@ -42,7 +46,14 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   eeb->compactify();                  // eliminate unnecessary padding
   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
   //  eeb->print();
-  LOG(INFO) << "Created encoded data of size " << eeb->size() << " for " << mOrigin.as<std::string>();
+  mTimer.Stop();
+  LOG(INFO) << "Created encoded data of size " << eeb->size() << " for " << mOrigin.as<std::string>() << " in " << mTimer.CpuTime() - cput << " s";
+}
+
+void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "%s Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mOrigin.as<std::string>(), mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getEntropyEncoderSpec(o2::header::DataOrigin orig)

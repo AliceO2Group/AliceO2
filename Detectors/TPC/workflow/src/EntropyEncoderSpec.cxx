@@ -46,6 +46,8 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
     }
     clusters = *tmp;
   }
+  auto cput = mTimer.CpuTime();
+  mTimer.Start(false);
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"TPC", "CTFDATA", 0, Lifetime::Timeframe});
   CTFCoder::encode(buffer, clusters);
@@ -53,7 +55,14 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   eeb->compactify();                  // eliminate unnecessary padding
   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
   // eeb->print();
-  LOG(INFO) << "Created encoded data of size " << eeb->size() << " for TPC";
+  mTimer.Stop();
+  LOG(INFO) << "Created encoded data of size " << eeb->size() << " for TPC in " << mTimer.CpuTime() - cput << " s";
+}
+
+void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "TPC Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile)
