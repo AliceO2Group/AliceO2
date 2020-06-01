@@ -48,7 +48,7 @@ void* GPUTrackingInputProvider::SetPointersInputClusterNativeBuffer(void* mem)
 void* GPUTrackingInputProvider::SetPointersInputClusterNativeOutput(void* mem)
 {
   if (mHoldTPCClusterNativeOutput) {
-    computePointerWithAlignment(mem, mPclusterNativeOutput, mNClusterNative);
+    computePointerWithoutAlignment(mem, mPclusterNativeOutput, mNClusterNative); // TODO: Should decide based on some settings whether with or without alignment. Without only needed for output to unaligned shared memory in workflow.
   }
   return mem;
 }

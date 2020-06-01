@@ -288,7 +288,8 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                                                         const char* defaultFileName,
                                                                                         const char* defaultTreeName,
                                                                                         auto&& databranch,
-                                                                                        auto&& mcbranch) {
+                                                                                        auto&& mcbranch,
+                                                                                        bool singleBranch = false) {
     if (tpcSectors.size() == 0) {
       throw std::invalid_argument(std::string("writer process configuration needs list of TPC sectors"));
     }
@@ -297,12 +298,17 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
       input.binding += std::to_string(laneConfiguration[index]);
       DataSpecUtils::updateMatchingSubspec(input, laneConfiguration[index]);
     };
-    auto amendBranchDef = [laneConfiguration, amendInput, tpcSectors, getIndex, getName](auto&& def, bool enable = true) {
-      def.keys = mergeInputs(def.keys, laneConfiguration.size(), amendInput);
-      // the branch is disabled if set to 0
-      def.nofBranches = enable ? tpcSectors.size() : 0;
-      def.getIndex = getIndex;
-      def.getName = getName;
+    auto amendBranchDef = [laneConfiguration, amendInput, tpcSectors, getIndex, getName, singleBranch](auto&& def, bool enableMC = true) {
+      if (!singleBranch) {
+        def.keys = mergeInputs(def.keys, laneConfiguration.size(), amendInput);
+        // the branch is disabled if set to 0
+        def.nofBranches = enableMC ? tpcSectors.size() : 0;
+        def.getIndex = getIndex;
+        def.getName = getName;
+      } else {
+        // instead of the separate sector branches only one is going to be written
+        def.nofBranches = enableMC ? 1 : 0;
+      }
       return std::move(def);
     };
 
@@ -354,16 +360,19 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   //
   // selected by output type 'clusters'
   if (isEnabled(OutputType::Clusters) && !isEnabled(OutputType::DisableWriter)) {
-    using MCLabelCollection = std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>;
+    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+    // if the caClusterer is enabled, only one data set with the full TPC is produced, and the writer
+    // is configured to write one single branch
     specs.push_back(makeWriterSpec("tpc-native-cluster-writer",
                                    inputType == InputType::Clusters ? "tpc-filtered-native-clusters.root" : "tpc-native-clusters.root",
                                    "tpcrec",
-                                   BranchDefinition<const char*>{InputSpec{"data", "TPC", "CLUSTERNATIVE", 0},
+                                   BranchDefinition<const char*>{InputSpec{"data", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}},
                                                                  "TPCClusterNative",
                                                                  "databranch"},
-                                   BranchDefinition<MCLabelCollection>{InputSpec{"mc", "TPC", "CLNATIVEMCLBL", 0},
-                                                                       "TPCClusterNativeMCTruth",
-                                                                       "mcbranch"}));
+                                   BranchDefinition<MCLabelContainer>{InputSpec{"mc", ConcreteDataTypeMatcher{"TPC", "CLNATIVEMCLBL"}},
+                                                                      "TPCClusterNativeMCTruth",
+                                                                      "mcbranch"},
+                                   caClusterer));
   }
 
   if (zsOnTheFly) {

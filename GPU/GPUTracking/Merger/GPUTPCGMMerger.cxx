@@ -305,10 +305,10 @@ void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
   }
   mNMaxOutputTrackClusters = mNClusters * 1.1f + 1000;
   mNMaxTracks = mNMaxSliceTracks;
-  mNMaxClusters = 0;
   if (io.clustersNative) {
     mNMaxClusters = io.clustersNative->nClustersTotal;
   } else if (mRec->GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking) {
+    mNMaxClusters = 0;
     for (int i = 0; i < NSLICES; i++) {
       mNMaxClusters += mRec->GetConstantMem().tpcTrackers[i].NHitsTotal();
     }
@@ -316,8 +316,6 @@ void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
     mNMaxClusters = mNClusters;
   }
 }
-
-void GPUTPCGMMerger::SetSliceData(int index, const GPUTPCSliceOutput* sliceData) { mkSlices[index] = sliceData; }
 
 int GPUTPCGMMerger::CheckSlices()
 {

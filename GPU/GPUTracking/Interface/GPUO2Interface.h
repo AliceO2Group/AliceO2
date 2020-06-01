@@ -73,6 +73,7 @@ class GPUTPCO2Interface
   GPUChainTracking* mChain = nullptr;
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
   std::unique_ptr<GPUOutputControl> mOutputCompressedClusters;
+  std::unique_ptr<GPUOutputControl> mOutputClustersNative;
 };
 } // namespace o2::gpu
 

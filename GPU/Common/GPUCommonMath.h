@@ -376,12 +376,6 @@ GPUhdi() float GPUCommonMath::Copysign(float x, float y)
 #endif // GPUCA_GPUCODE
 }
 
-#if !defined(GPUCA_GPUCODE) && defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-value" // GCC BUG in omp atomic capture gives false warning
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#endif
-
 template <class S, class T>
 GPUdi() unsigned int GPUCommonMath::AtomicExchInt(S* addr, T val)
 {
@@ -391,17 +385,15 @@ GPUdi() unsigned int GPUCommonMath::AtomicExchInt(S* addr, T val)
   return ::atomic_xchg(addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return ::atomicExch(addr, val);
-#else
+#elif defined(WITH_OPENMP)
   unsigned int old;
-#ifdef WITH_OPENMP
-#pragma omp atomic capture
-#endif
-  {
-    old = *addr;
-    *addr = val;
-  }
+  __atomic_exchange(addr, &val, &old, __ATOMIC_SEQ_CST);
   return old;
-#endif // GPUCA_GPUCODE
+#else
+  unsigned int old = *addr;
+  *addr = val;
+  return old;
+#endif
 }
 
 template <class S, class T>
@@ -413,17 +405,14 @@ GPUdi() T GPUCommonMath::AtomicCASInt(S* addr, T cmp, T val)
   return ::atomic_cmpxchg(addr, cmp, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return ::atomicCAS(addr, cmp, val);
+#elif defined(WITH_OPENMP)
+  __atomic_compare_exchange(addr, &cmp, &val, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+  return cmp;
 #else
-  T old;
-#ifdef WITH_OPENMP
-#pragma omp atomic capture
-#endif
-  {
-    old = *addr;
-    *addr = (old == cmp) ? val : old;
-  }
+  T old = *addr;
+  *addr = (old == cmp) ? val : old;
   return old;
-#endif // GPUCA_GPUCODE
+#endif
 }
 
 template <class S, class T>
@@ -435,17 +424,13 @@ GPUdi() unsigned int GPUCommonMath::AtomicAddInt(S* addr, T val)
   return ::atomic_add(addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return ::atomicAdd(addr, val);
+#elif defined(WITH_OPENMP)
+  return __atomic_add_fetch(addr, val, __ATOMIC_SEQ_CST) - val;
 #else
-  unsigned int old;
-#ifdef WITH_OPENMP
-#pragma omp atomic capture
-#endif
-  {
-    old = *addr;
-    *addr += val;
-  }
+  unsigned int old = *addr;
+  *addr += val;
   return old;
-#endif // GPUCA_GPUCODE
+#endif
 }
 
 template <class S, class T>
@@ -487,10 +472,6 @@ GPUdi() void GPUCommonMath::AtomicMinInt(S* addr, T val)
   }
 #endif // GPUCA_GPUCODE
 }
-
-#if !defined(GPUCA_GPUCODE) && defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #undef CHOICE
 

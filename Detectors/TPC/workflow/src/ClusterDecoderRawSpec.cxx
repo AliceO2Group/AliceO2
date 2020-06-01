@@ -165,8 +165,8 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
         outputBuffer = pc.outputs().newChunk(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack)}, size).data();
         return outputBuffer;
       };
-      std::vector<MCLabelContainer> mcoutList;
-      decoder->decodeClusters(inputList, outputAllocator, (mcin ? &mcinCopies : nullptr), &mcoutList);
+      MCLabelContainer mcout;
+      decoder->decodeClusters(inputList, outputAllocator, (mcin ? &mcinCopies : nullptr), &mcout);
 
       // TODO: reestablish the logging messages on the raw buffer
       // if (verbosity > 1) {
@@ -177,12 +177,11 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
 
       if (DataRefUtils::isValid(mclabelref)) {
         if (verbosity > 0) {
-          LOG(INFO) << "sending " << mcoutList.size() << " MC label container(s) with in total "
-                    << std::accumulate(mcoutList.begin(), mcoutList.end(), size_t(0), [](size_t l, auto const& r) { return l + r.getIndexedSize(); })
+          LOG(INFO) << "sending " << mcout.getIndexedSize()
                     << " label object(s)" << std::endl;
         }
         // serialize the complete list of MC label containers
-        pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack)}, mcoutList);
+        pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack)}, mcout);
       }
     };
 

@@ -49,7 +49,7 @@ constexpr const char* const GPUReconstruction::GEOMETRY_TYPE_NAMES[];
 constexpr const char* const GPUReconstruction::IOTYPENAMES[];
 constexpr GPUReconstruction::GeometryType GPUReconstruction::geometryType;
 
-GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostConstantMem(new GPUCA_NEW_ALIGNMENT GPUConstantMem), mProcessingSettings(cfg)
+GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostConstantMem(new GPUConstantMem), mProcessingSettings(cfg)
 {
   if (cfg.master) {
     if (cfg.master->mProcessingSettings.deviceType != cfg.deviceType) {
@@ -64,7 +64,7 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostCo
   mDeviceProcessingSettings.SetDefaults();
   mEventSettings.SetDefaults();
   param().SetDefaults(&mEventSettings);
-  mMemoryScalers.reset(new GPUCA_NEW_ALIGNMENT GPUMemorySizeScalers);
+  mMemoryScalers.reset(new GPUMemorySizeScalers);
   for (unsigned int i = 0; i < NSLICES; i++) {
     processors()->tpcTrackers[i].SetSlice(i); // TODO: Move to a better place
 #ifdef HAVE_O2HEADERS
@@ -83,10 +83,10 @@ GPUReconstruction::~GPUReconstruction()
 void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits)
 {
   if (trackerTraits) {
-    trackerTraits->reset(new GPUCA_NEW_ALIGNMENT o2::its::TrackerTraitsCPU);
+    trackerTraits->reset(new o2::its::TrackerTraitsCPU);
   }
   if (vertexerTraits) {
-    vertexerTraits->reset(new GPUCA_NEW_ALIGNMENT o2::its::VertexerTraits);
+    vertexerTraits->reset(new o2::its::VertexerTraits);
   }
 }
 
@@ -313,7 +313,7 @@ int GPUReconstruction::Exit()
       if (mMemoryResources[i].mReuse >= 0) {
         continue;
       }
-      operator delete(mMemoryResources[i].mPtrDevice);
+      operator delete(mMemoryResources[i].mPtrDevice GPUCA_OPERATOR_NEW_ALIGNMENT);
       mMemoryResources[i].mPtr = mMemoryResources[i].mPtrDevice = nullptr;
     }
   }
@@ -332,7 +332,7 @@ void GPUReconstruction::ComputeReuseMax(GPUProcessor* proc)
 {
   for (auto it = mMemoryReuse1to1.begin(); it != mMemoryReuse1to1.end(); it++) {
     auto& re = it->second;
-    if (proc == nullptr ? !re.proc->mAllocateAndInitializeLate : re.proc == proc) {
+    if (proc == nullptr || re.proc == proc) {
       GPUMemoryResource& resMain = mMemoryResources[re.res[0]];
       resMain.mOverrideSize = 0;
       for (unsigned int i = 0; i < re.res.size(); i++) {
@@ -425,7 +425,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
   } else if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && (control == nullptr || control->OutputType == GPUOutputControl::AllocateInternal)) {
     if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
       if (res->mPtrDevice && res->mReuse < 0) {
-        operator delete(res->mPtrDevice);
+        operator delete(res->mPtrDevice GPUCA_OPERATOR_NEW_ALIGNMENT);
       }
       res->mSize = std::max((size_t)res->SetPointers((void*)1) - 1, res->mOverrideSize);
       if (res->mReuse >= 0) {
@@ -450,7 +450,13 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
     }
     if ((!IsGPU() || (res->mType & GPUMemoryResource::MEMORY_HOST) || mDeviceProcessingSettings.keepDisplayMemory) && !(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) { // keepAllMemory --> keepDisplayMemory
       if (control && control->OutputType == GPUOutputControl::UseExternalBuffer) {
-        res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->OutputPtr, control->OutputBase, control->OutputMaxSize, &GPUMemoryResource::SetPointers);
+        if (control->OutputAllocator) {
+          res->mSize = std::max((size_t)res->SetPointers((void*)1) - 1, res->mOverrideSize);
+          res->mPtr = control->OutputAllocator(res->mSize);
+          res->SetPointers(res->mPtr);
+        } else {
+          res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->OutputPtr, control->OutputBase, control->OutputMaxSize, &GPUMemoryResource::SetPointers);
+        }
       } else {
         res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, mHostMemoryPool, mHostMemoryBase, mHostMemorySize, &GPUMemoryResource::SetPointers);
       }
@@ -469,6 +475,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
         throw std::bad_alloc();
       }
     }
+    UpdateMaxMemoryUsed();
   }
   return res->mReuse >= 0 ? 0 : res->mSize;
 }
@@ -490,6 +497,7 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
     if ((size_t)((char*)pool - (char*)base) > poolsize) {
       throw std::bad_alloc();
     }
+    UpdateMaxMemoryUsed();
     return retVal;
   }
 }
@@ -504,6 +512,7 @@ void* GPUReconstruction::AllocateVolatileDeviceMemory(size_t size)
   if ((size_t)((char*)mDeviceMemoryPool - (char*)mDeviceMemoryBase) > mDeviceMemorySize) {
     throw std::bad_alloc();
   }
+  UpdateMaxMemoryUsed();
   return retVal;
 }
 
@@ -543,7 +552,7 @@ void GPUReconstruction::FreeRegisteredMemory(short ires)
     std::cout << "Freeing " << res->mName << ": size " << res->mSize << " (reused " << res->mReuse << ")\n";
   }
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && res->mReuse < 0) {
-    operator delete(res->mPtrDevice);
+    operator delete(res->mPtrDevice GPUCA_OPERATOR_NEW_ALIGNMENT);
   }
   res->mPtr = nullptr;
   res->mPtrDevice = nullptr;
@@ -576,6 +585,17 @@ void GPUReconstruction::ClearAllocatedMemory(bool clearOutputs)
 }
 
 static long long int ptrDiff(void* a, void* b) { return (long long int)((char*)a - (char*)b); }
+
+void GPUReconstruction::UpdateMaxMemoryUsed()
+{
+  mHostMemoryUsedMax = std::max<size_t>(mHostMemoryUsedMax, ptrDiff(mHostMemoryPool, mHostMemoryBase));
+  mDeviceMemoryUsedMax = std::max<size_t>(mDeviceMemoryUsedMax, ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase));
+}
+
+void GPUReconstruction::PrintMemoryMax()
+{
+  printf("Maximum Memory Allocation: Host %'lld / Device %'lld\n", (long long int)mHostMemoryUsedMax, (long long int)mDeviceMemoryUsedMax);
+}
 
 void GPUReconstruction::PrintMemoryOverview()
 {

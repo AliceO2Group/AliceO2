@@ -168,47 +168,50 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex, st
       mSectorRaw[index]->clear();
     }
   }
-  int result = fillIndex(clusterIndex, clusterBuffer, mcBuffer, mSectorRaw, mSectorMC, [](auto&) { return true; });
-  return result;
+  // after changing this ClusterNative transport format, this functionality needs
+  // to be adapted
+  throw std::runtime_error("code path currently not supported");
+  //int result = fillIndex(clusterIndex, clusterBuffer, mcBuffer, mSectorRaw, mSectorMC, [](auto&) { return true; });
+  //return result;
+  return 0;
 }
 
 int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, gsl::span<MCLabelContainer const> const& mcinput, ClusterNativeAccess& clusterIndex,
-                                             const MCLabelContainer* (&clustersMCTruth)[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW])
+                                             const MCLabelContainer* (&clustersMCTruth)[Constants::MAXSECTOR])
 {
-  if (!buffer || size == 0) {
+  if (!buffer || size < sizeof(ClusterCountIndex)) {
     return 0;
   }
 
   auto mcIterator = mcinput.begin();
-  using ClusterGroupParser = o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>;
-  ClusterGroupParser parser;
+  ClusterCountIndex const& counts = *reinterpret_cast<const ClusterCountIndex*>(buffer);
+  ClusterNative const* clusters = reinterpret_cast<ClusterNative const*>(buffer + sizeof(ClusterCountIndex));
   size_t numberOfClusters = 0;
-  parser.parse(
-    buffer, size,
-    [](const typename ClusterGroupParser::HeaderType& h) {
-      // check the header, but in this case there is no validity check
-      return true;
-    },
-    [](const typename ClusterGroupParser::HeaderType& h) {
-      // get the size of the frame including payload
-      // and header and trailer size, e.g. payload size
-      // from a header member
-      return h.nClusters * sizeof(ClusterNative) + ClusterGroupParser::totalOffset;
-    },
-    [&](typename ClusterGroupParser::FrameInfo& frame) {
-      int sector = frame.header->sector;
-      int padrow = frame.header->globalPadRow;
-      int nClusters = frame.header->nClusters;
-      clusterIndex.clusters[sector][padrow] = reinterpret_cast<const ClusterNative*>(frame.payload);
-      clusterIndex.nClusters[sector][padrow] = nClusters;
-      numberOfClusters += nClusters;
-      if (mcIterator != mcinput.end()) {
-        clustersMCTruth[sector][padrow] = &(*mcIterator);
-        ++mcIterator;
+  for (int i = 0; i < Constants::MAXSECTOR; i++) {
+    int nSectorClusters = 0;
+    for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
+      if (counts.nClusters[i][j] == 0) {
+        continue;
       }
+      nSectorClusters += counts.nClusters[i][j];
+      if ((numberOfClusters + counts.nClusters[i][j]) * sizeof(ClusterNative) + sizeof(ClusterCountIndex) > size) {
+        throw std::runtime_error("inconsistent buffer size");
+      }
+      clusterIndex.clusters[i][j] = clusters + numberOfClusters;
+      clusterIndex.nClusters[i][j] = counts.nClusters[i][j];
+      numberOfClusters += counts.nClusters[i][j];
+    }
+    if (nSectorClusters > 0) {
+      if (mcIterator != mcinput.end()) {
+        clustersMCTruth[i] = &(*mcIterator);
+        ++mcIterator;
+        if (mcIterator != mcinput.end()) {
+          throw std::runtime_error("can only have one MCLabel block per sector");
+        }
+      }
+    }
+  }
 
-      return true;
-    });
   return numberOfClusters;
 }
 
@@ -219,6 +222,9 @@ ClusterNativeHelper::TreeWriter::~TreeWriter()
 
 void ClusterNativeHelper::TreeWriter::init(const char* filename, const char* treename)
 {
+  // after changing this ClusterNative transport format, this functionality needs
+  // to be adapted
+  throw std::runtime_error("code path currently not supported");
   mFile.reset(TFile::Open(filename, "RECREATE"));
   if (!mFile) {
     return;

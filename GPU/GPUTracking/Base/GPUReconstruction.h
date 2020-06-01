@@ -196,6 +196,7 @@ class GPUReconstruction
   void ComputeReuseMax(GPUProcessor* proc);
   void PrintMemoryStatistics();
   void PrintMemoryOverview();
+  void PrintMemoryMax();
   void SetMemoryExternalInput(short res, void* ptr);
   GPUMemorySizeScalers* MemoryScalers() { return mMemoryScalers.get(); }
 
@@ -252,6 +253,7 @@ class GPUReconstruction
   void WriteConstantParams();
   virtual int ExitDevice() = 0;
   virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
+  void UpdateMaxMemoryUsed();
 
   // Management for GPU thread contexts
   class GPUThreadContext
@@ -316,11 +318,13 @@ class GPUReconstruction
   void* mHostMemoryPermanent = nullptr;   // Ptr to large host memory buffer offset by permanently allocated memory
   void* mHostMemoryPool = nullptr;        // Ptr to next free location in host memory buffer
   size_t mHostMemorySize = 0;             // Size of host memory buffer
+  size_t mHostMemoryUsedMax = 0;          // Maximum host memory size used over time
   void* mDeviceMemoryBase = nullptr;      //
   void* mDeviceMemoryPermanent = nullptr; //
   void* mDeviceMemoryPool = nullptr;      //
   size_t mDeviceMemorySize = 0;           //
   void* mVolatileMemoryStart = nullptr;   // Ptr to beginning of temporary volatile memory allocation, nullptr if uninitialized
+  size_t mDeviceMemoryUsedMax = 0;        //
 
   GPUReconstruction* mMaster = nullptr;    // Ptr to a GPUReconstruction object serving as master, sharing GPU memory, events, etc.
   std::vector<GPUReconstruction*> mSlaves; // Ptr to slave GPUReconstructions
@@ -384,7 +388,7 @@ inline void GPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T*& 
     u.reset(nullptr);
     return;
   }
-  u.reset(new GPUCA_NEW_ALIGNMENT T[n]);
+  u.reset(new T[n]);
   ptr = u.get();
   if (mDeviceProcessingSettings.registerStandaloneInputMemory) {
     registerMemoryForGPU(u.get(), n * sizeof(T));
@@ -533,8 +537,9 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
     GPUError("ERROR reading %s, invalid size: %lld (%lld expected)", file, (long long int)size[0], (long long int)sizeof(T));
     throw std::runtime_error("invalid size");
   }
-  std::unique_ptr<T> retVal(new GPUCA_NEW_ALIGNMENT T);
-  char* buf = new GPUCA_NEW_ALIGNMENT char[size[1]]; // Not deleted as ownership is transferred to FlatObject
+  std::unique_ptr<T> retVal(new T);
+  retVal->destroy();
+  char* buf = new char[size[1]]; // Not deleted as ownership is transferred to FlatObject
   r = fread((void*)retVal.get(), 1, size[0], fp);
   r = fread(buf, 1, size[1], fp);
   fclose(fp);
@@ -574,7 +579,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file
     GPUError("ERROR reading %s, invalid size: %lld (%lld expected)", file, (long long int)size, (long long int)sizeof(T));
     throw std::runtime_error("invalid size");
   }
-  std::unique_ptr<T> newObj(new GPUCA_NEW_ALIGNMENT T);
+  std::unique_ptr<T> newObj(new T);
   r = fread(newObj.get(), 1, size, fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {

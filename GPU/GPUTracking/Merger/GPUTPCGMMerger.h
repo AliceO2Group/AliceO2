@@ -94,7 +94,7 @@ class GPUTPCGMMerger : public GPUProcessor
   void* SetPointersOutput(void* mem);
   void* SetPointersMemory(void* mem);
 
-  void SetSliceData(int index, const GPUTPCSliceOutput* SliceData);
+  void SetSliceData(int index, const GPUTPCSliceOutput* sliceData) { mkSlices[index] = sliceData; }
 
   GPUhd() int NOutputTracks() const { return mMemory->nOutputTracks; }
   GPUhd() const GPUTPCGMMergedTrack* OutputTracks() const { return mOutputTracks; }
