@@ -1330,6 +1330,9 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     if (GetDeviceProcessingSettings().debugLevel >= 6) {
       mDebugFile << "\n\nReconstruction: Slice " << iSlice << "/" << NSLICES << std::endl;
       if (GetDeviceProcessingSettings().debugMask & 1) {
+        if (doSliceDataOnGPU) {
+          TransferMemoryResourcesToHost(RecoStep::TPCSliceTracking, &trk, -1, true);
+        }
         trk.DumpSliceData(mDebugFile);
       }
     }
@@ -1338,7 +1341,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     if (GetDeviceProcessingSettings().debugLevel >= 3) {
       GPUInfo("Copying Slice Data to GPU and initializing temporary memory");
     }
-    if (GetDeviceProcessingSettings().keepAllMemory) {
+    if (GetDeviceProcessingSettings().keepAllMemory && !doSliceDataOnGPU) {
       memset((void*)trk.Data().HitWeights(), 0, trkShadow.Data().NumberOfHitsPlusAlign() * sizeof(*trkShadow.Data().HitWeights()));
     } else {
       runKernel<GPUMemClean16>(GetGridAutoStep(useStream, RecoStep::TPCSliceTracking), krnlRunRangeNone, {}, trkShadow.Data().HitWeights(), trkShadow.Data().NumberOfHitsPlusAlign() * sizeof(*trkShadow.Data().HitWeights()));
