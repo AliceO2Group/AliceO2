@@ -7,12 +7,19 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
+add_compile_options(-O0 -g -fPIC)
 
 o2_add_library(rANS  
-	SOURCES src/SymbolStatistics.cxx)
+               SOURCES src/SymbolStatistics.cxx
+               PUBLIC_LINK_LIBRARIES ROOT::Core
+                                     O2::CommonUtils)
 
+o2_target_root_dictionary(rANS
+                          HEADERS include/rANS/Metadata.h)
+
+             
 o2_add_test(EncodeDecode
-			NAME EncodeDecode
+            NAME EncodeDecode
             SOURCES test/test_ransEncodeDecode.cxx
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS

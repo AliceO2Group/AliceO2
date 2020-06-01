@@ -74,6 +74,8 @@ class SymbolStatistics
   SymbolStatistics::Iterator begin() const;
   SymbolStatistics::Iterator end() const;
 
+  const auto& getFrequencyTable() const { return mFrequencyTable; }
+
  private:
   void buildCumulativeFrequencyTable();
 
