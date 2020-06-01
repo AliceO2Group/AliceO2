@@ -112,6 +112,8 @@ int GPUReconstruction::Init()
   if (InitDevice()) {
     return 1;
   }
+  mHostMemoryPoolEnd = (char*)mHostMemoryBase + mHostMemorySize;
+  mDeviceMemoryPoolEnd = (char*)mDeviceMemoryBase + mDeviceMemorySize;
   if (InitPhasePermanentMemory()) {
     return 1;
   }
@@ -120,6 +122,8 @@ int GPUReconstruction::Init()
     mSlaves[i]->mHostMemorySize = mHostMemorySize;
     mSlaves[i]->mDeviceMemoryBase = mDeviceMemoryPermanent;
     mSlaves[i]->mHostMemoryBase = mHostMemoryPermanent;
+    mSlaves[i]->mHostMemoryPoolEnd = mHostMemoryPoolEnd;
+    mSlaves[i]->mDeviceMemoryPoolEnd = mDeviceMemoryPoolEnd;
     if (mSlaves[i]->InitDevice()) {
       GPUError("Error initialization slave (deviceinit)");
       return 1;
@@ -379,7 +383,7 @@ size_t GPUReconstruction::AllocateRegisteredPermanentMemory()
   return total;
 }
 
-size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*setPtr)(void*))
+size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*setPtr)(void*), void*& memorypoolend)
 {
   if (res->mReuse >= 0) {
     ptr = (&ptr == &res->mPtrDevice) ? mMemoryResources[res->mReuse].mPtrDevice : mMemoryResources[res->mReuse].mPtr;
@@ -396,23 +400,37 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
     GPUInfo("Memory pool uninitialized");
     throw std::bad_alloc();
   }
-  ptr = memorypool;
-  memorypool = (char*)((res->*setPtr)(memorypool));
-  size_t retVal = (char*)memorypool - (char*)ptr;
-  if (retVal < res->mOverrideSize) {
-    retVal = res->mOverrideSize;
-    memorypool = (char*)ptr + res->mOverrideSize;
+  size_t retVal;
+  size_t minSize = res->mOverrideSize;
+  if (IsGPU() && minSize < GPUCA_BUFFER_ALIGNMENT) {
+    minSize = GPUCA_BUFFER_ALIGNMENT;
   }
-  if (IsGPU() && retVal == 0) { // Transferring 0 bytes might break some GPU backends, but we cannot simply skip the transfer, or we will break event dependencies
-    GPUProcessor::getPointerWithAlignment<GPUCA_BUFFER_ALIGNMENT, char>(memorypool, retVal = GPUCA_BUFFER_ALIGNMENT);
+  if ((res->mType & GPUMemoryResource::MEMORY_STACK) && memorypoolend) {
+    retVal = (char*)((res->*setPtr)((char*)1)) - (char*)(1);
+    memorypoolend = (void*)((char*)memorypoolend - GPUProcessor::getAlignmentMod<GPUCA_MEMALIGN>(memorypoolend));
+    if (retVal < minSize) {
+      retVal = minSize;
+    }
+    retVal += GPUProcessor::getAlignment<GPUCA_MEMALIGN>(retVal);
+    memorypoolend = (char*)memorypoolend - retVal;
+    ptr = memorypoolend;
+    (res->*setPtr)(ptr);
+  } else {
+    ptr = memorypool;
+    memorypool = (char*)((res->*setPtr)(ptr));
+    retVal = (char*)memorypool - (char*)ptr;
+    if (retVal < minSize) {
+      retVal = minSize;
+      memorypool = (char*)ptr + minSize;
+    }
+    memorypool = (void*)((char*)memorypool + GPUProcessor::getAlignment<GPUCA_MEMALIGN>(memorypool));
   }
-  if ((size_t)((char*)memorypool - (char*)memorybase) > memorysize) {
-    std::cout << "Memory pool size exceeded (" << res->mName << ": " << (char*)memorypool - (char*)memorybase << " < " << memorysize << "\n";
+  if (memorypoolend ? (memorypool > memorypoolend) : ((size_t)((char*)memorypool - (char*)memorybase) > memorysize)) {
+    std::cout << "Memory pool size exceeded (" << res->mName << ": " << (memorypoolend ? (memorysize + ((char*)memorypool - (char*)memorypoolend)) : (char*)memorypool - (char*)memorybase) << " < " << memorysize << "\n";
     throw std::bad_alloc();
   }
-  memorypool = (void*)((char*)memorypool + GPUProcessor::getAlignment<GPUCA_MEMALIGN>(memorypool));
   if (mDeviceProcessingSettings.debugLevel >= 5) {
-    std::cout << "Allocated " << res->mName << ": " << retVal << " - available: " << memorysize - ((char*)memorypool - (char*)memorybase) << "\n";
+    std::cout << "Allocated " << res->mName << ": " << retVal << " - available: " << (memorypoolend ? ((char*)memorypoolend - (char*)memorypool) : (memorysize - ((char*)memorypool - (char*)memorybase))) << "\n";
   }
   return retVal;
 }
@@ -455,10 +473,11 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
           res->mPtr = control->OutputAllocator(res->mSize);
           res->SetPointers(res->mPtr);
         } else {
-          res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->OutputPtr, control->OutputBase, control->OutputMaxSize, &GPUMemoryResource::SetPointers);
+          void* dummy = nullptr;
+          res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->OutputPtr, control->OutputBase, control->OutputMaxSize, &GPUMemoryResource::SetPointers, dummy);
         }
       } else {
-        res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, mHostMemoryPool, mHostMemoryBase, mHostMemorySize, &GPUMemoryResource::SetPointers);
+        res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, mHostMemoryPool, mHostMemoryBase, mHostMemorySize, &GPUMemoryResource::SetPointers, mHostMemoryPoolEnd);
       }
     }
     if (IsGPU() && (res->mType & GPUMemoryResource::MEMORY_GPU)) {
@@ -466,7 +485,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
         GPUError("Device Processor not set (%s)", res->mName);
         throw std::bad_alloc();
       }
-      size_t size = AllocateRegisteredMemoryHelper(res, res->mPtrDevice, mDeviceMemoryPool, mDeviceMemoryBase, mDeviceMemorySize, &GPUMemoryResource::SetDevicePointers);
+      size_t size = AllocateRegisteredMemoryHelper(res, res->mPtrDevice, mDeviceMemoryPool, mDeviceMemoryBase, mDeviceMemorySize, &GPUMemoryResource::SetDevicePointers, mDeviceMemoryPoolEnd);
 
       if (!(res->mType & GPUMemoryResource::MEMORY_HOST) || (res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
         res->mSize = size;
@@ -490,11 +509,10 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
     return GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(mUnmanagedChunks.back().get());
   } else {
     void* pool = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryPool : mHostMemoryPool;
-    void* base = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryBase : mHostMemoryBase;
-    size_t poolsize = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemorySize : mHostMemorySize;
+    void* poolend = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryPoolEnd : mHostMemoryPoolEnd;
     char* retVal;
     GPUProcessor::computePointerWithAlignment(pool, retVal, size);
-    if ((size_t)((char*)pool - (char*)base) > poolsize) {
+    if (pool > poolend) {
       throw std::bad_alloc();
     }
     UpdateMaxMemoryUsed();
@@ -507,9 +525,9 @@ void* GPUReconstruction::AllocateVolatileDeviceMemory(size_t size)
   if (mVolatileMemoryStart == nullptr) {
     mVolatileMemoryStart = mDeviceMemoryPool;
   }
-  void* retVal = GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(mDeviceMemoryPool);
-  mDeviceMemoryPool = (char*)retVal + size;
-  if ((size_t)((char*)mDeviceMemoryPool - (char*)mDeviceMemoryBase) > mDeviceMemorySize) {
+  char* retVal;
+  GPUProcessor::computePointerWithAlignment(mDeviceMemoryPool, retVal, size);
+  if (mDeviceMemoryPool > mDeviceMemoryPoolEnd) {
     throw std::bad_alloc();
   }
   UpdateMaxMemoryUsed();
@@ -566,6 +584,21 @@ void GPUReconstruction::ReturnVolatileDeviceMemory()
   }
 }
 
+void GPUReconstruction::PushNonPersistentMemory()
+{
+  mNonPersistentMemoryStack.emplace_back(mHostMemoryPoolEnd, mDeviceMemoryPoolEnd);
+}
+
+void GPUReconstruction::PopNonPersistentMemory()
+{
+  if (mDeviceProcessingSettings.keepDisplayMemory) {
+    return;
+  }
+  mHostMemoryPoolEnd = mNonPersistentMemoryStack.back().first;
+  mDeviceMemoryPoolEnd = mNonPersistentMemoryStack.back().second;
+  mNonPersistentMemoryStack.pop_back();
+}
+
 void GPUReconstruction::SetMemoryExternalInput(short res, void* ptr)
 {
   mMemoryResources[res].mPtr = ptr;
@@ -580,7 +613,10 @@ void GPUReconstruction::ClearAllocatedMemory(bool clearOutputs)
   }
   mHostMemoryPool = GPUProcessor::alignPointer<GPUCA_MEMALIGN>(mHostMemoryPermanent);
   mDeviceMemoryPool = GPUProcessor::alignPointer<GPUCA_MEMALIGN>(mDeviceMemoryPermanent);
+  mHostMemoryPoolEnd = (char*)mHostMemoryBase + mHostMemorySize;
+  mDeviceMemoryPoolEnd = (char*)mDeviceMemoryBase + mDeviceMemorySize;
   mUnmanagedChunks.clear();
+  mNonPersistentMemoryStack.clear();
   mVolatileMemoryStart = nullptr;
 }
 
@@ -588,8 +624,8 @@ static long long int ptrDiff(void* a, void* b) { return (long long int)((char*)a
 
 void GPUReconstruction::UpdateMaxMemoryUsed()
 {
-  mHostMemoryUsedMax = std::max<size_t>(mHostMemoryUsedMax, ptrDiff(mHostMemoryPool, mHostMemoryBase));
-  mDeviceMemoryUsedMax = std::max<size_t>(mDeviceMemoryUsedMax, ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase));
+  mHostMemoryUsedMax = std::max<size_t>(mHostMemoryUsedMax, ptrDiff(mHostMemoryPool, mHostMemoryBase) + ptrDiff((char*)mHostMemoryBase + mHostMemorySize, mHostMemoryPoolEnd));
+  mDeviceMemoryUsedMax = std::max<size_t>(mDeviceMemoryUsedMax, ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase) + ptrDiff((char*)mDeviceMemoryBase + mDeviceMemorySize, mDeviceMemoryPoolEnd));
 }
 
 void GPUReconstruction::PrintMemoryMax()
@@ -601,8 +637,8 @@ void GPUReconstruction::PrintMemoryOverview()
 {
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
     printf("Memory Allocation: Host %'lld / %'lld (Permanent %'lld), Device %'lld / %'lld, (Permanent %'lld) %d chunks\n",
-           ptrDiff(mHostMemoryPool, mHostMemoryBase), (long long int)mHostMemorySize, ptrDiff(mHostMemoryPermanent, mHostMemoryBase),
-           ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase), (long long int)mDeviceMemorySize, ptrDiff(mDeviceMemoryPermanent, mDeviceMemoryBase), (int)mMemoryResources.size());
+           ptrDiff(mHostMemoryPool, mHostMemoryBase) + ptrDiff((char*)mHostMemoryBase + mHostMemorySize, mHostMemoryPoolEnd), (long long int)mHostMemorySize, ptrDiff(mHostMemoryPermanent, mHostMemoryBase),
+           ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase) + ptrDiff((char*)mDeviceMemoryBase + mDeviceMemorySize, mDeviceMemoryPoolEnd), (long long int)mDeviceMemorySize, ptrDiff(mDeviceMemoryPermanent, mDeviceMemoryBase), (int)mMemoryResources.size());
   }
 }
 

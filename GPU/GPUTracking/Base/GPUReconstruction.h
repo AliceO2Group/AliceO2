@@ -191,6 +191,8 @@ class GPUReconstruction
   void FreeRegisteredMemory(short res);
   void ClearAllocatedMemory(bool clearOutputs = true);
   void ReturnVolatileDeviceMemory();
+  void PushNonPersistentMemory();
+  void PopNonPersistentMemory();
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
   void ResetRegisteredMemoryPointers(short res);
   void ComputeReuseMax(GPUProcessor* proc);
@@ -265,7 +267,7 @@ class GPUReconstruction
   virtual std::unique_ptr<GPUThreadContext> GetThreadContext();
 
   // Private helper functions for memory management
-  size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*));
+  size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*), void*& memorypoolend);
   size_t AllocateRegisteredPermanentMemory();
 
   // Private helper functions for reading / writing / allocating IO buffer from/to file
@@ -317,11 +319,13 @@ class GPUReconstruction
   void* mHostMemoryBase = nullptr;        // Ptr to begin of large host memory buffer
   void* mHostMemoryPermanent = nullptr;   // Ptr to large host memory buffer offset by permanently allocated memory
   void* mHostMemoryPool = nullptr;        // Ptr to next free location in host memory buffer
+  void* mHostMemoryPoolEnd = nullptr;     // Ptr to end of pool
   size_t mHostMemorySize = 0;             // Size of host memory buffer
   size_t mHostMemoryUsedMax = 0;          // Maximum host memory size used over time
   void* mDeviceMemoryBase = nullptr;      //
   void* mDeviceMemoryPermanent = nullptr; //
   void* mDeviceMemoryPool = nullptr;      //
+  void* mDeviceMemoryPoolEnd = nullptr;   //
   size_t mDeviceMemorySize = 0;           //
   void* mVolatileMemoryStart = nullptr;   // Ptr to beginning of temporary volatile memory allocation, nullptr if uninitialized
   size_t mDeviceMemoryUsedMax = 0;        //
@@ -355,6 +359,7 @@ class GPUReconstruction
     std::vector<unsigned short> res;
   };
   std::unordered_map<GPUMemoryReuse::ID, MemoryReuseMeta> mMemoryReuse1to1;
+  std::vector<std::pair<void*, void*>> mNonPersistentMemoryStack;
 
   // Helpers for loading device library via dlopen
   class LibraryLoader

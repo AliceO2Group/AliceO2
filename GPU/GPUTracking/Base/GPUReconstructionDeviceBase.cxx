@@ -293,7 +293,7 @@ int GPUReconstructionDeviceBase::ExitDevice()
 
   int retVal = ExitDevice_Runtime();
   mProcessorsShadow = nullptr;
-  mHostMemoryPool = mHostMemoryBase = mDeviceMemoryPool = mDeviceMemoryBase = mHostMemoryPermanent = mDeviceMemoryPermanent = nullptr;
+  mHostMemoryPool = mHostMemoryBase = mDeviceMemoryPool = mDeviceMemoryBase = mHostMemoryPoolEnd = mDeviceMemoryPoolEnd = mHostMemoryPermanent = mDeviceMemoryPermanent = nullptr;
   mHostMemorySize = mDeviceMemorySize = 0;
 
   return retVal;
