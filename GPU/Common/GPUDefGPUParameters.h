@@ -96,7 +96,7 @@
   #define GPUCA_LB_GPUTPCGMMergerResolve_step0 256
   #define GPUCA_LB_GPUTPCGMMergerResolve_step1 256
   #define GPUCA_LB_GPUTPCGMMergerResolve_step2 256
-  #define GPUCA_LB_GPUTPCGMMergerResolve_step3 256
+  #define GPUCA_LB_GPUTPCGMMergerResolve_step3 256, 4
   #define GPUCA_LB_GPUTPCGMMergerClearLinks 256
   #define GPUCA_LB_GPUTPCGMMergerMergeWithinPrepare 256
   #define GPUCA_LB_GPUTPCGMMergerMergeSlicesPrepare 256, 2
