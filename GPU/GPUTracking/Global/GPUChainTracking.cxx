@@ -496,6 +496,7 @@ void GPUChainTracking::AllocateIOMemory()
 int GPUChainTracking::ConvertNativeToClusterData()
 {
 #ifdef HAVE_O2HEADERS
+  mRec->PushNonPersistentMemory();
   const auto& threadContext = GetThreadContext();
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCConversion;
   GPUTPCConvert& convert = processors()->tpcConverter;
@@ -535,6 +536,7 @@ int GPUChainTracking::ConvertNativeToClusterData()
     mIOPtrs.nClusterData[i] = (i == NSLICES - 1 ? mIOPtrs.clustersNative->nClustersTotal : mIOPtrs.clustersNative->clusterOffset[i + 1][0]) - mIOPtrs.clustersNative->clusterOffset[i][0];
     mIOPtrs.clusterData[i] = convert.mClusters + mIOPtrs.clustersNative->clusterOffset[i][0];
   }
+  mRec->PopNonPersistentMemory();
 #endif
   return 0;
 }
@@ -811,6 +813,7 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::RunTPCClusterizer_transf
 int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 {
 #ifdef GPUCA_TPC_GEOMETRY_O2
+  mRec->PushNonPersistentMemory();
   const auto& threadContext = GetThreadContext();
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCClusterFinding;
 
@@ -1180,6 +1183,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     }
   }
   mRec->MemoryScalers()->nTPCHits = nClsTotal;
+  mRec->PopNonPersistentMemory();
 
 #endif
   return 0;
@@ -1199,6 +1203,7 @@ int GPUChainTracking::RunTPCTrackingSlices()
 
   const auto& threadContext = GetThreadContext();
 
+  mRec->PushNonPersistentMemory();
   int retVal = RunTPCTrackingSlices_internal();
   if (retVal) {
     SynchronizeGPU();
@@ -1206,6 +1211,7 @@ int GPUChainTracking::RunTPCTrackingSlices()
   if (retVal >= 2) {
     ResetHelperThreads(retVal >= 3);
   }
+  mRec->PopNonPersistentMemory();
   return (retVal != 0);
 }
 
@@ -1668,6 +1674,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       TransferMemoryResourcesToGPU(RecoStep::NoRecoStep, &trk, 0);
     }
   }
+  mRec->PushNonPersistentMemory();
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCMerging;
   bool doGPUall = doGPU && GetDeviceProcessingSettings().fullMergerOnGPU;
   GPUReconstruction::krnlDeviceType deviceType = GetDeviceProcessingSettings().fullMergerOnGPU ? GPUReconstruction::krnlDeviceType::Auto : GPUReconstruction::krnlDeviceType::CPU;
@@ -1831,12 +1838,14 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Merger Finished (output clusters %d / input clusters %d)", Merger.NOutputTrackClusters(), Merger.NClusters());
   }
+  mRec->PopNonPersistentMemory();
   return 0;
 }
 
 int GPUChainTracking::RunTPCCompression()
 {
 #ifdef HAVE_O2HEADERS
+  mRec->PushNonPersistentMemory();
   RecoStep myStep = RecoStep::TPCCompression;
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCCompression;
   GPUTPCCompression& Compressor = processors()->tpcCompressor;
@@ -1931,6 +1940,7 @@ int GPUChainTracking::RunTPCCompression()
   }
 
   mIOPtrs.tpcCompressedClusters = Compressor.mOutputFlat;
+  mRec->PopNonPersistentMemory();
 #endif
   return 0;
 }
@@ -1940,6 +1950,7 @@ int GPUChainTracking::RunTRDTracking()
   if (!processors()->trdTracker.IsInitialized()) {
     return 1;
   }
+  mRec->PushNonPersistentMemory();
   std::vector<GPUTRDTrackGPU> tracksTPC;
   std::vector<int> tracksTPCLab;
   GPUTRDTrackerGPU& Tracker = processors()->trdTracker;
@@ -1985,6 +1996,7 @@ int GPUChainTracking::RunTRDTracking()
 
   mIOPtrs.nTRDTracks = Tracker.NTracks();
   mIOPtrs.trdTracks = Tracker.Tracks();
+  mRec->PopNonPersistentMemory();
 
   return 0;
 }
@@ -1997,7 +2009,7 @@ int GPUChainTracking::DoTRDGPUTracking()
   GPUTRDTrackerGPU& TrackerShadow = doGPU ? processorsShadow()->trdTracker : Tracker;
 
   const auto& threadContext = GetThreadContext();
-  SetupGPUProcessor(&Tracker, false);
+  SetupGPUProcessor(&Tracker, true);
   TrackerShadow.SetGeometry(reinterpret_cast<GPUTRDGeometry*>(mFlatObjectsDevice.mCalibObjects.trdGeometry));
 
   WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->trdTracker - (char*)processors(), &TrackerShadow, sizeof(TrackerShadow), 0);
