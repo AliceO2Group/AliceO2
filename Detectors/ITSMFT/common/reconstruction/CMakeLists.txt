@@ -7,6 +7,7 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
+add_compile_options(-O0 -g -fPIC)
 
 o2_add_library(ITSMFTReconstruction
                TARGETVARNAME targetName
@@ -26,12 +27,14 @@ o2_add_library(ITSMFTReconstruction
 		       src/GBTLink.cxx
 		       src/RUDecodeData.cxx
 		       src/RawPixelDecoder.cxx
+                       src/CTFCoder.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
                                      O2::CommonDataFormat
 	                             O2::DetectorsRaw
                                      O2::SimulationDataFormat 
                                      O2::DataFormatsITSMFT
 				     O2::DPLUtils
+                                     O2::rANS
                                      O2::Headers)
 
 o2_target_root_dictionary(
