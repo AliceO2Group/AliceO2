@@ -86,6 +86,7 @@ struct GPUSettingsRec {
   char retryRefit;                       // Retry refit with larger cluster errors when fit fails
   char loopInterpolationInExtraPass;     // Perform the loop interpolation in an extra pass
   char mergerReadFromTrackerDirectly;    // Make the TPC merger read the output directly from the tracker class
+  char useMatLUT;                        // Use material lookup table for TPC refit
 };
 
 // Settings describing the events / time frames
