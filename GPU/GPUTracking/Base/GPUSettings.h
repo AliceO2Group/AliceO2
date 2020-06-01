@@ -159,12 +159,12 @@ struct GPUSettingsDeviceProcessing {
   bool deviceTimers;                  // Use device timers instead of host-based timers
   bool registerStandaloneInputMemory; // Automatically register memory for the GPU which is used as input for the standalone benchmark
   int tpcCompressionGatherMode;       // Modes: 0 = gather by DMA, 1 = DMA + gather on host, 2 = gather by kernel
-  bool mergerSortTracks;              // Sort track indices for GPU track fit
+  char mergerSortTracks;              // Sort track indices for GPU track fit
   bool runMC;                         // Process MC labels
   float memoryScalingFactor;          // Factor to apply to all memory scalers
   bool fitSlowTracksInOtherPass;      // Do a second pass on tracks that are supposed to take long, an attempt to reduce divergence on the GPU
   bool fullMergerOnGPU;               // Perform full TPC track merging on GPU instead of only refit
-  bool alternateBorderSort;           // Alternative scheduling for sorting of border tracks
+  char alternateBorderSort;           // Alternative scheduling for sorting of border tracks
   bool delayedOutput;                 // Delay output to be parallel to track fit
   bool tpccfGatherKernel;             // Use a kernel instead of the DMA engine to gather the clusters
   bool prefetchTPCpageScan;           // Prefetch headers during TPC page scan
