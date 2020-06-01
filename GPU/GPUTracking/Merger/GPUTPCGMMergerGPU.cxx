@@ -12,6 +12,7 @@
 /// \author David Rohr
 
 #include "GPUTPCGMMergerGPU.h"
+#include "GPUCommonAlgorithm.h"
 #if defined(WITH_OPENMP) && !defined(GPUCA_GPUCODE)
 #include "GPUReconstruction.h"
 #endif
@@ -66,12 +67,27 @@ GPUdii() void GPUTPCGMMergerUnpackSaveNumber::Thread<0>(int nBlocks, int nThread
 }
 
 template <>
-GPUdii() void GPUTPCGMMergerResolve::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, char useOrigTrackParam, char mergeAll)
+GPUdii() void GPUTPCGMMergerResolve::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
 {
-  if (iThread || iBlock) {
-    return;
-  }
-  merger.ResolveMergeSlices(nBlocks, nThreads, iBlock, iThread, useOrigTrackParam, mergeAll);
+  merger.ResolveFindConnectedComponentsSetup(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerResolve::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  merger.ResolveFindConnectedComponentsHook(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerResolve::Thread<2>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
+  merger.ResolveFindConnectedComponentsMultiJump(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerResolve::Thread<3>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, char useOrigTrackParam, char mergeAll)
+{
+  merger.ResolveMergeSlices(smem, nBlocks, nThreads, iBlock, iThread, useOrigTrackParam, mergeAll);
 }
 
 template <>

@@ -229,6 +229,7 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   computePointerWithAlignment(mem, mBorderMemory, 2 * mNMaxSliceTracks);
   computePointerWithAlignment(mem, mBorderRangeMemory, 2 * mNMaxSliceTracks);
   computePointerWithAlignment(mem, mTrackLinks, mNMaxSliceTracks);
+  computePointerWithAlignment(mem, mTrackCCRoots, mNMaxSliceTracks);
   size_t tmpSize = CAMath::Max(CAMath::Max<unsigned int>(mNMaxSingleSliceTracks, 1) * NSLICES * sizeof(int), CAMath::nextMultipleOf<4>(mNMaxTracks) * sizeof(int) + mNMaxClusters * sizeof(unsigned int));
   computePointerWithAlignment(mem, mTmpMem, (tmpSize + sizeof(*mTmpMem) - 1) / sizeof(*mTmpMem));
 
@@ -901,7 +902,73 @@ GPUd() void GPUTPCGMMerger::MergeSlicesPrepare(int nBlocks, int nThreads, int iB
   MakeBorderTracks((nBlocks + 1) >> 1, nThreads, iBlock >> 1, iThread, border, b, n, useOrigTrackParam);
 }
 
-GPUd() void GPUTPCGMMerger::ResolveMergeSlices(int nBlocks, int nThreads, int iBlock, int iThread, char useOrigTrackParam, char mergeAll)
+GPUdi() void GPUTPCGMMerger::setBlockRange(int elems, int nBlocks, int iBlock, int& start, int& end)
+{
+  start = (elems + nBlocks - 1) / nBlocks * iBlock;
+  end = (elems + nBlocks - 1) / nBlocks * (iBlock + 1);
+  end = CAMath::Min(elems, end);
+}
+
+GPUd() void GPUTPCGMMerger::ResolveFindConnectedComponentsSetup(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  int start, end;
+  setBlockRange(SliceTrackInfoLocalTotal(), nBlocks, iBlock, start, end);
+  for (int i = start + iThread; i < end; i += nThreads) {
+    mTrackCCRoots[i] = i;
+  }
+}
+
+GPUd() void GPUTPCGMMerger::ResolveFindConnectedComponentsHook(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  // Compute connected components in parallel, step 1. Source: Adaptive Work-Efficient Connected Components onthe GPU, Sutton et al, 2016 (https://arxiv.org/pdf/1612.01178.pdf)
+  int start, end;
+  setBlockRange(SliceTrackInfoLocalTotal(), nBlocks, iBlock, start, end);
+  for (int itr = start + iThread; itr < end; itr += nThreads) {
+    int u = itr;
+    int v = mTrackLinks[u];
+    if (v < 0) {
+      continue;
+    }
+    while (true) {
+      u = mTrackCCRoots[u];
+      v = mTrackCCRoots[v];
+      if (u == v) {
+        break;
+      }
+      int h = CAMath::Max(u, v);
+      int l = CAMath::Min(u, v);
+
+      int old = CAMath::AtomicCAS(&mTrackCCRoots[h], h, l);
+      if (old == h) {
+        break;
+      }
+
+      u = mTrackCCRoots[h];
+      v = l;
+    }
+  }
+}
+
+GPUd() void GPUTPCGMMerger::ResolveFindConnectedComponentsMultiJump(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  // Compute connected components in parallel, step 2.
+  int start, end;
+  setBlockRange(SliceTrackInfoLocalTotal(), nBlocks, iBlock, start, end);
+  for (int itr = start + iThread; itr < end; itr += nThreads) {
+    int root = itr;
+    int next = mTrackCCRoots[root];
+    if (root == next) {
+      continue;
+    }
+    do {
+      root = next;
+      next = mTrackCCRoots[next];
+    } while (root != next);
+    mTrackCCRoots[itr] = root;
+  }
+}
+
+GPUd() void GPUTPCGMMerger::ResolveMergeSlices(GPUResolveSharedMemory& smem, int nBlocks, int nThreads, int iBlock, int iThread, char useOrigTrackParam, char mergeAll)
 {
   if (!mergeAll) {
     /*int neighborType = useOrigTrackParam ? 1 : 0;
@@ -933,137 +1000,171 @@ GPUd() void GPUTPCGMMerger::ResolveMergeSlices(int nBlocks, int nThreads, int iB
     newTrack2.SetPrevNeighbour( itr, neighborType );*/
   }
 
-  for (int itr = 0; itr < SliceTrackInfoLocalTotal(); itr++) {
-    int itr2 = mTrackLinks[itr];
-    if (itr2 < 0) {
+  int start, end;
+  setBlockRange(SliceTrackInfoLocalTotal(), nBlocks, iBlock, start, end);
+
+  for (int baseIdx = 0; baseIdx < SliceTrackInfoLocalTotal(); baseIdx += nThreads) {
+    int itr = baseIdx + iThread;
+    bool inRange = itr < SliceTrackInfoLocalTotal();
+
+    int itr2 = -1;
+    if (inRange) {
+      itr2 = mTrackLinks[itr];
+    }
+
+    bool resolveSlice = (itr2 > -1);
+    if (resolveSlice) {
+      int root = mTrackCCRoots[itr];
+      resolveSlice &= (start <= root) && (root < end);
+    }
+
+    short smemIdx = work_group_scan_inclusive_add(short(resolveSlice));
+
+    if (resolveSlice) {
+      smem.iTrack1[smemIdx - 1] = itr;
+      smem.iTrack2[smemIdx - 1] = itr2;
+    }
+    GPUbarrier();
+
+    if (iThread < nThreads - 1) {
       continue;
     }
-    GPUTPCGMSliceTrack* track1 = &mSliceTrackInfos[itr];
-    GPUTPCGMSliceTrack* track2 = &mSliceTrackInfos[itr2];
-    GPUTPCGMSliceTrack* track1Base = track1;
-    GPUTPCGMSliceTrack* track2Base = track2;
 
-    bool sameSegment = CAMath::Abs(track1->NClusters() > track2->NClusters() ? track1->QPt() : track2->QPt()) < 2 || track1->QPt() * track2->QPt() > 0;
-    // GPUInfo("\nMerge %d with %d - same segment %d", itr, itr2, (int) sameSegment);
-    // PrintMergeGraph(track1, std::cout);
-    // PrintMergeGraph(track2, std::cout);
+    const int nSlices = smemIdx;
 
-    while (track2->PrevSegmentNeighbour() >= 0) {
-      track2 = &mSliceTrackInfos[track2->PrevSegmentNeighbour()];
-    }
-    if (sameSegment) {
-      if (track1 == track2) {
-        continue;
+    for (int i = 0; i < nSlices; i++) {
+      itr = smem.iTrack1[i];
+      itr2 = smem.iTrack2[i];
+
+      GPUTPCGMSliceTrack* track1 = &mSliceTrackInfos[itr];
+      GPUTPCGMSliceTrack* track2 = &mSliceTrackInfos[itr2];
+      GPUTPCGMSliceTrack* track1Base = track1;
+      GPUTPCGMSliceTrack* track2Base = track2;
+
+      bool sameSegment = CAMath::Abs(track1->NClusters() > track2->NClusters() ? track1->QPt() : track2->QPt()) < 2 || track1->QPt() * track2->QPt() > 0;
+      // GPUInfo("\nMerge %d with %d - same segment %d", itr, itr2, (int) sameSegment);
+      // PrintMergeGraph(track1, std::cout);
+      // PrintMergeGraph(track2, std::cout);
+
+      while (track2->PrevSegmentNeighbour() >= 0) {
+        track2 = &mSliceTrackInfos[track2->PrevSegmentNeighbour()];
       }
-      while (track1->PrevSegmentNeighbour() >= 0) {
-        track1 = &mSliceTrackInfos[track1->PrevSegmentNeighbour()];
+      if (sameSegment) {
         if (track1 == track2) {
-          goto NextTrack;
+          continue;
         }
-      }
-      GPUCommonAlgorithm::swap(track1, track1Base);
-      for (int k = 0; k < 2; k++) {
-        GPUTPCGMSliceTrack* tmp = track1Base;
-        while (tmp->Neighbour(k) >= 0) {
-          tmp = &mSliceTrackInfos[tmp->Neighbour(k)];
-          if (tmp == track2) {
+        while (track1->PrevSegmentNeighbour() >= 0) {
+          track1 = &mSliceTrackInfos[track1->PrevSegmentNeighbour()];
+          if (track1 == track2) {
             goto NextTrack;
           }
         }
-      }
-
-      while (track1->NextSegmentNeighbour() >= 0) {
-        track1 = &mSliceTrackInfos[track1->NextSegmentNeighbour()];
-        if (track1 == track2) {
-          goto NextTrack;
+        GPUCommonAlgorithm::swap(track1, track1Base);
+        for (int k = 0; k < 2; k++) {
+          GPUTPCGMSliceTrack* tmp = track1Base;
+          while (tmp->Neighbour(k) >= 0) {
+            tmp = &mSliceTrackInfos[tmp->Neighbour(k)];
+            if (tmp == track2) {
+              goto NextTrack;
+            }
+          }
         }
-      }
-    } else {
-      while (track1->PrevSegmentNeighbour() >= 0) {
-        track1 = &mSliceTrackInfos[track1->PrevSegmentNeighbour()];
-      }
 
-      if (track1 == track2) {
-        continue;
-      }
-      for (int k = 0; k < 2; k++) {
-        GPUTPCGMSliceTrack* tmp = track1;
-        while (tmp->Neighbour(k) >= 0) {
-          tmp = &mSliceTrackInfos[tmp->Neighbour(k)];
-          if (tmp == track2) {
+        while (track1->NextSegmentNeighbour() >= 0) {
+          track1 = &mSliceTrackInfos[track1->NextSegmentNeighbour()];
+          if (track1 == track2) {
             goto NextTrack;
           }
         }
-      }
+      } else {
+        while (track1->PrevSegmentNeighbour() >= 0) {
+          track1 = &mSliceTrackInfos[track1->PrevSegmentNeighbour()];
+        }
 
-      float z1min, z1max, z2min, z2max;
-      z1min = track1->MinClusterZT();
-      z1max = track1->MaxClusterZT();
-      z2min = track2->MinClusterZT();
-      z2max = track2->MaxClusterZT();
-      if (track1 != track1Base) {
-        z1min = CAMath::Min(z1min, track1Base->MinClusterZT());
-        z1max = CAMath::Max(z1max, track1Base->MaxClusterZT());
-      }
-      if (track2 != track2Base) {
-        z2min = CAMath::Min(z2min, track2Base->MinClusterZT());
-        z2max = CAMath::Max(z2max, track2Base->MaxClusterZT());
-      }
-      bool goUp = z2max - z1min > z1max - z2min;
-
-      if (track1->Neighbour(goUp) < 0 && track2->Neighbour(!goUp) < 0) {
-        track1->SetNeighbor(track2 - mSliceTrackInfos, goUp);
-        track2->SetNeighbor(track1 - mSliceTrackInfos, !goUp);
-        // GPUInfo("Result (simple neighbor)");
-        // PrintMergeGraph(track1, std::cout);
-        continue;
-      } else if (track1->Neighbour(goUp) < 0) {
-        track2 = &mSliceTrackInfos[track2->Neighbour(!goUp)];
-        GPUCommonAlgorithm::swap(track1, track2);
-      } else if (track2->Neighbour(!goUp) < 0) {
-        track1 = &mSliceTrackInfos[track1->Neighbour(goUp)];
-      } else { // Both would work, but we use the simpler one
-        track1 = &mSliceTrackInfos[track1->Neighbour(goUp)];
-      }
-      track1Base = track1;
-    }
-
-    track2Base = track2;
-    if (!sameSegment) {
-      while (track1->NextSegmentNeighbour() >= 0) {
-        track1 = &mSliceTrackInfos[track1->NextSegmentNeighbour()];
-      }
-    }
-    track1->SetNextSegmentNeighbour(track2 - mSliceTrackInfos);
-    track2->SetPrevSegmentNeighbour(track1 - mSliceTrackInfos);
-    for (int k = 0; k < 2; k++) {
-      track1 = track1Base;
-      track2 = track2Base;
-      while (track2->Neighbour(k) >= 0) {
-        if (track1->Neighbour(k) >= 0) {
-          GPUTPCGMSliceTrack* track1new = &mSliceTrackInfos[track1->Neighbour(k)];
-          GPUTPCGMSliceTrack* track2new = &mSliceTrackInfos[track2->Neighbour(k)];
-          track2->SetNeighbor(-1, k);
-          track2new->SetNeighbor(-1, k ^ 1);
-          track1 = track1new;
-          while (track1->NextSegmentNeighbour() >= 0) {
-            track1 = &mSliceTrackInfos[track1->NextSegmentNeighbour()];
+        if (track1 == track2) {
+          continue;
+        }
+        for (int k = 0; k < 2; k++) {
+          GPUTPCGMSliceTrack* tmp = track1;
+          while (tmp->Neighbour(k) >= 0) {
+            tmp = &mSliceTrackInfos[tmp->Neighbour(k)];
+            if (tmp == track2) {
+              goto NextTrack;
+            }
           }
-          track1->SetNextSegmentNeighbour(track2new - mSliceTrackInfos);
-          track2new->SetPrevSegmentNeighbour(track1 - mSliceTrackInfos);
-          track1 = track1new;
-          track2 = track2new;
-        } else {
-          GPUTPCGMSliceTrack* track2new = &mSliceTrackInfos[track2->Neighbour(k)];
-          track1->SetNeighbor(track2->Neighbour(k), k);
-          track2->SetNeighbor(-1, k);
-          track2new->SetNeighbor(track1 - mSliceTrackInfos, k ^ 1);
+        }
+
+        float z1min, z1max, z2min, z2max;
+        z1min = track1->MinClusterZT();
+        z1max = track1->MaxClusterZT();
+        z2min = track2->MinClusterZT();
+        z2max = track2->MaxClusterZT();
+        if (track1 != track1Base) {
+          z1min = CAMath::Min(z1min, track1Base->MinClusterZT());
+          z1max = CAMath::Max(z1max, track1Base->MaxClusterZT());
+        }
+        if (track2 != track2Base) {
+          z2min = CAMath::Min(z2min, track2Base->MinClusterZT());
+          z2max = CAMath::Max(z2max, track2Base->MaxClusterZT());
+        }
+        bool goUp = z2max - z1min > z1max - z2min;
+
+        if (track1->Neighbour(goUp) < 0 && track2->Neighbour(!goUp) < 0) {
+          track1->SetNeighbor(track2 - mSliceTrackInfos, goUp);
+          track2->SetNeighbor(track1 - mSliceTrackInfos, !goUp);
+          // GPUInfo("Result (simple neighbor)");
+          // PrintMergeGraph(track1, std::cout);
+          continue;
+        } else if (track1->Neighbour(goUp) < 0) {
+          track2 = &mSliceTrackInfos[track2->Neighbour(!goUp)];
+          GPUCommonAlgorithm::swap(track1, track2);
+        } else if (track2->Neighbour(!goUp) < 0) {
+          track1 = &mSliceTrackInfos[track1->Neighbour(goUp)];
+        } else { // Both would work, but we use the simpler one
+          track1 = &mSliceTrackInfos[track1->Neighbour(goUp)];
+        }
+        track1Base = track1;
+      }
+
+      track2Base = track2;
+      if (!sameSegment) {
+        while (track1->NextSegmentNeighbour() >= 0) {
+          track1 = &mSliceTrackInfos[track1->NextSegmentNeighbour()];
         }
       }
+      track1->SetNextSegmentNeighbour(track2 - mSliceTrackInfos);
+      track2->SetPrevSegmentNeighbour(track1 - mSliceTrackInfos);
+      // k = 0: Merge right side
+      // k = 1: Merge left side
+      for (int k = 0; k < 2; k++) {
+        track1 = track1Base;
+        track2 = track2Base;
+        while (track2->Neighbour(k) >= 0) {
+          if (track1->Neighbour(k) >= 0) {
+            GPUTPCGMSliceTrack* track1new = &mSliceTrackInfos[track1->Neighbour(k)];
+            GPUTPCGMSliceTrack* track2new = &mSliceTrackInfos[track2->Neighbour(k)];
+            track2->SetNeighbor(-1, k);
+            track2new->SetNeighbor(-1, k ^ 1);
+            track1 = track1new;
+            while (track1->NextSegmentNeighbour() >= 0) {
+              track1 = &mSliceTrackInfos[track1->NextSegmentNeighbour()];
+            }
+            track1->SetNextSegmentNeighbour(track2new - mSliceTrackInfos);
+            track2new->SetPrevSegmentNeighbour(track1 - mSliceTrackInfos);
+            track1 = track1new;
+            track2 = track2new;
+          } else {
+            GPUTPCGMSliceTrack* track2new = &mSliceTrackInfos[track2->Neighbour(k)];
+            track1->SetNeighbor(track2->Neighbour(k), k);
+            track2->SetNeighbor(-1, k);
+            track2new->SetNeighbor(track1 - mSliceTrackInfos, k ^ 1);
+          }
+        }
+      }
+      // GPUInfo("Result");
+      // PrintMergeGraph(track1, std::cout);
+    NextTrack:;
     }
-    // GPUInfo("Result");
-    // PrintMergeGraph(track1, std::cout);
-  NextTrack:;
   }
 }
 
