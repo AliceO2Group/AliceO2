@@ -642,7 +642,6 @@ struct DriverHelper {
 void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverControl)
 {
   ImGui::Begin("Driver information");
-  ImGui::Text("Numer of running devices: %lu", driverInfo.socket2DeviceInfo.size() / 2);
 
   if (driverControl.state == DriverControlState::STEP) {
     driverControl.state = DriverControlState::PAUSE;
