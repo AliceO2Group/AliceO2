@@ -22,6 +22,7 @@
 #include "SymbolTable.h"
 #include "EncoderSymbol.h"
 #include "Coder.h"
+#include "CommonUtils/StringUtils.h"
 
 namespace o2
 {
@@ -125,7 +126,17 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
   ransCoder::encFlush(&rans1, &ptr);
   ransCoder::encFlush(&rans0, &ptr);
 
-  assert(&(*outputBegin) < ptr);
+  try {
+    assert(&(*outputBegin) < ptr); // for some reason assert does not work in test, apparently BOOST modifies its handling
+    if (ptr < &(*outputBegin)) {   // RS: this exception is thrown with default calculateMaxBufferSize when running o2-test-ctf-io
+      throw std::runtime_error(o2::utils::concat_string("output buffer too short: provided ",
+                                                        std::to_string(&(*outputEnd) - &(*outputBegin)),
+                                                        " filled ", std::to_string(&(*outputEnd) - ptr), " slots"));
+    }
+  } catch (std::exception& e) {
+    std::cerr << "Exception is thrown: " << e.what() << '\n';
+    throw;
+  }
 
   return outputBegin + std::distance(&(*outputBegin), ptr);
 };

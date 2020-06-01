@@ -20,7 +20,7 @@
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "TPCEntropyCoding/EncodedClusters.h"
 #include "TPCEntropyCoding/TPCEntropyDecoder.h"
-#include "librans/rans.h"
+#include "rANS/rans.h"
 
 namespace po = boost::program_options;
 

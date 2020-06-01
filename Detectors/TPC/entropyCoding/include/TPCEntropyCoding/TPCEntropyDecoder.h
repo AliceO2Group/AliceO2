@@ -22,7 +22,7 @@
 #include "Framework/Logger.h"
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "TPCEntropyCoding/EncodedClusters.h"
-#include "librans/rans.h"
+#include "rANS/rans.h"
 
 #include <iostream>
 #include <string>

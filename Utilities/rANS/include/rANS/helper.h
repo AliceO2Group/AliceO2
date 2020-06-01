@@ -13,10 +13,11 @@
 /// @since  2019-05-21
 /// @brief  various helper functions
 
-#include <cstddef>
-
 #ifndef RANS_HELPER_H
 #define RANS_HELPER_H
+
+#include <cstddef>
+#include <cmath>
 
 namespace o2
 {
@@ -24,15 +25,27 @@ namespace rans
 {
 
 template <typename T>
-constexpr bool needs64Bit()
+inline constexpr bool needs64Bit()
 {
   return sizeof(T) > 4;
 }
 
-constexpr size_t bitsToRange(size_t bits)
+inline constexpr size_t bitsToRange(size_t bits)
 {
   return 1 << bits;
 }
+
+inline size_t calculateMaxBufferSize(size_t num, size_t rangeBits, size_t sizeofStreamT)
+{
+  // RS: w/o safety margin the o2-test-ctf-io produces an overflow in the Encoder::process
+  constexpr size_t SaferyMargin = 16;
+  return std::ceil(1.20 * (num * rangeBits * 1.0) / (sizeofStreamT * 8.0)) + SaferyMargin;
+}
+
+//rans default values
+constexpr size_t ProbabilityBits8Bit = 10;
+constexpr size_t ProbabilityBits16Bit = 22;
+constexpr size_t ProbabilityBits25Bit = 25;
 
 } // namespace rans
 } // namespace o2

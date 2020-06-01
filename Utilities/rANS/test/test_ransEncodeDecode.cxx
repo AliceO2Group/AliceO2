@@ -23,7 +23,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/mpl/vector.hpp>
 
-#include "librans/rans.h"
+#include "rANS/rans.h"
 
 template <typename CODER_T, typename STREAM_T, uint P>
 struct Fixture {

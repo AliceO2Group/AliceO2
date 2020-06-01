@@ -90,7 +90,7 @@ void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, 
   static_assert(std::is_same<typename std::iterator_traits<stream_IT>::value_type, stream_T>::value);
 
   State<coder_T> rans0, rans1;
-  stream_T* ptr = &(*inputBegin);
+  const stream_T* ptr = &(*inputBegin);
   source_IT it = outputBegin;
   ransDecoder::decInit(&rans0, &ptr);
   ransDecoder::decInit(&rans1, &ptr);

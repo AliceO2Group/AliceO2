@@ -16,9 +16,10 @@
 #ifndef RANS_RANS_H
 #define RANS_RANS_H
 
-#include "librans/SymbolStatistics.h"
-#include "librans/Encoder.h"
-#include "librans/Decoder.h"
+#include "rANS/SymbolStatistics.h"
+#include "rANS/Encoder.h"
+#include "rANS/Decoder.h"
+#include "rANS/Metadata.h"
 
 namespace o2
 {

@@ -24,7 +24,7 @@
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "TPCEntropyCoding/EncodedClusters.h"
 #include "TPCEntropyCoding/TPCEntropyEncoder.h"
-#include "librans/rans.h"
+#include "rANS/rans.h"
 
 //#include "TPCClusterDecompressor.cxx"
 #include <memory> // for make_shared
