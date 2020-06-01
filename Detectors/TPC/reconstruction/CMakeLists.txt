@@ -24,6 +24,7 @@ o2_add_library(TPCReconstruction
                        src/HardwareClusterDecoder.cxx
                        src/DigitalCurrentClusterIntegrator.cxx
                        src/TPCFastTransformHelperO2.cxx
+                       src/CTFCoder.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimulationDataFormat
                                      O2::TPCBase O2::GPUTracking)
 
@@ -44,7 +45,8 @@ o2_target_root_dictionary(
           include/TPCReconstruction/GPUCATracking.h
           include/TPCReconstruction/HardwareClusterDecoder.h
           include/TPCReconstruction/DigitalCurrentClusterIntegrator.h
-          include/TPCReconstruction/TPCFastTransformHelperO2.h)
+          include/TPCReconstruction/TPCFastTransformHelperO2.h
+          include/TPCReconstruction/CTFCoder.h)
 
 o2_add_executable(read-gbtframes
                   COMPONENT_NAME tpc
