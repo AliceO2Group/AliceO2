@@ -91,9 +91,12 @@ class GPUTPCGMMergerUnpackResetIds : public GPUTPCGMMergerGeneral
 class GPUTPCGMMergerResolve : public GPUTPCGMMergerGeneral
 {
  public:
-#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
-  template <int iKernel = defaultKernel>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger, char useOrigTrackParam, char mergeAll);
+  struct GPUSharedMemory : public GPUTPCGMMerger::GPUResolveSharedMemory {
+  };
+
+#if !defined(GPUCA_ALIROOT_LIB)
+  template <int iKernel = defaultKernel, typename... Args>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 #endif
 };
 

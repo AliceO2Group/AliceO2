@@ -22,6 +22,7 @@
 #include "GPUCommonDef.h"
 #include "GPUProcessor.h"
 #include "GPUTPCGMMergerTypes.h"
+#include "GPUGeneralKernels.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <cmath>
@@ -77,6 +78,11 @@ class GPUTPCGMMerger : public GPUProcessor
     unsigned char row;
     unsigned char slice;
     unsigned char leg;
+  };
+
+  struct GPUResolveSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<short, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)> {
+    int iTrack1[GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)];
+    int iTrack2[GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)];
   };
 
   void InitializeProcessor();
@@ -149,7 +155,10 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void Finalize0(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void Finalize1(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void Finalize2(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void ResolveMergeSlices(int nBlocks, int nThreads, int iBlock, int iThread, char useOrigTrackParam, char mergeAll);
+  GPUd() void ResolveFindConnectedComponentsSetup(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void ResolveFindConnectedComponentsHook(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void ResolveFindConnectedComponentsMultiJump(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void ResolveMergeSlices(GPUResolveSharedMemory& smem, int nBlocks, int nThreads, int iBlock, int iThread, char useOrigTrackParam, char mergeAll);
 
 #ifndef GPUCA_GPUCODE
   void DumpSliceTracks(std::ostream& out);
@@ -185,12 +194,15 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUdi() int SliceTrackInfoLocalTotal() { return mSliceTrackInfoIndex[NSLICES]; }
   GPUdi() int SliceTrackInfoTotal() { return mSliceTrackInfoIndex[2 * NSLICES]; }
 
+  GPUdi() void setBlockRange(int elems, int nBlocks, int iBlock, int& start, int& end);
+
   int mNextSliceInd[NSLICES];
   int mPrevSliceInd[NSLICES];
 
   const GPUTPCSliceOutput* mkSlices[NSLICES]; //* array of input slice tracks
 
   int* mTrackLinks;
+  int* mTrackCCRoots; // root of the connected component of this track
 
   unsigned int mNMaxSliceTracks;         // maximum number of incoming slice tracks
   unsigned int mNMaxTracks;              // maximum number of output tracks
@@ -201,7 +213,7 @@ class GPUTPCGMMerger : public GPUProcessor
   unsigned short mMemoryResMemory;
   unsigned short mMemoryResOutput;
 
-  int mNClusters; // Total number of incoming clusters (from slice tracks)
+  int mNClusters;                     // Total number of incoming clusters (from slice tracks)
   GPUTPCGMMergedTrack* mOutputTracks; //* array of output merged tracks
 
   GPUTPCGMSliceTrack* mSliceTrackInfos; //* additional information for slice tracks
