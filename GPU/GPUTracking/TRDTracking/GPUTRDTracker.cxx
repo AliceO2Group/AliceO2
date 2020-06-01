@@ -65,6 +65,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::SetMaxData(const GPUTrackingInOutPointers& i
 template <class TRDTRK, class PROP>
 void GPUTRDTracker_t<TRDTRK, PROP>::RegisterMemoryAllocation()
 {
+  AllocateAndInitializeLate();
   mMemoryPermanent = mRec->RegisterMemoryAllocation(this, &GPUTRDTracker_t<TRDTRK, PROP>::SetPointersBase, GPUMemoryResource::MEMORY_PERMANENT, "TRDInitialize");
   mMemoryTracklets = mRec->RegisterMemoryAllocation(this, &GPUTRDTracker_t<TRDTRK, PROP>::SetPointersTracklets, GPUMemoryResource::MEMORY_INPUT, "TRDTracklets");
   auto type = GPUMemoryResource::MEMORY_INOUT;
