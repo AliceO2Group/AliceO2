@@ -15,6 +15,7 @@
 
 #include "TFile.h"
 #include "TTree.h"
+#include <TStopwatch.h>
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -31,14 +32,16 @@ using DetID = o2::detectors::DetID;
 class CTFReaderSpec : public o2::framework::Task
 {
  public:
-  CTFReaderSpec(DetID::mask_t dm, const std::string& inp) : mDets(dm), mInput(inp) {}
+  CTFReaderSpec(DetID::mask_t dm, const std::string& inp);
   ~CTFReaderSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
 
  private:
-  DetID::mask_t mDets; // detectors
-  std::string mInput;  // input file name
+  DetID::mask_t mDets;             // detectors
+  std::vector<std::string> mInput; // input files
+  size_t mNextToProcess = 0;
+  TStopwatch mTimer;
 };
 
 /// create a processor spec

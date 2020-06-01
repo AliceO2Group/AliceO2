@@ -7,7 +7,6 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
-add_compile_options(-O0 -g -fPIC)
 
 o2_add_library(CTFWorkflow
                SOURCES src/CTFWriterSpec.cxx
@@ -19,6 +18,7 @@ o2_add_library(CTFWorkflow
                                      O2::DataFormatsParameters
                                      O2::ITSMFTWorkflow
                                      O2::TPCWorkflow
+                                     O2::Algorithm
                                      O2::CommonUtils)
 
 o2_add_executable(writer-workflow

@@ -15,7 +15,7 @@
 #
 # * GPUCommonDef -> GPUCommonDef to follow more closely the rest of the AliceO2
 #   code, but probably the name should be simplified to remove some common ...
-add_compile_options(-O0 -g -fPIC)
+
 o2_add_library(
   DataFormatsTPC
   SOURCES src/Helpers.cxx

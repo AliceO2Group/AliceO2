@@ -32,14 +32,18 @@ void EntropyDecoderSpec::init(InitContext& ic)
 
 void EntropyDecoderSpec::run(ProcessingContext& pc)
 {
+  auto cput = mTimer.CpuTime();
+  mTimer.Start(false);
+
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
   auto& compclusters = pc.outputs().make<std::vector<char>>(OutputRef{"output"});
-
   const auto ctfImage = o2::tpc::CTF::getImage(buff.data());
   CTFCoder::decode(ctfImage, compclusters);
 
-  LOG(INFO) << "Decoded " << buff.size() * sizeof(o2::ctf::BufferType) << " encoded bytess to " << compclusters.size() << " bytes";
+  mTimer.Stop();
+  LOG(INFO) << "Decoded " << buff.size() * sizeof(o2::ctf::BufferType) << " encoded bytes to "
+            << compclusters.size() << " bytes in" << mTimer.CpuTime() - cput << "\n";
 }
 
 DataProcessorSpec getEntropyDecoderSpec()
