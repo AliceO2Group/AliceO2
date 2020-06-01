@@ -121,6 +121,8 @@ if (NOT OpenMP_CXX_FOUND AND CMAKE_SYSTEM_NAME MATCHES Darwin)
   find_package(OpenMPMacOS)
 endif()
 
+find_package(LibUV MODULE)
+set_package_properties(LibUV PROPERTIES TYPE REQUIRED)
 find_package(GLFW MODULE)
 set_package_properties(GLFW PROPERTIES TYPE RECOMMENDED)
 find_package(DebugGUI CONFIG)
