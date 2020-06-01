@@ -10,6 +10,7 @@
 
 add_subdirectory(Base)
 add_subdirectory(Raw)
+add_subdirectory(CTF)
 
 add_subdirectory(Passive) # must be first as some detector's macros use it
 
