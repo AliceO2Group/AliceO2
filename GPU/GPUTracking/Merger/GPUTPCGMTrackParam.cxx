@@ -66,7 +66,6 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
   prop.SetPolynomialField(&merger->Param().polynomialField);
   prop.SetMaxSinPhi(maxSinPhi);
   prop.SetToyMCEventsFlag(param.ToyMCEventsFlag);
-  prop.SetMatLUT(merger->GetConstantMem()->calibObjects.matLUT);
   if ((clusters[0].slice < 18) == (clusters[N - 1].slice < 18)) {
     ShiftZ2(clusters, merger, N);
   }
@@ -105,6 +104,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
     prop.SetSeedingErrors(!(refit && attempt == 0));
     prop.SetFitInProjections(param.rec.fitInProjections == -1 ? (iWay != 0) : param.rec.fitInProjections);
     prop.SetPropagateBzOnly(param.rec.fitPropagateBzOnly > iWay);
+    prop.SetMatLUT((param.rec.useMatLUT && iWay == nWays - 1) ? merger->GetConstantMem()->calibObjects.matLUT : nullptr);
     prop.SetTrack(this, iWay ? prop.GetAlpha() : Alpha);
     ConstrainSinPhi(prop.GetFitInProjections() ? 0.95f : GPUCA_MAX_SIN_PHI_LOW);
     CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f)\n", iTrk, iWay, (int)(prop.GetAlpha() / kSectAngle + 0.5) + (mP[1] < 0 ? 18 : 0), prop.GetAlpha()));

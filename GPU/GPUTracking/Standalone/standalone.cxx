@@ -437,6 +437,7 @@ int SetupReconstruction()
   if (configStandalone.testSyncAsync || configStandalone.testSync) {
     // Set settings for synchronous
     steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, 0);
+    recSet.useMatLUT = false;
     if (configStandalone.testSyncAsync) {
       devProc.eventDisplay = nullptr;
     }
@@ -457,6 +458,7 @@ int SetupReconstruction()
     recSet.DisableRefitAttachment = 0xFF;
     recSet.loopInterpolationInExtraPass = 0;
     recSet.MaxTrackQPt = CAMath::Min(recSet.MaxTrackQPt, recSet.tpcRejectQPt);
+    recSet.useMatLUT = true;
     recAsync->SetSettings(&ev, &recSet, &devProc, &steps);
   }
   if (rec->Init()) {

@@ -54,6 +54,7 @@ void GPUSettingsRec::SetDefaults()
   retryRefit = 1;
   loopInterpolationInExtraPass = 0;
   mergerReadFromTrackerDirectly = 1;
+  useMatLUT = false;
 }
 
 void GPUSettingsEvent::SetDefaults()
