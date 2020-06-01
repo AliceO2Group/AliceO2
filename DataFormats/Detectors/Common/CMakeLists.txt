@@ -7,15 +7,21 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
+add_compile_options(-O0 -g -fPIC)
 
 o2_add_library(DetectorsCommonDataFormats
                SOURCES src/DetID.cxx src/AlignParam.cxx src/DetMatrixCache.cxx
                        src/NameConf.cxx
+                       src/EncodedBlocks.cxx
+                       src/CTFHeader.cxx
                PUBLIC_LINK_LIBRARIES
                ROOT::Core
                ROOT::Geom
                O2::GPUCommon
                O2::MathUtils
+               O2::FrameworkLogger
+               O2::Headers
+               O2::rANS
                O2::CommonUtils)
 
 o2_target_root_dictionary(
@@ -24,6 +30,8 @@ o2_target_root_dictionary(
           include/DetectorsCommonDataFormats/SimTraits.h
           include/DetectorsCommonDataFormats/AlignParam.h
           include/DetectorsCommonDataFormats/NameConf.h
+          include/DetectorsCommonDataFormats/EncodedBlocks.h
+          include/DetectorsCommonDataFormats/CTFHeader.h
           include/DetectorsCommonDataFormats/DetMatrixCache.h)
 
 o2_add_test(DetID
