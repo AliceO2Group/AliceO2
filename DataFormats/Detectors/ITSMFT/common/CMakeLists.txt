@@ -7,6 +7,7 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
+add_compile_options(-O0 -g -fPIC)
 
 o2_add_library(DataFormatsITSMFT
                SOURCES src/ROFRecord.cxx
@@ -16,6 +17,7 @@ o2_add_library(DataFormatsITSMFT
                        src/ClusterPattern.cxx
                        src/ClusterTopology.cxx
                        src/TopologyDictionary.cxx
+                       src/CTF.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
 	                             O2::ReconstructionDataFormats
 				     ms_gsl::ms_gsl)
@@ -28,6 +30,7 @@ o2_target_root_dictionary(DataFormatsITSMFT
                                   include/DataFormatsITSMFT/ClusterPattern.h
                                   include/DataFormatsITSMFT/ClusterTopology.h
                                   include/DataFormatsITSMFT/TopologyDictionary.h
+                                  include/DataFormatsITSMFT/CTF.h
                           LINKDEF src/ITSMFTDataFormatsLinkDef.h)
 
 o2_add_test(Cluster

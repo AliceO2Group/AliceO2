@@ -7,6 +7,7 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
+add_compile_options(-O0 -g -fPIC)
 
 o2_add_library(ITSWorkflow
                SOURCES src/RecoWorkflow.cxx
@@ -25,6 +26,7 @@ o2_add_library(ITSWorkflow
                                      O2::ITStracking
                                      O2::ITSReconstruction
                                      O2::ITSMFTReconstruction
+                                     O2::ITSMFTWorkflow
                                      O2::GPUTracking)
 
 o2_add_executable(reco-workflow
