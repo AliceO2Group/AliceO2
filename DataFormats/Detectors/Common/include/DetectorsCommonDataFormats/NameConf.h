@@ -13,6 +13,7 @@
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/StringUtils.h"
+#include <fmt/format.h>
 #include <string_view>
 
 /// \file NameConf.h
@@ -80,6 +81,15 @@ class NameConf
   static constexpr std::string_view TPCITS_TracksBranchName = "TPCITS";              ///< name of branch containing output matched tracks
   static constexpr std::string_view TPCITS_TPCMCTruthBranchName = "MatchTPCMCTruth"; ///< name of branch for output matched tracks TPC MC
   static constexpr std::string_view TPCITS_ITSMCTruthBranchName = "MatchITSMCTruth"; ///< name of branch for output matched tracks ITS MC
+
+  // CTF tree name
+  static constexpr std::string_view CTFTREENAME = "ctf"; // hardcoded
+
+  // CTF Filename
+  static std::string getCTFFileName(long id, const std::string_view prefix = "o2_ctf")
+  {
+    return o2::utils::concat_string(prefix, "_", fmt::format("{:010d}", id), ".root");
+  }
 
  private:
   // unmodifiable constants used to construct filenames etc
