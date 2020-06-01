@@ -174,7 +174,7 @@ int GPUReconstructionCPU::ExitDevice()
     if (mMaster == nullptr) {
       operator delete(mHostMemoryBase);
     }
-    mHostMemoryPool = mHostMemoryBase = mHostMemoryPermanent = nullptr;
+    mHostMemoryPool = mHostMemoryBase = mHostMemoryPoolEnd = mHostMemoryPermanent = nullptr;
     mHostMemorySize = 0;
   }
   return 0;
