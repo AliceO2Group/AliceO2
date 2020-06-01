@@ -127,6 +127,7 @@ o2_add_library(Framework
                                      O2::FrameworkLogger
                                      Boost::serialization
                                      arrow::gandiva_shared
+                                     LibUV::LibUV
                                      )
 
 o2_target_root_dictionary(Framework

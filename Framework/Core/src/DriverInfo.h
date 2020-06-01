@@ -59,7 +59,6 @@ enum struct DriverState {
   INIT = 0,
   SCHEDULE,
   RUNNING,
-  GUI,
   REDEPLOY_GUI,
   QUIT_REQUESTED,
   HANDLE_CHILDREN,
@@ -77,12 +76,8 @@ enum struct DriverState {
 struct DriverInfo {
   /// Stack with the states to be processed next.
   std::vector<DriverState> states;
-  // Mapping between various pipes and the actual device information.
-  // Key is the file description, value is index in the previous vector.
-  std::map<int, size_t> socket2DeviceInfo;
   /// The first unused file descriptor
   int maxFd;
-  fd_set childFdset;
 
   // Signal handler for children
   struct sigaction sa_handle_child;
