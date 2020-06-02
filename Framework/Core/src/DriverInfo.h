@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef FRAMEWORK_DRIVER_INFO_H
-#define FRAMEWORK_DRIVER_INFO_H
+#ifndef O2_FRAMEWORK_DRIVERINFO_H_
+#define O2_FRAMEWORK_DRIVERINFO_H_
 
 #include <chrono>
 #include <cstddef>
@@ -21,11 +21,10 @@
 
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/TerminationPolicy.h"
 #include "DataProcessorInfo.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 class ConfigContext;
@@ -73,13 +72,6 @@ enum struct DriverState {
   LAST
 };
 
-/// These are the possible actions we can do
-/// when a workflow is deemed complete (e.g. when we are done
-/// reading from file).
-enum struct TerminationPolicy { QUIT,
-                                WAIT,
-                                RESTART };
-
 /// Information about the driver process (i.e.  / the one which calculates the
 /// topology and actually spawns the devices )
 struct DriverInfo {
@@ -114,6 +106,8 @@ struct DriverInfo {
   bool batch;
   /// What we should do when the workflow is completed.
   enum TerminationPolicy terminationPolicy;
+  /// What we should do when one device in the workflow has an error
+  enum TerminationPolicy errorPolicy;
   /// The offset at which the process was started.
   std::chrono::time_point<std::chrono::steady_clock> startTime;
   /// The optional timeout after which the driver will request
@@ -146,7 +140,6 @@ struct DriverInfo {
   std::string uniqueWorkflowId = "";
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif
+#endif // O2_FRAMEWORK_DRIVERINFO_H_
