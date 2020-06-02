@@ -88,8 +88,18 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   }
   LOG(INFO) << ctfHeader;
 
+  auto setFirstTFOrbit = [&](const std::string& label) {
+    auto* hd = pc.outputs().findMessageHeader({label});
+    if (!hd) {
+      throw std::runtime_error(o2::utils::concat_string("failed to find output message header for ", label));
+    }
+    hd->firstTForbit = ctfHeader.firstTForbit;
+  };
+
   // send CTF Header
   pc.outputs().snapshot({"header"}, ctfHeader);
+  setFirstTFOrbit("header");
+
   DetID::mask_t detsTF = mDets & ctfHeader.detectors;
   DetID det;
 
@@ -97,18 +107,21 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   if (detsTF[det]) {
     auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::itsmft::CTF));
     o2::itsmft::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
+    setFirstTFOrbit(det.getName());
   }
 
   det = DetID::MFT;
   if (detsTF[det]) {
     auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::itsmft::CTF));
     o2::itsmft::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
+    setFirstTFOrbit(det.getName());
   }
 
   det = DetID::TPC;
   if (detsTF[det]) {
     auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::tpc::CTF));
     o2::tpc::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
+    setFirstTFOrbit(det.getName());
   }
 
   mTimer.Stop();
