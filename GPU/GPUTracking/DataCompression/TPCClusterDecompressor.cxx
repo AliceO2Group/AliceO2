@@ -21,13 +21,13 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-int TPCClusterDecompressor::decompress(const CompressedClustersFlat* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::vector<o2::tpc::ClusterNative>& clusterBuffer, const GPUParam& param)
+int TPCClusterDecompressor::decompress(const CompressedClustersFlat* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param)
 {
   CompressedClusters c = *clustersCompressed;
-  return decompress(&c, clustersNative, clusterBuffer, param);
+  return decompress(&c, clustersNative, allocator, param);
 }
 
-int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::vector<o2::tpc::ClusterNative>& clusterBuffer, const GPUParam& param)
+int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param)
 {
   std::vector<ClusterNative> clusters[NSLICES][GPUCA_ROW_COUNT];
   unsigned int offset = 0;
@@ -89,7 +89,7 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
       offset++;
     }
   }
-  clusterBuffer.resize(clustersCompressed->nAttachedClusters + clustersCompressed->nUnattachedClusters);
+  ClusterNative* clusterBuffer = allocator(clustersCompressed->nAttachedClusters + clustersCompressed->nUnattachedClusters);
   unsigned int offsets[NSLICES][GPUCA_ROW_COUNT];
   offset = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
@@ -99,7 +99,7 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
       offset += clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
     }
   }
-  clustersNative.clustersLinear = clusterBuffer.data();
+  clustersNative.clustersLinear = clusterBuffer;
   clustersNative.setOffsetPtrs();
   GPUCA_OPENMP(parallel for)
   for (unsigned int i = 0; i < NSLICES; i++) {

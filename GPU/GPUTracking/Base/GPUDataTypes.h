@@ -113,6 +113,7 @@ class GPUDataTypes
                              ITSTracking = 32,
                              TPCdEdx = 64,
                              TPCClusterFinding = 128,
+                             TPCDecompression = 256,
                              AllRecoSteps = 0x7FFFFFFF,
                              NoRecoStep = 0 };
   enum ENUM_CLASS InOutType { TPCClusters = 1,
@@ -124,7 +125,7 @@ class GPUDataTypes
                               TPCRaw = 64 };
 
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
-  static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation", "TPC Cluster Finding"};
+  static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation", "TPC Cluster Finding", "TPC Decompression"};
   typedef bitfield<RecoStep, unsigned int> RecoStepField;
   typedef bitfield<InOutType, unsigned int> InOutTypeField;
 #endif
