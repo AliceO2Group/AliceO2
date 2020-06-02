@@ -120,6 +120,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       char tpcTransformationFileName[1024] = ""; // A file with the TPC transformation
       char matBudFileName[1024] = "";            // Material budget file name
       char dEdxSplinesFile[1024] = "";           // File containing dEdx splines
+      int tpcRejectionMode = GPUSettings::RejectionStrategyA;
 
       const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
       if (grp) {
@@ -173,6 +174,10 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           } else if (optLen > 8 && strncmp(optPtr, "threads=", 8) == 0) {
             sscanf(optPtr + 8, "%d", &nThreads);
             printf("Using %d threads\n", nThreads);
+          } else if (optLen > 21 && strncmp(optPtr, "tpcRejectionStrategy=", 21) == 0) {
+            sscanf(optPtr + 21, "%d", &tpcRejectionMode);
+            tpcRejectionMode = tpcRejectionMode == 0 ? GPUSettings::RejectionNone : tpcRejectionMode == 1 ? GPUSettings::RejectionStrategyA : GPUSettings::RejectionStrategyB;
+            printf("TPC Rejection Mode: %d\n", tpcRejectionMode);
           } else if (optLen > 8 && strncmp(optPtr, "gpuType=", 8) == 0) {
             int len = std::min(optLen - 8, 1023);
             memcpy(gpuType, optPtr + 8, len);
@@ -229,7 +234,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       config.configReconstruction.TrackReferenceX = refX;
 
       // Settings for TPC Compression:
-      config.configReconstruction.tpcRejectionMode = GPUSettings::RejectionStrategyA; // Implement TPC Strategy A
+      config.configReconstruction.tpcRejectionMode = tpcRejectionMode;                // Implement TPC Strategy A
       config.configReconstruction.tpcRejectQPt = 1.f / 0.05f;                         // Reject clusters of tracks < 50 MeV
       config.configReconstruction.tpcCompressionModes = GPUSettings::CompressionFull; // Activate all compression steps
       config.configReconstruction.tpcCompressionSortOrder = GPUSettings::SortPad;     // Sort order for differences compression
