@@ -35,45 +35,16 @@ TGeoVolumeAssembly* Barrel::createBarrel()
 
   auto* BarrelVolume = new TGeoVolumeAssembly("BarrelVolume");
 
-  TGeoElement* Hydrogen = new TGeoElement("Hydrogen", "Hydrogen", 1, 1.00794);
-  TGeoElement* Carbon = new TGeoElement("Carbon", "Carbon", 6, 12.0107);
-  TGeoElement* Nitrogen = new TGeoElement("Nitrogen", "Nitrogen", 7, 14.0067);
-  TGeoElement* Oxygen = new TGeoElement("Oxygen", "Oxygen", 8, 15.994);
-
-  //CarbonFiberM46J
-  TGeoMaterial* CarbonFiber = new TGeoMaterial("CarbonFiber-M46J", Carbon, 1.84);
-  CarbonFiber->SetTemperature(15.0);
-  CarbonFiber->SetState(TGeoMaterial::kMatStateSolid);
-  //Polypropylene [C3H6]n
-  TGeoMixture* Ppropylene = new TGeoMixture("Polypropylene", 9);
-  Ppropylene->AddElement(Carbon, 0.856307);
-  Ppropylene->AddElement(Hydrogen, 0.143693);
-  Ppropylene->SetTitle("Polypropylene for the Fixation services");
-  Ppropylene->SetTemperature(25.0);
-  Ppropylene->SetDensity(1.19);
-  Ppropylene->SetState(TGeoMaterial::kMatStateSolid);
-
-  //Polyurethane [HN-CO-O]
-  TGeoMixture* Purethane = new TGeoMixture("Polyurethane", 9);
-  Purethane->AddElement(Carbon, 0.203327619);
-  Purethane->AddElement(Hydrogen, 0.017077588);
-  Purethane->AddElement(Nitrogen, 0.237314387);
-  Purethane->AddElement(Oxygen, 0.542280405);
-  Purethane->SetTitle("Polyurethane for Pipes");
-  Purethane->SetTemperature(25.0);
-  Purethane->SetDensity(1.25);
-  Purethane->SetState(TGeoMaterial::kMatStateSolid);
-
   //
   TGeoMedium* kMeAl = gGeoManager->GetMedium("MFT_Alu$");
   TGeoMedium* mCu = gGeoManager->GetMedium("MFT_Cu$");
-  TGeoMedium* mCarbon = new TGeoMedium("CarbonFiber", 2, CarbonFiber);
+  TGeoMedium* mCarbon = gGeoManager->GetMedium("MFT_CarbonFiberM46J");
   TGeoMedium* mRohacell = gGeoManager->GetMedium("MFT_Rohacell");
   TGeoMedium* mKapton = gGeoManager->GetMedium("MFT_Kapton$");
   TGeoMedium* mWater = gGeoManager->GetMedium("MFT_Water$");
   TGeoMedium* mAir = gGeoManager->GetMedium("MFT_Air$");
-  TGeoMedium* mPolypropylene = new TGeoMedium("Polypropylene", 2, Ppropylene);
-  TGeoMedium* mPolyurethane = new TGeoMedium("Polyurethane", 2, Purethane);
+  TGeoMedium* mPolypropylene = gGeoManager->GetMedium("MFT_Polypropylene");
+  TGeoMedium* mPolyurethane = gGeoManager->GetMedium("MFT_Polyurethane");
   // define shape of joints
   TGeoVolume* BarrelJoint0 = gGeoManager->MakeTubs(
     "Barrel_joint0", kMeAl, 49.600, 49.85, 1.05, 207.2660445, 332.7339555);
