@@ -581,14 +581,19 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
 }
 
 // Process all the sigchld which are pending
-void processSigChild(DeviceInfos& infos)
+// @return wether or not a given child exited with an error condition.
+bool processSigChild(DeviceInfos& infos)
 {
+  bool hasError = false;
   while (true) {
     int status;
     pid_t pid = waitpid((pid_t)(-1), &status, WNOHANG);
     if (pid > 0) {
       int es = WEXITSTATUS(status);
 
+      if (es) {
+        hasError = true;
+      }
       for (auto& info : infos) {
         if (info.pid == pid) {
           info.active = false;
@@ -600,6 +605,7 @@ void processSigChild(DeviceInfos& infos)
       break;
     }
   }
+  return hasError;
 }
 
 // Creates the sink for FairLogger / InfoLogger integration
@@ -657,7 +663,7 @@ auto createInfoLoggerSinkHelper(std::unique_ptr<InfoLogger>& logger, std::unique
   };
 };
 
-int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
+int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, TerminationPolicy errorPolicy)
 {
   fair::Logger::SetConsoleColor(false);
   LOG(INFO) << "Spawing new device " << spec.id << " in process with pid " << getpid();
@@ -707,7 +713,8 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
                                        &serviceRegistry,
                                        &infoLoggerContext,
                                        &deviceState,
-                                       &timesliceIndex](fair::mq::DeviceRunner& r) {
+                                       &timesliceIndex,
+                                       &errorPolicy](fair::mq::DeviceRunner& r) {
       localRootFileService = std::make_unique<LocalRootFileService>();
       deviceState = std::make_unique<DeviceState>();
       textControlService = std::make_unique<TextControlService>(serviceRegistry, *deviceState.get());
@@ -746,6 +753,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
       decltype(r.fDevice) device;
       device = std::move(make_matching<decltype(device), DataProcessingDevice>(spec, serviceRegistry, *deviceState.get()));
+      dynamic_cast<DataProcessingDevice*>(device.get())->SetErrorPolicy(errorPolicy);
 
       serviceRegistry.get<RawDeviceService>().setDevice(device.get());
       r.fDevice = std::move(device);
@@ -820,6 +828,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     driverInfo.batch = true;
   }
   bool guiQuitRequested = false;
+  bool hasError = false;
 
   auto frameLast = std::chrono::high_resolution_clock::now();
   auto inputProcessingLast = frameLast;
@@ -940,7 +949,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         for (auto& spec : deviceSpecs) {
           if (spec.id == frameworkId) {
-            return doChild(driverInfo.argc, driverInfo.argv, spec);
+            return doChild(driverInfo.argc, driverInfo.argv, spec, driverInfo.errorPolicy);
           }
         }
         {
@@ -1079,7 +1088,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         sigchld_requested = false;
         driverInfo.sigchldRequested = false;
         processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
-        processSigChild(infos);
+        hasError = processSigChild(infos);
         if (areAllChildrenGone(infos) == true &&
             (guiQuitRequested || (checkIfCanExit(infos) == true) || graceful_exit)) {
           // We move to the exit, regardless of where we were
@@ -1090,6 +1099,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                    (guiQuitRequested || checkIfCanExit(infos) == true || graceful_exit)) {
           driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
           driverInfo.states.push_back(DriverState::GUI);
+        } else if (hasError && driverInfo.errorPolicy == TerminationPolicy::QUIT &&
+                   !(guiQuitRequested || checkIfCanExit(infos) == true || graceful_exit)) {
+          graceful_exit = 1;
+          driverInfo.states.push_back(DriverState::GUI);
+          driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
         } else {
           driverInfo.states.push_back(DriverState::GUI);
         }
@@ -1411,6 +1425,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     currentWorkflowOptions};
 
   enum TerminationPolicy policy;
+  enum TerminationPolicy errorPolicy;
   bpo::options_description executorOptions("Executor options");
   const char* helpDescription = "print help: short, full, executor, or processor name";
   executorOptions.add_options()                                                                                         //
@@ -1425,6 +1440,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                              //
     ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT),             //
      "what to do when processing is finished: quit, wait")                                                              //
+    ("error-policy,c", bpo::value<TerminationPolicy>(&errorPolicy)->default_value(TerminationPolicy::QUIT),             //
+     "what to do when a device has an error: quit, wait")                                                               //
     ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")                     //
     ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                                //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                      //
@@ -1628,6 +1645,11 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.argv = argv;
   driverInfo.batch = varmap["batch"].as<bool>();
   driverInfo.terminationPolicy = varmap["completion-policy"].as<TerminationPolicy>();
+  if (varmap["error-policy"].defaulted() && driverInfo.batch == false) {
+    driverInfo.errorPolicy = TerminationPolicy::WAIT;
+  } else {
+    driverInfo.errorPolicy = varmap["error-policy"].as<TerminationPolicy>();
+  }
   driverInfo.startTime = std::chrono::steady_clock::now();
   driverInfo.timeout = varmap["timeout"].as<double>();
   driverInfo.deployHostname = varmap["hostname"].as<std::string>();

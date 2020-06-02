@@ -627,16 +627,32 @@ bool DataProcessingDevice::tryDispatchComputation()
   };
 
   // Error handling means printing the error and updating the metric
-  auto errorHandling = [&errorCallback, &monitoringService, &serviceRegistry](std::exception& e, InputRecord& record) {
-    StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
-    LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
-    if (errorCallback) {
+  std::function<void(std::exception & e, InputRecord & record)> errorHandling = nullptr;
+  if (errorCallback != nullptr) {
+    errorHandling = [&errorCallback, &monitoringService,
+                     &serviceRegistry](std::exception& e, InputRecord& record) {
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
+      LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
       monitoringService.send({1, "error"});
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
-    }
-    StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-  };
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+    };
+  } else {
+    errorHandling = [&monitoringService, &errorPolicy = mErrorPolicy,
+                     &serviceRegistry](std::exception& e, InputRecord& record) {
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
+      LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
+      monitoringService.send({1, "error"});
+      switch (errorPolicy) {
+        case TerminationPolicy::QUIT:
+          throw e;
+        default:
+          break;
+      }
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+    };
+  }
 
   // I need a preparation step which gets the current timeslice id and
   // propagates it to the various contextes (i.e. the actual entities which
@@ -780,64 +796,64 @@ bool DataProcessingDevice::tryDispatchComputation()
 
   if (canDispatchSomeComputation() == false) {
     return false;
-  }
-
-  for (auto action : getReadyActions()) {
-    if (action.op == CompletionPolicy::CompletionOp::Wait) {
-      continue;
     }
 
-    prepareAllocatorForCurrentTimeSlice(TimesliceSlot{action.slot});
-    InputRecord record = fillInputs(action.slot);
-    if (action.op == CompletionPolicy::CompletionOp::Discard) {
-      if (forwards.empty() == false) {
-        forwardInputs(action.slot, record);
+    for (auto action : getReadyActions()) {
+      if (action.op == CompletionPolicy::CompletionOp::Wait) {
         continue;
       }
-    }
-    auto tStart = std::chrono::high_resolution_clock::now();
-    for (size_t ai = 0; ai != record.size(); ai++) {
-      auto cacheId = action.slot.index * record.size() + ai;
-      auto state = record.isValid(ai) ? 2 : 0;
-      mStats.relayerState.resize(std::max(cacheId + 1, mStats.relayerState.size()), 0);
-      mStats.relayerState[cacheId] = state;
-    }
-    try {
-      if (mState.quitRequested == false) {
-        dispatchProcessing(action.slot, record);
-      }
-    } catch (std::exception& e) {
-      errorHandling(e, record);
-    }
-    for (size_t ai = 0; ai != record.size(); ai++) {
-      auto cacheId = action.slot.index * record.size() + ai;
-      auto state = record.isValid(ai) ? 3 : 0;
-      mStats.relayerState.resize(std::max(cacheId + 1, mStats.relayerState.size()), 0);
-      mStats.relayerState[cacheId] = state;
-    }
-    auto tEnd = std::chrono::high_resolution_clock::now();
-    mStats.lastElapsedTimeMs = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-    mStats.lastTotalProcessedSize = calculateTotalInputRecordSize(record);
-    mStats.lastLatency = calculateInputRecordLatency(record, tStart);
-    // We forward inputs only when we consume them. If we simply Process them,
-    // we keep them for next message arriving.
-    if (action.op == CompletionPolicy::CompletionOp::Consume) {
-      if (forwards.empty() == false) {
-        forwardInputs(action.slot, record);
-      }
-    } else if (action.op == CompletionPolicy::CompletionOp::Process) {
-      cleanTimers(action.slot, record);
-    }
-  }
-  // We now broadcast the end of stream if it was requested
-  if (mState.streaming == StreamingState::EndOfStreaming) {
-    for (auto& channel : mSpec.outputChannels) {
-      DataProcessingHelpers::sendEndOfStream(*this, channel);
-    }
-    switchState(StreamingState::Idle);
-  }
 
-  return true;
+      prepareAllocatorForCurrentTimeSlice(TimesliceSlot{action.slot});
+      InputRecord record = fillInputs(action.slot);
+      if (action.op == CompletionPolicy::CompletionOp::Discard) {
+        if (forwards.empty() == false) {
+          forwardInputs(action.slot, record);
+          continue;
+        }
+      }
+      auto tStart = std::chrono::high_resolution_clock::now();
+      for (size_t ai = 0; ai != record.size(); ai++) {
+        auto cacheId = action.slot.index * record.size() + ai;
+        auto state = record.isValid(ai) ? 2 : 0;
+        mStats.relayerState.resize(std::max(cacheId + 1, mStats.relayerState.size()), 0);
+        mStats.relayerState[cacheId] = state;
+      }
+      try {
+        if (mState.quitRequested == false) {
+          dispatchProcessing(action.slot, record);
+        }
+      } catch (std::exception& e) {
+        errorHandling(e, record);
+      }
+      for (size_t ai = 0; ai != record.size(); ai++) {
+        auto cacheId = action.slot.index * record.size() + ai;
+        auto state = record.isValid(ai) ? 3 : 0;
+        mStats.relayerState.resize(std::max(cacheId + 1, mStats.relayerState.size()), 0);
+        mStats.relayerState[cacheId] = state;
+      }
+      auto tEnd = std::chrono::high_resolution_clock::now();
+      mStats.lastElapsedTimeMs = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+      mStats.lastTotalProcessedSize = calculateTotalInputRecordSize(record);
+      mStats.lastLatency = calculateInputRecordLatency(record, tStart);
+      // We forward inputs only when we consume them. If we simply Process them,
+      // we keep them for next message arriving.
+      if (action.op == CompletionPolicy::CompletionOp::Consume) {
+        if (forwards.empty() == false) {
+          forwardInputs(action.slot, record);
+        }
+      } else if (action.op == CompletionPolicy::CompletionOp::Process) {
+        cleanTimers(action.slot, record);
+      }
+    }
+    // We now broadcast the end of stream if it was requested
+    if (mState.streaming == StreamingState::EndOfStreaming) {
+      for (auto& channel : mSpec.outputChannels) {
+        DataProcessingHelpers::sendEndOfStream(*this, channel);
+      }
+      switchState(StreamingState::Idle);
+    }
+
+    return true;
 }
 
 void DataProcessingDevice::error(const char* msg)
