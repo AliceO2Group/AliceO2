@@ -69,7 +69,7 @@ namespace tpc
 
 DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int> const& tpcsectors)
 {
-  if (specconfig.outputCAClusters && !specconfig.caClusterer) {
+  if (specconfig.outputCAClusters && !specconfig.caClusterer && !specconfig.decompressTPC) {
     throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
   }
 
@@ -255,6 +255,13 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCClusterFinding, true);
         config.configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, true);
       }
+      if (specconfig.decompressTPC) {
+        config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, false);
+        config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, true);
+        config.configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCCompressedClusters);
+        config.configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, true);
+        config.configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
+      }
 
       // Create and forward data objects for TPC transformation, material LUT, ...
       if (readTransformationFromFile) {
@@ -321,6 +328,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         DataRef labels;
       };
       std::map<int, InputRef> inputrefs;
+      const CompressedClustersFlat* pCompClustersFlat;
       o2::gpu::GPUTrackingInOutZS tpcZS;
       std::vector<const void*> tpcZSmetaPointers[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
       std::vector<unsigned int> tpcZSmetaSizes[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
@@ -510,6 +518,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           unsigned long subspec = dh->subSpecification;
           printf("Test: rdh %p, raw %p, payload %p, payloadSize %lld, offset %lld, %s %s %lld\n", rdh, raw, payload, (long long int)payloadSize, (long long int)offset, dh->dataOrigin.as<std::string>().c_str(), dh->dataDescription.as<std::string>().c_str(), (long long int)dh->subSpecification);
         }*/
+      } else if (specconfig.decompressTPC) {
+        pCompClustersFlat = pc.inputs().get<CompressedClustersFlat*>("input").get();
       } else if (!specconfig.zsOnTheFly) {
         // FIXME: We can have digits input in zs decoder mode for MC labels
         // This code path should run optionally also for the zs decoder version
@@ -619,7 +629,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
             ptrs.o2DigitsMC = &inputDigitsMC;
           }
         }
-
+      } else if (specconfig.decompressTPC) {
+        ptrs.compressedClusters = pCompClustersFlat;
       } else {
         memset(&clusterIndex, 0, sizeof(clusterIndex));
         ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clustersMCBuffer, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
@@ -743,7 +754,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
   // e.g. by providing a span of inputs under a certain label
   auto createInputSpecs = [&tpcsectors, &specconfig]() {
     Inputs inputs;
-    if (specconfig.caClusterer) {
+    if (specconfig.decompressTPC) {
+      inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, "COMPCLUSTERSFLAT"}, Lifetime::Timeframe});
+    } else if (specconfig.caClusterer) {
       // We accept digits and MC labels also if we run on ZS Raw data, since they are needed for MC label propagation
       if (!specconfig.zsOnTheFly && !specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
         inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}, Lifetime::Timeframe});

@@ -31,6 +31,7 @@ namespace ca
 // The CA tracker is now a wrapper to not only the actual tracking on GPU but
 // also the decoding of the zero-suppressed raw format and the clusterer.
 enum struct Operation {
+  DecompressTPC,          // run cluster decompressor
   CAClusterer,            // run the CA clusterer
   ZSDecoder,              // run the ZS raw data decoder
   ZSOnTheFly,             // use zs on the fly
@@ -57,6 +58,9 @@ struct Config {
   void init(Operation const& op, Args&&... args)
   {
     switch (op) {
+      case Operation::DecompressTPC:
+        decompressTPC = true;
+        break;
       case Operation::CAClusterer:
         caClusterer = true;
         break;
@@ -94,6 +98,7 @@ struct Config {
   // Cannot specialize constructor to create proper copy constructor directly --> must overload init
   void init(const Config& x) { *this = x; }
 
+  bool decompressTPC = false;
   bool caClusterer = false;
   bool zsDecoder = false;
   bool zsOnTheFly = false;

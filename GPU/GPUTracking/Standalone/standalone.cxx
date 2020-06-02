@@ -45,6 +45,7 @@
 #endif
 #include "utils/timer.h"
 #include "utils/qmaths_helpers.h"
+#include "utils/vecpod.h"
 
 #include "TPCFastTransform.h"
 #include "GPUTPCGMMergedTrack.h"
@@ -55,7 +56,6 @@
 #include "GPUO2DataTypes.h"
 #ifdef HAVE_O2HEADERS
 #include "GPUChainITS.h"
-#include "TPCClusterDecompressor.h"
 #endif
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
@@ -388,34 +388,34 @@ int SetupReconstruction()
   devProc.mergerSortTracks = configStandalone.configProc.mergerSortTracks;
   devProc.tpcCompressionGatherMode = configStandalone.configProc.tpcCompressionGatherMode;
 
-  steps.steps = GPUReconstruction::RecoStep::AllRecoSteps;
+  steps.steps = GPUDataTypes::RecoStep::AllRecoSteps;
   if (configStandalone.configRec.runTRD != -1) {
-    steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, configStandalone.configRec.runTRD > 0);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, configStandalone.configRec.runTRD > 0);
   }
   if (configStandalone.configRec.rundEdx != -1) {
-    steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, configStandalone.configRec.rundEdx > 0);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, configStandalone.configRec.rundEdx > 0);
   }
   if (configStandalone.configRec.runCompression != -1) {
-    steps.steps.setBits(GPUReconstruction::RecoStep::TPCCompression, configStandalone.configRec.runCompression > 0);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, configStandalone.configRec.runCompression > 0);
   }
   if (configStandalone.configRec.runTransformation != -1) {
-    steps.steps.setBits(GPUReconstruction::RecoStep::TPCConversion, configStandalone.configRec.runTransformation > 0);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCConversion, configStandalone.configRec.runTransformation > 0);
   }
   if (!configStandalone.merger) {
-    steps.steps.setBits(GPUReconstruction::RecoStep::TPCMerging, false);
-    steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, false);
-    steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, false);
-    steps.steps.setBits(GPUReconstruction::RecoStep::TPCCompression, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCMerging, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, false);
   }
   if (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge) {
-    steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, false);
   }
   steps.inputs.set(GPUDataTypes::InOutType::TPCClusters, GPUDataTypes::InOutType::TRDTracklets);
   if (ev.needsClusterer) {
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCRaw, true);
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
   } else {
-    steps.steps.setBits(GPUReconstruction::RecoStep::TPCClusterFinding, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCClusterFinding, false);
   }
 
   if (configStandalone.configProc.recoSteps >= 0) {
@@ -426,15 +426,17 @@ int SetupReconstruction()
   }
 
   steps.outputs.clear();
-  steps.outputs.setBits(GPUDataTypes::InOutType::TPCSectorTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCSliceTracking) && !recSet.mergerReadFromTrackerDirectly);
-  steps.outputs.setBits(GPUDataTypes::InOutType::TPCMergedTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCMerging));
-  steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUReconstruction::RecoStep::TPCCompression));
-  steps.outputs.setBits(GPUDataTypes::InOutType::TRDTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TRDTracking));
-  steps.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, steps.steps.isSet(GPUReconstruction::RecoStep::TPCClusterFinding));
+  steps.outputs.setBits(GPUDataTypes::InOutType::TPCSectorTracks, steps.steps.isSet(GPUDataTypes::RecoStep::TPCSliceTracking) && !recSet.mergerReadFromTrackerDirectly);
+  steps.outputs.setBits(GPUDataTypes::InOutType::TPCMergedTracks, steps.steps.isSet(GPUDataTypes::RecoStep::TPCMerging));
+  steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUDataTypes::RecoStep::TPCCompression));
+  steps.outputs.setBits(GPUDataTypes::InOutType::TRDTracks, steps.steps.isSet(GPUDataTypes::RecoStep::TRDTracking));
+  steps.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, steps.steps.isSet(GPUDataTypes::RecoStep::TPCClusterFinding));
+  steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, false);
+  steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
 
   if (configStandalone.testSyncAsync || configStandalone.testSync) {
     // Set settings for synchronous
-    steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, 0);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, 0);
     recSet.useMatLUT = false;
     if (configStandalone.testSyncAsync) {
       devProc.eventDisplay = nullptr;
@@ -443,12 +445,14 @@ int SetupReconstruction()
   rec->SetSettings(&ev, &recSet, &devProc, &steps);
   if (configStandalone.testSyncAsync) {
     // Set settings for asynchronous
-    steps.steps.setBits(GPUReconstruction::RecoStep::TPCdEdx, 1);
-    steps.steps.setBits(GPUReconstruction::RecoStep::TPCCompression, false);
-    steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, 0);
-    steps.steps.setBits(GPUReconstruction::RecoStep::TPCClusterFinding, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, true);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, true);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCClusterFinding, false);
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCRaw, false);
-    steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, true);
+    steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
+    steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, true);
+    steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
     devProc.runMC = false;
     devProc.runQA = false;
     devProc.eventDisplay = eventDisplay.get();
@@ -513,7 +517,7 @@ void OutputStat(GPUChainTracking* t, long long int* nTracksTotal = nullptr, long
   }
 
   char trdText[1024] = "";
-  if (t->GetRecoSteps() & GPUReconstruction::RecoStep::TRDTracking) {
+  if (t->GetRecoSteps() & GPUDataTypes::RecoStep::TRDTracking) {
     int nTracklets = 0;
     for (int k = 0; k < t->GetTRDTracker()->NTracks(); k++) {
       auto& trk = t->GetTRDTracker()->Tracks()[k];
@@ -735,17 +739,11 @@ int main(int argc, char** argv)
               printf("Running asynchronous phase\n");
             }
 
-            TPCClusterDecompressor decomp;
-            o2::tpc::ClusterNativeAccess clNativeAccess;
-            std::vector<o2::tpc::ClusterNative> clBuffer;
-            HighResTimer timerDecompress;
-            timerDecompress.ResetStart();
-            if (decomp.decompress(chainTracking->mIOPtrs.tpcCompressedClusters, clNativeAccess, clBuffer, recAsync->GetParam())) {
-              printf("Error decompressing clusters\n");
-              goto breakrun;
-            }
-            printf("Cluster decompression time: %'d us\n", (int)(timerDecompress.GetCurrentElapsedTime() * 1000000));
+            vecpod<char> compressedTmpMem(chainTracking->mIOPtrs.tpcCompressedClusters->totalDataSize);
+            memcpy(compressedTmpMem.data(), (const void*)chainTracking->mIOPtrs.tpcCompressedClusters, chainTracking->mIOPtrs.tpcCompressedClusters->totalDataSize);
+
             chainTrackingAsync->mIOPtrs = ioPtrSave;
+            chainTrackingAsync->mIOPtrs.tpcCompressedClusters = (o2::tpc::CompressedClustersFlat*)compressedTmpMem.data();
             chainTrackingAsync->mIOPtrs.tpcZS = nullptr;
             chainTrackingAsync->mIOPtrs.tpcPackedDigits = nullptr;
             chainTrackingAsync->mIOPtrs.mcInfosTPC = nullptr;
@@ -758,7 +756,7 @@ int main(int argc, char** argv)
               chainTrackingAsync->mIOPtrs.rawClusters[i] = nullptr;
               chainTrackingAsync->mIOPtrs.nRawClusters[i] = 0;
             }
-            chainTrackingAsync->mIOPtrs.clustersNative = &clNativeAccess;
+            chainTrackingAsync->mIOPtrs.clustersNative = nullptr;
             if (configStandalone.controlProfiler && j1 == configStandalone.runs - 1) {
               rec->startGPUProfiling();
             }

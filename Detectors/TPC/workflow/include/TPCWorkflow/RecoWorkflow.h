@@ -33,6 +33,7 @@ enum struct InputType { Digitizer,        // directly read digits from channel {
                         ClustersHardware, // read hardware clusters in raw page format from file
                         Clusters,         // read native clusters from file
                         CompClusters,     // read compressed cluster container
+                        CompClustersCTF,  // compressed clusters from CTF, as flat format
                         EncodedClusters,  // read encoded clusters
                         ZSRaw,
 };

@@ -52,6 +52,7 @@
 #include "GPUHostDataTypes.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCdEdxCalibrationSplines.h"
+#include "TPCClusterDecompressor.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif
@@ -182,7 +183,7 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("Invalid input / output / step, mergerReadFromTrackerDirectly cannot read/store sectors tracks and needs TPC conversion");
     return false;
   }
-  bool tpcClustersAvail = (GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCClusters) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding);
+  bool tpcClustersAvail = (GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCClusters) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCDecompression);
 #ifndef GPUCA_ALIROOT_LIB
   if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging) && !tpcClustersAvail) {
     GPUError("Invalid Inputs, TPC Clusters required");
@@ -1954,6 +1955,36 @@ int GPUChainTracking::RunTPCCompression()
   return 0;
 }
 
+int GPUChainTracking::RunTPCDecompression()
+{
+#ifdef HAVE_O2HEADERS
+  const auto& threadContext = GetThreadContext();
+  TPCClusterDecompressor decomp;
+  auto allocator = [this](size_t size) {
+    this->mInputsHost->mNClusterNative = this->mInputsShadow->mNClusterNative = size;
+    this->AllocateRegisteredMemory(this->mInputsHost->mResourceClusterNativeOutput, this->mOutputClustersNative);
+    return this->mInputsHost->mPclusterNativeOutput;
+  };
+  if (decomp.decompress(mIOPtrs.tpcCompressedClusters, *mClusterNativeAccess, allocator, param())) {
+    GPUError("Error decompressing clusters");
+    return 1;
+  }
+  mIOPtrs.clustersNative = mClusterNativeAccess.get();
+  if (mRec->IsGPU()) {
+    AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
+    processorsShadow()->ioPtrs.clustersNative = mInputsShadow->mPclusterNativeAccess;
+    WriteToConstantMemory(RecoStep::TPCDecompression, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
+    *mInputsHost->mPclusterNativeAccess = *mIOPtrs.clustersNative;
+    mInputsHost->mPclusterNativeAccess->clustersLinear = mInputsShadow->mPclusterNativeBuffer;
+    mInputsHost->mPclusterNativeAccess->setOffsetPtrs();
+    GPUMemCpy(RecoStep::TPCDecompression, mInputsShadow->mPclusterNativeBuffer, mIOPtrs.clustersNative->clustersLinear, sizeof(mIOPtrs.clustersNative->clustersLinear[0]) * mIOPtrs.clustersNative->nClustersTotal, 0, true);
+    TransferMemoryResourceLinkToGPU(RecoStep::TPCDecompression, mInputsHost->mResourceClusterNativeAccess, 0);
+    SynchronizeGPU();
+  }
+#endif
+  return 0;
+}
+
 int GPUChainTracking::RunTRDTracking()
 {
   if (!processors()->trdTracker.IsInitialized()) {
@@ -2048,7 +2079,7 @@ int GPUChainTracking::RunChain()
       return 1;
     }
   }
-  HighResTimer timerTracking, timerMerger, timerQA, timerTransform, timerCompression, timerClusterer, timerPrepare, timerTRD;
+  HighResTimer timerTracking, timerMerger, timerQA, timerTransform, timerCompression, timerDecompression, timerClusterer, timerPrepare, timerTRD;
   if (GetDeviceProcessingSettings().debugLevel >= 6) {
     mDebugFile << "\n\nProcessing event " << mRec->getNEventsProcessed() << std::endl;
   }
@@ -2072,7 +2103,13 @@ int GPUChainTracking::RunChain()
 
   PrepareDebugOutput();
 
-  if (GetRecoSteps().isSet(RecoStep::TPCClusterFinding) && (mIOPtrs.tpcPackedDigits || mIOPtrs.tpcZS)) {
+  if (GetRecoSteps().isSet(RecoStep::TPCDecompression) && mIOPtrs.tpcCompressedClusters) {
+    timerDecompression.Start();
+    if (RunTPCDecompression()) {
+      return 1;
+    }
+    timerDecompression.Stop();
+  } else if (GetRecoSteps().isSet(RecoStep::TPCClusterFinding) && (mIOPtrs.tpcPackedDigits || mIOPtrs.tpcZS)) {
     timerClusterer.Start();
     if (param().rec.fwdTPCDigitsAsClusters) {
       ForwardTPCDigits();
