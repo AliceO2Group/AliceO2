@@ -334,7 +334,7 @@ TParticle* Stack::PopPrimaryForTracking(Int_t iPrim)
   if (particle->TestBit(ParticleStatus::kToBeDone)) {
     return particle;
   } else {
-    return 0;
+    return nullptr;
   }
 }
 
