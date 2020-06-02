@@ -264,18 +264,23 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
         const ClusterNative& GPUrestrict() orgCl = clusters->clusters[iSlice][iRow][sortBuffer[j]];
         unsigned int lastTime = 0;
         unsigned int lastPad = 0;
-        if (j != 0) {
-          const ClusterNative& GPUrestrict() orgClPre = clusters->clusters[iSlice][iRow][sortBuffer[j - 1]];
-          lastPad = orgClPre.padPacked;
-          lastTime = orgClPre.getTimePacked();
-        } else if (totalCount != 0) {
-          const ClusterNative& GPUrestrict() orgClPre = clusters->clusters[iSlice][iRow][smem.step1.lastIndex];
-          lastPad = orgClPre.padPacked;
-          lastTime = orgClPre.getTimePacked();
-        }
+        if (param.rec.tpcCompressionModes & GPUSettings::CompressionDifferences) {
+          if (j != 0) {
+            const ClusterNative& GPUrestrict() orgClPre = clusters->clusters[iSlice][iRow][sortBuffer[j - 1]];
+            lastPad = orgClPre.padPacked;
+            lastTime = orgClPre.getTimePacked();
+          } else if (totalCount != 0) {
+            const ClusterNative& GPUrestrict() orgClPre = clusters->clusters[iSlice][iRow][smem.step1.lastIndex];
+            lastPad = orgClPre.padPacked;
+            lastTime = orgClPre.getTimePacked();
+          }
 
-        c.padDiffU[outidx] = orgCl.padPacked - lastPad;
-        c.timeDiffU[outidx] = (orgCl.getTimePacked() - lastTime) & 0xFFFFFF;
+          c.padDiffU[outidx] = orgCl.padPacked - lastPad;
+          c.timeDiffU[outidx] = (orgCl.getTimePacked() - lastTime) & 0xFFFFFF;
+        } else {
+          c.padDiffU[outidx] = orgCl.padPacked;
+          c.timeDiffU[outidx] = orgCl.getTimePacked();
+        }
 
         unsigned short qtot = orgCl.qTot, qmax = orgCl.qMax;
         unsigned char sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;
