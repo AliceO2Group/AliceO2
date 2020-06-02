@@ -26,6 +26,7 @@
 #include "Framework/InputRoute.h"
 #include "Framework/ForwardRoute.h"
 #include "Framework/TimingInfo.h"
+#include "Framework/TerminationPolicy.h"
 
 #include <fairmq/FairMQDevice.h>
 #include <fairmq/FairMQParts.h>
@@ -51,6 +52,7 @@ class DataProcessingDevice : public FairMQDevice
   void Reset() final;
   void ResetTask() final;
   bool ConditionalRun() final;
+  void SetErrorPolicy(enum TerminationPolicy policy) { mErrorPolicy = policy; }
 
  protected:
   bool handleData(FairMQParts&, InputChannelInfo&);
@@ -86,6 +88,7 @@ class DataProcessingDevice : public FairMQDevice
   DataProcessingStats mStats;                /// Stats about the actual data processing.
   int mCurrentBackoff = 0;                   /// The current exponential backoff value.
   std::vector<FairMQRegionInfo> mPendingRegionInfos; /// A list of the region infos not yet notified.
+  enum TerminationPolicy mErrorPolicy = TerminationPolicy::WAIT; /// What to do when an error arises
 };
 
 } // namespace o2::framework
