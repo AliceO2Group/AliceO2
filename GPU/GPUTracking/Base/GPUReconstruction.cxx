@@ -153,6 +153,19 @@ int GPUReconstruction::Init()
 
 int GPUReconstruction::InitPhaseBeforeDevice()
 {
+#ifndef HAVE_O2HEADERS
+  mRecoSteps.setBits(RecoStep::ITSTracking, false);
+  mRecoSteps.setBits(RecoStep::TRDTracking, false);
+  mRecoSteps.setBits(RecoStep::TPCConversion, false);
+  mRecoSteps.setBits(RecoStep::TPCCompression, false);
+  mRecoSteps.setBits(RecoStep::TPCdEdx, false);
+#endif
+  mRecoStepsGPU &= mRecoSteps;
+  mRecoStepsGPU &= AvailableRecoSteps();
+  if (!IsGPU()) {
+    mRecoStepsGPU.set((unsigned char)0);
+  }
+
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_AUTO) {
     mDeviceProcessingSettings.memoryAllocationStrategy = IsGPU() ? GPUMemoryResource::ALLOCATION_GLOBAL : GPUMemoryResource::ALLOCATION_INDIVIDUAL;
   }
@@ -190,18 +203,6 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mDeviceProcessingSettings.nDeviceHelperThreads = 0;
   }
 
-#ifndef HAVE_O2HEADERS
-  mRecoSteps.setBits(RecoStep::ITSTracking, false);
-  mRecoSteps.setBits(RecoStep::TRDTracking, false);
-  mRecoSteps.setBits(RecoStep::TPCConversion, false);
-  mRecoSteps.setBits(RecoStep::TPCCompression, false);
-  mRecoSteps.setBits(RecoStep::TPCdEdx, false);
-#endif
-  mRecoStepsGPU &= mRecoSteps;
-  mRecoStepsGPU &= AvailableRecoSteps();
-  if (!IsGPU()) {
-    mRecoStepsGPU.set((unsigned char)0);
-  }
   if (param().rec.NonConsecutiveIDs) {
     param().rec.DisableRefitAttachment = 0xFF;
   }
