@@ -424,6 +424,16 @@ class DataAllocator
   /// check if a certain output is allowed
   bool isAllowed(Output const& query);
 
+  o2::header::DataHeader* findMessageHeader(const Output& spec)
+  {
+    return mContextRegistry->get<MessageContext>()->findMessageHeader(spec);
+  }
+
+  o2::header::DataHeader* findMessageHeader(OutputRef&& ref)
+  {
+    return mContextRegistry->get<MessageContext>()->findMessageHeader(getOutputByBind(std::move(ref)));
+  }
+
  private:
   AllowedOutputRoutes mAllowedOutputRoutes;
   TimingInfo* mTimingInfo;

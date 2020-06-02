@@ -34,6 +34,7 @@ namespace o2
 {
 namespace framework
 {
+class Output;
 
 class MessageContext
 {
@@ -477,6 +478,10 @@ class MessageContext
   // FIXME: can that be const?
   FairMQMessagePtr createMessage(const std::string& channel, int index, size_t size);
   FairMQMessagePtr createMessage(const std::string& channel, int index, void* data, size_t size, fairmq_free_fn* ffn, void* hint);
+
+  /// return the header of the 1st (from the end) matching message checking first in
+  /// mMessages then in mScheduledMessages
+  o2::header::DataHeader* findMessageHeader(const Output& spec);
 
  private:
   FairMQDeviceProxy mProxy;
