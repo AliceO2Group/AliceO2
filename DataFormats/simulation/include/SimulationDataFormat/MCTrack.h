@@ -215,7 +215,7 @@ class MCTrackT
     };
   };
 
-  ClassDefNV(MCTrackT, 1);
+  ClassDefNV(MCTrackT, 2);
 };
 
 template <typename T>
