@@ -68,6 +68,7 @@ const std::unordered_map<std::string, InputType> InputMap{
   {"clusters", InputType::Clusters},
   {"zsraw", InputType::ZSRaw},
   {"compressed-clusters", InputType::CompClusters},
+  {"compressed-clusters-ctf", InputType::CompClustersCTF},
   {"encoded-clusters", InputType::EncodedClusters},
 };
 
@@ -208,10 +209,15 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   bool runClusterer = !caClusterer && (runHWDecoder || isEnabled(OutputType::ClustersHardware));
   bool zsDecoder = inputType == InputType::ZSRaw;
   bool runClusterEncoder = isEnabled(OutputType::EncodedClusters);
+  bool decompressTPC = inputType == InputType::CompClustersCTF;
   // input matrix
   runClusterer &= inputType == InputType::Digitizer || inputType == InputType::Digits;
   runHWDecoder &= runClusterer || inputType == InputType::ClustersHardware;
-  runTracker &= caClusterer || (runHWDecoder || inputType == InputType::Clusters);
+  runTracker &= caClusterer || runHWDecoder || inputType == InputType::Clusters || inputType == InputType::CompClustersCTF;
+
+  if (inputType == InputType::CompClustersCTF && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Tracks)) && (caClusterer || zsOnTheFly || propagateMC)) {
+    throw std::invalid_argument("Compressed clusters as input are incompatible to ca-clusterer, zs-on-the-fly, propagate-mc");
+  }
 
   bool outRaw = inputType == InputType::Digits && isEnabled(OutputType::ZSRaw);
   //bool runZSDecode = inputType == InputType::ZSRaw;
@@ -372,7 +378,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                    BranchDefinition<MCLabelContainer>{InputSpec{"mc", ConcreteDataTypeMatcher{"TPC", "CLNATIVEMCLBL"}},
                                                                       "TPCClusterNativeMCTruth",
                                                                       "mcbranch"},
-                                   caClusterer));
+                                   caClusterer || decompressTPC));
   }
 
   if (zsOnTheFly) {
@@ -391,13 +397,14 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   if (runTracker) {
     specs.emplace_back(o2::tpc::getCATrackerSpec(ca::Config{
                                                    propagateMC ? ca::Operation::ProcessMC : ca::Operation::Noop,
+                                                   decompressTPC ? ca::Operation::DecompressTPC : ca::Operation::Noop,
                                                    caClusterer ? ca::Operation::CAClusterer : ca::Operation::Noop,
                                                    zsDecoder ? ca::Operation::ZSDecoder : ca::Operation::Noop,
                                                    zsOnTheFly ? ca::Operation::ZSOnTheFly : ca::Operation::Noop,
                                                    produceTracks ? ca::Operation::OutputTracks : ca::Operation::Noop,
                                                    produceCompClusters ? ca::Operation::OutputCompClusters : ca::Operation::Noop,
                                                    runClusterEncoder ? ca::Operation::OutputCompClustersFlat : ca::Operation::Noop,
-                                                   isEnabled(OutputType::Clusters) && caClusterer ? ca::Operation::OutputCAClusters : ca::Operation::Noop,
+                                                   isEnabled(OutputType::Clusters) && (caClusterer || decompressTPC) ? ca::Operation::OutputCAClusters : ca::Operation::Noop,
                                                  },
                                                  laneConfiguration));
   }

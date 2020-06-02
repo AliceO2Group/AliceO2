@@ -137,6 +137,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int RunTRDTracking();
   int DoTRDGPUTracking();
   int RunTPCCompression();
+  int RunTPCDecompression();
 
   // Getters / setters for parameters
   const TPCFastTransform* GetTPCTransform() const { return processors()->calibObjects.fastTransform; }

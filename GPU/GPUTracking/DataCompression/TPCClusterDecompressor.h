@@ -16,6 +16,7 @@
 
 #include "GPUTPCCompression.h"
 #include <vector>
+#include <functional>
 
 namespace o2
 {
@@ -36,8 +37,8 @@ class TPCClusterDecompressor
 {
  public:
   static constexpr unsigned int NSLICES = GPUCA_NSLICES;
-  int decompress(const o2::tpc::CompressedClustersFlat* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::vector<o2::tpc::ClusterNative>& clusterBuffer, const GPUParam& param);
-  int decompress(const o2::tpc::CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::vector<o2::tpc::ClusterNative>& clusterBuffer, const GPUParam& param);
+  int decompress(const o2::tpc::CompressedClustersFlat* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param);
+  int decompress(const o2::tpc::CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param);
 
  protected:
 };
