@@ -71,7 +71,7 @@ struct GPUO2InterfaceConfiguration {
 
   // Settings for the Interface class
   struct GPUInterfaceSettings {
-    bool dumpEvents = false;
+    int dumpEvents = 0;
     bool outputToExternalBuffers = false;
     // These constants affect GPU memory allocation and do not limit the CPU processing
     unsigned int maxTPCHits = 1024 * 1024 * 1024;

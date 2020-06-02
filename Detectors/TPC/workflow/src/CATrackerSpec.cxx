@@ -88,6 +88,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     std::vector<int> clusterOutputIds;
     bool readyToQuit = false;
     bool allocateOutputOnTheFly = false;
+    bool suppressOutput = false;
   };
 
   auto processAttributes = std::make_shared<ProcessAttributes>();
@@ -110,7 +111,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       int nThreads = 1;                          // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
       bool useGPU = false;                       // use a GPU for processing, if false uses GPU
       int debugLevel = 0;                        // Enable additional debug output
-      bool dump = false;                         // create memory dump of processed events for standalone runs
+      int dump = 0;                              // create memory dump of processed events for standalone runs, 2 to dump only and skip processing
       char gpuType[1024] = "CUDA";               // Type of GPU device, if useGPU is set to true
       GPUDisplayBackend* display = nullptr;      // Ptr to display backend (enables event display)
       bool qa = false;                           // Run the QA after tracking
@@ -144,8 +145,11 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
             continuous = true;
             printf("Continuous tracking mode enabled\n");
           } else if (strncmp(optPtr, "dump", optLen) == 0) {
-            dump = true;
+            dump = 1;
             printf("Dumping of input events enabled\n");
+          } else if (strncmp(optPtr, "dumponly", optLen) == 0) {
+            dump = 2;
+            printf("Dumping of input events enabled, processing disabled\n");
           } else if (strncmp(optPtr, "display", optLen) == 0) {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
             processAttributes->displayBackend.reset(new GPUDisplayBackendGlfw);
@@ -199,6 +203,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
 
       // Create configuration object and fill settings
       processAttributes->allocateOutputOnTheFly = allocateOutputOnTheFly;
+      processAttributes->suppressOutput = (dump == 2);
       GPUO2InterfaceConfiguration config;
       if (useGPU) {
         config.configProcessing.deviceType = GPUDataTypes::GetDeviceType(gpuType);
@@ -664,6 +669,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       }
 
       int retVal = tracker->runTracking(&ptrs, &outputRegions);
+      if (processAttributes->suppressOutput) {
+        return;
+      }
       if (retVal != 0) {
         throw std::runtime_error("tracker returned error code " + std::to_string(retVal));
       }
