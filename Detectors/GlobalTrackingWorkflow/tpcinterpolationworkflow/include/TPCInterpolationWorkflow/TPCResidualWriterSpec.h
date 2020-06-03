@@ -13,36 +13,12 @@
 
 /// @file   TPCResidualWriterSpec.h
 
-#include "TFile.h"
-#include "TTree.h"
-
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
-#include <string>
 
 namespace o2
 {
 namespace tpc
 {
-
-class ResidualWriterTPC : public o2::framework::Task
-{
- public:
-  ResidualWriterTPC(bool useMC = false) : mUseMC(useMC) {}
-  ~ResidualWriterTPC() override = default;
-  void init(o2::framework::InitContext& ic) final;
-  void run(o2::framework::ProcessingContext& pc) final;
-  void endOfStream(o2::framework::EndOfStreamContext& ec) final;
-
- private:
-  bool mUseMC = false;                               ///< MC flag
-  std::string mOutFileName = "o2residuals_tpc.root"; ///< name of output file
-  std::string mTreeName = "residualsTPC";            ///< name of tree containing output
-  std::string mOutTracksBranchName = "tracks";       ///< name of branch containing output used tracks
-  std::string mOutResidualsBranchName = "residuals"; ///< name of branch containing output used residuals
-  std::unique_ptr<TFile> mFile = nullptr;
-  std::unique_ptr<TTree> mTree = nullptr;
-};
 
 /// create a processor spec
 framework::DataProcessorSpec getTPCResidualWriterSpec(bool useMC);
