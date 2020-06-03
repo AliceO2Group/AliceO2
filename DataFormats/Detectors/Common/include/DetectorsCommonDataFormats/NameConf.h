@@ -13,7 +13,6 @@
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/StringUtils.h"
-#include <fmt/format.h>
 #include <string_view>
 
 /// \file NameConf.h
@@ -86,10 +85,7 @@ class NameConf
   static constexpr std::string_view CTFTREENAME = "ctf"; // hardcoded
 
   // CTF Filename
-  static std::string getCTFFileName(long id, const std::string_view prefix = "o2_ctf")
-  {
-    return o2::utils::concat_string(prefix, "_", fmt::format("{:010d}", id), ".root");
-  }
+  static std::string getCTFFileName(long id, const std::string_view prefix = "o2_ctf");
 
  private:
   // unmodifiable constants used to construct filenames etc
