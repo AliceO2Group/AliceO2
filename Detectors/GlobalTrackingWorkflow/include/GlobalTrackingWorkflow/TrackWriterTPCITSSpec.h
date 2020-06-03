@@ -13,12 +13,7 @@
 #ifndef O2_TRACKWRITER_TPCITS
 #define O2_TRACKWRITER_TPCITS
 
-#include "TFile.h"
-#include "TTree.h"
-
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
-#include <string>
 
 using namespace o2::framework;
 
@@ -26,26 +21,6 @@ namespace o2
 {
 namespace globaltracking
 {
-
-class TrackWriterTPCITS : public Task
-{
- public:
-  TrackWriterTPCITS(bool useMC = true) : mUseMC(useMC) {}
-  ~TrackWriterTPCITS() override = default;
-  void init(InitContext& ic) final;
-  void run(ProcessingContext& pc) final;
-  void endOfStream(EndOfStreamContext& ec) final;
-
- private:
-  bool mUseMC = true;
-  std::unique_ptr<TFile> mFile = nullptr;
-  std::unique_ptr<TTree> mTree = nullptr;
-  std::string mOutFileName = "o2match_itstpc.root";
-  std::string mTreeName = "matchTPCITS";
-  std::string mOutTPCITSTracksBranchName = "TPCITS";        ///< name of branch containing output matched tracks
-  std::string mOutTPCMCTruthBranchName = "MatchTPCMCTruth"; ///< name of branch for output matched tracks TPC MC
-  std::string mOutITSMCTruthBranchName = "MatchITSMCTruth"; ///< name of branch for output matched tracks ITS MC
-};
 
 /// create a processor spec
 /// write ITS tracks a root file
