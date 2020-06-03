@@ -34,8 +34,9 @@ class TRDArraySignal;
 class PadResponse;
 
 struct SignalArray {
-  std::array<float, kTimeBins> signals{}; // signals
   double firstTBtime;                     // first TB time
+  bool trigger;                           // true if signal comes from a trigger event, false otherwise (from pileup)
+  std::array<float, kTimeBins> signals{}; // signals
   std::unordered_map<int, int> trackIds;  // tracks Ids associated to the signal
   std::vector<MCLabel> labels;            // labels associated to the signal
 };
@@ -83,6 +84,7 @@ class Digitizer
   int mSrcID = 0;
 
   // Trigger parameters
+  bool mTriggeredEvent = false;
   static constexpr double READOUT_TIME = 3000;            // the time the readout takes, as 30 TB = 3 micro-s.
   static constexpr double BUSY_TIME = READOUT_TIME + 200; // the time for which no new trigger can be received in nanoseconds
 
