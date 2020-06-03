@@ -88,6 +88,7 @@ ChipMappingITS::ChipMappingITS()
     mCableHWFirstChip[IB][i] = 0;                   // stave and module are the same
   }
 
+  const int chipsOnCable = 7;
   for (int bid = MB; bid <= OB; bid++) { // MB and OB staves have similar layout
     mChipInfoEntrySB[bid] = ctrChip;
     mCableHW2SW[bid].resize(0xff, 0xff);
@@ -105,7 +106,7 @@ ChipMappingITS::ChipMappingITS()
 
       uint8_t connector = (hstave << 1) + (cInfo.chipOnModuleSW < (NChipsPerModuleSB[bid] / 2) ? 0 : 1);
       cInfo.cableHW = (connector << 3) + (cInfo.moduleHW - 1);
-      cInfo.cableSW = (cInfo.moduleHW - 1) + connector * (NModulesPerStaveSB[bid] / 2);
+      cInfo.cableSW = i / chipsOnCable;                                        // (cInfo.moduleHW - 1) + connector * (NModulesPerStaveSB[bid] / 2);
       cInfo.chipOnCable = cInfo.chipOnModuleSW % (NChipsPerModuleSB[bid] / 2); // each cable serves half module
       mCableHW2SW[bid][cInfo.cableHW] = cInfo.cableSW;
       if (cInfo.chipOnCable == 0) {
