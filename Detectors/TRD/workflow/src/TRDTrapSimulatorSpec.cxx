@@ -247,6 +247,7 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
   mOnlineGainTableName = ic.options().get<std::string>("trd-onlinegaintable");
   mRunNumber = ic.options().get<int>("trd-runnum");
   mEnableTrapConfigDump = ic.options().get<bool>("trd-dumptrapconfig");
+  mFixTriggerRecords = ic.options().get<bool>("trd-fixtriggerrecord");
   //Connect to CCDB for all things needing access to ccdb.
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   mCalib = std::make_unique<Calibrations>();
@@ -301,6 +302,27 @@ bool digitindexcompare(unsigned int A, unsigned int B, const std::vector<o2::trd
     return 0;
 }
 
+void TRDDPLTrapSimulatorTask::fixTriggerRecords(std::vector<o2::trd::TriggerRecord>& trigRecord)
+{
+  // Trigger records are coming with an extra one at the end, and the first one blank and the last 2 having the same bunch crossing information.
+  // This is temporary.
+
+  // take the nth records DataRange, and insert it into the (n-1)th DataRange
+  // thereby realigning the bunch crossings and dataranges.
+  // drop the final entry.
+
+  //sanity check -- this is only true if the first range is 0 to 0
+  if (trigRecord[0].getFirstEntry() == 0 && trigRecord[0].getNumberOfObjects() == 0) {
+    for (int i = 0; i < trigRecord.size() - 1; i++) {
+      trigRecord[i].setDataRange(trigRecord[i + 1].getFirstEntry(), trigRecord[i + 1].getNumberOfObjects());
+    }
+    //now drop the final triggerrecord.
+    trigRecord.pop_back();
+  } else {
+    LOG(warn) << "TriggerRecord fix requested, but inital TriggerRecord is not 0,0";
+  }
+}
+
 void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 {
   LOG(info) << "TRD Trap Simulator Device running over incoming message";
@@ -323,10 +345,13 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   auto rawDataOut = pc.outputs().make<char>(Output{"TRD", "RAWDATA", 0, Lifetime::Timeframe}, 1000); //TODO number is just a place holder until we start using it.
   auto trackletMCLabels = pc.outputs().make<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe});
 
-  auto mTriggerRecords = pc.inputs().get<std::vector<o2::trd::TriggerRecord>>("triggerrecords");
-  uint64_t currentTriggerRecord = 1; //TODO Start at 1 to remove erroneous first trigger record
-  auto& trackletTriggerRecords = pc.outputs().make<std::vector<o2::trd::TriggerRecord>>(Output{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe}, mTriggerRecords.begin() + 1, mTriggerRecords.end());
+  auto triggerRecords = pc.inputs().get<std::vector<o2::trd::TriggerRecord>>("triggerrecords");
+  uint64_t currentTriggerRecord = 0;
+  auto& trackletTriggerRecords = pc.outputs().make<std::vector<o2::trd::TriggerRecord>>(Output{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe}, triggerRecords.begin() + 1, triggerRecords.end());
 
+  // fix incoming trigger records if requested.
+  if (mFixTriggerRecords)
+    fixTriggerRecords(triggerRecords);
   //TODO these must be created directly in the output as done at the top of this run method
   std::vector<unsigned int> msgDigitsIndex;
   msgDigitsIndex.reserve(msgDigits.size());
@@ -355,9 +380,9 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   std::stable_sort(msgDigits.begin(), msgDigits.end(), msgDigitSortComparator);
   mSortingTime = std::chrono::high_resolution_clock::now() - sortstart;
   LOG(info) << "TRD Digit Sorting took " << mSortingTime.count();
-  // sort from mTriggerRecords.getFirstEntry() to mTriggerRecords.getFirstEntry()+mTriggerRecords.getNumberOfObjects();
+  // sort from triggerRecords.getFirstEntry() to triggerRecords.getFirstEntry()+triggerRecords.getNumberOfObjects();
   //check the incoming triggerrecords:
-  for (auto& trig : mTriggerRecords) {
+  for (auto& trig : triggerRecords) {
     LOG(debug) << "Trigger Record ; " << trig.getFirstEntry() << " --> " << trig.getNumberOfObjects();
   }
   //accounting variables for various things.
@@ -391,9 +416,9 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     }
 
     //figure out which trigger record from digits we are on
-    if (digitcounter >= mTriggerRecords[currentTriggerRecord].getFirstEntry() + mTriggerRecords[currentTriggerRecord].getNumberOfObjects()) {
+    if (digitcounter >= triggerRecords[currentTriggerRecord].getFirstEntry() + triggerRecords[currentTriggerRecord].getNumberOfObjects()) {
       //trigger record changed.
-      LOG(debug) << "digit  : " << digitcounter << " >= " << mTriggerRecords[currentTriggerRecord].getFirstEntry() << "+" << mTriggerRecords[currentTriggerRecord].getNumberOfObjects();
+      LOG(debug) << "digit  : " << digitcounter << " >= " << triggerRecords[currentTriggerRecord].getFirstEntry() << "+" << triggerRecords[currentTriggerRecord].getNumberOfObjects();
       // so increment the tracklet trigger records and fill accordingly for the now completed prior triggerrecord.
       uint64_t triggerrecordstart = 0;
       if (currentTriggerRecord != 0) { // for not the first one we can simply look back to the previous one to get the start.
@@ -560,6 +585,7 @@ o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec()
                              {"trd-printtrapconfig", VariantType::Bool, false, {"Name of the trap config from the CCDB"}},
                              {"trd-drawtracklets", VariantType::Int, 0, {"Bitpattern of input to TrapSimulator Draw method (be very careful) one file per track"}},
                              {"trd-printtracklets", VariantType::Int, 0, {"Bitpattern of input to TrapSimulator print method"}},
+                             {"trd-fixtriggerrecord", VariantType::Bool, false, {"Fix trigger record alignment, temporary, hence false by default"}},
                              {"trd-onlinegaincorrection", VariantType::Bool, false, {"Apply online gain calibrations, mostly for back checking to run2 by setting FGBY to 0"}},
                              {"trd-onlinegaintable", VariantType::String, "Krypton_2015-02", {"Online gain table to be use, names found in CCDB, obviously trd-onlinegaincorrection must be set as well."}},
                              {"trd-debugrejectedtracklets", VariantType::Bool, false, {"Output all MCM where tracklets were not identified"}},

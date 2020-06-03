@@ -20,7 +20,7 @@
 #include "TRDBase/FeeParam.h"
 #include "TRDBase/Tracklet.h"
 #include "TRDSimulation/TrapSimulator.h"
-
+#include "DataFormatsTRD/TriggerRecord.h"
 #include "TRDSimulation/TrapConfig.h"
 #include "CCDB/BasicCCDBManager.h"
 
@@ -43,6 +43,7 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   }
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
+  void fixTriggerRecords(std::vector<o2::trd::TriggerRecord>& trigRecord);
 
  private:
   std::array<TrapSimulator, 8> mTrapSimulator; //the 8 trap simulators for a given padrow.
@@ -60,6 +61,7 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   bool mDebugRejectedTracklets{false};
   bool mEnableOnlineGainCorrection{false};
   bool mEnableTrapConfigDump{false};
+  bool mFixTriggerRecords{false};   // shift the trigger record due to its being corrupt on coming in.
   std::vector<Tracklet> mTracklets; // store of found tracklets
   std::string mTrapConfigName;      // the name of the config to be used.
   std::string mTrapConfigBaseName = "TRD_test/TrapConfig/";
