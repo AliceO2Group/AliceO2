@@ -33,7 +33,8 @@ struct Metadata {
   enum OptStore : uint8_t { // describe how the store the data described by this metadata
     EENCODE,                // entropy encoding applied
     ROOTCompression,        // original data repacked to array with slot-size = streamSize and saved with root compression
-    NONE                    // original data repacked to array with slot-size = streamSize and saved w/o compression
+    NONE,                   // original data repacked to array with slot-size = streamSize and saved w/o compression
+    NODATA                  // no data was provided
   };
   size_t messageLength = 0;
   uint8_t coderType = 0;
