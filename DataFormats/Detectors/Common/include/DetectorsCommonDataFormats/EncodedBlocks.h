@@ -537,13 +537,15 @@ void EncodedBlocks<H, N, W>::decode(D* dest,        // destination pointer
   const auto& md = mMetadata[slot];
 
   // decode
-  if (md.opt == o2::rans::Metadata::EENCODE) {
-    assert(block.getNDict());
-    o2::rans::SymbolStatistics stats(block.getDict(), block.getDict() + block.getNDict(), md.min, md.max, md.messageLength);
-    o2::rans::Decoder64<D> decoder(stats, md.probabilityBits);
-    decoder.process(dest, block.getData(), md.messageLength);
-  } else { // data was stored as is
-    std::memcpy(dest, block.payload, md.messageLength * sizeof(D));
+  if (block.getNData()) {
+    if (md.opt == o2::rans::Metadata::EENCODE) {
+      assert(block.getNDict()); // at the moment we expect to have dictionary
+      o2::rans::SymbolStatistics stats(block.getDict(), block.getDict() + block.getNDict(), md.min, md.max, md.messageLength);
+      o2::rans::Decoder64<D> decoder(stats, md.probabilityBits);
+      decoder.process(dest, block.getData(), md.messageLength);
+    } else { // data was stored as is
+      std::memcpy(dest, block.payload, md.messageLength * sizeof(D));
+    }
   }
 }
 
@@ -560,7 +562,12 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin,          // begin o
 
   // symbol statistics and encoding
   assert(slot == mRegistry.nFilledBlocks);
+  mRegistry.nFilledBlocks++;
   using stream_t = typename o2::rans::Encoder64<S>::stream_t;
+  if (srcBegin == srcEnd) {
+    mMetadata[slot] = o2::rans::Metadata{0, sizeof(uint64_t), sizeof(stream_t), probabilityBits, o2::rans::Metadata::NODATA, 0, 0, 0, 0};
+    return;
+  }
   std::vector<stream_t> encoderBuffer;
   static_assert(std::is_same<W, stream_t>());
   stream_t* encodedMessageStart = nullptr;
@@ -601,7 +608,6 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin,          // begin o
   *meta = o2::rans::Metadata{stats.getMessageLength(), sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt,
                              stats.getMinSymbol(), stats.getMaxSymbol(), dictSize, dataSize};
   bl->store(dictSize, dataSize, dictStart, encodedMessageStart);
-  bl->registry->nFilledBlocks++;
 }
 
 } // namespace ctf
