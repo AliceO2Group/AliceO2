@@ -168,8 +168,8 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
           if (lastSide ^ (trackClusters[tracks[i].FirstClusterRef() + iCl].slice < Sector::MAXSECTOR / 2)) {
             auto& cacl1 = trackClusters[tracks[i].FirstClusterRef() + iCl];
             auto& cacl2 = trackClusters[tracks[i].FirstClusterRef() + iCl - 1];
-            auto& cl1 = clusters->clusters[cacl1.slice][cacl1.row][cacl1.num];
-            auto& cl2 = clusters->clusters[cacl2.slice][cacl2.row][cacl2.num];
+            auto& cl1 = clusters->clustersLinear[cacl1.num];
+            auto& cl2 = clusters->clustersLinear[cacl2.num];
             delta = fabs(cl1.getTime() - cl2.getTime()) * 0.5f;
             break;
           }
@@ -179,8 +179,8 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         // estimate max/min time increments which still keep track in the physical limits of the TPC
         auto& c1 = trackClusters[tracks[i].FirstClusterRef()];
         auto& c2 = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1];
-        float t1 = clusters->clusters[c1.slice][c1.row][c1.num].getTime();
-        float t2 = clusters->clusters[c2.slice][c2.row][c2.num].getTime();
+        float t1 = clusters->clustersLinear[c1.num].getTime();
+        float t2 = clusters->clustersLinear[c2.num].getTime();
         auto times = std::minmax(t1, t2);
         tFwd = times.first - time0;
         tBwd = time0 - (times.second - detParam.TPClength * vzbinInv);
@@ -235,19 +235,20 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
       if (trackClusters[tracks[i].FirstClusterRef() + j].state & GPUTPCGMMergedTrackHit::flagReject) {
         continue;
       }
-      int clusterId = trackClusters[tracks[i].FirstClusterRef() + j].num;
+      int clusterIdGlobal = trackClusters[tracks[i].FirstClusterRef() + j].num;
       Sector sector = trackClusters[tracks[i].FirstClusterRef() + j].slice;
       int globalRow = trackClusters[tracks[i].FirstClusterRef() + j].row;
+      int clusterIdInRow = clusterIdGlobal - clusters->clusterOffset[sector][globalRow];
       int regionNumber = 0;
       while (globalRow > mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber)) {
         regionNumber++;
       }
-      clIndArr[nOutCl] = clusterId;
+      clIndArr[nOutCl] = clusterIdInRow;
       sectorIndexArr[nOutCl] = sector;
       rowIndexArr[nOutCl] = globalRow;
       nOutCl++;
       if (outputTracksMCTruth && clusters->clustersMCTruth) {
-        for (const auto& element : clusters->clustersMCTruth->getLabels(clusters->clusterOffset[sector][globalRow] + clusterId)) {
+        for (const auto& element : clusters->clustersMCTruth->getLabels(clusterIdGlobal)) {
           bool found = false;
           for (int l = 0; l < labels.size(); l++) {
             if (labels[l].first == element) {
