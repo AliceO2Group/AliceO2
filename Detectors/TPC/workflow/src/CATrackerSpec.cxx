@@ -334,6 +334,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       };
       std::map<int, InputRef> inputrefs;
       const CompressedClustersFlat* pCompClustersFlat;
+      size_t compClustersFlatDummyMemory[(sizeof(CompressedClustersFlat) + sizeof(size_t) - 1) / sizeof(size_t)];
+      CompressedClustersFlat& compClustersFlatDummy = reinterpret_cast<CompressedClustersFlat&>(compClustersFlatDummyMemory);
+      CompressedClusters compClustersDummy;
       o2::gpu::GPUTrackingInOutZS tpcZS;
       std::vector<const void*> tpcZSmetaPointers[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
       std::vector<unsigned int> tpcZSmetaSizes[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
@@ -524,7 +527,13 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           printf("Test: rdh %p, raw %p, payload %p, payloadSize %lld, offset %lld, %s %s %lld\n", rdh, raw, payload, (long long int)payloadSize, (long long int)offset, dh->dataOrigin.as<std::string>().c_str(), dh->dataDescription.as<std::string>().c_str(), (long long int)dh->subSpecification);
         }*/
       } else if (specconfig.decompressTPC) {
-        pCompClustersFlat = pc.inputs().get<CompressedClustersFlat*>("input").get();
+        if (specconfig.decompressTPCFromROOT) {
+          compClustersDummy = *pc.inputs().get<CompressedClustersROOT*>("input");
+          compClustersFlatDummy.setForward(&compClustersDummy);
+          pCompClustersFlat = &compClustersFlatDummy;
+        } else {
+          pCompClustersFlat = pc.inputs().get<CompressedClustersFlat*>("input").get();
+        }
       } else if (!specconfig.zsOnTheFly) {
         // FIXME: We can have digits input in zs decoder mode for MC labels
         // This code path should run optionally also for the zs decoder version
@@ -760,7 +769,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
   auto createInputSpecs = [&tpcsectors, &specconfig]() {
     Inputs inputs;
     if (specconfig.decompressTPC) {
-      inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, "COMPCLUSTERSFLAT"}, Lifetime::Timeframe});
+      inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, specconfig.decompressTPCFromROOT ? header::DataDescription("COMPCLUSTERS") : header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
     } else if (specconfig.caClusterer) {
       // We accept digits and MC labels also if we run on ZS Raw data, since they are needed for MC label propagation
       if (!specconfig.zsOnTheFly && !specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
