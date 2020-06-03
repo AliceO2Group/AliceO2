@@ -99,9 +99,6 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
     if (nEvent == 0) {
       mRec->DumpSettings();
     }
-    if (mConfig->configInterface.dumpEvents >= 2) {
-      return 0;
-    }
   }
 
   mChain->mIOPtrs = *data;
@@ -142,7 +139,7 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
   }
 
   nEvent++;
-  return 0;
+  return (0);
 }
 
 void GPUTPCO2Interface::Clear(bool clearOutputs) { mRec->ClearAllocatedMemory(clearOutputs); }
