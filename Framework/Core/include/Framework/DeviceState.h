@@ -16,6 +16,8 @@
 #include <map>
 #include <utility>
 
+typedef struct uv_loop_s uv_loop_t;
+
 namespace o2::framework
 {
 
@@ -35,6 +37,7 @@ struct DeviceState {
   std::vector<InputChannelInfo> inputChannelInfos;
   StreamingState streaming = StreamingState::Streaming;
   bool quitRequested = false;
+  uv_loop_t* loop;
 };
 
 } // namespace o2::framework

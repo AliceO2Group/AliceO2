@@ -55,6 +55,7 @@ class DataProcessingDevice : public FairMQDevice
   void SetErrorPolicy(enum TerminationPolicy policy) { mErrorPolicy = policy; }
 
  protected:
+  bool doRun();
   bool handleData(FairMQParts&, InputChannelInfo&);
   bool tryDispatchComputation(std::vector<DataRelayer::RecordAction>& completed);
   void error(const char* msg);
@@ -91,6 +92,7 @@ class DataProcessingDevice : public FairMQDevice
   int mCurrentBackoff = 0;                           /// The current exponential backoff value.
   std::vector<FairMQRegionInfo> mPendingRegionInfos; /// A list of the region infos not yet notified.
   enum TerminationPolicy mErrorPolicy = TerminationPolicy::WAIT; /// What to do when an error arises
+  bool mWasActive = false;                                       /// Whether or not the device was active at last iteration.
 };
 
 } // namespace o2::framework

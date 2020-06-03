@@ -52,6 +52,10 @@ struct ChannelConfigurationPolicyHelpers {
   static InputChannelModifier reqInput;
   /// Makes the passed output channel bind and reply
   static OutputChannelModifier replyOutput;
+  /// Makes the passed input channel connect and pair
+  static InputChannelModifier pairInput;
+  /// Makes the passed output channel bind and pair
+  static OutputChannelModifier pairOutput;
 };
 
 } // namespace framework

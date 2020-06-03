@@ -163,6 +163,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     LOG(INFO) << "To be hidden / removed at some point.";
     // mark this dummy process as ready-to-quit
     ic.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  
     return [](ProcessingContext& pc) {
       // this callback is never called since there is no expiring input
       pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(2));
@@ -173,20 +174,19 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     "internal-dpl-ccdb-backend",
     {},
     {},
-    fakeCallback,
-  };
+    AlgorithmSpec::dummyAlgorithm()};
   DataProcessorSpec transientStore{"internal-dpl-transient-store",
                                    {},
                                    {},
-                                   fakeCallback};
+                                   AlgorithmSpec::dummyAlgorithm()};
   DataProcessorSpec qaStore{"internal-dpl-qa-store",
                             {},
                             {},
-                            fakeCallback};
+                            AlgorithmSpec::dummyAlgorithm()};
   DataProcessorSpec timer{"internal-dpl-clock",
                           {},
                           {},
-                          fakeCallback};
+                          AlgorithmSpec::dummyAlgorithm()};
 
   // In case InputSpec of origin AOD are
   // requested but not available as part of the workflow,
