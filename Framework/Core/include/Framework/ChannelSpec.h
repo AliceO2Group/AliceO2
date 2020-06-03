@@ -30,6 +30,7 @@ enum struct ChannelType {
   Sub,
   Push,
   Pull,
+  Pair
 };
 
 /// The kind of backend to use for the channels
