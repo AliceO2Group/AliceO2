@@ -135,10 +135,9 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
   }
   *data = mChain->mIOPtrs;
 
-  const o2::tpc::ClusterNativeAccess* ext = mChain->GetClusterNativeAccess();
   for (int i = 0; i < data->nMergedTrackHits; i++) {
     GPUTPCGMMergedTrackHit& cl = (GPUTPCGMMergedTrackHit&)data->mergedTrackHits[i];
-    cl.num -= ext->clusterOffset[cl.slice][cl.row];
+    cl.num -= mChain->mIOPtrs.clustersNative->clusterOffset[cl.slice][cl.row];
   }
 
   nEvent++;

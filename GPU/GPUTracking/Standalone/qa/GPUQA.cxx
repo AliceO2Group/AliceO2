@@ -160,21 +160,21 @@ inline unsigned int GPUQA::GetNMCCollissions()
   return mNColTracks.size();
 }
 inline unsigned int GPUQA::GetNMCTracks(int iCol) { return mNColTracks[iCol]; }
-inline unsigned int GPUQA::GetNMCLabels() { return mTracking->GetClusterNativeAccess()->clustersMCTruth ? mTracking->GetClusterNativeAccess()->clustersMCTruth->getIndexedSize() : 0; }
+inline unsigned int GPUQA::GetNMCLabels() { return mTracking->mIOPtrs.clustersNative->clustersMCTruth ? mTracking->mIOPtrs.clustersNative->clustersMCTruth->getIndexedSize() : 0; }
 inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(unsigned int iTrk, unsigned int iCol) { return mMCInfos[iCol][iTrk]; }
 inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(const mcLabel_t& label) { return mMCInfos[label.getEventID()][label.getTrackID()]; }
-inline GPUQA::mcLabels_t GPUQA::GetMCLabel(unsigned int i) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i); }
+inline GPUQA::mcLabels_t GPUQA::GetMCLabel(unsigned int i) { return mTracking->mIOPtrs.clustersNative->clustersMCTruth->getLabels(i); }
 inline int GPUQA::GetMCLabelNID(const mcLabels_t& label) { return label.size(); }
-inline int GPUQA::GetMCLabelNID(unsigned int i) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i).size(); }
-inline GPUQA::mcLabel_t GPUQA::GetMCLabel(unsigned int i, unsigned int j) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i)[j]; }
-inline int GPUQA::GetMCLabelID(unsigned int i, unsigned int j) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i)[j].getTrackID(); }
+inline int GPUQA::GetMCLabelNID(unsigned int i) { return mTracking->mIOPtrs.clustersNative->clustersMCTruth->getLabels(i).size(); }
+inline GPUQA::mcLabel_t GPUQA::GetMCLabel(unsigned int i, unsigned int j) { return mTracking->mIOPtrs.clustersNative->clustersMCTruth->getLabels(i)[j]; }
+inline int GPUQA::GetMCLabelID(unsigned int i, unsigned int j) { return mTracking->mIOPtrs.clustersNative->clustersMCTruth->getLabels(i)[j].getTrackID(); }
 inline int GPUQA::GetMCLabelID(const mcLabels_t& label, unsigned int j) { return label[j].getTrackID(); }
 inline int GPUQA::GetMCLabelID(const mcLabel_t& label) { return label.getTrackID(); }
-inline int GPUQA::GetMCLabelCol(unsigned int i, unsigned int j) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i)[j].getEventID(); }
+inline int GPUQA::GetMCLabelCol(unsigned int i, unsigned int j) { return mTracking->mIOPtrs.clustersNative->clustersMCTruth->getLabels(i)[j].getEventID(); }
 inline float GPUQA::GetMCLabelWeight(unsigned int i, unsigned int j) { return 1; }
 inline float GPUQA::GetMCLabelWeight(const mcLabels_t& label, unsigned int j) { return 1; }
 inline float GPUQA::GetMCLabelWeight(const mcLabel_t& label) { return 1; }
-inline bool GPUQA::mcPresent() { return mTracking->GetClusterNativeAccess()->clustersMCTruth && mNColTracks.size(); }
+inline bool GPUQA::mcPresent() { return mTracking->mIOPtrs.clustersNative->clustersMCTruth && mNColTracks.size(); }
 #define TRACK_EXPECTED_REFERENCE_X 78
 #else
 inline GPUQA::mcLabelI_t::mcLabelI_t(const GPUQA::mcLabel_t& l) : track(l.fMCID)

@@ -471,7 +471,6 @@ void GPUChainTracking::ClearIOPointers()
   std::memset((void*)&mIOPtrs, 0, sizeof(mIOPtrs));
   mIOMem.~InOutMemory();
   new (&mIOMem) InOutMemory;
-  std::memset((void*)mClusterNativeAccess.get(), 0, sizeof(*mClusterNativeAccess));
 }
 
 void GPUChainTracking::AllocateIOMemory()
@@ -556,7 +555,6 @@ void GPUChainTracking::ConvertNativeToClusterDataLegacy()
   }
   mIOPtrs.clustersNative = nullptr;
   mIOMem.clustersNative.reset(nullptr);
-  memset((void*)mClusterNativeAccess.get(), 0, sizeof(*mClusterNativeAccess));
 }
 
 void GPUChainTracking::ConvertRun2RawToNative()
@@ -882,8 +880,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   SynchronizeGPU(); // TODO : get rid of me!
 
   size_t nClsTotal = 0;
-  ClusterNativeAccess* tmp = mClusterNativeAccess.get();
-  std::fill(&tmp->nClusters[0][0], &tmp->nClusters[tpc::Constants::MAXSECTOR][tpc::Constants::MAXGLOBALPADROW], 0);
+  ClusterNativeAccess* tmpNative = mClusterNativeAccess.get();
 
   // setup MC Labels
   bool propagateMCLabels = !doGPU && GetDeviceProcessingSettings().runMC && processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC != nullptr;
@@ -1091,8 +1088,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     size_t nClsFirst = nClsTotal;
     bool anyLaneHasData = false;
     for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
-      SynchronizeStream(lane);
       unsigned int iSlice = iSliceBase + lane;
+      std::fill(&tmpNative->nClusters[iSlice][0], &tmpNative->nClusters[iSlice][0] + tpc::Constants::MAXGLOBALPADROW, 0);
+      SynchronizeStream(lane);
       GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
       GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
       if (laneHasData[lane]) {
@@ -1108,7 +1106,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
           } else if (buildNativeHost) {
             GPUMemCpyAlways(RecoStep::TPCClusterFinding, (void*)&mInputsHost->mPclusterNativeOutput[nClsTotal], (const void*)&clustererShadow.mPclusterByRow[j * clusterer.mNMaxClusterPerRow], sizeof(mIOPtrs.clustersNative->clustersLinear[0]) * clusterer.mPclusterInRow[j], mRec->NStreams() - 1, false);
           }
-          tmp->nClusters[iSlice][j] += clusterer.mPclusterInRow[j];
+          tmpNative->nClusters[iSlice][j] += clusterer.mPclusterInRow[j];
           nClsTotal += clusterer.mPclusterInRow[j];
         }
         if (transferRunning[lane]) {
@@ -1160,10 +1158,10 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   }
 
   if (buildNativeHost) {
-    tmp->clustersLinear = mInputsHost->mPclusterNativeOutput;
-    tmp->clustersMCTruth = propagateMCLabels ? &mcLabels : nullptr;
-    tmp->setOffsetPtrs();
-    mIOPtrs.clustersNative = tmp;
+    tmpNative->clustersLinear = mInputsHost->mPclusterNativeOutput;
+    tmpNative->clustersMCTruth = propagateMCLabels ? &mcLabels : nullptr;
+    tmpNative->setOffsetPtrs();
+    mIOPtrs.clustersNative = tmpNative;
   }
   if (buildNativeGPU) {
     processorsShadow()->ioPtrs.clustersNative = mInputsShadow->mPclusterNativeAccess;
@@ -1179,7 +1177,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   if (buildNativeHost && GetDeviceProcessingSettings().debugLevel >= 4) {
     for (unsigned int i = 0; i < NSLICES; i++) {
       for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
-        std::sort(&mInputsHost->mPclusterNativeOutput[tmp->clusterOffset[i][j]], &mInputsHost->mPclusterNativeOutput[tmp->clusterOffset[i][j] + tmp->nClusters[i][j]]);
+        std::sort(&mInputsHost->mPclusterNativeOutput[tmpNative->clusterOffset[i][j]], &mInputsHost->mPclusterNativeOutput[tmpNative->clusterOffset[i][j] + tmpNative->nClusters[i][j]]);
       }
     }
   }
