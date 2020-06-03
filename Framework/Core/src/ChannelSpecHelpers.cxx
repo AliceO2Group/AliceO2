@@ -27,6 +27,8 @@ char const* ChannelSpecHelpers::typeAsString(enum ChannelType type)
       return "push";
     case ChannelType::Pull:
       return "pull";
+    case ChannelType::Pair:
+      return "pair";
   }
   throw std::runtime_error("Unknown ChannelType");
 }

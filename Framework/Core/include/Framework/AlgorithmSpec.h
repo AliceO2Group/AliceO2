@@ -45,6 +45,12 @@ struct AlgorithmSpec {
   using ProcessCallback = std::function<void(ProcessingContext&)>;
   using InitCallback = std::function<ProcessCallback(InitContext&)>;
   using ErrorCallback = std::function<void(ErrorContext&)>;
+
+  static AlgorithmSpec dummyAlgorithm()
+  {
+    return AlgorithmSpec{ProcessCallback{nullptr}};
+  }
+
   static ErrorCallback& emptyErrorCallback()
   {
     static ErrorCallback callback = nullptr;

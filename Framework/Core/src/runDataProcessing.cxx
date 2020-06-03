@@ -673,7 +673,8 @@ auto createInfoLoggerSinkHelper(std::unique_ptr<InfoLogger>& logger, std::unique
   };
 };
 
-int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, TerminationPolicy errorPolicy)
+int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, TerminationPolicy errorPolicy,
+            uv_loop_t* loop)
 {
   fair::Logger::SetConsoleColor(false);
   LOG(INFO) << "Spawing new device " << spec.id << " in process with pid " << getpid();
@@ -724,9 +725,12 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, Termin
                                        &infoLoggerContext,
                                        &deviceState,
                                        &timesliceIndex,
-                                       &errorPolicy](fair::mq::DeviceRunner& r) {
+                                       &errorPolicy,
+                                       &loop](fair::mq::DeviceRunner& r) {
       localRootFileService = std::make_unique<LocalRootFileService>();
       deviceState = std::make_unique<DeviceState>();
+      deviceState->loop = loop;
+
       textControlService = std::make_unique<TextControlService>(serviceRegistry, *deviceState.get());
       parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
       simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
@@ -813,6 +817,13 @@ void gui_callback(uv_timer_s* ctx)
   gui->frameLast = frameStart;
 }
 
+/// Force single stepping of the children
+void single_step_callback(uv_timer_s* ctx)
+{
+  DeviceInfos* infos = reinterpret_cast<DeviceInfos*>(ctx->data);
+  killChildren(*infos, SIGUSR1);
+}
+
 // This is the handler for the parent inner loop.
 int runStateMachine(DataProcessorSpecs const& workflow,
                     WorkflowInfo const& workflowInfo,
@@ -872,6 +883,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   guiContext.frameCost = &driverInfo.frameCost;
   guiContext.guiQuitRequested = &guiQuitRequested;
   auto inputProcessingLast = guiContext.frameLast;
+
+  uv_timer_t force_step_timer;
+  uv_timer_init(loop, &force_step_timer);
 
   while (true) {
     // If control forced some transition on us, we push it to the queue.
@@ -981,7 +995,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         for (auto& spec : deviceSpecs) {
           if (spec.id == frameworkId) {
-            return doChild(driverInfo.argc, driverInfo.argv, spec, driverInfo.errorPolicy);
+            return doChild(driverInfo.argc, driverInfo.argv, spec, driverInfo.errorPolicy, loop);
           }
         }
         {
@@ -1093,10 +1107,19 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         guiQuitRequested = true;
         // We send SIGCONT to make sure stopped children are resumed
         killChildren(infos, SIGCONT);
+        // We send SIGTERM to make sure we do the STOP transition in FairMQ
         killChildren(infos, SIGTERM);
+        // We have a timer to send SIGUSR1 to make sure we advance all devices
+        // in a timely manner.
+        force_step_timer.data = &infos;
+        uv_timer_start(&force_step_timer, single_step_callback, 0, 300);
         driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
         break;
       case DriverState::HANDLE_CHILDREN:
+        // Run any pending libUV event loop, block if
+        // any, so that we do not consume CPU time when the driver is
+        // idle.
+        uv_run(loop, UV_RUN_ONCE);
         // I allow queueing of more sigchld only when
         // I process the previous call
         if (forceful_exit == true) {
