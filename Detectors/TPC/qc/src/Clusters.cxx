@@ -24,7 +24,7 @@ ClassImp(o2::tpc::qc::Clusters);
 
 using namespace o2::tpc::qc;
 
-//______________________________________________________________________________
+//_______________________________________________________________________________
 bool Clusters::processCluster(const o2::tpc::ClusterNative& cluster, const o2::tpc::Sector sector, const int row)
 {
   const int nROC = row < 63 ? int(sector) : int(sector) + 36;
@@ -59,7 +59,7 @@ bool Clusters::processCluster(const o2::tpc::ClusterNative& cluster, const o2::t
   return true;
 }
 
-//______________________________________________________________________________
+//_______________________________________________________________________________
 void Clusters::analyse()
 {
   mQMax /= mNClusters;
@@ -69,7 +69,7 @@ void Clusters::analyse()
   mTimeBin /= mNClusters;
 }
 
-//______________________________________________________________________________
+//_______________________________________________________________________________
 void Clusters::dumpToFile(std::string filename)
 {
   if (filename.find(".root") != std::string::npos) {
