@@ -209,13 +209,13 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   bool runClusterer = !caClusterer && (runHWDecoder || isEnabled(OutputType::ClustersHardware));
   bool zsDecoder = inputType == InputType::ZSRaw;
   bool runClusterEncoder = isEnabled(OutputType::EncodedClusters);
-  bool decompressTPC = inputType == InputType::CompClustersCTF;
+  bool decompressTPC = inputType == InputType::CompClustersCTF || inputType == InputType::CompClusters;
   // input matrix
   runClusterer &= inputType == InputType::Digitizer || inputType == InputType::Digits;
   runHWDecoder &= runClusterer || inputType == InputType::ClustersHardware;
-  runTracker &= caClusterer || runHWDecoder || inputType == InputType::Clusters || inputType == InputType::CompClustersCTF;
+  runTracker &= caClusterer || runHWDecoder || inputType == InputType::Clusters || decompressTPC;
 
-  if (inputType == InputType::CompClustersCTF && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Tracks)) && (caClusterer || zsOnTheFly || propagateMC)) {
+  if (decompressTPC && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Tracks)) && (caClusterer || zsOnTheFly || propagateMC)) {
     throw std::invalid_argument("Compressed clusters as input are incompatible to ca-clusterer, zs-on-the-fly, propagate-mc");
   }
 
@@ -398,6 +398,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     specs.emplace_back(o2::tpc::getCATrackerSpec(ca::Config{
                                                    propagateMC ? ca::Operation::ProcessMC : ca::Operation::Noop,
                                                    decompressTPC ? ca::Operation::DecompressTPC : ca::Operation::Noop,
+                                                   decompressTPC && inputType == InputType::CompClusters ? ca::Operation::DecompressTPCFromROOT : ca::Operation::Noop,
                                                    caClusterer ? ca::Operation::CAClusterer : ca::Operation::Noop,
                                                    zsDecoder ? ca::Operation::ZSDecoder : ca::Operation::Noop,
                                                    zsOnTheFly ? ca::Operation::ZSOnTheFly : ca::Operation::Noop,

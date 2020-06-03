@@ -23,8 +23,15 @@ using namespace o2::tpc;
 
 int TPCClusterDecompressor::decompress(const CompressedClustersFlat* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param)
 {
-  CompressedClusters c = *clustersCompressed;
-  return decompress(&c, clustersNative, allocator, param);
+  CompressedClusters c;
+  const CompressedClusters* p;
+  if (clustersCompressed->ptrForward) {
+    p = clustersCompressed->ptrForward;
+  } else {
+    c = *clustersCompressed;
+    p = &c;
+  }
+  return decompress(p, clustersNative, allocator, param);
 }
 
 int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param)

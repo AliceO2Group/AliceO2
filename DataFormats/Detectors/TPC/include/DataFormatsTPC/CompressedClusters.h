@@ -93,11 +93,13 @@ struct CompressedClustersROOT : public CompressedClusters {
 };
 
 struct CompressedClustersFlat : private CompressedClustersCounters, private CompressedClustersOffsets {
-  friend struct CompressedClusters;    // We don't want anyone to access the members directly, should only be used to construct a CompressedClusters struct
-  CompressedClustersFlat() CON_DELETE; // Must not be constructed, but just reinterpret_casted from void* array (void* to enforce alignment)
-  size_t totalDataSize = 0;
+  friend struct CompressedClusters;               // We don't want anyone to access the members directly, should only be used to construct a CompressedClusters struct
+  CompressedClustersFlat() CON_DELETE;            // Must not be constructed
+  size_t totalDataSize = 0;                       // Total data size of header + content
+  const CompressedClusters* ptrForward = nullptr; // Must be 0 if this object is really flat, or can be a ptr to a CompressedClusters struct (abusing the flat structure to forward a ptr to the e.g. root version)
 
   void set(size_t bufferSize, const CompressedClusters& v);
+  void setForward(const CompressedClusters* p);
 };
 
 } // namespace tpc
