@@ -11,6 +11,7 @@
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include <sys/stat.h>
 #include <cstdlib>
+#include <fmt/format.h>
 #include <memory>
 
 using namespace o2::base;
@@ -58,4 +59,9 @@ std::string NameConf::getDictionaryFileName(DId det, const std::string_view pref
     return std::string(prefix); // it is a full file
   }
   return o2::utils::concat_string(prefix, det.getName(), DICTFILENAME, ext);
+}
+
+std::string NameConf::getCTFFileName(long id, const std::string_view prefix)
+{
+  return o2::utils::concat_string(prefix, "_", fmt::format("{:010d}", id), ".root");
 }
