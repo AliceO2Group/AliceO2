@@ -51,7 +51,7 @@ std::vector<TopoIndexInfo>
   using EdgeIndex = int;
   // Create the index which will be returned.
   std::vector<TopoIndexInfo> index(nodeCount);
-  for (int wi = 0; wi < nodeCount; ++wi) {
+  for (auto wi = 0; wi < nodeCount; ++wi) {
     index[wi] = {wi, 0};
   }
   std::vector<EdgeIndex> remainingEdgesIndex(edgesCount);
@@ -69,7 +69,7 @@ std::vector<TopoIndexInfo>
   // We start with all those which do not have any dependencies
   // They are layer 0.
   std::list<TopoIndexInfo> L;
-  for (int ii = 0; ii < index.size(); ++ii) {
+  for (auto ii = 0; ii < index.size(); ++ii) {
     if (nodeDeps[ii] == false) {
       L.push_back({ii, 0});
     }
@@ -225,12 +225,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       switch (input.lifetime) {
         case Lifetime::Timer: {
           auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-          bool hasOption = false;
-          for (auto& option : processor.options) {
-            if (option.name == "period-" + input.binding) {
-              hasOption = true;
-            }
-          }
+          auto hasOption = std::any_of(processor.options.begin(), processor.options.end(), [&input](auto const& option) { return (option.name == "period-" + input.binding); });
           if (hasOption == false) {
             processor.options.push_back(ConfigParamSpec{"period-" + input.binding, VariantType::Int, 1000, {"period of the timer"}});
           }
