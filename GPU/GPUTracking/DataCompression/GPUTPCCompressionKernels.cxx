@@ -387,9 +387,7 @@ GPUdi() void GPUTPCCompressionKernels::compressorMemcpyVectorised(Scalar* dst, c
   if (not isAlignedTo<BaseVector>(dst)) {
     size_t dsti = reinterpret_cast<size_t>(dst);
     int offset = (alignof(BaseVector) - dsti % alignof(BaseVector)) / sizeof(Scalar);
-    if (iThread < offset) {
-      dst[iThread] = src[iThread];
-    }
+    compressorMemcpyBasic(dst, src, offset, nThreads, iThread);
     src += offset;
     dst += offset;
     size -= offset;
@@ -414,9 +412,7 @@ GPUdi() void GPUTPCCompressionKernels::compressorMemcpyVectorised(Scalar* dst, c
   }
 
   int leftovers = size % CpyVec::Size;
-  if (iThread < leftovers) {
-    dst[size - leftovers + iThread] = src[size - leftovers + iThread];
-  }
+  compressorMemcpyBasic(dst + size - leftovers, src + size - leftovers, leftovers, nThreads, iThread);
 }
 
 template <typename T>
