@@ -12,15 +12,20 @@
 #define ALICEO2_TRD_DIGITIZER_H_
 
 #include "TRDSimulation/Detector.h"
+
+#include "TRDBase/Calibrations.h"
 #include "TRDBase/Digit.h"
 #include "TRDBase/MCLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
-
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/TRDDiffAndTimeStructEstimator.h"
-#include "TRDBase/Calibrations.h"
 
 #include "MathUtils/RandomRing.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+
+#include <array>
+#include <deque>
+#include <unordered_map>
+#include <vector>
 
 namespace o2
 {
