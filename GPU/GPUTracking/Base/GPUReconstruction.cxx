@@ -118,10 +118,10 @@ int GPUReconstruction::Init()
     return 1;
   }
   for (unsigned int i = 0; i < mSlaves.size(); i++) {
-    mSlaves[i]->mDeviceMemorySize = mDeviceMemorySize;
-    mSlaves[i]->mHostMemorySize = mHostMemorySize;
     mSlaves[i]->mDeviceMemoryBase = mDeviceMemoryPermanent;
     mSlaves[i]->mHostMemoryBase = mHostMemoryPermanent;
+    mSlaves[i]->mDeviceMemorySize = mDeviceMemorySize - ((char*)mSlaves[i]->mDeviceMemoryBase - (char*)mDeviceMemoryBase);
+    mSlaves[i]->mHostMemorySize = mHostMemorySize - ((char*)mSlaves[i]->mHostMemoryBase - (char*)mHostMemoryBase);
     mSlaves[i]->mHostMemoryPoolEnd = mHostMemoryPoolEnd;
     mSlaves[i]->mDeviceMemoryPoolEnd = mDeviceMemoryPoolEnd;
     if (mSlaves[i]->InitDevice()) {
