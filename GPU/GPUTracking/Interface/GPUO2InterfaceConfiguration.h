@@ -112,7 +112,7 @@ struct GPUO2InterfaceIOPtrs {
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* outputTracksMCTruth = nullptr;
 
   // Output for entropy-reduced clusters of TPC compression
-  const o2::tpc::CompressedClustersFlat* compressedClusters;
+  const o2::tpc::CompressedClustersFlat* compressedClusters = nullptr;
 
   // Hint for GPUCATracking to place its output in this buffer if possible.
   // This enables to create the output directly in a shared memory segment of the framework.
