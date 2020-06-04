@@ -34,7 +34,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
 {
   return WorkflowSpec{
     {"B",
-     {InputSpec{"x", "TST", "A1"}},
+     {},
      {OutputSpec{{"b1"}, "TST", "B1"}},
      simplePipe("b1", 0)},
     {"D",

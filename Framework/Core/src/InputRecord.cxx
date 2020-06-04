@@ -41,7 +41,7 @@ InputRecord::InputRecord(std::vector<InputRoute> const& inputsSchema,
 int InputRecord::getPos(const char* binding) const
 {
   auto inputIndex = 0;
-  for (int i = 0; i < mInputsSchema.size(); ++i) {
+  for (size_t i = 0; i < mInputsSchema.size(); ++i) {
     auto& route = mInputsSchema[i];
     if (route.timeslice != 0) {
       continue;
