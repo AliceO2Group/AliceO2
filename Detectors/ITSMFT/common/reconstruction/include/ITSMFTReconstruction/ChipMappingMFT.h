@@ -102,6 +102,9 @@ class ChipMappingMFT
     return (cableHW & 0x1f);
   }
 
+  ///< convert HW cable ID to its position on the ActiveLanes word in the GBT.header for given RU type
+  uint8_t cableHW2Pos(uint8_t ruType, uint8_t hwid) const { return mCableHW2Pos[ruType][hwid]; }
+
   ///< convert HW cable ID to SW ID for give RU type
   uint8_t cableHW2SW(uint8_t ruType, uint8_t hwid) const { return mCableHW2SW[ruType][hwid]; }
 
@@ -267,6 +270,7 @@ class ChipMappingMFT
   std::vector<uint8_t> mFEEId2RUSW; // HW RU ID -> SW ID conversion
 
   std::vector<uint8_t> mCableHW2SW[NRUs];       ///< table of cables HW to SW conversion for each RU type
+  std::vector<uint8_t> mCableHW2Pos[NRUs];      ///< table of cables positions in the ActiveLanes mask for each RU type
   std::vector<uint8_t> mCableHWFirstChip[NRUs]; ///< 1st chip of module (relative to the 1st chip of the stave) served by each cable
 
   std::array<std::vector<uint16_t>, NRUs> mRUGlobalChipID;
