@@ -140,7 +140,7 @@ struct WorkflowHelpers {
   static std::vector<TopoIndexInfo> topologicalSort(size_t nodeCount,
                                                     int const* edgeIn,
                                                     int const* edgeOut,
-                                                    size_t stride,
+                                                    size_t byteStride,
                                                     size_t edgesCount);
 
   // Helper method to verify that a given workflow is actually valid e.g. that

@@ -186,7 +186,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
           auto reader = didir->getTreeReader(dh, fi, treeName);
 
           using table_t = typename decltype(metadata)::table_t;
-          if (!reader || (reader && reader->IsInvalid())) {
+          if (!reader || (reader->IsInvalid())) {
             LOGP(ERROR, "Requested \"{}\" tree not found in input file \"{}\"", treeName, didir->getInputFilename(dh, fi));
           } else {
             auto& builder = outputs.make<TableBuilder>(Output{decltype(metadata)::origin(), decltype(metadata)::description()});
