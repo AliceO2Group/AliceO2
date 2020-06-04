@@ -1650,6 +1650,7 @@ ChipMappingMFT::ChipMappingMFT()
         curHalf = half;
         mChipInfoEntryRU[iRU] = ctrChip;
         mCableHW2SW[iRU].resize(NRUCables, 0xff);
+        mCableHW2Pos[iRU].resize(NRUCables, 0xff);
         mCableHWFirstChip[iRU].resize(NRUCables, 0xff);
       } else {
         if ((layer != curLayer) || (zone != curZone) || (half != curHalf)) {
@@ -1670,9 +1671,11 @@ ChipMappingMFT::ChipMappingMFT()
 
       chInfo.cableHW = ChipConnectorCable[chInfo.moduleHW][chInfo.chipOnModuleHW];
       chInfo.cableSW = ChipMappingData[iChip].chipOnRU;
+      chInfo.cableHWPos = ChipMappingData[iChip].chipOnRU;
 
       chInfo.chipOnCable = 0;
 
+      mCableHW2Pos[iRU][chInfo.cableHW] = chInfo.cableHWPos;
       mCableHW2SW[iRU][chInfo.cableHW] = chInfo.cableSW;
       mCableHWFirstChip[iRU][chInfo.cableHW] = 0;
 
