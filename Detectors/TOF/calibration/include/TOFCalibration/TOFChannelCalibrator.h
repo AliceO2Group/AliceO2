@@ -27,29 +27,30 @@ namespace o2
 namespace tof
 {
 
-class TOFChannelData {
+class TOFChannelData
+{
 
-using Slot = o2::calibration::TimeSlot<o2::tof::TOFChannelData>;
-using CalibTOFapi = o2::tof::CalibTOFapi;
-using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::integer<> >, boost::histogram::unlimited_storage<std::allocator<char> > >;
+  using Slot = o2::calibration::TimeSlot<o2::tof::TOFChannelData>;
+  using CalibTOFapi = o2::tof::CalibTOFapi;
+  using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::integer<>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
 
-public:
-
+ public:
   static constexpr int NCHANNELSXSECTOR = o2::tof::Geo::NCHANNELS / o2::tof::Geo::NSECTORS;
-  
-  TOFChannelData() {
+
+  TOFChannelData()
+  {
     LOG(INFO) << "Default c-tor, not to be used";
   }
 
-  TOFChannelData(int nb, float r,  CalibTOFapi* cta) : mNBins(nb), mRange(r), mCalibTOFapi(cta)
+  TOFChannelData(int nb, float r, CalibTOFapi* cta) : mNBins(nb), mRange(r), mCalibTOFapi(cta)
   {
     if (r <= 0. || nb < 1) {
       throw std::runtime_error("Wrong initialization of the histogram");
     }
     mV2Bin = mNBins / (2 * mRange);
-    for (int isect = 0; isect < 18; isect ++){
+    for (int isect = 0; isect < 18; isect++) {
       mHisto[isect] = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBins, -mRange, mRange, "t-texp"),
-						       boost::histogram::axis::integer<>(0, o2::tof::Geo::NPADSXSECTOR, "channel index in sector" + std::to_string(isect))); // bin is defined as [low, high[
+                                                       boost::histogram::axis::integer<>(0, o2::tof::Geo::NPADSXSECTOR, "channel index in sector" + std::to_string(isect))); // bin is defined as [low, high[
     }
     mEntries.resize(o2::tof::Geo::NCHANNELS, 0);
   }
@@ -86,12 +87,11 @@ public:
   float mRange = o2::tof::Geo::BC_TIME_INPS * 0.5;
   int mNBins = 1000;
   float mV2Bin;
-  // do I really have to initialize it like below?
-  std::array<boostHisto,18> mHisto;
+  std::array<boostHisto, 18> mHisto;
   std::vector<int> mEntries; // vector containing number of entries per channel
 
-  CalibTOFapi* mCalibTOFapi = nullptr;   // calibTOFapi to correct the t-text
-  
+  CalibTOFapi* mCalibTOFapi = nullptr; // calibTOFapi to correct the t-text
+
   ClassDefNV(TOFChannelData, 1);
 };
 
@@ -106,9 +106,8 @@ class TOFChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::dat
   using TimeSlewingVector = std::vector<TimeSlewing>;
 
  public:
-
   static const int NCHANNELSXSECTOR = o2::tof::Geo::NCHANNELS / o2::tof::Geo::NSECTORS;
-  TOFChannelCalibrator(int minEnt = 500, int nb = 1000, float r = 24400) : mMinEntries(minEnt), mNBins(nb), mRange(r) {} ;
+  TOFChannelCalibrator(int minEnt = 500, int nb = 1000, float r = 24400) : mMinEntries(minEnt), mNBins(nb), mRange(r){};
 
   ~TOFChannelCalibrator() final = default;
 
@@ -126,26 +125,26 @@ class TOFChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::dat
 
   void setCalibTOFapi(CalibTOFapi* api) { mCalibTOFapi = api; }
   CalibTOFapi* getCalibTOFapi() const { return mCalibTOFapi; }
-  
+
   void setRange(float r) { mRange = r; }
   float getRange() const { return mRange; }
-  
+
  private:
-  int mMinEntries = 0;  // min number of entries to calibrate the TimeSlot
-  int mNBins = 0;  // bins of the histogram with the t-text per channel
-  float mRange = 0.;  // range of the histogram with the t-text per channel
-  bool mTest = false; // flag to be used when running in test mode: it simplify the processing (e.g. does not go through all channels)
+  int mMinEntries = 0; // min number of entries to calibrate the TimeSlot
+  int mNBins = 0;      // bins of the histogram with the t-text per channel
+  float mRange = 0.;   // range of the histogram with the t-text per channel
+  bool mTest = false;  // flag to be used when running in test mode: it simplify the processing (e.g. does not go through all channels)
 
   CalibTOFapi* mCalibTOFapi = nullptr; // CalibTOFapi needed to get the previous calibrations read from CCDB (do we need that it is a pointer?)
 
-  // output 
-  CcdbObjectInfoVector mInfoVector; // vector of CCDB Infos , each element is filled with the CCDB description of the accompanying TimeSlewing object
-  TimeSlewingVector mTimeSlewingVector;   // vector of TimeSlewing, each element is filled in "process"
-                                          // when we finalize one slot (multiple can be finalized
-                                          // during the same "process", which is why we have a vector).
-                                          // Each element is to be considered the output of the device,
-                                          // and will go to the CCDB. Note that for the channel offset
-                                          // we still fill the TimeSlewing object
+  // output
+  CcdbObjectInfoVector mInfoVector;     // vector of CCDB Infos , each element is filled with the CCDB description of the accompanying TimeSlewing object
+  TimeSlewingVector mTimeSlewingVector; // vector of TimeSlewing, each element is filled in "process"
+                                        // when we finalize one slot (multiple can be finalized
+                                        // during the same "process", which is why we have a vector).
+                                        // Each element is to be considered the output of the device,
+                                        // and will go to the CCDB. Note that for the channel offset
+                                        // we still fill the TimeSlewing object
 
   ClassDefOverride(TOFChannelCalibrator, 1);
 };

@@ -92,11 +92,11 @@ bool TimeSlotCalibration<Input, Container>::process(TFType tf, const gsl::span<c
       LOG(INFO) << "Ignoring TF " << tf;
       return false;
     }
-    
+
     // check if some slots are done
     checkSlotsToFinalize(tf, maxDelay);
   }
-  
+
   // process current TF
   auto& slotTF = getSlotForTF(tf);
   slotTF.getContainer()->fill(data);
@@ -141,7 +141,8 @@ inline TFType TimeSlotCalibration<Input, Container>::tf2SlotMin(TFType tf) const
   if (tf < mFirstTF) {
     throw std::runtime_error("invalide TF");
   }
-  if (mUpdateAtTheEndOfRunOnly) return mFirstTF;
+  if (mUpdateAtTheEndOfRunOnly)
+    return mFirstTF;
   return TFType((tf - mFirstTF) / mSlotLength) * mSlotLength + mFirstTF;
 }
 
@@ -151,13 +152,14 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
 {
 
   if (mUpdateAtTheEndOfRunOnly) {
-    if (!mSlots.empty() && mSlots.back().getTFEnd() < tf) mSlots.back().setTFEnd(tf);
+    if (!mSlots.empty() && mSlots.back().getTFEnd() < tf)
+      mSlots.back().setTFEnd(tf);
     else if (mSlots.empty()) {
       emplaceNewSlot(true, mFirstTF, tf);
     }
     return mSlots.back();
   }
-  
+
   if (!mSlots.empty() && mSlots.front().getTFStart() > tf) { // we need to add a slot to the beginning
     auto tfmn = tf2SlotMin(mSlots.front().getTFStart() - 1);
     auto tftgt = tf2SlotMin(tf);

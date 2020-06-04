@@ -28,6 +28,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
   auto useCCDB = configcontext.options().get<bool>("use-ccdb");
-  specs.emplace_back(getTOFChannelCalibDeviceSpec(useCCDB));
+  specs.emplace_back(getTOFChannelCalibDeviceSpec(useCCDB, false));
   return specs;
 }
