@@ -53,7 +53,7 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF()
 CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTOF& source)
 {
 
-  for (int iSec = 0 ; iSec < NSECTORS; iSec++) {
+  for (int iSec = 0; iSec < NSECTORS; iSec++) {
     mTimeSlewing[iSec] = source.mTimeSlewing[iSec];
   }
   /*
@@ -108,7 +108,7 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTO
 CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator=(const CalibTimeSlewingParamTOF& source)
 {
   for (int i = 0; i < NSECTORS; i++) {
-    mTimeSlewing[i].clear();  // CHECK: mTimeSlewing[i] does not work, probably because it is an array of vectors
+    mTimeSlewing[i].clear(); // CHECK: mTimeSlewing[i] does not work, probably because it is an array of vectors
     mTimeSlewing[i] = source.mTimeSlewing[i];
 
     for (int j = 0; j < NCHANNELXSECTOR; j++) {
@@ -131,7 +131,8 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
 {
 
   // totIn is in ns
-  
+  // the correction is returned in ps
+
   int sector = channel / NCHANNELXSECTOR;
   channel = channel % NCHANNELXSECTOR;
 
@@ -142,16 +143,16 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
   if (n < 0)
     return 0.;
 
-  if (totIn == 0) {
-    return (float)((mTimeSlewing[sector])[n].second);
-  }
-
   int nstop = (mTimeSlewing[sector]).size();
   if (channel < NCHANNELXSECTOR - 1)
     nstop = mChannelStart[sector][channel + 1];
 
   if (n >= nstop)
     return 0.; // something went wrong!
+
+  if (totIn == 0) {
+    return (float)((mTimeSlewing[sector])[n].second);
+  }
 
   // we convert tot from ns to ps and to unsigned short
   unsigned short tot = (unsigned short)(totIn * 1000);
@@ -183,7 +184,7 @@ void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float 
   // tot here is provided in ns, time in ps;
   // tot will have to be converted into ps;
   // type will have to be converted to unsigned short (tot) and short (time)
-  
+
   int sector = channel / NCHANNELXSECTOR;
   channel = channel % NCHANNELXSECTOR;
 
@@ -206,7 +207,7 @@ void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float 
 
 bool CalibTimeSlewingParamTOF::updateOffsetInfo(int channel, float residualOffset)
 {
-  
+
   // to update only the channel offset info in an existing CCDB object
   // residual offset is given in ps
 
@@ -218,12 +219,12 @@ bool CalibTimeSlewingParamTOF::updateOffsetInfo(int channel, float residualOffse
 
   int n = mChannelStart[sector][channel]; // first time slewing entry for the current channel. this corresponds to tot = 0
   if ((mTimeSlewing[sector])[n].first != 0) {
-    printf("DBG: there was no time offset set yet! first tot is %f\n", (mTimeSlewing[sector])[n].first);
+    printf("DBG: there was no time offset set yet! first tot is %d\n", (mTimeSlewing[sector])[n].first);
     std::pair<unsigned short, short> offsetToBeInserted(0, (short)residualOffset);
     auto it = (mTimeSlewing[sector]).begin();
-    (mTimeSlewing[sector]).insert(it+n, offsetToBeInserted);
+    (mTimeSlewing[sector]).insert(it + n, offsetToBeInserted);
     // now we have to increase by 1 all the mChannelStart for the channels that come after this
-    for (auto ch = channel+1; ch < NCHANNELXSECTOR; ch++){
+    for (auto ch = channel + 1; ch < NCHANNELXSECTOR; ch++) {
       mChannelStart[sector][ch]++;
     }
     return false;

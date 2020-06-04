@@ -30,9 +30,9 @@ namespace tof
 using Slot = o2::calibration::TimeSlot<o2::tof::TOFChannelData>;
 using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;
 using clbUtils = o2::calibration::Utils;
-using o2::math_utils::math_base::fitGaus;
 using boost::histogram::indexed;
-  //using boost::histogram::algorithm; // not sure why it does not work...
+using o2::math_utils::math_base::fitGaus;
+//using boost::histogram::algorithm; // not sure why it does not work...
 
 //_____________________________________________
 void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> data)
@@ -46,11 +46,10 @@ void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> d
     auto tot = data[i].getTot();
     // TO BE DISCUSSED: could it be that the LHCphase is too old? If we ar ein sync mode, it could be that it is not yet created for the current run, so the one from the previous run (which could be very old) is used. But maybe it does not matter much, since soon enough a calibrated LHC phase should be produced
     auto corr = mCalibTOFapi->getTimeCalibration(ch, tot); // we take into account LHCphase, offsets and time slewing
-    //    LOG(INFO) << "inserting dt = " << dt << ", tot = " << tot << ", corr = " << corr << ", corrected dt = " << dt-corr;
+    LOG(DEBUG) << "inserting in channel " << ch << ": dt = " << dt << ", tot = " << tot << ", corr = " << corr << ", corrected dt = " << dt - corr;
     mHisto[sector](dt - corr, chInSect); // we pass the calibrated time
     mEntries[ch] += 1;
   }
-
 }
 
 //_____________________________________________
@@ -61,22 +60,24 @@ void TOFChannelData::merge(const TOFChannelData* prev)
     mHisto[isect] += prev->getHisto(isect);
   }
 }
-  
+
 //_____________________________________________
-  bool TOFChannelData::hasEnoughData(int minEntries) const
+bool TOFChannelData::hasEnoughData(int minEntries) const
 {
   // true if all channels can be fitted --> have enough statistics
-  
+
+  // TODO: think of a better logic: it could be that some channels are off or misbehaving and do not
+  // have enough entries, even if in principle we collected enough
+
   // we can simply check if the min of the elements of the mEntries vector is >= minEntries
   printEntries();
   auto minElementIndex = std::min_element(mEntries.begin(), mEntries.end());
-  LOG(INFO) << "minElement is at position " << std::distance(mEntries.begin(), minElementIndex) <<
-    " and is " << *minElementIndex;
+  LOG(INFO) << "minElement is at position " << std::distance(mEntries.begin(), minElementIndex) << " and is " << *minElementIndex;
   bool enough = *minElementIndex < minEntries ? false : true;
-  LOG(INFO) << "hasEnough = " << (int)enough; 
+  LOG(INFO) << "hasEnough = " << (int)enough;
   return enough;
 }
-  
+
 //_____________________________________________
 void TOFChannelData::print() const
 {
@@ -89,16 +90,16 @@ void TOFChannelData::print() const
     LOG(INFO) << "Number of entries in histogram: " << boost::histogram::algorithm::sum(mHisto[isect]);
     int cnt = 0;
     if (nentriesInSec != 0) {
-      for (auto&& x : indexed(mHisto[isect])) { 
-	if (x.get() > 0) {
-	  const auto i = x.index(0); // current index along first axis --> t-texp
-	  const auto j = x.index(1); // current index along second axis --> channel
-	  const auto b0 = x.bin(0);  // current bin interval along first axis --> t-texp
-	  const auto b1 = x.bin(1);  // current bin interval along second axis --> channel
-	  LOG(INFO) << "bin " << cnt << ": channel = " << j << " in [" << b1.lower() << ", " << b1.upper()
-		    << "], t-texp in [" << b0.lower() << ", " << b0.upper() << "], has entries = " << x.get();
-	}
-	cnt++;
+      for (auto&& x : indexed(mHisto[isect])) {
+        if (x.get() > 0) {
+          const auto i = x.index(0); // current index along first axis --> t-texp
+          const auto j = x.index(1); // current index along second axis --> channel
+          const auto b0 = x.bin(0);  // current bin interval along first axis --> t-texp
+          const auto b1 = x.bin(1);  // current bin interval along second axis --> channel
+          LOG(INFO) << "bin " << cnt << ": channel = " << j << " in [" << b1.lower() << ", " << b1.upper()
+                    << "], t-texp in [" << b0.lower() << ", " << b0.upper() << "], has entries = " << x.get();
+        }
+        cnt++;
       }
     }
     LOG(INFO) << cnt << " bins inspected";
@@ -115,7 +116,7 @@ void TOFChannelData::print(int isect) const
   LOG(INFO) << "Number of entries in histogram: " << boost::histogram::algorithm::sum(mHisto[isect]);
   for (auto&& x : indexed(mHisto[isect])) { // does not work also when I use indexed(*(mHisto[sector]))
     cnt++;
-    //LOG(INFO) << " c " << cnt << " i " << x.index(0) << " j " << x.index(1) << " b0 " <<  x.bin(0) <<  " b1 " <<  x.bin(1) << " val= " << *x << "|" << x.get(); 
+    //LOG(INFO) << " c " << cnt << " i " << x.index(0) << " j " << x.index(1) << " b0 " <<  x.bin(0) <<  " b1 " <<  x.bin(1) << " val= " << *x << "|" << x.get();
     if (x.get() > 0) {
       LOG(INFO) << "x = " << x.get() << " c " << cnt;
     }
@@ -127,7 +128,7 @@ void TOFChannelData::print(int isect) const
 void TOFChannelData::printEntries() const
 {
   // to print number of entries per channel
-  for(int i = 0; i < mEntries.size(); ++i)
+  for (int i = 0; i < mEntries.size(); ++i)
     LOG(INFO) << "channel " << i << " has " << mEntries[i] << " entries";
 }
 
@@ -137,16 +138,16 @@ int TOFChannelData::findBin(float v) const
   // find the bin along the x-axis (with t-texp) where the value "v" is; this does not depend on the channel
   // (axis 1), nor on the sector, so we use sector0
 
-  if (v == mRange) v -= 1.e-1; 
-  
+  if (v == mRange)
+    v -= 1.e-1;
+
   /*
   LOG(INFO) << "In FindBin, v = : " << v;
   LOG(INFO) << "bin0 limits: lower = " << mHisto[0].axis(0).bin(0).lower() << ", upper = " << mHisto[0].axis(0).bin(0).upper();
   LOG(INFO) << "bin1000 limits: lower = " << mHisto[0].axis(0).bin(mNBins-1).lower() << ", upper = " << mHisto[0].axis(0).bin(mNBins-1).upper();
   LOG(INFO) << "v = " << v << " is in bin " << mHisto[0].axis(0).index(v);
-  */  
+  */
   return mHisto[0].axis(0).index(v);
-  
 }
 
 //_____________________________________________
@@ -158,9 +159,10 @@ float TOFChannelData::integral(int chmin, int chmax, float binmin, float binmax)
     throw std::runtime_error("Check your bins, we cannot calculate the integrals in under/overflows bins");
   if (binmax < binmin || chmax < chmin)
     throw std::runtime_error("Check your bin limits!");
-  
+
   int sector = chmin / o2::tof::Geo::NPADSXSECTOR;
-  if (sector != chmax / o2::tof::Geo::NPADSXSECTOR) throw std::runtime_error("We cannot integrate over channels that belong to different sectors");
+  if (sector != chmax / o2::tof::Geo::NPADSXSECTOR)
+    throw std::runtime_error("We cannot integrate over channels that belong to different sectors");
 
   int chinsectormin = chmin % o2::tof::Geo::NPADSXSECTOR;
   int chinsectormax = chmax % o2::tof::Geo::NPADSXSECTOR;
@@ -182,11 +184,11 @@ float TOFChannelData::integral(int chmin, int chmax, float binmin, float binmax)
       const auto& v = mHisto[sector].at(i, j);
       res2 += v;
     }
-  } 
+  }
   t3.Stop();
   LOG(INFO) << "Time for integral looping over axis (result = " << res2 << "):";
   t3.Print();
-  
+
   /* // what is below is only for alternative methods which all proved to be slower
   float res = 0, res1 = 0;
   TStopwatch t1, t2, 
@@ -284,7 +286,8 @@ float TOFChannelData::integral(int chmin, int chmax, int binxmin, int binxmax) c
     throw std::runtime_error("Check your bin limits!");
 
   int sector = chmin / o2::tof::Geo::NPADSXSECTOR;
-  if (sector != chmax / o2::tof::Geo::NPADSXSECTOR) throw std::runtime_error("We cannot integrate over channels that belong to different sectors");
+  if (sector != chmax / o2::tof::Geo::NPADSXSECTOR)
+    throw std::runtime_error("We cannot integrate over channels that belong to different sectors");
 
   int chinsectormin = chmin % o2::tof::Geo::NPADSXSECTOR;
   int chinsectormax = chmax % o2::tof::Geo::NPADSXSECTOR;
@@ -301,12 +304,12 @@ float TOFChannelData::integral(int chmin, int chmax, int binxmin, int binxmax) c
       const auto& v = mHisto[sector].at(i, j);
       res2 += v;
     }
-  } 
+  }
   t3.Stop();
   LOG(INFO) << "Time for integral looping over axis (result = " << res2 << "):";
   t3.Print();
   return res2;
-  
+
   /* // all that is below is alternative methods, all proved to be slower
   float res = 0, res1 = 0;
   TStopwatch t1, t2;
@@ -392,7 +395,7 @@ float TOFChannelData::integral(int ch) const
 {
   // calculates the integral along one fixed channel and in the full x-range
 
-  return integral(ch, ch, 0, mNBins-1);
+  return integral(ch, ch, 0, mNBins - 1);
 }
 
 //===================================================================
@@ -412,13 +415,12 @@ bool TOFChannelCalibrator::hasEnoughData(const Slot& slot) const
 
   // Checking if all channels have enough data to do calibration.
   // Delegating this to TOFChannelData
-  
+
   const o2::tof::TOFChannelData* c = slot.getContainer();
+  LOG(INFO) << "Checking statistics";
   return (mTest ? true : c->hasEnoughData(mMinEntries));
-  //  return c->hasEnoughData(mMinEntries);
-  
 }
-  
+
 //_____________________________________________
 void TOFChannelCalibrator::finalizeSlot(Slot& slot)
 {
@@ -429,12 +431,8 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
   // for the CCDB entry
   std::map<std::string, std::string> md;
   TimeSlewing& ts = mCalibTOFapi->getSlewParamObj(); // we take the current CCDB object, since we want to simply update the offset
-  for (int ich = 0; ich < 10; ich++){
-    LOG(INFO) << "for test, checking channel " << ich << ": offset = " << ts.evalTimeSlewing(ich, 0);
-  }
-  
+
   for (int ich = 0; ich < o2::tof::Geo::NCHANNELS; ich++) {
-    //    LOG(INFO) << "ich = " << ich;
     // make the slice of the 2D histogram so that we have the 1D of the current channel
     int sector = ich / o2::tof::Geo::NPADSXSECTOR;
     int chinsector = ich % o2::tof::Geo::NPADSXSECTOR;
@@ -456,32 +454,32 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
     std::vector<int> entriesPerChannel = c->getEntriesPerChannel();
     if (entriesPerChannel.at(ich) == 0) {
       if (mTest) {
-	LOG(DEBUG) << "Skipping channel " << ich << " because it has zero entries, but it should not be"; // should become error!
-	continue;
-      }
-      else throw std::runtime_error("We found one channel with no entries, we cannot calibrate!");
+        LOG(DEBUG) << "Skipping channel " << ich << " because it has zero entries, but it should not be"; // should become error!
+        continue;
+      } else
+        throw std::runtime_error("We found one channel with no entries, we cannot calibrate!");
     }
-    
+
     // more efficient way
     auto histo = c->getHisto(sector);
     for (unsigned j = chinsector; j <= chinsector; ++j) {
       for (unsigned i = 0; i < c->getNbins(); ++i) {
-	const auto& v = histo.at(i, j);
-	histoValues.push_back(v);
+        const auto& v = histo.at(i, j);
+        LOG(DEBUG) << "channel = " << ich << ", in sector = " << sector << " (where it is channel = " << chinsector << ") bin = " << i << " value = " << v;
+        histoValues.push_back(v);
       }
     }
-    
+
     int fitres = fitGaus(c->getNbins(), histoValues.data(), -(c->getRange()), c->getRange(), fitValues);
     if (fitres >= 0) {
-      LOG(INFO) << "Channel " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
-    }
-    else {
+      LOG(DEBUG) << "Channel " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
+    } else {
       LOG(ERROR) << "Channel " << ich << " :: Fit failed with result = " << fitres;
     }
     float fractionUnderPeak;
     float intmin = fitValues[1] - 5 * fitValues[2]; // mean - 5*sigma
     float intmax = fitValues[1] + 5 * fitValues[2]; // mean + 5*sigma
-    
+
     /* 
     // needed if we calculate the integral using the values
     int binmin = c->findBin(intmin);
@@ -494,23 +492,17 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
       binmax = c->getNbins()-1; // avoid to take the overflow bin (can happen in case the sigma is too large)
     float fractionUnderPeak = (c->integral(ch, binmin, binmax) + addduetoperiodicity) / c->integral(ch, 1, c->nbins());
     */
-    fractionUnderPeak = c->integral(ich, intmin, intmax) / c->integral(ich);
+    float channelIntegral = c->integral(ich);
+    fractionUnderPeak = channelIntegral > 0 ? c->integral(ich, intmin, intmax) / channelIntegral : 0;
     // now we need to store the results in the TimeSlewingObject
     ts.setFractionUnderPeak(ich / o2::tof::Geo::NPADSXSECTOR, ich % o2::tof::Geo::NPADSXSECTOR, fractionUnderPeak);
     ts.setSigmaPeak(ich / o2::tof::Geo::NPADSXSECTOR, ich % o2::tof::Geo::NPADSXSECTOR, abs(fitValues[2]));
-    //    ts.addTimeSlewingInfo(ich, 0, fitValues[1]);
     ts.updateOffsetInfo(ich, fitValues[1]);
-  }
-  for (int ich = 0; ich < 10; ich++){
-    LOG(INFO) << "for test, checking channel " << ich << ": offset = " << ts.evalTimeSlewing(ich, 0);
   }
   auto clName = o2::utils::MemFileHelper::getClassName(ts);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   mInfoVector.emplace_back("TOF/ChannelCalib", clName, flName, md, slot.getTFStart(), 99999999999999);
   mTimeSlewingVector.emplace_back(ts);
-  
-  //  slot.print();
-
 }
 
 //_____________________________________________
@@ -525,4 +517,3 @@ Slot& TOFChannelCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType ten
 
 } // end namespace tof
 } // end namespace o2
-  

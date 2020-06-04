@@ -69,12 +69,10 @@ class TFProcessor : public o2::framework::Task
     mTOFChannelCalib = ic.options().get<bool>("do-TOF-channel-calib");
     mTOFChannelCalibInTestMode = ic.options().get<bool>("do-TOF-channel-calib-in-test-mode");
     LOG(INFO) << "TFProcessorCopy: " << mDevCopy << " MeanLatency: " << mMeanLatency << " LatencyRMS: " << mLatencyRMS << " DoTOFChannelCalib: " << mTOFChannelCalib
-	      << " DoTOFChannelCalibInTestMode: " << mTOFChannelCalibInTestMode;
+              << " DoTOFChannelCalibInTestMode: " << mTOFChannelCalibInTestMode;
 
     for (int i = 0; i < o2::tof::Geo::NCHANNELS; i++) {
-      //mChannelShifts[i] = gRandom->Gaus(0., 100.);
-      mChannelShifts[i] = (2000./o2::tof::Geo::NCHANNELS)*i + (-1000.); // shift needs to be always the same for a channel; in this way we make them all in [-1000, 1000], and shifting with the channel index
-      if (i < 100) LOG(INFO) << "Simulated shift for channel " << i << " = " << mChannelShifts[i];
+      mChannelShifts[i] = (2000. / o2::tof::Geo::NCHANNELS) * i + (-1000.); // shift needs to be always the same for a channel; in this way we make them all in [-1000, 1000], and shifting with the channel index
     }
   }
 
@@ -91,18 +89,16 @@ class TFProcessor : public o2::framework::Task
     auto& output = pc.outputs().make<std::vector<o2::dataformats::CalibInfoTOF>>(o2::framework::OutputRef{"output", 0});
     output.reserve(size);
 
-    double clockShift = 1e3 * std::sin(tfcounter / 100. * o2::constants::math::PI);
+    double clockShift = 1e3 * std::sin(tfcounter / 100. * o2::constants::math::PI); // in ps
 
     for (int i = size; i--;) {
       if (!mTOFChannelCalib) {
-	output.emplace_back(gRandom->Integer(o2::tof::Geo::NCHANNELS), 0, gRandom->Gaus(clockShift, 100.), 0, 0);
-      }
-      else {
-	int channel = mTOFChannelCalibInTestMode? gRandom->Integer(100) : gRandom->Integer(o2::tof::Geo::NCHANNELS);
-	double value = gRandom->Gaus(mChannelShifts[channel], 100.);
-	double tot = gRandom->Gaus(12, 2);
-	//LOG(INFO) << "channel = " << channel << ", value = " << value;
-	output.emplace_back(channel, 0, value, tot, 0);
+        output.emplace_back(gRandom->Integer(o2::tof::Geo::NCHANNELS), 0, gRandom->Gaus(clockShift, 100.), 0, 0);
+      } else {
+        int channel = mTOFChannelCalibInTestMode ? gRandom->Integer(100) : gRandom->Integer(o2::tof::Geo::NCHANNELS);
+        double value = gRandom->Gaus(mChannelShifts[channel], 100.); // in ps
+        double tot = gRandom->Gaus(12, 2);                           // in ns
+        output.emplace_back(channel, 0, value, tot, 0);
       }
     }
   }

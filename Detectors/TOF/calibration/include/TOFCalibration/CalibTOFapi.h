@@ -58,7 +58,7 @@ class CalibTOFapi
 
   SlewParam* getSlewParam() { return mSlewParam; }
   SlewParam& getSlewParamObj() { return *mSlewParam; }
-  
+
  private:
   long mTimeStamp;                 ///< timeStamp for queries
   LhcPhase* mLHCphase = nullptr;   ///< object for LHC phase
