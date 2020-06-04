@@ -19,35 +19,35 @@ using namespace o2::tpc;
 /// estimate size needed to store in the flat buffer the payload of the CompressedClusters (here only the counters are used)
 size_t CTFCoder::estimateSize(CompressedClusters& c)
 {
-  const CompressedClustersCounters& h = c;
+  const CompressedClustersCounters& header = c;
   size_t sz = 0;
-  sz += alignSize(c.qTotU, h.nUnattachedClusters);
-  sz += alignSize(c.qMaxU, h.nUnattachedClusters);
-  sz += alignSize(c.flagsU, h.nUnattachedClusters);
-  sz += alignSize(c.padDiffU, h.nUnattachedClusters);
-  sz += alignSize(c.timeDiffU, h.nUnattachedClusters);
-  sz += alignSize(c.sigmaPadU, h.nUnattachedClusters);
-  sz += alignSize(c.sigmaTimeU, h.nUnattachedClusters);
-  sz += alignSize(c.nSliceRowClusters, h.nSliceRows);
+  sz += alignSize(c.qTotU, header.nUnattachedClusters);
+  sz += alignSize(c.qMaxU, header.nUnattachedClusters);
+  sz += alignSize(c.flagsU, header.nUnattachedClusters);
+  sz += alignSize(c.padDiffU, header.nUnattachedClusters);
+  sz += alignSize(c.timeDiffU, header.nUnattachedClusters);
+  sz += alignSize(c.sigmaPadU, header.nUnattachedClusters);
+  sz += alignSize(c.sigmaTimeU, header.nUnattachedClusters);
+  sz += alignSize(c.nSliceRowClusters, header.nSliceRows);
 
-  if (h.nAttachedClusters) {
-    sz += alignSize(c.qTotA, h.nAttachedClusters);
-    sz += alignSize(c.qMaxA, h.nAttachedClusters);
-    sz += alignSize(c.flagsA, h.nAttachedClusters);
-    sz += alignSize(c.rowDiffA, h.nAttachedClustersReduced);
-    sz += alignSize(c.sliceLegDiffA, h.nAttachedClustersReduced);
-    sz += alignSize(c.padResA, h.nAttachedClustersReduced);
-    sz += alignSize(c.timeResA, h.nAttachedClustersReduced);
-    sz += alignSize(c.sigmaPadA, h.nAttachedClusters);
-    sz += alignSize(c.sigmaTimeA, h.nAttachedClusters);
+  if (header.nAttachedClusters) {
+    sz += alignSize(c.qTotA, header.nAttachedClusters);
+    sz += alignSize(c.qMaxA, header.nAttachedClusters);
+    sz += alignSize(c.flagsA, header.nAttachedClusters);
+    sz += alignSize(c.rowDiffA, header.nAttachedClustersReduced);
+    sz += alignSize(c.sliceLegDiffA, header.nAttachedClustersReduced);
+    sz += alignSize(c.padResA, header.nAttachedClustersReduced);
+    sz += alignSize(c.timeResA, header.nAttachedClustersReduced);
+    sz += alignSize(c.sigmaPadA, header.nAttachedClusters);
+    sz += alignSize(c.sigmaTimeA, header.nAttachedClusters);
 
-    sz += alignSize(c.qPtA, h.nTracks);
-    sz += alignSize(c.rowA, h.nTracks);
-    sz += alignSize(c.sliceA, h.nTracks);
-    sz += alignSize(c.timeA, h.nTracks);
-    sz += alignSize(c.padA, h.nTracks);
+    sz += alignSize(c.qPtA, header.nTracks);
+    sz += alignSize(c.rowA, header.nTracks);
+    sz += alignSize(c.sliceA, header.nTracks);
+    sz += alignSize(c.timeA, header.nTracks);
+    sz += alignSize(c.padA, header.nTracks);
 
-    sz += alignSize(c.nTrackClusters, h.nTracks);
+    sz += alignSize(c.nTrackClusters, header.nTracks);
   }
   return sz;
 }
@@ -55,34 +55,34 @@ size_t CTFCoder::estimateSize(CompressedClusters& c)
 /// set addresses of the CompressedClusters fields to point on already reserved memory region
 void CTFCoder::setCompClusAddresses(CompressedClusters& c, void*& buff)
 {
-  const CompressedClustersCounters& h = c;
-  setAlignedPtr(buff, c.qTotU, h.nUnattachedClusters);
-  setAlignedPtr(buff, c.qMaxU, h.nUnattachedClusters);
-  setAlignedPtr(buff, c.flagsU, h.nUnattachedClusters);
-  setAlignedPtr(buff, c.padDiffU, h.nUnattachedClusters);
-  setAlignedPtr(buff, c.timeDiffU, h.nUnattachedClusters);
-  setAlignedPtr(buff, c.sigmaPadU, h.nUnattachedClusters);
-  setAlignedPtr(buff, c.sigmaTimeU, h.nUnattachedClusters);
-  setAlignedPtr(buff, c.nSliceRowClusters, h.nSliceRows);
+  const CompressedClustersCounters& header = c;
+  setAlignedPtr(buff, c.qTotU, header.nUnattachedClusters);
+  setAlignedPtr(buff, c.qMaxU, header.nUnattachedClusters);
+  setAlignedPtr(buff, c.flagsU, header.nUnattachedClusters);
+  setAlignedPtr(buff, c.padDiffU, header.nUnattachedClusters);
+  setAlignedPtr(buff, c.timeDiffU, header.nUnattachedClusters);
+  setAlignedPtr(buff, c.sigmaPadU, header.nUnattachedClusters);
+  setAlignedPtr(buff, c.sigmaTimeU, header.nUnattachedClusters);
+  setAlignedPtr(buff, c.nSliceRowClusters, header.nSliceRows);
 
-  if (h.nAttachedClusters) {
+  if (header.nAttachedClusters) {
 
-    setAlignedPtr(buff, c.qTotA, h.nAttachedClusters);
-    setAlignedPtr(buff, c.qMaxA, h.nAttachedClusters);
-    setAlignedPtr(buff, c.flagsA, h.nAttachedClusters);
-    setAlignedPtr(buff, c.rowDiffA, h.nAttachedClustersReduced);
-    setAlignedPtr(buff, c.sliceLegDiffA, h.nAttachedClustersReduced);
-    setAlignedPtr(buff, c.padResA, h.nAttachedClustersReduced);
-    setAlignedPtr(buff, c.timeResA, h.nAttachedClustersReduced);
-    setAlignedPtr(buff, c.sigmaPadA, h.nAttachedClusters);
-    setAlignedPtr(buff, c.sigmaTimeA, h.nAttachedClusters);
+    setAlignedPtr(buff, c.qTotA, header.nAttachedClusters);
+    setAlignedPtr(buff, c.qMaxA, header.nAttachedClusters);
+    setAlignedPtr(buff, c.flagsA, header.nAttachedClusters);
+    setAlignedPtr(buff, c.rowDiffA, header.nAttachedClustersReduced);
+    setAlignedPtr(buff, c.sliceLegDiffA, header.nAttachedClustersReduced);
+    setAlignedPtr(buff, c.padResA, header.nAttachedClustersReduced);
+    setAlignedPtr(buff, c.timeResA, header.nAttachedClustersReduced);
+    setAlignedPtr(buff, c.sigmaPadA, header.nAttachedClusters);
+    setAlignedPtr(buff, c.sigmaTimeA, header.nAttachedClusters);
 
-    setAlignedPtr(buff, c.qPtA, h.nTracks);
-    setAlignedPtr(buff, c.rowA, h.nTracks);
-    setAlignedPtr(buff, c.sliceA, h.nTracks);
-    setAlignedPtr(buff, c.timeA, h.nTracks);
-    setAlignedPtr(buff, c.padA, h.nTracks);
+    setAlignedPtr(buff, c.qPtA, header.nTracks);
+    setAlignedPtr(buff, c.rowA, header.nTracks);
+    setAlignedPtr(buff, c.sliceA, header.nTracks);
+    setAlignedPtr(buff, c.timeA, header.nTracks);
+    setAlignedPtr(buff, c.padA, header.nTracks);
 
-    setAlignedPtr(buff, c.nTrackClusters, h.nTracks);
+    setAlignedPtr(buff, c.nTrackClusters, header.nTracks);
   }
 }

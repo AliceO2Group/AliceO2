@@ -19,7 +19,6 @@
 #include "rANS/SymbolStatistics.h"
 #include "rANS/Encoder.h"
 #include "rANS/Decoder.h"
-#include "rANS/Metadata.h"
 
 namespace o2
 {

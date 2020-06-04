@@ -126,7 +126,7 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
   ransCoder::encFlush(&rans1, &ptr);
   ransCoder::encFlush(&rans0, &ptr);
 
-  try {
+  try {                            //TODO Michael may want to generate exception message in different way
     assert(&(*outputBegin) < ptr); // for some reason assert does not work in test, apparently BOOST modifies its handling
     if (ptr < &(*outputBegin)) {   // RS: this exception is thrown with default calculateMaxBufferSize when running o2-test-ctf-io
       throw std::runtime_error(o2::utils::concat_string("output buffer too short: provided ",
