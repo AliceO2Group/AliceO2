@@ -18,6 +18,7 @@
 #include "Framework/WorkflowSpec.h" // o2::framework::mergeInputs
 #include "Framework/DataRefUtils.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/DeviceSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/InputRecordWalker.h"
@@ -113,6 +114,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       int debugLevel = 0;                        // Enable additional debug output
       int dump = 0;                              // create memory dump of processed events for standalone runs, 2 to dump only and skip processing
       char gpuType[1024] = "CUDA";               // Type of GPU device, if useGPU is set to true
+      int gpuDevice = -1;                        // Select GPU device id (-1 = auto-detect fastest, -2 = use pipeline-slice)
       GPUDisplayBackend* display = nullptr;      // Ptr to display backend (enables event display)
       bool qa = false;                           // Run the QA after tracking
       bool readTransformationFromFile = false;   // Read the TPC transformation from the file
@@ -188,6 +190,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
             int len = std::min(optLen - 11, 1023);
             memcpy(matBudFileName, optPtr + 11, len);
             matBudFileName[len] = 0;
+          } else if (optLen > 8 && strncmp(optPtr, "gpuNum=", 7) == 0) {
+            sscanf(optPtr + 7, "%d", &gpuDevice);
+            printf("Using GPU device %d\n", gpuDevice);
           } else if (optLen > 8 && strncmp(optPtr, "dEdxFile=", 9) == 0) {
             int len = std::min(optLen - 9, 1023);
             memcpy(dEdxSplinesFile, optPtr + 9, len);
@@ -217,6 +222,13 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       }
       config.configProcessing.forceDeviceType = true; // If we request a GPU, we force that it is available - no CPU fallback
 
+      if (gpuDevice == -2) {
+        int myId = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+        int idMax = ic.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
+        gpuDevice = myId;
+        LOG(INFO) << "GPU device number selected from pipeline id: " << myId << " / " << idMax;
+      }
+      config.configDeviceProcessing.deviceNum = gpuDevice;
       config.configDeviceProcessing.nThreads = nThreads;
       config.configDeviceProcessing.runQA = qa;                   // Run QA after tracking
       config.configDeviceProcessing.runMC = specconfig.processMC; // Propagate MC labels
