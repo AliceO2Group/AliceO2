@@ -296,7 +296,7 @@ class RawPixelReader : public PixelReader
     auto& ruData = mRUDecodeVec[mCurRUDecodeID]; // current RU container
     // fetch info of the chip with chipData->getChipID() ID within the RU
     const auto& chip = *mMAP.getChipOnRUInfo(ruData.ruInfo->ruType, chipData.getChipID());
-    ruData.cableHWID[chip.cableSW] = chip.cableHW; // register the cable HW ID
+    ruData.cableHWID[chip.cableHWPos] = chip.cableHW; // register the cable HW ID
 
     auto& pixels = chipData.getData();
     std::sort(pixels.begin(), pixels.end(),
@@ -307,8 +307,8 @@ class RawPixelReader : public PixelReader
                   return false;
                 return lhs.getCol() < rhs.getCol();
               });
-    ruData.cableData[chip.cableSW].ensureFreeCapacity(40 * (2 + pixels.size())); // make sure buffer has enough capacity
-    mCoder.encodeChip(ruData.cableData[chip.cableSW], chipData, chip.chipOnModuleHW, mInteractionRecord.bc);
+    ruData.cableData[chip.cableHWPos].ensureFreeCapacity(40 * (2 + pixels.size())); // make sure buffer has enough capacity
+    mCoder.encodeChip(ruData.cableData[chip.cableHWPos], chipData, chip.chipOnModuleHW, mInteractionRecord.bc);
   }
 
   //______________________________________________________
@@ -318,9 +318,9 @@ class RawPixelReader : public PixelReader
     auto& ruData = mRUDecodeVec[mCurRUDecodeID];                     // current RU container
     for (int chipIDSW = fromChip; chipIDSW < uptoChip; chipIDSW++) { // flag chips w/o data
       const auto& chip = *mMAP.getChipOnRUInfo(ruData.ruInfo->ruType, chipIDSW);
-      ruData.cableHWID[chip.cableSW] = chip.cableHW; // register the cable HW ID
-      ruData.cableData[chip.cableSW].ensureFreeCapacity(100);
-      mCoder.addEmptyChip(ruData.cableData[chip.cableSW], chip.chipOnModuleHW, mInteractionRecord.bc);
+      ruData.cableHWID[chip.cableHWPos] = chip.cableHW; // register the cable HW ID
+      ruData.cableData[chip.cableHWPos].ensureFreeCapacity(100);
+      mCoder.addEmptyChip(ruData.cableData[chip.cableHWPos], chip.chipOnModuleHW, mInteractionRecord.bc);
     }
   }
 
@@ -862,9 +862,10 @@ class RawPixelReader : public PixelReader
         ruDecData.cableHWID[cableSW] = cableHW;
 
 #ifdef _RAW_READER_ERROR_CHECKS_
+        int cableHWPos = mMAP.cableHW2Pos(ruDecData.ruInfo->ruType, cableHW);
         ruDecData.cableLinkID[cableSW] = linkIDinRU;
-        ruLink->lanesWithData |= 0x1 << cableSW;    // flag that the data was seen on this lane
-        if (ruLink->lanesStop & (0x1 << cableSW)) { // make sure stopped lanes do not transmit the data
+        ruLink->lanesWithData |= 0x1 << cableHWPos;    // flag that the data was seen on this lane
+        if (ruLink->lanesStop & (0x1 << cableHWPos)) { // make sure stopped lanes do not transmit the data
           ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrDataForStoppedLane]++;
           LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Data received for stopped lane " << cableHW << " (sw:" << cableSW << ")";
           printRDH(rdh);
@@ -1128,8 +1129,9 @@ class RawPixelReader : public PixelReader
         outBuffer.addFast(reinterpret_cast<const uint8_t*>(gbtD), mGBTWordSize); // save gbt word w/o 128b padding
 
 #ifdef _RAW_READER_ERROR_CHECKS_
-        ruLink->lanesWithData |= 0x1 << cableSW;    // flag that the data was seen on this lane
-        if (ruLink->lanesStop & (0x1 << cableSW)) { // make sure stopped lanes do not transmit the data
+        int cableHWPos = mMAP.cableHW2Pos(ruInfo->ruType, cableHW);
+        ruLink->lanesWithData |= 0x1 << cableHWPos;    // flag that the data was seen on this lane
+        if (ruLink->lanesStop & (0x1 << cableHWPos)) { // make sure stopped lanes do not transmit the data
           ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrDataForStoppedLane]++;
           LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Data received for stopped lane " << cableHW << " (sw:" << cableSW << ")";
           printRDH(rdh);

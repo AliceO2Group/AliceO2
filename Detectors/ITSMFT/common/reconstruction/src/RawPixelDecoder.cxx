@@ -19,6 +19,7 @@
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
+
 using namespace o2::itsmft;
 using namespace o2::framework;
 using RDHUtils = o2::raw::RDHUtils;
@@ -93,6 +94,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
     mNChipsFired += mNChipsFiredROF;
     mNPixelsFired += mNPixelsFiredROF;
     mCurRUDecodeID = 0; // getNextChipData will start from here
+    mLastReadChipID = -1;
     // set IR and trigger from the 1st non empty link
     for (const auto& link : mGBTLinks) {
       if (link.status == GBTLink::DataSeen) {
@@ -233,14 +235,14 @@ template <class Mapping>
 ChipPixelData* RawPixelDecoder<Mapping>::getNextChipData(std::vector<ChipPixelData>& chipDataVec)
 {
   // decode new RU if no cached non-empty chips
-
   for (; mCurRUDecodeID < mRUDecodeVec.size(); mCurRUDecodeID++) {
     auto& ru = mRUDecodeVec[mCurRUDecodeID];
     if (ru.lastChipChecked < ru.nChipsFired) {
       auto& chipData = ru.chipsData[ru.lastChipChecked++];
-      int id = chipData.getChipID();
-      chipDataVec[id].swap(chipData);
-      return &chipDataVec[id];
+      assert(mLastReadChipID < chipData.getChipID());
+      mLastReadChipID = chipData.getChipID();
+      chipDataVec[mLastReadChipID].swap(chipData);
+      return &chipDataVec[mLastReadChipID];
     }
   }
   // will need to decode new trigger
@@ -258,7 +260,10 @@ bool RawPixelDecoder<Mapping>::getNextChipData(ChipPixelData& chipData)
   for (; mCurRUDecodeID < mRUDecodeVec.size(); mCurRUDecodeID++) {
     auto& ru = mRUDecodeVec[mCurRUDecodeID];
     if (ru.lastChipChecked < ru.nChipsFired) {
-      chipData.swap(ru.chipsData[ru.lastChipChecked++]);
+      auto& ruchip = ru.chipsData[ru.lastChipChecked++];
+      assert(mLastReadChipID < chipData.getChipID());
+      mLastReadChipID = chipData.getChipID();
+      chipData.swap(ruchip);
       return true;
     }
   }

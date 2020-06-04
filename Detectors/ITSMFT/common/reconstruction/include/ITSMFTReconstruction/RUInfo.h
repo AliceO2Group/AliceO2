@@ -42,8 +42,9 @@ struct ChipOnRUInfo {
   std::uint8_t moduleHW = DUMMY8;       // HW ID of the chip's module on stave
   std::uint8_t chipOnModuleSW = DUMMY8; // sequential ID of the chip on the module
   std::uint8_t chipOnModuleHW = DUMMY8; // sequential ID of the chip on the module
-  std::uint8_t cableSW = DUMMY8;        // cable SW ID
+  std::uint8_t cableSW = DUMMY8;        // order in which data of the cable is queried at decoding (to have chips SW IDs sorted)
   std::uint8_t cableHW = DUMMY8;        // cable HW ID
+  std::uint8_t cableHWPos = DUMMY8;     // position of the bit of this cable in the activeLanes
   std::uint8_t chipOnCable = DUMMY8;    // chip within the cable (0 = master)
 
   void print() const;

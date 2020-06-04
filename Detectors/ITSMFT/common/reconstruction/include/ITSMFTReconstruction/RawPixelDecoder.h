@@ -101,6 +101,7 @@ class RawPixelDecoder : public PixelReader
   std::array<int, Mapping::getNRUs()> mRUEntry; // entry of the RU with given SW ID in the mRUDecodeVec
   std::string mSelfName;                        // self name
   uint16_t mCurRUDecodeID = NORUDECODED;        // index of currently processed RUDecode container
+  int mLastReadChipID = -1;                     // chip ID returned by previous getNextChipData call, used for ordering checks
   Mapping mMAP;                                 // chip mapping
   int mVerbosity = 0;
   int mNThreads = 1; // number of decoding threads

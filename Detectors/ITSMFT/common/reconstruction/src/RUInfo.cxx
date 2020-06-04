@@ -11,22 +11,17 @@
 // \file RUInfo.cxx
 // \brief Transient structures for ITS and MFT HW -> SW mapping
 
-#include <ITSMFTReconstruction/RUInfo.h>
+#include "ITSMFTReconstruction/RUInfo.h"
+#include <bitset>
 
 using namespace o2::itsmft;
 
 void ChipOnRUInfo::print() const
 {
-  printf("ChonRu:%3d ModSW:%2d ChOnModSW:%2d CabSW:%3d| ChOnCab:%d | CabHW: ",
-         id, moduleSW, chipOnModuleSW, cableSW, chipOnCable);
-  for (int i = 8; i--;) {
-    printf("%d", (cableHW & (0x1 << i)) ? 1 : 0);
-  }
-  printf(" | ModHW ");
-  for (int i = 8; i--;) {
-    printf("%d", (moduleHW & (0x1 << i)) ? 1 : 0);
-  }
-  printf(" | ChOnModHW: %2d\n", chipOnModuleHW);
+  std::bitset<8> chw(cableHW), mhw(moduleHW);
+  printf("ChonRu:%3d ModSW:%2d ChOnModSW:%2d CabSW:%3d| ChOnCab:%d | CabHW: %8s (%2d) | ModHW: %8s | ChOnModHW: %2d\n",
+         id, moduleSW, chipOnModuleSW, cableSW, chipOnCable, chw.to_string().c_str(), cableHWPos,
+         mhw.to_string().c_str(), chipOnModuleHW);
 }
 
 void ChipInfo::print() const

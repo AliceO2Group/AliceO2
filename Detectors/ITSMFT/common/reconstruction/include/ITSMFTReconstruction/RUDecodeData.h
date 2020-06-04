@@ -68,7 +68,7 @@ int RUDecodeData::decodeROF(const Mapping& mp)
   lastChipChecked = 0;
   int ntot = 0;
   auto* chipData = &chipsData[0];
-  for (int icab = 0; icab < nCables; icab++) {
+  for (int icab = 0; icab < nCables; icab++) { // cableData is ordered in such a way to have chipIDs in increasing order
     if (!cableData[icab].getSize()) {
       continue;
     }
