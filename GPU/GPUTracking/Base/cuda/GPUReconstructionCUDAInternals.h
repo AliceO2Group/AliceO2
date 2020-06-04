@@ -49,12 +49,12 @@ static void GPUFailedMsgA(const long long int error, const char* file, int line)
 
 static_assert(std::is_convertible<cudaEvent_t, void*>::value, "CUDA event type incompatible to deviceEvent");
 
-class ThrustVolatileAllocator
+class ThrustVolatileAsyncAllocator
 {
  public:
   typedef char value_type;
 
-  ThrustVolatileAllocator(GPUReconstruction* r) : mRec(r) {}
+  ThrustVolatileAsyncAllocator(GPUReconstruction* r) : mRec(r) {}
   char* allocate(std::ptrdiff_t n) { return (char*)mRec->AllocateVolatileDeviceMemory(n); }
 
   void deallocate(char* ptr, size_t) {}
@@ -70,11 +70,17 @@ class ThrustVolatileAllocator
 THRUST_BEGIN_NS
 namespace cuda_cub
 {
-typedef thrust::cuda_cub::execution_policy<thrust::cuda_cub::execute_on_stream> thrustStreamPolicy;
+
+typedef thrust::cuda_cub::execution_policy<typeof(thrust::cuda::par(*(GPUCA_NAMESPACE::gpu::ThrustVolatileAsyncAllocator*)nullptr).on(*(cudaStream_t*)nullptr))> thrustStreamPolicy;
 template <>
 __host__ __device__ inline cudaError_t synchronize<thrustStreamPolicy>(thrustStreamPolicy& policy)
 {
+#ifndef GPUCA_GPUCODE_DEVICE
+  // Do not synchronize!
   return cudaSuccess;
+#else
+  return synchronize_stream(derived_cast(policy));
+#endif
 }
 
 } // namespace cuda_cub

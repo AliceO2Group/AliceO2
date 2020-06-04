@@ -699,7 +699,7 @@ void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerMergeBorde
 {
   GPUDebugTiming timer(mDeviceProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
   thrust::device_ptr<GPUTPCGMBorderTrack::Range> p(range);
-  ThrustVolatileAllocator alloc(this);
+  ThrustVolatileAsyncAllocator alloc(this);
   if (cmpMax) {
     thrust::sort(thrust::cuda::par(alloc).on(mInternals->Streams[_xyz.x.stream]), p, p + N, MergeBorderTracks_compMax());
   } else {
@@ -1718,7 +1718,7 @@ void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerSortTracks
 {
   GPUDebugTiming timer(mDeviceProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
   thrust::device_ptr<unsigned int> trackSort((unsigned int*)mProcessorsShadow->tpcMerger.TrackOrderProcess());
-  ThrustVolatileAllocator alloc(this);
+  ThrustVolatileAsyncAllocator alloc(this);
   thrust::sort(thrust::cuda::par(alloc).on(mInternals->Streams[_xyz.x.stream]), trackSort, trackSort + processors()->tpcMerger.NOutputTracks(), GPUTPCGMMergerSortTracks_comp(mProcessorsShadow->tpcMerger.OutputTracks()));
 }
 
@@ -1738,7 +1738,7 @@ void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerSortTracks
 {
   GPUDebugTiming timer(mDeviceProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
   thrust::device_ptr<unsigned int> trackSort((unsigned int*)mProcessorsShadow->tpcMerger.TmpMem());
-  ThrustVolatileAllocator alloc(this);
+  ThrustVolatileAsyncAllocator alloc(this);
   thrust::sort(thrust::cuda::par(alloc).on(mInternals->Streams[_xyz.x.stream]), trackSort, trackSort + processors()->tpcMerger.NOutputTracks(), GPUTPCGMMergerSortTracksQPt_comp(mProcessorsShadow->tpcMerger.OutputTracks()));
 }
 #endif // __CUDACC__ - Specialize GPUTPCGMMergerSortTracks and GPUTPCGMMergerSortTracksQPt
