@@ -42,7 +42,7 @@ class CalibTimeSlewingParamTOF
 
   bool updateOffsetInfo(int channel, float residualOffset);
 
-  const std::vector<std::pair<float, float>>& getVector(int sector) const { return mTimeSlewing[sector]; }
+  const std::vector<std::pair<unsigned short, short>>& getVector(int sector) const { return mTimeSlewing[sector]; }
 
   int size() const
   {
@@ -79,7 +79,7 @@ class CalibTimeSlewingParamTOF
  private:
   // TOF channel calibrations
   int mChannelStart[NSECTORS][NCHANNELXSECTOR];           ///< array with the index of the first element of a channel in the time slewing vector (per sector)
-  std::vector<std::pair<float, float>> mTimeSlewing[18]; ///< array of sector vectors
+  std::vector<std::pair<unsigned short, short>> mTimeSlewing[18]; ///< array of sector vectors; first element of the pair is TOT (in ps), second is t-texp_pi (in ps)
   /*
   std::vector<std::pair<float, float>> mTimeSlewingSec00; ///< timeslweing correction <tot,time> sector 0
   std::vector<std::pair<float, float>> mTimeSlewingSec01; ///< timeslweing correction <tot,time> sector 1
