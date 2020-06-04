@@ -17,5 +17,6 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 constexpr const char* const GPUDataTypes::RECO_STEP_NAMES[];
+constexpr const char* const GPUDataTypes::GENERAL_STEP_NAMES[];
 
 GPUDataTypes::DeviceType GPUDataTypes::GetDeviceType(const char* type) { return GPUReconstruction::GetDeviceType(type); }

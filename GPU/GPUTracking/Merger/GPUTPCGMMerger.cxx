@@ -102,7 +102,6 @@ void GPUTPCGMMerger::CheckMergedTracks()
     }
     int leg = 0;
     GPUTPCGMSliceTrack *trbase = &track, *tr = &track;
-    tr->SetPrevSegmentNeighbour(1000000000);
     while (true) {
       int iTrk = tr - mSliceTrackInfos;
       if (trkUsed[iTrk]) {
@@ -113,7 +112,6 @@ void GPUTPCGMMerger::CheckMergedTracks()
       int jtr = tr->NextSegmentNeighbour();
       if (jtr >= 0) {
         tr = &(mSliceTrackInfos[jtr]);
-        tr->SetPrevSegmentNeighbour(1000000002);
         continue;
       }
       jtr = trbase->NextNeighbour();
@@ -123,7 +121,6 @@ void GPUTPCGMMerger::CheckMergedTracks()
         if (tr->PrevSegmentNeighbour() >= 0) {
           break;
         }
-        tr->SetPrevSegmentNeighbour(1000000001);
         leg++;
         continue;
       }

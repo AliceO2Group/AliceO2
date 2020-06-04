@@ -337,6 +337,7 @@ int GPUChainTracking::Init()
 
 std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCount(unsigned int iSlice, unsigned int minTime, unsigned int maxTime)
 {
+  mRec->getGeneralStepTimer(GeneralStep::Prepare).Start();
   unsigned int nDigits = 0;
   unsigned int nPagesSubslice = 0;
 #ifdef HAVE_O2HEADERS
@@ -410,6 +411,7 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
     }
   }
 #endif
+  mRec->getGeneralStepTimer(GeneralStep::Prepare).Stop();
   return {nDigits, nPagesSubslice};
 }
 
@@ -659,7 +661,7 @@ void GPUChainTracking::WriteOutput(int iSlice, int threadId)
   }
 }
 
-void GPUChainTracking::ForwardTPCDigits()
+int GPUChainTracking::ForwardTPCDigits()
 {
 #ifdef HAVE_O2HEADERS
   if (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) {
@@ -699,6 +701,7 @@ void GPUChainTracking::ForwardTPCDigits()
   GPUInfo("Forwarded %u TPC clusters", nTotal);
   mRec->MemoryScalers()->nTPCHits = nTotal;
 #endif
+  return 0;
 }
 
 int GPUChainTracking::GlobalTracking(unsigned int iSlice, int threadId, bool synchronizeOutput)
@@ -811,6 +814,9 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::RunTPCClusterizer_transf
 
 int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 {
+  if (param().rec.fwdTPCDigitsAsClusters) {
+    return ForwardTPCDigits();
+  }
 #ifdef GPUCA_TPC_GEOMETRY_O2
   mRec->PushNonPersistentMemory();
   const auto& threadContext = GetThreadContext();
@@ -1990,10 +1996,16 @@ int GPUChainTracking::RunTRDTracking()
   if (!processors()->trdTracker.IsInitialized()) {
     return 1;
   }
+
+  GPUTRDTrackerGPU& Tracker = processors()->trdTracker;
+  Tracker.Reset();
+  if (mIOPtrs.nTRDTracklets == 0) {
+    return 0;
+  }
+
   mRec->PushNonPersistentMemory();
   std::vector<GPUTRDTrackGPU> tracksTPC;
   std::vector<int> tracksTPCLab;
-  GPUTRDTrackerGPU& Tracker = processors()->trdTracker;
 
   for (unsigned int i = 0; i < mIOPtrs.nMergedTracks; i++) {
     const GPUTPCGMMergedTrack& trk = mIOPtrs.mergedTracks[i];
@@ -2011,8 +2023,6 @@ int GPUChainTracking::RunTRDTracking()
     tracksTPC.back().SetTPCtrackId(i);
     tracksTPCLab.push_back(-1);
   }
-
-  Tracker.Reset();
 
   Tracker.SetMaxData(processors()->ioPtrs);
   if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
@@ -2079,7 +2089,6 @@ int GPUChainTracking::RunChain()
       return 1;
     }
   }
-  HighResTimer timerTracking, timerMerger, timerQA, timerTransform, timerCompression, timerDecompression, timerClusterer, timerPrepare, timerTRD;
   if (GetDeviceProcessingSettings().debugLevel >= 6) {
     mDebugFile << "\n\nProcessing event " << mRec->getNEventsProcessed() << std::endl;
   }
@@ -2088,7 +2097,7 @@ int GPUChainTracking::RunChain()
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->calibObjects - (char*)processors(), &mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects), -1); // Reinitialize
   }
 
-  timerPrepare.Start();
+  mRec->getGeneralStepTimer(GeneralStep::Prepare).Start();
 #ifdef GPUCA_STANDALONE
   mRec->PrepareEvent();
 #else
@@ -2099,75 +2108,49 @@ int GPUChainTracking::RunChain()
     return (1);
   }
 #endif
-  timerPrepare.Stop();
+  mRec->getGeneralStepTimer(GeneralStep::Prepare).Stop();
 
   PrepareDebugOutput();
 
-  if (GetRecoSteps().isSet(RecoStep::TPCDecompression) && mIOPtrs.tpcCompressedClusters) {
-    timerDecompression.Start();
-    if (RunTPCDecompression()) {
+  if (mIOPtrs.tpcCompressedClusters) {
+    if (runRecoStep(RecoStep::TPCDecompression, &GPUChainTracking::RunTPCDecompression)) {
       return 1;
     }
-    timerDecompression.Stop();
-  } else if (GetRecoSteps().isSet(RecoStep::TPCClusterFinding) && (mIOPtrs.tpcPackedDigits || mIOPtrs.tpcZS)) {
-    timerClusterer.Start();
-    if (param().rec.fwdTPCDigitsAsClusters) {
-      ForwardTPCDigits();
-    } else {
-      if (RunTPCClusterizer(false)) {
-        return 1;
-      }
+  } else if (mIOPtrs.tpcPackedDigits || mIOPtrs.tpcZS) {
+    if (runRecoStep(RecoStep::TPCClusterFinding, &GPUChainTracking::RunTPCClusterizer, false)) {
+      return 1;
     }
-    timerClusterer.Stop();
   }
 
-  if (GetRecoSteps().isSet(RecoStep::TPCConversion) && mIOPtrs.clustersNative) {
-    timerTransform.Start();
-    if (ConvertNativeToClusterData()) {
-      return 1;
-    }
-    timerTransform.Stop();
+  if (mIOPtrs.clustersNative && runRecoStep(RecoStep::TPCConversion, &GPUChainTracking::ConvertNativeToClusterData)) {
+    return 1;
   }
 
   mRec->PushNonPersistentMemory(); // 1st stack level for TPC tracking slice data
-  timerTracking.Start();
-  if (GetRecoSteps().isSet(RecoStep::TPCSliceTracking) && RunTPCTrackingSlices()) {
+  if (runRecoStep(RecoStep::TPCSliceTracking, &GPUChainTracking::RunTPCTrackingSlices)) {
     return 1;
   }
-  timerTracking.Stop();
 
-  timerMerger.Start();
   for (unsigned int i = 0; i < NSLICES; i++) {
     // GPUInfo("slice %d clusters %d tracks %d", i, mClusterData[i].NumberOfClusters(), processors()->tpcTrackers[i].Output()->NTracks());
     processors()->tpcMerger.SetSliceData(i, param().rec.mergerReadFromTrackerDirectly ? nullptr : processors()->tpcTrackers[i].Output());
   }
-  if (GetRecoSteps().isSet(RecoStep::TPCMerging) && RunTPCTrackingMerger(false)) {
+  if (runRecoStep(RecoStep::TPCMerging, &GPUChainTracking::RunTPCTrackingMerger, false)) {
     return 1;
   }
-  timerMerger.Stop();
   mRec->PopNonPersistentMemory(); // Release 1st stack level, TPC slice data not needed after merger
 
-  if (GetRecoSteps().isSet(RecoStep::TPCCompression) && mIOPtrs.clustersNative) {
-    timerCompression.Start();
-    if (RunTPCCompression()) {
+  if (mIOPtrs.clustersNative) {
+    if (runRecoStep(RecoStep::TPCCompression, &GPUChainTracking::RunTPCCompression)) {
       return 1;
     }
     if (GetDeviceProcessingSettings().runCompressionStatistics) {
       mCompressionStatistics->RunStatistics(mIOPtrs.clustersNative, processors()->tpcCompressor.mOutput, param());
     }
-    timerCompression.Stop();
   }
 
-  if (GetRecoSteps().isSet(RecoStep::TRDTracking)) {
-    timerTRD.Start();
-    if (mIOPtrs.nTRDTracklets) {
-      if (RunTRDTracking()) {
-        return 1;
-      }
-    } else {
-      processors()->trdTracker.Reset();
-    }
-    timerTRD.Stop();
+  if (runRecoStep(RecoStep::TRDTracking, &GPUChainTracking::RunTRDTracking)) {
+    return 1;
   }
 
   { // Synchronize with output copies running asynchronously
@@ -2176,30 +2159,9 @@ int GPUChainTracking::RunChain()
   }
 
   if (needQA) {
-    timerQA.Start();
+    mRec->getGeneralStepTimer(GeneralStep::QA).Start();
     mQA->RunQA(!GetDeviceProcessingSettings().runQA);
-    timerQA.Stop();
-  }
-
-  if (GetDeviceProcessingSettings().debugLevel >= 0) {
-    printf("%25s: %'10d us\n", "Prepare Time", (int)(1000000 * timerPrepare.GetElapsedTime()));
-    if (mIOPtrs.tpcPackedDigits || mIOPtrs.tpcZS) {
-      printf("%25s: %'10d us\n", "TPC Clusterizer Time", (int)(1000000 * timerClusterer.GetElapsedTime()));
-    }
-    if (mIOPtrs.clustersNative) {
-      printf("%25s: %'10d us\n", "TPC Transformation Time", (int)(1000000 * timerTransform.GetElapsedTime()));
-    }
-    printf("%25s: %'10d us\n", "Tracking Time", (int)(1000000 * timerTracking.GetElapsedTime()));
-    printf("%25s: %'10d us\n", "Merging and Refit Time", (int)(1000000 * timerMerger.GetElapsedTime()));
-    if (mIOPtrs.clustersNative && GetRecoSteps() & RecoStep::TPCCompression) {
-      printf("%25s: %'10d us\n", "TPC Compression Time", (int)(1000000 * timerCompression.GetElapsedTime()));
-    }
-    if (mIOPtrs.nTRDTracklets && GetRecoSteps() & RecoStep::TRDTracking) {
-      printf("%25s: %'10d us\n", "TRD tracking time", (int)(1000000 * timerTRD.GetCurrentElapsedTime()));
-    }
-    if (GetDeviceProcessingSettings().runQA) {
-      printf("%25s: %'10d us\n", "QA Time", (int)(1000000 * timerQA.GetElapsedTime()));
-    }
+    mRec->getGeneralStepTimer(GeneralStep::QA).Stop();
   }
 
   if (GetDeviceProcessingSettings().eventDisplay) {

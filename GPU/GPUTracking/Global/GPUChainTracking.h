@@ -131,7 +131,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   // Processing functions
   int RunTPCClusterizer(bool synchronizeOutput = true);
-  void ForwardTPCDigits();
+  int ForwardTPCDigits();
   int RunTPCTrackingSlices();
   int RunTPCTrackingMerger(bool synchronizeOutput = true);
   int RunTRDTracking();

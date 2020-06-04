@@ -71,6 +71,7 @@ class GPUReconstruction
   using GeometryType = GPUDataTypes::GeometryType;
   using DeviceType = GPUDataTypes::DeviceType;
   using RecoStep = GPUDataTypes::RecoStep;
+  using GeneralStep = GPUDataTypes::GeneralStep;
   using RecoStepField = GPUDataTypes::RecoStepField;
   using InOutTypeField = GPUDataTypes::InOutTypeField;
 

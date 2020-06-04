@@ -180,17 +180,22 @@ int GPUReconstructionCPU::ExitDevice()
   return 0;
 }
 
-int GPUReconstructionCPU::getRecoStepNum(RecoStep step, bool validCheck)
+template <class T>
+static inline int getStepNum(T step, bool validCheck, int N, const char* err)
 {
+  static_assert(sizeof(step) == sizeof(unsigned int), "Invalid step enum size");
   int retVal = 8 * sizeof(unsigned int) - 1 - CAMath::Clz((unsigned int)step);
-  if ((unsigned int)step == 0 || retVal >= N_RECO_STEPS) {
+  if ((unsigned int)step == 0 || retVal >= N) {
     if (!validCheck) {
       return -1;
     }
-    throw std::runtime_error("Invalid Reco Step");
+    throw std::runtime_error("Invalid General Step");
   }
   return retVal;
 }
+
+int GPUReconstructionCPU::getRecoStepNum(RecoStep step, bool validCheck) { return getStepNum(step, validCheck, N_RECO_STEPS, "Invalid Reco Step"); }
+int GPUReconstructionCPU::getGeneralStepNum(GeneralStep step, bool validCheck) { return getStepNum(step, validCheck, N_GENERAL_STEPS, "Invalid General Step"); }
 
 int GPUReconstructionCPU::RunChains()
 {
@@ -253,7 +258,7 @@ int GPUReconstructionCPU::RunChains()
     }
     for (int i = 0; i < N_RECO_STEPS; i++) {
       if (kernelStepTimes[i] != 0.) {
-        printf("Execution Time: Step              : %50s Time: %'10d us\n", GPUDataTypes::RECO_STEP_NAMES[i], (int)(kernelStepTimes[i] * 1000000 / mStatNEvents));
+        printf("Execution Time: Step              : %11s %38s Time: %'10d us (Total Time: %'10d us)\n", "Tasks", GPUDataTypes::RECO_STEP_NAMES[i], (int)(kernelStepTimes[i] * 1000000 / mStatNEvents), (int)(mTimersRecoSteps[i].timerTotal.GetElapsedTime() * 1000000 / mStatNEvents));
       }
       if (mTimersRecoSteps[i].bytesToGPU) {
         printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10d us (%6.3f GB/s - %'14lu bytes - %'14lu per call)\n", mTimersRecoSteps[i].countToGPU, "DMA to GPU", GPUDataTypes::RECO_STEP_NAMES[i], (int)(mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1000000 / mStatNEvents),
@@ -267,9 +272,14 @@ int GPUReconstructionCPU::RunChains()
         mTimersRecoSteps[i].bytesToGPU = mTimersRecoSteps[i].bytesToHost = 0;
         mTimersRecoSteps[i].timerToGPU.Reset();
         mTimersRecoSteps[i].timerToHost.Reset();
-        mTimersRecoSteps[i].timer.Reset();
+        mTimersRecoSteps[i].timerTotal.Reset();
         mTimersRecoSteps[i].countToGPU = 0;
         mTimersRecoSteps[i].countToHost = 0;
+      }
+    }
+    for (int i = 0; i < N_GENERAL_STEPS; i++) {
+      if (mTimersGeneralSteps[i].GetElapsedTime() != 0.) {
+        printf("Execution Time: General Step      : %50s Time: %'10d us\n", GPUDataTypes::GENERAL_STEP_NAMES[i], (int)(mTimersGeneralSteps[i].GetElapsedTime() * 1000000 / mStatNEvents));
       }
     }
     mStatKernelTime = kernelTotal * 1000000 / mStatNEvents;
