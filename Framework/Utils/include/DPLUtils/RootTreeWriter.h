@@ -707,7 +707,7 @@ class RootTreeWriter
       mTreeStructure = createTreeStructure<0, TreeStructureInterface>(std::forward<Arg>(arg), std::forward<Args>(args)...);
       return;
     }
-    if constexpr (sizeof...(Args) > 1) {
+    if constexpr (sizeof...(Args) > 0) {
       parseConstructorArgs(std::forward<Args>(args)...);
     }
   }
