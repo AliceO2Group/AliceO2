@@ -671,6 +671,8 @@ bool Stack::selectTracks()
         }
       }
     }
+
+    store = store || thisPart.getStore();
     thisPart.setStore(store);
   }
 
