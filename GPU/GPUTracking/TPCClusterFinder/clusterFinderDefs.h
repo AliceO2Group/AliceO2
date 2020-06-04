@@ -74,7 +74,7 @@ namespace gpu
 namespace tpccf
 {
 
-using SizeT = uint;
+using SizeT = size_t;
 using TPCTime = int;
 using TPCFragmentTime = short;
 using Pad = unsigned char;

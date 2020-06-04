@@ -37,7 +37,7 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
     PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_SEARCH_N];
   };
 
-  static GPUd() void findPeaksImpl(int, int, int, int, GPUSharedMemory&, const Array2D<PackedCharge>&, const ChargePos*, uint, uchar*, Array2D<uchar>&);
+  static GPUd() void findPeaksImpl(int, int, int, int, GPUSharedMemory&, const Array2D<PackedCharge>&, const ChargePos*, tpccf::SizeT, uchar*, Array2D<uchar>&);
 
 #ifdef HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
