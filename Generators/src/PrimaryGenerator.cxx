@@ -166,7 +166,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   /** compute particle energy if negative **/
   if (e < 0) {
     double mass = particlePDG ? particlePDG->Mass() : 0.;
-    e = sqrt(mass * mass + px * px + py * py + pz * pz);
+    e = std::sqrt(mass * mass + px * px + py * py + pz * pz);
   }
 
   /** add track to stack **/
