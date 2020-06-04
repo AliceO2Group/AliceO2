@@ -655,7 +655,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         // first propagate track to x of tracklet
         for (int iTrklt = 0; iTrklt < mNTrackletsInChamber[currDet]; ++iTrklt) {
           int trkltIdx = mTrackletIndexArray[currDet] + iTrklt;
-          if (CAMath::Abs(trkWork->getY() - mSpacePoints[trkltIdx].mX[0]) > roadY && CAMath::Abs(trkWork->getZ() - mSpacePoints[trkltIdx].mX[1]) > roadZ) {
+          if (CAMath::Abs(trkWork->getY() - mSpacePoints[trkltIdx].mX[0]) > roadY || CAMath::Abs(trkWork->getZ() - mSpacePoints[trkltIdx].mX[1]) > roadZ) {
             // skip tracklets which are too far away
             // although the radii of space points and tracks may differ by ~ few mm the roads are large enough to allow no efficiency loss by this cut
             continue;
