@@ -50,3 +50,10 @@ o2_add_executable(tof-channel-calib-workflow
  		                        O2::TOFCalibration
 	                                O2::DetectorsCalibration)
 
+o2_add_executable(tof-calib-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/tof-calib-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+ 		                        O2::TOFCalibration
+	                                O2::DetectorsCalibration)
+

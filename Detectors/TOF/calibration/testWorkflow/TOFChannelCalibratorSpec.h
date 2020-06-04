@@ -35,10 +35,11 @@ namespace calibration
 class TOFChannelCalibDevice : public o2::framework::Task
 {
 
- using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;
- using LHCphase = o2::dataformats::CalibLHCphaseTOF;
+  using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;
+  using LHCphase = o2::dataformats::CalibLHCphaseTOF;
+
  public:
-  explicit TOFChannelCalibDevice(bool useCCDB) : mUseCCDB(useCCDB) {}
+  explicit TOFChannelCalibDevice(bool useCCDB, bool attachChannelOffsetToLHCphase) : mUseCCDB(useCCDB), mAttachToLHCphase(attachChannelOffsetToLHCphase) {}
   void init(o2::framework::InitContext& ic) final
   {
 
@@ -46,18 +47,14 @@ class TOFChannelCalibDevice : public o2::framework::Task
     int nb = std::max(500, ic.options().get<int>("nbins"));
     float range = ic.options().get<float>("range");
     int isTest = ic.options().get<bool>("do-TOF-channel-calib-in-test-mode");
-    //int slotL = ic.options().get<int>("tf-per-slot");
-    //int delay = ic.options().get<int>("max-delay");
     mCalibrator = std::make_unique<o2::tof::TOFChannelCalibrator>(minEnt, nb, range);
     mCalibrator->setUpdateAtTheEndOfRunOnly();
     mCalibrator->isTest(isTest);
-    //    mCalibrator->setSlotLength(slotL); // to be done: we need to configure this so that it just does the calibration at the end of the run
-    // mCalibrator->setMaxSlotsDelay(delay); // to be done: we need to configure this so that it just does the calibration at the end of the run
 
     // calibration objects set to zero
     mPhase.addLHCphase(0, 0);
     mPhase.addLHCphase(2000000000, 0);
-	
+
     for (int ich = 0; ich < TimeSlewing::NCHANNELS; ich++) {
       mTimeSlewing.addTimeSlewingInfo(ich, 0, 0);
       int sector = ich / TimeSlewing::NCHANNELXSECTOR;
@@ -69,56 +66,74 @@ class TOFChannelCalibDevice : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
 
-    //LHCphase lhcPhaseObj;
-    //TimeSlewingParam channelCalibObj;
     long startTimeLHCphase;
     long startTimeChCalib;
-    
+
+    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
+
     if (mUseCCDB) { // read calibration objects from ccdb
-      // check LHC phase
+      LHCphase lhcPhaseObjTmp;
+      /*
+      // for now this part is not implemented; below, the sketch of how it should be done
+      if (mAttachToLHCphase) {
+        // if I want to take the LHCclockphase just produced, I need to loop over what the previous spec produces:
+        int nSlots = pc.inputs().getNofParts(0);
+        assert(pc.inputs().getNofParts(1) == nSlots);
+
+        int lhcphaseIndex = -1;
+        for (int isl = 0; isl < nSlots; isl++) {
+          const auto wrp = pc.inputs().get<CcdbObjectInfo*>("clbInfo", isl);
+          if (wrp->getStartValidityTimestamp() > tfcounter) { // replace tfcounter with the timestamp of the TF
+            lhxphaseIndex = isl - 1;
+            break;
+          }
+        }
+        if (lhcphaseIndex == -1) {
+          // no new object found, use CCDB
+	  auto lhcPhase = pc.inputs().get<LHCphase*>("tofccdbLHCphase");
+          lhcPhaseObjTmp = std::move(*lhcPhase);
+        }
+        else {
+          const auto pld = pc.inputs().get<gsl::span<char>>("clbPayload", lhcphaseIndex); // this is actually an image of TMemFile
+          // now i need to make a LHCphase object; Ruben suggested how, I did not try yet
+	  // ...
+        }
+      }
+      else {
+      */
       auto lhcPhase = pc.inputs().get<LHCphase*>("tofccdbLHCphase");
+      lhcPhaseObjTmp = std::move(*lhcPhase);
       auto channelCalib = pc.inputs().get<TimeSlewing*>("tofccdbChannelCalib");
-      
-      LHCphase lhcPhaseObjTmp = std::move(*lhcPhase);
       TimeSlewing channelCalibObjTmp = std::move(*channelCalib);
-      
-      // make a copy in global scope
-      //lhcPhaseObj = lhcPhaseObjTmp;
-      //channelCalibObj = channelCalibObjTmp;
+
       mPhase = lhcPhaseObjTmp;
       mTimeSlewing = channelCalibObjTmp;
-      
+
       startTimeLHCphase = pc.inputs().get<long>("startTimeLHCphase");
       startTimeChCalib = pc.inputs().get<long>("startTimeChCalib");
-    }
-    else {
+    } else {
       startTimeLHCphase = 0;
       startTimeChCalib = 0;
     }
 
-    for (int ich = 0; ich < 10; ich++){
-      LOG(INFO) << "for test, checking channel " << ich << ": offset = " << mTimeSlewing.evalTimeSlewing(ich, 0);
-    }
-    mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), &mPhase, &mTimeSlewing);  // TODO: should we replace long(0) with tfcounter defined below? we need the timestamp of the TF
-    
+    LOG(DEBUG) << "startTimeLHCphase = " << startTimeLHCphase << ",  startTimeChCalib = " << startTimeChCalib;
+
+    mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), &mPhase, &mTimeSlewing); // TODO: should we replace long(0) with tfcounter defined at the beginning of the method? we need the timestamp of the TF
+
     mCalibrator->setCalibTOFapi(mcalibTOFapi);
-    
-    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
+
     if ((tfcounter - startTimeChCalib) > 60480000) { // number of TF in 1 week: 7*24*3600/10e-3 - with TF = 10 ms
-      mCalibrator->setRange(mCalibrator->getRange()*10); // we enlarge the range for the calibration in case the last valid object is too old (older than 1 week)
+      LOG(INFO) << "Enlarging the range of the booked histogram since the latest CCDB entry is too old";
+      mCalibrator->setRange(mCalibrator->getRange() * 10); // we enlarge the range for the calibration in case the last valid object is too old (older than 1 week)
     }
-  
+
     auto data = pc.inputs().get<gsl::span<o2::dataformats::CalibInfoTOF>>("input");
     LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
     mCalibrator->process(tfcounter, data);
-    //sendOutput(pc.outputs());
-    const auto& infoVec = mCalibrator->getTimeSlewingInfoVector();
-    LOG(INFO) << "Created " << infoVec.size() << " objects for TF " << tfcounter;
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    LOG(INFO) << "Finalizing calibration";
     constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
     mCalibrator->checkSlotsToFinalize(INFINITE_TF);
     sendOutput(ec.outputs());
@@ -130,6 +145,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
   LHCphase mPhase;
   TimeSlewing mTimeSlewing;
   bool mUseCCDB = false;
+  bool mAttachToLHCphase = false; // whether to use or not previously defined LHCphase
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -160,7 +176,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB)
+DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelOffsetToLHCphase = false)
 {
   using device = o2::calibration::TOFChannelCalibDevice;
   using clbUtils = o2::calibration::Utils;
@@ -178,22 +194,17 @@ DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB)
     inputs.emplace_back("startTimeChCalib", o2::header::gDataOriginTOF, "StartChCalib");
   }
 
-  //  inputs.emplace_back("testFlag", "DUM", "TESTFLAG");
-		      
   return DataProcessorSpec{
     "calib-tofchannel-calibration",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(useCCDB)},
+    AlgorithmSpec{adaptFromTask<device>(useCCDB, attachChannelOffsetToLHCphase)},
     Options{
-      //      {"tf-per-slot", VariantType::Int, 5, {"number of TFs per calibration time slot"}},
-      //{"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit channel histos"}},
       {"nbins", VariantType::Int, 1000, {"number of bins for t-texp"}},
       {"range", VariantType::Float, 24000.f, {"range for t-text"}},
       {"do-TOF-channel-calib-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}},
       {"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}}}};
-  
 }
 
 } // namespace framework
