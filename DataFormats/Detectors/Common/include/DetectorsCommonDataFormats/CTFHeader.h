@@ -14,13 +14,8 @@
 #ifndef ALICEO2_CTF_HEADER_H
 #define ALICEO2_CTF_HEADER_H
 
-#include <type_traits>
 #include <Rtypes.h>
 #include <string>
-#include "rANS/rans.h"
-#include "TTree.h"
-#include "CommonUtils/StringUtils.h"
-#include "Framework/Logger.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 
 namespace o2

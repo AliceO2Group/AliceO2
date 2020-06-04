@@ -51,12 +51,12 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"TPC", "CTFDATA", 0, Lifetime::Timeframe});
   CTFCoder::encode(buffer, clusters);
-  auto eeb = CTF::get(buffer.data()); // cast to container pointer
-  eeb->compactify();                  // eliminate unnecessary padding
-  buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
-  // eeb->print();
+  auto encodedBlocks = CTF::get(buffer.data()); // cast to container pointer
+  encodedBlocks->compactify();                  // eliminate unnecessary padding
+  buffer.resize(encodedBlocks->size());         // shrink buffer to strictly necessary size
+  // encodedBlocks->print();
   mTimer.Stop();
-  LOG(INFO) << "Created encoded data of size " << eeb->size() << " for TPC in " << mTimer.CpuTime() - cput << " s";
+  LOG(INFO) << "Created encoded data of size " << encodedBlocks->size() << " for TPC in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
