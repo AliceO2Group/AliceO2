@@ -10,12 +10,7 @@
 
 o2_add_library(rANS  
                SOURCES src/SymbolStatistics.cxx
-               PUBLIC_LINK_LIBRARIES ROOT::Core
-                                     O2::CommonUtils)
-
-o2_target_root_dictionary(rANS
-                          HEADERS include/rANS/Metadata.h)
-
+               PUBLIC_LINK_LIBRARIES O2::CommonUtils)
              
 o2_add_test(EncodeDecode
             NAME EncodeDecode

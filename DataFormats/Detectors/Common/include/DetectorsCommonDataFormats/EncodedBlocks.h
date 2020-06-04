@@ -52,6 +52,43 @@ inline T* relocatePointer(const char* oldBase, char* newBase, const T* ptr)
 
 ///>>======================== Auxiliary classes =======================>>
 
+struct ANSHeader {
+  uint8_t majorVersion;
+  uint8_t minorVersion;
+
+  void clear() { majorVersion = minorVersion = 0; }
+  ClassDefNV(ANSHeader, 1);
+};
+
+struct Metadata {
+  enum class OptStore : uint8_t { // describe how the store the data described by this metadata
+    EENCODE,                      // entropy encoding applied
+    ROOTCompression,              // original data repacked to array with slot-size = streamSize and saved with root compression
+    NONE,                         // original data repacked to array with slot-size = streamSize and saved w/o compression
+    NODATA                        // no data was provided
+  };
+  size_t messageLength = 0;
+  uint8_t coderType = 0;
+  uint8_t streamSize = 0;
+  uint8_t probabilityBits = 0;
+  OptStore opt = OptStore::EENCODE;
+  int32_t min = 0;
+  int32_t max = 0;
+  int nDictWords = 0;
+  int nDataWords = 0;
+
+  void clear()
+  {
+    min = max = 0;
+    messageLength = 0;
+    coderType = 0;
+    streamSize = 0;
+    probabilityBits = 0;
+    nDataWords = nDictWords = 0;
+  }
+  ClassDefNV(Metadata, 1);
+};
+
 /// registry struct for the buffer start and offsets of writable space
 struct Registry {
   char* head = nullptr;
@@ -165,9 +202,9 @@ class EncodedBlocks
 
   const auto& getMetadata() const { return mMetadata; }
 
-  void setANSHeader(const o2::rans::Header& h) { mANSHeader = h; }
-  const o2::rans::Header& getANSHeader() const { return mANSHeader; }
-  o2::rans::Header& getANSHeader() { return mANSHeader; }
+  void setANSHeader(const ANSHeader& h) { mANSHeader = h; }
+  const ANSHeader& getANSHeader() const { return mANSHeader; }
+  ANSHeader& getANSHeader() { return mANSHeader; }
 
   static constexpr int getNBlocks() { return N; }
 
@@ -231,14 +268,14 @@ class EncodedBlocks
 
   /// encode vector src to bloc at provided slot
   template <typename VE, typename VB>
-  inline void encode(const VE& src, int slot, uint8_t probabilityBits, o2::rans::Metadata::OptStore opt, VB* buffer = nullptr)
+  inline void encode(const VE& src, int slot, uint8_t probabilityBits, Metadata::OptStore opt, VB* buffer = nullptr)
   {
     encode(&(*src.begin()), &(*src.end()), slot, probabilityBits, opt, buffer);
   }
 
   /// encode vector src to bloc at provided slot
   template <typename S, typename VB>
-  void encode(const S* const srcBegin, const S* const srcEnd, int slot, uint8_t probabilityBits, o2::rans::Metadata::OptStore opt, VB* buffer = nullptr);
+  void encode(const S* const srcBegin, const S* const srcEnd, int slot, uint8_t probabilityBits, Metadata::OptStore opt, VB* buffer = nullptr);
 
   /// decode block at provided slot to destination vector (will be resized as needed)
   template <typename VD>
@@ -255,7 +292,7 @@ class EncodedBlocks
   static_assert(N > 0, "number of encoded blocks < 1");
 
   Registry mRegistry;                //! not stored
-  o2::rans::Header mANSHeader;       //  ANS header
+  ANSHeader mANSHeader;              //  ANS header
   H mHeader;                         //  detector specific header
   std::array<Metadata, N> mMetadata; //  compressed block's details
   std::array<Block<W>, N> mBlocks;   //! this is in fact stored, but to overcome TBuffer limits we have to define the branches per block!!!
@@ -324,7 +361,7 @@ void EncodedBlocks<H, N, W>::appendToTree(TTree& tree, const std::string& name) 
 {
   fillTreeBranch(tree, o2::utils::concat_string(name, "_wrapper."), const_cast<base&>(*this), WrappersCompressionLevel, WrappersSplitLevel);
   for (int i = 0; i < N; i++) {
-    int compression = mMetadata[i].opt == o2::rans::Metadata::ROOTCompression ? 1 : 0;
+    int compression = mMetadata[i].opt == Metadata::OptStore::ROOTCompression ? 1 : 0;
     fillTreeBranch(tree, o2::utils::concat_string(name, "_block.", std::to_string(i), "."), const_cast<Block<W>&>(mBlocks[i]), compression);
   }
 }
@@ -538,7 +575,7 @@ void EncodedBlocks<H, N, W>::decode(D* dest,        // destination pointer
 
   // decode
   if (block.getNData()) {
-    if (md.opt == o2::rans::Metadata::EENCODE) {
+    if (md.opt == Metadata::OptStore::EENCODE) {
       assert(block.getNDict()); // at the moment we expect to have dictionary
       o2::rans::SymbolStatistics stats(block.getDict(), block.getDict() + block.getNDict(), md.min, md.max, md.messageLength);
       o2::rans::Decoder64<D> decoder(stats, md.probabilityBits);
@@ -552,12 +589,12 @@ void EncodedBlocks<H, N, W>::decode(D* dest,        // destination pointer
 ///_____________________________________________________________________________
 template <typename H, int N, typename W>
 template <typename S, typename VB>
-void EncodedBlocks<H, N, W>::encode(const S* const srcBegin,          // begin of source message
-                                    const S* const srcEnd,            // end of source message
-                                    int slot,                         // slot in encoded data to fill
-                                    uint8_t probabilityBits,          // encoding into
-                                    o2::rans::Metadata::OptStore opt, // option for data compression
-                                    VB* buffer)                       // optional buffer (vector) providing memory for encoded blocks
+void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source message
+                                    const S* const srcEnd,   // end of source message
+                                    int slot,                // slot in encoded data to fill
+                                    uint8_t probabilityBits, // encoding into
+                                    Metadata::OptStore opt,  // option for data compression
+                                    VB* buffer)              // optional buffer (vector) providing memory for encoded blocks
 {
 
   // symbol statistics and encoding
@@ -565,7 +602,7 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin,          // begin o
   mRegistry.nFilledBlocks++;
   using stream_t = typename o2::rans::Encoder64<S>::stream_t;
   if (srcBegin == srcEnd) {
-    mMetadata[slot] = o2::rans::Metadata{0, sizeof(uint64_t), sizeof(stream_t), probabilityBits, o2::rans::Metadata::NODATA, 0, 0, 0, 0};
+    mMetadata[slot] = Metadata{0, sizeof(uint64_t), sizeof(stream_t), probabilityBits, Metadata::OptStore::NODATA, 0, 0, 0, 0};
     return;
   }
   std::vector<stream_t> encoderBuffer;
@@ -574,7 +611,7 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin,          // begin o
   const stream_t* dictStart = nullptr;
   int dictSize = 0, dataSize = 0;
   o2::rans::SymbolStatistics stats{srcBegin, srcEnd}; // need to create it, even if not used
-  if (opt == o2::rans::Metadata::EENCODE) {
+  if (opt == Metadata::OptStore::EENCODE) {
     stats.rescaleToNBits(probabilityBits);
     const auto buffSize = o2::rans::calculateMaxBufferSize(stats.getMessageLength(),
                                                            stats.getAlphabetRangeBits(),
@@ -605,8 +642,8 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin,          // begin o
       throw std::runtime_error("no room for encoded block in provided container");
     }
   }
-  *meta = o2::rans::Metadata{stats.getMessageLength(), sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt,
-                             stats.getMinSymbol(), stats.getMaxSymbol(), dictSize, dataSize};
+  *meta = Metadata{stats.getMessageLength(), sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt,
+                   stats.getMinSymbol(), stats.getMaxSymbol(), dictSize, dataSize};
   bl->store(dictSize, dataSize, dictStart, encodedMessageStart);
 }
 

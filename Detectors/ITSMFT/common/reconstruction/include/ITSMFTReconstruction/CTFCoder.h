@@ -61,9 +61,9 @@ class CTFCoder
 template <typename VEC>
 void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec)
 {
-  using MD = o2::rans::Metadata;
-  // what to do which each field: see o2::rans::Metada explanation
-  constexpr MD::OptStore optField[CTF::getNBlocks()] = {
+  using MD = o2::ctf::Metadata::OptStore;
+  // what to do which each field: see o2::ctd::Metadata explanation
+  constexpr MD optField[CTF::getNBlocks()] = {
     MD::EENCODE, //BLCfirstChipROF
     MD::EENCODE, //BLCbcIncROF
     MD::EENCODE, //BLCorbitIncROF
