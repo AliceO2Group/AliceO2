@@ -128,7 +128,8 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   vz += fVertex.Z();
 
   /** check if particle to be tracked exists in PDG database **/
-  if (wanttracking && !TDatabasePDG::Instance()->GetParticle(pdgid)) {
+  auto particlePDG = TDatabasePDG::Instance()->GetParticle(pdgid);
+  if (wanttracking && !particlePDG) {
     LOG(WARN) << "Particle to be tracked is not defined in PDG: pdg = " << pdgid;
     wanttracking = false;
   }
@@ -160,6 +161,12 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   if (abs(pdgid) == 311 && doTracking) {
     LOG(WARN) << "K0/antiK0 requested for tracking: converting into K0s/K0L";
     pdgid = gRandom->Uniform() < 0.5 ? 310 : 130;
+  }
+
+  /** compute particle energy if negative **/
+  if (e < 0) {
+    double mass = particlePDG ? particlePDG->Mass() : 0.;
+    e = std::sqrt(mass * mass + px * px + py * py + pz * pz);
   }
 
   /** add track to stack **/
