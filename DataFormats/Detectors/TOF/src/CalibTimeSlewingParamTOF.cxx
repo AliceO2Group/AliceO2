@@ -127,8 +127,11 @@ float CalibTimeSlewingParamTOF::getChannelOffset(int channel) const
 }
 
 //______________________________________________
-float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float tot) const
+float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
 {
+
+  // totIn is in ns
+  
   int sector = channel / NCHANNELXSECTOR;
   channel = channel % NCHANNELXSECTOR;
 
@@ -139,8 +142,8 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float tot) const
   if (n < 0)
     return 0.;
 
-  if (tot == 0) {
-    return (mTimeSlewing[sector])[n].second;
+  if (totIn == 0) {
+    return (float)((mTimeSlewing[sector])[n].second);
   }
 
   int nstop = (mTimeSlewing[sector]).size();
@@ -149,6 +152,9 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float tot) const
 
   if (n >= nstop)
     return 0.; // something went wrong!
+
+  // we convert tot from ns to ps and to unsigned short
+  unsigned short tot = (unsigned short)(totIn * 1000);
 
   while (n < nstop && tot > (mTimeSlewing[sector])[n].first)
     n++;
@@ -159,12 +165,12 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float tot) const
   }
 
   if (n == nstop - 1)
-    return (mTimeSlewing[sector])[n].second; // use the last value stored for that channel
+    return (float)((mTimeSlewing[sector])[n].second); // use the last value stored for that channel
 
-  float w1 = tot - (mTimeSlewing[sector])[n].first;
-  float w2 = (mTimeSlewing[sector])[n + 1].first - tot;
+  float w1 = (float)(tot - (mTimeSlewing[sector])[n].first);
+  float w2 = (float)((mTimeSlewing[sector])[n + 1].first - tot);
 
-  return ((mTimeSlewing[sector])[n].second * w2 + (mTimeSlewing[sector])[n + 1].second * w1) / ((mTimeSlewing[sector])[n + 1].first - (mTimeSlewing[sector])[n].first);
+  return (float)(((mTimeSlewing[sector])[n].second * w2 + (mTimeSlewing[sector])[n + 1].second * w1) / ((mTimeSlewing[sector])[n + 1].first - (mTimeSlewing[sector])[n].first));
 }
 //______________________________________________
 
@@ -173,6 +179,11 @@ void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float 
   // WE ARE ASSUMING THAT:
   // channels have to be filled in increasing order (within the sector)
   // tots have to be filled in increasing order (within the channel)
+
+  // tot here is provided in ns, time in ps;
+  // tot will have to be converted into ps;
+  // type will have to be converted to unsigned short (tot) and short (time)
+  
   int sector = channel / NCHANNELXSECTOR;
   channel = channel % NCHANNELXSECTOR;
 
@@ -189,7 +200,7 @@ void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float 
     currentch--;
   }
   // printf("DBG: emplace back (%f,%f)\n",tot,time);
-  (mTimeSlewing[sector]).emplace_back(tot, time);
+  (mTimeSlewing[sector]).emplace_back((unsigned short)(tot * 1000), (short)time);
 }
 //______________________________________________
 
@@ -197,6 +208,7 @@ bool CalibTimeSlewingParamTOF::updateOffsetInfo(int channel, float residualOffse
 {
   
   // to update only the channel offset info in an existing CCDB object
+  // residual offset is given in ps
 
   int sector = channel / NCHANNELXSECTOR;
   channel = channel % NCHANNELXSECTOR;
@@ -207,7 +219,7 @@ bool CalibTimeSlewingParamTOF::updateOffsetInfo(int channel, float residualOffse
   int n = mChannelStart[sector][channel]; // first time slewing entry for the current channel. this corresponds to tot = 0
   if ((mTimeSlewing[sector])[n].first != 0) {
     printf("DBG: there was no time offset set yet! first tot is %f\n", (mTimeSlewing[sector])[n].first);
-    std::pair<float, float> offsetToBeInserted(0, residualOffset);
+    std::pair<unsigned short, short> offsetToBeInserted(0, (short)residualOffset);
     auto it = (mTimeSlewing[sector]).begin();
     (mTimeSlewing[sector]).insert(it+n, offsetToBeInserted);
     // now we have to increase by 1 all the mChannelStart for the channels that come after this
@@ -216,7 +228,7 @@ bool CalibTimeSlewingParamTOF::updateOffsetInfo(int channel, float residualOffse
     }
     return false;
   }
-  (mTimeSlewing[sector])[n].second += residualOffset;
+  (mTimeSlewing[sector])[n].second += (short)residualOffset;
   return true;
 }
 //______________________________________________
