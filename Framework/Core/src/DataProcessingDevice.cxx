@@ -685,7 +685,7 @@ bool DataProcessingDevice::tryDispatchComputation()
       // we forward it, because of a custom completion policy.
       // this means that we need to skip the empty entries in the
       // record for being forwarded.
-      if (input.header == nullptr || input.payload == nullptr) {
+      if (input.header == nullptr) {
         continue;
       }
       auto sih = o2::header::get<SourceInfoHeader*>(input.header);
