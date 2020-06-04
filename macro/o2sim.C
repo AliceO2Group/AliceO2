@@ -85,9 +85,6 @@ FairRunSim* o2sim_init(bool asservice)
   run->SetName(confref.getMCEngine().c_str()); // Transport engine
   run->SetIsMT(confref.getIsMT());             // MT mode
 
-  /** set external decayer **/
-  run->SetPythiaDecayer(TString(confref.getDecayConfig()));
-
   /** set event header **/
   auto header = new o2::dataformats::MCEventHeader();
   run->SetMCEventHeader(header);
