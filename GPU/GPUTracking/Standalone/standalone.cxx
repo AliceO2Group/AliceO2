@@ -711,7 +711,6 @@ int main(int argc, char** argv)
           rec->SetResetTimers(j1 < configStandalone.runsInit);
 
           if (configStandalone.testSyncAsync) {
-            recAsync->SetResetTimers(j1 < configStandalone.runsInit);
             printf("Running synchronous phase\n");
           }
           chainTracking->mIOPtrs = ioPtrSave;
@@ -757,13 +756,8 @@ int main(int argc, char** argv)
               chainTrackingAsync->mIOPtrs.nRawClusters[i] = 0;
             }
             chainTrackingAsync->mIOPtrs.clustersNative = nullptr;
-            if (configStandalone.controlProfiler && j1 == configStandalone.runs - 1) {
-              rec->startGPUProfiling();
-            }
+            recAsync->SetResetTimers(j1 < configStandalone.runsInit);
             tmpRetVal = recAsync->RunChains();
-            if (configStandalone.controlProfiler && j1 == configStandalone.runs - 1) {
-              rec->endGPUProfiling();
-            }
             if (tmpRetVal == 0 || tmpRetVal == 2) {
               OutputStat(chainTrackingAsync, nullptr, nullptr);
               if (configStandalone.memoryStat) {

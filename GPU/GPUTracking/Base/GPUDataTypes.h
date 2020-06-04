@@ -105,6 +105,9 @@ class GPUDataTypes
                               HIP = 3,
                               OCL = 4,
                               OCL2 = 5 };
+  enum ENUM_CLASS GeneralStep { Prepare = 1,
+                                QA = 2 };
+
   enum ENUM_CLASS RecoStep { TPCConversion = 1,
                              TPCSliceTracking = 2,
                              TPCMerging = 4,
@@ -126,6 +129,7 @@ class GPUDataTypes
 
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
   static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation", "TPC Cluster Finding", "TPC Decompression"};
+  static constexpr const char* const GENERAL_STEP_NAMES[] = {"Prepare", "QA"};
   typedef bitfield<RecoStep, unsigned int> RecoStepField;
   typedef bitfield<InOutType, unsigned int> InOutTypeField;
 #endif

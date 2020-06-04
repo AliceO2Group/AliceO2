@@ -27,6 +27,7 @@ class GPUChain
 
  public:
   using RecoStep = GPUReconstruction::RecoStep;
+  using GeneralStep = GPUReconstruction::GeneralStep;
   using InOutPointerType = GPUReconstruction::InOutPointerType;
   using GeometryType = GPUReconstruction::GeometryType;
   using krnlRunRange = GPUReconstruction::krnlRunRange;
@@ -218,6 +219,9 @@ class GPUChain
   template <class T, class S, typename... Args>
   bool DoDebugAndDump(RecoStep step, int mask, bool transfer, T& processor, S T::*func, Args&&... args);
 
+  template <class T, class S, typename... Args>
+  int runRecoStep(RecoStep step, S T::*func, Args... args);
+
  private:
   template <bool Always = false, class T, class S, typename... Args>
   void timeCpy(RecoStep step, int toGPU, S T::*func, Args... args);
@@ -266,6 +270,22 @@ bool GPUChain::DoDebugAndDump(GPUChain::RecoStep step, int mask, bool transfer, 
       (processor.*func)(args...);
       return true;
     }
+  }
+  return false;
+}
+
+template <class T, class S, typename... Args>
+int GPUChain::runRecoStep(RecoStep step, S T::*func, Args... args)
+{
+  if (GetRecoSteps().isSet(step)) {
+    if (GetDeviceProcessingSettings().debugLevel >= 1) {
+      mRec->getRecoStepTimer(step).Start();
+    }
+    int retVal = (reinterpret_cast<T*>(this)->*func)(args...);
+    if (GetDeviceProcessingSettings().debugLevel >= 1) {
+      mRec->getRecoStepTimer(step).Stop();
+    }
+    return retVal;
   }
   return false;
 }
