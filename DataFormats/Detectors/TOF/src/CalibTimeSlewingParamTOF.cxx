@@ -21,6 +21,7 @@ using namespace o2::dataformats;
 
 CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF()
 {
+  /*
   mTimeSlewing[0] = &mTimeSlewingSec00;
   mTimeSlewing[1] = &mTimeSlewingSec01;
   mTimeSlewing[2] = &mTimeSlewingSec02;
@@ -39,7 +40,7 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF()
   mTimeSlewing[15] = &mTimeSlewingSec15;
   mTimeSlewing[16] = &mTimeSlewingSec16;
   mTimeSlewing[17] = &mTimeSlewingSec17;
-
+  */
   for (int i = 0; i < NSECTORS; i++) {
     for (int j = 0; j < NCHANNELXSECTOR; j++) {
       mChannelStart[i][j] = -1;
@@ -51,6 +52,11 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF()
 //______________________________________________
 CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTOF& source)
 {
+
+  for (int iSec = 0 ; iSec < NSECTORS; iSec++) {
+    mTimeSlewing[iSec] = source.mTimeSlewing[iSec];
+  }
+  /*
   mTimeSlewingSec00 = source.mTimeSlewingSec00;
   mTimeSlewingSec01 = source.mTimeSlewingSec01;
   mTimeSlewingSec02 = source.mTimeSlewingSec02;
@@ -69,30 +75,8 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTO
   mTimeSlewingSec15 = source.mTimeSlewingSec15;
   mTimeSlewingSec16 = source.mTimeSlewingSec16;
   mTimeSlewingSec17 = source.mTimeSlewingSec17;
-  /*
-  for (int i = 0; i < source.mTimeSlewingSec00.size(); i++) {
-    //printf("i = %d, value first = %f, value second = %f\n", i, source.mTimeSlewingSec00[i].first, source.mTimeSlewingSec00[i].second);
-    mTimeSlewingSec00.push_back(source.mTimeSlewingSec00[i]);
-  }
-  
-  for (int i = 0; i < source.mTimeSlewingSec01.size(); i++) mTimeSlewingSec01.push_back(source.mTimeSlewingSec01[i]);
-  for (int i = 0; i < source.mTimeSlewingSec02.size(); i++) mTimeSlewingSec02.push_back(source.mTimeSlewingSec02[i]);
-  for (int i = 0; i < source.mTimeSlewingSec03.size(); i++) mTimeSlewingSec03.push_back(source.mTimeSlewingSec03[i]);
-  for (int i = 0; i < source.mTimeSlewingSec04.size(); i++) mTimeSlewingSec04.push_back(source.mTimeSlewingSec04[i]);
-  for (int i = 0; i < source.mTimeSlewingSec05.size(); i++) mTimeSlewingSec05.push_back(source.mTimeSlewingSec05[i]);
-  for (int i = 0; i < source.mTimeSlewingSec06.size(); i++) mTimeSlewingSec06.push_back(source.mTimeSlewingSec06[i]);
-  for (int i = 0; i < source.mTimeSlewingSec07.size(); i++) mTimeSlewingSec07.push_back(source.mTimeSlewingSec07[i]);
-  for (int i = 0; i < source.mTimeSlewingSec08.size(); i++) mTimeSlewingSec08.push_back(source.mTimeSlewingSec08[i]);
-  for (int i = 0; i < source.mTimeSlewingSec09.size(); i++) mTimeSlewingSec09.push_back(source.mTimeSlewingSec09[i]);
-  for (int i = 0; i < source.mTimeSlewingSec10.size(); i++) mTimeSlewingSec10.push_back(source.mTimeSlewingSec10[i]);
-  for (int i = 0; i < source.mTimeSlewingSec11.size(); i++) mTimeSlewingSec11.push_back(source.mTimeSlewingSec11[i]);
-  for (int i = 0; i < source.mTimeSlewingSec12.size(); i++) mTimeSlewingSec12.push_back(source.mTimeSlewingSec12[i]);
-  for (int i = 0; i < source.mTimeSlewingSec13.size(); i++) mTimeSlewingSec13.push_back(source.mTimeSlewingSec13[i]);
-  for (int i = 0; i < source.mTimeSlewingSec14.size(); i++) mTimeSlewingSec14.push_back(source.mTimeSlewingSec14[i]);
-  for (int i = 0; i < source.mTimeSlewingSec15.size(); i++) mTimeSlewingSec15.push_back(source.mTimeSlewingSec15[i]);
-  for (int i = 0; i < source.mTimeSlewingSec16.size(); i++) mTimeSlewingSec16.push_back(source.mTimeSlewingSec16[i]);
-  for (int i = 0; i < source.mTimeSlewingSec17.size(); i++) mTimeSlewingSec17.push_back(source.mTimeSlewingSec17[i]);
   */
+  /*
   mTimeSlewing[0] = &mTimeSlewingSec00;
   mTimeSlewing[1] = &mTimeSlewingSec01;
   mTimeSlewing[2] = &mTimeSlewingSec02;
@@ -111,7 +95,7 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTO
   mTimeSlewing[15] = &mTimeSlewingSec15;
   mTimeSlewing[16] = &mTimeSlewingSec16;
   mTimeSlewing[17] = &mTimeSlewingSec17;
-
+  */
   for (int i = 0; i < NSECTORS; i++) {
     for (int j = 0; j < NCHANNELXSECTOR; j++) {
       mChannelStart[i][j] = source.mChannelStart[i][j];
@@ -124,8 +108,8 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTO
 CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator=(const CalibTimeSlewingParamTOF& source)
 {
   for (int i = 0; i < NSECTORS; i++) {
-    mTimeSlewing[i]->clear();
-    *(mTimeSlewing[i]) = *(source.mTimeSlewing[i]);
+    mTimeSlewing[i].clear();  // CHECK: mTimeSlewing[i] does not work, probably because it is an array of vectors
+    mTimeSlewing[i] = source.mTimeSlewing[i];
 
     for (int j = 0; j < NCHANNELXSECTOR; j++) {
       mChannelStart[i][j] = source.mChannelStart[i][j];
@@ -156,17 +140,17 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float tot) const
     return 0.;
 
   if (tot == 0) {
-    return (*(mTimeSlewing[sector]))[n].second;
+    return (mTimeSlewing[sector])[n].second;
   }
 
-  int nstop = (*(mTimeSlewing[sector])).size();
+  int nstop = (mTimeSlewing[sector]).size();
   if (channel < NCHANNELXSECTOR - 1)
     nstop = mChannelStart[sector][channel + 1];
 
   if (n >= nstop)
     return 0.; // something went wrong!
 
-  while (n < nstop && tot > (*(mTimeSlewing[sector]))[n].first)
+  while (n < nstop && tot > (mTimeSlewing[sector])[n].first)
     n++;
   n--;
 
@@ -175,12 +159,12 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float tot) const
   }
 
   if (n == nstop - 1)
-    return (*(mTimeSlewing[sector]))[n].second; // use the last value stored for that channel
+    return (mTimeSlewing[sector])[n].second; // use the last value stored for that channel
 
-  float w1 = tot - (*(mTimeSlewing[sector]))[n].first;
-  float w2 = (*(mTimeSlewing[sector]))[n + 1].first - tot;
+  float w1 = tot - (mTimeSlewing[sector])[n].first;
+  float w2 = (mTimeSlewing[sector])[n + 1].first - tot;
 
-  return ((*(mTimeSlewing[sector]))[n].second * w2 + (*(mTimeSlewing[sector]))[n + 1].second * w1) / ((*(mTimeSlewing[sector]))[n + 1].first - (*(mTimeSlewing[sector]))[n].first);
+  return ((mTimeSlewing[sector])[n].second * w2 + (mTimeSlewing[sector])[n + 1].second * w1) / ((mTimeSlewing[sector])[n + 1].first - (mTimeSlewing[sector])[n].first);
 }
 //______________________________________________
 
@@ -201,11 +185,11 @@ void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float 
   while (mChannelStart[sector][currentch] == -1 && currentch > -1) {
     // printf("DBG: fill channel %i\n",currentch);
     // set also all the previous ones which were not filled
-    mChannelStart[sector][currentch] = (*(mTimeSlewing[sector])).size();
+    mChannelStart[sector][currentch] = (mTimeSlewing[sector]).size();
     currentch--;
   }
   // printf("DBG: emplace back (%f,%f)\n",tot,time);
-  (*(mTimeSlewing[sector])).emplace_back(tot, time);
+  (mTimeSlewing[sector]).emplace_back(tot, time);
 }
 //______________________________________________
 
@@ -221,18 +205,18 @@ bool CalibTimeSlewingParamTOF::updateOffsetInfo(int channel, float residualOffse
   // printf("DBG: addTimeSlewinginfo sec=%i\n",sector);
 
   int n = mChannelStart[sector][channel]; // first time slewing entry for the current channel. this corresponds to tot = 0
-  if ((*(mTimeSlewing[sector]))[n].first != 0) {
-    printf("DBG: there was no time offset set yet! first tot is %f\n", (*(mTimeSlewing[sector]))[n].first);
+  if ((mTimeSlewing[sector])[n].first != 0) {
+    printf("DBG: there was no time offset set yet! first tot is %f\n", (mTimeSlewing[sector])[n].first);
     std::pair<float, float> offsetToBeInserted(0, residualOffset);
-    auto it = (*(mTimeSlewing[sector])).begin();
-    (*(mTimeSlewing[sector])).insert(it+n, offsetToBeInserted);
+    auto it = (mTimeSlewing[sector]).begin();
+    (mTimeSlewing[sector]).insert(it+n, offsetToBeInserted);
     // now we have to increase by 1 all the mChannelStart for the channels that come after this
     for (auto ch = channel+1; ch < NCHANNELXSECTOR; ch++){
       mChannelStart[sector][ch]++;
     }
     return false;
   }
-  (*(mTimeSlewing[sector]))[n].second += residualOffset;
+  (mTimeSlewing[sector])[n].second += residualOffset;
   return true;
 }
 //______________________________________________
@@ -240,11 +224,11 @@ bool CalibTimeSlewingParamTOF::updateOffsetInfo(int channel, float residualOffse
 CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator+=(const CalibTimeSlewingParamTOF& other)
 {
   for (int i = 0; i < NSECTORS; i++) {
-    if (other.mTimeSlewing[i]->size() > mTimeSlewing[i]->size()) {
+    if (other.mTimeSlewing[i].size() > mTimeSlewing[i].size()) {
 
-      mTimeSlewing[i]->clear();
-      for (auto obj = other.mTimeSlewing[i]->begin(); obj != other.mTimeSlewing[i]->end(); obj++)
-        mTimeSlewing[i]->push_back(*obj);
+      mTimeSlewing[i].clear();
+      for (auto obj = other.mTimeSlewing[i].begin(); obj != other.mTimeSlewing[i].end(); obj++)
+        mTimeSlewing[i].push_back(*obj);
 
       for (int j = 0; j < NCHANNELXSECTOR; j++) {
         mChannelStart[i][j] = other.mChannelStart[i][j];

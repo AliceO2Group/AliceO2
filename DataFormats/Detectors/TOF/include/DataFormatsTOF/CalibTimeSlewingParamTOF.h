@@ -42,17 +42,17 @@ class CalibTimeSlewingParamTOF
 
   bool updateOffsetInfo(int channel, float residualOffset);
 
-  const std::vector<std::pair<float, float>>* getVector(int sector) const { return mTimeSlewing[sector]; }
+  const std::vector<std::pair<float, float>>& getVector(int sector) const { return mTimeSlewing[sector]; }
 
   int size() const
   {
     int n = 0;
     for (int i = 0; i < NSECTORS; i++)
-      n += (*(mTimeSlewing[i])).size();
+      n += (mTimeSlewing[i]).size();
     return n;
   }
 
-  int getSize(int sector) const { return (*(mTimeSlewing[sector])).size(); }
+  int getSize(int sector) const { return mTimeSlewing[sector].size(); }
 
   int getStartIndexForChannel(int sector, int channel) const { return mChannelStart[sector][channel]; }
   float getFractionUnderPeak(int sector, int channel) const { return mFractionUnderPeak[sector][channel]; }
@@ -79,8 +79,8 @@ class CalibTimeSlewingParamTOF
  private:
   // TOF channel calibrations
   int mChannelStart[NSECTORS][NCHANNELXSECTOR];           ///< array with the index of the first element of a channel in the time slewing vector (per sector)
-  std::vector<std::pair<float, float>>* mTimeSlewing[18]; //! pointers to the sector vectors
-
+  std::vector<std::pair<float, float>> mTimeSlewing[18]; ///< array of sector vectors
+  /*
   std::vector<std::pair<float, float>> mTimeSlewingSec00; ///< timeslweing correction <tot,time> sector 0
   std::vector<std::pair<float, float>> mTimeSlewingSec01; ///< timeslweing correction <tot,time> sector 1
   std::vector<std::pair<float, float>> mTimeSlewingSec02; ///< timeslweing correction <tot,time> sector 2
@@ -99,7 +99,7 @@ class CalibTimeSlewingParamTOF
   std::vector<std::pair<float, float>> mTimeSlewingSec15; ///< timeslweing correction <tot,time> sector 15
   std::vector<std::pair<float, float>> mTimeSlewingSec16; ///< timeslweing correction <tot,time> sector 16
   std::vector<std::pair<float, float>> mTimeSlewingSec17; ///< timeslweing correction <tot,time> sector 17
-
+  */
   float mFractionUnderPeak[NSECTORS][NCHANNELXSECTOR]; ///< array with the fraction of entries below the peak
   float mSigmaPeak[NSECTORS][NCHANNELXSECTOR];         ///< array with the sigma of the peak
 
