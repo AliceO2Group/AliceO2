@@ -201,8 +201,6 @@ void Digitizer::triggerEventProcessing(DigitContainer& digits, o2::dataformats::
   if ((mTime - mCurrentTriggerTime) < BUSY_TIME) {
     // do not change the current trigger time and add send the signal containers to the pileup container
     pileup();
-    mLastTime = mTime;
-    mTriggeredEvent = false;
   } else {
     // flush the digits: signals from the pileup container are converted to adcs
     // digits and labels are produced
@@ -210,7 +208,6 @@ void Digitizer::triggerEventProcessing(DigitContainer& digits, o2::dataformats::
     flush(digits, labels);
     mCurrentTriggerTime = mTime;
     mLastTime = mTime;
-    mTriggeredEvent = true;
   }
 }
 
@@ -445,7 +442,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
 
         const int key = calculateKey(det, rowE, colPos);
         auto& currentSignalData = signalMapCont[key]; // Get the old signal or make a new one if it doesn't exist
-        currentSignalData.trigger = mTriggeredEvent;  // keep record if the signals are from a trigger event or not
         auto& currentSignal = currentSignalData.signals;
         auto& trackIds = currentSignalData.trackIds;
         auto& labels = currentSignalData.labels;

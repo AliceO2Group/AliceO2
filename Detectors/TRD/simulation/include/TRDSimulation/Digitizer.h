@@ -40,7 +40,6 @@ class PadResponse;
 
 struct SignalArray {
   double firstTBtime;                     // first TB time
-  bool trigger;                           // true if signal comes from a trigger event, false otherwise (from pileup)
   std::array<float, kTimeBins> signals{}; // signals
   std::unordered_map<int, int> trackIds;  // tracks Ids associated to the signal
   std::vector<MCLabel> labels;            // labels associated to the signal
