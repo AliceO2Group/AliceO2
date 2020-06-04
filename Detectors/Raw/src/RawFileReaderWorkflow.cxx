@@ -35,6 +35,7 @@
 #include <unordered_map>
 #include <cctype>
 #include <string>
+#include <climits>
 
 using namespace o2::raw;
 
@@ -46,7 +47,7 @@ class rawReaderSpecs : public o2f::Task
  public:
   explicit rawReaderSpecs(const std::string& config, bool tfAsMessage = false, bool outPerRoute = true, int loop = 1, uint32_t delay_us = 0,
                           uint32_t errmap = 0xffffffff, uint32_t minTF = 0, uint32_t maxTF = 0xffffffff, size_t buffSize = 1024L * 1024L)
-    : mLoop(loop < 1 ? 1 : loop), mHBFPerMessage(!tfAsMessage), mOutPerRoute(outPerRoute), mDelayUSec(delay_us), mMinTFID(minTF), mMaxTFID(maxTF), mReader(std::make_unique<o2::raw::RawFileReader>(config))
+    : mLoop(loop < 0 ? INT_MAX : (loop < 1 ? 1 : loop)), mHBFPerMessage(!tfAsMessage), mOutPerRoute(outPerRoute), mDelayUSec(delay_us), mMinTFID(minTF), mMaxTFID(maxTF), mReader(std::make_unique<o2::raw::RawFileReader>(config))
   {
     mReader->setCheckErrors(errmap);
     mReader->setMaxTFToRead(maxTF);
@@ -85,10 +86,10 @@ class rawReaderSpecs : public o2f::Task
     auto findOutputChannel = [&ctx](RawFileReader::LinkData& link) {
       auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
       for (auto& oroute : outputRoutes) {
-        LOG(INFO) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
+        LOG(DEBUG) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
         if (o2f::DataSpecUtils::match(oroute.matcher, link.origin, link.description, link.subspec)) {
           link.fairMQChannel = oroute.channel;
-          LOG(INFO) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
+          LOG(DEBUG) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
           return true;
         }
       }
@@ -123,10 +124,10 @@ class rawReaderSpecs : public o2f::Task
 
     if (tfID < mMinTFID) {
       tfID = mMinTFID;
-      mReader->setNextTFToRead(tfID);
-      for (int il = 0; il < nlinks; il++) {
-        mReader->getLink(il).rewindToTF(tfID);
-      }
+    }
+    mReader->setNextTFToRead(tfID);
+    for (int il = 0; il < nlinks; il++) {
+      mReader->getLink(il).rewindToTF(tfID);
     }
 
     // read next time frame
