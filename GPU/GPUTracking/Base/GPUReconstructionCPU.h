@@ -30,8 +30,10 @@
 #include "GPUTPCTrackletConstructor.h"
 #include "GPUTPCTrackletSelector.h"
 #include "GPUTPCGlobalTracking.h"
-#include "GPUTPCGMMergerGPU.h"
 #include "GPUTRDTrackerKernels.h"
+#ifdef GPUCA_NOCOMPAT
+#include "GPUTPCGMMergerGPU.h"
+#endif
 #ifdef HAVE_O2HEADERS
 #include "GPUITSFitterKernels.h"
 #include "GPUTPCConvertKernel.h"

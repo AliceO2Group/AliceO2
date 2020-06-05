@@ -19,7 +19,6 @@
 #include "GPUTPCGMPhysicalTrackModel.h"
 #include "GPUTPCGMPolynomialField.h"
 #include "GPUCommonMath.h"
-#include "GPUTPCGMMergerTypes.h"
 
 namespace o2
 {
@@ -36,6 +35,10 @@ namespace gpu
 {
 class GPUTPCGMTrackParam;
 struct GPUParam;
+namespace GPUTPCGMMergerTypes
+{
+struct InterpolationErrorHit;
+}
 
 /**
  * @class GPUTPCGMPropagator
