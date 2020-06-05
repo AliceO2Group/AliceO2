@@ -132,6 +132,10 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
   }
   auto sspec = RDHUtils::getSubSpec(cru, lnk, endpoint, feeid);
   auto& link = getLinkWithSubSpec(sspec);
+  if (ir < mHBFUtils.getFirstIR()) {
+    LOG(WARNING) << "provided " << ir << " precedes first TF " << mHBFUtils.getFirstIR() << " | discarding data for " << link.describe();
+    return;
+  }
   if (ir < mFirstIRAdded) {
     mFirstIRAdded = ir;
   }
