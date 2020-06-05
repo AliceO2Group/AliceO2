@@ -71,8 +71,8 @@ class MC2RawEncoder
   int getRUSWMin() const { return mRUSWMin; }
   int getRUSWMax() const { return mRUSWMax; }
 
-  void setContinuousReadout(bool v) { mROMode = v ? Continuous : Triggered; }
-  bool isContinuousReadout() const { return mROMode == Continuous; }
+  void setContinuousReadout(bool v) { mWriter.setContinuousReadout(v); }
+  bool isContinuousReadout() const { return mWriter.isContinuousReadout(); }
 
   o2::raw::RawFileWriter& getWriter() { return mWriter; }
 
@@ -120,7 +120,6 @@ class MC2RawEncoder
   std::array<RUDecodeData, Mapping::getNRUs()> mRUDecodeVec; /// decoding buffers for all active RUs
   std::array<int, Mapping::getNRUs()> mRUEntry;              /// entry of the RU with given SW ID in the mRUDecodeVec
   std::vector<GBTLink> mGBTLinks;
-  RoMode_t mROMode = NotSet;
 
   ClassDefNV(MC2RawEncoder, 1);
 };
