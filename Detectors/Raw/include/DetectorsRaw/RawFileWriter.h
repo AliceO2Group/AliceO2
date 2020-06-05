@@ -180,6 +180,7 @@ class RawFileWriter
 
   void setContinuousReadout() { mROMode = Continuous; }
   void setTriggeredReadout() { mROMode = Triggered; }
+  void setContinuousReadout(bool v) { mROMode = v ? Continuous : Triggered; }
   bool isContinuousReadout() const { return mROMode == Continuous; }
   bool isTriggeredReadout() const { return mROMode == Triggered; }
   bool isReadOutModeSet() const { return mROMode != NotSet; }
