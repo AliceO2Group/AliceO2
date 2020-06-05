@@ -156,7 +156,8 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void Finalize1(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void Finalize2(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void ResolveFindConnectedComponentsSetup(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void ResolveFindConnectedComponentsHook(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void ResolveFindConnectedComponentsHookNeighbors(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void ResolveFindConnectedComponentsHookLinks(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void ResolveFindConnectedComponentsMultiJump(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void ResolveMergeSlices(GPUResolveSharedMemory& smem, int nBlocks, int nThreads, int iBlock, int iThread, char useOrigTrackParam, char mergeAll);
 
@@ -195,6 +196,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUdi() int SliceTrackInfoTotal() { return mSliceTrackInfoIndex[2 * NSLICES]; }
 
   GPUdi() void setBlockRange(int elems, int nBlocks, int iBlock, int& start, int& end);
+  GPUdi() void hookEdge(int u, int v);
 
   int mNextSliceInd[NSLICES];
   int mPrevSliceInd[NSLICES];
