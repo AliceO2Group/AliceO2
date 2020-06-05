@@ -83,11 +83,11 @@ class rawReaderSpecs : public o2f::Task
     auto device = ctx.services().get<o2f::RawDeviceService>().device();
     assert(device);
 
-    auto findOutputChannel = [&ctx](RawFileReader::LinkData& link) {
+    auto findOutputChannel = [&ctx](RawFileReader::LinkData& link, size_t timeslice) {
       auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
       for (auto& oroute : outputRoutes) {
         LOG(DEBUG) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
-        if (o2f::DataSpecUtils::match(oroute.matcher, link.origin, link.description, link.subspec)) {
+        if (o2f::DataSpecUtils::match(oroute.matcher, link.origin, link.description, link.subspec) && ((timeslice % oroute.maxTimeslices) == oroute.timeslice)) {
           link.fairMQChannel = oroute.channel;
           LOG(DEBUG) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
           return true;
@@ -137,7 +137,7 @@ class rawReaderSpecs : public o2f::Task
     for (int il = 0; il < nlinks; il++) {
       auto& link = mReader->getLink(il);
 
-      if (link.fairMQChannel.empty() && !findOutputChannel(link)) { // no output channel
+      if (!findOutputChannel(link, mTFIDaccum)) { // no output channel
         continue;
       }
 
