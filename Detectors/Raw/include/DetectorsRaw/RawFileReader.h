@@ -84,7 +84,7 @@ class RawFileReader
     true,  // ErrWrongHBFsPerTF
     true,  // ErrWrongNumberOfTF
     true,  // ErrHBFJump
-    true   // ErrNoSuperPageForTF
+    false  // ErrNoSuperPageForTF
   };
 
   //================================================================================
