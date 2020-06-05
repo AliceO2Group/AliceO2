@@ -29,7 +29,6 @@ class InteractionSampler
 {
  public:
   static constexpr float Sec2NanoSec = 1.e9; // s->ns conversion
-  static constexpr int FirstOrbit = 1;       // start from orbit > 0 to avoid problems with negative BCs
   const o2::InteractionTimeRecord& generateCollisionTime();
   void generateCollisionTimes(std::vector<o2::InteractionTimeRecord>& dest);
 
@@ -37,6 +36,7 @@ class InteractionSampler
 
   void setInteractionRate(float rateHz) { mIntRate = rateHz; }
   float getInteractionRate() const { return mIntRate; }
+  void setFirstIR(const o2::InteractionRecord& ir) { mIR.InteractionRecord::operator=(ir); }
   void setMuPerBC(float mu) { mMuBC = mu; }
   float getMuPerBC() const { return mMuBC; }
   void setBCTimeRMS(float tNS = 0.2) { mBCTimeRMS = tNS; }
@@ -56,7 +56,7 @@ class InteractionSampler
   void nextCollidingBC();
   void warnOrbitWrapped() const;
 
-  o2::InteractionTimeRecord mIR{{0, FirstOrbit}, 0.};
+  o2::InteractionTimeRecord mIR{{0, 0}, 0.};
   int mIntBCCache = 0;         ///< N interactions left for current BC
   int mBCMin = 0;              ///< 1st filled BCID
   int mBCMax = -1;             ///< last filled BCID
