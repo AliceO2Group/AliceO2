@@ -318,6 +318,7 @@ inline void Stack::addTrackReference(const o2::TrackReference& ref)
     auto& part = mParticles[iTrack];
     part.setStore(true);
   }
+  mTrackRefs->push_back(ref);
 }
 
 inline int Stack::getCurrentPrimaryIndex() const { return mPrimaryParticles.size() - 1 - mPrimariesDone; }
