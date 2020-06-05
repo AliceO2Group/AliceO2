@@ -100,6 +100,14 @@ o2_add_dpl_workflow(datasampling-benchmark
                   SOURCES src/dataSamplingBenchmark.cxx
                   COMPONENT_NAME TestWorkflows)
 
+o2_add_dpl_workflow(simple-source
+                  SOURCES src/o2SimpleSource.cxx
+                  COMPONENT_NAME TestWorkflows)
+
+o2_add_dpl_workflow(simple-sink
+                  SOURCES src/o2SimpleSink.cxx
+                  COMPONENT_NAME TestWorkflows)
+
 # Detector specific dummy workflows
 o2_add_dpl_workflow(tof-dummy-ccdb
                   SOURCES src/tof-dummy-ccdb.cxx
