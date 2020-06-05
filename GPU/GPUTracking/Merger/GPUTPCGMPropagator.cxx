@@ -17,6 +17,7 @@
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUO2DataTypes.h"
 #include "GPUParam.inc"
+#include "GPUTPCGMMergerTypes.h"
 
 #ifndef __OPENCL__
 #include <cmath>
@@ -379,6 +380,7 @@ GPUd() int GPUTPCGMPropagator::FollowLinearization(const GPUTPCGMPhysicalTrackMo
     return -4;
   }
 
+#ifdef HAVE_O2HEADERS
   if (mMatLUT) {
     float xyz1[3] = {getGlobalX(mT0.GetX(), mT0.GetY()), getGlobalY(mT0.GetX(), mT0.GetY()), mT0.GetZ()};
     float xyz2[3] = {getGlobalX(t0e.GetX(), t0e.GetY()), getGlobalY(t0e.GetX(), t0e.GetY()), t0e.GetZ()};
@@ -389,6 +391,7 @@ GPUd() int GPUTPCGMPropagator::FollowLinearization(const GPUTPCGMPhysicalTrackMo
       SetMaterialTPC();
     }
   }
+#endif
 
   mT0 = t0e;
   mT->X() = t0e.GetX();

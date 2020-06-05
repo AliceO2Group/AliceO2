@@ -15,6 +15,7 @@
 #define GPUTPCGMMERGERTYPES_H
 
 #include "GPUTPCDef.h"
+#include "GPUGeneralKernels.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -40,6 +41,16 @@ struct InterpolationErrorHit {
 
 struct InterpolationErrors {
   InterpolationErrorHit hit[GPUCA_MERGER_MAX_TRACK_CLUSTERS];
+};
+
+struct GPUResolveSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<short, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)> {
+  int iTrack1[GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)];
+  int iTrack2[GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)];
+};
+
+struct GPUTPCGMBorderRange {
+  int fId;
+  float fMin, fMax;
 };
 
 } // namespace GPUTPCGMMergerTypes

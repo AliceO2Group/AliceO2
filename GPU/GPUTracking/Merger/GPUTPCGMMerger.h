@@ -80,11 +80,6 @@ class GPUTPCGMMerger : public GPUProcessor
     unsigned char leg;
   };
 
-  struct GPUResolveSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<short, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)> {
-    int iTrack1[GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)];
-    int iTrack2[GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCGMMergerResolve_step3)];
-  };
-
   void InitializeProcessor();
   void RegisterMemoryAllocation();
   void SetMaxData(const GPUTrackingInOutPointers& io);
@@ -122,7 +117,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() memory* Memory() const { return mMemory; }
   GPUhdi() GPUAtomic(unsigned int) * TmpCounter() { return mMemory->tmpCounter; }
   GPUhdi() uint4* TmpMem() { return mTmpMem; }
-  GPUhdi() GPUTPCGMBorderTrack::Range* BorderRange(int i) { return mBorderRange[i]; }
+  GPUhdi() GPUTPCGMMergerTypes::GPUTPCGMBorderRange* BorderRange(int i) { return mBorderRange[i]; }
 
   GPUd() unsigned short MemoryResMemory() { return mMemoryResMemory; }
   GPUd() unsigned short MemoryResOutput() const { return mMemoryResOutput; }
@@ -143,7 +138,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice, char withinSlice, char mergeMode);
   GPUd() void MergeBorderTracksSetup(int& n1, int& n2, GPUTPCGMBorderTrack*& b1, GPUTPCGMBorderTrack*& b2, int& jSlice, int iSlice, char withinSlice, char mergeMode);
   template <int I>
-  GPUd() void MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCGMBorderTrack::Range* range, int N, int cmpMax);
+  GPUd() void MergeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCGMMergerTypes::GPUTPCGMBorderRange* range, int N, int cmpMax);
   GPUd() void SortTracks(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void SortTracksQPt(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void SortTracksPrepare(int nBlocks, int nThreads, int iBlock, int iThread);
@@ -159,7 +154,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void ResolveFindConnectedComponentsHookNeighbors(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void ResolveFindConnectedComponentsHookLinks(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void ResolveFindConnectedComponentsMultiJump(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void ResolveMergeSlices(GPUResolveSharedMemory& smem, int nBlocks, int nThreads, int iBlock, int iThread, char useOrigTrackParam, char mergeAll);
+  GPUd() void ResolveMergeSlices(GPUTPCGMMergerTypes::GPUResolveSharedMemory& smem, int nBlocks, int nThreads, int iBlock, int iThread, char useOrigTrackParam, char mergeAll);
 
 #ifndef GPUCA_GPUCODE
   void DumpSliceTracks(std::ostream& out);
@@ -228,8 +223,8 @@ class GPUTPCGMMerger : public GPUProcessor
   uint4* mTmpMem;
   GPUTPCGMBorderTrack* mBorderMemory; // memory for border tracks
   GPUTPCGMBorderTrack* mBorder[2 * NSLICES];
-  GPUTPCGMBorderTrack::Range* mBorderRangeMemory;    // memory for border tracks
-  GPUTPCGMBorderTrack::Range* mBorderRange[NSLICES]; // memory for border tracks
+  GPUTPCGMMergerTypes::GPUTPCGMBorderRange* mBorderRangeMemory;    // memory for border tracks
+  GPUTPCGMMergerTypes::GPUTPCGMBorderRange* mBorderRange[NSLICES]; // memory for border tracks
   memory* mMemory;
   unsigned int* mRetryRefitIds;
   GPUTPCGMLoopData* mLoopData;
