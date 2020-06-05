@@ -123,6 +123,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       char matBudFileName[1024] = "";            // Material budget file name
       char dEdxSplinesFile[1024] = "";           // File containing dEdx splines
       int tpcRejectionMode = GPUSettings::RejectionStrategyA;
+      size_t memoryPoolSize = 1;
 
       const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
       if (grp) {
@@ -193,6 +194,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           } else if (optLen > 8 && strncmp(optPtr, "gpuNum=", 7) == 0) {
             sscanf(optPtr + 7, "%d", &gpuDevice);
             printf("Using GPU device %d\n", gpuDevice);
+          } else if (optLen > 8 && strncmp(optPtr, "gpuMemorySize=", 14) == 0) {
+            sscanf(optPtr + 14, "%llu", (unsigned long long int*)&memoryPoolSize);
+            printf("GPU memory pool size set to %llu\n", (unsigned long long int)memoryPoolSize);
           } else if (optLen > 8 && strncmp(optPtr, "dEdxFile=", 9) == 0) {
             int len = std::min(optLen - 9, 1023);
             memcpy(dEdxSplinesFile, optPtr + 9, len);
@@ -230,11 +234,11 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       }
       config.configDeviceProcessing.deviceNum = gpuDevice;
       config.configDeviceProcessing.nThreads = nThreads;
-      config.configDeviceProcessing.runQA = qa;                   // Run QA after tracking
-      config.configDeviceProcessing.runMC = specconfig.processMC; // Propagate MC labels
-      config.configDeviceProcessing.eventDisplay = display;       // Ptr to event display backend, for running standalone OpenGL event display
-      config.configDeviceProcessing.debugLevel = debugLevel;      // Debug verbosity
-      config.configDeviceProcessing.forceMemoryPoolSize = 1;      // Some memory auto-detection
+      config.configDeviceProcessing.runQA = qa;                           // Run QA after tracking
+      config.configDeviceProcessing.runMC = specconfig.processMC;         // Propagate MC labels
+      config.configDeviceProcessing.eventDisplay = display;               // Ptr to event display backend, for running standalone OpenGL event display
+      config.configDeviceProcessing.debugLevel = debugLevel;              // Debug verbosity
+      config.configDeviceProcessing.forceMemoryPoolSize = memoryPoolSize; // Memory pool size, default = 1 = auto-detect
 
       config.configEvent.solenoidBz = solenoidBz;
       int maxContTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * Constants::LHCBCPERTIMEBIN - 2) / Constants::LHCBCPERTIMEBIN;
