@@ -21,9 +21,7 @@ using RDHUtils = o2::raw::RDHUtils;
 template <class Mapping>
 void MC2RawEncoder<Mapping>::init()
 {
-  if (mROMode == NotSet) {
-    LOG(FATAL) << "Readout Mode must be set explicitly via setContinuousReadout(bool)";
-  }
+  assert(mWriter.isReadOutModeSet());
   mWriter.setCarryOverCallBack(this);
 
   // limit RUs to convert to existing ones
