@@ -19,6 +19,9 @@
 #include "MCHRawElecMap/Mapper.h"
 #include "MCHRawEncoderPayload/DataBlock.h"
 #include "MCHRawEncoderPayload/PayloadPaginator.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+
 #include <TBranch.h>
 #include <TFile.h>
 #include <TSystem.h>
@@ -88,7 +91,7 @@ int main(int argc, char* argv[])
       ("userLogic,u",po::bool_switch(&userLogic),"user logic format")
       ("dummyElecMap,d",po::bool_switch(&dummyElecMap),"use a dummy electronic mapping (for testing only)")
       ("output-dir,o",po::value<std::string>()->default_value("./"),"output directory for file(s)")
-      ("input-file,i",po::value<std::string>(&input)->required(),"input file name")
+      ("input-file,i",po::value<std::string>(&input)->default_value("mchdigits.root"),"input file name")
       ("configKeyValues", po::value<std::string>()->default_value(""), "comma-separated configKeyValues")
       ("no-empty-hbf,e", po::value<bool>()->default_value(true), "do not create empty HBF pages (except for HBF starting TF)")
       ("verbosity,v",po::value<std::string>()->default_value("verylow"), "(fair)logger verbosity");
@@ -130,6 +133,10 @@ int main(int argc, char* argv[])
   auto solar2feelink = (dummyElecMap ? createSolar2FeeLinkMapper<ElectronicMapperDummy>() : createSolar2FeeLinkMapper<ElectronicMapperGenerated>());
 
   o2::raw::RawFileWriter fw(o2::header::DAQID(o2::header::DAQID::MCH).getO2Origin());
+
+  std::string inputGRP = o2::base::NameConf::getGRPFileName();
+  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(inputGRP)};
+  fw.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::MCH)); // must be set explicitly
 
   if (vm["no-empty-hbf"].as<bool>()) {
     fw.setDontFillEmptyHBF(true);
