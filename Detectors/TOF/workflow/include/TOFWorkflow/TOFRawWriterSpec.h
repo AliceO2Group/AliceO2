@@ -36,7 +36,6 @@ class RawWriter : public Task
   void run(ProcessingContext& pc) final;
 
  private:
-  bool mFinished = false;
   std::string mOutFileName; // read from workflow
   std::string mOutDirName;  // read from workflow
 };

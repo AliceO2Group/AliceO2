@@ -58,6 +58,8 @@ class Encoder
   void setContinuous(bool value) { mIsContinuous = value; }
   bool isContinuous() const { return mIsContinuous; }
 
+  auto& getWriter() { return mFileWriter; };
+
   static int getNCRU() { return NCRU; }
 
  protected:
