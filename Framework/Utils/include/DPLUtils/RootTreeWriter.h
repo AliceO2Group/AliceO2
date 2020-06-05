@@ -266,10 +266,10 @@ class RootTreeWriter
   ///
   /// After setting up the tree, the branches will be created according to the
   /// branch definition provided to the constructor.
-  void init(const char* filename, const char* treename)
+  void init(const char* filename, const char* treename, const char* treetitle = nullptr)
   {
     mFile = std::make_unique<TFile>(filename, "RECREATE");
-    mTree = std::make_unique<TTree>(treename, treename);
+    mTree = std::make_unique<TTree>(treename, treetitle != nullptr ? treetitle : treename);
     mTreeStructure->setup(mBranchSpecs, mTree.get());
   }
 

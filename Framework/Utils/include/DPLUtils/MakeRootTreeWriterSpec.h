@@ -306,6 +306,12 @@ class MakeRootTreeWriterSpec
     }
   };
 
+  // helper to define tree attributes
+  struct TreeAttributes {
+    std::string name;
+    std::string title = "";
+  };
+
   // callback with signature void(TFile*, TTree*)
   using CustomClose = WriterType::CustomClose;
 
@@ -359,6 +365,7 @@ class MakeRootTreeWriterSpec
       auto& branchNameOptions = processAttributes->branchNameOptions;
       auto filename = ic.options().get<std::string>("outfile");
       auto treename = ic.options().get<std::string>("treename");
+      auto treetitle = ic.options().get<std::string>("treetitle");
       processAttributes->nEvents = ic.options().get<int>("nevents");
       if (processAttributes->nEvents > 0 && processAttributes->activeInputs.size() != processAttributes->nofBranches) {
         LOG(WARNING) << "the n inputs serve in total m branches with n != m, this means that there will be data for\n"
@@ -381,7 +388,7 @@ class MakeRootTreeWriterSpec
         auto branchName = ic.options().get<std::string>(branchNameOptions[branchIndex].first.c_str());
         processAttributes->writer->setBranchName(branchIndex, branchName.c_str());
       }
-      processAttributes->writer->init(filename.c_str(), treename.c_str());
+      processAttributes->writer->init(filename.c_str(), treename.c_str(), treetitle.c_str());
 
       // the callback to be set as hook at stop of processing for the framework
       auto finishWriting = [processAttributes]() {
@@ -462,6 +469,7 @@ class MakeRootTreeWriterSpec
       // default options
       {"outfile", VariantType::String, mDefaultFileName.c_str(), {"Name of the output file"}},
       {"treename", VariantType::String, mDefaultTreeName.c_str(), {"Name of tree"}},
+      {"treetitle", VariantType::String, mDefaultTreeTitle.c_str(), {"Title of tree"}},
       {"nevents", VariantType::Int, mDefaultNofEvents, {"Number of events to execute"}},
       {"terminate", VariantType::String, mDefaultTerminationPolicy.c_str(), {"Terminate the 'process' or 'workflow'"}},
     };
@@ -501,6 +509,7 @@ class MakeRootTreeWriterSpec
       mDefaultFileName = name;
     } else {
       mDefaultTreeName = name;
+      mDefaultTreeTitle = name;
     }
 
     parseConstructorArgs<N>(std::forward<Args>(args)...);
@@ -564,6 +573,14 @@ class MakeRootTreeWriterSpec
     parseConstructorArgs<N>(std::forward<Args>(args)...);
   }
 
+  template <size_t N, typename... Args>
+  void parseConstructorArgs(TreeAttributes&& att, Args&&... args)
+  {
+    mDefaultTreeName = att.name;
+    mDefaultTreeTitle = att.title.empty() ? att.name : att.title;
+    parseConstructorArgs<N>(std::forward<Args>(args)...);
+  }
+
   /// helper function to recursively parse constructor arguments
   /// parse the branch definitions and store the input specs.
   /// Note: all other properties of the branch definition are handled in the
@@ -601,6 +618,7 @@ class MakeRootTreeWriterSpec
   std::vector<std::pair<std::string, std::string>> mBranchNameOptions;
   std::string mDefaultFileName;
   std::string mDefaultTreeName;
+  std::string mDefaultTreeTitle;
   int mDefaultNofEvents = -1;
   std::string mDefaultTerminationPolicy = "process";
   TerminationCondition mTerminationCondition;
