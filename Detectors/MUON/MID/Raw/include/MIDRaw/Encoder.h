@@ -42,11 +42,13 @@ class Encoder
 
   void finalize(bool closeFile = true);
 
+  auto& getWriter() { return mRawWriter; }
+
  private:
   void flush(uint16_t feeId, const InteractionRecord& ir);
   void hbTrigger(const InteractionRecord& ir);
 
-  o2::raw::RawFileWriter mRawWriter{};        /// Raw file writer
+  o2::raw::RawFileWriter mRawWriter{o2::header::gDataOriginMID}; /// Raw file writer
   std::map<uint16_t, LocalBoardRO> mROData{}; /// Map of data per board
   ColumnDataToLocalBoard mConverter{};        /// ColumnData to LocalBoardRO converter
   FEEIdConfig mFEEIdConfig{};                 /// Crate FEEId mapper

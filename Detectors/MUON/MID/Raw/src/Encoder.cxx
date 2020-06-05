@@ -30,6 +30,7 @@ void Encoder::init(const char* filename, int verbosity)
 
   CrateMasks masks;
   auto gbtIds = mFEEIdConfig.getConfiguredGBTIds();
+
   mRawWriter.setVerbosity(verbosity);
   for (auto& gbtId : gbtIds) {
     auto feeId = mFEEIdConfig.getFeeId(gbtId);
