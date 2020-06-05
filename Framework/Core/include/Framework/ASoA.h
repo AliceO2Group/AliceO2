@@ -126,7 +126,7 @@ class ColumnIterator : ChunkingPolicy
       mCurrentChunk{0}
   {
     auto chunkToUse = mColumn->chunk(mCurrentChunk);
-    if constexpr (std::is_same_v<arrow_array_for_t<T>,arrow::FixedSizeListArray>) {
+    if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
       chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
       auto array = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
       mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset();
@@ -145,11 +145,21 @@ class ColumnIterator : ChunkingPolicy
   ColumnIterator(ColumnIterator<T, ChunkingPolicy>&&) = default;
   ColumnIterator<T, ChunkingPolicy>& operator=(ColumnIterator<T, ChunkingPolicy>&&) = default;
 
+  /// get pointer to specified chunk
+  std::shared_ptr<arrow::Array> getCurrentChunk()
+  {
+    std::shared_ptr<arrow::Array> chunkToUse = mColumn->chunk(mCurrentChunk);
+    if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
+      chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
+    }
+    return chunkToUse;
+  }
+
   /// Move the iterator to the next chunk.
   void nextChunk() const
   {
     auto chunkToUse = mColumn->chunk(mCurrentChunk);
-    if constexpr (std::is_same_v<arrow_array_for_t<T>,arrow::FixedSizeListArray>) {
+    if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
       chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
       auto previousArray = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
       mFirstIndex += previousArray->length();
@@ -157,10 +167,10 @@ class ColumnIterator : ChunkingPolicy
       auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(chunkToUse);
       mFirstIndex += previousArray->length();
     }
- 
+
     mCurrentChunk++;
     chunkToUse = mColumn->chunk(mCurrentChunk);
-    if constexpr (std::is_same_v<arrow_array_for_t<T>,arrow::FixedSizeListArray>) {
+    if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
       chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
       auto array = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
       mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
@@ -175,7 +185,7 @@ class ColumnIterator : ChunkingPolicy
   void prevChunk() const
   {
     auto chunkToUse = mColumn->chunk(mCurrentChunk);
-    if constexpr (std::is_same_v<arrow_array_for_t<T>,arrow::FixedSizeListArray>) {
+    if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
       chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
       auto previousArray = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
       mFirstIndex -= previousArray->length();
@@ -183,10 +193,10 @@ class ColumnIterator : ChunkingPolicy
       auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(chunkToUse);
       mFirstIndex -= previousArray->length();
     }
- 
+
     mCurrentChunk--;
     chunkToUse = mColumn->chunk(mCurrentChunk);
-    if constexpr (std::is_same_v<arrow_array_for_t<T>,arrow::FixedSizeListArray>) {
+    if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
       chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
       auto array = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
       mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
@@ -264,9 +274,8 @@ class ColumnIterator : ChunkingPolicy
   }
 
   mutable T const* mCurrent;
-  mutable T const* mLast;
-  
   int64_t const* mCurrentPos;
+  mutable T const* mLast;
   arrow::ChunkedArray const* mColumn;
   mutable int mFirstIndex;
   mutable int mCurrentChunk;

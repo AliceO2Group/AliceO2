@@ -36,8 +36,8 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   Int_t ev;
   const Int_t nelem = 9;
   Double_t ij[nelem] = {0};
-  TString leaflist = Form("ij[%i]/D",nelem);
-  
+  TString leaflist = Form("ij[%i]/D", nelem);
+
   Int_t ncols = 7;
   t1.Branch("ok", &ok, "ok/O");
   t1.Branch("px", &px, "px/F");
@@ -58,16 +58,15 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
     pz = px * px + py * py;
     random = gRandom->Rndm();
     ev = i + 1;
-    for (Int_t jj=0; jj<nelem; jj++) {
-      ij[jj] = i + 100*jj;
+    for (Int_t jj = 0; jj < nelem; jj++) {
+      ij[jj] = i + 100 * jj;
     }
-    
+
     t1.Fill();
   }
   t1.Write();
 
   // Create an arrow table from this.
-  printf("Write tree to table ...\n");
   TreeToTable tr2ta(&t1);
   auto stat = tr2ta.addAllColumns();
   if (!stat) {
@@ -75,7 +74,6 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
     return;
   }
   auto table = tr2ta.process();
-  LOGP(INFO, "{}",table->ToString().c_str());
 
   // count number of rows with ok==true
   auto br = (TBranch*)t1.GetBranch("ok");
@@ -88,7 +86,6 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   for (int ii = 0; ii < table->num_rows(); ii++) {
     ntrueout += oks->Value(ii) ? 1 : 0;
   }
-  
 
   // test result
   BOOST_REQUIRE_EQUAL(table->Validate().ok(), true);
@@ -101,20 +98,16 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::float32()->id());
   BOOST_REQUIRE_EQUAL(table->column(4)->type()->id(), arrow::float64()->id());
   BOOST_REQUIRE_EQUAL(table->column(5)->type()->id(), arrow::int32()->id());
-  BOOST_REQUIRE_EQUAL(table->column(6)->type()->id(), arrow::fixed_size_list(arrow::float64(),nelem)->id());
+  BOOST_REQUIRE_EQUAL(table->column(6)->type()->id(), arrow::fixed_size_list(arrow::float64(), nelem)->id());
 
   f1.Close();
 
-  printf("Write table to tree ...\n");
   TFile* f2 = new TFile("table2tree.root", "RECREATE");
   TableToTree ta2tr(table, f2, "mytree");
   stat = ta2tr.addAllBranches();
-  auto t2 = ta2tr.process();
-  
-  t2->Print();
-  br = (TBranch*)t2->GetBranch("ok");
-  br->Print();
 
+  auto t2 = ta2tr.process();
+  br = (TBranch*)t2->GetBranch("ok");
   BOOST_REQUIRE_EQUAL(t2->GetEntries(), ndp);
   BOOST_REQUIRE_EQUAL(br->GetEntries(), ndp);
 

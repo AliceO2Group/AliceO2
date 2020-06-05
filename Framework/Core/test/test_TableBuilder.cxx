@@ -85,12 +85,12 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderArray)
   using v3 = std::array<int, numElem>;
   rowWriter(0, v3{0, 11, 123, 256}.data());
   auto table = builder.finalize();
-  
+
   BOOST_REQUIRE_EQUAL(table->num_columns(), 1);
   BOOST_REQUIRE_EQUAL(table->num_rows(), 3);
   BOOST_REQUIRE_EQUAL(table->schema()->field(0)->name(), "pos");
-  BOOST_REQUIRE_EQUAL(table->schema()->field(0)->type()->id(), arrow::fixed_size_list(arrow::int32(),numElem)->id());
-  
+  BOOST_REQUIRE_EQUAL(table->schema()->field(0)->type()->id(), arrow::fixed_size_list(arrow::int32(), numElem)->id());
+
   auto chunkToUse = table->column(0)->chunk(0);
   chunkToUse = std::static_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
   auto data = chunkToUse->data();
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderArray)
   BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[5], 20);
   BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[6], 30);
   BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[7], 40);
-  
+
   auto readBack = ArrayTable{table};
   auto row = readBack.begin();
 
@@ -321,7 +321,6 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
   //BOOST_CHECK_EQUAL(*unionDF.Define("s5", sum, {"right_x", "left_x"}).Sum("s5"), 56);
   //BOOST_CHECK_EQUAL(*blockDF.Define("s5", sum, {"right_x", "left_x"}).Sum("s5"), 168);
 }
-
 
 BOOST_AUTO_TEST_CASE(TestSoAIntegration)
 {
