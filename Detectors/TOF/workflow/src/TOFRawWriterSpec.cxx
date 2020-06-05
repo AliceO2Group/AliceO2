@@ -15,6 +15,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "TOFBase/Geo.h"
+#include "CommonUtils/StringUtils.h"
 #include "TSystem.h"
 #include <fstream>
 #include <iostream>
@@ -45,10 +46,6 @@ void RawWriter::init(InitContext& ic)
 
 void RawWriter::run(ProcessingContext& pc)
 {
-  if (mFinished) {
-    return;
-  }
-
   auto digits = pc.inputs().get<std::vector<o2::tof::Digit>*>("tofdigits");
   auto row = pc.inputs().get<std::vector<o2::tof::ReadoutWindowData>*>("readoutwin");
   int nwindow = row->size();
@@ -97,22 +94,9 @@ void RawWriter::run(ProcessingContext& pc)
     encoder.encode(digitWindows, i);
   }
 
-  encoder.close();
-
   // create configuration file for rawreader
-  std::ofstream fconfig;
-  fconfig.open("TOFraw.cfg");
-
-  for (int icru = 0; icru < encoder.getNCRU(); icru++) {
-    fconfig << "[input-tof-" << icru << "]\n";
-    fconfig << "dataOrigin = TOF\n";
-    fconfig << "dataDescription = RAWDATA\n";
-    fconfig << "filePath = " << mOutDirName << "/cru" << std::setfill('0') << std::setw(2) << icru << mOutFileName << "\n\n";
-  }
-  fconfig.close();
-
-  mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  encoder.getWriter().writeConfFile("TOF", "RAWDATA", o2::utils::concat_string(mOutDirName, '/', "TOFraw.cfg"));
+  encoder.close();
 }
 
 DataProcessorSpec getTOFRawWriterSpec()
@@ -127,7 +111,7 @@ DataProcessorSpec getTOFRawWriterSpec()
     {}, // no output
     AlgorithmSpec{adaptFromTask<RawWriter>()},
     Options{
-      {"tof-raw-outfile", VariantType::String, "rawtof.bin", {"Name of the output file"}},
+      {"tof-raw-outfile", VariantType::String, "tof.raw", {"Name of the output file"}},
       {"tof-raw-outdir", VariantType::String, ".", {"Name of the output dir"}}}};
 }
 } // namespace tof

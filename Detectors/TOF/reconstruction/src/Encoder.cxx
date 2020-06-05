@@ -17,6 +17,9 @@
 #include "CommonConstants/Triggers.h"
 #include "TString.h"
 #include "FairLogger.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+
 #include <array>
 #define VERBOSE
 
@@ -70,6 +73,10 @@ bool Encoder::open(const std::string name, std::string path)
     if (mCrateOn[feeid])
       mFileWriter.registerLink(rdh, Form("%s/cru%02d%s", path.c_str(), rdh.cruID, name.c_str()));
   }
+
+  std::string inputGRP = o2::base::NameConf::getGRPFileName();
+  const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+  mFileWriter.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TOF)); // must be set explicitly
 
   return status;
 }
