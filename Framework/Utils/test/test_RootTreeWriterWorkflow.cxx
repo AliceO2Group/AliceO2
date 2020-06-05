@@ -210,7 +210,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     (                                                                                       //
       "sink1",                                                                              // process name
       fileName.c_str(),                                                                     // default file name
-      "testtree",                                                                           // default tree name
+      MakeRootTreeWriterSpec::TreeAttributes{"testtree", "what a naive test"},              // default tree name
       1,                                                                                    // default number of events
       BranchDefinition<Polymorphic>{InputSpec{"in", "TST", "SOMEOBJECT", 0}, "polyobject"}, // branch config
       BranchDefinition<int>{InputSpec{"disabl", "TST", "NODATA"}, "dummy", 0},              // disabled branch config
