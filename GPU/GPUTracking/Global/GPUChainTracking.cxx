@@ -1662,7 +1662,8 @@ void GPUChainTracking::RunTPCTrackingMerger_Resolve(char useOrigTrackParam, char
   runKernel<GPUTPCGMMergerResolve, 0>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
   runKernel<GPUTPCGMMergerResolve, 1>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
   runKernel<GPUTPCGMMergerResolve, 2>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
-  runKernel<GPUTPCGMMergerResolve, 3>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone, useOrigTrackParam, mergeAll);
+  runKernel<GPUTPCGMMergerResolve, 3>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
+  runKernel<GPUTPCGMMergerResolve, 4>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone, useOrigTrackParam, mergeAll);
 }
 
 int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)

@@ -75,17 +75,23 @@ GPUdii() void GPUTPCGMMergerResolve::Thread<0>(int nBlocks, int nThreads, int iB
 template <>
 GPUdii() void GPUTPCGMMergerResolve::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
 {
-  merger.ResolveFindConnectedComponentsHook(nBlocks, nThreads, iBlock, iThread);
+  merger.ResolveFindConnectedComponentsHookLinks(nBlocks, nThreads, iBlock, iThread);
 }
 
 template <>
 GPUdii() void GPUTPCGMMergerResolve::Thread<2>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
 {
+  merger.ResolveFindConnectedComponentsHookNeighbors(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerResolve::Thread<3>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+{
   merger.ResolveFindConnectedComponentsMultiJump(nBlocks, nThreads, iBlock, iThread);
 }
 
 template <>
-GPUdii() void GPUTPCGMMergerResolve::Thread<3>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, char useOrigTrackParam, char mergeAll)
+GPUdii() void GPUTPCGMMergerResolve::Thread<4>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, char useOrigTrackParam, char mergeAll)
 {
   merger.ResolveMergeSlices(smem, nBlocks, nThreads, iBlock, iThread, useOrigTrackParam, mergeAll);
 }

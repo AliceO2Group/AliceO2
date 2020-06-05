@@ -907,6 +907,30 @@ GPUdi() void GPUTPCGMMerger::setBlockRange(int elems, int nBlocks, int iBlock, i
   end = CAMath::Min(elems, end);
 }
 
+GPUd() void GPUTPCGMMerger::hookEdge(int u, int v)
+{
+  if (v < 0) {
+    return;
+  }
+  while (true) {
+    u = mTrackCCRoots[u];
+    v = mTrackCCRoots[v];
+    if (u == v) {
+      break;
+    }
+    int h = CAMath::Max(u, v);
+    int l = CAMath::Min(u, v);
+
+    int old = CAMath::AtomicCAS(&mTrackCCRoots[h], h, l);
+    if (old == h) {
+      break;
+    }
+
+    u = mTrackCCRoots[h];
+    v = l;
+  }
+}
+
 GPUd() void GPUTPCGMMerger::ResolveFindConnectedComponentsSetup(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   int start, end;
@@ -916,34 +940,33 @@ GPUd() void GPUTPCGMMerger::ResolveFindConnectedComponentsSetup(int nBlocks, int
   }
 }
 
-GPUd() void GPUTPCGMMerger::ResolveFindConnectedComponentsHook(int nBlocks, int nThreads, int iBlock, int iThread)
+GPUd() void GPUTPCGMMerger::ResolveFindConnectedComponentsHookLinks(int nBlocks, int nThreads, int iBlock, int iThread)
 {
-  // Compute connected components in parallel, step 1. Source: Adaptive Work-Efficient Connected Components onthe GPU, Sutton et al, 2016 (https://arxiv.org/pdf/1612.01178.pdf)
+  // Compute connected components in parallel, step 1.
+  // Source: Adaptive Work-Efficient Connected Components on the GPU, Sutton et al, 2016 (https://arxiv.org/pdf/1612.01178.pdf)
   int start, end;
   setBlockRange(SliceTrackInfoLocalTotal(), nBlocks, iBlock, start, end);
   for (int itr = start + iThread; itr < end; itr += nThreads) {
-    int u = itr;
-    int v = mTrackLinks[u];
-    if (v < 0) {
-      continue;
-    }
-    while (true) {
-      u = mTrackCCRoots[u];
-      v = mTrackCCRoots[v];
-      if (u == v) {
-        break;
-      }
-      int h = CAMath::Max(u, v);
-      int l = CAMath::Min(u, v);
+    hookEdge(itr, mTrackLinks[itr]);
+  }
+}
 
-      int old = CAMath::AtomicCAS(&mTrackCCRoots[h], h, l);
-      if (old == h) {
-        break;
-      }
+GPUd() void GPUTPCGMMerger::ResolveFindConnectedComponentsHookNeighbors(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  // Compute connected components in parallel, step 1 - Part 2.
+  nBlocks = nBlocks / 4 * 4;
+  if (iBlock >= nBlocks) {
+    return;
+  }
 
-      u = mTrackCCRoots[h];
-      v = l;
-    }
+  int start, end;
+  setBlockRange(SliceTrackInfoLocalTotal(), nBlocks / 4, iBlock / 4, start, end);
+
+  int myNeighbor = iBlock % 4;
+
+  for (int itr = start + iThread; itr < end; itr += nThreads) {
+    int v = mSliceTrackInfos[itr].AnyNeighbour(myNeighbor);
+    hookEdge(itr, v);
   }
 }
 
