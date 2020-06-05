@@ -14,7 +14,7 @@
 /// \date   02 October 2019
 
 #include "MIDWorkflow/RawWriterSpec.h"
-
+#include <TSystem.h>
 #include <fstream>
 #include <gsl/gsl>
 #include "Framework/CallbackService.h"
@@ -28,6 +28,8 @@
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/Encoder.h"
 #include "MIDRaw/FEEIdConfig.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 namespace of = o2::framework;
 
@@ -41,7 +43,21 @@ class RawWriterDeviceDPL
   void init(o2::framework::InitContext& ic)
   {
     auto filename = ic.options().get<std::string>("mid-raw-outfile");
-    mEncoder.init(filename.c_str());
+    auto dirname = ic.options().get<std::string>("mid-raw-outdir");
+    if (gSystem->AccessPathName(dirname.c_str())) {
+      if (gSystem->mkdir(dirname.c_str(), kTRUE)) {
+        LOG(FATAL) << "could not create output directory " << dirname;
+      } else {
+        LOG(INFO) << "created output directory " << dirname;
+      }
+    }
+
+    std::string fullFName = o2::utils::concat_string(dirname, "/", filename);
+    mEncoder.init(fullFName.c_str());
+
+    std::string inputGRP = o2::base::NameConf::getGRPFileName();
+    std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(inputGRP)};
+    mEncoder.getWriter().setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::MID)); // must be set explicitly
 
     auto stop = [this]() {
       mEncoder.finalize();
@@ -49,18 +65,7 @@ class RawWriterDeviceDPL
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
 
     // Write basic config files to be used with raw data reader workflow
-    auto cfgFilename = filename;
-    auto pos = filename.find_last_of('.');
-    if (pos != std::string::npos) {
-      cfgFilename.erase(pos);
-    }
-    cfgFilename += ".cfg";
-    std::ofstream outCfgFile(cfgFilename.c_str());
-    outCfgFile << "[defaults]\n";
-    outCfgFile << "dataOrigin = " << header::gDataOriginMID.as<std::string>() << "\n\n";
-    outCfgFile << "[input-file]\n";
-    outCfgFile << "filePath = " << filename << "\n";
-    outCfgFile.close();
+    mEncoder.getWriter().writeConfFile("MID", "RAWDATA", o2::utils::concat_string(dirname, '/', "MIDraw.cfg"));
   }
 
   void run(o2::framework::ProcessingContext& pc)
@@ -91,7 +96,8 @@ framework::DataProcessorSpec getRawWriterSpec()
     of::Outputs{},
     of::AlgorithmSpec{of::adaptFromTask<o2::mid::RawWriterDeviceDPL>()},
     of::Options{
-      {"mid-raw-outfile", of::VariantType::String, "mid_raw.dat", {"Raw output file name"}},
+      {"mid-raw-outdir", of::VariantType::String, ".", {"Raw file output directory"}},
+      {"mid-raw-outfile", of::VariantType::String, "mid.raw", {"Raw output file name"}},
       {"mid-raw-header-offset", of::VariantType::Bool, false, {"Header offset in bytes"}}}};
 }
 } // namespace mid
