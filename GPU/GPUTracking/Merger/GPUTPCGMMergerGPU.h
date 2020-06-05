@@ -16,6 +16,7 @@
 
 #include "GPUGeneralKernels.h"
 #include "GPUConstantMem.h"
+#include "GPUTPCGMMergerTypes.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -91,10 +92,10 @@ class GPUTPCGMMergerUnpackResetIds : public GPUTPCGMMergerGeneral
 class GPUTPCGMMergerResolve : public GPUTPCGMMergerGeneral
 {
  public:
-  struct GPUSharedMemory : public GPUTPCGMMerger::GPUResolveSharedMemory {
+  struct GPUSharedMemory : public GPUTPCGMMergerTypes::GPUResolveSharedMemory {
   };
 
-#if !defined(GPUCA_ALIROOT_LIB)
+#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
   template <int iKernel = defaultKernel, typename... Args>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 #endif

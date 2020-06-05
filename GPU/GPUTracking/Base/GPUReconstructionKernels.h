@@ -44,7 +44,7 @@ GPUCA_KRNL_LB((GPUTPCGMMergerMergeSlicesPrepare             ), (simple), (, int 
 GPUCA_KRNL_LB((GPUTPCGMMergerMergeBorders, step0            ), (simple), (, int iSlice, char withinSlice, char mergeMode), (, iSlice, withinSlice, mergeMode))
 GPUCA_KRNL((   GPUTPCGMMergerMergeBorders, step1            ), (simple), (, int iSlice, char withinSlice, char mergeMode), (, iSlice, withinSlice, mergeMode))
 GPUCA_KRNL_LB((GPUTPCGMMergerMergeBorders, step2            ), (simple), (, int iSlice, char withinSlice, char mergeMode), (, iSlice, withinSlice, mergeMode))
-GPUCA_KRNL((   GPUTPCGMMergerMergeBorders, variant          ), (simple), (, GPUPtr1(GPUTPCGMBorderTrack::Range*, range), int N, int cmpMax), (, GPUPtr2(GPUTPCGMBorderTrack::Range*, range), N, cmpMax))
+GPUCA_KRNL((   GPUTPCGMMergerMergeBorders, variant          ), (simple), (, GPUPtr1(GPUTPCGMMergerTypes::GPUTPCGMBorderRange*, range), int N, int cmpMax), (, GPUPtr2(GPUTPCGMMergerTypes::GPUTPCGMBorderRange*, range), N, cmpMax))
 GPUCA_KRNL_LB((GPUTPCGMMergerMergeCE                        ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCGMMergerLinkGlobalTracks               ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCGMMergerCollect                        ), (simple), (), ())
