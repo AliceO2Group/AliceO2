@@ -42,6 +42,10 @@ class GPUTPCGMSliceTrack
   GPUd() int PrevSegmentNeighbour() const { return mSegmentNeighbour[0]; }
   GPUd() int NextSegmentNeighbour() const { return mSegmentNeighbour[1]; }
   GPUd() int SegmentNeighbour(int i) const { return mSegmentNeighbour[i]; }
+  GPUd() int AnyNeighbour(int i) const
+  {
+    return (i < 2) ? mSegmentNeighbour[i] : mNeighbour[i - 2];
+  }
   GPUd() const GPUTPCTrack* OrigTrack() const { return mOrigTrack; }
   GPUd() float X() const { return mParam.mX; }
   GPUd() float Y() const { return mParam.mY; }
@@ -120,19 +124,19 @@ class GPUTPCGMSliceTrack
     float mX, mY, mZ, mSinPhi, mDzDs, mQPt, mCosPhi, mSecPhi; // parameters
     float mC0, mC2, mC3, mC5, mC7, mC9, mC10, mC12, mC14;     // covariances
   };
-  const GPUTPCTrack* mOrigTrack;                            // pointer to original slice track
-  sliceTrackParam mParam;                                   // Track parameters
-  sliceTrackParam mParam2;                                  // Parameters at other side
-  float mTZOffset;                                          // Z offset with early transform, T offset otherwise
-  float mAlpha;                                             // alpha angle
-  float mClusterZT[2];                                      // Minimum maximum cluster Z / T
-  int mNClusters;                                           // N clusters
-  int mNeighbour[2];                                        //
-  int mSegmentNeighbour[2];                                 //
-  int mLocalTrackId;                                        // Corrected local track id in terms of GMSliceTracks array
-  int mGlobalTrackIds[2];                                   // IDs of associated global tracks
-  unsigned char mSlice;                                     // slice of this track segment
-  unsigned char mLeg;                                       // Leg of this track segment
+  const GPUTPCTrack* mOrigTrack; // pointer to original slice track
+  sliceTrackParam mParam;        // Track parameters
+  sliceTrackParam mParam2;       // Parameters at other side
+  float mTZOffset;               // Z offset with early transform, T offset otherwise
+  float mAlpha;                  // alpha angle
+  float mClusterZT[2];           // Minimum maximum cluster Z / T
+  int mNClusters;                // N clusters
+  int mNeighbour[2];             //
+  int mSegmentNeighbour[2];      //
+  int mLocalTrackId;             // Corrected local track id in terms of GMSliceTracks array
+  int mGlobalTrackIds[2];        // IDs of associated global tracks
+  unsigned char mSlice;          // slice of this track segment
+  unsigned char mLeg;            // Leg of this track segment
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
