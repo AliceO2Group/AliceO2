@@ -662,7 +662,7 @@ bool DataProcessingDevice::tryDispatchComputation()
       if (input.spec->lifetime != Lifetime::Timer) {
         continue;
       }
-      if (input.header == nullptr || input.payload == nullptr) {
+      if (input.header == nullptr) {
         continue;
       }
       // This will hopefully delete the message.
