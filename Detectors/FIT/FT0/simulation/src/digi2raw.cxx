@@ -23,6 +23,7 @@
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "FT0Simulation/Digits2Raw.h"
+#include "DataFormatsParameters/GRPObject.h"
 
 /// MC->raw conversion for FT0
 
@@ -90,6 +91,9 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   m2r.setFilePerLink(filePerLink);
   m2r.setVerbosity(verbosity);
   auto& wr = m2r.getWriter();
+  std::string inputGRP = o2::base::NameConf::getGRPFileName();
+  const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+  wr.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::FT0)); // must be set explicitly
   wr.setSuperPageSize(superPageSizeInB);
   wr.useRDHVersion(rdhV);
   wr.setDontFillEmptyHBF(noEmptyHBF);
