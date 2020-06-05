@@ -13,6 +13,7 @@
 #include "TFile.h"
 #include "TTreeReader.h"
 #include "TTreeReaderValue.h"
+#include "TTreeReaderArray.h"
 #include "TableBuilder.h"
 
 // =============================================================================
@@ -37,6 +38,7 @@ class branchIterator
 {
 
  private:
+  arrow::MemoryPool* mpool = arrow::default_memory_pool();
   std::string mbranchName;    // branch name
   arrow::ArrayVector mchunks; // chunks
   Int_t mnumberChuncs;        // number of chunks
@@ -46,7 +48,10 @@ class branchIterator
 
   // data buffers for each data type
   bool mstatus = false;
-  arrow::Type::type marrowType;
+  arrow::Field* mfield;
+  arrow::Type::type mfieldType;
+  arrow::Type::type melementType;
+  int32_t mnumColumnElements;
   std::string mleaflistString;
 
   TBranch* mbranchPtr = nullptr;
@@ -59,12 +64,12 @@ class branchIterator
   UChar_t* var_b = nullptr;
   Float_t* var_f = nullptr;
   Double_t* var_d = nullptr;
-  UShort_t* vs = nullptr;
-  UInt_t* vi = nullptr;
-  ULong64_t* vl = nullptr;
+  UShort_t* var_us = nullptr;
+  UInt_t* var_ui = nullptr;
+  long unsigned int* var_ul = nullptr;
   Short_t* var_s = nullptr;
   Int_t* var_i = nullptr;
-  Long64_t* var_l = nullptr;
+  long int* var_l = nullptr;
 
   // initialize a branch
   bool initBranch(TTree* tree);
@@ -131,32 +136,49 @@ class columnIterator
   TTreeReaderValue<UChar_t>* var_b = nullptr;
   TTreeReaderValue<Float_t>* var_f = nullptr;
   TTreeReaderValue<Double_t>* var_d = nullptr;
-  TTreeReaderValue<UShort_t>* vs = nullptr;
-  TTreeReaderValue<UInt_t>* vi = nullptr;
-  TTreeReaderValue<ULong64_t>* vl = nullptr;
+  TTreeReaderValue<UShort_t>* var_us = nullptr;
+  TTreeReaderValue<UInt_t>* var_ui = nullptr;
+  TTreeReaderValue<long unsigned int>* var_ul = nullptr;
   TTreeReaderValue<Short_t>* var_s = nullptr;
   TTreeReaderValue<Int_t>* var_i = nullptr;
-  TTreeReaderValue<Long64_t>* var_l = nullptr;
+  TTreeReaderValue<long int>* var_l = nullptr;
+
+  // all the possible TTreeReaderArray<T> types
+  TTreeReaderArray<Bool_t>* arr_o = nullptr;
+  TTreeReaderArray<UChar_t>* arr_b = nullptr;
+  TTreeReaderArray<Float_t>* arr_f = nullptr;
+  TTreeReaderArray<Double_t>* arr_d = nullptr;
+  TTreeReaderArray<UShort_t>* arr_us = nullptr;
+  TTreeReaderArray<UInt_t>* arr_ui = nullptr;
+  TTreeReaderArray<long unsigned int>* arr_ul = nullptr;
+  TTreeReaderArray<Short_t>* arr_s = nullptr;
+  TTreeReaderArray<Int_t>* arr_i = nullptr;
+  TTreeReaderArray<long int>* arr_l = nullptr;
 
   // all the possible arrow::TBuilder types
+  std::shared_ptr<arrow::FixedSizeListBuilder> bui_list;
+  
   arrow::BooleanBuilder* bui_o = nullptr;
-  arrow::UInt8Builder* bb = nullptr;
+  arrow::UInt8Builder* bui_ub = nullptr;
   arrow::FloatBuilder* bui_f = nullptr;
   arrow::DoubleBuilder* bui_d = nullptr;
-  arrow::UInt16Builder* bs = nullptr;
-  arrow::UInt32Builder* bi = nullptr;
-  arrow::UInt64Builder* bl = nullptr;
+  arrow::UInt16Builder* bui_us = nullptr;
+  arrow::UInt32Builder* bui_ui = nullptr;
+  arrow::UInt64Builder* bui_ul = nullptr;
   arrow::Int16Builder* bui_s = nullptr;
   arrow::Int32Builder* bui_i = nullptr;
   arrow::Int64Builder* bui_l = nullptr;
 
   bool mstatus = false;
-  EDataType marrowType;
+  EDataType melementType;
+  int64_t mnumColumnElements;
   const char* mcolumnName;
 
   arrow::MemoryPool* mpool = arrow::default_memory_pool();
+  std::unique_ptr<arrow::ArrayBuilder> mvalueBuilder;
   std::shared_ptr<arrow::Field> mfield;
   std::shared_ptr<arrow::Array> marray;
+  
 
  public:
   columnIterator(TTreeReader* reader, const char* colname);

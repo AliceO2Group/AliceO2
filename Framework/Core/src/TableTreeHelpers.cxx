@@ -10,24 +10,46 @@
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/Logger.h"
 
+#include "arrow/type_traits.h"
+
 namespace o2
 {
 namespace framework
 {
 
+// is used in TableToTree
 branchIterator::branchIterator(TTree* tree, std::shared_ptr<arrow::ChunkedArray> col, std::shared_ptr<arrow::Field> field)
 {
-  mbranchName = field->name().c_str();
-  marrowType = field->type()->id();
+  mfield = field.get();
+  mbranchName = mfield->name();
+  
+  mfieldType = mfield->type()->id();
   mchunks = col->chunks();
   mnumberChuncs = mchunks.size();
+  
+  mleaflistString = mbranchName;
+  melementType = mfieldType;
+  mnumColumnElements = 1;
+  if (mfieldType == arrow::Type::type::FIXED_SIZE_LIST) {
+  
+    // element type
+    if (mfield->type()->num_children() <= 0) {
+      LOGP(FATAL, "Field {} of type {} has no children!", mfield->name(),mfield->type()->ToString().c_str());
+    }
+    melementType = mfield->type()->child(0)->type()->id();
+    
+    // number of elements
+    mnumColumnElements = static_cast<const arrow::FixedSizeListType*>(mfield->type().get())->list_size();
+    mleaflistString += "[" + std::to_string(mnumColumnElements) + "]";
+  }
+  LOGP(INFO, "Column {} [{}] with {} element(s) of type {}",mbranchName,mfield->type()->ToString(),mnumColumnElements,melementType);
 
   // initialize the branch
   mstatus = initBranch(tree);
 
   mcounterChunk = 0;
   mstatus &= initDataBuffer(mcounterChunk);
-  LOGP(DEBUG, "branchIterator: {} with {} chunks", col->type()->ToString(), mnumberChuncs);
+  LOGP(INFO, "branchIterator {} with {} chunks.\n", col->type()->ToString(), mnumberChuncs);
 }
 
 branchIterator::~branchIterator()
@@ -38,9 +60,9 @@ branchIterator::~branchIterator()
   delete var_b;
   delete var_f;
   delete var_d;
-  delete vs;
-  delete vi;
-  delete vl;
+  delete var_us;
+  delete var_ui;
+  delete var_ul;
   delete var_s;
   delete var_i;
   delete var_l;
@@ -60,44 +82,45 @@ bool branchIterator::initBranch(TTree* tree)
   }
 
   // create new branch of given data type
-  switch (marrowType) {
+  switch (melementType) {
     case arrow::Type::type::BOOL:
-      mleaflistString = mbranchName + "/O";
+      mleaflistString += "/O";
       break;
     case arrow::Type::type::UINT8:
-      mleaflistString = mbranchName + "/b";
+      mleaflistString += "/b";
       break;
     case arrow::Type::type::FLOAT:
-      mleaflistString = mbranchName + "/F";
+      mleaflistString += "/F";
       break;
     case arrow::Type::type::DOUBLE:
-      mleaflistString = mbranchName + "/D";
+      mleaflistString += "/D";
       break;
     case arrow::Type::type::UINT16:
-      mleaflistString = mbranchName + "/s";
+      mleaflistString += "/s";
       break;
     case arrow::Type::type::UINT32:
-      mleaflistString = mbranchName + "/i";
+      mleaflistString += "/i";
       break;
     case arrow::Type::type::UINT64:
-      mleaflistString = mbranchName + "/l";
+      mleaflistString += "/l";
       break;
     case arrow::Type::type::INT16:
-      mleaflistString = mbranchName + "/S";
+      mleaflistString += "/S";
       break;
     case arrow::Type::type::INT32:
-      mleaflistString = mbranchName + "/I";
+      mleaflistString += "/I";
       break;
     case arrow::Type::type::INT64:
-      mleaflistString = mbranchName + "/L";
+      mleaflistString += "/L";
       break;
     default:
-      LOGP(FATAL, "Type {} not handled!", marrowType);
+      LOGP(FATAL, "Type {} not handled!", melementType);
       break;
   }
 
   mbranchPtr = tree->Branch(mbranchName.c_str(), dbuf, mleaflistString.c_str());
   if (mbranchPtr) {
+    LOGP(INFO, "Branch {} created with leaflist {}.",mbranchName.c_str(),mleaflistString.c_str());
     return true;
   } else {
     return false;
@@ -106,54 +129,62 @@ bool branchIterator::initBranch(TTree* tree)
 
 bool branchIterator::initDataBuffer(Int_t ib)
 {
+  
+  auto chunkToUse = mchunks.at(ib);
+  if (mfieldType == arrow::Type::type::FIXED_SIZE_LIST) {
+    chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
+  }
+  LOGP(INFO, "chunk of type {}",chunkToUse->type()->ToString());
+  
   // reset actual row number
   mcounterRow = 0;
 
-  // get next chunk of given data type marrowType
-  switch (marrowType) {
+  // get next chunk of given data type melementType
+  LOGP(INFO, "Get chunk of type {}.",melementType);
+  switch (melementType) {
     case arrow::Type::type::BOOL:
-      var_o = std::dynamic_pointer_cast<arrow::BooleanArray>(mchunks.at(ib));
+      var_o = std::dynamic_pointer_cast<arrow::BooleanArray>(chunkToUse);
       boolValueHolder = (Bool_t)var_o->Value(mcounterRow);
       v = (void*)&boolValueHolder;
       break;
     case arrow::Type::type::UINT8:
-      var_b = (UChar_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt8Type>>(mchunks.at(ib))->raw_values();
+      var_b = (UChar_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt8Type>>(chunkToUse)->raw_values();
       v = (void*)var_b;
       break;
     case arrow::Type::type::FLOAT:
-      var_f = (Float_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::FloatType>>(mchunks.at(ib))->raw_values();
+      var_f = (Float_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::FloatType>>(chunkToUse)->raw_values();
       v = (void*)var_f;
       break;
     case arrow::Type::type::DOUBLE:
-      var_d = (Double_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::DoubleType>>(mchunks.at(ib))->raw_values();
+      var_d = (Double_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::DoubleType>>(chunkToUse)->raw_values();
       v = (void*)var_d;
       break;
     case arrow::Type::type::UINT16:
-      vs = (UShort_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt16Type>>(mchunks.at(ib))->raw_values();
-      v = (void*)vs;
+      var_us = (UShort_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt16Type>>(chunkToUse)->raw_values();
+      v = (void*)var_us;
       break;
     case arrow::Type::type::UINT32:
-      vi = (UInt_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt32Type>>(mchunks.at(ib))->raw_values();
-      v = (void*)vi;
+      var_ui = (UInt_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt32Type>>(chunkToUse)->raw_values();
+      v = (void*)var_ui;
       break;
     case arrow::Type::type::UINT64:
-      vl = (ULong64_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt64Type>>(mchunks.at(ib))->raw_values();
-      v = (void*)vl;
+      var_ul = (long unsigned int*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt64Type>>(chunkToUse)->raw_values();
+      v = (void*)var_ul;
       break;
     case arrow::Type::type::INT16:
-      var_s = (Short_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int16Type>>(mchunks.at(ib))->raw_values();
+      var_s = (Short_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int16Type>>(chunkToUse)->raw_values();
       v = (void*)var_s;
       break;
     case arrow::Type::type::INT32:
-      var_i = (Int_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(mchunks.at(ib))->raw_values();
+      var_i = (Int_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(chunkToUse)->raw_values();
       v = (void*)var_i;
       break;
     case arrow::Type::type::INT64:
-      var_l = (Long64_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int64Type>>(mchunks.at(ib))->raw_values();
+      var_l = (long int*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int64Type>>(chunkToUse)->raw_values();
       v = (void*)var_l;
       break;
     default:
-      LOGP(FATAL, "Type {} not handled!", marrowType);
+      LOGP(FATAL, "Type {} not handled!", melementType);
       break;
   }
   mbranchPtr->SetAddress(v);
@@ -177,43 +208,53 @@ bool branchIterator::push()
       initDataBuffer(mcounterChunk);
     } else {
       // end of data buffer reached
+      LOGP(INFO, "End of {} data buffer reached!",mbranchName);
       return false;
     }
   } else {
-    switch (marrowType) {
+    switch (melementType) {
       case arrow::Type::type::BOOL:
         boolValueHolder = (Bool_t)var_o->Value(mcounterRow);
         v = (void*)&boolValueHolder;
         break;
       case arrow::Type::type::UINT8:
-        v = (void*)++var_b;
+        var_b += mnumColumnElements;
+        v = (void*)var_b;
         break;
       case arrow::Type::type::FLOAT:
-        v = (void*)++var_f;
+        var_f += mnumColumnElements;
+        v = (void*)var_f;
         break;
       case arrow::Type::type::DOUBLE:
-        v = (void*)++var_d;
+        var_d += mnumColumnElements;
+        v = (void*)var_d;
         break;
       case arrow::Type::type::UINT16:
-        v = (void*)++vs;
+        var_us += mnumColumnElements;
+        v = (void*)var_us;
         break;
       case arrow::Type::type::UINT32:
-        v = (void*)++vi;
+        var_ui += mnumColumnElements;
+        v = (void*)var_ui;
         break;
       case arrow::Type::type::UINT64:
-        v = (void*)++vl;
+        var_ul += mnumColumnElements;
+        v = (void*)var_ul;
         break;
       case arrow::Type::type::INT16:
-        v = (void*)++var_s;
+        var_s += mnumColumnElements;
+        v = (void*)var_s;
         break;
       case arrow::Type::type::INT32:
-        v = (void*)++var_i;
+        var_i += mnumColumnElements;
+        v = (void*)var_i;
         break;
       case arrow::Type::type::INT64:
-        v = (void*)++var_l;
+        var_l += mnumColumnElements;
+        v = (void*)var_l;
         break;
       default:
-        LOGP(FATAL, "Type {} not handled!", marrowType);
+        LOGP(FATAL, "Type {} not handled!", melementType);
         break;
     }
   }
@@ -274,7 +315,7 @@ TTree* TableToTree::process()
 {
 
   bool togo = true;
-  LOGP(DEBUG, "Number of colums: {}", mbranchIterators.size());
+  LOGP(INFO, "Number of colums: {}", mbranchIterators.size());
   while (togo) {
     // fill the tree
     mtreePtr->Fill();
@@ -290,6 +331,33 @@ TTree* TableToTree::process()
 }
 
 // -----------------------------------------------------------------------------
+#define MAKE_LIST_BUILDER(ElementType, NumElements)           \
+  MakeBuilder(mpool,ElementType,&mvalueBuilder);              \
+  bui_list = std::make_shared<arrow::FixedSizeListBuilder>(   \
+    mpool,                                                    \
+    std::move(mvalueBuilder),                                 \
+    NumElements );
+
+#define MAKE_FIELD(ElementType, NumElements)                                                        \
+  if (NumElements == 1) {                                                                           \
+    mfield =                                                                                        \
+      std::make_shared<arrow::Field>(mcolumnName,ElementType);                                      \
+  } else {                                                                                          \
+    mfield =                                                                                        \
+      std::make_shared<arrow::Field>(mcolumnName, arrow::fixed_size_list(ElementType,NumElements)); \
+  }
+
+#define MAKE_FIELD_AND_BUILDER(ElementCType, NumElements, Builder)                                                                  \
+  MAKE_FIELD(arrow::TypeTraits<arrow::CTypeTraits<ElementCType>::ArrowType>::type_singleton(), NumElements);                        \
+  if (NumElements == 1) {                                                                                                           \
+    Builder = new arrow::TypeTraits<arrow::CTypeTraits<ElementCType>::ArrowType>::BuilderType(mpool);                               \
+  } else {                                                                                                                          \
+    MAKE_LIST_BUILDER(arrow::TypeTraits<arrow::CTypeTraits<ElementCType>::ArrowType>::type_singleton(),NumElements);                \
+    Builder = static_cast<arrow::TypeTraits<arrow::CTypeTraits<ElementCType>::ArrowType>::BuilderType*>(bui_list->value_builder()); \
+  }
+
+
+// is used in TreeToTable
 columnIterator::columnIterator(TTreeReader* reader, const char* colname)
 {
 
@@ -306,70 +374,122 @@ columnIterator::columnIterator(TTreeReader* reader, const char* colname)
     return;
   }
   mcolumnName = colname;
-
+  
+  // type of the branch elements
   TClass* cl;
-  br->GetExpectedType(cl, marrowType);
+  br->GetExpectedType(cl, melementType);
+
+  // currently only single-value or single-array branches are accepted
+  // thus of the form e.g. alpha/D or alpha[5]/D
+  // check if this is a single-value or single-array branch
+  mnumColumnElements = 1;
+  std::string branchTitle = br->GetTitle();
+  Int_t pos0 = branchTitle.find("[");
+  Int_t pos1 = branchTitle.find("]");
+  if (pos0>0 && pos1>0) {
+    mnumColumnElements = atoi(branchTitle.substr(pos0+1,pos1-pos0-1).c_str());
+  }
+  printf("melementType %i mnumColumnElements %i\n",melementType,mnumColumnElements);
+
   // initialize the TTreeReaderValue<T>
   //            the corresponding arrow::TBuilder
   //            the column schema
   // the TTreeReaderValue is incremented by reader->Next()
-  // switch according to marrowType
+  // switch according to melementType
   mstatus = true;
 
-  switch (marrowType) {
-    case EDataType::kBool_t:
-      var_o = new TTreeReaderValue<Bool_t>(*reader, mcolumnName);
-      mfield = std::make_shared<arrow::Field>(mcolumnName, arrow::boolean());
-      bui_o = new arrow::BooleanBuilder(mpool);
-      break;
-    case EDataType::kUChar_t:
-      var_b = new TTreeReaderValue<UChar_t>(*reader, mcolumnName);
-      mfield = std::make_shared<arrow::Field>(mcolumnName, arrow::uint8());
-      bb = new arrow::UInt8Builder(mpool);
-      break;
-    case EDataType::kFloat_t:
-      mfield = std::make_shared<arrow::Field>(mcolumnName, arrow::float32());
-      var_f = new TTreeReaderValue<Float_t>(*reader, mcolumnName);
-      bui_f = new arrow::FloatBuilder(mpool);
-      break;
-    case EDataType::kDouble_t:
-      mfield = std::make_shared<arrow::Field>(mcolumnName, arrow::float64());
-      var_d = new TTreeReaderValue<Double_t>(*reader, mcolumnName);
-      bui_d = new arrow::DoubleBuilder(mpool);
-      break;
-    case EDataType::kUShort_t:
-      mfield = std::make_shared<arrow::Field>(mcolumnName, arrow::uint16());
-      vs = new TTreeReaderValue<UShort_t>(*reader, mcolumnName);
-      bs = new arrow::UInt16Builder(mpool);
-      break;
-    case EDataType::kUInt_t:
-      mfield = std::make_shared<arrow::Field>(mcolumnName, arrow::uint32());
-      vi = new TTreeReaderValue<UInt_t>(*reader, mcolumnName);
-      bi = new arrow::UInt32Builder(mpool);
-      break;
-    case EDataType::kULong64_t:
-      mfield = std::make_shared<arrow::Field>(mcolumnName, arrow::uint64());
-      vl = new TTreeReaderValue<ULong64_t>(*reader, mcolumnName);
-      bl = new arrow::UInt64Builder(mpool);
-      break;
-    case EDataType::kShort_t:
-      mfield = std::make_shared<arrow::Field>(mcolumnName, arrow::int16());
-      var_s = new TTreeReaderValue<Short_t>(*reader, mcolumnName);
-      bui_s = new arrow::Int16Builder(mpool);
-      break;
-    case EDataType::kInt_t:
-      mfield = std::make_shared<arrow::Field>(mcolumnName, arrow::int32());
-      var_i = new TTreeReaderValue<Int_t>(*reader, mcolumnName);
-      bui_i = new arrow::Int32Builder(mpool);
-      break;
-    case EDataType::kLong64_t:
-      mfield = std::make_shared<arrow::Field>(mcolumnName, arrow::int64());
-      var_l = new TTreeReaderValue<Long64_t>(*reader, mcolumnName);
-      bui_l = new arrow::Int64Builder(mpool);
-      break;
-    default:
-      LOGP(FATAL, "Type {} not handled!", marrowType);
-      break;
+  if (mnumColumnElements == 1) {
+    switch (melementType) {
+      case EDataType::kBool_t:
+        var_o = new TTreeReaderValue<Bool_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(bool,1,bui_o);
+        break;
+      case EDataType::kUChar_t:
+        var_b = new TTreeReaderValue<UChar_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(uint8_t,1,bui_ub);
+        break;
+      case EDataType::kFloat_t:
+        var_f = new TTreeReaderValue<Float_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(float,1,bui_f);
+        break;
+      case EDataType::kDouble_t:
+        var_d = new TTreeReaderValue<Double_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(double,1,bui_d);
+        break;
+      case EDataType::kUShort_t:
+        var_us = new TTreeReaderValue<UShort_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(uint16_t,1,bui_us);
+        break;
+      case EDataType::kUInt_t:
+        var_ui = new TTreeReaderValue<UInt_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(uint32_t,1,bui_ui);
+        break;
+      case EDataType::kULong64_t:
+        var_ul = new TTreeReaderValue<long unsigned int>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(uint64_t,1,bui_ul);
+        break;
+      case EDataType::kShort_t:
+        var_s = new TTreeReaderValue<Short_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(int16_t,1,bui_s);
+        break;
+      case EDataType::kInt_t:
+        var_i = new TTreeReaderValue<Int_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(int32_t,1,bui_i);
+        break;
+      case EDataType::kLong64_t:
+        var_l = new TTreeReaderValue<long int>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(int64_t,1,bui_l);
+        break;
+      default:
+        LOGP(FATAL, "Type {} not handled!", melementType);
+        break;
+    }
+  } else {
+    switch (melementType) {
+      case EDataType::kBool_t:
+        arr_o = new TTreeReaderArray<Bool_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(bool,mnumColumnElements,bui_o);
+        break;
+      case EDataType::kUChar_t:
+        arr_b = new TTreeReaderArray<UChar_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(uint8_t,mnumColumnElements,bui_ub);
+        break;
+      case EDataType::kFloat_t:
+        arr_f = new TTreeReaderArray<Float_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(float,mnumColumnElements,bui_f);
+        break;
+      case EDataType::kDouble_t:
+        arr_d = new TTreeReaderArray<Double_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(double,mnumColumnElements,bui_d);
+        break;
+      case EDataType::kUShort_t:
+        arr_us = new TTreeReaderArray<UShort_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(uint16_t,mnumColumnElements,bui_us);
+        break;
+      case EDataType::kUInt_t:
+        arr_ui = new TTreeReaderArray<UInt_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(uint32_t,mnumColumnElements,bui_ui);
+        break;
+      case EDataType::kULong64_t:
+        arr_ul = new TTreeReaderArray<long unsigned int>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(uint64_t,mnumColumnElements,bui_ul);
+        break;
+      case EDataType::kShort_t:
+        arr_s = new TTreeReaderArray<Short_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(int16_t,mnumColumnElements,bui_s);
+        break;
+      case EDataType::kInt_t:
+        arr_i = new TTreeReaderArray<Int_t>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(int32_t,mnumColumnElements,bui_i);
+        break;
+      case EDataType::kLong64_t:
+        arr_l = new TTreeReaderArray<long int>(*reader, mcolumnName);
+        MAKE_FIELD_AND_BUILDER(int64_t,mnumColumnElements,bui_l);
+        break;
+      default:
+        LOGP(FATAL, "Type {} not handled!", melementType);
+        break;
+    }
   }
 }
 
@@ -380,23 +500,24 @@ columnIterator::~columnIterator()
   delete var_b;
   delete var_f;
   delete var_d;
-  delete vs;
-  delete vi;
-  delete vl;
+  delete var_us;
+  delete var_ui;
+  delete var_ul;
   delete var_s;
   delete var_i;
   delete var_l;
 
-  delete bui_o;
-  delete bb;
-  delete bui_f;
-  delete bui_d;
-  delete bs;
-  delete bi;
-  delete bl;
-  delete bui_s;
-  delete bui_i;
-  delete bui_l;
+  delete arr_o;
+  delete arr_b;
+  delete arr_f;
+  delete arr_d;
+  delete arr_us;
+  delete arr_ui;
+  delete arr_ul;
+  delete arr_s;
+  delete arr_i;
+  delete arr_l;
+
 };
 
 bool columnIterator::getStatus()
@@ -408,83 +529,126 @@ void columnIterator::push()
 {
   arrow::Status stat;
 
-  // switch according to marrowType
-  switch (marrowType) {
-    case EDataType::kBool_t:
-      stat = bui_o->Append((bool)**var_o);
-      break;
-    case EDataType::kUChar_t:
-      stat = bb->Append(**var_b);
-      break;
-    case EDataType::kFloat_t:
-      stat = bui_f->Append(**var_f);
-      break;
-    case EDataType::kDouble_t:
-      stat = bui_d->Append(**var_d);
-      break;
-    case EDataType::kUShort_t:
-      stat = bs->Append(**vs);
-      break;
-    case EDataType::kUInt_t:
-      stat = bi->Append(**vi);
-      break;
-    case EDataType::kULong64_t:
-      stat = bl->Append(**vl);
-      break;
-    case EDataType::kShort_t:
-      stat = bui_s->Append(**var_s);
-      break;
-    case EDataType::kInt_t:
-      stat = bui_i->Append(**var_i);
-      break;
-    case EDataType::kLong64_t:
-      stat = bui_l->Append(**var_l);
-      break;
-    default:
-      LOGP(FATAL, "Type {} not handled!", marrowType);
-      break;
-  }
+  // switch according to melementType
+  if (mnumColumnElements == 1) {
+    switch (melementType) {
+      case EDataType::kBool_t:
+        stat = bui_o->Append((bool)**var_o);
+        break;
+      case EDataType::kUChar_t:
+        stat = bui_ub->Append(**var_b);
+        break;
+      case EDataType::kFloat_t:
+        stat = bui_f->Append(**var_f);
+        break;
+      case EDataType::kDouble_t:
+        stat = bui_d->Append(**var_d);
+        break;
+      case EDataType::kUShort_t:
+        stat = bui_us->Append(**var_us);
+        break;
+      case EDataType::kUInt_t:
+        stat = bui_ui->Append(**var_ui);
+        break;
+      case EDataType::kULong64_t:
+        stat = bui_ul->Append(**var_ul);
+        break;
+      case EDataType::kShort_t:
+        stat = bui_s->Append(**var_s);
+        break;
+      case EDataType::kInt_t:
+        stat = bui_i->Append(**var_i);
+        break;
+      case EDataType::kLong64_t:
+        stat = bui_l->Append(**var_l);
+        break;
+      default:
+        LOGP(FATAL, "Type {} not handled!", melementType);
+        break;
+    }
+  } else {
+    bui_list->AppendValues(1);
+    switch (melementType) {
+      case EDataType::kBool_t:
+        stat = bui_o->AppendValues((uint8_t*)&((*arr_o)[0]),mnumColumnElements);
+        break;
+      case EDataType::kUChar_t:
+        stat = bui_ub->AppendValues(&((*arr_b)[0]),mnumColumnElements);
+        break;
+      case EDataType::kFloat_t:
+        stat = bui_f->AppendValues(&((*arr_f)[0]),mnumColumnElements);
+        break;
+      case EDataType::kDouble_t:
+        stat = bui_d->AppendValues(&((*arr_d)[0]),mnumColumnElements);
+        break;
+      case EDataType::kUShort_t:
+        stat = bui_us->AppendValues(&((*arr_us)[0]),mnumColumnElements);
+        break;
+      case EDataType::kUInt_t:
+        stat = bui_ui->AppendValues(&((*arr_ui)[0]),mnumColumnElements);
+        break;
+      case EDataType::kULong64_t:
+        stat = bui_ul->AppendValues(&((*arr_ul)[0]),mnumColumnElements);
+        break;
+      case EDataType::kShort_t:
+        stat = bui_s->AppendValues(&((*arr_s)[0]),mnumColumnElements);
+        break;
+      case EDataType::kInt_t: {
+        stat = bui_i->AppendValues(&((*arr_i)[0]),mnumColumnElements);
+        break; }
+      case EDataType::kLong64_t:
+        stat = bui_l->AppendValues(&((*arr_l)[0]),mnumColumnElements);
+        break;
+      default:
+        LOGP(FATAL, "Type {} not handled!", melementType);
+        break;
+    }
+  }  
 }
 
 void columnIterator::finish()
 {
   arrow::Status stat;
 
-  // switch according to marrowType
-  switch (marrowType) {
-    case EDataType::kBool_t:
-      stat = bui_o->Finish(&marray);
-      break;
-    case EDataType::kUChar_t:
-      stat = bb->Finish(&marray);
-      break;
-    case EDataType::kFloat_t:
-      stat = bui_f->Finish(&marray);
-      break;
-    case EDataType::kDouble_t:
-      stat = bui_d->Finish(&marray);
-      break;
-    case EDataType::kUShort_t:
-      stat = bs->Finish(&marray);
-      break;
-    case EDataType::kUInt_t:
-      stat = bi->Finish(&marray);
-      break;
-    case EDataType::kULong64_t:
-      stat = bl->Finish(&marray);
-      break;
-    case EDataType::kShort_t:
-      stat = bui_s->Finish(&marray);
-      break;
-    case EDataType::kInt_t:
-      stat = bui_i->Finish(&marray);
-      break;
-    case EDataType::kLong64_t:
-      stat = bui_l->Finish(&marray);
-      break;
-    default:
-      LOGP(FATAL, "Type {} not handled!", marrowType);
-      break;
+  // switch according to melementType
+  if (mnumColumnElements == 1) {
+    switch (melementType) {
+      case EDataType::kBool_t:
+        stat = bui_o->Finish(&marray);
+        break;
+      case EDataType::kUChar_t:
+        stat = bui_ub->Finish(&marray);
+        break;
+      case EDataType::kFloat_t:
+        stat = bui_f->Finish(&marray);
+        break;
+      case EDataType::kDouble_t:
+        stat = bui_d->Finish(&marray);
+        break;
+      case EDataType::kUShort_t:
+        stat = bui_us->Finish(&marray);
+        break;
+      case EDataType::kUInt_t:
+        stat = bui_ui->Finish(&marray);
+        break;
+      case EDataType::kULong64_t:
+        stat = bui_ul->Finish(&marray);
+        break;
+      case EDataType::kShort_t:
+        stat = bui_s->Finish(&marray);
+        break;
+      case EDataType::kInt_t:
+        stat = bui_i->Finish(&marray);
+        break;
+      case EDataType::kLong64_t:
+        stat = bui_l->Finish(&marray);
+        break;
+      default:
+        LOGP(FATAL, "Type {} not handled!", melementType);
+        break;
+    }
+  } else {
+    bui_list->Finish(&marray);
   }
 }
 
@@ -564,6 +728,7 @@ std::shared_ptr<arrow::Table> TreeToTable::finalize()
     schema_vector.push_back(colit->getSchema());
   }
   auto fields = std::make_shared<arrow::Schema>(schema_vector);
+  LOGP(INFO, "Schema {}",fields->ToString());
 
   // create the final table
   // ta is of type std::shared_ptr<arrow::Table>
