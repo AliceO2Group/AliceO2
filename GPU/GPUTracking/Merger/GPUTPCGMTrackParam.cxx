@@ -451,9 +451,15 @@ GPUd() int GPUTPCGMTrackParam::MergeDoubleRowClusters(int& ihit, int wayDirectio
 
 GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int iRow, int iTrack, bool goodLeg, GPUTPCGMPropagator& prop)
 {
-  float X, Y, Z;
-  Merger->GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoX(slice, iRow, mP[0], mP[1], X);
-  prop.GetPropagatedYZ(X, Y, Z);
+  float Y, Z;
+  if (Merger->Param().earlyTpcTransform) {
+    Y = mP[0];
+    Z = mP[1];
+  } else {
+    float X;
+    Merger->GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoX(slice, iRow, mP[0], mP[1], X);
+    prop.GetPropagatedYZ(X, Y, Z);
+  }
   AttachClusters(Merger, slice, iRow, iTrack, goodLeg, Y, Z);
 }
 
@@ -480,7 +486,12 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
   int bin, ny, nz;
   const float tube = 2.5f;
   float nY, nZ;
-  Merger->GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoNominalYZ(slice, iRow, Y, Z, nY, nZ);
+  if (Merger->Param().earlyTpcTransform) {
+    nY = Y;
+    nZ = Z;
+  } else {
+    Merger->GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoNominalYZ(slice, iRow, Y, Z, nY, nZ);
+  }
   row.Grid().GetBinArea(nY, nZ + zOffset, tube, tube, bin, ny, nz);
   float sy2 = tube * tube, sz2 = tube * tube;
 
