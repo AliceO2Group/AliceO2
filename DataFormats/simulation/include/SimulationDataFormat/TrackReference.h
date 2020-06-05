@@ -57,7 +57,6 @@ struct SimTrackStatus {
     if (vmc.IsTrackAlive()) {
       mStatus |= kTrackAlive;
     }
-
   }
   bool isEntering() const { return mStatus & kTrackEntering; }
   bool isInside() const { return mStatus & kTrackInside; }
@@ -215,7 +214,7 @@ inline TrackReference::TrackReference(TVirtualMC const& vmc, int detlabel) : mSt
   mTrackLength = vmc.TrackLength();
   mTof = vmc.TrackTime();
   mDetectorId = detlabel;
-  mTrackNumber = vmc.GetStack()->GetCurrentTrackNumber(); 
+  mTrackNumber = vmc.GetStack()->GetCurrentTrackNumber();
 }
 
 inline std::ostream& operator<<(std::ostream& os, const TrackReference& a)

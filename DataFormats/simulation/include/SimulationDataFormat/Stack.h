@@ -311,7 +311,6 @@ class Stack : public FairGenericStack
   ClassDefOverride(Stack, 1);
 };
 
-
 inline void Stack::addTrackReference(const o2::TrackReference& ref)
 {
   if (mIndexOfCurrentTrack >= mNumberOfPrimaryParticles) {
