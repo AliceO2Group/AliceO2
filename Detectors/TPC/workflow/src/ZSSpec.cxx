@@ -41,6 +41,8 @@
 #include "TPCBase/RDHUtils.h"
 #include "TPCBase/ZeroSuppress.h"
 #include "DPLUtils/DPLRawParser.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -144,7 +146,10 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
 
       if (outRaw) {
         // ===| set up raw writer |===================================================
+        std::string inputGRP = o2::base::NameConf::getGRPFileName();
+        const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
         o2::raw::RawFileWriter writer{"TPC"}; // to set the RDHv6.sourceID if V6 is used
+        writer.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)); // must be set explicitly
         uint32_t rdhV = 4;
         writer.useRDHVersion(rdhV);
         std::string outDir = "./";

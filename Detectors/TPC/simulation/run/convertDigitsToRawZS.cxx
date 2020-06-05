@@ -40,6 +40,8 @@
 #include "TPCBase/RDHUtils.h"
 #include "DataFormatsTPC/Digit.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 namespace bpo = boost::program_options;
 
@@ -105,9 +107,13 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   }
 
   // ===| set up raw writer |===================================================
+  std::string inputGRP = o2::base::NameConf::getGRPFileName();
+  const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+
   o2::raw::RawFileWriter writer{"TPC"}; // to set the RDHv6.sourceID if V6 is used
   writer.useRDHVersion(rdhV);
   writer.setAddSeparateHBFStopPage(stopPage);
+  writer.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)); // must be set explicitly
   const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
 
   for (unsigned int i = 0; i < NSectors; i++) {
@@ -200,7 +206,7 @@ int main(int argc, char** argv)
     auto add_option = opt_general.add_options();
     add_option("help,h", "Print this help message");
     add_option("verbose,v", bpo::value<uint32_t>()->default_value(0), "Select verbosity level [0 = no output]");
-    add_option("input-file,i", bpo::value<std::string>()->required(), "Specifies input file.");
+    add_option("input-file,i", bpo::value<std::string>()->default_value("tpcdigits.root"), "Specifies input file.");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "Specify output directory");
     add_option("no-parent-directories,n", "Do not create parent directories recursively");
     add_option("sector-by-sector,s", bpo::value<bool>()->default_value(false)->implicit_value(true), "Run one TPC sector after another");
