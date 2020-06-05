@@ -29,6 +29,8 @@
 #include <algorithm>
 
 using namespace o2::framework;
+namespace o2lhc = o2::constants::lhc;
+
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 namespace o2
 {
@@ -108,6 +110,13 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       LOG(INFO) << "Imposing hadronic interaction rate " << intRate << "Hz";
       mgr.getInteractionSampler().setInteractionRate(intRate);
 
+      int bc0 = ctx.options().get<int>("firstBC");
+      int orbit0 = ctx.options().get<int>("firstOrbit");
+      if (bc0 < 0 || orbit0 < 0) {
+        throw std::runtime_error("negative 1st orbit or BC provided");
+      }
+      mgr.getInteractionSampler().setFirstIR({uint16_t(bc0 % o2lhc::LHCMaxBunches), orbit0 + uint32_t(bc0 / o2lhc::LHCMaxBunches)});
+
       auto bcPatternFile = ctx.options().get<std::string>("bcPatternFile");
       if (!bcPatternFile.empty()) {
         mgr.getInteractionSampler().setBunchFilling(bcPatternFile);
@@ -150,6 +159,8 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
     /* OPTIONS */
     Options{
       {"interactionRate", VariantType::Float, 50000.0f, {"Total hadronic interaction rate (Hz)"}},
+      {"firstBC", VariantType::Int, 0, {"First BC in interaction sampling, will affect 1st orbit if > LHCMaxBunches"}},
+      {"firstOrbit", VariantType::Int, 1, {"First orbit in interaction sampling"}},
       {"bcPatternFile", VariantType::String, "", {"Interacting BC pattern file (e.g. from CreateBCPattern.C)"}},
       {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}},
       {"outcontext", VariantType::String, "collisioncontext.root", {"Output file for collision context"}},

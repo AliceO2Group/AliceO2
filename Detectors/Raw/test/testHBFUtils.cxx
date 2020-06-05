@@ -32,8 +32,12 @@ BOOST_AUTO_TEST_CASE(HBFUtils)
 
   const bool useContinuous = true;
 
+  const auto& sampler = o2::raw::HBFUtils::Instance();
+
+  // default sampler with BC filling like in TPC TDR
   o2::steer::InteractionSampler irSampler;
   irSampler.setInteractionRate(12000); // ~1.5 interactions per orbit
+  irSampler.setFirstIR(sampler.getFirstIR());
   irSampler.init();
 
   int nIRs = 500;
@@ -41,9 +45,6 @@ BOOST_AUTO_TEST_CASE(HBFUtils)
   irSampler.generateCollisionTimes(irs);
 
   LOG(INFO) << "Emulate RDHs for raw data between IRs " << irs.front() << " and " << irs.back();
-
-  // default sampler with BC filling like in TPC TDR, 50kHz
-  const auto& sampler = o2::raw::HBFUtils::Instance();
 
   uint8_t packetCounter = 0;
   std::vector<o2::InteractionRecord> HBIRVec;
@@ -114,6 +115,10 @@ BOOST_AUTO_TEST_CASE(HBFUtils)
 
       rdhIR = HBIRVec.back();
       rdh = sampler.createRDH<RDH>(rdhIR);
+      if (flagSOX) {
+        rdh.triggerType |= useContinuous ? o2::trigger::SOC : o2::trigger::SOT;
+        flagSOX = false;
+      }
       rdh.packetCounter = packetCounter++;
       rdh.memorySize = sizeof(rdh) + 16 + gRandom->Integer(8192 - sizeof(rdh) - 16); // random payload
       rdh.offsetToNext = rdh.memorySize;

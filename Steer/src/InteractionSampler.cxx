@@ -54,7 +54,7 @@ void InteractionSampler::init()
   mProbInteraction = 1. - muexp;
   mMuBCZTRed = mMuBC * muexp / mProbInteraction;
   mIntBCCache = 0;
-  mIR.bc = mBCMin;
+  mIR.bc = std::max(uint16_t(mBCMin), mIR.bc);
 }
 
 //_________________________________________________
