@@ -249,28 +249,48 @@ class MakeRootTreeWriterSpec
   struct KeyExtractor {
     static std::string asString(InputSpec const& arg) { return arg.binding; }
   };
+  /// helper for the constructor selection below
+  template <typename T, typename _ = void>
+  struct StringAssignable : public std::false_type {
+  };
+  template <typename T>
+  struct StringAssignable<
+    T,
+    std::enable_if_t<std::is_same_v<std::decay_t<T>, char const*> ||
+                     std::is_same_v<std::decay_t<T>, char*> ||
+                     std::is_same_v<std::decay_t<T>, std::string>>> : public std::true_type {
+  };
 
-  // branch definition structure uses InputSpec as key type
+  /// branch definition structure uses InputSpec as key type
+  /// Main pupose is to support specification of a branch name option key in addition to all other
+  /// branch definition arguments. The spec generator will add this as an option to the processor
   template <typename T>
   struct BranchDefinition : public WriterType::BranchDef<T, InputSpec, KeyExtractor> {
     /// constructor allows to specify an optional key used to generate a command line
     /// option, base class uses default parameters
-    template <typename KeyType>
-    BranchDefinition(KeyType&& key, std::string _branchName, std::string _optionKey = "")
+    template <typename KeyType, typename Arg = const char*, std::enable_if_t<StringAssignable<Arg>::value, int> = 0>
+    BranchDefinition(KeyType&& key, std::string _branchName, Arg _optionKey = "")
       : WriterType::BranchDef<T, InputSpec, KeyExtractor>(std::forward<KeyType>(key), _branchName), optionKey(_optionKey)
     {
     }
     /// constructor allows to specify number of branches and an optional key used to generate
     /// a command line option, base class uses default parameters
-    template <typename KeyType>
-    BranchDefinition(KeyType&& key, std::string _branchName, int _nofBranches, std::string _optionKey = "")
+    template <typename KeyType, typename Arg = const char*, std::enable_if_t<StringAssignable<Arg>::value, int> = 0>
+    BranchDefinition(KeyType&& key, std::string _branchName, int _nofBranches, Arg _optionKey = "")
       : WriterType::BranchDef<T, InputSpec, KeyExtractor>(std::forward<KeyType>(key), _branchName, _nofBranches), optionKey(_optionKey)
     {
     }
-    /// constructor, all parameters are simply forwarded to base class
-    template <typename KeyType, typename... Args>
-    BranchDefinition(KeyType key, std::string _branchName, std::string _optionKey, Args&&... args)
+    /// constructor, if the first argument from the pack can be assigned to string this is treated
+    /// as option key, all other arguments are simply forwarded to base class
+    template <typename KeyType, typename Arg, typename... Args, std::enable_if_t<StringAssignable<Arg>::value, int> = 0>
+    BranchDefinition(KeyType key, std::string _branchName, Arg&& _optionKey, Args&&... args)
       : WriterType::BranchDef<T, InputSpec, KeyExtractor>(std::forward<KeyType>(key), _branchName, std::forward<Args>(args)...), optionKey(_optionKey)
+    {
+    }
+    /// constructor, the argument pack is simply forwarded to base class
+    template <typename KeyType, typename Arg, typename... Args, std::enable_if_t<!StringAssignable<Arg>::value, int> = 0>
+    BranchDefinition(KeyType key, std::string _branchName, Arg&& arg, Args&&... args)
+      : WriterType::BranchDef<T, InputSpec, KeyExtractor>(std::forward<KeyType>(key), _branchName, std::forward<Arg>(arg), std::forward<Args>(args)...), optionKey()
     {
     }
     /// key for command line option

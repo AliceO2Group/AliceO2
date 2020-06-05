@@ -182,7 +182,7 @@ class RootTreeWriter
     ///                     Fill: fill handler
     ///                     Spectator: spectator handler
     template <typename... Args>
-    BranchDef(key_type key, std::string _branchName, size_t _nofBranches, Args&&... args) : keys({key}), branchName(_branchName), nofBranches(_nofBranches)
+    BranchDef(key_type key, std::string _branchName, Args&&... args) : keys({key}), branchName(_branchName), nofBranches(1)
     {
       init(std::forward<Args>(args)...);
     }
@@ -198,7 +198,7 @@ class RootTreeWriter
     ///                     Fill: fill handler
     ///                     Spectator: spectator handler
     template <typename... Args>
-    BranchDef(std::vector<key_type> vec, std::string _branchName, size_t _nofBranches, Args&&... args) : keys(vec), branchName(_branchName), nofBranches(_nofBranches)
+    BranchDef(std::vector<key_type> vec, std::string _branchName, Args&&... args) : keys(vec), branchName(_branchName), nofBranches(1)
     {
       init(std::forward<Args>(args)...);
     }
@@ -220,6 +220,8 @@ class RootTreeWriter
         callback = arg;
       } else if constexpr (can_assign<Type, SpectatorExt>::value) {
         callback = arg;
+      } else if constexpr (std::is_integral<Type>::value) {
+        nofBranches = arg;
       } else {
         assertNoMatchingType(std::forward<Arg>(arg));
       }
