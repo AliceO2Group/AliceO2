@@ -391,6 +391,8 @@ int SetupReconstruction()
   steps.steps = GPUDataTypes::RecoStep::AllRecoSteps;
   if (configStandalone.configRec.runTRD != -1) {
     steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, configStandalone.configRec.runTRD > 0);
+  } else if (chainTracking->GetTRDGeometry() == nullptr) {
+    steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, false);
   }
   if (configStandalone.configRec.rundEdx != -1) {
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, configStandalone.configRec.rundEdx > 0);
