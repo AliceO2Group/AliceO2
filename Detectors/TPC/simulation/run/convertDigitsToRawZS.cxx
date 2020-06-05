@@ -180,7 +180,8 @@ void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::
   _GPUParam.SetDefaults(5.00668);
   const GPUParam mGPUParam = _GPUParam;
 
-  o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
+  //o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
+  o2::InteractionRecord ir(0, 0); // we start with the time registered in ditigs, w/o extra offset
   zsEncoder->RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, false, zsThreshold, processAttributes->padding);
 }
 
