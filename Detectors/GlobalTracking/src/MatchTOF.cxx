@@ -47,10 +47,10 @@ void MatchTOF::run()
 {
   ///< running the matching
 
-  if (!mInitDone) {
-    LOG(FATAL) << "init() was not done yet";
+  if (!mWFInputAttached && !mSAInitDone) {
+    LOG(ERROR) << "run called with mSAInitDone=" << mSAInitDone << " and mWFInputAttached=" << mWFInputAttached;
+    throw std::runtime_error("standalone init was not done or workflow input was not yet attached");
   }
-
   mTimerTot.Start();
 
   // we load all TOF clusters (to be checked if we need to split per time frame)
@@ -143,6 +143,8 @@ void MatchTOF::run()
     mDBGOut.reset();
 #endif
 
+  mWFInputAttached = false;
+
   mTimerTot.Stop();
   printf("Timing:\n");
   printf("Do Matching:        ");
@@ -158,14 +160,8 @@ void MatchTOF::fill()
 }
 
 //______________________________________________
-void MatchTOF::initWorkflow(const gsl::span<const o2::dataformats::TrackTPCITS>& trackArray, const gsl::span<const Cluster>& clusterArray, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& toflab, const gsl::span<const o2::MCCompLabel>& itslab, const gsl::span<const o2::MCCompLabel>& tpclab)
+void MatchTOF::run(const gsl::span<const o2::dataformats::TrackTPCITS>& trackArray, const gsl::span<const Cluster>& clusterArray, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& toflab, const gsl::span<const o2::MCCompLabel>& itslab, const gsl::span<const o2::MCCompLabel>& tpclab)
 {
-
-  if (mInitDone) {
-    LOG(ERROR) << "Initialization was already done";
-    return;
-  }
-
   mTracksArrayInp = trackArray;
   mTOFClustersArrayInp = clusterArray;
   mIsworkflowON = kTRUE;
@@ -174,8 +170,9 @@ void MatchTOF::initWorkflow(const gsl::span<const o2::dataformats::TrackTPCITS>&
   mITSLabels = itslab;
 
   mMCTruthON = (mTOFClusLabels.getNElements() && mTPCLabels.size() && mITSLabels.size());
-
-  mInitDone = true;
+  mWFInputAttached = true;
+  mSAInitDone = true;
+  run();
 }
 
 //______________________________________________
@@ -183,11 +180,10 @@ void MatchTOF::init()
 {
   ///< initizalizations
 
-  if (mInitDone) {
+  if (mSAInitDone) {
     LOG(ERROR) << "Initialization was already done";
     return;
   }
-
   attachInputTrees();
 
   // create output branch with track-tof matching
@@ -224,7 +220,7 @@ void MatchTOF::init()
   }
 #endif
 
-  mInitDone = true;
+  mSAInitDone = true;
 
   {
     mTimerTot.Stop();
@@ -240,10 +236,6 @@ void MatchTOF::print() const
   ///< print the settings
 
   LOG(INFO) << "****** component for the matching of tracks to TOF clusters ******";
-  if (!mInitDone) {
-    LOG(INFO) << "init is not done yet - nothing to print";
-    return;
-  }
 
   LOG(INFO) << "MC truth: " << (mMCTruthON ? "on" : "off");
   LOG(INFO) << "Time tolerance: " << mTimeTolerance;
