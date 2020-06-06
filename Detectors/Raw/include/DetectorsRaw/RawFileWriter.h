@@ -18,12 +18,15 @@
 #include <gsl/span>
 #include <unordered_map>
 #include <vector>
+#include <map>
 #include <string>
 #include <string_view>
 #include <functional>
 #include <mutex>
 
 #include <Rtypes.h>
+#include <TTree.h>
+#include <TStopwatch.h>
 #include "Headers/RAWDataHeader.h"
 #include "Headers/DataHeader.h"
 #include "Headers/DAQID.h"
@@ -62,6 +65,12 @@ class RawFileWriter
     }
     void write(const char* data, size_t size);
   };
+  ///=====================================================================================
+  struct PayloadCache {
+    bool preformatted = false;
+    std::vector<char> payload;
+    ClassDefNV(PayloadCache, 1);
+  };
 
   ///=====================================================================================
   /// Single GBT link helper
@@ -83,6 +92,10 @@ class RawFileWriter
     std::string fileName{};                // file name associated with this link
     std::vector<char> buffer;              // buffer to accumulate superpage data
     RawFileWriter* writer = nullptr;       // pointer on the parent writer
+
+    PayloadCache cacheBuffer;         // used for caching in case of async. data input
+    std::unique_ptr<TTree> cacheTree; // tree to store the cache
+
     std::mutex mtx;
 
     LinkData() = default;
@@ -102,6 +115,7 @@ class RawFileWriter
     void flushSuperPage(bool keepLastPage = false);
     void fillEmptyHBHs(const IR& ir, bool dataAdded);
     void addPreformattedCRUPage(const gsl::span<char> data);
+    void cacheData(const IR& ir, const gsl::span<char> data, bool preformatted);
 
     /// expand buffer by positive increment and return old size
     size_t expandBufferBy(size_t by)
@@ -139,6 +153,7 @@ class RawFileWriter
 
   RawFileWriter(o2::header::DataOrigin origin = o2::header::gDataOriginInvalid) : mOrigin(origin) {}
   ~RawFileWriter();
+  void useCaching();
   void writeConfFile(std::string_view origin = "FLP", std::string_view description = "RAWDATA", std::string_view cfgname = "raw.cfg", bool fullPath = true) const;
   void close();
 
@@ -293,6 +308,8 @@ class RawFileWriter
   void setAddSeparateHBFStopPage(bool v) { mAddSeparateHBFStopPage = v; }
 
  private:
+  void fillFromCache();
+
   enum RoMode_t { NotSet,
                   Continuous,
                   Triggered };
@@ -312,6 +329,16 @@ class RawFileWriter
   bool mStartTFOnNewSPage = true;   // every TF must start on a new SPage
   bool mDontFillEmptyHBF = false;   // skipp adding empty HBFs (uness it must have TF flag)
   bool mAddSeparateHBFStopPage = true; // HBF stop is added on a separate CRU page
+
+  //>> caching --------------
+  bool mCachingStage = false; // signal that current data should be cached
+  std::mutex mCacheFileMtx;
+  std::unique_ptr<TFile> mCacheFile; // file for caching
+  using CacheEntry = std::vector<std::pair<LinkSubSpec_t, size_t>>;
+  std::map<IR, CacheEntry> mCacheMap;
+  //<< caching -------------
+
+  TStopwatch mTimer;
   RoMode_t mROMode = NotSet;
   IR mFirstIRAdded; // 1st IR seen
   ClassDefNV(RawFileWriter, 1);
