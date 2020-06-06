@@ -84,8 +84,8 @@ class MatchTOF
   ///< perform all initializations
   void init();
 
-  ///< perform all initializations
-  void initWorkflow(const gsl::span<const o2::dataformats::TrackTPCITS>& trackArray, const gsl::span<const Cluster>& clusterArray, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& toflab, const gsl::span<const o2::MCCompLabel>& itslab, const gsl::span<const o2::MCCompLabel>& tpclab);
+  ///< attach DPL data and run
+  void run(const gsl::span<const o2::dataformats::TrackTPCITS>& trackArray, const gsl::span<const Cluster>& clusterArray, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& toflab, const gsl::span<const o2::MCCompLabel>& itslab, const gsl::span<const o2::MCCompLabel>& tpclab);
 
   ///< set tree/chain containing tracks
   void setInputTreeTracks(TTree* tree) { mInputTreeTracks = tree; }
@@ -211,7 +211,8 @@ class MatchTOF
 
   // Data members
 
-  bool mInitDone = false; ///< flag init already done
+  bool mSAInitDone = false;      ///< flag that standalone init already done
+  bool mWFInputAttached = false; ///< flag that the standalone input is attached
 
   float mXRef = Geo::RMIN; ///< reference radius to propage tracks for matching
 
