@@ -194,7 +194,7 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
   if (fVerboseDebugOutput) {
     fTracker->EnableDebugOutput();
   }
-  fTracker->Init(fGeo);
+  fTracker->InitializeProcessor();
 
   return iResult;
 }
