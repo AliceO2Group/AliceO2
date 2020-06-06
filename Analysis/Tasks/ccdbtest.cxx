@@ -10,11 +10,9 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/ControlService.h"
-#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "PID/PIDResponse.h"
 #include "Framework/ASoAHelpers.h"
 
 #include <CCDB/CcdbApi.h>
@@ -24,6 +22,7 @@
 
 using namespace o2::framework;
 using namespace o2::header;
+using namespace o2;
 
 struct CCDBTask {
 
