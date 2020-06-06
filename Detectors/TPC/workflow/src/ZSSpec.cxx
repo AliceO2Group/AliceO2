@@ -154,14 +154,29 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
         writer.useRDHVersion(rdhV);
         std::string outDir = "./";
         const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
+        enum LinksGrouping { All,
+                             Sector,
+                             Link };
+        auto useGrouping = Sector;
 
         for (unsigned int i = 0; i < NSectors; i++) {
           for (unsigned int j = 0; j < NEndpoints; j++) {
             const unsigned int cruInSector = j / 2;
             const unsigned int cruID = i * 10 + cruInSector;
             const rdh_utils::FEEIDType feeid = rdh_utils::getFEEID(cruID, j & 1, defaultLink);
-            writer.registerLink(feeid, cruID, defaultLink, j & 1, fmt::format("{}cru{}_{}.raw", outDir, cruID, j & 1));
+            std::string outfname;
+            if (useGrouping == LinksGrouping::All) { // single file for all links
+              outfname = fmt::format("{}tpc_all.raw", outDir);
+            } else if (useGrouping == LinksGrouping::Sector) { // file per sector
+              outfname = fmt::format("{}tpc_sector{}.raw", outDir, i);
+            } else if (useGrouping == LinksGrouping::Link) { // file per link
+              outfname = fmt::format("{}cru{}_{}.raw", outDir, cruID, j & 1);
+            }
+            writer.registerLink(feeid, cruID, defaultLink, j & 1, outfname);
           }
+        }
+        if (useGrouping != LinksGrouping::Link) {
+          writer.useCaching();
         }
         zsEncoder->RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, false, threshold);
         writer.writeConfFile("TPC", "RAWDATA", fmt::format("{}tpcraw.cfg", outDir));
