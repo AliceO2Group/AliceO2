@@ -21,7 +21,6 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "SimulationDataFormat/MCEventStats.h"
-
 #include "Rtypes.h"
 #include "TParticle.h"
 
@@ -312,7 +311,15 @@ class Stack : public FairGenericStack
   ClassDefOverride(Stack, 1);
 };
 
-inline void Stack::addTrackReference(const o2::TrackReference& ref) { mTrackRefs->push_back(ref); }
+inline void Stack::addTrackReference(const o2::TrackReference& ref)
+{
+  if (mIndexOfCurrentTrack >= mNumberOfPrimaryParticles) {
+    Int_t iTrack = mTrackIDtoParticlesEntry[mIndexOfCurrentTrack];
+    auto& part = mParticles[iTrack];
+    part.setStore(true);
+  }
+  mTrackRefs->push_back(ref);
+}
 
 inline int Stack::getCurrentPrimaryIndex() const { return mPrimaryParticles.size() - 1 - mPrimariesDone; }
 
