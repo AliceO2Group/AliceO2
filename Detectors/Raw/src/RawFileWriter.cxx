@@ -72,7 +72,7 @@ void RawFileWriter::fillFromCache()
     for (const auto& entry : cache.second) {
       auto& link = getLinkWithSubSpec(entry.first);
       link.cacheTree->GetEntry(entry.second);
-      link.addData(cache.first, link.cacheBuffer.payload, link.cacheBuffer.preformatted);
+      link.addData(cache.first, link.cacheBuffer.payload, link.cacheBuffer.preformatted, link.cacheBuffer.trigger);
     }
   }
   mCacheFile->cd();
@@ -150,12 +150,13 @@ RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru,
   linkData.writer = this;
   linkData.updateIR = mHBFUtils.getFirstIR();
   linkData.buffer.reserve(mSuperPageSize);
+  RDHUtils::printRDH(linkData.rdhCopy);
   LOGF(INFO, "Registered %s with output to %s", linkData.describe(), outFileName);
   return linkData;
 }
 
 //_____________________________________________________________________
-void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data, bool preformatted)
+void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger)
 {
   // add payload to relevant links
   if (data.size() % RDHUtils::GBTWord) {
@@ -171,7 +172,7 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
   if (ir < mFirstIRAdded) {
     mFirstIRAdded = ir;
   }
-  link.addData(ir, data, preformatted);
+  link.addData(ir, data, preformatted, trigger);
 }
 
 //_____________________________________________________________________
@@ -215,11 +216,13 @@ void RawFileWriter::writeConfFile(std::string_view origin, std::string_view desc
   cfgfile << "#[defaults]" << std::endl;
   cfgfile << "#dataOrigin = " << origin << std::endl;
   cfgfile << "#dataDescription = " << description << std::endl;
+  cfgfile << "#readoutCard = " << (isCRUDetector() ? "CRU" : "RORC") << std::endl;
   for (int i = 0; i < getNOutputFiles(); i++) {
     cfgfile << std::endl
             << "[input-" << mOrigin.str << '-' << i << "]" << std::endl;
     cfgfile << "dataOrigin = " << origin << std::endl;
     cfgfile << "dataDescription = " << description << std::endl;
+    cfgfile << "readoutCard = " << (isCRUDetector() ? "CRU" : "RORC") << std::endl;
     cfgfile << "filePath = " << (fullPath ? o2::base::NameConf::getFullPath(getOutputFileName(i)) : getOutputFileName(i)) << std::endl;
   }
   cfgfile.close();
@@ -244,7 +247,7 @@ void RawFileWriter::useCaching()
 //===================================================================================
 
 //___________________________________________________________________________________
-void RawFileWriter::LinkData::cacheData(const IR& ir, const gsl::span<char> data, bool preformatted)
+void RawFileWriter::LinkData::cacheData(const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger)
 {
   // cache data to temporary tree
   std::lock_guard<std::mutex> lock(writer->mCacheFileMtx);
@@ -254,6 +257,7 @@ void RawFileWriter::LinkData::cacheData(const IR& ir, const gsl::span<char> data
     cacheTree->Branch("cache", &cacheBuffer);
   }
   cacheBuffer.preformatted = preformatted;
+  cacheBuffer.trigger = trigger;
   cacheBuffer.payload.resize(data.size());
   if (!data.empty()) {
     memcpy(cacheBuffer.payload.data(), data.data(), data.size());
@@ -264,21 +268,35 @@ void RawFileWriter::LinkData::cacheData(const IR& ir, const gsl::span<char> data
 }
 
 //___________________________________________________________________________________
-void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, bool preformatted)
+void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger)
 {
   // add payload corresponding to IR
   LOG(DEBUG) << "Adding " << data.size() << " bytes in IR " << ir << " to " << describe();
   std::lock_guard<std::mutex> lock(mtx);
 
   if (writer->mCachingStage) {
-    cacheData(ir, data, preformatted);
+    cacheData(ir, data, preformatted, trigger);
     return;
   }
+
+  if (startOfRun && writer->isRORCDetector()) { // in RORC mode we write separate RDH with SOX in the very beginning of the run
+    writer->mHBFUtils.updateRDH<RDHAny>(rdhCopy, writer->mHBFUtils.getFirstIR(), false);
+    RDHUtils::setTriggerType(rdhCopy, 0);
+    openHBFPage(rdhCopy); // open new HBF just to report the SOX
+    //    closeHBFPage();
+  }
+
   int dataSize = data.size();
   if (ir >= updateIR) { // new IR exceeds or equal IR of next HBF to open, insert missed HBFs if needed
-    fillEmptyHBHs(ir, dataSize > 0);
+    fillEmptyHBHs(ir, true);
   }
   // we are guaranteed to be under the valid RDH + possibly some data
+
+  if (trigger) {
+    auto& rdh = *getLastRDH();
+    RDHUtils::setTriggerType(rdh, RDHUtils::getTriggerType(rdh) | trigger);
+  }
+
   if (!dataSize) {
     return;
   }
@@ -382,7 +400,9 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
   rdhCopy = lastRDH;
   bool add = true;
   if (stop && !writer->mAddSeparateHBFStopPage) {
-    RDHUtils::setStop(lastRDH, stop);
+    if (writer->isRDHStopUsed()) {
+      RDHUtils::setStop(lastRDH, stop);
+    }
     add = false;
   }
   if (writer->mVerbosity > 2) {
@@ -415,12 +435,19 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
 }
 
 //___________________________________________________________________________________
-void RawFileWriter::LinkData::openHBFPage(const RDHAny& rdhn)
+void RawFileWriter::LinkData::openHBFPage(const RDHAny& rdhn, uint32_t trigger)
 {
   /// create 1st page of the new HBF
   bool forceNewPage = false;
-  if (RDHUtils::getTriggerType(rdhn) & o2::trigger::TF) {
-    if (writer->mVerbosity > 0) {
+
+  // for RORC detectors the TF flag is absent, instead the 1st trigger after the start of TF will define the 1st be interpreted as 1st TF
+  auto newTF_RORC = [this, &rdhn]() -> bool {
+    auto tfhbPrev = writer->mHBFUtils.getTFandHBinTF(this->updateIR.bc ? this->updateIR - 1 : this->updateIR); // updateIR was advanced by 1 BC wrt IR of the previous update
+    return this->writer->mHBFUtils.getTFandHBinTF(RDHUtils::getTriggerIR(rdhn)).first > tfhbPrev.first;        // new TF_ID exceeds old one
+  };
+
+  if ((RDHUtils::getTriggerType(rdhn) & o2::trigger::TF) || (writer->isRORCDetector() && newTF_RORC())) {
+    if (writer->mVerbosity > -10) {
       LOGF(INFO, "Starting new TF for link FEEId 0x%04x", RDHUtils::getFEEID(rdhn));
     }
     if (writer->mStartTFOnNewSPage && nTFWritten) { // don't flush if 1st TF
@@ -439,6 +466,7 @@ void RawFileWriter::LinkData::openHBFPage(const RDHAny& rdhn)
   RDHUtils::setStop(newrdh, 0);
   RDHUtils::setMemorySize(newrdh, sizeof(RDHAny));
   RDHUtils::setOffsetToNext(newrdh, sizeof(RDHAny));
+
   if (startOfRun && writer->isReadOutModeSet()) {
     auto trg = RDHUtils::getTriggerType(newrdh) | (writer->isContinuousReadout() ? o2::trigger::SOC : o2::trigger::SOT);
     RDHUtils::setTriggerType(newrdh, trg);
@@ -478,13 +506,15 @@ void RawFileWriter::LinkData::close(const IR& irf)
   if (writer->mFName2File.find(fileName) == writer->mFName2File.end()) {
     return; // already closed
   }
-  auto irfin = irf;
-  if (irfin < updateIR) {
-    irfin = updateIR;
+  if (writer->isCRUDetector()) { // finalize last TF
+    auto irfin = irf;
+    if (irfin < updateIR) {
+      irfin = updateIR;
+    }
+    int tf = writer->mHBFUtils.getTF(irfin);
+    auto finalIR = writer->mHBFUtils.getIRTF(tf + 1) - 1; // last IR of the current TF
+    fillEmptyHBHs(finalIR, false);
   }
-  int tf = writer->mHBFUtils.getTF(irfin);
-  auto finalIR = writer->mHBFUtils.getIRTF(tf + 1) - 1; // last IR of the current TF
-  fillEmptyHBHs(finalIR, false);
   closeHBFPage(); // close last HBF
   flushSuperPage();
 }
@@ -493,26 +523,40 @@ void RawFileWriter::LinkData::close(const IR& irf)
 void RawFileWriter::LinkData::fillEmptyHBHs(const IR& ir, bool dataAdded)
 {
   // fill HBFs from last processed one to requested ir
-  std::vector<o2::InteractionRecord> irw;
-  if (!writer->mHBFUtils.fillHBIRvector(irw, updateIR, ir)) {
-    return;
-  }
-  for (const auto& irdummy : irw) {
-    if (writer->mDontFillEmptyHBF && writer->mHBFUtils.getTFandHBinTF(irdummy).second != 0 && (!dataAdded || irdummy < ir)) {
-      // even if requested, we skip empty HBF filling only if
-      // 1) we are not at the new TF start
-      // 2) method was called from addData and the current IR is the one for which it was called
-      continue;
+
+  if (writer->isCRUDetector()) {
+    std::vector<o2::InteractionRecord> irw;
+    if (!writer->mHBFUtils.fillHBIRvector(irw, updateIR, ir)) {
+      return;
     }
+    for (const auto& irdummy : irw) {
+      if (writer->mDontFillEmptyHBF &&
+          writer->mHBFUtils.getTFandHBinTF(irdummy).second != 0 &&
+          (!dataAdded || irdummy < ir)) {
+        // even if requested, we skip empty HBF filling only if
+        // 1) we are not at the new TF start
+        // 2) method was called from addData and the current IR is the one for which it was called (then it is not empty HB/trigger!)
+        continue;
+      }
+      if (writer->mVerbosity > 2) {
+        LOG(INFO) << "Adding HBF " << irdummy << " for " << describe();
+      }
+      closeHBFPage();                                                                 // close current HBF: add RDH with stop and update counters
+      RDHUtils::setTriggerType(rdhCopy, 0);                                           // reset to avoid any detector specific flags in the dummy HBFs
+      writer->mHBFUtils.updateRDH<RDHAny>(rdhCopy, irdummy, writer->isCRUDetector()); // update HBF orbit/bc and trigger flags
+      openHBFPage(rdhCopy);                                                           // open new HBF
+    }
+    updateIR = irw.back() + o2::constants::lhc::LHCMaxBunches; //  new HBF will be generated at >= this IR
+  } else {                                                     // RORC detector
     if (writer->mVerbosity > 2) {
-      LOG(INFO) << "Adding HBF " << irdummy << " for " << describe();
+      LOG(INFO) << "Adding HBF " << ir << " for " << describe();
     }
     closeHBFPage();                                     // close current HBF: add RDH with stop and update counters
     RDHUtils::setTriggerType(rdhCopy, 0);               // reset to avoid any detector specific flags in the dummy HBFs
-    writer->mHBFUtils.updateRDH<RDHAny>(rdhCopy, irdummy); // update HBF orbit/bc and trigger flags
+    writer->mHBFUtils.updateRDH<RDHAny>(rdhCopy, ir, false); // update HBF orbit/bc and trigger flags
     openHBFPage(rdhCopy);                               // open new HBF
+    updateIR = ir + 1;                                  // new Trigger in RORC detector will be generated at >= this IR
   }
-  updateIR = irw.back() + o2::constants::lhc::LHCMaxBunches; // new HBF will be generated at >= this IR
 }
 
 //____________________________________________

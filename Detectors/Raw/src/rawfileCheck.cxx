@@ -39,6 +39,7 @@ int main(int argc, char* argv[])
   desc_add_option("verbosity,v", bpo::value<int>()->default_value(reader.getVerbosity()), "1: long report, 2 or 3: print or dump all RDH");
   desc_add_option("spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes");
   desc_add_option("buffer-size,b", bpo::value<size_t>()->default_value(reader.getNominalSPageSize()), "buffer size for files preprocessing");
+  desc_add_option("rorc", "impose RORC as default detector mode");
   desc_add_option("configKeyValues", bpo::value(&configKeyValues)->default_value(""), "semicolon separated key=value strings");
   for (int i = 0; i < RawFileReader::NErrorsDefined; i++) {
     auto ei = RawFileReader::ErrTypes(i);
@@ -83,10 +84,13 @@ int main(int argc, char* argv[])
   RawFileReader::RDH rdh;
   LOG(INFO) << "RawDataHeader v" << int(rdh.version) << " is assumed";
 
+  o2::raw::RawFileReader::ReadoutCardType rocard = vm.count("rorc") ? o2::raw::RawFileReader::ReadoutCardType::RORC : o2::raw::RawFileReader::ReadoutCardType::CRU;
+
   reader.setVerbosity(vm["verbosity"].as<int>());
   reader.setNominalSPageSize(vm["spsize"].as<int>());
   reader.setMaxTFToRead(vm["max-tf"].as<uint32_t>());
   reader.setBufferSize(vm["buffer-size"].as<size_t>());
+  reader.setDefaultReadoutCardType(rocard);
   uint32_t errmap = 0;
   for (int i = RawFileReader::NErrorsDefined; i--;) {
     auto ei = RawFileReader::ErrTypes(i);
