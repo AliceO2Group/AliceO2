@@ -2006,6 +2006,7 @@ int GPUChainTracking::RunTRDTracking()
   }
 
   mRec->PushNonPersistentMemory();
+  SetupGPUProcessor(&Tracker, true);
   std::vector<GPUTRDTrackGPU> tracksTPC;
   std::vector<int> tracksTPCLab;
 
@@ -2024,12 +2025,6 @@ int GPUChainTracking::RunTRDTracking()
     }
     tracksTPC.back().SetTPCtrackId(i);
     tracksTPCLab.push_back(-1);
-  }
-
-  Tracker.SetMaxData(processors()->ioPtrs);
-  if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
-    AllocateRegisteredMemory(Tracker.MemoryTracks());
-    AllocateRegisteredMemory(Tracker.MemoryTracklets()); // TODO: Is this needed?
   }
 
   for (unsigned int iTracklet = 0; iTracklet < mIOPtrs.nTRDTracklets; ++iTracklet) {
@@ -2061,7 +2056,7 @@ int GPUChainTracking::DoTRDGPUTracking()
   GPUTRDTrackerGPU& TrackerShadow = doGPU ? processorsShadow()->trdTracker : Tracker;
 
   const auto& threadContext = GetThreadContext();
-  SetupGPUProcessor(&Tracker, true);
+  SetupGPUProcessor(&Tracker, false);
   TrackerShadow.SetGeometry(reinterpret_cast<GPUTRDGeometry*>(mFlatObjectsDevice.mCalibObjects.trdGeometry));
 
   WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->trdTracker - (char*)processors(), &TrackerShadow, sizeof(TrackerShadow), 0);
