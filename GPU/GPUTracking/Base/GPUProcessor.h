@@ -125,6 +125,9 @@ class GPUProcessor
   template <class T, class S>
   static inline void computePointerWithoutAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1)
   {
+    if ((size_t)basePtr < GPUCA_BUFFER_ALIGNMENT) {
+      reinterpret_cast<size_t&>(basePtr) = GPUCA_BUFFER_ALIGNMENT;
+    }
     objPtr = reinterpret_cast<S*>(getPointerWithAlignment<1, char>(reinterpret_cast<size_t&>(basePtr), nEntries * sizeof(S)));
   }
 #endif
