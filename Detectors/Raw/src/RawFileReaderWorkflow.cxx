@@ -162,12 +162,14 @@ class rawReaderSpecs : public o2f::Task
         }
         // check if the RDH to send corresponds to expected orbit
         if (hdrTmpl.splitPayloadIndex == 0) {
-          uint32_t hbOrbExpected = mReader->getOrbitMin() + tfID * nhbexp;
           uint32_t hbOrbRead = o2::raw::RDHUtils::getHeartBeatOrbit(plMessage->GetData());
-          if (hbOrbExpected != hbOrbRead) {
-            LOGF(ERROR, "Expected orbit=%u but got %u for %d-th HBF in TF#%d of %s/%s/0x%u",
-                 hbOrbExpected, hbOrbRead, hdrTmpl.splitPayloadIndex, tfID,
-                 link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
+          if (link.cruDetector) {
+            uint32_t hbOrbExpected = mReader->getOrbitMin() + tfID * nhbexp;
+            if (hbOrbExpected != hbOrbRead) {
+              LOGF(ERROR, "Expected orbit=%u but got %u for %d-th HBF in TF#%d of %s/%s/0x%u",
+                   hbOrbExpected, hbOrbRead, hdrTmpl.splitPayloadIndex, tfID,
+                   link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
+            }
           }
           hdrTmpl.firstTForbit = hbOrbRead + loopsDone * nhbexp; // for next parts
           reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->firstTForbit = hdrTmpl.firstTForbit;
@@ -252,9 +254,9 @@ o2f::DataProcessorSpec getReaderSpec(std::string config, bool tfAsMessage, bool 
   if (!config.empty()) {
     auto conf = o2::raw::RawFileReader::parseInput(config);
     for (const auto& entry : conf) {
-      const auto& ordesc = entry.first;
+      const auto& ordescard = entry.first;
       if (!entry.second.empty()) { // origin and decription for files to process
-        outputs.emplace_back(o2f::OutputSpec(o2f::ConcreteDataTypeMatcher{ordesc.first, ordesc.second}));
+        outputs.emplace_back(o2f::OutputSpec(o2f::ConcreteDataTypeMatcher{std::get<0>(ordescard), std::get<1>(ordescard)}));
       }
     }
   }

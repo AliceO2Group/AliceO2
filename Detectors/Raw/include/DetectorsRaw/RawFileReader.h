@@ -18,6 +18,7 @@
 #include <cstdio>
 #include <unordered_map>
 #include <map>
+#include <tuple>
 #include <vector>
 #include <string>
 #include <utility>
@@ -31,14 +32,16 @@ namespace o2
 namespace raw
 {
 
+using IR = o2::InteractionRecord;
+
 class RawFileReader
 {
   using LinkSpec_t = uint64_t; // = (origin<<32) | LinkSubSpec
  public:
-  using RDHAny = header::RDHAny;
-  using RDH = o2::header::RAWDataHeaderV4;
-  using OrDesc = std::pair<o2::header::DataOrigin, o2::header::DataDescription>;
-  using InputsMap = std::map<OrDesc, std::vector<std::string>>;
+  //================================================================================
+  enum ReadoutCardType { CRU,
+                         RORC };
+  static constexpr std::string_view CardNames[] = {"CRU", "RORC"};
   //================================================================================
   enum ErrTypes { ErrWrongPacketCounterIncrement,
                   ErrWrongPageCounterIncrement,
@@ -86,8 +89,12 @@ class RawFileReader
     true,  // ErrHBFJump
     false  // ErrNoSuperPageForTF
   };
-
   //================================================================================
+
+  using RDHAny = header::RDHAny;
+  using RDH = o2::header::RAWDataHeaderV4;
+  using OrigDescCard = std::tuple<o2::header::DataOrigin, o2::header::DataDescription, ReadoutCardType>;
+  using InputsMap = std::map<OrigDescCard, std::vector<std::string>>;
 
   //=====================================================================================
   // info on the smallest block of data to be read when fetching the HBF
@@ -99,7 +106,7 @@ class RawFileReader
     size_t offset = 0;    // where data of the block starts
     uint32_t size = 0;    // block size
     uint32_t tfID = 0;    // tf counter (from 0)
-    uint32_t orbit = 0;   // orbit starting the block
+    IR ir = 0;            // ir starting the block
     uint16_t fileID = 0;  // file id where the block is located
     uint8_t flags = 0;    // different flags
     LinkBlock() = default;
@@ -124,6 +131,9 @@ class RawFileReader
     uint32_t nHBFrames = 0;
     uint32_t nSPages = 0;
     uint64_t nCRUPages = 0;
+    bool cruDetector = true; // CRU vs RORC detector
+    bool continuousRO = true;
+
     o2::header::DataOrigin origin = o2::header::gDataOriginInvalid;
     o2::header::DataDescription description = o2::header::gDataDescriptionInvalid;
     std::string fairMQChannel{}; // name of the fairMQ channel for the output
@@ -169,8 +179,9 @@ class RawFileReader
   void loadFromInputsMap(const InputsMap& inp);
   bool init();
   void clear();
-  bool addFile(const std::string& sname, o2::header::DataOrigin origin, o2::header::DataDescription desc);
-  bool addFile(const std::string& sname) { return addFile(sname, mDefDataOrigin, mDefDataDescription); }
+  bool addFile(const std::string& sname, o2::header::DataOrigin origin, o2::header::DataDescription desc, ReadoutCardType t = CRU);
+  bool addFile(const std::string& sname) { return addFile(sname, mDefDataOrigin, mDefDataDescription, mDefCardType); }
+  void setDefaultReadoutCardType(ReadoutCardType t = CRU) { mDefCardType = t; }
   void setDefaultDataOrigin(const std::string& orig) { mDefDataOrigin = getDataOrigin(orig); }
   void setDefaultDataDescription(const std::string& desc) { mDefDataDescription = getDataDescription(desc); }
   void setDefaultDataOrigin(const o2::header::DataOrigin o) { mDefDataOrigin = o; }
@@ -209,6 +220,7 @@ class RawFileReader
 
   o2::header::DataOrigin getDefaultDataOrigin() const { return mDefDataOrigin; }
   o2::header::DataDescription getDefaultDataSpecification() const { return mDefDataDescription; }
+  ReadoutCardType getDefaultReadoutCardType() const { return mDefCardType; }
 
   static o2::header::DataOrigin getDataOrigin(const std::string& ors);
   static o2::header::DataDescription getDataDescription(const std::string& ors);
@@ -217,19 +229,21 @@ class RawFileReader
   static std::string nochk_expl(ErrTypes e);
 
  private:
-  int getLinkLocalID(const RDHAny& rdh, o2::header::DataOrigin orig);
+  int getLinkLocalID(const RDHAny& rdh, int fileID);
   bool preprocessFile(int ifl);
   static LinkSpec_t createSpec(o2::header::DataOrigin orig, LinkSubSpec_t ss) { return (LinkSpec_t(orig) << 32) | ss; }
 
   static constexpr o2::header::DataOrigin DEFDataOrigin = o2::header::gDataOriginFLP;
   static constexpr o2::header::DataDescription DEFDataDescription = o2::header::gDataDescriptionRawData;
+  static constexpr ReadoutCardType DEFCardType = CRU;
 
   o2::header::DataOrigin mDefDataOrigin = DEFDataOrigin;
   o2::header::DataDescription mDefDataDescription = DEFDataDescription;
+  ReadoutCardType mDefCardType = CRU;
 
   std::vector<std::string> mFileNames; // input file names
   std::vector<FILE*> mFiles;           // input file handlers
-  std::vector<OrDesc> mDataSpecs;      // data origin and description for every input file
+  std::vector<OrigDescCard> mDataSpecs; // data origin and description for every input file + readout card type
   bool mInitDone = false;
   std::unordered_map<LinkSpec_t, int> mLinkEntries; // mapping between RDH specs and link entry in the mLinksData
   std::vector<LinkData> mLinksData;                 // info on links data in the files
