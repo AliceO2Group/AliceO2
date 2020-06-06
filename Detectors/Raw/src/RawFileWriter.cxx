@@ -39,6 +39,11 @@ void RawFileWriter::close()
   if (mFName2File.empty()) {
     return;
   }
+
+  if (mCachingStage) {
+    fillFromCache();
+  }
+
   if (!mFirstIRAdded.isDummy()) { // flushing and completing the last HBF makes sense only if data was added.
     auto irmax = getIRMax();
     for (auto& lnk : mSSpec2Link) {
@@ -54,6 +59,33 @@ void RawFileWriter::close()
     flh.second.handler = nullptr;
   }
   mFName2File.clear();
+  mTimer.Stop();
+  mTimer.Print();
+}
+
+//_____________________________________________________________________
+void RawFileWriter::fillFromCache()
+{
+  LOG(INFO) << "Filling links from cached trees";
+  mCachingStage = false;
+  for (const auto& cache : mCacheMap) {
+    for (const auto& entry : cache.second) {
+      auto& link = getLinkWithSubSpec(entry.first);
+      link.cacheTree->GetEntry(entry.second);
+      link.addData(cache.first, link.cacheBuffer.payload, link.cacheBuffer.preformatted);
+    }
+  }
+  mCacheFile->cd();
+  for (auto& linkEntry : mSSpec2Link) {
+    if (linkEntry.second.cacheTree) {
+      linkEntry.second.cacheTree->Write();
+      linkEntry.second.cacheTree.reset(nullptr);
+    }
+  }
+  std::string cacheName{mCacheFile->GetName()};
+  mCacheFile->Close();
+  mCacheFile.reset(nullptr);
+  unlink(cacheName.c_str());
 }
 
 //_____________________________________________________________________
@@ -193,7 +225,43 @@ void RawFileWriter::writeConfFile(std::string_view origin, std::string_view desc
   cfgfile.close();
 }
 
+//___________________________________________________________________________________
+void RawFileWriter::useCaching()
+{
+  // impose preliminary caching of data to the tree, used in case of async. data input
+  if (!mFirstIRAdded.isDummy()) {
+    throw std::runtime_error("caching must be requested before feeding the data");
+  }
+  mCachingStage = true;
+  if (mCacheFile) {
+    return; // already done
+  }
+  auto cachename = o2::utils::concat_string("_rawWriter_cache_", mOrigin.str, ::getpid(), ".root");
+  mCacheFile.reset(TFile::Open(cachename.c_str(), "recreate"));
+  LOG(INFO) << "Switched caching ON";
+}
+
 //===================================================================================
+
+//___________________________________________________________________________________
+void RawFileWriter::LinkData::cacheData(const IR& ir, const gsl::span<char> data, bool preformatted)
+{
+  // cache data to temporary tree
+  std::lock_guard<std::mutex> lock(writer->mCacheFileMtx);
+  if (!cacheTree) {
+    writer->mCacheFile->cd();
+    cacheTree = std::make_unique<TTree>(o2::utils::concat_string("lnk", std::to_string(subspec)).c_str(), "cache");
+    cacheTree->Branch("cache", &cacheBuffer);
+  }
+  cacheBuffer.preformatted = preformatted;
+  cacheBuffer.payload.resize(data.size());
+  if (!data.empty()) {
+    memcpy(cacheBuffer.payload.data(), data.data(), data.size());
+  }
+  writer->mCacheMap[ir].emplace_back(subspec, cacheTree->GetEntries());
+  cacheTree->Fill();
+  return;
+}
 
 //___________________________________________________________________________________
 void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, bool preformatted)
@@ -201,6 +269,11 @@ void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, 
   // add payload corresponding to IR
   LOG(DEBUG) << "Adding " << data.size() << " bytes in IR " << ir << " to " << describe();
   std::lock_guard<std::mutex> lock(mtx);
+
+  if (writer->mCachingStage) {
+    cacheData(ir, data, preformatted);
+    return;
+  }
   int dataSize = data.size();
   if (ir >= updateIR) { // new IR exceeds or equal IR of next HBF to open, insert missed HBFs if needed
     fillEmptyHBHs(ir, dataSize > 0);
