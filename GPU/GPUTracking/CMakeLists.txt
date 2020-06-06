@@ -10,6 +10,8 @@
 
 set(MODULE GPUTracking)
 
+#set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -O0") # to uncomment if needed, tired of typing this...
+
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   if(ENABLE_CUDA OR ENABLE_OPENCL1 OR ENABLE_OPENCL2 OR ENABLE_HIP)
     cmake_minimum_required(VERSION 3.13 FATAL_ERROR)

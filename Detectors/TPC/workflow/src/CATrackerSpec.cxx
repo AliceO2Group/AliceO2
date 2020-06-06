@@ -729,10 +729,10 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
 
       if (ptrs.compressedClusters != nullptr) {
         if (specconfig.outputCompClustersFlat) {
+          bufferCompressedClusters->resize(outputRegions.compressedClusters.size);
           if ((void*)ptrs.compressedClusters != (void*)bufferCompressedClusters->data()) {
             throw std::runtime_error("compressed cluster output ptrs out of sync"); // sanity check
           }
-          bufferCompressedClusters->resize(outputRegions.compressedClusters.size);
         }
         if (specconfig.outputCompClusters) {
           CompressedClustersROOT compressedClusters = *ptrs.compressedClusters;
@@ -749,10 +749,10 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       // previously, clusters have been published individually for the enabled sectors
       // clusters are now published as one block, subspec is NSectors
       if (clusterOutput != nullptr) {
+        clusterOutput->resize(sizeof(ClusterCountIndex) + outputRegions.clustersNative.size);
         if ((void*)ptrs.clusters->clustersLinear != (void*)((char*)clusterOutput->data() + sizeof(ClusterCountIndex))) {
           throw std::runtime_error("cluster native output ptrs out of sync"); // sanity check
         }
-        clusterOutput->resize(sizeof(ClusterCountIndex) + outputRegions.clustersNative.size);
 
         o2::header::DataHeader::SubSpecificationType subspec = NSectors;
         // doing a copy for now, in the future the tracker uses the output buffer directly
