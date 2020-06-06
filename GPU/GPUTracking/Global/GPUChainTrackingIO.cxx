@@ -271,7 +271,7 @@ void GPUChainTracking::DumpSettings(const char* dir)
   }
   if (processors()->calibObjects.trdGeometry != nullptr) {
     f = dir;
-    f += "matlut.dump";
+    f += "trdgeometry.dump";
     DumpStructToFile(processors()->calibObjects.trdGeometry, f.c_str());
   }
 
