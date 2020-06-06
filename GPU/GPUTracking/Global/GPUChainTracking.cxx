@@ -2057,7 +2057,7 @@ int GPUChainTracking::DoTRDGPUTracking()
 
   const auto& threadContext = GetThreadContext();
   SetupGPUProcessor(&Tracker, false);
-  TrackerShadow.SetGeometry(reinterpret_cast<GPUTRDGeometry*>(mFlatObjectsDevice.mCalibObjects.trdGeometry));
+  TrackerShadow.OverrideGPUGeometry(reinterpret_cast<GPUTRDGeometry*>(mFlatObjectsDevice.mCalibObjects.trdGeometry));
 
   WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->trdTracker - (char*)processors(), &TrackerShadow, sizeof(TrackerShadow), 0);
   TransferMemoryResourcesToGPU(RecoStep::TRDTracking, &Tracker);

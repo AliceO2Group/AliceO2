@@ -68,12 +68,6 @@ void GPUTRDTracker_t<TRDTRK, PROP>::RegisterMemoryAllocation()
 }
 
 template <class TRDTRK, class PROP>
-void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
-{
-  Init((TRD_GEOMETRY_CONST GPUTRDGeometry*)GetConstantMem()->calibObjects.trdGeometry);
-}
-
-template <class TRDTRK, class PROP>
 void* GPUTRDTracker_t<TRDTRK, PROP>::SetPointersBase(void* base)
 {
   //--------------------------------------------------------------------
@@ -130,17 +124,15 @@ GPUTRDTracker_t<TRDTRK, PROP>::~GPUTRDTracker_t()
 }
 
 template <class TRDTRK, class PROP>
-bool GPUTRDTracker_t<TRDTRK, PROP>::Init(TRD_GEOMETRY_CONST GPUTRDGeometry* geo)
+void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
 {
   //--------------------------------------------------------------------
   // Initialise tracker
   //--------------------------------------------------------------------
-  if (!geo) {
+  mGeo = (TRD_GEOMETRY_CONST GPUTRDGeometry*)GetConstantMem()->calibObjects.trdGeometry;
+  if (!mGeo) {
     Error("Init", "TRD geometry must be provided externally");
-    return false;
   }
-
-  mGeo = geo;
 
 #ifdef GPUCA_ALIROOT_LIB
   for (int iCandidate = 0; iCandidate < mNCandidates * 2 * mMaxThreads; ++iCandidate) {
@@ -170,7 +162,6 @@ bool GPUTRDTracker_t<TRDTRK, PROP>::Init(TRD_GEOMETRY_CONST GPUTRDGeometry* geo)
 
   mDebug->ExpandVectors();
   mIsInitialized = true;
-  return true;
 }
 
 template <class TRDTRK, class PROP>

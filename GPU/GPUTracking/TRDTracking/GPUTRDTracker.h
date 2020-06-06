@@ -66,7 +66,6 @@ class GPUTRDTracker_t : public GPUProcessor
   void* SetPointersTracklets(void* base);
   void* SetPointersTracks(void* base);
 
-  bool Init(TRD_GEOMETRY_CONST GPUTRDGeometry* geo = nullptr);
   void CountMatches(const int trackID, std::vector<int>* matches) const;
   void DoTracking(GPUChainTracking* chainTracking);
   void SetNCandidates(int n);
@@ -107,7 +106,7 @@ class GPUTRDTracker_t : public GPUProcessor
   short MemoryTracklets() const { return mMemoryTracklets; }
   short MemoryTracks() const { return mMemoryTracks; }
 
-  GPUhd() void SetGeometry(TRD_GEOMETRY_CONST GPUTRDGeometry* geo) { mGeo = geo; }
+  GPUhd() void OverrideGPUGeometry(TRD_GEOMETRY_CONST GPUTRDGeometry* geo) { mGeo = geo; }
   void Reset(bool fast = false);
   GPUd() int LoadTracklet(const GPUTRDTrackletWord& tracklet, const int* labels = nullptr);
   //template <class T>
