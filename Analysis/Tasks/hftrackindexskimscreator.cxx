@@ -19,7 +19,7 @@
 #include <TH1F.h>
 #include <cmath>
 #include <array>
-#include <stdlib.h>
+#include <cstdlib>
 
 using namespace o2;
 using namespace o2::framework;
