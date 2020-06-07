@@ -1413,23 +1413,23 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   enum TerminationPolicy policy;
   bpo::options_description executorOptions("Executor options");
   const char* helpDescription = "print help: short, full, executor, or processor name";
-  executorOptions.add_options()                                                                              //
-    ("help,h", bpo::value<std::string>()->implicit_value("short"), helpDescription)                          //
-    ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                  //
-    ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")          //
-    ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")    //
-    ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")            //
-    ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")                //
-    ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")      //
-    ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")           //
-    ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                   //
-    ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT),  //
-     "what to do when processing is finished: quit, wait")                                                   //
-    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")          //
-    ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                     //
-    ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")           //
-    ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON") //
-    ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far")           //
+  executorOptions.add_options()                                                                                         //
+    ("help,h", bpo::value<std::string>()->implicit_value("short"), helpDescription)                                     //
+    ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                             //
+    ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")                     //
+    ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")               //
+    ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(isatty(fileno(stdout)) == 0), "batch processing mode") //
+    ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")                           //
+    ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                 //
+    ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")                      //
+    ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                              //
+    ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT),             //
+     "what to do when processing is finished: quit, wait")                                                              //
+    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")                     //
+    ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                                //
+    ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                      //
+    ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")            //
+    ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far")                      //
     ("o2-control,o2", bpo::value<bool>()->zero_tokens()->default_value(false), "create O2 Control configuration");
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
