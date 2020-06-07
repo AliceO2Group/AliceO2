@@ -33,6 +33,11 @@ o2_add_dpl_workflow(vertexing-hf
 		  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsVertexing
 	          COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(vertexing-hf-opt
+                  SOURCES vertexerhf_opt.cxx
+		  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsVertexing
+	          COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(validation
 	  	  SOURCES validation.cxx
 		  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase
