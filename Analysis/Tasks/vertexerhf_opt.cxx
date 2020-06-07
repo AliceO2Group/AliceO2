@@ -27,7 +27,10 @@ using namespace o2::framework;
 struct HFTrackIndexSkimsCreator {
 
   Produces<aod::SecVtx2Prong> secvtx2prong;
+  Produces<aod::SecVtx3Prong> secvtx3prong;
   Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
+  Configurable<double> ptmintrack{"ptmintrack", -1, "ptmin single track"};
+  Configurable<int> do3prong{"do3prong", 0, "do 3 prong"};
 
   void process(aod::Collision const& collision,
                aod::BCs const& bcs,
@@ -61,7 +64,7 @@ struct HFTrackIndexSkimsCreator {
 
     for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
       auto& track_0 = *it0;
-      if (abs(track_0.signed1Pt())<3)
+      if (abs(track_0.signed1Pt())<ptmintrack)
         continue;
 
       UChar_t clustermap_0 = track_0.itsClusterMap();
@@ -84,8 +87,8 @@ struct HFTrackIndexSkimsCreator {
       o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
       for (auto it1 = it0 + 1; it1 != tracks.end(); ++it1) {
         auto& track_1 = *it1;
-        if (abs(track_1.signed1Pt())<3)
-	  continue;
+        if (abs(track_1.signed1Pt())<ptmintrack)
+          continue;
         UChar_t clustermap_1 = track_1.itsClusterMap();
         bool isselected_1 = track_1.tpcNClsFound() > 70 && track_1.flags() & 0x4;
         isselected_1 = isselected_1 && (TESTBIT(clustermap_1, 0) || TESTBIT(clustermap_1, 1));
@@ -128,47 +131,53 @@ struct HFTrackIndexSkimsCreator {
                      pvec0[0], pvec0[1], pvec0[2], track_0.y(),
                      track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], track_1.y(),
                      mass_, masssw_);
-	for (auto it2 = it0 + 1; it2 != tracks.end(); ++it2) {
-          if(it2 == it0 || it2 == it1)
-            continue; 
-	  auto& track_2 = *it2;
-          if (abs(track_2.signed1Pt())<3)
-	    continue;
-          UChar_t clustermap_2 = track_2.itsClusterMap();
-          bool isselected_2 = track_2.tpcNClsFound() > 70 && track_2.flags() & 0x4;
-          isselected_2 = isselected_2 && (TESTBIT(clustermap_2, 0) || TESTBIT(clustermap_2, 1));
-          if (!isselected_2)
-            continue;
-          if (track_1.signed1Pt() * track_2.signed1Pt() > 0)
-            continue;
-	  //LOGF(info, abs(track_2.signed1Pt()));
-	  float x2_ = track_2.x();
-          float alpha2_ = track_2.alpha();
-          std::array<float, 5> arraypar2 = {track_2.y(), track_2.z(), track_2.snp(),
-                                            track_2.tgl(), track_2.signed1Pt()};
-          std::array<float, 15> covpar2 = {track_2.cYY(), track_2.cZY(), track_2.cZZ(),
-                                           track_2.cSnpY(), track_2.cSnpZ(),
-                                           track_2.cSnpSnp(), track_2.cTglY(), track_2.cTglZ(),
-                                           track_2.cTglSnp(), track_2.cTglTgl(),
-                                           track_2.c1PtY(), track_2.c1PtZ(), track_2.c1PtSnp(),
-                                           track_2.c1PtTgl(), track_2.c1Pt21Pt2()};
-          o2::track::TrackParCov trackparvar2(x2_, alpha2_, arraypar2, covpar2);
-          df3.setUseAbsDCA(true);
-          int nCand3 = df3.process(trackparvar0, trackparvar1, trackparvar2);
-          if (nCand3 == 0)
-            continue;
-          const auto& vtx3 = df3.getPCACandidate();
-	  //LOGF(info, "test");
-          //LOGF(info, "vertex x %f", vtx3[0]);
-          o2::track::TrackParCov trackdec0_3p = df3.getTrack(0);
-          o2::track::TrackParCov trackdec1_3p = df3.getTrack(1);
-          o2::track::TrackParCov trackdec2_3p = df3.getTrack(2);
-          std::array<float, 3> pvec0_3p;
-          std::array<float, 3> pvec1_3p;
-          std::array<float, 3> pvec2_3p;
-          trackdec0_3p.getPxPyPzGlo(pvec0_3p);
-          trackdec1_3p.getPxPyPzGlo(pvec1_3p);
-          trackdec2_3p.getPxPyPzGlo(pvec2_3p);
+        if (do3prong == 1) {
+          for (auto it2 = it0 + 1; it2 != tracks.end(); ++it2) {
+            if(it2 == it0 || it2 == it1)
+              continue;
+            auto& track_2 = *it2;
+            if (abs(track_2.signed1Pt())<ptmintrack)
+              continue;
+            UChar_t clustermap_2 = track_2.itsClusterMap();
+            bool isselected_2 = track_2.tpcNClsFound() > 70 && track_2.flags() & 0x4;
+            isselected_2 = isselected_2 && (TESTBIT(clustermap_2, 0) || TESTBIT(clustermap_2, 1));
+            if (!isselected_2)
+              continue;
+            if (track_1.signed1Pt() * track_2.signed1Pt() > 0)
+              continue;
+            float x2_ = track_2.x();
+            float alpha2_ = track_2.alpha();
+            std::array<float, 5> arraypar2 = {track_2.y(), track_2.z(), track_2.snp(),
+                                              track_2.tgl(), track_2.signed1Pt()};
+            std::array<float, 15> covpar2 = {track_2.cYY(), track_2.cZY(), track_2.cZZ(),
+                                             track_2.cSnpY(), track_2.cSnpZ(),
+                                             track_2.cSnpSnp(), track_2.cTglY(), track_2.cTglZ(),
+                                             track_2.cTglSnp(), track_2.cTglTgl(),
+                                             track_2.c1PtY(), track_2.c1PtZ(), track_2.c1PtSnp(),
+                                             track_2.c1PtTgl(), track_2.c1Pt21Pt2()};
+            o2::track::TrackParCov trackparvar2(x2_, alpha2_, arraypar2, covpar2);
+            df3.setUseAbsDCA(true);
+            int nCand3 = df3.process(trackparvar0, trackparvar1, trackparvar2);
+            if (nCand3 == 0)
+              continue;
+            const auto& vtx3 = df3.getPCACandidate();
+            o2::track::TrackParCov trackdec0_3p = df3.getTrack(0);
+            o2::track::TrackParCov trackdec1_3p = df3.getTrack(1);
+            o2::track::TrackParCov trackdec2_3p = df3.getTrack(2);
+            std::array<float, 3> pvec0_3p;
+            std::array<float, 3> pvec1_3p;
+            std::array<float, 3> pvec2_3p;
+            trackdec0_3p.getPxPyPzGlo(pvec0_3p);
+            trackdec1_3p.getPxPyPzGlo(pvec1_3p);
+            trackdec2_3p.getPxPyPzGlo(pvec2_3p);
+            secvtx3prong(track_0.collisionId(),
+                         collision.posX(), collision.posY(), collision.posZ(),
+                         vtx3[0], vtx3[1], vtx3[2],
+                         track_0.globalIndex(), pvec0_3p[0], pvec0_3p[1], pvec0_3p[2], track_0.y(),
+                         track_1.globalIndex(), pvec1_3p[0], pvec1_3p[1], pvec1_3p[2], track_1.y(),
+                         track_2.globalIndex(), pvec2_3p[0], pvec2_3p[1], pvec2_3p[2], track_2.y(),
+                         -1., -1.);
+          }
         }
       }
     }
