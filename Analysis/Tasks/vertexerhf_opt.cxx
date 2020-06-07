@@ -19,6 +19,7 @@
 #include <TH1F.h>
 #include <cmath>
 #include <array>
+#include <stdlib.h>
 
 using namespace o2;
 using namespace o2::framework;
@@ -44,19 +45,24 @@ struct HFTrackIndexSkimsCreator {
     LOGF(info, "N. of Tracks for collision: %d", tracks.size());
     o2::vertexing::DCAFitterN<2> df;
     df.setBz(5.0);
-    // After finding the vertex, propagate tracks to the DCA. This is default anyway
     df.setPropagateToPCA(true);
-    // do not consider V0 seeds with 2D circles crossing above this R. This is default anyway
     df.setMaxR(200);
-    // do not consider V0 seeds with tracks Z-distance exceeding this. This is default anyway
     df.setMaxDZIni(4);
-    // stop iterations if max correction is below this value. This is default anyway
     df.setMinParamChange(1e-3);
-    // stop iterations if chi2 improves by less that this factor
     df.setMinRelChi2Change(0.9);
+
+    o2::vertexing::DCAFitterN<3> df3;
+    df3.setBz(5.0);
+    df3.setPropagateToPCA(true);
+    df3.setMaxR(200);
+    df3.setMaxDZIni(4);
+    df3.setMinParamChange(1e-3);
+    df3.setMinRelChi2Change(0.9);
 
     for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
       auto& track_0 = *it0;
+      if (abs(track_0.signed1Pt())<3)
+        continue;
 
       UChar_t clustermap_0 = track_0.itsClusterMap();
       //fill track distribution before selection
@@ -78,6 +84,8 @@ struct HFTrackIndexSkimsCreator {
       o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
       for (auto it1 = it0 + 1; it1 != tracks.end(); ++it1) {
         auto& track_1 = *it1;
+        if (abs(track_1.signed1Pt())<3)
+	  continue;
         UChar_t clustermap_1 = track_1.itsClusterMap();
         bool isselected_1 = track_1.tpcNClsFound() > 70 && track_1.flags() & 0x4;
         isselected_1 = isselected_1 && (TESTBIT(clustermap_1, 0) || TESTBIT(clustermap_1, 1));
@@ -120,6 +128,48 @@ struct HFTrackIndexSkimsCreator {
                      pvec0[0], pvec0[1], pvec0[2], track_0.y(),
                      track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], track_1.y(),
                      mass_, masssw_);
+	for (auto it2 = it0 + 1; it2 != tracks.end(); ++it2) {
+          if(it2 == it0 || it2 == it1)
+            continue; 
+	  auto& track_2 = *it2;
+          if (abs(track_2.signed1Pt())<3)
+	    continue;
+          UChar_t clustermap_2 = track_2.itsClusterMap();
+          bool isselected_2 = track_2.tpcNClsFound() > 70 && track_2.flags() & 0x4;
+          isselected_2 = isselected_2 && (TESTBIT(clustermap_2, 0) || TESTBIT(clustermap_2, 1));
+          if (!isselected_2)
+            continue;
+          if (track_1.signed1Pt() * track_2.signed1Pt() > 0)
+            continue;
+	  //LOGF(info, abs(track_2.signed1Pt()));
+	  float x2_ = track_2.x();
+          float alpha2_ = track_2.alpha();
+          std::array<float, 5> arraypar2 = {track_2.y(), track_2.z(), track_2.snp(),
+                                            track_2.tgl(), track_2.signed1Pt()};
+          std::array<float, 15> covpar2 = {track_2.cYY(), track_2.cZY(), track_2.cZZ(),
+                                           track_2.cSnpY(), track_2.cSnpZ(),
+                                           track_2.cSnpSnp(), track_2.cTglY(), track_2.cTglZ(),
+                                           track_2.cTglSnp(), track_2.cTglTgl(),
+                                           track_2.c1PtY(), track_2.c1PtZ(), track_2.c1PtSnp(),
+                                           track_2.c1PtTgl(), track_2.c1Pt21Pt2()};
+          o2::track::TrackParCov trackparvar2(x2_, alpha2_, arraypar2, covpar2);
+          df3.setUseAbsDCA(true);
+          int nCand3 = df3.process(trackparvar0, trackparvar1, trackparvar2);
+          if (nCand3 == 0)
+            continue;
+          const auto& vtx3 = df3.getPCACandidate();
+	  //LOGF(info, "test");
+          //LOGF(info, "vertex x %f", vtx3[0]);
+          o2::track::TrackParCov trackdec0_3p = df3.getTrack(0);
+          o2::track::TrackParCov trackdec1_3p = df3.getTrack(1);
+          o2::track::TrackParCov trackdec2_3p = df3.getTrack(2);
+          std::array<float, 3> pvec0_3p;
+          std::array<float, 3> pvec1_3p;
+          std::array<float, 3> pvec2_3p;
+          trackdec0_3p.getPxPyPzGlo(pvec0_3p);
+          trackdec1_3p.getPxPyPzGlo(pvec1_3p);
+          trackdec2_3p.getPxPyPzGlo(pvec2_3p);
+        }
       }
     }
   }
