@@ -45,7 +45,7 @@ namespace gpu
 class GPUTRDTrackletWord;
 class GPUTRDGeometry;
 class GPUChainTracking;
-template<class T>
+template <class T>
 class GPUTRDTrackerDebug;
 
 //-------------------------------------------------------------------------
