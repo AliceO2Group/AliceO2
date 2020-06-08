@@ -19,6 +19,7 @@
 #include <DetectorsPassive/Cave.h>
 #include "DetectorsBase/MaterialManager.h"
 #include "SimSetup/GlobalProcessCutSimParam.h"
+#include "Generators/DecayerPythia8.h"
 
 //using declarations here since SetCuts.C and g3Config.C are included within namespace
 // these are needed for SetCuts.C inclusion
@@ -29,6 +30,8 @@ using o2::base::MaterialManager;
 // these are used in g3Config.C
 using std::cout;
 using std::endl;
+// these are used in commonConfig.C
+using o2::eventgen::DecayerPythia8;
 #include <SimSetup/SimSetup.h>
 
 namespace o2

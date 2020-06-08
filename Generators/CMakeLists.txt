@@ -36,7 +36,9 @@ o2_add_library(Generators
                        $<$<BOOL:${pythia6_FOUND}>:src/GeneratorPythia6.cxx>
                        $<$<BOOL:${pythia6_FOUND}>:src/GeneratorPythia6Param.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8.cxx>
+                       $<$<BOOL:${pythia_FOUND}>:src/DecayerPythia8.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8Param.cxx>
+                       $<$<BOOL:${pythia_FOUND}>:src/DecayerPythia8Param.cxx>
                        $<$<BOOL:${HepMC_FOUND}>:src/GeneratorHepMC.cxx>
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig O2::CommonUtils
                                      O2::SimulationDataFormat ${pythia6Target} ${pythiaTarget} ${hepmcTarget}
@@ -75,8 +77,11 @@ if (pythia6_FOUND)
 endif()
 
 if(pythia_FOUND)
-  list(APPEND headers include/Generators/GeneratorPythia8.h
+  list(APPEND headers 
+              include/Generators/GeneratorPythia8.h
+              include/Generators/DecayerPythia8.h
               include/Generators/GeneratorPythia8Param.h
+              include/Generators/DecayerPythia8Param.h
               include/Generators/GeneratorFactory.h)
 endif()
 
@@ -131,3 +136,9 @@ install(FILES share/egconfig/pythia8_inel.cfg
 	      share/egconfig/pythia8_hi.cfg
 	      share/egconfig/pythia8_userhooks_charm.C
         DESTINATION share/Generators/egconfig/)
+
+install(FILES share/pythia8/decays/base.cfg
+              share/pythia8/decays/bjpsidimuon.cfg
+        DESTINATION share/Generators/pythia8/decays/)
+
+      
