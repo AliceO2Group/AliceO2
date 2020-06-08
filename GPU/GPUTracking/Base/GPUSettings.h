@@ -38,6 +38,10 @@ class GPUSettings
   enum CompressionRejection { RejectionNone = 0,
                               RejectionStrategyA = 1,
                               RejectionStrategyB = 2 };
+
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+  static CONSTEXPR unsigned int TPC_MAX_TF_TIME_BIN = ((256 * 3564 + 2 * 8 - 2) / 8);
+#endif
 };
 
 // Settings concerning the reconstruction
