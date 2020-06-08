@@ -239,7 +239,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
         trkltIndexArray[iDet] = trkltCounter;
       }
       currDet = nextDet;
-     }
+    }
     ++trkltCounter;
   }
   for (int iDet = currDet; iDet <= kNChambers; ++iDet) {
