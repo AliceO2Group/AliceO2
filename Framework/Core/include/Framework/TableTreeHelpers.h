@@ -64,6 +64,7 @@ class BranchIterator
   uint16_t* mVariable_us = nullptr;
   uint32_t* mVariable_ui = nullptr;
   uint64_t* mVariable_ul = nullptr;
+  int8_t* mVariable_b = nullptr;
   int16_t* mVariable_s = nullptr;
   int32_t* mVariable_i = nullptr;
   int64_t* mVariable_l = nullptr;
@@ -136,6 +137,7 @@ class ColumnIterator
   TTreeReaderValue<uint16_t>* mReaderValue_us = nullptr;
   TTreeReaderValue<uint32_t>* mReaderValue_ui = nullptr;
   TTreeReaderValue<uint64_t>* mReaderValue_ul = nullptr;
+  TTreeReaderValue<int8_t>* mReaderValue_b = nullptr;
   TTreeReaderValue<int16_t>* mReaderValue_s = nullptr;
   TTreeReaderValue<int32_t>* mReaderValue_i = nullptr;
   TTreeReaderValue<int64_t>* mReaderValue_l = nullptr;
@@ -148,6 +150,7 @@ class ColumnIterator
   TTreeReaderArray<uint16_t>* mReaderArray_us = nullptr;
   TTreeReaderArray<uint32_t>* mReaderArray_ui = nullptr;
   TTreeReaderArray<uint64_t>* mReaderArray_ul = nullptr;
+  TTreeReaderArray<int8_t>* mReaderArray_b = nullptr;
   TTreeReaderArray<int16_t>* mReaderArray_s = nullptr;
   TTreeReaderArray<int32_t>* mReaderArray_i = nullptr;
   TTreeReaderArray<int64_t>* mReaderArray_l = nullptr;
@@ -162,6 +165,7 @@ class ColumnIterator
   arrow::UInt16Builder* bui_us = nullptr;
   arrow::UInt32Builder* bui_ui = nullptr;
   arrow::UInt64Builder* bui_ul = nullptr;
+  arrow::Int8Builder* bui_b = nullptr;
   arrow::Int16Builder* bui_s = nullptr;
   arrow::Int32Builder* bui_i = nullptr;
   arrow::Int64Builder* bui_l = nullptr;

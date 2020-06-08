@@ -86,12 +86,6 @@ bool BranchIterator::initBranch(TTree* tree)
     case arrow::Type::type::UINT8:
       mLeaflistString += "/b";
       break;
-    case arrow::Type::type::FLOAT:
-      mLeaflistString += "/F";
-      break;
-    case arrow::Type::type::DOUBLE:
-      mLeaflistString += "/D";
-      break;
     case arrow::Type::type::UINT16:
       mLeaflistString += "/s";
       break;
@@ -101,6 +95,9 @@ bool BranchIterator::initBranch(TTree* tree)
     case arrow::Type::type::UINT64:
       mLeaflistString += "/l";
       break;
+    case arrow::Type::type::INT8:
+      mLeaflistString += "/B";
+      break;
     case arrow::Type::type::INT16:
       mLeaflistString += "/S";
       break;
@@ -109,6 +106,12 @@ bool BranchIterator::initBranch(TTree* tree)
       break;
     case arrow::Type::type::INT64:
       mLeaflistString += "/L";
+      break;
+    case arrow::Type::type::FLOAT:
+      mLeaflistString += "/F";
+      break;
+    case arrow::Type::type::DOUBLE:
+      mLeaflistString += "/D";
       break;
     default:
       LOGP(FATAL, "Type {} not handled!", mElementType);
@@ -156,6 +159,10 @@ bool BranchIterator::initDataBuffer(Int_t ib)
     case arrow::Type::type::UINT64:
       mVariable_ul = (uint64_t*)std::dynamic_pointer_cast<arrow::UInt64Array>(chunkToUse)->raw_values();
       mValueBuffer = (void*)mVariable_ul;
+      break;
+    case arrow::Type::type::INT8:
+      mVariable_b = (int8_t*)std::dynamic_pointer_cast<arrow::Int8Array>(chunkToUse)->raw_values();
+      mValueBuffer = (void*)mVariable_b;
       break;
     case arrow::Type::type::INT16:
       mVariable_s = (int16_t*)std::dynamic_pointer_cast<arrow::Int16Array>(chunkToUse)->raw_values();
@@ -225,6 +232,10 @@ bool BranchIterator::push()
       case arrow::Type::type::UINT64:
         mVariable_ul += mNumberElements;
         mValueBuffer = (void*)mVariable_ul;
+        break;
+      case arrow::Type::type::INT8:
+        mVariable_b += mNumberElements;
+        mValueBuffer = (void*)mVariable_b;
         break;
       case arrow::Type::type::INT16:
         mVariable_s += mNumberElements;
@@ -413,6 +424,10 @@ ColumnIterator::ColumnIterator(TTreeReader* reader, const char* colname)
         mReaderValue_ul = new TTreeReaderValue<uint64_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint64_t, 1, bui_ul);
         break;
+      case EDataType::kChar_t:
+        mReaderValue_b = new TTreeReaderValue<int8_t>(*reader, mColumnName);
+        MAKE_FIELD_AND_BUILDER(int8_t, 1, bui_b);
+        break;
       case EDataType::kShort_t:
         mReaderValue_s = new TTreeReaderValue<int16_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int16_t, 1, bui_s);
@@ -459,6 +474,10 @@ ColumnIterator::ColumnIterator(TTreeReader* reader, const char* colname)
         mReaderArray_ul = new TTreeReaderArray<uint64_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint64_t, mNumberElements, bui_ul);
         break;
+      case EDataType::kChar_t:
+        mReaderArray_b = new TTreeReaderArray<int8_t>(*reader, mColumnName);
+        MAKE_FIELD_AND_BUILDER(int8_t, mNumberElements, bui_b);
+        break;
       case EDataType::kShort_t:
         mReaderArray_s = new TTreeReaderArray<int16_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int16_t, mNumberElements, bui_s);
@@ -494,6 +513,7 @@ ColumnIterator::~ColumnIterator()
   delete mReaderValue_us;
   delete mReaderValue_ui;
   delete mReaderValue_ul;
+  delete mReaderValue_b;
   delete mReaderValue_s;
   delete mReaderValue_i;
   delete mReaderValue_l;
@@ -505,6 +525,7 @@ ColumnIterator::~ColumnIterator()
   delete mReaderArray_us;
   delete mReaderArray_ui;
   delete mReaderArray_ul;
+  delete mReaderArray_b;
   delete mReaderArray_s;
   delete mReaderArray_i;
   delete mReaderArray_l;
@@ -538,6 +559,9 @@ void ColumnIterator::push()
         break;
       case EDataType::kULong64_t:
         stat = bui_ul->Append(**mReaderValue_ul);
+        break;
+      case EDataType::kChar_t:
+        stat = bui_b->Append(**mReaderValue_b);
         break;
       case EDataType::kShort_t:
         stat = bui_s->Append(**mReaderValue_s);
@@ -575,6 +599,9 @@ void ColumnIterator::push()
         break;
       case EDataType::kULong64_t:
         stat &= bui_ul->AppendValues(&((*mReaderArray_ul)[0]), mNumberElements);
+        break;
+      case EDataType::kChar_t:
+        stat &= bui_b->AppendValues(&((*mReaderArray_b)[0]), mNumberElements);
         break;
       case EDataType::kShort_t:
         stat &= bui_s->AppendValues(&((*mReaderArray_s)[0]), mNumberElements);
@@ -619,6 +646,9 @@ void ColumnIterator::finish()
         break;
       case EDataType::kULong64_t:
         stat = bui_ul->Finish(&mArray);
+        break;
+      case EDataType::kChar_t:
+        stat = bui_b->Finish(&mArray);
         break;
       case EDataType::kShort_t:
         stat = bui_s->Finish(&mArray);
