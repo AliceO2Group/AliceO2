@@ -37,8 +37,11 @@
 #endif
 #ifdef GENERATORS_WITH_PYTHIA8
 #pragma link C++ class o2::eventgen::GeneratorPythia8 + ;
+#pragma link C++ class o2::eventgen::DecayerPythia8 + ;
 #pragma link C++ class o2::eventgen::GeneratorPythia8Param + ;
+#pragma link C++ class o2::eventgen::DecayerPythia8Param + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorPythia8Param > +;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::DecayerPythia8Param> + ;
 #pragma link C++ class o2::eventgen::GeneratorFactory + ;
 #endif
 #pragma link C++ class o2::eventgen::GeneratorFromFile + ;
