@@ -356,6 +356,8 @@ class GPUReconstruction
   };
   std::vector<ProcessorData> mProcessors;
   struct MemoryReuseMeta {
+    MemoryReuseMeta() = default;
+    MemoryReuseMeta(GPUProcessor* p, unsigned short r) : proc(p), res{r} {}
     GPUProcessor* proc = nullptr;
     std::vector<unsigned short> res;
   };
@@ -429,7 +431,7 @@ inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*set
   if (re.type != GPUMemoryReuse::NONE) {
     const auto& it = mMemoryReuse1to1.find(re.id);
     if (it == mMemoryReuse1to1.end()) {
-      mMemoryReuse1to1[re.id] = {proc, {retVal}};
+      mMemoryReuse1to1[re.id] = {proc, retVal};
     } else {
       mMemoryResources[retVal].mReuse = it->second.res[0];
       it->second.res.emplace_back(retVal);
