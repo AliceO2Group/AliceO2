@@ -387,7 +387,7 @@ void UserLogicElinkDecoder<ChargeSumMode>::prepareAndSendCluster()
     throw std::invalid_argument(fmt::format("expected sample size to be 2 but it is {}", mSamples.size()));
   }
   uint32_t q = (((static_cast<uint32_t>(mSamples[1]) & 0x3FF) << 10) | (static_cast<uint32_t>(mSamples[0]) & 0x3FF));
-  SampaCluster sc(mClusterTime, mSampaHeader.bunchCrossingCounter(), q);
+  SampaCluster sc(mClusterTime, mSampaHeader.bunchCrossingCounter(), q, mClusterSize);
   sendCluster(sc);
   mSamples.clear();
 }

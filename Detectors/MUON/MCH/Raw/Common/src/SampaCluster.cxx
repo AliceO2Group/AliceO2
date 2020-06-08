@@ -21,10 +21,11 @@ namespace mch
 namespace raw
 {
 
-SampaCluster::SampaCluster(uint10_t sampaTime, uint20_t bunchCrossing, uint20_t chargeSum)
+SampaCluster::SampaCluster(uint10_t sampaTime, uint20_t bunchCrossing, uint20_t chargeSum, uint10_t clusterSize)
   : sampaTime(impl::assertIsInRange("sampaTime", sampaTime, 0, 0x3FF)),
     bunchCrossing(impl::assertIsInRange("bunchCrossing", bunchCrossing, 0, 0xFFFFF)),
-    chargeSum(impl::assertIsInRange("chargeSum", chargeSum, 0, 0xFFFFF)), // 20 bits
+    chargeSum(impl::assertIsInRange("chargeSum", chargeSum, 0, 0xFFFFF)),     // 20 bits
+    clusterSize(impl::assertIsInRange("clusterSize", clusterSize, 0, 0x3FF)), // 10 bits
     samples{}
 
 {
@@ -34,6 +35,7 @@ SampaCluster::SampaCluster(uint10_t sampaTime, uint20_t bunchCrossing, const std
   : sampaTime(impl::assertIsInRange("sampaTime", sampaTime, 0, 0x3FF)),
     bunchCrossing(impl::assertIsInRange("bunchCrossing", bunchCrossing, 0, 0xFFFFF)),
     chargeSum(0),
+    clusterSize(impl::assertIsInRange("clusterSize", samples.size(), 0, 0x3FF)), // 10 bits
     samples(samples.begin(), samples.end())
 {
   if (samples.empty()) {
@@ -49,7 +51,7 @@ uint16_t SampaCluster::nofSamples() const
   if (!samples.empty()) {
     return samples.size();
   }
-  return 1;
+  return clusterSize;
 }
 
 bool SampaCluster::isClusterSum() const
@@ -74,6 +76,7 @@ std::ostream& operator<<(std::ostream& os, const SampaCluster& sc)
 {
   os << fmt::format("ts {:4d} ", sc.sampaTime);
   os << fmt::format("bc {:4d} ", sc.bunchCrossing);
+  os << fmt::format("cs {:4d} ", sc.nofSamples());
   if (sc.isClusterSum()) {
     os << fmt::format("q {:6d}", sc.chargeSum);
   } else {
@@ -88,7 +91,7 @@ std::ostream& operator<<(std::ostream& os, const SampaCluster& sc)
 
 std::string asString(const SampaCluster& sc)
 {
-  std::string s = fmt::format("ts-{}-bc-{}-q", sc.sampaTime, sc.bunchCrossing);
+  std::string s = fmt::format("ts-{}-bc-{}-cs-{}-q", sc.sampaTime, sc.bunchCrossing, sc.nofSamples());
   if (sc.isClusterSum()) {
     s += fmt::format("-{}", sc.chargeSum);
   } else {

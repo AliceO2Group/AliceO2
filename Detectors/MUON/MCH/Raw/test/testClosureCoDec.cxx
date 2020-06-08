@@ -47,18 +47,22 @@ struct isChargeSumMode<ChargeSumMode> {
 };
 
 // Create a vector of SampaCluster from a string d
-// where d is of the form ts-#-bs-#-q-# or
-// ts-#-bs-#-q-#-#-# ...
+// where d is of the form ts-#-bc-#-cs-#-q-# or
+// ts-#-bc-#-cs-#-q-#-#-# ...
 // d is expected to be a valid SampaCluster string representation
 // see the asString function in SampaCluster
 std::vector<SampaCluster> getSampaClusters(const std::string& d)
 {
   std::vector<SampaCluster> clusters;
 
+  std::cout << "d: " << d << std::endl;
+
   auto index = d.find("ts-");
   auto ts = std::stoi(d.substr(index + 3));
   index = d.find("bc-");
   auto bc = std::stoi(d.substr(index + 3));
+  index = d.find("cs-");
+  auto cs = std::stoi(d.substr(index + 3));
   index = d.find("q-");
   auto q = d.substr(index + 2);
   index = q.find("-");
@@ -71,7 +75,7 @@ std::vector<SampaCluster> getSampaClusters(const std::string& d)
     }
     clusters.emplace_back(SampaCluster(ts, bc, charges));
   } else {
-    clusters.emplace_back(SampaCluster(ts, bc, std::stoi(q)));
+    clusters.emplace_back(SampaCluster(ts, bc, std::stoi(q), cs));
   }
   return clusters;
 }
@@ -159,21 +163,21 @@ BOOST_AUTO_TEST_SUITE(o2_mch_raw)
 BOOST_AUTO_TEST_SUITE(closure)
 
 std::vector<std::string> chargeSumInput = {
-  "S728-J1-DS0-CH3-ts-24-bc-0-q-13",
-  "S728-J1-DS0-CH13-ts-24-bc-0-q-133",
-  "S728-J1-DS0-CH23-ts-24-bc-0-q-163",
+  "S728-J1-DS0-CH3-ts-24-bc-0-cs-14-q-13",
+  "S728-J1-DS0-CH13-ts-24-bc-0-cs-134-q-133",
+  "S728-J1-DS0-CH23-ts-24-bc-0-cs-164-q-163",
 
-  "S361-J0-DS4-CH0-ts-24-bc-0-q-10",
-  "S361-J0-DS4-CH1-ts-24-bc-0-q-20",
-  "S361-J0-DS4-CH2-ts-24-bc-0-q-30",
-  "S361-J0-DS4-CH3-ts-24-bc-0-q-40",
+  "S361-J0-DS4-CH0-ts-24-bc-0-cs-11-q-10",
+  "S361-J0-DS4-CH1-ts-24-bc-0-cs-21-q-20",
+  "S361-J0-DS4-CH2-ts-24-bc-0-cs-31-q-30",
+  "S361-J0-DS4-CH3-ts-24-bc-0-cs-41-q-40",
 
-  "S448-J6-DS2-CH22-ts-24-bc-0-q-420",
-  "S448-J6-DS2-CH23-ts-24-bc-0-q-430",
-  "S448-J6-DS2-CH24-ts-24-bc-0-q-440",
-  "S448-J6-DS2-CH25-ts-24-bc-0-q-450",
-  "S448-J6-DS2-CH26-ts-24-bc-0-q-460",
-  "S448-J6-DS2-CH42-ts-24-bc-0-q-420"};
+  "S448-J6-DS2-CH22-ts-24-bc-0-cs-421-q-420",
+  "S448-J6-DS2-CH23-ts-24-bc-0-cs-431-q-430",
+  "S448-J6-DS2-CH24-ts-24-bc-0-cs-441-q-440",
+  "S448-J6-DS2-CH25-ts-24-bc-0-cs-451-q-450",
+  "S448-J6-DS2-CH26-ts-24-bc-0-cs-461-q-460",
+  "S448-J6-DS2-CH42-ts-24-bc-0-cs-421-q-420"};
 
 typedef boost::mpl::list<BareFormat, UserLogicFormat> testTypes;
 
@@ -184,21 +188,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(ClosureChargeSum, FORMAT, testTypes)
 }
 
 std::vector<std::string> sampleInput = {
-  "S728-J1-DS0-CH3-ts-24-bc-0-q-13-15-17",
-  "S728-J1-DS0-CH13-ts-24-bc-0-q-133-135-137",
-  "S728-J1-DS0-CH23-ts-24-bc-0-q-163-165",
+  "S728-J1-DS0-CH3-ts-24-bc-0-cs-3-q-13-15-17",
+  "S728-J1-DS0-CH13-ts-24-bc-0-cs-3-q-133-135-137",
+  "S728-J1-DS0-CH23-ts-24-bc-0-cs-2-q-163-165",
 
-  "S361-J0-DS4-CH0-ts-24-bc-0-q-10-12-14",
-  "S361-J0-DS4-CH1-ts-24-bc-0-q-20-22-24",
-  "S361-J0-DS4-CH2-ts-24-bc-0-q-30-32-34",
-  "S361-J0-DS4-CH3-ts-24-bc-0-q-40-42-44",
+  "S361-J0-DS4-CH0-ts-24-bc-0-cs-3-q-10-12-14",
+  "S361-J0-DS4-CH1-ts-24-bc-0-cs-3-q-20-22-24",
+  "S361-J0-DS4-CH2-ts-24-bc-0-cs-3-q-30-32-34",
+  "S361-J0-DS4-CH3-ts-24-bc-0-cs-3-q-40-42-44",
 
-  "S448-J6-DS2-CH22-ts-24-bc-0-q-420-422-424",
-  "S448-J6-DS2-CH23-ts-24-bc-0-q-430-432-434",
-  "S448-J6-DS2-CH24-ts-24-bc-0-q-440-442-444",
-  "S448-J6-DS2-CH25-ts-24-bc-0-q-450-452-454",
-  "S448-J6-DS2-CH26-ts-24-bc-0-q-460-462-464",
-  "S448-J6-DS2-CH42-ts-24-bc-0-q-420-422-424-426-428"};
+  "S448-J6-DS2-CH22-ts-24-bc-0-cs-3-q-420-422-424",
+  "S448-J6-DS2-CH23-ts-24-bc-0-cs-3-q-430-432-434",
+  "S448-J6-DS2-CH24-ts-24-bc-0-cs-3-q-440-442-444",
+  "S448-J6-DS2-CH25-ts-24-bc-0-cs-3-q-450-452-454",
+  "S448-J6-DS2-CH26-ts-24-bc-0-cs-3-q-460-462-464",
+  "S448-J6-DS2-CH42-ts-24-bc-0-cs-5-q-420-422-424-426-428"};
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(ClosureSample, FORMAT, testTypes)
 {
