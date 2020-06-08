@@ -63,7 +63,8 @@ class HitProcessingManager
   // if -1 and only background chain will do number of entries in chain
   void setupRun(int ncollisions = -1);
 
-  const o2::steer::DigitizationContext& getDigitizationContext() { return mDigitizationContext; }
+  const o2::steer::DigitizationContext& getDigitizationContext() const { return mDigitizationContext; }
+  o2::steer::DigitizationContext& getDigitizationContext() { return mDigitizationContext; }
 
   // serializes the runcontext to file
   void writeDigitizationContext(const char* filename) const;

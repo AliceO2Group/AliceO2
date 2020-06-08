@@ -14,11 +14,12 @@
 #include <TChain.h>
 #include <TFile.h>
 #include <iostream>
+#include <numeric> // for iota
 #include <MathUtils/Cartesian3D.h>
 
 using namespace o2::steer;
 
-void DigitizationContext::printCollisionSummary() const
+void DigitizationContext::printCollisionSummary(bool withQED) const
 {
   std::cout << "Summary of DigitizationContext --\n";
   std::cout << "Parts per collision " << mMaxPartNumber << "\n";
@@ -26,13 +27,26 @@ void DigitizationContext::printCollisionSummary() const
   for (int p = 0; p < mSimPrefixes.size(); ++p) {
     std::cout << "Part " << p << " : " << mSimPrefixes[p] << "\n";
   }
-  std::cout << "Number of Collisions " << mEventRecords.size() << "\n";
-  for (int i = 0; i < mEventRecords.size(); ++i) {
-    std::cout << "Collision " << i << " TIME " << mEventRecords[i];
-    for (auto& e : mEventParts[i]) {
-      std::cout << " (" << e.sourceID << " , " << e.entryID << ")";
+  if (withQED) {
+    std::cout << "Number of Collisions " << mEventRecords.size() << "\n";
+    std::cout << "Number of QED events " << mEventRecordsWithQED.size() - mEventRecords.size() << "\n";
+    // loop over combined stuff
+    for (int i = 0; i < mEventRecordsWithQED.size(); ++i) {
+      std::cout << "Record " << i << " TIME " << mEventRecordsWithQED[i];
+      for (auto& e : mEventPartsWithQED[i]) {
+        std::cout << " (" << e.sourceID << " , " << e.entryID << ")";
+      }
+      std::cout << "\n";
     }
-    std::cout << "\n";
+  } else {
+    std::cout << "Number of Collisions " << mEventRecords.size() << "\n";
+    for (int i = 0; i < mEventRecords.size(); ++i) {
+      std::cout << "Collision " << i << " TIME " << mEventRecords[i];
+      for (auto& e : mEventParts[i]) {
+        std::cout << " (" << e.sourceID << " , " << e.entryID << ")";
+      }
+      std::cout << "\n";
+    }
   }
 }
 
@@ -61,6 +75,19 @@ bool DigitizationContext::initSimChains(o2::detectors::DetID detid, std::vector<
     // add signal files
     simchains.back()->AddFile(o2::base::NameConf::getHitsFileName(detid, mSimPrefixes[source].data()).c_str());
   }
+
+  // QED part
+  if (mEventRecordsWithQED.size() > 0) {
+    if (mSimPrefixes.size() >= QEDSOURCEID) {
+      LOG(FATAL) << "Too many signal chains; crashes with QED source ID";
+    }
+
+    // it might be better to use an unordered_map for the simchains but this requires interface changes
+    simchains.resize(QEDSOURCEID + 1, nullptr);
+    simchains[QEDSOURCEID] = new TChain("o2sim");
+    simchains[QEDSOURCEID]->AddFile(o2::base::NameConf::getHitsFileName(detid, mQEDSimPrefix).c_str());
+  }
+
   return true;
 }
 
@@ -170,4 +197,53 @@ DigitizationContext const* DigitizationContext::loadFromFile(std::string_view fi
   TFile file(filename.data(), "OPEN");
   file.GetObject("DigitizationContext", incontext);
   return incontext;
+}
+
+void DigitizationContext::fillQED(std::string_view QEDprefix, std::vector<o2::InteractionTimeRecord> const& irecord)
+{
+  mQEDSimPrefix = QEDprefix;
+
+  std::vector<std::vector<o2::steer::EventPart>> qedEventParts;
+
+  // we need to fill the QED parts (using a simple round robin scheme)
+  auto qedKinematicsName = o2::base::NameConf::getMCKinematicsFileName(mQEDSimPrefix);
+  // find out how many events are stored
+  TFile f(qedKinematicsName.c_str(), "OPEN");
+  auto t = (TTree*)f.Get("o2sim");
+  if (!t) {
+    LOG(ERROR) << "No QED kinematics found";
+    return;
+  }
+  auto numberQEDevents = t->GetEntries();
+  int eventID = 0;
+  for (auto& tmp : irecord) {
+    std::vector<EventPart> qedpart;
+    qedpart.emplace_back(QEDSOURCEID, eventID++);
+    qedEventParts.push_back(qedpart);
+    if (eventID == numberQEDevents) {
+      eventID = 0;
+    }
+  }
+
+  // we need to do the interleaved event records for detectors consuming both
+  // normal and QED events
+  // --> merge both; sort first according to times and sort second one according to same order
+  auto combinedrecords = mEventRecords;
+  combinedrecords.insert(combinedrecords.end(), irecord.begin(), irecord.end());
+  auto combinedparts = mEventParts;
+  combinedparts.insert(combinedparts.end(), qedEventParts.begin(), qedEventParts.end());
+
+  // get sorted index vector based on event records
+  std::vector<size_t> idx(combinedrecords.size());
+  std::iota(idx.begin(), idx.end(), 0);
+
+  std::stable_sort(idx.begin(), idx.end(),
+                   [&combinedrecords](size_t i1, size_t i2) { return combinedrecords[i1] < combinedrecords[i2]; });
+
+  mEventRecordsWithQED.clear();
+  mEventPartsWithQED.clear();
+  for (int i = 0; i < idx.size(); ++i) {
+    mEventRecordsWithQED.push_back(combinedrecords[idx[i]]);
+    mEventPartsWithQED.push_back(combinedparts[idx[i]]);
+  }
 }
