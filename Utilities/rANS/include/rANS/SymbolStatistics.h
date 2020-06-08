@@ -105,6 +105,10 @@ SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t range) :
   LOG(trace) << "start building symbol statistics";
   RANSTimer t;
   t.start();
+  if (begin == end) {
+    LOG(warning) << "Passed empty message to " << __func__;
+    return;
+  }
 
   buildFrequencyTable(begin, end, range);
 
@@ -117,6 +121,10 @@ SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t range) :
   buildCumulativeFrequencyTable();
 
   mMessageLength = mCumulativeFrequencyTable.back();
+
+  assert(mFrequencyTable.size() > 0);
+  assert(mCumulativeFrequencyTable.size() > 1);
+  assert(mCumulativeFrequencyTable.size() - mFrequencyTable.size() == 1);
 
   t.stop();
   LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();
@@ -191,16 +199,17 @@ void SymbolStatistics::buildFrequencyTable(const IT begin, const IT end,
 
     // do checks
     if (static_cast<unsigned int>(mMin) > *minmax.first) {
-      throw std::runtime_error("min of data too small for given minimum");
+      throw std::runtime_error("min of data too small for specified range");
     }
 
     if (static_cast<unsigned int>(mMax) < *minmax.second) {
-      throw std::runtime_error("max of data too big for given maximum");
+      throw std::runtime_error("max of data too big for specified range");
     }
   } else {
     mMin = *minmax.first;
     mMax = *minmax.second;
   }
+  assert(mMax >= mMin);
 
   mFrequencyTable.resize(std::abs(mMax - mMin) + 1, 0);
 
