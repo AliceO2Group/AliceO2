@@ -143,7 +143,7 @@ struct BuilderUtils {
   static void unsafeAppend(BuilderType& builder, T* value)
   {
     if constexpr (std::is_same_v<BuilderType, std::unique_ptr<arrow::FixedSizeListBuilder>>) {
-      appendToList<T>(builder, value);
+      auto status = appendToList<T>(builder, value);
     } else {
       return builder->UnsafeAppend(reinterpret_cast<const uint8_t*>(value));
     }
@@ -263,7 +263,8 @@ struct BuilderMaker<T (&)[N]> {
   static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
   {
     std::unique_ptr<arrow::ArrayBuilder> valueBuilder;
-    arrow::MakeBuilder(pool, arrow::TypeTraits<ElementType>::type_singleton(), &valueBuilder);
+    auto status =
+      arrow::MakeBuilder(pool, arrow::TypeTraits<ElementType>::type_singleton(), &valueBuilder);
     return std::make_unique<BuilderType>(pool, std::move(valueBuilder), N);
   }
 
@@ -283,7 +284,8 @@ struct BuilderMaker<T[N]> {
   static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
   {
     std::unique_ptr<arrow::ArrayBuilder> valueBuilder;
-    arrow::MakeBuilder(pool, arrow::TypeTraits<ElementType>::type_singleton(), &valueBuilder);
+    auto status =
+      arrow::MakeBuilder(pool, arrow::TypeTraits<ElementType>::type_singleton(), &valueBuilder);
     return std::make_unique<BuilderType>(pool, std::move(valueBuilder), N);
   }
 

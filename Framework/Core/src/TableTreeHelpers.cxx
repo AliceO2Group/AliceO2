@@ -323,12 +323,13 @@ TTree* TableToTree::process()
 }
 
 // -----------------------------------------------------------------------------
-#define MAKE_LIST_BUILDER(ElementType, NumElements)         \
-  std::unique_ptr<arrow::ArrayBuilder> ValueBuilder;        \
-  MakeBuilder(mMemoryPool, ElementType, &ValueBuilder);     \
-  bui_list = std::make_shared<arrow::FixedSizeListBuilder>( \
-    mMemoryPool,                                            \
-    std::move(ValueBuilder),                                \
+#define MAKE_LIST_BUILDER(ElementType, NumElements)                \
+  std::unique_ptr<arrow::ArrayBuilder> ValueBuilder;               \
+  arrow::MemoryPool* MemoryPool = arrow::default_memory_pool();    \
+  auto stat = MakeBuilder(MemoryPool, ElementType, &ValueBuilder); \
+  bui_list = std::make_shared<arrow::FixedSizeListBuilder>(        \
+    MemoryPool,                                                    \
+    std::move(ValueBuilder),                                       \
     NumElements);
 
 #define MAKE_FIELD(ElementType, NumElements)                                                         \
@@ -343,7 +344,8 @@ TTree* TableToTree::process()
 #define MAKE_FIELD_AND_BUILDER(ElementCType, NumElements, Builder)                                                                  \
   MAKE_FIELD(arrow::TypeTraits<arrow::CTypeTraits<ElementCType>::ArrowType>::type_singleton(), NumElements);                        \
   if (NumElements == 1) {                                                                                                           \
-    Builder = new arrow::TypeTraits<arrow::CTypeTraits<ElementCType>::ArrowType>::BuilderType(mMemoryPool);                         \
+    arrow::MemoryPool* MemoryPool = arrow::default_memory_pool();                                                                   \
+    Builder = new arrow::TypeTraits<arrow::CTypeTraits<ElementCType>::ArrowType>::BuilderType(MemoryPool);                          \
   } else {                                                                                                                          \
     MAKE_LIST_BUILDER(arrow::TypeTraits<arrow::CTypeTraits<ElementCType>::ArrowType>::type_singleton(), NumElements);               \
     Builder = static_cast<arrow::TypeTraits<arrow::CTypeTraits<ElementCType>::ArrowType>::BuilderType*>(bui_list->value_builder()); \

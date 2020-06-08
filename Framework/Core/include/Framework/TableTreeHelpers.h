@@ -38,7 +38,6 @@ class BranchIterator
 {
 
  private:
-  arrow::MemoryPool* mMemoryPool = arrow::default_memory_pool();
   std::string mBranchName;    // branch name
   arrow::ArrayVector mChunks; // chunks
   Int_t mNumberChuncs;        // number of chunks
@@ -174,7 +173,6 @@ class ColumnIterator
   int64_t mNumberElements;
   const char* mColumnName;
 
-  arrow::MemoryPool* mMemoryPool = arrow::default_memory_pool();
   std::shared_ptr<arrow::Field> mField;
   std::shared_ptr<arrow::Array> mArray;
 
