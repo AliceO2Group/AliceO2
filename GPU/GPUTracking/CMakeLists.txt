@@ -280,12 +280,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                             HEADERS ${HDRS_CINT_O2}
                             LINKDEF GPUTrackingLinkDef_O2.h)
 
-  o2_add_test(${MODULE}
-              PUBLIC_LINK_LIBRARIES O2::${MODULE}
-              SOURCES ctest/testGPUTracking.cxx
-              COMPONENT_NAME GPU
-              LABELS gpu)
-
   target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
                              GPUCA_TPC_GEOMETRY_O2 HAVE_O2HEADERS)
 

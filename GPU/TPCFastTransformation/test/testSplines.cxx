@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file testGPUTracking.cxx
-/// \author David Rohr
+/// \file testSplines.cxx
+/// \author Sergey Gorbunov
 
 #define BOOST_TEST_MODULE Test TPC Fast Transformation
 #define BOOST_TEST_MAIN
