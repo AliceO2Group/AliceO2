@@ -55,7 +55,6 @@ set(SRCS
     Merger/GPUTPCGMPhysicalTrackModel.cxx
     Merger/GPUTPCGMPolynomialField.cxx
     Merger/GPUTPCGMPolynomialFieldManager.cxx
-    Merger/GPUTPCGMMergerGPU.cxx
     TRDTracking/GPUTRDTrack.cxx
     TRDTracking/GPUTRDTracker.cxx
     TRDTracking/GPUTRDTrackletWord.cxx
@@ -76,6 +75,7 @@ set(SRCS_NO_CINT
     Global/GPUChain.cxx
     Global/GPUChainTracking.cxx
     Global/GPUTrackingInputProvider.cxx
+    Merger/GPUTPCGMMergerGPU.cxx
     Standalone/utils/timer.cxx)
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
