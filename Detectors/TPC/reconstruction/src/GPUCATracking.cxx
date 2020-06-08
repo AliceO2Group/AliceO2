@@ -93,13 +93,13 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
   } else if (data->o2Digits) {
     ptrs.clustersNative = nullptr;
     const float zsThreshold = mTrackingCAO2Interface->getConfig().configReconstruction.tpcZSthreshold;
-    const int maxContTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + Constants::LHCBCPERTIMEBIN - 1) / Constants::LHCBCPERTIMEBIN;
+    const int maxContTimeBin = mTrackingCAO2Interface->getConfig().configEvent.continuousMaxTimeBin;
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
       const auto& d = (*(data->o2Digits))[i];
       gpuDigits[i].reserve(d.size());
       gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
       for (int j = 0; j < d.size(); j++) {
-        if (d[j].getTimeStamp() >= maxContTimeBin) {
+        if (maxContTimeBin && d[j].getTimeStamp() >= maxContTimeBin) {
           throw std::runtime_error("Digit time bin exceeds time frame length");
         }
         if (d[j].getChargeFloat() >= zsThreshold) {
