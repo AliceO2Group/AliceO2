@@ -34,7 +34,6 @@ template <typename T>
 struct EncoderSymbol {
   EncoderSymbol(uint32_t start, uint32_t freq, uint32_t scale_bits)
   {
-    //TODO(lettrich): a check should be definitely done here.
     //		RansAssert(scale_bits <= 16);
     assert(start <= (1u << scale_bits));
     assert(freq <= (1u << scale_bits) - start);

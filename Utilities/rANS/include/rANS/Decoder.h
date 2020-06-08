@@ -101,9 +101,17 @@ void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, 
   static_assert(std::is_same<typename std::iterator_traits<source_IT>::value_type, source_T>::value);
   static_assert(std::is_same<typename std::iterator_traits<stream_IT>::value_type, stream_T>::value);
 
+  if (numSymbols == 0) {
+    LOG(warning) << "Empty message passed to decoder, skipping decode process";
+    return;
+  }
+
   State<coder_T> rans0, rans1;
   const stream_T* ptr = &(*inputBegin);
   source_IT it = outputBegin;
+
+  assert(ptr != nullptr);
+
   ransDecoder::decInit(&rans0, &ptr);
   ransDecoder::decInit(&rans1, &ptr);
 

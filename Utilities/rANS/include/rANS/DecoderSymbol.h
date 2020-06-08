@@ -29,10 +29,9 @@ struct DecoderSymbol {
   DecoderSymbol(uint32_t start, uint32_t freq, uint32_t probabilityBits)
     : start(start), freq(freq)
   {
-    (void)probabilityBits; // silence compiler warning.
-    // TODO(lettrich): a check should be definitely done here.
-    //		RansAssert(start <= (1 << 16));
-    //		RansAssert(freq <= (1 << 16) - start);
+    (void)probabilityBits; // silence compiler warnings if assert not compiled.
+    assert(start <= (1 << probabilityBits));
+    assert(freq <= (1 << probabilityBits) - start);
   };
 
   uint32_t start; // Start of range.

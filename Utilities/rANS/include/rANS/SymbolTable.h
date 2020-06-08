@@ -52,8 +52,10 @@ class SymbolTable
 
   const T& operator[](int index) const
   {
-
-    return mSymbolTable[index - mMin];
+    auto idx = index - mMin;
+    assert(idx >= 0);
+    assert(idx < mSymbolTable.size());
+    return mSymbolTable[idx];
   }
 
  private:

@@ -32,19 +32,22 @@ class ReverseSymbolLookupTable
 {
  public:
   ReverseSymbolLookupTable(size_t probabilityBits,
-                           const SymbolStatistics& stats)
+                           const SymbolStatistics& stats) : mLut()
   {
     LOG(trace) << "start building reverse symbol lookup table";
 
+    if (stats.getAlphabetSize() == 0) {
+      LOG(warning) << "SymbolStatistics of empty message passed to " << __func__;
+      return;
+    }
+
     mLut.resize(bitsToRange(probabilityBits));
     // go over all symbols
-    for (int symbol = stats.getMinSymbol(); symbol < stats.getMaxSymbol() + 1;
+    for (int symbol = stats.getMinSymbol(); symbol <= stats.getMaxSymbol();
          symbol++) {
       for (uint32_t cumulative = stats[symbol].second;
-           cumulative < stats[symbol + 1].second; cumulative++) {
+           cumulative < stats[symbol].second + stats[symbol].first; cumulative++) {
         mLut[cumulative] = symbol;
-        //      std::cout << "ReverseSymbolLookupTable[" << cumulative << "]: "
-        //      << symbol;
       }
     }
 
