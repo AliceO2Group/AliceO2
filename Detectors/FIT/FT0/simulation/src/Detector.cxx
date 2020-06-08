@@ -360,10 +360,6 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       AddHit(x, y, z, time, 10, trackID, detID);
     }
     if (iPart == 50000050) { // If particles is photon then ...
-      if (etot > 7.46e-9 || etot < 2.4e-9) {
-        fMC->StopTrack();
-        return kFALSE;
-      }
       if (volname.Contains("0TOP")) {
         if (!RegisterPhotoE(etot)) {
           fMC->StopTrack();
