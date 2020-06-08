@@ -10,7 +10,6 @@
 #include <iostream>
 #include "TGeant4.h"
 #include "TString.h"
-#include "TPythia6Decayer.h"
 #include "FairRunSim.h"
 #include "TSystem.h"
 #include "TG4RunConfiguration.h"
@@ -69,10 +68,7 @@ void Config()
   stackSetup(geant4, FairRunSim::Instance());
 
   // setup decayer
-  if (FairRunSim::Instance()->IsExtDecayer()) {
-    TVirtualMCDecayer* decayer = TPythia6Decayer::Instance();
-    geant4->SetExternalDecayer(decayer);
-  }
+  decayerSetup(geant4);
 
   TString configm(gSystem->Getenv("VMCWORKDIR"));
   auto configm1 = configm + "/Detectors/gconfig/g4config.in";
