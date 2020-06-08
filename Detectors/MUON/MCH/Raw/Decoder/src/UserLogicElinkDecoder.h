@@ -11,7 +11,6 @@
 #ifndef O2_MCH_RAW_USER_LOGIC_ELINK_DECODER_H
 #define O2_MCH_RAW_USER_LOGIC_ELINK_DECODER_H
 
-
 #include "Debug.h"
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawCommon/SampaHeader.h"
