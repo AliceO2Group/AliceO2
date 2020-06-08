@@ -25,7 +25,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     PRIVATE_INCLUDE_DIRECTORIES
       ${CMAKE_SOURCE_DIR}/Detectors/Base/src
       ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
-    PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITStrackingCUDA cub::cub
+    PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITStrackingCUDA
     TARGETVARNAME targetName)
 
   target_compile_definitions(
@@ -69,7 +69,7 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_definitions(-DGPUCA_GPULIBRARY=CUDA)
   add_library(${MODULE} SHARED ${SRCS})
-  target_link_libraries(${MODULE} PUBLIC GPUTracking cub::cub)
+  target_link_libraries(${MODULE} PUBLIC GPUTracking)
   set(targetName ${MODULE})
   install(TARGETS GPUTrackingCUDA)
 endif()
