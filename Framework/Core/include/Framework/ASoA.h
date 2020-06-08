@@ -125,9 +125,8 @@ class ColumnIterator : ChunkingPolicy
       mFirstIndex{0},
       mCurrentChunk{0}
   {
-    auto chunkToUse = mColumn->chunk(mCurrentChunk);
+    auto chunkToUse = getCurrentChunk();
     if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
-      chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
       auto array = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
       mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset();
       mLast = mCurrent + array->length();
@@ -145,22 +144,11 @@ class ColumnIterator : ChunkingPolicy
   ColumnIterator(ColumnIterator<T, ChunkingPolicy>&&) = default;
   ColumnIterator<T, ChunkingPolicy>& operator=(ColumnIterator<T, ChunkingPolicy>&&) = default;
 
-  /// get pointer to specified chunk
-  std::shared_ptr<arrow::Array> getCurrentChunk()
-  {
-    std::shared_ptr<arrow::Array> chunkToUse = mColumn->chunk(mCurrentChunk);
-    if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
-      chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
-    }
-    return chunkToUse;
-  }
-
   /// Move the iterator to the next chunk.
   void nextChunk() const
   {
-    auto chunkToUse = mColumn->chunk(mCurrentChunk);
+    auto chunkToUse = getCurrentChunk();
     if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
-      chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
       auto previousArray = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
       mFirstIndex += previousArray->length();
     } else {
@@ -169,9 +157,8 @@ class ColumnIterator : ChunkingPolicy
     }
 
     mCurrentChunk++;
-    chunkToUse = mColumn->chunk(mCurrentChunk);
+    chunkToUse = getCurrentChunk();
     if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
-      chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
       auto array = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
       mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
       mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
@@ -184,9 +171,8 @@ class ColumnIterator : ChunkingPolicy
 
   void prevChunk() const
   {
-    auto chunkToUse = mColumn->chunk(mCurrentChunk);
+    auto chunkToUse = getCurrentChunk();
     if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
-      chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
       auto previousArray = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
       mFirstIndex -= previousArray->length();
     } else {
@@ -195,9 +181,8 @@ class ColumnIterator : ChunkingPolicy
     }
 
     mCurrentChunk--;
-    chunkToUse = mColumn->chunk(mCurrentChunk);
+    chunkToUse = getCurrentChunk();
     if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
-      chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
       auto array = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
       mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
       mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
@@ -279,6 +264,17 @@ class ColumnIterator : ChunkingPolicy
   arrow::ChunkedArray const* mColumn;
   mutable int mFirstIndex;
   mutable int mCurrentChunk;
+
+ private:
+  /// get pointer to mCurrentChunk chunk
+  std::shared_ptr<arrow::Array> getCurrentChunk() const
+  {
+    std::shared_ptr<arrow::Array> chunkToUse = mColumn->chunk(mCurrentChunk);
+    if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
+      chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
+    }
+    return chunkToUse;
+  }
 };
 
 template <typename T, typename INHERIT>

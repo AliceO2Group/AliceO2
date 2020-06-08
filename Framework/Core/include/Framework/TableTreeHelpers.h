@@ -58,17 +58,17 @@ class BranchIterator
   char* mBranchBuffer = nullptr;
   void* mValueBuffer = nullptr;
 
-  std::shared_ptr<arrow::BooleanArray> var_o = nullptr;
+  std::shared_ptr<arrow::BooleanArray> mVariable_o = nullptr;
   Bool_t boolValueHolder;
-  UChar_t* var_ub = nullptr;
-  Float_t* var_f = nullptr;
-  Double_t* var_d = nullptr;
-  UShort_t* var_us = nullptr;
-  UInt_t* var_ui = nullptr;
-  long unsigned int* var_ul = nullptr;
-  Short_t* var_s = nullptr;
-  Int_t* var_i = nullptr;
-  long int* var_l = nullptr;
+  uint8_t* mVariable_ub = nullptr;
+  uint16_t* mVariable_us = nullptr;
+  uint32_t* mVariable_ui = nullptr;
+  uint64_t* mVariable_ul = nullptr;
+  int16_t* mVariable_s = nullptr;
+  int32_t* mVariable_i = nullptr;
+  int64_t* mVariable_l = nullptr;
+  float* mVariable_f = nullptr;
+  double* mVariable_d = nullptr;
 
   // initialize a branch
   bool initBranch(TTree* tree);
@@ -131,42 +131,42 @@ class ColumnIterator
 
  private:
   // all the possible TTreeReaderValue<T> types
-  TTreeReaderValue<Bool_t>* var_o = nullptr;
-  TTreeReaderValue<UChar_t>* var_ub = nullptr;
-  TTreeReaderValue<Float_t>* var_f = nullptr;
-  TTreeReaderValue<Double_t>* var_d = nullptr;
-  TTreeReaderValue<UShort_t>* var_us = nullptr;
-  TTreeReaderValue<UInt_t>* var_ui = nullptr;
-  TTreeReaderValue<long unsigned int>* var_ul = nullptr;
-  TTreeReaderValue<Short_t>* var_s = nullptr;
-  TTreeReaderValue<Int_t>* var_i = nullptr;
-  TTreeReaderValue<long int>* var_l = nullptr;
+  TTreeReaderValue<Bool_t>* mReaderValue_o = nullptr;
+  TTreeReaderValue<uint8_t>* mReaderValue_ub = nullptr;
+  TTreeReaderValue<uint16_t>* mReaderValue_us = nullptr;
+  TTreeReaderValue<uint32_t>* mReaderValue_ui = nullptr;
+  TTreeReaderValue<uint64_t>* mReaderValue_ul = nullptr;
+  TTreeReaderValue<int16_t>* mReaderValue_s = nullptr;
+  TTreeReaderValue<int32_t>* mReaderValue_i = nullptr;
+  TTreeReaderValue<int64_t>* mReaderValue_l = nullptr;
+  TTreeReaderValue<float>* mReaderValue_f = nullptr;
+  TTreeReaderValue<double>* mReaderValue_d = nullptr;
 
   // all the possible TTreeReaderArray<T> types
-  TTreeReaderArray<Bool_t>* arr_o = nullptr;
-  TTreeReaderArray<UChar_t>* arr_ub = nullptr;
-  TTreeReaderArray<Float_t>* arr_f = nullptr;
-  TTreeReaderArray<Double_t>* arr_d = nullptr;
-  TTreeReaderArray<UShort_t>* arr_us = nullptr;
-  TTreeReaderArray<UInt_t>* arr_ui = nullptr;
-  TTreeReaderArray<long unsigned int>* arr_ul = nullptr;
-  TTreeReaderArray<Short_t>* arr_s = nullptr;
-  TTreeReaderArray<Int_t>* arr_i = nullptr;
-  TTreeReaderArray<long int>* arr_l = nullptr;
+  TTreeReaderArray<Bool_t>* mReaderArray_o = nullptr;
+  TTreeReaderArray<uint8_t>* mReaderArray_ub = nullptr;
+  TTreeReaderArray<uint16_t>* mReaderArray_us = nullptr;
+  TTreeReaderArray<uint32_t>* mReaderArray_ui = nullptr;
+  TTreeReaderArray<uint64_t>* mReaderArray_ul = nullptr;
+  TTreeReaderArray<int16_t>* mReaderArray_s = nullptr;
+  TTreeReaderArray<int32_t>* mReaderArray_i = nullptr;
+  TTreeReaderArray<int64_t>* mReaderArray_l = nullptr;
+  TTreeReaderArray<float>* mReaderArray_f = nullptr;
+  TTreeReaderArray<double>* mReaderArray_d = nullptr;
 
   // all the possible arrow::TBuilder types
   std::shared_ptr<arrow::FixedSizeListBuilder> bui_list;
 
   arrow::BooleanBuilder* bui_o = nullptr;
   arrow::UInt8Builder* bui_ub = nullptr;
-  arrow::FloatBuilder* bui_f = nullptr;
-  arrow::DoubleBuilder* bui_d = nullptr;
   arrow::UInt16Builder* bui_us = nullptr;
   arrow::UInt32Builder* bui_ui = nullptr;
   arrow::UInt64Builder* bui_ul = nullptr;
   arrow::Int16Builder* bui_s = nullptr;
   arrow::Int32Builder* bui_i = nullptr;
   arrow::Int64Builder* bui_l = nullptr;
+  arrow::FloatBuilder* bui_f = nullptr;
+  arrow::DoubleBuilder* bui_d = nullptr;
 
   bool mStatus = false;
   EDataType mElementType;

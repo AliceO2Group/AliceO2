@@ -54,15 +54,15 @@ BranchIterator::~BranchIterator()
 {
   delete mBranchBuffer;
 
-  delete var_ub;
-  delete var_f;
-  delete var_d;
-  delete var_us;
-  delete var_ui;
-  delete var_ul;
-  delete var_s;
-  delete var_i;
-  delete var_l;
+  delete mVariable_ub;
+  delete mVariable_us;
+  delete mVariable_ui;
+  delete mVariable_ul;
+  delete mVariable_s;
+  delete mVariable_i;
+  delete mVariable_l;
+  delete mVariable_f;
+  delete mVariable_d;
 }
 
 bool BranchIterator::getStatus()
@@ -137,47 +137,47 @@ bool BranchIterator::initDataBuffer(Int_t ib)
   // get next chunk of given data type mElementType
   switch (mElementType) {
     case arrow::Type::type::BOOL:
-      var_o = std::dynamic_pointer_cast<arrow::BooleanArray>(chunkToUse);
-      boolValueHolder = (Bool_t)var_o->Value(mCounterRow);
+      mVariable_o = std::dynamic_pointer_cast<arrow::BooleanArray>(chunkToUse);
+      boolValueHolder = (Bool_t)mVariable_o->Value(mCounterRow);
       mValueBuffer = (void*)&boolValueHolder;
       break;
     case arrow::Type::type::UINT8:
-      var_ub = (UChar_t*)std::dynamic_pointer_cast<arrow::UInt8Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)var_ub;
-      break;
-    case arrow::Type::type::FLOAT:
-      var_f = (Float_t*)std::dynamic_pointer_cast<arrow::FloatArray>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)var_f;
-      break;
-    case arrow::Type::type::DOUBLE:
-      var_d = (Double_t*)std::dynamic_pointer_cast<arrow::DoubleArray>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)var_d;
+      mVariable_ub = (uint8_t*)std::dynamic_pointer_cast<arrow::UInt8Array>(chunkToUse)->raw_values();
+      mValueBuffer = (void*)mVariable_ub;
       break;
     case arrow::Type::type::UINT16:
-      var_us = (UShort_t*)std::dynamic_pointer_cast<arrow::UInt16Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)var_us;
+      mVariable_us = (uint16_t*)std::dynamic_pointer_cast<arrow::UInt16Array>(chunkToUse)->raw_values();
+      mValueBuffer = (void*)mVariable_us;
       break;
     case arrow::Type::type::UINT32:
-      var_ui = (UInt_t*)std::dynamic_pointer_cast<arrow::UInt32Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)var_ui;
+      mVariable_ui = (uint32_t*)std::dynamic_pointer_cast<arrow::UInt32Array>(chunkToUse)->raw_values();
+      mValueBuffer = (void*)mVariable_ui;
       break;
     case arrow::Type::type::UINT64:
-      var_ul = (long unsigned int*)std::dynamic_pointer_cast<arrow::UInt64Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)var_ul;
+      mVariable_ul = (uint64_t*)std::dynamic_pointer_cast<arrow::UInt64Array>(chunkToUse)->raw_values();
+      mValueBuffer = (void*)mVariable_ul;
       break;
     case arrow::Type::type::INT16:
-      var_s = (Short_t*)std::dynamic_pointer_cast<arrow::Int16Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)var_s;
+      mVariable_s = (int16_t*)std::dynamic_pointer_cast<arrow::Int16Array>(chunkToUse)->raw_values();
+      mValueBuffer = (void*)mVariable_s;
       break;
     case arrow::Type::type::INT32:
-      var_i = (Int_t*)std::dynamic_pointer_cast<arrow::Int32Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)var_i;
+      mVariable_i = (int32_t*)std::dynamic_pointer_cast<arrow::Int32Array>(chunkToUse)->raw_values();
+      mValueBuffer = (void*)mVariable_i;
       break;
     case arrow::Type::type::INT64:
-      var_l = (long int*)std::dynamic_pointer_cast<arrow::Int64Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)var_l;
+      mVariable_l = (int64_t*)std::dynamic_pointer_cast<arrow::Int64Array>(chunkToUse)->raw_values();
+      mValueBuffer = (void*)mVariable_l;
       break;
+    case arrow::Type::type::FLOAT:
+      mVariable_f = (Float_t*)std::dynamic_pointer_cast<arrow::FloatArray>(chunkToUse)->raw_values();
+      mValueBuffer = (void*)mVariable_f;
+      break;
+    case arrow::Type::type::DOUBLE:
+      mVariable_d = (double*)std::dynamic_pointer_cast<arrow::DoubleArray>(chunkToUse)->raw_values();
+      mValueBuffer = (void*)mVariable_d;
     default:
+      break;
       LOGP(FATAL, "Type {} not handled!", mElementType);
       break;
   }
@@ -207,44 +207,44 @@ bool BranchIterator::push()
   } else {
     switch (mElementType) {
       case arrow::Type::type::BOOL:
-        boolValueHolder = (Bool_t)var_o->Value(mCounterRow);
+        boolValueHolder = (Bool_t)mVariable_o->Value(mCounterRow);
         mValueBuffer = (void*)&boolValueHolder;
         break;
       case arrow::Type::type::UINT8:
-        var_ub += mNumberElements;
-        mValueBuffer = (void*)var_ub;
-        break;
-      case arrow::Type::type::FLOAT:
-        var_f += mNumberElements;
-        mValueBuffer = (void*)var_f;
-        break;
-      case arrow::Type::type::DOUBLE:
-        var_d += mNumberElements;
-        mValueBuffer = (void*)var_d;
+        mVariable_ub += mNumberElements;
+        mValueBuffer = (void*)mVariable_ub;
         break;
       case arrow::Type::type::UINT16:
-        var_us += mNumberElements;
-        mValueBuffer = (void*)var_us;
+        mVariable_us += mNumberElements;
+        mValueBuffer = (void*)mVariable_us;
         break;
       case arrow::Type::type::UINT32:
-        var_ui += mNumberElements;
-        mValueBuffer = (void*)var_ui;
+        mVariable_ui += mNumberElements;
+        mValueBuffer = (void*)mVariable_ui;
         break;
       case arrow::Type::type::UINT64:
-        var_ul += mNumberElements;
-        mValueBuffer = (void*)var_ul;
+        mVariable_ul += mNumberElements;
+        mValueBuffer = (void*)mVariable_ul;
         break;
       case arrow::Type::type::INT16:
-        var_s += mNumberElements;
-        mValueBuffer = (void*)var_s;
+        mVariable_s += mNumberElements;
+        mValueBuffer = (void*)mVariable_s;
         break;
       case arrow::Type::type::INT32:
-        var_i += mNumberElements;
-        mValueBuffer = (void*)var_i;
+        mVariable_i += mNumberElements;
+        mValueBuffer = (void*)mVariable_i;
         break;
       case arrow::Type::type::INT64:
-        var_l += mNumberElements;
-        mValueBuffer = (void*)var_l;
+        mVariable_l += mNumberElements;
+        mValueBuffer = (void*)mVariable_l;
+        break;
+      case arrow::Type::type::FLOAT:
+        mVariable_f += mNumberElements;
+        mValueBuffer = (void*)mVariable_f;
+        break;
+      case arrow::Type::type::DOUBLE:
+        mVariable_d += mNumberElements;
+        mValueBuffer = (void*)mVariable_d;
         break;
       default:
         LOGP(FATAL, "Type {} not handled!", mElementType);
@@ -394,44 +394,44 @@ ColumnIterator::ColumnIterator(TTreeReader* reader, const char* colname)
   if (mNumberElements == 1) {
     switch (mElementType) {
       case EDataType::kBool_t:
-        var_o = new TTreeReaderValue<Bool_t>(*reader, mColumnName);
+        mReaderValue_o = new TTreeReaderValue<Bool_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(bool, 1, bui_o);
         break;
       case EDataType::kUChar_t:
-        var_ub = new TTreeReaderValue<UChar_t>(*reader, mColumnName);
+        mReaderValue_ub = new TTreeReaderValue<uint8_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint8_t, 1, bui_ub);
         break;
-      case EDataType::kFloat_t:
-        var_f = new TTreeReaderValue<Float_t>(*reader, mColumnName);
-        MAKE_FIELD_AND_BUILDER(float, 1, bui_f);
-        break;
-      case EDataType::kDouble_t:
-        var_d = new TTreeReaderValue<Double_t>(*reader, mColumnName);
-        MAKE_FIELD_AND_BUILDER(double, 1, bui_d);
-        break;
       case EDataType::kUShort_t:
-        var_us = new TTreeReaderValue<UShort_t>(*reader, mColumnName);
+        mReaderValue_us = new TTreeReaderValue<uint16_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint16_t, 1, bui_us);
         break;
       case EDataType::kUInt_t:
-        var_ui = new TTreeReaderValue<UInt_t>(*reader, mColumnName);
+        mReaderValue_ui = new TTreeReaderValue<uint32_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint32_t, 1, bui_ui);
         break;
       case EDataType::kULong64_t:
-        var_ul = new TTreeReaderValue<long unsigned int>(*reader, mColumnName);
+        mReaderValue_ul = new TTreeReaderValue<uint64_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint64_t, 1, bui_ul);
         break;
       case EDataType::kShort_t:
-        var_s = new TTreeReaderValue<Short_t>(*reader, mColumnName);
+        mReaderValue_s = new TTreeReaderValue<int16_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int16_t, 1, bui_s);
         break;
       case EDataType::kInt_t:
-        var_i = new TTreeReaderValue<Int_t>(*reader, mColumnName);
+        mReaderValue_i = new TTreeReaderValue<int>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int32_t, 1, bui_i);
         break;
       case EDataType::kLong64_t:
-        var_l = new TTreeReaderValue<long int>(*reader, mColumnName);
+        mReaderValue_l = new TTreeReaderValue<int64_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int64_t, 1, bui_l);
+        break;
+      case EDataType::kFloat_t:
+        mReaderValue_f = new TTreeReaderValue<Float_t>(*reader, mColumnName);
+        MAKE_FIELD_AND_BUILDER(float, 1, bui_f);
+        break;
+      case EDataType::kDouble_t:
+        mReaderValue_d = new TTreeReaderValue<double>(*reader, mColumnName);
+        MAKE_FIELD_AND_BUILDER(double, 1, bui_d);
         break;
       default:
         LOGP(FATAL, "Type {} not handled!", mElementType);
@@ -440,44 +440,44 @@ ColumnIterator::ColumnIterator(TTreeReader* reader, const char* colname)
   } else {
     switch (mElementType) {
       case EDataType::kBool_t:
-        arr_o = new TTreeReaderArray<Bool_t>(*reader, mColumnName);
+        mReaderArray_o = new TTreeReaderArray<Bool_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(bool, mNumberElements, bui_o);
         break;
       case EDataType::kUChar_t:
-        arr_ub = new TTreeReaderArray<UChar_t>(*reader, mColumnName);
+        mReaderArray_ub = new TTreeReaderArray<uint8_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint8_t, mNumberElements, bui_ub);
         break;
-      case EDataType::kFloat_t:
-        arr_f = new TTreeReaderArray<Float_t>(*reader, mColumnName);
-        MAKE_FIELD_AND_BUILDER(float, mNumberElements, bui_f);
-        break;
-      case EDataType::kDouble_t:
-        arr_d = new TTreeReaderArray<Double_t>(*reader, mColumnName);
-        MAKE_FIELD_AND_BUILDER(double, mNumberElements, bui_d);
-        break;
       case EDataType::kUShort_t:
-        arr_us = new TTreeReaderArray<UShort_t>(*reader, mColumnName);
+        mReaderArray_us = new TTreeReaderArray<uint16_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint16_t, mNumberElements, bui_us);
         break;
       case EDataType::kUInt_t:
-        arr_ui = new TTreeReaderArray<UInt_t>(*reader, mColumnName);
+        mReaderArray_ui = new TTreeReaderArray<uint32_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint32_t, mNumberElements, bui_ui);
         break;
       case EDataType::kULong64_t:
-        arr_ul = new TTreeReaderArray<long unsigned int>(*reader, mColumnName);
+        mReaderArray_ul = new TTreeReaderArray<uint64_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint64_t, mNumberElements, bui_ul);
         break;
       case EDataType::kShort_t:
-        arr_s = new TTreeReaderArray<Short_t>(*reader, mColumnName);
+        mReaderArray_s = new TTreeReaderArray<int16_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int16_t, mNumberElements, bui_s);
         break;
       case EDataType::kInt_t:
-        arr_i = new TTreeReaderArray<Int_t>(*reader, mColumnName);
+        mReaderArray_i = new TTreeReaderArray<int32_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int32_t, mNumberElements, bui_i);
         break;
       case EDataType::kLong64_t:
-        arr_l = new TTreeReaderArray<long int>(*reader, mColumnName);
+        mReaderArray_l = new TTreeReaderArray<int64_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int64_t, mNumberElements, bui_l);
+        break;
+      case EDataType::kFloat_t:
+        mReaderArray_f = new TTreeReaderArray<float>(*reader, mColumnName);
+        MAKE_FIELD_AND_BUILDER(float, mNumberElements, bui_f);
+        break;
+      case EDataType::kDouble_t:
+        mReaderArray_d = new TTreeReaderArray<double>(*reader, mColumnName);
+        MAKE_FIELD_AND_BUILDER(double, mNumberElements, bui_d);
         break;
       default:
         LOGP(FATAL, "Type {} not handled!", mElementType);
@@ -489,27 +489,27 @@ ColumnIterator::ColumnIterator(TTreeReader* reader, const char* colname)
 ColumnIterator::~ColumnIterator()
 {
   // delete all pointers
-  delete var_o;
-  delete var_ub;
-  delete var_f;
-  delete var_d;
-  delete var_us;
-  delete var_ui;
-  delete var_ul;
-  delete var_s;
-  delete var_i;
-  delete var_l;
+  delete mReaderValue_o;
+  delete mReaderValue_ub;
+  delete mReaderValue_us;
+  delete mReaderValue_ui;
+  delete mReaderValue_ul;
+  delete mReaderValue_s;
+  delete mReaderValue_i;
+  delete mReaderValue_l;
+  delete mReaderValue_f;
+  delete mReaderValue_d;
 
-  delete arr_o;
-  delete arr_ub;
-  delete arr_f;
-  delete arr_d;
-  delete arr_us;
-  delete arr_ui;
-  delete arr_ul;
-  delete arr_s;
-  delete arr_i;
-  delete arr_l;
+  delete mReaderArray_o;
+  delete mReaderArray_ub;
+  delete mReaderArray_us;
+  delete mReaderArray_ui;
+  delete mReaderArray_ul;
+  delete mReaderArray_s;
+  delete mReaderArray_i;
+  delete mReaderArray_l;
+  delete mReaderArray_f;
+  delete mReaderArray_d;
 };
 
 bool ColumnIterator::getStatus()
@@ -525,72 +525,71 @@ void ColumnIterator::push()
   if (mNumberElements == 1) {
     switch (mElementType) {
       case EDataType::kBool_t:
-        stat = bui_o->Append((bool)**var_o);
+        stat = bui_o->Append((bool)**mReaderValue_o);
         break;
       case EDataType::kUChar_t:
-        stat = bui_ub->Append(**var_ub);
-        break;
-      case EDataType::kFloat_t:
-        stat = bui_f->Append(**var_f);
-        break;
-      case EDataType::kDouble_t:
-        stat = bui_d->Append(**var_d);
+        stat = bui_ub->Append(**mReaderValue_ub);
         break;
       case EDataType::kUShort_t:
-        stat = bui_us->Append(**var_us);
+        stat = bui_us->Append(**mReaderValue_us);
         break;
       case EDataType::kUInt_t:
-        stat = bui_ui->Append(**var_ui);
+        stat = bui_ui->Append(**mReaderValue_ui);
         break;
       case EDataType::kULong64_t:
-        stat = bui_ul->Append(**var_ul);
+        stat = bui_ul->Append(**mReaderValue_ul);
         break;
       case EDataType::kShort_t:
-        stat = bui_s->Append(**var_s);
+        stat = bui_s->Append(**mReaderValue_s);
         break;
       case EDataType::kInt_t:
-        stat = bui_i->Append(**var_i);
+        stat = bui_i->Append(**mReaderValue_i);
         break;
       case EDataType::kLong64_t:
-        stat = bui_l->Append(**var_l);
+        stat = bui_l->Append(**mReaderValue_l);
+        break;
+      case EDataType::kFloat_t:
+        stat = bui_f->Append(**mReaderValue_f);
+        break;
+      case EDataType::kDouble_t:
+        stat = bui_d->Append(**mReaderValue_d);
         break;
       default:
         LOGP(FATAL, "Type {} not handled!", mElementType);
         break;
     }
   } else {
-    bui_list->AppendValues(1);
+    stat = bui_list->AppendValues(1);
     switch (mElementType) {
       case EDataType::kBool_t:
-        stat = bui_o->AppendValues((uint8_t*)&((*arr_o)[0]), mNumberElements);
+        stat &= bui_o->AppendValues((uint8_t*)&((*mReaderArray_o)[0]), mNumberElements);
         break;
       case EDataType::kUChar_t:
-        stat = bui_ub->AppendValues(&((*arr_ub)[0]), mNumberElements);
-        break;
-      case EDataType::kFloat_t:
-        stat = bui_f->AppendValues(&((*arr_f)[0]), mNumberElements);
-        break;
-      case EDataType::kDouble_t:
-        stat = bui_d->AppendValues(&((*arr_d)[0]), mNumberElements);
+        stat &= bui_ub->AppendValues(&((*mReaderArray_ub)[0]), mNumberElements);
         break;
       case EDataType::kUShort_t:
-        stat = bui_us->AppendValues(&((*arr_us)[0]), mNumberElements);
+        stat &= bui_us->AppendValues(&((*mReaderArray_us)[0]), mNumberElements);
         break;
       case EDataType::kUInt_t:
-        stat = bui_ui->AppendValues(&((*arr_ui)[0]), mNumberElements);
+        stat &= bui_ui->AppendValues(&((*mReaderArray_ui)[0]), mNumberElements);
         break;
       case EDataType::kULong64_t:
-        stat = bui_ul->AppendValues(&((*arr_ul)[0]), mNumberElements);
+        stat &= bui_ul->AppendValues(&((*mReaderArray_ul)[0]), mNumberElements);
         break;
       case EDataType::kShort_t:
-        stat = bui_s->AppendValues(&((*arr_s)[0]), mNumberElements);
+        stat &= bui_s->AppendValues(&((*mReaderArray_s)[0]), mNumberElements);
         break;
-      case EDataType::kInt_t: {
-        stat = bui_i->AppendValues(&((*arr_i)[0]), mNumberElements);
+      case EDataType::kInt_t:
+        stat &= bui_i->AppendValues(&((*mReaderArray_i)[0]), mNumberElements);
         break;
-      }
       case EDataType::kLong64_t:
-        stat = bui_l->AppendValues(&((*arr_l)[0]), mNumberElements);
+        stat &= bui_l->AppendValues(&((*mReaderArray_l)[0]), mNumberElements);
+        break;
+      case EDataType::kFloat_t:
+        stat &= bui_f->AppendValues(&((*mReaderArray_f)[0]), mNumberElements);
+        break;
+      case EDataType::kDouble_t:
+        stat &= bui_d->AppendValues(&((*mReaderArray_d)[0]), mNumberElements);
         break;
       default:
         LOGP(FATAL, "Type {} not handled!", mElementType);
@@ -612,12 +611,6 @@ void ColumnIterator::finish()
       case EDataType::kUChar_t:
         stat = bui_ub->Finish(&mArray);
         break;
-      case EDataType::kFloat_t:
-        stat = bui_f->Finish(&mArray);
-        break;
-      case EDataType::kDouble_t:
-        stat = bui_d->Finish(&mArray);
-        break;
       case EDataType::kUShort_t:
         stat = bui_us->Finish(&mArray);
         break;
@@ -636,12 +629,18 @@ void ColumnIterator::finish()
       case EDataType::kLong64_t:
         stat = bui_l->Finish(&mArray);
         break;
+      case EDataType::kFloat_t:
+        stat = bui_f->Finish(&mArray);
+        break;
+      case EDataType::kDouble_t:
+        stat = bui_d->Finish(&mArray);
+        break;
       default:
         LOGP(FATAL, "Type {} not handled!", mElementType);
         break;
     }
   } else {
-    bui_list->Finish(&mArray);
+    stat = bui_list->Finish(&mArray);
   }
 }
 
