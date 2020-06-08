@@ -21,7 +21,6 @@ o2_add_library(ITStrackingCUDA
                        src/Utils.cu
                PUBLIC_LINK_LIBRARIES O2::ITStracking
                                      O2::SimConfig
-                                     cub::cub
                                      O2::SimulationDataFormat
                TARGETVARNAME targetName)
 
