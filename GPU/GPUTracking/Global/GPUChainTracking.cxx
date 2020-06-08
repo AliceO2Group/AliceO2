@@ -253,6 +253,10 @@ bool GPUChainTracking::ValidateSettings()
     GPUError("incompatible settings for non consecutive ids");
     return false;
   }
+  if (param().continuousMaxTimeBin > (int)GPUSettings::TPC_MAX_TF_TIME_BIN) {
+    GPUError("configure max time bin exceeds 256 orbits");
+    return false;
+  }
   if (mRec->IsGPU() && std::max(GetDeviceProcessingSettings().nTPCClustererLanes + 1, GetDeviceProcessingSettings().nTPCClustererLanes * 2) > mRec->NStreams()) {
     GPUError("NStreams must be > nTPCClustererLanes");
     return false;

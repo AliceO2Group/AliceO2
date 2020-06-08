@@ -58,7 +58,7 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
   // Just some default options to keep the macro running for now
   // Should be deprecated anyway in favor of the TPC workflow
   GPUO2InterfaceConfiguration config;
-  config.configEvent.continuousMaxTimeBin = 0.023 * 5e6;
+  config.configEvent.continuousMaxTimeBin = GPUSettings::TPC_MAX_TF_TIME_BIN;
   config.configReconstruction.NWays = 3;
   config.configReconstruction.NWaysOuter = true;
   config.configReconstruction.SearchWindowDZDR = 2.5f;
