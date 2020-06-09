@@ -29,9 +29,6 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-// This is a very simple example showing how to create an histogram
-// FIXME: this should really inherit from AnalysisTask but
-//        we need GCC 7.4+ for that
 
 struct TreeMaker {
   
