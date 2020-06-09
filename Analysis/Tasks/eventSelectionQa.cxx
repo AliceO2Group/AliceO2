@@ -34,18 +34,31 @@ struct EventSelectionTask {
     return dummy;
   }
 
+  aod::FDD getFDD(aod::BC const& bc, aod::FDDs const& fdds)
+  {
+    for (auto& fdd : fdds)
+      if (fdd.bc() == bc)
+        return fdd;
+    aod::FDD dummy;
+    return dummy;
+  }
+
   OutputObj<TH1F> hTimeV0Aall{TH1F("hTimeV0Aall", "", 200, -50., 50.)};
   OutputObj<TH1F> hTimeV0Call{TH1F("hTimeV0Call", "", 200, -50., 50.)};
   OutputObj<TH1F> hTimeZNAall{TH1F("hTimeZNAall", "", 250, -25., 25.)};
   OutputObj<TH1F> hTimeZNCall{TH1F("hTimeZNCall", "", 250, -25., 25.)};
+  OutputObj<TH1F> hTimeFDAall{TH1F("hTimeFDAall", "", 1000, -100., 100.)};
+  OutputObj<TH1F> hTimeFDCall{TH1F("hTimeFDCall", "", 1000, -100., 100.)};
   OutputObj<TH1F> hTimeV0Aacc{TH1F("hTimeV0Aacc", "", 200, -50., 50.)};
   OutputObj<TH1F> hTimeV0Cacc{TH1F("hTimeV0Cacc", "", 200, -50., 50.)};
   OutputObj<TH1F> hTimeZNAacc{TH1F("hTimeZNAacc", "", 250, -25., 25.)};
   OutputObj<TH1F> hTimeZNCacc{TH1F("hTimeZNCacc", "", 250, -25., 25.)};
+  OutputObj<TH1F> hTimeFDAacc{TH1F("hTimeFDAacc", "", 1000, -100., 100.)};
+  OutputObj<TH1F> hTimeFDCacc{TH1F("hTimeFDCacc", "", 1000, -100., 100.)};
 
-  void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& col, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros)
+  void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& col, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::FDDs fdds)
   {
-    if (!col.alias()[0])
+    if (!col.alias()[kINT7])
       return;
 
     auto vzero = getVZero(col.bc(), vzeros);
@@ -56,6 +69,10 @@ struct EventSelectionTask {
     hTimeZNAall->Fill(zdc.timeZNA());
     hTimeZNCall->Fill(zdc.timeZNC());
 
+    auto fdd = getFDD(col.bc(), fdds);
+    hTimeFDAall->Fill(fdd.timeA());
+    hTimeFDCall->Fill(fdd.timeC());
+
     if (!col.sel7())
       return;
 
@@ -63,6 +80,8 @@ struct EventSelectionTask {
     hTimeV0Cacc->Fill(vzero.timeC());
     hTimeZNAacc->Fill(zdc.timeZNA());
     hTimeZNCacc->Fill(zdc.timeZNC());
+    hTimeFDAacc->Fill(fdd.timeA());
+    hTimeFDCacc->Fill(fdd.timeC());
   }
 };
 

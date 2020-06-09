@@ -35,7 +35,7 @@ struct CentralityTableTask {
   void process(aod::Mult const& mult)
   {
     float centV0M = hCumMultV0M->GetBinContent(hCumMultV0M->FindFixBin(mult.multV0M()));
-    LOGF(info, "centV0M=%.0f", centV0M);
+    LOGF(debug, "centV0M=%.0f", centV0M);
     // fill centrality columns
     cent(centV0M);
   }
