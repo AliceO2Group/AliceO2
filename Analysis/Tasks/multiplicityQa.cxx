@@ -24,12 +24,12 @@ struct MultiplicityQaTask {
 
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Mults>::iterator const& col)
   {
-    if (!col.alias()[0])
+    if (!col.alias()[kINT7])
       return;
     if (!col.sel7())
       return;
 
-    LOGF(info, "multV0A=%5.0f multV0C=%5.0f multV0M=%5.0f", col.multV0A(), col.multV0C(), col.multV0M());
+    LOGF(debug, "multV0A=%5.0f multV0C=%5.0f multV0M=%5.0f", col.multV0A(), col.multV0C(), col.multV0M());
     // fill calibration histos
     hMultV0M->Fill(col.multV0M());
     hMultZNA->Fill(col.multZNA());
