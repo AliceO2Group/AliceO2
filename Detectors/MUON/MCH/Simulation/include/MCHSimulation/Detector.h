@@ -40,6 +40,15 @@ class Detector : public o2::base::DetImpl<Detector>
 
   void ConstructGeometry() override;
 
+  /// Add alignable top volumes
+  void addAlignableVolumes() const override;
+
+    /// Add alignable Layer volumes
+  /// \param hc half chamber number
+  /// \param parent path of the parent volume
+  /// \param lastUID on output, UID of the last volume
+  void addAlignableVolumesHalfChamber(int hc, std::string& parent, int& lastUID) const;
+
   std::vector<o2::mch::Hit>* getHits(int);
 
   void EndOfEvent() override;
