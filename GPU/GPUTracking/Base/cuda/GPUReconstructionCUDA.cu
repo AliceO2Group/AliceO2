@@ -79,7 +79,7 @@ class VertexerTraitsGPU : public VertexerTraits
 class GPUDebugTiming
 {
  public:
-  GPUDebugTiming(bool d, void** t, cudaStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionCUDABackend* r = nullptr) : mDo(d), mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r)
+  GPUDebugTiming(bool d, void** t, cudaStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionCUDABackend* r = nullptr) : mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r), mDo(d)
   {
     if (mDo) {
       if (mDeviceTimers) {
@@ -110,8 +110,8 @@ class GPUDebugTiming
   cudaStream_t* mStreams;
   GPUReconstruction::krnlSetup& mXYZ;
   GPUReconstructionCUDABackend* mRec;
-  bool mDo;
   HighResTimer mTimer;
+  bool mDo;
 };
 
 #include "GPUReconstructionIncludesDevice.h"
