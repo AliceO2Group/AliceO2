@@ -20,6 +20,7 @@
 #include "Framework/PartRef.h"
 #include "Framework/TimesliceIndex.h"
 #include "Framework/Signpost.h"
+#include "Framework/RoutingIndices.h"
 #include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
 
@@ -136,10 +137,11 @@ bool DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
 /// you have one route per timeslice, even if the type is the same.
 size_t matchToContext(void* data,
                       std::vector<DataDescriptorMatcher> const& matchers,
+                      std::vector<size_t> const& index,
                       VariableContext& context)
 {
-  for (size_t ri = 0, re = matchers.size(); ri < re; ++ri) {
-    auto& matcher = matchers[ri];
+  for (size_t ri = 0, re = index.size(); ri < re; ++ri) {
+    auto& matcher = matchers[index[ri]];
 
     if (matcher.match(reinterpret_cast<char const*>(data), context)) {
       context.commit();
@@ -190,12 +192,13 @@ DataRelayer::RelayChoice
   // function because while it's trivial now, the actual matchmaking will
   // become more complicated when we will start supporting ranges.
   auto getInputTimeslice = [& matchers = mInputMatchers,
+                            &distinctRoutes = mDistinctRoutesIndex,
                             &header,
                             &index](VariableContext& context)
     -> std::tuple<int, TimesliceId> {
     /// FIXME: for the moment we only use the first context and reset
     /// between one invokation and the other.
-    auto input = matchToContext(header->GetData(), matchers, context);
+    auto input = matchToContext(header->GetData(), matchers, distinctRoutes, context);
 
     if (input == INVALID_INPUT) {
       return {

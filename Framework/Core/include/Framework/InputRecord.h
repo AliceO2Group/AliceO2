@@ -300,7 +300,7 @@ class InputRecord
       }
       using ValueT = typename T::value_type;
       if (header->payloadSize % sizeof(ValueT)) {
-        throw std::runtime_error("Inconsistent type and payload size at " + std::string(ref.spec->binding) +
+        throw std::runtime_error("Inconsistent type and payload size at " + std::string(ref.spec->binding) + "(" + DataSpecUtils::describe(*ref.spec) + ")" +
                                  ": type size " + std::to_string(sizeof(ValueT)) +
                                  "  payload size " + std::to_string(header->payloadSize));
       }
