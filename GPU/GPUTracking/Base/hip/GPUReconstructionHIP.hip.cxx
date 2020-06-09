@@ -236,8 +236,6 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
     if (mDeviceProcessingSettings.debugLevel >= 2) {
       GPUInfo("Available HIP devices:");
     }
-    const int reqVerMaj = 2;
-    const int reqVerMin = 0;
     std::vector<bool> devicesOK(count, false);
     for (int i = 0; i < count; i++) {
       if (mDeviceProcessingSettings.debugLevel >= 4) {
@@ -254,13 +252,6 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
       }
       int deviceOK = true;
       const char* deviceFailure = "";
-      if (hipDeviceProp.major >= 9) {
-        deviceOK = false;
-        deviceFailure = "Invalid Revision";
-      } else if (hipDeviceProp.major < reqVerMaj || (hipDeviceProp.major == reqVerMaj && hipDeviceProp.minor < reqVerMin)) {
-        deviceOK = false;
-        deviceFailure = "Too low device revision";
-      }
 
       deviceSpeed = (double)hipDeviceProp.multiProcessorCount * (double)hipDeviceProp.clockRate * (double)hipDeviceProp.warpSize * (double)hipDeviceProp.major * (double)hipDeviceProp.major;
       if (mDeviceProcessingSettings.debugLevel >= 2) {
@@ -280,8 +271,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
       }
     }
     if (bestDevice == -1) {
-      GPUWarning("No %sHIP Device available, aborting HIP Initialisation", count ? "appropriate " : "");
-      GPUImportant("Requiring Revision %d.%d, Mem: %lld", reqVerMaj, reqVerMin, (long long int)mDeviceMemorySize);
+      GPUWarning("No %sHIP Device available, aborting HIP Initialisation (Required mem: %lld)", count ? "appropriate " : "", (long long int)mDeviceMemorySize);
       return (1);
     }
 
