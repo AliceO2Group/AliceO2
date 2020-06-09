@@ -90,7 +90,7 @@ class ChipMappingMFT
     uint16_t plane = (feeID >> 2) & 0x1;
     uint16_t zone = feeID & 0x3;
     layer = 2 * disk + plane;
-    ruOnLayer = 2 * half + zone;
+    ruOnLayer = 4 * half + zone;
   }
 
   ///< get info on sw RU
@@ -118,13 +118,13 @@ class ChipMappingMFT
   ///< convert HW id of chip in the module to SW ID (sequential ID on the module)
   int chipModuleIDHW2SW(int ruType, int hwIDinMod) const
   {
-    return hwIDinMod;
+    return (8 - hwIDinMod);
   }
 
   ///< convert SW id of chip in the module to HW ID
   int chipModuleIDSW2HW(int ruType, int swIDinMod) const
   {
-    return swIDinMod;
+    return (8 - swIDinMod);
   }
 
   static constexpr Int_t getNChips() { return NChips; }
@@ -216,14 +216,19 @@ class ChipMappingMFT
     return sid + ruOnLayer;
   }
 
+  const int getNZonesPerLayer() const { return NZonesPerLayer; }
+  const int getNLayers() const { return NLayers; }
+
+  ///< convert zone number [0...8] and layer number [0...10] to RU type
+  int getRUType(int zone, int layer) const { return ZoneRUType[zone % 4][layer / 2]; }
+
+  static constexpr int NLayers = 10, NZonesPerLayer = 2 * 4, NRUTypes = 13;
+
  private:
   Int_t invalid() const;
-  static constexpr Int_t NZonesPerLayer = 2 * 4;
-  static constexpr Int_t NLayers = 10;
   static constexpr Int_t NRUs = NLayers * NZonesPerLayer;
   static constexpr Int_t NModules = 280;
   static constexpr Int_t NChips = 936;
-  static constexpr Int_t NRUTypes = 13;
   static constexpr Int_t NChipsInfo = 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 16 + 17 + 18 + 19 + 14;
   static constexpr Int_t NChipsPerCable = 1;
   static constexpr Int_t NLinks = 1;

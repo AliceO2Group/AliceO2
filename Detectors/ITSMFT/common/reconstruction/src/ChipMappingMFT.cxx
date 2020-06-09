@@ -1638,6 +1638,7 @@ ChipMappingMFT::ChipMappingMFT()
       auto layer = ModuleMappingData[module].layer;
       auto zone = ModuleMappingData[module].zone;
       auto half = ModuleMappingData[module].half;
+      auto connector = ModuleMappingData[module].connector;
       auto ruType = ZoneRUType[zone][layer / 2];
 
       if (ruType != iRU || chipsOnRUType[iRU] == NChipsOnRUType[iRU]) {
@@ -1659,19 +1660,23 @@ ChipMappingMFT::ChipMappingMFT()
       }
 
       auto& chInfo = mChipsInfo[mChipInfoEntryRU[iRU] + chipOnRU];
-      ++ctrChip;
 
       chInfo.id = chipOnRU;
 
-      chInfo.moduleHW = ModuleMappingData[module].connector;
-      chInfo.moduleSW = ChipMappingData[iChip].module;
+      chInfo.moduleHW = connector;
+      chInfo.moduleSW = module;
 
-      chInfo.chipOnModuleSW = ChipMappingData[iChip].chipOnModule;
-      chInfo.chipOnModuleHW = chInfo.chipOnModuleSW;
+      chInfo.chipOnModuleSW = chipOnModule;
+      // SW          HW
+      // 0 1 2 3 4 = 8 7 6 5 4
+      // 0 1 2 3   = 8 7 6 5
+      // 0 1 2     = 8 7 6
+      // 0 1       = 8 7
+      chInfo.chipOnModuleHW = 8 - chInfo.chipOnModuleSW;
 
-      chInfo.cableHW = ChipConnectorCable[chInfo.moduleHW][chInfo.chipOnModuleHW];
-      chInfo.cableSW = ChipMappingData[iChip].chipOnRU;
-      chInfo.cableHWPos = ChipMappingData[iChip].chipOnRU;
+      chInfo.cableHW = ChipConnectorCable[chInfo.moduleHW][chInfo.chipOnModuleSW];
+      chInfo.cableSW = chipOnRU;
+      chInfo.cableHWPos = chipOnRU;
 
       chInfo.chipOnCable = 0;
 
@@ -1679,6 +1684,7 @@ ChipMappingMFT::ChipMappingMFT()
       mCableHW2SW[iRU][chInfo.cableHW] = chInfo.cableSW;
       mCableHWFirstChip[iRU][chInfo.cableHW] = 0;
 
+      ++ctrChip;
       ++chipsOnRUType[iRU];
     }
   }
@@ -1715,7 +1721,6 @@ ChipMappingMFT::ChipMappingMFT()
             mRUGlobalChipID[ruInfo.idSW].resize(NChipsOnRUType[ruType]);
             ruInfo.firstChipIDSW = iChip;
           }
-          //auto& chInfo = mChipsInfo[mChipInfoEntryRU[ruType] + chipOnRU];
           mRUGlobalChipID[(int)(ruInfo.idSW)].at((int)(chipOnRU)) = iChip;
         }
       }

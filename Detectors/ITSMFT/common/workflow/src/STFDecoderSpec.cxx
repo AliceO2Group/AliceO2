@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file   STFDecoderSpec.cxx
-/// \brief  Device to decode ITS raw data from STF
+/// \brief  Device to decode ITS or MFT raw data from STF
 /// \author ruben.shahoyan@cern.ch
 
 #include <vector>
@@ -103,7 +103,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
   mDecoder->startNewTF(pc.inputs());
-  auto orig = o2::header::gDataOriginITS;
+  auto orig = Mapping::getOrigin();
   using CLUSVECDUMMY = std::vector<Cluster>;
   std::vector<o2::itsmft::Cluster> clusVec;
   std::vector<o2::itsmft::CompClusterExt> clusCompVec;
@@ -124,13 +124,13 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 
   if (mDoDigits) {
     pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVec);
-    pc.outputs().snapshot(Output{orig, "ITSDigitROF", 0, Lifetime::Timeframe}, digROFVec);
+    pc.outputs().snapshot(Output{orig, "DigitROF", 0, Lifetime::Timeframe}, digROFVec);
   }
   if (mDoClusters) {                                                                  // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
     pc.outputs().snapshot(Output{orig, "CLUSTERS", 0, Lifetime::Timeframe}, clusVec); // DUMMY!!!
     pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
     pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
-    pc.outputs().snapshot(Output{orig, "ITSClusterROF", 0, Lifetime::Timeframe}, clusROFVec);
+    pc.outputs().snapshot(Output{orig, "ClusterROF", 0, Lifetime::Timeframe}, clusROFVec);
   }
 
   if (mDoClusters) {
@@ -184,11 +184,11 @@ DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool do
 
   if (doDigits) {
     outputs.emplace_back(orig, "DIGITS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "ITSDigitROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(orig, "DigitROF", 0, Lifetime::Timeframe);
   }
   if (doClusters) {
     outputs.emplace_back(orig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "ITSClusterROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(orig, "ClusterROF", 0, Lifetime::Timeframe);
     // in principle, we don't need to open this input if we don't need to send real data,
     // but other devices expecting it do not know about options of this device: problem?
     // if (doClusters && doPatterns)
@@ -213,12 +213,12 @@ DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool do
   std::vector<OutputSpec> outputs;
   auto orig = o2::header::gDataOriginMFT;
   if (doDigits) {
-    outputs.emplace_back(orig, "DIGMFT", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "MFTDigitROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(orig, "DIGITS", 0, Lifetime::Timeframe);
+    outputs.emplace_back(orig, "DigitROF", 0, Lifetime::Timeframe);
   }
   if (doClusters) {
     outputs.emplace_back(orig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "MFTClusterROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(orig, "ClusterROF", 0, Lifetime::Timeframe);
     // in principle, we don't need to open this input if we don't need to send real data,
     // but other devices expecting it do not know about options of this device: problem?
     // if (doClusters && doPatterns)
@@ -231,7 +231,7 @@ DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool do
     "mft-stf-decoder",
     Inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, dict)},
+    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(doClusters, doPatterns, doDigits, dict)},
     Options{
       {"nthreads", VariantType::Int, 0, {"Number of decoding/clustering threads (<1: rely on openMP default)"}},
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
