@@ -56,7 +56,7 @@ class DataProcessingDevice : public FairMQDevice
 
  protected:
   bool handleData(FairMQParts&, InputChannelInfo&);
-  bool tryDispatchComputation();
+  bool tryDispatchComputation(std::vector<DataRelayer::RecordAction>& completed);
   void error(const char* msg);
 
  private:
@@ -79,6 +79,7 @@ class DataProcessingDevice : public FairMQDevice
   DataAllocator mAllocator;
   DataRelayer mRelayer;
   std::vector<ExpirationHandler> mExpirationHandlers;
+  std::vector<DataRelayer::RecordAction> mCompleted;
 
   int mErrorCount;
   int mProcessingCount;
