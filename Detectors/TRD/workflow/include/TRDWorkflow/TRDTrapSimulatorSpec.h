@@ -36,7 +36,6 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
 
  public:
   TRDDPLTrapSimulatorTask() = default;
-  ~TRDDPLTrapSimulatorTask() = default;
 
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
