@@ -330,14 +330,17 @@ bool DataProcessingDevice::ConditionalRun()
     auto result = this->Receive(parts, channel.name, 0, 0);
     if (result > 0) {
       this->handleData(parts, info);
-      active |= this->tryDispatchComputation();
+      mCompleted.clear();
+      mCompleted.reserve(16);
+      active |= this->tryDispatchComputation(mCompleted);
     }
   }
   if (active == false) {
     mServiceRegistry.get<CallbackService>()(CallbackService::Id::Idle);
   }
   active |= mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
-  this->tryDispatchComputation();
+  mCompleted.clear();
+  this->tryDispatchComputation(mCompleted);
 
   sendRelayerMetrics();
   flushMetrics();
@@ -354,7 +357,7 @@ bool DataProcessingDevice::ConditionalRun()
     // We keep processing data until we are Idle.
     // FIXME: not sure this is the correct way to drain the queues, but
     // I guess we will see.
-    while (this->tryDispatchComputation()) {
+    while (this->tryDispatchComputation(mCompleted)) {
       mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
     }
     sendRelayerMetrics();
@@ -519,13 +522,12 @@ bool DataProcessingDevice::handleData(FairMQParts& parts, InputChannelInfo& info
   return true;
 }
 
-bool DataProcessingDevice::tryDispatchComputation()
+bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::RecordAction>& completed)
 {
   // This is the actual hidden state for the outer loop. In case we decide we
   // want to support multithreaded dispatching of operations, I can simply
   // move these to some thread local store and the rest of the lambdas
   // should work just fine.
-  std::vector<DataRelayer::RecordAction> completed;
   std::vector<MessageSet> currentSetOfInputs;
 
   auto& allocator = mAllocator;
@@ -565,7 +567,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   // for a few sets of inputs to arrive before we actually dispatch the
   // computation, however this can be defined at a later stage.
   auto canDispatchSomeComputation = [&completed, &relayer]() -> bool {
-    completed = relayer.getReadyToProcess();
+    relayer.getReadyToProcess(completed);
     return completed.empty() == false;
   };
 
