@@ -211,8 +211,7 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUTRDTrackletWord* mTracklets;          // array of all tracklets, later sorted by HCId
   int mMaxThreads;                         // maximum number of supported threads
   int mNTracklets;                         // total number of tracklets in event
-  int* mNTrackletsInChamber;               // number of tracklets in each chamber
-  int* mTrackletIndexArray;                // index of first tracklet for each chamber
+  int* mTrackletIndexArray;                // index of first tracklet for each chamber, last entry is the total amount of tracklets
   Hypothesis* mHypothesis;                 // array with multiple track hypothesis
   TRDTRK* mCandidates;                     // array of tracks for multiple hypothesis tracking
   GPUTRDSpacePointInternal* mSpacePoints;  // array with tracklet coordinates in global tracking frame
