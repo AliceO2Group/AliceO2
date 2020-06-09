@@ -28,7 +28,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(
     ${MODULE}
     SOURCES ${SRCS}
-    PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITStrackingHIP hip::host hip::device hip::hipcub ROCm::rocThrust
+    PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITStrackingHIP hip::host hip::device hip::hipcub roc::rocthrust
     PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
                                ${CMAKE_SOURCE_DIR}/Detectors/Base/src
     TARGETVARNAME targetName)
@@ -41,7 +41,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 
   o2_add_test(GPUsortHIP NAME test_GPUsortHIP
                   SOURCES test/testGPUsortHIP.hip.cxx
-                  PUBLIC_LINK_LIBRARIES O2::GPUCommon hip::host hip::device hip::hipcub ROCm::rocThrust
+                  PUBLIC_LINK_LIBRARIES O2::GPUCommon hip::host hip::device hip::hipcub roc::rocthrust
                   COMPONENT_NAME GPU
                   LABELS gpu)
 endif()
@@ -66,7 +66,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   set(ALILIBSTESTED ${ALILIBSTESTED} CACHE INTERNAL "ALILIBSTESTED")
 
   # HIP run-time and driver
-  target_link_libraries(Ali${MODULE} PUBLIC AliGPUTracking hip::host hip::device hip::hipcub ROCm::rocThrust)
+  target_link_libraries(Ali${MODULE} PUBLIC AliGPUTracking hip::host hip::device hip::hipcub roc::rocthrust)
 
   # Additional compilation flags
   set_target_properties(Ali${MODULE} PROPERTIES COMPILE_FLAGS "")
@@ -81,7 +81,7 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_definitions(-DGPUCA_GPULIBRARY=HIP)
   add_library(${MODULE} SHARED ${SRCS})
-  target_link_libraries(${MODULE} GPUTracking hip::host hip::device hip::hipcub ROCm::rocThrust)
+  target_link_libraries(${MODULE} GPUTracking hip::host hip::device hip::hipcub roc::rocthrust)
   set(targetName "${MODULE}")
   install(TARGETS GPUTrackingHIP)
 endif()
