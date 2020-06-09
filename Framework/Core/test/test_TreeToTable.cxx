@@ -63,11 +63,11 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
       ij[jj] = i + 100 * jj;
     }
     for (Int_t jj = 0; jj < 5; jj++) {
-      ts[jj] = (((i+jj) % 2) == 0);
+      ts[jj] = (((i + jj) % 2) == 0);
       if (ts[jj]) {
         ntruein[1]++;
       }
-     }
+    }
 
     t1.Fill();
   }
@@ -100,30 +100,29 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   int ntrueout = 0;
   auto chunks = table->column(0);
   BOOST_REQUIRE_NE(chunks.get(), nullptr);
-  
+
   auto oks = std::dynamic_pointer_cast<arrow::BooleanArray>(chunks->chunk(0));
   BOOST_REQUIRE_NE(oks.get(), nullptr);
-  
+
   for (int ii = 0; ii < table->num_rows(); ii++) {
     ntrueout += oks->Value(ii) ? 1 : 0;
   }
   BOOST_REQUIRE_EQUAL(ntruein[0], ntrueout);
-  
+
   // count number of ts with ts==true
   chunks = table->column(7);
   BOOST_REQUIRE_NE(chunks.get(), nullptr);
 
   auto chunkToUse = std::static_pointer_cast<arrow::FixedSizeListArray>(chunks->chunk(0))->values();
   BOOST_REQUIRE_NE(chunkToUse.get(), nullptr);
-  
+
   auto tests = std::dynamic_pointer_cast<arrow::BooleanArray>(chunkToUse);
   ntrueout = 0;
-  for (int ii = 0; ii < table->num_rows()*5; ii++) {
+  for (int ii = 0; ii < table->num_rows() * 5; ii++) {
     ntrueout += tests->Value(ii) ? 1 : 0;
   }
   BOOST_REQUIRE_EQUAL(ntruein[1], ntrueout);
 
-  
   // save table as tree
   TFile* f2 = new TFile("table2tree.root", "RECREATE");
   TableToTree ta2tr(table, f2, "mytree");
