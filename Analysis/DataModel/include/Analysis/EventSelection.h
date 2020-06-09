@@ -14,8 +14,8 @@
 
 // TODO read nAliases from the alias map?
 #define nAliases 10
-enum triggerAliases{
-  kINT7=0,
+enum triggerAliases {
+  kINT7 = 0,
   kEMC7,
   kINT7inMUON,
   kMuonSingleLowPt7,

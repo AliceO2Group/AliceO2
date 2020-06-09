@@ -42,7 +42,7 @@ struct EventSelectionTask {
     aod::FDD dummy;
     return dummy;
   }
-  
+
   OutputObj<TH1F> hTimeV0Aall{TH1F("hTimeV0Aall", "", 200, -50., 50.)};
   OutputObj<TH1F> hTimeV0Call{TH1F("hTimeV0Call", "", 200, -50., 50.)};
   OutputObj<TH1F> hTimeZNAall{TH1F("hTimeZNAall", "", 250, -25., 25.)};
@@ -72,7 +72,7 @@ struct EventSelectionTask {
     auto fdd = getFDD(col.bc(), fdds);
     hTimeFDAall->Fill(fdd.timeA());
     hTimeFDCall->Fill(fdd.timeC());
-    
+
     if (!col.sel7())
       return;
 
