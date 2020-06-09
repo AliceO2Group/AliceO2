@@ -44,7 +44,7 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
 
  private:
   std::array<TrapSimulator, 8> mTrapSimulator; //the 8 trap simulators for a given padrow.
-  FeeParam* mFeeParam= nullptr;
+  FeeParam* mFeeParam = nullptr;
   TrapConfig* mTrapConfig = nullptr;
   std::unique_ptr<TRDGeometry> mGeo;
   //  std::unique_ptr<TrapConfigHandler> mTrapConfigHandler;
