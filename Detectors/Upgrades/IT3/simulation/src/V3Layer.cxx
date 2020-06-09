@@ -460,8 +460,8 @@ void V3Layer::createITS3Layer(TGeoVolume* motherVolume, const TGeoManager* mgr)
   TGeoTube* stave = new TGeoTube(rmin, rmax, mIBModuleZLength / 2);
   TGeoTube* layer = new TGeoTube(rmin, rmax, mIBModuleZLength / 2);
 
-  TGeoMedium* medSi = mgr->GetMedium("ITS3_SI$");
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
+  TGeoMedium* medSi = mgr->GetMedium("IT3_SI$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName, sensor, medSi);
   TGeoVolume* chipVol = new TGeoVolume(chipName, chip, medAir);
@@ -595,7 +595,7 @@ TGeoVolume* V3Layer::createStaveInnerB(const TGeoManager* mgr)
 
   TGeoBBox* hstave = new TGeoBBox(xmod, ymod, zmod);
 
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
 
   snprintf(volumeName, nameLen, "%s%d", o2::its3::GeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
   TGeoVolume* hstaveVol = new TGeoVolume(volumeName, hstave, medAir);
@@ -657,9 +657,9 @@ TGeoVolume* V3Layer::createModuleInnerB(const TGeoManager* mgr)
   TGeoBBox* module = new TGeoBBox(xtot, ytot, ztot);
 
   // Now the volumes
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
-  TGeoMedium* medGlue = mgr->GetMedium("ITS3_GLUE_IBFPC$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
+  TGeoMedium* medGlue = mgr->GetMedium("IT3_GLUE_IBFPC$");
 
   snprintf(volumeName, nameLen, "%s%d", o2::its3::GeometryTGeo::getITSModulePattern(), mLayerNumber);
   TGeoVolume* modVol = new TGeoVolume(volumeName, module, medAir);
@@ -758,7 +758,7 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   if (!capacitor) {
     TGeoBBox* capsh = new TGeoBBox(sIBFlexCapacitorXWid / 2, sIBFlexCapacitorYHi / 2, sIBFlexCapacitorZLen / 2);
 
-    TGeoMedium* medCeramic = mgr->GetMedium("ITS3_CERAMIC$");
+    TGeoMedium* medCeramic = mgr->GetMedium("IT3_CERAMIC$");
 
     capacitor = new TGeoVolume("IBFPCCapacitor", capsh, medCeramic);
     capacitor->SetLineColor(kBlack);
@@ -857,8 +857,8 @@ TGeoVolume* V3Layer::createIBFPCAlGnd(const Double_t xcable, const Double_t zcab
   TGeoBBox* aluminum = new TGeoBBox(xcable, sIBFlexCableAlThick / 2, zcable);
 
   // Then the volumes
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
-  TGeoMedium* medAluminum = mgr->GetMedium("ITS3_ALUMINUM$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
+  TGeoMedium* medAluminum = mgr->GetMedium("IT3_ALUMINUM$");
 
   TGeoVolume* coverlayVol = new TGeoVolume("FPCCoverlayGround", coverlay, medKapton);
   coverlayVol->SetLineColor(kBlue);
@@ -908,8 +908,8 @@ TGeoVolume* V3Layer::createIBFPCAlAnode(const Double_t xcable, const Double_t zc
   aluminum->DefineSection(1, sIBFlexCableAlThick / 2);
 
   // Then the volumes
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
-  TGeoMedium* medAluminum = mgr->GetMedium("ITS3_ALUMINUM$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
+  TGeoMedium* medAluminum = mgr->GetMedium("IT3_ALUMINUM$");
 
   TGeoVolume* coverlayVol = new TGeoVolume("FPCCoverlayAnode", coverlay, medKapton);
   coverlayVol->SetLineColor(kBlue);
@@ -1136,15 +1136,15 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const TGeoManager* mgr)
 
   // We have all shapes: now create the real volumes
 
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
-  TGeoMedium* medWater = mgr->GetMedium("ITS3_WATER$");
-  TGeoMedium* medM55J6K = mgr->GetMedium("ITS3_M55J6K$");
-  TGeoMedium* medM60J3K = mgr->GetMedium("ITS3_M60J3K$");
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
-  TGeoMedium* medGlue = mgr->GetMedium("ITS3_GLUE$");
-  TGeoMedium* medK13D2U2k = mgr->GetMedium("ITS3_K13D2U2k$");
-  TGeoMedium* medFGS003 = mgr->GetMedium("ITS3_FGS003$");
-  TGeoMedium* medCarbonFleece = mgr->GetMedium("ITS3_CarbonFleece$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
+  TGeoMedium* medWater = mgr->GetMedium("IT3_WATER$");
+  TGeoMedium* medM55J6K = mgr->GetMedium("IT3_M55J6K$");
+  TGeoMedium* medM60J3K = mgr->GetMedium("IT3_M60J3K$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
+  TGeoMedium* medGlue = mgr->GetMedium("IT3_GLUE$");
+  TGeoMedium* medK13D2U2k = mgr->GetMedium("IT3_K13D2U2k$");
+  TGeoMedium* medFGS003 = mgr->GetMedium("IT3_FGS003$");
+  TGeoMedium* medCarbonFleece = mgr->GetMedium("IT3_CarbonFleece$");
 
   const Int_t nameLen = 30;
   char volname[nameLen];
@@ -1384,9 +1384,9 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   Double_t xpos, ypos, zpos;
 
   // Gather all material pointers
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
-  TGeoMedium* medPEEK = mgr->GetMedium("ITS3_PEEKCF30$");
-  TGeoMedium* medInox304 = mgr->GetMedium("ITS3_INOX304$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
+  TGeoMedium* medPEEK = mgr->GetMedium("IT3_PEEKCF30$");
+  TGeoMedium* medInox304 = mgr->GetMedium("IT3_INOX304$");
 
   // First create all elements
   // (All measures refer to the blueprint ALIITSUP0051)
@@ -1601,8 +1601,8 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   Double_t xpos, ypos, zpos;
 
   // Gather all material pointers
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
-  TGeoMedium* medPEEK = mgr->GetMedium("ITS3_PEEKCF30$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
+  TGeoMedium* medPEEK = mgr->GetMedium("IT3_PEEKCF30$");
 
   // First create all elements
   // (All measures refer to the blueprint ALIITSUP0051)
@@ -2015,14 +2015,14 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
 
   // We have all shapes: now create the real volumes
 
-  TGeoMedium* medAluminum = mgr->GetMedium("ITS3_ALUMINUM$");
-  TGeoMedium* medK13D2U120 = mgr->GetMedium("ITS3_K13D2U120$");
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
-  TGeoMedium* medWater = mgr->GetMedium("ITS3_WATER$");
-  TGeoMedium* medCarbonFleece = mgr->GetMedium("ITS3_CarbonFleece$");
-  TGeoMedium* medFGS003 = mgr->GetMedium("ITS3_FGS003$"); // amec thermasol
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
-  TGeoMedium* medTungsten = mgr->GetMedium("ITS3_TUNGSTEN$");
+  TGeoMedium* medAluminum = mgr->GetMedium("IT3_ALUMINUM$");
+  TGeoMedium* medK13D2U120 = mgr->GetMedium("IT3_K13D2U120$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
+  TGeoMedium* medWater = mgr->GetMedium("IT3_WATER$");
+  TGeoMedium* medCarbonFleece = mgr->GetMedium("IT3_CarbonFleece$");
+  TGeoMedium* medFGS003 = mgr->GetMedium("IT3_FGS003$"); // amec thermasol
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
+  TGeoMedium* medTungsten = mgr->GetMedium("IT3_TUNGSTEN$");
 
   TGeoVolume* coldPlateVol = new TGeoVolume("ColdPlateVol", coldPlate, medK13D2U120);
   coldPlateVol->SetLineColor(kYellow - 3);
@@ -2253,9 +2253,9 @@ TGeoVolume* V3Layer::createOBPowerBiasBuses(const Double_t zcable, const TGeoMan
   TGeoBBox* topBB = new TGeoBBox(xcable, sOBBiasBusAlThick / 2, zcable);
 
   // Then the volumes
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
-  TGeoMedium* medAluminum = mgr->GetMedium("ITS3_ALUMINUM$");
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
+  TGeoMedium* medAluminum = mgr->GetMedium("IT3_ALUMINUM$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
 
   TGeoVolume* gndPBVol = new TGeoVolume("PowerBusGround", gndPB, medAluminum);
   gndPBVol->SetLineColor(kCyan);
@@ -2396,9 +2396,9 @@ void V3Layer::createOBColdPlateConnectorsASide()
   Double_t xpos, ypos, zpos;
 
   // Gather all material pointers
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
-  TGeoMedium* medPEEK = mgr->GetMedium("ITS3_PEEKCF30$");
-  TGeoMedium* medInox304 = mgr->GetMedium("ITS3_INOX304$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
+  TGeoMedium* medPEEK = mgr->GetMedium("IT3_PEEKCF30$");
+  TGeoMedium* medInox304 = mgr->GetMedium("IT3_INOX304$");
 
   // First create all elements
 
@@ -2553,8 +2553,8 @@ void V3Layer::createOBColdPlateConnectorsCSide()
   Double_t xpos, ypos, zpos;
 
   // Gather all material pointers
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
-  TGeoMedium* medPEEK = mgr->GetMedium("ITS3_PEEKCF30$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
+  TGeoMedium* medPEEK = mgr->GetMedium("IT3_PEEKCF30$");
 
   // First create all elements
 
@@ -2737,7 +2737,7 @@ TGeoVolume* V3Layer::createSpaceFrameOuterB2(const TGeoManager* mgr)
   // Updated:      20 Jul 2017  Mario Sitta  O2 version
   //
 
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
 
   TGeoVolume *unitVol[2], *next2EndVol[2], *endVol[2];
   Double_t *xtru, *ytru;
@@ -2862,9 +2862,9 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
   //
 
   // Materials defined in AliITSUv2
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS3_M55J6K$");
-  TGeoMedium* medF6151B05M = mgr->GetMedium("ITS3_F6151B05M$");
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
+  TGeoMedium* medCarbon = mgr->GetMedium("IT3_M55J6K$");
+  TGeoMedium* medF6151B05M = mgr->GetMedium("IT3_F6151B05M$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
 
   // Local parameters
   Double_t halfFrameWidth = sOBSpaceFrameWidth / 2;
@@ -3303,7 +3303,7 @@ void V3Layer::createOBSpaceFrameConnector(TGeoVolume* mother, const Double_t ymo
   // Created:      09 Sep 2019  M. Sitta
 
   // Materials defined in AliITSUv2
-  TGeoMedium* medPEEK = mgr->GetMedium("ITS3_PEEKCF30$");
+  TGeoMedium* medPEEK = mgr->GetMedium("IT3_PEEKCF30$");
 
   // Local parameters
   TString connName, compoShape;
@@ -3499,9 +3499,9 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
 
   // We have all shapes: now create the real volumes
 
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
-  TGeoMedium* medGlue = mgr->GetMedium("ITS3_GLUE$");
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
+  TGeoMedium* medGlue = mgr->GetMedium("IT3_GLUE$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
 
   TGeoVolume* glueFPCVol = new TGeoVolume("GlueFPCVol", glueFPC, medGlue);
   glueFPCVol->SetLineColor(kBlack);
@@ -3596,8 +3596,8 @@ TGeoVolume* V3Layer::createOBFPCCuGnd(const Double_t zcable, const TGeoManager* 
   TGeoBBox* copper = new TGeoBBox(xcable, sOBFPCCopperThick / 2, zcable);
 
   // Then the volumes
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
-  TGeoMedium* medCopper = mgr->GetMedium("ITS3_COPPER$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
+  TGeoMedium* medCopper = mgr->GetMedium("IT3_COPPER$");
 
   TGeoVolume* soldmaskVol = new TGeoVolume("FPCGndSolderMask", soldmask, medKapton);
   soldmaskVol->SetLineColor(kBlue);
@@ -3641,8 +3641,8 @@ TGeoVolume* V3Layer::createOBFPCCuSig(const Double_t zcable, const TGeoManager* 
   TGeoBBox* copper = new TGeoBBox(xcable, sOBFPCCopperThick / 2, zcable);
 
   // Then the volumes
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
-  TGeoMedium* medCopper = mgr->GetMedium("ITS3_COPPER$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
+  TGeoMedium* medCopper = mgr->GetMedium("IT3_COPPER$");
 
   TGeoVolume* soldmaskVol = new TGeoVolume("FPCSigSolderMask", soldmask, medKapton);
   soldmaskVol->SetLineColor(kBlue);

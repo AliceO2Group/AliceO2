@@ -452,7 +452,7 @@ TGeoVolume* V1Layer::createStaveInnerB(const Double_t xsta, const Double_t ysta,
 
   auto* hstave = new TGeoBBox(xmod, ymod, zmod);
 
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
 
   snprintf(volumeName, 30, "%s%d", o2::its3::GeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
   auto* hstaveVol = new TGeoVolume(volumeName, hstave, medAir);
@@ -479,7 +479,7 @@ TGeoVolume* V1Layer::createModuleInnerB(Double_t xmod, Double_t ymod, Double_t z
   // Then create the module and populate it with the chips
   auto* module = new TGeoBBox(xmod, ymod, zmod);
 
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
 
   snprintf(volumeName, 30, "%s%d", o2::its3::GeometryTGeo::getITSModulePattern(), mLayerNumber);
   auto* modVol = new TGeoVolume(volumeName, module, medAir);
@@ -536,14 +536,14 @@ TGeoVolume* V1Layer::createStaveModelInnerB0(const Double_t xsta, const Double_t
                                              const TGeoManager* mgr)
 {
   // Materials defined in Detector
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
-  TGeoMedium* medWater = mgr->GetMedium("ITS3_WATER$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
+  TGeoMedium* medWater = mgr->GetMedium("IT3_WATER$");
   LOG(INFO) << "################################# pointer :" << medWater;
-  TGeoMedium* medM60J3K = mgr->GetMedium("ITS3_M60J3K$");
+  TGeoMedium* medM60J3K = mgr->GetMedium("IT3_M60J3K$");
   LOG(INFO) << "################################# pointer :" << medM60J3K;
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
-  TGeoMedium* medGlue = mgr->GetMedium("ITS3_GLUE$");
-  TGeoMedium* medFlexCable = mgr->GetMedium("ITS3_FLEXCABLE$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
+  TGeoMedium* medGlue = mgr->GetMedium("IT3_GLUE$");
+  TGeoMedium* medFlexCable = mgr->GetMedium("IT3_FLEXCABLE$");
 
   // Local parameters
   Double_t kConeOutRadius = 0.15 / 2;
@@ -728,13 +728,13 @@ TGeoVolume* V1Layer::createStaveModelInnerB1(const Double_t xsta, const Double_t
                                              const TGeoManager* mgr)
 {
   // Materials defined in Detector
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
-  TGeoMedium* medWater = mgr->GetMedium("ITS3_WATER$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
+  TGeoMedium* medWater = mgr->GetMedium("IT3_WATER$");
 
-  TGeoMedium* medM60J3K = mgr->GetMedium("ITS3_M60J3K$");
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
-  TGeoMedium* medGlue = mgr->GetMedium("ITS3_GLUE$");
-  TGeoMedium* medFlexCable = mgr->GetMedium("ITS3_FLEXCABLE$");
+  TGeoMedium* medM60J3K = mgr->GetMedium("IT3_M60J3K$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
+  TGeoMedium* medGlue = mgr->GetMedium("IT3_GLUE$");
+  TGeoMedium* medFlexCable = mgr->GetMedium("IT3_FLEXCABLE$");
 
   // Local parameters
   Double_t kConeOutRadius = 0.15 / 2;
@@ -932,16 +932,16 @@ TGeoVolume* V1Layer::createStaveModelInnerB21(const Double_t xsta, const Double_
                                               const TGeoManager* mgr)
 {
   // Materials defined in Detector
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
-  TGeoMedium* medWater = mgr->GetMedium("ITS3_WATER$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
+  TGeoMedium* medWater = mgr->GetMedium("IT3_WATER$");
 
-  TGeoMedium* medM60J3K = mgr->GetMedium("ITS3_M60J3K$");
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
-  TGeoMedium* medGlue = mgr->GetMedium("ITS3_GLUE$");
-  TGeoMedium* medFlexCable = mgr->GetMedium("ITS3_FLEXCABLE$");
-  TGeoMedium* medK13D2U2k = mgr->GetMedium("ITS3_K13D2U2k$");
-  TGeoMedium* medFGS003 = mgr->GetMedium("ITS3_FGS003$");
-  TGeoMedium* medCarbonFleece = mgr->GetMedium("ITS3_CarbonFleece$");
+  TGeoMedium* medM60J3K = mgr->GetMedium("IT3_M60J3K$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
+  TGeoMedium* medGlue = mgr->GetMedium("IT3_GLUE$");
+  TGeoMedium* medFlexCable = mgr->GetMedium("IT3_FLEXCABLE$");
+  TGeoMedium* medK13D2U2k = mgr->GetMedium("IT3_K13D2U2k$");
+  TGeoMedium* medFGS003 = mgr->GetMedium("IT3_FGS003$");
+  TGeoMedium* medCarbonFleece = mgr->GetMedium("IT3_CarbonFleece$");
 
   // Local parameters
   Double_t kConeOutRadius = 0.151384 / 2;
@@ -1212,17 +1212,17 @@ TGeoVolume* V1Layer::createStaveModelInnerB22(const Double_t xsta, const Double_
                                               const TGeoManager* mgr)
 {
   // Materials defined in Detector
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
 
-  TGeoMedium* medWater = mgr->GetMedium("ITS3_WATER$");
+  TGeoMedium* medWater = mgr->GetMedium("IT3_WATER$");
 
-  TGeoMedium* medM60J3K = mgr->GetMedium("ITS3_M60J3K$");
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
-  TGeoMedium* medGlue = mgr->GetMedium("ITS3_GLUE$");
-  TGeoMedium* medFlexCable = mgr->GetMedium("ITS3_FLEXCABLE$");
-  TGeoMedium* medK13D2U2k = mgr->GetMedium("ITS3_K13D2U2k$");
-  TGeoMedium* medFGS003 = mgr->GetMedium("ITS3_FGS003$");
-  TGeoMedium* medCarbonFleece = mgr->GetMedium("ITS3_CarbonFleece$");
+  TGeoMedium* medM60J3K = mgr->GetMedium("IT3_M60J3K$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
+  TGeoMedium* medGlue = mgr->GetMedium("IT3_GLUE$");
+  TGeoMedium* medFlexCable = mgr->GetMedium("IT3_FLEXCABLE$");
+  TGeoMedium* medK13D2U2k = mgr->GetMedium("IT3_K13D2U2k$");
+  TGeoMedium* medFGS003 = mgr->GetMedium("IT3_FGS003$");
+  TGeoMedium* medCarbonFleece = mgr->GetMedium("IT3_CarbonFleece$");
 
   // Local parameters
   Double_t kConeOutRadius = (0.1024 + 0.0025) / 2; // 0.107/2;
@@ -1519,16 +1519,16 @@ TGeoVolume* V1Layer::createStaveModelInnerB3(const Double_t xsta, const Double_t
                                              const TGeoManager* mgr)
 {
   // Materials defined in Detector
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
-  TGeoMedium* medWater = mgr->GetMedium("ITS3_WATER$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
+  TGeoMedium* medWater = mgr->GetMedium("IT3_WATER$");
 
-  TGeoMedium* medM60J3K = mgr->GetMedium("ITS3_M60J3K$");
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
-  TGeoMedium* medGlue = mgr->GetMedium("ITS3_GLUE$");
-  TGeoMedium* medFlexCable = mgr->GetMedium("ITS3_FLEXCABLE$");
-  // TGeoMedium *medK13D2U2k  = mgr->GetMedium("ITS3_K13D2U2k$");
-  // TGeoMedium *medFGS003    = mgr->GetMedium("ITS3_FGS003$");
-  // TGeoMedium *medCarbonFleece = mgr->GetMedium("ITS3_CarbonFleece$");
+  TGeoMedium* medM60J3K = mgr->GetMedium("IT3_M60J3K$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
+  TGeoMedium* medGlue = mgr->GetMedium("IT3_GLUE$");
+  TGeoMedium* medFlexCable = mgr->GetMedium("IT3_FLEXCABLE$");
+  // TGeoMedium *medK13D2U2k  = mgr->GetMedium("IT3_K13D2U2k$");
+  // TGeoMedium *medFGS003    = mgr->GetMedium("IT3_FGS003$");
+  // TGeoMedium *medCarbonFleece = mgr->GetMedium("IT3_CarbonFleece$");
 
   // Local parameters
   Double_t kConeOutRadius = 0.15 / 2;
@@ -1991,7 +1991,7 @@ TGeoVolume* V1Layer::createStaveModelOuterB0(const TGeoManager* mgr)
   auto* hstave = new TGeoBBox(xlen, ylen, zlen / 2);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
 
   snprintf(volumeName, 30, "%s%d", o2::its3::GeometryTGeo::getITSModulePattern(), mLayerNumber);
   auto* modVol = new TGeoVolume(volumeName, module, medAir);
@@ -2101,13 +2101,13 @@ TGeoVolume* V1Layer::createStaveModelOuterB1(const TGeoManager* mgr)
 
   // We have all shapes: now create the real volumes
 
-  TGeoMedium* medAluminum = mgr->GetMedium("ITS3_ALUMINUM$");
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS3_CARBON$");
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
-  TGeoMedium* medWater = mgr->GetMedium("ITS3_WATER$");
-  TGeoMedium* medCarbonFleece = mgr->GetMedium("ITS3_CarbonFleece$");
-  TGeoMedium* medFGS003 = mgr->GetMedium("ITS3_FGS003$"); // amec thermasol
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
+  TGeoMedium* medAluminum = mgr->GetMedium("IT3_ALUMINUM$");
+  TGeoMedium* medCarbon = mgr->GetMedium("IT3_CARBON$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
+  TGeoMedium* medWater = mgr->GetMedium("IT3_WATER$");
+  TGeoMedium* medCarbonFleece = mgr->GetMedium("IT3_CarbonFleece$");
+  TGeoMedium* medFGS003 = mgr->GetMedium("IT3_FGS003$"); // amec thermasol
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
 
   auto* busAlVol = new TGeoVolume("BusAlVol", busAl, medAluminum);
   busAlVol->SetLineColor(kCyan);
@@ -2320,8 +2320,8 @@ TGeoVolume* V1Layer::createSpaceFrameOuterBDummy(const TGeoManager*) const
 TGeoVolume* V1Layer::createSpaceFrameOuterB1(const TGeoManager* mgr)
 {
   // Materials defined in Detector
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS3_CARBON$");
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
+  TGeoMedium* medCarbon = mgr->GetMedium("IT3_CARBON$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
 
   // Local parameters
   Double_t sframeWidth = sOBSpaceFrameWidth;
@@ -2524,7 +2524,7 @@ TGeoVolume* V1Layer::createChipInnerB(const Double_t xchip, const Double_t ychip
   auto* sensor = new TGeoBBox(xlen, ylen, zlen);
 
   // We have all shapes: now create the real volumes
-  TGeoMedium* medSi = mgr->GetMedium("ITS3_SI$");
+  TGeoMedium* medSi = mgr->GetMedium("IT3_SI$");
 
   snprintf(volumeName, 30, "%s%d", o2::its3::GeometryTGeo::getITSChipPattern(), mLayerNumber);
   auto* chipVol = new TGeoVolume(volumeName, chip, medSi);
@@ -2599,11 +2599,11 @@ TGeoVolume* V1Layer::createModuleOuterB(const TGeoManager* mgr)
 
   // We have all shapes: now create the real volumes
 
-  TGeoMedium* medAir = mgr->GetMedium("ITS3_AIR$");
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS3_CARBON$");
-  TGeoMedium* medGlue = mgr->GetMedium("ITS3_GLUE$");
-  TGeoMedium* medAluminum = mgr->GetMedium("ITS3_ALUMINUM$");
-  TGeoMedium* medKapton = mgr->GetMedium("ITS3_KAPTON(POLYCH2)$");
+  TGeoMedium* medAir = mgr->GetMedium("IT3_AIR$");
+  TGeoMedium* medCarbon = mgr->GetMedium("IT3_CARBON$");
+  TGeoMedium* medGlue = mgr->GetMedium("IT3_GLUE$");
+  TGeoMedium* medAluminum = mgr->GetMedium("IT3_ALUMINUM$");
+  TGeoMedium* medKapton = mgr->GetMedium("IT3_KAPTON(POLYCH2)$");
 
   auto* modPlateVol = new TGeoVolume("CarbonPlateVol", modPlate, medCarbon);
   modPlateVol->SetLineColor(kMagenta - 8);

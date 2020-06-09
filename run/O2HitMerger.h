@@ -43,7 +43,6 @@
 #include "O2SimDevice.h"
 #include <TPCSimulation/Detector.h>
 #include <ITSSimulation/Detector.h>
-#include <ITS3Simulation/Detector.h>
 #include <MFTSimulation/Detector.h>
 #include <EMCALSimulation/Detector.h>
 #include <TOFSimulation/Detector.h>
@@ -62,6 +61,10 @@
 #include <map>
 #include <vector>
 #include <csignal>
+
+#ifdef ENABLE_UPGRADES
+#include <ITS3Simulation/Detector.h>
+#endif
 
 namespace o2
 {
@@ -734,11 +737,12 @@ void O2HitMerger::initDetInstances()
       mDetectorInstances[i] = std::move(std::make_unique<o2::zdc::Detector>(true));
       counter++;
     }
-    if (i == DetID::ITS3) {
+#ifdef ENABLE_UPGRADES
+    if (i == DetID::IT3) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::its3::Detector>(true));
       counter++;
     }
-
+#endif
     // init the detector specific output files
     initHitTreeAndOutFile(i);
   }

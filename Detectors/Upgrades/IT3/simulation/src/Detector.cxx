@@ -54,7 +54,7 @@ using Segmentation = o2::itsmft::SegmentationAlpide;
 using namespace o2::its3;
 
 Detector::Detector()
-  : o2::base::DetImpl<Detector>("ITS3", kTRUE),
+  : o2::base::DetImpl<Detector>("IT3", kTRUE),
     mTrackData(),
     /*
     mHitStarted(false),
@@ -217,7 +217,7 @@ void Detector::configITS(Detector* its)
 // }
 
 Detector::Detector(Bool_t active)
-  : o2::base::DetImpl<Detector>("ITS3", active),
+  : o2::base::DetImpl<Detector>("IT3", active),
     mTrackData(),
     /*
     mHitStarted(false),
@@ -896,7 +896,7 @@ TGeoVolume* Detector::createWrapperVolume(Int_t id)
       break;
   }
 
-  TGeoMedium* medAir = gGeoManager->GetMedium("ITS3_AIR$");
+  TGeoMedium* medAir = gGeoManager->GetMedium("IT3_AIR$");
 
   char volnam[30];
   snprintf(volnam, 29, "%s%d", GeometryTGeo::getITSWrapVolPattern(), id);
@@ -1166,7 +1166,7 @@ void Detector::createServiceBarrel(const Bool_t innerBarrel, TGeoVolume* dest, c
   //  Double_t phi1   =  180;
   //  Double_t phi2   =  360;
 
-  TGeoMedium* medCarbonFleece = mgr->GetMedium("ITS3_CarbonFleece$");
+  TGeoMedium* medCarbonFleece = mgr->GetMedium("IT3_CarbonFleece$");
 
   if (innerBarrel) {
     zLenOB = ((TGeoTube*)(dest->GetShape()))->GetDz();
@@ -1201,7 +1201,7 @@ void Detector::addAlignableVolumes() const
   }
 
   TString path = Form("/cave_1/%s_2", GeometryTGeo::getITSVolPattern());
-  TString sname = GeometryTGeo::composeSymNameITS();
+  TString sname = GeometryTGeo::composeSymNameITS3();
 
   LOG(DEBUG) << sname << " <-> " << path;
 

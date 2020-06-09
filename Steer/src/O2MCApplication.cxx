@@ -87,6 +87,7 @@ void O2MCApplicationBase::ConstructGeometry()
     }
   }
   FairMCApplication::ConstructGeometry();
+
   std::ofstream voltomodulefile("MCStepLoggerVolMap.dat");
   // construct the volume name to module name mapping useful for StepAnalysis
   auto vollist = gGeoManager->GetListOfVolumes();

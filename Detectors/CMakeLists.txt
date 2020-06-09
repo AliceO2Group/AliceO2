@@ -34,7 +34,6 @@ add_subdirectory(GlobalTrackingWorkflow)
 add_subdirectory(Vertexing)
 
 add_subdirectory(Calibration)
-add_subdirectory(Upgrade)
 
 if(BUILD_SIMULATION)
   add_subdirectory(gconfig)
@@ -45,4 +44,6 @@ o2_data_file(COPY Geometry DESTINATION Detectors)
 
 if(ENABLE_UPGRADES)
   add_subdirectory(Upgrades)
+else()
+  message(STATUS "Not building detectors for upgrades")
 endif()

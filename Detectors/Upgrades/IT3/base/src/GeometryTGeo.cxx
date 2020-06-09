@@ -61,7 +61,7 @@ std::string GeometryTGeo::sSensorName = "ITSUSensor";         ///< Sensor name
 std::string GeometryTGeo::sWrapperVolumeName = "ITSUWrapVol"; ///< Wrapper volume name
 
 //__________________________________________________________________________
-GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo(DetID::ITS3)
+GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo(DetID::IT3)
 {
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached
@@ -241,7 +241,7 @@ bool GeometryTGeo::getChipId(int index, int& lay, int& sta, int& hsta, int& mod,
 //__________________________________________________________________________
 const char* GeometryTGeo::composeSymNameLayer(int lr)
 {
-  return Form("%s/%s%d", composeSymNameITS(), getITSLayerPattern(), lr);
+  return Form("%s/%s%d", composeSymNameITS3(), getITSLayerPattern(), lr);
 }
 
 //__________________________________________________________________________

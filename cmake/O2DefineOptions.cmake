@@ -28,5 +28,5 @@ function(o2_define_options)
   # for the complete picture of how BUILD_SIMULATION is handled see
   # ../dependencies/O2SimulationDependencies.cmake
 
-  option(ENABLE_UPGRADES "Enable detectors for upgrades" OFF)
+  option(ENABLE_UPGRADES "Enable detectors for upgrades" ON)
 endfunction()

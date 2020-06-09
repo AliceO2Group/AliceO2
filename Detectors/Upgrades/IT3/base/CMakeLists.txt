@@ -9,11 +9,10 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(ITS3Base
-               SOURCES src/GeometryTGeo.cxx src/ContainerFactory.cxx
-                       src/MisalignmentParameter.cxx
+               SOURCES src/MisalignmentParameter.cxx
+                       src/GeometryTGeo.cxx 
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::ITSMFTBase)
 
 o2_target_root_dictionary(ITS3Base
                           HEADERS include/ITS3Base/GeometryTGeo.h
-                                  include/ITS3Base/ContainerFactory.h
                                   include/ITS3Base/MisalignmentParameter.h)
