@@ -36,19 +36,16 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
 
  public:
   TRDDPLTrapSimulatorTask() = default;
-  ~TRDDPLTrapSimulatorTask() override
-  {
-    if (mTrapConfig)
-      delete mTrapConfig;
-  }
+  ~TRDDPLTrapSimulatorTask() = default;
+
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
   void fixTriggerRecords(std::vector<o2::trd::TriggerRecord>& trigRecord);
 
  private:
   std::array<TrapSimulator, 8> mTrapSimulator; //the 8 trap simulators for a given padrow.
-  FeeParam* mFeeParam;
-  TrapConfig* mTrapConfig;
+  FeeParam* mFeeParam= nullptr;
+  TrapConfig* mTrapConfig = nullptr;
   std::unique_ptr<TRDGeometry> mGeo;
   //  std::unique_ptr<TrapConfigHandler> mTrapConfigHandler;
   int mNumThreads = 8;
