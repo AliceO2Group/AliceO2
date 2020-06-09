@@ -42,10 +42,10 @@ ElinkEncoder<BareFormat, ChargeSumMode> createBareElinkEncoder20()
 
   ElinkEncoder<BareFormat, ChargeSumMode> enc(linkId);
 
-  enc.addChannelData(1, {SampaCluster{20, 21, 101}});
-  enc.addChannelData(5, {SampaCluster{100, 101, 505}});
-  enc.addChannelData(13, {SampaCluster{260, 261, 1313}});
-  enc.addChannelData(31, {SampaCluster{620, 621, 3131}});
+  enc.addChannelData(1, {SampaCluster{20, 21, 101, 202}});
+  enc.addChannelData(5, {SampaCluster{100, 101, 505, 606}});
+  enc.addChannelData(13, {SampaCluster{260, 261, 1313, 141}});
+  enc.addChannelData(31, {SampaCluster{620, 621, 3131, 414}});
 
   return enc;
 }
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(AddSingleHitShouldIncreaseSizeBy140Bits)
 {
   ElinkEncoder<BareFormat, ChargeSumMode> enc(0);
   auto initialSize = enc.len();
-  std::vector<SampaCluster> data = {SampaCluster(20, 21, 10)};
+  std::vector<SampaCluster> data = {SampaCluster(20, 21, 10, 11)};
   enc.addChannelData(31, data);
   // 100 = 50 (sync) + 50 (header)
   // 40 = 10 (ts) + 10 (cluster size) + 20 (charge sum)
@@ -79,9 +79,9 @@ BOOST_AUTO_TEST_CASE(AddMultipleHitsShouldIncreateSizeBy40BitsTimeN)
   uint8_t chId{31};
 
   std::vector<SampaCluster> data = {
-    SampaCluster(10, 11, 1000),
-    SampaCluster(20, 11, 2000),
-    SampaCluster(30, 11, 3000),
+    SampaCluster(10, 11, 1000, 100),
+    SampaCluster(20, 11, 2000, 200),
+    SampaCluster(30, 11, 3000, 300),
   };
 
   enc.addChannelData(chId, data);
@@ -94,10 +94,10 @@ BOOST_AUTO_TEST_CASE(OneChipChargeSumOneCluster)
 {
   ElinkEncoder<BareFormat, ChargeSumMode> enc(9, 20);
   auto initialSize = enc.len();
-  enc.addChannelData(1, {SampaCluster(20, 21, 101)});
-  enc.addChannelData(5, {SampaCluster(100, 101, 505)});
-  enc.addChannelData(13, {SampaCluster(260, 261, 1313)});
-  enc.addChannelData(31, {SampaCluster(620, 621, 3131)});
+  enc.addChannelData(1, {SampaCluster(20, 21, 101, 202)});
+  enc.addChannelData(5, {SampaCluster(100, 101, 505, 606)});
+  enc.addChannelData(13, {SampaCluster(260, 261, 1313, 141)});
+  enc.addChannelData(31, {SampaCluster(620, 621, 3131, 414)});
   // 50 = 50 (sync)
   // 90 = 50 (header) + 10 (ts) + 10 (cluster size) + 20 (charge sum)
   BOOST_CHECK_EQUAL(enc.len(), initialSize + 50 + 4 * 90);

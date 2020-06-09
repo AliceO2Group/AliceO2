@@ -32,7 +32,7 @@ namespace raw
 /// - raw ADC samples (10 bits each)
 /// - clusterSum values (20 bits each)
 ///
-/// with an associated (local) timetamp.
+/// with an associated (local) timetamp and a cluster size.
 ///
 /// A full time window may contains several SampaClusters.
 
@@ -41,10 +41,11 @@ struct SampaCluster {
   /// Constructs a cluster which holds only a charge sum (aka cluster sum)
   /// \param sampaTime must fit within 10 bits
   /// \param chargeSum must fit within 20 bits
+  /// \param clusterSize must fit within 10 bits
   ///
   /// if some parameter does not fit within its expected range
   /// a std::invalid_argument exception is thrown.
-  explicit SampaCluster(uint10_t sampaTime, uint20_t bunchCrossing, uint20_t chargeSum);
+  explicit SampaCluster(uint10_t sampaTime, uint20_t bunchCrossing, uint20_t chargeSum, uint10_t clusterSize);
 
   /// Constructs a cluster which holds a vector of raw samples
   /// \param sampaTime must fit within 10 bits
@@ -69,6 +70,7 @@ struct SampaCluster {
   uint10_t sampaTime;            //< 10 bits for a local time stamp
   uint20_t bunchCrossing;        //< 20 bits for bunch crossing counter
   uint20_t chargeSum;            //< 20 bits for a cluster sum
+  uint10_t clusterSize;          //< 10 bits for cluster size
   std::vector<uint16_t> samples; //< 10 bits for each sample
 };
 

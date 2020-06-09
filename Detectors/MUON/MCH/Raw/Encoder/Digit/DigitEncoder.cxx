@@ -29,7 +29,8 @@ std::vector<SampaCluster> createSampaClusters(uint16_t ts, float adc);
 template <>
 std::vector<SampaCluster> createSampaClusters<raw::ChargeSumMode>(uint16_t ts, float adc)
 {
-  return {raw::SampaCluster(ts, 0, static_cast<uint32_t>(adc))};
+  uint32_t cs = 2;
+  return {raw::SampaCluster(ts, 0, static_cast<uint32_t>(adc), cs)};
 }
 
 template <>
