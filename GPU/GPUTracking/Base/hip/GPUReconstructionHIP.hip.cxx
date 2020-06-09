@@ -52,13 +52,6 @@ __global__ void gGPUConstantMemBuffer_dummy(int* p) { *p = *(int*)&gGPUConstantM
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-__global__ void gHIPMemSetWorkaround(char* ptr, char val, size_t size)
-{
-  for (size_t i = get_global_id(); i < size; i += get_global_size()) {
-    ptr[i] = val;
-  }
-}
-
 __global__ void dummyInitKernel(void* foo) {}
 
 #if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
@@ -361,13 +354,9 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
       GPUInfo("Memory ptrs: GPU (%lld bytes): %p - Host (%lld bytes): %p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
       memset(mHostMemoryBase, 0, mHostMemorySize);
       if (GPUFailedMsgI(hipMemset(mDeviceMemoryBase, 0xDD, mDeviceMemorySize))) {
-        GPUError("Error during HIP memset, trying workaround with kernel");
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gHIPMemSetWorkaround), dim3(mBlockCount), dim3(256), 0, 0, (char*)mDeviceMemoryBase, 0xDD, mDeviceMemorySize);
-        if (GPUFailedMsgI(hipGetLastError()) || GPUFailedMsgI(hipDeviceSynchronize())) {
-          GPUError("Error during HIP memset");
-          GPUFailedMsgI(hipDeviceReset());
-          return (1);
-        }
+        GPUError("Error during HIP memset");
+        GPUFailedMsgI(hipDeviceReset());
+        return (1);
       }
     }
 
