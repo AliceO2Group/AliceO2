@@ -16,61 +16,57 @@
 #include "Analysis/Centrality.h"
 #include "Analysis/ReducedEvent.h"
 #include "Analysis/ReducedTrack.h"
+#include "Analysis/ReducedInfoTables.h"
 #include <TH1F.h>
-#include <TTree.h>
 #include <TMath.h>
 
-
-
-
-const float gkMass = 0.0005;
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
 
-struct TreeMaker {
+struct TableMaker {
+
+  Produces<aod::ReducedEvents> eventTable;
+  //Produces<aod::Collisions> col;
+  Produces<aod::ReducedTracks> trackTable;
   
-  OutputObj<TTree> fTree{"dstTree"};
   OutputObj<TH1F> vtxZ{TH1F("vtxZ", "vtx Z", 200, -20.0, 20.0)};
-  
-  ReducedEvent* fEvent;
+  OutputObj<TH1F> vtxX{TH1F("vtxX", "vtx X", 2000, -1.0, 1.0)};
+  OutputObj<TH1F> vtxY{TH1F("vtxY", "vtx Y", 2000, -1.0, 1.0)};
   
   void init(o2::framework::InitContext&)
   {
-    fTree.setObject(new TTree("DstTree","Reduced AO2D information"));
-    fEvent = new ReducedEvent();
-    fTree->Branch("Event",&fEvent,16000,99);
   }
 
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, soa::Join<aod::Tracks, aod::TracksExtra> const& tracks)
   {
-    fEvent->ClearEvent();  
-    if(collision.sel7()) fEvent->SetEventTag(0);
-    fEvent->SetVertex(0, collision.posX());    
-    fEvent->SetVertex(1, collision.posY());    
-    fEvent->SetVertex(2, collision.posZ());    
-    fEvent->SetCentVZERO(collision.centV0M());
-    
+    uint64_t tag = 0;
+    if(collision.sel7()) tag |= (uint64_t(1)<<0);
+    float vtx[3] = {collision.posX(), collision.posY(), collision.posZ()};
+    float centVZERO = collision.centV0M();
     vtxZ->Fill(collision.posZ());
-    
-    TClonesArray& reducedTracks = *(fEvent->GetTracks());
+    vtxX->Fill(collision.posX());
+    vtxY->Fill(collision.posY());
+    eventTable(tag, vtx[0], vtx[1], vtx[2], centVZERO);
     
     for (auto& track : tracks) {
-            
-      ReducedTrack* reducedTrack = new (reducedTracks[fEvent->NTracks()]) ReducedTrack();
-      reducedTrack->TrackId(track.globalIndex());
-      reducedTrack->PtPhiEta(track.pt(), track.phi(), track.eta());
-      reducedTrack->Charge(track.charge());
+      uint16_t trackId = track.globalIndex();
+      float p[3] = {track.pt(), track.phi(), track.eta()};
+      uint8_t isCartesian = 0;
+      short charge = track.charge();
+      uint64_t flags = 0;
+      if(p[0]<1.0) continue;
+      if(TMath::Abs(p[2])>0.9) continue;
+      trackTable(collision,trackId,p[0],p[1],p[2],isCartesian,charge, flags);
     }
     
-    fTree->Fill();
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<TreeMaker>("tree-maker")};
+    adaptAnalysisTask<TableMaker>("table-maker")};
 }
