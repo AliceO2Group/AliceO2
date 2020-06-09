@@ -58,8 +58,10 @@ class BranchIterator
   char* mBranchBuffer = nullptr;
   void* mValueBuffer = nullptr;
 
-  std::shared_ptr<arrow::BooleanArray> mVariable_o = nullptr;
-  Bool_t boolValueHolder;
+  std::shared_ptr<arrow::BooleanArray> mArray_o = nullptr;
+  //bool mBoolValueHolder;
+  bool* mVariable_o = nullptr;
+
   uint8_t* mVariable_ub = nullptr;
   uint16_t* mVariable_us = nullptr;
   uint32_t* mVariable_ui = nullptr;
@@ -132,7 +134,7 @@ class ColumnIterator
 
  private:
   // all the possible TTreeReaderValue<T> types
-  TTreeReaderValue<Bool_t>* mReaderValue_o = nullptr;
+  TTreeReaderValue<bool>* mReaderValue_o = nullptr;
   TTreeReaderValue<uint8_t>* mReaderValue_ub = nullptr;
   TTreeReaderValue<uint16_t>* mReaderValue_us = nullptr;
   TTreeReaderValue<uint32_t>* mReaderValue_ui = nullptr;
@@ -145,7 +147,7 @@ class ColumnIterator
   TTreeReaderValue<double>* mReaderValue_d = nullptr;
 
   // all the possible TTreeReaderArray<T> types
-  TTreeReaderArray<Bool_t>* mReaderArray_o = nullptr;
+  TTreeReaderArray<bool>* mReaderArray_o = nullptr;
   TTreeReaderArray<uint8_t>* mReaderArray_ub = nullptr;
   TTreeReaderArray<uint16_t>* mReaderArray_us = nullptr;
   TTreeReaderArray<uint32_t>* mReaderArray_ui = nullptr;
@@ -158,19 +160,19 @@ class ColumnIterator
   TTreeReaderArray<double>* mReaderArray_d = nullptr;
 
   // all the possible arrow::TBuilder types
-  std::shared_ptr<arrow::FixedSizeListBuilder> bui_list;
+  std::shared_ptr<arrow::FixedSizeListBuilder> mTableBuilder_list;
 
-  arrow::BooleanBuilder* bui_o = nullptr;
-  arrow::UInt8Builder* bui_ub = nullptr;
-  arrow::UInt16Builder* bui_us = nullptr;
-  arrow::UInt32Builder* bui_ui = nullptr;
-  arrow::UInt64Builder* bui_ul = nullptr;
-  arrow::Int8Builder* bui_b = nullptr;
-  arrow::Int16Builder* bui_s = nullptr;
-  arrow::Int32Builder* bui_i = nullptr;
-  arrow::Int64Builder* bui_l = nullptr;
-  arrow::FloatBuilder* bui_f = nullptr;
-  arrow::DoubleBuilder* bui_d = nullptr;
+  arrow::BooleanBuilder* mTableBuilder_o = nullptr;
+  arrow::UInt8Builder* mTableBuilder_ub = nullptr;
+  arrow::UInt16Builder* mTableBuilder_us = nullptr;
+  arrow::UInt32Builder* mTableBuilder_ui = nullptr;
+  arrow::UInt64Builder* mTableBuilder_ul = nullptr;
+  arrow::Int8Builder* mTableBuilder_b = nullptr;
+  arrow::Int16Builder* mTableBuilder_s = nullptr;
+  arrow::Int32Builder* mTableBuilder_i = nullptr;
+  arrow::Int64Builder* mTableBuilder_l = nullptr;
+  arrow::FloatBuilder* mTableBuilder_f = nullptr;
+  arrow::DoubleBuilder* mTableBuilder_d = nullptr;
 
   bool mStatus = false;
   EDataType mElementType;
