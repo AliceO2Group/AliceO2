@@ -60,7 +60,7 @@ class UserLogicElinkDecoder
   void clear();
   bool hasError() const;
   bool isHeaderComplete() const { return mHeaderParts.size() == 5; }
-  bool moreSampleToRead() const { return mClusterSize > 0; }
+  bool moreSampleToRead() const { return mSamplesToRead > 0; }
   bool moreWordsToRead() const { return mNof10BitWords > 0; }
   std::ostream& debugHeader() const;
   std::string errorMessage() const;
@@ -84,6 +84,7 @@ class UserLogicElinkDecoder
   SampaHeader mSampaHeader{};
   uint10_t mNof10BitWords{};
   uint10_t mClusterSize{};
+  uint10_t mSamplesToRead{};
   uint10_t mClusterTime{};
   std::optional<std::string> mErrorMessage{std::nullopt};
 };
@@ -176,9 +177,7 @@ void UserLogicElinkDecoder<CHARGESUM>::append10(uint10_t data10)
       break;
     case State::WaitingSize:
       if (moreWordsToRead()) {
-        auto factor = DataFormatSizeFactor<CHARGESUM>::value;
-        auto value = factor * data10;
-        setClusterSize(value);
+        setClusterSize(data10);
         if (hasError()) {
           return;
         }
@@ -200,12 +199,13 @@ void UserLogicElinkDecoder<CHARGESUM>::append10(uint10_t data10)
     case State::WaitingSample:
       if (moreSampleToRead()) {
         setSample(data10);
-      } else if (moreWordsToRead()) {
-        transition(State::WaitingSize);
-        append10(data10);
-      } else {
-        transition(State::WaitingHeader);
-        append10(data10);
+      }
+      if (!moreSampleToRead()) {
+        if (moreWordsToRead()) {
+          transition(State::WaitingSize);
+        } else {
+          transition(State::WaitingHeader);
+        }
       }
       break;
     default:
@@ -322,16 +322,21 @@ void UserLogicElinkDecoder<CHARGESUM>::setClusterSize(uint10_t value)
 {
   oneLess10BitWord();
   mClusterSize = value;
-  int checkSize = mClusterSize + 2 - mSampaHeader.nof10BitWords();
+  if (CHARGESUM()()) {
+    mSamplesToRead = 2;
+  } else {
+    mSamplesToRead = mClusterSize;
+  }
+  int checkSize = mSamplesToRead + 2 - mSampaHeader.nof10BitWords();
   mErrorMessage = std::nullopt;
   if (mClusterSize == 0) {
     mErrorMessage = "cluster size is zero";
   }
   if (checkSize > 0) {
-    mErrorMessage = "cluster size bigger than nof10BitWords";
+    mErrorMessage = "number of samples bigger than nof10BitWords";
   }
 #ifdef ULDEBUG
-  debugHeader() << (*this) << " --> size=" << mClusterSize << "\n";
+  debugHeader() << (*this) << " --> size=" << mClusterSize << "  samples=" << mSamplesToRead << "\n";
 #endif
 }
 
@@ -361,11 +366,11 @@ void UserLogicElinkDecoder<CHARGESUM>::setSample(uint10_t sample)
 #ifdef ULDEBUG
   debugHeader() << (*this) << " --> sample = " << sample << "\n";
 #endif
-  --mClusterSize;
+  --mSamplesToRead;
   oneLess10BitWord();
   mSamples.emplace_back(sample);
 
-  if (mClusterSize == 0) {
+  if (mSamplesToRead == 0) {
     prepareAndSendCluster();
   }
 }
@@ -387,7 +392,7 @@ void UserLogicElinkDecoder<ChargeSumMode>::prepareAndSendCluster()
     throw std::invalid_argument(fmt::format("expected sample size to be 2 but it is {}", mSamples.size()));
   }
   uint32_t q = (((static_cast<uint32_t>(mSamples[1]) & 0x3FF) << 10) | (static_cast<uint32_t>(mSamples[0]) & 0x3FF));
-  SampaCluster sc(mClusterTime, mSampaHeader.bunchCrossingCounter(), q);
+  SampaCluster sc(mClusterTime, mSampaHeader.bunchCrossingCounter(), q, mClusterSize);
   sendCluster(sc);
   mSamples.clear();
 }
