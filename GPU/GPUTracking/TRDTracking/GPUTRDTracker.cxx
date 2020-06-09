@@ -75,8 +75,7 @@ void* GPUTRDTracker_t<TRDTRK, PROP>::SetPointersBase(void* base)
   //--------------------------------------------------------------------
   mMaxThreads = mRec->GetMaxThreads();
   computePointerWithAlignment(base, mR, kNChambers);
-  computePointerWithAlignment(base, mNTrackletsInChamber, kNChambers);
-  computePointerWithAlignment(base, mTrackletIndexArray, kNChambers);
+  computePointerWithAlignment(base, mTrackletIndexArray, kNChambers + 1);
   computePointerWithAlignment(base, mHypothesis, mNCandidates * mMaxThreads);
   computePointerWithAlignment(base, mCandidates, mNCandidates * 2 * mMaxThreads);
   return base;
@@ -106,7 +105,7 @@ void* GPUTRDTracker_t<TRDTRK, PROP>::SetPointersTracks(void* base)
 }
 
 template <class TRDTRK, class PROP>
-GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t() : mR(nullptr), mIsInitialized(false), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mNCandidates(1), mNTracks(0), mNEvents(0), mTracklets(nullptr), mMaxThreads(100), mNTracklets(0), mNTrackletsInChamber(nullptr), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mTrackletLabels(nullptr), mGeo(nullptr), mRPhiA2(0), mRPhiB(0), mRPhiC2(0), mDyA2(0), mDyB(0), mDyC2(0), mAngleToDyA(0), mAngleToDyB(0), mAngleToDyC(0), mDebugOutput(false), mRadialOffset(-0.1), mMinPt(2.f), mMaxEta(0.84f), mExtraRoadY(2.f), mRoadZ(18.f), mMaxChi2(15.0f), mMaxMissingLy(6), mChi2Penalty(12.0f), mZCorrCoefNRC(1.4f), mMCEvent(nullptr), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
+GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t() : mR(nullptr), mIsInitialized(false), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mNCandidates(1), mNTracks(0), mNEvents(0), mTracklets(nullptr), mMaxThreads(100), mNTracklets(0), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mTrackletLabels(nullptr), mGeo(nullptr), mRPhiA2(0), mRPhiB(0), mRPhiC2(0), mDyA2(0), mDyB(0), mDyC2(0), mAngleToDyA(0), mAngleToDyB(0), mAngleToDyC(0), mDebugOutput(false), mRadialOffset(-0.1), mMinPt(2.f), mMaxEta(0.84f), mExtraRoadY(2.f), mRoadZ(18.f), mMaxChi2(15.0f), mMaxMissingLy(6), mChi2Penalty(12.0f), mZCorrCoefNRC(1.4f), mMCEvent(nullptr), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
 {
   //--------------------------------------------------------------------
   // Default constructor
@@ -172,11 +171,6 @@ void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
   }
 #endif
 
-  for (int iDet = 0; iDet < kNChambers; ++iDet) {
-    mNTrackletsInChamber[iDet] = 0;
-    mTrackletIndexArray[iDet] = -1;
-  }
-
   // obtain average radius of TRD chambers
   float x0[kNLayers] = {300.2f, 312.8f, 325.4f, 338.0f, 350.6f, 363.2f}; // used as default value in case no transformation matrix can be obtained
   auto* matrix = mGeo->GetClusterMatrix(0);
@@ -204,10 +198,6 @@ void GPUTRDTracker_t<TRDTRK, PROP>::Reset(bool fast)
   //--------------------------------------------------------------------
   mNTracklets = 0;
   mNTracks = 0;
-  for (int iDet = 0; iDet < kNChambers; ++iDet) {
-    mNTrackletsInChamber[iDet] = 0;
-    mTrackletIndexArray[iDet] = -1;
-  }
   if (fast) {
     return;
   }
@@ -236,13 +226,24 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
   //--------------------------------------------------------------------
 
   // sort tracklets and fill index array
-  CAAlgo::sort(mTracklets, mTracklets + mNTracklets);
+  CAAlgo::sort(mTracklets, mTracklets + mNTracklets); // tracklets are sorted by HCId
+  int* trkltIndexArray = &mTrackletIndexArray[1];
+  trkltIndexArray[-1] = 0;
+  int currDet = 0;
+  int nextDet = 0;
   int trkltCounter = 0;
-  for (int iDet = 0; iDet < kNChambers; ++iDet) {
-    if (mNTrackletsInChamber[iDet] != 0) {
-      mTrackletIndexArray[iDet] = trkltCounter;
-      trkltCounter += mNTrackletsInChamber[iDet];
-    }
+  for (int iTrklt = 0; iTrklt < mNTracklets; ++iTrklt) {
+    if (mTracklets[iTrklt].GetDetector() > currDet) {
+      nextDet = mTracklets[iTrklt].GetDetector();
+      for (int iDet = currDet; iDet < nextDet; ++iDet) {
+        trkltIndexArray[iDet] = trkltCounter;
+      }
+      currDet = nextDet;
+     }
+    ++trkltCounter;
+  }
+  for (int iDet = currDet; iDet <= kNChambers; ++iDet) {
+    trkltIndexArray[iDet] = trkltCounter;
   }
 
   if (!CalculateSpacePoints()) {
@@ -329,8 +330,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::CountMatches(const int trackID, std::vector<
 #ifdef ENABLE_GPUMC
   for (int k = 0; k < kNChambers; k++) {
     int layer = mGeo->GetLayer(k);
-    for (int iTrklt = 0; iTrklt < mNTrackletsInChamber[k]; iTrklt++) {
-      int trkltIdx = mTrackletIndexArray[k] + iTrklt;
+    for (int trkltIdx = mTrackletIndexArray[k]; trkltIdx < mTrackletIndexArray[k + 1]; trkltIdx++) {
       bool trkltStored = false;
       for (int il = 0; il < 3; il++) {
         int lb = mSpacePoints[trkltIdx].mLabel[il];
@@ -450,7 +450,6 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::LoadTracklet(const GPUTRDTrackletWord&
     }
   }
   mTracklets[mNTracklets++] = tracklet;
-  mNTrackletsInChamber[tracklet.GetDetector()]++;
   return 0;
 }
 
@@ -493,7 +492,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CalculateSpacePoints()
 
   for (int iDet = 0; iDet < kNChambers; ++iDet) {
 
-    int nTracklets = mNTrackletsInChamber[iDet];
+    int nTracklets = mTrackletIndexArray[iDet + 1] - mTrackletIndexArray[iDet];
     if (nTracklets == 0) {
       continue;
     }
@@ -510,8 +509,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CalculateSpacePoints()
     float c2 = 1.f / (1.f + t2); // cos^2 (tilt)
     float sy2 = 0.1f * 0.1f;     // sigma_rphi^2, currently assume sigma_rphi = 1 mm
 
-    for (int iTrklt = 0; iTrklt < nTracklets; ++iTrklt) {
-      int trkltIdx = mTrackletIndexArray[iDet] + iTrklt;
+    for (int trkltIdx = mTrackletIndexArray[iDet]; trkltIdx < mTrackletIndexArray[iDet + 1]; ++trkltIdx) {
       int trkltZbin = mTracklets[trkltIdx].GetZbin();
       float sz2 = pp->GetRowSize(trkltZbin) * pp->GetRowSize(trkltZbin) / 12.f; // sigma_z = l_pad/sqrt(12) TODO try a larger z error
       My_Float xTrkltDet[3] = {0.f};                                            // trklt position in chamber coordinates
@@ -519,7 +517,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CalculateSpacePoints()
       xTrkltDet[0] = mGeo->AnodePos() + mRadialOffset;
       xTrkltDet[1] = mTracklets[trkltIdx].GetY();
       xTrkltDet[2] = pp->GetRowPos(trkltZbin) - pp->GetRowSize(trkltZbin) / 2.f - pp->GetRowPos(pp->GetNrows() / 2);
-      //GPUInfo("Space point local %i: x=%f, y=%f, z=%f", iTrklt, xTrkltDet[0], xTrkltDet[1], xTrkltDet[2]);
+      //GPUInfo("Space point local %i: x=%f, y=%f, z=%f", trkltIdx, xTrkltDet[0], xTrkltDet[1], xTrkltDet[2]);
       matrix->LocalToMaster(xTrkltDet, xTrkltSec);
       mSpacePoints[trkltIdx].mR = xTrkltSec[0];
       mSpacePoints[trkltIdx].mX[0] = xTrkltSec[1];
@@ -536,7 +534,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CalculateSpacePoints()
       int modId = mGeo->GetSector(iDet) * GPUTRDGeometry::kNstack + mGeo->GetStack(iDet); // global TRD stack number
       unsigned short volId = mGeo->GetGeomManagerVolUID(iDet, modId);
       mSpacePoints[trkltIdx].mVolumeId = volId;
-      //GPUInfo("Space point global %i: x=%f, y=%f, z=%f", iTrklt, mSpacePoints[trkltIdx].mR, mSpacePoints[trkltIdx].mX[0], mSpacePoints[trkltIdx].mX[1]);
+      //GPUInfo("Space point global %i: x=%f, y=%f, z=%f", trkltIdx, mSpacePoints[trkltIdx].mR, mSpacePoints[trkltIdx].mX[0], mSpacePoints[trkltIdx].mX[1]);
     }
   }
   return result;
@@ -691,8 +689,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
           }
         }
         // first propagate track to x of tracklet
-        for (int iTrklt = 0; iTrklt < mNTrackletsInChamber[currDet]; ++iTrklt) {
-          int trkltIdx = mTrackletIndexArray[currDet] + iTrklt;
+        for (int trkltIdx = mTrackletIndexArray[currDet]; trkltIdx < mTrackletIndexArray[currDet + 1]; ++trkltIdx) {
           if (CAMath::Abs(trkWork->getY() - mSpacePoints[trkltIdx].mX[0]) > roadY || CAMath::Abs(trkWork->getZ() - mSpacePoints[trkltIdx].mX[1]) > roadZ) {
             // skip tracklets which are too far away
             // although the radii of space points and tracks may differ by ~ few mm the roads are large enough to allow no efficiency loss by this cut
