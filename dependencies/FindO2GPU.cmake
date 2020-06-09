@@ -167,21 +167,9 @@ if(ENABLE_HIP)
           CACHE PATH "Path to which HIP has been installed")
     endif()
   endif()
-  if(NOT DEFINED HCC_HOME)
-    if(NOT DEFINED ENV{HCC_HOME})
-      set(HCC_HOME
-          "${HIP_PATH}/../hcc"
-          CACHE PATH "Path to which HCC has been installed")
-    else()
-      set(HCC_HOME
-          $ENV{HCC_HOME}
-          CACHE PATH "Path to which HCC has been installed")
-    endif()
-  endif()
 
-  if(EXISTS "${HIP_PATH}" AND EXISTS "${HCC_HOME}")
+  if(EXISTS "${HIP_PATH}")
     get_filename_component(hip_ROOT "${HIP_PATH}" ABSOLUTE)
-    get_filename_component(hcc_ROOT "${HCC_HOME}" ABSOLUTE)
     find_package(hip)
     find_package(hipcub)
     find_package(rocprim)
@@ -199,8 +187,7 @@ if(ENABLE_HIP)
     endif()
     if(hip_FOUND AND hipcub_FOUND AND rocthrust_FOUND AND rocprim_FOUND AND hip_HIPCC_EXECUTABLE)
       set(HIP_ENABLED ON)
-      set_target_properties(rocthrust PROPERTIES IMPORTED_GLOBAL TRUE)
-      add_library(ROCm::rocThrust ALIAS rocthrust)
+      set_target_properties(roc::rocthrust PROPERTIES IMPORTED_GLOBAL TRUE)
       message(STATUS "HIP Found (${hip_HIPCC_EXECUTABLE})")
       set(O2_HIP_CMAKE_CXX_FLAGS "-fcuda-flush-denormals-to-zero -Wno-invalid-command-line-argument -Wno-unused-command-line-argument -Wno-invalid-constexpr -Wno-ignored-optimization-argument -Wno-unused-private-field")
       if(HIP_AMDGPUTARGET)
@@ -211,7 +198,7 @@ if(ENABLE_HIP)
   if(NOT HIP_ENABLED AND NOT ENABLE_HIP STREQUAL "AUTO")
     message(
       FATAL_ERROR
-        "HIP requested but HIP_PATH=${HIP_PATH} or HCC_HOME=${HCC_HOME} does not exist"
+        "HIP requested but HIP_PATH=${HIP_PATH} does not exist"
       )
   endif()
 
