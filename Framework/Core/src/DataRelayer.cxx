@@ -374,11 +374,9 @@ DataRelayer::RelayChoice
   return WillRelay;
 }
 
-std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
+void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& completed)
 {
   // THE STATE
-  std::vector<RecordAction> completed;
-  completed.reserve(16);
   const auto& cache = mCache;
   const auto numInputTypes = mDistinctRoutesIndex.size();
   //
@@ -401,10 +399,6 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
     completed.emplace_back(RecordAction{li, op});
   };
 
-  auto completionResults = [&completed]() -> std::vector<RecordAction> {
-    return completed;
-  };
-
   // THE OUTER LOOP
   //
   // To determine if a line is complete, we iterate on all the arguments
@@ -417,7 +411,7 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
   // Notice that the only time numInputTypes is 0 is when we are a dummy
   // device created as a source for timers / conditions.
   if (numInputTypes == 0) {
-    return {};
+    return;
   }
   size_t cacheLines = cache.size() / numInputTypes;
   assert(cacheLines * numInputTypes == cache.size());
@@ -455,7 +449,6 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
     // a new message before we look again into the given cacheline.
     mTimesliceIndex.markAsDirty(slot, false);
   }
-  return completionResults();
 }
 
 std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(TimesliceSlot slot)
