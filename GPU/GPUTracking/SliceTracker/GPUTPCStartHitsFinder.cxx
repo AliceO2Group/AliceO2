@@ -18,11 +18,9 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() s, processorType& GPUrestrict() trackerX)
+GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() s, processorType& GPUrestrict() tracker)
 {
   // find start hits for tracklets
-  HIPGPUconstantref() processorType& GPUrestrict() tracker = (HIPGPUconstantref() processorType&)trackerX;
-
   if (iThread == 0) {
     s.mIRow = iBlock + 1;
     s.mNRowStartHits = 0;
@@ -52,7 +50,7 @@ GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, in
       if (nextRowStartHits >= tracker.mNMaxStartHits)
 #endif
       {
-        trackerX.CommonMemory()->kernelError = errCode;
+        tracker.CommonMemory()->kernelError = errCode;
         CAMath::AtomicExch(&tracker.mCommonMem->nStartHits, 0u);
         break;
       }
@@ -66,7 +64,7 @@ GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, in
     unsigned int nOffset = CAMath::AtomicAdd(&tracker.mCommonMem->nStartHits, s.mNRowStartHits);
     tracker.mRowStartHitCountOffset[s.mIRow] = s.mNRowStartHits;
     if (nOffset + s.mNRowStartHits > tracker.mNMaxStartHits) {
-      trackerX.CommonMemory()->kernelError = GPUCA_ERROR_STARTHIT_OVERFLOW;
+      tracker.CommonMemory()->kernelError = GPUCA_ERROR_STARTHIT_OVERFLOW;
       CAMath::AtomicExch(&tracker.mCommonMem->nStartHits, 0u);
     }
   }
