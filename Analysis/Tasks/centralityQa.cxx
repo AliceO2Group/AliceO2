@@ -21,12 +21,12 @@ struct CentralityQaTask {
   OutputObj<TH1F> hCentV0M{TH1F("hCentV0M", "", 21, 0, 105.)};
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& col)
   {
-    if (!col.alias()[0])
+    if (!col.alias()[kINT7])
       return;
     if (!col.sel7())
       return;
 
-    LOGF(info, "centV0M=%.0f", col.centV0M());
+    LOGF(debug, "centV0M=%.0f", col.centV0M());
     // fill centrality histos
     hCentV0M->Fill(col.centV0M());
   }
