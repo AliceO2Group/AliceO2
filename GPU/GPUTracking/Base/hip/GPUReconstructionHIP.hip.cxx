@@ -145,6 +145,13 @@ GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice_internal, Args... args)
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 
+template <>
+void GPUReconstructionHIPBackend::runKernelBackendInternal<GPUMemClean16, 0>(krnlSetup& _xyz, void* const& ptr, unsigned long const& size)
+{
+  GPUDebugTiming timer(mDeviceProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
+  GPUFailedMsg(hipMemsetAsync(ptr, 0, size, mInternals->Streams[_xyz.x.stream]));
+}
+
 template <class T, int I, typename... Args>
 void GPUReconstructionHIPBackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
 {
