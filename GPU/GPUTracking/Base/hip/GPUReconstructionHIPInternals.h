@@ -46,6 +46,21 @@ static void GPUFailedMsgA(const long long int error, const char* file, int line)
 }
 
 static_assert(std::is_convertible<hipEvent_t, void*>::value, "HIP event type incompatible to deviceEvent");
+
+class ThrustVolatileAsyncAllocator
+{
+ public:
+  typedef char value_type;
+
+  ThrustVolatileAsyncAllocator(GPUReconstruction* r) : mRec(r) {}
+  char* allocate(std::ptrdiff_t n) { return (char*)mRec->AllocateVolatileDeviceMemory(n); }
+
+  void deallocate(char* ptr, size_t) {}
+
+ private:
+  GPUReconstruction* mRec;
+};
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

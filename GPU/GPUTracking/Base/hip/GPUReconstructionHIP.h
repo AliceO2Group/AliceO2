@@ -60,7 +60,9 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
   void PrintKernelOccupancies() override;
 
   template <class T, int I = 0, typename... Args>
-  int runKernelBackend(krnlSetup& _xyz, Args... args);
+  int runKernelBackend(krnlSetup& _xyz, const Args&... args);
+  template <class T, int I = 0, typename... Args>
+  void runKernelBackendInternal(krnlSetup& _xyz, const Args&... args);
   template <class T, int I = 0>
   const krnlProperties getKernelPropertiesBackend();
   template <class T, int I>

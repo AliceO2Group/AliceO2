@@ -78,6 +78,44 @@ class TrackerTraitsHIP : public TrackerTraits
 } // namespace o2
 #endif
 
+class GPUDebugTiming
+{
+ public:
+  GPUDebugTiming(bool d, void** t, hipStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionHIPBackend* r = nullptr) : mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r), mDo(d)
+  {
+    if (mDo) {
+      if (mDeviceTimers) {
+        GPUFailedMsg(hipEventRecord((hipEvent_t)mDeviceTimers[0], mStreams[mXYZ.x.stream]));
+      } else {
+        mTimer.ResetStart();
+      }
+    }
+  }
+  ~GPUDebugTiming()
+  {
+    if (mDo) {
+      if (mDeviceTimers) {
+        GPUFailedMsg(hipEventRecord((hipEvent_t)mDeviceTimers[1], mStreams[mXYZ.x.stream]));
+        GPUFailedMsg(hipEventSynchronize((hipEvent_t)mDeviceTimers[1]));
+        float v;
+        GPUFailedMsg(hipEventElapsedTime(&v, (hipEvent_t)mDeviceTimers[0], (hipEvent_t)mDeviceTimers[1]));
+        mXYZ.t = v * 1.e-3;
+      } else {
+        GPUFailedMsg(hipStreamSynchronize(mStreams[mXYZ.x.stream]));
+        mXYZ.t = mTimer.GetCurrentElapsedTime();
+      }
+    }
+  }
+
+ private:
+  void** mDeviceTimers;
+  hipStream_t* mStreams;
+  GPUReconstruction::krnlSetup& mXYZ;
+  GPUReconstructionHIPBackend* mRec;
+  HighResTimer mTimer;
+  bool mDo;
+};
+
 #include "GPUReconstructionIncludesDevice.h"
 
 /*
@@ -115,15 +153,8 @@ GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice_internal, Args... args)
 #undef GPUCA_KRNL
 
 template <class T, int I, typename... Args>
-int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
+void GPUReconstructionHIPBackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
 {
-  auto& x = _xyz.x;
-  auto& z = _xyz.z;
-  if (z.evList) {
-    for (int k = 0; k < z.nEvents; k++) {
-      GPUFailedMsg(hipStreamWaitEvent(mInternals->Streams[x.stream], ((hipEvent_t*)z.evList)[k], 0));
-    }
-  }
   if (mDeviceProcessingSettings.deviceTimers) {
 #ifdef __CUDACC__
     GPUFailedMsg(hipEventRecord((hipEvent_t)mDebugEvents->DebugStart, mInternals->Streams[x.stream]));
@@ -139,6 +170,19 @@ int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
   } else {
     backendInternal<T, I>::runKernelBackendMacro(_xyz, this, nullptr, nullptr, args...);
   }
+}
+
+template <class T, int I, typename... Args>
+int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
+{
+  auto& x = _xyz.x;
+  auto& z = _xyz.z;
+  if (z.evList) {
+    for (int k = 0; k < z.nEvents; k++) {
+      GPUFailedMsg(hipStreamWaitEvent(mInternals->Streams[x.stream], ((hipEvent_t*)z.evList)[k], 0));
+    }
+  }
+  runKernelBackendInternal<T, I>(_xyz, args...);
   GPUFailedMsg(hipGetLastError());
   if (z.ev) {
     GPUFailedMsg(hipEventRecord(*(hipEvent_t*)z.ev, mInternals->Streams[x.stream]));
