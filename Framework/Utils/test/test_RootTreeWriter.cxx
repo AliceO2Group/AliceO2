@@ -207,12 +207,12 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   std::vector<InputRoute> schema = {
     {InputSpec{"input1", "TST", "INT"}, 0, "input1", 0},       //
     {InputSpec{"input2", "TST", "CONTAINER"}, 1, "input2", 0}, //
-    {InputSpec{"input3", "TST", "CONTAINER"}, 2, "input3", 1}, //
+    {InputSpec{"input3", "TST", "CONTAINER"}, 2, "input3", 0}, //
     {InputSpec{"input4", "TST", "BINARY"}, 3, "input4", 0},    //
-    {InputSpec{"input5", "TST", "MSGABLE"}, 5, "input5", 0},   //
-    {InputSpec{"input6", "TST", "FDMTLVEC"}, 6, "input6", 0},  //
-    {InputSpec{"input7", "TST", "TRIV_VEC"}, 7, "input7", 0},  //
-    {InputSpec{"input8", "TST", "SRLZDVEC"}, 8, "input8", 0},  //
+    {InputSpec{"input5", "TST", "MSGABLE"}, 4, "input5", 0},   //
+    {InputSpec{"input6", "TST", "FDMTLVEC"}, 5, "input6", 0},  //
+    {InputSpec{"input7", "TST", "TRIV_VEC"}, 6, "input7", 0},  //
+    {InputSpec{"input8", "TST", "SRLZDVEC"}, 7, "input8", 0},  //
   };
 
   auto getter = [&store](size_t i) -> DataRef {
