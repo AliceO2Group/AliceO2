@@ -12,6 +12,7 @@
 #define FRAMEWORK_EXPIRATIONHANDLER_H
 
 #include "Framework/Lifetime.h"
+#include "Framework/RoutingIndices.h"
 #include <cstdint>
 #include <functional>
 
@@ -24,11 +25,6 @@ struct PartRef;
 struct ServiceRegistry;
 struct TimesliceIndex;
 struct TimesliceSlot;
-
-/// Typesafe index inside
-struct RouteIndex {
-  int value;
-};
 
 struct ExpirationHandler {
   using Creator = std::function<TimesliceSlot(TimesliceIndex&)>;
