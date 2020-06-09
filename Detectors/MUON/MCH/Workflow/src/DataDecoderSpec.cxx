@@ -91,12 +91,15 @@ class DataDecoderTask
       if (mPrint) {
         auto s = asString(dsElecId);
         auto ch = fmt::format("{}-CH{}", s, channel);
-        std::cout << ch << std::endl;
+        std::cout << "dsElecId: " << ch << std::endl;
       }
-      double digitadc(0);
-      //for (auto d = 0; d < sc.nofSamples(); d++) {
-      for (auto d = 0; d < sc.samples.size(); d++) {
-        digitadc += sc.samples[d];
+      uint32_t digitadc(0);
+      if (sc.isClusterSum()) {
+        digitadc = sc.chargeSum;
+      } else {
+        for (auto& s : sc.samples) {
+          digitadc += s;
+        }
       }
 
       int deId{-1};
@@ -106,6 +109,12 @@ class DataDecoderTask
         dsIddet = dsDetId.dsId();
         deId = dsDetId.deId();
       }
+      if (mPrint) {
+        std::cout << "deId " << deId << "  dsIddet " << dsIddet << "  channel " << (int)channel << std::endl;
+      }
+
+      if (deId < 0 || dsIddet < 0)
+        return;
 
       int padId = -1;
       try {
@@ -134,9 +143,11 @@ class DataDecoderTask
     const auto patchPage = [&](gsl::span<const std::byte> rdhBuffer) {
       auto rdhPtr = const_cast<void*>(reinterpret_cast<const void*>(rdhBuffer.data()));
       mNrdhs++;
-      auto cruId = o2::raw::RDHUtils::getCRUID(rdhPtr);
+      auto cruId = o2::raw::RDHUtils::getCRUID(rdhPtr) & 0xFF;
+      auto flags = o2::raw::RDHUtils::getCRUID(rdhPtr) & 0xFF00;
       auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhPtr);
-      o2::raw::RDHUtils::setFEEID(rdhPtr, cruId * 2 + endpoint);
+      auto feeId = cruId * 2 + endpoint + flags;
+      o2::raw::RDHUtils::setFEEID(rdhPtr, feeId);
       orbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdhPtr);
       if (mPrint) {
         std::cout << mNrdhs << "--\n";
@@ -144,12 +155,12 @@ class DataDecoderTask
       }
     };
 
+    patchPage(page);
+
     if (!mDecoder) {
       mDecoder = mFee2Solar ? o2::mch::raw::createPageDecoder(page, channelHandler, mFee2Solar)
                             : o2::mch::raw::createPageDecoder(page, channelHandler);
     }
-
-    patchPage(page);
     mDecoder(page);
   }
 
