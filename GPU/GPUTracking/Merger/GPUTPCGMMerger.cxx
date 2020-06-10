@@ -1253,11 +1253,7 @@ GPUd() void GPUTPCGMMerger::MergeCE(int nBlocks, int nThreads, int iBlock, int i
 
       unsigned int newRef = CAMath::AtomicAdd(&mMemory->nOutputTrackClusters, trk[0]->NClusters() + trk[1]->NClusters());
       if (newRef + trk[0]->NClusters() + trk[1]->NClusters() >= mNMaxOutputTrackClusters) {
-#ifndef GPUCA_GPUCODE
-        printf("Insufficient cluster memory for merging CE tracks (OutputClusters %d, max clusters %u)\n", mMemory->nOutputTrackClusters, mNMaxOutputTrackClusters);
-#else
-        // TODO: proper overflow handling
-#endif
+        raiseError(GPUErrors::ERROR_MERGER_CE_HIT_OVERFLOW, newRef + trk[0]->NClusters() + trk[1]->NClusters(), mNMaxOutputTrackClusters);
         for (unsigned int k = newRef; k < mNMaxOutputTrackClusters; k++) {
           mClusters[k].num = 0;
           mClusters[k].state = 0;
