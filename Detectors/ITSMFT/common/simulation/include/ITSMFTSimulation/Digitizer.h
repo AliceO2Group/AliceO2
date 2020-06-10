@@ -27,6 +27,7 @@
 #include "ITSMFTBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "CommonDataFormat/InteractionRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
@@ -61,8 +62,7 @@ class Digitizer : public TObject
 
   /// Steer conversion of hits to digits
   void process(const std::vector<Hit>* hits, int evID, int srcID);
-  void setEventTime(double t);
-  double getEventTime() const { return mEventTime; }
+  void setEventTime(const o2::InteractionTimeRecord& irt);
   double getEndTimeOfROFMax() const
   {
     ///< return the time corresponding to end of the last reserved ROFrame : mROFrameMax
@@ -107,8 +107,8 @@ class Digitizer : public TObject
   static constexpr float sec2ns = 1e9;
 
   o2::itsmft::DigiParams mParams; ///< digitization parameters
-  double mEventTime = 0;          ///< global event time
-  bool mContinuous = false;       ///< flag for continuous simulation
+  o2::InteractionTimeRecord mEventTime; ///< global event time and interaction record
+  double mCollisionTimeWrtROF;
   UInt_t mROFrameMin = 0;         ///< lowest RO frame of current digits
   UInt_t mROFrameMax = 0;         ///< highest RO frame of current digits
   UInt_t mNewROFrame = 0;         ///< ROFrame corresponding to provided time

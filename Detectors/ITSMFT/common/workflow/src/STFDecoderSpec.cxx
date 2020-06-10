@@ -74,6 +74,12 @@ void STFDecoder<Mapping>::init(InitContext& ic)
       geom = o2::mft::GeometryTGeo::Instance();
       geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
     }
+    const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
+    if (grp) {
+      mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut(detID));
+    } else {
+      throw std::runtime_error("failed to retrieve GRP");
+    }
     mClusterer = std::make_unique<Clusterer>();
     mClusterer->setGeometry(geom);
     mClusterer->setNChips(Mapping::getNChips());
@@ -81,7 +87,9 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     // settings for the fired pixel overflow masking
     const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
     const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
-    mClusterer->setMaxBCSeparationToMask(alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + clParams.maxBCDiffToMaskBias);
+    auto nbc = clParams.maxBCDiffToMaskBias;
+    nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
+    mClusterer->setMaxBCSeparationToMask(nbc);
     mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
     std::string dictFile = o2::base::NameConf::getDictionaryFileName(detID, mDictName, ".bin");
@@ -157,24 +165,6 @@ void STFDecoder<Mapping>::endOfStream(EndOfStreamContext& ec)
   if (mClusterer) {
     mClusterer->print();
   }
-}
-
-///_______________________________________
-template <class Mapping>
-std::unique_ptr<Clusterer> STFDecoder<Mapping>::setupClusterer(const std::string& dictName)
-{
-  bool isContinuous = true;
-  const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
-  if (grp) {
-    isContinuous = grp->isDetContinuousReadOut(Mapping::getName());
-  } else {
-    throw std::runtime_error("failed to retrieve GRP");
-  }
-  // settings for the fired pixel overflow masking
-  const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
-  int maskNBC = alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + 10;
-  mClusterer = createClusterer(Mapping::getNChips(), maskNBC, isContinuous, "");
-  mClusterer->print();
 }
 
 DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict)
