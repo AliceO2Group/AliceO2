@@ -20,46 +20,57 @@ struct arrow_array_for {
 template <>
 struct arrow_array_for<bool> {
   using type = arrow::BooleanArray;
+  using elemtype = bool;
 };
 template <>
 struct arrow_array_for<int8_t> {
   using type = arrow::Int8Array;
+  using elemtype = int8_t;
 };
 template <>
 struct arrow_array_for<uint8_t> {
   using type = arrow::UInt8Array;
+  using elemtype = uint8_t;
 };
 template <>
 struct arrow_array_for<int16_t> {
   using type = arrow::Int16Array;
+  using elemtype = int16_t;
 };
 template <>
 struct arrow_array_for<uint16_t> {
   using type = arrow::UInt16Array;
+  using elemtype = uint16_t;
 };
 template <>
 struct arrow_array_for<int32_t> {
   using type = arrow::Int32Array;
+  using elemtype = int32_t;
 };
 template <>
 struct arrow_array_for<int64_t> {
   using type = arrow::Int64Array;
+  using elemtype = int64_t;
 };
 template <>
 struct arrow_array_for<uint32_t> {
   using type = arrow::UInt32Array;
+  using elemtype = uint32_t;
 };
 template <>
 struct arrow_array_for<uint64_t> {
   using type = arrow::UInt64Array;
+  using elemtype = uint64_t;
 };
 template <>
 struct arrow_array_for<float> {
   using type = arrow::FloatArray;
+  using elemtype = float;
 };
 template <>
 struct arrow_array_for<double> {
   using type = arrow::DoubleArray;
+  using elemtype = double;
 };
 template <int N>
 struct arrow_array_for<float[N]> {

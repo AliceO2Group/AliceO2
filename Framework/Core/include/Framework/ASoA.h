@@ -126,15 +126,9 @@ class ColumnIterator : ChunkingPolicy
       mCurrentChunk{0}
   {
     auto chunkToUse = getCurrentChunk();
-    if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
-      auto array = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
-      mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset();
-      mLast = mCurrent + array->length();
-    } else {
-      auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunkToUse);
-      mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset();
-      mLast = mCurrent + array->length();
-    }
+    auto array = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
+    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset();
+    mLast = mCurrent + array->length();
   }
 
   ColumnIterator() = default;
@@ -148,49 +142,27 @@ class ColumnIterator : ChunkingPolicy
   void nextChunk() const
   {
     auto chunkToUse = getCurrentChunk();
-    if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
-      auto previousArray = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
-      mFirstIndex += previousArray->length();
-    } else {
-      auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(chunkToUse);
-      mFirstIndex += previousArray->length();
-    }
+    auto previousArray = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
+    mFirstIndex += previousArray->length();
 
     mCurrentChunk++;
     chunkToUse = getCurrentChunk();
-    if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
-      auto array = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
-      mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
-      mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
-    } else {
-      auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunkToUse);
-      mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
-      mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
-    }
+    auto array = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
+    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
+    mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
   void prevChunk() const
   {
     auto chunkToUse = getCurrentChunk();
-    if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
-      auto previousArray = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
-      mFirstIndex -= previousArray->length();
-    } else {
-      auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(chunkToUse);
-      mFirstIndex -= previousArray->length();
-    }
+    auto previousArray = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
+    mFirstIndex -= previousArray->length();
 
     mCurrentChunk--;
     chunkToUse = getCurrentChunk();
-    if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
-      auto array = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
-      mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
-      mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
-    } else {
-      auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunkToUse);
-      mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
-      mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
-    }
+    auto array = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
+    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
+    mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
   void moveToChunk(int chunk)
@@ -210,8 +182,8 @@ class ColumnIterator : ChunkingPolicy
   void moveToEnd()
   {
     mCurrentChunk = mColumn->num_chunks() - 1;
-    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(mColumn->chunk(mCurrentChunk));
-    assert(array.get());
+    auto chunkToUse = getCurrentChunk();
+    auto array = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
     mFirstIndex = mColumn->length() - array->length();
     mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
