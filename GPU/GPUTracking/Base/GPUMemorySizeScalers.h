@@ -51,7 +51,7 @@ struct GPUMemorySizeScalers {
   double NTPCSectorTrackHits(double tpcHits) { return offset + tpcHits * tpcSectorTrackHitsPerHit * factor; }
   double NTPCTracks(double tpcHits) { return offset + tpcHits * tpcTracksPerHit * factor; }
   double NTPCTrackHits(double tpcHits) { return offset + tpcHits * tpcTrackHitsPerHit * factor; }
-  double NTPCMaxRowStartHits(double tpcHits) { return offset + NTPCStartHits(tpcHits) / GPUCA_ROW_COUNT * 3. * factor; }
+  double NTPCMaxRowStartHits(double tpcHits) { return offset + NTPCStartHits(tpcHits) / GPUCA_ROW_COUNT * 4. * factor; }
 };
 
 } // namespace GPUCA_NAMESPACE::gpu
