@@ -56,7 +56,7 @@ void* GPUTrackingInputProvider::SetPointersInputClusterNativeOutput(void* mem)
 
 void* GPUTrackingInputProvider::SetPointersErrorCodes(void* mem)
 {
-  computePointerWithAlignment(mem, mErrorCodes, 2 * GPUErrors::getMaxErrors() + 1);
+  computePointerWithAlignment(mem, mErrorCodes, 4 * GPUErrors::getMaxErrors() + 1);
   return mem;
 }
 
