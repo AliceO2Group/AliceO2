@@ -238,11 +238,9 @@ class ColumnIterator : ChunkingPolicy
     std::shared_ptr<arrow::Array> chunkToUse = mColumn->chunk(mCurrentChunk);
     if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
       chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
-      auto array = std::static_pointer_cast<arrow_array_for_t<element_for_t<T>>>(chunkToUse);
-      return array;
+      return std::static_pointer_cast<arrow_array_for_t<value_for_t<T>>>(chunkToUse);
     } else {
-      auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunkToUse);
-      return array;
+      return std::static_pointer_cast<arrow_array_for_t<T>>(chunkToUse);
     }
   }
 };
