@@ -2252,16 +2252,15 @@ int GPUChainTracking::HelperOutput(int iSlice, int threadId, GPUReconstructionHe
 int GPUChainTracking::CheckErrorCodes()
 {
   int retVal = 0;
-  if (processors()->errorCodes.hasError()) {
-    retVal = 1;
-    GPUError("GPUReconstruction suffered from error in CPU part");
-    processors()->errorCodes.printErrors();
-  }
-  TransferMemoryResourceLinkToHost(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes);
-  if (processors()->errorCodes.hasError()) {
-    retVal = 1;
-    GPUError("GPUReconstruction suffered from error in GPU part");
-    processors()->errorCodes.printErrors();
+  for (int i = 0; i < 1 + mRec->IsGPU(); i++) {
+    if (i) {
+      TransferMemoryResourceLinkToHost(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes);
+    }
+    if (processors()->errorCodes.hasError()) {
+      retVal = 1;
+      GPUError("GPUReconstruction suffered from an error in the %s part", i ? "GPU" : "CPU");
+      processors()->errorCodes.printErrors();
+    }
   }
   return retVal;
 }

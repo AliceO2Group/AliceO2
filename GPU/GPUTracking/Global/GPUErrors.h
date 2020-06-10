@@ -30,7 +30,7 @@ class GPUErrors
 #undef GPUCA_ERROR_CODE
   };
 
-  GPUd() void raiseError(unsigned int code, unsigned int param = 0) const;
+  GPUd() void raiseError(unsigned int code, unsigned int param1 = 0, unsigned int param2 = 0, unsigned int param3 = 0) const;
   GPUd() bool hasError() { return *mErrors > 0; }
   void setMemory(GPUglobalref() unsigned int* m) { mErrors = m; }
   void clear();

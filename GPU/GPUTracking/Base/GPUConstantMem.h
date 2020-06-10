@@ -128,9 +128,9 @@ GPUdi() GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GPUProcessor::GetC
 #endif
 }
 
-GPUdi() void GPUProcessor::raiseError(unsigned int code, unsigned int param) const
+GPUdi() void GPUProcessor::raiseError(unsigned int code, unsigned int param1, unsigned int param2, unsigned int param3) const
 {
-  GetConstantMem()->errorCodes.raiseError(code, param);
+  GetConstantMem()->errorCodes.raiseError(code, param1, param2, param3);
 }
 
 } // namespace gpu

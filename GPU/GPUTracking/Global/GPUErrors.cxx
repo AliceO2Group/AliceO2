@@ -21,12 +21,14 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #define GPUCA_MAX_ERRORS 255u
 
-GPUd() void GPUErrors::raiseError(unsigned int code, unsigned int param) const
+GPUd() void GPUErrors::raiseError(unsigned int code, unsigned int param1, unsigned int param2, unsigned int param3) const
 {
   unsigned int pos = CAMath::AtomicAdd(mErrors, 1u);
   if (pos < GPUCA_MAX_ERRORS) {
-    mErrors[2 * pos + 1] = code;
-    mErrors[2 * pos + 2] = param;
+    mErrors[4 * pos + 1] = code;
+    mErrors[4 * pos + 2] = param1;
+    mErrors[4 * pos + 3] = param2;
+    mErrors[4 * pos + 4] = param3;
   }
 }
 
@@ -54,9 +56,9 @@ static std::unordered_map<unsigned int, const char*> errorNames = {
 void GPUErrors::printErrors()
 {
   for (unsigned int i = 0; i < std::min(*mErrors, GPUCA_MAX_ERRORS); i++) {
-    const auto& it = errorNames.find(mErrors[2 * i + 1]);
+    const auto& it = errorNames.find(mErrors[4 * i + 1]);
     const char* errorName = it == errorNames.end() ? "INVALID ERROR CODE" : it->second;
-    GPUError("GPU Error Code (%d) %s : %d", mErrors[2 * i + 1], errorName, mErrors[2 * i + 2]);
+    GPUError("GPU Error Code (%u:%u) %s : %u / %u / %u", i, mErrors[4 * i + 1], errorName, mErrors[4 * i + 2], mErrors[4 * i + 3], mErrors[4 * i + 4]);
   }
   if (*mErrors > GPUCA_MAX_ERRORS) {
     GPUError("Additional errors occured (codes not stored)");
