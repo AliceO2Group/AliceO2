@@ -82,7 +82,7 @@ class GPUTPCTracker : public GPUProcessor
   };
 
   struct commonMemoryStruct {
-    commonMemoryStruct() : nStartHits(0), nTracklets(0), nRowHits(0), nTracks(0), nLocalTracks(0), nTrackHits(0), nLocalTrackHits(0), kernelError(0), gpuParameters() {}
+    commonMemoryStruct() : nStartHits(0), nTracklets(0), nRowHits(0), nTracks(0), nLocalTracks(0), nTrackHits(0), nLocalTrackHits(0), gpuParameters() {}
     GPUAtomic(unsigned int) nStartHits; // number of start hits
     GPUAtomic(unsigned int) nTracklets; // number of tracklets
     GPUAtomic(unsigned int) nRowHits;   // number of tracklet hits
@@ -90,7 +90,6 @@ class GPUTPCTracker : public GPUProcessor
     int nLocalTracks;                   // number of reconstructed tracks before global tracking
     GPUAtomic(unsigned int) nTrackHits; // number of track hits
     int nLocalTrackHits;                // see above
-    int kernelError;                    // Error code during kernel execution
     StructGPUParameters gpuParameters;  // GPU parameters
   };
 

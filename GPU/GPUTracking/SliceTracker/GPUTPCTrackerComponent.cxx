@@ -656,6 +656,9 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
     HLTError("Error running tracking!");
     return ((void*)(size_t)-EINVAL);
   }
+  if (fChain->CheckErrorCodes()) {
+    return ((void*)(size_t)-EINVAL);
+  }
   fBenchmark.Stop(1);
   HLTInfo("Processed %d clusters", nClustersTotal);
   for (int i = 0; i < NSLICES; i++) {
