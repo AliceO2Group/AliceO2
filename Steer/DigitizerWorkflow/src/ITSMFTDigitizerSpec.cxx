@@ -165,10 +165,10 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   void processQED(const o2::InteractionTimeRecord& irt)
   {
 
-    auto tQEDNext = mLastQEDTime.timeNS + mQEDEntryTimeBinNS; // timeslice to retrieve
+    auto tQEDNext = mLastQEDTime.getTimeNS() + mQEDEntryTimeBinNS; // timeslice to retrieve
     std::string detStr = mID.getName();
     auto br = mQEDChain.GetBranch((detStr + "Hit").c_str());
-    while (tQEDNext < irt.timeNS) {
+    while (tQEDNext < irt.getTimeNS()) {
       mLastQEDTime.setFromNS(tQEDNext); // time used for current QED slot
       tQEDNext += mQEDEntryTimeBinNS; // prepare time for next QED slot
       if (++mLastQEDEntry >= mQEDChain.GetEntries()) {

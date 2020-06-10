@@ -64,7 +64,7 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
     double timeHit = delayScintillator + hit.GetTime();
 
     timeHit -= getTOFCorrection(int(iChannel / 4)); // account for TOF to detector
-    timeHit += mIntRecord.timeNS;
+    timeHit += mIntRecord.getTimeNS();
     o2::InteractionRecord irHit(timeHit); // BC in which the hit appears (might be different from interaction BC for slow particles)
 
     int nCachedIR = 0;

@@ -109,7 +109,7 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
   for (int collID = 0; collID < timesview.size(); ++collID) {
-    mDigitizer.setEventTime(timesview[collID].timeNS);
+    mDigitizer.setEventTime(timesview[collID].getTimeNS());
 
     // for each collision, loop over the constituents event and source IDs
     // (background signal merging is basically taking place here)

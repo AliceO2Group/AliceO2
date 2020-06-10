@@ -63,7 +63,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto& irecords = context->getEventRecords();
 
     for (auto& record : irecords) {
-      LOG(INFO) << "HMPID TIME RECEIVED " << record.timeNS;
+      LOG(INFO) << "HMPID TIME RECEIVED " << record.getTimeNS();
     }
 
     auto& eventParts = context->getEventParts();
@@ -86,12 +86,12 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     for (int collID = 0; collID < irecords.size(); ++collID) {
 
       // try to start new readout cycle by setting the trigger time
-      auto triggeraccepted = mDigitizer.setTriggerTime(irecords[collID].timeNS);
+      auto triggeraccepted = mDigitizer.setTriggerTime(irecords[collID].getTimeNS());
       if (triggeraccepted) {
         flushDigitsAndLabels(); // flush previous readout cycle
       }
 
-      auto withinactivetime = mDigitizer.setEventTime(irecords[collID].timeNS);
+      auto withinactivetime = mDigitizer.setEventTime(irecords[collID].getTimeNS());
       if (withinactivetime) {
         // for each collision, loop over the constituents event and source IDs
         // (background signal merging is basically taking place here)

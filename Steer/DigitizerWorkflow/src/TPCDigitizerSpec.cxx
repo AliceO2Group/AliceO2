@@ -275,7 +275,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     };
 
     static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
-    mDigitizer.setStartTime(sampaProcessing.getTimeBinFromTime(irecords[0].timeNS / 1000.f));
+    mDigitizer.setStartTime(sampaProcessing.getTimeBinFromTime(irecords[0].getTimeNS() / 1000.f));
 
     TStopwatch timer;
     timer.Start();
@@ -283,7 +283,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      const float eventTime = irecords[collID].timeNS / 1000.f;
+      const float eventTime = irecords[collID].getTimeNS() / 1000.f;
       LOG(INFO) << "TPC: Event time " << eventTime << " us";
       mDigitizer.setEventTime(eventTime);
       if (!isContinuous) {

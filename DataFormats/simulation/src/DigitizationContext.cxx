@@ -28,7 +28,7 @@ void DigitizationContext::printCollisionSummary() const
   }
   std::cout << "Number of Collisions " << mEventRecords.size() << "\n";
   for (int i = 0; i < mEventRecords.size(); ++i) {
-    std::cout << "Collision " << i << " TIME " << mEventRecords[i].timeNS;
+    std::cout << "Collision " << i << " TIME " << mEventRecords[i];
     for (auto& e : mEventParts[i]) {
       std::cout << " (" << e.sourceID << " , " << e.entryID << ")";
     }

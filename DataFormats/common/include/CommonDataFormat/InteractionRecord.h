@@ -240,34 +240,42 @@ struct InteractionRecord {
 };
 
 struct InteractionTimeRecord : public InteractionRecord {
-  double timeNS = 0.; ///< time in NANOSECONDS from start of run (orbit=0)
+  double timeInBCNS = 0.; ///< time in NANOSECONDS relative to orbit/bc
 
   InteractionTimeRecord() = default;
 
-  InteractionTimeRecord(const InteractionRecord& ir, double tNS) : InteractionRecord(ir), timeNS(tNS)
+  InteractionTimeRecord(const InteractionRecord& ir, double timeInBCNS) : InteractionRecord(ir), timeInBCNS(timeInBCNS)
   {
   }
 
-  InteractionTimeRecord(double tNS)
+  /// create from the abs. (since orbit=0/bc=0) time in NS
+  InteractionTimeRecord(double tNS) : InteractionRecord(tNS)
   {
-    setFromNS(tNS);
+    timeInBCNS = tNS - bc2ns();
   }
 
-  void setFromNS(double ns)
+  /// set the from the abs. (since orbit=0/bc=0) time in NS
+  void setFromNS(double tNS)
   {
-    timeNS = ns;
-    InteractionRecord::setFromNS(ns);
+    InteractionRecord::setFromNS(tNS);
+    timeInBCNS = tNS - bc2ns();
   }
 
   void clear()
   {
     InteractionRecord::clear();
-    timeNS = 0.;
+    timeInBCNS = 0.;
   }
 
   double getTimeOffsetWrtBC() const
   {
-    return timeNS - bc2ns();
+    return timeInBCNS;
+  }
+
+  /// get time in ns from orbit=0/bc=0
+  double getTimeNS() const
+  {
+    return timeInBCNS + bc2ns();
   }
 
   void print() const;
