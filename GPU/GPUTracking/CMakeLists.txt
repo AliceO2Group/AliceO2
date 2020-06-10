@@ -75,6 +75,7 @@ set(SRCS_NO_CINT
     Global/GPUChain.cxx
     Global/GPUChainTracking.cxx
     Global/GPUTrackingInputProvider.cxx
+    Global/GPUErrors.cxx
     Merger/GPUTPCGMMergerGPU.cxx
     Standalone/utils/timer.cxx)
 
@@ -127,6 +128,7 @@ set(HDRS_INSTALL
     Base/GPUO2FakeClasses.h
     Base/GPUParam.inc
     Merger/GPUTPCGMMergerTypes.h
+    Global/GPUErrorCodes.h
 )
 
 # Sources only for O2

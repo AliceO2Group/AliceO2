@@ -32,6 +32,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCTracker.cxx"
 
 #include "GPUGeneralKernels.cxx"
+#include "GPUErrors.cxx"
 
 #include "GPUTPCTrackletSelector.cxx"
 #include "GPUTPCNeighboursFinder.cxx"

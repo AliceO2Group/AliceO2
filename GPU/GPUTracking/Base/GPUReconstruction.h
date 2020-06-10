@@ -178,6 +178,7 @@ class GPUReconstruction
   virtual int unregisterMemoryForGPU(const void* ptr) = 0;
   virtual void startGPUProfiling() {}
   virtual void endGPUProfiling() {}
+  int CheckErrorCodes();
 
   // Helpers for memory allocation
   GPUMemoryResource& Res(short num) { return mMemoryResources[num]; }

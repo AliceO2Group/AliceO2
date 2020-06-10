@@ -691,6 +691,17 @@ void GPUReconstruction::PrepareEvent()
   AllocateRegisteredMemory(nullptr);
 }
 
+int GPUReconstruction::CheckErrorCodes()
+{
+  int retVal = 0;
+  for (unsigned int i = 0; i < mChains.size(); i++) {
+    if (mChains[i]->CheckErrorCodes()) {
+      retVal++;
+    }
+  }
+  return retVal;
+}
+
 void GPUReconstruction::DumpSettings(const char* dir)
 {
   std::string f;

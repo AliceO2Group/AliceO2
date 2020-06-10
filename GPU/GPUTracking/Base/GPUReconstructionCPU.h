@@ -304,6 +304,9 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
         t->AddTime(setup.t);
       }
     }
+    if (mDeviceProcessingSettings.debugLevel >= 1 && CheckErrorCodes()) {
+      throw std::runtime_error("kernel error code");
+    }
   }
   return 0;
 }

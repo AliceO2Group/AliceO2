@@ -73,6 +73,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int Finalize() override;
   int RunChain() override;
   void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
+  int CheckErrorCodes() override;
+  void ClearErrorCodes();
 
   // Structures for input and output data
   GPUTrackingInOutPointers& mIOPtrs;
