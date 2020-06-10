@@ -67,7 +67,7 @@ class FDDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     context->initSimChains(o2::detectors::DetID::FDD, mSimChains);
     mDigitizer.setEventTime(context->getGRP().getTimeStart());
     for (auto& record : irecords) {
-      LOG(INFO) << "FDD TIME RECEIVED " << record.timeNS;
+      LOG(INFO) << "FDD TIME RECEIVED " << record.getTimeNS();
     }
 
     auto& eventParts = context->getEventParts();

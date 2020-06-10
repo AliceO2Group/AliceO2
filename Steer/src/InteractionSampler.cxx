@@ -80,7 +80,7 @@ const o2::InteractionTimeRecord& InteractionSampler::generateCollisionTime()
   if (mIntBCCache < 1) {                   // do we still have interaction in current BC?
     mIntBCCache = simulateInteractingBC(); // decide which BC interacts and N collisions
   }
-  mIR.timeNS = mTimeInBC.back() + mIR.bc2ns();
+  mIR.timeInBCNS = mTimeInBC.back();
   mTimeInBC.pop_back();
   mIntBCCache--;
 
