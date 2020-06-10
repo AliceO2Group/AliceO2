@@ -299,6 +299,8 @@ int GPUChainTracking::Init()
   if (mOutputClustersNative == nullptr) {
     mOutputClustersNative = &mRec->OutputControl();
   }
+  processors()->errorCodes.setMemory(mInputsHost->mErrorCodes);
+  processors()->errorCodes.clear();
 
   if (mRec->IsGPU()) {
     if (processors()->calibObjects.fastTransform) {
@@ -330,6 +332,9 @@ int GPUChainTracking::Init()
 #endif
     TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mFlatObjectsShadow.mMemoryResFlat);
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->calibObjects - (char*)processors(), &mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects), -1); // First initialization, for users not using RunChain
+    processorsShadow()->errorCodes.setMemory(mInputsShadow->mErrorCodes);
+    WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->errorCodes - (char*)processors(), &processorsShadow()->errorCodes, sizeof(processorsShadow()->errorCodes), -1);
+    TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes);
   }
 
   if (GetDeviceProcessingSettings().debugLevel >= 6) {
@@ -428,6 +433,7 @@ int GPUChainTracking::PrepareEvent()
   if (mIOPtrs.tpcZS && param().rec.fwdTPCDigitsAsClusters) {
     throw std::runtime_error("Forwading zero-suppressed hits not supported");
   }
+  ClearErrorCodes();
   return 0;
 }
 
@@ -1577,15 +1583,6 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     }
   }
 
-  for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    if (processors()->tpcTrackers[iSlice].CommonMemory()->kernelError != 0) {
-      const char* errorMsgs[] = GPUCA_ERROR_STRINGS;
-      const char* errorMsg = (unsigned)processors()->tpcTrackers[iSlice].CommonMemory()->kernelError >= sizeof(errorMsgs) / sizeof(errorMsgs[0]) ? "UNKNOWN" : errorMsgs[processors()->tpcTrackers[iSlice].CommonMemory()->kernelError];
-      GPUError("GPU Tracker returned Error Code %d (%s) in slice %d (Clusters %d)", processors()->tpcTrackers[iSlice].CommonMemory()->kernelError, errorMsg, iSlice, processors()->tpcTrackers[iSlice].Data().NumberOfHits());
-      return (1);
-    }
-  }
-
   if (param().rec.GlobalTracking && GetDeviceProcessingSettings().debugLevel >= 3) {
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       GPUInfo("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d", iSlice,
@@ -2159,6 +2156,10 @@ int GPUChainTracking::RunChain()
     SynchronizeStream(mRec->NStreams() - 1);
   }
 
+  if (CheckErrorCodes()) {
+    return 1;
+  }
+
   if (needQA) {
     mRec->getGeneralStepTimer(GeneralStep::QA).Start();
     mQA->RunQA(!GetDeviceProcessingSettings().runQA);
@@ -2246,4 +2247,28 @@ int GPUChainTracking::HelperOutput(int iSlice, int threadId, GPUReconstructionHe
     WriteOutput(iSlice, threadId);
   }
   return 0;
+}
+
+int GPUChainTracking::CheckErrorCodes()
+{
+  int retVal = 0;
+  if (processors()->errorCodes.hasError()) {
+    retVal = 1;
+    GPUError("GPUReconstruction suffered from error in CPU part");
+    processors()->errorCodes.printErrors();
+  }
+  TransferMemoryResourceLinkToHost(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes);
+  if (processors()->errorCodes.hasError()) {
+    retVal = 1;
+    GPUError("GPUReconstruction suffered from error in GPU part");
+    processors()->errorCodes.printErrors();
+  }
+  return retVal;
+}
+
+void GPUChainTracking::ClearErrorCodes()
+{
+  processors()->errorCodes.clear();
+  WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->errorCodes - (char*)processors(), &processorsShadow()->errorCodes, sizeof(processorsShadow()->errorCodes), -1);
+  TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes);
 }

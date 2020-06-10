@@ -53,6 +53,7 @@ class GPUProcessor
 
   GPUd() GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GetConstantMem() const; // Body in GPUConstantMem.h to avoid circular headers
   GPUd() GPUconstantref() const MEM_CONSTANT(GPUParam) & Param() const;                // ...
+  GPUd() void raiseError(unsigned int code, unsigned int param = 0) const;             // ...
   const GPUReconstruction& GetRec() const { return *mRec; }
 
 #ifndef __OPENCL__
