@@ -63,7 +63,7 @@ void Detector::ConstructGeometry()
 
 void Detector::addAlignableVolumes() const
 {
-   if (!gGeoManager) {
+  if (!gGeoManager) {
     throw std::runtime_error("Cannot add alignable volumes without TGeoManager");
   }
   addAlignableVolumesMCH();
