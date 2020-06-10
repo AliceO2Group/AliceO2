@@ -90,20 +90,22 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
     mROFrameMax = 0;
   }
   // RO frame corresponding to provided time
-  mCollisionTimeWrtROF = mEventTime.getTimeOffsetWrtBC();
+  mCollisionTimeWrtROF = mEventTime.timeInBCNS; // in triggered mode the ROF starts at BC (is there a delay?)
   if (mParams.isContinuous()) {
     auto nbc = mEventTime.toLong();
     if (mCollisionTimeWrtROF < 0 && nbc > 0) {
       nbc--;
     }
     mNewROFrame = nbc / mParams.getROFrameLengthInBC();
-    mCollisionTimeWrtROF = mEventTime.timeNS - mNewROFrame * mParams.getROFrameLength();
+    // in continuous mode depends on starts of periodic readout frame
+    mCollisionTimeWrtROF += (nbc % mParams.getROFrameLengthInBC()) * o2::constants::lhc::LHCBunchSpacingNS;
   } else {
     mNewROFrame = 0;
   }
 
   if (mNewROFrame < mROFrameMin) {
-    LOG(FATAL) << "New ROFrame (time=" << irt.timeNS << ") precedes currently cashed " << mROFrameMin;
+    LOG(ERROR) << "New ROFrame " << mNewROFrame << " (" << irt << ") precedes currently cashed " << mROFrameMin;
+    throw std::runtime_error("deduced ROFrame precedes already processed one");
   }
 
   if (mParams.isContinuous() && mROFrameMax < mNewROFrame) {
