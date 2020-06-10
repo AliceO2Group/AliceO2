@@ -42,8 +42,6 @@
 #include "MemoryResources/Types.h"
 #include <cerrno>
 
-#define ENABLE_UPGRADES
-
 namespace o2
 {
 namespace header

@@ -86,6 +86,7 @@ void O2MCApplicationBase::ConstructGeometry()
       mModIdToName[mod->GetModId()] = mod->GetName();
     }
   }
+
   FairMCApplication::ConstructGeometry();
 
   std::ofstream voltomodulefile("MCStepLoggerVolMap.dat");

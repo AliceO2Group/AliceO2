@@ -85,7 +85,6 @@ class O2MCApplication : public O2MCApplicationBase
 
     LOG(INFO) << "Generate primaries " << mPrimaries.size() << "\n";
     GetStack()->Reset();
-
     // but here we init the stack from
     // a vector of particles that someone sets externally
     static_cast<o2::data::Stack*>(GetStack())->initFromPrimaries(mPrimaries);

@@ -747,7 +747,7 @@ void O2HitMerger::initDetInstances()
     initHitTreeAndOutFile(i);
   }
   if (counter != DetID::nDetectors) {
-    LOG(WARNING) << " O2HitMerger: Some Detectors are potentially missing in this initialization " << counter;
+    LOG(WARNING) << " O2HitMerger: Some Detectors are potentially missing in this initialization ";
   }
 }
 

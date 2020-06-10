@@ -51,6 +51,7 @@ Bool_t GeometryManager::getOriginalMatrix(const char* symname, TGeoHMatrix& m)
 
   if (!gGeoManager || !gGeoManager->IsClosed()) {
     LOG(ERROR) << "No active geometry or geometry not yet closed!";
+    ;
     return kFALSE;
   }
 
