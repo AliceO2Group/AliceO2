@@ -37,8 +37,8 @@
 using MAP = o2::itsmft::ChipMappingMFT;
 namespace bpo = boost::program_options;
 
-void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, bool filePerCRU);
-void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU, int verbosity, uint32_t rdhV = 4, bool noEmptyHBF = false,
+void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, std::string_view fileFor);
+void digi2raw(std::string_view inpName, std::string_view outDir, std::string_view fileFor, int verbosity, uint32_t rdhV = 4, bool noEmptyHBF = false,
               int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
@@ -54,8 +54,8 @@ int main(int argc, char** argv)
     auto add_option = opt_general.add_options();
     add_option("help,h", "Print this help message");
     add_option("verbosity,v", bpo::value<uint32_t>()->default_value(0), "verbosity level [0 = no output]");
-    add_option("input-file,i", bpo::value<std::string>()->default_value("mftdigits.root"), "input MFT digits file");
-    add_option("file-per-cru,c", bpo::value<bool>()->default_value(false)->implicit_value(true), "create output file per CRU (default: per layer)");
+    add_option("input-file,i", bpo::value<std::string>()->default_value("mftdigits.root"), "input  digits file");
+    add_option("file-for,f", bpo::value<std::string>()->default_value("layer"), "single file per: all,layer,cru,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
@@ -83,7 +83,7 @@ int main(int argc, char** argv)
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
   digi2raw(vm["input-file"].as<std::string>(),
            vm["output-dir"].as<std::string>(),
-           vm["file-per-cru"].as<bool>(),
+           vm["file-for"].as<std::string>(),
            vm["verbosity"].as<uint32_t>(),
            vm["rdh-version"].as<uint32_t>(),
            vm["no-empty-hbf"].as<bool>());
@@ -91,7 +91,7 @@ int main(int argc, char** argv)
   return 0;
 }
 
-void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU, int verbosity, uint32_t rdhV, bool noEmptyHBF, int superPageSizeInB)
+void digi2raw(std::string_view inpName, std::string_view outDir, std::string_view fileFor, int verbosity, uint32_t rdhV, bool noEmptyHBF, int superPageSizeInB)
 {
   TStopwatch swTot;
   swTot.Start();
@@ -144,7 +144,7 @@ void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU
   m2r.getWriter().setDontFillEmptyHBF(noEmptyHBF);
 
   m2r.setVerbosity(verbosity);
-  setupLinks(m2r, outDir, MAP::getName(), filePerCRU);
+  setupLinks(m2r, outDir, MAP::getName(), fileFor);
   //-------------------------------------------------------------------------------<<<<
   int lastTreeID = -1;
   long offs = 0, nEntProc = 0;
@@ -175,7 +175,7 @@ void digi2raw(std::string_view inpName, std::string_view outDir, bool filePerCRU
   swTot.Print();
 }
 
-void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, bool filePerCRU)
+void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, std::string_view fileFor)
 {
   // see the same file from ITS
 
@@ -196,7 +196,7 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
 
   // this is an arbitrary mapping
   int nCRU = 0, nRUtot = 0, nRU = 0, nLinks = 0;
-  int linkID = 0, cruIDprev = -1, cruID = o2::detectors::DetID::MFT << 8; // this will be the lowest CRUID
+  int linkID = 0, cruIDprev = -1, cruID = 0;
   std::string outFileLink;
 
   int nruLr = mp.getNZonesPerLayer();
@@ -204,12 +204,8 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
 
   // loop over the lower half, then over the upper half
   for (int h = 0; h < 2; h++) {
-    if (h > 0) {
-      cruID = (o2::detectors::DetID::MFT << 8) + 1;
-    }
+    int cruIDtmp = h > 0 ? 1 : 0;
     for (int ilr = 0; ilr < mp.getNLayers(); ilr++) {
-
-      outFileLink = filePerCRU ? o2::utils::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(nCRU), ".raw") : o2::utils::concat_string(outDir, "/", outPrefix, "_lr", std::to_string(ilr), ".raw");
 
       for (int ir = 0; ir < nruLr; ir++) {
 
@@ -242,7 +238,7 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
           auto link = m2r.getGBTLink(ru.links[0]);
           link->lanes = lanes & ((0x1 << lnkAs) - 1) << (accL);
           link->idInCRU = linkID;
-          link->cruID = cruID;
+          link->cruID = cruIDtmp * 100 + o2::detectors::DetID::MFT;
           link->feeID = mp.RUSW2FEEId(ruSW);
           link->endPointID = 0; // 0 or 1
           accL += lnkAs;
@@ -251,17 +247,31 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
           //printf("RU SW: %2d   HW: 0x%02x   Type: %2d   %s \n", ruSW, ruHW, ruType, outFileLink.data());
           //std::bitset<32> bv_lanes(link->lanes);
           //LOG(INFO) << "with lanes " << bv_lanes;
+
+          if (fileFor == "all") { // single file for all links
+            outFileLink = o2::utils::concat_string(outDir, "/", outPrefix, ".raw");
+          } else if (fileFor == "layer") {
+            outFileLink = o2::utils::concat_string(outDir, "/", outPrefix, "_lr", std::to_string(ilr), ".raw");
+          } else if (fileFor == "cru") {
+            outFileLink = o2::utils::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(link->cruID), ".raw");
+          } else if (fileFor == "link") {
+            outFileLink = o2::utils::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(cruID),
+                                                   "_link", std::to_string(linkID), "_ep", std::to_string(link->endPointID), ".raw");
+          } else {
+            throw std::runtime_error("invalid option provided for file grouping");
+          }
+
           m2r.getWriter().registerLink(link->feeID, link->cruID, link->idInCRU,
                                        link->endPointID, outFileLink);
 
-          if (cruIDprev != cruID) { // just to count used CRUs
-            cruIDprev = cruID;
+          if (cruIDprev != cruIDtmp) { // just to count used CRUs
+            cruIDprev = cruIDtmp;
             nCRU++;
           }
 
           if ((++linkID) >= MaxLinksPerCRU) {
             linkID = 0;
-            cruID += 2;
+            cruIDtmp += 2;
           }
 
         } // end select RU SW ID range
