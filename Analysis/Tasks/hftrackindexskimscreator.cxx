@@ -77,18 +77,25 @@ struct HFTrackIndexSkimsCreator {
     df3.setMinParamChange(d_minparamchange);
     df3.setMinRelChi2Change(d_minrelchi2change);
 
+
+
+    std::vector<int> statustrack(tracks.size(), 0);
+
     for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
       auto& track_0 = *it0;
       if (abs(track_0.signed1Pt())<ptmintrack)
         continue;
-
       UChar_t clustermap_0 = track_0.itsClusterMap();
-      //fill track distribution before selection
       bool isselected_0 = track_0.tpcNClsFound() >= d_tpcnclsfound && track_0.flags() & 0x4;
       isselected_0 = isselected_0 && (TESTBIT(clustermap_0, 0) || TESTBIT(clustermap_0, 1));
       if (!isselected_0)
         continue;
+      statustrack[track_0.globalIndex() - tracks.begin().globalIndex()] = 1;
+    }
 
+    for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
+      auto& track_0 = *it0;
+      if (statustrack[track_0.globalIndex() - tracks.begin().globalIndex()] == 0) continue;
       float x0_ = track_0.x();
       float alpha0_ = track_0.alpha();
       std::array<float, 5> arraypar0 = {track_0.y(), track_0.z(), track_0.snp(),
@@ -102,13 +109,7 @@ struct HFTrackIndexSkimsCreator {
       o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
       for (auto it1 = it0 + 1; it1 != tracks.end(); ++it1) {
         auto& track_1 = *it1;
-        if (abs(track_1.signed1Pt())<ptmintrack)
-          continue;
-        UChar_t clustermap_1 = track_1.itsClusterMap();
-        bool isselected_1 = track_1.tpcNClsFound() >= d_tpcnclsfound && track_1.flags() & 0x4;
-        isselected_1 = isselected_1 && (TESTBIT(clustermap_1, 0) || TESTBIT(clustermap_1, 1));
-        if (!isselected_1)
-          continue;
+      if (statustrack[track_1.globalIndex() - tracks.begin().globalIndex()] == 0) continue;
         if (track_0.signed1Pt() * track_1.signed1Pt() > 0)
           continue;
         float x1_ = track_1.x();
@@ -151,13 +152,7 @@ struct HFTrackIndexSkimsCreator {
             if(it2 == it0 || it2 == it1)
               continue;
             auto& track_2 = *it2;
-            if (abs(track_2.signed1Pt())<ptmintrack)
-              continue;
-            UChar_t clustermap_2 = track_2.itsClusterMap();
-            bool isselected_2 = track_2.tpcNClsFound() >= d_tpcnclsfound && track_2.flags() & 0x4;
-            isselected_2 = isselected_2 && (TESTBIT(clustermap_2, 0) || TESTBIT(clustermap_2, 1));
-            if (!isselected_2)
-              continue;
+            if (statustrack[track_2.globalIndex() - tracks.begin().globalIndex()] == 0) continue;
             if (track_1.signed1Pt() * track_2.signed1Pt() > 0)
               continue;
             float x2_ = track_2.x();
