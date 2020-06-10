@@ -41,7 +41,7 @@ class Encoder
   Encoder();
   ~Encoder() = default;
 
-  bool open(std::string name, std::string path = ".");
+  bool open(const std::string& name, const std::string& path = ".", const std::string& fileFor = "cru");
   bool alloc(long size);
 
   bool encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int tofwindow = 0);
