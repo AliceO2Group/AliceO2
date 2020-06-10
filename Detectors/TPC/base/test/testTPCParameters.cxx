@@ -28,6 +28,8 @@ namespace o2
 namespace tpc
 {
 
+constexpr float NominalTimeBin = 8 * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+
 /// \brief Trivial test of the default initialization of Parameter Detector
 /// Precision: 1E-3 %
 BOOST_AUTO_TEST_CASE(ParameterDetector_test1)
@@ -67,7 +69,7 @@ BOOST_AUTO_TEST_CASE(ParameterElectronics_test1)
   BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ChipGain, 20, 1e-3);
   BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ADCdynamicRange, 2200, 1e-3);
   BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ADCsaturation, 1024, 1e-3);
-  BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ZbinWidth, 0.2f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ZbinWidth, NominalTimeBin, 1e-3);
   BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ElectronCharge, 1.602e-19, 1e-3);
   BOOST_CHECK(ParameterElectronics::Instance().DigiMode == DigitzationMode::SubtractPedestal);
 
@@ -76,7 +78,7 @@ BOOST_AUTO_TEST_CASE(ParameterElectronics_test1)
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ChipGain"), 20, 1e-3);
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ADCdynamicRange"), 2200, 1e-3);
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ADCsaturation"), 1024, 1e-3);
-  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ZbinWidth"), 0.2f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ZbinWidth"), NominalTimeBin, 1e-3);
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.ElectronCharge"), 1.602e-19, 1e-3);
 }
 
