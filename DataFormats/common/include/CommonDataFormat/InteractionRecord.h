@@ -102,6 +102,13 @@ struct InteractionRecord {
     return (int64_t(orbit) * o2::constants::lhc::LHCMaxBunches) + bc;
   }
 
+  void setFromLong(int64_t l)
+  {
+    // set from long BC counter
+    bc = l % o2::constants::lhc::LHCMaxBunches;
+    orbit = l / o2::constants::lhc::LHCMaxBunches;
+  }
+
   bool operator>(const InteractionRecord& other) const
   {
     return (orbit == other.orbit) ? (bc > other.bc) : (orbit > other.orbit);
@@ -256,6 +263,11 @@ struct InteractionTimeRecord : public InteractionRecord {
   {
     InteractionRecord::clear();
     timeNS = 0.;
+  }
+
+  double getTimeOffsetWrtBC() const
+  {
+    return timeNS - bc2ns();
   }
 
   void print() const;

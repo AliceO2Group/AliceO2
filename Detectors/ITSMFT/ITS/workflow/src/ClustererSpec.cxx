@@ -66,7 +66,9 @@ void ClustererDPL::init(InitContext& ic)
   // settings for the fired pixel overflow masking
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
   const auto& clParams = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance();
-  mClusterer->setMaxBCSeparationToMask(alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + clParams.maxBCDiffToMaskBias);
+  auto nbc = clParams.maxBCDiffToMaskBias;
+  nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
+  mClusterer->setMaxBCSeparationToMask(nbc);
   mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");

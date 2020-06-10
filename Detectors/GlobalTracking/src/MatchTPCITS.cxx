@@ -339,7 +339,11 @@ void MatchTPCITS::init()
 
   assert(mITSROFrameLengthMUS > 0.0f);
   mITSROFramePhaseOffset = mITSROFrameOffsetMUS / mITSROFrameLengthMUS;
-  mITSROFrame2TPCBin = mITSROFrameLengthMUS / mTPCTBinMUS;
+  if (mITSTriggered) {
+    mITSROFrame2TPCBin = mITSROFrameLengthMUS / mTPCTBinMUS;
+  } else {
+    mITSROFrame2TPCBin = mITSROFrameLengthMUS / mTPCTBinMUS; // RSTODO use both ITS and TPC times BCs once will be available for TPC also
+  }
   mTPCBin2ITSROFrame = 1. / mITSROFrame2TPCBin;
   mTPCBin2Z = mTPCTBinMUS * mTPCVDrift0;
   mZ2TPCBin = 1. / mTPCBin2Z;
@@ -2572,6 +2576,13 @@ void MatchTPCITS::refitABTrack(int ibest) const
     }
     ibest = lnk.parentID;
   }
+}
+
+//______________________________________________
+void MatchTPCITS::setITSROFrameLengthInBC(int nbc)
+{
+  mITSROFrameLengthInBC = nbc;
+  mITSROFrameLengthMUS = nbc * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
 }
 
 //<<============================= AfterBurner for TPC-track / ITS cluster matching ===================<<

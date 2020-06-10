@@ -108,13 +108,13 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     auto& eventParts = context->getEventParts();
     // loop over all composite collisions given from context (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
-      auto eventTime = timesview[collID].timeNS;
+      const auto& irt = timesview[collID];
 
       if (mQEDChain.GetEntries()) { // QED must be processed before other inputs since done in small time steps
-        processQED(eventTime);
+        processQED(irt);
       }
 
-      mDigitizer.setEventTime(eventTime);
+      mDigitizer.setEventTime(irt);
       mDigitizer.resetEventROFrames(); // to estimate min/max ROF for this collID
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
@@ -162,19 +162,20 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
  protected:
   ITSMFTDPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth) {}
 
-  void processQED(double tMax)
+  void processQED(const o2::InteractionTimeRecord& irt)
   {
-    auto tQEDNext = mLastQEDTimeNS + mQEDEntryTimeBinNS; // timeslice to retrieve
+
+    auto tQEDNext = mLastQEDTime.timeNS + mQEDEntryTimeBinNS; // timeslice to retrieve
     std::string detStr = mID.getName();
     auto br = mQEDChain.GetBranch((detStr + "Hit").c_str());
-    while (tQEDNext < tMax) {
-      mLastQEDTimeNS = tQEDNext;      // time used for current QED slot
+    while (tQEDNext < irt.timeNS) {
+      mLastQEDTime.setFromNS(tQEDNext); // time used for current QED slot
       tQEDNext += mQEDEntryTimeBinNS; // prepare time for next QED slot
       if (++mLastQEDEntry >= mQEDChain.GetEntries()) {
         mLastQEDEntry = 0; // wrapp if needed
       }
       br->GetEntry(mLastQEDEntry);
-      mDigitizer.setEventTime(mLastQEDTimeNS);
+      mDigitizer.setEventTime(mLastQEDTime);
       mDigitizer.process(&mHits, mLastQEDEntry, QEDSourceID);
       //
     }
@@ -185,6 +186,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     if (!mQEDChain.GetEntries()) {
       return;
     }
+    mLastQEDTime.setFromNS(0.);
     std::string detStr = mID.getName();
     auto qedBranch = mQEDChain.GetBranch((detStr + "Hit").c_str());
     assert(qedBranch != nullptr);
@@ -256,6 +258,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   TChain mQEDChain = {"o2sim"};
 
   double mQEDEntryTimeBinNS = 1000;                                               // time-coverage of single QED tree entry in ns (TODO: make it settable)
+  o2::InteractionTimeRecord mLastQEDTime;
   double mLastQEDTimeNS = 0;                                                      // time assingned to last QED entry
   int mLastQEDEntry = -1;                                                         // last used QED entry
   int mFixMC2ROF = 0;                                                             // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
@@ -282,9 +285,17 @@ class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask
     auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
     auto& digipar = mDigitizer.getParams();
     digipar.setContinuous(dopt.continuous);
-    digipar.setROFrameLength(aopt.roFrameLength); // RO frame in ns
-    digipar.setStrobeDelay(aopt.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
-    digipar.setStrobeLength(aopt.strobeLength);   // Strobe length in ns
+    if (dopt.continuous) {
+      auto frameNS = aopt.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
+      digipar.setROFrameLengthInBC(aopt.roFrameLengthInBC);
+      digipar.setROFrameLength(frameNS);                                                                       // RO frame in ns
+      digipar.setStrobeDelay(aopt.strobeDelay);                                                                // Strobe delay wrt beginning of the RO frame, in ns
+      digipar.setStrobeLength(aopt.strobeLengthCont > 0 ? aopt.strobeLengthCont : frameNS - aopt.strobeDelay); // Strobe length in ns
+    } else {
+      digipar.setROFrameLength(aopt.roFrameLengthTrig); // RO frame in ns
+      digipar.setStrobeDelay(aopt.strobeDelay);         // Strobe delay wrt beginning of the RO frame, in ns
+      digipar.setStrobeLength(aopt.strobeLengthTrig);   // Strobe length in ns
+    }
     // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
     digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
     digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
@@ -316,9 +327,18 @@ class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask
     auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
     auto& digipar = mDigitizer.getParams();
     digipar.setContinuous(dopt.continuous);
-    digipar.setROFrameLength(aopt.roFrameLength); // RO frame in ns
-    digipar.setStrobeDelay(aopt.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
-    digipar.setStrobeLength(aopt.strobeLength);   // Strobe length in ns
+    digipar.setContinuous(dopt.continuous);
+    if (dopt.continuous) {
+      auto frameNS = aopt.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
+      digipar.setROFrameLengthInBC(aopt.roFrameLengthInBC);
+      digipar.setROFrameLength(frameNS);                                                                       // RO frame in ns
+      digipar.setStrobeDelay(aopt.strobeDelay);                                                                // Strobe delay wrt beginning of the RO frame, in ns
+      digipar.setStrobeLength(aopt.strobeLengthCont > 0 ? aopt.strobeLengthCont : frameNS - aopt.strobeDelay); // Strobe length in ns
+    } else {
+      digipar.setROFrameLength(aopt.roFrameLengthTrig); // RO frame in ns
+      digipar.setStrobeDelay(aopt.strobeDelay);         // Strobe delay wrt beginning of the RO frame, in ns
+      digipar.setStrobeLength(aopt.strobeLengthTrig);   // Strobe length in ns
+    }
     // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
     digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
     digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons

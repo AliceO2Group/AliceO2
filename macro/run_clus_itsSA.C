@@ -25,7 +25,7 @@
 void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
                     std::string outputfile = "clr.root",  // output file name (root or raw)
                     bool raw = true,                      // flag if this is raw data
-                    float strobe = -1.,                   // strobe length in ns of ALPIDE readout, if <0, get automatically
+                    int strobeBC = -1,                    // strobe length in BC for masking, if <0, get automatically (assume cont. readout)
                     bool withFullClusters = true,
                     std::string dictionaryfile = "",
                     bool withPatterns = true)
@@ -56,11 +56,11 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
 
   // Mask fired pixels separated by <= this number of BCs (for overflow pixels).
   // In continuos mode strobe lenght should be used, in triggered one: signal shaping time (~7mus)
-  if (strobe < 0) {
+  if (strobeBC < 0) {
     const auto& dgParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-    strobe = dgParams.roFrameLength;
+    strobeBC = dgParams.roFrameLengthInBC;
   }
-  clus->getClusterer().setMaxBCSeparationToMask(strobe / o2::constants::lhc::LHCBunchSpacingNS + 10);
+  clus->getClusterer().setMaxBCSeparationToMask(strobeBC + 10);
   clus->getClusterer().setWantFullClusters(withFullClusters);
 
   clus->getClusterer().print();

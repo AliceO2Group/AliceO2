@@ -21,21 +21,24 @@ namespace o2
 {
 namespace itsmft
 {
-
-constexpr float DEFROFLength = o2::constants::lhc::LHCOrbitNS / 15;         // ROF length, divisor of the orbit
+/// allowed values: 1,2,3,4,6,9,11,12,18
+constexpr int DEFROFLengthBC = o2::constants::lhc::LHCMaxBunches / 9;       // default ROF length in BC for continuos mode
 constexpr float DEFStrobeDelay = o2::constants::lhc::LHCBunchSpacingNS * 4; // ~100 ns delay
 
 template <int N>
 struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<N>> {
   static_assert(N == o2::detectors::DetID::ITS || N == o2::detectors::DetID::MFT, "only DetID::ITS orDetID:: MFT are allowed");
+  static_assert(o2::constants::lhc::LHCMaxBunches % DEFROFLengthBC == 0); // make sure ROF length is divisor of the orbit
 
   static constexpr std::string_view getParamName()
   {
     return N == o2::detectors::DetID::ITS ? ParamName[0] : ParamName[1];
   }
-  float roFrameLength = DEFROFLength;                 ///< length of RO frame in ns
+  int roFrameLengthInBC = DEFROFLengthBC;             ///< ROF length in BC for continuos mode
+  float roFrameLengthTrig = 6000.;                    ///< length of RO frame in ns for triggered mode
   float strobeDelay = DEFStrobeDelay;                 ///< strobe start (in ns) wrt ROF start
-  float strobeLength = DEFROFLength - DEFStrobeDelay; ///< length of the strobe in ns (sig. over threshold checked in this window only)
+  float strobeLengthCont = -1.;                       ///< if < 0, full ROF length - delay
+  float strobeLengthTrig = 100.;                      ///< length of the strobe in ns (sig. over threshold checked in this window only)
 
   // boilerplate stuff + make principal key
   O2ParamDef(DPLAlpideParam, getParamName().data());

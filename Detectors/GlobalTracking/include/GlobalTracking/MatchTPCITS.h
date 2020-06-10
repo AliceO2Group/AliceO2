@@ -314,6 +314,8 @@ class MatchTPCITS
 
   ///< set ITS ROFrame duration in microseconds
   void setITSROFrameLengthMUS(float fums) { mITSROFrameLengthMUS = fums; }
+  ///< set ITS ROFrame duration in BC (continuous mode only)
+  void setITSROFrameLengthInBC(int nbc);
 
   ///< set ITS 0-th ROFrame time start in \mus
   void setITSROFrameOffsetMUS(float v) { mITSROFrameOffsetMUS = v; }
@@ -550,6 +552,7 @@ class MatchTPCITS
   ///< assigned time0 and its track Z position (converted from mTPCTimeEdgeZSafeMargin)
   float mTPCTimeEdgeTSafeMargin = 0.f;
 
+  int mITSROFrameLengthInBC = 0;    ///< ITS RO frame in BC (for ITS cont. mode only)
   float mITSROFrameLengthMUS = -1.; ///< ITS RO frame in \mus
   float mITSROFrameOffsetMUS = 0;   ///< time in \mus corresponding to start of 1st ITS ROFrame,
                                     ///< i.e. t = ROFrameID*mITSROFrameLengthMUS - mITSROFrameOffsetMUS

@@ -21,7 +21,7 @@
 void run_clus_mftSA(std::string outputfile, // output file name
                     std::string inputfile,  // input file name (root or raw)
                     bool raw = false,       // flag if this is raw data
-                    float strobe = 6000.)   // strobe length of ALPIDE readout
+                    int strobeBC = -1)      // strobe length in BC for masking, if <0, get automatically), get automatically (assume cont. readout)
 {
   // Initialize logger
   FairLogger* logger = FairLogger::GetLogger();
@@ -37,7 +37,11 @@ void run_clus_mftSA(std::string outputfile, // output file name
 
   // Mask fired pixels separated by <= this number of BCs (for overflow pixels).
   // In continuos mode strobe lenght should be used, in triggered one: signal shaping time (~7mus)
-  clus->getClusterer().setMaxBCSeparationToMask(strobe / o2::constants::lhc::LHCBunchSpacingNS + 10);
+  if (strobeBC < 0) {
+    const auto& dgParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    strobeBC = dgParams.roFrameLengthInBC;
+  }
+  clus->getClusterer().setMaxBCSeparationToMask(strobeBC + 10);
   clus->getClusterer().setWantFullClusters(true);    // require clusters with coordinates and full pattern
   clus->getClusterer().setWantCompactClusters(true); // require compact clusters with patternID
 
