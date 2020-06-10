@@ -11,6 +11,8 @@
 #ifndef FRAMEWORK_CONTEXTREGISTRY_H
 #define FRAMEWORK_CONTEXTREGISTRY_H
 
+#include "Framework/TypeIdHelpers.h"
+
 #include <typeinfo>
 #include <typeindex>
 #include <type_traits>
@@ -47,7 +49,7 @@ class ContextRegistry
   {
     void* instance = nullptr;
     for (size_t i = 0; i < mRegistryCount; ++i) {
-      if (mRegistryKey[i] == typeid(T*).hash_code()) {
+      if (mRegistryKey[i] == TypeIdHelpers::uniqueId<T*>()) {
         return reinterpret_cast<T*>(mRegistryValue[i]);
       }
     }
@@ -67,7 +69,7 @@ class ContextRegistry
     static_assert(std::is_void<T>::value == false, "can not register a void object");
     size_t i = 0;
     for (i = 0; i < mRegistryCount; ++i) {
-      if (typeid(T*).hash_code() == mRegistryKey[i]) {
+      if (TypeIdHelpers::uniqueId<T*>() == mRegistryKey[i]) {
         return;
       }
     }
@@ -75,7 +77,7 @@ class ContextRegistry
       throw std::runtime_error("Too many entries in ContextRegistry");
     }
     mRegistryCount = i + 1;
-    mRegistryKey[i] = typeid(T*).hash_code();
+    mRegistryKey[i] = TypeIdHelpers::uniqueId<T*>();
     mRegistryValue[i] = instance;
   }
 
