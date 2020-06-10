@@ -54,7 +54,7 @@ void Encoder::nextWord(int icrate)
   mNextWordStatus[icrate] = !mNextWordStatus[icrate];
 }
 
-bool Encoder::open(const std::string name, std::string path)
+bool Encoder::open(const std::string& name, const std::string& path, const std::string& fileFor)
 {
   bool status = false;
 
@@ -70,8 +70,20 @@ bool Encoder::open(const std::string name, std::string path)
     rdh.linkID = feeid % NLINKSPERCRU;
     rdh.endPointID = rdh.cruID % 2;
     // currently storing each CRU in a separate file
-    if (mCrateOn[feeid])
-      mFileWriter.registerLink(rdh, Form("%s/cru%02d%s", path.c_str(), rdh.cruID, name.c_str()));
+    std::string outFileLink;
+    if (mCrateOn[feeid]) {
+      if (fileFor == "all") { // single file for all links
+        outFileLink = o2::utils::concat_string(path, "/TOF.raw");
+      } else if (fileFor == "cru") {
+        outFileLink = o2::utils::concat_string(path, "/", "TOF_cru", std::to_string(rdh.cruID), ".raw");
+      } else if (fileFor == "link") {
+        outFileLink = o2::utils::concat_string(path, "/", "TOF_cru", std::to_string(rdh.cruID), "_link",
+                                               std::to_string(rdh.linkID), "_ep", std::to_string(rdh.endPointID), ".raw");
+      } else {
+        throw std::runtime_error("invalid option provided for file grouping");
+      }
+      mFileWriter.registerLink(rdh, outFileLink);
+    }
   }
 
   std::string inputGRP = o2::base::NameConf::getGRPFileName();
