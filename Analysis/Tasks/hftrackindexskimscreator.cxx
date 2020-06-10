@@ -31,6 +31,21 @@ struct HFTrackIndexSkimsCreator {
   Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
   Configurable<double> ptmintrack{"ptmintrack", -1, "ptmin single track"};
   Configurable<int> do3prong{"do3prong", 0, "do 3 prong"};
+  Configurable<double> d_bz{"d_bz", 5.0, "bz field"};
+  Configurable<bool> b_propdca{"b_propdca", true, \
+                "create tracks version propagated to PCA"};
+  Configurable<double> d_maxr{"d_maxr", 200, "reject PCA's above this radius"};
+  Configurable<double> d_maxdzini{"d_maxdzini", 4, \
+                "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
+  Configurable<double> d_minparamchange{"d_minparamchange", 1e-3, \
+                "stop iterations if largest change of any X is smaller than this"};
+  Configurable<double> d_minrelchi2change {"d_minrelchi2change", 0.9, \
+                "stop iterations is chi2/chi2old > this"};
+  Configurable<int> d_tpcnclsfound {"d_tpcnclsfound", 70, "min number of tpc cls >="};
+
+  //Configurable<double> {"", , ""};
+  //Configurable<int> {"", , ""};
+  //Configurable<bool> {"", , ""};
 
   void process(aod::Collision const& collision,
                aod::BCs const& bcs,
@@ -47,20 +62,20 @@ struct HFTrackIndexSkimsCreator {
 
     LOGF(info, "N. of Tracks for collision: %d", tracks.size());
     o2::vertexing::DCAFitterN<2> df;
-    df.setBz(5.0);
-    df.setPropagateToPCA(true);
-    df.setMaxR(200);
-    df.setMaxDZIni(4);
-    df.setMinParamChange(1e-3);
-    df.setMinRelChi2Change(0.9);
+    df.setBz(d_bz);
+    df.setPropagateToPCA(b_propdca);
+    df.setMaxR(d_maxr);
+    df.setMaxDZIni(d_maxdzini);
+    df.setMinParamChange(d_minparamchange);
+    df.setMinRelChi2Change(d_minrelchi2change);
 
     o2::vertexing::DCAFitterN<3> df3;
-    df3.setBz(5.0);
-    df3.setPropagateToPCA(true);
-    df3.setMaxR(200);
-    df3.setMaxDZIni(4);
-    df3.setMinParamChange(1e-3);
-    df3.setMinRelChi2Change(0.9);
+    df3.setBz(d_bz);
+    df3.setPropagateToPCA(b_propdca);
+    df3.setMaxR(d_maxr);
+    df3.setMaxDZIni(d_maxdzini);
+    df3.setMinParamChange(d_minparamchange);
+    df3.setMinRelChi2Change(d_minrelchi2change);
 
     for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
       auto& track_0 = *it0;
@@ -69,7 +84,7 @@ struct HFTrackIndexSkimsCreator {
 
       UChar_t clustermap_0 = track_0.itsClusterMap();
       //fill track distribution before selection
-      bool isselected_0 = track_0.tpcNClsFound() > 70 && track_0.flags() & 0x4;
+      bool isselected_0 = track_0.tpcNClsFound() >= d_tpcnclsfound && track_0.flags() & 0x4;
       isselected_0 = isselected_0 && (TESTBIT(clustermap_0, 0) || TESTBIT(clustermap_0, 1));
       if (!isselected_0)
         continue;
@@ -90,7 +105,7 @@ struct HFTrackIndexSkimsCreator {
         if (abs(track_1.signed1Pt())<ptmintrack)
           continue;
         UChar_t clustermap_1 = track_1.itsClusterMap();
-        bool isselected_1 = track_1.tpcNClsFound() > 70 && track_1.flags() & 0x4;
+        bool isselected_1 = track_1.tpcNClsFound() >= d_tpcnclsfound && track_1.flags() & 0x4;
         isselected_1 = isselected_1 && (TESTBIT(clustermap_1, 0) || TESTBIT(clustermap_1, 1));
         if (!isselected_1)
           continue;
@@ -139,7 +154,7 @@ struct HFTrackIndexSkimsCreator {
             if (abs(track_2.signed1Pt())<ptmintrack)
               continue;
             UChar_t clustermap_2 = track_2.itsClusterMap();
-            bool isselected_2 = track_2.tpcNClsFound() > 70 && track_2.flags() & 0x4;
+            bool isselected_2 = track_2.tpcNClsFound() >= d_tpcnclsfound && track_2.flags() & 0x4;
             isselected_2 = isselected_2 && (TESTBIT(clustermap_2, 0) || TESTBIT(clustermap_2, 1));
             if (!isselected_2)
               continue;
