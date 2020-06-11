@@ -191,31 +191,13 @@ void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
 }
 
 template <class TRDTRK, class PROP>
-void GPUTRDTracker_t<TRDTRK, PROP>::Reset(bool fast)
+void GPUTRDTracker_t<TRDTRK, PROP>::Reset()
 {
   //--------------------------------------------------------------------
   // Reset tracker
   //--------------------------------------------------------------------
   mNTracklets = 0;
   mNTracks = 0;
-  if (fast) {
-    return;
-  }
-  for (int i = 0; i < mNMaxSpacePoints; ++i) {
-    mTracklets[i] = 0x0;
-    mSpacePoints[i].mR = 0.f;
-    mSpacePoints[i].mX[0] = 0.f;
-    mSpacePoints[i].mX[1] = 0.f;
-    mSpacePoints[i].mCov[0] = 0.f;
-    mSpacePoints[i].mCov[1] = 0.f;
-    mSpacePoints[i].mCov[2] = 0.f;
-    mSpacePoints[i].mDy = 0.f;
-    mSpacePoints[i].mId = 0;
-    mSpacePoints[i].mLabel[0] = -1;
-    mSpacePoints[i].mLabel[1] = -1;
-    mSpacePoints[i].mLabel[2] = -1;
-    mSpacePoints[i].mVolumeId = 0;
-  }
 }
 
 template <class TRDTRK, class PROP>
