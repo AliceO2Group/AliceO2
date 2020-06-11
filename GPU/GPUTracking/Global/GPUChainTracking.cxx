@@ -2113,8 +2113,28 @@ int GPUChainTracking::RunTPCCompression()
     }
     TransferMemoryResourcesToGPU(myStep, &Compressor, outputStream);
     unsigned int nBlocks = 2;
-    runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step2gather>(GetGridBlk(nBlocks, outputStream), krnlRunRangeNone, krnlEventNone);
-    getKernelTimer<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step2gather>(RecoStep::TPCCompression, 0, outputSize);
+    switch (ProcessingSettings().tpcCompressionGatherModeKernel) {
+      case 0:
+        runKernel<GPUTPCCompressionGatherKernels, GPUTPCCompressionGatherKernels::unbuffered>(GetGridBlkStep(nBlocks, outputStream, RecoStep::TPCCompression), krnlRunRangeNone, krnlEventNone);
+        getKernelTimer<GPUTPCCompressionGatherKernels, GPUTPCCompressionGatherKernels::unbuffered>(RecoStep::TPCCompression, 0, outputSize);
+        break;
+      case 1:
+        runKernel<GPUTPCCompressionGatherKernels, GPUTPCCompressionGatherKernels::buffered32>(GetGridBlkStep(nBlocks, outputStream, RecoStep::TPCCompression), krnlRunRangeNone, krnlEventNone);
+        getKernelTimer<GPUTPCCompressionGatherKernels, GPUTPCCompressionGatherKernels::buffered32>(RecoStep::TPCCompression, 0, outputSize);
+        break;
+      case 2:
+        runKernel<GPUTPCCompressionGatherKernels, GPUTPCCompressionGatherKernels::buffered64>(GetGridBlkStep(nBlocks, outputStream, RecoStep::TPCCompression), krnlRunRangeNone, krnlEventNone);
+        getKernelTimer<GPUTPCCompressionGatherKernels, GPUTPCCompressionGatherKernels::buffered64>(RecoStep::TPCCompression, 0, outputSize);
+        break;
+      case 3:
+        runKernel<GPUTPCCompressionGatherKernels, GPUTPCCompressionGatherKernels::buffered128>(GetGridBlkStep(nBlocks, outputStream, RecoStep::TPCCompression), krnlRunRangeNone, krnlEventNone);
+        getKernelTimer<GPUTPCCompressionGatherKernels, GPUTPCCompressionGatherKernels::buffered128>(RecoStep::TPCCompression, 0, outputSize);
+        break;
+      default:
+        GPUError("Invalid compression kernel selected.");
+        return 1;
+    }
+
   } else {
     char direction = 0;
     if (ProcessingSettings().tpcCompressionGatherMode == 0) {
