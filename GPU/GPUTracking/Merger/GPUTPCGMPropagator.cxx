@@ -382,14 +382,7 @@ GPUd() int GPUTPCGMPropagator::FollowLinearization(const GPUTPCGMPhysicalTrackMo
 
 #ifdef HAVE_O2HEADERS
   if (mMatLUT) {
-    float xyz1[3] = {getGlobalX(mT0.GetX(), mT0.GetY()), getGlobalY(mT0.GetX(), mT0.GetY()), mT0.GetZ()};
-    float xyz2[3] = {getGlobalX(t0e.GetX(), t0e.GetY()), getGlobalY(t0e.GetX(), t0e.GetY()), t0e.GetZ()};
-    o2::base::MatBudget mat = getMatBudget(xyz1, xyz2);
-    if (mat.meanX2X0 > 1.e-8) {
-      SetMaterial(mat.length / mat.meanX2X0, mat.meanRho);
-    } else {
-      SetMaterialTPC();
-    }
+    UpdateMaterial(t0e);
   }
 #endif
 
@@ -1063,4 +1056,16 @@ GPUd() o2::base::MatBudget GPUTPCGMPropagator::getMatBudget(const float* p1, con
 #else
   return o2::base::MatBudget();
 #endif
+}
+
+GPUdni() void GPUTPCGMPropagator::UpdateMaterial(const GPUTPCGMPhysicalTrackModel& GPUrestrict() t0e)
+{
+  float xyz1[3] = {getGlobalX(mT0.GetX(), mT0.GetY()), getGlobalY(mT0.GetX(), mT0.GetY()), mT0.GetZ()};
+  float xyz2[3] = {getGlobalX(t0e.GetX(), t0e.GetY()), getGlobalY(t0e.GetX(), t0e.GetY()), t0e.GetZ()};
+  o2::base::MatBudget mat = getMatBudget(xyz1, xyz2);
+  if (mat.meanX2X0 > 1.e-8) {
+    SetMaterial(mat.length / mat.meanX2X0, mat.meanRho);
+  } else {
+    SetMaterialTPC();
+  }
 }
