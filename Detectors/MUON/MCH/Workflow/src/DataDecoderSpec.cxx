@@ -54,7 +54,7 @@ namespace raw
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::mch::mapping;
-using RDHv4 = o2::header::RAWDataHeaderV4;
+using RDH = o2::header::RDHAny;
 
 std::array<int, 64> refManu2ds_st345 = {
   63, 62, 61, 60, 59, 57, 56, 53, 51, 50, 47, 45, 44, 41, 38, 35,
@@ -113,8 +113,9 @@ class DataDecoderTask
         std::cout << "deId " << deId << "  dsIddet " << dsIddet << "  channel " << (int)channel << std::endl;
       }
 
-      if (deId < 0 || dsIddet < 0)
+      if (deId < 0 || dsIddet < 0) {
         return;
+      }
 
       int padId = -1;
       try {
@@ -141,17 +142,17 @@ class DataDecoderTask
     };
 
     const auto patchPage = [&](gsl::span<const std::byte> rdhBuffer) {
-      auto rdhPtr = const_cast<void*>(reinterpret_cast<const void*>(rdhBuffer.data()));
+      auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(rdhBuffer[0])));
       mNrdhs++;
-      auto cruId = o2::raw::RDHUtils::getCRUID(rdhPtr) & 0xFF;
-      auto flags = o2::raw::RDHUtils::getCRUID(rdhPtr) & 0xFF00;
-      auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhPtr);
+      auto cruId = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF;
+      auto flags = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF00;
+      auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhAny);
       auto feeId = cruId * 2 + endpoint + flags;
-      o2::raw::RDHUtils::setFEEID(rdhPtr, feeId);
-      orbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdhPtr);
+      o2::raw::RDHUtils::setFEEID(rdhAny, feeId);
+      orbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdhAny);
       if (mPrint) {
         std::cout << mNrdhs << "--\n";
-        o2::raw::RDHUtils::printRDH(rdhPtr);
+        o2::raw::RDHUtils::printRDH(rdhAny);
       }
     };
 
