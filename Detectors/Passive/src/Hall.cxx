@@ -520,8 +520,9 @@ void Hall::ConstructGeometry()
   //
   // Scoring plane for beam background simulations
   //
-  TGeoVolume* voRB24Scoring = new TGeoVolume("RB24Scoring", new TGeoTube(4.3, 300., 1.), kMedAir);
-  asHall->AddNode(voRB24Scoring, 1, new TGeoTranslation(0., 0., 735.));
+
+  //  TGeoVolume* voRB24Scoring = new TGeoVolume("RB24Scoring", new TGeoTube(4.3, 300., 1.), kMedAir);
+  // asHall->AddNode(voRB24Scoring, 1, new TGeoTranslation(0., 0., 735.));
   //
   // Extra shielding in front of racks
   //

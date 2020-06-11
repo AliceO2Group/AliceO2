@@ -3024,8 +3024,8 @@ void Detector::ConstructTPCGeometry()
 
   } // end of rods positioning
 
-  TGeoVolume* alice = gGeoManager->GetVolume("cave");
-  alice->AddNode(v1, 1);
+  TGeoVolume* alice = gGeoManager->GetVolume("barrel");
+  alice->AddNode(v1, 1, new TGeoTranslation(0., 30., 0.));
 
 } // end of function
 
@@ -3050,8 +3050,8 @@ void Detector::LoadGeometryFromFile()
   }
 
   LOG(INFO) << "Loaded TPC geometry from file '" << mGeoFileName << "'";
-  TGeoVolume* alice = gGeoManager->GetVolume("cave");
-  alice->AddNode(tpcVolume, 1);
+  TGeoVolume* alice = gGeoManager->GetVolume("barrel");
+  alice->AddNode(tpcVolume, 1, new TGeoTranslation(0., 30., 0.));
 }
 
 void Detector::defineSensitiveVolumes()

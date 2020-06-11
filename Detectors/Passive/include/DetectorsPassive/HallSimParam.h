@@ -25,7 +25,7 @@ struct HallSimParam : public o2::conf::ConfigurableParamHelper<HallSimParam> {
   float mCUTNEU = 1.e-1;
   float mCUTHAD = 1.e-3;
 
-  bool fastYoke = false; // if we treat compensator yoke in fast manner
+  bool fastYoke = true;  // if we treat compensator yoke in fast manner
   float yokeDelta = 2.;  // thickness of
                          // full physics outer layer of compensator yoke (in cm)
 

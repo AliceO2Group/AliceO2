@@ -2561,7 +2561,7 @@ void TRDGeometry::fillMatrixCache(int mask)
   }
 
   std::string volPath;
-  const std::string vpStr{"ALIC_1/B077_1/BSEGMO"};
+  const std::string vpStr{"ALIC_1/barrel_1/B077_1/BSEGMO"};
   const std::string vpApp1{"_1/BTRD"};
   const std::string vpApp2{"_1"};
   const std::string vpApp3a{"/UTR1_1/UTS1_1/UTI1_1"};
@@ -2645,7 +2645,7 @@ void TRDGeometry::addAlignableVolumes() const
   }
 
   std::string volPath;
-  std::string vpStr{"ALIC_1/B077_1/BSEGMO"};
+  std::string vpStr{"ALIC_1/barrel_1/B077_1/BSEGMO"};
   const std::string vpApp1{"_1/BTRD"};
   const std::string vpApp2{"_1"};
   const std::string vpApp3a{"/UTR1_1/UTS1_1/UTI1_1"};

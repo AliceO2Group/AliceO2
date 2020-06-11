@@ -56,7 +56,8 @@ void Compensator::createMaterials()
   Float_t sxmgmx = 10.;
   o2::base::Detector::initFieldTrackingParams(isxfld1, sxmgmx);
 
-  Int_t isxfld2 = 2; // TODO: set this properly ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->PrecInteg();
+  // we don not have a field map for the Yoke and Coil
+  Int_t isxfld2 = 0; // TODO: set this properly ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->PrecInteg();
 
   // ****************
   //     Defines tracking media parameters.
@@ -106,58 +107,8 @@ void Compensator::ConstructGeometry()
 
 void Compensator::createCompensator()
 {
-  auto top = gGeoManager->GetVolume("cave");
-  top->AddNode(createMagnetYoke(), 1, new TGeoTranslation(0., 0., 1075.));
-}
-
-void Compensator::SetSpecialPhysicsCuts()
-{
-  auto& param = o2::passive::HallSimParam::Instance();
-  if (!param.fastYoke) {
-    return;
-  }
-
-  auto& matmgr = o2::base::MaterialManager::Instance();
-  using namespace o2::base; // to have enum values of EProc and ECut available
-
-  // NOTE: This is a test setting trying to disable physics
-  // processes in a tracking medium; Work in progress
-
-  // need to call method from matmgr
-  // 30 == COMP_IRON_C1
-  // clang-format off
-  matmgr.SpecialProcesses("COMP", 30, {{EProc::kPAIR, 0},
-                                       {EProc::kCOMP, 0},
-                                       {EProc::kPHOT, 0},
-                                       {EProc::kPFIS, 0},
-                                       {EProc::kDRAY, 0},
-                                       {EProc::kANNI, 0},
-                                       {EProc::kBREM, 0},
-                                       {EProc::kHADR, 0},
-                                       {EProc::kMUNU, 0},
-                                       {EProc::kDCAY, 0},
-                                       {EProc::kLOSS, 0},
-                                       {EProc::kMULS, 0},
-                                       {EProc::kRAYL, 0},
-                                       {EProc::kLABS, 0}});
-  // clang-format on
-
-  // cut settings for the magnet yoke (fast) medium
-  const double cut1 = 1;
-  const double cutTofmax = 1e10;
-  // clang-format off
-  matmgr.SpecialCuts("COMP", 30, {{ECut::kCUTGAM, cut1},
-                                 {ECut::kCUTELE, cut1},
-                                 {ECut::kCUTNEU, cut1},
-                                 {ECut::kCUTHAD, cut1},
-                                 {ECut::kCUTMUO, cut1},
-                                 {ECut::kBCUTE, cut1},
-                                 {ECut::kBCUTM, cut1},
-                                 {ECut::kDCUTE, cut1},
-                                 {ECut::kDCUTM, cut1},
-                                 {ECut::kPPCUTM, cut1},
-                                 {ECut::kTOFMAX, cutTofmax}});
-  // clang-format on
+  auto top = gGeoManager->GetVolume("caveRB24");
+  top->AddNode(createMagnetYoke(), 1, new TGeoTranslation(0., 0., 1075. - 1313.347));
 }
 
 TGeoVolume* Compensator::createMagnetYoke()

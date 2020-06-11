@@ -286,7 +286,7 @@ void Absorber::ConstructGeometry()
   //
   // The top volume
   //
-  TGeoVolume* top = gGeoManager->GetVolume("cave");
+  TGeoVolume* barrel = gGeoManager->GetVolume("barrel");
 
   //
   // Media
@@ -645,7 +645,14 @@ void Absorber::ConstructGeometry()
 
   // Pos 10
   //
-  // This section has been moved to AliSHILv3
+  // This section is partially in Shield
+  Float_t dzFaWTube5 = 6.0;
+  Float_t kAngle0071 = TMath::Tan(0.71 * kDegRad);
+  Float_t rInFaWTube5C1 = rInFaWTube4C2;
+  Float_t rInFaWTube5C2 = rInFaWTube4C2 + dzFaWTube4 * kAngle0071;
+  Float_t rOuFaWTube5C1 = rOuFaWTube4C2;
+  TGeoVolume* voFaWTube5 = new TGeoVolume(
+    "AFaWTube5", new TGeoCone(dzFaWTube5 / 2., rInFaWTube5C1, rOuFaWTube5C1, rInFaWTube5C2, rOuFaWTube5C1), kMedNiWsh);
 
   //
   // Pos 11
@@ -909,7 +916,6 @@ void Absorber::ConstructGeometry()
   shFaM->DefineSection(14, z, rInFaCH2Cone2 - dz * angle10, rOuSteelEnvelopeR2);
   z += dzSteelEnvelopeR / 2.;
   shFaM->DefineSection(15, z, rInFaCH2Cone2, rOuSteelEnvelopeR2);
-
   TGeoVolume* voFaM = new TGeoVolume("AFaM", shFaM, kMedAir);
   voFaM->SetVisibility(0);
 
@@ -983,7 +989,7 @@ void Absorber::ConstructGeometry()
   const Float_t kFassUBFlangeW = 77.;
 
   const Float_t kFassUMFlangeH = 380.;
-  const Float_t kFassUMFlangeB = 246.;
+  const Float_t kFassUMFlangeB = 246. - 9.85;
   const Float_t kFassUMFlangeT = 10.;
   const Float_t kFassUMFalpha = -TMath::ATan((kFassUMFlangeB - kFassUMFlangeT) / kFassUMFlangeH / 2.) / kDegRad;
   // Upper back   flange
@@ -991,10 +997,10 @@ void Absorber::ConstructGeometry()
   // 380 x 77
   TGeoVolume* voFassUBFlange =
     new TGeoVolume("AFassUBFlange", new TGeoBBox(kFassUBFlangeW / 2., kFassUBFlangeH / 2., 3. / 2.), kMedSteel);
-  voFass->AddNode(voFassUBFlange, 1,
-                  new TGeoTranslation(+1.5 + kFassUBFlangeW / 2., 180. + kFassUBFlangeH / 2., kFassUMFlangeB - 1.5));
-  voFass->AddNode(voFassUBFlange, 2,
-                  new TGeoTranslation(-1.5 - kFassUBFlangeW / 2., 180. + kFassUBFlangeH / 2., kFassUMFlangeB - 1.5));
+  //  voFass->AddNode(voFassUBFlange, 1,
+  //                new TGeoTranslation(+1.5 + kFassUBFlangeW / 2., 180. + kFassUBFlangeH / 2., kFassUMFlangeB - 1.5));
+  //voFass->AddNode(voFassUBFlange, 2,
+  //                new TGeoTranslation(-1.5 - kFassUBFlangeW / 2., 180. + kFassUBFlangeH / 2., kFassUMFlangeB - 1.5));
 
   // Lower back   flange
   // Upper median flange
@@ -1016,7 +1022,7 @@ void Absorber::ConstructGeometry()
   //    Drawing ALIP2A__0089                        //
   //    A1
   const Float_t kFassLMFlangeH = 242.;
-  const Float_t kFassLMFlangeB = 246.;
+  const Float_t kFassLMFlangeB = 246. - 9.85;
   const Float_t kFassLMFlangeT = 43.;
   const Float_t kFassLMFalpha = -TMath::ATan((kFassLMFlangeB - kFassLMFlangeT) / kFassLMFlangeH / 2.) / kDegRad;
   TGeoVolume* voFassLMFlange = new TGeoVolume(
@@ -1031,12 +1037,13 @@ void Absorber::ConstructGeometry()
   // Support Plate
   //
   // Central cone
-  TGeoPgon* shFassCone = new TGeoPgon(22.5, 360., 8, 4);
+  // reduce by 9.85 cm inorder to fit into barrel volume
+  // (insignificant change of material budget, but helping very much to improve the efficiency)
+  TGeoPgon* shFassCone = new TGeoPgon("FassCone", 22.5, 360., 8, 4);
   shFassCone->DefineSection(0, 0., 0., 180.);
   shFassCone->DefineSection(1, 3., 0., 180.);
   shFassCone->DefineSection(2, 3., 177., 180.);
-  shFassCone->DefineSection(3, 246., 177., 180.);
-  shFassCone->SetName("FassCone");
+  shFassCone->DefineSection(3, 246. - 9.85, 177., 180.);
 
   TGeoBBox* shFassWindow = new TGeoBBox(190., 53., 28.);
   shFassWindow->SetName("FassWindow");
@@ -1077,7 +1084,8 @@ void Absorber::ConstructGeometry()
   voFA->AddNode(voFaEndPlate, 1, new TGeoTranslation(0., 0., dzFa + dzEndPlate / 2.));
   voFA->AddNode(voFass, 1, new TGeoTranslation(0., 0., 388.45));
   voFA->AddNode(voFassAlRing, 1, new TGeoTranslation(0., 0., 382. - 3.56));
-  top->AddNode(voFA, 1, new TGeoCombiTrans(0., 0., -90., rotxz));
+  voFA->AddNode(voFaWTube5, 1, new TGeoTranslation(0., 0., 412.));
+  barrel->AddNode(voFA, 1, new TGeoCombiTrans(0., 30., -90., rotxz));
 }
 
 FairModule* Absorber::CloneModule() const { return new Absorber(*this); }

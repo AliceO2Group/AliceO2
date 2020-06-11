@@ -348,6 +348,9 @@ void Detector::IdealPosition(Int_t iCh, TGeoHMatrix* pMatrix) // ideal position 
       break; // left and up
   }
   pMatrix->RotateZ(kAngCom); // apply common rotation  in XY plane
+  Double_t* t = pMatrix->GetTranslation();
+  t[1] += 30.;
+  pMatrix->SetTranslation(t);
 }
 
 void Detector::IdealPositionCradle(Int_t iCh, TGeoHMatrix* pMatrix) // ideal position of given one module of the cradle
@@ -386,6 +389,9 @@ void Detector::IdealPositionCradle(Int_t iCh, TGeoHMatrix* pMatrix) // ideal pos
       break; // left and up
   }
   pMatrix->RotateZ(kAngCom); // apply common rotation  in XY plane
+  Double_t* t = pMatrix->GetTranslation();
+  t[1] += 30.;
+  pMatrix->SetTranslation(t);
 }
 
 //*********************************************************************************************************
@@ -1190,11 +1196,11 @@ void Detector::ConstructGeometry()
     TGeoVolume* hmpid = createChamber(iCh);
     TGeoHMatrix* pMatrix = new TGeoHMatrix;
     IdealPosition(iCh, pMatrix);
-    gGeoManager->GetVolume("cave")->AddNode(hmpid, 0, pMatrix);
+    gGeoManager->GetVolume("barrel")->AddNode(hmpid, 0, pMatrix);
     if (iCh == 1 || iCh == 3 || iCh == 5) {
       TGeoHMatrix* pCradleMatrix = new TGeoHMatrix;
       IdealPositionCradle(iCh, pCradleMatrix);
-      gGeoManager->GetVolume("cave")->AddNode(hmpcradle, iCh, pCradleMatrix);
+      gGeoManager->GetVolume("barrel")->AddNode(hmpcradle, iCh, pCradleMatrix);
     }
   }
   // }
