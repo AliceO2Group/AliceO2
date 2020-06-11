@@ -24,6 +24,7 @@
 class TObjArray;
 class TCanvas;
 class TH1;
+class TChain;
 
 namespace o2
 {
@@ -58,6 +59,16 @@ std::vector<CalPad*> readCalPads(const std::string_view fileName, const std::str
 /// \param inputFileNames input file names. Perforams file system 'ls' in case the string includes '.root'. Otherwise it assumes a text input file with line by line file names.
 /// \param calPadNames comma separated list of names of the CalPad objects as stored in the file.
 void mergeCalPads(std::string_view outputFileName, std::string_view inputFileNames, std::string_view calPadNames);
+
+/// Build a chain interpreting a command line argument
+///
+/// Comman line argument can e.g. be
+/// ls *.root
+/// cat fileWithRootFiles.txt
+/// \param command command to run
+/// \param treeName name of the tree in the chain
+/// \param treeTitle title of the tree
+TChain* buildChain(std::string_view command, std::string_view treeName, std::string_view treeTitle);
 
 } // namespace utils
 } // namespace tpc
