@@ -244,7 +244,8 @@ struct InteractionTimeRecord : public InteractionRecord {
 
   InteractionTimeRecord() = default;
 
-  InteractionTimeRecord(const InteractionRecord& ir, double timeInBCNS) : InteractionRecord(ir), timeInBCNS(timeInBCNS)
+  /// create from the interaction record and time in the bunch (in ns)
+  InteractionTimeRecord(const InteractionRecord& ir, double t_in_bc) : InteractionRecord(ir), timeInBCNS(t_in_bc)
   {
   }
 
