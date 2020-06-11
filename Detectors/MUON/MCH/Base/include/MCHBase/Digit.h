@@ -54,8 +54,8 @@ class Digit
 
   Time getTime() const { return mTime; }
 
-  uint16_t getNSamples() const { return mNSamples; }
-  void setNSamples(uint16_t n) { mNSamples = n; }
+  uint16_t nofSamples() const { return mNofSamples; }
+  void setNofSamples(uint16_t n) { mNofSamples = n; }
 
   int getDetID() const { return mDetID; }
 
@@ -67,7 +67,7 @@ class Digit
 
  private:
   Time mTime;
-  uint16_t mNSamples; /// number of samples in the signal
+  uint16_t mNofSamples; /// number of samples in the signal
   int mDetID;
   int mPadID;         /// PadIndex to which the digit corresponds to
   unsigned long mADC; /// Amplitude of signal

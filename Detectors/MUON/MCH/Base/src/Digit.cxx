@@ -20,7 +20,7 @@ bool closeEnough(double x, double y, double eps = 1E-6)
 }
 
 Digit::Digit(int detid, int pad, unsigned long adc, Time time, uint16_t nSamples)
-  : mDetID(detid), mPadID(pad), mADC(adc), mTime(time), mNSamples(nSamples)
+  : mDetID(detid), mPadID(pad), mADC(adc), mTime(time), mNofSamples(nSamples)
 {
 }
 
@@ -30,7 +30,7 @@ bool Digit::operator==(const Digit& other) const
          mPadID == other.mPadID &&
          mADC == other.mADC &&
          mTime.time == other.mTime.time &&
-         mNSamples == other.mNSamples;
+         mNofSamples == other.mNofSamples;
 }
 
 } // namespace o2::mch
