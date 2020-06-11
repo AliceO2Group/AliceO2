@@ -13,6 +13,7 @@
 #include "TFile.h"
 #include "TTreeReader.h"
 #include "TTreeReaderValue.h"
+#include "TTreeReaderArray.h"
 #include "TableBuilder.h"
 
 // =============================================================================
@@ -23,7 +24,7 @@ namespace framework
 
 // -----------------------------------------------------------------------------
 // TableToTree allows to save the contents of a given arrow::Table to a TTree
-//  branchIterator is used by TableToTree
+//  BranchIterator is used by TableToTree
 //
 // To write the contents of a table ta to a tree tr on file f do:
 //  . TableToTree t2t(ta,f,treename);
@@ -33,38 +34,44 @@ namespace framework
 //  . t2t.process();
 //
 // .............................................................................
-class branchIterator
+class BranchIterator
 {
 
  private:
-  std::string mbranchName;    // branch name
-  arrow::ArrayVector mchunks; // chunks
-  Int_t mnumberChuncs;        // number of chunks
-  Int_t mcounterChunk;        // chunk counter
-  Int_t mnumberRows;          // number of rows
-  Int_t mcounterRow;          // row counter
+  std::string mBranchName;    // branch name
+  arrow::ArrayVector mChunks; // chunks
+  Int_t mNumberChuncs;        // number of chunks
+  Int_t mCounterChunk;        // chunk counter
+  Int_t mNumberRows;          // number of rows
+  Int_t mCounterRow;          // row counter
 
   // data buffers for each data type
-  bool mstatus = false;
-  arrow::Type::type marrowType;
-  std::string mleaflistString;
+  bool mStatus = false;
+  arrow::Field* mField;
+  arrow::Type::type mFieldType;
+  arrow::Type::type mElementType;
+  int32_t mNumberElements;
+  std::string mLeaflistString;
 
-  TBranch* mbranchPtr = nullptr;
+  TBranch* mBranchPtr = nullptr;
 
-  char* dbuf = nullptr;
-  void* v = nullptr;
+  char* mBranchBuffer = nullptr;
+  void* mValueBuffer = nullptr;
 
-  std::shared_ptr<arrow::BooleanArray> var_o = nullptr;
-  Bool_t boolValueHolder;
-  UChar_t* var_b = nullptr;
-  Float_t* var_f = nullptr;
-  Double_t* var_d = nullptr;
-  UShort_t* vs = nullptr;
-  UInt_t* vi = nullptr;
-  ULong64_t* vl = nullptr;
-  Short_t* var_s = nullptr;
-  Int_t* var_i = nullptr;
-  Long64_t* var_l = nullptr;
+  std::shared_ptr<arrow::BooleanArray> mArray_o = nullptr;
+  //bool mBoolValueHolder;
+  bool* mVariable_o = nullptr;
+
+  uint8_t* mVariable_ub = nullptr;
+  uint16_t* mVariable_us = nullptr;
+  uint32_t* mVariable_ui = nullptr;
+  uint64_t* mVariable_ul = nullptr;
+  int8_t* mVariable_b = nullptr;
+  int16_t* mVariable_s = nullptr;
+  int32_t* mVariable_i = nullptr;
+  int64_t* mVariable_l = nullptr;
+  float* mVariable_f = nullptr;
+  double* mVariable_d = nullptr;
 
   // initialize a branch
   bool initBranch(TTree* tree);
@@ -73,8 +80,8 @@ class branchIterator
   bool initDataBuffer(Int_t ib);
 
  public:
-  branchIterator(TTree* tree, std::shared_ptr<arrow::ChunkedArray> col, std::shared_ptr<arrow::Field> field);
-  ~branchIterator();
+  BranchIterator(TTree* tree, std::shared_ptr<arrow::ChunkedArray> col, std::shared_ptr<arrow::Field> field);
+  ~BranchIterator();
 
   // has the iterator been properly initialized
   bool getStatus();
@@ -88,13 +95,13 @@ class TableToTree
 {
 
  private:
-  TTree* mtreePtr;
+  TTree* mTreePtr;
 
-  // a list of branchIterator
-  std::vector<branchIterator*> mbranchIterators;
+  // a list of BranchIterator
+  std::vector<BranchIterator*> mBranchIterators;
 
   // table to convert
-  std::shared_ptr<arrow::Table> mtable;
+  std::shared_ptr<arrow::Table> mTable;
 
  public:
   TableToTree(std::shared_ptr<arrow::Table> table,
@@ -112,7 +119,7 @@ class TableToTree
 
 // -----------------------------------------------------------------------------
 // TreeToTable allows to fill the contents of a given TTree to an arrow::Table
-//  columnIterator is used by TreeToTable
+//  ColumnIterator is used by TreeToTable
 //
 // To copy the contents of a tree tr to a table ta do:
 //  . TreeToTable t2t(tr);
@@ -122,45 +129,62 @@ class TableToTree
 //  . auto ta = t2t.process();
 //
 // .............................................................................
-class columnIterator
+class ColumnIterator
 {
 
  private:
   // all the possible TTreeReaderValue<T> types
-  TTreeReaderValue<Bool_t>* var_o = nullptr;
-  TTreeReaderValue<UChar_t>* var_b = nullptr;
-  TTreeReaderValue<Float_t>* var_f = nullptr;
-  TTreeReaderValue<Double_t>* var_d = nullptr;
-  TTreeReaderValue<UShort_t>* vs = nullptr;
-  TTreeReaderValue<UInt_t>* vi = nullptr;
-  TTreeReaderValue<ULong64_t>* vl = nullptr;
-  TTreeReaderValue<Short_t>* var_s = nullptr;
-  TTreeReaderValue<Int_t>* var_i = nullptr;
-  TTreeReaderValue<Long64_t>* var_l = nullptr;
+  TTreeReaderValue<bool>* mReaderValue_o = nullptr;
+  TTreeReaderValue<uint8_t>* mReaderValue_ub = nullptr;
+  TTreeReaderValue<uint16_t>* mReaderValue_us = nullptr;
+  TTreeReaderValue<uint32_t>* mReaderValue_ui = nullptr;
+  TTreeReaderValue<uint64_t>* mReaderValue_ul = nullptr;
+  TTreeReaderValue<int8_t>* mReaderValue_b = nullptr;
+  TTreeReaderValue<int16_t>* mReaderValue_s = nullptr;
+  TTreeReaderValue<int32_t>* mReaderValue_i = nullptr;
+  TTreeReaderValue<int64_t>* mReaderValue_l = nullptr;
+  TTreeReaderValue<float>* mReaderValue_f = nullptr;
+  TTreeReaderValue<double>* mReaderValue_d = nullptr;
+
+  // all the possible TTreeReaderArray<T> types
+  TTreeReaderArray<bool>* mReaderArray_o = nullptr;
+  TTreeReaderArray<uint8_t>* mReaderArray_ub = nullptr;
+  TTreeReaderArray<uint16_t>* mReaderArray_us = nullptr;
+  TTreeReaderArray<uint32_t>* mReaderArray_ui = nullptr;
+  TTreeReaderArray<uint64_t>* mReaderArray_ul = nullptr;
+  TTreeReaderArray<int8_t>* mReaderArray_b = nullptr;
+  TTreeReaderArray<int16_t>* mReaderArray_s = nullptr;
+  TTreeReaderArray<int32_t>* mReaderArray_i = nullptr;
+  TTreeReaderArray<int64_t>* mReaderArray_l = nullptr;
+  TTreeReaderArray<float>* mReaderArray_f = nullptr;
+  TTreeReaderArray<double>* mReaderArray_d = nullptr;
 
   // all the possible arrow::TBuilder types
-  arrow::BooleanBuilder* bui_o = nullptr;
-  arrow::UInt8Builder* bb = nullptr;
-  arrow::FloatBuilder* bui_f = nullptr;
-  arrow::DoubleBuilder* bui_d = nullptr;
-  arrow::UInt16Builder* bs = nullptr;
-  arrow::UInt32Builder* bi = nullptr;
-  arrow::UInt64Builder* bl = nullptr;
-  arrow::Int16Builder* bui_s = nullptr;
-  arrow::Int32Builder* bui_i = nullptr;
-  arrow::Int64Builder* bui_l = nullptr;
+  std::shared_ptr<arrow::FixedSizeListBuilder> mTableBuilder_list;
 
-  bool mstatus = false;
-  EDataType marrowType;
-  const char* mcolumnName;
+  arrow::BooleanBuilder* mTableBuilder_o = nullptr;
+  arrow::UInt8Builder* mTableBuilder_ub = nullptr;
+  arrow::UInt16Builder* mTableBuilder_us = nullptr;
+  arrow::UInt32Builder* mTableBuilder_ui = nullptr;
+  arrow::UInt64Builder* mTableBuilder_ul = nullptr;
+  arrow::Int8Builder* mTableBuilder_b = nullptr;
+  arrow::Int16Builder* mTableBuilder_s = nullptr;
+  arrow::Int32Builder* mTableBuilder_i = nullptr;
+  arrow::Int64Builder* mTableBuilder_l = nullptr;
+  arrow::FloatBuilder* mTableBuilder_f = nullptr;
+  arrow::DoubleBuilder* mTableBuilder_d = nullptr;
 
-  arrow::MemoryPool* mpool = arrow::default_memory_pool();
-  std::shared_ptr<arrow::Field> mfield;
-  std::shared_ptr<arrow::Array> marray;
+  bool mStatus = false;
+  EDataType mElementType;
+  int64_t mNumberElements;
+  const char* mColumnName;
+
+  std::shared_ptr<arrow::Field> mField;
+  std::shared_ptr<arrow::Array> mArray;
 
  public:
-  columnIterator(TTreeReader* reader, const char* colname);
-  ~columnIterator();
+  ColumnIterator(TTreeReader* reader, const char* colname);
+  ~ColumnIterator();
 
   // has the iterator been properly initialized
   bool getStatus();
@@ -168,11 +192,11 @@ class columnIterator
   // copy the TTreeReaderValue to the arrow::TBuilder
   void push();
 
-  std::shared_ptr<arrow::Array> getArray() { return marray; }
-  std::shared_ptr<arrow::Field> getSchema() { return mfield; }
+  std::shared_ptr<arrow::Array> getArray() { return mArray; }
+  std::shared_ptr<arrow::Field> getSchema() { return mField; }
 
   // finish the arrow::TBuilder
-  // with this marray is prepared to be used in arrow::Table::Make
+  // with this mArray is prepared to be used in arrow::Table::Make
   void finish();
 };
 
@@ -182,10 +206,10 @@ class TreeToTable
  private:
   // the TTreeReader allows to efficiently loop over
   // the rows of a TTree
-  TTreeReader* mreader;
+  TTreeReader* mTreeReader;
 
-  // a list of columnIterator*
-  std::vector<std::shared_ptr<columnIterator>> mcolumnIterators;
+  // a list of ColumnIterator*
+  std::vector<std::shared_ptr<ColumnIterator>> mColumnIterators;
 
   // Append next set of branch values to the
   // corresponding table columns

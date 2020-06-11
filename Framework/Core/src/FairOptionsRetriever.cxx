@@ -31,4 +31,4 @@ void FairOptionsRetriever::update(std::vector<ConfigParamSpec> const& schema,
   PropertyTreeHelpers::populate(schema, store, mOpts->GetVarMap(), provenance);
 }
 
-} // namespace o2
+} // namespace o2::framework

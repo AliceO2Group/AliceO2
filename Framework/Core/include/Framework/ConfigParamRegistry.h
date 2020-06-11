@@ -76,6 +76,7 @@ class ConfigParamRegistry
       throw std::invalid_argument(std::string("error parsing option: ") + key);
     }
   }
+
  private:
   std::unique_ptr<ConfigParamStore> mStore;
 };

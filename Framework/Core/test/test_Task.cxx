@@ -38,6 +38,7 @@ class ATask : public Task
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
+
  private:
   int mSomeState;
 };

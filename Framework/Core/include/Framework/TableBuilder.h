@@ -15,6 +15,7 @@
 #include "Framework/StructToTuple.h"
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/VariantHelpers.h"
+#include "arrow/type_traits.h"
 
 // Apparently needs to be on top of the arrow includes.
 #include <sstream>
@@ -54,12 +55,12 @@ struct ConversionTraits {
 
 template <typename T, int N>
 struct ConversionTraits<T (&)[N]> {
-  using ArrowType = ::arrow::FixedSizeBinaryType;
+  using ArrowType = ::arrow::FixedSizeListType;
 };
 
 template <typename T, int N>
 struct ConversionTraits<T[N]> {
-  using ArrowType = ::arrow::FixedSizeBinaryType;
+  using ArrowType = ::arrow::FixedSizeListType;
 };
 
 #define O2_ARROW_STL_CONVERSION(c_type, ArrowType_) \
@@ -86,6 +87,20 @@ O2_ARROW_STL_CONVERSION(std::string, StringType)
 } // namespace detail
 
 struct BuilderUtils {
+  template <typename T>
+  static arrow::Status appendToList(std::unique_ptr<arrow::FixedSizeListBuilder>& builder, T* data)
+  {
+    using ArrowType = typename detail::ConversionTraits<T>::ArrowType;
+    using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
+    size_t numElements = static_cast<const arrow::FixedSizeListType*>(builder->type().get())->list_size();
+
+    auto status = builder->AppendValues(1);
+    auto ValueBuilder = static_cast<BuilderType*>(builder->value_builder());
+    status &= ValueBuilder->AppendValues(data, numElements, nullptr);
+
+    return status;
+  }
+
   template <typename BuilderType, typename T>
   static arrow::Status append(BuilderType& builder, T value)
   {
@@ -98,7 +113,11 @@ struct BuilderUtils {
   template <typename BuilderType, typename T>
   static arrow::Status append(BuilderType& builder, T* data)
   {
-    return builder->Append(reinterpret_cast<const uint8_t*>(data));
+    if constexpr (std::is_same_v<BuilderType, std::unique_ptr<arrow::FixedSizeListBuilder>>) {
+      return appendToList<T>(builder, data);
+    } else {
+      return builder->Append(reinterpret_cast<const uint8_t*>(data));
+    }
   }
   /// Appender for the array case.
   template <typename BuilderType, typename T, int N>
@@ -123,7 +142,11 @@ struct BuilderUtils {
   template <typename BuilderType, typename T>
   static void unsafeAppend(BuilderType& builder, T* value)
   {
-    return builder->UnsafeAppend(reinterpret_cast<const uint8_t*>(value));
+    if constexpr (std::is_same_v<BuilderType, std::unique_ptr<arrow::FixedSizeListBuilder>>) {
+      auto status = appendToList<T>(builder, value);
+    } else {
+      return builder->UnsafeAppend(reinterpret_cast<const uint8_t*>(value));
+    }
   }
 
   template <typename BuilderType, typename PTR>
@@ -154,7 +177,7 @@ struct BuilderUtils {
     auto valueBuilder = reinterpret_cast<ValueBuilderType*>(builder->value_builder());
     status &= valueBuilder->AppendValues(&*ip.first, std::distance(ip.first, ip.second));
     if (!status.ok()) {
-      throw std::runtime_error("Unable to append values");
+      throw std::runtime_error("Unable to append values to valueBuilder!");
     }
     return;
   }
@@ -233,34 +256,42 @@ struct BuilderMaker<std::pair<ITERATOR, ITERATOR>> {
 template <typename T, int N>
 struct BuilderMaker<T (&)[N]> {
   using FillType = T*;
-  using BuilderType = arrow::FixedSizeBinaryBuilder;
-  using ArrowType = arrow::FixedSizeBinaryType;
+  using BuilderType = arrow::FixedSizeListBuilder;
+  using ArrowType = arrow::FixedSizeListType;
+  using ElementType = typename detail::ConversionTraits<T>::ArrowType;
 
   static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
   {
-    return std::make_unique<BuilderType>(arrow::fixed_size_binary(sizeof(T[N])), pool);
+    std::unique_ptr<arrow::ArrayBuilder> valueBuilder;
+    auto status =
+      arrow::MakeBuilder(pool, arrow::TypeTraits<ElementType>::type_singleton(), &valueBuilder);
+    return std::make_unique<BuilderType>(pool, std::move(valueBuilder), N);
   }
 
   static std::shared_ptr<arrow::DataType> make_datatype()
   {
-    return arrow::fixed_size_binary(sizeof(T[N]));
+    return arrow::fixed_size_list(arrow::TypeTraits<ElementType>::type_singleton(), N);
   }
 };
 
 template <typename T, int N>
 struct BuilderMaker<T[N]> {
   using FillType = T*;
-  using BuilderType = arrow::FixedSizeBinaryBuilder;
-  using ArrowType = arrow::FixedSizeBinaryType;
+  using BuilderType = arrow::FixedSizeListBuilder;
+  using ArrowType = arrow::FixedSizeListType;
+  using ElementType = typename detail::ConversionTraits<T>::ArrowType;
 
   static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
   {
-    return std::make_unique<BuilderType>(arrow::fixed_size_binary(sizeof(T[N])), pool);
+    std::unique_ptr<arrow::ArrayBuilder> valueBuilder;
+    auto status =
+      arrow::MakeBuilder(pool, arrow::TypeTraits<ElementType>::type_singleton(), &valueBuilder);
+    return std::make_unique<BuilderType>(pool, std::move(valueBuilder), N);
   }
 
   static std::shared_ptr<arrow::DataType> make_datatype()
   {
-    return arrow::fixed_size_binary(sizeof(T[N]));
+    return arrow::fixed_size_list(arrow::TypeTraits<ElementType>::type_singleton(), N);
   }
 };
 
@@ -288,8 +319,8 @@ struct BuilderTraits<std::pair<ITERATOR, ITERATOR>> {
 // FIXME: move to use FixedSizeList<T> once we move to 0.16.1
 template <typename T, int N>
 struct BuilderTraits<T[N]> {
-  using ArrowType = arrow::FixedSizeBinaryType;
-  using BuilderType = arrow::FixedSizeBinaryBuilder;
+  using ArrowType = arrow::FixedSizeListType;
+  using BuilderType = arrow::FixedSizeListBuilder;
 };
 
 struct TableBuilderHelpers {

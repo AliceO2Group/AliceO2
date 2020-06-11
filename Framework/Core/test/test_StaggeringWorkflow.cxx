@@ -83,7 +83,6 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
   }
 
   auto producerFct = adaptStateless([subspecs](DataAllocator& outputs, RawDeviceService& device, ControlService& control) {
-
     for (auto const& subspec : subspecs) {
       // since the snapshot copy is ready for sending it is scheduled but held back
       // because of the CompletionPolicy trigger matcher. This message will be

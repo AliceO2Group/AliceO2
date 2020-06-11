@@ -79,8 +79,8 @@ BOOST_AUTO_TEST_CASE(RootTree2Table)
   auto table = builder.finalize();
   BOOST_REQUIRE_EQUAL(table->num_rows(), 1000);
   BOOST_REQUIRE_EQUAL(table->num_columns(), 7);
-  BOOST_REQUIRE_EQUAL(table->schema()->field(0)->type()->id(), arrow::fixed_size_binary(sizeof(float[3]))->id());
-  BOOST_REQUIRE_EQUAL(table->schema()->field(1)->type()->id(), arrow::fixed_size_binary(sizeof(int[2]))->id());
+  BOOST_REQUIRE_EQUAL(table->schema()->field(0)->type()->id(), arrow::fixed_size_list(arrow::float32(), 3)->id());
+  BOOST_REQUIRE_EQUAL(table->schema()->field(1)->type()->id(), arrow::fixed_size_list(arrow::int32(), 2)->id());
   BOOST_REQUIRE_EQUAL(table->schema()->field(2)->type()->id(), arrow::float32()->id());
   BOOST_REQUIRE_EQUAL(table->schema()->field(3)->type()->id(), arrow::float32()->id());
   BOOST_REQUIRE_EQUAL(table->schema()->field(4)->type()->id(), arrow::float32()->id());
@@ -88,17 +88,30 @@ BOOST_AUTO_TEST_CASE(RootTree2Table)
   BOOST_REQUIRE_EQUAL(table->schema()->field(6)->type()->id(), arrow::int32()->id());
 
   {
-    auto array = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(table->column(0)->chunk(0));
-    BOOST_CHECK_EQUAL(array->byte_width(), sizeof(float[3]));
-    const float* c = reinterpret_cast<float const*>(array->Value(0));
+    auto chunkToUse = table->column(0)->chunk(0);
+    chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
+    auto array = std::static_pointer_cast<arrow::FloatArray>(chunkToUse);
+    const float* c = reinterpret_cast<float const*>(array->values()->data());
+
+    //auto array = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(table->column(0)->chunk(0));
+    //BOOST_CHECK_EQUAL(array->byte_width(), sizeof(float[3]));
+    //const float* c = reinterpret_cast<float const*>(array->Value(0));
+
     BOOST_CHECK_EQUAL(c[0], 1);
+    BOOST_CHECK_EQUAL(c[1], 2);
+    BOOST_CHECK_EQUAL(c[2], 1);
   }
   {
-    auto values = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(table->column(1)->chunk(0));
+    //auto values = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(table->column(1)->chunk(0));
+    auto chunkToUse = table->column(1)->chunk(0);
+    chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
+    auto array = std::static_pointer_cast<arrow::Int32Array>(chunkToUse);
+    BOOST_REQUIRE_EQUAL(array->length(), 2000);
+
+    const int* ptr = reinterpret_cast<int const*>(array->values()->data());
     for (size_t i = 0; i < 1000; i++) {
-      const int* ptr = reinterpret_cast<int const*>(values->Value(i));
-      BOOST_CHECK_EQUAL(ptr[0], i);
-      BOOST_CHECK_EQUAL(ptr[1], i + 1);
+      BOOST_CHECK_EQUAL(ptr[2 * i + 0], i);
+      BOOST_CHECK_EQUAL(ptr[2 * i + 1], i + 1);
     }
   }
 }
@@ -164,8 +177,8 @@ BOOST_AUTO_TEST_CASE(RootTree2TableViaASoA)
   BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::float32()->id());
   BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::float32()->id());
   BOOST_REQUIRE_EQUAL(table->column(2)->type()->id(), arrow::float32()->id());
-  BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::fixed_size_binary(sizeof(float[3]))->id());
-  BOOST_REQUIRE_EQUAL(table->column(4)->type()->id(), arrow::fixed_size_binary(sizeof(int[2]))->id());
+  BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::fixed_size_list(arrow::float32(), 3)->id());
+  BOOST_REQUIRE_EQUAL(table->column(4)->type()->id(), arrow::fixed_size_list(arrow::int32(), 2)->id());
   BOOST_REQUIRE_EQUAL(table->column(5)->type()->id(), arrow::float64()->id());
   BOOST_REQUIRE_EQUAL(table->column(6)->type()->id(), arrow::int32()->id());
 

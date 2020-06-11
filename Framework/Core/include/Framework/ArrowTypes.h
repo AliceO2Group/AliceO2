@@ -63,18 +63,23 @@ struct arrow_array_for<double> {
 };
 template <int N>
 struct arrow_array_for<float[N]> {
-  using type = arrow::FixedSizeBinaryArray;
+  using type = arrow::FixedSizeListArray;
+  using value_type = float;
 };
 template <int N>
 struct arrow_array_for<int[N]> {
-  using type = arrow::FixedSizeBinaryArray;
+  using type = arrow::FixedSizeListArray;
+  using value_type = int;
 };
 template <int N>
 struct arrow_array_for<double[N]> {
-  using type = arrow::FixedSizeBinaryArray;
+  using type = arrow::FixedSizeListArray;
+  using value_type = double;
 };
 
 template <typename T>
 using arrow_array_for_t = typename arrow_array_for<T>::type;
+template <typename T>
+using value_for_t = typename arrow_array_for<T>::value_type;
 } // namespace o2::soa
 #endif // O2_FRAMEWORK_ARROWTYPES_H
