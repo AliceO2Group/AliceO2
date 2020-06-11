@@ -68,6 +68,7 @@ class GPUTPCGMPropagator
   GPUd() void SetMaterial(float radLen, float rho);
   GPUd() void SetMaterialTPC() { SetMaterial(28811.7f, 1.025e-3f); }
 
+  GPUd() void UpdateMaterial(const GPUTPCGMPhysicalTrackModel& GPUrestrict() t0e);
   GPUd() o2::base::MatBudget getMatBudget(const float* p1, const float* p2);
 
   GPUd() void SetPolynomialField(const GPUTPCGMPolynomialField* field) { mField = field; }
