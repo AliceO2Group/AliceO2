@@ -45,6 +45,7 @@ class GPUTPCGMMerger;
 class GPUTPCCompression : public GPUProcessor
 {
   friend class GPUTPCCompressionKernels;
+  friend class GPUTPCCompressionGatherKernels;
   friend class GPUChainTracking;
 
  public:
