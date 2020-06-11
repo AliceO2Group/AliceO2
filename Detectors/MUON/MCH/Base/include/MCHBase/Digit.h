@@ -47,12 +47,15 @@ class Digit
 
   Digit() = default;
 
-  Digit(int detid, int pad, unsigned long adc, Time time);
+  Digit(int detid, int pad, unsigned long adc, Time time, uint16_t nSamples = 1);
   ~Digit() = default;
 
   bool operator==(const Digit&) const;
 
   Time getTime() const { return mTime; }
+
+  uint16_t getNSamples() const { return mNSamples; }
+  void setNSamples(uint16_t n) { mNSamples = n; }
 
   int getDetID() const { return mDetID; }
 
@@ -64,6 +67,7 @@ class Digit
 
  private:
   Time mTime;
+  uint16_t mNSamples; /// number of samples in the signal
   int mDetID;
   int mPadID;         /// PadIndex to which the digit corresponds to
   unsigned long mADC; /// Amplitude of signal
