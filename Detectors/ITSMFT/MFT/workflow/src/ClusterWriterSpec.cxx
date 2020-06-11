@@ -60,14 +60,14 @@ DataProcessorSpec getClusterWriterSpec(bool useMC)
                                 BranchDefinition<ClustersType>{InputSpec{"clusters", "MFT", "CLUSTERS", 0},
                                                                "MFTCluster",
                                                                clustersSizeGetter},
-                                BranchDefinition<ROFrameRType>{InputSpec{"ROframes", "MFT", "MFTClusterROF", 0},
+                                BranchDefinition<ROFrameRType>{InputSpec{"ROframes", "MFT", "ClusterROF", 0},
                                                                "MFTClustersROF",
                                                                logger},
                                 BranchDefinition<LabelsType>{InputSpec{"labels", "MFT", "CLUSTERSMCTR", 0},
                                                              "MFTClusterMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""},
-                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "MFT", "MFTClusterMC2ROF", 0},
+                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "MFT", "ClusterMC2ROF", 0},
                                                              "MFTClustersMC2ROF",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""})();

@@ -55,9 +55,7 @@ void ClusterReader::run(ProcessingContext& pc)
 
   // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
   // To be fixed once the names-definition class is ready
-  pc.outputs().snapshot(Output{mOrigin, mOrigin == o2::header::gDataOriginITS ? "ITSClusterROF" : "MFTClusterROF",
-                               0, Lifetime::Timeframe},
-                        mClusROFRec);
+  pc.outputs().snapshot(Output{mOrigin, "ClusterROF", 0, Lifetime::Timeframe}, mClusROFRec);
   if (mUseClFull) {
     pc.outputs().snapshot(Output{mOrigin, "CLUSTERS", 0, Lifetime::Timeframe}, mClusterArray);
   }
@@ -112,7 +110,7 @@ void ClusterReader::connectTree(const std::string& filename)
 DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useClComp, bool usePatterns)
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("ITS", "ITSClusterROF", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("ITS", "ClusterROF", 0, Lifetime::Timeframe);
   if (useClFull) {
     outputSpec.emplace_back("ITS", "CLUSTERS", 0, Lifetime::Timeframe);
   }
@@ -139,7 +137,7 @@ DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useCl
 DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool useClFull, bool useClComp, bool usePatterns)
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("MFT", "MFTClusterROF", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("MFT", "ClusterROF", 0, Lifetime::Timeframe);
   if (useClFull) {
     outputSpec.emplace_back("MFT", "CLUSTERS", 0, Lifetime::Timeframe);
   }

@@ -202,7 +202,7 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "ITS", "ClusterROF", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
@@ -213,7 +213,7 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
 
   if (useMC) {
     inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "ITS", "ClusterMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
   }

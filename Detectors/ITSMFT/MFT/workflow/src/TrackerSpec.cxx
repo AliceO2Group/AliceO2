@@ -162,7 +162,7 @@ DataProcessorSpec getTrackerSpec(bool useMC)
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusters", "MFT", "CLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "MFT", "MFTClusterROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "MFT", "ClusterROF", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "TRACKSLTF", 0, Lifetime::Timeframe);
@@ -171,7 +171,7 @@ DataProcessorSpec getTrackerSpec(bool useMC)
 
   if (useMC) {
     inputs.emplace_back("labels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "MFT", "ClusterMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("MFT", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("MFT", "MFTTrackMC2ROF", 0, Lifetime::Timeframe);
   }
