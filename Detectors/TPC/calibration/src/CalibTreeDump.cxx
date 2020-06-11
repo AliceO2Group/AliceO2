@@ -325,6 +325,10 @@ void CalibTreeDump::setDefaultAliases(TTree* tree)
   tree->SetAlias("region", "cruInSector");
   tree->SetAlias("partition", "int(cruInSector / 2)");
 
+  tree->SetAlias("padWidth", "(region == 0) * 0.416 + (region == 1) * 0.42 + (region == 2) * 0.42 + (region == 3) * 0.436 + (region == 4) * 0.6 + (region == 5) * 0.6 + (region == 6) * 0.608 + (region == 7) * 0.588 + (region == 8) * 0.604 + (region == 9) * 0.607");
+  tree->SetAlias("padHeight", "0.75 + (region>3)*0.25 + (region>5)*0.2 + (region>7)*0.3");
+  tree->SetAlias("padArea", "padHeight * padWidth");
+
   tree->SetAlias("IROC", "roc < 36");
   tree->SetAlias("OROC", "roc >= 36");
   tree->SetAlias("OROC1", "partition == 2");
