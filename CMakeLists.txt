@@ -34,6 +34,10 @@ o2_check_cxx_features()
 
 include(O2DefineOptions)
 o2_define_options()
+# see if upgrade is enabled
+if (ENABLE_UPGRADES)
+  add_definitions(-DENABLE_UPGRADES)
+endif()
 
 include(O2DefineOutputPaths)
 o2_define_output_paths()
