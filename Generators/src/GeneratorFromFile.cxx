@@ -107,9 +107,9 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
     // filter the particles from Kinematics.root originally put by a generator
     // and which are trackable
     auto isFirstTrackableDescendant = [](TParticle const& p) {
-      const int kDoneBit = 4;
+      const int kTransportBit = BIT(14);
       // The particle should have not set kDone bit and its status should not exceed 1
-      if (p.GetStatusCode() > 1 || p.TestBit(kDoneBit)) {
+      if (p.GetUniqueID() > 0 || !p.TestBit(kTransportBit)) {
         return false;
       }
       return true;
@@ -117,7 +117,6 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
 
     for (int i = 0; i < branch->GetEntries(); ++i) {
       auto& p = particles[i];
-
       if (!isFirstTrackableDescendant(p)) {
         continue;
       }
