@@ -149,11 +149,13 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
    * @param headers Map to be populated with the headers we received, if it is not null.
    * @param optional etag from previous call
+   * @param optional freezeTime time limit for the object validity
    * @return the object, or nullptr if none were found.
    * @deprecated in favour of retrieveFromTFileAny as it is not limited to TObjects.
    */
   TObject* retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata,
-                             long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "") const;
+                             long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
+                             const std::string& freezeTime = "") const;
 
   /**
    * Retrieve object at the given path for the given timestamp.
@@ -163,11 +165,13 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
    * @param headers Map to be populated with the headers we received, if it is not null.
    * @param optional etag from previous call
+   * @param optional freezeTime time limit for the object validity
    * @return the object, or nullptr if none were found or type does not match serialized type.
    */
   template <typename T>
   T* retrieveFromTFileAny(std::string const& path, std::map<std::string, std::string> const& metadata,
-                          long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "") const;
+                          long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
+                          const std::string& freezeTime = "") const;
 
   /**
    * Delete all versions of the object at this path.
@@ -360,7 +364,8 @@ class CcdbApi //: public DatabaseInterface
    * A generic helper implementation to query obj whose type is given by a std::type_info
    */
   void* retrieveFromTFile(std::type_info const&, std::string const& path, std::map<std::string, std::string> const& metadata,
-                          long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "") const;
+                          long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
+                          const std::string& freezeTime = "") const;
 
   /**
    * A helper function to extract object from a local ROOT file
@@ -385,9 +390,10 @@ class CcdbApi //: public DatabaseInterface
 
 template <typename T>
 T* CcdbApi::retrieveFromTFileAny(std::string const& path, std::map<std::string, std::string> const& metadata,
-                                 long timestamp, std::map<std::string, std::string>* headers, std::string const& etag) const
+                                 long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
+                                 const std::string& freezeTime) const
 {
-  return static_cast<T*>(retrieveFromTFile(typeid(T), path, metadata, timestamp, headers, etag));
+  return static_cast<T*>(retrieveFromTFile(typeid(T), path, metadata, timestamp, headers, etag, freezeTime));
 }
 
 } // namespace ccdb
