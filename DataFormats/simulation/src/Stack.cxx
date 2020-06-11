@@ -206,7 +206,7 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
       p.SetBit(ParticleStatus::kToBeDone, 0);
     }
     mParticles.emplace_back(p);
-    mCurrentParticle = p;
+    mCurrentParticle0 = p;
   }
   mStack.push(p);
 }
@@ -241,6 +241,8 @@ void Stack::SetCurrentTrack(Int_t iTrack)
     auto& p = mPrimaryParticles[iTrack];
     mCurrentParticle = p;
     mIndexOfCurrentPrimary = mCurrentParticle.GetStatusCode();
+  } else {
+    mCurrentParticle = mCurrentParticle0;
   }
 }
 

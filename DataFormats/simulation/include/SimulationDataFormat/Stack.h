@@ -238,6 +238,7 @@ class Stack : public FairGenericStack
   std::vector<int> mTrackIDtoParticlesEntry; //! an O(1) mapping of trackID to the entry of mParticles
   // the current TParticle object
   TParticle mCurrentParticle;
+  TParticle mCurrentParticle0;
 
   // keep primary particles in its original form
   // (mainly for the PopPrimaryParticleInterface
