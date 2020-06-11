@@ -20,6 +20,7 @@
 #include <string>
 #include <type_traits>
 #include <typeinfo>
+#include <stdexcept>
 
 namespace o2::framework
 {

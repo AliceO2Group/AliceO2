@@ -59,6 +59,7 @@
 
 #define MATH_CEIL ceil
 
+#include <cstddef>
 #include "ITStrackingCUDA/Array.h"
 
 template <typename T, std::size_t Size>
@@ -84,6 +85,7 @@ typedef cudaStream_t GPUStream;
 #endif
 
 #ifndef __OPENCL__
+#include <cstddef>
 template <typename T, size_t Size>
 using GPUArray = std::array<T, Size>;
 #else
