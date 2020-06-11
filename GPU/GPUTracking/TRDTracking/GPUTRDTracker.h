@@ -107,7 +107,7 @@ class GPUTRDTracker_t : public GPUProcessor
   short MemoryTracks() const { return mMemoryTracks; }
 
   GPUhd() void OverrideGPUGeometry(TRD_GEOMETRY_CONST GPUTRDGeometry* geo) { mGeo = geo; }
-  void Reset(bool fast = false);
+  void Reset();
   GPUd() int LoadTracklet(const GPUTRDTrackletWord& tracklet, const int* labels = nullptr);
   //template <class T>
   GPUd() int LoadTrack(const TRDTRK& trk, const int label = -1, const int* nTrkltsOffline = nullptr, const int labelOffline = -1)
