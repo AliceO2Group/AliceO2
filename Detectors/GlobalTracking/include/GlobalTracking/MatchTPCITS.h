@@ -317,9 +317,6 @@ class MatchTPCITS
   ///< set ITS ROFrame duration in BC (continuous mode only)
   void setITSROFrameLengthInBC(int nbc);
 
-  ///< set ITS 0-th ROFrame time start in \mus
-  void setITSROFrameOffsetMUS(float v) { mITSROFrameOffsetMUS = v; }
-
   // ==================== >> DPL-driven input >> =======================
 
   ///< set flag to use MC truth
@@ -504,12 +501,13 @@ class MatchTPCITS
     if (mITSTriggered) {
       return mITSROFofTPCBin[int(tbin > 0 ? tbin : 0)];
     }
-    int rof = tbin * mTPCBin2ITSROFrame - mITSROFramePhaseOffset;
-    return rof < 0 ? 0 : rof;
+    int rof = tbin > 0 ? tbin * mTPCBin2ITSROFrame : 0;
+    // the rof is estimated continuous counter but the actual bins might have gaps (e.g. HB rejects etc)-> use mapping
+    return rof < mITSTrackROFContMapping.size() ? mITSTrackROFContMapping[rof] : mITSTrackROFContMapping.back();
   }
 
   ///< convert ITS ROFrame to TPC time bin units // TOREMOVE
-  float itsROFrame2TPCTimeBin(int rof) const { return (rof + mITSROFramePhaseOffset) * mITSROFrame2TPCBin; }
+  float itsROFrame2TPCTimeBin(int rof) const { return rof * mITSROFrame2TPCBin; }
 
   ///< convert Interaction Record for TPC time bin units
   float intRecord2TPCTimeBin(const o2::InteractionRecord& bc) const
@@ -554,9 +552,6 @@ class MatchTPCITS
 
   int mITSROFrameLengthInBC = 0;    ///< ITS RO frame in BC (for ITS cont. mode only)
   float mITSROFrameLengthMUS = -1.; ///< ITS RO frame in \mus
-  float mITSROFrameOffsetMUS = 0;   ///< time in \mus corresponding to start of 1st ITS ROFrame,
-                                    ///< i.e. t = ROFrameID*mITSROFrameLengthMUS - mITSROFrameOffsetMUS
-  float mITSROFramePhaseOffset = 0; ///< mITSROFrameOffsetMUS recalculated in mITSROFrameLengthMUS units
   float mTPCVDrift0 = -1.;          ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDrift0Inv = -1.;       ///< inverse TPC nominal drift speed in cm/microseconds
   float mTPCTBinMUS = 0.;           ///< TPC time bin duration in microseconds
@@ -628,6 +623,10 @@ class MatchTPCITS
   std::array<std::vector<int>, o2::constants::math::NSectors> mTPCTimeBinStart;
   ///< indices of 1st entries of ITS tracks with givem ROframe
   std::array<std::vector<int>, o2::constants::math::NSectors> mITSTimeBinStart;
+
+  /// mapping for tracks' continuos ROF cycle to actual continuous readout ROFs with eventual gaps
+  std::vector<int> mITSTrackROFContMapping;
+
   ///< outputs tracks container
   std::vector<o2::dataformats::TrackTPCITS> mMatchedTracks;
   std::vector<o2::MCCompLabel> mOutITSLabels; ///< ITS label of matched track
