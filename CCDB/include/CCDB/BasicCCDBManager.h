@@ -92,6 +92,15 @@ class BasicCCDBManager
     }
   }
 
+  /// set the object validity limit
+  void setFreezeTime(long v) { mFreezeTime = v; }
+
+  /// get the object validity limit
+  long getFreezeTime() { return mFreezeTime; }
+
+  /// reset the object validity limit
+  void resetFreezeTime() { mFreezeTime = 0; }
+
  private:
   BasicCCDBManager(std::string const& path) : mCCDBAccessor{}
   {
@@ -106,6 +115,7 @@ class BasicCCDBManager
   long mTimestamp{o2::ccdb::getCurrentTimestamp()}; // timestamp to be used for query (by default "now")
   bool mCanDefault = false;                         // whether default is ok --> useful for testing purposes done standalone/isolation
   bool mCachingEnabled = true;                      // whether caching is enabled
+  long mFreezeTime = 0;                             // upper limit for object validity timestamp
 };
 
 template <typename T>
@@ -115,7 +125,7 @@ T* BasicCCDBManager::getForTimeStamp(std::string const& path, long timestamp)
     return mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp);
   }
   auto& cached = mCache[path];
-  T* ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid);
+  T* ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid, mFreezeTime ? std::to_string(mFreezeTime) : "");
   if (ptr) { // new object was shipped, old one (if any) is not valid anymore
     cached.objPtr.reset(ptr);
     cached.uuid = mHeaders["ETag"];
