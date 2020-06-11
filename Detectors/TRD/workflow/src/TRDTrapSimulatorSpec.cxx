@@ -247,6 +247,7 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
   mOnlineGainTableName = ic.options().get<std::string>("trd-onlinegaintable");
   mRunNumber = ic.options().get<int>("trd-runnum");
   mEnableTrapConfigDump = ic.options().get<bool>("trd-dumptrapconfig");
+  mFixTriggerRecords = ic.options().get<bool>("trd-fixtriggerrecord");
   //Connect to CCDB for all things needing access to ccdb.
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   mCalib = std::make_unique<Calibrations>();
@@ -301,6 +302,27 @@ bool digitindexcompare(unsigned int A, unsigned int B, const std::vector<o2::trd
     return 0;
 }
 
+void TRDDPLTrapSimulatorTask::fixTriggerRecords(std::vector<o2::trd::TriggerRecord>& trigRecord)
+{
+  // Trigger records are coming with an extra one at the end, and the first one blank and the last 2 having the same bunch crossing information.
+  // This is temporary.
+
+  // take the nth records DataRange, and insert it into the (n-1)th DataRange
+  // thereby realigning the bunch crossings and dataranges.
+  // drop the final entry.
+
+  //sanity check -- this is only true if the first range is 0 to 0
+  if (trigRecord[0].getFirstEntry() == 0 && trigRecord[0].getNumberOfObjects() == 0) {
+    for (int i = 0; i < trigRecord.size() - 1; i++) {
+      trigRecord[i].setDataRange(trigRecord[i + 1].getFirstEntry(), trigRecord[i + 1].getNumberOfObjects());
+    }
+    //now drop the final triggerrecord.
+    trigRecord.pop_back();
+  } else {
+    LOG(warn) << "TriggerRecord fix requested, but inital TriggerRecord is not 0,0";
+  }
+}
+
 void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 {
   LOG(info) << "TRD Trap Simulator Device running over incoming message";
@@ -317,28 +339,37 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   // directly on the input data, the output vector however is created directly inside the message
   // memory thus avoiding copy by snapshot
   auto msgDigits = pc.inputs().get<std::vector<o2::trd::Digit>>("digitinput");
-  auto& digits = pc.outputs().make<std::vector<o2::trd::Digit>>(Output{"TRD", "TRKDIGITS", 0, Lifetime::Timeframe}, msgDigits.begin(), msgDigits.end());
+  //  auto digits pc.outputs().make<std::vector<o2::trd::Digit>>(Output{"TRD", "TRKDIGITS", 0, Lifetime::Timeframe}, msgDigits.begin(), msgDigits.end());
   auto digitMCLabels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labelinput");
 
-  auto rawDataOut = pc.outputs().make<char>(Output{"TRD", "RAWDATA", 0, Lifetime::Timeframe}, 1000); //TODO number is just a place holder until we start using it.
-  auto trackletMCLabels = pc.outputs().make<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe});
+  //  auto rawDataOut = pc.outputs().make<char>(Output{"TRD", "RAWDATA", 0, Lifetime::Timeframe}, 1000); //TODO number is just a place holder until we start using it.
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackletMCLabels;
 
-  auto mTriggerRecords = pc.inputs().get<std::vector<o2::trd::TriggerRecord>>("triggerrecords");
-  uint64_t currentTriggerRecord = 1; //TODO Start at 1 to remove erroneous first trigger record
-  auto& trackletTriggerRecords = pc.outputs().make<std::vector<o2::trd::TriggerRecord>>(Output{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe}, mTriggerRecords.begin() + 1, mTriggerRecords.end());
+  auto triggerRecords = pc.inputs().get<std::vector<o2::trd::TriggerRecord>>("triggerrecords");
+  uint64_t currentTriggerRecord = 0;
+
+  for (auto& trig : triggerRecords) {
+    LOG(debug) << "Trigger Record ; " << trig.getFirstEntry() << " --> " << trig.getNumberOfObjects();
+  }
+  // fix incoming trigger records if requested.
+  if (mFixTriggerRecords)
+    fixTriggerRecords(triggerRecords);
+
+  std::vector<o2::trd::TriggerRecord> trackletTriggerRecords = triggerRecords; // copy over the whole thing but we only really want the bunch crossing info.
 
   //TODO these must be created directly in the output as done at the top of this run method
   std::vector<unsigned int> msgDigitsIndex;
   msgDigitsIndex.reserve(msgDigits.size());
 
-  LOG(info) << "Read in msgDigits with size of : " << msgDigits.size() << " labels contain : " << digitMCLabels->getNElements() << " with and index size of  : " << digitMCLabels->getIndexedSize();
+  LOG(debug) << "Read in msgDigits with size of : " << msgDigits.size() << " labels contain : " << digitMCLabels->getNElements() << " with and index size of  : " << digitMCLabels->getIndexedSize();
+
   if (digitMCLabels->getIndexedSize() != msgDigits.size()) {
     LOG(debug) << "Read in msgDigits with size of : " << msgDigits.size() << " labels contain : " << digitMCLabels->getNElements() << " with and index size of  : " << digitMCLabels->getIndexedSize();
-    LOG(error) << "Digits and Labels coming into TrapSimulator are of differing sizes, labels will be jibberish. ";
+    LOG(warn) << "Digits and Labels coming into TrapSimulator are of differing sizes, labels will be jibberish. ";
   }
   //set up structures to hold the returning tracklets.
   std::vector<Tracklet> trapTracklets; //vector to store the retrieved tracklets from an trapsim object
-  auto& trapTrackletsAccum = pc.outputs().make<std::vector<Tracklet>>(Output{"TRD", "TRACKLETS", 0, Lifetime::Timeframe});
+  std::vector<Tracklet> trapTrackletsAccum;
   trapTracklets.reserve(30);
   trapTrackletsAccum.reserve(msgDigits.size() / 3);
   msgDigitsIndex.reserve(msgDigits.size());
@@ -355,10 +386,13 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   std::stable_sort(msgDigits.begin(), msgDigits.end(), msgDigitSortComparator);
   mSortingTime = std::chrono::high_resolution_clock::now() - sortstart;
   LOG(info) << "TRD Digit Sorting took " << mSortingTime.count();
-  // sort from mTriggerRecords.getFirstEntry() to mTriggerRecords.getFirstEntry()+mTriggerRecords.getNumberOfObjects();
+  // sort from triggerRecords.getFirstEntry() to triggerRecords.getFirstEntry()+triggerRecords.getNumberOfObjects();
   //check the incoming triggerrecords:
-  for (auto& trig : mTriggerRecords) {
+  for (auto& trig : triggerRecords) {
     LOG(debug) << "Trigger Record ; " << trig.getFirstEntry() << " --> " << trig.getNumberOfObjects();
+  }
+  for (auto& trig : trackletTriggerRecords) {
+    LOG(debug) << "Trigger Tracklet  Record ; " << trig.getFirstEntry() << " --> " << trig.getNumberOfObjects();
   }
   //accounting variables for various things.
   int olddetector = -1;
@@ -391,15 +425,17 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     }
 
     //figure out which trigger record from digits we are on
-    if (digitcounter >= mTriggerRecords[currentTriggerRecord].getFirstEntry() + mTriggerRecords[currentTriggerRecord].getNumberOfObjects()) {
+    if (digitcounter >= triggerRecords[currentTriggerRecord].getFirstEntry() + triggerRecords[currentTriggerRecord].getNumberOfObjects()) {
       //trigger record changed.
-      LOG(debug) << "digit  : " << digitcounter << " >= " << mTriggerRecords[currentTriggerRecord].getFirstEntry() << "+" << mTriggerRecords[currentTriggerRecord].getNumberOfObjects();
       // so increment the tracklet trigger records and fill accordingly for the now completed prior triggerrecord.
       uint64_t triggerrecordstart = 0;
-      if (currentTriggerRecord != 0) { // for not the first one we can simply look back to the previous one to get the start.
+      if (currentTriggerRecord == 0) { // for not the first one we can simply look back to the previous one to get the start.
+        triggerrecordstart = 0;
+        trackletTriggerRecords[currentTriggerRecord].setDataRange(triggerrecordstart, trapTrackletsAccum.size());
+      } else {
         triggerrecordstart = trackletTriggerRecords[currentTriggerRecord - 1].getFirstEntry() + trackletTriggerRecords[currentTriggerRecord - 1].getNumberOfObjects();
+        trackletTriggerRecords[currentTriggerRecord].setDataRange(triggerrecordstart, trapTrackletsAccum.size() - triggerrecordstart);
       }
-      trackletTriggerRecords[currentTriggerRecord - 1].setDataRange(triggerrecordstart, trapTrackletsAccum.size() - triggerrecordstart);
       currentTriggerRecord++; //move to next trigger record.
     }
 
@@ -493,8 +529,9 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     adc = 20 - (pad % 18) - 1;
     std::vector<o2::MCCompLabel> tmplabels;
     auto digitslabels = digitMCLabels->getLabels(digitcounter);
-    for (auto& tmplabel : digitslabels)
+    for (auto& tmplabel : digitslabels) {
       tmplabels.push_back(tmplabel);
+    }
     LOG(debug) << "tmplabels for set data : " << tmplabels.size() << " and gslspan digitlabels size of : " << digitslabels.size();
     mTrapSimulator[trapindex].setData(adc, digititerator->getADC(), tmplabels);
 
@@ -518,6 +555,9 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     digitcounter++;
   } // end of loop over digits.
 
+  // now finalise
+  auto triggerrecordstart = trackletTriggerRecords[currentTriggerRecord - 1].getFirstEntry() + trackletTriggerRecords[currentTriggerRecord - 1].getNumberOfObjects();
+  trackletTriggerRecords[currentTriggerRecord].setDataRange(triggerrecordstart, trapTrackletsAccum.size() - triggerrecordstart);
   LOG(info) << "Trap simulator found " << trapTrackletsAccum.size() << " tracklets from " << msgDigits.size() << " Digits and " << trackletMCLabels.getIndexedSize() << " associated MC Label indexes and " << trackletMCLabels.getNElements() << " associated MC Labels";
   if (mShowTrackletStats > 0) {
     mDigitLoopTime = std::chrono::high_resolution_clock::now() - digitloopstart;
@@ -528,20 +568,21 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     LOG(info) << "Digit loop took : " << mDigitLoopTime.count();
     LOG(info) << "Trapsim took : " << mTrapSimAccumulatedTime.count();
     LOG(info) << "Traploop took : " << mTrapLoopTime.count();
-    for (auto trapcount : mTrapUsedFrequency)
+    for (auto trapcount : mTrapUsedFrequency) {
       LOG(info) << "# traps fired Traploop are : " << trapcount;
-    for (auto trapcount : mTrapUsedCounter)
+    }
+    for (auto trapcount : mTrapUsedCounter) {
       LOG(info) << "each trap position fired   : " << trapcount;
+    }
   }
-  // Note: do not use snapshot for TRD/DIGITS and TRD/TRACKLETS, we can avoif the copy by allocating
-  // the vectors directly in the message memory, see above
 
-  // o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackletLabels;
-  //  pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}, trackletLabels);
-  //using namespace boost::typeindex;
-  // std::cout << type_id_with_cvr<decltype(digitMCLabels)>().pretty_name() << std::endl;
+  pc.outputs().snapshot(Output{"TRD", "TRACKLETS", 0, Lifetime::Timeframe}, trapTrackletsAccum);
+  pc.outputs().snapshot(Output{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe}, trackletTriggerRecords);
+  /*pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}, trackletMCLabels);  */
   // LOG(info) << "digit MCLabels is of type : " << type_id_with_cvr<decltype(digitMCLabels)>().pretty_name();
   LOG(info) << "exiting the trap sim run method ";
+  pc.services().get<ControlService>().endOfStream();
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec()
@@ -549,10 +590,10 @@ o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec()
   return DataProcessorSpec{"TRAP", Inputs{InputSpec{"digitinput", "TRD", "DIGITS", 0}, InputSpec{"triggerrecords", "TRD", "TRGRDIG", 0}, InputSpec{"labelinput", "TRD", "LABELS", 0}},
 
                            Outputs{OutputSpec{"TRD", "TRACKLETS", 0, Lifetime::Timeframe},
-                                   OutputSpec{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe},
-                                   OutputSpec{"TRD", "TRKDIGITS", 0, Lifetime::Timeframe},
-                                   OutputSpec{"TRD", "TRKLABELS", 0, Lifetime::Timeframe},
-                                   OutputSpec{"TRD", "RAWDATA", 0, Lifetime::Timeframe}},
+                                   OutputSpec{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe}
+                                   /*OutputSpec{"TRD", "TRKDIGITS", 0, Lifetime::Timeframe},*/
+                                   /*OutputSpec{"TRD", "TRKLABELS", 0, Lifetime::Timeframe},*/
+                                   /*OutputSpec{"TRD", "RAWDATA", 0, Lifetime::Timeframe}*/},
                            AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>()},
                            Options{
                              {"show-trd-trackletstats", VariantType::Int, 25000, {"Display the accumulated size and capacity at number of track intervals"}},
@@ -560,6 +601,7 @@ o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec()
                              {"trd-printtrapconfig", VariantType::Bool, false, {"Name of the trap config from the CCDB"}},
                              {"trd-drawtracklets", VariantType::Int, 0, {"Bitpattern of input to TrapSimulator Draw method (be very careful) one file per track"}},
                              {"trd-printtracklets", VariantType::Int, 0, {"Bitpattern of input to TrapSimulator print method"}},
+                             {"trd-fixtriggerrecord", VariantType::Bool, false, {"Fix trigger record alignment, temporary, hence false by default"}},
                              {"trd-onlinegaincorrection", VariantType::Bool, false, {"Apply online gain calibrations, mostly for back checking to run2 by setting FGBY to 0"}},
                              {"trd-onlinegaintable", VariantType::String, "Krypton_2015-02", {"Online gain table to be use, names found in CCDB, obviously trd-onlinegaincorrection must be set as well."}},
                              {"trd-debugrejectedtracklets", VariantType::Bool, false, {"Output all MCM where tracklets were not identified"}},
