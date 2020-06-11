@@ -741,7 +741,7 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
     nphism = g->GetNumberOfSuperModules();
     for (Int_t i = 0; i < nphism; i++) {
       xpos = ypos = zpos = 0.0;
-      TVirtualMC::GetMC()->Gspos("SMOD", 1, mother.data(), xpos, ypos + 30., zpos, 0, "ONLY");
+      TVirtualMC::GetMC()->Gspos("SMOD", 1, mother.data(), xpos, ypos, zpos, 0, "ONLY");
 
       LOG(DEBUG2) << " fIdRotm " << std::setw(3) << 0 << " phi " << std::setw(7) << std::setprecision(1) << phi << "("
                   << std::setw(5) << std::setprecision(3) << phiRad << ") xpos " << std::setw(7) << std::setprecision(2)
@@ -912,7 +912,7 @@ void Detector::CreateEmcalModuleGeometry(const std::string_view mother, const st
 
       for (auto iy : boost::irange(0, iyMax)) { // flat in phi
         ypos = g->GetPhiModuleSize() * (2 * iy + 1 - iyMax) / 2.;
-        TVirtualMC::GetMC()->Gspos(child.data(), ++nr, mother.data(), xpos, ypos + 30., zpos, rotMatrixID, "ONLY");
+        TVirtualMC::GetMC()->Gspos(child.data(), ++nr, mother.data(), xpos, ypos, zpos, rotMatrixID, "ONLY");
 
         // printf(" %2i xpos %7.2f ypos %7.2f zpos %7.2f fIdRotm %i\n", nr, xpos, ypos, zpos, fIdRotm);
         LOG(DEBUG3) << std::setw(3) << std::setprecision(3) << nr << "(" << std::setw(2) << std::setprecision(2)
@@ -939,7 +939,7 @@ void Detector::CreateEmcalModuleGeometry(const std::string_view mother, const st
 
       for (auto ix : boost::irange(0, g->GetNPhi())) { // flat in phi
         xpos = g->GetPhiModuleSize() * (2 * ix + 1 - g->GetNPhi()) / 2.;
-        TVirtualMC::GetMC()->Gspos(child.data(), ++nr, mother.data(), xpos, ypos + 30., zpos, rotMatrixID, "ONLY");
+        TVirtualMC::GetMC()->Gspos(child.data(), ++nr, mother.data(), xpos, ypos, zpos, rotMatrixID, "ONLY");
         // printf(" %7.2f ", xpos);
       }
       // printf("");
@@ -965,7 +965,7 @@ void Detector::CreateAlFrontPlate(const std::string_view mother, const std::stri
   CreateEMCALVolume(child.data(), "TRD1", ID_AL, parALFP, 4);
 
   zposALFP = -mParEMOD[3] + g->GetTrd1AlFrontThick() / 2.;
-  TVirtualMC::GetMC()->Gspos(child.data(), 1, mother.data(), 0.0, 30.0, zposALFP, 0, "ONLY");
+  TVirtualMC::GetMC()->Gspos(child.data(), 1, mother.data(), 0.0, 0.0, zposALFP, 0, "ONLY");
 }
 
 int Detector::CreateEMCALVolume(const std::string_view name, const std::string_view shape, MediumType_t mediumID, Double_t* shapeParams, Int_t nparams)
