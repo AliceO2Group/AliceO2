@@ -35,11 +35,6 @@ std::vector<TGeoVolume*> getSensitiveVolumes();
 /// Add alignable mch volumes
 void addAlignableVolumesMCH();
 
-/// Add alignable half chamber volumes
-/// \param hc half chamber number
-/// \param parent path of the parent volume
-void addAlignableVolumesHalfChamber(int hc, std::string& parent);
-
 /// get the local-to-global transformation for a given detection element
 o2::Transform3D getTransformation(int detElemId, const TGeoManager& geo);
 
