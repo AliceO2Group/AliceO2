@@ -476,6 +476,18 @@ DECLARE_SOA_TABLE(McCaloLabels, "AOD", "MCCALOLABEL",
                   mccalolabel::LabelId, mccalolabel::LabelMask);
 using McCaloLabel = McCaloLabels::iterator;
 
+namespace mccollisionlabel
+{
+DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McCollisions, "fLabel");
+DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
+/// Bit mask to indicate collision mismatches (bit ON means mismatch)
+/// Bit 15: indicates negative label
+} // namespace mccollisionlabel
+
+DECLARE_SOA_TABLE(McCollisionLabels, "AOD", "MCCOLLISLABEL",
+                  mccollisionlabel::LabelId, mccollisionlabel::LabelMask);
+using McCollisionLabel = McCollisionLabels::iterator;
+
 } // namespace aod
 
 } // namespace o2

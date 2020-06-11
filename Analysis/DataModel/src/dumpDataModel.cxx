@@ -168,6 +168,7 @@ edge[dir=back, arrowtail=empty]
   dumpTable<McCollisions>(true, StyleType::RED);
   dumpTable<McTrackLabels>(true, StyleType::RED);
   dumpTable<McCaloLabels>(true, StyleType::RED);
+  dumpTable<McCollisionLabels>(true, StyleType::RED);
   dumpTable<McParticles>(true, StyleType::RED);
   fmt::printf("%s\n", R"(})");
 }

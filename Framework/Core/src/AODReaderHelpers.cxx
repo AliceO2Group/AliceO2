@@ -59,8 +59,9 @@ enum AODTypeMask : uint64_t {
   McCollision = 1 << 15,
   McTrackLabel = 1 << 16,
   McCaloLabel = 1 << 17,
-  McParticle = 1 << 18,
-  Unknown = 1 << 19
+  McCollisionLabel = 1 << 18,
+  McParticle = 1 << 19,
+  Unknown = 1 << 20
 };
 
 uint64_t getMask(header::DataDescription description)
@@ -102,6 +103,8 @@ uint64_t getMask(header::DataDescription description)
     return AODTypeMask::McTrackLabel;
   } else if (description == header::DataDescription{"MCCALOLABEL"}) {
     return AODTypeMask::McCaloLabel;
+  } else if (description == header::DataDescription{"MCCOLLISLABEL"}) {
+    return AODTypeMask::McCollisionLabel;
   } else if (description == header::DataDescription{"MCPARTICLE"}) {
     return AODTypeMask::McParticle;
   } else {
@@ -209,6 +212,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       tableMaker(o2::aod::McCollisionsMetadata{}, AODTypeMask::McCollision, "O2mccollision");
       tableMaker(o2::aod::McTrackLabelsMetadata{}, AODTypeMask::McTrackLabel, "O2mctracklabel");
       tableMaker(o2::aod::McCaloLabelsMetadata{}, AODTypeMask::McCaloLabel, "O2mccalolabel");
+      tableMaker(o2::aod::McCollisionLabelsMetadata{}, AODTypeMask::McCollisionLabel, "O2mccollisionlabel");
       tableMaker(o2::aod::McParticlesMetadata{}, AODTypeMask::McParticle, "O2mcparticle");
 
       // tables not included in the DataModel
