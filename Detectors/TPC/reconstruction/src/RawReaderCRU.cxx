@@ -292,7 +292,7 @@ int RawReaderCRU::scanFile()
           linkInfo->HBEndSeen = true;
         }
       } else {
-        O2ERROR("Unknown stop code: %lu", rdh.stop);
+        O2ERROR("Unknown stop code: %lu", (unsigned long)rdh.stop);
       }
       //std::cout << dataWrapperID << "." << linkID << " (" << globalLinkID << ")\n";
     } else {
