@@ -20,7 +20,9 @@
 #include "TCanvas.h"
 #include "TH1.h"
 #include "TFile.h"
+#include "TChain.h"
 
+#include "Framework/Logger.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/Utils.h"
 
@@ -167,13 +169,7 @@ std::vector<CalPad*> utils::readCalPads(const std::string_view fileName, const s
   return readCalPads(fileName, calPadNamesVec);
 }
 
-/// macro to merge cal pad objects from different files
-///
-/// requires that all objects have the same name in the differnet files.
-/// Objects are simply added.
-/// \param outputFileName name of the output file
-/// \param inputFileNames input file names. Perforams file system 'ls' in case the string includes '.root'. Otherwise it assumes a text input file with line by line file names.
-/// \param calPadNames comma separated list of names of the CalPad objects as stored in the file.
+//______________________________________________________________________________
 void utils::mergeCalPads(std::string_view outputFileName, std::string_view inputFileNames, std::string_view calPadNames)
 {
   using namespace o2::tpc;
@@ -186,7 +182,7 @@ void utils::mergeCalPads(std::string_view outputFileName, std::string_view input
   }
   auto files = gSystem->GetFromPipe(TString::Format("%s %s", cmd.data(), inputFileNames.data()));
   std::unique_ptr<TObjArray> arrFiles(files.Tokenize("\n"));
-  
+
   std::vector<CalPad*> mergedCalPads;
 
   for (auto ofile : *arrFiles) {
@@ -197,7 +193,7 @@ void utils::mergeCalPads(std::string_view outputFileName, std::string_view input
     if (!mergedCalPads.size()) {
       mergedCalPads = calPads;
     } else {
-      for (size_t iCalPad = 0; iCalPad<calPads.size(); ++iCalPad) {
+      for (size_t iCalPad = 0; iCalPad < calPads.size(); ++iCalPad) {
         auto calPadName = calPadNamesVec[iCalPad];
         auto calPadMerged = mergedCalPads[iCalPad];
         calPadMerged->setName(calPadName);
@@ -215,3 +211,23 @@ void utils::mergeCalPads(std::string_view outputFileName, std::string_view input
     outFile->WriteObject(calPad, calPad->getName().data());
   }
 }
+
+//______________________________________________________________________________
+TChain* utils::buildChain(std::string_view command, std::string_view treeName, std::string_view treeTitle)
+{
+  const TString files = gSystem->GetFromPipe(command.data());
+  std::unique_ptr<TObjArray> arrFiles(files.Tokenize("\n"));
+  if (!arrFiles->GetEntriesFast()) {
+    LOGP(error, "command '{}' did not return results", command);
+    return nullptr;
+  }
+
+  auto c = new TChain(treeName.data(), treeTitle.data());
+  for (const auto o : *arrFiles) {
+    LOGP(info, "Adding file '{}'", o->GetName());
+    c->AddFile(o->GetName());
+  }
+
+  return c;
+}
+
