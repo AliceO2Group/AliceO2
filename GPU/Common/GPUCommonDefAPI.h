@@ -27,6 +27,7 @@
   #define GPUdDefault()                             // default (constructor / operator) device function
   #define GPUdi() inline                            // to-be-inlined device function
   #define GPUdii()                                  // Only on GPU to-be-inlined device function
+  #define GPUdni()                                  // Device function, not-to-be-inlined
   #define GPUh()                                    // Host-only function
   // NOTE: All GPUd*() functions are also compiled on the host during GCC compilation.
   // The GPUh*() macros are for the rare cases of functions that you want to compile for the host during GPU compilation.
@@ -68,6 +69,7 @@
   #define GPUdDefault()
   #define GPUdi() inline
   #define GPUdii() inline
+  #define GPUdni()
   #define GPUh() INVALID_TRIGGER_ERROR_NO_HOST_CODE
   #define GPUhi() INVALID_TRIGGER_ERROR_NO_HOST_CODE
   #define GPUhd() inline
@@ -121,6 +123,7 @@
   #define GPUdDefault() __device__
   #define GPUdi() __device__ inline
   #define GPUdii() __device__ __forceinline__
+  #define GPUdni() __device__ __attribute__((noinline))
   #define GPUh() __host__ inline
   #define GPUhi() __host__ inline
   #define GPUhd() __host__ __device__ inline
@@ -148,6 +151,7 @@
   #define GPUdDefault()
   #define GPUdi() __device__ inline
   #define GPUdii() __device__ inline
+  #define GPUdni() __device__ __attribute__((noinline))
   #define GPUh() __host__ inline
   #define GPUhi() __host__ inline
   #define GPUhd() __host__ __device__ inline
