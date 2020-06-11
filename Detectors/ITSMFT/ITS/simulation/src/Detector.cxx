@@ -774,7 +774,7 @@ void Detector::constructDetectorGeometry()
   // Create the geometry and insert it in the mother volume ITSV
   TGeoManager* geoManager = gGeoManager;
 
-  TGeoVolume* vALIC = geoManager->GetVolume("cave");
+  TGeoVolume* vALIC = geoManager->GetVolume("barrel");
 
   if (!vALIC) {
     LOG(FATAL) << "Could not find the top volume";
@@ -782,7 +782,7 @@ void Detector::constructDetectorGeometry()
 
   new TGeoVolumeAssembly(GeometryTGeo::getITSVolPattern());
   TGeoVolume* vITSV = geoManager->GetVolume(GeometryTGeo::getITSVolPattern());
-  vALIC->AddNode(vITSV, 2, nullptr); // Copy number is 2 to cheat AliGeoManager::CheckSymNamesLUT
+  vALIC->AddNode(vITSV, 2, new TGeoTranslation(0, 30., 0)); // Copy number is 2 to cheat AliGeoManager::CheckSymNamesLUT
 
   const Int_t kLength = 100;
   Char_t vstrng[kLength] = "xxxRS"; //?
@@ -1046,7 +1046,7 @@ void Detector::addAlignableVolumes() const
     return;
   }
 
-  TString path = Form("/cave_1/%s_2", GeometryTGeo::getITSVolPattern());
+  TString path = Form("/cave_1/barrel_1/%s_2", GeometryTGeo::getITSVolPattern());
   TString sname = GeometryTGeo::composeSymNameITS();
 
   LOG(DEBUG) << sname << " <-> " << path;

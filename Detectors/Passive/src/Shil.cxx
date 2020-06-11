@@ -182,30 +182,30 @@ void Shil::ConstructGeometry()
   //    Outer radius at the end of the tail
   Float_t rOuFaWTailE = 31.6 / 2.;
   //    Total length of the tail
-  const Float_t dzFaWTail = 70.7;
+  const Float_t dzFaWTail = 70.7 - 6.;
 
-  TGeoPcon* shFaWTail = new TGeoPcon(0., 360., 10);
+  TGeoPcon* shFaWTail = new TGeoPcon(0., 360., 8);
   z = 0.;
-  //    Flange section inside FA
-  shFaWTail->DefineSection(0, z, rInFaWTail1, rOuFaWTail1);
-  z += dzFaWTail1;
-  shFaWTail->DefineSection(1, z, rInFaWTail2, rOuFaWTail1);
-  shFaWTail->DefineSection(2, z, rInFaWTail2, rOuFaWTail2);
+  //    Flange section inside FA (moved to ABSO)
+  //  shFaWTail->DefineSection(0, z, rInFaWTail1, rOuFaWTail1);
+  //  z += dzFaWTail1;
+  //  shFaWTail->DefineSection(1, z, rInFaWTail2, rOuFaWTail1);
+  shFaWTail->DefineSection(0, z, rInFaWTail2, rOuFaWTail2);
   //    Flange section outside FA
   z += dzFaWTail2;
-  shFaWTail->DefineSection(3, z, rInFaWTail3, rOuFaWTail3);
-  shFaWTail->DefineSection(4, z, rInFaWTail3, rOuFaWTailR);
+  shFaWTail->DefineSection(1, z, rInFaWTail3, rOuFaWTail3);
+  shFaWTail->DefineSection(2, z, rInFaWTail3, rOuFaWTailR);
   //    Recess Station 1
   z += dzFaWTailR;
-  shFaWTail->DefineSection(5, z, rInFaWTail4, rOuFaWTailR);
-  shFaWTail->DefineSection(6, z, rInFaWTailS, rOuFaWTail4);
+  shFaWTail->DefineSection(3, z, rInFaWTail4, rOuFaWTailR);
+  shFaWTail->DefineSection(4, z, rInFaWTailS, rOuFaWTail4);
   //    Bulge
   z += dzFaWTailB;
-  shFaWTail->DefineSection(7, z, rInFaWTailS, rOuFaWTailB);
-  shFaWTail->DefineSection(8, z, rInFaWTailS, rOuFaWTailE);
+  shFaWTail->DefineSection(5, z, rInFaWTailS, rOuFaWTailB);
+  shFaWTail->DefineSection(6, z, rInFaWTailS, rOuFaWTailE);
   //    End
   z = dzFaWTail;
-  shFaWTail->DefineSection(9, z, rInFaWTailS, rOuFaWTailE);
+  shFaWTail->DefineSection(7, z, rInFaWTailS, rOuFaWTailE);
 
   TGeoVolume* voFaWTail = new TGeoVolume("YFaWTail", shFaWTail, kMedNiW);
   //
@@ -213,8 +213,8 @@ void Shil::ConstructGeometry()
   TGeoPcon* shFaWTailI = new TGeoPcon(0., 360., 4);
   z = 0.;
   dr = 3.5;
-  shFaWTailI->DefineSection(0, z, rInFaWTail1, rInFaWTail1 + dr);
-  z += (dzFaWTail1 + dzFaWTail2 + dzFaWTailR);
+  shFaWTailI->DefineSection(0, z, rInFaWTail2, rInFaWTail2 + dr);
+  z += (dzFaWTail2 + dzFaWTailR);
   shFaWTailI->DefineSection(1, z, rInFaWTail4, rInFaWTail4 + dr);
   shFaWTailI->DefineSection(2, z, rInFaWTailS, rInFaWTailS + dr);
   z = dzFaWTail;
@@ -303,8 +303,8 @@ void Shil::ConstructGeometry()
   dz += kFaWring3HWidth;
   dz += kFaDWrings;
   dz += kFaWring2HWidth;
-  asFaExtraShield->AddNode(voFaWring2, 3, new TGeoCombiTrans(0., 0., dz, rot090));
-  asFaExtraShield->AddNode(voFaWring2, 4, new TGeoCombiTrans(0., 0., dz, rot270));
+  asFaExtraShield->AddNode(voFaWring2, 3, new TGeoCombiTrans(0., 0., dz - 6, rot090));
+  asFaExtraShield->AddNode(voFaWring2, 4, new TGeoCombiTrans(0., 0., dz - 6., rot270));
   dz += kFaWring2HWidth;
 
   ///////////////////////////////////////
@@ -800,10 +800,10 @@ void Shil::ConstructGeometry()
   dz += saa1Wring2HWidth;
   dz += saa1DWrings;
   dz += saa1Wring3HWidth;
-  asSaa1ExtraShield->AddNode(voSaa1Wring3, 1, new TGeoCombiTrans(0., 0., dz, rot090));
-  asSaa1ExtraShield->AddNode(voSaa1Wring3, 2, new TGeoCombiTrans(0., 0., dz, rot270));
+  asSaa1ExtraShield->AddNode(voSaa1Wring3, 1, new TGeoCombiTrans(0., 0., dz - 0.15, rot090));
+  asSaa1ExtraShield->AddNode(voSaa1Wring3, 2, new TGeoCombiTrans(0., 0., dz - 0.15, rot270));
   dz += saa1Wring3HWidth;
-  asSaa1ExtraShield->AddNode(voSaa1Wring4, 1, new TGeoTranslation(0., 0., dz));
+  asSaa1ExtraShield->AddNode(voSaa1Wring4, 1, new TGeoTranslation(0., 0., dz - 6.));
   dz += saa1Wring4Width;
   const Float_t saa1ExtraShieldL = 48;
   //
@@ -1221,7 +1221,7 @@ void Shil::ConstructGeometry()
   TGeoVolumeAssembly* voSaa = new TGeoVolumeAssembly("YSAA");
   //
   //    Starting position of the FA Flange/Tail
-  const Float_t ziFaWTail = 499.0;
+  const Float_t ziFaWTail = 505.0;
   //    End of the FA Flange/Tail
   const Float_t zoFaWTail = ziFaWTail + dzFaWTail;
   //    Starting position of the FA/SAA1 Joint (2.8 cm overlap with tail)
@@ -1272,10 +1272,10 @@ void Shil::ConstructGeometry()
   Float_t eps = 1.e-2;
   // FA Tail Section
   for (Int_t iz = 1; iz < 9; iz++) {
-    z = shFaWTail->GetZ(iz + 1);
+    z = shFaWTail->GetZ(iz - 1);
     if (iz == 8)
       z -= ozFaSaa1;
-    shYOUT1->DefineSection(iz - 1, z + ziFaWTail, shFaWTail->GetRmax(iz + 1) + eps, 150.);
+    shYOUT1->DefineSection(iz - 1, z + ziFaWTail, shFaWTail->GetRmax(iz - 1) + eps, 150.);
   }
   // FA-SAA1 Joint
   z = shYOUT1->GetZ(7);

@@ -156,7 +156,7 @@ void Geo::getVolumePath(const Int_t* ind, Char_t* path)
   Int_t icopy = -1;
   icopy = sector;
 
-  snprintf(string1, kSize, "/cave_1/B077_1/BSEGMO%i_1/BTOF%i_1", icopy, icopy);
+  snprintf(string1, kSize, "/cave_1/barrel_1/B077_1/BSEGMO%i_1/BTOF%i_1", icopy, icopy);
 
   Bool_t fgHoles = kTRUE;
 

@@ -34,7 +34,7 @@ namespace o2
 {
 namespace passive
 {
-const char* TOPNAME = "cave";
+const char* TOPNAME = "barrel";
 #define AliMatrix TVirtualMC::GetMC()->Matrix
 #define kRaddeg TMath::RadToDeg()
 #define kDegrad TMath::DegToRad()
@@ -440,7 +440,7 @@ void FrameStructure::ConstructGeometry()
   TGeoCompositeShape* shB77 = new TGeoCompositeShape("shB77", "shB77A+shB77B:trB77A+shB77B:trB77B");
   TGeoVolume* voB77 = new TGeoVolume("B077", shB77, gGeoManager->GetMedium("FRAME_Air"));
   voB77->SetName("B077"); // just to avoid a warning
-  vmc->Gspos("B077", 1, TOPNAME, 0., 0., 0., 0, "ONLY");
+  vmc->Gspos("B077", 1, TOPNAME, 0., 30., 0., 0, "ONLY");
   //
   // Reference plane #1 for TRD
   TGeoPgon* shBREFA = new TGeoPgon(0.0, 360., 18, 2);
@@ -1561,16 +1561,16 @@ void FrameStructure::ConstructGeometry()
   vmc->Gspos("BRS2", 1, "BRS1", 0., -27.5 + 3.75, 0., 0, "ONLY");
   vmc->Gspos("BRS2", 2, "BRS1", 0., 27.5 - 3.75, 0., 0, "ONLY");
   vmc->Gspos("BRS3", 1, "BRS1", 0., 0., 0., 0, "ONLY");
-  vmc->Gspos("BRS1", 1, TOPNAME, -430. - 3., -190., 0., 0, "ONLY");
-  vmc->Gspos("BRS1", 2, TOPNAME, 430. + 3., -190., 0., 0, "ONLY");
+  vmc->Gspos("BRS1", 1, TOPNAME, -430. - 3. + 30., -190., 0., 0, "ONLY");
+  vmc->Gspos("BRS1", 2, TOPNAME, 430. + 3. + 30., -190., 0., 0, "ONLY");
 
   rbox[0] = 3.0;
   rbox[1] = 145. / 4.;
   rbox[2] = 25.0;
   vmc->Gsvolu("BRS4", "BOX", kSteel, rbox, 3);
 
-  vmc->Gspos("BRS4", 1, TOPNAME, 430. + 3., -190. + 55. / 2. + rbox[1], 224., 0, "ONLY");
-  vmc->Gspos("BRS4", 2, TOPNAME, 430. + 3., -190. + 55. / 2. + rbox[1], -224., 0, "ONLY");
+  vmc->Gspos("BRS4", 1, TOPNAME, 430. + 3., -190. + 55. / 2. + rbox[1] + 30., 224., 0, "ONLY");
+  vmc->Gspos("BRS4", 2, TOPNAME, 430. + 3., -190. + 55. / 2. + rbox[1] + 30., -224., 0, "ONLY");
 
   //
   // The Backframe
@@ -1725,7 +1725,7 @@ void FrameStructure::ConstructGeometry()
     vmc->Gspos("BFRB", i + 11, "BFMO", xb, yb, -dz, idrotm[2034 + iphi[i]], "ONLY");
   }
 
-  vmc->Gspos("BFMO", i + 19, TOPNAME, 0, 0, -376. - kBFMdz / 2. - 0.5, 0, "ONLY");
+  vmc->Gspos("BFMO", i + 19, TOPNAME, 0, 30., -376. - kBFMdz / 2. - 0.5, 0, "ONLY");
 
   //
   //
@@ -1913,7 +1913,7 @@ void FrameStructure::ConstructGeometry()
   dy = ((kBBMRou + kBBMRin) / 2) * TMath::Tan(10 * kDegrad) - kBBBdz / 2. / TMath::Cos(10 * kDegrad);
   vmc->Gspos("BBD2", 1, "BBCE", dx, dy, -dz / 2. - kBBBdz / 2., idrotm[2052], "ONLY");
 
-  vmc->Gspos("BBMO", 1, TOPNAME, 0., 0., +376. + kBBMdz / 2. + 0.5, 0, "ONLY");
+  vmc->Gspos("BBMO", 1, TOPNAME, 0., 30., +376. + kBBMdz / 2. + 0.5, 0, "ONLY");
 }
 } // namespace passive
 } // namespace o2

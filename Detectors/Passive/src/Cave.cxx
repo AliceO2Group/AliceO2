@@ -29,7 +29,9 @@
 #include "FairLogger.h"
 #include "TGeoManager.h"
 #include "TGeoVolume.h"
-
+#include "TGeoPgon.h"
+#include "TGeoTube.h"
+#include "TGeoCompositeShape.h"
 using namespace o2::passive;
 
 void Cave::createMaterials()
@@ -39,8 +41,9 @@ void Cave::createMaterials()
   Int_t isxfld;
   Float_t sxmgmx;
   o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
-
+  LOG(INFO) << "Field in CAVE: " << isxfld;
   // AIR
+  isxfld = 1;
   Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
   Float_t zAir[4] = {6., 7., 8., 18.};
   Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
@@ -48,14 +51,18 @@ void Cave::createMaterials()
 
   //
   matmgr.Mixture("CAVE", 2, "Air", aAir, zAir, dAir, 4, wAir);
+  matmgr.Mixture("CAVE", 3, "Air_NF", aAir, zAir, dAir, 4, wAir);
   //
   matmgr.Medium("CAVE", 2, "Air", 2, 0, isxfld, sxmgmx, 10, -1, -0.1, 0.1, -10);
+  matmgr.Medium("CAVE", 3, "Air_NF", 3, 0, 0, sxmgmx, 10, -1, -0.1, 0.1, -10);
 }
 
 void Cave::ConstructGeometry()
 {
   createMaterials();
   auto& matmgr = o2::base::MaterialManager::Instance();
+  auto kMedAir = gGeoManager->GetMedium("CAVE_Air");
+
   Float_t dALIC[3];
 
   if (mHasZDC) {
@@ -70,8 +77,35 @@ void Cave::ConstructGeometry()
     dALIC[1] = 2000;
     dALIC[2] = 3000;
   }
-  auto cavevol = gGeoManager->MakeBox("cave", gGeoManager->GetMedium("CAVE_Air"), dALIC[0], dALIC[1], dALIC[2]);
+  auto cavevol = gGeoManager->MakeBox("cave", kMedAir, dALIC[0], dALIC[1], dALIC[2]);
   gGeoManager->SetTopVolume(cavevol);
+
+  TGeoPgon* shCaveTR1 = new TGeoPgon("shCaveTR1", 22.5, 360., 8., 2);
+  shCaveTR1->DefineSection(0, -706. - 8.6, 0., 790.5);
+  shCaveTR1->DefineSection(1, 707. + 7.6, 0., 790.5);
+  TGeoTube* shCaveTR2 = new TGeoTube("shCaveTR2", 0., 150., 110.);
+
+  TGeoTranslation* transCaveTR2 = new TGeoTranslation("transTR2", 0, 30., -505. - 110.);
+  transCaveTR2->RegisterYourself();
+  TGeoCompositeShape* shCaveTR = new TGeoCompositeShape("shCaveTR", "shCaveTR1-shCaveTR2:transTR2");
+  TGeoVolume* voBarrel = new TGeoVolume("barrel", shCaveTR, kMedAir);
+  cavevol->AddNode(voBarrel, 1, new TGeoTranslation(0., -30., 0.));
+
+  // mother volune for RB24 side (FDD, Compensator)
+  const Float_t kRB24CL = 2. * 598.74752;
+  auto shCaveRB24 = new TGeoPcon(0., 360., 6);
+  Float_t z0 = kRB24CL / 2 + 714.6;
+  shCaveRB24->DefineSection(0, -kRB24CL / 2., 0., 105.);
+  shCaveRB24->DefineSection(1, -z0 + 1705., 0., 105.);
+  shCaveRB24->DefineSection(2, -z0 + 1705., 0., 14.5);
+  shCaveRB24->DefineSection(3, -z0 + 1880., 0., 14.5);
+  shCaveRB24->DefineSection(4, -z0 + 1880., 0., 40.0);
+  shCaveRB24->DefineSection(5, kRB24CL / 2, 0., 40.0);
+
+  TGeoVolume* caveRB24 = new TGeoVolume("caveRB24", shCaveRB24, kMedAir);
+  caveRB24->SetVisibility(0);
+  cavevol->AddNode(caveRB24, 1, new TGeoTranslation(0., 0., z0));
+  //
 }
 
 Cave::Cave() : FairDetector() {}

@@ -172,7 +172,7 @@ void Magnet::ConstructGeometry()
 
   //
   // Top volume
-  TGeoVolume* top = gGeoManager->GetVolume("cave");
+  TGeoVolume* top = gGeoManager->GetVolume("barrel");
   assert(top);
 
   // Media
@@ -393,7 +393,7 @@ void Magnet::ConstructGeometry()
   l3->AddNode(voL3PlugSPR, 2, new TGeoCombiTrans(0., 0., 0., rotxz));
   l3->AddNode(voL3PlugSPL, 1, new TGeoTranslation(0., 0., 0.));
   l3->AddNode(voL3PlugSPL, 2, new TGeoCombiTrans(0., 0., 0., rotxz));
-  top->AddNode(l3, 1, new TGeoTranslation(0., os, 0.));
+  top->AddNode(l3, 1, new TGeoTranslation(0., 0., 0.));
 }
 
 FairModule* Magnet::CloneModule() const { return new Magnet(*this); }

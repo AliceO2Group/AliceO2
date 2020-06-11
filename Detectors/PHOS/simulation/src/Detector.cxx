@@ -285,9 +285,9 @@ void Detector::ConstructGeometry()
     geom->getModuleCenter(iModule, pos);
 
     if (iModule == 0) { // special 1/2 module
-      fMC->Gspos("PHOH", iModule + 1, "cave", pos[0], pos[1], pos[2], idrotm[iModule], "ONLY");
+      fMC->Gspos("PHOH", iModule + 1, "barrel", pos[0], pos[1] + 30., pos[2], idrotm[iModule], "ONLY");
     } else {
-      fMC->Gspos("PHOS", iModule + 1, "cave", pos[0], pos[1], pos[2], idrotm[iModule], "ONLY");
+      fMC->Gspos("PHOS", iModule + 1, "barrel", pos[0], pos[1] + 30., pos[2], idrotm[iModule], "ONLY");
     }
   }
 
@@ -820,7 +820,7 @@ void Detector::ConstructSupportGeometry()
   fMC->Gsvolu("PRRD", "BOX ", getMediumID(ID_AIR), par, 3);
 
   y0 = -(geom->getRailsDistanceFromIP() - geom->getRailRoadSize(1) / 2.0);
-  fMC->Gspos("PRRD", 1, "cave", 0.0, y0, 0.0, 0, "ONLY");
+  fMC->Gspos("PRRD", 1, "barrel", 0.0, y0 + 30., 0.0, 0, "ONLY");
 
   // --- Dummy box containing one rail
 
@@ -886,7 +886,7 @@ void Detector::ConstructSupportGeometry()
 
   for (i = 0; i < 2; i++) {
     z0 = (2 * i - 1) * (geom->getOuterBoxSize(2) + geom->getCradleWall(2)) / 2.0;
-    fMC->Gspos("PCRA", i, "cave", 0.0, 0.0, z0, 0, "ONLY");
+    fMC->Gspos("PCRA", i, "barrel", 0.0, 30.0, z0, 0, "ONLY");
   }
 
   // --- The "wheels" of the cradle
@@ -902,7 +902,7 @@ void Detector::ConstructSupportGeometry()
     for (j = 0; j < 2; j++) {
       copy = 2 * i + j;
       x0 = (2 * j - 1) * geom->getDistanceBetwRails() / 2.0;
-      fMC->Gspos("PWHE", copy, "cave", x0, y0, z0, 0, "ONLY");
+      fMC->Gspos("PWHE", copy, "barrel", x0, y0 + 30., z0, 0, "ONLY");
     }
   }
 }
@@ -934,7 +934,7 @@ void Detector::addAlignableVolumes() const
 
   o2::detectors::DetID::ID idPHOS = o2::detectors::DetID::PHS;
 
-  TString physModulePath = "/cave_1/PHOS_";
+  TString physModulePath = "/cave_1/barrel_1/PHOS_";
 
   TString symbModuleName = "PHOS/Module";
 
