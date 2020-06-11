@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <array>
 #include "TROOT.h"
 #include "TMath.h"
 #include "TH2.h"
@@ -16,20 +17,24 @@
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Painter.h"
 #include "TPCBase/Utils.h"
+#include "TPCBase/Mapper.h"
 #include "TPad.h"
 #include "TCanvas.h"
 #include "TH1F.h"
 #include "TString.h"
+#include "TStyle.h"
 #endif
 
 /// Open pedestalFile and retrieve noise and pedestal values
 /// Draw then in separate canvases and add an executable to be able to add
 /// FEC information to the title
-TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir = "", int type = 0)
+TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir = "", int type = 0, bool normalizeQtot = true)
 {
   if ((mode != 0) && (mode != 1)) {
     return 0x0;
   }
+
+  gStyle->SetNumberContours(100);
 
   TObjArray* arrCanvases = new TObjArray;
   arrCanvases->SetName("Pulser");
@@ -45,6 +50,35 @@ TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir 
   f.GetObject("Width", calWidth);
   f.GetObject("Qtot", calQtot);
 
+  if (normalizeQtot) {
+    // normalize Qtot to pad area
+    const auto& mapper = o2::tpc::Mapper::instance();
+    std::array<float, 152> mapRowPadArea;
+    {
+      int iregion = 0;
+      auto padRegion = &mapper.getPadRegionInfo(iregion);
+      for (size_t i = 0; i < mapRowPadArea.size(); ++i) {
+        if (i >= padRegion->getGlobalRowOffset() + padRegion->getNumberOfPadRows()) {
+          padRegion = &mapper.getPadRegionInfo(++iregion);
+        }
+        mapRowPadArea[i] = padRegion->getPadWidth() * padRegion->getPadHeight();
+        //printf("row: %3i, region: %i, size: %.2f\n", i, iregion, mapRowPadArea[i]);
+      }
+    }
+
+    auto& calArraysQtot = calQtot->getData();
+    for (size_t iROC = 0; iROC < calArraysQtot.size(); ++iROC) {
+      auto& calArray = calArraysQtot[iROC];
+      auto& qTotROC = calArray.getData();
+      int offset = iROC < 36 ? 0 : mapper.getPadsInIROC();
+      for (size_t iPad = 0; iPad < qTotROC.size(); ++iPad) {
+        const auto& padPos = mapper.padPos(iPad + offset);
+        auto& val = qTotROC[iPad];
+        val /= mapRowPadArea[padPos.getRow()];
+      }
+    }
+  }
+
   // mode 1 handling
   if (mode == 1) {
     float tMin = 238.f;
@@ -53,14 +87,18 @@ TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir 
     float wMax = 0.57f;
     float qMin = 20.f;
     float qMax = 280.f;
+    if (normalizeQtot) {
+      qMin = 100.f;
+      qMax = 350.f;
+    }
 
     if (type == 1) {
       tMin = 425.f;
       tMax = 485.f;
       wMin = 0.6;
       wMax = 0.8;
-      qMin = 2.f;
-      qMax = 180.f;
+      qMin = 5.f;
+      qMax = 500.f;
     }
 
     auto arrT0 = painter::makeSummaryCanvases(*calT0, 100, tMin, tMax);
