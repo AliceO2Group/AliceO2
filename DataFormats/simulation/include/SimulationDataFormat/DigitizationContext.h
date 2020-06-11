@@ -26,9 +26,6 @@ namespace steer
 {
 // a structure describing EventPart
 // (an elementary constituent of a collision)
-
-constexpr static int QEDSOURCEID = 99;
-
 struct EventPart {
   EventPart() = default;
   EventPart(int s, int e) : sourceID(s), entryID(e) {}
@@ -36,9 +33,8 @@ struct EventPart {
   // the sourceID should correspond to the chain ID
   int entryID = 0; // the event/entry ID inside the chain corresponding to sourceID
 
-  static bool isSignal(EventPart e) { return e.sourceID > 1 && e.sourceID != QEDSOURCEID; }
+  static bool isSignal(EventPart e) { return e.sourceID > 1; }
   static bool isBackGround(EventPart e) { return !isSignal(e); }
-  static bool isQED(EventPart e) { return e.sourceID == QEDSOURCEID; }
   ClassDefNV(EventPart, 1);
 };
 
@@ -54,13 +50,11 @@ class DigitizationContext
   void setMaxNumberParts(int maxp) { mMaxPartNumber = maxp; }
   int getMaxNumberParts() const { return mMaxPartNumber; }
 
-  std::vector<o2::InteractionTimeRecord>& getEventRecords(bool withQED = false) { return withQED ? mEventRecordsWithQED : mEventRecords; }
-  std::vector<std::vector<o2::steer::EventPart>>& getEventParts(bool withQED = false) { return withQED ? mEventPartsWithQED : mEventParts; }
+  std::vector<o2::InteractionTimeRecord>& getEventRecords() { return mEventRecords; }
+  std::vector<std::vector<o2::steer::EventPart>>& getEventParts() { return mEventParts; }
 
-  const std::vector<o2::InteractionTimeRecord>& getEventRecords(bool withQED = false) const { return withQED ? mEventRecordsWithQED : mEventRecords; }
-  const std::vector<std::vector<o2::steer::EventPart>>& getEventParts(bool withQED = false) const { return withQED ? mEventPartsWithQED : mEventParts; }
-
-  bool isQEDProvided() const { return !mEventRecordsWithQED.empty(); }
+  const std::vector<o2::InteractionTimeRecord>& getEventRecords() const { return mEventRecords; }
+  const std::vector<std::vector<o2::steer::EventPart>>& getEventParts() const { return mEventParts; }
 
   o2::BunchFilling& getBunchFilling() { return mBCFilling; }
   const o2::BunchFilling& getBunchFilling() const { return (const o2::BunchFilling&)mBCFilling; }
@@ -68,15 +62,11 @@ class DigitizationContext
   void setMuPerBC(float m) { mMuBC = m; }
   float getMuPerBC() const { return mMuBC; }
 
-  void printCollisionSummary(bool withQED = false) const;
+  void printCollisionSummary() const;
 
   // we need a method to fill the file names
   void setSimPrefixes(std::vector<std::string> const& p);
   std::vector<std::string> const& getSimPrefixes() const { return mSimPrefixes; }
-
-  /// add QED contributions to context; QEDprefix is prefix of QED production
-  /// irecord is vector of QED interaction times (sampled externally)
-  void fillQED(std::string_view QEDprefix, std::vector<o2::InteractionTimeRecord> const& irecord);
 
   /// Common functions the setup input TChains for reading, given the state (prefixes) encapsulated
   /// by this context. The input vector needs to be empty otherwise nothing will be done.
@@ -117,17 +107,12 @@ class DigitizationContext
   // for each collision we record the constituents (which shall not exceed mMaxPartNumber)
   std::vector<std::vector<o2::steer::EventPart>> mEventParts;
 
-  // the collision records _with_ QED interleaved;
-  std::vector<o2::InteractionTimeRecord> mEventRecordsWithQED;
-  std::vector<std::vector<o2::steer::EventPart>> mEventPartsWithQED;
-
   o2::BunchFilling mBCFilling; // patter of active BCs
 
-  std::vector<std::string> mSimPrefixes;             // identifiers to the hit sim products; the key corresponds to the source ID of event record
-  std::string mQEDSimPrefix;                         // prefix for QED production/contribution
+  std::vector<std::string> mSimPrefixes;             // identifiers to the hit sim products; the index corresponds to the source ID of event record
   mutable o2::parameters::GRPObject* mGRP = nullptr; //!
 
-  ClassDefNV(DigitizationContext, 3);
+  ClassDefNV(DigitizationContext, 2);
 };
 
 /// function reading the hits from a chain (previously initialized with initSimChains
