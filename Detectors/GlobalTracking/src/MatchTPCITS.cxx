@@ -546,6 +546,10 @@ bool MatchTPCITS::prepareTPCTracks()
     // cache work track index
     mTPCSectIndexCache[o2::utils::Angle2Sector(trc.getAlpha())].push_back(mTPCWork.size() - 1);
   }
+
+  /// full drift time + safety margin
+  float maxTDriftSafe = (mNTPCBinsFullDrift + mParams->TPCITSTimeBinSafeMargin + mTPCTimeEdgeTSafeMargin);
+
   float maxTimeBin = 0;
   int nITSROFs = mITSROFTimes.size();
   // sort tracks in each sector according to their timeMax
@@ -560,7 +564,9 @@ bool MatchTPCITS::prepareTPCTracks()
       return (trcA.timeBins.max() - trcB.timeBins.max()) < 0.;
     });
 
-    // build array of 1st entries with tmax corresponding to each ITS ROF (or trigger)
+    // build array of 1st entries with tmax corresponding to each ITS ROF (or trigger),
+    // TPC tracks below this entry cannot match to ITS tracks of this and higher ROFs
+
     float tmax = mTPCWork[indexCache.back()].timeBins.max();
     if (maxTimeBin < tmax) {
       maxTimeBin = tmax;
@@ -573,11 +579,12 @@ bool MatchTPCITS::prepareTPCTracks()
     tbinStart[0] = 0;
     for (int itr = 0; itr < (int)indexCache.size(); itr++) {
       auto& trc = mTPCWork[indexCache[itr]];
-      while (itsROF < nITSROFs && trc.timeBins > mITSROFTimes[itsROF]) {
+      while (itsROF < nITSROFs && !(trc.timeBins < mITSROFTimes[itsROF])) { // 1st ITS frame afte max allowed time for this TPC track
         itsROF++;
       }
-      if (tbinStart[itsROF] == -1) {
-        tbinStart[itsROF] = itr;
+      int itsROFMatch = itsROF;
+      if (itsROFMatch && tbinStart[--itsROFMatch] == -1) { // register ITSrof preceding the one which exceeds the TPC track tmax
+        tbinStart[itsROFMatch] = itr;
       }
     }
     for (int i = 1; i < nbins; i++) {
