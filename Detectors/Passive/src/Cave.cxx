@@ -38,7 +38,7 @@ void Cave::createMaterials()
 {
   auto& matmgr = o2::base::MaterialManager::Instance();
   // Create materials and media
-  Int_t   isxfld;
+  Int_t isxfld;
   Float_t sxmgmx;
   o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
   LOG(INFO) << "Field in CAVE: " << isxfld;
@@ -55,7 +55,6 @@ void Cave::createMaterials()
   //
   matmgr.Medium("CAVE", 2, "Air", 2, 0, isxfld, sxmgmx, 10, -1, -0.1, 0.1, -10);
   matmgr.Medium("CAVE", 3, "Air_NF", 3, 0, 0, sxmgmx, 10, -1, -0.1, 0.1, -10);
-  
 }
 
 void Cave::ConstructGeometry()
@@ -81,12 +80,12 @@ void Cave::ConstructGeometry()
   auto cavevol = gGeoManager->MakeBox("cave", kMedAir, dALIC[0], dALIC[1], dALIC[2]);
   gGeoManager->SetTopVolume(cavevol);
 
-  TGeoPgon* shCaveTR1 = new TGeoPgon("shCaveTR1", 22.5, 360.,8., 2);
-  shCaveTR1->DefineSection(0, -706.-8.6,    0., 790.5);
-  shCaveTR1->DefineSection(1,  707.+7.6,    0., 790.5);
+  TGeoPgon* shCaveTR1 = new TGeoPgon("shCaveTR1", 22.5, 360., 8., 2);
+  shCaveTR1->DefineSection(0, -706. - 8.6, 0., 790.5);
+  shCaveTR1->DefineSection(1, 707. + 7.6, 0., 790.5);
   TGeoTube* shCaveTR2 = new TGeoTube("shCaveTR2", 0., 150., 110.);
 
-  TGeoTranslation* transCaveTR2 = new TGeoTranslation("transTR2", 0, 30., -505.-110.);
+  TGeoTranslation* transCaveTR2 = new TGeoTranslation("transTR2", 0, 30., -505. - 110.);
   transCaveTR2->RegisterYourself();
   TGeoCompositeShape* shCaveTR = new TGeoCompositeShape("shCaveTR", "shCaveTR1-shCaveTR2:transTR2");
   TGeoVolume* voBarrel = new TGeoVolume("barrel", shCaveTR, kMedAir);

@@ -182,7 +182,7 @@ void Shil::ConstructGeometry()
   //    Outer radius at the end of the tail
   Float_t rOuFaWTailE = 31.6 / 2.;
   //    Total length of the tail
-  const Float_t dzFaWTail = 70.7-6.;
+  const Float_t dzFaWTail = 70.7 - 6.;
 
   TGeoPcon* shFaWTail = new TGeoPcon(0., 360., 8);
   z = 0.;

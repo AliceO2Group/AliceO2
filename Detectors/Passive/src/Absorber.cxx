@@ -286,7 +286,7 @@ void Absorber::ConstructGeometry()
   //
   // The top volume
   //
-  TGeoVolume* barrel  = gGeoManager->GetVolume("barrel");
+  TGeoVolume* barrel = gGeoManager->GetVolume("barrel");
 
   //
   // Media
@@ -647,14 +647,12 @@ void Absorber::ConstructGeometry()
   //
   // This section is partially in Shield
   Float_t dzFaWTube5 = 6.0;
-  Float_t kAngle0071 = TMath::Tan(0.71 * kDegRad); 
-  Float_t rInFaWTube5C1 = rInFaWTube4C2; 
+  Float_t kAngle0071 = TMath::Tan(0.71 * kDegRad);
+  Float_t rInFaWTube5C1 = rInFaWTube4C2;
   Float_t rInFaWTube5C2 = rInFaWTube4C2 + dzFaWTube4 * kAngle0071;
   Float_t rOuFaWTube5C1 = rOuFaWTube4C2;
   TGeoVolume* voFaWTube5 = new TGeoVolume(
     "AFaWTube5", new TGeoCone(dzFaWTube5 / 2., rInFaWTube5C1, rOuFaWTube5C1, rInFaWTube5C2, rOuFaWTube5C1), kMedNiWsh);
-
-
 
   //
   // Pos 11
@@ -991,7 +989,7 @@ void Absorber::ConstructGeometry()
   const Float_t kFassUBFlangeW = 77.;
 
   const Float_t kFassUMFlangeH = 380.;
-  const Float_t kFassUMFlangeB = 246.-9.85;
+  const Float_t kFassUMFlangeB = 246. - 9.85;
   const Float_t kFassUMFlangeT = 10.;
   const Float_t kFassUMFalpha = -TMath::ATan((kFassUMFlangeB - kFassUMFlangeT) / kFassUMFlangeH / 2.) / kDegRad;
   // Upper back   flange

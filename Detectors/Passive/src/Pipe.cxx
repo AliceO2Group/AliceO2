@@ -86,7 +86,7 @@ void Pipe::ConstructGeometry()
   const TGeoMedium* kMedVacNF = matmgr.getTGeoMedium("PIPE_VACUUM_NF");
   const TGeoMedium* kMedVacHC = matmgr.getTGeoMedium("PIPE_VACUUM_HC");
   const TGeoMedium* kMedVacNFHC = matmgr.getTGeoMedium("PIPE_VACUUM_NFHC");
-  
+
   const TGeoMedium* kMedInsu = matmgr.getTGeoMedium("PIPE_INS_C0");
 
   const TGeoMedium* kMedSteel = matmgr.getTGeoMedium("PIPE_INOX");
@@ -100,7 +100,6 @@ void Pipe::ConstructGeometry()
   const TGeoMedium* kMedCuNF = matmgr.getTGeoMedium("PIPE_CU_NF");
   const TGeoMedium* kMedCuHC = matmgr.getTGeoMedium("PIPE_CU_HC");
   const TGeoMedium* kMedCuNFHC = matmgr.getTGeoMedium("PIPE_CU_NFHC");
-
 
   const TGeoMedium* kMedAlu2219 = matmgr.getTGeoMedium("PIPE_AA2219"); // fm
   const TGeoMedium* kMedRohacell = matmgr.getTGeoMedium("PIPE_ROHACELL");
@@ -229,9 +228,9 @@ void Pipe::ConstructGeometry()
   //----------------  Al tube ------------------
   TGeoPcon* aluBeforeBellows = new TGeoPcon(0., 360., 9);
   aluBeforeBellows->DefineSection(0, kZ9, 0., kBellowSectionOuterRadius - kBeryliumSectionThickness + kBellowPlieThickness);
-  aluBeforeBellows->DefineSection(1, kZ8, 0., kBellowSectionOuterRadius - kBeryliumSectionThickness + kBellowPlieThickness); 
+  aluBeforeBellows->DefineSection(1, kZ8, 0., kBellowSectionOuterRadius - kBeryliumSectionThickness + kBellowPlieThickness);
   aluBeforeBellows->DefineSection(2, kZ7, 0., kBellowSectionOuterRadius);
-  aluBeforeBellows->DefineSection(3, kZ6, 0.,  kBellowSectionOuterRadius);
+  aluBeforeBellows->DefineSection(3, kZ6, 0., kBellowSectionOuterRadius);
   aluBeforeBellows->DefineSection(4, kZ5, 0., kCSideBPSOuterRadius);
   aluBeforeBellows->DefineSection(5, kZ4, 0., kCSideBPSOuterRadius);
   aluBeforeBellows->DefineSection(6, kZ3, 0., kBellowSectionOuterRadius);
@@ -286,10 +285,10 @@ void Pipe::ConstructGeometry()
   votube4->SetLineColor(kBlue);
   beamPipeCsideSection->AddNode(votube4, 1, gGeoIdentity);
 
-  TGeoTube* tube4Vacuum = new TGeoTube(0.,  kBellowSectionOuterRadius - kBeryliumSectionThickness, -(kZ15-kZ10)/2.);
+  TGeoTube* tube4Vacuum = new TGeoTube(0., kBellowSectionOuterRadius - kBeryliumSectionThickness, -(kZ15 - kZ10) / 2.);
   TGeoVolume* votube4Vacuum = new TGeoVolume("tube4Vacuum", tube4Vacuum, kMedVac);
   votube4Vacuum->SetVisibility(1);
-  votube4->AddNode(votube4Vacuum, 1, new TGeoTranslation(0., 0., (kZ10+kZ15)/2.));
+  votube4->AddNode(votube4Vacuum, 1, new TGeoTranslation(0., 0., (kZ10 + kZ15) / 2.));
 
   // ------------------ Second Bellow --------------------
   TGeoVolume* vobellows2 =
@@ -630,7 +629,7 @@ void Pipe::ConstructGeometry()
   //
 
   // Copper Tube RB24/1
-  const Float_t kRB24CuTubeL  = 393.5;
+  const Float_t kRB24CuTubeL = 393.5;
   const Float_t kRB24cCuTubeL = 167.775;
   const Float_t kRB24bCuTubeL = 393.5 - kRB24cCuTubeL;
   const Float_t kRB24CuTubeRi = 8.0 / 2.;
@@ -655,7 +654,7 @@ void Pipe::ConstructGeometry()
   TGeoVolume* voRB24cCuTube =
     new TGeoVolume("voRB24cCuTube", new TGeoTube(kRB24CuTubeRi, kRB24CuTubeRo, kRB24cCuTubeL / 2.), kMedCuNFHC);
   voRB24cCuTubeM->AddNode(voRB24cCuTube, 1, gGeoIdentity);
-  
+
   // Air outside tube with higher transport cuts
   TGeoVolume* voRB24CuTubeA = new TGeoVolume("voRB24CuTubeA", new TGeoTube(80., 81., kRB24bCuTubeL / 2.), kMedAirHigh);
   voRB24CuTubeA->SetVisibility(0);
@@ -1431,7 +1430,7 @@ void Pipe::ConstructGeometry()
   // Assembling RB24/1
   //
   // part places in the barrel
-  TGeoVolumeAssembly* voRB24  = new TGeoVolumeAssembly("RB24");
+  TGeoVolumeAssembly* voRB24 = new TGeoVolumeAssembly("RB24");
   // Cu Tube with two simplified flanges in central barrel
   voRB24->AddNode(voRB24CuTubeM, 1, gGeoIdentity);
   voRB24->AddNode(voRB24CuTubeA, 1, gGeoIdentity);
@@ -1449,7 +1448,7 @@ void Pipe::ConstructGeometry()
   z = -kRB24cCuTubeL / 2. - (kRB24VMABCL - kRB24VMABCRBT1L / 2) + 1.;
   voRB24C->AddNode(voRB24VMABCRB, 2, new TGeoTranslation(0., 0., z));
   // <-
-  
+
   // Bellow
   z = kRB24bCuTubeL / 2;
   voRB24->AddNode(voRB24B1BellowM, 1, new TGeoTranslation(0., 0., z));
@@ -1591,9 +1590,9 @@ void Pipe::ConstructGeometry()
   //    RB26/1-2 Vacuum Tubes      //
   //    Drawing  LHCVC2a_0010      //
   ///////////////////////////////////
-  const Float_t kRB26s12TubeL0 = 459.45; // 0.15 cm added for welding
-  const Float_t kRB26s12TubeL2 = 47.21;  // part of this tube outside barrel region
-  const Float_t kRB26s12TubeL  = kRB26s12TubeL0-kRB26s12TubeL2; // 392.115
+  const Float_t kRB26s12TubeL0 = 459.45;                         // 0.15 cm added for welding
+  const Float_t kRB26s12TubeL2 = 47.21;                          // part of this tube outside barrel region
+  const Float_t kRB26s12TubeL = kRB26s12TubeL0 - kRB26s12TubeL2; // 392.115
   //
   // 184.905
   // 0.877
@@ -1607,20 +1606,20 @@ void Pipe::ConstructGeometry()
   shRB26s12Tube->DefineSection(1, 207.21, 5.84 / 2., 6.00 / 2.);
   // Section 2: 0.72 deg opening cone
   shRB26s12Tube->DefineSection(2, 207.21, 5.84 / 2., 6.14 / 2.);
-  shRB26s12Tube->DefineSection(3, kRB26s12TubeL, 5.84/2 + 2.576, 6.14 / 2. + 2.576);
+  shRB26s12Tube->DefineSection(3, kRB26s12TubeL, 5.84 / 2 + 2.576, 6.14 / 2. + 2.576);
 
   // the section which is placed into the muon spectrometer (starting at z = -505)
   TGeoPcon* shRB26s12msTube = new TGeoPcon(0., 360., 3);
   // conical part
   shRB26s12msTube->DefineSection(0, 0.00, shRB26s12Tube->GetRmin(3), shRB26s12Tube->GetRmax(3));
-  shRB26s12msTube->DefineSection(1, 452.30-kRB26s12TubeL, 12.0 / 2., 12.3 / 2.);
+  shRB26s12msTube->DefineSection(1, 452.30 - kRB26s12TubeL, 12.0 / 2., 12.3 / 2.);
   // straight part until compensator
   shRB26s12msTube->DefineSection(2, kRB26s12TubeL2, 12.0 / 2., 12.3 / 2.);
-  
-  TGeoVolume* voRB26s12Tube   = new TGeoVolume("RB26s12Tube",   shRB26s12Tube,   kMedSteel);
+
+  TGeoVolume* voRB26s12Tube = new TGeoVolume("RB26s12Tube", shRB26s12Tube, kMedSteel);
   TGeoVolume* voRB26s12msTube = new TGeoVolume("RB26s12msTube", shRB26s12msTube, kMedSteel);
   // Add the insulation layer
-  TGeoVolume* voRB26s12TubeIns   = new TGeoVolume("RB26s12TubeIns",   MakeInsulationFromTemplate(shRB26s12Tube),   kMedInsu);
+  TGeoVolume* voRB26s12TubeIns = new TGeoVolume("RB26s12TubeIns", MakeInsulationFromTemplate(shRB26s12Tube), kMedInsu);
   TGeoVolume* voRB26s12msTubeIns = new TGeoVolume("RB26s12msTubeIns", MakeInsulationFromTemplate(shRB26s12msTube), kMedInsu);
   voRB26s12Tube->AddNode(voRB26s12TubeIns, 1, gGeoIdentity);
   voRB26s12msTube->AddNode(voRB26s12msTubeIns, 1, gGeoIdentity);
@@ -2607,7 +2606,7 @@ void Pipe::createMaterials()
   // ****************
   //     Defines tracking media parameters.
   //
-  Float_t epsil = .1;   // Tracking precision,
+  Float_t epsil = .1;     // Tracking precision,
   Float_t stemax = -0.01; // Maximum displacement for multiple scat
   Float_t tmaxfd = -20.;  // Maximum angle due to field deflection
   Float_t deemax = -.3;   // Maximum fractional energy loss, DLS
@@ -2667,7 +2666,6 @@ void Pipe::createMaterials()
   matmgr.Medium("PIPE", 39, "INOX_NF", 39, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("PIPE", 59, "INOX_HC", 59, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("PIPE", 79, "INOX_NFHC", 79, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  
 
   //----------------- for the MFT ----------------------
   matmgr.Mixture("PIPE", 63, "ALUMINIUM5083$", aALU5083, zALU5083, 2.66, 4, wALU5083); // from aubertduval.fr

@@ -1562,14 +1562,14 @@ void FrameStructure::ConstructGeometry()
   vmc->Gspos("BRS2", 2, "BRS1", 0., 27.5 - 3.75, 0., 0, "ONLY");
   vmc->Gspos("BRS3", 1, "BRS1", 0., 0., 0., 0, "ONLY");
   vmc->Gspos("BRS1", 1, TOPNAME, -430. - 3. + 30., -190., 0., 0, "ONLY");
-  vmc->Gspos("BRS1", 2, TOPNAME,  430. + 3. + 30., -190., 0., 0, "ONLY");
+  vmc->Gspos("BRS1", 2, TOPNAME, 430. + 3. + 30., -190., 0., 0, "ONLY");
 
   rbox[0] = 3.0;
   rbox[1] = 145. / 4.;
   rbox[2] = 25.0;
   vmc->Gsvolu("BRS4", "BOX", kSteel, rbox, 3);
 
-  vmc->Gspos("BRS4", 1, TOPNAME, 430. + 3., -190. + 55. / 2. + rbox[1] + 30.,  224., 0, "ONLY");
+  vmc->Gspos("BRS4", 1, TOPNAME, 430. + 3., -190. + 55. / 2. + rbox[1] + 30., 224., 0, "ONLY");
   vmc->Gspos("BRS4", 2, TOPNAME, 430. + 3., -190. + 55. / 2. + rbox[1] + 30., -224., 0, "ONLY");
 
   //

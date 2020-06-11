@@ -741,7 +741,7 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
     nphism = g->GetNumberOfSuperModules();
     for (Int_t i = 0; i < nphism; i++) {
       xpos = ypos = zpos = 0.0;
-      TVirtualMC::GetMC()->Gspos("SMOD", 1, mother.data(), xpos, ypos+30., zpos, 0, "ONLY");
+      TVirtualMC::GetMC()->Gspos("SMOD", 1, mother.data(), xpos, ypos + 30., zpos, 0, "ONLY");
 
       LOG(DEBUG2) << " fIdRotm " << std::setw(3) << 0 << " phi " << std::setw(7) << std::setprecision(1) << phi << "("
                   << std::setw(5) << std::setprecision(3) << phiRad << ") xpos " << std::setw(7) << std::setprecision(2)
