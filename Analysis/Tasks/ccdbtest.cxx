@@ -24,6 +24,50 @@ using namespace o2::framework;
 using namespace o2::header;
 using namespace o2;
 
+template <class T>
+struct CCDBobj {
+  long validfrom;
+  long validuntil;
+  std::map<std::string, std::string> metadata;
+  std::map<std::string, std::string>* headers;
+  T obj;
+  void GetObj(o2::ccdb::CcdbApi& api, std::string path, long timestamp)
+  {
+    obj = api.retrieveFromTFileAny<T>(path, metadata, timestamp, headers);
+    if (obj) {
+      LOGF(info, "Found object!");
+      // obj->Print("all");
+    } else {
+      LOGF(warning, "Cannot find object in path '%s'.", path.data());
+    }
+  }
+  void UpdateObj(o2::ccdb::CcdbApi& api, std::string path, long timestamp)
+  {
+    if (IsValid(timestamp))
+      return;
+    GetObj(api, path, timestamp);
+  }
+
+  Bool_t IsValid(long timestamp)
+  {
+    return timestamp > validfrom && timestamp < validuntil;
+  }
+  void PrintMetadata()
+  {
+    LOGF(info, "Printing metadata");
+    for (auto it = metadata.cbegin(); it != metadata.cend(); ++it) {
+      std::cout << it->first << " " << it->second << " " << it->second << "\n";
+    }
+  }
+  void PrintHeaders()
+  {
+    LOGF(info, "Printing headers");
+    for (auto it = headers->cbegin(); it != headers->cend(); ++it) {
+      std::cout << it->first << " " << it->second << " " << it->second << "\n";
+    } 
+  }
+};
+
 struct CCDBTask {
 
   o2::ccdb::CcdbApi api;
@@ -36,6 +80,8 @@ struct CCDBTask {
 
     std::map<std::string, std::string> metadata;
     std::map<std::string, std::string>* headers;
+
+    CCDBobj<TH2F> obj2;
     api.init(url.value.Data());
     if (!api.isHostReachable()) {
       LOGF(warning, "CCDB at URL '%s' is not reachable.", url.value.Data());
