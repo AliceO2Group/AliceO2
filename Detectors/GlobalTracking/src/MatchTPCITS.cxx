@@ -338,7 +338,6 @@ void MatchTPCITS::init()
   mTPCZMax = detParam.TPClength;
 
   assert(mITSROFrameLengthMUS > 0.0f);
-  mITSROFramePhaseOffset = mITSROFrameOffsetMUS / mITSROFrameLengthMUS;
   if (mITSTriggered) {
     mITSROFrame2TPCBin = mITSROFrameLengthMUS / mTPCTBinMUS;
   } else {
@@ -643,9 +642,22 @@ bool MatchTPCITS::prepareITSTracks()
     mITSTimeBinStart[sec].clear();
     mITSTimeBinStart[sec].resize(nROFs, -1); // start of ITS work tracks in every sector
   }
-  setStartIR(mITSTrackROFRec[0].getBCData());
+
+  mITSTrackROFContMapping.clear(); // there might be gaps in the non-empty rofs, this will map continuous ROFs index to non empty ones
+
+  setStartIR(mITSTrackROFRec[0].getBCData()); //// TODO: this should be set from external info
+
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mITSTrackROFRec[irof];
+
+    if (!mITSTriggered) {
+      auto irofCont = (rofRec.getBCData().toLong() - mStartIR.toLong()) / mITSROFrameLengthInBC;
+      if (mITSTrackROFContMapping.size() <= irofCont) {
+        mITSTrackROFContMapping.resize((1 + irofCont / 128) * 128, 0);
+      }
+      mITSTrackROFContMapping[irofCont] = irof;
+    }
+
     int cluROFOffset = mITSClusterROFRec[irof].getFirstEntry(); // clusters of this ROF start at this offset
     float tmn = intRecord2TPCTimeBin(rofRec.getBCData());     // ITS track min time in TPC time-bins
     mITSROFTimes.emplace_back(tmn, tmn + mITSROFrame2TPCBin); // ITS track min/max time in TPC time-bins
@@ -703,6 +715,15 @@ bool MatchTPCITS::prepareITSTracks()
       float dy2Dn = (YMaxAtXMatchingRef + trcY) / (tgp - Tan70);
       if ((dy2Dn * dy2Dn * Cos70I2) < mSectEdgeMargin2) { // need to check this track for matching in sector down
         addLastTrackCloneForNeighbourSector(sector > 1 ? sector - 1 : o2::constants::math::NSectors - 1);
+      }
+    }
+  }
+
+  if (!mITSTriggered) { // fill the gaps;
+    int nr = mITSTrackROFContMapping.size();
+    for (int i = 1; i < nr; i++) {
+      if (mITSTrackROFContMapping[i] < mITSTrackROFContMapping[i - 1]) {
+        mITSTrackROFContMapping[i] = mITSTrackROFContMapping[i - 1];
       }
     }
   }
@@ -793,6 +814,7 @@ void MatchTPCITS::doMatching(int sec)
     // estimate ITS 1st ROframe bin this track may match to: TPC track are sorted according to their
     // timeMax, hence the timeMax - MaxmNTPCBinsFullDrift are non-decreasing
     int itsROBin = tpcTimeBin2ITSROFrame(trefTPC.timeBins.max() - maxTDriftSafe);
+
     if (itsROBin >= int(tbinStartITS.size())) { // time of TPC track exceeds the max time of ITS in the cache
       break;
     }
