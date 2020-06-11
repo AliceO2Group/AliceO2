@@ -29,8 +29,9 @@ void runPulser(std::vector<std::string_view> fileInfos, TString outputFileName =
   calib.setADCRange(adcMin, adcMax);
   calib.setTimeBinRange(firstTimeBin, lastTimeBin);
   calib.setDebugLevel();
+  calib.setQtotBinning(140, 22, 302);
   if (type == 1) {
-    calib.setQtotBinning(150,2,302);
+    calib.setQtotBinning(150, 2, 302);
     calib.setMinQtot(8);
     calib.setMinQmax(6);
     calib.setMaxTimeBinRange(6);
