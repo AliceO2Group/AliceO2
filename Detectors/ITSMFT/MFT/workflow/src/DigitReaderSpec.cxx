@@ -69,10 +69,10 @@ void DigitReader::run(ProcessingContext& pc)
               << profs->size() << " RO frames";
 
     pc.outputs().snapshot(Output{"MFT", "DIGITS", 0, Lifetime::Timeframe}, digits);
-    pc.outputs().snapshot(Output{"MFT", "MFTDigitROF", 0, Lifetime::Timeframe}, *profs);
+    pc.outputs().snapshot(Output{"MFT", "DigitROF", 0, Lifetime::Timeframe}, *profs);
     if (mUseMC) {
       pc.outputs().snapshot(Output{"MFT", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
-      pc.outputs().snapshot(Output{"MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe}, *pmc2rofs);
+      pc.outputs().snapshot(Output{"MFT", "DigitMC2ROF", 0, Lifetime::Timeframe}, *pmc2rofs);
     }
   } else {
     LOG(ERROR) << "Cannot read the MFT digits !";
@@ -87,10 +87,10 @@ DataProcessorSpec getDigitReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "DIGITS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("MFT", "MFTDigitROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("MFT", "DigitROF", 0, Lifetime::Timeframe);
   if (useMC) {
     outputs.emplace_back("MFT", "DIGITSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("MFT", "DigitMC2ROF", 0, Lifetime::Timeframe);
   }
   return DataProcessorSpec{
     "mft-digit-reader",

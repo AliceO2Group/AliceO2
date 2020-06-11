@@ -74,15 +74,15 @@ void STFDecoder<Mapping>::init(InitContext& ic)
       geom = o2::mft::GeometryTGeo::Instance();
       geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
     }
+    mClusterer = std::make_unique<Clusterer>();
+    mClusterer->setGeometry(geom);
+    mClusterer->setNChips(Mapping::getNChips());
     const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
     if (grp) {
       mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut(detID));
     } else {
       throw std::runtime_error("failed to retrieve GRP");
     }
-    mClusterer = std::make_unique<Clusterer>();
-    mClusterer->setGeometry(geom);
-    mClusterer->setNChips(Mapping::getNChips());
 
     // settings for the fired pixel overflow masking
     const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
