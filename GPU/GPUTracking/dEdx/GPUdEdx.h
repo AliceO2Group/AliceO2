@@ -85,7 +85,7 @@ GPUdi() void GPUdEdx::checkSubThresh(int roc)
   mLastROC = roc;
 }
 
-GPUdi() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& GPUrestrict() param, const TPCdEdxCalibrationSplines* splines, float z)
+GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& GPUrestrict() param, const TPCdEdxCalibrationSplines* splines, float z)
 {
   if (mCount >= MAX_NCL) {
     return;
