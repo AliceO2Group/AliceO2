@@ -149,13 +149,13 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
    * @param headers Map to be populated with the headers we received, if it is not null.
    * @param optional etag from previous call
-   * @param optional upperValidity time limit for the object validity (TimeMachine mode)
+   * @param optional createdNotAfter time limit for the object validity (TimeMachine mode)
    * @return the object, or nullptr if none were found.
    * @deprecated in favour of retrieveFromTFileAny as it is not limited to TObjects.
    */
   TObject* retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata,
                              long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
-                             const std::string& upperValidity = "") const;
+                             const std::string& createdNotAfter = "") const;
 
   /**
    * Retrieve object at the given path for the given timestamp.
@@ -165,13 +165,13 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
    * @param headers Map to be populated with the headers we received, if it is not null.
    * @param optional etag from previous call
-   * @param optional upperValidity time limit for the object validity (TimeMachine mode)
+   * @param optional createdNotAfter time limit for the object validity (TimeMachine mode)
    * @return the object, or nullptr if none were found or type does not match serialized type.
    */
   template <typename T>
   T* retrieveFromTFileAny(std::string const& path, std::map<std::string, std::string> const& metadata,
                           long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
-                          const std::string& upperValidity = "") const;
+                          const std::string& createdNotAfter = "") const;
 
   /**
    * Delete all versions of the object at this path.
@@ -365,7 +365,7 @@ class CcdbApi //: public DatabaseInterface
    */
   void* retrieveFromTFile(std::type_info const&, std::string const& path, std::map<std::string, std::string> const& metadata,
                           long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
-                          const std::string& upperValidity = "") const;
+                          const std::string& createdNotAfter = "") const;
 
   /**
    * A helper function to extract object from a local ROOT file
@@ -391,9 +391,9 @@ class CcdbApi //: public DatabaseInterface
 template <typename T>
 T* CcdbApi::retrieveFromTFileAny(std::string const& path, std::map<std::string, std::string> const& metadata,
                                  long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
-                                 const std::string& upperValidity) const
+                                 const std::string& createdNotAfter) const
 {
-  return static_cast<T*>(retrieveFromTFile(typeid(T), path, metadata, timestamp, headers, etag, upperValidity));
+  return static_cast<T*>(retrieveFromTFile(typeid(T), path, metadata, timestamp, headers, etag, createdNotAfter));
 }
 
 } // namespace ccdb
