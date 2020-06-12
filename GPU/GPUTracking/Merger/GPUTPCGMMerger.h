@@ -68,7 +68,6 @@ class GPUTPCGMMerger : public GPUProcessor
     GPUAtomic(unsigned int) nUnpackedTracks;
     GPUAtomic(unsigned int) nOutputTracks;
     GPUAtomic(unsigned int) nOutputTrackClusters;
-    GPUAtomic(unsigned int) nSlowTracks;
     const GPUTPCTrack* firstGlobalTracks[NSLICES];
     GPUAtomic(unsigned int) tmpCounter[2 * NSLICES];
   };
@@ -111,7 +110,6 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() GPUAtomic(unsigned int) * ClusterAttachment() const { return mClusterAttachment; }
   GPUhdi() unsigned int* TrackOrderAttach() const { return mTrackOrderAttach; }
   GPUhdi() unsigned int* TrackOrderProcess() const { return mTrackOrderProcess; }
-  GPUhdi() unsigned int NSlowTracks() const { return mMemory->nSlowTracks; }
   GPUhdi() unsigned int* RetryRefitIds() const { return mRetryRefitIds; }
   GPUhdi() GPUTPCGMLoopData* LoopData() const { return mLoopData; }
   GPUhdi() memory* Memory() const { return mMemory; }
