@@ -321,7 +321,7 @@ using Projector = Filter;
 
 using Selection = std::shared_ptr<gandiva::SelectionVector>;
 /// Function for creating gandiva selection from our internal filter tree
-Selection createSelection(std::shared_ptr<arrow::Table> table, Filter&& expression);
+Selection createSelection(std::shared_ptr<arrow::Table> table, Filter const& expression);
 /// Function for creating gandiva selection from prepared gandiva expressions tree
 Selection createSelection(std::shared_ptr<arrow::Table> table, std::shared_ptr<gandiva::Filter> gfilter);
 

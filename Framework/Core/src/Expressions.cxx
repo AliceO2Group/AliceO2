@@ -319,7 +319,7 @@ Selection createSelection(std::shared_ptr<arrow::Table> table, std::shared_ptr<g
 }
 
 Selection createSelection(std::shared_ptr<arrow::Table> table,
-                          Filter&& expression)
+                          const Filter& expression)
 {
   return createSelection(table, createFilter(table->schema(), createOperations(std::move(expression))));
 }
