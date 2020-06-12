@@ -11,6 +11,7 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/EventSelection.h"
+#include "CCDB/CcdbApi.h"
 #include "TFile.h"
 #include "TTree.h"
 #include <map>
@@ -57,7 +58,7 @@ struct EvSelParameters {
 
 struct EventSelectionTask {
   Produces<aod::EvSels> evsel;
-  map<string, int> mClasses;
+  map<string, int>* pClassNameToIndexMap;
   map<int, string> mAliases;
   map<int, vector<int>> mAliasToClassIds;
   EvSelParameters par;
@@ -106,21 +107,22 @@ struct EventSelectionTask {
 
   void init(InitContext&)
   {
-    // TODO read aliases from CCDB
-    createAliases();
-
-    // TODO read triggerClass-index map from CCDB
-    TFile f("trigger.root");
-    TTree* t = (TTree*)f.Get("trigger");
-    map<string, int>* pClasses = &mClasses;
-    t->SetBranchAddress("classes", &pClasses);
-    t->BuildIndex("run");
     // TODO read run number from configurables
-    t->GetEntryWithIndex(244918);
+    int run = 244918;
+
+    // read ClassNameToIndexMap from ccdb
+    o2::ccdb::CcdbApi ccdb;
+    map<string, string> metadata;
+    ccdb.init("http://ccdb-test.cern.ch:8080");
+    pClassNameToIndexMap = ccdb.retrieveFromTFileAny<map<string, int>>("Trigger/ClassNameToIndexMap", metadata, run);
+
     LOGF(debug, "List of trigger classes");
-    for (auto& cl : mClasses) {
+    for (auto& cl : *pClassNameToIndexMap) {
       LOGF(debug, "class %02d %s", cl.second, cl.first);
     }
+
+    // TODO read aliases from CCDB
+    createAliases();
 
     LOGF(debug, "Fill map of alias-to-class-indices");
     for (auto& al : mAliases) {
@@ -128,7 +130,7 @@ struct EventSelectionTask {
       TObjArray* tokens = TString(al.second).Tokenize(",");
       for (int iClasses = 0; iClasses < tokens->GetEntriesFast(); iClasses++) {
         string className = tokens->At(iClasses)->GetName();
-        int index = mClasses[className] - 1;
+        int index = (*pClassNameToIndexMap)[className] - 1;
         if (index < 0 || index > 63)
           continue;
         mAliasToClassIds[al.first].push_back(index);
