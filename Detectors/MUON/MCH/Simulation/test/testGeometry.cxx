@@ -173,13 +173,12 @@ bool operator==(const CoarseLocation& a, const CoarseLocation& b)
 CoarseLocation getDetElemCoarseLocation(int detElemId)
 {
   auto t = o2::mch::getTransformation(detElemId, *gGeoManager);
-  Point3D<double> localTestPos{35.0, -19.75, 0.0};
-  // knowing that the smallest slat is 80cm wide
-  // and that all slats are 40cm tall
+  Point3D<double> localTestPos{0.0, 0.0, 0.0}; // slat center
 
   if (detElemId < 500) {
-    localTestPos.SetXYZ(60, 60, 0); // in the rough ballpark of the center
-    // of the quadrant
+    // in the rough ballpark of the center
+    // of the quadrants
+    localTestPos.SetXYZ(60, 60, 0);
   }
 
   // for slats around the middle (y closest to 0) we have to be a bit
