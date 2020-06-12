@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 ///
+///
 /// \file    DatDecoderSpec.cxx
 /// \author  Andrea Ferrero
 ///
