@@ -49,7 +49,7 @@ class Decoder
   Decoder(const SymbolStatistics& stats, size_t probabilityBits);
 
   template <typename stream_IT, typename source_IT>
-  void process(const source_IT outputBegin, const stream_IT inputBegin, size_t numSymbols) const;
+  void process(const source_IT outputBegin, const stream_IT inputEnd, size_t numSymbols) const;
 
   using coder_t = coder_T;
   using stream_t = stream_T;
@@ -93,7 +93,7 @@ Decoder<coder_T, stream_T, source_T>::Decoder(const SymbolStatistics& stats, siz
 
 template <typename coder_T, typename stream_T, typename source_T>
 template <typename stream_IT, typename source_IT>
-void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, const stream_IT inputBegin, size_t numSymbols) const
+void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, const stream_IT inputEnd, size_t numSymbols) const
 {
   LOG(trace) << "start decoding";
   RANSTimer t;
@@ -107,8 +107,11 @@ void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, 
   }
 
   ransDecoder rans0, rans1;
-  stream_IT inputIter = inputBegin;
+  stream_IT inputIter = inputEnd;
   source_IT it = outputBegin;
+
+  // make Iter point to the last last element
+  --inputIter;
 
   inputIter = rans0.decInit(inputIter);
   inputIter = rans1.decInit(inputIter);

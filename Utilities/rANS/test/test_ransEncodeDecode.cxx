@@ -71,6 +71,7 @@ typedef boost::mpl::vector<Fixture<uint32_t, uint8_t, 14>, Fixture<uint64_t, uin
 
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode, T, Fixtures, T)
 {
+
   // iterate over the message and create PDF and CDF for each symbol in the message
   o2::rans::SymbolStatistics stats{std::begin(T::source), std::end(T::source)};
   // For performance reason the distributions must be rescaled to be a power of two.
@@ -84,17 +85,17 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode, T, Fixtures, T)
   // are mathematical inverse functions on the ANS state, they operate as a stack -
   // i.e. the decoder outputs the message in reverse order of the encoder.
   // By convention the encoder runs backwards over the input so that the decoder can return
-  // the data in the expected order. The encoder will start from encoderBuffer.end()
-  // and output symbols backwards returning an iterator to the first encoded item.
-  // This means the encodeded message ranges from encodedMessageStart to encoderBuffer.end()
-  auto encodedMessageStart = encoder.process(encoderBuffer.begin(), encoderBuffer.end(), std::begin(T::source), std::end(T::source));
+  // the data in the expected order. The encoder will start from encoderBuffer.begin()
+  // and return an iterator one element past the last entry written.
+  // This means the encodeded message ranges from encoderBuffer.begin() to encodedMessageEnd -1, with (encodedMessageEnd -encoderBuffer.begin()) entries written.
+  auto encodedMessageEnd = encoder.process(encoderBuffer.begin(), encoderBuffer.end(), std::begin(T::source), std::end(T::source));
 
   // The decoded message will go into the decoder buffer which will have as many symbols as the original message
-  std::vector<typename T::source_t> decoderBuffer(std::end(T::source) - std::begin(T::source), 0);
+  std::vector<typename T::source_t> decoderBuffer(std::distance(std::begin(T::source), std::end(T::source)), 0);
   // create a stateful decoder object that build a decoding table from the given symbol statistics
   const typename T::decoder_t decoder{stats, T::probabilityBits};
   // the decoder unwinds the rANS state in the encoder buffer starting at ransBegin and decodes it into the decode buffer;
-  decoder.process(decoderBuffer.begin(), encodedMessageStart, stats.getMessageLength());
+  decoder.process(decoderBuffer.begin(), encodedMessageEnd, stats.getMessageLength());
 
   //the decodeBuffer and the source message have to be identical afterwards.
   BOOST_REQUIRE(std::memcmp(&(*T::source.begin()), decoderBuffer.data(),

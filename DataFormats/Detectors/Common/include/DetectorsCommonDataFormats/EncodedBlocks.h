@@ -579,7 +579,7 @@ void EncodedBlocks<H, N, W>::decode(D* dest,        // destination pointer
       assert(block.getNDict()); // at the moment we expect to have dictionary
       o2::rans::SymbolStatistics stats(block.getDict(), block.getDict() + block.getNDict(), md.min, md.max, md.messageLength);
       o2::rans::Decoder64<D> decoder(stats, md.probabilityBits);
-      decoder.process(dest, block.getData(), md.messageLength);
+      decoder.process(dest, block.getData() + block.getNData(), md.messageLength);
     } else { // data was stored as is
       std::memcpy(dest, block.payload, md.messageLength * sizeof(D));
     }
@@ -607,7 +607,6 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
   }
   std::vector<stream_t> encoderBuffer;
   static_assert(std::is_same<W, stream_t>());
-  stream_t* encodedMessageStart = nullptr;
   const stream_t* dictStart = nullptr;
   int dictSize = 0, dataSize = 0;
   o2::rans::SymbolStatistics stats{srcBegin, srcEnd}; // need to create it, even if not used
@@ -618,16 +617,15 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
                                                            sizeof(S));
     encoderBuffer.resize(buffSize);
     const o2::rans::Encoder64<S> encoder{stats, probabilityBits};
-    encodedMessageStart = &(*encoder.process(encoderBuffer.begin(), encoderBuffer.end(), srcBegin, srcEnd));
+    const auto encodedMessageEnd = encoder.process(encoderBuffer.begin(), encoderBuffer.end(), srcBegin, srcEnd);
     dictStart = stats.getFrequencyTable().data();
     dictSize = stats.getFrequencyTable().size();
-    dataSize = &(*encoderBuffer.end()) - encodedMessageStart; // number of elements to store
-  } else {                                                    // store original data w/o EEncoding
+    dataSize = std::distance(encoderBuffer.begin(), encodedMessageEnd); // number of elements to store
+  } else {                                                              // store original data w/o EEncoding
     auto szb = (srcEnd - srcBegin) * sizeof(S);
     dataSize = szb / sizeof(stream_t) + (sizeof(S) < sizeof(stream_t));
     encoderBuffer.resize(dataSize);
     memcpy(encoderBuffer.data(), srcBegin, szb);
-    encodedMessageStart = &(*encoderBuffer.begin());
   }
   auto szNeed = estimateBlockSize(dictSize, dataSize); // size in bytes!!!
   auto* bl = &mBlocks[slot];
@@ -644,7 +642,7 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
   }
   *meta = Metadata{stats.getMessageLength(), sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt,
                    stats.getMinSymbol(), stats.getMaxSymbol(), dictSize, dataSize};
-  bl->store(dictSize, dataSize, dictStart, encodedMessageStart);
+  bl->store(dictSize, dataSize, dictStart, encoderBuffer.data());
 }
 
 } // namespace ctf

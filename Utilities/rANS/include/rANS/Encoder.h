@@ -20,6 +20,7 @@
 #include <algorithm>
 
 #include <fairlogger/Logger.h>
+#include <stdexcept>
 
 #include "SymbolTable.h"
 #include "EncoderSymbol.h"
@@ -124,7 +125,7 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
   rans0.encInit();
   rans1.encInit();
 
-  stream_IT outputIter = outputEnd;
+  stream_IT outputIter = outputBegin;
   source_IT inputIT = inputEnd;
 
   const auto inputBufferSize = std::distance(inputBegin, inputEnd);
@@ -133,7 +134,7 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
   if (inputBufferSize & 1) {
     const coder_T s = *(--inputIT);
     outputIter = rans0.encPutSymbol(outputIter, (*mSymbolTable)[s], mProbabilityBits);
-    assert(outputBegin < outputIter);
+    assert(outputIter < outputEnd);
   }
 
   while (inputIT > inputBegin) { // NB: working in reverse!
@@ -141,18 +142,20 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
     const coder_T s0 = *(--inputIT);
     outputIter = rans1.encPutSymbol(outputIter, (*mSymbolTable)[s1], mProbabilityBits);
     outputIter = rans0.encPutSymbol(outputIter, (*mSymbolTable)[s0], mProbabilityBits);
-    assert(outputBegin < outputIter);
+    assert(outputIter < outputEnd);
   }
   outputIter = rans1.encFlush(outputIter);
   outputIter = rans0.encFlush(outputIter);
+  // first iterator past the range so that sizes, distances and iterators work correctly.
+  ++outputIter;
 
-  assert(outputBegin < outputIter);
+  assert(!(outputIter > outputEnd));
 
   // deal with overflow
-  if (outputIter < outputBegin) {
+  if (outputIter > outputEnd) {
     const std::string exceptionText = [&]() {
       std::stringstream ss;
-      ss << __func__ << " detected overflow in encode buffer: allocated:" << std::distance(inputBegin, inputEnd) << ", used:" << std::distance(outputIter, outputEnd);
+      ss << __func__ << " detected overflow in encode buffer: allocated:" << std::distance(outputBegin, outputEnd) << ", used:" << std::distance(outputBegin, outputIter);
       return ss.str();
     }();
 
@@ -171,12 +174,12 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
               << "coderTypeB: " << sizeof(coder_T) << ", "
               << "probabilityBits: " << mProbabilityBits << ", "
               << "inputBufferSizeB: " << inputBufferSize * sizeof(source_T) << ", "
-              << "outputBufferSizeB: " << std::distance(outputIter, outputEnd) * sizeof(stream_T) << "}";
+              << "outputBufferSizeB: " << std::distance(outputBegin, outputIter) * sizeof(stream_T) << "}";
 #endif
 
   LOG(trace) << "done encoding";
 
-  return outputBegin + std::distance(outputBegin, outputIter);
+  return outputIter;
 };
 
 } // namespace rans

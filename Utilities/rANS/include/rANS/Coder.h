@@ -179,21 +179,21 @@ Stream_IT Coder<State_T, Stream_T>::encFlush(Stream_IT iter)
   Stream_IT streamPos = iter;
 
   if constexpr (needs64Bit<State_T>()) {
-    --streamPos;
+    ++streamPos;
     *streamPos = static_cast<Stream_T>(mState >> 32);
-    --streamPos;
+    ++streamPos;
     *streamPos = static_cast<Stream_T>(mState >> 0);
-    assert(std::distance(streamPos, iter) == 2);
+    assert(std::distance(iter, streamPos) == 2);
   } else {
-    --streamPos;
+    ++streamPos;
     *streamPos = static_cast<Stream_T>(mState >> 24);
-    --streamPos;
+    ++streamPos;
     *streamPos = static_cast<Stream_T>(mState >> 16);
-    --streamPos;
+    ++streamPos;
     *streamPos = static_cast<Stream_T>(mState >> 8);
-    --streamPos;
+    ++streamPos;
     *streamPos = static_cast<Stream_T>(mState >> 0);
-    assert(std::distance(streamPos, iter) == 4);
+    assert(std::distance(iter, streamPos) == 4);
   }
 
   mState = 0;
@@ -211,18 +211,20 @@ Stream_IT Coder<State_T, Stream_T>::decInit(Stream_IT iter)
 
   if constexpr (needs64Bit<State_T>()) {
     x = static_cast<State_T>(*streamPos) << 0;
-    ++streamPos;
+    --streamPos;
     x |= static_cast<State_T>(*streamPos) << 32;
-    ++streamPos;
+    --streamPos;
+    assert(std::distance(streamPos, iter) == 2);
   } else {
     x = static_cast<State_T>(*streamPos) << 0;
-    ++streamPos;
+    --streamPos;
     x |= static_cast<State_T>(*streamPos) << 8;
-    ++streamPos;
+    --streamPos;
     x |= static_cast<State_T>(*streamPos) << 16;
-    ++streamPos;
+    --streamPos;
     x |= static_cast<State_T>(*streamPos) << 24;
-    ++streamPos;
+    --streamPos;
+    assert(std::distance(streamPos, iter) == 4);
   }
 
   mState = x;
@@ -329,13 +331,13 @@ inline std::tuple<State_T, Stream_IT> Coder<State_T, Stream_T>::encRenorm(State_
   State_T x_max = ((LOWER_BOUND >> scale_bits) << STREAM_BITS) * freq; // this turns into a shift.
   if (x >= x_max) {
     if constexpr (needs64Bit<State_T>()) {
-      --streamPos;
+      ++streamPos;
       *streamPos = static_cast<Stream_T>(x);
       x >>= STREAM_BITS;
       assert(x < x_max);
     } else {
       do {
-        --streamPos;
+        ++streamPos;
         *streamPos = static_cast<Stream_T>(x & 0xff);
         x >>= STREAM_BITS;
       } while (x >= x_max);
@@ -356,13 +358,13 @@ inline std::tuple<State_T, Stream_IT> Coder<State_T, Stream_T>::decRenorm(State_
   if (x < LOWER_BOUND) {
     if constexpr (needs64Bit<State_T>()) {
       x = (x << STREAM_BITS) | *streamPos;
-      streamPos++;
+      --streamPos;
       assert(x >= LOWER_BOUND);
     } else {
 
       do {
         x = (x << STREAM_BITS) | *streamPos;
-        streamPos++;
+        --streamPos;
       } while (x < LOWER_BOUND);
     }
   }
