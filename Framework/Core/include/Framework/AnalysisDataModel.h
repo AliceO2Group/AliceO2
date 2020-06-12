@@ -77,7 +77,7 @@ DECLARE_SOA_COLUMN(Snp, snp, float);
 DECLARE_SOA_COLUMN(Tgl, tgl, float);
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);
 DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) -> float {
-  auto phi = asinf(snp) + alpha;
+  float phi = std::asin(snp) + alpha;
   constexpr float twopi = 2.0 * M_PI;
   if (phi < 0)
     phi += twopi;
