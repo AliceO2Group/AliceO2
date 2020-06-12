@@ -12,8 +12,12 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/Multiplicity.h"
 #include "Analysis/Centrality.h"
+#include "CCDB/CcdbApi.h"
 #include "TFile.h"
 #include "TH1F.h"
+#include <map>
+using std::map;
+using std::string;
 
 using namespace o2;
 using namespace o2::framework;
@@ -24,9 +28,15 @@ struct CentralityTableTask {
 
   void init(InitContext&)
   {
-    // TODO read multiplicity histos from CCDB
-    TFile f("multiplicity.root");
-    TH1F* hMultV0M = (TH1F*)f.Get("multiplicity-qa/hMultV0M");
+    // TODO read run number from configurables
+    int run = 244918;
+
+    // read hMultV0M from ccdb
+    o2::ccdb::CcdbApi ccdb;
+    map<string, string> metadata;
+    ccdb.init("http://ccdb-test.cern.ch:8080");
+    TH1F* hMultV0M = ccdb.retrieveFromTFileAny<TH1F>("Multiplicity/MultV0M", metadata, run);
+
     // TODO produce cumulative histos in the post processing macro
     hCumMultV0M = (TH1F*)hMultV0M->GetCumulative(false);
     hCumMultV0M->Scale(100. / hCumMultV0M->GetMaximum());
