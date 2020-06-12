@@ -53,7 +53,7 @@ o2_add_dpl_workflow(upc-an
 
 o2_add_dpl_workflow(event-selection
                   SOURCES eventSelection.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::CCDB
                   COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(event-selection-qa
@@ -73,7 +73,7 @@ o2_add_dpl_workflow(multiplicity-qa
                   
 o2_add_dpl_workflow(centrality-table
                   SOURCES centralityTable.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::CCDB
                   COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(centrality-qa
