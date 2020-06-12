@@ -21,7 +21,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  // write the configuration used for the digitizer workflow
+  // write the configuration
   o2::conf::ConfigurableParam::writeINI("o2mftdigitwriter_configuration.ini");
 
   return std::move(o2::mft::digit_workflow::getWorkflow());
