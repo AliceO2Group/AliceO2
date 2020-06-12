@@ -139,12 +139,122 @@ BOOST_AUTO_TEST_CASE(GetDetElemVolumePath, *boost::unit_test::disabled() * boost
   BOOST_CHECK_EQUAL(codeLines.size(), 156);
 }
 
-BOOST_AUTO_TEST_CASE(GetTransformations)
+BOOST_AUTO_TEST_CASE(GetTransformationMustNotThrowForValidDetElemId)
 {
   BOOST_REQUIRE(gGeoManager != nullptr);
 
   o2::mch::mapping::forEachDetectionElement([](int detElemId) {
     BOOST_CHECK_NO_THROW((o2::mch::getTransformation(detElemId, *gGeoManager)));
+  });
+}
+
+struct CoarseLocation {
+  bool isRight;
+  bool isTop;
+};
+
+constexpr CoarseLocation topRight{true, true};
+constexpr CoarseLocation topLeft{false, true};
+constexpr CoarseLocation bottomRight{true, false};
+constexpr CoarseLocation bottomLeft{false, false};
+
+std::string asString(const CoarseLocation& q)
+{
+  std::string s = q.isTop ? "TOP" : "BOTTOM";
+  s += q.isRight ? "RIGHT" : "LEFT";
+  return s;
+}
+
+bool operator==(const CoarseLocation& a, const CoarseLocation& b)
+{
+  return a.isRight == b.isRight && a.isTop == b.isTop;
+}
+
+CoarseLocation getDetElemCoarseLocation(int detElemId)
+{
+  auto t = o2::mch::getTransformation(detElemId, *gGeoManager);
+  Point3D<double> localTestPos{35.0, -19.75, 0.0};
+  // knowing that the smallest slat is 80cm wide
+  // and that all slats are 40cm tall
+
+  if (detElemId < 500) {
+    localTestPos.SetXYZ(60, 60, 0); // in the rough ballpark of the center
+    // of the quadrant
+  }
+
+  // for slats around the middle (y closest to 0) we have to be a bit
+  // more precise, so take a given pad reference, chosen to be
+  // the most top right or most top left pad
+
+  switch (detElemId) {
+    case 500:
+    case 509:
+      localTestPos.SetXYZ(-72.50, 19.75, 0.0); // ds 107
+      break;
+    case 600:
+    case 609:
+      localTestPos.SetXYZ(-77.50, 19.75, 0.0); // ds 108
+      break;
+    case 700:
+    case 713:
+    case 800:
+    case 813:
+    case 900:
+    case 913:
+    case 1000:
+    case 1013:
+      localTestPos.SetXYZ(95.0, -19.75, 0); // ds 104
+      break;
+  }
+  Point3D<double> master;
+
+  t.LocalToMaster(localTestPos, master);
+  bool right = master.x() > 10.;
+  bool top = master.y() > -10.;
+
+  return CoarseLocation{right, top};
+}
+
+void setExpectation(int firstDeId, int lastDeId, CoarseLocation q, std::map<int, CoarseLocation>& expected)
+{
+  for (int deid = firstDeId; deid <= lastDeId; deid++) {
+    expected.emplace(deid, q);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(DetectionElementMustBeInTheRightCoarseLocation)
+{
+  std::map<int, CoarseLocation> expected;
+
+  for (int i = 0; i < 4; i++) {
+    expected[100 + i * 100] = topRight;
+    expected[101 + i * 100] = topLeft;
+    expected[102 + i * 100] = bottomLeft;
+    expected[103 + i * 100] = bottomRight;
+  }
+
+  // note that by convention we consider slats in the middle to be "top"
+  for (int i = 0; i < 2; i++) {
+    setExpectation(500 + i * 100, 504 + i * 100, topRight, expected);
+    setExpectation(505 + i * 100, 509 + i * 100, topLeft, expected);
+    setExpectation(510 + i * 100, 513 + i * 100, bottomLeft, expected);
+    setExpectation(514 + i * 100, 517 + i * 100, bottomRight, expected);
+  }
+
+  for (int i = 0; i < 4; i++) {
+    setExpectation(700 + i * 100, 706 + i * 100, topRight, expected);
+    setExpectation(707 + i * 100, 713 + i * 100, topLeft, expected);
+    setExpectation(714 + i * 100, 719 + i * 100, bottomLeft, expected);
+    setExpectation(720 + i * 100, 725 + i * 100, bottomRight, expected);
+  }
+
+  o2::mch::mapping::forEachDetectionElement([&expected](int detElemId) {
+    if (expected.find(detElemId) == expected.end()) {
+      std::cout << "got no expectation for DE=" << detElemId << "\n";
+      return;
+    }
+    BOOST_TEST_INFO(fmt::format("DeId {}", detElemId));
+    BOOST_CHECK_EQUAL(asString(getDetElemCoarseLocation(detElemId)), asString(expected[detElemId]));
   });
 }
 
