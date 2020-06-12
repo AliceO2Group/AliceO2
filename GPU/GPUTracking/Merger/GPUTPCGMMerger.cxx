@@ -1695,10 +1695,6 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
 GPUd() void GPUTPCGMMerger::SortTracksPrepare(int nBlocks, int nThreads, int iBlock, int iThread)
 {
   for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTracks; i += nThreads * nBlocks) {
-    const GPUTPCGMMergedTrack& trk = mOutputTracks[i];
-    if (trk.CCE() || trk.Legs()) {
-      CAMath::AtomicAdd(&mMemory->nSlowTracks, 1u);
-    }
     mTrackOrderProcess[i] = i;
   }
 }

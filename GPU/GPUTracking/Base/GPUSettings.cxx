@@ -105,7 +105,6 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   mergerSortTracks = -1;
   runMC = false;
   memoryScalingFactor = 1.f;
-  fitSlowTracksInOtherPass = false;
   fullMergerOnGPU = true;
   alternateBorderSort = -1;
   delayedOutput = true;
