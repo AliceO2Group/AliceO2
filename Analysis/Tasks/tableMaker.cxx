@@ -149,6 +149,7 @@ struct TableMaker {
       }
     } // end loop over histogram classes
   }
+  
 };
 
 WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const&)
