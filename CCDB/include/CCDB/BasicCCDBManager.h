@@ -122,7 +122,7 @@ template <typename T>
 T* BasicCCDBManager::getForTimeStamp(std::string const& path, long timestamp)
 {
   if (!isCachingEnabled()) {
-    return mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp);
+    return mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, nullptr, "", mCreatedNotAfter ? std::to_string(mCreatedNotAfter) : "");
   }
   auto& cached = mCache[path];
   T* ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid, mCreatedNotAfter ? std::to_string(mCreatedNotAfter) : "");
