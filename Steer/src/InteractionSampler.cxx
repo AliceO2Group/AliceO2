@@ -38,23 +38,43 @@ void InteractionSampler::init()
     LOG(INFO) << "Deducing mu=" << mMuBC << " per BC from IR=" << mIntRate << " with " << nBCSet << " BCs";
   }
 
-  mBCMin = 0;
-  mBCMax = -1;
+  mInteractingBCs.clear();
+  mInteractingBCs.reserve(nBCSet);
   for (int i = 0; i < o2::constants::lhc::LHCMaxBunches; i++) {
     if (mBCFilling.testBC(i)) {
-      if (mBCMin > i) {
-        mBCMin = i;
-      }
-      if (mBCMax < i) {
-        mBCMax = i;
-      }
+      mInteractingBCs.push_back(i);
     }
   }
-  double muexp = TMath::Exp(-mMuBC);
-  mProbInteraction = 1. - muexp;
-  mMuBCZTRed = mMuBC * muexp / mProbInteraction;
+
+  auto mu = mMuBC;
+  // prob. of not having interaction in N consecutive BCs is P(N) = mu*exp(-(N-1)*mu), hence its cumulative distribution
+  // is T(N) = integral_1^N {P(N)} = 1. - exp(-(N-1)*mu)
+  // We generate random N using its inverse, N = 1 - log(1 - Rndm)/mu
+  mBCJumpGenerator.initialize([mu]() { return (1. - std::log(1. - gRandom->Rndm()) / mu); });
+
+  // Poisson distribution of number of collisions in the bunch excluding 0
+  mNCollBCGenerator.initialize([mu]() {
+    int n = 0;
+    while ((n = gRandom->Poisson(mu)) == 0)
+      ;
+    return n;
+  });
+
+  auto trms = mBCTimeRMS;
+  mCollTimeGenerator.initialize([trms]() {
+    float t; // make sure it does not go outside half bunch
+    while (std::abs(t = gRandom->Gaus(0, trms)) > o2::constants::lhc::LHCBunchSpacingNS / 2.1)
+      ;
+    return t;
+  });
+
   mIntBCCache = 0;
-  mIR.bc = std::max(uint16_t(mBCMin), mIR.bc);
+  mCurrBCIdx = 0;
+  mIR = mFirstIR;
+  while (mCurrBCIdx < mInteractingBCs.size() && mInteractingBCs[mCurrBCIdx] < mIR.bc) {
+    mCurrBCIdx++;
+  }
+  mCurrBCIdx = mCurrBCIdx == 0 ? mInteractingBCs.size() : mCurrBCIdx--;
 }
 
 //_________________________________________________
@@ -64,8 +84,8 @@ void InteractionSampler::print() const
     LOG(ERROR) << "not yet initialized";
     return;
   }
-  LOG(INFO) << "InteractionSampler with " << mBCFilling.getNBunches() << " colliding BCs in [" << mBCMin
-            << '-' << mBCMax << "], mu(BC)= " << getMuPerBC() << " -> total IR= " << getInteractionRate();
+  LOG(INFO) << "InteractionSampler with " << mInteractingBCs.size() << " colliding BCs, mu(BC)= "
+            << getMuPerBC() << " -> total IR= " << getInteractionRate();
   LOG(INFO) << "Current " << mIR << '(' << mIntBCCache << " coll left)";
 }
 
@@ -92,32 +112,18 @@ int InteractionSampler::simulateInteractingBC()
 {
   // Returns number of collisions assigned to selected BC
 
-  do {
-    nextCollidingBC();                          // pick next interacting bunch
-  } while (gRandom->Rndm() > mProbInteraction); // skip BCs w/o collisions
-
+  nextCollidingBC(mBCJumpGenerator.getNextValue());
   // once BC is decided, enforce at least one interaction
-  int ncoll = genPoissonZT();
+  int ncoll = mNCollBCGenerator.getNextValue();
+
   // assign random time withing a bunch
   for (int i = ncoll; i--;) {
-    double tInBC = 0; // tInBC should be in the vicinity of the BC
-    do {
-      tInBC = gRandom->Gaus(0., mBCTimeRMS);
-    } while (std::abs(tInBC) > o2::constants::lhc::LHCBunchSpacingNS / 2.1);
-    mTimeInBC.push_back(tInBC);
+    mTimeInBC.push_back(mCollTimeGenerator.getNextValue());
   }
   if (ncoll > 1) { // sort in DECREASING time order (we are reading vector from the end)
     std::sort(mTimeInBC.begin(), mTimeInBC.end(), [](const float a, const float b) { return a > b; });
   }
   return ncoll;
-}
-
-//_________________________________________________
-void InteractionSampler::warnOrbitWrapped() const
-{
-  /// in run3 the orbit is 32 bits and should never wrap
-  print();
-  LOG(FATAL) << "Max orbit " << o2::constants::lhc::MaxNOrbits << " overflow";
 }
 
 //_________________________________________________
