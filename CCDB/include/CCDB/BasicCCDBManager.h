@@ -93,13 +93,13 @@ class BasicCCDBManager
   }
 
   /// set the object upper validity limit
-  void setUpperValidity(long v) { mUpperValidity = v; }
+  void setCreatedNotAfter(long v) { mCreatedNotAfter = v; }
 
   /// get the object upper validity limit
-  long getUpperValidity() const { return mUpperValidity; }
+  long getCreatedNotAfter() const { return mCreatedNotAfter; }
 
   /// reset the object upper validity limit
-  void resetUpperValidity() { mUpperValidity = 0; }
+  void resetCreatedNotAfter() { mCreatedNotAfter = 0; }
 
  private:
   BasicCCDBManager(std::string const& path) : mCCDBAccessor{}
@@ -115,7 +115,7 @@ class BasicCCDBManager
   long mTimestamp{o2::ccdb::getCurrentTimestamp()}; // timestamp to be used for query (by default "now")
   bool mCanDefault = false;                         // whether default is ok --> useful for testing purposes done standalone/isolation
   bool mCachingEnabled = true;                      // whether caching is enabled
-  long mUpperValidity = 0;                          // upper limit for object validity timestamp (TimeMachine mode)
+  long mCreatedNotAfter = 0;                        // upper limit for object validity timestamp (TimeMachine mode)
 };
 
 template <typename T>
@@ -125,7 +125,7 @@ T* BasicCCDBManager::getForTimeStamp(std::string const& path, long timestamp)
     return mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp);
   }
   auto& cached = mCache[path];
-  T* ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid, mUpperValidity ? std::to_string(mUpperValidity) : "");
+  T* ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid, mCreatedNotAfter ? std::to_string(mCreatedNotAfter) : "");
   if (ptr) { // new object was shipped, old one (if any) is not valid anymore
     cached.objPtr.reset(ptr);
     cached.uuid = mHeaders["ETag"];
