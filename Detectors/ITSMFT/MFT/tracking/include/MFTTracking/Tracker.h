@@ -36,7 +36,7 @@ class Tracker
 {
 
  public:
-  Tracker() = default;
+  Tracker(bool useMC);
   ~Tracker() = default;
 
   Tracker(const Tracker&) = delete;
@@ -84,6 +84,8 @@ class Tracker
   o2::dataformats::MCTruthContainer<MCCompLabel> mTrackLabels;
 
   Int_t mMaxCellLevel = 0;
+
+  bool mUseMC = false;
 };
 
 inline std::vector<TrackMFT>& Tracker::getTracks()

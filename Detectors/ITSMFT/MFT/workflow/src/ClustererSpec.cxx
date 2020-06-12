@@ -136,7 +136,8 @@ void ClustererDPL::run(ProcessingContext& pc)
 
   // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
   // -> consider recalculationg maxROF
-  LOG(INFO) << "MFTClusterer pushed " << clusCompVec.size() << " clusters, in " << clusROFVec.size() << " RO frames";
+  LOG(INFO) << "MFTClusterer pushed " << clusCompVec.size() << " compressed clusters, in " << clusROFVec.size() << " RO frames";
+  LOG(INFO) << "MFTClusterer pushed " << clusVec.size() << " full clusters, in " << clusROFVec.size() << " RO frames";
 }
 
 DataProcessorSpec getClustererSpec(bool useMC)
@@ -146,9 +147,9 @@ DataProcessorSpec getClustererSpec(bool useMC)
   inputs.emplace_back("ROframes", "MFT", "DigitROF", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
+  outputs.emplace_back("MFT", "CLUSTERS", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "PATTERNS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("MFT", "CLUSTERS", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "ClusterROF", 0, Lifetime::Timeframe);
 
   if (useMC) {
@@ -166,7 +167,7 @@ DataProcessorSpec getClustererSpec(bool useMC)
     Options{
       {"mft-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"full-clusters", o2::framework::VariantType::Bool, true, {"Produce full clusters"}}, // RSTODO temporary set to true
+      {"full-clusters", o2::framework::VariantType::Bool, false, {"Produce full clusters"}}, // RSTODO temporary set to true
       {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}},
       {"nthreads", VariantType::Int, 0, {"Number of clustering threads (<1: rely on openMP default)"}}}};
 }
