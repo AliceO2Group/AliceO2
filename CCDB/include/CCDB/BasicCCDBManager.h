@@ -115,7 +115,7 @@ class BasicCCDBManager
   long mTimestamp{o2::ccdb::getCurrentTimestamp()}; // timestamp to be used for query (by default "now")
   bool mCanDefault = false;                         // whether default is ok --> useful for testing purposes done standalone/isolation
   bool mCachingEnabled = true;                      // whether caching is enabled
-  long mCreatedNotAfter = 0;                        // upper limit for object validity timestamp (TimeMachine mode)
+  long mCreatedNotAfter = 0;                        // upper limit for object creation timestamp (TimeMachine mode)
 };
 
 template <typename T>

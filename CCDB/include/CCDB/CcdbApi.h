@@ -149,7 +149,7 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
    * @param headers Map to be populated with the headers we received, if it is not null.
    * @param optional etag from previous call
-   * @param optional createdNotAfter time limit for the object validity (TimeMachine mode)
+   * @param optional createdNotAfter time limit for the object creation timestamp (TimeMachine mode)
    * @return the object, or nullptr if none were found.
    * @deprecated in favour of retrieveFromTFileAny as it is not limited to TObjects.
    */
@@ -165,7 +165,7 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
    * @param headers Map to be populated with the headers we received, if it is not null.
    * @param optional etag from previous call
-   * @param optional createdNotAfter time limit for the object validity (TimeMachine mode)
+   * @param optional createdNotAfter time limit for the object creation timestamp (TimeMachine mode)
    * @return the object, or nullptr if none were found or type does not match serialized type.
    */
   template <typename T>
