@@ -377,8 +377,8 @@ struct RDHUtils {
   {
     return {getHeartBeatBC(rdh), getHeartBeatOrbit(rdh)};
   } // custom extension
-  GPUhdi() static IR getHeartBeatIR(const RDHAny& rdh) { return getHeartBeattIR(rdh.voidify()); }
-  GPUhdi() static IR getHeartBeattIR(const void* rdhP)
+  GPUhdi() static IR getHeartBeatIR(const RDHAny& rdh) { return getHeartBeatIR(rdh.voidify()); }
+  GPUhdi() static IR getHeartBeatIR(const void* rdhP)
   {
     int version = getVersion(rdhP);
     if (version > 4) {
