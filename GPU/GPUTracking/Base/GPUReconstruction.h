@@ -278,7 +278,7 @@ class GPUReconstruction
   template <class T, class S>
   size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type);
   template <class T>
-  void AllocateIOMemoryHelper(unsigned int n, const T*& ptr, std::unique_ptr<T[]>& u);
+  void AllocateIOMemoryHelper(size_t n, const T*& ptr, std::unique_ptr<T[]>& u);
 
   // Private helper functions to dump / load flat objects
   template <class T>
@@ -391,7 +391,7 @@ class GPUReconstruction
 };
 
 template <class T>
-inline void GPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T*& ptr, std::unique_ptr<T[]>& u)
+inline void GPUReconstruction::AllocateIOMemoryHelper(size_t n, const T*& ptr, std::unique_ptr<T[]>& u)
 {
   if (n == 0) {
     u.reset(nullptr);
@@ -513,7 +513,7 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, s
   }
   (void)r;
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %d %s", (int)numTotal, IOTYPENAMES[type]);
+    GPUInfo("Read %lld %s", (long long int)numTotal, IOTYPENAMES[type]);
   }
   return numTotal;
 }
@@ -553,7 +553,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   r = fread(buf, 1, size[1], fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %d bytes from %s", (int)r, file);
+    GPUInfo("Read %lld bytes from %s", (long long int)r, file);
   }
   retVal->clearInternalBufferPtr();
   retVal->setActualBufferAddress(buf);
@@ -592,7 +592,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file
   r = fread(newObj.get(), 1, size, fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %d bytes from %s", (int)r, file);
+    GPUInfo("Read %lld bytes from %s", (long long int)r, file);
   }
   return newObj;
 }
@@ -613,7 +613,7 @@ inline int GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
   r = fread(obj, 1, size, fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %d bytes from %s", (int)r, file);
+    GPUInfo("Read %lldd bytes from %s", (long long int)r, file);
   }
   return 0;
 }
