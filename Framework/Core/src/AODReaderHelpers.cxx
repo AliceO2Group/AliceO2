@@ -172,14 +172,14 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
   while (true) {
     auto s = reader.ReadNext(&batch);
     if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot read batches from table {}", s));
+      throw std::runtime_error(fmt::format("Cannot read batches from table {}", s.ToString()));
     }
     if (batch == nullptr) {
       break;
     }
     s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
     if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot apply projector {}", s));
+      throw std::runtime_error(fmt::format("Cannot apply projector {}", s.ToString()));
     }
     for (auto i = 0u; i < sizeof...(C); ++i) {
       chunks[i].emplace_back(v.at(i));
