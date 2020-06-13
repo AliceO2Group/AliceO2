@@ -11,7 +11,7 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
-#include "Analysis/SecondaryVertex.h"
+#include "Analysis/SecondaryVertexHF.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "ReconstructionDataFormats/Track.h"
 
@@ -23,13 +23,48 @@
 
 using namespace o2;
 using namespace o2::framework;
+using namespace o2::framework::expressions;
+
+namespace o2::aod
+{
+namespace seltrack
+{
+DECLARE_SOA_COLUMN(IsSel, issel, int);
+} // namespace etaphi
+DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK", seltrack::IsSel);
+} // namespace o2::aod
+
+
+struct SelectTracks {
+  Produces<aod::SelTrack> seltrack;
+  Configurable<double> ptmintrack{"ptmintrack", -1, "ptmin single track"};
+  Configurable<int> d_tpcnclsfound {"d_tpcnclsfound", 70, "min number of tpc cls >="};
+
+  void process(soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
+  {
+    for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
+      auto& track_0 = *it0;
+      int status = 1;
+
+      if (abs(track_0.signed1Pt())<ptmintrack)
+        status = 0;
+      UChar_t clustermap_0 = track_0.itsClusterMap();
+      bool isselected_0 = track_0.tpcNClsFound() >= d_tpcnclsfound && track_0.flags() & 0x4;
+      isselected_0 = isselected_0 && (TESTBIT(clustermap_0, 0) || TESTBIT(clustermap_0, 1));
+      if (!isselected_0)
+        status = 0;
+      seltrack(status);
+    }
+  }
+};
 
 struct HFTrackIndexSkimsCreator {
+  float masspion = 0.140;
+  float masskaon = 0.494;
 
-  Produces<aod::SecVtx2Prong> secvtx2prong;
-  Produces<aod::SecVtx3Prong> secvtx3prong;
+  Produces<aod::HfTrackIndexProng2> hftrackindexprong2;
+  Produces<aod::HfTrackIndexProng3> hftrackindexprong3;
   Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
-  Configurable<double> ptmintrack{"ptmintrack", -1, "ptmin single track"};
   Configurable<int> do3prong{"do3prong", 0, "do 3 prong"};
   Configurable<double> d_bz{"d_bz", 5.0, "bz field"};
   Configurable<bool> b_propdca{"b_propdca", true, \
@@ -41,15 +76,12 @@ struct HFTrackIndexSkimsCreator {
                 "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> d_minrelchi2change {"d_minrelchi2change", 0.9, \
                 "stop iterations is chi2/chi2old > this"};
-  Configurable<int> d_tpcnclsfound {"d_tpcnclsfound", 70, "min number of tpc cls >="};
 
-  //Configurable<double> {"", , ""};
-  //Configurable<int> {"", , ""};
-  //Configurable<bool> {"", , ""};
+  Filter seltrack = (aod::seltrack::issel == 1);
 
   void process(aod::Collision const& collision,
                aod::BCs const& bcs,
-               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
+               soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::SelTrack>> const& tracks)
   {
     int trigindex = int{triggerindex};
     if (trigindex != -1) {
@@ -78,24 +110,8 @@ struct HFTrackIndexSkimsCreator {
     df3.setMinRelChi2Change(d_minrelchi2change);
 
 
-
-    std::vector<int> statustrack(tracks.size(), 0);
-
     for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
       auto& track_0 = *it0;
-      if (abs(track_0.signed1Pt())<ptmintrack)
-        continue;
-      UChar_t clustermap_0 = track_0.itsClusterMap();
-      bool isselected_0 = track_0.tpcNClsFound() >= d_tpcnclsfound && track_0.flags() & 0x4;
-      isselected_0 = isselected_0 && (TESTBIT(clustermap_0, 0) || TESTBIT(clustermap_0, 1));
-      if (!isselected_0)
-        continue;
-      statustrack[track_0.globalIndex() - tracks.begin().globalIndex()] = 1;
-    }
-
-    for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
-      auto& track_0 = *it0;
-      if (statustrack[track_0.globalIndex() - tracks.begin().globalIndex()] == 0) continue;
       float x0_ = track_0.x();
       float alpha0_ = track_0.alpha();
       std::array<float, 5> arraypar0 = {track_0.y(), track_0.z(), track_0.snp(),
@@ -109,7 +125,6 @@ struct HFTrackIndexSkimsCreator {
       o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
       for (auto it1 = it0 + 1; it1 != tracks.end(); ++it1) {
         auto& track_1 = *it1;
-      if (statustrack[track_1.globalIndex() - tracks.begin().globalIndex()] == 0) continue;
         if (track_0.signed1Pt() * track_1.signed1Pt() > 0)
           continue;
         float x1_ = track_1.x();
@@ -135,28 +150,27 @@ struct HFTrackIndexSkimsCreator {
         std::array<float, 3> pvec1;
         trackdec0.getPxPyPzGlo(pvec0);
         trackdec1.getPxPyPzGlo(pvec1);
-        float masspion = 0.140;
-        float masskaon = 0.494;
         float mass_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masspion,
                                      pvec1[0], pvec1[1], pvec1[2], masskaon);
         float masssw_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masskaon,
                                        pvec1[0], pvec1[1], pvec1[2], masspion);
-        secvtx2prong(track_0.collisionId(),
-                     collision.posX(), collision.posY(), collision.posZ(),
-                     vtx[0], vtx[1], vtx[2], track_0.globalIndex(),
-                     pvec0[0], pvec0[1], pvec0[2], track_0.y(),
-                     track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], track_1.y(),
-                     mass_, masssw_);
+        hftrackindexprong2(track_0.collisionId(),
+                           track_0.globalIndex(),
+                           track_1.globalIndex(), 1.);
         if (do3prong == 1) {
           for (auto it2 = it0 + 1; it2 != tracks.end(); ++it2) {
             if(it2 == it0 || it2 == it1)
               continue;
             auto& track_2 = *it2;
-            if (statustrack[track_2.globalIndex() - tracks.begin().globalIndex()] == 0) continue;
             if (track_1.signed1Pt() * track_2.signed1Pt() > 0)
               continue;
             float x2_ = track_2.x();
             float alpha2_ = track_2.alpha();
+            double mass3prong2 = invmass3prongs2(track_0.px(), track_0.py(), track_0.pz(), masspion,
+                                               track_1.px(), track_1.py(), track_1.pz(), masspion,
+                                               track_2.px(), track_2.py(), track_2.pz(), masspion);
+            if (mass3prong2 < 1.5*1.5 || mass3prong2 > 2.5*2.5) continue;
+
             std::array<float, 5> arraypar2 = {track_2.y(), track_2.z(), track_2.snp(),
                                               track_2.tgl(), track_2.signed1Pt()};
             std::array<float, 15> covpar2 = {track_2.cYY(), track_2.cZY(), track_2.cZZ(),
@@ -180,13 +194,10 @@ struct HFTrackIndexSkimsCreator {
             trackdec0_3p.getPxPyPzGlo(pvec0_3p);
             trackdec1_3p.getPxPyPzGlo(pvec1_3p);
             trackdec2_3p.getPxPyPzGlo(pvec2_3p);
-            secvtx3prong(track_0.collisionId(),
-                         collision.posX(), collision.posY(), collision.posZ(),
-                         vtx3[0], vtx3[1], vtx3[2],
-                         track_0.globalIndex(), pvec0_3p[0], pvec0_3p[1], pvec0_3p[2], track_0.y(),
-                         track_1.globalIndex(), pvec1_3p[0], pvec1_3p[1], pvec1_3p[2], track_1.y(),
-                         track_2.globalIndex(), pvec2_3p[0], pvec2_3p[1], pvec2_3p[2], track_2.y(),
-                         -1., -1.);
+            hftrackindexprong3(track_0.collisionId(),
+                               track_0.globalIndex(),
+			       track_1.globalIndex(),
+			       track_2.globalIndex(), 1.);
           }
         }
       }
@@ -198,5 +209,6 @@ struct HFTrackIndexSkimsCreator {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
+    adaptAnalysisTask<SelectTracks>("produce-sel-track"),
     adaptAnalysisTask<HFTrackIndexSkimsCreator>("vertexerhf-hftrackindexskimscreator")};
 }
