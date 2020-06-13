@@ -60,7 +60,7 @@ class GPUReconstructionConvert
 
  private:
   static void ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut, unsigned int nBits);
-  static void ZSfillEmpty(void* ptr, int shift);
+  static void ZSfillEmpty(void* ptr, int shift, unsigned int feeId);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
