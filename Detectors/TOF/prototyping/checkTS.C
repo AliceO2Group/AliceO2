@@ -16,7 +16,8 @@ void checkTS(int ch = 0)
 
   // where the entries for the tot vs timeSlewing correction for the desired channel are stored in the sector-wise vector
   int istart = obj->getStartIndexForChannel(ch / 8736, ch % 8736);
-  int istop = obj->getStopIndexForChannel(ch / 8736, ch % 8736);;
+  int istop = obj->getStopIndexForChannel(ch / 8736, ch % 8736);
+  ;
   printf("istart = %d -- istop = %d\n", istart, istop);
 
   float a[1000], b[1000];
@@ -37,7 +38,7 @@ void checkTS(int ch = 0)
   float inv = range / nbin;
 
   for (int i = 1; i <= nbin; i++) {
-    float ts = obj->evalTimeSlewing(ch, (i - 0.5) * inv*1e-3); // I need to multiply by 1e-3 because the TimeSLewing object is stored in ps, so "inv" will be in ps, but when I call "evalTimeSlewing" the argument is expected in ns
+    float ts = obj->evalTimeSlewing(ch, (i - 0.5) * inv * 1e-3); // I need to multiply by 1e-3 because the TimeSLewing object is stored in ps, so "inv" will be in ps, but when I call "evalTimeSlewing" the argument is expected in ns
     h->Fill((i - 0.5) * inv, ts);
   }
 
