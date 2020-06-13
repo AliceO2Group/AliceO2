@@ -142,6 +142,11 @@ class DataDecoderTask
         std::cout << mNrdhs << "--\n";
         o2::raw::RDHUtils::printRDH(rdhPtr);
       }
+
+      // add orbit to vector if not present yet
+      if (std::find(mOrbits.begin(), mOrbits.end(), orbit) == mOrbits.end()) {
+        mOrbits.push_back(orbit);
+      }
     };
 
     if (!mDecoder) {
@@ -272,6 +277,8 @@ class DataDecoderTask
   {
     std::vector<o2::mch::Digit> digits;
 
+    mOrbits.clear();
+
     decodeTF(pc, digits);
     for (auto&& input : pc.inputs()) {
       if (input.spec->binding == "readout")
@@ -291,9 +298,15 @@ class DataDecoderTask
     outbuffer = (char*)realloc(outbuffer, OUT_SIZE);
     memcpy(outbuffer, digits.data(), OUT_SIZE);
 
+    char* outbuffer2 = nullptr;
+    size_t orbitsSize = mOrbits.size() * sizeof(uint32_t);
+    outbuffer2 = (char*)realloc(outbuffer2, orbitsSize);
+    memcpy(outbuffer2, mOrbits.data(), orbitsSize);
+
     // create the output message
     auto freefct = [](void* data, void*) { free(data); };
     pc.outputs().adoptChunk(Output{"MCH", "DIGITS", 0}, outbuffer, OUT_SIZE, freefct, nullptr);
+    pc.outputs().adoptChunk(Output{"MCH", "ORBITS", 0}, outbuffer2, orbitsSize, freefct, nullptr);
   }
 
  private:
@@ -301,6 +314,7 @@ class DataDecoderTask
   FeeLink2SolarMapper mFee2Solar{nullptr};
   o2::mch::raw::PageDecoder mDecoder;
   size_t mNrdhs{0};
+  std::vector<uint32_t> mOrbits; ///< list of orbits in the processed buffer
 
   std::ifstream mInputFile{}; ///< input file
   bool mDs2manu = false;      ///< print convert channel numbering from Run3 to Run1-2 order
@@ -314,7 +328,7 @@ o2::framework::DataProcessorSpec getDecodingSpec()
     "DataDecoder",
     //o2::framework::select("TF:MCH/RAWDATA, re:ROUT/RAWDATA"),
     o2::framework::select("readout:ROUT/RAWDATA"),
-    Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe}, OutputSpec{"MCH", "ORBITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<DataDecoderTask>()},
     Options{{"print", VariantType::Bool, false, {"print digits"}},
             {"cru-map", VariantType::String, "", {"custom CRU mapping"}},
