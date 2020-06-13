@@ -181,7 +181,6 @@ struct GBTLink {
   }
 
  private:
-  void printRDH(const RDH& rdh);
   void discardData() { rawData.setDone(); }
   void printTrigger(const GBTTrigger* gbtTrg);
   void printHeader(const GBTDataHeader* gbtH);
@@ -237,7 +236,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     if (!dataOffset) { // here we always start with the RDH
       const auto* rdh = reinterpret_cast<const RDH*>(&currRawPiece->data[dataOffset]);
       if (verbosity >= VerboseHeaders) {
-        printRDH(*rdh);
+        RDHUtils::printRDH(rdh);
       }
       GBTLINK_DECODE_ERRORCHECK(checkErrorsRDH(*rdh));              // make sure we are dealing with RDH
       GBTLINK_DECODE_ERRORCHECK(checkErrorsRDHStop(*rdh));          // if new HB starts, the lastRDH must have stop

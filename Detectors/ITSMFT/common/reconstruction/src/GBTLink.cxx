@@ -96,12 +96,6 @@ void GBTLink::clear(bool resetStat, bool resetTFRaw)
 }
 
 ///_________________________________________________________________
-void GBTLink::printRDH(const RDH& rdh)
-{
-  o2::raw::RDHUtils::printRDH(rdh);
-}
-
-///_________________________________________________________________
 void GBTLink::printTrigger(const GBTTrigger* gbtTrg)
 {
   gbtTrg->printX();
