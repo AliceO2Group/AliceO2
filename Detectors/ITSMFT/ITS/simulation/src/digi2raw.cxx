@@ -37,8 +37,11 @@
 using MAP = o2::itsmft::ChipMappingITS;
 namespace bpo = boost::program_options;
 
+constexpr int DefRDHVersion = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
+
 void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, std::string_view fileFor);
-void digi2raw(std::string_view inpName, std::string_view outDir, std::string_view fileFor, int verbosity, uint32_t rdhV = 4, bool noEmptyHBF = false,
+void digi2raw(std::string_view inpName, std::string_view outDir, std::string_view fileFor, int verbosity,
+              uint32_t rdhV = DefRDHVersion, bool noEmptyHBF = false,
               int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
@@ -57,8 +60,7 @@ int main(int argc, char** argv)
     add_option("input-file,i", bpo::value<std::string>()->default_value("itsdigits.root"), "input ITS digits file");
     add_option("file-for,f", bpo::value<std::string>()->default_value("layer"), "single file per: all,layer,cru,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
-    uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
-    add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
+    add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(DefRDHVersion), "RDH version to use");
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
