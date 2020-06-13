@@ -61,7 +61,7 @@ void ConvertRun2CalibrationToO2(int channelToCheck = 0)
 
   o2::dataformats::CalibTimeSlewingParamTOF* mTimeSlewingObj = new o2::dataformats::CalibTimeSlewingParamTOF();
   Printf("At the beginning: time slewing object has size = %d", mTimeSlewingObj->size());
- 
+
   TFile* ffineSlewing = new TFile("TOF/Calib/FineSlewing/Run0_999999999_v2_s0.root");
   AliCDBEntry* efineSlewing = (AliCDBEntry*)ffineSlewing->Get("AliCDBEntry");
   AliTOFCalibFineSlewing* fs = (AliTOFCalibFineSlewing*)efineSlewing->GetObject();
@@ -104,13 +104,13 @@ void ConvertRun2CalibrationToO2(int channelToCheck = 0)
       for (Int_t islew = 0; islew < 6; islew++)
         corr += parOffline->GetSlewPar(islew) * TMath::Power(toteff, islew) * 1.e3;
       if (j == 0 && x[j] > 0.03) {
-	forced++;
+        forced++;
         mTimeSlewingObj->addTimeSlewingInfo(i, 0, y[j] + corr0); // force to have an entry for ToT=0
       }
       mTimeSlewingObj->addTimeSlewingInfo(i, x[j], y[j] + corr);
       if (i == channelToCheck) {
-	xChannelToCheck[j] = x[j];
-	yChannelToCheck[j] = y[j] + corr;
+        xChannelToCheck[j] = x[j];
+        yChannelToCheck[j] = y[j] + corr;
       }
     }
     if (n == 0) {

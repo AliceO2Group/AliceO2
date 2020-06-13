@@ -57,3 +57,10 @@ o2_add_executable(tof-calib-workflow
  		                        O2::TOFCalibration
 	                                O2::DetectorsCalibration)
 
+
+o2_add_executable(tof-dummy-ccdb-for-calib
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/tof-dummy-ccdb-for-calib.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+ 		                        O2::TOFCalibration
+	                                O2::DetectorsCalibration)
