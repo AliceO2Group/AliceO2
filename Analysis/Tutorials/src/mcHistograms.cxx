@@ -10,8 +10,8 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
-#include <TH1F.h>
 
+#include <TH1F.h>
 #include <cmath>
 
 using namespace o2;
@@ -35,6 +35,7 @@ struct BTask {
 
   void process(aod::McCollision const& mcCollision, aod::McParticles const& mcParticles)
   {
+    LOGF(info, "MC. vtx-z = %f", mcCollision.z());
     for (auto& mcParticle : mcParticles) {
       phiH->Fill(mcParticle.phi());
       etaH->Fill(mcParticle.eta());
@@ -44,12 +45,25 @@ struct BTask {
 
 // Access from tracks to MC particle
 struct CTask {
-  OutputObj<TH1F> etaDiff{TH1F("etaDiff", ";eta_{MC} - eta_{Rec}", 100, -0.1, 0.1)};
+  OutputObj<TH1F> etaDiff{TH1F("etaDiff", ";eta_{MC} - eta_{Rec}", 100, -2, 2)};
+  OutputObj<TH1F> phiDiff{TH1F("phiDiff", ";phi_{MC} - phi_{Rec}", 100, -M_PI, M_PI)};
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks, aod::McParticles const& mcParticles)
+  void process(soa::Join<aod::Collisions, aod::McCollisionLabels>::iterator const& collision, soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks, aod::McParticles const& mcParticles, aod::McCollisions const& mcCollisions)
   {
+    LOGF(info, "vtx-z (data) = %f | vtx-z (MC) = %f", collision.posZ(), collision.label().z());
     for (auto& track : tracks) {
+      //if (track.trackType() != 0)
+      //  continue;
+      //if (track.labelMask() != 0)
+      //  continue;
       etaDiff->Fill(track.label().eta() - track.eta());
+      auto delta = track.label().phi() - track.phi();
+      if (delta > M_PI)
+        delta -= 2 * M_PI;
+      if (delta < -M_PI)
+        delta += 2 * M_PI;
+      phiDiff->Fill(delta);
+      //LOGF(info, "eta: %.2f %.2f \t phi: %.2f %.2f | %d", track.label().eta(), track.eta(), track.label().phi(), track.phi(), track.label().index());
     }
   }
 };
