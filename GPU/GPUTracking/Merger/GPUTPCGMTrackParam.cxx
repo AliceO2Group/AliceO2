@@ -462,7 +462,10 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
   } else {
     float X;
     Merger->GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoX(slice, iRow, mP[0], mP[1], X);
-    prop.GetPropagatedYZ(X, Y, Z);
+    if (prop.GetPropagatedYZ(X, Y, Z)) {
+      Y = mP[0];
+      Z = mP[1];
+    }
   }
   AttachClusters(Merger, slice, iRow, iTrack, goodLeg, Y, Z);
 }
