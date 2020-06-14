@@ -21,32 +21,10 @@ using namespace o2::dataformats;
 
 CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF()
 {
-  /*
-  mTimeSlewing[0] = &mTimeSlewingSec00;
-  mTimeSlewing[1] = &mTimeSlewingSec01;
-  mTimeSlewing[2] = &mTimeSlewingSec02;
-  mTimeSlewing[3] = &mTimeSlewingSec03;
-  mTimeSlewing[4] = &mTimeSlewingSec04;
-  mTimeSlewing[5] = &mTimeSlewingSec05;
-  mTimeSlewing[6] = &mTimeSlewingSec06;
-  mTimeSlewing[7] = &mTimeSlewingSec07;
-  mTimeSlewing[8] = &mTimeSlewingSec08;
-  mTimeSlewing[9] = &mTimeSlewingSec09;
-  mTimeSlewing[10] = &mTimeSlewingSec10;
-  mTimeSlewing[11] = &mTimeSlewingSec11;
-  mTimeSlewing[12] = &mTimeSlewingSec12;
-  mTimeSlewing[13] = &mTimeSlewingSec13;
-  mTimeSlewing[14] = &mTimeSlewingSec14;
-  mTimeSlewing[15] = &mTimeSlewingSec15;
-  mTimeSlewing[16] = &mTimeSlewingSec16;
-  mTimeSlewing[17] = &mTimeSlewingSec17;
-  */
   for (int i = 0; i < NSECTORS; i++) {
-    for (int j = 0; j < NCHANNELXSECTOR; j++) {
-      mChannelStart[i][j] = -1;
-      mFractionUnderPeak[i][j] = -100.;
-      mSigmaPeak[i][j] = -1.;
-    }
+    memset(mChannelStart[i], -1, sizeof(mChannelStart[i]));
+    memset(mFractionUnderPeak[i], -100, sizeof(mFractionUnderPeak[i]));
+    memset(mSigmaPeak[i], -1., sizeof(mSigmaPeak[i]));
   }
 }
 //______________________________________________
@@ -56,52 +34,10 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTO
   for (int iSec = 0; iSec < NSECTORS; iSec++) {
     mTimeSlewing[iSec] = source.mTimeSlewing[iSec];
   }
-  /*
-  mTimeSlewingSec00 = source.mTimeSlewingSec00;
-  mTimeSlewingSec01 = source.mTimeSlewingSec01;
-  mTimeSlewingSec02 = source.mTimeSlewingSec02;
-  mTimeSlewingSec03 = source.mTimeSlewingSec03;
-  mTimeSlewingSec04 = source.mTimeSlewingSec04;
-  mTimeSlewingSec05 = source.mTimeSlewingSec05;
-  mTimeSlewingSec06 = source.mTimeSlewingSec06;
-  mTimeSlewingSec07 = source.mTimeSlewingSec07;
-  mTimeSlewingSec08 = source.mTimeSlewingSec08;
-  mTimeSlewingSec09 = source.mTimeSlewingSec09;
-  mTimeSlewingSec10 = source.mTimeSlewingSec10;
-  mTimeSlewingSec11 = source.mTimeSlewingSec11;
-  mTimeSlewingSec12 = source.mTimeSlewingSec12;
-  mTimeSlewingSec13 = source.mTimeSlewingSec13;
-  mTimeSlewingSec14 = source.mTimeSlewingSec14;
-  mTimeSlewingSec15 = source.mTimeSlewingSec15;
-  mTimeSlewingSec16 = source.mTimeSlewingSec16;
-  mTimeSlewingSec17 = source.mTimeSlewingSec17;
-  */
-  /*
-  mTimeSlewing[0] = &mTimeSlewingSec00;
-  mTimeSlewing[1] = &mTimeSlewingSec01;
-  mTimeSlewing[2] = &mTimeSlewingSec02;
-  mTimeSlewing[3] = &mTimeSlewingSec03;
-  mTimeSlewing[4] = &mTimeSlewingSec04;
-  mTimeSlewing[5] = &mTimeSlewingSec05;
-  mTimeSlewing[6] = &mTimeSlewingSec06;
-  mTimeSlewing[7] = &mTimeSlewingSec07;
-  mTimeSlewing[8] = &mTimeSlewingSec08;
-  mTimeSlewing[9] = &mTimeSlewingSec09;
-  mTimeSlewing[10] = &mTimeSlewingSec10;
-  mTimeSlewing[11] = &mTimeSlewingSec11;
-  mTimeSlewing[12] = &mTimeSlewingSec12;
-  mTimeSlewing[13] = &mTimeSlewingSec13;
-  mTimeSlewing[14] = &mTimeSlewingSec14;
-  mTimeSlewing[15] = &mTimeSlewingSec15;
-  mTimeSlewing[16] = &mTimeSlewingSec16;
-  mTimeSlewing[17] = &mTimeSlewingSec17;
-  */
   for (int i = 0; i < NSECTORS; i++) {
-    for (int j = 0; j < NCHANNELXSECTOR; j++) {
-      mChannelStart[i][j] = source.mChannelStart[i][j];
-      mFractionUnderPeak[i][j] = source.mFractionUnderPeak[i][j];
-      mSigmaPeak[i][j] = source.mSigmaPeak[i][j];
-    }
+    memcpy(mChannelStart[i], source.mChannelStart[i], sizeof(mChannelStart[i]));
+    memcpy(mFractionUnderPeak[i], source.mFractionUnderPeak[i], sizeof(mFractionUnderPeak[i]));
+    memcpy(mSigmaPeak[i], source.mSigmaPeak[i], sizeof(mSigmaPeak[i]));
   }
 }
 //______________________________________________
@@ -110,12 +46,9 @@ CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator=(const CalibTimeSle
   for (int i = 0; i < NSECTORS; i++) {
     mTimeSlewing[i].clear(); // CHECK: mTimeSlewing[i] does not work, probably because it is an array of vectors
     mTimeSlewing[i] = source.mTimeSlewing[i];
-
-    for (int j = 0; j < NCHANNELXSECTOR; j++) {
-      mChannelStart[i][j] = source.mChannelStart[i][j];
-      mFractionUnderPeak[i][j] = source.mFractionUnderPeak[i][j];
-      mSigmaPeak[i][j] = source.mSigmaPeak[i][j];
-    }
+    memcpy(mChannelStart[i], source.mChannelStart[i], sizeof(mChannelStart[i]));
+    memcpy(mFractionUnderPeak[i], source.mFractionUnderPeak[i], sizeof(mFractionUnderPeak[i]));
+    memcpy(mSigmaPeak[i], source.mSigmaPeak[i], sizeof(mSigmaPeak[i]));
   }
   return *this;
 }

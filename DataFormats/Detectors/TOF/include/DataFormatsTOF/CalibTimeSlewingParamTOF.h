@@ -81,26 +81,6 @@ class CalibTimeSlewingParamTOF
   // TOF channel calibrations
   int mChannelStart[NSECTORS][NCHANNELXSECTOR];           ///< array with the index of the first element of a channel in the time slewing vector (per sector)
   std::vector<std::pair<unsigned short, short>> mTimeSlewing[18]; ///< array of sector vectors; first element of the pair is TOT (in ps), second is t-texp_pi (in ps)
-  /*
-  std::vector<std::pair<float, float>> mTimeSlewingSec00; ///< timeslweing correction <tot,time> sector 0
-  std::vector<std::pair<float, float>> mTimeSlewingSec01; ///< timeslweing correction <tot,time> sector 1
-  std::vector<std::pair<float, float>> mTimeSlewingSec02; ///< timeslweing correction <tot,time> sector 2
-  std::vector<std::pair<float, float>> mTimeSlewingSec03; ///< timeslweing correction <tot,time> sector 3
-  std::vector<std::pair<float, float>> mTimeSlewingSec04; ///< timeslweing correction <tot,time> sector 4
-  std::vector<std::pair<float, float>> mTimeSlewingSec05; ///< timeslweing correction <tot,time> sector 5
-  std::vector<std::pair<float, float>> mTimeSlewingSec06; ///< timeslweing correction <tot,time> sector 6
-  std::vector<std::pair<float, float>> mTimeSlewingSec07; ///< timeslweing correction >tot,time> sector 7
-  std::vector<std::pair<float, float>> mTimeSlewingSec08; ///< timeslweing correction <tot,time> sector 8
-  std::vector<std::pair<float, float>> mTimeSlewingSec09; ///< timeslweing correction <tot,time> sector 9
-  std::vector<std::pair<float, float>> mTimeSlewingSec10; ///< timeslweing correction <tot,time> sector 10
-  std::vector<std::pair<float, float>> mTimeSlewingSec11; ///< timeslweing correction <tot,time> sector 11
-  std::vector<std::pair<float, float>> mTimeSlewingSec12; ///< timeslweing correction <tot,time> sector 12
-  std::vector<std::pair<float, float>> mTimeSlewingSec13; ///< timeslweing correction <tot,time> sector 13
-  std::vector<std::pair<float, float>> mTimeSlewingSec14; ///< timeslweing correction <tot,time> sector 14
-  std::vector<std::pair<float, float>> mTimeSlewingSec15; ///< timeslweing correction <tot,time> sector 15
-  std::vector<std::pair<float, float>> mTimeSlewingSec16; ///< timeslweing correction <tot,time> sector 16
-  std::vector<std::pair<float, float>> mTimeSlewingSec17; ///< timeslweing correction <tot,time> sector 17
-  */
   float mFractionUnderPeak[NSECTORS][NCHANNELXSECTOR]; ///< array with the fraction of entries below the peak
   float mSigmaPeak[NSECTORS][NCHANNELXSECTOR];         ///< array with the sigma of the peak
 

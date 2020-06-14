@@ -84,7 +84,7 @@ void ConvertRun2CalibrationToO2(int channelToCheck = 0)
   Int_t nChannelToCheck = 0;
   int forced = 0;
   int sizeRecalc = 0;
-  for (Int_t i = 0; i < 157248; i++) {
+  for (Int_t i = 0; i < AliTOFGeometry::NSectors() * (2 * (AliTOFGeometry::NStripC() + AliTOFGeometry::NStripB()) + AliTOFGeometry::NStripA()) * AliTOFGeometry::NpadZ() * AliTOFGeometry::NpadX(); i++) {
     mfs->GetChannelArrays(i, x, y, n);
     sizeRecalc += n;
     //    Printf("channel %d has %d entries", i, n);

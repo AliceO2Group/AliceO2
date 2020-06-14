@@ -189,6 +189,8 @@ float TOFChannelData::integral(int chmin, int chmax, float binmin, float binmax)
   LOG(INFO) << "Time for integral looping over axis (result = " << res2 << "):";
   t3.Print();
 
+  return res2;
+
   /* // what is below is only for alternative methods which all proved to be slower
   float res = 0, res1 = 0;
   TStopwatch t1, t2, 
