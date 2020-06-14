@@ -488,3 +488,11 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   BOOST_CHECK_EQUAL(se.pointB().y(), 4);
   BOOST_CHECK_EQUAL(se.thickness(), 1);
 }
+
+BOOST_AUTO_TEST_CASE(TestSchemaCreation)
+{
+  auto schema = createSchemaFromColumns(Points::persistent_columns_t{});
+  BOOST_CHECK_EQUAL(schema->num_fields(), 2);
+  BOOST_CHECK_EQUAL(schema->field(0)->name(), "x");
+  BOOST_CHECK_EQUAL(schema->field(1)->name(), "y");
+}

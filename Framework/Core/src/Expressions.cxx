@@ -50,15 +50,22 @@ struct OpNodeHelper {
 
 std::shared_ptr<arrow::DataType> concreteArrowType(atype::type type)
 {
-  if (type == atype::INT32)
-    return arrow::int32();
-  if (type == atype::FLOAT)
-    return arrow::float32();
-  if (type == atype::DOUBLE)
-    return arrow::float64();
-  if (type == atype::BOOL)
-    return arrow::boolean();
-  return nullptr;
+  switch (type) {
+    case atype::INT8:
+      return arrow::int8();
+    case atype::INT16:
+      return arrow::int16();
+    case atype::INT32:
+      return arrow::int32();
+    case atype::FLOAT:
+      return arrow::float32();
+    case atype::DOUBLE:
+      return arrow::float64();
+    case atype::BOOL:
+      return arrow::boolean();
+    default:
+      return nullptr;
+  }
 }
 
 bool operator==(DatumSpec const& lhs, DatumSpec const& rhs)
@@ -225,9 +232,14 @@ Operations createOperations(Filter const& expression)
   return OperationSpecs;
 }
 
-gandiva::ConditionPtr createCondition(gandiva::NodePtr node)
+gandiva::ConditionPtr makeCondition(gandiva::NodePtr node)
 {
   return gandiva::TreeExprBuilder::MakeCondition(node);
+}
+
+gandiva::ExpressionPtr makeExpression(gandiva::NodePtr node, gandiva::FieldPtr result)
+{
+  return gandiva::TreeExprBuilder::MakeExpression(node, result);
 }
 
 std::shared_ptr<gandiva::Filter>
@@ -235,11 +247,13 @@ std::shared_ptr<gandiva::Filter>
 {
   std::shared_ptr<gandiva::Filter> filter;
   auto s = gandiva::Filter::Make(Schema,
-                                 createCondition(createExpressionTree(opSpecs, Schema)),
+                                 makeCondition(createExpressionTree(opSpecs, Schema)),
                                  &filter);
-  if (s.ok())
+  if (s.ok()) {
     return filter;
-  throw std::runtime_error(fmt::format("Failed to create filter: {}", s));
+  } else {
+    throw std::runtime_error(fmt::format("Failed to create filter: {}", s.ToString()));
+  }
 }
 
 std::shared_ptr<gandiva::Filter>
@@ -249,9 +263,31 @@ std::shared_ptr<gandiva::Filter>
   auto s = gandiva::Filter::Make(Schema,
                                  condition,
                                  &filter);
-  if (s.ok())
+  if (s.ok()) {
     return filter;
-  throw std::runtime_error(fmt::format("Failed to create filter: {}", s));
+  } else {
+    throw std::runtime_error(fmt::format("Failed to create filter: {}", s.ToString()));
+  }
+}
+
+std::shared_ptr<gandiva::Projector>
+  createProjector(gandiva::SchemaPtr const& Schema, Operations const& opSpecs, gandiva::FieldPtr result)
+{
+  std::shared_ptr<gandiva::Projector> projector;
+  auto s = gandiva::Projector::Make(Schema,
+                                    {makeExpression(createExpressionTree(opSpecs, Schema), result)},
+                                    &projector);
+  if (s.ok()) {
+    return projector;
+  } else {
+    throw std::runtime_error(fmt::format("Failed to create projector: {}", s.ToString()));
+  }
+}
+
+std::shared_ptr<gandiva::Projector>
+  createProjector(gandiva::SchemaPtr const& Schema, Projector&& p, gandiva::FieldPtr result)
+{
+  return createProjector(std::move(Schema), createOperations(std::move(p)), std::move(result));
 }
 
 Selection createSelection(std::shared_ptr<arrow::Table> table, std::shared_ptr<gandiva::Filter> gfilter)
@@ -260,30 +296,53 @@ Selection createSelection(std::shared_ptr<arrow::Table> table, std::shared_ptr<g
   auto s = gandiva::SelectionVector::MakeInt64(table->num_rows(),
                                                arrow::default_memory_pool(),
                                                &selection);
-  if (!s.ok())
-    throw std::runtime_error(fmt::format("Cannot allocate selection vector {}", s));
+  if (!s.ok()) {
+    throw std::runtime_error(fmt::format("Cannot allocate selection vector {}", s.ToString()));
+  }
   arrow::TableBatchReader reader(*table);
   std::shared_ptr<arrow::RecordBatch> batch;
   while (true) {
     s = reader.ReadNext(&batch);
     if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot read batches from table {}", s));
+      throw std::runtime_error(fmt::format("Cannot read batches from table {}", s.ToString()));
     }
     if (batch == nullptr) {
       break;
     }
     s = gfilter->Evaluate(*batch, selection);
-    if (!s.ok())
-      throw std::runtime_error(fmt::format("Cannot apply filter {}", s));
+    if (!s.ok()) {
+      throw std::runtime_error(fmt::format("Cannot apply filter {}", s.ToString()));
+    }
   }
 
   return selection;
 }
 
 Selection createSelection(std::shared_ptr<arrow::Table> table,
-                          Filter const& expression)
+                          const Filter& expression)
 {
-  return createSelection(table, createFilter(table->schema(), createOperations(expression)));
+  return createSelection(table, createFilter(table->schema(), createOperations(std::move(expression))));
+}
+
+auto createProjection(std::shared_ptr<arrow::Table> table, std::shared_ptr<gandiva::Projector> gprojector)
+{
+  arrow::TableBatchReader reader(*table);
+  std::shared_ptr<arrow::RecordBatch> batch;
+  std::shared_ptr<arrow::ArrayVector> v;
+  while (true) {
+    auto s = reader.ReadNext(&batch);
+    if (!s.ok()) {
+      throw std::runtime_error(fmt::format("Cannot read batches from table {}", s.ToString()));
+    }
+    if (batch == nullptr) {
+      break;
+    }
+    s = gprojector->Evaluate(*batch, arrow::default_memory_pool(), v.get());
+    if (!s.ok()) {
+      throw std::runtime_error(fmt::format("Cannot apply projector {}", s.ToString()));
+    }
+  }
+  return v;
 }
 
 gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
@@ -295,6 +354,9 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
   std::unordered_map<std::string, gandiva::NodePtr> fieldNodes;
 
   auto datumNode = [Schema, &opNodes, &fieldNodes](DatumSpec const& spec) {
+    if (spec.datum.index() == 0) {
+      return gandiva::NodePtr(nullptr);
+    }
     if (spec.datum.index() == 1) {
       return opNodes[std::get<size_t>(spec.datum)];
     }
@@ -315,8 +377,9 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
     if (spec.datum.index() == 3) {
       auto name = std::get<std::string>(spec.datum);
       auto lookup = fieldNodes.find(name);
-      if (lookup != fieldNodes.end())
+      if (lookup != fieldNodes.end()) {
         return lookup->second;
+      }
       auto node = gandiva::TreeExprBuilder::MakeField(Schema->GetFieldByName(name));
       fieldNodes.insert({name, node});
       return node;
@@ -336,7 +399,7 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
         tree = gandiva::TreeExprBuilder::MakeAnd({leftNode, rightNode});
         break;
       default:
-        if (it->op <= BasicOp::Exp) {
+        if (it->op < BasicOp::Exp) {
           tree = gandiva::TreeExprBuilder::MakeFunction(binaryOperationsMap[it->op], {leftNode, rightNode}, concreteArrowType(it->type));
         } else {
           tree = gandiva::TreeExprBuilder::MakeFunction(binaryOperationsMap[it->op], {leftNode}, concreteArrowType(it->type));

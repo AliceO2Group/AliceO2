@@ -45,7 +45,10 @@ struct BTask {
   float fPI = static_cast<float>(M_PI);
   float ptlow = 0.5f;
   float ptup = 2.0f;
-  Filter ptFilter = ((aod::track::signed1Pt < 1.0f / ptlow) && (aod::track::signed1Pt > 1.0f / ptup)) || ((aod::track::signed1Pt < -1.0f / ptup) && (aod::track::signed1Pt < -1.0f / ptlow));
+  Filter ptFilter_a = aod::track::pt2 > (ptlow * ptlow);
+  Filter ptFilter_b = aod::track::pt2 < (ptup * ptup);
+
+  //  Filter ptFilter = ((aod::track::signed1Pt < 1.0f / ptlow) && (aod::track::signed1Pt > 1.0f / ptup)) || ((aod::track::signed1Pt < -1.0f / ptup) && (aod::track::signed1Pt < -1.0f / ptlow));
   float etalow = -1.0f;
   float etaup = 1.0f;
   Filter etafilter = (aod::etaphi::eta2 < etaup) && (aod::etaphi::eta2 > etalow);

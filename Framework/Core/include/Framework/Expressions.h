@@ -23,6 +23,8 @@
 #include <gandiva/selection_vector.h>
 #include <gandiva/node.h>
 #include <gandiva/filter.h>
+#include <gandiva/projector.h>
+#include <fmt/format.h>
 #else
 namespace gandiva
 {
@@ -62,6 +64,10 @@ constexpr auto selectArrowType()
     return atype::FLOAT;
   } else if constexpr (std::is_same_v<T, double>) {
     return atype::DOUBLE;
+  } else if constexpr (std::is_same_v<T, uint8_t>) {
+    return atype::INT8;
+  } else if constexpr (std::is_same_v<T, uint16_t>) {
+    return atype::INT16;
   } else {
     return atype::NA;
   }
@@ -209,11 +215,48 @@ inline Node operator||(Node left, Node right)
   return Node{OpNode{BasicOp::LogicalOr}, std::move(left), std::move(right)};
 }
 
+/// arithmetical operations between nodes
+inline Node operator*(Node left, Node right)
+{
+  return Node{OpNode{BasicOp::Multiplication}, std::move(left), std::move(right)};
+}
+
+inline Node operator*(BindingNode left, BindingNode right)
+{
+  return Node{OpNode{BasicOp::Multiplication}, left, right};
+}
+
+inline Node operator*(BindingNode left, Node right)
+{
+  return Node{OpNode{BasicOp::Multiplication}, left, std::move(right)};
+}
+
+inline Node operator/(Node left, Node right)
+{
+  return Node{OpNode{BasicOp::Division}, std::move(left), std::move(right)};
+}
+
+inline Node operator+(Node left, Node right)
+{
+  return Node{OpNode{BasicOp::Addition}, std::move(left), std::move(right)};
+}
+
+inline Node operator-(Node left, Node right)
+{
+  return Node{OpNode{BasicOp::Subtraction}, std::move(left), std::move(right)};
+}
+
 /// arithmetical operations between node and literal
 template <typename T>
 inline Node operator*(Node left, T right)
 {
   return Node{OpNode{BasicOp::Multiplication}, std::move(left), LiteralNode{right}};
+}
+
+template <typename T>
+inline Node operator*(T left, Node right)
+{
+  return Node{OpNode{BasicOp::Multiplication}, LiteralNode{left}, std::move(right)};
 }
 
 template <typename T>
@@ -238,6 +281,12 @@ template <typename T>
 inline Node operator-(Node left, T right)
 {
   return Node{OpNode{BasicOp::Subtraction}, std::move(left), LiteralNode{right}};
+}
+/// semi-binary
+template <typename T>
+inline Node npow(Node left, T right)
+{
+  return Node{OpNode{BasicOp::Power}, std::move(left), LiteralNode{right}};
 }
 
 /// unary operations on nodes
@@ -264,27 +313,49 @@ inline Node nabs(Node left)
 /// A struct, containing the root of the expression tree
 struct Filter {
   Filter(Node&& node_) : node{std::make_unique<Node>(std::move(node_))} {}
-
+  Filter(Filter&& other) : node{std::move(other.node)} {}
   std::unique_ptr<Node> node;
 };
 
+using Projector = Filter;
+
 using Selection = std::shared_ptr<gandiva::SelectionVector>;
+/// Function for creating gandiva selection from our internal filter tree
 Selection createSelection(std::shared_ptr<arrow::Table> table, Filter const& expression);
+/// Function for creating gandiva selection from prepared gandiva expressions tree
 Selection createSelection(std::shared_ptr<arrow::Table> table, std::shared_ptr<gandiva::Filter> gfilter);
 
 struct ColumnOperationSpec;
 using Operations = std::vector<ColumnOperationSpec>;
 
+/// Function to create an internal operation sequence from a filter tree
 Operations createOperations(Filter const& expression);
+
+/// Function to check compatibility of a given arrow schema with operation sequence
 bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSpecs);
+/// Function to create gandiva expression tree from operation sequence
 gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
                                       gandiva::SchemaPtr const& Schema);
+/// Function to create gandiva filter from gandiva condition
 std::shared_ptr<gandiva::Filter> createFilter(gandiva::SchemaPtr const& Schema,
                                               gandiva::ConditionPtr condition);
+/// Function to create gandiva filter from operation sequence
 std::shared_ptr<gandiva::Filter> createFilter(gandiva::SchemaPtr const& Schema,
                                               Operations const& opSpecs);
+/// Function to create gandiva projector from operation sequence
+std::shared_ptr<gandiva::Projector> createProjector(gandiva::SchemaPtr const& Schema,
+                                                    Operations const& opSpecs,
+                                                    gandiva::FieldPtr result);
+/// Function to create gandiva projector directly from expression
+std::shared_ptr<gandiva::Projector> createProjector(gandiva::SchemaPtr const& Schema,
+                                                    Projector&& p,
+                                                    gandiva::FieldPtr result);
+/// Function for attaching gandiva filters to to compatible task inputs
 void updateExpressionInfos(expressions::Filter const& filter, std::vector<ExpressionInfo>& eInfos);
-gandiva::ConditionPtr createCondition(gandiva::NodePtr node);
+/// Function to create gandiva condition expression from generic gandiva expression tree
+gandiva::ConditionPtr makeCondition(gandiva::NodePtr node);
+/// Function to create gandiva projecting expression from generic gandiva expression tree
+gandiva::ExpressionPtr makeExpression(gandiva::NodePtr node, gandiva::FieldPtr result);
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_H_

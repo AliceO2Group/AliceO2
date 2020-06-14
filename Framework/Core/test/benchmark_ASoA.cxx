@@ -318,7 +318,7 @@ static void BM_ASoAGettersPhi(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
@@ -350,7 +350,7 @@ static void BM_ASoAWholeTrackForLoop(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
@@ -378,7 +378,7 @@ static void BM_ASoADynamicColumnPhi(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
