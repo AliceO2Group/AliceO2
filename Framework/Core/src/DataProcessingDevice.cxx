@@ -424,7 +424,7 @@ bool DataProcessingDevice::handleData(FairMQParts& parts, InputChannelInfo& info
   // fine grain control what is exposed at each state.
   auto& monitoringService = mServiceRegistry.get<Monitoring>();
   StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-  ScopedExit metricFlusher([&monitoringService] {
+  auto metricFlusher = make_scope_guard([]() noexcept {
     StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
   });
 
@@ -554,7 +554,7 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
   // FIXME: I should use a different id for this state.
   auto& monitoringService = mServiceRegistry.get<Monitoring>();
   StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-  ScopedExit metricFlusher([&monitoringService] {
+  auto metricFlusher = make_scope_guard([]() noexcept -> void {
     StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
   });
 
