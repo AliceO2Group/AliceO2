@@ -75,11 +75,11 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
 
   ///< create RDH for given IR
   template <typename H>
-  H createRDH(const IR& rec) const;
+  H createRDH(const IR& rec, bool setHBTF = true) const;
 
   ///< update RDH for with given IR info
   template <typename H>
-  void updateRDH(H& rdh, const IR& rec) const;
+  void updateRDH(H& rdh, const IR& rec, bool setHBTF = true) const;
 
   /*//-------------------------------------------------------------------------------------
     Fill provided vector (cleaned) by interaction records (bc/orbit) for HBFs, considering 
@@ -129,31 +129,32 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
 
 //_________________________________________________
 template <typename H>
-void HBFUtils::updateRDH(H& rdh, const IR& rec) const
+void HBFUtils::updateRDH(H& rdh, const IR& rec, bool setHBTF) const
 {
-  auto tfhb = getTFandHBinTF(rec);
-  RDHUtils::setHeartBeatBC(rdh, bcFirst);
-  RDHUtils::setHeartBeatOrbit(rdh, rec.orbit);
-  if (RDHUtils::getVersion(rdh) < 5) { // v3,4 have separate fields for trigger IR
-    RDHUtils::setTriggerBC(rdh, bcFirst);
-    RDHUtils::setTriggerOrbit(rdh, rec.orbit);
-  }
+  RDHUtils::setTriggerBC(rdh, rec.bc); // for RDH>4 the trigger and HB IR is the same!
+  RDHUtils::setTriggerOrbit(rdh, rec.orbit);
 
-  if (rec.bc == bcFirst) { // if we are starting new HB, set the HB trigger flag
-    auto trg = RDHUtils::getTriggerType(rdh) | (o2::trigger::ORBIT | o2::trigger::HB);
-    if (tfhb.second == 0) { // if we are starting new TF, set the TF trigger flag
-      trg |= o2::trigger::TF;
+  if (setHBTF) { // need to set the HBF IR and HB / TF trigger flags
+    auto tfhb = getTFandHBinTF(rec);
+    RDHUtils::setHeartBeatBC(rdh, bcFirst);
+    RDHUtils::setHeartBeatOrbit(rdh, rec.orbit);
+
+    if (rec.bc == bcFirst) { // if we are starting new HB, set the HB trigger flag
+      auto trg = RDHUtils::getTriggerType(rdh) | (o2::trigger::ORBIT | o2::trigger::HB);
+      if (tfhb.second == 0) { // if we are starting new TF, set the TF trigger flag
+        trg |= o2::trigger::TF;
+      }
+      RDHUtils::setTriggerType(rdh, trg);
     }
-    RDHUtils::setTriggerType(rdh, trg);
   }
 }
 
 //_________________________________________________
 template <typename H>
-inline H HBFUtils::createRDH(const o2::InteractionRecord& rec) const
+inline H HBFUtils::createRDH(const o2::InteractionRecord& rec, bool setHBTF) const
 {
   H rdh;
-  updateRDH(rdh, rec);
+  updateRDH(rdh, rec, setHBTF);
   return rdh;
 }
 
