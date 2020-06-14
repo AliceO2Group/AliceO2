@@ -592,7 +592,7 @@ void GPUReconstruction::PushNonPersistentMemory()
 
 void GPUReconstruction::PopNonPersistentMemory()
 {
-  if (mDeviceProcessingSettings.keepDisplayMemory) {
+  if (mDeviceProcessingSettings.keepDisplayMemory || mDeviceProcessingSettings.disableMemoryReuse) {
     return;
   }
   mHostMemoryPoolEnd = mNonPersistentMemoryStack.back().first;
