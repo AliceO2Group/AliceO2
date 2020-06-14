@@ -32,7 +32,7 @@ static BindingNode signed1Pt{"signed1Pt", atype::FLOAT};
 
 namespace o2::aod::track
 {
-DECLARE_SOA_EXPRESSION_COLUMN(Pze, pz, float, "fPz", o2::aod::track::tgl*(1.f / o2::aod::track::signed1Pt));
+DECLARE_SOA_EXPRESSION_COLUMN(Pze, pz, float, o2::aod::track::tgl*(1.f / o2::aod::track::signed1Pt));
 }
 
 BOOST_AUTO_TEST_CASE(TestTreeParsing)
