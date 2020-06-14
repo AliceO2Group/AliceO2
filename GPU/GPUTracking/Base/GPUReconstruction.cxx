@@ -17,6 +17,9 @@
 #include <mutex>
 #include <string>
 #include <map>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -41,6 +44,27 @@
 
 #define GPUCA_LOGGING_PRINTF
 #include "GPULogging.h"
+
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+struct GPUReconstructionPipelineQueue {
+  unsigned int op = 0; // For now, 0 = process, 1 = terminate
+  GPUChain* chain = nullptr;
+  std::mutex m;
+  std::condition_variable c;
+  bool done = false;
+  int retVal = 0;
+};
+
+struct GPUReconstructionPipelineContext {
+  std::queue<GPUReconstructionPipelineQueue*> queue;
+  std::mutex mutex;
+  std::condition_variable cond;
+};
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -166,6 +190,11 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mRecoStepsGPU.set((unsigned char)0);
   }
 
+  if (mDeviceProcessingSettings.doublePipeline && (mChains.size() != 1 || mChains[0]->SupportsDoublePipeline() == false)) {
+    GPUError("Must use double pipeline mode only with exactly one chain that must support it");
+    return 1;
+  }
+
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_AUTO) {
     mDeviceProcessingSettings.memoryAllocationStrategy = IsGPU() ? GPUMemoryResource::ALLOCATION_GLOBAL : GPUMemoryResource::ALLOCATION_INDIVIDUAL;
   }
@@ -233,6 +262,10 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   mMaxThreads = std::max(mMaxThreads, mDeviceProcessingSettings.nThreads);
   if (IsGPU()) {
     mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
+  }
+
+  if (mMaster == nullptr && mDeviceProcessingSettings.doublePipeline) {
+    mPipelineContext.reset(new GPUReconstructionPipelineContext);
   }
 
   mDeviceMemorySize = mHostMemorySize = 0;
@@ -670,6 +703,69 @@ void GPUReconstruction::PrintMemoryStatistics()
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->PrintMemoryStatistics();
   }
+}
+
+void GPUReconstruction::RunPipelineWorker()
+{
+  if (!mInitialized || !mDeviceProcessingSettings.doublePipeline || mMaster != nullptr || !mSlaves.size()) {
+    throw std::invalid_argument("Cannot start double pipeline mode");
+  }
+  if (mDeviceProcessingSettings.debugLevel >= 3) {
+    GPUInfo("Pipeline worker started");
+  }
+  bool terminate = false;
+  while (!terminate) {
+    {
+      std::unique_lock<std::mutex> lk(mPipelineContext->mutex);
+      mPipelineContext->cond.wait(lk, [this] { return this->mPipelineContext->queue.size() > 0; });
+    }
+    GPUReconstructionPipelineQueue* q;
+    {
+      std::lock_guard<std::mutex> lk(mPipelineContext->mutex);
+      q = mPipelineContext->queue.front();
+      mPipelineContext->queue.pop();
+    }
+    if (q->op == 1) {
+      terminate = 1;
+    } else {
+      q->retVal = q->chain->RunChain();
+    }
+    std::lock_guard<std::mutex> lk(q->m);
+    q->done = true;
+    q->c.notify_one();
+  }
+  if (mDeviceProcessingSettings.debugLevel >= 3) {
+    GPUInfo("Pipeline worker ended");
+  }
+}
+
+void GPUReconstruction::TerminatePipelineWorker()
+{
+  EnqueuePipeline(true);
+}
+
+int GPUReconstruction::EnqueuePipeline(bool terminate)
+{
+  GPUReconstruction* rec = mMaster ? mMaster : this;
+  std::unique_ptr<GPUReconstructionPipelineQueue> qu(new GPUReconstructionPipelineQueue);
+  GPUReconstructionPipelineQueue* q = qu.get();
+  q->chain = terminate ? nullptr : mChains[0].get();
+  q->op = terminate ? 1 : 0;
+  std::unique_lock<std::mutex> lkdone(q->m);
+  {
+    std::lock_guard<std::mutex> lkpipe(rec->mPipelineContext->mutex);
+    rec->mPipelineContext->queue.push(q);
+  }
+  rec->mPipelineContext->cond.notify_one();
+  q->c.wait(lkdone, [&q]() { return q->done; });
+  return 0;
+}
+
+GPUChain* GPUReconstruction::GetNextChainInQueue()
+{
+  GPUReconstruction* rec = mMaster ? mMaster : this;
+  std::lock_guard<std::mutex> lk(rec->mPipelineContext->mutex);
+  return rec->mPipelineContext->queue.size() && rec->mPipelineContext->queue.front()->op == 0 ? rec->mPipelineContext->queue.front()->chain : nullptr;
 }
 
 void GPUReconstruction::PrepareEvent()

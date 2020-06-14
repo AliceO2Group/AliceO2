@@ -105,10 +105,11 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   mergerSortTracks = -1;
   runMC = false;
   memoryScalingFactor = 1.f;
-  disableMemoryReuse = true;
+  disableMemoryReuse = false;
   fullMergerOnGPU = true;
   alternateBorderSort = -1;
   delayedOutput = true;
   tpccfGatherKernel = true;
   prefetchTPCpageScan = false;
+  doublePipeline = false;
 }

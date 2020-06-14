@@ -19,7 +19,7 @@
 #include <cstring>
 #include <string>
 #include <memory>
-#include <fstream>
+#include <iosfwd>
 #include <vector>
 #include <unordered_map>
 
@@ -48,6 +48,7 @@ namespace gpu
 {
 class GPUChain;
 class GPUMemorySizeScalers;
+struct GPUReconstructionPipelineContext;
 
 class GPUReconstruction
 {
@@ -179,6 +180,8 @@ class GPUReconstruction
   virtual void startGPUProfiling() {}
   virtual void endGPUProfiling() {}
   int CheckErrorCodes();
+  void RunPipelineWorker();
+  void TerminatePipelineWorker();
 
   // Helpers for memory allocation
   GPUMemoryResource& Res(short num) { return mMemoryResources[num]; }
@@ -258,6 +261,8 @@ class GPUReconstruction
   virtual int ExitDevice() = 0;
   virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
   void UpdateMaxMemoryUsed();
+  int EnqueuePipeline(bool terminate = false);
+  GPUChain* GetNextChainInQueue();
 
   // Management for GPU thread contexts
   class GPUThreadContext
@@ -364,6 +369,8 @@ class GPUReconstruction
   };
   std::unordered_map<GPUMemoryReuse::ID, MemoryReuseMeta> mMemoryReuse1to1;
   std::vector<std::pair<void*, void*>> mNonPersistentMemoryStack;
+
+  std::unique_ptr<GPUReconstructionPipelineContext> mPipelineContext;
 
   // Helpers for loading device library via dlopen
   class LibraryLoader

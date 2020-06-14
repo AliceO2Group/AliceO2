@@ -68,6 +68,28 @@ class bitfield
   operator S() const { return bits; }
   bool isSet(const bitfield& v) const { return *this & v; }
   bool isSet(const S v) const { return bits & v; }
+  template <typename... Args>
+  bool isSetAll(Args... args)
+  {
+    return (bits & lor(args...).bits) == lor(args...).bits;
+  }
+  template <typename... Args>
+  bool isSetAny(Args... args)
+  {
+    return (bits & lor(args...).bits) != 0;
+  }
+  template <typename... Args>
+  bool isOnlySet(Args... args)
+  {
+    return (bits & ~lor(args...).bits) == 0;
+  }
+  template <typename... Args>
+  static bitfield lor(const Args&... args)
+  {
+    bitfield retVal;
+    retVal.set(args...);
+    return retVal;
+  }
 
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
   static_assert(std::is_integral<S>::value, "Storage type non integral");
