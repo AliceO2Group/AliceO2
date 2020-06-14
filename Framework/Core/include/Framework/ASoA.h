@@ -1058,36 +1058,36 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
   DECLARE_SOA_COLUMN_FULL(_Name_, _Getter_, _Type_, "f" #_Name_)
 
 /// An 'expression' column. i.e. a column that can be calculated from other
-/// columns with gandiva. Consists of 'normal' soa::Colunm definition and a
-/// Generator template that can be used to calculate it from a supplied arrow
-/// Table. By default it is not restricted to an soa::Table type, however the
-/// supplied expression determines compatible schemas.
-#define DECLARE_SOA_EXPRESSION_COLUMN(_Name_, _Getter_, _Type_, _Label_, _Expression_) \
-  struct _Name_ : o2::soa::Column<_Type_, _Name_> {                                    \
-    static constexpr const char* mLabel = _Label_;                                     \
-    using base = o2::soa::Column<_Type_, _Name_>;                                      \
-    using type = _Type_;                                                               \
-    using column_t = _Name_;                                                           \
-    _Name_(arrow::ChunkedArray const* column)                                          \
-      : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(column))         \
-    {                                                                                  \
-    }                                                                                  \
-                                                                                       \
-    _Name_() = default;                                                                \
-    _Name_(_Name_ const& other) = default;                                             \
-    _Name_& operator=(_Name_ const& other) = default;                                  \
-                                                                                       \
-    decltype(auto) _Getter_() const                                                    \
-    {                                                                                  \
-      return *mColumnIterator;                                                         \
-    }                                                                                  \
-    static o2::framework::expressions::Projector Projector()                           \
-    {                                                                                  \
-      return _Expression_;                                                             \
-    }                                                                                  \
-  };                                                                                   \
-  static const o2::framework::expressions::BindingNode _Getter_ { _Label_,             \
+/// columns with gandiva based on supplied C++ expression.
+#define DECLARE_SOA_EXPRESSION_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_, _Expression_) \
+  struct _Name_ : o2::soa::Column<_Type_, _Name_> {                                         \
+    static constexpr const char* mLabel = _Label_;                                          \
+    using base = o2::soa::Column<_Type_, _Name_>;                                           \
+    using type = _Type_;                                                                    \
+    using column_t = _Name_;                                                                \
+    _Name_(arrow::ChunkedArray const* column)                                               \
+      : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(column))              \
+    {                                                                                       \
+    }                                                                                       \
+                                                                                            \
+    _Name_() = default;                                                                     \
+    _Name_(_Name_ const& other) = default;                                                  \
+    _Name_& operator=(_Name_ const& other) = default;                                       \
+                                                                                            \
+    decltype(auto) _Getter_() const                                                         \
+    {                                                                                       \
+      return *mColumnIterator;                                                              \
+    }                                                                                       \
+    static o2::framework::expressions::Projector Projector()                                \
+    {                                                                                       \
+      return _Expression_;                                                                  \
+    }                                                                                       \
+  };                                                                                        \
+  static const o2::framework::expressions::BindingNode _Getter_ { _Label_,                  \
                                                                   o2::framework::expressions::selectArrowType<_Type_>() }
+
+#define DECLARE_SOA_EXPRESSION_COLUMN(_Name_, _Getter_, _Type_, _Expression_) \
+  DECLARE_SOA_EXPRESSION_COLUMN_FULL(_Name_, _Getter_, _Type_, "f" #_Name_, _Expression_);
 
 /// An index column is a column of indices to elements / of another table named
 /// _Name_##s. The column name will be _Name_##Id and will always be stored in

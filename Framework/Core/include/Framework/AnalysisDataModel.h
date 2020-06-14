@@ -105,7 +105,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(P2, p2, [](float signed1Pt, float tgl) -> float {
   return (1.f + tgl * tgl) / (signed1Pt * signed1Pt);
 });
 
-DECLARE_SOA_EXPRESSION_COLUMN(Pt2, pt2, float, "fPt2", (1.f / aod::track::signed1Pt) * (1.f / aod::track::signed1Pt));
+DECLARE_SOA_EXPRESSION_COLUMN(Pt2, pt2, float, (1.f / aod::track::signed1Pt) * (1.f / aod::track::signed1Pt));
 
 // TRACKPARCOV TABLE definition
 DECLARE_SOA_COLUMN(CYY, cYY, float);
