@@ -202,21 +202,26 @@ int GPUReconstructionCPU::RunChains()
   mStatNEvents++;
   mNEventsProcessed++;
 
-  if (mThreadId != GetThread()) {
-    if (mDeviceProcessingSettings.debugLevel >= 2) {
-      GPUInfo("Thread changed, migrating context, Previous Thread: %d, New Thread: %d", mThreadId, GetThread());
-    }
-    mThreadId = GetThread();
-  }
-
   timerTotal.Start();
-  if (mSlaves.size() || mMaster) {
-    WriteConstantParams(); // Reinitialize
-  }
-  for (unsigned int i = 0; i < mChains.size(); i++) {
-    int retVal = mChains[i]->RunChain();
-    if (retVal) {
-      return retVal;
+  if (mDeviceProcessingSettings.doublePipeline) {
+    if (EnqueuePipeline()) {
+      return 1;
+    }
+  } else {
+    if (mThreadId != GetThread()) {
+      if (mDeviceProcessingSettings.debugLevel >= 2) {
+        GPUInfo("Thread changed, migrating context, Previous Thread: %d, New Thread: %d", mThreadId, GetThread());
+      }
+      mThreadId = GetThread();
+    }
+    if (mSlaves.size() || mMaster) {
+      WriteConstantParams(); // Reinitialize
+    }
+    for (unsigned int i = 0; i < mChains.size(); i++) {
+      int retVal = mChains[i]->RunChain();
+      if (retVal) {
+        return retVal;
+      }
     }
   }
   timerTotal.Stop();

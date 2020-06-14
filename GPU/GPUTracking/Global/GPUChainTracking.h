@@ -74,6 +74,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int RunChain() override;
   void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
   int CheckErrorCodes() override;
+  bool SupportsDoublePipeline() override { return true; }
   void ClearErrorCodes();
 
   // Structures for input and output data
@@ -239,7 +240,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   unsigned int mTPCMaxTimeBin = 0;
 
   // Debug
-  std::ofstream mDebugFile;
+  std::unique_ptr<std::ofstream> mDebugFile;
 
   // Synchronization and Locks
   eventStruct* mEvents = nullptr;

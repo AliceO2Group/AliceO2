@@ -99,6 +99,7 @@ AddOption(recoStepsGPU, int, -1, "recoStepsGPU", 0, "Bitmask for RecoSteps")
 AddOption(tpcCompressionGatherMode, int, -1, "tpcCompressionGatherMode", 0, "TPC Compressed Clusters Gather Mode")
 AddOption(runMC, bool, false, "runMC", 0, "Process MC labels")
 AddOption(ompKernels, bool, false, "ompKernels", 0, "Parallelize with OMP inside kernels instead of over slices")
+AddOption(doublePipeline, bool, false, "doublePipeline", 0, "Double pipeline mode")
 AddHelp("help", 'h')
 EndConfig()
 
