@@ -400,7 +400,10 @@ inline void GPUReconstruction::AllocateIOMemoryHelper(size_t n, const T*& ptr, s
   u.reset(new T[n]);
   ptr = u.get();
   if (mDeviceProcessingSettings.registerStandaloneInputMemory) {
-    registerMemoryForGPU(u.get(), n * sizeof(T));
+    if (registerMemoryForGPU(u.get(), n * sizeof(T))) {
+      GPUError("Error registering memory for GPU: %p - %lld bytes\n", (void*)u.get(), (long long int)(n * sizeof(T)));
+      throw std::bad_alloc();
+    }
   }
 }
 

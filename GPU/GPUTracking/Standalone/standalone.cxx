@@ -471,6 +471,7 @@ int SetupReconstruction()
   }
   if (configStandalone.outputcontrolmem && rec->IsGPU() && rec->registerMemoryForGPU(outputmemory.get(), configStandalone.outputcontrolmem)) {
     printf("ERROR registering memory for the GPU!!!\n");
+    return 1;
   }
   if (configStandalone.DebugLevel >= 4) {
     rec->PrintKernelOccupancies();
@@ -817,7 +818,9 @@ breakrun:
 
   rec->Finalize();
   if (configStandalone.outputcontrolmem && rec->IsGPU()) {
-    rec->unregisterMemoryForGPU(outputmemory.get());
+    if (rec->unregisterMemoryForGPU(outputmemory.get())) {
+      printf("Error unregistering memory\n");
+    }
   }
   rec->Exit();
 
