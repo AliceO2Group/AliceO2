@@ -101,6 +101,15 @@ class BasicCCDBManager
   /// reset the object upper validity limit
   void resetCreatedNotAfter() { mCreatedNotAfter = 0; }
 
+  /// set the object upper validity limit
+  void setCreatedNotBefore(long v) { mCreatedNotBefore = v; }
+
+  /// get the object upper validity limit
+  long getCreatedNotBefore() const { return mCreatedNotBefore; }
+
+  /// reset the object upper validity limit
+  void resetCreatedNotBefore() { mCreatedNotBefore = 0; }
+
  private:
   BasicCCDBManager(std::string const& path) : mCCDBAccessor{}
   {
@@ -110,22 +119,27 @@ class BasicCCDBManager
   // we access the CCDB via the CURL based C++ API
   o2::ccdb::CcdbApi mCCDBAccessor;
   std::unordered_map<std::string, CachedObject> mCache; //! map for {path, CachedObject} associations
-  std::map<std::string, std::string> mMetaData;     // some dummy object needed to talk to CCDB API
-  std::map<std::string, std::string> mHeaders;      // headers to retrieve tags
-  long mTimestamp{o2::ccdb::getCurrentTimestamp()}; // timestamp to be used for query (by default "now")
-  bool mCanDefault = false;                         // whether default is ok --> useful for testing purposes done standalone/isolation
-  bool mCachingEnabled = true;                      // whether caching is enabled
-  long mCreatedNotAfter = 0;                        // upper limit for object creation timestamp (TimeMachine mode)
+  std::map<std::string, std::string> mMetaData;         // some dummy object needed to talk to CCDB API
+  std::map<std::string, std::string> mHeaders;          // headers to retrieve tags
+  long mTimestamp{o2::ccdb::getCurrentTimestamp()};     // timestamp to be used for query (by default "now")
+  bool mCanDefault = false;                             // whether default is ok --> useful for testing purposes done standalone/isolation
+  bool mCachingEnabled = true;                          // whether caching is enabled
+  long mCreatedNotAfter = 0;                            // upper limit for object creation timestamp (TimeMachine mode) - If-Not-After HTTP header
+  long mCreatedNotBefore = 0;                           // lower limit for object creation timestamp (TimeMachine mode) - If-Not-Before HTTP header
 };
 
 template <typename T>
 T* BasicCCDBManager::getForTimeStamp(std::string const& path, long timestamp)
 {
   if (!isCachingEnabled()) {
-    return mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, nullptr, "", mCreatedNotAfter ? std::to_string(mCreatedNotAfter) : "");
+    return mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, nullptr, "",
+                                                 mCreatedNotAfter ? std::to_string(mCreatedNotAfter) : "",
+                                                 mCreatedNotBefore ? std::to_string(mCreatedNotBefore) : "");
   }
   auto& cached = mCache[path];
-  T* ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid, mCreatedNotAfter ? std::to_string(mCreatedNotAfter) : "");
+  T* ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid,
+                                                 mCreatedNotAfter ? std::to_string(mCreatedNotAfter) : "",
+                                                 mCreatedNotBefore ? std::to_string(mCreatedNotBefore) : "");
   if (ptr) { // new object was shipped, old one (if any) is not valid anymore
     cached.objPtr.reset(ptr);
     cached.uuid = mHeaders["ETag"];
