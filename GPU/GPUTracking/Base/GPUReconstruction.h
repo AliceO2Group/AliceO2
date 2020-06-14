@@ -432,7 +432,7 @@ inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*set
     throw std::bad_alloc();
   }
   unsigned short retVal = mMemoryResources.size() - 1;
-  if (re.type != GPUMemoryReuse::NONE) {
+  if (re.type != GPUMemoryReuse::NONE && !mDeviceProcessingSettings.disableMemoryReuse) {
     const auto& it = mMemoryReuse1to1.find(re.id);
     if (it == mMemoryReuse1to1.end()) {
       mMemoryReuse1to1[re.id] = {proc, retVal};

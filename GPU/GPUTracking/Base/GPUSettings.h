@@ -166,6 +166,7 @@ struct GPUSettingsDeviceProcessing {
   char mergerSortTracks;              // Sort track indices for GPU track fit
   bool runMC;                         // Process MC labels
   float memoryScalingFactor;          // Factor to apply to all memory scalers
+  bool disableMemoryReuse;            // Disable memory reusage (for debugging only)
   bool fullMergerOnGPU;               // Perform full TPC track merging on GPU instead of only refit
   char alternateBorderSort;           // Alternative scheduling for sorting of border tracks
   bool delayedOutput;                 // Delay output to be parallel to track fit
