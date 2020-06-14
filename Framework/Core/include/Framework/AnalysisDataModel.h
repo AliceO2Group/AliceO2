@@ -113,6 +113,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(P2, p2, [](float signed1Pt, float tgl) -> float {
   return (1.f + tgl * tgl) / (signed1Pt * signed1Pt);
 });
 
+DECLARE_SOA_EXPRESSION_COLUMN(Pt2, pt2, float, (1.f / aod::track::signed1Pt) * (1.f / aod::track::signed1Pt));
+
 // TRACKPARCOV TABLE definition
 DECLARE_SOA_COLUMN(CYY, cYY, float);
 DECLARE_SOA_COLUMN(CZY, cZY, float);
@@ -173,20 +175,22 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, [](uint8_
 });
 } // namespace track
 
-DECLARE_SOA_TABLE(Tracks, "AOD", "TRACKPAR",
-                  o2::soa::Index<>, track::CollisionId, track::TrackType,
-                  track::X, track::Alpha,
-                  track::Y, track::Z, track::Snp, track::Tgl,
-                  track::Signed1Pt,
-                  track::Phi<track::Snp, track::Alpha>,
-                  track::Eta<track::Tgl>,
-                  track::Pt<track::Signed1Pt>,
-                  track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
-                  track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
-                  track::Pz<track::Signed1Pt, track::Tgl>,
-                  track::P<track::Signed1Pt, track::Tgl>,
-                  track::P2<track::Signed1Pt, track::Tgl>,
-                  track::Charge<track::Signed1Pt>);
+DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACKPAR",
+                       o2::soa::Index<>, track::CollisionId, track::TrackType,
+                       track::X, track::Alpha,
+                       track::Y, track::Z, track::Snp, track::Tgl,
+                       track::Signed1Pt,
+                       track::Phi<track::Snp, track::Alpha>,
+                       track::Eta<track::Tgl>,
+                       track::Pt<track::Signed1Pt>,
+                       track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
+                       track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
+                       track::Pz<track::Signed1Pt, track::Tgl>,
+                       track::P<track::Signed1Pt, track::Tgl>,
+                       track::P2<track::Signed1Pt, track::Tgl>,
+                       track::Charge<track::Signed1Pt>);
+
+DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACKPAR", aod::track::Pt2);
 
 DECLARE_SOA_TABLE(TracksCov, "AOD", "TRACKPARCOV",
                   track::CYY, track::CZY, track::CZZ, track::CSnpY,

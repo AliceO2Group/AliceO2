@@ -12,10 +12,13 @@
 #include "Framework/AODReaderHelpers.h"
 #include "Framework/AnalysisDataModel.h"
 #include "DataProcessingHelpers.h"
+#include "ExpressionHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
+#include "Framework/CallbackService.h"
+#include "Framework/EndOfStreamContext.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSpecUtils.h"
@@ -38,6 +41,24 @@
 
 namespace o2::framework::readers
 {
+
+namespace
+{
+auto tableTypeFromInput(InputSpec const& spec)
+{
+  auto description = std::visit(
+    overloaded{
+      [](ConcreteDataMatcher const& matcher) { return matcher.description; },
+      [](auto&&) { return header::DataDescription{""}; }},
+    spec.matcher);
+
+  if (description == header::DataDescription{"TRACKPAR"}) {
+    return o2::aod::TracksMetadata{};
+  } else {
+    throw std::runtime_error("Not an extended table");
+  }
+}
+} // namespace
 
 enum AODTypeMask : uint64_t {
   None = 0,
@@ -138,6 +159,78 @@ std::vector<OutputRoute> getListOfUnknown(std::vector<OutputRoute> const& routes
   return unknows;
 }
 
+/// Expression-based column generator to materialize columns
+template <typename... C>
+auto spawner(framework::pack<C...> columns, arrow::Table* atable)
+{
+  arrow::TableBatchReader reader(*atable);
+  std::shared_ptr<arrow::RecordBatch> batch;
+  arrow::ArrayVector v;
+  std::vector<arrow::ArrayVector> chunks(sizeof...(C));
+
+  auto projectors = framework::expressions::createProjectors(columns, atable->schema());
+  while (true) {
+    auto s = reader.ReadNext(&batch);
+    if (!s.ok()) {
+      throw std::runtime_error(fmt::format("Cannot read batches from table {}", s.ToString()));
+    }
+    if (batch == nullptr) {
+      break;
+    }
+    s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
+    if (!s.ok()) {
+      throw std::runtime_error(fmt::format("Cannot apply projector {}", s.ToString()));
+    }
+    for (auto i = 0u; i < sizeof...(C); ++i) {
+      chunks[i].emplace_back(v.at(i));
+    }
+  }
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> results(sizeof...(C));
+  for (auto i = 0u; i < sizeof...(C); ++i) {
+    results[i] = std::make_shared<arrow::ChunkedArray>(chunks[i]);
+  }
+  return results;
+}
+
+template <typename T>
+auto extractTable(ProcessingContext& pc)
+{
+  return pc.inputs().get<TableConsumer>(aod::MetadataTrait<T>::metadata::tableLabel())->asArrowTable();
+}
+
+AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> requested)
+{
+  return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
+    auto& callbacks = ic.services().get<CallbackService>();
+    auto endofdatacb = [](EndOfStreamContext& eosc) {
+      auto& control = eosc.services().get<ControlService>();
+      control.endOfStream();
+      control.readyToQuit(QuitRequest::Me);
+    };
+    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
+
+    return [requested](ProcessingContext& pc) {
+      auto outputs = pc.outputs();
+      // spawn tables
+      for (auto& input : requested) {
+        using metadata = decltype(tableTypeFromInput(input));
+        using table_t = metadata::table_t;
+        using base_t = metadata::base_table_t;
+        using expressions = metadata::expression_pack_t;
+        auto schema = o2::soa::createSchemaFromColumns(table_t::persistent_columns_t{});
+        auto original_table = extractTable<base_t>(pc);
+        auto arrays = spawner(expressions{}, original_table.get());
+        std::vector<std::shared_ptr<arrow::ChunkedArray>> columns = original_table->columns();
+        for (auto i = 0u; i < framework::pack_size(expressions{}); ++i) {
+          columns.push_back(arrays[i]);
+        }
+        auto new_table = arrow::Table::Make(schema, columns);
+        outputs.adopt(Output{metadata::origin(), metadata::description()}, new_table);
+      }
+    };
+  }};
+}
+
 AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 {
   auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
@@ -195,7 +288,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         }
       };
       tableMaker(o2::aod::CollisionsMetadata{}, AODTypeMask::Collision, "O2collision");
-      tableMaker(o2::aod::TracksMetadata{}, AODTypeMask::Track, "O2track");
+      tableMaker(o2::aod::StoredTracksMetadata{}, AODTypeMask::Track, "O2track");
       tableMaker(o2::aod::TracksCovMetadata{}, AODTypeMask::TrackCov, "O2track");
       tableMaker(o2::aod::TracksExtraMetadata{}, AODTypeMask::TrackExtra, "O2track");
       tableMaker(o2::aod::CalosMetadata{}, AODTypeMask::Calo, "O2calo");

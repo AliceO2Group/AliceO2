@@ -144,6 +144,18 @@ void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
   }
 }
 
+void addMissingOutputsToSpawner(std::vector<InputSpec>&& requestedDYNs,
+                                std::vector<InputSpec>& requestedAODs,
+                                DataProcessorSpec& publisher)
+{
+  for (auto& input : requestedDYNs) {
+    publisher.inputs.emplace_back(InputSpec{input.binding, header::DataOrigin{"AOD"}, DataSpecUtils::asConcreteDataMatcher(input).description});
+    requestedAODs.emplace_back(InputSpec{input.binding, header::DataOrigin{"AOD"}, DataSpecUtils::asConcreteDataMatcher(input).description});
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
+  }
+}
+
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
 {
   auto fakeCallback = AlgorithmSpec{[](InitContext& ic) {
@@ -199,6 +211,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
+  std::vector<InputSpec> requestedDYNs;
+
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
   std::vector<OutputSpec> providedOutputObj;
@@ -251,6 +265,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AOD"})) {
         requestedAODs.emplace_back(input);
       }
+      if (DataSpecUtils::partialMatch(input, header::DataOrigin{"DYN"})) {
+        requestedDYNs.emplace_back(input);
+      }
     }
     std::stable_sort(timer.outputs.begin(), timer.outputs.end(), [](OutputSpec const& a, OutputSpec const& b) { return *DataSpecUtils::getOptionalSubSpec(a) < *DataSpecUtils::getOptionalSubSpec(b); });
 
@@ -258,7 +275,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       auto& output = processor.outputs[oi];
       if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AOD"})) {
         providedAODs.emplace_back(output);
-
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
         providedOutputObj.emplace_back(output);
         auto it = std::find_if(outObjMap.begin(), outObjMap.end(), [&](auto&& x) { return x.first == hash; });
@@ -274,6 +290,17 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     }
   }
 
+  auto last = std::unique(requestedDYNs.begin(), requestedDYNs.end());
+  requestedDYNs.erase(last, requestedDYNs.end());
+
+  DataProcessorSpec aodSpawner{
+    "internal-dpl-aod-spawner",
+    {},
+    {},
+    readers::AODReaderHelpers::aodSpawnerCallback(requestedDYNs),
+    {}};
+
+  addMissingOutputsToSpawner(std::move(requestedDYNs), requestedAODs, aodSpawner);
   addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
   addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
 
@@ -288,6 +315,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   if (qaStore.outputs.empty() == false) {
     extraSpecs.push_back(qaStore);
   }
+
+  if (aodSpawner.outputs.empty() == false) {
+    extraSpecs.push_back(aodSpawner);
+  }
+
   if (aodReader.outputs.empty() == false) {
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
