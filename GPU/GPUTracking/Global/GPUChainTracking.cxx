@@ -563,7 +563,9 @@ void GPUChainTracking::ConvertNativeToClusterDataLegacy()
   for (unsigned int i = 0; i < NSLICES; i++) {
     mIOPtrs.clusterData[i] = mIOMem.clusterData[i].get();
     if (GetDeviceProcessingSettings().registerStandaloneInputMemory) {
-      mRec->registerMemoryForGPU(mIOMem.clusterData[i].get(), mIOPtrs.nClusterData[i] * sizeof(*mIOPtrs.clusterData[i]));
+      if (mRec->registerMemoryForGPU(mIOMem.clusterData[i].get(), mIOPtrs.nClusterData[i] * sizeof(*mIOPtrs.clusterData[i]))) {
+        throw std::runtime_error("Error registering memory for GPU");
+      }
     }
   }
   mIOPtrs.clustersNative = nullptr;
@@ -583,7 +585,9 @@ void GPUChainTracking::ConvertRun2RawToNative()
   }
   mIOPtrs.clustersNative = mClusterNativeAccess.get();
   if (GetDeviceProcessingSettings().registerStandaloneInputMemory) {
-    mRec->registerMemoryForGPU(mIOMem.clustersNative.get(), mClusterNativeAccess->nClustersTotal * sizeof(*mClusterNativeAccess->clustersLinear));
+    if (mRec->registerMemoryForGPU(mIOMem.clustersNative.get(), mClusterNativeAccess->nClustersTotal * sizeof(*mClusterNativeAccess->clustersLinear))) {
+      throw std::runtime_error("Error registering memory for GPU");
+    }
   }
 }
 
@@ -600,7 +604,9 @@ void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
     for (unsigned int i = 0; i < NSLICES; i++) {
       for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
         for (unsigned int k = 0; k < mIOPtrs.tpcZS->slice[i].count[j]; k++) {
-          mRec->registerMemoryForGPU(mIOPtrs.tpcZS->slice[i].zsPtr[j][k], mIOPtrs.tpcZS->slice[i].nZSPtr[j][k] * TPCZSHDR::TPC_ZS_PAGE_SIZE);
+          if (mRec->registerMemoryForGPU(mIOPtrs.tpcZS->slice[i].zsPtr[j][k], mIOPtrs.tpcZS->slice[i].nZSPtr[j][k] * TPCZSHDR::TPC_ZS_PAGE_SIZE)) {
+            throw std::runtime_error("Error registering memory for GPU");
+          }
         }
       }
     }
