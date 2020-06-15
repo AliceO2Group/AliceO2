@@ -214,17 +214,24 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
       // spawn tables
       for (auto& input : requested) {
         using metadata = decltype(tableTypeFromInput(input));
-        using table_t = metadata::table_t;
         using base_t = metadata::base_table_t;
         using expressions = metadata::expression_pack_t;
-        auto schema = o2::soa::createSchemaFromColumns(table_t::persistent_columns_t{});
+        auto extra_schema = o2::soa::createSchemaFromColumns(expressions{});
         auto original_table = extractTable<base_t>(pc);
+        auto original_schema = original_table->schema();
+        auto num_fields = original_schema->num_fields();
+        std::vector<std::shared_ptr<arrow::Field>> fields;
         auto arrays = spawner(expressions{}, original_table.get());
         std::vector<std::shared_ptr<arrow::ChunkedArray>> columns = original_table->columns();
+        for (auto i = 0; i < num_fields; ++i) {
+          fields.emplace_back(original_schema->field(i));
+        }
         for (auto i = 0u; i < framework::pack_size(expressions{}); ++i) {
           columns.push_back(arrays[i]);
+          fields.emplace_back(extra_schema->field(i));
         }
-        auto new_table = arrow::Table::Make(schema, columns);
+        auto new_schema = std::make_shared<arrow::Schema>(fields);
+        auto new_table = arrow::Table::Make(new_schema, columns);
         outputs.adopt(Output{metadata::origin(), metadata::description()}, new_table);
       }
     };
