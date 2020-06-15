@@ -43,7 +43,6 @@ class GPUTPCCFChargeMapFiller : public GPUKernelTemplate
     fillIndexMap,
     fillFromDigits,
     findFragmentStart,
-    resetMaps,
   };
 
 #ifdef HAVE_O2HEADERS
@@ -65,8 +64,6 @@ class GPUTPCCFChargeMapFiller : public GPUKernelTemplate
   static GPUd() void fillIndexMapImpl(int, int, int, int, const CfFragment&, const tpc::Digit*, Array2D<uint>&, size_t);
 
   static GPUd() void fillFromDigitsImpl(int, int, int, int, const CfFragment&, size_t, const tpc::Digit*, ChargePos*, Array2D<PackedCharge>&);
-
-  static GPUd() void resetMapsImpl(int, int, int, int, const ChargePos*, Array2D<PackedCharge>&, Array2D<uchar>&, tpccf::SizeT);
 };
 
 } // namespace gpu
