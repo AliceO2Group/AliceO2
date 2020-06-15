@@ -226,8 +226,9 @@ Operations createOperations(Filter const& expression)
   };
 
   for (auto it = OperationSpecs.rbegin(); it != OperationSpecs.rend(); ++it) {
+    auto type = inferResultType(it->left, it->right);
     if (it->type == atype::NA) {
-      it->type = inferResultType(it->left, it->right);
+      it->type = type;
     }
     it->result.type = it->type;
     resultTypes[std::get<size_t>(it->result.datum)] = it->type;
