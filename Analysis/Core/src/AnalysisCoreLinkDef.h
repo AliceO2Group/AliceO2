@@ -24,3 +24,5 @@
 #pragma link C++ class ReducedTrack+;
 #pragma link C++ class ReducedEvent+;
 #pragma link C++ class ReducedAnalysis+;
+#pragma link C++ class VarManager+;
+#pragma link C++ class HistogramManager+;
