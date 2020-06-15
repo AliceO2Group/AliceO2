@@ -82,8 +82,8 @@ struct RDHUtils {
   template <typename H>
   static void setVersion(H& rdh, uint8_t v, NOTPTR(H))
   {
-    rdh.version = v;
-  } // same for all
+    rdh.word0 = (v < 5 ? 0x0000ffff00004000 : 0x00000000ffff4000) + v;
+  } // same for all (almost)
   static void setVersion(RDHAny& rdh, uint8_t v) { setVersion(rdh.voidify(), v); }
   static void setVersion(void* rdhP, uint8_t v) { setVersion(TOREF(RDHDef, rdhP), v); }
 
