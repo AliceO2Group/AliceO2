@@ -11,6 +11,7 @@
 o2_add_library(CCDB
                SOURCES  src/CcdbApi.cxx
                         src/BasicCCDBManager.cxx
+                        src/AnalysisCCDBManager.cxx
                         src/CCDBTimeStampUtils.cxx
         src/IdPath.cxx src/CCDBQuery.cxx
         PUBLIC_LINK_LIBRARIES CURL::libcurl
@@ -27,6 +28,7 @@ o2_target_root_dictionary(CCDB
                                   include/CCDB/TObjectWrapper.h
                                   include/CCDB/IdPath.h
                                   include/CCDB/BasicCCDBManager.h
+                                  include/CCDB/AnalysisCCDBManager.h
                                   include/CCDB/CCDBTimeStampUtils.h
                                   include/CCDB/CCDBQuery.h)
 
