@@ -122,6 +122,13 @@ namespace reducedtrack {
   DECLARE_SOA_COLUMN(TOFSignal, tofSignal, float);
   DECLARE_SOA_COLUMN(TOFChi2, tofChi2, float);
   DECLARE_SOA_COLUMN(BarrelLength, barrelLength, float);
+  
+  // Central barrel track covariance matrix
+  DECLARE_SOA_COLUMN(CYY, cYY, float);
+  DECLARE_SOA_COLUMN(CZZ, cZZ, float);
+  DECLARE_SOA_COLUMN(CSnpSnp, cSnpSnp, float);
+  DECLARE_SOA_COLUMN(CTglTgl, cTglTgl, float);
+  DECLARE_SOA_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float);
 
   // TODO: central barrel covariance matrix
   
@@ -145,13 +152,26 @@ DECLARE_SOA_TABLE(ReducedTracks, "AOD", "REDUCEDTRACK",
                   reducedtrack::Eta<reducedtrack::P1, reducedtrack::P2, reducedtrack::P3, reducedtrack::IsCartesian>);
 
 DECLARE_SOA_TABLE(ReducedTracksBarrel, "AOD", "RTBARREL",
-                  reducedtrack::TPCInnerParam, reducedtrack::TrackingFlags,
-                  reducedtrack::ITSClusterMap, reducedtrack::ITSChi2NCl, 
-                  reducedtrack::TPCNCls, reducedtrack::TPCNClsFindable, reducedtrack::TPCNCrossedRows, reducedtrack::TPCNClsShared, 
-                  reducedtrack::TPCChi2NCl, reducedtrack::TPCSignal,
-                  reducedtrack::TRDNTracklets, reducedtrack::TRDChi2, reducedtrack::TRDSignal,
-                  reducedtrack::TOFSignal, reducedtrack::TOFChi2,
+                  reducedtrack::TPCInnerParam, 
+                  reducedtrack::TrackingFlags,
+                  reducedtrack::ITSClusterMap, 
+                  reducedtrack::ITSChi2NCl, 
+                  reducedtrack::TPCNCls, 
+                  reducedtrack::TPCNClsFindable, 
+                  reducedtrack::TPCNCrossedRows, 
+                  reducedtrack::TPCNClsShared,
+                  reducedtrack::TPCChi2NCl, 
+                  reducedtrack::TPCSignal,
+                  reducedtrack::TRDNTracklets, 
+                  reducedtrack::TRDChi2, 
+                  reducedtrack::TRDSignal,
+                  reducedtrack::TOFSignal, 
+                  reducedtrack::TOFChi2,
                   reducedtrack::BarrelLength);
+
+DECLARE_SOA_TABLE(ReducedTracksBarrelCov, "AOD", "RTBARRELCOV",
+                  reducedtrack::CYY, reducedtrack::CZZ, reducedtrack::CSnpSnp,
+                  reducedtrack::CTglTgl, reducedtrack::C1Pt21Pt2);
 
 DECLARE_SOA_TABLE(ReducedTracksMuon, "AOD", "RTMUON",
                   reducedtrack::MuonChi2, reducedtrack::MuonChi2MatchTrigger);
@@ -159,6 +179,7 @@ DECLARE_SOA_TABLE(ReducedTracksMuon, "AOD", "RTMUON",
 
 using ReducedTrack = ReducedTracks::iterator;
 using ReducedTrackBarrel = ReducedTracksBarrel::iterator;
+using ReducedTrackBarrelCov = ReducedTracksBarrelCov::iterator;
 using ReducedTrackMuon = ReducedTracksMuon::iterator;
 
 } // namespace aod

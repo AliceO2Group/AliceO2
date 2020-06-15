@@ -93,13 +93,13 @@ struct TableReader {
       hPhi->Fill(track.phi());
       //hPx->Fill(track.px()); hPy->Fill(track.py()); hPz->Fill(track.pz());
       hPmom->Fill(track.pmom());
-      hPin->Fill(track.tpcInnerParam());
+      /*hPin->Fill(track.tpcInnerParam());
       hITSchi2->Fill(track.itsChi2NCl());
       hTPCchi2->Fill(track.tpcChi2NCl());
       hTPCdedxVSpin->Fill(track.tpcInnerParam(), track.tpcSignal());
       for(int i=0;i<64;i++) {
         if(track.trackingFlags() & (uint64_t(1) << i)) hTrackingFlags->Fill(i);
-      }
+      }*/
     }
     
   }

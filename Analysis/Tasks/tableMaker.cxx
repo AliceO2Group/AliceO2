@@ -36,6 +36,7 @@ struct TableMaker {
   Produces<aod::ReducedEventsVtxCov> eventVtxCov;
   Produces<aod::ReducedTracks> trackBasic;
   Produces<aod::ReducedTracksBarrel> trackBarrel;
+  Produces<aod::ReducedTracksBarrelCov> trackBarrelCov;
   //Produces<aod::ReducedTracksMuon> trackMuon;
   
   OutputObj<TH1F> vtxZ{TH1F("vtxZ", "vtx Z", 200, -20.0, 20.0)};
@@ -46,7 +47,7 @@ struct TableMaker {
   {
   }
 
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, /*aod::Muons const& tracksMuon,*/ aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksExtra> const& tracksBarrel)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, /*aod::Muons const& tracksMuon,*/ aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov> const& tracksBarrel)
   {
     uint64_t tag = 0;
     if(collision.sel7()) tag |= (uint64_t(1)<<0);
@@ -68,6 +69,7 @@ struct TableMaker {
                   track.tpcNClsFound(), track.tpcNClsFindable(), track.tpcNClsCrossedRows(), track.tpcNClsShared(), track.tpcChi2NCl(), track.tpcSignal(),
                   track.trdNTracklets(), track.trdChi2(), track.trdSignal(),
                   track.tofSignal(), track.tofChi2(), track.length());
+      trackBarrelCov(track.cYY(), track.cZZ(), track.cSnpSnp(), track.cTglTgl(), track.c1Pt21Pt2());
     }
     
     /*for (auto& muon : tracksMuon) {
