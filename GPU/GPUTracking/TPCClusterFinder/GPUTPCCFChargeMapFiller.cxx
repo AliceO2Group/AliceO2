@@ -85,31 +85,3 @@ GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::findFragm
   clusterer.mPmemory->fragment.digitsStart = st;
   clusterer.mPmemory->counters.nPositions = end - st;
 }
-
-template <>
-GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::resetMaps>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
-{
-  Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
-  Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
-  resetMapsImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPpositions, chargeMap, isPeakMap, clusterer.mPmemory->counters.nPositions);
-}
-
-GPUd() void GPUTPCCFChargeMapFiller::resetMapsImpl(int nBlocks, int nThreads, int iBlock, int iThread,
-                                                   const ChargePos* positions,
-                                                   Array2D<PackedCharge>& chargeMap,
-                                                   Array2D<uchar>& isPeakMap,
-                                                   SizeT maxDigit)
-{
-  SizeT idx = get_global_id(0);
-  if (idx >= maxDigit) {
-    return;
-  }
-
-  ChargePos pos = positions[idx];
-  if (!pos.valid()) {
-    return;
-  }
-
-  chargeMap[pos] = PackedCharge(0);
-  isPeakMap[pos] = 0;
-}

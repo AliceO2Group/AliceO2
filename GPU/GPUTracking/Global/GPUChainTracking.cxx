@@ -994,14 +994,10 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         }
         TransferMemoryResourceLinkToGPU(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
 
-        // These buffers only have to be cleared once entirely. The 'resetMaps' kernel
-        // takes care of subsequent clean ups.
-        if (iSliceBase == 0) {
-          using ChargeMapType = decltype(*clustererShadow.mPchargeMap);
-          using PeakMapType = decltype(*clustererShadow.mPpeakMap);
-          runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPchargeMap, TPCMapMemoryLayout<ChargeMapType>::items() * sizeof(ChargeMapType));
-          runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPpeakMap, TPCMapMemoryLayout<PeakMapType>::items() * sizeof(PeakMapType));
-        }
+        using ChargeMapType = decltype(*clustererShadow.mPchargeMap);
+        using PeakMapType = decltype(*clustererShadow.mPpeakMap);
+        runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPchargeMap, TPCMapMemoryLayout<ChargeMapType>::items() * sizeof(ChargeMapType));
+        runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPpeakMap, TPCMapMemoryLayout<PeakMapType>::items() * sizeof(PeakMapType));
         DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpChargeMap, *mDebugFile, "Zeroed Charges");
 
         if (mIOPtrs.tpcZS && tpcHasZSPages[iSlice]) {
@@ -1105,13 +1101,6 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         laneHasData[lane] = true;
         if (DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpCountedPeaks, *mDebugFile)) {
           clusterer.DumpClusters(*mDebugFile);
-        }
-      }
-      for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
-        unsigned int iSlice = iSliceBase + lane;
-        GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
-        if (clusterer.mPmemory->counters.nPositions) {
-          runKernel<GPUTPCCFChargeMapFiller, GPUTPCCFChargeMapFiller::resetMaps>(GetGrid(clusterer.mPmemory->counters.nPositions, lane), {iSlice}, {});
         }
       }
     }
@@ -1283,7 +1272,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   }
   mRec->PushNonPersistentMemory();
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    SetupGPUProcessor(&processors()->tpcTrackers[iSlice], true); // Now we allocate
+    SetupGPUProcessor(&processors()->tpcTrackers[iSlice], true);             // Now we allocate
     mRec->ResetRegisteredMemoryPointers(&processors()->tpcTrackers[iSlice]); // TODO: The above call breaks the GPU ptrs to already allocated memory. This fixes them. Should actually be cleaner up at the source.
     processors()->tpcTrackers[iSlice].SetupCommonMemory();
   }
