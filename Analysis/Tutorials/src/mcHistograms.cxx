@@ -23,8 +23,8 @@ struct ATask {
 
   void process(aod::McCollision const& mcCollision)
   {
-    LOGF(info, "MC. vtx-z = %f", mcCollision.z());
-    vertex->Fill(mcCollision.z());
+    LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
+    vertex->Fill(mcCollision.posZ());
   }
 };
 
@@ -35,7 +35,7 @@ struct BTask {
 
   void process(aod::McCollision const& mcCollision, aod::McParticles const& mcParticles)
   {
-    LOGF(info, "MC. vtx-z = %f", mcCollision.z());
+    LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
     for (auto& mcParticle : mcParticles) {
       phiH->Fill(mcParticle.phi());
       etaH->Fill(mcParticle.eta());
@@ -50,7 +50,7 @@ struct CTask {
 
   void process(soa::Join<aod::Collisions, aod::McCollisionLabels>::iterator const& collision, soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks, aod::McParticles const& mcParticles, aod::McCollisions const& mcCollisions)
   {
-    LOGF(info, "vtx-z (data) = %f | vtx-z (MC) = %f", collision.posZ(), collision.label().z());
+    LOGF(info, "vtx-z (data) = %f | vtx-z (MC) = %f", collision.posZ(), collision.label().posZ());
     for (auto& track : tracks) {
       //if (track.trackType() != 0)
       //  continue;

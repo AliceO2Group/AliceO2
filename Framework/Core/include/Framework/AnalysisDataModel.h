@@ -418,16 +418,16 @@ namespace mccollision
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);
 DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);
-DECLARE_SOA_COLUMN(X, x, float);
-DECLARE_SOA_COLUMN(Y, y, float);
-DECLARE_SOA_COLUMN(Z, z, float);
+DECLARE_SOA_COLUMN(PosX, posX, float);
+DECLARE_SOA_COLUMN(PosY, posY, float);
+DECLARE_SOA_COLUMN(PosZ, posZ, float);
 DECLARE_SOA_COLUMN(T, t, float);
 DECLARE_SOA_COLUMN(Weight, weight, float);
 } // namespace mccollision
 
 DECLARE_SOA_TABLE(McCollisions, "AOD", "MCCOLLISION", o2::soa::Index<>, mccollision::BCId,
                   mccollision::GeneratorsID,
-                  mccollision::X, mccollision::Y, mccollision::Z, mccollision::T, mccollision::Weight);
+                  mccollision::PosX, mccollision::PosY, mccollision::PosZ, mccollision::T, mccollision::Weight);
 using McCollision = McCollisions::iterator;
 
 namespace mcparticle
