@@ -69,7 +69,7 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string cons
   // TODO: we might want to treat this error condition some levels higher up, but for
   // the moment its an appropriate solution. The important thing is not to drop
   // messages and to be informed about the congestion.
-  while (device.NewStatePending() == false && device.Send(messages, channel, index, timeout) < 0) {
+  while (device.Send(messages, channel, index, timeout) < 0) {
     if (timeout == 0) {
       timeout = 1;
     } else if (timeout < maxTimeout) {
@@ -82,6 +82,15 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string cons
         // we add 1ms to disable the warning below
         timeout += 1;
       }
+    }
+    if (device.NewStatePending()) {
+      LOG(ERROR) << "device state change is requested, dropping " << messages.Size() << " pending message(s)\n"
+                 << "on channel " << channel << "\n"
+                 << "ATTENTION: DATA IS LOST! Could not dispatch data to downstream consumer(s), check if\n"
+                 << "consumers have been terminated too early";
+      // make sure we disable the warning below
+      timeout = maxTimeout + 1;
+      break;
     }
   }
   if (timeout > 0 && timeout <= maxTimeout) {
