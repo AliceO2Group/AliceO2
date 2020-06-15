@@ -69,7 +69,7 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string cons
   // TODO: we might want to treat this error condition some levels higher up, but for
   // the moment its an appropriate solution. The important thing is not to drop
   // messages and to be informed about the congestion.
-  while (device.Send(messages, channel, index, timeout) < 0) {
+  while (device.NewStatePending() == false && device.Send(messages, channel, index, timeout) < 0) {
     if (timeout == 0) {
       timeout = 1;
     } else if (timeout < maxTimeout) {
