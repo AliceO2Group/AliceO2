@@ -651,12 +651,6 @@ struct RowViewCore : public IP, C... {
     return *this;
   }
 
-  RowViewCore& operator[](int64_t i)
-  {
-    this->setCursor(i);
-    return *this;
-  }
-
   RowViewCore& operator++()
   {
     this->moveByIndex(1);
@@ -893,6 +887,11 @@ class Table
   RowViewSentinel end()
   {
     return RowViewSentinel{mEnd};
+  }
+
+  unfiltered_iterator iteratorAt(uint64_t i)
+  {
+    return mBegin + i;
   }
 
   filtered_iterator filtered_begin(SelectionVector selection)
@@ -1382,6 +1381,11 @@ class Filtered : public T
   RowViewSentinel end() const
   {
     return RowViewSentinel{mFilteredEnd};
+  }
+
+  iterator iteratorAt(uint64_t i)
+  {
+    return mFilteredBegin + i;
   }
 
   int64_t size() const
