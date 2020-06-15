@@ -173,12 +173,6 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
   return results;
 }
 
-template <typename T>
-auto extractTable(ProcessingContext& pc)
-{
-  return pc.inputs().get<TableConsumer>(aod::MetadataTrait<T>::metadata::tableLabel())->asArrowTable();
-}
-
 AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
