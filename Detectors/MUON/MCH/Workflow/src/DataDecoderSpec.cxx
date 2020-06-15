@@ -149,6 +149,7 @@ class DataDecoderTask
       auto flags = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF00;
       auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhAny);
       auto feeId = cruId * 2 + endpoint + flags;
+      auto linkId = o2::raw::RDHUtils::getLinkID(rdhAny);
       o2::raw::RDHUtils::setFEEID(rdhAny, feeId);
       orbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdhAny);
       if (mPrint) {
@@ -156,9 +157,13 @@ class DataDecoderTask
         o2::raw::RDHUtils::printRDH(rdhAny);
       }
 
+      uint64_t orbitInfo = orbit;
+      orbitInfo += ((linkId << 32) & 0xFF00000000);
+      orbitInfo += ((feeId << 40) & 0xFF0000000000);
+
       // add orbit to vector if not present yet
-      if (std::find(mOrbits.begin(), mOrbits.end(), orbit) == mOrbits.end()) {
-        mOrbits.push_back(orbit);
+      if (std::find(mOrbits.begin(), mOrbits.end(), orbitInfo) == mOrbits.end()) {
+        mOrbits.push_back(orbitInfo);
       }
     };
 
@@ -327,7 +332,7 @@ class DataDecoderTask
   FeeLink2SolarMapper mFee2Solar{nullptr};
   o2::mch::raw::PageDecoder mDecoder;
   size_t mNrdhs{0};
-  std::vector<uint32_t> mOrbits; ///< list of orbits in the processed buffer
+  std::vector<uint64_t> mOrbits; ///< list of orbits in the processed buffer
 
   std::ifstream mInputFile{}; ///< input file
   bool mDs2manu = false;      ///< print convert channel numbering from Run3 to Run1-2 order
