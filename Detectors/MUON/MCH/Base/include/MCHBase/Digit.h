@@ -72,7 +72,7 @@ class Digit
   int mPadID;         /// PadIndex to which the digit corresponds to
   unsigned long mADC; /// Amplitude of signal
 
-  ClassDefNV(Digit, 1);
+  ClassDefNV(Digit, 2);
 }; //class Digit
 
 } //namespace mch
