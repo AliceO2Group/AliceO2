@@ -158,6 +158,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void LoadClusterErrors();
   void SetOutputControlCompressedClusters(GPUOutputControl* v) { mOutputCompressedClusters = v; }
   void SetOutputControlClustersNative(GPUOutputControl* v) { mOutputClustersNative = v; }
+  void SetOutputControlTPCTracks(GPUOutputControl* v) { mOutputTPCTracks = v; }
 
   const void* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
   const void* mConfigQA = nullptr;      // Abstract pointer to Standalone QA Configuration Structure
@@ -232,6 +233,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   GPUOutputControl* mOutputCompressedClusters = nullptr;
   GPUOutputControl* mOutputClustersNative = nullptr;
+  GPUOutputControl* mOutputTPCTracks = nullptr;
 
   // Upper bounds for memory allocation
   unsigned int mMaxTPCHits = 0;
