@@ -135,7 +135,7 @@ class FileReaderTask
       }
 
       // allocate the output buffer
-      char* buf = (char*)realloc(buf, bufSize + frameSize);
+      buf = (char*)realloc(buf, bufSize + frameSize);
       if (buf == nullptr) {
         std::cout << mFrameMax << " - failed to allocate buffer" << std::endl;
         pc.services().get<ControlService>().endOfStream();
