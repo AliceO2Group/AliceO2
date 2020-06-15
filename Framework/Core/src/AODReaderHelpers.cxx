@@ -41,25 +41,6 @@
 
 namespace o2::framework::readers
 {
-
-namespace
-{
-auto tableTypeFromInput(InputSpec const& spec)
-{
-  auto description = std::visit(
-    overloaded{
-      [](ConcreteDataMatcher const& matcher) { return matcher.description; },
-      [](auto&&) { return header::DataDescription{""}; }},
-    spec.matcher);
-
-  if (description == header::DataDescription{"TRACKPAR"}) {
-    return o2::aod::TracksMetadata{};
-  } else {
-    throw std::runtime_error("Not an extended table");
-  }
-}
-} // namespace
-
 enum AODTypeMask : uint64_t {
   None = 0,
   Track = 1 << 0,
@@ -213,26 +194,46 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
       auto outputs = pc.outputs();
       // spawn tables
       for (auto& input : requested) {
-        using metadata = decltype(tableTypeFromInput(input));
-        using base_t = metadata::base_table_t;
-        using expressions = metadata::expression_pack_t;
-        auto extra_schema = o2::soa::createSchemaFromColumns(expressions{});
-        auto original_table = extractTable<base_t>(pc);
-        auto original_schema = original_table->schema();
-        auto num_fields = original_schema->num_fields();
-        std::vector<std::shared_ptr<arrow::Field>> fields;
-        auto arrays = spawner(expressions{}, original_table.get());
-        std::vector<std::shared_ptr<arrow::ChunkedArray>> columns = original_table->columns();
-        for (auto i = 0; i < num_fields; ++i) {
-          fields.emplace_back(original_schema->field(i));
+        auto description = std::visit(
+          overloaded{
+            [](ConcreteDataMatcher const& matcher) { return matcher.description; },
+            [](auto&&) { return header::DataDescription{""}; }},
+          input.matcher);
+
+        auto origin = std::visit(
+          overloaded{
+            [](ConcreteDataMatcher const& matcher) { return matcher.origin; },
+            [](auto&&) { return header::DataOrigin{""}; }},
+          input.matcher);
+
+        auto maker = [&](auto metadata) {
+          using metadata_t = decltype(metadata);
+          using base_t = typename metadata_t::base_table_t;
+          using expressions = typename metadata_t::expression_pack_t;
+          auto extra_schema = o2::soa::createSchemaFromColumns(expressions{});
+          auto original_table = extractTable<base_t>(pc);
+          auto original_schema = original_table->schema();
+          auto num_fields = original_schema->num_fields();
+          std::vector<std::shared_ptr<arrow::Field>> fields;
+          auto arrays = spawner(expressions{}, original_table.get());
+          std::vector<std::shared_ptr<arrow::ChunkedArray>> columns = original_table->columns();
+          for (auto i = 0; i < num_fields; ++i) {
+            fields.emplace_back(original_schema->field(i));
+          }
+          for (auto i = 0u; i < framework::pack_size(expressions{}); ++i) {
+            columns.push_back(arrays[i]);
+            fields.emplace_back(extra_schema->field(i));
+          }
+          auto new_schema = std::make_shared<arrow::Schema>(fields);
+          auto new_table = arrow::Table::Make(new_schema, columns);
+          return new_table;
+        };
+
+        if (description == header::DataDescription{"TRACKPAR"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::TracksMetadata{}));
+        } else {
+          throw std::runtime_error("Not an extended table");
         }
-        for (auto i = 0u; i < framework::pack_size(expressions{}); ++i) {
-          columns.push_back(arrays[i]);
-          fields.emplace_back(extra_schema->field(i));
-        }
-        auto new_schema = std::make_shared<arrow::Schema>(fields);
-        auto new_table = arrow::Table::Make(new_schema, columns);
-        outputs.adopt(Output{metadata::origin(), metadata::description()}, new_table);
       }
     };
   }};
