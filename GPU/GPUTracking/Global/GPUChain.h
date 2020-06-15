@@ -48,6 +48,7 @@ class GPUChain
   virtual void PrintMemoryStatistics(){};
   virtual int CheckErrorCodes() { return 0; }
   virtual bool SupportsDoublePipeline() { return false; }
+  virtual int FinalizePipelinedProcessing() { return 0; }
 
   constexpr static int NSLICES = GPUReconstruction::NSLICES;
 
@@ -209,6 +210,8 @@ class GPUChain
   {
     mRec->SetupGPUProcessor<T>(proc, allocate);
   }
+
+  inline GPUChain* GetNextChainInQueue() { return mRec->GetNextChainInQueue(); }
 
   virtual int PrepareTextures() { return 0; }
   virtual int DoStuckProtection(int stream, void* event) { return 0; }
