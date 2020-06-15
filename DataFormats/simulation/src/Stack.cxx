@@ -170,7 +170,8 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
   Int_t nPoints = 0;
   Int_t daughter1Id = -1;
   Int_t daughter2Id = -1;
-  TParticle p(pdgCode, trackId, parentId, nPoints, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
+  Int_t iStatus = (proc == kPPrimary) ? is : trackId;
+  TParticle p(pdgCode, iStatus, parentId, nPoints, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
   p.SetPolarisation(polx, poly, polz);
   p.SetWeight(weight);
   p.SetUniqueID(proc); // using the unique ID to transfer process ID
@@ -240,7 +241,7 @@ void Stack::SetCurrentTrack(Int_t iTrack)
   if (iTrack < mPrimaryParticles.size()) {
     auto& p = mPrimaryParticles[iTrack];
     mCurrentParticle = p;
-    mIndexOfCurrentPrimary = mCurrentParticle.GetStatusCode();
+    mIndexOfCurrentPrimary = iTrack;
   } else {
     mCurrentParticle = mCurrentParticle0;
   }
@@ -292,19 +293,17 @@ TParticle* Stack::PopNextTrack(Int_t& iTrack)
       if (mCurrentParticle.TestBit(ParticleStatus::kPrimary)) {
         // particle is primary and needs to be tracked -> indicates that previous particle finished
         mNumberOfPrimariesPopped++;
-        mIndexOfCurrentPrimary = mCurrentParticle.GetStatusCode();
+        mIndexOfCurrentPrimary = mStack.size();
+        mIndexOfCurrentTrack = mIndexOfCurrentPrimary;
       } else {
-        //printf("........ it's a secondary \n");
+        mIndexOfCurrentTrack = mCurrentParticle.GetStatusCode();
       }
-      mIndexOfCurrentTrack = mCurrentParticle.GetStatusCode();
       iTrack = mIndexOfCurrentTrack;
-
       if (o2::conf::SimCutParams::Instance().trackSeed) {
         auto hash = getHash(mCurrentParticle);
         // LOG(INFO) << "SEEDING NEW TRACK USING HASH" << hash;
         // init seed per track
         gRandom->SetSeed(hash);
-
         // NOTE: THE BETTER PLACE WOULD BE IN PRETRACK HOOK BUT THIS DOES NOT SEEM TO WORK
         // WORKS ONLY WITH G3 SINCE G4 DOES NOT CALL THIS FUNCTION
       } // .trackSeed ?
@@ -536,7 +535,6 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
 
 void Stack::Reset()
 {
-  printf("RESET CALLED !!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
   mIndexOfCurrentTrack = -1;
   mNumberOfPrimaryParticles = mNumberOfEntriesInParticles = mNumberOfEntriesInTracks = 0;
   while (!mStack.empty()) {
