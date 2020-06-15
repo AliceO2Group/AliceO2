@@ -65,7 +65,8 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     context->initSimChains(o2::detectors::DetID::FT0, mSimChains);
-    auto& timesview = context->getEventRecords();
+    const bool withQED = context->isQEDProvided();
+    auto& timesview = context->getEventRecords(withQED);
 
     // if there is nothing to do ... return
     if (timesview.size() == 0) {
@@ -82,24 +83,25 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labels;
 
     // mDigitizer.setMCLabels(&labels);
-    auto& eventParts = context->getEventParts();
+    auto& eventParts = context->getEventParts(withQED);
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
       mDigitizer.setInteractionRecord(timesview[collID]);
-      LOG(INFO) << " setInteractionRecord " << timesview[collID] << " bc " << mDigitizer.getBC() << " orbit " << mDigitizer.getOrbit();
+      LOG(DEBUG) << " setInteractionRecord " << timesview[collID] << " bc " << mDigitizer.getBC() << " orbit " << mDigitizer.getOrbit();
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
         // get the hits for this event and this source
         hits.clear();
         context->retrieveHits(mSimChains, "FT0Hit", part.sourceID, part.entryID, &hits);
-        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " source ID " << part.sourceID << " found " << hits.size() << " hits ";
-
-        // call actual digitization procedure
-        mDigitizer.setEventID(part.entryID);
-        mDigitizer.setSrcID(part.sourceID);
-        mDigitizer.process(&hits, mDigitsBC, mDigitsCh, labels);
+        LOG(DEBUG) << "For collision " << collID << " eventID " << part.entryID << " source ID " << part.sourceID << " found " << hits.size() << " hits ";
+        if (hits.size() > 0) {
+          // call actual digitization procedure
+          mDigitizer.setEventID(part.entryID);
+          mDigitizer.setSrcID(part.sourceID);
+          mDigitizer.process(&hits, mDigitsBC, mDigitsCh, labels);
+        }
       }
     }
     mDigitizer.flush_all(mDigitsBC, mDigitsCh, labels);
