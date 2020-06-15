@@ -317,7 +317,7 @@ class DataDecoderTask
     memcpy(outbuffer, digits.data(), OUT_SIZE);
 
     char* outbuffer2 = nullptr;
-    size_t orbitsSize = mOrbits.size() * sizeof(uint32_t);
+    size_t orbitsSize = mOrbits.size() * sizeof(decltype(mOrbits)::value_type);
     outbuffer2 = (char*)realloc(outbuffer2, orbitsSize);
     memcpy(outbuffer2, mOrbits.data(), orbitsSize);
 
