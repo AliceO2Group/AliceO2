@@ -158,8 +158,8 @@ class DataDecoderTask
       }
 
       uint64_t orbitInfo = orbit;
-      orbitInfo += ((linkId << 32) & 0xFF00000000);
-      orbitInfo += ((feeId << 40) & 0xFF0000000000);
+      orbitInfo += ((static_cast<uint64_t>(linkId) << 32) & 0xFF00000000);
+      orbitInfo += ((static_cast<uint64_t>(feeId) << 40) & 0xFF0000000000);
 
       // add orbit to vector if not present yet
       if (std::find(mOrbits.begin(), mOrbits.end(), orbitInfo) == mOrbits.end()) {
