@@ -68,6 +68,12 @@ rdh.linkID = linkZ;
 rdh.endPointID = endpointQ;
 auto& lnkC = writer.registerLink( rdh, "outfile_f.raw");
 ```
+
+By default the writer will be created for CRU detector (full constructor is `RawFileWriter(o2::header::DataOrigin origin = o2::header::gDataOriginInvalid, bool cru=true)`).
+In order to create it for RORC detector use e.g. `RawFileWriter writer { "EMC", false }`. It will automatically impose triggered readout mode and (i) every trigger will be written with its own RDH; (ii) no RDH.stop will be added in the end of the trigger;
+(iii) the start of the N-th TimeFrame will be assumed implicitly at the first `trigger_orbit >= SOX_orbit + N*HBFUtils.orbitFirst`, where the `SOX_orbit` is the orbit where SOX flag was set
+(`start of continuous` or `start of triggered` mode is set in the beginning with the orbit/bc corresponding to HBFUtils::getFirstIR()).
+
 If needed, user may set manually the non-mutable (for given link) fields of the link RAWDataHeader via direct access to `lnkC.rdhCopy`. This fields will be cloned to all RDHs written for this link.
 
 *   add raw data payload to the `RawFileWriter`, providing the link information and the `o2::InteractionRecord` corresponding to payload.
@@ -142,7 +148,7 @@ Adding empty HBF pages for HB's w/o data can be avoided by setting `writer.setDo
 
 The data `toAdd` will be inserted between the star/stop RDHs of the empty HBF.
 
-The behaviour descibed above can be modified by providing an extra argument in the `addData` method
+The behaviour described above can be modified by providing an extra argument in the `addData` method
 ```cpp
 bool preformatted = true;
 writer.addData(cru_0, link_0, endpoint_0, {bc, orbit}, gsl::span( (char*)payload_0, payload_0_size ), preformatted );
