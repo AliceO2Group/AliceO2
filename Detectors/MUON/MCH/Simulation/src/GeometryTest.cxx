@@ -136,17 +136,16 @@ void createRegularGeometry()
   o2::mch::Detector(true).ConstructGeometry();
 }
 
-void addAlignableVolumesToRegularGeometry()
+void addAlignableVolumes()
 {
-  // First create the geometry
-  createRegularGeometry();
-
+  if (!gGeoManager) {
+    std::cerr << "gGeoManager == nullptr, must create a geometry first\n";
+    return;
+  }
   // If not closed, we need to close it
   if (!gGeoManager->IsClosed()) {
-    std::clog << "Geometry is not closed, will do it now\n";
+    gGeoManager->CloseGeometry();
   }
-  gGeoManager->CloseGeometry();
-
   // Then add the alignable volumes
   o2::mch::Detector(true).addAlignableVolumes();
 }

@@ -33,7 +33,7 @@ void createRegularGeometry();
 
 /// creates MCH regular geometry and adds alignable volumes
 /// useull for tests.
-void addAlignableVolumesToRegularGeometry();
+void addAlignableVolumes();
 
 /// tree like textual dump of the geometry nodes
 void showGeometryAsTextTree(const char* fromPath = "", int maxdepth = 2, std::ostream& out = std::cout);

@@ -28,7 +28,7 @@
 #pragma link C++ function o2::mch::createGeometry;
 #pragma link C++ function o2::mch::getSensitiveVolumes;
 
-#pragma link C++ function o2::mch::test::addAlignableVolumesToRegularGeometry;
+#pragma link C++ function o2::mch::test::addAlignableVolumes;
 #pragma link C++ function o2::mch::test::createStandaloneGeometry;
 #pragma link C++ function o2::mch::test::createRegularGeometry;
 #pragma link C++ function o2::mch::test::drawGeometry;
