@@ -10,3 +10,7 @@ The macro file is specified via the argument of `--extGenFile` whereas the speci
 # IMPORTANT
 To run this example you need to load an AliRoot package compatible with the O2.
 for more details, https://alice.its.cern.ch/jira/browse/AOGM-246
+
+AliRoot needs to be loaded **after** O2 in the following sense:
+`alienv enter O2/latest,AliRoot/latest`
+The other order may show unresolved symbol problems.
