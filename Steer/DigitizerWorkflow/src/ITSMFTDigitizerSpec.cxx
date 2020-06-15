@@ -114,8 +114,8 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
         context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
 
         if (mHits.size() > 0) {
-          LOG(INFO) << "For collision " << collID << " eventID " << part.entryID
-                    << " found " << mHits.size() << " hits ";
+          LOG(DEBUG) << "For collision " << collID << " eventID " << part.entryID
+                     << " found " << mHits.size() << " hits ";
           mDigitizer.process(&mHits, part.entryID, part.sourceID); // call actual digitization procedure
         }
       }

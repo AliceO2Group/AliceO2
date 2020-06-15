@@ -138,7 +138,7 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
 
       // --- we add QED contributions to the digitization context
       // --- for now in between first and last real collision
-      auto qedprefix = ctx.options().get<std::string>("simFileQED");
+      auto qedprefix = ctx.options().get<std::string>("simPrefixQED");
       if (qedprefix.size() > 0) {
         o2::steer::InteractionSampler qedInteractionSampler;
 
@@ -201,7 +201,7 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       {"firstBC", VariantType::Int, 0, {"First BC in interaction sampling, will affect 1st orbit if > LHCMaxBunches"}},
       {"firstOrbit", VariantType::Int, 1, {"First orbit in interaction sampling"}},
       {"bcPatternFile", VariantType::String, "", {"Interacting BC pattern file (e.g. from CreateBCPattern.C)"}},
-      {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}},
+      {"simPrefixQED", VariantType::String, "", {"Sim (QED) input prefix (example: path/o2qed). The prefix allows to find files like path/o2qed_Kine.root etc."}},
       {"qed-x-section-ratio", VariantType::Float, 10000.0f, {"Ratio of cross sections QED/hadronic events. Determines QED interaction rate from hadronic interaction rate."}},
       {"outcontext", VariantType::String, "collisioncontext.root", {"Output file for collision context"}},
       {"incontext", VariantType::String, "", {"Take collision context from this file"}},
