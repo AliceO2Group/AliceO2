@@ -208,18 +208,14 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
 
         auto maker = [&](auto metadata) {
           using metadata_t = decltype(metadata);
-          using base_t = typename metadata_t::base_table_t;
           using expressions = typename metadata_t::expression_pack_t;
           auto extra_schema = o2::soa::createSchemaFromColumns(expressions{});
-          auto original_table = extractTable<base_t>(pc);
-          auto original_schema = original_table->schema();
-          auto num_fields = original_schema->num_fields();
+          auto original_table = pc.inputs().get<TableConsumer>(input.binding)->asArrowTable();
+          auto original_fields = original_table->schema()->fields();
           std::vector<std::shared_ptr<arrow::Field>> fields;
           auto arrays = spawner(expressions{}, original_table.get());
           std::vector<std::shared_ptr<arrow::ChunkedArray>> columns = original_table->columns();
-          for (auto i = 0; i < num_fields; ++i) {
-            fields.emplace_back(original_schema->field(i));
-          }
+          std::copy(original_fields.begin(), original_fields.end(), std::back_inserter(fields));
           for (auto i = 0u; i < framework::pack_size(expressions{}); ++i) {
             columns.push_back(arrays[i]);
             fields.emplace_back(extra_schema->field(i));
