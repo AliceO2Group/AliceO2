@@ -62,6 +62,7 @@ struct GPUReconstructionPipelineContext {
   std::queue<GPUReconstructionPipelineQueue*> queue;
   std::mutex mutex;
   std::condition_variable cond;
+  bool terminate = false;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
@@ -192,11 +193,6 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mRecoStepsGPU.set((unsigned char)0);
   }
 
-  if (mDeviceProcessingSettings.doublePipeline && (mChains.size() != 1 || mChains[0]->SupportsDoublePipeline() == false)) {
-    GPUError("Must use double pipeline mode only with exactly one chain that must support it");
-    return 1;
-  }
-
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_AUTO) {
     mDeviceProcessingSettings.memoryAllocationStrategy = IsGPU() ? GPUMemoryResource::ALLOCATION_GLOBAL : GPUMemoryResource::ALLOCATION_INDIVIDUAL;
   }
@@ -267,6 +263,11 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   mMaxThreads = std::max(mMaxThreads, mDeviceProcessingSettings.nThreads);
   if (IsGPU()) {
     mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
+  }
+
+  if (mDeviceProcessingSettings.doublePipeline && (mChains.size() != 1 || mChains[0]->SupportsDoublePipeline() == false || !IsGPU() || mDeviceProcessingSettings.memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_GLOBAL)) {
+    GPUError("Must use double pipeline mode only with exactly one chain that must support it");
+    return 1;
   }
 
   if (mMaster == nullptr && mDeviceProcessingSettings.doublePipeline) {
@@ -641,6 +642,26 @@ void GPUReconstruction::PopNonPersistentMemory(RecoStep step)
   mNonPersistentMemoryStack.pop_back();
 }
 
+void GPUReconstruction::BlockStackedMemory(GPUReconstruction* rec)
+{
+  if (mHostMemoryPoolBlocked || mDeviceMemoryPoolBlocked) {
+    throw std::runtime_error("temporary memory stack already blocked");
+  }
+  mHostMemoryPoolBlocked = rec->mHostMemoryPoolEnd;
+  mDeviceMemoryPoolBlocked = rec->mDeviceMemoryPoolEnd;
+}
+
+void GPUReconstruction::UnblockStackedMemory()
+{
+  if (mNonPersistentMemoryStack.size()) {
+    throw std::runtime_error("cannot unblock while there is stacked memory");
+  }
+  mHostMemoryPoolEnd = (char*)mHostMemoryBase + mHostMemorySize;
+  mDeviceMemoryPoolEnd = (char*)mDeviceMemoryBase + mDeviceMemorySize;
+  mHostMemoryPoolBlocked = nullptr;
+  mDeviceMemoryPoolBlocked = nullptr;
+}
+
 void GPUReconstruction::SetMemoryExternalInput(short res, void* ptr)
 {
   mMemoryResources[res].mPtr = ptr;
@@ -655,11 +676,11 @@ void GPUReconstruction::ClearAllocatedMemory(bool clearOutputs)
   }
   mHostMemoryPool = GPUProcessor::alignPointer<GPUCA_MEMALIGN>(mHostMemoryPermanent);
   mDeviceMemoryPool = GPUProcessor::alignPointer<GPUCA_MEMALIGN>(mDeviceMemoryPermanent);
-  mHostMemoryPoolEnd = (char*)mHostMemoryBase + mHostMemorySize;
-  mDeviceMemoryPoolEnd = (char*)mDeviceMemoryBase + mDeviceMemorySize;
   mUnmanagedChunks.clear();
-  mNonPersistentMemoryStack.clear();
   mVolatileMemoryStart = nullptr;
+  mNonPersistentMemoryStack.clear();
+  mHostMemoryPoolEnd = mHostMemoryPoolBlocked ? mHostMemoryPoolBlocked : ((char*)mHostMemoryBase + mHostMemorySize);
+  mDeviceMemoryPoolEnd = mDeviceMemoryPoolBlocked ? mDeviceMemoryPoolBlocked : ((char*)mDeviceMemoryBase + mDeviceMemorySize);
 }
 
 void GPUReconstruction::UpdateMaxMemoryUsed()
@@ -777,11 +798,18 @@ int GPUReconstruction::EnqueuePipeline(bool terminate)
   std::unique_lock<std::mutex> lkdone(q->m);
   {
     std::lock_guard<std::mutex> lkpipe(rec->mPipelineContext->mutex);
+    if (rec->mPipelineContext->terminate) {
+      throw std::runtime_error("Must not enqueue work after termination request");
+    }
     rec->mPipelineContext->queue.push(q);
+    rec->mPipelineContext->terminate = terminate;
+    rec->mPipelineContext->cond.notify_one();
   }
-  rec->mPipelineContext->cond.notify_one();
   q->c.wait(lkdone, [&q]() { return q->done; });
-  return q->retVal;
+  if (q->retVal) {
+    return q->retVal;
+  }
+  return mChains[0]->FinalizePipelinedProcessing();
 }
 
 GPUChain* GPUReconstruction::GetNextChainInQueue()
@@ -793,7 +821,7 @@ GPUChain* GPUReconstruction::GetNextChainInQueue()
 
 void GPUReconstruction::PrepareEvent()
 {
-  ClearAllocatedMemory();
+  ClearAllocatedMemory(true);
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->PrepareEvent();
   }
