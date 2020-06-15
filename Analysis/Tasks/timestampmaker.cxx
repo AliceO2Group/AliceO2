@@ -8,24 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/runDataProcessing.h"
-#include "Framework/ASoA.h"
-#include "Framework/ServiceRegistry.h"
-#include "Framework/ControlService.h"
-#include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-#include "ReconstructionDataFormats/Track.h"
-#include "Framework/ASoAHelpers.h"
-#include "DetectorsRaw/HBFUtils.h"
+// #include "DetectorsRaw/HBFUtils.h"
+#include "CCDB/CcdbApi.h"
+#include "CCDB/CCDBQuery.h"
+#include <map>
+#include "TFile.h"
+#include "TKey.h"
+#include <iostream>
 
 #include <CCDB/CcdbApi.h>
 
 #include <chrono>
 #include <thread>
-
-using namespace o2::framework;
-using namespace o2::header;
-using namespace o2;
 
 class TSvsRun : public TNamed
 {
@@ -54,51 +48,21 @@ class TSvsRun : public TNamed
   std::map<int, long> mapping;
 };
 
-struct TimestampMakerTask {
-
-  o2::ccdb::CcdbApi api;
-  //   Configurable<TString> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
-  TString url = "http://ccdb-test.cern.ch:8080";
-  //   Configurable<std::string> path{"ccdb-path", "qc/TOF/TOFTaskCompressed/hDiagnostic", "path to the ccdb object"};
-  std::string path = "qc/TOF/TOFTaskCompressed/hDiagnostic";
-  //   Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
-  long timestamp = -1;
-
-  std::map<std::string, std::string> metadata;
-  std::map<std::string, std::string>* headers;
-  TSvsRun* converter = nullptr;
-
-  void init(o2::framework::InitContext&)
-  {
-    api.init(url.Data());
-    if (!api.isHostReachable()) {
-      LOGF(warning, "CCDB at URL '%s' is not reachable.", url.Data());
-      return;
-    } else {
-      LOGF(info, "Loaded CCDB URL '%s'.", url.Data());
-    }
-
-    converter = api.retrieveFromTFileAny<TSvsRun>(path, metadata, timestamp, headers);
-    if (!converter) {
-      LOGF(info, "Could not get map from CCDB, creating a new one");
-      converter = new TSvsRun();
-    }
-  }
-
-  void process(aod::Collisions const& cols)
-  {
-    LOGF(info, "Running TimestampMakerTask");
-    LOGF(info, "123");
-    for (auto& col : cols) {
-      auto ir = o2::raw::HBFUtils::Instance().getFirstIR();
-      converter->Insert(col.bc().runNumber(), 1234);
-    }
-    api.storeAsTFileAny(converter, "GRP/RunNumberToTimestamp", metadata, timestamp, timestamp);
-  }
-};
-
-// This is how you can define your processing in a declarative way
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+int main(int argc, char* argv[])
 {
-  return WorkflowSpec{adaptAnalysisTask<TimestampMakerTask>("TimestampMakerTask")};
+  Int_t run_number = 1;
+  Int_t globalbc = 1;
+  Int_t orbit_freq = 11;
+  Int_t bcperorbit = 2;
+  if (argc < 2) {
+    std::cerr << "Usage: " << argv[0] << " CCDBFile.root \n";
+  }
+  TFile file(argv[1]);
+
+  // TFilre f("/tmp/tsmaker.root", "RECREATE");
+  TSvsRun t;
+  long timestamp = 1; // 11khz * bc.globalBC() * #bcperorbit;
+  t.Insert(run_number, timestamp);
+
+  return 0;
 }
