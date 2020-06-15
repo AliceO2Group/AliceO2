@@ -90,21 +90,6 @@ void Absorber::createMaterials()
   Float_t aniwcu[3] = {58.6934, 183.84, 63.546};
   Float_t zniwcu[3] = {28., 74., 29};
   Float_t wniwcu[3] = {0.015, 0.95, 0.035};
-  //
-  // Poly Concrete
-  //                      H     Li     F       C      Al     Si      Ca      Pb     O
-  Float_t aPolyCc[9] = {1., 6.941, 18.998, 12.01, 26.98, 28.086, 40.078, 207.2, 15.999};
-  Float_t zPolyCc[9] = {1., 3., 9., 6., 13., 14., 20., 82., 8.};
-  Float_t wPolyCc[9] = {4.9, 1.2, 1.3, 1.1, 0.15, 0.02, 0.06, 0.7, 1.1};
-  Float_t wtot = 0;
-  Int_t i = 0;
-
-  for (i = 0; i < 9; i++) {
-    wtot += wPolyCc[i];
-  }
-  for (i = 0; i < 9; i++) {
-    wPolyCc[i] /= wtot;
-  }
 
   //
   // Insulation powder
@@ -147,33 +132,6 @@ void Absorber::createMaterials()
   //    Magnesium
   matmgr.Material("ABSO", 7, "MAGNESIUM$", 24.31, 12., 1.74, 25.3, 46.0);
   matmgr.Medium("ABSO", 7, "MG_C0", 7, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-
-  //
-  //    Iron
-  matmgr.Material("ABSO", 10, "IRON0$", 55.85, 26., 7.87, 1.76, 17.1);
-  matmgr.Material("ABSO", 30, "IRON1$", 55.85, 26., 7.87, 1.76, 17.1);
-  matmgr.Material("ABSO", 50, "IRON2$", 55.85, 26., 7.87, 1.76, 17.1);
-  matmgr.Medium("ABSO", 10, "FE_C0", 10, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("ABSO", 30, "FE_C1", 30, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("ABSO", 50, "FE_C2", 50, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-
-  //
-  //    Copper
-  matmgr.Material("ABSO", 11, "COPPER0$", 63.55, 29., 8.96, 1.43, 15.1);
-  matmgr.Material("ABSO", 31, "COPPER1$", 63.55, 29., 8.96, 1.43, 15.1);
-  matmgr.Material("ABSO", 51, "COPPER2$", 63.55, 29., 8.96, 1.43, 15.1);
-  matmgr.Medium("ABSO", 11, "Cu_C0", 11, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("ABSO", 31, "Cu_C1", 31, 0, isxfld, sxmgmx, tmaxfd, -stemax, deemax, epsil, stmin);
-  matmgr.Medium("ABSO", 51, "Cu_C2", 51, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-
-  //
-  //    Tungsten
-  matmgr.Material("ABSO", 12, "TUNGSTEN0$ ", 183.85, 74., 19.3, .35, 10.3);
-  matmgr.Material("ABSO", 32, "TUNGSTEN1$ ", 183.85, 74., 19.3, .35, 10.3);
-  matmgr.Material("ABSO", 52, "TUNGSTEN2$ ", 183.85, 74., 19.3, .35, 10.3);
-  matmgr.Medium("ABSO", 12, "W_C0", 12, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("ABSO", 32, "W_C1", 32, 0, isxfld, sxmgmx, tmaxfd, -stemax, deemax, epsil, stmin);
-  matmgr.Medium("ABSO", 52, "W_C2", 52, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //     Ni-W-Cu
@@ -246,15 +204,6 @@ void Absorber::createMaterials()
   matmgr.Medium("ABSO", 19, "ST_C0", 19, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("ABSO", 39, "ST_C1", 39, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("ABSO", 59, "ST_C3", 59, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-
-  //
-  // Polymer Concrete
-  matmgr.Mixture("ABSO", 20, "Poly Concrete0$", aPolyCc, zPolyCc, 3.53, -9, wPolyCc);
-  matmgr.Mixture("ABSO", 40, "Poly Concrete1$", aPolyCc, zPolyCc, 3.53, 9, wPolyCc);
-  matmgr.Mixture("ABSO", 60, "Poly Concrete2$", aPolyCc, zPolyCc, 3.53, 9, wPolyCc);
-  matmgr.Medium("ABSO", 20, "PCc_C0", 20, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("ABSO", 40, "PCc_C1", 40, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("ABSO", 60, "PCc_C3", 60, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 TGeoPcon* MakeShapeFromTemplate(const TGeoPcon* pcon, Float_t drMin, Float_t drMax)
