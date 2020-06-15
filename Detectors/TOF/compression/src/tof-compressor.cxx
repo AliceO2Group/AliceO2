@@ -17,7 +17,8 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ConcreteDataMatcher.h"
-#include "FairLogger.h"
+#include "Framework/Logger.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 using namespace o2::framework;
 
@@ -27,7 +28,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   auto config = ConfigParamSpec{"tof-compressor-config", VariantType::String, "x:TOF/RAWDATA", {"TOF compressor workflow configuration"}};
   auto outputDesc = ConfigParamSpec{"tof-compressor-output-desc", VariantType::String, "CRAWDATA", {"Output specs description string"}};
-  auto rdhVersion = ConfigParamSpec{"tof-compressor-rdh-version", VariantType::Int, 4, {"Raw Data Header version"}};
+  auto rdhVersion = ConfigParamSpec{"tof-compressor-rdh-version", VariantType::Int, o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>(), {"Raw Data Header version"}};
   auto verbose = ConfigParamSpec{"tof-compressor-verbose", VariantType::Bool, false, {"Enable verbose compressor"}};
 
   workflowOptions.push_back(config);
