@@ -304,6 +304,9 @@ int GPUChainTracking::Init()
   if (mOutputClustersNative == nullptr) {
     mOutputClustersNative = &mRec->OutputControl();
   }
+  if (mOutputTPCTracks == nullptr) {
+    mOutputTPCTracks = &mRec->OutputControl();
+  }
   processors()->errorCodes.setMemory(mInputsHost->mErrorCodes);
   processors()->errorCodes.clear();
 
@@ -1710,6 +1713,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   const auto& threadContext = GetThreadContext();
 
   SetupGPUProcessor(&Merger, true);
+  AllocateRegisteredMemory(Merger.MemoryResOutput(), mOutputTPCTracks);
 
   if (Merger.CheckSlices()) {
     return 1;
