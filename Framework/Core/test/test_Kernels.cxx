@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(TestWithSOATables)
 {
   using namespace o2;
   TableBuilder builder2;
-  auto tracksCursor = builder2.cursor<aod::Tracks>();
+  auto tracksCursor = builder2.cursor<aod::StoredTracks>();
   tracksCursor(0, 0, 2, 3, 4, 5, 6, 7, 8, 9);
   tracksCursor(0, 0, 2, 3, 4, 5, 6, 7, 8, 9);
   tracksCursor(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);

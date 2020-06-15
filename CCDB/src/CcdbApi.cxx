@@ -406,7 +406,8 @@ size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userd
 } // namespace
 
 TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata,
-                                    long timestamp, std::map<std::string, std::string>* headers, std::string const& etag) const
+                                    long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
+                                    const std::string& createdNotAfter) const
 {
   // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
   // Thus it does not comply to our coding guidelines as it is a copy paste.
@@ -444,6 +445,10 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
   struct curl_slist* list = nullptr;
   if (!etag.empty()) {
     list = curl_slist_append(list, ("If-None-Match: " + etag).c_str());
+  }
+
+  if (!createdNotAfter.empty()) {
+    list = curl_slist_append(list, ("If-Not-After: " + createdNotAfter).c_str());
   }
 
   // setup curl for headers handling
@@ -636,7 +641,8 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, TClass const* t
 
 void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const& path,
                                  std::map<std::string, std::string> const& metadata, long timestamp,
-                                 std::map<std::string, std::string>* headers, std::string const& etag) const
+                                 std::map<std::string, std::string>* headers, std::string const& etag,
+                                 const std::string& createdNotAfter) const
 {
   // We need the TClass for this type; will verify if dictionary exists
   auto tcl = TClass::GetClass(tinfo);
@@ -683,6 +689,10 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   struct curl_slist* list = nullptr;
   if (!etag.empty()) {
     list = curl_slist_append(list, ("If-None-Match: " + etag).c_str());
+  }
+
+  if (!createdNotAfter.empty()) {
+    list = curl_slist_append(list, ("If-Not-After: " + createdNotAfter).c_str());
   }
 
   // setup curl for headers handling
@@ -893,7 +903,7 @@ size_t header_callback(char* buffer, size_t size, size_t nitems, void* userdata)
   headers->emplace_back(std::string(header.data()));
   return size * nitems;
 }
-}
+} // namespace
 
 std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp) const
 {

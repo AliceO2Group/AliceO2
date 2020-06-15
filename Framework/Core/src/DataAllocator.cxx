@@ -201,6 +201,30 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
   context->addBuffer(std::move(header), buffer, std::move(finalizer), channel);
 }
 
+void DataAllocator::adopt(const Output& spec, std::shared_ptr<arrow::Table> ptr)
+{
+  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
+  auto context = mContextRegistry->get<ArrowContext>();
+
+  auto creator = [device = context->proxy().getDevice()](size_t s) -> std::unique_ptr<FairMQMessage> {
+    return device->NewMessage(s);
+  };
+  auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
+
+  auto writer = [table = ptr](std::shared_ptr<FairMQResizableBuffer> b) -> void {
+    auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
+    auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
+    auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
+    if (outStatus.ok() == false) {
+      throw std::runtime_error("Unable to Write table");
+    }
+  };
+
+  assert(context);
+  context->addBuffer(std::move(header), buffer, std::move(writer), channel);
+}
+
 void DataAllocator::snapshot(const Output& spec, const char* payload, size_t payloadSize,
                              o2::header::SerializationMethod serializationMethod)
 {

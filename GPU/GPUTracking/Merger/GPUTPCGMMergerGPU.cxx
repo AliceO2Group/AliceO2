@@ -22,12 +22,11 @@ using namespace GPUCA_NAMESPACE::gpu;
 template <>
 GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, int mode)
 {
-  const int iStart = mode <= 0 ? 0 : merger.NSlowTracks();
-  const int iEnd = mode == -2 ? merger.Memory()->nRetryRefit : mode >= 0 ? merger.NOutputTracks() : merger.NSlowTracks();
+  const int iEnd = mode == -1 ? merger.Memory()->nRetryRefit : merger.NOutputTracks();
   GPUCA_OPENMP(parallel for num_threads(merger.GetRec().GetDeviceProcessingSettings().ompKernels ? 1 : merger.GetRec().GetDeviceProcessingSettings().nThreads))
-  for (int ii = iStart + get_global_id(0); ii < iEnd; ii += get_global_size(0)) {
-    const int i = mode == -2 ? merger.RetryRefitIds()[ii] : mode ? merger.TrackOrderProcess()[ii] : ii;
-    GPUTPCGMTrackParam::RefitTrack(merger.OutputTracks()[i], i, &merger, merger.Clusters(), mode == -2);
+  for (int ii = get_global_id(0); ii < iEnd; ii += get_global_size(0)) {
+    const int i = mode == -1 ? merger.RetryRefitIds()[ii] : mode ? merger.TrackOrderProcess()[ii] : ii;
+    GPUTPCGMTrackParam::RefitTrack(merger.OutputTracks()[i], i, &merger, merger.Clusters(), mode == -1);
   }
 }
 

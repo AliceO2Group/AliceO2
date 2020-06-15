@@ -19,7 +19,7 @@
 #include <cstring>
 #include <string>
 #include <memory>
-#include <fstream>
+#include <iosfwd>
 #include <vector>
 #include <unordered_map>
 
@@ -48,6 +48,7 @@ namespace gpu
 {
 class GPUChain;
 class GPUMemorySizeScalers;
+struct GPUReconstructionPipelineContext;
 
 class GPUReconstruction
 {
@@ -179,6 +180,8 @@ class GPUReconstruction
   virtual void startGPUProfiling() {}
   virtual void endGPUProfiling() {}
   int CheckErrorCodes();
+  void RunPipelineWorker();
+  void TerminatePipelineWorker();
 
   // Helpers for memory allocation
   GPUMemoryResource& Res(short num) { return mMemoryResources[num]; }
@@ -258,6 +261,8 @@ class GPUReconstruction
   virtual int ExitDevice() = 0;
   virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
   void UpdateMaxMemoryUsed();
+  int EnqueuePipeline(bool terminate = false);
+  GPUChain* GetNextChainInQueue();
 
   // Management for GPU thread contexts
   class GPUThreadContext
@@ -278,7 +283,7 @@ class GPUReconstruction
   template <class T, class S>
   size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type);
   template <class T>
-  void AllocateIOMemoryHelper(unsigned int n, const T*& ptr, std::unique_ptr<T[]>& u);
+  void AllocateIOMemoryHelper(size_t n, const T*& ptr, std::unique_ptr<T[]>& u);
 
   // Private helper functions to dump / load flat objects
   template <class T>
@@ -365,6 +370,8 @@ class GPUReconstruction
   std::unordered_map<GPUMemoryReuse::ID, MemoryReuseMeta> mMemoryReuse1to1;
   std::vector<std::pair<void*, void*>> mNonPersistentMemoryStack;
 
+  std::unique_ptr<GPUReconstructionPipelineContext> mPipelineContext;
+
   // Helpers for loading device library via dlopen
   class LibraryLoader
   {
@@ -391,7 +398,7 @@ class GPUReconstruction
 };
 
 template <class T>
-inline void GPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T*& ptr, std::unique_ptr<T[]>& u)
+inline void GPUReconstruction::AllocateIOMemoryHelper(size_t n, const T*& ptr, std::unique_ptr<T[]>& u)
 {
   if (n == 0) {
     u.reset(nullptr);
@@ -400,7 +407,10 @@ inline void GPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T*& 
   u.reset(new T[n]);
   ptr = u.get();
   if (mDeviceProcessingSettings.registerStandaloneInputMemory) {
-    registerMemoryForGPU(u.get(), n * sizeof(T));
+    if (registerMemoryForGPU(u.get(), n * sizeof(T))) {
+      GPUError("Error registering memory for GPU: %p - %lld bytes\n", (void*)u.get(), (long long int)(n * sizeof(T)));
+      throw std::bad_alloc();
+    }
   }
 }
 
@@ -429,7 +439,7 @@ inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*set
     throw std::bad_alloc();
   }
   unsigned short retVal = mMemoryResources.size() - 1;
-  if (re.type != GPUMemoryReuse::NONE) {
+  if (re.type != GPUMemoryReuse::NONE && !mDeviceProcessingSettings.disableMemoryReuse) {
     const auto& it = mMemoryReuse1to1.find(re.id);
     if (it == mMemoryReuse1to1.end()) {
       mMemoryReuse1to1[re.id] = {proc, retVal};
@@ -513,7 +523,7 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, s
   }
   (void)r;
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %d %s", (int)numTotal, IOTYPENAMES[type]);
+    GPUInfo("Read %lld %s", (long long int)numTotal, IOTYPENAMES[type]);
   }
   return numTotal;
 }
@@ -553,7 +563,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   r = fread(buf, 1, size[1], fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %d bytes from %s", (int)r, file);
+    GPUInfo("Read %lld bytes from %s", (long long int)r, file);
   }
   retVal->clearInternalBufferPtr();
   retVal->setActualBufferAddress(buf);
@@ -592,7 +602,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file
   r = fread(newObj.get(), 1, size, fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %d bytes from %s", (int)r, file);
+    GPUInfo("Read %lld bytes from %s", (long long int)r, file);
   }
   return newObj;
 }
@@ -613,7 +623,7 @@ inline int GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
   r = fread(obj, 1, size, fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %d bytes from %s", (int)r, file);
+    GPUInfo("Read %lldd bytes from %s", (long long int)r, file);
   }
   return 0;
 }

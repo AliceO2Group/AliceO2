@@ -11,126 +11,67 @@
 /// @brief  Processor spec for a ROOT file writer for TOF digits
 
 #include "TOFWorkflow/TOFDigitWriterSpec.h"
-#include "Framework/CallbackService.h"
-#include "Framework/ConfigParamRegistry.h"
-#include "Framework/ControlService.h"
-#include <SimulationDataFormat/MCCompLabel.h>
-#include <SimulationDataFormat/MCTruthContainer.h>
-#include "TTree.h"
-#include "TBranch.h"
-#include "TFile.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include "TOFBase/Digit.h"
-#include <memory> // for make_shared, make_unique, unique_ptr
-#include <vector>
 
 using namespace o2::framework;
-using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 namespace o2
 {
 namespace tof
 {
-
 template <typename T>
-TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
-{
-  if (auto br = tree.GetBranch(brname.c_str())) {
-    printf("Re-use output branch %s\n", brname.c_str());
-    br->SetAddress(static_cast<void*>(ptr));
-    return br;
-  }
-  // otherwise make it
-  printf("Create output branch %s\n", brname.c_str());
-  return tree.Branch(brname.c_str(), ptr);
-}
+using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
+using OutputType = std::vector<o2::tof::Digit>;
+using ReadoutWinType = std::vector<o2::tof::ReadoutWindowData>;
+using LabelsType = std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>;
+using namespace o2::header;
 
-/// create the processor spec
-/// describing a processor receiving digits for ITS writing them to file
 DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
 {
-  auto initFunction = [useMC](InitContext& ic) {
-    // get the option from the init context
-    auto filename = ic.options().get<std::string>("tof-digit-outfile");
-    auto treename = ic.options().get<std::string>("treename");
-
-    auto outputfile = std::make_shared<TFile>(filename.c_str(), "RECREATE");
-    auto outputtree = std::make_shared<TTree>(treename.c_str(), treename.c_str());
-
-    int* nCalls = new int;
-    *nCalls = 0;
-
-    // the callback to be set as hook at stop of processing for the framework
-    auto finishWriting = [outputfile, outputtree, nCalls]() {
-      printf("finish writing with %d entries in the tree\n", *nCalls);
-      outputtree->SetEntries(*nCalls);
-      outputtree->Write();
-      outputfile->Close();
-    };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishWriting);
-
-    // setup the processing function
-    // using by-copy capture of the worker instance shared pointer
-    // the shared pointer makes sure to clean up the instance when the processing
-    // function gets out of scope
-    auto processingFct = [outputfile, outputtree, useMC, nCalls](ProcessingContext& pc) {
-      static bool finished = false;
-      if (finished) {
-        // avoid being executed again when marked as finished;
-        return;
-      }
-      (*nCalls)++;
-      // retrieve the digits from the input
-      auto indata = pc.inputs().get<std::vector<o2::tof::Digit>*>("tofdigits");
-      LOG(INFO) << "Call " << *nCalls;
-      LOG(INFO) << "RECEIVED DIGITS SIZE " << indata->size();
-      auto row = pc.inputs().get<std::vector<o2::tof::ReadoutWindowData>*>("readoutwin");
-      LOG(INFO) << "RECEIVED READOUT WINDOWS " << row->size();
-
-      auto digVect = indata.get();
-      auto rowVect = row.get();
-
-      // connect this to a particular branch
-      auto brDig = getOrMakeBranch(*outputtree.get(), "TOFDigit", &digVect);
-      brDig->Fill();
-      auto brRow = getOrMakeBranch(*outputtree.get(), "TOFReadoutWindow", &rowVect);
-      brRow->Fill();
-
-      // retrieve labels from the input
-      if (useMC) {
-        auto labeldata = pc.inputs().get<std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>*>("tofdigitlabels");
-        //        for (int i = 0; i < labeldata->size(); i++) {
-        //          LOG(INFO) << "TOF GOT " << labeldata->at(i).getNElements() << " LABELS ";
-        //        }
-        auto labeldataraw = labeldata.get();
-        // connect this to a particular branch
-        auto labelbr = getOrMakeBranch(*outputtree.get(), "TOFDigitMCTruth", &labeldataraw);
-        labelbr->Fill();
-      }
-
-      //      finished = true;
-      //      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    };
-
-    // return the actual processing function as a lambda function using variables
-    // of the init function
-    return processingFct;
+  auto nCalls = std::make_shared<int>();
+  *nCalls = 0;
+  // the callback to be set as hook at stop of processing for the framework
+  auto finishWriting = [nCalls](TFile* outputfile, TTree* outputtree) {
+    printf("finish writing with %d entries in the tree\n", *nCalls);
+    outputtree->SetEntries(*nCalls);
+    outputtree->Write();
+    outputfile->Close();
   };
-
-  std::vector<InputSpec> inputs;
-  inputs.emplace_back("tofdigits", o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("readoutwin", o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
-  if (useMC)
-    inputs.emplace_back("tofdigitlabels", o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe);
-
-  return DataProcessorSpec{
-    "TOFDigitWriter",
-    inputs,
-    {}, // no output
-    AlgorithmSpec(initFunction),
-    Options{
-      {"tof-digit-outfile", VariantType::String, "tofdigits.root", {"Name of the input file"}},
-      {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
-    }};
+  // preprocessor callback
+  // read the trigger data first and store in the trigP2Sect shared pointer
+  auto preprocessor = [nCalls](ProcessingContext&) {
+    (*nCalls)++;
+  };
+  auto logger = [nCalls](OutputType const& indata) {
+    LOG(INFO) << "Call " << *nCalls;
+    LOG(INFO) << "RECEIVED DIGITS SIZE " << indata.size();
+  };
+  auto loggerROW = [nCalls](ReadoutWinType const& row) {
+    LOG(INFO) << "RECEIVED READOUT WINDOWS " << row.size();
+  };
+  return MakeRootTreeWriterSpec("TOFDigitWriter",
+                                "tofdigits.root",
+                                "o2sim",
+                                // the preprocessor only increments the call count, we keep this functionality
+                                // of the original implementation
+                                MakeRootTreeWriterSpec::Preprocessor{preprocessor},
+                                BranchDefinition<OutputType>{InputSpec{"digits", gDataOriginTOF, "DIGITS", 0},
+                                                             "TOFDigit",
+                                                             "tofdigits-branch-name",
+                                                             1,
+                                                             logger},
+                                BranchDefinition<ReadoutWinType>{InputSpec{"rowindow", gDataOriginTOF, "READOUTWINDOW", 0},
+                                                                 "TOFReadoutWindow",
+                                                                 "rowindow-branch-name",
+                                                                 1,
+                                                                 loggerROW},
+                                BranchDefinition<LabelsType>{InputSpec{"labels", gDataOriginTOF, "DIGITSMCTR", 0},
+                                                             "TOFDigitMCTruth",
+                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                             "digitlabels-branch-name"})();
 }
 } // end namespace tof
 } // end namespace o2

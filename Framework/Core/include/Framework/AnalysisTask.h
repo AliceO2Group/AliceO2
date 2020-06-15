@@ -255,13 +255,6 @@ struct AnalysisTask {
 // Helper struct which builds a DataProcessorSpec from
 // the contents of an AnalysisTask...
 
-template <typename... C>
-gandiva::SchemaPtr createSchemaFromColumns(framework::pack<C...>)
-{
-  return std::make_shared<arrow::Schema>(std::vector<std::shared_ptr<arrow::Field>>{
-    std::make_shared<arrow::Field>(C::mLabel, expressions::concreteArrowType(expressions::selectArrowType<typename C::type>()))...});
-}
-
 struct AnalysisDataProcessorBuilder {
   template <typename Arg>
   static void doAppendInputWithMetadata(std::vector<InputSpec>& inputs)
@@ -269,7 +262,7 @@ struct AnalysisDataProcessorBuilder {
     using metadata = typename aod::MetadataTrait<std::decay_t<Arg>>::metadata;
     static_assert(std::is_same_v<metadata, void> == false,
                   "Could not find metadata. Did you register your type?");
-    inputs.push_back({metadata::tableLabel(), "AOD", metadata::description()});
+    inputs.push_back({metadata::tableLabel(), metadata::origin(), metadata::description()});
   }
 
   template <typename... Args>
@@ -283,10 +276,10 @@ struct AnalysisDataProcessorBuilder {
   {
     using dT = std::decay_t<T>;
     if constexpr (framework::is_specialization<dT, soa::Filtered>::value) {
-      eInfos.push_back({At, createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+      eInfos.push_back({At, o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
     } else if constexpr (soa::is_soa_iterator_t<dT>::value) {
       if (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
-        eInfos.push_back({At, createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+        eInfos.push_back({At, o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
       }
     }
     doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), inputs);
@@ -652,6 +645,7 @@ template <>
 struct FilterManager<expressions::Filter> {
   static bool createExpressionTrees(expressions::Filter const& filter, std::vector<ExpressionInfo>& expressionInfos)
   {
+
     updateExpressionInfos(filter, expressionInfos);
     return true;
   }

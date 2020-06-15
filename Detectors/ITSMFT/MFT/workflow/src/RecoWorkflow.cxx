@@ -29,22 +29,29 @@ namespace mft
 namespace reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC)
+framework::WorkflowSpec getWorkflow(bool useMC, bool upstreamDigits, bool upstreamClusters, bool disableRootOutput)
 {
   framework::WorkflowSpec specs;
 
-  specs.emplace_back(o2::mft::getDigitReaderSpec(useMC));
-  specs.emplace_back(o2::mft::getClustererSpec(useMC));
-  specs.emplace_back(o2::mft::getClusterWriterSpec(useMC));
-
+  if (!(upstreamDigits || upstreamClusters)) {
+    specs.emplace_back(o2::mft::getDigitReaderSpec(useMC));
+  }
+  if (!upstreamClusters) {
+    specs.emplace_back(o2::mft::getClustererSpec(useMC));
+  }
+  if (!disableRootOutput) {
+    specs.emplace_back(o2::mft::getClusterWriterSpec(useMC));
+  }
   specs.emplace_back(o2::mft::getTrackerSpec(useMC));
   specs.emplace_back(o2::mft::getTrackFitterSpec(useMC));
-  specs.emplace_back(o2::mft::getTrackWriterSpec(useMC));
+  if (!disableRootOutput) {
+    specs.emplace_back(o2::mft::getTrackWriterSpec(useMC));
+  }
 
   return specs;
 }
 
-} // namespace RecoWorkflow
+} // namespace reco_workflow
 
 } // namespace mft
 } // namespace o2

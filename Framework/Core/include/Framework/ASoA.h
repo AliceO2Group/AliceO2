@@ -25,10 +25,15 @@
 #include <arrow/compute/kernel.h>
 #include <gandiva/selection_vector.h>
 #include <cassert>
+#include <fmt/format.h>
 
 namespace o2::soa
 {
-
+template <typename... C>
+auto createSchemaFromColumns(framework::pack<C...>)
+{
+  return std::make_shared<arrow::Schema>(std::vector<std::shared_ptr<arrow::Field>>{C::asArrowField()...});
+}
 using SelectionVector = std::vector<int64_t>;
 
 template <typename, typename = void>
@@ -267,6 +272,12 @@ struct Column {
   {
     return mColumnIterator;
   }
+
+  static auto asArrowField()
+  {
+    return std::make_shared<arrow::Field>(inherited_t::mLabel, framework::expressions::concreteArrowType(framework::expressions::selectArrowType<type>()));
+  }
+
   /// FIXME: rather than keeping this public we should have a protected
   /// non-const getter and mark this private.
   ColumnIterator<T> mColumnIterator;
@@ -982,10 +993,35 @@ template <typename INHERIT>
 class TableMetadata
 {
  public:
-  static constexpr char const* const tableLabel() { return INHERIT::mLabel; }
+  static constexpr char const* tableLabel() { return INHERIT::mLabel; }
   static constexpr char const (&origin())[4] { return INHERIT::mOrigin; }
   static constexpr char const (&description())[16] { return INHERIT::mDescription; }
 };
+
+template <typename... C1, typename... C2>
+constexpr auto join(o2::soa::Table<C1...> const& t1, o2::soa::Table<C2...> const& t2)
+{
+  return o2::soa::Table<C1..., C2...>(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T1, typename T2, typename... Ts>
+constexpr auto join(T1 const& t1, T2 const& t2, Ts const&... ts)
+{
+  return join(t1, join(t2, ts...));
+}
+
+template <typename T1, typename T2>
+constexpr auto concat(T1&& t1, T2&& t2)
+{
+  using table_t = typename PackToTable<framework::intersected_pack_t<typename T1::columns, typename T2::columns>>::table;
+  return table_t(ArrowHelpers::concatTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename... Ts>
+using JoinBase = decltype(join(std::declval<Ts>()...));
+
+template <typename T1, typename T2>
+using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 
 } // namespace o2::soa
 
@@ -1020,6 +1056,38 @@ class TableMetadata
 
 #define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_) \
   DECLARE_SOA_COLUMN_FULL(_Name_, _Getter_, _Type_, "f" #_Name_)
+
+/// An 'expression' column. i.e. a column that can be calculated from other
+/// columns with gandiva based on supplied C++ expression.
+#define DECLARE_SOA_EXPRESSION_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_, _Expression_) \
+  struct _Name_ : o2::soa::Column<_Type_, _Name_> {                                         \
+    static constexpr const char* mLabel = _Label_;                                          \
+    using base = o2::soa::Column<_Type_, _Name_>;                                           \
+    using type = _Type_;                                                                    \
+    using column_t = _Name_;                                                                \
+    _Name_(arrow::ChunkedArray const* column)                                               \
+      : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(column))              \
+    {                                                                                       \
+    }                                                                                       \
+                                                                                            \
+    _Name_() = default;                                                                     \
+    _Name_(_Name_ const& other) = default;                                                  \
+    _Name_& operator=(_Name_ const& other) = default;                                       \
+                                                                                            \
+    decltype(auto) _Getter_() const                                                         \
+    {                                                                                       \
+      return *mColumnIterator;                                                              \
+    }                                                                                       \
+    static o2::framework::expressions::Projector Projector()                                \
+    {                                                                                       \
+      return _Expression_;                                                                  \
+    }                                                                                       \
+  };                                                                                        \
+  static const o2::framework::expressions::BindingNode _Getter_ { _Label_,                  \
+                                                                  o2::framework::expressions::selectArrowType<_Type_>() }
+
+#define DECLARE_SOA_EXPRESSION_COLUMN(_Name_, _Getter_, _Type_, _Expression_) \
+  DECLARE_SOA_EXPRESSION_COLUMN_FULL(_Name_, _Getter_, _Type_, "f" #_Name_, _Expression_);
 
 /// An index column is a column of indices to elements / of another table named
 /// _Name_##s. The column name will be _Name_##Id and will always be stored in
@@ -1147,54 +1215,53 @@ class TableMetadata
     std::tuple<o2::soa::ColumnIterator<typename Bindings::type> const*...> boundIterators;                                 \
   }
 
-#define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...)        \
-  using _Name_ = o2::soa::Table<__VA_ARGS__>;                          \
-                                                                       \
-  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> { \
-    using table_t = _Name_;                                            \
-    static constexpr char const* mLabel = #_Name_;                     \
-    static constexpr char const mOrigin[4] = _Origin_;                 \
-    static constexpr char const mDescription[16] = _Description_;      \
-  };                                                                   \
-                                                                       \
-  template <>                                                          \
-  struct MetadataTrait<_Name_> {                                       \
-    using metadata = _Name_##Metadata;                                 \
-  };                                                                   \
-                                                                       \
-  template <>                                                          \
-  struct MetadataTrait<_Name_::unfiltered_iterator> {                  \
-    using metadata = _Name_##Metadata;                                 \
+#define DECLARE_SOA_TABLE_FULL(_Name_, _Label_, _Origin_, _Description_, ...) \
+  using _Name_ = o2::soa::Table<__VA_ARGS__>;                                 \
+                                                                              \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {        \
+    using table_t = _Name_;                                                   \
+    static constexpr char const* mLabel = _Label_;                            \
+    static constexpr char const mOrigin[4] = _Origin_;                        \
+    static constexpr char const mDescription[16] = _Description_;             \
+  };                                                                          \
+                                                                              \
+  template <>                                                                 \
+  struct MetadataTrait<_Name_> {                                              \
+    using metadata = _Name_##Metadata;                                        \
+  };                                                                          \
+                                                                              \
+  template <>                                                                 \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                         \
+    using metadata = _Name_##Metadata;                                        \
+  };
+
+#define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...) \
+  DECLARE_SOA_TABLE_FULL(_Name_, #_Name_, _Origin_, _Description_, __VA_ARGS__);
+
+#define DECLARE_SOA_EXTENDED_TABLE(_Name_, _Table_, _Description_, ...)   \
+  using _Name_ = o2::soa::JoinBase<_Table_, o2::soa::Table<__VA_ARGS__>>; \
+                                                                          \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {    \
+    using table_t = _Name_;                                               \
+    using base_table_t = _Table_;                                         \
+    using expression_pack_t = framework::pack<__VA_ARGS__>;               \
+    static constexpr char const* mLabel = #_Name_;                        \
+    static constexpr char const mOrigin[4] = "DYN";                       \
+    static constexpr char const mDescription[16] = _Description_;         \
+  };                                                                      \
+                                                                          \
+  template <>                                                             \
+  struct MetadataTrait<_Name_> {                                          \
+    using metadata = _Name_##Metadata;                                    \
+  };                                                                      \
+                                                                          \
+  template <>                                                             \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                     \
+    using metadata = _Name_##Metadata;                                    \
   };
 
 namespace o2::soa
 {
-
-template <typename... C1, typename... C2>
-constexpr auto join(o2::soa::Table<C1...> const& t1, o2::soa::Table<C2...> const& t2)
-{
-  return o2::soa::Table<C1..., C2...>(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
-}
-
-template <typename T1, typename T2, typename... Ts>
-constexpr auto join(T1 const& t1, T2 const& t2, Ts const&... ts)
-{
-  return join(t1, join(t2, ts...));
-}
-
-template <typename T1, typename T2>
-constexpr auto concat(T1&& t1, T2&& t2)
-{
-  using table_t = typename PackToTable<framework::intersected_pack_t<typename T1::columns, typename T2::columns>>::table;
-  return table_t(ArrowHelpers::concatTables({t1.asArrowTable(), t2.asArrowTable()}));
-}
-
-template <typename... Ts>
-using JoinBase = decltype(join(std::declval<Ts>()...));
-
-template <typename T1, typename T2>
-using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
-
 template <typename... Ts>
 struct Join : JoinBase<Ts...> {
   Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
@@ -1291,7 +1358,7 @@ class Filtered : public T
     : T{std::move(tables), offset},
       mSelectedRows{copySelection(framework::expressions::createSelection(this->asArrowTable(),
                                                                           framework::expressions::createFilter(this->asArrowTable()->schema(),
-                                                                                                               framework::expressions::createCondition(tree))))},
+                                                                                                               framework::expressions::makeCondition(tree))))},
       mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
       mFilteredEnd{mSelectedRows.size()}
   {

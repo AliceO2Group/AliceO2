@@ -76,7 +76,15 @@ DECLARE_SOA_COLUMN(Z, z, float);
 DECLARE_SOA_COLUMN(Snp, snp, float);
 DECLARE_SOA_COLUMN(Tgl, tgl, float);
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);
-DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) -> float { return asinf(snp) + alpha + static_cast<float>(M_PI); });
+DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) -> float {
+  float phi = std::asin(snp) + alpha;
+  constexpr float twopi = 2.0 * M_PI;
+  if (phi < 0)
+    phi += twopi;
+  if (phi > twopi)
+    phi -= twopi;
+  return phi;
+});
 DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float tgl) -> float { return std::log(std::tan(0.25f * static_cast<float>(M_PI) - 0.5f * std::atan(tgl))); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float signed1Pt) -> float { return std::abs(1.0f / signed1Pt); });
 DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
@@ -104,6 +112,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(P, p, [](float signed1Pt, float tgl) -> float {
 DECLARE_SOA_DYNAMIC_COLUMN(P2, p2, [](float signed1Pt, float tgl) -> float {
   return (1.f + tgl * tgl) / (signed1Pt * signed1Pt);
 });
+
+DECLARE_SOA_EXPRESSION_COLUMN(Pt2, pt2, float, (1.f / aod::track::signed1Pt) * (1.f / aod::track::signed1Pt));
 
 // TRACKPARCOV TABLE definition
 DECLARE_SOA_COLUMN(CYY, cYY, float);
@@ -165,20 +175,22 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, [](uint8_
 });
 } // namespace track
 
-DECLARE_SOA_TABLE(Tracks, "AOD", "TRACKPAR",
-                  o2::soa::Index<>, track::CollisionId, track::TrackType,
-                  track::X, track::Alpha,
-                  track::Y, track::Z, track::Snp, track::Tgl,
-                  track::Signed1Pt,
-                  track::Phi<track::Snp, track::Alpha>,
-                  track::Eta<track::Tgl>,
-                  track::Pt<track::Signed1Pt>,
-                  track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
-                  track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
-                  track::Pz<track::Signed1Pt, track::Tgl>,
-                  track::P<track::Signed1Pt, track::Tgl>,
-                  track::P2<track::Signed1Pt, track::Tgl>,
-                  track::Charge<track::Signed1Pt>);
+DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACKPAR",
+                       o2::soa::Index<>, track::CollisionId, track::TrackType,
+                       track::X, track::Alpha,
+                       track::Y, track::Z, track::Snp, track::Tgl,
+                       track::Signed1Pt,
+                       track::Phi<track::Snp, track::Alpha>,
+                       track::Eta<track::Tgl>,
+                       track::Pt<track::Signed1Pt>,
+                       track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
+                       track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
+                       track::Pz<track::Signed1Pt, track::Tgl>,
+                       track::P<track::Signed1Pt, track::Tgl>,
+                       track::P2<track::Signed1Pt, track::Tgl>,
+                       track::Charge<track::Signed1Pt>);
+
+DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACKPAR", aod::track::Pt2);
 
 DECLARE_SOA_TABLE(TracksCov, "AOD", "TRACKPARCOV",
                   track::CYY, track::CZY, track::CZZ, track::CSnpY,
@@ -435,7 +447,7 @@ DECLARE_SOA_COLUMN(Vy, vy, float);
 DECLARE_SOA_COLUMN(Vz, vz, float);
 DECLARE_SOA_COLUMN(Vt, vt, float);
 DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float px, float py) -> float { return static_cast<float>(M_PI) + std::atan2(-py, -px); });
-DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float px, float py, float pz) -> float { return 0.5f * std::log((std::sqrt(px * px + py * py + pz * pz) + pz) / (std::sqrt(px * px + py * py + pz * pz) - pz)); });
+DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float px, float py, float pz) -> float { return -0.5f * std::log((std::sqrt(px * px + py * py + pz * pz) + pz) / (std::sqrt(px * px + py * py + pz * pz) - pz)); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float px, float py) -> float { return std::sqrt(px * px + py * py); });
 } // namespace mcparticle
 
