@@ -40,6 +40,9 @@ class AnalysisCCDBManager
   template <typename T>
   T* getForTimeStamp(std::string const& path, long timestamp);
 
+  /// clear all entries in the cache
+  void clearCache() { mCache.clear(); }
+
  private:
   AnalysisCCDBManager() {}
   std::unordered_map<std::string, CachedObject> mCache; //! map for {path, CachedObject} associations
