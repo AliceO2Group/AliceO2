@@ -198,6 +198,8 @@ class GPUReconstruction
   void ReturnVolatileDeviceMemory();
   void PushNonPersistentMemory();
   void PopNonPersistentMemory(RecoStep step);
+  void BlockStackedMemory(GPUReconstruction* rec);
+  void UnblockStackedMemory();
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
   void ResetRegisteredMemoryPointers(short res);
   void ComputeReuseMax(GPUProcessor* proc);
@@ -325,19 +327,21 @@ class GPUReconstruction
   std::string mDeviceName = "CPU";
 
   // Ptrs to host and device memory;
-  void* mHostMemoryBase = nullptr;        // Ptr to begin of large host memory buffer
-  void* mHostMemoryPermanent = nullptr;   // Ptr to large host memory buffer offset by permanently allocated memory
-  void* mHostMemoryPool = nullptr;        // Ptr to next free location in host memory buffer
-  void* mHostMemoryPoolEnd = nullptr;     // Ptr to end of pool
-  size_t mHostMemorySize = 0;             // Size of host memory buffer
-  size_t mHostMemoryUsedMax = 0;          // Maximum host memory size used over time
-  void* mDeviceMemoryBase = nullptr;      //
-  void* mDeviceMemoryPermanent = nullptr; //
-  void* mDeviceMemoryPool = nullptr;      //
-  void* mDeviceMemoryPoolEnd = nullptr;   //
-  size_t mDeviceMemorySize = 0;           //
-  void* mVolatileMemoryStart = nullptr;   // Ptr to beginning of temporary volatile memory allocation, nullptr if uninitialized
-  size_t mDeviceMemoryUsedMax = 0;        //
+  void* mHostMemoryBase = nullptr;          // Ptr to begin of large host memory buffer
+  void* mHostMemoryPermanent = nullptr;     // Ptr to large host memory buffer offset by permanently allocated memory
+  void* mHostMemoryPool = nullptr;          // Ptr to next free location in host memory buffer
+  void* mHostMemoryPoolEnd = nullptr;       // Ptr to end of pool
+  void* mHostMemoryPoolBlocked = nullptr;   // Ptr to end of pool
+  size_t mHostMemorySize = 0;               // Size of host memory buffer
+  size_t mHostMemoryUsedMax = 0;            // Maximum host memory size used over time
+  void* mDeviceMemoryBase = nullptr;        //
+  void* mDeviceMemoryPermanent = nullptr;   //
+  void* mDeviceMemoryPool = nullptr;        //
+  void* mDeviceMemoryPoolEnd = nullptr;     //
+  void* mDeviceMemoryPoolBlocked = nullptr; //
+  size_t mDeviceMemorySize = 0;             //
+  void* mVolatileMemoryStart = nullptr;     // Ptr to beginning of temporary volatile memory allocation, nullptr if uninitialized
+  size_t mDeviceMemoryUsedMax = 0;          //
 
   GPUReconstruction* mMaster = nullptr;    // Ptr to a GPUReconstruction object serving as master, sharing GPU memory, events, etc.
   std::vector<GPUReconstruction*> mSlaves; // Ptr to slave GPUReconstructions

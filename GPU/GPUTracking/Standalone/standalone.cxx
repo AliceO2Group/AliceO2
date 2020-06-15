@@ -188,8 +188,8 @@ int ReadConfiguration(int argc, char** argv)
     printf("Cannot run asynchronous processing with double pipeline\n");
     return 1;
   }
-  if (configStandalone.configProc.doublePipeline && configStandalone.runs < 3) {
-    printf("Double pipeline mode needs at least 3 runs per event\n");
+  if (configStandalone.configProc.doublePipeline && (configStandalone.runs < 3 || !configStandalone.outputcontrolmem)) {
+    printf("Double pipeline mode needs at least 3 runs per event and external output\n");
     return 1;
   }
   if (configStandalone.configTF.bunchSim && configStandalone.configTF.nMerge) {
@@ -539,37 +539,37 @@ int ReadEvent(int n)
 
 void OutputStat(GPUChainTracking* t, long long int* nTracksTotal = nullptr, long long int* nClustersTotal = nullptr)
 {
-  int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
-  for (int k = 0; k < t->GetTPCMerger().NOutputTracks(); k++) {
-    if (t->GetTPCMerger().OutputTracks()[k].OK()) {
+  int nTracks = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
+  for (unsigned int k = 0; k < t->mIOPtrs.nMergedTracks; k++) {
+    if (t->mIOPtrs.mergedTracks[k].OK()) {
       nTracks++;
-      nAttachedClusters += t->GetTPCMerger().OutputTracks()[k].NClusters();
-      nAttachedClustersFitted += t->GetTPCMerger().OutputTracks()[k].NClustersFitted();
+      nAttachedClusters += t->mIOPtrs.mergedTracks[k].NClusters();
+      nAttachedClustersFitted += t->mIOPtrs.mergedTracks[k].NClustersFitted();
     }
   }
-  for (unsigned int k = 0; k < t->GetTPCMerger().NMaxClusters(); k++) {
-    int attach = t->GetTPCMerger().ClusterAttachment()[k];
+  unsigned int nCls = configStandalone.configProc.doublePipeline ? t->mIOPtrs.clustersNative->nClustersTotal : t->GetTPCMerger().NMaxClusters();
+  for (unsigned int k = 0; k < nCls; k++) {
+    int attach = t->mIOPtrs.mergedTrackHitAttachment[k];
     if (attach & GPUTPCGMMergerTypes::attachFlagMask) {
       nAdjacentClusters++;
     }
   }
 
-  nClusters = t->GetTPCMerger().NClusters();
   if (nTracksTotal && nClustersTotal) {
     *nTracksTotal += nTracks;
-    *nClustersTotal += nClusters;
+    *nClustersTotal += t->mIOPtrs.nMergedTrackHits;
   }
 
   char trdText[1024] = "";
   if (t->GetRecoSteps() & GPUDataTypes::RecoStep::TRDTracking) {
     int nTracklets = 0;
-    for (int k = 0; k < t->GetTRDTracker()->NTracks(); k++) {
-      auto& trk = t->GetTRDTracker()->Tracks()[k];
+    for (unsigned int k = 0; k < t->mIOPtrs.nTRDTracks; k++) {
+      auto& trk = t->mIOPtrs.trdTracks[k];
       nTracklets += trk.GetNtracklets();
     }
-    snprintf(trdText, 1024, " - TRD Tracker reconstructed %d tracks (%d tracklets)", t->GetTRDTracker()->NTracks(), nTracklets);
+    snprintf(trdText, 1024, " - TRD Tracker reconstructed %d tracks (%d tracklets)", t->mIOPtrs.nTRDTracks, nTracklets);
   }
-  printf("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total))%s\n", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, t->GetTPCMerger().NMaxClusters(), trdText);
+  printf("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total))%s\n", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, nCls, trdText);
 }
 
 int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, int runs, const GPUTrackingInOutPointers& ioPtrs, long long int* nTracksTotal, long long int* nClustersTotal, int threadId = 0, HighResTimer* timerPipeline = nullptr)
@@ -651,7 +651,9 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
       recAsync->ClearAllocatedMemory();
     }
 #endif
-    recUse->ClearAllocatedMemory();
+    if (!configStandalone.configProc.doublePipeline) {
+      recUse->ClearAllocatedMemory();
+    }
 
     if (tmpRetVal == 2) {
       configStandalone.continueOnError = 0; // Forced exit from event display loop
@@ -664,6 +666,9 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
       return 1;
     }
     iRun++;
+  }
+  if (configStandalone.configProc.doublePipeline) {
+    recUse->ClearAllocatedMemory();
   }
   return 0;
 }

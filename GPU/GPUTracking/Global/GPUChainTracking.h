@@ -59,6 +59,7 @@ class GPUTRDGeometry;
 class TPCFastTransform;
 class TPCdEdxCalibrationSplines;
 class GPUTrackingInputProvider;
+class GPUChainTrackingFinalContext;
 
 class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelegateBase
 {
@@ -75,6 +76,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
   int CheckErrorCodes() override;
   bool SupportsDoublePipeline() override { return true; }
+  int FinalizePipelinedProcessing() override;
   void ClearErrorCodes();
 
   // Structures for input and output data
@@ -260,6 +262,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void RunTPCTrackingMerger_Resolve(char useOrigTrackParam, char mergeAll, GPUReconstruction::krnlDeviceType deviceType);
 
   std::atomic_flag mLockAtomic = ATOMIC_FLAG_INIT;
+  std::unique_ptr<GPUChainTrackingFinalContext> mPipelineFinalizationCtx;
+  GPUChainTrackingFinalContext* mPipelineNotifyCtx = nullptr;
 
   int HelperReadEvent(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);
   int HelperOutput(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);
