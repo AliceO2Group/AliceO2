@@ -66,6 +66,8 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G)); // make sure L2G matrices are loaded
     mDigitizer.setGeometry(geom);
 
+    mDisableQED = ic.options().get<bool>("disable-qed");
+
     // init digitizer
     mDigitizer.init();
   }
@@ -81,7 +83,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     context->initSimChains(mID, mSimChains);
-    const bool withQED = context->isQEDProvided();
+    const bool withQED = context->isQEDProvided() && !mDisableQED;
     auto& timesview = context->getEventRecords(withQED);
     LOG(INFO) << "GOT " << timesview.size() << " COLLISSION TIMES";
     LOG(INFO) << "SIMCHAINS " << mSimChains.size();
@@ -191,6 +193,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
 
   bool mWithMCTruth = true;
   bool mFinished = false;
+  bool mDisableQED = false;
   o2::detectors::DetID mID;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
   o2::itsmft::Digitizer mDigitizer;
@@ -322,6 +325,7 @@ DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth)
                            makeOutChannels(detOrig, mctruth),
                            AlgorithmSpec{adaptFromTask<ITSDPLDigitizerTask>(mctruth)},
                            Options{
+                             {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}
                              //  { "configKeyValues", VariantType::String, "", { parHelper.str().c_str() } }
                            }};
 }
@@ -341,7 +345,7 @@ DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth)
                                             static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
                            makeOutChannels(detOrig, mctruth),
                            AlgorithmSpec{adaptFromTask<MFTDPLDigitizerTask>(mctruth)},
-                           Options{}};
+                           Options{{"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
 }
 
 } // end namespace itsmft
