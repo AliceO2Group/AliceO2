@@ -215,8 +215,7 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
             fields.emplace_back(extra_schema->field(i));
           }
           auto new_schema = std::make_shared<arrow::Schema>(fields);
-          auto new_table = arrow::Table::Make(new_schema, columns);
-          return new_table;
+          return arrow::Table::Make(new_schema, columns);
         };
 
         if (description == header::DataDescription{"TRACKPAR"}) {
