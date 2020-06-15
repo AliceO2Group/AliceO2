@@ -48,7 +48,7 @@ endif()
 
 o2_add_dpl_workflow(upc-an
                   SOURCES upcAnalysis.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
                   COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(event-selection
