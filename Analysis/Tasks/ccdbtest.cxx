@@ -16,6 +16,7 @@
 #include "Framework/ASoAHelpers.h"
 
 #include <CCDB/CcdbApi.h>
+#include <CCDB/BasicCCDBManager.h>
 
 #include <chrono>
 #include <thread>
@@ -24,86 +25,28 @@ using namespace o2::framework;
 using namespace o2::header;
 using namespace o2;
 
-template <class T>
-struct CCDBobj {
-  long validfrom;
-  long validuntil;
-  std::map<std::string, std::string> metadata;
-  std::map<std::string, std::string>* headers;
-  T obj;
-  void GetObj(o2::ccdb::CcdbApi& api, std::string path, long timestamp)
-  {
-    obj = api.retrieveFromTFileAny<T>(path, metadata, timestamp, headers);
-    if (obj) {
-      LOGF(info, "Found object!");
-      // obj->Print("all");
-    } else {
-      LOGF(warning, "Cannot find object in path '%s'.", path.data());
-    }
-  }
-  void UpdateObj(o2::ccdb::CcdbApi& api, std::string path, long timestamp)
-  {
-    if (IsValid(timestamp))
-      return;
-    GetObj(api, path, timestamp);
-  }
-
-  Bool_t IsValid(long timestamp)
-  {
-    return timestamp > validfrom && timestamp < validuntil;
-  }
-  void PrintMetadata()
-  {
-    LOGF(info, "Printing metadata");
-    for (auto it = metadata.cbegin(); it != metadata.cend(); ++it) {
-      std::cout << it->first << " " << it->second << " " << it->second << "\n";
-    }
-  }
-  void PrintHeaders()
-  {
-    LOGF(info, "Printing headers");
-    for (auto it = headers->cbegin(); it != headers->cend(); ++it) {
-      std::cout << it->first << " " << it->second << " " << it->second << "\n";
-    } 
-  }
-};
-
 struct CCDBTask {
+  o2::ccdb::BasicCCDBManager cdb = o2::ccdb::BasicCCDBManager::instance();
+  Configurable<std::string> path{"ccdb-path", "qc/TOF/TOFTaskCompressed/hDiagnostic", "path to the ccdb object"};
 
-  o2::ccdb::CcdbApi api;
+  void init(o2::framework::InitContext&)
+  {
+    Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
+    Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
+
+    cdb.setURL(url);
+    cdb.setTimestamp(timestamp);
+    cdb.setCachingEnabled(true);
+    cdb.setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+  }
 
   void process(aod::Collision const& collision)
   {
-    Configurable<TString> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
-    Configurable<std::string> path{"ccdb-path", "qc/TOF/TOFTaskCompressed/hDiagnostic", "path to the ccdb object"};
-    Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
-
-    std::map<std::string, std::string> metadata;
-    std::map<std::string, std::string>* headers;
-
-    CCDBobj<TH2F> obj2;
-    api.init(url.value.Data());
-    if (!api.isHostReachable()) {
-      LOGF(warning, "CCDB at URL '%s' is not reachable.", url.value.Data());
-      return;
-    } else {
-      LOGF(info, "Loaded CCDB URL '%s'.", url.value.Data());
-    }
-
-    auto obj = api.retrieveFromTFileAny<TH2F>(path.value, metadata, timestamp.value, headers);
+    auto obj = cdb.get<TH2F>(path.value);
+    auto obj2 = cdb.getForTimeStamp<TH2F>(path.value, -1);
     if (obj) {
       LOGF(info, "Found object!");
-      // obj->Print("all");
-    } else {
-      LOGF(warning, "Cannot find object in path '%s'.", path.value.data());
-    }
-    LOGF(info, "Printing metadata");
-    for (auto it = metadata.cbegin(); it != metadata.cend(); ++it) {
-      std::cout << it->first << " " << it->second << " " << it->second << "\n";
-    }
-    LOGF(info, "Printing headers");
-    for (auto it = headers->cbegin(); it != headers->cend(); ++it) {
-      std::cout << it->first << " " << it->second << " " << it->second << "\n";
+      obj->Print("all");
     }
   }
 };
