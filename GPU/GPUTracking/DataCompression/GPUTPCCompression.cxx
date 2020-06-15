@@ -21,17 +21,20 @@ void GPUTPCCompression::InitializeProcessor() {}
 
 void* GPUTPCCompression::SetPointersOutputHost(void* mem)
 {
-  SetPointersCompressedClusters(mem, mOutput, mOutput.nAttachedClusters, mOutput.nTracks, mOutput.nUnattachedClusters, true);
+  computePointerWithoutAlignment(mem, mOutputFlat);
+  SetPointersCompressedClusters(mem, *mOutput, mOutput->nAttachedClusters, mOutput->nTracks, mOutput->nUnattachedClusters, true);
   return mem;
 }
 
 void* GPUTPCCompression::SetPointersScratch(void* mem)
 {
   computePointerWithAlignment(mem, mClusterStatus, mMaxClusters);
-  if (mRec->GetDeviceProcessingSettings().tpcCompressionGatherMode == 0) {
+  if (mRec->GetDeviceProcessingSettings().tpcCompressionGatherMode == 2) {
+    computePointerWithAlignment(mem, mAttachedClusterFirstIndex, mMaxTracks);
+  }
+  if (mRec->GetDeviceProcessingSettings().tpcCompressionGatherMode != 1) {
     SetPointersCompressedClusters(mem, mPtrs, mMaxTrackClusters, mMaxTracks, mMaxClusters, false);
   }
-  computePointerWithAlignment(mem, mClusterSortBuffer, mNGPUBlocks * mNMaxClusterSliceRow);
   return mem;
 }
 
@@ -58,7 +61,7 @@ void GPUTPCCompression::SetPointersCompressedClusters(void*& mem, T& c, unsigned
 
   unsigned int nClAreduced = reducedClA ? nClA - nTr : nClA;
 
-  if (!(mMerger->Param().rec.tpcCompressionModes & GPUSettings::CompressionTrackModel)) {
+  if (!(mRec->GetParam().rec.tpcCompressionModes & GPUSettings::CompressionTrackModel)) {
     return; // Track model disabled, do not allocate memory
   }
   computePointerWithAlignment(mem, c.qTotA, nClA);
@@ -82,7 +85,8 @@ void GPUTPCCompression::SetPointersCompressedClusters(void*& mem, T& c, unsigned
 
 void* GPUTPCCompression::SetPointersMemory(void* mem)
 {
-  computePointerWithAlignment(mem, mMemory, 1);
+  computePointerWithAlignment(mem, mMemory);
+  computePointerWithAlignment(mem, mOutput);
   return mem;
 }
 
@@ -90,16 +94,18 @@ void GPUTPCCompression::RegisterMemoryAllocation()
 {
   AllocateAndInitializeLate();
   mMemoryResOutputHost = mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersOutputHost, GPUMemoryResource::MEMORY_OUTPUT_FLAG | GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_CUSTOM, "TPCCompressionOutputHost");
-  mMemoryResOutput = mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersOutput, GPUMemoryResource::MEMORY_OUTPUT, "TPCCompressionOutput");
-  mMemoryResScratch = mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH, "TPCCompressionScratch");
-  mMemoryResMemory = mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersMemory, GPUMemoryResource::MEMORY_PERMANENT, "TPCCompressionMemory");
+  if (mRec->GetDeviceProcessingSettings().tpcCompressionGatherMode != 2) {
+    mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersOutput, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_STACK, "TPCCompressionOutput");
+  }
+  mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCCompressionScratch");
+  mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersMemory, GPUMemoryResource::MEMORY_PERMANENT, "TPCCompressionMemory");
 }
 
 void GPUTPCCompression::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  mMaxClusters = mMerger->NMaxClusters();
-  mMaxTrackClusters = mMerger->NOutputTrackClusters();
-  mMaxTracks = mMerger->NOutputTracks();
+  mMaxClusters = io.clustersNative->nClustersTotal;
+  mMaxTrackClusters = mRec->GetConstantMem().tpcMerger.NOutputTrackClusters();
+  mMaxTracks = mRec->GetConstantMem().tpcMerger.NOutputTracks();
   if (mMaxClusters % 16) {
     mMaxClusters += 16 - (mMaxClusters % 16);
   }

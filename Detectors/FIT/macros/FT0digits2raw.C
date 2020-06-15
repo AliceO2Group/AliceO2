@@ -1,3 +1,4 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <Rtypes.h>
 #include <iostream>
 
@@ -5,10 +6,11 @@
 #include "FT0Simulation/Digits2Raw.h"
 #include "DataFormatsFT0/RawEventData.h"
 #include "DataFormatsFT0/LookUpTable.h"
+#endif
 
 void FT0digits2raw()
 {
   FairLogger* logger = FairLogger::GetLogger();
   logger->SetLogScreenLevel("DEBUG");
-  o2::ft0::Digits2Raw mreader("ft0raw.bin", "ft0digits.root");
+  o2::ft0::Digits2Raw mreader("./", "ft0digits.root");
 }

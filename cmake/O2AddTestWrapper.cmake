@@ -81,11 +81,11 @@ function(o2_add_test_wrapper)
     endif()
   endif()
 
-  if("${A_MAX_ATTEMPTS}" GREATER 1)
-    # Warn only for tests where retry has been requested
-    message(
-      WARNING "Test ${testName} will be retried max ${A_MAX_ATTEMPTS} times")
-  endif()
+#  if("${A_MAX_ATTEMPTS}" GREATER 1)
+#    # Warn only for tests where retry has been requested
+#    message(
+#      WARNING "Test ${testName} will be retried max ${A_MAX_ATTEMPTS} times")
+#  endif()
   if(A_NON_FATAL)
     message(WARNING "Failure of test ${testName} will not be fatal")
   endif()

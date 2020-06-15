@@ -139,7 +139,7 @@ GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBloc
       temporaryTrack.SinPhi() = crv * (x3 - x0);
       temporaryTrack.DzDs() = 0.5f * (tgl12 + tgl23);
       temporaryTrack.QPt() = CAMath::Abs(bz) < constants::math::Almost0 ? constants::math::Almost0 : crv / (bz * constants::math::B2C);
-      temporaryTrack.ZOffset() = 0;
+      temporaryTrack.TZOffset() = 0;
       temporaryTrack.Cov()[0] = s2;
       temporaryTrack.Cov()[1] = 0.f;
       temporaryTrack.Cov()[2] = s2;
@@ -189,7 +189,7 @@ GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBloc
       continue;
     }
     CA_DEBUGGER(refitCounters[nClusters - 4]++);
-    int trackId = CAMath::AtomicAdd(&Fitter.NumberOfTracks(), 1);
+    int trackId = CAMath::AtomicAdd(&Fitter.NumberOfTracks(), 1u);
     Fitter.tracks()[trackId] = temporaryTrack;
   }
 #ifdef CA_DEBUG

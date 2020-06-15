@@ -61,8 +61,12 @@ void run_digi2rawVarPage_its(std::string outPrefix = "rawits",       // prefix o
   m2r.setDefaultSinkName(outPrefix + ".raw");
   m2r.setMinMaxRUSW(ruSWMin, ruSWMax);
 
+  {
+    // Attention: HBFUtils is a special singleton of ConfigurableParam type, cannot be set by detectors
+    o2::raw::HBFUtils::updateFromString("HBFUtils.nHBFPerTF=256"); // this is default anyway
+  }
+
   m2r.getWriter().setSuperPageSize(1024 * 1024);      // this is default anyway
-  m2r.getWriter().getHBFUtils().setNOrbitsPerTF(256); // this is default anyway
 
   m2r.setVerbosity(0);
 
@@ -85,7 +89,7 @@ void run_digi2rawVarPage_its(std::string outPrefix = "rawits",       // prefix o
         continue;
       }
       nEntProc++;
-      auto dgs = gsl::span<const o2::itsmft::Digit>(&digiVec[rofRec.getFirstEntry()], nDigROF);
+      auto dgs = nDigROF ? gsl::span<const o2::itsmft::Digit>(&digiVec[rofRec.getFirstEntry()], nDigROF) : gsl::span<const o2::itsmft::Digit>();
       m2r.digits2raw(dgs, rofRec.getBCData());
     }
   } // loop over multiple ROFvectors (in case of chaining)
@@ -148,20 +152,21 @@ void setupLinks(o2::itsmft::MC2RawEncoder<o2::itsmft::ChipMappingITS>& m2r, cons
           nLinks++;
           auto& ru = *m2r.getRUDecode(ruID);
           uint32_t lanes = mp.getCablesOnRUType(ru.ruInfo->ruType); // lanes patter of this RU
-          ru.links[il] = std::make_unique<o2::itsmft::GBTLink>();
-          ru.links[il]->lanes = lanes & ((0x1 << lnkAs[il]) - 1) << (accL);
-          ru.links[il]->id = linkID;
-          ru.links[il]->cruID = cruID;
-          ru.links[il]->feeID = mp.RUSW2FEEId(ir, il);
-          ru.links[il]->endPointID = 0; // 0 or 1
+          ru.links[il] = m2r.addGBTLink();
+          auto link = m2r.getGBTLink(ru.links[il]);
+          link->lanes = lanes & ((0x1 << lnkAs[il]) - 1) << (accL);
+          link->idInCRU = linkID;
+          link->cruID = cruID;
+          link->feeID = mp.RUSW2FEEId(ruID, il);
+          link->endPointID = 0; // 0 or 1
           accL += lnkAs[il];
           if (m2r.getVerbosity()) {
-            LOG(INFO) << "RU" << ruID << '(' << ir << " on lr " << ilr << ") " << ru.links[il]->describe()
+            LOG(INFO) << "RU" << ruID << '(' << ir << " on lr " << ilr << ") " << link->describe()
                       << " -> " << outFileLink;
           }
           // register the link in the writer, if not done here, its data will be dumped to common default file
-          m2r.getWriter().registerLink(ru.links[il]->feeID, ru.links[il]->cruID, ru.links[il]->id,
-                                       ru.links[il]->endPointID, outFileLink);
+          m2r.getWriter().registerLink(link->feeID, link->cruID, link->idInCRU,
+                                       link->endPointID, outFileLink);
           //
           if (cruIDprev != cruID) { // just to count used CRUs
             cruIDprev = cruID;

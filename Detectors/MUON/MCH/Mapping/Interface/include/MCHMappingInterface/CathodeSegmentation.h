@@ -21,8 +21,9 @@
 #include <memory>
 #include <iostream>
 #include <vector>
-#include <boost/format.hpp>
+#include <sstream>
 #include <functional>
+#include <iomanip>
 
 namespace o2
 {
@@ -280,9 +281,16 @@ inline std::string CathodeSegmentation::padAsString(int catPadIndex) const
   if (!isValid(catPadIndex)) {
     return "invalid pad with uid=" + std::to_string(catPadIndex);
   }
-  return boost::str(boost::format("FEC %4d CH %2d X %7.3f Y %7.3f SX %7.3f SY %7.3f") %
-                    padDualSampaId(catPadIndex) % padDualSampaChannel(catPadIndex) % padPositionX(catPadIndex) %
-                    padPositionY(catPadIndex) % padSizeX(catPadIndex) % padSizeY(catPadIndex));
+  std::stringstream s;
+
+  s << "FEC " << std::setw(4) << padDualSampaId(catPadIndex)
+    << "CH " << std::setw(2) << padDualSampaChannel(catPadIndex)
+    << "X " << std::setw(7) << std::setprecision(2) << padPositionX(catPadIndex)
+    << "Y " << std::setw(7) << std::setprecision(2) << padPositionY(catPadIndex)
+    << "SX " << std::setw(7) << std::setprecision(2) << padSizeX(catPadIndex)
+    << "SY " << std::setw(7) << std::setprecision(2) << padSizeY(catPadIndex);
+
+  return s.str();
 }
 
 } // namespace mapping

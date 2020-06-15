@@ -25,7 +25,10 @@ o2_add_library(ITStrackingHIP
                        # src/TrackerTraitsHIP.hip.cxx
                        src/VertexerTraitsHIP.hip.cxx
                        src/UtilsHIP.hip.cxx                   
-               PUBLIC_LINK_LIBRARIES O2::ITStracking hip::host hip::device hip::hipcub
+               PUBLIC_LINK_LIBRARIES O2::ITStracking
+                                     hip::host
+                                     hip::device
+                                     hip::hipcub
                TARGETVARNAME targetName)
 
 target_compile_definitions(

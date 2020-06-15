@@ -429,7 +429,7 @@ void Detector::CreateEmcalEnvelope()
     LOG(DEBUG2) << "ConstructGeometry: XU0 = " << envelopA[5] << ", " << envelopA[6];
 
     // Position the EMCAL Mother Volume (XEN1) in ALICE (cave)
-    TVirtualMC::GetMC()->Gspos(geom->GetNameOfEMCALEnvelope(), 1, "cave", 0.0, 0.0, 0.0, rotMatrixID, "ONLY");
+    TVirtualMC::GetMC()->Gspos(geom->GetNameOfEMCALEnvelope(), 1, "barrel", 0.0, 0.0, 0.0, rotMatrixID, "ONLY");
   }
 }
 
@@ -452,7 +452,7 @@ void Detector::CreateShiskebabGeometry()
   if (contains(g->GetName(), "WSUC")) {
     mothervolume = "WSUC";
   } else {
-    mothervolume = "cave";
+    mothervolume = "barrel";
   }
   LOG(DEBUG2) << "Name of mother volume: " << mothervolume;
   CreateSupermoduleGeometry(mothervolume);
@@ -831,7 +831,7 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
 
       Int_t rotMatrixID(-1);
       Matrix(rotMatrixID, 90.0, phi, 90.0, phiy, phiz, 0.0);
-      TVirtualMC::GetMC()->Gspos(smName.data(), SMOrder, mother.data(), xpos, ypos, zpos, rotMatrixID, "ONLY");
+      TVirtualMC::GetMC()->Gspos(smName.data(), SMOrder, mother.data(), xpos, ypos + 30., zpos, rotMatrixID, "ONLY");
 
       LOG(DEBUG3) << smName << " : " << std::setw(2) << SMOrder << ", fIdRotm " << std::setw(3) << rotMatrixID
                   << " phi " << std::setw(6) << std::setprecision(1) << phi << "(" << std::setw(5)

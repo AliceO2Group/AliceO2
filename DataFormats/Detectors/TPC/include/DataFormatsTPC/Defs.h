@@ -62,8 +62,9 @@ enum class PadSubset : char {
 
 /// Statistics type
 enum class StatisticsType {
-  GausFit,   ///< Use Gaus fit for pedestal and noise
-  MeanStdDev ///< Use mean and standard deviation
+  GausFit,     ///< Use slow gaus fit (better fit stability)
+  GausFitFast, ///< Use fast gaus fit (less accurate error treatment)
+  MeanStdDev   ///< Use mean and standard deviation
 };
 
 // default point definitions for PointND, PointNDlocal, PointNDglobal are in

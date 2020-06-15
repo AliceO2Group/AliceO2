@@ -15,7 +15,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
-#include "Steer/HitProcessingManager.h" // for RunContext
+#include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "FT0Simulation/Digitizer.h"
 #include "FT0Simulation/DigitizationParameters.h"
 #include "DataFormatsFT0/ChannelData.h"
@@ -25,9 +25,9 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/Task.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include <TChain.h>
-#include <iostream>
 #include <TStopwatch.h>
 
 using namespace o2::framework;
@@ -37,41 +37,20 @@ namespace o2
 {
 namespace ft0
 {
-// helper function which will be offered as a service
-//template <typename T>
 
-class FT0DPLDigitizerTask
+class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
 
   using GRP = o2::parameters::GRPObject;
 
  public:
-  FT0DPLDigitizerTask() : mDigitizer(DigitizationParameters{}) {}
+  FT0DPLDigitizerTask() : o2::base::BaseDPLDigitizer(), mDigitizer(DigitizationParameters{}) {}
   explicit FT0DPLDigitizerTask(o2::ft0::DigitizationParameters const& parameters)
-    : mDigitizer(parameters){};
-  ~FT0DPLDigitizerTask() = default;
+    : o2::base::BaseDPLDigitizer(), mDigitizer(parameters){};
+  ~FT0DPLDigitizerTask() override = default;
 
-  void init(framework::InitContext& ic)
+  void initDigitizerTask(framework::InitContext& ic) override
   {
-    // setup the input chain for the hits
-    mSimChains.emplace_back(new TChain("o2sim"));
-
-    // add the main (background) file
-    mSimChains.back()->AddFile(ic.options().get<std::string>("simFile").c_str());
-    // maybe add a particular signal file
-    auto signalfilename = ic.options().get<std::string>("simFileS");
-    if (signalfilename.size() > 0) {
-      mSimChains.emplace_back(new TChain("o2sim"));
-      mSimChains.back()->AddFile(signalfilename.c_str());
-    }
-    const std::string inputGRP = "o2sim_grp.root";
-    const std::string grpName = "GRP";
-    TFile flGRP(inputGRP.c_str());
-    if (flGRP.IsZombie()) {
-      LOG(FATAL) << "Failed to open " << inputGRP;
-    }
-    std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
-
     mDigitizer.init();
     mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
   }
@@ -84,7 +63,8 @@ class FT0DPLDigitizerTask
     }
 
     // read collision context from input
-    auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
+    context->initSimChains(o2::detectors::DetID::FT0, mSimChains);
     auto& timesview = context->getEventRecords();
 
     // if there is nothing to do ... return
@@ -98,42 +78,38 @@ class FT0DPLDigitizerTask
     LOG(INFO) << "CALLING FT0 DIGITIZATION";
 
     static std::vector<o2::ft0::HitType> hits;
-    o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labelAccum;
+    // o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labelAccum;
     o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labels;
 
-    mDigitizer.setMCLabels(&labels);
+    // mDigitizer.setMCLabels(&labels);
     auto& eventParts = context->getEventParts();
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
-      mDigitizer.setTimeStamp(timesview[collID].timeNS);
       mDigitizer.setInteractionRecord(timesview[collID]);
-      mDigitizer.clearDigits();
-      std::vector<std::vector<double>> channel_times;
+      LOG(INFO) << " setInteractionRecord " << timesview[collID] << " bc " << mDigitizer.getBC() << " orbit " << mDigitizer.getOrbit();
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
         // get the hits for this event and this source
         hits.clear();
-        retrieveHits(mSimChains, part.sourceID, part.entryID, &hits);
+        context->retrieveHits(mSimChains, "FT0Hit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " source ID " << part.sourceID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
-        labels.clear();
-        mDigitizer.setEventID(collID);
+        mDigitizer.setEventID(part.entryID);
         mDigitizer.setSrcID(part.sourceID);
-        mDigitizer.process(&hits);
-        // copy labels into accumulator
-        labelAccum.mergeAtBack(labels);
+        mDigitizer.process(&hits, mDigitsBC, mDigitsCh, labels);
       }
-      mDigitizer.setDigits(mDigitsBC, mDigitsCh);
     }
+    mDigitizer.flush_all(mDigitsBC, mDigitsCh, labels);
 
     // send out to next stage
     pc.outputs().snapshot(Output{"FT0", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"FT0", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
-
+    if (pc.outputs().isAllowed({"FT0", "DIGITSMCTR", 0})) {
+      pc.outputs().snapshot(Output{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
+    }
     LOG(INFO) << "FT0: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"FT0", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
@@ -158,23 +134,9 @@ class FT0DPLDigitizerTask
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 
   std::vector<TChain*> mSimChains;
-
-  void retrieveHits(std::vector<TChain*> const& chains,
-                    int sourceID,
-                    int entryID,
-                    std::vector<o2::ft0::HitType>* hits)
-  {
-    auto br = mSimChains[sourceID]->GetBranch("FT0Hit");
-    if (!br) {
-      LOG(ERROR) << "No branch found";
-      return;
-    }
-    br->SetAddress(&hits);
-    br->GetEntry(entryID);
-  }
 };
 
-o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel)
+o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -182,20 +144,20 @@ o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel)
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
 
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("FT0", "DIGITSBC", 0, Lifetime::Timeframe);
+  outputs.emplace_back("FT0", "DIGITSCH", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("FT0", "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("FT0", "ROMode", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "FT0Digitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
-    Outputs{OutputSpec{"FT0", "DIGITSBC", 0, Lifetime::Timeframe},
-            OutputSpec{"FT0", "DIGITSCH", 0, Lifetime::Timeframe},
-            OutputSpec{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe},
-            OutputSpec{"FT0", "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
     AlgorithmSpec{adaptFromTask<FT0DPLDigitizerTask>()},
-    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
-            {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
-
-    // I can't use VariantType::Bool as it seems to have a problem
-  };
+    Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}};
 }
 
 } // namespace ft0

@@ -82,7 +82,9 @@ class ClustererTask
 
   MCTruth mClsLabels;               //! MC labels
 
-  ClassDefNV(ClustererTask, 1);
+  std::vector<unsigned char> mPatterns;
+
+  ClassDefNV(ClustererTask, 2);
 };
 } // namespace its
 } // namespace o2

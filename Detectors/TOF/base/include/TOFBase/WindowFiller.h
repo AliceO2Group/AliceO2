@@ -14,6 +14,7 @@
 #include "TOFBase/Geo.h"
 #include "TOFBase/Digit.h"
 #include "TOFBase/Strip.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 namespace o2
 {
@@ -29,9 +30,14 @@ class WindowFiller
 
   void initObj();
 
+  void reset();
+
   Int_t getCurrentReadoutWindow() const { return mReadoutWindowCurrent; }
   void setCurrentReadoutWindow(Double_t value) { mReadoutWindowCurrent = value; }
-  void setEventTime(double value) { mEventTime = value; }
+  void setEventTime(double value)
+  {
+    mEventTime = value;
+  }
 
   std::vector<Digit>* getDigitPerTimeFrame() { return &mDigitsPerTimeFrame; }
   std::vector<ReadoutWindowData>* getReadoutWindowData() { return &mReadoutWindowData; }

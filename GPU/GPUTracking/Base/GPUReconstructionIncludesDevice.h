@@ -32,6 +32,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCTracker.cxx"
 
 #include "GPUGeneralKernels.cxx"
+#include "GPUErrors.cxx"
 
 #include "GPUTPCTrackletSelector.cxx"
 #include "GPUTPCNeighboursFinder.cxx"
@@ -39,14 +40,18 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCStartHitsFinder.cxx"
 #include "GPUTPCStartHitsSorter.cxx"
 #include "GPUTPCTrackletConstructor.cxx"
+#include "GPUTPCGlobalTracking.cxx"
 
 #if !defined(GPUCA_OPENCL1) && !defined(GPUCA_ALIROOT_LIB)
 // Files for TPC Merger
+#include "GPUTPCGMMerger.cxx"
 #include "GPUTPCGMMergerGPU.cxx"
-#include "GPUTPCGMMerger.h"
+#include "GPUTPCGMSliceTrack.cxx"
 #include "GPUTPCGMTrackParam.cxx"
 #include "GPUTPCGMPhysicalTrackModel.cxx"
 #include "GPUTPCGMPropagator.cxx"
+#include "GPUTPCSliceData.cxx"
+#include "GPUTPCCreateSliceData.cxx"
 
 #if defined(HAVE_O2HEADERS)
 // Files for propagation with material
@@ -74,9 +79,10 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCCFDeconvolution.cxx"
 #include "GPUTPCCFMCLabelFlattener.cxx"
 #include "GPUTPCCFDecodeZS.cxx"
+#include "GPUTPCCFGather.cxx"
 
 // Files for TRD Tracking
-#include "GPUTRDTrackerGPU.cxx"
+#include "GPUTRDTrackerKernels.cxx"
 #include "GPUTRDTrack.cxx"
 #include "GPUTRDTracker.cxx"
 #include "GPUTRDTrackletWord.cxx"

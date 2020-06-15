@@ -28,6 +28,11 @@
 #include <cstring>
 #include <exception>
 
+namespace boost
+{
+class exception;
+}
+
 namespace o2
 {
 namespace framework
@@ -90,6 +95,13 @@ struct UserCustomizationsHelper {
   }
 };
 
+namespace o2::framework
+{
+class ConfigContext;
+}
+/// Helper used to customize a workflow pipelining options
+void overridePipeline(o2::framework::ConfigContext& ctx, std::vector<o2::framework::DataProcessorSpec>& workflow);
+
 // This comes from the framework itself. This way we avoid code duplication.
 int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
            std::vector<o2::framework::ChannelConfigurationPolicy> const& channelPolicies,
@@ -97,6 +109,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
            std::vector<o2::framework::DispatchPolicy> const& dispatchPolicies,
            std::vector<o2::framework::ConfigParamSpec> const& workflowOptions,
            o2::framework::ConfigContext& configContext);
+
+void doBoostException(boost::exception& e);
 
 int main(int argc, char** argv)
 {
@@ -110,8 +124,9 @@ int main(int argc, char** argv)
     // the default one.
     // The default policy is a catch all pub/sub setup to be consistent with the past.
     std::vector<o2::framework::ConfigParamSpec> workflowOptions;
-    workflowOptions.push_back(ConfigParamSpec{"readers", VariantType::Int64, 1ll, {"number of parallel readers to use"}});
     UserCustomizationsHelper::userDefinedCustomization(workflowOptions, 0);
+    workflowOptions.push_back(ConfigParamSpec{"readers", VariantType::Int64, 1ll, {"number of parallel readers to use"}});
+    workflowOptions.push_back(ConfigParamSpec{"pipeline", VariantType::String, "", {"override default pipeline size"}});
     std::vector<ChannelConfigurationPolicy> channelPolicies;
     UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
     auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
@@ -127,11 +142,19 @@ int main(int argc, char** argv)
     auto defaultDispatchPolicies = DispatchPolicy::createDefaultPolicies();
     dispatchPolicies.insert(std::end(dispatchPolicies), std::begin(defaultDispatchPolicies), std::end(defaultDispatchPolicies));
 
-    std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(workflowOptions, true, argc, argv)};
-    ConfigParamRegistry workflowOptionsRegistry(std::move(retriever));
-    ConfigContext configContext{workflowOptionsRegistry};
+    std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+    std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(true, argc, argv)};
+    retrievers.emplace_back(std::move(retriever));
+    auto workflowOptionsStore = std::make_unique<ConfigParamStore>(workflowOptions, std::move(retrievers));
+    workflowOptionsStore->preload();
+    workflowOptionsStore->activate();
+    ConfigParamRegistry workflowOptionsRegistry(std::move(workflowOptionsStore));
+    ConfigContext configContext(workflowOptionsRegistry, argc, argv);
     o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
+    overridePipeline(configContext, specs);
     result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, workflowOptions, configContext);
+  } catch (boost::exception& e) {
+    doBoostException(e);
   } catch (std::exception const& error) {
     LOG(ERROR) << "error while setting up workflow: " << error.what();
   } catch (...) {

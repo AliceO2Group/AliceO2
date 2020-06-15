@@ -35,11 +35,14 @@ class ClusterTopology
   ClusterTopology();
   /// Standard constructor
   ClusterTopology(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  /// Constructor
+  ClusterTopology(const ClusterPattern& patt);
 
   /// Returns a specific byte of the pattern
   unsigned char getByte(int n) const { return mPattern.getByte(n); }
   /// Returns the pattern
   std::array<unsigned char, ClusterPattern::kExtendedPatternBytes> getPattern() const { return mPattern.getPattern(); }
+  ClusterPattern getClusterPattern() const { return mPattern; }
   /// Returns the number of rows
   int getRowSpan() const { return mPattern.getRowSpan(); }
   /// Returns the number of columns
@@ -57,12 +60,22 @@ class ClusterTopology
   /// Compute the complete hash as defined for mHash
   static unsigned long getCompleteHash(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
   static unsigned long getCompleteHash(const ClusterTopology& topology);
-  // compute position of COG pixel wrt top-left corner
-  static void getCOGshift(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], int& rowShift, int& colShift);
   /// Sets the pattern
   void setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  /// Sets the pattern
+  void setPattern(const ClusterPattern& patt);
+
+  ///Helper function useful for analyses with topologies stored on a separate branch
+  static void makeRareTopologyMap(const std::vector<ClusterTopology>& vec, std::map<int, ClusterPattern>& map)
+  {
+    for (const auto& topo : vec) {
+      auto key = topo.getHash();
+      map[key] = topo.getClusterPattern();
+    }
+  }
 
  private:
+  void setHash(unsigned long hash) { mHash = hash; }
   ClusterPattern mPattern; ///< Pattern of pixels
   /// Hashcode computed from the pattern
   ///

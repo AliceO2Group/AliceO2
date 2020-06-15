@@ -19,7 +19,9 @@
 #include <cstdlib>
 #include <cstdint>
 #include <string>
+#include "Headers/DataHeader.h"
 #include "ITSMFTReconstruction/RUInfo.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 namespace o2
 {
@@ -34,6 +36,8 @@ class ChipMappingITS
   ~ChipMappingITS() = default;
 
   static constexpr std::string_view getName() { return "ITS"; }
+  static constexpr o2::header::DataOrigin getOrigin() { return o2::header::gDataOriginITS; }
+  static constexpr o2::detectors::DetID::ID getDetID() { return o2::detectors::DetID::ITS; }
 
   const std::vector<uint8_t>& getCableHWFirstChip(int s) const { return mCableHWFirstChip[s]; }
 
@@ -149,7 +153,10 @@ class ChipMappingITS
   ///< get number of chips served by single cable on given RU type
   uint8_t getGBTHeaderRUType(int ruType, int cableHW) { return GBTHeaderFlagSB[ruType] + (cableHW & 0x1f); }
 
-  ///< convert HW cable ID to SW ID for give RU type
+  ///< convert HW cable ID to its position on the ActiveLanes word in the GBT.header for given RU type
+  uint8_t cableHW2Pos(uint8_t ruType, uint8_t hwid) const { return mCableHW2Pos[ruType][hwid]; }
+
+  ///< convert HW cable ID to SW ID for given RU type (see ChipOnRUInfo.cableSW explanation)
   uint8_t cableHW2SW(uint8_t ruType, uint8_t hwid) const { return mCableHW2SW[ruType][hwid]; }
 
   ///< get number of chips served by single cable on given RU type
@@ -278,6 +285,7 @@ class ChipMappingITS
   int mChipInfoEntrySB[NSubB] = {0};
 
   std::vector<uint8_t> mCableHW2SW[NSubB];       ///< table of cables HW to SW conversion for each RU type
+  std::vector<uint8_t> mCableHW2Pos[NSubB];      ///< table of cables positions in the ActiveLanes mask for each RU type
   std::vector<uint8_t> mCableHWFirstChip[NSubB]; ///< 1st chip of module (relative to the 1st chip of the stave) served by each cable
 
   ClassDefNV(ChipMappingITS, 1);

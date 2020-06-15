@@ -12,9 +12,14 @@ o2_add_library(FITWorkflow
                SOURCES src/RecoWorkflow.cxx src/FT0DigitReaderSpec.cxx
                        src/FT0ReconstructorSpec.cxx src/FT0RecPointWriterSpec.cxx
                        src/FT0RecPointReaderSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::FT0Reconstruction O2::Framework)
+               PUBLIC_LINK_LIBRARIES O2::FT0Reconstruction O2::Framework O2::DPLUtils)
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME fit
                   SOURCES src/fit-reco-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::FITWorkflow)
+                  PUBLIC_LINK_LIBRARIES O2::FITWorkflow
+		  TARGETVARNAME fitrecoexe)
+
+if(NOT APPLE)
+ set_property(TARGET ${fitrecoexe} PROPERTY LINK_WHAT_YOU_USE ON)
+endif()    		

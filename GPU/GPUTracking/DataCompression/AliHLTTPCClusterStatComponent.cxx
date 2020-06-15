@@ -315,10 +315,8 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
   const AliHLTUInt8_t* pCurrent = reinterpret_cast<const AliHLTUInt8_t*>(tracks->fTracklets);
   if (fCompressionStudy) {
     GPUTPCGMPropagator prop;
-    const float kRho = 1.025e-3;  // 0.9e-3;
-    const float kRadLen = 29.532; // 28.94;
     prop.SetMaxSinPhi(.999);
-    prop.SetMaterial(kRadLen, kRho);
+    prop.SetMaterialTPC();
     GPUTPCGMPolynomialField field;
     int err = GPUTPCGMPolynomialFieldManager::GetPolynomialField(field);
     if (err != 0) {
@@ -468,7 +466,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
 
         if (ip != 0) {
           int rowType = padrow < 64 ? 0 : (padrow < 128 ? 2 : 1);
-          prop.Update(xyz[1], xyz[2], rowType, *mSliceParam, 0, false, false);
+          prop.Update(xyz[1], xyz[2], rowType, *mSliceParam, 0, 0, nullptr, false);
         }
       }
       if (hitsUsed) {

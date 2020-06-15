@@ -16,6 +16,5 @@
 
 //#pragma link C++ class o2::trd::TRDDPLDigitizerTask + ;
 
-
 #endif
 

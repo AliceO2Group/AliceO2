@@ -19,12 +19,13 @@
 #include <TGeoPhysicalNode.h> // for TGeoPhysicalNode, TGeoPNEntry
 #include <TObjArray.h>        // for TObjArray
 #include <TObject.h>          // for TObject
-
+#include <string>
 #include <cassert>
 #include <cstddef> // for NULL
 
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::detectors;
 using namespace o2::base;
@@ -441,15 +442,16 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
 }
 
 //_________________________________
-void GeometryManager::loadGeometry(std::string geomFileName, std::string geomName)
+void GeometryManager::loadGeometry(std::string_view geomFileName)
 {
   ///< load geometry from file
-  LOG(INFO) << "Loading geometry " << geomName << " from " << geomFileName;
-  TFile flGeom(geomFileName.data());
+  std::string fname = o2::base::NameConf::getGeomFileName(geomFileName);
+  LOG(INFO) << "Loading geometry " << o2::base::NameConf::GEOMOBJECTNAME << " from " << fname;
+  TFile flGeom(fname.data());
   if (flGeom.IsZombie()) {
-    LOG(FATAL) << "Failed to open file " << geomFileName;
+    LOG(FATAL) << "Failed to open file " << fname;
   }
-  if (!flGeom.Get(geomName.data())) {
-    LOG(FATAL) << "Did not find geometry named " << geomName;
+  if (!flGeom.Get(std::string(o2::base::NameConf::GEOMOBJECTNAME).c_str())) {
+    LOG(FATAL) << "Did not find geometry named " << o2::base::NameConf::GEOMOBJECTNAME;
   }
 }

@@ -11,8 +11,8 @@
 #ifndef ALICEO2_QEDGENINFO_H
 #define ALICEO2_QEDGENINFO_H
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 //  @file   QEDGenInfo.h
 //  @author ruben.shahoyan@cern.ch

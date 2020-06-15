@@ -4,6 +4,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TAxis.h>
 #include <TCanvas.h>
+#include <TSystem.h>
 #include <TFile.h>
 #include <TH1F.h>
 #include <TH2F.h>
@@ -11,54 +12,98 @@
 #include <TString.h>
 #include <TStyle.h>
 #include <TTree.h>
+#include <TStopwatch.h>
 #include <fstream>
 #include <string>
 
 #include "MathUtils/Utils.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/BuildTopologyDictionary.h"
-#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ClusterTopology.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "MathUtils/Cartesian3D.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include <unordered_map>
 
 #endif
 
-void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root")
+void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "")
 {
   using namespace o2::base;
   using namespace o2::its;
 
   using o2::itsmft::BuildTopologyDictionary;
-  using o2::itsmft::Cluster;
   using o2::itsmft::ClusterTopology;
+  using o2::itsmft::CompClusterExt;
   using o2::itsmft::Hit;
+  using ROFRec = o2::itsmft::ROFRecord;
+  using MC2ROF = o2::itsmft::MC2ROFRecord;
+  using HitVec = std::vector<Hit>;
+  using MC2HITS_map = std::unordered_map<uint64_t, int>; // maps (track_ID<<16 + chip_ID) to entry in the hit vector
+
+  std::vector<HitVec*> hitVecPool;
+  std::vector<MC2HITS_map> mc2hitVec;
+
+  const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
+
+  TStopwatch sw;
+  sw.Start();
+
+  std::ofstream output_check("check_topologies.txt");
 
   // Geometry
-  o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms
 
   // Hits
-  TFile* file0 = TFile::Open(hitfile.data());
-  TTree* hitTree = (TTree*)gFile->Get("o2sim");
+  TFile* fileH = nullptr;
+  TTree* hitTree = nullptr;
   std::vector<Hit>* hitArray = nullptr;
-  hitTree->SetBranchAddress("ITSHit", &hitArray);
+
+  if (!hitfile.empty() && !gSystem->AccessPathName(hitfile.c_str())) {
+    fileH = TFile::Open(hitfile.data());
+    hitTree = (TTree*)fileH->Get("o2sim");
+    hitTree->SetBranchAddress("ITSHit", &hitArray);
+    mc2hitVec.resize(hitTree->GetEntries());
+    hitVecPool.resize(hitTree->GetEntries(), nullptr);
+  }
 
   // Clusters
-  TFile* file1 = TFile::Open(clusfile.data());
-  TTree* clusTree = (TTree*)gFile->Get("o2sim");
-  std::vector<Cluster>* clusArr = nullptr;
-  clusTree->SetBranchAddress("ITSCluster", &clusArr);
+  TFile* FileCl = TFile::Open(clusfile.data());
+  TTree* clusTree = (TTree*)FileCl->Get("o2sim");
+  std::vector<CompClusterExt>* clusArr = nullptr;
+  clusTree->SetBranchAddress("ITSClusterComp", &clusArr);
+  std::vector<unsigned char>* patternsPtr = nullptr;
+  auto pattBranch = clusTree->GetBranch("ITSClusterPatt");
+  if (pattBranch) {
+    pattBranch->SetAddress(&patternsPtr);
+  }
+
+  // ROFrecords
+  std::vector<ROFRec> rofRecVec, *rofRecVecP = &rofRecVec;
+  clusTree->SetBranchAddress("ITSClustersROF", &rofRecVecP);
+
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
-  clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
+  std::vector<MC2ROF> mc2rofVec, *mc2rofVecP = &mc2rofVec;
+  if (hitTree && clusTree->GetBranch("ITSClusterMCTruth")) {
+    clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
+    clusTree->SetBranchAddress("ITSClustersMC2ROF", &mc2rofVecP);
+  }
+  clusTree->GetEntry(0);
 
   Int_t nevCl = clusTree->GetEntries(); // clusters in cont. readout may be grouped as few events per entry
-  Int_t nevH = hitTree->GetEntries();   // hits are stored as one event per entry
+  Int_t nevH = 0;                       // hits are stored as one event per entry
+  if (hitTree) {
+    nevH = hitTree->GetEntries();
+  }
   int ievC = 0, ievH = 0;
   int lastReadHitEv = -1;
 
@@ -69,115 +114,145 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root", std::string hitfi
 
   for (ievC = 0; ievC < nevCl; ievC++) {
     clusTree->GetEvent(ievC);
-    Int_t nc = clusArr->size();
-    printf("processing cluster event %d\n", ievC);
 
-    while (nc--) {
-      // cluster is in tracking coordinates always
-      Cluster& c = (*clusArr)[nc];
-      Int_t chipID = c.getSensorID();
-      const auto locC = c.getXYZLoc(*gman);    // convert from tracking to local frame
-      const auto gloC = c.getXYZGloRot(*gman); // convert from tracking to global frame
-      auto lab = (clusLabArr->getLabels(nc))[0];
+    int nROFRec = (int)rofRecVec.size();
+    std::vector<int> mcEvMin(nROFRec, hitTree ? hitTree->GetEntries() : 0), mcEvMax(nROFRec, -1);
 
-      int rowSpan = c.getPatternRowSpan();
-      int columnSpan = c.getPatternColSpan();
-      int nBytes = (rowSpan * columnSpan) >> 3;
-      if (((rowSpan * columnSpan) % 8) != 0)
-        nBytes++;
-      unsigned char patt[Cluster::kMaxPatternBytes];
-      c.getPattern(&patt[0], nBytes);
-      ClusterTopology topology(rowSpan, columnSpan, patt);
-
-      float dx = 0, dz = 0;
-      int trID = lab.getTrackID();
-      int ievH = lab.getEventID();
-      Point3D<float> locH, locHsta;
-      if (lab.isValid()) { // is this cluster from hit or noise ?
-        Hit* p = nullptr;
-        if (lastReadHitEv != ievH) {
-          hitTree->GetEvent(ievH);
-          lastReadHitEv = ievH;
+    if (clusLabArr) { // >> build min and max MC events used by each ROF
+      for (int imc = mc2rofVec.size(); imc--;) {
+        const auto& mc2rof = mc2rofVec[imc];
+        if (mc2rof.rofRecordID < 0) {
+          continue; // this MC event did not contribute to any ROF
         }
-        for (auto& ptmp : *hitArray) {
-          if (ptmp.GetDetectorID() != chipID)
-            continue;
-          if (ptmp.GetTrackID() != trID)
-            continue;
-          p = &ptmp;
-          break;
+        for (int irfd = mc2rof.maxROF - mc2rof.minROF + 1; irfd--;) {
+          int irof = mc2rof.rofRecordID + irfd;
+          if (mcEvMin[irof] > imc) {
+            mcEvMin[irof] = imc;
+          }
+          if (mcEvMax[irof] < imc) {
+            mcEvMax[irof] = imc;
+          }
         }
-        if (!p) {
-          printf("did not find hit (scanned HitEvs %d %d) for cluster of tr%d on chip %d\n", ievH, nevH, trID, chipID);
-          locH.SetXYZ(0.f, 0.f, 0.f);
-        } else {
-          // mean local position of the hit
-          locH = gman->getMatrixL2G(chipID) ^ (p->GetPos()); // inverse conversion from global to local
-          locHsta = gman->getMatrixL2G(chipID) ^ (p->GetPosStart());
-          locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
-          // std::cout << "chip "<< p->GetDetectorID() << "  PposGlo " << p->GetPos() << std::endl;
-          // std::cout << "chip "<< c->getSensorID() << "  PposLoc " << locH << std::endl;
-          dx = locH.X() - locC.X();
-          dz = locH.Z() - locC.Z();
-        }
-        signalDictionary.accountTopology(topology, dx, dz);
-      } else {
-        noiseDictionary.accountTopology(topology, dx, dz);
       }
-      completeDictionary.accountTopology(topology, dx, dz);
-    }
-  }
+    } // << build min and max MC events used by each ROF
+
+    auto pattIdx = patternsPtr->cbegin();
+
+    for (int irof = 0; irof < nROFRec; irof++) {
+      const auto& rofRec = rofRecVec[irof];
+      rofRec.print();
+      if (clusLabArr) { // >> read and map MC events contributing to this ROF
+        for (int im = mcEvMin[irof]; im <= mcEvMax[irof]; im++) {
+          if (!hitVecPool[im]) {
+            hitTree->SetBranchAddress("ITSHit", &hitVecPool[im]);
+            hitTree->GetEntry(im);
+            auto& mc2hit = mc2hitVec[im];
+            const auto* hitArray = hitVecPool[im];
+            for (int ih = hitArray->size(); ih--;) {
+              const auto& hit = (*hitArray)[ih];
+              uint64_t key = (uint64_t(hit.GetTrackID()) << 32) + hit.GetDetectorID();
+              mc2hit.emplace(key, ih);
+            }
+          }
+        }
+      } // << cache MC events contributing to this ROF
+
+      for (int icl = 0; icl < rofRec.getNEntries(); icl++) {
+        int clEntry = rofRec.getFirstEntry() + icl; // entry of icl-th cluster of this ROF in the vector of clusters
+        // do we read MC data?
+        const auto& cluster = (*clusArr)[clEntry];
+        ClusterTopology topology;
+        o2::itsmft::ClusterPattern pattern(pattIdx);
+        topology.setPattern(pattern);
+        //output_check << "iEv: " << ievC << " / " << nevCl << " iCl: " << clEntry << " / " <<  clusArr->size() << std::endl;
+        // output_check << topology << std::endl;
+
+        const auto locC = o2::itsmft::TopologyDictionary::getClusterCoordinates(cluster, pattern);
+        float dx = BuildTopologyDictionary::IgnoreVal * 2, dz = BuildTopologyDictionary::IgnoreVal * 2; // to not use unassigned dx,dy
+        if (clusLabArr) {
+          const auto& lab = (clusLabArr->getLabels(clEntry))[0];
+          auto srcID = lab.getSourceID();
+          if (lab.isValid() && srcID != QEDSourceID) { // use MC truth info only for non-QED and non-noise clusters
+            int trID = lab.getTrackID();
+            const auto& mc2hit = mc2hitVec[lab.getEventID()];
+            const auto* hitArray = hitVecPool[lab.getEventID()];
+            Int_t chipID = cluster.getSensorID();
+            uint64_t key = (uint64_t(trID) << 32) + chipID;
+            auto hitEntry = mc2hit.find(key);
+            if (hitEntry != mc2hit.end()) {
+              const auto& hit = (*hitArray)[hitEntry->second];
+              auto locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
+              auto locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
+              locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
+              const auto locC = o2::itsmft::TopologyDictionary::getClusterCoordinates(cluster, pattern);
+              dx = locH.X() - locC.X();
+              dz = locH.Z() - locC.Z();
+            } else {
+              printf("Failed to find MC hit entry for Tr:%d chipID:%d\n", trID, chipID);
+              continue;
+            }
+            signalDictionary.accountTopology(topology, dx, dz);
+          } else {
+            noiseDictionary.accountTopology(topology, dx, dz);
+          }
+        }
+        completeDictionary.accountTopology(topology, dx, dz);
+      } // Loop over clusters of a single ROF
+    }   // loop over ROFs
+  }     // loop over eventually multiple entries (TFs)
+
+  auto dID = o2::detectors::DetID::ITS;
+
   completeDictionary.setThreshold(0.0001);
   completeDictionary.groupRareTopologies();
-  completeDictionary.printDictionaryBinary("complete_dictionary.bin");
-  completeDictionary.printDictionary("complete_dictionary.txt");
-  completeDictionary.saveDictionaryRoot("complete_dictionary.root");
-  noiseDictionary.setThreshold(0.0001);
-  noiseDictionary.groupRareTopologies();
-  noiseDictionary.printDictionaryBinary("noise_dictionary.bin");
-  noiseDictionary.printDictionary("noise_dictionary.txt");
-  noiseDictionary.saveDictionaryRoot("noise_dictionary.root");
-  signalDictionary.setThreshold(0.0001);
-  signalDictionary.groupRareTopologies();
-  signalDictionary.printDictionaryBinary("signal_dictionary.bin");
-  signalDictionary.printDictionary("signal_dictionary.txt");
-  signalDictionary.saveDictionaryRoot("signal_dictionary.root");
+  completeDictionary.printDictionaryBinary(o2::base::NameConf::getDictionaryFileName(dID, "", ".bin"));
+  completeDictionary.printDictionary(o2::base::NameConf::getDictionaryFileName(dID, "", ".txt"));
+  completeDictionary.saveDictionaryRoot(o2::base::NameConf::getDictionaryFileName(dID, "", ".root"));
 
   TFile histogramOutput("histograms.root", "recreate");
   TCanvas* cComplete = new TCanvas("cComplete", "Distribution of all the topologies");
   cComplete->cd();
   cComplete->SetLogy();
-  TH1F* hComplete = (TH1F*)completeDictionary.mHdist.Clone("hComplete");
+  TH1F* hComplete = nullptr;
+  o2::itsmft::TopologyDictionary::getTopologyDistribution(completeDictionary.getDictionary(), hComplete, "hComplete");
   hComplete->SetDirectory(0);
-  hComplete->SetTitle("Topology distribution");
-  hComplete->GetXaxis()->SetTitle("Topology ID");
-  hComplete->SetFillColor(kRed);
-  hComplete->SetFillStyle(3005);
   hComplete->Draw("hist");
   hComplete->Write();
   cComplete->Write();
-  TCanvas* cNoise = new TCanvas("cNoise", "Distribution of noise topologies");
-  cNoise->cd();
-  cNoise->SetLogy();
-  TH1F* hNoise = (TH1F*)noiseDictionary.mHdist.Clone("hNoise");
-  hNoise->SetDirectory(0);
-  hNoise->SetTitle("Topology distribution");
-  hNoise->GetXaxis()->SetTitle("Topology ID");
-  hNoise->SetFillColor(kRed);
-  hNoise->SetFillStyle(3005);
-  hNoise->Draw("hist");
-  hNoise->Write();
-  cNoise->Write();
-  TCanvas* cProper = new TCanvas("cProper", "cProper");
-  cProper->cd();
-  cProper->SetLogy();
-  TH1F* hProper = (TH1F*)signalDictionary.mHdist.Clone("hProper");
-  hProper->SetDirectory(0);
-  hProper->SetTitle("Topology distribution");
-  hProper->GetXaxis()->SetTitle("Topology ID");
-  hProper->SetFillColor(kRed);
-  hProper->SetFillStyle(3005);
-  hProper->Draw("hist");
-  hProper->Write();
-  cProper->Write();
+  TCanvas* cNoise = nullptr;
+  TCanvas* cSignal = nullptr;
+  TH1F* hNoise = nullptr;
+  TH1F* hSignal = nullptr;
+
+  if (clusLabArr) {
+    noiseDictionary.setThreshold(0.0001);
+    noiseDictionary.groupRareTopologies();
+    noiseDictionary.printDictionaryBinary(o2::base::NameConf::getDictionaryFileName(dID, "noise", ".bin"));
+    noiseDictionary.printDictionary(o2::base::NameConf::getDictionaryFileName(dID, "noise", ".txt"));
+    noiseDictionary.saveDictionaryRoot(o2::base::NameConf::getDictionaryFileName(dID, "noise", ".root"));
+    signalDictionary.setThreshold(0.0001);
+    signalDictionary.groupRareTopologies();
+    signalDictionary.printDictionaryBinary(o2::base::NameConf::getDictionaryFileName(dID, "signal", ".bin"));
+    signalDictionary.printDictionary(o2::base::NameConf::getDictionaryFileName(dID, "signal", ".txt"));
+    signalDictionary.saveDictionaryRoot(o2::base::NameConf::getDictionaryFileName(dID, "signal", ".root"));
+    cNoise = new TCanvas("cNoise", "Distribution of noise topologies");
+    cNoise->cd();
+    cNoise->SetLogy();
+    o2::itsmft::TopologyDictionary::getTopologyDistribution(noiseDictionary.getDictionary(), hNoise, "hNoise");
+    hNoise->SetDirectory(0);
+    hNoise->Draw("hist");
+    histogramOutput.cd();
+    hNoise->Write();
+    cNoise->Write();
+    cSignal = new TCanvas("cSignal", "cSignal");
+    cSignal->cd();
+    cSignal->SetLogy();
+    o2::itsmft::TopologyDictionary::getTopologyDistribution(signalDictionary.getDictionary(), hSignal, "hSignal");
+    hSignal->SetDirectory(0);
+    hSignal->Draw("hist");
+    histogramOutput.cd();
+    hSignal->Write();
+    cSignal->Write();
+  }
+  sw.Print();
 }

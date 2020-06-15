@@ -19,6 +19,12 @@
 #pragma link C++ class o2::trd::HitType + ;
 #pragma link C++ class o2::trd::TRsim + ;
 #pragma link C++ class o2::trd::Digitizer + ;
+#pragma link C++ class o2::trd::TrapConfigHandler + ;
+#pragma link C++ class o2::trd::TrapConfig + ;
+#pragma link C++ class o2::trd::TrapConfig::TrapValue + ;
+#pragma link C++ class o2::trd::TrapConfig::TrapDmemWord + ;
+#pragma link C++ class o2::trd::TrapConfig::TrapRegister + ;
+#pragma link C++ class o2::trd::TrapSimulator + ;
 
 #pragma link C++ class o2::trd::TRDSimParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trd::TRDSimParams> + ;

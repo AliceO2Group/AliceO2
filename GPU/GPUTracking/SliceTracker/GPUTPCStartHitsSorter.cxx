@@ -14,8 +14,11 @@
 #include "GPUTPCStartHitsSorter.h"
 #include "GPUTPCTracker.h"
 
-using namespace GPUCA_NAMESPACE::gpu;
+#include "GPUTPCHit.h"
+#include "GPUCommonMath.h"
+#include "GPUDefMacros.h"
 
+using namespace GPUCA_NAMESPACE::gpu;
 template <>
 GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() s, processorType& GPUrestrict() tracker)
 {
@@ -25,10 +28,10 @@ GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nThreads, int iB
     const int nRows = iBlock == (nBlocks - 1) ? (tmpNRows - (tmpNRows / nBlocks) * (nBlocks - 1)) : (tmpNRows / nBlocks);
     const int nStartRow = (tmpNRows / nBlocks) * iBlock + 1;
     int startOffset2 = 0;
-
+    GPUCA_UNROLL(, U())
     for (int ir = 1; ir < GPUCA_ROW_COUNT - 5; ir++) {
       if (ir < nStartRow) {
-        startOffset2 += tracker.RowStartHitCountOffset()[ir];
+        startOffset2 += tracker.mRowStartHitCountOffset[ir];
       }
     }
     s.mStartOffset = startOffset2;
@@ -38,11 +41,15 @@ GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nThreads, int iB
   GPUbarrier();
 
   int startOffset = s.mStartOffset;
+#ifdef __HIPCC__ // TODO: Fixme
+  for (int ir = -1; ++ir < s.mNRows;) {
+#else
   for (int ir = 0; ir < s.mNRows; ir++) {
-    GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.TrackletStartHits();
-    GPUglobalref() GPUTPCHitId* const GPUrestrict() tmpStartHits = tracker.TrackletTmpStartHits() + (s.mStartRow + ir) * tracker.NMaxRowStartHits();
-    const int tmpLen = tracker.RowStartHitCountOffset()[ir + s.mStartRow]; // Length of hits in row stored by StartHitsFinder
+#endif
+    GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.mTrackletStartHits;
+    GPUglobalref() GPUTPCHitId* const GPUrestrict() tmpStartHits = tracker.mTrackletTmpStartHits + (s.mStartRow + ir) * tracker.mNMaxRowStartHits;
 
+    const int tmpLen = tracker.mRowStartHitCountOffset[ir + s.mStartRow]; // Length of hits in row stored by StartHitsFinder
     for (int j = iThread; j < tmpLen; j += nThreads) {
       startHits[startOffset + j] = tmpStartHits[j];
     }

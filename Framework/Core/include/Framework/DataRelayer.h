@@ -10,6 +10,7 @@
 #ifndef FRAMEWORK_DATARELAYER_H
 #define FRAMEWORK_DATARELAYER_H
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/InputRoute.h"
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/ForwardRoute.h"
@@ -71,7 +72,7 @@ class DataRelayer
                     std::unique_ptr<FairMQMessage>&& payload);
 
   /// @returns the actions ready to be performed.
-  std::vector<RecordAction> getReadyToProcess();
+  void getReadyToProcess(std::vector<RecordAction>& completed);
 
   /// Returns an input registry associated to the given timeslice and gives
   /// ownership to the caller. This is because once the inputs are out of the

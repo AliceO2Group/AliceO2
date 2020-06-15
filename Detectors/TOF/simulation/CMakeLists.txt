@@ -18,3 +18,9 @@ o2_target_root_dictionary(TOFSimulation
                           HEADERS include/TOFSimulation/Detector.h
                                   include/TOFSimulation/Digitizer.h
                                   include/TOFSimulation/DigitizerTask.h)
+
+o2_add_executable(digi2raw
+                  COMPONENT_NAME tof
+                  SOURCES src/digi2raw.cxx
+                  PUBLIC_LINK_LIBRARIES O2::CommonUtils
+                                        Boost::program_options)

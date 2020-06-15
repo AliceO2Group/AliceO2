@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TOFSimulation/Digitizer.h"
+#include "DetectorsBase/GeometryManager.h"
 
 #include "TCanvas.h"
 #include "TFile.h"
@@ -82,10 +83,12 @@ void Digitizer::init()
 
 //______________________________________________________________________
 
-void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits)
+int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* digits)
 {
   // hits array of TOF hits for a given simulated event
   // digits passed from external to be filled, in continuous readout mode we will push it on mDigitsPerTimeFrame vector of vectors of digits
+
+  //  printf("process event time = %f with %ld hits\n",mEventTime,hits->size());
 
   Int_t readoutwindow = Int_t((mEventTime - Geo::BC_TIME * (Geo::OVERLAP_IN_BC + 2)) * Geo::READOUTWINDOW_INV); // event time shifted by 2 BC as safe margin before to change current readout window to account for decalibration
 
@@ -108,6 +111,8 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
     digits->clear();
     fillOutputContainer(*digits);
   }
+
+  return 0;
 }
 
 //______________________________________________________________________
@@ -306,7 +311,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
 
     if (isnext < 0) {
       LOG(ERROR) << "error: isnext =" << isnext << "(current window = " << mReadoutWindowCurrent << ")"
-                 << "\n";
+                 << " nbc = " << nbc << " -- event time = " << mEventTime << "\n";
 
       return;
     }
@@ -335,7 +340,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
       iscurrent = false;
   }
 
-  //  printf("add TOF digit c=%i n=%i\n",iscurrent,isnext);
+  //printf("add TOF digit c=%i n=%i\n",iscurrent,isnext);
 
   std::vector<Strip>* strips;
   o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer;
@@ -356,10 +361,13 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
     fillDigitsInStrip(strips, mcTruthContainer, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
 
   if (isIfOverlap > -1 && isIfOverlap < MAXWINDOWS) { // fill also a second readout window because of the overlap
-    if (!isIfOverlap)
+    if (!isIfOverlap) {
       strips = mStripsCurrent;
-    else
+      mcTruthContainer = mMCTruthContainerCurrent;
+    } else {
       strips = mStripsNext[isIfOverlap - 1];
+      mcTruthContainer = mMCTruthContainerNext[isIfOverlap - 1];
+    }
 
     int eventcounter = mReadoutWindowCurrent + isIfOverlap;
     int hittimeTDC = (nbc - eventcounter * Geo::BC_IN_WINDOW) * 1024 + tdc; // time in TDC bin within the TOF WINDOW
@@ -490,7 +498,6 @@ Float_t Digitizer::getEffZ(Float_t z)
 
 //______________________________________________________________________
 Float_t Digitizer::getFractionOfCharge(Float_t x, Float_t z) { return 1; }
-
 //______________________________________________________________________
 void Digitizer::initParameters()
 {
@@ -558,8 +565,7 @@ void Digitizer::test(const char* geo)
 {
   Int_t nhit = 1000000;
 
-  TFile* fgeo = new TFile(geo);
-  fgeo->Get("FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(geo);
 
   o2::tof::HitType* hit = new o2::tof::HitType();
 
@@ -726,8 +732,7 @@ void Digitizer::test(const char* geo)
 //______________________________________________________________________
 void Digitizer::testFromHits(const char* geo, const char* hits)
 {
-  TFile* fgeo = new TFile(geo);
-  fgeo->Get("FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(geo);
 
   TFile* fHit = new TFile(hits);
   fHit->ls();
@@ -783,10 +788,12 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
   // filling the digit container doing a loop on all strips
   for (auto& strip : *mStripsCurrent) {
     strip.fillOutputContainer(digits);
+    if (strip.getNumberOfDigits())
+      LOG(INFO) << "strip size = " << strip.getNumberOfDigits() << " - digit size = " << digits.size() << "\n";
   }
 
   if (mContinuous) {
-    //    printf("%i) # TOF digits = %lu (%p)\n", mIcurrentReadoutWindow, digits.size(), mStripsCurrent);
+    //printf("%i) # TOF digits = %lu (%p)\n", mIcurrentReadoutWindow, digits.size(), mStripsCurrent);
     int first = mDigitsPerTimeFrame.size();
     int ne = digits.size();
     ReadoutWindowData info(first, ne);

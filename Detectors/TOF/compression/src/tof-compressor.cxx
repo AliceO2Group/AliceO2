@@ -13,13 +13,10 @@
 /// @since  2019-12-18
 /// @brief  Basic DPL workflow for TOF raw data compression
 
-#include "TOFCompression/RawReaderTask.h"
 #include "TOFCompression/CompressorTask.h"
-#include "TOFCompression/CompressedWriterTask.h"
-#include "TOFCompression/CompressedInspectorTask.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
-#include "Framework/runDataProcessing.h" // the main driver
+#include "Framework/ConcreteDataMatcher.h"
 #include "FairLogger.h"
 
 using namespace o2::framework;
@@ -28,23 +25,79 @@ using namespace o2::framework;
 // including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  //  workflowOptions.push_back(ConfigParamSpec{"verbose", o2::framework::VariantType::Bool, false, {"Verbose flag"}});
+  auto config = ConfigParamSpec{"tof-compressor-config", VariantType::String, "x:TOF/RAWDATA", {"TOF compressor workflow configuration"}};
+  auto outputDesc = ConfigParamSpec{"tof-compressor-output-desc", VariantType::String, "CRAWDATA", {"Output specs description string"}};
+  auto rdhVersion = ConfigParamSpec{"tof-compressor-rdh-version", VariantType::Int, 4, {"Raw Data Header version"}};
+  auto verbose = ConfigParamSpec{"tof-compressor-verbose", VariantType::Bool, false, {"Enable verbose compressor"}};
+
+  workflowOptions.push_back(config);
+  workflowOptions.push_back(outputDesc);
+  workflowOptions.push_back(rdhVersion);
+  workflowOptions.push_back(verbose);
 }
+
+#include "Framework/runDataProcessing.h" // the main driver
 
 /// This function hooks up the the workflow specifications into the DPL driver.
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  LOG(INFO) << "TOF COMPRESSION WORKFLOW configuration";
 
-  //  auto verbose = cfgc.options().get<bool>("verbose");
+  auto config = cfgc.options().get<std::string>("tof-compressor-config");
+  //  auto outputDesc = cfgc.options().get<std::string>("output-desc");
+  auto rdhVersion = cfgc.options().get<int>("tof-compressor-rdh-version");
+  auto verbose = cfgc.options().get<bool>("tof-compressor-verbose");
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TOF", "CRAWDATA"}));
 
-  // add devices (Spec) to the workflow
-  WorkflowSpec specs;
-  //  specs.emplace_back(o2::tof::RawReaderTask::getSpec());
-  specs.emplace_back(o2::tof::CompressorTask::getSpec());
-  specs.emplace_back(o2::tof::CompressedWriterTask::getSpec());
-  specs.emplace_back(o2::tof::CompressedInspectorTask::getSpec());
+  AlgorithmSpec algoSpec;
+  if (rdhVersion == 4) {
+    if (verbose) {
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV4, true>>()};
+    } else {
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV4, false>>()};
+    }
+  } else if (rdhVersion == 6) {
+    if (verbose) {
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, true>>()};
+    } else {
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, false>>()};
+    }
+  }
 
-  LOG(INFO) << "Number of active devices = " << specs.size();
-  return std::move(specs);
+  WorkflowSpec workflow;
+
+  /**
+     We define at run time the number of devices to be attached
+     to the workflow and the input matching string of the device.
+     This is is done with a configuration string like the following
+     one, where the input matching for each device is provide in
+     comma-separated strings. For instance
+     
+     A:TOF/RAWDATA/768;B:TOF/RAWDATA/1024,C:TOF/RAWDATA/1280;D:TOF/RAWDATA/1536
+     
+     will lead to a workflow with 2 devices which will input match
+     
+     tof-compressor-0 --> A:TOF/RAWDATA/768;B:TOF/RAWDATA/1024
+     tof-compressor-1 --> C:TOF/RAWDATA/1280;D:TOF/RAWDATA/1536
+  **/
+
+  std::stringstream ssconfig(config);
+  std::string iconfig;
+  int idevice = 0;
+
+  while (getline(ssconfig, iconfig, ',')) {
+    workflow.emplace_back(DataProcessorSpec{
+      std::string("tof-compressor-") + std::to_string(idevice),
+      select(iconfig.c_str()),
+      outputs,
+      algoSpec,
+      Options{
+        {"tof-compressor-conet-mode", VariantType::Bool, false, {"Decoder CONET flag"}},
+        {"tof-compressor-decoder-verbose", VariantType::Bool, false, {"Decoder verbose flag"}},
+        {"tof-compressor-encoder-verbose", VariantType::Bool, false, {"Encoder verbose flag"}},
+        {"tof-compressor-checker-verbose", VariantType::Bool, false, {"Checker verbose flag"}}}});
+    idevice++;
+  }
+
+  return workflow;
 }

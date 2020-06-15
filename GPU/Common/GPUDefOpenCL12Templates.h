@@ -34,6 +34,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_CLASS_PRE_TEMPLATE(t) template<LocalOrGlobal LG, t>
   #define MEM_LG(type) type<LG>
   #define MEM_CLASS_PRE2() template<LocalOrGlobal LG2>
+  #define MEM_CLASS_PRE2_TEMPLATE(t) template<LocalOrGlobal LG2, t>
   #define MEM_LG2(type) type<LG2>
   #define MEM_CLASS_PRE12() template<LocalOrGlobal LG> template<LocalOrGlobal LG2>
   #define MEM_CLASS_PRE23() template<LocalOrGlobal LG2, LocalOrGlobal LG3>
@@ -59,6 +60,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_CLASS_PRE_TEMPLATE(t) template<t>
   #define MEM_LG(type) type
   #define MEM_CLASS_PRE2()
+  #define MEM_CLASS_PRE2_TEMPLATE(t) template<t>
   #define MEM_LG2(type) type
   #define MEM_CLASS_PRE12()
   #define MEM_CLASS_PRE23()
@@ -80,10 +82,10 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_TYPE4(type) type
 #endif
 
-#if (defined(__CUDACC__) && defined(GPUCA_CUDA_NO_CONSTANT_MEMORY)) || (defined(__HIPCC__) && defined(GPUCA_HIP_NO_CONSTANT_MEMORY)) || (defined(__OPENCL__) && !defined(__OPENCLCPP__) && defined(GPUCA_OPENCL_NO_CONSTANT_MEMORY)) || (defined(__OPENCLCPP__) && defined(GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY))
+#if defined(GPUCA_NO_CONSTANT_MEMORY) || defined(GPUCA_CONSTANT_AS_ARGUMENT)
   #undef MEM_CONSTANT
   #define MEM_CONSTANT(type) MEM_GLOBAL(type)
 #endif
 
 #endif //GPUDEFOPENCL12TEMPLATES_H
-// clang-format on
+  // clang-format on

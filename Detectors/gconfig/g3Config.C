@@ -25,10 +25,10 @@ void Config()
   TGeant3* geant3 = nullptr;
   if (strncmp(gModel->Data(), "TGeo", 4) == 0) {
     geant3 = new TGeant3TGeo("C++ Interface to Geant3");
-    cout << "-I- G3Config: Geant3 with TGeo has been created." << endl;
+    std::cout << "-I- G3Config: Geant3 with TGeo has been created." << std::endl;
   } else {
     geant3 = new TGeant3("C++ Interface to Geant3");
-    cout << "-I- G3Config: Geant3 native has been created." << endl;
+    std::cout << "-I- G3Config: Geant3 native has been created." << std::endl;
   }
   stackSetup(geant3, run);
 

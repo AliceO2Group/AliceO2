@@ -17,7 +17,6 @@
 
 #include <array>
 #include <sstream>
-#include "MIDRaw/CrateParameters.h"
 
 namespace o2
 {
@@ -28,7 +27,7 @@ bool CRUBareDataChecker::checkSameEventWord(const std::vector<LocalBoardRO>& boa
 {
   /// Checks the event word
   for (auto loc : boards) {
-    if (loc.eventWord != refEventWord) {
+    if (loc.triggerWord != refEventWord) {
       return false;
     }
   }
@@ -64,15 +63,15 @@ bool CRUBareDataChecker::checkConsistency(const LocalBoardRO& board) const
 {
   /// Checks that the event information is consistent
 
-  bool isSoxOrReset = board.eventWord & 0xc2;
-  bool isCalib = crateparams::isCalibration(board.eventWord);
-  bool isPhysOrHC = board.eventWord & 0x5;
+  bool isSoxOrReset = board.triggerWord & 0xc2;
+  bool isCalib = raw::isCalibration(board.triggerWord);
+  bool isPhysOrHC = board.triggerWord & 0x5;
 
   if (isPhysOrHC) {
     if (isCalib) {
       return false;
     }
-    if (crateparams::isLoc(board.statusWord)) {
+    if (raw::isLoc(board.statusWord)) {
       if (board.firedChambers) {
         return false;
       }
@@ -110,14 +109,14 @@ bool CRUBareDataChecker::checkBC(const std::vector<LocalBoardRO>& regs, const st
 
   uint8_t refEventWord = 0;
   if (!regs.empty()) {
-    refEventWord = regs.front().eventWord;
+    refEventWord = regs.front().triggerWord;
   } else if (!locs.empty()) {
     // FIXME: in some files, a series of 0xeeee wrongly added before the new RDH
     // This is a known problem, so we do not check further in this case
-    // if (locs.front().statusWord == 0xee && locs.front().eventWord == 0xee && locs.front().firedChambers == 0xe) {
+    // if (locs.front().statusWord == 0xee && locs.front().triggerWord == 0xee && locs.front().firedChambers == 0xe) {
     //   return true;
     // }
-    refEventWord = locs.front().eventWord;
+    refEventWord = locs.front().triggerWord;
   }
 
   if (!checkSameEventWord(regs, refEventWord) || !checkSameEventWord(locs, refEventWord)) {
@@ -161,7 +160,7 @@ bool CRUBareDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl:
     for (auto& idx : item.second) {
       // In principle all of these ROF records have the same timestamp
       for (size_t iloc = rofRecords[idx].firstEntry; iloc < rofRecords[idx].firstEntry + rofRecords[idx].nEntries; ++iloc) {
-        if (crateparams::isLoc(localBoards[iloc].statusWord)) {
+        if (raw::isLoc(localBoards[iloc].statusWord)) {
           // This is a local card
           locs.push_back(localBoards[iloc]);
         } else {

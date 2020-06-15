@@ -13,8 +13,8 @@
 #ifndef ALICEO2_MATCHITSTPC_PARAMS_H
 #define ALICEO2_MATCHITSTPC_PARAMS_H
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 #include "ReconstructionDataFormats/Track.h"
 
 namespace o2

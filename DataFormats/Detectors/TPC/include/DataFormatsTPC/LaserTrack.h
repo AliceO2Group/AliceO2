@@ -12,6 +12,7 @@
 #define ALICEO2_TPC_LASERTRACK
 
 #include <string>
+#include <gsl/span>
 
 #include "ReconstructionDataFormats/Track.h"
 
@@ -79,6 +80,18 @@ class LaserTrackContainer
   /// get container
   /// \return array of laser tracks
   const auto& getLaserTracks() const { return mLaserTracks; }
+
+  /// dump tracks to a tree for simple visualization
+  static void dumpToTree(const std::string_view fileName);
+
+  /// get span with tracks in one bundle
+  gsl::span<const LaserTrack> getTracksInBundle(int side, int rod, int bundle)
+  {
+    const int startID = LaserTrack::NumberOfTracks / 2 * side +
+                        LaserTrack::BundlesPerRod * LaserTrack::TracksPerBundle * rod +
+                        LaserTrack::TracksPerBundle * bundle;
+    return gsl::span<const LaserTrack>(&mLaserTracks[startID], LaserTrack::TracksPerBundle);
+  }
 
  private:
   std::array<LaserTrack, LaserTrack::NumberOfTracks> mLaserTracks;

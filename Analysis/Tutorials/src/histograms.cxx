@@ -35,11 +35,17 @@ struct ATask {
 
 struct BTask {
   OutputObj<TH2F> etaphiH{TH2F("etaphi", "etaphi", 100, 0., 2. * M_PI, 102, -2.01, 2.01)};
+  // Create a configurable which can be used inside the process method.
+  Configurable<float> phiCut{"phiCut", 6.29f, "A cut on phi"};
 
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      etaphiH->Fill(track.phi(), track.eta());
+      // FIXME: this is until we have configurables which
+      //        can be used in expressions.
+      if (track.phi() < phiCut) {
+        etaphiH->Fill(track.phi(), track.eta());
+      }
     }
   }
 };
@@ -50,6 +56,7 @@ struct CTask {
   // *reset* to OutputObj label - needed for correct placement in the output file
   OutputObj<TH1F> ptH{TH1F("pt", "pt", 100, -0.01, 10.01)};
   OutputObj<TH1F> trZ{"trZ", OutputObjHandlingPolicy::QAObject};
+  Configurable<float> pTCut{"pTCut", 0.5f, "Lower pT limit"};
 
   void init(InitContext const&)
   {
@@ -63,7 +70,9 @@ struct CTask {
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      ptH->Fill(abs(1.f / track.signed1Pt()));
+      if (track.pt() < pTCut)
+        continue;
+      ptH->Fill(track.pt());
       trZ->Fill(track.z());
     }
   }

@@ -11,6 +11,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsBase/GeometryManager.h"
 
 #include "ITSBase/GeometryTGeo.h"
 #include "ITStracking/IOUtils.h"
@@ -25,25 +26,25 @@
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 using namespace o2::gpu;
 
-int run_primary_vertexer_ITS(const float phiCut = -1.f,
-                             const GPUDataTypes::DeviceType dtype = GPUDataTypes::DeviceType::CPU,
+int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes::DeviceType::CPU,
                              const bool useMCcheck = false,
                              const int inspEvt = -1,
                              const int numEvents = 1,
+                             const float phiCut = -1.f,
+                             const float tanlambdaCut = -1.f,
                              const std::string inputClustersITS = "o2clus_its.root",
                              const std::string inputGRP = "o2sim_grp.root",
-                             const std::string simfilename = "o2sim.root",
-                             const std::string paramfilename = "O2geometry.root",
+                             const std::string simfilename = "o2sim_Kine.root",
                              const std::string path = "./")
 {
   std::string gpuName;
   switch (dtype) {
     case GPUDataTypes::DeviceType::CUDA:
-      R__LOAD_LIBRARY(O2ITStrackingCUDA)
+      // R__LOAD_LIBRARY(O2ITStrackingCUDA)
       gpuName = "vertexer_cuda";
       break;
     case GPUDataTypes::DeviceType::HIP:
-      R__LOAD_LIBRARY(O2ITStrackingHIP)
+      // R__LOAD_LIBRARY(O2ITStrackingHIP)
       gpuName = "vertexer_hip";
       break;
     default:
@@ -55,13 +56,7 @@ int run_primary_vertexer_ITS(const float phiCut = -1.f,
   auto* chainITS = rec->AddChain<GPUChainITS>();
   rec->Init();
   o2::its::Vertexer vertexer(chainITS->GetITSVertexerTraits());
-
-  // #ifdef _ALLOW_DEBUG_TREES_ITS_
-  //   std::unique_ptr<o2::its::VertexerTraits> traitsptr{useGPU ? new o2::its::VertexerTraitsGPU{"dbg_ITSVertexerGPU.root"} : new o2::its::VertexerTraits{"dbg_ITSVertexerCPU.root"}};
-  // #else
-  //   std::unique_ptr<o2::its::VertexerTraits> traitsptr{useGPU ? new o2::its::VertexerTraitsGPU : new o2::its::VertexerTraits};
-  // #endif
-  //   o2::its::Vertexer vertexer(traitsptr.get());
+  // o2::its::Vertexer vertexer(new o2::its::VertexerTraits());
 
   std::string mcCheck = useMCcheck ? "_data_MCCheck" : "_data";
   std::string outfile = gpuName + mcCheck + ".root";
@@ -73,11 +68,9 @@ int run_primary_vertexer_ITS(const float phiCut = -1.f,
   TChain itsClusters("o2sim");
   itsClusters.AddFile((path + inputClustersITS).data());
 
-  // Setup Runtime DB
-  TFile paramFile((path + paramfilename).data());
-  paramFile.Get("FAIRGeom");
-  auto gman = o2::its::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
+  o2::base::GeometryManager::loadGeometry(path);
+  o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
+  geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms
 
   // Get event header
@@ -89,21 +82,24 @@ int run_primary_vertexer_ITS(const float phiCut = -1.f,
   }
   mcHeaderTree.SetBranchAddress("MCEventHeader.", &mcHeader);
 
-  // get clusters
+  if (!itsClusters.GetBranch("ITSCluster")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClusters in the input tree";
+  }
   std::vector<o2::itsmft::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
-  TChain itsClustersROF("ITSClustersROF");
-  itsClustersROF.AddFile((path + inputClustersITS).data());
-
-  if (!itsClustersROF.GetBranch("ITSClustersROF")) {
+  if (!itsClusters.GetBranch("ITSClustersROF")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
   std::vector<o2::itsmft::ROFRecord>* rofs = nullptr;
-  itsClustersROF.SetBranchAddress("ITSClustersROF", &rofs);
-  itsClustersROF.GetEntry(0);
+  itsClusters.SetBranchAddress("ITSClustersROF", &rofs);
+  itsClusters.GetEntry(0);
+  itsClusters.GetEntry(0);
 
   // get labels
+  if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree";
+  }
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
   itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
 
@@ -123,7 +119,8 @@ int run_primary_vertexer_ITS(const float phiCut = -1.f,
 
   // Settings
   o2::its::VertexingParameters parameters;
-  parameters.phiCut = phiCut > 0 ? phiCut : 0.05f;
+  parameters.phiCut = phiCut > 0 ? phiCut : 0.005f;
+  parameters.tanLambdaCut = tanlambdaCut > 0 ? tanlambdaCut : 0.002f;
   // e.g. parameters.clusterContributorsCut = 5;
   // \Settings
 
@@ -146,8 +143,8 @@ int run_primary_vertexer_ITS(const float phiCut = -1.f,
     vertexer.setDebugTrackletSelection();
     // vertexer.setDebugLines(); // Handle with care, takes very long
     vertexer.setDebugCombinatorics();
-    // vertexer.setDebugSummaryLines();
-    // vertexer.setDebugCentroidsHistograms();
+    vertexer.setDebugSummaryLines();
+    vertexer.setDebugCentroidsHistograms();
     // \debug
 
     total[0] = vertexer.evaluateTask(&o2::its::Vertexer::initialiseVertexer, "Vertexer initialisation", std::cout, eventptr);

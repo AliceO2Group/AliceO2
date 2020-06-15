@@ -15,6 +15,9 @@ if(GLFW_FOUND)
 else()
   set(GUI_SOURCES src/FrameworkDummyDebugger.cxx)
 endif()
+if (TARGET AliceO2::DebugGUI)
+  set(DEBUGGUI_TARGET AliceO2::DebugGUI)
+endif()
 
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
@@ -30,7 +33,9 @@ o2_add_library(Framework
                        src/CompletionPolicy.cxx
                        src/CompletionPolicyHelpers.cxx
                        src/ComputingResourceHelpers.cxx
+                       src/ConfigContext.cxx
                        src/DispatchPolicy.cxx
+                       src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
                        src/DDSConfigHelpers.cxx
                        src/DataAllocator.cxx
@@ -54,6 +59,7 @@ o2_add_library(Framework
                        src/DataSamplingPolicy.cxx
                        src/DataSamplingReadoutAdapter.cxx
                        src/DataSpecUtils.cxx
+                       src/DeviceConfigInfo.cxx
                        src/DeviceMetricsInfo.cxx
                        src/DeviceSpec.cxx
                        src/DeviceSpecHelpers.cxx
@@ -64,6 +70,7 @@ o2_add_library(Framework
                        src/FairMQDeviceProxy.cxx
                        src/FairMQResizableBuffer.cxx
                        src/FairOptionsRetriever.cxx
+                       src/ConfigurationOptionsRetriever.cxx
                        src/FreePortFinder.cxx
                        src/GraphvizHelpers.cxx
                        src/InputRecord.cxx
@@ -72,6 +79,7 @@ o2_add_library(Framework
                        src/Kernels.cxx
                        src/LifetimeHelpers.cxx
                        src/LocalRootFileService.cxx
+                       src/RootConfigParamHelpers.cxx
                        src/LogParsingHelpers.cxx
                        src/MessageContext.cxx
                        src/Metric2DViewIndex.cxx
@@ -86,6 +94,9 @@ o2_add_library(Framework
                        src/TMessageSerializer.cxx
                        src/TableBuilder.cxx
                        src/TableConsumer.cxx
+                       src/TableTreeHelpers.cxx
+                       src/DataInputDirector.cxx
+                       src/DataOutputDirector.cxx
                        src/Task.cxx
                        src/TextControlService.cxx
                        src/Variant.cxx
@@ -96,13 +107,15 @@ o2_add_library(Framework
                        src/ExternalFairMQDeviceProxy.cxx
                        test/TestClasses.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
-               PUBLIC_LINK_LIBRARIES AliceO2::Common
+               PUBLIC_LINK_LIBRARIES ${DEBUGGUI_TARGET}
+                                     AliceO2::Common
                                      AliceO2::Configuration
                                      AliceO2::InfoLogger
                                      AliceO2::Monitoring
                                      CURL::libcurl
                                      FairMQ::FairMQ
                                      O2::CommonUtils
+                                     O2::MathUtils
                                      O2::FrameworkFoundation
                                      O2::Headers
                                      O2::MemoryResources
@@ -111,7 +124,6 @@ o2_add_library(Framework
                                      arrow::arrow_shared
                                      ms_gsl::ms_gsl
                                      ROOT::ROOTDataFrame
-                                     AliceO2::DebugGUI
                                      O2::FrameworkLogger
                                      Boost::serialization
                                      arrow::gandiva_shared
@@ -128,10 +140,12 @@ foreach(t
         ASoA
         ASoAHelpers
         BoostOptionsRetriever
+        ConfigurationOptionsRetriever
         CallbackRegistry
         ChannelSpecHelpers
         CompletionPolicy
         ComputingResourceHelpers
+        ConfigParamStore
         ConfigParamRegistry
         ContextRegistry
         DataDescriptorMatcher
@@ -141,6 +155,7 @@ foreach(t
         DataSamplingCondition
         DataSamplingHeader
         DataSamplingPolicy
+        DeviceConfigInfo
         DeviceMetricsInfo
         DeviceSpec
         DeviceSpecHelpers
@@ -150,13 +165,18 @@ foreach(t
         FairMQResizableBuffer
         FrameworkDataFlowToDDS
         Graphviz
+        GroupSlicer
         HistogramRegistry
         InfoLogger
         InputRecord
+        InputRecordWalker
+        InputSpan
+        InputSpec
         Kernels
         LogParsingHelpers
         PtrHelpers
         Root2ArrowTable
+        RootConfigParamHelpers
         Services
         StringHelpers
         SuppressionGenerator
@@ -168,7 +188,9 @@ foreach(t
         Variants
         WorkflowHelpers
         WorkflowSerialization
-        TreeToTable)
+        TreeToTable
+        DataOutputDirector
+	DataInputDirector)
 
   # FIXME ? The NAME parameter of o2_add_test is only needed to help the current
   # o2.sh recipe. If the recipe is changed, those params can go away, if needed.
@@ -232,21 +254,27 @@ foreach(b
         TableToTree
         TreeToTable
         )
-  o2_add_test(benchmark_${b} NAME test_Framework_benchmark_${b}
-              SOURCES test/benchmark_${b}.cxx
-              COMPONENT_NAME Framework
-              LABELS framework benchmark
-              PUBLIC_LINK_LIBRARIES O2::Framework benchmark::benchmark)
+  o2_add_executable(benchmark-${b}
+                    SOURCES test/benchmark_${b}.cxx
+                    COMPONENT_NAME Framework
+	            IS_BENCHMARK
+                    PUBLIC_LINK_LIBRARIES O2::Framework benchmark::benchmark)
 endforeach()
 
 # #####################################################@
 
+if (TARGET AliceO2::DebugGUI)
+set (DEBUG_GUI_TESTS_WORKFLOW
+     CustomGUIGL
+     CustomGUISokol
+     SimpleTracksED
+     )
+endif()
+
 foreach(w
         BoostSerializedProcessing
         CallbackService
-        CustomGUIGL
-        CustomGUISokol
-        SimpleTracksED
+        RegionInfoCallbackService
         DanglingInputs
         DanglingOutputs
         DataAllocator
@@ -260,10 +288,12 @@ foreach(w
         SimpleStringProcessing
         SimpleTimer
         SimpleWildcard
+        SimpleWildcard02
         SingleDataSource
         Task
         TimePipelineAndTimer
         ExternalFairMQDeviceWorkflow
+        ${DEBUG_GUI_TESTS_WORKFLOW}
         )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx
@@ -279,6 +309,7 @@ endforeach()
 # part. [WARN] Incoming data is already obsolete, not relaying.
 set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
 
+if (TARGET AliceO2::DebugGUI)
 # TODO: investigate the problem with the two unit tests, maybe setup of the CI
 # environment assertion fired X11: The DISPLAY environment variable is missing
 # glfw-3.2.1/src/window.c:579: glfwGetFramebufferSize: Assertion `window !=
@@ -286,12 +317,7 @@ set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_SimpleTracksED PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUIGL PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUISokol PROPERTY DISABLED TRUE)
-
-# there is a problem in the termination of the FairMQDevice by signals because
-# the pending input polling is aborted and this throws an error
-#    [ERROR] Failed receiving on socket input-proxy.input-proxy[0].pull, reason: Interrupted system call, nbytes = -1
-# this can either be fixed in FairMQ or in the DPL driver
-set_property(TEST test_Framework_test_ExternalFairMQDeviceWorkflow PROPERTY DISABLED TRUE)
+endif()
 
 # TODO: investigate the problem and re-enable
 set_property(TEST test_Framework_test_BoostSerializedProcessing

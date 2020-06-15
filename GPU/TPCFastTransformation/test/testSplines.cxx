@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file testGPUTracking.cxx
-/// \author David Rohr
+/// \file testSplines.cxx
+/// \author Sergey Gorbunov
 
 #define BOOST_TEST_MODULE Test TPC Fast Transformation
 #define BOOST_TEST_MAIN
@@ -27,11 +27,12 @@ namespace gpu
 /// @brief Basic test if we can create the interface
 BOOST_AUTO_TEST_CASE(Spline_test1)
 {
-  o2::gpu::Spline1D s1;
+
+  o2::gpu::Spline1D<float> s1;
   int err1 = s1.test(0);
   BOOST_CHECK_MESSAGE(err1 == 0, "test of GPU/TPCFastTransform/Spline1D failed with the error code " << err1);
 
-  o2::gpu::Spline2D s2;
+  o2::gpu::Spline2D<float, 1> s2;
   int err2 = s2.test(0);
   BOOST_CHECK_MESSAGE(err2 == 0, "test of GPU/TPCFastTransform/Spline2D failed with the error code " << err2);
 }

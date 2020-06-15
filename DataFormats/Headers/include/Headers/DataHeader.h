@@ -467,14 +467,27 @@ struct BaseHeader {
   /// get the next header if any (const version)
   inline const BaseHeader* next() const noexcept
   {
-    return (flagsNextHeader) ? reinterpret_cast<const BaseHeader*>(reinterpret_cast<const o2::byte*>(this) + headerSize) : nullptr;
+    // BaseHeader::get checks that next header starts with the BaseHeader information at the
+    // offset given by the size of the current header.
+    return (flagsNextHeader) ? BaseHeader::get(reinterpret_cast<const o2::byte*>(this) + headerSize) : nullptr;
   }
 
   /// get the next header if any (non-const version)
   inline BaseHeader* next() noexcept
   {
-    return (flagsNextHeader) ? reinterpret_cast<BaseHeader*>(reinterpret_cast<o2::byte*>(this) + headerSize) : nullptr;
+    return (flagsNextHeader) ? BaseHeader::get(reinterpret_cast<o2::byte*>(this) + headerSize) : nullptr;
   }
+
+  /// check if the header matches expected version
+  /// throws runtime error if not matching
+  /// we might change this behavior if we want to support multiple version of a particular header
+  /// but until we have this support we need to be strict to catch a problem early and with
+  /// meaningful error message
+  bool sanityCheck(uint32_t expectedVersion) const;
+
+  /// throw runtime error to report inconsistent header stack when the next-header flag is set
+  /// but no next header is found; implemented only once, no template overloads
+  void throwInconsistentStackError() const;
 };
 
 /// find a header of type HeaderType in a buffer
@@ -487,13 +500,34 @@ auto get(const o2::byte* buffer, size_t /*len*/ = 0)
   using HeaderValueType = typename std::remove_pointer<HeaderType>::type;
 
   const BaseHeader* current = BaseHeader::get(buffer);
-  if (!current)
+  if (!current) {
     return HeaderConstPtrType{nullptr};
-  if (current->description == HeaderValueType::sHeaderType)
-    return reinterpret_cast<HeaderConstPtrType>(current);
-  while ((current = current->next())) {
-    if (current->description == HeaderValueType::sHeaderType)
+  }
+  if (current->description == HeaderValueType::sHeaderType) {
+    // FIXME: We need to think how to handle multiple versions.
+    // For the moment we require the version to exactly match the expected version, which
+    // is part of the header definition. The check function 'sanityCheck' will throw
+    // otherwise, we keep the code related to the exception outside the header file.
+    // Note: Can not check on size because the O2 data model requires variable size headers
+    // to be supported.
+    if (current->sanityCheck(HeaderValueType::sVersion)) {
       return reinterpret_cast<HeaderConstPtrType>(current);
+    }
+  }
+  auto* prev = current;
+  while ((current = current->next())) {
+    prev = current;
+    if (current->description == HeaderValueType::sHeaderType) {
+      if (current->sanityCheck(HeaderValueType::sVersion)) {
+        return reinterpret_cast<HeaderConstPtrType>(current);
+      }
+    }
+  }
+  // if a next header was expected but not found, the header stack is inconsistent
+  // either the flag is wrongly set, or the size of the current header is wrong so
+  // that the BaseHeader information is not found at the expected offset.
+  if (prev->flagsNextHeader) {
+    prev->throwInconsistentStackError();
   }
   return HeaderConstPtrType{nullptr};
 }
@@ -628,9 +662,10 @@ struct DataHeader : public BaseHeader {
   using SplitPayloadIndexType = uint32_t;
   using SplitPayloadPartsType = uint32_t;
   using PayloadSizeType = uint64_t;
+  using TForbitType = uint32_t;
 
   //static data for this header type/version
-  static constexpr uint32_t sVersion{1};
+  static constexpr uint32_t sVersion{2};
   static constexpr o2::header::HeaderType sHeaderType{String2<uint64_t>("DataHead")};
   static constexpr o2::header::SerializationMethod sSerializationMethod{gSerializationMethodNone};
 
@@ -672,6 +707,11 @@ struct DataHeader : public BaseHeader {
   //___NEVER MODIFY THE ABOVE
   //___NEW STUFF GOES BELOW
 
+  ///
+  /// first orbit of time frame as unique identifier within the run
+  ///
+  TForbitType firstTForbit;
+
   //___the functions:
   //__________________________________________________________________________________________________
   constexpr DataHeader()
@@ -682,7 +722,8 @@ struct DataHeader : public BaseHeader {
       payloadSerializationMethod(gSerializationMethodInvalid),
       subSpecification(0),
       splitPayloadIndex(0),
-      payloadSize(0)
+      payloadSize(0),
+      firstTForbit{0}
   {
   }
 
@@ -695,7 +736,8 @@ struct DataHeader : public BaseHeader {
       payloadSerializationMethod(gSerializationMethodInvalid),
       subSpecification(subspec),
       splitPayloadIndex(0),
-      payloadSize(size)
+      payloadSize(size),
+      firstTForbit{0}
   {
   }
 
@@ -708,7 +750,8 @@ struct DataHeader : public BaseHeader {
       payloadSerializationMethod(gSerializationMethodInvalid),
       subSpecification(subspec),
       splitPayloadIndex(partIndex),
-      payloadSize(size)
+      payloadSize(size),
+      firstTForbit{0}
   {
   }
 
@@ -762,8 +805,8 @@ static_assert(sizeof(BaseHeader) == 32,
               "BaseHeader struct must be of size 32");
 static_assert(sizeof(DataOrigin) == 4,
               "DataOrigin struct must be of size 4");
-static_assert(sizeof(DataHeader) == 80,
-              "DataHeader struct must be of size 80");
+static_assert(sizeof(DataHeader) == 88,
+              "DataHeader struct must be of size 88");
 static_assert(gSizeMagicString == sizeof(BaseHeader::magicStringInt),
               "Size mismatch in magic string union");
 static_assert(sizeof(BaseHeader::sMagicString) == sizeof(BaseHeader::magicStringInt),

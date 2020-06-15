@@ -16,9 +16,11 @@ install(FILES CheckClusters_mft.C
               CheckDigits_mft.C
               SetIncludePath.C
               analyzeHits.C
-		      duplicateHits.C
+	      duplicateHits.C
+              migrateSimFiles.C
               analyzeDigitLabels.C
               analyzeOriginHits.C
+              checkGeomOverlaps.C
               build_geometry.C
               checkTOFMatching.C
               compareTopologyDistributions.C
@@ -40,25 +42,16 @@ install(FILES CheckClusters_mft.C
               run_clus_tpc.C
               run_clus_emcal.C
               run_collect_calib_tof.C
-              run_digi.C
               run_digi2raw_its.C
               run_digi2raw_mft.C
-              run_digi_mft.C
-              run_digi_tof.C
               run_digi2raw_tof.C
               run_cmp2digit_tof.C
               compareTOFDigits.C
-              run_match_TPCITS.C
+              compareTOFClusters.C
               run_match_tof.C
               run_primary_vertexer_ITS.C
               run_rawdecoding_its.C
               run_rawdecoding_mft.C
-              run_sim.C
-              run_sim_emcal.C
-              run_sim_mft.C
-              run_sim_pythia8hi.C
-              run_sim_tof.C
-              run_sim_tpc.C
               run_trac_ca_its.C
               run_trac_its.C
               run_trac_mft.C
@@ -117,6 +110,9 @@ o2_add_test_root_macro(duplicateHits.C
 		O2::ZDCSimulation
 		O2::CPVBase)
 
+o2_add_test_root_macro(migrateSimFiles.C
+		PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats)
+
 o2_add_test_root_macro(analyzeOriginHits.C
                        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
                                              O2::DetectorsCommonDataFormats)
@@ -143,7 +139,8 @@ o2_add_test_root_macro(build_geometry.C
 o2_add_test_root_macro(checkTOFMatching.C
                        PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                              O2::ReconstructionDataFormats
-                                             O2::SimulationDataFormat)
+                                             O2::SimulationDataFormat
+                                             O2::DataFormatsTOF)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(compareTopologyDistributions.C
@@ -155,7 +152,7 @@ o2_add_test_root_macro(eventDisplay.C PUBLIC_LINK_LIBRARIES FairRoot::Base)
 
 o2_add_test_root_macro(
   initSimGeomAndField.C
-  PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters O2::Field)
+  PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters O2::Field O2::DetectorsBase)
 
 o2_add_test_root_macro(
         analyzeDigitLabels.C
@@ -205,6 +202,7 @@ endif()
 
 # FIXME: move to subsystem dir + add includes if one wants to compile it...
 # o2_add_test_root_macro( putCondition.C)
+o2_add_test_root_macro(checkGeomOverlaps.C)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(readEMCHits.C
@@ -276,10 +274,6 @@ o2_add_test_root_macro(run_clus_emcal.C
 o2_add_test_root_macro(run_collect_calib_tof.C
                        PUBLIC_LINK_LIBRARIES O2::GlobalTracking)
 
-o2_add_test_root_macro(run_digi.C
-                       PUBLIC_LINK_LIBRARIES FairRoot::Base
-                                             FairLogger::FairLogger)
-
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_digi2raw_its.C
                        PUBLIC_LINK_LIBRARIES O2::ITSMFTReconstruction
@@ -296,17 +290,6 @@ o2_add_test_root_macro(run_digi2raw_mft.C
                                              O2::ITSMFTReconstruction
                        LABELS mft)
 
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(run_digi_mft.C
-                       PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters
-                                             O2::MFTSimulation
-                       LABELS mft)
-
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(run_digi_tof.C
-                       PUBLIC_LINK_LIBRARIES O2::TOFSimulation
-                       LABELS tof)
-
 o2_add_test_root_macro(run_digi2raw_tof.C
                        PUBLIC_LINK_LIBRARIES O2::TOFSimulation
                                              O2::TOFReconstruction
@@ -321,15 +304,9 @@ o2_add_test_root_macro(compareTOFDigits.C
                        PUBLIC_LINK_LIBRARIES O2::TOFBase
                        LABELS tof)
 
-o2_add_test_root_macro(run_match_TPCITS.C
-                       PUBLIC_LINK_LIBRARIES O2::Field
-                                             O2::DataFormatsParameters
-                                             O2::DetectorsBase
-                                             O2::DataFormatsTPC
-                                             O2::TPCReconstruction
-                                             O2::GlobalTracking
-                                             O2::ITSMFTBase
-                       LABELS "its;tpc")
+o2_add_test_root_macro(compareTOFClusters.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF
+                       LABELS tof)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_match_tof.C
@@ -345,6 +322,7 @@ o2_add_test_root_macro(run_primary_vertexer_ITS.C
                                              O2::GPUTracking
                                              O2::SimulationDataFormat
                                              O2::ITSBase O2::ITStracking
+					     O2::DetectorsBase
                        LABELS its COMPILE_ONLY)
 
 # FIXME: move to subsystem dir
@@ -369,44 +347,6 @@ o2_add_test_root_macro(CreateBCPattern.C
 # O2::DataFormatsITSMFT O2::DataFormatsParameters O2::DetectorsBase O2::Field
 # O2::ITSBase O2::ITStracking O2::MathUtils O2::SimulationDataFormat)
 
-o2_add_test_root_macro(run_sim.C
-                       PUBLIC_LINK_LIBRARIES O2::DetectorsPassive
-                                             O2::Field
-                                             O2::ITSBase
-                                             O2::ITSMFTBase
-                                             O2::ITSSimulation
-                                             O2::TPCSimulation)
-
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(run_sim_emcal.C
-                       PUBLIC_LINK_LIBRARIES O2::DetectorsPassive O2::Field
-                                             O2::EMCALSimulation
-                       LABELS emcal)
-
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(run_sim_mft.C
-                       PUBLIC_LINK_LIBRARIES O2::DetectorsPassive O2::Field
-                                             O2::MFTBase O2::MFTSimulation
-                       LABELS mft)
-
-# FIXME: move to subsystem dir
-if(pythia_FOUND)
-  o2_add_test_root_macro(run_sim_pythia8hi.C
-                         PUBLIC_LINK_LIBRARIES O2::Field O2::DetectorsPassive
-                                               O2::TPCSimulation O2::Generators)
-endif()
-
-o2_add_test_root_macro(run_sim_tof.C
-                       PUBLIC_LINK_LIBRARIES O2::Field O2::DetectorsPassive
-                                             O2::Generators O2::TPCSimulation
-                                             O2::TOFSimulation
-                       LABELS tof)
-
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(run_sim_tpc.C
-                       PUBLIC_LINK_LIBRARIES O2::Field O2::DetectorsPassive
-                                             O2::Generators O2::TPCSimulation
-                       LABELS tpc)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_trac_ca_its.C
@@ -425,7 +365,7 @@ o2_add_test_root_macro(run_trac_its.C
                                              O2::ITStracking
                                              O2::MathUtils
                                              O2::SimulationDataFormat
-                       LABELS its)
+                        LABELS its)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_trac_mft.C
@@ -436,7 +376,6 @@ o2_add_test_root_macro(run_trac_mft.C
 #
 # NOTE: commented out until unit testing reenabled FIXME : re-enable or delete ?
 #
-# GENERATE_ROOT_TEST_SCRIPT(${CMAKE_SOURCE_DIR}/macro/run_sim_tpc.C)
 
 # add_test_wrap(run_sim_tpc_TGeant3 ${CMAKE_BINARY_DIR}/macro/run_sim_tpc.sh 10
 # \TGeant3\) Set_Tests_Properties(run_sim_tpc_TGeant3 PROPERTIES TIMEOUT 30)
@@ -447,20 +386,6 @@ o2_add_test_root_macro(run_trac_mft.C
 # \TGeant4\) Set_Tests_Properties(run_sim_tpc_TGeant4 PROPERTIES DEPENDS
 # run_sim_tpc_TGeant3) Set_Tests_Properties(run_sim_tpc_TGeant4 PROPERTIES
 # TIMEOUT 30) Set_Tests_Properties(run_sim_tpc_TGeant4 PROPERTIES
-# PASS_REGULAR_EXPRESSION Macro finished succesfully)
-
-# GENERATE_ROOT_TEST_SCRIPT(${CMAKE_SOURCE_DIR}/macro/run_digi_tpc.C)
-
-# add_test_wrap(run_digi_tpc_TGeant3 ${CMAKE_BINARY_DIR}/macro/run_digi_tpc.sh
-# 10 \TGeant3\) Set_Tests_Properties(run_digi_tpc_TGeant3 PROPERTIES DEPENDS
-# run_sim_TGeant3) Set_Tests_Properties(run_digi_tpc_TGeant3 PROPERTIES TIMEOUT
-# 30) Set_Tests_Properties(run_digi_tpc_TGeant3 PROPERTIES
-# PASS_REGULAR_EXPRESSION Macro finished succesfully)
-
-# add_test_wrap(run_digi_tpc_TGeant4 ${CMAKE_BINARY_DIR}/macro/run_digi_tpc.sh
-# 10 \TGeant4\) Set_Tests_Properties(run_digi_tpc_TGeant4 PROPERTIES DEPENDS
-# run_sim_tpc_TGeant4) Set_Tests_Properties(run_digi_tpc_TGeant4 PROPERTIES
-# TIMEOUT 30) Set_Tests_Properties(run_digi_tpc_TGeant4 PROPERTIES
 # PASS_REGULAR_EXPRESSION Macro finished succesfully)
 
 # GENERATE_ROOT_TEST_SCRIPT(${CMAKE_SOURCE_DIR}/macro/run_clusterer.C)
@@ -513,11 +438,6 @@ o2_add_test_root_macro(run_trac_mft.C
 # set_tests_properties(run_sim_its_G3 PROPERTIES TIMEOUT 30)
 # set_tests_properties(run_sim_its_G3 PROPERTIES PASS_REGULAR_EXPRESSION Macro
 # finished succesfully)
-
-# configure_file(${CMAKE_SOURCE_DIR}/macro/run_digi_its.sh
-# ${CMAKE_BINARY_DIR}/macro/run_digi_its.sh)
-# configure_file(${CMAKE_SOURCE_DIR}/macro/run_digi_its.C
-# ${CMAKE_BINARY_DIR}/macro/run_digi_its.C)
 
 # add_test_wrap(NAME run_digi_its_G3 COMMAND
 # ${CMAKE_BINARY_DIR}/macro/run_digi_its.sh  10 TGeant3)

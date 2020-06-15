@@ -24,8 +24,8 @@
 #include <vector>
 #include <utility>
 
-#include "Cluster.h"
-#include "Track.h"
+#include "MCHTracking/Cluster.h"
+#include "MCHTracking/Track.h"
 #include "TrackFitter.h"
 
 namespace o2

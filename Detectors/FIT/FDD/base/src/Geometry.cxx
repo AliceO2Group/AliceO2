@@ -38,10 +38,7 @@ Geometry::Geometry(const Geometry& geom)
 void Geometry::buildGeometry()
 {
 
-  // Top volume of FIT FDD detector
-  TGeoVolumeAssembly* vFDD = new TGeoVolumeAssembly("FDD");
-
-  LOG(INFO) << "Geometry::buildGeometry()::Volume name = " << vFDD->GetName();
+  LOG(INFO) << "Geometry::buildGeometry()::Volume name = FDD";
 
   //Rotations used
   //TGeoRotation* Rx90m = new TGeoRotation("Rx90m", 0., -90., 0.);
@@ -124,10 +121,6 @@ void Geometry::buildGeometry()
   vFDAarray->AddNode(secFDA, 3, Rz180);                  // --------------->  x
   vFDAarray->AddNode(secFDA, 4, Rx180);                  //   3    |   4
 
-  const Float_t kPosFDA = 1696.67; // z-center of assembly (cm)
-
-  vFDD->AddNode(vFDAarray, 1, new TGeoTranslation(0., 0., kPosFDA - kFDACelldz / 2. - 0.1));
-  vFDD->AddNode(vFDAarray, 2, new TGeoTranslation(0., 0., kPosFDA + kFDACelldz / 2. + 0.1));
 
   /// FDD_C in the tunnel
 
@@ -155,14 +148,21 @@ void Geometry::buildGeometry()
   vFDCarray->AddNode(voFDC, 3, Rz180);                   // --------------->  x
   vFDCarray->AddNode(voFDC, 4, Rx180);                   //   3    |   4
                                                          //        |
-
-  const Float_t kPosFDC = -kZbegFrontBar - 2. - 3.0 - 0.3; // 3.0 = (5.6 + 0.2 + 0.2)/2.
-  vFDD->AddNode(vFDCarray, 1, new TGeoTranslation(0., 0., kPosFDC - kFDCCelldz / 2. - 0.23));
-  vFDD->AddNode(vFDCarray, 2, new TGeoTranslation(0., 0., kPosFDC + kFDCCelldz / 2. + 0.23));
-
-  TGeoVolume* vALIC = gGeoManager->GetVolume("cave");
-  if (!vALIC) {
-    LOG(FATAL) << "Could not find the top volume";
+  // A side
+  TGeoVolume* vCaveRB24 = gGeoManager->GetVolume("caveRB24");
+  if (!vCaveRB24) {
+    LOG(FATAL) << "Could not find the top volume for A-side";
   }
-  vALIC->AddNode(vFDD, 1);
+  const Float_t kPosFDA = 1696.67 - 1313.347; // z-center of assembly (cm)
+  vCaveRB24->AddNode(vFDAarray, 1, new TGeoTranslation(0., 0., kPosFDA - kFDACelldz / 2. - 0.1));
+  vCaveRB24->AddNode(vFDAarray, 2, new TGeoTranslation(0., 0., kPosFDA + kFDACelldz / 2. + 0.1));
+
+  // C side
+  TGeoVolume* vCave = gGeoManager->GetVolume("cave");
+  if (!vCave) {
+    LOG(FATAL) << "Could not find the top volume for C-side";
+  }
+  const Float_t kPosFDC = -kZbegFrontBar - 2. - 3.0 - 0.3; // 3.0 = (5.6 + 0.2 + 0.2)/2.;
+  vCave->AddNode(vFDCarray, 1, new TGeoTranslation(0., 0., kPosFDC - kFDCCelldz / 2. - 0.23));
+  vCave->AddNode(vFDCarray, 2, new TGeoTranslation(0., 0., kPosFDC + kFDCCelldz / 2. + 0.23));
 }

@@ -21,17 +21,29 @@
 #include "Array2D.h"
 #include "PackedCharge.h"
 
+namespace o2
+{
+namespace tpc
+{
+class Digit;
+}
+} // namespace o2
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 
+struct ChargePos;
+
 class GPUTPCCFChargeMapFiller : public GPUKernelTemplate
 {
  public:
   enum K : int {
-    fillChargeMap = 0,
-    resetMaps = 1,
+    fillIndexMap,
+    fillFromDigits,
+    findFragmentStart,
+    resetMaps,
   };
 
 #ifdef HAVE_O2HEADERS
@@ -50,9 +62,11 @@ class GPUTPCCFChargeMapFiller : public GPUKernelTemplate
   template <int iKernel = defaultKernel, typename... Args>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
-  static GPUd() void fillChargeMapImpl(int, int, int, int, const deprecated::Digit*, Array2D<PackedCharge>&, Array2D<uint>&, size_t);
+  static GPUd() void fillIndexMapImpl(int, int, int, int, const CfFragment&, const tpc::Digit*, Array2D<uint>&, size_t);
 
-  static GPUd() void resetMapsImpl(int, int, int, int, const deprecated::Digit*, Array2D<PackedCharge>&, Array2D<uchar>&);
+  static GPUd() void fillFromDigitsImpl(int, int, int, int, const CfFragment&, size_t, const tpc::Digit*, ChargePos*, Array2D<PackedCharge>&);
+
+  static GPUd() void resetMapsImpl(int, int, int, int, const ChargePos*, Array2D<PackedCharge>&, Array2D<uchar>&, tpccf::SizeT);
 };
 
 } // namespace gpu

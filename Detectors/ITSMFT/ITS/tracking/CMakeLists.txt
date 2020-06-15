@@ -22,6 +22,7 @@ o2_add_library(ITStracking
                        src/StandaloneDebugger.cxx
                        src/Tracker.cxx
                        src/TrackerTraitsCPU.cxx
+                       src/TrackingConfigParam.cxx
                        src/ClusterLines.cxx
                        src/Vertexer.cxx
                        src/VertexerTraits.cxx
@@ -37,6 +38,7 @@ o2_target_root_dictionary(ITStracking
                           HEADERS include/ITStracking/ClusterLines.h
                                   include/ITStracking/Tracklet.h
                                   include/ITStracking/DBScan.h
+                                  include/ITStracking/TrackingConfigParam.h
                           LINKDEF src/TrackingLinkDef.h)
 
 if(CUDA_ENABLED)

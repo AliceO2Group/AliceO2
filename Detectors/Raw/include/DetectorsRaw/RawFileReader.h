@@ -24,7 +24,7 @@
 #include <Rtypes.h>
 #include "Headers/RAWDataHeader.h"
 #include "Headers/DataHeader.h"
-#include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 namespace o2
 {
@@ -35,6 +35,7 @@ class RawFileReader
 {
   using LinkSpec_t = uint64_t; // = (origin<<32) | LinkSubSpec
  public:
+  using RDHAny = header::RDHAny;
   using RDH = o2::header::RAWDataHeaderV4;
   using OrDesc = std::pair<o2::header::DataOrigin, o2::header::DataDescription>;
   using InputsMap = std::map<OrDesc, std::vector<std::string>>;
@@ -62,16 +63,30 @@ class RawFileReader
     "Wrong HBF orbit increment",             // ErrHBFJump
     "TF does not start by new superpage"     // ErrNoSuperPageForTF
   };
-  static constexpr std::string_view ErrNamesShort[] = { // short names for error codes
-    "packet-increment",
-    "page-increment",
-    "stop-on-page0",
-    "missing-stop",
-    "starts-with-tf",
-    "hbf-per-tf",
-    "tf-per-link",
-    "hbf-jump",
-    "no-spage-for-tf"};
+  static constexpr std::string_view ErrNamesShort[] = {
+    // short names for error codes
+    "packet-increment", // ErrWrongPacketCounterIncrement
+    "page-increment",   // ErrWrongPageCounterIncrement
+    "stop-on-page0",    // ErrHBFStopOnFirstPage
+    "missing-stop",     // ErrHBFNoStop
+    "starts-with-tf",   // ErrWrongFirstPage
+    "hbf-per-tf",       // ErrWrongHBFsPerTF
+    "tf-per-link",      // ErrWrongNumberOfTF
+    "hbf-jump",         // ErrHBFJump
+    "no-spage-for-tf"   // ErrNoSuperPageForTF
+  };
+  static constexpr bool ErrCheckDefaults[] = {
+    true,  // ErrWrongPacketCounterIncrement
+    true,  // ErrWrongPageCounterIncrement
+    false, // ErrHBFStopOnFirstPage
+    true,  // ErrHBFNoStop
+    true,  // ErrWrongFirstPage
+    true,  // ErrWrongHBFsPerTF
+    true,  // ErrWrongNumberOfTF
+    true,  // ErrHBFJump
+    false  // ErrNoSuperPageForTF
+  };
+
   //================================================================================
 
   //=====================================================================================
@@ -102,13 +117,13 @@ class RawFileReader
 
   //=====================================================================================
   struct LinkData {
-    RDH rdhl;             // RDH with the running info of the last RDH seen
-    LinkSpec_t spec = 0;  // Link subspec augmented by its origin
+    RDHAny rdhl;               // RDH with the running info of the last RDH seen
+    LinkSpec_t spec = 0;       // Link subspec augmented by its origin
     LinkSubSpec_t subspec = 0; // subspec according to DataDistribution
     uint32_t nTimeFrames = 0;
     uint32_t nHBFrames = 0;
-    uint32_t nCRUPages = 0;
     uint32_t nSPages = 0;
+    uint64_t nCRUPages = 0;
     o2::header::DataOrigin origin = o2::header::gDataOriginInvalid;
     o2::header::DataDescription description = o2::header::gDataDescriptionInvalid;
     std::string fairMQChannel{}; // name of the fairMQ channel for the output
@@ -121,9 +136,11 @@ class RawFileReader
     int nextBlock2Read = 0; // next block which should be read
 
     LinkData() = default;
-    LinkData(const o2::header::RAWDataHeaderV4& rdh, const RawFileReader* r);
-    LinkData(const o2::header::RAWDataHeaderV5& rdh, const RawFileReader* r);
-    bool preprocessCRUPage(const RDH& rdh, bool newSPage);
+    template <typename H>
+    LinkData(const H& rdh, const RawFileReader* r) : rdhl(rdh), reader(r)
+    {
+    }
+    bool preprocessCRUPage(const RDHAny& rdh, bool newSPage);
     size_t getLargestSuperPage() const;
     size_t getLargestTF() const;
     size_t getNextHBFSize() const;
@@ -132,6 +149,10 @@ class RawFileReader
 
     size_t readNextHBF(char* buff);
     size_t readNextTF(char* buff);
+    size_t skipNextHBF();
+    size_t skipNextTF();
+
+    void rewindToTF(uint32_t tf);
 
     void print(bool verbose = false, const std::string& pref = "") const;
     std::string describe() const;
@@ -177,9 +198,11 @@ class RawFileReader
   void setNominalSPageSize(int n = 0x1 << 20) { mNominalSPageSize = n > (0x1 << 15) ? n : (0x1 << 15); }
   int getNominalSPageSize() const { return mNominalSPageSize; }
 
-  void setNominalHBFperTF(int n = 256) { mNominalHBFperTF = n > 1 ? n : 1; }
-  int getNominalHBFperTF() const { return mNominalHBFperTF; }
+  void setBufferSize(size_t s) { mBufferSize = s < sizeof(RDHAny) ? sizeof(RDHAny) : s; }
+  size_t getBufferSize() const { return mBufferSize; }
 
+  void setMaxTFToRead(uint32_t n) { mMaxTFToRead = n; }
+  uint32_t getMaxTFToRead() const { return mMaxTFToRead; }
   uint32_t getNTimeFrames() const { return mNTimeFrames; }
   uint32_t getOrbitMin() const { return mOrbitMin; }
   uint32_t getOrbitMax() const { return mOrbitMax; }
@@ -190,9 +213,11 @@ class RawFileReader
   static o2::header::DataOrigin getDataOrigin(const std::string& ors);
   static o2::header::DataDescription getDataDescription(const std::string& ors);
   static InputsMap parseInput(const std::string& confUri);
+  static std::string nochk_opt(ErrTypes e);
+  static std::string nochk_expl(ErrTypes e);
 
  private:
-  int getLinkLocalID(const RDH& rdh, o2::header::DataOrigin orig);
+  int getLinkLocalID(const RDHAny& rdh, o2::header::DataOrigin orig);
   bool preprocessFile(int ifl);
   static LinkSpec_t createSpec(o2::header::DataOrigin orig, LinkSubSpec_t ss) { return (LinkSpec_t(orig) << 32) | ss; }
 
@@ -209,12 +234,13 @@ class RawFileReader
   std::unordered_map<LinkSpec_t, int> mLinkEntries; // mapping between RDH specs and link entry in the mLinksData
   std::vector<LinkData> mLinksData;                 // info on links data in the files
   std::vector<int> mOrderedIDs;                     // links entries ordered in Specs
+  uint32_t mMaxTFToRead = 0xffffffff;               // max TFs to process
   uint32_t mNTimeFrames = 0;                        // total number of time frames
   uint32_t mNextTF2Read = 0;                        // next TF to read
   uint32_t mOrbitMin = 0xffffffff;                  // lowest orbit seen by any link
   uint32_t mOrbitMax = 0;                           // highest orbit seen by any link
+  size_t mBufferSize = 1024 * 1024;                 // size of the buffer for files preprocessing
   int mNominalSPageSize = 0x1 << 20;                // expected super-page size in B
-  int mNominalHBFperTF = 256;                       // expected N HBF per TF
   int mCurrentFileID = 0;                           // current file being processed
   long int mPosInFile = 0;                          // current position in the file
   bool mMultiLinkFile = false;                      // was > than 1 link seen in the file?

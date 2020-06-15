@@ -9,10 +9,13 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(AnalysisCore
-               SOURCES src/StepTHn.cxx src/CorrelationContainer.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework)                  
+               SOURCES  src/StepTHn.cxx
+                        src/CorrelationContainer.cxx
+                        src/TrackSelection.cxx
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel)
 
 o2_target_root_dictionary(AnalysisCore
-              HEADERS include/Analysis/StepTHn.h include/Analysis/CorrelationContainer.h
+              HEADERS include/Analysis/StepTHn.h
+                      include/Analysis/CorrelationContainer.h
+                      include/Analysis/TrackSelection.h
               LINKDEF src/AnalysisCoreLinkDef.h)
-

@@ -62,7 +62,7 @@ bool isStation1(int detID)
 
 Response& response(bool isStation1)
 {
-  static std::array<Response, 2> resp = {Response(Station::Type1), Response(Station::Type2345)};
+  static std::array<Response, 2> resp = {Response(Station::Type2345), Response(Station::Type1)};
   return resp[isStation1];
 }
 
@@ -122,10 +122,10 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
   auto chargenon = charge / fracplane;
 
   //borders of charge gen.
-  auto xMin = anodpos - resp.getQspreadX() * 0.5;
-  auto xMax = anodpos + resp.getQspreadX() * 0.5;
-  auto yMin = lpos.Y() - resp.getQspreadY() * 0.5;
-  auto yMax = lpos.Y() + resp.getQspreadY() * 0.5;
+  auto xMin = anodpos - resp.getQspreadX() * resp.getSigmaIntegration() * 0.5;
+  auto xMax = anodpos + resp.getQspreadX() * resp.getSigmaIntegration() * 0.5;
+  auto yMin = lpos.Y() - resp.getQspreadY() * resp.getSigmaIntegration() * 0.5;
+  auto yMax = lpos.Y() + resp.getQspreadY() * resp.getSigmaIntegration() * 0.5;
 
   //get segmentation for detector element
   auto& seg = segmentation(detID);
@@ -140,7 +140,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 
   bool padexists = seg.findPadPairByPosition(localX, localY, padidbendcent, padidnoncent);
   if (!padexists) {
-    LOG(ERROR) << "Did not find  _any_ pad for localX,Y=" << localX << "," << localY << ", for detID: " << detID;
+    LOG(WARNING) << "Did not find  _any_ pad for localX,Y=" << localX << "," << localY << ", for detID: " << detID;
     return 0;
   }
 
@@ -148,18 +148,24 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
     auto xmin = (localX - seg.padPositionX(padid)) - dx;
-    auto xmax = xmin + dx;
+    auto xmax = xmin + 2 * dx;
     auto ymin = (localY - seg.padPositionY(padid)) - dy;
-    auto ymax = ymin + dy;
+    auto ymax = ymin + 2 * dy;
     auto q = resp.chargePadfraction(xmin, xmax, ymin, ymax);
-    if (seg.isBendingPad(padid)) {
-      q *= chargebend;
-    } else {
-      q *= chargenon;
+    if (resp.aboveThreshold(q)) {
+      if (seg.isBendingPad(padid)) {
+        q *= chargebend;
+      } else {
+        q *= chargenon;
+      }
+      auto signal = (unsigned long)q * resp.getInverseChargeThreshold();
+      if (signal > 0) {
+        Digit::Time dtime;
+        dtime.sampaTime = static_cast<uint16_t>(time) & 0x3FF;
+        digits.emplace_back(detID, padid, signal, dtime);
+        ++ndigits;
+      }
     }
-    auto signal = resp.response(q);
-    digits.emplace_back(time, detID, padid, signal);
-    ++ndigits;
   });
   return ndigits;
 }
@@ -175,8 +181,6 @@ void Digitizer::mergeDigits()
   auto sortedDigits = [digits = this->mDigits, &indices](int i) {
     return digits[indices[i]];
   };
-  //  std::vector<o2::mch::Digit> sortedDigits(mDigits.size());
-  // for(int i=0; i<mDigits.size(); i++) sortedDigits.emplace_back(mDigits[indices[i]]);
 
   auto sortedLabels = [labels = this->mTrackLabels, &indices](int i) {
     return labels[indices[i]];
@@ -193,10 +197,12 @@ void Digitizer::mergeDigits()
   int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
-    while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID())) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())) && (std::fabs(sortedDigits(i).getTimeStamp() - sortedDigits(j).getTimeStamp()) < mDeltat)) {
+    while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID())) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())) && (std::fabs(sortedDigits(i).getTime().sampaTime - sortedDigits(j).getTime().sampaTime) < mDeltat)) {
       j++;
     }
-    float adc{0};
+    unsigned long adc{0};
+    float padc{0};
+    Response& resp = response(isStation1(sortedDigits(i).getDetID()));
 
     for (int k = i; k < j; k++) {
       adc += sortedDigits(k).getADC();
@@ -210,7 +216,10 @@ void Digitizer::mergeDigits()
         }
       }
     }
-    mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
+    padc = adc * resp.getChargeThreshold();
+    adc = TMath::Nint(padc);
+    adc = resp.response(adc);
+    mDigits.emplace_back(sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc, sortedDigits(i).getTime());
     i = j;
     ++count;
   }
@@ -225,7 +234,7 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruth
 
   for (int index = 0; index < digits.size(); ++index) {
     auto digit = digits.at(index);
-    mDigits.emplace_back(digit.getTimeStamp(), digit.getDetID(), digit.getPadID(), digit.getADC());
+    mDigits.emplace_back(digit.getDetID(), digit.getPadID(), digit.getADC(), digit.getTime());
   }
   for (int index = 0; index < mcContainer.getNElements(); ++index) {
     auto label = mcContainer.getElement(index);

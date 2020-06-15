@@ -134,7 +134,7 @@ class InputRecord
 
     // copy constructor is needed in the setup of unique_ptr
     // check that assignments happen only to uninitialized instances
-    constexpr Deleter(const self_type& other)
+    constexpr Deleter(const self_type& other) : base::default_delete(other), mProperty{OwnershipProperty::Unknown}
     {
       if (mProperty == OwnershipProperty::Unknown) {
         mProperty = other.mProperty;
@@ -145,16 +145,28 @@ class InputRecord
 
     // copy constructor for the default delete which simply sets the
     // resource ownership control to 'Owning'
-    constexpr Deleter(const base& other) { mProperty = OwnershipProperty::Owning; }
+    constexpr Deleter(const base& other) : base::default_delete(other), mProperty{OwnershipProperty::Owning} {}
 
-    // forbid assignment operator to prohibid changing the Deleter
-    // resource control property once used in the unique_ptr
-    self_type& operator=(const self_type&) = delete;
+    // allow assignment operator only for pristine or matching resource control property
+    self_type& operator=(const self_type& other)
+    {
+      // the default_deleter does not have any state, so this could be skipped, but keep the call to
+      // the base for completeness, and the (small) chance for changing the base
+      base::operator=(other);
+      if (mProperty == OwnershipProperty::Unknown) {
+        mProperty = other.mProperty;
+      } else if (mProperty != other.mProperty) {
+        throw std::runtime_error("Attemp to change resource control");
+      }
+      return *this;
+    }
 
     void operator()(T* ptr) const
     {
-      if (mProperty == OwnershipProperty::NotOwning)
+      if (mProperty == OwnershipProperty::NotOwning) {
+        // nothing done if resource is not owned
         return;
+      }
       base::operator()(ptr);
     }
 
@@ -190,46 +202,48 @@ class InputRecord
     return mSpan.getNofParts(pos);
   }
 
-  template <typename T = DataRef, typename std::enable_if_t<std::is_same<T, DataRef>::value == true, int> = 0>
-  decltype(auto) get(char const* binding) const
-  {
-    // implementation (a)
-    // DataRef is special. Since there is no point in storing one in a payload,
-    // what it actually does is to return the DataRef used to hold the
-    // (header, payload) pair.
-    // returns DataRef object
-    try {
-      auto pos = getPos(binding);
-      if (pos < 0) {
-        throw std::invalid_argument("no matching route found for " + std::string(binding));
-      }
-      return getByPos(pos);
-    } catch (const std::exception& e) {
-      throw std::runtime_error("Unknown argument requested " + std::string(binding) +
-                               " - " + e.what());
-    }
-  }
-
-  /// get object of the specified type from input
-  /// The actual operation and cast depends on the target data type and the serialization type of the
-  /// incoming data. See @ref Inputrecord class description for supported types.
-  /// @param binding   the input to extract the data from
-  template <typename T, typename std::enable_if_t<std::is_same<T, DataRef>::value == false, int> = 0>
-  decltype(auto) get(char const* binding) const
-  {
-    // make sure the selection is working
-    static_assert(std::is_same<T, DataRef>::value == false);
-    return get<T>(get<DataRef>(binding));
-  }
-
-  /// get object of specified type for input DataRef
-  /// The actual operation and cast depends on the target data type and the serialization type of the
-  /// incoming data. See @ref Inputrecord class description for supported types.
+  /// Get the object of specified type T for the binding R.
+  /// If R is a string like object, we look up by name the InputSpec and
+  /// return the data associated to the given label.
+  /// If R is a DataRef, we extract the result object from the Payload,
+  /// following the information provided by the Header.
+  /// The actual operation and cast depends on the target data type and the
+  /// serialization type of the incoming data.
+  /// By default we return a DataRef, which is the pair of pointers to
+  /// the header and payload of the O2 Message.
+  /// See @ref Inputrecord class description for supported types.
   /// @param ref   DataRef with pointers to input spec, header, and payload
-  template <typename T>
-  static decltype(auto) get(DataRef ref)
+  template <typename T = DataRef, typename R>
+  decltype(auto) get(R binding, int part = 0) const
   {
-    if constexpr (std::is_same<T, std::string>::value) {
+    DataRef ref{nullptr, nullptr};
+    // Get the actual dataref
+    if constexpr (std::is_same_v<std::decay_t<R>, char const*> ||
+                  std::is_same_v<std::decay_t<R>, char*> ||
+                  std::is_same_v<std::decay_t<R>, std::string>) {
+      try {
+        int pos = -1;
+        if constexpr (std::is_same_v<std::decay_t<R>, std::string>) {
+          pos = getPos(binding.c_str());
+        } else {
+          pos = getPos(binding);
+        }
+        if (pos < 0) {
+          throw std::invalid_argument("no matching route found for " + std::string(binding));
+        }
+        ref = this->getByPos(pos, part);
+      } catch (const std::exception& e) {
+        throw std::runtime_error("Unknown argument requested " + std::string(binding) +
+                                 " - " + e.what());
+      }
+    } else if constexpr (std::is_same_v<std::decay_t<R>, DataRef>) {
+      ref = binding;
+    } else {
+      static_assert(always_static_assert_v<R>, "Unknown binding type");
+    }
+    if constexpr (std::is_same_v<std::decay_t<T>, DataRef>) {
+      return ref;
+    } else if constexpr (std::is_same<T, std::string>::value) {
       // substitution for std::string
       // If we ask for a string, we need to duplicate it because we do not want
       // the buffer to be deleted when it goes out of scope. The string is built
@@ -287,7 +301,7 @@ class InputRecord
       }
       using ValueT = typename T::value_type;
       if (header->payloadSize % sizeof(ValueT)) {
-        throw std::runtime_error("Inconsistent type and payload size at " + std::string(ref.spec->binding) +
+        throw std::runtime_error("Inconsistent type and payload size at " + std::string(ref.spec->binding) + "(" + DataSpecUtils::describe(*ref.spec) + ")" +
                                  ": type size " + std::to_string(sizeof(ValueT)) +
                                  "  payload size " + std::to_string(header->payloadSize));
       }
@@ -313,14 +327,18 @@ class InputRecord
           /// container, C++11 and beyond will implicitly apply return value optimization.
           /// @return std container object
           using NonConstT = typename std::remove_const<T>::type;
-          // we expect the unique_ptr to hold an object, exception should have been thrown
-          // otherwise
-          auto object = DataRefUtils::as<NonConstT>(ref);
-          // need to swap the content of the deserialized container to a local variable to force return
-          // value optimization
-          T container;
-          std::swap(const_cast<NonConstT&>(container), *object);
-          return container;
+          if constexpr (is_specialization<T, ROOTSerialized>::value == true || has_root_dictionary<T>::value == true) {
+            // we expect the unique_ptr to hold an object, exception should have been thrown
+            // otherwise
+            auto object = DataRefUtils::as<NonConstT>(ref);
+            // need to swap the content of the deserialized container to a local variable to force return
+            // value optimization
+            T container;
+            std::swap(const_cast<NonConstT&>(container), *object);
+            return container;
+          } else {
+            throw std::runtime_error("No supported conversion function for ROOT serialized message");
+          }
         } else {
           throw std::runtime_error("Attempt to extract object from message with unsupported serialization type");
         }
@@ -412,12 +430,6 @@ class InputRecord
         throw std::runtime_error("Attempt to extract object from message with unsupported serialization type");
       }
     }
-  }
-
-  template <typename T = DataRef>
-  decltype(auto) get(std::string const& binding) const
-  {
-    return get<T>(binding.c_str());
   }
 
   template <typename T>

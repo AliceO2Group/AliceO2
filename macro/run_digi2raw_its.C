@@ -87,14 +87,16 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
     int accL = 0;
     for (int il = 0; il < 3; il++) { // create links
       if (lnkAs[il]) {
-        ru.links[il] = std::make_unique<o2::itsmft::GBTLink>();
-        ru.links[il]->lanes = lanes & ((0x1 << lnkAs[il]) - 1) << (accL);
-        ru.links[il]->id = il;
-        ru.links[il]->feeID = mp.RUSW2FEEId(ir, il);
+        ru.links[il] = rawReader.addGBTLink();
+        auto* link = rawReader.getGBTLink(ru.links[il]);
+        link->lanes = lanes & ((0x1 << lnkAs[il]) - 1) << (accL);
+        link->idInCRU = il;
+        link->cruID = il;
+        link->feeID = mp.RUSW2FEEId(ir, il);
         accL += lnkAs[il];
         LOG(INFO) << "RU " << std::setw(3) << ir << " on lr" << int(ru.ruInfo->layer)
-                  << " : FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << ru.links[il]->feeID
-                  << " reads lanes " << std::bitset<28>(ru.links[il]->lanes);
+                  << " : FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << link->feeID
+                  << " reads lanes " << std::bitset<28>(link->lanes);
       }
     }
   }

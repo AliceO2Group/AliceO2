@@ -18,60 +18,46 @@
 #include "ChargePos.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
-using namespace GPUCA_NAMESPACE::gpu::deprecated;
+using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 template <>
 GPUdii() void GPUTPCCFNoiseSuppression::Thread<GPUTPCCFNoiseSuppression::noiseSuppression>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
-  GPUTPCCFNoiseSuppression::noiseSuppressionImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, isPeakMap, clusterer.mPpeaks, clusterer.mPmemory->counters.nPeaks, clusterer.mPisPeak);
+  noiseSuppressionImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, isPeakMap, clusterer.mPpeakPositions, clusterer.mPmemory->counters.nPeaks, clusterer.mPisPeak);
 }
 
 template <>
 GPUdii() void GPUTPCCFNoiseSuppression::Thread<GPUTPCCFNoiseSuppression::updatePeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
-  GPUTPCCFNoiseSuppression::updatePeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPpeaks, clusterer.mPisPeak, clusterer.mPmemory->counters.nPeaks, isPeakMap);
+  updatePeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPpeakPositions, clusterer.mPisPeak, clusterer.mPmemory->counters.nPeaks, isPeakMap);
 }
 
-GPUd() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
-                                                           const Array2D<PackedCharge>& chargeMap,
-                                                           const Array2D<uchar>& peakMap,
-                                                           const Digit* peaks,
-                                                           const uint peaknum,
-                                                           uchar* isPeakPredicate)
+GPUdii() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
+                                                             const Array2D<PackedCharge>& chargeMap,
+                                                             const Array2D<uchar>& peakMap,
+                                                             const ChargePos* peakPositions,
+                                                             const uint peaknum,
+                                                             uchar* isPeakPredicate)
 {
-  size_t idx = get_global_id(0);
+  SizeT idx = get_global_id(0);
 
-  Digit myDigit = peaks[CAMath::Min(idx, (size_t)(peaknum - 1))];
-
-  ChargePos pos(myDigit);
+  ChargePos pos = peakPositions[CAMath::Min(idx, (SizeT)(peaknum - 1))];
+  Charge charge = chargeMap[pos].unpack();
 
   ulong minimas, bigger, peaksAround;
-
-#if defined(BUILD_CLUSTER_SCRATCH_PAD)
   findMinimaAndPeaksScratchpad(
     chargeMap,
     peakMap,
-    myDigit.charge,
+    charge,
     pos,
     smem.posBcast,
     smem.buf,
     &minimas,
     &bigger,
     &peaksAround);
-#else
-  findMinima(
-    chargeMap,
-    pos,
-    myDigit.charge,
-    NOISE_SUPPRESSION_MINIMA_EPSILON,
-    &minimas,
-    &bigger);
-
-  peaksAround = findPeaks(peakMap, pos);
-#endif
 
   peaksAround &= bigger;
 
@@ -82,30 +68,27 @@ GPUd() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThr
     return;
   }
 
-  DBG_PRINT("%d: p:%lx, m:%lx, b:%lx.", int(idx), peaksAroundBack, minimas, bigger);
-
   isPeakPredicate[idx] = keepMe;
 }
 
 GPUd() void GPUTPCCFNoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread,
-                                                      const Digit* peaks,
+                                                      const ChargePos* peakPositions,
                                                       const uchar* isPeak,
                                                       const uint peakNum,
                                                       Array2D<uchar>& peakMap)
 {
-  size_t idx = get_global_id(0);
+  SizeT idx = get_global_id(0);
 
   if (idx >= peakNum) {
     return;
   }
 
-  Digit myDigit = peaks[idx];
-
-  ChargePos pos(myDigit);
+  ChargePos pos = peakPositions[idx];
 
   uchar peak = isPeak[idx];
 
-  peakMap[pos] = (uchar(myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
+  peakMap[pos] = 0b10 | peak; // if this positions was marked as peak at some point, then its charge must exceed the charge threshold.
+                              // So we can just set the bit and avoid rereading the charge
 }
 
 GPUd() void GPUTPCCFNoiseSuppression::checkForMinima(
@@ -150,51 +133,10 @@ GPUd() void GPUTPCCFNoiseSuppression::findPeaksScratchPad(
   ulong* peaks)
 {
   for (int i = 0; i < N; i++, pos++) {
-    ulong p = GET_IS_PEAK(buf[N * ll + i]);
+    ulong p = CfUtils::isPeak(buf[N * ll + i]);
 
     *peaks |= (p << pos);
   }
-}
-
-GPUd() void GPUTPCCFNoiseSuppression::findMinima(
-  const Array2D<PackedCharge>& chargeMap,
-  const ChargePos& pos,
-  const float q,
-  const float epsilon,
-  ulong* minimas,
-  ulong* bigger)
-{
-  *minimas = 0;
-  *bigger = 0;
-
-  for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
-    Delta2 d = CfConsts::NoiseSuppressionNeighbors[i];
-
-    PackedCharge other = chargeMap[pos.delta(d)];
-
-    checkForMinima(q, epsilon, other, i, minimas, bigger);
-  }
-}
-
-GPUd() ulong GPUTPCCFNoiseSuppression::findPeaks(
-  const Array2D<uchar>& peakMap,
-  const ChargePos& pos)
-{
-  ulong peaks = 0;
-
-  DBG_PRINT("Looking around %d, %d", pos.gpad, pos.time);
-
-  for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
-    Delta2 d = CfConsts::NoiseSuppressionNeighbors[i];
-
-    uchar p = peakMap[pos.delta(d)];
-
-    DBG_PRINT("%d, %d: %d", d.x, d.y, p);
-
-    peaks |= (ulong(GET_IS_PEAK(p)) << i);
-  }
-
-  return peaks;
 }
 
 GPUd() bool GPUTPCCFNoiseSuppression::keepPeak(

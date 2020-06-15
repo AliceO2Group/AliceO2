@@ -13,8 +13,8 @@
 #ifndef ALICEO2_EVENTGEN_GENERATORPYTHIA8PARAM_H_
 #define ALICEO2_EVENTGEN_GENERATORPYTHIA8PARAM_H_
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 #include <string>
 
 namespace o2
@@ -30,6 +30,8 @@ namespace eventgen
 
 struct GeneratorPythia8Param : public o2::conf::ConfigurableParamHelper<GeneratorPythia8Param> {
   std::string config = "";
+  std::string hooksFileName = "";
+  std::string hooksFuncName = "";
   O2ParamDef(GeneratorPythia8Param, "Pythia8");
 };
 

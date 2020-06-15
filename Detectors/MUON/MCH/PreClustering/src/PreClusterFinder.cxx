@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "PreClusterFinder.h"
+#include "MCHPreClustering/PreClusterFinder.h"
 
 #include <chrono>
 #include <memory>
@@ -18,23 +18,42 @@
 #include <fairmq/Tools.h>
 #include <FairMQLogger.h>
 
+#include "PreClusterFinderMapping.h"
+
 namespace o2
 {
 namespace mch
 {
 
+struct PreClusterFinder::DetectionElement {
+  std::unique_ptr<Mapping::MpDE> mapping; // mapping of this DE including the list of pads
+  std::vector<const Digit*> digits;       // list of pointers to digits (not owner)
+  uint16_t nFiredPads[2];                 // number of fired pads on each plane
+  std::vector<uint16_t> firedPads[2];     // indices of fired pads on each plane
+  uint16_t nOrderedPads[2];               // current number of fired pads in the following arrays
+  std::vector<uint16_t> orderedPads[2];   // indices of fired pads ordered after preclustering and merging
+};
+
 using namespace std;
 
 //_________________________________________________________________________________________________
-void PreClusterFinder::init(std::string& fileName)
+PreClusterFinder::PreClusterFinder() : mDEs{}
 {
-  /// Load the mapping and prepare the internal structure
-
-  try {
-    readMapping(fileName.c_str());
-  } catch (exception const&) {
-    throw;
+  /// default constructor: prepare the internal mapping structures
+  for (auto i = 0; i < SNDEs; i++) {
+    mDEs.emplace_back(new DetectionElement);
   }
+}
+
+//_________________________________________________________________________________________________
+PreClusterFinder::~PreClusterFinder() = default;
+
+//_________________________________________________________________________________________________
+void PreClusterFinder::init()
+{
+  /// load the mapping and fill the internal structures
+
+  createMapping();
 
   for (int iDE = 0; iDE < SNDEs; ++iDE) {
     for (int iPlane = 0; iPlane < 2; ++iPlane) {
@@ -61,7 +80,7 @@ void PreClusterFinder::reset()
   // loop over DEs
   for (int iDE = 0; iDE < SNDEs; ++iDE) {
 
-    DetectionElement& de(mDEs[iDE]);
+    DetectionElement& de(*(mDEs[iDE]));
 
     // loop over planes
     for (int iPlane = 0; iPlane < 2; ++iPlane) {
@@ -88,30 +107,19 @@ void PreClusterFinder::reset()
 }
 
 //_________________________________________________________________________________________________
-void PreClusterFinder::loadDigits(const DigitStruct* digits, uint32_t nDigits)
+void PreClusterFinder::loadDigits(gsl::span<const Digit> digits)
 {
   /// fill the Mapping::MpDE structure with fired pads
 
-  int iPlane(0);
-  uint16_t iPad(0);
+  for (const auto& digit : digits) {
 
-  // loop over digits
-  for (uint32_t i = 0; i < nDigits; ++i) {
-
-    const DigitStruct& digit(digits[i]);
-
-    int deIndex = mDEIndices[detectionElementId(digit.uid)];
+    int deIndex = mDEIndices[digit.getDetID()];
     assert(deIndex >= 0 && deIndex < SNDEs);
 
-    DetectionElement& de(mDEs[deIndex]);
+    DetectionElement& de(*(mDEs[deIndex]));
 
-    iPlane = (cathode(digit.uid) == de.mapping->iCath[0]) ? 0 : 1;
-    iPad = de.mapping->padIndices[iPlane].GetValue(digit.uid);
-    if (iPad == 0) {
-      LOG(WARN) << "pad ID " << digit.uid << " does not exist in the mapping";
-      continue;
-    }
-    --iPad;
+    uint16_t iPad = digit.getPadID();
+    int iPlane = (iPad < de.mapping->nPads[0]) ? 0 : 1;
 
     // register this digit
     uint16_t iDigit = de.nFiredPads[0] + de.nFiredPads[1];
@@ -142,6 +150,42 @@ int PreClusterFinder::run()
 }
 
 //_________________________________________________________________________________________________
+void PreClusterFinder::getPreClusters(std::vector<o2::mch::PreCluster>& preClusters, std::vector<Digit>& digits)
+{
+  /// add the preclusters and associated digits at the end of the input vectors
+  /// the existing preclusters and digits are not touched, so the corresponding indices are preserved
+  /// however, iterators, pointers and references might be invalidated in case the vectors are resized
+
+  for (int iDE = 0, nDEs = SNDEs; iDE < nDEs; ++iDE) {
+
+    DetectionElement& de(*(mDEs[iDE]));
+    if (de.nOrderedPads[1] == 0) {
+      continue;
+    }
+
+    for (int iPlane = 0; iPlane < 2; ++iPlane) {
+      for (int iCluster = 0; iCluster < mNPreClusters[iDE][iPlane]; ++iCluster) {
+
+        PreCluster* cluster = mPreClusters[iDE][iPlane][iCluster].get();
+        if (!cluster->storeMe) {
+          continue;
+        }
+
+        // add this precluster
+        uint16_t firstDigit = digits.size();
+        uint16_t nDigits = cluster->lastPad - cluster->firstPad + 1;
+        preClusters.push_back({firstDigit, nDigits});
+
+        // add the digits of this precluster
+        for (uint16_t iOrderedPad = cluster->firstPad; iOrderedPad <= cluster->lastPad; ++iOrderedPad) {
+          digits.emplace_back(*de.digits[de.mapping->pads[de.orderedPads[1][iOrderedPad]].iDigit]);
+        }
+      }
+    }
+  }
+}
+
+//_________________________________________________________________________________________________
 void PreClusterFinder::preClusterizeRecursive()
 {
   /// preclusterize both planes of every DE using recursive algorithm
@@ -152,7 +196,7 @@ void PreClusterFinder::preClusterizeRecursive()
   // loop over DEs
   for (int iDE = 0; iDE < SNDEs; ++iDE) {
 
-    DetectionElement& de(mDEs[iDE]);
+    DetectionElement& de(*(mDEs[iDE]));
 
     // loop over planes
     for (int iPlane = 0; iPlane < 2; ++iPlane) {
@@ -240,7 +284,7 @@ int PreClusterFinder::mergePreClusters()
   // loop over DEs
   for (int iDE = 0; iDE < SNDEs; ++iDE) {
 
-    DetectionElement& de(mDEs[iDE]);
+    DetectionElement& de(*(mDEs[iDE]));
 
     // loop over preclusters of one plane
     for (int iCluster = 0; iCluster < mNPreClusters[iDE][0]; ++iCluster) {
@@ -391,24 +435,23 @@ bool PreClusterFinder::areOverlapping(PreCluster& cluster1, PreCluster& cluster2
 }
 
 //_________________________________________________________________________________________________
-void PreClusterFinder::readMapping(const char* fileName)
+void PreClusterFinder::createMapping()
 {
   /// Fill the internal mapping structures
 
   auto tStart = std::chrono::high_resolution_clock::now();
 
-  std::vector<std::unique_ptr<Mapping::MpDE>> mpDEs = Mapping::readMapping(fileName);
+  std::vector<std::unique_ptr<Mapping::MpDE>> mpDEs = Mapping::createMapping();
 
-  if (mpDEs.size() < SNDEs) {
-    LOG(ERROR) << "Invalid binary mapping file " << fileName;
-    throw runtime_error(fair::mq::tools::ToString("Invalid binary mapping file ", fileName));
+  if (mpDEs.size() != SNDEs) {
+    throw runtime_error("invalid mapping");
   }
 
   mDEIndices.reserve(SNDEs);
 
   for (int iDE = 0; iDE < SNDEs; ++iDE) {
 
-    DetectionElement& de(mDEs[iDE]);
+    DetectionElement& de(*(mDEs[iDE]));
 
     de.mapping = std::move(mpDEs[iDE]);
 
@@ -429,7 +472,7 @@ void PreClusterFinder::readMapping(const char* fileName)
   }
 
   auto tEnd = std::chrono::high_resolution_clock::now();
-  LOG(INFO) << "Read mapping in: " << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms\n";
+  LOG(INFO) << "create mapping in: " << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms";
 }
 
 } // namespace mch

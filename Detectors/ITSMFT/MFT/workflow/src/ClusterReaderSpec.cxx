@@ -73,10 +73,10 @@ void ClusterReader::run(ProcessingContext& pc)
 
     pc.outputs().snapshot(Output{"MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe}, compClusters);
     pc.outputs().snapshot(Output{"MFT", "CLUSTERS", 0, Lifetime::Timeframe}, clusters);
-    pc.outputs().snapshot(Output{"MFT", "MFTClusterROF", 0, Lifetime::Timeframe}, rofs);
+    pc.outputs().snapshot(Output{"MFT", "ClusterROF", 0, Lifetime::Timeframe}, rofs);
     if (mUseMC) {
       pc.outputs().snapshot(Output{"MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe}, labels);
-      pc.outputs().snapshot(Output{"MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
+      pc.outputs().snapshot(Output{"MFT", "ClusterMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
     }
   } else {
     LOG(ERROR) << "Cannot read the MFT clusters !";
@@ -91,10 +91,10 @@ DataProcessorSpec getClusterReaderSpec(bool useMC)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "CLUSTERS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("MFT", "MFTClusterROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("MFT", "ClusterROF", 0, Lifetime::Timeframe);
   if (useMC) {
     outputs.emplace_back("MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("MFT", "ClusterMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

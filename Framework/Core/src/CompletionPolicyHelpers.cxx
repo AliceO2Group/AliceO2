@@ -10,12 +10,8 @@
 
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/CompletionPolicy.h"
-#include "Framework/InputRecord.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/PartRef.h"
 #include "Framework/CompilerBuiltins.h"
-
-#include <gsl/span>
 
 #include <cassert>
 #include <regex>
@@ -54,7 +50,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAll(const char* name, Compl
 {
   auto callback = [](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
     for (auto& input : inputs) {
-      if (input.header == nullptr && input.payload == nullptr) {
+      if (input.header == nullptr) {
         return CompletionPolicy::CompletionOp::Wait;
       }
     }
@@ -67,7 +63,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, Compl
 {
   auto callback = [](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
     for (auto& input : inputs) {
-      if (input.header != nullptr && input.payload != nullptr) {
+      if (input.header != nullptr) {
         return CompletionPolicy::CompletionOp::Consume;
       }
     }

@@ -22,6 +22,7 @@
 #include <Rtypes.h>
 #include <gsl/span>
 #include <bitset>
+#include <iostream>
 
 namespace o2
 {
@@ -30,6 +31,11 @@ namespace ft0
 class ChannelData;
 
 struct Triggers {
+  enum { bitA,
+         bitC,
+         bitVertex,
+         bitCen,
+         bitSCen };
   uint8_t triggersignals; // T0 trigger signals
   int8_t nChanA;          // number of faired channels A side
   int8_t nChanC;          // number of faired channels A side
@@ -48,20 +54,16 @@ struct Triggers {
     timeA = atimeA;
     timeC = atimeC;
   }
-  bool getOrA() { return (triggersignals & (1 << 0)) != 0; }
-  bool getOrC() { return (triggersignals & (1 << 1)) != 0; }
-  bool getVertex() { return (triggersignals & (1 << 2)) != 0; }
-  bool getCen() { return (triggersignals & (1 << 3)) != 0; }
-  bool getSCen() { return (triggersignals & (1 << 4)) != 0; }
+  bool getOrA() { return (triggersignals & (1 << bitA)) != 0; }
+  bool getOrC() { return (triggersignals & (1 << bitC)) != 0; }
+  bool getVertex() { return (triggersignals & (1 << bitVertex)) != 0; }
+  bool getCen() { return (triggersignals & (1 << bitCen)) != 0; }
+  bool getSCen() { return (triggersignals & (1 << bitSCen)) != 0; }
 
-  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx, int8_t chanA, int8_t chanC, int32_t aamplA,
+  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isVrtx, Bool_t isCnt, Bool_t isSCnt, int8_t chanA, int8_t chanC, int32_t aamplA,
                    int32_t aamplC, int16_t atimeA, int16_t atimeC)
   {
-    triggersignals = triggersignals | (isA ? (1 << 0) : 0);
-    triggersignals = triggersignals | (isC ? (1 << 1) : 0);
-    triggersignals = triggersignals | (isVrtx ? (1 << 2) : 0);
-    triggersignals = triggersignals | (isSCnt ? (1 << 3) : 0);
-    triggersignals = triggersignals | (isCnt ? (1 << 4) : 0);
+    triggersignals = (isA << bitA) | (isC << bitC) | (isVrtx << bitVertex) | (isCnt << bitCen) | (isSCnt << bitSCen);
     nChanA = chanA;
     nChanC = chanC;
     amplA = aamplA;
@@ -83,26 +85,43 @@ struct Triggers {
 };
 
 struct Digit {
-  o2::dataformats::RangeRefComp<5> ref;
-
+  o2::dataformats::RangeReference<int, int> ref;
   Triggers mTriggers;               // pattern of triggers  in this BC
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
-
+  int mEventID;
   Digit() = default;
-  Digit(int first, int ne, o2::InteractionRecord iRec, Triggers chTrig)
+  Digit(int first, int ne, o2::InteractionRecord iRec, Triggers chTrig, int event)
   {
     ref.setFirstEntry(first);
     ref.setEntries(ne);
     mIntRecord = iRec;
     mTriggers = chTrig;
+    mEventID = event;
   }
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
+  Triggers getTriggers() { return mTriggers; }
+  int getEventID() const { return mEventID; }
   o2::InteractionRecord getIntRecord() { return mIntRecord; };
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
-  void printStream(std::ostream& stream) const;
+  enum { bit1TimeLostEvent,
+         bit2TimeLostEvent,
+         bitADCinGate,
+         bitTimeInfoLate,
+         bitAmpHigh,
+         bitEventInTVDC,
+         bitTimeInfoLost };
+  // T0 channel flags
+  uint8_t flags;
+  void setFlags(bool is1TimeLostEvent, bool is2TimeLostEvent, bool isADCinGate, bool isTimeInfoLate, bool isAmpHigh, bool isEventInTVDC, bool isTimeInfoLost)
+  {
+    flags = (is1TimeLostEvent << bit1TimeLostEvent) | (is2TimeLostEvent << bit2TimeLostEvent) | (isADCinGate << bitADCinGate) | (isTimeInfoLate << bitTimeInfoLate) | (isAmpHigh << bitAmpHigh) | (isEventInTVDC << bitEventInTVDC) | (isTimeInfoLost << bitTimeInfoLost);
+  };
 
-  ClassDefNV(Digit, 2);
+  void printStream(std::ostream& stream) const;
+  void setTriggers(Triggers trig) { mTriggers = trig; };
+
+  ClassDefNV(Digit, 3);
 };
 } // namespace ft0
 } // namespace o2

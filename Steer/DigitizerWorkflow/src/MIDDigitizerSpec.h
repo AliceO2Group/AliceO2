@@ -18,7 +18,7 @@ namespace o2
 namespace mid
 {
 
-o2::framework::DataProcessorSpec getMIDDigitizerSpec(int channel);
+o2::framework::DataProcessorSpec getMIDDigitizerSpec(int channel, bool mctruth = true);
 
 } // namespace mid
 } // namespace o2

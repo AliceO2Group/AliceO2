@@ -11,7 +11,7 @@
 ///
 /// @author  Laurent Aphecetche
 
-#define BOOST_TEST_MODULE Test MCHSimulation GeoDigiRes
+#define BOOST_TEST_MODULE Test MCHSimulation Geometry
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
 
@@ -26,6 +26,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <fmt/format.h>
 
 namespace bdata = boost::unit_test::data;
 
@@ -33,7 +34,14 @@ struct GEOMETRY {
   GEOMETRY()
   {
     if (!gGeoManager) {
-      o2::mch::test::createStandaloneGeometry();
+      std::string param = boost::unit_test::framework::master_test_suite().argv[1];
+      if (param == "standalone") {
+        o2::mch::test::createStandaloneGeometry();
+      } else if (param == "regular") {
+        o2::mch::test::createRegularGeometry();
+      } else {
+        throw std::invalid_argument(fmt::format("only possible argument value are 'regular' or 'standalone', not {}", param.c_str()));
+      }
     }
   }
 };
@@ -142,6 +150,15 @@ BOOST_AUTO_TEST_CASE(GetTransformations)
 
 BOOST_AUTO_TEST_CASE(TextualTreeDump)
 {
+  std::string param = boost::unit_test::framework::master_test_suite().argv[1];
+  if (param != "standalone") {
+    // no point in checking the full hierarchy and have this test
+    // depending on all the details of the geometry of all detectors,
+    // so this test only makes sense for standalone geometry
+    BOOST_CHECK(true);
+    return;
+  }
+
   const std::string expected =
     R"(cave_1
 ├──SC01I_0

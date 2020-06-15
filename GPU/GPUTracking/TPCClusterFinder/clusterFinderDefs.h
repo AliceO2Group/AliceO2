@@ -26,35 +26,10 @@ using ulong = unsigned long;
 #define QMAX_CUTOFF 3
 #define QTOT_CUTOFF 0
 #define NOISE_SUPPRESSION_MINIMA_EPSILON 10
-#ifdef GPUCA_GPUCODE
-#define SCRATCH_PAD_WORK_GROUP_SIZE GPUCA_THREAD_COUNT_CLUSTERER
-#else
-#define SCRATCH_PAD_WORK_GROUP_SIZE 1
-#endif
-#ifdef GPUCA_GPUCODE
-/* #define BUILD_CLUSTER_NAIVE */
-#define BUILD_CLUSTER_SCRATCH_PAD
-#else
-/* #define BUILD_CLUSTER_NAIVE */
-#define BUILD_CLUSTER_SCRATCH_PAD
-#endif
+#define SCRATCH_PAD_WORK_GROUP_SIZE GPUCA_GET_THREAD_COUNT(GPUCA_LB_CLUSTER_FINDER)
+
 /* #define CHARGEMAP_TIME_MAJOR_LAYOUT */
 #define CHARGEMAP_TILING_LAYOUT
-
-#ifdef __OPENCL__
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#endif
-
-#ifndef __OPENCL__
-#define LOOP_UNROLL_ATTR
-#elif defined(UNROLL_LOOPS)
-#define LOOP_UNROLL_ATTR __attribute__((opencl_unroll_hint))
-#else
-#define LOOP_UNROLL_ATTR __attribute__((opencl_unroll_hint(1)))
-#endif
-
-#define GET_IS_PEAK(val) (val & 0x01)
-#define GET_IS_ABOVE_THRESHOLD(val) (val >> 1)
 
 #define SCRATCH_PAD_SEARCH_N 8
 #define SCRATCH_PAD_COUNT_N 16
@@ -75,8 +50,8 @@ using ulong = unsigned long;
 #define TPC_PADS_PER_ROW 138
 #define TPC_PADS_PER_ROW_PADDED (TPC_PADS_PER_ROW + PADDING_PAD)
 #define TPC_NUM_OF_PADS (TPC_NUM_OF_ROWS * TPC_PADS_PER_ROW_PADDED + PADDING_PAD)
-#define TPC_MAX_TIME 4000
-#define TPC_MAX_TIME_PADDED (TPC_MAX_TIME + 2 * PADDING_TIME)
+#define TPC_MAX_FRAGMENT_LEN 4000
+#define TPC_MAX_FRAGMENT_LEN_PADDED (TPC_MAX_FRAGMENT_LEN + 2 * PADDING_TIME)
 
 #if 0
 #define DBG_PRINT(msg, ...) printf(msg "\n", __VA_ARGS__)
@@ -96,18 +71,18 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+namespace tpccf
+{
 
-using Timestamp = short;
+using SizeT = size_t;
+using TPCTime = int;
+using TPCFragmentTime = short;
 using Pad = unsigned char;
 using GlobalPad = short;
 using Row = unsigned char;
 using Cru = unsigned char;
 
-#if defined(CHARGEMAP_TYPE_HALF)
-using Charge = half;
-#else
 using Charge = float;
-#endif
 
 using Delta = short;
 using Delta2 = short2;
@@ -119,9 +94,8 @@ GPUconstexpr() float OUTER_CHARGE_THRESHOLD = 0.f;
 GPUconstexpr() float QTOT_THRESHOLD = 500.f;
 GPUconstexpr() int MIN_SPLIT_NUM = 1;
 
+} // namespace tpccf
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
-
-#include "Digit.h"
 
 #endif

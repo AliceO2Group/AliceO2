@@ -127,9 +127,17 @@ class RCUTrailer
   /// \throw Error if the RCU trailer was not properly initializied
   double getTimeSample() const;
 
+  /// \brief set time sample
+  /// \param timesample Time sample (in ns)
+  void setTimeSample(double timesample);
+
   /// \brief Access to the L1 phase
   /// \return L1 phase w.r.t to the LHC clock
   double getL1Phase() const;
+
+  /// \brief Set the L1 phase
+  /// \param l1phase L1 phase (in ns)
+  void setL1Phase(double l1phase);
 
   void setFECErrorsA(unsigned int value) { mFECERRA = value; }
   void setFECErrorsB(unsigned int value) { mFECERRB = value; }
@@ -139,10 +147,14 @@ class RCUTrailer
   void setActiveFECsB(unsigned short value) { mActiveFECsB = value; }
   void setAltroCFGReg1(unsigned int value) { mAltroCFG1 = value; }
   void setAltroCFGReg2(unsigned int value) { mAltroCFG2 = value; }
+  void setFirmwareVersion(unsigned char version) { mFirmwareVersion = version; }
+  void setPayloadSize(unsigned int size) { mPayloadSize = size; }
 
   /// \brief checlks whether the RCU trailer is initialzied
   /// \return True if the trailer is initialized, false otherwise
   bool isInitialized() const { return mIsInitialized; }
+
+  std::vector<uint32_t> encode() const;
 
   static RCUTrailer constructFromPayloadWords(const gsl::span<const uint32_t> payloadwords);
 

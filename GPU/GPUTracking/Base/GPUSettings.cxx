@@ -26,7 +26,7 @@ void GPUSettingsRec::SetDefaults()
   ClusterError2CorrectionZ = 1.f;
   MinNTrackClusters = -1;
   MaxTrackQPt = 1.f / GPUCA_MIN_TRACK_PT_DEFAULT;
-  NWays = 1;
+  NWays = 3;
   NWaysOuter = false;
   RejectMode = 5;
   GlobalTracking = true;
@@ -47,6 +47,14 @@ void GPUSettingsRec::SetDefaults()
   fwdTPCDigitsAsClusters = 0;
   bz0Pt = 60;
   dropLoopers = false;
+  mergerCovSource = 2;
+  mergerInterpolateErrors = 1;
+  fitInProjections = -1;
+  fitPropagateBzOnly = -1;
+  retryRefit = 1;
+  loopInterpolationInExtraPass = -1;
+  mergerReadFromTrackerDirectly = 1;
+  useMatLUT = false;
 }
 
 void GPUSettingsEvent::SetDefaults()
@@ -62,18 +70,20 @@ void GPUSettingsProcessing::SetDefaults()
 {
   deviceType = GPUDataTypes::DeviceType::CPU;
   forceDeviceType = true;
+  master = nullptr;
 }
 
 void GPUSettingsDeviceProcessing::SetDefaults()
 {
   nThreads = 1;
+  ompKernels = false;
   deviceNum = -1;
   platformNum = -1;
   globalInitMutex = false;
   gpuDeviceOnly = false;
   nDeviceHelperThreads = 2;
   debugLevel = -1;
-  deviceTimers = false;
+  deviceTimers = true;
   debugMask = -1;
   comparableDebutOutput = true;
   resetTimers = 1;
@@ -83,6 +93,7 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   stuckProtection = 0;
   memoryAllocationStrategy = 0;
   keepAllMemory = false;
+  keepDisplayMemory = false;
   nStreams = 8;
   trackletConstructorInPipeline = -1;
   trackletSelectorInPipeline = -1;
@@ -90,7 +101,14 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   forceMemoryPoolSize = 0;
   nTPCClustererLanes = 3;
   registerStandaloneInputMemory = false;
-  tpcCompressionGatherMode = 1;
-  mergerSortTracks = 1;
+  tpcCompressionGatherMode = -1;
+  mergerSortTracks = -1;
   runMC = false;
+  memoryScalingFactor = 1.f;
+  disableMemoryReuse = true;
+  fullMergerOnGPU = true;
+  alternateBorderSort = -1;
+  delayedOutput = true;
+  tpccfGatherKernel = true;
+  prefetchTPCpageScan = false;
 }

@@ -22,9 +22,9 @@ using namespace o2::soa;
 
 namespace test
 {
-DECLARE_SOA_COLUMN(X, x, float, "x");
-DECLARE_SOA_COLUMN(Y, y, float, "y");
-DECLARE_SOA_COLUMN(Z, z, float, "z");
+DECLARE_SOA_COLUMN_FULL(X, x, float, "x");
+DECLARE_SOA_COLUMN_FULL(Y, y, float, "y");
+DECLARE_SOA_COLUMN_FULL(Z, z, float, "z");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
 } // namespace test
 
@@ -56,8 +56,8 @@ static void BM_TreeToTable(benchmark::State& state)
   // now convert the table to a tree
   TFile fout("tree2table.root", "RECREATE");
   TableToTree ta2tr(table, &fout, "tree2table");
-  ta2tr.AddAllBranches();
-  ta2tr.Process();
+  ta2tr.addAllBranches();
+  ta2tr.process();
   fout.Close();
 
   // read tree and convert to table again
@@ -72,8 +72,8 @@ static void BM_TreeToTable(benchmark::State& state)
     // benchmark TreeToTable
     if (tr) {
       tr2ta = new TreeToTable(tr);
-      if (tr2ta->AddAllColumns()) {
-        auto ta = tr2ta->Process();
+      if (tr2ta->addAllColumns()) {
+        auto ta = tr2ta->process();
       }
 
     } else {

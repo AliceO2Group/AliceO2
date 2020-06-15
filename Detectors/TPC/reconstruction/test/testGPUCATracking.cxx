@@ -25,6 +25,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
 #include "TPCFastTransform.h"
+#include "TPCdEdxCalibrationSplines.h"
 #include "GPUO2InterfaceConfiguration.h"
 
 using namespace o2::gpu;
@@ -59,7 +60,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   //config.configDeviceProcessing.eventDisplay = new GPUDisplayBackendGlfw;
 
   config.configEvent.solenoidBz = solenoidBz;
-  config.configEvent.continuousMaxTimeBin = continuous ? 0.023 * 5e6 : 0; //Number of timebins in timeframe if continuous, 0 otherwise
+  config.configEvent.continuousMaxTimeBin = continuous ? GPUSettings::TPC_MAX_TF_TIME_BIN : 0; //Number of timebins in timeframe if continuous, 0 otherwise
 
   config.configReconstruction.NWays = 3;               //Should always be 3!
   config.configReconstruction.NWaysOuter = true;       //Will create outer param for TRD
@@ -73,6 +74,8 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
   config.configCalib.fastTransform = fastTransform.get();
+  std::unique_ptr<o2::gpu::TPCdEdxCalibrationSplines> dEdxSplines(new TPCdEdxCalibrationSplines);
+  config.configCalib.dEdxSplines = dEdxSplines.get();
 
   tracker.initialize(config);
   std::vector<ClusterNativeContainer> cont(Constants::MAXGLOBALPADROW);

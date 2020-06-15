@@ -17,6 +17,7 @@
 #include "CPVBase/Hit.h"
 #include "CPVSimulation/Digitizer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 
 class TChain;
 
@@ -29,18 +30,18 @@ namespace cpv
 /// \author Dmitri Peresunko, NRC "Kurchatov institute"
 /// \author Adopted from PHOS code
 /// \since Jan, 2020
-class DigitizerSpec : public framework::Task
+class DigitizerSpec : public o2::base::BaseDPLDigitizer
 {
  public:
   /// \brief Constructor
-  DigitizerSpec() = default;
+  DigitizerSpec() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM) {}
 
   /// \brief Destructor
   ~DigitizerSpec() final = default;
 
   /// \brief init digitizer
   /// \param ctx Init context
-  void init(framework::InitContext& ctx) final;
+  void initDigitizerTask(framework::InitContext& ctx) final;
 
   /// \brief run digitizer
   /// \param ctx Processing context
@@ -49,7 +50,7 @@ class DigitizerSpec : public framework::Task
   /// - Open readout window when the event sets a trigger
   /// - Accumulate digits sampled via the time response from different bunch crossings
   /// - Retrieve digits when the readout window closes
-  void run(framework::ProcessingContext& ctx) final;
+  void run(framework::ProcessingContext& ctx);
 
  private:
   /// \brief helper function which will be offered as a service
@@ -62,8 +63,7 @@ class DigitizerSpec : public framework::Task
 
   Bool_t mFinished = false;                               ///< Flag for digitization finished
   Digitizer mDigitizer;                                   ///< Digitizer object
-  TChain* mSimChain = nullptr;                            ///< Chain of files with background events
-  TChain* mSimChainS = nullptr;                           ///< Chain of files with signal events
+  std::vector<TChain*> mSimChains;
   std::vector<Hit>* mHitsBg = nullptr;                    ///< Vector with input hits from Bg event
   std::vector<Hit>* mHitsS = nullptr;                     ///< Vector with input hits from Signal event
   std::vector<Digit> mDigits;                             ///< Vector with non-accumulated digits (per collision)
@@ -72,7 +72,7 @@ class DigitizerSpec : public framework::Task
 
 /// \brief Create new digitizer spec
 /// \return Digitizer spec
-o2::framework::DataProcessorSpec getCPVDigitizerSpec(int channel);
+o2::framework::DataProcessorSpec getCPVDigitizerSpec(int channel, bool mctruth = true);
 
 } // end namespace cpv
 } // end namespace o2

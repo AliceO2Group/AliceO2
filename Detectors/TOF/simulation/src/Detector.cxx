@@ -1837,7 +1837,7 @@ void Detector::addAlignableVolumes() const
   TString volPath;
   TString symName;
 
-  TString vpL0 = "cave/B077_1/BSEGMO";
+  TString vpL0 = "cave/barrel_1/B077_1/BSEGMO";
   TString vpL1 = "_1/BTOF";
   TString vpL2 = "_1";
   TString vpL3 = "/FTOA_0";

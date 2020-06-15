@@ -53,9 +53,8 @@ using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 void run_trac_ca_its(std::string path = "./",
                      std::string outputfile = "o2trac_its.root",
-                     std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "O2geometry.root",
-                     std::string inputGRP = "o2sim_grp.root", std::string simfilename = "o2sim.root",
-                     std::string paramfilename = "o2sim_par.root")
+                     std::string inputClustersITS = "o2clus_its.root",
+                     std::string inputGRP = "o2sim_grp.root")
 {
 
   gSystem->Load("libO2ITStracking.so");
@@ -78,7 +77,7 @@ void run_trac_ca_its(std::string path = "./",
   if (!grp) {
     LOG(FATAL) << "Cannot run w/o GRP object";
   }
-  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(path);
   o2::base::Propagator::initFieldFromGRP(grp);
   auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!field) {
@@ -186,10 +185,10 @@ void run_trac_ca_its(std::string path = "./",
 
     if (!vertITS.empty()) {
       // Using only the first vertex in the list
-      cout << " - Reconstructed vertexer: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
+      std::cout << " - Reconstructed vertexer: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
       event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
     } else {
-      cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
+      std::cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
     }
     trackClIdx.clear();
     tracksITS.clear();

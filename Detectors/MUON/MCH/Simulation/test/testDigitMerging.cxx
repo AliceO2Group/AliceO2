@@ -8,7 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#define BOOST_TEST_MODULE Test MCHSimulation Digitization
 #define BOOST_TEST_DYN_LINK
+#define BOOST_TEST_MAIN
 
 #include <boost/test/unit_test.hpp>
 
@@ -28,10 +30,10 @@ BOOST_AUTO_TEST_SUITE(o2_mch_simulation)
 std::vector<Digit> createNonOverlappingDigits()
 {
   return std::vector<Digit>{
-    {0, 100, 2, 5},
-    {0, 100, 3, 6},
-    {0, 100, 1, 2},
-    {0, 100, 0, 1}};
+    {100, 2, 5, Digit::Time{}},
+    {100, 3, 6, Digit::Time{}},
+    {100, 1, 2, Digit::Time{}},
+    {100, 0, 1, Digit::Time{}}};
 }
 
 std::vector<o2::MCCompLabel> createLabelsNonOverlappingDigits()
@@ -46,14 +48,14 @@ std::vector<o2::MCCompLabel> createLabelsNonOverlappingDigits()
 std::vector<Digit> createOverlappingDigits()
 {
   return std::vector<Digit>{
-    {0, 100, 2, 5},
-    {0, 100, 3, 6},
-    {0, 100, 1, 2},
-    {0, 100, 0, 0},
-    {0, 100, 0, 1},
-    {0, 100, 1, 3},
-    {0, 100, 3, 7},
-    {0, 100, 1, 4}};
+    {100, 2, 5, Digit::Time{}},
+    {100, 3, 6, Digit::Time{}},
+    {100, 1, 2, Digit::Time{}},
+    {100, 0, 0, Digit::Time{}},
+    {100, 0, 1, Digit::Time{}},
+    {100, 1, 3, Digit::Time{}},
+    {100, 3, 7, Digit::Time{}},
+    {100, 1, 4, Digit::Time{}}};
 }
 
 std::vector<o2::MCCompLabel> createLabelsOverlappingDigits()
@@ -73,10 +75,10 @@ std::vector<o2::MCCompLabel> createLabelsOverlappingDigits()
 std::vector<Digit> expected()
 {
   return std::vector<Digit>{
-    {0, 100, 0, 1},
-    {0, 100, 1, 9},
-    {0, 100, 2, 5},
-    {0, 100, 3, 13}};
+    {100, 0, 1, Digit::Time{}},
+    {100, 1, 9, Digit::Time{}},
+    {100, 2, 5, Digit::Time{}},
+    {100, 3, 13, Digit::Time{}}};
 }
 
 std::vector<o2::MCCompLabel> labelexpected()

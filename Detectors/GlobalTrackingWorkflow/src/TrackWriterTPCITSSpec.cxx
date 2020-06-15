@@ -11,12 +11,8 @@
 /// @file   TrackWriterTPCITSSpec.cxx
 
 #include <vector>
-
-#include "TTree.h"
-
-#include "Framework/ControlService.h"
-#include "Framework/ConfigParamRegistry.h"
 #include "GlobalTrackingWorkflow/TrackWriterTPCITSSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -28,59 +24,33 @@ namespace o2
 namespace globaltracking
 {
 
-void TrackWriterTPCITS::init(InitContext& ic)
-{
-  mOutFileName = ic.options().get<std::string>("tpcits-tracks-outfile");
-}
-
-void TrackWriterTPCITS::run(ProcessingContext& pc)
-{
-  if (mFinished) {
-    return;
-  }
-
-  TFile outf(mOutFileName.c_str(), "recreate");
-  if (outf.IsZombie()) {
-    LOG(FATAL) << "Failed to open output file " << mOutFileName;
-  }
-  TTree tree(mTreeName.c_str(), "Tree of ITS-TPC matches");
-  auto tracks = pc.inputs().get<const std::vector<o2::dataformats::TrackTPCITS>>("match");
-  auto tracksPtr = &tracks;
-  tree.Branch(mOutTPCITSTracksBranchName.c_str(), &tracksPtr);
-  tree.GetBranch(mOutTPCITSTracksBranchName.c_str())->Fill();
-  LOG(INFO) << "Writing " << tracks.size() << " TPC-ITS matches";
-  if (mUseMC) {
-    auto lblITS = pc.inputs().get<const std::vector<o2::MCCompLabel>>("matchITSMC");
-    auto lblTPC = pc.inputs().get<const std::vector<o2::MCCompLabel>>("matchTPCMC");
-    auto lblITSPtr = &lblITS;
-    auto lblTPCPtr = &lblTPC;
-    tree.Branch(mOutITSMCTruthBranchName.c_str(), &lblITSPtr);
-    tree.Branch(mOutTPCMCTruthBranchName.c_str(), &lblTPCPtr);
-    tree.GetBranch(mOutITSMCTruthBranchName.c_str())->Fill();
-    tree.GetBranch(mOutTPCMCTruthBranchName.c_str())->Fill();
-    //
-  }
-  tree.SetEntries(1);
-  tree.Write();
-  mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-}
+template <typename T>
+using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
+using TracksType = std::vector<o2::dataformats::TrackTPCITS>;
+using LabelsType = std::vector<o2::MCCompLabel>;
 
 DataProcessorSpec getTrackWriterTPCITSSpec(bool useMC)
 {
-  std::vector<InputSpec> inputs;
-  inputs.emplace_back("match", "GLO", "TPCITS", 0, Lifetime::Timeframe);
-  if (useMC) {
-    inputs.emplace_back("matchITSMC", "GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe);
-    inputs.emplace_back("matchTPCMC", "GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe);
-  }
-  return DataProcessorSpec{
-    "itstpc-track-writer",
-    inputs,
-    Outputs{},
-    AlgorithmSpec{adaptFromTask<TrackWriterTPCITS>(useMC)},
-    Options{
-      {"tpcits-tracks-outfile", VariantType::String, "o2match_itstpc.root", {"Name of the output file"}}}};
+  // A spectator for logging
+  auto logger = [](TracksType const& tracks) {
+    LOG(INFO) << "Writing " << tracks.size() << " TPC-ITS matches";
+  };
+  return MakeRootTreeWriterSpec("itstpc-track-writer",
+                                "o2match_itstpc.root",
+                                "matchTPCITS",
+                                BranchDefinition<TracksType>{InputSpec{"match", "GLO", "TPCITS", 0},
+                                                             "TPCITS",
+                                                             "TPCITS-branch-name",
+                                                             1,
+                                                             logger},
+                                BranchDefinition<LabelsType>{InputSpec{"matchITSMC", "GLO", "TPCITS_ITSMC", 0},
+                                                             "MatchITSMCTruth",
+                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                             ""},
+                                BranchDefinition<LabelsType>{InputSpec{"matchTPCMC", "GLO", "TPCITS_TPCMC", 0},
+                                                             "MatchTPCMCTruth",
+                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                             ""})();
 }
 
 } // namespace globaltracking

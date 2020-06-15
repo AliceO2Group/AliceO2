@@ -13,7 +13,14 @@
 #include "TOFWorkflow/TOFRawWriterSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "TOFBase/Geo.h"
+#include "CommonUtils/StringUtils.h"
+#include "TSystem.h"
+#include <fstream>
+#include <iostream>
+#include <iomanip>
+#include <cstring>
 
 using namespace o2::framework;
 
@@ -25,15 +32,21 @@ void RawWriter::init(InitContext& ic)
 {
   // get the option from the init context
   mOutFileName = ic.options().get<std::string>("tof-raw-outfile");
+  mOutDirName = ic.options().get<std::string>("tof-raw-outdir");
+  mFileFor = ic.options().get<std::string>("tof-raw-file-for");
   LOG(INFO) << "Raw output file: " << mOutFileName.c_str();
+
+  if (gSystem->AccessPathName(mOutDirName.c_str())) {
+    if (gSystem->mkdir(mOutDirName.c_str(), kTRUE)) {
+      LOG(FATAL) << "could not create output directory " << mOutDirName;
+    } else {
+      LOG(INFO) << "created output directory " << mOutDirName;
+    }
+  }
 }
 
 void RawWriter::run(ProcessingContext& pc)
 {
-  if (mFinished) {
-    return;
-  }
-
   auto digits = pc.inputs().get<std::vector<o2::tof::Digit>*>("tofdigits");
   auto row = pc.inputs().get<std::vector<o2::tof::ReadoutWindowData>*>("readoutwin");
   int nwindow = row->size();
@@ -45,11 +58,15 @@ void RawWriter::run(ProcessingContext& pc)
   o2::tof::raw::Encoder encoder;
   encoder.setVerbose(verbosity);
 
-  encoder.open(mOutFileName.c_str());
+  encoder.open(mOutFileName, mOutDirName, mFileFor);
   encoder.alloc(cache);
 
   int nwindowperorbit = Geo::NWINDOW_IN_ORBIT;
-  int nwindowintimeframe = 256 * nwindowperorbit;
+  int nwindowintimeframe = o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * nwindowperorbit;
+  int nwindowFilled = nwindow;
+  if (nwindowFilled % nwindowintimeframe) {
+    nwindowFilled = (nwindowFilled / nwindowintimeframe + 1) * nwindowintimeframe;
+  }
 
   std::vector<o2::tof::Digit> emptyWindow;
 
@@ -57,7 +74,7 @@ void RawWriter::run(ProcessingContext& pc)
 
   std::vector<std::vector<o2::tof::Digit>> digitWindows;
 
-  for (int i = 0; i < nwindowintimeframe; i += nwindowperorbit) { // encode 3 tof windows (1 orbit)
+  for (int i = 0; i < nwindow; i += nwindowperorbit) { // encode 3 tof windows (1 orbit)
     if (verbosity)
       printf("----------\nwindow = %d - %d\n----------\n", i, i + nwindowperorbit - 1);
 
@@ -78,11 +95,9 @@ void RawWriter::run(ProcessingContext& pc)
     encoder.encode(digitWindows, i);
   }
 
-  encoder.flush();
+  // create configuration file for rawreader
+  encoder.getWriter().writeConfFile("TOF", "RAWDATA", o2::utils::concat_string(mOutDirName, '/', "TOFraw.cfg"));
   encoder.close();
-
-  mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getTOFRawWriterSpec()
@@ -97,8 +112,9 @@ DataProcessorSpec getTOFRawWriterSpec()
     {}, // no output
     AlgorithmSpec{adaptFromTask<RawWriter>()},
     Options{
-      {"tof-raw-outfile", VariantType::String, "rawtof.bin", {"Name of the input file"}},
-    }};
+      {"tof-raw-outfile", VariantType::String, "tof.raw", {"Name of the output file"}},
+      {"tof-raw-outdir", VariantType::String, ".", {"Name of the output dir"}},
+      {"tof-raw-file-for", VariantType::String, "cru", {"Single file per: all,cru,link"}}}};
 }
 } // namespace tof
 } // namespace o2

@@ -16,6 +16,9 @@
 #define GPUCA_GPUTYPE_OPENCL
 
 #ifdef __OPENCLCPP__
+  #ifdef GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY
+    #define GPUCA_NO_CONSTANT_MEMORY
+  #endif
   #pragma OPENCL EXTENSION cl_khr_fp64 : enable
   #ifdef __clang__
     #pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable
@@ -46,6 +49,9 @@
     #define M_PI 3.1415926535f
   #endif
 #else
+  #ifdef GPUCA_OPENCL_NO_CONSTANT_MEMORY
+    #define GPUCA_NO_CONSTANT_MEMORY
+  #endif
   #define nullptr NULL
   #define NULL (0x0)
 #endif
@@ -72,7 +78,7 @@
 #define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNLGPU_SINGLE(x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNLGPU_MULTI(x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_CONSMEM_PTR GPUglobal() char *gpu_mem, GPUconstant() MEM_CONSTANT(GPUConstantMem) * pConstant,
-#define GPUCA_CONSMEM *pConstant
+#define GPUCA_CONSMEM (*pConstant)
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 #undef GPUCA_KRNL_LOAD_single

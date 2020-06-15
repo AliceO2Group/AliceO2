@@ -8,6 +8,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
+if(NOT BUILD_TEST_ROOT_MACROS)
+        return()
+endif()
+
 set(genmacros fixedEnergyElectronGun.C fixedEnergyPionGun.C fixedEnergyPhotonGun.C)
 foreach(genmacro ${genmacros}) 
   MESSAGE(STATUS "Adding test for macro ${genmacro}")

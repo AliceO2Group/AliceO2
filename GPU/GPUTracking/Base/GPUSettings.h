@@ -21,6 +21,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 class GPUDisplayBackend;
+class GPUReconstruction;
 
 class GPUSettings
 {
@@ -37,6 +38,10 @@ class GPUSettings
   enum CompressionRejection { RejectionNone = 0,
                               RejectionStrategyA = 1,
                               RejectionStrategyB = 2 };
+
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+  static CONSTEXPR unsigned int TPC_MAX_TF_TIME_BIN = ((256 * 3564 + 2 * 8 - 2) / 8);
+#endif
 };
 
 // Settings concerning the reconstruction
@@ -78,6 +83,14 @@ struct GPUSettingsRec {
   unsigned char fwdTPCDigitsAsClusters;  // Simply forward TPC digits as clusters
   unsigned char bz0Pt;                   // Nominal Pt to set when bz = 0 (in 10 MeV)
   unsigned char dropLoopers;             // Drop all clusters after starting from the second loop from tracks
+  unsigned char mergerCovSource;         // 0 = simpleFilterErrors, 1 = use from track following
+  unsigned char mergerInterpolateErrors; // Use interpolation for cluster rejection based on chi-2 instead of extrapolation
+  char fitInProjections;                 // -1 for automatic
+  char fitPropagateBzOnly;               // Use only Bz for the propagation during the fit in the first n passes, -1 = NWays -1
+  char retryRefit;                       // Retry refit with larger cluster errors when fit fails
+  char loopInterpolationInExtraPass;     // Perform the loop interpolation in an extra pass
+  char mergerReadFromTrackerDirectly;    // Make the TPC merger read the output directly from the tracker class
+  char useMatLUT;                        // Use material lookup table for TPC refit
 };
 
 // Settings describing the events / time frames
@@ -108,8 +121,9 @@ struct GPUSettingsProcessing {
   void SetDefaults();
 #endif
 
-  unsigned int deviceType; // Device type, shall use GPUDataTypes::DEVICE_TYPE constants, e.g. CPU / CUDA
-  char forceDeviceType;    // Fail if device initialization fails, otherwise falls back to CPU
+  unsigned int deviceType;   // Device type, shall use GPUDataTypes::DEVICE_TYPE constants, e.g. CPU / CUDA
+  char forceDeviceType;      // Fail if device initialization fails, otherwise falls back to CPU
+  GPUReconstruction* master; // GPUReconstruction master object
 };
 
 // Settings steering the processing once the device was selected
@@ -123,6 +137,7 @@ struct GPUSettingsDeviceProcessing {
 #endif
 
   int nThreads;                       // Numnber of threads on CPU, 0 = auto-detect
+  bool ompKernels;                    // OMP Parallelization inside kernels
   int deviceNum;                      // Device number to use, in case the backend provides multiple devices (-1 = auto-select)
   int platformNum;                    // Platform to use, in case the backend provides multiple platforms (-1 = auto-select)
   bool globalInitMutex;               // Global mutex to synchronize initialization over multiple instances
@@ -138,6 +153,7 @@ struct GPUSettingsDeviceProcessing {
   int stuckProtection;                // Timeout in us, When AMD GPU is stuck, just continue processing and skip tracking, do not crash or stall the chain
   int memoryAllocationStrategy;       // 0 = auto, 1 = new/delete per resource (default for CPU), 2 = big chunk single allocation (default for device)
   bool keepAllMemory;                 // Allocate all memory on both device and host, and do not reuse
+  bool keepDisplayMemory;             // Like keepAllMemory, but only for memory required for event display
   int nStreams;                       // Number of parallel GPU streams
   char trackletConstructorInPipeline; // Run tracklet constructor in pileline like the preceeding tasks instead of as one big block
   char trackletSelectorInPipeline;    // Run tracklet selector in pipeline, requres also tracklet constructor in pipeline
@@ -146,9 +162,16 @@ struct GPUSettingsDeviceProcessing {
   int nTPCClustererLanes;             // Number of TPC clusterers that can run in parallel
   bool deviceTimers;                  // Use device timers instead of host-based timers
   bool registerStandaloneInputMemory; // Automatically register memory for the GPU which is used as input for the standalone benchmark
-  int tpcCompressionGatherMode;       // Modes: 0 = gather by DMA, 1 = DMA + gather on host, ...
-  bool mergerSortTracks;              // Sort track indices for GPU track fit
+  int tpcCompressionGatherMode;       // Modes: 0 = gather by DMA, 1 = DMA + gather on host, 2 = gather by kernel
+  char mergerSortTracks;              // Sort track indices for GPU track fit
   bool runMC;                         // Process MC labels
+  float memoryScalingFactor;          // Factor to apply to all memory scalers
+  bool disableMemoryReuse;            // Disable memory reusage (for debugging only)
+  bool fullMergerOnGPU;               // Perform full TPC track merging on GPU instead of only refit
+  char alternateBorderSort;           // Alternative scheduling for sorting of border tracks
+  bool delayedOutput;                 // Delay output to be parallel to track fit
+  bool tpccfGatherKernel;             // Use a kernel instead of the DMA engine to gather the clusters
+  bool prefetchTPCpageScan;           // Prefetch headers during TPC page scan
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

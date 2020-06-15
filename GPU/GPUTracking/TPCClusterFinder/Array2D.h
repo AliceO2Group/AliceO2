@@ -50,32 +50,41 @@ class TilingLayout
   enum {
     Height = Grid::Height,
     Width = Grid::Width,
+    WidthInTiles = (TPC_NUM_OF_PADS + Width - 1) / Width,
   };
 
-  GPUdi() static size_t idx(const ChargePos& p)
+  GPUdi() static tpccf::SizeT idx(const ChargePos& p)
   {
-    const size_t widthInTiles = (TPC_NUM_OF_PADS + Width - 1) / Width;
+    const tpccf::SizeT tilePad = p.gpad / Width;
+    const tpccf::SizeT tileTime = p.timePadded / Height;
 
-    const size_t tilePad = p.gpad / Width;
-    const size_t tileTime = p.time / Height;
+    const tpccf::SizeT inTilePad = p.gpad % Width;
+    const tpccf::SizeT inTileTime = p.timePadded % Height;
 
-    const size_t inTilePad = p.gpad % Width;
-    const size_t inTileTime = p.time % Height;
+    return (tileTime * WidthInTiles + tilePad) * (Width * Height) + inTileTime * Width + inTilePad;
+  }
 
-    return (tileTime * widthInTiles + tilePad) * (Width * Height) + inTileTime * Width + inTilePad;
+  GPUd() static size_t items()
+  {
+    return (TPC_NUM_OF_PADS + Width - 1) / Width * Width * (TPC_MAX_FRAGMENT_LEN_PADDED + Height - 1) / Height * Height;
   }
 };
 
-template <typename T>
 class LinearLayout
 {
-  GPUdi() static size_t idx(const ChargePos& p)
+ public:
+  GPUdi() static tpccf::SizeT idx(const ChargePos& p)
   {
-    return TPC_NUM_OF_PADS * p.time + p.gpad;
+    return TPC_NUM_OF_PADS * p.timePadded + p.gpad;
+  }
+
+  GPUd() static size_t items()
+  {
+    return TPC_NUM_OF_PADS * TPC_MAX_FRAGMENT_LEN_PADDED;
   }
 };
 
-template <size_t S>
+template <tpccf::SizeT S>
 struct GridSize;
 
 template <>
@@ -104,11 +113,14 @@ struct GridSize<4> {
 
 #if defined(CHARGEMAP_TILING_LAYOUT)
 template <typename T>
-using Array2D = AbstractArray2D<T, TilingLayout<GridSize<sizeof(T)>>>;
+using TPCMapMemoryLayout = TilingLayout<GridSize<sizeof(T)>>;
 #else
 template <typename T>
-using Array2D = AbstractArray2D<T, LinearLayout>;
+using TPCMapMemoryLayout = LinearLayout;
 #endif
+
+template <typename T>
+using Array2D = AbstractArray2D<T, TPCMapMemoryLayout<T>>;
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

@@ -16,6 +16,7 @@ o2_add_library(DataFormatsITSMFT
                        src/ClusterPattern.cxx
                        src/ClusterTopology.cxx
                        src/TopologyDictionary.cxx
+                       src/CTF.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
 	                             O2::ReconstructionDataFormats
 				     ms_gsl::ms_gsl)
@@ -28,6 +29,7 @@ o2_target_root_dictionary(DataFormatsITSMFT
                                   include/DataFormatsITSMFT/ClusterPattern.h
                                   include/DataFormatsITSMFT/ClusterTopology.h
                                   include/DataFormatsITSMFT/TopologyDictionary.h
+                                  include/DataFormatsITSMFT/CTF.h
                           LINKDEF src/ITSMFTDataFormatsLinkDef.h)
 
 o2_add_test(Cluster

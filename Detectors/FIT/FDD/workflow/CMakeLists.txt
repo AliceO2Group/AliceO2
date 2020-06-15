@@ -12,7 +12,7 @@ o2_add_library(FDDWorkflow
                SOURCES src/RecoWorkflow.cxx src/DigitReaderSpec.cxx
                        src/ReconstructorSpec.cxx src/RecPointWriterSpec.cxx
                        src/RecPointReaderSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::FDDReconstruction O2::Framework)
+               PUBLIC_LINK_LIBRARIES O2::FDDReconstruction O2::Framework O2::DPLUtils)
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME fdd

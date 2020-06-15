@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/DataRelayer.h"
 
 #include "Framework/DataDescriptorMatcher.h"
@@ -19,6 +20,7 @@
 #include "Framework/PartRef.h"
 #include "Framework/TimesliceIndex.h"
 #include "Framework/Signpost.h"
+#include "Framework/RoutingIndices.h"
 #include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
 
@@ -135,10 +137,11 @@ bool DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
 /// you have one route per timeslice, even if the type is the same.
 size_t matchToContext(void* data,
                       std::vector<DataDescriptorMatcher> const& matchers,
+                      std::vector<size_t> const& index,
                       VariableContext& context)
 {
-  for (size_t ri = 0, re = matchers.size(); ri < re; ++ri) {
-    auto& matcher = matchers[ri];
+  for (size_t ri = 0, re = index.size(); ri < re; ++ri) {
+    auto& matcher = matchers[index[ri]];
 
     if (matcher.match(reinterpret_cast<char const*>(data), context)) {
       context.commit();
@@ -189,12 +192,13 @@ DataRelayer::RelayChoice
   // function because while it's trivial now, the actual matchmaking will
   // become more complicated when we will start supporting ranges.
   auto getInputTimeslice = [& matchers = mInputMatchers,
+                            &distinctRoutes = mDistinctRoutesIndex,
                             &header,
                             &index](VariableContext& context)
     -> std::tuple<int, TimesliceId> {
     /// FIXME: for the moment we only use the first context and reset
     /// between one invokation and the other.
-    auto input = matchToContext(header->GetData(), matchers, context);
+    auto input = matchToContext(header->GetData(), matchers, distinctRoutes, context);
 
     if (input == INVALID_INPUT) {
       return {
@@ -373,11 +377,9 @@ DataRelayer::RelayChoice
   return WillRelay;
 }
 
-std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
+void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& completed)
 {
   // THE STATE
-  std::vector<RecordAction> completed;
-  completed.reserve(16);
   const auto& cache = mCache;
   const auto numInputTypes = mDistinctRoutesIndex.size();
   //
@@ -393,33 +395,11 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
     return gsl::span<MessageSet const>(start, end);
   };
 
-  auto buildCompletionQuery = [](gsl::span<MessageSet const>& cacheColumn) -> std::vector<DataRef> {
-    // Note: the query contains only the first element of the message set because all
-    // elements of this set belong to the same data description, which might be split
-    // into multiple parts. While the possibility of multiple input parts was originally
-    // intended to only support the split parts, the feature can also be used to handle
-    // multiple input objects fulfilling the same matcher, e.g. ignoring subspec.
-    // In this case the first entry is not containing the full information, but
-    // right now there is no use case for such a complex completion policy.
-    std::vector<CompletionPolicy::InputSetElement> result(cacheColumn.size(), {nullptr, nullptr, nullptr});
-    for (size_t idx = 0, end = cacheColumn.size(); idx < end; idx++) {
-      if (cacheColumn[idx].size() > 0 && cacheColumn[idx].at(0).header && cacheColumn[idx].at(0).payload) {
-        result[idx].header = static_cast<const char*>(cacheColumn[idx].at(0).header->GetData());
-        result[idx].payload = static_cast<const char*>(cacheColumn[idx].at(0).payload->GetData());
-      }
-    }
-    return result;
-  };
-
   // These two are trivial, but in principle the whole loop could be parallelised
   // or vectorised so "completed" could be a thread local variable which needs
   // merging at the end.
   auto updateCompletionResults = [&completed](TimesliceSlot li, CompletionPolicy::CompletionOp op) {
     completed.emplace_back(RecordAction{li, op});
-  };
-
-  auto completionResults = [&completed]() -> std::vector<RecordAction> {
-    return completed;
   };
 
   // THE OUTER LOOP
@@ -434,7 +414,7 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
   // Notice that the only time numInputTypes is 0 is when we are a dummy
   // device created as a source for timers / conditions.
   if (numInputTypes == 0) {
-    return {};
+    return;
   }
   size_t cacheLines = cache.size() / numInputTypes;
   assert(cacheLines * numInputTypes == cache.size());
@@ -447,8 +427,18 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
       continue;
     }
     auto partial = getPartialRecord(li);
-    auto query = buildCompletionQuery(partial);
-    auto action = mCompletionPolicy.callback({query.data(), query.data() + query.size()});
+    auto getter = [&partial](size_t idx, size_t part) {
+      if (partial[idx].size() > 0 && partial[idx].at(part).header && partial[idx].at(part).payload) {
+        return DataRef{nullptr,
+                       reinterpret_cast<const char*>(partial[idx].at(part).header->GetData()),
+                       reinterpret_cast<const char*>(partial[idx].at(part).payload->GetData())};
+      }
+      return DataRef{};
+    };
+    auto nPartsGetter = [&partial](size_t idx) {
+      return partial[idx].size();
+    };
+    auto action = mCompletionPolicy.callback({getter, nPartsGetter, static_cast<size_t>(partial.size())});
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
       case CompletionPolicy::CompletionOp::Process:
@@ -462,7 +452,6 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
     // a new message before we look again into the given cacheline.
     mTimesliceIndex.markAsDirty(slot, false);
   }
-  return completionResults();
 }
 
 std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(TimesliceSlot slot)

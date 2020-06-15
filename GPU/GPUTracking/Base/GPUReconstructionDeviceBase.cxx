@@ -55,7 +55,7 @@ void* GPUReconstructionDeviceBase::helperWrapper_static(void* arg)
 
 void* GPUReconstructionDeviceBase::helperWrapper(GPUReconstructionHelpers::helperParam* par)
 {
-  if (mDeviceProcessingSettings.debugLevel >= 2) {
+  if (mDeviceProcessingSettings.debugLevel >= 3) {
     GPUInfo("\tHelper thread %d starting", par->num);
   }
 
@@ -80,7 +80,7 @@ void* GPUReconstructionDeviceBase::helperWrapper(GPUReconstructionHelpers::helpe
     ResetThisHelperThread(par);
     par->mutex[0].lock();
   }
-  if (mDeviceProcessingSettings.debugLevel >= 2) {
+  if (mDeviceProcessingSettings.debugLevel >= 3) {
     GPUInfo("\tHelper thread %d terminating", par->num);
   }
   par->mutex[1].unlock();
@@ -245,6 +245,10 @@ int GPUReconstructionDeviceBase::InitDevice()
     return (1);
   }
 
+  if (mDeviceProcessingSettings.deviceTimers) {
+    AddGPUEvents(mDebugEvents);
+  }
+
   int retVal = InitDevice_Runtime();
   if (retVal) {
     GPUImportant("GPU Tracker initialization failed");
@@ -267,9 +271,9 @@ int GPUReconstructionDeviceBase::InitDevice()
     return (1);
   }
 
-  SetThreadCounts();
-
-  GPUInfo("GPU Tracker initialization successfull"); // Verbosity reduced because GPU backend will print GPUImportant message!
+  if (mMaster == nullptr || mDeviceProcessingSettings.debugLevel >= 2) {
+    GPUInfo("GPU Tracker initialization successfull"); // Verbosity reduced because GPU backend will print GPUImportant message!
+  }
 
   return (retVal);
 }
@@ -289,24 +293,18 @@ int GPUReconstructionDeviceBase::ExitDevice()
 
   int retVal = ExitDevice_Runtime();
   mProcessorsShadow = nullptr;
-  mHostMemoryPool = mHostMemoryBase = mDeviceMemoryPool = mDeviceMemoryBase = mHostMemoryPermanent = mDeviceMemoryPermanent = nullptr;
+  mHostMemoryPool = mHostMemoryBase = mDeviceMemoryPool = mDeviceMemoryBase = mHostMemoryPoolEnd = mDeviceMemoryPoolEnd = mHostMemoryPermanent = mDeviceMemoryPermanent = nullptr;
   mHostMemorySize = mDeviceMemorySize = 0;
 
   return retVal;
 }
 
-int GPUReconstructionDeviceBase::GetMaxThreads()
-{
-  int retVal = mTRDThreadCount * mBlockCount;
-  return std::max(retVal, GPUReconstruction::GetMaxThreads());
-}
-
-int GPUReconstructionDeviceBase::registerMemoryForGPU(void* ptr, size_t size)
+int GPUReconstructionDeviceBase::registerMemoryForGPU(const void* ptr, size_t size)
 {
   return IsGPU();
 }
 
-int GPUReconstructionDeviceBase::unregisterMemoryForGPU(void* ptr)
+int GPUReconstructionDeviceBase::unregisterMemoryForGPU(const void* ptr)
 {
   return IsGPU();
 }

@@ -229,7 +229,7 @@ class GPUDisplay
   int InitGL_internal();
   const GPUParam& param();
   const GPUTPCTracker& sliceTracker(int iSlice);
-  const GPUTRDTracker& trdTracker();
+  const GPUTRDTrackerGPU& trdTracker();
   const GPUTrackingInOutPointers ioptrs();
   void drawVertices(const vboList& v, const GLenum t);
   void insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, size_t first, size_t last);

@@ -18,20 +18,20 @@
 #include <gsl/span>
 #include <unordered_map>
 #include <vector>
+#include <map>
 #include <string>
+#include <string_view>
 #include <functional>
+#include <mutex>
 
 #include <Rtypes.h>
+#include <TTree.h>
+#include <TStopwatch.h>
 #include "Headers/RAWDataHeader.h"
-#include "DetectorsRaw/HBFUtils.h"
-
-/*
-#include <cstdio>
-#include <map>
-
-#include <utility>
 #include "Headers/DataHeader.h"
-*/
+#include "Headers/DAQID.h"
+#include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 namespace o2
 {
@@ -42,24 +42,48 @@ class RawFileWriter
 {
 
  public:
-  using RDH = o2::header::RAWDataHeaderV4;
+  using RDHAny = o2::header::RDHAny;
   using IR = o2::InteractionRecord;
-  using CarryOverCallBack = std::function<int(const RDH& rdh, const gsl::span<char> data,
+  using CarryOverCallBack = std::function<int(const RDHAny* rdh, const gsl::span<char> data,
                                               const char* ptr, int size, int splitID,
                                               std::vector<char>& trailer, std::vector<char>& header)>;
-  using EmptyPageCallBack = std::function<void(const RDH& rdh, std::vector<char>& emptyHBF)>;
+  using EmptyPageCallBack = std::function<void(const RDHAny* rdh, std::vector<char>& emptyHBF)>;
 
-  //=====================================================================================
+  ///=====================================================================================
+  /// output file handler with its own lock
+  struct OutputFile {
+    FILE* handler = nullptr;
+    std::mutex fileMtx;
+    OutputFile() = default;
+    OutputFile(const OutputFile& src) : handler(src.handler) {}
+    OutputFile& operator=(const OutputFile& src)
+    {
+      if (this != &src) {
+        handler = src.handler;
+      }
+      return *this;
+    }
+    void write(const char* data, size_t size);
+  };
+  ///=====================================================================================
+  struct PayloadCache {
+    bool preformatted = false;
+    std::vector<char> payload;
+    ClassDefNV(PayloadCache, 1);
+  };
+
+  ///=====================================================================================
+  /// Single GBT link helper
   struct LinkData {
-    static constexpr int MarginToFlush = 2 * sizeof(RDH); // flush superpage if free space left <= this margin
-    RDH rdhCopy;                                          // RDH with the running info of the last RDH seen
+    static constexpr int MarginToFlush = 2 * sizeof(RDHAny); // flush superpage if free space left <= this margin
+    RDHAny rdhCopy;                                          // RDH with the running info of the last RDH seen
     IR updateIR;                                          // IR at which new HBF needs to be created
-    FILE* file = nullptr;                                 // file handler associated with this link
     int lastRDHoffset = -1;                               // position of last RDH in the link buffer
     bool startOfRun = true;                               // to signal if this is the 1st HBF of the run or not
     uint8_t packetCounter = 0;                            // running counter
     uint16_t pageCnt = 0;                                 // running counter
     LinkSubSpec_t subspec = 0;                            // subspec according to DataDistribution
+    int counter = 0;                                      //RSREM
     //
     size_t nTFWritten = 0;    // number of TFs written
     size_t nRDHWritten = 0;   // number of RDHs written
@@ -67,24 +91,33 @@ class RawFileWriter
     //
     std::string fileName{};                // file name associated with this link
     std::vector<char> buffer;              // buffer to accumulate superpage data
-    const RawFileWriter* writer = nullptr; // pointer on the parent writer
+    RawFileWriter* writer = nullptr;       // pointer on the parent writer
+
+    PayloadCache cacheBuffer;         // used for caching in case of async. data input
+    std::unique_ptr<TTree> cacheTree; // tree to store the cache
+
+    std::mutex mtx;
 
     LinkData() = default;
-    ~LinkData();
+    ~LinkData() = default;
+    LinkData(const LinkData& src);            // due to the mutex...
+    LinkData& operator=(const LinkData& src); // due to the mutex...
     void close(const IR& ir);
     void print() const;
-    void addData(const IR& ir, const gsl::span<char> data);
-    RDH* getLastRDH() { return lastRDHoffset < 0 ? nullptr : reinterpret_cast<RDH*>(&buffer[lastRDHoffset]); }
+    void addData(const IR& ir, const gsl::span<char> data, bool preformatted = false);
+    RDHAny* getLastRDH() { return lastRDHoffset < 0 ? nullptr : reinterpret_cast<RDHAny*>(&buffer[lastRDHoffset]); }
     std::string describe() const;
 
    protected:
-    void openHBFPage(const RDH& rdh);
+    void openHBFPage(const RDHAny& rdh);
     void addHBFPage(bool stop = false);
     void closeHBFPage() { addHBFPage(true); }
     void flushSuperPage(bool keepLastPage = false);
-    void fillEmptyHBHs(const IR& ir);
+    void fillEmptyHBHs(const IR& ir, bool dataAdded);
+    void addPreformattedCRUPage(const gsl::span<char> data);
+    void cacheData(const IR& ir, const gsl::span<char> data, bool preformatted);
 
-    // expand buffer by positive increment and return old size
+    /// expand buffer by positive increment and return old size
     size_t expandBufferBy(size_t by)
     {
       auto offs = buffer.size();
@@ -92,7 +125,7 @@ class RawFileWriter
       return offs;
     }
 
-    // append to the end of the buffer and return the point where appended to
+    /// append to the end of the buffer and return the point where appended to
     size_t pushBack(const char* ptr, size_t sz, bool keepLastOnFlash = true)
     {
       if (!sz) {
@@ -107,37 +140,62 @@ class RawFileWriter
       memmove(&buffer[offs], ptr, sz);
       return offs;
     }
-    // add RDH to buffer. In case this requires flushing of the superpage
-    // do not keep the previous page
-    size_t pushBack(const RDH& rdh)
+
+    /// add RDH to buffer. In case this requires flushing of the superpage, do not keep the previous page
+    size_t pushBack(const RDHAny& rdh)
     {
       nRDHWritten++;
-      return pushBack(reinterpret_cast<const char*>(&rdh), sizeof(RDH), false);
+      return pushBack(reinterpret_cast<const char*>(&rdh), sizeof(RDHAny), false);
     }
 
-   private:
-    static std::vector<char> sCarryOverTrailer;        // working space for optional carry-over trailer
-    static std::vector<char> sCarryOverHeader;         // working space for optional carry-over header
-    static std::vector<char> sEmptyHBFFiller;          // working space for optional empty HBF filler
-    static std::vector<o2::InteractionRecord> sIRWork; // woking buffer for the generated IRs
   };
   //=====================================================================================
 
-  RawFileWriter() = default;
+  RawFileWriter(o2::header::DataOrigin origin = o2::header::gDataOriginInvalid) : mOrigin(origin) {}
   ~RawFileWriter();
+  void useCaching();
+  void writeConfFile(std::string_view origin = "FLP", std::string_view description = "RAWDATA", std::string_view cfgname = "raw.cfg", bool fullPath = true) const;
   void close();
 
-  void registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8_t endpoint, const std::string& outFileName);
-  void registerLink(const RDH& rdh, const std::string& outFileName);
+  LinkData& registerLink(uint16_t fee, uint16_t cru, uint8_t link, uint8_t endpoint, std::string_view outFileName);
 
-  LinkData& getLinkWithSubSpec(LinkSubSpec_t ss) { return mSSpec2Link[ss]; }
-  LinkData& getLinkWithSubSpec(const RDH& rdh) { return mSSpec2Link[HBFUtils::getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID)]; }
+  template <typename H>
+  LinkData& registerLink(const H& rdh, std::string_view outFileName)
+  {
+    RDHAny::sanityCheckLoose<H>();
+    auto& linkData = registerLink(RDHUtils::getFEEID(rdh), RDHUtils::getCRUID(rdh), RDHUtils::getLinkID(rdh), RDHUtils::getEndPointID(rdh), outFileName);
+    RDHUtils::setDetectorField(linkData.rdhCopy, RDHUtils::getDetectorField(rdh));
+    return linkData;
+  }
 
-  void addData(uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data);
-  void addData(const RDH& rdh, const IR& ir, const gsl::span<char> data) { addData(rdh.cruID, rdh.linkID, rdh.endPointID, ir, data); }
+  void setOrigin(o2::header::DataOrigin origin)
+  {
+    mOrigin = origin;
+  }
+
+  o2::header::DataOrigin getOrigin() const { return mOrigin; }
+
+  LinkData& getLinkWithSubSpec(LinkSubSpec_t ss);
+
+  template <typename H>
+  LinkData& getLinkWithSubSpec(const H& rdh)
+  {
+    RDHAny::sanityCheckLoose<H>();
+    return mSSpec2Link[RDHUtils::getSubSpec(RDHUtils::getCRUID(rdh), RDHUtils::getLinkID(rdh), RDHUtils::getEndPointID(rdh), RDHUtils::getFEEID(rdh))];
+  }
+
+  void addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data, bool preformatted = false);
+
+  template <typename H>
+  void addData(const H& rdh, const IR& ir, const gsl::span<char> data, bool preformatted = false)
+  {
+    RDHAny::sanityCheckLoose<H>();
+    addData(RDHUtils::getFEEID(rdh), RDHUtils::getCRUID(rdh), RDHUtils::getLinkID(rdh), RDHUtils::getEndPointID(rdh), ir, data);
+  }
 
   void setContinuousReadout() { mROMode = Continuous; }
   void setTriggeredReadout() { mROMode = Triggered; }
+  void setContinuousReadout(bool v) { mROMode = v ? Continuous : Triggered; }
   bool isContinuousReadout() const { return mROMode == Continuous; }
   bool isTriggeredReadout() const { return mROMode == Triggered; }
   bool isReadOutModeSet() const { return mROMode != NotSet; }
@@ -160,17 +218,17 @@ class RawFileWriter
   }
 
   int getSuperPageSize() const { return mSuperPageSize; }
-  void setSuperPageSize(int nbytes)
-  {
-    mSuperPageSize = nbytes < 16 * HBFUtils::MAXCRUPage ? HBFUtils::MAXCRUPage : nbytes;
-  }
+  void setSuperPageSize(int nbytes);
 
-  HBFUtils& getHBFUtils() { return mHBFUtils; }
+  /// get highest IR seen so far
+  IR getIRMax() const;
+
+  const HBFUtils& getHBFUtils() const { return mHBFUtils; }
 
   template <class T>
   void setCarryOverCallBack(const T* t)
   {
-    carryOverFunc = [=](const RDH& rdh, const gsl::span<char> data, const char* ptr, int size, int splitID,
+    carryOverFunc = [=](const RDHAny* rdh, const gsl::span<char> data, const char* ptr, int size, int splitID,
                         std::vector<char>& trailer, std::vector<char>& header) -> int {
       return t->carryOverMethod(rdh, data, ptr, size, splitID, trailer, header);
     };
@@ -179,7 +237,7 @@ class RawFileWriter
   template <class T>
   void setEmptyPageCallBack(const T* t)
   {
-    emptyHBFFunc = [=](const RDH& rdh, std::vector<char>& toAdd) {
+    emptyHBFFunc = [=](const RDHAny* rdh, std::vector<char>& toAdd) {
       t->emptyHBFMethod(rdh, toAdd);
     };
   }
@@ -219,7 +277,7 @@ class RawFileWriter
   // In case returned actualSize == 0, current CRU page will be closed w/o adding anything, and new
   // query of this method will be done on the new CRU page
 
-  int carryOverMethod(const RDH& rdh, const gsl::span<char> data, const char* ptr, int maxSize, int splitID,
+  int carryOverMethod(const RDHAny*, const gsl::span<char> data, const char* ptr, int maxSize, int splitID,
                       std::vector<char>& trailer, std::vector<char>& header) const
   {
     return maxSize; // do nothing
@@ -232,29 +290,57 @@ class RawFileWriter
   // rdh     : RDH of the CRU page opening empty RDH
   // toAdd   : a vector (supplied empty) to be filled to a size multipe of 16 bytes
   //
-  void emptyHBFMethod(const RDH& rdh, std::vector<char>& toAdd) const
+  void emptyHBFMethod(const RDHAny* rdh, std::vector<char>& toAdd) const
   {
   }
 
+  int getUsedRDHVersion() const { return mUseRDHVersion; }
+  void useRDHVersion(int v)
+  {
+    assert(v >= RDHUtils::getVersion<o2::header::RDHLowest>() && v <= RDHUtils::getVersion<o2::header::RDHHighest>());
+    mUseRDHVersion = v;
+  }
+
+  bool getDontFillEmptyHBF() const { return mDontFillEmptyHBF; }
+  void setDontFillEmptyHBF(bool v) { mDontFillEmptyHBF = v; }
+
+  bool getAddSeparateHBFStopPage() const { return mAddSeparateHBFStopPage; }
+  void setAddSeparateHBFStopPage(bool v) { mAddSeparateHBFStopPage = v; }
+
  private:
+  void fillFromCache();
+
   enum RoMode_t { NotSet,
                   Continuous,
                   Triggered };
 
-  IR mIRMax{0, 0}; // highest IR seen
-  HBFUtils mHBFUtils;
+  const HBFUtils& mHBFUtils = HBFUtils::Instance();
   std::unordered_map<LinkSubSpec_t, LinkData> mSSpec2Link; // mapping from subSpec to link
-  std::unordered_map<std::string, FILE*> mFName2File;      // mapping from filenames to actual files
+  std::unordered_map<std::string, OutputFile> mFName2File; // mapping from filenames to actual files
 
   CarryOverCallBack carryOverFunc = nullptr; // default call back for large payload splitting (does nothing)
   EmptyPageCallBack emptyHBFFunc = nullptr;  // default call back for empty HBF (does nothing)
 
   // options
   int mVerbosity = 0;
+  o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
+  int mUseRDHVersion = RDHUtils::getVersion<o2::header::RAWDataHeader>(); // by default, use default version
   int mSuperPageSize = 1024 * 1024; // super page size
   bool mStartTFOnNewSPage = true;   // every TF must start on a new SPage
-  RoMode_t mROMode = NotSet;
+  bool mDontFillEmptyHBF = false;   // skipp adding empty HBFs (uness it must have TF flag)
+  bool mAddSeparateHBFStopPage = true; // HBF stop is added on a separate CRU page
 
+  //>> caching --------------
+  bool mCachingStage = false; // signal that current data should be cached
+  std::mutex mCacheFileMtx;
+  std::unique_ptr<TFile> mCacheFile; // file for caching
+  using CacheEntry = std::vector<std::pair<LinkSubSpec_t, size_t>>;
+  std::map<IR, CacheEntry> mCacheMap;
+  //<< caching -------------
+
+  TStopwatch mTimer;
+  RoMode_t mROMode = NotSet;
+  IR mFirstIRAdded; // 1st IR seen
   ClassDefNV(RawFileWriter, 1);
 }; // namespace raw
 

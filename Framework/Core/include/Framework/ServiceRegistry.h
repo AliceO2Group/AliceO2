@@ -20,6 +20,7 @@
 #include <string>
 #include <type_traits>
 #include <typeinfo>
+#include <stdexcept>
 
 namespace o2::framework
 {
@@ -101,6 +102,22 @@ class ServiceRegistry
     for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
       if (mServices[i + serviceId].first == typeHash) {
         return *reinterpret_cast<T*>(mServices[i + serviceId].second);
+      }
+    }
+    throw std::runtime_error(std::string("Unable to find service of kind ") +
+                             typeid(T).name() +
+                             " did you register one as non-const reference?");
+  }
+
+  /// Check if service of type T is currently active.
+  template <typename T>
+  std::enable_if_t<std::is_const_v<T> == false, bool> active() const
+  {
+    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
+    auto serviceId = typeHash & MAX_SERVICES_MASK;
+    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
+      if (mServices[i + serviceId].first == typeHash) {
+        return mServices[i + serviceId].second != nullptr;
       }
     }
     throw std::runtime_error(std::string("Unable to find service of kind ") +

@@ -1,0 +1,15 @@
+name: Verify user
+on:
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  nag_first_timer:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/first-interaction@v1
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        pr-message: 'This seems to be your first PR. You will need a positive review in order for tests to start.'
+

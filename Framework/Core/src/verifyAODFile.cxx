@@ -22,7 +22,7 @@ using namespace o2::soa;
 template <typename T>
 void verifyTable(TFile* infile, const char* branchName)
 {
-  std::cout << "Table: " << o2::aod::MetadataTrait<T>::metadata::label() << std::endl;
+  std::cout << "Table: " << o2::aod::MetadataTrait<T>::metadata::tableLabel() << std::endl;
   std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>(branchName, infile);
   TableBuilder builder;
   RootTableBuilderHelpers::convertASoA<T>(builder, *reader);
@@ -43,7 +43,7 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  verifyTable<o2::aod::Collisions>(infile.get(), "O2events");
+  verifyTable<o2::aod::Collisions>(infile.get(), "O2collisions");
   verifyTable<o2::aod::Tracks>(infile.get(), "O2tracks");
   verifyTable<o2::aod::TracksCov>(infile.get(), "O2tracks");
   verifyTable<o2::aod::TracksExtra>(infile.get(), "O2tracks");

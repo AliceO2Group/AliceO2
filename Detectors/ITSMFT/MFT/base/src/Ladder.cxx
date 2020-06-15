@@ -29,6 +29,7 @@
 #include "MFTBase/Flex.h"
 #include "MFTBase/Ladder.h"
 #include "MFTBase/Geometry.h"
+#include "MFTBase/MFTBaseParam.h"
 
 using namespace o2::itsmft;
 using namespace o2::mft;
@@ -65,7 +66,6 @@ Ladder::~Ladder() { delete mFlex; }
 //_____________________________________________________________________________
 TGeoVolume* Ladder::createVolume()
 {
-
   Int_t nChips = mSegmentation->getNSensors();
 
   // Create the flex
@@ -74,9 +74,12 @@ TGeoVolume* Ladder::createVolume()
                         Geometry::sLadderOffsetToEnd + Geometry::sSensorSideOffset;
   Double_t shiftY =
     4 * Geometry::sSensorTopOffset + SegmentationAlpide::SensorSizeRows - Geometry::sFlexHeight / 2; // to be verified!!
-  TGeoVolumeAssembly* flexVol = mFlex->makeFlex(mSegmentation->getNSensors(), flexLength);
-  mLadderVolume->AddNode(flexVol, 1, new TGeoTranslation(flexLength / 2 + Geometry::sSensorSideOffset / 2, shiftY, Geometry::sFlexThickness / 2 - 2 * (Geometry::sKaptonOnCarbonThickness + Geometry::sKaptonGlueThickness)));
 
+  auto& mftBaseParam = MFTBaseParam::Instance();
+  if (mftBaseParam.buildFlex) {
+    TGeoVolumeAssembly* flexVol = mFlex->makeFlex(mSegmentation->getNSensors(), flexLength);
+    mLadderVolume->AddNode(flexVol, 1, new TGeoTranslation(flexLength / 2 + Geometry::sSensorSideOffset / 2, shiftY, Geometry::sFlexThickness / 2 - 2 * (Geometry::sKaptonOnCarbonThickness + Geometry::sKaptonGlueThickness)));
+  }
   // Create the CMOS Sensors
   createSensors();
 

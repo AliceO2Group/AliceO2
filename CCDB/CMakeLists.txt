@@ -23,6 +23,7 @@ o2_add_library(CCDB
 o2_target_root_dictionary(CCDB
                           HEADERS
                                   include/CCDB/CcdbApi.h
+			          include/CCDB/CcdbObjectInfo.h
                                   include/CCDB/TObjectWrapper.h
                                   include/CCDB/IdPath.h
                                   include/CCDB/BasicCCDBManager.h
@@ -46,6 +47,12 @@ o2_add_executable(downloadccdbfile
 
 o2_add_test(CcdbApi
             SOURCES test/testCcdbApi.cxx
+            COMPONENT_NAME ccdb
+            PUBLIC_LINK_LIBRARIES O2::CCDB
+            LABELS ccdb)
+
+o2_add_test(BasicCCDBManager
+            SOURCES test/testBasicCCDBManager.cxx
             COMPONENT_NAME ccdb
             PUBLIC_LINK_LIBRARIES O2::CCDB
             LABELS ccdb)

@@ -40,11 +40,11 @@ class MCLabelAccumulator
  public:
   MCLabelAccumulator(GPUTPCClusterFinder&);
 
-  void collect(const ChargePos&, Charge);
+  void collect(const ChargePos&, tpccf::Charge);
 
   bool engaged() const { return mLabels != nullptr && mOutput != nullptr; }
 
-  void commit(Row, uint, uint);
+  void commit(tpccf::Row, uint, uint);
 
  private:
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -54,7 +54,7 @@ class MCLabelAccumulator
   GPUTPCClusterMCInterim* mOutput = nullptr;
 
   std::bitset<64> mMaybeHasLabel;
-  std::vector<uint64_t> mClusterLabels;
+  std::vector<o2::MCCompLabel> mClusterLabels;
 };
 
 } // namespace gpu

@@ -38,6 +38,11 @@ class GeneratorPythia8 : public Generator
   /** Initialize the generator if needed **/
   Bool_t Init() override;
 
+  /** setters **/
+  void setConfig(std::string val) { mConfig = val; };
+  void setHooksFileName(std::string val) { mHooksFileName = val; };
+  void setHooksFuncName(std::string val) { mHooksFuncName = val; };
+
   /** methods **/
   bool readString(std::string val) { return mPythia.readString(val, true); };
   bool readFile(std::string val) { return mPythia.readFile(val, true); };
@@ -52,8 +57,16 @@ class GeneratorPythia8 : public Generator
   Bool_t generateEvent() override;
   Bool_t importParticles() override;
 
+  /** methods that can be overridded **/
+  void updateHeader(FairMCEventHeader* eventHeader) override;
+
   /** Pythia8 **/
   Pythia8::Pythia mPythia; //!
+
+  /** configuration **/
+  std::string mConfig;
+  std::string mHooksFileName;
+  std::string mHooksFuncName;
 
   ClassDefOverride(GeneratorPythia8, 1);
 

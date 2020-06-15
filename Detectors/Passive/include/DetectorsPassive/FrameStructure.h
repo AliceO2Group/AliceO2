@@ -29,10 +29,10 @@ namespace passive
 class FrameStructure : public PassiveBase
 {
  public:
-  FrameStructure(const char* name, const char* title = "FrameStruct");
+  FrameStructure(const char* name, const char* title = "FRAME");
 
   /**  default constructor    */
-  FrameStructure() = default;
+  FrameStructure();
 
   /**  destructor     */
   ~FrameStructure() override = default;

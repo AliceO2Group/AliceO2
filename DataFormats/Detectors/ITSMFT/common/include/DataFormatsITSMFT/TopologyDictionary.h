@@ -36,6 +36,7 @@
 #include <vector>
 #include "MathUtils/Cartesian3D.h"
 #include "DataFormatsITSMFT/CompCluster.h"
+#include "TH1F.h"
 
 namespace o2
 {
@@ -50,6 +51,8 @@ struct GroupStruct {
   unsigned long mHash;     ///< Hashcode
   float mErrX;             ///< Error associated to the hit point in the x direction.
   float mErrZ;             ///< Error associated to the hit point in the z direction.
+  float mErr2X;            ///< Squared Error associated to the hit point in the x direction.
+  float mErr2Z;            ///< Squared Error associated to the hit point in the z direction.
   float mXCOG;             ///< x position of te COG wrt the boottom left corner of the bounding box
   float mZCOG;             ///< z position of te COG wrt the boottom left corner of the bounding box
   int mNpixels;            ///< Number of fired pixels
@@ -57,7 +60,7 @@ struct GroupStruct {
                            ///the bits set to 1.
   double mFrequency;       ///< Frequency of the topology
   bool mIsGroup;           ///< false: common topology; true: group of rare topologies
-  ClassDefNV(GroupStruct, 2);
+  ClassDefNV(GroupStruct, 3);
 };
 
 class TopologyDictionary
@@ -78,51 +81,93 @@ class TopologyDictionary
   /// Prints the dictionary
   friend std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dictionary);
   /// Prints the dictionary in a binary file
-  void WriteBinaryFile(std::string outputFile);
+  void writeBinaryFile(std::string outputFile);
   /// Reads the dictionary from a binary file
-  int ReadBinaryFile(std::string fileName);
+  int readBinaryFile(std::string fileName);
   /// Returns the x position of the COG for the n_th element
-  float GetXcog(int n) const;
-  /// Returns the error on the x position of the COG for the n_th element
-  float GetErrX(int n) const;
-  /// Returns the z position of the COG for the n_th element
-  float GetZcog(int n) const;
-  /// Returns the error on the z position of the COG for the n_th element
-  float GetErrZ(int n) const;
-  /// Returns the hash of the n_th element
-  unsigned long GetHash(int n) const;
-  /// Returns the number of fired pixels of the n_th element
-  int GetNpixels(int n) const;
-  /// Returns true if the element corresponds to a group of rare topologies
-  inline bool IsGroup(int n) const
+  inline float getXCOG(int n) const
   {
-    if (n >= (int)mVectorOfGroupIDs.size()) {
-      if (mVectorOfGroupIDs.size()) { // produce error only if there is a real overflow
-        LOG(ERROR) << "Index out of bounds";
-      }
-      return false;
-    } else
-      return mVectorOfGroupIDs[n].mIsGroup;
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mXCOG;
   }
-
-  /// Returns the pattern of the topology
-  ClusterPattern
-    GetPattern(int n) const;
+  /// Returns the error on the x position of the COG for the n_th element
+  inline float getErrX(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mErrX;
+  }
+  /// Returns the z position of the COG for the n_th element
+  inline float getZCOG(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mZCOG;
+  }
+  /// Returns the error on the z position of the COG for the n_th element
+  inline float getErrZ(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mErrZ;
+  }
+  /// Returns the error^2 on the x position of the COG for the n_th element
+  inline float getErr2X(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mErr2X;
+  }
+  /// Returns the error^2 on the z position of the COG for the n_th element
+  inline float getErr2Z(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mErr2Z;
+  }
+  /// Returns the hash of the n_th element
+  inline unsigned long getHash(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mHash;
+  }
+  /// Returns the number of fired pixels of the n_th element
+  inline int getNpixels(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mNpixels;
+  }
   /// Returns the frequency of the n_th element;
-  double GetFrequency(int n) const;
+  inline double getFrequency(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mFrequency;
+  }
+  /// Returns true if the element corresponds to a group of rare topologies
+  inline bool isGroup(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mIsGroup;
+  }
+  /// Returns the pattern of the topology
+  inline ClusterPattern getPattern(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mPattern;
+  }
+  /// Fills a hostogram with the distribution of the IDs
+  static void getTopologyDistribution(const TopologyDictionary& dict, TH1F*& histo, const char* histName);
   /// Returns the number of elements in the dicionary;
-  int GetSize() const { return (int)mVectorOfGroupIDs.size(); }
+  int getSize() const { return (int)mVectorOfIDs.size(); }
   ///Returns the local position of a compact cluster
   Point3D<float> getClusterCoordinates(const CompCluster& cl) const;
+  ///Returns the local position of a compact cluster
+  static Point3D<float> getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt);
 
   friend BuildTopologyDictionary;
   friend LookUp;
   friend TopologyFastSimulation;
 
  private:
-  std::unordered_map<unsigned long, int> mFinalMap; ///< Map of pair <hash, position in mVectorOfGroupIDs>
-  int mSmallTopologiesLUT[8 * 255 + 1];             ///< Look-Up Table for the topologies with 1-byte linearised matrix
-  std::vector<GroupStruct> mVectorOfGroupIDs;       ///< Vector of topologies and groups
+  std::unordered_map<unsigned long, int> mCommonMap; ///< Map of pair <hash, position in mVectorOfIDs>
+  std::unordered_map<int, int> mGroupMap;            ///< Map of pair <groudID, position in mVectorOfIDs>
+  int mSmallTopologiesLUT[8 * 255 + 1];              ///< Look-Up Table for the topologies with 1-byte linearised matrix
+  std::vector<GroupStruct> mVectorOfIDs;             ///< Vector of topologies and groups
 
   ClassDefNV(TopologyDictionary, 3);
 }; // namespace itsmft

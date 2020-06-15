@@ -23,6 +23,7 @@
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
 #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
 #include "TOFCalibration/CalibTOFapi.h"
+#include "TStopwatch.h"
 
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
@@ -47,14 +48,13 @@ class TOFDPLClustererTask
   void init(framework::InitContext& ic)
   {
     // nothing special to be set up
+    mTimer.Stop();
+    mTimer.Reset();
   }
 
   void run(framework::ProcessingContext& pc)
   {
-    static bool finished = false;
-    if (finished) {
-      return;
-    }
+    mTimer.Start(false);
     // get digit data
     auto digits = pc.inputs().get<gsl::span<o2::tof::Digit>>("tofdigits");
     auto row = pc.inputs().get<std::vector<o2::tof::ReadoutWindowData>*>("readoutwin");
@@ -119,15 +119,19 @@ class TOFDPLClustererTask
     if (mUseMC)
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mClsLabels);
 
-    // declare done
-    finished = true;
-    //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    pc.services().get<ControlService>().endOfStream();
+    mTimer.Stop();
+  }
+
+  void endOfStream(EndOfStreamContext& ec)
+  {
+    LOGF(INFO, "TOF Clusterer total timing: Cpu: %.3e Real: %.3e s in %d slots",
+         mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   }
 
  private:
   DigitDataReader mReader; ///< Digit reader
   Clusterer mClusterer;    ///< Cluster finder
+  TStopwatch mTimer;
 
   std::vector<Cluster> mClustersArray; ///< Array of clusters
   MCLabelContainer mClsLabels;
@@ -142,14 +146,20 @@ o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB)
     inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
     inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
   }
-  if (useMC)
+  if (useMC) {
     inputs.emplace_back("tofdigitlabels", o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back(o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe);
+  if (useMC) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+  }
 
   return DataProcessorSpec{
     "TOFClusterer",
     inputs,
-    Outputs{OutputSpec{o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe},
-            OutputSpec{o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe}},
+    outputs,
     AlgorithmSpec{adaptFromTask<TOFDPLClustererTask>(useMC, useCCDB)},
     Options{/* for the moment no options */}};
 }

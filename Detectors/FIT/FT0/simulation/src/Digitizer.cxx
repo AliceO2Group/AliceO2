@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "FT0Simulation/Digitizer.h"
+#include "FT0Simulation/DigitizationConstants.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include <CommonDataFormat/InteractionRecord.h>
 
@@ -19,170 +20,321 @@
 #include <cassert>
 #include <iostream>
 #include <optional>
-#include <Vc/Vc>
 
 using namespace o2::ft0;
 //using o2::ft0::Geometry;
 
 ClassImp(Digitizer);
 
-double Digitizer::get_time(const std::vector<double>& times)
+Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float deadTime)
 {
-  double min_time = *std::min_element(begin(times), end(times));
-  assert(std::is_sorted(begin(times), end(times)));
-  std::vector<double> noise(std::ceil(parameters.bunchWidth / parameters.mNoisePeriod));
-  for (auto& n : noise)
-    n = gRandom->Gaus(0, parameters.mNoiseVar);
-  bool is_positive = false;
-  auto period = parameters.mNoisePeriod;
-  auto value_at = [&noise, &times, &period](double time) {
-    double val = 0;
-    for (double t : times)
-      val += signalForm_i(time - t);
-    for (size_t i = 0; i < noise.size(); ++i)
-      val += noise[i] * sinc(TMath::Pi() * ((time - 12.5) / period - i));
+  assert(std::is_sorted(std::begin(times), std::end(times)));
+
+  // get a new batch of random values
+  for (float& n : mNoiseSamples) {
+    n = mRndGaus.getNextValue();
+  }
+
+  // this lambda function evaluates the signal shape at a give time
+  auto value_at = [&](float time) {
+    float val = 0;
+    // (1) sum over individual hits
+    Vc::float_v acc(0);
+    Vc::float_v tableVal(0);
+    const float* tp = times.data();
+    size_t m = times.size() / Vc::float_v::size();
+    for (size_t i = 0; i < m; ++i) {
+      tableVal.load(tp);
+      tp += Vc::float_v::size();
+      Vc::prefetchForOneRead(tp);
+      acc += signalFormVc(time - tableVal);
+    }
+    val += acc.sum();
+    // non-SIMD tail
+    for (size_t i = Vc::float_v::size() * m; i < times.size(); ++i, ++tp) {
+      val += signalForm(time - (*tp));
+    }
+    // (2) add noise
+    // find the right indices into the sinc table
+    int timeIndex = std::lround(time / mParameters.mNoisePeriod * mSincTable.size());
+    int timeOffset = timeIndex / mSincTable.size();
+    timeIndex %= mSincTable.size();
+    if (timeOffset >= mNumNoiseSamples) { // this happens when time >= 25 ns
+      timeOffset = mNumNoiseSamples - 1;
+      LOG(DEBUG) << "timeOffset >= mNumNoiseSamples";
+    }
+    if (timeOffset <= -mNumNoiseSamples) { // this happens when time <= -25 ns
+      timeOffset = -mNumNoiseSamples + 1;
+      LOG(DEBUG) << "timeOffset <= -mNumNoiseSamples";
+    }
+    Vc::float_v noiseVal(0);
+    const float* np = mNoiseSamples.data();
+    tp = mSincTable[timeIndex].data() + mNumNoiseSamples - timeOffset;
+    acc = 0.0f;
+    m = mNumNoiseSamples / Vc::float_v::Size;
+    for (size_t i = 0; i < m; ++i) {
+      tableVal.load(tp);
+      tp += Vc::float_v::Size;
+      Vc::prefetchForOneRead(tp);
+      noiseVal.load(np);
+      np += Vc::float_v::Size;
+      Vc::prefetchForOneRead(np);
+      acc += noiseVal * tableVal;
+    }
+    val += acc.sum(); // horizontal sum
+    // non-SIMD tail
+    for (size_t i = Vc::float_v::Size * m; i < mNumNoiseSamples; ++i, ++tp, ++np) {
+      val += (*np) * (*tp);
+    }
     return val;
   };
-  //  for (double time = min_time; time < 0.5 * parameters.bunchWidth; time += 0.001 * parameters.channelWidth) {
-  for (double time = min_time; time < 0.5 * parameters.bunchWidth; time += 0.005) {
-    double val = value_at(time);
-    double cfd_val = 5 * value_at(time - parameters.mCFDShiftPos) - val;
-    if (std::abs(val) > parameters.mCFD_trsh && !is_positive && cfd_val > 0)
-      return time;
-    is_positive = cfd_val > 0;
-  }
-  LOG(INFO) << "CFD failed to find peak ";
-  return 1e9;
-}
+  auto const min_time = std::max(deadTime, *std::min_element(std::begin(times),
+                                                             std::end(times)));
+  CFDOutput result{std::nullopt, -0.5f * mParameters.bunchWidth};
+  bool is_positive = true;
 
-double Digitizer::measure_amplitude(const std::vector<double>& times)
-{
-  double result = 0;
-  double from = -0.5 * parameters.bunchWidth + parameters.IntegWindowDelayA;
-  double to = from + parameters.AmpIntegrationTime;
-  for (double time : times) {
-    result += signalForm_integral(to - time) - signalForm_integral(from - time);
+  // reset the chache
+  std::fill_n(std::begin(mSignalCache), std::size(mSignalCache), -1.0f);
+
+  // we need double precision for time in order to match previous behaviour
+  for (double time = min_time; time < 0.5 * mParameters.bunchWidth; time += DP::SIGNAL_CACHE_DT) {
+    float const val = value_at(time);
+    int const index = std::lround((time + 0.5 * mParameters.bunchWidth) / DP::SIGNAL_CACHE_DT);
+    if (index >= 0 && index < mSignalCache.size()) { // save the value for later use
+      mSignalCache[index] = val;
+    }
+    // look up the time-shifted signal value from the past
+    float val_prev = 0.0f;
+    int const index_prev = std::lround((time - mParameters.mCFDShiftPos + 0.5f * mParameters.bunchWidth) / DP::SIGNAL_CACHE_DT);
+    val_prev = ((index_prev < 0 || index_prev >= mSignalCache.size() || mSignalCache[index_prev] < 0.0f)
+                  ? value_at(time - mParameters.mCFDShiftPos) //  was not computed before
+                  : mSignalCache[index_prev]);                //  is available in the cache
+    float const cfd_val = 5.0f * val_prev - val;
+    if (std::abs(val) > mParameters.mCFD_trsh && !is_positive && cfd_val > 0.0f) {
+      if (!result.particle) {
+        result.particle = time;
+      }
+      result.deadTime = time + mParameters.mCFDdeadTime;
+      time += mParameters.mCFDdeadTime - DP::SIGNAL_CACHE_DT;
+      is_positive = true;
+    } else {
+      is_positive = cfd_val > 0.0f;
+    }
   }
-  //  LOG(INFO) << result / times.size();
+  if (!result.particle) {
+    LOG(DEBUG) << "CFD failed to find peak ";
+    for (auto t : times) {
+      LOG(DEBUG) << t << ", dead time " << deadTime;
+    }
+  }
   return result;
 }
 
-void Digitizer::process(const std::vector<o2::ft0::HitType>* hits)
+double Digitizer::measure_amplitude(const std::vector<float>& times) const
 {
+  float const from = mParameters.mAmpRecordLow;
+  float const to = from + mParameters.mAmpRecordUp;
+  // SIMD version has a negligible effect on the total wall time
+  Vc::float_v acc(0);
+  Vc::float_v tv(0);
+  const float* tp = times.data();
+  size_t const m = times.size() / Vc::float_v::Size;
+  for (size_t i = 0; i < m; ++i) {
+    tv.load(tp);
+    tp += Vc::float_v::Size;
+    Vc::prefetchForOneRead(tp);
+    acc += signalForm_integralVc(to - tv) - signalForm_integralVc(from - tv);
+  }
+  float result = acc.sum(); // horizontal sum
+  // non-SIMD tail
+  for (size_t i = Vc::float_v::Size * m; i < times.size(); ++i, ++tp) {
+    result += signalForm_integral(to - (*tp)) - signalForm_integral(from - (*tp));
+  }
+  return result;
+}
 
-  auto sorted_hits{*hits};
-  std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::ft0::HitType const& a, o2::ft0::HitType const& b) {
-    return a.GetTrackID() < b.GetTrackID();
-  });
-
+void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
+                        std::vector<o2::ft0::Digit>& digitsBC,
+                        std::vector<o2::ft0::ChannelData>& digitsCh,
+                        o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& label)
+{
+  ;
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
-  if (mChannel_times.size() == 0)
-    mChannel_times.resize(parameters.mMCPs);
+  flush(digitsBC, digitsCh, label);
   Int_t parent = -10;
-  for (auto& hit : sorted_hits) {
+  for (auto const& hit : *hits) {
     if (hit.GetEnergyLoss() > 0)
       continue;
+
     Int_t hit_ch = hit.GetDetectorID();
-    Bool_t is_A_side = (hit_ch < 4 * parameters.nCellsA);
-    Float_t time_compensate = is_A_side ? parameters.A_side_cable_cmps : parameters.C_side_cable_cmps;
+    Bool_t is_A_side = (hit_ch < 4 * mParameters.nCellsA);
+    Float_t time_compensate = is_A_side ? mParameters.A_side_cable_cmps : mParameters.C_side_cable_cmps;
     Double_t hit_time = hit.GetTime() - time_compensate;
-
-    //  bool is_hit_in_signal_gate = (abs(hit_time) < parameters.mSignalWidth * .5);
-
-    mNumParticles[hit_ch]++;
-    mChannel_times[hit_ch].push_back(hit_time);
+    auto relBC = o2::InteractionRecord{hit_time};
+    if (mCache.size() <= relBC.bc) {
+      mCache.resize(relBC.bc + 1);
+    }
+    mCache[relBC.bc].hits.emplace_back(BCCache::particle{hit_ch, hit_time - relBC.bc2ns()});
 
     //charge particles in MCLabel
     Int_t parentID = hit.GetTrackID();
-    if (parentID != parent) {
-      o2::ft0::MCLabel label(hit.GetTrackID(), mEventID, mSrcID, hit_ch);
-      int lblCurrent;
-      if (mMCLabels) {
-        lblCurrent = mMCLabels->getIndexedSize(); // this is the size of mHeaderArray;
-        mMCLabels->addElement(lblCurrent, label);
-      }
-      parent = parentID;
-    }
+    if (parentID != parent)
+      mCache[relBC.bc].labels.emplace(parentID, mEventID, mSrcID, hit_ch);
+    parent = parentID;
   }
 }
 
-//------------------------------------------------------------------------
-void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
-                          std::vector<o2::ft0::ChannelData>& digitsCh)
+void Digitizer::storeBC(BCCache& bc,
+                        std::vector<o2::ft0::Digit>& digitsBC,
+                        std::vector<o2::ft0::ChannelData>& digitsCh,
+                        o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
 {
-
+  if (bc.hits.empty())
+    return;
   int n_hit_A = 0, n_hit_C = 0, mean_time_A = 0, mean_time_C = 0;
   int summ_ampl_A = 0, summ_ampl_C = 0;
   int vertex_time;
 
   int first = digitsCh.size(), nStored = 0;
-  for (Int_t ipmt = 0; ipmt < parameters.mMCPs; ++ipmt) {
-    if (mNumParticles[ipmt] < parameters.mAmp_trsh)
+  auto& particles = bc.hits;
+  std::sort(std::begin(particles), std::end(particles));
+  auto channel_end = particles.begin();
+  std::vector<float> channel_times;
+  for (Int_t ipmt = 0; ipmt < mParameters.mMCPs; ++ipmt) {
+    auto channel_begin = channel_end;
+    channel_end = std::find_if(channel_begin, particles.end(),
+                               [ipmt](BCCache::particle const& p) { return p.hit_ch != ipmt; });
+    if (channel_end - channel_begin < mParameters.mAmp_trsh)
       continue;
-    std::sort(begin(mChannel_times[ipmt]), end(mChannel_times[ipmt]));
-
+    channel_times.resize(channel_end - channel_begin);
+    std::transform(channel_begin, channel_end, channel_times.begin(), [](BCCache::particle const& p) { return p.hit_time; });
     int chain = (std::rand() % 2) ? 1 : 0;
-    int smeared_time = 1000. * (get_time(mChannel_times[ipmt]) - parameters.mCfdShift) * parameters.ChannelWidthInverse;
-    bool is_time_in_signal_gate = (abs(smeared_time) < parameters.mSignalWidth * 0.5);
-    Float_t charge = measure_amplitude(mChannel_times[ipmt]) * parameters.charge2amp;
-    float amp = is_time_in_signal_gate ? charge : 0;
-    if (smeared_time < 1e9) {
-      digitsCh.emplace_back(ipmt, smeared_time, int(parameters.mV_2_Nchannels * amp), chain);
-      nStored++;
 
-      // fill triggers
-      Bool_t is_A_side = (ipmt <= 4 * parameters.nCellsA);
-      if (smeared_time > parameters.mTime_trg_gate || smeared_time < -parameters.mTime_trg_gate)
-        continue;
+    auto cfd = get_time(channel_times, mDeadTimes[ipmt].intrec.bc2ns() -
+                                         firstBCinDeque.bc2ns() +
+                                         mDeadTimes[ipmt].deadTime);
+    mDeadTimes[ipmt].intrec = firstBCinDeque;
+    mDeadTimes[ipmt].deadTime = cfd.deadTime;
 
-      if (is_A_side) {
-        n_hit_A++;
-        summ_ampl_A += amp;
-        mean_time_A += smeared_time;
+    if (!cfd.particle)
+      continue;
+    int smeared_time = 1000. * (*cfd.particle - mParameters.mCfdShift) * mParameters.ChannelWidthInverse;
+    bool is_time_in_signal_gate = (smeared_time > -mParameters.mTime_trg_gate && smeared_time < mParameters.mTime_trg_gate);
+    float charge = measure_amplitude(channel_times) * mParameters.charge2amp;
+    float amp = is_time_in_signal_gate ? mParameters.mV_2_Nchannels * charge : 0;
+    if (amp > 4095)
+      amp = 4095;
+    LOG(DEBUG) << "bc " << firstBCinDeque.bc << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored;
+    digitsCh.emplace_back(ipmt, smeared_time, int(amp), chain);
+    nStored++;
 
-      } else {
-        n_hit_C++;
-        summ_ampl_C += amp;
-        mean_time_C += smeared_time;
-      }
+    // fill triggers
+
+    Bool_t is_A_side = (ipmt <= 4 * mParameters.nCellsA);
+    if (smeared_time > mParameters.mTime_trg_gate || smeared_time < -mParameters.mTime_trg_gate)
+      continue;
+
+    if (is_A_side) {
+      n_hit_A++;
+      summ_ampl_A += amp;
+      mean_time_A += smeared_time;
+    } else {
+      n_hit_C++;
+      summ_ampl_C += amp;
+      mean_time_C += smeared_time;
     }
   }
   Bool_t is_A, is_C, isVertex, is_Central, is_SemiCentral = 0;
   is_A = n_hit_A > 0;
   is_C = n_hit_C > 0;
-  is_Central = summ_ampl_A + summ_ampl_C >= parameters.mtrg_central_trh;
-  is_SemiCentral = summ_ampl_A + summ_ampl_C >= parameters.mtrg_semicentral_trh;
+  is_Central = summ_ampl_A + summ_ampl_C >= mParameters.mtrg_central_trh;
+  is_SemiCentral = summ_ampl_A + summ_ampl_C >= mParameters.mtrg_semicentral_trh;
   vertex_time = (mean_time_A - mean_time_C) * 0.5;
-  isVertex = is_A && is_C && (std::abs(vertex_time) < parameters.mtrg_vertex);
-  uint16_t amplA = is_A ? summ_ampl_A : 0;           // sum amplitude A side
-  uint16_t amplC = is_C ? summ_ampl_C : 0;           // sum amplitude C side
+  isVertex = is_A && is_C && (vertex_time > -mParameters.mTime_trg_gate && vertex_time < mParameters.mTime_trg_gate);
+  uint32_t amplA = is_A ? summ_ampl_A : 0;           // sum amplitude A side
+  uint32_t amplC = is_C ? summ_ampl_C : 0;           // sum amplitude C side
   uint16_t timeA = is_A ? mean_time_A / n_hit_A : 0; // average time A side
   uint16_t timeC = is_C ? mean_time_C / n_hit_C : 0; // average time C side
 
-  mTriggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, n_hit_A, n_hit_C,
-                        amplA, amplC, timeA, timeC);
+  Triggers triggers;
+  triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, int8_t(n_hit_A), int8_t(n_hit_C),
+                       amplA, amplC, timeA, timeC);
 
-  digitsBC.emplace_back(first, nStored, mIntRecord, mTriggers);
+  digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers, mEventID);
+  size_t const nBC = digitsBC.size();
+  for (auto const& lbl : bc.labels)
+    labels.addElement(nBC - 1, lbl);
 
   // Debug output -------------------------------------------------------------
 
-  LOG(INFO) << "Event ID: " << mEventID;
-  LOG(INFO) << "N hit A: " << int(mTriggers.nChanA) << " N hit C: " << int(mTriggers.nChanC) << " summ ampl A: " << int(mTriggers.amplA)
-            << " summ ampl C: " << int(mTriggers.amplC) << " mean time A: " << mTriggers.timeA
-            << " mean time C: " << mTriggers.timeC;
+  LOG(INFO) << "Event ID: " << mEventID << ", bc " << firstBCinDeque.bc << ", N hit " << bc.hits.size();
+  LOG(INFO) << "N hit A: " << int(triggers.nChanA) << " N hit C: " << int(triggers.nChanC) << " summ ampl A: " << int(triggers.amplA)
+            << " summ ampl C: " << int(triggers.amplC) << " mean time A: " << triggers.timeA
+            << " mean time C: " << triggers.timeC;
 
-  LOG(INFO) << "IS A " << mTriggers.getOrA() << " IsC " << mTriggers.getOrC() << " vertex " << mTriggers.getVertex() << " is Central " << mTriggers.getCen() << " is SemiCentral " << mTriggers.getSCen();
+  LOG(INFO) << "IS A " << triggers.getOrA() << " IsC " << triggers.getOrC() << " vertex " << triggers.getVertex() << " is Central " << triggers.getCen() << " is SemiCentral " << triggers.getSCen();
+}
+
+//------------------------------------------------------------------------
+void Digitizer::flush(std::vector<o2::ft0::Digit>& digitsBC,
+                      std::vector<o2::ft0::ChannelData>& digitsCh,
+                      o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
+{
+  LOG(DEBUG) << "firstBCinDeque " << firstBCinDeque << " mIntRecord " << mIntRecord;
+  assert(firstBCinDeque <= mIntRecord);
+  while (firstBCinDeque < mIntRecord && !mCache.empty()) {
+    storeBC(mCache.front(), digitsBC, digitsCh, labels);
+    mCache.pop_front();
+    ++firstBCinDeque;
+  }
+  firstBCinDeque = mIntRecord;
+}
+
+void Digitizer::flush_all(std::vector<o2::ft0::Digit>& digitsBC,
+                          std::vector<o2::ft0::ChannelData>& digitsCh,
+                          o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
+{
+  LOG(INFO) << "firstBCinDeque " << firstBCinDeque << " mIntRecord " << mIntRecord;
+  assert(firstBCinDeque <= mIntRecord);
+  while (!mCache.empty()) {
+    storeBC(mCache.front(), digitsBC, digitsCh, labels);
+    mCache.pop_front();
+    ++firstBCinDeque;
+  }
 }
 
 void Digitizer::initParameters()
 {
-  mEventTime = 0;
-  float signal_width = 0.5 * parameters.mSignalWidth;
+  auto const sinc = [](double x) { x *= TMath::Pi(); return (std::abs(x) < 1e-12) ? 1.0 : std::sin(x) / x; };
+
+  // number of noise samples in one BC
+  mNumNoiseSamples = std::ceil(mParameters.bunchWidth / mParameters.mNoisePeriod);
+  mNoiseSamples.resize(mNumNoiseSamples);
+
+  // set up tables with sinc function values (times noiseVar)
+  for (size_t i = 0, n = mSincTable.size(); i < n; ++i) {
+    float const time = i / float(n) * mParameters.mNoisePeriod; // [0 .. 1/mParameters.mNoisePeriod)
+    std::cout << "initParameters " << i << "/" << n << " " << time << std::endl;
+    // we make a table of sinc values between -num_noise_samples and 2*num_noise_samples
+    mSincTable[i].resize(3 * mNumNoiseSamples);
+    for (int j = -mNumNoiseSamples; j < 2 * mNumNoiseSamples; ++j) {
+      mSincTable[i][mNumNoiseSamples + j] = mParameters.mNoiseVar * sinc((time + 0.5f * mParameters.bunchWidth) / mParameters.mNoisePeriod - j);
+    }
+  }
+  // set up the lookup table for the signal form
+  for (size_t i = 0; i < DP::SIGNAL_TABLE_SIZE; ++i) {
+    float const x = float(i) / float(DP::SIGNAL_TABLE_SIZE) * mParameters.bunchWidth;
+    mSignalTable[i] = signalForm_i(x);
+  }
+
+  // cache for signal time series used by the CFD -BC/2 .. +3BC/2
+  mSignalCache.resize(std::lround(mParameters.bunchWidth / DP::SIGNAL_CACHE_DT));
 }
 //_______________________________________________________________________
 void Digitizer::init()
 {
   LOG(INFO) << " @@@ Digitizer::init " << std::endl;
+  mDeadTimes.fill({InteractionRecord(0), -100.});
 }
 //_______________________________________________________________________
 void Digitizer::finish()
@@ -190,13 +342,13 @@ void Digitizer::finish()
   printParameters();
 }
 
-void Digitizer::printParameters()
+void Digitizer::printParameters() const
 {
   LOG(INFO) << " Run Digitzation with parametrs: \n"
-            << " CFD amplitude threshold \n " << parameters.mCFD_trsh << " CFD signal gate in ps \n"
-            << parameters.mSignalWidth << "shift to have signal around zero after CFD trancformation  \n"
-            << parameters.mCfdShift << "CFD distance between 0.3 of max amplitude  to max \n"
-            << parameters.mCFDShiftPos << "MIP -> mV " << parameters.mMip_in_V << " Pe in MIP \n"
-            << parameters.mPe_in_mip << "noise level " << parameters.mNoiseVar << " noise frequency \n"
-            << parameters.mNoisePeriod << std::endl;
+            << " CFD amplitude threshold \n " << mParameters.mCFD_trsh << " CFD signal gate in ps \n"
+            << mParameters.mSignalWidth << "shift to have signal around zero after CFD trancformation  \n"
+            << mParameters.mCfdShift << "CFD distance between 0.3 of max amplitude  to max \n"
+            << mParameters.mCFDShiftPos << "MIP -> mV " << mParameters.mMip_in_V << " Pe in MIP \n"
+            << mParameters.mPe_in_mip << "noise level " << mParameters.mNoiseVar << " noise frequency \n"
+            << mParameters.mNoisePeriod << std::endl;
 }

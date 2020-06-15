@@ -9,7 +9,9 @@
 // or submit itself to any jurisdiction.
 
 #include "GlobalTrackingWorkflow/MatchTPCITSWorkflow.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "Framework/CompletionPolicy.h"
+#include "TPCWorkflow/TPCSectorCompletionPolicy.h"
 
 using namespace o2::framework;
 
@@ -19,11 +21,24 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  workflowOptions.push_back(ConfigParamSpec{
-    "disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}});
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
-  std::string keyvaluehelp("Semicolon separated key=value strings ...");
-  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
+  std::swap(workflowOptions, options);
+}
+
+// the matcher process requires the TPC sector completion to trigger and data on
+// all defined routes
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // the TPC sector completion policy checks when the set of TPC/CLUSTERNATIVE data is complete
+  // in addition we require to have input from all other routes
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("itstpc-track-matcher",
+                                                        o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll,
+                                                        InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}})());
 }
 
 // ------------------------------------------------------------------
@@ -38,5 +53,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2matchtpcits-workflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  return std::move(o2::globaltracking::getMatchTPCITSWorkflow(useMC));
+  auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
+  auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  return std::move(o2::globaltracking::getMatchTPCITSWorkflow(useMC, disableRootInp, disableRootOut));
 }
