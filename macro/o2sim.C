@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <sstream>
 #endif
+#include "migrateSimFiles.C"
 
 FairRunSim* o2sim_init(bool asservice)
 {
@@ -205,6 +206,14 @@ void o2sim_run(FairRunSim* run, bool asservice)
   LOG(INFO) << "Macro finished succesfully.";
   LOG(INFO) << "Real time " << rtime << " s, CPU time " << ctime << "s";
   LOG(INFO) << "Memory used " << sysinfo.GetMaxMemory() << " MB";
+
+  // migrate to file format where hits sit in separate files
+  // (Note: The parallel version is doing this intrinsically;
+  //  The serial version uses FairRootManager IO which handles a common file IO for all outputs)
+  if (!asservice) {
+    LOG(INFO) << "Migrating simulation output to separate hit file format";
+    migrateSimFiles(confref.getOutPrefix().c_str());
+  }
 }
 
 // asservice: in a parallel device-based context?
