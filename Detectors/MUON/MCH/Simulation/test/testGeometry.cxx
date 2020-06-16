@@ -42,6 +42,7 @@ struct GEOMETRY {
       } else {
         throw std::invalid_argument(fmt::format("only possible argument value are 'regular' or 'standalone', not {}", param.c_str()));
       }
+      o2::mch::test::addAlignableVolumes();
     }
   }
 };
@@ -51,6 +52,28 @@ const std::array<std::string, 8> quadrantChamberNames{"SC01I", "SC01O", "SC02I",
 
 const std::array<std::string, 12> slatChamberNames{"SC05I", "SC05O", "SC06I", "SC06O", "SC07I", "SC07O",
                                                    "SC08I", "SC08O", "SC09I", "SC09O", "SC10I", "SC10O"};
+
+const std::vector<std::vector<std::string>> deSymNames{
+  {"DE100", "DE103"},
+  {"DE101", "DE102"},
+  {"DE200", "DE203"},
+  {"DE201", "DE202"},
+  {"DE300", "DE303"},
+  {"DE301", "DE302"},
+  {"DE400", "DE403"},
+  {"DE401", "DE402"},
+  {"DE500", "DE501", "DE502", "DE503", "DE504", "DE514", "DE515", "DE516", "DE517"},
+  {"DE505", "DE506", "DE507", "DE508", "DE509", "DE510", "DE511", "DE512", "DE513"},
+  {"DE600", "DE601", "DE602", "DE603", "DE604", "DE614", "DE615", "DE616", "DE617"},
+  {"DE605", "DE606", "DE607", "DE608", "DE609", "DE610", "DE611", "DE612", "DE613"},
+  {"DE700", "DE701", "DE702", "DE703", "DE704", "DE705", "DE706", "DE720", "DE721", "DE722", "DE723", "DE724", "DE725"},
+  {"DE707", "DE708", "DE709", "DE710", "DE711", "DE712", "DE713", "DE714", "DE715", "DE716", "DE717", "DE718", "DE719"},
+  {"DE800", "DE801", "DE802", "DE803", "DE804", "DE805", "DE806", "DE820", "DE821", "DE822", "DE823", "DE824", "DE825"},
+  {"DE807", "DE808", "DE809", "DE810", "DE811", "DE812", "DE813", "DE814", "DE815", "DE816", "DE817", "DE818", "DE819"},
+  {"DE900", "DE901", "DE902", "DE903", "DE904", "DE905", "DE906", "DE920", "DE921", "DE922", "DE923", "DE924", "DE925"},
+  {"DE907", "DE908", "DE909", "DE910", "DE911", "DE912", "DE913", "DE914", "DE915", "DE916", "DE917", "DE918", "DE919"},
+  {"DE1000", "DE1001", "DE1002", "DE1003", "DE1004", "DE1005", "DE1006", "DE1020", "DE1021", "DE1022", "DE1023", "DE1024", "DE1025"},
+  {"DE1007", "DE1008", "DE1009", "DE1010", "DE1011", "DE1012", "DE1013", "DE1014", "DE1015", "DE1016", "DE1017", "DE1018", "DE1019"}};
 
 BOOST_AUTO_TEST_SUITE(o2_mch_simulation)
 
@@ -465,5 +488,24 @@ BOOST_AUTO_TEST_CASE(TextualTreeDump)
   BOOST_CHECK(expected == str.str());
 }
 
+BOOST_AUTO_TEST_CASE(GetAlignableHalfChambers)
+{
+  BOOST_REQUIRE(gGeoManager != nullptr);
+
+  for (int i = 0; i < 20; i++) {
+    BOOST_CHECK((gGeoManager->GetAlignableEntry((fmt::format("MCH/HC{}", i)).c_str())));
+  }
+}
+
+BOOST_AUTO_TEST_CASE(GetAlignableDetectionElements)
+{
+  BOOST_REQUIRE(gGeoManager != nullptr);
+
+  for (int hc = 0; hc < 20; hc++) {
+    for (int de = 0; de < deSymNames[hc].size(); de++) {
+      BOOST_CHECK((gGeoManager->GetAlignableEntry((fmt::format("MCH/HC{}/{}", hc, deSymNames[hc][de].c_str())).c_str())));
+    }
+  }
+}
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()

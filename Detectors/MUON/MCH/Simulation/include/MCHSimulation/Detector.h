@@ -40,6 +40,9 @@ class Detector : public o2::base::DetImpl<Detector>
 
   void ConstructGeometry() override;
 
+  /// Add alignable top volumes
+  void addAlignableVolumes() const override;
+
   std::vector<o2::mch::Hit>* getHits(int);
 
   void EndOfEvent() override;

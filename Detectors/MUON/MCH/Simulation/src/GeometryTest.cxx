@@ -136,6 +136,20 @@ void createRegularGeometry()
   o2::mch::Detector(true).ConstructGeometry();
 }
 
+void addAlignableVolumes()
+{
+  if (!gGeoManager) {
+    std::cerr << "gGeoManager == nullptr, must create a geometry first\n";
+    return;
+  }
+  // If not closed, we need to close it
+  if (!gGeoManager->IsClosed()) {
+    gGeoManager->CloseGeometry();
+  }
+  // Then add the alignable volumes
+  o2::mch::Detector(true).addAlignableVolumes();
+}
+
 void setVolumeVisibility(const char* pattern, bool visible, bool visibleDaughters)
 {
   TPRegexp re(pattern);
