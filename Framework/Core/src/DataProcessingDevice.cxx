@@ -103,6 +103,32 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
   if (spec.dispatchPolicy.action == DispatchPolicy::DispatchOp::WhenReady) {
     mFairMQContext.init(DispatchControl{dispatcher, matcher});
   }
+
+  if (mError != nullptr) {
+    mErrorHandling = [& errorCallback = mError, &monitoringService = registry.get<Monitoring>(),
+                      &serviceRegistry = mServiceRegistry](std::exception& e, InputRecord& record) {
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
+      LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
+      monitoringService.send({1, "error"});
+      ErrorContext errorContext{record, serviceRegistry, e};
+      errorCallback(errorContext);
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+    };
+  } else {
+    mErrorHandling = [& monitoringService = registry.get<Monitoring>(), &errorPolicy = mErrorPolicy,
+                      &serviceRegistry = mServiceRegistry](std::exception& e, InputRecord& record) {
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
+      LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
+      monitoringService.send({1, "error"});
+      switch (errorPolicy) {
+        case TerminationPolicy::QUIT:
+          throw e;
+        default:
+          break;
+      }
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+    };
+  }
 }
 
 /// This  takes care  of initialising  the device  from its  specification. In
@@ -628,34 +654,6 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
     DataProcessor::doSend(device, rawContext);
   };
 
-  // Error handling means printing the error and updating the metric
-  std::function<void(std::exception & e, InputRecord & record)> errorHandling = nullptr;
-  if (errorCallback != nullptr) {
-    errorHandling = [&errorCallback, &monitoringService,
-                     &serviceRegistry](std::exception& e, InputRecord& record) {
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
-      LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
-      monitoringService.send({1, "error"});
-      ErrorContext errorContext{record, serviceRegistry, e};
-      errorCallback(errorContext);
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-    };
-  } else {
-    errorHandling = [&monitoringService, &errorPolicy = mErrorPolicy,
-                     &serviceRegistry](std::exception& e, InputRecord& record) {
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
-      LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
-      monitoringService.send({1, "error"});
-      switch (errorPolicy) {
-        case TerminationPolicy::QUIT:
-          throw e;
-        default:
-          break;
-      }
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-    };
-  }
-
   // I need a preparation step which gets the current timeslice id and
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
@@ -825,7 +823,7 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
           dispatchProcessing(action.slot, record);
         }
       } catch (std::exception& e) {
-        errorHandling(e, record);
+        mErrorHandling(e, record);
       }
       for (size_t ai = 0; ai != record.size(); ai++) {
         auto cacheId = action.slot.index * record.size() + ai;

@@ -68,6 +68,7 @@ class DataProcessingDevice : public FairMQDevice
   AlgorithmSpec::ProcessCallback mStatefulProcess;
   AlgorithmSpec::ProcessCallback mStatelessProcess;
   AlgorithmSpec::ErrorCallback mError;
+  std::function<void(std::exception& e, InputRecord& record)> mErrorHandling;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
   TimingInfo mTimingInfo;
