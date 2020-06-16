@@ -8,8 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ReconstructionDataFormats/Vertex.h"
+#include "ReconstructionDataFormats/DCA.h"
 #include <iostream>
+
+/// \author ruben.shahoyan@cern.ch
+/// \brief  class for distance of closest approach to vertex
 
 namespace o2
 {
@@ -17,22 +20,20 @@ namespace dataformats
 {
 
 #ifndef ALIGPU_GPUCODE
-std::ostream& operator<<(std::ostream& os, const o2::dataformats::VertexBase& v)
+std::ostream& operator<<(std::ostream& os, const o2::dataformats::DCA& d)
 {
   // stream itself
-  os << std::scientific << "Vertex X: " << v.getX() << " Y: " << v.getY() << " Z: " << v.getZ()
-     << " Cov.mat:\n"
-     << v.getSigmaX2() << '\n'
-     << v.getSigmaXY() << ' ' << v.getSigmaY2() << '\n'
-     << v.getSigmaXZ() << ' ' << v.getSigmaYZ() << ' ' << v.getSigmaZ2() << '\n';
+  os << "DCA YZ {" << d.getY() << ", " << d.getZ() << "} Cov {" << d.getSigmaY2() << ", " << d.getSigmaYZ() << ", " << d.getSigmaZ2() << "}";
   return os;
 }
-
-void VertexBase::print() const
-{
-  std::cout << *this << std::endl;
-}
 #endif
+
+void DCA::print() const
+{
+#ifndef ALIGPU_GPUCODE
+  std::cout << *this << '\n';
+#endif
+}
 
 } // namespace dataformats
 } // namespace o2
