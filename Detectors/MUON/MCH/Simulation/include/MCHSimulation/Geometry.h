@@ -32,6 +32,9 @@ void createGeometry(TGeoVolume& topVolume);
 /// get a list of MCH sensitive volumes
 std::vector<TGeoVolume*> getSensitiveVolumes();
 
+/// Add alignable mch volumes
+void addAlignableVolumesMCH();
+
 /// get the local-to-global transformation for a given detection element
 o2::Transform3D getTransformation(int detElemId, const TGeoManager& geo);
 
