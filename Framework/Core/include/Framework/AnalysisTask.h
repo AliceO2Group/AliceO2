@@ -227,6 +227,19 @@ struct OutputObj {
   uint32_t mTaskHash;
 };
 
+/// This helper allows you to fetch a Sevice from the context or
+/// by using some singleton. This hopefully will hide the Singleton and
+/// We will be able to retrieve it in a more thread safe manner later on.
+template <typename T>
+struct Service {
+  T* service;
+
+  T* operator->() const
+  {
+    return service;
+  }
+};
+
 /// This helper allows you to create a configurable option associated to a task.
 /// Internally it will be bound to a ConfigParamSpec.
 template <typename T>
@@ -749,6 +762,47 @@ struct OutputManager<OutputObj<T>> {
 };
 
 template <typename T>
+class has_instance
+{
+  typedef char one;
+  struct two {
+    char x[2];
+  };
+
+  template <typename C>
+  static one test(decltype(&C::instance));
+  template <typename C>
+  static two test(...);
+
+ public:
+  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+};
+
+template <typename T>
+struct ServiceManager {
+  template <typename ANY>
+  static bool prepare(InitContext&, ANY&)
+  {
+    return false;
+  }
+};
+
+template <typename T>
+struct ServiceManager<Service<T>> {
+  static bool prepare(InitContext& context, Service<T>& service)
+  {
+    if constexpr (has_instance<T>::value) {
+      service.service = &(T::instance()); // Sigh...
+      return true;
+    } else {
+      service.service = context.services().get<T>();
+      return true;
+    }
+    return false;
+  }
+};
+
+template <typename T>
 struct OptionManager {
   template <typename ANY>
   static bool appendOption(std::vector<ConfigParamSpec>&, ANY&)
@@ -875,6 +929,7 @@ DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
   auto algo = AlgorithmSpec::InitCallback{[task, expressionInfos](InitContext& ic) {
     auto tupledTask = o2::framework::to_tuple_refs(*task.get());
     std::apply([&ic](auto&&... x) { return (OptionManager<std::decay_t<decltype(x)>>::prepare(ic, x), ...); }, tupledTask);
+    std::apply([&ic](auto&&... x) { return (ServiceManager<std::decay_t<decltype(x)>>::prepare(ic, x), ...); }, tupledTask);
 
     auto& callbacks = ic.services().get<CallbackService>();
     auto endofdatacb = [task](EndOfStreamContext& eosContext) {
