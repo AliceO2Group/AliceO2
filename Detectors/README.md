@@ -12,12 +12,14 @@ This module contains the following submodules:
 * \subpage refDetectorsRaw
 * \subpage refDetectorsBase
 * \subpage refDetectorsBasetest
+* \subpage refDetectorsGeometry
 * \subpage refDetectorsGlobalTracking
 * \subpage refDetectorsVertexing
 * \subpage refDetectorsCalibration
+* \subpage refDetectorsCPV
+* \subpage refDetectorsCTF
 * \subpage refDetectorsEMCAL
 * \subpage refDetectorsFIT
-* \subpage refDetectorsGeometry
 * \subpage refDetectorsHMPID
 * \subpage refDetectorsITSMFT
 * \subpage refDetectorsMUON
