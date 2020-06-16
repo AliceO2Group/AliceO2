@@ -67,6 +67,9 @@ class NameConf
   // Filename to for decoding dictionaries
   static std::string getDictionaryFileName(DId det, const std::string_view prefix = "", const std::string_view ext = "");
 
+  // Filename to store summary about simulation processes and cut values
+  static std::string getCutProcFileName(const std::string_view prefix = "");
+
   // TGeometry object name
   static constexpr std::string_view GEOMOBJECTNAME = "FAIRGeom"; // hardcoded
 
@@ -95,6 +98,7 @@ class NameConf
   static constexpr std::string_view GRP_STRING = "grp";       // hardcoded
   static constexpr std::string_view KINE_STRING = "Kine";     // hardcoded
   static constexpr std::string_view GEOM_FILE_STRING = "geometry";
+  static constexpr std::string_view CUT_FILE_STRING = "proc-cut";
 
   static constexpr std::string_view DICTFILENAME = "dictionary";
 };
