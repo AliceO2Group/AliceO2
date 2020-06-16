@@ -9,6 +9,8 @@
 // or submit itself to any jurisdiction.
 
 #include "ReconstructionDataFormats/Track.h"
+#include "ReconstructionDataFormats/Vertex.h"
+#include "ReconstructionDataFormats/DCA.h"
 #include <FairLogger.h>
 #include <iostream>
 #include "Math/SMatrix.h"
@@ -45,7 +47,7 @@ TrackPar::TrackPar(const array<float, 3>& xyz, const array<float, 3>& pxpypz, in
   }
   //
   float sn, cs;
-  utils::sincosf(alp, sn, cs);
+  utils::sincos(alp, sn, cs);
   // protection:  avoid alpha being too close to 0 or +-pi/2
   if (fabs(sn) < 2 * kSafe) {
     if (alp > 0) {
@@ -53,14 +55,14 @@ TrackPar::TrackPar(const array<float, 3>& xyz, const array<float, 3>& pxpypz, in
     } else {
       alp += alp > -PIHalf ? -2 * kSafe : 2 * kSafe;
     }
-    utils::sincosf(alp, sn, cs);
+    utils::sincos(alp, sn, cs);
   } else if (fabs(cs) < 2 * kSafe) {
     if (alp > 0) {
       alp += alp > PIHalf ? 2 * kSafe : -2 * kSafe;
     } else {
       alp += alp > -PIHalf ? 2 * kSafe : -2 * kSafe;
     }
-    utils::sincosf(alp, sn, cs);
+    utils::sincos(alp, sn, cs);
   }
   // get the vertex of origin and the momentum
   array<float, 3> ver{xyz[0], xyz[1], xyz[2]};
@@ -95,8 +97,8 @@ bool TrackPar::getPxPyPzGlo(array<float, 3>& pxyz) const
     return false;
   }
   float cs, sn, pt = fabs(1.f / getQ2Pt());
-  float r = sqrtf((1.f - getSnp()) * (1.f + getSnp()));
-  utils::sincosf(getAlpha(), sn, cs);
+  float r = std::sqrt((1.f - getSnp()) * (1.f + getSnp()));
+  utils::sincos(getAlpha(), sn, cs);
   pxyz[0] = pt * (r * cs - getSnp() * sn);
   pxyz[1] = pt * (getSnp() * cs + r * sn);
   pxyz[2] = pt * getTgl();
@@ -113,10 +115,10 @@ bool TrackPar::getPosDirGlo(array<float, 9>& posdirp) const
     return false;
   }
   float &sn = posdirp[7], &cs = posdirp[8];
-  float csp = sqrtf((1.f - snp) * (1.f + snp));
-  float cstht = sqrtf(1.f + getTgl() * getTgl());
+  float csp = std::sqrt((1.f - snp) * (1.f + snp));
+  float cstht = std::sqrt(1.f + getTgl() * getTgl());
   float csthti = 1.f / cstht;
-  utils::sincosf(getAlpha(), sn, cs);
+  utils::sincos(getAlpha(), sn, cs);
   posdirp[0] = getX() * cs - getY() * sn;
   posdirp[1] = getX() * sn + getY() * cs;
   posdirp[2] = getZ();
@@ -139,8 +141,8 @@ bool TrackPar::rotateParam(float alpha)
   utils::BringToPMPi(alpha);
   //
   float ca = 0, sa = 0;
-  utils::sincosf(alpha - getAlpha(), sa, ca);
-  float snp = getSnp(), csp = sqrtf((1.f - snp) * (1.f + snp)); // Improve precision
+  utils::sincos(alpha - getAlpha(), sa, ca);
+  float snp = getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp)); // Improve precision
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
@@ -187,18 +189,18 @@ bool TrackPar::propagateParamTo(float xk, const array<float, 3>& b)
   if (fabs(f1) > Almost1 || fabs(f2) > Almost1) {
     return false;
   }
-  float r1 = sqrtf((1.f - f1) * (1.f + f1));
+  float r1 = std::sqrt((1.f - f1) * (1.f + f1));
   if (fabs(r1) < Almost0) {
     return false;
   }
-  float r2 = sqrtf((1.f - f2) * (1.f + f2));
+  float r2 = std::sqrt((1.f - f2) * (1.f + f2));
   if (fabs(r2) < Almost0) {
     return false;
   }
   float dy2dx = (f1 + f2) / (r1 + r2);
-  float step = (fabs(x2r) < 0.05f) ? dx * fabs(r2 + f2 * dy2dx)                                       // chord
-                                   : 2.f * asinf(0.5f * dx * sqrtf(1.f + dy2dx * dy2dx) * crv) / crv; // arc
-  step *= sqrtf(1.f + getTgl() * getTgl());
+  float step = (fabs(x2r) < 0.05f) ? dx * fabs(r2 + f2 * dy2dx)                                           // chord
+                                   : 2.f * asinf(0.5f * dx * std::sqrt(1.f + dy2dx * dy2dx) * crv) / crv; // arc
+  step *= std::sqrt(1.f + getTgl() * getTgl());
   //
   // get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
   array<float, 9> vecLab{0.f};
@@ -208,13 +210,13 @@ bool TrackPar::propagateParamTo(float xk, const array<float, 3>& b)
 
   // rotate to the system where Bx=By=0.
   float bxy2 = b[0] * b[0] + b[1] * b[1];
-  float bt = sqrtf(bxy2);
+  float bt = std::sqrt(bxy2);
   float cosphi = 1.f, sinphi = 0.f;
   if (bt > Almost0) {
     cosphi = b[0] / bt;
     sinphi = b[1] / bt;
   }
-  float bb = sqrtf(bxy2 + b[2] * b[2]);
+  float bb = std::sqrt(bxy2 + b[2] * b[2]);
   float costet = 1., sintet = 0.;
   if (bb > Almost0) {
     costet = b[2] / bb;
@@ -263,7 +265,7 @@ bool TrackPar::propagateParamTo(float xk, const array<float, 3>& b)
   }
 
   // Calculate the track parameters
-  t = 1.f / sqrtf(vecLab[3] * vecLab[3] + vecLab[4] * vecLab[4]);
+  t = 1.f / std::sqrt(vecLab[3] * vecLab[3] + vecLab[4] * vecLab[4]);
   mX = x;
   mP[kY] = y;
   mP[kZ] = z;
@@ -292,11 +294,11 @@ bool TrackPar::propagateParamTo(float xk, float b)
   if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1)) {
     return false;
   }
-  float r1 = sqrtf((1.f - f1) * (1.f + f1));
+  float r1 = std::sqrt((1.f - f1) * (1.f + f1));
   if (fabs(r1) < Almost0) {
     return false;
   }
-  float r2 = sqrtf((1.f - f2) * (1.f + f2));
+  float r2 = std::sqrt((1.f - f2) * (1.f + f2));
   if (fabs(r2) < Almost0) {
     return false;
   }
@@ -328,6 +330,47 @@ bool TrackPar::propagateParamTo(float xk, float b)
   return true;
 }
 
+//_______________________________________________________________________
+bool TrackPar::propagateParamToDCA(const Point3D<float>& vtx, float b, std::array<float, 2>* dca, float maxD)
+{
+  // propagate track to DCA to the vertex
+  float sn, cs, alp = getAlpha();
+  o2::utils::sincos(alp, sn, cs);
+  float x = getX(), y = getY(), snp = getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
+  float xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
+  x -= xv;
+  y -= yv;
+  //Estimate the impact parameter neglecting the track curvature
+  Double_t d = std::abs(x * snp - y * csp);
+  if (d > maxD) {
+    return false;
+  }
+  float crv = getCurvature(b);
+  float tgfv = -(crv * x - snp) / (crv * y + csp);
+  sn = tgfv / std::sqrt(1.f + tgfv * tgfv);
+  cs = std::sqrt((1. - sn) * (1. + sn));
+  cs = (std::abs(tgfv) > Almost0) ? sn / tgfv : Almost1;
+
+  x = xv * cs + yv * sn;
+  yv = -xv * sn + yv * cs;
+  xv = x;
+
+  auto tmpT(*this); // operate on the copy to recover after the failure
+  alp += std::asin(sn);
+  if (!tmpT.rotateParam(alp) || !tmpT.propagateParamTo(xv, b)) {
+    LOG(ERROR) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
+               << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
+    tmpT.printParam();
+    return false;
+  }
+  *this = tmpT;
+  if (dca) {
+    (*dca)[0] = getY() - yv;
+    (*dca)[1] = getZ() - zv;
+  }
+  return true;
+}
+
 //____________________________________________________________
 bool TrackPar::getYZAt(float xk, float b, float& y, float& z) const
 {
@@ -347,11 +390,11 @@ bool TrackPar::getYZAt(float xk, float b, float& y, float& z) const
   if (fabs(getQ2Pt()) < Almost0) {
     return false;
   }
-  float r1 = sqrtf((1.f - f1) * (1.f + f1));
+  float r1 = std::sqrt((1.f - f1) * (1.f + f1));
   if (fabs(r1) < Almost0) {
     return false;
   }
-  float r2 = sqrtf((1.f - f2) * (1.f + f2));
+  float r2 = std::sqrt((1.f - f2) * (1.f + f2));
   if (fabs(r2) < Almost0) {
     return false;
   }
@@ -447,7 +490,7 @@ bool TrackPar::getXatLabR(float r, float& x, float bz, o2::track::DirType dir) c
     // get center of the track circle
     o2::utils::CircleXY circle;
     getCircleParamsLoc(bz, circle);
-    auto r0 = sqrtf(circle.getCenterD2());
+    auto r0 = std::sqrt(circle.getCenterD2());
     if (r0 <= o2::constants::math::Almost0) {
       return false; // the track is concentric to circle
     }
@@ -465,7 +508,7 @@ bool TrackPar::getXatLabR(float r, float& x, float bz, o2::track::DirType dir) c
     if (det < 0.) {
       return false; // does not reach raduis r
     }
-    det = sqrtf(det);
+    det = std::sqrt(det);
     //
     // the intersection happens in 2 points: {circle.xC+tR*C,circle.yC+tR*S}
     // with C=f*c0+-|s0|*det and S=f*s0-+c0 sign(s0)*det
@@ -530,7 +573,7 @@ bool TrackPar::getXatLabR(float r, float& x, float bz, o2::track::DirType dir) c
       if (dir == DirAuto) {
         return true;
       }
-      det = sqrtf(det);
+      det = std::sqrt(det);
       if (dir == DirOutward) { // along the track direction
         if (sn > 0.) {
           if (fy > det) {
@@ -555,7 +598,7 @@ bool TrackPar::getXatLabR(float r, float& x, float bz, o2::track::DirType dir) c
       if (det < 0.) {
         return false; // does not reach raduis r
       }
-      det = sqrtf(det);
+      det = std::sqrt(det);
       if (dir == DirAuto) {
         x = mX > 0. ? det : -det; // choose the solution requiring the smalest step
         return true;
@@ -573,13 +616,13 @@ bool TrackPar::getXatLabR(float r, float& x, float bz, o2::track::DirType dir) c
         }
       }
     } else { // general case of straight line
-      auto cs = sqrtf((1 - sn) * (1 + sn));
+      auto cs = std::sqrt((1 - sn) * (1 + sn));
       auto xsyc = mX * sn - fy * cs;
       auto det = (r - xsyc) * (r + xsyc);
       if (det < 0.) {
         return false; // does not reach raduis r
       }
-      det = sqrtf(det);
+      det = std::sqrt(det);
       auto xcys = mX * cs + fy * sn;
       auto t = -xcys;
       if (dir == DirAuto) {
@@ -601,6 +644,62 @@ bool TrackPar::getXatLabR(float r, float& x, float bz, o2::track::DirType dir) c
     }
   }
   //
+  return true;
+}
+
+//______________________________________________
+bool TrackPar::correctForELoss(float xrho, float mass, bool anglecorr, float dedx)
+{
+  //------------------------------------------------------------------
+  // This function corrects the track parameters for the energy loss in crossed material.
+  // "xrho" - is the product length*density (g/cm^2).
+  //     It should be passed as negative when propagating tracks
+  //     from the intreaction point to the outside of the central barrel.
+  // "mass" - the mass of this particle (GeV/c^2). Negative mass means charge=2 particle
+  // "dedx" - mean enery loss (GeV/(g/cm^2), if <=kCalcdEdxAuto : calculate on the fly
+  // "anglecorr" - switch for the angular correction
+  //------------------------------------------------------------------
+  constexpr float kMaxELossFrac = 0.3f; // max allowed fractional eloss
+  constexpr float kMinP = 0.01f;        // kill below this momentum
+
+  // Apply angle correction, if requested
+  if (anglecorr) {
+    float csp2 = (1.f - getSnp()) * (1.f + getSnp()); // cos(phi)^2
+    float cst2I = (1.f + getTgl() * getTgl());        // 1/cos(lambda)^2
+    float angle = std::sqrt(cst2I / (csp2));
+    xrho *= angle;
+  }
+
+  float p = getP();
+  if (mass < 0) {
+    p += p; // q=2 particle
+  }
+  float p2 = p * p, mass2 = mass * mass;
+  float e2 = p2 + mass2;
+  float beta2 = p2 / e2;
+
+  // Calculating the energy loss corrections************************
+  if ((xrho != 0.f) && (beta2 < 1.f)) {
+    if (dedx < kCalcdEdxAuto + Almost1) { // request to calculate dedx on the fly
+      dedx = BetheBlochSolid(p / fabs(mass));
+      if (mass < 0) {
+        dedx *= 4.f; // z=2 particle
+      }
+    }
+
+    float dE = dedx * xrho;
+    float e = std::sqrt(e2);
+    if (fabs(dE) > kMaxELossFrac * e) {
+      return false; // 30% energy loss is too much!
+    }
+    float eupd = e + dE;
+    float pupd2 = eupd * eupd - mass2;
+    if (pupd2 < kMinP * kMinP) {
+      return false;
+    }
+    setQ2Pt(getQ2Pt() * p / std::sqrt(pupd2));
+  }
+
   return true;
 }
 
@@ -634,11 +733,11 @@ bool TrackParCov::propagateTo(float xk, float b)
   if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1)) {
     return false;
   }
-  float r1 = sqrtf((1.f - f1) * (1.f + f1));
+  float r1 = std::sqrt((1.f - f1) * (1.f + f1));
   if (fabs(r1) < Almost0) {
     return false;
   }
-  float r2 = sqrtf((1.f - f2) * (1.f + f2));
+  float r2 = std::sqrt((1.f - f2) * (1.f + f2));
   if (fabs(r2) < Almost0) {
     return false;
   }
@@ -734,8 +833,8 @@ bool TrackParCov::rotate(float alpha)
   utils::BringToPMPi(alpha);
   //
   float ca = 0, sa = 0;
-  utils::sincosf(alpha - getAlpha(), sa, ca);
-  float snp = getSnp(), csp = sqrtf((1.f - snp) * (1.f + snp)); // Improve precision
+  utils::sincos(alpha - getAlpha(), sa, ca);
+  float snp = getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp)); // Improve precision
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
@@ -776,6 +875,47 @@ bool TrackParCov::rotate(float alpha)
   return true;
 }
 
+//_______________________________________________________________________
+bool TrackParCov::propagateToDCA(const o2::dataformats::VertexBase& vtx, float b, o2::dataformats::DCA* dca, float maxD)
+{
+  // propagate track to DCA to the vertex
+  float sn, cs, alp = getAlpha();
+  o2::utils::sincos(alp, sn, cs);
+  float x = getX(), y = getY(), snp = getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
+  float xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
+  x -= xv;
+  y -= yv;
+  //Estimate the impact parameter neglecting the track curvature
+  Double_t d = std::abs(x * snp - y * csp);
+  if (d > maxD) {
+    return false;
+  }
+  float crv = getCurvature(b);
+  float tgfv = -(crv * x - snp) / (crv * y + csp);
+  sn = tgfv / std::sqrt(1.f + tgfv * tgfv);
+  cs = std::sqrt((1. - sn) * (1. + sn));
+  cs = (std::abs(tgfv) > Almost0) ? sn / tgfv : Almost1;
+
+  x = xv * cs + yv * sn;
+  yv = -xv * sn + yv * cs;
+  xv = x;
+
+  auto tmpT(*this); // operate on the copy to recover after the failure
+  alp += std::asin(sn);
+  if (!tmpT.rotate(alp) || !tmpT.propagateTo(xv, b)) {
+    LOG(ERROR) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
+    tmpT.print();
+    return false;
+  }
+  *this = tmpT;
+  if (dca) {
+    o2::utils::sincos(alp, sn, cs);
+    auto s2ylocvtx = vtx.getSigmaX2() * sn * sn + vtx.getSigmaY2() * cs * cs - 2. * vtx.getSigmaXY() * cs * sn;
+    dca->set(getY() - yv, getZ() - zv, getSigmaY2() + s2ylocvtx, getSigmaZY(), getSigmaZ2() + vtx.getSigmaZ2());
+  }
+  return true;
+}
+
 //______________________________________________________________
 TrackParCov::TrackParCov(const array<float, 3>& xyz, const array<float, 3>& pxpypz,
                          const array<float, kLabCovMatSize>& cv, int charge, bool sectorAlpha)
@@ -801,7 +941,7 @@ TrackParCov::TrackParCov(const array<float, 3>& xyz, const array<float, 3>& pxpy
   }
   //
   float sn, cs;
-  utils::sincosf(alp, sn, cs);
+  utils::sincos(alp, sn, cs);
   // protection:  avoid alpha being too close to 0 or +-pi/2
   if (fabs(sn) < 2.f * kSafe) {
     if (alp > 0) {
@@ -809,14 +949,14 @@ TrackParCov::TrackParCov(const array<float, 3>& xyz, const array<float, 3>& pxpy
     } else {
       alp += alp > -PIHalf ? -2.f * kSafe : 2.f * kSafe;
     }
-    utils::sincosf(alp, sn, cs);
+    utils::sincos(alp, sn, cs);
   } else if (fabs(cs) < 2.f * kSafe) {
     if (alp > 0) {
       alp += alp > PIHalf ? 2.f * kSafe : -2.f * kSafe;
     } else {
       alp += alp > -PIHalf ? 2.f * kSafe : -2.f * kSafe;
     }
-    utils::sincosf(alp, sn, cs);
+    utils::sincos(alp, sn, cs);
   }
   // get the vertex of origin and the momentum
   array<float, 3> ver{xyz[0], xyz[1], xyz[2]};
@@ -844,7 +984,7 @@ TrackParCov::TrackParCov(const array<float, 3>& xyz, const array<float, 3>& pxpy
   //
   // Covariance matrix (formulas to be simplified)
   float r = mom[0] * ptI; // cos(phi)
-  float cv34 = sqrtf(cv[3] * cv[3] + cv[4] * cv[4]);
+  float cv34 = std::sqrt(cv[3] * cv[3] + cv[4] * cv[4]);
   //
   int special = 0;
   float sgcheck = r * sn + getSnp() * cs;
@@ -953,19 +1093,19 @@ bool TrackParCov::propagateTo(float xk, const array<float, 3>& b)
   if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1)) {
     return false;
   }
-  float r1 = sqrtf((1.f - f1) * (1.f + f1));
+  float r1 = std::sqrt((1.f - f1) * (1.f + f1));
   if (fabs(r1) < Almost0) {
     return false;
   }
-  float r2 = sqrtf((1.f - f2) * (1.f + f2));
+  float r2 = std::sqrt((1.f - f2) * (1.f + f2));
   if (fabs(r2) < Almost0) {
     return false;
   }
 
   float dy2dx = (f1 + f2) / (r1 + r2);
-  float step = (fabs(x2r) < 0.05f) ? dx * fabs(r2 + f2 * dy2dx)                                       // chord
-                                   : 2.f * asinf(0.5f * dx * sqrtf(1.f + dy2dx * dy2dx) * crv) / crv; // arc
-  step *= sqrtf(1.f + getTgl() * getTgl());
+  float step = (fabs(x2r) < 0.05f) ? dx * fabs(r2 + f2 * dy2dx)                                           // chord
+                                   : 2.f * asinf(0.5f * dx * std::sqrt(1.f + dy2dx * dy2dx) * crv) / crv; // arc
+  step *= std::sqrt(1.f + getTgl() * getTgl());
   //
   // get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
   array<float, 9> vecLab{0.f};
@@ -1023,13 +1163,13 @@ bool TrackParCov::propagateTo(float xk, const array<float, 3>& b)
 
   // Rotate to the system where Bx=By=0.
   float bxy2 = b[0] * b[0] + b[1] * b[1];
-  float bt = sqrtf(bxy2);
+  float bt = std::sqrt(bxy2);
   float cosphi = 1.f, sinphi = 0.f;
   if (bt > Almost0) {
     cosphi = b[0] / bt;
     sinphi = b[1] / bt;
   }
-  float bb = sqrtf(bxy2 + b[2] * b[2]);
+  float bb = std::sqrt(bxy2 + b[2] * b[2]);
   float costet = 1., sintet = 0.;
   if (bb > Almost0) {
     costet = b[2] / bb;
@@ -1078,7 +1218,7 @@ bool TrackParCov::propagateTo(float xk, const array<float, 3>& b)
   }
 
   // Calculate the track parameters
-  t = 1.f / sqrtf(vecLab[3] * vecLab[3] + vecLab[4] * vecLab[4]);
+  t = 1.f / std::sqrt(vecLab[3] * vecLab[3] + vecLab[4] * vecLab[4]);
   setX(x);
   setY(y);
   setZ(z);
@@ -1098,7 +1238,7 @@ void TrackParCov::checkCovariance()
 
   mC[kSigY2] = fabs(mC[kSigY2]);
   if (mC[kSigY2] > kCY2max) {
-    float scl = sqrtf(kCY2max / mC[kSigY2]);
+    float scl = std::sqrt(kCY2max / mC[kSigY2]);
     mC[kSigY2] = kCY2max;
     mC[kSigZY] *= scl;
     mC[kSigSnpY] *= scl;
@@ -1107,7 +1247,7 @@ void TrackParCov::checkCovariance()
   }
   mC[kSigZ2] = fabs(mC[kSigZ2]);
   if (mC[kSigZ2] > kCZ2max) {
-    float scl = sqrtf(kCZ2max / mC[kSigZ2]);
+    float scl = std::sqrt(kCZ2max / mC[kSigZ2]);
     mC[kSigZ2] = kCZ2max;
     mC[kSigZY] *= scl;
     mC[kSigSnpZ] *= scl;
@@ -1116,7 +1256,7 @@ void TrackParCov::checkCovariance()
   }
   mC[kSigSnp2] = fabs(mC[kSigSnp2]);
   if (mC[kSigSnp2] > kCSnp2max) {
-    float scl = sqrtf(kCSnp2max / mC[kSigSnp2]);
+    float scl = std::sqrt(kCSnp2max / mC[kSigSnp2]);
     mC[kSigSnp2] = kCSnp2max;
     mC[kSigSnpY] *= scl;
     mC[kSigSnpZ] *= scl;
@@ -1125,7 +1265,7 @@ void TrackParCov::checkCovariance()
   }
   mC[kSigTgl2] = fabs(mC[kSigTgl2]);
   if (mC[kSigTgl2] > kCTgl2max) {
-    float scl = sqrtf(kCTgl2max / mC[kSigTgl2]);
+    float scl = std::sqrt(kCTgl2max / mC[kSigTgl2]);
     mC[kSigTgl2] = kCTgl2max;
     mC[kSigTglY] *= scl;
     mC[kSigTglZ] *= scl;
@@ -1134,7 +1274,7 @@ void TrackParCov::checkCovariance()
   }
   mC[kSigQ2Pt2] = fabs(mC[kSigQ2Pt2]);
   if (mC[kSigQ2Pt2] > kC1Pt2max) {
-    float scl = sqrtf(kC1Pt2max / mC[kSigQ2Pt2]);
+    float scl = std::sqrt(kC1Pt2max / mC[kSigQ2Pt2]);
     mC[kSigQ2Pt2] = kC1Pt2max;
     mC[kSigQ2PtY] *= scl;
     mC[kSigQ2PtZ] *= scl;
@@ -1433,7 +1573,7 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
   float cst2I = (1.f + getTgl() * getTgl());        // 1/cos(lambda)^2
   // Apply angle correction, if requested
   if (anglecorr) {
-    float angle = sqrtf(cst2I / (csp2));
+    float angle = std::sqrt(cst2I / (csp2));
     x2x0 *= angle;
     xrho *= angle;
   }
@@ -1480,7 +1620,7 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
     }
 
     float dE = dedx * xrho;
-    float e = sqrtf(e2);
+    float e = std::sqrt(e2);
     if (fabs(dE) > kMaxELossFrac * e) {
       return false; // 30% energy loss is too much!
     }
@@ -1489,11 +1629,11 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
     if (pupd2 < kMinP * kMinP) {
       return false;
     }
-    cP4 = p / sqrtf(pupd2);
+    cP4 = p / std::sqrt(pupd2);
     //
     // Approximate energy loss fluctuation (M.Ivanov)
     constexpr float knst = 0.07f; // To be tuned.
-    float sigmadE = knst * sqrtf(fabs(dE)) * e / p2 * getQ2Pt();
+    float sigmadE = knst * std::sqrt(fabs(dE)) * e / p2 * getQ2Pt();
     cC44 += sigmadE * sigmadE;
   }
 
@@ -1559,7 +1699,7 @@ void o2::track::g3helx3(float qfield, float step, array<float, 7>& vect)
    *                                                                *
    ******************************************************************/
   const int ix = 0, iy = 1, iz = 2, ipx = 3, ipy = 4, ipz = 5, ipp = 6;
-  constexpr float kOvSqSix = 0.408248f; // sqrtf(1./6.);
+  constexpr float kOvSqSix = 0.408248f; // std::sqrt(1./6.);
 
   float cosx = vect[ipx], cosy = vect[ipy], cosz = vect[ipz];
 
@@ -1620,7 +1760,7 @@ float o2::track::BetheBlochSolid(float bg, float rho, float kp1, float kp2, floa
   //*** Density effect
   float d2 = 0.;
   const float x = log(bg);
-  const float lhwI = log(28.816 * 1e-9 * sqrtf(rho * meanZA) / meanI);
+  const float lhwI = log(28.816 * 1e-9 * std::sqrt(rho * meanZA) / meanI);
   if (x > kp2) {
     d2 = lhwI + x - 0.5;
   } else if (x > kp1) {

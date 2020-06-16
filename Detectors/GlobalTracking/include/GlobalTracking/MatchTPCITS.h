@@ -259,6 +259,7 @@ class MatchTPCITS
   using TPCTransform = o2::gpu::TPCFastTransform;
   using BracketF = o2::utils::Bracket<float>;
   using Params = o2::globaltracking::MatchITSTPCParams;
+  using MatCorrType = o2::base::Propagator::MatCorrType;
 
  public:
   MatchTPCITS(); // std::unique_ptr to forward declared type needs constructor / destructor in .cxx
@@ -409,8 +410,8 @@ class MatchTPCITS
   std::vector<o2::MCCompLabel>& getMatchedTPCLabels() { return mOutTPCLabels; }
 
   //>>> ====================== options =============================>>>
-  void setUseMatCorrFlag(int f);
-  int getUseMatCorrFlag() const { return mUseMatCorrFlag; }
+  void setUseMatCorrFlag(MatCorrType f) { mUseMatCorrFlag = f; }
+  auto getUseMatCorrFlag() const { return mUseMatCorrFlag; }
 
   //<<< ====================== options =============================<<<
 
@@ -537,7 +538,7 @@ class MatchTPCITS
   ///========== Parameters to be set externally, e.g. from CCDB ====================
   const Params* mParams = nullptr;
 
-  int mUseMatCorrFlag = o2::base::Propagator::USEMatCorrTGeo;
+  MatCorrType mUseMatCorrFlag = MatCorrType::USEMatCorrTGeo;
 
   bool mITSTriggered = false; ///< ITS readout is triggered
 

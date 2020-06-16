@@ -72,6 +72,11 @@ inline void sincosf(float ang, float& s, float& c)
   o2::gpu::GPUCommonMath::SinCos(ang, s, c);
 }
 
+inline void sincos(float ang, float& s, float& c)
+{
+  o2::gpu::GPUCommonMath::SinCos(ang, s, c);
+}
+
 inline void sincos(double ang, double& s, double& c)
 {
   o2::gpu::GPUCommonMath::SinCos(ang, s, c);
