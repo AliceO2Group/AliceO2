@@ -338,14 +338,20 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   // the digits are going to be sorted, we therefore need a copy of the vector rather than an object created
   // directly on the input data, the output vector however is created directly inside the message
   // memory thus avoiding copy by snapshot
-  auto msgDigits = pc.inputs().get<std::vector<o2::trd::Digit>>("digitinput");
+  // TODO: rather than sorting the digits, an index can be sorted and the read-only input data accessed
+  // via the sorted index
+  auto inputDigits = pc.inputs().get<gsl::span<o2::trd::Digit>>("digitinput");
+  std::vector<o2::trd::Digit> msgDigits(inputDigits.begin(), inputDigits.end());
   //  auto digits pc.outputs().make<std::vector<o2::trd::Digit>>(Output{"TRD", "TRKDIGITS", 0, Lifetime::Timeframe}, msgDigits.begin(), msgDigits.end());
   auto digitMCLabels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labelinput");
 
   //  auto rawDataOut = pc.outputs().make<char>(Output{"TRD", "RAWDATA", 0, Lifetime::Timeframe}, 1000); //TODO number is just a place holder until we start using it.
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackletMCLabels;
 
-  auto triggerRecords = pc.inputs().get<std::vector<o2::trd::TriggerRecord>>("triggerrecords");
+  // the returned object is read-only as it refers directly to the underlying raw input data
+  // need to make a copy because the object might be changed in fixTriggerRecords
+  auto inputTriggerRecords = pc.inputs().get<gsl::span<o2::trd::TriggerRecord>>("triggerrecords");
+  std::vector<o2::trd::TriggerRecord> triggerRecords(inputTriggerRecords.begin(), inputTriggerRecords.end());
   uint64_t currentTriggerRecord = 0;
 
   for (auto& trig : triggerRecords) {
