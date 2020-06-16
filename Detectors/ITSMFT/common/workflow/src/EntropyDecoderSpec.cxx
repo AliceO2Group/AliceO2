@@ -64,7 +64,7 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig)
   std::vector<OutputSpec> outputs{
     OutputSpec{{"compClusters"}, orig, "COMPCLUSTERS", 0, Lifetime::Timeframe},
     OutputSpec{{"patterns"}, orig, "PATTERNS", 0, Lifetime::Timeframe},
-    OutputSpec{{"ROframes"}, orig, "ClusterROF", 0, Lifetime::Timeframe},
+    OutputSpec{{"ROframes"}, orig, "CLUSTERSROF", 0, Lifetime::Timeframe},
     OutputSpec{{"fullclusters"}, orig, "CLUSTERS", 0, Lifetime::Timeframe} // RS DUMMY, being outphased
   };
 

@@ -132,13 +132,13 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 
   if (mDoDigits) {
     pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVec);
-    pc.outputs().snapshot(Output{orig, "DigitROF", 0, Lifetime::Timeframe}, digROFVec);
+    pc.outputs().snapshot(Output{orig, "DIGITSROF", 0, Lifetime::Timeframe}, digROFVec);
   }
   if (mDoClusters) {                                                                  // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
     pc.outputs().snapshot(Output{orig, "CLUSTERS", 0, Lifetime::Timeframe}, clusVec); // DUMMY!!!
     pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
     pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
-    pc.outputs().snapshot(Output{orig, "ClusterROF", 0, Lifetime::Timeframe}, clusROFVec);
+    pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);
   }
 
   if (mDoClusters) {
@@ -174,11 +174,11 @@ DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool do
 
   if (doDigits) {
     outputs.emplace_back(orig, "DIGITS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "DigitROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(orig, "DIGITSROF", 0, Lifetime::Timeframe);
   }
   if (doClusters) {
     outputs.emplace_back(orig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "ClusterROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(orig, "CLUSTERSROF", 0, Lifetime::Timeframe);
     // in principle, we don't need to open this input if we don't need to send real data,
     // but other devices expecting it do not know about options of this device: problem?
     // if (doClusters && doPatterns)
@@ -204,11 +204,11 @@ DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool do
   auto orig = o2::header::gDataOriginMFT;
   if (doDigits) {
     outputs.emplace_back(orig, "DIGITS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "DigitROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(orig, "DIGITSROF", 0, Lifetime::Timeframe);
   }
   if (doClusters) {
     outputs.emplace_back(orig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "ClusterROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(orig, "CLUSTERSROF", 0, Lifetime::Timeframe);
     // in principle, we don't need to open this input if we don't need to send real data,
     // but other devices expecting it do not know about options of this device: problem?
     // if (doClusters && doPatterns)
