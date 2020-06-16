@@ -81,6 +81,8 @@ struct ColumnOperationSpec {
       case BasicOp::NotEqual:
         type = atype::BOOL;
         break;
+      case BasicOp::Division:
+        type = atype::FLOAT;
       default:
         type = atype::NA;
     }
