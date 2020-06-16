@@ -148,7 +148,7 @@ class FileReaderTask
 
       o2::mch::Digit::Time time;
 
-      digits.emplace_back(o2::mch::Digit(deId, padId, digitadc, time));
+      digits.emplace_back(o2::mch::Digit(deId, padId, digitadc, time, sc.nofSamples()));
       //o2::mch::Digit& mchdigit = digits.back();
       //mchdigit.setDetID(deId);
       //mchdigit.setPadID(padId);
