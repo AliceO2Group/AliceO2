@@ -140,7 +140,7 @@ DECLARE_SOA_COLUMN(TPCNClsFindable, tpcNClsFindable, uint8_t);
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t);
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedRows, int8_t);
 DECLARE_SOA_COLUMN(TPCNClsShared, tpcNClsShared, uint8_t);
-DECLARE_SOA_COLUMN(TRDNTracklets, trdNTracklets, uint8_t);
+DECLARE_SOA_COLUMN(TRDTOFPattern, trdTofPattern, uint8_t);
 DECLARE_SOA_COLUMN(ITSChi2NCl, itsChi2NCl, float);
 DECLARE_SOA_COLUMN(TPCChi2NCl, tpcChi2NCl, float);
 DECLARE_SOA_COLUMN(TRDChi2, trdChi2, float);
@@ -202,7 +202,7 @@ DECLARE_SOA_TABLE(TracksCov, "AOD", "TRACKPARCOV",
 DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCInnerParam, track::Flags, track::ITSClusterMap,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
-                  track::TPCNClsShared, track::TRDNTracklets, track::ITSChi2NCl,
+                  track::TPCNClsShared, track::TRDTOFPattern, track::ITSChi2NCl,
                   track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
                   track::TPCSignal, track::TRDSignal, track::TOFSignal, track::Length,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
@@ -435,8 +435,8 @@ namespace mcparticle
 DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);
 DECLARE_SOA_COLUMN(PdgCode, pdgCode, int);
 DECLARE_SOA_COLUMN(StatusCode, statusCode, int);
-DECLARE_SOA_COLUMN(Mother, mother, int[2]);
-DECLARE_SOA_COLUMN(Daughter, daughter, int[2]);
+DECLARE_SOA_COLUMN(Mother, mother, int[2]);     // TODO needs INDEX pending NULL columns
+DECLARE_SOA_COLUMN(Daughter, daughter, int[2]); // TODO needs INDEX pending NULL columns
 DECLARE_SOA_COLUMN(Weight, weight, float);
 DECLARE_SOA_COLUMN(Px, px, float);
 DECLARE_SOA_COLUMN(Py, py, float);
