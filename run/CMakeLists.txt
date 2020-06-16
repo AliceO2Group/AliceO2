@@ -13,7 +13,6 @@
 add_library(allsim INTERFACE)
 
 if(ENABLE_UPGRADES)
-target_compile_definitions(allsim INTERFACE ENABLE_UPGRADES)
 target_link_libraries(allsim
                       INTERFACE O2::SimConfig
                                 O2::Steer
