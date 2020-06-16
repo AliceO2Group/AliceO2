@@ -54,6 +54,13 @@ class Clusters
   const CalPad& getSigmaPad() const { return mSigmaPad; }
   const CalPad& getTimeBin() const { return mTimeBin; }
 
+  CalPad& getNClusters() { return mNClusters; }
+  CalPad& getQMax() { return mQMax; }
+  CalPad& getQTot() { return mQTot; }
+  CalPad& getSigmaTime() { return mSigmaTime; }
+  CalPad& getSigmaPad() { return mSigmaPad; }
+  CalPad& getTimeBin() { return mTimeBin; }
+
  private:
   CalPad mNClusters{"N_Clusters"};
   CalPad mQMax{"Q_Max"};

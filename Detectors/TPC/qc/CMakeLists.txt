@@ -23,7 +23,8 @@ o2_target_root_dictionary(TPCQC
                                   include/TPCQC/Helpers.h
                                   include/TPCQC/TrackCuts.h
                                   include/TPCQC/Clusters.h
-                                  include/TPCQC/Tracks.h)
+                                  include/TPCQC/Tracks.h
+                                  include/TPCQC/CalPadWrapper.h)
 
 o2_add_test(PID
             COMPONENT_NAME tpc
