@@ -18,6 +18,7 @@
 #include <string>
 #include "CommonConstants/PhysicsConstants.h"
 #include "ReconstructionDataFormats/Track.h"
+#include "ReconstructionDataFormats/DCA.h"
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
 #include "DetectorsBase/MatLayerCylSet.h"
 
@@ -26,6 +27,11 @@ namespace o2
 namespace parameters
 {
 class GRPObject;
+}
+
+namespace dataformats
+{
+class VertexBase;
 }
 
 namespace field
@@ -38,9 +44,11 @@ namespace base
 class Propagator
 {
  public:
-  static constexpr int USEMatCorrNONE = 0; // flag to not use material corrections
-  static constexpr int USEMatCorrTGeo = 1; // flag to use TGeo for material queries
-  static constexpr int USEMatCorrLUT = 2;  // flag to use LUT for material queries (user must provide a pointer
+  enum class MatCorrType : int {
+    USEMatCorrNONE, // flag to not use material corrections
+    USEMatCorrTGeo, // flag to use TGeo for material queries
+    USEMatCorrLUT
+  }; // flag to use LUT for material queries (user must provide a pointer
 
   static Propagator* Instance()
   {
@@ -49,16 +57,40 @@ class Propagator
   }
 
   bool PropagateToXBxByBz(o2::track::TrackParCov& track, float x, float mass = o2::constants::physics::MassPionCharged,
-                          float maxSnp = 0.85, float maxStep = 2.0, int matCorr = 1,
+                          float maxSnp = 0.85, float maxStep = 2.0, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                          o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
+
+  bool PropagateToXBxByBz(o2::track::TrackPar& track, float x, float mass = o2::constants::physics::MassPionCharged,
+                          float maxSnp = 0.85, float maxStep = 2.0, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
                           o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
   bool propagateToX(o2::track::TrackParCov& track, float x, float bZ, float mass = o2::constants::physics::MassPionCharged,
-                    float maxSnp = 0.85, float maxStep = 2.0, int matCorr = 1,
+                    float maxSnp = 0.85, float maxStep = 2.0, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
                     o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
-  bool propagateToDCA(const Point3D<float>& vtx, o2::track::TrackParCov& track, float bZ,
-                      float mass = o2::constants::physics::MassPionCharged, float maxStep = 2.0, int matCorr = 1,
-                      o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0, float maxD = 999.f) const;
+  bool propagateToX(o2::track::TrackPar& track, float x, float bZ, float mass = o2::constants::physics::MassPionCharged,
+                    float maxSnp = 0.85, float maxStep = 2.0, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                    o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
+
+  bool propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track, float bZ,
+                      float mass = o2::constants::physics::MassPionCharged, float maxStep = 2.0, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                      o2::dataformats::DCA* dcaInfo = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
+                      int signCorr = 0, float maxD = 999.f) const;
+
+  bool propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track,
+                            float mass = o2::constants::physics::MassPionCharged, float maxStep = 2.0, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                            o2::dataformats::DCA* dcaInfo = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
+                            int signCorr = 0, float maxD = 999.f) const;
+
+  bool propagateToDCA(const Point3D<float>& vtx, o2::track::TrackPar& track, float bZ,
+                      float mass = o2::constants::physics::MassPionCharged, float maxStep = 2.0, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                      std::array<float, 2>* dca = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
+                      int signCorr = 0, float maxD = 999.f) const;
+
+  bool propagateToDCABxByBz(const Point3D<float>& vtx, o2::track::TrackPar& track,
+                            float mass = o2::constants::physics::MassPionCharged, float maxStep = 2.0, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                            std::array<float, 2>* dca = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
+                            int signCorr = 0, float maxD = 999.f) const;
 
   Propagator(Propagator const&) = delete;
   Propagator(Propagator&&) = delete;
@@ -78,7 +110,7 @@ class Propagator
   Propagator();
   ~Propagator() = default;
 
-  MatBudget getMatBudget(int corrType, const Point3D<float>& p0, const Point3D<float>& p1) const;
+  MatBudget getMatBudget(MatCorrType corrType, const Point3D<float>& p0, const Point3D<float>& p1) const;
 
   const o2::field::MagFieldFast* mField = nullptr; ///< External fast field (barrel only for the moment)
   float mBz = 0;                                   // nominal field

@@ -61,6 +61,12 @@ namespace o2
 template <typename T>
 class BaseCluster;
 
+namespace dataformats
+{
+class VertexBase;
+class DCA;
+} // namespace dataformats
+
 namespace track
 {
 // aliases for track elements
@@ -185,9 +191,13 @@ class TrackPar
   Point3D<float> getXYZGloAt(float xk, float b, bool& ok) const;
 
   // parameters manipulation
+  bool correctForELoss(float xrho, float mass, bool anglecorr = false, float dedx = kCalcdEdxAuto);
   bool rotateParam(float alpha);
   bool propagateParamTo(float xk, float b);
   bool propagateParamTo(float xk, const std::array<float, 3>& b);
+
+  bool propagateParamToDCA(const Point3D<float>& vtx, float b, std::array<float, 2>* dca = nullptr, float maxD = 999.f);
+
   void invertParam();
 
 #ifndef GPUCA_ALIGPUCODE
@@ -256,6 +266,7 @@ class TrackParCov : public TrackPar
   bool rotate(float alpha);
   bool propagateTo(float xk, float b);
   bool propagateTo(float xk, const std::array<float, 3>& b);
+  bool propagateToDCA(const o2::dataformats::VertexBase& vtx, float b, o2::dataformats::DCA* dca = nullptr, float maxD = 999.f);
   void invert();
 
   float getPredictedChi2(const std::array<float, 2>& p, const std::array<float, 3>& cov) const;
@@ -316,7 +327,7 @@ inline TrackPar::TrackPar(float x, float alpha, const std::array<float, kNParams
 inline void TrackPar::getLineParams(o2::utils::IntervalXY& ln, float& sna, float& csa) const
 {
   // get line parameterization as { x = x0 + xSlp*t, y = y0 + ySlp*t }
-  o2::utils::sincosf(getAlpha(), sna, csa);
+  o2::utils::sincos(getAlpha(), sna, csa);
   o2::utils::rotateZ(getX(), getY(), ln.xP, ln.yP, sna, csa); // reference point in global frame
   float snp = getSnp(), csp = sqrtf((1.f - snp) * (1.f + snp));
   ln.dxP = csp * csa - snp * sna;
@@ -328,7 +339,7 @@ inline void TrackPar::getCircleParams(float bz, o2::utils::CircleXY& c, float& s
 {
   // get circle params in loc and lab frame, for straight line just set to global coordinates
   getCircleParamsLoc(bz, c);
-  o2::utils::sincosf(getAlpha(), sna, csa);
+  o2::utils::sincos(getAlpha(), sna, csa);
   o2::utils::rotateZ(c.xC, c.yC, c.xC, c.yC, sna, csa); // center in global frame
 }
 
