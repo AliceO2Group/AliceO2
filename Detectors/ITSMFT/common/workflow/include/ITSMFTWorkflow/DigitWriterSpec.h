@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef STEER_DIGITIZERWORKFLOW_ITSMFTDIGITWRITER_H_
-#define STEER_DIGITIZERWORKFLOW_ITSMFTDIGITWRITER_H_
+#ifndef STEER_ITSMFTDIGITWRITER_H_
+#define STEER_ITSMFTDIGITWRITER_H_
 
 #include "Framework/DataProcessorSpec.h"
 
@@ -24,4 +24,4 @@ o2::framework::DataProcessorSpec getMFTDigitWriterSpec(bool mctruth = true);
 } // end namespace itsmft
 } // end namespace o2
 
-#endif /* STEER_DIGITIZERWORKFLOW_ITSMFTDIGITWRITER_H_ */
+#endif /* STEER_ITSMFTDIGITWRITER_H_ */
