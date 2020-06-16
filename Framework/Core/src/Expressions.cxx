@@ -51,6 +51,8 @@ struct OpNodeHelper {
 std::shared_ptr<arrow::DataType> concreteArrowType(atype::type type)
 {
   switch (type) {
+    case atype::UINT8:
+      return arrow::uint8();
     case atype::INT8:
       return arrow::int8();
     case atype::INT16:
@@ -199,17 +201,20 @@ Operations createOperations(Filter const& expression)
       return atype::FLOAT;
     }
 
-    if (t1 == t2)
+    if (t1 == t2) {
       return t1;
+    }
 
-    if (t1 == atype::INT32) {
+    if (t1 == atype::INT32 || t1 == atype::INT8 || t1 == atype::INT16 || t1 == atype::UINT8) {
+      if (t2 == atype::INT32 || t2 == atype::INT8 || t2 == atype::INT16 || t2 == atype::UINT8)
+        return atype::FLOAT;
       if (t2 == atype::FLOAT)
         return atype::FLOAT;
       if (t2 == atype::DOUBLE)
         return atype::DOUBLE;
     }
     if (t1 == atype::FLOAT) {
-      if (t2 == atype::INT32)
+      if (t2 == atype::INT32 || t2 == atype::INT8 || t2 == atype::INT16 || t2 == atype::UINT8)
         return atype::FLOAT;
       if (t2 == atype::DOUBLE)
         return atype::DOUBLE;

@@ -64,10 +64,12 @@ constexpr auto selectArrowType()
     return atype::FLOAT;
   } else if constexpr (std::is_same_v<T, double>) {
     return atype::DOUBLE;
-  } else if constexpr (std::is_same_v<T, uint8_t>) {
+  } else if constexpr (std::is_same_v<T, int8_t>) {
     return atype::INT8;
   } else if constexpr (std::is_same_v<T, uint16_t>) {
     return atype::INT16;
+  } else if constexpr (std::is_same_v<T, uint8_t>) {
+    return atype::UINT8;
   } else {
     return atype::NA;
   }
@@ -236,6 +238,16 @@ inline Node operator/(Node left, Node right)
   return Node{OpNode{BasicOp::Division}, std::move(left), std::move(right)};
 }
 
+inline Node operator/(BindingNode left, Node right)
+{
+  return Node{OpNode{BasicOp::Division}, left, std::move(right)};
+}
+
+inline Node operator/(Node left, BindingNode right)
+{
+  return Node{OpNode{BasicOp::Division}, std::move(left), right};
+}
+
 inline Node operator+(Node left, Node right)
 {
   return Node{OpNode{BasicOp::Addition}, std::move(left), std::move(right)};
@@ -244,6 +256,11 @@ inline Node operator+(Node left, Node right)
 inline Node operator-(Node left, Node right)
 {
   return Node{OpNode{BasicOp::Subtraction}, std::move(left), std::move(right)};
+}
+
+inline Node operator-(BindingNode left, BindingNode right)
+{
+  return Node{OpNode{BasicOp::Subtraction}, left, right};
 }
 
 /// arithmetical operations between node and literal
