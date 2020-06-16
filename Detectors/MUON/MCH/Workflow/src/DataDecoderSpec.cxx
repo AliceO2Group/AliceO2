@@ -135,7 +135,7 @@ class DataDecoderTask
       time.bunchCrossing = sc.bunchCrossing;
       time.orbit = orbit;
 
-      digits.emplace_back(o2::mch::Digit(deId, padId, digitadc, time));
+      digits.emplace_back(o2::mch::Digit(deId, padId, digitadc, time, sc.nofSamples()));
 
       if (mPrint)
         std::cout << "DIGIT STORED:\nADC " << digits.back().getADC() << " DE# " << digits.back().getDetID() << " PadId " << digits.back().getPadID() << " time " << digits.back().getTime().sampaTime << std::endl;
