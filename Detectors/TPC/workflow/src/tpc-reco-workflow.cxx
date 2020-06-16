@@ -115,13 +115,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::vector<int> laneConfiguration;
   auto nLanes = cfgc.options().get<int>("tpc-lanes");
   auto inputType = cfgc.options().get<std::string>("input-type");
-  if (inputType == "digitizer") {
-    // the digitizer is using a different lane setup so we have to force this for the moment
-    laneConfiguration.resize(nLanes);
-    std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
-  } else {
-    laneConfiguration = tpcSectors;
-  }
+  laneConfiguration = tpcSectors;
 
   // depending on whether to dispatch early (prompt) and on the input type, we
   // set the matcher. Note that this has to be in accordance with the OutputSpecs
