@@ -10,7 +10,7 @@
 
 /// @brief  Processor spec for a ROOT file writer for ITSMFT digits
 
-#include "ITSMFTDigitWriterSpec.h"
+#include "ITSMFTWorkflow/DigitWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "Headers/DataHeader.h"
@@ -36,7 +36,7 @@ using MCCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 /// create the processor spec
 /// describing a processor receiving digits for ITS/MFT and writing them to file
-DataProcessorSpec getITSMFTDigitWriterSpec(bool mctruth, o2::header::DataOrigin detOrig, o2::detectors::DetID detId)
+DataProcessorSpec getDigitWriterSpec(bool mctruth, o2::header::DataOrigin detOrig, o2::detectors::DetID detId)
 {
   std::string detStr = o2::detectors::DetID::getName(detId);
   std::string detStrL = detStr;
@@ -62,12 +62,12 @@ DataProcessorSpec getITSMFTDigitWriterSpec(bool mctruth, o2::header::DataOrigin 
 
 DataProcessorSpec getITSDigitWriterSpec(bool mctruth)
 {
-  return getITSMFTDigitWriterSpec(mctruth, o2::header::gDataOriginITS, o2::detectors::DetID::ITS);
+  return getDigitWriterSpec(mctruth, o2::header::gDataOriginITS, o2::detectors::DetID::ITS);
 }
 
 DataProcessorSpec getMFTDigitWriterSpec(bool mctruth)
 {
-  return getITSMFTDigitWriterSpec(mctruth, o2::header::gDataOriginMFT, o2::detectors::DetID::MFT);
+  return getDigitWriterSpec(mctruth, o2::header::gDataOriginMFT, o2::detectors::DetID::MFT);
 }
 
 } // end namespace itsmft

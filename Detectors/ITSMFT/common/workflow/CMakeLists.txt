@@ -10,6 +10,7 @@
 
 o2_add_library(ITSMFTWorkflow
                SOURCES src/ClusterReaderSpec.cxx
+                       src/DigitWriterSpec.cxx
                        src/STFDecoderSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
@@ -25,5 +26,10 @@ o2_add_library(ITSMFTWorkflow
 
 o2_add_executable(stf-decoder-workflow
                   SOURCES src/stf-decoder-workflow.cxx
+                  COMPONENT_NAME itsmft
+                  PUBLIC_LINK_LIBRARIES O2::ITSMFTWorkflow)
+
+o2_add_executable(digit-writer-workflow
+                  SOURCES src/digit-writer-workflow.cxx
                   COMPONENT_NAME itsmft
                   PUBLIC_LINK_LIBRARIES O2::ITSMFTWorkflow)
