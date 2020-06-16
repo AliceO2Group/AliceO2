@@ -55,7 +55,7 @@ void ClusterReader::run(ProcessingContext& pc)
 
   // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
   // To be fixed once the names-definition class is ready
-  pc.outputs().snapshot(Output{mOrigin, "ClusterROF", 0, Lifetime::Timeframe}, mClusROFRec);
+  pc.outputs().snapshot(Output{mOrigin, "CLUSTERSROF", 0, Lifetime::Timeframe}, mClusROFRec);
   if (mUseClFull) {
     pc.outputs().snapshot(Output{mOrigin, "CLUSTERS", 0, Lifetime::Timeframe}, mClusterArray);
   }
@@ -67,7 +67,7 @@ void ClusterReader::run(ProcessingContext& pc)
   }
   if (mUseMC) {
     pc.outputs().snapshot(Output{mOrigin, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mClusterMCTruth);
-    pc.outputs().snapshot(Output{mOrigin, "ClusterMC2ROF", 0, Lifetime::Timeframe}, mClusMC2ROFs);
+    pc.outputs().snapshot(Output{mOrigin, "CLUSTERSMC2ROF", 0, Lifetime::Timeframe}, mClusMC2ROFs);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
@@ -110,7 +110,7 @@ void ClusterReader::connectTree(const std::string& filename)
 DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useClComp, bool usePatterns)
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("ITS", "ClusterROF", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
   if (useClFull) {
     outputSpec.emplace_back("ITS", "CLUSTERS", 0, Lifetime::Timeframe);
   }
@@ -122,7 +122,7 @@ DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useCl
   }
   if (useMC) {
     outputSpec.emplace_back("ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back("ITS", "ClusterMC2ROF", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
@@ -137,7 +137,7 @@ DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useCl
 DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool useClFull, bool useClComp, bool usePatterns)
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("MFT", "ClusterROF", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("MFT", "CLUSTERSROF", 0, Lifetime::Timeframe);
   if (useClFull) {
     outputSpec.emplace_back("MFT", "CLUSTERS", 0, Lifetime::Timeframe);
   }
@@ -149,7 +149,7 @@ DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool useClFull, bool useCl
   }
   if (useMC) {
     outputSpec.emplace_back("MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back("MFT", "ClusterMC2ROF", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("MFT", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

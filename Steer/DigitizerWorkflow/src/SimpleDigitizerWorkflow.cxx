@@ -34,7 +34,7 @@
 
 // for ITSMFT
 #include "ITSMFTDigitizerSpec.h"
-#include "ITSMFTDigitWriterSpec.h"
+#include "ITSMFTWorkflow/DigitWriterSpec.h"
 
 // for TOF
 #include "TOFDigitizerSpec.h"
@@ -398,7 +398,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
         return f.accept(id);
       }
     }
-
     // accept all if neither onlyDet/skipDet are provided
     return true;
   };

@@ -239,7 +239,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType d
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "ITS", "ClusterROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
@@ -250,7 +250,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType d
 
   if (useMC) {
     inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "ITS", "ClusterMC2ROF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);

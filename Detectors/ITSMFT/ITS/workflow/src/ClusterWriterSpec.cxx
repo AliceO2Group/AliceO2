@@ -60,14 +60,14 @@ DataProcessorSpec getClusterWriterSpec(bool useMC)
                                 // RSTODO being eliminated
                                 BranchDefinition<ClustersType>{InputSpec{"clusters", "ITS", "CLUSTERS", 0},
                                                                "ITSCluster"},
-                                BranchDefinition<ROFrameRType>{InputSpec{"ROframes", "ITS", "ClusterROF", 0},
+                                BranchDefinition<ROFrameRType>{InputSpec{"ROframes", "ITS", "CLUSTERSROF", 0},
                                                                "ITSClustersROF",
                                                                logger},
                                 BranchDefinition<LabelsType>{InputSpec{"labels", "ITS", "CLUSTERSMCTR", 0},
                                                              "ITSClusterMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""},
-                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "ITS", "ClusterMC2ROF", 0},
+                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "ITS", "CLUSTERSMC2ROF", 0},
                                                              "ITSClustersMC2ROF",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""})();

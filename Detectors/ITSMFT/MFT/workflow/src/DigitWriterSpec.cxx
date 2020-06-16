@@ -77,7 +77,7 @@ DataProcessorSpec getDigitWriterSpec()
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "MFT", "DIGITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "MFT", "DigitROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "MFT", "DIGITSROF", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
     "mft-digit-writer",
     inputs,
