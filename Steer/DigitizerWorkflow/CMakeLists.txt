@@ -46,11 +46,10 @@ o2_add_executable(digitizer-workflow
                                         O2::PHOSSimulation
                                         O2::CPVSimulation
                                         O2::TOFSimulation
-					                    O2::TOFCalibration
+                                        O2::TOFCalibration
                                         O2::TOFReconstruction
                                         O2::TOFWorkflowUtils
                                         O2::TPCSimulation
-                                        O2::TPCWorkflow
                                         O2::TRDSimulation
                                         O2::TRDWorkflow
                                         O2::DataFormatsTRD
