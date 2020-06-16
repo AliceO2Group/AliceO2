@@ -28,7 +28,6 @@
 #include "TPCDigitRootWriterSpec.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/CDBInterface.h"
-#include "TPCWorkflow/RecoWorkflow.h"
 // needed in order to init the **SHARED** polyadist file (to be done before the digitizers initialize)
 #include "TPCSimulation/GEMAmplification.h"
 
@@ -142,7 +141,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"skipDet", VariantType::String, "none", {skiphelp}});
 
   // we support only output type 'tracks' for the moment
-  std::string tpcrthelp("Run TPC reco workflow to specified output type, currently supported: 'tracks'");
+  std::string tpcrthelp("deprecated option, please connect workflows on the command line by pipe");
   workflowOptions.push_back(
     ConfigParamSpec{"tpc-reco-type", VariantType::String, "", {tpcrthelp}});
 
@@ -438,15 +437,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, tpcsectors, mctruth);
     specs.insert(specs.end(), tpcPipelines.begin(), tpcPipelines.end());
 
-    auto tpcRecoOutputType = configcontext.options().get<std::string>("tpc-reco-type");
-    if (tpcRecoOutputType.empty()) {
-      // for writing digits to disc
-      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(tpcsectors, mctruth));
-    } else {
-      // attach the TPC reco workflow
-      auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(tpcsectors, tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
-      specs.insert(specs.end(), tpcRecoWorkflow.begin(), tpcRecoWorkflow.end());
+    if (configcontext.options().get<std::string>("tpc-reco-type").empty() == false) {
+      throw std::runtime_error("option 'tpc-reco-type' is deprecated, please connect workflows on the command line by pipe");
     }
+    // for writing digits to disc
+    specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(tpcsectors, mctruth));
   }
 
   // first 36 channels are reserved for the TPC
