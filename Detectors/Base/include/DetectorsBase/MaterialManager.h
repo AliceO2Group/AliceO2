@@ -18,6 +18,7 @@
 #include <map>
 #include <unordered_map>
 #include <initializer_list>
+#include <iosfwd>
 
 class TGeoMedium;
 
@@ -190,9 +191,9 @@ class MaterialManager
   void getSpecialCuts(const char* modname, int localindex, std::vector<std::pair<ECut, Float_t>>& cutVector);
 
   /// Print all processes for all media as well as defaults.
-  void printProcesses() const;
+  void printProcesses(std::ostream& stream) const;
   /// Print all cuts for all media as well as defaults.
-  void printCuts() const;
+  void printCuts(std::ostream& stream) const;
 
   // print out all registered materials
   void printMaterials() const;
@@ -232,7 +233,7 @@ class MaterialManager
   // a map allowing to lookup TGeoMedia from detector name and local medium index
   std::map<std::pair<std::string, int>, TGeoMedium*> mTGeoMediumMap;
 
-  // finally, I would like to keep track of tracking parameters and processes activated per medium
+  // finally, we'd like to keep track of tracking parameters and processes activated per medium
 
   std::map<std::string, int> mMaterialNameToGlobalIndexMap; // map of unique material name to global index
   std::map<std::string, int> mMediumNameToGlobalIndexMap;   // map of unique material name to global index
@@ -247,7 +248,7 @@ class MaterialManager
   /// to care about the engine in use but only needs to set cuts according to ONE naming scheme.
   // \note Currently, the naming convention of GEANT4 v10.3.3 is used.
   // \note This might be overhead so far but makes the MaterialManager and therefore O2 finally capable of
-  // forwarding cuts/processe to arbitrary engines.
+  // forwarding cuts/processes to arbitrary engines.
   // \todo Is there a more elegant implementation?
   /// fixed names of cuts
   const static std::unordered_map<ECut, const char*> mCutIDToName;

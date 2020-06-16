@@ -231,50 +231,50 @@ void MaterialManager::printMedia() const
   }
 }
 
-void MaterialManager::printProcesses() const
+void MaterialManager::printProcesses(std::ostream& stream) const
 {
-  LOG(INFO) << "Print process settings of media.";
-  std::cout << "Default process settings:\n";
+  stream << "Summary of process settings per media.\n";
+  stream << "-- Default process settings:\n";
   for (auto& p : mDefaultProcessMap) {
     auto it = mProcessIDToName.find(p.first);
     if (it != mProcessIDToName.end()) {
-      std::cout << "\t" << it->second << " = " << p.second << "\n";
+      stream << "\t" << it->second << " = " << p.second << "\n";
     }
   }
   if (mApplySpecialProcesses && mMediumProcessMap.size() > 0) {
-    std::cout << "Settings for single media:\n";
+    stream << "-- Custom process settings for single media:\n";
     for (auto& m : mMediumProcessMap) {
-      std::cout << "Global medium ID " << m.first << " (module = " << getModuleFromMediumID(m.first)
-                << ", medium name = " << getMediumNameFromMediumID(m.first) << "):\n";
+      stream << "Global medium ID " << m.first << " (module = " << getModuleFromMediumID(m.first)
+             << ", medium name = " << getMediumNameFromMediumID(m.first) << "):\n";
       for (auto& p : m.second) {
         auto it = mProcessIDToName.find(p.first);
         if (it != mProcessIDToName.end()) {
-          std::cout << "\t" << it->second << " = " << p.second << "\n";
+          stream << "\t" << it->second << " = " << p.second << "\n";
         }
       }
     }
   }
 }
 
-void MaterialManager::printCuts() const
+void MaterialManager::printCuts(std::ostream& stream) const
 {
-  LOG(INFO) << "Print cut settings of media.";
-  std::cout << "Default cut settings:\n";
+  stream << "Summary of cut settings per media.\n";
+  stream << "-- Default cut settings:\n";
   for (auto& c : mDefaultCutMap) {
     auto it = mCutIDToName.find(c.first);
     if (it != mCutIDToName.end()) {
-      std::cout << "\t" << it->second << " = " << c.second << "\n";
+      stream << "\t" << it->second << " = " << c.second << "\n";
     }
   }
   if (mApplySpecialCuts && mMediumCutMap.size() > 0) {
-    std::cout << "Settings for single media:\n";
+    stream << "-- Custom cut settings for single media:\n";
     for (auto& m : mMediumCutMap) {
-      std::cout << "Global medium ID " << m.first << " (module = " << getModuleFromMediumID(m.first)
-                << ", medium name = " << getMediumNameFromMediumID(m.first) << "):\n";
+      stream << "Global medium ID " << m.first << " (module = " << getModuleFromMediumID(m.first)
+             << ", medium name = " << getMediumNameFromMediumID(m.first) << "):\n";
       for (auto& c : m.second) {
         auto it = mCutIDToName.find(c.first);
         if (it != mCutIDToName.end()) {
-          std::cout << "\t" << it->second << " = " << c.second << "\n";
+          stream << "\t" << it->second << " = " << c.second << "\n";
         }
       }
     }
@@ -435,6 +435,8 @@ void MaterialManager::SpecialCut(const char* modname, int localindex, ECut parID
   int globalindex = getMediumID(modname, localindex);
   if (globalindex != -1) {
     Cut(ESpecial::kTRUE, globalindex, parID, val);
+  } else {
+    LOG(WARN) << "SpecialCut: NO GLOBALINDEX FOUND FOR " << modname << " " << localindex;
   }
 }
 

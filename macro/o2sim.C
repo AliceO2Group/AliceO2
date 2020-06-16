@@ -167,6 +167,12 @@ FairRunSim* o2sim_init(bool asservice)
   }
   // todo: save beam information in the grp
 
+  // print summary about cuts and processes used
+  std::ofstream cutfile(o2::base::NameConf::getCutProcFileName(confref.getOutPrefix()));
+  auto& matmgr = o2::base::MaterialManager::Instance();
+  matmgr.printCuts(cutfile);
+  matmgr.printProcesses(cutfile);
+
   timer.Stop();
   Double_t rtime = timer.RealTime();
   Double_t ctime = timer.CpuTime();
