@@ -33,7 +33,7 @@ void dumpDeviceSpec2DDS(std::ostream& out,
     std::replace(id.begin(), id.end(), '-', '_'); // replace all 'x' to 'y'
     out << "   "
         << R"(<decltask name=")" << id << R"(">)"
-                                        "\n";
+                                          "\n";
     out << "       "
         << R"(<exe reachable="true">)";
     for (size_t ai = 0; ai < execution.args.size(); ++ai) {
