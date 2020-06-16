@@ -758,7 +758,7 @@ int GPUReconstruction::EnqueuePipeline(bool terminate)
   }
   rec->mPipelineContext->cond.notify_one();
   q->c.wait(lkdone, [&q]() { return q->done; });
-  return 0;
+  return q->retVal;
 }
 
 GPUChain* GPUReconstruction::GetNextChainInQueue()
