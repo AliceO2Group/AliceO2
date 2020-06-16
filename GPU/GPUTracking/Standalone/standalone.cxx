@@ -29,6 +29,8 @@
 #include <tuple>
 #include <algorithm>
 #include <thread>
+#include <future>
+#include <atomic>
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
@@ -78,10 +80,11 @@ GPUChainTracking *chainTracking, *chainTrackingAsync, *chainTrackingPipeline;
 #ifdef HAVE_O2HEADERS
 GPUChainITS *chainITS, *chainITSAsync, *chainITSPipeline;
 #endif
-std::unique_ptr<char[]> outputmemory;
+std::unique_ptr<char[]> outputmemory, outputmemoryPipeline;
 std::unique_ptr<GPUDisplayBackend> eventDisplay;
 std::unique_ptr<GPUReconstructionTimeframe> tf;
 int nEventsInDirectory = 0;
+std::atomic<unsigned int> nIteration, nIterationEnd;
 
 void SetCPUAndOSSettings()
 {
@@ -232,6 +235,9 @@ int ReadConfiguration(int argc, char** argv)
 #endif
   if (configStandalone.outputcontrolmem) {
     outputmemory.reset(new char[configStandalone.outputcontrolmem]);
+    if (configStandalone.configProc.doublePipeline) {
+      outputmemoryPipeline.reset(new char[configStandalone.outputcontrolmem]);
+    }
   }
 
 #if !(defined(CUDA_ENABLED) || defined(OPENCL1_ENABLED) || defined(HIP_ENABLED))
@@ -481,13 +487,23 @@ int SetupReconstruction()
     recSet.useMatLUT = true;
     recAsync->SetSettings(&ev, &recSet, &devProc, &steps);
   }
+
+  if (configStandalone.outputcontrolmem) {
+    rec->SetOutputControl(outputmemory.get(), configStandalone.outputcontrolmem);
+    if (configStandalone.configProc.doublePipeline) {
+      recPipeline->SetOutputControl(outputmemoryPipeline.get(), configStandalone.outputcontrolmem);
+    }
+  }
+
   if (rec->Init()) {
     printf("Error initializing GPUReconstruction!\n");
     return 1;
   }
-  if (configStandalone.outputcontrolmem && rec->IsGPU() && rec->registerMemoryForGPU(outputmemory.get(), configStandalone.outputcontrolmem)) {
-    printf("ERROR registering memory for the GPU!!!\n");
-    return 1;
+  if (configStandalone.outputcontrolmem && rec->IsGPU()) {
+    if (rec->registerMemoryForGPU(outputmemory.get(), configStandalone.outputcontrolmem) || (configStandalone.configProc.doublePipeline && recPipeline->registerMemoryForGPU(outputmemoryPipeline.get(), configStandalone.outputcontrolmem))) {
+      printf("ERROR registering memory for the GPU!!!\n");
+      return 1;
+    }
   }
   if (configStandalone.DebugLevel >= 4) {
     rec->PrintKernelOccupancies();
@@ -545,6 +561,102 @@ void OutputStat(GPUChainTracking* t, long long int* nTracksTotal = nullptr, long
     snprintf(trdText, 1024, " - TRD Tracker reconstructed %d tracks (%d tracklets)", t->GetTRDTracker()->NTracks(), nTracklets);
   }
   printf("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total))%s\n", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, t->GetTPCMerger().NMaxClusters(), trdText);
+}
+
+int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, int runs, const GPUTrackingInOutPointers& ioPtrs, long long int* nTracksTotal, long long int* nClustersTotal, int threadId = 0, HighResTimer* timerPipeline = nullptr)
+{
+  int iRun = 0, iteration = 0;
+  while ((iteration = nIteration.fetch_add(1)) < runs) {
+    if (configStandalone.runs > 1) {
+      printf("Run %d (thread %d)\n", iteration + 1, threadId);
+    }
+    recUse->SetResetTimers(iRun < configStandalone.runsInit);
+    if (configStandalone.outputcontrolmem) {
+      recUse->SetOutputControl(threadId ? outputmemoryPipeline.get() : outputmemory.get(), configStandalone.outputcontrolmem);
+    }
+
+    if (configStandalone.testSyncAsync) {
+      printf("Running synchronous phase\n");
+    }
+    chainTrackingUse->mIOPtrs = ioPtrs;
+    if (iteration == (configStandalone.configProc.doublePipeline ? 1 : (configStandalone.runs - 1))) {
+      if (configStandalone.configProc.doublePipeline) {
+        timerPipeline->Start();
+      }
+      if (configStandalone.controlProfiler) {
+        rec->startGPUProfiling();
+      }
+    }
+    int tmpRetVal = recUse->RunChains();
+    int iterationEnd = nIterationEnd.fetch_add(1);
+    if (iterationEnd == configStandalone.runs - 1) {
+      if (configStandalone.configProc.doublePipeline) {
+        timerPipeline->Stop();
+      }
+      if (configStandalone.controlProfiler) {
+        rec->endGPUProfiling();
+      }
+    }
+
+    if (tmpRetVal == 0 || tmpRetVal == 2) {
+      OutputStat(chainTrackingUse, iRun == 0 ? nTracksTotal : nullptr, iRun == 0 ? nClustersTotal : nullptr);
+      if (configStandalone.memoryStat) {
+        recUse->PrintMemoryStatistics();
+      } else if (configStandalone.DebugLevel >= 2) {
+        recUse->PrintMemoryOverview();
+      }
+    }
+
+#ifdef HAVE_O2HEADERS
+    if (tmpRetVal == 0 && configStandalone.testSyncAsync) {
+      if (configStandalone.testSyncAsync) {
+        printf("Running asynchronous phase\n");
+      }
+
+      vecpod<char> compressedTmpMem(chainTracking->mIOPtrs.tpcCompressedClusters->totalDataSize);
+      memcpy(compressedTmpMem.data(), (const void*)chainTracking->mIOPtrs.tpcCompressedClusters, chainTracking->mIOPtrs.tpcCompressedClusters->totalDataSize);
+
+      chainTrackingAsync->mIOPtrs = ioPtrs;
+      chainTrackingAsync->mIOPtrs.tpcCompressedClusters = (o2::tpc::CompressedClustersFlat*)compressedTmpMem.data();
+      chainTrackingAsync->mIOPtrs.tpcZS = nullptr;
+      chainTrackingAsync->mIOPtrs.tpcPackedDigits = nullptr;
+      chainTrackingAsync->mIOPtrs.mcInfosTPC = nullptr;
+      chainTrackingAsync->mIOPtrs.nMCInfosTPC = 0;
+      chainTrackingAsync->mIOPtrs.mcLabelsTPC = nullptr;
+      chainTrackingAsync->mIOPtrs.nMCLabelsTPC = 0;
+      for (int i = 0; i < chainTracking->NSLICES; i++) {
+        chainTrackingAsync->mIOPtrs.clusterData[i] = nullptr;
+        chainTrackingAsync->mIOPtrs.nClusterData[i] = 0;
+        chainTrackingAsync->mIOPtrs.rawClusters[i] = nullptr;
+        chainTrackingAsync->mIOPtrs.nRawClusters[i] = 0;
+      }
+      chainTrackingAsync->mIOPtrs.clustersNative = nullptr;
+      recAsync->SetResetTimers(iRun < configStandalone.runsInit);
+      tmpRetVal = recAsync->RunChains();
+      if (tmpRetVal == 0 || tmpRetVal == 2) {
+        OutputStat(chainTrackingAsync, nullptr, nullptr);
+        if (configStandalone.memoryStat) {
+          recAsync->PrintMemoryStatistics();
+        }
+      }
+      recAsync->ClearAllocatedMemory();
+    }
+#endif
+    recUse->ClearAllocatedMemory();
+
+    if (tmpRetVal == 2) {
+      configStandalone.continueOnError = 0; // Forced exit from event display loop
+      configStandalone.noprompt = 1;
+    }
+    if (tmpRetVal && !configStandalone.continueOnError) {
+      if (tmpRetVal != 2) {
+        printf("Error occured\n");
+      }
+      return 1;
+    }
+    iRun++;
+  }
+  return 0;
 }
 
 int main(int argc, char** argv)
@@ -647,13 +759,13 @@ int main(int argc, char** argv)
       }
     }
 
-    for (int j2 = 0; j2 < configStandalone.runs2; j2++) {
+    for (int iRun = 0; iRun < configStandalone.runs2; iRun++) {
       if (configStandalone.configQA.inputHistogramsOnly) {
         chainTracking->ForceInitQA();
         break;
       }
       if (configStandalone.runs2 > 1) {
-        printf("RUN2: %d\n", j2);
+        printf("RUN2: %d\n", iRun);
       }
       long long int nTracksTotal = 0;
       long long int nClustersTotal = 0;
@@ -739,102 +851,36 @@ int main(int argc, char** argv)
 
         printf("Processing Event %d\n", iEvent);
         GPUTrackingInOutPointers ioPtrSave = chainTracking->mIOPtrs;
-        HighResTimer timerPipeline;
-        for (int j1 = 0; j1 < configStandalone.runs; j1++) {
-          GPUReconstruction* recUse = configStandalone.configProc.doublePipeline && j1 && (j1 & 1) == 0 ? recPipeline : rec;
-          GPUChainTracking* chainTrackingUse = configStandalone.configProc.doublePipeline && j1 && (j1 & 1) == 0 ? chainTrackingPipeline : chainTracking;
-          if (configStandalone.runs > 1) {
-            printf("Run %d\n", j1 + 1);
-          }
-          if (configStandalone.outputcontrolmem) {
-            recUse->SetOutputControl(outputmemory.get(), configStandalone.outputcontrolmem);
-          }
-          recUse->SetResetTimers(j1 < configStandalone.runsInit);
 
-          if (configStandalone.testSyncAsync) {
-            printf("Running synchronous phase\n");
+        nIteration.store(0);
+        nIterationEnd.store(0);
+        double pipelineWalltime = 1.;
+        if (configStandalone.configProc.doublePipeline) {
+          HighResTimer timerPipeline;
+          if (RunBenchmark(rec, chainTracking, 1, ioPtrSave, &nTracksTotal, &nClustersTotal)) {
+            goto breakrun;
           }
-          chainTrackingUse->mIOPtrs = ioPtrSave;
-          if (j1 == (configStandalone.configProc.doublePipeline ? 1 : (configStandalone.runs - 1))) {
-            timerPipeline.Start();
-            if (configStandalone.controlProfiler) {
-              rec->startGPUProfiling();
-            }
+          nIteration.store(1);
+          nIterationEnd.store(1);
+          auto pipeline1 = std::async(std::launch::async, RunBenchmark, rec, chainTracking, configStandalone.runs, ioPtrSave, &nTracksTotal, &nClustersTotal, 0, &timerPipeline);
+          auto pipeline2 = std::async(std::launch::async, RunBenchmark, recPipeline, chainTrackingPipeline, configStandalone.runs, ioPtrSave, &nTracksTotal, &nClustersTotal, 1, &timerPipeline);
+          if (pipeline1.get() || pipeline2.get()) {
+            goto breakrun;
           }
-          int tmpRetVal = recUse->RunChains();
-          if (j1 == configStandalone.runs - 1) {
-            timerPipeline.Stop();
-            if (configStandalone.controlProfiler) {
-              rec->endGPUProfiling();
-            }
-          }
-          nEventsProcessed += (j1 == 0);
-
-          if (tmpRetVal == 0 || tmpRetVal == 2) {
-            OutputStat(chainTrackingUse, j1 == 0 ? &nTracksTotal : nullptr, j1 == 0 ? &nClustersTotal : nullptr);
-            if (configStandalone.memoryStat) {
-              recUse->PrintMemoryStatistics();
-            } else if (configStandalone.DebugLevel >= 2) {
-              recUse->PrintMemoryOverview();
-            }
-          }
-
-#ifdef HAVE_O2HEADERS
-          if (tmpRetVal == 0 && configStandalone.testSyncAsync) {
-            if (configStandalone.testSyncAsync) {
-              printf("Running asynchronous phase\n");
-            }
-
-            vecpod<char> compressedTmpMem(chainTracking->mIOPtrs.tpcCompressedClusters->totalDataSize);
-            memcpy(compressedTmpMem.data(), (const void*)chainTracking->mIOPtrs.tpcCompressedClusters, chainTracking->mIOPtrs.tpcCompressedClusters->totalDataSize);
-
-            chainTrackingAsync->mIOPtrs = ioPtrSave;
-            chainTrackingAsync->mIOPtrs.tpcCompressedClusters = (o2::tpc::CompressedClustersFlat*)compressedTmpMem.data();
-            chainTrackingAsync->mIOPtrs.tpcZS = nullptr;
-            chainTrackingAsync->mIOPtrs.tpcPackedDigits = nullptr;
-            chainTrackingAsync->mIOPtrs.mcInfosTPC = nullptr;
-            chainTrackingAsync->mIOPtrs.nMCInfosTPC = 0;
-            chainTrackingAsync->mIOPtrs.mcLabelsTPC = nullptr;
-            chainTrackingAsync->mIOPtrs.nMCLabelsTPC = 0;
-            for (int i = 0; i < chainTracking->NSLICES; i++) {
-              chainTrackingAsync->mIOPtrs.clusterData[i] = nullptr;
-              chainTrackingAsync->mIOPtrs.nClusterData[i] = 0;
-              chainTrackingAsync->mIOPtrs.rawClusters[i] = nullptr;
-              chainTrackingAsync->mIOPtrs.nRawClusters[i] = 0;
-            }
-            chainTrackingAsync->mIOPtrs.clustersNative = nullptr;
-            recAsync->SetResetTimers(j1 < configStandalone.runsInit);
-            tmpRetVal = recAsync->RunChains();
-            if (tmpRetVal == 0 || tmpRetVal == 2) {
-              OutputStat(chainTrackingAsync, nullptr, nullptr);
-              if (configStandalone.memoryStat) {
-                recAsync->PrintMemoryStatistics();
-              }
-            }
-            recAsync->ClearAllocatedMemory();
-          }
-#endif
-          recUse->ClearAllocatedMemory();
-
-          if (tmpRetVal == 2) {
-            configStandalone.continueOnError = 0; // Forced exit from event display loop
-            configStandalone.noprompt = 1;
-          }
-          if (tmpRetVal && !configStandalone.continueOnError) {
-            if (tmpRetVal != 2) {
-              printf("Error occured\n");
-            }
+          pipelineWalltime = timerPipeline.GetElapsedTime() / (configStandalone.runs - 1);
+          printf("Pipeline wall time: %f, %d iterations, %f per event\n", timerPipeline.GetElapsedTime(), configStandalone.runs - 1, pipelineWalltime);
+        } else {
+          if (RunBenchmark(rec, chainTracking, configStandalone.runs, ioPtrSave, &nTracksTotal, &nClustersTotal)) {
             goto breakrun;
           }
         }
-        if (configStandalone.configProc.doublePipeline) {
-          printf("Pipeline wall time: %f, %d iterations, %f per event\n", timerPipeline.GetElapsedTime(), configStandalone.runs - 1, timerPipeline.GetElapsedTime() / (configStandalone.runs - 1));
-        }
+        nEventsProcessed++;
+
         if (configStandalone.timeFrameTime) {
           double nClusters = chainTracking->GetTPCMerger().NMaxClusters();
           if (nClusters > 0) {
             double nClsPerTF = 550000. * 1138.3;
-            double timePerTF = (configStandalone.configProc.doublePipeline ? (timerPipeline.GetCurrentElapsedTime() / (configStandalone.runs - 1)) : ((configStandalone.DebugLevel ? rec->GetStatKernelTime() : rec->GetStatWallTime()) / 1000000.)) * nClsPerTF / nClusters;
+            double timePerTF = (configStandalone.configProc.doublePipeline ? pipelineWalltime : ((configStandalone.DebugLevel ? rec->GetStatKernelTime() : rec->GetStatWallTime()) / 1000000.)) * nClsPerTF / nClusters;
             double nGPUsReq = timePerTF / 0.02277;
             char stat[1024];
             snprintf(stat, 1024, "Sync phase: %.2f sec per 256 orbit TF, %.1f GPUs required", timePerTF, nGPUsReq);
@@ -870,7 +916,7 @@ breakrun:
 
   rec->Finalize();
   if (configStandalone.outputcontrolmem && rec->IsGPU()) {
-    if (rec->unregisterMemoryForGPU(outputmemory.get())) {
+    if (rec->unregisterMemoryForGPU(outputmemory.get()) || (configStandalone.configProc.doublePipeline && recPipeline->unregisterMemoryForGPU(outputmemoryPipeline.get()))) {
       printf("Error unregistering memory\n");
     }
   }
