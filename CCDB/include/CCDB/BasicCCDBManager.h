@@ -33,6 +33,9 @@ class BasicCCDBManager
   struct CachedObject {
     std::shared_ptr<void> objPtr;
     std::string uuid;
+    long startvalidity = 0;
+    long endvalidity = 0;
+    bool isValid(long ts) { return ts < endvalidity && ts > startvalidity; }
   };
 
  public:
@@ -92,6 +95,12 @@ class BasicCCDBManager
     }
   }
 
+  /// check if checks of object validity before CCDB query is enabled
+  bool isValidityCheckingEnabled() const { return mCheckObjValidityEnabled; }
+
+  /// set the flag to check object validity before CCDB query
+  void setValidityCheckingEnabled(bool v = true) { mCheckObjValidityEnabled = v; }
+
   /// set the object upper validity limit
   void setCreatedNotAfter(long v) { mCreatedNotAfter = v; }
 
@@ -124,6 +133,7 @@ class BasicCCDBManager
   long mTimestamp{o2::ccdb::getCurrentTimestamp()};     // timestamp to be used for query (by default "now")
   bool mCanDefault = false;                             // whether default is ok --> useful for testing purposes done standalone/isolation
   bool mCachingEnabled = true;                          // whether caching is enabled
+  bool mCheckObjValidityEnabled = false;                // wether the validity of cached object is checked before proceeding to a CCDB API query  
   long mCreatedNotAfter = 0;                            // upper limit for object creation timestamp (TimeMachine mode) - If-Not-After HTTP header
   long mCreatedNotBefore = 0;                           // lower limit for object creation timestamp (TimeMachine mode) - If-Not-Before HTTP header
 };
@@ -143,6 +153,8 @@ T* BasicCCDBManager::getForTimeStamp(std::string const& path, long timestamp)
   if (ptr) { // new object was shipped, old one (if any) is not valid anymore
     cached.objPtr.reset(ptr);
     cached.uuid = mHeaders["ETag"];
+    cached.startvalidity = std::stol(mMetaData["Valid-From"]);
+    cached.endvalidity = std::stol(mMetaData["Valid-Until"]);
   } else if (mHeaders.count("Error")) { // in case of errors the pointer is 0 and headers["Error"] should be set
     clearCache(path);                   // in case of any error clear cache for this object
   } else {                              // the old object is valid
