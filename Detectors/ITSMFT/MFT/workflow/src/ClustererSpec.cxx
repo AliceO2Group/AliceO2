@@ -121,7 +121,7 @@ void ClustererDPL::run(ProcessingContext& pc)
   }
   mClusterer->process(mNThreads, reader, mFullClusters ? &clusVec : nullptr, &clusCompVec, mPatterns ? &clusPattVec : nullptr, &clusROFVec, clusterLabels.get());
   pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
-  pc.outputs().snapshot(Output{orig, "ClusterROF", 0, Lifetime::Timeframe}, clusROFVec);
+  pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);
   pc.outputs().snapshot(Output{orig, "CLUSTERS", 0, Lifetime::Timeframe}, clusVec);
   pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
 
@@ -131,7 +131,7 @@ void ClustererDPL::run(ProcessingContext& pc)
     for (int i = mc2rofs.size(); i--;) {
       clusterMC2ROframes[i] = mc2rofs[i]; // Simply, replicate it from digits ?
     }
-    pc.outputs().snapshot(Output{orig, "ClusterMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
+    pc.outputs().snapshot(Output{orig, "CLUSTERSMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
   }
 
   // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
@@ -144,19 +144,19 @@ DataProcessorSpec getClustererSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "MFT", "DIGITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "MFT", "DigitROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "MFT", "DIGITSROF", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "CLUSTERS", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "PATTERNS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("MFT", "ClusterROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("MFT", "CLUSTERSROF", 0, Lifetime::Timeframe);
 
   if (useMC) {
     inputs.emplace_back("labels", "MFT", "DIGITSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "MFT", "DigitMC2ROF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "MFT", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("MFT", "ClusterMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("MFT", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

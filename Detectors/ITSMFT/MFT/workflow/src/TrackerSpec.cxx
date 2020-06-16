@@ -84,7 +84,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   // the output vector however is created directly inside the message memory thus avoiding copy by
   // snapshot
   auto rofsinput = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
-  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"MFT", "TrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"MFT", "TRACKSROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
   LOG(INFO) << "MFTTracker pulled " << clusters.size() << " full clusters in "
             << rofs.size() << " RO frames";
@@ -159,7 +159,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   LOG(INFO) << "MFTTracker pushed " << allTracksCA.size() << " tracks CA";
   if (mUseMC) {
     pc.outputs().snapshot(Output{"MFT", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
-    pc.outputs().snapshot(Output{"MFT", "TrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
+    pc.outputs().snapshot(Output{"MFT", "TRACKSMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
 }
 
@@ -169,18 +169,18 @@ DataProcessorSpec getTrackerSpec(bool useMC)
   inputs.emplace_back("compClusters", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusters", "MFT", "CLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("patterns", "MFT", "PATTERNS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "MFT", "ClusterROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "MFT", "CLUSTERSROF", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "TRACKSLTF", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "TRACKSCA", 0, Lifetime::Timeframe);
-  outputs.emplace_back("MFT", "TrackROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("MFT", "TRACKSROF", 0, Lifetime::Timeframe);
 
   if (useMC) {
     inputs.emplace_back("labels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "MFT", "ClusterMC2ROF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "MFT", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("MFT", "TRACKSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("MFT", "TrackMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("MFT", "TRACKSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
