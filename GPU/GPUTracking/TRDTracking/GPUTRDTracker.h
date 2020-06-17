@@ -145,9 +145,10 @@ class GPUTRDTracker_t : public GPUProcessor
     mNTracks++;
     return (0);
   }
+  GPUd() int GetCollisionID(float trkTime) const;
   GPUd() void DoTrackingThread(int iTrk, int threadId = 0);
-  GPUd() bool CalculateSpacePoints();
-  GPUd() bool FollowProlongation(PROP* prop, TRDTRK* t, int threadId);
+  GPUd() bool CalculateSpacePoints(int iCollision = 0);
+  GPUd() bool FollowProlongation(PROP* prop, TRDTRK* t, int threadId, int collisionId);
   GPUd() float GetPredictedChi2(const My_Float* pTRD, const My_Float* covTRD, const My_Float* pTrk, const My_Float* covTrk) const;
   GPUd() int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
   GPUd() bool AdjustSector(PROP* prop, TRDTRK* t, const int layer) const;
@@ -166,7 +167,14 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() void Quicksort(const int left, const int right, const int size);
   GPUd() void InsertHypothesis(Hypothesis hypo, int& nCurrHypothesis, int idxOffset);
 
+  // input from TRD trigger record
+  GPUd() void SetNMaxCollisions(int nColl) { mNMaxCollisions = nColl; } // can this be fixed to a sufficiently large value?
+  GPUd() void SetNCollisions(int nColl) { mNCollisions = nColl; }
+  GPUd() void SetTriggerRecordIndices(int* indices) { mTriggerRecordIndices = indices; }
+  GPUd() void SetTriggerRecordTimes(float* times) { mTriggerRecordTimes = times; }
+
   // settings
+  GPUd() void SetProcessPerTimeFrame() { mProcessPerTimeFrame = true; }
   GPUd() void SetMCEvent(AliMCEvent* mc) { mMCEvent = mc; }
   GPUd() void EnableDebugOutput() { mDebugOutput = true; }
   GPUd() void SetPtThreshold(float minPt) { mMinPt = minPt; }
@@ -199,15 +207,20 @@ class GPUTRDTracker_t : public GPUProcessor
  protected:
   float* mR;                               // radial position of each TRD chamber, alignment taken into account, radial spread within chambers < 7mm
   bool mIsInitialized;                     // flag is set upon initialization
+  bool mProcessPerTimeFrame;               // if true, tracking is done per time frame instead of on a single events basis //FIXME is this needed??
   short mMemoryPermanent;                  // size of permanent memory for the tracker
   short mMemoryTracklets;                  // size of memory for TRD tracklets
   short mMemoryTracks;                     // size of memory for tracks (used for i/o)
+  int mNMaxCollisions;                     // max number of collisions to process (per time frame)
   int mNMaxTracks;                         // max number of tracks the tracker can handle (per event)
   int mNMaxSpacePoints;                    // max number of space points hold by the tracker (per event)
   TRDTRK* mTracks;                         // array of trd-updated tracks
   int mNCandidates;                        // max. track hypothesis per layer
+  int mNCollisions;                        // number of collisions with TRD tracklet data
   int mNTracks;                            // number of TPC tracks to be matched
   int mNEvents;                            // number of processed events
+  int* mTriggerRecordIndices;              // index of first tracklet for each collision
+  float* mTriggerRecordTimes;              // time in us for each collision
   GPUTRDTrackletWord* mTracklets;          // array of all tracklets, later sorted by HCId
   int mMaxThreads;                         // maximum number of supported threads
   int mNTracklets;                         // total number of tracklets in event
@@ -229,6 +242,7 @@ class GPUTRDTracker_t : public GPUProcessor
   float mAngleToDyC; // parameterization for conversion track angle -> tracklet deflection
   /// ---- end error parametrization ----
   bool mDebugOutput;                       // store debug output
+  float mTimeWindow;                       // max. deviation of the ITS-TPC track time w.r.t. TRD trigger record time stamp (in us, default is 100 ns)
   float mRadialOffset;                     // due to mis-calibration of t0
   float mMinPt;                            // min pt of TPC tracks for tracking
   float mMaxEta;                           // TPC tracks with higher eta are ignored
