@@ -197,7 +197,7 @@ class GPUReconstruction
   void ClearAllocatedMemory(bool clearOutputs = true);
   void ReturnVolatileDeviceMemory();
   void PushNonPersistentMemory();
-  void PopNonPersistentMemory();
+  void PopNonPersistentMemory(RecoStep step);
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
   void ResetRegisteredMemoryPointers(short res);
   void ComputeReuseMax(GPUProcessor* proc);
@@ -236,6 +236,8 @@ class GPUReconstruction
   RecoStepField GetRecoStepsGPU() const { return mRecoStepsGPU; }
   InOutTypeField GetRecoStepsInputs() const { return mRecoStepsInputs; }
   InOutTypeField GetRecoStepsOutputs() const { return mRecoStepsOutputs; }
+  int getRecoStepNum(RecoStep step, bool validCheck = true);
+  int getGeneralStepNum(GeneralStep step, bool validCheck = true);
 
   // Registration of GPU Processors
   template <class T>

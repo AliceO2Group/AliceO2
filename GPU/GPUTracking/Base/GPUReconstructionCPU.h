@@ -217,19 +217,15 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
     unsigned int countToHost = 0;
   };
 
-  constexpr static int N_RECO_STEPS = sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]);
-  constexpr static int N_GENERAL_STEPS = sizeof(GPUDataTypes::GENERAL_STEP_NAMES) / sizeof(GPUDataTypes::GENERAL_STEP_NAMES[0]);
-  HighResTimer mTimersGeneralSteps[N_GENERAL_STEPS];
+  HighResTimer mTimersGeneralSteps[GPUDataTypes::N_GENERAL_STEPS];
 
   std::vector<std::unique_ptr<timerMeta>> mTimers;
-  RecoStepTimerMeta mTimersRecoSteps[N_RECO_STEPS];
+  RecoStepTimerMeta mTimersRecoSteps[GPUDataTypes::N_RECO_STEPS];
   HighResTimer timerTotal;
   template <class T, int I = 0, int J = -1>
   HighResTimer& getKernelTimer(RecoStep step, int num = 0, size_t addMemorySize = 0);
   template <class T, int J = -1>
   HighResTimer& getTimer(const char* name, int num = -1);
-  int getRecoStepNum(RecoStep step, bool validCheck = true);
-  int getGeneralStepNum(GeneralStep step, bool validCheck = true);
 
   std::vector<std::vector<deviceEvent*>> mEvents;
 

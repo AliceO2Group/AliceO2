@@ -73,6 +73,8 @@ constexpr const char* const GPUReconstruction::GEOMETRY_TYPE_NAMES[];
 constexpr const char* const GPUReconstruction::IOTYPENAMES[];
 constexpr GPUReconstruction::GeometryType GPUReconstruction::geometryType;
 
+static long long int ptrDiff(void* a, void* b) { return (long long int)((char*)a - (char*)b); }
+
 GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostConstantMem(new GPUConstantMem), mProcessingSettings(cfg)
 {
   if (cfg.master) {
@@ -623,8 +625,11 @@ void GPUReconstruction::PushNonPersistentMemory()
   mNonPersistentMemoryStack.emplace_back(mHostMemoryPoolEnd, mDeviceMemoryPoolEnd);
 }
 
-void GPUReconstruction::PopNonPersistentMemory()
+void GPUReconstruction::PopNonPersistentMemory(RecoStep step)
 {
+  if (mDeviceProcessingSettings.debugLevel >= 3) {
+    printf("Allocated memory after %30s: %'13lld (non temporary %'13lld)\n", GPUDataTypes::RECO_STEP_NAMES[getRecoStepNum(step, true)], ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase) + ptrDiff((char*)mDeviceMemoryBase + mDeviceMemorySize, mDeviceMemoryPoolEnd), ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase));
+  }
   if (mDeviceProcessingSettings.keepDisplayMemory || mDeviceProcessingSettings.disableMemoryReuse) {
     return;
   }
@@ -653,8 +658,6 @@ void GPUReconstruction::ClearAllocatedMemory(bool clearOutputs)
   mNonPersistentMemoryStack.clear();
   mVolatileMemoryStart = nullptr;
 }
-
-static long long int ptrDiff(void* a, void* b) { return (long long int)((char*)a - (char*)b); }
 
 void GPUReconstruction::UpdateMaxMemoryUsed()
 {
@@ -704,6 +707,23 @@ void GPUReconstruction::PrintMemoryStatistics()
     mChains[i]->PrintMemoryStatistics();
   }
 }
+
+template <class T>
+static inline int getStepNum(T step, bool validCheck, int N, const char* err = "Invalid step num")
+{
+  static_assert(sizeof(step) == sizeof(unsigned int), "Invalid step enum size");
+  int retVal = 8 * sizeof(unsigned int) - 1 - CAMath::Clz((unsigned int)step);
+  if ((unsigned int)step == 0 || retVal >= N) {
+    if (!validCheck) {
+      return -1;
+    }
+    throw std::runtime_error("Invalid General Step");
+  }
+  return retVal;
+}
+
+int GPUReconstruction::getRecoStepNum(RecoStep step, bool validCheck) { return getStepNum(step, validCheck, GPUDataTypes::N_RECO_STEPS, "Invalid Reco Step"); }
+int GPUReconstruction::getGeneralStepNum(GeneralStep step, bool validCheck) { return getStepNum(step, validCheck, GPUDataTypes::N_GENERAL_STEPS, "Invalid General Step"); }
 
 void GPUReconstruction::RunPipelineWorker()
 {
