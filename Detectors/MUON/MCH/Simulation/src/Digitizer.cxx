@@ -15,6 +15,7 @@
 #include "MCHSimulation/Response.h"
 #include "TGeoManager.h"
 #include "TMath.h"
+#include "TRandom.h"
 #include <algorithm>
 #include <cassert>
 #include <fairlogger/Logger.h>
@@ -180,27 +181,30 @@ void Digitizer::generateNoiseDigits(){
   //create a map that is inverse proportional to number of channels per detelemID
   //number of channels per Dualsampa 60-64
   //loop over detelements
-  /*  o2::mch::mapping::forEachDetectionElement([&digits = this->mDigits, &normProbNoise = this->mNormProbNoise, &eventTime = this->mEventTime, &eventID = this->mEventID, &srcID = this->mSrcID, &mcTruthOutputContainer = this->mMCTruthOutputContainer, &random = gRandom()](int detID){
-    auto& seg = segmentation(detID);
-    //float invPads = 0.0;
+  TRandom* random = new TRandom;
+  
+  o2::mch::mapping::forEachDetectionElement([&digits = this->mDigits, &normProbNoise = this->mNormProbNoise, &eventTime = this->mEventTime, &eventID = this->mEventID, &srcID = this->mSrcID, &mcTruthOutputContainer = this->mMCTruthOutputContainer, &random](int detID)  {
+      auto& seg = segmentation(detID);
+      //float invPads = 0.0;
     //    if(seg.nofPads()) invPads = 1./((float)seg.nofPads());
-    auto nPads = seg.nofPads();
-    auto nNoisyPadsAv = (float) nPads * normProbNoise;
-    int nNoisyPads = TMath::Nint(random->Gaus(nNoisyPadsAv, TMath::Sqrt(nNoisyPadsAv)));
-    for(int i=0; i<nNoisyPads; i++)
-      {
-	int padid = random->Integer(nNoisyPads+1);
-	digits.emplace_back(eventTime, detID, padid, 0.6);//signal is below 1
-	//at the moment in response not yet doing anything since just adding 0.5 (then rounded down again to 1)
+      auto nPads = seg.nofPads();
+      auto nNoisyPadsAv = (float) nPads * normProbNoise;
+      int nNoisyPads = TMath::Nint(random->Gaus(nNoisyPadsAv, TMath::Sqrt(nNoisyPadsAv)));
+      for(int i=0; i<nNoisyPads; i++)
+	{
+	  int padid = random->Integer(nNoisyPads+1);
+	  digits.emplace_back(eventTime, detID, padid, 0.6);//signal is below 1
+	  //at the moment in response not yet doing anything since just adding 0.5 (then rounded down again to 1)
 	MCCompLabel label(-1, eventID, srcID, true); //which trackID for noise-only?
 	mcTruthOutputContainer.addElement(digits.size()-1, label);
-      }
-    //assign the padid
-    //emplace the thing
-    //fill the MC truth
-  });
+	}
+      //assign the padid
+      //emplace the thing
+      //fill the MC truth
+    });
   //assign a probability
-  
+    delete random;
+    random = 0x0;
   //get some probability for noise above threshold (may put simply in Response-header as constant)
   //  float pOfaboveThreshold = 10e-5;// static const Double_t kProbToBeOutsideNsigmas = TMath::Erfc(fgNSigmas/TMath::Sqrt(2.0)) / 2. ; //in aliroot
   //in aliroot it all pads are treated with equal probability, accurate?
@@ -218,7 +222,7 @@ void Digitizer::generateNoiseDigits(){
   
   
   //add MC label to output
-  */
+  
 
 }
 //______________________________________________________________________
