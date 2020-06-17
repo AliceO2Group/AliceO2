@@ -84,77 +84,27 @@ void Digitizer::setSimulationParameters()
   mElAttachProp = mSimParam->GetElAttachProp() / 100;
 }
 
-void Digitizer::clearCollections()
-{
-  std::for_each(mSignalsMapCollection.begin(), mSignalsMapCollection.end(), [](SignalContainer& sc) { sc.clear(); });
-  std::for_each(mDigitsCollection.begin(), mDigitsCollection.end(), [](DigitContainer& dc) { dc.clear(); });
-  mMergedLabels.clear();
-}
-
-// void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
-// {
-//   // Convert Signals to Digits over all TRD detectors (in a parallel fashion)
-// #ifdef WITH_OPENMP
-//   omp_set_num_threads(mNumThreads);
-// #pragma omp parallel for schedule(dynamic)
-// #endif
-//   for (int det = 0; det < kNdet; ++det) {
-// #ifdef WITH_OPENMP
-//     const int threadid = omp_get_thread_num();
-// #else
-//     const int threadid = 0;
-// #endif
-//     if (mSignalsMapCollection[det].size() == 0) {
-//       continue;
-//     }
-//     bool status = convertSignalsToADC(det, mSignalsMapCollection[det], mDigitsCollection[det], threadid);
-//     if (!status) {
-//       LOG(WARN) << "TRD conversion of signals to digits failed for detector " << det;
-//       continue; // go to the next chamber
-//     }
-//   }
-
-//   // Finalize
-//   for (int det = 0; det < kNdet; ++det) {
-//     std::move(mDigitsCollection[det].begin(), mDigitsCollection[det].end(), std::back_inserter(digits));
-//     for (const auto& it : mSignalsMapCollection[det]) {
-//       std::move(it.second.labels.begin(), it.second.labels.end(), std::back_inserter(mMergedLabels));
-//     }
-//   }
-//   labels.addElements(labels.getIndexedSize(), mMergedLabels);
-//   clearCollections();
-// }
-
 void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
-  // loop over the deque and generate a single signal to be processed and actually digitized
-
-  // SignalContainer fullSignal; // map det,pad,row
-
-  // loop over the pileup container
+  int count = 0; //  counter of the digitized signals from the deque
+  SignalContainer fullSignal;
   for (int i = 0; i < mPileupSignals.size(); ++i) {
-    const auto& collection = mPileupSignals[i]; //--> each element here is a collection
+    const auto& collection = mPileupSignals[i];
     for (int det = 0; det < kNdet; ++det) {
-      SignalContainer fullSignal;
-      const auto& signalContainer = collection[det]; //--> a map with active pads only
-      // loop over active pads only
-      for (const auto& signal : signalContainer) {
-        // if we get to this point, at least one signal exists
-        const auto& key = signal.first;          //--> the map key to the active pad
-        const auto& signalArray = signal.second; //--> the signal array structure
-
-        auto& fullSignalArray = fullSignal[key];
-        fullSignalArray.firstTBtime = mCurrentTriggerTime; // do we need to set this for further processing?, it is ok for setting up the full-signal map
-
-        for (const auto& label : signalArray.labels) {
-          (fullSignalArray.labels).push_back(label); // maybe check if the label already exists? is that even possible?
-        }
-
+      const auto& signalMap = collection[det]; //--> a map with active pads only for this chamber
+      for (const auto& signal : signalMap) {   // loop over active pads only, if there is any
+        const int& key = signal.first;
+        const SignalArray& signalArray = signal.second;
+        // check if the signal is from a previous event
         if (signalArray.firstTBtime < mCurrentTriggerTime) {
+          if ((mCurrentTriggerTime - signalArray.firstTBtime) < (READOUT_TIME + BUSY_TIME)) {
+            continue; // ignore the signal if it  is too old.
+          }
           // add only what's leftover from this signal
-          int start_bin = (int)((mCurrentTriggerTime - signalArray.firstTBtime) * 0.01) - 1; // number of bins to add, from the tail
-          auto it0 = signalArray.signals.begin() + start_bin;
-          auto it1 = fullSignalArray.signals.begin();
+          int idx = (int)((mCurrentTriggerTime - signalArray.firstTBtime) * 0.01); // number of bins to add, from the tail
+//          LOG(INFO) << "(older) Start position: " << idx << "\t Current trigger time: " << mCurrentTriggerTime << "\t First TB time: " << signalArray.firstTBtime;
+          auto it0 = signalArray.signals.begin() + idx;
+          auto it1 = fullSignal[key].signals.begin();
           while (it0 < signalArray.signals.end()) {
             *it1 += *it0;
             it0++;
@@ -162,32 +112,54 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
           }
         } else {
           // the signal is from a triggered event
-          int start_bin = (int)((signalArray.firstTBtime - mCurrentTriggerTime) * 0.01) - 1; // number of bins to add, on the tail of the final signal
+          int idx = (int)((signalArray.firstTBtime - mCurrentTriggerTime) * 0.01); // number of bins to add, on the tail of the final signal
+//          LOG(INFO) << "(newer) Start position: " << idx << "\t Current trigger time: " << mCurrentTriggerTime << "\t First TB time: " << signalArray.firstTBtime;
           auto it0 = signalArray.signals.begin();
-          auto it1 = fullSignalArray.signals.begin() + start_bin;
-          while (it1 < fullSignalArray.signals.end()) {
+          auto it1 = fullSignal[key].signals.begin() + idx;
+          while (it1 < fullSignal[key].signals.end()) {
             *it1 += *it0;
             it0++;
             it1++;
           }
+          if (it0 < signalArray.signals.end()) {
+            count++; // add one more element to keep from the tail of the deque
+          }
         }
-      } // loop over active pads only
 
-      // one the full signal for this chamber is built, one can make the adcs
-      bool status = convertSignalsToADC(det, fullSignal, digits);
-      if (!status) {
-        LOG(WARN) << "TRD conversion of signals to digits failed for detector " << det;
-        continue; // go to the next chamber
-      }
+        // do we need to set this for further processing?, it is ok for setting up the full-signal map
+        fullSignal[key].firstTBtime = mCurrentTriggerTime;
 
-      // finally add the labels
-      mMergedLabels.clear();
-      for (const auto& iter : fullSignal) {
-        std::move(iter.second.labels.begin(), iter.second.labels.end(), std::back_inserter(mMergedLabels));
-      }
-      labels.addElements(labels.getIndexedSize(), mMergedLabels);
-    } // loop over detectors or collections
-  }   // loop over pileup container elements
+        // keep the labels
+        for (const auto& label : signalArray.labels) {
+          (fullSignal[key].labels).push_back(label); // maybe check if the label already exists? is that even possible?
+        }
+      } // loop over active pads in detector
+    }   // loop over detectors
+  }     // loop over pileup container
+
+  // once the full signal for this chamber is built, one can make the adcs
+  if (fullSignal.size() > 0) {
+    // convert signals to ADCs and fill the digit container
+    bool status = convertSignalsToADC(0, fullSignal, digits);
+    if (!status) {
+      LOG(WARN) << "TRD conversion of signals to digits failed";
+    }
+    // get the labels attached to the signals and put it in the label container
+    for (const auto& iter : fullSignal) {
+      labels.addElements(labels.getIndexedSize(), iter.second.labels);
+    }
+  }
+
+  // remove all used added signals, keep those that can pileup to newer events.
+  const int numberOfElementsToPop = mPileupSignals.size() - count;
+  for (int i = 0; i < numberOfElementsToPop; ++i) {
+    mPileupSignals.pop_front();
+  }
+
+  // clear the signal map collection - always!
+  for (auto& sm : mSignalsMapCollection) {
+    sm.clear();
+  }
 }
 
 void Digitizer::pileup()
@@ -198,32 +170,31 @@ void Digitizer::pileup()
 
 void Digitizer::triggerEventProcessing(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
-  if ((mTime - mCurrentTriggerTime) < BUSY_TIME) {
-    // do not change the current trigger time and add send the signal containers to the pileup container
+  if (mCurrentTriggerTime < 0) {
+    // very first event
+    mCurrentTriggerTime = mTime;
+    mLastTime = mTime;
+  } else if ((mTime - mCurrentTriggerTime) < BUSY_TIME) {
+    // send the signal containers to the pileup container, and do not change the current trigger time.
     pileup();
+    mLastTime = mTime;
   } else {
     // flush the digits: signals from the pileup container are converted to adcs
-    // digits and labels are produced
-    // the current trigger time is changed after the flush is completed
+    // digits and labels are produced, and the current trigger time is changed after the flush is completed
     flush(digits, labels);
     mCurrentTriggerTime = mTime;
     mLastTime = mTime;
   }
 }
 
-void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits,
+                        o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
   if (!mCalib) {
     LOG(FATAL) << "TRD Calibration database not available";
   }
 
-  // At the beggining of processing a new event all collections (containers per chamber) should be empty
-  // If anything is left, it should be put in the pileup container
   triggerEventProcessing(digits, labels);
-  // assert(mDigitsCollection.size() == 0 && mSignalsMapCollection.size() == 0 && mMergedLabels.size() == 0);
-  if (!(mDigitsCollection.size() == 0 && mSignalsMapCollection.size() == 0 && mMergedLabels.size() == 0)) {
-    LOG(FATAL) << "One of the TRD collection containers is not empty";
-  }
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   std::array<std::vector<HitType>, kNdet> hitsPerDetector;
@@ -445,6 +416,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
         auto& currentSignal = currentSignalData.signals;
         auto& trackIds = currentSignalData.trackIds;
         auto& labels = currentSignalData.labels;
+        currentSignalData.firstTBtime = mCurrentTriggerTime;
         addLabel(hit, labels, trackIds); // add a label record only if needed
 
         // add signal with crosstalk for the non-central pads only
@@ -489,9 +461,6 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer& signalMapCon
   //
   // Converts the sampled electron signals to ADC values for a given chamber
   //
-  if (signalMapCont.size() == 0) {
-    return false;
-  }
 
   constexpr double kEl2fC = 1.602e-19 * 1.0e15;                                 // Converts number of electrons to fC
   double coupling = mSimParam->GetPadCoupling() * mSimParam->GetTimeCoupling(); // Coupling factor

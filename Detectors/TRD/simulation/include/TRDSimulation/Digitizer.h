@@ -81,16 +81,17 @@ class Digitizer
   std::vector<math_utils::RandomRing<>> mLogRandomRings;  // pre-generated exp distributed random number
   std::vector<TRDDiffusionAndTimeStructEstimator> mDriftEstimators;
 
-  double mTime = 0.;                   // time in nanoseconds
-  double mLastTime = 1.0e10;           // starts in the future
-  double mCurrentTriggerTime = 1.0e10; // starts in the future
+  double mTime = 0.;               // time in nanoseconds
+  double mLastTime = -1;           // negative, by default to flag the first event
+  double mCurrentTriggerTime = -1; // negative, by default to flag the first event
   int mEventID = 0;
   int mSrcID = 0;
 
   // Trigger parameters
   bool mTriggeredEvent = false;
-  static constexpr double READOUT_TIME = 3000;            // the time the readout takes, as 30 TB = 3 micro-s.
-  static constexpr double BUSY_TIME = READOUT_TIME + 200; // the time for which no new trigger can be received in nanoseconds
+  static constexpr double READOUT_TIME = 3000;                  // the time the readout takes, as 30 TB = 3 micro-s.
+  static constexpr double DEAD_TIME = 200;                      // trigger deadtime, 2 micro-s
+  static constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no new trigger can be received in nanoseconds
 
   // Digitization parameters
   static constexpr float AmWidth = TRDGeometry::amThick(); // Width of the amplification region
@@ -108,11 +109,9 @@ class Digitizer
   std::vector<HitType> mHitContainer;                            // the container of hits in a given detector
   std::vector<MCLabel> mMergedLabels;                            // temporary label container
   std::array<SignalContainer, kNdet> mSignalsMapCollection;      // container for caching signals over a timeframe
-  std::array<DigitContainer, kNdet> mDigitsCollection;           // container for caching digits for paralellization
   std::deque<std::array<SignalContainer, kNdet>> mPileupSignals; // container for piled up signals
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
-  void clearCollections();
   void setSimulationParameters();
 
   // Digitization chain methods
