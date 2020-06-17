@@ -29,8 +29,6 @@ namespace o2::framework
 /// them by type.
 class ServiceRegistry
 {
-  using ServicePtr = void*;
-  using ConstServicePtr = void const*;
   /// The maximum distance a entry can be from the optimal slot.
   constexpr static int MAX_DISTANCE = 8;
   /// The number of slots in the hashmap.
@@ -41,8 +39,8 @@ class ServiceRegistry
  public:
   ServiceRegistry()
   {
-    mServices.fill(std::make_pair(0L, nullptr));
-    mConstServices.fill(std::make_pair(0L, nullptr));
+    mServicesKey.fill(0L);
+    mServicesValue.fill(nullptr);
   }
   // Register a service for the given interface T
   // with actual implementation C, i.e. C is derived from T.
@@ -59,12 +57,12 @@ class ServiceRegistry
     // advance
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
-    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<I>>();
-    auto serviceId = typeHash & MAX_SERVICES_MASK;
+    constexpr auto typeHash = TypeIdHelpers::uniqueId<I>();
+    constexpr auto id = typeHash & MAX_SERVICES_MASK;
     for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
-      if (mServices[i + serviceId].second == nullptr) {
-        mServices[i + serviceId].first = typeHash;
-        mServices[i + serviceId].second = reinterpret_cast<ServicePtr>(service);
+      if (mServicesValue[i + id] == nullptr) {
+        mServicesKey[i + id] = typeHash;
+        mServicesValue[i + id] = reinterpret_cast<void*>(service);
         return;
       }
     }
@@ -79,72 +77,61 @@ class ServiceRegistry
     // advance
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
-    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<I>>();
-    auto serviceId = typeHash & MAX_SERVICES_MASK;
+    constexpr auto typeHash = TypeIdHelpers::uniqueId<I const>();
+    constexpr auto id = typeHash & MAX_SERVICES_MASK;
     for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
-      if (mConstServices[i + serviceId].second == nullptr) {
-        mConstServices[i + serviceId].first = typeHash;
-        mConstServices[i + serviceId].second = reinterpret_cast<ConstServicePtr>(service);
+      if (mServicesValue[i + id] == nullptr) {
+        mServicesKey[i + id] = typeHash;
+        mServicesValue[i + id] = (void*)(service);
         return;
       }
     }
     O2_BUILTIN_UNREACHABLE();
   }
 
-  /// Get a service for the given interface T. The returned reference exposed to
-  /// the user is actually of the last concrete type C registered, however this
-  /// should not be a problem.
-  template <typename T>
-  std::enable_if_t<std::is_const_v<T> == false, T&> get() const
-  {
-    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
-    auto serviceId = typeHash & MAX_SERVICES_MASK;
-    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
-      if (mServices[i + serviceId].first == typeHash) {
-        return *reinterpret_cast<T*>(mServices[i + serviceId].second);
-      }
-    }
-    throw std::runtime_error(std::string("Unable to find service of kind ") +
-                             typeid(T).name() +
-                             " did you register one as non-const reference?");
-  }
-
   /// Check if service of type T is currently active.
   template <typename T>
   std::enable_if_t<std::is_const_v<T> == false, bool> active() const
   {
-    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
-    auto serviceId = typeHash & MAX_SERVICES_MASK;
-    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
-      if (mServices[i + serviceId].first == typeHash) {
-        return mServices[i + serviceId].second != nullptr;
-      }
-    }
-    throw std::runtime_error(std::string("Unable to find service of kind ") +
-                             typeid(T).name() +
-                             " did you register one as non-const reference?");
+    constexpr auto typeHash = TypeIdHelpers::uniqueId<T>();
+    auto ptr = get(typeHash);
+    return ptr != nullptr;
   }
+
   /// Get a service for the given interface T. The returned reference exposed to
   /// the user is actually of the last concrete type C registered, however this
   /// should not be a problem.
   template <typename T>
-  std::enable_if_t<std::is_const_v<T>, T&> get() const
+  T& get() const
   {
-    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
-    auto serviceId = typeHash & MAX_SERVICES_MASK;
-    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
-      if (mConstServices[i + serviceId].first == typeHash) {
-        return *reinterpret_cast<T const*>(mConstServices[i + serviceId].second);
+    constexpr auto typeHash = TypeIdHelpers::uniqueId<T>();
+    auto ptr = get(typeHash);
+    if (O2_BUILTIN_LIKELY(ptr != nullptr)) {
+      if constexpr (std::is_const_v<T>) {
+        return *reinterpret_cast<T const*>(ptr);
+      } else {
+        return *reinterpret_cast<T*>(ptr);
       }
     }
     throw std::runtime_error(std::string("Unable to find service of kind ") +
                              typeid(T).name() +
-                             " did you register one as const reference?");
+                             ". Make sure you use const / non-const correctly.");
+  }
+
+  void* get(uint32_t typeHash) const
+  {
+    auto id = typeHash & MAX_SERVICES_MASK;
+    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
+      if (mServicesKey[i + id] == typeHash) {
+        return mServicesValue[i + id];
+      }
+    }
+    return nullptr;
   }
 
  private:
-  std::array<std::pair<uint32_t, ServicePtr>, MAX_SERVICES + MAX_DISTANCE> mServices;
-  std::array<std::pair<uint32_t, ConstServicePtr>, MAX_SERVICES + MAX_DISTANCE> mConstServices;
+  std::array<uint32_t, MAX_SERVICES + MAX_DISTANCE> mServicesKey;
+  std::array<void*, MAX_SERVICES + MAX_DISTANCE> mServicesValue;
 };
 
 } // namespace o2::framework
