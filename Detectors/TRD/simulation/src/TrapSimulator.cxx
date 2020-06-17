@@ -671,7 +671,7 @@ void TrapSimulator::draw(int choice, int index)
   if (!checkInitialized())
     return;
   TFile* rootfile = new TFile("trdtrackletplots.root", "UPDATE");
-  TCanvas* c1 = new TCanvas(Form("canvas_%i_%i:%i:%i_%i", index, mDetector, mRobPos, mMcmPos, mTrackletArray.size()));
+  TCanvas* c1 = new TCanvas(Form("canvas_%i_%i:%i:%i_%i", index, mDetector, mRobPos, mMcmPos, (int)mTrackletArray.size()));
   TH2F* hist = new TH2F(Form("mcmdata_%i", index),
                         Form("Data of MCM %i on ROB %i in detector %i ", mMcmPos, mRobPos, mDetector),
                         FeeParam::getNadcMcm(),
