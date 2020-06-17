@@ -118,7 +118,7 @@ class Digitizer
   void triggerEventProcessing(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
   void pileup();
   bool convertHits(const int, const std::vector<HitType>&, SignalContainer&, int thread = 0); // True if hit-to-signal conversion is successful
-  bool convertSignalsToADC(const int, SignalContainer&, DigitContainer&, int thread = 0);     // True if signal-to-ADC conversion is successful
+  bool convertSignalsToADC(SignalContainer&, DigitContainer&, int thread = 0);                // True if signal-to-ADC conversion is successful
   void addLabel(const o2::trd::HitType& hit, std::vector<o2::trd::MCLabel>&, std::unordered_map<int, int>&);
   bool diffusion(float, float, float, float, float, float, double&, double&, double&, int thread = 0); // True if diffusion is applied successfully
 

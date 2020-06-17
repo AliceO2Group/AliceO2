@@ -87,9 +87,8 @@ void Digitizer::setSimulationParameters()
 void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
   int count = 0; //  counter of the digitized signals from the deque
-  SignalContainer fullSignal;
-  for (int i = 0; i < mPileupSignals.size(); ++i) {
-    const auto& collection = mPileupSignals[i];
+  SignalContainer addedSignalsMap;
+  for (const auto& collection : mPileupSignals) {
     for (int det = 0; det < kNdet; ++det) {
       const auto& signalMap = collection[det]; //--> a map with active pads only for this chamber
       for (const auto& signal : signalMap) {   // loop over active pads only, if there is any
@@ -103,7 +102,7 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
           // add only what's leftover from this signal
           int idx = (int)((mCurrentTriggerTime - signalArray.firstTBtime) * 0.01); // number of bins to add, from the tail
           auto it0 = signalArray.signals.begin() + idx;
-          auto it1 = fullSignal[key].signals.begin();
+          auto it1 = addedSignalsMap[key].signals.begin();
           while (it0 < signalArray.signals.end()) {
             *it1 += *it0;
             it0++;
@@ -113,8 +112,8 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
           // the signal is from a triggered event
           int idx = (int)((signalArray.firstTBtime - mCurrentTriggerTime) * 0.01); // number of bins to add, on the tail of the final signal
           auto it0 = signalArray.signals.begin();
-          auto it1 = fullSignal[key].signals.begin() + idx;
-          while (it1 < fullSignal[key].signals.end()) {
+          auto it1 = addedSignalsMap[key].signals.begin() + idx;
+          while (it1 < addedSignalsMap[key].signals.end()) {
             *it1 += *it0;
             it0++;
             it1++;
@@ -125,25 +124,25 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
         }
 
         // do we need to set this for further processing?, it is ok for setting up the full-signal map
-        fullSignal[key].firstTBtime = mCurrentTriggerTime;
+        addedSignalsMap[key].firstTBtime = mCurrentTriggerTime;
 
         // keep the labels
         for (const auto& label : signalArray.labels) {
-          (fullSignal[key].labels).push_back(label); // maybe check if the label already exists? is that even possible?
+          (addedSignalsMap[key].labels).push_back(label); // maybe check if the label already exists? is that even possible?
         }
       } // loop over active pads in detector
     }   // loop over detectors
   }     // loop over pileup container
 
   // once the full signal for this chamber is built, one can make the adcs
-  if (fullSignal.size() > 0) {
+  if (addedSignalsMap.size() > 0) {
     // convert signals to ADCs and fill the digit container
-    bool status = convertSignalsToADC(0, fullSignal, digits);
+    bool status = convertSignalsToADC(addedSignalsMap, digits);
     if (!status) {
       LOG(WARN) << "TRD conversion of signals to digits failed";
     }
     // get the labels attached to the signals and put it in the label container
-    for (const auto& iter : fullSignal) {
+    for (const auto& iter : addedSignalsMap) {
       labels.addElements(labels.getIndexedSize(), iter.second.labels);
     }
   }
@@ -457,7 +456,7 @@ float drawGaus(o2::math_utils::RandomRing<>& normaldistRing, float mu, float sig
   return mu + sigma * normaldistRing.getNextValue();
 }
 
-bool Digitizer::convertSignalsToADC(const int det, SignalContainer& signalMapCont, DigitContainer& digits, int thread)
+bool Digitizer::convertSignalsToADC(SignalContainer& signalMapCont, DigitContainer& digits, int thread)
 {
   //
   // Converts the sampled electron signals to ADC values for a given chamber
