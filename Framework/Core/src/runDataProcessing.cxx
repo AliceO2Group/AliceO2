@@ -1299,13 +1299,18 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
       DriverState::MATERIALISE_WORKFLOW     //
     };
   } else if ((varmap["dump-workflow"].as<bool>() == true) || (varmap["run"].as<bool>() == false && varmap.count("id") == 0 && isOutputToPipe())) {
-    control.callbacks = {[](WorkflowSpec const& workflow,
-                            DeviceSpecs const devices,
-                            DeviceExecutions const&,
-                            DataProcessorInfos& dataProcessorInfos) {
-      WorkflowSerializationHelpers::dump(std::cout, workflow, dataProcessorInfos);
-      // FIXME: this is to avoid trailing garbage..
-      exit(0);
+    control.callbacks = {[filename = varmap["dump-workflow-file"].as<std::string>()](WorkflowSpec const& workflow,
+                                                                                     DeviceSpecs const devices,
+                                                                                     DeviceExecutions const&,
+                                                                                     DataProcessorInfos& dataProcessorInfos) {
+      if (filename == "-") {
+        WorkflowSerializationHelpers::dump(std::cout, workflow, dataProcessorInfos);
+        // FIXME: this is to avoid trailing garbage..
+        exit(0);
+      } else {
+        std::ofstream output(filename);
+        WorkflowSerializationHelpers::dump(output, workflow, dataProcessorInfos);
+      }
     }};
     control.forcedTransitions = {
       DriverState::EXIT,                    //
@@ -1440,12 +1445,13 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                              //
     ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT),             //
      "what to do when processing is finished: quit, wait")                                                              //
-    ("error-policy", bpo::value<TerminationPolicy>(&errorPolicy)->default_value(TerminationPolicy::QUIT),             //
+    ("error-policy", bpo::value<TerminationPolicy>(&errorPolicy)->default_value(TerminationPolicy::QUIT),               //
      "what to do when a device has an error: quit, wait")                                                               //
     ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")                     //
     ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                                //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                      //
     ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")            //
+    ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                  //
     ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far")                      //
     ("o2-control,o2", bpo::value<bool>()->zero_tokens()->default_value(false), "create O2 Control configuration");
   // some of the options must be forwarded by default to the device
