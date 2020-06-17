@@ -16,7 +16,10 @@ o2_add_library(MFTWorkflow
 	               src/ClusterWriterSpec.cxx
 		       src/ClusterReaderSpec.cxx
 		       src/TrackerSpec.cxx
+                       src/TrackFitterSpec.cxx
 		       src/TrackWriterSpec.cxx
+                       src/DigitWorkflow.cxx
+                       src/DigitWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::SimConfig
                                      O2::SimulationDataFormat
@@ -28,4 +31,8 @@ o2_add_executable(reco-workflow
                   SOURCES src/mft-reco-workflow.cxx
                   COMPONENT_NAME mft
                   PUBLIC_LINK_LIBRARIES O2::MFTWorkflow)
-				
+
+o2_add_executable(digit-workflow
+                  SOURCES src/mft-digit-workflow.cxx
+                  COMPONENT_NAME mft
+                  PUBLIC_LINK_LIBRARIES O2::MFTWorkflow)

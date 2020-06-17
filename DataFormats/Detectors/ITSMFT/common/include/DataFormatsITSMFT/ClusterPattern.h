@@ -24,6 +24,7 @@
 #include <Rtypes.h>
 #include <array>
 #include <iosfwd>
+#include <gsl/gsl>
 #include "DataFormatsITSMFT/Cluster.h"
 
 namespace o2
@@ -41,6 +42,19 @@ class ClusterPattern
   ClusterPattern();
   /// Standard constructor
   ClusterPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  /// Constructor from cluster patterns
+  template <class iterator>
+  ClusterPattern(iterator& pattIt)
+  {
+    mBitmap[0] = *pattIt++;
+    mBitmap[1] = *pattIt++;
+    int nbits = mBitmap[0] * mBitmap[1];
+    int nBytes = nbits / 8;
+    if (((nbits) % 8) != 0)
+      nBytes++;
+    memcpy(&mBitmap[2], &(*pattIt), nBytes);
+    pattIt += nBytes;
+  }
   /// Maximum number of bytes for the cluster puttern + 2 bytes respectively for the number of rows and columns of the bounding box
   static constexpr int kExtendedPatternBytes = Cluster::kMaxPatternBytes + 2;
   /// Returns the pattern
@@ -59,6 +73,10 @@ class ClusterPattern
   void setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
   /// Sets the whole bitmask: the number of rows, the number of columns and the pattern
   void setPattern(const unsigned char bitmask[kExtendedPatternBytes]);
+  /// Static: Compute pattern's COG position. Returns the number of fired pixels
+  static int getCOG(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], float& xCOG, float& zCOG);
+  /// Compute pattern's COG position. Returns the number of fired pixels
+  int getCOG(float& xCOG, float& zCOG) const;
 
   friend ClusterTopology;
   friend TopologyDictionary;

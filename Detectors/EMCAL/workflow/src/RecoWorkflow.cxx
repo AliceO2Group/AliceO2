@@ -17,13 +17,16 @@
 #include "Algorithm/RangeTokenizer.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
+#include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/Cluster.h"
 #include "EMCALWorkflow/RecoWorkflow.h"
 #include "EMCALWorkflow/CellConverterSpec.h"
 #include "EMCALWorkflow/ClusterizerSpec.h"
+#include "EMCALWorkflow/AnalysisClusterSpec.h"
 #include "EMCALWorkflow/DigitsPrinterSpec.h"
 #include "EMCALWorkflow/PublisherSpec.h"
+#include "EMCALWorkflow/RawToCellConverterSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -52,7 +55,8 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   {"digits", OutputType::Digits},
   {"cells", OutputType::Cells},
   {"raw", OutputType::Raw},
-  {"clusters", OutputType::Clusters}};
+  {"clusters", OutputType::Clusters},
+  {"analysisclusters", OutputType::AnalysisClusters}};
 
 o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                         bool enableDigitsPrinter,
@@ -79,17 +83,25 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
   o2::framework::WorkflowSpec specs;
 
   if (inputType == InputType::Digits) {
-    specs.emplace_back(o2::emcal::getPublisherSpec(PublisherConf{
-                                                     "emcal-digit-reader",
-                                                     "o2sim",
-                                                     {"digitbranch", "EMCALDigit", "Digit branch"},
-                                                     {"mcbranch", "EMCALDigitMCTruth", "MC label branch"},
-                                                     o2::framework::OutputSpec{"EMC", "DIGITS"},
-                                                     o2::framework::OutputSpec{"EMC", "DIGITSMCTR"}},
-                                                   propagateMC));
+    using digitInputType = std::vector<o2::emcal::Digit>;
+    specs.emplace_back(o2::emcal::getPublisherSpec<digitInputType>(PublisherConf{
+                                                                     "emcal-digit-reader",
+                                                                     "o2sim",
+                                                                     {"digitbranch", "EMCALDigit", "Digit branch"},
+                                                                     {"digittriggerbranch", "EMCALDigitTRGR", "Trigger record branch"},
+                                                                     {"mcbranch", "EMCALDigitMCTruth", "MC label branch"},
+                                                                     o2::framework::OutputSpec{"EMC", "DIGITS"},
+                                                                     o2::framework::OutputSpec{"EMC", "DIGITSTRGR"},
+                                                                     o2::framework::OutputSpec{"EMC", "DIGITSMCTR"}},
+                                                                   propagateMC));
 
-    if (enableDigitsPrinter)
-      specs.emplace_back(o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec());
+    if (enableDigitsPrinter) {
+      try {
+        specs.emplace_back(o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec("digits"));
+      } catch (std::runtime_error& e) {
+        LOG(ERROR) << "Cannot create digits printer spec: " << e.what();
+      }
+    }
 
     if (isEnabled(OutputType::Cells)) {
       // add converter for cells
@@ -98,7 +110,46 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
 
     if (isEnabled(OutputType::Clusters)) {
       // add clusterizer
-      specs.emplace_back(o2::emcal::reco_workflow::getClusterizerSpec());
+      specs.emplace_back(o2::emcal::reco_workflow::getClusterizerSpec(true));
+    }
+    if (isEnabled(OutputType::AnalysisClusters)) {
+      // add clusters from cells
+      specs.emplace_back(o2::emcal::reco_workflow::getAnalysisClusterSpec(true));
+    }
+  } else if (inputType == InputType::Cells) {
+    using cellInputType = std::vector<o2::emcal::Cell>;
+    specs.emplace_back(o2::emcal::getPublisherSpec<cellInputType>(PublisherConf{
+                                                                    "emcal-cell-reader",
+                                                                    "o2sim",
+                                                                    {"cellbranch", "EMCALCell", "Cell branch"},
+                                                                    {"celltriggerbranch", "EMCALCellTRGR", "Trigger record branch"},
+                                                                    {"mcbranch", "EMCALCellMCTruth", "MC label branch"},
+                                                                    o2::framework::OutputSpec{"EMC", "CELLS"},
+                                                                    o2::framework::OutputSpec{"EMC", "CELLSTRGR"},
+                                                                    o2::framework::OutputSpec{"EMC", "CELLSMCTR"}},
+                                                                  propagateMC));
+    if (enableDigitsPrinter) {
+      try {
+        specs.emplace_back(o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec("cells"));
+      } catch (std::runtime_error& e) {
+        LOG(ERROR) << "Cannot create digits printer spec: " << e.what();
+      }
+    }
+
+    if (isEnabled(OutputType::Clusters)) {
+      // add clusterizer from cells
+      specs.emplace_back(o2::emcal::reco_workflow::getClusterizerSpec(false));
+    }
+    if (isEnabled(OutputType::AnalysisClusters)) {
+      // add clusters from cells
+      specs.emplace_back(o2::emcal::reco_workflow::getAnalysisClusterSpec(false));
+    }
+  } else if (inputType == InputType::Raw) {
+
+    //Subcscribe to Readout data using o2-readout-proxy
+    if (isEnabled(OutputType::Cells)) {
+      // add converter for cells
+      specs.emplace_back(o2::emcal::reco_workflow::getRawToCellConverterSpec());
     }
   }
 
@@ -122,32 +173,53 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
   };
 
   auto makeWriterSpec = [propagateMC, checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
-                                                  auto&& databranch, auto&& mcbranch) {
+                                                  auto&& databranch, auto&& triggerbranch, auto&& mcbranch) {
     // depending on the MC propagation flag, the RootTreeWriter spec is created with two
     // or one branch definition
     if (propagateMC) {
       return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
                                                              o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                              std::move(databranch),
+                                                             std::move(triggerbranch),
                                                              std::move(mcbranch)));
     }
     return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
                                                            o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
-                                                           std::move(databranch)));
+                                                           std::move(databranch),
+                                                           std::move(triggerbranch)));
   };
 
   // TODO: Write comment in push comment @matthiasrichter
   auto makeWriterSpec_Cluster = [checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
-                                             auto&& clusterbranch, auto&& digitindicesbranch) {
+                                             auto&& clusterbranch, auto&& digitindicesbranch, auto&& clustertriggerbranch, auto&& indicestriggerbranch) {
     // RootTreeWriter spec is created with one branch definition
     return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
                                                            o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                            std::move(clusterbranch),
-                                                           std::move(digitindicesbranch)));
+                                                           std::move(digitindicesbranch),
+                                                           std::move(clustertriggerbranch),
+                                                           std::move(indicestriggerbranch)));
+  };
+
+  auto makeWriterSpec_AnalysisCluster = [checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
+                                                     auto&& analysisclusterbranch) {
+    // RootTreeWriter spec is created with one branch definition
+    return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
+                                                           o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
+                                                           std::move(analysisclusterbranch)));
+  };
+
+  auto makeWriterSpec_CellsTR = [checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
+                                             auto&& CellsBranch, auto&& TriggerRecordBranch) {
+    return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
+                                                           o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
+                                                           std::move(CellsBranch),
+                                                           std::move(TriggerRecordBranch)));
   };
 
   if (isEnabled(OutputType::Digits)) {
     using DigitOutputType = std::vector<o2::emcal::Digit>;
+    using TriggerOutputType = std::vector<o2::emcal::TriggerRecord>;
     using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
     specs.push_back(makeWriterSpec("emcal-digits-writer",
                                    inputType == InputType::Digits ? "emc-filtered-digits.root" : "emcdigits.root",
@@ -155,13 +227,17 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                    BranchDefinition<DigitOutputType>{o2::framework::InputSpec{"data", "EMC", "DIGITS", 0},
                                                                      "EMCDigit",
                                                                      "digit-branch-name"},
+                                   BranchDefinition<TriggerOutputType>{o2::framework::InputSpec{"trigger", "EMC", "DIGITSTRGR", 0},
+                                                                       "EMCALDigitTRGR",
+                                                                       "digittrigger-branch-name"},
                                    BranchDefinition<MCLabelContainer>{o2::framework::InputSpec{"mc", "EMC", "DIGITSMCTR", 0},
                                                                       "EMCDigitMCTruth",
                                                                       "digitmc-branch-name"})());
   }
 
-  if (isEnabled(OutputType::Cells)) {
+  if (isEnabled(OutputType::Cells) && inputType == InputType::Digits) {
     using DigitOutputType = std::vector<o2::emcal::Cell>;
+    using TriggerOutputType = std::vector<o2::emcal::TriggerRecord>;
     using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
     specs.push_back(makeWriterSpec("emcal-cells-writer",
                                    inputType == InputType::Cells ? "emc-filtered-cells.root" : "emccells.root",
@@ -169,6 +245,9 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                    BranchDefinition<DigitOutputType>{o2::framework::InputSpec{"data", "EMC", "CELLS", 0},
                                                                      "EMCCell",
                                                                      "cell-branch-name"},
+                                   BranchDefinition<TriggerOutputType>{o2::framework::InputSpec{"trigger", "EMC", "CELLSTRGR", 0},
+                                                                       "EMCACellTRGR",
+                                                                       "celltrigger-branch-name"},
                                    BranchDefinition<MCLabelContainer>{o2::framework::InputSpec{"mc", "EMC", "CELLSMCTR", 0},
                                                                       "EMCCellMCTruth",
                                                                       "cellmc-branch-name"})());
@@ -177,6 +256,8 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
   if (isEnabled(OutputType::Clusters)) {
     using ClusterOutputType = std::vector<o2::emcal::Cluster>;
     using ClusterIndicesOutputType = std::vector<o2::emcal::ClusterIndex>;
+    using TriggerOutputType = std::vector<o2::emcal::TriggerRecord>;
+
     specs.push_back(makeWriterSpec_Cluster("emcal-clusters-writer",
                                            "emcclusters.root",
                                            "o2sim",
@@ -184,8 +265,39 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                                                "EMCCluster",
                                                                                "cluster-branch-name"},
                                            BranchDefinition<ClusterIndicesOutputType>{o2::framework::InputSpec{"clusterindices", "EMC", "INDICES", 0},
-                                                                                      "EMCClusterDigitIndex",
-                                                                                      "clusterdigitindices-branch-name"})());
+                                                                                      "EMCClusterInputIndex",
+                                                                                      "clusterdigitindices-branch-name"},
+                                           BranchDefinition<TriggerOutputType>{o2::framework::InputSpec{"clusterTRGR", "EMC", "CLUSTERSTRGR", 0},
+                                                                               "EMCClusterTRGR",
+                                                                               "clustertrigger-branch-name"},
+                                           BranchDefinition<TriggerOutputType>{o2::framework::InputSpec{"indicesTRGR", "EMC", "INDICESTRGR", 0},
+                                                                               "EMCIndicesTRGR",
+                                                                               "indicestrigger-branch-name"})());
+  }
+
+  if (isEnabled(OutputType::AnalysisClusters)) {
+    using AnalysisClusterOutputType = std::vector<o2::emcal::AnalysisCluster>;
+
+    specs.push_back(makeWriterSpec_AnalysisCluster("emcal-analysis-clusters-writer",
+                                                   "emcAnalysisClusters.root",
+                                                   "o2sim",
+                                                   BranchDefinition<AnalysisClusterOutputType>{o2::framework::InputSpec{"analysisclusters", "EMC", "ANALYSISCLUSTERS", 0},
+                                                                                               "EMCAnalysisCluster",
+                                                                                               "cluster-branch-name"})());
+  }
+
+  if (isEnabled(OutputType::Cells) && inputType == InputType::Raw) {
+    using CellsDataType = std::vector<o2::emcal::Cell>;
+    using TriggerRecordDataType = std::vector<o2::emcal::TriggerRecord>;
+    specs.push_back(makeWriterSpec_CellsTR("emcal-cells-writer",
+                                           "emccells.root",
+                                           "o2sim",
+                                           BranchDefinition<CellsDataType>{o2::framework::InputSpec{"data", "EMC", "CELLS", 0},
+                                                                           "EMCCell",
+                                                                           "cell-branch-name"},
+                                           BranchDefinition<TriggerRecordDataType>{o2::framework::InputSpec{"trigger", "EMC", "CELLSTRGR", 0},
+                                                                                   "EMCACellTRGR",
+                                                                                   "celltrigger-branch-name"})());
   }
 
   return std::move(specs);

@@ -1,6 +1,8 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <sstream>
+#include <iostream>
 
+#include "TROOT.h"
 #include <TStopwatch.h>
 #include "TCanvas.h"
 #include "TH2.h"
@@ -29,7 +31,7 @@ void plot_dig_cpv(int ievent = 0, std::string inputfile = "o2dig.root")
   hitTree->SetBranchAddress("CPVDigit", &mDigitsArray);
 
   if (!mDigitsArray) {
-    cout << "CPV digits not found in the file. Exiting ..." << endl;
+    std::cout << "CPV digits not found in the file. Exiting ..." << std::endl;
     return;
   }
   hitTree->GetEvent(ievent);

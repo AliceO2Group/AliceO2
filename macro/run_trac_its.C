@@ -16,6 +16,8 @@
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -27,6 +29,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "ReconstructionDataFormats/Vertex.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #endif
 
 #include "ITStracking/ROframe.h"
@@ -38,8 +41,10 @@ using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.root",
-                  std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "O2geometry.root",
-                  std::string inputGRP = "o2sim_grp.root", std::string simfilename = "o2sim.root")
+                  std::string inputClustersITS = "o2clus_its.root",
+                  std::string dictfile = "",
+                  std::string inputGeom = "",
+                  std::string inputGRP = "o2sim_grp.root")
 {
 
   FairLogger* logger = FairLogger::GetLogger();
@@ -66,7 +71,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);
   LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode";
 
-  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot)); // request cached transforms
 
@@ -85,6 +90,18 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   }
   std::vector<o2::itsmft::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
+
+  if (!itsClusters.GetBranch("ITSClusterComp")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClusterComp in the input tree";
+  }
+  std::vector<o2::itsmft::CompClusterExt>* cclusters = nullptr;
+  itsClusters.SetBranchAddress("ITSClusterComp", &cclusters);
+
+  if (!itsClusters.GetBranch("ITSClusterPatt")) {
+    LOG(FATAL) << "Did not find ITS cluster patterns branch ITSClusterPatt in the input tree";
+  }
+  std::vector<unsigned char>* patterns = nullptr;
+  itsClusters.SetBranchAddress("ITSClusterPatt", &patterns);
 
   MCLabCont* labels = nullptr;
   if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
@@ -108,6 +125,18 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
 
   itsClusters.GetEntry(0);
   //<<<---------- attach input data ---------------<<<
+
+  o2::itsmft::TopologyDictionary dict;
+  if (dictfile.empty()) {
+    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+  }
+  std::ifstream file(dictfile.c_str());
+  if (file.good()) {
+    LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
+    dict.readBinaryFile(dictfile);
+  } else {
+    LOG(INFO) << "Running without dictionary !";
+  }
 
   //>>>--------- create/attach output ------------->>>
   // create/attach output tree
@@ -144,9 +173,12 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   o2::its::Vertexer vertexer(&vertexerTraits);
   o2::its::ROframe event(0);
 
-  auto clSpan = gsl::span(clusters->data(), clusters->size());
+  gsl::span<const unsigned char> patt(patterns->data(), patterns->size());
+  auto pattIt = patt.begin();
+  auto clSpan = gsl::span(cclusters->data(), cclusters->size());
   for (auto& rof : *rofs) {
-    o2::its::ioutils::loadROFrameData(rof, event, clSpan, labels);
+    auto it = pattIt;
+    o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, dict, labels);
     vertexer.clustersToVertices(event);
     auto verticesL = vertexer.exportVertices();
 
@@ -160,7 +192,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
       verticesL.emplace_back();
     }
     tracker.setVertices(verticesL);
-    tracker.process(clSpan, tracksITS, trackClIdx, rof);
+    tracker.process(clSpan, it, dict, tracksITS, trackClIdx, rof);
   }
   outTree.Fill();
 

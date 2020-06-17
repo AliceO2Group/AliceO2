@@ -18,6 +18,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 namespace o2
 {
@@ -33,8 +34,8 @@ class TrackerDPL : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
 
  private:
-  int mState = 0;
   bool mUseMC = false;
+  o2::itsmft::TopologyDictionary mDict;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<o2::mft::Tracker> mTracker = nullptr;
 };

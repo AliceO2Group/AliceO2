@@ -19,10 +19,12 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/PartRef.h"
+#include "Framework/ConcreteDataMatcher.h"
 #include "TPCWorkflow/RecoWorkflow.h"
+#include "TPCWorkflow/TPCSectorCompletionPolicy.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 #include <string>
 #include <stdexcept>
@@ -40,13 +42,16 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   using namespace o2::framework;
 
   std::vector<ConfigParamSpec> options{
-    {"input-type", VariantType::String, "digits", {"digitizer, digits, raw, clusters"}},
-    {"output-type", VariantType::String, "tracks", {"digits, raw, clusters, tracks"}},
+    {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, clustershw, clustersnative, compressed-clusters"}},
+    {"output-type", VariantType::String, "tracks", {"digits, zsraw, clustershw, clustersnative, tracks, compressed-clusters, encoded-clusters, disable-writer"}},
     {"ca-clusterer", VariantType::Bool, false, {"Use clusterer of GPUCATracking"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
     {"tpc-sectors", VariantType::String, "0-35", {"TPC sector range, e.g. 5-7,8,9"}},
     {"tpc-lanes", VariantType::Int, 1, {"number of parallel lanes up to the tracker"}},
     {"dispatching-mode", VariantType::String, "prompt", {"determines when to dispatch: prompt, complete"}},
+    {"tpc-zs", VariantType::Bool, false, {"use TPC zero suppression, true/false"}},
+    {"zs-threshold", VariantType::Float, 2.0f, {"zero suppression threshold"}},
+    {"zs-10bit", VariantType::Bool, false, {"use 10 bit ADCs for TPC zero suppression, true/false, default/false = 12 bit ADC"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
 
@@ -79,6 +84,10 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   using CompletionPolicyHelpers = o2::framework::CompletionPolicyHelpers;
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-cluster-decoder.*", CompletionPolicy::CompletionOp::Consume));
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-clusterer.*", CompletionPolicy::CompletionOp::Consume));
+  // the custom completion policy for the tracker
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("tpc-tracker.*",
+                                                        o2::framework::InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}},
+                                                        o2::framework::InputSpec{"digits", o2::framework::ConcreteDataTypeMatcher{"TPC", "DIGITS"}})());
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -90,11 +99,11 @@ using namespace o2::framework;
 /// and contains the following default processors
 /// - digit reader
 /// - clusterer
-/// - cluster raw decoder
+/// - ClusterHardware Decoder
 /// - CA tracker
 ///
 /// The default workflow can be customized by specifying input and output types
-/// e.g. digits, raw, tracks.
+/// e.g. digits, clustershw, tracks.
 ///
 /// MC info is processed by default, disabled by using command line option `--disable-mc`
 ///
@@ -123,10 +132,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     // trigger and all messages will be sent out together at end of computation
   } else if (inputType == "digits") {
     gDispatchTrigger = o2::framework::Output{"TPC", "DIGITS"};
-  } else if (inputType == "raw") {
+  } else if (inputType == "clustershw") {
     gDispatchTrigger = o2::framework::Output{"TPC", "CLUSTERHW"};
-  } else if (inputType == "clusters") {
+  } else if (inputType == "clustersnative") {
     gDispatchTrigger = o2::framework::Output{"TPC", "CLUSTERNATIVE"};
+  } else if (inputType == "zsraw") {
+    gDispatchTrigger = o2::framework::Output{"TPC", "RAWDATA"};
   }
   // set up configuration
   o2::conf::ConfigurableParam::updateFromFile(cfgc.options().get<std::string>("configFile"));
@@ -140,6 +151,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                              nLanes,                                         //
                                              inputType,                                      //
                                              cfgc.options().get<std::string>("output-type"), //
-                                             cfgc.options().get<bool>("ca-clusterer")        //
+                                             cfgc.options().get<bool>("ca-clusterer"),       //
+                                             cfgc.options().get<bool>("tpc-zs"),             //
+                                             cfgc.options().get<bool>("zs-10bit"),           //
+                                             cfgc.options().get<float>("zs-threshold")       //
   );
 }

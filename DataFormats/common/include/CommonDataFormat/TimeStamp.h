@@ -12,6 +12,7 @@
 #define ALICEO2_COMMON_TIMESTAMP_H
 
 #include "GPUCommonRtypes.h"
+#include "GPUCommonDef.h"
 
 namespace o2
 {
@@ -23,11 +24,12 @@ template <typename T>
 class TimeStamp
 {
  public:
-  TimeStamp() = default;
-  TimeStamp(T time) { mTimeStamp = time; }
-  T getTimeStamp() const { return mTimeStamp; }
-  void setTimeStamp(T t) { mTimeStamp = t; }
-  bool operator==(const TimeStamp<T>& t) const { return mTimeStamp == t.mTimeStamp; }
+  GPUdDefault() TimeStamp() CON_DEFAULT;
+  GPUdDefault() ~TimeStamp() CON_DEFAULT;
+  GPUdi() TimeStamp(T time) { mTimeStamp = time; }
+  GPUdi() T getTimeStamp() const { return mTimeStamp; }
+  GPUdi() void setTimeStamp(T t) { mTimeStamp = t; }
+  GPUdi() bool operator==(const TimeStamp<T>& t) const { return mTimeStamp == t.mTimeStamp; }
 
  private:
   T mTimeStamp = 0;
@@ -48,7 +50,7 @@ class TimeStampWithError : public TimeStamp<T>
   ClassDefNV(TimeStampWithError, 1);
 };
 
-#ifndef ALIGPU_GPUCODE
+#ifndef GPUCA_GPUCODE
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const TimeStamp<T>& t)
 {

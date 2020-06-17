@@ -26,7 +26,9 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #endif
 
-void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root")
+using namespace std;
+
+void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "")
 {
   using namespace o2::base;
   using namespace o2::its;
@@ -42,7 +44,7 @@ void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2tr
 
   // Load geometry
   if (gGeoManager == nullptr) {
-    o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+    o2::base::GeometryManager::loadGeometry(inputGeom);
   }
 
   gGeoManager->GetVolume("obSuppCyl")->SetInvisible();
@@ -104,7 +106,7 @@ void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2tr
       n++;
     }
   }
-  cout << "Number of hits: " << n << endl;
+  std::cout << "Number of hits: " << n << std::endl;
 
   gEve->AddElement(points, 0);
   f->Close();
@@ -158,7 +160,7 @@ found:
       n++;
     }
   }
-  cout << "Number of clusters: " << n << endl;
+  std::cout << "Number of clusters: " << n << std::endl;
 
   gEve->AddElement(points, 0);
   f->Close();
@@ -204,7 +206,7 @@ found:
     }
     break;
   }
-  cout << "Number of attached clusters: " << n << endl;
+  std::cout << "Number of attached clusters: " << n << std::endl;
 
   gEve->AddElement(points, 0);
   f->Close();

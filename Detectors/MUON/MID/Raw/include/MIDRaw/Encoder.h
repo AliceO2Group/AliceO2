@@ -16,17 +16,17 @@
 #define O2_MID_ENCODER_H
 
 #include <cstdint>
-#include <gsl/gsl>
+#include <array>
 #include <map>
+#include <gsl/gsl>
 #include "CommonDataFormat/InteractionRecord.h"
-#include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RawFileWriter.h"
 #include "DataFormatsMID/ColumnData.h"
-#include "DataFormatsMID/ROFRecord.h"
-#include "MIDRaw/CrateMapper.h"
+#include "MIDRaw/ColumnDataToLocalBoard.h"
 #include "MIDRaw/CrateParameters.h"
-#include "MIDRaw/CRUUserLogicEncoder.h"
+#include "MIDRaw/FEEIdConfig.h"
+#include "MIDRaw/GBTUserLogicEncoder.h"
 #include "MIDRaw/LocalBoardRO.h"
-#include "MIDRaw/RawUnit.h"
 
 namespace o2
 {
@@ -35,24 +35,27 @@ namespace mid
 class Encoder
 {
  public:
+  void init(const char* filename, int verbosity = 0);
   void process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType = EventType::Standard);
-  const std::vector<raw::RawUnit>& getBuffer();
-  /// Gets the size in bytes of the buffer
-  size_t getBufferSize() { return mBytes.size() * raw::sElementSizeInBytes; }
-  /// Sets the next header offset in bytes
-  void setHeaderOffset(bool headerOffset = true);
-  void clear();
+  /// Sets the maximum size of the superpage
+  void setSuperpageSize(int maxSize) { mRawWriter.setSuperPageSize(maxSize); }
+
+  void finalize(bool closeFile = true);
+
+  auto& getWriter() { return mRawWriter; }
 
  private:
-  bool convertData(gsl::span<const ColumnData> data);
-  void newHeader(const InteractionRecord& ir);
+  void flush(uint16_t feeId, const InteractionRecord& ir);
+  void hbTrigger(const InteractionRecord& ir);
 
-  std::array<CRUUserLogicEncoder, crateparams::sNGBTs> mCRUUserLogicEncoders{}; /// Array of encoders per link
-  std::map<uint16_t, LocalBoardRO> mROData{};                                   /// Map of data per board
-  std::vector<raw::RawUnit> mBytes{};                                           /// Vector with encoded information
-  CrateMapper mCrateMapper{};                                                   /// Crate mapper
-  o2::raw::HBFUtils mHBFUtils{};                                                /// Utility for HBF
-  InteractionRecord mLastIR{};                                                  /// Last interaction record
+  o2::raw::RawFileWriter mRawWriter{o2::header::gDataOriginMID}; /// Raw file writer
+  std::map<uint16_t, LocalBoardRO> mROData{}; /// Map of data per board
+  ColumnDataToLocalBoard mConverter{};        /// ColumnData to LocalBoardRO converter
+  FEEIdConfig mFEEIdConfig{};                 /// Crate FEEId mapper
+  InteractionRecord mLastIR{};                /// Last interaction record
+
+  std::array<GBTUserLogicEncoder, crateparams::sNGBTs> mGBTEncoders{}; /// Array of encoders per link
+  std::array<uint32_t, crateparams::sNGBTs> mGBTIds{};                 /// Array of GBT Ids
 };
 } // namespace mid
 } // namespace o2

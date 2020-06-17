@@ -14,6 +14,7 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "Framework/DataSampling.h"
+#include "Framework/DataSamplingPolicy.h"
 #include "Framework/Dispatcher.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataSpecUtils.h"
@@ -25,9 +26,7 @@
 using namespace o2::configuration;
 using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 std::string DataSampling::createDispatcherName()
@@ -70,6 +69,7 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
       LOG(DEBUG) << " - registering output FairMQ channel '" << policy->getFairMQOutputChannel() << "'";
     }
   }
+  options.push_back({"period-timer-stats", framework::VariantType::Int, 10 * 1000000, {"Dispatcher's stats timer period"}});
 
   if (dispatcher.getInputSpecs().size() > 0) {
     DataProcessorSpec spec;
@@ -123,5 +123,65 @@ std::vector<InputSpec> DataSampling::InputSpecsForPolicy(ConfigurationInterface*
   return inputs;
 }
 
-} // namespace framework
-} // namespace o2
+std::vector<OutputSpec> DataSampling::OutputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName)
+{
+  std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);
+  return OutputSpecsForPolicy(config.get(), policyName);
+}
+
+std::vector<OutputSpec> DataSampling::OutputSpecsForPolicy(ConfigurationInterface* const config, const std::string& policyName)
+{
+  std::vector<OutputSpec> outputs;
+  auto policiesTree = config->getRecursive("dataSamplingPolicies");
+
+  for (auto&& policyConfig : policiesTree) {
+    if (policyConfig.second.get<std::string>("id") == policyName) {
+      DataSamplingPolicy policy(policyConfig.second);
+      for (const auto& path : policy.getPathMap()) {
+        outputs.push_back(path.second);
+      }
+      break;
+    }
+  }
+  return outputs;
+}
+
+uint16_t DataSampling::PortForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName)
+{
+  auto policiesTree = config->getRecursive("dataSamplingPolicies");
+  for (auto&& policyConfig : policiesTree) {
+    if (policyConfig.second.get<std::string>("id") == policyName) {
+      return policyConfig.second.get<uint16_t>("port");
+    }
+  }
+  throw std::runtime_error("Could not find the policy '" + policyName + "'");
+}
+
+uint16_t DataSampling::PortForPolicy(const std::string& policiesSource, const std::string& policyName)
+{
+  std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);
+  return PortForPolicy(config.get(), policyName);
+}
+
+std::vector<std::string> DataSampling::MachinesForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName)
+{
+  std::vector<std::string> machines;
+  auto policiesTree = config->getRecursive("dataSamplingPolicies");
+  for (auto&& policyConfig : policiesTree) {
+    if (policyConfig.second.get<std::string>("id") == policyName) {
+      for (const auto& machine : policyConfig.second.get_child("machines")) {
+        machines.emplace_back(machine.second.get<std::string>(""));
+      }
+      return machines;
+    }
+  }
+  throw std::runtime_error("Could not find the policy '" + policyName + "'");
+}
+
+std::vector<std::string> DataSampling::MachinesForPolicy(const std::string& policiesSource, const std::string& policyName)
+{
+  std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);
+  return MachinesForPolicy(config.get(), policyName);
+}
+
+} // namespace o2::framework

@@ -13,19 +13,22 @@
 
 // Global parameters for digitization
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 #include <string>
 
 namespace o2
 {
 namespace conf
 {
-// Global parameters for digitization
 
+// Global parameters for digitization
 struct DigiParams : public o2::conf::ConfigurableParamHelper<DigiParams> {
 
   std::string ccdb = "http://ccdb-test.cern.ch:8080"; // URL for CCDB acces
+  std::string digitizationgeometry = "";              // with with geometry file to digitize -> leave empty as this needs to be filled by the digitizer workflow
+  std::string grpfile = "";                           // which GRP file to use --> leave empty as this needs to be filled by the digitizer workflow
+  bool mctruth = true;                                // whether to create labels
 
   O2ParamDef(DigiParams, "DigiParams");
 };

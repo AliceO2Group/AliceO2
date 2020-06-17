@@ -14,12 +14,12 @@
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/InputRecord.h"
-#include "Framework/DebugGUI.h"
 #include "Framework/Logger.h"
 #include "Framework/AnalysisDataModel.h"
 
-#include "DebugGUI/Sokol3DUtils.h"
-#include "DebugGUI/imgui.h"
+#include <DebugGUI/DebugGUI.h>
+#include <DebugGUI/Sokol3DUtils.h>
+#include <DebugGUI/imgui.h>
 
 #include <chrono>
 #include <iostream>

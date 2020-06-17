@@ -14,7 +14,7 @@
 
 /Analysis   @jgrosseo
 
-/CCDB  @costing @Barthelemy @AliceO2Group/framework-admins
+/CCDB  @costing @Barthelemy @sawenzel @AliceO2Group/framework-admins
 
 /Common              @AliceO2Group/framework-admins
 /Common/Constants    @shahor02
@@ -23,12 +23,26 @@
 /Common/SimConfig    @sawenzel
 #/Common/Topologies
 #/Common/Types
-#/Common/Utils
+/Common/Utils        @sawenzel
 #/Common/maps
 
-/DataFormats                   @AliceO2Group/framework-admins
-#/DataFormats/Detectors
-/DataFormats/Detectors/TPC     @davidrohr
+/DataFormats                                   @AliceO2Group/framework-admins
+/DataFormats/Detectors/CPV                     @peressounko @kharlov
+/DataFormats/Detectors/EMCAL                   @mfasDa
+/DataFormats/Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
+/DataFormats/Detectors/GlobalTracking          @shahor02
+/DataFormats/Detectors/GlobalTrackingWorkflow  @shahor02
+/DataFormats/Detectors/HMPID                   @gvolpe79
+/DataFormats/Detectors/ITSMFT                  @iouribelikov @bovulpes
+/DataFormats/Detectors/MUON                    @aphecetche
+/DataFormats/Detectors/PHOS                    @peressounko @kharlov
+/DataFormats/Detectors/Passive                 @sawenzel
+/DataFormats/Detectors/TOF                     @noferini 
+/DataFormats/Detectors/TPC                     @davidrohr @wiechula @shahor02
+/DataFormats/Detectors/TRD                     @jolopezl @bazinski @tdietel
+/DataFormats/Detectors/Upgrades                @qgp @marcovanleeuwen
+/DataFormats/Detectors/ZDC                     @coppedis
+
 #/DataFormats/Headers
 #/DataFormats/Legacy
 #/DataFormats/MemoryResources
@@ -38,10 +52,10 @@
 /DataFormats/common            @shahor02
 /DataFormats/simulation        @sawenzel
 
-/Detectors/Base                    @AliceO2Group/framework-admins
-/Detectors/Geometry                @AliceO2Group/framework-admins
+/Detectors/Base                    @sawenzel @shahor02
+/Detectors/Geometry                @sawenzel @shahor02
 /Detectors/CPV                     @peressounko @kharlov
-/Detectors/EMCAL                   @mfasDa @AliceO2Group/core
+/Detectors/EMCAL                   @mfasDa
 /Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
 /Detectors/GlobalTracking          @shahor02
 /Detectors/GlobalTrackingWorkflow  @shahor02
@@ -52,7 +66,8 @@
 /Detectors/Passive                 @sawenzel
 /Detectors/TOF                     @noferini 
 /Detectors/TPC                     @davidrohr @wiechula @shahor02
-/Detectors/TRD                     @jolopezl @bazinski 
+/Detectors/TRD                     @jolopezl @bazinski @tdietel
+/Detectors/Upgrades                @qgp @marcovanleeuwen
 /Detectors/ZDC                     @coppedis
 
 /EventVisualisation  @jmyrcha @AliceO2Group/framework-admins
@@ -83,7 +98,7 @@
 #/Framework/TestWorkflows
 #/Framework/Utils
 
-/GPU                          @davidrohr @AliceO2Group/framework-admins
+/GPU                          @davidrohr
 #/GPU/Common
 #/GPU/GPUTracking
 /GPU/GPUTracking/TRDTracking  @davidrohr @martenole
@@ -92,11 +107,12 @@
 
 /Generators  @sawenzel
 
-/Steer @AliceO2Group/framework-admins
+/Steer @sawenzel @shahor02 @AliceO2Group/framework-admins
 
 /Testing
 
 /Utilities  @AliceO2Group/framework-admins
+/Utilities/Mergers @Barthelemy @knopers8
 #/Utilities/DataCompression
 #/Utilities/DataFlow
 #/Utilities/MCStepLogger

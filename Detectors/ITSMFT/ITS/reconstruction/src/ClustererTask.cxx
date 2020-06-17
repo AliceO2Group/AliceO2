@@ -78,7 +78,7 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
   if (mRawDataMode) {
 
     mReaderRaw->openInput(inpName);
-    mClusterer.process(*mReaderRaw.get(), &mFullClus, &mCompClus, nullptr, &mROFRecVec);
+    mClusterer.process(1, *mReaderRaw.get(), &mFullClus, &mCompClus, &mPatterns, &mROFRecVec, nullptr);
 
     auto basename = outName.substr(0, outName.size() - sizeof("root"));
     auto nFiles = int(mROFRecVec.size() / maxROframe);
@@ -107,19 +107,10 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
     }
 
     auto compClusPtr = &mCompClus;
-    if (mClusterer.getWantCompactClusters()) {
-      outTree.Branch("ITSClusterComp", &compClusPtr);
-    } else {
-      LOG(INFO) << Class()->GetName() << " output of compact clusters is not requested";
-    }
+    outTree.Branch("ITSClusterComp", &compClusPtr);
 
     auto rofRecVecPtr = &mROFRecVec;
     outTree.Branch("ITSClustersROF", &rofRecVecPtr);
-
-    if (mUseMCTruth && !(mClusterer.getWantFullClusters() || mClusterer.getWantCompactClusters())) {
-      mUseMCTruth = false;
-      LOG(WARNING) << "ITS clusters storage is not requested, suppressing MCTruth storage";
-    }
 
     auto clsLabelsPtr = &mClsLabels;
     if (mUseMCTruth && mReaderMC->getDigitsMCTruth()) {
@@ -130,10 +121,7 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
     }
     LOG(INFO) << Class()->GetName() << " | MCTruth: " << (mUseMCTruth ? "ON" : "OFF");
 
-    // loop over entries of the input tree
-    while (mReaderMC->readNextEntry()) {
-      mClusterer.process(*mReaderMC.get(), &mFullClus, &mCompClus, &mClsLabels, &mROFRecVec);
-    }
+    outTree.Branch("ITSClusterPatt", &mPatterns);
 
     std::vector<o2::itsmft::MC2ROFRecord> mc2rof, *mc2rofPtr = &mc2rof;
     if (mUseMCTruth) {
@@ -143,6 +131,11 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
         mc2rof.push_back(m2r);
       }
       outTree.Branch("ITSClustersMC2ROF", mc2rofPtr);
+    }
+
+    // loop over entries of the input tree
+    while (mReaderMC->readNextEntry()) {
+      mClusterer.process(1, *mReaderMC.get(), &mFullClus, &mCompClus, &mPatterns, &mROFRecVec, &mClsLabels);
     }
 
     outTree.Fill();
@@ -179,12 +172,9 @@ void ClustererTask::writeTree(std::string basename, int i)
   }
 
   std::vector<CompClusterExt> compClusBuffer, *compClusPtr = &compClusBuffer;
-  if (mClusterer.getWantCompactClusters()) {
-    compClusBuffer.assign(&mCompClus[first], &mCompClus[last]);
-    outTree.Branch("ITSClusterComp", &compClusPtr);
-  } else {
-    LOG(INFO) << Class()->GetName() << " output of compact clusters is not requested";
-  }
+  compClusBuffer.assign(&mCompClus[first], &mCompClus[last]);
+  outTree.Branch("ITSClusterComp", &compClusPtr);
+  outTree.Branch("ITSClusterPatt", &mPatterns);
 
   for (auto& rof : rofRecBuffer) {
     rof.setFirstEntry(rof.getFirstEntry() - first);

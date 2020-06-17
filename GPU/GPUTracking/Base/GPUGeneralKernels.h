@@ -21,8 +21,7 @@
 #ifdef __CUDACC__
 #include <cub/cub.cuh>
 #define GPUCA_CUB cub
-#endif
-#ifdef __HIPCC__
+#elif defined(__HIPCC__)
 #include <hipcub/hipcub.hpp>
 #define GPUCA_CUB hipcub
 #endif
@@ -38,7 +37,13 @@ struct GPUConstantMem;
 class GPUKernelTemplate
 {
  public:
-  enum K { defaultKernel = 0 };
+  enum K { defaultKernel = 0,
+           step0 = 0,
+           step1 = 1,
+           step2 = 2,
+           step3 = 3,
+           step4 = 4,
+           step5 = 5 };
 
   MEM_CLASS_PRE()
   struct GPUSharedMemory {
@@ -49,8 +54,10 @@ class GPUKernelTemplate
     // Provides the shared memory resources for CUB collectives
 #if (defined(__CUDACC__) || defined(__HIPCC__)) && defined(GPUCA_GPUCODE)
     typedef GPUCA_CUB::BlockScan<T, I> BlockScan;
+    typedef GPUCA_CUB::WarpScan<T> WarpScan;
     union {
       typename BlockScan::TempStorage cubTmpMem;
+      typename WarpScan::TempStorage cubWarpTmpMem;
       int tmpBroadcast;
     };
 #endif

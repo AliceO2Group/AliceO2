@@ -74,7 +74,11 @@ void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmark
       timeBenchmarkOutputStream << std::setw(2) << " - "
                                 << "Vertex processing completed in: " << total << "ms" << std::endl;
   }
-  computeTracksMClabels(event);
+  if (event.hasMCinformation()) {
+    computeTracksMClabels(event);
+  } else {
+    rectifyClusterIndices(event);
+  }
 }
 
 void Tracker::computeTracklets()
@@ -558,7 +562,6 @@ void Tracker::computeTracksMClabels(const ROframe& event)
           count = 1;
         }
       }
-
       track.setExternalClusterIndex(iCluster, event.getClusterExternalIndex(iCluster, index));
     }
 
@@ -566,6 +569,19 @@ void Tracker::computeTracksMClabels(const ROframe& event)
       maxOccurrencesValue.setFakeFlag();
     }
     mTrackLabels.addElement(mTrackLabels.getIndexedSize(), maxOccurrencesValue);
+  }
+}
+
+void Tracker::rectifyClusterIndices(const ROframe& event)
+{
+  int tracksNum{static_cast<int>(mTracks.size())};
+  for (auto& track : mTracks) {
+    for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
+      const int index = track.getClusterIndex(iCluster);
+      if (index != constants::its::UnusedIndex) {
+        track.setExternalClusterIndex(iCluster, event.getClusterExternalIndex(iCluster, index));
+      }
+    }
   }
 }
 

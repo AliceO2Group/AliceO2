@@ -15,9 +15,9 @@ namespace o2::aod
 {
 namespace etaphi
 {
-DECLARE_SOA_COLUMN(Tgl, tgl, float, "fTgl");
-DECLARE_SOA_COLUMN(Snp, snp, float, "fSnp");
-DECLARE_SOA_COLUMN(Alpha, alpha, float, "fAlpha");
+DECLARE_SOA_COLUMN(Tgl, tgl, float);
+DECLARE_SOA_COLUMN(Snp, snp, float);
+DECLARE_SOA_COLUMN(Alpha, alpha, float);
 DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float tgl) { return log(tan(0.25 * M_PI - 0.5 * atan(tgl))); });
 DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) { return asin(snp) + alpha + M_PI; });
 } // namespace etaphi
@@ -52,14 +52,23 @@ struct BTask {
       auto phi = asin(etaPhi.snp()) + etaPhi.alpha() + M_PI;
       auto eta = log(tan(0.25 * M_PI - 0.5 * atan(etaPhi.tgl())));
 
-      LOGF(ERROR, "(%f, %f, %f, %f)", etaPhi.eta(), etaPhi.phi(), eta - etaPhi.eta(), phi - etaPhi.phi());
+      //LOGF(INFO, "(%f, %f, %f, %f)", etaPhi.eta(), etaPhi.phi(), eta - etaPhi.eta(), phi - etaPhi.phi());
     }
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
+  // create and use table
   return WorkflowSpec{
     adaptAnalysisTask<ATask>("produce-track-copy"),
     adaptAnalysisTask<BTask>("check-eta-phi")};
+
+  //  only create table -> tabwle is written to file
+  //return WorkflowSpec{
+  //  adaptAnalysisTask<ATask>("produce-track-copy")};
+
+  // only use table -> table is read from file
+  //return WorkflowSpec{
+  // adaptAnalysisTask<BTask>("check-eta-phi")};
 }

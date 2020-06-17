@@ -19,9 +19,9 @@
 
 #include "PCG/pcg_random.hpp"
 
-namespace o2
-{
-namespace framework
+#include <boost/property_tree/ptree.hpp>
+
+namespace o2::framework
 {
 
 // todo: consider using run number as a seed
@@ -82,5 +82,4 @@ std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::createDataS
   return std::make_unique<DataSamplingConditionRandom>();
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

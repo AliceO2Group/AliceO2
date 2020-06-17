@@ -36,8 +36,6 @@ class GPUTPCNeighboursFinder : public GPUKernelTemplate
   MEM_CLASS_PRE()
   struct GPUSharedMemory {
     int mNHits;   // n hits
-    int mUpNHits; // n hits in the next row
-    int mDnNHits; // n hits in the prev row
     float mUpDx;  // x distance to the next row
     float mDnDx;  // x distance to the previous row
     float mUpTx;  // normalized x distance to the next row
@@ -46,8 +44,9 @@ class GPUTPCNeighboursFinder : public GPUKernelTemplate
     int mIRowUp;  // next row number
     int mIRowDn;  // previous row number
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
-    float2 mA[GPUCA_THREAD_COUNT_FINDER][GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
-    calink mB[GPUCA_THREAD_COUNT_FINDER][GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
+    float mA1[GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP][GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCNeighboursFinder)];
+    float mA2[GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP][GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCNeighboursFinder)];
+    calink mB[GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP][GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCNeighboursFinder)];
 #endif
     MEM_LG(GPUTPCRow)
     mRow, mRowUp, mRowDown;

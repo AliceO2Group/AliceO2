@@ -63,6 +63,39 @@ void deviceInfoTable(DeviceInfo const& info, DeviceMetricsInfo const& metrics)
   }
 }
 
+void configurationTable(boost::property_tree::ptree const& currentConfig,
+                        boost::property_tree::ptree const& currentProvenance)
+{
+  if (currentConfig.empty()) {
+    return;
+  }
+  if (ImGui::CollapsingHeader("Current Config", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::Columns(2);
+    auto labels = {"Name", "Value"};
+    for (auto& label : labels) {
+      ImGui::TextUnformatted(label);
+      ImGui::NextColumn();
+    }
+    for (auto& option : currentConfig) {
+      ImGui::TextUnformatted(option.first.c_str());
+      if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(option.first.c_str());
+        ImGui::EndTooltip();
+      }
+      ImGui::NextColumn();
+      ImGui::Text("%s (%s)", option.second.data().c_str(), currentProvenance.get<std::string>(option.first).c_str());
+      if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("%s (%s)", option.second.data().c_str(), currentProvenance.get<std::string>(option.first).c_str());
+        ImGui::EndTooltip();
+      }
+      ImGui::NextColumn();
+    }
+    ImGui::Columns(1);
+  }
+}
+
 void optionsTable(const char* label, std::vector<ConfigParamSpec> const& options, const DeviceControl& control)
 {
   if (options.empty()) {
@@ -118,7 +151,11 @@ void displayDeviceInspector(DeviceSpec const& spec,
 {
   ImGui::Text("Name: %s", spec.name.c_str());
   ImGui::Text("Executable: %s", metadata.executable.c_str());
-  ImGui::Text("Pid: %d", info.pid);
+  if (info.active) {
+    ImGui::Text("Pid: %d", info.pid);
+  } else {
+    ImGui::Text("Pid: %d (exit status: %d)", info.pid, info.exitStatus);
+  }
   ImGui::Text("Rank: %zu/%zu%%%zu/%zu", spec.rank, spec.nSlots, spec.inputTimesliceId, spec.maxInputTimeslices);
 
   if (ImGui::Button("Attach debugger")) {
@@ -137,8 +174,31 @@ void displayDeviceInspector(DeviceSpec const& spec,
     (void)retVal;
   }
 
+  ImGui::SameLine();
+  if (ImGui::Button("Profile 30s")) {
+    std::string pid = std::to_string(info.pid);
+    setenv("O2PROFILEDPID", pid.c_str(), 1);
+#ifdef __APPLE__
+    std::string defaultAppleProfileCommand =
+      "osascript -e 'tell application \"Terminal\" to activate'"
+      " -e 'tell application \"Terminal\" to do script \"instruments -D dpl-profile-" +
+      pid +
+      ".trace -l 30000 -t Time\\\\ Profiler -p " +
+      pid + " && open dpl-profile-" + pid + ".trace && exit\"'";
+    setenv("O2DPLPROFILE", defaultAppleProfileCommand.c_str(), 0);
+#else
+    setenv("O2DPLPROFILE", "xterm -hold -e perf record -a -g -p $O2PROFILEDPID > perf-$O2PROFILEDPID.data &", 0);
+#endif
+    LOG(ERROR) << getenv("O2DPLPROFILE");
+    int retVal = system(getenv("O2DPLPROFILE"));
+    (void)retVal;
+  }
+
   deviceInfoTable(info, metrics);
-  optionsTable("Options", spec.options, control);
+  for (auto& option : info.currentConfig) {
+    ImGui::Text("%s: %s", option.first.c_str(), option.second.data().c_str());
+  }
+  configurationTable(info.currentConfig, info.currentProvenance);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
   if (ImGui::CollapsingHeader("Command line arguments", ImGuiTreeNodeFlags_DefaultOpen)) {
     for (auto& arg : metadata.cmdLineArgs) {

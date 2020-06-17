@@ -14,9 +14,11 @@
 #define ALICEO2_EMCAL_CLUSTERIZER_H
 
 #include <array>
+#include <gsl/span>
 #include "Rtypes.h"
 #include "DataFormatsEMCAL/Cluster.h"
 #include "DataFormatsEMCAL/Digit.h"
+#include "DataFormatsEMCAL/Cell.h"
 #include "EMCALBase/Geometry.h"
 
 namespace o2
@@ -29,7 +31,7 @@ namespace emcal
 constexpr unsigned int NROWS = (24 + 1) * (6 + 4); // 10x supermodule rows (6 for EMCAL, 4 for DCAL). +1 accounts for topological gap between two supermodules
 constexpr unsigned int NCOLS = 48 * 2 + 1;         // 2x  supermodule columns + 1 empty space in between for DCAL (not used for EMCAL)
 
-using ClusterIndex = Short_t;
+using ClusterIndex = int;
 
 /// \class Clusterizer
 /// \brief Meta class for recursive clusterizer
@@ -38,6 +40,8 @@ using ClusterIndex = Short_t;
 ///
 ///  Implementation of same algorithm version as in AliEMCALClusterizerv2,
 ///  but optimized.
+
+template <class InputType>
 class Clusterizer
 {
   struct cellWithE {
@@ -53,38 +57,46 @@ class Clusterizer
     int column;
   };
 
+  struct InputwithIndex {
+    InputType* mInput;
+    ClusterIndex mIndex;
+  };
+
  public:
   Clusterizer(double timeCut, double timeMin, double timeMax, double gradientCut, bool doEnergyGradientCut, double thresholdSeedE, double thresholdCellE);
   Clusterizer();
   ~Clusterizer() = default;
 
   void initialize(double timeCut, double timeMin, double timeMax, double gradientCut, bool doEnergyGradientCut, double thresholdSeedE, double thresholdCellE);
-  void findClusters(const std::vector<Digit>& digitArray);
+  void findClusters(const gsl::span<InputType const>& inputArray);
   const std::vector<Cluster>* getFoundClusters() const { return &mFoundClusters; }
-  const std::vector<ClusterIndex>* getFoundClustersDigitIndices() const { return &mDigitIndices; }
+  const std::vector<ClusterIndex>* getFoundClustersInputIndices() const { return &mInputIndices; }
   void setGeometry(Geometry* geometry) { mEMCALGeometry = geometry; }
   Geometry* getGeometry() { return mEMCALGeometry; }
 
  private:
-  void getClusterFromNeighbours(std::vector<Digit*>& clusterDigits, int row, int column);
-  void getTopologicalRowColumn(const Digit& digit, int& row, int& column);
-  Geometry* mEMCALGeometry = nullptr;                     //!<! pointer to geometry for utilities
-  std::array<cellWithE, NROWS * NCOLS> mSeedList;         //!<! seed array
-  std::array<std::array<Digit*, NCOLS>, NROWS> mDigitMap; //!<! topology arrays
-  std::array<std::array<bool, NCOLS>, NROWS> mCellMask;   //!<! topology arrays
+  void getClusterFromNeighbours(std::vector<InputwithIndex>& clusterUnputs, int row, int column);
+  void getTopologicalRowColumn(const InputType& input, int& row, int& column);
+  Geometry* mEMCALGeometry = nullptr;                             //!<! pointer to geometry for utilities
+  std::array<cellWithE, NROWS * NCOLS> mSeedList;                 //!<! seed array
+  std::array<std::array<InputwithIndex, NCOLS>, NROWS> mInputMap; //!<! topology arrays
+  std::array<std::array<bool, NCOLS>, NROWS> mCellMask;           //!<! topology arrays
 
   std::vector<Cluster> mFoundClusters;     ///<  vector of cluster objects
-  std::vector<ClusterIndex> mDigitIndices; ///<  vector of associated digit tower ID, ordered by cluster
+  std::vector<ClusterIndex> mInputIndices; ///<  vector of associated cell/digit tower ID, ordered by cluster
 
-  double mTimeCut;             ///<  maximum time difference between the digits inside EMC cluster
+  double mTimeCut;             ///<  maximum time difference between the cells/digits inside EMC cluster
   double mTimeMin;             ///<  minimum time of physical signal in a cell/digit
   double mTimeMax;             ///<  maximum time of physical signal in a cell/digit
   double mGradientCut;         ///<  minimum energy difference to distinguish local maxima in a cluster
   bool mDoEnergyGradientCut;   ///<  cut on energy gradient
-  double mThresholdSeedEnergy; ///<  minimum energy to seed a EC digit in a cluster
-  double mThresholdCellEnergy; ///<  minimum energy for a digit to be a member of a cluster
+  double mThresholdSeedEnergy; ///<  minimum energy to seed a EC digit/cell in a cluster
+  double mThresholdCellEnergy; ///<  minimum energy for a digit/cell to be a member of a cluster
   ClassDefNV(Clusterizer, 1);
 };
+
+using ClusterizerDigits = Clusterizer<Digit>;
+using ClusterizerCells = Clusterizer<Cell>;
 
 } // namespace emcal
 } // namespace o2

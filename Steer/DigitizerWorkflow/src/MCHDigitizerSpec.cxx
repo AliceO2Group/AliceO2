@@ -16,7 +16,7 @@
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
 #include "TStopwatch.h"
-#include "Steer/HitProcessingManager.h" // for RunContext
+#include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
@@ -25,55 +25,24 @@
 #include "MCHBase/Digit.h"
 #include "MCHSimulation/Digitizer.h"
 #include "MCHSimulation/Detector.h"
-#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
-
-// helper function which will be offered as a service
-template <typename T>
-void retrieveHits(std::vector<TChain*> const& chains,
-                  const char* brname,
-                  int sourceID,
-                  int entryID,
-                  std::vector<T>* hits)
-{
-  auto br = chains[sourceID]->GetBranch(brname);
-  if (!br) {
-    LOG(ERROR) << "No branch found";
-    return;
-  }
-  br->SetAddress(&hits);
-  br->GetEntry(entryID);
-}
 
 namespace o2
 {
 namespace mch
 {
 
-class MCHDPLDigitizerTask
+class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  void init(framework::InitContext& ic)
+  MCHDPLDigitizerTask() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM) {}
+
+  void initDigitizerTask(framework::InitContext& ic) override
   {
-    LOG(DEBUG) << "initializing MCH digitization";
-    // setup the input chain for the hits
-    mSimChains.emplace_back(new TChain("o2sim"));
-
-    // add the main (background) file
-    mSimChains.back()->AddFile(ic.options().get<std::string>("simFile").c_str());
-
-    // maybe add a particular signal file
-    auto signalfilename = ic.options().get<std::string>("simFileS");
-    if (signalfilename.size() > 0) {
-      mSimChains.emplace_back(new TChain("o2sim"));
-      mSimChains.back()->AddFile(signalfilename.c_str());
-    }
-
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry();
-    }
+    // nothing specific do to
   }
 
   void run(framework::ProcessingContext& pc)
@@ -85,11 +54,12 @@ class MCHDPLDigitizerTask
     LOG(DEBUG) << "Doing MCH digitization";
 
     // read collision context from input
-    auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
+    context->initSimChains(o2::detectors::DetID::MCH, mSimChains);
     auto& irecords = context->getEventRecords();
 
     for (auto& record : irecords) {
-      LOG(DEBUG) << "MCH TIME RECEIVED " << record.timeNS;
+      LOG(DEBUG) << "MCH TIME RECEIVED " << record.getTimeNS();
     }
 
     auto& eventParts = context->getEventParts();
@@ -99,7 +69,7 @@ class MCHDPLDigitizerTask
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      mDigitizer.setEventTime(irecords[collID].timeNS);
+      mDigitizer.setEventTime(irecords[collID].getTimeNS());
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
@@ -108,33 +78,34 @@ class MCHDPLDigitizerTask
 
         // get the hits for this event and this source
         std::vector<o2::mch::Hit> hits;
-        retrieveHits(mSimChains, "MCHHit", part.sourceID, part.entryID, &hits);
+        context->retrieveHits(mSimChains, "MCHHit", part.sourceID, part.entryID, &hits);
         LOG(DEBUG) << "For collision " << collID << " eventID " << part.entryID << " found MCH " << hits.size() << " hits ";
 
         std::vector<o2::mch::Digit> digits; // digits which get filled
         o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
 
-        mDigitizer.process(hits, digits);
-        mDigitizer.provideMC(labels);
+        mDigitizer.process(hits, digits, labels);
         LOG(DEBUG) << "MCH obtained " << digits.size() << " digits ";
         for (auto& d : digits) {
           LOG(DEBUG) << "ADC " << d.getADC();
           LOG(DEBUG) << "PAD " << d.getPadID();
-          LOG(DEBUG) << "TIME " << d.getTimeStamp();
+          LOG(DEBUG) << "TIME " << d.getTime().sampaTime;
           LOG(DEBUG) << "DetID " << d.getDetID();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
-        labelAccum.mergeAtBack(labels);
+        labelAccum.mergeAtBack(labels); //is this ok? check inside MCtruthContainer if this is what one wants to do.
         LOG(DEBUG) << "labelAccum.getIndexedSize()  " << labelAccum.getIndexedSize();
         LOG(DEBUG) << "labelAccum.getNElements() " << labelAccum.getNElements();
         LOG(DEBUG) << "Have " << digits.size() << " digits ";
       }
     }
-    mDigitizer.mergeDigits(digitsAccum, labelAccum);
+    mDigitizer.mergeDigits(digitsAccum, labelAccum); //print-out inside alos works fine
 
     LOG(DEBUG) << "Have " << labelAccum.getNElements() << " MCH labels "; //does not work out!
     pc.outputs().snapshot(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
-    pc.outputs().snapshot(Output{"MCH", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+    if (pc.outputs().isAllowed({"MCH", "DIGITSMCTR", 0})) {
+      pc.outputs().snapshot(Output{"MCH", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+    }
     LOG(DEBUG) << "MCH: Sending ROMode= " << mROMode << " to GRPUpdater";
     //ROMode: to be understood, check EMCal etc.
     pc.outputs().snapshot(Output{"MCH", "ROMode", 0, Lifetime::Timeframe}, mROMode);
@@ -151,23 +122,27 @@ class MCHDPLDigitizerTask
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 };
 
-o2::framework::DataProcessorSpec getMCHDigitizerSpec(int channel)
+o2::framework::DataProcessorSpec getMCHDigitizerSpec(int channel, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("MCH", "DIGITS", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("MCH", "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("MCH", "ROMode", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "MCHDigitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe},
-            OutputSpec{"MCH", "DIGITSMCTR", 0, Lifetime::Timeframe},
-            OutputSpec{"MCH", "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
     AlgorithmSpec{adaptFromTask<MCHDPLDigitizerTask>()},
-    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}}}};
+    Options{}};
 }
 
 } // end namespace mch

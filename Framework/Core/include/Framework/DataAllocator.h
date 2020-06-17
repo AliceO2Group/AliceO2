@@ -13,9 +13,7 @@
 #include "Framework/ContextRegistry.h"
 #include "Framework/MessageContext.h"
 #include "Framework/StringContext.h"
-#include "Framework/ArrowContext.h"
 #include "Framework/RawBufferContext.h"
-#include "CommonUtils/BoostSerializer.h"
 #include "Framework/Output.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputRoute.h"
@@ -26,7 +24,7 @@
 #include "Framework/TypeTraits.h"
 #include "Framework/Traits.h"
 #include "Framework/SerializationMethods.h"
-#include "Framework/TableBuilder.h"
+#include "Framework/CheckTypes.h"
 
 #include "Headers/DataHeader.h"
 #include <TClass.h>
@@ -47,6 +45,7 @@ class FairMQMessage;
 namespace arrow
 {
 class Schema;
+class Table;
 
 namespace ipc
 {
@@ -59,13 +58,6 @@ namespace o2
 namespace framework
 {
 class ContextRegistry;
-
-namespace
-{
-template <typename T>
-struct type_dependent : std::false_type {
-};
-} // namespace
 
 #define ERROR_STRING                                          \
   "data type T not supported by API, "                        \
@@ -130,10 +122,22 @@ class DataAllocator
       std::string* s = new std::string(args...);
       adopt(spec, s);
       return *s;
-    } else if constexpr (std::is_base_of_v<TableBuilder, T>) {
-      TableBuilder* tb = new TableBuilder(args...);
-      adopt(spec, tb);
+    } else if constexpr (std::is_base_of_v<struct TableBuilder, T>) {
+      TableBuilder* tb = nullptr;
+      call_if_defined<struct TableBuilder>([&](auto* p) {
+        tb = new std::decay_t<decltype(*p)>(args...);
+        adopt(spec, tb);
+      });
       return *tb;
+    } else if constexpr (std::is_base_of_v<struct TreeToTable, T>) {
+      void* t2tr = nullptr;
+      call_if_defined<struct TreeToTable>([&](auto* p) {
+        auto t2t = new std::decay_t<decltype(*p)>(args...);
+        t2t->addAllColumns();
+        adopt(spec, t2t);
+        t2tr = t2t;
+      });
+      return *reinterpret_cast<TreeToTable*>(t2tr);
     } else if constexpr (sizeof...(Args) == 0) {
       if constexpr (is_messageable<T>::value == true) {
         return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
@@ -189,7 +193,16 @@ class DataAllocator
   /// Adopt a TableBuilder in the framework and serialise / send
   /// it as an Arrow table to all consumers of @a spec once done
   void
-    adopt(const Output& spec, TableBuilder*);
+    adopt(const Output& spec, struct TableBuilder*);
+
+  /// Adopt a Tree2Table in the framework and serialise / send
+  /// it as an Arrow table to all consumers of @a spec once done
+  void
+    adopt(const Output& spec, struct TreeToTable*);
+
+  /// Adopt an Arrow table and send it to all consumers of @a spec
+  void
+    adopt(const Output& spec, std::shared_ptr<class arrow::Table>);
 
   /// Adopt a raw buffer in the framework and serialize / send
   /// it to the consumers of @a spec once done.
@@ -255,7 +268,8 @@ class DataAllocator
       memcpy(payloadMessage->GetData(), &object, sizeof(T));
 
       serializationType = o2::header::gSerializationMethodNone;
-    } else if constexpr (is_specialization<T, std::vector>::value == true) {
+    } else if constexpr (is_specialization<T, std::vector>::value == true ||
+                         (gsl::details::is_span<T>::value && has_messageable_value_type<T>::value)) {
       using ElementType = typename std::remove_pointer<typename T::value_type>::type;
       if constexpr (is_messageable<ElementType>::value) {
         // Serialize a snapshot of a std::vector of trivially copyable, non-polymorphic elements
@@ -412,6 +426,19 @@ class DataAllocator
     return snapshot(getOutputByBind(std::move(ref)), std::forward<Args>(args)...);
   }
 
+  /// check if a certain output is allowed
+  bool isAllowed(Output const& query);
+
+  o2::header::DataHeader* findMessageHeader(const Output& spec)
+  {
+    return mContextRegistry->get<MessageContext>()->findMessageHeader(spec);
+  }
+
+  o2::header::DataHeader* findMessageHeader(OutputRef&& ref)
+  {
+    return mContextRegistry->get<MessageContext>()->findMessageHeader(getOutputByBind(std::move(ref)));
+  }
+
  private:
   AllowedOutputRoutes mAllowedOutputRoutes;
   TimingInfo* mTimingInfo;
@@ -427,11 +454,6 @@ class DataAllocator
   void addPartToContext(FairMQMessagePtr&& payload,
                         const Output& spec,
                         o2::header::SerializationMethod serializationMethod);
-
-  /// Fills the passed arrow::ipc::BatchRecordWriter in the framework and
-  /// have it serialise / send data as RecordBatches to all consumers
-  /// of @a spec once done.
-  void create(const Output& spec, std::shared_ptr<arrow::ipc::RecordBatchWriter>*, std::shared_ptr<arrow::Schema>);
 };
 
 } // namespace framework

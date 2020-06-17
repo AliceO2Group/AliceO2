@@ -20,6 +20,7 @@
 #include <memory>
 
 using namespace o2::trd;
+class TRootIOCtor;
 
 namespace o2
 {
@@ -29,8 +30,15 @@ namespace trd
 class TRDGeometry : public TRDGeometryBase, public o2::detectors::DetMatrixCacheIndirect
 {
  public:
-  TRDGeometry();
   ~TRDGeometry() override = default;
+  // A ROOT IO constructor (to silence warnings about missing default constructor)
+  TRDGeometry(TRootIOCtor*) {}
+
+  static TRDGeometry* instance()
+  {
+    static TRDGeometry mGeom;
+    return &mGeom;
+  }
 
   void createGeometry(std::vector<int> const& idtmed);
   void addAlignableVolumes() const;
@@ -57,7 +65,9 @@ class TRDGeometry : public TRDGeometryBase, public o2::detectors::DetMatrixCache
   // helper function to create volumes and registering them automatically
   void createVolume(const char* name, const char* shape, int nmed, float* upar, int np);
 
-  ClassDefOverride(TRDGeometry, 1); //  TRD geometry class
+  TRDGeometry();
+
+  ClassDefOverride(TRDGeometry, 2); //  TRD geometry class
 };
 } // end namespace trd
 } // end namespace o2

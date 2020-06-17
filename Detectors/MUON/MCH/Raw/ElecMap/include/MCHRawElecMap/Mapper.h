@@ -18,7 +18,7 @@
 #include <cstdint>
 #include "MCHRawElecMap/DsDetId.h"
 #include "MCHRawElecMap/DsElecId.h"
-#include "MCHRawElecMap/CruLinkId.h"
+#include "MCHRawElecMap/FeeLinkId.h"
 #include <fmt/format.h>
 #include <array>
 #include <gsl/span>
@@ -31,35 +31,31 @@ extern std::array<int, 156> deIdsForAllMCH;
 /**@name Mapper templates.
 
   Those creator functions return functions that can do the mapping to/from 
-  DsElecId to DsDetId and to/from CruLinkId to solarId.
+  DsElecId to DsDetId and to/from FeeLinkId to solarId.
     */
 ///@{
 
 /// From (solarId,groupdId,index) to (deId,dsId)
 /// timestamp is foreseen to specify a data taking period (not used for the moment)
 /// use 0 to get the latest mapping
+using Elec2DetMapper = std::function<std::optional<DsDetId>(DsElecId)>;
 template <typename T>
-std::function<std::optional<DsDetId>(DsElecId)> createElec2DetMapper(gsl::span<int> deIds,
-                                                                     uint64_t timestamp = 0);
+Elec2DetMapper createElec2DetMapper(uint64_t timestamp = 0);
 
-/// From (deId,dsId) to (solarId,groupId,index) for a given list of detection elements
+/// From (deId,dsId) to (solarId,groupId,index)
+using Det2ElecMapper = std::function<std::optional<DsElecId>(DsDetId id)>;
 template <typename T>
-std::function<std::optional<DsElecId>(DsDetId id)> createDet2ElecMapper(gsl::span<int> deIds);
+Det2ElecMapper createDet2ElecMapper();
 
-/// From (deId,dsId) to (solarId,groupId,index) for all detection elements
+/// From (feeId,linkId) to solarId
+using FeeLink2SolarMapper = std::function<std::optional<uint16_t>(FeeLinkId id)>;
 template <typename T>
-std::function<std::optional<DsElecId>(DsDetId id)> createDet2ElecMapper()
-{
-  return createDet2ElecMapper<T>(deIdsForAllMCH);
-}
+FeeLink2SolarMapper createFeeLink2SolarMapper();
 
-/// From (cruId,linkId) to solarId
+/// From solarId to (feeId,linkId)
+using Solar2FeeLinkMapper = std::function<std::optional<FeeLinkId>(uint16_t solarId)>;
 template <typename T>
-std::function<std::optional<uint16_t>(CruLinkId id)> createCruLink2SolarMapper();
-
-/// From solarId to (cruId,linkId)
-template <typename T>
-std::function<std::optional<CruLinkId>(uint16_t solarId)> createSolar2CruLinkMapper();
+Solar2FeeLinkMapper createSolar2FeeLinkMapper();
 ///@}
 
 /**@name Actual mapper types.
@@ -69,6 +65,10 @@ std::function<std::optional<CruLinkId>(uint16_t solarId)> createSolar2CruLinkMap
 struct ElectronicMapperDummy {
 };
 struct ElectronicMapperGenerated {
+};
+struct ElectronicMapperString {
+  static std::string sCruMap;
+  static std::string sFecMap;
 };
 ///@}
 

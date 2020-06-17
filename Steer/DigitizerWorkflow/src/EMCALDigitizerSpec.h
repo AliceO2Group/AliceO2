@@ -19,6 +19,7 @@
 #include "EMCALBase/Hit.h"
 #include "EMCALSimulation/Digitizer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include <DetectorsBase/BaseDPLDigitizer.h>
 
 class TChain;
 
@@ -34,18 +35,18 @@ namespace emcal
 /// \author Anders Garritt Knospe <anders.knospe@cern.ch>, University of Houston
 /// \author Markus Fasel <markus.fasel@cern.ch> Oak Ridge National laboratory
 /// \since Nov 12, 2018
-class DigitizerSpec : public framework::Task
+class DigitizerSpec : public o2::base::BaseDPLDigitizer
 {
  public:
   /// \brief Constructor
-  DigitizerSpec() = default;
+  DigitizerSpec() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM) {}
 
   /// \brief Destructor
   ~DigitizerSpec() final = default;
 
   /// \brief init digitizer
   /// \param ctx Init context
-  void init(framework::InitContext& ctx) final;
+  void initDigitizerTask(framework::InitContext& ctx) final;
 
   /// \brief run digitizer
   /// \param ctx Processing context
@@ -54,21 +55,9 @@ class DigitizerSpec : public framework::Task
   /// - Open readout window when the event sets a trigger
   /// - Accumulate digits sampled via the time response from different bunch crossings
   /// - Retrieve digits when the readout window closes
-  void run(framework::ProcessingContext& ctx) final;
+  void run(framework::ProcessingContext& ctx);
 
  private:
-  /// \brief helper function which will be offered as a service
-  /// \param chains Input chains
-  /// \param brname Name of the hit branch
-  /// \param sourceID ID of the source
-  /// \param entryID ID of the entry in the source
-  /// \param hits output vector of hits
-  void retrieveHits(std::vector<TChain*> const& chains,
-                    const char* brname,
-                    int sourceID,
-                    int entryID,
-                    std::vector<Hit>* hits);
-
   Bool_t mFinished = false; ///< Flag for digitization finished
   Digitizer mDigitizer;     ///< Digitizer object
   std::vector<TChain*> mSimChains;
@@ -80,7 +69,7 @@ class DigitizerSpec : public framework::Task
 
 /// \brief Create new digitizer spec
 /// \return Digitizer spec
-o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel);
+o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth = true);
 
 } // end namespace emcal
 } // end namespace o2

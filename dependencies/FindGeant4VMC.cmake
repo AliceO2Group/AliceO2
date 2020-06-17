@@ -18,7 +18,9 @@ endif()
 
 set_target_properties(geant4vmc
                       PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                "${Geant4VMC_INCLUDE_DIRS}")
+                                "${Geant4VMC_INCLUDE_DIRS}"
+                                INTERFACE_LINK_DIRECTORIES
+                                $<TARGET_FILE_DIR:geant4vmc>)
 
 # Promote the imported target to global visibility
 # (so we can alias it)

@@ -100,12 +100,12 @@ class MessageResource : public FairMQMemoryResource
       initialImport = false;
       return mMessageData;
     } else {
-      return mUpstream->allocate(bytes, alignment);
+      return mUpstream->allocate(bytes, alignment < 64 ? 64 : alignment);
     }
   }
   void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override
   {
-    mUpstream->deallocate(p, bytes, alignment);
+    mUpstream->deallocate(p, bytes, alignment < 64 ? 64 : alignment);
     return;
   }
   bool do_is_equal(const memory_resource& other) const noexcept override
@@ -191,6 +191,7 @@ class SpectatorAllocator : public boost::container::pmr::polymorphic_allocator<T
 {
  public:
   using boost::container::pmr::polymorphic_allocator<T>::polymorphic_allocator;
+  using propagate_on_container_move_assignment = std::true_type;
 
   // skip default construction of empty elements
   // this is important for two reasons: one: it allows us to adopt an existing buffer (e.g. incoming message) and
@@ -207,7 +208,7 @@ class SpectatorAllocator : public boost::container::pmr::polymorphic_allocator<T
   {
   }
 
-  T* allocate(size_t size) { return reinterpret_cast<T*>(this->resource()->allocate(size * sizeof(T), 0)); }
+  T* allocate(size_t size) { return reinterpret_cast<T*>(this->resource()->allocate(size * sizeof(T), 64)); }
   void deallocate(T* ptr, size_t size)
   {
     this->resource()->deallocate(const_cast<typename std::remove_cv<T>::type*>(ptr), size);
@@ -263,7 +264,7 @@ class OwningMessageSpectatorAllocator
   {
   }
 
-  T* allocate(size_t size) { return reinterpret_cast<T*>(mResource.allocate(size * sizeof(T), 0)); }
+  T* allocate(size_t size) { return reinterpret_cast<T*>(mResource.allocate(size * sizeof(T), 64)); }
   void deallocate(T* ptr, size_t size)
   {
     mResource.deallocate(const_cast<typename std::remove_cv<T>::type*>(ptr), size);

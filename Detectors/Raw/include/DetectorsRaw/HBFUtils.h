@@ -11,12 +11,14 @@
 // @brief Class to sample HBFrames for simulated interaction records + RDH utils
 // @author ruben.shahoyan@cern.ch
 
-#ifndef ALICEO2_HBFSAMPLER_H
-#define ALICEO2_HBFSAMPLER_H
+#ifndef ALICEO2_HBFUTILS_H
+#define ALICEO2_HBFUTILS_H
 
 #include <Rtypes.h>
+#include "DetectorsRaw/RDHUtils.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 #include "CommonDataFormat/InteractionRecord.h"
-#include "Headers/RAWDataHeader.h"
 #include "CommonConstants/Triggers.h"
 
 namespace o2
@@ -36,58 +38,48 @@ namespace raw
     See testHBFUtils.cxx for the outline of generating HBF frames for simulated data.
   */
 
-using LinkSubSpec_t = uint32_t;
-
 //_____________________________________________________________________
-class HBFUtils
-{
+struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   using IR = o2::InteractionRecord;
 
- public:
-  static constexpr int GBTWord = 16; // length of GBT word
-  static constexpr int MAXCRUPage = 512 * GBTWord;
 
-  HBFUtils() = default;
-  HBFUtils(const IR& ir0) : mFirstIR(ir0) {}
-  const IR& getFirstIR() const { return mFirstIR; }
-  IR& getFirstIR() { return mFirstIR; }
+  IR getFirstIR() const { return {bcFirst, orbitFirst}; }
 
-  void setNOrbitsPerTF(int n) { mNHBFPerTF = n > 0 ? n : 1; }
-  int getNOrbitsPerTF() const { return mNHBFPerTF; }
+  int getNOrbitsPerTF() const { return nHBFPerTF; }
 
   ///< get IR corresponding to start of the HBF
-  IR getIRHBF(uint32_t hbf) const { return mFirstIR + int64_t(hbf) * o2::constants::lhc::LHCMaxBunches; }
+  IR getIRHBF(uint32_t hbf) const { return getFirstIR() + int64_t(hbf) * o2::constants::lhc::LHCMaxBunches; }
 
   ///< get IR corresponding to start of the TF
-  IR getIRTF(uint32_t tf) const { return getIRHBF(tf * mNHBFPerTF); }
+  IR getIRTF(uint32_t tf) const { return getIRHBF(tf * nHBFPerTF); }
 
   ///< get HBF ID corresponding to this IR
-  int getHBF(const IR& rec) const;
+  int64_t getHBF(const IR& rec) const;
 
   ///< get TF ID corresponding to this IR
-  int getTF(const IR& rec) const { return getHBF(rec) / mNHBFPerTF; }
+  int64_t getTF(const IR& rec) const { return getHBF(rec) / nHBFPerTF; }
 
   ///< get TF and HB (within TF) for this IR
   std::pair<int, int> getTFandHBinTF(const IR& rec) const
   {
     auto hbf = getHBF(rec);
-    return std::pair<int, int>(hbf / mNHBFPerTF, hbf % mNHBFPerTF);
+    return std::pair<int, int>(hbf / nHBFPerTF, hbf % nHBFPerTF);
   }
 
   ///< get TF and HB (abs) for this IR
   std::pair<int, int> getTFandHB(const IR& rec) const
   {
     auto hbf = getHBF(rec);
-    return std::pair<int, int>(hbf / mNHBFPerTF, hbf);
+    return std::pair<int, int>(hbf / nHBFPerTF, hbf);
   }
 
   ///< create RDH for given IR
-  template <class H>
-  H createRDH(const IR& rec) const;
+  template <typename H>
+  H createRDH(const IR& rec, bool setHBTF = true) const;
 
   ///< update RDH for with given IR info
-  template <class H>
-  void updateRDH(H& rdh, const IR& rec) const;
+  template <typename H>
+  void updateRDH(H& rdh, const IR& rec, bool setHBTF = true) const;
 
   /*//-------------------------------------------------------------------------------------
     Fill provided vector (cleaned) by interaction records (bc/orbit) for HBFs, considering 
@@ -109,12 +101,12 @@ class HBFUtils
       for (int j=0;j<nHBF-1;j++) {
         auto rdh = sampler.createRDH<RAWDataHeader>( HBIRVec[j] );
         // dress rdh with cruID/FEE/Link ID
-        rdh.packetCounter = packetCounter++;
-        rdh.memorySize = sizeof(rdh);
-        rdh.offsetToNext = sizeof(rdh);
+        RDHUtils::setPacketCounter(rdh, packetCounter++);
+        RDHUtils::setMemorySize(rdh, sizeof(rdh));
+        RDHUtils::setOffsetToNext(rdh, sizeof(rdh));
         FLUSH_TO_SINK(&rdh, sizeof(rdh));  // open empty HBF
-        rdh.stop = 0x1;
-        rdh.pageCnt++;
+        RDHUtils::setStop(rdh, 0x1);
+        RDHUtils::setPageCounter(rdh, RDHUtils::getPageCounter()+1 );
         FLUSH_TO_SINK(&rdh, sizeof(rdh));  // close empty HBF
       }
       // write RDH for the HBF with data
@@ -126,105 +118,44 @@ class HBFUtils
     //-------------------------------------------------------------------------------------*/
   int fillHBIRvector(std::vector<IR>& dst, const IR& fromIR, const IR& toIR) const;
 
-  void print() const;
+  void print() const { printKeyValues(true); }
 
-  // some fields of the same meaning have different names in the RDH of different versions
-  static uint32_t getHBOrbit(const void* rdhP);
-  static uint32_t getHBBC(const void* rdhP);
-  static IR getHBIR(const void* rdhP);
+  int nHBFPerTF = 1 + 0xff; // number of orbits per BC
+  uint16_t bcFirst = 0;     ///< BC of 1st TF
+  uint32_t orbitFirst = 0;  ///< orbit of 1st TF
 
-  static void printRDH(const void* rdhP);
-  static void dumpRDH(const void* rdhP);
-
-  static bool checkRDH(const void* rdhP, bool verbose = true);
-
-  static uint32_t getHBOrbit(const o2::header::RAWDataHeaderV4& rdh) { return rdh.heartbeatOrbit; }
-  static uint32_t getHBOrbit(const o2::header::RAWDataHeaderV5& rdh) { return rdh.orbit; }
-
-  static uint32_t getHBBC(const o2::header::RAWDataHeaderV4& rdh) { return rdh.heartbeatBC; }
-  static uint32_t getHBBC(const o2::header::RAWDataHeaderV5& rdh) { return rdh.bunchCrossing; }
-
-  static IR getHBIR(const o2::header::RAWDataHeaderV4& rdh) { return {uint16_t(rdh.heartbeatBC), uint32_t(rdh.heartbeatOrbit)}; }
-  static IR getHBIR(const o2::header::RAWDataHeaderV5& rdh) { return {uint16_t(rdh.bunchCrossing), uint32_t(rdh.orbit)}; }
-
-  static void printRDH(const o2::header::RAWDataHeaderV5& rdh);
-  static void printRDH(const o2::header::RAWDataHeaderV4& rdh);
-  static void dumpRDH(const o2::header::RAWDataHeaderV5& rdh) { dumpRDH(&rdh); }
-  static void dumpRDH(const o2::header::RAWDataHeaderV4& rdh) { dumpRDH(&rdh); }
-
-  static bool checkRDH(const o2::header::RAWDataHeaderV4& rdh, bool verbose = true);
-  static bool checkRDH(const o2::header::RAWDataHeaderV5& rdh, bool verbose = true);
-
-  static LinkSubSpec_t getSubSpec(uint16_t cru, uint8_t link, uint8_t endpoint);
-  static LinkSubSpec_t getSubSpec(const o2::header::RAWDataHeaderV4& rdh) { return getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID); }
-  static LinkSubSpec_t getSubSpec(const o2::header::RAWDataHeaderV5& rdh) { return getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID); }
-
- protected:
-  int mNHBFPerTF = 1 + 0xff; // number of orbits per BC
-  IR mFirstIR = {0, 0};      // 1st record of the 1st TF
-
-  ClassDefNV(HBFUtils, 1);
+  O2ParamDef(HBFUtils, "HBFUtils");
 };
 
 //_________________________________________________
-template <>
-inline void HBFUtils::updateRDH<o2::header::RAWDataHeaderV5>(o2::header::RAWDataHeaderV5& rdh, const o2::InteractionRecord& rec) const
+template <typename H>
+void HBFUtils::updateRDH(H& rdh, const IR& rec, bool setHBTF) const
 {
-  auto tfhb = getTFandHBinTF(rec);
-  rdh.bunchCrossing = mFirstIR.bc;
-  rdh.orbit = rec.orbit;
-  //
-  if (rec.bc == mFirstIR.bc) { // if we are starting new HB, set the HB trigger flag
-    rdh.triggerType |= o2::trigger::ORBIT | o2::trigger::HB;
-    if (tfhb.second == 0) { // if we are starting new TF, set the TF trigger flag
-      rdh.triggerType |= o2::trigger::TF;
+  RDHUtils::setTriggerBC(rdh, rec.bc); // for RDH>4 the trigger and HB IR is the same!
+  RDHUtils::setTriggerOrbit(rdh, rec.orbit);
+
+  if (setHBTF) { // need to set the HBF IR and HB / TF trigger flags
+    auto tfhb = getTFandHBinTF(rec);
+    RDHUtils::setHeartBeatBC(rdh, bcFirst);
+    RDHUtils::setHeartBeatOrbit(rdh, rec.orbit);
+
+    if (rec.bc == bcFirst) { // if we are starting new HB, set the HB trigger flag
+      auto trg = RDHUtils::getTriggerType(rdh) | (o2::trigger::ORBIT | o2::trigger::HB);
+      if (tfhb.second == 0) { // if we are starting new TF, set the TF trigger flag
+        trg |= o2::trigger::TF;
+      }
+      RDHUtils::setTriggerType(rdh, trg);
     }
   }
 }
 
 //_________________________________________________
-template <>
-inline void HBFUtils::updateRDH<o2::header::RAWDataHeaderV4>(o2::header::RAWDataHeaderV4& rdh, const o2::InteractionRecord& rec) const
+template <typename H>
+inline H HBFUtils::createRDH(const o2::InteractionRecord& rec, bool setHBTF) const
 {
-  auto tfhb = getTFandHBinTF(rec);
-  rdh.triggerBC = rec.bc;
-  rdh.triggerOrbit = rec.orbit;
-
-  rdh.heartbeatBC = mFirstIR.bc;
-  rdh.heartbeatOrbit = rec.orbit;
-  //
-  if (rec.bc == mFirstIR.bc) { // if we are starting new HB, set the HB trigger flag
-    rdh.triggerType |= o2::trigger::ORBIT | o2::trigger::HB;
-    if (tfhb.second == 0) { // if we are starting new TF, set the TF trigger flag
-      rdh.triggerType |= o2::trigger::TF;
-    }
-  }
-}
-
-//_________________________________________________
-template <>
-inline o2::header::RAWDataHeaderV4 HBFUtils::createRDH<o2::header::RAWDataHeaderV4>(const o2::InteractionRecord& rec) const
-{
-  o2::header::RAWDataHeaderV4 rdh;
-  updateRDH(rdh, rec);
+  H rdh;
+  updateRDH(rdh, rec, setHBTF);
   return rdh;
-}
-
-//_________________________________________________
-template <>
-inline o2::header::RAWDataHeaderV5 HBFUtils::createRDH<o2::header::RAWDataHeaderV5>(const o2::InteractionRecord& rec) const
-{
-  o2::header::RAWDataHeaderV5 rdh;
-  updateRDH(rdh, rec);
-  return rdh;
-}
-
-//_____________________________________________________________________
-inline LinkSubSpec_t HBFUtils::getSubSpec(uint16_t cru, uint8_t link, uint8_t endpoint)
-{
-  // define subspecification as in DataDistribution
-  int linkValue = (LinkSubSpec_t(link) + 1) << (endpoint == 1 ? 8 : 0);
-  return (LinkSubSpec_t(cru) << 16) | linkValue;
 }
 
 } // namespace raw

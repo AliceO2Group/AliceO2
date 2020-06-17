@@ -14,12 +14,12 @@
 #include "ClusterAccumulator.h"
 #include "CfUtils.h"
 
-
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
-GPUd() void ClusterAccumulator::toNative(const deprecated::Digit& d, tpc::ClusterNative& cn) const
+GPUd() void ClusterAccumulator::toNative(const ChargePos& pos, Charge q, tpc::ClusterNative& cn) const
 {
-  bool isEdgeCluster = CfUtils::isAtEdge(&d);
+  bool isEdgeCluster = CfUtils::isAtEdge(pos);
   bool wasSplitInTime = mSplitInTime >= MIN_SPLIT_NUM;
   bool wasSplitInPad = mSplitInPad >= MIN_SPLIT_NUM;
 
@@ -28,7 +28,7 @@ GPUd() void ClusterAccumulator::toNative(const deprecated::Digit& d, tpc::Cluste
   flags |= (wasSplitInTime) ? tpc::ClusterNative::flagSplitTime : 0;
   flags |= (wasSplitInPad) ? tpc::ClusterNative::flagSplitPad : 0;
 
-  cn.qMax = d.charge;
+  cn.qMax = q;
   cn.qTot = mQtot;
   cn.setTimeFlags(mTimeMean, flags);
   cn.setPad(mPadMean);
@@ -73,12 +73,9 @@ GPUd() Charge ClusterAccumulator::updateOuter(PackedCharge charge, Delta2 d)
   return q;
 }
 
-GPUd() void ClusterAccumulator::finalize(const deprecated::Digit& myDigit)
+GPUd() void ClusterAccumulator::finalize(const ChargePos& pos, Charge q, TPCTime timeOffset)
 {
-  mQtot += myDigit.charge;
-  if (mQtot == 0) {
-    return; // TODO: Why does this happen?
-  }
+  mQtot += q;
 
   mPadMean /= mQtot;
   mTimeMean /= mQtot;
@@ -88,14 +85,13 @@ GPUd() void ClusterAccumulator::finalize(const deprecated::Digit& myDigit)
   mPadSigma = CAMath::Sqrt(mPadSigma - mPadMean * mPadMean);
   mTimeSigma = CAMath::Sqrt(mTimeSigma - mTimeMean * mTimeMean);
 
-  mPadMean += myDigit.pad;
-  mTimeMean += myDigit.time;
+  Pad pad = pos.pad();
+  mPadMean += pad;
+  mTimeMean += timeOffset + pos.time();
 
-#if defined(CORRECT_EDGE_CLUSTERS)
-  if (CfUtils::isAtEdge(myDigit)) {
-    float s = (myDigit->pad < 2) ? 1.f : -1.f;
-    bool c = s * (mPadMean - myDigit->pad) > 0.f;
-    mPadMean = (c) ? myDigit->pad : mPadMean;
+  if (CfUtils::isAtEdge(pos)) {
+    bool leftEdge = (pad < 2);
+    bool correct = (leftEdge) ? (pad < mPadMean) : (pad > mPadMean);
+    mPadMean = (correct) ? pad : mPadMean;
   }
-#endif
 }

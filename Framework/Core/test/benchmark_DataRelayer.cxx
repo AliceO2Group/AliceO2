@@ -23,6 +23,7 @@ using Monitoring = o2::monitoring::Monitoring;
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 using Stack = o2::header::Stack;
+using RecordAction = o2::framework::DataRelayer::RecordAction;
 
 // A simple test where an input is provided
 // and the subsequent InputRecord is immediately requested.
@@ -102,12 +103,14 @@ static void BM_RelaySingleSlot(benchmark::State& state)
     //state.ResumeTiming();
 
     relayer.relay(std::move(header), std::move(payload));
-    auto ready = relayer.getReadyToProcess();
+    std::vector<RecordAction> ready;
+    relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
     assert(ready[0].slot.index == 0);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
     auto result = relayer.getInputsForTimeslice(ready[0].slot);
-    assert(result.size() == 2);
+    assert(result.size() == 1);
+    assert(result.at(0).size() == 1);
   }
   // One for the header, one for the payload
 }
@@ -153,11 +156,13 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
     //state.ResumeTiming();
 
     relayer.relay(std::move(header), std::move(payload));
-    auto ready = relayer.getReadyToProcess();
+    std::vector<RecordAction> ready;
+    relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
     auto result = relayer.getInputsForTimeslice(ready[0].slot);
-    assert(result.size() == 2);
+    assert(result.size() == 1);
+    assert(result.at(0).size() == 1);
   }
   // One for the header, one for the payload
 }
@@ -219,16 +224,20 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
     //state.ResumeTiming();
 
     relayer.relay(std::move(header1), std::move(payload1));
-    auto ready = relayer.getReadyToProcess();
+    std::vector<RecordAction> ready;
+    relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
 
     relayer.relay(std::move(header2), std::move(payload2));
-    ready = relayer.getReadyToProcess();
+    ready.clear();
+    relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
     auto result = relayer.getInputsForTimeslice(ready[0].slot);
-    assert(result.size() == 4);
+    assert(result.size() == 2);
+    assert(result.at(0).size() == 1);
+    assert(result.at(1).size() == 1);
   }
   // One for the header, one for the payload
 }

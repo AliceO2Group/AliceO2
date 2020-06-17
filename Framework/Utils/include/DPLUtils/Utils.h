@@ -17,7 +17,6 @@
 #define UTILS_H
 
 #include "Framework/DataProcessorSpec.h"
-#include <functional>
 #include "MemoryResources/MemoryResources.h"
 
 namespace o2f = o2::framework;

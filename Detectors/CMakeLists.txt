@@ -10,6 +10,7 @@
 
 add_subdirectory(Base)
 add_subdirectory(Raw)
+add_subdirectory(CTF)
 
 add_subdirectory(Passive) # must be first as some detector's macros use it
 
@@ -30,9 +31,17 @@ add_subdirectory(TPC)
 
 add_subdirectory(GlobalTracking)
 add_subdirectory(GlobalTrackingWorkflow)
+add_subdirectory(Vertexing)
+
+add_subdirectory(Calibration)
 
 if(BUILD_SIMULATION)
   add_subdirectory(gconfig)
+  o2_data_file(COPY gconfig DESTINATION Detectors)
 endif()
 
-o2_data_file(COPY Geometry gconfig DESTINATION Detectors)
+o2_data_file(COPY Geometry DESTINATION Detectors)
+
+if(ENABLE_UPGRADES)
+  add_subdirectory(Upgrades)
+endif()

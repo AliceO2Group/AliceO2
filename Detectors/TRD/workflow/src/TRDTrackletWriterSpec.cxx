@@ -1,0 +1,63 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+#ifndef O2_TRDTRAPSIMULATORTRACKLETWRITER_H
+#define O2_TRDTRAPSIMULATORTRACKLETWRITER_H
+
+#include "Framework/DataProcessorSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
+#include "Framework/InputSpec.h"
+#include "TRDWorkflow/TRDTrackletWriterSpec.h"
+#include "TRDBase/Digit.h"
+#include <SimulationDataFormat/MCTruthContainer.h>
+#include "TRDBase/MCLabel.h"
+#include "TRDBase/Tracklet.h"
+#include "DataFormatsTRD/TriggerRecord.h"
+
+#include <fstream>
+#include <iostream>
+
+using namespace o2::framework;
+
+namespace o2
+{
+namespace trd
+{
+
+template <typename T>
+using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
+
+o2::framework::DataProcessorSpec getTRDTrackletWriterSpec()
+{
+  //  using InputSpec = framework::InputSpec;
+  using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
+  /* int producejson=1;
+  if(producejson){
+      //write tracklets in json format for Samesh javascript ui
+      //probably only going to be for deubgging.
+      //filename format is : E#.sector#.stack#.json E=Eventnumber(nominal) ... will use timestamp
+      LOG(info) << " now to produce json";
+      ofstream output("E15.0.1.json");
+      output << " 10 " << endl;
+  }*/
+  //LOG(info) << "before writing out the tracklet size is " << Tracklet->size();
+  return MakeRootTreeWriterSpec("TRDTrkltWrt",
+                                "trdtracklets.root",
+                                "o2sim",
+                                1,
+                                BranchDefinition<std::vector<o2::trd::Tracklet>>{InputSpec{"tracklets", "TRD", "TRACKLETS"}, "Tracklet"},
+                                //BranchDefinition<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>>{InputSpec{"trklabels", "TRD", "TRKLABELS"}, "TRKLabels"},
+                                BranchDefinition<std::vector<o2::trd::TriggerRecord>>{InputSpec{"tracklettrigs", "TRD", "TRKTRGRD"}, "TrackTrg"})();
+};
+
+} // end namespace trd
+} // end namespace o2
+
+#endif // O2_TRDTRAPSIMULATORTRACKLETWRITER_H

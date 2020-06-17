@@ -11,10 +11,12 @@
 #include <vector>
 
 #include "DataFormatsEMCAL/Cluster.h"
+#include "DataFormatsEMCAL/TriggerRecord.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALReconstruction/Clusterizer.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "TStopwatch.h"
 
 namespace o2
 {
@@ -35,6 +37,7 @@ namespace reco_workflow
 /// The resulting cluster objects contain a range of digits
 /// that can be found in output digit indices object
 ///
+template <class InputType>
 class ClusterizerSpec : public framework::Task
 {
  public:
@@ -58,19 +61,23 @@ class ClusterizerSpec : public framework::Task
   /// Output clusters: {"clusters", "CLUSTERS", 0, Lifetime::Timeframe}
   /// Output indices: {"clusterDigitIndices", "CLUSTERDIGITINDICES", 0, Lifetime::Timeframe}
   void run(framework::ProcessingContext& ctx) final;
+  void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
-  o2::emcal::Clusterizer mClusterizer;                                       ///< Clusterizer object
-  o2::emcal::Geometry* mGeometry = nullptr;                                  ///< Pointer to geometry object
-  const std::vector<o2::emcal::Cluster>* mOutputClusters = nullptr;          ///< Container with output clusters (pointer)
-  const std::vector<o2::emcal::ClusterIndex>* mOutputDigitIndices = nullptr; ///< Container with indices of cluster digits (pointer)
+  o2::emcal::Clusterizer<InputType> mClusterizer;                               ///< Clusterizer object
+  o2::emcal::Geometry* mGeometry = nullptr;                                     ///< Pointer to geometry object
+  std::vector<o2::emcal::Cluster>* mOutputClusters = nullptr;                   ///< Container with output clusters (pointer)
+  std::vector<o2::emcal::ClusterIndex>* mOutputCellDigitIndices = nullptr;      ///< Container with indices of cluster digits (pointer)
+  std::vector<o2::emcal::TriggerRecord>* mOutputTriggerRecord = nullptr;        ///< Container with Trigger records for clusters
+  std::vector<o2::emcal::TriggerRecord>* mOutputTriggerRecordIndices = nullptr; ///< Container with Trigger records for indices
+  TStopwatch mTimer;
 };
 
 /// \brief Creating DataProcessorSpec for the EMCAL Clusterizer Spec
 /// \ingroup EMCALworkflow
 ///
 /// Refer to ClusterizerSpec::run for input and output specs
-framework::DataProcessorSpec getClusterizerSpec();
+framework::DataProcessorSpec getClusterizerSpec(bool useDigits);
 
 } // namespace reco_workflow
 

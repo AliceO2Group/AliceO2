@@ -37,12 +37,23 @@ struct GEOMETRY {
   }
 };
 
+namespace
+{
+Point3D<float> entrancePoint1(-17.7993, 8.929883, -522.201); //x,y,z coordinates in cm
+Point3D<float> exitPoint1(-17.8136, 8.93606, -522.62);
+Point3D<float> entrancePoint2(-49.2793, 28.8673, -1441.25);
+Point3D<float> exitPoint2(-49.2965, 28.8806, -1441.75);
+} // namespace
+
 /// \brief Test of the Digitization
 /// A couple of values are filled into Hits and we check whether we get reproducible output in terms of digits
 /// and MClabels
 
 BOOST_AUTO_TEST_SUITE(o2_mch_simulation)
 
+BOOST_FIXTURE_TEST_SUITE(digitization, GEOMETRY)
+
+BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE(DigitizerTest)
 {
 
@@ -51,10 +62,7 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
   int trackId2 = 1;
   short detElemId1 = 101;
   short detElemId2 = 1012;
-  Point3D<float> entrancePoint1(-17.7993, 8.929883, -522.201); //x,y,z coordinates in cm
-  Point3D<float> exitPoint1(-17.8136, 8.93606, -522.62);
-  Point3D<float> entrancePoint2(-49.2793, 28.8673, -1441.25);
-  Point3D<float> exitPoint2(-49.2965, 28.8806, -1441.75);
+
   float eloss1 = 1e-6;
   float eloss2 = 1e-6;
   float length = 0.f;
@@ -68,8 +76,7 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
   std::vector<o2::mch::Digit> digits;
   o2::mch::mapping::Segmentation seg1{detElemId1};
   o2::mch::mapping::Segmentation seg2{detElemId2};
-  digitizer.process(hits, digits);
-  digitizer.provideMC(mctruthcontainer);
+  digitizer.process(hits, digits, mctruthcontainer);
 
   int digitcounter1 = 0;
   int digitcounter2 = 0;
@@ -133,6 +140,7 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
     BOOST_FAIL(" more than 10 digits for one hit in station 2 ");
 }
 
+BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE(mergingDigitizer)
 {
   //merging
@@ -141,10 +149,6 @@ BOOST_AUTO_TEST_CASE(mergingDigitizer)
   int trackId2 = 1;
   short detElemId1 = 101;
   short detElemId2 = 1012;
-  Point3D<float> entrancePoint1(-17.7993, 8.929883, -522.201); //x,y,z coord. (cm)
-  Point3D<float> exitPoint1(-17.8136, 8.93606, -522.62);
-  Point3D<float> entrancePoint2(-49.2793, 28.8673, -1441.25);
-  Point3D<float> exitPoint2(-49.2965, 28.8806, -1441.75);
   float eloss1 = 1e-6;
   float eloss2 = 1e-6;
   float length = 0.f;
@@ -157,8 +161,7 @@ BOOST_AUTO_TEST_CASE(mergingDigitizer)
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mctruthcontainer;
   std::vector<o2::mch::Digit> digits;
 
-  digitizer.process(hits, digits);
-  digitizer.provideMC(mctruthcontainer);
+  digitizer.process(hits, digits, mctruthcontainer);
 
   std::vector<o2::MCCompLabel> labels = digitizer.getTrackLabels();
 
@@ -166,15 +169,21 @@ BOOST_AUTO_TEST_CASE(mergingDigitizer)
   int rep2 = 9;
 
   for (int i = 0; i < rep1; i++) {
-    digits.emplace_back(digits.at(0).getTimeStamp(), digits.at(0).getDetID(), digits.at(0).getPadID(), digits.at(0).getADC());
+    digits.emplace_back(digits.at(0).getDetID(), digits.at(0).getPadID(), digits.at(0).getADC(), digits.at(0).getTime());
     labels.emplace_back(labels.at(0).getTrackID(), labels.at(0).getEventID(), labels.at(0).getSourceID(), false);
   }
   for (int i = 0; i < rep2; i++) {
-    digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(0).getDetID(), digits.at(1).getPadID(), digits.at(1).getADC());
+    digits.emplace_back(digits.at(0).getDetID(), digits.at(1).getPadID(), digits.at(1).getADC(), digits.at(1).getTime());
     labels.emplace_back(labels.at(1).getTrackID(), labels.at(1).getEventID(), labels.at(1).getSourceID(), false);
   }
 
-  digitizer.mergeDigits(digits, labels);
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> container;
+
+  for (int index = 0; index < labels.size(); ++index) {
+    container.addElement(index, labels.at(index));
+  }
+
+  digitizer.mergeDigits(digits, container);
 
   std::vector<o2::mch::Digit> mergeddigits = digitizer.getDigits();
   std::vector<o2::MCCompLabel> mergedlabels = digitizer.getTrackLabels();
@@ -188,4 +197,5 @@ BOOST_AUTO_TEST_CASE(mergingDigitizer)
 
 } //testing
 
+BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()

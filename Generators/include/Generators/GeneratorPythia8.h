@@ -33,10 +33,15 @@ class GeneratorPythia8 : public Generator
   /** constructor **/
   GeneratorPythia8(const Char_t* name, const Char_t* title = "ALICEo2 Pythia8 Generator");
   /** destructor **/
-  virtual ~GeneratorPythia8() = default;
+  ~GeneratorPythia8() override = default;
 
   /** Initialize the generator if needed **/
-  virtual Bool_t Init() override;
+  Bool_t Init() override;
+
+  /** setters **/
+  void setConfig(std::string val) { mConfig = val; };
+  void setHooksFileName(std::string val) { mHooksFileName = val; };
+  void setHooksFuncName(std::string val) { mHooksFuncName = val; };
 
   /** methods **/
   bool readString(std::string val) { return mPythia.readString(val, true); };
@@ -52,8 +57,16 @@ class GeneratorPythia8 : public Generator
   Bool_t generateEvent() override;
   Bool_t importParticles() override;
 
+  /** methods that can be overridded **/
+  void updateHeader(FairMCEventHeader* eventHeader) override;
+
   /** Pythia8 **/
   Pythia8::Pythia mPythia; //!
+
+  /** configuration **/
+  std::string mConfig;
+  std::string mHooksFileName;
+  std::string mHooksFuncName;
 
   ClassDefOverride(GeneratorPythia8, 1);
 

@@ -16,6 +16,7 @@
 
 #include "DataFormatsEMCAL/Cluster.h"
 #include "DataFormatsEMCAL/Digit.h"
+#include "DataFormatsEMCAL/Cell.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALReconstruction/DigitReader.h"
 #include "EMCALReconstruction/ClusterizerParameters.h"
@@ -31,6 +32,7 @@ namespace emcal
 /// \brief Stand-alone task running EMCAL clusterization
 /// \ingroup EMCALreconstruction
 /// \author Rudiger Haake (Yale)
+template <class InputType>
 class ClusterizerTask
 {
 
@@ -44,12 +46,13 @@ class ClusterizerTask
   Geometry* getGeometry() { return mGeometry; }
 
  private:
-  Clusterizer mClusterizer;                                         ///< Clusterizer
-  Geometry* mGeometry = nullptr;                                    ///< Pointer to geometry object
-  std::unique_ptr<DigitReader> mDigitReader;                        ///< Pointer to digit reader
-  const std::vector<Digit>* mDigitArray = nullptr;                  ///< Array of input digits
-  const std::vector<Cluster>* mClustersArray = nullptr;             ///< Array of clusters
-  const std::vector<ClusterIndex>* mClustersDigitIndices = nullptr; ///< Array of digit indices
+  Clusterizer<InputType> mClusterizer;                                             ///< Clusterizer
+  Geometry* mGeometry = nullptr;                                                   ///< Pointer to geometry object
+  std::unique_ptr<DigitReader<InputType>> mInputReader;                            ///< Pointer to cell/digit reader
+  std::vector<Cluster>* mClustersArray = nullptr;                                  ///< Array of clusters
+  std::vector<ClusterIndex>* mClustersInputIndices = nullptr;                      ///< Array of cell/digit indices
+  std::vector<o2::emcal::TriggerRecord>* mClusterTriggerRecordsClusters = nullptr; ///< Array of Clusters trigger recirds
+  std::vector<o2::emcal::TriggerRecord>* mClusterTriggerRecordsIndices = nullptr;  ///< Array of cell/digit indices trigger records
   ClassDefNV(ClusterizerTask, 1)
 };
 } // namespace emcal

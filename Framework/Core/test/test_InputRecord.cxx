@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
     createRoute("z_source", spec3)};
   // First of all we test if an empty registry behaves as expected, raising a
   // bunch of exceptions.
-  InputRecord emptyRecord(schema, {[](size_t) { return nullptr; }, 0});
+  InputRecord emptyRecord(schema, {[](size_t) { return DataRef{nullptr, nullptr, nullptr}; }, 0});
 
   BOOST_CHECK_EXCEPTION(emptyRecord.get("x"), std::exception, any_exception);
   BOOST_CHECK_EXCEPTION(emptyRecord.get("y"), std::exception, any_exception);
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   createMessage(dh1, 1);
   createMessage(dh2, 2);
   createEmpty();
-  InputSpan span{[&inputs](size_t i) { return static_cast<char const*>(inputs[i]); }, inputs.size()};
+  InputSpan span{[&inputs](size_t i) { return DataRef{nullptr, static_cast<char const*>(inputs[2 * i]), static_cast<char const*>(inputs[2 * i + 1])}; }, inputs.size() / 2};
   InputRecord record{schema, std::move(span)};
 
   // Checking we can get the whole ref by name
@@ -144,6 +144,14 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
     // check if invalid slots are filtered out by the iterator
     BOOST_CHECK(position != 2);
   }
+
+  // the 2-level iterator to access inputs and their parts
+  // all inputs have 1 part, we check the first input
+  BOOST_CHECK(record.begin().size() == 1);
+  // the end-instance of the inputs has no parts
+  BOOST_CHECK(record.end().size() == 0);
+  // thus there is no element and begin == end
+  BOOST_CHECK(record.end().begin() == record.end().end());
 }
 
 // TODO:

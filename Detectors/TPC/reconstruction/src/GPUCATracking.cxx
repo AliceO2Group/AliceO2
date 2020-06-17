@@ -25,15 +25,14 @@
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/Sector.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 #include "GPUO2Interface.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUHostDataTypes.h"
-
-#include "Digit.h"
 
 using namespace o2::gpu;
 using namespace o2::tpc;
@@ -60,9 +59,9 @@ void GPUCATracking::deinitialize()
   mTrackingCAO2Interface.reset();
 }
 
-int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
+int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* outputs)
 {
-  if ((int)(data->tpcZS != nullptr) + (int)(data->o2Digits != nullptr) + (int)(data->clusters != nullptr) != 1) {
+  if ((int)(data->tpcZS != nullptr) + (int)(data->o2Digits != nullptr) + (int)(data->clusters != nullptr) + (int)(data->compressedClusters != nullptr) != 1) {
     return 0;
   }
 
@@ -82,23 +81,29 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   Mapper& mapper = Mapper::instance();
 
   const ClusterNativeAccess* clusters;
-  std::vector<deprecated::PackedDigit> gpuDigits[Sector::MAXSECTOR];
+  std::vector<o2::tpc::Digit> gpuDigits[Sector::MAXSECTOR];
   GPUTrackingInOutDigits gpuDigitsMap;
   GPUTPCDigitsMCInput gpuDigitsMC;
   GPUTrackingInOutPointers ptrs;
 
-  if (data->tpcZS) {
+  if (data->compressedClusters) {
+    ptrs.tpcCompressedClusters = data->compressedClusters;
+  } else if (data->tpcZS) {
     ptrs.tpcZS = data->tpcZS;
   } else if (data->o2Digits) {
     ptrs.clustersNative = nullptr;
     const float zsThreshold = mTrackingCAO2Interface->getConfig().configReconstruction.tpcZSthreshold;
+    const int maxContTimeBin = mTrackingCAO2Interface->getConfig().configEvent.continuousMaxTimeBin;
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
-      const std::vector<o2::tpc::Digit>& d = (*(data->o2Digits))[i];
+      const auto& d = (*(data->o2Digits))[i];
       gpuDigits[i].reserve(d.size());
       gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
       for (int j = 0; j < d.size(); j++) {
+        if (maxContTimeBin && d[j].getTimeStamp() >= maxContTimeBin) {
+          throw std::runtime_error("Digit time bin exceeds time frame length");
+        }
         if (d[j].getChargeFloat() >= zsThreshold) {
-          gpuDigits[i].emplace_back(deprecated::PackedDigit{d[j].getChargeFloat(), (Timestamp)d[j].getTimeStamp(), (Pad)d[j].getPad(), (Row)d[j].getRow()});
+          gpuDigits[i].emplace_back(d[j]);
         }
       }
       gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();
@@ -115,8 +120,8 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
     ptrs.clustersNative = clusters;
     ptrs.tpcPackedDigits = nullptr;
   }
-  int retVal = mTrackingCAO2Interface->RunTracking(&ptrs);
-  if (data->o2Digits || data->tpcZS) {
+  int retVal = mTrackingCAO2Interface->RunTracking(&ptrs, outputs);
+  if (data->o2Digits || data->tpcZS || data->compressedClusters) {
     clusters = ptrs.clustersNative;
   }
   const GPUTPCGMMergedTrack* tracks = ptrs.mergedTracks;
@@ -133,7 +138,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   for (char cside = 0; cside < 2; cside++) {
     for (int i = 0; i < nTracks; i++) {
       if (tracks[i].OK() && tracks[i].CSide() == cside) {
-        trackSort[tmp++] = {i, (cside == 0 ? 1.f : -1.f) * tracks[i].GetParam().GetZOffset()};
+        trackSort[tmp++] = {i, tracks[i].GetParam().GetTZOffset()};
         auto ncl = tracks[i].NClusters();
         clBuff += ncl + (ncl + 1) / 2; // actual N clusters to store will be less
       }
@@ -156,8 +161,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
     float time0 = 0.f, tFwd = 0.f, tBwd = 0.f;
 
     if (mTrackingCAO2Interface->GetParamContinuous()) {
-      float zoffset = tracks[i].CSide() ? -tracks[i].GetParam().GetZOffset() : tracks[i].GetParam().GetZOffset();
-      time0 = sContinuousTFReferenceLength - zoffset * vzbinInv;
+      time0 = tracks[i].GetParam().GetTZOffset();
 
       if (tracks[i].CCE()) {
         bool lastSide = trackClusters[tracks[i].FirstClusterRef()].slice < Sector::MAXSECTOR / 2;
@@ -166,8 +170,8 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
           if (lastSide ^ (trackClusters[tracks[i].FirstClusterRef() + iCl].slice < Sector::MAXSECTOR / 2)) {
             auto& cacl1 = trackClusters[tracks[i].FirstClusterRef() + iCl];
             auto& cacl2 = trackClusters[tracks[i].FirstClusterRef() + iCl - 1];
-            auto& cl1 = clusters->clusters[cacl1.slice][cacl1.row][cacl1.num];
-            auto& cl2 = clusters->clusters[cacl2.slice][cacl2.row][cacl2.num];
+            auto& cl1 = clusters->clustersLinear[cacl1.num];
+            auto& cl2 = clusters->clustersLinear[cacl2.num];
             delta = fabs(cl1.getTime() - cl2.getTime()) * 0.5f;
             break;
           }
@@ -177,11 +181,11 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
         // estimate max/min time increments which still keep track in the physical limits of the TPC
         auto& c1 = trackClusters[tracks[i].FirstClusterRef()];
         auto& c2 = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1];
-        float t1 = clusters->clusters[c1.slice][c1.row][c1.num].getTime();
-        float t2 = clusters->clusters[c2.slice][c2.row][c2.num].getTime();
+        float t1 = clusters->clustersLinear[c1.num].getTime();
+        float t2 = clusters->clustersLinear[c2.num].getTime();
         auto times = std::minmax(t1, t2);
-        tFwd = times.first - time0 + detParam.TPClength * vzbinInv;
-        tBwd = time0 - times.second;
+        tFwd = times.first - time0;
+        tBwd = time0 - (times.second - detParam.TPClength * vzbinInv);
       }
     }
 
@@ -233,22 +237,20 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       if (trackClusters[tracks[i].FirstClusterRef() + j].state & GPUTPCGMMergedTrackHit::flagReject) {
         continue;
       }
-      int clusterId = trackClusters[tracks[i].FirstClusterRef() + j].num;
+      int clusterIdGlobal = trackClusters[tracks[i].FirstClusterRef() + j].num;
       Sector sector = trackClusters[tracks[i].FirstClusterRef() + j].slice;
       int globalRow = trackClusters[tracks[i].FirstClusterRef() + j].row;
+      int clusterIdInRow = clusterIdGlobal - clusters->clusterOffset[sector][globalRow];
       int regionNumber = 0;
       while (globalRow > mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber)) {
         regionNumber++;
       }
-      clIndArr[nOutCl] = clusterId;
+      clIndArr[nOutCl] = clusterIdInRow;
       sectorIndexArr[nOutCl] = sector;
       rowIndexArr[nOutCl] = globalRow;
       nOutCl++;
-      if (outputTracksMCTruth) {
-        if (!clusters->clustersMCTruth) {
-          throw std::runtime_error("Cluster MC information missing");
-        }
-        for (const auto& element : clusters->clustersMCTruth->getLabels(clusters->clusterOffset[sector][globalRow] + clusterId)) {
+      if (outputTracksMCTruth && clusters->clustersMCTruth) {
+        for (const auto& element : clusters->clustersMCTruth->getLabels(clusterIdGlobal)) {
           bool found = false;
           for (int l = 0; l < labels.size(); l++) {
             if (labels[l].first == element) {
@@ -283,6 +285,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
     int lastSector = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].slice;
   }
   outClusRefs->resize(clBuff); // remove overhead
+  if (data->o2Digits || data->tpcZS || data->compressedClusters) {
+    data->clusters = ptrs.clustersNative;
+  }
   data->compressedClusters = ptrs.tpcCompressedClusters;
   mTrackingCAO2Interface->Clear(false);
 
@@ -302,4 +307,14 @@ void GPUCATracking::GetClusterErrors2(int row, float z, float sinPhi, float DzDs
     return;
   }
   mTrackingCAO2Interface->GetClusterErrors2(row, z, sinPhi, DzDs, clusterState, ErrY2, ErrZ2);
+}
+
+int GPUCATracking::registerMemoryForGPU(const void* ptr, size_t size)
+{
+  return mTrackingCAO2Interface->registerMemoryForGPU(ptr, size);
+}
+
+int GPUCATracking::unregisterMemoryForGPU(const void* ptr)
+{
+  return mTrackingCAO2Interface->unregisterMemoryForGPU(ptr);
 }

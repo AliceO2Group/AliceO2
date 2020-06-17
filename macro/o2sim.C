@@ -15,7 +15,7 @@
 #include <Generators/PDG.h>
 #include "SimulationDataFormat/MCEventHeader.h"
 #include <SimConfig/SimConfig.h>
-#include <SimConfig/ConfigurableParam.h>
+#include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
 #include <TStopwatch.h>
 #include <memory>
@@ -26,9 +26,11 @@
 #include <Steer/O2RunSim.h>
 #include <DetectorsBase/MaterialManager.h>
 #include <CCDB/BasicCCDBManager.h>
+#include <DetectorsCommonDataFormats/NameConf.h>
 #include <unistd.h>
 #include <sstream>
 #endif
+#include "migrateSimFiles.C"
 
 FairRunSim* o2sim_init(bool asservice)
 {
@@ -159,11 +161,17 @@ FairRunSim* o2sim_init(bool asservice)
       grp.setDipoleCurrent(currDip);
     }
     // save
-    std::string grpfilename = confref.getOutPrefix() + "_grp.root";
+    std::string grpfilename = o2::base::NameConf::getGRPFileName(confref.getOutPrefix());
     TFile grpF(grpfilename.c_str(), "recreate");
     grpF.WriteObjectAny(&grp, grp.Class(), "GRP");
   }
   // todo: save beam information in the grp
+
+  // print summary about cuts and processes used
+  std::ofstream cutfile(o2::base::NameConf::getCutProcFileName(confref.getOutPrefix()));
+  auto& matmgr = o2::base::MaterialManager::Instance();
+  matmgr.printCuts(cutfile);
+  matmgr.printProcesses(cutfile);
 
   timer.Stop();
   Double_t rtime = timer.RealTime();
@@ -201,6 +209,14 @@ void o2sim_run(FairRunSim* run, bool asservice)
   LOG(INFO) << "Macro finished succesfully.";
   LOG(INFO) << "Real time " << rtime << " s, CPU time " << ctime << "s";
   LOG(INFO) << "Memory used " << sysinfo.GetMaxMemory() << " MB";
+
+  // migrate to file format where hits sit in separate files
+  // (Note: The parallel version is doing this intrinsically;
+  //  The serial version uses FairRootManager IO which handles a common file IO for all outputs)
+  if (!asservice) {
+    LOG(INFO) << "Migrating simulation output to separate hit file format";
+    migrateSimFiles(confref.getOutPrefix().c_str());
+  }
 }
 
 // asservice: in a parallel device-based context?

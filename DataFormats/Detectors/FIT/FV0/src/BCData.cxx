@@ -17,11 +17,11 @@ using namespace o2::fv0;
 void BCData::print() const
 {
   ir.print();
-  printf("]\n");
+  printf("\n");
 }
 
 gsl::span<const ChannelData> BCData::getBunchChannelData(const gsl::span<const ChannelData> tfdata) const
 {
   // extract the span of channel data for this bunch from the whole TF data
-  return gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries());
+  return ref.getEntries() ? gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries()) : gsl::span<const ChannelData>();
 }

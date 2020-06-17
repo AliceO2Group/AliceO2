@@ -38,5 +38,17 @@
 #define GPUCA_M_COUNT(...) GPUCA_M_COUNT_A(__VA_ARGS__, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
 #define GPUCA_M_SINGLEOPT(...) GPUCA_M_COUNT_A(__VA_ARGS__, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1)
 
+#define GPUCA_M_UNROLL_
+#define GPUCA_M_UNROLL_U(...) _Pragma(GPUCA_M_STR(unroll __VA_ARGS__))
+#ifndef GPUCA_UNROLL
+#define GPUCA_UNROLL(...)
+#endif
+
+#if !defined(WITH_OPENMP) || defined(GPUCA_GPUCODE_DEVICE)
+#define GPUCA_OPENMP(...)
+#else
+#define GPUCA_OPENMP(...) _Pragma(GPUCA_M_STR(omp __VA_ARGS__))
+#endif
+
 #endif
 // clang-format on

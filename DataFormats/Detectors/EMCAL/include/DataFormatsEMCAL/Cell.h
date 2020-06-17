@@ -15,17 +15,20 @@
 #include "Rtypes.h"
 #include "DataFormatsEMCAL/Constants.h"
 
-// Structure:
-// Bits 38-39: Cell type: 00=Low Gain, 01=High Gain, 10=LED mon, 11=TRU
-// Bits 24-37: Energy (input/output in GeV/c^2, resolution 1/16 ADC count)
-// Bits 15-23: Time (ns)
-// Bits  0-14: Tower ID
-
 namespace o2
 {
 namespace emcal
 {
 
+/// \class Cell
+/// \brief EMCAL compressed cell information
+/// \ingroup EMCALDataFormat
+///
+/// Structure:
+/// Bits 38-39: Cell type: 00=Low Gain, 01=High Gain, 10=LED mon, 11=TRU
+/// Bits 24-37: Energy (input/output in GeV/c^2, resolution 1/16 ADC count)
+/// Bits 15-23: Time (ns)
+/// Bits  0-14: Tower ID
 class Cell
 {
  public:
@@ -44,6 +47,9 @@ class Cell
 
   void setEnergy(Double_t energy);
   Double_t getEnergy() const;
+
+  void setAmplitude(Double_t energy) { setEnergy(energy); }
+  Double_t getAmplitude() const { return getEnergy(); }
 
   void setType(ChannelType_t ctype);
   ChannelType_t getType() const;

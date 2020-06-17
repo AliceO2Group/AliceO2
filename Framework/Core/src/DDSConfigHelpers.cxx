@@ -21,7 +21,7 @@ void dumpDeviceSpec2DDS(std::ostream& out,
                         const std::vector<DeviceSpec>& specs,
                         const std::vector<DeviceExecution>& executions)
 {
-  out << R"(<topology id="o2-dataflow">)"
+  out << R"(<topology name="o2-dataflow">)"
          "\n";
   assert(specs.size() == executions.size());
 
@@ -32,8 +32,8 @@ void dumpDeviceSpec2DDS(std::ostream& out,
     auto id = spec.id;
     std::replace(id.begin(), id.end(), '-', '_'); // replace all 'x' to 'y'
     out << "   "
-        << R"(<decltask id=")" << id << R"(">)"
-                                        "\n";
+        << R"(<decltask name=")" << id << R"(">)"
+                                          "\n";
     out << "       "
         << R"(<exe reachable="true">)";
     for (size_t ai = 0; ai < execution.args.size(); ++ai) {
@@ -52,6 +52,11 @@ void dumpDeviceSpec2DDS(std::ostream& out,
     out << "</exe>\n";
     out << "   </decltask>\n";
   }
+  out << "   <declcollection name=\"DPL\">\n       <tasks>\n";
+  for (size_t di = 0; di < specs.size(); ++di) {
+    out << "          <name>" << specs[di].name << "</name>\n";
+  }
+  out << "       </tasks>\n   </declcollection>\n";
   out << "</topology>\n";
 }
 

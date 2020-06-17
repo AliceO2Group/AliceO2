@@ -23,17 +23,18 @@
 
 //Special macros for OpenCL rev. 1.2 (encode address space in template parameter)
 enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
-#if defined(__OPENCL__) && !defined(__OPENCLCPP__)
+#if defined(GPUCA_GPUCODE_DEVICE) && defined(GPUCA_USE_TEMPLATE_ADDRESS_SPACES)
   template<LocalOrGlobal, typename L, typename G, typename C, typename P> struct MakeTypeHelper;
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Local, L, G, C, P> { typedef L type; };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Global, L, G, C, P> { typedef G type; };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Constant, L, G, C, P> { typedef C type; };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Plain, L, G, C, P> { typedef P type; };
-  #define MakeType(base_type) typename MakeTypeHelper<LG, GPUshared() base_type, GPUglobalref() base_type, GPUconstant() base_type, base_type>::type
+  #define MakeType(base_type) typename MakeTypeHelper<LG, GPUsharedref() base_type, GPUglobalref() base_type, GPUconstantref() base_type, base_type>::type
   #define MEM_CLASS_PRE() template<LocalOrGlobal LG>
   #define MEM_CLASS_PRE_TEMPLATE(t) template<LocalOrGlobal LG, t>
   #define MEM_LG(type) type<LG>
   #define MEM_CLASS_PRE2() template<LocalOrGlobal LG2>
+  #define MEM_CLASS_PRE2_TEMPLATE(t) template<LocalOrGlobal LG2, t>
   #define MEM_LG2(type) type<LG2>
   #define MEM_CLASS_PRE12() template<LocalOrGlobal LG> template<LocalOrGlobal LG2>
   #define MEM_CLASS_PRE23() template<LocalOrGlobal LG2, LocalOrGlobal LG3>
@@ -59,6 +60,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_CLASS_PRE_TEMPLATE(t) template<t>
   #define MEM_LG(type) type
   #define MEM_CLASS_PRE2()
+  #define MEM_CLASS_PRE2_TEMPLATE(t) template<t>
   #define MEM_LG2(type) type
   #define MEM_CLASS_PRE12()
   #define MEM_CLASS_PRE23()
@@ -80,10 +82,10 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_TYPE4(type) type
 #endif
 
-#if (defined(__CUDACC__) && defined(GPUCA_CUDA_NO_CONSTANT_MEMORY)) || (defined(__HIPCC__) && defined(GPUCA_HIP_NO_CONSTANT_MEMORY)) || (defined(__OPENCL__) && !defined(__OPENCLCPP__) && defined(GPUCA_OPENCL_NO_CONSTANT_MEMORY)) || (defined(__OPENCLCPP__) && defined(GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY))
+#if defined(GPUCA_NO_CONSTANT_MEMORY) || defined(GPUCA_CONSTANT_AS_ARGUMENT)
   #undef MEM_CONSTANT
   #define MEM_CONSTANT(type) MEM_GLOBAL(type)
 #endif
 
 #endif //GPUDEFOPENCL12TEMPLATES_H
-// clang-format on
+  // clang-format on

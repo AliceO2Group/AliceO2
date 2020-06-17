@@ -12,24 +12,25 @@
 #define ALICEO2_PASSIVE_HALL_H
 
 #include "FairModule.h" // for FairModule
+#include "DetectorsPassive/PassiveBase.h"
 
 namespace o2
 {
 namespace passive
 {
-class Hall : public FairModule
+class Hall : public PassiveBase
 {
  public:
   enum EMedium { kSTST_C2 = 50,
                  kAIR_C2 = 55,
                  kCC_C2 = 57,
+                 kCC_C0 = 17,
                  kFE_C2 = 52 };
 
   Hall(const char* name, const char* Title = "ALICE Experimental Hall");
   Hall();
   ~Hall() override;
   void ConstructGeometry() override;
-  void SetSpecialPhysicsCuts() override;
 
   /// Clone this object (used in MT mode only)
   FairModule* CloneModule() const override;

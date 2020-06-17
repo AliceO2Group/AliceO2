@@ -10,11 +10,16 @@ There is no module description yet.
 This module contains the following submodules:
 
 * \subpage refDetectorsRaw
+* \subpage refDetectorsBase
 * \subpage refDetectorsBasetest
-* \subpage refDetectorsEMCAL
-* \subpage refDetectorsFIT
 * \subpage refDetectorsGeometry
 * \subpage refDetectorsGlobalTracking
+* \subpage refDetectorsVertexing
+* \subpage refDetectorsCalibration
+* \subpage refDetectorsCPV
+* \subpage refDetectorsCTF
+* \subpage refDetectorsEMCAL
+* \subpage refDetectorsFIT
 * \subpage refDetectorsHMPID
 * \subpage refDetectorsITSMFT
 * \subpage refDetectorsMUON

@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <SimConfig/ConfigurableParam.h>
-#include <SimConfig/ConfigurableParamHelper.h>
+#include <CommonUtils/ConfigurableParam.h>
+#include <CommonUtils/ConfigurableParamHelper.h>
 #include <SimConfig/SimConfig.h>
 #include <iostream>
 #include <TInterpreter.h>

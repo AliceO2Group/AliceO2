@@ -17,19 +17,19 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "Framework/WorkflowSpec.h"
-#include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/InputSpec.h"
-
-#include <Configuration/ConfigurationInterface.h>
-
 #include <string>
 
-namespace o2
+namespace o2::configuration
 {
-namespace framework
+class ConfigurationInterface;
+}
+
+namespace o2::framework
 {
 
 class CompletionPolicy;
+class ChannelConfigurationPolicy;
 
 /// A class responsible for providing data from main processing flow to QC tasks.
 ///
@@ -82,13 +82,24 @@ class DataSampling
   static std::vector<InputSpec> InputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName);
   /// \brief Provides InputSpecs to receive data for given DataSamplingPolicy
   static std::vector<InputSpec> InputSpecsForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
+  /// \brief Provides OutputSpecs of given DataSamplingPolicy
+  static std::vector<OutputSpec> OutputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName);
+  /// \brief Provides OutputSpecs of given DataSamplingPolicy
+  static std::vector<OutputSpec> OutputSpecsForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
+  /// \brief Provides the port to be used for a proxy of given DataSamplingPolicy
+  static uint16_t PortForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
+  /// \brief Provides the port to be used for a proxy of given DataSamplingPolicy
+  static uint16_t PortForPolicy(const std::string& policiesSource, const std::string& policyName);
+  /// \brief Provides the machines where given DataSamplingPolicy is enabled
+  static std::vector<std::string> MachinesForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
+  /// \brief Provides the port to be used for a proxy of given DataSamplingPolicy
+  static std::vector<std::string> MachinesForPolicy(const std::string& policiesSource, const std::string& policyName);
 
  private:
   // Internal functions, used by GenerateInfrastructure()
   static std::string createDispatcherName();
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // FRAMEWORK_DATASAMPLING_H

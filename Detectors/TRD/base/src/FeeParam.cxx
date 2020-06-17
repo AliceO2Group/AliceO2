@@ -40,17 +40,18 @@
 #include "TRDBase/FeeParam.h"
 #include "TRDBase/TRDCommonParam.h"
 
+using namespace std;
 using namespace o2::trd;
 
 //_____________________________________________________________________________
 
 FeeParam* FeeParam::mgInstance = nullptr;
-bool FeeParam::mgTerminated = kFALSE;
-bool FeeParam::mgTracklet = kTRUE;
-bool FeeParam::mgRejectMultipleTracklets = kFALSE;
-bool FeeParam::mgUseMisalignCorr = kFALSE;
-bool FeeParam::mgUseTimeOffset = kFALSE;
-bool FeeParam::mgLUTPadNumberingFilled = kFALSE;
+bool FeeParam::mgTerminated = false;
+bool FeeParam::mgTracklet = true;
+bool FeeParam::mgRejectMultipleTracklets = false;
+bool FeeParam::mgUseMisalignCorr = false;
+bool FeeParam::mgUseTimeOffset = false;
+bool FeeParam::mgLUTPadNumberingFilled = false;
 std::vector<short> FeeParam::mgLUTPadNumbering;
 
 // definition of geometry constants
@@ -84,15 +85,16 @@ FeeParam* FeeParam::instance()
   //
   // Instance constructor
   //
-
-  if (mgTerminated != kFALSE) {
+  if (mgTerminated != false) {
     return nullptr;
   }
 
   if (mgInstance == nullptr) {
     mgInstance = new FeeParam();
   }
-
+  // this is moved here to remove recursive calls induced by the line 2 above this one.
+  if (!mgLUTPadNumberingFilled)
+    mgInstance->createPad2MCMLookUpTable();
   return mgInstance;
 }
 
@@ -103,7 +105,7 @@ void FeeParam::terminate()
   // Terminate the class and release memory
   //
 
-  mgTerminated = kTRUE;
+  mgTerminated = true;
 
   if (mgInstance != nullptr) {
     delete mgInstance;
@@ -125,9 +127,7 @@ FeeParam::FeeParam() : mMagField(0.),
   //
   // Default constructor
   //
-
   mCP = TRDCommonParam::Instance();
-  createPad2MCMLookUpTable();
 
   // These variables are used internally in the class to elliminate divisions.
   // putting them at the top was messy.
@@ -157,7 +157,8 @@ FeeParam::FeeParam(const FeeParam& p)
   //
   mRAWversion = p.mRAWversion;
   mCP = p.mCP;
-  createPad2MCMLookUpTable();
+  if (!mgLUTPadNumberingFilled)
+    mgInstance->createPad2MCMLookUpTable();
 }
 
 //_____________________________________________________________________________
@@ -218,9 +219,9 @@ int FeeParam::getPadColFromADC(int irob, int imcm, int iadc) const
     return -100;
   int mcmcol = imcm % mgkNmcmRobInCol + getRobSide(irob) * mgkNmcmRobInCol; // MCM column number on ROC [0..7]
   int padcol = mcmcol * mgkNcolMcm + mgkNcolMcm + 1 - iadc;
-  if (padcol < 0 || padcol >= mgkNcol)
+  if (padcol < 0 || padcol >= mgkNcol) {
     return -1; // this is commented because of reason above OK
-
+  }
   return padcol;
 }
 
@@ -251,7 +252,6 @@ int FeeParam::getMCMfromPad(int irow, int icol) const
 
   if (irow < 0 || icol < 0 || irow > mgkNrowC1 || icol > mgkNcol)
     return -1;
-
   return (icol % (mgkNcol / 2)) / mgkNcolMcm + mgkNmcmRobInCol * (irow % mgkNmcmRobInRow);
 }
 
@@ -291,8 +291,7 @@ int FeeParam::getROBfromPad(int irow, int icol) const
   //
   // Return on which rob this pad is
   //
-
-  return (irow / mgkNmcmRobInRow) * 2 + getColSide(icol);
+  return (int)((int)irow / (int)mgkNmcmRobInRow) * 2 + getColSide(icol);
 }
 
 //_____________________________________________________________________________
@@ -302,10 +301,11 @@ int FeeParam::getROBfromSharedPad(int irow, int icol) const
   // Return on which rob this pad is for shared pads
   //
 
-  if (icol < 72)
+  if (icol < 72) {
     return (irow / mgkNmcmRobInRow) * 2 + getColSide(icol + 5);
-  else
+  } else {
     return (irow / mgkNmcmRobInRow) * 2 + getColSide(icol - 5);
+  }
 }
 
 //_____________________________________________________________________________
@@ -491,6 +491,10 @@ void FeeParam::setRAWversion(int rawver)
   }
 }
 
+/* 
+ * This was originally moved here from arrayADC, signalADC etc. We now longer use those classes
+ * so removing this for now as its crashing.
+*/
 void FeeParam::createPad2MCMLookUpTable()
 {
 
@@ -498,21 +502,20 @@ void FeeParam::createPad2MCMLookUpTable()
   // Initializes the Look Up Table to relate
   // pad numbering and mcm channel numbering
   //
-
   if (!mgLUTPadNumberingFilled) {
 
-    //   mgLUTPadNumbering.resize(FeeParam::getNcol());
-    //  memset(&mgLUTPadNumbering[0], 0, sizeof(mgLUTPadNumbering[0]) * FeeParam::getNcol());
-
+    LOG(debug) << " resizing lookup array to : " << getNcol() << " elements previously : " << mgLUTPadNumbering.size();
+    mgLUTPadNumbering.resize(FeeParam::getNcol());
+    memset(&mgLUTPadNumbering[0], 0, sizeof(mgLUTPadNumbering[0]) * getNcol());
     for (int mcm = 0; mcm < 8; mcm++) {
       int lowerlimit = 0 + mcm * 18;
       int upperlimit = 18 + mcm * 18;
       int shiftposition = 1 + 3 * mcm;
       for (int index = lowerlimit; index < upperlimit; index++) {
-        FeeParam::instance()->mgLUTPadNumbering[index] = index + shiftposition;
+        mgLUTPadNumbering[index] = index + shiftposition;
       }
     }
-    mgLUTPadNumberingFilled = kTRUE;
+    mgLUTPadNumberingFilled = true;
   }
 }
 
@@ -584,7 +587,7 @@ void FeeParam::getDyRange(int det, int rob, int mcm, int ch,
   }
 
   if ((dyMaxInt - dyMinInt) <= 0) {
-    LOG(info) << "strange dy range: [" << dyMinInt << "," << dyMaxInt << "], using max range now";
+    LOG(debug) << "strange dy range: [" << dyMinInt << "," << dyMaxInt << "], using max range now";
     dyMaxInt = mgDyMax;
     dyMinInt = mgDyMin;
   }

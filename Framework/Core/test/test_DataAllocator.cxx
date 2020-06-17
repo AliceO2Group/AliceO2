@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/runDataProcessing.h"
@@ -19,6 +20,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/SerializationMethods.h"
 #include "Framework/OutputRoute.h"
+#include "Framework/ConcreteDataMatcher.h"
 #include "Headers/DataHeader.h"
 #include "TestClasses.h"
 #include "Framework/Logger.h"
@@ -26,6 +28,7 @@
 #include <vector>
 #include <chrono>
 #include <cstring>
+#include <utility> // std::declval
 #include <TNamed.h>
 
 using namespace o2::framework;
@@ -126,14 +129,31 @@ DataProcessorSpec getSourceSpec()
     messageablevector.push_back(a);
     messageablevector.emplace_back(10, 20, 0xacdc);
 
+    // create multiple parts matching the same output spec with subspec wildcard
+    // we are using ConcreteDataTypeMatcher to define the output spec matcher independent
+    // of subspec (i.a. a wildcard), all data blcks will go on the same channel regardless
+    // of sebspec.
+    pc.outputs().make<int>(OutputRef{"multiparts", 0}) = 10;
+    pc.outputs().make<int>(OutputRef{"multiparts", 1}) = 20;
+    pc.outputs().make<int>(OutputRef{"multiparts", 2}) = 30;
+
     // make a PMR std::vector, make it large to test the auto transport buffer resize funtionality as well
     Output pmrOutputSpec{"TST", "PMRTESTVECTOR", 0};
     auto pmrvec = o2::vector<o2::test::TriviallyCopyable>(pc.outputs().getMemoryResource(pmrOutputSpec));
     pmrvec.reserve(100);
     pmrvec.emplace_back(o2::test::TriviallyCopyable{1, 2, 3});
     pc.outputs().adoptContainer(pmrOutputSpec, std::move(pmrvec));
+
+    // make a vector of POD and set some data
+    pc.outputs().make<std::vector<int>>(OutputRef{"podvector"}) = {10, 21, 42};
+
+    // now we are done and signal this downstream
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+
+    ASSERT_ERROR(pc.outputs().isAllowed({"TST", "MESSAGEABLE", 0}) == true);
+    ASSERT_ERROR(pc.outputs().isAllowed({"TST", "MESSAGEABLE", 1}) == false);
+    ASSERT_ERROR(pc.outputs().isAllowed({"TST", "NOWAY", 0}) == false);
   };
 
   return DataProcessorSpec{"source", // name of the processor
@@ -147,13 +167,17 @@ DataProcessorSpec getSourceSpec()
                             OutputSpec{{"makerootserlzblobj"}, "TST", "ROOTSERLZBLOBJ", 0, Lifetime::Timeframe},
                             OutputSpec{{"rootserlzblvector"}, "TST", "ROOTSERLZBLVECT", 0, Lifetime::Timeframe},
                             OutputSpec{{"messageablevector"}, "TST", "MSGABLVECTOR", 0, Lifetime::Timeframe},
+                            OutputSpec{{"multiparts"}, "TST", "MULTIPARTS", 0, Lifetime::Timeframe},
+                            OutputSpec{{"multiparts"}, "TST", "MULTIPARTS", 1, Lifetime::Timeframe},
+                            OutputSpec{{"multiparts"}, "TST", "MULTIPARTS", 2, Lifetime::Timeframe},
                             OutputSpec{"TST", "ADOPTCHUNK", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTVECTOR", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe},
-                            OutputSpec{"TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe}},
+                            OutputSpec{"TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe},
+                            OutputSpec{{"podvector"}, "TST", "PODVECTOR", 0, Lifetime::Timeframe}},
                            AlgorithmSpec(processingFct)};
 }
 
@@ -161,9 +185,15 @@ DataProcessorSpec getSinkSpec()
 {
   auto processingFct = [](ProcessingContext& pc) {
     using DataHeader = o2::header::DataHeader;
-    for (auto& input : pc.inputs()) {
+    for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
+      auto const& input = *iit;
+      LOG(INFO) << (*iit).spec->binding << " " << (iit.isValid() ? "is valid" : "is not valid");
+      if (iit.isValid() == false) {
+        continue;
+      }
       auto* dh = o2::header::get<const DataHeader*>(input.header);
-      LOG(INFO) << dh->dataOrigin.str << " " << dh->dataDescription.str << " " << dh->payloadSize;
+      LOG(INFO) << "{" << dh->dataOrigin.str << ":" << dh->dataDescription.str << ":" << dh->subSpecification << "}"
+                << " payload size " << dh->payloadSize;
 
       using DumpStackFctType = std::function<void(const o2::header::BaseHeader*)>;
       DumpStackFctType dumpStack = [&](const o2::header::BaseHeader* h) {
@@ -175,6 +205,17 @@ DataProcessorSpec getSinkSpec()
       };
 
       dumpStack(dh);
+
+      if ((*iit).spec->binding == "inputMP") {
+        LOG(INFO) << "inputMP with " << iit.size() << " part(s)";
+        int nPart = 0;
+        for (auto const& ref : iit) {
+          LOG(INFO) << "accessing part " << nPart++ << " of input slot 'inputMP':"
+                    << pc.inputs().get<int>(ref);
+          ASSERT_ERROR(pc.inputs().get<int>(ref) == nPart * 10);
+        }
+        ASSERT_ERROR(nPart == 3);
+      }
     }
     // plain, unserialized object in input1 channel
     LOG(INFO) << "extracting o2::test::TriviallyCopyable from input1";
@@ -259,6 +300,8 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(object12.size() == 2);
     ASSERT_ERROR((object12[0] == o2::test::TriviallyCopyable{42, 23, 0xdead}));
     ASSERT_ERROR((object12[1] == o2::test::TriviallyCopyable{10, 20, 0xacdc}));
+    // forward the read-only span on a different route
+    pc.outputs().snapshot(Output{"TST", "MSGABLVECTORCPY", 0, Lifetime::Timeframe}, object12);
 
     LOG(INFO) << "extracting TNamed object from input13";
     auto object13 = pc.inputs().get<TNamed*>("input13");
@@ -281,7 +324,15 @@ DataProcessorSpec getSinkSpec()
     auto header = o2::header::get<const o2::header::DataHeader*>(dataref.header);
     ASSERT_ERROR((header->payloadSize == sizeof(o2::test::TriviallyCopyable)));
 
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
+    LOG(INFO) << "extracting POD vector";
+    // TODO: use the ReturnType helper once implemented
+    //InputRecord::ReturnType<std::vector<int>> podvector;
+    decltype(std::declval<InputRecord>().get<std::vector<int>>(DataRef{nullptr, nullptr, nullptr})) podvector;
+    podvector = pc.inputs().get<std::vector<int>>("inputPODvector");
+    ASSERT_ERROR(podvector.size() == 3);
+    ASSERT_ERROR(podvector[0] == 10 && podvector[1] == 21 && podvector[2] == 42);
+
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   };
 
   return DataProcessorSpec{"sink", // name of the processor
@@ -300,7 +351,52 @@ DataProcessorSpec getSinkSpec()
                             InputSpec{"input13", "TST", "MAKETOBJECT", 0, Lifetime::Timeframe},
                             InputSpec{"input14", "TST", "ROOTSERLZBLOBJ", 0, Lifetime::Timeframe},
                             InputSpec{"input15", "TST", "ROOTSERLZBLVECT", 0, Lifetime::Timeframe},
-                            InputSpec{"inputPMR", "TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe}},
+                            InputSpec{"inputPMR", "TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe},
+                            InputSpec{"inputPODvector", "TST", "PODVECTOR", 0, Lifetime::Timeframe},
+                            InputSpec{"inputMP", ConcreteDataTypeMatcher{"TST", "MULTIPARTS"}, Lifetime::Timeframe}},
+                           Outputs{OutputSpec{"TST", "MSGABLVECTORCPY", 0, Lifetime::Timeframe}},
+                           AlgorithmSpec(processingFct)};
+}
+
+// a second spec subscribing to some of the same data to test forwarding of messages
+DataProcessorSpec getSpectatorSinkSpec()
+{
+  auto processingFct = [](ProcessingContext& pc) {
+    using DataHeader = o2::header::DataHeader;
+    int nPart = 0;
+    for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
+      auto const& input = *iit;
+      LOG(INFO) << (*iit).spec->binding << " " << (iit.isValid() ? "is valid" : "is not valid");
+      if (iit.isValid() == false) {
+        continue;
+      }
+      auto* dh = o2::header::get<const DataHeader*>(input.header);
+      LOG(INFO) << "{" << dh->dataOrigin.str << ":" << dh->dataDescription.str << ":" << dh->subSpecification << "}"
+                << " payload size " << dh->payloadSize;
+
+      if ((*iit).spec->binding == "inputMP") {
+        LOG(INFO) << "inputMP with " << iit.size() << " part(s)";
+        for (auto const& ref : iit) {
+          LOG(INFO) << "accessing part " << nPart << " of input slot 'inputMP':"
+                    << pc.inputs().get<int>(ref);
+          nPart++;
+          ASSERT_ERROR(pc.inputs().get<int>(ref) == nPart * 10);
+        }
+      }
+    }
+    ASSERT_ERROR(nPart == 3);
+    LOG(INFO) << "extracting the forwarded gsl::span<o2::test::TriviallyCopyable> as span from input12";
+    auto object12 = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input12");
+    ASSERT_ERROR(object12.size() == 2);
+    ASSERT_ERROR((object12[0] == o2::test::TriviallyCopyable{42, 23, 0xdead}));
+    ASSERT_ERROR((object12[1] == o2::test::TriviallyCopyable{10, 20, 0xacdc}));
+
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  };
+
+  return DataProcessorSpec{"spectator-sink", // name of the processor
+                           {InputSpec{"inputMP", ConcreteDataTypeMatcher{"TST", "MULTIPARTS"}, Lifetime::Timeframe},
+                            InputSpec{"input12", ConcreteDataTypeMatcher{"TST", "MSGABLVECTORCPY"}, Lifetime::Timeframe}},
                            Outputs{},
                            AlgorithmSpec(processingFct)};
 }
@@ -309,5 +405,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     getSourceSpec(),
-    getSinkSpec()};
+    getSinkSpec(),
+    getSpectatorSinkSpec()};
 }

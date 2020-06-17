@@ -12,11 +12,8 @@
 
 #include <vector>
 
-#include "TTree.h"
-
-#include "Framework/ControlService.h"
-#include "Framework/ConfigParamRegistry.h"
 #include "MFTWorkflow/ClusterWriterSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -30,81 +27,50 @@ namespace o2
 namespace mft
 {
 
-void ClusterWriter::init(InitContext& ic)
-{
-  auto filename = ic.options().get<std::string>("mft-cluster-outfile");
-  mFile = std::make_unique<TFile>(filename.c_str(), "RECREATE");
-  if (!mFile->IsOpen()) {
-    LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
-    mState = 0;
-    return;
-  }
-  mState = 1;
-}
-
-void ClusterWriter::run(ProcessingContext& pc)
-{
-  if (mState != 1)
-    return;
-
-  auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
-  auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
-  auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
-  auto* rofsPtr = &rofs;
-
-  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* plabels = nullptr;
-  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs, *mc2rofsPtr = &mc2rofs;
-
-  LOG(INFO) << "MFTClusterWriter pulled " << clusters.size() << " clusters, in "
-            << rofs.size() << " RO frames";
-
-  TTree tree("o2sim", "Tree with MFT clusters");
-  tree.Branch("MFTClusterComp", &compClusters);
-  tree.Branch("MFTCluster", &clusters);
-  tree.Branch("MFTClustersROF", &rofsPtr);
-  if (mUseMC) {
-    labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
-    plabels = labels.get();
-    tree.Branch("MFTClusterMCTruth", &plabels);
-  }
-
-  if (mUseMC) {
-    // write MC2ROFrecord vector (directly inherited from digits input) to a tree
-    const auto m2rvec = pc.inputs().get<gsl::span<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
-    mc2rofs.reserve(m2rvec.size());
-    for (const auto& m2rv : m2rvec) {
-      mc2rofs.push_back(m2rv);
-    }
-    tree.Branch("MFTClustersMC2ROF", &mc2rofsPtr);
-  }
-
-  tree.Fill();
-  tree.Write();
-  mFile->Close();
-
-  mState = 2;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-}
+template <typename T>
+using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
+using CompClusType = std::vector<o2::itsmft::CompClusterExt>;
+using PatternsType = std::vector<unsigned char>;
+using ClustersType = std::vector<o2::itsmft::Cluster>;
+using ROFrameRType = std::vector<o2::itsmft::ROFRecord>;
+using LabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using ROFRecLblT = std::vector<o2::itsmft::MC2ROFRecord>;
+using namespace o2::header;
 
 DataProcessorSpec getClusterWriterSpec(bool useMC)
 {
-  std::vector<InputSpec> inputs;
-  inputs.emplace_back("compClusters", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("clusters", "MFT", "CLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "MFT", "MFTClusterROF", 0, Lifetime::Timeframe);
-  if (useMC) {
-    inputs.emplace_back("labels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe);
-  }
-
-  return DataProcessorSpec{
-    "mft-cluster-writer",
-    inputs,
-    Outputs{},
-    AlgorithmSpec{adaptFromTask<ClusterWriter>(useMC)},
-    Options{
-      {"mft-cluster-outfile", VariantType::String, "mftclusters.root", {"Name of the output file"}}}};
+  // Spectators for logging
+  // this is only to restore the original behavior
+  auto clustersSize = std::make_shared<int>(0);
+  auto clustersSizeGetter = [clustersSize](ClustersType const& clusters) {
+    *clustersSize = clusters.size();
+  };
+  auto logger = [clustersSize](std::vector<o2::itsmft::ROFRecord> const& rofs) {
+    LOG(INFO) << "MFTClusterWriter pulled " << *clustersSize << " clusters, in " << rofs.size() << " RO frames";
+  };
+  return MakeRootTreeWriterSpec("mft-cluster-writer",
+                                "mftclusters.root",
+                                MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with MFT clusters"},
+                                BranchDefinition<CompClusType>{InputSpec{"compclus", "MFT", "COMPCLUSTERS", 0},
+                                                               "MFTClusterComp"},
+                                BranchDefinition<PatternsType>{InputSpec{"patterns", "MFT", "PATTERNS", 0},
+                                                               "MFTClusterPatt"},
+                                // this has been marked to be removed in the original implementation
+                                // RSTODO being eliminated
+                                BranchDefinition<ClustersType>{InputSpec{"clusters", "MFT", "CLUSTERS", 0},
+                                                               "MFTCluster",
+                                                               clustersSizeGetter},
+                                BranchDefinition<ROFrameRType>{InputSpec{"ROframes", "MFT", "CLUSTERSROF", 0},
+                                                               "MFTClustersROF",
+                                                               logger},
+                                BranchDefinition<LabelsType>{InputSpec{"labels", "MFT", "CLUSTERSMCTR", 0},
+                                                             "MFTClusterMCTruth",
+                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                             ""},
+                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "MFT", "CLUSTERSMC2ROF", 0},
+                                                             "MFTClustersMC2ROF",
+                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                             ""})();
 }
 
 } // namespace mft

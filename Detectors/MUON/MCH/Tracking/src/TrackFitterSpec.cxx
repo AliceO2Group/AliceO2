@@ -27,9 +27,9 @@
 
 #include "MCHBase/ClusterBlock.h"
 #include "MCHBase/TrackBlock.h"
-#include "TrackParam.h"
-#include "Cluster.h"
-#include "Track.h"
+#include "MCHTracking/TrackParam.h"
+#include "MCHTracking/Cluster.h"
+#include "MCHTracking/Track.h"
 #include "TrackFitter.h"
 
 namespace o2
@@ -70,11 +70,7 @@ class TrackFitterTask
     auto bufferPtrOut = msgOut.data();
 
     // copy header info
-    try {
-      copyHeader(bufferPtr, sizeLeft, bufferPtrOut);
-    } catch (exception const& e) {
-      throw;
-    }
+    copyHeader(bufferPtr, sizeLeft, bufferPtrOut);
 
     // get the number of tracks and copy it to the output message
     if (sizeLeft < SSizeOfInt) {
@@ -91,11 +87,7 @@ class TrackFitterTask
 
       // get the input track
       Track track{};
-      try {
-        readTrack(bufferPtr, sizeLeft, track, clusters);
-      } catch (exception const& e) {
-        throw;
-      }
+      readTrack(bufferPtr, sizeLeft, track, clusters);
 
       // refit the track
       try {

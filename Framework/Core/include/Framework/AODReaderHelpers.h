@@ -11,6 +11,7 @@
 #ifndef o2_framework_readers_AODReaderHelpers_INCLUDED_H
 #define o2_framework_readers_AODReaderHelpers_INCLUDED_H
 
+#include "Framework/TableBuilder.h"
 #include "Framework/AlgorithmSpec.h"
 
 namespace o2
@@ -22,7 +23,7 @@ namespace readers
 
 struct AODReaderHelpers {
   static AlgorithmSpec rootFileReaderCallback();
-  static AlgorithmSpec run2ESDConverterCallback();
+  static AlgorithmSpec aodSpawnerCallback(std::vector<InputSpec> requested);
 };
 
 } // namespace readers

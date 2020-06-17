@@ -18,10 +18,13 @@
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #endif
 
 using namespace o2::base;
+using namespace o2::detectors;
 using o2::itsmft::Cluster;
 
 void CheckClusters_mft(Int_t nEvents = 10, Int_t nMuons = 200)
@@ -50,13 +53,13 @@ void CheckClusters_mft(Int_t nEvents = 10, Int_t nMuons = 200)
   Char_t filename[100];
 
   // Geometry
-  o2::base::GeometryManager::loadGeometry("O2geometry.root", "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry();
   auto gman = o2::mft::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2G,
                                             o2::TransformType::L2G)); // request cached transforms
 
   // Hits
-  sprintf(filename, "o2sim.root");
+  sprintf(filename, NameConf::getHitsFileName(DetID::MFT, "o2sim").c_str());
   TFile* fileH = TFile::Open(filename);
   TTree* hitTree = (TTree*)gFile->Get("o2sim");
   std::vector<Hit>* hitArray = nullptr;

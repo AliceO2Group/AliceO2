@@ -15,85 +15,91 @@
 
 #include "MIDRaw/Decoder.h"
 
-#include "MIDBase/DetectorParameters.h"
-
-#include "MIDRaw/CrateParameters.h"
+#include "Headers/RAWDataHeader.h"
+#include "DPLUtils/RawParser.h"
 
 namespace o2
 {
 namespace mid
 {
 
-ColumnData& Decoder::FindColumnData(uint8_t deId, uint8_t columnId, size_t firstEntry)
+template <typename GBTDECODER>
+Decoder<GBTDECODER>::Decoder() : mData(), mROFRecords(), mGBTDecoders(), mFEEIdConfig(), mMasks()
 {
-  /// Gets the matching column data
-  /// Adds one if not found
-  for (auto colIt = mData.begin() + firstEntry; colIt != mData.end(); ++colIt) {
-    if (colIt->deId == deId && colIt->columnId == columnId) {
-      return *colIt;
-    }
-  }
-  mData.push_back({deId, columnId});
-  return mData.back();
+  /// Default constructor
+  init();
 }
 
-void Decoder::addData(const LocalBoardRO& loc, size_t firstEntry)
+template <typename GBTDECODER>
+void Decoder<GBTDECODER>::clear()
 {
-  /// Convert the loc data to ColumnData
-  uint8_t uniqueLocId = loc.boardId;
-  uint8_t crateId = crateparams::getCrateId(uniqueLocId);
-  bool isRightSide = crateparams::isRightSide(crateId);
-  uint16_t deBoardId = mCrateMapper.roLocalBoardToDE(crateId, crateparams::getLocId(loc.boardId));
-  auto rpcLineId = mCrateMapper.getRPCLine(deBoardId);
-  auto columnId = mCrateMapper.getColumnId(deBoardId);
-  auto lineId = mCrateMapper.getLineId(deBoardId);
-  for (int ich = 0; ich < 4; ++ich) {
-    if (((loc.firedChambers >> ich) & 0x1) == 0) {
-      continue;
-    }
-    uint8_t deId = detparams::getDEId(isRightSide, ich, rpcLineId);
-    auto& col = FindColumnData(deId, columnId, firstEntry);
-    col.setBendPattern(loc.patternsBP[ich], lineId);
-    col.setNonBendPattern(loc.patternsNBP[ich]);
-  }
-}
-
-void Decoder::process(gsl::span<const raw::RawUnit> bytes)
-{
-  /// Decode the raw data
-
-  // First clear the output
+  /// Clears the decoded data
   mData.clear();
   mROFRecords.clear();
-
-  // Process the input data
-  mCRUUserLogicDecoder.process(bytes);
-
-  if (mCRUUserLogicDecoder.getROFRecords().empty()) {
-    return;
-  }
-
-  // Fill the map with ordered events
-  for (auto rofIt = mCRUUserLogicDecoder.getROFRecords().begin(); rofIt != mCRUUserLogicDecoder.getROFRecords().end(); ++rofIt) {
-    mOrderIndexes[rofIt->interactionRecord.toLong()].emplace_back(rofIt - mCRUUserLogicDecoder.getROFRecords().begin());
-  }
-
-  const ROFRecord* rof = nullptr;
-  for (auto& item : mOrderIndexes) {
-    size_t firstEntry = mData.size();
-    for (auto& idx : item.second) {
-      // In principle all of these ROF records have the same timestamp
-      rof = &mCRUUserLogicDecoder.getROFRecords()[idx];
-      for (size_t iloc = rof->firstEntry; iloc < rof->firstEntry + rof->nEntries; ++iloc) {
-        addData(mCRUUserLogicDecoder.getData()[iloc], firstEntry);
-      }
-    }
-    mROFRecords.emplace_back(rof->interactionRecord, rof->eventType, firstEntry, mData.size() - firstEntry);
-  }
-
-  // Clear the inner objects when the computation is done
-  mOrderIndexes.clear();
 }
+
+template <typename GBTDECODER>
+void Decoder<GBTDECODER>::init(bool isDebugMode)
+{
+  /// Initializes the decoder
+  for (uint16_t igbt = 0; igbt < crateparams::sNGBTs; ++igbt) {
+    if constexpr (std::is_same_v<GBTDECODER, GBTBareDecoder>) {
+      mGBTDecoders[igbt].init(igbt, mMasks.getMask(igbt), isDebugMode);
+    } else {
+      mGBTDecoders[igbt].init(igbt, isDebugMode);
+    }
+  }
+}
+
+template <typename GBTDECODER>
+void Decoder<GBTDECODER>::process(gsl::span<const uint8_t> bytes)
+{
+  /// Decodes the buffer
+  clear();
+  o2::framework::RawParser parser(bytes.data(), bytes.size());
+  for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+    if (it.size() == 0) {
+      continue;
+    }
+    gsl::span<const uint8_t> payload(it.data(), it.size());
+    auto const* rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+    process(payload, *rdhPtr);
+  }
+  flush();
+}
+
+template <typename GBTDECODER>
+void Decoder<GBTDECODER>::flush()
+{
+  /// Flushes the GBT data
+  for (auto& gbtDec : mGBTDecoders) {
+    if (!gbtDec.getData().empty()) {
+      size_t firstEntry = mData.size();
+      mData.insert(mData.end(), gbtDec.getData().begin(), gbtDec.getData().end());
+      size_t lastRof = mROFRecords.size();
+      mROFRecords.insert(mROFRecords.end(), gbtDec.getROFRecords().begin(), gbtDec.getROFRecords().end());
+      for (auto rofIt = mROFRecords.begin() + lastRof; rofIt != mROFRecords.end(); ++rofIt) {
+        rofIt->firstEntry += firstEntry;
+      }
+      gbtDec.clear();
+    }
+  }
+}
+
+template <typename GBTDECODER>
+bool Decoder<GBTDECODER>::isComplete() const
+{
+  /// Checks that all links have finished reading
+  for (auto& decoder : mGBTDecoders) {
+    if (!decoder.isComplete()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template class Decoder<GBTBareDecoder>;
+template class Decoder<GBTUserLogicDecoder>;
 
 } // namespace mid
 } // namespace o2

@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "FITWorkflow/RecoWorkflow.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 
@@ -21,7 +21,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   workflowOptions.push_back(ConfigParamSpec{
     "disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}});
-
+  workflowOptions.push_back(ConfigParamSpec{
+    "disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}});
+  workflowOptions.push_back(ConfigParamSpec{
+    "disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}});
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
 }
@@ -32,12 +35,16 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
+  LOG(INFO) << "WorkflowSpec defineDataProcessing";
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the digitizer workflow
   o2::conf::ConfigurableParam::writeINI("o2tpcits-match-recoflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
+  auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
-  return std::move(o2::fit::getRecoWorkflow(useMC));
+  LOG(INFO) << "WorkflowSpec getRecoWorkflow useMC " << useMC;
+  return std::move(o2::fit::getRecoWorkflow(useMC, disableRootInp, disableRootOut));
 }

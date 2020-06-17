@@ -70,7 +70,7 @@ class VertexerTraitsHIP : public VertexerTraits
   GPU::UniquePointer<GPU::DeviceStoreVertexerHIP> mStoreVertexerGPUPtr;
 };
 
-inline GPUd() const int2 VertexerTraitsHIP::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
+GPUdi() const int2 VertexerTraitsHIP::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
 {
   // This function returns the lowest PhiBin and the number of phi bins to be spanned, In the form int2{phiBinLow, PhiBinSpan}
   const int phiBinMin{index_table_utils::getPhiBinIndex(
@@ -79,12 +79,12 @@ inline GPUd() const int2 VertexerTraitsHIP::getBinsPhiRectWindow(const Cluster& 
   return int2{phiBinMin, phiBinSpan};
 }
 
-inline GPU::DeviceStoreVertexerHIP& VertexerTraitsHIP::getDeviceContext()
+GPUhdi() GPU::DeviceStoreVertexerHIP& VertexerTraitsHIP::getDeviceContext()
 {
   return *mStoreVertexerGPUPtr;
 }
 
-inline GPU::DeviceStoreVertexerHIP* VertexerTraitsHIP::getDeviceContextPtr()
+GPUhdi() GPU::DeviceStoreVertexerHIP* VertexerTraitsHIP::getDeviceContextPtr()
 {
   return mStoreVertexerGPUPtr.get();
 }

@@ -36,7 +36,6 @@ void Digitizer::addStrip(const Mapping::MpStripIndex& stripIndex, int cathode, i
   }
 
   mDigits.emplace_back(ColumnDataMC{(uint8_t)deId, (uint8_t)stripIndex.column});
-  mDigits.back().setTimeStamp(mTime);
   mDigits.back().addStrip(stripIndex.strip, cathode, stripIndex.line);
 }
 

@@ -20,6 +20,7 @@
 #include "DataFormatsTPC/Constants.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include <gsl/gsl>
 #include <TFile.h>
 #include <TTree.h>
 #include <array>
@@ -75,6 +76,43 @@ struct ClusterNativeBuffer : public ClusterGroupHeader {
   value_type clusters[0];
 };
 
+// @struct ClusterCountIndex
+// Index of cluster counts per {sector,padrow} for the full TPC
+//
+// This is the header for the transport format of TPC ClusterNative data,
+// followed by a linear buffer of clusters.
+struct alignas(64) ClusterCountIndex {
+  unsigned int nClusters[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW];
+};
+
+// @struct ClusterCountIndex
+// Index of cluster counts per {sector,padrow} coordinate
+// TODO: remove or merge with the above
+struct alignas(64) ClusterIndexBuffer {
+  using value_type = ClusterNative;
+
+  unsigned int nClusters[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW];
+
+  size_t getNClusters() const
+  {
+    size_t count = 0;
+    for (auto sector = 0; sector < Constants::MAXSECTOR; sector++) {
+      for (auto row = 0; row < Constants::MAXGLOBALPADROW; row++) {
+        count += nClusters[sector][row];
+      }
+    }
+    return count;
+  }
+
+  size_t getFlatSize() const { return sizeof(this) + getNClusters() * sizeof(value_type); }
+
+  const value_type* data() const { return clusters; }
+
+  value_type* data() { return clusters; }
+
+  value_type clusters[0];
+};
+
 /// @class ClusterNativeHelper utility class for TPC native clusters
 /// This class supports the following utility functionality for handling of
 /// TPC ClusterNative data:
@@ -97,8 +135,8 @@ class ClusterNativeHelper
   ClusterNativeHelper() = default;
   ~ClusterNativeHelper() = default;
 
-  constexpr static unsigned int NSectors = o2::tpc::Constants::MAXSECTOR;
-  constexpr static unsigned int NPadRows = o2::tpc::Constants::MAXGLOBALPADROW;
+  constexpr static unsigned int NSectors = Constants::MAXSECTOR;
+  constexpr static unsigned int NPadRows = Constants::MAXGLOBALPADROW;
 
   /// convert clusters stored in binary cluster native format to a tree and write to root file
   /// the cluster parameters are stored in the tree together with sector and padrow numbers.
@@ -146,31 +184,80 @@ class ClusterNativeHelper
     void read(size_t entry);
     void clear();
 
+    // Fill the ClusterNative access structure from data and corresponding mc label arrays
+    // from the internal data structures of the reader.
     int fillIndex(ClusterNativeAccess& clusterIndex, std::unique_ptr<ClusterNative[]>& clusterBuffer,
                   MCLabelContainer& mcBuffer);
 
+    // Fill the ClusterNative access structure from data and corresponding mc label arrays.
+    // Both cluster data input and mc containers are provided as a collection with one entry per
+    // sector. The data per sector itself is again a collection.
+    //
+    // MC truth per sector is organized as one MCLabelContainer per row.
+    //
+    // The index structure does not own the data, specific buffers owned by the caller must be
+    // provided for both clusters and mc labels.
+    //
+    // FIXME: while this function was originally indendet to fill the index only and leaver any
+    // data as is, commit 65e17cb73e (PR2166) introduces a rearrangement of data which probably
+    // should be moved to a separate function for clarity. Maybe another access index named
+    // ClusterNativeMonAccess is more appropriate. Also it probably makes sense to performe the
+    // linarization already in the decoder and abandon the partitioning of data pad-row wise.
+    //
+    // @param clusterIndex   the target where all the pointers are set
+    // @param clusterBuffer  array of ClusterNative, clusters are copied to consecutive sections
+    //                       pointers in the index point to regions in this buffer
+    // @param mcBuffer
+    // @param inputs         data arrays, fixed array, one per sector
+    // @param mcinputs       vectors mc truth container, fixed array, one per sector
+    // @param checkFct       check whether a sector index is valid
     template <typename DataArrayType, typename MCArrayType, typename CheckFct>
     static int fillIndex(
       ClusterNativeAccess& clusterIndex, std::unique_ptr<ClusterNative[]>& clusterBuffer,
-      MCLabelContainer& mcBuffer, DataArrayType& inputs, MCArrayType& mcinputs,
-      CheckFct checkFct = [](auto&) { return true; });
+      MCLabelContainer& mcBuffer, DataArrayType& inputs, MCArrayType const& mcinputs,
+      CheckFct checkFct = [](auto const&) { return true; });
 
-    static int parseSector(const char* buffer, size_t size, std::vector<MCLabelContainer>& mcinput, ClusterNativeAccess& clusterIndex,
-                           const MCLabelContainer* (&clustersMCTruth)[NSectors][NPadRows]);
-    template <typename ContainerT, std::enable_if_t<std::is_pointer<ContainerT>::value, int> = 0>
-    static int parseSector(ContainerT container, std::vector<MCLabelContainer>& mcinput, ClusterNativeAccess& clusterIndex,
-                           const MCLabelContainer* (&clustersMCTruth)[NSectors][NPadRows])
+    template <typename DataArrayType, typename CheckFct = std::function<bool(size_t&)>>
+    static int fillIndex(
+      ClusterNativeAccess& clusterIndex, std::unique_ptr<ClusterNative[]>& clusterBuffer,
+      DataArrayType& inputs, CheckFct checkFct = [](auto const&) { return true; })
     {
-      if (container == nullptr) {
-        return 0;
+      // just use a dummy parameter with empty vectors
+      // TODO: maybe do in one function with conditional template parameter
+      std::vector<std::unique_ptr<MCLabelContainer>> dummy;
+      // another default, nothing will be added to the container
+      MCLabelContainer mcBuffer;
+      return fillIndex(clusterIndex, clusterBuffer, mcBuffer, inputs, dummy, checkFct);
+    }
+
+    // Process data for one sector.
+    // This function does not copy any data but sets the corresponding poiters in the index.
+    // Cluster data are provided as a raw buffer of consecutive ClusterNative arrays preceded by ClusterGroupHeader
+    // MC labels are provided as a span of MCLabelContainers, one per sector.
+    static int parseSector(const char* buffer, size_t size, gsl::span<MCLabelContainer const> const& mcinput, //
+                           ClusterNativeAccess& clusterIndex,                                                 //
+                           const MCLabelContainer* (&clustersMCTruth)[NSectors]);                             //
+
+    // Process data for one sector
+    // Helper method receiving raw buffer provided as container
+    // This function does not copy any data but sets the corresponding poiters in the index.
+    template <typename ContainerT>
+    static int parseSector(ContainerT const cont, gsl::span<MCLabelContainer const> const& mcinput, //
+                           ClusterNativeAccess& clusterIndex,                                       //
+                           const MCLabelContainer* (&clustersMCTruth)[NSectors])                    //
+    {
+      using T = typename std::remove_pointer<ContainerT>::type;
+      static_assert(sizeof(typename T::value_type) == 1, "raw container must be byte-type");
+      T const* container = nullptr;
+      if constexpr (std::is_pointer<ContainerT>::value) {
+        if (cont == nullptr) {
+          return 0;
+        }
+        container = cont;
+      } else {
+        container = &cont;
       }
       return parseSector(container->data(), container->size(), mcinput, clusterIndex, clustersMCTruth);
-    }
-    template <typename ContainerT, std::enable_if_t<!std::is_pointer<ContainerT>::value, int> = 0>
-    static int parseSector(ContainerT container, std::vector<MCLabelContainer>& mcinput, ClusterNativeAccess& clusterIndex,
-                           const MCLabelContainer* (&clustersMCTruth)[NSectors][NPadRows])
-    {
-      return parseSector(container.data(), container.size(), mcinput, clusterIndex, clustersMCTruth);
     }
 
    private:
@@ -247,22 +334,56 @@ class ClusterNativeHelper
     /// the event counter
     int mEvent = -1;
   };
+
+  /// copy data of the specified sector from the index to a byte-type container
+  /// optional MC labels are separated accordingly and added to a target vector.
+  /// @param index     the cluster index object
+  /// @param target    a container object, will be resized accordingly
+  /// @param mcTarget  container to receive the separated MC label objects
+  template <typename BufferType, typename MCArrayType>
+  static void copySectorData(ClusterNativeAccess const& index, int sector, BufferType& target, MCArrayType& mcTarget);
 };
 
 template <typename DataArrayType, typename MCArrayType, typename CheckFct>
 int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
                                            std::unique_ptr<ClusterNative[]>& clusterBuffer, MCLabelContainer& mcBuffer,
-                                           DataArrayType& inputs, MCArrayType& mcinputs, CheckFct checkFct)
+                                           DataArrayType& inputs, MCArrayType const& mcinputs, CheckFct checkFct)
 {
-  static_assert(std::tuple_size<DataArrayType>::value == std::tuple_size<MCArrayType>::value);
+  if (mcinputs.size() > 0 && mcinputs.size() != inputs.size()) {
+    std::runtime_error("inconsistent size of MC label array " + std::to_string(mcinputs.size()) + ", expected " + std::to_string(inputs.size()));
+  }
   memset(&clusterIndex, 0, sizeof(clusterIndex));
-  const MCLabelContainer* clustersMCTruth[NSectors][NPadRows] = {};
+  if (inputs.size() == 1) {
+    if (inputs[0].size() >= sizeof(ClusterCountIndex)) {
+      // there is only one data block and we can set the index directly from it
+      const ClusterCountIndex* hdr = reinterpret_cast<ClusterCountIndex const*>(inputs[0].data());
+      memcpy((void*)&clusterIndex.nClusters[0][0], hdr, sizeof(*hdr));
+      clusterIndex.clustersLinear = reinterpret_cast<const ClusterNative*>(inputs[0].data() + sizeof(*hdr));
+      clusterIndex.setOffsetPtrs();
+      if (mcinputs.size() > 0) {
+        clusterIndex.clustersMCTruth = mcinputs[0].get();
+      }
+    }
+    if (sizeof(ClusterCountIndex) + clusterIndex.nClustersTotal * sizeof(ClusterNative) > inputs[0].size()) {
+      throw std::runtime_error("inconsistent input buffer, expecting size " + std::to_string(sizeof(ClusterCountIndex) + clusterIndex.nClustersTotal * sizeof(ClusterNative)) + " got " + std::to_string(inputs[0].size()));
+    }
+    return clusterIndex.nClustersTotal;
+  }
+
+  // multiple data blocks need to be merged into the single block
+  const MCLabelContainer* clustersMCTruth[NSectors] = {nullptr};
   int result = 0;
-  for (size_t index = 0; index < NSectors; index++) {
+  for (size_t index = 0, end = inputs.size(); index < end; index++) {
     if (!checkFct(index)) {
       continue;
     }
-    int locres = parseSector(inputs[index], mcinputs[index], clusterIndex, clustersMCTruth);
+    MCLabelContainer const* labelsptr = nullptr;
+    int extent = 0;
+    if (index < mcinputs.size()) {
+      labelsptr = mcinputs[index].get();
+      extent = 1;
+    }
+    int locres = parseSector(inputs[index], {labelsptr, extent}, clusterIndex, clustersMCTruth);
     if (locres < 0) {
       return locres;
     }
@@ -277,12 +398,13 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
   clusterIndex.clustersLinear = clusterBuffer.get();
   clusterIndex.setOffsetPtrs();
   for (unsigned int i = 0; i < NSectors; i++) {
+    int sectorLabelId = 0;
     for (unsigned int j = 0; j < NPadRows; j++) {
       memcpy(&clusterBuffer[clusterIndex.clusterOffset[i][j]], old.clusters[i][j], sizeof(*old.clusters[i][j]) * old.nClusters[i][j]);
-      if (clustersMCTruth[i][j]) {
+      if (clustersMCTruth[i]) {
         mcPresent = true;
-        for (unsigned int k = 0; k < old.nClusters[i][j]; k++) {
-          for (auto const& label : clustersMCTruth[i][j]->getLabels(k)) {
+        for (unsigned int k = 0; k < old.nClusters[i][j]; k++, sectorLabelId++) {
+          for (auto const& label : clustersMCTruth[i]->getLabels(sectorLabelId)) {
             mcBuffer.addElement(clusterIndex.clusterOffset[i][j] + k, label);
           }
         }
@@ -294,6 +416,43 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
   }
 
   return result;
+}
+
+template <typename BufferType, typename MCArrayType>
+void ClusterNativeHelper::copySectorData(ClusterNativeAccess const& index, int sector, BufferType& target, MCArrayType& mcTarget)
+{
+  static_assert(sizeof(typename BufferType::value_type) == 1, "Target container must be byte-type");
+  if (index.clustersLinear == nullptr) {
+    return;
+  }
+  size_t nRows = 0;
+  size_t nClusters = 0;
+  for (unsigned int row = 0; row < NPadRows; row++) {
+    // count rows with clusters
+    nRows += index.nClusters[sector][row] > 0 ? 1 : 0;
+    nClusters += index.nClusters[sector][row];
+  }
+  size_t rawSize = nRows * sizeof(ClusterNativeBuffer) + nClusters * sizeof(ClusterNative);
+  target.resize(rawSize);
+  ClusterNativeBuffer* current = reinterpret_cast<ClusterNativeBuffer*>(target.data());
+  for (unsigned int row = 0; row < NPadRows; row++) {
+    if (index.nClusters[sector][row] == 0) {
+      continue;
+    }
+    current->sector = sector;
+    current->globalPadRow = row;
+    current->nClusters = index.nClusters[sector][row];
+    memcpy(current->clusters, index.clusters[sector][row], sizeof(*(current->clusters)) * current->nClusters);
+    current = reinterpret_cast<ClusterNativeBuffer*>(current->clusters + current->nClusters);
+    if (index.clustersMCTruth) {
+      mcTarget.emplace_back();
+      for (unsigned int k = 0; k < index.nClusters[sector][row]; k++) {
+        for (auto const& label : index.clustersMCTruth->getLabels(k + index.clusterOffset[sector][row])) {
+          mcTarget.back().addElement(k, label);
+        }
+      }
+    }
+  }
 }
 
 } // namespace tpc

@@ -236,9 +236,9 @@ BOOST_AUTO_TEST_CASE(DataHeader_test)
               << "size " << std::setw(2) << sizeof(dh.payloadSize) << " at " << (char*)(&dh.payloadSize) - (char*)(&dh) << std::endl;
   }
 
-  // DataHeader must have size 80
-  static_assert(sizeof(DataHeader) == 80,
-                "DataHeader struct must be of size 80");
+  // DataHeader must have size 88
+  static_assert(sizeof(DataHeader) == 88,
+                "DataHeader struct must be of size 88");
   DataHeader dh2;
   BOOST_CHECK(dh == dh2);
   DataHeader dh3{gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{0}, 0};
@@ -273,6 +273,14 @@ BOOST_AUTO_TEST_CASE(headerStack_test)
   auto meta = test::MetaHeader{42};
   Stack s2{s1, meta};
   BOOST_CHECK(s2.size() == s1.size() + sizeof(decltype(meta)));
+
+  //check dynamic construction - where we don't have the type information and need to
+  //work with BaseHeader pointers
+  const test::MetaHeader thead{2};
+  o2::header::BaseHeader const* bname = reinterpret_cast<BaseHeader const*>(&thead);
+  Stack ds2(s1, *bname);
+  BOOST_CHECK(ds2.size() == s1.size() + sizeof(thead));
+  BOOST_CHECK(std::memcmp(get<test::MetaHeader*>(ds2.data()), &thead, sizeof(thead)) == 0);
 
   auto* h3 = get<test::MetaHeader*>(s1.data());
   BOOST_CHECK(h3 == nullptr);

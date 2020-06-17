@@ -17,6 +17,7 @@
 #include "ITSWorkflow/ClustererSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -28,6 +29,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "CommonConstants/LHCConstants.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
@@ -57,33 +59,32 @@ void ClustererDPL::init(InitContext& ic)
     return;
   }
 
-  mFullClusters = !ic.options().get<bool>("no-full-clusters");
-  mCompactClusters = !ic.options().get<bool>("no-compact-clusters");
+  mFullClusters = ic.options().get<bool>("full-clusters");
+  mPatterns = !ic.options().get<bool>("no-patterns");
+  mNThreads = ic.options().get<int>("nthreads");
 
   // settings for the fired pixel overflow masking
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-  mClusterer->setMaxBCSeparationToMask(alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + 10);
+  const auto& clParams = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance();
+  auto nbc = clParams.maxBCDiffToMaskBias;
+  nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
+  mClusterer->setMaxBCSeparationToMask(nbc);
+  mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
-  auto filename = ic.options().get<std::string>("its-dictionary-file");
-  mFile = std::make_unique<std::ifstream>(filename.c_str(), std::ios::in | std::ios::binary);
-  if (mFile->good()) {
-    mClusterer->loadDictionary(filename);
-    LOG(INFO) << "ITSClusterer running with a provided dictionary: " << filename.c_str();
-    mState = 1;
+  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  if (o2::base::NameConf::pathExists(dictFile)) {
+    mClusterer->loadDictionary(dictFile);
+    LOG(INFO) << "ITSClusterer running with a provided dictionary: " << dictFile;
   } else {
-    LOG(ERROR) << "Cannot open the " << filename.c_str() << " file, compact clusters cannot be produced";
-    mState = 0;
-    mCompactClusters = false;
+    LOG(INFO) << "Dictionary " << dictFile << " is absent, ITSClusterer expects cluster patterns";
   }
-
+  mState = 1;
   mClusterer->print();
 }
 
 void ClustererDPL::run(ProcessingContext& pc)
 {
-  if (mState > 1)
-    return;
-
   auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
   auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
@@ -105,55 +106,53 @@ void ClustererDPL::run(ProcessingContext& pc)
     reader.setDigitsMCTruth(labels.get());
   }
   reader.init();
-
-  std::vector<o2::itsmft::CompClusterExt> compClusters;
-  std::vector<o2::itsmft::Cluster> clusters;
-  std::vector<o2::itsmft::ROFRecord> clusterROframes; // To be filled in future
+  auto orig = o2::header::gDataOriginITS;
+  std::vector<o2::itsmft::Cluster> clusVec;
+  std::vector<o2::itsmft::CompClusterExt> clusCompVec;
+  std::vector<o2::itsmft::ROFRecord> clusROFVec;
+  std::vector<unsigned char> clusPattVec;
 
   std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> clusterLabels;
   if (mUseMC) {
     clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
   }
-  mClusterer->process(reader, mFullClusters ? &clusters : nullptr, mCompactClusters ? &compClusters : nullptr,
-                      clusterLabels.get(), &clusterROframes);
-  // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
-  // -> consider recalculationg maxROF
+  mClusterer->process(mNThreads, reader, mFullClusters ? &clusVec : nullptr, &clusCompVec, mPatterns ? &clusPattVec : nullptr, &clusROFVec, clusterLabels.get());
+  pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
+  pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);
+  pc.outputs().snapshot(Output{orig, "CLUSTERS", 0, Lifetime::Timeframe}, clusVec);
+  pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
 
-  LOG(INFO) << "ITSClusterer pushed " << clusters.size() << " clusters, in "
-            << clusterROframes.size() << " RO frames";
-
-  pc.outputs().snapshot(Output{"ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe}, compClusters);
-  pc.outputs().snapshot(Output{"ITS", "CLUSTERS", 0, Lifetime::Timeframe}, clusters);
-  pc.outputs().snapshot(Output{"ITS", "ITSClusterROF", 0, Lifetime::Timeframe}, clusterROframes);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe}, *clusterLabels.get());
+    pc.outputs().snapshot(Output{orig, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, *clusterLabels.get()); // at the moment requires snapshot
     std::vector<o2::itsmft::MC2ROFRecord> clusterMC2ROframes(mc2rofs.size());
     for (int i = mc2rofs.size(); i--;) {
       clusterMC2ROframes[i] = mc2rofs[i]; // Simply, replicate it from digits ?
     }
-    pc.outputs().snapshot(Output{"ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
+    pc.outputs().snapshot(Output{orig, "CLUSTERSMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
   }
 
-  mState = 2;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
+  // -> consider recalculationg maxROF
+  LOG(INFO) << "ITSClusterer pushed " << clusCompVec.size() << " clusters, in " << clusROFVec.size() << " RO frames";
 }
 
 DataProcessorSpec getClustererSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "ITS", "DIGITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "ITS", "ITSDigitROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "ITS", "DIGITSROF", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "PATTERNS", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "CLUSTERS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS", "ITSClusterROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
 
   if (useMC) {
     inputs.emplace_back("labels", "ITS", "DIGITSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "ITS", "ITSDigitMC2ROF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "ITS", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
@@ -162,10 +161,11 @@ DataProcessorSpec getClustererSpec(bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<ClustererDPL>(useMC)},
     Options{
-      {"its-dictionary-file", VariantType::String, "complete_dictionary.bin", {"Name of the cluster-topology dictionary file"}},
+      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"no-full-clusters", o2::framework::VariantType::Bool, false, {"Ignore full clusters"}},
-      {"no-compact-clusters", o2::framework::VariantType::Bool, false, {"Ignore compact clusters"}}}};
+      {"full-clusters", o2::framework::VariantType::Bool, false, {"Produce full clusters"}},
+      {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}},
+      {"nthreads", VariantType::Int, 0, {"Number of clustering threads (<1: rely on openMP default)"}}}};
 }
 
 } // namespace its

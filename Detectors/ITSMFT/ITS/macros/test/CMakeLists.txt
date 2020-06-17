@@ -58,6 +58,7 @@ o2_add_test_root_macro(CheckCOG.C
 
 o2_add_test_root_macro(CheckTracks.C
                        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+                                             O2::ITSBase
                                              O2::DataFormatsITS
                                              O2::DataFormatsITSMFT
                        LABELS its)

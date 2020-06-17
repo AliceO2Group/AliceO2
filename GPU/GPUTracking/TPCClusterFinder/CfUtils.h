@@ -29,9 +29,9 @@ class CfUtils
 {
 
  public:
-  static GPUdi() bool isAtEdge(const deprecated::Digit* d)
+  static GPUdi() bool isAtEdge(const ChargePos& pos)
   {
-    return (d->pad < 2 || d->pad >= TPC_PADS_PER_ROW - 2);
+    return (pos.pad() < 2 || pos.pad() >= TPC_PADS_PER_ROW - 2);
   }
 
   static GPUdi() bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
@@ -43,6 +43,10 @@ class CfUtils
   {
     return aboveThreshold & (1 << CfConsts::OuterToInnerInv[outerIdx]);
   }
+
+  static GPUdi() bool isPeak(uchar peak) { return peak & 0x01; }
+
+  static GPUdi() bool isAboveThreshold(uchar peak) { return peak >> 1; }
 
   template <typename SharedMemory>
   static GPUdi() ushort partition(SharedMemory& smem, ushort ll, bool pred, ushort partSize, ushort* newPartSize)
@@ -68,7 +72,7 @@ class CfUtils
     ushort ll,
     uint offset,
     uint N,
-    GPUconstexprref() const Delta2* neighbors,
+    GPUconstexprref() const tpccf::Delta2* neighbors,
     const ChargePos* posBcast,
     GPUgeneric() T* buf)
   {
@@ -76,9 +80,9 @@ class CfUtils
     GPUbarrier();
     ushort x = ll % N;
     ushort y = ll / N;
-    Delta2 d = neighbors[x + offset];
-    LOOP_UNROLL_ATTR for (unsigned int i = y; i < wgSize; i += (elems / N))
-    {
+    tpccf::Delta2 d = neighbors[x + offset];
+
+    for (unsigned int i = y; i < wgSize; i += (elems / N)) {
       ChargePos readFrom = posBcast[i];
       uint writeTo = N * i + x;
       buf[writeTo] = map[readFrom.delta(d)];
@@ -94,7 +98,7 @@ class CfUtils
     GPUbarrier();
 
     for (unsigned int i = 0; i < N; i++) {
-      Delta2 d = neighbors[i + offset];
+      tpccf::Delta2 d = neighbors[i + offset];
 
       uint writeTo = N * ll + i;
       buf[writeTo] = map[readFrom.delta(d)];
@@ -112,7 +116,7 @@ class CfUtils
     ushort ll,
     ushort offset,
     ushort N,
-    GPUconstexprref() const Delta2* neighbors,
+    GPUconstexprref() const tpccf::Delta2* neighbors,
     const ChargePos* posBcast,
     const uchar* aboveThreshold,
     GPUgeneric() T* buf)
@@ -121,9 +125,8 @@ class CfUtils
     GPUbarrier();
     ushort y = ll / N;
     ushort x = ll % N;
-    Delta2 d = neighbors[x + offset];
-    LOOP_UNROLL_ATTR for (unsigned int i = y; i < wgSize; i += (elems / N))
-    {
+    tpccf::Delta2 d = neighbors[x + offset];
+    for (unsigned int i = y; i < wgSize; i += (elems / N)) {
       ChargePos readFrom = posBcast[i];
       uchar above = aboveThreshold[i];
       uint writeTo = N * i + x;
@@ -136,7 +139,6 @@ class CfUtils
       buf[writeTo] = v;
     }
     GPUbarrier();
-
 #else
     if (ll >= wgSize) {
       return;
@@ -147,7 +149,7 @@ class CfUtils
     GPUbarrier();
 
     for (unsigned int i = 0; i < N; i++) {
-      Delta2 d = neighbors[i + offset];
+      tpccf::Delta2 d = neighbors[i + offset];
 
       uint writeTo = N * ll + i;
       T v(0);

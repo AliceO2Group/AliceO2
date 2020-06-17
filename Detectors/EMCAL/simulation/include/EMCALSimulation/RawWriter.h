@@ -22,6 +22,7 @@
 
 #include "EMCALBase/Mapper.h"
 #include "EMCALSimulation/DMAOutputStream.h"
+#include "EMCALSimulation/RawOutputPageHandler.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 
@@ -77,7 +78,7 @@ class RawWriter
   RawWriter(const char* rawfilename) { setRawFileName(rawfilename); }
   ~RawWriter() = default;
 
-  void setRawFileName(const char* filename) { mOutputStream.setOutputFilename(filename); }
+  void setRawFileName(const char* filename) { mRawFilename = filename; }
   void setDigits(std::vector<o2::emcal::Digit>* digits) { mDigits = digits; }
   void setTriggerRecords(std::vector<o2::emcal::TriggerRecord>* triggers);
   void setNumberOfADCSamples(int nsamples) { mNADCSamples = nsamples; }
@@ -95,19 +96,20 @@ class RawWriter
   std::tuple<int, int, int> getOnlineID(int towerID);
 
   ChannelHeader createChannelHeader(int hardwareAddress, int payloadSize, bool isBadChannel);
-  std::vector<char> createRCUTrailer();
+  std::vector<char> createRCUTrailer(int payloadsize, int feca, int fecb, double timesample, double l1phase);
   std::vector<int> encodeBunchData(const std::vector<int>& data);
 
  private:
-  DMAOutputStream mOutputStream;                                   ///< DMA output stream
   int mNADCSamples = 15;                                           ///< Number of time samples
   int mPedestal = 0;                                               ///< Pedestal
   o2::emcal::Geometry* mGeometry = nullptr;                        ///< EMCAL geometry
+  std::string mRawFilename;                                        ///< Rawfile name
   std::array<o2::emcal::Mapper, 4> mMappers;                       ///< EMCAL mappers
   std::vector<o2::emcal::Digit>* mDigits;                          ///< Digits input vector - must be in digitized format including the time response
   std::vector<o2::emcal::TriggerRecord>* mTriggers;                ///< Trigger records, separating the data from different triggers
   std::vector<SRUDigitContainer> mSRUdata;                         ///< Internal helper of digits assigned to SRUs
   std::vector<o2::emcal::TriggerRecord>::iterator mCurrentTrigger; ///< Current trigger in the trigger records
+  std::unique_ptr<RawOutputPageHandler> mPageHandler;              ///< Output page handler
 
   ClassDefNV(RawWriter, 1);
 };

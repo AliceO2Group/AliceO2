@@ -29,9 +29,9 @@
 
 #include "MCHBase/ClusterBlock.h"
 #include "MCHBase/TrackBlock.h"
-#include "TrackParam.h"
-#include "Cluster.h"
-#include "Track.h"
+#include "MCHTracking/TrackParam.h"
+#include "MCHTracking/Cluster.h"
+#include "MCHTracking/Track.h"
 #include "TrackFinderOriginal.h"
 
 namespace o2
@@ -90,11 +90,7 @@ class TrackFinderTask
 
     // get the input clusters
     std::array<std::list<Cluster>, 10> clusters{};
-    try {
-      readClusters(bufferPtr, sizeLeft, clusters);
-    } catch (exception const& e) {
-      throw;
-    }
+    readClusters(bufferPtr, sizeLeft, clusters);
 
     // run the track finder
     auto tStart = std::chrono::high_resolution_clock::now();

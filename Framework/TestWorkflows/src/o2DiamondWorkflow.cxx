@@ -62,7 +62,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
          auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
          auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
          logger.log("This goes to infologger");
-       })}},
+       })},
+     {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}}}},
     {"B",
      {InputSpec{"x", "TST", "A1"}},
      {OutputSpec{{"b1"}, "TST", "B1"}},

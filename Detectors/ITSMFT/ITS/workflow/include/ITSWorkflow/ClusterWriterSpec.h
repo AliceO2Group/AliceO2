@@ -13,34 +13,15 @@
 #ifndef O2_ITS_CLUSTERWRITER
 #define O2_ITS_CLUSTERWRITER
 
-#include "TFile.h"
-
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
-
-using namespace o2::framework;
 
 namespace o2
 {
 namespace its
 {
 
-class ClusterWriter : public Task
-{
- public:
-  ClusterWriter(bool useMC) : mUseMC(useMC) {}
-  ~ClusterWriter() override = default;
-  void init(InitContext& ic) final;
-  void run(ProcessingContext& pc) final;
-
- private:
-  int mState = 0;
-  bool mUseMC = true;
-  std::unique_ptr<TFile> mFile = nullptr;
-};
-
 /// create a processor spec
-/// write ITS clusters a root file
+/// write ITS clusters to ROOT file
 framework::DataProcessorSpec getClusterWriterSpec(bool useMC);
 
 } // namespace its

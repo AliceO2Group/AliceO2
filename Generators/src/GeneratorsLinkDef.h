@@ -30,18 +30,23 @@
 #ifdef GENERATORS_WITH_HEPMC3
 #pragma link C++ class o2::eventgen::GeneratorHepMC + ;
 #endif
-#pragma link C++ class o2::eventgen::Pythia6Generator + ;
+#ifdef GENERATORS_WITH_PYTHIA6
+#pragma link C++ class o2::eventgen::GeneratorPythia6 + ;
+#pragma link C++ class o2::eventgen::GeneratorPythia6Param + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorPythia6Param > +;
+#endif
 #ifdef GENERATORS_WITH_PYTHIA8
 #pragma link C++ class o2::eventgen::GeneratorPythia8 + ;
+#pragma link C++ class o2::eventgen::DecayerPythia8 + ;
 #pragma link C++ class o2::eventgen::GeneratorPythia8Param + ;
+#pragma link C++ class o2::eventgen::DecayerPythia8Param + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorPythia8Param > +;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::DecayerPythia8Param> + ;
 #pragma link C++ class o2::eventgen::GeneratorFactory + ;
 #endif
 #pragma link C++ class o2::eventgen::GeneratorFromFile + ;
 #pragma link C++ class o2::PDG + ;
 #pragma link C++ class o2::eventgen::PrimaryGenerator + ;
-#pragma link C++ class o2::eventgen::Trigger + ;
-#pragma link C++ class o2::eventgen::TriggerParticle + ;
 
 #pragma link C++ enum o2::eventgen::EVertexDistribution;
 #pragma link C++ class o2::eventgen::InteractionDiamondParam + ;

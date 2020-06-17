@@ -11,8 +11,8 @@
 #ifndef DETECTORS_GCONFIG_INCLUDE_SIMSETUP_GLOBALPROCESSCUTSIMPARAM_H_
 #define DETECTORS_GCONFIG_INCLUDE_SIMSETUP_GLOBALPROCESSCUTSIMPARAM_H_
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2
 {

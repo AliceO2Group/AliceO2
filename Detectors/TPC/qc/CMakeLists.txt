@@ -41,7 +41,8 @@ o2_add_test(Clusters
             COMPONENT_NAME tpc
             PUBLIC_LINK_LIBRARIES O2::TPCQC
             SOURCES test/test_Clusters.cxx
-            LABELS tpc)
+            LABELS tpc
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
 o2_add_test(Tracks
             COMPONENT_NAME tpc

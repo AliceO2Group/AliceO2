@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/DataRelayer.h"
 
 #include "Framework/DataDescriptorMatcher.h"
@@ -19,12 +20,14 @@
 #include "Framework/PartRef.h"
 #include "Framework/TimesliceIndex.h"
 #include "Framework/Signpost.h"
+#include "Framework/RoutingIndices.h"
 #include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
 
 #include <Monitoring/Monitoring.h>
 
 #include <gsl/span>
+#include <numeric>
 #include <string>
 
 using namespace o2::framework::data_matcher;
@@ -68,18 +71,19 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   }
 }
 
-void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
+bool DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
                                         ServiceRegistry& services)
 {
   /// Nothing to do if nothing can expire.
   if (expirationHandlers.empty()) {
-    return;
+    return false;
   }
   // Create any slot for the time based fields
   std::vector<TimesliceSlot> slotsCreatedByHandlers;
   for (auto& handler : expirationHandlers) {
     slotsCreatedByHandlers.push_back(handler.creator(mTimesliceIndex));
   }
+  bool didWork = slotsCreatedByHandlers.empty() == false;
   // Outer loop, we process all the records because the fact that the record
   // expires is independent from having received data for it.
   for (size_t ti = 0; ti < mTimesliceIndex.size(); ++ti) {
@@ -93,11 +97,12 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
     for (size_t ei = 0; ei < expirationHandlers.size(); ++ei) {
       auto& expirator = expirationHandlers[ei];
       // We check that no data is already there for the given cell
+      // it is enough to check the first element
       auto& part = mCache[ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value];
-      if (part.header != nullptr) {
+      if (part.size() > 0 && part[0].header != nullptr) {
         continue;
       }
-      if (part.payload != nullptr) {
+      if (part.size() > 0 && part[0].payload != nullptr) {
         continue;
       }
       // We check that the cell can actually be expired.
@@ -113,12 +118,18 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
 
       assert(ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value < mCache.size());
       assert(expirator.handler);
-      expirator.handler(services, part, timestamp.value);
+      // expired, so we create one entry
+      if (part.size() == 0) {
+        part.parts.resize(1);
+      }
+      expirator.handler(services, part[0], timestamp.value);
+      didWork = true;
       mTimesliceIndex.markAsDirty(slot, true);
-      assert(part.header != nullptr);
-      assert(part.payload != nullptr);
+      assert(part[0].header != nullptr);
+      assert(part[0].payload != nullptr);
     }
   }
+  return didWork;
 }
 
 /// This does the mapping between a route and a InputSpec. The
@@ -126,10 +137,11 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
 /// you have one route per timeslice, even if the type is the same.
 size_t matchToContext(void* data,
                       std::vector<DataDescriptorMatcher> const& matchers,
+                      std::vector<size_t> const& index,
                       VariableContext& context)
 {
-  for (size_t ri = 0, re = matchers.size(); ri < re; ++ri) {
-    auto& matcher = matchers[ri];
+  for (size_t ri = 0, re = index.size(); ri < re; ++ri) {
+    auto& matcher = matchers[index[ri]];
 
     if (matcher.match(reinterpret_cast<char const*>(data), context)) {
       context.commit();
@@ -180,12 +192,13 @@ DataRelayer::RelayChoice
   // function because while it's trivial now, the actual matchmaking will
   // become more complicated when we will start supporting ranges.
   auto getInputTimeslice = [& matchers = mInputMatchers,
+                            &distinctRoutes = mDistinctRoutesIndex,
                             &header,
                             &index](VariableContext& context)
     -> std::tuple<int, TimesliceId> {
     /// FIXME: for the moment we only use the first context and reset
     /// between one invokation and the other.
-    auto input = matchToContext(header->GetData(), matchers, context);
+    auto input = matchToContext(header->GetData(), matchers, distinctRoutes, context);
 
     if (input == INVALID_INPUT) {
       return {
@@ -221,19 +234,9 @@ DataRelayer::RelayChoice
     // will be ignored.
     assert(numInputTypes * slot.index < cache.size());
     for (size_t ai = slot.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
-      cache[ai].header.reset(nullptr);
-      cache[ai].payload.reset(nullptr);
+      cache[ai].clear();
       cachedStateMetrics[ai] = 0;
     }
-  };
-
-  // We need to check if the slot for the current input is already taken for
-  // the current timeslice.
-  // This should never happen, however given this is dependent on the input
-  // we want to protect again malicious / bad upstream source.
-  auto hasCacheInputAlreadyFor = [&cache, &index, &numInputTypes](TimesliceSlot slot, int input) {
-    PartRef& currentPart = cache[numInputTypes * slot.index + input];
-    return (currentPart.payload != nullptr) || (currentPart.header != nullptr);
   };
 
   // Actually save the header / payload in the slot
@@ -244,10 +247,12 @@ DataRelayer::RelayChoice
                      &numInputTypes,
                      &metrics](TimesliceId timeslice, int input, TimesliceSlot slot) {
     auto cacheIdx = numInputTypes * slot.index + input;
-    PartRef& currentPart = cache[cacheIdx];
+    std::vector<PartRef>& parts = cache[cacheIdx].parts;
     cachedStateMetrics[cacheIdx] = 1;
-    PartRef ref{std::move(header), std::move(payload)};
-    currentPart = std::move(ref);
+    // TODO: make sure that multiple parts can only be added within the same call of
+    // DataRelayer::relay
+    PartRef entry{std::move(header), std::move(payload)};
+    parts.emplace_back(std::move(entry));
     assert(header.get() == nullptr && payload.get() == nullptr);
   };
 
@@ -372,11 +377,9 @@ DataRelayer::RelayChoice
   return WillRelay;
 }
 
-std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
+void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& completed)
 {
   // THE STATE
-  std::vector<RecordAction> completed;
-  completed.reserve(16);
   const auto& cache = mCache;
   const auto numInputTypes = mDistinctRoutesIndex.size();
   //
@@ -384,12 +387,12 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
   //
   // We use this to bail out early from the check as soon as we find something
   // which we know is not complete.
-  auto getPartialRecord = [&cache, &numInputTypes](int li) -> gsl::span<const PartRef> {
+  auto getPartialRecord = [&cache, &numInputTypes](int li) -> gsl::span<MessageSet const> {
     auto offset = li * numInputTypes;
     assert(cache.size() >= offset + numInputTypes);
     auto const start = cache.data() + offset;
     auto const end = cache.data() + offset + numInputTypes;
-    return gsl::span<const PartRef>(start, end);
+    return gsl::span<MessageSet const>(start, end);
   };
 
   // These two are trivial, but in principle the whole loop could be parallelised
@@ -397,10 +400,6 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
   // merging at the end.
   auto updateCompletionResults = [&completed](TimesliceSlot li, CompletionPolicy::CompletionOp op) {
     completed.emplace_back(RecordAction{li, op});
-  };
-
-  auto completionResults = [&completed]() -> std::vector<RecordAction> {
-    return completed;
   };
 
   // THE OUTER LOOP
@@ -415,7 +414,7 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
   // Notice that the only time numInputTypes is 0 is when we are a dummy
   // device created as a source for timers / conditions.
   if (numInputTypes == 0) {
-    return {};
+    return;
   }
   size_t cacheLines = cache.size() / numInputTypes;
   assert(cacheLines * numInputTypes == cache.size());
@@ -428,7 +427,18 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
       continue;
     }
     auto partial = getPartialRecord(li);
-    auto action = mCompletionPolicy.callback(partial);
+    auto getter = [&partial](size_t idx, size_t part) {
+      if (partial[idx].size() > 0 && partial[idx].at(part).header && partial[idx].at(part).payload) {
+        return DataRef{nullptr,
+                       reinterpret_cast<const char*>(partial[idx].at(part).header->GetData()),
+                       reinterpret_cast<const char*>(partial[idx].at(part).payload->GetData())};
+      }
+      return DataRef{};
+    };
+    auto nPartsGetter = [&partial](size_t idx) {
+      return partial[idx].size();
+    };
+    auto action = mCompletionPolicy.callback({getter, nPartsGetter, static_cast<size_t>(partial.size())});
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
       case CompletionPolicy::CompletionOp::Process:
@@ -442,16 +452,13 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
     // a new message before we look again into the given cacheline.
     mTimesliceIndex.markAsDirty(slot, false);
   }
-  return completionResults();
 }
 
-std::vector<std::unique_ptr<FairMQMessage>>
-  DataRelayer::getInputsForTimeslice(TimesliceSlot slot)
+std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(TimesliceSlot slot)
 {
   const auto numInputTypes = mDistinctRoutesIndex.size();
   // State of the computation
-  std::vector<std::unique_ptr<FairMQMessage>> messages;
-  messages.reserve(numInputTypes * 2);
+  std::vector<MessageSet> messages(numInputTypes);
   auto& cache = mCache;
   auto& index = mTimesliceIndex;
   auto& metrics = mMetrics;
@@ -470,8 +477,11 @@ std::vector<std::unique_ptr<FairMQMessage>>
                                     &cache, &index, &numInputTypes, &metrics](TimesliceSlot s, size_t arg) {
     auto cacheId = s.index * numInputTypes + arg;
     cachedStateMetrics[cacheId] = 2;
-    messages.emplace_back(std::move(cache[cacheId].header));
-    messages.emplace_back(std::move(cache[cacheId].payload));
+    // TODO: in the original implementation of the cache, there have been only two messages per entry,
+    // check if the 2 above corresponds to the number of messages.
+    if (cache[cacheId].size() > 0) {
+      messages[arg] = std::move(cache[cacheId]);
+    }
     index.markAsInvalid(s);
   };
 
@@ -481,8 +491,8 @@ std::vector<std::unique_ptr<FairMQMessage>>
   // FIXME: what happens when we have enough timeslices to hit the invalid one?
   auto invalidateCacheFor = [&numInputTypes, &index, &cache](TimesliceSlot s) {
     for (size_t ai = s.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
-      assert(cache[ai].header.get() == nullptr);
-      assert(cache[ai].payload.get() == nullptr);
+      assert(std::accumulate(cache[ai].begin(), cache[ai].end(), true, [](bool result, auto const& element) { return result && element.header.get() == nullptr && element.payload.get() == nullptr; }));
+      cache[ai].clear();
     }
     index.markAsInvalid(s);
   };
@@ -500,8 +510,7 @@ std::vector<std::unique_ptr<FairMQMessage>>
 void DataRelayer::clear()
 {
   for (auto& cache : mCache) {
-    cache.header.reset();
-    cache.payload.reset();
+    cache.clear();
   }
   for (size_t s = 0; s < mTimesliceIndex.size(); ++s) {
     mTimesliceIndex.markAsInvalid(TimesliceSlot{s});

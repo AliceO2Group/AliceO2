@@ -12,7 +12,8 @@
 #define ALICEO2_FV0_DIGITIZER_H
 
 #include <FV0Simulation/MCLabel.h>
-#include <FV0Simulation/DigitizationParameters.h>
+#include <FV0Simulation/DigitizationConstant.h>
+#include <FV0Simulation/FV0DigParam.h>
 #include <DataFormatsFV0/ChannelData.h>
 #include <DataFormatsFV0/BCData.h>
 #include <FV0Simulation/Detector.h>
@@ -29,7 +30,7 @@ namespace fv0
 class Digitizer
 {
  private:
-  using DP = DigitizationParameters;
+  using DP = DigitizationConstant;
   typedef math_utils::RandomRing<float_v::size() * DP::HIT_RANDOM_RING_SIZE> HitRandomRingType;
   typedef math_utils::RandomRing<float_v::size() * DP::PHE_RANDOM_RING_SIZE> PheRandomRingType;
 
@@ -53,10 +54,10 @@ class Digitizer
   void setSrcId(Int_t id) { mSrcId = id; }
   void setInteractionRecord(const InteractionTimeRecord& ir) { mIntRecord = ir; }
 
-  void process(const std::vector<fv0::Hit>& hits,
-               std::vector<fv0::BCData>& digitsBC,
-               std::vector<fv0::ChannelData>& digitsCh,
-               dataformats::MCTruthContainer<fv0::MCLabel>& labels);
+  void process(const std::vector<o2::fv0::Hit>& hits);
+  void analyseWaveformsAndStore(std::vector<fv0::BCData>& digitsBC,
+                                std::vector<fv0::ChannelData>& digitsCh,
+                                dataformats::MCTruthContainer<fv0::MCLabel>& labels);
 
   const InteractionRecord& getInteractionRecord() const { return mIntRecord; }
   InteractionRecord& getInteractionRecord(InteractionRecord& src) { return mIntRecord; }
@@ -92,7 +93,17 @@ class Digitizer
   static Double_t PmtResponse(Double_t* x, Double_t*);
   static Double_t SinglePhESpectrum(Double_t* x, Double_t* par);
 
+  // Functions related to splitting ring-5 cell signal to two readout channels
+  static float getDistFromCellCenter(UInt_t cellId, double hitx, double hity);
+  static float getSignalFraction(float distanceFromXc, bool isFirstChannel);
+
   ClassDefNV(Digitizer, 1);
+};
+
+// Function used to split the ring-5 cell signal into two readout channels depending on hit position
+inline float sigmoidPmtRing5(float x)
+{
+  return -0.668453 / (1.0 + TMath::Exp(TMath::Abs(x) / 3.64327)) + 0.834284;
 };
 
 } // namespace fv0

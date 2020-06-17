@@ -20,6 +20,9 @@
 #include "DataFormatsFT0/RawEventData.h"
 #include "DataFormatsFT0/LookUpTable.h"
 #include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/ChannelData.h"
+#include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RawFileWriter.h"
 #include <TStopwatch.h>
 #include <cassert>
 #include <fstream>
@@ -28,6 +31,7 @@
 #include <string>
 #include <bitset>
 #include <vector>
+#include <gsl/span>
 
 namespace o2
 {
@@ -38,49 +42,50 @@ class Digits2Raw
 
   static constexpr int Nchannels_FT0 = 208;
   static constexpr int Nchannels_PM = 12;
-  static constexpr int NPMs = 18;
-  //  static constexpr int GBTWORDSIZE = 80;            //real size
+  static constexpr int LinkTCM = 18;
+  static constexpr int NPMs = 19;
   static constexpr int GBTWordSize = 128; // with padding
   static constexpr int Max_Page_size = 8192;
 
  public:
   Digits2Raw() = default;
-  Digits2Raw(const std::string fileRaw, std::string fileDigitsName);
-  void readDigits(const std::string fileDigitsName);
-  void convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookUpTable& lut);
-  void close();
+  Digits2Raw(const std::string& outDir, const std::string& fileDigitsName);
+  void readDigits(const std::string& outDir, const std::string& fileDigitsName);
+  void convertDigits(o2::ft0::Digit bcdigits,
+                     gsl::span<const ChannelData> pmchannels,
+                     const o2::ft0::LookUpTable& lut,
+                     o2::InteractionRecord const& mIntRecord);
+
   static o2::ft0::LookUpTable linear()
   {
-    std::vector<o2::ft0::Topo> lut_data(Nchannels_PM * NPMs);
-    for (int link = 0; link < NPMs; ++link)
+    std::vector<o2::ft0::Topo> lut_data(Nchannels_PM * (NPMs - 1));
+    for (int link = 0; link < NPMs - 1; ++link)
       for (int mcp = 0; mcp < Nchannels_PM; ++mcp)
         lut_data[link * Nchannels_PM + mcp] = o2::ft0::Topo{link, mcp};
 
     return o2::ft0::LookUpTable{lut_data};
   }
-  void printRDH(const o2::header::RAWDataHeader* h)
-  {
-    {
-      if (!h) {
-        printf("Provided RDH pointer is null\n");
-        return;
-      }
-      printf("RDH| Ver:%2u Hsz:%2u Blgt:%4u FEEId:0x%04x PBit:%u\n",
-             uint32_t(h->version), uint32_t(h->headerSize), uint32_t(h->blockLength), uint32_t(h->feeId), uint32_t(h->priority));
-      printf("RDH|[CRU: Offs:%5u Msz:%4u LnkId:0x%02x Packet:%3u CRUId:0x%04x]\n",
-             uint32_t(h->offsetToNext), uint32_t(h->memorySize), uint32_t(h->linkID), uint32_t(h->packetCounter), uint32_t(h->cruID));
-      printf("RDH| TrgOrb:%9u HBOrb:%9u TrgBC:%4u HBBC:%4u TrgType:%u\n",
-             uint32_t(h->triggerOrbit), uint32_t(h->heartbeatOrbit), uint32_t(h->triggerBC), uint32_t(h->heartbeatBC),
-             uint32_t(h->triggerType));
-      printf("RDH| DetField:0x%05x Par:0x%04x Stop:0x%04x PageCnt:%5u\n",
-             uint32_t(h->detectorField), uint32_t(h->par), uint32_t(h->stop), uint32_t(h->pageCnt));
-    }
-  }
+  o2::raw::RawFileWriter& getWriter() { return mWriter; }
+
+  void setFilePerLink(bool v) { mOutputPerLink = v; }
+  bool getFilePerLink() const { return mOutputPerLink; }
+
+  void setVerbosity(int v) { mVerbosity = v; }
+  int getVerbosity() const { return mVerbosity; }
 
  private:
-  std::ofstream mFileDest;
-  std::array<o2::ft0::DataPageWriter, NPMs> mPages;
+  EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord);
+
   o2::ft0::RawEventData mRawEventData;
+  const o2::raw::HBFUtils& mSampler = o2::raw::HBFUtils::Instance();
+  o2::ft0::Triggers mTriggers;
+  o2::raw::RawFileWriter mWriter{"FT0"};
+  bool mOutputPerLink = false;
+  int mVerbosity = 0;
+  uint32_t mLinkID = 0;
+  uint16_t mCruID = 0;
+  uint32_t mEndPointID = 0;
+  uint64_t mFeeID = 0;
 
   /////////////////////////////////////////////////
 

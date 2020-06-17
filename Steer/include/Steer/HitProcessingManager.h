@@ -12,8 +12,9 @@
 #define O2_HITPROCESSINGMANAGER_H
 
 #include "CommonDataFormat/InteractionRecord.h"
-#include "SimulationDataFormat/RunContext.h"
+#include "SimulationDataFormat/DigitizationContext.h"
 #include "Steer/InteractionSampler.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include <TGeoManager.h>
 #include <string>
 #include <vector>
@@ -27,7 +28,7 @@ namespace o2
 namespace steer
 {
 
-using RunFunct_t = std::function<void(const o2::steer::RunContext&)>;
+using RunFunct_t = std::function<void(const o2::steer::DigitizationContext&)>;
 
 /// O2 specific run class; steering hit processing
 class HitProcessingManager
@@ -62,21 +63,26 @@ class HitProcessingManager
   // if -1 and only background chain will do number of entries in chain
   void setupRun(int ncollisions = -1);
 
-  const o2::steer::RunContext& getRunContext() { return mRunContext; }
+  const o2::steer::DigitizationContext& getDigitizationContext() const { return mDigitizationContext; }
+  o2::steer::DigitizationContext& getDigitizationContext() { return mDigitizationContext; }
 
   // serializes the runcontext to file
-  void writeRunContext(const char* filename) const;
+  void writeDigitizationContext(const char* filename) const;
   // setup run from serialized context; returns true if ok
   bool setupRunFromExistingContext(const char* filename);
+
+  void setRandomEventSequence(bool b) { mSampleCollisionsRandomly = b; }
 
  private:
   HitProcessingManager() : mSimChains() {}
   bool setupChain();
 
-  std::vector<RunFunct_t> mRegisteredRunFunctions;
-  o2::steer::RunContext mRunContext;
+  bool checkConsistency() const;
 
-  // this should go into the RunContext --> the manager only fills it
+  std::vector<RunFunct_t> mRegisteredRunFunctions;
+  o2::steer::DigitizationContext mDigitizationContext;
+
+  // this should go into the DigitizationContext --> the manager only fills it
   std::vector<std::string> mBackgroundFileNames;
   std::map<int, std::vector<std::string>> mSignalFileNames;
   std::string mGeometryFile; // geometry file if any
@@ -84,81 +90,11 @@ class HitProcessingManager
   o2::steer::InteractionSampler mInteractionSampler;
 
   int mNumberOfCollisions; // how many collisions we want to generate and process
+  bool mSampleCollisionsRandomly = false; // if we sample the sequence of event ids randomly (with possible repetition)
 
   std::vector<TChain*> mSimChains;
   // ClassDefOverride(HitProcessingManager, 0);
 };
-
-inline void HitProcessingManager::sampleCollisionTimes()
-{
-  mRunContext.getEventRecords().resize(mRunContext.getNCollisions());
-  mInteractionSampler.generateCollisionTimes(mRunContext.getEventRecords());
-  mRunContext.getBunchFilling() = mInteractionSampler.getBunchFilling();
-  mRunContext.setMuPerBC(mInteractionSampler.getMuPerBC());
-}
-
-inline void HitProcessingManager::sampleCollisionConstituents()
-{
-  auto getBackgroundRoundRobin = [this]() {
-    static int bgcounter = 0;
-    int numbg = mSimChains[0]->GetEntries();
-    if (bgcounter == numbg) {
-      bgcounter = 0;
-    }
-    return EventPart(0, bgcounter++);
-  };
-
-  const int nsignalids = mSimChains.size() - 1;
-  auto getSignalRoundRobin = [this, nsignalids]() {
-    static int bgcounter = 0;
-    static int signalid = 0;
-    static std::vector<int> counter(nsignalids, 0);
-    if (signalid == nsignalids) {
-      signalid = 0;
-    }
-    const auto realsourceid = signalid + 1;
-    int numentries = mSimChains[realsourceid]->GetEntries();
-    if (counter[signalid] == numentries) {
-      counter[signalid] = 0;
-    }
-    EventPart e(realsourceid, counter[signalid]);
-    counter[signalid]++;
-    signalid++;
-    return e;
-  };
-
-  // we fill mRunContext.mEventParts
-  auto& eventparts = mRunContext.getEventParts();
-  eventparts.clear();
-  eventparts.resize(mRunContext.getEventRecords().size());
-  for (int i = 0; i < mRunContext.getEventRecords().size(); ++i) {
-    eventparts[i].clear();
-    // push any number of constituents?
-    // for the moment just 2 : one background and one signal
-    eventparts[i].emplace_back(getBackgroundRoundRobin());
-    if (mSimChains.size() > 1) {
-      eventparts[i].emplace_back(getSignalRoundRobin());
-    }
-  }
-
-  // push any number of constituents?
-  // for the moment just max 2 : one background and one signal
-  mRunContext.setMaxNumberParts(1);
-  if (mSimChains.size() > 1) {
-    mRunContext.setMaxNumberParts(2);
-  }
-
-  mRunContext.printCollisionSummary();
-}
-
-inline void HitProcessingManager::run()
-{
-  setupRun();
-  // sample other stuff
-  for (auto& f : mRegisteredRunFunctions) {
-    f(mRunContext);
-  }
-}
 
 inline void HitProcessingManager::registerRunFunction(RunFunct_t&& f) { mRegisteredRunFunctions.emplace_back(f); }
 

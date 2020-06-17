@@ -29,13 +29,13 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2;
 using namespace o2::its;
 
-GPUd() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagator& prop, GPUITSTrack& track, int start, int end, int step)
+GPUdii() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& GPUrestrict() Fitter, GPUTPCGMPropagator& GPUrestrict() prop, GPUITSTrack& GPUrestrict() track, int start, int end, int step)
 {
   for (int iLayer{start}; iLayer != end; iLayer += step) {
     if (track.mClusters[iLayer] == o2::its::constants::its::UnusedIndex) {
       continue;
     }
-    const TrackingFrameInfo& trackingHit = Fitter.trackingFrame()[iLayer][track.mClusters[iLayer]];
+    const TrackingFrameInfo& GPUrestrict() trackingHit = Fitter.trackingFrame()[iLayer][track.mClusters[iLayer]];
 
     if (prop.PropagateToXAlpha(trackingHit.xTrackingFrame, trackingHit.alphaTrackingFrame, step > 0)) {
       return false;
@@ -55,7 +55,7 @@ GPUd() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagato
 }
 
 template <>
-GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
+GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
 {
   GPUITSFitter& Fitter = processors.itsFitter;
 
@@ -139,7 +139,7 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
       temporaryTrack.SinPhi() = crv * (x3 - x0);
       temporaryTrack.DzDs() = 0.5f * (tgl12 + tgl23);
       temporaryTrack.QPt() = CAMath::Abs(bz) < constants::math::Almost0 ? constants::math::Almost0 : crv / (bz * constants::math::B2C);
-      temporaryTrack.ZOffset() = 0;
+      temporaryTrack.TZOffset() = 0;
       temporaryTrack.Cov()[0] = s2;
       temporaryTrack.Cov()[1] = 0.f;
       temporaryTrack.Cov()[2] = s2;
@@ -189,7 +189,7 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
       continue;
     }
     CA_DEBUGGER(refitCounters[nClusters - 4]++);
-    int trackId = CAMath::AtomicAdd(&Fitter.NumberOfTracks(), 1);
+    int trackId = CAMath::AtomicAdd(&Fitter.NumberOfTracks(), 1u);
     Fitter.tracks()[trackId] = temporaryTrack;
   }
 #ifdef CA_DEBUG

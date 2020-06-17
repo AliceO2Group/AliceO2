@@ -15,8 +15,8 @@
 #ifndef ALICEO2_DATAFORMATS_MCTRUTH_H_
 #define ALICEO2_DATAFORMATS_MCTRUTH_H_
 
-#include <TNamed.h> // to have the ClassDef macros
-#include <cstdint>  // uint8_t etc
+#include "GPUCommonRtypes.h" // to have the ClassDef macros
+#include <cstdint>           // uint8_t etc
 #include <cassert>
 #include <stdexcept>
 #include <gsl/gsl> // for guideline support library; array_view
@@ -38,8 +38,8 @@ namespace dataformats
 struct MCTruthHeaderElement {
   MCTruthHeaderElement() = default; // for ROOT IO
 
-  MCTruthHeaderElement(uint i) : index(i) {}
-  uint index = -1; // the index into the actual MC track storage (-1 if invalid)
+  MCTruthHeaderElement(uint32_t i) : index(i) {}
+  uint32_t index = -1; // the index into the actual MC track storage (-1 if invalid)
   ClassDefNV(MCTruthHeaderElement, 1);
 };
 
@@ -91,7 +91,7 @@ class MCTruthContainer
   /// e.g. directly on the memory of the incoming message.
   std::vector<char> mStreamerData; // buffer used for streaming a flat raw buffer
 
-  size_t getSize(uint dataindex) const
+  size_t getSize(uint32_t dataindex) const
   {
     // calculate size / number of labels from a difference in pointed indices
     const auto size = (dataindex < getIndexedSize() - 1)
@@ -109,6 +109,11 @@ class MCTruthContainer
   MCTruthContainer(const MCTruthContainer& other) = default;
   // move constructor
   MCTruthContainer(MCTruthContainer&& other) = default;
+  // construct from raw data
+  MCTruthContainer(std::vector<MCTruthHeaderElement>& header, std::vector<TruthElement>& truthArray)
+  {
+    setFrom(header, truthArray);
+  }
   // assignment operator
   MCTruthContainer& operator=(const MCTruthContainer& other) = default;
   // move assignment operator
@@ -125,10 +130,10 @@ class MCTruthContainer
   };
 
   // access
-  MCTruthHeaderElement const& getMCTruthHeader(uint dataindex) const { return mHeaderArray[dataindex]; }
+  MCTruthHeaderElement const& getMCTruthHeader(uint32_t dataindex) const { return mHeaderArray[dataindex]; }
   // access the element directly (can be encapsulated better away)... needs proper element index
   // which can be obtained from the MCTruthHeader startposition and size
-  TruthElement const& getElement(uint elementindex) const { return mTruthArray[elementindex]; }
+  TruthElement const& getElement(uint32_t elementindex) const { return mTruthArray[elementindex]; }
   // return the number of original data indexed here
   size_t getIndexedSize() const { return mHeaderArray.size(); }
   // return the number of elements managed in this container
@@ -136,7 +141,7 @@ class MCTruthContainer
 
   // get individual "view" container for a given data index
   // the caller can do modifications on this view (such as sorting)
-  gsl::span<TruthElement> getLabels(uint dataindex)
+  gsl::span<TruthElement> getLabels(uint32_t dataindex)
   {
     if (dataindex >= getIndexedSize()) {
       return gsl::span<TruthElement>();
@@ -146,7 +151,7 @@ class MCTruthContainer
 
   // get individual const "view" container for a given data index
   // the caller can't do modifications on this view
-  gsl::span<const TruthElement> getLabels(uint dataindex) const
+  gsl::span<const TruthElement> getLabels(uint32_t dataindex) const
   {
     if (dataindex >= getIndexedSize()) {
       return gsl::span<const TruthElement>();
@@ -162,7 +167,7 @@ class MCTruthContainer
 
   // add element for a particular dataindex
   // at the moment only strictly consecutive modes are supported
-  void addElement(uint dataindex, TruthElement const& element)
+  void addElement(uint32_t dataindex, TruthElement const& element)
   {
     if (dataindex < mHeaderArray.size()) {
       // look if we have something for this dataindex already
@@ -182,14 +187,13 @@ class MCTruthContainer
       // add a new one
       mHeaderArray.emplace_back(mTruthArray.size());
     }
-    auto& header = mHeaderArray[dataindex];
     mTruthArray.emplace_back(element);
   }
 
   // convenience interface to add multiple labels at once
   // can use elements of any assignable type or sub-type
   template <typename CompatibleLabel>
-  void addElements(uint dataindex, gsl::span<CompatibleLabel> elements)
+  void addElements(uint32_t dataindex, gsl::span<CompatibleLabel> elements)
   {
     static_assert(std::is_same<TruthElement, CompatibleLabel>::value ||
                     std::is_assignable<TruthElement, CompatibleLabel>::value ||
@@ -201,7 +205,7 @@ class MCTruthContainer
   }
 
   template <typename CompatibleLabel>
-  void addElements(uint dataindex, const std::vector<CompatibleLabel>& v)
+  void addElements(uint32_t dataindex, const std::vector<CompatibleLabel>& v)
   {
     using B = typename std::remove_const<CompatibleLabel>::type;
     auto s = gsl::span<CompatibleLabel>(const_cast<B*>(&v[0]), v.size());
@@ -212,7 +216,7 @@ class MCTruthContainer
   // (at random access position).
   // This might be a slow process since data has to be moved internally
   // so this function should be used with care.
-  void addElementRandomAccess(uint dataindex, TruthElement const& element)
+  void addElementRandomAccess(uint32_t dataindex, TruthElement const& element)
   {
     if (dataindex >= mHeaderArray.size()) {
       // a new dataindex -> push element at back
@@ -249,11 +253,18 @@ class MCTruthContainer
       mTruthArray[lastindex] = element;
 
       // fix headers
-      for (uint i = dataindex + 1; i < mHeaderArray.size(); ++i) {
+      for (uint32_t i = dataindex + 1; i < mHeaderArray.size(); ++i) {
         auto oldindex = mHeaderArray[i].index;
         mHeaderArray[i].index = (oldindex != -1) ? oldindex + 1 : oldindex;
       }
     }
+  }
+
+  // Set container directly from header + truthArray.
+  void setFrom(std::vector<MCTruthHeaderElement>& header, std::vector<TruthElement>& truthArray)
+  {
+    mHeaderArray = std::move(header);
+    mTruthArray = std::move(truthArray);
   }
 
   // merge another container to the back of this one
@@ -267,7 +278,7 @@ class MCTruthContainer
     std::copy(other.mTruthArray.begin(), other.mTruthArray.end(), std::back_inserter(mTruthArray));
 
     // adjust information of newly attached part
-    for (uint i = oldheadersize; i < mHeaderArray.size(); ++i) {
+    for (uint32_t i = oldheadersize; i < mHeaderArray.size(); ++i) {
       mHeaderArray[i].index += oldtruthsize;
     }
   }
@@ -335,7 +346,7 @@ class MCTruthContainer
   template <typename Stream>
   void print(Stream& stream)
   {
-    stream << "MCTruthContainer index = " << getIndexedSize() << " for " << getNElements() << " elements(s), flat buffer size " << mStreamerData.size() << std::endl;
+    stream << "MCTruthContainer index = " << getIndexedSize() << " for " << getNElements() << " elements(s), flat buffer size " << mStreamerData.size() << "\n";
   }
 
   /// Inflate the object from the internal buffer
