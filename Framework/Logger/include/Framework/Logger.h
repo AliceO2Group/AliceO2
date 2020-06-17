@@ -71,10 +71,15 @@ inline FMT_ENABLE_IF_T(internal::is_string<S>::value, int)
 #endif
 FMT_END_NAMESPACE
 
-#define LOGF(severity, ...)                                                                                                                                        \
-  for (bool fairLOggerunLikelyvariable = false; fair::Logger::Logging(fair::Severity::severity) && !fairLOggerunLikelyvariable; fairLOggerunLikelyvariable = true) \
-  fmt::fprintf(fair::Logger(fair::Severity::severity, __FILE__, CONVERTTOSTRING(__LINE__), __FUNCTION__).Log(), __VA_ARGS__)
-#define LOGP(level, ...) LOG(level) << fmt::format(__VA_ARGS__)
+// clang-format off
+// Must not add braces since it can break the usage in certain if clauses
+#define LOGF(severity, ...)                                                                                                                                          \
+  if (fair::Logger::SuppressSeverity(fair::Severity::severity)) ; else                                                                                               \
+    for (bool fairLOggerunLikelyvariable = false; fair::Logger::Logging(fair::Severity::severity) && !fairLOggerunLikelyvariable; fairLOggerunLikelyvariable = true) \
+      fmt::fprintf(fair::Logger(fair::Severity::severity, __FILE__, CONVERTTOSTRING(__LINE__), __FUNCTION__).Log(), __VA_ARGS__)
+// clang-format on
+#define LOGP(severity, ...) \
+  LOG(severity) << fmt::format(__VA_ARGS__)
 #elif (!defined(LOGP))
 #define O2_FIRST_ARG(N, ...) N
 #define LOGF(level, ...) LOG(level) << O2_FIRST_ARG(__VA_ARGS__)
