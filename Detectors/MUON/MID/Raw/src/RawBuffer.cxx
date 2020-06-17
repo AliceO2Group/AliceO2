@@ -17,11 +17,13 @@
 
 #include "MIDRaw/RawUnit.h"
 #include "RawInfo.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 namespace o2
 {
 namespace mid
 {
+using RDHUtils = o2::raw::RDHUtils;
 
 template <typename T>
 unsigned int RawBuffer<T>::next(unsigned int nBits)
@@ -73,10 +75,10 @@ bool RawBuffer<T>::nextHeader()
   }
   mHeaderIndex = mNextHeaderIndex;
   mRDH = reinterpret_cast<const header::RAWDataHeader*>(&mBytes[mHeaderIndex]);
-  mEndOfPayloadIndex = mHeaderIndex + (mRDH->memorySize / mElementSizeInBytes);
+  mEndOfPayloadIndex = mHeaderIndex + (RDHUtils::getMemorySize(*mRDH) / mElementSizeInBytes);
   // Go to end of header, i.e. beginning of payload
-  mElementIndex = mHeaderIndex + (mRDH->headerSize / mElementSizeInBytes);
-  mNextHeaderIndex = mHeaderIndex + mRDH->offsetToNext / mElementSizeInBytes;
+  mElementIndex = mHeaderIndex + (RDHUtils::getHeaderSize(*mRDH) / mElementSizeInBytes);
+  mNextHeaderIndex = mHeaderIndex + RDHUtils::getOffsetToNext(*mRDH) / mElementSizeInBytes;
   mBitIndex = 0;
 
   return true;
@@ -134,7 +136,7 @@ bool RawBuffer<T>::isHBClosed()
   if (!mRDH) {
     return false;
   }
-  return mRDH->stop;
+  return RDHUtils::getStop(*mRDH);
 }
 
 template <typename T>
