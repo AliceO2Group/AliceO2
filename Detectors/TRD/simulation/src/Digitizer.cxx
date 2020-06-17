@@ -102,7 +102,6 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
           }
           // add only what's leftover from this signal
           int idx = (int)((mCurrentTriggerTime - signalArray.firstTBtime) * 0.01); // number of bins to add, from the tail
-//          LOG(INFO) << "(older) Start position: " << idx << "\t Current trigger time: " << mCurrentTriggerTime << "\t First TB time: " << signalArray.firstTBtime;
           auto it0 = signalArray.signals.begin() + idx;
           auto it1 = fullSignal[key].signals.begin();
           while (it0 < signalArray.signals.end()) {
@@ -113,7 +112,6 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
         } else {
           // the signal is from a triggered event
           int idx = (int)((signalArray.firstTBtime - mCurrentTriggerTime) * 0.01); // number of bins to add, on the tail of the final signal
-//          LOG(INFO) << "(newer) Start position: " << idx << "\t Current trigger time: " << mCurrentTriggerTime << "\t First TB time: " << signalArray.firstTBtime;
           auto it0 = signalArray.signals.begin();
           auto it1 = fullSignal[key].signals.begin() + idx;
           while (it1 < fullSignal[key].signals.end()) {
@@ -165,7 +163,10 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
 void Digitizer::pileup()
 {
   mPileupSignals.push_back(mSignalsMapCollection);
-  std::for_each(mSignalsMapCollection.begin(), mSignalsMapCollection.end(), [](SignalContainer& sc) { sc.clear(); });
+  // clear the signal map collection - always!
+  for (auto& sm : mSignalsMapCollection) {
+    sm.clear();
+  }
 }
 
 void Digitizer::triggerEventProcessing(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
