@@ -69,7 +69,7 @@ class Tracklet
 
   // ----- Getters for contents of tracklet word -----
   int getYbin() const;                                          // in units of 160 um
-  int getdY() const;                                            // in units of 140 um
+  float getdY() const;                                          // in units of 140 um
   int getZbin() const { return ((mROB >> 1) << 2) | (mMCM >> 2); }
 
   int getPID() const { return mPID; }

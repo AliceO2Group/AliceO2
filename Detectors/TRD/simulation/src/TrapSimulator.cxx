@@ -670,8 +670,8 @@ void TrapSimulator::draw(int choice, int index)
   // PLOTTRACKLETS - plot tracklets
   if (!checkInitialized())
     return;
-  TFile* rootfile = new TFile(Form("Spectra_%i.root", index), "RECREATE");
-  TCanvas* c1 = new TCanvas("c1");
+  TFile* rootfile = new TFile("trdtrackletplots.root", "UPDATE");
+  TCanvas* c1 = new TCanvas(Form("canvas_%i_%i:%i:%i_%i", index, mDetector, mRobPos, mMcmPos, mTrackletArray.size()));
   TH2F* hist = new TH2F(Form("mcmdata_%i", index),
                         Form("Data of MCM %i on ROB %i in detector %i ", mMcmPos, mRobPos, mDetector),
                         FeeParam::getNadcMcm(),
@@ -700,15 +700,15 @@ void TrapSimulator::draw(int choice, int index)
         hist->SetBinContent(iAdc + 1, iTimeBin + 1, mADCR[iAdc * mNTimeBin + iTimeBin] >> mgkAddDigits);
       }
     }
+    hist->Draw("COLZ");
   } else {
     for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
       for (int iAdc = 0; iAdc < FeeParam::getNadcMcm(); iAdc++) {
         histfiltered->SetBinContent(iAdc + 1, iTimeBin + 1, mADCF[iAdc * mNTimeBin + iTimeBin] >> mgkAddDigits);
       }
     }
+    histfiltered->Draw("COLZ");
   }
-  hist->Draw("CONT4Z");
-  histfiltered->Draw("CONT4Z");
 
   if ((choice & PLOTHITS) != 0) {
     TGraph* grHits = new TGraph();
@@ -722,6 +722,11 @@ void TrapSimulator::draw(int choice, int index)
 
   if ((choice & PLOTTRACKLETS) != 0) {
     TLine* trklLines = new TLine[4];
+    LOG(info) << "Tracklet start for index : " << index;
+    if (mTrackletArray.size() > 0)
+      LOG(info) << "Tracklet : for " << mTrackletArray[0].getDetector() << "::" << mTrackletArray[0].getROB() << " : " << mTrackletArray[0].getMCM();
+    else
+      LOG(info) << "Tracklet : for trackletarray size of zero ";
     for (int iTrkl = 0; iTrkl < mTrackletArray.size(); iTrkl++) {
       Tracklet trkl = mTrackletArray[iTrkl];
       float padWidth = 0.635 + 0.03 * (mDetector % 6);
@@ -741,12 +746,12 @@ void TrapSimulator::draw(int choice, int index)
       trklLines[iTrkl].SetY2(t1);
       trklLines[iTrkl].SetLineColor(2);
       trklLines[iTrkl].SetLineWidth(2);
-      LOG(info) << "Tracklet " << iTrkl << ": y = " << trkl.getY() << ", dy = " << (trkl.getdY() * 140e-4) << " offset : " << offset;
+      LOG(info) << "Tracklet " << iTrkl << ": y = " << trkl.getY() << ", dy = " << (((float)trkl.getdY()) * 140e-4) << " offset : " << offset << "for a det:rob:mcm combo of : " << mDetector << ":" << mRobPos << ":" << mMcmPos;
       LOG(info) << "Tracklet " << iTrkl << ": x1,y1,x2,y2 :: " << trklLines[iTrkl].GetX1() << "," << trklLines[iTrkl].GetY1() << "," << trklLines[iTrkl].GetX2() << "," << trklLines[iTrkl].GetY2();
-      LOG(info) << "Tracklet " << iTrkl << ": t0 : " << t0 << ", t1 " << t1 << ", padwidth:" << padWidth << ", slope:" << slope;
-
+      LOG(info) << "Tracklet " << iTrkl << ": t0 : " << t0 << ", t1 " << t1 << ", padwidth:" << padWidth << ", slope:" << slope << ", ndrift:" << ndrift << " which comes from : " << mTrapConfig->getDmemUnsigned(mgkDmemAddrNdrift, mDetector, mRobPos, mMcmPos) << " shifted 5 to the right ";
       trklLines[iTrkl].Draw();
     }
+    LOG(info) << "Tracklet end ...";
   }
   c1->Write();
   rootfile->Close();
