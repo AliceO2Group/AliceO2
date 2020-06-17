@@ -59,8 +59,10 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 #include "TTree.h"
 #include "TBranch.h"
 #include "CommonConstants/LHCConstants.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 using namespace o2::ft0;
+using RDHUtils = o2::raw::RDHUtils;
 
 ClassImp(ReadRaw);
 
@@ -101,14 +103,14 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
     int pos = 0;
     mFileDest.seekg(posInFile);
     mFileDest.read(reinterpret_cast<char*>(&mRDH), sizeof(mRDH));
-    printRDH(&mRDH);
-    int nwords = mRDH.memorySize;
-    int npackages = mRDH.packetCounter;
-    int numPage = mRDH.pageCnt;
-    int offset = mRDH.offsetToNext;
-    int link = mRDH.linkID;
+    RDHUtils::printRDH(mRDH);
+    int nwords = RDHUtils::getMemorySize(mRDH);
+    int npackages = RDHUtils::getPacketCounter(mRDH);
+    int numPage = RDHUtils::getPageCounter(mRDH);
+    int offset = RDHUtils::getOffsetToNext(mRDH);
+    int link = RDHUtils::getLinkID(mRDH);
     if (nwords <= sizeof(mRDH)) {
-      posInFile += mRDH.offsetToNext;
+      posInFile += RDHUtils::getOffsetToNext(mRDH);
       LOG(INFO) << " next RDH";
       pos = 0;
     } else {
