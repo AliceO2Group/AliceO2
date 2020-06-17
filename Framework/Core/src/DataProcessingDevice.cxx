@@ -255,11 +255,12 @@ bool DataProcessingDevice::ConditionalRun()
                              &lastSent = mLastSlowMetricSentTimestamp,
                              &currentTime = mBeginIterationTimestamp,
                              &currentBackoff = mCurrentBackoff,
-                             &monitoring = mServiceRegistry.get<Monitoring>()]()
+                             &registry = mServiceRegistry]()
     -> void {
     if (currentTime - lastSent < 5000) {
       return;
     }
+    auto& monitoring = registry.get<Monitoring>();
 
     O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
 
@@ -294,11 +295,12 @@ bool DataProcessingDevice::ConditionalRun()
                        &relayer = mRelayer,
                        &lastFlushed = mLastMetricFlushedTimestamp,
                        &currentTime = mBeginIterationTimestamp,
-                       &monitoring = mServiceRegistry.get<Monitoring>()]()
+                       &registry = mServiceRegistry]()
     -> void {
     if (currentTime - lastFlushed < 1000) {
       return;
     }
+    auto& monitoring = registry.get<Monitoring>();
 
     O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
     // Send all the relevant metrics for the relayer to update the GUI
@@ -314,10 +316,10 @@ bool DataProcessingDevice::ConditionalRun()
     O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
   };
 
-  auto switchState = [& control = mServiceRegistry.get<ControlService>(),
+  auto switchState = [& registry = mServiceRegistry,
                       &state = mState.streaming](StreamingState newState) {
     state = newState;
-    control.notifyStreamingState(state);
+    registry.get<ControlService>().notifyStreamingState(state);
   };
 
   auto now = std::chrono::high_resolution_clock::now();
@@ -448,7 +450,6 @@ bool DataProcessingDevice::handleData(FairMQParts& parts, InputChannelInfo& info
   // These duplicate references are created so that each function
   // does not need to know about the whole class state, but I can
   // fine grain control what is exposed at each state.
-  auto& monitoringService = mServiceRegistry.get<Monitoring>();
   StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
   auto metricFlusher = make_scope_guard([]() noexcept {
     StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
