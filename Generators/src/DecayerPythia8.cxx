@@ -80,7 +80,8 @@ Int_t DecayerPythia8::ImportParticles(TClonesArray* particles)
   ca.Clear();
 
   auto nParticles = mPythia.event.size();
-  for (Int_t iparticle = 0; iparticle < nParticles; iparticle++) {
+  for (Int_t iparticle = 1; iparticle < nParticles; iparticle++) {
+    //  Do not import the decayed particle - start loop from 1
     auto particle = mPythia.event[iparticle];
     auto pdg = particle.id();
     auto st = particle.statusHepMC();
@@ -97,7 +98,7 @@ Int_t DecayerPythia8::ImportParticles(TClonesArray* particles)
     auto d1 = particle.daughter1();
     auto d2 = particle.daughter2();
 
-    new (ca[iparticle]) TParticle(pdg, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt);
+    new (ca[iparticle-1]) TParticle(pdg, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt);
   }
 
   return ca.GetEntries();
