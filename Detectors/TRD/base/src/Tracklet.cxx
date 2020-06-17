@@ -81,7 +81,7 @@ int Tracklet::getYbin() const
   return mY;
 }
 
-int Tracklet::getdY() const
+float Tracklet::getdY() const
 {
   return mdY;
 }
