@@ -28,6 +28,7 @@
 #include "TPCWorkflow/LinkZSToDigitsSpec.h"
 #include <vector>
 #include <string>
+#include "DetectorsRaw/RDHUtils.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -145,7 +146,7 @@ o2::framework::DataProcessorSpec getLinkZSToDigitsSpec(int channel, const std::s
           o2::framework::RawParser parser(input.payload, dh->payloadSize);
 
           for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-            auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV4>();
+            auto* rdhPtr = it.get_if<o2::header::RAWDataHeader>();
             if (!rdhPtr) {
               break;
             }
@@ -153,7 +154,7 @@ o2::framework::DataProcessorSpec getLinkZSToDigitsSpec(int channel, const std::s
             const auto& rdh = *rdhPtr;
 
             // ===| only accept physics triggers |===
-            if (rdh.triggerType != 0x10) {
+            if (o2::raw::RDHUtils::getTriggerType(rdhPtr) != 0x10) {
               continue;
             }
 
@@ -162,13 +163,13 @@ o2::framework::DataProcessorSpec getLinkZSToDigitsSpec(int channel, const std::s
             // really ugly, better treatment required extension in DPL
             // events are are detected by close by orbit numbers
             //
-            const auto hbOrbit = rdh.heartbeatOrbit;
+            const auto hbOrbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdhPtr);
             const auto lastOrbit = processAttributes->lastOrbit;
 
             if (!processAttributes->firstOrbit) {
               processAttributes->firstOrbit = hbOrbit;
               if (!processAttributes->isContinuous) {
-                processAttributes->firstBC = rdh.heartbeatBC;
+                processAttributes->firstBC = o2::raw::RDHUtils::getHeartBeatBC(rdhPtr);
               }
             }
 
