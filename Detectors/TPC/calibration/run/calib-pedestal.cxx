@@ -24,8 +24,10 @@
 #include "TPCReconstruction/RawReaderCRU.h"
 #include <vector>
 #include <string>
+#include "DetectorsRaw/RDHUtils.h"
 
 using namespace o2::framework;
+using RDHUtils = o2::raw::RDHUtils;
 
 // customize the completion policy
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
@@ -56,9 +58,11 @@ void printHeader()
 
 void printRDH(const RDH& rdh)
 {
-  const int globalLinkID = int(rdh.linkID) + (((rdh.word1 >> 32) >> 28) * 12);
+  const int globalLinkID = int(RDHUtils::getLinkID(rdh)) + (((rdh.word1 >> 32) >> 28) * 12);
 
-  LOGP(debug, "{:>5} {:>4} {:>4} {:>4} {:>3} {:>4} {:>10} {:>5} {:>1} {:#010X}", (uint64_t)rdh.packetCounter, (uint64_t)rdh.pageCnt, (uint64_t)rdh.feeId, (uint64_t)(rdh.memorySize), (uint64_t)rdh.cruID, (uint64_t)globalLinkID, (uint64_t)rdh.heartbeatOrbit, (uint64_t)rdh.heartbeatBC, (uint64_t)rdh.stop, (uint64_t)rdh.triggerType);
+  LOGP(debug, "{:>5} {:>4} {:>4} {:>4} {:>3} {:>4} {:>10} {:>5} {:>1} {:#010X}", (uint64_t)RDHUtils::getPacketCounter(rdh), (uint64_t)RDHUtils::getPageCounter(rdh),
+       (uint64_t)RDHUtils::getFEEID(rdh), (uint64_t)RDHUtils::getMemorySize(rdh), (uint64_t)RDHUtils::getCRUID(rdh), (uint64_t)globalLinkID,
+       (uint64_t)RDHUtils::getHeartBeatOrbit(rdh), (uint64_t)RDHUtils::getHeartBeatBC(rdh), (uint64_t)RDHUtils::getStop(rdh), (uint64_t)RDHUtils::getTriggerType(rdh));
 }
 
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
@@ -147,7 +151,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
           auto& calibPedestal = processAttributes->calibPedestal;
 
           for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-            auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV4>();
+            auto* rdhPtr = it.get_if<o2::header::RAWDataHeader>();
             if (!rdhPtr) {
               break;
             }
@@ -159,7 +163,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
             // events are are detected by close by orbit numbers
             // might be possible to change this using the TFID information
             //
-            const auto hbOrbit = rdh.heartbeatOrbit;
+            const auto hbOrbit = RDHUtils::getHeartBeatOrbit(rdhPtr);
             const auto lastOrbit = processAttributes->lastOrbit;
 
             if ((lastOrbit > 0) && (hbOrbit > (lastOrbit + 3))) {

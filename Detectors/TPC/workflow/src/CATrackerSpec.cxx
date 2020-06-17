@@ -57,6 +57,7 @@
 #include <stdexcept>
 #include <regex>
 #include "GPUReconstructionConvert.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -498,10 +499,12 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
                 tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
               }
               count = 0;
-              //lastFEE = o2::raw::RDHUtils::getFEEID(*rdh);
-              lastFEE = int(rdh->feeId);
-              rawcru = int(rdh->cruID);
-              rawendpoint = int(rdh->endPointID);
+              lastFEE = o2::raw::RDHUtils::getFEEID(*rdh);
+              rawcru = o2::raw::RDHUtils::getCRUID(*rdh);
+              rawendpoint = o2::raw::RDHUtils::getEndPointID(*rdh);
+              //lastFEE = int(rdh->feeId);
+              //rawcru = int(rdh->cruID);
+              //rawendpoint = int(rdh->endPointID);
               if (it.size() == 0 && tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].size()) {
                 ptr = nullptr;
                 continue;
