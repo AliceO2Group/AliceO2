@@ -23,6 +23,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Logger.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 using namespace o2::framework;
 
@@ -30,6 +31,8 @@ namespace o2
 {
 namespace tof
 {
+
+using RDHUtils = o2::raw::RDHUtils;
 
 void CompressedDecodingTask::init(InitContext& ic)
 {
@@ -118,16 +121,17 @@ void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
 {
 
   // rdh close
-  if (rdh->stop && rdh->heartbeatOrbit == o2::raw::HBFUtils::Instance().getNOrbitsPerTF() - 1 + mInitOrbit) {
+  const auto& rdhr = *rdh;
+  if (RDHUtils::getStop(rdhr) && RDHUtils::getHeartBeatOrbit(rdhr) == o2::raw::HBFUtils::Instance().getNOrbitsPerTF() - 1 + mInitOrbit) {
     mNCrateCloseTF++;
     //    printf("New TF close RDH %d\n", int(rdh->feeId));
     return;
   }
 
   // rdh open
-  if ((rdh->pageCnt == 0) && (rdh->triggerType & o2::trigger::TF)) {
+  if ((RDHUtils::getPageCounter(rdhr) == 0) && (RDHUtils::getTriggerType(rdhr) & o2::trigger::TF)) {
     mNCrateOpenTF++;
-    mInitOrbit = rdh->heartbeatOrbit;
+    mInitOrbit = RDHUtils::getHeartBeatOrbit(rdhr);
     //    printf("New TF open RDH %d\n", int(rdh->feeId));
   }
 };

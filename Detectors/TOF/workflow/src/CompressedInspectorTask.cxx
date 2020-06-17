@@ -31,8 +31,8 @@ namespace o2
 namespace tof
 {
 
-template <typename RAWDataHeader>
-void CompressedInspectorTask<RAWDataHeader>::init(InitContext& ic)
+template <typename RDH>
+void CompressedInspectorTask<RDH>::init(InitContext& ic)
 {
   LOG(INFO) << "CompressedInspector init";
   auto filename = ic.options().get<std::string>("tof-compressed-inspector-filename");
@@ -74,8 +74,8 @@ void CompressedInspectorTask<RAWDataHeader>::init(InitContext& ic)
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
 }
 
-template <typename RAWDataHeader>
-void CompressedInspectorTask<RAWDataHeader>::run(ProcessingContext& pc)
+template <typename RDH>
+void CompressedInspectorTask<RDH>::run(ProcessingContext& pc)
 {
   LOG(DEBUG) << "CompressedInspector run";
 
@@ -97,24 +97,24 @@ void CompressedInspectorTask<RAWDataHeader>::run(ProcessingContext& pc)
       auto payloadIn = ref.payload;
       auto payloadInSize = headerIn->payloadSize;
 
-      DecoderBaseT<RAWDataHeader>::setDecoderBuffer(payloadIn);
-      DecoderBaseT<RAWDataHeader>::setDecoderBufferSize(payloadInSize);
-      DecoderBaseT<RAWDataHeader>::run();
+      DecoderBaseT<RDH>::setDecoderBuffer(payloadIn);
+      DecoderBaseT<RDH>::setDecoderBufferSize(payloadInSize);
+      DecoderBaseT<RDH>::run();
     }
   }
 }
 
-template <typename RAWDataHeader>
-void CompressedInspectorTask<RAWDataHeader>::headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit)
+template <typename RDH>
+void CompressedInspectorTask<RDH>::headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit)
 {
   for (int ibit = 0; ibit < 11; ++ibit)
     if (crateHeader->slotPartMask & (1 << ibit))
       mHistos2D["slotPartMask"]->Fill(crateHeader->drmID, ibit + 2);
 };
 
-template <typename RAWDataHeader>
-void CompressedInspectorTask<RAWDataHeader>::frameHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
-                                                          const FrameHeader_t* frameHeader, const PackedHit_t* packedHits)
+template <typename RDH>
+void CompressedInspectorTask<RDH>::frameHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
+                                                const FrameHeader_t* frameHeader, const PackedHit_t* packedHits)
 {
   mHistos1D["hHisto"]->Fill(frameHeader->numberOfHits);
   for (int i = 0; i < frameHeader->numberOfHits; ++i) {
@@ -135,10 +135,10 @@ void CompressedInspectorTask<RAWDataHeader>::frameHandler(const CrateHeader_t* c
   }
 };
 
-template <typename RAWDataHeader>
-void CompressedInspectorTask<RAWDataHeader>::trailerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
-                                                            const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics,
-                                                            const Error_t* errors)
+template <typename RDH>
+void CompressedInspectorTask<RDH>::trailerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
+                                                  const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics,
+                                                  const Error_t* errors)
 {
   mHistos2D["diagnostic"]->Fill(crateHeader->drmID, 0);
   for (int i = 0; i < crateTrailer->numberOfDiagnostics; ++i) {
