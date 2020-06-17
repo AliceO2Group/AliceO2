@@ -43,8 +43,10 @@ namespace tof
 namespace compressed
 {
 
-template <typename RAWDataHeader>
-bool DecoderBaseT<RAWDataHeader>::processHBF()
+using RDHUtils = o2::raw::RDHUtils;
+
+template <typename RDH>
+bool DecoderBaseT<RDH>::processHBF()
 {
 
 #ifdef DECODER_VERBOSE
@@ -56,11 +58,11 @@ bool DecoderBaseT<RAWDataHeader>::processHBF()
   }
 #endif
 
-  mDecoderRDH = reinterpret_cast<const RAWDataHeader*>(mDecoderPointer);
+  mDecoderRDH = reinterpret_cast<const RDH*>(mDecoderPointer);
   auto rdh = mDecoderRDH;
 
   /** loop until RDH close **/
-  while (!rdh->stop) {
+  while (!RDHUtils::getStop(*rdh)) {
 
 #ifdef DECODER_VERBOSE
     if (mDecoderVerbose) {
@@ -75,9 +77,9 @@ bool DecoderBaseT<RAWDataHeader>::processHBF()
     /** rdh handler **/
     rdhHandler(rdh);
 
-    auto headerSize = rdh->headerSize;
-    auto memorySize = rdh->memorySize;
-    auto offsetToNext = rdh->offsetToNext;
+    auto headerSize = RDHUtils::getHeaderSize(*rdh);
+    auto memorySize = RDHUtils::getMemorySize(*rdh);
+    auto offsetToNext = RDHUtils::getOffsetToNext(*rdh);
     auto drmPayload = memorySize - headerSize;
 
     /** copy DRM payload to save buffer **/
@@ -85,7 +87,7 @@ bool DecoderBaseT<RAWDataHeader>::processHBF()
     mDecoderSaveBufferDataSize += drmPayload;
 
     /** move to next RDH **/
-    rdh = reinterpret_cast<const RAWDataHeader*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
+    rdh = reinterpret_cast<const RDH*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
 
     /** check next RDH is within buffer **/
     if (reinterpret_cast<const char*>(rdh) < mDecoderBuffer + mDecoderBufferSize)
@@ -127,7 +129,7 @@ bool DecoderBaseT<RAWDataHeader>::processHBF()
 #endif
 
   /** move to next RDH **/
-  mDecoderPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + rdh->offsetToNext);
+  mDecoderPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + RDHUtils::getOffsetToNext(*rdh));
 
   /** check next RDH is within buffer **/
   if (reinterpret_cast<const char*>(mDecoderPointer) < mDecoderBuffer + mDecoderBufferSize)
@@ -137,8 +139,8 @@ bool DecoderBaseT<RAWDataHeader>::processHBF()
   return true;
 }
 
-template <typename RAWDataHeader>
-bool DecoderBaseT<RAWDataHeader>::processDRM()
+template <typename RDH>
+bool DecoderBaseT<RDH>::processDRM()
 {
 
 #ifdef DECODER_VERBOSE
