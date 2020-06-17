@@ -556,7 +556,7 @@ int GPUChainTracking::ConvertNativeToClusterData()
     mIOPtrs.nClusterData[i] = (i == NSLICES - 1 ? mIOPtrs.clustersNative->nClustersTotal : mIOPtrs.clustersNative->clusterOffset[i + 1][0]) - mIOPtrs.clustersNative->clusterOffset[i][0];
     mIOPtrs.clusterData[i] = convert.mClusters + mIOPtrs.clustersNative->clusterOffset[i][0];
   }
-  mRec->PopNonPersistentMemory();
+  mRec->PopNonPersistentMemory(RecoStep::TPCConversion);
 #endif
   return 0;
 }
@@ -1206,7 +1206,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     }
   }
   mRec->MemoryScalers()->nTPCHits = nClsTotal;
-  mRec->PopNonPersistentMemory();
+  mRec->PopNonPersistentMemory(RecoStep::TPCClusterFinding);
 
 #endif
   return 0;
@@ -1617,7 +1617,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Slice Tracker finished");
   }
-  mRec->PopNonPersistentMemory();
+  mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking);
   return 0;
 }
 
@@ -1858,7 +1858,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Merger Finished (output clusters %d / input clusters %d)", Merger.NOutputTrackClusters(), Merger.NClusters());
   }
-  mRec->PopNonPersistentMemory();
+  mRec->PopNonPersistentMemory(RecoStep::TPCMerging);
   return 0;
 }
 
@@ -1960,7 +1960,7 @@ int GPUChainTracking::RunTPCCompression()
   }
 
   mIOPtrs.tpcCompressedClusters = Compressor.mOutputFlat;
-  mRec->PopNonPersistentMemory();
+  mRec->PopNonPersistentMemory(RecoStep::TPCCompression);
 #endif
   return 0;
 }
@@ -2045,7 +2045,7 @@ int GPUChainTracking::RunTRDTracking()
 
   mIOPtrs.nTRDTracks = Tracker.NTracks();
   mIOPtrs.trdTracks = Tracker.Tracks();
-  mRec->PopNonPersistentMemory();
+  mRec->PopNonPersistentMemory(RecoStep::TRDTracking);
 
   return 0;
 }
@@ -2137,7 +2137,7 @@ int GPUChainTracking::RunChain()
   if (runRecoStep(RecoStep::TPCMerging, &GPUChainTracking::RunTPCTrackingMerger, false)) {
     return 1;
   }
-  mRec->PopNonPersistentMemory(); // Release 1st stack level, TPC slice data not needed after merger
+  mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking); // Release 1st stack level, TPC slice data not needed after merger
 
   if (mIOPtrs.clustersNative) {
     if (runRecoStep(RecoStep::TPCCompression, &GPUChainTracking::RunTPCCompression)) {
