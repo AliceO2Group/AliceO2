@@ -96,8 +96,8 @@ namespace o2
 namespace tof
 {
 
-template <typename RAWDataHeader, bool verbose>
-bool Compressor<RAWDataHeader, verbose>::processHBF()
+template <typename RDH, bool verbose>
+bool Compressor<RDH, verbose>::processHBF()
 {
 
   if (verbose && mDecoderVerbose) {
@@ -107,8 +107,8 @@ bool Compressor<RAWDataHeader, verbose>::processHBF()
               << std::endl;
   }
 
-  mDecoderRDH = reinterpret_cast<const RAWDataHeader*>(mDecoderPointer);
-  mEncoderRDH = reinterpret_cast<RAWDataHeader*>(mEncoderPointer);
+  mDecoderRDH = reinterpret_cast<const RDH*>(mDecoderPointer);
+  mEncoderRDH = reinterpret_cast<RDH*>(mEncoderPointer);
   auto rdh = mDecoderRDH;
 
   /** loop until RDH close **/
@@ -132,7 +132,7 @@ bool Compressor<RAWDataHeader, verbose>::processHBF()
     mDecoderSaveBufferDataSize += drmPayload;
 
     /** move to next RDH **/
-    rdh = reinterpret_cast<const RAWDataHeader*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
+    rdh = reinterpret_cast<const RDH*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
 
     /** check next RDH is within buffer **/
     if (reinterpret_cast<const char*>(rdh) < mDecoderBuffer + mDecoderBufferSize)
@@ -181,7 +181,7 @@ bool Compressor<RAWDataHeader, verbose>::processHBF()
 
   /** copy RDH close to encoder buffer **/
   /** CAREFUL WITH THE PAGE COUNTER **/
-  mEncoderRDH = reinterpret_cast<RAWDataHeader*>(mEncoderPointer);
+  mEncoderRDH = reinterpret_cast<RDH*>(mEncoderPointer);
   std::memcpy(mEncoderRDH, rdh, rdh->headerSize);
   mEncoderRDH->memorySize = rdh->headerSize;
   mEncoderRDH->offsetToNext = mEncoderRDH->memorySize;
@@ -205,8 +205,8 @@ bool Compressor<RAWDataHeader, verbose>::processHBF()
   return true;
 }
 
-template <typename RAWDataHeader, bool verbose>
-bool Compressor<RAWDataHeader, verbose>::processDRM()
+template <typename RDH, bool verbose>
+bool Compressor<RDH, verbose>::processDRM()
 {
 
   if (verbose && mDecoderVerbose) {
@@ -501,8 +501,8 @@ bool Compressor<RAWDataHeader, verbose>::processDRM()
   return false;
 }
 
-template <typename RAWDataHeader, bool verbose>
-bool Compressor<RAWDataHeader, verbose>::processLTM()
+template <typename RDH, bool verbose>
+bool Compressor<RDH, verbose>::processLTM()
 {
   /** process LTM **/
 
@@ -544,8 +544,8 @@ bool Compressor<RAWDataHeader, verbose>::processLTM()
   return false;
 }
 
-template <typename RAWDataHeader, bool verbose>
-bool Compressor<RAWDataHeader, verbose>::processTRM()
+template <typename RDH, bool verbose>
+bool Compressor<RDH, verbose>::processTRM()
 {
   /** process TRM **/
 
@@ -633,8 +633,8 @@ bool Compressor<RAWDataHeader, verbose>::processTRM()
   return false;
 }
 
-template <typename RAWDataHeader, bool verbose>
-bool Compressor<RAWDataHeader, verbose>::processTRMchain(int itrm, int ichain)
+template <typename RDH, bool verbose>
+bool Compressor<RDH, verbose>::processTRMchain(int itrm, int ichain)
 {
   /** process TRM chain **/
 
@@ -730,8 +730,8 @@ bool Compressor<RAWDataHeader, verbose>::processTRMchain(int itrm, int ichain)
   return false;
 }
 
-template <typename RAWDataHeader, bool verbose>
-bool Compressor<RAWDataHeader, verbose>::decoderParanoid()
+template <typename RDH, bool verbose>
+bool Compressor<RDH, verbose>::decoderParanoid()
 {
   /** decoder paranoid **/
 
@@ -743,8 +743,8 @@ bool Compressor<RAWDataHeader, verbose>::decoderParanoid()
   return false;
 }
 
-template <typename RAWDataHeader, bool verbose>
-void Compressor<RAWDataHeader, verbose>::encoderSpider(int itrm)
+template <typename RDH, bool verbose>
+void Compressor<RDH, verbose>::encoderSpider(int itrm)
 {
   /** encoder spider **/
 
@@ -850,8 +850,8 @@ void Compressor<RAWDataHeader, verbose>::encoderSpider(int itrm)
   }
 }
 
-template <typename RAWDataHeader, bool verbose>
-bool Compressor<RAWDataHeader, verbose>::checkerCheck()
+template <typename RDH, bool verbose>
+bool Compressor<RDH, verbose>::checkerCheck()
 {
   /** checker check **/
 
@@ -1220,8 +1220,8 @@ bool Compressor<RAWDataHeader, verbose>::checkerCheck()
   return false;
 }
 
-template <typename RAWDataHeader, bool verbose>
-void Compressor<RAWDataHeader, verbose>::checkerCheckRDH()
+template <typename RDH, bool verbose>
+void Compressor<RDH, verbose>::checkerCheckRDH()
 {
 }
 
@@ -1319,8 +1319,8 @@ void Compressor<o2::header::RAWDataHeaderV6, false>::checkerCheckRDH()
   }
 }
 
-template <typename RAWDataHeader, bool verbose>
-void Compressor<RAWDataHeader, verbose>::resetCounters()
+template <typename RDH, bool verbose>
+void Compressor<RDH, verbose>::resetCounters()
 {
   mEventCounter = 0;
   mFatalCounter = 0;
@@ -1334,8 +1334,8 @@ void Compressor<RAWDataHeader, verbose>::resetCounters()
   }
 }
 
-template <typename RAWDataHeader, bool verbose>
-void Compressor<RAWDataHeader, verbose>::checkSummary()
+template <typename RDH, bool verbose>
+void Compressor<RDH, verbose>::checkSummary()
 {
   char chname[2] = {'a', 'b'};
 

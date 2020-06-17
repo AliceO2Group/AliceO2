@@ -28,7 +28,7 @@ namespace o2
 namespace tof
 {
 
-template <typename RAWDataHeader, bool verbose>
+template <typename RDH, bool verbose>
 class Compressor
 {
 
@@ -108,7 +108,7 @@ class Compressor
   const uint32_t* mDecoderPointerNext = nullptr;
   uint8_t mDecoderNextWord = 1;
   uint8_t mDecoderNextWordStep = 2;
-  const RAWDataHeader* mDecoderRDH;
+  const RDH* mDecoderRDH;
   bool mDecoderCONET = false;
   bool mDecoderVerbose = false;
   bool mDecoderError = false;
@@ -130,7 +130,7 @@ class Compressor
   uint32_t* mEncoderPointerMax = nullptr;
   uint32_t* mEncoderPointerStart = nullptr;
   uint8_t mEncoderNextWord = 1;
-  RAWDataHeader* mEncoderRDH;
+  RDH* mEncoderRDH;
   bool mEncoderVerbose = false;
 
   /** checker private functions and data members **/

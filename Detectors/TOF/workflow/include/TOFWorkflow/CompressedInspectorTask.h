@@ -35,8 +35,8 @@ namespace tof
 
 using namespace compressed;
 
-template <typename RAWDataHeader>
-class CompressedInspectorTask : public DecoderBaseT<RAWDataHeader>, public Task
+template <typename RDH>
+class CompressedInspectorTask : public DecoderBaseT<RDH>, public Task
 {
  public:
   CompressedInspectorTask() = default;
