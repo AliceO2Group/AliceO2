@@ -199,6 +199,7 @@ class GPUTRDTracker_t : public GPUProcessor
  protected:
   float* mR;                               // radial position of each TRD chamber, alignment taken into account, radial spread within chambers < 7mm
   bool mIsInitialized;                     // flag is set upon initialization
+  bool mProcessTimeFrame;                  // if true, tracking is done per time frame instead of on a single events basis
   short mMemoryPermanent;                  // size of permanent memory for the tracker
   short mMemoryTracklets;                  // size of memory for TRD tracklets
   short mMemoryTracks;                     // size of memory for tracks (used for i/o)

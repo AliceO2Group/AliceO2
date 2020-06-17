@@ -338,7 +338,6 @@ class propagatorInterface<GPUTPCGMPropagator> : public GPUTPCGMPropagator
   {
     //bool ok = PropagateToXAlpha(x, GetAlpha(), true) == 0 ? true : false;
     int retVal = PropagateToXAlpha(x, GetAlpha(), true);
-    printf("Return value of PropagateToXAlpha: %i\n", retVal);
     bool ok = (retVal == 0) ? true : false;
     ok = mTrack->CheckNumericalQuality();
     return ok;

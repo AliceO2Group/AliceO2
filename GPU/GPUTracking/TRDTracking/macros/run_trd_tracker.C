@@ -15,6 +15,7 @@
 #include "GPUTRDGeometry.h"
 
 // O2 header
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
@@ -25,14 +26,13 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 void run_trd_tracker(std::string path = "./",
-                     std::string inputGRP = "o2sim_grp.root",
                      std::string inputTracks = "o2match_itstpc.root",
                      std::string inputTracklets = "trdtracklets.root")
 {
 
   //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry(path);
-  o2::base::Propagator::initFieldFromGRP(path + inputGRP);
+  o2::base::GeometryManager::loadGeometry();
+  o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
 
   auto geo = o2::trd::TRDGeometry::instance();
   geo->createPadPlaneArray();
@@ -43,9 +43,11 @@ void run_trd_tracker(std::string path = "./",
   GPUSettingsEvent cfgEvent;                       // defaults should be ok
   GPUSettingsRec cfgRec;                           // don't care for now, NWaysOuter is set in here for instance
   GPUSettingsDeviceProcessing cfgDeviceProcessing; // also keep defaults here, or adjust debug level
-  cfgDeviceProcessing.debugLevel = 10;
+  cfgDeviceProcessing.debugLevel = 5;
   GPURecoStepConfiguration cfgRecoStep;
   cfgRecoStep.steps = GPUDataTypes::RecoStep::NoRecoStep;
+  cfgRecoStep.inputs.clear();
+  cfgRecoStep.outputs.clear();
   auto rec = GPUReconstruction::CreateInstance("CPU", true);
   rec->SetSettings(&cfgEvent, &cfgRec, &cfgDeviceProcessing, &cfgRecoStep);
 
@@ -56,9 +58,10 @@ void run_trd_tracker(std::string path = "./",
 
   rec->RegisterGPUProcessor(tracker, false);
   chainTracking->SetTRDGeometry(&geoFlat);
-  tracker->SetTrackingChain(chainTracking);
-  rec->Init();
-  rec->AllocateRegisteredMemory(nullptr);
+  if (rec->Init()) {
+    printf("ERROR: GPUReconstruction not initialized\n");
+  }
+
 
   // configure the tracker
   //tracker->EnableDebugOutput();
@@ -91,17 +94,16 @@ void run_trd_tracker(std::string path = "./",
   int nTracklets = trackletsInArrayPtr->size();
   printf("There are %i tracklets in total\n", nTracklets);
 
-  auto pp = geo->getPadPlane(0, 0);
-  printf("Tilt=%f\n", pp->getTiltingAngle());
 
-  tracker->Reset(true);
+  tracker->Reset();
 
   chainTracking->mIOPtrs.nMergedTracks = nTracks;
   chainTracking->mIOPtrs.nTRDTracklets = nTracklets;
   chainTracking->AllocateIOMemory();
   rec->PrepareEvent();
-  rec->AllocateRegisteredMemory(tracker->MemoryTracks());
+  rec->SetupGPUProcessor(tracker, true);
 
+  printf("Start loading input into TRD tracker\n");
   // load everything into the tracker
   for (int iTrk = 0; iTrk < nTracks; ++iTrk) {
     auto trk = tracksInArrayPtr->at(iTrk);
@@ -115,6 +117,8 @@ void run_trd_tracker(std::string path = "./",
       trkLoad.setCov(trk.getCov()[i], i);
     }
     tracker->LoadTrack(trkLoad);
+    auto trkTime = trk.getTimeMUS().getTimeStamp();
+    printf("Loaded track %i with time %f\n", iTrk, trkTime);
   }
   for (int iTrklt = 0; iTrklt < nTracklets; ++iTrklt) {
     auto trklt = trackletsInArrayPtr->at(iTrklt);
@@ -128,7 +132,7 @@ void run_trd_tracker(std::string path = "./",
     }
   }
   tracker->DumpTracks();
-  tracker->DoTracking();
+  tracker->DoTracking(chainTracking);
   tracker->DumpTracks();
 
   printf("Done\n");
