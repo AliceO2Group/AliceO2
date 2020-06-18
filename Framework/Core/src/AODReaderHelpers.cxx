@@ -220,14 +220,10 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
 
         if (description == header::DataDescription{"TRACKPAR"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksMetadata{}));
-        } else {
-          throw std::runtime_error("TRACKPAR: Not an extended table");
-        }
-	
-        if (description == header::DataDescription{"TRACKPARCOV"}) {
+        } else if (description == header::DataDescription{"TRACKPARCOV"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovMetadata{}));
         } else {
-          throw std::runtime_error("TRACLPARCOV: Not an extended table");
+          throw std::runtime_error("Not an extended table");
         }
       }
     };
