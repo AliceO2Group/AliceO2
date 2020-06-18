@@ -942,7 +942,6 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   if (doGPU) {
     WriteToConstantMemory(RecoStep::TPCClusterFinding, (char*)processors()->tpcClusterer - (char*)processors(), processorsShadow()->tpcClusterer, sizeof(GPUTPCClusterFinder) * NSLICES, mRec->NStreams() - 1, &mEvents->init);
   }
-  SynchronizeGPU(); // TODO : get rid of me!
 
   size_t nClsTotal = 0;
   ClusterNativeAccess* tmpNative = mClusterNativeAccess.get();
@@ -1039,6 +1038,8 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
           TransferMemoryResourceLinkToGPU(RecoStep::TPCClusterFinding, mInputsHost->mResourceZS, lane);
           SynchronizeStream(GetDeviceProcessingSettings().nTPCClustererLanes + lane);
         }
+
+        SynchronizeStream(mRec->NStreams() - 1); // Wait for copying to constant memory
 
         if (mIOPtrs.tpcZS && !tpcHasZSPages[iSlice]) {
           continue;
@@ -1843,7 +1844,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       ReleaseEvent(&mEvents->single);
     }
   } else if (doGPU) {
-    TransferMemoryResourcesToGPU(RecoStep::TPCMerging, &Merger);
+    TransferMemoryResourcesToGPU(RecoStep::TPCMerging, &Merger, 0);
   }
 
   if (GetDeviceProcessingSettings().delayedOutput) {
@@ -1861,8 +1862,8 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     runKernel<GPUTPCGMMergerFollowLoopers>(GetGridBlk(Merger.NOutputTracks(), 0), krnlRunRangeNone, krnlEventNone);
   }
   if (doGPU && !doGPUall) {
-    TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger); // Todo: Get rid of transfers with stream -1
-    SynchronizeGPU();
+    TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, 0);
+    SynchronizeStream(0);
   }
 
   DoDebugAndDump(RecoStep::TPCMerging, 0, Merger, &GPUTPCGMMerger::DumpRefit, *mDebugFile);
@@ -1881,7 +1882,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       SynchronizeStream(mRec->NStreams() - 2);
     }
   } else {
-    TransferMemoryResourcesToGPU(RecoStep::TPCMerging, &Merger);
+    TransferMemoryResourcesToGPU(RecoStep::TPCMerging, &Merger, 0);
   }
   if (GetDeviceProcessingSettings().keepDisplayMemory && !GetDeviceProcessingSettings().keepAllMemory) {
     TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, -1, true);
@@ -2040,7 +2041,7 @@ int GPUChainTracking::RunTPCDecompression()
     mInputsHost->mPclusterNativeAccess->setOffsetPtrs();
     GPUMemCpy(RecoStep::TPCDecompression, mInputsShadow->mPclusterNativeBuffer, mIOPtrs.clustersNative->clustersLinear, sizeof(mIOPtrs.clustersNative->clustersLinear[0]) * mIOPtrs.clustersNative->nClustersTotal, 0, true);
     TransferMemoryResourceLinkToGPU(RecoStep::TPCDecompression, mInputsHost->mResourceClusterNativeAccess, 0);
-    SynchronizeGPU();
+    SynchronizeStream(0);
   }
 #endif
   return 0;
@@ -2113,13 +2114,11 @@ int GPUChainTracking::DoTRDGPUTracking()
   TrackerShadow.OverrideGPUGeometry(reinterpret_cast<GPUTRDGeometry*>(mFlatObjectsDevice.mCalibObjects.trdGeometry));
 
   WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->trdTracker - (char*)processors(), &TrackerShadow, sizeof(TrackerShadow), 0);
-  TransferMemoryResourcesToGPU(RecoStep::TRDTracking, &Tracker);
+  TransferMemoryResourcesToGPU(RecoStep::TRDTracking, &Tracker, 0);
 
   runKernel<GPUTRDTrackerKernels>(GetGridAuto(0), krnlRunRangeNone);
-  SynchronizeGPU();
-
-  TransferMemoryResourcesToHost(RecoStep::TRDTracking, &Tracker);
-  SynchronizeGPU();
+  TransferMemoryResourcesToHost(RecoStep::TRDTracking, &Tracker, 0);
+  SynchronizeStream(0);
 
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("GPU TRD tracker Finished");
@@ -2356,7 +2355,7 @@ void GPUChainTracking::ClearErrorCodes()
   processors()->errorCodes.clear();
   const auto& threadContext = GetThreadContext();
   if (mRec->IsGPU()) {
-    WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->errorCodes - (char*)processors(), &processorsShadow()->errorCodes, sizeof(processorsShadow()->errorCodes), -1);
+    WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->errorCodes - (char*)processors(), &processorsShadow()->errorCodes, sizeof(processorsShadow()->errorCodes), 0);
   }
-  TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes);
+  TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes, 0);
 }
