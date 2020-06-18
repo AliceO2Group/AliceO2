@@ -203,6 +203,9 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (mDeviceProcessingSettings.debugLevel >= 4) {
     mDeviceProcessingSettings.keepAllMemory = true;
   }
+  if (mDeviceProcessingSettings.debugLevel >= 5 && mDeviceProcessingSettings.allocDebugLevel < 2) {
+    mDeviceProcessingSettings.allocDebugLevel = 2;
+  }
   if (mDeviceProcessingSettings.eventDisplay || mDeviceProcessingSettings.keepAllMemory) {
     mDeviceProcessingSettings.keepDisplayMemory = true;
   }
@@ -427,7 +430,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
     if (retVal > mMemoryResources[res->mReuse].mSize) {
       throw std::bad_alloc();
     }
-    if (mDeviceProcessingSettings.debugLevel >= 5) {
+    if (mDeviceProcessingSettings.allocDebugLevel >= 2) {
       std::cout << "Reused " << res->mName << ": " << retVal << "\n";
     }
     return retVal;
@@ -465,7 +468,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
     std::cout << "Memory pool size exceeded (" << res->mName << ": " << (memorypoolend ? (memorysize + ((char*)memorypool - (char*)memorypoolend)) : (char*)memorypool - (char*)memorybase) << " < " << memorysize << "\n";
     throw std::bad_alloc();
   }
-  if (mDeviceProcessingSettings.debugLevel >= 5) {
+  if (mDeviceProcessingSettings.allocDebugLevel >= 2) {
     std::cout << "Allocated " << res->mName << ": " << retVal << " - available: " << (memorypoolend ? ((char*)memorypoolend - (char*)memorypool) : (memorysize - ((char*)memorypool - (char*)memorybase))) << "\n";
   }
   return retVal;
@@ -493,7 +496,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
       }
       res->mPtr = GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(res->mPtrDevice);
       res->SetPointers(res->mPtr);
-      if (mDeviceProcessingSettings.debugLevel >= 5) {
+      if (mDeviceProcessingSettings.allocDebugLevel >= 2) {
         std::cout << (res->mReuse >= 0 ? "Reused " : "Allocated ") << res->mName << ": " << res->mSize << "\n";
       }
     }
@@ -602,7 +605,7 @@ void GPUReconstruction::FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom
 void GPUReconstruction::FreeRegisteredMemory(short ires)
 {
   GPUMemoryResource* res = &mMemoryResources[ires];
-  if (mDeviceProcessingSettings.debugLevel >= 5 && (res->mPtr || res->mPtrDevice)) {
+  if (mDeviceProcessingSettings.allocDebugLevel >= 2 && (res->mPtr || res->mPtrDevice)) {
     std::cout << "Freeing " << res->mName << ": size " << res->mSize << " (reused " << res->mReuse << ")\n";
   }
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && res->mReuse < 0) {
@@ -627,8 +630,8 @@ void GPUReconstruction::PushNonPersistentMemory()
 
 void GPUReconstruction::PopNonPersistentMemory(RecoStep step)
 {
-  if (mDeviceProcessingSettings.debugLevel >= 3) {
-    printf("Allocated memory after %30s: %'13lld (non temporary %'13lld)\n", GPUDataTypes::RECO_STEP_NAMES[getRecoStepNum(step, true)], ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase) + ptrDiff((char*)mDeviceMemoryBase + mDeviceMemorySize, mDeviceMemoryPoolEnd), ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase));
+  if (mDeviceProcessingSettings.debugLevel >= 3 || mDeviceProcessingSettings.allocDebugLevel) {
+    printf("Allocated memory after %30s: %'13lld (non temporary %'13lld, blocked %'13lld)\n", GPUDataTypes::RECO_STEP_NAMES[getRecoStepNum(step, true)], ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase) + ptrDiff((char*)mDeviceMemoryBase + mDeviceMemorySize, mDeviceMemoryPoolEnd), ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase), mDeviceMemoryPoolBlocked == nullptr ? 0ll : ptrDiff((char*)mDeviceMemoryBase + mDeviceMemorySize, mDeviceMemoryPoolBlocked));
   }
   if (mDeviceProcessingSettings.keepDisplayMemory || mDeviceProcessingSettings.disableMemoryReuse) {
     return;
