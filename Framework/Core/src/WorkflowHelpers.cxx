@@ -266,7 +266,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         requestedAODs.emplace_back(input);
       }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"DYN"})) {
-        requestedDYNs.emplace_back(input);
+        if (std::find_if(requestedDYNs.begin(), requestedDYNs.end(), [&](InputSpec const& spec) { return input.binding == spec.binding; }) == requestedDYNs.end()) {
+          requestedDYNs.emplace_back(input);
+        }
       }
     }
     std::stable_sort(timer.outputs.begin(), timer.outputs.end(), [](OutputSpec const& a, OutputSpec const& b) { return *DataSpecUtils::getOptionalSubSpec(a) < *DataSpecUtils::getOptionalSubSpec(b); });
