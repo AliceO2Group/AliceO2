@@ -33,8 +33,8 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
   auto tracks = trackBuilder.finalize();
 
   TableBuilder trackParCovBuilder;
-  auto trackParCovWriter = trackParCovBuilder.cursor<TracksCov>();
-  trackParCovWriter(0, 7, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  auto trackParCovWriter = trackParCovBuilder.cursor<StoredTracksCov>();
+  trackParCovWriter(0, 7, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4);
   auto covs = trackParCovBuilder.finalize();
 
   using Test = Join<StoredTracks, TracksCov>;
