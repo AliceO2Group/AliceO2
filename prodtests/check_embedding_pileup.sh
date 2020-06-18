@@ -56,8 +56,8 @@ checktask() {
 if [ "$(uname)" == "Darwin" ]; then
   CORESPERSOCKET=`system_profiler SPHardwareDataType | grep "Total Number of Cores:" | awk '{print $5}'`
   SOCKETS=`system_profiler SPHardwareDataType | grep "Number of Processors:" | awk '{print $4}'`
-elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-    # Do something under GNU/Linux platform
+else
+  # Do something under GNU/Linux platform
   CORESPERSOCKET=`lscpu | grep "Core(s) per socket" | awk '{print $4}'`
   SOCKETS=`lscpu | grep "Socket(s)" | awk '{print $2}'`
 fi
