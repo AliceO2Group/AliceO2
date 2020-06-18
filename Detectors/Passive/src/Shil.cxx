@@ -303,8 +303,8 @@ void Shil::ConstructGeometry()
   dz += kFaWring3HWidth;
   dz += kFaDWrings;
   dz += kFaWring2HWidth;
-  asFaExtraShield->AddNode(voFaWring2, 3, new TGeoCombiTrans(0., 0., dz - 6, rot090));
-  asFaExtraShield->AddNode(voFaWring2, 4, new TGeoCombiTrans(0., 0., dz - 6., rot270));
+  asFaExtraShield->AddNode(voFaWring2, 3, new TGeoCombiTrans(0., 0., dz, rot090));
+  asFaExtraShield->AddNode(voFaWring2, 4, new TGeoCombiTrans(0., 0., dz, rot270));
   dz += kFaWring2HWidth;
 
   ///////////////////////////////////////
@@ -1301,9 +1301,9 @@ void Shil::ConstructGeometry()
   voYOUT1->SetVisibility(0);
 
   voYOUT1->AddNode(asSaa1ExtraShield, 1,
-                   new TGeoCombiTrans(0., 0., -(100.7 + 62.2 + saa1ExtraShieldL / 2. + ziFaWTail), rotxz));
+                   new TGeoCombiTrans(0., 0., -(100.7 + 56.2 + saa1ExtraShieldL / 2. + ziFaWTail), rotxz));
   voYOUT1->AddNode(asFaExtraShield, 1,
-                   new TGeoCombiTrans(0., 0., -(16.41 - 1.46 + kFaWring2HWidth + ziFaWTail), rotxz));
+                   new TGeoCombiTrans(0., 0., -(16.41 - 7.46 + kFaWring2HWidth + ziFaWTail), rotxz));
   top->AddNode(voYOUT1, 1, gGeoIdentity);
   //
   //  Mother volume for muon stations 4+5 and trigger stations.
