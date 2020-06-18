@@ -2208,8 +2208,9 @@ int GPUChainTracking::RunChain()
     if (runRecoStep(RecoStep::TPCCompression, &GPUChainTracking::RunTPCCompression)) {
       return 1;
     }
-    if (GetDeviceProcessingSettings().runCompressionStatistics) { // TODO: move to standalone.cxx
-      mCompressionStatistics->RunStatistics(mIOPtrs.clustersNative, processors()->tpcCompressor.mOutput, param());
+    if (GetDeviceProcessingSettings().runCompressionStatistics) {
+      CompressedClusters c = *mIOPtrs.tpcCompressedClusters;
+      mCompressionStatistics->RunStatistics(mIOPtrs.clustersNative, &c, param());
     }
   }
 
