@@ -7,7 +7,3 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
-
-message(STATUS "Building detectors for upgrades")
-add_subdirectory(IT3)
-add_subdirectory(PostLS4)

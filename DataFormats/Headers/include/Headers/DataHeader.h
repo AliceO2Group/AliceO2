@@ -632,6 +632,9 @@ constexpr o2::header::DataOrigin gDataOriginTOF{"TOF"};
 constexpr o2::header::DataOrigin gDataOriginTPC{"TPC"};
 constexpr o2::header::DataOrigin gDataOriginTRD{"TRD"};
 constexpr o2::header::DataOrigin gDataOriginZDC{"ZDC"};
+#ifdef ENABLE_UPGRADES
+constexpr o2::header::DataOrigin gDataOriginIT3{"IT3"};
+#endif
 
 //possible data types
 constexpr o2::header::DataDescription gDataDescriptionAny{"***************"};

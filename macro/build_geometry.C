@@ -45,6 +45,10 @@
 #include <algorithm>
 #endif
 
+#ifdef ENABLE_UPGRADES
+#include <ITS3Simulation/Detector.h>
+#endif
+
 void finalize_geometry(FairRunSim* run);
 
 bool isActivated(std::string s)
@@ -107,7 +111,7 @@ void build_geometry(FairRunSim* run = nullptr)
   run->SetField(field);
 
   // Create geometry
-  // we always need the gave
+  // we always need the cave
   o2::passive::Cave* cave = new o2::passive::Cave("CAVE");
   // adjust size depending on content
   cave->includeZDC(isActivated("ZDC"));
@@ -141,7 +145,11 @@ void build_geometry(FairRunSim* run = nullptr)
 
   // beam pipe
   if (isActivated("PIPE")) {
+#ifdef ENABLE_UPGRADES
+    run->AddModule(new o2::passive::Pipe("PIPE", "Beam pipe", 1.6f, 0.05));
+#else
     run->AddModule(new o2::passive::Pipe("PIPE", "Beam pipe"));
+#endif
   }
 
   // the absorber
@@ -180,6 +188,13 @@ void build_geometry(FairRunSim* run = nullptr)
     auto tpc = new o2::tpc::Detector(true);
     run->AddModule(tpc);
   }
+#ifdef ENABLE_UPGRADES
+  if (isActivated("IT3")) {
+    // ITS3
+    auto its3 = new o2::its3::Detector(kTRUE);
+    run->AddModule(its3);
+  }
+#endif
 
   if (isActivated("ITS")) {
     // its
