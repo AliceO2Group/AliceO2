@@ -891,7 +891,7 @@ class Table
 
   unfiltered_iterator iteratorAt(uint64_t i)
   {
-    return mBegin + i;
+    return mBegin + (i - mOffset);
   }
 
   filtered_iterator filtered_begin(SelectionVector selection)
@@ -1385,7 +1385,7 @@ class Filtered : public T
 
   iterator iteratorAt(uint64_t i)
   {
-    return mFilteredBegin + i;
+    return mFilteredBegin + (i - this->mOffset);
   }
 
   int64_t size() const
