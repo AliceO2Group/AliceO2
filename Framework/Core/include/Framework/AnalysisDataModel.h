@@ -435,6 +435,7 @@ namespace mcparticle
 DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);
 DECLARE_SOA_COLUMN(PdgCode, pdgCode, int);
 DECLARE_SOA_COLUMN(StatusCode, statusCode, int);
+DECLARE_SOA_COLUMN(Flags, flags, uint8_t);
 DECLARE_SOA_COLUMN(Mother, mother, int[2]);     // TODO needs INDEX pending NULL columns
 DECLARE_SOA_COLUMN(Daughter, daughter, int[2]); // TODO needs INDEX pending NULL columns
 DECLARE_SOA_COLUMN(Weight, weight, float);
@@ -449,17 +450,19 @@ DECLARE_SOA_COLUMN(Vt, vt, float);
 DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float px, float py) -> float { return static_cast<float>(M_PI) + std::atan2(-py, -px); });
 DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float px, float py, float pz) -> float { return -0.5f * std::log((std::sqrt(px * px + py * py + pz * pz) + pz) / (std::sqrt(px * px + py * py + pz * pz) - pz)); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float px, float py) -> float { return std::sqrt(px * px + py * py); });
+DECLARE_SOA_DYNAMIC_COLUMN(ProducedByGenerator, producedByGenerator, [](uint8_t flags) -> bool { return (flags & 0x1) == 0x0; });
 } // namespace mcparticle
 
 DECLARE_SOA_TABLE(McParticles, "AOD", "MCPARTICLE",
                   o2::soa::Index<>, mcparticle::McCollisionId,
-                  mcparticle::PdgCode, mcparticle::StatusCode,
+                  mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
                   mcparticle::Mother, mcparticle::Daughter, mcparticle::Weight,
                   mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
                   mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
                   mcparticle::Phi<mcparticle::Px, mcparticle::Py>,
                   mcparticle::Eta<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
-                  mcparticle::Pt<mcparticle::Px, mcparticle::Py>);
+                  mcparticle::Pt<mcparticle::Px, mcparticle::Py>,
+                  mcparticle::ProducedByGenerator<mcparticle::Flags>);
 using McParticle = McParticles::iterator;
 
 namespace mctracklabel
