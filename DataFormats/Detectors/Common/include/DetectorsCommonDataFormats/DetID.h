@@ -68,8 +68,13 @@ class DetID
   static constexpr ID FV0 = 13;
   static constexpr ID FDD = 14;
   static constexpr ID ACO = 15;
-  static constexpr ID First = ITS;
+#ifdef ENABLE_UPGRADES
+  static constexpr ID IT3 = 16;
+  static constexpr ID Last = IT3;
+#else
   static constexpr ID Last = ACO; ///< if extra detectors added, update this !!!
+#endif
+  static constexpr ID First = ITS;
 
   static constexpr int nDetectors = Last + 1; ///< number of defined detectors
 
@@ -126,19 +131,33 @@ class DetID
   ID mID = First; ///< detector ID
 
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
-
+#ifdef ENABLE_UPGRADES
+    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "IT3", nullptr};
+#else
     {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", nullptr};
-
+#endif
   // detector names, will be defined in DataSources
   static constexpr std::array<mask_t, nDetectors> sMasks = ///< detectot masks
     {utils::bit2Mask(ITS), utils::bit2Mask(TPC), utils::bit2Mask(TRD), utils::bit2Mask(TOF), utils::bit2Mask(PHS),
      utils::bit2Mask(CPV), utils::bit2Mask(EMC), utils::bit2Mask(HMP), utils::bit2Mask(MFT), utils::bit2Mask(MCH),
-     utils::bit2Mask(MID), utils::bit2Mask(ZDC), utils::bit2Mask(FT0), utils::bit2Mask(FV0), utils::bit2Mask(FDD), utils::bit2Mask(ACO)};
+     utils::bit2Mask(MID), utils::bit2Mask(ZDC), utils::bit2Mask(FT0), utils::bit2Mask(FV0), utils::bit2Mask(FDD),
+     utils::bit2Mask(ACO)
+#ifdef ENABLE_UPGRADES
+       ,
+     utils::bit2Mask(IT3)
+#endif
+  };
 
-  static constexpr std::array<o2h::DataOrigin, nDetectors> sOrigins = ///< detector data origins
+  static constexpr std::array<o2h::DataOrigin, nDetectors>
+    sOrigins = ///< detector data origins
     {o2h::gDataOriginITS, o2h::gDataOriginTPC, o2h::gDataOriginTRD, o2h::gDataOriginTOF, o2h::gDataOriginPHS,
      o2h::gDataOriginCPV, o2h::gDataOriginEMC, o2h::gDataOriginHMP, o2h::gDataOriginMFT, o2h::gDataOriginMCH,
-     o2h::gDataOriginMID, o2h::gDataOriginZDC, o2h::gDataOriginFT0, o2h::gDataOriginFV0, o2h::gDataOriginFDD, o2h::gDataOriginACO};
+     o2h::gDataOriginMID, o2h::gDataOriginZDC, o2h::gDataOriginFT0, o2h::gDataOriginFV0, o2h::gDataOriginFDD, o2h::gDataOriginACO
+#ifdef ENABLE_UPGRADES
+     ,
+     o2h::gDataOriginIT3
+#endif
+  };
 
   ClassDefNV(DetID, 1);
 };

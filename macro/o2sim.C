@@ -91,7 +91,6 @@ FairRunSim* o2sim_init(bool asservice)
 
   // construct geometry / including magnetic field
   build_geometry(run);
-
   // setup generator
   auto embedinto_filename = confref.getEmbedIntoFileName();
   auto primGen = new o2::eventgen::PrimaryGenerator();
