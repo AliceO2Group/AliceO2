@@ -102,7 +102,9 @@ double HighResTimer::GetCurrentElapsedTime(bool reset)
 {
   if (running == 0) {
     double retVal = GetElapsedTime();
-    Reset();
+    if (reset) {
+      Reset();
+    }
     return (retVal);
   }
   double CurrentTime = GetTime();
