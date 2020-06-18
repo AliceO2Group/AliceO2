@@ -133,7 +133,7 @@ class BasicCCDBManager
   long mTimestamp{o2::ccdb::getCurrentTimestamp()};     // timestamp to be used for query (by default "now")
   bool mCanDefault = false;                             // whether default is ok --> useful for testing purposes done standalone/isolation
   bool mCachingEnabled = true;                          // whether caching is enabled
-  bool mCheckObjValidityEnabled = false;                // wether the validity of cached object is checked before proceeding to a CCDB API query  
+  bool mCheckObjValidityEnabled = false;                // wether the validity of cached object is checked before proceeding to a CCDB API query
   long mCreatedNotAfter = 0;                            // upper limit for object creation timestamp (TimeMachine mode) - If-Not-After HTTP header
   long mCreatedNotBefore = 0;                           // lower limit for object creation timestamp (TimeMachine mode) - If-Not-Before HTTP header
 };
@@ -147,14 +147,17 @@ T* BasicCCDBManager::getForTimeStamp(std::string const& path, long timestamp)
                                                  mCreatedNotBefore ? std::to_string(mCreatedNotBefore) : "");
   }
   auto& cached = mCache[path];
+  if (mCheckObjValidityEnabled && cached.isValid(timestamp))
+    return reinterpret_cast<T*>(cached.objPtr.get());
+
   T* ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid,
                                                  mCreatedNotAfter ? std::to_string(mCreatedNotAfter) : "",
                                                  mCreatedNotBefore ? std::to_string(mCreatedNotBefore) : "");
   if (ptr) { // new object was shipped, old one (if any) is not valid anymore
     cached.objPtr.reset(ptr);
     cached.uuid = mHeaders["ETag"];
-    cached.startvalidity = std::stol(mHeaders["Valid-From"].data());
-    cached.endvalidity = std::stol(mHeaders["Valid-Until"].data());
+    cached.startvalidity = std::stol(mHeaders["Valid-From"]);
+    cached.endvalidity = std::stol(mHeaders["Valid-Until"]);
   } else if (mHeaders.count("Error")) { // in case of errors the pointer is 0 and headers["Error"] should be set
     clearCache(path);                   // in case of any error clear cache for this object
   } else {                              // the old object is valid
