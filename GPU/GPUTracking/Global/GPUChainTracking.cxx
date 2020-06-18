@@ -1975,10 +1975,13 @@ int GPUChainTracking::RunTPCDecompression()
     this->AllocateRegisteredMemory(this->mInputsHost->mResourceClusterNativeOutput, this->mOutputClustersNative);
     return this->mInputsHost->mPclusterNativeOutput;
   };
+  auto& gatherTimer = getTimer<TPCClusterDecompressor>("TPCDecompression", 0);
+  gatherTimer.Start();
   if (decomp.decompress(mIOPtrs.tpcCompressedClusters, *mClusterNativeAccess, allocator, param())) {
     GPUError("Error decompressing clusters");
     return 1;
   }
+  gatherTimer.Stop();
   mIOPtrs.clustersNative = mClusterNativeAccess.get();
   if (mRec->IsGPU()) {
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
