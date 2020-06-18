@@ -756,20 +756,18 @@ Int_t Geometry::GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t iet
 
 std::tuple<int, int> Geometry::GlobalRowColFromIndex(int cellID) const
 {
-  auto indexes = GetCellIndex(cellID);
-  auto supermodule = std::get<0>(indexes),
-       module = std::get<1>(indexes),
-       nPhiInMod = std::get<2>(indexes),
-       nEtaInMod = std::get<3>(indexes);
-  auto rcSupermodule = GetCellPhiEtaIndexInSModule(supermodule, nPhiInMod, nPhiInMod, nEtaInMod);
-  auto row = std::get<0>(rcSupermodule),
-       col = std::get<1>(rcSupermodule);
+  auto [supermodule, module, phiInModule, etaInModule] = GetCellIndex(cellID);
+  auto [row, col] = GetCellPhiEtaIndexInSModule(supermodule, module, phiInModule, etaInModule);
   // add offsets (row / col per supermodule)
+  if (supermodule == 13 || supermodule == 15 || supermodule == 17) {
+    // DCal odd SMs need shift of the col. index in oder to get the global col. index
+    col += 16;
+  }
   if (supermodule % 2)
     col += mNZ * 2;
   int sector = supermodule / 2;
   if (sector > 0) {
-    for (int isec = 0; isec < sector - 1; isec++) {
+    for (int isec = 0; isec < sector; isec++) {
       auto smtype = GetSMType(isec * 2);
       auto nphism = (smtype == EMCAL_THIRD || smtype == DCAL_EXT) ? GetNPhi() / 3 : GetNPhi();
       row += 2 * nphism;
