@@ -54,6 +54,9 @@ class DecayerPythia8 : public TVirtualMCDecayer
   /** Pythia8 **/
   ::Pythia8::Pythia mPythia; //!
 
+  /** flags **/
+  bool mVerbose = false;
+
   ClassDefOverride(DecayerPythia8, 1);
 
 }; /** class Decayer **/
