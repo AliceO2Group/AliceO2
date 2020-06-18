@@ -131,22 +131,22 @@ DECLARE_SOA_COLUMN(Rho1PtY, rho1PtY, int8_t);
 DECLARE_SOA_COLUMN(Rho1PtZ, rho1PtZ, int8_t);
 DECLARE_SOA_COLUMN(Rho1PtSnp, rho1PtSnp, int8_t);
 DECLARE_SOA_COLUMN(Rho1PtTgl, rho1PtTgl, int8_t);
- 
-DECLARE_SOA_EXPRESSION_COLUMN(CYY, cYY, float, aod::track::sigmaY*aod::track::sigmaY);
-DECLARE_SOA_EXPRESSION_COLUMN(CZY, cZY, float, (aod::track::rhoZY/128.f)*(aod::track::sigmaZ*aod::track::sigmaY));
-DECLARE_SOA_EXPRESSION_COLUMN(CZZ, cZZ, float, aod::track::sigmaZ*aod::track::sigmaZ);
-DECLARE_SOA_EXPRESSION_COLUMN(CSnpY, cSnpY, float, (aod::track::rhoSnpY/128.f)*(aod::track::sigmaSnp*aod::track::sigmaY));
-DECLARE_SOA_EXPRESSION_COLUMN(CSnpZ, cSnpZ, float, (aod::track::rhoSnpZ/128.f)*(aod::track::sigmaSnp*aod::track::sigmaZ));
-DECLARE_SOA_EXPRESSION_COLUMN(CSnpSnp, cSnpSnp, float, aod::track::sigmaSnp*aod::track::sigmaSnp);
-DECLARE_SOA_EXPRESSION_COLUMN(CTglY, cTglY, float, (aod::track::rhoTglY/128.f)*(aod::track::sigmaTgl*aod::track::sigmaY));
-DECLARE_SOA_EXPRESSION_COLUMN(CTglZ, cTglZ, float, (aod::track::rhoTglZ/128.f)*(aod::track::sigmaTgl*aod::track::sigmaZ));
-DECLARE_SOA_EXPRESSION_COLUMN(CTglSnp, cTglSnp, float, (aod::track::rhoTglSnp/128.f)*(aod::track::sigmaTgl*aod::track::sigmaSnp));
-DECLARE_SOA_EXPRESSION_COLUMN(CTglTgl, cTglTgl, float, aod::track::sigmaTgl*aod::track::sigmaTgl);
-DECLARE_SOA_EXPRESSION_COLUMN(C1PtY, c1PtY, float, (aod::track::rho1PtY/128.f)*(aod::track::sigma1Pt*aod::track::sigmaY));
-DECLARE_SOA_EXPRESSION_COLUMN(C1PtZ, c1PtZ, float, (aod::track::rho1PtZ/128.f)*(aod::track::sigma1Pt*aod::track::sigmaZ));
-DECLARE_SOA_EXPRESSION_COLUMN(C1PtSnp, c1PtSnp, float, (aod::track::rho1PtSnp/128.f)*(aod::track::sigma1Pt*aod::track::sigmaSnp));
-DECLARE_SOA_EXPRESSION_COLUMN(C1PtTgl, c1PtTgl, float, (aod::track::rho1PtTgl/128.f)*(aod::track::sigma1Pt*aod::track::sigmaTgl));
-DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, aod::track::sigma1Pt*aod::track::sigma1Pt);
+
+DECLARE_SOA_EXPRESSION_COLUMN(CYY, cYY, float, aod::track::sigmaY* aod::track::sigmaY);
+DECLARE_SOA_EXPRESSION_COLUMN(CZY, cZY, float, (aod::track::rhoZY / 128.f) * (aod::track::sigmaZ * aod::track::sigmaY));
+DECLARE_SOA_EXPRESSION_COLUMN(CZZ, cZZ, float, aod::track::sigmaZ* aod::track::sigmaZ);
+DECLARE_SOA_EXPRESSION_COLUMN(CSnpY, cSnpY, float, (aod::track::rhoSnpY / 128.f) * (aod::track::sigmaSnp * aod::track::sigmaY));
+DECLARE_SOA_EXPRESSION_COLUMN(CSnpZ, cSnpZ, float, (aod::track::rhoSnpZ / 128.f) * (aod::track::sigmaSnp * aod::track::sigmaZ));
+DECLARE_SOA_EXPRESSION_COLUMN(CSnpSnp, cSnpSnp, float, aod::track::sigmaSnp* aod::track::sigmaSnp);
+DECLARE_SOA_EXPRESSION_COLUMN(CTglY, cTglY, float, (aod::track::rhoTglY / 128.f) * (aod::track::sigmaTgl * aod::track::sigmaY));
+DECLARE_SOA_EXPRESSION_COLUMN(CTglZ, cTglZ, float, (aod::track::rhoTglZ / 128.f) * (aod::track::sigmaTgl * aod::track::sigmaZ));
+DECLARE_SOA_EXPRESSION_COLUMN(CTglSnp, cTglSnp, float, (aod::track::rhoTglSnp / 128.f) * (aod::track::sigmaTgl * aod::track::sigmaSnp));
+DECLARE_SOA_EXPRESSION_COLUMN(CTglTgl, cTglTgl, float, aod::track::sigmaTgl* aod::track::sigmaTgl);
+DECLARE_SOA_EXPRESSION_COLUMN(C1PtY, c1PtY, float, (aod::track::rho1PtY / 128.f) * (aod::track::sigma1Pt * aod::track::sigmaY));
+DECLARE_SOA_EXPRESSION_COLUMN(C1PtZ, c1PtZ, float, (aod::track::rho1PtZ / 128.f) * (aod::track::sigma1Pt * aod::track::sigmaZ));
+DECLARE_SOA_EXPRESSION_COLUMN(C1PtSnp, c1PtSnp, float, (aod::track::rho1PtSnp / 128.f) * (aod::track::sigma1Pt * aod::track::sigmaSnp));
+DECLARE_SOA_EXPRESSION_COLUMN(C1PtTgl, c1PtTgl, float, (aod::track::rho1PtTgl / 128.f) * (aod::track::sigma1Pt * aod::track::sigmaTgl));
+DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, aod::track::sigma1Pt* aod::track::sigma1Pt);
 
 // TRACKEXTRA TABLE definition
 DECLARE_SOA_COLUMN(TPCInnerParam, tpcInnerParam, float);
@@ -209,28 +209,26 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACKPAR",
 DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACKPAR", aod::track::Pt2);
 
 DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKPARCOV",
-                  track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
-		  track::RhoZY, track::RhoSnpY, track::RhoSnpZ, track::RhoTglY, track::RhoTglZ,
-                  track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl
-                  );
+                       track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
+                       track::RhoZY, track::RhoSnpY, track::RhoSnpZ, track::RhoTglY, track::RhoTglZ,
+                       track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl);
 
 DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKPARCOV",
-			   aod::track::CYY,
-			   aod::track::CZY,
-			   aod::track::CZZ,
-			   aod::track::CSnpY,
-			   aod::track::CSnpZ,
-			   aod::track::CSnpSnp,
-			   aod::track::CTglY,
-			   aod::track::CTglZ,
-			   aod::track::CTglSnp,
-			   aod::track::CTglTgl,
-			   aod::track::C1PtY,
-			   aod::track::C1PtZ,
-			   aod::track::C1PtSnp,
-			   aod::track::C1PtTgl,
-			   aod::track::C1Pt21Pt2
-			   );
+                           aod::track::CYY,
+                           aod::track::CZY,
+                           aod::track::CZZ,
+                           aod::track::CSnpY,
+                           aod::track::CSnpZ,
+                           aod::track::CSnpSnp,
+                           aod::track::CTglY,
+                           aod::track::CTglZ,
+                           aod::track::CTglSnp,
+                           aod::track::CTglTgl,
+                           aod::track::C1PtY,
+                           aod::track::C1PtZ,
+                           aod::track::C1PtSnp,
+                           aod::track::C1PtTgl,
+                           aod::track::C1Pt21Pt2);
 
 DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCInnerParam, track::Flags, track::ITSClusterMap,
