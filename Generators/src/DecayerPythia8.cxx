@@ -74,8 +74,6 @@ void DecayerPythia8::Decay(Int_t pdg, TLorentzVector* lv)
 
 /*****************************************************************/
 
-#include <iostream>
-
 Int_t DecayerPythia8::ImportParticles(TClonesArray* particles)
 {
   TClonesArray& ca = *particles;
