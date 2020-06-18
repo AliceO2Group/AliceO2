@@ -153,8 +153,8 @@ T* BasicCCDBManager::getForTimeStamp(std::string const& path, long timestamp)
   if (ptr) { // new object was shipped, old one (if any) is not valid anymore
     cached.objPtr.reset(ptr);
     cached.uuid = mHeaders["ETag"];
-    cached.startvalidity = std::stol(mMetaData["Valid-From"]);
-    cached.endvalidity = std::stol(mMetaData["Valid-Until"]);
+    cached.startvalidity = std::stol(mHeaders["Valid-From"].data());
+    cached.endvalidity = std::stol(mHeaders["Valid-Until"].data());
   } else if (mHeaders.count("Error")) { // in case of errors the pointer is 0 and headers["Error"] should be set
     clearCache(path);                   // in case of any error clear cache for this object
   } else {                              // the old object is valid
