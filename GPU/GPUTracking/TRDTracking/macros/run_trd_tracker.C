@@ -16,10 +16,12 @@
 
 // O2 header
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonConstants/LHCConstants.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "TRDBase/Tracklet.h"
+#include "DataFormatsTRD/TriggerRecord.h"
 
 #endif
 
@@ -29,6 +31,9 @@ void run_trd_tracker(std::string path = "./",
                      std::string inputTracks = "o2match_itstpc.root",
                      std::string inputTracklets = "trdtracklets.root")
 {
+  //-------- debug time information from tracks and tracklets
+  std::vector<float> trdTriggerTimes;
+  std::vector<float> tpcTrackTimes;
 
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
@@ -88,11 +93,23 @@ void run_trd_tracker(std::string path = "./",
   TChain trdTracklets("o2sim");
   trdTracklets.AddFile((path + inputTracklets).c_str());
 
+  std::vector<o2::trd::TriggerRecord>* triggerRecordsInArrayPtr = nullptr;
+  trdTracklets.SetBranchAddress("TrackTrg", &triggerRecordsInArrayPtr);
   std::vector<o2::trd::Tracklet>* trackletsInArrayPtr = nullptr;
   trdTracklets.SetBranchAddress("Tracklet", &trackletsInArrayPtr);
   trdTracklets.GetEntry(0);
+  int nCollisions = triggerRecordsInArrayPtr->size();
   int nTracklets = trackletsInArrayPtr->size();
-  printf("There are %i tracklets in total\n", nTracklets);
+  printf("There are %i tracklets in total from %i trigger records\n", nTracklets, nCollisions);
+
+  for (int iEv = 0; iEv < nCollisions; ++iEv) {
+    o2::trd::TriggerRecord &trg = triggerRecordsInArrayPtr->at(iEv);
+    int nTrackletsCurrent = trg.getNumberOfObjects();
+    int iFirstTracklet = trg.getFirstEntry();
+    int64_t evTime = trg.getBCData().toLong() * o2::constants::lhc::LHCBunchSpacingNS; // event time in ns
+    trdTriggerTimes.push_back(evTime/1000.);
+    printf("Event %i: Occured at %li us after SOR, contains %i tracklets, index of first tracklet is %i\n", iEv, evTime/1000, nTrackletsCurrent, iFirstTracklet);
+  }
 
 
   tracker->Reset();
@@ -118,8 +135,10 @@ void run_trd_tracker(std::string path = "./",
     }
     tracker->LoadTrack(trkLoad);
     auto trkTime = trk.getTimeMUS().getTimeStamp();
+    tpcTrackTimes.push_back(trkTime);
     printf("Loaded track %i with time %f\n", iTrk, trkTime);
   }
+  /*
   for (int iTrklt = 0; iTrklt < nTracklets; ++iTrklt) {
     auto trklt = trackletsInArrayPtr->at(iTrklt);
     unsigned int trkltWord = trklt.getTrackletWord();
@@ -134,6 +153,6 @@ void run_trd_tracker(std::string path = "./",
   tracker->DumpTracks();
   tracker->DoTracking(chainTracking);
   tracker->DumpTracks();
-
+  */
   printf("Done\n");
 }
