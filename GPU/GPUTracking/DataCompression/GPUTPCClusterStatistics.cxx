@@ -104,7 +104,7 @@ void GenerateCodes(const INode* node, const HuffCode& prefix, HuffCodeMap& outCo
 
 void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* clustersNative, const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param)
 {
-  bool decodingError = false;
+  unsigned int decodingErrors = 0;
   o2::tpc::ClusterNativeAccess clustersNativeDecoded;
   std::vector<o2::tpc::ClusterNative> clusterBuffer;
   GPUInfo("Compression statistics, decoding: %d attached (%d tracks), %d unattached", clustersCompressed->nAttachedClusters, clustersCompressed->nTracks, clustersCompressed->nUnattachedClusters);
@@ -116,7 +116,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
       for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
         if (clustersNative->nClusters[i][j] != clustersNativeDecoded.nClusters[i][j]) {
           GPUError("Number of clusters mismatch slice %u row %u: expected %d v.s. decoded %d", i, j, clustersNative->nClusters[i][j], clustersNativeDecoded.nClusters[i][j]);
-          decodingError = true;
+          decodingErrors++;
           continue;
         }
         tmpClusters.resize(clustersNative->nClusters[i][j]);
@@ -134,15 +134,17 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
           const o2::tpc::ClusterNative& c1 = tmpClusters[k];
           const o2::tpc::ClusterNative& c2 = clustersNativeDecoded.clusters[i][j][k];
           if (c1.timeFlagsPacked != c2.timeFlagsPacked || c1.padPacked != c2.padPacked || c1.sigmaTimePacked != c2.sigmaTimePacked || c1.sigmaPadPacked != c2.sigmaPadPacked || c1.qMax != c2.qMax || c1.qTot != c2.qTot) {
-            GPUWarning("Cluster mismatch: slice %2u row %3u hit %5u: %6d %3d %4d %3d %3d %4d %4d", i, j, k, (int)c1.getTimePacked(), (int)c1.getFlags(), (int)c1.padPacked, (int)c1.sigmaTimePacked, (int)c1.sigmaPadPacked, (int)c1.qMax, (int)c1.qTot);
-            GPUWarning("%45s %6d %3d %4d %3d %3d %4d %4d", "", (int)c2.getTimePacked(), (int)c2.getFlags(), (int)c2.padPacked, (int)c2.sigmaTimePacked, (int)c2.sigmaPadPacked, (int)c2.qMax, (int)c2.qTot);
-            decodingError = true;
+            if (decodingErrors++ < 100) {
+              GPUWarning("Cluster mismatch: slice %2u row %3u hit %5u: %6d %3d %4d %3d %3d %4d %4d", i, j, k, (int)c1.getTimePacked(), (int)c1.getFlags(), (int)c1.padPacked, (int)c1.sigmaTimePacked, (int)c1.sigmaPadPacked, (int)c1.qMax, (int)c1.qTot);
+              GPUWarning("%45s %6d %3d %4d %3d %3d %4d %4d", "", (int)c2.getTimePacked(), (int)c2.getFlags(), (int)c2.padPacked, (int)c2.sigmaTimePacked, (int)c2.sigmaPadPacked, (int)c2.qMax, (int)c2.qTot);
+            }
           }
         }
       }
     }
-    if (decodingError) {
+    if (decodingErrors) {
       mDecodingError = true;
+      GPUWarning("Errors during cluster decoding %u\n", decodingErrors);
     } else {
       GPUInfo("Cluster decoding verification: PASSED");
     }
