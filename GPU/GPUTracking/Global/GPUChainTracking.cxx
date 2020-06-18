@@ -906,7 +906,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     processorsShadow()->ioPtrs.tpcZS = mInputsShadow->mPzsMeta;
     WriteToConstantMemory(RecoStep::TPCClusterFinding, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
   }
-  WriteToConstantMemory(RecoStep::TPCClusterFinding, (char*)processors()->tpcClusterer - (char*)processors(), processorsShadow()->tpcClusterer, sizeof(GPUTPCClusterFinder) * NSLICES, mRec->NStreams() - 1, &mEvents->init);
+  if (doGPU) {
+    WriteToConstantMemory(RecoStep::TPCClusterFinding, (char*)processors()->tpcClusterer - (char*)processors(), processorsShadow()->tpcClusterer, sizeof(GPUTPCClusterFinder) * NSLICES, mRec->NStreams() - 1, &mEvents->init);
+  }
   SynchronizeGPU(); // TODO : get rid of me!
 
   size_t nClsTotal = 0;
@@ -2263,6 +2265,8 @@ int GPUChainTracking::CheckErrorCodes()
 void GPUChainTracking::ClearErrorCodes()
 {
   processors()->errorCodes.clear();
-  WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->errorCodes - (char*)processors(), &processorsShadow()->errorCodes, sizeof(processorsShadow()->errorCodes), -1);
+  if (mRec->IsGPU()) {
+    WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->errorCodes - (char*)processors(), &processorsShadow()->errorCodes, sizeof(processorsShadow()->errorCodes), -1);
+  }
   TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes);
 }
