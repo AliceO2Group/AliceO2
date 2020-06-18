@@ -2205,10 +2205,6 @@ int GPUChainTracking::RunChain()
     if (runRecoStep(RecoStep::TPCCompression, &GPUChainTracking::RunTPCCompression)) {
       return 1;
     }
-    if (GetDeviceProcessingSettings().runCompressionStatistics) {
-      CompressedClusters c = *mIOPtrs.tpcCompressedClusters;
-      mCompressionStatistics->RunStatistics(mIOPtrs.clustersNative, &c, param());
-    }
   }
 
   if (runRecoStep(RecoStep::TRDTracking, &GPUChainTracking::RunTRDTracking)) {
@@ -2223,6 +2219,17 @@ int GPUChainTracking::RunChain()
     return 1;
   }
 
+  return GetDeviceProcessingSettings().doublePipeline ? 0 : RunChainFinalize();
+}
+
+int GPUChainTracking::RunChainFinalize()
+{
+  if (mIOPtrs.clustersNative && (GetRecoSteps() & RecoStep::TPCCompression) && GetDeviceProcessingSettings().runCompressionStatistics) {
+    CompressedClusters c = *mIOPtrs.tpcCompressedClusters;
+    mCompressionStatistics->RunStatistics(mIOPtrs.clustersNative, &c, param());
+  }
+
+  const bool needQA = GPUQA::QAAvailable() && (GetDeviceProcessingSettings().runQA || (GetDeviceProcessingSettings().eventDisplay && mIOPtrs.nMCInfosTPC));
   if (needQA) {
     mRec->getGeneralStepTimer(GeneralStep::QA).Start();
     mQA->RunQA(!GetDeviceProcessingSettings().runQA);
@@ -2291,7 +2298,7 @@ int GPUChainTracking::FinalizePipelinedProcessing()
     }
     mPipelineFinalizationCtx.reset();
   }
-  return 0;
+  return RunChainFinalize();
 }
 
 int GPUChainTracking::HelperReadEvent(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par) { return ReadEvent(iSlice, threadId); }

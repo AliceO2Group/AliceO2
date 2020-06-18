@@ -254,6 +254,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::vector<outputQueueEntry> mOutputQueue;
 
  private:
+  int RunChainFinalize();
   int RunTPCTrackingSlices_internal();
   std::pair<unsigned int, unsigned int> RunTPCClusterizer_transferZS(int iSlice, unsigned int start, unsigned int end, int lane);
   void RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int stage, bool doGPU, int lane);
