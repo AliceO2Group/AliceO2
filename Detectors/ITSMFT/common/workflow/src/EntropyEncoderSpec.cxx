@@ -61,7 +61,7 @@ DataProcessorSpec getEntropyEncoderSpec(o2::header::DataOrigin orig)
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", orig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("patterns", orig, "PATTERNS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", orig, "ClusterROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", orig, "CLUSTERSROF", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     orig == o2::header::gDataOriginITS ? "its-entropy-encoder" : "mft-entropy-encoder",
