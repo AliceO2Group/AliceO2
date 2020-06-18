@@ -234,9 +234,17 @@ int ReadConfiguration(int argc, char** argv)
   configStandalone.OMPThreads = 1;
 #endif
   if (configStandalone.outputcontrolmem) {
+    bool forceEmptyMemory = getenv("LD_PRELOAD") && strstr(getenv("LD_PRELOAD"), "valgrind") != nullptr;
     outputmemory.reset(new char[configStandalone.outputcontrolmem]);
+    if (forceEmptyMemory) {
+      printf("Valgrind detected, emptying GPU output memory to avoid false positive undefined reads");
+      memset(outputmemory.get(), 0, configStandalone.outputcontrolmem);
+    }
     if (configStandalone.configProc.doublePipeline) {
       outputmemoryPipeline.reset(new char[configStandalone.outputcontrolmem]);
+      if (forceEmptyMemory) {
+        memset(outputmemoryPipeline.get(), 0, configStandalone.outputcontrolmem);
+      }
     }
   }
 
