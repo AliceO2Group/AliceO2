@@ -83,6 +83,7 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   gpuDeviceOnly = false;
   nDeviceHelperThreads = 2;
   debugLevel = -1;
+  allocDebugLevel = 0;
   deviceTimers = true;
   debugMask = -1;
   comparableDebutOutput = true;

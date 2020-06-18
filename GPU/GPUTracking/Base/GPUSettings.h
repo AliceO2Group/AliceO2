@@ -144,6 +144,7 @@ struct GPUSettingsDeviceProcessing {
   bool gpuDeviceOnly;                 // Use only GPU as device (i.e. no CPU for OpenCL)
   int nDeviceHelperThreads;           // Additional CPU helper-threads for CPU parts of processing with accelerator
   int debugLevel;                     // Level of debug output (-1 = silent)
+  int allocDebugLevel;                // Some debug output for memory allocations (without messing with normal debug level)
   int debugMask;                      // Mask for debug output dumps to file
   bool comparableDebutOutput;         // Make CPU and GPU debug output comparable (sort / skip concurrent parts)
   int resetTimers;                    // Reset timers every event
