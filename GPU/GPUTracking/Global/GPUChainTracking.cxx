@@ -2129,6 +2129,7 @@ int GPUChainTracking::DoTRDGPUTracking()
 
 int GPUChainTracking::RunChain()
 {
+  const auto threadContext = GetThreadContext();
   if (GetDeviceProcessingSettings().runCompressionStatistics && mCompressionStatistics == nullptr) {
     mCompressionStatistics.reset(new GPUTPCClusterStatistics);
   }
@@ -2142,7 +2143,6 @@ int GPUChainTracking::RunChain()
     *mDebugFile << "\n\nProcessing event " << mRec->getNEventsProcessed() << std::endl;
   }
   if (mRec->slavesExist() && mRec->IsGPU()) {
-    const auto threadContext = GetThreadContext();
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->calibObjects - (char*)processors(), &mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects), 0); // Reinitialize
   }
 
@@ -2161,10 +2161,7 @@ int GPUChainTracking::RunChain()
 
   PrepareDebugOutput();
 
-  {
-    const auto threadContext = GetThreadContext();
-    SynchronizeStream(0); // Synchronize all init copies that might be ongoing
-  }
+  SynchronizeStream(0); // Synchronize all init copies that might be ongoing
 
   if (mIOPtrs.tpcCompressedClusters) {
     if (runRecoStep(RecoStep::TPCDecompression, &GPUChainTracking::RunTPCDecompression)) {
@@ -2219,7 +2216,6 @@ int GPUChainTracking::RunChain()
   }
 
   if (!GetDeviceProcessingSettings().doublePipeline) { // Synchronize with output copies running asynchronously
-    const auto& threadContext = GetThreadContext();
     SynchronizeStream(mRec->NStreams() - 2);
   }
 
