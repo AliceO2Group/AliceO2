@@ -140,10 +140,7 @@ GPUdi() float Ray::crossRadial(float cs, float sn) const
 {
   // calculate t of crossing with radial line with inclination cosine and sine
   float den = mD[0] * sn - mD[1] * cs;
-  if (o2::gpu::CAMath::Abs(den) < Tiny) {
-    return InvalidT;
-  }
-  return (mP[1] * cs - mP[0] * sn) / den;
+  return den != 0. ? (mP[1] * cs - mP[0] * sn) / den : InvalidT;
 }
 
 //______________________________________________________
@@ -154,8 +151,9 @@ GPUdi() bool Ray::crossCircleR(float r2, float& cross1, float& cross2) const
   // t^2*mDistXY2 +- sqrt( mXDxPlusYDy^2 - mDistXY2*(mR02 - r^2) )
   //
   float det = mXDxPlusYDy2 - mDistXY2 * (mR02 - r2);
-  if (det < 0)
+  if (det < 0) {
     return false; // no intersection
+  }
   float detRed = o2::gpu::CAMath::Sqrt(det) * mDistXY2i;
   cross1 = mXDxPlusYDyRed + detRed; // (-mXDxPlusYDy + det)*mDistXY2i;
   cross2 = mXDxPlusYDyRed - detRed; // (-mXDxPlusYDy - det)*mDistXY2i;
@@ -173,7 +171,7 @@ GPUdi() float Ray::crossRadial(const MatLayerCyl& lr, int sliceID) const
 GPUdi() float Ray::crossZ(float z) const
 {
   // calculate t of crossing XY plane at Z
-  return o2::gpu::CAMath::Abs(mD[2]) > Tiny ? (z - mP[2]) / mD[2] : InvalidT;
+  return mD[2] != 0. ? (z - mP[2]) / mD[2] : InvalidT;
 }
 
 //______________________________________________________

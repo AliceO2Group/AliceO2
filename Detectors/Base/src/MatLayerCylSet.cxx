@@ -277,6 +277,9 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
           checkMorePhi = false;
         } else { // last phi slice still not reached
           tEndPhi = ray.crossRadial(lr, (stepPhiID > 0 ? phiID + 1 : phiID) % lr.getNPhiSlices());
+          if (tEndPhi == Ray::InvalidT) {
+            break; // ray parallel to radial line, abandon check for phi bin change
+          }
         }
         auto zID = lr.getZBinID(ray.getZ(tStartPhi));
         auto zIDLast = lr.getZBinID(ray.getZ(tEndPhi));
@@ -296,6 +299,9 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
               checkMoreZ = false;
             } else {
               tEndZ = ray.crossZ(lr.getZBinMin(stepZID > 0 ? zID + 1 : zID));
+              if (tEndZ == Ray::InvalidT) { // track normal to Z axis, abandon Zbin change test
+                break;
+              }
             }
             // account materials of this step
             float step = tEndZ - tStartZ; // the real step is ray.getDist(tEnd-tStart), will rescale all later
