@@ -25,6 +25,7 @@
 #include <fstream>
 #include <FairVolume.h>
 #include <DetectorsCommonDataFormats/NameConf.h>
+#include "SimConfig/SimUserDecay.h"
 
 namespace o2
 {
@@ -170,6 +171,28 @@ void O2MCApplicationBase::BeginEvent()
   static_cast<o2::data::Stack*>(GetStack())->setMCEventStats(&header->getMCEventStats());
 
   mStepCounter = 0;
+}
+
+void O2MCApplicationBase::AddParticles()
+{
+  // dispatch first to function in FairRoot
+  FairMCApplication::AddParticles();
+
+  auto& param = o2::conf::SimUserDecay::Instance();
+  LOG(INFO) << "Printing \'SimUserDecay\' parameters";
+  LOG(INFO) << param;
+
+  // check if there are PDG codes requested for user decay
+  if (param.pdglist.empty())
+    return;
+
+  // loop over PDG codes in the string
+  std::stringstream ss(param.pdglist);
+  int pdg;
+  while (ss >> pdg) {
+    LOG(INFO) << "Setting user decay for PDG " << pdg;
+    TVirtualMC::GetMC()->SetUserDecay(pdg);
+  }
 }
 
 void O2MCApplication::initLate()
