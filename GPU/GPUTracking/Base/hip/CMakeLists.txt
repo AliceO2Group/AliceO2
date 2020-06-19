@@ -13,12 +13,6 @@ set(MODULE GPUTrackingHIP)
 set(CMAKE_CXX_COMPILER ${hip_HIPCC_EXECUTABLE})
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-string(REPLACE " -g " " " CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} ")
-string(REPLACE " -g " " " CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE}} ")
-
-string(REPLACE " -ggdb " " " CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} ")
-string(REPLACE " -ggdb " " " CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE}} ")
-
 #setting flags as a global option for all HIP targets.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-gpu-rdc -Wno-invalid-command-line-argument -Wno-unused-command-line-argument -Wno-invalid-constexpr -Wno-ignored-optimization-argument -Wno-unused-private-field")
 if(DEFINED HIP_AMDGPUTARGET)
