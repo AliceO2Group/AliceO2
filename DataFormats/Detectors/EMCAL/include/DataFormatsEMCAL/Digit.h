@@ -89,7 +89,7 @@ class Digit : public DigitBase
   Short_t mTower = -1;                                   ///< Tower index (absolute cell ID)
   ChannelType_t mChannelType = ChannelType_t::HIGH_GAIN; ///< Channel type (high gain, low gain, TRU, LEDMON)
 
-  ClassDefNV(Digit, 1);
+  ClassDefNV(Digit, 2);
 };
 
 std::ostream& operator<<(std::ostream& stream, const Digit& dig);
