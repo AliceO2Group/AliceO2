@@ -210,8 +210,8 @@ void ReadRaw::writeDigits(std::string fileDataOut)
     digitVec.emplace_back(newDigit);
   }
   mDigitAccum.clear();
-  mOutTree->Branch("FT0Digit", &digitVec);
-  mOutTree->Branch("FT0ChannelData", &chDataVec);
+  mOutTree->Branch("FT0DIGITSBC", &digitVec);
+  mOutTree->Branch("FT0DIGITSCH", &chDataVec);
   mOutTree->Fill();
 
   mOutFile->cd();
