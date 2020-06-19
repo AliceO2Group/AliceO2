@@ -51,7 +51,8 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
                                                (double)inChData[ich].QTCAmpl * Geometry::MV_2_NchannelsInverse,
                                                inChData[ich].ChainQTC};
 
-    if (std::fabs(outChData[ich].CFDTime) < 2000) {
+    //  only signals with amplitude participate in collision time
+    if (outChData[ich].QTCAmpl > 0) {
       if (outChData[ich].ChId < nMCPsA) {
         sideAtime += outChData[ich].CFDTime;
         ndigitsA++;
@@ -65,6 +66,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
                                            2 * o2::InteractionRecord::DummyTime,
                                            2 * o2::InteractionRecord::DummyTime,
                                            2 * o2::InteractionRecord::DummyTime};
+  // !!!! tobe done::should be fix with ITS vertex
   mCollisionTime[TimeA] = (ndigitsA > 0) ? sideAtime / Float_t(ndigitsA) : 2 * o2::InteractionRecord::DummyTime;
   mCollisionTime[TimeC] = (ndigitsC > 0) ? sideCtime / Float_t(ndigitsC) : 2 * o2::InteractionRecord::DummyTime;
 
