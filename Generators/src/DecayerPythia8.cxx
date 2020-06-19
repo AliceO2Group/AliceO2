@@ -51,6 +51,9 @@ void DecayerPythia8::Init()
     }
   }
 
+  /** verbose flag **/
+  mVerbose = param.verbose;
+
   /** initialise **/
   if (!mPythia.init()) {
     LOG(FATAL) << "Failed to init \'DecayerPythia8\': init returned with error";
@@ -68,6 +71,8 @@ void DecayerPythia8::Decay(Int_t pdg, TLorentzVector* lv)
   mPythia.event.clear();
   mPythia.event.append(pdg, 11, 0, 0, lv->Px(), lv->Py(), lv->Pz(), lv->E(), lv->M());
   mPythia.moreDecays();
+  if (mVerbose)
+    mPythia.event.list();
 
   mPythia.particleData.mayDecay(pdg, mayDecay); // restore mayDecay status
 }
