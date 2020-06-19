@@ -80,6 +80,7 @@ class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
 
   const My_Float* getPar() const { return GetParameter(); }
   const My_Float* getCov() const { return GetCovariance(); }
+  float getTime() const { return -1.f; }
   bool CheckNumericalQuality() const { return true; }
 
   // parameter manipulation
@@ -179,11 +180,16 @@ class trackInterface<o2::dataformats::TrackTPCITS> : public o2::dataformats::Tra
     }
   }
 
-  const float* getPar() { return getParams(); }
+  const float* getPar() const { return getParams(); }
+  float getTime() const { return mTime; }
+  void setTime(float t) { mTime = t; }
 
   bool CheckNumericalQuality() const { return true; }
 
   typedef o2::dataformats::TrackTPCITS baseClass;
+
+ private:
+  float mTime;
 };
 
 template <>
@@ -294,6 +300,7 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
 
   GPUd() const float* getPar() const { return GetPar(); }
   GPUd() const float* getCov() const { return GetCov(); }
+  GPUd() float getTime() const { return -1.f; }
 
   GPUd() void setAlpha(float alpha) { mAlpha = alpha; }
   GPUd() void set(float x, float alpha, const float param[5], const float cov[15])
