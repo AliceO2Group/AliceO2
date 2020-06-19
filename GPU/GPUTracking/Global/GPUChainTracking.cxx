@@ -1959,6 +1959,13 @@ int GPUChainTracking::RunTPCCompression()
   }
 
   if (DeviceProcessingSettings().tpcCompressionGatherMode == 2) {
+    void* devicePtr = mRec->getGPUPointer(Compressor.mOutputFlat);
+    if (devicePtr != Compressor.mOutputFlat) {
+      CompressedClustersPtrs& ptrs = *Compressor.mOutput; // We need to update the ptrs with the gpu-mapped version of the host address space
+      for (unsigned int i = 0; i < sizeof(ptrs) / sizeof(void*); i++) {
+        reinterpret_cast<char**>(&ptrs)[i] = reinterpret_cast<char**>(&ptrs)[i] + (reinterpret_cast<char*>(devicePtr) - reinterpret_cast<char*>(Compressor.mOutputFlat));
+      }
+    }
     TransferMemoryResourcesToGPU(myStep, &Compressor, outputStream);
     unsigned int nBlocks = 2;
     runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step2gather>(GetGridBlk(nBlocks, outputStream), krnlRunRangeNone, krnlEventNone);

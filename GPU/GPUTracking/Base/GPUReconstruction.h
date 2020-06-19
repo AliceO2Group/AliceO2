@@ -177,6 +177,7 @@ class GPUReconstruction
   unsigned int getNEventsProcessedInStat() { return mStatNEvents; }
   virtual int registerMemoryForGPU(const void* ptr, size_t size) = 0;
   virtual int unregisterMemoryForGPU(const void* ptr) = 0;
+  virtual void* getGPUPointer(void* ptr) { return ptr; }
   virtual void startGPUProfiling() {}
   virtual void endGPUProfiling() {}
   int CheckErrorCodes();

@@ -572,6 +572,13 @@ int GPUReconstructionHIPBackend::unregisterMemoryForGPU(const void* ptr)
   return GPUFailedMsgI(hipHostUnregister((void*)ptr));
 }
 
+void* GPUReconstructionHIPBackend::getGPUPointer(void* ptr)
+{
+  void* retVal = nullptr;
+  GPUFailedMsg(hipHostGetDevicePointer(&retVal, ptr, 0));
+  return retVal;
+}
+
 void GPUReconstructionHIPBackend::PrintKernelOccupancies()
 {
   unsigned int maxBlocks, threads, suggestedBlocks;
