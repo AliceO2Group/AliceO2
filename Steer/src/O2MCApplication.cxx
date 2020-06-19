@@ -26,7 +26,6 @@
 #include <FairVolume.h>
 #include <DetectorsCommonDataFormats/NameConf.h>
 #include "SimConfig/SimUserDecay.h"
-#include <iostream>
 
 namespace o2
 {
