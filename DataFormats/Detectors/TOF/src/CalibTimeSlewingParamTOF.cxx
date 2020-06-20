@@ -17,40 +17,16 @@
 
 using namespace o2::dataformats;
 
-//ClassImp(o2::dataformats::CalibTimeSlewingParamTOF);
-
 CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF()
 {
-  for (int i = 0; i < NSECTORS; i++) {
-    memset(mChannelStart[i], -1, sizeof(mChannelStart[i]));
-    memset(mFractionUnderPeak[i], -100, sizeof(mFractionUnderPeak[i]));
-    memset(mSigmaPeak[i], -1., sizeof(mSigmaPeak[i]));
-  }
-}
-//______________________________________________
-CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTOF& source)
-{
 
-  for (int iSec = 0; iSec < NSECTORS; iSec++) {
-    mTimeSlewing[iSec] = source.mTimeSlewing[iSec];
-  }
   for (int i = 0; i < NSECTORS; i++) {
-    memcpy(mChannelStart[i], source.mChannelStart[i], sizeof(mChannelStart[i]));
-    memcpy(mFractionUnderPeak[i], source.mFractionUnderPeak[i], sizeof(mFractionUnderPeak[i]));
-    memcpy(mSigmaPeak[i], source.mSigmaPeak[i], sizeof(mSigmaPeak[i]));
+    memset(mChannelStart[i].data(), -1, sizeof(mChannelStart[i]));
+    for (int j = 0; j < NCHANNELXSECTOR; j++) {
+      mFractionUnderPeak[i][j] = -100.;
+      mSigmaPeak[i][j] = -1.;
+    }
   }
-}
-//______________________________________________
-CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator=(const CalibTimeSlewingParamTOF& source)
-{
-  for (int i = 0; i < NSECTORS; i++) {
-    mTimeSlewing[i].clear(); // CHECK: mTimeSlewing[i] does not work, probably because it is an array of vectors
-    mTimeSlewing[i] = source.mTimeSlewing[i];
-    memcpy(mChannelStart[i], source.mChannelStart[i], sizeof(mChannelStart[i]));
-    memcpy(mFractionUnderPeak[i], source.mFractionUnderPeak[i], sizeof(mFractionUnderPeak[i]));
-    memcpy(mSigmaPeak[i], source.mSigmaPeak[i], sizeof(mSigmaPeak[i]));
-  }
-  return *this;
 }
 
 //______________________________________________
@@ -90,8 +66,9 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
   // we convert tot from ns to ps and to unsigned short
   unsigned short tot = (unsigned short)(totIn * 1000);
 
-  while (n < nstop && tot > (mTimeSlewing[sector])[n].first)
+  while (n < nstop && tot > (mTimeSlewing[sector])[n].first) {
     n++;
+  }
   n--;
 
   if (n < 0) { // tot is lower than the first available value
@@ -166,23 +143,15 @@ bool CalibTimeSlewingParamTOF::updateOffsetInfo(int channel, float residualOffse
   return true;
 }
 //______________________________________________
-
 CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator+=(const CalibTimeSlewingParamTOF& other)
 {
   for (int i = 0; i < NSECTORS; i++) {
     if (other.mTimeSlewing[i].size() > mTimeSlewing[i].size()) {
-
-      mTimeSlewing[i].clear();
-      for (auto obj = other.mTimeSlewing[i].begin(); obj != other.mTimeSlewing[i].end(); obj++)
-        mTimeSlewing[i].push_back(*obj);
-
-      for (int j = 0; j < NCHANNELXSECTOR; j++) {
-        mChannelStart[i][j] = other.mChannelStart[i][j];
-        mFractionUnderPeak[i][j] = other.mFractionUnderPeak[i][j];
-        mSigmaPeak[i][j] = other.mSigmaPeak[i][j];
-      }
+      mTimeSlewing[i] = other.mTimeSlewing[i];
+      mChannelStart[i] = other.mChannelStart[i];
+      mFractionUnderPeak[i] = other.mFractionUnderPeak[i];
+      mSigmaPeak[i] = other.mSigmaPeak[i];
     }
   }
   return *this;
 }
-//______________________________________________
