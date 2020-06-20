@@ -1673,8 +1673,8 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
 void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(char withinSlice, char mergeMode, GPUReconstruction::krnlDeviceType deviceType)
 {
   unsigned int n = withinSlice == -1 ? NSLICES / 2 : NSLICES;
-  if (GetDeviceProcessingSettings().alternateBorderSort) {
-    bool doGPUall = GetRecoStepsGPU() & RecoStep::TPCMerging && GetDeviceProcessingSettings().fullMergerOnGPU;
+  bool doGPUall = GetRecoStepsGPU() & RecoStep::TPCMerging && GetDeviceProcessingSettings().fullMergerOnGPU;
+  if (GetDeviceProcessingSettings().alternateBorderSort && (!mRec->IsGPU() || doGPUall)) {
     GPUTPCGMMerger& Merger = processors()->tpcMerger;
     GPUTPCGMMerger& MergerShadow = doGPUall ? processorsShadow()->tpcMerger : Merger;
     TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory(), 0, &mEvents->init);
@@ -1750,7 +1750,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   mRec->PushNonPersistentMemory();
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCMerging;
   bool doGPUall = doGPU && GetDeviceProcessingSettings().fullMergerOnGPU;
-  GPUReconstruction::krnlDeviceType deviceType = GetDeviceProcessingSettings().fullMergerOnGPU ? GPUReconstruction::krnlDeviceType::Auto : GPUReconstruction::krnlDeviceType::CPU;
+  GPUReconstruction::krnlDeviceType deviceType = doGPUall ? GPUReconstruction::krnlDeviceType::Auto : GPUReconstruction::krnlDeviceType::CPU;
   unsigned int numBlocks = doGPUall ? BlockCount() : 1;
 
   GPUTPCGMMerger& Merger = processors()->tpcMerger;
