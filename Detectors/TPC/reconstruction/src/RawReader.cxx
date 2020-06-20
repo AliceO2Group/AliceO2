@@ -461,8 +461,9 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo)
         continue;
       }
       if (mTimestampOfFirstData[iHalfSampa] == 0) {
-        if (iHalfSampa == 0)
+        if (iHalfSampa == 0) {
           LOG(DEBUG) << "Setting timestamp of first data to " << eventInfo.header.timeStamp() + 1 + i / indexStep << " for half SAMPA " << iHalfSampa << " (" << 1 + i / indexStep << ")";
+        }
         mTimestampOfFirstData[iHalfSampa] = eventInfo.header.timeStamp() + 1 + i / indexStep;
       }
 

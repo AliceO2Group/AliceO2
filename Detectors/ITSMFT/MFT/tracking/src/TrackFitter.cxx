@@ -43,8 +43,9 @@ void TrackFitter::setBz(float bZ)
   /// Set the magnetic field for the MFT
   mBZField = bZ;
   mTrackExtrap.setBz(bZ);
-  if (mVerbose)
+  if (mVerbose) {
     LOG(INFO) << "Setting Fitter field = " << bZ;
+  }
 }
 
 //_________________________________________________________________________________________________
@@ -57,8 +58,9 @@ bool TrackFitter::fit(FitterTrackMFT& track, bool smooth, bool finalize,
   /// Fit the entire track or only the part upstream itStartingParam
   /// Returns false in case of failure
 
-  if (mVerbose)
+  if (mVerbose) {
     std::cout << "\n ***************************** Start Fitting new track ***************************** \n";
+  }
 
   // initialize the starting track parameters and cluster
   double chi2invqptquad;

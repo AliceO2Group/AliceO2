@@ -46,8 +46,9 @@ void o2::data_flow::TimeframeValidatorDevice::Run()
     if (Receive(timeframeParts, mInChannelName, 0, 100) <= 0)
       continue;
 
-    if (timeframeParts.Size() < 2)
+    if (timeframeParts.Size() < 2) {
       LOG(ERROR) << "Expecting at least 2 parts\n";
+    }
 
     auto indexHeader = o2::header::get<header::DataHeader*>(timeframeParts.At(timeframeParts.Size() - 2)->GetData());
     // FIXME: Provide iterator pair API for the index
@@ -59,12 +60,14 @@ void o2::data_flow::TimeframeValidatorDevice::Run()
     // TODO: fill this with checks on time frame
     LOG(INFO) << "This time frame has " << timeframeParts.Size() << " parts.\n";
     auto indexEntries = indexHeader->payloadSize / sizeof(DataHeader);
-    if (indexHeader->dataDescription != DataDescription("TIMEFRAMEINDEX"))
+    if (indexHeader->dataDescription != DataDescription("TIMEFRAMEINDEX")) {
       LOG(ERROR) << "Could not find a valid index header\n";
+    }
     LOG(INFO) << indexHeader->dataDescription.str << "\n";
     LOG(INFO) << "This time frame has " << indexEntries << "entries in the index.\n";
-    if ((indexEntries * 2 + 2) != (timeframeParts.Size()))
+    if ((indexEntries * 2 + 2) != (timeframeParts.Size())) {
       LOG(ERROR) << "Mismatched index and received parts\n";
+    }
 
     // - Use the index to find out if we have TPC data
     // - Get the part with the TPC data
@@ -107,8 +110,9 @@ void o2::data_flow::TimeframeValidatorDevice::Run()
       continue;
     }
     auto tpcPayload = reinterpret_cast<TPCTestCluster*>(timeframeParts.At(tpcIndex + 1)->GetData());
-    if (tpcHeader->payloadSize % sizeof(TPCTestCluster))
+    if (tpcHeader->payloadSize % sizeof(TPCTestCluster)) {
       LOG(ERROR) << "TPC - CLUSTERS Size Mismatch\n";
+    }
     auto numOfClusters = tpcHeader->payloadSize / sizeof(TPCTestCluster);
     for (size_t ci = 0; ci < numOfClusters; ++ci) {
       TPCTestCluster& cluster = tpcPayload[ci];
@@ -130,8 +134,9 @@ void o2::data_flow::TimeframeValidatorDevice::Run()
       continue;
     }
     auto itsPayload = reinterpret_cast<ITSRawData*>(timeframeParts.At(itsIndex + 1)->GetData());
-    if (itsHeader->payloadSize % sizeof(ITSRawData))
+    if (itsHeader->payloadSize % sizeof(ITSRawData)) {
       LOG(ERROR) << "ITS - CLUSTERS Size Mismatch.\n";
+    }
     numOfClusters = itsHeader->payloadSize / sizeof(ITSRawData);
     for (size_t ci = 0; ci < numOfClusters; ++ci) {
       ITSRawData& cluster = itsPayload[ci];

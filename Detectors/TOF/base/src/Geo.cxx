@@ -305,15 +305,17 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
                   ((iplate == 2 && (istrip < 0 || istrip >= NSTRIPA)) ||
                    (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC))));
 
-  if (iplate < 0 || iplate >= NPLATES)
+  if (iplate < 0 || iplate >= NPLATES) {
     LOG(ERROR) << "getStripNumberPerSM : "
                << "Wrong plate number in TOF (" << iplate << ")!\n";
+  }
 
   if (
     (iplate == 2 && (istrip < 0 || istrip >= NSTRIPA)) ||
-    (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC)))
+    (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC))) {
     LOG(ERROR) << "getStripNumberPerSM : "
                << " Wrong strip number in TOF (strip=" << istrip << " in the plate= " << iplate << ")!\n";
+  }
 
   Int_t stripOffset = 0;
   switch (iplate) {
@@ -334,8 +336,9 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
       break;
   };
 
-  if (!check)
+  if (!check) {
     index = stripOffset + istrip;
+  }
 
   return index;
 }

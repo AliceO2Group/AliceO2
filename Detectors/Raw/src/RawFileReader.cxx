@@ -548,8 +548,9 @@ bool RawFileReader::init()
   // make initialization, preprocess files and chack for errors if asked
 
   for (int i = 0; i < NErrorsDefined; i++) {
-    if (mCheckErrors & (0x1 << i))
+    if (mCheckErrors & (0x1 << i)) {
       LOGF(INFO, "%s check for /%s/", (mCheckErrors & (0x1 << i)) ? "perform" : "ignore ", ErrNames[i].data());
+    }
   }
   if (mMaxTFToRead < 0xffffffff) {
     LOGF(INFO, "at most %u TF will be processed", mMaxTFToRead);

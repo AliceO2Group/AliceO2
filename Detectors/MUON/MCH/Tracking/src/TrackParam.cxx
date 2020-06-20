@@ -1,4 +1,4 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
+#// Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
@@ -369,9 +369,10 @@ Bool_t TrackParam::isCompatibleTrackParam(const TrackParam& trackParam, Double_t
   Double_t maxChi2 = 5. * sigma2Cut * sigma2Cut; // 5 degrees of freedom
 
   // check Z parameters
-  if (mZ != trackParam.mZ)
+  if (mZ != trackParam.mZ) {
     LOG(WARN) << "Parameters are given at different Z position (" << mZ << " : " << trackParam.mZ
               << "): results are meaningless";
+  }
 
   // compute the parameter residuals
   TMatrixD deltaParam(mParameters, TMatrixD::kMinus, trackParam.mParameters);

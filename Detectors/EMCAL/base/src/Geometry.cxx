@@ -942,9 +942,10 @@ std::tuple<int, int> Geometry::GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t 
   Int_t ieta = ietam * mNETAdiv + (mNETAdiv - 1 - nIeta); // x(module) = -z(SM)
   Int_t iphi = iphim * mNPHIdiv + nIphi;                  // y(module) =  y(SM)
 
-  if (iphi < 0 || ieta < 0)
+  if (iphi < 0 || ieta < 0) {
     LOG(DEBUG) << " nSupMod " << nSupMod << " nModule " << nModule << " nIphi " << nIphi << " nIeta " << nIeta
                << " => ieta " << ieta << " iphi " << iphi;
+  }
   return std::make_tuple(iphi, ieta);
 }
 
@@ -1391,19 +1392,21 @@ o2::emcal::AcceptanceType_t Geometry::IsInEMCALOrDCAL(const Point3D<double>& pnt
 
 const TGeoHMatrix* Geometry::GetMatrixForSuperModule(Int_t smod) const
 {
-  if (smod < 0 || smod > mNumberOfSuperModules)
+  if (smod < 0 || smod > mNumberOfSuperModules) {
     LOG(FATAL) << "Wrong supermodule index -> " << smod;
+  }
 
   if (!SMODULEMATRIX[smod]) {
-    if (gGeoManager)
+    if (gGeoManager) {
       SetMisalMatrix(GetMatrixForSuperModuleFromGeoManager(smod), smod);
-    else
+    } else {
       LOG(FATAL) << "Cannot find EMCAL misalignment matrices! Recover them either: \n"
                  << "\t - importing TGeoManager from file geometry.root or \n"
                  << "\t - from OADB in file OADB/EMCAL/EMCALlocal2master.root or \n"
                  << "\t - from OCDB in directory OCDB/EMCAL/Align/Data/ or \n"
                  << "\t - from AliESDs (not in AliAOD) via AliESDRun::GetEMCALMatrix(Int_t superModIndex). \n"
                  << "Store them via AliEMCALGeometry::SetMisalMatrix(Int_t superModIndex)";
+    }
   }
 
   return SMODULEMATRIX[smod];
@@ -1411,8 +1414,9 @@ const TGeoHMatrix* Geometry::GetMatrixForSuperModule(Int_t smod) const
 
 const TGeoHMatrix* Geometry::GetMatrixForSuperModuleFromArray(Int_t smod) const
 {
-  if (smod < 0 || smod > mNumberOfSuperModules)
+  if (smod < 0 || smod > mNumberOfSuperModules) {
     LOG(FATAL) << "Wrong supermodule index -> " << smod;
+  }
 
   return SMODULEMATRIX[smod];
 }
@@ -1437,23 +1441,25 @@ const TGeoHMatrix* Geometry::GetMatrixForSuperModuleFromGeoManager(Int_t smod) c
   Int_t smType = GetSMType(smod);
   TString smName = "";
 
-  if (smType == EMCAL_STANDARD)
+  if (smType == EMCAL_STANDARD) {
     smName = "SMOD";
-  else if (smType == EMCAL_HALF)
+  } else if (smType == EMCAL_HALF) {
     smName = "SM10";
-  else if (smType == EMCAL_THIRD)
+  } else if (smType == EMCAL_THIRD) {
     smName = "SM3rd";
-  else if (smType == DCAL_STANDARD)
+  } else if (smType == DCAL_STANDARD) {
     smName = "DCSM";
-  else if (smType == DCAL_EXT)
+  } else if (smType == DCAL_EXT) {
     smName = "DCEXT";
-  else
+  } else {
     LOG(ERROR) << "Unkown SM Type!!\n";
+  }
 
   snprintf(path, buffersize, "/cave/%s_%d", smName.Data(), smOrder);
 
-  if (!gGeoManager->cd(path))
+  if (!gGeoManager->cd(path)) {
     LOG(FATAL) << "Geo manager can not find path " << path << "!\n";
+  }
 
   return gGeoManager->GetCurrentMatrix();
 }

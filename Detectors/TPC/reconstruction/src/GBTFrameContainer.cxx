@@ -374,12 +374,15 @@ void GBTFrameContainer::compileAdcValues(std::vector<GBTFrame>::iterator iFrame)
 
 void GBTFrameContainer::checkAdcClock(std::vector<GBTFrame>::iterator iFrame)
 {
-  if (mAdcClock[0].addSequence(iFrame->getAdcClock(0)))
+  if (mAdcClock[0].addSequence(iFrame->getAdcClock(0))) {
     LOG(WARNING) << "ADC clock error of SAMPA 0 in GBT Frame " << std::distance(mGBTFrames.begin(), iFrame);
-  if (mAdcClock[1].addSequence(iFrame->getAdcClock(1)))
+  }
+  if (mAdcClock[1].addSequence(iFrame->getAdcClock(1))) {
     LOG(WARNING) << "ADC clock error of SAMPA 1 in GBT Frame " << std::distance(mGBTFrames.begin(), iFrame);
-  if (mAdcClock[2].addSequence(iFrame->getAdcClock(2)))
+  }
+  if (mAdcClock[2].addSequence(iFrame->getAdcClock(2))) {
     LOG(WARNING) << "ADC clock error of SAMPA 2 in GBT Frame " << std::distance(mGBTFrames.begin(), iFrame);
+  }
 }
 
 void GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame)
