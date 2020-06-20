@@ -367,7 +367,7 @@ class RawFileWriter
   bool mStartTFOnNewSPage = true;   // every TF must start on a new SPage
   bool mDontFillEmptyHBF = false;   // skipp adding empty HBFs (uness it must have TF flag)
   bool mAddSeparateHBFStopPage = true; // HBF stop is added on a separate CRU page
-  bool mUseRDHStop = false;            // detector does not set STOP in RDH
+  bool mUseRDHStop = true;             // detector uses STOP in RDH
   bool mCRUDetector = true;            // Detector readout via CRU ( RORC if false)
 
   //>> caching --------------
