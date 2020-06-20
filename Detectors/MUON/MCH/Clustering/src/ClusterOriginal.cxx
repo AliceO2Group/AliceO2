@@ -15,6 +15,7 @@
 
 #include "ClusterOriginal.h"
 
+#include <cassert>
 #include <set>
 #include <stdexcept>
 
