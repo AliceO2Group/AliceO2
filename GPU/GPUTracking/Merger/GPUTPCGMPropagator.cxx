@@ -380,11 +380,9 @@ GPUd() int GPUTPCGMPropagator::FollowLinearization(const GPUTPCGMPhysicalTrackMo
     return -4;
   }
 
-#ifdef HAVE_O2HEADERS
   if (mMatLUT) {
     UpdateMaterial(t0e);
   }
-#endif
 
   mT0 = t0e;
   mT->X() = t0e.GetX();
@@ -1060,6 +1058,7 @@ GPUd() o2::base::MatBudget GPUTPCGMPropagator::getMatBudget(const float* p1, con
 
 GPUdni() void GPUTPCGMPropagator::UpdateMaterial(const GPUTPCGMPhysicalTrackModel& GPUrestrict() t0e)
 {
+#ifdef HAVE_O2HEADERS
   float xyz1[3] = {getGlobalX(mT0.GetX(), mT0.GetY()), getGlobalY(mT0.GetX(), mT0.GetY()), mT0.GetZ()};
   float xyz2[3] = {getGlobalX(t0e.GetX(), t0e.GetY()), getGlobalY(t0e.GetX(), t0e.GetY()), t0e.GetZ()};
   o2::base::MatBudget mat = getMatBudget(xyz1, xyz2);
@@ -1068,4 +1067,5 @@ GPUdni() void GPUTPCGMPropagator::UpdateMaterial(const GPUTPCGMPhysicalTrackMode
   } else {
     SetMaterialTPC();
   }
+#endif
 }
