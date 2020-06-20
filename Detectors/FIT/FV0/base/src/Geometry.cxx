@@ -1257,8 +1257,9 @@ Geometry* Geometry::sInstance = nullptr;
 //Singleton access
 Geometry* Geometry::instance(EGeoType initType)
 {
-  if (!sInstance)
+  if (!sInstance) {
     LOG(INFO) << "FV0 geometry instance created";
+  }
   sInstance = new Geometry(initType);
   return sInstance;
 }

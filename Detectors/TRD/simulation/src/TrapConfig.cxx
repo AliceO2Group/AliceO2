@@ -952,9 +952,10 @@ unsigned int TrapConfig::TrapValue::getData(int det, int rob, int mcm)
 
   int idx = getIdx(det, rob, mcm);
   if (idx >= 0) {
-    if (!mValid[idx])
+    if (!mValid[idx]) {
       LOG(debug1) << "reading from unwritten address: "
                   << " at idx " << idx << ":" << mValid[idx];
+    }
     return mData[idx];
   } else {
     LOG(error) << "read from invalid address";

@@ -31,14 +31,16 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   if (!mGeometry) {
     mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(223409);
   }
-  if (!mGeometry)
+  if (!mGeometry) {
     LOG(ERROR) << "Failure accessing geometry";
+  }
 
   if (!mMapper) {
     mMapper = std::unique_ptr<o2::emcal::MappingHandler>(new o2::emcal::MappingHandler);
   }
-  if (!mMapper)
+  if (!mMapper) {
     LOG(ERROR) << "Failed to initialize mapper";
+  }
 
   mRawFitter.setAmpCut(mNoiseThreshold);
   mRawFitter.setL1Phase(0.);

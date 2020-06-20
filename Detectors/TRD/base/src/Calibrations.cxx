@@ -73,8 +73,9 @@ void Calibrations::setCCDB(int calibrationobjecttype, long timestamp)
 
 void Calibrations::setOnlineGainTables(std::string& tablename)
 {
-  if (mCalOnlineGainTables)
+  if (mCalOnlineGainTables) {
     LOG(fatal) << "Attempt to overwrite Gain tables, mCalOnlineGainTables already exists";
+  }
 
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   std::string fulltablename = "TRD_test/OnlineGainTables/" + tablename;
