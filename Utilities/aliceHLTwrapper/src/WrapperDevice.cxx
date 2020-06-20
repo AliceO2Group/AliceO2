@@ -286,10 +286,11 @@ void WrapperDevice::Run()
               memcpy(pTarget, opayload.mP, opayload.mSize);
               mMessages.emplace_back(move(msg));
             } else {
-              if (errorCount == maxError && errorCount++ > 0)
+              if (errorCount == maxError && errorCount++ > 0) {
                 LOG(ERROR) << "persistent error, suppressing further output";
-              else if (errorCount++ < maxError)
+              } else if (errorCount++ < maxError) {
                 LOG(ERROR) << "can not get output message from framework";
+              }
               iResult = -ENOMSG;
             }
           }
@@ -309,11 +310,12 @@ void WrapperDevice::Run()
             LOG(DEBUG) << "sending multipart message with " << mMessages.size() << " parts";
           }
         } else {
-          if (errorCount == maxError && errorCount++ > 0)
+          if (errorCount == maxError && errorCount++ > 0) {
             LOG(ERROR) << "persistent error, suppressing further output";
-          else if (errorCount++ < maxError)
+          } else if (errorCount++ < maxError) {
             LOG(ERROR) << "no output slot available (" << (fChannels.find("data-out") == fChannels.end() ? "uninitialized" : "0 slots")
                        << ")";
+          }
         }
         mMessages.clear();
       }

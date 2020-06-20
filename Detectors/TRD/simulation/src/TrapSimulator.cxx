@@ -280,8 +280,9 @@ void TrapSimulator::printFitRegXml(ostream& os) const
       os << "   <c cpu=\"" << cpu << "\">" << std::endl;
       if (mFitPtr[cpu] != 31) {
         for (int adcch = mFitPtr[cpu]; adcch < mFitPtr[cpu] + 2; adcch++) {
-          if (adcch > 24)
+          if (adcch > 24) {
             LOG(error) << "adcch going awol : " << adcch << " > 25";
+          }
           os << "    <ch chnr=\"" << adcch << "\">" << std::endl;
           os << "     <hits>" << mFitReg[adcch].mNhits << "</hits>" << std::endl;
           os << "     <q0>" << mFitReg[adcch].mQ0 << "</q0>" << std::endl;
@@ -1372,16 +1373,19 @@ void TrapSimulator::addHitToFitreg(int adc, unsigned short timebin, unsigned sho
   // In addition to the fit sums in the fit register
   //
 
-  if (adc > 24)
+  if (adc > 24) {
     LOG(error) << " adc channel into addHitToFitReg is out of bounds for mFitReg : " << adc;
+  }
 
   if ((timebin >= mTrapConfig->getTrapReg(TrapConfig::kTPQS0, mDetector, mRobPos, mMcmPos)) &&
-      (timebin < mTrapConfig->getTrapReg(TrapConfig::kTPQE0, mDetector, mRobPos, mMcmPos)))
+      (timebin < mTrapConfig->getTrapReg(TrapConfig::kTPQE0, mDetector, mRobPos, mMcmPos))) {
     mFitReg[adc].mQ0 += qtot;
+  }
 
   if ((timebin >= mTrapConfig->getTrapReg(TrapConfig::kTPQS1, mDetector, mRobPos, mMcmPos)) &&
-      (timebin < mTrapConfig->getTrapReg(TrapConfig::kTPQE1, mDetector, mRobPos, mMcmPos)))
+      (timebin < mTrapConfig->getTrapReg(TrapConfig::kTPQE1, mDetector, mRobPos, mMcmPos))) {
     mFitReg[adc].mQ1 += qtot;
+  }
 
   if ((timebin >= mTrapConfig->getTrapReg(TrapConfig::kTPFS, mDetector, mRobPos, mMcmPos)) &&
       (timebin < mTrapConfig->getTrapReg(TrapConfig::kTPFE, mDetector, mRobPos, mMcmPos))) {
@@ -1442,26 +1446,32 @@ void TrapSimulator::calcFitreg()
   } else {
     // find first timebin to be looked at
     timebin1 = mTrapConfig->getTrapReg(TrapConfig::kTPFS, mDetector, mRobPos, mMcmPos);
-    if (mTrapConfig->getTrapReg(TrapConfig::kTPQS0, mDetector, mRobPos, mMcmPos) < timebin1)
+    if (mTrapConfig->getTrapReg(TrapConfig::kTPQS0, mDetector, mRobPos, mMcmPos) < timebin1) {
       timebin1 = mTrapConfig->getTrapReg(TrapConfig::kTPQS0, mDetector, mRobPos, mMcmPos);
-    if (mTrapConfig->getTrapReg(TrapConfig::kTPQS1, mDetector, mRobPos, mMcmPos) < timebin1)
+    }
+    if (mTrapConfig->getTrapReg(TrapConfig::kTPQS1, mDetector, mRobPos, mMcmPos) < timebin1) {
       timebin1 = mTrapConfig->getTrapReg(TrapConfig::kTPQS1, mDetector, mRobPos, mMcmPos);
+    }
 
     // find last timebin to be looked at
     timebin2 = mTrapConfig->getTrapReg(TrapConfig::kTPFE, mDetector, mRobPos, mMcmPos);
-    if (mTrapConfig->getTrapReg(TrapConfig::kTPQE0, mDetector, mRobPos, mMcmPos) > timebin2)
+    if (mTrapConfig->getTrapReg(TrapConfig::kTPQE0, mDetector, mRobPos, mMcmPos) > timebin2) {
       timebin2 = mTrapConfig->getTrapReg(TrapConfig::kTPQE0, mDetector, mRobPos, mMcmPos);
-    if (mTrapConfig->getTrapReg(TrapConfig::kTPQE1, mDetector, mRobPos, mMcmPos) > timebin2)
+    }
+    if (mTrapConfig->getTrapReg(TrapConfig::kTPQE1, mDetector, mRobPos, mMcmPos) > timebin2) {
       timebin2 = mTrapConfig->getTrapReg(TrapConfig::kTPQE1, mDetector, mRobPos, mMcmPos);
+    }
   }
 
   // reset the fit registers
-  for (auto& fitreg : mFitReg)
+  for (auto& fitreg : mFitReg) {
     fitreg.ClearReg();
+  }
 
   //  mFitReg.clear();
-  for (int i = 0; i < mNHits; i++)
+  for (int i = 0; i < mNHits; i++) {
     mHits[i].ClearHits(); // do it this way as we dont want to 100 members if we only used 3 ....
+  }
 
   for (timebin = timebin1; timebin < timebin2; timebin++) {
     // first find the hit candidates and store the total cluster charge in qTotal array
@@ -1479,10 +1489,11 @@ void TrapSimulator::calcFitreg()
         } else {
           hitQual = ((adcLeft * adcRight) <
                      ((mTrapConfig->getTrapReg(TrapConfig::kTPVT, mDetector, mRobPos, mMcmPos) * adcCentral * adcCentral) >> 10));
-          if (hitQual)
+          if (hitQual) {
             LOG(debug) << "cluster quality cut passed with " << adcLeft << ", " << adcCentral << ", "
                        << adcRight << " - threshold " << mTrapConfig->getTrapReg(TrapConfig::kTPVT, mDetector, mRobPos, mMcmPos)
                        << " -> " << mTrapConfig->getTrapReg(TrapConfig::kTPVT, mDetector, mRobPos, mMcmPos) * adcCentral * adcCentral;
+          }
         }
 
         // The accumulated charge is with the pedestal!!!
@@ -1870,8 +1881,9 @@ void TrapSimulator::fitTracklet()
       bool rejected = false;
       // deflection range table from DMEM
       if ((slope < ((int)mTrapConfig->getDmemUnsigned(mgkDmemAddrDeflCutStart + 2 * mFitPtr[cpu], mDetector, mRobPos, mMcmPos))) ||
-          (slope > ((int)mTrapConfig->getDmemUnsigned(mgkDmemAddrDeflCutStart + 1 + 2 * mFitPtr[cpu], mDetector, mRobPos, mMcmPos))))
+          (slope > ((int)mTrapConfig->getDmemUnsigned(mgkDmemAddrDeflCutStart + 1 + 2 * mFitPtr[cpu], mDetector, mRobPos, mMcmPos)))) {
         rejected = true;
+      }
 
       //     LOG(info) << "slope : " << slope << " getDmemUnsigned " << mTrapConfig->getDmemUnsigned(mgkDmemAddrDeflCutStart + 2 * mFitPtr[cpu], mDetector, mRobPos, mMcmPos);
 
@@ -1886,15 +1898,17 @@ void TrapSimulator::fitTracklet()
 
         slope = slope & 0x7F; // 7 bit
 
-        if (offset > 0xfff || offset < -0xfff)
+        if (offset > 0xfff || offset < -0xfff) {
           LOG(warning) << "Overflow in offset";
+        }
         offset = offset & 0x1FFF; // 13 bit
 
         pid = getPID(q0, q1);
         rawpid = pid;
 
-        if (pid > 0xff)
+        if (pid > 0xff) {
           LOG(warn) << "Overflow in PID"; // was warn
+        }
         pid = pid & 0xFF; // 8 bit, exactly like in the TRAP program
 
         // assemble and store the tracklet word
@@ -1917,16 +1931,19 @@ void TrapSimulator::fitTracklet()
         uint32_t adchitbp = 0;
         for (int iHit = 0; iHit < mNHits; iHit++) {
           if ((mHits[iHit].mChannel - mFitPtr[cpu] < 0) ||
-              (mHits[iHit].mChannel - mFitPtr[cpu] > 1))
+              (mHits[iHit].mChannel - mFitPtr[cpu] > 1)) {
             continue;
+          }
 
           // counting contributing hits
           if (mHits[iHit].mTimebin >= mTrapConfig->getTrapReg(TrapConfig::kTPQS0, mDetector, mRobPos, mMcmPos) &&
-              mHits[iHit].mTimebin < mTrapConfig->getTrapReg(TrapConfig::kTPQE0, mDetector, mRobPos, mMcmPos))
+              mHits[iHit].mTimebin < mTrapConfig->getTrapReg(TrapConfig::kTPQE0, mDetector, mRobPos, mMcmPos)) {
             nHits0++;
+          }
           if (mHits[iHit].mTimebin >= mTrapConfig->getTrapReg(TrapConfig::kTPQS1, mDetector, mRobPos, mMcmPos) &&
-              mHits[iHit].mTimebin < mTrapConfig->getTrapReg(TrapConfig::kTPQE1, mDetector, mRobPos, mMcmPos))
+              mHits[iHit].mTimebin < mTrapConfig->getTrapReg(TrapConfig::kTPQE1, mDetector, mRobPos, mMcmPos)) {
             nHits1++;
+          }
           LOG(debug) << "setting bit pattern for chanel : " << mHits[iHit].mChannel << " of hit  : " << iHit << std::hex << " bitp before : " << adchitbp << std::dec;
           adchitbp |= (1 << mHits[iHit].mChannel);
           LOG(debug) << "after setting bit pattern for chanel : " << mHits[iHit].mChannel << " of hit  : " << iHit << std::hex << " bitp after : " << adchitbp << std::dec;
@@ -2326,8 +2343,9 @@ bool TrapSimulator::readPackedConfig(TrapConfig* cfg, int hc, unsigned int* data
             dat = (dataHi & 0xFFFF0000) | dat;
           }
           LOG(debug3) << "addr=0x" << hex << caddr << "(" << cfg->getRegName(cfg->getRegByAddress(caddr)) << ") data=0x" << hex << dat;
-          if (!cfg->poke(caddr, dat, det, rob, mcm))
+          if (!cfg->poke(caddr, dat, det, rob, mcm)) {
             LOG(debug3) << "(single-write): non-existing address 0x" << std::hex << caddr << " containing 0x" << std::hex << header;
+          }
           if (idx > size) {
             LOG(debug3) << "(single-write): no more data, missing end marker";
             return -err;
@@ -2346,8 +2364,9 @@ bool TrapSimulator::readPackedConfig(TrapConfig* cfg, int hc, unsigned int* data
         caddr = (header >> 16) & 0xFFFF;
         exitFlag = (step == 0) || (step == 3) || (nwords == 0);
 
-        if (exitFlag)
+        if (exitFlag) {
           break;
+        }
 
         switch (bwidth) {
           case 15:
@@ -2370,8 +2389,9 @@ bool TrapSimulator::readPackedConfig(TrapConfig* cfg, int hc, unsigned int* data
                 bitcnt = 31 - bwidth;
               }
               LOG(debug3) << "addr=0x" << setw(4) << std::hex << caddr << "(" << cfg->getRegName(cfg->getRegByAddress(caddr)) << ") data=0x" << setw(8) << std::hex << (header & msk);
-              if (!cfg->poke(caddr, header & msk, det, rob, mcm))
+              if (!cfg->poke(caddr, header & msk, det, rob, mcm)) {
                 LOG(debug3) << "(single-write): non-existing address 0x" << setw(4) << std::hex << caddr << " containing 0x" << setw(8) << std::hex << header << std::dec;
+              }
 
               caddr += step;
               header = header >> bwidth;
@@ -2392,8 +2412,9 @@ bool TrapSimulator::readPackedConfig(TrapConfig* cfg, int hc, unsigned int* data
               err += (header & 1);
 
               LOG(debug3) << "addr=0x" << hex << setw(4) << caddr << " (" << cfg->getRegName(cfg->getRegByAddress(caddr)) << ")  data=0x" << hex << setw(8) << (header >> 1);
-              if (!cfg->poke(caddr, header >> 1, det, rob, mcm))
+              if (!cfg->poke(caddr, header >> 1, det, rob, mcm)) {
                 LOG(debug3) << "(single-write): non-existing address 0x" << setw(4) << std::hex << " containing 0x" << setw(8) << std::hex << header << std::dec;
+              }
 
               caddr += step;
               if (idx >= size) {
