@@ -15,6 +15,7 @@
 #define ALICEO2_CALIBTIMESLEWINGPARAMTOF_H
 
 #include <vector>
+#include <array>
 #include "Rtypes.h"
 
 namespace o2
@@ -30,9 +31,9 @@ class CalibTimeSlewingParamTOF
 
   CalibTimeSlewingParamTOF();
 
-  CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTOF& source);
+  CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTOF& source) = default;
 
-  CalibTimeSlewingParamTOF& operator=(const CalibTimeSlewingParamTOF& source);
+  CalibTimeSlewingParamTOF& operator=(const CalibTimeSlewingParamTOF& source) = default;
 
   float getChannelOffset(int channel) const;
 
@@ -79,10 +80,10 @@ class CalibTimeSlewingParamTOF
 
  private:
   // TOF channel calibrations
-  int mChannelStart[NSECTORS][NCHANNELXSECTOR];           ///< array with the index of the first element of a channel in the time slewing vector (per sector)
-  std::vector<std::pair<unsigned short, short>> mTimeSlewing[18]; ///< array of sector vectors; first element of the pair is TOT (in ps), second is t-texp_pi (in ps)
-  float mFractionUnderPeak[NSECTORS][NCHANNELXSECTOR]; ///< array with the fraction of entries below the peak
-  float mSigmaPeak[NSECTORS][NCHANNELXSECTOR];         ///< array with the sigma of the peak
+  std::array<std::array<int, NCHANNELXSECTOR>, NSECTORS> mChannelStart;             ///< array with the index of the first element of a channel in the time slewing vector (per sector)
+  std::array<std::vector<std::pair<unsigned short, short>>, NSECTORS> mTimeSlewing; ///< array of sector vectors; first element of the pair is TOT (in ps), second is t-texp_pi (in ps)
+  std::array<std::array<float, NCHANNELXSECTOR>, NSECTORS> mFractionUnderPeak;      ///< array with the fraction of entries below the peak
+  std::array<std::array<float, NCHANNELXSECTOR>, NSECTORS> mSigmaPeak;              ///< array with the sigma of the peak
 
   ClassDefNV(CalibTimeSlewingParamTOF, 1); // class for TOF time slewing params
 };
