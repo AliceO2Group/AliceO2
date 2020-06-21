@@ -325,6 +325,12 @@ void MatchTPCITS::init()
     mTimer[i].Reset();
   }
   mParams = &Params::Instance();
+  setUseMatCorrFlag(mParams->matCorr);
+  auto* prop = o2::base::Propagator::Instance();
+  if (!prop->getMatLUT() && mParams->matCorr == o2::base::Propagator::MatCorrType::USEMatCorrLUT) {
+    LOG(WARNING) << "Requested material LUT is not loaded, switching to TGeo usage";
+    setUseMatCorrFlag(o2::base::Propagator::MatCorrType::USEMatCorrTGeo);
+  }
 
   // make sure T2GRot matrices are loaded into ITS geometry helper
   o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot));
