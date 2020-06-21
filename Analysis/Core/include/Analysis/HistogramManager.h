@@ -7,23 +7,21 @@
 #include <TList.h>
 #include <THashList.h>
 
-#include "Analysis/VarManager.h"
-
 class TAxis;
 class TArrayD;
 class TObjArray;
-//class TDirectoryFile;
 class TFile;
 
 
 class HistogramManager : public TObject {
 
  public:
-  HistogramManager();
-  HistogramManager(const char* name);
+  HistogramManager(const char* name, const int maxNVars);
   virtual ~HistogramManager();
   
-  void SetName(const Char_t* name) {fName = name;}
+  enum Constants {
+    kNothing = -1
+  };
   
   void AddHistClass(const Char_t* histClass);
   void AddHistogram(const Char_t* histClass, const Char_t* name, const Char_t* title, Bool_t isProfile,
@@ -67,18 +65,18 @@ class HistogramManager : public TObject {
  private: 
    
   THashList fMainList;           // master histogram list
-  TString fName;                 // master histogram list name
+  int fNVars;
   THashList* fMainDirectory;     //! main directory with analysis output (this is used for loading output files and retrieving histograms offline)
   TFile* fHistFile;              //! pointer to a TFile opened for reading 
   THashList fOutputList;         // THashList for output histograms
    
   // Array of bool flags toggled when a variable is used (filled in a histogram)
-  Bool_t fUsedVars[VarManager::kNVars];           // map of used variables
+  bool* fUsedVars;           // map of used variables
   
   Bool_t fUseDefaultVariableNames;       // toggle the usage of default variable names and units
   ULong_t fBinsAllocated;                // number of allocated bins
-  TString fVariableNames[VarManager::kNVars];               //! variable names
-  TString fVariableUnits[VarManager::kNVars];               //! variable units
+  TString* fVariableNames;               //! variable names
+  TString* fVariableUnits;               //! variable units
     
   void MakeAxisLabels(TAxis* ax, const Char_t* labels);
   

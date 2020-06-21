@@ -25,15 +25,13 @@ using namespace std;
 #include <TArrayD.h>
 #include <TClass.h>
 
-#include "Analysis/VarManager.h"
 
 ClassImp(HistogramManager)
 
-
 //_______________________________________________________________________________
-HistogramManager::HistogramManager() :
+HistogramManager::HistogramManager(const char* name, const int maxNVars) :
   fMainList(),
-  fName("histos"),
+  fNVars(maxNVars),
   fMainDirectory(0x0),
   fHistFile(0x0),
   fOutputList(),
@@ -47,29 +45,11 @@ HistogramManager::HistogramManager() :
   // Constructor
   //
   fMainList.SetOwner(kTRUE);
-  fMainList.SetName("HistogramList");
-  fOutputList.SetName(fName);
-}
-
-//_______________________________________________________________________________
-HistogramManager::HistogramManager(const Char_t* name) :
-  fMainList(),
-  fName(name),
-  fMainDirectory(0x0),
-  fHistFile(0x0),
-  fOutputList(),
-  fUseDefaultVariableNames(kFALSE),
-  fUsedVars(),
-  fBinsAllocated(0),
-  fVariableNames(),
-  fVariableUnits()
-{
-  //
-  // Constructor
-  //
-  fMainList.SetOwner(kTRUE);
-  fMainList.SetName("HistogramList");
-  fOutputList.SetName(fName);
+  fMainList.SetName(name);
+  fOutputList.SetName(name);
+  fUsedVars = new bool[maxNVars];
+  fVariableNames = new TString[maxNVars];
+  fVariableUnits = new TString[maxNVars];
 }
 
 //_______________________________________________________________________________
@@ -80,6 +60,9 @@ HistogramManager::~HistogramManager()
   //
   if(fMainDirectory) {delete fMainDirectory; fMainDirectory=0x0;}
   if(fHistFile) {delete fHistFile; fHistFile=0x0;}
+  delete fUsedVars;
+  delete fVariableNames;
+  delete fVariableUnits;
 }
 
 //_______________________________________________________________________________
@@ -88,7 +71,7 @@ void HistogramManager::SetDefaultVarNames(TString* vars, TString* units)
    //
    // Set default variable names
    //
-   for(Int_t i=0;i<VarManager::kNVars;++i) {
+   for(Int_t i=0;i<fNVars;++i) {
      fVariableNames[i] = vars[i]; 
      fVariableUnits[i] = units[i];
    }
@@ -134,13 +117,13 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
   TString hname = name;
   
   Int_t dimension = 1;
-  if(varY>VarManager::kNothing) dimension = 2;
-  if(varZ>VarManager::kNothing) dimension = 3;
+  if(varY>kNothing) dimension = 2;
+  if(varZ>kNothing) dimension = 3;
   
   TString titleStr(title);
   TObjArray* arr=titleStr.Tokenize(";");
-  if(varT>VarManager::kNothing) fUsedVars[varT] = kTRUE;
-  if(varW>VarManager::kNothing) fUsedVars[varW] = kTRUE;
+  if(varT>kNothing) fUsedVars[varT] = kTRUE;
+  if(varW>kNothing) fUsedVars[varW] = kTRUE;
   
   TH1* h=0x0;
   switch(dimension) {
@@ -168,14 +151,14 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
         h->Sumw2();
         h->SetUniqueID(1);
         if(titleStr.Contains("--s--")) ((TProfile*)h)->BuildOptions(0.,0.,"s");
-        if(varW>VarManager::kNothing) h->SetUniqueID(100*(varW+1)+1);
+        if(varW>kNothing) h->SetUniqueID(100*(varW+1)+1);
       }
       else {
         h=new TH2F(hname.Data(),(arr->At(0) ? arr->At(0)->GetName() : ""),nXbins,xmin,xmax,nYbins,ymin,ymax);
         fBinsAllocated+=(nXbins+2)*(nYbins+2);
         h->Sumw2();
         h->SetUniqueID(0);
-        if(varW>VarManager::kNothing) h->SetUniqueID(100*(varW+1)+0); 
+        if(varW>kNothing) h->SetUniqueID(100*(varW+1)+0); 
       }
       h->GetXaxis()->SetUniqueID(UInt_t(varX));
       h->GetYaxis()->SetUniqueID(UInt_t(varY));
@@ -201,13 +184,13 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
       
     case 3:
       if(isProfile) {
-        if(varT>VarManager::kNothing) {
+        if(varT>kNothing) {
           h=new TProfile3D(hname.Data(),(arr->At(0) ? arr->At(0)->GetName() : ""),nXbins,xmin,xmax,nYbins,ymin,ymax,nZbins,zmin,zmax);
           fBinsAllocated+=(nXbins+2)*(nYbins+2)*(nZbins+2);
           h->Sumw2();
           if(titleStr.Contains("--s--")) ((TProfile3D*)h)->BuildOptions(0.,0.,"s");
-          if(varW>VarManager::kNothing) h->SetUniqueID(((varW+1)+(VarManager::kNVars+1)*(varT+1))*100+1);   // 4th variable "varT" is encoded in the UniqueId of the histogram
-          else h->SetUniqueID((VarManager::kNVars+1)*(varT+1)*100+1);
+          if(varW>kNothing) h->SetUniqueID(((varW+1)+(fNVars+1)*(varT+1))*100+1);   // 4th variable "varT" is encoded in the UniqueId of the histogram
+          else h->SetUniqueID((fNVars+1)*(varT+1)*100+1);
         }
         else {
           h=new TProfile2D(hname.Data(),(arr->At(0) ? arr->At(0)->GetName() : ""),nXbins,xmin,xmax,nYbins,ymin,ymax);
@@ -215,7 +198,7 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
           h->Sumw2();
           h->SetUniqueID(1);
           if(titleStr.Contains("--s--")) ((TProfile2D*)h)->BuildOptions(0.,0.,"s");
-          if(varW>VarManager::kNothing) h->SetUniqueID(100*(varW+1)+1); 
+          if(varW>kNothing) h->SetUniqueID(100*(varW+1)+1); 
         }
       }
       else {
@@ -223,7 +206,7 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
         fBinsAllocated+=(nXbins+2)*(nYbins+2)*(nZbins+2);
         h->Sumw2();
         h->SetUniqueID(0);
-        if(varW>VarManager::kNothing) h->SetUniqueID(100*(varW+1)+0); 
+        if(varW>kNothing) h->SetUniqueID(100*(varW+1)+0); 
       }
       h->GetXaxis()->SetUniqueID(UInt_t(varX));
       h->GetYaxis()->SetUniqueID(UInt_t(varY));
@@ -278,11 +261,11 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
   TString hname = name;
   
   Int_t dimension = 1;
-  if(varY>VarManager::kNothing) dimension = 2;
-  if(varZ>VarManager::kNothing) dimension = 3;
+  if(varY>kNothing) dimension = 2;
+  if(varZ>kNothing) dimension = 3;
   
-  if(varT>VarManager::kNothing) fUsedVars[varT] = kTRUE;
-  if(varW>VarManager::kNothing) fUsedVars[varW] = kTRUE;
+  if(varT>kNothing) fUsedVars[varT] = kTRUE;
+  if(varW>kNothing) fUsedVars[varW] = kTRUE;
   
   TString titleStr(title);
   TObjArray* arr=titleStr.Tokenize(";");
@@ -294,7 +277,7 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
       fBinsAllocated+=nXbins+2;
       h->Sumw2();
       h->SetUniqueID(0);
-      if(varW>VarManager::kNothing) h->SetUniqueID(100*(varW+1)+0); 
+      if(varW>kNothing) h->SetUniqueID(100*(varW+1)+0); 
       h->GetXaxis()->SetUniqueID(UInt_t(varX));
       if(fVariableNames[varX][0]) 
         h->GetXaxis()->SetTitle(Form("%s %s", fVariableNames[varX].Data(), 
@@ -313,14 +296,14 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
         h->Sumw2();
         h->SetUniqueID(1);
         if(titleStr.Contains("--s--")) ((TProfile*)h)->BuildOptions(0.,0.,"s");
-        if(varW>VarManager::kNothing) h->SetUniqueID(100*(varW+1)+1); 
+        if(varW>kNothing) h->SetUniqueID(100*(varW+1)+1); 
       }
       else {
         h=new TH2F(hname.Data(),(arr->At(0) ? arr->At(0)->GetName() : ""),nXbins,xbins,nYbins,ybins);
         fBinsAllocated+=(nXbins+2)*(nYbins+2);
         h->Sumw2();
         h->SetUniqueID(0);
-        if(varW>VarManager::kNothing) h->SetUniqueID(100*(varW+1)+0);
+        if(varW>kNothing) h->SetUniqueID(100*(varW+1)+0);
       }
       h->GetXaxis()->SetUniqueID(UInt_t(varX));
       h->GetYaxis()->SetUniqueID(UInt_t(varY));
@@ -346,13 +329,13 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
       
     case 3:
       if(isProfile) {
-        if(varT>VarManager::kNothing) {
+        if(varT>kNothing) {
           h=new TProfile3D(hname.Data(),(arr->At(0) ? arr->At(0)->GetName() : ""),nXbins,xbins,nYbins,ybins,nZbins,zbins);
           fBinsAllocated+=(nXbins+2)*(nYbins+2)*(nZbins+2);
           h->Sumw2();
           if(titleStr.Contains("--s--")) ((TProfile3D*)h)->BuildOptions(0.,0.,"s");
-          if(varW>VarManager::kNothing) h->SetUniqueID(((varW+1)+(VarManager::kNVars+1)*(varT+1))*100+1);   // 4th variable "varT" is encoded in the UniqueId of the histogram
-          else h->SetUniqueID((VarManager::kNVars+1)*(varT+1)*100+1);
+          if(varW>kNothing) h->SetUniqueID(((varW+1)+(fNVars+1)*(varT+1))*100+1);   // 4th variable "varT" is encoded in the UniqueId of the histogram
+          else h->SetUniqueID((fNVars+1)*(varT+1)*100+1);
         }
         else {
           h=new TProfile2D(hname.Data(),(arr->At(0) ? arr->At(0)->GetName() : ""),nXbins,xbins,nYbins,ybins);
@@ -360,7 +343,7 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
           h->Sumw2();
           h->SetUniqueID(1);
           if(titleStr.Contains("--s--")) ((TProfile2D*)h)->BuildOptions(0.,0.,"s");
-          if(varW>VarManager::kNothing) h->SetUniqueID(100*(varW+1)+1);
+          if(varW>kNothing) h->SetUniqueID(100*(varW+1)+1);
         }
       }
       else {
@@ -368,7 +351,7 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
         fBinsAllocated+=(nXbins+2)*(nYbins+2)*(nZbins+2);
         h->Sumw2();
         h->SetUniqueID(0);
-        if(varW>VarManager::kNothing) h->SetUniqueID(100*(varW+1)+0);
+        if(varW>kNothing) h->SetUniqueID(100*(varW+1)+0);
       }
       h->GetXaxis()->SetUniqueID(UInt_t(varX));
       h->GetYaxis()->SetUniqueID(UInt_t(varY));
@@ -423,13 +406,13 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
   TString titleStr(title);
   TObjArray* arr=titleStr.Tokenize(";");
   
-  if(varW>VarManager::kNothing) fUsedVars[varW] = kTRUE;
+  if(varW>kNothing) fUsedVars[varW] = kTRUE;
   
   THnBase* h=0x0;
   if (useSparse)  h=new THnSparseF(hname.Data(),(arr->At(0) ? arr->At(0)->GetName() : ""),nDimensions,nBins,xmin,xmax);
   else            h=new THnF(hname.Data(),(arr->At(0) ? arr->At(0)->GetName() : ""),nDimensions,nBins,xmin,xmax);
   h->Sumw2();
-  if(varW>VarManager::kNothing) h->SetUniqueID(10+nDimensions+100*(varW+1));
+  if(varW>kNothing) h->SetUniqueID(10+nDimensions+100*(varW+1));
   else h->SetUniqueID(10+nDimensions);
   ULong_t bins = 1;
   for(Int_t idim=0;idim<nDimensions;++idim) {
@@ -472,7 +455,7 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
   TString titleStr(title);
   TObjArray* arr=titleStr.Tokenize(";");
   
-  if(varW>VarManager::kNothing) fUsedVars[varW] = kTRUE;
+  if(varW>kNothing) fUsedVars[varW] = kTRUE;
   
   Double_t* xmin = new Double_t[nDimensions];
   Double_t* xmax = new Double_t[nDimensions];
@@ -492,7 +475,7 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
   }
   
   h->Sumw2();
-  if(varW>VarManager::kNothing) h->SetUniqueID(10+nDimensions+100*(varW+1));
+  if(varW>kNothing) h->SetUniqueID(10+nDimensions+100*(varW+1));
   else h->SetUniqueID(10+nDimensions);
   ULong_t bins = 1;
   for(Int_t idim=0;idim<nDimensions;++idim) {
@@ -555,9 +538,9 @@ void HistogramManager::FillHistClass(const Char_t* className, Float_t* values) {
     varT = -1;
     varW = -1;
     if(uid>0) {
-      varW = uid%(VarManager::kNVars+1)-1;
-      if(varW==0) varW=VarManager::kNothing;
-      uid = (uid-(uid%(VarManager::kNVars+1)))/(VarManager::kNVars+1);
+      varW = uid%(fNVars+1)-1;
+      if(varW==0) varW=-1;
+      uid = (uid-(uid%(fNVars+1)))/(fNVars+1);
       if(uid>0) varT = uid - 1;
       //cout << "Filling " << h->GetName() << " with varT " << varT << endl;
     }
@@ -570,7 +553,7 @@ void HistogramManager::FillHistClass(const Char_t* className, Float_t* values) {
             if(isProfile) {
               varY = ((TH1*)h)->GetYaxis()->GetUniqueID();
               if(!fUsedVars[varY]) break;
-              if(varW>VarManager::kNothing) { 
+              if(varW>kNothing) { 
                 if(!fUsedVars[varW]) break;
                 ((TProfile*)h)->Fill(values[varX],values[varY],values[varW]);
               }
@@ -578,7 +561,7 @@ void HistogramManager::FillHistClass(const Char_t* className, Float_t* values) {
                 ((TProfile*)h)->Fill(values[varX],values[varY]);
             }
             else {
-              if(varW>VarManager::kNothing) {
+              if(varW>kNothing) {
                 if(!fUsedVars[varW]) break;
                 ((TH1F*)h)->Fill(values[varX],values[varW]);
               }
@@ -593,7 +576,7 @@ void HistogramManager::FillHistClass(const Char_t* className, Float_t* values) {
             if(isProfile) {
               varZ = ((TH1*)h)->GetZaxis()->GetUniqueID();
               if(!fUsedVars[varZ]) break;
-              if(varW>VarManager::kNothing) {
+              if(varW>kNothing) {
                 if(!fUsedVars[varW]) break;
                 ((TProfile2D*)h)->Fill(values[varX],values[varY],values[varZ],values[varW]);
               }
@@ -601,7 +584,7 @@ void HistogramManager::FillHistClass(const Char_t* className, Float_t* values) {
                 ((TProfile2D*)h)->Fill(values[varX],values[varY],values[varZ]);        
             }
             else {
-              if(varW>VarManager::kNothing) {
+              if(varW>kNothing) {
                 if(!fUsedVars[varW]) break;
                 ((TH2F*)h)->Fill(values[varX],values[varY], values[varW]);
               }
@@ -617,7 +600,7 @@ void HistogramManager::FillHistClass(const Char_t* className, Float_t* values) {
             if(!fUsedVars[varZ]) break;
             if(isProfile) {
               if(!fUsedVars[varT]) break;
-              if(varW>VarManager::kNothing) {
+              if(varW>kNothing) {
                 if(!fUsedVars[varW]) break;
                 ((TProfile3D*)h)->Fill(values[varX],values[varY],values[varZ],values[varT],values[varW]);
               }
@@ -625,7 +608,7 @@ void HistogramManager::FillHistClass(const Char_t* className, Float_t* values) {
                 ((TProfile3D*)h)->Fill(values[varX],values[varY],values[varZ],values[varT]);
             }
             else {
-              if(varW>VarManager::kNothing) {
+              if(varW>kNothing) {
                 if(!fUsedVars[varW]) break;
                 ((TH3F*)h)->Fill(values[varX],values[varY],values[varZ],values[varW]);
               }
@@ -650,7 +633,7 @@ void HistogramManager::FillHistClass(const Char_t* className, Float_t* values) {
         }
       }
       if(allVarsGood) {
-        if(varW>VarManager::kNothing) {
+        if(varW>kNothing) {
           if(fUsedVars[varW]) {
             if (isSparse) ((THnSparseF*)h)->Fill(fillValues,values[varW]);
             else          ((THnF*)h)->Fill(fillValues,values[varW]);
@@ -811,7 +794,7 @@ void HistogramManager::Print(Option_t*) const {
   // Print the defined histograms
   //
   cout << "###################################################################" << endl;
-  cout << "HistogramManager:: " << fName.Data() << endl;
+  cout << "HistogramManager:: " << fMainList.GetName() << endl;
   for(Int_t i=0; i<fMainList.GetEntries(); ++i) {
     THashList* list = (THashList*)fMainList.At(i);
     cout << "************** List " << list->GetName() << endl;

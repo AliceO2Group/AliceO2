@@ -5,6 +5,23 @@
 #include <TObject.h>
 #include <TString.h>
 
+//#include "Framework/runDataProcessing.h"
+//#include "Framework/ASoA.h"
+//#include "Framework/ASoAHelpers.h"
+//#include "Framework/DataTypes.h"
+//#include "Framework/AnalysisTask.h"
+//#include "Framework/AnalysisDataModel.h"
+#include "Analysis/ReducedInfoTables.h"
+
+
+//using namespace o2;
+//using namespace o2::framework;
+//using namespace o2::framework::expressions;
+//using namespace o2::aod;
+
+//using Event = soa::Join<o2::aod::ReducedEvents, o2::aod::ReducedEventsExtended, o2::aod::ReducedEventsVtxCov>::iterator;
+//using Track = soa::Join<o2::aod::ReducedTracks, o2::aod::ReducedTracksBarrel>::iterator;
+
 //_________________________________________________________________________
 class VarManager : public TObject {
 
@@ -92,6 +109,17 @@ public:
   }
   static bool GetUsedVar(Variables var) {return fgUsedVars[var];}
   
+  /*template <typename T> 
+  void Fill(T const& object, float* values) {
+    if constexpr (std::is_same_v<T, Event>)
+      FillEvent(T,values);
+    if constexpr (std::is_same_v<T, Track>)
+      FillTrack(T,values);
+  };*/
+  
+  static void FillEvent(o2::aod::ReducedEvent event, float* values);
+  static void FillTrack(o2::aod::ReducedTrack track, float* values);
+    
 public:   
   VarManager();
   virtual ~VarManager();

@@ -59,16 +59,18 @@ struct TableMaker {
     event(tag, collision.bc().runNumber(), collision.posX(), collision.posY(), collision.posZ(), collision.numContrib());
     eventExtended(collision.bc().globalBC(), collision.bc().triggerMask(), collision.collisionTime(), collision.centV0M());
     eventVtxCov(collision.covXX(), collision.covXY(), collision.covXZ(), collision.covYY(), collision.covYZ(), collision.covZZ(), collision.chi2());
-    
+       
     for (auto& track : tracksBarrel) {
       
       if(track.pt()<1.0) continue;
             
-      trackBasic(collision, track.globalIndex(), track.pt(), track.phi(), track.eta(), short(0), track.charge(), uint64_t(0));
+      trackBasic(collision, track.globalIndex(), uint64_t(0), track.pt(), track.eta(), track.phi(), track.charge());
       trackBarrel(track.tpcInnerParam(), track.flags(), track.itsClusterMap(), track.itsChi2NCl(), 
-                  track.tpcNClsFound(), track.tpcNClsFindable(), track.tpcNClsCrossedRows(), track.tpcNClsShared(), track.tpcChi2NCl(), track.tpcSignal(),
-                  track.trdNTracklets(), track.trdChi2(), track.trdSignal(),
-                  track.tofSignal(), track.tofChi2(), track.length());
+                  track.tpcNClsFindable(), track.tpcNClsFindableMinusFound(), track.tpcNClsFindableMinusCrossedRows(),
+                  track.tpcNClsShared(), track.tpcChi2NCl(), 
+                  track.tpcSignal(), track.trdSignal(), track.tofSignal(),
+                  track.trdNTracklets(), track.trdChi2(), track.tofChi2(),
+                  track.length());
       trackBarrelCov(track.cYY(), track.cZZ(), track.cSnpSnp(), track.cTglTgl(), track.c1Pt21Pt2());
     }
     
