@@ -16,6 +16,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "ReconstructionDataFormats/Track.h"
+#include "DetectorsBase/Propagator.h"
 
 namespace o2
 {
@@ -45,6 +46,8 @@ struct MatchITSTPCParams : public o2::conf::ConfigurableParamHelper<MatchITSTPCP
   float TPCTimeEdgeZSafeMargin = 20.f; ///< safety margin in cm when estimating TPC track tMin and tMax from assigned time0 and its track Z position
 
   float TimeBinTolerance = 10.f; ///<tolerance in time-bin for ITS-TPC time bracket matching (not used ? TODO)
+
+  o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT; /// Material correction type
 
   O2ParamDef(MatchITSTPCParams, "tpcitsMatch");
 };
