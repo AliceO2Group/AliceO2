@@ -67,6 +67,9 @@ class NameConf
   // Filename to for decoding dictionaries
   static std::string getDictionaryFileName(DId det, const std::string_view prefix = "", const std::string_view ext = "");
 
+  // Filename to store material LUT file
+  static std::string getMatLUTFileName(const std::string_view prefix = "");
+
   // Filename to store summary about simulation processes and cut values
   static std::string getCutProcFileName(const std::string_view prefix = "");
 
@@ -101,6 +104,7 @@ class NameConf
   static constexpr std::string_view CUT_FILE_STRING = "proc-cut";
 
   static constexpr std::string_view DICTFILENAME = "dictionary";
+  static constexpr std::string_view MATBUDLUT = "matbud";
 };
 
 } // namespace base
