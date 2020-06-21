@@ -31,6 +31,9 @@ class RunToTimestamp : public TNamed
   /// Inserts a new run with a timestamp in the converter database
   bool insert(uint runNumber, long timestamp);
 
+  /// Updates an already present run number with a new timestamp
+  bool update(uint runNumber, long timestamp);
+
   /// Gets the timestamp of a run
   long getTimestamp(uint run) const;
 
