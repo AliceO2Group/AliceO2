@@ -362,8 +362,11 @@ void MatchTPCITS::init()
   mTPCTransform = std::move(fastTransform);
   mTPCClusterParam = std::make_unique<o2::gpu::GPUParam>();
   mTPCClusterParam->SetDefaults(o2::base::Propagator::Instance()->getNominalBz()); // TODO this may change
-  mFieldON = std::abs(o2::base::Propagator::Instance()->getNominalBz()) > 0.01;
+  auto bz = std::abs(o2::base::Propagator::Instance()->getNominalBz());
+  mFieldON = bz > 0.01;
 
+  mMinTPCTrackPtInv = (mFieldON && mParams->minTPCTrackR > 0) ? 1. / std::abs(mParams->minTPCTrackR * bz * o2::constants::math::B2C) : 999.;
+  mMinITSTrackPtInv = (mFieldON && mParams->minITSTrackR > 0) ? 1. / std::abs(mParams->minITSTrackR * bz * o2::constants::math::B2C) : 999.;
 
 #ifdef _ALLOW_DEBUG_TREES_
   // debug streamer
@@ -507,7 +510,7 @@ bool MatchTPCITS::prepareTPCTracks()
     const auto& trcOrig = mTPCTracksArray[it];
 
     // make sure the track was propagated to inner TPC radius at the ref. radius
-    if (trcOrig.getX() > XTPCInnerRef + 0.1 || trcOrig.getPt() < mParams->minTPCPt) {
+    if (trcOrig.getX() > XTPCInnerRef + 0.1 || std::abs(trcOrig.getQ2Pt()) > mMinTPCTrackPtInv) {
       continue;
     }
     // discard tracks with too few clusters
@@ -680,9 +683,11 @@ bool MatchTPCITS::prepareITSTracks()
       if (mParams->runAfterBurner) {
         flagUsedITSClusters(trcOrig, cluROFOffset);
       }
-
       if (trcOrig.getParamOut().getX() < 1.) {
         continue; // backward refit failed
+      }
+      if (std::abs(trcOrig.getQ2Pt()) > mMinITSTrackPtInv) {
+        continue;
       }
       int nWorkTracks = mITSWork.size();
       // working copy of outer track param

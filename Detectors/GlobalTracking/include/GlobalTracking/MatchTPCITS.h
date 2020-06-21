@@ -563,6 +563,8 @@ class MatchTPCITS
   float mNTPCBinsFullDrift = 0.;    ///< max time bin for full drift
   float mTPCZMax = 0.;              ///< max drift length
 
+  float mMinTPCTrackPtInv = 999.; ///< cutoff on TPC track inverse pT
+  float mMinITSTrackPtInv = 999.; ///< cutoff on ITS track inverse pT
 
   std::unique_ptr<TPCTransform> mTPCTransform;         ///< TPC cluster transformation
   std::unique_ptr<o2::gpu::GPUParam> mTPCClusterParam; ///< TPC clusters error param
