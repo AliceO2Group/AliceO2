@@ -651,7 +651,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   // We need the TClass for this type; will verify if dictionary exists
   auto tcl = TClass::GetClass(tinfo);
   if (!tcl) {
-    std::cerr << "Could not retrieve ROOT dictionary for type " << tinfo.name() << " aborting to read from CCDB";
+    std::cerr << "Could not retrieve ROOT dictionary for type " << tinfo.name() << " aborting to read from CCDB\n";
     return nullptr;
   }
 
