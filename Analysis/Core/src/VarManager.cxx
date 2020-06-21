@@ -64,6 +64,51 @@ void VarManager::SetRunNumbers(int n, int* runs)
     fgRunMap[runs[i]] = i + 1;
 }
 
+
+//__________________________________________________________________
+void VarManager::FillEvent(o2::aod::ReducedEvent event, float* values) {
+  
+  values[kRunNo] = event.runNumber();
+  values[kVtxX] = event.posX();
+  values[kVtxY] = event.posY();
+  values[kVtxZ] = event.posZ();
+  values[kVtxNcontrib] = event.numContrib();
+  /*values[kVtxChi2] = event.chi2();
+  values[kBC] = event.bc();
+  values[kCentVZERO] = event.centVZERO();
+  values[kVtxCovXX] = event.covXX();
+  values[kVtxCovXY] = event.covXY();
+  values[kVtxCovXZ] = event.covXZ();
+  values[kVtxCovYY] = event.covYY();
+  values[kVtxCovYZ] = event.covYZ();
+  values[kVtxCovZZ] = event.covZZ();*/
+  
+}
+
+//__________________________________________________________________
+void VarManager::FillTrack(o2::aod::ReducedTrack track, float* values) {
+  
+  values[kPt] = track.pt();
+  values[kEta] = track.eta();
+  values[kPhi] = track.phi();
+  values[kCharge] = track.charge();
+  /*values[kPin] = track.tpcInnerParam();
+  if(fgUsedVars[kITSncls]) {
+    values[kITSncls] = 0.0;
+    for(int i=0; i<6; ++i) 
+      values[kITSncls] += ((track.itsClusterMap() & (1<<i)) ? 1 : 0);
+  }
+  values[kITSchi2] = track.itsChi2NCl();
+  values[kTPCncls] = track.tpcNCls();
+  values[kTPCchi2] = track.tpcChi2NCl();
+  values[kTPCsignal] = track.tpcSignal();
+  values[kTRDsignal] = track.trdSignal();
+  values[kTOFsignal] = track.tofSignal();
+  values[kTrackLength] = track.barrelLength();*/
+  
+}
+
+
 //__________________________________________________________________
 void VarManager::FillEventDerived(float* values)
 {
