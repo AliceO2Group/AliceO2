@@ -24,14 +24,16 @@ bool RunToTimestamp::insert(uint runNumber, long timestamp)
   return true;
 }
 
-long RunToTimestamp::getTimestamp(uint run)
+long RunToTimestamp::getTimestamp(uint run) const
 {
-  if (!Has(run))
+  if (!Has(run)) {
     LOG(ERROR) << "Run to Timestamp converter does not have run " << run;
+    return 0;
+  }
   return mMap.at(run);
 }
 
-void RunToTimestamp::print()
+void RunToTimestamp::print() const
 {
   LOG(INFO) << "Printing run number -> timestamp conversion";
   for (auto e : mMap) {

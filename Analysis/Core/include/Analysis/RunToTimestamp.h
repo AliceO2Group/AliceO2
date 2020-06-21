@@ -26,16 +26,16 @@ class RunToTimestamp : public TNamed
   ~RunToTimestamp() = default;
 
   /// Checks if the converter has a particular run
-  bool Has(uint run) { return mMap.count(run); }
+  bool Has(uint run) const { return mMap.count(run); }
 
   /// Inserts a new run with a timestamp in the converter database
   bool insert(uint runNumber, long timestamp);
 
   /// Gets the timestamp of a run
-  long getTimestamp(uint run);
+  long getTimestamp(uint run) const;
 
   /// Prints the content of the converter
-  void print();
+  void print() const;
 
  private:
   std::map<uint, long> mMap;
