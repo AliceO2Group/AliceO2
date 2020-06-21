@@ -279,6 +279,36 @@ struct InteractionTimeRecord : public InteractionRecord {
     return timeInBCNS + bc2ns();
   }
 
+  bool operator==(const InteractionTimeRecord& other) const
+  {
+    return this->InteractionRecord::operator==(other) && (timeInBCNS == other.timeInBCNS);
+  }
+
+  bool operator!=(const InteractionTimeRecord& other) const
+  {
+    return this->InteractionRecord::operator!=(other) || (timeInBCNS != other.timeInBCNS);
+  }
+
+  bool operator>(const InteractionTimeRecord& other) const
+  {
+    return (this->InteractionRecord::operator>(other)) || (this->InteractionRecord::operator==(other) && (timeInBCNS > other.timeInBCNS));
+  }
+
+  bool operator>=(const InteractionTimeRecord& other) const
+  {
+    return !((*this) < other);
+  }
+
+  bool operator<(const InteractionTimeRecord& other) const
+  {
+    return (this->InteractionRecord::operator<(other)) || (this->InteractionRecord::operator==(other) && (timeInBCNS < other.timeInBCNS));
+  }
+
+  bool operator<=(const InteractionTimeRecord& other) const
+  {
+    return !((*this) > other);
+  }
+
   void print() const;
 
   friend std::ostream& operator<<(std::ostream& stream, InteractionTimeRecord const& ir);
