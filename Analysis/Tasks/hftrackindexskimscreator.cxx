@@ -98,8 +98,8 @@ struct HFTrackIndexSkimsCreator {
                                   "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
   Configurable<double> d_minparamchange{"d_minparamchange", 1e-3,
                                         "stop iterations if largest change of any X is smaller than this"};
-  Configurable<double> d_minrelchi2change {"d_minrelchi2change", 0.9,
-                                           "stop iterations is chi2/chi2old > this"};
+  Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9,
+                                          "stop iterations is chi2/chi2old > this"};
 
   Filter seltrack = (aod::seltrack::issel == 1);
 
