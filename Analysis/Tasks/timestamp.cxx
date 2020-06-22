@@ -27,12 +27,12 @@ DECLARE_SOA_INDEX_COLUMN(BC, bc);
 DECLARE_SOA_COLUMN(Timestamp, timestamp, long);
 } // namespace ts
 
-DECLARE_SOA_TABLE(TSs, "AOD", "TS", ts::Timestamp);
+DECLARE_SOA_TABLE(Timestamps, "AOD", "TIMESTAMPS", ts::Timestamp);
 
 } // namespace o2::aod
 
 struct TimestampTask {
-  Produces<aod::TSs> ts_table;
+  Produces<aod::Timestamps> ts_table;
   RunToTimestamp* converter = nullptr;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
 
