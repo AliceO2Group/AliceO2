@@ -76,8 +76,8 @@ struct SelectTracks {
       trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca);
       if (dca[0] * dca[0] + dca[1] * dca[1] < dcatrackmin * dcatrackmin)
         status = 0;
-      seltrack(status, dca[0], dca[1]);
       //hdca->Fill(sqrt(dca[0]*dca[0] + dca[1]*dca[1]));
+      seltrack(status, dca[0], dca[1]);
     }  
   }
 };
