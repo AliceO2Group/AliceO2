@@ -26,6 +26,8 @@ namespace tpc
 struct HwClustererParam : public o2::conf::ConfigurableParamHelper<HwClustererParam> {
   unsigned peakChargeThreshold = 2;         ///< Charge threshold for the central peak in ADC counts
   unsigned contributionChargeThreshold = 0; ///< Charge threshold for the contributing pads in ADC counts
+  unsigned firstTimeBin = 0;                ///< First time bin to process
+  unsigned lastTimeBin = 200000;            ///< Last time bin to process
   short splittingMode = 0;                  ///< cluster splitting mode, 0 no splitting, 1 for minimum contributes half to both, 2 for miminum corresponds to left/older cluster,
   bool isContinuousReadout = true;          ///< Switch for continuous readout
   bool rejectSinglePadClusters = false;     ///< Switch to reject single pad clusters, sigmaPad2Pre == 0

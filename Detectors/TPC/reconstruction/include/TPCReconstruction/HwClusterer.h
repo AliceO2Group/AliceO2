@@ -189,7 +189,9 @@ class HwClusterer : public Clusterer
   short mCurrentMcContainerInBuffer;     ///< Bit field, where to find the current MC container in buffer
   short mSplittingMode;                  ///< Cluster splitting mode, 0 no splitting, 1 for minimum contributes half to both, 2 for miminum corresponds to left/older cluster
   int mClusterSector;                    ///< Sector to be processed
-  int mLastTimebin;                      ///< Last time bin of previous event
+  int mPreviousTimebin;                  ///< Last time bin of previous event
+  int mFirstTimebin;                     ///< First time bin to process
+  int mLastTimebin;                      ///< Last time bin to process
   unsigned mLastHB;                      ///< Last HB bin of previous event
   unsigned mPeakChargeThreshold;         ///< Charge threshold for the central peak in ADC counts
   unsigned mContributionChargeThreshold; ///< Charge threshold for the contributing pads in ADC counts
