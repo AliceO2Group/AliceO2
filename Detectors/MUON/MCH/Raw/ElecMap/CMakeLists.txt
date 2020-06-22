@@ -10,7 +10,6 @@
 
 o2_add_library(MCHRawElecMap
         SOURCES
-        src/DsElecId.cxx
         src/CH5L.cxx
         src/CH5R.cxx
         src/CH6L.cxx
@@ -19,12 +18,22 @@ o2_add_library(MCHRawElecMap
         src/CH7R.cxx
         src/CH8L.cxx
         src/DsDetId.cxx
-        src/FeeLinkId.cxx
+        src/DsElecId.cxx
         src/ElectronicMapperDummy.cxx
         src/ElectronicMapperGenerated.cxx
-        src/dslist.cxx
+        src/ElectronicMapperString.cxx
+        src/FeeLinkId.cxx
+        src/MapCRU.cxx
+        src/MapFEC.cxx
         src/Mapper.cxx
+        src/dslist.cxx
         PUBLIC_LINK_LIBRARIES O2::MCHRawImplHelpers ms_gsl::ms_gsl)
+
+
+o2_add_executable(elecmap-cli
+        SOURCES src/cli.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHRawElecMap Boost::program_options)
 
 if(BUILD_TESTING)
         o2_add_test(elecmap
@@ -39,6 +48,11 @@ if(BUILD_TESTING)
                 PUBLIC_LINK_LIBRARIES O2::MCHRawElecMap)
         o2_add_test(feelinkid
                 SOURCES src/testFeeLinkId.cxx
+                COMPONENT_NAME mchraw
+                LABELS "muon;mch;raw"
+                PUBLIC_LINK_LIBRARIES O2::MCHRawElecMap)
+        o2_add_test(elecmap-string
+                SOURCES src/testElectronicMapperString.cxx
                 COMPONENT_NAME mchraw
                 LABELS "muon;mch;raw"
                 PUBLIC_LINK_LIBRARIES O2::MCHRawElecMap)

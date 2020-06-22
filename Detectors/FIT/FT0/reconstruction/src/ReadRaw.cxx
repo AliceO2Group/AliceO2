@@ -59,8 +59,10 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 #include "TTree.h"
 #include "TBranch.h"
 #include "CommonConstants/LHCConstants.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 using namespace o2::ft0;
+using RDHUtils = o2::raw::RDHUtils;
 
 ClassImp(ReadRaw);
 
@@ -101,14 +103,14 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
     int pos = 0;
     mFileDest.seekg(posInFile);
     mFileDest.read(reinterpret_cast<char*>(&mRDH), sizeof(mRDH));
-    printRDH(&mRDH);
-    int nwords = mRDH.memorySize;
-    int npackages = mRDH.packetCounter;
-    int numPage = mRDH.pageCnt;
-    int offset = mRDH.offsetToNext;
-    int link = mRDH.linkID;
+    RDHUtils::printRDH(mRDH);
+    int nwords = RDHUtils::getMemorySize(mRDH);
+    int npackages = RDHUtils::getPacketCounter(mRDH);
+    int numPage = RDHUtils::getPageCounter(mRDH);
+    int offset = RDHUtils::getOffsetToNext(mRDH);
+    int link = RDHUtils::getLinkID(mRDH);
     if (nwords <= sizeof(mRDH)) {
-      posInFile += mRDH.offsetToNext;
+      posInFile += RDHUtils::getOffsetToNext(mRDH);
       LOG(INFO) << " next RDH";
       pos = 0;
     } else {
@@ -132,9 +134,8 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
         if (link == 18) {
           mFileDest.read(reinterpret_cast<char*>(&mTCMdata), sizeof(mTCMdata));
           pos += sizeof(mTCMdata);
-          digitIter->second.setTriggers(mTCMdata.orA, mTCMdata.orC, mTCMdata.vertex, mTCMdata.sCen, mTCMdata.cen, mTCMdata.nChanA, mTCMdata.nChanC, mTCMdata.amplA, mTCMdata.amplC, mTCMdata.timeA, mTCMdata.timeC);
-
-          LOG(DEBUG) << "read TCM  " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
+          digitIter->second.setTriggers(Bool_t(mTCMdata.orA), Bool_t(mTCMdata.orC), Bool_t(mTCMdata.vertex), Bool_t(mTCMdata.sCen), Bool_t(mTCMdata.cen), uint8_t(mTCMdata.nChanA), uint8_t(mTCMdata.nChanC), int32_t(mTCMdata.amplA), int32_t(mTCMdata.amplC), int16_t(mTCMdata.timeA), int16_t(mTCMdata.timeC));
+          LOG(INFO) << "read TCM  " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
         } else {
           if (mIsPadded) {
             pos += CRUWordSize - o2::ft0::EventHeader::PayloadSize;
@@ -147,11 +148,11 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
                                       int(mEventData[2 * i].numberADC));
 
             pos += o2::ft0::EventData::PayloadSizeFirstWord;
-            LOG(DEBUG) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
+            LOG(INFO) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
 
             mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSizeSecondWord);
             pos += o2::ft0::EventData::PayloadSizeSecondWord;
-            LOG(DEBUG) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
+            LOG(INFO) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i + 1].channelID)) << " pos " << pos;
             if (mEventData[2 * i + 1].charge <= 0 && mEventData[2 * i + 1].channelID <= 0 && mEventData[2 * i + 1].time <= 0) {
               continue;
             }
@@ -202,12 +203,15 @@ void ReadRaw::writeDigits(std::string fileDataOut)
     int first = gsl::narrow_cast<int>(chDataVec.size());
     auto& chDgData = digit.getChDgData();
     chDataVec.insert(chDataVec.end(), chDgData.begin(), chDgData.end());
+    mTrigger = digit.getTriggers();
     o2::ft0::Digit newDigit{first, (int)chDgData.size(), intrec, mTrigger, 0};
+    newDigit.setTriggers(mTrigger);
+    newDigit.printStream(std::cout);
     digitVec.emplace_back(newDigit);
   }
   mDigitAccum.clear();
-  mOutTree->Branch("FT0Digit", &digitVec);
-  mOutTree->Branch("FT0ChannelData", &chDataVec);
+  mOutTree->Branch("FT0DIGITSBC", &digitVec);
+  mOutTree->Branch("FT0DIGITSCH", &chDataVec);
   mOutTree->Fill();
 
   mOutFile->cd();

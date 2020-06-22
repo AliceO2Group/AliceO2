@@ -14,21 +14,10 @@
 /// @brief  ProcessorSpec for the TPC cluster entropy encoding
 
 #include "TPCWorkflow/EntropyEncoderSpec.h"
-#include "Headers/DataHeader.h"
-#include "Framework/WorkflowSpec.h" // o2::framework::mergeInputs
-#include "Framework/DataRefUtils.h"
-#include "Framework/DataSpecUtils.h"
-#include "Framework/ControlService.h"
-#include "Framework/ConfigParamRegistry.h"
-#include "Framework/Logger.h"
 #include "DataFormatsTPC/CompressedClusters.h"
-//#include "TPCClusterDecompressor.cxx"
-#include <memory> // for make_shared
-#include <vector>
-
-// TEMP: as a test, the processor simply writes the data to file, remove this
-#include <TFile.h>
-#include <TTree.h>
+#include "TPCReconstruction/CTFCoder.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Headers/DataHeader.h"
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -38,40 +27,53 @@ namespace o2
 namespace tpc
 {
 
-DataProcessorSpec getEntropyEncoderSpec()
+void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
-  struct ProcessAttributes {
-    int verbosity = 1;
-  };
+  CompressedClusters clusters;
 
-  auto initFunction = [](InitContext& ic) {
-    auto processAttributes = std::make_shared<ProcessAttributes>();
+  if (mFromFile) {
+    auto tmp = pc.inputs().get<CompressedClustersROOT*>("input");
+    if (tmp == nullptr) {
+      LOG(ERROR) << "invalid input";
+      return;
+    }
+    clusters = *tmp;
+  } else {
+    auto tmp = pc.inputs().get<CompressedClustersFlat*>("input");
+    if (tmp == nullptr) {
+      LOG(ERROR) << "invalid input";
+      return;
+    }
+    clusters = *tmp;
+  }
+  auto cput = mTimer.CpuTime();
+  mTimer.Start(false);
 
-    auto processingFct = [processAttributes](ProcessingContext& pc) {
-      auto compressed = pc.inputs().get<CompressedClusters*>("input");
-      if (compressed == nullptr) {
-        LOG(ERROR) << "invalid input";
-        return;
-      }
-      LOG(INFO) << "input data with " << compressed->nTracks << " track(s) and " << compressed->nAttachedClusters << " attached clusters";
+  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"TPC", "CTFDATA", 0, Lifetime::Timeframe});
+  CTFCoder::encode(buffer, clusters);
+  auto encodedBlocks = CTF::get(buffer.data()); // cast to container pointer
+  encodedBlocks->compactify();                  // eliminate unnecessary padding
+  buffer.resize(encodedBlocks->size());         // shrink buffer to strictly necessary size
+  // encodedBlocks->print();
+  mTimer.Stop();
+  LOG(INFO) << "Created encoded data of size " << encodedBlocks->size() << " for TPC in " << mTimer.CpuTime() - cput << " s";
+}
 
-      std::unique_ptr<TFile> testFile(TFile::Open("tpc-cluster-encoder.root", "RECREATE"));
-      testFile->WriteObject(compressed.get(), "TPCCompressedClusters");
-      testFile->Write();
-      testFile->Close();
+void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "TPC Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+}
 
-      //o2::tpc::ClusterNativeAccess clustersNativeDecoded; // Cluster native access structure as used by the tracker
-      //std::vector<o2::tpc::ClusterNative> clusterBuffer; // std::vector that will hold the actual clusters, clustersNativeDecoded will point inside here
-      //mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param); // Run decompressor
-    };
-
-    return processingFct;
-  };
-
-  return DataProcessorSpec{"tpc-entropy-encoder", // process id
-                           {{"input", "TPC", "COMPCLUSTERS", 0, Lifetime::Timeframe}},
-                           {},
-                           AlgorithmSpec(initFunction)};
+DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile)
+{
+  std::vector<InputSpec> inputs;
+  header::DataDescription inputType = inputFromFile ? header::DataDescription("COMPCLUSTERS") : header::DataDescription("COMPCLUSTERSFLAT");
+  return DataProcessorSpec{
+    "tpc-entropy-encoder", // process id
+    {{"input", "TPC", inputType, 0, Lifetime::Timeframe}},
+    Outputs{{"TPC", "CTFDATA", 0, Lifetime::Timeframe}},
+    AlgorithmSpec(adaptFromTask<EntropyEncoderSpec>(inputFromFile))};
 }
 
 } // namespace tpc

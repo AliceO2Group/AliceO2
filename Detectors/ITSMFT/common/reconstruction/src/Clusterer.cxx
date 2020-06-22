@@ -31,9 +31,9 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
 #ifdef _PERFORM_TIMING_
   mTimer.Start(kFALSE);
 #endif
+
   constexpr int LoopPerThread = 4; // in MT mode run so many times more loops than the threads allowed
   auto autoDecode = reader.getDecodeNextAuto();
-  o2::itsmft::ROFRecord* rof = nullptr;
   do {
     if (autoDecode) {
       reader.setDecodeNextAuto(false); // internally do not autodecode
@@ -49,12 +49,17 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
       mFiredChipsPtr.push_back(curChipData);
       nPix += curChipData->getData().size();
     }
+
+    auto& rof = vecROFRec->emplace_back(reader.getInteractionRecord(), 0, compClus->size(), 0); // create new ROF
+
     int nFired = mFiredChipsPtr.size();
     if (!nFired) {
-      break;
+      if (autoDecode) {
+        continue;
+      }
+      break; // just 1 ROF was asked to be processed
     }
-    auto clustersCount = compClus->size();                                                                                        // RSTODO: in principle, the compClus is never supposed to be 0
-    rof = &vecROFRec->emplace_back(mFiredChipsPtr[0]->getInteractionRecord(), mFiredChipsPtr[0]->getROFrame(), clustersCount, 0); // create new ROF
+
     if (nFired < nThreads) {
       nThreads = nFired;
     }
@@ -153,15 +158,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
       mTimerMerge.Stop();
 #endif
     }
-    // finalize last ROF
-    if (rof) {
-      auto cntUpd = compClus->size();
-      rof->setNEntries(cntUpd - clustersCount); // update
-      if (mClusTree) {                          // if necessary, flush existing data, legacy code, to remove
-        mROFRef = *rof;
-        flushClusters(fullClus, compClus, labelsCl);
-      }
-    }
+    rof.setNEntries(compClus->size() - rof.getFirstEntry()); // update
   } while (autoDecode);
 
   reader.setDecodeNextAuto(autoDecode); // restore setting
@@ -172,15 +169,15 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
 
 //__________________________________________________
 void Clusterer::ClustererThread::process(gsl::span<ChipPixelData*> chipPtrs, FullClusCont* fullClusPtr, CompClusCont* compClusPtr, PatternCont* patternsPtr,
-                                         const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord* rofPtr)
+                                         const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr)
 {
   int nch = chipPtrs.size();
   for (auto curChipData : chipPtrs) {
     auto chipID = curChipData->getChipID();
     if (parent->mMaxBCSeparationToMask > 0) { // mask pixels fired from the previous ROF
       const auto& chipInPrevROF = parent->mChipsOld[chipID];
-      if (std::abs(rofPtr->getBCData().differenceInBC(chipInPrevROF.getInteractionRecord())) < parent->mMaxBCSeparationToMask) {
-        curChipData->maskFiredInSample(parent->mChipsOld[chipID]);
+      if (std::abs(rofPtr.getBCData().differenceInBC(chipInPrevROF.getInteractionRecord())) < parent->mMaxBCSeparationToMask) {
+        parent->mMaxRowColDiffToMask ? curChipData->maskFiredInSample(parent->mChipsOld[chipID], parent->mMaxRowColDiffToMask) : curChipData->maskFiredInSample(parent->mChipsOld[chipID]);
       }
     }
     auto validPixID = curChipData->getFirstUnmasked();
@@ -386,7 +383,6 @@ void Clusterer::ClustererThread::finishChipSingleHitFast(uint32_t hit, ChipPixel
 //__________________________________________________
 Clusterer::Clusterer() : mPattIdConverter()
 {
-  mROFRef.clear();
 #ifdef _ClusterTopology_
   LOG(INFO) << "*********************************************************************";
   LOG(INFO) << "ATTENTION: YOU ARE RUNNING IN SPECIAL MODE OF STORING CLUSTER PATTERN";
@@ -500,8 +496,6 @@ void Clusterer::ClustererThread::fetchMCLabels(int digID, const MCTruth* labelsD
 void Clusterer::clear()
 {
   // reset
-  mClusTree = nullptr;
-  mROFRef.clear();
 #ifdef _PERFORM_TIMING_
   mTimer.Stop();
   mTimer.Reset();
@@ -510,33 +504,12 @@ void Clusterer::clear()
 #endif
 }
 
-///< flush cluster data accumulated so far into the tree, this method should be NEVER used in MT-mode
-//__________________________________________________
-void Clusterer::flushClusters(FullClusCont* fullClus, CompClusCont* compClus, MCTruth* labels)
-{
-#ifdef _PERFORM_TIMING_
-  mTimer.Stop();
-#endif
-  mClusTree->Fill();
-#ifdef _PERFORM_TIMING_
-  mTimer.Start(kFALSE);
-#endif
-  if (fullClus) {
-    fullClus->clear();
-  }
-  if (compClus) {
-    compClus->clear();
-  }
-  if (labels) {
-    labels->clear();
-  }
-}
-
 //__________________________________________________
 void Clusterer::print() const
 {
   // print settings
-  LOG(INFO) << "Clusterizer masks overflow pixels in strobes separated by < " << mMaxBCSeparationToMask << " BC";
+  LOG(INFO) << "Clusterizer masks overflow pixels separated by < " << mMaxBCSeparationToMask << " BC and <= "
+            << mMaxRowColDiffToMask << " in row/col";
 #ifdef _PERFORM_TIMING_
   auto& tmr = const_cast<TStopwatch&>(mTimer); // ugly but this is what root does internally
   auto& tmrm = const_cast<TStopwatch&>(mTimerMerge);

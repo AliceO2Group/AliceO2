@@ -162,7 +162,7 @@ static void BM_ASoAHelpersNaiveTracksPairs(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
@@ -197,7 +197,7 @@ static void BM_ASoAHelpersNaiveTracksFives(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
@@ -300,7 +300,7 @@ static void BM_ASoAHelpersCombGenTracksPairs(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
@@ -332,7 +332,7 @@ static void BM_ASoAHelpersCombGenTracksFives(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
@@ -405,7 +405,7 @@ static void BM_ASoAHelpersCombGenTracksFivesMultipleChunks(benchmark::State& sta
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builderA;
-  auto rowWriterA = builderA.cursor<o2::aod::Tracks>();
+  auto rowWriterA = builderA.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriterA(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
                uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
@@ -414,7 +414,7 @@ static void BM_ASoAHelpersCombGenTracksFivesMultipleChunks(benchmark::State& sta
   auto tableA = builderA.finalize();
 
   TableBuilder builderB;
-  auto rowWriterB = builderB.cursor<o2::aod::Tracks>();
+  auto rowWriterB = builderB.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriterB(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
                uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
@@ -462,7 +462,7 @@ static void BM_ASoAHelpersCombGenSimplePairsSameCategories(benchmark::State& sta
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : selfCombinations("x", tests, tests)) {
+    for (auto& comb : combinations(CombinationsBlockUpperSameIndexPolicy("x", 2, -1, tests, tests))) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -494,7 +494,7 @@ static void BM_ASoAHelpersCombGenSimpleFivesSameCategories(benchmark::State& sta
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : selfCombinations("x", tests, tests, tests, tests, tests)) {
+    for (auto& comb : combinations(CombinationsBlockUpperSameIndexPolicy("x", 5, -1, tests, tests, tests, tests, tests))) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -526,7 +526,7 @@ static void BM_ASoAHelpersCombGenSimplePairsCategories(benchmark::State& state)
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations("x", tests, tests)) {
+    for (auto& comb : combinations(CombinationsBlockUpperIndexPolicy("x", 2, -1, tests, tests))) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -558,7 +558,7 @@ static void BM_ASoAHelpersCombGenSimpleFivesCategories(benchmark::State& state)
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations("x", tests, tests, tests, tests, tests)) {
+    for (auto& comb : combinations(CombinationsBlockUpperIndexPolicy("x", 2, -1, tests, tests, tests, tests, tests))) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -595,7 +595,7 @@ static void BM_ASoAHelpersCombGenCollisionsPairsSameCategories(benchmark::State&
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : selfCombinations("fNumContrib", collisions, collisions)) {
+    for (auto& comb : combinations(CombinationsBlockUpperSameIndexPolicy("fNumContrib", 2, -1, collisions, collisions))) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -632,7 +632,7 @@ static void BM_ASoAHelpersCombGenCollisionsFivesSameCategories(benchmark::State&
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : selfCombinations("fNumContrib", collisions, collisions, collisions, collisions, collisions)) {
+    for (auto& comb : combinations(CombinationsBlockUpperSameIndexPolicy("fNumContrib", 5, -1, collisions, collisions, collisions, collisions, collisions))) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -669,7 +669,7 @@ static void BM_ASoAHelpersCombGenCollisionsPairsCategories(benchmark::State& sta
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations("fNumContrib", collisions, collisions)) {
+    for (auto& comb : combinations(CombinationsBlockUpperIndexPolicy("fNumContrib", 2, -1, collisions, collisions))) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -706,7 +706,7 @@ static void BM_ASoAHelpersCombGenCollisionsFivesCategories(benchmark::State& sta
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations("fNumContrib", collisions, collisions, collisions, collisions, collisions)) {
+    for (auto& comb : combinations(CombinationsBlockUpperIndexPolicy("fNumContrib", 5, -1, collisions, collisions, collisions, collisions, collisions))) {
       count++;
     }
     benchmark::DoNotOptimize(count);

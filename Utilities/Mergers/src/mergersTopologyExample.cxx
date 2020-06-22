@@ -14,27 +14,27 @@
 ///
 /// \brief This is a DPL workflow to see Mergers in action
 
+#include "Framework/RootSerializationSupport.h"
 #include "Mergers/MergerBuilder.h"
 
 #include <Framework/CompletionPolicy.h>
 
-#include <TH1F.h>
-#include <memory>
-#include <random>
-
 using namespace o2::framework;
-using namespace o2::experimental::mergers;
+using namespace o2::mergers;
 
 void customize(std::vector<CompletionPolicy>& policies)
 {
   MergerBuilder::customizeInfrastructure(policies);
 }
 
-#include <Framework/runDataProcessing.h>
-#include <fairmq/FairMQLogger.h>
-#include <Mergers/MergeInterfaceOverrideExample.h>
-
+#include "Framework/runDataProcessing.h"
 #include "Mergers/MergerInfrastructureBuilder.h"
+#include "Mergers/CustomMergeableObject.h"
+
+#include <fairmq/FairMQLogger.h>
+#include <TH1F.h>
+#include <memory>
+#include <random>
 
 using namespace std::chrono;
 
@@ -43,7 +43,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   WorkflowSpec specs;
 
-  // one 1D histo, binwise
+  // one 1D histo
   {
 //    WorkflowSpec specs; // enable comment to disable the workflow
 
@@ -83,10 +83,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     mergersBuilder.setInputSpecs(mergersInputs);
     mergersBuilder.setOutputSpec({{ "main" }, "TST", "HISTO", 0 });
     MergerConfig config;
-    config.ownershipMode = { OwnershipMode::Integral };
+    config.inputObjectTimespan = { InputObjectsTimespan::LastDifference };
     config.publicationDecision = { PublicationDecision::EachNSeconds, 5 };
-    config.mergingTime = { MergingTime::BeforePublication };
-    config.timespan = { Timespan::FullHistory };
+    config.mergedObjectTimespan = { MergedObjectTimespan::FullHistory };
     config.topologySize = { TopologySize::NumberOfLayers, 2 };
     mergersBuilder.setConfig(config);
 
@@ -108,74 +107,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
               bins += " " + std::to_string((int) histo->GetBinContent(i));
             }
             LOG(INFO) << bins;
-          };
-        }
-      }
-    };
-    specs.push_back(printer);
-  }
-
-
-  // concatenation test
-  {
-//    WorkflowSpec specs; // enable comment to disable the workflow
-    size_t producersAmount = 4;
-    Inputs mergersInputs;
-    for (size_t p = 0; p < producersAmount; p++) {
-      mergersInputs.push_back({ "mo",               "TST",
-                                "STRING",           static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1),
-                                Lifetime::Timeframe });
-      DataProcessorSpec producer{ "producer-str" + std::to_string(p), Inputs{},
-                                  Outputs{ { { "mo" },
-                                             "TST",
-                                             "STRING",
-                                             static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1),
-                                             Lifetime::Timeframe } },
-                                  AlgorithmSpec{(AlgorithmSpec::ProcessCallback)
-                                                [p, producersAmount](ProcessingContext& processingContext) mutable {
-
-            usleep(1000000);
-            char str[2] = "a";
-            str[0] += p;
-            auto subspec = static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1);
-            // we make a framework-owned object with a title, but we do not modify it
-            processingContext.outputs().make<TObjString>(Output{ "TST", "STRING", subspec }, str);
-                                                } } };
-      specs.push_back(producer);
-    }
-
-    MergerInfrastructureBuilder mergersBuilder;
-    mergersBuilder.setInfrastructureName("strings");
-    mergersBuilder.setInputSpecs(mergersInputs);
-    mergersBuilder.setOutputSpec({{ "main" }, "TST", "STRING", 0 });
-    MergerConfig config;
-    config.ownershipMode = { OwnershipMode::Full };
-    config.mergingMode = { MergingMode::Concatenate };
-    config.publicationDecision = { PublicationDecision::WhenXInputsUpdated, 1 };
-    config.mergingTime = { MergingTime::BeforePublication };
-    config.topologySize = { TopologySize::NumberOfLayers, 2 };
-    mergersBuilder.setConfig(config);
-
-    mergersBuilder.generateInfrastructure(specs);
-
-    DataProcessorSpec printer{
-      "printer-collections",
-      Inputs{
-        { "string", "TST", "STRING", 0 }
-      },
-      Outputs{},
-      AlgorithmSpec{
-        (AlgorithmSpec::InitCallback) [](InitContext&) {
-          return (AlgorithmSpec::ProcessCallback) [](ProcessingContext& processingContext) mutable {
-//            LOG(INFO) << "printer invoked";
-            auto stringArray = processingContext.inputs().get<TObjArray*>("string");
-            std::string full = "FULL: ";
-            for (const auto& obj : *stringArray) {
-              auto str = dynamic_cast<TObjString*>(obj);
-
-              full += str->GetString();
-            }
-            LOG(INFO) << full;
           };
         }
       }
@@ -205,7 +136,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             static int i = 0;
             if (i++ >= 1000) { return; }
 
-            auto histo = std::make_unique<MergeInterfaceOverrideExample>(1);
+            auto histo = std::make_unique<CustomMergeableObject>(1);
             auto subspec = static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1);
             processingContext.outputs().snapshot(OutputRef{ "mo", subspec }, *histo);
           }
@@ -219,10 +150,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     mergersBuilder.setInputSpecs(mergersInputs);
     mergersBuilder.setOutputSpec({{ "main" }, "TST", "CUSTOM", 0 });
     MergerConfig config;
-    config.ownershipMode = { OwnershipMode::Integral };
+    config.inputObjectTimespan = { InputObjectsTimespan::LastDifference };
     config.publicationDecision = { PublicationDecision::EachNSeconds, 5 };
-    config.mergingTime = { MergingTime::BeforePublication };
-    config.timespan = { Timespan::FullHistory };
+    config.mergedObjectTimespan = { MergedObjectTimespan::FullHistory };
     config.topologySize = { TopologySize::NumberOfLayers, 1 };
     mergersBuilder.setConfig(config);
 
@@ -237,7 +167,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       AlgorithmSpec{
         (AlgorithmSpec::InitCallback) [](InitContext&) {
           return (AlgorithmSpec::ProcessCallback) [](ProcessingContext& processingContext) mutable {
-            auto obj = processingContext.inputs().get<MergeInterfaceOverrideExample*>("custom");
+            auto obj = processingContext.inputs().get<CustomMergeableObject*>("custom");
             LOG(INFO) << "SECRET:" << obj->getSecret();
           };
         }

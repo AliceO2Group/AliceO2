@@ -28,6 +28,7 @@
 #include "GPUReconstruction.h"
 #include "GPUChainITS.h"
 #include "CommonUtils/StringUtils.h"
+#include "TStopwatch.h"
 
 namespace o2
 {
@@ -41,6 +42,7 @@ class TrackerDPL : public framework::Task
   ~TrackerDPL() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
+  void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
   bool mIsMC = false;
@@ -49,6 +51,7 @@ class TrackerDPL : public framework::Task
   std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<Tracker> mTracker = nullptr;
   std::unique_ptr<Vertexer> mVertexer = nullptr;
+  TStopwatch mTimer;
 };
 
 /// create a processor spec

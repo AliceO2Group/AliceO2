@@ -150,6 +150,12 @@ struct DataSpecUtils {
   /// and we can add corner cases as we go.
   static header::DataOrigin asConcreteOrigin(InputSpec const& spec);
 
+  /// If possible extract the DataDescription from an InputSpec.
+  /// This will not always be possible, depending on how complex of
+  /// a query the InputSpec does, however in most cases it should be ok
+  /// and we can add corner cases as we go.
+  static header::DataDescription asConcreteDataDescription(InputSpec const& spec);
+
   /// If possible extract either ConcreteTypeDataMatcher or ConcreteDataMatcher
   /// from an InputSpec and assign it to the matcher of the OutputSpec together
   /// with binding and lifetime

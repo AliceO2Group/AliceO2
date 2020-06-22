@@ -79,11 +79,9 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-namespace deprecated
+class TPCdEdxCalibrationSplines
 {
-struct PackedDigit {
 };
-} // namespace deprecated
 class GPUFakeEmpty
 {
 };
@@ -96,7 +94,7 @@ class GPUTPCConvert
 class GPUTPCCompression
 {
  public:
-  GPUFakeEmpty mOutput;
+  GPUFakeEmpty* mOutput;
 };
 class GPUTPCClusterFinder
 {

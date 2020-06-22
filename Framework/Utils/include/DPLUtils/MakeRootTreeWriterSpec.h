@@ -220,33 +220,100 @@ class MakeRootTreeWriterSpec
     using CheckReady = std::function<bool(o2::framework::DataRef const&)>;
 
     /// the actual evaluator
-    std::variant<CheckReady, CheckProcessing> check;
+    std::variant<std::monostate, CheckReady, CheckProcessing> check;
+  };
+
+  struct Preprocessor {
+    /// processing callback
+    using Process = std::function<void(ProcessingContext&)>;
+
+    /// the callback
+    std::variant<std::monostate, Process> callback;
+
+    /// check if the Preprocessor can be executed
+    constexpr operator bool()
+    {
+      return std::holds_alternative<Process>(callback);
+    }
+
+    /// execute the preprocessor
+    void operator()(ProcessingContext& context)
+    {
+      if (std::holds_alternative<Process>(callback)) {
+        std::get<Process>(callback)(context);
+      }
+    }
   };
 
   /// unary helper functor to extract the input key from the InputSpec
   struct KeyExtractor {
     static std::string asString(InputSpec const& arg) { return arg.binding; }
   };
+  /// helper for the constructor selection below
+  template <typename T, typename _ = void>
+  struct StringAssignable : public std::false_type {
+  };
+  template <typename T>
+  struct StringAssignable<
+    T,
+    std::enable_if_t<std::is_same_v<std::decay_t<T>, char const*> ||
+                     std::is_same_v<std::decay_t<T>, char*> ||
+                     std::is_same_v<std::decay_t<T>, std::string>>> : public std::true_type {
+  };
 
-  // branch definition structure uses InputSpec as key type
+  /// branch definition structure uses InputSpec as key type
+  /// Main pupose is to support specification of a branch name option key in addition to all other
+  /// branch definition arguments. The spec generator will add this as an option to the processor
   template <typename T>
   struct BranchDefinition : public WriterType::BranchDef<T, InputSpec, KeyExtractor> {
     /// constructor allows to specify an optional key used to generate a command line
-    /// option, all other parameters are simply forwarded to base class
-    template <typename KeyType>
-    BranchDefinition(KeyType&& key, std::string _branchName, std::string _optionKey = "")
+    /// option, base class uses default parameters
+    template <typename KeyType, typename Arg = const char*, std::enable_if_t<StringAssignable<Arg>::value, int> = 0>
+    BranchDefinition(KeyType&& key, std::string _branchName, Arg _optionKey = "")
       : WriterType::BranchDef<T, InputSpec, KeyExtractor>(std::forward<KeyType>(key), _branchName), optionKey(_optionKey)
     {
     }
-    /// constructor, all parameters are simply forwarded to base class
-    template <typename KeyType, typename... Args>
-    BranchDefinition(KeyType key, std::string _branchName, std::string _optionKey, Args&&... args)
+    /// constructor allows to specify number of branches and an optional key used to generate
+    /// a command line option, base class uses default parameters
+    template <typename KeyType, typename Arg = const char*, std::enable_if_t<StringAssignable<Arg>::value, int> = 0>
+    BranchDefinition(KeyType&& key, std::string _branchName, int _nofBranches, Arg _optionKey = "")
+      : WriterType::BranchDef<T, InputSpec, KeyExtractor>(std::forward<KeyType>(key), _branchName, _nofBranches), optionKey(_optionKey)
+    {
+    }
+    /// constructor, if the first argument from the pack can be assigned to string this is treated
+    /// as option key, all other arguments are simply forwarded to base class
+    template <typename KeyType, typename Arg, typename... Args, std::enable_if_t<StringAssignable<Arg>::value, int> = 0>
+    BranchDefinition(KeyType key, std::string _branchName, Arg&& _optionKey, Args&&... args)
       : WriterType::BranchDef<T, InputSpec, KeyExtractor>(std::forward<KeyType>(key), _branchName, std::forward<Args>(args)...), optionKey(_optionKey)
+    {
+    }
+    /// constructor, the argument pack is simply forwarded to base class
+    template <typename KeyType, typename Arg, typename... Args, std::enable_if_t<!StringAssignable<Arg>::value, int> = 0>
+    BranchDefinition(KeyType key, std::string _branchName, Arg&& arg, Args&&... args)
+      : WriterType::BranchDef<T, InputSpec, KeyExtractor>(std::forward<KeyType>(key), _branchName, std::forward<Arg>(arg), std::forward<Args>(args)...), optionKey()
     {
     }
     /// key for command line option
     std::string optionKey = "";
   };
+
+  // helper to define auxiliary inputs, i.e. inputs not connected to a branch
+  struct AuxInputRoute {
+    InputSpec mSpec;
+    operator InputSpec() const
+    {
+      return mSpec;
+    }
+  };
+
+  // helper to define tree attributes
+  struct TreeAttributes {
+    std::string name;
+    std::string title = "";
+  };
+
+  // callback with signature void(TFile*, TTree*)
+  using CustomClose = WriterType::CustomClose;
 
   /// default constructor forbidden
   MakeRootTreeWriterSpec() = delete;
@@ -275,13 +342,16 @@ class MakeRootTreeWriterSpec
       TerminationPolicy terminationPolicy = TerminationPolicy::Process;
       // custom termination condition
       TerminationCondition terminationCondition;
+      // custom preprocessor
+      Preprocessor preprocessor;
       // the total number of served branches on the n inputs
       size_t nofBranches;
     };
     auto processAttributes = std::make_shared<ProcessAttributes>();
     processAttributes->writer = mWriter;
     processAttributes->branchNameOptions = mBranchNameOptions;
-    processAttributes->terminationCondition = mTerminationCondition;
+    processAttributes->terminationCondition = std::move(mTerminationCondition);
+    processAttributes->preprocessor = std::move(mPreprocessor);
 
     // set the list of active inputs, every input which is indecated as 'ready' will be removed from the list
     // the process is ready if the list is empty
@@ -295,6 +365,7 @@ class MakeRootTreeWriterSpec
       auto& branchNameOptions = processAttributes->branchNameOptions;
       auto filename = ic.options().get<std::string>("outfile");
       auto treename = ic.options().get<std::string>("treename");
+      auto treetitle = ic.options().get<std::string>("treetitle");
       processAttributes->nEvents = ic.options().get<int>("nevents");
       if (processAttributes->nEvents > 0 && processAttributes->activeInputs.size() != processAttributes->nofBranches) {
         LOG(WARNING) << "the n inputs serve in total m branches with n != m, this means that there will be data for\n"
@@ -317,7 +388,7 @@ class MakeRootTreeWriterSpec
         auto branchName = ic.options().get<std::string>(branchNameOptions[branchIndex].first.c_str());
         processAttributes->writer->setBranchName(branchIndex, branchName.c_str());
       }
-      processAttributes->writer->init(filename.c_str(), treename.c_str());
+      processAttributes->writer->init(filename.c_str(), treename.c_str(), treetitle.c_str());
 
       // the callback to be set as hook at stop of processing for the framework
       auto finishWriting = [processAttributes]() {
@@ -329,6 +400,7 @@ class MakeRootTreeWriterSpec
         auto& writer = processAttributes->writer;
         auto& terminationPolicy = processAttributes->terminationPolicy;
         auto& terminationCondition = processAttributes->terminationCondition;
+        auto& preprocessor = processAttributes->preprocessor;
         auto& activeInputs = processAttributes->activeInputs;
         auto& counter = processAttributes->counter;
         auto& nEvents = processAttributes->nEvents;
@@ -376,6 +448,9 @@ class MakeRootTreeWriterSpec
           return activeInputs.size() == 0;
         };
 
+        if (preprocessor) {
+          preprocessor(pc);
+        }
         if (checkProcessing(pc.inputs())) {
           (*writer)(pc.inputs());
           counter = counter + 1;
@@ -394,6 +469,7 @@ class MakeRootTreeWriterSpec
       // default options
       {"outfile", VariantType::String, mDefaultFileName.c_str(), {"Name of the output file"}},
       {"treename", VariantType::String, mDefaultTreeName.c_str(), {"Name of tree"}},
+      {"treetitle", VariantType::String, mDefaultTreeTitle.c_str(), {"Title of tree"}},
       {"nevents", VariantType::Int, mDefaultNofEvents, {"Number of events to execute"}},
       {"terminate", VariantType::String, mDefaultTerminationPolicy.c_str(), {"Terminate the 'process' or 'workflow'"}},
     };
@@ -409,10 +485,11 @@ class MakeRootTreeWriterSpec
                                         ));
     }
 
+    mInputRoutes.insert(mInputRoutes.end(), mInputs.begin(), mInputs.end());
     return DataProcessorSpec{
       // processing spec generated from the class configuartion
       mProcessName.c_str(),   // name of the process
-      mInputs,                // list of inputs
+      mInputRoutes,           // list of inputs
       Outputs{},              // no outputs
       AlgorithmSpec(initFct), // return the init function
       std::move(options),     // processor options
@@ -432,6 +509,7 @@ class MakeRootTreeWriterSpec
       mDefaultFileName = name;
     } else {
       mDefaultTreeName = name;
+      mDefaultTreeTitle = name;
     }
 
     parseConstructorArgs<N>(std::forward<Args>(args)...);
@@ -465,10 +543,41 @@ class MakeRootTreeWriterSpec
 
   /// specialization for parsing optional termination condition
   template <size_t N, typename... Args>
-  void parseConstructorArgs(TerminationCondition arg, Args&&... args)
+  void parseConstructorArgs(TerminationCondition&& arg, Args&&... args)
   {
     static_assert(N == 0, "wrong argument order, default file and tree, and all options must come before branch specs");
-    mTerminationCondition = arg;
+    mTerminationCondition = std::move(arg);
+    parseConstructorArgs<N>(std::forward<Args>(args)...);
+  }
+
+  /// specialization for parsing optional preprocessor definition
+  template <size_t N, typename... Args>
+  void parseConstructorArgs(Preprocessor&& arg, Args&&... args)
+  {
+    static_assert(N == 0, "wrong argument order, default file and tree, and all options must come before branch specs");
+    mPreprocessor = std::move(arg);
+    parseConstructorArgs<N>(std::forward<Args>(args)...);
+  }
+
+  template <size_t N, typename... Args>
+  void parseConstructorArgs(AuxInputRoute&& aux, Args&&... args)
+  {
+    mInputRoutes.emplace_back(aux);
+    parseConstructorArgs<N>(std::forward<Args>(args)...);
+  }
+
+  template <size_t N, typename... Args>
+  void parseConstructorArgs(CustomClose&& callback, Args&&... args)
+  {
+    mCustomClose = callback;
+    parseConstructorArgs<N>(std::forward<Args>(args)...);
+  }
+
+  template <size_t N, typename... Args>
+  void parseConstructorArgs(TreeAttributes&& att, Args&&... args)
+  {
+    mDefaultTreeName = att.name;
+    mDefaultTreeTitle = att.title.empty() ? att.name : att.title;
     parseConstructorArgs<N>(std::forward<Args>(args)...);
   }
 
@@ -479,12 +588,20 @@ class MakeRootTreeWriterSpec
   template <size_t N, typename T, typename... Args>
   void parseConstructorArgs(BranchDefinition<T>&& def, Args&&... args)
   {
-    mInputs.insert(mInputs.end(), def.keys.begin(), def.keys.end());
-    mBranchNameOptions.emplace_back(def.optionKey, def.branchName);
-    mNofBranches += def.nofBranches;
+    if (def.nofBranches > 0) {
+      // number of branches set to 0 will skip the definition, this allows to
+      // dynamically disable branches, while all possible definitions can
+      // be specified at compile time
+      mInputs.insert(mInputs.end(), def.keys.begin(), def.keys.end());
+      mBranchNameOptions.emplace_back(def.optionKey, def.branchName);
+      mNofBranches += def.nofBranches;
+    } else {
+      // insert an empty placeholder
+      mBranchNameOptions.emplace_back("", "");
+    }
     parseConstructorArgs<N + 1>(std::forward<Args>(args)...);
-    if (N == 0) {
-      mWriter = std::make_shared<WriterType>(nullptr, nullptr, std::forward<BranchDefinition<T>>(def), std::forward<Args>(args)...);
+    if constexpr (N == 0) {
+      mWriter = std::make_shared<WriterType>(nullptr, nullptr, mCustomClose, std::forward<BranchDefinition<T>>(def), std::forward<Args>(args)...);
     }
   }
 
@@ -497,13 +614,17 @@ class MakeRootTreeWriterSpec
   std::shared_ptr<WriterType> mWriter;
   std::string mProcessName;
   std::vector<InputSpec> mInputs;
+  std::vector<InputSpec> mInputRoutes;
   std::vector<std::pair<std::string, std::string>> mBranchNameOptions;
   std::string mDefaultFileName;
   std::string mDefaultTreeName;
+  std::string mDefaultTreeTitle;
   int mDefaultNofEvents = -1;
   std::string mDefaultTerminationPolicy = "process";
   TerminationCondition mTerminationCondition;
+  Preprocessor mPreprocessor;
   size_t mNofBranches = 0;
+  CustomClose mCustomClose;
 };
 } // namespace framework
 } // namespace o2

@@ -14,12 +14,12 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "Framework/Logger.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/TableConsumer.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/OutputRoute.h"
 #include <arrow/table.h>
-#include "Framework/ArrowCompatibility.h"
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RArrowDS.hxx>
 #include "Framework/RCombinedDS.h"
@@ -35,7 +35,7 @@ namespace test
 {
 DECLARE_SOA_COLUMN_FULL(X, x, uint64_t, "x");
 DECLARE_SOA_COLUMN_FULL(Y, y, uint64_t, "y");
-DECLARE_SOA_COLUMN_FULL(Pos, pos, int[3], "pos");
+DECLARE_SOA_COLUMN_FULL(Pos, pos, int[4], "pos");
 } // namespace test
 
 using TestTable = o2::soa::Table<test::X, test::Y>;
@@ -76,25 +76,33 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderArray)
 {
   using namespace o2::framework;
   TableBuilder builder;
-  auto rowWriter = builder.persist<int[3]>({"pos"});
-  int a[3] = {1, 10, 300};
-  int b[3] = {0, 20, 30};
+  const int numElem = 4;
+  auto rowWriter = builder.persist<int[numElem]>({"pos"});
+  int a[numElem] = {1, 10, 300, 350};
+  int b[numElem] = {0, 20, 30, 40};
   rowWriter(0, a);
   rowWriter(0, b);
-  using v3 = std::array<int, 3>;
-  rowWriter(0, v3{0, 11, 123}.data());
+  using v3 = std::array<int, numElem>;
+  rowWriter(0, v3{0, 11, 123, 256}.data());
   auto table = builder.finalize();
+
   BOOST_REQUIRE_EQUAL(table->num_columns(), 1);
   BOOST_REQUIRE_EQUAL(table->num_rows(), 3);
   BOOST_REQUIRE_EQUAL(table->schema()->field(0)->name(), "pos");
-  BOOST_REQUIRE_EQUAL(table->schema()->field(0)->type()->id(), arrow::fixed_size_binary(12)->id());
-  auto data = getBackendColumnData(table->column(0))->chunk(0)->data();
+  BOOST_REQUIRE_EQUAL(table->schema()->field(0)->type()->id(), arrow::fixed_size_list(arrow::int32(), numElem)->id());
+
+  auto chunkToUse = table->column(0)->chunk(0);
+  chunkToUse = std::static_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
+  auto data = chunkToUse->data();
+
   BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[0], 1);
   BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[1], 10);
   BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[2], 300);
-  BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[3], 0);
-  BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[4], 20);
-  BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[5], 30);
+  BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[3], 350);
+  BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[4], 0);
+  BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[5], 20);
+  BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[6], 30);
+  BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[7], 40);
 
   auto readBack = ArrayTable{table};
   auto row = readBack.begin();
@@ -102,16 +110,19 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderArray)
   BOOST_CHECK_EQUAL(row.pos()[0], 1);
   BOOST_CHECK_EQUAL(row.pos()[1], 10);
   BOOST_CHECK_EQUAL(row.pos()[2], 300);
+  BOOST_CHECK_EQUAL(row.pos()[3], 350);
 
   row++;
   BOOST_CHECK_EQUAL(row.pos()[0], 0);
   BOOST_CHECK_EQUAL(row.pos()[1], 20);
   BOOST_CHECK_EQUAL(row.pos()[2], 30);
+  BOOST_CHECK_EQUAL(row.pos()[3], 40);
 
   row++;
   BOOST_CHECK_EQUAL(row.pos()[0], 0);
   BOOST_CHECK_EQUAL(row.pos()[1], 11);
   BOOST_CHECK_EQUAL(row.pos()[2], 123);
+  BOOST_CHECK_EQUAL(row.pos()[3], 256);
 }
 
 BOOST_AUTO_TEST_CASE(TestTableBuilderStruct)
@@ -168,7 +179,7 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderBulk)
   BOOST_REQUIRE_EQUAL(table->schema()->field(1)->type()->id(), arrow::int32()->id());
 
   for (size_t i = 0; i < 8; ++i) {
-    auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(getBackendColumnData(table->column(0))->chunk(0));
+    auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(table->column(0)->chunk(0));
     BOOST_CHECK_EQUAL(p->Value(i), i);
   }
 }
@@ -262,7 +273,7 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
   BOOST_REQUIRE_EQUAL(table2->num_columns(), 2);
   BOOST_REQUIRE_EQUAL(table2->num_rows(), 8);
   for (size_t i = 0; i < 8; ++i) {
-    auto p2 = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(getBackendColumnData(table2->column(0))->chunk(0));
+    auto p2 = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(table2->column(0)->chunk(0));
     BOOST_CHECK_EQUAL(p2->Value(i), i);
   }
 
@@ -310,7 +321,6 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
   //BOOST_CHECK_EQUAL(*unionDF.Define("s5", sum, {"right_x", "left_x"}).Sum("s5"), 56);
   //BOOST_CHECK_EQUAL(*blockDF.Define("s5", sum, {"right_x", "left_x"}).Sum("s5"), 168);
 }
-
 
 BOOST_AUTO_TEST_CASE(TestSoAIntegration)
 {

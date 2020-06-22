@@ -21,9 +21,7 @@ using RDHUtils = o2::raw::RDHUtils;
 template <class Mapping>
 void MC2RawEncoder<Mapping>::init()
 {
-  if (mROMode == NotSet) {
-    LOG(FATAL) << "Readout Mode must be set explicitly via setContinuousReadout(bool)";
-  }
+  assert(mWriter.isReadOutModeSet());
   mWriter.setCarryOverCallBack(this);
 
   // limit RUs to convert to existing ones
@@ -130,14 +128,14 @@ void MC2RawEncoder<Mapping>::convertChip(ChipPixelData& chipData, RUDecodeData& 
 {
   ///< convert digits of single chip to Alpide format.
   const auto& chip = *mMAP.getChipOnRUInfo(ru.ruInfo->ruType, chipData.getChipID());
-  ru.cableHWID[chip.cableSW] = chip.cableHW; // register the cable HW ID
+  ru.cableHWID[chip.cableHWPos] = chip.cableHW; // register the cable HW ID
   auto& pixels = chipData.getData();
   std::sort(pixels.begin(), pixels.end(),
             [](auto lhs, auto rhs) {
               return (lhs.getRow() < rhs.getRow()) ? true : ((lhs.getRow() > rhs.getRow()) ? false : (lhs.getCol() < rhs.getCol()));
             });
-  ru.cableData[chip.cableSW].ensureFreeCapacity(40 * (2 + pixels.size())); // make sure buffer has enough capacity
-  mCoder.encodeChip(ru.cableData[chip.cableSW], chipData, chip.chipOnModuleHW, mCurrIR.bc);
+  ru.cableData[chip.cableHWPos].ensureFreeCapacity(40 * (2 + pixels.size())); // make sure buffer has enough capacity
+  mCoder.encodeChip(ru.cableData[chip.cableHWPos], chipData, chip.chipOnModuleHW, mCurrIR.bc);
 }
 
 //______________________________________________________
@@ -147,9 +145,9 @@ void MC2RawEncoder<Mapping>::convertEmptyChips(int fromChip, int uptoChip, RUDec
   // add empty chip words to respective cable's buffers for all chips of the current RU container
   for (int chipIDSW = fromChip; chipIDSW < uptoChip; chipIDSW++) { // flag chips w/o data
     const auto& chip = *mMAP.getChipOnRUInfo(ru.ruInfo->ruType, chipIDSW);
-    ru.cableHWID[chip.cableSW] = chip.cableHW; // register the cable HW ID
-    ru.cableData[chip.cableSW].ensureFreeCapacity(100);
-    mCoder.addEmptyChip(ru.cableData[chip.cableSW], chip.chipOnModuleHW, mCurrIR.bc);
+    ru.cableHWID[chip.cableHWPos] = chip.cableHW; // register the cable HW ID
+    ru.cableData[chip.cableHWPos].ensureFreeCapacity(100);
+    mCoder.addEmptyChip(ru.cableData[chip.cableHWPos], chip.chipOnModuleHW, mCurrIR.bc);
   }
 }
 

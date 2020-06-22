@@ -53,6 +53,8 @@ inline void BringToPMPi(float& phi)
   // ensure angle in [-pi:pi] for the input in [-pi:pi] or [0:pi]
   if (phi > o2::constants::math::PI) {
     phi -= o2::constants::math::TwoPI;
+  } else if (phi < -o2::constants::math::PI) {
+    phi += o2::constants::math::TwoPI;
   }
 }
 
@@ -68,6 +70,11 @@ inline void BringToPMPiGen(float& phi)
 }
 
 inline void sincosf(float ang, float& s, float& c)
+{
+  o2::gpu::GPUCommonMath::SinCos(ang, s, c);
+}
+
+inline void sincos(float ang, float& s, float& c)
 {
   o2::gpu::GPUCommonMath::SinCos(ang, s, c);
 }

@@ -28,6 +28,11 @@
 #include <cstring>
 #include <exception>
 
+namespace boost
+{
+class exception;
+}
+
 namespace o2
 {
 namespace framework
@@ -105,6 +110,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
            std::vector<o2::framework::ConfigParamSpec> const& workflowOptions,
            o2::framework::ConfigContext& configContext);
 
+void doBoostException(boost::exception& e);
+
 int main(int argc, char** argv)
 {
   using namespace o2::framework;
@@ -135,12 +142,19 @@ int main(int argc, char** argv)
     auto defaultDispatchPolicies = DispatchPolicy::createDefaultPolicies();
     dispatchPolicies.insert(std::end(dispatchPolicies), std::begin(defaultDispatchPolicies), std::end(defaultDispatchPolicies));
 
-    std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(workflowOptions, true, argc, argv)};
-    ConfigParamRegistry workflowOptionsRegistry(std::move(retriever));
+    std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+    std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(true, argc, argv)};
+    retrievers.emplace_back(std::move(retriever));
+    auto workflowOptionsStore = std::make_unique<ConfigParamStore>(workflowOptions, std::move(retrievers));
+    workflowOptionsStore->preload();
+    workflowOptionsStore->activate();
+    ConfigParamRegistry workflowOptionsRegistry(std::move(workflowOptionsStore));
     ConfigContext configContext(workflowOptionsRegistry, argc, argv);
     o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
     overridePipeline(configContext, specs);
     result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, workflowOptions, configContext);
+  } catch (boost::exception& e) {
+    doBoostException(e);
   } catch (std::exception const& error) {
     LOG(ERROR) << "error while setting up workflow: " << error.what();
   } catch (...) {

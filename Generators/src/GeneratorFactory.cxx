@@ -191,8 +191,9 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     auto extgen_filename = conf.getExtGeneratorFileName();
     auto extgen_func = conf.getExtGeneratorFuncName();
     auto extgen = GetFromMacro<FairGenerator*>(extgen_filename, extgen_func, "FairGenerator*", "extgen");
-    if (!extgen)
+    if (!extgen) {
       LOG(FATAL) << "Failed to retrieve \'extgen\': problem with configuration ";
+    }
     primGen->AddGenerator(extgen);
   } else if (genconfig.compare("toftest") == 0) { // 1 muon per sector and per module
     LOG(INFO) << "Init tof test generator -> 1 muon per sector and per module";
@@ -229,8 +230,9 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
       LOG(INFO) << "Trying to retrieve a \'o2::eventgen::DeepTrigger\' type" << std::endl;
       deeptrigger = GetFromMacro<o2::eventgen::DeepTrigger>(external_trigger_filename, external_trigger_func, "o2::eventgen::DeepTrigger", "deeptrigger");
     }
-    if (!trigger && !deeptrigger)
+    if (!trigger && !deeptrigger) {
       LOG(FATAL) << "Failed to retrieve \'external trigger\': problem with configuration ";
+    }
   } else {
     LOG(FATAL) << "Invalid trigger";
   }

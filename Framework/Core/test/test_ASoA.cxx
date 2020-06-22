@@ -13,7 +13,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "Framework/ASoA.h"
-#include "Framework/TableBuilder.h"
+#include "Framework/ASoAHelpers.h"
 #include "gandiva/tree_expr_builder.h"
 #include "arrow/status.h"
 #include "gandiva/filter.h"
@@ -87,10 +87,10 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   pos++;
   BOOST_CHECK_EQUAL(*i, 1);
 
-  auto rowIndex = std::make_tuple(
-    std::pair<test::X*, BackendColumnType*>{nullptr, table->column(0).get()},
-    std::pair<test::Y*, BackendColumnType*>{nullptr, table->column(1).get()});
-  Points::iterator tests(rowIndex, {table->num_rows(), 0});
+  arrow::ChunkedArray* chunks[2] = {
+    table->column(0).get(),
+    table->column(1).get()};
+  Points::iterator tests(chunks, {table->num_rows(), 0});
   BOOST_CHECK_EQUAL(tests.x(), 0);
   BOOST_CHECK_EQUAL(tests.y(), 0);
   ++tests;
@@ -416,33 +416,6 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   BOOST_CHECK_EQUAL(i, 3);
 }
 
-BOOST_AUTO_TEST_CASE(TestTableSlicing)
-{
-  TableBuilder builderA;
-  auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
-  rowWriterA(0, 0, 0);
-  rowWriterA(0, 1, 0);
-  rowWriterA(0, 2, 0);
-  rowWriterA(0, 3, 1);
-  rowWriterA(0, 4, 1);
-  rowWriterA(0, 5, 1);
-  rowWriterA(0, 6, 1);
-  rowWriterA(0, 7, 2);
-  auto tableA = builderA.finalize();
-  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
-  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
-
-  TestA t = TestA{tableA};
-  auto s = slice(t, "y");
-  BOOST_CHECK_EQUAL(s.size(), 3);
-
-  for (auto r : s[1]) {
-    BOOST_CHECK_EQUAL(r.x(), r.index() + 3);
-    BOOST_CHECK_EQUAL(r.y(), 1);
-    BOOST_CHECK_EQUAL(r.globalIndex(), r.index() + 3);
-  }
-}
-
 BOOST_AUTO_TEST_CASE(TestDereference)
 {
   TableBuilder builderA;
@@ -514,4 +487,12 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   BOOST_CHECK_EQUAL(se.pointB().x(), 3);
   BOOST_CHECK_EQUAL(se.pointB().y(), 4);
   BOOST_CHECK_EQUAL(se.thickness(), 1);
+}
+
+BOOST_AUTO_TEST_CASE(TestSchemaCreation)
+{
+  auto schema = createSchemaFromColumns(Points::persistent_columns_t{});
+  BOOST_CHECK_EQUAL(schema->num_fields(), 2);
+  BOOST_CHECK_EQUAL(schema->field(0)->name(), "x");
+  BOOST_CHECK_EQUAL(schema->field(1)->name(), "y");
 }

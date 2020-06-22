@@ -11,10 +11,11 @@
 set(MODULE TPCFastTransformation)
 
 set(SRCS
-    Spline1D.cxx  
+    Spline1D.cxx
     Spline2D.cxx
     SplineHelper1D.cxx
     SplineHelper2D.cxx
+    ChebyshevFit1D.cxx
     devtools/IrregularSpline1D.cxx
     devtools/IrregularSpline2D3D.cxx
     devtools/SemiregularSpline2D3D.cxx
@@ -32,7 +33,11 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                  TARGETVARNAME targetName
                  SOURCES ${SRCS}
                  PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR} devtools
-                 PUBLIC_LINK_LIBRARIES O2::GPUCommon Vc::Vc ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad)
+                 PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                                       O2::GPUUtils
+                                       Vc::Vc
+                                       ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad
+                                       )
 
   o2_target_root_dictionary(${MODULE}
                             HEADERS ${HDRS_CINT_O2}
@@ -65,7 +70,8 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
           IrregularSpline2D3DCalibratorTest.C
           IrregularSpline2D3DTest.C
           RegularSpline1DTest.C
-          SemiregularSpline2D3DTest.C)
+          SemiregularSpline2D3DTest.C
+          ChebFitTest.C )
     o2_add_test_root_macro(devtools/${m}
                            PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation
                                                  O2::DataFormatsTPC
@@ -94,6 +100,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "ALIROOT")
   include_directories(${AliRoot_SOURCE_DIR}/GPU/TPCFastTransformation
                       ${AliRoot_SOURCE_DIR}/GPU/TPCFastTransformation/devtools
                       ${AliRoot_SOURCE_DIR}/GPU/Common
+                      ${AliRoot_SOURCE_DIR}/GPU/Utils
                       ${AliRoot_SOURCE_DIR}/HLT/BASE
                       ${AliRoot_SOURCE_DIR}/HLT/TPCLib
                       ${AliRoot_SOURCE_DIR}/TPC/TPCbase

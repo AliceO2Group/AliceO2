@@ -29,3 +29,20 @@ o2-raw-file-reader-workflow --loop 5 --delay 3 --conf ITSraw.cfg | o2-itsmft-stf
 o2-raw-file-reader-workflow --loop 5 --delay 3 --conf ITSraw.cfg | o2-itsmft-stf-decoder-workflow --digits  | o2-its-reco-workflow --disable-mc --digits-from-upstream --clusters-from-upstream
 ```
 
+## Tracking
+
+```bash
+# main tracking workflow, by default run CookedSeed Tracker, with --trackerCA uses CA-tracker
+o2-its-reco-workflow
+```
+
+For the synchronous mode one can apply selection on the ROF multiplicity either in therms of signal clusters and/or number of contributing tracklets in seeding vertices
+`FastMultEst` implements the fast estimator of signal clusters multiplicity either via free noise + signal fit or via signal fit with noise level imposed (via `FastMultEstConfig.imposedNoisePerChip`).
+Multiplicity is provided as Ncl. per layer modulo acceptance correction from the FastMultEstConfig.
+The latter provides the settings for the estimator as well as the low/high cuts on the estimate mult. and (if these cuts are passed) eventual cuts on the vertices multiplicity used to seed the ITS tracks. 
+For example, the command:
+```cpp
+o2-its-reco-workflow --configKeyValues "fastMultConfig.cutMultClusLow=50;fastMultConfig.cutMultClusHigh=4000;fastMultConfig.cutMultVtxHigh=1000"
+```
+will track only ROFs with N signal clusters between 50 and 4000 and will consider seeding vertices with multiplicity below 1000 tracklets.
+

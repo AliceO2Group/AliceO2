@@ -22,14 +22,18 @@
 #include <vector>
 
 #include "GPUGeneralKernels.h"
+#include "GPUTPCCreateSliceData.h"
 #include "GPUTPCNeighboursFinder.h"
 #include "GPUTPCNeighboursCleaner.h"
 #include "GPUTPCStartHitsFinder.h"
 #include "GPUTPCStartHitsSorter.h"
 #include "GPUTPCTrackletConstructor.h"
 #include "GPUTPCTrackletSelector.h"
-#include "GPUTPCGMMergerGPU.h"
+#include "GPUTPCGlobalTracking.h"
 #include "GPUTRDTrackerKernels.h"
+#ifdef GPUCA_NOCOMPAT
+#include "GPUTPCGMMergerGPU.h"
+#endif
 #ifdef HAVE_O2HEADERS
 #include "GPUITSFitterKernels.h"
 #include "GPUTPCConvertKernel.h"
@@ -134,12 +138,14 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   int registerMemoryForGPU(const void* ptr, size_t size) override { return 0; }
   int unregisterMemoryForGPU(const void* ptr) override { return 0; }
   int GPUStuck() { return mGPUStuck; }
-  int NStreams() { return mNStreams; }
   void ResetDeviceProcessorTypes();
   template <class T>
   void AddGPUEvents(T*& events);
 
   int RunChains() override;
+
+  HighResTimer& getRecoStepTimer(RecoStep step) { return mTimersRecoSteps[getRecoStepNum(step)].timerTotal; }
+  HighResTimer& getGeneralStepTimer(GeneralStep step) { return mTimersGeneralSteps[getGeneralStepNum(step)]; }
 
  protected:
   struct GPUProcessorProcessors : public GPUProcessor {
@@ -152,6 +158,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
 
   virtual void SynchronizeStream(int stream) {}
   virtual void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) {}
+  virtual void StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents = 1) {}
   virtual bool IsEventDone(deviceEvent* evList, int nEvents = 1) { return true; }
   virtual void RecordMarker(deviceEvent* ev, int stream) {}
   virtual void SynchronizeGPU() {}
@@ -170,8 +177,8 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   size_t TransferMemoryResourcesToHost(GPUProcessor* proc, int stream = -1, bool all = false) { return TransferMemoryResourcesHelper(proc, stream, all, false); }
   size_t TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents); }
   size_t TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents); }
-  virtual size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
-  virtual size_t GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
+  virtual size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
+  virtual size_t GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
   size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) override;
   virtual size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst);
 
@@ -197,27 +204,28 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
     int type;           // 0 = kernel, 1 = CPU step, 2 = DMA transfer
     unsigned int count; // How often was the timer queried
     RecoStep step;      // Which RecoStep is this
+    size_t memSize;     // Memory size for memory bandwidth computation
   };
 
   struct RecoStepTimerMeta {
-    HighResTimer timer;
     HighResTimer timerToGPU;
     HighResTimer timerToHost;
+    HighResTimer timerTotal;
     size_t bytesToGPU = 0;
     size_t bytesToHost = 0;
     unsigned int countToGPU = 0;
     unsigned int countToHost = 0;
   };
 
-  constexpr static int N_RECO_STEPS = sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]);
+  HighResTimer mTimersGeneralSteps[GPUDataTypes::N_GENERAL_STEPS];
+
   std::vector<std::unique_ptr<timerMeta>> mTimers;
-  RecoStepTimerMeta mTimersRecoSteps[N_RECO_STEPS];
+  RecoStepTimerMeta mTimersRecoSteps[GPUDataTypes::N_RECO_STEPS];
   HighResTimer timerTotal;
   template <class T, int I = 0, int J = -1>
-  HighResTimer& getKernelTimer(RecoStep step, int num = 0);
+  HighResTimer& getKernelTimer(RecoStep step, int num = 0, size_t addMemorySize = 0);
   template <class T, int J = -1>
   HighResTimer& getTimer(const char* name, int num = -1);
-  int getRecoStepNum(RecoStep step, bool validCheck = true);
 
   std::vector<std::vector<deviceEvent*>> mEvents;
 
@@ -233,35 +241,41 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
 template <class S, int I, int J, typename... Args>
 inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
 {
-  unsigned int nThreads = x.nThreads;
-  unsigned int nBlocks = x.nBlocks;
-  if (nThreads == (unsigned int)-1) {
-    nThreads = getKernelProperties<S, I>().nThreads;
-  }
-  if (nBlocks == (unsigned int)-1) {
-    const int autoThreads = getKernelProperties<S, I>().nThreads;
-    nBlocks = (nThreads + autoThreads - 1) / autoThreads;
-    nThreads = autoThreads;
-  }
-
-  if (nThreads > GPUCA_MAX_THREADS) {
-    throw std::runtime_error("GPUCA_MAX_THREADS exceeded");
-  }
   HighResTimer* t = nullptr;
   GPUCA_RECO_STEP myStep = S::GetRecoStep() == GPUCA_RECO_STEP::NoRecoStep ? x.step : S::GetRecoStep();
   if (myStep == GPUCA_RECO_STEP::NoRecoStep) {
     throw std::runtime_error("Failure running general kernel without defining RecoStep");
   }
   int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & myStep) != myStep) : 0;
+  unsigned int nThreads = x.nThreads;
+  unsigned int nBlocks = x.nBlocks;
+  auto prop = getKernelProperties<S, I>();
+  const int autoThreads = cpuFallback ? 1 : prop.nThreads;
+  const int autoBlocks = cpuFallback ? 1 : (prop.minBlocks * mBlockCount);
+  if (nBlocks == (unsigned int)-1) {
+    nBlocks = (nThreads + autoThreads - 1) / autoThreads;
+    nThreads = autoThreads;
+  } else if (nBlocks == (unsigned int)-2) {
+    nBlocks = nThreads;
+    nThreads = autoThreads;
+  } else if (nBlocks == (unsigned int)-3) {
+    nBlocks = autoBlocks;
+    nThreads = autoThreads;
+  } else if ((int)nThreads < 0) {
+    nThreads = cpuFallback ? 1 : -nThreads;
+  }
+  if (nThreads > GPUCA_MAX_THREADS) {
+    throw std::runtime_error("GPUCA_MAX_THREADS exceeded");
+  }
   if (mDeviceProcessingSettings.debugLevel >= 3) {
-    GPUInfo("Running %s (Stream %d, Range %d/%d, Grid %d/%d) on %s", GetKernelName<S, I>(), x.stream, y.start, y.num, nBlocks, nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
+    GPUInfo("Running kernel %s (Stream %d, Range %d/%d, Grid %d/%d) on %s", GetKernelName<S, I>(), x.stream, y.start, y.num, nBlocks, nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
   }
   if (nThreads == 0 || nBlocks == 0) {
     return 0;
   }
   if (mDeviceProcessingSettings.debugLevel >= 0) {
     t = &getKernelTimer<S, I, J>(myStep, !IsGPU() || cpuFallback ? getOMPThreadNum() : x.stream);
-    if (!mDeviceProcessingSettings.deviceTimers || cpuFallback) {
+    if (!mDeviceProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) {
       t->Start();
     }
   }
@@ -276,15 +290,18 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
     }
   }
   if (mDeviceProcessingSettings.debugLevel >= 0) {
-    if (GPUDebug(typeid(S).name(), x.stream)) {
+    if (GPUDebug(GetKernelName<S, I>(), x.stream)) {
       throw std::runtime_error("kernel failure");
     }
     if (t) {
-      if (!mDeviceProcessingSettings.deviceTimers || cpuFallback) {
+      if (!mDeviceProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) {
         t->Stop();
       } else {
         t->AddTime(setup.t);
       }
+    }
+    if (mDeviceProcessingSettings.debugLevel >= 1 && CheckErrorCodes()) {
+      throw std::runtime_error("kernel error code");
     }
   }
   return 0;
@@ -307,13 +324,15 @@ inline void GPUReconstructionCPU::AddGPUEvents(T*& events)
 }
 
 template <class T, int I, int J>
-HighResTimer& GPUReconstructionCPU::getKernelTimer(RecoStep step, int num)
+HighResTimer& GPUReconstructionCPU::getKernelTimer(RecoStep step, int num, size_t addMemorySize)
 {
   static int id = getNextTimerId();
   timerMeta* timer = getTimerById(id);
   if (timer == nullptr) {
-    int max = step == GPUCA_RECO_STEP::NoRecoStep || step == GPUCA_RECO_STEP::TPCSliceTracking || step == GPUCA_RECO_STEP::TPCClusterFinding ? NSLICES : 1;
-    timer = insertTimer(id, GetKernelName<T, I>(), J, max, 0, step);
+    timer = insertTimer(id, GetKernelName<T, I>(), J, NSLICES, 0, step);
+  }
+  if (addMemorySize) {
+    timer->memSize += addMemorySize;
   }
   if (num < 0 || num >= timer->num) {
     throw std::runtime_error("Invalid timer requested");

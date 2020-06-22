@@ -34,6 +34,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_CLASS_PRE_TEMPLATE(t) template<LocalOrGlobal LG, t>
   #define MEM_LG(type) type<LG>
   #define MEM_CLASS_PRE2() template<LocalOrGlobal LG2>
+  #define MEM_CLASS_PRE2_TEMPLATE(t) template<LocalOrGlobal LG2, t>
   #define MEM_LG2(type) type<LG2>
   #define MEM_CLASS_PRE12() template<LocalOrGlobal LG> template<LocalOrGlobal LG2>
   #define MEM_CLASS_PRE23() template<LocalOrGlobal LG2, LocalOrGlobal LG3>
@@ -59,6 +60,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_CLASS_PRE_TEMPLATE(t) template<t>
   #define MEM_LG(type) type
   #define MEM_CLASS_PRE2()
+  #define MEM_CLASS_PRE2_TEMPLATE(t) template<t>
   #define MEM_LG2(type) type
   #define MEM_CLASS_PRE12()
   #define MEM_CLASS_PRE23()
@@ -83,22 +85,6 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
 #if defined(GPUCA_NO_CONSTANT_MEMORY) || defined(GPUCA_CONSTANT_AS_ARGUMENT)
   #undef MEM_CONSTANT
   #define MEM_CONSTANT(type) MEM_GLOBAL(type)
-#endif
-
-// Some additional defines to force HIP to use constant loads in some cases
-#if defined(__HIPCC__) && defined(GPUCA_GPUCODE_DEVICE) && !defined(GPUCA_NO_CONSTANT_MEMORY) && !defined(GPUCA_CONSTANT_AS_ARGUMENT)
-#define HIPGPUsharedref() __attribute__((address_space(3)))
-#define HIPGPUglobalref() __attribute__((address_space(1)))
-#define HIPGPUconstantref() __attribute__((address_space(4)))
-#else
-#define HIPGPUsharedref() GPUsharedref()
-#define HIPGPUglobalref() GPUglobalref()
-#define HIPGPUconstantref()
-#endif
-#ifdef GPUCA_OPENCL1
-#define HIPTPCROW(x) GPUsharedref() MEM_LOCAL(x)
-#else
-#define HIPTPCROW(x) x
 #endif
 
 #endif //GPUDEFOPENCL12TEMPLATES_H

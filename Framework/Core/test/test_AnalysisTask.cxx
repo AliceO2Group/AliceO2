@@ -11,6 +11,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "TestClasses.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 
@@ -134,6 +135,14 @@ struct ITask {
   }
 };
 
+struct JTask {
+  Configurable<o2::test::SimplePODClass> cfg{"someConfigurable", {}, "Some Configurable Object"};
+  void process(o2::aod::Collision const&)
+  {
+    BOOST_CHECK_EQUAL(cfg->x, 1);
+  }
+};
+
 BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 {
   auto task1 = adaptAnalysisTask<ATask>("test1");
@@ -177,4 +186,6 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 
   auto task9 = adaptAnalysisTask<ITask>("test9");
   BOOST_CHECK_EQUAL(task9.inputs.size(), 4);
+
+  auto task10 = adaptAnalysisTask<JTask>("test10");
 }

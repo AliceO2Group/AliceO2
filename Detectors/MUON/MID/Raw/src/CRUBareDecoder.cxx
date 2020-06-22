@@ -16,11 +16,13 @@
 #include "MIDRaw/CRUBareDecoder.h"
 
 #include "RawInfo.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 namespace o2
 {
 namespace mid
 {
+using RDHUtils = o2::raw::RDHUtils;
 
 void CRUBareDecoder::reset()
 {
@@ -110,7 +112,7 @@ void CRUBareDecoder::addBoard(size_t ilink)
     eventType = EventType::Dead;
   }
   auto firstEntry = mData.size();
-  InteractionRecord intRec(localClock - sDelayBCToLocal, mBuffer.getRDH()->triggerOrbit);
+  InteractionRecord intRec(localClock - sDelayBCToLocal, RDHUtils::getTriggerOrbit(*mBuffer.getRDH()));
   mData.push_back({mELinkDecoders[ilink].getStatusWord(), mELinkDecoders[ilink].getTriggerWord(), crateparams::makeUniqueLocID(mCrateId, mELinkDecoders[ilink].getId()), mELinkDecoders[ilink].getInputs()});
   mROFRecords.emplace_back(intRec, eventType, firstEntry, 1);
 }

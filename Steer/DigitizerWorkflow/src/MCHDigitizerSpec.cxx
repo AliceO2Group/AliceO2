@@ -59,7 +59,7 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto& irecords = context->getEventRecords();
 
     for (auto& record : irecords) {
-      LOG(DEBUG) << "MCH TIME RECEIVED " << record.timeNS;
+      LOG(DEBUG) << "MCH TIME RECEIVED " << record.getTimeNS();
     }
 
     auto& eventParts = context->getEventParts();
@@ -69,7 +69,7 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      mDigitizer.setEventTime(irecords[collID].timeNS);
+      mDigitizer.setEventTime(irecords[collID].getTimeNS());
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
@@ -89,7 +89,7 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         for (auto& d : digits) {
           LOG(DEBUG) << "ADC " << d.getADC();
           LOG(DEBUG) << "PAD " << d.getPadID();
-          LOG(DEBUG) << "TIME " << d.getTimeStamp();
+          LOG(DEBUG) << "TIME " << d.getTime().sampaTime;
           LOG(DEBUG) << "DetID " << d.getDetID();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
@@ -103,7 +103,9 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     LOG(DEBUG) << "Have " << labelAccum.getNElements() << " MCH labels "; //does not work out!
     pc.outputs().snapshot(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
-    pc.outputs().snapshot(Output{"MCH", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+    if (pc.outputs().isAllowed({"MCH", "DIGITSMCTR", 0})) {
+      pc.outputs().snapshot(Output{"MCH", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+    }
     LOG(DEBUG) << "MCH: Sending ROMode= " << mROMode << " to GRPUpdater";
     //ROMode: to be understood, check EMCal etc.
     pc.outputs().snapshot(Output{"MCH", "ROMode", 0, Lifetime::Timeframe}, mROMode);
@@ -120,20 +122,25 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 };
 
-o2::framework::DataProcessorSpec getMCHDigitizerSpec(int channel)
+o2::framework::DataProcessorSpec getMCHDigitizerSpec(int channel, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("MCH", "DIGITS", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("MCH", "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("MCH", "ROMode", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "MCHDigitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe},
-            OutputSpec{"MCH", "DIGITSMCTR", 0, Lifetime::Timeframe},
-            OutputSpec{"MCH", "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
     AlgorithmSpec{adaptFromTask<MCHDPLDigitizerTask>()},
     Options{}};
 }

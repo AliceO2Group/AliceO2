@@ -24,6 +24,7 @@ namespace gpu
 {
 struct GPUO2InterfaceConfiguration;
 struct GPUO2InterfaceIOPtrs;
+struct GPUInterfaceOutputs;
 class GPUTPCO2Interface;
 } // namespace gpu
 } // namespace o2
@@ -55,11 +56,14 @@ class GPUCATracking
   void deinitialize();
 
   //Input: cluster structure, possibly including MC labels, pointers to std::vectors for tracks and track MC labels. outputTracksMCTruth may be nullptr to indicate missing cluster MC labels. Otherwise, cluster MC labels are assumed to be present.
-  int runTracking(o2::gpu::GPUO2InterfaceIOPtrs* data);
+  int runTracking(o2::gpu::GPUO2InterfaceIOPtrs* data, o2::gpu::GPUInterfaceOutputs* outputs = nullptr);
 
   float getPseudoVDrift();                                              //Return artificial VDrift used to convert time to Z
   int getNTracksASide() { return mNTracksASide; }
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const;
+
+  int registerMemoryForGPU(const void* ptr, size_t size);
+  int unregisterMemoryForGPU(const void* ptr);
 
  private:
   std::unique_ptr<o2::gpu::GPUTPCO2Interface> mTrackingCAO2Interface; //Pointer to Interface class in HLT O2 CA Tracking library.

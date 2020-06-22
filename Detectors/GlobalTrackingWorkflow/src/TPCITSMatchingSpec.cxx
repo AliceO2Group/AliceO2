@@ -12,11 +12,8 @@
 
 #include <vector>
 
-#include "TTree.h"
-#include <TSystem.h>
-
-#include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/InputRecordWalker.h"
 #include "GlobalTrackingWorkflow/TPCITSMatchingSpec.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -35,6 +32,7 @@
 #include "GlobalTracking/MatchTPCITSParams.h"
 #include "ITStracking/IOUtils.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "DataFormatsParameters/GRPObject.h"
 
 using namespace o2::framework;
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -46,13 +44,19 @@ namespace globaltracking
 
 void TPCITSMatchingDPL::init(InitContext& ic)
 {
-
+  mTimer.Stop();
+  mTimer.Reset();
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
-
+  o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
+  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName())};
+  mMatching.setITSTriggered(!grp->isDetContinuousReadOut(o2::detectors::DetID::ITS));
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-  mMatching.setITSROFrameLengthMUS(alpParams.roFrameLength / 1.e3); // ITS ROFrame duration in \mus
+  if (mMatching.isITSTriggered()) {
+    mMatching.setITSROFrameLengthMUS(alpParams.roFrameLengthTrig / 1.e3); // ITS ROFrame duration in \mus
+  } else {
+    mMatching.setITSROFrameLengthInBC(alpParams.roFrameLengthInBC); // ITS ROFrame duration in \mus
+  }
   mMatching.setMCTruthOn(mUseMC);
   //
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
@@ -63,17 +67,24 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   } else {
     LOG(INFO) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
   }
+
+  // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
+  std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
+  std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
+  if (o2::base::NameConf::pathExists(matLUTFile)) {
+    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
+    o2::base::Propagator::Instance()->setMatLUT(lut);
+    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+  } else {
+    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+  }
   mMatching.init();
   //
 }
 
 void TPCITSMatchingDPL::run(ProcessingContext& pc)
 {
-  LOG(INFO) << "TPCITSMatchingDPL " << mFinished << " NLanes " << mTPCClusLanes.size();
-  if (mFinished) {
-    return;
-  }
-
+  mTimer.Start(false);
   const auto tracksITS = pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS");
   const auto trackClIdxITS = pc.inputs().get<gsl::span<int>>("trackClIdx");
   const auto tracksITSROF = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackITSROF");
@@ -88,44 +99,28 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   uint64_t activeSectors = 0;
   std::bitset<o2::tpc::Constants::MAXSECTOR> validSectors = 0;
   std::map<int, DataRef> datarefs;
-  for (auto const& lane : mTPCClusLanes) {
-    std::string inputLabel = "clusTPC" + std::to_string(lane);
-    LOG(INFO) << "Reading lane " << lane << " " << inputLabel;
-    auto ref = pc.inputs().get(inputLabel);
+  std::vector<InputSpec> filter = {
+    {"check", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe},
+  };
+  for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
     auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
     if (sectorHeader == nullptr) {
       // FIXME: think about error policy
       LOG(ERROR) << "sector header missing on header stack";
-      return;
+      throw std::runtime_error("sector header missing on header stack");
     }
-    const int& sector = sectorHeader->sector;
-    // check the current operation, this is used to either signal eod or noop
-    // FIXME: the noop is not needed any more once the lane configuration with one
-    // channel per sector is used
-    if (sector < 0) {
-      if (operation < 0 && operation != sector) {
-        // we expect the same operation on all inputs
-        LOG(ERROR) << "inconsistent lane operation, got " << sector << ", expecting " << operation;
-      } else if (operation == 0) {
-        // store the operation
-        operation = sector;
-      }
-      continue;
-    }
-    if (validSectors.test(sector)) {
+    int sector = sectorHeader->sector();
+    std::bitset<o2::tpc::Constants::MAXSECTOR> sectorMask(sectorHeader->sectorBits);
+    LOG(INFO) << "Reading TPC cluster data, sector mask is " << sectorMask;
+    if ((validSectors & sectorMask).any()) {
       // have already data for this sector, this should not happen in the current
       // sequential implementation, for parallel path merged at the tracker stage
       // multiple buffers need to be handled
       throw std::runtime_error("can only have one data set per sector");
     }
     activeSectors |= sectorHeader->activeSectors;
-    validSectors.set(sector);
+    validSectors |= sectorMask;
     datarefs[sector] = ref;
-  }
-
-  if (operation == -1) {
-    // EOD is transmitted in the sectorHeader with sector number equal to -1
-    LOG(WARNING) << "operation = " << operation;
   }
 
   auto printInputLog = [&validSectors, &activeSectors](auto& r, const char* comment, auto& s) {
@@ -141,41 +136,15 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     // not all sectors available
     // Since we expect complete input, this should not happen (why does the bufferization considered for TPC CA tracker? Ask Matthias)
     throw std::runtime_error("Did not receive TPC clusters data for all sectors");
-    /*
-    for (auto const& refentry : datarefs) {
-      auto& sector = refentry.first;
-      auto& ref = refentry.second;
-      auto payploadSize = DataRefUtils::getPayloadSize(ref);
-      mBufferedTPCClusters[sector].resize(payploadSize);
-      std::copy(ref.payload, ref.payload + payploadSize, mBufferedTPCClusters[sector].begin());
-      
-      printInputLog(ref, "buffering", sector);
-    }
-    // not needed to send something, DPL will simply drop this timeslice, whenever the
-    // data for all sectors is available, the output is sent in that time slice
-    return;
-    */
   }
   //------------------------------------------------------------------------------
-  std::array<std::vector<MCLabelContainer>, o2::tpc::Constants::MAXSECTOR> mcInputs; // DUMMY
-  std::array<gsl::span<const char>, o2::tpc::Constants::MAXSECTOR> clustersTPC;
-  auto sectorStatus = validSectors;
+  std::vector<gsl::span<const char>> clustersTPC;
 
   for (auto const& refentry : datarefs) {
     auto& sector = refentry.first;
     auto& ref = refentry.second;
-    clustersTPC[sector] = gsl::span(ref.payload, DataRefUtils::getPayloadSize(ref));
-    sectorStatus.reset(sector);
+    clustersTPC.emplace_back(ref.payload, DataRefUtils::getPayloadSize(ref));
     printInputLog(ref, "received", sector);
-  }
-  if (sectorStatus.any()) {
-    LOG(ERROR) << "Reading bufferized TPC clusters, this should not happen";
-    // some of the inputs have been buffered
-    for (size_t sector = 0; sector < sectorStatus.size(); ++sector) {
-      if (sectorStatus.test(sector)) {
-        clustersTPC[sector] = gsl::span(&mBufferedTPCClusters[sector].front(), mBufferedTPCClusters[sector].size());
-      }
-    }
   }
 
   // Just print TPC clusters status
@@ -218,9 +187,8 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
 
   o2::tpc::ClusterNativeAccess clusterIndex;
   std::unique_ptr<o2::tpc::ClusterNative[]> clusterBuffer;
-  o2::tpc::MCLabelContainer clusterMCBuffer;
   memset(&clusterIndex, 0, sizeof(clusterIndex));
-  o2::tpc::ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clusterMCBuffer, clustersTPC, mcInputs, [&validSectors](auto& index) { return validSectors.test(index); });
+  o2::tpc::ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clustersTPC);
   //----------------------------<< TPC Clusters loading <<------------------------------------------
 
   //
@@ -275,20 +243,18 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
 
   mMatching.run();
 
-  /* // at the moment we don't assume need for bufferization, no nead to clear
-  for (auto& secClBuf : mBufferedTPCClusters) {
-    secClBuf.clear();
-  }
-  */
-
   pc.outputs().snapshot(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe}, mMatching.getMatchedTracks());
   if (mUseMC) {
     pc.outputs().snapshot(Output{"GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe}, mMatching.getMatchedITSLabels());
     pc.outputs().snapshot(Output{"GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe}, mMatching.getMatchedTPCLabels());
   }
-  mFinished = true;
-  pc.services().get<ControlService>().endOfStream();
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  mTimer.Stop();
+}
+
+void TPCITSMatchingDPL::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "TPC-ITS matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcClusLanes)
@@ -301,14 +267,11 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcC
   inputs.emplace_back("trackITSROF", "ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusITS", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusITSPatt", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("clusITSROF", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("clusITSROF", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackTPCClRefs", "TPC", "CLUSREFS", 0, Lifetime::Timeframe);
 
-  for (auto lane : tpcClusLanes) {
-    std::string clusBind = "clusTPC" + std::to_string(lane);
-    inputs.emplace_back(clusBind.c_str(), "TPC", "CLUSTERNATIVE", lane, Lifetime::Timeframe);
-  }
+  inputs.emplace_back("clusTPC", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe);
 
   if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
     inputs.emplace_back("fitInfo", "FT0", "RECPOINTS", 0, Lifetime::Timeframe);
@@ -329,8 +292,10 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcC
     "itstpc-track-matcher",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useMC, tpcClusLanes)},
-    Options{{"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}}}};
+    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useMC)},
+    Options{
+      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
+      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 
 } // namespace globaltracking

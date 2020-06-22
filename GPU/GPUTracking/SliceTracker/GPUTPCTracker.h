@@ -50,29 +50,6 @@ class GPUTPCTracker : public GPUProcessor
   ~GPUTPCTracker();
   GPUTPCTracker(const GPUTPCTracker&) CON_DELETE;
   GPUTPCTracker& operator=(const GPUTPCTracker&) CON_DELETE;
-#endif
-
-  struct StructGPUParameters {
-    GPUAtomic(unsigned int) nextStartHit; // Next Tracklet to process
-  };
-
-  MEM_CLASS_PRE2()
-  struct StructGPUParametersConst {
-    GPUglobalref() char* gpumem; // Base pointer to GPU memory (Needed for OpenCL for verification)
-  };
-
-  struct commonMemoryStruct {
-    commonMemoryStruct() : nStartHits(0), nTracklets(0), nRowHits(0), nTracks(0), nLocalTracks(0), nTrackHits(0), nLocalTrackHits(0), kernelError(0), gpuParameters() {}
-    GPUAtomic(unsigned int) nStartHits; // number of start hits
-    GPUAtomic(unsigned int) nTracklets; // number of tracklets
-    GPUAtomic(unsigned int) nRowHits;   // number of tracklet hits
-    GPUAtomic(unsigned int) nTracks;    // number of reconstructed tracks
-    int nLocalTracks;                   // number of reconstructed tracks before global tracking
-    GPUAtomic(unsigned int) nTrackHits; // number of track hits
-    int nLocalTrackHits;                // see above
-    int kernelError;                    // Error code during kernel execution
-    StructGPUParameters gpuParameters;  // GPU parameters
-  };
 
   MEM_CLASS_PRE2()
   void SetSlice(int iSlice);
@@ -85,8 +62,6 @@ class GPUTPCTracker : public GPUProcessor
   void WriteOutputPrepare();
   void WriteOutput();
 
-// GPU Tracker Interface
-#if !defined(GPUCA_GPUCODE_DEVICE)
   // Debugging Stuff
   void DumpSliceData(std::ostream& out);    // Dump Input Slice Data
   void DumpLinks(std::ostream& out);        // Dump all links to file (for comparison after NeighboursFinder/Cleaner)
@@ -95,14 +70,37 @@ class GPUTPCTracker : public GPUProcessor
   void DumpTrackHits(std::ostream& out);    // Same for Track Hits
   void DumpTrackletHits(std::ostream& out); // Same for Track Hits
   void DumpOutput(std::ostream& out);       // Similar for output
+#endif
 
-  int ReadEvent();
+  struct StructGPUParameters {
+    GPUAtomic(unsigned int) nextStartHit; // Next Tracklet to process
+  };
 
-  GPUh() GPUglobalref() const GPUTPCClusterData* ClusterData() const { return mData.ClusterData(); }
+  MEM_CLASS_PRE2()
+  struct StructGPUParametersConst {
+    GPUglobalref() char* gpumem; // Base pointer to GPU memory (Needed for OpenCL for verification)
+  };
 
-  GPUh() MakeType(const MEM_LG(GPUTPCRow) &) Row(const GPUTPCHitId& HitId) const { return mData.Row(HitId.RowIndex()); }
+  struct commonMemoryStruct {
+    commonMemoryStruct() : nStartHits(0), nTracklets(0), nRowHits(0), nTracks(0), nLocalTracks(0), nTrackHits(0), nLocalTrackHits(0), gpuParameters() {}
+    GPUAtomic(unsigned int) nStartHits; // number of start hits
+    GPUAtomic(unsigned int) nTracklets; // number of tracklets
+    GPUAtomic(unsigned int) nRowHits;   // number of tracklet hits
+    GPUAtomic(unsigned int) nTracks;    // number of reconstructed tracks
+    int nLocalTracks;                   // number of reconstructed tracks before global tracking
+    GPUAtomic(unsigned int) nTrackHits; // number of track hits
+    int nLocalTrackHits;                // see above
+    StructGPUParameters gpuParameters;  // GPU parameters
+  };
 
-  GPUhd() GPUglobalref() GPUTPCSliceOutput* Output() const { return mOutput; }
+
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+  GPUhdi() GPUglobalref() const GPUTPCClusterData* ClusterData() const
+  {
+    return mData.ClusterData();
+  }
+  GPUhdi() MakeType(const MEM_LG(GPUTPCRow) &) Row(const GPUTPCHitId& HitId) const { return mData.Row(HitId.RowIndex()); }
+  GPUhdi() GPUglobalref() GPUTPCSliceOutput* Output() const { return mOutput; }
 #endif
   GPUhdni() GPUglobalref() commonMemoryStruct* CommonMemory() const
   {
@@ -129,7 +127,10 @@ class GPUTPCTracker : public GPUProcessor
   }
 
   void SetupCommonMemory();
+  bool SliceDataOnGPU();
   void* SetPointersDataInput(void* mem);
+  void* SetPointersDataLinks(void* mem);
+  void* SetPointersDataWeights(void* mem);
   void* SetPointersDataScratch(void* mem);
   void* SetPointersDataRows(void* mem);
   void* SetPointersScratch(void* mem);
@@ -139,11 +140,13 @@ class GPUTPCTracker : public GPUProcessor
   void* SetPointersOutput(void* mem);
   void RegisterMemoryAllocation();
 
-  short MemoryResLinksScratch() { return mMemoryResLinksScratch; }
-  short MemoryResScratchHost() { return mMemoryResScratchHost; }
-  short MemoryResCommon() { return mMemoryResCommon; }
-  short MemoryResTracklets() { return mMemoryResTracklets; }
-  short MemoryResOutput() { return mMemoryResOutput; }
+  short MemoryResLinks() const { return mMemoryResLinks; }
+  short MemoryResScratchHost() const { return mMemoryResScratchHost; }
+  short MemoryResCommon() const { return mMemoryResCommon; }
+  short MemoryResTracklets() const { return mMemoryResTracklets; }
+  short MemoryResOutput() const { return mMemoryResOutput; }
+  short MemoryResSliceScratch() const { return mMemoryResSliceScratch; }
+  short MemoryResSliceInput() const { return mMemoryResSliceInput; }
 
   void SetMaxData(const GPUTrackingInOutPointers& io);
   void UpdateMaxData();
@@ -254,15 +257,8 @@ class GPUTPCTracker : public GPUProcessor
     float fSortVal; // Value to sort for
   };
 
-  void PerformGlobalTracking(GPUTPCTracker& sliceLeft, GPUTPCTracker& sliceRight);
-  void PerformGlobalTracking(GPUTPCTracker& sliceTarget, bool right);
-  static int GlobalTrackingSliceOrder(int iSlice);
-
   void* LinkTmpMemory() { return mLinkTmpMemory; }
 
-#if !defined(GPUCA_GPUCODE)
-  GPUh() int PerformGlobalTrackingRun(GPUTPCTracker& sliceSource, int iTrack, int rowIndex, float angle, int direction);
-#endif
 #ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
   char* mStageAtSync = nullptr; // Temporary performance variable: Pointer to array storing current stage for every thread at every sync point
 #endif
@@ -286,12 +282,14 @@ class GPUTPCTracker : public GPUProcessor
   unsigned int mNMaxRowHits;
   unsigned int mNMaxTracks;
   unsigned int mNMaxTrackHits;
-  short mMemoryResLinksScratch;
+  short mMemoryResLinks;
   short mMemoryResScratch;
   short mMemoryResScratchHost;
   short mMemoryResCommon;
   short mMemoryResTracklets;
   short mMemoryResOutput;
+  short mMemoryResSliceScratch;
+  short mMemoryResSliceInput;
 
   // GPU Temp Arrays
   GPUglobalref() int* mRowStartHitCountOffset;       // Offset, length and new offset of start hits in row

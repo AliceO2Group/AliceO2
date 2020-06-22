@@ -74,18 +74,8 @@ o2::framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config
         return true;
       };
 
-      bool active(true);
       if (!publish()) {
-        active = false;
-        // Send dummy header with no payload option
-        o2::emcal::EMCALBlockHeader dummyheader(false);
-        pc.outputs().snapshot(o2::framework::OutputRef{"output", 0, {dummyheader}}, 0);
-        pc.outputs().snapshot(o2::framework::OutputRef{"outputTRG", 0, {dummyheader}}, 0);
-        if (propagateMC) {
-          pc.outputs().snapshot(o2::framework::OutputRef{"outputMC", 0, {dummyheader}}, 0);
-        }
-      }
-      if ((processAttributes->finished = (active == false)) && processAttributes->terminateOnEod) {
+        pc.services().get<o2::framework::ControlService>().endOfStream();
         pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
       }
     };
@@ -100,7 +90,9 @@ o2::framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config
     auto mco = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.mcoutput);
     outputSpecs.emplace_back(o2::framework::OutputSpec{{"output"}, dto.origin, dto.description, 0, o2::framework::Lifetime::Timeframe});
     outputSpecs.emplace_back(o2::framework::OutputSpec{{"outputTRG"}, tro.origin, tro.description, 0, o2::framework::Lifetime::Timeframe});
-    outputSpecs.emplace_back(o2::framework::OutputSpec{{"outputMC"}, mco.origin, mco.description, 0, o2::framework::Lifetime::Timeframe});
+    if (propagateMC) {
+      outputSpecs.emplace_back(o2::framework::OutputSpec{{"outputMC"}, mco.origin, mco.description, 0, o2::framework::Lifetime::Timeframe});
+    }
     return std::move(outputSpecs);
   };
 

@@ -121,6 +121,7 @@ class BareElinkDecoder
   uint64_t mCheckpoint;           //< mask of the next state transition check to be done in process()
   uint16_t mNof10BitsWordsToRead; //< number of 10 bits words to be read
 
+  uint10_t mClusterSize;
   uint16_t mNofSamples;
   uint16_t mTimestamp;
   std::vector<uint16_t> mSamples;
@@ -165,6 +166,7 @@ BareElinkDecoder<CHARGESUM>::BareElinkDecoder(DsElecId dsId,
     mNofHeaderParityErrors{},
     mCheckpoint{(static_cast<uint64_t>(1) << HEADERSIZE)},
     mNof10BitsWordsToRead{},
+    mClusterSize{},
     mNofSamples{},
     mTimestamp{},
     mSamples{},
@@ -217,9 +219,8 @@ void BareElinkDecoder<CHARGESUM>::clear(int checkpoint)
 template <typename CHARGESUM>
 void BareElinkDecoder<CHARGESUM>::findSync()
 {
-  const uint64_t sync = sampaSync().uint64();
   assert(mState == State::LookingForSync);
-  if (mBitBuffer != sync) {
+  if (mBitBuffer != sampaSyncWord) {
     mBitBuffer >>= 1;
     mMask /= 2;
     return;
@@ -302,7 +303,7 @@ void BareElinkDecoder<CHARGESUM>::handleReadSample()
   }
   oneLess10BitWord();
   if (mNofSamples) {
-    handleReadData();
+    changeToReadingData();
   } else {
     sendCluster();
     if (mNof10BitsWordsToRead) {
@@ -319,6 +320,7 @@ void BareElinkDecoder<CHARGESUM>::handleReadTimestamp()
   assert(mState == State::ReadingNofSamples);
   oneLess10BitWord();
   mNofSamples = mBitBuffer;
+  mClusterSize = mNofSamples;
   changeState(State::ReadingTimestamp, 10);
 }
 
@@ -423,7 +425,7 @@ void BareElinkDecoder<ChargeSumMode>::sendCluster()
   if (mSampaChannelHandler) {
     mSampaChannelHandler(mDsId,
                          channelNumber64(mSampaHeader),
-                         SampaCluster(mTimestamp, mClusterSum));
+                         SampaCluster(mTimestamp, mSampaHeader.bunchCrossingCounter(), mClusterSum, mClusterSize));
   }
 }
 
@@ -433,7 +435,7 @@ void BareElinkDecoder<SampleMode>::sendCluster()
   if (mSampaChannelHandler) {
     mSampaChannelHandler(mDsId,
                          channelNumber64(mSampaHeader),
-                         SampaCluster(mTimestamp, mSamples));
+                         SampaCluster(mTimestamp, mSampaHeader.bunchCrossingCounter(), mSamples));
   }
   mSamples.clear();
 }

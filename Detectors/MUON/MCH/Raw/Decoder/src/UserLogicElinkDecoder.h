@@ -60,11 +60,11 @@ class UserLogicElinkDecoder
   void clear();
   bool hasError() const;
   bool isHeaderComplete() const { return mHeaderParts.size() == 5; }
-  bool moreSampleToRead() const { return mClusterSize > 0; }
+  bool moreSampleToRead() const { return mSamplesToRead > 0; }
   bool moreWordsToRead() const { return mNof10BitWords > 0; }
   std::ostream& debugHeader() const;
   std::string errorMessage() const;
-  void append10(uint10_t data10);
+  bool append10(uint10_t data10);
   void completeHeader();
   void oneLess10BitWord();
   void prepareAndSendCluster();
@@ -84,6 +84,7 @@ class UserLogicElinkDecoder
   SampaHeader mSampaHeader{};
   uint10_t mNof10BitWords{};
   uint10_t mClusterSize{};
+  uint10_t mSamplesToRead{};
   uint10_t mClusterTime{};
   std::optional<std::string> mErrorMessage{std::nullopt};
 };
@@ -110,10 +111,13 @@ template <typename CHARGESUM>
 void UserLogicElinkDecoder<CHARGESUM>::append(uint64_t data50, uint8_t error)
 {
 #ifdef ULDEBUG
-  debugHeader() << (*this) << fmt::format(" --> append50 {:013x} error {} data10={:d} {:d} {:d} {:d}\n", data50, error, static_cast<uint10_t>(data50 & 0x3FF), static_cast<uint10_t>((data50 & 0xFFC00) >> 10), static_cast<uint10_t>((data50 & 0x3FF00000) >> 20), static_cast<uint10_t>((data50 & 0xFFC0000000) >> 30), static_cast<uint10_t>((data50 & 0x3FF0000000000) >> 40));
+  debugHeader() << (*this) << fmt::format(" --> append50 {:013x} error {} incomplete {} data10={:d} {:d} {:d} {:d} {:d}\n", data50, error, (int)isIncomplete(error), static_cast<uint10_t>(data50 & 0x3FF), static_cast<uint10_t>((data50 & 0xFFC00) >> 10), static_cast<uint10_t>((data50 & 0x3FF00000) >> 20), static_cast<uint10_t>((data50 & 0xFFC0000000) >> 30), static_cast<uint10_t>((data50 & 0x3FF0000000000) >> 40));
 #endif
 
   if (isSync(data50)) {
+#ifdef ULDEBUG
+    debugHeader() << (*this) << fmt::format(" --> SYNC word found {:013x}\n", data50);
+#endif
     clear();
     transition(State::WaitingHeader);
     return;
@@ -121,9 +125,15 @@ void UserLogicElinkDecoder<CHARGESUM>::append(uint64_t data50, uint8_t error)
 
   auto data = data50;
 
-  for (auto i = 0; i < 5; i++) {
-    append10(static_cast<uint10_t>(data & 0x3FF));
+  int i;
+  for (i = 0; i < 5; i++) {
+    bool packetEnd = append10(static_cast<uint10_t>(data & 0x3FF));
     data >>= 10;
+#ifdef ULDEBUG
+    if (isIncomplete(error)) {
+      debugHeader() << (*this) << fmt::format(" --> incomplete {} packetEnd @i={}\n", (int)isIncomplete(error), packetEnd, i);
+    }
+#endif
     if (hasError()) {
 #ifdef ULDEBUG
       debugHeader() << (*this) << " reset due to hasError\n";
@@ -131,13 +141,19 @@ void UserLogicElinkDecoder<CHARGESUM>::append(uint64_t data50, uint8_t error)
       reset();
       break;
     }
-    if (mState == State::WaitingHeader && isIncomplete(error)) {
+    if (isIncomplete(error) && packetEnd) {
 #ifdef ULDEBUG
-      debugHeader() << (*this) << " reset due to isIncomplete\n";
+      debugHeader() << (*this) << " stop due to isIncomplete\n";
 #endif
-      reset();
-      return;
+      break;
     }
+  }
+
+  if (isIncomplete(error) && (i == 5)) {
+#ifdef ULDEBUG
+    debugHeader() << (*this) << " data packet end not found when isIncomplete --> resetting\n";
+#endif
+    reset();
   }
 } // namespace o2::mch::raw
 
@@ -155,8 +171,9 @@ struct DataFormatSizeFactor<ChargeSumMode> {
 };
 
 template <typename CHARGESUM>
-void UserLogicElinkDecoder<CHARGESUM>::append10(uint10_t data10)
+bool UserLogicElinkDecoder<CHARGESUM>::append10(uint10_t data10)
 {
+  bool result = false;
 #ifdef ULDEBUG
   debugHeader() << (*this) << fmt::format(" --> data10 {:d}\n", data10);
 #endif
@@ -165,27 +182,30 @@ void UserLogicElinkDecoder<CHARGESUM>::append10(uint10_t data10)
       setHeaderPart(data10);
       if (isHeaderComplete()) {
         completeHeader();
-        if (isSync(mSampaHeader.uint64()) ||
-            mSampaHeader.packetType() == SampaPacketType::HeartBeat ||
-            mSampaHeader.nof10BitWords() == 0) {
+        if (isSync(mSampaHeader.uint64())) {
           reset();
+        } else if (mSampaHeader.packetType() == SampaPacketType::HeartBeat) {
+          transition(State::WaitingHeader);
+          result = true;
         } else {
-          transition(State::WaitingSize);
+          if (mSampaHeader.nof10BitWords() > 2) {
+            transition(State::WaitingSize);
+          } else {
+            reset();
+          }
         }
       }
       break;
     case State::WaitingSize:
       if (moreWordsToRead()) {
-        auto factor = DataFormatSizeFactor<CHARGESUM>::value;
-        auto value = factor * data10;
-        setClusterSize(value);
+        setClusterSize(data10);
         if (hasError()) {
-          return;
+          return false;
         }
         transition(State::WaitingTime);
       } else {
         mErrorMessage = "WaitingSize but no more words";
-        return;
+        return false;
       }
       break;
     case State::WaitingTime:
@@ -194,23 +214,26 @@ void UserLogicElinkDecoder<CHARGESUM>::append10(uint10_t data10)
         transition(State::WaitingSample);
       } else {
         mErrorMessage = "WaitingTime but no more words";
-        return;
+        return false;
       }
       break;
     case State::WaitingSample:
       if (moreSampleToRead()) {
         setSample(data10);
-      } else if (moreWordsToRead()) {
-        transition(State::WaitingSize);
-        append10(data10);
-      } else {
-        transition(State::WaitingHeader);
-        append10(data10);
+      }
+      if (!moreSampleToRead()) {
+        if (moreWordsToRead()) {
+          transition(State::WaitingSize);
+        } else {
+          transition(State::WaitingHeader);
+          result = true;
+        }
       }
       break;
     default:
       break;
   };
+  return result;
 }
 
 template <typename CHARGESUM>
@@ -273,8 +296,6 @@ void UserLogicElinkDecoder<CHARGESUM>::completeHeader()
 template <typename CHARGESUM>
 std::ostream& UserLogicElinkDecoder<CHARGESUM>::debugHeader() const
 {
-  //std::cout << fmt::format("--ULDEBUG--{:p}-----------", reinterpret_cast<const void*>(this));
-  //return std::cout;
   return std::cout << "---";
 }
 
@@ -324,16 +345,21 @@ void UserLogicElinkDecoder<CHARGESUM>::setClusterSize(uint10_t value)
 {
   oneLess10BitWord();
   mClusterSize = value;
-  int checkSize = mClusterSize + 2 - mSampaHeader.nof10BitWords();
+  if (CHARGESUM()()) {
+    mSamplesToRead = 2;
+  } else {
+    mSamplesToRead = mClusterSize;
+  }
+  int checkSize = mSamplesToRead + 2 - mSampaHeader.nof10BitWords();
   mErrorMessage = std::nullopt;
   if (mClusterSize == 0) {
     mErrorMessage = "cluster size is zero";
   }
   if (checkSize > 0) {
-    mErrorMessage = "cluster size bigger than nof10BitWords";
+    mErrorMessage = "number of samples bigger than nof10BitWords";
   }
 #ifdef ULDEBUG
-  debugHeader() << (*this) << " --> size=" << mClusterSize << "\n";
+  debugHeader() << (*this) << " --> size=" << mClusterSize << "  samples=" << mSamplesToRead << "\n";
 #endif
 }
 
@@ -363,11 +389,11 @@ void UserLogicElinkDecoder<CHARGESUM>::setSample(uint10_t sample)
 #ifdef ULDEBUG
   debugHeader() << (*this) << " --> sample = " << sample << "\n";
 #endif
-  --mClusterSize;
+  --mSamplesToRead;
   oneLess10BitWord();
   mSamples.emplace_back(sample);
 
-  if (mClusterSize == 0) {
+  if (mSamplesToRead == 0) {
     prepareAndSendCluster();
   }
 }
@@ -376,7 +402,7 @@ template <>
 void UserLogicElinkDecoder<SampleMode>::prepareAndSendCluster()
 {
   if (mSampaChannelHandler) {
-    SampaCluster sc(mClusterTime, mSamples);
+    SampaCluster sc(mClusterTime, mSampaHeader.bunchCrossingCounter(), mSamples);
     sendCluster(sc);
   }
   mSamples.clear();
@@ -389,7 +415,7 @@ void UserLogicElinkDecoder<ChargeSumMode>::prepareAndSendCluster()
     throw std::invalid_argument(fmt::format("expected sample size to be 2 but it is {}", mSamples.size()));
   }
   uint32_t q = (((static_cast<uint32_t>(mSamples[1]) & 0x3FF) << 10) | (static_cast<uint32_t>(mSamples[0]) & 0x3FF));
-  SampaCluster sc(mClusterTime, q);
+  SampaCluster sc(mClusterTime, mSampaHeader.bunchCrossingCounter(), q, mClusterSize);
   sendCluster(sc);
   mSamples.clear();
 }

@@ -139,7 +139,6 @@ template <typename T, int N>
 struct HolderMaker<T[N]> {
   static auto make(TTreeReader& reader, char const* branchName)
   {
-    LOG(INFO) << "branchName " << branchName;
     using Reader = TTreeReaderArray<T>;
     return std::move(ReaderHolder<T[N]>{std::move(std::make_unique<Reader>(reader, branchName))});
   }
@@ -149,7 +148,7 @@ template <typename C>
 struct ColumnReaderTrait {
   static auto createReader(TTreeReader& reader)
   {
-    return std::move(HolderMaker<Remap64Bit_t<typename C::type>>::make(reader, C::base::label()));
+    return std::move(HolderMaker<Remap64Bit_t<typename C::type>>::make(reader, C::base::columnLabel()));
   }
 };
 
@@ -160,9 +159,6 @@ struct RootTableBuilderHelpers {
                            ReaderHolder<TTREEREADERVALUE>... holders)
   {
     std::vector<std::string> branchNames = {holders.reader->GetBranchName()...};
-    LOG(INFO) << "Branch names";
-    for (auto bn : branchNames)
-      LOG(INFO) << "  " << bn;
 
     auto filler = builder.preallocatedPersist<typename std::decay_t<decltype(holders)>::Type...>(branchNames, reader.GetEntries(true));
     reader.Restart();

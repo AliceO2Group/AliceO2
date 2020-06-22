@@ -324,7 +324,9 @@ class Spline1D : public FlatObject
   int mFdimensions;    ///< number of F dimensions
   int* mUtoKnotMap;    //! (transient!!) pointer to (integer U -> knot index) map inside the mFlatBufferPtr array
   DataT* mFparameters; //! (transient!!) F-dependent parameters of the spline
+#ifndef GPUCA_ALIROOT_LIB
   ClassDefNV(Spline1D<DataT>, 1);
+#endif
 };
 
 ///

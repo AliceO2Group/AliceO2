@@ -52,11 +52,13 @@ GPUReconstructionOCL::~GPUReconstructionOCL()
   }
 }
 
+void GPUReconstructionOCL::UpdateSettings()
+{
+  GPUCA_GPUReconstructionUpdateDefailts();
+}
+
 int GPUReconstructionOCL::InitDevice_Runtime()
 {
-  // Find best OPENCL device, initialize and allocate memory
-  GPUCA_GPUReconstructionUpdateDefailts();
-
   if (mMaster == nullptr) {
     cl_int ocl_error;
     cl_uint num_platforms;
@@ -361,7 +363,7 @@ int GPUReconstructionOCL::ExitDevice_Runtime()
   return (0);
 }
 
-size_t GPUReconstructionOCL::GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+size_t GPUReconstructionOCL::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
   if (evList == nullptr) {
     nEvents = 0;
@@ -372,7 +374,9 @@ size_t GPUReconstructionOCL::GPUMemCpy(void* dst, const void* src, size_t size, 
   if (stream == -1) {
     SynchronizeGPU();
   }
-  if (toGPU) {
+  if (toGPU == -2) {
+    GPUFailedMsg(clEnqueueCopyBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, mInternals->mem_gpu, (char*)src - (char*)mDeviceMemoryBase, (char*)dst - (char*)mDeviceMemoryBase, size, nEvents, (cl_event*)evList, (cl_event*)ev));
+  } else if (toGPU) {
     GPUFailedMsg(clEnqueueWriteBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream == -1, (char*)dst - (char*)mDeviceMemoryBase, size, src, nEvents, (cl_event*)evList, (cl_event*)ev));
   } else {
     GPUFailedMsg(clEnqueueReadBuffer(mInternals->command_queue[stream == -1 ? 0 : stream], mInternals->mem_gpu, stream == -1, (char*)src - (char*)mDeviceMemoryBase, size, dst, nEvents, (cl_event*)evList, (cl_event*)ev));
@@ -389,7 +393,7 @@ size_t GPUReconstructionOCL::TransferMemoryInternal(GPUMemoryResource* res, int 
     return 0;
   }
   if (mDeviceProcessingSettings.debugLevel >= 3) {
-    GPUInfo(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s", res->Name());
+    GPUInfo("Copying to %s: %s - %lld bytes", toGPU ? "GPU" : "Host", res->Name(), (long long int)res->Size());
   }
   return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }
@@ -438,6 +442,13 @@ void GPUReconstructionOCL::SynchronizeGPU()
 void GPUReconstructionOCL::SynchronizeStream(int stream) { GPUFailedMsg(clFinish(mInternals->command_queue[stream])); }
 
 void GPUReconstructionOCL::SynchronizeEvents(deviceEvent* evList, int nEvents) { GPUFailedMsg(clWaitForEvents(nEvents, (cl_event*)evList)); }
+
+void GPUReconstructionOCL::StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents)
+{
+  if (nEvents) {
+    GPUFailedMsg(clEnqueueMarkerWithWaitList(mInternals->command_queue[stream], nEvents, (cl_event*)evList, nullptr));
+  }
+}
 
 bool GPUReconstructionOCL::IsEventDone(deviceEvent* evList, int nEvents)
 {

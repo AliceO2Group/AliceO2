@@ -133,7 +133,7 @@ class Clusterer
     void finishChipSingleHitFast(uint32_t hit, ChipPixelData* curChipData, FullClusCont* fullClusPtr, CompClusCont* compClusPtr,
                                  PatternCont* patternsPtr, const MCTruth* labelsDigPtr, MCTruth* labelsClusPTr);
     void process(gsl::span<ChipPixelData*> chipPtrs, FullClusCont* fullClusPtr, CompClusCont* compClusPtr, PatternCont* patternsPtr,
-                 const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord* rofPtr);
+                 const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr);
 
     ClustererThread(Clusterer* par = nullptr) : parent(par), curr(column2 + 1), prev(column1 + 1)
     {
@@ -159,18 +159,17 @@ class Clusterer
   int getMaxBCSeparationToMask() const { return mMaxBCSeparationToMask; }
   void setMaxBCSeparationToMask(int n) { mMaxBCSeparationToMask = n; }
 
+  int getMaxRowColDiffToMask() const { return mMaxRowColDiffToMask; }
+  void setMaxRowColDiffToMask(int v) { mMaxRowColDiffToMask = v; }
+
   void setWantFullClusters(bool v) { mWantFullClusters = v; }
   void setWantCompactClusters(bool v) { mWantCompactClusters = v; }
 
   bool getWantFullClusters() const { return mWantFullClusters; }
   bool getWantCompactClusters() const { return mWantCompactClusters; }
 
-  uint32_t getCurrROF() const { return mROFRef.getROFrame(); }
-
   void print() const;
   void clear();
-
-  void setOutputTree(TTree* tr) { mClusTree = tr; }
 
   void setNChips(int n)
   {
@@ -212,6 +211,7 @@ class Clusterer
 
   ///< mask continuosly fired pixels in frames separated by less than this amount of BCs (fired from hit in prev. ROF)
   int mMaxBCSeparationToMask = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;
+  int mMaxRowColDiffToMask = 0; ///< provide their difference in col/row is <= than this
 
   std::vector<std::unique_ptr<ClustererThread>> mThreads; // buffers for threads
   std::vector<ChipPixelData> mChips;                      // currently processed ROF's chips data
@@ -221,10 +221,6 @@ class Clusterer
   const o2::itsmft::GeometryTGeo* mGeometry = nullptr; //! ITS OR MFT upgrade geometry
 
   LookUp mPattIdConverter; //! Convert the cluster topology to the corresponding entry in the dictionary.
-
-  // this makes sense only for single-threaded execution with autosaving of the tree: legacy, TOREM
-  o2::itsmft::ROFRecord mROFRef; // ROF reference
-  TTree* mClusTree = nullptr;    //! externally provided tree to write clusters output (if needed)
 
   TStopwatch mTimer;
   TStopwatch mTimerMerge;

@@ -19,6 +19,7 @@
 #pragma link C++ class o2::globaltracking::TrackLocTPC + ;
 #pragma link C++ class o2::globaltracking::TrackLocITS + ;
 #pragma link C++ class o2::globaltracking::MatchITSTPCParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::MatchITSTPCParams> + ;
 
 #pragma link C++ class o2::globaltracking::ABDebugLink + ;
 #pragma link C++ class o2::globaltracking::ABDebugTrack + ;

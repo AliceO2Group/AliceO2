@@ -34,7 +34,7 @@ using o2::ft0::Geometry;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t Active)
-  : o2::base::DetImpl<Detector>("FT0", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<o2::ft0::HitType>())
+  : o2::base::DetImpl<Detector>("FT0", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<o2::ft0::HitType>()), mTrackIdTop(-1), mTrackIdMCPtop(-1)
 
 {
   // Gegeo  = GetGeometry() ;
@@ -43,7 +43,7 @@ Detector::Detector(Bool_t Active)
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::base::DetImpl<Detector>(rhs), mIdSens1(rhs.mIdSens1), mPMTeff(rhs.mPMTeff), mHits(o2::utils::createSimVector<o2::ft0::HitType>())
+  : o2::base::DetImpl<Detector>(rhs), mIdSens1(rhs.mIdSens1), mPMTeff(rhs.mPMTeff), mHits(o2::utils::createSimVector<o2::ft0::HitType>()), mTrackIdTop(-1), mTrackIdMCPtop(-1)
 {
 }
 
@@ -62,6 +62,19 @@ void Detector::InitializeO2Detector()
 
     AddSensitiveVolume(v);
   }
+
+  TGeoVolume* vrad = gGeoManager->GetVolume("0TOP");
+  if (vrad == nullptr) {
+    LOG(WARN) << "@@@@ Sensitive radiator not found!!!!!!!!";
+  } else {
+    AddSensitiveVolume(vrad);
+  }
+  TGeoVolume* vmcp = gGeoManager->GetVolume("0MTO");
+  if (vmcp == nullptr) {
+    LOG(WARN) << "@@@@ Sensitive MCP glass not found!!!!!!!!";
+  } else {
+    AddSensitiveVolume(vmcp);
+  }
 }
 
 void Detector::ConstructGeometry()
@@ -69,8 +82,8 @@ void Detector::ConstructGeometry()
   LOG(DEBUG) << "Creating FT0 geometry\n";
   CreateMaterials();
 
-  Float_t zdetA = 335;
-  Float_t zdetC = 82.;
+  Float_t zdetA = Geometry::ZdetA;
+  Float_t zdetC = Geometry::ZdetC;
 
   Int_t idrotm[999];
   Double_t x, y, z;
@@ -88,7 +101,7 @@ void Detector::ConstructGeometry()
 
   // C side Concave Geometry
 
-  Double_t crad = 82; // define concave c-side radius here
+  Double_t crad = Geometry::ZdetC; // define concave c-side radius here
 
   Double_t dP = pmcp[0]; // side length of mcp divided by 2
 
@@ -198,10 +211,10 @@ void Detector::ConstructGeometry()
     stlinC->AddNode(ins, itr, ph);
   }
 
-  TGeoVolume* alice = gGeoManager->GetVolume("cave");
-  alice->AddNode(stlinA, 1, new TGeoTranslation(0, 0, zdetA));
+  TGeoVolume* alice = gGeoManager->GetVolume("barrel");
+  alice->AddNode(stlinA, 1, new TGeoTranslation(0, 30., zdetA));
   TGeoRotation* rotC = new TGeoRotation("rotC", 90., 0., 90., 90., 180., 0.);
-  alice->AddNode(stlinC, 1, new TGeoCombiTrans(0., 0., -zdetC, rotC));
+  alice->AddNode(stlinC, 1, new TGeoCombiTrans(0., 30., -zdetC, rotC));
 
   // MCP + 4 x wrapped radiator + 4xphotocathod + MCP + Al top in front of radiators
   SetOneMCP(ins);
@@ -232,8 +245,8 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   Float_t pmcpbase[3] = {2.949, 2.949, 0.1};
   Float_t pmcptopglass[3] = {2.949, 2.949, 0.1}; // MCP top glass optical
 
-  Float_t preg[3] = {1.324, 1.324, 0.05}; // Photcathode
-  Double_t pal[3] = {2.648, 2.648, 0.25}; // 5mm Al on top of each radiator
+  Float_t preg[3] = {1.324, 1.324, 0.005}; // Photcathode
+  Double_t pal[3] = {2.648, 2.648, 0.25};  // 5mm Al on top of each radiator
   // Entry window (glass)
   TVirtualMC::GetMC()->Gsvolu("0TOP", "BOX", getMediumID(kOpGlass), ptop, 3); // Glass radiator
   TGeoVolume* top = gGeoManager->GetVolume("0TOP");
@@ -326,6 +339,9 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
+
+  TString volname = fMC->CurrentVolName();
+
   TVirtualMCStack* stack = fMC->GetStack();
   Int_t quadrant, mcp;
   if (fMC->IsTrackEntering()) {
@@ -343,10 +359,35 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     if (fMC->TrackCharge()) { //charge particles for MCtrue
       AddHit(x, y, z, time, 10, trackID, detID);
     }
-    if (iPart == 50000050) // If particles is photon then ...
-    {
-      if (RegisterPhotoE(etot)) {
-        AddHit(x, y, z, time, enDep, parentID, detID);
+    if (iPart == 50000050) { // If particles is photon then ...
+      if (volname.Contains("0TOP")) {
+        if (!RegisterPhotoE(etot)) {
+          fMC->StopTrack();
+          return kFALSE;
+        }
+        mTrackIdTop = trackID;
+      }
+
+      if (volname.Contains("0MTO")) {
+        if (trackID != mTrackIdTop) {
+          if (!RegisterPhotoE(etot)) {
+            //   std::cout<<" брысь "<<etot<<" track "<<trackID<<" parentID "<<parentID<<" "<<volname<<std::endl;
+            fMC->StopTrack();
+            return kFALSE;
+          }
+          mTrackIdMCPtop = trackID;
+        }
+      }
+
+      if (volname.Contains("0REG")) {
+        if (trackID != mTrackIdTop && trackID != mTrackIdMCPtop) {
+          if (RegisterPhotoE(etot)) {
+            AddHit(x, y, z, time, enDep, parentID, detID);
+          }
+        }
+        if (trackID == mTrackIdTop || trackID == mTrackIdMCPtop) {
+          AddHit(x, y, z, time, enDep, parentID, detID);
+        }
       }
     }
 
@@ -358,8 +399,10 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 o2::ft0::HitType* Detector::AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId)
 {
   mHits->emplace_back(x, y, z, time, energy, trackId, detId);
-  auto stack = (o2::data::Stack*)fMC->GetStack();
-  stack->addHit(GetDetId());
+  if (energy == 10) {
+    auto stack = (o2::data::Stack*)fMC->GetStack();
+    stack->addHit(GetDetId());
+  }
   return &(mHits->back());
 }
 
@@ -424,7 +467,7 @@ void Detector::CreateMaterials()
   Medium(18, "OpBlack$", 2, 0, isxfld, sxmgmx, 10., .1, 1., .003, .003);
   Medium(15, "Aluminium$", 11, 0, isxfld, sxmgmx, 10., .01, 1., .003, .003);
   Medium(17, "OptAluminium$", 11, 0, isxfld, sxmgmx, 10., .01, 1., .003, .003);
-  Medium(16, "OpticalGlass$", 24, 1, isxfld, sxmgmx, 10., .01, .1, .003, .003);
+  Medium(16, "OpticalGlass$", 24, 1, isxfld, sxmgmx, 10., .01, .1, .003, .01);
   Medium(19, "OpticalGlassCathode$", 24, 1, isxfld, sxmgmx, 10., .01, .1, .003, .003);
   Medium(22, "SensAir$", 2, 1, isxfld, sxmgmx, 10., .1, 1., .003, .003);
 }
@@ -489,7 +532,7 @@ void Detector::DefineOpticalProperties()
   TVirtualMC::GetMC()->DefineOpSurface("surFrontWindow", kUnified, kDielectric_dielectric, kPolishedbackpainted, 0.);
   //TVirtualMC::GetMC()->SetMaterialProperty("surFrontWindow", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEfficAll[0]));
   TVirtualMC::GetMC()->SetMaterialProperty("surFrontWindow", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflBlackPaper[0]));
-  TVirtualMC::GetMC()->SetBorderSurface("surBorderFrontWindow", "0TOP", 1, "0MT0", 1, "surFrontWindow");
+  TVirtualMC::GetMC()->SetBorderSurface("surBorderFrontWindow", "0TOP", 1, "0MTO", 1, "surFrontWindow");
 }
 
 void Detector::FillOtherOptProperties()

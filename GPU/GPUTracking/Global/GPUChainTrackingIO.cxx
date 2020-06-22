@@ -41,9 +41,9 @@
 #ifdef HAVE_O2HEADERS
 #include "GPUTPCClusterStatistics.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
-#include "Headers/RAWDataHeader.h"
 #include "GPUHostDataTypes.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
+#include "TPCdEdxCalibrationSplines.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif
@@ -185,9 +185,9 @@ int GPUChainTracking::ReadData(const char* filename)
   ReadData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, mIOMem.rawClusters, InOutPointerType::RAW_CLUSTERS);
 #ifdef HAVE_O2HEADERS
   if (ReadData<ClusterNative>(fp, &mClusterNativeAccess->clustersLinear, &mClusterNativeAccess->nClustersTotal, &mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE)) {
-    mIOPtrs.clustersNative = mClusterNativeAccess.get();
     r = fread(&mClusterNativeAccess->nClusters[0][0], sizeof(mClusterNativeAccess->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
     mClusterNativeAccess->setOffsetPtrs();
+    mIOPtrs.clustersNative = mClusterNativeAccess.get();
   }
   mDigitMap.reset(new GPUTrackingInOutDigits);
   if (ReadData(fp, mDigitMap->tpcDigits, mDigitMap->nTPCDigits, mIOMem.tpcDigits, InOutPointerType::TPC_DIGIT)) {
@@ -251,21 +251,26 @@ int GPUChainTracking::ReadData(const char* filename)
 void GPUChainTracking::DumpSettings(const char* dir)
 {
   std::string f;
-  f = dir;
-  f += "tpctransform.dump";
   if (processors()->calibObjects.fastTransform != nullptr) {
+    f = dir;
+    f += "tpctransform.dump";
     DumpFlatObjectToFile(processors()->calibObjects.fastTransform, f.c_str());
   }
 
 #ifdef HAVE_O2HEADERS
-  f = dir;
-  f += "matlut.dump";
+  if (processors()->calibObjects.dEdxSplines != nullptr) {
+    f = dir;
+    f += "dedxsplines.dump";
+    DumpFlatObjectToFile(processors()->calibObjects.dEdxSplines, f.c_str());
+  }
   if (processors()->calibObjects.matLUT != nullptr) {
+    f = dir;
+    f += "matlut.dump";
     DumpFlatObjectToFile(processors()->calibObjects.matLUT, f.c_str());
   }
-  f = dir;
-  f += "trdgeometry.dump";
   if (processors()->calibObjects.trdGeometry != nullptr) {
+    f = dir;
+    f += "trdgeometry.dump";
     DumpStructToFile(processors()->calibObjects.trdGeometry, f.c_str());
   }
 
@@ -280,6 +285,10 @@ void GPUChainTracking::ReadSettings(const char* dir)
   mTPCFastTransformU = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
   processors()->calibObjects.fastTransform = mTPCFastTransformU.get();
 #ifdef HAVE_O2HEADERS
+  f = dir;
+  f += "dedxsplines.dump";
+  mdEdxSplinesU = ReadFlatObjectFromFile<TPCdEdxCalibrationSplines>(f.c_str());
+  processors()->calibObjects.dEdxSplines = mdEdxSplinesU.get();
   f = dir;
   f += "matlut.dump";
   mMatLUTU = ReadFlatObjectFromFile<o2::base::MatLayerCylSet>(f.c_str());

@@ -68,6 +68,12 @@ rdh.linkID = linkZ;
 rdh.endPointID = endpointQ;
 auto& lnkC = writer.registerLink( rdh, "outfile_f.raw");
 ```
+
+By default the writer will be created for CRU detector (full constructor is `RawFileWriter(o2::header::DataOrigin origin = o2::header::gDataOriginInvalid, bool cru=true)`).
+In order to create it for RORC detector use e.g. `RawFileWriter writer { "EMC", false }`. It will automatically impose triggered readout mode and (i) every trigger will be written with its own RDH; (ii) no RDH.stop will be added in the end of the trigger;
+(iii) the start of the N-th TimeFrame will be assumed implicitly at the first `trigger_orbit >= SOX_orbit + N*HBFUtils.orbitFirst`, where the `SOX_orbit` is the orbit where SOX flag was set
+(`start of continuous` or `start of triggered` mode is set in the beginning with the orbit/bc corresponding to HBFUtils::getFirstIR()).
+
 If needed, user may set manually the non-mutable (for given link) fields of the link RAWDataHeader via direct access to `lnkC.rdhCopy`. This fields will be cloned to all RDHs written for this link.
 
 *   add raw data payload to the `RawFileWriter`, providing the link information and the `o2::InteractionRecord` corresponding to payload.
@@ -138,9 +144,11 @@ rdh     : RDH of the CRU page opening empty RDH
 toAdd   : a vector (supplied empty) to be filled to a size multipe of 16 bytes
 ```
 
+Adding empty HBF pages for HB's w/o data can be avoided by setting `writer.setDontFillEmptyHBF(true)` before starting conversion. Note that the empty HBFs still will be added for HBs which are supposed to open a new TF.
+
 The data `toAdd` will be inserted between the star/stop RDHs of the empty HBF.
 
-The behaviour descibed above can be modified by providing an extra argument in the `addData` method
+The behaviour described above can be modified by providing an extra argument in the `addData` method
 ```cpp
 bool preformatted = true;
 writer.addData(cru_0, link_0, endpoint_0, {bc, orbit}, gsl::span( (char*)payload_0, payload_0_size ), preformatted );
@@ -151,6 +159,9 @@ writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ), preformat
 
 In this case provided span is interpretted as a fully formatted CRU page payload (i.e. it lacks the RDH which will be added by the writer) of the maximum size `8192-sizeof(RDH) = 8128` bytes.
 The writer will create a new CRU page with provided payload equipping it with the proper RDH: copying already stored RDH of the current HBF, if the interaction record `ir` belongs to the same HBF or generating new RDH for new HBF otherwise (and filling all missing HBFs in-between). In case the payload size exceeds maximum, an exception will be thrown w/o any attempt to split the page.
+
+Some detectors signal the end of the HBF by adding an empty CRU page containing just a header with ``RDH.stop=1`` while others may simply set the ``RDH.stop=1`` in the last CRU page of the HBF (it may appear to be also the 1st and the only page of the HBF and may or may not contain the payload).
+This behaviour is steered by ``writer.setAddSeparateHBFStopPage(bool v)`` switch. By default end of the HBF is signaled on separate page.
 
 For further details see  ``ITSMFT/common/simulation/MC2RawEncoder`` class and the macro
 `Detectors/ITSMFT/ITS/macros/test/run_digi2rawVarPage_its.C` to steer the MC to raw data conversion.
@@ -276,11 +287,24 @@ Data from the same detector may be split to multiple files link-wise and/or time
 ```cpp
 o2-raw-file-reader-workflow
   ...
-  --conf arg                            configuration file to init from (obligatory)
-  --loop arg (=0)                       loop N times (infinite for N<0)
-  --message-per-tf                      send TF of each link as a single FMQ message rather part per HBF
+  --loop arg (=1)                       loop N times (infinite for N<0)
+  --min-tf arg (=0)                     min TF ID to process
+  --max-tf arg (=4294967295)            max TF ID to process
+  --message-per-tf                      send TF of each link as a single FMQ message rather than multipart with message per HB
   --output-per-link                     send message per Link rather than per FMQ output route
   --delay arg (=0)                      delay in seconds between consecutive TFs sending
+  --configKeyValues arg                 semicolon separated key=value strings
+
+  # to suppress various error checks / reporting
+  --nocheck-packet-increment            ignore /Wrong RDH.packetCounter increment/
+  --nocheck-page-increment              ignore /Wrong RDH.pageCnt increment/
+  --check-stop-on-page0                 check  /RDH.stop set of 1st HBF page/
+  --nocheck-missing-stop                ignore /New HBF starts w/o closing old one/
+  --nocheck-starts-with-tf              ignore /Data does not start with TF/HBF/
+  --nocheck-hbf-per-tf                  ignore /Number of HBFs per TF not as expected/
+  --nocheck-tf-per-link                 ignore /Number of TFs is less than expected/
+  --nocheck-hbf-jump                    ignore /Wrong HBF orbit increment/
+  --nocheck-no-spage-for-tf             ignore /TF does not start by new superpage/
 ```
 
 The workflow takes an input from the configuration file (as described in `RawFileReader` section), reads the data and sends them as DPL messages
@@ -298,7 +322,7 @@ by using option `--output-per-link`.
 
 The standard use case of this workflow is to provide the input for other worfklows using the piping, e.g.
 ```cpp
-o2-raw-file-reader-workflow --conf myConf.cfg | o2-dpl-raw-parser
+o2-raw-file-reader-workflow --input-conf myConf.cfg | o2-dpl-raw-parser
 ```
 
 ## Raw data file checker (standalone executable)
@@ -307,13 +331,14 @@ o2-raw-file-reader-workflow --conf myConf.cfg | o2-dpl-raw-parser
 Usage:   o2-raw-file-check [options] file0 [... fileN]
 Options:
   -h [ --help ]                     print this help message.
-  -c [ --conf ] arg                 read input from configuration file
+  -c [ --input-conf ] arg           read input from configuration file
+  -m [ --max-tf] arg (=0xffffffff)  max. TF ID to read (counts from 0)
   -v [ --verbosity ] arg (=0)    1: long report, 2 or 3: print or dump all RDH
   -s [ --spsize ]    arg (=1048576) nominal super-page size in bytes
   -t [ --hbfpertf ]  arg (=256)     nominal number of HBFs per TF
   --nocheck-packet-increment        ignore /Wrong RDH.packetCounter increment/
   --nocheck-page-increment          ignore /Wrong RDH.pageCnt increment/
-  --nocheck-stop-on-page0           ignore /RDH.stop set of 1st HBF page/
+  --check-stop-on-page0             check  /RDH.stop set of 1st HBF page/
   --nocheck-missing-stop            ignore /New HBF starts w/o closing old one/
   --nocheck-starts-with-tf          ignore /Data does not start with TF/HBF/
   --nocheck-hbf-per-tf              ignore /Number of HBFs per TF not as expected/

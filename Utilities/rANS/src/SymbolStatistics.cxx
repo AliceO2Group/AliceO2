@@ -15,15 +15,26 @@
 
 #include <cmath>
 
-#include "librans/SymbolStatistics.h"
+#include "rANS/SymbolStatistics.h"
+#include "rANS/helper.h"
 
 namespace o2
 {
 namespace rans
 {
 
-void SymbolStatistics::rescaleFrequencyTable(uint32_t newCumulatedFrequency)
+void SymbolStatistics::rescaleToNBits(size_t bits)
 {
+  LOG(trace) << "start rescaling frequency table";
+  RANSTimer t;
+  t.start();
+
+  if (mFrequencyTable.empty()) {
+    LOG(warning) << "rescaling Frequency Table for empty message";
+    return;
+  }
+
+  const size_t newCumulatedFrequency = bitsToRange(bits);
   assert(newCumulatedFrequency >= mFrequencyTable.size());
 
   size_t cumulatedFrequencies = mCumulativeFrequencyTable.back();
@@ -88,6 +99,11 @@ void SymbolStatistics::rescaleFrequencyTable(uint32_t newCumulatedFrequency)
   // cummulatedFrequencies_[i] << std::endl;
   //	    }
   //	    std::cout <<  cummulatedFrequencies_.back() << std::endl;
+
+  t.stop();
+  LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();
+
+  LOG(trace) << "done rescaling frequency table";
 }
 
 int SymbolStatistics::getMinSymbol() const { return mMin; }
@@ -113,19 +129,22 @@ size_t SymbolStatistics::getMessageLength() const
 
 std::pair<uint32_t, uint32_t> SymbolStatistics::operator[](size_t index) const
 {
-  //  if (index - min_ > frequencyTable_.getNumSymbols()) {
-  //    std::cout << index << " out of bounds" << std::endl;
-  //  }
+  assert(index - mMin < mFrequencyTable.size());
+
   return std::make_pair(mFrequencyTable[index - mMin],
                         mCumulativeFrequencyTable[index - mMin]);
 }
 
 void SymbolStatistics::buildCumulativeFrequencyTable()
 {
+  LOG(trace) << "start building cumulative frequency table";
+
   mCumulativeFrequencyTable.resize(mFrequencyTable.size() + 1);
   mCumulativeFrequencyTable[0] = 0;
   std::partial_sum(mFrequencyTable.begin(), mFrequencyTable.end(),
                    mCumulativeFrequencyTable.begin() + 1);
+
+  LOG(trace) << "done building cumulative frequency table";
 }
 
 SymbolStatistics::Iterator SymbolStatistics::begin() const
@@ -135,7 +154,11 @@ SymbolStatistics::Iterator SymbolStatistics::begin() const
 
 SymbolStatistics::Iterator SymbolStatistics::end() const
 {
-  return SymbolStatistics::Iterator(this->getMaxSymbol() + 1, *this);
+  if (mFrequencyTable.empty()) {
+    return this->begin(); // begin == end for empty stats;
+  } else {
+    return SymbolStatistics::Iterator(this->getMaxSymbol() + 1, *this);
+  }
 }
 
 SymbolStatistics::Iterator::Iterator(size_t index,
@@ -145,6 +168,7 @@ SymbolStatistics::Iterator::Iterator(size_t index,
 const SymbolStatistics::Iterator& SymbolStatistics::Iterator::operator++()
 {
   ++mIndex;
+  assert(mIndex <= mStats.getMaxSymbol() + 1);
   return *this;
 }
 

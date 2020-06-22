@@ -29,6 +29,7 @@
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 
 using namespace o2::framework;
 
@@ -67,7 +68,11 @@ void ClustererDPL::init(InitContext& ic)
 
   // settings for the fired pixel overflow masking
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
-  mClusterer->setMaxBCSeparationToMask(alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + 10);
+  const auto& clParams = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance();
+  auto nbc = clParams.maxBCDiffToMaskBias;
+  nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
+  mClusterer->setMaxBCSeparationToMask(nbc);
+  mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
   std::string dictPath = ic.options().get<std::string>("mft-dictionary-path");
   std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::MFT, dictPath, ".bin");
@@ -116,7 +121,7 @@ void ClustererDPL::run(ProcessingContext& pc)
   }
   mClusterer->process(mNThreads, reader, mFullClusters ? &clusVec : nullptr, &clusCompVec, mPatterns ? &clusPattVec : nullptr, &clusROFVec, clusterLabels.get());
   pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
-  pc.outputs().snapshot(Output{orig, "MFTClusterROF", 0, Lifetime::Timeframe}, clusROFVec);
+  pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);
   pc.outputs().snapshot(Output{orig, "CLUSTERS", 0, Lifetime::Timeframe}, clusVec);
   pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
 
@@ -126,31 +131,32 @@ void ClustererDPL::run(ProcessingContext& pc)
     for (int i = mc2rofs.size(); i--;) {
       clusterMC2ROframes[i] = mc2rofs[i]; // Simply, replicate it from digits ?
     }
-    pc.outputs().snapshot(Output{orig, "MFTClusterMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
+    pc.outputs().snapshot(Output{orig, "CLUSTERSMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
   }
 
   // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
   // -> consider recalculationg maxROF
-  LOG(INFO) << "MFTClusterer pushed " << clusCompVec.size() << " clusters, in " << clusROFVec.size() << " RO frames";
+  LOG(INFO) << "MFTClusterer pushed " << clusCompVec.size() << " compressed clusters, in " << clusROFVec.size() << " RO frames";
+  LOG(INFO) << "MFTClusterer pushed " << clusVec.size() << " full clusters, in " << clusROFVec.size() << " RO frames";
 }
 
 DataProcessorSpec getClustererSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "MFT", "DIGITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "MFT", "MFTDigitROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "MFT", "DIGITSROF", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
+  outputs.emplace_back("MFT", "CLUSTERS", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "PATTERNS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("MFT", "CLUSTERS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("MFT", "MFTClusterROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("MFT", "CLUSTERSROF", 0, Lifetime::Timeframe);
 
   if (useMC) {
     inputs.emplace_back("labels", "MFT", "DIGITSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "MFT", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("MFT", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
@@ -161,7 +167,7 @@ DataProcessorSpec getClustererSpec(bool useMC)
     Options{
       {"mft-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"full-clusters", o2::framework::VariantType::Bool, true, {"Produce full clusters"}}, // RSTODO temporary set to true
+      {"full-clusters", o2::framework::VariantType::Bool, false, {"Produce full clusters"}}, // RSTODO temporary set to true
       {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}},
       {"nthreads", VariantType::Int, 0, {"Number of clustering threads (<1: rely on openMP default)"}}}};
 }

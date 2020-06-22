@@ -15,6 +15,7 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
+#include <iomanip>
 #include "GPUTPCTracker.h"
 #include "GPUTPCClusterData.h"
 #include "GPUTPCTrackParam.h"
@@ -28,15 +29,18 @@
 #include "GPUTPCGMTrackParam.h"
 #include "GPUTPCGMSliceTrack.h"
 #include "GPUTPCGMBorderTrack.h"
+#include "GPUReconstruction.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUTPCGMMergerTypes;
 
 void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out)
 {
+  std::streamsize ss = out.precision();
+  out << std::setprecision(2);
   out << "\nTPC Merger Slice Tracks\n";
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    out << "Slice Track Info Index" << mSliceTrackInfoIndex[iSlice] << " / " << mSliceTrackInfoIndex[NSLICES + iSlice] << "\n";
+    out << "Slice Track Info Index " << (mSliceTrackInfoIndex[iSlice + 1] - mSliceTrackInfoIndex[iSlice]) << " / " << (mSliceTrackInfoIndex[NSLICES + iSlice + 1] - mSliceTrackInfoIndex[NSLICES + iSlice]) << "\n";
     for (int iGlobal = 0; iGlobal < 2; iGlobal++) {
       out << "  Track type " << iGlobal << "\n";
       for (int j = mSliceTrackInfoIndex[iSlice + NSLICES * iGlobal]; j < mSliceTrackInfoIndex[iSlice + NSLICES * iGlobal + 1]; j++) {
@@ -45,6 +49,7 @@ void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out)
       }
     }
   }
+  out << std::setprecision(ss);
 }
 
 void GPUTPCGMMerger::DumpMergedWithinSlices(std::ostream& out)
@@ -78,18 +83,21 @@ void GPUTPCGMMerger::DumpMergedBetweenSlices(std::ostream& out)
 
 void GPUTPCGMMerger::DumpCollected(std::ostream& out)
 {
+  std::streamsize ss = out.precision();
+  out << std::setprecision(2);
   out << "\nTPC Merger Collected Tracks\n";
-  for (int i = 0; i < mNOutputTracks; i++) {
+  for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
     const auto& trk = mOutputTracks[i];
     const auto& p = trk.GetParam();
     out << "  Track " << i << ": Loop " << trk.Looper() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << "\n";
   }
+  out << std::setprecision(ss);
 }
 
 void GPUTPCGMMerger::DumpMergeCE(std::ostream& out)
 {
   out << "\nTPC Merger Merge CE\n";
-  for (int i = 0; i < mNOutputTracks; i++) {
+  for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
     const auto& trk = mOutputTracks[i];
     if (trk.CCE()) {
       out << "  Track " << i << ": CCE\n";
@@ -101,22 +109,25 @@ void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out)
 {
   out << "\nTPC Merger Refit Prepare\n";
   out << "  Sort\n";
-  for (int i = 0; i < mNOutputTracks; i++) {
+  for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
     out << "    " << i << ": " << mTrackOrderAttach[i] << "\n";
   }
   out << "  Clusters\n";
-  for (int i = 0; i < mNOutputTrackClusters; i++) {
+  for (unsigned int i = 0; i < mMemory->nOutputTrackClusters; i++) {
     out << "    Cluster state " << i << ": " << (int)mClusters[i].state << "\n";
   }
-  for (int i = 0; i < mMaxID; i++) {
+  unsigned int maxId = mRec->GetParam().rec.NonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
+  for (unsigned int i = 0; i < maxId; i++) {
     out << "    Cluster attachment " << i << ": " << (mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
   }
 }
 
 void GPUTPCGMMerger::DumpRefit(std::ostream& out)
 {
+  std::streamsize ss = out.precision();
+  out << std::setprecision(2);
   out << "\nTPC Merger Refit\n";
-  for (int i = 0; i < mNOutputTracks; i++) {
+  for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
     const auto& trk = mOutputTracks[i];
     const auto& p = trk.GetParam();
     const auto& po = trk.OuterParam();
@@ -126,15 +137,17 @@ void GPUTPCGMMerger::DumpRefit(std::ostream& out)
 #endif
         << " Outer " << po.P[0] << "/" << po.P[1] << "/" << po.P[2] << "/" << po.P[3] << "/" << po.P[4] << "\n";
   }
+  out << std::setprecision(ss);
 }
 
 void GPUTPCGMMerger::DumpFinal(std::ostream& out)
 {
   out << "\nTPC Merger Finalized\n";
-  for (int i = 0; i < mNOutputTrackClusters; i++) {
+  for (unsigned int i = 0; i < mMemory->nOutputTrackClusters; i++) {
     out << "    Cluster state " << i << ": " << (int)mClusters[i].state << "\n";
   }
-  for (int i = 0; i < mMaxID; i++) {
+  unsigned int maxId = mRec->GetParam().rec.NonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
+  for (unsigned int i = 0; i < maxId; i++) {
     out << "    Cluster attachment " << i << ": " << (mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
   }
 }

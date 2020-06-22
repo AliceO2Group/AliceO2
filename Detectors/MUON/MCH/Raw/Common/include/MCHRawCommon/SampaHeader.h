@@ -125,6 +125,13 @@ class SampaHeader
 
 constexpr uint64_t sampaSyncWord{0x1555540f00113};
 
+/// Whether the 50 LSB bits match the sync word
+constexpr bool isSampaSync(uint64_t w)
+{
+  constexpr uint64_t FIFTYBITSATONE = (static_cast<uint64_t>(1) << 50) - 1;
+  return ((w & FIFTYBITSATONE) == sampaSyncWord);
+}
+
 /// The 50-bits Sampa SYNC word.
 SampaHeader sampaSync();
 

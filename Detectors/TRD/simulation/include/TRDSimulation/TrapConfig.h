@@ -18,7 +18,8 @@
 #include <ostream>
 #include <fstream>
 #include <sstream>
-
+#include "Rtypes.h"
+#include <fairlogger/Logger.h>
 // Configuration of the TRD Tracklet Processor
 // (TRD Front-End Electronics)
 // There is a manual to describe all the internals of the electronics.
@@ -34,7 +35,7 @@ namespace trd
 class TrapConfig
 {
  public:
-  TrapConfig(std::string configname);
+  TrapConfig();
   ~TrapConfig();
 
   // allocation
@@ -556,7 +557,6 @@ class TrapConfig
 
     bool allocate(Alloc_t mode);
     bool allocatei(int mode);
-    std::string getName() { return mName; }
     static const std::array<int, TrapConfig::mlastAlloc> mgkSize; //= {0, 1, 540, 1080, 8 * 18 * 540, 4, 6, 8 * 18 * 30};
     //static const std::array<int,TrapConfig::mlastAlloc> mgkSize; // required array dimension for different allocation modes
     //this is used purely for copying data from run2 ocdb to run3 ccdb.
@@ -566,9 +566,13 @@ class TrapConfig
         mData[index] = value;
         mValid[index] = valid;
       } else
-        std::cout << "attempt to write data outside array with size : " << mData.size() << "and index of :" << index;
+        LOG(debug) << "attempt to write data outside array with size : " << mData.size() << "and index of :" << index;
     }
-    int getDataSize() { return mData.size(); }
+    //next 3 functions are putrely for back ref cross checks to run2.
+    int getAllocMode() { return (int)mAllocMode; }
+    unsigned int getDataRaw(int i) { return mData[i]; }
+    unsigned int getValidRaw(int i) { return mValid[i]; }
+    unsigned int getDataSize() { return mData.size(); }
 
    protected:
     bool setData(unsigned int value);
@@ -586,7 +590,7 @@ class TrapConfig
     Alloc_t mAllocMode;              // allocation mode
     std::vector<unsigned int> mData; //[mSize] data array
     std::vector<bool> mValid;        //[mSize] valid flag
-    std::string mName;
+    ClassDefNV(TrapValue, 1);
   };
 
   class TrapRegister : public TrapValue
@@ -618,6 +622,7 @@ class TrapConfig
     unsigned short mAddr;     //! Address in GIO of TRAP
     unsigned short mNbits;    //! Number of bits, from 1 to 32
     unsigned int mResetValue; //! reset value
+    ClassDefNV(TrapRegister, 1);
   };
 
   class TrapDmemWord : public TrapValue
@@ -641,6 +646,7 @@ class TrapConfig
       mName = mNamestream.str();
     }
     std::string getName() { return mName; }
+    unsigned short getAddress() { return mAddr; }
 
    protected:
     TrapDmemWord(const TrapDmemWord& rhs);            // not implemented
@@ -648,6 +654,7 @@ class TrapConfig
 
     std::string mName;
     unsigned short mAddr; //! address
+    ClassDefNV(TrapDmemWord, 1);
   };
 
   // protected:
@@ -670,8 +677,10 @@ class TrapConfig
   std::string mTrapConfigVersion;
 
  private:
-  TrapConfig& operator=(const TrapConfig& rhs); // not implemented
-  TrapConfig(const TrapConfig& cfg);            // not implemented
+  //  TrapConfig& operator=(const TrapConfig& rhs); // not implemented
+  //  TrapConfig(const TrapConfig& cfg);            // not implemented
+
+  ClassDefNV(TrapConfig, 1);
 };
 } //namespace trd
 } //namespace o2

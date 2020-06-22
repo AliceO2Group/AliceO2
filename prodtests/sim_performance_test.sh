@@ -47,9 +47,6 @@ SIMPREFIX=o2sim_${SIMCONFIG}
 HITSTATFILE=hitstats_${SIMCONFIG}
 taskset -c 1 o2-sim-serial -n ${NEVENTS} -e ${ENGINE} --skipModules ZDC -g ${GEN} --seed $SEED -o ${SIMPREFIX} > $LOGFILE 2>&1
 
-### ------ transform output to (new) format with separated hit files
-root -q -b -l ${O2_ROOT}/share/macro/migrateSimFiles.C\(\"${SIMPREFIX}\"\)
-
 ### ------ extract number of hits
 root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C\(\"${SIMPREFIX}\"\) > $HITSTATFILE
 
@@ -90,7 +87,7 @@ digi_total_time=0.
 digi_total_mem=0.
 hits_total=0
 
-for d in TRD ITS EMC TPC MFT MID FDD FV0 FT0 PHS TOF HMP CPV; do
+for d in TRD ITS EMC TPC MFT MID MCH FDD FV0 FT0 PHS TOF HMP CPV; do
   DIGILOGFILE=logdigi_${SIMCONFIG}_${d}
   DIGITIMEFILE=timedigi_${SIMCONFIG}_${d}
 

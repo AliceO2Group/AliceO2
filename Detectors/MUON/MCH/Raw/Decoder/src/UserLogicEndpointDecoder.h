@@ -121,11 +121,9 @@ size_t UserLogicEndpointDecoder<CHARGESUM>::append(Payload buffer)
 
     // Get the GBT link associated to this word
     int gbt = (word >> 59) & 0x1F;
+
     if (gbt < 0 || gbt > 11) {
-      throw fmt::format("warning : out-of-range linkId {} word={:08X}\n", gbt, word);
-    }
-    if (gbt != 0) {
-      std::cout << "CAUTION : got gbt = " << gbt << "\n";
+      throw fmt::format("warning : out-of-range gbt {} word={:08X}\n", gbt, word);
     }
 
     // Get the corresponding decoders array, or allocate it if does not exist yet

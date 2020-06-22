@@ -101,9 +101,6 @@ int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* dig
     } // close loop readout window
   }   // close if continuous
 
-  // if (mReadoutWindowCurrent >= Geo::ORBIT_IN_TF * Geo::NWINDOW_IN_ORBIT) // new TF
-  //   return 1;
-
   for (auto& hit : *hits) {
     //TODO: put readout window counting/selection
 
@@ -314,7 +311,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
 
     if (isnext < 0) {
       LOG(ERROR) << "error: isnext =" << isnext << "(current window = " << mReadoutWindowCurrent << ")"
-                 << " nbc = " << nbc << " -- event time = " << mEventTime << " -- TF = " << mTF << "\n";
+                 << " nbc = " << nbc << " -- event time = " << mEventTime << "\n";
 
       return;
     }
@@ -791,8 +788,9 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
   // filling the digit container doing a loop on all strips
   for (auto& strip : *mStripsCurrent) {
     strip.fillOutputContainer(digits);
-    if (strip.getNumberOfDigits())
+    if (strip.getNumberOfDigits()) {
       LOG(INFO) << "strip size = " << strip.getNumberOfDigits() << " - digit size = " << digits.size() << "\n";
+    }
   }
 
   if (mContinuous) {

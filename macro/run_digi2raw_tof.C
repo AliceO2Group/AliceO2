@@ -76,6 +76,5 @@ void run_digi2raw_tof(std::string outName = "rawtof.bin",     // name of the out
     encoder.encode(digitWindows, i);
   }
 
-  encoder.flush();
   encoder.close();
 }

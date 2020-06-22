@@ -17,6 +17,7 @@
 #include "GPUTPCTracker.h"
 #include "GPUParam.h"
 #include "GPUDataTypes.h"
+#include "GPUErrors.h"
 
 // Dummies for stuff not supported in legacy code (ROOT 5 / OPENCL1.2)
 #if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB))
@@ -72,6 +73,7 @@ struct GPUConstantMem {
   GPUITSFitter itsFitter;
   GPUTrackingInOutPointers ioPtrs;
   GPUCalibObjectsConst calibObjects;
+  GPUErrors errorCodes;
 #ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
   GPUKernelDebugOutput debugOutput;
 #endif
@@ -124,6 +126,11 @@ GPUdi() GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GPUProcessor::GetC
 #else
   return mConstantMem;
 #endif
+}
+
+GPUdi() void GPUProcessor::raiseError(unsigned int code, unsigned int param1, unsigned int param2, unsigned int param3) const
+{
+  GetConstantMem()->errorCodes.raiseError(code, param1, param2, param3);
 }
 
 } // namespace gpu

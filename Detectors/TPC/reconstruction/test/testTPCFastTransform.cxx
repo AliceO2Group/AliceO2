@@ -99,9 +99,9 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
   std::unique_ptr<TPCFastTransform> fastTransform0(TPCFastTransformHelperO2::instance()->create(0));
 
   auto correctionXUV = [&](int roc, const float /*x*/, const float u, const float v, float& dX, float& dU, float& dV) {
-    dX = 1. + 1 * u + 0.01 * u * u;
-    dU = .5 + 0.2 * u + 0.02 * u * u + 0.001 * u * u * u;
-    dV = 2. + 0.3 * v + 0.01 * v * v + 0.001 * v * v * v;
+    dX = 1. + 1 * u + 0.1 * u * u;
+    dU = 2. + 0.2 * u + 0.002 * u * u; // + 0.001 * u * u * u;
+    dV = 3. + 0.1 * v + 0.01 * v * v;  //+ 0.0001 * v * v * v;
   };
 
   auto correctionGlobal = [&](int roc, const double XYZ[3], double dXdYdZ[3]) {
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
 
     const TPCFastTransformGeo::SliceInfo& sliceInfo = geo.getSliceInfo(slice);
 
-    float lastTimeBin = fastTransform->getLastCalibratedTimeBin(slice);
+    float lastTimeBin = fastTransform->getMaxDriftTime(slice, 0.f);
 
     for (int row = 0; row < geo.getNumberOfRows(); row++) {
 
@@ -186,9 +186,12 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
   if (statNFile > 0)
     statDiffFile /= statNFile;
 
-  //std::cout<<"average difference in correction "<<statDiff<<" cm "<<std::endl;
+  std::cout << "average difference in correction " << statDiff << " cm " << std::endl;
   BOOST_CHECK_MESSAGE(fabs(statDiff) < 1.e-3, "test of correction map failed, average difference " << statDiff << " cm is too large");
   BOOST_CHECK_MESSAGE(fabs(statDiffFile) < 1.e-10, "test of file streamer failed, average difference " << statDiffFile << " cm is too large");
+
+  double maxDeviation = fastTransform->getCorrection().testInverse();
+  BOOST_CHECK_MESSAGE(fabs(maxDeviation) < 1.e-2, "test of inverse correction map failed, max difference " << maxDeviation << " cm is too large");
 }
 
 } // namespace tpc

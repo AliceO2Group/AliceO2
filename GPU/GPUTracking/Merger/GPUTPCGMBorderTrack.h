@@ -31,13 +31,6 @@ namespace gpu
 class GPUTPCGMBorderTrack
 {
  public:
-  struct Range {
-    int fId;
-    float fMin, fMax;
-    static bool CompMin(const Range& a, const Range& b) { return a.fMin < b.fMin; }
-    static bool CompMax(const Range& a, const Range& b) { return a.fMax < b.fMax; }
-  };
-
   GPUd() int TrackID() const { return mTrackID; }
   GPUd() short NClusters() const { return mNClusters; }
   GPUd() short Row() const { return mRow; }

@@ -14,7 +14,7 @@
 #include "GPUTPCClusterFinder.h"
 #include "GPUReconstruction.h"
 #include "Array2D.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
@@ -32,7 +32,7 @@ void GPUTPCClusterFinder::DumpChargeMap(std::ostream& out, std::string_view titl
   out << "Clusterer - " << title << " - Slice " << mISlice << " - Fragment " << mPmemory->fragment.index << "\n";
   Array2D<ushort> map(mPchargeMap);
 
-  for (TPCFragmentTime i = 0; i < TPC_MAX_TIME_PADDED; i++) {
+  for (TPCFragmentTime i = 0; i < TPC_MAX_FRAGMENT_LEN_PADDED; i++) {
     out << "Line " << i;
     int zeros = 0;
     for (GlobalPad j = 0; j < TPC_NUM_OF_PADS; j++) {

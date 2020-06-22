@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file   STFDecoderSpec.cxx
-/// \brief  Device to decode ITS raw data from STF
+/// \brief  Device to decode ITS or MFT raw data from STF
 /// \author ruben.shahoyan@cern.ch
 
 #include <vector>
@@ -21,6 +21,8 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
 #include "ITSMFTReconstruction/Clusterer.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
+#include "ITSMFTReconstruction/GBTLink.h"
 #include "ITSMFTWorkflow/STFDecoderSpec.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -60,6 +62,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   auto detID = Mapping::getDetID();
   mNThreads = ic.options().get<int>("nthreads");
   mDecoder->setNThreads(mNThreads);
+  mDecoder->setFormat(ic.options().get<bool>("old-format") ? GBTLink::OldFormat : GBTLink::NewFormat);
+  mDecoder->setVerbosity(ic.options().get<int>("decoder-verbosity"));
   if (mDoClusters) {
     o2::base::GeometryManager::loadGeometry(); // for generating full clusters
     GeometryTGeo* geom = nullptr;
@@ -73,10 +77,20 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mClusterer = std::make_unique<Clusterer>();
     mClusterer->setGeometry(geom);
     mClusterer->setNChips(Mapping::getNChips());
+    const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
+    if (grp) {
+      mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut(detID));
+    } else {
+      throw std::runtime_error("failed to retrieve GRP");
+    }
 
     // settings for the fired pixel overflow masking
     const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
-    mClusterer->setMaxBCSeparationToMask(alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + 10);
+    const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
+    auto nbc = clParams.maxBCDiffToMaskBias;
+    nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
+    mClusterer->setMaxBCSeparationToMask(nbc);
+    mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
     std::string dictFile = o2::base::NameConf::getDictionaryFileName(detID, mDictName, ".bin");
     if (o2::base::NameConf::pathExists(dictFile)) {
@@ -97,7 +111,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
   mDecoder->startNewTF(pc.inputs());
-  auto orig = o2::header::gDataOriginITS;
+  auto orig = Mapping::getOrigin();
   using CLUSVECDUMMY = std::vector<Cluster>;
   std::vector<o2::itsmft::Cluster> clusVec;
   std::vector<o2::itsmft::CompClusterExt> clusCompVec;
@@ -118,13 +132,13 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 
   if (mDoDigits) {
     pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVec);
-    pc.outputs().snapshot(Output{orig, "ITSDigitROF", 0, Lifetime::Timeframe}, digROFVec);
+    pc.outputs().snapshot(Output{orig, "DIGITSROF", 0, Lifetime::Timeframe}, digROFVec);
   }
   if (mDoClusters) {                                                                  // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
     pc.outputs().snapshot(Output{orig, "CLUSTERS", 0, Lifetime::Timeframe}, clusVec); // DUMMY!!!
     pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
     pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
-    pc.outputs().snapshot(Output{orig, "ITSClusterROF", 0, Lifetime::Timeframe}, clusROFVec);
+    pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);
   }
 
   if (mDoClusters) {
@@ -134,7 +148,8 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     LOG(INFO) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs";
   }
   mTimer.Stop();
-  LOG(INFO) << mSelfName << " Total time for this TF: CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
+  LOG(INFO) << mSelfName << " Total time for TF " << mTFCounter << " : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
+  mTFCounter++;
 }
 
 ///_______________________________________
@@ -152,24 +167,6 @@ void STFDecoder<Mapping>::endOfStream(EndOfStreamContext& ec)
   }
 }
 
-///_______________________________________
-template <class Mapping>
-std::unique_ptr<Clusterer> STFDecoder<Mapping>::setupClusterer(const std::string& dictName)
-{
-  bool isContinuous = true;
-  const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
-  if (grp) {
-    isContinuous = grp->isDetContinuousReadOut(Mapping::getName());
-  } else {
-    throw std::runtime_error("failed to retrieve GRP");
-  }
-  // settings for the fired pixel overflow masking
-  const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
-  int maskNBC = alpParams.roFrameLength / o2::constants::lhc::LHCBunchSpacingNS + 10;
-  mClusterer = createClusterer(Mapping::getNChips(), maskNBC, isContinuous, "");
-  mClusterer->print();
-}
-
 DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict)
 {
   std::vector<OutputSpec> outputs;
@@ -177,11 +174,11 @@ DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool do
 
   if (doDigits) {
     outputs.emplace_back(orig, "DIGITS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "ITSDigitROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(orig, "DIGITSROF", 0, Lifetime::Timeframe);
   }
   if (doClusters) {
     outputs.emplace_back(orig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "ITSClusterROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(orig, "CLUSTERSROF", 0, Lifetime::Timeframe);
     // in principle, we don't need to open this input if we don't need to send real data,
     // but other devices expecting it do not know about options of this device: problem?
     // if (doClusters && doPatterns)
@@ -196,7 +193,9 @@ DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool do
     outputs,
     AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, dict)},
     Options{
-      {"nthreads", VariantType::Int, 0, {"Number of decoding/clustering threads (<1: rely on openMP default)"}}}};
+      {"nthreads", VariantType::Int, 0, {"Number of decoding/clustering threads (<1: rely on openMP default)"}},
+      {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
+      {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data)"}}}};
 }
 
 DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict)
@@ -204,12 +203,12 @@ DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool do
   std::vector<OutputSpec> outputs;
   auto orig = o2::header::gDataOriginMFT;
   if (doDigits) {
-    outputs.emplace_back(orig, "DIGMFT", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "MFTDigitROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(orig, "DIGITS", 0, Lifetime::Timeframe);
+    outputs.emplace_back(orig, "DIGITSROF", 0, Lifetime::Timeframe);
   }
   if (doClusters) {
     outputs.emplace_back(orig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "MFTClusterROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(orig, "CLUSTERSROF", 0, Lifetime::Timeframe);
     // in principle, we don't need to open this input if we don't need to send real data,
     // but other devices expecting it do not know about options of this device: problem?
     // if (doClusters && doPatterns)
@@ -222,9 +221,11 @@ DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool do
     "mft-stf-decoder",
     Inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, dict)},
+    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(doClusters, doPatterns, doDigits, dict)},
     Options{
-      {"nthreads", VariantType::Int, 0, {"Number of decoding/clustering threads (<1: rely on openMP default)"}}}};
+      {"nthreads", VariantType::Int, 0, {"Number of decoding/clustering threads (<1: rely on openMP default)"}},
+      {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
+      {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data)"}}}};
 }
 
 } // namespace itsmft

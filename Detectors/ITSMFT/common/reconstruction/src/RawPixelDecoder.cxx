@@ -19,6 +19,7 @@
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
+
 using namespace o2::itsmft;
 using namespace o2::framework;
 using RDHUtils = o2::raw::RDHUtils;
@@ -93,6 +94,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
     mNChipsFired += mNChipsFiredROF;
     mNPixelsFired += mNPixelsFiredROF;
     mCurRUDecodeID = 0; // getNextChipData will start from here
+    mLastReadChipID = -1;
     // set IR and trigger from the 1st non empty link
     for (const auto& link : mGBTLinks) {
       if (link.status == GBTLink::DataSeen) {
@@ -168,7 +170,8 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       lnkref.entry = int(mGBTLinks.size());
       auto& lnk = mGBTLinks.emplace_back(RDHUtils::getCRUID(rdh), RDHUtils::getFEEID(rdh), RDHUtils::getEndPointID(rdh), RDHUtils::getLinkID(rdh), lnkref.entry);
       getCreateRUDecode(mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh))); // make sure there is a RU for this link
-      lnk.verbosity = mVerbosity;
+      lnk.verbosity = GBTLink::Verbosity(mVerbosity);
+      lnk.format = mFormat;
       LOG(INFO) << mSelfName << " registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
       linksAdded++;
     }
@@ -232,14 +235,14 @@ template <class Mapping>
 ChipPixelData* RawPixelDecoder<Mapping>::getNextChipData(std::vector<ChipPixelData>& chipDataVec)
 {
   // decode new RU if no cached non-empty chips
-
   for (; mCurRUDecodeID < mRUDecodeVec.size(); mCurRUDecodeID++) {
     auto& ru = mRUDecodeVec[mCurRUDecodeID];
     if (ru.lastChipChecked < ru.nChipsFired) {
       auto& chipData = ru.chipsData[ru.lastChipChecked++];
-      int id = chipData.getChipID();
-      chipDataVec[id].swap(chipData);
-      return &chipDataVec[id];
+      assert(mLastReadChipID < chipData.getChipID());
+      mLastReadChipID = chipData.getChipID();
+      chipDataVec[mLastReadChipID].swap(chipData);
+      return &chipDataVec[mLastReadChipID];
     }
   }
   // will need to decode new trigger
@@ -257,7 +260,10 @@ bool RawPixelDecoder<Mapping>::getNextChipData(ChipPixelData& chipData)
   for (; mCurRUDecodeID < mRUDecodeVec.size(); mCurRUDecodeID++) {
     auto& ru = mRUDecodeVec[mCurRUDecodeID];
     if (ru.lastChipChecked < ru.nChipsFired) {
-      chipData.swap(ru.chipsData[ru.lastChipChecked++]);
+      auto& ruchip = ru.chipsData[ru.lastChipChecked++];
+      assert(mLastReadChipID < chipData.getChipID());
+      mLastReadChipID = chipData.getChipID();
+      chipData.swap(ruchip);
       return true;
     }
   }
@@ -274,7 +280,7 @@ void RawPixelDecoder<Mapping>::setVerbosity(int v)
 {
   mVerbosity = v;
   for (auto& link : mGBTLinks) {
-    link.verbosity = v;
+    link.verbosity = GBTLink::Verbosity(v);
   }
 }
 
@@ -288,6 +294,14 @@ void RawPixelDecoder<Mapping>::setNThreads(int n)
   LOG(WARNING) << mSelfName << " Multithreading is not supported, imposing single thread";
   mNThreads = 1;
 #endif
+}
+
+///______________________________________________________________________
+template <class Mapping>
+void RawPixelDecoder<Mapping>::setFormat(GBTLink::Format f)
+{
+  assert(int(f) >= 0 && int(f) < GBTLink::NFormats);
+  mFormat = f;
 }
 
 template class o2::itsmft::RawPixelDecoder<o2::itsmft::ChipMappingITS>;

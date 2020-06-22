@@ -82,8 +82,8 @@ struct RDHUtils {
   template <typename H>
   static void setVersion(H& rdh, uint8_t v, NOTPTR(H))
   {
-    rdh.version = v;
-  } // same for all
+    rdh.word0 = (v < 5 ? 0x0000ffff00004000 : 0x00000000ffff4000) + v;
+  } // same for all (almost)
   static void setVersion(RDHAny& rdh, uint8_t v) { setVersion(rdh.voidify(), v); }
   static void setVersion(void* rdhP, uint8_t v) { setVersion(TOREF(RDHDef, rdhP), v); }
 
@@ -377,8 +377,8 @@ struct RDHUtils {
   {
     return {getHeartBeatBC(rdh), getHeartBeatOrbit(rdh)};
   } // custom extension
-  GPUhdi() static IR getHeartBeatIR(const RDHAny& rdh) { return getHeartBeattIR(rdh.voidify()); }
-  GPUhdi() static IR getHeartBeattIR(const void* rdhP)
+  GPUhdi() static IR getHeartBeatIR(const RDHAny& rdh) { return getHeartBeatIR(rdh.voidify()); }
+  GPUhdi() static IR getHeartBeatIR(const void* rdhP)
   {
     int version = getVersion(rdhP);
     if (version > 4) {
@@ -658,14 +658,15 @@ struct RDHUtils {
     // meaningfull DAQ sourceID means that it comes from RDHv6, in this case we use feeID as a subspec
     if (srcid != o2::header::DAQID::INVALID) {
       return feeId;
-    } else {
-      int linkValue = (LinkSubSpec_t(link) + 1) << (endpoint == 1 ? 8 : 0);
-      return (LinkSubSpec_t(cru) << 16) | linkValue;
     }
+    //else { // this may lead to ambiguities
+    //  int linkValue = (LinkSubSpec_t(link) + 1) << (endpoint == 1 ? 8 : 0);
+    //  return (LinkSubSpec_t(cru) << 16) | linkValue;
+    //}
     //
     // RS At the moment suppress getting the subspec as a hash
-    // uint16_t seq[3] = {cru, uint16_t((uint16_t(link) << 8) | endpoint), feeId};
-    // return fletcher32(seq, 3);
+    uint16_t seq[3] = {cru, uint16_t((uint16_t(link) << 8) | endpoint), feeId};
+    return fletcher32(seq, 3);
   }
   template <typename H>
   static LinkSubSpec_t getSubSpec(const H& rdh, NOTPTR(H)) // will be used for all RDH versions but >=6

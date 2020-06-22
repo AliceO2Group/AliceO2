@@ -11,6 +11,8 @@
 #define O2_FRAMEWORK_SIMPLEOPTIONSRETRIEVER_H_
 
 #include "Framework/ParamRetriever.h"
+#include <boost/property_tree/ptree.hpp>
+#include <string>
 
 namespace o2::framework
 {
@@ -20,25 +22,19 @@ namespace o2::framework
 class SimpleOptionsRetriever : public ParamRetriever
 {
  public:
-  bool isSet(const char* name) const final;
-  int getInt(const char* name) const final;
-  int64_t getInt64(const char* name) const final;
-  float getFloat(const char* name) const final;
-  double getDouble(const char* name) const final;
-  bool getBool(const char* name) const final;
-  std::string getString(const char* name) const final;
-  boost::property_tree::ptree getPTree(const char* name) const final;
+  SimpleOptionsRetriever(boost::property_tree::ptree& tree, std::string const& provenanceLabel)
+    : mTree{tree},
+      mProvenanceLabel{provenanceLabel}
+  {
+  }
 
-  void setInt(char const* name, int);
-  void setInt64(char const* name, int64_t);
-  void setFloat(char const* name, float);
-  void setDouble(char const* name, double);
-  void setBool(char const* name, bool);
-  void setString(char const* name, std::string const&);
-  void setPTree(char const* name, boost::property_tree::ptree const& tree);
+  void update(std::vector<ConfigParamSpec> const& specs,
+              boost::property_tree::ptree& store,
+              boost::property_tree::ptree& provenance) override;
 
  private:
-  boost::property_tree::ptree mStore;
+  boost::property_tree::ptree mTree;
+  std::string mProvenanceLabel;
 };
 
 } // namespace o2::framework

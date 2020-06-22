@@ -160,21 +160,21 @@ inline unsigned int GPUQA::GetNMCCollissions()
   return mNColTracks.size();
 }
 inline unsigned int GPUQA::GetNMCTracks(int iCol) { return mNColTracks[iCol]; }
-inline unsigned int GPUQA::GetNMCLabels() { return mTracking->GetClusterNativeAccess()->clustersMCTruth ? mTracking->GetClusterNativeAccess()->clustersMCTruth->getIndexedSize() : 0; }
+inline unsigned int GPUQA::GetNMCLabels() { return mTracking->mIOPtrs.clustersNative->clustersMCTruth ? mTracking->mIOPtrs.clustersNative->clustersMCTruth->getIndexedSize() : 0; }
 inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(unsigned int iTrk, unsigned int iCol) { return mMCInfos[iCol][iTrk]; }
 inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(const mcLabel_t& label) { return mMCInfos[label.getEventID()][label.getTrackID()]; }
-inline GPUQA::mcLabels_t GPUQA::GetMCLabel(unsigned int i) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i); }
+inline GPUQA::mcLabels_t GPUQA::GetMCLabel(unsigned int i) { return mTracking->mIOPtrs.clustersNative->clustersMCTruth->getLabels(i); }
 inline int GPUQA::GetMCLabelNID(const mcLabels_t& label) { return label.size(); }
-inline int GPUQA::GetMCLabelNID(unsigned int i) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i).size(); }
-inline GPUQA::mcLabel_t GPUQA::GetMCLabel(unsigned int i, unsigned int j) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i)[j]; }
-inline int GPUQA::GetMCLabelID(unsigned int i, unsigned int j) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i)[j].getTrackID(); }
+inline int GPUQA::GetMCLabelNID(unsigned int i) { return mTracking->mIOPtrs.clustersNative->clustersMCTruth->getLabels(i).size(); }
+inline GPUQA::mcLabel_t GPUQA::GetMCLabel(unsigned int i, unsigned int j) { return mTracking->mIOPtrs.clustersNative->clustersMCTruth->getLabels(i)[j]; }
+inline int GPUQA::GetMCLabelID(unsigned int i, unsigned int j) { return mTracking->mIOPtrs.clustersNative->clustersMCTruth->getLabels(i)[j].getTrackID(); }
 inline int GPUQA::GetMCLabelID(const mcLabels_t& label, unsigned int j) { return label[j].getTrackID(); }
 inline int GPUQA::GetMCLabelID(const mcLabel_t& label) { return label.getTrackID(); }
-inline int GPUQA::GetMCLabelCol(unsigned int i, unsigned int j) { return mTracking->GetClusterNativeAccess()->clustersMCTruth->getLabels(i)[j].getEventID(); }
+inline int GPUQA::GetMCLabelCol(unsigned int i, unsigned int j) { return mTracking->mIOPtrs.clustersNative->clustersMCTruth->getLabels(i)[j].getEventID(); }
 inline float GPUQA::GetMCLabelWeight(unsigned int i, unsigned int j) { return 1; }
 inline float GPUQA::GetMCLabelWeight(const mcLabels_t& label, unsigned int j) { return 1; }
 inline float GPUQA::GetMCLabelWeight(const mcLabel_t& label) { return 1; }
-inline bool GPUQA::mcPresent() { return mTracking->GetClusterNativeAccess()->clustersMCTruth && mNColTracks.size(); }
+inline bool GPUQA::mcPresent() { return mTracking->mIOPtrs.clustersNative->clustersMCTruth && mNColTracks.size(); }
 #define TRACK_EXPECTED_REFERENCE_X 78
 #else
 inline GPUQA::mcLabelI_t::mcLabelI_t(const GPUQA::mcLabel_t& l) : track(l.fMCID)
@@ -571,8 +571,6 @@ void GPUQA::RunQA(bool matchOnly)
     mcEffBuffer[mNEvents - 1].resize(GetNMCTracks(0));
     mcLabelBuffer[mNEvents - 1].resize(merger.NOutputTracks());
   }
-  std::vector<int>& effBuffer = mcEffBuffer[mNEvents - 1];
-  std::vector<int>& labelBuffer = mcLabelBuffer[mNEvents - 1];
 
   bool mcAvail = mcPresent();
 
@@ -585,8 +583,8 @@ void GPUQA::RunQA(bool matchOnly)
     // Assign Track MC Labels
     timer.Start();
     bool ompError = false;
-#if defined(WITH_OPENMP) && QA_DEBUG == 0
-#pragma omp parallel for
+#if QA_DEBUG == 0
+GPUCA_OPENMP(parallel for)
 #endif
     for (int i = 0; i < merger.NOutputTracks(); i++) {
       if (ompError) {
@@ -819,9 +817,7 @@ void GPUQA::RunQA(bool matchOnly)
     }
     timer.ResetStart();
 
-#ifdef WITH_OPENMP
-#pragma omp parallel for
-#endif
+    GPUCA_OPENMP(parallel for)
     for (unsigned int iCol = 0; iCol < GetNMCCollissions(); iCol++) {
       for (unsigned int i = 0; i < GetNMCTracks(iCol); i++) {
         const mcInfo_t& info = GetMCTrack(i, iCol);
@@ -836,6 +832,7 @@ void GPUQA::RunQA(bool matchOnly)
           mc2.eta = -std::log(std::tan(0.5 * mc2.theta));
         }
         if (mConfig.writeMCLabels) {
+          std::vector<int>& effBuffer = mcEffBuffer[mNEvents - 1];
           effBuffer[i] = mRecTracks[iCol][i] * 1000 + mFakeTracks[iCol][i];
         }
       }
@@ -924,15 +921,14 @@ void GPUQA::RunQA(bool matchOnly)
 
     // Fill Resolution Histograms
     GPUTPCGMPropagator prop;
-    const float kRho = 1.025e-3;  // 0.9e-3;
-    const float kRadLen = 29.532; // 28.94;
     prop.SetMaxSinPhi(.999);
-    prop.SetMaterial(kRadLen, kRho);
+    prop.SetMaterialTPC();
     prop.SetPolynomialField(&merger.Param().polynomialField);
     prop.SetToyMCEventsFlag(merger.Param().ToyMCEventsFlag);
 
     for (int i = 0; i < merger.NOutputTracks(); i++) {
       if (mConfig.writeMCLabels) {
+        std::vector<int>& labelBuffer = mcLabelBuffer[mNEvents - 1];
         labelBuffer[i] = mTrackMCLabels[i].getTrackID();
       }
       if (mTrackMCLabels[i].isFake()) {

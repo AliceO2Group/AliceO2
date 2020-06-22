@@ -39,6 +39,7 @@
 #include "GlobalTracking/MatchTPCITS.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "ReconstructionDataFormats/Vertex.h"
 
 #include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
 #include "GPUParam.inc"     // Consider more universal access
@@ -252,23 +253,23 @@ void MatchTPCITS::run()
   constexpr uint64_t kMB = 1024 * 1024;
   printf("Memory (GB) at entrance: RSS: %.3f VMem: %.3f\n", float(procInfoStart.fMemResident) / kMB, float(procInfoStart.fMemVirtual) / kMB);
 
-  mTimerTot.Start();
+  mTimer[SWTot].Start(false);
 
   clear();
 
   if (!prepareITSTracks() || !prepareTPCTracks() || !prepareFITInfo()) {
     return;
   }
-
+  mTimer[SWDoMatching].Start(false);
   for (int sec = o2::constants::math::NSectors; sec--;) {
     doMatching(sec);
   }
-
+  mTimer[SWDoMatching].Stop();
   if (0) { // enabling this creates very verbose output
-    mTimerTot.Stop();
+    mTimer[SWTot].Stop();
     printCandidatesTPC();
     printCandidatesITS();
-    mTimerTot.Start(false);
+    mTimer[SWTot].Start(false);
   }
 
   selectBestMatches();
@@ -287,20 +288,14 @@ void MatchTPCITS::run()
 #endif
 
   gSystem->GetProcInfo(&procInfoStop);
-  mTimerTot.Stop();
+  mTimer[SWTot].Stop();
 
-  printf("Timing:\n");
-  printf("Total:        ");
-  mTimerTot.Print();
-  printf("Refits      : ");
-  mTimerRefit.Print();
-  printf("DBG trees:    ");
-  mTimerDBG.Print();
-
-  printf("Memory (GB) at exit: RSS: %.3f VMem: %.3f\n", float(procInfoStop.fMemResident) / kMB, float(procInfoStop.fMemVirtual) / kMB);
-  printf("Memory increment: RSS: %.3f VMem: %.3f\n",
-         float(procInfoStop.fMemResident - procInfoStart.fMemResident) / kMB,
-         float(procInfoStop.fMemVirtual - procInfoStart.fMemVirtual) / kMB);
+  for (int i = 0; i < NStopWatches; i++) {
+    LOGF(INFO, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1);
+  }
+  LOGF(INFO, "Memory (GB) at exit: RSS: %.3f VMem: %.3f", float(procInfoStop.fMemResident) / kMB, float(procInfoStop.fMemVirtual) / kMB);
+  LOGF(INFO, "Memory increment: RSS: %.3f VMem: %.3f", float(procInfoStop.fMemResident - procInfoStart.fMemResident) / kMB,
+       float(procInfoStop.fMemVirtual - procInfoStart.fMemVirtual) / kMB);
 }
 
 //______________________________________________
@@ -325,7 +320,17 @@ void MatchTPCITS::init()
     LOG(ERROR) << "Initialization was already done";
     return;
   }
+  for (int i = NStopWatches; i--;) {
+    mTimer[i].Stop();
+    mTimer[i].Reset();
+  }
   mParams = &Params::Instance();
+  setUseMatCorrFlag(mParams->matCorr);
+  auto* prop = o2::base::Propagator::Instance();
+  if (!prop->getMatLUT() && mParams->matCorr == o2::base::Propagator::MatCorrType::USEMatCorrLUT) {
+    LOG(WARNING) << "Requested material LUT is not loaded, switching to TGeo usage";
+    setUseMatCorrFlag(o2::base::Propagator::MatCorrType::USEMatCorrTGeo);
+  }
 
   // make sure T2GRot matrices are loaded into ITS geometry helper
   o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot));
@@ -340,8 +345,11 @@ void MatchTPCITS::init()
   mTPCZMax = detParam.TPClength;
 
   assert(mITSROFrameLengthMUS > 0.0f);
-  mITSROFramePhaseOffset = mITSROFrameOffsetMUS / mITSROFrameLengthMUS;
-  mITSROFrame2TPCBin = mITSROFrameLengthMUS / mTPCTBinMUS;
+  if (mITSTriggered) {
+    mITSROFrame2TPCBin = mITSROFrameLengthMUS / mTPCTBinMUS;
+  } else {
+    mITSROFrame2TPCBin = mITSROFrameLengthMUS / mTPCTBinMUS; // RSTODO use both ITS and TPC times BCs once will be available for TPC also
+  }
   mTPCBin2ITSROFrame = 1. / mITSROFrame2TPCBin;
   mTPCBin2Z = mTPCTBinMUS * mTPCVDrift0;
   mZ2TPCBin = 1. / mTPCBin2Z;
@@ -372,15 +380,6 @@ void MatchTPCITS::init()
 
   mInitDone = true;
 
-  {
-    mTimerTot.Stop();
-    mTimerDBG.Stop();
-    mTimerRefit.Stop();
-    mTimerTot.Reset();
-    mTimerDBG.Reset();
-    mTimerRefit.Reset();
-  }
-
   print();
 }
 
@@ -388,6 +387,7 @@ void MatchTPCITS::init()
 void MatchTPCITS::selectBestMatches()
 {
   ///< loop over match records and select the ones with best chi2
+  mTimer[SWSelectBest].Start(false);
   LOG(INFO) << "Selecting best matches";
   int nValidated = 0, iter = 0;
 
@@ -406,9 +406,10 @@ void MatchTPCITS::selectBestMatches()
         continue;
       }
     }
-    printf("iter %d Validated %d of %d remaining matches\n", iter, nValidated, nremaining);
+    LOGF(INFO, "iter %d Validated %d of %d remaining matches", iter, nValidated, nremaining);
     iter++;
   } while (nValidated);
+  mTimer[SWSelectBest].Stop();
 }
 
 //______________________________________________
@@ -481,6 +482,7 @@ int MatchTPCITS::getNMatchRecordsITS(const TrackLocITS& tTPC) const
 bool MatchTPCITS::prepareTPCTracks()
 {
   ///< load next chunk of TPC data and prepare for matching
+  mTimer[SWPrepTPC].Start(false);
   mMatchRecordsTPC.clear();
 
   int ntr = mTPCTracksArray.size();
@@ -550,6 +552,10 @@ bool MatchTPCITS::prepareTPCTracks()
     // cache work track index
     mTPCSectIndexCache[o2::utils::Angle2Sector(trc.getAlpha())].push_back(mTPCWork.size() - 1);
   }
+
+  /// full drift time + safety margin
+  float maxTDriftSafe = (mNTPCBinsFullDrift + mParams->TPCITSTimeBinSafeMargin + mTPCTimeEdgeTSafeMargin);
+
   float maxTimeBin = 0;
   int nITSROFs = mITSROFTimes.size();
   // sort tracks in each sector according to their timeMax
@@ -564,7 +570,9 @@ bool MatchTPCITS::prepareTPCTracks()
       return (trcA.timeBins.max() - trcB.timeBins.max()) < 0.;
     });
 
-    // build array of 1st entries with tmax corresponding to each ITS ROF (or trigger)
+    // build array of 1st entries with tmax corresponding to each ITS ROF (or trigger),
+    // TPC tracks below this entry cannot match to ITS tracks of this and higher ROFs
+
     float tmax = mTPCWork[indexCache.back()].timeBins.max();
     if (maxTimeBin < tmax) {
       maxTimeBin = tmax;
@@ -573,15 +581,16 @@ bool MatchTPCITS::prepareTPCTracks()
     auto& tbinStart = mTPCTimeBinStart[sec];
     tbinStart.resize(nbins, -1);
     int itsROF = 0;
-    tbinStart[0] = itsROF;
+
+    tbinStart[0] = 0;
     for (int itr = 0; itr < (int)indexCache.size(); itr++) {
       auto& trc = mTPCWork[indexCache[itr]];
-
-      while (itsROF < nITSROFs && trc.timeBins < mITSROFTimes[itsROF]) {
+      while (itsROF < nITSROFs && !(trc.timeBins < mITSROFTimes[itsROF])) { // 1st ITS frame afte max allowed time for this TPC track
         itsROF++;
       }
-      if (tbinStart[itsROF] == -1) {
-        tbinStart[itsROF] = itr;
+      int itsROFMatch = itsROF;
+      if (itsROFMatch && tbinStart[--itsROFMatch] == -1) { // register ITSrof preceding the one which exceeds the TPC track tmax
+        tbinStart[itsROFMatch] = itr;
       }
     }
     for (int i = 1; i < nbins; i++) {
@@ -605,6 +614,7 @@ bool MatchTPCITS::prepareTPCTracks()
     }
     mITSROFofTPCBin[ib] = itsROF;
   }
+  mTimer[SWPrepTPC].Stop();
   return true;
 }
 
@@ -619,7 +629,7 @@ bool MatchTPCITS::prepareITSTracks()
     LOG(INFO) << "Empty TF";
     return false;
   }
-
+  mTimer[SWPrepITS].Start(false);
   mITSWork.clear();
   mITSROFTimes.clear();
   // number of records might be actually more than N tracks!
@@ -639,9 +649,22 @@ bool MatchTPCITS::prepareITSTracks()
     mITSTimeBinStart[sec].clear();
     mITSTimeBinStart[sec].resize(nROFs, -1); // start of ITS work tracks in every sector
   }
-  setStartIR(mITSTrackROFRec[0].getBCData());
+
+  mITSTrackROFContMapping.clear(); // there might be gaps in the non-empty rofs, this will map continuous ROFs index to non empty ones
+
+  setStartIR(mITSTrackROFRec[0].getBCData()); //// TODO: this should be set from external info
+
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mITSTrackROFRec[irof];
+
+    if (!mITSTriggered) {
+      auto irofCont = (rofRec.getBCData().toLong() - mStartIR.toLong()) / mITSROFrameLengthInBC;
+      if (mITSTrackROFContMapping.size() <= irofCont) {
+        mITSTrackROFContMapping.resize((1 + irofCont / 128) * 128, 0);
+      }
+      mITSTrackROFContMapping[irofCont] = irof;
+    }
+
     int cluROFOffset = mITSClusterROFRec[irof].getFirstEntry(); // clusters of this ROF start at this offset
     float tmn = intRecord2TPCTimeBin(rofRec.getBCData());     // ITS track min time in TPC time-bins
     mITSROFTimes.emplace_back(tmn, tmn + mITSROFrame2TPCBin); // ITS track min/max time in TPC time-bins
@@ -703,6 +726,15 @@ bool MatchTPCITS::prepareITSTracks()
     }
   }
 
+  if (!mITSTriggered) { // fill the gaps;
+    int nr = mITSTrackROFContMapping.size();
+    for (int i = 1; i < nr; i++) {
+      if (mITSTrackROFContMapping[i] < mITSTrackROFContMapping[i - 1]) {
+        mITSTrackROFContMapping[i] = mITSTrackROFContMapping[i - 1];
+      }
+    }
+  }
+
   // sort tracks in each sector according to their time, then tgl
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mITSSectIndexCache[sec];
@@ -741,7 +773,7 @@ bool MatchTPCITS::prepareITSTracks()
     */
   } // loop over tracks of single sector
   mMatchRecordsITS.reserve(mITSWork.size() * mParams->maxMatchCandidates);
-
+  mTimer[SWPrepITS].Stop();
   return true;
 }
 
@@ -789,6 +821,7 @@ void MatchTPCITS::doMatching(int sec)
     // estimate ITS 1st ROframe bin this track may match to: TPC track are sorted according to their
     // timeMax, hence the timeMax - MaxmNTPCBinsFullDrift are non-decreasing
     int itsROBin = tpcTimeBin2ITSROFrame(trefTPC.timeBins.max() - maxTDriftSafe);
+
     if (itsROBin >= int(tbinStartITS.size())) { // time of TPC track exceeds the max time of ITS in the cache
       break;
     }
@@ -1134,7 +1167,7 @@ void MatchTPCITS::addLastTrackCloneForNeighbourSector(int sector)
   auto& trc = mITSWork.back();
   if (trc.rotate(o2::utils::Sector2Angle(sector)) &&
       o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, XMatchingRef, o2::constants::physics::MassPionCharged, MaxSnp,
-                                                           2., o2::base::Propagator::USEMatCorrNONE)) {
+                                                           2., MatCorrType::USEMatCorrNONE)) {
     // TODO: use faster prop here, no 3d field, materials
     mITSSectIndexCache[sector].push_back(mITSWork.size() - 1); // register track CLONE
     if (mMCTruthON) {
@@ -1152,6 +1185,7 @@ bool MatchTPCITS::propagateToRefX(o2::track::TrackParCov& trc)
   // is consistent with TPC sector
   bool refReached = false;
   refReached = XMatchingRef < 10.; // RS: tmp, to cover XMatchingRef~0
+  int trialsLeft = 2;
   while (o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, XMatchingRef, o2::constants::physics::MassPionCharged,
                                                               MaxSnp, 2., mUseMatCorrFlag)) {
     if (refReached) {
@@ -1161,6 +1195,9 @@ bool MatchTPCITS::propagateToRefX(o2::track::TrackParCov& trc)
     if (fabs(trc.getY()) < XMatchingRef * tan(o2::constants::math::SectorSpanRad / 2)) {
       refReached = true;
       break; // ok, within
+    }
+    if (!trialsLeft--) {
+      break;
     }
     auto alphaNew = o2::utils::Angle2Alpha(trc.getPhiPos());
     if (!trc.rotate(alphaNew) != 0) {
@@ -1222,7 +1259,7 @@ void MatchTPCITS::refitWinners(bool loopInITS)
 {
   ///< refit winning tracks
 
-  mTimerRefit.Start(false);
+  mTimer[SWRefit].Start(false);
   LOG(INFO) << "Refitting winner matches";
   mWinnerChi2Refit.resize(mITSWork.size(), -1.f);
   if (loopInITS) {
@@ -1245,7 +1282,7 @@ void MatchTPCITS::refitWinners(bool loopInITS)
   /*
   */
   // flush last tracks
-  mTimerRefit.Stop();
+  mTimer[SWRefit].Stop();
 }
 
 //______________________________________________
@@ -1313,9 +1350,9 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
   }
 
   // we need to update the LTOF integral by the distance to the "primary vertex"
-  const Point3D<float> vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
+  const o2::dataformats::VertexBase vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
   if (!propagator->propagateToDCA(vtxDummy, trfit, propagator->getNominalBz(), o2::constants::physics::MassPionCharged,
-                                  maxStep, mUseMatCorrFlag, &trfit.getLTIntegralOut())) {
+                                  maxStep, mUseMatCorrFlag, nullptr, &trfit.getLTIntegralOut())) {
     LOG(ERROR) << "LTOF integral might be incorrect";
   }
 
@@ -1394,7 +1431,7 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
         }
       }
       if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp,
-                                          10., o2::base::Propagator::USEMatCorrNONE, &trfit.getLTIntegralOut())) { // no material correction!
+                                          10., MatCorrType::USEMatCorrNONE, &trfit.getLTIntegralOut())) { // no material correction!
         LOG(INFO) << "Propagation to cluster " << icl << " (of " << tpcTrOrig.getNClusterReferences() << ") at X="
                   << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp() << " pT=" << tracOut.getPt();
         mMatchedTracks.pop_back(); // destroy failed track
@@ -1495,9 +1532,9 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
   }
 
   // we need to update the LTOF integral by the distance to the "primary vertex"
-  const Point3D<float> vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
+  const o2::dataformats::VertexBase vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
   if (!propagator->propagateToDCA(vtxDummy, trfit, propagator->getNominalBz(), o2::constants::physics::MassPionCharged,
-                                  maxStep, mUseMatCorrFlag, &trfit.getLTIntegralOut())) {
+                                  maxStep, mUseMatCorrFlag, nullptr, &trfit.getLTIntegralOut())) {
     LOG(ERROR) << "LTOF integral might be incorrect";
   }
 
@@ -1576,7 +1613,7 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
         }
       }
       if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp,
-                                          10., o2::base::Propagator::USEMatCorrNONE, &trfit.getLTIntegralOut())) { // no material correction!
+                                          10., MatCorrType::USEMatCorrNONE, &trfit.getLTIntegralOut())) { // no material correction!
         LOG(INFO) << "Propagation to cluster " << icl << " (of " << tpcTrOrig.getNClusterReferences() << ") at X="
                   << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp() << " pT=" << tracOut.getPt();
         mMatchedTracks.pop_back(); // destroy failed track
@@ -1678,7 +1715,7 @@ bool MatchTPCITS::refitTPCInward(o2::track::TrackParCov& trcIn, float& chi2, flo
     }
     mTPCTransform->Transform(sectArr[icl], rowArr[icl], clsArr[icl]->getPad(), clsArr[icl]->getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
     mTPCClusterParam->GetClusterErrors2(rowArr[icl], clsYZ[1], trcIn.getSnp(), trcIn.getTgl(), clsCov[0], clsCov[2]);
-    if (!propagator->PropagateToXBxByBz(trcIn, clsX, m, TolSNP, 10., o2::base::Propagator::USEMatCorrNONE)) { // no material correction!
+    if (!propagator->PropagateToXBxByBz(trcIn, clsX, m, TolSNP, 10., MatCorrType::USEMatCorrNONE)) { // no material correction!
       LOG(INFO) << "Propagation to cluster at X="
                 << clsX << " failed, Xtr=" << trcIn.getX() << " snp=" << trcIn.getSnp() << " pT=" << trcIn.getPt();
       LOG(WARNING) << trcIn.asString();
@@ -2577,6 +2614,13 @@ void MatchTPCITS::refitABTrack(int ibest) const
   }
 }
 
+//______________________________________________
+void MatchTPCITS::setITSROFrameLengthInBC(int nbc)
+{
+  mITSROFrameLengthInBC = nbc;
+  mITSROFrameLengthMUS = nbc * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+}
+
 //<<============================= AfterBurner for TPC-track / ITS cluster matching ===================<<
 
 #ifdef _ALLOW_DEBUG_TREES_
@@ -2596,7 +2640,7 @@ void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float c
 {
   ///< fill debug tree for ITS TPC tracks matching check
 
-  mTimerDBG.Start(false);
+  mTimer[SWDBG].Start(false);
 
   auto& trackITS = mITSWork[itsID];
   auto& trackTPC = mTPCWork[tpcID];
@@ -2615,7 +2659,7 @@ void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float c
   (*mDBGOut) << "match"
              << "rejFlag=" << rejFlag << "\n";
 
-  mTimerDBG.Stop();
+  mTimer[SWDBG].Stop();
 }
 
 //______________________________________________
@@ -2623,7 +2667,7 @@ void MatchTPCITS::dumpWinnerMatches()
 {
   ///< write winner matches into debug tree
 
-  mTimerDBG.Start(false);
+  mTimer[SWDBG].Start(false);
 
   LOG(INFO) << "Dumping debug tree for winner matches";
   for (int iits = 0; iits < int(mITSWork.size()); iits++) {
@@ -2649,17 +2693,7 @@ void MatchTPCITS::dumpWinnerMatches()
     (*mDBGOut) << "matchWin"
                << "\n";
   }
-  mTimerDBG.Stop();
-}
-
-//_________________________________________________________
-void MatchTPCITS::setUseMatCorrFlag(int f)
-{
-  ///< set flag to select material correction type
-  mUseMatCorrFlag = f;
-  if (f < o2::base::Propagator::USEMatCorrNONE || f > o2::base::Propagator::USEMatCorrLUT) {
-    LOG(FATAL) << "Invalid MatCorr flag" << f;
-  }
+  mTimer[SWDBG].Stop();
 }
 
 #endif

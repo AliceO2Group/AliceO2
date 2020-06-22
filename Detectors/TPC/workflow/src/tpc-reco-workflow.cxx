@@ -19,8 +19,9 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/PartRef.h"
+#include "Framework/ConcreteDataMatcher.h"
 #include "TPCWorkflow/RecoWorkflow.h"
-#include "TPCWorkflow/CATrackerSpec.h"
+#include "TPCWorkflow/TPCSectorCompletionPolicy.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"
@@ -41,13 +42,16 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   using namespace o2::framework;
 
   std::vector<ConfigParamSpec> options{
-    {"input-type", VariantType::String, "digits", {"digitizer, digits, clustershw, clustersnative, zsraw"}},
-    {"output-type", VariantType::String, "tracks", {"digits, clustershw, clustersnative, tracks, disable-writer"}},
+    {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, clustershw, clustersnative, compressed-clusters, compressed-clusters-ctf"}},
+    {"output-type", VariantType::String, "tracks", {"digits, zsraw, clustershw, clustersnative, tracks, compressed-clusters, encoded-clusters, disable-writer"}},
     {"ca-clusterer", VariantType::Bool, false, {"Use clusterer of GPUCATracking"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
     {"tpc-sectors", VariantType::String, "0-35", {"TPC sector range, e.g. 5-7,8,9"}},
     {"tpc-lanes", VariantType::Int, 1, {"number of parallel lanes up to the tracker"}},
     {"dispatching-mode", VariantType::String, "prompt", {"determines when to dispatch: prompt, complete"}},
+    {"tpc-zs", VariantType::Bool, false, {"use TPC zero suppression, true/false"}},
+    {"zs-threshold", VariantType::Float, 2.0f, {"zero suppression threshold"}},
+    {"zs-10bit", VariantType::Bool, false, {"use 10 bit ADCs for TPC zero suppression, true/false, default/false = 12 bit ADC"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
 
@@ -80,7 +84,10 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   using CompletionPolicyHelpers = o2::framework::CompletionPolicyHelpers;
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-cluster-decoder.*", CompletionPolicy::CompletionOp::Consume));
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-clusterer.*", CompletionPolicy::CompletionOp::Consume));
-  policies.push_back(o2::tpc::getCATrackerCompletionPolicy());
+  // the custom completion policy for the tracker
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("tpc-tracker.*",
+                                                        o2::framework::InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}},
+                                                        o2::framework::InputSpec{"digits", o2::framework::ConcreteDataTypeMatcher{"TPC", "DIGITS"}})());
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -108,13 +115,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::vector<int> laneConfiguration;
   auto nLanes = cfgc.options().get<int>("tpc-lanes");
   auto inputType = cfgc.options().get<std::string>("input-type");
-  if (inputType == "digitizer") {
-    // the digitizer is using a different lane setup so we have to force this for the moment
-    laneConfiguration.resize(nLanes);
-    std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
-  } else {
-    laneConfiguration = tpcSectors;
-  }
+  laneConfiguration = tpcSectors;
 
   // depending on whether to dispatch early (prompt) and on the input type, we
   // set the matcher. Note that this has to be in accordance with the OutputSpecs
@@ -144,6 +145,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                              nLanes,                                         //
                                              inputType,                                      //
                                              cfgc.options().get<std::string>("output-type"), //
-                                             cfgc.options().get<bool>("ca-clusterer")        //
+                                             cfgc.options().get<bool>("ca-clusterer"),       //
+                                             cfgc.options().get<bool>("tpc-zs"),             //
+                                             cfgc.options().get<bool>("zs-10bit"),           //
+                                             cfgc.options().get<float>("zs-threshold")       //
   );
 }

@@ -93,7 +93,17 @@ class Digitizer
   static Double_t PmtResponse(Double_t* x, Double_t*);
   static Double_t SinglePhESpectrum(Double_t* x, Double_t* par);
 
+  // Functions related to splitting ring-5 cell signal to two readout channels
+  static float getDistFromCellCenter(UInt_t cellId, double hitx, double hity);
+  static float getSignalFraction(float distanceFromXc, bool isFirstChannel);
+
   ClassDefNV(Digitizer, 1);
+};
+
+// Function used to split the ring-5 cell signal into two readout channels depending on hit position
+inline float sigmoidPmtRing5(float x)
+{
+  return -0.668453 / (1.0 + TMath::Exp(TMath::Abs(x) / 3.64327)) + 0.834284;
 };
 
 } // namespace fv0

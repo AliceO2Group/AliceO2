@@ -20,6 +20,9 @@
 #include "GPUTPCTracker.h"
 #include "GPUTPCTracklet.h"
 #include "GPUTPCTrackletConstructor.h"
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+#include "GPUTPCGlobalTracking.h"
+#endif
 #include "GPUParam.inc"
 #include "GPUCommonMath.h"
 
@@ -62,12 +65,16 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
           tParam.Cov()[0], tParam.Cov()[1], tParam.Cov()[2], tParam.Cov()[3], tParam.Cov()[4], tParam.Cov()[5], tParam.Cov()[6], tParam.Cov()[7], tParam.Cov()[8], tParam.Cov()[9],
           tParam.Cov()[10], tParam.Cov()[11], tParam.Cov()[12], tParam.Cov()[13], tParam.Cov()[14]);*/
 
-  unsigned int itrout = CAMath::AtomicAdd(tracker.NTracklets(), 1);
+  unsigned int itrout = CAMath::AtomicAdd(tracker.NTracklets(), 1u);
   const unsigned int nHits = r.mLastRow + 1 - r.mFirstRow;
   unsigned int hitout = CAMath::AtomicAdd(tracker.NRowHits(), nHits);
   if (itrout >= tracker.NMaxTracklets() || hitout + nHits > tracker.NMaxRowHits()) {
-    tracker.CommonMemory()->kernelError = itrout >= tracker.NMaxTracklets() ? GPUCA_ERROR_TRACKLET_OVERFLOW : GPUCA_ERROR_TRACKLET_HIT_OVERFLOW;
-    CAMath::AtomicExch(tracker.NTracklets(), 0);
+    if (itrout >= tracker.NMaxTracklets()) {
+      tracker.raiseError(GPUErrors::ERROR_TRACKLET_OVERFLOW, itrout, tracker.NMaxTracklets());
+    } else {
+      tracker.raiseError(GPUErrors::ERROR_TRACKLET_HIT_OVERFLOW, hitout + nHits, tracker.NMaxRowHits());
+    }
+    CAMath::AtomicExch(tracker.NTracklets(), 0u);
     if (hitout + nHits > tracker.NMaxRowHits()) {
       CAMath::AtomicExch(tracker.NRowHits(), tracker.NMaxRowHits());
     }
@@ -99,8 +106,8 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
   }
 }
 
-MEM_CLASS_PRE2()
-GPUd() void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() s, GPUTPCThreadMemory& GPUrestrict() r, GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & GPUrestrict() tracker, MEM_LG2(GPUTPCTrackParam) & GPUrestrict() tParam, int iRow, calink& rowHit)
+MEM_CLASS_PRE2_TEMPLATE(class T)
+GPUd() void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/, GPUsharedref() T& GPUrestrict() s, GPUTPCThreadMemory& GPUrestrict() r, GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & GPUrestrict() tracker, MEM_LG2(GPUTPCTrackParam) & GPUrestrict() tParam, int iRow, calink& rowHit)
 {
   // reconstruction of tracklets, tracklets update step
   CA_MAKE_SHARED_REF(GPUTPCRow, row, tracker.Row(iRow), s.mRows[iRow]);
@@ -485,7 +492,7 @@ GPUd() int GPUTPCTrackletConstructor::FetchTracklet(GPUconstantref() MEM_GLOBAL(
       sMem.mNextStartHitFirstRun = 0;
     } else {
       if (tracker.GPUParameters()->nextStartHit < nStartHit) {
-        firstStartHit = CAMath::AtomicAdd(&tracker.GPUParameters()->nextStartHit, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCTrackletConstructor));
+        firstStartHit = CAMath::AtomicAdd<unsigned int>(&tracker.GPUParameters()->nextStartHit, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCTrackletConstructor));
       }
     }
     sMem.mNextStartHitFirst = firstStartHit < (int)nStartHit ? firstStartHit : -2;
@@ -494,13 +501,13 @@ GPUd() int GPUTPCTrackletConstructor::FetchTracklet(GPUconstantref() MEM_GLOBAL(
   return (sMem.mNextStartHitFirst);
 }
 
-#else // GPUCA_GPUCODE
+#endif // GPUCA_GPUCODE
 
-int GPUTPCTrackletConstructor::GPUTPCTrackletConstructorGlobalTracking(GPUTPCTracker& GPUrestrict() tracker, GPUTPCTrackParam& GPUrestrict() tParam, int row, int increment, int iTracklet, calink* rowHits)
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+template <>
+GPUd() int GPUTPCTrackletConstructor::GPUTPCTrackletConstructorGlobalTracking<GPUTPCGlobalTracking::GPUSharedMemory>(GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & GPUrestrict() tracker, GPUsharedref() GPUTPCGlobalTracking::GPUSharedMemory& sMem, MEM_LG(GPUTPCTrackParam) & GPUrestrict() tParam, int row, int increment, int iTracklet, calink* rowHits)
 {
   GPUTPCThreadMemory rMem;
-  GPUshared() GPUSharedMemory sMem;
-  sMem.mNStartHits = *tracker.NStartHits();
   rMem.mISH = iTracklet;
   rMem.mStage = 3;
   rMem.mNHits = rMem.mNMissed = 0;
@@ -514,5 +521,4 @@ int GPUTPCTrackletConstructor::GPUTPCTrackletConstructorGlobalTracking(GPUTPCTra
   }
   return (rMem.mNHits);
 }
-
-#endif // GPUCA_GPUCODE
+#endif

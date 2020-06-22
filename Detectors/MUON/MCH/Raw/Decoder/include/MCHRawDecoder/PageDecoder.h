@@ -15,6 +15,7 @@
 #include <gsl/span>
 #include <map>
 #include "MCHRawDecoder/SampaChannelHandler.h"
+#include "MCHRawElecMap/Mapper.h"
 
 namespace o2::mch::raw
 {
@@ -34,18 +35,26 @@ using RawBuffer = gsl::span<const std::byte>;
 // @param channelHandler (optional) a callable object that will be called for each
 // decoded SampaCluster
 //
-// Note that while the channelHandler parameter is optional, unless for testing purposes
-// it does not really make sense to not provide it.
+PageDecoder createPageDecoder(RawBuffer rdhBuffer,
+                              SampaChannelHandler channelHandler);
+
+// Same as above but only to be used for special cases, e.g. when
+// trying to decode test beam data with an electronic mapping that
+// does not match the expected one for Run3.
+//
+// @param fee2solar (optional) a callable object that will convert a FeeLinkId
+// object into a solarId.
 //
 PageDecoder createPageDecoder(RawBuffer rdhBuffer,
-                              SampaChannelHandler channelHandler = nullptr);
+                              SampaChannelHandler channelHandler,
+                              FeeLink2SolarMapper fee2solar);
 
 // A PageParser loops over the given buffer and apply the given page decoder
 // to each page.
 using PageParser = std::function<void(RawBuffer buffer, PageDecoder pageDecoder)>;
 
-// Create a PageParser depending on the first rdh found in the buffer.
-PageParser createPageParser(RawBuffer rdhBuffer);
+// Create a PageParser
+PageParser createPageParser();
 
 } // namespace o2::mch::raw
 

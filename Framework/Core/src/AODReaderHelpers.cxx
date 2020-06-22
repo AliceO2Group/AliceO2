@@ -8,13 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/TableTreeHelpers.h"
 #include "Framework/AODReaderHelpers.h"
 #include "Framework/AnalysisDataModel.h"
 #include "DataProcessingHelpers.h"
+#include "ExpressionHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
+#include "Framework/CallbackService.h"
+#include "Framework/EndOfStreamContext.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSpecUtils.h"
@@ -37,7 +41,6 @@
 
 namespace o2::framework::readers
 {
-
 enum AODTypeMask : uint64_t {
   None = 0,
   Track = 1 << 0,
@@ -55,7 +58,12 @@ enum AODTypeMask : uint64_t {
   FDD = 1 << 12,
   UnassignedTrack = 1 << 13,
   Run2V0 = 1 << 14,
-  Unknown = 1 << 15
+  McCollision = 1 << 15,
+  McTrackLabel = 1 << 16,
+  McCaloLabel = 1 << 17,
+  McCollisionLabel = 1 << 18,
+  McParticle = 1 << 19,
+  Unknown = 1 << 20
 };
 
 uint64_t getMask(header::DataDescription description)
@@ -91,6 +99,16 @@ uint64_t getMask(header::DataDescription description)
     return AODTypeMask::UnassignedTrack;
   } else if (description == header::DataDescription{"RUN2V0"}) {
     return AODTypeMask::Run2V0;
+  } else if (description == header::DataDescription{"MCCOLLISION"}) {
+    return AODTypeMask::McCollision;
+  } else if (description == header::DataDescription{"MCTRACKLABEL"}) {
+    return AODTypeMask::McTrackLabel;
+  } else if (description == header::DataDescription{"MCCALOLABEL"}) {
+    return AODTypeMask::McCaloLabel;
+  } else if (description == header::DataDescription{"MCCOLLISLABEL"}) {
+    return AODTypeMask::McCollisionLabel;
+  } else if (description == header::DataDescription{"MCPARTICLE"}) {
+    return AODTypeMask::McParticle;
   } else {
     LOG(DEBUG) << "This is a tree of unknown type! " << description.str;
     return AODTypeMask::Unknown;
@@ -120,6 +138,94 @@ std::vector<OutputRoute> getListOfUnknown(std::vector<OutputRoute> const& routes
       unknows.push_back(route);
   }
   return unknows;
+}
+
+/// Expression-based column generator to materialize columns
+template <typename... C>
+auto spawner(framework::pack<C...> columns, arrow::Table* atable)
+{
+  arrow::TableBatchReader reader(*atable);
+  std::shared_ptr<arrow::RecordBatch> batch;
+  arrow::ArrayVector v;
+  std::vector<arrow::ArrayVector> chunks(sizeof...(C));
+
+  auto projectors = framework::expressions::createProjectors(columns, atable->schema());
+  while (true) {
+    auto s = reader.ReadNext(&batch);
+    if (!s.ok()) {
+      throw std::runtime_error(fmt::format("Cannot read batches from table {}", s.ToString()));
+    }
+    if (batch == nullptr) {
+      break;
+    }
+    s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
+    if (!s.ok()) {
+      throw std::runtime_error(fmt::format("Cannot apply projector {}", s.ToString()));
+    }
+    for (auto i = 0u; i < sizeof...(C); ++i) {
+      chunks[i].emplace_back(v.at(i));
+    }
+  }
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> results(sizeof...(C));
+  for (auto i = 0u; i < sizeof...(C); ++i) {
+    results[i] = std::make_shared<arrow::ChunkedArray>(chunks[i]);
+  }
+  return results;
+}
+
+AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> requested)
+{
+  return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
+    auto& callbacks = ic.services().get<CallbackService>();
+    auto endofdatacb = [](EndOfStreamContext& eosc) {
+      auto& control = eosc.services().get<ControlService>();
+      control.endOfStream();
+      control.readyToQuit(QuitRequest::Me);
+    };
+    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
+
+    return [requested](ProcessingContext& pc) {
+      auto outputs = pc.outputs();
+      // spawn tables
+      for (auto& input : requested) {
+        auto description = std::visit(
+          overloaded{
+            [](ConcreteDataMatcher const& matcher) { return matcher.description; },
+            [](auto&&) { return header::DataDescription{""}; }},
+          input.matcher);
+
+        auto origin = std::visit(
+          overloaded{
+            [](ConcreteDataMatcher const& matcher) { return matcher.origin; },
+            [](auto&&) { return header::DataOrigin{""}; }},
+          input.matcher);
+
+        auto maker = [&](auto metadata) {
+          using metadata_t = decltype(metadata);
+          using expressions = typename metadata_t::expression_pack_t;
+          auto extra_schema = o2::soa::createSchemaFromColumns(expressions{});
+          auto original_table = pc.inputs().get<TableConsumer>(input.binding)->asArrowTable();
+          auto original_fields = original_table->schema()->fields();
+          std::vector<std::shared_ptr<arrow::Field>> fields;
+          auto arrays = spawner(expressions{}, original_table.get());
+          std::vector<std::shared_ptr<arrow::ChunkedArray>> columns = original_table->columns();
+          std::copy(original_fields.begin(), original_fields.end(), std::back_inserter(fields));
+          for (auto i = 0u; i < framework::pack_size(expressions{}); ++i) {
+            columns.push_back(arrays[i]);
+            fields.emplace_back(extra_schema->field(i));
+          }
+          auto new_schema = std::make_shared<arrow::Schema>(fields);
+          return arrow::Table::Make(new_schema, columns);
+        };
+
+        if (description == header::DataDescription{"TRACKPAR"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::TracksMetadata{}));
+        } else {
+          throw std::runtime_error("Not an extended table");
+        }
+      }
+    };
+  }};
 }
 
 AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
@@ -170,7 +276,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
           auto reader = didir->getTreeReader(dh, fi, treeName);
 
           using table_t = typename decltype(metadata)::table_t;
-          if (!reader || (reader && reader->IsInvalid())) {
+          if (!reader || (reader->IsInvalid())) {
             LOGP(ERROR, "Requested \"{}\" tree not found in input file \"{}\"", treeName, didir->getInputFilename(dh, fi));
           } else {
             auto& builder = outputs.make<TableBuilder>(Output{decltype(metadata)::origin(), decltype(metadata)::description()});
@@ -179,7 +285,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         }
       };
       tableMaker(o2::aod::CollisionsMetadata{}, AODTypeMask::Collision, "O2collision");
-      tableMaker(o2::aod::TracksMetadata{}, AODTypeMask::Track, "O2track");
+      tableMaker(o2::aod::StoredTracksMetadata{}, AODTypeMask::Track, "O2track");
       tableMaker(o2::aod::TracksCovMetadata{}, AODTypeMask::TrackCov, "O2track");
       tableMaker(o2::aod::TracksExtraMetadata{}, AODTypeMask::TrackExtra, "O2track");
       tableMaker(o2::aod::CalosMetadata{}, AODTypeMask::Calo, "O2calo");
@@ -193,6 +299,11 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       tableMaker(o2::aod::FDDsMetadata{}, AODTypeMask::FDD, "O2fdd");
       tableMaker(o2::aod::UnassignedTracksMetadata{}, AODTypeMask::UnassignedTrack, "O2unassignedtrack");
       tableMaker(o2::aod::Run2V0sMetadata{}, AODTypeMask::Run2V0, "Run2v0");
+      tableMaker(o2::aod::McCollisionsMetadata{}, AODTypeMask::McCollision, "O2mccollision");
+      tableMaker(o2::aod::McTrackLabelsMetadata{}, AODTypeMask::McTrackLabel, "O2mctracklabel");
+      tableMaker(o2::aod::McCaloLabelsMetadata{}, AODTypeMask::McCaloLabel, "O2mccalolabel");
+      tableMaker(o2::aod::McCollisionLabelsMetadata{}, AODTypeMask::McCollisionLabel, "O2mccollisionlabel");
+      tableMaker(o2::aod::McParticlesMetadata{}, AODTypeMask::McParticle, "O2mcparticle");
 
       // tables not included in the DataModel
       if (readMask & AODTypeMask::Unknown) {

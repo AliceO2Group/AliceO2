@@ -46,6 +46,10 @@ class RawPixelDecoder : public PixelReader
  public:
   RawPixelDecoder();
   ~RawPixelDecoder() final = default;
+
+  GBTLink::Format getFormat() const { return mFormat; }
+  void setFormat(GBTLink::Format f);
+
   void init() final {}
   bool getNextChipData(ChipPixelData& chipData) final;
   ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) final;
@@ -97,9 +101,11 @@ class RawPixelDecoder : public PixelReader
   std::array<int, Mapping::getNRUs()> mRUEntry; // entry of the RU with given SW ID in the mRUDecodeVec
   std::string mSelfName;                        // self name
   uint16_t mCurRUDecodeID = NORUDECODED;        // index of currently processed RUDecode container
+  int mLastReadChipID = -1;                     // chip ID returned by previous getNextChipData call, used for ordering checks
   Mapping mMAP;                                 // chip mapping
   int mVerbosity = 0;
   int mNThreads = 1; // number of decoding threads
+  GBTLink::Format mFormat = GBTLink::NewFormat; // ITS Data Format (old: 1 ROF per CRU page)
   // statistics
   o2::itsmft::ROFRecord::ROFtype mROFCounter = 0; // RSTODO is this needed? eliminate from ROFRecord ?
   uint32_t mNChipsFiredROF = 0;                   // counter within the ROF

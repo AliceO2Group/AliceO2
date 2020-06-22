@@ -744,6 +744,34 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
   }
 }
 
+void DeviceSpecHelpers::reworkShmSegmentSize(std::vector<DataProcessorInfo>& infos)
+{
+  int64_t segmentSize = 0;
+  for (auto& info : infos) {
+    auto it = std::find(info.cmdLineArgs.begin(), info.cmdLineArgs.end(), "--shm-segment-size");
+    if (it == info.cmdLineArgs.end()) {
+      continue;
+    }
+    auto value = it + 1;
+    if (value == info.cmdLineArgs.end()) {
+      throw std::runtime_error("--shm-segment-size requires an argument");
+    }
+    char* err = nullptr;
+    int64_t size = strtoll(value->c_str(), &err, 10);
+    if (size > segmentSize) {
+      segmentSize = size;
+    }
+    info.cmdLineArgs.erase(it, it + 2);
+  }
+  if (segmentSize == 0) {
+    segmentSize = 2000000000LL;
+  }
+  for (auto& info : infos) {
+    info.cmdLineArgs.push_back("--shm-segment-size");
+    info.cmdLineArgs.push_back(std::to_string(segmentSize));
+  }
+}
+
 void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
                                          std::vector<DataProcessorInfo> const& processorInfos,
                                          std::vector<DeviceSpec> const& deviceSpecs,
@@ -801,6 +829,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     std::vector<std::string> tmpArgs = {argv[0],
                                         "--id", spec.id.c_str(),
                                         "--control", "static",
+                                        "--shm-monitor", "false",
                                         "--log-color", "false",
                                         "--color", "false"};
     if (defaultStopped) {
@@ -847,9 +876,11 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         wordexp_t expansions;
         wordexp(arguments.c_str(), &expansions, 0);
         bpo::options_description realOdesc = odesc;
+        realOdesc.add_options()("severity", bpo::value<std::string>());
         realOdesc.add_options()("child-driver", bpo::value<std::string>());
         realOdesc.add_options()("rate", bpo::value<std::string>());
         realOdesc.add_options()("shm-segment-size", bpo::value<std::string>());
+        realOdesc.add_options()("shm-monitor", bpo::value<std::string>());
         realOdesc.add_options()("session", bpo::value<std::string>());
         filterArgsFct(expansions.we_wordc, expansions.we_wordv, realOdesc);
         wordfree(&expansions);
@@ -945,12 +976,15 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
   // - child-driver is not a FairMQ device option but used per device to start to process
   bpo::options_description forwardedDeviceOptions;
   forwardedDeviceOptions.add_options()                                                                          //
+    ("severity", bpo::value<std::string>()->default_value("info"), "severity level of the log")                 //
     ("plugin,P", bpo::value<std::string>(), "FairMQ plugin list")                                               //
     ("plugin-search-path,S", bpo::value<std::string>(), "FairMQ plugins search path")                           //
     ("control-port", bpo::value<std::string>(), "Utility port to be used by O2 Control")                        //
     ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                   //
+    ("shm-monitor", bpo::value<std::string>(), "whether to use the shared memory monitor")                      //
     ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")               //
     ("session", bpo::value<std::string>(), "unique label for the shared memory session")                        //
+    ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                         //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                           //
     ("infologger-mode", bpo::value<std::string>(), "INFOLOGGER_MODE override")                                  //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger") //

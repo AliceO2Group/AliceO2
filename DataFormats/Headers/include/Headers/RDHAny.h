@@ -48,7 +48,7 @@ struct RDHAny {
 
   /// make sure we RDH is a legitimate RAWDataHeader
   template <typename RDH>
-  GPUhdi() static void sanityCheckStrict()
+  GPUhdi() static constexpr void sanityCheckStrict()
   {
 #ifndef __OPENCL__
     static_assert(std::is_same<RDH, RDHv4>::value || std::is_same<RDH, RDHv5>::value ||
@@ -59,7 +59,7 @@ struct RDHAny {
 
   /// make sure we RDH is a legitimate RAWDataHeader or generic RDHAny placeholder
   template <typename RDH>
-  GPUhdi() static void sanityCheckLoose()
+  GPUhdi() static constexpr void sanityCheckLoose()
   {
 #ifndef __OPENCL__
     static_assert(std::is_same<RDH, RDHv4>::value || std::is_same<RDH, RDHv5>::value ||

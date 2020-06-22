@@ -265,7 +265,7 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
   const TPCFastTransformGeo& geo = fastTransform.getGeometry();
 
   TPCFastSpaceChargeCorrection& correction =
-    fastTransform.getCorrectionNonConst();
+    fastTransform.getCorrection();
 
   // switch TOF correction off for a while
 
@@ -323,9 +323,12 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
       };
 
       helper.approximateFunction(data, 0., 1., 0., 1., F);
-
     } // row
   }   // slice
+
+#ifndef GPUCA_ALIROOT_LIB // Disable in AliRoot case temporarily, since it crashes, and is not used anyway
+  correction.initInverse();
+#endif
 
   // set back the time-of-flight correction;
 

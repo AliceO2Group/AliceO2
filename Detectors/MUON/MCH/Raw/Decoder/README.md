@@ -34,17 +34,15 @@ data page that you want to decode :
     pageDecode(buffer);
     }
 
-Internally the implementation is using templatized implementation, `PageDecoderImpl<RDH,FORMAT,CHARGESUM>`.
+Internally the implementation is using templatized implementation, `PageDecoderImpl<FORMAT,CHARGESUM>`.
 Currently the following template parameters combinations have been tested : 
 
-|      FORMAT     |   CHARGESUM   |       RDH       |
-| :-------------: | :-----------: | :-------------: |
-|    BareFormat   | ChargeSumMode | RawDataHeaderV4 |
-|    BareFormat   |   SampleMode  | RawDataHeaderV4 |
-| UserLogicFormat | ChargeSumMode | RawDataHeaderV4 |
-| UserLogicFormat |   SampleMode  | RawDataHeaderV4 |
-
-RDH V5 is not yet supported, but is planned.
+|      FORMAT     |   CHARGESUM   |
+| :-------------: | :-----------: |
+|    BareFormat   | ChargeSumMode |
+|    BareFormat   |   SampleMode  |
+| UserLogicFormat | ChargeSumMode |
+| UserLogicFormat |   SampleMode  |
 
 The `createPageDecoder` function requires two parameters : a raw memory buffer 
 (in the form of a `gsl::span<const std::byte>` (note that the span is on constant bytes, 

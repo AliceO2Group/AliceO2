@@ -52,9 +52,10 @@ class GPUTPCClusterFinder : public GPUProcessor
   struct Memory {
     struct counters_t {
       size_t nDigits = 0;
-      size_t nPositions = 0; // TODO use this instead of nDigits
-      size_t nPeaks = 0;
-      size_t nClusters = 0;
+      tpccf::SizeT nPositions = 0;
+      tpccf::SizeT nPeaks = 0;
+      tpccf::SizeT nClusters = 0;
+      unsigned int maxTimeBin = 0;
       unsigned int nPages = 0;
       unsigned int nPagesSubslice = 0;
     } counters;
@@ -83,7 +84,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   void* SetPointersMemory(void* mem);
   void* SetPointersZSOffset(void* mem);
 
-  size_t getNSteps(size_t items) const;
+  unsigned int getNSteps(size_t items) const;
   void SetNMaxDigits(size_t nDigits, size_t nPages);
 
   void PrepareMC();
@@ -112,16 +113,17 @@ class GPUTPCClusterFinder : public GPUProcessor
 
   int mISlice = 0;
   constexpr static int mScanWorkGroupSize = GPUCA_THREAD_COUNT_SCAN;
-  size_t mNMaxClusterPerRow = 0;
+  unsigned int mNMaxClusterPerRow = 0;
+  unsigned int mNMaxClusters = 0;
   size_t mNMaxPages = 0;
   size_t mNMaxDigits = 0;
   size_t mNMaxPeaks = 0;
-  size_t mNMaxClusters = 0;
   size_t mBufSize = 0;
-  size_t mNBufs = 0;
+  unsigned int mNBufs = 0;
 
-  unsigned short mMemoryId = 0;
-  unsigned short mZSOffsetId = 0;
+  short mMemoryId = -1;
+  short mZSOffsetId = -1;
+  short mOutputId = -1;
 
 #ifndef GPUCA_GPUCODE
   void DumpDigits(std::ostream& out);

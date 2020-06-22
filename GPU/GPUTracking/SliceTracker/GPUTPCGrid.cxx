@@ -20,7 +20,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #endif
 
 MEM_CLASS_PRE()
-void MEM_LG(GPUTPCGrid)::CreateEmpty()
+GPUd() void MEM_LG(GPUTPCGrid)::CreateEmpty()
 {
   // Create an empty grid
   mYMin = 0.f;
@@ -37,17 +37,20 @@ void MEM_LG(GPUTPCGrid)::CreateEmpty()
 }
 
 MEM_CLASS_PRE()
-GPUd() void MEM_LG(GPUTPCGrid)::Create(float yMin, float yMax, float zMin, float zMax, float sy, float sz)
+GPUd() void MEM_LG(GPUTPCGrid)::Create(float yMin, float yMax, float zMin, float zMax, int ny, int nz)
 {
   //* Create the grid
   mYMin = yMin;
   mZMin = zMin;
 
+  float sy = CAMath::Max((yMax + 0.1f - yMin) / ny, GPUCA_MIN_BIN_SIZE);
+  float sz = CAMath::Max((zMax + 0.1f - zMin) / nz, GPUCA_MIN_BIN_SIZE);
+
   mStepYInv = 1.f / sy;
   mStepZInv = 1.f / sz;
 
-  mNy = static_cast<unsigned int>((yMax - mYMin) * mStepYInv + 1.f);
-  mNz = static_cast<unsigned int>((zMax - mZMin) * mStepZInv + 1.f);
+  mNy = ny;
+  mNz = nz;
 
   mN = mNy * mNz;
 

@@ -39,6 +39,7 @@
   #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
   #define GPUCA_CONSMEM const_cast<GPUConstantMem&>(*gGPUConstantMemBuffer)
 #endif
+#define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionHIPBackend
 // clang-format on
 
 #include "GPUReconstructionHIP.h"
@@ -50,13 +51,6 @@ __global__ void gGPUConstantMemBuffer_dummy(int* p) { *p = *(int*)&gGPUConstantM
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
-
-__global__ void gHIPMemSetWorkaround(char* ptr, char val, size_t size)
-{
-  for (size_t i = get_global_id(); i < size; i += get_global_size()) {
-    ptr[i] = val;
-  }
-}
 
 __global__ void dummyInitKernel(void* foo) {}
 
@@ -77,15 +71,53 @@ class TrackerTraitsHIP : public TrackerTraits
 } // namespace o2
 #endif
 
+class GPUDebugTiming
+{
+ public:
+  GPUDebugTiming(bool d, void** t, hipStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionHIPBackend* r = nullptr) : mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r), mDo(d)
+  {
+    if (mDo) {
+      if (mDeviceTimers) {
+        GPUFailedMsg(hipEventRecord((hipEvent_t)mDeviceTimers[0], mStreams[mXYZ.x.stream]));
+      } else {
+        mTimer.ResetStart();
+      }
+    }
+  }
+  ~GPUDebugTiming()
+  {
+    if (mDo) {
+      if (mDeviceTimers) {
+        GPUFailedMsg(hipEventRecord((hipEvent_t)mDeviceTimers[1], mStreams[mXYZ.x.stream]));
+        GPUFailedMsg(hipEventSynchronize((hipEvent_t)mDeviceTimers[1]));
+        float v;
+        GPUFailedMsg(hipEventElapsedTime(&v, (hipEvent_t)mDeviceTimers[0], (hipEvent_t)mDeviceTimers[1]));
+        mXYZ.t = v * 1.e-3;
+      } else {
+        GPUFailedMsg(hipStreamSynchronize(mStreams[mXYZ.x.stream]));
+        mXYZ.t = mTimer.GetCurrentElapsedTime();
+      }
+    }
+  }
+
+ private:
+  void** mDeviceTimers;
+  hipStream_t* mStreams;
+  GPUReconstruction::krnlSetup& mXYZ;
+  GPUReconstructionHIPBackend* mRec;
+  HighResTimer mTimer;
+  bool mDo;
+};
+
 #include "GPUReconstructionIncludesDevice.h"
 
 /*
 // Not using templated kernel any more, since nvidia profiler does not resolve template names
 template <class T, int I, typename... Args>
-GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice, Args... args)
+GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice_internal, Args... args)
 {
   GPUshared() typename T::GPUSharedMemory smem;
-  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(GPUCA_CONSMEM)[iSlice], args...);
+  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(GPUCA_CONSMEM)[iSlice_internal], args...);
 }
 */
 
@@ -98,55 +130,62 @@ GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice, Args... args)
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) \
   GPUCA_KRNL_PROP(x_class, x_attributes)                          \
   GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward)
-#define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionHIPBackend
-#define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward)                                                                                                                                                  \
-  if (start == nullptr) {                                                                                                                                                                                                      \
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->HIPStreams[x.stream], GPUCA_CONSMEM_CALL y.start, args...);                      \
-  } else {                                                                                                                                                                                                                     \
-    hipExtLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->HIPStreams[x.stream], *start, *stop, 0, GPUCA_CONSMEM_CALL y.start, args...); \
+#define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward)                                                                                                                                               \
+  if (start == nullptr) {                                                                                                                                                                                                   \
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->Streams[x.stream], GPUCA_CONSMEM_CALL y.start, args...);                      \
+  } else {                                                                                                                                                                                                                  \
+    hipExtLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->Streams[x.stream], *start, *stop, 0, GPUCA_CONSMEM_CALL y.start, args...); \
   }
-#define GPUCA_KRNL_CALL_multi(x_class, x_attributes, x_arguments, x_forward)                                                                                                                                                                   \
-  if (start == nullptr) {                                                                                                                                                                                                                      \
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->HIPStreams[x.stream], GPUCA_CONSMEM_CALL y.start, y.num, args...);                      \
-  } else {                                                                                                                                                                                                                                     \
-    hipExtLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->HIPStreams[x.stream], *start, *stop, 0, GPUCA_CONSMEM_CALL y.start, y.num, args...); \
+#define GPUCA_KRNL_CALL_multi(x_class, x_attributes, x_arguments, x_forward)                                                                                                                                                                \
+  if (start == nullptr) {                                                                                                                                                                                                                   \
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->Streams[x.stream], GPUCA_CONSMEM_CALL y.start, y.num, args...);                      \
+  } else {                                                                                                                                                                                                                                  \
+    hipExtLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->Streams[x.stream], *start, *stop, 0, GPUCA_CONSMEM_CALL y.start, y.num, args...); \
   }
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 
+template <>
+void GPUReconstructionHIPBackend::runKernelBackendInternal<GPUMemClean16, 0>(krnlSetup& _xyz, void* const& ptr, unsigned long const& size)
+{
+  GPUDebugTiming timer(mDeviceProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
+  GPUFailedMsg(hipMemsetAsync(ptr, 0, size, mInternals->Streams[_xyz.x.stream]));
+}
+
 template <class T, int I, typename... Args>
-int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
+void GPUReconstructionHIPBackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
+{
+  if (mDeviceProcessingSettings.deviceTimers) {
+#ifdef __CUDACC__
+    GPUFailedMsg(hipEventRecord((hipEvent_t)mDebugEvents->DebugStart, mInternals->Streams[x.stream]));
+#endif
+    backendInternal<T, I>::runKernelBackendMacro(_xyz, this, (hipEvent_t*)&mDebugEvents->DebugStart, (hipEvent_t*)&mDebugEvents->DebugStop, args...);
+#ifdef __CUDACC__
+    GPUFailedMsg(hipEventRecord((hipEvent_t)mDebugEvents->DebugStop, mInternals->Streams[x.stream]));
+#endif
+    GPUFailedMsg(hipEventSynchronize((hipEvent_t)mDebugEvents->DebugStop));
+    float v;
+    GPUFailedMsg(hipEventElapsedTime(&v, (hipEvent_t)mDebugEvents->DebugStart, (hipEvent_t)mDebugEvents->DebugStop));
+    _xyz.t = v * 1.e-3;
+  } else {
+    backendInternal<T, I>::runKernelBackendMacro(_xyz, this, nullptr, nullptr, args...);
+  }
+}
+
+template <class T, int I, typename... Args>
+int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
 {
   auto& x = _xyz.x;
   auto& z = _xyz.z;
   if (z.evList) {
     for (int k = 0; k < z.nEvents; k++) {
-      GPUFailedMsg(hipStreamWaitEvent(mInternals->HIPStreams[x.stream], ((hipEvent_t*)z.evList)[k], 0));
+      GPUFailedMsg(hipStreamWaitEvent(mInternals->Streams[x.stream], ((hipEvent_t*)z.evList)[k], 0));
     }
   }
-  hipEvent_t start, stop;
-  if (mDeviceProcessingSettings.deviceTimers) {
-    GPUFailedMsg(hipEventCreate(&start));
-    GPUFailedMsg(hipEventCreate(&stop));
-#ifdef __CUDACC__
-    GPUFailedMsg(hipEventRecord(start, mInternals->HIPStreams[x.stream]));
-#endif
-    backendInternal<T, I>::runKernelBackendInternal(_xyz, this, &start, &stop, args...);
-#ifdef __CUDACC__
-    GPUFailedMsg(hipEventRecord(stop, mInternals->HIPStreams[x.stream]));
-#endif
-    GPUFailedMsg(hipEventSynchronize(stop));
-    float v;
-    GPUFailedMsg(hipEventElapsedTime(&v, start, stop));
-    _xyz.t = v * 1.e-3;
-    GPUFailedMsg(hipEventDestroy(start));
-    GPUFailedMsg(hipEventDestroy(stop));
-  } else {
-    backendInternal<T, I>::runKernelBackendInternal(_xyz, this, nullptr, nullptr, args...);
-  }
+  runKernelBackendInternal<T, I>(_xyz, args...);
   GPUFailedMsg(hipGetLastError());
   if (z.ev) {
-    GPUFailedMsg(hipEventRecord(*(hipEvent_t*)z.ev, mInternals->HIPStreams[x.stream]));
+    GPUFailedMsg(hipEventRecord(*(hipEvent_t*)z.ev, mInternals->Streams[x.stream]));
   }
   return 0;
 }
@@ -179,11 +218,13 @@ void GPUReconstructionHIPBackend::GetITSTraits(std::unique_ptr<o2::its::TrackerT
   }
 }
 
+void GPUReconstructionHIPBackend::UpdateSettings()
+{
+  GPUCA_GPUReconstructionUpdateDefailts();
+}
+
 int GPUReconstructionHIPBackend::InitDevice_Runtime()
 {
-  // Find best HIP device, initialize and allocate memory
-  GPUCA_GPUReconstructionUpdateDefailts();
-
   if (mMaster == nullptr) {
     hipDeviceProp_t hipDeviceProp;
     int count, bestDevice = -1;
@@ -195,8 +236,6 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
     if (mDeviceProcessingSettings.debugLevel >= 2) {
       GPUInfo("Available HIP devices:");
     }
-    const int reqVerMaj = 2;
-    const int reqVerMin = 0;
     std::vector<bool> devicesOK(count, false);
     for (int i = 0; i < count; i++) {
       if (mDeviceProcessingSettings.debugLevel >= 4) {
@@ -213,13 +252,6 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
       }
       int deviceOK = true;
       const char* deviceFailure = "";
-      if (hipDeviceProp.major >= 9) {
-        deviceOK = false;
-        deviceFailure = "Invalid Revision";
-      } else if (hipDeviceProp.major < reqVerMaj || (hipDeviceProp.major == reqVerMaj && hipDeviceProp.minor < reqVerMin)) {
-        deviceOK = false;
-        deviceFailure = "Too low device revision";
-      }
 
       deviceSpeed = (double)hipDeviceProp.multiProcessorCount * (double)hipDeviceProp.clockRate * (double)hipDeviceProp.warpSize * (double)hipDeviceProp.major * (double)hipDeviceProp.major;
       if (mDeviceProcessingSettings.debugLevel >= 2) {
@@ -239,8 +271,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
       }
     }
     if (bestDevice == -1) {
-      GPUWarning("No %sHIP Device available, aborting HIP Initialisation", count ? "appropriate " : "");
-      GPUImportant("Requiring Revision %d.%d, Mem: %lld", reqVerMaj, reqVerMin, (long long int)mDeviceMemorySize);
+      GPUWarning("No %sHIP Device available, aborting HIP Initialisation (Required mem: %lld)", count ? "appropriate " : "", (long long int)mDeviceMemorySize);
       return (1);
     }
 
@@ -320,18 +351,14 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
       GPUInfo("Memory ptrs: GPU (%lld bytes): %p - Host (%lld bytes): %p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
       memset(mHostMemoryBase, 0, mHostMemorySize);
       if (GPUFailedMsgI(hipMemset(mDeviceMemoryBase, 0xDD, mDeviceMemorySize))) {
-        GPUError("Error during HIP memset, trying workaround with kernel");
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gHIPMemSetWorkaround), dim3(mBlockCount), dim3(256), 0, 0, (char*)mDeviceMemoryBase, 0xDD, mDeviceMemorySize);
-        if (GPUFailedMsgI(hipGetLastError()) || GPUFailedMsgI(hipDeviceSynchronize())) {
-          GPUError("Error during HIP memset");
-          GPUFailedMsgI(hipDeviceReset());
-          return (1);
-        }
+        GPUError("Error during HIP memset");
+        GPUFailedMsgI(hipDeviceReset());
+        return (1);
       }
     }
 
     for (int i = 0; i < mNStreams; i++) {
-      if (GPUFailedMsgI(hipStreamCreate(&mInternals->HIPStreams[i]))) {
+      if (GPUFailedMsgI(hipStreamCreate(&mInternals->Streams[i]))) {
         GPUError("Error creating HIP Stream");
         GPUFailedMsgI(hipDeviceReset());
         return (1);
@@ -401,7 +428,7 @@ int GPUReconstructionHIPBackend::ExitDevice_Runtime()
 #endif
 
     for (int i = 0; i < mNStreams; i++) {
-      GPUFailedMsgI(hipStreamDestroy(mInternals->HIPStreams[i]));
+      GPUFailedMsgI(hipStreamDestroy(mInternals->Streams[i]));
     }
 
     GPUFailedMsgI(hipHostFree(mHostMemoryBase));
@@ -418,7 +445,7 @@ int GPUReconstructionHIPBackend::ExitDevice_Runtime()
   return (0);
 }
 
-size_t GPUReconstructionHIPBackend::GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+size_t GPUReconstructionHIPBackend::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
   if (mDeviceProcessingSettings.debugLevel >= 3) {
     stream = -1;
@@ -431,12 +458,12 @@ size_t GPUReconstructionHIPBackend::GPUMemCpy(void* dst, const void* src, size_t
       nEvents = 0;
     }
     for (int k = 0; k < nEvents; k++) {
-      GPUFailedMsg(hipStreamWaitEvent(mInternals->HIPStreams[stream], ((hipEvent_t*)evList)[k], 0));
+      GPUFailedMsg(hipStreamWaitEvent(mInternals->Streams[stream], ((hipEvent_t*)evList)[k], 0));
     }
-    GPUFailedMsg(hipMemcpyAsync(dst, src, size, toGPU ? hipMemcpyHostToDevice : hipMemcpyDeviceToHost, mInternals->HIPStreams[stream]));
+    GPUFailedMsg(hipMemcpyAsync(dst, src, size, toGPU == -2 ? hipMemcpyDeviceToDevice : toGPU ? hipMemcpyHostToDevice : hipMemcpyDeviceToHost, mInternals->Streams[stream]));
   }
   if (ev) {
-    GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->HIPStreams[stream == -1 ? 0 : stream]));
+    GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->Streams[stream == -1 ? 0 : stream]));
   }
   return size;
 }
@@ -450,7 +477,7 @@ size_t GPUReconstructionHIPBackend::TransferMemoryInternal(GPUMemoryResource* re
     return 0;
   }
   if (mDeviceProcessingSettings.debugLevel >= 3) {
-    GPUInfo(toGPU ? "Copying to GPU: %s\n" : "Copying to Host: %s", res->Name());
+    GPUInfo("Copying to %s: %s - %lld bytes", toGPU ? "GPU" : "Host", res->Name(), (long long int)res->Size());
   }
   return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }
@@ -464,16 +491,16 @@ size_t GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const v
   if (stream == -1) {
     GPUFailedMsg(hipMemcpyToSymbol(HIP_SYMBOL(gGPUConstantMemBuffer), src, size, offset, hipMemcpyHostToDevice));
   } else {
-    GPUFailedMsg(hipMemcpyToSymbolAsync(HIP_SYMBOL(gGPUConstantMemBuffer), src, size, offset, hipMemcpyHostToDevice, mInternals->HIPStreams[stream]));
+    GPUFailedMsg(hipMemcpyToSymbolAsync(HIP_SYMBOL(gGPUConstantMemBuffer), src, size, offset, hipMemcpyHostToDevice, mInternals->Streams[stream]));
   }
   if (ev && stream != -1) {
-    GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->HIPStreams[stream]));
+    GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->Streams[stream]));
   }
 #else
   if (stream == -1) {
     GPUFailedMsg(hipMemcpy(((char*)mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice));
   } else {
-    GPUFailedMsg(hipMemcpyAsync(((char*)mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice, mInternals->HIPStreams[stream]));
+    GPUFailedMsg(hipMemcpyAsync(((char*)mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice, mInternals->Streams[stream]));
   }
 #endif
   return size;
@@ -481,16 +508,23 @@ size_t GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const v
 
 void GPUReconstructionHIPBackend::ReleaseEvent(deviceEvent* ev) {}
 
-void GPUReconstructionHIPBackend::RecordMarker(deviceEvent* ev, int stream) { GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->HIPStreams[stream])); }
+void GPUReconstructionHIPBackend::RecordMarker(deviceEvent* ev, int stream) { GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->Streams[stream])); }
 
 void GPUReconstructionHIPBackend::SynchronizeGPU() { GPUFailedMsg(hipDeviceSynchronize()); }
 
-void GPUReconstructionHIPBackend::SynchronizeStream(int stream) { GPUFailedMsg(hipStreamSynchronize(mInternals->HIPStreams[stream])); }
+void GPUReconstructionHIPBackend::SynchronizeStream(int stream) { GPUFailedMsg(hipStreamSynchronize(mInternals->Streams[stream])); }
 
 void GPUReconstructionHIPBackend::SynchronizeEvents(deviceEvent* evList, int nEvents)
 {
   for (int i = 0; i < nEvents; i++) {
     GPUFailedMsg(hipEventSynchronize(((hipEvent_t*)evList)[i]));
+  }
+}
+
+void GPUReconstructionHIPBackend::StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents)
+{
+  for (int i = 0; i < nEvents; i++) {
+    GPUFailedMsg(hipStreamWaitEvent(mInternals->Streams[stream], ((hipEvent_t*)evList)[i], 0));
   }
 }
 
@@ -509,14 +543,14 @@ bool GPUReconstructionHIPBackend::IsEventDone(deviceEvent* evList, int nEvents)
 int GPUReconstructionHIPBackend::GPUDebug(const char* state, int stream)
 {
   // Wait for HIP-Kernel to finish and check for HIP errors afterwards, in case of debugmode
-  if (mDeviceProcessingSettings.debugLevel == 0) {
-    return (0);
-  }
   hipError_t cuErr;
   cuErr = hipGetLastError();
   if (cuErr != hipSuccess) {
     GPUError("HIP Error %s while running kernel (%s) (Stream %d)", hipGetErrorString(cuErr), state, stream);
     return (1);
+  }
+  if (mDeviceProcessingSettings.debugLevel == 0) {
+    return (0);
   }
   if (GPUFailedMsgI(hipDeviceSynchronize())) {
     GPUError("HIP Error while synchronizing (%s) (Stream %d)", state, stream);
@@ -538,6 +572,13 @@ int GPUReconstructionHIPBackend::unregisterMemoryForGPU(const void* ptr)
   return GPUFailedMsgI(hipHostUnregister((void*)ptr));
 }
 
+void* GPUReconstructionHIPBackend::getGPUPointer(void* ptr)
+{
+  void* retVal = nullptr;
+  GPUFailedMsg(hipHostGetDevicePointer(&retVal, ptr, 0));
+  return retVal;
+}
+
 void GPUReconstructionHIPBackend::PrintKernelOccupancies()
 {
   unsigned int maxBlocks, threads, suggestedBlocks;
@@ -545,11 +586,11 @@ void GPUReconstructionHIPBackend::PrintKernelOccupancies()
 #define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                                                         \
   GPUFailedMsg(hipOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)), 0, 0));  \
   GPUFailedMsg(hipOccupancyMaxActiveBlocksPerMultiprocessor(&maxBlocks, GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)), threads, 0)); \
-  GPUInfo("Kernel: %40s Block size: %34d, Maximum active blocks: %3d, Suggested blocks: %3d", GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), threads, maxBlocks, suggestedBlocks);
+  GPUInfo("Kernel: %50s Block size: %34d, Maximum active blocks: %3d, Suggested blocks: %3d", GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), threads, maxBlocks, suggestedBlocks);
 #define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)                                                                   \
   GPUFailedMsg(hipOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi), 0, 0));  \
   GPUFailedMsg(hipOccupancyMaxActiveBlocksPerMultiprocessor(&maxBlocks, GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi), threads, 0)); \
-  GPUInfo("Kernel: %40s Block size: %4d, Maximum active blocks: %3d, Suggested blocks: %3d", GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), threads, maxBlocks, suggestedBlocks);
+  GPUInfo("Kernel: %50s Block size: %4d, Maximum active blocks: %3d, Suggested blocks: %3d", GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), threads, maxBlocks, suggestedBlocks);
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 #undef GPUCA_KRNL_LOAD_single

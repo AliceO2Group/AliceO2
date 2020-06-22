@@ -11,9 +11,10 @@
 #ifndef O2_MCH_RAW_BARE_ELINK_ENCODER_H
 #define O2_MCH_RAW_BARE_ELINK_ENCODER_H
 
-#include "ElinkEncoder.h"
 #include "Assertions.h"
 #include "BitSet.h"
+#include "ElinkEncoder.h"
+#include "EncoderImplHelper.h"
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawCommon/SampaCluster.h"
 #include "MCHRawCommon/SampaHeader.h"
@@ -132,7 +133,7 @@ void ElinkEncoder<BareFormat, CHARGESUM>::addChannelData(uint8_t chId, const std
   assertSync();
   assertNotMixingClusters<CHARGESUM>(data);
 
-  auto header = buildHeader(mElinkId, chId, data);
+  auto header = impl::buildSampaHeader(mElinkId, chId, data);
 
   append50(header.uint64());
 
@@ -146,7 +147,7 @@ template <typename CHARGESUM>
 void ElinkEncoder<BareFormat, CHARGESUM>::append(const SampaCluster& sc)
 {
   append10(sc.nofSamples());
-  append10(sc.timestamp);
+  append10(sc.sampaTime);
   appendCharges(sc);
 }
 

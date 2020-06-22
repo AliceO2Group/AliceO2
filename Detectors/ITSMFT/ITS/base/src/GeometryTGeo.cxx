@@ -285,7 +285,7 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
 
   int wrID = mLayerToWrapper[lay];
 
-  TString path = Form("/cave_1/%s_2/", GeometryTGeo::getITSVolPattern());
+  TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getITSVolPattern());
 
   if (wrID >= 0) {
     path += Form("%s%d_1/", getITSWrapVolPattern(), wrID);

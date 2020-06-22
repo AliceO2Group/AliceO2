@@ -9,10 +9,11 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(rANS  
-	SOURCES src/SymbolStatistics.cxx)
+               SOURCES src/SymbolStatistics.cxx
+               PUBLIC_LINK_LIBRARIES FairLogger::FairLogger)
 
 o2_add_test(EncodeDecode
-			NAME EncodeDecode
+            NAME EncodeDecode
             SOURCES test/test_ransEncodeDecode.cxx
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS

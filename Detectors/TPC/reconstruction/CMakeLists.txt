@@ -16,6 +16,7 @@ o2_add_library(TPCReconstruction
                        src/HalfSAMPAData.cxx
                        src/HwClusterer.cxx
                        src/HwClustererParam.cxx
+                       src/KrBoxClusterFinder.cxx
                        src/RawReader.cxx
                        src/RawReaderCRU.cxx
                        src/RawReaderEventSync.cxx
@@ -24,6 +25,7 @@ o2_add_library(TPCReconstruction
                        src/HardwareClusterDecoder.cxx
                        src/DigitalCurrentClusterIntegrator.cxx
                        src/TPCFastTransformHelperO2.cxx
+                       src/CTFCoder.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimulationDataFormat
                                      O2::TPCBase O2::GPUTracking)
 
@@ -37,6 +39,8 @@ o2_target_root_dictionary(
           include/TPCReconstruction/HalfSAMPAData.h
           include/TPCReconstruction/HwClusterer.h
           include/TPCReconstruction/HwClustererParam.h
+          include/TPCReconstruction/KrBoxClusterFinder.h
+          include/TPCReconstruction/KrCluster.h
           include/TPCReconstruction/RawReader.h
           include/TPCReconstruction/RawReaderCRU.h
           include/TPCReconstruction/RawReaderEventSync.h
@@ -44,7 +48,8 @@ o2_target_root_dictionary(
           include/TPCReconstruction/GPUCATracking.h
           include/TPCReconstruction/HardwareClusterDecoder.h
           include/TPCReconstruction/DigitalCurrentClusterIntegrator.h
-          include/TPCReconstruction/TPCFastTransformHelperO2.h)
+          include/TPCReconstruction/TPCFastTransformHelperO2.h
+          include/TPCReconstruction/CTFCoder.h)
 
 o2_add_executable(read-gbtframes
                   COMPONENT_NAME tpc
@@ -119,6 +124,9 @@ o2_add_test_root_macro(macro/createTPCSpaceChargeCorrection.C
                                              O2::TPCSpaceChargeBase
                        LABELS tpc)
 
+o2_add_test_root_macro(macro/findKrBoxCluster.C
+                      PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
+                      LABELS tpc)
 
 # FIXME: should be moved to TPCSimulation as it requires O2::TPCSimulation
 # target which is built after reconstruction
