@@ -8,6 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+//
+// A simple tool to produce objects for the conversion from run number to timestamp.
+// The tool uploads the 'RunNumber -> timestamp' converter to CCDB.
+// If no converter object is found in CCDB a new one is created and uploaded.
+//
+// Author: Nicolo' Jacazio on 2020-06-22
+
 #include "Analysis/RunToTimestamp.h"
 #include "CCDB/CcdbApi.h"
 #include <boost/program_options.hpp>
@@ -47,7 +54,6 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
   return true;
 }
 
-// a simple tool to produce objects for the conversion from run number to timestamp
 int main(int argc, char* argv[])
 {
   bpo::options_description options("Allowed options");

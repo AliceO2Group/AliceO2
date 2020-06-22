@@ -11,6 +11,7 @@
 //
 // Class for conversion between run number and timestamp
 //
+// Author: Nicolo' Jacazio on 2020-06-22
 
 #ifndef RunToTimestamp_H
 #define RunToTimestamp_H

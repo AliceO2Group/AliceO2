@@ -8,6 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+//
+// Class for conversion between run number and timestamp
+//
+// Author: Nicolo' Jacazio on 2020-06-22
+
 #include "Analysis/RunToTimestamp.h"
 
 ClassImp(RunToTimestamp);
