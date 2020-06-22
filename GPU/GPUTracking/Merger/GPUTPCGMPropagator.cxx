@@ -291,6 +291,10 @@ GPUd() int GPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, boo
       return -2;
     }
   }
+  if (CAMath::Abs(posX - mT->X()) < 1.e-7f) {
+    mT->SetX(posX);
+    return 0;
+  }
 
   float B[3];
   GetBxByBz(mT0.X(), mT0.Y(), mT0.Z(), B);
@@ -316,6 +320,10 @@ GPUd() int GPUTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha, b
     if (RotateToAlpha(posAlpha) != 0) {
       return -2;
     }
+  }
+  if (CAMath::Abs(posX - mT->X()) < 1.e-7f) {
+    mT->SetX(posX);
+    return 0;
   }
 
   float Bz = GetBz(mT0.X(), mT0.Y(), mT0.Z());
