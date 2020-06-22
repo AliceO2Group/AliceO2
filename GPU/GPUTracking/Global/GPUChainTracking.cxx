@@ -289,7 +289,7 @@ bool GPUChainTracking::ValidateSettings()
       GPUError("Double pipeline incompatible to compression mode 1");
       return false;
     }
-    if (!(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) || !(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
+    if (!(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) || !(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding) || param().rec.fwdTPCDigitsAsClusters) {
       GPUError("Invalid reconstruction settings for double pipeline");
       return false;
     }
@@ -986,18 +986,16 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   char transferRunning[NSLICES] = {0};
   unsigned int outputQueueStart = mOutputQueue.size();
   std::pair<unsigned int, unsigned int> nextPos[NSLICES];
+  CfFragment fragmentFirst{timeSliceLen, fragmentLen};
+  for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && lane < NSLICES; lane++) {
+    unsigned int iSlice = lane;
+    if (mIOPtrs.tpcZS && tpcHasZSPages[iSlice]) {
+      nextPos[iSlice] = RunTPCClusterizer_transferZS(iSlice, fragmentFirst.start, fragmentFirst.last() - 1, GetDeviceProcessingSettings().nTPCClustererLanes + lane);
+    }
+  }
 
   for (unsigned int iSliceBase = 0; iSliceBase < NSLICES; iSliceBase += GetDeviceProcessingSettings().nTPCClustererLanes) {
     std::vector<bool> laneHasData(GetDeviceProcessingSettings().nTPCClustererLanes, false);
-    if (iSliceBase == 0) {
-      CfFragment fragmentFirst{timeSliceLen, fragmentLen};
-      for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
-        unsigned int iSlice = iSliceBase + lane;
-        if (mIOPtrs.tpcZS && tpcHasZSPages[iSlice]) {
-          nextPos[iSlice] = RunTPCClusterizer_transferZS(iSlice, fragmentFirst.start, fragmentFirst.last() - 1, GetDeviceProcessingSettings().nTPCClustererLanes + lane);
-        }
-      }
-    }
     for (CfFragment fragment{timeSliceLen, fragmentLen}; !fragment.isEnd(); fragment = fragment.next(timeSliceLen, fragmentLen)) {
       if (GetDeviceProcessingSettings().debugLevel >= 3) {
         GPUInfo("Processing time bins [%d, %d)", fragment.start, fragment.last());
