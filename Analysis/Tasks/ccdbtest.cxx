@@ -26,7 +26,7 @@ using namespace o2::header;
 using namespace o2;
 
 struct CCDBTask {
-  o2::ccdb::BasicCCDBManager cdb = o2::ccdb::BasicCCDBManager::instance();
+  Service<o2::ccdb::BasicCCDBManager> cdb;
   Configurable<std::string> path{"ccdb-path", "qc/TOF/TOFTaskCompressed/hDiagnostic", "path to the ccdb object"};
 
   void init(o2::framework::InitContext&)
@@ -34,16 +34,16 @@ struct CCDBTask {
     Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
     Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
 
-    cdb.setURL(url);
-    cdb.setTimestamp(timestamp);
-    cdb.setCachingEnabled(true);
-    cdb.setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    cdb->setURL(url);
+    cdb->setTimestamp(timestamp);
+    cdb->setCachingEnabled(true);
+    cdb->setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
   }
 
   void process(aod::Collision const& collision)
   {
-    auto obj = cdb.get<TH2F>(path.value);
-    auto obj2 = cdb.getForTimeStamp<TH2F>(path.value, -1);
+    auto obj = cdb->get<TH2F>(path.value);
+    auto obj2 = cdb->getForTimeStamp<TH2F>(path.value, -1);
     if (obj) {
       LOGF(info, "Found object!");
       obj->Print("all");
