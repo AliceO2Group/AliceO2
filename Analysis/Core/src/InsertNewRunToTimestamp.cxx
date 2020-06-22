@@ -30,7 +30,7 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
     "path,p", bpo::value<std::string>()->default_value("Test/RunToTimestamp"), "Path to the object in the CCDB repository")(
     "url,u", bpo::value<std::string>()->default_value("http://ccdb-test.cern.ch:8080"), "URL of the CCDB database")(
     "start,s", bpo::value<long>()->default_value(0), "Start timestamp of object validity")(
-    "stop,S", bpo::value<long>()->default_value(1592870400000), "Stop timestamp of object validity")(
+    "stop,S", bpo::value<long>()->default_value(4108971600000), "Stop timestamp of object validity")(
     "update,u", bpo::value<int>()->default_value(0), "Flag to update the object instead of inserting the new timestamp")(
     "verbose,v", bpo::value<int>()->default_value(0), "Verbose level 0, 1")(
     "help,h", "Produce help message.");
