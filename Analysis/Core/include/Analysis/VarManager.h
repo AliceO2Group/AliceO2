@@ -16,8 +16,6 @@
 #ifndef VarManager_H
 #define VarManager_H
 
-#include <TObject.h>
-#include <TString.h>
 
 #include <vector>
 #include <map>
