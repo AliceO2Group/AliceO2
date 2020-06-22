@@ -2,8 +2,6 @@
 #ifndef VARMANAGER_H
 #define VARMANAGER_H
 
-#include <TObject.h>
-#include <TString.h>
 
 //#include "Framework/runDataProcessing.h"
 //#include "Framework/ASoA.h"
@@ -13,11 +11,13 @@
 //#include "Framework/AnalysisDataModel.h"
 #include "Analysis/ReducedInfoTables.h"
 
+#include <TObject.h>
+#include <TString.h>
 
 //using namespace o2;
 //using namespace o2::framework;
 //using namespace o2::framework::expressions;
-//using namespace o2::aod;
+using namespace o2::aod;
 
 //using Event = soa::Join<o2::aod::ReducedEvents, o2::aod::ReducedEventsExtended, o2::aod::ReducedEventsVtxCov>::iterator;
 //using Track = soa::Join<o2::aod::ReducedTracks, o2::aod::ReducedTracksBarrel>::iterator;
@@ -109,13 +109,13 @@ public:
   }
   static bool GetUsedVar(Variables var) {return fgUsedVars[var];}
   
-  /*template <typename T> 
-  void Fill(T const& object, float* values) {
-    if constexpr (std::is_same_v<T, Event>)
-      FillEvent(T,values);
-    if constexpr (std::is_same_v<T, Track>)
-      FillTrack(T,values);
-  };*/
+  template <typename T> 
+  void Fill(T object, float* values) {
+    if constexpr (std::is_same_v<T, ReducedEvent>)
+      FillEvent(object,values);
+    if constexpr (std::is_same_v<T, ReducedTrack>)
+      FillTrack(object,values);
+  };
   
   static void FillEvent(o2::aod::ReducedEvent event, float* values);
   static void FillTrack(o2::aod::ReducedTrack track, float* values);
