@@ -41,12 +41,22 @@ struct SelectTracks {
   Configurable<double> ptmintrack{"ptmintrack", -1, "ptmin single track"};
   Configurable<int> d_tpcnclsfound {"d_tpcnclsfound", 70, "min number of tpc cls >="};
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
+  void process(aod::Collision const& collision,
+               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
     Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
     for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
       auto& track_0 = *it0;
       int status = 1;
+      if (abs(track_0.signed1Pt())<ptmintrack)
+        status = 0;
+       UChar_t clustermap_0 = track_0.itsClusterMap();
+       bool isselected_0 = track_0.tpcNClsFound() >= d_tpcnclsfound && track_0.flags() & 0x4;
+       isselected_0 = isselected_0 && (TESTBIT(clustermap_0, 0) || TESTBIT(clustermap_0, 1));
+       if (!isselected_0)
+         status = 0;
+       seltrack(status);
+
       array<float,2> dca;
       float x0_ = track_0.x();
       float alpha0_ = track_0.alpha();
@@ -61,21 +71,7 @@ struct SelectTracks {
       o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
       trackparvar0.propagateParamToDCA(vtxXYZ, 5., &dca);
       LOGF(info, "dca values %f %f", dca[0], dca[1]);
-
-  {
-    for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
-      auto& track_0 = *it0;
-      int status = 1;
-
-      if (abs(track_0.signed1Pt())<ptmintrack)
-        status = 0;
-      UChar_t clustermap_0 = track_0.itsClusterMap();
-      bool isselected_0 = track_0.tpcNClsFound() >= d_tpcnclsfound && track_0.flags() & 0x4;
-      isselected_0 = isselected_0 && (TESTBIT(clustermap_0, 0) || TESTBIT(clustermap_0, 1));
-      if (!isselected_0)
-        status = 0;
-      seltrack(status);
-    }
+    }  
   }
 };
 
