@@ -67,6 +67,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_METADATUM_EXECUTABLE,
     IN_METADATUM_ARGS,
     IN_METADATUM_ARG,
+    IN_METADATUM_CHANNELS,
+    IN_METADATUM_CHANNEL,
     IN_ERROR
   };
 
@@ -187,6 +189,12 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       case State::IN_METADATUM_ARG:
         s << "IN_METADATUM_ARG";
         break;
+      case State::IN_METADATUM_CHANNELS:
+        s << "IN_METADATUM_CHANNELS";
+        break;
+      case State::IN_METADATUM_CHANNEL:
+        s << "IN_METADATUM_CHANNEL";
+        break;
     }
     return s;
   }
@@ -304,6 +312,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_METADATUM);
     } else if (in(State::IN_METADATUM_ARGS)) {
       push(State::IN_METADATUM_ARG);
+    } else if (in(State::IN_METADATUM_CHANNELS)) {
+      push(State::IN_METADATUM_CHANNEL);
     }
     return true;
   }
@@ -313,7 +323,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     enter("END_ARRAY");
     // Handle the case in which inputs / options / outputs are
     // empty.
-    if (in(State::IN_INPUT) || in(State::IN_OUTPUT) || in(State::IN_OPTION) || in(State::IN_METADATUM) || in(State::IN_METADATUM_ARG) || in(State::IN_DATAPROCESSORS)) {
+    if (in(State::IN_INPUT) || in(State::IN_OUTPUT) || in(State::IN_OPTION) || in(State::IN_METADATUM) || in(State::IN_METADATUM_ARG) || in(State::IN_METADATUM_CHANNEL) || in(State::IN_DATAPROCESSORS)) {
       pop();
     }
     pop();
@@ -382,6 +392,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_METADATUM_ARGS);
     } else if (in(State::IN_METADATUM) && strncmp(str, "workflowOptions", length) == 0) {
       push(State::IN_WORKFLOW_OPTIONS);
+    } else if (in(State::IN_METADATUM) && strncmp(str, "channels", length) == 0) {
+      push(State::IN_METADATUM_CHANNELS);
     }
     return true;
   }
@@ -425,6 +437,11 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       // This is in an array, so we do not actually want to
       // exit from the state.
       push(State::IN_METADATUM_ARG);
+    } else if (in(State::IN_METADATUM_CHANNEL)) {
+      metadata.back().channels.push_back(s);
+      // This is in an array, so we do not actually want to
+      // exit from the state.
+      push(State::IN_METADATUM_CHANNEL);
     }
     pop();
     return true;
@@ -692,6 +709,12 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
       w.Key("help");
       w.String(option.help.c_str());
       w.EndObject();
+    }
+    w.EndArray();
+    w.Key("channels");
+    w.StartArray();
+    for (auto& channel : info.channels) {
+      w.String(channel.c_str());
     }
     w.EndArray();
     w.EndObject();
