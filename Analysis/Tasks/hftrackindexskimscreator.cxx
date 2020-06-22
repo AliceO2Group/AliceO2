@@ -61,6 +61,12 @@ struct SelectTracks {
       o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
       trackparvar0.propagateParamToDCA(vtxXYZ, 5., &dca);
       LOGF(info, "dca values %f %f", dca[0], dca[1]);
+
+  {
+    for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
+      auto& track_0 = *it0;
+      int status = 1;
+
       if (abs(track_0.signed1Pt())<ptmintrack)
         status = 0;
       UChar_t clustermap_0 = track_0.itsClusterMap();
