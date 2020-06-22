@@ -8,14 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+//
+// A task to fill the timestamp table from run number.
+// Uses RunToTimestamp object from CCDB, fails if not available.
+//
+// Author: Nicolo' Jacazio on 2020-06-22
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Analysis/RunToTimestamp.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsRaw/HBFUtils.h"
-
-#include <chrono>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -49,38 +53,7 @@ struct TimestampTask {
   }
 };
 
-struct TimestampUserTask {
-  Service<o2::ccdb::BasicCCDBManager> ccdb;
-  Configurable<std::string> path{"ccdb-path", "qc/TOF/TOFTaskCompressed/hDiagnostic", "path to the ccdb object"};
-  Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
-  Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
-  Configurable<long> nolaterthan{"ccdb-no-later-than", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(), "latest acceptable timestamp of creation for the object"};
-
-  void init(o2::framework::InitContext&)
-  {
-    ccdb->setURL(url.value);
-    ccdb->setTimestamp(timestamp.value);
-    ccdb->setCachingEnabled(true);
-    // Not later than now objects
-    ccdb->setCreatedNotAfter(nolaterthan.value);
-  }
-
-  void process(soa::Join<aod::BCs, aod::Timestamps> const& iter)
-  {
-    for (auto i : iter) {
-      auto obj = ccdb->getForTimeStamp<TH2F>(path.value, i.timestamp());
-      if (obj) {
-        LOGF(info, "Found object!");
-        obj->Print("all");
-      }
-    }
-  }
-};
-
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  // return WorkflowSpec{adaptAnalysisTask<TimestampTask>("TimestampTask")};
-  return WorkflowSpec{
-    adaptAnalysisTask<TimestampTask>("TimestampTask"),
-    adaptAnalysisTask<TimestampUserTask>("TimestampUserTask")};
+  return WorkflowSpec{adaptAnalysisTask<TimestampTask>("TimestampTask")};
 }
