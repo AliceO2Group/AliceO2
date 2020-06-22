@@ -167,12 +167,10 @@ struct HFTrackIndexSkimsCreator {
           continue;
         const auto& vtx = df.getPCACandidate();
         //LOGF(info, "vertex x %f", vtx[0]);
-        o2::track::TrackParCov trackdec0 = df.getTrack(0);
-        o2::track::TrackParCov trackdec1 = df.getTrack(1);
         std::array<float, 3> pvec0;
         std::array<float, 3> pvec1;
-        trackdec0.getPxPyPzGlo(pvec0);
-        trackdec1.getPxPyPzGlo(pvec1);
+        df.getTrack(0).getPxPyPzGlo(pvec0);
+        df.getTrack(1).getPxPyPzGlo(pvec1);
         float mass_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masspion,
                                      pvec1[0], pvec1[1], pvec1[2], masskaon);
         float masssw_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masskaon,
@@ -209,15 +207,12 @@ struct HFTrackIndexSkimsCreator {
             if (nCand3 == 0)
               continue;
             const auto& vtx3 = df3.getPCACandidate();
-            o2::track::TrackParCov trackdec0_3p = df3.getTrack(0);
-            o2::track::TrackParCov trackdec1_3p = df3.getTrack(1);
-            o2::track::TrackParCov trackdec2_3p = df3.getTrack(2);
             std::array<float, 3> pvec0_3p;
             std::array<float, 3> pvec1_3p;
             std::array<float, 3> pvec2_3p;
-            trackdec0_3p.getPxPyPzGlo(pvec0_3p);
-            trackdec1_3p.getPxPyPzGlo(pvec1_3p);
-            trackdec2_3p.getPxPyPzGlo(pvec2_3p);
+            df3.getTrack(0).getPxPyPzGlo(pvec0_3p);
+            df3.getTrack(1).getPxPyPzGlo(pvec1_3p);
+            df3.getTrack(2).getPxPyPzGlo(pvec2_3p);
             hftrackindexprong3(track_0.collisionId(),
                                track_0.globalIndex(),
                                track_1.globalIndex(),
