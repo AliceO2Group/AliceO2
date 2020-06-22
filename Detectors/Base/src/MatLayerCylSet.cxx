@@ -354,8 +354,9 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
     rval.meanRho /= rval.length;                                       // average
     float norm = (rval.length < 0.f) ? -ray.getDist() : ray.getDist(); // normalize
     rval.meanX2X0 *= norm;
-    rval.length *= norm;
   }
+  rval.length = ray.getDist();
+
 #ifdef _DBG_LOC_
   printf("<rho> = %e, x2X0 = %e  | step = %e\n", rval.meanRho, rval.meanX2X0, rval.length);
 #endif
