@@ -22,22 +22,22 @@ namespace o2::aod
 {
 namespace ts
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_INDEX_COLUMN(BC, bc);
 DECLARE_SOA_COLUMN(Timestamp, timestamp, long);
 } // namespace ts
 
-DECLARE_SOA_TABLE(TSs, "AOD", "TS", o2::soa::Index<>, ts::Timestamp);
+DECLARE_SOA_TABLE(TSs, "AOD", "TS", ts::Timestamp);
 
 } // namespace o2::aod
 
 struct TimestampTask {
   Produces<aod::TSs> ts_table;
   RunToTimestamp* converter = nullptr;
+  Service<o2::ccdb::BasicCCDBManager> ccdb;
 
   void init(o2::framework::InitContext&)
   {
     LOGF(info, "Initializing TimestampTask");
-    Service<o2::ccdb::BasicCCDBManager> ccdb;
     Configurable<std::string> path{"ccdb-path", "Test/RunToTimestamp", "path to the ccdb object"};
     Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
     converter = ccdb->get<RunToTimestamp>(path.value);
