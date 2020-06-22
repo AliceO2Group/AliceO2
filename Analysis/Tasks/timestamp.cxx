@@ -13,6 +13,7 @@
 #include "Analysis/RunToTimestamp.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -44,13 +45,16 @@ struct TimestampTask {
     if (converter) {
       LOGF(info, "Run-number to timestamp converter found!");
     } else {
-      LOGF(warning, "Cannot find run-number to timestamp converter in path '%s'.", path.value.data());
+      LOGF(fatal, "Cannot find run-number to timestamp converter in path '%s'.", path.value.data());
     }
   }
 
   void process(aod::BC const& bc)
   {
     long timestamp = converter->getTimestamp(bc.runNumber());
+    InteractionRecord current(bc.globalBC(), 0);
+    InteractionRecord initial = o2::raw::HBFUtils::Instance().getFirstIR();
+    timestamp += 1000 * (current - initial).bc2ns();
     ts_table(timestamp);
   }
 };
