@@ -33,9 +33,9 @@ namespace seltrack
 DECLARE_SOA_COLUMN(IsSel, issel, int);
 DECLARE_SOA_COLUMN(DCAPrim0, dcaprim0, float);
 DECLARE_SOA_COLUMN(DCAPrim1, dcaprim1, float);
-} // namespace etaphi
+} // namespace seltrack
 DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK", seltrack::IsSel, seltrack::DCAPrim0,
-                                               seltrack::DCAPrim1);
+                  seltrack::DCAPrim1);
 } // namespace o2::aod
 
 struct SelectTracks {
@@ -74,7 +74,7 @@ struct SelectTracks {
                                        track_0.c1PtTgl(), track_0.c1Pt21Pt2()};
       o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
       trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca);
-      if (dca[0] * dca[0] + dca[1] * dca[1] < dcatrackmin*dcatrackmin)
+      if (dca[0] * dca[0] + dca[1] * dca[1] < dcatrackmin * dcatrackmin)
         status = 0;
       seltrack(status, dca[0], dca[1]);
       //hdca->Fill(sqrt(dca[0]*dca[0] + dca[1]*dca[1]));
@@ -91,14 +91,14 @@ struct HFTrackIndexSkimsCreator {
   Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
   Configurable<int> do3prong{"do3prong", 0, "do 3 prong"};
   Configurable<double> d_bz{"d_bz", 5.0, "bz field"};
-  Configurable<bool> b_propdca{"b_propdca", true, \
+  Configurable<bool> b_propdca{"b_propdca", true,
                                "create tracks version propagated to PCA"};
   Configurable<double> d_maxr{"d_maxr", 200, "reject PCA's above this radius"};
-  Configurable<double> d_maxdzini{"d_maxdzini", 4, \
+  Configurable<double> d_maxdzini{"d_maxdzini", 4,
                                   "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
-  Configurable<double> d_minparamchange{"d_minparamchange", 1e-3, \
+  Configurable<double> d_minparamchange{"d_minparamchange", 1e-3,
                                         "stop iterations if largest change of any X is smaller than this"};
-  Configurable<double> d_minrelchi2change {"d_minrelchi2change", 0.9, \
+  Configurable<double> d_minrelchi2change {"d_minrelchi2change", 0.9,
                                            "stop iterations is chi2/chi2old > this"};
 
   Filter seltrack = (aod::seltrack::issel == 1);
@@ -132,7 +132,6 @@ struct HFTrackIndexSkimsCreator {
     df3.setMaxDZIni(d_maxdzini);
     df3.setMinParamChange(d_minparamchange);
     df3.setMinRelChi2Change(d_minrelchi2change);
-
 
     for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
       auto& track_0 = *it0;
@@ -193,7 +192,8 @@ struct HFTrackIndexSkimsCreator {
             double mass3prong2 = invmass3prongs2(track_0.px(), track_0.py(), track_0.pz(), masspion,
                                                  track_1.px(), track_1.py(), track_1.pz(), masspion,
                                                  track_2.px(), track_2.py(), track_2.pz(), masspion);
-            if (mass3prong2 < 1.5*1.5 || mass3prong2 > 2.5*2.5) continue;
+            if (mass3prong2 < 1.5 * 1.5 || mass3prong2 > 2.5 * 2.5)
+              continue;
 
             std::array<float, 5> arraypar2 = {track_2.y(), track_2.z(), track_2.snp(),
                                               track_2.tgl(), track_2.signed1Pt()};
@@ -228,7 +228,6 @@ struct HFTrackIndexSkimsCreator {
     }
   }
 };
-
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
