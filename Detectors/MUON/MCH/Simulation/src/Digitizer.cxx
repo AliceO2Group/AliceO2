@@ -98,11 +98,10 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits,
       mMCTruthOutputContainer.addElement(digitIndex, label);
     } //loop over digits to generate MCdigits
   }   //loop over hits
-  
+
   //generate noise-only digits
   generateNoiseDigits();
-  
-  
+
   fillOutputContainer(digits);
   provideMC(mcContainer);
 }
@@ -174,26 +173,26 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
   return ndigits;
 }
 //______________________________________________________________________
-void Digitizer::generateNoiseDigits(){
+void Digitizer::generateNoiseDigits()
+{
 
   TRandom* random = new TRandom;
-  o2::mch::mapping::forEachDetectionElement([&digits = this->mDigits, &normProbNoise = this->mNormProbNoise,
-					     &eventTime = this->mEventTime, &eventID = this->mEventID,
-					     &srcID = this->mSrcID, &mcTruthOutputContainer = this->mMCTruthOutputContainer,
-					     &random](int detID)  {
-					      auto& seg = segmentation(detID);
-					      auto nPads = seg.nofPads();
-					      auto nNoisyPadsAv = (float) nPads * normProbNoise;
-					      int nNoisyPads = TMath::Nint(random->Gaus(nNoisyPadsAv, TMath::Sqrt(nNoisyPadsAv)));
-					      for(int i=0; i<nNoisyPads; i++)
-						{
-						  int padid = random->Integer(nNoisyPads+1);
-						  digits.emplace_back(eventTime, detID, padid, 0.6);
-						  //just to round above threshold when added
-						  MCCompLabel label(-1, eventID, srcID, true); 
-						  mcTruthOutputContainer.addElement(digits.size()-1, label);
-						}
-					    });
+  o2::mch::mapping::forEachDetectionElement([& digits = this->mDigits, &normProbNoise = this->mNormProbNoise,
+                                             &eventTime = this->mEventTime, &eventID = this->mEventID,
+                                             &srcID = this->mSrcID, &mcTruthOutputContainer = this->mMCTruthOutputContainer,
+                                             &random](int detID) {
+    auto& seg = segmentation(detID);
+    auto nPads = seg.nofPads();
+    auto nNoisyPadsAv = (float)nPads * normProbNoise;
+    int nNoisyPads = TMath::Nint(random->Gaus(nNoisyPadsAv, TMath::Sqrt(nNoisyPadsAv)));
+    for (int i = 0; i < nNoisyPads; i++) {
+      int padid = random->Integer(nNoisyPads + 1);
+      digits.emplace_back(eventTime, detID, padid, 0.6);
+      //just to round above threshold when added
+      MCCompLabel label(-1, eventID, srcID, true);
+      mcTruthOutputContainer.addElement(digits.size() - 1, label);
+    }
+  });
   delete random;
   random = 0x0;
 

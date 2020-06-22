@@ -79,7 +79,7 @@ class Digitizer
   //sum_i 1/padcount_i where i is the detelemID
   float mInvPadSum = 0.0450832;
   float mNormProbNoise = mProbNoise / mInvPadSum;
-  
+
   // digit per pad
   std::vector<Digit> mDigits;
 
