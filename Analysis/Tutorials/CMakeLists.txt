@@ -99,6 +99,6 @@ o2_add_dpl_workflow(mc-histograms
 
 o2_add_dpl_workflow(ccdbaccess
                   SOURCES src/ccdbaccess.cxx
-                  PUBLIC_LINK_LIBRARIES O2::CCDB O2::Framework O2::AnalysisDataModel
+                  PUBLIC_LINK_LIBRARIES O2::AnalysisCore O2::CCDB O2::Framework O2::AnalysisDataModel
                   COMPONENT_NAME AnalysisTutorial)
 
