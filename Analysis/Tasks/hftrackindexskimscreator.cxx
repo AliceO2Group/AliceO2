@@ -31,15 +31,20 @@ namespace o2::aod
 namespace seltrack
 {
 DECLARE_SOA_COLUMN(IsSel, issel, int);
+DECLARE_SOA_COLUMN(DCAPrim0, dcaprim0, float);
+DECLARE_SOA_COLUMN(DCAPrim1, dcaprim1, float);
 } // namespace etaphi
-DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK", seltrack::IsSel);
+DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK", seltrack::IsSel, seltrack::DCAPrim0,
+                                               seltrack::DCAPrim1);
 } // namespace o2::aod
 
 
 struct SelectTracks {
   Produces<aod::SelTrack> seltrack;
   Configurable<double> ptmintrack{"ptmintrack", -1, "ptmin single track"};
+  Configurable<double> dcatrackmin{"dcatrackmin", 0, "dca single track min"};
   Configurable<int> d_tpcnclsfound {"d_tpcnclsfound", 70, "min number of tpc cls >="};
+  Configurable<double> d_bz{"d_bz", 5.0, "bz field"};
 
   void process(aod::Collision const& collision,
                soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
@@ -50,13 +55,11 @@ struct SelectTracks {
       int status = 1;
       if (abs(track_0.signed1Pt())<ptmintrack)
         status = 0;
-       UChar_t clustermap_0 = track_0.itsClusterMap();
-       bool isselected_0 = track_0.tpcNClsFound() >= d_tpcnclsfound && track_0.flags() & 0x4;
-       isselected_0 = isselected_0 && (TESTBIT(clustermap_0, 0) || TESTBIT(clustermap_0, 1));
-       if (!isselected_0)
-         status = 0;
-       seltrack(status);
-
+      UChar_t clustermap_0 = track_0.itsClusterMap();
+      bool isselected_0 = track_0.tpcNClsFound() >= d_tpcnclsfound && track_0.flags() & 0x4;
+      isselected_0 = isselected_0 && (TESTBIT(clustermap_0, 0) || TESTBIT(clustermap_0, 1));
+      if (!isselected_0)
+        status = 0;
       array<float,2> dca;
       float x0_ = track_0.x();
       float alpha0_ = track_0.alpha();
@@ -69,8 +72,10 @@ struct SelectTracks {
                                        track_0.c1PtY(), track_0.c1PtZ(), track_0.c1PtSnp(),
                                        track_0.c1PtTgl(), track_0.c1Pt21Pt2()};
       o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
-      trackparvar0.propagateParamToDCA(vtxXYZ, 5., &dca);
-      LOGF(info, "dca values %f %f", dca[0], dca[1]);
+      trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca);
+      if (dca[0]*dca[0] + dca[1]*dca[1] < dcatrackmin*dcatrackmin)
+        status = 0;
+      seltrack(status, dca[0], dca[1]);
     }  
   }
 };
