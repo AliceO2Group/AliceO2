@@ -1,5 +1,16 @@
 #!/usr/bin/python3
 
+"""
+Script to update the CCDB with timestamp non-overlapping objects.
+If an object is found in the range specified, the object is split into two.
+If the requested range was overlapping three objects are uploaded on CCDB:
+1) latest object with requested timestamp validity
+2) old object with validity [old_lower_validity-requested_lower_bound]
+3) old object with validity [requested_upper_bound, old_upper_validity]
+Author: Nicolo' Jacazio on 2020-06-22
+TODO add support for 3 files update
+TODO add support for user input
+"""
 
 import subprocess
 from datetime import datetime
@@ -78,6 +89,7 @@ def main(path, timestamp_from, timestamp_until):
     plt.show()
 
 
-main("qc/TOF/TOFTaskCompressed/hDiagnostic",
-     1588946517161 + 10000000,
-     1588946517161 + 40000000)
+if __name__ == "__main__":
+    main("qc/TOF/TOFTaskCompressed/hDiagnostic",
+        1588946517161 + 10000000,
+        1588946517161 + 40000000)
