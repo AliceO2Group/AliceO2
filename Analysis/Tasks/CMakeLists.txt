@@ -33,11 +33,6 @@ o2_add_dpl_workflow(vertexing-hf
 		  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsVertexing
 	          COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(ccdbtest
-                    SOURCES ccdbtest.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::CCDB
-                    COMPONENT_NAME Analysis)
-
 o2_add_dpl_workflow(timestamp
                     SOURCES timestamp.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::CommonDataFormat O2::CCDB
