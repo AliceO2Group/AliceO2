@@ -9,19 +9,10 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/runDataProcessing.h"
-#include "Framework/ASoA.h"
-#include "Framework/ServiceRegistry.h"
-#include "Framework/ControlService.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-#include "ReconstructionDataFormats/Track.h"
-#include "Framework/ASoAHelpers.h"
-#include "DetectorsRaw/HBFUtils.h"
-
-#include <CCDB/CcdbApi.h>
-
-#include <chrono>
-#include <thread>
+#include "Analysis/RunToTimestamp.h"
+#include <CCDB/BasicCCDBManager.h>
+#include "CommonDataFormat/InteractionRecord.h"
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -41,53 +32,25 @@ DECLARE_SOA_TABLE(TSs, "AOD", "TS", o2::soa::Index<>, ts::Timestamp);
 
 struct TimestampTask {
   Produces<aod::TSs> ts_table;
-
-  struct asd {
-    long GetTimestamp(Int_t run) { return 1; };
-  } converter;
+  RunToTimestamp* converter = nullptr;
 
   void init(o2::framework::InitContext&)
   {
-    o2::ccdb::CcdbApi api;
     LOGF(info, "Initializing TimestampTask");
-    Configurable<TString> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
-    Configurable<std::string> path{"ccdb-path", "qc/TOF/TOFTaskCompressed/hDiagnostic", "path to the ccdb object"};
+    Service<o2::ccdb::BasicCCDBManager> ccdb;
+    Configurable<std::string> path{"ccdb-path", "Test/RunToTimestamp", "path to the ccdb object"};
     Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
-
-    std::map<std::string, std::string> metadata;
-    std::map<std::string, std::string>* headers;
-
-    // CCDBobj<TH2F> obj2;
-    api.init(url.value.Data());
-    if (!api.isHostReachable()) {
-      LOGF(warning, "CCDB at URL '%s' is not reachable.", url.value.Data());
-      return;
+    converter = ccdb->get<RunToTimestamp>(path.value);
+    if (converter) {
+      LOGF(info, "Run-number to timestamp converter found!");
     } else {
-      LOGF(info, "Loaded CCDB URL '%s'.", url.value.Data());
+      LOGF(warning, "Cannot find run-number to timestamp converter in path '%s'.", path.value.data());
     }
-
-    auto obj = api.retrieveFromTFileAny<TH2F>(path.value, metadata, timestamp.value, headers);
-    if (obj) {
-      LOGF(info, "Found object!");
-      // obj->Print("all");
-    } else {
-      LOGF(warning, "Cannot find object in path '%s'.", path.value.data());
-    }
-    LOGF(info, "Printing metadata");
-    for (auto it = metadata.cbegin(); it != metadata.cend(); ++it) {
-      std::cout << it->first << " " << it->second << " " << it->second << "\n";
-    }
-    // LOGF(info, "Printing headers");
-    // for (auto it = headers->cbegin(); it != headers->cend(); ++it) {
-    //   std::cout << it->first << " " << it->second << " " << it->second << "\n";
-    // }
-    Printf("456");
   }
-  //   void process(aod::Collision const& collision)
+
   void process(aod::BC const& bc)
   {
-    long timestamp = converter.GetTimestamp(bc.runNumber());
-    // timestamp *= 11khz * bc.globalBC() * #bcperorbit;
+    long timestamp = converter->getTimestamp(bc.runNumber());
     ts_table(timestamp);
   }
 };

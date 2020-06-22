@@ -10,13 +10,6 @@
 
 #include "Analysis/RunToTimestamp.h"
 #include "CCDB/CcdbApi.h"
-// #include "CCDB/CCDBQuery.h"
-// #include "CCDB/CCDBTimeStampUtils.h"
-// #include <map>
-// #include "TFile.h"
-// #include "TClass.h"
-// #include "TKey.h"
-// #include <iostream>
 #include <boost/program_options.hpp>
 #include <FairLogger.h>
 

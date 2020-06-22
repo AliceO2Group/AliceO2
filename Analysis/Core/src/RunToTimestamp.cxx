@@ -26,21 +26,21 @@ bool RunToTimestamp::insert(uint runNumber, long timestamp)
 
 bool RunToTimestamp::update(uint runNumber, long timestamp)
 {
-  if (!Has(run)) {
-    LOG(FATAL) << "Run to Timestamp converter does not have run " << run << ", cannot update converter";
+  if (!Has(runNumber)) {
+    LOG(FATAL) << "Run to Timestamp converter does not have run " << runNumber << ", cannot update converter";
     return false;
   }
   mMap[runNumber] = timestamp;
   return true;
 }
 
-long RunToTimestamp::getTimestamp(uint run) const
+long RunToTimestamp::getTimestamp(uint runNumber) const
 {
-  if (!Has(run)) {
-    LOG(ERROR) << "Run to Timestamp converter does not have run " << run;
+  if (!Has(runNumber)) {
+    LOG(ERROR) << "Run to Timestamp converter does not have run " << runNumber;
     return 0;
   }
-  return mMap.at(run);
+  return mMap.at(runNumber);
 }
 
 void RunToTimestamp::print() const

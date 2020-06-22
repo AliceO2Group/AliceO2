@@ -26,7 +26,7 @@ class RunToTimestamp : public TNamed
   ~RunToTimestamp() = default;
 
   /// Checks if the converter has a particular run
-  bool Has(uint run) const { return mMap.count(run); }
+  bool Has(uint runNumber) const { return mMap.count(runNumber); }
 
   /// Inserts a new run with a timestamp in the converter database
   bool insert(uint runNumber, long timestamp);
@@ -35,7 +35,7 @@ class RunToTimestamp : public TNamed
   bool update(uint runNumber, long timestamp);
 
   /// Gets the timestamp of a run
-  long getTimestamp(uint run) const;
+  long getTimestamp(uint runNumber) const;
 
   /// Prints the content of the converter
   void print() const;
