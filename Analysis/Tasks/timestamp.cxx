@@ -54,6 +54,7 @@ struct TimestampUserTask {
   Configurable<std::string> path{"ccdb-path", "qc/TOF/TOFTaskCompressed/hDiagnostic", "path to the ccdb object"};
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
   Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
+  Configurable<long> nolaterthan{"ccdb-no-later-than", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(), "latest acceptable timestamp of creation for the object"};
 
   void init(o2::framework::InitContext&)
   {
@@ -61,7 +62,7 @@ struct TimestampUserTask {
     ccdb->setTimestamp(timestamp.value);
     ccdb->setCachingEnabled(true);
     // Not later than now objects
-    ccdb->setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    ccdb->setCreatedNotAfter(nolaterthan.value);
   }
 
   void process(soa::Join<aod::BCs, aod::Timestamps> const& iter)
