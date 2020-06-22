@@ -245,7 +245,8 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
   MatBudget rval;
   Ray ray(x0, y0, z0, x1, y1, z1);
   short lmin, lmax; // get innermost and outermost relevant layer
-  if (!getLayersRange(ray, lmin, lmax)) {
+  if (ray.isTooShort() || !getLayersRange(ray, lmin, lmax)) {
+    rval.length = ray.getDist();
     return rval;
   }
   short lrID = lmax;
