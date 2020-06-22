@@ -173,7 +173,7 @@ void ClusterFinderOriginal::resetPreCluster(gsl::span<const Digit>& digits)
     double y = mSegmentation->padPositionY(padID);
     double dx = mSegmentation->padSizeX(padID) / 2.;
     double dy = mSegmentation->padSizeY(padID) / 2.;
-    double charge = static_cast<double>(digit.getADC()) / ULONG_MAX * 1024;
+    double charge = static_cast<double>(digit.getADC()) / std::numeric_limits<unsigned long>::max() * 1024;
     bool isSaturated = digit.getTime().time > 0;
     int plane = mSegmentation->isBendingPad(padID) ? 0 : 1;
 
@@ -254,7 +254,7 @@ void ClusterFinderOriginal::simplifyPreCluster(std::vector<int>& removedDigits)
 
     // get the pads with minimum and maximum charge on the plane with maximum integrated charge
     int plane = mPreCluster->maxChargePlane();
-    double chargeMin(1.e9), chargeMax(-1.);
+    double chargeMin(std::numeric_limits<double>::max()), chargeMax(-1.);
     int iPadMin(-1), iPadMax(-1);
     for (int i = 0; i < mPreCluster->multiplicity(); ++i) {
       const auto& pad = mPreCluster->pad(i);
@@ -298,7 +298,8 @@ void ClusterFinderOriginal::simplifyPreCluster(std::vector<int>& removedDigits)
     }
 
     // try to extract from this plane the cluster centered around the pad with maximum charge
-    double previousDist(999.), previousChargeMax(-1.);
+    double previousDist(std::numeric_limits<float>::max());
+    double previousChargeMax(-1.);
     std::set<int, std::greater<int>> padsToRemove{};
     for (const auto& distIndex : distIndices) {
       const auto& pad = mPreCluster->pad(distIndex.second);
@@ -403,7 +404,7 @@ void ClusterFinderOriginal::buildPixArray()
   double width[2] = {dim.first, dim.second};
 
   // to make sure the grid is aligned with the smallest pad in both direction
-  double xy0[2] = {99999., 99999.};
+  double xy0[2] = {0., 0.};
   bool found[2] = {false, false};
   for (const auto& pad : *mPreCluster) {
     for (int ixy = 0; ixy < 2; ++ixy) {
@@ -525,7 +526,9 @@ void ClusterFinderOriginal::findLocalMaxima(std::unique_ptr<TH2D>& histAnode,
   /// and tag the corresponding pixels
 
   // create a 2D histogram from the pixel array
-  double xMin(999.), xMax(-999.), yMin(999), yMax(-999), dx(mPixels.front().dx()), dy(mPixels.front().dy());
+  double xMin(std::numeric_limits<double>::max()), xMax(-std::numeric_limits<double>::max());
+  double yMin(std::numeric_limits<double>::max()), yMax(-std::numeric_limits<double>::max());
+  double dx(mPixels.front().dx()), dy(mPixels.front().dy());
   for (const auto& pixel : mPixels) {
     xMin = TMath::Min(xMin, pixel.x());
     xMax = TMath::Max(xMax, pixel.x());
@@ -695,7 +698,8 @@ void ClusterFinderOriginal::processSimple()
   std::iota(pixels.begin(), pixels.end(), 0);
 
   // set the fit range based on the limits of the pixel array
-  double fitRange[2][2] = {{999., -999.}, {999., -999.}};
+  double fitRange[2][2] = {{std::numeric_limits<double>::max(), -std::numeric_limits<double>::max()},
+                           {std::numeric_limits<double>::max(), -std::numeric_limits<double>::max()}};
   for (const auto& pixel : mPixels) {
     fitRange[0][0] = TMath::Min(fitRange[0][0], pixel.x() - 3. * pixel.dx());
     fitRange[0][1] = TMath::Max(fitRange[0][1], pixel.x() + 3. * pixel.dx());
@@ -728,7 +732,8 @@ void ClusterFinderOriginal::process()
   }
 
   // compute the limits of the histogram based on the current pixel array
-  double xMin(999.), xMax(-999.), yMin(999), yMax(-999);
+  double xMin(std::numeric_limits<double>::max()), xMax(-std::numeric_limits<double>::max());
+  double yMin(std::numeric_limits<double>::max()), yMax(-std::numeric_limits<double>::max());
   for (const auto& pixel : mPixels) {
     xMin = TMath::Min(xMin, pixel.x());
     xMax = TMath::Max(xMax, pixel.x());
@@ -841,7 +846,7 @@ void ClusterFinderOriginal::addVirtualPad()
     // find min and max dimensions of the precluster in this direction on that plane
     long iPadMax[2] = {-1, -1};
     double chargeMax[2] = {0., 0.};
-    double limits[2] = {9999., -9999.};
+    double limits[2] = {std::numeric_limits<double>::max(), -std::numeric_limits<double>::max()};
     for (int i = 0; i < mPreCluster->multiplicity(); ++i) {
       const auto& pad = mPreCluster->pad(i);
       if (pad.plane() != iPlaneXY[ixy]) {
@@ -1111,10 +1116,10 @@ void ClusterFinderOriginal::refinePixelArray(const double xyCOG[2], size_t nPixM
   /// nPixMax is the maximum number of new pixels that can be produced.
   /// all pixels have the same charge (SLowestPadCharge) in the end
 
-  xMin = 999.;
-  xMax = -999.;
-  yMin = 999.;
-  yMax = -999.;
+  xMin = std::numeric_limits<double>::max();
+  xMax = -std::numeric_limits<double>::max();
+  yMin = std::numeric_limits<double>::max();
+  yMax = -std::numeric_limits<double>::max();
 
   // sort pixels according to the charge and move all pixels that must be kept at the begining
   shiftPixelsToKeep(10000.);
@@ -1364,7 +1369,7 @@ int ClusterFinderOriginal::fit(const std::vector<const std::vector<int>*>& clust
 
   // try to fit with only 1 cluster, then 2 (if any), then 3 (if any) and stop if the fit gets worse
   // the fitted parameters are used as initial parameters of the corresponding cluster(s) for the next fit
-  double chi2n0(9999.);
+  double chi2n0(std::numeric_limits<float>::max());
   int nTrials(0);
   int nParamUsed(0);
   for (int nFitClusters = 1; nFitClusters <= xySeed.size(); ++nFitClusters) {
@@ -1445,7 +1450,7 @@ double ClusterFinderOriginal::fit(double currentParam[SNFitParamMax + 2],
   // copy of current and best parameters and associated first derivatives and chi2
   double param[2][SNFitParamMax] = {{0.}, {0.}};
   double deriv[2][SNFitParamMax] = {{0.}, {0.}};
-  double chi2[2] = {0., 999999.};
+  double chi2[2] = {0., std::numeric_limits<float>::max()};
   int iBestParam(1);
 
   double shiftSave(0.);

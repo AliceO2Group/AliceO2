@@ -112,7 +112,7 @@ inline auto findPad(std::vector<PadOriginal>& pads, double x, double y, double m
   /// return an iterator to the pad or throw an exception if no pad is found
 
   auto match = [x, y, minCharge](const PadOriginal& pad) {
-    return pad.charge() >= minCharge && TMath::Abs(pad.x() - x) < 1.e-4 && TMath::Abs(pad.y() - y) < 1.e-4;
+    return pad.charge() >= minCharge && TMath::Abs(pad.x() - x) < 1.e-3 && TMath::Abs(pad.y() - y) < 1.e-3;
   };
 
   auto itPad = std::find_if(pads.begin(), pads.end(), match);

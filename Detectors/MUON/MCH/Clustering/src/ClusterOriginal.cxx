@@ -16,6 +16,7 @@
 #include "ClusterOriginal.h"
 
 #include <cassert>
+#include <numeric>
 #include <set>
 #include <stdexcept>
 
@@ -145,8 +146,8 @@ std::pair<double, double> ClusterOriginal::minPadDimensions(int plane, int statu
 
   assert(plane == 0 || plane == 1);
 
-  double xmin(1.e9);
-  double ymin(1.e9);
+  double xmin(std::numeric_limits<float>::max());
+  double ymin(std::numeric_limits<float>::max());
 
   if (mMultiplicity[plane] == 0) {
     return std::make_pair(xmin, ymin);
@@ -170,10 +171,10 @@ void ClusterOriginal::area(int plane, double area[2][2]) const
 
   assert(plane == 0 || plane == 1);
 
-  area[0][0] = 1.e9;
-  area[0][1] = -1.e9;
-  area[1][0] = 1.e9;
-  area[1][1] = -1.e9;
+  area[0][0] = std::numeric_limits<float>::max();
+  area[0][1] = -std::numeric_limits<float>::max();
+  area[1][0] = std::numeric_limits<float>::max();
+  area[1][1] = -std::numeric_limits<float>::max();
 
   for (const auto& pad : mPads) {
     if (pad.plane() == plane) {
