@@ -19,18 +19,6 @@ using namespace o2::framework;
 using namespace o2::header;
 using namespace o2;
 
-namespace o2::aod
-{
-namespace ts
-{
-DECLARE_SOA_INDEX_COLUMN(BC, bc);
-DECLARE_SOA_COLUMN(Timestamp, timestamp, long);
-} // namespace ts
-
-DECLARE_SOA_TABLE(Timestamps, "AOD", "TIMESTAMPS", ts::Timestamp);
-
-} // namespace o2::aod
-
 struct TimestampTask {
   Produces<aod::Timestamps> ts_table;
   RunToTimestamp* converter = nullptr;

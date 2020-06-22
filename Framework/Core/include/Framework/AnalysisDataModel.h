@@ -35,6 +35,14 @@ DECLARE_SOA_TABLE(BCs, "AOD", "BC", o2::soa::Index<>,
                   bc::TriggerMask);
 using BC = BCs::iterator;
 
+namespace ts
+{
+DECLARE_SOA_INDEX_COLUMN(BC, bc);
+DECLARE_SOA_COLUMN(Timestamp, timestamp, long);
+} // namespace ts
+
+DECLARE_SOA_TABLE(Timestamps, "AOD", "TIMESTAMPS", ts::Timestamp);
+
 namespace collision
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);
