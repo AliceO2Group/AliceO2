@@ -1472,12 +1472,13 @@ void Pipe::ConstructGeometry()
   //
   // mother volume for transition region
   TGeoVolume* voRB242CuOvTransMo = new TGeoVolume("voRB24CuOvTransMo", new TGeoTube(0., 4.75, 10.), kMedAir);
-  TGeoVolume* voRB242CuOvTransV[8];
-  TGeoVolume* voRB242CuOvTransI[8];
+  const Int_t nTrans = 10;
+  TGeoVolume* voRB242CuOvTransV[nTrans];
+  TGeoVolume* voRB242CuOvTransI[nTrans];
   Float_t dovX = 4.;
   Float_t dovY = 4.;
   Float_t dovZ = -9.0;
-  for (Int_t i = 0; i < 10; i++) {
+  for (Int_t i = 0; i < nTrans; i++) {
     dovX -= 0.0625;
     dovY += 0.075;
     char vname[20];
