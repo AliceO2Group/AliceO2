@@ -37,7 +37,6 @@ using BC = BCs::iterator;
 
 namespace ts
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);
 DECLARE_SOA_COLUMN(Timestamp, timestamp, long);
 } // namespace ts
 
