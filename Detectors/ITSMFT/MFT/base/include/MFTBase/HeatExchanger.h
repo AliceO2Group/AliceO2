@@ -60,6 +60,7 @@ class HeatExchanger
   TGeoMedium* mPipe;
   TGeoMedium* mCarbon;
   TGeoMedium* mRohacell;
+  TGeoMedium* mPeek;
 
  private:
   void initParameters();
@@ -82,7 +83,8 @@ class HeatExchanger
 
   Double_t mRohacellThickness;
 
-  Double_t mMoreLength; // additional length of water pipes outside the rohacell plate
+  Double_t mMoreLength01; // additional length of carbon plates compare to the rohacell plate, disk 0 and 1
+  Double_t mMoreLength;   // additional length of carbon plates compare to the rohacell plate
 
   // Parameters for carbon and Rohacell
   Int_t mNDisks;      // number of planes
