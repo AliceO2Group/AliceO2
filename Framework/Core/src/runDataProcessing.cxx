@@ -962,12 +962,20 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (exists != dataProcessorInfos.end()) {
             continue;
           }
+          std::vector<std::string> channels;
+          for (auto channel : device.inputChannels) {
+            channels.push_back(channel.name);
+          }
+          for (auto channel : device.outputChannels) {
+            channels.push_back(channel.name);
+          }
           dataProcessorInfos.push_back(
             DataProcessorInfo{
               device.id,
               workflowInfo.executable,
               workflowInfo.args,
-              workflowInfo.options});
+              workflowInfo.options,
+              channels});
         }
         break;
       case DriverState::MATERIALISE_WORKFLOW:
