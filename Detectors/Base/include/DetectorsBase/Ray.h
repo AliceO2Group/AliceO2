@@ -41,7 +41,7 @@ class Ray
 
  public:
   using vecF3 = float[3];
-
+  static constexpr float MinDistToConsider = 1e-4; // treat as 0 lenght distance below this
   static constexpr float InvalidT = -1e9;
   static constexpr float Tiny = 1e-9;
 
@@ -54,7 +54,6 @@ class Ray
   Ray(const Point3D<float> point0, const Point3D<float> point1);
 #endif // !GPUCA_ALIGPUCODE
   GPUd() Ray(float x0, float y0, float z0, float x1, float y1, float z1);
-
   GPUd() int crossLayer(const MatLayerCyl& lr);
   GPUd() bool crossCircleR(float r2, float& cross1, float& cross2) const;
 
@@ -68,6 +67,7 @@ class Ray
     par2 = mCrossParams2[i];
   }
 
+  GPUd() bool isTooShort() const { return mDistXYZ < MinDistToConsider; }
   GPUd() void getMinMaxR2(float& rmin2, float& rmax2) const;
 
   GPUd() float getDist() const { return mDistXYZ; }
@@ -111,7 +111,7 @@ inline Ray::Ray(const Point3D<float> point0, const Point3D<float> point1)
   : mP{point0.X(), point0.Y(), point0.Z()}, mD{point1.X() - point0.X(), point1.Y() - point0.Y(), point1.Z() - point0.Z()}
 {
   mDistXY2 = mD[0] * mD[0] + mD[1] * mD[1];
-  mDistXY2i = mDistXY2 > 0 ? 1.f / mDistXY2 : 0.f;
+  mDistXY2i = mDistXY2 > Tiny ? 1.f / mDistXY2 : 0.f;
   mDistXYZ = o2::gpu::CAMath::Sqrt(mDistXY2 + mD[2] * mD[2]);
   mXDxPlusYDy = point0.X() * mD[0] + point0.Y() * mD[1];
   mXDxPlusYDyRed = -mXDxPlusYDy * mDistXY2i;
@@ -126,7 +126,7 @@ GPUdi() Ray::Ray(float x0, float y0, float z0, float x1, float y1, float z1)
   : mP{x0, y0, z0}, mD{x1 - x0, y1 - y0, z1 - z0}
 {
   mDistXY2 = mD[0] * mD[0] + mD[1] * mD[1];
-  mDistXY2i = mDistXY2 > 0 ? 1.f / mDistXY2 : 0.f;
+  mDistXY2i = mDistXY2 > Tiny ? 1.f / mDistXY2 : 0.f;
   mDistXYZ = o2::gpu::CAMath::Sqrt(mDistXY2 + mD[2] * mD[2]);
   mXDxPlusYDy = x0 * mD[0] + y0 * mD[1];
   mXDxPlusYDyRed = -mXDxPlusYDy * mDistXY2i;
@@ -151,7 +151,7 @@ GPUdi() bool Ray::crossCircleR(float r2, float& cross1, float& cross2) const
   // t^2*mDistXY2 +- sqrt( mXDxPlusYDy^2 - mDistXY2*(mR02 - r^2) )
   //
   float det = mXDxPlusYDy2 - mDistXY2 * (mR02 - r2);
-  if (det < 0) {
+  if (det < 0.f) {
     return false; // no intersection
   }
   float detRed = o2::gpu::CAMath::Sqrt(det) * mDistXY2i;
