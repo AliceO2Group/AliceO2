@@ -67,7 +67,6 @@ struct TimestampUserTask {
   void process(soa::Join<aod::BCs, aod::Timestamps> const& iter)
   {
     for (auto i : iter) {
-      i.runNumber();
       auto obj = ccdb->getForTimeStamp<TH2F>(path.value, i.timestamp());
       if (obj) {
         LOGF(info, "Found object!");
