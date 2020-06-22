@@ -374,9 +374,9 @@ inline void TrackPar::getXYZGlo(std::array<float, 3>& xyz) const
 //_______________________________________________________
 inline float TrackPar::getPhi() const
 {
-  // track pt direction phi (in -pi:pi range)
+  // track pt direction phi (in 0:2pi range)
   float phi = asinf(getSnp()) + getAlpha();
-  utils::BringToPMPi(phi);
+  utils::BringTo02Pi(phi);
   return phi;
 }
 
@@ -404,7 +404,7 @@ inline float TrackPar::getPhiPos() const
 {
   // angle of track position (in -pi:pi range)
   float phi = atan2f(getY(), getX()) + getAlpha();
-  utils::BringToPMPi(phi);
+  utils::BringTo02Pi(phi);
   return phi;
 }
 
