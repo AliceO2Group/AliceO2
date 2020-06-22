@@ -597,7 +597,7 @@ GPUd() void GPUTPCGMTrackParam::RefitLoop(const GPUTPCGMMerger* GPUrestrict() Me
   prop.SetPolynomialField(&Merger->Param().polynomialField);
   prop.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
   prop.SetToyMCEventsFlag(Merger->Param().ToyMCEventsFlag);
-  prop.SetMatLUT(Merger->GetConstantMem()->calibObjects.matLUT);
+  prop.SetMatLUT(Merger->Param().rec.useMatLUT ? Merger->GetConstantMem()->calibObjects.matLUT : nullptr);
   prop.SetSeedingErrors(false);
   prop.SetFitInProjections(true);
   prop.SetPropagateBzOnly(false);
