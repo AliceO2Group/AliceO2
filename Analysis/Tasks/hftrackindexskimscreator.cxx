@@ -38,13 +38,14 @@ DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK", seltrack::IsSel, seltrack::DCAPri
                                                seltrack::DCAPrim1);
 } // namespace o2::aod
 
-
 struct SelectTracks {
   Produces<aod::SelTrack> seltrack;
   Configurable<double> ptmintrack{"ptmintrack", -1, "ptmin single track"};
   Configurable<double> dcatrackmin{"dcatrackmin", 0, "dca single track min"};
-  Configurable<int> d_tpcnclsfound {"d_tpcnclsfound", 70, "min number of tpc cls >="};
+  Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, "min number of tpc cls >="};
   Configurable<double> d_bz{"d_bz", 5.0, "bz field"};
+  Configurable<bool> b_dovalplots{"b_dovalplots", true, "do single track val plots"};
+  //OutputObj<TH1F> hdca{TH1F("hdca", "dca single tracks (cm)", 1000, 0., 1.)};
 
   void process(aod::Collision const& collision,
                soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
@@ -53,14 +54,14 @@ struct SelectTracks {
     for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
       auto& track_0 = *it0;
       int status = 1;
-      if (abs(track_0.signed1Pt())<ptmintrack)
+      if (abs(track_0.signed1Pt()) < ptmintrack)
         status = 0;
       UChar_t clustermap_0 = track_0.itsClusterMap();
       bool isselected_0 = track_0.tpcNClsFound() >= d_tpcnclsfound && track_0.flags() & 0x4;
       isselected_0 = isselected_0 && (TESTBIT(clustermap_0, 0) || TESTBIT(clustermap_0, 1));
       if (!isselected_0)
         status = 0;
-      array<float,2> dca;
+      array<float, 2> dca;
       float x0_ = track_0.x();
       float alpha0_ = track_0.alpha();
       std::array<float, 5> arraypar0 = {track_0.y(), track_0.z(), track_0.snp(),
@@ -73,9 +74,10 @@ struct SelectTracks {
                                        track_0.c1PtTgl(), track_0.c1Pt21Pt2()};
       o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
       trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca);
-      if (dca[0]*dca[0] + dca[1]*dca[1] < dcatrackmin*dcatrackmin)
+      if (dca[0] * dca[0] + dca[1] * dca[1] < dcatrackmin*dcatrackmin)
         status = 0;
       seltrack(status, dca[0], dca[1]);
+      //hdca->Fill(sqrt(dca[0]*dca[0] + dca[1]*dca[1]));
     }  
   }
 };
@@ -90,14 +92,14 @@ struct HFTrackIndexSkimsCreator {
   Configurable<int> do3prong{"do3prong", 0, "do 3 prong"};
   Configurable<double> d_bz{"d_bz", 5.0, "bz field"};
   Configurable<bool> b_propdca{"b_propdca", true, \
-                "create tracks version propagated to PCA"};
+                               "create tracks version propagated to PCA"};
   Configurable<double> d_maxr{"d_maxr", 200, "reject PCA's above this radius"};
   Configurable<double> d_maxdzini{"d_maxdzini", 4, \
-                "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
+                                  "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
   Configurable<double> d_minparamchange{"d_minparamchange", 1e-3, \
-                "stop iterations if largest change of any X is smaller than this"};
+                                        "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> d_minrelchi2change {"d_minrelchi2change", 0.9, \
-                "stop iterations is chi2/chi2old > this"};
+                                           "stop iterations is chi2/chi2old > this"};
 
   Filter seltrack = (aod::seltrack::issel == 1);
 
@@ -181,7 +183,7 @@ struct HFTrackIndexSkimsCreator {
                            track_1.globalIndex(), 1.);
         if (do3prong == 1) {
           for (auto it2 = it0 + 1; it2 != tracks.end(); ++it2) {
-            if(it2 == it0 || it2 == it1)
+            if (it2 == it0 || it2 == it1)
               continue;
             auto& track_2 = *it2;
             if (track_1.signed1Pt() * track_2.signed1Pt() > 0)
@@ -189,8 +191,8 @@ struct HFTrackIndexSkimsCreator {
             float x2_ = track_2.x();
             float alpha2_ = track_2.alpha();
             double mass3prong2 = invmass3prongs2(track_0.px(), track_0.py(), track_0.pz(), masspion,
-                                               track_1.px(), track_1.py(), track_1.pz(), masspion,
-                                               track_2.px(), track_2.py(), track_2.pz(), masspion);
+                                                 track_1.px(), track_1.py(), track_1.pz(), masspion,
+                                                 track_2.px(), track_2.py(), track_2.pz(), masspion);
             if (mass3prong2 < 1.5*1.5 || mass3prong2 > 2.5*2.5) continue;
 
             std::array<float, 5> arraypar2 = {track_2.y(), track_2.z(), track_2.snp(),
@@ -218,8 +220,8 @@ struct HFTrackIndexSkimsCreator {
             trackdec2_3p.getPxPyPzGlo(pvec2_3p);
             hftrackindexprong3(track_0.collisionId(),
                                track_0.globalIndex(),
-			       track_1.globalIndex(),
-			       track_2.globalIndex(), 1.);
+                               track_1.globalIndex(),
+                               track_2.globalIndex(), 1.);
           }
         }
       }

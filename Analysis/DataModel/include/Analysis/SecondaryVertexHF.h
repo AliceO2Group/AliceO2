@@ -38,17 +38,17 @@ DECLARE_SOA_COLUMN(HFflag, hfflag, float);
 } // namespace hftrackindexprong3
 
 DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2",
-		  hftrackindexprong2::CollisionId,
-		  hftrackindexprong2::Index0Id,
-		  hftrackindexprong2::Index1Id,
-		  hftrackindexprong2::HFflag);
+                  hftrackindexprong2::CollisionId,
+                  hftrackindexprong2::Index0Id,
+                  hftrackindexprong2::Index1Id,
+                  hftrackindexprong2::HFflag);
 
 DECLARE_SOA_TABLE(HfTrackIndexProng3, "AOD", "HFTRACKIDXP3",
-		  hftrackindexprong3::CollisionId,
-		  hftrackindexprong3::Index0Id,
-		  hftrackindexprong3::Index1Id,
-		  hftrackindexprong3::Index2Id,
-		  hftrackindexprong3::HFflag);
+                  hftrackindexprong3::CollisionId,
+                  hftrackindexprong3::Index0Id,
+                  hftrackindexprong3::Index1Id,
+                  hftrackindexprong3::Index2Id,
+                  hftrackindexprong3::HFflag);
 } // namespace o2::aod
 
 float energy(float px, float py, float pz, float mass)
@@ -73,8 +73,8 @@ float invmass2prongs(float px0, float py0, float pz0, float mass0,
 };
 
 float invmass3prongs2(float px0, float py0, float pz0, float mass0,
-                     float px1, float py1, float pz1, float mass1,
-                     float px2, float py2, float pz2, float mass2)
+                      float px1, float py1, float pz1, float mass1,
+                      float px2, float py2, float pz2, float mass2)
 {
   float energy0_ = energy(px0, py0, pz0, mass0);
   float energy1_ = energy(px1, py1, pz1, mass1);
