@@ -18,3 +18,23 @@ o2_add_test(EncodeDecode
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS
             LABELS utils)
+            
+            
+o2_add_executable(rans-encode-decode-8
+                  TARGETVARNAME targetName
+                  SOURCES run/bin-encode-decode.cxx
+                  PUBLIC_LINK_LIBRARIES O2::rANS Boost::program_options)
+target_compile_definitions(${targetName} PRIVATE -DSOURCE_T=uint8_t)
+
+
+o2_add_executable(rans-encode-decode-16
+                  TARGETVARNAME targetName
+                  SOURCES run/bin-encode-decode.cxx
+                  PUBLIC_LINK_LIBRARIES O2::rANS Boost::program_options)
+target_compile_definitions(${targetName} PRIVATE -DSOURCE_T=uint16_t)
+
+o2_add_executable(rans-encode-decode-32
+                  TARGETVARNAME targetName
+                  SOURCES run/bin-encode-decode.cxx
+                  PUBLIC_LINK_LIBRARIES O2::rANS Boost::program_options)
+target_compile_definitions(${targetName} PRIVATE -DSOURCE_T=uint32_t)

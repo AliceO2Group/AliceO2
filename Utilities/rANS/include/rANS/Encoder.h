@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <algorithm>
+#include <iomanip>
 
 #include <fairlogger/Logger.h>
 #include <stdexcept>
@@ -164,17 +165,24 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
   }
 
   t.stop();
-  LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();
+  LOG(debug1) << "Encoder::" << __func__ << " {ProcessedBytes: " << inputBufferSize * sizeof(source_T) << ","
+              << " inclusiveTimeMS: " << t.getDurationMS() << ","
+              << " BandwidthMiBPS: " << std::fixed << std::setprecision(2) << (inputBufferSize * sizeof(source_T) * 1.0) / (t.getDurationS() * 1.0 * (1 << 20)) << "}";
 
 // advanced diagnostics for debug builds
 #if !defined(NDEBUG)
+
+  const auto inputBufferSizeB = inputBufferSize * sizeof(source_T);
+  const auto outputBufferSizeB = std::distance(outputBegin, outputIter) * sizeof(stream_T);
+
   LOG(debug2) << "EncoderProperties: {"
               << "sourceTypeB: " << sizeof(source_T) << ", "
               << "streamTypeB: " << sizeof(stream_T) << ", "
               << "coderTypeB: " << sizeof(coder_T) << ", "
               << "probabilityBits: " << mProbabilityBits << ", "
-              << "inputBufferSizeB: " << inputBufferSize * sizeof(source_T) << ", "
-              << "outputBufferSizeB: " << std::distance(outputBegin, outputIter) * sizeof(stream_T) << "}";
+              << "inputBufferSizeB: " << inputBufferSizeB << ", "
+              << "outputBufferSizeB: " << outputBufferSizeB << ", "
+              << "compressionFactor: " << std::fixed << std::setprecision(2) << static_cast<double>(inputBufferSizeB) / static_cast<double>(outputBufferSizeB) << "}";
 #endif
 
   LOG(trace) << "done encoding";

@@ -59,6 +59,12 @@ class RANSTimer
     return duration.count();
   }
 
+  double getDurationS()
+  {
+    std::chrono::duration<double, std::ratio<1>> duration = mStop - mStart;
+    return duration.count();
+  }
+
  private:
   std::chrono::time_point<std::chrono::high_resolution_clock> mStart;
   std::chrono::time_point<std::chrono::high_resolution_clock> mStop;

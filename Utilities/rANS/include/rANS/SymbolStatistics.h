@@ -96,8 +96,6 @@ class SymbolStatistics
   std::vector<uint32_t> mCumulativeFrequencyTable;
 };
 
-std::ostream& operator<<(std::ostream& strm, const SymbolStatistics& a);
-
 template <typename IT>
 SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t range) : mMin(0), mMax(0), mNUsedAlphabetSymbols(0), mMessageLength(0), mFrequencyTable(), mCumulativeFrequencyTable()
 {
