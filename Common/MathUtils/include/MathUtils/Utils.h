@@ -53,6 +53,8 @@ inline void BringToPMPi(float& phi)
   // ensure angle in [-pi:pi] for the input in [-pi:pi] or [0:pi]
   if (phi > o2::constants::math::PI) {
     phi -= o2::constants::math::TwoPI;
+  } else if (phi < -o2::constants::math::PI) {
+    phi += o2::constants::math::TwoPI;
   }
 }
 
