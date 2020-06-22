@@ -300,7 +300,7 @@ void ClusterFinderOriginal::simplifyPreCluster(std::vector<int>& removedDigits)
     // try to extract from this plane the cluster centered around the pad with maximum charge
     double previousDist(std::numeric_limits<float>::max());
     double previousChargeMax(-1.);
-    std::set<int, std::greater<int>> padsToRemove{};
+    std::set<int, std::greater<>> padsToRemove{};
     for (const auto& distIndex : distIndices) {
       const auto& pad = mPreCluster->pad(distIndex.second);
 
@@ -366,7 +366,7 @@ void ClusterFinderOriginal::processPreCluster()
 
     // find the local maxima in the pixel array
     std::unique_ptr<TH2D> histAnode(nullptr);
-    std::multimap<double, std::pair<int, int>, std::greater<double>> localMaxima{};
+    std::multimap<double, std::pair<int, int>, std::greater<>> localMaxima{};
     findLocalMaxima(histAnode, localMaxima);
     if (localMaxima.empty()) {
       return;
@@ -519,7 +519,7 @@ void ClusterFinderOriginal::ProjectPadOverPixels(const PadOriginal& pad, TH2D& h
 
 //_________________________________________________________________________________________________
 void ClusterFinderOriginal::findLocalMaxima(std::unique_ptr<TH2D>& histAnode,
-                                            std::multimap<double, std::pair<int, int>, std::greater<double>>& localMaxima)
+                                            std::multimap<double, std::pair<int, int>, std::greater<>>& localMaxima)
 {
   /// find local maxima in pixel space for large preclusters in order to
   /// try to split them into smaller pieces (to speed up the MLEM procedure)
@@ -1317,7 +1317,7 @@ int ClusterFinderOriginal::fit(const std::vector<const std::vector<int>*>& clust
   // as well as the total charge of all the pixels associated to the part of the precluster being fitted
   double xMean(0.), yMean(0.);
   fitParam[SNFitParamMax] = 0.;
-  std::multimap<double, std::pair<double, double>, std::greater<double>> xySeed{};
+  std::multimap<double, std::pair<double, double>, std::greater<>> xySeed{};
   for (const auto iPixels : clustersOfPixels) {
     double chargeMax(0.), xSeed(0.), ySeed(0.);
     for (auto iPixel : *iPixels) {

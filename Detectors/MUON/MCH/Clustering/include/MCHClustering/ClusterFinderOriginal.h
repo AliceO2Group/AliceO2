@@ -78,7 +78,7 @@ class ClusterFinderOriginal
   void buildPixArray();
   void ProjectPadOverPixels(const PadOriginal& pad, TH2D& hCharges, TH2I& hEntries) const;
 
-  void findLocalMaxima(std::unique_ptr<TH2D>& histAnode, std::multimap<double, std::pair<int, int>, std::greater<double>>& localMaxima);
+  void findLocalMaxima(std::unique_ptr<TH2D>& histAnode, std::multimap<double, std::pair<int, int>, std::greater<>>& localMaxima);
   void flagLocalMaxima(const TH2D& histAnode, int i0, int j0, std::vector<std::vector<int>>& isLocalMax) const;
   void restrictPreCluster(const TH2D& histAnode, int i0, int j0);
 
