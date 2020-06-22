@@ -15,6 +15,8 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsRaw/HBFUtils.h"
 
+#include <chrono>
+
 using namespace o2::framework;
 using namespace o2::header;
 using namespace o2;
@@ -23,12 +25,12 @@ struct TimestampTask {
   Produces<aod::Timestamps> ts_table;
   RunToTimestamp* converter = nullptr;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
+  Configurable<std::string> path{"ccdb-path", "Test/RunToTimestamp", "path to the ccdb object"};
+  Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
 
   void init(o2::framework::InitContext&)
   {
     LOGF(info, "Initializing TimestampTask");
-    Configurable<std::string> path{"ccdb-path", "Test/RunToTimestamp", "path to the ccdb object"};
-    Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
     converter = ccdb->get<RunToTimestamp>(path.value);
     if (converter) {
       LOGF(info, "Run-number to timestamp converter found!");
@@ -47,8 +49,38 @@ struct TimestampTask {
   }
 };
 
-// This is how you can define your processing in a declarative way
+struct TimestampUserTask {
+  Service<o2::ccdb::BasicCCDBManager> ccdb;
+  Configurable<std::string> path{"ccdb-path", "qc/TOF/TOFTaskCompressed/hDiagnostic", "path to the ccdb object"};
+  Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
+  Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
+
+  void init(o2::framework::InitContext&)
+  {
+    ccdb->setURL(url.value);
+    ccdb->setTimestamp(timestamp.value);
+    ccdb->setCachingEnabled(true);
+    // Not later than now objects
+    ccdb->setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+  }
+
+  void process(soa::Join<aod::BCs, aod::Timestamps> const& iter)
+  {
+    for (auto i : iter) {
+      i.runNumber();
+      auto obj = ccdb->getForTimeStamp<TH2F>(path.value, i.timestamp());
+      if (obj) {
+        LOGF(info, "Found object!");
+        obj->Print("all");
+      }
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  return WorkflowSpec{adaptAnalysisTask<TimestampTask>("TimestampTask")};
+  // return WorkflowSpec{adaptAnalysisTask<TimestampTask>("TimestampTask")};
+  return WorkflowSpec{
+    adaptAnalysisTask<TimestampTask>("TimestampTask"),
+    adaptAnalysisTask<TimestampUserTask>("TimestampUserTask")};
 }
