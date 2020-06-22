@@ -137,7 +137,9 @@ void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, 
     inputIter = rans0.decAdvanceSymbol(inputIter, (*mSymbolTable)[s0], mProbabilityBits);
   }
   t.stop();
-  LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();
+  LOG(debug1) << "Decoder::" << __func__ << " {ProcessedBytes: " << numSymbols * sizeof(source_T) << ","
+              << " inclusiveTimeMS: " << t.getDurationMS() << ","
+              << " BandwidthMiBPS: " << std::fixed << std::setprecision(2) << (numSymbols * sizeof(source_T) * 1.0) / (t.getDurationS() * 1.0 * (1 << 20)) << "}";
 
   LOG(trace) << "done decoding";
 }
