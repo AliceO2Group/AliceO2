@@ -93,7 +93,7 @@ const bool Geometry::enableComponent(const EGeoComponent component, const bool e
 
 void Geometry::buildGeometry() const
 {
-  TGeoVolume* vALIC = gGeoManager->GetVolume("cave");
+  TGeoVolume* vALIC = gGeoManager->GetVolume("barrel");
   if (!vALIC) {
     LOG(FATAL) << "FV0: Could not find the top volume";
   }
@@ -106,7 +106,7 @@ void Geometry::buildGeometry() const
   assembleNonSensVols(vFV0);
 
   // TODO: What should the copy_no be? Currently assigned to '1'
-  vALIC->AddNode(vFV0, 1, new TGeoTranslation(sXGlobal, sYGlobal, sZGlobal));
+  vALIC->AddNode(vFV0, 1, new TGeoTranslation(sXGlobal, sYGlobal + 30., sZGlobal));
 }
 
 void Geometry::getGlobalPosition(float& x, float& y, float& z)
@@ -1257,8 +1257,9 @@ Geometry* Geometry::sInstance = nullptr;
 //Singleton access
 Geometry* Geometry::instance(EGeoType initType)
 {
-  if (!sInstance)
+  if (!sInstance) {
     LOG(INFO) << "FV0 geometry instance created";
+  }
   sInstance = new Geometry(initType);
   return sInstance;
 }

@@ -44,9 +44,11 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
   int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override;
   void SynchronizeStream(int stream) override;
   void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) override;
+  void StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents = 1) override;
   bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
   int registerMemoryForGPU(const void* ptr, size_t size) override;
   int unregisterMemoryForGPU(const void* ptr) override;
+  void* getGPUPointer(void* ptr) override;
 
   size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override;
   size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override;
@@ -59,7 +61,9 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
   void PrintKernelOccupancies() override;
 
   template <class T, int I = 0, typename... Args>
-  int runKernelBackend(krnlSetup& _xyz, Args... args);
+  int runKernelBackend(krnlSetup& _xyz, const Args&... args);
+  template <class T, int I = 0, typename... Args>
+  void runKernelBackendInternal(krnlSetup& _xyz, const Args&... args);
   template <class T, int I = 0>
   const krnlProperties getKernelPropertiesBackend();
   template <class T, int I>

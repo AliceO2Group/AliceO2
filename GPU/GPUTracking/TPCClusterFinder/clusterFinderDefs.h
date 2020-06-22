@@ -28,30 +28,8 @@ using ulong = unsigned long;
 #define NOISE_SUPPRESSION_MINIMA_EPSILON 10
 #define SCRATCH_PAD_WORK_GROUP_SIZE GPUCA_GET_THREAD_COUNT(GPUCA_LB_CLUSTER_FINDER)
 
-#ifdef GPUCA_GPUCODE
-/* #define BUILD_CLUSTER_NAIVE */
-#define BUILD_CLUSTER_SCRATCH_PAD
-#else
-/* #define BUILD_CLUSTER_NAIVE */
-#define BUILD_CLUSTER_SCRATCH_PAD
-#endif
 /* #define CHARGEMAP_TIME_MAJOR_LAYOUT */
 #define CHARGEMAP_TILING_LAYOUT
-
-#ifdef __OPENCL__
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#endif
-
-#ifndef __OPENCL__
-#define LOOP_UNROLL_ATTR
-#elif defined(UNROLL_LOOPS)
-#define LOOP_UNROLL_ATTR __attribute__((opencl_unroll_hint))
-#else
-#define LOOP_UNROLL_ATTR __attribute__((opencl_unroll_hint(1)))
-#endif
-
-#define GET_IS_PEAK(val) (val & 0x01)
-#define GET_IS_ABOVE_THRESHOLD(val) (val >> 1)
 
 #define SCRATCH_PAD_SEARCH_N 8
 #define SCRATCH_PAD_COUNT_N 16
@@ -96,6 +74,7 @@ namespace gpu
 namespace tpccf
 {
 
+using SizeT = size_t;
 using TPCTime = int;
 using TPCFragmentTime = short;
 using Pad = unsigned char;
@@ -103,11 +82,7 @@ using GlobalPad = short;
 using Row = unsigned char;
 using Cru = unsigned char;
 
-#if defined(CHARGEMAP_TYPE_HALF)
-using Charge = half;
-#else
 using Charge = float;
-#endif
 
 using Delta = short;
 using Delta2 = short2;

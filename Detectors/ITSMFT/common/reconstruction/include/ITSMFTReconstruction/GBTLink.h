@@ -181,7 +181,6 @@ struct GBTLink {
   }
 
  private:
-  void printRDH(const RDH& rdh);
   void discardData() { rawData.setDone(); }
   void printTrigger(const GBTTrigger* gbtTrg);
   void printHeader(const GBTDataHeader* gbtH);
@@ -198,7 +197,7 @@ struct GBTLink {
   ErrorType checkErrorsTriggerWord(const GBTTrigger* gbtTrg) const { return NoError; }
   ErrorType checkErrorsHeaderWord(const GBTDataHeader* gbtH) const { return NoError; }
   ErrorType checkErrorsActiveLanes(int cables) const { return NoError; }
-  ErrorType checkErrorsGBTData(int cableHW, int cableSW) const { return NoError; }
+  ErrorType checkErrorsGBTData(int cablePos) const { return NoError; }
   ErrorType checkErrorsTrailerWord(const GBTDataTrailer* gbtT) const { return NoError; }
   ErrorType checkErrorsPacketDoneMissing(const GBTDataTrailer* gbtT, bool notEnd) const { return NoError; }
   ErrorType checkErrorsLanesStops() const { return NoError; }
@@ -209,7 +208,7 @@ struct GBTLink {
   ErrorType checkErrorsTriggerWord(const GBTTrigger* gbtTrg);
   ErrorType checkErrorsHeaderWord(const GBTDataHeader* gbtH);
   ErrorType checkErrorsActiveLanes(int cables);
-  ErrorType checkErrorsGBTData(int cableHW, int cableSW);
+  ErrorType checkErrorsGBTData(int cablePos);
   ErrorType checkErrorsTrailerWord(const GBTDataTrailer* gbtT);
   ErrorType checkErrorsPacketDoneMissing(const GBTDataTrailer* gbtT, bool notEnd);
   ErrorType checkErrorsLanesStops();
@@ -237,7 +236,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     if (!dataOffset) { // here we always start with the RDH
       const auto* rdh = reinterpret_cast<const RDH*>(&currRawPiece->data[dataOffset]);
       if (verbosity >= VerboseHeaders) {
-        printRDH(*rdh);
+        RDHUtils::printRDH(rdh);
       }
       GBTLINK_DECODE_ERRORCHECK(checkErrorsRDH(*rdh));              // make sure we are dealing with RDH
       GBTLINK_DECODE_ERRORCHECK(checkErrorsRDHStop(*rdh));          // if new HB starts, the lastRDH must have stop
@@ -284,7 +283,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       if (verbosity >= VerboseData) {
         gbtD->printX();
       }
-      GBTLINK_DECODE_ERRORCHECK(checkErrorsGBTData(cableHW, cableSW));
+      GBTLINK_DECODE_ERRORCHECK(checkErrorsGBTData(chmap.cableHW2Pos(ruPtr->ruInfo->ruType, cableHW)));
       ruPtr->cableData[cableSW].add(gbtD->getW8(), 9);
       ruPtr->cableHWID[cableSW] = cableHW;
       ruPtr->cableLinkID[cableSW] = idInRU;

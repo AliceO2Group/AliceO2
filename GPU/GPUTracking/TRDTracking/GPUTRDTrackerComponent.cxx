@@ -36,6 +36,9 @@
 #include "AliHLTTrackMCLabel.h"
 #include "GPUTRDTrackData.h"
 #include "AliGeomManager.h"
+#include "GPUReconstruction.h"
+#include "GPUChainTracking.h"
+#include "GPUSettings.h"
 #include <map>
 #include <vector>
 #include <algorithm>
@@ -49,7 +52,7 @@ GPUTRDTrackerComponent::GPUTRDTrackerComponent()
 {
 }
 
-GPUTRDTrackerComponent::GPUTRDTrackerComponent(const GPUTRDTrackerComponent&) : fTracker(0x0), fGeo(0x0), fTrackList(0x0), AliHLTProcessor(), fDebugTrackOutput(false), fVerboseDebugOutput(false), fRequireITStrack(false), fBenchmark("TRDTracker")
+GPUTRDTrackerComponent::GPUTRDTrackerComponent(const GPUTRDTrackerComponent&) : fTracker(0x0), fGeo(0x0), fRec(0x0), fChain(0x0), fTrackList(0x0), AliHLTProcessor(), fDebugTrackOutput(false), fVerboseDebugOutput(false), fRequireITStrack(false), fBenchmark("TRDTracker")
 {
   // see header file for class documentation
   HLTFatal("copy constructor untested");
@@ -179,6 +182,18 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
 
   iResult = ReadConfigurationString(arguments.Data());
 
+  GPUSettingsEvent cfgEvent;
+  cfgEvent.solenoidBz = GetBz();
+  GPUSettingsRec cfgRec;
+  GPUSettingsDeviceProcessing cfgDeviceProcessing;
+  GPURecoStepConfiguration cfgRecoStep;
+  cfgRecoStep.steps = GPUDataTypes::RecoStep::NoRecoStep;
+  cfgRecoStep.inputs.clear();
+  cfgRecoStep.outputs.clear();
+  fRec = GPUReconstruction::CreateInstance("CPU", true);
+  fRec->SetSettings(GetBz());
+  fChain = fRec->AddChain<GPUChainTracking>();
+
   fGeo = new GPUTRDGeometry();
   if (!fGeo) {
     return -ENOMEM;
@@ -194,7 +209,11 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
   if (fVerboseDebugOutput) {
     fTracker->EnableDebugOutput();
   }
-  fTracker->Init(fGeo);
+  fRec->RegisterGPUProcessor(fTracker, false);
+  fChain->SetTRDGeometry(reinterpret_cast<o2::trd::TRDGeometryFlat*>(fGeo));
+  if (fRec->Init()) {
+    return -EINVAL;
+  }
 
   return iResult;
 }
@@ -338,6 +357,11 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   }
 
   fTracker->Reset();
+  fChain->mIOPtrs.nMergedTracks = tracksTPC.size();
+  fChain->mIOPtrs.nTRDTracklets = nTrackletsTotal;
+  fChain->AllocateIOMemory();
+  fRec->PrepareEvent();
+  fRec->SetupGPUProcessor(fTracker, true);
 
   // loop over all tracklets
   for (int iTracklet = 0; iTracklet < nTrackletsTotal; ++iTracklet) {

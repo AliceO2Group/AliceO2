@@ -126,7 +126,7 @@ void GPUParam::UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsD
     AssumeConstantBz = e->constBz;
     ToyMCEventsFlag = e->homemadeEvents;
     ContinuousTracking = e->continuousMaxTimeBin != 0;
-    continuousMaxTimeBin = e->continuousMaxTimeBin == -1 ? (0.023 * 5e6) : e->continuousMaxTimeBin;
+    continuousMaxTimeBin = e->continuousMaxTimeBin == -1 ? GPUSettings::TPC_MAX_TF_TIME_BIN : e->continuousMaxTimeBin;
     polynomialField.Reset();
     if (AssumeConstantBz) {
       GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialFieldManager::kUniform, BzkG, polynomialField);

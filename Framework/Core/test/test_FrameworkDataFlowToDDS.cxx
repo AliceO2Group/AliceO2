@@ -95,18 +95,18 @@ BOOST_AUTO_TEST_CASE(TestDDS)
                                       devices, executions, controls,
                                       "workflow-id");
   dumpDeviceSpec2DDS(ss, devices, executions);
-  BOOST_CHECK_EQUAL(ss.str(), R"EXPECTED(<topology id="o2-dataflow">
-   <decltask id="A">
-       <exe reachable="true">foo --id A --control static --shm-monitor false --log-color false --color false --jobs 4 --session dpl_workflow-id --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
+  BOOST_CHECK_EQUAL(ss.str(), R"EXPECTED(<topology name="o2-dataflow">
+   <decltask name="A">
+       <exe reachable="true">foo --id A --control static --shm-monitor false --log-color false --color false --jobs 4 --severity info --session dpl_workflow-id --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
    </decltask>
-   <decltask id="B">
-       <exe reachable="true">foo --id B --control static --shm-monitor false --log-color false --color false --jobs 4 --session dpl_workflow-id --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
+   <decltask name="B">
+       <exe reachable="true">foo --id B --control static --shm-monitor false --log-color false --color false --jobs 4 --severity info --session dpl_workflow-id --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
    </decltask>
-   <decltask id="C">
-       <exe reachable="true">foo --id C --control static --shm-monitor false --log-color false --color false --jobs 4 --session dpl_workflow-id --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
+   <decltask name="C">
+       <exe reachable="true">foo --id C --control static --shm-monitor false --log-color false --color false --jobs 4 --severity info --session dpl_workflow-id --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
    </decltask>
-   <decltask id="D">
-       <exe reachable="true">foo --id D --control static --shm-monitor false --log-color false --color false --jobs 4 --session dpl_workflow-id --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
+   <decltask name="D">
+       <exe reachable="true">foo --id D --control static --shm-monitor false --log-color false --color false --jobs 4 --severity info --session dpl_workflow-id --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
    </decltask>
    <declcollection name="DPL">
        <tasks>

@@ -18,6 +18,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
+    {"digits-from-upstream", o2::framework::VariantType::Bool, false, {"digits will be provided from upstream, skip digits reader"}},
+    {"clusters-from-upstream", o2::framework::VariantType::Bool, false, {"clusters will be provided from upstream, skip clusterizer"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}}};
 
   std::swap(workflowOptions, options);
@@ -33,10 +36,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  // write the configuration used for the digitizer workflow
+  // write the configuration
   o2::conf::ConfigurableParam::writeINI("o2mftrecoflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto extDigits = configcontext.options().get<bool>("digits-from-upstream");
+  auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
+  auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
 
-  return std::move(o2::mft::reco_workflow::getWorkflow(useMC));
+  return std::move(o2::mft::reco_workflow::getWorkflow(useMC, extDigits, extClusters, disableRootOutput));
 }

@@ -71,11 +71,26 @@ int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, const Args&..
   }
   unsigned int num = y.num == 0 || y.num == -1 ? 1 : y.num;
   for (unsigned int k = 0; k < num; k++) {
-    for (unsigned int iB = 0; iB < x.nBlocks; iB++) {
-      typename T::GPUSharedMemory smem;
-      T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Processor(*mHostConstantMem)[y.start + k], args...);
+    if (mDeviceProcessingSettings.ompKernels) {
+      GPUCA_OPENMP(parallel for num_threads(mDeviceProcessingSettings.nThreads))
+      for (unsigned int iB = 0; iB < x.nBlocks; iB++) {
+        typename T::GPUSharedMemory smem;
+        T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Processor(*mHostConstantMem)[y.start + k], args...);
+      }
+    } else {
+      for (unsigned int iB = 0; iB < x.nBlocks; iB++) {
+        typename T::GPUSharedMemory smem;
+        T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Processor(*mHostConstantMem)[y.start + k], args...);
+      }
     }
   }
+  return 0;
+}
+
+template <>
+int GPUReconstructionCPUBackend::runKernelBackend<GPUMemClean16, 0>(krnlSetup& _xyz, void* const& ptr, unsigned long const& size)
+{
+  memset(ptr, 0, size);
   return 0;
 }
 
@@ -146,6 +161,9 @@ int GPUReconstructionCPU::InitDevice()
     mHostMemoryPermanent = mHostMemoryBase;
     ClearAllocatedMemory();
   }
+  if (mDeviceProcessingSettings.ompKernels) {
+    mBlockCount = getOMPMaxThreads();
+  }
   mThreadId = GetThread();
   return 0;
 }
@@ -156,22 +174,10 @@ int GPUReconstructionCPU::ExitDevice()
     if (mMaster == nullptr) {
       operator delete(mHostMemoryBase);
     }
-    mHostMemoryPool = mHostMemoryBase = mHostMemoryPermanent = nullptr;
+    mHostMemoryPool = mHostMemoryBase = mHostMemoryPoolEnd = mHostMemoryPermanent = nullptr;
     mHostMemorySize = 0;
   }
   return 0;
-}
-
-int GPUReconstructionCPU::getRecoStepNum(RecoStep step, bool validCheck)
-{
-  int retVal = 8 * sizeof(unsigned int) - 1 - CAMath::Clz((unsigned int)step);
-  if ((unsigned int)step == 0 || retVal >= N_RECO_STEPS) {
-    if (!validCheck) {
-      return -1;
-    }
-    throw std::runtime_error("Invalid Reco Step");
-  }
-  return retVal;
 }
 
 int GPUReconstructionCPU::RunChains()
@@ -179,21 +185,26 @@ int GPUReconstructionCPU::RunChains()
   mStatNEvents++;
   mNEventsProcessed++;
 
-  if (mThreadId != GetThread()) {
-    if (mDeviceProcessingSettings.debugLevel >= 2) {
-      GPUInfo("Thread changed, migrating context, Previous Thread: %d, New Thread: %d", mThreadId, GetThread());
-    }
-    mThreadId = GetThread();
-  }
-
   timerTotal.Start();
-  if (mSlaves.size() || mMaster) {
-    WriteConstantParams(); // Reinitialize
-  }
-  for (unsigned int i = 0; i < mChains.size(); i++) {
-    int retVal = mChains[i]->RunChain();
-    if (retVal) {
-      return retVal;
+  if (mDeviceProcessingSettings.doublePipeline) {
+    if (EnqueuePipeline()) {
+      return 1;
+    }
+  } else {
+    if (mThreadId != GetThread()) {
+      if (mDeviceProcessingSettings.debugLevel >= 2) {
+        GPUInfo("Thread changed, migrating context, Previous Thread: %d, New Thread: %d", mThreadId, GetThread());
+      }
+      mThreadId = GetThread();
+    }
+    if (mSlaves.size() || mMaster) {
+      WriteConstantParams(); // Reinitialize
+    }
+    for (unsigned int i = 0; i < mChains.size(); i++) {
+      int retVal = mChains[i]->RunChain();
+      if (retVal) {
+        return retVal;
+      }
     }
   }
   timerTotal.Stop();
@@ -201,7 +212,7 @@ int GPUReconstructionCPU::RunChains()
   mStatWallTime = (timerTotal.GetElapsedTime() * 1000000. / mStatNEvents);
   if (GetDeviceProcessingSettings().debugLevel >= 1) {
     double kernelTotal = 0;
-    std::vector<double> kernelStepTimes(N_RECO_STEPS);
+    std::vector<double> kernelStepTimes(GPUDataTypes::N_RECO_STEPS);
 
     for (unsigned int i = 0; i < mTimers.size(); i++) {
       double time = 0;
@@ -233,9 +244,9 @@ int GPUReconstructionCPU::RunChains()
         mTimers[i]->memSize = 0;
       }
     }
-    for (int i = 0; i < N_RECO_STEPS; i++) {
-      if (kernelStepTimes[i] != 0.) {
-        printf("Execution Time: Step              : %50s Time: %'10d us\n", GPUDataTypes::RECO_STEP_NAMES[i], (int)(kernelStepTimes[i] * 1000000 / mStatNEvents));
+    for (int i = 0; i < GPUDataTypes::N_RECO_STEPS; i++) {
+      if (kernelStepTimes[i] != 0. || mTimersRecoSteps[i].timerTotal.GetElapsedTime() != 0.) {
+        printf("Execution Time: Step              : %11s %38s Time: %'10d us ( Total Time : %'14d us)\n", "Tasks", GPUDataTypes::RECO_STEP_NAMES[i], (int)(kernelStepTimes[i] * 1000000 / mStatNEvents), (int)(mTimersRecoSteps[i].timerTotal.GetElapsedTime() * 1000000 / mStatNEvents));
       }
       if (mTimersRecoSteps[i].bytesToGPU) {
         printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10d us (%6.3f GB/s - %'14lu bytes - %'14lu per call)\n", mTimersRecoSteps[i].countToGPU, "DMA to GPU", GPUDataTypes::RECO_STEP_NAMES[i], (int)(mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1000000 / mStatNEvents),
@@ -249,9 +260,14 @@ int GPUReconstructionCPU::RunChains()
         mTimersRecoSteps[i].bytesToGPU = mTimersRecoSteps[i].bytesToHost = 0;
         mTimersRecoSteps[i].timerToGPU.Reset();
         mTimersRecoSteps[i].timerToHost.Reset();
-        mTimersRecoSteps[i].timer.Reset();
+        mTimersRecoSteps[i].timerTotal.Reset();
         mTimersRecoSteps[i].countToGPU = 0;
         mTimersRecoSteps[i].countToHost = 0;
+      }
+    }
+    for (int i = 0; i < GPUDataTypes::N_GENERAL_STEPS; i++) {
+      if (mTimersGeneralSteps[i].GetElapsedTime() != 0.) {
+        printf("Execution Time: General Step      : %50s Time: %'10d us\n", GPUDataTypes::GENERAL_STEP_NAMES[i], (int)(mTimersGeneralSteps[i].GetElapsedTime() * 1000000 / mStatNEvents));
       }
     }
     mStatKernelTime = kernelTotal * 1000000 / mStatNEvents;

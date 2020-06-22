@@ -63,6 +63,39 @@ void deviceInfoTable(DeviceInfo const& info, DeviceMetricsInfo const& metrics)
   }
 }
 
+void configurationTable(boost::property_tree::ptree const& currentConfig,
+                        boost::property_tree::ptree const& currentProvenance)
+{
+  if (currentConfig.empty()) {
+    return;
+  }
+  if (ImGui::CollapsingHeader("Current Config", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::Columns(2);
+    auto labels = {"Name", "Value"};
+    for (auto& label : labels) {
+      ImGui::TextUnformatted(label);
+      ImGui::NextColumn();
+    }
+    for (auto& option : currentConfig) {
+      ImGui::TextUnformatted(option.first.c_str());
+      if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(option.first.c_str());
+        ImGui::EndTooltip();
+      }
+      ImGui::NextColumn();
+      ImGui::Text("%s (%s)", option.second.data().c_str(), currentProvenance.get<std::string>(option.first).c_str());
+      if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("%s (%s)", option.second.data().c_str(), currentProvenance.get<std::string>(option.first).c_str());
+        ImGui::EndTooltip();
+      }
+      ImGui::NextColumn();
+    }
+    ImGui::Columns(1);
+  }
+}
+
 void optionsTable(const char* label, std::vector<ConfigParamSpec> const& options, const DeviceControl& control)
 {
   if (options.empty()) {
@@ -162,7 +195,10 @@ void displayDeviceInspector(DeviceSpec const& spec,
   }
 
   deviceInfoTable(info, metrics);
-  optionsTable("Options", spec.options, control);
+  for (auto& option : info.currentConfig) {
+    ImGui::Text("%s: %s", option.first.c_str(), option.second.data().c_str());
+  }
+  configurationTable(info.currentConfig, info.currentProvenance);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
   if (ImGui::CollapsingHeader("Command line arguments", ImGuiTreeNodeFlags_DefaultOpen)) {
     for (auto& arg : metadata.cmdLineArgs) {

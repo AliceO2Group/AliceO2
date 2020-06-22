@@ -68,7 +68,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto& irecords = context->getEventRecords();
 
     for (auto& record : irecords) {
-      LOG(INFO) << "TRD TIME RECEIVED " << record.timeNS;
+      LOG(INFO) << "TRD TIME RECEIVED " << record.getTimeNS();
     }
 
     auto& eventParts = context->getEventParts();
@@ -85,7 +85,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      mDigitizer.setEventTime(irecords[collID].timeNS);
+      mDigitizer.setEventTime(irecords[collID].getTimeNS());
 
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
@@ -111,7 +111,6 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         labels.clear();
       }
     }
-
     // Force flush of the digits that remain in the digitizer cache
     mDigitizer.flush(digits, labels);
     triggers.emplace_back(irecords[irecords.size() - 1], digitsAccum.size(), digits.size());
@@ -132,7 +131,6 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     pc.outputs().snapshot(Output{"TRD", "ROMode", 0, Lifetime::Timeframe}, mROMode);
     LOG(INFO) << "TRD: Sending trigger records";
     pc.outputs().snapshot(Output{"TRD", "TRGRDIG", 0, Lifetime::Timeframe}, triggers);
-
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     finished = true;

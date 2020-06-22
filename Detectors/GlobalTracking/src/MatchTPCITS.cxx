@@ -39,6 +39,7 @@
 #include "GlobalTracking/MatchTPCITS.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "ReconstructionDataFormats/Vertex.h"
 
 #include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
 #include "GPUParam.inc"     // Consider more universal access
@@ -324,6 +325,12 @@ void MatchTPCITS::init()
     mTimer[i].Reset();
   }
   mParams = &Params::Instance();
+  setUseMatCorrFlag(mParams->matCorr);
+  auto* prop = o2::base::Propagator::Instance();
+  if (!prop->getMatLUT() && mParams->matCorr == o2::base::Propagator::MatCorrType::USEMatCorrLUT) {
+    LOG(WARNING) << "Requested material LUT is not loaded, switching to TGeo usage";
+    setUseMatCorrFlag(o2::base::Propagator::MatCorrType::USEMatCorrTGeo);
+  }
 
   // make sure T2GRot matrices are loaded into ITS geometry helper
   o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot));
@@ -338,8 +345,11 @@ void MatchTPCITS::init()
   mTPCZMax = detParam.TPClength;
 
   assert(mITSROFrameLengthMUS > 0.0f);
-  mITSROFramePhaseOffset = mITSROFrameOffsetMUS / mITSROFrameLengthMUS;
-  mITSROFrame2TPCBin = mITSROFrameLengthMUS / mTPCTBinMUS;
+  if (mITSTriggered) {
+    mITSROFrame2TPCBin = mITSROFrameLengthMUS / mTPCTBinMUS;
+  } else {
+    mITSROFrame2TPCBin = mITSROFrameLengthMUS / mTPCTBinMUS; // RSTODO use both ITS and TPC times BCs once will be available for TPC also
+  }
   mTPCBin2ITSROFrame = 1. / mITSROFrame2TPCBin;
   mTPCBin2Z = mTPCTBinMUS * mTPCVDrift0;
   mZ2TPCBin = 1. / mTPCBin2Z;
@@ -542,6 +552,10 @@ bool MatchTPCITS::prepareTPCTracks()
     // cache work track index
     mTPCSectIndexCache[o2::utils::Angle2Sector(trc.getAlpha())].push_back(mTPCWork.size() - 1);
   }
+
+  /// full drift time + safety margin
+  float maxTDriftSafe = (mNTPCBinsFullDrift + mParams->TPCITSTimeBinSafeMargin + mTPCTimeEdgeTSafeMargin);
+
   float maxTimeBin = 0;
   int nITSROFs = mITSROFTimes.size();
   // sort tracks in each sector according to their timeMax
@@ -556,7 +570,9 @@ bool MatchTPCITS::prepareTPCTracks()
       return (trcA.timeBins.max() - trcB.timeBins.max()) < 0.;
     });
 
-    // build array of 1st entries with tmax corresponding to each ITS ROF (or trigger)
+    // build array of 1st entries with tmax corresponding to each ITS ROF (or trigger),
+    // TPC tracks below this entry cannot match to ITS tracks of this and higher ROFs
+
     float tmax = mTPCWork[indexCache.back()].timeBins.max();
     if (maxTimeBin < tmax) {
       maxTimeBin = tmax;
@@ -569,11 +585,12 @@ bool MatchTPCITS::prepareTPCTracks()
     tbinStart[0] = 0;
     for (int itr = 0; itr < (int)indexCache.size(); itr++) {
       auto& trc = mTPCWork[indexCache[itr]];
-      while (itsROF < nITSROFs && trc.timeBins > mITSROFTimes[itsROF]) {
+      while (itsROF < nITSROFs && !(trc.timeBins < mITSROFTimes[itsROF])) { // 1st ITS frame afte max allowed time for this TPC track
         itsROF++;
       }
-      if (tbinStart[itsROF] == -1) {
-        tbinStart[itsROF] = itr;
+      int itsROFMatch = itsROF;
+      if (itsROFMatch && tbinStart[--itsROFMatch] == -1) { // register ITSrof preceding the one which exceeds the TPC track tmax
+        tbinStart[itsROFMatch] = itr;
       }
     }
     for (int i = 1; i < nbins; i++) {
@@ -632,9 +649,22 @@ bool MatchTPCITS::prepareITSTracks()
     mITSTimeBinStart[sec].clear();
     mITSTimeBinStart[sec].resize(nROFs, -1); // start of ITS work tracks in every sector
   }
-  setStartIR(mITSTrackROFRec[0].getBCData());
+
+  mITSTrackROFContMapping.clear(); // there might be gaps in the non-empty rofs, this will map continuous ROFs index to non empty ones
+
+  setStartIR(mITSTrackROFRec[0].getBCData()); //// TODO: this should be set from external info
+
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mITSTrackROFRec[irof];
+
+    if (!mITSTriggered) {
+      auto irofCont = (rofRec.getBCData().toLong() - mStartIR.toLong()) / mITSROFrameLengthInBC;
+      if (mITSTrackROFContMapping.size() <= irofCont) {
+        mITSTrackROFContMapping.resize((1 + irofCont / 128) * 128, 0);
+      }
+      mITSTrackROFContMapping[irofCont] = irof;
+    }
+
     int cluROFOffset = mITSClusterROFRec[irof].getFirstEntry(); // clusters of this ROF start at this offset
     float tmn = intRecord2TPCTimeBin(rofRec.getBCData());     // ITS track min time in TPC time-bins
     mITSROFTimes.emplace_back(tmn, tmn + mITSROFrame2TPCBin); // ITS track min/max time in TPC time-bins
@@ -692,6 +722,15 @@ bool MatchTPCITS::prepareITSTracks()
       float dy2Dn = (YMaxAtXMatchingRef + trcY) / (tgp - Tan70);
       if ((dy2Dn * dy2Dn * Cos70I2) < mSectEdgeMargin2) { // need to check this track for matching in sector down
         addLastTrackCloneForNeighbourSector(sector > 1 ? sector - 1 : o2::constants::math::NSectors - 1);
+      }
+    }
+  }
+
+  if (!mITSTriggered) { // fill the gaps;
+    int nr = mITSTrackROFContMapping.size();
+    for (int i = 1; i < nr; i++) {
+      if (mITSTrackROFContMapping[i] < mITSTrackROFContMapping[i - 1]) {
+        mITSTrackROFContMapping[i] = mITSTrackROFContMapping[i - 1];
       }
     }
   }
@@ -782,6 +821,7 @@ void MatchTPCITS::doMatching(int sec)
     // estimate ITS 1st ROframe bin this track may match to: TPC track are sorted according to their
     // timeMax, hence the timeMax - MaxmNTPCBinsFullDrift are non-decreasing
     int itsROBin = tpcTimeBin2ITSROFrame(trefTPC.timeBins.max() - maxTDriftSafe);
+
     if (itsROBin >= int(tbinStartITS.size())) { // time of TPC track exceeds the max time of ITS in the cache
       break;
     }
@@ -1127,7 +1167,7 @@ void MatchTPCITS::addLastTrackCloneForNeighbourSector(int sector)
   auto& trc = mITSWork.back();
   if (trc.rotate(o2::utils::Sector2Angle(sector)) &&
       o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, XMatchingRef, o2::constants::physics::MassPionCharged, MaxSnp,
-                                                           2., o2::base::Propagator::USEMatCorrNONE)) {
+                                                           2., MatCorrType::USEMatCorrNONE)) {
     // TODO: use faster prop here, no 3d field, materials
     mITSSectIndexCache[sector].push_back(mITSWork.size() - 1); // register track CLONE
     if (mMCTruthON) {
@@ -1310,9 +1350,9 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
   }
 
   // we need to update the LTOF integral by the distance to the "primary vertex"
-  const Point3D<float> vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
+  const o2::dataformats::VertexBase vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
   if (!propagator->propagateToDCA(vtxDummy, trfit, propagator->getNominalBz(), o2::constants::physics::MassPionCharged,
-                                  maxStep, mUseMatCorrFlag, &trfit.getLTIntegralOut())) {
+                                  maxStep, mUseMatCorrFlag, nullptr, &trfit.getLTIntegralOut())) {
     LOG(ERROR) << "LTOF integral might be incorrect";
   }
 
@@ -1391,7 +1431,7 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
         }
       }
       if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp,
-                                          10., o2::base::Propagator::USEMatCorrNONE, &trfit.getLTIntegralOut())) { // no material correction!
+                                          10., MatCorrType::USEMatCorrNONE, &trfit.getLTIntegralOut())) { // no material correction!
         LOG(INFO) << "Propagation to cluster " << icl << " (of " << tpcTrOrig.getNClusterReferences() << ") at X="
                   << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp() << " pT=" << tracOut.getPt();
         mMatchedTracks.pop_back(); // destroy failed track
@@ -1492,9 +1532,9 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
   }
 
   // we need to update the LTOF integral by the distance to the "primary vertex"
-  const Point3D<float> vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
+  const o2::dataformats::VertexBase vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
   if (!propagator->propagateToDCA(vtxDummy, trfit, propagator->getNominalBz(), o2::constants::physics::MassPionCharged,
-                                  maxStep, mUseMatCorrFlag, &trfit.getLTIntegralOut())) {
+                                  maxStep, mUseMatCorrFlag, nullptr, &trfit.getLTIntegralOut())) {
     LOG(ERROR) << "LTOF integral might be incorrect";
   }
 
@@ -1573,7 +1613,7 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
         }
       }
       if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp,
-                                          10., o2::base::Propagator::USEMatCorrNONE, &trfit.getLTIntegralOut())) { // no material correction!
+                                          10., MatCorrType::USEMatCorrNONE, &trfit.getLTIntegralOut())) { // no material correction!
         LOG(INFO) << "Propagation to cluster " << icl << " (of " << tpcTrOrig.getNClusterReferences() << ") at X="
                   << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp() << " pT=" << tracOut.getPt();
         mMatchedTracks.pop_back(); // destroy failed track
@@ -1675,7 +1715,7 @@ bool MatchTPCITS::refitTPCInward(o2::track::TrackParCov& trcIn, float& chi2, flo
     }
     mTPCTransform->Transform(sectArr[icl], rowArr[icl], clsArr[icl]->getPad(), clsArr[icl]->getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
     mTPCClusterParam->GetClusterErrors2(rowArr[icl], clsYZ[1], trcIn.getSnp(), trcIn.getTgl(), clsCov[0], clsCov[2]);
-    if (!propagator->PropagateToXBxByBz(trcIn, clsX, m, TolSNP, 10., o2::base::Propagator::USEMatCorrNONE)) { // no material correction!
+    if (!propagator->PropagateToXBxByBz(trcIn, clsX, m, TolSNP, 10., MatCorrType::USEMatCorrNONE)) { // no material correction!
       LOG(INFO) << "Propagation to cluster at X="
                 << clsX << " failed, Xtr=" << trcIn.getX() << " snp=" << trcIn.getSnp() << " pT=" << trcIn.getPt();
       LOG(WARNING) << trcIn.asString();
@@ -2574,6 +2614,13 @@ void MatchTPCITS::refitABTrack(int ibest) const
   }
 }
 
+//______________________________________________
+void MatchTPCITS::setITSROFrameLengthInBC(int nbc)
+{
+  mITSROFrameLengthInBC = nbc;
+  mITSROFrameLengthMUS = nbc * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+}
+
 //<<============================= AfterBurner for TPC-track / ITS cluster matching ===================<<
 
 #ifdef _ALLOW_DEBUG_TREES_
@@ -2647,16 +2694,6 @@ void MatchTPCITS::dumpWinnerMatches()
                << "\n";
   }
   mTimer[SWDBG].Stop();
-}
-
-//_________________________________________________________
-void MatchTPCITS::setUseMatCorrFlag(int f)
-{
-  ///< set flag to select material correction type
-  mUseMatCorrFlag = f;
-  if (f < o2::base::Propagator::USEMatCorrNONE || f > o2::base::Propagator::USEMatCorrLUT) {
-    LOG(FATAL) << "Invalid MatCorr flag" << f;
-  }
 }
 
 #endif

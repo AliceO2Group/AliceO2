@@ -10,6 +10,7 @@
 
 add_subdirectory(Base)
 add_subdirectory(Raw)
+add_subdirectory(CTF)
 
 add_subdirectory(Passive) # must be first as some detector's macros use it
 
@@ -40,3 +41,9 @@ if(BUILD_SIMULATION)
 endif()
 
 o2_data_file(COPY Geometry DESTINATION Detectors)
+
+if(ENABLE_UPGRADES)
+  add_subdirectory(Upgrades)
+else()
+  message(STATUS "Not building detectors for upgrades")
+endif()

@@ -96,12 +96,6 @@ void GBTLink::clear(bool resetStat, bool resetTFRaw)
 }
 
 ///_________________________________________________________________
-void GBTLink::printRDH(const RDH& rdh)
-{
-  o2::raw::RDHUtils::printRDH(rdh);
-}
-
-///_________________________________________________________________
 void GBTLink::printTrigger(const GBTTrigger* gbtTrg)
 {
   gbtTrg->printX();
@@ -269,14 +263,14 @@ GBTLink::ErrorType GBTLink::checkErrorsActiveLanes(int cbl)
 
 ///_________________________________________________________________
 /// Check GBT Data word
-GBTLink::ErrorType GBTLink::checkErrorsGBTData(int cableHW, int cableSW)
+GBTLink::ErrorType GBTLink::checkErrorsGBTData(int cablePos)
 {
-  lanesWithData |= 0x1 << cableSW;    // flag that the data was seen on this lane
-  if (lanesStop & (0x1 << cableSW)) { // make sure stopped lanes do not transmit the data
+  lanesWithData |= 0x1 << cablePos;    // flag that the data was seen on this lane
+  if (lanesStop & (0x1 << cablePos)) { // make sure stopped lanes do not transmit the data
     statistics.errorCounts[GBTS::ErrDataForStoppedLane]++;
     if (verbosity >= VerboseErrors) {
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTS::ErrDataForStoppedLane]
-                 << cableHW << " (sw:" << cableSW << ")";
+                 << cablePos;
     }
     errorBits |= 0x1 << int(GBTS::ErrDataForStoppedLane);
     return Warning;

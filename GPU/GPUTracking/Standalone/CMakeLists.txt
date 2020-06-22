@@ -104,6 +104,7 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CMAKE_SOURCE_DIR}/Base
                     ${CMAKE_SOURCE_DIR}/Base/opencl-common
                     ${CMAKE_SOURCE_DIR}/Common
+                    ${CMAKE_SOURCE_DIR}/GPUUtils
                     ${CMAKE_SOURCE_DIR}/dEdx
                     ${CMAKE_SOURCE_DIR}/TPCConvert
                     ${CMAKE_SOURCE_DIR}/TPCFastTransformation

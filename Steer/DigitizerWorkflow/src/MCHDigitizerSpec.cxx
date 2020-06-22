@@ -59,7 +59,7 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto& irecords = context->getEventRecords();
 
     for (auto& record : irecords) {
-      LOG(DEBUG) << "MCH TIME RECEIVED " << record.timeNS;
+      LOG(DEBUG) << "MCH TIME RECEIVED " << record.getTimeNS();
     }
 
     auto& eventParts = context->getEventParts();
@@ -69,7 +69,7 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      mDigitizer.setEventTime(irecords[collID].timeNS);
+      mDigitizer.setEventTime(irecords[collID].getTimeNS());
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
@@ -89,7 +89,7 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         for (auto& d : digits) {
           LOG(DEBUG) << "ADC " << d.getADC();
           LOG(DEBUG) << "PAD " << d.getPadID();
-          LOG(DEBUG) << "TIME " << d.getTimeStamp();
+          LOG(DEBUG) << "TIME " << d.getTime().sampaTime;
           LOG(DEBUG) << "DetID " << d.getDetID();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));

@@ -12,13 +12,10 @@
 
 #include <vector>
 
-#include "TTree.h"
-
 #include "MFTWorkflow/TrackWriterSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "MFTTracking/TrackCA.h"
 
-#include "Framework/ControlService.h"
-#include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -31,88 +28,42 @@ namespace o2
 namespace mft
 {
 
-void TrackWriter::init(InitContext& ic)
-{
-  auto filename = ic.options().get<std::string>("mft-track-outfile");
-  mFile = std::make_unique<TFile>(filename.c_str(), "RECREATE");
-  if (!mFile->IsOpen()) {
-    LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
-    mState = 0;
-    return;
-  }
-  mState = 1;
-}
-
-void TrackWriter::run(ProcessingContext& pc)
-{
-  if (mState != 1)
-    return;
-
-  auto tracks = pc.inputs().get<const std::vector<o2::mft::TrackMFT>>("tracks");
-  auto tracksltf = pc.inputs().get<const std::vector<o2::mft::TrackLTF>>("tracksltf");
-  auto tracksca = pc.inputs().get<const std::vector<o2::mft::TrackCA>>("tracksca");
-  auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
-
-  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* plabels = nullptr;
-
-  LOG(INFO) << "MFTTrackWriter pulled "
-            << tracks.size() << " tracks, "
-            << tracksltf.size() << " tracks LTF, "
-            << tracksca.size() << " tracks CA, in "
-            << rofs.size() << " RO frames";
-
-  TTree tree("o2sim", "Tree with MFT tracks");
-  tree.Branch("MFTTrack", &tracks);
-  tree.Branch("MFTTrackLTF", &tracksltf);
-  tree.Branch("MFTTrackCA", &tracksca);
-  if (mUseMC) {
-    labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
-    plabels = labels.get();
-    tree.Branch("MFTTrackMCTruth", &plabels);
-  }
-  // write ROFrecords vector to a tree
-  auto* rofsPtr = &rofs;
-  tree.Branch("MFTTracksROF", &rofsPtr);
-
-  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs, *mc2rofsPtr = &mc2rofs;
-  if (mUseMC) {
-    // write MC2ROFrecord vector (directly inherited from digits input) to a tree
-    const auto m2rvec = pc.inputs().get<gsl::span<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
-    mc2rofs.reserve(m2rvec.size());
-    for (const auto& m2rv : m2rvec) {
-      mc2rofs.push_back(m2rv);
-    }
-    tree.Branch("MFTTracksMC2ROF", &mc2rofsPtr);
-  }
-
-  tree.Fill();
-  tree.Write();
-  mFile->Close();
-
-  mState = 2;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-}
+template <typename T>
+using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
+using namespace o2::header;
 
 DataProcessorSpec getTrackWriterSpec(bool useMC)
 {
-  std::vector<InputSpec> inputs;
-  inputs.emplace_back("tracks", "MFT", "TRACKS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("tracksltf", "MFT", "TRACKSLTF", 0, Lifetime::Timeframe);
-  inputs.emplace_back("tracksca", "MFT", "TRACKSCA", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "MFT", "MFTTrackROF", 0, Lifetime::Timeframe);
-  if (useMC) {
-    inputs.emplace_back("labels", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "MFT", "MFTTrackMC2ROF", 0, Lifetime::Timeframe);
-  }
-
-  return DataProcessorSpec{
-    "mft-track-writer",
-    inputs,
-    Outputs{},
-    AlgorithmSpec{adaptFromTask<TrackWriter>(useMC)},
-    Options{
-      {"mft-track-outfile", VariantType::String, "mfttracks.root", {"Name of the output file"}}}};
+  // Spectators for logging
+  // this is only to restore the original behavior
+  auto tracksSize = std::make_shared<int>(0);
+  auto tracksSizeGetter = [tracksSize](std::vector<o2::mft::TrackMFT> const& tracks) {
+    *tracksSize = tracks.size();
+  };
+  auto logger = [tracksSize](std::vector<o2::itsmft::ROFRecord> const& rofs) {
+    LOG(INFO) << "MFTTrackWriter pulled " << *tracksSize << " tracks, in " << rofs.size() << " RO frames";
+  };
+  return MakeRootTreeWriterSpec("mft-track-writer",
+                                "mfttracks.root",
+                                MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with MFT tracks"},
+                                BranchDefinition<std::vector<o2::mft::TrackMFT>>{InputSpec{"tracks", "MFT", "TRACKS", 0},
+                                                                                 "MFTTrack",
+                                                                                 tracksSizeGetter},
+                                BranchDefinition<std::vector<o2::mft::TrackLTF>>{InputSpec{"tracksltf", "MFT", "TRACKSLTF", 0},
+                                                                                 "MFTTrackLTF"},
+                                BranchDefinition<std::vector<o2::mft::TrackCA>>{InputSpec{"tracksca", "MFT", "TRACKSCA", 0},
+                                                                                "MFTTrackCA"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"labels", "MFT", "TRACKSMCTR", 0},
+                                                                                                     "MFTTrackMCTruth",
+                                                                                                     (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                                                                     ""},
+                                BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"ROframes", "MFT", "TRACKSROF", 0},
+                                                                                     "MFTTracksROF",
+                                                                                     logger},
+                                BranchDefinition<std::vector<o2::itsmft::MC2ROFRecord>>{InputSpec{"MC2ROframes", "MFT", "TRACKSMC2ROF", 0},
+                                                                                        "MFTTracksMC2ROF",
+                                                                                        (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                                                        ""})();
 }
 
 } // namespace mft

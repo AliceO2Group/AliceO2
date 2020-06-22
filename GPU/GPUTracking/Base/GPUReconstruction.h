@@ -19,7 +19,7 @@
 #include <cstring>
 #include <string>
 #include <memory>
-#include <fstream>
+#include <iosfwd>
 #include <vector>
 #include <unordered_map>
 
@@ -48,6 +48,7 @@ namespace gpu
 {
 class GPUChain;
 class GPUMemorySizeScalers;
+struct GPUReconstructionPipelineContext;
 
 class GPUReconstruction
 {
@@ -71,6 +72,7 @@ class GPUReconstruction
   using GeometryType = GPUDataTypes::GeometryType;
   using DeviceType = GPUDataTypes::DeviceType;
   using RecoStep = GPUDataTypes::RecoStep;
+  using GeneralStep = GPUDataTypes::GeneralStep;
   using RecoStepField = GPUDataTypes::RecoStepField;
   using InOutTypeField = GPUDataTypes::InOutTypeField;
 
@@ -175,8 +177,12 @@ class GPUReconstruction
   unsigned int getNEventsProcessedInStat() { return mStatNEvents; }
   virtual int registerMemoryForGPU(const void* ptr, size_t size) = 0;
   virtual int unregisterMemoryForGPU(const void* ptr) = 0;
+  virtual void* getGPUPointer(void* ptr) { return ptr; }
   virtual void startGPUProfiling() {}
   virtual void endGPUProfiling() {}
+  int CheckErrorCodes();
+  void RunPipelineWorker();
+  void TerminatePipelineWorker();
 
   // Helpers for memory allocation
   GPUMemoryResource& Res(short num) { return mMemoryResources[num]; }
@@ -186,14 +192,21 @@ class GPUReconstruction
   size_t AllocateRegisteredMemory(GPUProcessor* proc);
   size_t AllocateRegisteredMemory(short res, GPUOutputControl* control = nullptr);
   void* AllocateUnmanagedMemory(size_t size, int type);
+  void* AllocateVolatileDeviceMemory(size_t size);
   void FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom = false, bool freePermanent = false);
   void FreeRegisteredMemory(short res);
   void ClearAllocatedMemory(bool clearOutputs = true);
+  void ReturnVolatileDeviceMemory();
+  void PushNonPersistentMemory();
+  void PopNonPersistentMemory(RecoStep step);
+  void BlockStackedMemory(GPUReconstruction* rec);
+  void UnblockStackedMemory();
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
   void ResetRegisteredMemoryPointers(short res);
   void ComputeReuseMax(GPUProcessor* proc);
   void PrintMemoryStatistics();
   void PrintMemoryOverview();
+  void PrintMemoryMax();
   void SetMemoryExternalInput(short res, void* ptr);
   GPUMemorySizeScalers* MemoryScalers() { return mMemoryScalers.get(); }
 
@@ -226,6 +239,8 @@ class GPUReconstruction
   RecoStepField GetRecoStepsGPU() const { return mRecoStepsGPU; }
   InOutTypeField GetRecoStepsInputs() const { return mRecoStepsInputs; }
   InOutTypeField GetRecoStepsOutputs() const { return mRecoStepsOutputs; }
+  int getRecoStepNum(RecoStep step, bool validCheck = true);
+  int getGeneralStepNum(GeneralStep step, bool validCheck = true);
 
   // Registration of GPU Processors
   template <class T>
@@ -250,6 +265,9 @@ class GPUReconstruction
   void WriteConstantParams();
   virtual int ExitDevice() = 0;
   virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
+  void UpdateMaxMemoryUsed();
+  int EnqueuePipeline(bool terminate = false);
+  GPUChain* GetNextChainInQueue();
 
   // Management for GPU thread contexts
   class GPUThreadContext
@@ -261,7 +279,7 @@ class GPUReconstruction
   virtual std::unique_ptr<GPUThreadContext> GetThreadContext();
 
   // Private helper functions for memory management
-  size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*));
+  size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*), void*& memorypoolend);
   size_t AllocateRegisteredPermanentMemory();
 
   // Private helper functions for reading / writing / allocating IO buffer from/to file
@@ -270,7 +288,7 @@ class GPUReconstruction
   template <class T, class S>
   size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type);
   template <class T>
-  void AllocateIOMemoryHelper(unsigned int n, const T*& ptr, std::unique_ptr<T[]>& u);
+  void AllocateIOMemoryHelper(size_t n, const T*& ptr, std::unique_ptr<T[]>& u);
 
   // Private helper functions to dump / load flat objects
   template <class T>
@@ -310,14 +328,21 @@ class GPUReconstruction
   std::string mDeviceName = "CPU";
 
   // Ptrs to host and device memory;
-  void* mHostMemoryBase = nullptr;        // Ptr to begin of large host memory buffer
-  void* mHostMemoryPermanent = nullptr;   // Ptr to large host memory buffer offset by permanently allocated memory
-  void* mHostMemoryPool = nullptr;        // Ptr to next free location in host memory buffer
-  size_t mHostMemorySize = 0;             // Size of host memory buffer
-  void* mDeviceMemoryBase = nullptr;      //
-  void* mDeviceMemoryPermanent = nullptr; //
-  void* mDeviceMemoryPool = nullptr;      //
-  size_t mDeviceMemorySize = 0;           //
+  void* mHostMemoryBase = nullptr;          // Ptr to begin of large host memory buffer
+  void* mHostMemoryPermanent = nullptr;     // Ptr to large host memory buffer offset by permanently allocated memory
+  void* mHostMemoryPool = nullptr;          // Ptr to next free location in host memory buffer
+  void* mHostMemoryPoolEnd = nullptr;       // Ptr to end of pool
+  void* mHostMemoryPoolBlocked = nullptr;   // Ptr to end of pool
+  size_t mHostMemorySize = 0;               // Size of host memory buffer
+  size_t mHostMemoryUsedMax = 0;            // Maximum host memory size used over time
+  void* mDeviceMemoryBase = nullptr;        //
+  void* mDeviceMemoryPermanent = nullptr;   //
+  void* mDeviceMemoryPool = nullptr;        //
+  void* mDeviceMemoryPoolEnd = nullptr;     //
+  void* mDeviceMemoryPoolBlocked = nullptr; //
+  size_t mDeviceMemorySize = 0;             //
+  void* mVolatileMemoryStart = nullptr;     // Ptr to beginning of temporary volatile memory allocation, nullptr if uninitialized
+  size_t mDeviceMemoryUsedMax = 0;          //
 
   GPUReconstruction* mMaster = nullptr;    // Ptr to a GPUReconstruction object serving as master, sharing GPU memory, events, etc.
   std::vector<GPUReconstruction*> mSlaves; // Ptr to slave GPUReconstructions
@@ -344,10 +369,15 @@ class GPUReconstruction
   };
   std::vector<ProcessorData> mProcessors;
   struct MemoryReuseMeta {
+    MemoryReuseMeta() = default;
+    MemoryReuseMeta(GPUProcessor* p, unsigned short r) : proc(p), res{r} {}
     GPUProcessor* proc = nullptr;
     std::vector<unsigned short> res;
   };
   std::unordered_map<GPUMemoryReuse::ID, MemoryReuseMeta> mMemoryReuse1to1;
+  std::vector<std::pair<void*, void*>> mNonPersistentMemoryStack;
+
+  std::unique_ptr<GPUReconstructionPipelineContext> mPipelineContext;
 
   // Helpers for loading device library via dlopen
   class LibraryLoader
@@ -375,7 +405,7 @@ class GPUReconstruction
 };
 
 template <class T>
-inline void GPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T*& ptr, std::unique_ptr<T[]>& u)
+inline void GPUReconstruction::AllocateIOMemoryHelper(size_t n, const T*& ptr, std::unique_ptr<T[]>& u)
 {
   if (n == 0) {
     u.reset(nullptr);
@@ -384,7 +414,10 @@ inline void GPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T*& 
   u.reset(new T[n]);
   ptr = u.get();
   if (mDeviceProcessingSettings.registerStandaloneInputMemory) {
-    registerMemoryForGPU(u.get(), n * sizeof(T));
+    if (registerMemoryForGPU(u.get(), n * sizeof(T))) {
+      GPUError("Error registering memory for GPU: %p - %lld bytes\n", (void*)u.get(), (long long int)(n * sizeof(T)));
+      throw std::bad_alloc();
+    }
   }
 }
 
@@ -413,10 +446,10 @@ inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*set
     throw std::bad_alloc();
   }
   unsigned short retVal = mMemoryResources.size() - 1;
-  if (re.type != GPUMemoryReuse::NONE) {
+  if (re.type != GPUMemoryReuse::NONE && !mDeviceProcessingSettings.disableMemoryReuse) {
     const auto& it = mMemoryReuse1to1.find(re.id);
     if (it == mMemoryReuse1to1.end()) {
-      mMemoryReuse1to1[re.id] = {proc, {retVal}};
+      mMemoryReuse1to1[re.id] = {proc, retVal};
     } else {
       mMemoryResources[retVal].mReuse = it->second.res[0];
       it->second.res.emplace_back(retVal);
@@ -497,7 +530,7 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, s
   }
   (void)r;
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %d %s", (int)numTotal, IOTYPENAMES[type]);
+    GPUInfo("Read %lld %s", (long long int)numTotal, IOTYPENAMES[type]);
   }
   return numTotal;
 }
@@ -531,12 +564,13 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
     throw std::runtime_error("invalid size");
   }
   std::unique_ptr<T> retVal(new T);
+  retVal->destroy();
   char* buf = new char[size[1]]; // Not deleted as ownership is transferred to FlatObject
   r = fread((void*)retVal.get(), 1, size[0], fp);
   r = fread(buf, 1, size[1], fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %d bytes from %s", (int)r, file);
+    GPUInfo("Read %lld bytes from %s", (long long int)r, file);
   }
   retVal->clearInternalBufferPtr();
   retVal->setActualBufferAddress(buf);
@@ -575,7 +609,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file
   r = fread(newObj.get(), 1, size, fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %d bytes from %s", (int)r, file);
+    GPUInfo("Read %lld bytes from %s", (long long int)r, file);
   }
   return newObj;
 }
@@ -596,7 +630,7 @@ inline int GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
   r = fread(obj, 1, size, fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %d bytes from %s", (int)r, file);
+    GPUInfo("Read %lldd bytes from %s", (long long int)r, file);
   }
   return 0;
 }

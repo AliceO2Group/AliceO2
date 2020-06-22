@@ -87,7 +87,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
         if (sectorHeaderMC) {
           o2::header::Stack actual{*sectorHeaderMC};
           std::swap(mcHeaderStack, actual);
-          if (sectorHeaderMC->sector < 0) {
+          if (sectorHeaderMC->sector() < 0) {
             pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack)}, fanSpec);
           }
         }
@@ -96,12 +96,12 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       if (sectorHeader) {
         o2::header::Stack actual{*sectorHeader};
         std::swap(rawHeaderStack, actual);
-        if (sectorHeader->sector < 0) {
+        if (sectorHeader->sector() < 0) {
           pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack)}, fanSpec);
           return;
         }
       }
-      assert(sectorHeaderMC == nullptr || sectorHeader->sector == sectorHeaderMC->sector);
+      assert(sectorHeaderMC == nullptr || sectorHeader->sector() == sectorHeaderMC->sector());
 
       // input to the decoder is a vector of raw pages description ClusterHardwareContainer,
       // each specified as a pair of pointer to ClusterHardwareContainer and the number
@@ -110,7 +110,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       size_t nPages = size / 8192;
       std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>> inputList;
       if (verbosity > 0 && !DataRefUtils::isValid(mclabelref)) {
-        LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages for sector " << sectorHeader->sector;
+        LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages for sector " << sectorHeader->sector();
       }
 
       // MC labels are received as one container of labels in the sequence matching clusters
@@ -121,7 +121,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
         mcin = std::move(pc.inputs().get<MCLabelContainer*>(mclabelref));
         mcinCopies.resize(nPages);
         if (verbosity > 0) {
-          LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages, " << mcin->getIndexedSize() << " MC label sets for sector " << sectorHeader->sector;
+          LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages, " << mcin->getIndexedSize() << " MC label sets for sector " << sectorHeader->sector();
         }
       }
 
@@ -165,24 +165,23 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
         outputBuffer = pc.outputs().newChunk(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack)}, size).data();
         return outputBuffer;
       };
-      std::vector<MCLabelContainer> mcoutList;
-      decoder->decodeClusters(inputList, outputAllocator, (mcin ? &mcinCopies : nullptr), &mcoutList);
+      MCLabelContainer mcout;
+      decoder->decodeClusters(inputList, outputAllocator, (mcin ? &mcinCopies : nullptr), &mcout);
 
       // TODO: reestablish the logging messages on the raw buffer
       // if (verbosity > 1) {
-      //   LOG(INFO) << "decoder " << std::setw(2) << sectorHeader->sector                             //
+      //   LOG(INFO) << "decoder " << std::setw(2) << sectorHeader->sector()                             //
       //             << ": decoded " << std::setw(4) << coll.clusters.size() << " clusters on sector " //
       //             << std::setw(2) << (int)coll.sector << "[" << (int)coll.globalPadRow << "]";      //
       // }
 
       if (DataRefUtils::isValid(mclabelref)) {
         if (verbosity > 0) {
-          LOG(INFO) << "sending " << mcoutList.size() << " MC label container(s) with in total "
-                    << std::accumulate(mcoutList.begin(), mcoutList.end(), size_t(0), [](size_t l, auto const& r) { return l + r.getIndexedSize(); })
+          LOG(INFO) << "sending " << mcout.getIndexedSize()
                     << " label object(s)" << std::endl;
         }
         // serialize the complete list of MC label containers
-        pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack)}, mcoutList);
+        pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack)}, mcout);
       }
     };
 
@@ -204,7 +203,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
           LOG(ERROR) << "sector header missing on header stack for input on " << inputRef.spec->binding;
           continue;
         }
-        const int sector = sectorHeader->sector;
+        const int sector = sectorHeader->sector();
         if (DataRefUtils::match(inputRef, {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERHW"}})) {
           inputs[sector].dataref = inputRef;
         }

@@ -193,7 +193,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       LOG(ERROR) << "TPC: Sector header missing, skipping processing";
       return;
     }
-    auto sector = sectorHeader->sector;
+    auto sector = sectorHeader->sector();
     LOG(INFO) << "TPC: Processing sector " << sector;
     // the active sectors need to be propagated
     uint64_t activeSectors = 0;
@@ -242,19 +242,17 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     std::vector<CommonMode> commonModeAccum;
     std::vector<DigiGroupRef> eventAccum;
 
-    // no more tasks can be marked with a negative sector
+    // this should not happen any more, legacy condition when the sector variable was used
+    // to transport control information
     if (sector < 0) {
-      digitsAccum.clear();
-      labelAccum.clear();
-      commonModeAccum.clear();
-      std::vector<DigiGroupRef> evAccDummy;
+      throw std::runtime_error("Legacy control information is not expected any more");
+    }
 
-      snapshotEvents(evAccDummy);
-      snapshotDigits(digitsAccum);
-      snapshotCommonMode(commonModeAccum);
-      snapshotLabels(labelAccum);
-
-      return;
+    // the TPCSectorHeader now allows to transport information for more than one sector,
+    // e.g. for transporting clusters in one single data block. The digitization is however
+    // only on sector level
+    if (sector >= TPCSectorHeader::NSectors) {
+      throw std::runtime_error("Digitizer can only work on single sectors");
     }
 
     mDigitizer.setSector(sector);
@@ -277,7 +275,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     };
 
     static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
-    mDigitizer.setStartTime(sampaProcessing.getTimeBinFromTime(irecords[0].timeNS / 1000.f));
+    mDigitizer.setStartTime(sampaProcessing.getTimeBinFromTime(irecords[0].getTimeNS() / 1000.f));
 
     TStopwatch timer;
     timer.Start();
@@ -285,7 +283,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      const float eventTime = irecords[collID].timeNS / 1000.f;
+      const float eventTime = irecords[collID].getTimeNS() / 1000.f;
       LOG(INFO) << "TPC: Event time " << eventTime << " us";
       mDigitizer.setEventTime(eventTime);
       if (!isContinuous) {

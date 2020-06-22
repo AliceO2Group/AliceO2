@@ -13,6 +13,7 @@
 #include "TOFWorkflow/TOFCalibWriterSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Headers/DataHeader.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
@@ -29,64 +30,25 @@ namespace o2
 {
 namespace tof
 {
-using evIdx = o2::dataformats::EvIndex<int, int>;
-using OutputType = std::vector<o2::dataformats::CalibInfoTOF>;
 
 template <typename T>
-TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
-{
-  if (auto br = tree.GetBranch(brname.c_str())) {
-    br->SetAddress(static_cast<void*>(&ptr));
-    return br;
-  }
-  // otherwise make it
-  return tree.Branch(brname.c_str(), ptr);
-}
-
-void TOFCalibWriter::init(InitContext& ic)
-{
-  // get the option from the init context
-  mOutFileName = ic.options().get<std::string>("tof-calib-outfile");
-  mOutTreeName = ic.options().get<std::string>("treename");
-}
-
-void TOFCalibWriter::run(ProcessingContext& pc)
-{
-  if (mFinished) {
-    return;
-  }
-
-  TFile outf(mOutFileName.c_str(), "recreate");
-  if (outf.IsZombie()) {
-    LOG(FATAL) << "Failed to open output file " << mOutFileName;
-  }
-  TTree tree(mOutTreeName.c_str(), "Tree of TOF calib infos");
-  auto indata = pc.inputs().get<OutputType>("tofcalibinfo");
-  LOG(INFO) << "RECEIVED MATCHED SIZE " << indata.size();
-
-  auto br = getOrMakeBranch(tree, "TOFCalibInfo", &indata);
-  br->Fill();
-
-  tree.SetEntries(1);
-  tree.Write();
-  mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-}
-
+using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
+using CalibInfosType = std::vector<o2::dataformats::CalibInfoTOF>;
 DataProcessorSpec getTOFCalibWriterSpec()
 {
-  std::vector<InputSpec> inputs;
-  inputs.emplace_back("tofcalibinfo", o2::header::gDataOriginTOF, "CALIBINFOS", 0, Lifetime::Timeframe);
-
-  return DataProcessorSpec{
-    "TOFCalibWriter",
-    inputs,
-    {}, // no output
-    AlgorithmSpec{adaptFromTask<TOFCalibWriter>()},
-    Options{
-      {"tof-calib-outfile", VariantType::String, "o2calib_tof.root", {"Name of the input file"}},
-      {"treename", VariantType::String, "calibTOF", {"Name of top-level TTree"}},
-    }};
+  // A spectator for logging
+  auto logger = [](CalibInfosType const& indata) {
+    LOG(INFO) << "RECEIVED MATCHED SIZE " << indata.size();
+  };
+  return MakeRootTreeWriterSpec("TOFCalibWriter",
+                                "o2calib_tof.root",
+                                "calibTOF",
+                                BranchDefinition<CalibInfosType>{InputSpec{"input", o2::header::gDataOriginTOF, "CALIBINFOS", 0},
+                                                                 "TOFCalibInfo",
+                                                                 "calibinfo-branch-name",
+                                                                 1,
+                                                                 logger})();
 }
+
 } // namespace tof
 } // namespace o2

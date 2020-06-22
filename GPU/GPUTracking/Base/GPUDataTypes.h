@@ -105,6 +105,9 @@ class GPUDataTypes
                               HIP = 3,
                               OCL = 4,
                               OCL2 = 5 };
+  enum ENUM_CLASS GeneralStep { Prepare = 1,
+                                QA = 2 };
+
   enum ENUM_CLASS RecoStep { TPCConversion = 1,
                              TPCSliceTracking = 2,
                              TPCMerging = 4,
@@ -113,6 +116,7 @@ class GPUDataTypes
                              ITSTracking = 32,
                              TPCdEdx = 64,
                              TPCClusterFinding = 128,
+                             TPCDecompression = 256,
                              AllRecoSteps = 0x7FFFFFFF,
                              NoRecoStep = 0 };
   enum ENUM_CLASS InOutType { TPCClusters = 1,
@@ -124,9 +128,12 @@ class GPUDataTypes
                               TPCRaw = 64 };
 
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
-  static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation", "TPC Cluster Finding"};
+  static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation", "TPC Cluster Finding", "TPC Decompression"};
+  static constexpr const char* const GENERAL_STEP_NAMES[] = {"Prepare", "QA"};
   typedef bitfield<RecoStep, unsigned int> RecoStepField;
   typedef bitfield<InOutType, unsigned int> InOutTypeField;
+  constexpr static int N_RECO_STEPS = sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]);
+  constexpr static int N_GENERAL_STEPS = sizeof(GPUDataTypes::GENERAL_STEP_NAMES) / sizeof(GPUDataTypes::GENERAL_STEP_NAMES[0]);
 #endif
 #ifdef GPUCA_NOCOMPAT
   static constexpr unsigned int NSLICES = 36;
@@ -213,6 +220,7 @@ struct GPUTrackingInOutPointers {
   unsigned int nMergedTracks = 0;
   const GPUTPCGMMergedTrackHit* mergedTrackHits = nullptr;
   unsigned int nMergedTrackHits = 0;
+  unsigned int* mergedTrackHitAttachment = nullptr;
   const o2::tpc::CompressedClustersFlat* tpcCompressedClusters = nullptr;
   const GPUTRDTrackletWord* trdTracklets = nullptr;
   unsigned int nTRDTracklets = 0;

@@ -40,24 +40,23 @@ InputRecord::InputRecord(std::vector<InputRoute> const& inputsSchema,
 
 int InputRecord::getPos(const char* binding) const
 {
-  for (int i = 0; i < mInputsSchema.size(); ++i) {
+  auto inputIndex = 0;
+  for (size_t i = 0; i < mInputsSchema.size(); ++i) {
     auto& route = mInputsSchema[i];
-    if (route.matcher.binding == binding) {
-      return i;
+    if (route.timeslice != 0) {
+      continue;
     }
+    if (route.matcher.binding == binding) {
+      return inputIndex;
+    }
+    ++inputIndex;
   }
   return -1;
 }
 
 int InputRecord::getPos(std::string const& binding) const
 {
-  for (size_t i = 0; i < mInputsSchema.size(); ++i) {
-    auto& route = mInputsSchema[i];
-    if (route.matcher.binding == binding) {
-      return i;
-    }
-  }
-  return -1;
+  return this->getPos(binding.c_str());
 }
 
 bool InputRecord::isValid(char const* s) const

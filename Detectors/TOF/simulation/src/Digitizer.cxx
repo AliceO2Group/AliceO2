@@ -788,8 +788,9 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
   // filling the digit container doing a loop on all strips
   for (auto& strip : *mStripsCurrent) {
     strip.fillOutputContainer(digits);
-    if (strip.getNumberOfDigits())
+    if (strip.getNumberOfDigits()) {
       LOG(INFO) << "strip size = " << strip.getNumberOfDigits() << " - digit size = " << digits.size() << "\n";
+    }
   }
 
   if (mContinuous) {

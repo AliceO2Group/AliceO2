@@ -32,6 +32,9 @@ void Config()
   }
   stackSetup(geant3, run);
 
+  // setup decayer
+  decayerSetup(geant3);
+
   // ******* GEANT3  specific configuration for simulated Runs  *******
   geant3->SetTRIG(1); // Number of events to be processed
   geant3->SetSWIT(4, 100);

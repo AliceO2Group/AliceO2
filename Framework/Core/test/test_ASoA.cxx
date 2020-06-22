@@ -87,10 +87,10 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   pos++;
   BOOST_CHECK_EQUAL(*i, 1);
 
-  auto rowIndex = std::make_tuple(
-    std::pair<test::X*, BackendColumnType*>{nullptr, table->column(0).get()},
-    std::pair<test::Y*, BackendColumnType*>{nullptr, table->column(1).get()});
-  Points::iterator tests(rowIndex, {table->num_rows(), 0});
+  arrow::ChunkedArray* chunks[2] = {
+    table->column(0).get(),
+    table->column(1).get()};
+  Points::iterator tests(chunks, {table->num_rows(), 0});
   BOOST_CHECK_EQUAL(tests.x(), 0);
   BOOST_CHECK_EQUAL(tests.y(), 0);
   ++tests;
@@ -487,4 +487,12 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   BOOST_CHECK_EQUAL(se.pointB().x(), 3);
   BOOST_CHECK_EQUAL(se.pointB().y(), 4);
   BOOST_CHECK_EQUAL(se.thickness(), 1);
+}
+
+BOOST_AUTO_TEST_CASE(TestSchemaCreation)
+{
+  auto schema = createSchemaFromColumns(Points::persistent_columns_t{});
+  BOOST_CHECK_EQUAL(schema->num_fields(), 2);
+  BOOST_CHECK_EQUAL(schema->field(0)->name(), "x");
+  BOOST_CHECK_EQUAL(schema->field(1)->name(), "y");
 }

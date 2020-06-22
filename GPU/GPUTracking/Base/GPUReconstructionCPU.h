@@ -30,8 +30,10 @@
 #include "GPUTPCTrackletConstructor.h"
 #include "GPUTPCTrackletSelector.h"
 #include "GPUTPCGlobalTracking.h"
-#include "GPUTPCGMMergerGPU.h"
 #include "GPUTRDTrackerKernels.h"
+#ifdef GPUCA_NOCOMPAT
+#include "GPUTPCGMMergerGPU.h"
+#endif
 #ifdef HAVE_O2HEADERS
 #include "GPUITSFitterKernels.h"
 #include "GPUTPCConvertKernel.h"
@@ -142,6 +144,9 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
 
   int RunChains() override;
 
+  HighResTimer& getRecoStepTimer(RecoStep step) { return mTimersRecoSteps[getRecoStepNum(step)].timerTotal; }
+  HighResTimer& getGeneralStepTimer(GeneralStep step) { return mTimersGeneralSteps[getGeneralStepNum(step)]; }
+
  protected:
   struct GPUProcessorProcessors : public GPUProcessor {
     GPUConstantMem* mProcessorsProc = nullptr;
@@ -153,6 +158,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
 
   virtual void SynchronizeStream(int stream) {}
   virtual void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) {}
+  virtual void StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents = 1) {}
   virtual bool IsEventDone(deviceEvent* evList, int nEvents = 1) { return true; }
   virtual void RecordMarker(deviceEvent* ev, int stream) {}
   virtual void SynchronizeGPU() {}
@@ -202,24 +208,24 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   };
 
   struct RecoStepTimerMeta {
-    HighResTimer timer;
     HighResTimer timerToGPU;
     HighResTimer timerToHost;
+    HighResTimer timerTotal;
     size_t bytesToGPU = 0;
     size_t bytesToHost = 0;
     unsigned int countToGPU = 0;
     unsigned int countToHost = 0;
   };
 
-  constexpr static int N_RECO_STEPS = sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]);
+  HighResTimer mTimersGeneralSteps[GPUDataTypes::N_GENERAL_STEPS];
+
   std::vector<std::unique_ptr<timerMeta>> mTimers;
-  RecoStepTimerMeta mTimersRecoSteps[N_RECO_STEPS];
+  RecoStepTimerMeta mTimersRecoSteps[GPUDataTypes::N_RECO_STEPS];
   HighResTimer timerTotal;
   template <class T, int I = 0, int J = -1>
   HighResTimer& getKernelTimer(RecoStep step, int num = 0, size_t addMemorySize = 0);
   template <class T, int J = -1>
   HighResTimer& getTimer(const char* name, int num = -1);
-  int getRecoStepNum(RecoStep step, bool validCheck = true);
 
   std::vector<std::vector<deviceEvent*>> mEvents;
 
@@ -243,12 +249,17 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & myStep) != myStep) : 0;
   unsigned int nThreads = x.nThreads;
   unsigned int nBlocks = x.nBlocks;
-  const int autoThreads = cpuFallback ? 1 : getKernelProperties<S, I>().nThreads;
+  auto prop = getKernelProperties<S, I>();
+  const int autoThreads = cpuFallback ? 1 : prop.nThreads;
+  const int autoBlocks = cpuFallback ? 1 : (prop.minBlocks * mBlockCount);
   if (nBlocks == (unsigned int)-1) {
     nBlocks = (nThreads + autoThreads - 1) / autoThreads;
     nThreads = autoThreads;
   } else if (nBlocks == (unsigned int)-2) {
     nBlocks = nThreads;
+    nThreads = autoThreads;
+  } else if (nBlocks == (unsigned int)-3) {
+    nBlocks = autoBlocks;
     nThreads = autoThreads;
   } else if ((int)nThreads < 0) {
     nThreads = cpuFallback ? 1 : -nThreads;
@@ -264,7 +275,7 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   }
   if (mDeviceProcessingSettings.debugLevel >= 0) {
     t = &getKernelTimer<S, I, J>(myStep, !IsGPU() || cpuFallback ? getOMPThreadNum() : x.stream);
-    if (!mDeviceProcessingSettings.deviceTimers || cpuFallback) {
+    if (!mDeviceProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) {
       t->Start();
     }
   }
@@ -283,11 +294,14 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
       throw std::runtime_error("kernel failure");
     }
     if (t) {
-      if (!mDeviceProcessingSettings.deviceTimers || cpuFallback) {
+      if (!mDeviceProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) {
         t->Stop();
       } else {
         t->AddTime(setup.t);
       }
+    }
+    if (mDeviceProcessingSettings.debugLevel >= 1 && CheckErrorCodes()) {
+      throw std::runtime_error("kernel error code");
     }
   }
   return 0;

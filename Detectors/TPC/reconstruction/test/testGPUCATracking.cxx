@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   //config.configDeviceProcessing.eventDisplay = new GPUDisplayBackendGlfw;
 
   config.configEvent.solenoidBz = solenoidBz;
-  config.configEvent.continuousMaxTimeBin = continuous ? 0.023 * 5e6 : 0; //Number of timebins in timeframe if continuous, 0 otherwise
+  config.configEvent.continuousMaxTimeBin = continuous ? GPUSettings::TPC_MAX_TF_TIME_BIN : 0; //Number of timebins in timeframe if continuous, 0 otherwise
 
   config.configReconstruction.NWays = 3;               //Should always be 3!
   config.configReconstruction.NWaysOuter = true;       //Will create outer param for TRD

@@ -188,7 +188,7 @@ struct DataRefUtils {
 
   static bool isValid(DataRef const& ref)
   {
-    return ref.header != nullptr && ref.payload != nullptr;
+    return ref.header != nullptr;
   }
 
   /// check if the DataRef object matches a partcular binding

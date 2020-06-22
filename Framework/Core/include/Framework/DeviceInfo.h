@@ -21,6 +21,7 @@
 // For pid_t
 #include <unistd.h>
 #include <array>
+#include <boost/property_tree/ptree.hpp>
 
 namespace o2
 {
@@ -62,6 +63,10 @@ struct DeviceInfo {
   Metric2DViewIndex variablesViewIndex;
   /// Index for the queries of each input route.
   Metric2DViewIndex queriesViewIndex;
+  /// Current configuration for the device
+  boost::property_tree::ptree currentConfig;
+  /// Current provenance for the configuration keys
+  boost::property_tree::ptree currentProvenance;
 };
 
 } // namespace framework

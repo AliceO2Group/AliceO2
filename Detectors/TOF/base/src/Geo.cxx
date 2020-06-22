@@ -156,7 +156,7 @@ void Geo::getVolumePath(const Int_t* ind, Char_t* path)
   Int_t icopy = -1;
   icopy = sector;
 
-  snprintf(string1, kSize, "/cave_1/B077_1/BSEGMO%i_1/BTOF%i_1", icopy, icopy);
+  snprintf(string1, kSize, "/cave_1/barrel_1/B077_1/BSEGMO%i_1/BTOF%i_1", icopy, icopy);
 
   Bool_t fgHoles = kTRUE;
 
@@ -305,15 +305,17 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
                   ((iplate == 2 && (istrip < 0 || istrip >= NSTRIPA)) ||
                    (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC))));
 
-  if (iplate < 0 || iplate >= NPLATES)
+  if (iplate < 0 || iplate >= NPLATES) {
     LOG(ERROR) << "getStripNumberPerSM : "
                << "Wrong plate number in TOF (" << iplate << ")!\n";
+  }
 
   if (
     (iplate == 2 && (istrip < 0 || istrip >= NSTRIPA)) ||
-    (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC)))
+    (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC))) {
     LOG(ERROR) << "getStripNumberPerSM : "
                << " Wrong strip number in TOF (strip=" << istrip << " in the plate= " << iplate << ")!\n";
+  }
 
   Int_t stripOffset = 0;
   switch (iplate) {
@@ -334,8 +336,9 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
       break;
   };
 
-  if (!check)
+  if (!check) {
     index = stripOffset + istrip;
+  }
 
   return index;
 }

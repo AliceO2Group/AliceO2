@@ -12,15 +12,13 @@
 
 #include <vector>
 
-#include "Framework/ControlService.h"
-#include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/ClusterWriterSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DataFormatsITSMFT/ROFRecord.h"
-#include "CommonUtils/StringUtils.h"
 
 using namespace o2::framework;
 
@@ -30,90 +28,49 @@ namespace its
 {
 
 template <typename T>
-TBranch* getOrMakeBranch(TTree* tree, const char* brname, T* ptr)
-{
-  if (auto br = tree->GetBranch(brname)) {
-    br->SetAddress(static_cast<void*>(ptr));
-    return br;
-  }
-  return tree->Branch(brname, ptr); // otherwise make it
-}
-
-void ClusterWriter::init(InitContext& ic)
-{
-  auto filename = ic.options().get<std::string>("its-cluster-outfile");
-  mFile = std::make_unique<TFile>(filename.c_str(), "RECREATE");
-  if (!mFile->IsOpen()) {
-    throw std::runtime_error(o2::utils::concat_string("failed to open ITS clusters output file ", filename));
-  }
-  mTree = std::make_unique<TTree>("o2sim", "Tree with ITS clusters");
-}
-
-void ClusterWriter::run(ProcessingContext& pc)
-{
-  auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
-  auto pspan = pc.inputs().get<gsl::span<unsigned char>>("patterns");
-  auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
-  auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
-
-  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* plabels = nullptr;
-  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs, *mc2rofsPtr = &mc2rofs;
-  std::vector<unsigned char> patterns(pspan.begin(), pspan.end());
-
-  LOG(INFO) << "ITSClusterWriter pulled " << compClusters.size() << " clusters, in " << rofs.size() << " RO frames";
-  auto compClustersPtr = &compClusters;
-  getOrMakeBranch(mTree.get(), "ITSClusterComp", &compClustersPtr);
-  auto patternsPtr = &patterns;
-  getOrMakeBranch(mTree.get(), "ITSClusterPatt", &patternsPtr);
-  auto clustersPtr = &clusters;
-  getOrMakeBranch(mTree.get(), "ITSCluster", &clustersPtr); // RSTODO being eliminated
-  auto rofsPtr = &rofs;
-  getOrMakeBranch(mTree.get(), "ITSClustersROF", &rofsPtr);
-
-  if (mUseMC) {
-    labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
-    plabels = labels.get();
-    getOrMakeBranch(mTree.get(), "ITSClusterMCTruth", &plabels);
-
-    // write MC2ROFrecord vector (directly inherited from digits input) to a tree
-    const auto m2rvec = pc.inputs().get<gsl::span<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
-    mc2rofs.reserve(m2rvec.size());
-    for (const auto& m2rv : m2rvec) {
-      mc2rofs.push_back(m2rv);
-    }
-    getOrMakeBranch(mTree.get(), "ITSClustersMC2ROF", &mc2rofsPtr);
-  }
-  mTree->Fill();
-}
-
-void ClusterWriter::endOfStream(o2::framework::EndOfStreamContext& ec)
-{
-  LOG(INFO) << "Finalizing ITS cluster writing";
-  mTree->Write();
-  mTree.release()->Delete();
-  mFile->Close();
-}
+using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
+using CompClusType = std::vector<o2::itsmft::CompClusterExt>;
+using PatternsType = std::vector<unsigned char>;
+using ClustersType = std::vector<o2::itsmft::Cluster>;
+using ROFrameRType = std::vector<o2::itsmft::ROFRecord>;
+using LabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using ROFRecLblT = std::vector<o2::itsmft::MC2ROFRecord>;
+using namespace o2::header;
 
 DataProcessorSpec getClusterWriterSpec(bool useMC)
 {
-  std::vector<InputSpec> inputs;
-  inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe);
-  if (useMC) {
-    inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe);
-  }
-
-  return DataProcessorSpec{
-    "its-cluster-writer",
-    inputs,
-    Outputs{},
-    AlgorithmSpec{adaptFromTask<ClusterWriter>(useMC)},
-    Options{
-      {"its-cluster-outfile", VariantType::String, "o2clus_its.root", {"Name of the output file"}}}};
+  // Spectators for logging
+  // this is only to restore the original behavior
+  auto compClustersSize = std::make_shared<int>(0);
+  auto compClustersSizeGetter = [compClustersSize](CompClusType const& compClusters) {
+    *compClustersSize = compClusters.size();
+  };
+  auto logger = [compClustersSize](std::vector<o2::itsmft::ROFRecord> const& rofs) {
+    LOG(INFO) << "ITSClusterWriter pulled " << *compClustersSize << " clusters, in " << rofs.size() << " RO frames";
+  };
+  return MakeRootTreeWriterSpec("its-cluster-writer",
+                                "o2clus_its.root",
+                                MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with ITS clusters"},
+                                BranchDefinition<CompClusType>{InputSpec{"compclus", "ITS", "COMPCLUSTERS", 0},
+                                                               "ITSClusterComp",
+                                                               compClustersSizeGetter},
+                                BranchDefinition<PatternsType>{InputSpec{"patterns", "ITS", "PATTERNS", 0},
+                                                               "ITSClusterPatt"},
+                                // this has been marked to be removed in the original implementation
+                                // RSTODO being eliminated
+                                BranchDefinition<ClustersType>{InputSpec{"clusters", "ITS", "CLUSTERS", 0},
+                                                               "ITSCluster"},
+                                BranchDefinition<ROFrameRType>{InputSpec{"ROframes", "ITS", "CLUSTERSROF", 0},
+                                                               "ITSClustersROF",
+                                                               logger},
+                                BranchDefinition<LabelsType>{InputSpec{"labels", "ITS", "CLUSTERSMCTR", 0},
+                                                             "ITSClusterMCTruth",
+                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                             ""},
+                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "ITS", "CLUSTERSMC2ROF", 0},
+                                                             "ITSClustersMC2ROF",
+                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                             ""})();
 }
 
 } // namespace its

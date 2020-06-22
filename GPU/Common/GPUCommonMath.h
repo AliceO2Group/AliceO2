@@ -73,6 +73,13 @@ class GPUCommonMath
   {
     return GPUCommonMath::AtomicExchInt(addr, val);
   }
+
+  template <class T>
+  GPUdi() static T AtomicCAS(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T cmp, T val)
+  {
+    return GPUCommonMath::AtomicCASInt(addr, cmp, val);
+  }
+
   template <class T>
   GPUdi() static T AtomicAdd(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
@@ -91,22 +98,42 @@ class GPUCommonMath
   template <class T>
   GPUdi() static T AtomicExchShared(GPUsharedref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
+#ifdef GPUCA_GPUCODE_DEVICE
     return GPUCommonMath::AtomicExchInt(addr, val);
+#else
+    T retVal = *addr;
+    *addr = val;
+    return retVal;
+#endif
   }
   template <class T>
   GPUdi() static T AtomicAddShared(GPUsharedref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
+#ifdef GPUCA_GPUCODE_DEVICE
     return GPUCommonMath::AtomicAddInt(addr, val);
+#else
+    T retVal = *addr;
+    *addr += val;
+    return retVal;
+#endif
   }
   template <class T>
   GPUdi() static void AtomicMaxShared(GPUsharedref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
+#ifdef GPUCA_GPUCODE_DEVICE
     GPUCommonMath::AtomicMaxInt(addr, val);
+#else
+    *addr = std::max(*addr, val);
+#endif
   }
   template <class T>
   GPUdi() static void AtomicMinShared(GPUsharedref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
+#ifdef GPUCA_GPUCODE_DEVICE
     GPUCommonMath::AtomicMinInt(addr, val);
+#else
+    *addr = std::min(*addr, val);
+#endif
   }
   GPUd() static int Mul24(int a, int b);
   GPUd() static float FMulRZ(float a, float b);
@@ -117,6 +144,8 @@ class GPUCommonMath
  private:
   template <class S, class T>
   GPUd() static unsigned int AtomicExchInt(S* addr, T val);
+  template <class S, class T>
+  GPUd() static T AtomicCASInt(S* addr, T cmp, T val);
   template <class S, class T>
   GPUd() static unsigned int AtomicAddInt(S* addr, T val);
   template <class S, class T>
@@ -347,11 +376,6 @@ GPUhdi() float GPUCommonMath::Copysign(float x, float y)
 #endif // GPUCA_GPUCODE
 }
 
-#ifndef GPUCA_GPUCODE
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-value" // GCC BUG in omp atomic capture gives false warning
-#endif
-
 template <class S, class T>
 GPUdi() unsigned int GPUCommonMath::AtomicExchInt(S* addr, T val)
 {
@@ -361,17 +385,34 @@ GPUdi() unsigned int GPUCommonMath::AtomicExchInt(S* addr, T val)
   return ::atomic_xchg(addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return ::atomicExch(addr, val);
-#else
+#elif defined(WITH_OPENMP)
   unsigned int old;
-#ifdef WITH_OPENMP
-#pragma omp atomic capture
-#endif
-  {
-    old = *addr;
-    *addr = val;
-  }
+  __atomic_exchange(addr, &val, &old, __ATOMIC_SEQ_CST);
   return old;
-#endif // GPUCA_GPUCODE
+#else
+  unsigned int old = *addr;
+  *addr = val;
+  return old;
+#endif
+}
+
+template <class S, class T>
+GPUdi() T GPUCommonMath::AtomicCASInt(S* addr, T cmp, T val)
+{
+#if defined(GPUCA_GPUCODE) && defined(__OPENCLCPP__) && (!defined(__clang__) || defined(GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS))
+  return ::atomic_compare_exchange(addr, cmp, val);
+#elif defined(GPUCA_GPUCODE) && defined(__OPENCL__)
+  return ::atomic_cmpxchg(addr, cmp, val);
+#elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
+  return ::atomicCAS(addr, cmp, val);
+#elif defined(WITH_OPENMP)
+  __atomic_compare_exchange(addr, &cmp, &val, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+  return cmp;
+#else
+  T old = *addr;
+  *addr = (old == cmp) ? val : old;
+  return old;
+#endif
 }
 
 template <class S, class T>
@@ -383,17 +424,13 @@ GPUdi() unsigned int GPUCommonMath::AtomicAddInt(S* addr, T val)
   return ::atomic_add(addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return ::atomicAdd(addr, val);
+#elif defined(WITH_OPENMP)
+  return __atomic_add_fetch(addr, val, __ATOMIC_SEQ_CST) - val;
 #else
-  unsigned int old;
-#ifdef WITH_OPENMP
-#pragma omp atomic capture
-#endif
-  {
-    old = *addr;
-    *addr += val;
-  }
+  unsigned int old = *addr;
+  *addr += val;
   return old;
-#endif // GPUCA_GPUCODE
+#endif
 }
 
 template <class S, class T>
@@ -405,14 +442,14 @@ GPUdi() void GPUCommonMath::AtomicMaxInt(S* addr, T val)
   ::atomic_max(addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   ::atomicMax(addr, val);
-#else
-#ifdef WITH_OPENMP
-  while (*addr < val)
+#elif defined(WITH_OPENMP)
+  while (*addr < val) {
     AtomicExch(addr, val);
+  }
 #else
-  if (*addr < val)
+  if (*addr < val) {
     *addr = val;
-#endif
+  }
 #endif // GPUCA_GPUCODE
 }
 
@@ -425,20 +462,16 @@ GPUdi() void GPUCommonMath::AtomicMinInt(S* addr, T val)
   ::atomic_min(addr, val);
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   ::atomicMin(addr, val);
-#else
-#ifdef WITH_OPENMP
-  while (*addr > val)
+#elif defined(WITH_OPENMP)
+  while (*addr > val) {
     AtomicExch(addr, val);
+  }
 #else
-  if (*addr > val)
+  if (*addr > val) {
     *addr = val;
-#endif
+  }
 #endif // GPUCA_GPUCODE
 }
-
-#ifndef GPUCA_GPUCODE
-#pragma GCC diagnostic pop
-#endif
 
 #undef CHOICE
 

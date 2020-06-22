@@ -11,6 +11,7 @@
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include <sys/stat.h>
 #include <cstdlib>
+#include <fmt/format.h>
 #include <memory>
 
 using namespace o2::base;
@@ -48,7 +49,19 @@ std::string NameConf::getGeomFileName(const std::string_view prefix)
   return o2::utils::concat_string(prefix.empty() ? STANDARDSIMPREFIX : prefix, "_", GEOM_FILE_STRING, ".root");
 }
 
-// Filename to store geometry file
+// Filename to store simulation cuts/process summary
+std::string NameConf::getCutProcFileName(std::string_view prefix)
+{
+  // check if the prefix is an existing path
+  if (pathIsDirectory(prefix)) {
+    return o2::utils::concat_string(prefix, "/", STANDARDSIMPREFIX, "_", CUT_FILE_STRING, ".dat");
+  } else if (pathExists(prefix)) {
+    return std::string(prefix); // it is a full file
+  }
+  return o2::utils::concat_string(prefix.empty() ? STANDARDSIMPREFIX : prefix, "_", CUT_FILE_STRING, ".dat");
+}
+
+// Filename to store ITSMFT dictionary
 std::string NameConf::getDictionaryFileName(DId det, const std::string_view prefix, const std::string_view ext)
 {
   // check if the prefix is an existing path
@@ -58,4 +71,21 @@ std::string NameConf::getDictionaryFileName(DId det, const std::string_view pref
     return std::string(prefix); // it is a full file
   }
   return o2::utils::concat_string(prefix, det.getName(), DICTFILENAME, ext);
+}
+
+// Filename to store material LUT file
+std::string NameConf::getMatLUTFileName(const std::string_view prefix)
+{
+  // check if the prefix is an existing path
+  if (pathIsDirectory(prefix)) {
+    return o2::utils::concat_string(prefix, "/", MATBUDLUT, ".root");
+  } else if (pathExists(prefix)) {
+    return std::string(prefix); // it is a full file
+  }
+  return o2::utils::concat_string(prefix, MATBUDLUT, ".root");
+}
+
+std::string NameConf::getCTFFileName(long id, const std::string_view prefix)
+{
+  return o2::utils::concat_string(prefix, "_", fmt::format("{:010d}", id), ".root");
 }

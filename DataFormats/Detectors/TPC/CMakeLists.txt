@@ -44,6 +44,7 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/Defs.h
           include/DataFormatsTPC/dEdxInfo.h
           include/DataFormatsTPC/CompressedClusters.h
+          include/DataFormatsTPC/CTF.h
           include/DataFormatsTPC/ZeroSuppression.h
           include/DataFormatsTPC/ZeroSuppressionLinkBased.h)
 

@@ -146,14 +146,20 @@ o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB)
     inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
     inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
   }
-  if (useMC)
+  if (useMC) {
     inputs.emplace_back("tofdigitlabels", o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back(o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe);
+  if (useMC) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+  }
 
   return DataProcessorSpec{
     "TOFClusterer",
     inputs,
-    Outputs{OutputSpec{o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe},
-            OutputSpec{o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe}},
+    outputs,
     AlgorithmSpec{adaptFromTask<TOFDPLClustererTask>(useMC, useCCDB)},
     Options{/* for the moment no options */}};
 }

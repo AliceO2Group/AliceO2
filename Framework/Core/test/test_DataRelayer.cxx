@@ -28,6 +28,7 @@ using Monitoring = o2::monitoring::Monitoring;
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 using Stack = o2::header::Stack;
+using RecordAction = o2::framework::DataRelayer::RecordAction;
 
 // A simple test where an input is provided
 // and the subsequent InputRecord is immediately requested.
@@ -60,7 +61,8 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
   FairMQMessagePtr payload = transport->CreateMessage(1000);
   memcpy(header->GetData(), stack.data(), stack.size());
   relayer.relay(std::move(header), std::move(payload));
-  auto ready = relayer.getReadyToProcess();
+  std::vector<RecordAction> ready;
+  relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
   BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
@@ -100,7 +102,8 @@ BOOST_AUTO_TEST_CASE(TestNoWaitMatcher)
   FairMQMessagePtr payload = transport->CreateMessage(1000);
   memcpy(header->GetData(), stack.data(), stack.size());
   relayer.relay(std::move(header), std::move(payload));
-  auto ready = relayer.getReadyToProcess();
+  std::vector<RecordAction> ready;
+  relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
   BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
@@ -163,11 +166,13 @@ BOOST_AUTO_TEST_CASE(TestRelay)
   dh2.subSpecification = 0;
 
   createMessage(dh1, 0);
-  auto ready = relayer.getReadyToProcess();
+  std::vector<RecordAction> ready;
+  relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 0);
 
   createMessage(dh2, 0);
-  ready = relayer.getReadyToProcess();
+  ready.clear();
+  relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
   BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
@@ -239,19 +244,23 @@ BOOST_AUTO_TEST_CASE(TestRelayBug)
 
   /// Reproduce the bug reported by Matthias in https://github.com/AliceO2Group/AliceO2/pull/1483
   createMessage(dh1, 0);
-  auto ready = relayer.getReadyToProcess();
+  std::vector<RecordAction> ready;
+  relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 0);
   createMessage(dh1, 1);
-  ready = relayer.getReadyToProcess();
+  ready.clear();
+  relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 0);
   createMessage(dh2, 0);
-  ready = relayer.getReadyToProcess();
+  ready.clear();
+  relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
   BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
   auto result = relayer.getInputsForTimeslice(ready[0].slot);
   createMessage(dh2, 1);
-  ready = relayer.getReadyToProcess();
+  ready.clear();
+  relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
   BOOST_CHECK_EQUAL(ready[0].slot.index, 1);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
@@ -297,7 +306,8 @@ BOOST_AUTO_TEST_CASE(TestCache)
   // This fills the cache, and then empties it.
   createMessage(DataProcessingHeader{0, 1});
   createMessage(DataProcessingHeader{1, 1});
-  auto ready = relayer.getReadyToProcess();
+  std::vector<RecordAction> ready;
+  relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 2);
   BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[1].slot.index, 1);
@@ -311,7 +321,8 @@ BOOST_AUTO_TEST_CASE(TestCache)
   createMessage(DataProcessingHeader{2, 1});
   createMessage(DataProcessingHeader{3, 1});
   createMessage(DataProcessingHeader{4, 1});
-  ready = relayer.getReadyToProcess();
+  ready.clear();
+  relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 2);
 
   auto result1 = relayer.getInputsForTimeslice(ready[0].slot);
@@ -365,19 +376,22 @@ BOOST_AUTO_TEST_CASE(TestPolicies)
 
   // This fills the cache, and then empties it.
   auto actions1 = createMessage(dh1, DataProcessingHeader{0, 1});
-  auto ready1 = relayer.getReadyToProcess();
+  std::vector<RecordAction> ready1;
+  relayer.getReadyToProcess(ready1);
   BOOST_REQUIRE_EQUAL(ready1.size(), 1);
   BOOST_CHECK_EQUAL(ready1[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready1[0].op, CompletionPolicy::CompletionOp::Process);
 
   auto actions2 = createMessage(dh1, DataProcessingHeader{1, 1});
-  auto ready2 = relayer.getReadyToProcess();
+  std::vector<RecordAction> ready2;
+  relayer.getReadyToProcess(ready2);
   BOOST_REQUIRE_EQUAL(ready2.size(), 1);
   BOOST_CHECK_EQUAL(ready2[0].slot.index, 1);
   BOOST_CHECK_EQUAL(ready2[0].op, CompletionPolicy::CompletionOp::Process);
 
   auto actions3 = createMessage(dh2, DataProcessingHeader{1, 1});
-  auto ready3 = relayer.getReadyToProcess();
+  std::vector<RecordAction> ready3;
+  relayer.getReadyToProcess(ready3);
   BOOST_REQUIRE_EQUAL(ready3.size(), 1);
   BOOST_CHECK_EQUAL(ready3[0].slot.index, 1);
   BOOST_CHECK_EQUAL(ready3[0].op, CompletionPolicy::CompletionOp::Consume);
@@ -429,6 +443,7 @@ BOOST_AUTO_TEST_CASE(TestClear)
   auto actions2 = createMessage(dh1, DataProcessingHeader{1, 1});
   auto actions3 = createMessage(dh2, DataProcessingHeader{1, 1});
   relayer.clear();
-  auto ready3 = relayer.getReadyToProcess();
-  BOOST_REQUIRE_EQUAL(ready3.size(), 0);
+  std::vector<RecordAction> ready;
+  relayer.getReadyToProcess(ready);
+  BOOST_REQUIRE_EQUAL(ready.size(), 0);
 }

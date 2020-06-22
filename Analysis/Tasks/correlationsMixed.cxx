@@ -26,12 +26,12 @@ namespace o2::aod
 {
 namespace etaphi
 {
-DECLARE_SOA_COLUMN(Eta2, eta2, float);
-DECLARE_SOA_COLUMN(Phi2, phi2, float);
-DECLARE_SOA_COLUMN(Pt2, pt2, float);
+DECLARE_SOA_COLUMN(Etam, etam, float);
+DECLARE_SOA_COLUMN(Phim, phim, float);
+DECLARE_SOA_COLUMN(Ptm, ptm, float);
 } // namespace etaphi
 DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
-                  etaphi::Eta2, etaphi::Phi2, etaphi::Pt2);
+                  etaphi::Etam, etaphi::Phim, etaphi::Ptm);
 } // namespace o2::aod
 
 namespace o2::aod
@@ -109,7 +109,7 @@ struct CorrelationTask {
   using myTracks = soa::Filtered<soa::Join<aod::Tracks, aod::EtaPhi>>;
 
   // Filters
-  Filter trackFilter = (aod::etaphi::eta2 > -0.8f) && (aod::etaphi::eta2 < 0.8f) && (aod::etaphi::pt2 > 1.0f);
+  Filter trackFilter = (aod::etaphi::etam > -0.8f) && (aod::etaphi::etam < 0.8f) && (aod::etaphi::ptm > 1.0f);
 
   // Output definitions
   OutputObj<CorrelationContainer> same{"sameEvent"};
@@ -224,10 +224,10 @@ struct CorrelationTask {
         if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0)
           continue;
 
-        //LOGF(info, "TRACK %f %f | %f %f | %f %f", track1.eta(), track1.eta2(), track1.phi(), track1.phi2(), track1.pt(), track1.pt2());
+        //LOGF(info, "TRACK %f %f | %f %f | %f %f", track1.eta(), track1.etam(), track1.phi(), track1.phim(), track1.pt(), track1.ptm());
 
         double eventValues[3];
-        eventValues[0] = track1.pt2();
+        eventValues[0] = track1.ptm();
         eventValues[1] = collision1.centV0M();
         eventValues[2] = collision1.posZ();
 
@@ -248,12 +248,12 @@ struct CorrelationTask {
 
           double values[6] = {0};
 
-          values[0] = track1.eta2() - track2.eta2();
-          values[1] = track1.pt2();
-          values[2] = track2.pt2();
+          values[0] = track1.etam() - track2.etam();
+          values[1] = track1.ptm();
+          values[2] = track2.ptm();
           values[3] = collision1.centV0M();
 
-          values[4] = track1.phi2() - track2.phi2();
+          values[4] = track1.phim() - track2.phim();
           if (values[4] > 1.5 * TMath::Pi())
             values[4] -= TMath::TwoPi();
           if (values[4] < -0.5 * TMath::Pi())
@@ -295,7 +295,7 @@ struct CorrelationTask {
   template <typename T>
   bool conversionCut(T const& track1, T const& track2, PairCuts conv, double cut)
   {
-    //LOGF(info, "pt is %f %f", track1.pt2(), track2.pt2());
+    //LOGF(info, "pt is %f %f", track1.ptm(), track2.ptm());
 
     if (cut < 0)
       return false;
@@ -356,21 +356,21 @@ struct CorrelationTask {
 
     float tantheta1 = 1e10;
 
-    if (track1.eta2() < -1e-10 || track1.eta2() > 1e-10) {
-      float expTmp = TMath::Exp(-track1.eta2());
+    if (track1.etam() < -1e-10 || track1.etam() > 1e-10) {
+      float expTmp = TMath::Exp(-track1.etam());
       tantheta1 = 2.0 * expTmp / (1.0 - expTmp * expTmp);
     }
 
     float tantheta2 = 1e10;
-    if (track2.eta2() < -1e-10 || track2.eta2() > 1e-10) {
-      float expTmp = TMath::Exp(-track2.eta2());
+    if (track2.etam() < -1e-10 || track2.etam() > 1e-10) {
+      float expTmp = TMath::Exp(-track2.etam());
       tantheta2 = 2.0 * expTmp / (1.0 - expTmp * expTmp);
     }
 
-    float e1squ = m0_1 * m0_1 + track1.pt2() * track1.pt2() * (1.0 + 1.0 / tantheta1 / tantheta1);
-    float e2squ = m0_2 * m0_2 + track2.pt2() * track2.pt2() * (1.0 + 1.0 / tantheta2 / tantheta2);
+    float e1squ = m0_1 * m0_1 + track1.ptm() * track1.ptm() * (1.0 + 1.0 / tantheta1 / tantheta1);
+    float e2squ = m0_2 * m0_2 + track2.ptm() * track2.ptm() * (1.0 + 1.0 / tantheta2 / tantheta2);
 
-    float mass2 = m0_1 * m0_1 + m0_2 * m0_2 + 2 * (TMath::Sqrt(e1squ * e2squ) - (track1.pt2() * track2.pt2() * (TMath::Cos(track1.phi2() - track2.phi2()) + 1.0 / tantheta1 / tantheta2)));
+    float mass2 = m0_1 * m0_1 + m0_2 * m0_2 + 2 * (TMath::Sqrt(e1squ * e2squ) - (track1.ptm() * track2.ptm() * (TMath::Cos(track1.phim() - track2.phim()) + 1.0 / tantheta1 / tantheta2)));
 
     // Printf(Form("%f %f %f %f %f %f %f %f %f", pt1, eta1, phi1, pt2, eta2, phi2, m0_1, m0_2, mass2));
 
@@ -382,12 +382,12 @@ struct CorrelationTask {
   {
     // calculate inv mass squared approximately
 
-    const float eta1 = track1.eta2();
-    const float eta2 = track2.eta2();
-    const float phi1 = track1.phi2();
-    const float phi2 = track2.phi2();
-    const float pt1 = track1.pt2();
-    const float pt2 = track2.pt2();
+    const float eta1 = track1.etam();
+    const float eta2 = track2.etam();
+    const float phi1 = track1.phim();
+    const float phi2 = track2.phim();
+    const float pt1 = track1.ptm();
+    const float pt2 = track2.ptm();
 
     float tantheta1 = 1e10;
 
@@ -433,7 +433,7 @@ struct CorrelationTask {
     // the variables & cuthave been developed by the HBT group
     // see e.g. https://indico.cern.ch/materialDisplay.py?contribId=36&sessionId=6&materialId=slides&confId=142700
 
-    auto deta = track1.eta2() - track2.eta2();
+    auto deta = track1.etam() - track2.etam();
 
     // optimization
     if (TMath::Abs(deta) < cfgTwoTrackCut * 2.5 * 3) {
@@ -457,14 +457,14 @@ struct CorrelationTask {
           }
         }
 
-        qa.mTwoTrackDistancePt[0]->Fill(deta, dphistarmin, TMath::Abs(track1.pt2() - track2.pt2()));
+        qa.mTwoTrackDistancePt[0]->Fill(deta, dphistarmin, TMath::Abs(track1.ptm() - track2.ptm()));
 
         if (dphistarminabs < cfgTwoTrackCut && TMath::Abs(deta) < cfgTwoTrackCut) {
-          //Printf("Removed track pair %ld %ld with %f %f %f %f %d %f %f %d %d", track1.index(), track2.index(), deta, dphistarminabs, track1.phi2(), track1.pt2(), track1.charge(), track2.phi2(), track2.pt2(), track2.charge(), bSign);
+          //Printf("Removed track pair %ld %ld with %f %f %f %f %d %f %f %d %d", track1.index(), track2.index(), deta, dphistarminabs, track1.phim(), track1.ptm(), track1.charge(), track2.phim(), track2.ptm(), track2.charge(), bSign);
           return true;
         }
 
-        qa.mTwoTrackDistancePt[1]->Fill(deta, dphistarmin, TMath::Abs(track1.pt2() - track2.pt2()));
+        qa.mTwoTrackDistancePt[1]->Fill(deta, dphistarmin, TMath::Abs(track1.ptm() - track2.ptm()));
       }
     }
 
@@ -478,12 +478,12 @@ struct CorrelationTask {
     // calculates dphistar
     //
 
-    auto phi1 = track1.phi2();
-    auto pt1 = track1.pt2();
+    auto phi1 = track1.phim();
+    auto pt1 = track1.ptm();
     auto charge1 = track1.charge();
 
-    auto phi2 = track2.phi2();
-    auto pt2 = track2.pt2();
+    auto phi2 = track2.phim();
+    auto pt2 = track2.ptm();
     auto charge2 = track2.charge();
 
     float dphistar = phi1 - phi2 - charge1 * bSign * TMath::ASin(0.075 * radius / pt1) + charge2 * bSign * TMath::ASin(0.075 * radius / pt2);
@@ -507,7 +507,7 @@ struct CorrelationTask {
   //       static_assert("Need to pass aod::track");
   //
   //
-  // //     LOGF(info, "pt %f", track1.pt2());
+  // //     LOGF(info, "pt %f", track1.ptm());
   //     return false;
   //   }
 

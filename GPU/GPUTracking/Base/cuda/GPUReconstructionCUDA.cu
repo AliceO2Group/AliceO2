@@ -19,6 +19,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 #include <thrust/sort.h>
+#include <thrust/device_ptr.h>
 #pragma GCC diagnostic pop
 
 #ifdef __clang__
@@ -78,7 +79,7 @@ class VertexerTraitsGPU : public VertexerTraits
 class GPUDebugTiming
 {
  public:
-  GPUDebugTiming(bool d, void** t, cudaStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionCUDABackend* r = nullptr) : mDo(d), mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r)
+  GPUDebugTiming(bool d, void** t, cudaStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionCUDABackend* r = nullptr) : mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r), mDo(d)
   {
     if (mDo) {
       if (mDeviceTimers) {
@@ -109,8 +110,8 @@ class GPUDebugTiming
   cudaStream_t* mStreams;
   GPUReconstruction::krnlSetup& mXYZ;
   GPUReconstructionCUDABackend* mRec;
-  bool mDo;
   HighResTimer mTimer;
+  bool mDo;
 };
 
 #include "GPUReconstructionIncludesDevice.h"
@@ -138,6 +139,20 @@ GPUg() void runKernelCUDA(GPUCA_CONSMEM_PTR int iSlice_internal, Args... args)
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 
+template <>
+void GPUReconstructionCUDABackend::runKernelBackendInternal<GPUMemClean16, 0>(krnlSetup& _xyz, void* const& ptr, unsigned long const& size)
+{
+  GPUDebugTiming timer(mDeviceProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
+  GPUFailedMsg(cudaMemsetAsync(ptr, 0, size, mInternals->Streams[_xyz.x.stream]));
+}
+
+template <class T, int I, typename... Args>
+void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
+{
+  GPUDebugTiming timer(mDeviceProcessingSettings.deviceTimers, (void**)mDebugEvents, mInternals->Streams, _xyz);
+  backendInternal<T, I>::runKernelBackendMacro(_xyz, this, args...);
+}
+
 template <class T, int I, typename... Args>
 int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
 {
@@ -148,10 +163,7 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, const Args&.
       GPUFailedMsg(cudaStreamWaitEvent(mInternals->Streams[x.stream], ((cudaEvent_t*)z.evList)[k], 0));
     }
   }
-  {
-    GPUDebugTiming timer(mDeviceProcessingSettings.deviceTimers, (void**)mDebugEvents, mInternals->Streams, _xyz);
-    backendInternal<T, I>::runKernelBackendInternal(_xyz, this, args...);
-  }
+  runKernelBackendInternal<T, I>(_xyz, args...);
   GPUFailedMsg(cudaGetLastError());
   if (z.ev) {
     GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)z.ev, mInternals->Streams[x.stream]));
@@ -253,10 +265,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       }
       int deviceOK = true;
       const char* deviceFailure = "";
-      if (cudaDeviceProp.major >= 9) {
-        deviceOK = false;
-        deviceFailure = "Invalid Revision";
-      } else if (cudaDeviceProp.major < reqVerMaj || (cudaDeviceProp.major == reqVerMaj && cudaDeviceProp.minor < reqVerMin)) {
+      if (cudaDeviceProp.major < reqVerMaj || (cudaDeviceProp.major == reqVerMaj && cudaDeviceProp.minor < reqVerMin)) {
         deviceOK = false;
         deviceFailure = "Too low device revision";
       } else if (free < std::max(mDeviceMemorySize, REQUIRE_MIN_MEMORY)) {
@@ -362,6 +371,11 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       GPUFailedMsgI(cudaDeviceReset());
       return (1);
     }
+    if (GPUFailedMsgI(cudaDeviceSetLimit(cudaLimitMallocHeapSize, GPUCA_GPU_HEAP_SIZE))) {
+      GPUError("Error setting CUDA stack size");
+      GPUFailedMsgI(cudaDeviceReset());
+      return (1);
+    }
 
     if (mDeviceMemorySize == 2) {
       mDeviceMemorySize = devMemory[mDeviceId] * 2 / 3; // Leave 1/3 of GPU memory for event display
@@ -390,7 +404,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     }
 
     for (int i = 0; i < mNStreams; i++) {
-      if (GPUFailedMsgI(cudaStreamCreate(&mInternals->Streams[i]))) {
+      if (GPUFailedMsgI(cudaStreamCreateWithFlags(&mInternals->Streams[i], cudaStreamNonBlocking))) {
         GPUError("Error creating CUDA Stream");
         GPUFailedMsgI(cudaDeviceReset());
         return (1);
@@ -552,8 +566,18 @@ size_t GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const 
 void GPUReconstructionCUDABackend::ReleaseEvent(deviceEvent* ev) {}
 void GPUReconstructionCUDABackend::RecordMarker(deviceEvent* ev, int stream) { GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)ev, mInternals->Streams[stream])); }
 
-GPUReconstructionCUDABackend::GPUThreadContextCUDA::GPUThreadContextCUDA(GPUReconstructionCUDAInternals* context) : GPUThreadContext(), mContext(context) { cuCtxPushCurrent(mContext->CudaContext); }
-GPUReconstructionCUDABackend::GPUThreadContextCUDA::~GPUThreadContextCUDA() { cuCtxPopCurrent(&mContext->CudaContext); }
+GPUReconstructionCUDABackend::GPUThreadContextCUDA::GPUThreadContextCUDA(GPUReconstructionCUDAInternals* context) : GPUThreadContext(), mContext(context)
+{
+  if (mContext->cudaContextObtained++ == 0) {
+    cuCtxPushCurrent(mContext->CudaContext);
+  }
+}
+GPUReconstructionCUDABackend::GPUThreadContextCUDA::~GPUThreadContextCUDA()
+{
+  if (--mContext->cudaContextObtained == 0) {
+    cuCtxPopCurrent(&mContext->CudaContext);
+  }
+}
 std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstructionCUDABackend::GetThreadContext() { return std::unique_ptr<GPUThreadContext>(new GPUThreadContextCUDA(mInternals)); }
 
 void GPUReconstructionCUDABackend::SynchronizeGPU() { GPUFailedMsg(cudaDeviceSynchronize()); }
@@ -563,6 +587,13 @@ void GPUReconstructionCUDABackend::SynchronizeEvents(deviceEvent* evList, int nE
 {
   for (int i = 0; i < nEvents; i++) {
     GPUFailedMsg(cudaEventSynchronize(((cudaEvent_t*)evList)[i]));
+  }
+}
+
+void GPUReconstructionCUDABackend::StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents)
+{
+  for (int i = 0; i < nEvents; i++) {
+    GPUFailedMsg(cudaStreamWaitEvent(mInternals->Streams[stream], ((cudaEvent_t*)evList)[i], 0));
   }
 }
 
@@ -581,14 +612,14 @@ bool GPUReconstructionCUDABackend::IsEventDone(deviceEvent* evList, int nEvents)
 int GPUReconstructionCUDABackend::GPUDebug(const char* state, int stream)
 {
   // Wait for CUDA-Kernel to finish and check for CUDA errors afterwards, in case of debugmode
-  if (mDeviceProcessingSettings.debugLevel == 0) {
-    return (0);
-  }
   cudaError cuErr;
   cuErr = cudaGetLastError();
   if (cuErr != cudaSuccess) {
     GPUError("Cuda Error %s while running kernel (%s) (Stream %d)", cudaGetErrorString(cuErr), state, stream);
     return (1);
+  }
+  if (mDeviceProcessingSettings.debugLevel == 0) {
+    return (0);
   }
   if (GPUFailedMsgI(cudaDeviceSynchronize())) {
     GPUError("CUDA Error while synchronizing (%s) (Stream %d)", state, stream);

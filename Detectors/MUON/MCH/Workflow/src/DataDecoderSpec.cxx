@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 ///
+///
 /// \file    DatDecoderSpec.cxx
 /// \author  Andrea Ferrero
 ///
@@ -54,7 +55,7 @@ namespace raw
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::mch::mapping;
-using RDHv4 = o2::header::RAWDataHeaderV4;
+using RDH = o2::header::RDHAny;
 
 std::array<int, 64> refManu2ds_st345 = {
   63, 62, 61, 60, 59, 57, 56, 53, 51, 50, 47, 45, 44, 41, 38, 35,
@@ -82,6 +83,8 @@ class DataDecoderTask
   {
     size_t ndigits{0};
 
+    uint32_t orbit;
+
     auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
       if (mDs2manu) {
         channel = ds2manu(int(channel));
@@ -89,12 +92,15 @@ class DataDecoderTask
       if (mPrint) {
         auto s = asString(dsElecId);
         auto ch = fmt::format("{}-CH{}", s, channel);
-        std::cout << ch << std::endl;
+        std::cout << "dsElecId: " << ch << std::endl;
       }
-      double digitadc(0);
-      //for (auto d = 0; d < sc.nofSamples(); d++) {
-      for (auto d = 0; d < sc.samples.size(); d++) {
-        digitadc += sc.samples[d];
+      uint32_t digitadc(0);
+      if (sc.isClusterSum()) {
+        digitadc = sc.chargeSum;
+      } else {
+        for (auto& s : sc.samples) {
+          digitadc += s;
+        }
       }
 
       int deId{-1};
@@ -103,6 +109,13 @@ class DataDecoderTask
         DsDetId dsDetId = opt.value();
         dsIddet = dsDetId.dsId();
         deId = dsDetId.deId();
+      }
+      if (mPrint) {
+        std::cout << "deId " << deId << "  dsIddet " << dsIddet << "  channel " << (int)channel << std::endl;
+      }
+
+      if (deId < 0 || dsIddet < 0) {
+        return;
       }
 
       int padId = -1;
@@ -117,32 +130,40 @@ class DataDecoderTask
         return;
       }
 
-      int time = sc.timestamp;
+      Digit::Time time;
+      time.sampaTime = sc.sampaTime;
+      time.bunchCrossing = sc.bunchCrossing;
+      time.orbit = orbit;
 
-      digits.emplace_back(o2::mch::Digit(time, deId, padId, digitadc));
+      digits.emplace_back(o2::mch::Digit(deId, padId, digitadc, time, sc.nofSamples()));
 
       if (mPrint)
-        std::cout << "DIGIT STORED:\nADC " << digits.back().getADC() << " DE# " << digits.back().getDetID() << " PadId " << digits.back().getPadID() << " time " << digits.back().getTimeStamp() << std::endl;
+        std::cout << "DIGIT STORED:\nADC " << digits.back().getADC() << " DE# " << digits.back().getDetID() << " PadId " << digits.back().getPadID() << " time " << digits.back().getTime().sampaTime << std::endl;
       ++ndigits;
     };
 
     const auto patchPage = [&](gsl::span<const std::byte> rdhBuffer) {
-      auto rdhPtr = const_cast<void*>(reinterpret_cast<const void*>(rdhBuffer.data()));
+      auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(rdhBuffer[0])));
       mNrdhs++;
-      auto cruId = o2::raw::RDHUtils::getCRUID(rdhPtr);
-      auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhPtr);
-      o2::raw::RDHUtils::setFEEID(rdhPtr, cruId * 2 + endpoint);
+      auto cruId = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF;
+      auto flags = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF00;
+      auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhAny);
+      auto feeId = cruId * 2 + endpoint + flags;
+      o2::raw::RDHUtils::setFEEID(rdhAny, feeId);
+      orbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdhAny);
       if (mPrint) {
         std::cout << mNrdhs << "--\n";
-        o2::raw::RDHUtils::printRDH(rdhPtr);
+        o2::raw::RDHUtils::printRDH(rdhAny);
       }
     };
 
-    o2::mch::raw::PageDecoder decode =
-      mFee2Solar ? o2::mch::raw::createPageDecoder(page, channelHandler, mFee2Solar)
-                 : o2::mch::raw::createPageDecoder(page, channelHandler);
     patchPage(page);
-    decode(page);
+
+    if (!mDecoder) {
+      mDecoder = mFee2Solar ? o2::mch::raw::createPageDecoder(page, channelHandler, mFee2Solar)
+                            : o2::mch::raw::createPageDecoder(page, channelHandler);
+    }
+    mDecoder(page);
   }
 
  private:
@@ -153,6 +174,7 @@ class DataDecoderTask
     std::ifstream in(filename);
     while (std::getline(in, s)) {
       content += s;
+      content += " ";
     }
     return content;
   }
@@ -199,8 +221,8 @@ class DataDecoderTask
     auto mapCRUfile = ic.options().get<std::string>("cru-map");
     auto mapFECfile = ic.options().get<std::string>("fec-map");
 
-    initElec2DetMapper(mapCRUfile);
-    initFee2SolarMapper(mapFECfile);
+    initFee2SolarMapper(mapCRUfile);
+    initElec2DetMapper(mapFECfile);
   }
 
   //_________________________________________________________________________________________________
@@ -271,7 +293,7 @@ class DataDecoderTask
 
     if (mPrint) {
       for (auto d : digits) {
-        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTimeStamp() << std::endl;
+        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTime().sampaTime << std::endl;
       }
     }
 
@@ -290,6 +312,7 @@ class DataDecoderTask
  private:
   Elec2DetMapper mElec2Det{nullptr};
   FeeLink2SolarMapper mFee2Solar{nullptr};
+  o2::mch::raw::PageDecoder mDecoder;
   size_t mNrdhs{0};
 
   std::ifstream mInputFile{}; ///< input file

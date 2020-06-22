@@ -7,7 +7,6 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
-add_compile_options(-O0 -g -fPIC)
 
 o2_add_library(ReconstructionDataFormats
                SOURCES src/Track.cxx
@@ -17,6 +16,7 @@ o2_add_library(ReconstructionDataFormats
                        src/MatchInfoTOF.cxx
                        src/TrackLTIntegral.cxx
                        src/PID.cxx
+                       src/DCA.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      O2::DetectorsCommonDataFormats
                                      O2::CommonDataFormat)
@@ -29,7 +29,8 @@ o2_target_root_dictionary(
           include/ReconstructionDataFormats/Vertex.h
           include/ReconstructionDataFormats/MatchInfoTOF.h
           include/ReconstructionDataFormats/TrackLTIntegral.h
-          include/ReconstructionDataFormats/PID.h)
+          include/ReconstructionDataFormats/PID.h
+          include/ReconstructionDataFormats/DCA.h)
 
 o2_add_test(Vertex
             SOURCES test/testVertex.cxx

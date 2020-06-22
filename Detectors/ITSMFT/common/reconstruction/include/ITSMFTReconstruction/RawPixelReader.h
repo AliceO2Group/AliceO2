@@ -26,6 +26,7 @@
 
 #include "ITSMFTReconstruction/GBTLink.h"
 #include "ITSMFTReconstruction/RUDecodeData.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 #include <TTree.h>
 #include <TStopwatch.h>
@@ -54,7 +55,7 @@ namespace itsmft
 constexpr int MaxGBTPacketBytes = 8 * 1024; // Max size of GBT packet in bytes (8KB)
 constexpr int MaxGBTWordsPerPacket = MaxGBTPacketBytes / GBTPaddedWordLength; // Max N of GBT words per CRU page
 constexpr int NCRUPagesPerSuperpage = 256;  // Expected max number of CRU pages per superpage
-
+using RDHUtils = o2::raw::RDHUtils;
 
 struct RawDecodingStat {
   enum DecErrors : int {
@@ -296,7 +297,7 @@ class RawPixelReader : public PixelReader
     auto& ruData = mRUDecodeVec[mCurRUDecodeID]; // current RU container
     // fetch info of the chip with chipData->getChipID() ID within the RU
     const auto& chip = *mMAP.getChipOnRUInfo(ruData.ruInfo->ruType, chipData.getChipID());
-    ruData.cableHWID[chip.cableSW] = chip.cableHW; // register the cable HW ID
+    ruData.cableHWID[chip.cableHWPos] = chip.cableHW; // register the cable HW ID
 
     auto& pixels = chipData.getData();
     std::sort(pixels.begin(), pixels.end(),
@@ -307,8 +308,8 @@ class RawPixelReader : public PixelReader
                   return false;
                 return lhs.getCol() < rhs.getCol();
               });
-    ruData.cableData[chip.cableSW].ensureFreeCapacity(40 * (2 + pixels.size())); // make sure buffer has enough capacity
-    mCoder.encodeChip(ruData.cableData[chip.cableSW], chipData, chip.chipOnModuleHW, mInteractionRecord.bc);
+    ruData.cableData[chip.cableHWPos].ensureFreeCapacity(40 * (2 + pixels.size())); // make sure buffer has enough capacity
+    mCoder.encodeChip(ruData.cableData[chip.cableHWPos], chipData, chip.chipOnModuleHW, mInteractionRecord.bc);
   }
 
   //______________________________________________________
@@ -318,9 +319,9 @@ class RawPixelReader : public PixelReader
     auto& ruData = mRUDecodeVec[mCurRUDecodeID];                     // current RU container
     for (int chipIDSW = fromChip; chipIDSW < uptoChip; chipIDSW++) { // flag chips w/o data
       const auto& chip = *mMAP.getChipOnRUInfo(ruData.ruInfo->ruType, chipIDSW);
-      ruData.cableHWID[chip.cableSW] = chip.cableHW; // register the cable HW ID
-      ruData.cableData[chip.cableSW].ensureFreeCapacity(100);
-      mCoder.addEmptyChip(ruData.cableData[chip.cableSW], chip.chipOnModuleHW, mInteractionRecord.bc);
+      ruData.cableHWID[chip.cableHWPos] = chip.cableHW; // register the cable HW ID
+      ruData.cableData[chip.cableHWPos].ensureFreeCapacity(100);
+      mCoder.addEmptyChip(ruData.cableData[chip.cableHWPos], chip.chipOnModuleHW, mInteractionRecord.bc);
     }
   }
 
@@ -334,13 +335,15 @@ class RawPixelReader : public PixelReader
     auto& ruData = mRUDecodeVec[mCurRUDecodeID];
     ruData.nCables = ruData.ruInfo->nCables;
     o2::header::RAWDataHeader rdh;
-    rdh.triggerOrbit = rdh.heartbeatOrbit = mInteractionRecord.orbit;
-    rdh.triggerBC = rdh.heartbeatBC = mInteractionRecord.bc;
-    rdh.triggerType = o2::trigger::PhT; // ??
-    rdh.detectorField = mMAP.getRUDetectorField();
-    rdh.blockLength = 0xffff; // ITS keeps this dummy
 
-    int maxGBTWordsPerPacket = (MaxGBTPacketBytes - rdh.headerSize) / o2::itsmft::GBTPaddedWordLength - 2;
+    RDHUtils::setTriggerOrbit(rdh, mInteractionRecord.orbit);
+    RDHUtils::setHeartBeatOrbit(rdh, mInteractionRecord.orbit);
+    RDHUtils::setTriggerBC(rdh, mInteractionRecord.orbit);
+    RDHUtils::setHeartBeatBC(rdh, mInteractionRecord.orbit);
+    RDHUtils::setTriggerType(rdh, o2::trigger::PhT); // ??
+    RDHUtils::setDetectorField(rdh, mMAP.getRUDetectorField());
+
+    int maxGBTWordsPerPacket = (MaxGBTPacketBytes - RDHUtils::getHeaderSize(rdh)) / o2::itsmft::GBTPaddedWordLength - 2;
 
     int nGBTW[RUDecodeData::MaxLinksPerRU] = {0};
     for (int il = 0; il < RUDecodeData::MaxLinksPerRU; il++) {
@@ -357,25 +360,25 @@ class RawPixelReader : public PixelReader
         }
       }
       // move data in padded GBT words from cable buffers to link buffers
-      rdh.feeId = mMAP.RUSW2FEEId(ruData.ruInfo->idSW, il); // write on link 0 always
-      rdh.linkID = il;
-      rdh.pageCnt = 0;
-      rdh.stop = 0;
-      int loadsize = rdh.headerSize + (nGBTWordsNeeded + 2) * o2::itsmft::GBTPaddedWordLength; // total data to dump
-      rdh.memorySize = loadsize < MaxGBTPacketBytes ? loadsize : MaxGBTPacketBytes;
-      rdh.offsetToNext = mImposeMaxPage ? MaxGBTPacketBytes : rdh.memorySize;
+      RDHUtils::setFEEID(rdh, mMAP.RUSW2FEEId(ruData.ruInfo->idSW, il)); // write on link 0 always
+      RDHUtils::setLinkID(rdh, il);
+      RDHUtils::setPageCounter(rdh, 0);
+      RDHUtils::setStop(rdh, 0);
+      int loadsize = RDHUtils::getHeaderSize(rdh) + (nGBTWordsNeeded + 2) * o2::itsmft::GBTPaddedWordLength; // total data to dump
+      RDHUtils::setMemorySize(rdh, loadsize < MaxGBTPacketBytes ? loadsize : MaxGBTPacketBytes);
+      RDHUtils::setOffsetToNext(rdh, mImposeMaxPage ? MaxGBTPacketBytes : RDHUtils::getMemorySize(rdh));
 
       link->data.ensureFreeCapacity(MaxGBTPacketBytes);
-      link->data.addFast(reinterpret_cast<uint8_t*>(&rdh), rdh.headerSize); // write RDH for current packet
+      link->data.addFast(reinterpret_cast<uint8_t*>(&rdh), RDHUtils::getHeaderSize(rdh)); // write RDH for current packet
       link->nTriggers++;                                                    // acknowledge the page, note: here we count pages, not triggers
       o2::itsmft::GBTDataHeader gbtHeader(0, link->lanes);
       o2::itsmft::GBTDataTrailer gbtTrailer; // lanes will be set on closing the last page
 
-      gbtHeader.packetIdx = rdh.pageCnt;
+      gbtHeader.packetIdx = RDHUtils::getPageCounter(rdh);
       link->data.addFast(gbtHeader.getW8(), mGBTWordSize); // write GBT header for current packet
       if (mVerbose) {
         LOG(INFO) << "Filling RU data";
-        printRDH(&rdh);
+        RDHUtils::printRDH(rdh);
         gbtHeader.printX(mPadding128);
       }
 
@@ -413,20 +416,19 @@ class RawPixelReader : public PixelReader
           if (mVerbose) {
             gbtTrailer.printX(mPadding128);
           }
-          rdh.pageCnt++;                                     // flag new page
-          rdh.stop = nGBTWordsNeeded < maxGBTWordsPerPacket; // flag if this is the last packet of multi-packet
-          rdh.blockLength = 0xffff;                          // (nGBTWordsNeeded % maxGBTWordsPerPacket + 2) * mGBTWordSize; // record payload size
+          RDHUtils::setPageCounter(rdh, RDHUtils::getPageCounter(rdh) + 1); // flag new page
+          RDHUtils::setStop(rdh, nGBTWordsNeeded < maxGBTWordsPerPacket);   // flag if this is the last packet of multi-packet
           // update remaining size, using padded GBT words (as CRU writes)
-          loadsize = rdh.headerSize + (nGBTWordsNeeded + 2) * o2::itsmft::GBTPaddedWordLength; // update remaining size
-          rdh.memorySize = loadsize < MaxGBTPacketBytes ? loadsize : MaxGBTPacketBytes;
-          rdh.offsetToNext = mImposeMaxPage ? MaxGBTPacketBytes : rdh.memorySize;
+          loadsize = RDHUtils::getHeaderSize(rdh) + (nGBTWordsNeeded + 2) * o2::itsmft::GBTPaddedWordLength; // update remaining size
+          RDHUtils::setMemorySize(rdh, loadsize < MaxGBTPacketBytes ? loadsize : MaxGBTPacketBytes);
+          RDHUtils::setOffsetToNext(rdh, mImposeMaxPage ? MaxGBTPacketBytes : RDHUtils::getMemorySize(rdh));
           link->data.ensureFreeCapacity(MaxGBTPacketBytes);
-          link->data.addFast(reinterpret_cast<uint8_t*>(&rdh), rdh.headerSize); // write RDH for current packet
+          link->data.addFast(reinterpret_cast<uint8_t*>(&rdh), RDHUtils::getHeaderSize(rdh)); // write RDH for current packet
           link->nTriggers++;                                                    // acknowledge the page, note: here we count pages, not triggers
           if (mVerbose) {
-            printRDH(&rdh);
+            RDHUtils::printRDH(rdh);
           }
-          gbtHeader.packetIdx = rdh.pageCnt;
+          gbtHeader.packetIdx = RDHUtils::getPageCounter(rdh);
           link->data.addFast(gbtHeader.getW8(), mGBTWordSize); // write GBT header for current packet
           if (mVerbose) {
             gbtHeader.printX(mPadding128);
@@ -475,9 +477,9 @@ class RawPixelReader : public PixelReader
         while (nPages < maxPages && !link->data.isEmpty()) {
           const auto ptr = link->data.getPtr();
           o2::header::RAWDataHeader* rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
-          sink.addFast(ptr, rdh->memorySize);                    // copy header + payload
-          sink.fillFast(0, MaxGBTPacketBytes - rdh->memorySize); // complete with 0's till the end of the page
-          link->data.setPtr(ptr + rdh->memorySize);
+          sink.addFast(ptr, RDHUtils::getMemorySize(rdh));                    // copy header + payload
+          sink.fillFast(0, MaxGBTPacketBytes - RDHUtils::getMemorySize(rdh)); // complete with 0's till the end of the page
+          link->data.setPtr(ptr + RDHUtils::getMemorySize(rdh));
           link->nTriggers--; // here we count pages, not triggers
           nPages++;
         }
@@ -512,7 +514,7 @@ class RawPixelReader : public PixelReader
     o2::header::RAWDataHeader* rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
 
     do {
-      if (!isRDHHeuristic(rdh)) {   // does it look like RDH?
+      if (!RDHUtils::checkRDH(rdh)) { // does it look like RDH?
         if (!findNextRDH(buffer)) { // try to recover the pointer
           break;                    // no data to continue
         }
@@ -520,17 +522,17 @@ class RawPixelReader : public PixelReader
         rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
       }
       if (mVerbose) {
-        printRDH(rdh);
+        RDHUtils::printRDH(rdh);
       }
 
-      int ruIDSW = mMAP.FEEId2RUSW(rdh->feeId);
+      int ruIDSW = mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh));
 #ifdef _RAW_READER_ERROR_CHECKS_
       if (ruIDSW >= mMAP.getNRUs()) {
         mDecodingStat.errorCounts[RawDecodingStat::ErrInvalidFEEId]++;
         LOG(ERROR) << mDecodingStat.ErrNames[RawDecodingStat::ErrInvalidFEEId]
-                   << " : FEEId:" << OUTHEX(rdh->feeId, 4) << ", skipping CRU page";
-        printRDH(rdh);
-        ptr += rdh->offsetToNext;
+                   << " : FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << ", skipping CRU page";
+        RDHUtils::printRDH(rdh);
+        ptr += RDHUtils::getOffsetToNext(rdh);
         buffer.setPtr(ptr);
         if (buffer.getUnusedSize() < MaxGBTPacketBytes) {
           nRead += loadInput(buffer); // update
@@ -543,7 +545,7 @@ class RawPixelReader : public PixelReader
 
       bool newTrigger = true; // check if we see new trigger
       uint16_t lr, ruOnLr, linkIDinRU;
-      mMAP.expandFEEId(rdh->feeId, lr, ruOnLr, linkIDinRU);
+      mMAP.expandFEEId(RDHUtils::getFEEID(rdh), lr, ruOnLr, linkIDinRU);
       auto link = getGBTLink(ruDecode.links[linkIDinRU]);
       if (link) {                                                                                                    // was there any data seen on this link before?
         const auto rdhPrev = reinterpret_cast<o2::header::RAWDataHeader*>(link->data.getEnd() - link->lastPageSize); // last stored RDH
@@ -551,7 +553,7 @@ class RawPixelReader : public PixelReader
           newTrigger = false;
         }
       } else { // a new link was added
-        LOG(INFO) << "Adding new GBT LINK FEEId:" << OUTHEX(rdh->feeId, 4);
+        LOG(INFO) << "Adding new GBT LINK FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4);
         ruDecode.links[linkIDinRU] = addGBTLink();
         link = getGBTLink(ruDecode.links[linkIDinRU]);
         link->statistics.ruLinkID = linkIDinRU;
@@ -562,10 +564,10 @@ class RawPixelReader : public PixelReader
         linkFlags[ruIDSW][linkIDinRU] = Updated;
       }
       // copy data to the buffer of the link and memorize its RDH pointer
-      link->data.add(ptr, rdh->memorySize);
-      link->lastPageSize = rdh->memorySize; // account new added size
+      link->data.add(ptr, RDHUtils::getMemorySize(rdh));
+      link->lastPageSize = RDHUtils::getMemorySize(rdh); // account new added size
       auto rdhC = reinterpret_cast<o2::header::RAWDataHeader*>(link->data.getEnd() - link->lastPageSize);
-      rdhC->offsetToNext = rdh->memorySize; // since we skip 0-s, we have to modify the offset
+      RDHUtils::setOffsetToNext(rdhC, RDHUtils::getMemorySize(rdh)); // since we skip 0-s, we have to modify the offset
 
       if (newTrigger) {
         link->nTriggers++; // acknowledge 1st trigger
@@ -575,7 +577,7 @@ class RawPixelReader : public PixelReader
         }
       }
 
-      ptr += rdh->offsetToNext;
+      ptr += RDHUtils::getOffsetToNext(rdh);
       buffer.setPtr(ptr);
       if (buffer.getUnusedSize() < MaxGBTPacketBytes) {
         nRead += loadInput(buffer); // update
@@ -628,11 +630,9 @@ class RawPixelReader : public PixelReader
           auto* link = getGBTLink(linkID);
           if (link && !link->data.isEmpty()) {
             const auto rdh = reinterpret_cast<const o2::header::RAWDataHeader*>(link->data.getPtr());
-            mInteractionRecord.bc = rdh->triggerBC;
-            mInteractionRecord.orbit = rdh->triggerOrbit;
-            mTrigger = rdh->triggerType;
-            mInteractionRecordHB.bc = rdh->heartbeatBC;
-            mInteractionRecordHB.orbit = rdh->heartbeatOrbit;
+            mInteractionRecord = RDHUtils::getTriggerIR(rdh);
+            mTrigger = RDHUtils::getTriggerType(rdh);
+            mInteractionRecordHB = RDHUtils::getHeartBeatIR(rdh);
             break;
           }
         }
@@ -704,20 +704,10 @@ class RawPixelReader : public PixelReader
       } else {
         break;
       }
-    } while (!(goodRDH = isRDHHeuristic(rdh)));
+    } while (!(goodRDH = RDHUtils::checkRDH(rdh)));
     LOG(INFO) << "End of pointer recovery after skipping " << scan << " GBT words, RDH is"
               << (goodRDH ? "" : " not") << " found";
     return goodRDH;
-  }
-
-  //_____________________________________
-  bool isRDHHeuristic(const o2::header::RAWDataHeader* rdh)
-  {
-    /// heuristic check if this is indeed an RDH
-    return (!rdh || rdh->headerSize != sizeof(o2::header::RAWDataHeader) || rdh->zero0 != 0 ||
-            rdh->zero41 != 0 || rdh->zero42 != 0 || rdh->word5 != 0 || rdh->zero6 != 0)
-             ? false
-             : true;
   }
 
   //_____________________________________
@@ -735,9 +725,9 @@ class RawPixelReader : public PixelReader
     auto rdh = reinterpret_cast<o2::header::RAWDataHeader*>(raw);
 
 #ifdef _RAW_READER_ERROR_CHECKS_
-    if (!isRDHHeuristic(rdh)) {
+    if (!RDHUtils::checkRDH(rdh)) {
       LOG(ERROR) << "Page does not start with RDH";
-      printRDH(rdh);
+      RDHUtils::printRDH(rdh);
       for (int i = 0; i < 4; i++) {
         auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(raw + i * 16);
         gbtD->printX(mPadding128);
@@ -748,78 +738,78 @@ class RawPixelReader : public PixelReader
     }
 #endif
 
-    int ruIDSW = mMAP.FEEId2RUSW(rdh->feeId);
+    int ruIDSW = mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh));
 #ifdef _RAW_READER_ERROR_CHECKS_
     if (ruIDSW >= mMAP.getNRUs()) {
       mDecodingStat.errorCounts[RawDecodingStat::ErrInvalidFEEId]++;
       LOG(ERROR) << mDecodingStat.ErrNames[RawDecodingStat::ErrInvalidFEEId]
-                 << " : FEEId:" << OUTHEX(rdh->feeId, 4) << ", skipping CRU page";
-      printRDH(rdh);
-      raw += rdh->offsetToNext;
+                 << " : FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << ", skipping CRU page";
+      RDHUtils::printRDH(rdh);
+      raw += RDHUtils::getOffsetToNext(rdh);
       return raw;
     }
 
     if (ruIDSW != ruDecData.ruInfo->idSW) { // should not happen with cached data
       LOG(ERROR) << "RDG RU IDSW " << ruIDSW << " differs from expected " << ruDecData.ruInfo->idSW;
-      printRDH(rdh);
+      RDHUtils::printRDH(rdh);
     }
 #endif
 
     uint16_t lr, ruOnLr, linkIDinRU;
-    mMAP.expandFEEId(rdh->feeId, lr, ruOnLr, linkIDinRU);
+    mMAP.expandFEEId(RDHUtils::getFEEID(rdh), lr, ruOnLr, linkIDinRU);
     auto* ruLink = getGBTLink(ruDecData.links[linkIDinRU]);
     auto& ruLinkStat = ruLink->statistics;
     ruLink->lastRDH = reinterpret_cast<o2::header::RDHAny*>(rdh); // hack but this reader should be outphased anyway
     ruLinkStat.nPackets++;
 
 #ifdef _RAW_READER_ERROR_CHECKS_
-    if (rdh->packetCounter > ruLink->packetCounter + 1) {
+    if (RDHUtils::getPacketCounter(rdh) > ruLink->packetCounter + 1) {
       ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrPacketCounterJump]++;
       LOG(ERROR) << ruLinkStat.ErrNames[GBTLinkDecodingStat::ErrPacketCounterJump]
-                 << " : FEEId:" << OUTHEX(rdh->feeId, 4) << ": jump from " << int(ruLink->packetCounter)
-                 << " to " << int(rdh->packetCounter);
-      printRDH(rdh);
+                 << " : FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << ": jump from " << int(ruLink->packetCounter)
+                 << " to " << int(RDHUtils::getPacketCounter(rdh));
+      RDHUtils::printRDH(rdh);
     }
 #endif
 
     ruDecData.nCables = ruDecData.ruInfo->nCables;
     while (1) {
-      ruLink->packetCounter = rdh->packetCounter;
+      ruLink->packetCounter = RDHUtils::getPacketCounter(rdh);
 
-      mDecodingStat.nBytesProcessed += rdh->memorySize;
+      mDecodingStat.nBytesProcessed += RDHUtils::getMemorySize(rdh);
       mDecodingStat.nPagesProcessed++;
-      raw += rdh->headerSize;
-      int nGBTWords = (rdh->memorySize - rdh->headerSize) / mGBTWordSize - 2; // number of GBT words excluding header/trailer
+      raw += RDHUtils::getHeaderSize(rdh);
+      int nGBTWords = (RDHUtils::getMemorySize(rdh) - RDHUtils::getHeaderSize(rdh)) / mGBTWordSize - 2; // number of GBT words excluding header/trailer
       auto gbtH = reinterpret_cast<const o2::itsmft::GBTDataHeader*>(raw);    // process GBT header
 
 #ifdef _RAW_READER_ERROR_CHECKS_
       if (mVerbose) {
-        printRDH(rdh);
+        RDHUtils::printRDH(rdh);
         gbtH->printX(mPadding128);
         LOG(INFO) << "Expect " << nGBTWords << " GBT words";
       }
 
       if (!gbtH->isDataHeader()) {
         gbtH->printX(mPadding128);
-        LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " GBT payload header was expected, abort page decoding";
-        printRDH(rdh);
+        LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " GBT payload header was expected, abort page decoding";
+        RDHUtils::printRDH(rdh);
         ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrMissingGBTHeader]++;
         gbtH->printX(mPadding128);
         aborted = true;
         return raw;
       }
 
-      if (gbtH->packetIdx != rdh->pageCnt) {
-        LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Different GBT header " << gbtH->packetIdx
-                   << " and RDH page " << rdh->pageCnt << " counters";
-        printRDH(rdh);
+      if (gbtH->packetIdx != RDHUtils::getPageCounter(rdh)) {
+        LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " Different GBT header " << gbtH->packetIdx
+                   << " and RDH page " << RDHUtils::getPageCounter(rdh) << " counters";
+        RDHUtils::printRDH(rdh);
         ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrRDHvsGBTHPageCnt]++;
       }
 
       if (ruLink->lanesActive == ruLink->lanesStop) { // all lanes received their stop, new page 0 expected
-        if (rdh->pageCnt) {                           // flag lanes of this FEE
-          LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Non-0 page counter (" << rdh->pageCnt << ") while all lanes were stopped";
-          printRDH(rdh);
+        if (RDHUtils::getPageCounter(rdh)) {          // flag lanes of this FEE
+          LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " Non-0 page counter (" << RDHUtils::getPageCounter(rdh) << ") while all lanes were stopped";
+          RDHUtils::printRDH(rdh);
           ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrNonZeroPageAfterStop]++;
         }
       }
@@ -828,15 +818,15 @@ class RawPixelReader : public PixelReader
 
       if (~(mMAP.getCablesOnRUType(ruDecData.ruInfo->ruType)) & ruLink->lanesActive) { // are there wrong lanes?
         std::bitset<32> expectL(mMAP.getCablesOnRUType(ruDecData.ruInfo->ruType)), gotL(ruLink->lanesActive);
-        LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Active lanes pattern " << gotL
+        LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " Active lanes pattern " << gotL
                    << " conflicts with expected " << expectL << " for given RU type, skip page";
-        printRDH(rdh);
+        RDHUtils::printRDH(rdh);
         ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrInvalidActiveLanes]++;
-        raw = ((uint8_t*)rdh) + rdh->offsetToNext; // jump to the next packet
+        raw = ((uint8_t*)rdh) + RDHUtils::getOffsetToNext(rdh); // jump to the next packet
         return raw;
       }
 
-      if (!rdh->pageCnt) { // reset flags
+      if (!RDHUtils::getPageCounter(rdh)) { // reset flags
         ruLink->lanesStop = 0;
         ruLink->lanesWithData = 0;
       }
@@ -845,7 +835,7 @@ class RawPixelReader : public PixelReader
       raw += mGBTWordSize;
       for (int iw = 0; iw < nGBTWords; iw++, raw += mGBTWordSize) {
         auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(raw);
-        // TODO: need to clarify if the nGBTWords from the rdh->memorySize is reliable estimate of the real payload, at the moment this is not the case
+        // TODO: need to clarify if the nGBTWords from the RDHUtils::getMemorySize(rdh) is reliable estimate of the real payload, at the moment this is not the case
 
         if (mVerbose > 1) {
           printf("W%4d |", iw);
@@ -862,12 +852,13 @@ class RawPixelReader : public PixelReader
         ruDecData.cableHWID[cableSW] = cableHW;
 
 #ifdef _RAW_READER_ERROR_CHECKS_
+        int cableHWPos = mMAP.cableHW2Pos(ruDecData.ruInfo->ruType, cableHW);
         ruDecData.cableLinkID[cableSW] = linkIDinRU;
-        ruLink->lanesWithData |= 0x1 << cableSW;    // flag that the data was seen on this lane
-        if (ruLink->lanesStop & (0x1 << cableSW)) { // make sure stopped lanes do not transmit the data
+        ruLink->lanesWithData |= 0x1 << cableHWPos;    // flag that the data was seen on this lane
+        if (ruLink->lanesStop & (0x1 << cableHWPos)) { // make sure stopped lanes do not transmit the data
           ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrDataForStoppedLane]++;
-          LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Data received for stopped lane " << cableHW << " (sw:" << cableSW << ")";
-          printRDH(rdh);
+          LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " Data received for stopped lane " << cableHW << " (sw:" << cableSW << ")";
+          RDHUtils::printRDH(rdh);
         }
 #endif
 
@@ -882,9 +873,9 @@ class RawPixelReader : public PixelReader
 
       if (!gbtT->isDataTrailer()) {
         gbtT->printX(mPadding128);
-        LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << std::dec
+        LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << std::dec
                    << " GBT payload trailer was expected, abort page decoding NW" << nGBTWords;
-        printRDH(rdh);
+        RDHUtils::printRDH(rdh);
         ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrailer]++;
         aborted = true;
         return raw;
@@ -896,11 +887,11 @@ class RawPixelReader : public PixelReader
       raw += mGBTWordSize;
       // we finished the GBT page, see if there is a continuation and if it belongs to the same multipacket
 
-      if (!rdh->offsetToNext) { // RS TODO: what the last page in memory will contain as offsetToNext, is it 0?
+      if (!RDHUtils::getOffsetToNext(rdh)) { // RS TODO: what the last page in memory will contain as offsetToNext, is it 0?
         break;
       }
 
-      raw = ((uint8_t*)rdh) + rdh->offsetToNext; // jump to the next packet:
+      raw = ((uint8_t*)rdh) + RDHUtils::getOffsetToNext(rdh); // jump to the next packet:
       auto rdhN = reinterpret_cast<o2::header::RAWDataHeader*>(raw);
       // check if data of given RU are over, i.e. we the page counter was wrapped to 0 (should be enough!) or other RU/trigger started
       if (!isSameRUandTrigger(rdh, rdhN)) {
@@ -908,11 +899,11 @@ class RawPixelReader : public PixelReader
 #ifdef _RAW_READER_ERROR_CHECKS_
         // make sure all lane stops for finished page are received
         if ((ruLink->lanesActive & ~ruLink->lanesStop) && nGBTWords) {
-          if (rdh->triggerType != o2::trigger::SOT) { // only SOT trigger allows unstopped lanes?
+          if (RDHUtils::getTriggerType(rdh) != o2::trigger::SOT) { // only SOT trigger allows unstopped lanes?
             std::bitset<32> active(ruLink->lanesActive), stopped(ruLink->lanesStop);
-            LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " end of FEE data but not all lanes received stop"
+            LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " end of FEE data but not all lanes received stop"
                        << "| active: " << active << " stopped: " << stopped;
-            printRDH(rdh);
+            RDHUtils::printRDH(rdh);
             ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrUnstoppedLanes]++;
           }
         }
@@ -920,9 +911,9 @@ class RawPixelReader : public PixelReader
         // make sure all active lanes (except those in time-out) have sent some data
         if ((~ruLink->lanesWithData & ruLink->lanesActive) != ruLink->lanesTimeOut && nGBTWords) {
           std::bitset<32> withData(ruLink->lanesWithData), active(ruLink->lanesActive), timeOut(ruLink->lanesTimeOut);
-          LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Lanes not in time-out but not sending data"
+          LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " Lanes not in time-out but not sending data"
                      << "\n| with data: " << withData << " active: " << active << " timeOut: " << timeOut;
-          printRDH(rdh);
+          RDHUtils::printRDH(rdh);
           ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrNoDataForActiveLane]++;
         }
 #endif
@@ -933,11 +924,11 @@ class RawPixelReader : public PixelReader
       }
 #ifdef _RAW_READER_ERROR_CHECKS_
       // check if the page counter increases
-      if (rdhN->pageCnt != rdh->pageCnt + 1) {
-        LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Discontinuity in the RDH page counter of the same RU trigger: old "
-                   << rdh->pageCnt << " new: " << rdhN->pageCnt;
-        printRDH(rdh);
-        printRDH(rdhN);
+      if (RDHUtils::getPageCounter(rdhN) != RDHUtils::getPageCounter(rdh) + 1) {
+        LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " Discontinuity in the RDH page counter of the same RU trigger: old "
+                   << RDHUtils::getPageCounter(rdh) << " new: " << RDHUtils::getPageCounter(rdhN);
+        RDHUtils::printRDH(rdh);
+        RDHUtils::printRDH(rdhN);
         ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrPageCounterDiscontinuity]++;
       }
 #endif
@@ -946,8 +937,8 @@ class RawPixelReader : public PixelReader
     }
 
 #ifdef _RAW_READER_ERROR_CHECKS_
-//    if (rdh->pageCnt && !rdh->stop) {
-//      LOG(WARNING) << "Last packet(" << rdh->pageCnt << ") of GBT multi-packet is reached w/o STOP set in the RDH";
+//    if (RDHUtils::getPageCounter(rdh) && !RDHUtils::getStop(rdh)) {
+//      LOG(WARNING) << "Last packet(" << RDHUtils::getPageCounter(rdh) << ") of GBT multi-packet is reached w/o STOP set in the RDH";
 //    }
 #endif
 
@@ -996,9 +987,9 @@ class RawPixelReader : public PixelReader
     // data must start by RDH
     auto rdh = reinterpret_cast<o2::header::RAWDataHeader*>(raw);
 #ifdef _RAW_READER_ERROR_CHECKS_
-    if (!isRDHHeuristic(rdh)) {
+    if (!RDHUtils::checkRDH(rdh)) {
       LOG(ERROR) << "Page does not start with RDH";
-      printRDH(rdh);
+      RDHUtils::printRDH(rdh);
       for (int i = 0; i < 4; i++) {
         auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(raw + i * 16);
         gbtD->printX(mPadding128);
@@ -1006,19 +997,19 @@ class RawPixelReader : public PixelReader
       aborted = true;
       return raw;
     }
-    int ruIDSWD = mMAP.FEEId2RUSW(rdh->feeId);
+    int ruIDSWD = mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh));
     if (ruIDSWD >= mMAP.getNRUs()) {
       mDecodingStat.errorCounts[RawDecodingStat::ErrInvalidFEEId]++;
       LOG(ERROR) << mDecodingStat.ErrNames[RawDecodingStat::ErrInvalidFEEId]
-                 << " : FEEId:" << OUTHEX(rdh->feeId, 4) << ", skipping CRU page";
-      printRDH(rdh);
-      raw += rdh->offsetToNext;
+                 << " : FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << ", skipping CRU page";
+      RDHUtils::printRDH(rdh);
+      raw += RDHUtils::getOffsetToNext(rdh);
       return raw;
     }
 #endif
     uint16_t lr, ruOnLr, linkIDinRU;
-    mMAP.expandFEEId(rdh->feeId, lr, ruOnLr, linkIDinRU);
-    int ruIDSW = mMAP.FEEId2RUSW(rdh->feeId);
+    mMAP.expandFEEId(RDHUtils::getFEEID(rdh), lr, ruOnLr, linkIDinRU);
+    int ruIDSW = mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh));
     auto& ruDecode = getCreateRUDecode(ruIDSW);
     auto ruInfo = mMAP.getRUInfoSW(ruIDSW);
 
@@ -1028,13 +1019,11 @@ class RawPixelReader : public PixelReader
       mNLinks++;
     }
 
-    mInteractionRecord.bc = rdh->triggerBC;
-    mInteractionRecord.orbit = rdh->triggerOrbit;
+    mInteractionRecord = RDHUtils::getTriggerIR(rdh);
 
-    mTrigger = rdh->triggerType;
+    mTrigger = RDHUtils::getTriggerType(rdh);
 
-    mInteractionRecordHB.bc = rdh->heartbeatBC;
-    mInteractionRecordHB.orbit = rdh->heartbeatOrbit;
+    mInteractionRecordHB = RDHUtils::getHeartBeatIR(rdh);
 
     auto ruLink = getGBTLink(ruDecode.links[linkIDinRU]);
     auto& ruLinkStat = ruLink->statistics;
@@ -1042,60 +1031,60 @@ class RawPixelReader : public PixelReader
     ruLinkStat.nPackets++;
 
 #ifdef _RAW_READER_ERROR_CHECKS_
-    if (rdh->packetCounter > ruLink->packetCounter + 1) {
+    if (RDHUtils::getPacketCounter(rdh) > ruLink->packetCounter + 1) {
       ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrPacketCounterJump]++;
       LOG(ERROR) << ruLinkStat.ErrNames[GBTLinkDecodingStat::ErrPacketCounterJump]
-                 << " : FEEId:" << OUTHEX(rdh->feeId, 4) << ": jump from " << int(ruLink->packetCounter)
-                 << " to " << int(rdh->packetCounter);
-      printRDH(rdh);
+                 << " : FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << ": jump from " << int(ruLink->packetCounter)
+                 << " to " << int(RDHUtils::getPacketCounter(rdh));
+      RDHUtils::printRDH(rdh);
     }
 #endif
-    ruLink->packetCounter = rdh->packetCounter;
+    ruLink->packetCounter = RDHUtils::getPacketCounter(rdh);
 
     int sizeAtEntry = outBuffer.getSize(); // save the size of outbuffer size at entry, in case of severe error we will need to rewind to it.
 
     while (1) {
       mDecodingStat.nPagesProcessed++;
-      mDecodingStat.nBytesProcessed += rdh->memorySize;
-      raw += rdh->headerSize;
+      mDecodingStat.nBytesProcessed += RDHUtils::getMemorySize(rdh);
+      raw += RDHUtils::getHeaderSize(rdh);
       // number of 128 b GBT words excluding header/trailer
-      int nGBTWords = (rdh->memorySize - rdh->headerSize) / o2::itsmft::GBTPaddedWordLength - 2;
+      int nGBTWords = (RDHUtils::getMemorySize(rdh) - RDHUtils::getHeaderSize(rdh)) / o2::itsmft::GBTPaddedWordLength - 2;
       auto gbtH = reinterpret_cast<const o2::itsmft::GBTDataHeader*>(raw); // process GBT header
 
 #ifdef _RAW_READER_ERROR_CHECKS_
       if (mVerbose) {
-        printRDH(rdh);
+        RDHUtils::printRDH(rdh);
         gbtH->printX(true);
         LOG(INFO) << "Expect " << nGBTWords << " GBT words";
       }
       if (!gbtH->isDataHeader()) {
         gbtH->printX(true);
-        LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " GBT payload header was expected, abort page decoding";
-        printRDH(rdh);
+        LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " GBT payload header was expected, abort page decoding";
+        RDHUtils::printRDH(rdh);
         gbtH->printX(true);
         ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrMissingGBTHeader]++;
         aborted = true;
         outBuffer.shrinkToSize(sizeAtEntry); // reset output buffer to initial state
         return raw;
       }
-      if (gbtH->packetIdx != rdh->pageCnt) {
-        LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Different GBT header " << gbtH->packetIdx
-                   << " and RDH page " << rdh->pageCnt << " counters";
-        printRDH(rdh);
+      if (gbtH->packetIdx != RDHUtils::getPageCounter(rdh)) {
+        LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " Different GBT header " << gbtH->packetIdx
+                   << " and RDH page " << RDHUtils::getPageCounter(rdh) << " counters";
+        RDHUtils::printRDH(rdh);
         ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrRDHvsGBTHPageCnt]++;
       }
 
       if (ruLink->lanesActive == ruLink->lanesStop) { // all lanes received their stop, new page 0 expected
-        if (rdh->pageCnt) {                           // flag lanes of this FEE
-          LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Non-0 page counter (" << rdh->pageCnt << ") while all lanes were stopped";
-          printRDH(rdh);
+        if (RDHUtils::getPageCounter(rdh)) {          // flag lanes of this FEE
+          LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " Non-0 page counter (" << RDHUtils::getPageCounter(rdh) << ") while all lanes were stopped";
+          RDHUtils::printRDH(rdh);
           ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrNonZeroPageAfterStop]++;
         }
       }
 
       ruLink->lanesActive = gbtH->activeLanes; // TODO do we need to update this for every page?
 
-      if (!rdh->pageCnt) { // reset flags
+      if (!RDHUtils::getPageCounter(rdh)) { // reset flags
         ruLink->lanesStop = 0;
         ruLink->lanesWithData = 0;
       }
@@ -1104,14 +1093,14 @@ class RawPixelReader : public PixelReader
       // start writting skimmed data for this page, making sure the buffer has enough free slots
       outBuffer.ensureFreeCapacity(8 * 1024);
       auto rdhS = reinterpret_cast<o2::header::RAWDataHeader*>(outBuffer.getEnd()); // save RDH and make saved copy editable
-      outBuffer.addFast(reinterpret_cast<const uint8_t*>(rdh), rdh->headerSize);
+      outBuffer.addFast(reinterpret_cast<const uint8_t*>(rdh), RDHUtils::getHeaderSize(rdh));
 
       outBuffer.addFast(reinterpret_cast<const uint8_t*>(gbtH), mGBTWordSize); // save gbt header w/o 128b padding
 
       raw += o2::itsmft::GBTPaddedWordLength;
       for (int iw = 0; iw < nGBTWords; iw++, raw += o2::itsmft::GBTPaddedWordLength) {
         auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(raw);
-        // TODO: need to clarify if the nGBTWords from the rdh->memorySize is reliable estimate of the real payload, at the moment this is not the case
+        // TODO: need to clarify if the nGBTWords from the RDHUtils::getMemorySize(rdh) is reliable estimate of the real payload, at the moment this is not the case
 
         if (mVerbose > 1) {
           printf("W%4d |", iw);
@@ -1128,11 +1117,12 @@ class RawPixelReader : public PixelReader
         outBuffer.addFast(reinterpret_cast<const uint8_t*>(gbtD), mGBTWordSize); // save gbt word w/o 128b padding
 
 #ifdef _RAW_READER_ERROR_CHECKS_
-        ruLink->lanesWithData |= 0x1 << cableSW;    // flag that the data was seen on this lane
-        if (ruLink->lanesStop & (0x1 << cableSW)) { // make sure stopped lanes do not transmit the data
+        int cableHWPos = mMAP.cableHW2Pos(ruInfo->ruType, cableHW);
+        ruLink->lanesWithData |= 0x1 << cableHWPos;    // flag that the data was seen on this lane
+        if (ruLink->lanesStop & (0x1 << cableHWPos)) { // make sure stopped lanes do not transmit the data
           ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrDataForStoppedLane]++;
-          LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Data received for stopped lane " << cableHW << " (sw:" << cableSW << ")";
-          printRDH(rdh);
+          LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " Data received for stopped lane " << cableHW << " (sw:" << cableSW << ")";
+          RDHUtils::printRDH(rdh);
         }
 #endif
 
@@ -1147,8 +1137,8 @@ class RawPixelReader : public PixelReader
 
       if (!gbtT->isDataTrailer()) {
         gbtT->printX(true);
-        LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " GBT payload trailer was expected, abort page decoding at NW" << nGBTWords;
-        printRDH(rdh);
+        LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " GBT payload trailer was expected, abort page decoding at NW" << nGBTWords;
+        RDHUtils::printRDH(rdh);
         ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrailer]++;
         aborted = true;
         outBuffer.shrinkToSize(sizeAtEntry); // reset output buffer to initial state
@@ -1164,14 +1154,14 @@ class RawPixelReader : public PixelReader
       raw += o2::itsmft::GBTPaddedWordLength;
 
       // we finished the GBT page, register in the stored RDH the memory size and new offset
-      rdhS->memorySize = rdhS->headerSize + (2 + nGBTWords) * mGBTWordSize;
-      rdhS->offsetToNext = rdhS->memorySize;
+      RDHUtils::setMemorySize(rdhS, RDHUtils::getHeaderSize(rdhS) + (2 + nGBTWords) * mGBTWordSize);
+      RDHUtils::setOffsetToNext(rdhS, RDHUtils::getMemorySize(rdhS));
 
-      if (!rdh->offsetToNext) { // RS TODO: what the last page in memory will contain as offsetToNext, is it 0?
+      if (!RDHUtils::getOffsetToNext(rdh)) { // RS TODO: what the last page in memory will contain as offsetToNext, is it 0?
         break;
       }
 
-      raw = ((uint8_t*)rdh) + rdh->offsetToNext; // jump to the next packet:
+      raw = ((uint8_t*)rdh) + RDHUtils::getOffsetToNext(rdh); // jump to the next packet:
       auto rdhN = reinterpret_cast<o2::header::RAWDataHeader*>(raw);
       // check if data of given RU are over, i.e. we the page counter was wrapped to 0 (should be enough!) or other RU/trigger started
       if (!isSameRUandTrigger(rdh, rdhN)) {
@@ -1179,11 +1169,11 @@ class RawPixelReader : public PixelReader
 #ifdef _RAW_READER_ERROR_CHECKS_
         // make sure all lane stops for finished page are received
         if (ruLink->lanesActive != ruLink->lanesStop && nGBTWords) {
-          if (rdh->triggerType != o2::trigger::SOT) { // only SOT trigger allows unstopped lanes?
+          if (RDHUtils::getTriggerType(rdh) != o2::trigger::SOT) { // only SOT trigger allows unstopped lanes?
             std::bitset<32> active(ruLink->lanesActive), stopped(ruLink->lanesStop);
-            LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " end of FEE data but not all lanes received stop"
+            LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " end of FEE data but not all lanes received stop"
                        << "| active: " << active << " stopped: " << stopped;
-            printRDH(rdh);
+            RDHUtils::printRDH(rdh);
             ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrUnstoppedLanes]++;
           }
         }
@@ -1191,9 +1181,9 @@ class RawPixelReader : public PixelReader
         // make sure all active lanes (except those in time-out) have sent some data
         if ((~ruLink->lanesWithData & ruLink->lanesActive) != ruLink->lanesTimeOut && nGBTWords) {
           std::bitset<32> withData(ruLink->lanesWithData), active(ruLink->lanesActive), timeOut(ruLink->lanesTimeOut);
-          LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Lanes not in time-out but not sending data"
+          LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " Lanes not in time-out but not sending data"
                      << "| with data: " << withData << " active: " << active << " timeOut: " << timeOut;
-          printRDH(rdh);
+          RDHUtils::printRDH(rdh);
           ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrNoDataForActiveLane]++;
         }
 
@@ -1205,11 +1195,11 @@ class RawPixelReader : public PixelReader
       }
 #ifdef _RAW_READER_ERROR_CHECKS_
       // check if the page counter increases
-      if (rdhN->pageCnt != rdh->pageCnt + 1) {
-        LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Discontinuity in the RDH page counter of the same RU trigger: old "
-                   << rdh->pageCnt << " new: " << rdhN->pageCnt;
-        printRDH(rdh);
-        printRDH(rdhN);
+      if (RDHUtils::getPageCounter(rdhN) != RDHUtils::getPageCounter(rdh) + 1) {
+        LOG(ERROR) << "FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << " Discontinuity in the RDH page counter of the same RU trigger: old "
+                   << RDHUtils::getPageCounter(rdh) << " new: " << RDHUtils::getPageCounter(rdhN);
+        RDHUtils::printRDH(rdh);
+        RDHUtils::printRDH(rdhN);
         ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrPageCounterDiscontinuity]++;
       }
 #endif
@@ -1218,8 +1208,8 @@ class RawPixelReader : public PixelReader
     }
 
 #ifdef _RAW_READER_ERROR_CHECKS_
-//    if (rdh->pageCnt && !rdh->stop) {
-//      LOG(WARNING) << "Last packet(" << rdh->pageCnt << ") of GBT multi-packet is reached w/o STOP set in the RDH";
+//    if (RDHUtils::getPageCounter(rdh) && !RDHUtils::getStop(rdh)) {
+//      LOG(WARNING) << "Last packet(" << RDHUtils::getPageCounter(rdh) << ") of GBT multi-packet is reached w/o STOP set in the RDH";
 //    }
 #endif
 
@@ -1230,12 +1220,10 @@ class RawPixelReader : public PixelReader
   bool isSameRUandTrigger(const o2::header::RAWDataHeader* rdhOld, const o2::header::RAWDataHeader* rdhNew) const
   {
     /// check if the rdhNew is just a continuation of the data described by the rdhOld
-    if (rdhNew->pageCnt == 0 || rdhNew->feeId != rdhOld->feeId ||
-        rdhNew->triggerOrbit != rdhOld->triggerOrbit ||
-        rdhNew->triggerBC != rdhOld->triggerBC ||
-        rdhNew->heartbeatOrbit != rdhOld->heartbeatOrbit ||
-        rdhNew->heartbeatBC != rdhOld->heartbeatBC ||
-        !(rdhNew->triggerType & rdhOld->triggerType)) {
+    if (RDHUtils::getPageCounter(rdhNew) == 0 || RDHUtils::getFEEID(rdhNew) != RDHUtils::getFEEID(rdhOld) ||
+        RDHUtils::getTriggerIR(rdhNew) != RDHUtils::getTriggerIR(rdhOld) ||
+        RDHUtils::getHeartBeatIR(rdhNew) != RDHUtils::getHeartBeatIR(rdhOld) ||
+        !(RDHUtils::getTriggerType(rdhNew) & RDHUtils::getTriggerType(rdhOld))) {
       return false;
     }
     return true;
@@ -1263,7 +1251,7 @@ class RawPixelReader : public PixelReader
         LOG(ERROR) << "FEEId:" << OUTHEX(decData.ruInfo->idHW, 4) << " cable " << icab
                    << " data does not start with ChipHeader or ChipEmpty";
         ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrCableDataHeadWrong]++;
-        printRDH(reinterpret_cast<const o2::header::RAWDataHeader*>(getGBTLink(decData.links[decData.cableLinkID[icab]])->lastRDH));
+        RDHUtils::printRDH(reinterpret_cast<const o2::header::RAWDataHeader*>(getGBTLink(decData.links[decData.cableLinkID[icab]])->lastRDH));
       }
 #endif
 
@@ -1276,7 +1264,7 @@ class RawPixelReader : public PixelReader
               LOG(ERROR) << "FEEId:" << OUTHEX(decData.ruInfo->idHW, 4) << " IB cable " << icab
                          << " shipped chip ID= " << chipData->getChipID();
               ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrIBChipLaneMismatch]++;
-              printRDH(reinterpret_cast<const o2::header::RAWDataHeader*>(getGBTLink(decData.links[decData.cableLinkID[icab]])->lastRDH));
+              RDHUtils::printRDH(reinterpret_cast<const o2::header::RAWDataHeader*>(getGBTLink(decData.links[decData.cableLinkID[icab]])->lastRDH));
             }
           }
 #endif
@@ -1445,24 +1433,6 @@ class RawPixelReader : public PixelReader
   // get the link
   GBTLink* getGBTLink(int i) { return i < 0 ? nullptr : &mGBTLinks[i]; }
   const GBTLink* getGBTLink(int i) const { return i < 0 ? nullptr : &mGBTLinks[i]; }
-
-  //_____________________________________________________________________________
-  void printRDH(const o2::header::RAWDataHeader* h)
-  {
-    if (!h) {
-      printf("Provided RDH pointer is null\n");
-      return;
-    }
-    printf("RDH| Ver:%2u Hsz:%2u Blgt:%4u FEEId:0x%04x PBit:%u\n",
-           uint32_t(h->version), uint32_t(h->headerSize), uint32_t(h->blockLength), uint32_t(h->feeId), uint32_t(h->priority));
-    printf("RDH|[CRU: Offs:%5u Msz:%4u LnkId:0x%02x Packet:%3u CRUId:0x%04x]\n",
-           uint32_t(h->offsetToNext), uint32_t(h->memorySize), uint32_t(h->linkID), uint32_t(h->packetCounter), uint32_t(h->cruID));
-    printf("RDH| TrgOrb:%9u HBOrb:%9u TrgBC:%4u HBBC:%4u TrgType:%u\n",
-           uint32_t(h->triggerOrbit), uint32_t(h->heartbeatOrbit), uint32_t(h->triggerBC), uint32_t(h->heartbeatBC),
-           uint32_t(h->triggerType));
-    printf("RDH| DetField:0x%05x Par:0x%04x Stop:0x%04x PageCnt:%5u\n",
-           uint32_t(h->detectorField), uint32_t(h->par), uint32_t(h->stop), uint32_t(h->pageCnt));
-  }
 
  private:
   std::ifstream mIOFile;

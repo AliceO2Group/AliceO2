@@ -14,6 +14,7 @@
 #include "GPUTrackingInputProvider.h"
 #include "GPUDataTypes.h"
 #include "GPUReconstruction.h"
+#include "GPUErrors.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
@@ -48,13 +49,20 @@ void* GPUTrackingInputProvider::SetPointersInputClusterNativeBuffer(void* mem)
 void* GPUTrackingInputProvider::SetPointersInputClusterNativeOutput(void* mem)
 {
   if (mHoldTPCClusterNativeOutput) {
-    computePointerWithAlignment(mem, mPclusterNativeOutput, mNClusterNative);
+    computePointerWithoutAlignment(mem, mPclusterNativeOutput, mNClusterNative); // TODO: Should decide based on some settings whether with or without alignment. Without only needed for output to unaligned shared memory in workflow.
   }
+  return mem;
+}
+
+void* GPUTrackingInputProvider::SetPointersErrorCodes(void* mem)
+{
+  computePointerWithAlignment(mem, mErrorCodes, 4 * GPUErrors::getMaxErrors() + 1);
   return mem;
 }
 
 void GPUTrackingInputProvider::RegisterMemoryAllocation()
 {
+  mResourceErrorCodes = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersErrorCodes, GPUMemoryResource::MEMORY_PERMANENT, "ErrorCodes");
   mResourceZS = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputZS, GPUMemoryResource::MEMORY_INPUT, "InputZS");
   mResourceClusterNativeAccess = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputClusterNativeAccess, GPUMemoryResource::MEMORY_INPUT, "ClusterNativeAccess");
   mResourceClusterNativeBuffer = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputClusterNativeBuffer, GPUMemoryResource::MEMORY_INPUT_FLAG | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_EXTERNAL | GPUMemoryResource::MEMORY_CUSTOM, "ClusterNativeBuffer");
@@ -64,6 +72,6 @@ void GPUTrackingInputProvider::RegisterMemoryAllocation()
 void GPUTrackingInputProvider::SetMaxData(const GPUTrackingInOutPointers& io)
 {
   mHoldTPCZS = io.tpcZS && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding);
-  mHoldTPCClusterNative = (io.tpcZS || io.tpcPackedDigits || io.clustersNative) && mRec->IsGPU();
-  mHoldTPCClusterNativeOutput = (io.tpcZS || io.tpcPackedDigits);
+  mHoldTPCClusterNative = (io.tpcZS || io.tpcPackedDigits || io.clustersNative || io.tpcCompressedClusters) && mRec->IsGPU();
+  mHoldTPCClusterNativeOutput = (io.tpcZS || io.tpcPackedDigits || io.tpcCompressedClusters);
 }

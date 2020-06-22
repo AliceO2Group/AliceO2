@@ -18,12 +18,15 @@
 #include <gsl/span>
 #include <unordered_map>
 #include <vector>
+#include <map>
 #include <string>
 #include <string_view>
 #include <functional>
 #include <mutex>
 
 #include <Rtypes.h>
+#include <TTree.h>
+#include <TStopwatch.h>
 #include "Headers/RAWDataHeader.h"
 #include "Headers/DataHeader.h"
 #include "Headers/DAQID.h"
@@ -62,6 +65,13 @@ class RawFileWriter
     }
     void write(const char* data, size_t size);
   };
+  ///=====================================================================================
+  struct PayloadCache {
+    bool preformatted = false;
+    uint32_t trigger = 0;
+    std::vector<char> payload;
+    ClassDefNV(PayloadCache, 1);
+  };
 
   ///=====================================================================================
   /// Single GBT link helper
@@ -83,6 +93,10 @@ class RawFileWriter
     std::string fileName{};                // file name associated with this link
     std::vector<char> buffer;              // buffer to accumulate superpage data
     RawFileWriter* writer = nullptr;       // pointer on the parent writer
+
+    PayloadCache cacheBuffer;         // used for caching in case of async. data input
+    std::unique_ptr<TTree> cacheTree; // tree to store the cache
+
     std::mutex mtx;
 
     LinkData() = default;
@@ -91,17 +105,18 @@ class RawFileWriter
     LinkData& operator=(const LinkData& src); // due to the mutex...
     void close(const IR& ir);
     void print() const;
-    void addData(const IR& ir, const gsl::span<char> data, bool preformatted = false);
+    void addData(const IR& ir, const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0);
     RDHAny* getLastRDH() { return lastRDHoffset < 0 ? nullptr : reinterpret_cast<RDHAny*>(&buffer[lastRDHoffset]); }
     std::string describe() const;
 
    protected:
-    void openHBFPage(const RDHAny& rdh);
+    void openHBFPage(const RDHAny& rdh, uint32_t trigger = 0);
     void addHBFPage(bool stop = false);
     void closeHBFPage() { addHBFPage(true); }
     void flushSuperPage(bool keepLastPage = false);
     void fillEmptyHBHs(const IR& ir, bool dataAdded);
     void addPreformattedCRUPage(const gsl::span<char> data);
+    void cacheData(const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger = 0);
 
     /// expand buffer by positive increment and return old size
     size_t expandBufferBy(size_t by)
@@ -137,8 +152,14 @@ class RawFileWriter
   };
   //=====================================================================================
 
-  RawFileWriter(o2::header::DataOrigin origin = o2::header::gDataOriginInvalid) : mOrigin(origin) {}
+  RawFileWriter(o2::header::DataOrigin origin = o2::header::gDataOriginInvalid, bool cru = true) : mOrigin(origin)
+  {
+    if (!cru) {
+      setRORCDetector();
+    }
+  }
   ~RawFileWriter();
+  void useCaching();
   void writeConfFile(std::string_view origin = "FLP", std::string_view description = "RAWDATA", std::string_view cfgname = "raw.cfg", bool fullPath = true) const;
   void close();
 
@@ -169,17 +190,31 @@ class RawFileWriter
     return mSSpec2Link[RDHUtils::getSubSpec(RDHUtils::getCRUID(rdh), RDHUtils::getLinkID(rdh), RDHUtils::getEndPointID(rdh), RDHUtils::getFEEID(rdh))];
   }
 
-  void addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data, bool preformatted = false);
+  void addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir,
+               const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0);
 
   template <typename H>
-  void addData(const H& rdh, const IR& ir, const gsl::span<char> data, bool preformatted = false)
+  void addData(const H& rdh, const IR& ir, const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0)
   {
     RDHAny::sanityCheckLoose<H>();
-    addData(RDHUtils::getFEEID(rdh), RDHUtils::getCRUID(rdh), RDHUtils::getLinkID(rdh), RDHUtils::getEndPointID(rdh), ir, data);
+    addData(RDHUtils::getFEEID(rdh), RDHUtils::getCRUID(rdh), RDHUtils::getLinkID(rdh), RDHUtils::getEndPointID(rdh), ir, data, trigger);
   }
 
   void setContinuousReadout() { mROMode = Continuous; }
-  void setTriggeredReadout() { mROMode = Triggered; }
+  void setTriggeredReadout()
+  {
+    mROMode = Triggered;
+    setDontFillEmptyHBF(true);
+  }
+  void setContinuousReadout(bool v)
+  {
+    if (v) {
+      setContinuousReadout();
+    } else {
+      setTriggeredReadout();
+    }
+  }
+
   bool isContinuousReadout() const { return mROMode == Continuous; }
   bool isTriggeredReadout() const { return mROMode == Triggered; }
   bool isReadOutModeSet() const { return mROMode != NotSet; }
@@ -291,7 +326,28 @@ class RawFileWriter
   bool getAddSeparateHBFStopPage() const { return mAddSeparateHBFStopPage; }
   void setAddSeparateHBFStopPage(bool v) { mAddSeparateHBFStopPage = v; }
 
+  void setRORCDetector()
+  {
+    mCRUDetector = false;
+    setTriggeredReadout();
+    setUseRDHStop(false);
+  }
+
+  void setUseRDHStop(bool v = true)
+  {
+    mUseRDHStop = v;
+    if (!v) {
+      setAddSeparateHBFStopPage(false);
+    }
+  }
+
+  bool isRORCDetector() const { return !mCRUDetector; }
+  bool isCRUDetector() const { return mCRUDetector; }
+  bool isRDHStopUsed() const { return mUseRDHStop; }
+
  private:
+  void fillFromCache();
+
   enum RoMode_t { NotSet,
                   Continuous,
                   Triggered };
@@ -311,6 +367,18 @@ class RawFileWriter
   bool mStartTFOnNewSPage = true;   // every TF must start on a new SPage
   bool mDontFillEmptyHBF = false;   // skipp adding empty HBFs (uness it must have TF flag)
   bool mAddSeparateHBFStopPage = true; // HBF stop is added on a separate CRU page
+  bool mUseRDHStop = true;             // detector uses STOP in RDH
+  bool mCRUDetector = true;            // Detector readout via CRU ( RORC if false)
+
+  //>> caching --------------
+  bool mCachingStage = false; // signal that current data should be cached
+  std::mutex mCacheFileMtx;
+  std::unique_ptr<TFile> mCacheFile; // file for caching
+  using CacheEntry = std::vector<std::pair<LinkSubSpec_t, size_t>>;
+  std::map<IR, CacheEntry> mCacheMap;
+  //<< caching -------------
+
+  TStopwatch mTimer;
   RoMode_t mROMode = NotSet;
   IR mFirstIRAdded; // 1st IR seen
   ClassDefNV(RawFileWriter, 1);

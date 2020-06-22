@@ -69,7 +69,8 @@ class GPUMemoryResource
     MEMORY_EXTERNAL = 32,
     MEMORY_PERMANENT = 64,
     MEMORY_CUSTOM = 128,
-    MEMORY_CUSTOM_TRANSFER = 256
+    MEMORY_CUSTOM_TRANSFER = 256,
+    MEMORY_STACK = 512
   };
   enum AllocationType { ALLOCATION_AUTO = 0,
                         ALLOCATION_INDIVIDUAL = 1,

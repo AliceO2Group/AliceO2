@@ -402,6 +402,22 @@ header::DataOrigin DataSpecUtils::asConcreteOrigin(InputSpec const& spec)
                     spec.matcher);
 }
 
+header::DataDescription DataSpecUtils::asConcreteDataDescription(InputSpec const& spec)
+{
+  return std::visit(overloaded{
+                      [](ConcreteDataMatcher const& concrete) {
+                        return concrete.description;
+                      },
+                      [](DataDescriptorMatcher const& matcher) {
+                        auto state = extractMatcherInfo(matcher);
+                        if (state.hasUniqueDescription) {
+                          return state.description;
+                        }
+                        throw std::runtime_error("Could not extract data type from query");
+                      }},
+                    spec.matcher);
+}
+
 OutputSpec DataSpecUtils::asOutputSpec(InputSpec const& spec)
 {
   return std::visit(overloaded{

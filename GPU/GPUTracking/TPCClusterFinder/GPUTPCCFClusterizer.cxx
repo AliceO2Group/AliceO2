@@ -25,7 +25,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 template <>
-GPUdii() void GPUTPCCFClusterizer::Thread<GPUTPCCFClusterizer::computeClusters>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFClusterizer::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   CPU_ONLY(
@@ -54,9 +54,6 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
   Charge charge = chargeMap[pos].unpack();
 
   ClusterAccumulator pc;
-#if defined(BUILD_CLUSTER_SCRATCH_PAD)
-  /* #if defined(BUILD_CLUSTER_SCRATCH_PAD) && defined(GPUCA_GPUCODE) */
-  /* #if 0 */
   CPU_ONLY(labelAcc->collect(pos, charge));
 
   buildClusterScratchPad(
@@ -67,10 +64,6 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
     smem.innerAboveThreshold,
     &pc,
     labelAcc);
-#else
-#warning "Propagating monte carlo labels not implemented by cluster finder without shared memory."
-  buildClusterNaive(chargeMap, &pc, pos);
-#endif
 
   if (idx >= clusternum || fragment.isOverlap(pos.time())) {
     return;
@@ -101,54 +94,6 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
   CPU_ONLY(labelAcc->commit(pos.row(), rowIndex, maxClusterPerRow));
 }
 
-GPUd() void GPUTPCCFClusterizer::addOuterCharge(
-  const Array2D<PackedCharge>& chargeMap,
-  ClusterAccumulator* cluster,
-  const ChargePos& pos,
-  Delta2 d)
-{
-  PackedCharge p = chargeMap[pos.delta(d)];
-  cluster->updateOuter(p, d);
-}
-
-GPUd() Charge GPUTPCCFClusterizer::addInnerCharge(
-  const Array2D<PackedCharge>& chargeMap,
-  ClusterAccumulator* cluster,
-  const ChargePos& pos,
-  Delta2 d)
-{
-  PackedCharge p = chargeMap[pos.delta(d)];
-  return cluster->updateInner(p, d);
-}
-
-GPUd() void GPUTPCCFClusterizer::addCorner(
-  const Array2D<PackedCharge>& chargeMap,
-  ClusterAccumulator* myCluster,
-  const ChargePos& pos,
-  Delta2 d)
-{
-  Charge q = addInnerCharge(chargeMap, myCluster, pos, d);
-
-  if (q > CHARGE_THRESHOLD) {
-    addOuterCharge(chargeMap, myCluster, pos, {GlobalPad(2 * d.x), d.y});
-    addOuterCharge(chargeMap, myCluster, pos, {d.x, TPCFragmentTime(2 * d.y)});
-    addOuterCharge(chargeMap, myCluster, pos, {GlobalPad(2 * d.x), TPCFragmentTime(2 * d.y)});
-  }
-}
-
-GPUd() void GPUTPCCFClusterizer::addLine(
-  const Array2D<PackedCharge>& chargeMap,
-  ClusterAccumulator* myCluster,
-  const ChargePos& pos,
-  Delta2 d)
-{
-  Charge q = addInnerCharge(chargeMap, myCluster, pos, d);
-
-  if (q > CHARGE_THRESHOLD) {
-    addOuterCharge(chargeMap, myCluster, pos, {GlobalPad(2 * d.x), TPCFragmentTime(2 * d.y)});
-  }
-}
-
 GPUdii() void GPUTPCCFClusterizer::updateClusterScratchpadInner(
   ushort lid,
   ushort N,
@@ -160,8 +105,8 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterScratchpadInner(
 {
   uchar aboveThreshold = 0;
 
-  LOOP_UNROLL_ATTR for (ushort i = 0; i < N; i++)
-  {
+  GPUCA_UNROLL(U(), U())
+  for (ushort i = 0; i < N; i++) {
     Delta2 d = CfConsts::InnerNeighbors[i];
 
     PackedCharge p = buf[N * lid + i];
@@ -189,8 +134,8 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterScratchpadOuter(
   ClusterAccumulator* cluster,
   MCLabelAccumulator* labelAcc)
 {
-  LOOP_UNROLL_ATTR for (ushort i = offset; i < M + offset; i++)
-  {
+  GPUCA_UNROLL(U(), U())
+  for (ushort i = offset; i < M + offset; i++) {
     PackedCharge p = buf[N * lid + i];
 
     Delta2 d = CfConsts::OuterNeighbors[i];
@@ -290,76 +235,6 @@ GPUdii() void GPUTPCCFClusterizer::buildClusterScratchPad(
       labelAcc);
   }
 #endif
-}
-
-GPUd() void GPUTPCCFClusterizer::buildClusterNaive(
-  const Array2D<PackedCharge>& chargeMap,
-  ClusterAccumulator* myCluster,
-  const ChargePos& pos)
-{
-  // Add charges in top left corner:
-  // O O o o o
-  // O I i i o
-  // o i c i o
-  // o i i i o
-  // o o o o o
-  addCorner(chargeMap, myCluster, pos, {-1, -1});
-
-  // Add upper charges
-  // o o O o o
-  // o i I i o
-  // o i c i o
-  // o i i i o
-  // o o o o o
-  addLine(chargeMap, myCluster, pos, {0, -1});
-
-  // Add charges in top right corner:
-  // o o o O O
-  // o i i I O
-  // o i c i o
-  // o i i i o
-  // o o o o o
-  addCorner(chargeMap, myCluster, pos, {1, -1});
-
-  // Add left charges
-  // o o o o o
-  // o i i i o
-  // O I c i o
-  // o i i i o
-  // o o o o o
-  addLine(chargeMap, myCluster, pos, {-1, 0});
-
-  // Add right charges
-  // o o o o o
-  // o i i i o
-  // o i c I O
-  // o i i i o
-  // o o o o o
-  addLine(chargeMap, myCluster, pos, {1, 0});
-
-  // Add charges in bottom left corner:
-  // o o o o o
-  // o i i i o
-  // o i c i o
-  // O I i i o
-  // O O o o o
-  addCorner(chargeMap, myCluster, pos, {-1, 1});
-
-  // Add bottom charges
-  // o o o o o
-  // o i i i o
-  // o i c i o
-  // o i I i o
-  // o o O o o
-  addLine(chargeMap, myCluster, pos, {0, 1});
-
-  // Add charges in bottom right corner:
-  // o o o o o
-  // o i i i o
-  // o i c i o
-  // o i i I O
-  // o o o O O
-  addCorner(chargeMap, myCluster, pos, {1, 1});
 }
 
 GPUd() uint GPUTPCCFClusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, uint row, uint maxElemsPerBucket, uint* elemsInBucket, tpc::ClusterNative* buckets)

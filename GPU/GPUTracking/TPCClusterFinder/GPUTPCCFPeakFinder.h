@@ -37,11 +37,7 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
     PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_SEARCH_N];
   };
 
-  enum K : int {
-    findPeaks,
-  };
-
-  static GPUd() void findPeaksImpl(int, int, int, int, GPUSharedMemory&, const Array2D<PackedCharge>&, const ChargePos*, uint, uchar*, Array2D<uchar>&);
+  static GPUd() void findPeaksImpl(int, int, int, int, GPUSharedMemory&, const Array2D<PackedCharge>&, const ChargePos*, tpccf::SizeT, uchar*, Array2D<uchar>&);
 
 #ifdef HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
@@ -61,8 +57,6 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
 
  private:
   static GPUd() bool isPeakScratchPad(GPUSharedMemory&, tpccf::Charge, const ChargePos&, ushort, const Array2D<o2::gpu::PackedCharge>&, ChargePos*, PackedCharge*);
-
-  static GPUd() bool isPeak(tpccf::Charge, const ChargePos&, const Array2D<PackedCharge>&);
 };
 
 } // namespace gpu

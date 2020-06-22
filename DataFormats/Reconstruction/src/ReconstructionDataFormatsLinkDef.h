@@ -29,9 +29,12 @@
 #pragma link C++ class std::vector < std::pair < int, float>> + ;
 #pragma link C++ class std::vector < int> + ;
 
+#pragma link C++ class o2::dataformats::VertexBase + ;
 #pragma link C++ class o2::dataformats::Vertex < int> + ;
 #pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStamp < int>> + ;
 #pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStampWithError < double, double>> + ;
 #pragma link C++ class std::vector < o2::dataformats::Vertex < o2::dataformats::TimeStamp < int>>> + ;
+
+#pragma link C++ class o2::dataformats::DCA + ;
 
 #endif

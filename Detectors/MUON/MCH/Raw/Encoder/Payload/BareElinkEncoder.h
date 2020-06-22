@@ -147,7 +147,7 @@ template <typename CHARGESUM>
 void ElinkEncoder<BareFormat, CHARGESUM>::append(const SampaCluster& sc)
 {
   append10(sc.nofSamples());
-  append10(sc.timestamp);
+  append10(sc.sampaTime);
   appendCharges(sc);
 }
 

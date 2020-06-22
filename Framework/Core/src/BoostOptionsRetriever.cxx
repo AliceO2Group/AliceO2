@@ -23,17 +23,21 @@
 using namespace o2::framework;
 namespace bpo = boost::program_options;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
-BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const& specs,
-                                             bool ignoreUnknown,
-                                             int& argc, char**& argv)
-  : mStore{},
-    mDescription{"ALICE O2 Framework - Available options"},
-    mIgnoreUnknown{ignoreUnknown}
+BoostOptionsRetriever::BoostOptionsRetriever(bool ignoreUnknown,
+                                             int argc, char** argv)
+  : mDescription{"ALICE O2 Framework - Available options"},
+    mIgnoreUnknown{ignoreUnknown},
+    mArgc{argc},
+    mArgv{argv}
+{
+}
+
+void BoostOptionsRetriever::update(std::vector<ConfigParamSpec> const& specs,
+                                   boost::property_tree::ptree& store,
+                                   boost::property_tree::ptree& provenance)
 {
   auto options = mDescription.add_options();
   for (auto& spec : specs) {
@@ -65,52 +69,11 @@ BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const&
     };
   }
 
-  auto parsed = mIgnoreUnknown ? bpo::command_line_parser(argc, argv).options(mDescription).allow_unregistered().run()
-                               : bpo::parse_command_line(argc, argv, mDescription);
+  auto parsed = mIgnoreUnknown ? bpo::command_line_parser(mArgc, mArgv).options(mDescription).allow_unregistered().run()
+                               : bpo::parse_command_line(mArgc, mArgv, mDescription);
   bpo::variables_map vmap;
   bpo::store(parsed, vmap);
-  PropertyTreeHelpers::populate(specs, mStore, vmap);
+  PropertyTreeHelpers::populate(specs, store, vmap, provenance);
 }
 
-bool BoostOptionsRetriever::isSet(const char* key) const
-{
-  return (mStore.find(key) != mStore.not_found());
-}
-
-int BoostOptionsRetriever::getInt(const char* key) const
-{
-  return mStore.get<int>(key);
-}
-
-int64_t BoostOptionsRetriever::getInt64(const char* key) const
-{
-  return mStore.get<int64_t>(key);
-}
-
-float BoostOptionsRetriever::getFloat(const char* key) const
-{
-  return mStore.get<float>(key);
-}
-
-double BoostOptionsRetriever::getDouble(const char* key) const
-{
-  return mStore.get<double>(key);
-}
-
-bool BoostOptionsRetriever::getBool(const char* key) const
-{
-  return mStore.get<bool>(key);
-}
-
-std::string BoostOptionsRetriever::getString(const char* key) const
-{
-  return mStore.get<std::string>(key);
-}
-
-boost::property_tree::ptree BoostOptionsRetriever::getPTree(const char* key) const
-{
-  return mStore.get_child(key);
-}
-
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

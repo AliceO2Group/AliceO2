@@ -7,47 +7,32 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_BOOSTOPTIONSRETRIEVER_H
-#define FRAMEWORK_BOOSTOPTIONSRETRIEVER_H
+#ifndef O2_FRAMEWORK_FAIROPTIONSRETRIEVER_H_
+#define O2_FRAMEWORK_FAIROPTIONSRETRIEVER_H_
 
 #include "Framework/ParamRetriever.h"
 #include "Framework/ConfigParamSpec.h"
 
-#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ptree_fwd.hpp>
+#include <fairmq/ProgOptionsFwd.h>
 
-#include <string>
 #include <vector>
 
-#if __has_include(<fairmq/ProgOptionsFwd.h>)
-#include <fairmq/ProgOptionsFwd.h>
-#else
-class FairMQProgOptions;
-#endif
-
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 class FairOptionsRetriever : public ParamRetriever
 {
  public:
-  FairOptionsRetriever(std::vector<ConfigParamSpec> const& schema, const FairMQProgOptions* opts);
+  FairOptionsRetriever(const FairMQProgOptions* opts) : mOpts{opts} {}
 
-  bool isSet(const char* name) const final;
-  int getInt(const char* name) const final;
-  int64_t getInt64(const char* name) const final;
-  float getFloat(const char* name) const final;
-  double getDouble(const char* name) const final;
-  bool getBool(const char* name) const final;
-  std::string getString(const char* name) const final;
-  boost::property_tree::ptree getPTree(const char* name) const final;
+  void update(std::vector<ConfigParamSpec> const& schema,
+              boost::property_tree::ptree& store,
+              boost::property_tree::ptree& provenance) override;
 
  private:
   const FairMQProgOptions* mOpts;
-  boost::property_tree::ptree mStore;
 };
 
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_BOOSTOPTIONSRETRIEVER_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_FAIROPTIONSRETRIEVER_H_

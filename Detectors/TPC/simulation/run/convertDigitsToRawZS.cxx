@@ -27,6 +27,7 @@
 #include "GPUReconstructionConvert.h"
 #include "GPUHostDataTypes.h"
 #include "GPUParam.h"
+#include "GPURawData.h"
 
 #include "Framework/Logger.h"
 #include "DetectorsRaw/RawFileWriter.h"
@@ -40,6 +41,8 @@
 #include "TPCBase/RDHUtils.h"
 #include "DataFormatsTPC/Digit.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 namespace bpo = boost::program_options;
 
@@ -66,7 +69,8 @@ struct ProcessAttributes {
 
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer);
 #include "DetectorsRaw/HBFUtils.h"
-void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, bool sectorBySector, uint32_t rdhV, bool stopPage, bool noPadding, bool createParentDir)
+void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, std::string_view fileFor,
+                            bool sectorBySector, uint32_t rdhV, bool stopPage, bool noPadding, bool createParentDir)
 {
 
   // ===| open file and get tree |==============================================
@@ -105,9 +109,13 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   }
 
   // ===| set up raw writer |===================================================
+  std::string inputGRP = o2::base::NameConf::getGRPFileName();
+  const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+
   o2::raw::RawFileWriter writer{"TPC"}; // to set the RDHv6.sourceID if V6 is used
   writer.useRDHVersion(rdhV);
   writer.setAddSeparateHBFStopPage(stopPage);
+  writer.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)); // must be set explicitly
   const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
 
   for (unsigned int i = 0; i < NSectors; i++) {
@@ -115,8 +123,21 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
       const unsigned int cruInSector = j / 2;
       const unsigned int cruID = i * 10 + cruInSector;
       const rdh_utils::FEEIDType feeid = rdh_utils::getFEEID(cruID, j & 1, defaultLink);
-      writer.registerLink(feeid, cruID, defaultLink, j & 1, fmt::format("{}cru{}_{}.raw", outDir, cruID, j & 1));
+      std::string outfname;
+      if (fileFor == "all") { // single file for all links
+        outfname = fmt::format("{}tpc_all.raw", outDir);
+      } else if (fileFor == "sector") {
+        outfname = fmt::format("{}tpc_sector{}.raw", outDir, i);
+      } else if (fileFor == "link") {
+        outfname = fmt::format("{}cru{}_{}.raw", outDir, cruID, j & 1);
+      } else {
+        throw std::runtime_error("invalid option provided for file grouping");
+      }
+      writer.registerLink(feeid, cruID, defaultLink, j & 1, outfname);
     }
+  }
+  if (fileFor != "link") { // in case >1 link goes to the file, we must cache to preserve the TFs ordering
+    writer.useCaching();
   }
 
   // ===| set up branch addresses |=============================================
@@ -180,7 +201,8 @@ void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::
   _GPUParam.SetDefaults(5.00668);
   const GPUParam mGPUParam = _GPUParam;
 
-  o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
+  //o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
+  o2::InteractionRecord ir(0, 0); // we start with the time registered in ditigs, w/o extra offset
   zsEncoder->RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, false, zsThreshold, processAttributes->padding);
 }
 
@@ -199,13 +221,14 @@ int main(int argc, char** argv)
     auto add_option = opt_general.add_options();
     add_option("help,h", "Print this help message");
     add_option("verbose,v", bpo::value<uint32_t>()->default_value(0), "Select verbosity level [0 = no output]");
-    add_option("input-file,i", bpo::value<std::string>()->required(), "Specifies input file.");
+    add_option("input-file,i", bpo::value<std::string>()->default_value("tpcdigits.root"), "Specifies input file.");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "Specify output directory");
     add_option("no-parent-directories,n", "Do not create parent directories recursively");
     add_option("sector-by-sector,s", bpo::value<bool>()->default_value(false)->implicit_value(true), "Run one TPC sector after another");
+    add_option("file-for,f", bpo::value<std::string>()->default_value("sector"), "single file per: link,sector,all");
     add_option("stop-page,p", bpo::value<bool>()->default_value(false)->implicit_value(true), "HBF stop on separate CRU page");
     add_option("no-padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "Don't pad pages to 8kb");
-    uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
+    uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::gpu::RAWDataHeaderGPU>();
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
@@ -231,6 +254,7 @@ int main(int argc, char** argv)
   convertDigitsToZSfinal(
     vm["input-file"].as<std::string>(),
     vm["output-dir"].as<std::string>(),
+    vm["file-for"].as<std::string>(),
     vm["sector-by-sector"].as<bool>(),
     vm["rdh-version"].as<uint32_t>(),
     vm["stop-page"].as<bool>(),

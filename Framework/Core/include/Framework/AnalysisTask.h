@@ -37,12 +37,8 @@
 #include <type_traits>
 #include <utility>
 #include <memory>
-#if (defined(__GNUC__) && (__GNUC___ > 8 || (__GNUC__ == 8 && __GNUC_MINOR__ >= 1))) || defined(__clang__)
-#include <charconv>
-#else
 #include <sstream>
 #include <iomanip>
-#endif
 namespace o2::framework
 {
 
@@ -200,19 +196,12 @@ struct OutputObj {
   {
     header::DataDescription desc{};
     auto lhash = compile_time_hash(label.c_str());
-    memset(desc.str, '_', 16);
-#if (defined(__GNUC__) && (__GNUC___ > 8 || (__GNUC__ == 8 && __GNUC_MINOR__ >= 1))) || defined(__clang__)
-    std::to_chars(desc.str, desc.str + 2, lhash, 16);
-    std::to_chars(desc.str + 2, desc.str + 4, mTaskHash, 16);
-    std::to_chars(desc.str + 4, desc.str + 12, reinterpret_cast<uint64_t>(this), 16);
-#else
+    std::memset(desc.str, '_', 16);
     std::stringstream s;
     s << std::hex << lhash;
     s << std::hex << mTaskHash;
     s << std::hex << reinterpret_cast<uint64_t>(this);
     std::memcpy(desc.str, s.str().c_str(), 12);
-#endif
-
     return OutputSpec{OutputLabel{label}, "ATSK", desc, 0};
   }
 
@@ -236,6 +225,19 @@ struct OutputObj {
   std::string label;
   OutputObjHandlingPolicy policy;
   uint32_t mTaskHash;
+};
+
+/// This helper allows you to fetch a Sevice from the context or
+/// by using some singleton. This hopefully will hide the Singleton and
+/// We will be able to retrieve it in a more thread safe manner later on.
+template <typename T>
+struct Service {
+  T* service;
+
+  T* operator->() const
+  {
+    return service;
+  }
 };
 
 /// This helper allows you to create a configurable option associated to a task.
@@ -266,13 +268,6 @@ struct AnalysisTask {
 // Helper struct which builds a DataProcessorSpec from
 // the contents of an AnalysisTask...
 
-template <typename... C>
-gandiva::SchemaPtr createSchemaFromColumns(framework::pack<C...>)
-{
-  return std::make_shared<arrow::Schema>(std::vector<std::shared_ptr<arrow::Field>>{
-    std::make_shared<arrow::Field>(C::mLabel, expressions::concreteArrowType(expressions::selectArrowType<typename C::type>()))...});
-}
-
 struct AnalysisDataProcessorBuilder {
   template <typename Arg>
   static void doAppendInputWithMetadata(std::vector<InputSpec>& inputs)
@@ -280,7 +275,7 @@ struct AnalysisDataProcessorBuilder {
     using metadata = typename aod::MetadataTrait<std::decay_t<Arg>>::metadata;
     static_assert(std::is_same_v<metadata, void> == false,
                   "Could not find metadata. Did you register your type?");
-    inputs.push_back({metadata::tableLabel(), "AOD", metadata::description()});
+    inputs.push_back({metadata::tableLabel(), metadata::origin(), metadata::description()});
   }
 
   template <typename... Args>
@@ -294,10 +289,10 @@ struct AnalysisDataProcessorBuilder {
   {
     using dT = std::decay_t<T>;
     if constexpr (framework::is_specialization<dT, soa::Filtered>::value) {
-      eInfos.push_back({At, createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+      eInfos.push_back({At, o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
     } else if constexpr (soa::is_soa_iterator_t<dT>::value) {
       if (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
-        eInfos.push_back({At, createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+        eInfos.push_back({At, o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
       }
     }
     doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), inputs);
@@ -663,6 +658,7 @@ template <>
 struct FilterManager<expressions::Filter> {
   static bool createExpressionTrees(expressions::Filter const& filter, std::vector<ExpressionInfo>& expressionInfos)
   {
+
     updateExpressionInfos(filter, expressionInfos);
     return true;
   }
@@ -762,6 +758,47 @@ struct OutputManager<OutputObj<T>> {
   {
     context.outputs().snapshot(what.ref(), *what);
     return true;
+  }
+};
+
+template <typename T>
+class has_instance
+{
+  typedef char one;
+  struct two {
+    char x[2];
+  };
+
+  template <typename C>
+  static one test(decltype(&C::instance));
+  template <typename C>
+  static two test(...);
+
+ public:
+  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+};
+
+template <typename T>
+struct ServiceManager {
+  template <typename ANY>
+  static bool prepare(InitContext&, ANY&)
+  {
+    return false;
+  }
+};
+
+template <typename T>
+struct ServiceManager<Service<T>> {
+  static bool prepare(InitContext& context, Service<T>& service)
+  {
+    if constexpr (has_instance<T>::value) {
+      service.service = &(T::instance()); // Sigh...
+      return true;
+    } else {
+      service.service = context.services().get<T>();
+      return true;
+    }
+    return false;
   }
 };
 
@@ -892,6 +929,7 @@ DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
   auto algo = AlgorithmSpec::InitCallback{[task, expressionInfos](InitContext& ic) {
     auto tupledTask = o2::framework::to_tuple_refs(*task.get());
     std::apply([&ic](auto&&... x) { return (OptionManager<std::decay_t<decltype(x)>>::prepare(ic, x), ...); }, tupledTask);
+    std::apply([&ic](auto&&... x) { return (ServiceManager<std::decay_t<decltype(x)>>::prepare(ic, x), ...); }, tupledTask);
 
     auto& callbacks = ic.services().get<CallbackService>();
     auto endofdatacb = [task](EndOfStreamContext& eosContext) {

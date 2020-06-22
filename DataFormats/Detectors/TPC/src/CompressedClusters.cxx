@@ -13,6 +13,7 @@
 
 #include "DataFormatsTPC/CompressedClusters.h"
 
+#include <cstring>
 #ifndef GPUCA_STANDALONE
 #include "DataFormatsTPC/CompressedClustersHelpers.h"
 #include "TBuffer.h"
@@ -43,7 +44,14 @@ void CompressedClustersFlat::set(size_t bufferSize, const CompressedClusters& v)
   for (unsigned int i = 0; i < sizeof(offsets) / sizeof(size_t); i++) {
     reinterpret_cast<size_t*>(&offsets)[i] = (reinterpret_cast<const size_t*>(&ptrs)[i] - reinterpret_cast<size_t>(this)); // Compute offsets from beginning of structure
   }
+  ptrForward = nullptr;
   totalDataSize = bufferSize;
+}
+
+void CompressedClustersFlat::setForward(const CompressedClusters* p)
+{
+  memset((void*)this, 0, sizeof(*this));
+  ptrForward = p;
 }
 
 #ifndef GPUCA_STANDALONE

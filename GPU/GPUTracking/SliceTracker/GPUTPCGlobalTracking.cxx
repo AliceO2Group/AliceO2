@@ -74,7 +74,7 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
     // GPUInfo("%d hits found", nHits);
     unsigned int hitId = CAMath::AtomicAdd(&tracker.CommonMemory()->nTrackHits, (unsigned int)nHits);
     if (hitId + nHits > tracker.NMaxTrackHits()) {
-      tracker.CommonMemory()->kernelError = GPUCA_ERROR_GLOBAL_TRACKING_TRACK_HIT_OVERFLOW;
+      tracker.raiseError(GPUErrors::ERROR_GLOBAL_TRACKING_TRACK_HIT_OVERFLOW, hitId + nHits, tracker.NMaxTrackHits());
       CAMath::AtomicExch(&tracker.CommonMemory()->nTrackHits, tracker.NMaxTrackHits());
       return (0);
     }
@@ -123,7 +123,7 @@ GPUd() void GPUTPCGlobalTracking::PerformGlobalTracking(int nBlocks, int nThread
         const GPUTPCRow& GPUrestrict() row = tracker.Row(rowIndex);
         float Y = (float)tracker.Data().HitDataY(row, tracker.TrackHits()[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
         if (sliceTarget.CommonMemory()->nTracks >= sliceTarget.NMaxTracks()) { // >= since will increase by 1
-          sliceTarget.CommonMemory()->kernelError = GPUCA_ERROR_GLOBAL_TRACKING_TRACK_OVERFLOW;
+          sliceTarget.raiseError(GPUErrors::ERROR_GLOBAL_TRACKING_TRACK_OVERFLOW, sliceTarget.CommonMemory()->nTracks, sliceTarget.NMaxTracks());
           return;
         }
         if (!right && Y < -row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_LOWER) {
@@ -143,8 +143,8 @@ GPUd() void GPUTPCGlobalTracking::PerformGlobalTracking(int nBlocks, int nThread
         int rowIndex = tracker.TrackHits()[tmpHit].RowIndex();
         const GPUTPCRow& GPUrestrict() row = tracker.Row(rowIndex);
         float Y = (float)tracker.Data().HitDataY(row, tracker.TrackHits()[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
-        if (sliceTarget.CommonMemory()->nTracks >= sliceTarget.NMaxTracks()) { // >= since will increase by 14
-          sliceTarget.CommonMemory()->kernelError = GPUCA_ERROR_GLOBAL_TRACKING_TRACK_OVERFLOW;
+        if (sliceTarget.CommonMemory()->nTracks >= sliceTarget.NMaxTracks()) { // >= since will increase by 1
+          sliceTarget.raiseError(GPUErrors::ERROR_GLOBAL_TRACKING_TRACK_OVERFLOW, sliceTarget.CommonMemory()->nTracks, sliceTarget.NMaxTracks());
           return;
         }
         if (!right && Y < -row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_UPPER) {

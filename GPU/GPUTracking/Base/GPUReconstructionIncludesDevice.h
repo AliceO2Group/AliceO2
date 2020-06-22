@@ -32,6 +32,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCTracker.cxx"
 
 #include "GPUGeneralKernels.cxx"
+#include "GPUErrors.cxx"
 
 #include "GPUTPCTrackletSelector.cxx"
 #include "GPUTPCNeighboursFinder.cxx"
@@ -43,8 +44,8 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #if !defined(GPUCA_OPENCL1) && !defined(GPUCA_ALIROOT_LIB)
 // Files for TPC Merger
-#include "GPUTPCGMMergerGPU.cxx"
 #include "GPUTPCGMMerger.cxx"
+#include "GPUTPCGMMergerGPU.cxx"
 #include "GPUTPCGMSliceTrack.cxx"
 #include "GPUTPCGMTrackParam.cxx"
 #include "GPUTPCGMPhysicalTrackModel.cxx"
@@ -78,6 +79,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCCFDeconvolution.cxx"
 #include "GPUTPCCFMCLabelFlattener.cxx"
 #include "GPUTPCCFDecodeZS.cxx"
+#include "GPUTPCCFGather.cxx"
 
 // Files for TRD Tracking
 #include "GPUTRDTrackerKernels.cxx"

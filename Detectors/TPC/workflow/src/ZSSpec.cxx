@@ -35,12 +35,15 @@
 #include <unistd.h>
 #include "GPUParam.h"
 #include "GPUReconstructionConvert.h"
+#include "GPURawData.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "TPCBase/RDHUtils.h"
 #include "TPCBase/ZeroSuppress.h"
 #include "DPLUtils/DPLRawParser.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -106,30 +109,17 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
           LOG(ERROR) << "sector header missing on header stack";
           return;
         }
-        const int& sector = sectorHeader->sector;
-        // check the current operation, this is used to either signal eod or noop
-        // FIXME: the noop is not needed any more once the lane configuration with one
-        // channel per sector is used
-        if (sector < 0) {
-          if (operation < 0 && operation != sector) {
-            // we expect the same operation on all inputs
-            LOG(ERROR) << "inconsistent lane operation, got "
-                       << sector << ", expecting " << operation;
-          } else if (operation == 0) {
-            // store the operation
-            operation = sector;
-          }
-          continue;
+        const int& sector = sectorHeader->sector();
+        // the TPCSectorHeader now allows to transport information for more than one sector,
+        // e.g. for transporting clusters in one single data block. Digits are however grouped
+        // on sector level
+        if (sectorHeader->sector() >= TPCSectorHeader::NSectors) {
+          throw std::runtime_error("Expecting data for single sectors");
         }
 
         inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
         LOG(INFO) << "GOT SPAN FOR SECTOR " << sector << " -> "
                   << inputDigits[sector].size();
-      }
-      if (operation == -1) {
-        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-        processAttributes->finished = true;
-        return;
       }
       for (int i = 0; i < NSectors; i++) {
         inDigitsGPU.tpcDigits[i] = inputDigits[i].data();
@@ -157,19 +147,37 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
 
       if (outRaw) {
         // ===| set up raw writer |===================================================
+        std::string inputGRP = o2::base::NameConf::getGRPFileName();
+        const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
         o2::raw::RawFileWriter writer{"TPC"}; // to set the RDHv6.sourceID if V6 is used
-        uint32_t rdhV = 4;
+        writer.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)); // must be set explicitly
+        uint32_t rdhV = o2::raw::RDHUtils::getVersion<o2::gpu::RAWDataHeaderGPU>();
         writer.useRDHVersion(rdhV);
         std::string outDir = "./";
         const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
+        enum LinksGrouping { All,
+                             Sector,
+                             Link };
+        auto useGrouping = Sector;
 
         for (unsigned int i = 0; i < NSectors; i++) {
           for (unsigned int j = 0; j < NEndpoints; j++) {
             const unsigned int cruInSector = j / 2;
             const unsigned int cruID = i * 10 + cruInSector;
             const rdh_utils::FEEIDType feeid = rdh_utils::getFEEID(cruID, j & 1, defaultLink);
-            writer.registerLink(feeid, cruID, defaultLink, j & 1, fmt::format("{}cru{}_{}.raw", outDir, cruID, j & 1));
+            std::string outfname;
+            if (useGrouping == LinksGrouping::All) { // single file for all links
+              outfname = fmt::format("{}tpc_all.raw", outDir);
+            } else if (useGrouping == LinksGrouping::Sector) { // file per sector
+              outfname = fmt::format("{}tpc_sector{}.raw", outDir, i);
+            } else if (useGrouping == LinksGrouping::Link) { // file per link
+              outfname = fmt::format("{}cru{}_{}.raw", outDir, cruID, j & 1);
+            }
+            writer.registerLink(feeid, cruID, defaultLink, j & 1, outfname);
           }
+        }
+        if (useGrouping != LinksGrouping::Link) {
+          writer.useCaching();
         }
         zsEncoder->RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, false, threshold);
         writer.writeConfFile("TPC", "RAWDATA", fmt::format("{}tpcraw.cfg", outDir));
@@ -292,7 +300,7 @@ DataProcessorSpec getZStoDigitsSpec(std::vector<int> const& inputIds)
             }
             count = 0;
             lastFEE = o2::raw::RDHUtils::getFEEID(*rdh);
-            cruID = int(rdh->cruID);
+            cruID = int(o2::raw::RDHUtils::getCRUID(*rdh));
             if (it.size() == 0) {
               ptr = nullptr;
               continue;

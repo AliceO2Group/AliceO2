@@ -68,6 +68,7 @@ const std::unordered_map<std::string, InputType> InputMap{
   {"clusters", InputType::Clusters},
   {"zsraw", InputType::ZSRaw},
   {"compressed-clusters", InputType::CompClusters},
+  {"compressed-clusters-ctf", InputType::CompClustersCTF},
   {"encoded-clusters", InputType::EncodedClusters},
 };
 
@@ -208,10 +209,15 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   bool runClusterer = !caClusterer && (runHWDecoder || isEnabled(OutputType::ClustersHardware));
   bool zsDecoder = inputType == InputType::ZSRaw;
   bool runClusterEncoder = isEnabled(OutputType::EncodedClusters);
+  bool decompressTPC = inputType == InputType::CompClustersCTF || inputType == InputType::CompClusters;
   // input matrix
   runClusterer &= inputType == InputType::Digitizer || inputType == InputType::Digits;
   runHWDecoder &= runClusterer || inputType == InputType::ClustersHardware;
-  runTracker &= caClusterer || (runHWDecoder || inputType == InputType::Clusters);
+  runTracker &= caClusterer || runHWDecoder || inputType == InputType::Clusters || decompressTPC;
+
+  if (decompressTPC && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Tracks)) && (caClusterer || zsOnTheFly || propagateMC)) {
+    throw std::invalid_argument("Compressed clusters as input are incompatible to ca-clusterer, zs-on-the-fly, propagate-mc");
+  }
 
   bool outRaw = inputType == InputType::Digits && isEnabled(OutputType::ZSRaw);
   //bool runZSDecode = inputType == InputType::ZSRaw;
@@ -265,18 +271,18 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     if (!tpcSectorHeader) {
       throw std::runtime_error("TPC sector header missing in header stack");
     }
-    if (tpcSectorHeader->sector < 0) {
+    if (tpcSectorHeader->sector() < 0) {
       // special data sets, don't write
       return ~(size_t)0;
     }
     size_t index = 0;
     for (auto const& sector : tpcSectors) {
-      if (sector == tpcSectorHeader->sector) {
+      if (sector == tpcSectorHeader->sector()) {
         return index;
       }
       ++index;
     }
-    throw std::runtime_error("sector " + std::to_string(tpcSectorHeader->sector) + " not configured for writing");
+    throw std::runtime_error("sector " + std::to_string(tpcSectorHeader->sector()) + " not configured for writing");
   };
   auto getName = [tpcSectors](std::string base, size_t index) {
     return base + "_" + std::to_string(tpcSectors.at(index));
@@ -288,7 +294,8 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                                                         const char* defaultFileName,
                                                                                         const char* defaultTreeName,
                                                                                         auto&& databranch,
-                                                                                        auto&& mcbranch) {
+                                                                                        auto&& mcbranch,
+                                                                                        bool singleBranch = false) {
     if (tpcSectors.size() == 0) {
       throw std::invalid_argument(std::string("writer process configuration needs list of TPC sectors"));
     }
@@ -297,12 +304,17 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
       input.binding += std::to_string(laneConfiguration[index]);
       DataSpecUtils::updateMatchingSubspec(input, laneConfiguration[index]);
     };
-    auto amendBranchDef = [laneConfiguration, amendInput, tpcSectors, getIndex, getName](auto&& def, bool enable = true) {
-      def.keys = mergeInputs(def.keys, laneConfiguration.size(), amendInput);
-      // the branch is disabled if set to 0
-      def.nofBranches = enable ? tpcSectors.size() : 0;
-      def.getIndex = getIndex;
-      def.getName = getName;
+    auto amendBranchDef = [laneConfiguration, amendInput, tpcSectors, getIndex, getName, singleBranch](auto&& def, bool enableMC = true) {
+      if (!singleBranch) {
+        def.keys = mergeInputs(def.keys, laneConfiguration.size(), amendInput);
+        // the branch is disabled if set to 0
+        def.nofBranches = enableMC ? tpcSectors.size() : 0;
+        def.getIndex = getIndex;
+        def.getName = getName;
+      } else {
+        // instead of the separate sector branches only one is going to be written
+        def.nofBranches = enableMC ? 1 : 0;
+      }
       return std::move(def);
     };
 
@@ -354,16 +366,19 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   //
   // selected by output type 'clusters'
   if (isEnabled(OutputType::Clusters) && !isEnabled(OutputType::DisableWriter)) {
-    using MCLabelCollection = std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>;
+    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+    // if the caClusterer is enabled, only one data set with the full TPC is produced, and the writer
+    // is configured to write one single branch
     specs.push_back(makeWriterSpec("tpc-native-cluster-writer",
                                    inputType == InputType::Clusters ? "tpc-filtered-native-clusters.root" : "tpc-native-clusters.root",
                                    "tpcrec",
-                                   BranchDefinition<const char*>{InputSpec{"data", "TPC", "CLUSTERNATIVE", 0},
+                                   BranchDefinition<const char*>{InputSpec{"data", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}},
                                                                  "TPCClusterNative",
                                                                  "databranch"},
-                                   BranchDefinition<MCLabelCollection>{InputSpec{"mc", "TPC", "CLNATIVEMCLBL", 0},
-                                                                       "TPCClusterNativeMCTruth",
-                                                                       "mcbranch"}));
+                                   BranchDefinition<MCLabelContainer>{InputSpec{"mc", ConcreteDataTypeMatcher{"TPC", "CLNATIVEMCLBL"}},
+                                                                      "TPCClusterNativeMCTruth",
+                                                                      "mcbranch"},
+                                   caClusterer || decompressTPC));
   }
 
   if (zsOnTheFly) {
@@ -382,13 +397,15 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   if (runTracker) {
     specs.emplace_back(o2::tpc::getCATrackerSpec(ca::Config{
                                                    propagateMC ? ca::Operation::ProcessMC : ca::Operation::Noop,
+                                                   decompressTPC ? ca::Operation::DecompressTPC : ca::Operation::Noop,
+                                                   decompressTPC && inputType == InputType::CompClusters ? ca::Operation::DecompressTPCFromROOT : ca::Operation::Noop,
                                                    caClusterer ? ca::Operation::CAClusterer : ca::Operation::Noop,
                                                    zsDecoder ? ca::Operation::ZSDecoder : ca::Operation::Noop,
                                                    zsOnTheFly ? ca::Operation::ZSOnTheFly : ca::Operation::Noop,
                                                    produceTracks ? ca::Operation::OutputTracks : ca::Operation::Noop,
                                                    produceCompClusters ? ca::Operation::OutputCompClusters : ca::Operation::Noop,
                                                    runClusterEncoder ? ca::Operation::OutputCompClustersFlat : ca::Operation::Noop,
-                                                   isEnabled(OutputType::Clusters) && caClusterer ? ca::Operation::OutputCAClusters : ca::Operation::Noop,
+                                                   isEnabled(OutputType::Clusters) && (caClusterer || decompressTPC) ? ca::Operation::OutputCAClusters : ca::Operation::Noop,
                                                  },
                                                  laneConfiguration));
   }

@@ -162,7 +162,7 @@ static void BM_ASoAHelpersNaiveTracksPairs(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
@@ -197,7 +197,7 @@ static void BM_ASoAHelpersNaiveTracksFives(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
@@ -300,7 +300,7 @@ static void BM_ASoAHelpersCombGenTracksPairs(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
@@ -332,7 +332,7 @@ static void BM_ASoAHelpersCombGenTracksFives(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
@@ -405,7 +405,7 @@ static void BM_ASoAHelpersCombGenTracksFivesMultipleChunks(benchmark::State& sta
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builderA;
-  auto rowWriterA = builderA.cursor<o2::aod::Tracks>();
+  auto rowWriterA = builderA.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriterA(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
                uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
@@ -414,7 +414,7 @@ static void BM_ASoAHelpersCombGenTracksFivesMultipleChunks(benchmark::State& sta
   auto tableA = builderA.finalize();
 
   TableBuilder builderB;
-  auto rowWriterB = builderB.cursor<o2::aod::Tracks>();
+  auto rowWriterB = builderB.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriterB(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
                uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),

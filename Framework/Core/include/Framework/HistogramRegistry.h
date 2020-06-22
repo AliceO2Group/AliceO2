@@ -103,6 +103,7 @@ class HistogramRegistry
     }
   }
 
+  /// @return the histogram registered with name @a name
   auto& get(char const* const name) const
   {
     const uint32_t id = compile_time_hash(name);
@@ -116,6 +117,12 @@ class HistogramRegistry
       }
     }
     throw std::runtime_error("No match found!");
+  }
+
+  /// @return the histogram registered with name @a name
+  auto& operator()(char const* const name) const
+  {
+    return get(name);
   }
 
   // @return the associated OutputSpec

@@ -13,7 +13,19 @@
 #include "Framework/AnalysisDataModel.h"
 
 // TODO read nAliases from the alias map?
-#define nAliases 2
+#define nAliases 10
+enum triggerAliases {
+  kINT7 = 0,
+  kEMC7,
+  kINT7inMUON,
+  kMuonSingleLowPt7,
+  kMuonUnlikeLowPt7,
+  kMuonLikeLowPt7,
+  kCUP8,
+  kCUP9,
+  kMUP10,
+  kMUP11
+};
 
 namespace o2::aod
 {
@@ -27,11 +39,16 @@ DECLARE_SOA_COLUMN(BGV0A, bgV0A, bool); // beam-gas time in V0A
 DECLARE_SOA_COLUMN(BGV0C, bgV0C, bool); // beam-gas time in V0C
 DECLARE_SOA_COLUMN(BBZNA, bbZNA, bool); // beam-beam time in ZNA
 DECLARE_SOA_COLUMN(BBZNC, bbZNC, bool); // beam-beam time in ZNC
+DECLARE_SOA_COLUMN(BBFDA, bbFDA, bool); // beam-beam time in FDA
+DECLARE_SOA_COLUMN(BBFDC, bbFDC, bool); // beam-beam time in FDC
+DECLARE_SOA_COLUMN(BGFDA, bgFDA, bool); // beam-gas time in FDA
+DECLARE_SOA_COLUMN(BGFDC, bgFDC, bool); // beam-gas time in FDC
 DECLARE_SOA_DYNAMIC_COLUMN(SEL7, sel7, [](bool bbV0A, bool bbV0C, bool bbZNA, bool bbZNC) -> bool { return bbV0A && bbV0C && bbZNA && bbZNC; });
 } // namespace evsel
 DECLARE_SOA_TABLE(EvSels, "AOD", "EVSEL",
                   evsel::Alias,
                   evsel::BBV0A, evsel::BBV0C, evsel::BGV0A, evsel::BGV0C, evsel::BBZNA, evsel::BBZNC,
+                  evsel::BBFDA, evsel::BBFDC, evsel::BGFDA, evsel::BGFDC,
                   evsel::SEL7<evsel::BBV0A, evsel::BBV0C, evsel::BBZNA, evsel::BBZNC>);
 using EvSel = EvSels::iterator;
 } // namespace o2::aod

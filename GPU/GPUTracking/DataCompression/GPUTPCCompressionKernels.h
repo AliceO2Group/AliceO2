@@ -81,7 +81,7 @@ class GPUTPCCompressionKernels : public GPUKernelTemplate
   GPUdi() static bool isAlignedTo(const void* ptr);
 
   template <typename T>
-  GPUdi() static void compressorMemcpy(T* dst, const T* src, unsigned int size, int nThreads, int iThread);
+  GPUdi() static void compressorMemcpy(GPUgeneric() T* dst, GPUgeneric() const T* src, unsigned int size, int nThreads, int iThread);
 
   template <typename Scalar, typename Vector>
   GPUdi() static void compressorMemcpyVectorised(Scalar* dst, const Scalar* src, unsigned int size, int nThreads, int iThread);

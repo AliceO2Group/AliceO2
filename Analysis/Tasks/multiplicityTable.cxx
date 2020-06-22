@@ -46,7 +46,7 @@ struct MultiplicityTableTask {
     float multZNA = zdc.energyCommonZNA();
     float multZNC = zdc.energyCommonZNC();
 
-    LOGF(info, "multV0A=%5.0f multV0C=%5.0f multZNA=%6.0f multZNC=%6.0f", multV0A, multV0C, multZNA, multZNC);
+    LOGF(debug, "multV0A=%5.0f multV0C=%5.0f multZNA=%6.0f multZNC=%6.0f", multV0A, multV0C, multZNA, multZNC);
     // fill multiplicity columns
     mult(multV0A, multV0C, multZNA, multZNC);
   }

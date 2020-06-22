@@ -17,6 +17,10 @@
 #include "CommonConstants/Triggers.h"
 #include "TString.h"
 #include "FairLogger.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsRaw/RDHUtils.h"
+
 #include <array>
 #define VERBOSE
 
@@ -26,6 +30,7 @@ namespace tof
 {
 namespace raw
 {
+using RDHUtils = o2::raw::RDHUtils;
 
 Encoder::Encoder()
 {
@@ -51,25 +56,42 @@ void Encoder::nextWord(int icrate)
   mNextWordStatus[icrate] = !mNextWordStatus[icrate];
 }
 
-bool Encoder::open(const std::string name, std::string path)
+bool Encoder::open(const std::string& name, const std::string& path, const std::string& fileFor)
 {
   bool status = false;
 
   // register links
   o2::header::RAWDataHeader rdh;
+  mFileWriter.useRDHVersion(RDHUtils::getVersion<o2::header::RAWDataHeader>());
   for (int feeid = 0; feeid < 72; feeid++) {
     // cru=0 --> FLP 0, endpoint 0 --> 18 links -> fees 0-17
     // cru=1 --> FLP 0, endpoint 1 --> 18 links -> fees 18-35
     // cru=2 --> FLP 1, endpoint 0 --> 18 links -> fees 36-53
     // cru=3 --> FLP 1, endpoint 1 --> 18 links -> fees 54-71
-    rdh.feeId = feeid;
-    rdh.cruID = feeid / NLINKSPERCRU;
-    rdh.linkID = feeid % NLINKSPERCRU;
-    rdh.endPointID = rdh.cruID % 2;
+    RDHUtils::setFEEID(rdh, feeid);
+    RDHUtils::setCRUID(rdh, feeid / NLINKSPERCRU);
+    RDHUtils::setLinkID(rdh, feeid % NLINKSPERCRU);
+    RDHUtils::setEndPointID(rdh, RDHUtils::getCRUID(rdh) % 2);
     // currently storing each CRU in a separate file
-    if (mCrateOn[feeid])
-      mFileWriter.registerLink(rdh, Form("%s/cru%02d%s", path.c_str(), rdh.cruID, name.c_str()));
+    std::string outFileLink;
+    if (mCrateOn[feeid]) {
+      if (fileFor == "all") { // single file for all links
+        outFileLink = o2::utils::concat_string(path, "/TOF.raw");
+      } else if (fileFor == "cru") {
+        outFileLink = o2::utils::concat_string(path, "/", "TOF_cru", std::to_string(RDHUtils::getCRUID(rdh)), ".raw");
+      } else if (fileFor == "link") {
+        outFileLink = o2::utils::concat_string(path, "/", "TOF_cru", std::to_string(RDHUtils::getCRUID(rdh)), "_link",
+                                               std::to_string(RDHUtils::getLinkID(rdh)), "_ep", std::to_string(RDHUtils::getEndPointID(rdh)), ".raw");
+      } else {
+        throw std::runtime_error("invalid option provided for file grouping");
+      }
+      mFileWriter.registerLink(rdh, outFileLink);
+    }
   }
+
+  std::string inputGRP = o2::base::NameConf::getGRPFileName();
+  const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+  mFileWriter.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TOF)); // must be set explicitly
 
   return status;
 }

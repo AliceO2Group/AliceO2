@@ -41,7 +41,6 @@
 #ifdef HAVE_O2HEADERS
 #include "GPUTPCClusterStatistics.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
-#include "Headers/RAWDataHeader.h"
 #include "GPUHostDataTypes.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCdEdxCalibrationSplines.h"
@@ -186,9 +185,9 @@ int GPUChainTracking::ReadData(const char* filename)
   ReadData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, mIOMem.rawClusters, InOutPointerType::RAW_CLUSTERS);
 #ifdef HAVE_O2HEADERS
   if (ReadData<ClusterNative>(fp, &mClusterNativeAccess->clustersLinear, &mClusterNativeAccess->nClustersTotal, &mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE)) {
-    mIOPtrs.clustersNative = mClusterNativeAccess.get();
     r = fread(&mClusterNativeAccess->nClusters[0][0], sizeof(mClusterNativeAccess->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
     mClusterNativeAccess->setOffsetPtrs();
+    mIOPtrs.clustersNative = mClusterNativeAccess.get();
   }
   mDigitMap.reset(new GPUTrackingInOutDigits);
   if (ReadData(fp, mDigitMap->tpcDigits, mDigitMap->nTPCDigits, mIOMem.tpcDigits, InOutPointerType::TPC_DIGIT)) {
@@ -271,7 +270,7 @@ void GPUChainTracking::DumpSettings(const char* dir)
   }
   if (processors()->calibObjects.trdGeometry != nullptr) {
     f = dir;
-    f += "matlut.dump";
+    f += "trdgeometry.dump";
     DumpStructToFile(processors()->calibObjects.trdGeometry, f.c_str());
   }
 

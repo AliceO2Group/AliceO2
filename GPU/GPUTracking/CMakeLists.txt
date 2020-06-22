@@ -10,6 +10,8 @@
 
 set(MODULE GPUTracking)
 
+#set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -O0") # to uncomment if needed, tired of typing this...
+
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   if(ENABLE_CUDA OR ENABLE_OPENCL1 OR ENABLE_OPENCL2 OR ENABLE_HIP)
     cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
@@ -53,7 +55,6 @@ set(SRCS
     Merger/GPUTPCGMPhysicalTrackModel.cxx
     Merger/GPUTPCGMPolynomialField.cxx
     Merger/GPUTPCGMPolynomialFieldManager.cxx
-    Merger/GPUTPCGMMergerGPU.cxx
     TRDTracking/GPUTRDTrack.cxx
     TRDTracking/GPUTRDTracker.cxx
     TRDTracking/GPUTRDTrackletWord.cxx
@@ -74,6 +75,8 @@ set(SRCS_NO_CINT
     Global/GPUChain.cxx
     Global/GPUChainTracking.cxx
     Global/GPUTrackingInputProvider.cxx
+    Global/GPUErrors.cxx
+    Merger/GPUTPCGMMergerGPU.cxx
     Standalone/utils/timer.cxx)
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
@@ -125,6 +128,7 @@ set(HDRS_INSTALL
     Base/GPUO2FakeClasses.h
     Base/GPUParam.inc
     Merger/GPUTPCGMMergerTypes.h
+    Global/GPUErrorCodes.h
 )
 
 # Sources only for O2
@@ -163,6 +167,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCCFDeconvolution.cxx
         TPCClusterFinder/GPUTPCCFMCLabelFlattener.cxx
         TPCClusterFinder/GPUTPCCFDecodeZS.cxx
+        TPCClusterFinder/GPUTPCCFGather.cxx
         dEdx/TPCdEdxCalibrationSplines.cxx)
 
     set(SRCS_NO_H ${SRCS_NO_H}
@@ -243,6 +248,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
                  TARGETVARNAME targetName
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                                       O2::GPUUtils
                                        O2::DataFormatsTPC
                                        O2::TPCBase
                                        O2::TRDBase
@@ -275,12 +281,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_target_root_dictionary(${MODULE}
                             HEADERS ${HDRS_CINT_O2}
                             LINKDEF GPUTrackingLinkDef_O2.h)
-
-  o2_add_test(${MODULE}
-              PUBLIC_LINK_LIBRARIES O2::${MODULE}
-              SOURCES ctest/testGPUTracking.cxx
-              COMPONENT_NAME GPU
-              LABELS gpu)
 
   target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
                              GPUCA_TPC_GEOMETRY_O2 HAVE_O2HEADERS)
@@ -321,6 +321,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/TPC/TPCcalib
                       ${CMAKE_SOURCE_DIR}/TPC/TPCrec
                       ${CMAKE_SOURCE_DIR}/GPU/Common
+                      ${CMAKE_SOURCE_DIR}/GPU/Utils
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/SliceTracker

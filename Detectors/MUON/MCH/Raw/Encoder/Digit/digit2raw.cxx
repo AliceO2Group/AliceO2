@@ -19,6 +19,9 @@
 #include "MCHRawElecMap/Mapper.h"
 #include "MCHRawEncoderPayload/DataBlock.h"
 #include "MCHRawEncoderPayload/PayloadPaginator.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+
 #include <TBranch.h>
 #include <TFile.h>
 #include <TSystem.h>
@@ -51,7 +54,7 @@ std::ostream& operator<<(std::ostream& os, const o2::mch::Digit& d)
 {
   os << fmt::format("DE {:4d} PADUID {:8d} ADC {:6d} TS {:g}",
                     d.getDetID(), d.getPadID(), d.getADC(),
-                    d.getTimeStamp());
+                    d.getTime().sampaTime);
   return os;
 }
 
@@ -78,6 +81,7 @@ int main(int argc, char* argv[])
   po::options_description generic("options");
   bool userLogic{false};
   bool dummyElecMap{false};
+  bool chargeSumMode{true};
   std::string input;
   po::variables_map vm;
 
@@ -87,7 +91,7 @@ int main(int argc, char* argv[])
       ("userLogic,u",po::bool_switch(&userLogic),"user logic format")
       ("dummyElecMap,d",po::bool_switch(&dummyElecMap),"use a dummy electronic mapping (for testing only)")
       ("output-dir,o",po::value<std::string>()->default_value("./"),"output directory for file(s)")
-      ("input-file,i",po::value<std::string>(&input)->required(),"input file name")
+      ("input-file,i",po::value<std::string>(&input)->default_value("mchdigits.root"),"input file name")
       ("configKeyValues", po::value<std::string>()->default_value(""), "comma-separated configKeyValues")
       ("no-empty-hbf,e", po::value<bool>()->default_value(true), "do not create empty HBF pages (except for HBF starting TF)")
       ("verbosity,v",po::value<std::string>()->default_value("verylow"), "(fair)logger verbosity");
@@ -130,6 +134,10 @@ int main(int argc, char* argv[])
 
   o2::raw::RawFileWriter fw(o2::header::DAQID(o2::header::DAQID::MCH).getO2Origin());
 
+  std::string inputGRP = o2::base::NameConf::getGRPFileName();
+  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(inputGRP)};
+  fw.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::MCH)); // must be set explicitly
+
   if (vm["no-empty-hbf"].as<bool>()) {
     fw.setDontFillEmptyHBF(true);
   }
@@ -147,7 +155,7 @@ int main(int argc, char* argv[])
   fw.writeConfFile("MCH", "RAWDATA", fmt::format("{}/MCHraw.cfg", outDirName));
 
   std::string output = fmt::format("{}/mch.raw", outDirName);
-  PayloadPaginator paginator(fw, output, solar2feelink);
+  PayloadPaginator paginator(fw, output, solar2feelink, userLogic, chargeSumMode);
 
   digit2raw(input, encoder, paginator);
 

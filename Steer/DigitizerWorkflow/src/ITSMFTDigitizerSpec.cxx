@@ -48,13 +48,6 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   using BaseDPLDigitizer::init;
   void initDigitizerTask(framework::InitContext& ic) override
   {
-    // init optional QED chain
-    auto qedfilename = ic.options().get<std::string>("simFileQED");
-    if (qedfilename.size() > 0) {
-      mQEDChain.AddFile(qedfilename.c_str());
-      LOG(INFO) << "Attach QED Tree: " << mQEDChain.GetEntries();
-    }
-
     setDigitizationOptions(); // set options provided via configKeyValues mechanism
     auto& digipar = mDigitizer.getParams();
 
@@ -73,6 +66,8 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G)); // make sure L2G matrices are loaded
     mDigitizer.setGeometry(geom);
 
+    mDisableQED = ic.options().get<bool>("disable-qed");
+
     // init digitizer
     mDigitizer.init();
   }
@@ -88,8 +83,11 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     context->initSimChains(mID, mSimChains);
-    auto& timesview = context->getEventRecords();
-    LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
+    const bool withQED = context->isQEDProvided() && !mDisableQED;
+    auto& timesview = context->getEventRecords(withQED);
+    LOG(INFO) << "GOT " << timesview.size() << " COLLISSION TIMES";
+    LOG(INFO) << "SIMCHAINS " << mSimChains.size();
+
     // if there is nothing to do ... return
     if (timesview.size() == 0) {
       return;
@@ -102,19 +100,12 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     mDigitizer.setROFRecords(&mROFRecords);
     mDigitizer.setMCLabels(&mLabels);
 
-    // attach optional QED digits branch
-    setupQEDChain();
-
-    auto& eventParts = context->getEventParts();
+    auto& eventParts = context->getEventParts(withQED);
     // loop over all composite collisions given from context (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
-      auto eventTime = timesview[collID].timeNS;
+      const auto& irt = timesview[collID];
 
-      if (mQEDChain.GetEntries()) { // QED must be processed before other inputs since done in small time steps
-        processQED(eventTime);
-      }
-
-      mDigitizer.setEventTime(eventTime);
+      mDigitizer.setEventTime(irt);
       mDigitizer.resetEventROFrames(); // to estimate min/max ROF for this collID
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
@@ -124,19 +115,15 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
         mHits.clear();
         context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
 
-        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID
-                  << " found " << mHits.size() << " hits ";
-
-        mDigitizer.process(&mHits, part.entryID, part.sourceID); // call actual digitization procedure
+        if (mHits.size() > 0) {
+          LOG(DEBUG) << "For collision " << collID << " eventID " << part.entryID
+                     << " found " << mHits.size() << " hits ";
+          mDigitizer.process(&mHits, part.entryID, part.sourceID); // call actual digitization procedure
+        }
       }
       mMC2ROFRecordsAccum.emplace_back(collID, -1, mDigitizer.getEventROFrameMin(), mDigitizer.getEventROFrameMax());
       accumulate();
     }
-    // finish digitization ... stream any remaining digits/labels
-    if (mQEDChain.GetEntries()) { // fill last slots from QED input
-      processQED(mDigitizer.getEndTimeOfROFMax());
-    }
-
     mDigitizer.fillOutputContainer();
     accumulate();
 
@@ -161,40 +148,6 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
 
  protected:
   ITSMFTDPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth) {}
-
-  void processQED(double tMax)
-  {
-    auto tQEDNext = mLastQEDTimeNS + mQEDEntryTimeBinNS; // timeslice to retrieve
-    std::string detStr = mID.getName();
-    auto br = mQEDChain.GetBranch((detStr + "Hit").c_str());
-    while (tQEDNext < tMax) {
-      mLastQEDTimeNS = tQEDNext;      // time used for current QED slot
-      tQEDNext += mQEDEntryTimeBinNS; // prepare time for next QED slot
-      if (++mLastQEDEntry >= mQEDChain.GetEntries()) {
-        mLastQEDEntry = 0; // wrapp if needed
-      }
-      br->GetEntry(mLastQEDEntry);
-      mDigitizer.setEventTime(mLastQEDTimeNS);
-      mDigitizer.process(&mHits, mLastQEDEntry, QEDSourceID);
-      //
-    }
-  }
-
-  void setupQEDChain()
-  {
-    if (!mQEDChain.GetEntries()) {
-      return;
-    }
-    std::string detStr = mID.getName();
-    auto qedBranch = mQEDChain.GetBranch((detStr + "Hit").c_str());
-    assert(qedBranch != nullptr);
-    assert(mQEDEntryTimeBinNS >= 1.0);
-    assert(QEDSourceID < o2::MCCompLabel::maxSourceID());
-    mLastQEDTimeNS = -mQEDEntryTimeBinNS / 2; // time will be assigned to the middle of the bin
-    qedBranch->SetAddress(&mHitsP);
-    LOG(INFO) << "Attaching QED ITS hits as sourceID=" << int(QEDSourceID) << ", entry integrates "
-              << mQEDEntryTimeBinNS << " ns";
-  }
 
   void accumulate()
   {
@@ -240,6 +193,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
 
   bool mWithMCTruth = true;
   bool mFinished = false;
+  bool mDisableQED = false;
   o2::detectors::DetID mID;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
   o2::itsmft::Digitizer mDigitizer;
@@ -253,15 +207,9 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabelsAccum;
   std::vector<o2::itsmft::MC2ROFRecord> mMC2ROFRecordsAccum;
   std::vector<TChain*> mSimChains;
-  TChain mQEDChain = {"o2sim"};
 
-  double mQEDEntryTimeBinNS = 1000;                                               // time-coverage of single QED tree entry in ns (TODO: make it settable)
-  double mLastQEDTimeNS = 0;                                                      // time assingned to last QED entry
-  int mLastQEDEntry = -1;                                                         // last used QED entry
   int mFixMC2ROF = 0;                                                             // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
-
-  const int QEDSourceID = 99; // unique source ID for the QED (TODO: move it as a const to general class?)
 };
 
 //_______________________________________________
@@ -282,9 +230,17 @@ class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask
     auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
     auto& digipar = mDigitizer.getParams();
     digipar.setContinuous(dopt.continuous);
-    digipar.setROFrameLength(aopt.roFrameLength); // RO frame in ns
-    digipar.setStrobeDelay(aopt.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
-    digipar.setStrobeLength(aopt.strobeLength);   // Strobe length in ns
+    if (dopt.continuous) {
+      auto frameNS = aopt.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
+      digipar.setROFrameLengthInBC(aopt.roFrameLengthInBC);
+      digipar.setROFrameLength(frameNS);                                                                       // RO frame in ns
+      digipar.setStrobeDelay(aopt.strobeDelay);                                                                // Strobe delay wrt beginning of the RO frame, in ns
+      digipar.setStrobeLength(aopt.strobeLengthCont > 0 ? aopt.strobeLengthCont : frameNS - aopt.strobeDelay); // Strobe length in ns
+    } else {
+      digipar.setROFrameLength(aopt.roFrameLengthTrig); // RO frame in ns
+      digipar.setStrobeDelay(aopt.strobeDelay);         // Strobe delay wrt beginning of the RO frame, in ns
+      digipar.setStrobeLength(aopt.strobeLengthTrig);   // Strobe length in ns
+    }
     // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
     digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
     digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
@@ -316,9 +272,18 @@ class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask
     auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
     auto& digipar = mDigitizer.getParams();
     digipar.setContinuous(dopt.continuous);
-    digipar.setROFrameLength(aopt.roFrameLength); // RO frame in ns
-    digipar.setStrobeDelay(aopt.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
-    digipar.setStrobeLength(aopt.strobeLength);   // Strobe length in ns
+    digipar.setContinuous(dopt.continuous);
+    if (dopt.continuous) {
+      auto frameNS = aopt.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
+      digipar.setROFrameLengthInBC(aopt.roFrameLengthInBC);
+      digipar.setROFrameLength(frameNS);                                                                       // RO frame in ns
+      digipar.setStrobeDelay(aopt.strobeDelay);                                                                // Strobe delay wrt beginning of the RO frame, in ns
+      digipar.setStrobeLength(aopt.strobeLengthCont > 0 ? aopt.strobeLengthCont : frameNS - aopt.strobeDelay); // Strobe length in ns
+    } else {
+      digipar.setROFrameLength(aopt.roFrameLengthTrig); // RO frame in ns
+      digipar.setStrobeDelay(aopt.strobeDelay);         // Strobe delay wrt beginning of the RO frame, in ns
+      digipar.setStrobeLength(aopt.strobeLengthTrig);   // Strobe length in ns
+    }
     // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
     digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
     digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
@@ -360,7 +325,7 @@ DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth)
                            makeOutChannels(detOrig, mctruth),
                            AlgorithmSpec{adaptFromTask<ITSDPLDigitizerTask>(mctruth)},
                            Options{
-                             {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}},
+                             {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}
                              //  { "configKeyValues", VariantType::String, "", { parHelper.str().c_str() } }
                            }};
 }
@@ -380,8 +345,7 @@ DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth)
                                             static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
                            makeOutChannels(detOrig, mctruth),
                            AlgorithmSpec{adaptFromTask<MFTDPLDigitizerTask>(mctruth)},
-                           Options{
-                             {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}}}};
+                           Options{{"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
 }
 
 } // end namespace itsmft
