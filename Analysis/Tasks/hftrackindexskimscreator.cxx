@@ -24,6 +24,7 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
+using std::array;
 
 namespace o2::aod
 {
@@ -40,12 +41,26 @@ struct SelectTracks {
   Configurable<double> ptmintrack{"ptmintrack", -1, "ptmin single track"};
   Configurable<int> d_tpcnclsfound {"d_tpcnclsfound", 70, "min number of tpc cls >="};
 
-  void process(soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
+  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
+    Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
     for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
       auto& track_0 = *it0;
       int status = 1;
-
+      array<float,2> dca;
+      float x0_ = track_0.x();
+      float alpha0_ = track_0.alpha();
+      std::array<float, 5> arraypar0 = {track_0.y(), track_0.z(), track_0.snp(),
+                                        track_0.tgl(), track_0.signed1Pt()};
+      std::array<float, 15> covpar0 = {track_0.cYY(), track_0.cZY(), track_0.cZZ(),
+                                       track_0.cSnpY(), track_0.cSnpZ(),
+                                       track_0.cSnpSnp(), track_0.cTglY(), track_0.cTglZ(),
+                                       track_0.cTglSnp(), track_0.cTglTgl(),
+                                       track_0.c1PtY(), track_0.c1PtZ(), track_0.c1PtSnp(),
+                                       track_0.c1PtTgl(), track_0.c1Pt21Pt2()};
+      o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
+      trackparvar0.propagateParamToDCA(vtxXYZ, 5., &dca);
+      LOGF(info, "dca values %f %f", dca[0], dca[1]);
       if (abs(track_0.signed1Pt())<ptmintrack)
         status = 0;
       UChar_t clustermap_0 = track_0.itsClusterMap();
