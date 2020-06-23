@@ -13,26 +13,28 @@
 /// @since  2020-04-06
 /// @brief  Maps CDF back to source symbol - needed for the decoder
 
-#ifndef RANS_REVERSESYMBOLLOOKUPTABLE_H
-#define RANS_REVERSESYMBOLLOOKUPTABLE_H
+#ifndef RANS_INTERNAL_REVERSESYMBOLLOOKUPTABLE_H
+#define RANS_INTERNAL_REVERSESYMBOLLOOKUPTABLE_H
 
 #include <vector>
 #include <type_traits>
 #include <fairlogger/Logger.h>
 
-#include "SymbolStatistics.h"
-#include "helper.h"
+#include "../internal/helper.h"
+#include "rANS/SymbolStatistics.h"
 
 namespace o2
 {
 namespace rans
 {
-template <typename source_t>
+namespace internal
+{
+template <typename Source_T>
 class ReverseSymbolLookupTable
 {
  public:
   ReverseSymbolLookupTable(size_t probabilityBits,
-                           const SymbolStatistics& stats) : mLut()
+                           const SymbolStatistics<Source_T>& stats) : mLut()
   {
     LOG(trace) << "start building reverse symbol lookup table";
 
@@ -43,13 +45,22 @@ class ReverseSymbolLookupTable
 
     mLut.resize(bitsToRange(probabilityBits));
     // go over all symbols
-    for (int symbol = stats.getMinSymbol(); symbol <= stats.getMaxSymbol();
-         symbol++) {
-      for (uint32_t cumulative = stats[symbol].second;
-           cumulative < stats[symbol].second + stats[symbol].first; cumulative++) {
+    for (auto symbolIT = std::begin(stats); symbolIT != std::end(stats); ++symbolIT) {
+      auto symbol = stats.getMinSymbol() + std::distance(std::begin(stats), symbolIT);
+      const auto [symFrequency, symCumulated] = *symbolIT;
+      for (auto cumulative = symCumulated;
+           cumulative < symCumulated + symFrequency; cumulative++) {
         mLut[cumulative] = symbol;
       }
     }
+
+//    for (int symbol = stats.getMinSymbol(); symbol <= stats.getMaxSymbol();
+//         symbol++) {
+//      for (uint32_t cumulative = stats[symbol].second;
+//           cumulative < stats[symbol].second + stats[symbol].first; cumulative++) {
+//        mLut[cumulative] = symbol;
+//      }
+//    }
 
 // advanced diagnostics for debug builds
 #if !defined(NDEBUG)
@@ -61,16 +72,17 @@ class ReverseSymbolLookupTable
     LOG(trace) << "done building reverse symbol lookup table";
   };
 
-  inline source_t operator[](size_t cummulative) const
+  inline int32_t operator[](size_t cummulative) const
   {
     return mLut[cummulative];
   };
 
  private:
-  std::vector<source_t> mLut;
+  std::vector<int32_t> mLut;
 };
 
+} // namespace internal
 } // namespace rans
 } // namespace o2
 
-#endif /* RANS_REVERSESYMBOLLOOKUPTABLE_H */
+#endif /* RANS_INTERNAL_REVERSESYMBOLLOOKUPTABLE_H */

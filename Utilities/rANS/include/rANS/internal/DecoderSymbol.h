@@ -13,14 +13,16 @@
 /// @since  2019-05-21
 /// @brief  Structure containing all relevant information for decoding a rANS encoded symbol
 
-#ifndef RANS_DECODERSYMBOL_H
-#define RANS_DECODERSYMBOL_H
+#ifndef RANS_INTERNAL_DECODERSYMBOL_H
+#define RANS_INTERNAL_DECODERSYMBOL_H
 
 #include <cstdint>
 
 namespace o2
 {
 namespace rans
+{
+namespace internal
 {
 
 // Decoder symbols are straightforward.
@@ -37,8 +39,8 @@ struct DecoderSymbol {
   uint32_t start; // Start of range.
   uint32_t freq;  // Symbol frequency.
 };
-
+} // namespace internal
 } // namespace rans
 } // namespace o2
 
-#endif /* RANS_DECODERSYMBOL_H */
+#endif /* RANS_INTERNAL_DECODERSYMBOL_H */

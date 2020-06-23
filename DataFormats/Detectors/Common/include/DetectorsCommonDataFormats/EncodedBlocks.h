@@ -621,7 +621,7 @@ void EncodedBlocks<H, N, W>::decode(D* dest,        // destination pointer
   if (block.getNData()) {
     if (md.opt == Metadata::OptStore::EENCODE) {
       assert(block.getNDict()); // at the moment we expect to have dictionary
-      o2::rans::SymbolStatistics stats(block.getDict(), block.getDict() + block.getNDict(), md.min, md.max, md.messageLength);
+      o2::rans::SymbolStatistics<D> stats(block.getDict(), block.getDict() + block.getNDict(), md.min, md.max, md.messageLength);
       o2::rans::Decoder64<D> decoder(stats, md.probabilityBits);
       decoder.process(dest, block.getData() + block.getNData(), md.messageLength);
     } else { // data was stored as is
@@ -656,7 +656,7 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
     return;
   }
   static_assert(std::is_same<W, stream_t>());
-  std::unique_ptr<rans::SymbolStatistics> stats = nullptr;
+  std::unique_ptr<rans::SymbolStatistics<S>> stats = nullptr;
 
   Metadata md;
   auto* bl = &mBlocks[slot];
@@ -680,7 +680,7 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
   // case 3: message where entropy coding should be applied
   if (opt == Metadata::OptStore::EENCODE) {
     // build symbol statistics
-    stats = std::make_unique<rans::SymbolStatistics>(srcBegin, srcEnd);
+    stats = std::make_unique<rans::SymbolStatistics<S>>(srcBegin, srcEnd);
     stats->rescaleToNBits(probabilityBits);
     const o2::rans::Encoder64<S> encoder{*stats, probabilityBits};
     const int dictSize = stats->getFrequencyTable().size();
