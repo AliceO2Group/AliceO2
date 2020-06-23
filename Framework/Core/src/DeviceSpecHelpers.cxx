@@ -23,6 +23,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/DeviceState.h"
 #include "Framework/Lifetime.h"
 #include "Framework/LifetimeHelpers.h"
 #include "Framework/OutputRoute.h"
@@ -32,33 +33,50 @@
 
 #include "WorkflowHelpers.h"
 
+#include <uv.h>
+#include <iostream>
+
 namespace bpo = boost::program_options;
 
 using namespace o2::framework;
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
+
+namespace detail
 {
+void timer_callback(uv_timer_t*)
+{
+  // We simply wake up the event loop. Nothing to be done here.
+}
+} // namespace detail
 
 struct ExpirationHandlerHelpers {
   static RouteConfigurator::CreationConfigurator dataDrivenConfigurator()
   {
-    return [](ConfigParamRegistry const&) { return LifetimeHelpers::dataDrivenCreation(); };
+    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::dataDrivenCreation(); };
   }
 
   static RouteConfigurator::CreationConfigurator timeDrivenConfigurator(InputSpec const& matcher)
   {
-    return [matcher](ConfigParamRegistry const& options) {
+    return [matcher](DeviceState& state, ConfigParamRegistry const& options) {
       std::string rateName = std::string{"period-"} + matcher.binding;
       auto period = options.get<int>(rateName.c_str());
+      // We create a timer to wake us up. Notice the actual
+      // timeslot creation and record expiration still happens
+      // in a synchronous way.
+      uv_timer_t* timer = (uv_timer_t*)(malloc(sizeof(uv_timer_t)));
+      uv_timer_init(state.loop, timer);
+      uv_timer_start(timer, detail::timer_callback, period / 1000, period / 1000);
+      state.activeTimers.push_back(timer);
+
       return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period));
     };
   }
 
   static RouteConfigurator::CreationConfigurator enumDrivenConfigurator(InputSpec const& matcher, size_t inputTimeslice, size_t maxInputTimeslices)
   {
-    return [matcher, inputTimeslice, maxInputTimeslices](ConfigParamRegistry const& options) {
+    return [matcher, inputTimeslice, maxInputTimeslices](DeviceState&, ConfigParamRegistry const& options) {
       std::string startName = std::string{"start-value-"} + matcher.binding;
       std::string endName = std::string{"end-value-"} + matcher.binding;
       std::string stepName = std::string{"step-value-"} + matcher.binding;
@@ -71,17 +89,17 @@ struct ExpirationHandlerHelpers {
 
   static RouteConfigurator::DanglingConfigurator danglingTimeframeConfigurator()
   {
-    return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
+    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
   }
 
   static RouteConfigurator::ExpirationConfigurator expiringTimeframeConfigurator()
   {
-    return [](ConfigParamRegistry const&) { return LifetimeHelpers::doNothing(); };
+    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::doNothing(); };
   }
 
   static RouteConfigurator::DanglingConfigurator danglingConditionConfigurator()
   {
-    return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireAlways(); };
+    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireAlways(); };
   }
 
   static RouteConfigurator::ExpirationConfigurator expiringConditionConfigurator(InputSpec const& spec, std::string const& sourceChannel)
@@ -92,7 +110,7 @@ struct ExpirationHandlerHelpers {
       throw std::runtime_error("InputSpec for Conditions must be fully qualified");
     }
 
-    return [s = spec, matcher = *m, sourceChannel](ConfigParamRegistry const& options) {
+    return [s = spec, matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const& options) {
       auto serverUrl = options.get<std::string>("condition-backend");
       auto timestamp = options.get<std::string>("condition-timestamp");
       return LifetimeHelpers::fetchFromCCDBCache(matcher, serverUrl, timestamp, sourceChannel);
@@ -104,24 +122,24 @@ struct ExpirationHandlerHelpers {
     // FIXME: this should really be expireAlways. However, since we do not have
     //        a proper backend for conditions yet, I keep it behaving like it was
     //        before.
-    return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
+    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
   }
 
   static RouteConfigurator::ExpirationConfigurator expiringQAConfigurator()
   {
-    return [](ConfigParamRegistry const&) { return LifetimeHelpers::fetchFromQARegistry(); };
+    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::fetchFromQARegistry(); };
   }
 
   static RouteConfigurator::DanglingConfigurator danglingTimerConfigurator(InputSpec const& matcher)
   {
-    return [matcher](ConfigParamRegistry const& options) {
+    return [matcher](DeviceState&, ConfigParamRegistry const& options) {
       return LifetimeHelpers::expireAlways();
     };
   }
 
   static RouteConfigurator::DanglingConfigurator danglingEnumerationConfigurator(InputSpec const& matcher)
   {
-    return [matcher](ConfigParamRegistry const& options) {
+    return [matcher](DeviceState&, ConfigParamRegistry const& options) {
       return LifetimeHelpers::expireAlways();
     };
   }
@@ -133,7 +151,7 @@ struct ExpirationHandlerHelpers {
       throw std::runtime_error("InputSpec for Timers must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
-    return [matcher = *m, sourceChannel](ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(matcher, sourceChannel); };
+    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(matcher, sourceChannel); };
   }
 
   static RouteConfigurator::ExpirationConfigurator expiringEnumerationConfigurator(InputSpec const& spec, std::string const& sourceChannel)
@@ -143,7 +161,7 @@ struct ExpirationHandlerHelpers {
       throw std::runtime_error("InputSpec for Enumeration must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
-    return [matcher = *m, sourceChannel](ConfigParamRegistry const&) {
+    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
       return LifetimeHelpers::enumerate(matcher, sourceChannel);
     };
   }
@@ -153,12 +171,12 @@ struct ExpirationHandlerHelpers {
     // FIXME: this should really be expireAlways. However, since we do not have
     //        a proper backend for conditions yet, I keep it behaving like it was
     //        before.
-    return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
+    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
   }
 
   static RouteConfigurator::ExpirationConfigurator expiringTransientConfigurator(InputSpec const& matcher)
   {
-    return [](ConfigParamRegistry const&) { return LifetimeHelpers::fetchFromObjectRegistry(); };
+    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::fetchFromObjectRegistry(); };
   }
 };
 
@@ -993,5 +1011,4 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
   return forwardedDeviceOptions;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
