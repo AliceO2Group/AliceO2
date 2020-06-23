@@ -17,19 +17,18 @@
 #include <functional>
 #include <optional>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 struct PartRef;
 struct ServiceRegistry;
+struct DeviceState;
 class ConfigParamRegistry;
 
 struct RouteConfigurator {
-  using CreationConfigurator = std::function<ExpirationHandler::Creator(ConfigParamRegistry const&)>;
-  using DanglingConfigurator = std::function<ExpirationHandler::Checker(ConfigParamRegistry const&)>;
-  using ExpirationConfigurator = std::function<ExpirationHandler::Handler(ConfigParamRegistry const&)>;
+  using CreationConfigurator = std::function<ExpirationHandler::Creator(DeviceState&, ConfigParamRegistry const&)>;
+  using DanglingConfigurator = std::function<ExpirationHandler::Checker(DeviceState&, ConfigParamRegistry const&)>;
+  using ExpirationConfigurator = std::function<ExpirationHandler::Handler(DeviceState&, ConfigParamRegistry const&)>;
 
   CreationConfigurator creatorConfigurator = nullptr;
   DanglingConfigurator danglingConfigurator = nullptr;
@@ -56,7 +55,6 @@ struct InputRoute {
   std::optional<RouteConfigurator> configurator;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // FRAMEWORK_INPUTROUTE_H

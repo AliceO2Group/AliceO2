@@ -48,6 +48,11 @@ class DataRelayer
     WillNotRelay
   };
 
+  struct ActivityStats {
+    int newSlots = 0;
+    int expiredSlots = 0;
+  };
+
   struct RecordAction {
     TimesliceSlot slot;
     CompletionPolicy::CompletionOp op;
@@ -62,8 +67,8 @@ class DataRelayer
   /// entry in the cache and if it returns true, it creates a new
   /// cache entry by invoking the associated `InputRoute::expirationHandler`.
   /// @return true if there were expirations, false if not.
-  bool processDanglingInputs(std::vector<ExpirationHandler> const&,
-                             ServiceRegistry& context);
+  ActivityStats processDanglingInputs(std::vector<ExpirationHandler> const&,
+                                      ServiceRegistry& context);
 
   /// This is used to ask for relaying a given (header,payload) pair.
   /// Notice that we expect that the header is an O2 Header Stack

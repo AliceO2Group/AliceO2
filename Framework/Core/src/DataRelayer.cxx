@@ -71,19 +71,22 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   }
 }
 
-bool DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
-                                        ServiceRegistry& services)
+DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
+                                                              ServiceRegistry& services)
 {
+  ActivityStats activity;
   /// Nothing to do if nothing can expire.
   if (expirationHandlers.empty()) {
-    return false;
+    return activity;
   }
   // Create any slot for the time based fields
   std::vector<TimesliceSlot> slotsCreatedByHandlers;
   for (auto& handler : expirationHandlers) {
     slotsCreatedByHandlers.push_back(handler.creator(mTimesliceIndex));
   }
-  bool didWork = slotsCreatedByHandlers.empty() == false;
+  if (slotsCreatedByHandlers.empty() == false) {
+    activity.newSlots++;
+  }
   // Outer loop, we process all the records because the fact that the record
   // expires is independent from having received data for it.
   for (size_t ti = 0; ti < mTimesliceIndex.size(); ++ti) {
@@ -123,13 +126,14 @@ bool DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
         part.parts.resize(1);
       }
       expirator.handler(services, part[0], timestamp.value);
-      didWork = true;
+      activity.expiredSlots++;
+
       mTimesliceIndex.markAsDirty(slot, true);
       assert(part[0].header != nullptr);
       assert(part[0].payload != nullptr);
     }
   }
-  return didWork;
+  return activity;
 }
 
 /// This does the mapping between a route and a InputSpec. The
