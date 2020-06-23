@@ -8,9 +8,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(rANS  
-               SOURCES src/SymbolStatistics.cxx
-               PUBLIC_LINK_LIBRARIES FairLogger::FairLogger)
+o2_add_header_only_library(rANS  
+               INTERFACE_LINK_LIBRARIES FairLogger::FairLogger)
 
 o2_add_test(EncodeDecode
             NAME EncodeDecode
@@ -18,7 +17,6 @@ o2_add_test(EncodeDecode
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS
             LABELS utils)
-            
             
 o2_add_executable(rans-encode-decode-8
                   TARGETVARNAME targetName

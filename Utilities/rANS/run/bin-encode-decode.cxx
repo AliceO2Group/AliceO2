@@ -30,7 +30,6 @@ using coder_t = uint64_t;
 using stream_t = uint32_t;
 static const uint REPETITIONS = 5;
 static const uint PROB_BITS = 18;
-using Rans = o2::rans::Coder<coder_t, stream_t>;
 
 template <typename T>
 void readFile(const std::string& filename, std::vector<T>* tokens)
@@ -124,8 +123,8 @@ int main(int argc, char* argv[])
     std::vector<source_t> tokens;
     readFile(filename, &tokens);
 
-    std::unique_ptr<o2::rans::SymbolStatistics> stats = [&]() {
-      auto stats = std::make_unique<o2::rans::SymbolStatistics>(std::begin(tokens), std::end(tokens));
+    std::unique_ptr<o2::rans::SymbolStatistics<source_t>> stats = [&]() {
+      auto stats = std::make_unique<o2::rans::SymbolStatistics<source_t>>(std::begin(tokens), std::end(tokens), symbolRangeBits);
       stats->rescaleToNBits(probabilityBits);
       return std::move(stats);
     }();

@@ -13,19 +13,20 @@
 /// @since  2019-05-21
 /// @brief  Structure containing all relevant information to encode a symbol.
 
-#ifndef RANS_ENCODERSYMBOL_H
-#define RANS_ENCODERSYMBOL_H
+#ifndef RANS_INTERNAL_ENCODERSYMBOL_H
+#define RANS_INTERNAL_ENCODERSYMBOL_H
 
 #include <cstdint>
 #include <cassert>
 
-#include "helper.h"
+#include "../internal/helper.h"
 
 namespace o2
 {
 namespace rans
 {
-
+namespace internal
+{
 // Encoder symbol description
 // This (admittedly odd) selection of parameters was chosen to make
 // RansEncPutSymbol as cheap as possible.
@@ -125,7 +126,8 @@ struct EncoderSymbol {
   uint32_t rcp_shift; // Reciprocal shift
 };
 
+} // namespace internal
 } //namespace rans
 } //namespace o2
 
-#endif /* RANS_ENCODERSYMBOL_H */
+#endif /* RANS_INTERNAL_ENCODERSYMBOL_H */
