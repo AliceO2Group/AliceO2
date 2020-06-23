@@ -61,5 +61,17 @@ ChannelConfigurationPolicyHelpers::OutputChannelModifier ChannelConfigurationPol
     channel.type = ChannelType::Push;
   };
 
+ChannelConfigurationPolicyHelpers::InputChannelModifier ChannelConfigurationPolicyHelpers::pairInput =
+  [](InputChannelSpec& channel) {
+    channel.method = ChannelMethod::Connect;
+    channel.type = ChannelType::Pair;
+  };
+
+ChannelConfigurationPolicyHelpers::OutputChannelModifier ChannelConfigurationPolicyHelpers::pairOutput =
+  [](OutputChannelSpec& channel) {
+    channel.method = ChannelMethod::Bind;
+    channel.type = ChannelType::Pair;
+  };
+
 } // namespace framework
 } // namespace o2
