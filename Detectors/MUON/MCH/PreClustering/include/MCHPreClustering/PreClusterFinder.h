@@ -46,6 +46,7 @@ class PreClusterFinder
   void reset();
 
   void loadDigits(gsl::span<const Digit> digits);
+  void loadDigit(const Digit& digit);
 
   int run();
 
