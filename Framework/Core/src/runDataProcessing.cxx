@@ -764,7 +764,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, Termin
       serviceRegistry.registerService<TimesliceIndex>(timesliceIndex.get());
       serviceRegistry.registerService<DeviceSpec>(&spec);
 
-      if (spec.resourceMonitoringInterval != 0) {
+      if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(spec.resourceMonitoringInterval)) {
         monitoringService->enableProcessMonitoring(spec.resourceMonitoringInterval);
       }
 
