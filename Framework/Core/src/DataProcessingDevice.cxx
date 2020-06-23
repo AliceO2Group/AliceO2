@@ -220,9 +220,9 @@ void DataProcessingDevice::Init()
     ExpirationHandler handler{
       RouteIndex{i++},
       route.matcher.lifetime,
-      route.configurator->creatorConfigurator(*mConfigRegistry),
-      route.configurator->danglingConfigurator(*mConfigRegistry),
-      route.configurator->expirationConfigurator(*mConfigRegistry)};
+      route.configurator->creatorConfigurator(mState, *mConfigRegistry),
+      route.configurator->danglingConfigurator(mState, *mConfigRegistry),
+      route.configurator->expirationConfigurator(mState, *mConfigRegistry)};
     mExpirationHandlers.emplace_back(std::move(handler));
   }
 
@@ -278,7 +278,6 @@ void DataProcessingDevice::InitTask()
 
   // We add a timer only in case a channel poller is not there.
   if ((mStatefulProcess != nullptr) || (mStatelessProcess != nullptr)) {
-    bool hasInputChannelPoller = false;
     for (auto& x : fChannels) {
       if ((x.first.rfind("from_internal-dpl", 0) == 0) && (x.first.rfind("from_internal-dpl-aod", 0) != 0)) {
         LOG(debug) << x.first << " is an internal channel. Skipping as no input will come from there." << std::endl;
@@ -304,19 +303,17 @@ void DataProcessingDevice::InitTask()
       poller->data = strdup(x.first.c_str());
       uv_poll_init(mState.loop, poller, zmq_fd);
       uv_poll_start(poller, UV_READABLE | UV_DISCONNECT, &on_socket_polled);
-      hasInputChannelPoller = true;
+      mState.activeInputPollers.push_back(poller);
     }
-    // In case we do not have any input channel we still
-    // wake up whenever we can send data to downstream
-    // devices to allow for enumerations
-    if (hasInputChannelPoller == false) {
+    // In case we do not have any input channel and we do not have
+    // any timers, we still wake up whenever we can send data to downstream
+    // devices to allow for enumerations.
+    if (mState.activeInputPollers.empty() && mState.activeTimers.empty()) {
       for (auto& x : fChannels) {
         if (x.first.rfind("from_internal-dpl", 0) == 0) {
           LOG(debug) << x.first << " is an internal channel. Not polling." << std::endl;
           continue;
         }
-        // If this is not true, it means hasInputChannelPoller is not really
-        // false.
         assert(x.first.rfind("from_" + mSpec.name + "_to", 0) == 0);
         // We assume there is always a ZeroMQ socket behind.
         int zmq_fd = 0;
@@ -333,6 +330,7 @@ void DataProcessingDevice::InitTask()
         poller->data = strdup(x.first.c_str());
         uv_poll_init(mState.loop, poller, zmq_fd);
         uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
+        mState.activeOutputPollers.push_back(poller);
       }
     }
   } else {
@@ -342,6 +340,7 @@ void DataProcessingDevice::InitTask()
     uv_timer_t* timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
     uv_timer_init(mState.loop, timer);
     uv_timer_start(timer, idle_timer, 2000, 2000);
+    mState.activeTimers.push_back(timer);
   }
   // Whenever we InitTask, we consider as if the previous iteration
   // was successful, so that even if there is no timer or receiving
@@ -496,7 +495,9 @@ bool DataProcessingDevice::doRun()
   if (mWasActive == false) {
     mServiceRegistry.get<CallbackService>()(CallbackService::Id::Idle);
   }
-  mWasActive |= mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
+  auto activity = mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
+  mWasActive |= activity.expiredSlots > 0;
+
   mCompleted.clear();
   mWasActive |= this->tryDispatchComputation(mCompleted);
 
