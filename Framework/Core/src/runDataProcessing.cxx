@@ -71,6 +71,8 @@
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <uv.h>
+
 #include <cinttypes>
 #include <cstdint>
 #include <cstdio>
@@ -87,6 +89,7 @@
 #include <chrono>
 #include <utility>
 #include <numeric>
+#include <functional>
 
 #include <fcntl.h>
 #include <netinet/ip.h>
@@ -158,31 +161,32 @@ std::ostream& operator<<(std::ostream& out, const enum TerminationPolicy& policy
 // return false if we need to close the input pipe.
 //
 // FIXME: We should really print full lines.
-bool getChildData(int infd, DeviceInfo& outinfo)
+void getChildData(int infd, DeviceInfo& outinfo)
 {
   char buffer[1024 * 16];
   int bytes_read;
   // NOTE: do not quite understand read ends up blocking if I read more than
   //        once. Oh well... Good enough for now.
   O2_SIGNPOST_START(DriverStatus::ID, DriverStatus::BYTES_READ, outinfo.pid, infd, 0);
-  // do {
-  bytes_read = read(infd, buffer, 1024 * 16);
-  if (bytes_read == 0) {
-    return false;
-  }
-  if (bytes_read == -1) {
-    switch (errno) {
-      case EAGAIN:
-        return true;
-      default:
-        return false;
+  while (true) {
+    bytes_read = read(infd, buffer, 1024 * 16);
+    if (bytes_read == 0) {
+      O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_READ, bytes_read, 0, 0);
+      return;
     }
+    if (bytes_read < 0) {
+      switch (errno) {
+        case EWOULDBLOCK:
+          O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_READ, bytes_read, 0, 0);
+          return;
+        default:
+          O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_READ, bytes_read, 0, 0);
+          return;
+      }
+    }
+    assert(bytes_read > 0);
+    outinfo.unprinted.append(buffer, bytes_read);
   }
-  assert(bytes_read > 0);
-  outinfo.unprinted += std::string(buffer, bytes_read);
-  // } while (bytes_read != 0);
-  O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_READ, bytes_read, 0, 0);
-  return true;
 }
 
 /// Return true if all the DeviceInfo in \a infos are
@@ -296,11 +300,10 @@ static void handle_sigchld(int) { sigchld_requested = true; }
 
 void spawnRemoteDevice(std::string const& forwardedStdin,
                        DeviceSpec const& spec,
-                       std::map<int, size_t>& socket2DeviceInfo,
                        DeviceControl& control,
                        DeviceExecution& execution,
                        std::vector<DeviceInfo>& deviceInfos,
-                       int& maxFd, fd_set& childFdset)
+                       int& maxFd)
 {
   LOG(INFO) << "Starting " << spec.id << " as remote device";
   DeviceInfo info;
@@ -319,15 +322,39 @@ void spawnRemoteDevice(std::string const& forwardedStdin,
   // Let's add also metrics information for the given device
   gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
 }
+
+struct DeviceLogContext {
+  int fd;
+  int index;
+  std::vector<DeviceInfo>* infos;
+};
+
+void log_callback(uv_poll_t* handle, int status, int events)
+{
+  DeviceLogContext* logContext = reinterpret_cast<DeviceLogContext*>(handle->data);
+  std::vector<DeviceInfo>* infos = logContext->infos;
+  DeviceInfo& info = infos->at(logContext->index);
+
+  if (status < 0) {
+    info.active = false;
+  }
+  if (events & UV_READABLE) {
+    getChildData(logContext->fd, info);
+  }
+  if (events & UV_DISCONNECT) {
+    info.active = false;
+  }
+}
+
 /// This will start a new device by forking and executing a
 /// new child
 void spawnDevice(std::string const& forwardedStdin,
                  DeviceSpec const& spec,
-                 std::map<int, size_t>& socket2DeviceInfo,
                  DeviceControl& control,
                  DeviceExecution& execution,
                  std::vector<DeviceInfo>& deviceInfos,
-                 int& maxFd, fd_set& childFdset)
+                 int& maxFd, uv_loop_t* loop,
+                 std::vector<uv_poll_t*> handles)
 {
   int childstdin[2];
   int childstdout[2];
@@ -388,8 +415,6 @@ void spawnDevice(std::string const& forwardedStdin,
   info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
   info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
 
-  socket2DeviceInfo.insert(std::make_pair(childstdout[0], deviceInfos.size()));
-  socket2DeviceInfo.insert(std::make_pair(childstderr[0], deviceInfos.size()));
   deviceInfos.emplace_back(info);
   // Let's add also metrics information for the given device
   gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
@@ -413,8 +438,21 @@ void spawnDevice(std::string const& forwardedStdin,
   if (resultCode == -1) {
     LOGP(ERROR, "Error while setting the socket to non-blocking: {}", strerror(errno));
   }
-  FD_SET(childstdout[0], &childFdset);
-  FD_SET(childstderr[0], &childFdset);
+  /// Add pollers for stdout and stderr
+  auto addPoller = [&handles, &deviceInfos, &loop](int index, int fd) {
+    DeviceLogContext* context = new DeviceLogContext{};
+    context->index = index;
+    context->fd = fd;
+    context->infos = &deviceInfos;
+    handles.push_back((uv_poll_t*)malloc(sizeof(uv_poll_t)));
+    auto handle = handles.back();
+    handle->data = context;
+    uv_poll_init(loop, handle, fd);
+    uv_poll_start(handle, UV_READABLE, log_callback);
+  };
+
+  addPoller(deviceInfos.size() - 1, childstdout[0]);
+  addPoller(deviceInfos.size() - 1, childstderr[0]);
 }
 
 void updateMetricsNames(DriverInfo& state, std::vector<DeviceMetricsInfo> const& metricsInfos)
@@ -434,34 +472,6 @@ void updateMetricsNames(DriverInfo& state, std::vector<DeviceMetricsInfo> const&
 void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpecs const& specs,
                            DeviceControls& controls, std::vector<DeviceMetricsInfo>& metricsInfos)
 {
-  // Wait for children to say something. When they do
-  // print it.
-  fd_set fdset;
-  timeval timeout;
-  timeout.tv_sec = 0;
-  timeout.tv_usec = 16666; // This should be enough to allow 60 HZ redrawing.
-  memcpy(&fdset, &driverInfo.childFdset, sizeof(fd_set));
-  int numFd = select(driverInfo.maxFd, &fdset, nullptr, nullptr, &timeout);
-  if (numFd == 0) {
-    return;
-  }
-  for (int si = 0; si < driverInfo.maxFd; ++si) {
-    if (FD_ISSET(si, &fdset)) {
-      assert(driverInfo.socket2DeviceInfo.find(si) != driverInfo.socket2DeviceInfo.end());
-      auto& info = infos[driverInfo.socket2DeviceInfo[si]];
-
-      bool fdActive = getChildData(si, info);
-      // If the pipe was closed due to the process exiting, we
-      // can avoid the select.
-      if (!fdActive) {
-        info.active = false;
-        close(si);
-        FD_CLR(si, &driverInfo.childFdset);
-      }
-      --numFd;
-    }
-    // FIXME: no need to check after numFd gets to 0.
-  }
   // Display part. All you need to display should actually be in
   // `infos`.
   // TODO: split at \n
@@ -568,7 +578,7 @@ void processChildrenOutput(DriverInfo& driverInfo, DeviceInfos& infos, DeviceSpe
       s.remove_prefix(pos + delimiter.length());
     }
     size_t oldSize = info.unprinted.size();
-    info.unprinted = s;
+    info.unprinted = std::string(s);
     O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_PROCESSED, oldSize - info.unprinted.size(), 0, 0);
   }
   if (hasNewMetric) {
@@ -663,7 +673,8 @@ auto createInfoLoggerSinkHelper(std::unique_ptr<InfoLogger>& logger, std::unique
   };
 };
 
-int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, TerminationPolicy errorPolicy)
+int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, TerminationPolicy errorPolicy,
+            uv_loop_t* loop)
 {
   fair::Logger::SetConsoleColor(false);
   LOG(INFO) << "Spawing new device " << spec.id << " in process with pid " << getpid();
@@ -714,9 +725,12 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, Termin
                                        &infoLoggerContext,
                                        &deviceState,
                                        &timesliceIndex,
-                                       &errorPolicy](fair::mq::DeviceRunner& r) {
+                                       &errorPolicy,
+                                       &loop](fair::mq::DeviceRunner& r) {
       localRootFileService = std::make_unique<LocalRootFileService>();
       deviceState = std::make_unique<DeviceState>();
+      deviceState->loop = loop;
+
       textControlService = std::make_unique<TextControlService>(serviceRegistry, *deviceState.get());
       parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
       simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
@@ -776,20 +790,39 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, Termin
   return 0;
 }
 
-/// Remove all the GUI states from the tail of
-/// the stack unless that's the only state on the stack.
-void pruneGUI(std::vector<DriverState>& states)
-{
-  while (states.size() > 1 && states.back() == DriverState::GUI) {
-    states.pop_back();
-  }
-}
-
 struct WorkflowInfo {
   std::string executable;
   std::vector<std::string> args;
   std::vector<ConfigParamSpec> options;
 };
+
+struct GuiCallbackContext {
+  decltype(std::chrono::high_resolution_clock::now()) frameLast;
+  float* frameLatency;
+  float* frameCost;
+  void* window;
+  bool* guiQuitRequested;
+  std::function<void(void)> callback;
+};
+
+void gui_callback(uv_timer_s* ctx)
+{
+  GuiCallbackContext* gui = reinterpret_cast<GuiCallbackContext*>(ctx->data);
+  auto frameStart = std::chrono::high_resolution_clock::now();
+  auto frameLatency = frameStart - gui->frameLast;
+  *(gui->guiQuitRequested) = (pollGUI(gui->window, gui->callback) == false);
+  auto frameEnd = std::chrono::high_resolution_clock::now();
+  *(gui->frameCost) = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count();
+  *(gui->frameLatency) = std::chrono::duration_cast<std::chrono::milliseconds>(frameLatency).count();
+  gui->frameLast = frameStart;
+}
+
+/// Force single stepping of the children
+void single_step_callback(uv_timer_s* ctx)
+{
+  DeviceInfos* infos = reinterpret_cast<DeviceInfos*>(ctx->data);
+  killChildren(*infos, SIGUSR1);
+}
 
 // This is the handler for the parent inner loop.
 int runStateMachine(DataProcessorSpecs const& workflow,
@@ -806,6 +839,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   DeviceExecutions deviceExecutions;
   DataProcessorInfos dataProcessorInfos = previousDataProcessorInfos;
 
+  std::vector<uv_poll_t*> pollHandles;
   std::vector<ComputingResource> resources;
 
   if (driverInfo.resources != "") {
@@ -830,12 +864,29 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   bool guiQuitRequested = false;
   bool hasError = false;
 
-  auto frameLast = std::chrono::high_resolution_clock::now();
-  auto inputProcessingLast = frameLast;
   // FIXME: I should really have some way of exiting the
   // parent..
   DriverState current;
   DriverState previous;
+
+  uv_loop_t* loop = uv_loop_new();
+  uv_idle_t idler;
+
+  uv_timer_t gui_timer;
+  if (window) {
+    uv_timer_init(loop, &gui_timer);
+  }
+
+  GuiCallbackContext guiContext;
+  guiContext.frameLast = std::chrono::high_resolution_clock::now();
+  guiContext.frameLatency = &driverInfo.frameLatency;
+  guiContext.frameCost = &driverInfo.frameCost;
+  guiContext.guiQuitRequested = &guiQuitRequested;
+  auto inputProcessingLast = guiContext.frameLast;
+
+  uv_timer_t force_step_timer;
+  uv_timer_init(loop, &force_step_timer);
+
   while (true) {
     // If control forced some transition on us, we push it to the queue.
     if (driverControl.forcedTransitions.empty() == false) {
@@ -859,15 +910,12 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       driverInfo.sigintRequested = true;
       driverInfo.states.resize(0);
       driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
-      driverInfo.states.push_back(DriverState::GUI);
     }
     // If one of the children dies and sigint was not requested
     // we should decide what to do.
     if (sigchld_requested == true && driverInfo.sigchldRequested == false) {
       driverInfo.sigchldRequested = true;
-      pruneGUI(driverInfo.states);
       driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
-      driverInfo.states.push_back(DriverState::GUI);
     }
     if (driverInfo.states.empty() == false) {
       previous = current;
@@ -888,7 +936,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           perror(nullptr);
           exit(1);
         }
-        FD_ZERO(&(driverInfo.childFdset));
 
         /// Cleanup the shared memory for the uniqueWorkflowId, in
         /// case we are unlucky and an old one is already present.
@@ -898,7 +945,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         /// would be that we start an application and then we wait for
         /// resource offers from DDS or whatever resource manager we use.
         driverInfo.states.push_back(DriverState::RUNNING);
-        driverInfo.states.push_back(DriverState::GUI);
         //        driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
         LOG(INFO) << "O2 Data Processing Layer initialised. We brake for nobody.";
 #ifdef NDEBUG
@@ -916,12 +962,20 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (exists != dataProcessorInfos.end()) {
             continue;
           }
+          std::vector<std::string> channels;
+          for (auto channel : device.inputChannels) {
+            channels.push_back(channel.name);
+          }
+          for (auto channel : device.outputChannels) {
+            channels.push_back(channel.name);
+          }
           dataProcessorInfos.push_back(
             DataProcessorInfo{
               device.id,
               workflowInfo.executable,
               workflowInfo.args,
-              workflowInfo.options});
+              workflowInfo.options,
+              channels});
         }
         break;
       case DriverState::MATERIALISE_WORKFLOW:
@@ -949,7 +1003,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         for (auto& spec : deviceSpecs) {
           if (spec.id == frameworkId) {
-            return doChild(driverInfo.argc, driverInfo.argv, spec, driverInfo.errorPolicy);
+            return doChild(driverInfo.argc, driverInfo.argv, spec, driverInfo.errorPolicy, loop);
           }
         }
         {
@@ -974,7 +1028,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // We need to recreate the GUI callback every time we reschedule
         // because getGUIDebugger actually recreates the GUI state.
         if (window) {
-          debugGUICallback = gui::getGUIDebugger(infos, deviceSpecs, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
+          uv_timer_stop(&gui_timer);
+          guiContext.callback = gui::getGUIDebugger(infos, deviceSpecs, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
+          guiContext.window = window;
+          gui_timer.data = &guiContext;
+          uv_timer_start(&gui_timer, gui_callback, 0, 20);
         }
         break;
       case DriverState::SCHEDULE: {
@@ -996,15 +1054,16 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
         std::ostringstream forwardedStdin;
         WorkflowSerializationHelpers::dump(forwardedStdin, workflow, dataProcessorInfos);
+        infos.reserve(deviceSpecs.size());
         for (size_t di = 0; di < deviceSpecs.size(); ++di) {
           if (deviceSpecs[di].resource.hostname != driverInfo.deployHostname) {
             spawnRemoteDevice(forwardedStdin.str(),
-                              deviceSpecs[di], driverInfo.socket2DeviceInfo, controls[di], deviceExecutions[di], infos,
-                              driverInfo.maxFd, driverInfo.childFdset);
+                              deviceSpecs[di], controls[di], deviceExecutions[di], infos,
+                              driverInfo.maxFd);
           } else {
             spawnDevice(forwardedStdin.str(),
-                        deviceSpecs[di], driverInfo.socket2DeviceInfo, controls[di], deviceExecutions[di], infos,
-                        driverInfo.maxFd, driverInfo.childFdset);
+                        deviceSpecs[di], controls[di], deviceExecutions[di], infos,
+                        driverInfo.maxFd, loop, pollHandles);
           }
         }
         driverInfo.maxFd += 1;
@@ -1012,6 +1071,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         LOG(INFO) << "Redeployment of configuration done.";
       } break;
       case DriverState::RUNNING:
+        // Run any pending libUV event loop, block if
+        // any, so that we do not consume CPU time when the driver is
+        // idle.
+        uv_run(loop, UV_RUN_ONCE);
         // Calculate what we should do next and eventually
         // show the GUI
         if (guiQuitRequested ||
@@ -1022,29 +1085,22 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           // Let's update the GUI one more time and then EXIT.
           LOG(INFO) << "Quitting";
           driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
-          driverInfo.states.push_back(DriverState::GUI);
         } else if (infos.size() != deviceSpecs.size()) {
           // If the number of deviceSpecs is different from
           // the DeviceInfos it means the speicification
           // does not match what is running, so we need to do
           // further scheduling.
           driverInfo.states.push_back(DriverState::RUNNING);
-          driverInfo.states.push_back(DriverState::GUI);
           driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
-          driverInfo.states.push_back(DriverState::GUI);
           driverInfo.states.push_back(DriverState::SCHEDULE);
-          driverInfo.states.push_back(DriverState::GUI);
         } else if (deviceSpecs.size() == 0) {
           LOG(INFO) << "No device resulting from the workflow. Quitting.";
           // If there are no deviceSpecs, we exit.
           driverInfo.states.push_back(DriverState::EXIT);
         } else {
           driverInfo.states.push_back(DriverState::RUNNING);
-          driverInfo.states.push_back(DriverState::GUI);
         }
         {
-          usleep(1000); // We wait for 1 millisecond between one processing
-                        // and the other.
           auto inputProcessingStart = std::chrono::high_resolution_clock::now();
           auto inputProcessingLatency = inputProcessingStart - inputProcessingLast;
           processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
@@ -1054,30 +1110,24 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           inputProcessingLast = inputProcessingStart;
         }
         break;
-      case DriverState::GUI:
-        if (window) {
-          auto frameStart = std::chrono::high_resolution_clock::now();
-          auto frameLatency = frameStart - frameLast;
-          // We want to render at ~60 frames per second, so latency needs to be ~16ms
-          if (std::chrono::duration_cast<std::chrono::milliseconds>(frameLatency).count() > 20) {
-            guiQuitRequested = (pollGUI(window, debugGUICallback) == false);
-            auto frameEnd = std::chrono::high_resolution_clock::now();
-            driverInfo.frameCost = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count();
-            driverInfo.frameLatency = std::chrono::duration_cast<std::chrono::milliseconds>(frameLatency).count();
-            frameLast = frameStart;
-          }
-        }
-        break;
       case DriverState::QUIT_REQUESTED:
         LOG(INFO) << "QUIT_REQUESTED";
         guiQuitRequested = true;
         // We send SIGCONT to make sure stopped children are resumed
         killChildren(infos, SIGCONT);
+        // We send SIGTERM to make sure we do the STOP transition in FairMQ
         killChildren(infos, SIGTERM);
+        // We have a timer to send SIGUSR1 to make sure we advance all devices
+        // in a timely manner.
+        force_step_timer.data = &infos;
+        uv_timer_start(&force_step_timer, single_step_callback, 0, 300);
         driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
-        driverInfo.states.push_back(DriverState::GUI);
         break;
       case DriverState::HANDLE_CHILDREN:
+        // Run any pending libUV event loop, block if
+        // any, so that we do not consume CPU time when the driver is
+        // idle.
+        uv_run(loop, UV_RUN_ONCE);
         // I allow queueing of more sigchld only when
         // I process the previous call
         if (forceful_exit == true) {
@@ -1094,18 +1144,14 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           // We move to the exit, regardless of where we were
           driverInfo.states.resize(0);
           driverInfo.states.push_back(DriverState::EXIT);
-          driverInfo.states.push_back(DriverState::GUI);
         } else if (areAllChildrenGone(infos) == false &&
                    (guiQuitRequested || checkIfCanExit(infos) == true || graceful_exit)) {
           driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
-          driverInfo.states.push_back(DriverState::GUI);
         } else if (hasError && driverInfo.errorPolicy == TerminationPolicy::QUIT &&
                    !(guiQuitRequested || checkIfCanExit(infos) == true || graceful_exit)) {
           graceful_exit = 1;
-          driverInfo.states.push_back(DriverState::GUI);
           driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
         } else {
-          driverInfo.states.push_back(DriverState::GUI);
         }
         break;
       case DriverState::EXIT: {
@@ -1129,7 +1175,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           callback(workflow, deviceSpecs, deviceExecutions, dataProcessorInfos);
         }
         driverControl.callbacks.clear();
-        driverInfo.states.push_back(DriverState::GUI);
         break;
       default:
         LOG(ERROR) << "Driver transitioned in an unknown state("

@@ -362,8 +362,11 @@ void MatchTPCITS::init()
   mTPCTransform = std::move(fastTransform);
   mTPCClusterParam = std::make_unique<o2::gpu::GPUParam>();
   mTPCClusterParam->SetDefaults(o2::base::Propagator::Instance()->getNominalBz()); // TODO this may change
-  mFieldON = std::abs(o2::base::Propagator::Instance()->getNominalBz()) > 0.01;
+  auto bz = std::abs(o2::base::Propagator::Instance()->getNominalBz());
+  mFieldON = bz > 0.01;
 
+  mMinTPCTrackPtInv = (mFieldON && mParams->minTPCTrackR > 0) ? 1. / std::abs(mParams->minTPCTrackR * bz * o2::constants::math::B2C) : 999.;
+  mMinITSTrackPtInv = (mFieldON && mParams->minITSTrackR > 0) ? 1. / std::abs(mParams->minITSTrackR * bz * o2::constants::math::B2C) : 999.;
 
 #ifdef _ALLOW_DEBUG_TREES_
   // debug streamer
@@ -507,7 +510,7 @@ bool MatchTPCITS::prepareTPCTracks()
     const auto& trcOrig = mTPCTracksArray[it];
 
     // make sure the track was propagated to inner TPC radius at the ref. radius
-    if (trcOrig.getX() > XTPCInnerRef + 0.1 || trcOrig.getPt() < mParams->minTPCPt) {
+    if (trcOrig.getX() > XTPCInnerRef + 0.1 || std::abs(trcOrig.getQ2Pt()) > mMinTPCTrackPtInv) {
       continue;
     }
     // discard tracks with too few clusters
@@ -631,6 +634,7 @@ bool MatchTPCITS::prepareITSTracks()
   }
   mTimer[SWPrepITS].Start(false);
   mITSWork.clear();
+  mITSWork.reserve(mITSTracksArray.size());
   mITSROFTimes.clear();
   // number of records might be actually more than N tracks!
   mMatchRecordsITS.clear(); // RS TODO reserve(mMatchRecordsITS.size() + mParams->maxMatchCandidates*ntr);
@@ -679,9 +683,11 @@ bool MatchTPCITS::prepareITSTracks()
       if (mParams->runAfterBurner) {
         flagUsedITSClusters(trcOrig, cluROFOffset);
       }
-
       if (trcOrig.getParamOut().getX() < 1.) {
         continue; // backward refit failed
+      }
+      if (std::abs(trcOrig.getQ2Pt()) > mMinITSTrackPtInv) {
+        continue;
       }
       int nWorkTracks = mITSWork.size();
       // working copy of outer track param
@@ -752,25 +758,6 @@ bool MatchTPCITS::prepareITSTracks()
       }
       return trackA.getTgl() < trackB.getTgl();
     });
-
-    /* TOREMOVE?
-    // build array of 1st entries with of each ITS ROFrame
-    int nbins = 1 + mITSWork[indexCache.back()].roFrame;
-    auto& tbinStart = mITSTimeBinStart[sec];
-    tbinStart.resize(nbins > 1 ? nbins : 1, -1);
-    tbinStart[0] = 0;
-    for (int itr = 0; itr < (int)indexCache.size(); itr++) {
-      auto& trc = mITSWork[indexCache[itr]];
-      if (tbinStart[trc.roFrame] == -1) {
-        tbinStart[trc.roFrame] = itr;
-      }
-    }
-    for (int i = 1; i < nbins; i++) {
-      if (tbinStart[i] == -1) { // fill gaps with preceding indices. TODO ? Shall we do this for cont.readout in ITS only?
-        tbinStart[i] = tbinStart[i - 1];
-      }
-    }
-    */
   } // loop over tracks of single sector
   mMatchRecordsITS.reserve(mITSWork.size() * mParams->maxMatchCandidates);
   mTimer[SWPrepITS].Stop();
@@ -1159,10 +1146,9 @@ float MatchTPCITS::getPredictedChi2NoZ(const o2::track::TrackParCov& tr1, const 
 //______________________________________________
 void MatchTPCITS::addLastTrackCloneForNeighbourSector(int sector)
 {
-  // add clone of the src ITS track cashe, propagate it to ref.X in requested sector
+  // add clone of the src ITS track cache, propagate it to ref.X in requested sector
   // and register its index in the sector cache. Used for ITS tracks which are so close
   // to their setctor edge that their matching should be checked also in the neighbouring sector
-  mITSWork.reserve(mITSWork.size() + 100);
   mITSWork.push_back(mITSWork.back()); // clone the last track defined in given sector
   auto& trc = mITSWork.back();
   if (trc.rotate(o2::utils::Sector2Angle(sector)) &&
