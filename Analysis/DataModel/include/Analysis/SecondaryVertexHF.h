@@ -37,6 +37,13 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Index2, index2, int, BigTracks, "fIndex2");
 DECLARE_SOA_COLUMN(HFflag, hfflag, float);
 } // namespace hftrackindexprong3
 
+namespace hfcandprong2
+{
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_COLUMN(MassD0, massD0, float);
+DECLARE_SOA_COLUMN(MassD0bar, massD0bar, float);
+} // namespace hfcandprong2
+
 DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2",
                   hftrackindexprong2::CollisionId,
                   hftrackindexprong2::Index0Id,
@@ -49,6 +56,10 @@ DECLARE_SOA_TABLE(HfTrackIndexProng3, "AOD", "HFTRACKIDXP3",
                   hftrackindexprong3::Index1Id,
                   hftrackindexprong3::Index2Id,
                   hftrackindexprong3::HFflag);
+
+DECLARE_SOA_TABLE(HfCandProng2, "AOD", "HFCANDPRONG2",
+                  //hfcandprong2::CollisionId,
+                  hfcandprong2::MassD0, hfcandprong2::MassD0bar);
 } // namespace o2::aod
 
 float energy(float px, float py, float pz, float mass)
