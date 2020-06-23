@@ -637,7 +637,7 @@ void Detector::createAsideBeamLine()
   Double_t tubspar[5] = {0., 0., 0., 0., 0.};
   Double_t conpar[15] = {0.}; // all elements will be 0
 
-  Float_t zA = 1910.2;
+  Float_t zA = 1910.4;
 
   conpar[0] = 0.;
   conpar[1] = 360.;

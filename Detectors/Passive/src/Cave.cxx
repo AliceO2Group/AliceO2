@@ -92,7 +92,7 @@ void Cave::ConstructGeometry()
   cavevol->AddNode(voBarrel, 1, new TGeoTranslation(0., -30., 0.));
 
   // mother volune for RB24 side (FDD, Compensator)
-  const Float_t kRB24CL = 2. * 598.74752;
+  const Float_t kRB24CL = 2. * 597.9;
   auto shCaveRB24 = new TGeoPcon(0., 360., 6);
   Float_t z0 = kRB24CL / 2 + 714.6;
   shCaveRB24->DefineSection(0, -kRB24CL / 2., 0., 105.);
