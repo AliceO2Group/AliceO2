@@ -181,21 +181,16 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 void Digitizer::generateNoiseDigits()
 {
 
-  TRandom* random = new TRandom;
-  cout <<"random->Integer(100) " << random->Integer(100) << endl;
-  cout <<"random->Integer(100) " << random->Integer(100) << endl;
-  cout << "gRandom->Integer(100) " << gRandom->Integer(100) << endl;
-  cout << "gRandom->Integer(100) " << gRandom->Integer(100) << endl;
   o2::mch::mapping::forEachDetectionElement([& digits = this->mDigits, &normProbNoise = this->mNormProbNoise,
                                              &eventTime = this->mEventTime, &eventID = this->mEventID,
                                              &srcID = this->mSrcID, &mcTruthOutputContainer = this->mMCTruthOutputContainer,
-                                             &random](int detID) {
+                                             &gRandom](int detID) {
     auto& seg = segmentation(detID);
     auto nPads = seg.nofPads();
     auto nNoisyPadsAv = (float)nPads * normProbNoise;
-    int nNoisyPads = TMath::Nint(random->Gaus(nNoisyPadsAv, TMath::Sqrt(nNoisyPadsAv)));
+    int nNoisyPads = TMath::Nint(gRandom->Gaus(nNoisyPadsAv, TMath::Sqrt(nNoisyPadsAv)));
     for (int i = 0; i < nNoisyPads; i++) {
-      int padid = random->Integer(nNoisyPads + 1);
+      int padid = gRandom->Integer(nNoisyPads + 1);
       Digit::Time dtime;
       dtime.sampaTime = static_cast<uint16_t>(eventTime) & 0x3FF;
       digits.emplace_back(detID, padid, 0.6, dtime);
@@ -204,9 +199,6 @@ void Digitizer::generateNoiseDigits()
       mcTruthOutputContainer.addElement(digits.size() - 1, label);
     }
   });
-  delete random;
-  random = 0x0;
-
   //not clear how to normalise to time:
   //assume that only "one" event equivalent,
   //otherwise the probability will strongly depend on read-out-frame time length
