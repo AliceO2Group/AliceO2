@@ -24,7 +24,7 @@ class RunToTimestamp : public TNamed
 {
  public:
   RunToTimestamp() = default;
-  ~RunToTimestamp() = default;
+  ~RunToTimestamp() final = default;
 
   /// Checks if the converter has a particular run
   bool Has(uint runNumber) const { return mMap.count(runNumber); }
