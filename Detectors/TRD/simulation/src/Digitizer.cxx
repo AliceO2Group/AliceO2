@@ -86,7 +86,37 @@ void Digitizer::setSimulationParameters()
 
 void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
-  int count = 0; //  counter of the digitized signals from the deque
+  if (mPileupSignals.size() > 0) {
+    // Add the signals, all chambers are keept in the same signal container
+    SignalContainer smc = addSignalsFromPileup();
+    if (smc.size() > 0) {
+      bool status = convertSignalsToADC(smc, digits);
+      if (!status) {
+        LOG(WARN) << "TRD conversion of signals to digits failed";
+      }
+      for (const auto& iter : smc) {
+        labels.addElements(labels.getIndexedSize(), iter.second.labels);
+      }
+    }
+  } else {
+    // since we don't have any pileup signals just flush the signals for each chamber
+    // we avoid flattening the array<map, ndets> to a single map
+    for (const auto& smc : mSignalsMapCollection) {
+      bool status = convertSignalsToADC(smc, digits);
+      if (!status) {
+        LOG(WARN) << "TRD conversion of signals to digits failed";
+      }
+      for (const auto& iter : smc) {
+        labels.addElements(labels.getIndexedSize(), iter.second.labels);
+      }
+    }
+  }
+  clearContainers();
+}
+
+SignalContainer Digitizer::addSignalsFromPileup()
+{
+  int count = 0;
   SignalContainer addedSignalsMap;
   for (const auto& collection : mPileupSignals) {
     for (int det = 0; det < kNdet; ++det) {
@@ -133,57 +163,57 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
       } // loop over active pads in detector
     }   // loop over detectors
   }     // loop over pileup container
-
-  // once the full signal for this chamber is built, one can make the adcs
-  if (addedSignalsMap.size() > 0) {
-    // convert signals to ADCs and fill the digit container
-    bool status = convertSignalsToADC(addedSignalsMap, digits);
-    if (!status) {
-      LOG(WARN) << "TRD conversion of signals to digits failed";
-    }
-    // get the labels attached to the signals and put it in the label container
-    for (const auto& iter : addedSignalsMap) {
-      labels.addElements(labels.getIndexedSize(), iter.second.labels);
-    }
-  }
-
   // remove all used added signals, keep those that can pileup to newer events.
   const int numberOfElementsToPop = mPileupSignals.size() - count;
   for (int i = 0; i < numberOfElementsToPop; ++i) {
     mPileupSignals.pop_front();
   }
-
-  // clear the signal map collection - always!
-  for (auto& sm : mSignalsMapCollection) {
-    sm.clear();
-  }
+  return addedSignalsMap;
 }
 
 void Digitizer::pileup()
 {
   mPileupSignals.push_back(mSignalsMapCollection);
-  // clear the signal map collection - always!
+  clearContainers();
+}
+
+void Digitizer::clearContainers()
+{
   for (auto& sm : mSignalsMapCollection) {
     sm.clear();
   }
 }
 
-void Digitizer::triggerEventProcessing(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+int Digitizer::triggerEventProcessing(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
-  if (mCurrentTriggerTime < 0) {
+  if (mCurrentTriggerTime < 0 && mLastTime < 0) {
     // very first event
+    LOG(INFO) << "First event recieved";
     mCurrentTriggerTime = mTime;
     mLastTime = mTime;
-  } else if ((mTime - mCurrentTriggerTime) < BUSY_TIME) {
-    // send the signal containers to the pileup container, and do not change the current trigger time.
-    pileup();
-    mLastTime = mTime;
+    LOG(INFO) << "First event, current trigger time = " << mCurrentTriggerTime;
+    return EventType::kFirstEvent;
+  }
+  if (mTime > mLastTime) {
+    if ((mTime - mCurrentTriggerTime) < BUSY_TIME) {
+      // send the signal containers to the pileup container, and do not change the current trigger time.
+      LOG(INFO) << "Pileup event, current trigger time = " << mCurrentTriggerTime;
+      pileup();
+      mLastTime = mTime;
+      return EventType::kPileupEvent;
+    } else {
+      // flush the digits: signals from the pileup container are converted to adcs
+      // digits and labels are produced, and the current trigger time is changed after the flush is completed
+      LOG(INFO) << "Separated event recieved, current trigger time = " << mCurrentTriggerTime;
+      flush(digits, labels);
+      mCurrentTriggerTime = mTime;
+      mLastTime = mTime;
+      LOG(INFO) << "Separated event flushed, current trigger time = " << mCurrentTriggerTime;
+      return EventType::kTriggerFired;
+    }
   } else {
-    // flush the digits: signals from the pileup container are converted to adcs
-    // digits and labels are produced, and the current trigger time is changed after the flush is completed
-    flush(digits, labels);
-    mCurrentTriggerTime = mTime;
-    mLastTime = mTime;
+    LOG(INFO) << "Embedding event recieved, keep going";
+    return EventType::kEmbeddingEvent;
   }
 }
 
@@ -194,7 +224,7 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits
     LOG(FATAL) << "TRD Calibration database not available";
   }
 
-  triggerEventProcessing(digits, labels);
+  int status = triggerEventProcessing(digits, labels);
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   std::array<std::vector<HitType>, kNdet> hitsPerDetector;
@@ -456,7 +486,7 @@ float drawGaus(o2::math_utils::RandomRing<>& normaldistRing, float mu, float sig
   return mu + sigma * normaldistRing.getNextValue();
 }
 
-bool Digitizer::convertSignalsToADC(SignalContainer& signalMapCont, DigitContainer& digits, int thread)
+bool Digitizer::convertSignalsToADC(const SignalContainer& signalMapCont, DigitContainer& digits, int thread)
 {
   //
   // Converts the sampled electron signals to ADC values for a given chamber
@@ -469,7 +499,7 @@ bool Digitizer::convertSignalsToADC(SignalContainer& signalMapCont, DigitContain
   double baseline = mSimParam->GetADCbaseline() / adcConvert;                   // The electronics baseline in mV
   double baselineEl = baseline / convert;                                       // The electronics baseline in electrons
 
-  for (auto& signalMapIter : signalMapCont) {
+  for (const auto& signalMapIter : signalMapCont) {
     const auto key = signalMapIter.first;
     const int det = getDetectorFromKey(key);
     const int row = getRowFromKey(key);
@@ -497,8 +527,7 @@ bool Digitizer::convertSignalsToADC(SignalContainer& signalMapCont, DigitContain
     }
 
     // Loop over the all timebins in the ADC array
-    SignalArray& signalData = signalMapIter.second;
-    auto& signalArray = signalData.signals;
+    const auto& signalArray = signalMapIter.second.signals;
     ArrayADC adcs{};
     for (int tb = 0; tb < mMaxTimeBinsTRAP; ++tb) {
       float signalAmp = (float)signalArray[tb]; // The signal amplitude

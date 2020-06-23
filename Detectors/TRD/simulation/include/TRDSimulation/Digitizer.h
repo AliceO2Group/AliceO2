@@ -87,6 +87,13 @@ class Digitizer
   int mEventID = 0;
   int mSrcID = 0;
 
+  enum EventType {
+    kFirstEvent,
+    kPileupEvent,
+    kTriggerFired,
+    kEmbeddingEvent
+  };
+
   // Trigger parameters
   bool mTriggeredEvent = false;
   static constexpr double READOUT_TIME = 3000;                  // the time the readout takes, as 30 TB = 3 micro-s.
@@ -115,10 +122,12 @@ class Digitizer
   void setSimulationParameters();
 
   // Digitization chain methods
-  void triggerEventProcessing(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
+  int triggerEventProcessing(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
   void pileup();
+  SignalContainer addSignalsFromPileup();
+  void clearContainers();
   bool convertHits(const int, const std::vector<HitType>&, SignalContainer&, int thread = 0); // True if hit-to-signal conversion is successful
-  bool convertSignalsToADC(SignalContainer&, DigitContainer&, int thread = 0);                // True if signal-to-ADC conversion is successful
+  bool convertSignalsToADC(const SignalContainer&, DigitContainer&, int thread = 0);          // True if signal-to-ADC conversion is successful
   void addLabel(const o2::trd::HitType& hit, std::vector<o2::trd::MCLabel>&, std::unordered_map<int, int>&);
   bool diffusion(float, float, float, float, float, float, double&, double&, double&, int thread = 0); // True if diffusion is applied successfully
 
