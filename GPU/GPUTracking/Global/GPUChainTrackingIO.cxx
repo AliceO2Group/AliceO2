@@ -41,7 +41,6 @@
 #ifdef HAVE_O2HEADERS
 #include "GPUTPCClusterStatistics.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
-#include "Headers/RAWDataHeader.h"
 #include "GPUHostDataTypes.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCdEdxCalibrationSplines.h"

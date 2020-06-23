@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include "GPUParam.h"
 #include "GPUReconstructionConvert.h"
+#include "GPURawData.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -150,7 +151,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
         const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
         o2::raw::RawFileWriter writer{"TPC"}; // to set the RDHv6.sourceID if V6 is used
         writer.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)); // must be set explicitly
-        uint32_t rdhV = 4;
+        uint32_t rdhV = o2::raw::RDHUtils::getVersion<o2::gpu::RAWDataHeaderGPU>();
         writer.useRDHVersion(rdhV);
         std::string outDir = "./";
         const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
@@ -299,7 +300,7 @@ DataProcessorSpec getZStoDigitsSpec(std::vector<int> const& inputIds)
             }
             count = 0;
             lastFEE = o2::raw::RDHUtils::getFEEID(*rdh);
-            cruID = int(rdh->cruID);
+            cruID = int(o2::raw::RDHUtils::getCRUID(*rdh));
             if (it.size() == 0) {
               ptr = nullptr;
               continue;

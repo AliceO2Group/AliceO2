@@ -57,6 +57,7 @@
 #include <stdexcept>
 #include <regex>
 #include "GPUReconstructionConvert.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -498,10 +499,12 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
                 tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
               }
               count = 0;
-              //lastFEE = o2::raw::RDHUtils::getFEEID(*rdh);
-              lastFEE = int(rdh->feeId);
-              rawcru = int(rdh->cruID);
-              rawendpoint = int(rdh->endPointID);
+              lastFEE = o2::raw::RDHUtils::getFEEID(*rdh);
+              rawcru = o2::raw::RDHUtils::getCRUID(*rdh);
+              rawendpoint = o2::raw::RDHUtils::getEndPointID(*rdh);
+              //lastFEE = int(rdh->feeId);
+              //rawcru = int(rdh->cruID);
+              //rawendpoint = int(rdh->endPointID);
               if (it.size() == 0 && tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].size()) {
                 ptr = nullptr;
                 continue;
@@ -708,6 +711,13 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           outputRegions.clustersNative.size = clusterOutput->size() * sizeof(*clusterOutput->data()) - sizeof(ClusterCountIndex);
         }
       }
+      auto* bufferTPCTracks = !processAttributes->allocateOutputOnTheFly ? &pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "TRACKSGPU", 0}, bufferSize) : nullptr;
+      if (processAttributes->allocateOutputOnTheFly) {
+        outputRegions.tpcTracks.allocator = [&bufferTPCTracks, &pc](size_t size) -> void* {bufferTPCTracks = &pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "TRACKSGPU", 0}, size); return bufferTPCTracks->data(); };
+      } else {
+        outputRegions.tpcTracks.ptr = bufferTPCTracks->data();
+        outputRegions.tpcTracks.size = bufferTPCTracks->size();
+      }
 
       int retVal = tracker->runTracking(&ptrs, &outputRegions);
       if (processAttributes->suppressOutput) {
@@ -821,6 +831,11 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     std::vector<OutputSpec> outputSpecs{
       OutputSpec{{"outTracks"}, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe},
       OutputSpec{{"outClusRefs"}, gDataOriginTPC, "CLUSREFS", 0, Lifetime::Timeframe},
+      // This is not really used as an output, but merely to allocate a GPU-registered memory where the GPU can write the track output.
+      // Right now, the tracks are still reformatted, and copied in the above buffers.
+      // This one will not have any consumer and just be dropped.
+      // But we need something to provide to the GPU as external buffer to test direct writing of tracks in the shared memory.
+      OutputSpec{{"outTracksGPUBuffer"}, gDataOriginTPC, "TRACKSGPU", 0, Lifetime::Timeframe},
     };
     if (!specconfig.outputTracks) {
       // this case is the less unlikely one, that's why the logic this way

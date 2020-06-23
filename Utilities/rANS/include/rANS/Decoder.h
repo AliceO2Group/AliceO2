@@ -49,7 +49,7 @@ class Decoder
   Decoder(const SymbolStatistics& stats, size_t probabilityBits);
 
   template <typename stream_IT, typename source_IT>
-  void process(const source_IT outputBegin, const stream_IT inputBegin, size_t numSymbols) const;
+  void process(const source_IT outputBegin, const stream_IT inputEnd, size_t numSymbols) const;
 
   using coder_t = coder_T;
   using stream_t = stream_T;
@@ -93,7 +93,7 @@ Decoder<coder_T, stream_T, source_T>::Decoder(const SymbolStatistics& stats, siz
 
 template <typename coder_T, typename stream_T, typename source_T>
 template <typename stream_IT, typename source_IT>
-void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, const stream_IT inputBegin, size_t numSymbols) const
+void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, const stream_IT inputEnd, size_t numSymbols) const
 {
   LOG(trace) << "start decoding";
   RANSTimer t;
@@ -106,37 +106,35 @@ void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, 
     return;
   }
 
-  State<coder_T> rans0, rans1;
-  const stream_T* ptr = &(*inputBegin);
+  ransDecoder rans0, rans1;
+  stream_IT inputIter = inputEnd;
   source_IT it = outputBegin;
 
-  assert(ptr != nullptr);
+  // make Iter point to the last last element
+  --inputIter;
 
-  ransDecoder::decInit(&rans0, &ptr);
-  ransDecoder::decInit(&rans1, &ptr);
+  inputIter = rans0.decInit(inputIter);
+  inputIter = rans1.decInit(inputIter);
 
   for (size_t i = 0; i < (numSymbols & ~1); i += 2) {
     const stream_T s0 =
-      (*mReverseLUT)[ransDecoder::decGet(&rans0, mProbabilityBits)];
+      (*mReverseLUT)[rans0.decGet(mProbabilityBits)];
     const stream_T s1 =
-      (*mReverseLUT)[ransDecoder::decGet(&rans1, mProbabilityBits)];
+      (*mReverseLUT)[rans1.decGet(mProbabilityBits)];
     *it++ = s0;
     *it++ = s1;
-    ransDecoder::decAdvanceSymbolStep(&rans0, &(*mSymbolTable)[s0],
-                                      mProbabilityBits);
-    ransDecoder::decAdvanceSymbolStep(&rans1, &(*mSymbolTable)[s1],
-                                      mProbabilityBits);
-    ransDecoder::decRenorm(&rans0, &ptr);
-    ransDecoder::decRenorm(&rans1, &ptr);
+    rans0.decAdvanceSymbolStep((*mSymbolTable)[s0], mProbabilityBits);
+    rans1.decAdvanceSymbolStep((*mSymbolTable)[s1], mProbabilityBits);
+    inputIter = rans0.decRenorm(inputIter);
+    inputIter = rans1.decRenorm(inputIter);
   }
 
   // last byte, if number of bytes was odd
   if (numSymbols & 1) {
     const stream_T s0 =
-      (*mReverseLUT)[ransDecoder::decGet(&rans0, mProbabilityBits)];
+      (*mReverseLUT)[rans0.decGet(mProbabilityBits)];
     *it = s0;
-    ransDecoder::decAdvanceSymbol(&rans0, &ptr, &(*mSymbolTable)[s0],
-                                  mProbabilityBits);
+    inputIter = rans0.decAdvanceSymbol(inputIter, (*mSymbolTable)[s0], mProbabilityBits);
   }
   t.stop();
   LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();

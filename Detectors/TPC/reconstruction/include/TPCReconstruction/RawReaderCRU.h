@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <functional>
 #include <gsl/span>
+#include "DetectorsRaw/RDHUtils.h"
 
 #include "MemoryResources/Types.h"
 #include "TPCBase/CRU.h"
@@ -43,6 +44,8 @@ namespace tpc
 {
 namespace rawreader
 {
+
+using RDHUtils = o2::raw::RDHUtils;
 
 /// debug level bits
 enum DebugLevel : uint8_t {
@@ -386,10 +389,10 @@ class RawReaderCRUEventSync
     // check if event is already registered. If not create a new one.
     auto& event = createEvent(rdh, dataType);
 
-    const auto dataWrapperID = rdh.endPointID;
-    const auto linkID = rdh.linkID;
+    const auto dataWrapperID = RDHUtils::getEndPointID(rdh);
+    const auto linkID = RDHUtils::getLinkID(rdh);
     const auto globalLinkID = linkID + dataWrapperID * 12;
-    return event.CRUInfoArray[rdh.cruID].LinkInformation[globalLinkID];
+    return event.CRUInfoArray[RDHUtils::getCRUID(rdh)].LinkInformation[globalLinkID];
   }
 
   /// get array with all link informaiton for a specific event number and cru

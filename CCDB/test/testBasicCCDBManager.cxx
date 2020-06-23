@@ -105,6 +105,12 @@ BOOST_AUTO_TEST_CASE(TestBasicCCDBManager)
   BOOST_CHECK(!objA);                 // make sure correct object is not loaded
   cdb.resetCreatedNotAfter();         // resetting upper validity limit
 
+  // get object in TimeMachine mode in the future
+  cdb.setCreatedNotBefore(4108971600000); // set upper object validity
+  objA = cdb.get<std::string>(pathA);     // should not be loaded
+  BOOST_CHECK(!objA);                     // make sure correct object is not loaded
+  cdb.resetCreatedNotBefore();            // resetting upper validity limit
+
   // disable cache at all (will also clean it)
   cdb.setCachingEnabled(false);
   objA = cdb.get<std::string>(pathA); // will be loaded from scratch, w/o filling the cache

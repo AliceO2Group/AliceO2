@@ -132,6 +132,8 @@ class GPUDataTypes
   static constexpr const char* const GENERAL_STEP_NAMES[] = {"Prepare", "QA"};
   typedef bitfield<RecoStep, unsigned int> RecoStepField;
   typedef bitfield<InOutType, unsigned int> InOutTypeField;
+  constexpr static int N_RECO_STEPS = sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]);
+  constexpr static int N_GENERAL_STEPS = sizeof(GPUDataTypes::GENERAL_STEP_NAMES) / sizeof(GPUDataTypes::GENERAL_STEP_NAMES[0]);
 #endif
 #ifdef GPUCA_NOCOMPAT
   static constexpr unsigned int NSLICES = 36;
@@ -218,6 +220,7 @@ struct GPUTrackingInOutPointers {
   unsigned int nMergedTracks = 0;
   const GPUTPCGMMergedTrackHit* mergedTrackHits = nullptr;
   unsigned int nMergedTrackHits = 0;
+  unsigned int* mergedTrackHitAttachment = nullptr;
   const o2::tpc::CompressedClustersFlat* tpcCompressedClusters = nullptr;
   const GPUTRDTrackletWord* trdTracklets = nullptr;
   unsigned int nTRDTracklets = 0;

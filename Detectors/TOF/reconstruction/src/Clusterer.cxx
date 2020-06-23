@@ -81,8 +81,9 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
 
     mNumberOfContributingDigits = 0;
     dig->getPhiAndEtaIndex(iphi, ieta);
-    if (mStripData.digits.size() > 1)
+    if (mStripData.digits.size() > 1) {
       LOG(DEBUG) << "idig = " << idig;
+    }
 
     // first we make a cluster out of the digit
     int noc = clusters.size();

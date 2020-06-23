@@ -61,6 +61,7 @@ struct GPUInterfaceOutputRegion {
 struct GPUInterfaceOutputs {
   GPUInterfaceOutputRegion compressedClusters;
   GPUInterfaceOutputRegion clustersNative;
+  GPUInterfaceOutputRegion tpcTracks;
 };
 
 // Full configuration structure with all available settings of GPU...

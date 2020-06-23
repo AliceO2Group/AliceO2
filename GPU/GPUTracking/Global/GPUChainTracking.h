@@ -59,6 +59,7 @@ class GPUTRDGeometry;
 class TPCFastTransform;
 class TPCdEdxCalibrationSplines;
 class GPUTrackingInputProvider;
+class GPUChainTrackingFinalContext;
 
 class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelegateBase
 {
@@ -75,6 +76,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
   int CheckErrorCodes() override;
   bool SupportsDoublePipeline() override { return true; }
+  int FinalizePipelinedProcessing() override;
   void ClearErrorCodes();
 
   // Structures for input and output data
@@ -158,6 +160,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void LoadClusterErrors();
   void SetOutputControlCompressedClusters(GPUOutputControl* v) { mOutputCompressedClusters = v; }
   void SetOutputControlClustersNative(GPUOutputControl* v) { mOutputClustersNative = v; }
+  void SetOutputControlTPCTracks(GPUOutputControl* v) { mOutputTPCTracks = v; }
 
   const void* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
   const void* mConfigQA = nullptr;      // Abstract pointer to Standalone QA Configuration Structure
@@ -232,6 +235,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   GPUOutputControl* mOutputCompressedClusters = nullptr;
   GPUOutputControl* mOutputClustersNative = nullptr;
+  GPUOutputControl* mOutputTPCTracks = nullptr;
 
   // Upper bounds for memory allocation
   unsigned int mMaxTPCHits = 0;
@@ -250,6 +254,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::vector<outputQueueEntry> mOutputQueue;
 
  private:
+  int RunChainFinalize();
   int RunTPCTrackingSlices_internal();
   std::pair<unsigned int, unsigned int> RunTPCClusterizer_transferZS(int iSlice, unsigned int start, unsigned int end, int lane);
   void RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int stage, bool doGPU, int lane);
@@ -258,6 +263,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void RunTPCTrackingMerger_Resolve(char useOrigTrackParam, char mergeAll, GPUReconstruction::krnlDeviceType deviceType);
 
   std::atomic_flag mLockAtomic = ATOMIC_FLAG_INIT;
+  std::unique_ptr<GPUChainTrackingFinalContext> mPipelineFinalizationCtx;
+  GPUChainTrackingFinalContext* mPipelineNotifyCtx = nullptr;
 
   int HelperReadEvent(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);
   int HelperOutput(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);

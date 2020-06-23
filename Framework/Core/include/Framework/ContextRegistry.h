@@ -36,24 +36,28 @@ namespace framework
 class ContextRegistry
 {
  public:
+  /// The maximum distance a entry can be from the optimal slot.
+  constexpr static int MAX_DISTANCE = 8;
+  /// The number of slots in the hashmap.
+  constexpr static int MAX_CONTEXT = 32;
+  /// The mask to use to calculate the initial slot id.
+  constexpr static int MAX_CONTEXT_MASK = MAX_CONTEXT - 1;
+
   ContextRegistry();
 
   template <typename... Types>
   ContextRegistry(Types*... instances)
   {
+    mRegistryKey.fill(0);
+    mRegistryValue.fill(nullptr);
     set(std::forward<Types*>(instances)...);
   }
 
   template <typename T>
   T* get() const
   {
-    void* instance = nullptr;
-    for (size_t i = 0; i < mRegistryCount; ++i) {
-      if (mRegistryKey[i] == TypeIdHelpers::uniqueId<T*>()) {
-        return reinterpret_cast<T*>(mRegistryValue[i]);
-      }
-    }
-    throw std::out_of_range(std::string("Unsupported backend, no registered context '") + typeid(T).name() + "'");
+    constexpr auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
+    return reinterpret_cast<T*>(get(typeHash));
   }
 
   template <typename T, typename... Types>
@@ -67,25 +71,36 @@ class ContextRegistry
   void set(T* instance)
   {
     static_assert(std::is_void<T>::value == false, "can not register a void object");
-    size_t i = 0;
-    for (i = 0; i < mRegistryCount; ++i) {
-      if (TypeIdHelpers::uniqueId<T*>() == mRegistryKey[i]) {
+    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
+    set(reinterpret_cast<void*>(instance), typeHash);
+  }
+
+  void* get(uint32_t typeHash) const
+  {
+    auto id = typeHash & MAX_CONTEXT_MASK;
+    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
+      if (mRegistryKey[i + id] == typeHash) {
+        return mRegistryValue[i + id];
+      }
+    }
+    return nullptr;
+  }
+
+  void set(void* instance, uint32_t typeHash)
+  {
+    auto id = typeHash & MAX_CONTEXT_MASK;
+    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
+      if (mRegistryValue[i + id] == nullptr) {
+        mRegistryKey[i + id] = typeHash;
+        mRegistryValue[i + id] = instance;
         return;
       }
     }
-    if (i == MAX_REGISTRY_SIZE) {
-      throw std::runtime_error("Too many entries in ContextRegistry");
-    }
-    mRegistryCount = i + 1;
-    mRegistryKey[i] = TypeIdHelpers::uniqueId<T*>();
-    mRegistryValue[i] = instance;
   }
 
  private:
-  static constexpr size_t MAX_REGISTRY_SIZE = 8;
-  size_t mRegistryCount = 0;
-  std::array<size_t, MAX_REGISTRY_SIZE> mRegistryKey;
-  std::array<void*, MAX_REGISTRY_SIZE> mRegistryValue;
+  std::array<uint32_t, MAX_CONTEXT + MAX_DISTANCE> mRegistryKey;
+  std::array<void*, MAX_CONTEXT + MAX_DISTANCE> mRegistryValue;
 };
 
 } // namespace framework

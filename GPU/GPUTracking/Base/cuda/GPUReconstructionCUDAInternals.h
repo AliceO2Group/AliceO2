@@ -24,6 +24,7 @@ namespace gpu
 {
 struct GPUReconstructionCUDAInternals {
   CUcontext CudaContext;                       // Pointer to CUDA context
+  unsigned int cudaContextObtained = 0;        // If multiple instances of GPUThreadContextCUDA are obtained, we count them and return the context only after all are destroyed
   cudaStream_t Streams[GPUCA_MAX_STREAMS];     // Pointer to array of CUDA Streams
 };
 

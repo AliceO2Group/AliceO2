@@ -30,7 +30,7 @@ namespace tof
 namespace compressed
 {
 
-template <typename RAWDataHeader>
+template <typename RDH>
 class DecoderBaseT
 {
 
@@ -58,7 +58,7 @@ class DecoderBaseT
  private:
   /** handlers **/
 
-  virtual void rdhHandler(const RAWDataHeader* rdh){};
+  virtual void rdhHandler(const RDH* rdh){};
   virtual void headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit){};
 
   virtual void frameHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
@@ -84,7 +84,7 @@ class DecoderBaseT
   const uint32_t* mDecoderPointer = nullptr;
   const uint32_t* mDecoderPointerMax = nullptr;
   const uint32_t* mDecoderPointerNext = nullptr;
-  const RAWDataHeader* mDecoderRDH;
+  const RDH* mDecoderRDH;
   bool mDecoderVerbose = false;
   bool mDecoderError = false;
   bool mDecoderFatal = false;
@@ -95,7 +95,7 @@ class DecoderBaseT
 
 typedef DecoderBaseT<o2::header::RAWDataHeaderV4> DecoderBaseV4;
 typedef DecoderBaseT<o2::header::RAWDataHeaderV6> DecoderBaseV6;
-using DecoderBase = DecoderBaseV4;
+using DecoderBase = DecoderBaseT<o2::header::RAWDataHeader>;
 
 } // namespace compressed
 } // namespace tof

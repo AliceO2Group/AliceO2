@@ -12,4 +12,5 @@
 * \subpage refrunSimExamplesHepMC_STARlight
 * \subpage refrunSimExamplesJet_Embedding_Pythia8
 * \subpage refrunSimExamplesStepMonitoringSimple1
+* \subpage refrunSimExamplesForceDecay_Lambda_Neutron_Dalitz
 /doxy -->

@@ -72,15 +72,15 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
       CA_SHARED_CACHE_REF(&s.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, unsigned int, pageCache);
       GPUbarrier();
       const unsigned char* page = (const unsigned char*)pageCache;
-      const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)page;
-      if (GPURawDataUtils::getSize(rdh) == sizeof(o2::header::RAWDataHeader)) {
+      const RAWDataHeaderGPU* rdh = (const RAWDataHeaderGPU*)page;
+      if (GPURawDataUtils::getSize(rdh) == sizeof(RAWDataHeaderGPU)) {
 #ifdef GPUCA_GPUCODE
         return;
 #else
         continue;
 #endif
       }
-      const unsigned char* pagePtr = page + sizeof(o2::header::RAWDataHeader);
+      const unsigned char* pagePtr = page + sizeof(RAWDataHeaderGPU);
       const TPCZSHDR* hdr = reinterpret_cast<const TPCZSHDR*>(pagePtr);
       pagePtr += sizeof(*hdr);
       const bool decode12bit = hdr->version == 2;

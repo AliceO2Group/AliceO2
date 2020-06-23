@@ -39,15 +39,17 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+typedef o2::header::RAWDataHeader RAWDataHeaderGPU;
+
 class GPURawDataUtils
 {
  public:
-  static GPUd() unsigned int getOrbit(const o2::header::RAWDataHeader* rdh);
-  static GPUd() unsigned int getBC(const o2::header::RAWDataHeader* rdh);
-  static GPUd() unsigned int getSize(const o2::header::RAWDataHeader* rdh);
+  static GPUd() unsigned int getOrbit(const RAWDataHeaderGPU* rdh);
+  static GPUd() unsigned int getBC(const RAWDataHeaderGPU* rdh);
+  static GPUd() unsigned int getSize(const RAWDataHeaderGPU* rdh);
 };
 
-GPUdi() unsigned int GPURawDataUtils::getOrbit(const o2::header::RAWDataHeader* rdh)
+GPUdi() unsigned int GPURawDataUtils::getOrbit(const RAWDataHeaderGPU* rdh)
 {
 #ifndef __OPENCL__
   return o2::raw::RDHUtils::getHeartBeatOrbit(*rdh);
@@ -56,16 +58,16 @@ GPUdi() unsigned int GPURawDataUtils::getOrbit(const o2::header::RAWDataHeader* 
 #endif
 }
 
-GPUdi() unsigned int GPURawDataUtils::getBC(const o2::header::RAWDataHeader* rdh)
+GPUdi() unsigned int GPURawDataUtils::getBC(const RAWDataHeaderGPU* rdh)
 {
 #ifndef __OPENCL__
   return o2::raw::RDHUtils::getHeartBeatBC(*rdh);
 #else
-  return ((rdh->words[4] >> 48) & 0xFFF); // TODO: Ad-hoc implementation for OpenCL, RDHV4, to be moved to RDHUtils
+  return (rdh->words[2] & 0xFFF);         // TODO: Ad-hoc implementation for OpenCL, RDHV4, to be moved to RDHUtils
 #endif
 }
 
-GPUdi() unsigned int GPURawDataUtils::getSize(const o2::header::RAWDataHeader* rdh)
+GPUdi() unsigned int GPURawDataUtils::getSize(const RAWDataHeaderGPU* rdh)
 {
 #ifndef __OPENCL__
   return o2::raw::RDHUtils::getMemorySize(*rdh);

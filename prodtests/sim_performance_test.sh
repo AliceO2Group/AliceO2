@@ -47,9 +47,6 @@ SIMPREFIX=o2sim_${SIMCONFIG}
 HITSTATFILE=hitstats_${SIMCONFIG}
 taskset -c 1 o2-sim-serial -n ${NEVENTS} -e ${ENGINE} --skipModules ZDC -g ${GEN} --seed $SEED -o ${SIMPREFIX} > $LOGFILE 2>&1
 
-### ------ transform output to (new) format with separated hit files
-root -q -b -l ${O2_ROOT}/share/macro/migrateSimFiles.C\(\"${SIMPREFIX}\"\)
-
 ### ------ extract number of hits
 root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C\(\"${SIMPREFIX}\"\) > $HITSTATFILE
 

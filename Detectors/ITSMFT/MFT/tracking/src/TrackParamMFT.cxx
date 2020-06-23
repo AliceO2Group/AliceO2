@@ -269,10 +269,11 @@ const TMatrixD& TrackParamMFT::getSmoothParameters() const
 void TrackParamMFT::setSmoothParameters(const TMatrixD& smoothParameters)
 {
   /// Set the smoothed parameters
-  if (mSmoothParameters)
+  if (mSmoothParameters) {
     *mSmoothParameters = smoothParameters;
-  else
+  } else {
     mSmoothParameters = std::make_unique<TMatrixD>(smoothParameters);
+  }
 }
 
 //__________________________________________________________________________
@@ -290,10 +291,11 @@ const TMatrixD& TrackParamMFT::getSmoothCovariances() const
 void TrackParamMFT::setSmoothCovariances(const TMatrixD& smoothCovariances)
 {
   /// Set the smoothed covariance matrix
-  if (mSmoothCovariances)
+  if (mSmoothCovariances) {
     *mSmoothCovariances = smoothCovariances;
-  else
+  } else {
     mSmoothCovariances = std::make_unique<TMatrixD>(smoothCovariances);
+  }
 }
 
 //__________________________________________________________________________
@@ -316,19 +318,22 @@ Bool_t TrackParamMFT::isCompatibleTrackParamMFT(const TrackParamMFT& TrackParamM
   Double_t maxChi2 = 5. * sigma2Cut * sigma2Cut; // 5 degrees of freedom
 
   // check Z parameters
-  if (mZ != TrackParamMFT.mZ)
+  if (mZ != TrackParamMFT.mZ) {
     LOG(WARN) << "Parameters are given at different Z position (" << mZ << " : " << TrackParamMFT.mZ
               << "): results are meaningless";
+  }
 
   // compute the parameter residuals
   TMatrixD deltaParam(mParameters, TMatrixD::kMinus, TrackParamMFT.mParameters);
 
   // build the error matrix
   TMatrixD weight(5, 5);
-  if (mCovariances)
+  if (mCovariances) {
     weight += *mCovariances;
-  if (TrackParamMFT.mCovariances)
+  }
+  if (TrackParamMFT.mCovariances) {
     weight += *(TrackParamMFT.mCovariances);
+  }
 
   // invert the error matrix to get the parameter weights if possible
   if (weight.Determinant() == 0) {
@@ -345,8 +350,9 @@ Bool_t TrackParamMFT::isCompatibleTrackParamMFT(const TrackParamMFT& TrackParamM
   chi2 = mChi2(0, 0);
 
   // check compatibility
-  if (chi2 > maxChi2)
+  if (chi2 > maxChi2) {
     return kFALSE;
+  }
 
   return kTRUE;
 }

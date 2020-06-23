@@ -45,7 +45,6 @@ struct EventHeader {
       uint64_t reservedField3 : 48;
     };
   };
-  ClassDefNV(EventHeader, 1);
 };
 struct EventData {
   union {
@@ -69,8 +68,6 @@ struct EventData {
   uint64_t word_zeros = 0x0;
   static const size_t PayloadSizeSecondWord = 11;
   static const size_t PayloadSizeFirstWord = 5;
-
-  ClassDefNV(EventData, 1);
 };
 
 struct TCMdata {
@@ -93,7 +90,6 @@ struct TCMdata {
         reservedField2 : 46;
     };
   };
-  // ClassDefNV(TCMdata, 1);
 };
 
 class RawEventData

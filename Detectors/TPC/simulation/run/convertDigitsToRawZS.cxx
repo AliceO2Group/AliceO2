@@ -27,6 +27,7 @@
 #include "GPUReconstructionConvert.h"
 #include "GPUHostDataTypes.h"
 #include "GPUParam.h"
+#include "GPURawData.h"
 
 #include "Framework/Logger.h"
 #include "DetectorsRaw/RawFileWriter.h"
@@ -227,7 +228,7 @@ int main(int argc, char** argv)
     add_option("file-for,f", bpo::value<std::string>()->default_value("sector"), "single file per: link,sector,all");
     add_option("stop-page,p", bpo::value<bool>()->default_value(false)->implicit_value(true), "HBF stop on separate CRU page");
     add_option("no-padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "Don't pad pages to 8kb");
-    uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
+    uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::gpu::RAWDataHeaderGPU>();
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 

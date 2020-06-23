@@ -20,6 +20,7 @@
 #include <algorithm>
 
 #include <fairlogger/Logger.h>
+#include <stdexcept>
 
 #include "SymbolTable.h"
 #include "EncoderSymbol.h"
@@ -120,44 +121,41 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
     throw std::runtime_error(errorMessage);
   }
 
-  State<coder_T> rans0, rans1;
-  ransCoder::encInit(&rans0);
-  ransCoder::encInit(&rans1);
+  ransCoder rans0, rans1;
+  rans0.encInit();
+  rans1.encInit();
 
-  stream_T* ptr = &(*outputEnd);
+  stream_IT outputIter = outputBegin;
   source_IT inputIT = inputEnd;
-
-  assert(ptr != nullptr);
 
   const auto inputBufferSize = std::distance(inputBegin, inputEnd);
 
   // odd number of bytes?
   if (inputBufferSize & 1) {
     const coder_T s = *(--inputIT);
-    ransCoder::encPutSymbol(&rans0, &ptr, &(*mSymbolTable)[s],
-                            mProbabilityBits);
-    assert(&(*outputBegin) < ptr);
+    outputIter = rans0.encPutSymbol(outputIter, (*mSymbolTable)[s], mProbabilityBits);
+    assert(outputIter < outputEnd);
   }
 
   while (inputIT > inputBegin) { // NB: working in reverse!
     const coder_T s1 = *(--inputIT);
     const coder_T s0 = *(--inputIT);
-    ransCoder::encPutSymbol(&rans1, &ptr, &(*mSymbolTable)[s1],
-                            mProbabilityBits);
-    ransCoder::encPutSymbol(&rans0, &ptr, &(*mSymbolTable)[s0],
-                            mProbabilityBits);
-    assert(&(*outputBegin) < ptr);
+    outputIter = rans1.encPutSymbol(outputIter, (*mSymbolTable)[s1], mProbabilityBits);
+    outputIter = rans0.encPutSymbol(outputIter, (*mSymbolTable)[s0], mProbabilityBits);
+    assert(outputIter < outputEnd);
   }
-  ransCoder::encFlush(&rans1, &ptr);
-  ransCoder::encFlush(&rans0, &ptr);
+  outputIter = rans1.encFlush(outputIter);
+  outputIter = rans0.encFlush(outputIter);
+  // first iterator past the range so that sizes, distances and iterators work correctly.
+  ++outputIter;
 
-  assert(&(*outputBegin) < ptr);
+  assert(!(outputIter > outputEnd));
 
   // deal with overflow
-  if (ptr < &(*outputBegin)) {
+  if (outputIter > outputEnd) {
     const std::string exceptionText = [&]() {
       std::stringstream ss;
-      ss << __func__ << " detected overflow in encode buffer: allocated:" << std::distance(inputBegin, inputEnd) << ", used:" << std::distance(ptr, &(*outputEnd));
+      ss << __func__ << " detected overflow in encode buffer: allocated:" << std::distance(outputBegin, outputEnd) << ", used:" << std::distance(outputBegin, outputIter);
       return ss.str();
     }();
 
@@ -176,12 +174,12 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
               << "coderTypeB: " << sizeof(coder_T) << ", "
               << "probabilityBits: " << mProbabilityBits << ", "
               << "inputBufferSizeB: " << inputBufferSize * sizeof(source_T) << ", "
-              << "outputBufferSizeB: " << std::distance(ptr, &(*outputEnd)) * sizeof(stream_T) << "}";
+              << "outputBufferSizeB: " << std::distance(outputBegin, outputIter) * sizeof(stream_T) << "}";
 #endif
 
   LOG(trace) << "done encoding";
 
-  return outputBegin + std::distance(&(*outputBegin), ptr);
+  return outputIter;
 };
 
 } // namespace rans

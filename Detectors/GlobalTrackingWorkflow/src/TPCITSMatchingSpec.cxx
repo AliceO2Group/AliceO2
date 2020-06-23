@@ -67,6 +67,17 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   } else {
     LOG(INFO) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
   }
+
+  // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
+  std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
+  std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
+  if (o2::base::NameConf::pathExists(matLUTFile)) {
+    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
+    o2::base::Propagator::Instance()->setMatLUT(lut);
+    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+  } else {
+    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+  }
   mMatching.init();
   //
 }
@@ -282,7 +293,9 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcC
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useMC)},
-    Options{{"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}}}};
+    Options{
+      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
+      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 
 } // namespace globaltracking

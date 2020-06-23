@@ -17,6 +17,7 @@
 #define RANS_SYMBOLTABLE_H
 
 #include <vector>
+#include <cstdint>
 
 #include <fairlogger/Logger.h>
 

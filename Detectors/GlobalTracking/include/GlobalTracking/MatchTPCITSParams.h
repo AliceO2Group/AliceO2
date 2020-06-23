@@ -16,6 +16,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "ReconstructionDataFormats/Track.h"
+#include "DetectorsBase/Propagator.h"
 
 namespace o2
 {
@@ -28,7 +29,8 @@ struct MatchITSTPCParams : public o2::conf::ConfigurableParamHelper<MatchITSTPCP
   float crudeAbsDiffCut[o2::track::kNParams] = {2.f, 2.f, 0.2f, 0.2f, 4.f};
   float crudeNSigma2Cut[o2::track::kNParams] = {49.f, 49.f, 49.f, 49.f, 49.f};
 
-  float minTPCPt = 0.04;   ///< cut on minimal pT of TPC tracks to consider for matching
+  float minTPCTrackR = 26.6; ///< cut on minimal TPC tracks radius to consider for matching, 666*pt_gev*B_kgaus/5
+  float minITSTrackR = 26.6; ///< cut on minimal ITS tracks radius to consider for matching, 666*pt_gev*B_kgaus/5
   int minTPCClusters = 25; ///< minimum number of clusters to consider
   int askMinTPCRow = 15;   ///< disregard tracks starting above this row
 
@@ -45,6 +47,8 @@ struct MatchITSTPCParams : public o2::conf::ConfigurableParamHelper<MatchITSTPCP
   float TPCTimeEdgeZSafeMargin = 20.f; ///< safety margin in cm when estimating TPC track tMin and tMax from assigned time0 and its track Z position
 
   float TimeBinTolerance = 10.f; ///<tolerance in time-bin for ITS-TPC time bracket matching (not used ? TODO)
+
+  o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT; /// Material correction type
 
   O2ParamDef(MatchITSTPCParams, "tpcitsMatch");
 };

@@ -8,21 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MFTWorkflow/DigitWorkflow.h"
-#include "CommonUtils/ConfigurableParam.h"
+#ifdef __CLING__
 
-using namespace o2::framework;
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
-{
-}
+#pragma link C++ class o2::its3::GeometryTGeo;
+#pragma link C++ class o2::its3::MisalignmentParameter + ;
 
-#include "Framework/runDataProcessing.h"
-
-WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
-{
-  // write the configuration
-  o2::conf::ConfigurableParam::writeINI("o2mftdigitwriter_configuration.ini");
-
-  return std::move(o2::mft::digit_workflow::getWorkflow());
-}
+#endif

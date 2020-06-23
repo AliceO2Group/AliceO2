@@ -215,11 +215,11 @@ void HwClusterer::process(gsl::span<o2::tpc::Digit const> const& digits, MCLabel
       // maybe only in the next events (we store permanently 5 timebins), where
       // the original pointer could already point to the next container.
       if (mcDigitTruth) {
-        if (mCurrentMcContainerInBuffer == 0)
+        if (mCurrentMcContainerInBuffer == 0) {
           mMCtruth[mapTimeInRange(digit.getTimeStamp())] = std::make_shared<MCLabelContainer const>(*mcDigitTruth);
-        else
+        } else {
           mMCtruth[mapTimeInRange(digit.getTimeStamp())] = std::shared_ptr<MCLabelContainer const>(mMCtruth[getFirstSetBitOfField()]);
-
+        }
         mCurrentMcContainerInBuffer |= (0x1 << (mapTimeInRange(digit.getTimeStamp())));
       }
     }
@@ -248,11 +248,13 @@ void HwClusterer::process(gsl::span<o2::tpc::Digit const> const& digits, MCLabel
     mLastTimebin = digit.getTimeStamp();
   }
 
-  if (!mIsContinuousReadout)
+  if (!mIsContinuousReadout) {
     finishFrame(true);
+  }
 
-  if (digits.size() != 0)
+  if (digits.size() != 0) {
     LOG(DEBUG) << "Event ranged from time bin " << digits[0].getTimeStamp() << " to " << digits[digits.size() - 1].getTimeStamp() << ".";
+  }
 }
 
 //______________________________________________________________________________

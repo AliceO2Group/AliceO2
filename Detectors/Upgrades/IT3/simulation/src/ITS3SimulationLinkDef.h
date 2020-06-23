@@ -8,23 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MFT_DIGITWORKFLOW_H_
-#define O2_MFT_DIGITWORKFLOW_H_
+#ifdef __CLING__
 
-/// @file   DigitWorkflow.h
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-#include "Framework/WorkflowSpec.h"
+#pragma link C++ class o2::its3::V11Geometry + ;
+#pragma link C++ class o2::its3::V1Layer + ;
+#pragma link C++ class o2::its3::V3Layer + ;
+#pragma link C++ class o2::its3::V3Services + ;
+#pragma link C++ class o2::its3::Detector + ;
+#pragma link C++ class o2::base::DetImpl < o2::its3::Detector> + ;
 
-namespace o2
-{
-namespace mft
-{
-
-namespace digit_workflow
-{
-framework::WorkflowSpec getWorkflow();
-}
-
-} // namespace mft
-} // namespace o2
 #endif

@@ -15,6 +15,8 @@
 #include "CommonConstants/LHCConstants.h"
 #include "TString.h"
 #include "FairLogger.h"
+#include "DetectorsRaw/RDHUtils.h"
+
 //#define VERBOSE
 
 namespace o2
@@ -23,6 +25,8 @@ namespace tof
 {
 namespace compressed
 {
+using RDHUtils = o2::raw::RDHUtils;
+
 Decoder::Decoder()
 {
   for (int i = 0; i < NCRU; i++) {
@@ -250,8 +254,9 @@ bool Decoder::decode() // return a vector of digits in a TOF readout window
 
       // move after RDH
       char* shift = reinterpret_cast<char*>(mRDH);
-      mUnion[icru] = reinterpret_cast<Union_t*>(shift + mRDH->headerSize);
-      mIntegratedBytes[icru] += mRDH->headerSize;
+      auto rdhsz = RDHUtils::getHeaderSize(*mRDH);
+      mUnion[icru] = reinterpret_cast<Union_t*>(shift + rdhsz);
+      mIntegratedBytes[icru] += rdhsz;
 
       if (mUnion[icru] >= mUnionEnd[icru])
         continue; // end of data stream reac
@@ -290,13 +295,13 @@ bool Decoder::decode() // return a vector of digits in a TOF readout window
       }
 
       // read close RDH
-      mRDH = reinterpret_cast<o2::header::RAWDataHeader*>(nextPage(mRDH, mRDH->memorySize));
+      mRDH = reinterpret_cast<o2::header::RAWDataHeader*>(nextPage(mRDH, RDHUtils::getMemorySize(*mRDH)));
       if (mVerbose)
         printRDH();
-      mIntegratedBytes[icru] += mRDH->headerSize;
+      mIntegratedBytes[icru] += RDHUtils::getHeaderSize(*mRDH);
 
       // go to next page
-      mUnion[icru] = reinterpret_cast<Union_t*>(nextPage(mRDH, mRDH->memorySize));
+      mUnion[icru] = reinterpret_cast<Union_t*>(nextPage(mRDH, RDHUtils::getMemorySize(*mRDH)));
     }
   }
 
@@ -358,13 +363,16 @@ void Decoder::printHitInfo(int icru) const
 void Decoder::printRDH() const
 {
   printf("______RDH_INFO_____\n");
-  printf("VERSION       = %d\n", int(mRDH->version));
-  printf("BLOCK LENGTH  = %d\n", int(mRDH->blockLength));
-  printf("HEADER SIZE   = %d\n", int(mRDH->headerSize));
-  printf("MEMORY SIZE   = %d\n", mRDH->memorySize);
-  printf("PACKET COUNTER= %d\n", mRDH->packetCounter);
-  printf("CRU ID        = %d\n", mRDH->cruID);
-  printf("LINK ID       = %d\n", mRDH->linkID);
+  int v = RDHUtils::getVersion(*mRDH);
+  printf("VERSION       = %d\n", v);
+  if (v == 4) {
+    printf("BLOCK LENGTH  = %d\n", int(RDHUtils::getBlockLength(mRDH)));
+  }
+  printf("HEADER SIZE   = %d\n", int(RDHUtils::getHeaderSize(*mRDH)));
+  printf("MEMORY SIZE   = %d\n", int(RDHUtils::getMemorySize(*mRDH)));
+  printf("PACKET COUNTER= %d\n", int(RDHUtils::getPacketCounter(*mRDH)));
+  printf("CRU ID        = %d\n", int(RDHUtils::getCRUID(*mRDH)));
+  printf("LINK ID       = %d\n", int(RDHUtils::getLinkID(*mRDH)));
   printf("___________________\n");
 }
 } // namespace compressed

@@ -532,7 +532,7 @@ void Detector::DefineOpticalProperties()
   TVirtualMC::GetMC()->DefineOpSurface("surFrontWindow", kUnified, kDielectric_dielectric, kPolishedbackpainted, 0.);
   //TVirtualMC::GetMC()->SetMaterialProperty("surFrontWindow", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEfficAll[0]));
   TVirtualMC::GetMC()->SetMaterialProperty("surFrontWindow", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflBlackPaper[0]));
-  TVirtualMC::GetMC()->SetBorderSurface("surBorderFrontWindow", "0TOP", 1, "0MT0", 1, "surFrontWindow");
+  TVirtualMC::GetMC()->SetBorderSurface("surBorderFrontWindow", "0TOP", 1, "0MTO", 1, "surFrontWindow");
 }
 
 void Detector::FillOtherOptProperties()

@@ -31,8 +31,8 @@ struct ChannelDataFloat {
 
   int ChId = -1;           //channel Id
   int ChainQTC = -1;       //QTC chain
-  double CFDTime = -20000; //time in #CFD channels, 0 at the LHC clk center
-  double QTCAmpl = -20000; // Amplitude #channels
+  double CFDTime = -20000; //time in ps, 0 at the LHC clk center
+  double QTCAmpl = -20000; // Amplitude mV
 
   ChannelDataFloat() = default;
   ChannelDataFloat(int iPmt, double time, double charge, int chainQTC)
@@ -77,8 +77,8 @@ class RecPoints
 
   float getCollisionTime(int side) const { return mCollisionTime[side]; }
   float getCollisionTimeMean() const { return getCollisionTime(TimeMean); }
-  float getCollisionTimeA() const { return getCollisionTime(TimeC); }
-  float getCollisionTimeC() const { return getCollisionTime(TimeA); }
+  float getCollisionTimeA() const { return getCollisionTime(TimeA); }
+  float getCollisionTimeC() const { return getCollisionTime(TimeC); }
   bool isValidTime(int side) const { return getCollisionTime(side) < o2::InteractionRecord::DummyTime; }
   void setCollisionTime(Float_t time, int side) { mCollisionTime[side] = time; }
 

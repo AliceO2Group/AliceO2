@@ -155,6 +155,50 @@ struct Block {
     return alignSize((_ndict + _ndata) * sizeof(W));
   }
 
+  // store a dictionary in an empty block
+  void storeDict(int _ndict, const W* _dict)
+  {
+    if (nDict || nStored) {
+      throw std::runtime_error("trying to write in occupied block");
+    }
+    size_t sz = estimateSize(_ndict, 0);
+    assert(registry); // this method is valid only for flat version, which has a registry
+    assert(sz <= registry->getFreeSize());
+    assert((_ndict > 0) == (_dict != nullptr));
+    nDict = nStored = _ndict;
+    if (nDict) {
+      auto ptr = payload = reinterpret_cast<W*>(registry->getFreeBlockStart());
+      memcpy(ptr, _dict, _ndict * sizeof(W));
+      ptr += _ndict;
+    }
+  };
+
+  // store a dictionary to a block which can either be empty or contain a dict.
+  void storeData(int _ndata, const W* _data)
+  {
+    if (nStored > nDict) {
+      throw std::runtime_error("trying to write in occupied block");
+    }
+
+    size_t sz = estimateSize(0, _ndata);
+    assert(registry); // this method is valid only for flat version, which has a registry
+    assert(sz <= registry->getFreeSize());
+    assert((_ndata > 0) == (_data != nullptr));
+    nStored = nDict + _ndata;
+    if (_ndata) {
+      auto ptr = payload = reinterpret_cast<W*>(registry->getFreeBlockStart());
+      ptr += nDict;
+      memcpy(ptr, _data, _ndata * sizeof(W));
+    }
+  }
+
+  // resize block and free up unused buffer space.
+  void endBlock()
+  {
+    size_t sz = estimateSize(nStored, 0);
+    registry->shrinkFreeBlock(sz);
+  }
+
   /// store binary blob data (buffer filled from head to tail)
   void store(int _ndict, int _ndata, const W* _dict, const W* _data)
   {
@@ -186,7 +230,7 @@ struct Block {
   }
 
   ClassDefNV(Block, 1);
-};
+}; // namespace ctf
 
 ///<<======================== Auxiliary classes =======================<<
 
@@ -579,7 +623,7 @@ void EncodedBlocks<H, N, W>::decode(D* dest,        // destination pointer
       assert(block.getNDict()); // at the moment we expect to have dictionary
       o2::rans::SymbolStatistics stats(block.getDict(), block.getDict() + block.getNDict(), md.min, md.max, md.messageLength);
       o2::rans::Decoder64<D> decoder(stats, md.probabilityBits);
-      decoder.process(dest, block.getData(), md.messageLength);
+      decoder.process(dest, block.getData() + block.getNData(), md.messageLength);
     } else { // data was stored as is
       std::memcpy(dest, block.payload, md.messageLength * sizeof(D));
     }
@@ -596,55 +640,79 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
                                     Metadata::OptStore opt,  // option for data compression
                                     VB* buffer)              // optional buffer (vector) providing memory for encoded blocks
 {
-
-  // symbol statistics and encoding
+  // fill a new block
   assert(slot == mRegistry.nFilledBlocks);
   mRegistry.nFilledBlocks++;
   using stream_t = typename o2::rans::Encoder64<S>::stream_t;
+
+  // cover three cases:
+  // * empty source message: no entropy coding
+  // * source message to pass through without any entropy coding
+  // * source message where entropy coding should be applied
+
+  // case 1: empty source message
   if (srcBegin == srcEnd) {
     mMetadata[slot] = Metadata{0, sizeof(uint64_t), sizeof(stream_t), probabilityBits, Metadata::OptStore::NODATA, 0, 0, 0, 0};
     return;
   }
-  std::vector<stream_t> encoderBuffer;
   static_assert(std::is_same<W, stream_t>());
-  stream_t* encodedMessageStart = nullptr;
-  const stream_t* dictStart = nullptr;
-  int dictSize = 0, dataSize = 0;
-  o2::rans::SymbolStatistics stats{srcBegin, srcEnd}; // need to create it, even if not used
-  if (opt == Metadata::OptStore::EENCODE) {
-    stats.rescaleToNBits(probabilityBits);
-    const auto buffSize = o2::rans::calculateMaxBufferSize(stats.getMessageLength(),
-                                                           stats.getAlphabetRangeBits(),
-                                                           sizeof(S));
-    encoderBuffer.resize(buffSize);
-    const o2::rans::Encoder64<S> encoder{stats, probabilityBits};
-    encodedMessageStart = &(*encoder.process(encoderBuffer.begin(), encoderBuffer.end(), srcBegin, srcEnd));
-    dictStart = stats.getFrequencyTable().data();
-    dictSize = stats.getFrequencyTable().size();
-    dataSize = &(*encoderBuffer.end()) - encodedMessageStart; // number of elements to store
-  } else {                                                    // store original data w/o EEncoding
-    auto szb = (srcEnd - srcBegin) * sizeof(S);
-    dataSize = szb / sizeof(stream_t) + (sizeof(S) < sizeof(stream_t));
-    encoderBuffer.resize(dataSize);
-    memcpy(encoderBuffer.data(), srcBegin, szb);
-    encodedMessageStart = &(*encoderBuffer.begin());
-  }
-  auto szNeed = estimateBlockSize(dictSize, dataSize); // size in bytes!!!
+  std::unique_ptr<rans::SymbolStatistics> stats = nullptr;
+
+  Metadata md;
   auto* bl = &mBlocks[slot];
   auto* meta = &mMetadata[slot];
-  if (szNeed >= getFreeSize()) {
-    LOG(INFO) << "Slot " << slot << ": free size: " << getFreeSize() << ", need " << szNeed;
-    if (buffer) {
-      expand(*buffer, size() + (szNeed - getFreeSize()));
-      meta = &(get(buffer->data())->mMetadata[slot]);
-      bl = &(get(buffer->data())->mBlocks[slot]); // in case of resizing this and any this.xxx becomes invalid
-    } else {
-      throw std::runtime_error("no room for encoded block in provided container");
+
+  // resize underlying buffer of block if necessary and update all pointers.
+  auto expandStorage = [&](int dictElems, int encodeBufferElems) {
+    auto szNeed = estimateBlockSize(dictElems, encodeBufferElems); // size in bytes!!!
+    if (szNeed >= getFreeSize()) {
+      LOG(INFO) << "Slot " << slot << ": free size: " << getFreeSize() << ", need " << szNeed;
+      if (buffer) {
+        expand(*buffer, size() + (szNeed - getFreeSize()));
+        meta = &(get(buffer->data())->mMetadata[slot]);
+        bl = &(get(buffer->data())->mBlocks[slot]); // in case of resizing this and any this.xxx becomes invalid
+      } else {
+        throw std::runtime_error("no room for encoded block in provided container");
+      }
     }
+  };
+
+  // case 3: message where entropy coding should be applied
+  if (opt == Metadata::OptStore::EENCODE) {
+    // build symbol statistics
+    stats = std::make_unique<rans::SymbolStatistics>(srcBegin, srcEnd);
+    stats->rescaleToNBits(probabilityBits);
+    const o2::rans::Encoder64<S> encoder{*stats, probabilityBits};
+    const int dictSize = stats->getFrequencyTable().size();
+
+    // estimate size of encode buffer
+    int dataSize = rans::calculateMaxBufferSize(stats->getMessageLength(),
+                                                stats->getAlphabetRangeBits(),
+                                                sizeof(S));
+    // preliminary expansion of storage based on dict size + estimated size of encode buffer
+    expandStorage(dictSize, dataSize);
+    //store dictionary first
+    bl->storeDict(dictSize, stats->getFrequencyTable().data());
+    // directly encode source message into block buffer.
+    const auto encodedMessageEnd = encoder.process(bl->getData(), bl->getData() + dataSize, srcBegin, srcEnd);
+    dataSize = encodedMessageEnd - bl->getData();
+    // update the size claimed by encode message directly inside the block
+    bl->nStored = bl->nDict + dataSize;
+    *meta = Metadata{stats->getMessageLength(), sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt,
+                     stats->getMinSymbol(), stats->getMaxSymbol(), dictSize, dataSize};
+
+  } else { // store original data w/o EEncoding
+    const size_t messageLength = (srcEnd - srcBegin);
+    const size_t szb = messageLength * sizeof(S);
+    const int dataSize = szb / sizeof(stream_t) + (sizeof(S) < sizeof(stream_t));
+    // no dictionary needed
+    expandStorage(0, dataSize);
+    *meta = Metadata{messageLength, sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt,
+                     0, 0, 0, dataSize};
+    bl->storeData(meta->nDataWords, reinterpret_cast<const W*>(srcBegin));
   }
-  *meta = Metadata{stats.getMessageLength(), sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt,
-                   stats.getMinSymbol(), stats.getMaxSymbol(), dictSize, dataSize};
-  bl->store(dictSize, dataSize, dictStart, encodedMessageStart);
+  // resize block if necessary
+  bl->endBlock();
 }
 
 } // namespace ctf

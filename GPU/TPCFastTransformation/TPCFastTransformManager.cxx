@@ -326,7 +326,9 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
     } // row
   }   // slice
 
+#ifndef GPUCA_ALIROOT_LIB // Disable in AliRoot case temporarily, since it crashes, and is not used anyway
   correction.initInverse();
+#endif
 
   // set back the time-of-flight correction;
 

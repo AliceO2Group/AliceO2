@@ -24,4 +24,6 @@ add_subdirectory(CPV)
 
 if(ENABLE_UPGRADES)
   add_subdirectory(Upgrades)
+else()
+  message(STATUS "Not building dataformats for upgrades")
 endif()

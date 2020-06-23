@@ -8,31 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   DigitWorkflow.cxx
+/*
+ * SimUserDecay.cxx
+ *
+ *  Created on: Jun 16, 2020
+ *      Author: r+preghenella
+ */
 
-#include <TTree.h>
-#include "MFTWorkflow/DigitWorkflow.h"
-
-#include "MFTWorkflow/DigitWriterSpec.h"
-
-namespace o2
-{
-namespace mft
-{
-
-namespace digit_workflow
-{
-
-framework::WorkflowSpec getWorkflow()
-{
-  framework::WorkflowSpec specs;
-
-  specs.emplace_back(o2::mft::getDigitWriterSpec());
-
-  return specs;
-}
-
-} // namespace digit_workflow
-
-} // namespace mft
-} // namespace o2
+#include "SimConfig/SimUserDecay.h"
+O2ParamImpl(o2::conf::SimUserDecay);

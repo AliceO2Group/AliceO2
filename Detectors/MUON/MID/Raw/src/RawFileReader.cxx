@@ -17,11 +17,14 @@
 
 #include <iostream>
 #include "Headers/RAWDataHeader.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 namespace o2
 {
 namespace mid
 {
+using RDHUtils = o2::raw::RDHUtils;
+
 template <typename T>
 bool RawFileReader<T>::init(const char* inFilename, bool readContinuous)
 {
@@ -96,7 +99,7 @@ bool RawFileReader<T>::replaceRDH(size_t headerIndex)
   /// Replaces the current RDH with a custom one if needed.
   /// This is done to be able to correctly read test data
   /// that have a wrong RDH
-  if (mCustomRDH.offsetToNext > 0) {
+  if (RDHUtils::getOffsetToNext(mCustomRDH) > 0) {
     header::RAWDataHeader* rdh = reinterpret_cast<header::RAWDataHeader*>(&mBytes[headerIndex]);
     *rdh = mCustomRDH;
     return true;
@@ -140,13 +143,13 @@ bool RawFileReader<T>::readHB(bool sendCompleteHBs)
     mBuffer.setBuffer(mBytes, RawBuffer<T>::ResetMode::bufferOnly);
     mBuffer.nextHeader();
     isHBClosed = mBuffer.isHBClosed();
-    gbtId = mBuffer.getRDH()->feeId;
+    gbtId = RDHUtils::getFEEID(*mBuffer.getRDH());
     if (gbtId >= crateparams::sNGBTs) {
       // FIXME: this is a problem of the header of some test files
       gbtId = 0;
     }
-    if (mBuffer.getRDH()->offsetToNext > raw::sHeaderSizeInBytes) {
-      read(mBuffer.getRDH()->offsetToNext - raw::sHeaderSizeInBytes);
+    if (RDHUtils::getOffsetToNext(*mBuffer.getRDH()) > raw::sHeaderSizeInBytes) {
+      read(RDHUtils::getOffsetToNext(*mBuffer.getRDH()) - raw::sHeaderSizeInBytes);
       // CAVEAT: to save memory / CPU time, the RawBuffer does not hold a copy of the buffer,
       // but just a span of it.
       // If we add bytes to mBytes, the vector can go beyond the capacity

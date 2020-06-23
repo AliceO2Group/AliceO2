@@ -283,7 +283,7 @@ void GPUTPCGMMerger::RegisterMemoryAllocation()
   AllocateAndInitializeLate();
   mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersMerger, (mRec->GetDeviceProcessingSettings().fullMergerOnGPU ? 0 : GPUMemoryResource::MEMORY_HOST) | GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCMerger");
   mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersRefitScratch, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCMergerRefitScratch");
-  mMemoryResOutput = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersOutput, mRec->GetDeviceProcessingSettings().fullMergerOnGPU ? GPUMemoryResource::MEMORY_OUTPUT : GPUMemoryResource::MEMORY_INOUT, "TPCMergerOutput");
+  mMemoryResOutput = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersOutput, (mRec->GetDeviceProcessingSettings().fullMergerOnGPU ? GPUMemoryResource::MEMORY_OUTPUT : GPUMemoryResource::MEMORY_INOUT) | GPUMemoryResource::MEMORY_CUSTOM, "TPCMergerOutput");
   mMemoryResMemory = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersMemory, GPUMemoryResource::MEMORY_PERMANENT, "TPCMergerMemory");
 }
 
@@ -635,13 +635,13 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<0>(int nBlocks, int nThreads, int 
     }
     CADEBUG(
       printf("  Input Slice 1 %d Track %d: ", iSlice1, itr); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Cov()[i]); } printf(" - D %8.3f\n", d));
-    range1[itr].fId = itr;
-    range1[itr].fMin = b.Par()[1] + b.ZOffsetLinear() - d;
-    range1[itr].fMax = b.Par()[1] + b.ZOffsetLinear() + d;
+    GPUTPCGMBorderRange range;
+    range.fId = itr;
+    range.fMin = b.Par()[1] + b.ZOffsetLinear() - d;
+    range.fMax = b.Par()[1] + b.ZOffsetLinear() + d;
+    range1[itr] = range;
     if (sameSlice) {
-      for (int i = 0; i < N1; i++) {
-        range2[i] = range1[i];
-      }
+      range2[itr] = range;
     }
   }
   if (!sameSlice) {
@@ -655,9 +655,11 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<0>(int nBlocks, int nThreads, int 
       }
       CADEBUG(
         printf("  Input Slice 2 %d Track %d: ", iSlice2, itr); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Cov()[i]); } printf(" - D %8.3f\n", d));
-      range2[itr].fId = itr;
-      range2[itr].fMin = b.Par()[1] + b.ZOffsetLinear() - d;
-      range2[itr].fMax = b.Par()[1] + b.ZOffsetLinear() + d;
+      GPUTPCGMBorderRange range;
+      range.fId = itr;
+      range.fMin = b.Par()[1] + b.ZOffsetLinear() - d;
+      range.fMax = b.Par()[1] + b.ZOffsetLinear() + d;
+      range2[itr] = range;
     }
   }
 }

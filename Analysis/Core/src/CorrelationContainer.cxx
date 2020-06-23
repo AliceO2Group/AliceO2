@@ -1242,15 +1242,17 @@ TH1* CorrelationContainer::getTrackEfficiency(CFStep step1, CFStep step2, Int_t 
         delete tmp;
       }
     } else if (axis->GetNbins() > measured->GetNbinsX()) {
-      if (axis2 != -1)
+      if (axis2 != -1) {
         LOGF(fatal, "Rebinning only works for 1d at present");
+      }
 
       // this is an unfortunate case where the number of bins has to be increased in principle
       // there is a region where the binning is finner in one histogram and a region where it is the other way round
       // this cannot be resolved in principle, but as we only calculate the ratio the bin in the second region get the same entries
       // only a certain binning is supported here
-      if (axis->GetNbins() != 100 || measured->GetNbinsX() != 39)
+      if (axis->GetNbins() != 100 || measured->GetNbinsX() != 39) {
         LOGF(fatal, "Invalid binning --> %d %d", axis->GetNbins(), measured->GetNbinsX());
+      }
 
       Double_t newBins[] = {0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0, 100.0};
 
@@ -1334,8 +1336,9 @@ void CorrelationContainer::weightHistogram(TH3* hist1, TH1* hist2)
   // weights each entry of the 3d histogram hist1 with the 1d histogram hist2
   // where the matching is done of the z axis of hist1 with the x axis of hist2
 
-  if (hist1->GetNbinsZ() != hist2->GetNbinsX())
+  if (hist1->GetNbinsZ() != hist2->GetNbinsX()) {
     LOGF(fatal, "Inconsistent binning %d %d", hist1->GetNbinsZ(), hist2->GetNbinsX());
+  }
 
   for (Int_t x = 1; x <= hist1->GetNbinsX(); x++) {
     for (Int_t y = 1; y <= hist1->GetNbinsY(); y++) {

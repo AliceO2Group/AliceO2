@@ -563,8 +563,9 @@ void addAlignableVolumesHalfChamber(int hc, std::string& parent)
 
     LOG(DEBUG) << "Add " << sname << " <-> " << path;
 
-    if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data()))
+    if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
       LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+    }
   }
 
   return;
@@ -637,8 +638,9 @@ void addAlignableVolumesMCH()
 
     LOG(DEBUG) << sname << " <-> " << path;
 
-    if (!gGeoManager->SetAlignableEntry(sname.c_str(), path.c_str()))
+    if (!gGeoManager->SetAlignableEntry(sname.c_str(), path.c_str())) {
       LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+    }
 
     Int_t lastUID = 0;
 

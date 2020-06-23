@@ -566,8 +566,18 @@ size_t GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const 
 void GPUReconstructionCUDABackend::ReleaseEvent(deviceEvent* ev) {}
 void GPUReconstructionCUDABackend::RecordMarker(deviceEvent* ev, int stream) { GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)ev, mInternals->Streams[stream])); }
 
-GPUReconstructionCUDABackend::GPUThreadContextCUDA::GPUThreadContextCUDA(GPUReconstructionCUDAInternals* context) : GPUThreadContext(), mContext(context) { cuCtxPushCurrent(mContext->CudaContext); }
-GPUReconstructionCUDABackend::GPUThreadContextCUDA::~GPUThreadContextCUDA() { cuCtxPopCurrent(&mContext->CudaContext); }
+GPUReconstructionCUDABackend::GPUThreadContextCUDA::GPUThreadContextCUDA(GPUReconstructionCUDAInternals* context) : GPUThreadContext(), mContext(context)
+{
+  if (mContext->cudaContextObtained++ == 0) {
+    cuCtxPushCurrent(mContext->CudaContext);
+  }
+}
+GPUReconstructionCUDABackend::GPUThreadContextCUDA::~GPUThreadContextCUDA()
+{
+  if (--mContext->cudaContextObtained == 0) {
+    cuCtxPopCurrent(&mContext->CudaContext);
+  }
+}
 std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstructionCUDABackend::GetThreadContext() { return std::unique_ptr<GPUThreadContext>(new GPUThreadContextCUDA(mInternals)); }
 
 void GPUReconstructionCUDABackend::SynchronizeGPU() { GPUFailedMsg(cudaDeviceSynchronize()); }
