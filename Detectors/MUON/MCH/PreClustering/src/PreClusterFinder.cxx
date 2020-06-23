@@ -110,35 +110,41 @@ void PreClusterFinder::reset()
 void PreClusterFinder::loadDigits(gsl::span<const Digit> digits)
 {
   /// fill the Mapping::MpDE structure with fired pads
-
   for (const auto& digit : digits) {
-
-    int deIndex = mDEIndices[digit.getDetID()];
-    assert(deIndex >= 0 && deIndex < SNDEs);
-
-    DetectionElement& de(*(mDEs[deIndex]));
-
-    uint16_t iPad = digit.getPadID();
-    int iPlane = (iPad < de.mapping->nPads[0]) ? 0 : 1;
-
-    // register this digit
-    uint16_t iDigit = de.nFiredPads[0] + de.nFiredPads[1];
-    if (iDigit >= de.digits.size()) {
-      de.digits.push_back(&digit);
-    } else {
-      de.digits[iDigit] = &digit;
-    }
-    de.mapping->pads[iPad].iDigit = iDigit;
-    de.mapping->pads[iPad].useMe = true;
-
-    // set this pad as fired
-    if (de.nFiredPads[iPlane] < de.firedPads[iPlane].size()) {
-      de.firedPads[iPlane][de.nFiredPads[iPlane]] = iPad;
-    } else {
-      de.firedPads[iPlane].push_back(iPad);
-    }
-    ++de.nFiredPads[iPlane];
+    loadDigit(digit);
   }
+}
+
+//_________________________________________________________________________________________________
+void PreClusterFinder::loadDigit(const Digit& digit)
+{
+  /// fill the Mapping::MpDE structure with fired pad
+
+  int deIndex = mDEIndices[digit.getDetID()];
+  assert(deIndex >= 0 && deIndex < SNDEs);
+
+  DetectionElement& de(*(mDEs[deIndex]));
+
+  uint16_t iPad = digit.getPadID();
+  int iPlane = (iPad < de.mapping->nPads[0]) ? 0 : 1;
+
+  // register this digit
+  uint16_t iDigit = de.nFiredPads[0] + de.nFiredPads[1];
+  if (iDigit >= de.digits.size()) {
+    de.digits.push_back(&digit);
+  } else {
+    de.digits[iDigit] = &digit;
+  }
+  de.mapping->pads[iPad].iDigit = iDigit;
+  de.mapping->pads[iPad].useMe = true;
+
+  // set this pad as fired
+  if (de.nFiredPads[iPlane] < de.firedPads[iPlane].size()) {
+    de.firedPads[iPlane][de.nFiredPads[iPlane]] = iPad;
+  } else {
+    de.firedPads[iPlane].push_back(iPad);
+  }
+  ++de.nFiredPads[iPlane];
 }
 
 //_________________________________________________________________________________________________
