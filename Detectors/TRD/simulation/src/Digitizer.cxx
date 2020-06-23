@@ -188,31 +188,25 @@ int Digitizer::triggerEventProcessing(DigitContainer& digits, o2::dataformats::M
 {
   if (mCurrentTriggerTime < 0 && mLastTime < 0) {
     // very first event
-    LOG(INFO) << "First event recieved";
     mCurrentTriggerTime = mTime;
     mLastTime = mTime;
-    LOG(INFO) << "First event, current trigger time = " << mCurrentTriggerTime;
     return EventType::kFirstEvent;
   }
   if (mTime > mLastTime) {
     if ((mTime - mCurrentTriggerTime) < BUSY_TIME) {
       // send the signal containers to the pileup container, and do not change the current trigger time.
-      LOG(INFO) << "Pileup event, current trigger time = " << mCurrentTriggerTime;
       pileup();
       mLastTime = mTime;
       return EventType::kPileupEvent;
     } else {
       // flush the digits: signals from the pileup container are converted to adcs
       // digits and labels are produced, and the current trigger time is changed after the flush is completed
-      LOG(INFO) << "Separated event recieved, current trigger time = " << mCurrentTriggerTime;
       flush(digits, labels);
       mCurrentTriggerTime = mTime;
       mLastTime = mTime;
-      LOG(INFO) << "Separated event flushed, current trigger time = " << mCurrentTriggerTime;
       return EventType::kTriggerFired;
     }
   } else {
-    LOG(INFO) << "Embedding event recieved, keep going";
     return EventType::kEmbeddingEvent;
   }
 }
