@@ -229,7 +229,7 @@ template <class T>
 inline const CalArray<T>& CalArray<T>::operator*=(const CalArray<T>& other)
 {
   if (!((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber))) {
-    LOG(ERROR) << "pad subste type of the objects it not compatible";
+    LOG(ERROR) << "pad subset type of the objects it not compatible";
     return *this;
   }
   for (size_t i = 0; i < mData.size(); ++i) {
@@ -243,11 +243,16 @@ template <class T>
 inline const CalArray<T>& CalArray<T>::operator/=(const CalArray<T>& other)
 {
   if (!((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber))) {
-    LOG(ERROR) << "pad subste type of the objects it not compatible";
+    LOG(ERROR) << "pad subset type of the objects it not compatible";
     return *this;
   }
   for (size_t i = 0; i < mData.size(); ++i) {
-    mData[i] /= other.getValue(i);
+    if (other.getValue(i) != 0) {
+      mData[i] /= other.getValue(i);
+    } else {
+      mData[i] = 0;
+      LOG(ERROR) << "Division by 0 detected! Value was set to 0.";
+    }
   }
   return *this;
 }
