@@ -167,11 +167,19 @@ struct HFTrackIndexSkimsCreator {
         if (nCand == 0)
           continue;
         const auto& vtx = df.getPCACandidate();
-        //LOGF(info, "vertex x %f", vtx[0]);
-        //std::array<float, 3> pvec0;
-        //std::array<float, 3> pvec1;
-        //df.getTrack(0).getPxPyPzGlo(pvec0);
-        //df.getTrack(1).getPxPyPzGlo(pvec1);
+        std::array<float, 3> pvec0;
+        std::array<float, 3> pvec1;
+        df.getTrack(0).getPxPyPzGlo(pvec0);
+        df.getTrack(1).getPxPyPzGlo(pvec1);
+        float mass_ = invmass2prongs(pvec0[0], pvec0[1],
+                                     pvec0[2], masspion,
+                                     pvec1[0], pvec1[1],
+                                     pvec1[2], masskaon);
+        float masssw_ = invmass2prongs(pvec0[0], pvec0[1],
+                                       pvec0[2], masskaon,
+                                       pvec1[0], pvec1[1],
+                                       pvec1[2], masspion);
+        LOGF(info, "mass x %f %f", mass_, masssw_);
 
         hftrackindexprong2(track_p1.collisionId(),
                            track_p1.globalIndex(),
