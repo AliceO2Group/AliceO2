@@ -441,27 +441,23 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
     throw std::bad_alloc();
   }
   size_t retVal;
-  size_t minSize = res->mOverrideSize;
-  if (IsGPU() && minSize < GPUCA_BUFFER_ALIGNMENT) {
-    minSize = GPUCA_BUFFER_ALIGNMENT;
-  }
   if ((res->mType & GPUMemoryResource::MEMORY_STACK) && memorypoolend) {
     retVal = (char*)((res->*setPtr)((char*)1)) - (char*)(1);
     memorypoolend = (void*)((char*)memorypoolend - GPUProcessor::getAlignmentMod<GPUCA_MEMALIGN>(memorypoolend));
-    if (retVal < minSize) {
-      retVal = minSize;
+    if (retVal < res->mOverrideSize) {
+      retVal = res->mOverrideSize;
     }
     retVal += GPUProcessor::getAlignment<GPUCA_MEMALIGN>(retVal);
     memorypoolend = (char*)memorypoolend - retVal;
     ptr = memorypoolend;
-    (res->*setPtr)(ptr);
+    retVal = std::max<size_t>((char*)((res->*setPtr)(ptr)) - (char*)ptr, res->mOverrideSize);
   } else {
     ptr = memorypool;
     memorypool = (char*)((res->*setPtr)(ptr));
     retVal = (char*)memorypool - (char*)ptr;
-    if (retVal < minSize) {
-      retVal = minSize;
-      memorypool = (char*)ptr + minSize;
+    if (retVal < res->mOverrideSize) {
+      retVal = res->mOverrideSize;
+      memorypool = (char*)ptr + res->mOverrideSize;
     }
     memorypool = (void*)((char*)memorypool + GPUProcessor::getAlignment<GPUCA_MEMALIGN>(memorypool));
   }
@@ -506,12 +502,15 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
       GPUError("Double allocation! (%s)", res->mName);
       throw std::bad_alloc();
     }
+    if (IsGPU() && res->mOverrideSize < GPUCA_BUFFER_ALIGNMENT) {
+      res->mOverrideSize = GPUCA_BUFFER_ALIGNMENT;
+    }
     if ((!IsGPU() || (res->mType & GPUMemoryResource::MEMORY_HOST) || mDeviceProcessingSettings.keepDisplayMemory) && !(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) { // keepAllMemory --> keepDisplayMemory
       if (control && control->OutputType == GPUOutputControl::UseExternalBuffer) {
         if (control->OutputAllocator) {
           res->mSize = std::max((size_t)res->SetPointers((void*)1) - 1, res->mOverrideSize);
           res->mPtr = control->OutputAllocator(res->mSize);
-          res->SetPointers(res->mPtr);
+          res->mSize = std::max<size_t>((char*)res->SetPointers(res->mPtr) - (char*)res->mPtr, res->mOverrideSize);
         } else {
           void* dummy = nullptr;
           res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->OutputPtr, control->OutputBase, control->OutputMaxSize, &GPUMemoryResource::SetPointers, dummy);
@@ -530,7 +529,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
       if (!(res->mType & GPUMemoryResource::MEMORY_HOST) || (res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
         res->mSize = size;
       } else if (size != res->mSize) {
-        GPUError("Inconsistent device memory allocation (%s)", res->mName);
+        GPUError("Inconsistent device memory allocation (%s: device %lu vs %lu)", res->mName, size, res->mSize);
         throw std::bad_alloc();
       }
     }
