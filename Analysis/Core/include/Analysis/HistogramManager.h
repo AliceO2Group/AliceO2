@@ -1,9 +1,8 @@
-#ifndef HISTOGRAMMANAGER_H
-#define HISTOGRAMMANAGER_H
+#ifndef HistogramManager_H
+#define HistogramManager_H
 
 #include <TString.h>
 #include <TObject.h>
-#include <THn.h>
 #include <TList.h>
 #include <THashList.h>
 
@@ -47,17 +46,22 @@ class HistogramManager : public TObject {
   
   void SetUseDefaultVariableNames(Bool_t flag) {fUseDefaultVariableNames = flag;};
   void SetDefaultVarNames(TString* vars, TString* units);
+  const Bool_t* GetUsedVars() const {return fUsedVars;}
+  
   void WriteOutput(TFile* saveFile);
   void InitFile(const Char_t* filename, const Char_t* mainListName="");    // open an output file for reading
   void AddToOutputList(TList* list) {fOutputList.Add(list);}
   void CloseFile();
+  
   const THashList* GetMainHistogramList() const {return &fMainList;}    // get a histogram list
   const THashList* GetMainDirectory() const {return fMainDirectory;}    // get the main histogram list from the loaded file
-  THashList* AddHistogramsToOutputList(); // get all histograms on a THashList
-  THashList* GetHistogramOutputList() {return &fOutputList;} 
-  THashList* GetHistogramList(const Char_t* listname) const;    // get a histogram list
+  
+  TList* AddHistogramsToOutputList(); // get all histograms on a TList              // NEWNEW
+  
+  TList* GetHistogramOutputList() {return &fOutputList;}        // NEWNEW
+  TList* GetHistogramList(const Char_t* listname) const;    // get a histogram list      NEWNEW
   TObject* GetHistogram(const Char_t* listname, const Char_t* hname) const;  // get a histogram from an old output
-  const Bool_t* GetUsedVars() const {return fUsedVars;}
+  
     
   ULong_t GetAllocatedBins() const {return fBinsAllocated;}  
   void Print(Option_t*) const;
@@ -68,7 +72,7 @@ class HistogramManager : public TObject {
   int fNVars;
   THashList* fMainDirectory;     //! main directory with analysis output (this is used for loading output files and retrieving histograms offline)
   TFile* fHistFile;              //! pointer to a TFile opened for reading 
-  THashList fOutputList;         // THashList for output histograms
+  TList fOutputList;         // TList for output histograms
    
   // Array of bool flags toggled when a variable is used (filled in a histogram)
   bool* fUsedVars;           // map of used variables

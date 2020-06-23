@@ -14,8 +14,6 @@
 #include "Analysis/Multiplicity.h"
 #include "Analysis/EventSelection.h"
 #include "Analysis/Centrality.h"
-#include "Analysis/ReducedEvent.h"
-#include "Analysis/ReducedTrack.h"
 #include "Analysis/ReducedInfoTables.h"
 #include <TH1F.h>
 #include <TMath.h>
@@ -69,7 +67,7 @@ struct TableMaker {
                   track.tpcNClsFindable(), track.tpcNClsFindableMinusFound(), track.tpcNClsFindableMinusCrossedRows(),
                   track.tpcNClsShared(), track.tpcChi2NCl(), 
                   track.tpcSignal(), track.trdSignal(), track.tofSignal(),
-                  track.trdNTracklets(), track.trdChi2(), track.tofChi2(),
+                  track.trdChi2(), track.tofChi2(),
                   track.length());
       trackBarrelCov(track.cYY(), track.cZZ(), track.cSnpSnp(), track.cTglTgl(), track.c1Pt21Pt2());
     }

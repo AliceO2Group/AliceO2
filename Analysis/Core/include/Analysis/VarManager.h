@@ -1,26 +1,12 @@
 
-#ifndef VARMANAGER_H
-#define VARMANAGER_H
+#ifndef VarManager_H
+#define VarManager_H
 
-
-//#include "Framework/runDataProcessing.h"
-//#include "Framework/ASoA.h"
-//#include "Framework/ASoAHelpers.h"
-//#include "Framework/DataTypes.h"
-//#include "Framework/AnalysisTask.h"
-//#include "Framework/AnalysisDataModel.h"
 #include "Analysis/ReducedInfoTables.h"
-
 #include <TObject.h>
 #include <TString.h>
 
-//using namespace o2;
-//using namespace o2::framework;
-//using namespace o2::framework::expressions;
 using namespace o2::aod;
-
-//using Event = soa::Join<o2::aod::ReducedEvents, o2::aod::ReducedEventsExtended, o2::aod::ReducedEventsVtxCov>::iterator;
-//using Track = soa::Join<o2::aod::ReducedTracks, o2::aod::ReducedTracksBarrel>::iterator;
 
 //_________________________________________________________________________
 class VarManager : public TObject {
@@ -97,11 +83,11 @@ public:
   };           // end of Variables enumeration
   
   static TString fgVariableNames[kNVars];         // variable names
-  static TString fgVariableUnits[kNVars];         // variable units  
+  static TString fgVariableUnits[kNVars];         // variable units
   static void SetDefaultVarNames();  
     
   static void SetUseVariable(Variables var) {fgUsedVars[var] = kTRUE; SetVariableDependencies();}
-  static void SetUseVars(bool* usedVars) {
+  static void SetUseVars(const bool* usedVars) {
     for(int i=0;i<kNVars;++i) {
       if(usedVars[i]) fgUsedVars[i]=kTRUE;    // overwrite only the variables that are being used since there are more channels to modify the used variables array, independently
     }
@@ -109,16 +95,8 @@ public:
   }
   static bool GetUsedVar(Variables var) {return fgUsedVars[var];}
   
-  template <typename T> 
-  void Fill(T object, float* values) {
-    if constexpr (std::is_same_v<T, ReducedEvent>)
-      FillEvent(object,values);
-    if constexpr (std::is_same_v<T, ReducedTrack>)
-      FillTrack(object,values);
-  };
-  
-  static void FillEvent(o2::aod::ReducedEvent event, float* values);
-  static void FillTrack(o2::aod::ReducedTrack track, float* values);
+  static void FillEvent(ReducedEvent event, float* values);
+  static void FillTrack(ReducedTrack track, float* values);
     
 public:   
   VarManager();

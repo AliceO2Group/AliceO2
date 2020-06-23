@@ -88,7 +88,7 @@ void HistogramManager::AddHistClass(const Char_t* histClass) {
          << " because it already exists." << endl;
     return;
   }
-  THashList* hList=new THashList;
+  TList* hList=new TList;
   hList->SetOwner(kTRUE);
   hList->SetName(histClass);
   fMainList.Add(hList);
@@ -104,7 +104,7 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
   //
   // add a histogram
   //
-  THashList* hList = (THashList*)fMainList.FindObject(histClass);
+  TList* hList = (TList*)fMainList.FindObject(histClass);
   if(!hList) {
     cout << "Warning in HistogramManager::AddHistogram(): Histogram list " << histClass << " not found!" << endl;
     cout << "         Histogram not created" << endl;
@@ -248,7 +248,7 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
   //
   // add a histogram
   //
-  THashList* hList = (THashList*)fMainList.FindObject(histClass);
+  TList* hList = (TList*)fMainList.FindObject(histClass);
   if(!hList) {
     cout << "Warning in HistogramManager::AddHistogram(): Histogram list " << histClass << " not found!" << endl;
     cout << "         Histogram not created" << endl;
@@ -391,7 +391,7 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
   //
   // add a multi-dimensional histogram THnF or THnFSparseF
   //
-  THashList* hList = (THashList*)fMainList.FindObject(histClass);
+  TList* hList = (TList*)fMainList.FindObject(histClass);
   if(!hList) {
     cout << "Warning in HistogramManager::AddHistogram(): Histogram list " << histClass << " not found!" << endl;
     cout << "         Histogram not created" << endl;
@@ -440,7 +440,7 @@ void HistogramManager::AddHistogram(const Char_t* histClass, const Char_t* name,
   //
   // add a multi-dimensional histogram THnF or THnSparseF with equal or variable bin widths
   //
-  THashList* hList = (THashList*)fMainList.FindObject(histClass);
+  TList* hList = (TList*)fMainList.FindObject(histClass);
   if(!hList) {
     cout << "Warning in HistogramManager::AddHistogram(): Histogram list " << histClass << " not found!" << endl;
     cout << "         Histogram not created" << endl;
@@ -501,7 +501,7 @@ void HistogramManager::FillHistClass(const Char_t* className, Float_t* values) {
   //
   //  fill a class of histograms
   //
-  THashList* hList = (THashList*)fMainList.FindObject(className);
+  TList* hList = (TList*)fMainList.FindObject(className);
   if(!hList) {
     /*cout << "Warning in HistogramManager::FillHistClass(): Histogram list " << className << " not found!" << endl;
     cout << "         Histogram list not filled" << endl; */
@@ -657,7 +657,7 @@ void HistogramManager::WriteOutput(TFile* save) {
   TDirectory* mainDir = save->mkdir(fMainList.GetName());
   mainDir->cd();
   for(Int_t i=0; i<fMainList.GetEntries(); ++i) {
-    THashList* list = (THashList*)fMainList.At(i);
+    TList* list = (TList*)fMainList.At(i);       
     TDirectory* dir = mainDir->mkdir(list->GetName());
     dir->cd();
     list->Write();
@@ -669,21 +669,18 @@ void HistogramManager::WriteOutput(TFile* save) {
 
 
 //__________________________________________________________________
-THashList* HistogramManager::AddHistogramsToOutputList() {
+TList* HistogramManager::AddHistogramsToOutputList() {  
   //
   // Write the histogram lists in a list
   //
   for(Int_t i=0; i<fMainList.GetEntries(); ++i) {
-    //THashList* hlist = new THashList();
-    THashList* list = (THashList*)fMainList.At(i);
-    //hlist->SetName(list->GetName());
-    //hlist->Add(list);
-    //hlist->SetOwner(kTRUE);
+    TList* list = (TList*)fMainList.At(i);
     fOutputList.Add(list);
   }
   fOutputList.SetOwner(kTRUE);
   return &fOutputList;
 }
+
 
 //____________________________________________________________________________________
 void HistogramManager::InitFile(const Char_t* filename, const Char_t* mainListName /*=""*/) {
@@ -721,29 +718,25 @@ void HistogramManager::CloseFile() {
 }
 
 //____________________________________________________________________________________
-THashList* HistogramManager::GetHistogramList(const Char_t* listname) const {
+TList* HistogramManager::GetHistogramList(const Char_t* listname) const {  
   //
   // Retrieve a histogram list
   //
-  //if(!fMainDirectory && !fMainList) {
    if(!fMainDirectory && fMainList.GetEntries()==0) {
     cout << "HistogramManager::GetHistogramList() : " << endl;
     cout << "                   A ROOT file must be opened first with InitFile() or the main " << endl;
     cout << "                     list must be initialized by creating at least one histogram list !!" << endl;
     return 0x0;
   }
-  //if(fMainList) {
   if(fMainList.GetEntries()>0) {
      cout << "fMainList entries :: " << fMainList.GetEntries() << endl;
-    THashList* hList = (THashList*)fMainList.FindObject(listname);
+     TList* hList = (TList*)fMainList.FindObject(listname); 
     cout << "hList" << hList << endl;
     return hList;
   }
-  THashList* listHist = (THashList*)fMainDirectory->FindObject(listname);
+  TList* listHist = (TList*)fMainDirectory->FindObject(listname);
   cout << "fMainDirectory " << fMainDirectory << endl;
   cout << "listHist " << listHist << endl;
-  //TDirectoryFile* hdir = (TDirectoryFile*)listKey->ReadObj();
-  //return hdir->GetListOfKeys();
   return listHist;
 }
 
@@ -752,26 +745,13 @@ TObject* HistogramManager::GetHistogram(const Char_t* listname, const Char_t* hn
   //
   // Retrieve a histogram from the list hlist
   //
-  //if(!fMainDirectory && !fMainList) {
    if(!fMainDirectory && fMainList.GetEntries()==0) {
     cout << "HistogramManager::GetHistogramList() : " << endl;
     cout << "                   A ROOT file must be opened first with InitFile() or the main " << endl;
     cout << "                     list must be initialized by creating at least one histogram list !!" << endl;
     return 0x0;
   }
-  //if(fMainList) {
-  /*if(fMainList.GetEntries()==0) {
-    THashList* hList = (THashList*)fMainList.FindObject(listname);
-    if(!hList) {
-      cout << "Warning in HistogramManager::GetHistogram(): Histogram list " << listname << " not found!" << endl;
-      return 0x0;
-    }
-    return hList->FindObject(hname);
-  }*/
-  THashList* hList = (THashList*)fMainDirectory->FindObject(listname);
-  //TDirectoryFile* hlist = (TDirectoryFile*)listKey->ReadObj();
-  //TKey* key = hlist->FindKey(hname);
-  //return key->ReadObj();
+  TList* hList = (TList*)fMainDirectory->FindObject(listname); 
   return hList->FindObject(hname);
 }
 
@@ -796,7 +776,7 @@ void HistogramManager::Print(Option_t*) const {
   cout << "###################################################################" << endl;
   cout << "HistogramManager:: " << fMainList.GetName() << endl;
   for(Int_t i=0; i<fMainList.GetEntries(); ++i) {
-    THashList* list = (THashList*)fMainList.At(i);
+    TList* list = (TList*)fMainList.At(i);  
     cout << "************** List " << list->GetName() << endl;
     for(Int_t j=0; j<list->GetEntries(); ++j) {
       TObject* obj = list->At(j);

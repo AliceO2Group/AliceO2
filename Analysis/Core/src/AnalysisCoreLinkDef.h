@@ -21,8 +21,5 @@
 #pragma link C++ class CorrelationContainer+;
 #pragma link C++ class TrackSelection+;
 
-//#pragma link C++ class ReducedTrack+;
-//#pragma link C++ class ReducedEvent+;
-//#pragma link C++ class ReducedAnalysis+;
 #pragma link C++ class VarManager+;
 #pragma link C++ class HistogramManager+;

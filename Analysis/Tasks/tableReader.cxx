@@ -11,8 +11,11 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/ReducedInfoTables.h"
+#include "Analysis/VarManager.h"
+#include "Analysis/HistogramManager.h"
 #include <TH1F.h>
 #include <TMath.h>
+#include <THashList.h>
 #include <iostream>
 
 using std::cout;
@@ -24,51 +27,57 @@ using namespace o2::framework::expressions;
 
 
 struct TableReader {
-   
-  OutputObj<TH1F> hCent{TH1F("hCent", "Cent VZERO", 150, -1.0, 151.0)};
-  OutputObj<TH1F> hTag{TH1F("hTag", "Tag", 100, 0.0, 100.0)};
-  OutputObj<TH1F> hNcontrib{TH1F("hNcontrib", "N vtx contributors", 200, 0.0, 5000.0)};
-  OutputObj<TH1F> hGlobalBC{TH1F("hGlobalBC", "global BC", 10000, 0.0, 10000.0)};
-  OutputObj<TH1F> hTriggerInputs{TH1F("hTriggerInputs", "N events per trigger input", 64, -0.5, 63.5)};
-  OutputObj<TH1F> hCovZZ{TH1F("hCovZZ", "Cov ZZ", 2000, -1.0, 1.0)};
-  OutputObj<TH1F> hVtxChi2{TH1F("hVtxChi2", "vtx chi2", 2000, 0.0, 100.0)};
   
-  OutputObj<TH1F> hEta{TH1F("hEta", "eta hist", 200, -10.0, 10.0)};
-  OutputObj<TH1F> hPhi{TH1F("hPhi", "phi hist", 200, -10.0, 10.0)};
-  OutputObj<TH1F> hPmom{TH1F("hPmom", "p hist", 200, -10.0, 10.0)};
-  OutputObj<TH1F> hPin{TH1F("hPin", "pIN hist", 200, -10.0, 10.0)};
-  OutputObj<TH1F> hTrackingFlags{TH1F("hTrackingFlags", "N tracks per tracking flag", 64, -0.5, 63.5)};
-  OutputObj<TH1F> hITSchi2{TH1F("hITSchi2", "ITS chi2", 100, 0.0, 100.0)};
-  OutputObj<TH1F> hTPCchi2{TH1F("hTPCchi2", "TPC chi2", 100, 0.0, 10.0)};
-  OutputObj<TH2F> hTPCdedxVSpin{TH2F("hTPCdedxVSpin", "TPC de/dx", 100, 0.0, 10.0, 200, 0.0, 200.)};
+  HistogramManager* fHistMan;
+  float fValues[VarManager::kNVars];
+  
+  OutputObj<TList> outList1{"Event"};
+  OutputObj<TList> outList2{"Track"};
+  //OutputObj<HistogramManager> fHistMan{HistogramManager("analysisHistos",VarManager::kNVars)};
   
   void init(o2::framework::InitContext&)
   {
+    VarManager::SetDefaultVarNames();
+    fHistMan = new HistogramManager("analysisHistos",VarManager::kNVars);
+    fHistMan->SetUseDefaultVariableNames(kTRUE);
+    fHistMan->SetDefaultVarNames(VarManager::fgVariableNames,VarManager::fgVariableUnits);
+    
+    DefineHistograms();    // define all histograms 
+    VarManager::SetUseVars(fHistMan->GetUsedVars());   // provide the list of required variables so that VarManager knows what to fill
+    
+    outList1.setObject(fHistMan->GetHistogramList("Event"));
+    outList2.setObject(fHistMan->GetHistogramList("Track"));
   }
 
-  void process(soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov>::iterator event, 
-               soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel> tracks)
+  //void process(soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov>::iterator event, 
+  //             soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel> tracks)
+  void process(aod::ReducedEvents::iterator event, aod::ReducedTracks tracks)
   {
-    hCent->Fill(event.centV0M());
-    hTag->Fill(event.tag());
-    hNcontrib->Fill(event.numContrib());
-    hGlobalBC->Fill(event.globalBC());
-    hCovZZ->Fill(event.covZZ());
-    hVtxChi2->Fill(event.chi2());
+    // Reset the fValues array
+    // TODO: reseting will have to be done selectively, for example run-wise variables don't need to be reset every event, but just updated if the run changes
+    for(Int_t i=0; i<VarManager::kNVars; ++i) fValues[i]=-9999.;
     
-    for(int i=0;i<64;i++) {
-      if(event.triggerMask() & (uint64_t(1) << i)) hTriggerInputs->Fill(i);
-    }
+    VarManager::FillEvent(event, fValues);     // extract event information and place it in the fValues array
+    fHistMan->FillHistClass("Event", fValues);    // automatically fill all the histograms in the class Event
     
     for (auto& track : tracks) {
-      hPin->Fill(track.tpcInnerParam());
-      hITSchi2->Fill(track.itsChi2NCl());
-      hTPCchi2->Fill(track.tpcChi2NCl());
-      hTPCdedxVSpin->Fill(track.tpcInnerParam(), track.tpcSignal());
-      for(int i=0;i<64;i++) {
-        if(track.flags() & (uint64_t(1) << i)) hTrackingFlags->Fill(i);
-      }
+      VarManager::FillTrack(track, fValues);
+      fHistMan->FillHistClass("Track", fValues);
     }
+  }
+  
+  void DefineHistograms()
+  {
+    fHistMan->AddHistClass("Event");
+    fHistMan->AddHistogram("Event", "VtxZ", "Vtx Z", kFALSE, 60, -15.0, 15.0, VarManager::kVtxZ);      // TH1F histogram 
+    //fHistMan.AddHistogram("Event", "CentVZERO", "CentVZERO", kFALSE, 100, 0.0, 100.0, VarManager::kCentVZERO);   // TH1F histogram
+    //fHistMan.AddHistogram("Event", "CentVZERO_VtxZ_prof", "CentVZERO vs vtxZ", kTRUE, 60, -15.0, 15.0, VarManager::kVtxZ, 
+      //                               10, 0.0, 0.0, VarManager::kCentVZERO);   // TProfile with <CentVZERO> vs vtxZ
+    
+    fHistMan->AddHistClass("Track");
+    fHistMan->AddHistogram("Track", "Pt", "p_{T} distribution", kFALSE, 200, 0.0, 20.0, VarManager::kPt);      // TH1F histogram
+    //fHistMan.AddHistogram("Track", "TPCdedx_pIN", "TPC dE/dx vs pIN", kFALSE, 100, 0.0, 20.0, VarManager::kPin, 
+      //                           200, 0.0, 200., VarManager::kTPCsignal);   // TH2F histogram
   }
 };
 
