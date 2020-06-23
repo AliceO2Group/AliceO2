@@ -77,6 +77,7 @@ constexpr auto selectArrowType()
 }
 
 std::shared_ptr<arrow::DataType> concreteArrowType(atype::type type);
+std::string upcastTo(atype::type f);
 
 /// An expression tree node corresponding to a literal value
 struct LiteralNode {
