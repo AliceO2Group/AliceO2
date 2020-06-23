@@ -20,6 +20,9 @@
 #include <cassert>
 #include <fairlogger/Logger.h>
 
+#include <iostream>
+using namespace std;
+
 using namespace o2::mch;
 
 namespace
@@ -179,6 +182,10 @@ void Digitizer::generateNoiseDigits()
 {
 
   TRandom* random = new TRandom;
+  cout <<"random->Integer(100) " << random->Integer(100) << endl;
+  cout <<"random->Integer(100) " << random->Integer(100) << endl;
+  cout << "gRandom->Integer(100) " << gRandom->Integer(100) << endl;
+  cout << "gRandom->Integer(100) " << gRandom->Integer(100) << endl;
   o2::mch::mapping::forEachDetectionElement([& digits = this->mDigits, &normProbNoise = this->mNormProbNoise,
                                              &eventTime = this->mEventTime, &eventID = this->mEventID,
                                              &srcID = this->mSrcID, &mcTruthOutputContainer = this->mMCTruthOutputContainer,
@@ -189,7 +196,9 @@ void Digitizer::generateNoiseDigits()
     int nNoisyPads = TMath::Nint(random->Gaus(nNoisyPadsAv, TMath::Sqrt(nNoisyPadsAv)));
     for (int i = 0; i < nNoisyPads; i++) {
       int padid = random->Integer(nNoisyPads + 1);
-      digits.emplace_back(eventTime, detID, padid, 0.6);
+      Digit::Time dtime;
+      dtime.sampaTime = static_cast<uint16_t>(eventTime) & 0x3FF;
+      digits.emplace_back(detID, padid, 0.6, dtime);
       //just to round above threshold when added
       MCCompLabel label(-1, eventID, srcID, true);
       mcTruthOutputContainer.addElement(digits.size() - 1, label);
