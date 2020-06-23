@@ -79,8 +79,8 @@ DECLARE_SOA_TABLE(ReducedTracks, "AOD", "REDUCEDTRACK",
 
 // barrel track information
 DECLARE_SOA_TABLE(ReducedTracksBarrel, "AOD", "RTBARREL",
-                  track::TPCInnerParam, track::Flags,                   // tracking status flags
-                  track::ITSClusterMap, track::ITSChi2NCl, 
+                  track::TPCInnerParam, track::Flags, // tracking status flags
+                  track::ITSClusterMap, track::ITSChi2NCl,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
                   track::TPCNClsShared, track::TPCChi2NCl,
                   track::TPCSignal, track::TRDSignal, track::TOFSignal,

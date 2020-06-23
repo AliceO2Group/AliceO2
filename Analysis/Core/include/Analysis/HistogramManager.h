@@ -46,23 +46,22 @@ class HistogramManager : public TObject {
   
   void SetUseDefaultVariableNames(Bool_t flag) {fUseDefaultVariableNames = flag;};
   void SetDefaultVarNames(TString* vars, TString* units);
-  const Bool_t* GetUsedVars() const {return fUsedVars;}
-  
+  const Bool_t* GetUsedVars() const { return fUsedVars; }
+
   void WriteOutput(TFile* saveFile);
   void InitFile(const Char_t* filename, const Char_t* mainListName="");    // open an output file for reading
   void AddToOutputList(TList* list) {fOutputList.Add(list);}
   void CloseFile();
-  
+
   const THashList* GetMainHistogramList() const {return &fMainList;}    // get a histogram list
   const THashList* GetMainDirectory() const {return fMainDirectory;}    // get the main histogram list from the loaded file
-  
+
   TList* AddHistogramsToOutputList(); // get all histograms on a TList              // NEWNEW
-  
-  TList* GetHistogramOutputList() {return &fOutputList;}        // NEWNEW
-  TList* GetHistogramList(const Char_t* listname) const;    // get a histogram list      NEWNEW
+
+  TList* GetHistogramOutputList() { return &fOutputList; }                   // NEWNEW
+  TList* GetHistogramList(const Char_t* listname) const;                     // get a histogram list      NEWNEW
   TObject* GetHistogram(const Char_t* listname, const Char_t* hname) const;  // get a histogram from an old output
-  
-    
+
   ULong_t GetAllocatedBins() const {return fBinsAllocated;}  
   void Print(Option_t*) const;
   
@@ -71,9 +70,9 @@ class HistogramManager : public TObject {
   THashList fMainList;           // master histogram list
   int fNVars;
   THashList* fMainDirectory;     //! main directory with analysis output (this is used for loading output files and retrieving histograms offline)
-  TFile* fHistFile;              //! pointer to a TFile opened for reading 
-  TList fOutputList;         // TList for output histograms
-   
+  TFile* fHistFile;              //! pointer to a TFile opened for reading
+  TList fOutputList;             // TList for output histograms
+
   // Array of bool flags toggled when a variable is used (filled in a histogram)
   bool* fUsedVars;           // map of used variables
   

@@ -63,9 +63,9 @@ struct TableMaker {
       if(track.pt()<1.0) continue;
             
       trackBasic(collision, track.globalIndex(), uint64_t(0), track.pt(), track.eta(), track.phi(), track.charge());
-      trackBarrel(track.tpcInnerParam(), track.flags(), track.itsClusterMap(), track.itsChi2NCl(), 
+      trackBarrel(track.tpcInnerParam(), track.flags(), track.itsClusterMap(), track.itsChi2NCl(),
                   track.tpcNClsFindable(), track.tpcNClsFindableMinusFound(), track.tpcNClsFindableMinusCrossedRows(),
-                  track.tpcNClsShared(), track.tpcChi2NCl(), 
+                  track.tpcNClsShared(), track.tpcChi2NCl(),
                   track.tpcSignal(), track.trdSignal(), track.tofSignal(),
                   track.trdChi2(), track.tofChi2(),
                   track.length());

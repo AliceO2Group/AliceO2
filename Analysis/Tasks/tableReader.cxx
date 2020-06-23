@@ -27,57 +27,58 @@ using namespace o2::framework::expressions;
 
 
 struct TableReader {
-  
+
   HistogramManager* fHistMan;
   float fValues[VarManager::kNVars];
-  
+
   OutputObj<TList> outList1{"Event"};
   OutputObj<TList> outList2{"Track"};
   //OutputObj<HistogramManager> fHistMan{HistogramManager("analysisHistos",VarManager::kNVars)};
-  
+
   void init(o2::framework::InitContext&)
   {
     VarManager::SetDefaultVarNames();
-    fHistMan = new HistogramManager("analysisHistos",VarManager::kNVars);
+    fHistMan = new HistogramManager("analysisHistos", VarManager::kNVars);
     fHistMan->SetUseDefaultVariableNames(kTRUE);
-    fHistMan->SetDefaultVarNames(VarManager::fgVariableNames,VarManager::fgVariableUnits);
-    
-    DefineHistograms();    // define all histograms 
-    VarManager::SetUseVars(fHistMan->GetUsedVars());   // provide the list of required variables so that VarManager knows what to fill
-    
+    fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
+
+    DefineHistograms();                              // define all histograms
+    VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
+
     outList1.setObject(fHistMan->GetHistogramList("Event"));
     outList2.setObject(fHistMan->GetHistogramList("Track"));
   }
 
-  //void process(soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov>::iterator event, 
+  //void process(soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov>::iterator event,
   //             soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel> tracks)
   void process(aod::ReducedEvents::iterator event, aod::ReducedTracks tracks)
   {
     // Reset the fValues array
     // TODO: reseting will have to be done selectively, for example run-wise variables don't need to be reset every event, but just updated if the run changes
-    for(Int_t i=0; i<VarManager::kNVars; ++i) fValues[i]=-9999.;
-    
+    for (Int_t i = 0; i < VarManager::kNVars; ++i)
+      fValues[i] = -9999.;
+
     VarManager::FillEvent(event, fValues);     // extract event information and place it in the fValues array
-    fHistMan->FillHistClass("Event", fValues);    // automatically fill all the histograms in the class Event
-    
+    fHistMan->FillHistClass("Event", fValues); // automatically fill all the histograms in the class Event
+
     for (auto& track : tracks) {
       VarManager::FillTrack(track, fValues);
       fHistMan->FillHistClass("Track", fValues);
     }
   }
-  
+
   void DefineHistograms()
   {
     fHistMan->AddHistClass("Event");
-    fHistMan->AddHistogram("Event", "VtxZ", "Vtx Z", kFALSE, 60, -15.0, 15.0, VarManager::kVtxZ);      // TH1F histogram 
+    fHistMan->AddHistogram("Event", "VtxZ", "Vtx Z", kFALSE, 60, -15.0, 15.0, VarManager::kVtxZ); // TH1F histogram
     //fHistMan.AddHistogram("Event", "CentVZERO", "CentVZERO", kFALSE, 100, 0.0, 100.0, VarManager::kCentVZERO);   // TH1F histogram
-    //fHistMan.AddHistogram("Event", "CentVZERO_VtxZ_prof", "CentVZERO vs vtxZ", kTRUE, 60, -15.0, 15.0, VarManager::kVtxZ, 
-      //                               10, 0.0, 0.0, VarManager::kCentVZERO);   // TProfile with <CentVZERO> vs vtxZ
-    
+    //fHistMan.AddHistogram("Event", "CentVZERO_VtxZ_prof", "CentVZERO vs vtxZ", kTRUE, 60, -15.0, 15.0, VarManager::kVtxZ,
+    //                               10, 0.0, 0.0, VarManager::kCentVZERO);   // TProfile with <CentVZERO> vs vtxZ
+
     fHistMan->AddHistClass("Track");
-    fHistMan->AddHistogram("Track", "Pt", "p_{T} distribution", kFALSE, 200, 0.0, 20.0, VarManager::kPt);      // TH1F histogram
-    //fHistMan.AddHistogram("Track", "TPCdedx_pIN", "TPC dE/dx vs pIN", kFALSE, 100, 0.0, 20.0, VarManager::kPin, 
-      //                           200, 0.0, 200., VarManager::kTPCsignal);   // TH2F histogram
+    fHistMan->AddHistogram("Track", "Pt", "p_{T} distribution", kFALSE, 200, 0.0, 20.0, VarManager::kPt); // TH1F histogram
+    //fHistMan.AddHistogram("Track", "TPCdedx_pIN", "TPC dE/dx vs pIN", kFALSE, 100, 0.0, 20.0, VarManager::kPin,
+    //                           200, 0.0, 200., VarManager::kTPCsignal);   // TH2F histogram
   }
 };
 

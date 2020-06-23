@@ -87,18 +87,19 @@ public:
   static void SetDefaultVarNames();  
     
   static void SetUseVariable(Variables var) {fgUsedVars[var] = kTRUE; SetVariableDependencies();}
-  static void SetUseVars(const bool* usedVars) {
+  static void SetUseVars(const bool* usedVars)
+  {
     for(int i=0;i<kNVars;++i) {
       if(usedVars[i]) fgUsedVars[i]=kTRUE;    // overwrite only the variables that are being used since there are more channels to modify the used variables array, independently
     }
     SetVariableDependencies();
   }
   static bool GetUsedVar(Variables var) {return fgUsedVars[var];}
-  
+
   static void FillEvent(ReducedEvent event, float* values);
   static void FillTrack(ReducedTrack track, float* values);
-    
-public:   
+
+ public:   
   VarManager();
   virtual ~VarManager();
   
