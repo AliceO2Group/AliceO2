@@ -305,8 +305,12 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
       }
 
       Int_t mID = mcTrack.getMotherTrackId();
-      if (mID >= 0)
-        continue; // Select primary particles
+      if (mID >= 0) {
+        const auto& mom = (*mcArr)[mID];
+        int pdg = std::abs(mom.GetPdgCode());
+        if (pdg > 100 || (pdg < 20 && pdg > 10))
+          continue; // Select primary particles
+      }
       Int_t pdg = mcTrack.GetPdgCode();
       if (TMath::Abs(pdg) != 211)
         continue; // Select pions
@@ -366,17 +370,20 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
     statFak += nFak;
     statClone += nClone;
 
+    std::cout << "Good found tracks: " << nGoo;
     if (nGen > 0) {
       Float_t eff = nGoo / Float_t(nGen);
       Float_t rat = nFak / Float_t(nGen);
       Float_t clonerat = nClone / Float_t(nGen);
-      std::cout << "Good found tracks: " << nGoo << ",  efficiency: " << eff << ",  fake-track rate: " << rat << " clone rate " << clonerat << std::endl;
+      cout << ",  efficiency: " << eff << ",  fake-track rate: " << rat << " clone rate " << clonerat;
     }
+    std::cout << std::endl;
 
   } // mc events
 
-  cout << "\nOverall efficiency: " << endl;
+  cout << "\nNumber of generated particles: " << statGen << endl;
   if (statGen > 0) {
+    cout << "\nOverall efficiency: " << endl;
     Float_t eff = statGoo / Float_t(statGen);
     Float_t rat = statFak / Float_t(statGen);
     Float_t clonerat = statClone / Float_t(statGen);
