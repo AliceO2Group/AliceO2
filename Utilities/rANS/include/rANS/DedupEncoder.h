@@ -13,14 +13,17 @@
 /// @since  2020-04-06
 /// @brief  Encoder - code symbol into a rANS encoded state
 
-#ifndef RANS_ENCODER_H
-#define RANS_ENCODER_H
+#ifndef INCLUDE_RANS_DEDUPENCODER_H_
+#define INCLUDE_RANS_DEDUPENCODER_H_
 
-#include "internal/Encoder.h"
+#include "Encoder.h"
 
 #include <memory>
 #include <algorithm>
 #include <iomanip>
+#include <map>
+#include <cstdint>
+#include <string>
 
 #include <fairlogger/Logger.h>
 #include <stdexcept>
@@ -35,78 +38,25 @@ namespace rans
 {
 
 template <typename coder_T, typename stream_T, typename source_T>
-class Encoder
+class DedupEncoder : public Encoder<coder_T, stream_T, source_T>
 {
- protected:
-  using encoderSymbolTable_t = internal::SymbolTable<internal::EncoderSymbol<coder_T>, source_T>;
+  //inherit constructors;
+  using Encoder<coder_T, stream_T, source_T>::Encoder;
 
  public:
-  Encoder() = delete;
-  ~Encoder() = default;
-  Encoder(Encoder&& e) = default;
-  Encoder(const Encoder& e);
-  Encoder<coder_T, stream_T, source_T>& operator=(const Encoder& e);
-  Encoder<coder_T, stream_T, source_T>& operator=(Encoder&& e) = default;
-
-  Encoder(const encoderSymbolTable_t& e, size_t probabilityBits);
-  Encoder(encoderSymbolTable_t&& e, size_t probabilityBits);
-  Encoder(const SymbolStatistics<source_T>& stats, size_t probabilityBits);
+  using duplicatesMap_t = std::map<uint32_t, uint32_t>;
 
   template <typename stream_IT, typename source_IT>
   const stream_IT process(const stream_IT outputBegin, const stream_IT outputEnd,
-                          const source_IT inputBegin, const source_IT inputEnd) const;
-
-  using coder_t = coder_T;
-  using stream_t = stream_T;
-  using source_t = source_T;
-
- protected:
-  std::unique_ptr<encoderSymbolTable_t> mSymbolTable;
-  size_t mProbabilityBits;
-
-  using ransCoder = internal::Encoder<coder_T, stream_T>;
+                          const source_IT inputBegin, source_IT inputEnd, duplicatesMap_t& duplicates) const;
 };
-
-template <typename coder_T, typename stream_T, typename source_T>
-Encoder<coder_T, stream_T, source_T>::Encoder(const Encoder& e) : mSymbolTable(nullptr), mProbabilityBits(e.mProbabilityBits)
-{
-  mSymbolTable = std::make_unique<encoderSymbolTable_t>(*e.mSymbolTable);
-};
-
-template <typename coder_T, typename stream_T, typename source_T>
-Encoder<coder_T, stream_T, source_T>& Encoder<coder_T, stream_T, source_T>::operator=(const Encoder& e)
-{
-  mProbabilityBits = e.mProbabilityBits;
-  mSymbolTable = std::make_unique<encoderSymbolTable_t>(*e.mSymbolTable);
-  return *this;
-};
-
-template <typename coder_T, typename stream_T, typename source_T>
-Encoder<coder_T, stream_T, source_T>::Encoder(const encoderSymbolTable_t& e, size_t probabilityBits) : mSymbolTable(nullptr), mProbabilityBits(probabilityBits)
-{
-  mSymbolTable = std::make_unique<encoderSymbolTable_t>(e);
-};
-
-template <typename coder_T, typename stream_T, typename source_T>
-Encoder<coder_T, stream_T, source_T>::Encoder(encoderSymbolTable_t&& e, size_t probabilityBits) : mSymbolTable(std::move(e.mSymbolTable)), mProbabilityBits(probabilityBits){};
-
-template <typename coder_T, typename stream_T, typename source_T>
-Encoder<coder_T, stream_T, source_T>::Encoder(const SymbolStatistics<source_T>& stats,
-                                              size_t probabilityBits) : mSymbolTable(nullptr), mProbabilityBits(probabilityBits)
-{
-  using namespace internal;
-  RANSTimer t;
-  t.start();
-  mSymbolTable = std::make_unique<encoderSymbolTable_t>(stats, probabilityBits);
-  t.stop();
-  LOG(debug1) << "Encoder SymbolTable inclusive time (ms): " << t.getDurationMS();
-}
 
 template <typename coder_T, typename stream_T, typename source_T>
 template <typename stream_IT, typename source_IT>
-const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(const stream_IT outputBegin, const stream_IT outputEnd, const source_IT inputBegin, const source_IT inputEnd) const
+const stream_IT DedupEncoder<coder_T, stream_T, source_T>::process(const stream_IT outputBegin, const stream_IT outputEnd, const source_IT inputBegin, const source_IT inputEnd, duplicatesMap_t& duplicates) const
 {
   using namespace internal;
+  using ransCoder = internal::Encoder<coder_T, stream_T>;
   LOG(trace) << "start encoding";
   RANSTimer t;
   t.start();
@@ -125,32 +75,43 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(const str
     throw std::runtime_error(errorMessage);
   }
 
-  ransCoder rans0, rans1;
+  ransCoder rans;
 
   stream_IT outputIter = outputBegin;
   source_IT inputIT = inputEnd;
 
   const auto inputBufferSize = std::distance(inputBegin, inputEnd);
 
-  auto encode = [this](source_IT symbolIter, stream_IT outputIter, ransCoder& coder) {
+  auto encode = [&inputBegin, &duplicates, this](source_IT symbolIter, stream_IT outputIter, ransCoder& coder) {
     const source_T symbol = *symbolIter;
     const auto& encoderSymbol = (*this->mSymbolTable)[symbol];
-    return std::tuple(symbolIter, coder.putSymbol(outputIter, encoderSymbol, this->mProbabilityBits));
+
+    // dedup step:
+    auto dedupIT = symbolIter;
+    //advance on source by one.
+    --dedupIT;
+    size_t numDuplicates = 0;
+
+    // find out how many duplicates we have
+    while (*dedupIT == symbol) {
+      --dedupIT;
+      ++numDuplicates;
+    }
+
+    // if we have a duplicate treat it.
+    if (numDuplicates > 0) {
+      LOG(trace) << "pos[" << std::distance(inputBegin, symbolIter) - 1 << "]: found " << numDuplicates << " duplicates of symbol " << (char)symbol;
+      duplicates.emplace(std::distance(inputBegin, symbolIter) - 1, numDuplicates);
+    }
+
+    return std::tuple(++dedupIT, coder.putSymbol(outputIter, encoderSymbol, this->mProbabilityBits));
   };
 
-  // odd number of bytes?
-  if (inputBufferSize & 1) {
-    std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans0);
-    assert(outputIter < outputEnd);
-  }
-
   while (inputIT > inputBegin) { // NB: working in reverse!
-    std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans1);
-    std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans0);
+    std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans);
     assert(outputIter < outputEnd);
   }
-  outputIter = rans1.flush(outputIter);
-  outputIter = rans0.flush(outputIter);
+  outputIter = rans.flush(outputIter);
   // first iterator past the range so that sizes, distances and iterators work correctly.
   ++outputIter;
 
@@ -183,7 +144,7 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(const str
               << "sourceTypeB: " << sizeof(source_T) << ", "
               << "streamTypeB: " << sizeof(stream_T) << ", "
               << "coderTypeB: " << sizeof(coder_T) << ", "
-              << "probabilityBits: " << mProbabilityBits << ", "
+              << "probabilityBits: " << this->mProbabilityBits << ", "
               << "inputBufferSizeB: " << inputBufferSizeB << ", "
               << "outputBufferSizeB: " << outputBufferSizeB << ", "
               << "compressionFactor: " << std::fixed << std::setprecision(2) << static_cast<double>(inputBufferSizeB) / static_cast<double>(outputBufferSizeB) << "}";
@@ -197,4 +158,4 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(const str
 } // namespace rans
 } // namespace o2
 
-#endif /* RANS_ENCODER_H */
+#endif /* INCLUDE_RANS_DEDUPENCODER_H_ */

@@ -13,8 +13,8 @@
 /// @since  2019-05-21
 /// @brief  various helper functions
 
-#ifndef RANS_HELPER_H
-#define RANS_HELPER_H
+#ifndef RANS_INTERNAL_HELPER_H
+#define RANS_INTERNAL_HELPER_H
 
 #include <cstddef>
 #include <cmath>
@@ -23,6 +23,8 @@
 namespace o2
 {
 namespace rans
+{
+namespace internal
 {
 
 template <typename T>
@@ -35,18 +37,6 @@ inline constexpr size_t bitsToRange(size_t bits)
 {
   return 1 << bits;
 }
-
-inline size_t calculateMaxBufferSize(size_t num, size_t rangeBits, size_t sizeofStreamT)
-{
-  // RS: w/o safety margin the o2-test-ctf-io produces an overflow in the Encoder::process
-  constexpr size_t SaferyMargin = 16;
-  return std::ceil(1.20 * (num * rangeBits * 1.0) / (sizeofStreamT * 8.0)) + SaferyMargin;
-}
-
-//rans default values
-constexpr size_t ProbabilityBits8Bit = 10;
-constexpr size_t ProbabilityBits16Bit = 22;
-constexpr size_t ProbabilityBits25Bit = 25;
 
 class RANSTimer
 {
@@ -70,7 +60,8 @@ class RANSTimer
   std::chrono::time_point<std::chrono::high_resolution_clock> mStop;
 };
 
+} // namespace internal
 } // namespace rans
 } // namespace o2
 
-#endif /* RANS_HELPER_H */
+#endif /* RANS_INTERNAL_HELPER_H */
