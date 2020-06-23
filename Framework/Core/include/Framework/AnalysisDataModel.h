@@ -37,7 +37,7 @@ using BC = BCs::iterator;
 
 namespace timestamp
 {
-DECLARE_SOA_COLUMN(Timestamp, timestamp, long);
+DECLARE_SOA_COLUMN(Timestamp, timestamp, uint64_t);
 } // namespace timestamp
 
 DECLARE_SOA_TABLE(Timestamps, "AOD", "TIMESTAMPS", timestamp::Timestamp);
