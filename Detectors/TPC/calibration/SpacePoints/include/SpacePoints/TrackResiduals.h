@@ -115,6 +115,17 @@ class TrackResiduals
     UShort_t npValid{0};         ///< number of valid TPC clusters
   };
 
+  struct DebugOutliers {
+    int idx{-1};
+    std::array<float, param::NPadRows> x{};
+    std::array<float, param::NPadRows> xFlagged{};
+    std::array<float, param::NPadRows> dY{};
+    std::array<float, param::NPadRows> dZ{};
+    std::array<float, param::NPadRows> residHelixY{};
+    std::array<float, param::NPadRows> residHelixZ{};
+    unsigned char flags{0};
+  };
+
   // -------------------------------------- initialization --------------------------------------------------
   /// Steers the initialization (binning, default settings for smoothing, container for the results).
   void init();
@@ -275,7 +286,7 @@ class TrackResiduals
   /// \param res[1] contains the offset (b)
   bool fitPoly1(int nCl, std::array<float, param::NPadRows>& x, std::array<float, param::NPadRows>& y, std::array<float, 2>& res);
 
-  /// For a given set of points, calculate the differences from each point to the fitted lines from all other points in their neighbourhoods (+- mNMALong points)
+  /// For a given set of points, calculate the differences from each point to the fitted lines from all other points in their neighbourhoods (+- mNMAShort points)
   void diffToLocLine(int np, int idxOffset, const std::array<float, param::NPadRows>& x, const std::array<float, param::NPadRows>& y, std::array<float, param::NPadRows>& diffY);
 
   /// For a given set of points, calculate their deviation from the moving average (build from the neighbourhood +- mNMALong points)
@@ -424,6 +435,7 @@ class TrackResiduals
 
   // -------------------------------------- settings --------------------------------------------------
 
+  void setPathToResFileRun2(std::string fPath) { mPathToResidualFiles = fPath; }
   void setLocalResFileName(std::string fName) { mLocalResFileName = fName; }
   void setLocalResTreeName(std::string tName) { mLocalResTreeName = tName; }
   void setLocalResBranchName(std::string bName) { mLocalResBranchName = bName; }
@@ -477,9 +489,14 @@ class TrackResiduals
   /// \param fName Filename
   void dumpToFile(const std::vector<float>& vec, const std::string fName) const;
 
-  /// Dumps the content of a vector to output tree (mTreeOut) to compare it to the data in the AliRoot version
-  /// \param vec Data vector with floating point values
-  void dumpVector(const std::vector<float>& vec);
+  /// Dumps the content of an array to the specified file (used for visualization of outlier rejection)
+  /// \param arr Data array
+  /// \param fName Filename
+  void dumpArrayToFile(const std::array<float, param::NPadRows>& arr, const std::string fName) const;
+
+  /// Dumps the collected data from tracks with information from the outlier rejection routines
+  /// \param vec Data vector with all relevant information on a per track basis
+  void dumpTracks(const std::vector<DebugOutliers>& vec);
 
   /// Dumps the full results for a given sector to the debug tree (only if an output file has been created before).
   /// \param iSec Sector to dump
@@ -548,7 +565,7 @@ class TrackResiduals
   int mMinEntriesPerVoxel{15};                   ///< minimum number of points in voxel for processing
   float mLTMCut{.75f};                           ///< fraction op points to keep when trimming input data
   float mMinFracLTM{.5f};                        ///< minimum fraction of points to keep when trimming data to fit expected sigma
-  float mMinValidVoxFracDrift{.5f};              ///< if more than this fraction of bins are bad for one pad row the bad row is declared bad
+  float mMinValidVoxFracDrift{.5f};              ///< if more than this fraction of bins are bad for one pad row the whole pad row is declared bad
   int mMinGoodXBinsToCover{3};                   ///< minimum number of consecutive good bins, otherwise bins are declared bad
   int mMaxBadXBinsToCover{4};                    ///< a lower number of consecutive bad X bins will not be declared bad
   float mMaxFracBadRowsPerSector{.4f};           ///< maximum fraction of bad rows before whole sector is masked
@@ -581,6 +598,7 @@ class TrackResiduals
   std::unique_ptr<TChain> mRun2DeltaTree{};                ///< tree with Run 2 cluster residuals
   bool mFilterOutliers = true;                             ///< flag, if outliers from the cluster residual trees should be rejected
   int mNMALong{15}; ///< number of points to be used for moving average (long range)
+  int mNMAShort{3}; ///< number of points to be used for estimation of distance from local line (short range)
   float mMaxRejFrac{.15f}; ///< if the fraction of rejected clusters of a track is higher, the full track is invalidated
   float mMaxRMSLong{.8f};  ///< maximum variance of the cluster residuals wrt moving avarage for a track to be considered
   // buffer arrays as in AliTPCDcalibRes
@@ -599,8 +617,8 @@ class TrackResiduals
   float mTgl{0.f};                              ///< fitted track dip angle
   int mNCl{0};                                  ///< number of clusters in the track
   // debugging
-  std::vector<float> mOutVector{};                ///< this vector can be filled with data to stream it to a ROOT tree
-  std::vector<float>* mOutVectorPtr{&mOutVector}; ///< pointer to set the branch address of the debug ROOT tree to
+  std::vector<DebugOutliers> mOutVector{};                ///< this vector can be filled with data to stream it to a ROOT tree
+  std::vector<DebugOutliers>* mOutVectorPtr{&mOutVector}; ///< pointer to set the branch address of the debug ROOT tree to
 };
 
 //_____________________________________________________

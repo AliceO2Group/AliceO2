@@ -83,6 +83,15 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string cons
         timeout += 1;
       }
     }
+    if (device.NewStatePending()) {
+      LOG(ERROR) << "device state change is requested, dropping " << messages.Size() << " pending message(s)\n"
+                 << "on channel " << channel << "\n"
+                 << "ATTENTION: DATA IS LOST! Could not dispatch data to downstream consumer(s), check if\n"
+                 << "consumers have been terminated too early";
+      // make sure we disable the warning below
+      timeout = maxTimeout + 1;
+      break;
+    }
   }
   if (timeout > 0 && timeout <= maxTimeout) {
     LOG(WARNING) << "dispatching on channel " << channel << " was delayed by " << timeout << " ms";
@@ -157,70 +166,6 @@ InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, 
   };
 }
 
-std::tuple<std::vector<size_t>, size_t> findSplitParts(FairMQParts& parts, size_t start, std::vector<bool>& indicesDone)
-{
-  std::optional<ConcreteDataMatcher> matcher = std::nullopt;
-  size_t nofParts = 0;
-  bool isGood = true;
-  std::vector<size_t> indexList;
-  size_t payloadSize = 0;
-  size_t index = start;
-  do {
-    auto dh = o2::header::get<DataHeader*>(parts.At(index * 2)->GetData());
-    if (!dh) {
-      LOG(ERROR) << "data on input " << index << " does not follow the O2 data model, DataHeader missing";
-      break;
-    }
-
-    if (matcher == std::nullopt) {
-      matcher = ConcreteDataMatcher{dh->dataOrigin, dh->dataDescription, dh->subSpecification};
-      nofParts = dh->splitPayloadParts;
-    } else if (*matcher != ConcreteDataMatcher{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) {
-      continue;
-    }
-    LOG(DEBUG) << "matched " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts;
-    indicesDone[index] = true;
-
-    if (isGood && (dh->splitPayloadIndex != indexList.size())) {
-      LOG(ERROR) << "invalid sequence of split payload parts, expecting index " << indexList.size() << " but got " << dh->splitPayloadIndex;
-      isGood = false;
-    } else if (isGood && (dh->payloadSize != parts.At(index * 2 + 1)->GetSize())) {
-      LOG(ERROR) << "Mismatch of payload size in DataHeader and size of payload message: " << dh->payloadSize << "/"
-                 << parts.At(index * 2 + 1)->GetSize();
-      isGood = false;
-    }
-    if (!isGood) {
-      continue;
-    }
-    indexList.emplace_back(index);
-    payloadSize += dh->payloadSize;
-    LOG(DEBUG) << "processed index " << index << ", cached " << indexList.size() << ", total payload size " << payloadSize;
-  } while ((++index) < parts.Size() / 2);
-
-  if (indexList.size() != nofParts || !isGood) {
-    payloadSize = 0;
-    indexList.clear();
-  }
-  return std::make_tuple(std::move(indexList), payloadSize);
-}
-
-FairMQMessagePtr mergePayloads(FairMQDevice& device, FairMQParts& parts, std::vector<size_t> const& indexList, size_t payloadSize, std::string const channel)
-{
-  auto message = device.NewMessageFor(channel, 0, payloadSize);
-  if (!message) {
-    return message;
-  }
-  size_t copied = 0;
-  char* data = reinterpret_cast<char*>(message->GetData());
-  for (auto const& index : indexList) {
-    size_t partSize = parts.At(index * 2 + 1)->GetSize();
-    memcpy(data, parts.At(index * 2 + 1)->GetData(), partSize);
-    data += partSize;
-    copied += partSize;
-  }
-  return message;
-}
-
 InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, bool throwOnUnmatchedInputs)
 {
   // structure to hald information on the unmatch ed data and print a warning at cleanup
@@ -259,6 +204,8 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
     std::unordered_map<std::string, FairMQParts> outputs;
     std::vector<bool> indicesDone(parts.Size() / 2, false);
     std::vector<std::string> unmatchedDescriptions;
+    int lastSplitPartIndex = -1;
+    std::string channelNameForSplitParts;
     for (size_t msgidx = 0; msgidx < parts.Size() / 2; ++msgidx) {
       if (indicesDone[msgidx]) {
         continue;
@@ -282,36 +229,31 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
             LOG(WARNING) << "can not find matching channel, not able to adopt " << DataSpecUtils::describe(query);
             break;
           }
+          // the checks for consistency of split payload parts are of informative nature
+          // forwarding happens independently
           if (dh->splitPayloadParts > 1 && dh->splitPayloadParts != std::numeric_limits<decltype(dh->splitPayloadParts)>::max()) {
-            auto [indexList, payloadSize] = findSplitParts(parts, msgidx, indicesDone);
-            for (auto const& partidx : indexList) {
-              if (partidx == msgidx) {
-                continue;
-              }
-              auto dh = o2::header::get<DataHeader*>(parts.At(partidx * 2)->GetData());
-              if (dh) {
-                LOG(DEBUG) << partidx << ": " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts << "  payload " << parts.At(partidx * 2 + 1)->GetSize();
-              }
+            if (lastSplitPartIndex == -1 && dh->splitPayloadIndex != 0) {
+              LOG(WARNING) << "wrong split part index, expecting the first of " << dh->splitPayloadParts << " part(s)";
+            } else if (dh->splitPayloadIndex != lastSplitPartIndex + 1) {
+              LOG(WARNING) << "unordered split parts, expecting part " << lastSplitPartIndex + 1 << ", got " << dh->splitPayloadIndex
+                           << " of " << dh->splitPayloadParts;
+            } else if (channelNameForSplitParts.empty() == false && channelName != channelNameForSplitParts) {
+              LOG(ERROR) << "inconsistent channel for split part " << dh->splitPayloadIndex
+                         << ", matching " << channelName << ", expecting " << channelNameForSplitParts;
             }
-            if (payloadSize > 0) {
-              size_t headerSize = parts.At(msgidx * 2)->GetSize();
-              auto headerMessage = device.NewMessageFor(channelName, 0, headerSize);
-              memcpy(headerMessage->GetData(), parts.At(msgidx * 2)->GetData(), headerSize);
-              auto clonedh = const_cast<DataHeader*>(o2::header::get<DataHeader*>(headerMessage->GetData()));
-              clonedh->splitPayloadParts = 0;
-              clonedh->splitPayloadIndex = 0;
-              clonedh->payloadSize = payloadSize;
-              outputs[channelName].AddPart(std::move(headerMessage));
-              outputs[channelName].AddPart(std::move(mergePayloads(device, parts, indexList, payloadSize, channelName)));
-              LOG(DEBUG) << "merged " << indexList.size() << " split payload parts in new message of size " << payloadSize << " on channel " << channelName << " (" << outputs[channelName].Size() << " parts)";
+            lastSplitPartIndex = dh->splitPayloadIndex;
+            channelNameForSplitParts = channelName;
+            if (lastSplitPartIndex + 1 == dh->splitPayloadParts) {
+              lastSplitPartIndex = -1;
+              channelNameForSplitParts = "";
             }
-          } else {
-            outputs[channelName].AddPart(std::move(parts.At(msgidx * 2)));
-            outputs[channelName].AddPart(std::move(parts.At(msgidx * 2 + 1)));
-            LOG(DEBUG) << "associating part with index " << msgidx << " to channel " << channelName << " (" << outputs[channelName].Size() << ")";
+          } else if (lastSplitPartIndex != -1) {
+            LOG(WARNING) << "found incomplete or unordered split parts, expecting part " << lastSplitPartIndex + 1
+                         << " but got a new data block";
           }
-          // TODO: implement configurable dispatch policy preferably via the workflow spec config
-          sendOnChannel(device, outputs[channelName], channelName);
+          outputs[channelName].AddPart(std::move(parts.At(msgidx * 2)));
+          outputs[channelName].AddPart(std::move(parts.At(msgidx * 2 + 1)));
+          LOG(DEBUG) << "associating part with index " << msgidx << " to channel " << channelName << " (" << outputs[channelName].Size() << ")";
           indicesDone[msgidx] = true;
           break;
         }

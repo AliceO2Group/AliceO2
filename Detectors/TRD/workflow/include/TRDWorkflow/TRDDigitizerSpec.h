@@ -21,7 +21,7 @@ struct DataProcessorSpec;
 namespace trd
 {
 
-o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel);
+o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel, bool mctruth = true);
 
 } // end namespace trd
 } // end namespace o2

@@ -1,3 +1,4 @@
+
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -385,7 +386,7 @@ void Detector::ConstructGeometry()
     float pos[3] = {0};
     geomParams->GetModuleCenter(iModule, pos);
 
-    fMC->Gspos("CPV", iModule + 1, "cave", pos[0], pos[1], pos[2], idrotm[iModule], "ONLY");
+    fMC->Gspos("CPV", iModule + 1, "barrel", pos[0], pos[1] + 30., pos[2], idrotm[iModule], "ONLY");
   }
 
   //start filling CPV moodules
@@ -559,7 +560,7 @@ void Detector::addAlignableVolumes() const
 
   o2::detectors::DetID::ID idCPV = o2::detectors::DetID::CPV;
 
-  TString physModulePath = "/cave_1/CPV_";
+  TString physModulePath = "/cave_1/barrel_1/CPV_";
 
   TString symbModuleName = "CPV/Module";
 

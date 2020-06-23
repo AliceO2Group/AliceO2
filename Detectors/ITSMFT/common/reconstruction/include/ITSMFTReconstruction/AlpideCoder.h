@@ -27,12 +27,14 @@
 /// \brief class for the ALPIDE data decoding/encoding
 /// \author Ruben Shahoyan, ruben.shahoyan@cern.ch
 
-//#define _DEBUG_ALPIDE_DECODER_ // uncomment for debug mode
-
 namespace o2
 {
 namespace itsmft
 {
+
+/// Decoder / Encoder of ALPIDE payload stream.
+/// All decoding methods are static. Only a few encoding methods are non-static but can be made so
+/// if needed (will require to make the encoding buffers external to this class)
 
 class AlpideCoder
 {
@@ -98,10 +100,12 @@ class AlpideCoder
 
   AlpideCoder() = default;
   ~AlpideCoder() = default;
-  //
+
+  static bool isEmptyChip(uint8_t b) { return (b & CHIPEMPTY) == CHIPEMPTY; }
+
   /// decode alpide data for the next non-empty chip from the buffer
   template <class T>
-  int decodeChip(ChipPixelData& chipData, T& buffer) const
+  static int decodeChip(ChipPixelData& chipData, T& buffer)
   {
     // read record for single non-empty chip, updating on change module and cycle.
     // return number of records filled (>0), EOFFlag or Error
@@ -122,7 +126,7 @@ class AlpideCoder
       // ---------- chip info ?
       uint8_t dataCM = dataC & (~MaskChipID);
       //
-      if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // chip trailer was expected
+      if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // empty chip was expected
         chipData.setChipID(dataC & MaskChipID);                   // here we set the chip ID within the module
         if (!buffer.next(timestamp)) {
           return unexpectedEOF("CHIP_EMPTY:Timestamp");
@@ -238,19 +242,15 @@ class AlpideCoder
   }
 
   /// check if the byte corresponds to chip_header or chip_empty flag
-  bool isChipHeaderOrEmpty(uint8_t v) const
+  static bool isChipHeaderOrEmpty(uint8_t v)
   {
     v &= (~MaskChipID);
     return (v == CHIPEMPTY) || (v == CHIPHEADER);
   }
-  //
-  void print() const;
-  void reset();
-  //
   // methods to use for data encoding
 
-  uint8_t bc2TimeStamp(int bc) const { return (bc >> 3) & MaskTimeStamp; }
-  uint16_t timeStamp2BC(uint8_t ts) const { return uint16_t(ts) << 3; }
+  static uint8_t bc2TimeStamp(int bc) { return (bc >> 3) & MaskTimeStamp; }
+  static uint16_t timeStamp2BC(uint8_t ts) { return uint16_t(ts) << 3; }
 
   int encodeChip(PayLoadCont& buffer, const o2::itsmft::ChipPixelData& chipData,
                  uint16_t chipInModule, uint16_t bc, uint16_t roflags = 0);
@@ -260,6 +260,10 @@ class AlpideCoder
   {
     buffer.addFast(makeChipEmpty(chipInMod, bc));
   }
+  //
+  void print() const;
+  void reset();
+  //
 
  private:
   ///< add pixed to compressed matrix, the data must be provided sorted in row/col, no check is done
@@ -275,64 +279,46 @@ class AlpideCoder
   }
 
   ///< prepare chip header: 1010<chip id[3:0]><BUNCH COUNTER FOR FRAME[10:3] >
-  uint16_t makeChipHeader(short chipID, short bc)
+  static uint16_t makeChipHeader(short chipID, short bc)
   {
     uint16_t v = CHIPHEADER | (MaskChipID & chipID);
     v = (v << 8) | bc2TimeStamp(bc);
-#ifdef _DEBUG_ALPIDE_DECODER_
-    printf("makeChipHeader: chip:%d framdata:%d -> 0x%x\n", chipID, framestartdata, v);
-#endif
     return v;
   }
 
   ///< prepare chip trailer: 1011<readout flags[3:0]>
-  uint8_t makeChipTrailer(short roflags)
+  static uint8_t makeChipTrailer(short roflags)
   {
     uint8_t v = CHIPTRAILER | (MaskROFlags & roflags);
-#ifdef _DEBUG_ALPIDE_DECODER_
-    printf("makeChipTrailer: ROflags:%d -> 0x%x\n", roflags, v);
-#endif
     return v;
   }
 
   ///< prepare chip empty marker: 1110<chip id[3:0]><BUNCH COUNTER FOR FRAME[10:3] >
-  uint16_t makeChipEmpty(short chipID, short bc)
+  static uint16_t makeChipEmpty(short chipID, short bc)
   {
     uint16_t v = CHIPEMPTY | (MaskChipID & chipID);
     v = (v << 8) | bc2TimeStamp(bc);
-#ifdef _DEBUG_ALPIDE_DECODER_
-    printf("makeChipEmpty: chip:%d bc:%d -> 0x%x\n", chipID, bc, v);
-#endif
     return v;
   }
 
   ///< packs the address of region
-  uint8_t makeRegion(short reg)
+  static uint8_t makeRegion(short reg)
   {
     uint8_t v = REGION | (reg & MaskRegion);
-#ifdef _DEBUG_ALPIDE_DECODER_
-    printf("makeRegion: region:%d -> 0x%x\n", reg, v);
-#endif
     return v;
   }
 
   ///< packs the address for data short
-  uint16_t makeDataShort(short encoder, short address)
+  static uint16_t makeDataShort(short encoder, short address)
   {
     uint16_t v = DATASHORT | (MaskEncoder & (encoder << 10)) | (address & MaskPixID);
-#ifdef _DEBUG_ALPIDE_DECODER_
-    printf("makeDataShort: DCol:%d address:%d -> 0x%x\n", encoder, address, v);
-#endif
     return v;
   }
 
   // packs the address for data long
-  uint16_t makeDataLong(short encoder, short address)
+  static uint16_t makeDataLong(short encoder, short address)
   {
     uint16_t v = DATALONG | (MaskEncoder & (encoder << 10)) | (address & MaskPixID);
-#ifdef _DEBUG_ALPIDE_DECODER_
-    printf("makeDataLong: DCol:%d address:%d -> 0x%x\n", encoder, address, v);
-#endif
     return v;
   }
 
@@ -352,7 +338,7 @@ class AlpideCoder
   void resetMap();
 
   ///< error message on unexpected EOF
-  int unexpectedEOF(const char* message) const
+  static int unexpectedEOF(const char* message)
   {
     printf("Error: unexpected EOF on %s\n", message);
     return Error;

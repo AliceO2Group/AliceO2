@@ -8,22 +8,16 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_test(rdh-manip
-            SOURCES testRDHManip.cxx
-            COMPONENT_NAME mch
-            LABELS "mch;raw"
-            PUBLIC_LINK_LIBRARIES O2::MCHRawCommon Boost::boost)
-
 o2_add_test(sampa-header
             SOURCES testSampaHeader.cxx
-            COMPONENT_NAME mch
-            LABELS "mch;raw"
+            COMPONENT_NAME mchraw
+            LABELS "muon;mch;raw"
             PUBLIC_LINK_LIBRARIES O2::MCHRawCommon Boost::boost)
 
 o2_add_test(sampa-cluster
             SOURCES testSampaCluster.cxx
-            COMPONENT_NAME mch
-            LABELS "mch;raw"
+            COMPONENT_NAME mchraw
+            LABELS "muon;mch;raw"
             PUBLIC_LINK_LIBRARIES O2::MCHRawCommon Boost::boost)
 
 if(benchmark_FOUND)

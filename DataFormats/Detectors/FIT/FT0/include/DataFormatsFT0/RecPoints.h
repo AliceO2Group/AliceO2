@@ -57,7 +57,7 @@ class RecPoints
                TimeC,
                Vertex };
 
-  o2::dataformats::RangeRefComp<5> ref;
+  o2::dataformats::RangeReference<int, int> ref;
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
   RecPoints() = default;
   RecPoints(const std::array<Float_t, 4>& collisiontime,

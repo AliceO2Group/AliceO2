@@ -33,10 +33,10 @@ class GeneratorPythia6 : public GeneratorTGenerator
   /** constructor **/
   GeneratorPythia6(const Char_t* name, const Char_t* title = "ALICEo2 Pythia6 Generator");
   /** destructor **/
-  virtual ~GeneratorPythia6() = default;
+  ~GeneratorPythia6() override = default;
 
   /** Initialize the generator if needed **/
-  virtual Bool_t Init() override;
+  Bool_t Init() override;
 
   /** setters **/
   void setConfig(std::string val) { mConfig = val; };

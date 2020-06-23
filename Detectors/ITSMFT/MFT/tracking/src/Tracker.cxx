@@ -26,6 +26,8 @@ namespace o2
 namespace mft
 {
 
+Tracker::Tracker(bool useMC) : mUseMC{useMC} {}
+
 void Tracker::clustersToTracks(ROframe& event, std::ostream& timeBenchmarkOutputStream)
 {
   mTracks.clear();
@@ -165,7 +167,7 @@ void Tracker::findTracksLTF(ROframe& event)
             event.addTrackLTF();
 
             // add the first seed-point
-            mcCompLabel = event.getClusterLabels(layer1, cluster1.clusterId);
+            mcCompLabel = mUseMC ? event.getClusterLabels(layer1, cluster1.clusterId) : MCCompLabel();
             newPoint = kTRUE;
             event.getCurrentTrackLTF().setPoint(cluster1.xCoordinate, cluster1.yCoordinate, cluster1.zCoordinate, layer1, clsLayer1, mcCompLabel, newPoint);
 
@@ -206,7 +208,7 @@ void Tracker::findTracksLTF(ROframe& event)
                     dRmin = dR;
 
                     hasDisk[layer / 2] = kTRUE;
-                    mcCompLabel = event.getClusterLabels(layer, cluster.clusterId);
+                    mcCompLabel = mUseMC ? event.getClusterLabels(layer, cluster.clusterId) : MCCompLabel();
                     event.getCurrentTrackLTF().setPoint(cluster.xCoordinate, cluster.yCoordinate, cluster.zCoordinate, layer, clsLayer, mcCompLabel, newPoint);
                   } // end clusters bin intermediate layer
                 }   // end intermediate layers
@@ -214,7 +216,7 @@ void Tracker::findTracksLTF(ROframe& event)
             }       // end binR
 
             // add the second seed-point
-            mcCompLabel = event.getClusterLabels(layer2, cluster2.clusterId);
+            mcCompLabel = mUseMC ? event.getClusterLabels(layer2, cluster2.clusterId) : MCCompLabel();
             newPoint = kTRUE;
             event.getCurrentTrackLTF().setPoint(cluster2.xCoordinate, cluster2.yCoordinate, cluster2.zCoordinate, layer2, clsLayer2, mcCompLabel, newPoint);
 
@@ -326,7 +328,7 @@ void Tracker::findTracksCA(ROframe& event)
               event.addRoad();
 
               // add the 1st/2nd road points
-              mcCompLabel = event.getClusterLabels(layer1, cluster1.clusterId);
+              mcCompLabel = mUseMC ? event.getClusterLabels(layer1, cluster1.clusterId) : MCCompLabel();
               newPoint = kTRUE;
               event.getCurrentRoad().setPoint(cluster1.xCoordinate, cluster1.yCoordinate, cluster1.zCoordinate, layer1, clsLayer1, mcCompLabel, newPoint);
 
@@ -363,7 +365,7 @@ void Tracker::findTracksCA(ROframe& event)
                       }
 
                       hasDisk[layer / 2] = kTRUE;
-                      mcCompLabel = event.getClusterLabels(layer, cluster.clusterId);
+                      mcCompLabel = mUseMC ? event.getClusterLabels(layer, cluster.clusterId) : MCCompLabel();
                       newPoint = kTRUE;
                       event.getCurrentRoad().setPoint(cluster.xCoordinate, cluster.yCoordinate, cluster.zCoordinate, layer, clsLayer, mcCompLabel, newPoint);
 
@@ -373,7 +375,7 @@ void Tracker::findTracksCA(ROframe& event)
               }       // end binR
 
               // add the second seed-point
-              mcCompLabel = event.getClusterLabels(layer2, cluster2.clusterId);
+              mcCompLabel = mUseMC ? event.getClusterLabels(layer2, cluster2.clusterId) : MCCompLabel();
               newPoint = kTRUE;
               event.getCurrentRoad().setPoint(cluster2.xCoordinate, cluster2.yCoordinate, cluster2.zCoordinate, layer2, clsLayer2, mcCompLabel, newPoint);
 
@@ -720,8 +722,8 @@ const Bool_t Tracker::addCellToCurrentTrackCA(const Int_t layer1, const Int_t ce
     }
   }
 
-  MCCompLabel mcCompLabel1 = event.getClusterLabels(layer1, cluster1.clusterId);
-  MCCompLabel mcCompLabel2 = event.getClusterLabels(layer2, cluster2.clusterId);
+  MCCompLabel mcCompLabel1 = mUseMC ? event.getClusterLabels(layer1, cluster1.clusterId) : MCCompLabel();
+  MCCompLabel mcCompLabel2 = mUseMC ? event.getClusterLabels(layer2, cluster2.clusterId) : MCCompLabel();
 
   Bool_t newPoint;
 

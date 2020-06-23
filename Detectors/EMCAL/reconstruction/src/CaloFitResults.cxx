@@ -34,8 +34,6 @@ CaloFitResults::CaloFitResults(unsigned short maxSig, float ped,
 {
 }
 
-///\brief Constructor, shorter interface when no fit is done
-//_____________________________________________________________________
 CaloFitResults::CaloFitResults(unsigned short maxSig, float ped,
                                int fitstatus, float amp,
                                int maxTimebin) : mMaxSig(maxSig),
@@ -47,10 +45,31 @@ CaloFitResults::CaloFitResults(unsigned short maxSig, float ped,
 {
 }
 
-///
-/// Constructor, minimal interface
-//_____________________________________________________________________
 CaloFitResults::CaloFitResults(int maxSig, int minSig) : mMaxSig(maxSig),
                                                          mMinSig(minSig)
 {
+}
+
+CaloFitResults& CaloFitResults::operator=(const CaloFitResults& source)
+{
+  if (this != &source) {
+    mMaxSig = source.mMaxSig;
+    mPed = source.mPed;
+    mStatus = source.mStatus;
+    mAmpSig = source.mAmpSig;
+    mTime = source.mTime;
+    mMaxTimebin = source.mMaxTimebin;
+    mChi2Sig = source.mChi2Sig;
+    mNdfSig = source.mNdfSig;
+    mMinSig = source.mMinSig;
+  }
+  return *this;
+}
+
+bool CaloFitResults::operator==(const CaloFitResults& other) const
+{
+  return (mMaxSig == other.mMaxSig) && (mPed == other.mPed) &&
+         (mStatus == other.mStatus) && (mAmpSig == other.mAmpSig) && (mTime == other.mTime) &&
+         (mMaxTimebin == other.mMaxTimebin) && (mChi2Sig == other.mChi2Sig) &&
+         (mNdfSig == other.mNdfSig) && (mMinSig == other.mMinSig);
 }

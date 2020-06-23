@@ -52,6 +52,15 @@
   }                                                                                          \
   if (mDeviceProcessingSettings.trackletSelectorSlices < 0) {                                \
     mDeviceProcessingSettings.trackletSelectorSlices = GPUCA_TRACKLET_SELECTOR_SLICE_COUNT;  \
+  }                                                                                          \
+  if (mDeviceProcessingSettings.alternateBorderSort < 0) {                                   \
+    mDeviceProcessingSettings.alternateBorderSort = GPUCA_ALTERNATE_BORDER_SORT;             \
+  }                                                                                          \
+  if (mDeviceProcessingSettings.mergerSortTracks < 0) {                                      \
+    mDeviceProcessingSettings.mergerSortTracks = GPUCA_SORT_BEFORE_FIT;                      \
+  }                                                                                          \
+  if (param().rec.loopInterpolationInExtraPass < 0) {                                        \
+    param().rec.loopInterpolationInExtraPass = GPUCA_MERGER_SPLIT_LOOP_INTERPOLATION;        \
   }
 
 #endif

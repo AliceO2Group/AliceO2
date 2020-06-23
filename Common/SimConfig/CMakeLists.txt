@@ -29,6 +29,11 @@ o2_add_test(Config
             PUBLIC_LINK_LIBRARIES O2::SimConfig
             NO_BOOST_TEST)
 
+o2_add_test(simCutParam
+            SOURCES test/testSimCutParam.cxx
+            COMPONENT_NAME SimConfig
+            PUBLIC_LINK_LIBRARIES O2::SimConfig)
+
 # FIXME: not working ?
 #
 # * o2_add_test(ConfigurableParam

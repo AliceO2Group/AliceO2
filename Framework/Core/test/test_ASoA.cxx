@@ -13,7 +13,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "Framework/ASoA.h"
-#include "Framework/TableBuilder.h"
+#include "Framework/ASoAHelpers.h"
 #include "gandiva/tree_expr_builder.h"
 #include "arrow/status.h"
 #include "gandiva/filter.h"
@@ -26,9 +26,9 @@ using namespace o2::soa;
 DECLARE_SOA_STORE();
 namespace test
 {
-DECLARE_SOA_COLUMN(X, x, int32_t, "x");
-DECLARE_SOA_COLUMN(Y, y, int32_t, "y");
-DECLARE_SOA_COLUMN(Z, z, int32_t, "z");
+DECLARE_SOA_COLUMN_FULL(X, x, int32_t, "x");
+DECLARE_SOA_COLUMN_FULL(Y, y, int32_t, "y");
+DECLARE_SOA_COLUMN_FULL(Z, z, int32_t, "z");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](int32_t x, int32_t y) { return x + y; });
 } // namespace test
 
@@ -36,19 +36,19 @@ DECLARE_SOA_TABLE(Points, "TST", "POINTS", test::X, test::Y);
 
 namespace test
 {
-DECLARE_SOA_COLUMN(SomeBool, someBool, bool, "someBool");
-DECLARE_SOA_COLUMN(Color, color, int32_t, "color");
+DECLARE_SOA_COLUMN_FULL(SomeBool, someBool, bool, "someBool");
+DECLARE_SOA_COLUMN_FULL(Color, color, int32_t, "color");
 } // namespace test
 
 DECLARE_SOA_TABLE(Infos, "TST", "INFOS", test::Color, test::SomeBool);
 
 namespace test
 {
-DECLARE_SOA_COLUMN(N, n, int, "fN");
+DECLARE_SOA_COLUMN(N, n, int);
 DECLARE_SOA_INDEX_COLUMN_FULL(Info, info, int, Infos, "fInfosID");
 DECLARE_SOA_INDEX_COLUMN_FULL(PointA, pointA, int, Points, "fPointAID");
 DECLARE_SOA_INDEX_COLUMN_FULL(PointB, pointB, int, Points, "fPointBID");
-DECLARE_SOA_COLUMN(Thickness, thickness, int, "thickness");
+DECLARE_SOA_COLUMN_FULL(Thickness, thickness, int, "thickness");
 } // namespace test
 
 DECLARE_SOA_TABLE(Segments, "TST", "SEGMENTS", test::N, test::PointAId, test::PointBId, test::InfoId);
@@ -87,10 +87,10 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   pos++;
   BOOST_CHECK_EQUAL(*i, 1);
 
-  auto rowIndex = std::make_tuple(
-    std::pair<test::X*, arrow::Column*>{nullptr, table->column(0).get()},
-    std::pair<test::Y*, arrow::Column*>{nullptr, table->column(1).get()});
-  Points::iterator tests(rowIndex, {table->num_rows(), 0});
+  arrow::ChunkedArray* chunks[2] = {
+    table->column(0).get(),
+    table->column(1).get()};
+  Points::iterator tests(chunks, {table->num_rows(), 0});
   BOOST_CHECK_EQUAL(tests.x(), 0);
   BOOST_CHECK_EQUAL(tests.y(), 0);
   ++tests;
@@ -113,7 +113,6 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   BOOST_CHECK(b == e);
 
   b = tests2.begin();
-  e = tests2.end();
   BOOST_CHECK(b != e);
   BOOST_CHECK((b + 1) == (b + 1));
   BOOST_CHECK((b + 7) != b);
@@ -127,7 +126,7 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
     value++;
   }
 
-  for (auto t1 = tests2.begin(); t1 != tests2.end() - 1; ++t1) {
+  for (auto t1 = tests2.begin(); t1 != tests2.end(); ++t1) {
     for (auto t2 = t1 + 1; t2 != tests2.end(); ++t2) {
     }
   }
@@ -383,9 +382,8 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   auto e = concatTestTable.end();
 
   BOOST_CHECK_EQUAL(b.mRowIndex, 0);
-  BOOST_CHECK_EQUAL(e.mRowIndex, -1);
   BOOST_CHECK_EQUAL(b.getSelectionRow(), 0);
-  BOOST_CHECK_EQUAL(e.getSelectionRow(), 3);
+  BOOST_CHECK_EQUAL(e.index, 3);
 
   BOOST_CHECK(concatTestTable.begin() != concatTestTable.end());
   for (auto& f : concatTestTable) {
@@ -416,33 +414,6 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
     i++;
   }
   BOOST_CHECK_EQUAL(i, 3);
-}
-
-BOOST_AUTO_TEST_CASE(TestTableSlicing)
-{
-  TableBuilder builderA;
-  auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
-  rowWriterA(0, 0, 0);
-  rowWriterA(0, 1, 0);
-  rowWriterA(0, 2, 0);
-  rowWriterA(0, 3, 1);
-  rowWriterA(0, 4, 1);
-  rowWriterA(0, 5, 1);
-  rowWriterA(0, 6, 1);
-  rowWriterA(0, 7, 2);
-  auto tableA = builderA.finalize();
-  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
-  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
-
-  TestA t = TestA{tableA};
-  auto s = slice(t, "y");
-  BOOST_CHECK_EQUAL(s.size(), 3);
-
-  for (auto r : s[1]) {
-    BOOST_CHECK_EQUAL(r.x(), r.index() + 3);
-    BOOST_CHECK_EQUAL(r.y(), 1);
-    BOOST_CHECK_EQUAL(r.globalIndex(), r.index() + 3);
-  }
 }
 
 BOOST_AUTO_TEST_CASE(TestDereference)
@@ -516,4 +487,12 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   BOOST_CHECK_EQUAL(se.pointB().x(), 3);
   BOOST_CHECK_EQUAL(se.pointB().y(), 4);
   BOOST_CHECK_EQUAL(se.thickness(), 1);
+}
+
+BOOST_AUTO_TEST_CASE(TestSchemaCreation)
+{
+  auto schema = createSchemaFromColumns(Points::persistent_columns_t{});
+  BOOST_CHECK_EQUAL(schema->num_fields(), 2);
+  BOOST_CHECK_EQUAL(schema->field(0)->name(), "x");
+  BOOST_CHECK_EQUAL(schema->field(1)->name(), "y");
 }

@@ -15,7 +15,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 #if !defined(GPUCA_GPUCODE)
-GPUTPCRow::GPUTPCRow() : mNHits(0), mX(0), mMaxY(0), mGrid(), mHy0(0), mHz0(0), mHstepY(0), mHstepZ(0), mHstepYi(0), mHstepZi(0), mFullSize(0), mHitNumberOffset(0), mFirstHitInBinOffset(0)
+GPUTPCRow::GPUTPCRow() : mNHits(0), mX(0), mMaxY(0), mGrid(), mHy0(0), mHz0(0), mHstepY(0), mHstepZ(0), mHstepYi(0), mHstepZi(0), mHitNumberOffset(0), mFirstHitInBinOffset(0)
 {
   // dummy constructor
 }

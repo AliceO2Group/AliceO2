@@ -23,7 +23,7 @@
 
 #include "TPCReconstruction/GBTFrameContainer.h"
 #include "TPCReconstruction/HalfSAMPAData.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 
 namespace bpo = boost::program_options;
 

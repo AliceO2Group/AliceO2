@@ -33,6 +33,9 @@ class Constants
 #else
   static constexpr int MAXGLOBALPADROW = 152; // Correct number of pad rows in Run 3
 #endif
+
+  // number of LHC bunch crossings per TPC time bin (40 MHz / 5 MHz)
+  static constexpr int LHCBCPERTIMEBIN = 8;
 };
 } // namespace tpc
 } // namespace o2

@@ -43,9 +43,9 @@ struct ValidationTask {
   OutputObj<TH1F> hfC1PtTgl{TH1F("hfC1PtTgl", "c1PtTgl", 1000, -0.3, 0.1)};
   OutputObj<TH1F> hfC1Pt21Pt2{TH1F("hfC1Pt21Pt2", "c1Pt21Pt2", 1000, -0.3, 0.1)};
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov> const& tracks)
+  void process(aod::Collision const& collision, aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksCov> const& tracks)
   {
-    hrun_number->Fill(collision.runNumber());
+    hrun_number->Fill(collision.bc().runNumber());
     LOGF(info, "Tracks for collision: %d", tracks.size());
     for (auto& track : tracks) {
       hpt_nocuts->Fill(track.pt());

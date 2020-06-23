@@ -25,6 +25,7 @@ enum BasicOp : unsigned int {
   GreaterThanOrEqual,
   Equal,
   NotEqual,
+  Power,
   Exp,
   Log,
   Log10,

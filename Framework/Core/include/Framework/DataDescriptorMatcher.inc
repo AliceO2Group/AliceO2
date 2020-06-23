@@ -31,19 +31,19 @@ inline void VariableContext::discard()
 }
 
 inline VariableContext::VariableContext()
-  : mPerformedUpdates{ 0 }
+  : mPerformedUpdates{0}
 {
 }
 
 template <typename T>
 inline ValueHolder<T>::ValueHolder(T const& s)
-  : mValue{ s }
+  : mValue{s}
 {
 }
 
 template <typename T>
 inline ValueHolder<T>::ValueHolder(ContextRef variableId)
-  : mValue{ variableId }
+  : mValue{variableId}
 {
 }
 
@@ -78,7 +78,7 @@ std::ostream& operator<<(std::ostream& os, ValueHolder<V> const& holder)
 }
 
 inline OriginValueMatcher::OriginValueMatcher(std::string const& s)
-  : ValueHolder{ s }
+  : ValueHolder{s}
 {
   if (s.size() > header::gSizeDataOriginString) {
     throw std::runtime_error("Header DataDescription too long");
@@ -86,18 +86,18 @@ inline OriginValueMatcher::OriginValueMatcher(std::string const& s)
 }
 
 inline OriginValueMatcher::OriginValueMatcher(ContextRef variableId)
-  : ValueHolder{ variableId }
+  : ValueHolder{variableId}
 {
 }
 
 template <std::size_t L>
 inline constexpr OriginValueMatcher::OriginValueMatcher(const char (&s)[L])
-  : ValueHolder{ header::DataOrigin(s).as<std::string>() }
+  : ValueHolder{header::DataOrigin(s).as<std::string>()}
 {
 }
 
 inline DescriptionValueMatcher::DescriptionValueMatcher(std::string const& s)
-  : ValueHolder{ s }
+  : ValueHolder{s}
 {
   if (s.size() > header::gSizeDataDescriptionString) {
     throw std::runtime_error("Header DataDescription too long");
@@ -105,46 +105,46 @@ inline DescriptionValueMatcher::DescriptionValueMatcher(std::string const& s)
 }
 
 inline DescriptionValueMatcher::DescriptionValueMatcher(ContextRef variableId)
-  : ValueHolder{ variableId }
+  : ValueHolder{variableId}
 {
 }
 
 template <std::size_t L>
 inline constexpr DescriptionValueMatcher::DescriptionValueMatcher(const char (&s)[L])
-  : ValueHolder{ header::DataDescription(s).as<std::string>() }
+  : ValueHolder{header::DataDescription(s).as<std::string>()}
 {
 }
 
 inline SubSpecificationTypeValueMatcher::SubSpecificationTypeValueMatcher(ContextRef variableId)
-  : ValueHolder{ variableId }
+  : ValueHolder{variableId}
 {
 }
 
 inline SubSpecificationTypeValueMatcher::SubSpecificationTypeValueMatcher(std::string const& s)
-  : ValueHolder<header::DataHeader::SubSpecificationType>{ o2::header::strtoui<header::DataHeader::SubSpecificationType>(s.c_str(),nullptr,10) }
+  : ValueHolder<header::DataHeader::SubSpecificationType>{o2::header::strtoui<header::DataHeader::SubSpecificationType>(s.c_str(), nullptr, 10)}
 {
 }
 
 inline SubSpecificationTypeValueMatcher::SubSpecificationTypeValueMatcher(header::DataHeader::SubSpecificationType v)
-  : ValueHolder<header::DataHeader::SubSpecificationType>{ v }
+  : ValueHolder<header::DataHeader::SubSpecificationType>{v}
 {
 }
 
 inline StartTimeValueMatcher::StartTimeValueMatcher(ContextRef variableId, uint64_t scale)
-  : ValueHolder{ variableId },
-    mScale{ scale }
+  : ValueHolder{variableId},
+    mScale{scale}
 {
 }
 
 inline StartTimeValueMatcher::StartTimeValueMatcher(std::string const& s, uint64_t scale)
-  : ValueHolder<uint64_t>{ strtoull(s.c_str(), nullptr, 10) },
-    mScale{ scale }
+  : ValueHolder<uint64_t>{strtoull(s.c_str(), nullptr, 10)},
+    mScale{scale}
 {
 }
 
 inline StartTimeValueMatcher::StartTimeValueMatcher(uint64_t v, uint64_t scale)
-  : ValueHolder<uint64_t>{ v / scale },
-    mScale{ scale }
+  : ValueHolder<uint64_t>{v / scale},
+    mScale{scale}
 {
 }
 

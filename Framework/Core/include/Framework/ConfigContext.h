@@ -27,6 +27,9 @@ class ConfigContext
   ConfigContext(ConfigParamRegistry& options, int argc, char** argv) : mOptions{options}, mArgc{argc}, mArgv{argv} {}
 
   ConfigParamRegistry& options() const { return mOptions; }
+
+  bool helpOnCommandLine() const;
+
   int argc() const { return mArgc; }
   char* const* const argv() const { return mArgv; }
 

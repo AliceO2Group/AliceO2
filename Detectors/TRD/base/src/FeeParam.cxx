@@ -252,7 +252,6 @@ int FeeParam::getMCMfromPad(int irow, int icol) const
 
   if (irow < 0 || icol < 0 || irow > mgkNrowC1 || icol > mgkNcol)
     return -1;
-
   return (icol % (mgkNcol / 2)) / mgkNcolMcm + mgkNmcmRobInCol * (irow % mgkNmcmRobInRow);
 }
 
@@ -292,8 +291,7 @@ int FeeParam::getROBfromPad(int irow, int icol) const
   //
   // Return on which rob this pad is
   //
-
-  return (irow / mgkNmcmRobInRow) * 2 + getColSide(icol);
+  return (int)((int)irow / (int)mgkNmcmRobInRow) * 2 + getColSide(icol);
 }
 
 //_____________________________________________________________________________
@@ -504,10 +502,9 @@ void FeeParam::createPad2MCMLookUpTable()
   // Initializes the Look Up Table to relate
   // pad numbering and mcm channel numbering
   //
-  LOG(info) << "Entering : " << __FILE__ << ":" << __func__ << ":" << __LINE__;
   if (!mgLUTPadNumberingFilled) {
 
-    LOG(info) << " resizing lookup array to : " << getNcol() << " elements previously : " << mgLUTPadNumbering.size();
+    LOG(debug) << " resizing lookup array to : " << getNcol() << " elements previously : " << mgLUTPadNumbering.size();
     mgLUTPadNumbering.resize(FeeParam::getNcol());
     memset(&mgLUTPadNumbering[0], 0, sizeof(mgLUTPadNumbering[0]) * getNcol());
     for (int mcm = 0; mcm < 8; mcm++) {
@@ -520,7 +517,6 @@ void FeeParam::createPad2MCMLookUpTable()
     }
     mgLUTPadNumberingFilled = true;
   }
-  LOG(info) << "Leaving : " << __FILE__ << ":" << __func__ << ":" << __LINE__;
 }
 
 int FeeParam::getDyCorrection(int det, int rob, int mcm) const
@@ -591,7 +587,7 @@ void FeeParam::getDyRange(int det, int rob, int mcm, int ch,
   }
 
   if ((dyMaxInt - dyMinInt) <= 0) {
-    LOG(info) << "strange dy range: [" << dyMinInt << "," << dyMaxInt << "], using max range now";
+    LOG(debug) << "strange dy range: [" << dyMinInt << "," << dyMaxInt << "], using max range now";
     dyMaxInt = mgDyMax;
     dyMinInt = mgDyMin;
   }

@@ -63,8 +63,6 @@ class ClustererTask
   void setMaxROframe(int max) { maxROframe = max; }
   int getMaxROframe() const { return maxROframe; }
 
-  void setPatterns() { mClusterer.setPatterns(&mPatterns); }
-
  private:
   int maxROframe = std::numeric_limits<int>::max();                                   ///< maximal number of RO frames per a file
   bool mRawDataMode = false;                                                          ///< input from raw data or MC digits

@@ -26,7 +26,7 @@ namespace mch
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getMCHDigitWriterSpec()
+o2::framework::DataProcessorSpec getMCHDigitWriterSpec(bool mctruth)
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
@@ -35,7 +35,7 @@ o2::framework::DataProcessorSpec getMCHDigitWriterSpec()
                                 "o2sim",
                                 1, //default number of events
                                 BranchDefinition<std::vector<o2::mch::Digit>>{InputSpec{"mchdigits", "MCH", "DIGITS"}, "MCHDigit"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"mchdigitlabels", "MCH", "DIGITSMCTR"}, "MCHMCLabels"}
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"mchdigitlabels", "MCH", "DIGITSMCTR"}, "MCHMCLabels", mctruth ? 1 : 0}
                                 // add more branch definitions (for example Monte Carlo labels here)
                                 )();
 }

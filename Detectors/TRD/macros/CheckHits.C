@@ -31,7 +31,7 @@ using namespace o2::detectors;
 void CheckHits(const int detector = 50, // 354, 14, 242, 50
                std::string digifile = "trddigits.root",
                std::string hitfile = "o2sim_HitsTRD.root",
-               std::string inputGeom = "O2geometry.root",
+               std::string inputGeom = "",
                std::string paramfile = "o2sim_par.root")
 {
   // o2::trd::Calibrations calib;

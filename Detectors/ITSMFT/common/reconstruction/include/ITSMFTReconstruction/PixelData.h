@@ -64,6 +64,13 @@ class PixelData
     return getCol() < dt.getCol();
   }
 
+  bool isNeighbour(const PixelData& dt, int maxDist) const
+  {
+    ///< check if one pixel is in proximity of another
+    return (std::abs(static_cast<int>(getCol()) - static_cast<int>(dt.getCol())) <= maxDist &&
+            std::abs(static_cast<int>(getRow()) - static_cast<int>(dt.getRow())) <= maxDist);
+  }
+
   int compare(const PixelData& dt) const
   {
     ///< compare to pixels (first column then row)
@@ -156,6 +163,52 @@ class ChipPixelData
         itC++;
       } else {
         itS++;
+      }
+    }
+  }
+
+  void maskFiredInSample(const ChipPixelData& sample, int maxDist)
+  {
+    ///< mask in the current data pixels (or their neighbours) fired in provided sample
+    const auto& pixelsS = sample.getData();
+    int nC = mPixels.size();
+    if (!nC) {
+      return;
+    }
+    int nS = pixelsS.size();
+    if (!nS) {
+      return;
+    }
+    for (int itC = 0, itS = 0; itC < nC; itC++) {
+      auto& pix0 = mPixels[itC];
+
+      // seek to itS which is inferior than itC - maxDist
+      auto mincol = pix0.getCol() > maxDist ? pix0.getCol() - maxDist : 0;
+      auto minrow = pix0.getRowDirect() > maxDist ? pix0.getRowDirect() - maxDist : 0;
+      if (itS == nS) { // in case itS lool below reached the end
+        itS--;
+      }
+      while ((pixelsS[itS].getCol() > mincol || pixelsS[itS].getRow() > minrow) && itS > 0) {
+        itS--;
+      }
+      for (; itS < nS; itS++) {
+        const auto& pixC = pixelsS[itS];
+
+        auto drow = static_cast<int>(pixC.getRow()) - static_cast<int>(pix0.getRowDirect());
+        auto dcol = static_cast<int>(pixC.getCol()) - static_cast<int>(pix0.getCol());
+
+        if (dcol > maxDist || (dcol == maxDist && drow > maxDist)) {
+          break; // all higher itS will not match to this itC also
+        }
+        if (dcol < -maxDist || (drow > maxDist || drow < -maxDist)) {
+          continue;
+        } else {
+          pix0.setMask();
+          if (int(mFirstUnmasked) == itC) { // mFirstUnmasked should flag 1st unmasked pixel entry
+            mFirstUnmasked = itC + 1;
+          }
+          break;
+        }
       }
     }
   }

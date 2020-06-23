@@ -8,18 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHRawEncoder/DataBlock.h"
+#include "MCHRawEncoderPayload/DataBlock.h"
 #include <fmt/format.h>
 
 namespace o2::mch::raw
 {
-void appendDataBlockHeader(std::vector<uint8_t>& outBuffer, DataBlockHeader header)
+void appendDataBlockHeader(std::vector<std::byte>& outBuffer, DataBlockHeader header)
 {
-  gsl::span<uint8_t> ph(reinterpret_cast<uint8_t*>(&header), sizeof(ph));
+  gsl::span<std::byte> ph(reinterpret_cast<std::byte*>(&header), sizeof(ph));
   outBuffer.insert(outBuffer.end(), ph.begin(), ph.end());
 }
 
-int forEachDataBlockRef(gsl::span<const uint8_t> buffer,
+int forEachDataBlockRef(gsl::span<const std::byte> buffer,
                         std::function<void(DataBlockRef ref)> f)
 {
   int index{0};
@@ -29,7 +29,7 @@ int forEachDataBlockRef(gsl::span<const uint8_t> buffer,
     memcpy(&header, &buffer[index], sizeof(header));
     nheaders++;
     if (f) {
-      DataBlock block{header, buffer.subspan(index, header.payloadSize)};
+      DataBlock block{header, buffer.subspan(index + sizeof(header), header.payloadSize)};
       DataBlockRef ref{block, index};
       f(ref);
     }
@@ -38,15 +38,15 @@ int forEachDataBlockRef(gsl::span<const uint8_t> buffer,
   return nheaders;
 }
 
-int countHeaders(gsl::span<uint8_t> buffer)
+int countHeaders(gsl::span<const std::byte> buffer)
 {
   return forEachDataBlockRef(buffer, nullptr);
 }
 
 std::ostream& operator<<(std::ostream& os, const DataBlockHeader& header)
 {
-  os << fmt::format("ORB{:6d} BC{:4d} FEE{:4d} PAYLOADSIZE{:6d}",
-                    header.orbit, header.bc, header.feeId, header.payloadSize);
+  os << fmt::format("ORB{:6d} BC{:4d} SOLAR{:4d} PAYLOADSIZE{:6d}",
+                    header.orbit, header.bc, header.solarId, header.payloadSize);
   return os;
 }
 
@@ -68,10 +68,10 @@ std::ostream& operator<<(std::ostream& os, const DataBlockRef& ref)
 
 bool operator<(const DataBlockHeader& a, const DataBlockHeader& b)
 {
-  if (a.feeId < b.feeId) {
+  if (a.solarId < b.solarId) {
     return true;
   }
-  if (a.feeId > b.feeId) {
+  if (a.solarId > b.solarId) {
     return false;
   }
   if (a.orbit < b.orbit) {
@@ -89,4 +89,8 @@ bool operator<(const DataBlockHeader& a, const DataBlockHeader& b)
   // }
 };
 
+bool operator<(const DataBlockRef& a, const DataBlockRef& b)
+{
+  return a.block.header < b.block.header;
+}
 } // namespace o2::mch::raw

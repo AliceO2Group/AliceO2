@@ -26,8 +26,8 @@ o2_add_library(MCHSimulation
                        src/Stepper.cxx
                        src/Stepper.h
 		       PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
-		                     O2::MCHBase
-                                     O2::MCHMappingImpl3 O2::DetectorsBase
+		                             O2::MCHBase O2::DetectorsPassive
+                                     O2::MCHMappingImpl4 O2::DetectorsBase
                                      RapidJSON::RapidJSON)
 
 o2_target_root_dictionary(MCHSimulation

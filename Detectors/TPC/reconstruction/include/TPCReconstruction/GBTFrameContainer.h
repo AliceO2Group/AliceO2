@@ -14,7 +14,7 @@
 #ifndef ALICEO2_TPC_GBTFRAMECONTAINER_H_
 #define ALICEO2_TPC_GBTFRAMECONTAINER_H_
 
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCBase/Mapper.h"
 #include "TPCReconstruction/AdcClockMonitor.h"
 #include "TPCReconstruction/GBTFrame.h"

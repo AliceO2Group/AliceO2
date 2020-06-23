@@ -28,6 +28,7 @@
 #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
 #include "TOFCalibration/CalibTOFapi.h"
 #include "SimConfig/DigiParams.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -37,19 +38,15 @@ namespace o2
 namespace tof
 {
 
-class TOFDPLDigitizerTask
+class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  TOFDPLDigitizerTask(bool useCCDB) : mUseCCDB{useCCDB} {};
+  TOFDPLDigitizerTask(bool useCCDB) : mUseCCDB{useCCDB},
+                                      o2::base::BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM){};
 
-  void init(framework::InitContext& ic)
+  void initDigitizerTask(framework::InitContext& ic) override
   {
     LOG(INFO) << "Initializing TOF digitization";
-
-    // make sure that the geometry is loaded (TODO will this be done centrally?)
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
-    }
 
     mSimChains = std::move(std::make_unique<std::vector<TChain*>>());
 
@@ -128,7 +125,7 @@ class TOFDPLDigitizerTask
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
-      mDigitizer->setEventTime(timesview[collID].timeNS);
+      mDigitizer->setEventTime(timesview[collID].getTimeNS());
 
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
@@ -162,7 +159,9 @@ class TOFDPLDigitizerTask
 
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *digitsVector);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, *mcLabVecOfVec);
+    if (pc.outputs().isAllowed({o2::header::gDataOriginTOF, "DIGITSMCTR", 0})) {
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, *mcLabVecOfVec);
+    }
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *readoutwindow);
     LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
@@ -184,7 +183,7 @@ class TOFDPLDigitizerTask
   bool mUseCCDB = false;
 };
 
-DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
+DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -197,13 +196,17 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
     inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
     inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
   }
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back(o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
     "TOFDigitizer",
     inputs,
-    Outputs{OutputSpec{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe},
-            OutputSpec{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe},
-            OutputSpec{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe},
-            OutputSpec{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
     AlgorithmSpec{adaptFromTask<TOFDPLDigitizerTask>(useCCDB)},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
     // I can't use VariantType::Bool as it seems to have a problem

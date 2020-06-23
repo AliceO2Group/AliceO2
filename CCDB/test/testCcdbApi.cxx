@@ -40,6 +40,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/foreach.hpp>
+#include <boost/optional/optional.hpp>
+
 using namespace std;
 using namespace o2::ccdb;
 namespace utf = boost::unit_test;
@@ -234,6 +239,27 @@ BOOST_AUTO_TEST_CASE(timestamptest, *utf::precondition(if_reachable()))
   BOOST_CHECK(pupper == nullptr);
 }
 
+BOOST_AUTO_TEST_CASE(retrieveTemplatedWithHeaders, *utf::precondition(if_reachable()))
+{
+  test_fixture f;
+
+  // first store something
+  o2::ccdb::IdPath path;
+  path.setPath("HelloWorld");
+  long from = o2::ccdb::getCurrentTimestamp();
+  long to = o2::ccdb::getFutureTimestamp(60 * 60 * 24 * 365 * 10);
+  f.api.storeAsTFileAny(&path, basePath + "CCDBPathUnitTest", f.metadata, from, to);
+
+  // then try to retrieve, including the headers
+  std::map<std::string, std::string> headers;
+  std::map<std::string, std::string> meta;
+  cout << "basePath + \"CCDBPathUnitTest\" : " << basePath + "CCDBPathUnitTest" << endl;
+  cout << "from+1 : " << from + 1 << endl;
+  auto* object = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>(basePath + "CCDBPathUnitTest", meta, from + 1, &headers);
+  BOOST_CHECK(headers.count("Hello") == 1);
+  BOOST_CHECK(headers["Hello"] == "World");
+}
+
 BOOST_AUTO_TEST_CASE(retrieveTMemFile_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
@@ -308,30 +334,16 @@ void countItems(const string& s, int& countObjects, int& countSubfolders)
   countObjects = 0;
   countSubfolders = 0;
   std::stringstream ss(s);
-  std::string line;
-  bool subfolderMode = false;
-  while (std::getline(ss, line, '\n')) {
-    o2::utils::ltrim(line);
-    o2::utils::rtrim(line);
-    if (line.length() == 0) {
-      continue;
-    }
 
-    if (line.find("subfolders") != std::string::npos) {
-      subfolderMode = true;
-      continue;
-    }
+  boost::property_tree::ptree pt;
+  boost::property_tree::read_json(ss, pt);
 
-    if (subfolderMode) {
-      countSubfolders++;
-      if (line.find(']') != std::string::npos) {
-        break;
-      }
-    }
+  if (pt.count("objects") > 0) {
+    countObjects = pt.get_child("objects").size();
+  }
 
-    if (line.find(R"("path")") == 0) {
-      countObjects++;
-    }
+  if (pt.count("subfolders") > 0) {
+    countSubfolders = pt.get_child("subfolders").size();
   }
 }
 

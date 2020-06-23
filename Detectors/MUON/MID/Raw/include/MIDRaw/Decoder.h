@@ -9,47 +9,66 @@
 // or submit itself to any jurisdiction.
 
 /// \file   MIDRaw/Decoder.h
-/// \brief  Mid raw data decoder
+/// \brief  MID raw data decoder
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
-/// \date   30 September 2019
+/// \date   18 November 2019
 #ifndef O2_MID_DECODER_H
 #define O2_MID_DECODER_H
 
 #include <cstdint>
 #include <vector>
+#include <array>
 #include <gsl/gsl>
-#include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
-#include "MIDRaw/CrateMapper.h"
-#include "MIDRaw/CRUUserLogicDecoder.h"
+#include "MIDRaw/CrateMasks.h"
+#include "MIDRaw/CrateParameters.h"
+#include "MIDRaw/FEEIdConfig.h"
+#include "MIDRaw/GBTBareDecoder.h"
+#include "MIDRaw/GBTUserLogicDecoder.h"
 #include "MIDRaw/LocalBoardRO.h"
-#include "MIDRaw/RawUnit.h"
 
 namespace o2
 {
 namespace mid
 {
+
+template <typename GBTDECODER>
 class Decoder
 {
  public:
-  void process(gsl::span<const raw::RawUnit> bytes);
+  Decoder();
+  ~Decoder() = default;
+  void setFeeIdConfig(const FEEIdConfig& feeIdConfig) { mFEEIdConfig = feeIdConfig; }
+  void setCrateMasks(const CrateMasks& masks) { mMasks = masks; }
+  void init(bool isDebugMode = false);
+  void process(gsl::span<const uint8_t> bytes);
+  template <typename RDH = o2::header::RAWDataHeader>
+  void process(gsl::span<const uint8_t> payload, const RDH& rdh)
+  {
+    /// Processes the page
+    uint16_t feeId = mFEEIdConfig.getFeeId(o2::raw::RDHUtils::getLinkID(rdh), o2::raw::RDHUtils::getEndPointID(rdh), o2::raw::RDHUtils::getCRUID(rdh));
+    mGBTDecoders[feeId].process(payload, o2::raw::RDHUtils::getHeartBeatBC(rdh), o2::raw::RDHUtils::getHeartBeatOrbit(rdh), o2::raw::RDHUtils::getPageCounter(rdh));
+  }
   /// Gets the vector of data
-  const std::vector<ColumnData>& getData() { return mData; }
+  const std::vector<LocalBoardRO>& getData() const { return mData; }
 
   /// Gets the vector of data RO frame records
-  const std::vector<ROFRecord>& getROFRecords() { return mROFRecords; }
+  const std::vector<ROFRecord>& getROFRecords() const { return mROFRecords; }
+
+  void flush();
+
+  void clear();
+
+  bool isComplete() const;
 
  private:
-  void addData(const LocalBoardRO& col, size_t firstEntry);
-  ColumnData& FindColumnData(uint8_t deId, uint8_t columnId, size_t firstEntry);
-
-  gsl::span<const raw::RawUnit> mBytes{};                /// Vector with encoded information
-  CRUUserLogicDecoder mCRUUserLogicDecoder;              /// CRU user logic decoder
-  std::map<uint64_t, std::vector<size_t>> mOrderIndexes; /// Map for time ordering the entries
-  std::vector<ColumnData> mData{};                       /// Vector of output column data
-  std::vector<ROFRecord> mROFRecords{};                  /// Vector of ROF records
-  CrateMapper mCrateMapper;                              /// Mapper to convert the RO info to ColumnData
+  std::vector<LocalBoardRO> mData{};                          /// Vector of output data
+  std::vector<ROFRecord> mROFRecords{};                       /// List of ROF records
+  std::array<GBTDECODER, crateparams::sNGBTs> mGBTDecoders{}; /// GBT decoders
+  FEEIdConfig mFEEIdConfig{};                                 /// Crate FEEID mapper
+  CrateMasks mMasks{};                                        /// Crate masks
 };
+
 } // namespace mid
 } // namespace o2
 

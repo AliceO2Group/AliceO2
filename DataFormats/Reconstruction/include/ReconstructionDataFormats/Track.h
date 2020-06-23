@@ -61,6 +61,12 @@ namespace o2
 template <typename T>
 class BaseCluster;
 
+namespace dataformats
+{
+class VertexBase;
+class DCA;
+} // namespace dataformats
+
 namespace track
 {
 // aliases for track elements
@@ -111,7 +117,7 @@ constexpr int CovarMap[kNParams][kNParams] = {{0, 1, 3, 6, 10},
 // access to covariance matrix diagonal elements
 constexpr int DiagMap[kNParams] = {0, 2, 5, 9, 14};
 
-constexpr float HugeF = 1e33; // large float as dummy value
+constexpr float HugeF = o2::constants::math::VeryBig;
 
 // helper function
 float BetheBlochSolid(float bg, float rho = 2.33f, float kp1 = 0.20f, float kp2 = 3.00f, float meanI = 173e-9f,
@@ -137,6 +143,14 @@ class TrackPar
   float getSnp() const { return mP[kSnp]; }
   float getTgl() const { return mP[kTgl]; }
   float getQ2Pt() const { return mP[kQ2Pt]; }
+
+  /// calculate cos^2 and cos of track direction in rphi-tracking
+  float getCsp2() const
+  {
+    float csp2 = (1. - mP[kSnp]) * (1. + mP[kSnp]);
+    return csp2 > o2::constants::math::Almost0 ? csp2 : o2::constants::math::Almost0;
+  }
+  float getCsp() const { return sqrtf(getCsp2()); }
 
   void setX(float v) { mX = v; }
   void setParam(float v, int i) { mP[i] = v; }
@@ -177,9 +191,13 @@ class TrackPar
   Point3D<float> getXYZGloAt(float xk, float b, bool& ok) const;
 
   // parameters manipulation
+  bool correctForELoss(float xrho, float mass, bool anglecorr = false, float dedx = kCalcdEdxAuto);
   bool rotateParam(float alpha);
   bool propagateParamTo(float xk, float b);
   bool propagateParamTo(float xk, const std::array<float, 3>& b);
+
+  bool propagateParamToDCA(const Point3D<float>& vtx, float b, std::array<float, 2>* dca = nullptr, float maxD = 999.f);
+
   void invertParam();
 
 #ifndef GPUCA_ALIGPUCODE
@@ -248,6 +266,7 @@ class TrackParCov : public TrackPar
   bool rotate(float alpha);
   bool propagateTo(float xk, float b);
   bool propagateTo(float xk, const std::array<float, 3>& b);
+  bool propagateToDCA(const o2::dataformats::VertexBase& vtx, float b, o2::dataformats::DCA* dca = nullptr, float maxD = 999.f);
   void invert();
 
   float getPredictedChi2(const std::array<float, 2>& p, const std::array<float, 3>& cov) const;
@@ -308,7 +327,7 @@ inline TrackPar::TrackPar(float x, float alpha, const std::array<float, kNParams
 inline void TrackPar::getLineParams(o2::utils::IntervalXY& ln, float& sna, float& csa) const
 {
   // get line parameterization as { x = x0 + xSlp*t, y = y0 + ySlp*t }
-  o2::utils::sincosf(getAlpha(), sna, csa);
+  o2::utils::sincos(getAlpha(), sna, csa);
   o2::utils::rotateZ(getX(), getY(), ln.xP, ln.yP, sna, csa); // reference point in global frame
   float snp = getSnp(), csp = sqrtf((1.f - snp) * (1.f + snp));
   ln.dxP = csp * csa - snp * sna;
@@ -318,21 +337,28 @@ inline void TrackPar::getLineParams(o2::utils::IntervalXY& ln, float& sna, float
 //_______________________________________________________
 inline void TrackPar::getCircleParams(float bz, o2::utils::CircleXY& c, float& sna, float& csa) const
 {
-  // get circle params in loc and lab frame
+  // get circle params in loc and lab frame, for straight line just set to global coordinates
   getCircleParamsLoc(bz, c);
-  o2::utils::sincosf(getAlpha(), sna, csa);
+  o2::utils::sincos(getAlpha(), sna, csa);
   o2::utils::rotateZ(c.xC, c.yC, c.xC, c.yC, sna, csa); // center in global frame
 }
 
 //_______________________________________________________
 inline void TrackPar::getCircleParamsLoc(float bz, o2::utils::CircleXY& c) const
 {
-  // get circle params in track local frame
-  c.rC = 1.f / getCurvature(bz);
-  float sn = getSnp(), cs = sqrtf((1. - sn) * (1. + sn));
-  c.xC = getX() - sn * c.rC; // center in tracking
-  c.yC = getY() + cs * c.rC; // frame. Note: r is signed!!!
-  c.rC = fabs(c.rC);
+  // get circle params in track local frame, for straight line just set to local coordinates
+  c.rC = getCurvature(bz);
+  if (std::abs(c.rC) > o2::constants::math::Almost0) {
+    c.rC = 1.f / getCurvature(bz);
+    float sn = getSnp(), cs = sqrtf((1. - sn) * (1. + sn));
+    c.xC = getX() - sn * c.rC; // center in tracking
+    c.yC = getY() + cs * c.rC; // frame. Note: r is signed!!!
+    c.rC = fabs(c.rC);
+  } else {
+    c.rC = 0.f; // signal straight line
+    c.xC = getX();
+    c.yC = getY();
+  }
 }
 
 //_______________________________________________________

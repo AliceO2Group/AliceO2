@@ -98,7 +98,12 @@ inline bool Segmentation::findPadPairByPosition(double x, double y, int& b, int&
 {
   b = mBending.findPadByPosition(x, y);
   nb = mNonBending.findPadByPosition(x, y);
-  if (!mBending.isValid(b) || !mNonBending.isValid(nb)) {
+  if (!mBending.isValid(b)) {
+    nb = padC2DE(nb, false);
+    return false;
+  }
+  if (!mNonBending.isValid(nb)) {
+    b = padC2DE(b, true);
     return false;
   }
   b = padC2DE(b, true);

@@ -74,6 +74,16 @@ class Polymorphic : public Base
   ClassDefOverride(Polymorphic, 1);
 };
 
+class SimplePODClass
+{
+ public:
+  int x = 1;
+  float y = 2.f;
+
+ private:
+  ClassDefNV(SimplePODClass, 1);
+};
+
 } // namespace test
 } // namespace o2
 #endif // FRAMEWORK_TEST_CLASSES_H

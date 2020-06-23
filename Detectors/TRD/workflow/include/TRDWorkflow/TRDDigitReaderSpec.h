@@ -24,8 +24,6 @@
 #include "TFile.h"
 #include "TTree.h"
 
-using namespace std;
-
 namespace o2
 {
 namespace trd

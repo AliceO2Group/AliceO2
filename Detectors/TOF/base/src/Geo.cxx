@@ -18,9 +18,6 @@ ClassImp(o2::tof::Geo);
 
 using namespace o2::tof;
 
-int Geo::ORBIT_IN_TF = o2::raw::HBFUtils::Instance().getNOrbitsPerTF(); // RS This should not be in GEO!!!
-double Geo::NS_IN_TF = o2::constants::lhc::LHCOrbitNS * o2::raw::HBFUtils::Instance().getNOrbitsPerTF();
-
 constexpr Float_t Geo::ANGLES[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::HEIGHTS[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::DISTANCES[NPLATES][NMAXNSTRIP];
@@ -159,7 +156,7 @@ void Geo::getVolumePath(const Int_t* ind, Char_t* path)
   Int_t icopy = -1;
   icopy = sector;
 
-  snprintf(string1, kSize, "/cave_1/B077_1/BSEGMO%i_1/BTOF%i_1", icopy, icopy);
+  snprintf(string1, kSize, "/cave_1/barrel_1/B077_1/BSEGMO%i_1/BTOF%i_1", icopy, icopy);
 
   Bool_t fgHoles = kTRUE;
 
@@ -565,6 +562,34 @@ void Geo::translate(Float_t* xyz, Float_t translationVector[3])
 
   for (Int_t ii = 0; ii < 3; ii++)
     xyz[ii] -= translationVector[ii];
+
+  return;
+}
+void Geo::antiRotateToSector(Float_t* xyz, Int_t isector)
+{
+  if (mToBeIntit)
+    Init();
+
+  Float_t xyzDummy[3] = {0., 0., 0.};
+
+  float matAR[3][3];
+  matAR[0][0] = -mRotationMatrixSector[isector][0][0];
+  matAR[0][1] = mRotationMatrixSector[isector][0][1];
+  matAR[0][2] = mRotationMatrixSector[isector][0][2];
+  matAR[1][0] = mRotationMatrixSector[isector][1][0];
+  matAR[1][1] = mRotationMatrixSector[isector][1][1];
+  matAR[1][2] = mRotationMatrixSector[isector][1][2];
+  matAR[2][0] = mRotationMatrixSector[isector][2][0];
+  matAR[2][1] = -mRotationMatrixSector[isector][2][1];
+  matAR[2][2] = mRotationMatrixSector[isector][2][2];
+
+  for (Int_t ii = 0; ii < 3; ii++) {
+    xyzDummy[ii] = xyz[0] * matAR[ii][0] + xyz[1] * matAR[ii][1] +
+                   xyz[2] * matAR[ii][2];
+  }
+
+  for (Int_t ii = 0; ii < 3; ii++)
+    xyz[ii] = xyzDummy[ii];
 
   return;
 }

@@ -25,8 +25,6 @@ namespace tof
 class Geo
 {
  public:
-  static int ORBIT_IN_TF; // N. orbits crossing in 1 TF
-  static double NS_IN_TF;
   //  static void updateNSinTF() { NS_IN_TF = o2::constants::lhc::LHCOrbitNS * o2::raw::HBFUtils::getNOrbitsPerTF(); }
 
   // From AliTOFGeometry
@@ -35,6 +33,7 @@ class Geo
 
   static void rotateToSector(Float_t* xyz, Int_t isector);
   static void rotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip);
+  static void antiRotateToSector(Float_t* xyz, Int_t isector);
 
   static void antiRotate(Float_t* xyz, Double_t rotationAngles[6]);
   static void getDetID(Float_t* pos, Int_t* det);

@@ -67,9 +67,46 @@ TrackSelection getGlobalTrackSelectionSDD()
   return selectedTracks;
 }
 
-//--------------------------------------------------------------------
-// This task generates the filter table
-//--------------------------------------------------------------------
+//****************************************************************************************
+/**
+ * Produce the derived track quantities needed for track selection.
+ */
+//****************************************************************************************
+struct TrackExtensionTask {
+
+  Produces<aod::TracksExtended> extendedTrackQuantities;
+
+  void process(aod::Collision const& collision,
+               soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov> const& tracks)
+  {
+    float sinAlpha = 0.f;
+    float cosAlpha = 0.f;
+    float globalX = 0.f;
+    float globalY = 0.f;
+    float dcaXY = 0.f;
+    float dcaZ = 0.f;
+
+    for (auto& track : tracks) {
+
+      sinAlpha = sin(track.alpha());
+      cosAlpha = cos(track.alpha());
+      globalX = track.x() * cosAlpha - track.y() * sinAlpha;
+      globalY = track.x() * sinAlpha + track.y() * cosAlpha;
+
+      dcaXY = track.charge() * sqrt(pow((globalX - collision.posX()), 2) +
+                                    pow((globalY - collision.posY()), 2));
+      dcaZ = track.charge() * sqrt(pow(track.z() - collision.posZ(), 2));
+
+      extendedTrackQuantities(dcaXY, dcaZ);
+    }
+  }
+};
+
+//****************************************************************************************
+/**
+ * Produce track filter table.
+ */
+//****************************************************************************************
 struct TrackSelectionTask {
   Produces<aod::TrackSelection> filterTable;
 
@@ -82,7 +119,7 @@ struct TrackSelectionTask {
     globalTracksSDD = getGlobalTrackSelectionSDD();
   }
 
-  void process(soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
+  void process(soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TracksExtended> const& tracks)
   {
     for (auto& track : tracks) {
       filterTable(globalTracks.IsSelected(track),
@@ -91,12 +128,15 @@ struct TrackSelectionTask {
   }
 };
 
-//--------------------------------------------------------------------
-// This task generates QA histograms for track selection
-//--------------------------------------------------------------------
+//****************************************************************************************
+/**
+ * Generate QA histograms for track selection.
+ */
+//****************************************************************************************
 struct TrackQATask {
 
   Configurable<int> selectedTracks{"select", 1, "Choice of track selection. 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD"};
+  //Filter trackFilter = ((selectedTracks == 1) && (aod::track::isGlobalTrack == true)) || ((selectedTracks == 2) && (aod::track::isGlobalTrackSDD == true));
 
   // track parameters
   OutputObj<TH1F> x{TH1F(
@@ -135,21 +175,15 @@ struct TrackQATask {
                         1000, -2, 2),
                       OutputObjHandlingPolicy::QAObject};
 
-  OutputObj<TH2F> xy{
-    TH2F("trackpar-global-xy",
-         "track xy at dca in global coordinate system;x [cm];y [cm];",
-         100, -0.5, 0.5, 100, -0.5, 0.5),
-    OutputObjHandlingPolicy::QAObject};
-
   OutputObj<TH1F> dcaxy{
     TH1F("track-dcaXY",
          "distance of closest approach in xy plane;dca-xy [cm];", 200,
-         -1., 1.),
+         -3., 3.),
     OutputObjHandlingPolicy::QAObject};
 
   OutputObj<TH1F> dcaz{TH1F(
                          "track-dcaZ", "distance of closest approach in z;dca-z [cm];",
-                         200, -15, 15),
+                         200, -3., 3.),
                        OutputObjHandlingPolicy::QAObject};
 
   OutputObj<TH1F> flag{TH1F("track-flags", "track flag;flag bit", 64, -0.5, 63.5), OutputObjHandlingPolicy::QAObject};
@@ -209,7 +243,7 @@ struct TrackQATask {
   void init(o2::framework::InitContext&) {}
 
   void process(aod::Collision const& collision,
-               soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov,
+               soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended,
                          aod::TrackSelection> const& tracks)
   {
 
@@ -232,7 +266,7 @@ struct TrackQATask {
         track.tpcCrossedRowsOverFindableCls());
       tpcFractionSharedClusters->Fill(track.tpcFractionSharedCls());
       tpcChi2PerCluster->Fill(
-        track.tpcChi2Ncl()); // todo: fix typo in AnalysisDatamodel.h
+        track.tpcChi2NCl());
 
       // ITS
       itsFoundClusters->Fill(track.itsNCls());
@@ -248,15 +282,8 @@ struct TrackQATask {
       y->Fill(track.y());
       z->Fill(track.z());
 
-      float sinAlpha = sin(track.alpha());
-      float cosAlpha = cos(track.alpha());
-      float globalX = track.x() * cosAlpha - track.y() * sinAlpha;
-      float globalY = track.x() * sinAlpha + track.y() * cosAlpha;
-      xy->Fill(globalX, globalY);
-
-      dcaxy->Fill(track.charge() * sqrt(pow((globalX - collision.posX()), 2) +
-                                        pow((globalY - collision.posY()), 2)));
-      dcaz->Fill(track.charge() * sqrt(pow(track.z() - collision.posZ(), 2)));
+      dcaxy->Fill(track.dcaXY());
+      dcaz->Fill(track.dcaZ());
 
       signed1Pt->Fill(track.signed1Pt());
       snp->Fill(track.snp());
@@ -274,13 +301,16 @@ struct TrackQATask {
   }
 };
 
-//--------------------------------------------------------------------
-// Workflow definition
-//--------------------------------------------------------------------
+//****************************************************************************************
+/**
+ * Workflow definition.
+ */
+//****************************************************************************************
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   bool createQAplots = cfgc.options().get<bool>("qa-histos");
   WorkflowSpec workflow{
+    adaptAnalysisTask<TrackExtensionTask>("track-extension"),
     adaptAnalysisTask<TrackSelectionTask>("track-selection")};
   if (createQAplots)
     workflow.push_back(adaptAnalysisTask<TrackQATask>("track-qa-histograms"));

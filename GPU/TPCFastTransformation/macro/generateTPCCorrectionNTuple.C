@@ -77,7 +77,7 @@ void generateTPCCorrectionNTuple()
 
   std::unique_ptr<o2::gpu::TPCFastTransform> fastTransform(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 
-  o2::gpu::TPCFastSpaceChargeCorrection& dist = fastTransform->getCorrectionNonConst();
+  o2::gpu::TPCFastSpaceChargeCorrection& dist = fastTransform->getCorrection();
   const o2::gpu::TPCFastTransformGeo& geo = fastTransform->getGeometry();
 
   TFile* f = new TFile("tpcCorrection.root", "RECREATE");
@@ -117,7 +117,7 @@ void generateTPCCorrectionNTuple()
           float dx = x1 - x;
           float du = u1 - u;
           float dv = v1 - v;
-          cout << slice << " " << row << " " << su << " " << sv << " " << dx << " " << du << " " << dv << endl;
+          std::cout << slice << " " << row << " " << su << " " << sv << " " << dx << " " << du << " " << dv << std::endl;
           nt->Fill(slice, row, su, sv, dx, du, dv);
         }
       }

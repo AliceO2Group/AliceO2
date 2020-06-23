@@ -48,6 +48,6 @@ done
 # ===| check for required arguments |===========================================
 
 # ===| command building and execution |=========================================
-cmd="o2-tpc-reco-workflow --infile $inputFile --disable-mc --configKeyValues 'TPCHwClusterer.peakChargeThreshold=$qMaxThreshold;TPCHwClusterer.isContinuousReadout=0' --output-type $outputType"
+cmd="o2-tpc-reco-workflow -b --infile $inputFile --disable-mc --configKeyValues 'TPCHwClusterer.peakChargeThreshold=$qMaxThreshold;TPCHwClusterer.isContinuousReadout=0' --output-type $outputType"
 echo $cmd
 eval $cmd

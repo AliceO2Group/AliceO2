@@ -25,7 +25,7 @@
 #include "HMPIDBase/Digit.h"
 #include "HMPIDSimulation/HMPIDDigitizer.h"
 #include "HMPIDSimulation/Detector.h"
-#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include <SimConfig/DigiParams.h>
 
@@ -38,15 +38,13 @@ namespace o2
 namespace hmpid
 {
 
-class HMPIDDPLDigitizerTask
+class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  void init(framework::InitContext& ic)
+  HMPIDDPLDigitizerTask() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM) {}
+
+  void initDigitizerTask(framework::InitContext& ic) override
   {
-    LOG(INFO) << "initializing HMPID digitization";
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry(o2::conf::DigiParams::Instance().digitizationgeometry);
-    }
   }
 
   void run(framework::ProcessingContext& pc)
@@ -65,7 +63,7 @@ class HMPIDDPLDigitizerTask
     auto& irecords = context->getEventRecords();
 
     for (auto& record : irecords) {
-      LOG(INFO) << "HMPID TIME RECEIVED " << record.timeNS;
+      LOG(INFO) << "HMPID TIME RECEIVED " << record.getTimeNS();
     }
 
     auto& eventParts = context->getEventParts();
@@ -88,12 +86,12 @@ class HMPIDDPLDigitizerTask
     for (int collID = 0; collID < irecords.size(); ++collID) {
 
       // try to start new readout cycle by setting the trigger time
-      auto triggeraccepted = mDigitizer.setTriggerTime(irecords[collID].timeNS);
+      auto triggeraccepted = mDigitizer.setTriggerTime(irecords[collID].getTimeNS());
       if (triggeraccepted) {
         flushDigitsAndLabels(); // flush previous readout cycle
       }
 
-      auto withinactivetime = mDigitizer.setEventTime(irecords[collID].timeNS);
+      auto withinactivetime = mDigitizer.setEventTime(irecords[collID].getTimeNS());
       if (withinactivetime) {
         // for each collision, loop over the constituents event and source IDs
         // (background signal merging is basically taking place here)
@@ -121,8 +119,9 @@ class HMPIDDPLDigitizerTask
 
     // send out to next stage
     pc.outputs().snapshot(Output{"HMP", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
-    pc.outputs().snapshot(Output{"HMP", "DIGITLBL", 0, Lifetime::Timeframe}, labelAccum);
-
+    if (pc.outputs().isAllowed({"HMP", "DIGITLBL", 0})) {
+      pc.outputs().snapshot(Output{"HMP", "DIGITLBL", 0, Lifetime::Timeframe}, labelAccum);
+    }
     LOG(INFO) << "HMP: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"HMP", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
@@ -141,20 +140,25 @@ class HMPIDDPLDigitizerTask
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 };
 
-o2::framework::DataProcessorSpec getHMPIDDigitizerSpec(int channel)
+o2::framework::DataProcessorSpec getHMPIDDigitizerSpec(int channel, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("HMP", "DIGITS", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("HMP", "DIGITLBL", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("HMP", "ROMode", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "HMPIDDigitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{OutputSpec{"HMP", "DIGITS", 0, Lifetime::Timeframe},
-            OutputSpec{"HMP", "DIGITLBL", 0, Lifetime::Timeframe},
-            OutputSpec{"HMP", "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
     AlgorithmSpec{adaptFromTask<HMPIDDPLDigitizerTask>()}, Options{}};
 }
 

@@ -44,13 +44,6 @@ void DigitsPrinterSpec<InputType>::run(framework::ProcessingContext& pc)
     LOG(ERROR) << "Unsupported input type ... ";
     return;
   }
-  auto dataref = pc.inputs().get(objectbranch);
-  auto const* emcheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(dataref);
-  if (!emcheader->mHasPayload) {
-    LOG(DEBUG) << "[EMCALDigitsPrinter - process] No more digits" << std::endl;
-    pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
-    return;
-  }
 
   auto objects = pc.inputs().get<gsl::span<InputType>>(objectbranch);
   auto triggerrecords = pc.inputs().get<gsl::span<o2::emcal::TriggerRecord>>("triggerrecord");

@@ -269,7 +269,7 @@ bool GPUTPCGMOfflineFitter::FitOffline(const GPUTPCGMPolynomialField* field, GPU
 
   if (fCAParam.GetTrackReferenceX() <= 500) {
     GPUTPCGMPropagator prop;
-    //    prop.SetMaterial( kRadLen, kRho );
+    prop.SetMaterialTPC();
     prop.SetPolynomialField(field);
     prop.SetMaxSinPhi(maxSinPhi);
     prop.SetToyMCEventsFlag(fCAParam.ToyMCEventsFlag());

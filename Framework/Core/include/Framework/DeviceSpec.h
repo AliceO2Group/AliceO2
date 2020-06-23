@@ -59,9 +59,7 @@ struct DeviceSpec {
   CompletionPolicy completionPolicy;
   DispatchPolicy dispatchPolicy;
   ComputingResource resource;
-  // Is resources monitoring enabled
-  bool resourceMonitoring;
-
+  unsigned short resourceMonitoringInterval;
 };
 
 } // namespace framework

@@ -15,8 +15,8 @@ namespace o2::aod
 {
 namespace etaphi
 {
-DECLARE_SOA_COLUMN(Eta, eta2, float, "fEta");
-DECLARE_SOA_COLUMN(Phi, phi2, float, "fPhi");
+DECLARE_SOA_COLUMN(Eta, eta2, float);
+DECLARE_SOA_COLUMN(Phi, phi2, float);
 } // namespace etaphi
 DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
                   etaphi::Eta, etaphi::Phi);
@@ -45,7 +45,10 @@ struct BTask {
   float fPI = static_cast<float>(M_PI);
   float ptlow = 0.5f;
   float ptup = 2.0f;
-  Filter ptFilter = ((aod::track::signed1Pt < 1.0f / ptlow) && (aod::track::signed1Pt > 1.0f / ptup)) || ((aod::track::signed1Pt < -1.0f / ptup) && (aod::track::signed1Pt < -1.0f / ptlow));
+  Filter ptFilter_a = aod::track::pt2 > (ptlow * ptlow);
+  Filter ptFilter_b = aod::track::pt2 < (ptup * ptup);
+
+  //  Filter ptFilter = ((aod::track::signed1Pt < 1.0f / ptlow) && (aod::track::signed1Pt > 1.0f / ptup)) || ((aod::track::signed1Pt < -1.0f / ptup) && (aod::track::signed1Pt < -1.0f / ptlow));
   float etalow = -1.0f;
   float etaup = 1.0f;
   Filter etafilter = (aod::etaphi::eta2 < etaup) && (aod::etaphi::eta2 > etalow);

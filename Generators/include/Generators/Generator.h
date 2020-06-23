@@ -18,6 +18,8 @@
 #include "Generators/Trigger.h"
 #include <vector>
 
+class FairMCEventHeader;
+
 namespace o2
 {
 namespace eventgen
@@ -45,7 +47,7 @@ class Generator : public FairGenerator
   /** constructor **/
   Generator(const Char_t* name, const Char_t* title = "ALICEo2 Generator");
   /** destructor **/
-  ~Generator() override;
+  ~Generator() override = default;
 
   /** Initialize the generator if needed **/
   Bool_t Init() override;
@@ -69,6 +71,9 @@ class Generator : public FairGenerator
   void addTrigger(Trigger trigger) { mTriggers.push_back(trigger); };
   void addDeepTrigger(DeepTrigger trigger) { mDeepTriggers.push_back(trigger); };
 
+  /** notification methods **/
+  virtual void notifyEmbedding(const FairMCEventHeader* mcHeader){};
+
  protected:
   /** copy constructor **/
   Generator(const Generator&);
@@ -78,6 +83,9 @@ class Generator : public FairGenerator
   /** methods to override **/
   virtual Bool_t generateEvent() = 0;
   virtual Bool_t importParticles() = 0;
+
+  /** methods that can be overridded **/
+  virtual void updateHeader(FairMCEventHeader* eventHeader){};
 
   /** internal methods **/
   Bool_t addTracks(FairPrimaryGenerator* primGen);

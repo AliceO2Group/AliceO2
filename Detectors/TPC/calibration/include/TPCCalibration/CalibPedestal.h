@@ -109,7 +109,7 @@ class CalibPedestal : public CalibRawBase
   StatisticsType getStatisticsType() const { return mStatisticsType; }
 
   /// Dump the relevant data to file
-  void dumpToFile(const std::string filename) final;
+  void dumpToFile(const std::string filename, uint32_t type = 0) final;
 
   /// Dummy end event
   void endEvent() final{};

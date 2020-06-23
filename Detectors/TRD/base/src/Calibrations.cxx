@@ -16,6 +16,7 @@
 #include <TH1F.h>
 #include <TH2F.h>
 #include <sstream>
+#include <string>
 
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/Calibrations.h"
@@ -42,7 +43,6 @@ using namespace o2::trd;
 
 void Calibrations::setCCDB(int calibrationobjecttype, long timestamp)
 {
-  int donothingfornow = 1;
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   ccdbmgr.setTimestamp(timestamp); // set which time stamp of data we want this is called per timeframe, and removes the need to call it when querying a value.
   switch (calibrationobjecttype) {
@@ -55,19 +55,30 @@ void Calibrations::setCCDB(int calibrationobjecttype, long timestamp)
       mChamberStatus = ccdbmgr.get<o2::trd::ChamberStatus>("TRD_test/ChamberStatus");
       mPadStatus = ccdbmgr.get<o2::trd::PadStatus>("TRD_test/PadStatus");
       mChamberNoise = ccdbmgr.get<o2::trd::ChamberNoise>("TRD_test/ChamberNoise");
+      //mCalOnlineGainTables= ccdbmgr.get<o2::trd::CalOnlineGainTables>("TRD_test/OnlineGainTables");
       //std::shared_ptr<TrapConfig> mTrapConfig;
       //std::shared_ptr<PRFWidth> mPRDWidth
-      //std::shared_ptr<OnlineGainFactors> mOnlineGainFactors;
+      //std::shared_ptr<CalOnlineGainTables> mCalOnlineGainTables;
       break;
     case 2: //reconstruction
-      donothingfornow = 1;
+      LOG(fatal) << "Reconstruction calibration not implemented yet ";
       break;
     case 3: // calibration
-      donothingfornow = 2;
+      LOG(fatal) << "Calibrating calibration not implemented yet ";
       break;
     default:
       LOG(fatal) << "unknown calibration type coming into setCCDB for TRD Calibrations";
   }
+}
+
+void Calibrations::setOnlineGainTables(std::string& tablename)
+{
+  if (mCalOnlineGainTables)
+    LOG(fatal) << "Attempt to overwrite Gain tables, mCalOnlineGainTables already exists";
+
+  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+  std::string fulltablename = "TRD_test/OnlineGainTables/" + tablename;
+  mCalOnlineGainTables = ccdbmgr.get<o2::trd::CalOnlineGainTables>(fulltablename);
 }
 
 double Calibrations::getVDrift(int det, int col, int row) const
@@ -104,6 +115,30 @@ double Calibrations::getPadGainFactor(int det, int col, int row) const
 {
   if (mLocalGainFactor)
     return (double)mLocalGainFactor->getValue(det, col, row);
+  else
+    return -1;
+}
+
+double Calibrations::getOnlineGainAdcdac(int det, int row, int mcm) const
+{
+  if (mCalOnlineGainTables)
+    return mCalOnlineGainTables->getAdcdacrm(det, row, mcm);
+  else
+    return -1;
+}
+
+double Calibrations::getOnlineGainFGAN(int det, int rob, int mcm, int adc) const
+{
+  if (mCalOnlineGainTables)
+    return mCalOnlineGainTables->getFGANrm(det, rob, mcm, adc);
+  else
+    return -1;
+}
+
+double Calibrations::getOnlineGainFGFN(int det, int rob, int mcm, int adc) const
+{
+  if (mCalOnlineGainTables)
+    return mCalOnlineGainTables->getFGFNrm(det, rob, mcm, adc);
   else
     return -1;
 }

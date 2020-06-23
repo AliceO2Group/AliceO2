@@ -20,7 +20,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 unsigned int GPUTPCSliceOutput::EstimateSize(unsigned int nOfTracks, unsigned int nOfTrackClusters)
 {
   // calculate the amount of memory [bytes] needed for the event
-  return sizeof(GPUTPCSliceOutput) + sizeof(GPUTPCSliceOutTrack) * nOfTracks + sizeof(GPUTPCSliceOutCluster) * nOfTrackClusters;
+  return sizeof(GPUTPCSliceOutput) + sizeof(GPUTPCTrack) * nOfTracks + sizeof(GPUTPCSliceOutCluster) * nOfTrackClusters;
 }
 
 #ifndef GPUCA_GPUCODE

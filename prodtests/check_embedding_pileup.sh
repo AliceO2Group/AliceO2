@@ -32,13 +32,16 @@ simtask() {
  target="o2sim${d}_${f}"
  root -q -b -l ${O2_ROOT}/share/macro/duplicateHits.C\(\"${origin}\",\"${target}\",${f}\)
 
-  # verify that we have hits
-  NUMHITS=`root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C\(\"$target\"\) | grep "${d}" | awk '//{print $2}'`
-  MSG="Found ${NUMHITS} hits for ${d}"
-  echo $MSG
+ # need to link the geometryfile
+ ln -s "${origin}_geometry.root" "${target}_geometry.root"
 
-  # digitize with extreme bunch crossing as well as with embedding the signal onto itself
-  o2-sim-digitizer-workflow --onlyDet ${d} --interactionRate 1e9 -b --tpc-lanes 1 --sims ${target},${target} > digilog${d} 2>&1
+ # verify that we have hits
+ NUMHITS=`root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C\(\"$target\"\) | grep "${d}" | awk '//{print $2}'`
+ MSG="Found ${NUMHITS} hits for ${d}"
+ echo $MSG
+
+ # digitize with extreme bunch crossing as well as with embedding the signal onto itself
+ o2-sim-digitizer-workflow --onlyDet ${d} --interactionRate 1e9 -b --tpc-lanes 1 --sims ${target},${target} > digilog${d} 2>&1
 }
 
 checktask() {
@@ -50,9 +53,14 @@ checktask() {
   root -q -b -l ${O2_ROOT}/share/macro/analyzeDigitLabels.C\(\"${digitfile}\",\"${d}\"\)
 }
 
-
-CORESPERSOCKET=`lscpu | grep "Core(s) per socket" | awk '{print $4}'`
-SOCKETS=`lscpu | grep "Socket(s)" | awk '{print $2}'`
+if [ "$(uname)" == "Darwin" ]; then
+  CORESPERSOCKET=`system_profiler SPHardwareDataType | grep "Total Number of Cores:" | awk '{print $5}'`
+  SOCKETS=`system_profiler SPHardwareDataType | grep "Number of Processors:" | awk '{print $4}'`
+else
+  # Do something under GNU/Linux platform
+  CORESPERSOCKET=`lscpu | grep "Core(s) per socket" | awk '{print $4}'`
+  SOCKETS=`lscpu | grep "Socket(s)" | awk '{print $2}'`
+fi
 N=`bc <<< "${CORESPERSOCKET}*${SOCKETS}"`
 echo "Detected ${N} CPU cores"
 

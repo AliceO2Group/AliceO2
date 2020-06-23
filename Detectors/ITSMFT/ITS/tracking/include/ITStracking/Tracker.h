@@ -82,6 +82,7 @@ class Tracker
   void traverseCellsTree(const int, const int);
   void computeRoadsMClabels(const ROframe&);
   void computeTracksMClabels(const ROframe&);
+  void rectifyClusterIndices(const ROframe& event);
 
   template <typename... T>
   float evaluateTask(void (Tracker::*)(T...), const char*, std::ostream& ostream, T&&... args);

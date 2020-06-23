@@ -44,13 +44,6 @@ Generator::Generator(const Char_t* name, const Char_t* title) : FairGenerator(na
 
 /*****************************************************************/
 
-Generator::~Generator()
-{
-  /** default destructor **/
-}
-
-/*****************************************************************/
-
 Bool_t
   Generator::Init()
 {
@@ -70,6 +63,9 @@ Bool_t
   /** endless generate-and-trigger loop **/
   while (true) {
 
+    /** clear particle vector **/
+    mParticles.clear();
+
     /** generate event **/
     if (!generateEvent())
       return kFALSE;
@@ -87,6 +83,9 @@ Bool_t
   if (!addTracks(primGen))
     return kFALSE;
 
+  /** update header **/
+  updateHeader(primGen->GetEvent());
+
   /** success **/
   return kTRUE;
 }
@@ -100,8 +99,6 @@ Bool_t
 
   /** loop over particles **/
   for (const auto& particle : mParticles) {
-    if (particle.GetStatusCode() != 1)
-      continue;
     primGen->AddTrack(particle.GetPdgCode(),
                       particle.Px() * mMomentumUnit,
                       particle.Py() * mMomentumUnit,

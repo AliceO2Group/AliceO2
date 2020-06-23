@@ -24,38 +24,20 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-class GPUTPCCFStreamCompaction
+class GPUTPCCFStreamCompaction : public GPUKernelTemplate
 {
 
  public:
+  enum K : int {
+    scanStart = 0,
+    scanUp = 1,
+    scanTop = 2,
+    scanDown = 3,
+    compactDigits = 4,
+  };
+
   struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int, GPUCA_THREAD_COUNT_SCAN> {
   };
-
-  enum K {
-    nativeScanUpStart,
-    nativeScanUp,
-    nativeScanTop,
-    nativeScanDown,
-    compact,
-  };
-
-  static GPUd() void nativeScanUpStartImpl(int, int, int, int, GPUSharedMemory&,
-                                           const uchar*, int*, int*,
-                                           int);
-
-  static GPUd() void nativeScanUpImpl(int, int, int, int, GPUSharedMemory&,
-                                      int*, int*, int);
-
-  static GPUd() void nativeScanTopImpl(int, int, int, int, GPUSharedMemory&,
-                                       int*, int);
-
-  static GPUd() void nativeScanDownImpl(int, int, int, int, GPUSharedMemory&,
-                                        int*, const int*, unsigned int, int);
-
-  static GPUd() void compactImpl(int, int, int, int, GPUSharedMemory&,
-                                 const ChargePos*, ChargePos*,
-                                 const uchar*, int*, const int*,
-                                 int, size_t);
 
 #ifdef HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
@@ -74,7 +56,24 @@ class GPUTPCCFStreamCompaction
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
-  GPUd() static int compactionElems(processorType& clusterer, int stage);
+  static GPUd() void nativeScanUpStartImpl(int, int, int, int, GPUSharedMemory&,
+                                           const uchar*, int*, int*,
+                                           int);
+
+  static GPUd() void nativeScanUpImpl(int, int, int, int, GPUSharedMemory&,
+                                      int*, int*, int);
+
+  static GPUd() void nativeScanTopImpl(int, int, int, int, GPUSharedMemory&,
+                                       int*, int);
+
+  static GPUd() void nativeScanDownImpl(int, int, int, int, GPUSharedMemory&,
+                                        int*, const int*, unsigned int, int);
+
+  static GPUd() void compactImpl(int, int, int, int, GPUSharedMemory&,
+                                 const ChargePos*, ChargePos*,
+                                 const uchar*, int*, const int*,
+                                 int, tpccf::SizeT);
+  static GPUd() int compactionElems(processorType& clusterer, int stage);
 };
 
 } // namespace gpu

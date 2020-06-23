@@ -16,19 +16,19 @@
 
 // For debugging purposes, we provide means to use other track models
 #define GPUCA_COMPRESSION_TRACK_MODEL_MERGER
-//#define GPUCA_COMPRESSION_TRACK_MODEL_SLICETRACKER
+// #define GPUCA_COMPRESSION_TRACK_MODEL_SLICETRACKER
 
 #include "GPUDef.h"
 
 #ifdef GPUCA_COMPRESSION_TRACK_MODEL_MERGER
 #include "GPUTPCGMPropagator.h"
 #include "GPUTPCGMTrackParam.h"
+
 #elif defined(GPUCA_COMPRESSION_TRACK_MODEL_SLICETRACKER)
-#error Not yet implemented
+#include "GPUTPCTrackParam.h"
 
 #else // Default internal track model for compression
 #error Not yet implemented
-
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -49,14 +49,16 @@ class GPUTPCCompressionTrackModel
   GPUd() int Filter(float y, float z, int iRow);
   GPUd() int Mirror();
 
-#ifdef GPUCA_COMPRESSION_TRACK_MODEL_MERGER
-  GPUd() float Y() const
+#if defined(GPUCA_COMPRESSION_TRACK_MODEL_MERGER) || defined(GPUCA_COMPRESSION_TRACK_MODEL_SLICETRACKER)
+  GPUd() float X() const
   {
-    return mTrk.GetY();
+    return mTrk.GetX();
   }
+  GPUd() float Y() const { return mTrk.GetY(); }
   GPUd() float Z() const { return mTrk.GetZ(); }
-
-#elif defined(GPUCA_COMPRESSION_TRACK_MODEL_SLICETRACKER)
+  GPUd() float SinPhi() const { return mTrk.GetSinPhi(); }
+  GPUd() float DzDs() const { return mTrk.GetDzDs(); }
+  GPUd() float QPt() const { return mTrk.GetQPt(); }
 
 #else // Default internal track model for compression
 
@@ -70,6 +72,8 @@ class GPUTPCCompressionTrackModel
   GPUTPCGMTrackParam mTrk;
 
 #elif defined(GPUCA_COMPRESSION_TRACK_MODEL_SLICETRACKER)
+  GPUTPCTrackParam mTrk;
+  float mAlpha;
 
 #else // Default internal track model for compression
 

@@ -17,7 +17,7 @@
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Traits.h"
 #include "Framework/Expressions.h"
-#include "Framework/Kernels.h"
+#include "Framework/ArrowTypes.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
 #include <arrow/util/variant.h>
@@ -25,9 +25,15 @@
 #include <arrow/compute/kernel.h>
 #include <gandiva/selection_vector.h>
 #include <cassert>
+#include <fmt/format.h>
 
 namespace o2::soa
 {
+template <typename... C>
+auto createSchemaFromColumns(framework::pack<C...>)
+{
+  return std::make_shared<arrow::Schema>(std::vector<std::shared_ptr<arrow::Field>>{C::asArrowField()...});
+}
 using SelectionVector = std::vector<int64_t>;
 
 template <typename, typename = void>
@@ -47,6 +53,12 @@ constexpr bool is_type_with_metadata_v = false;
 
 template <typename T>
 constexpr bool is_type_with_metadata_v<T, std::void_t<decltype(sizeof(typename T::metadata))>> = true;
+
+template <typename, typename = void>
+constexpr bool is_type_with_binding_v = false;
+
+template <typename T>
+constexpr bool is_type_with_binding_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
 
 template <typename T, typename TLambda>
 void call_if_has_originals(TLambda&& lambda)
@@ -85,69 +97,6 @@ constexpr auto make_originals_from_type()
   }
 }
 
-template <typename T>
-struct arrow_array_for {
-};
-template <>
-struct arrow_array_for<bool> {
-  using type = arrow::BooleanArray;
-};
-template <>
-struct arrow_array_for<int8_t> {
-  using type = arrow::Int8Array;
-};
-template <>
-struct arrow_array_for<uint8_t> {
-  using type = arrow::UInt8Array;
-};
-template <>
-struct arrow_array_for<int16_t> {
-  using type = arrow::Int16Array;
-};
-template <>
-struct arrow_array_for<uint16_t> {
-  using type = arrow::UInt16Array;
-};
-template <>
-struct arrow_array_for<int32_t> {
-  using type = arrow::Int32Array;
-};
-template <>
-struct arrow_array_for<int64_t> {
-  using type = arrow::Int64Array;
-};
-template <>
-struct arrow_array_for<uint32_t> {
-  using type = arrow::UInt32Array;
-};
-template <>
-struct arrow_array_for<uint64_t> {
-  using type = arrow::UInt64Array;
-};
-template <>
-struct arrow_array_for<float> {
-  using type = arrow::FloatArray;
-};
-template <>
-struct arrow_array_for<double> {
-  using type = arrow::DoubleArray;
-};
-template <int N>
-struct arrow_array_for<float[N]> {
-  using type = arrow::FixedSizeBinaryArray;
-};
-template <int N>
-struct arrow_array_for<int[N]> {
-  using type = arrow::FixedSizeBinaryArray;
-};
-template <int N>
-struct arrow_array_for<double[N]> {
-  using type = arrow::FixedSizeBinaryArray;
-};
-
-template <typename T>
-using arrow_array_for_t = typename arrow_array_for<T>::type;
-
 /// Policy class for columns which are chunked. This
 /// will make the compiler take the most generic (and
 /// slow approach).
@@ -172,17 +121,16 @@ class ColumnIterator : ChunkingPolicy
 
  public:
   /// Constructor of the column iterator. Notice how it takes a pointer
-  /// to the arrow::Column (for the data store) and to the index inside
+  /// to the ChunkedArray (for the data store) and to the index inside
   /// it. This means that a ColumnIterator is actually only available
   /// as part of a RowView.
-  ColumnIterator(arrow::Column const* column)
+  ColumnIterator(arrow::ChunkedArray const* column)
     : mColumn{column},
       mCurrentPos{nullptr},
       mFirstIndex{0},
       mCurrentChunk{0}
   {
-    auto chunks = mColumn->data();
-    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    auto array = getCurrentArray();
     mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset();
     mLast = mCurrent + array->length();
   }
@@ -197,22 +145,22 @@ class ColumnIterator : ChunkingPolicy
   /// Move the iterator to the next chunk.
   void nextChunk() const
   {
-    auto chunks = mColumn->data();
-    auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    auto previousArray = getCurrentArray();
     mFirstIndex += previousArray->length();
+
     mCurrentChunk++;
-    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    auto array = getCurrentArray();
     mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
   void prevChunk() const
   {
-    auto chunks = mColumn->data();
-    auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    auto previousArray = getCurrentArray();
     mFirstIndex -= previousArray->length();
+
     mCurrentChunk--;
-    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    auto array = getCurrentArray();
     mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
@@ -233,10 +181,8 @@ class ColumnIterator : ChunkingPolicy
   /// Move the iterator to the end of the column.
   void moveToEnd()
   {
-    mCurrentChunk = mColumn->data()->num_chunks() - 1;
-    auto chunks = mColumn->data();
-    auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    assert(array.get());
+    mCurrentChunk = mColumn->num_chunks() - 1;
+    auto array = getCurrentArray();
     mFirstIndex = mColumn->length() - array->length();
     mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
@@ -286,9 +232,22 @@ class ColumnIterator : ChunkingPolicy
   mutable T const* mCurrent;
   int64_t const* mCurrentPos;
   mutable T const* mLast;
-  arrow::Column const* mColumn;
+  arrow::ChunkedArray const* mColumn;
   mutable int mFirstIndex;
   mutable int mCurrentChunk;
+
+ private:
+  /// get pointer to mCurrentChunk chunk
+  auto getCurrentArray() const
+  {
+    std::shared_ptr<arrow::Array> chunkToUse = mColumn->chunk(mCurrentChunk);
+    if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
+      chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
+      return std::static_pointer_cast<arrow_array_for_t<value_for_t<T>>>(chunkToUse);
+    } else {
+      return std::static_pointer_cast<arrow_array_for_t<T>>(chunkToUse);
+    }
+  }
 };
 
 template <typename T, typename INHERIT>
@@ -308,11 +267,17 @@ struct Column {
 
   using persistent = std::true_type;
   using type = T;
-  static constexpr const char* const& label() { return INHERIT::mLabel; }
+  static constexpr const char* const& columnLabel() { return INHERIT::mLabel; }
   ColumnIterator<T> const& getIterator() const
   {
     return mColumnIterator;
   }
+
+  static auto asArrowField()
+  {
+    return std::make_shared<arrow::Field>(inherited_t::mLabel, framework::expressions::concreteArrowType(framework::expressions::selectArrowType<type>()));
+  }
+
   /// FIXME: rather than keeping this public we should have a protected
   /// non-const getter and mark this private.
   ColumnIterator<T> mColumnIterator;
@@ -325,7 +290,7 @@ struct DynamicColumn {
   using inherited_t = INHERIT;
 
   using persistent = std::false_type;
-  static constexpr const char* const& label() { return INHERIT::mLabel; }
+  static constexpr const char* const& columnLabel() { return INHERIT::mLabel; }
 };
 
 template <typename INHERIT>
@@ -333,7 +298,7 @@ struct IndexColumn {
   using inherited_t = INHERIT;
 
   using persistent = std::false_type;
-  static constexpr const char* const& label() { return INHERIT::mLabel; }
+  static constexpr const char* const& columnLabel() { return INHERIT::mLabel; }
 };
 
 template <int64_t START = 0, int64_t END = -1>
@@ -349,7 +314,7 @@ struct Index : o2::soa::IndexColumn<Index<START, END>> {
   Index& operator=(Index const&) = default;
   Index& operator=(Index&&) = default;
 
-  Index(arrow::Column const*)
+  Index(arrow::ChunkedArray const*)
   {
   }
 
@@ -438,6 +403,10 @@ struct IndexPolicyBase {
   uint64_t mOffset = 0;
 };
 
+struct RowViewSentinel {
+  uint64_t const index;
+};
+
 struct DefaultIndexPolicy : IndexPolicyBase {
   /// Needed to be able to copy the policy
   DefaultIndexPolicy() = default;
@@ -497,6 +466,16 @@ struct DefaultIndexPolicy : IndexPolicyBase {
   bool operator==(DefaultIndexPolicy const& other) const
   {
     return O2_BUILTIN_UNLIKELY(this->mRowIndex == other.mRowIndex);
+  }
+
+  bool operator!=(RowViewSentinel const& sentinel) const
+  {
+    return O2_BUILTIN_LIKELY(this->mRowIndex != sentinel.index);
+  }
+
+  bool operator==(RowViewSentinel const& sentinel) const
+  {
+    return O2_BUILTIN_UNLIKELY(this->mRowIndex == sentinel.index);
   }
   int64_t mMaxRow = 0;
 };
@@ -563,6 +542,16 @@ struct FilteredIndexPolicy : IndexPolicyBase {
     return O2_BUILTIN_UNLIKELY(mSelectionRow == other.mSelectionRow);
   }
 
+  bool operator!=(RowViewSentinel const& sentinel) const
+  {
+    return O2_BUILTIN_LIKELY(mSelectionRow != sentinel.index);
+  }
+
+  bool operator==(RowViewSentinel const& sentinel) const
+  {
+    return O2_BUILTIN_UNLIKELY(mSelectionRow == sentinel.index);
+  }
+
   /// Move iterator to one after the end. Since this is a view
   /// we move the mSelectionRow to one past the view size and
   /// the mRowIndex to one past the last entry in the selection
@@ -580,9 +569,11 @@ struct FilteredIndexPolicy : IndexPolicyBase {
  private:
   inline void updateRow()
   {
-    /// FIXME: there should be a way to detect and gracefully handle empty
-    ///        selections outside the index policy
-    this->mRowIndex = O2_BUILTIN_LIKELY(mMaxSelection != 0) ? mSelectedRows[mSelectionRow] : mSelectionRow;
+    this->mRowIndex = O2_BUILTIN_LIKELY(mSelectionRow < mMaxSelection) ? mSelectedRows[mSelectionRow] : -1;
+
+    // this->mRowIndex = O2_BUILTIN_LIKELY(mMaxSelection != 0) ?
+    //  (mSelectionRow < mMaxSelection ? mSelectedRows[mSelectionRow] : -1)
+    //  : mSelectionRow;
   }
   SelectionVector mSelectedRows;
   int64_t mSelectionRow = 0;
@@ -592,20 +583,29 @@ struct FilteredIndexPolicy : IndexPolicyBase {
 template <typename... C>
 class Table;
 
+/// Similar to a pair but not a pair, to avoid
+/// exposing the second type everywhere.
+template <typename C>
+struct ColumnDataHolder {
+  C* first;
+  arrow::ChunkedArray* second;
+};
+
 template <typename IP, typename... C>
 struct RowViewCore : public IP, C... {
  public:
   using policy_t = IP;
   using table_t = o2::soa::Table<C...>;
+  using all_columns = framework::pack<C...>;
   using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
   using dynamic_columns_t = framework::selected_pack<is_dynamic_t, C...>;
   using index_columns_t = framework::selected_pack<is_index_t, C...>;
   constexpr inline static bool has_index_v = !std::is_same_v<index_columns_t, framework::pack<>>;
   using external_index_columns_t = framework::selected_pack<is_external_index_t, C...>;
 
-  RowViewCore(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, IP&& policy)
+  RowViewCore(arrow::ChunkedArray* columnData[sizeof...(C)], IP&& policy)
     : IP{policy},
-      C(std::get<std::pair<C*, arrow::Column*>>(columnIndex).second)...
+      C(columnData[framework::has_type_at<C>(all_columns{})])...
   {
     bindIterators(persistent_columns_t{});
     bindAllDynamicColumns(dynamic_columns_t{});
@@ -648,12 +648,6 @@ struct RowViewCore : public IP, C... {
   {
     IP::operator=(static_cast<IP&&>(other));
     (void(static_cast<C&>(*this) = static_cast<C&&>(other)), ...);
-    return *this;
-  }
-
-  RowViewCore& operator[](int64_t i)
-  {
-    this->setCursor(i);
     return *this;
   }
 
@@ -795,8 +789,8 @@ class Table
     using parent_t = Parent;
     using originals = originals_pack_t<T...>;
 
-    RowViewBase(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, IP&& policy)
-      : RowViewCore<IP, C...>(columnIndex, std::forward<decltype(policy)>(policy))
+    RowViewBase(arrow::ChunkedArray* columnData[sizeof...(C)], IP&& policy)
+      : RowViewCore<IP, C...>(columnData, std::forward<decltype(policy)>(policy))
     {
     }
 
@@ -818,6 +812,12 @@ class Table
 
     RowViewBase& operator=(RowViewBase const&) = default;
     RowViewBase& operator=(RowViewBase&&) = default;
+
+    RowViewBase& operator=(RowViewSentinel const& other)
+    {
+      this->mRowIndex = other.index;
+      return *this;
+    }
 
     using RowViewCore<IP, C...>::operator++;
 
@@ -854,14 +854,21 @@ class Table
 
   Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : mTable(table),
-      mColumnIndex{
-        std::pair<C*, arrow::Column*>{nullptr,
-                                      lookupColumn<C>()}...},
-      mBegin(mColumnIndex, {table->num_rows(), offset}),
-      mEnd(mColumnIndex, {table->num_rows(), offset}),
+      mEnd{static_cast<uint64_t>(table->num_rows())},
       mOffset(offset)
   {
-    mEnd.moveToEnd();
+    if (mTable->num_rows() == 0) {
+      for (size_t ci = 0; ci < sizeof...(C); ++ci) {
+        mColumnChunks[ci] = nullptr;
+      }
+      mBegin = mEnd;
+    } else {
+      arrow::ChunkedArray* lookups[] = {lookupColumn<C>()...};
+      for (size_t ci = 0; ci < sizeof...(C); ++ci) {
+        mColumnChunks[ci] = lookups[ci];
+      }
+      mBegin = unfiltered_iterator{mColumnChunks, {table->num_rows(), offset}};
+    }
   }
 
   /// FIXME: this is to be able to construct a Filtered without explicit Join
@@ -877,9 +884,14 @@ class Table
     return unfiltered_iterator(mBegin);
   }
 
-  unfiltered_iterator end()
+  RowViewSentinel end()
   {
-    return unfiltered_iterator{mEnd};
+    return RowViewSentinel{mEnd};
+  }
+
+  unfiltered_iterator iteratorAt(uint64_t i)
+  {
+    return mBegin + i;
   }
 
   filtered_iterator filtered_begin(SelectionVector selection)
@@ -888,14 +900,12 @@ class Table
     // is held by the table, so we are safe passing the bare pointer. If it does it
     // means that the iterator on a table is outliving the table itself, which is
     // a bad idea.
-    return filtered_iterator(mColumnIndex, {selection, mOffset});
+    return filtered_iterator(mColumnChunks, {selection, mOffset});
   }
 
-  filtered_iterator filtered_end(SelectionVector selection)
+  RowViewSentinel filtered_end(SelectionVector selection)
   {
-    auto end = filtered_iterator(mColumnIndex, {selection, mOffset});
-    end.moveToEnd();
-    return end;
+    return RowViewSentinel{selection.size()};
   }
 
   unfiltered_const_iterator begin() const
@@ -903,9 +913,9 @@ class Table
     return unfiltered_const_iterator(mBegin);
   }
 
-  unfiltered_const_iterator end() const
+  RowViewSentinel end() const
   {
-    return unfiltered_const_iterator{mEnd};
+    return RowViewSentinel{mEnd};
   }
 
   /// Return a type erased arrow table backing store for / the type safe table.
@@ -926,15 +936,14 @@ class Table
   void bindExternalIndices(TA*... current)
   {
     mBegin.bindExternalIndices(current...);
-    mEnd.bindExternalIndices(current...);
   }
 
  private:
   template <typename T>
-  arrow::Column* lookupColumn()
+  arrow::ChunkedArray* lookupColumn()
   {
     if constexpr (T::persistent::value) {
-      auto label = T::label();
+      auto label = T::columnLabel();
       auto index = mTable->schema()->GetFieldIndex(label);
       if (index == -1) {
         throw std::runtime_error(std::string("Unable to find column with label ") + label);
@@ -945,13 +954,12 @@ class Table
     }
   }
   std::shared_ptr<arrow::Table> mTable;
-  /// This is a cached lookup of the column index in a given
-  std::tuple<std::pair<C*, arrow::Column*>...>
-    mColumnIndex;
+  // Cached pointers to the ChunkedArray associated to a column
+  arrow::ChunkedArray* mColumnChunks[sizeof...(C)];
   /// Cached begin iterator for this table.
   unfiltered_iterator mBegin;
   /// Cached end iterator for this table.
-  unfiltered_iterator mEnd;
+  RowViewSentinel mEnd;
   /// Offset of the table within a larger table.
   uint64_t mOffset;
 };
@@ -984,10 +992,35 @@ template <typename INHERIT>
 class TableMetadata
 {
  public:
-  static constexpr char const* const label() { return INHERIT::mLabel; }
+  static constexpr char const* tableLabel() { return INHERIT::mLabel; }
   static constexpr char const (&origin())[4] { return INHERIT::mOrigin; }
   static constexpr char const (&description())[16] { return INHERIT::mDescription; }
 };
+
+template <typename... C1, typename... C2>
+constexpr auto join(o2::soa::Table<C1...> const& t1, o2::soa::Table<C2...> const& t2)
+{
+  return o2::soa::Table<C1..., C2...>(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T1, typename T2, typename... Ts>
+constexpr auto join(T1 const& t1, T2 const& t2, Ts const&... ts)
+{
+  return join(t1, join(t2, ts...));
+}
+
+template <typename T1, typename T2>
+constexpr auto concat(T1&& t1, T2&& t2)
+{
+  using table_t = typename PackToTable<framework::intersected_pack_t<typename T1::columns, typename T2::columns>>::table;
+  return table_t(ArrowHelpers::concatTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename... Ts>
+using JoinBase = decltype(join(std::declval<Ts>()...));
+
+template <typename T1, typename T2>
+using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 
 } // namespace o2::soa
 
@@ -997,13 +1030,13 @@ class TableMetadata
     using metadata = std::void_t<T>; \
   }
 
-#define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_, _Label_)                  \
+#define DECLARE_SOA_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)             \
   struct _Name_ : o2::soa::Column<_Type_, _Name_> {                            \
     static constexpr const char* mLabel = _Label_;                             \
     using base = o2::soa::Column<_Type_, _Name_>;                              \
     using type = _Type_;                                                       \
     using column_t = _Name_;                                                   \
-    _Name_(arrow::Column const* column)                                        \
+    _Name_(arrow::ChunkedArray const* column)                                  \
       : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(column)) \
     {                                                                          \
     }                                                                          \
@@ -1019,6 +1052,41 @@ class TableMetadata
   };                                                                           \
   static const o2::framework::expressions::BindingNode _Getter_ { _Label_,     \
                                                                   o2::framework::expressions::selectArrowType<_Type_>() }
+
+#define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_) \
+  DECLARE_SOA_COLUMN_FULL(_Name_, _Getter_, _Type_, "f" #_Name_)
+
+/// An 'expression' column. i.e. a column that can be calculated from other
+/// columns with gandiva based on supplied C++ expression.
+#define DECLARE_SOA_EXPRESSION_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_, _Expression_) \
+  struct _Name_ : o2::soa::Column<_Type_, _Name_> {                                         \
+    static constexpr const char* mLabel = _Label_;                                          \
+    using base = o2::soa::Column<_Type_, _Name_>;                                           \
+    using type = _Type_;                                                                    \
+    using column_t = _Name_;                                                                \
+    _Name_(arrow::ChunkedArray const* column)                                               \
+      : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(column))              \
+    {                                                                                       \
+    }                                                                                       \
+                                                                                            \
+    _Name_() = default;                                                                     \
+    _Name_(_Name_ const& other) = default;                                                  \
+    _Name_& operator=(_Name_ const& other) = default;                                       \
+                                                                                            \
+    decltype(auto) _Getter_() const                                                         \
+    {                                                                                       \
+      return *mColumnIterator;                                                              \
+    }                                                                                       \
+    static o2::framework::expressions::Projector Projector()                                \
+    {                                                                                       \
+      return _Expression_;                                                                  \
+    }                                                                                       \
+  };                                                                                        \
+  static const o2::framework::expressions::BindingNode _Getter_ { _Label_,                  \
+                                                                  o2::framework::expressions::selectArrowType<_Type_>() }
+
+#define DECLARE_SOA_EXPRESSION_COLUMN(_Name_, _Getter_, _Type_, _Expression_) \
+  DECLARE_SOA_EXPRESSION_COLUMN_FULL(_Name_, _Getter_, _Type_, "f" #_Name_, _Expression_);
 
 /// An index column is a column of indices to elements / of another table named
 /// _Name_##s. The column name will be _Name_##Id and will always be stored in
@@ -1040,7 +1108,7 @@ class TableMetadata
     using type = _Type_;                                                           \
     using column_t = _Name_##Id;                                                   \
     using binding_t = _Table_;                                                     \
-    _Name_##Id(arrow::Column const* column)                                        \
+    _Name_##Id(arrow::ChunkedArray const* column)                                  \
       : o2::soa::Column<_Type_, _Name_##Id>(o2::soa::ColumnIterator<type>(column)) \
     {                                                                              \
     }                                                                              \
@@ -1121,7 +1189,7 @@ class TableMetadata
     using callable_t = helper::callable_t;                                                                                 \
     using callback_t = callable_t::type;                                                                                   \
                                                                                                                            \
-    _Name_(arrow::Column const*)                                                                                           \
+    _Name_(arrow::ChunkedArray const*)                                                                                     \
     {                                                                                                                      \
     }                                                                                                                      \
     _Name_() = default;                                                                                                    \
@@ -1146,54 +1214,53 @@ class TableMetadata
     std::tuple<o2::soa::ColumnIterator<typename Bindings::type> const*...> boundIterators;                                 \
   }
 
-#define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...)        \
-  using _Name_ = o2::soa::Table<__VA_ARGS__>;                          \
-                                                                       \
-  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> { \
-    using table_t = _Name_;                                            \
-    static constexpr char const* mLabel = #_Name_;                     \
-    static constexpr char const mOrigin[4] = _Origin_;                 \
-    static constexpr char const mDescription[16] = _Description_;      \
-  };                                                                   \
-                                                                       \
-  template <>                                                          \
-  struct MetadataTrait<_Name_> {                                       \
-    using metadata = _Name_##Metadata;                                 \
-  };                                                                   \
-                                                                       \
-  template <>                                                          \
-  struct MetadataTrait<_Name_::unfiltered_iterator> {                  \
-    using metadata = _Name_##Metadata;                                 \
+#define DECLARE_SOA_TABLE_FULL(_Name_, _Label_, _Origin_, _Description_, ...) \
+  using _Name_ = o2::soa::Table<__VA_ARGS__>;                                 \
+                                                                              \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {        \
+    using table_t = _Name_;                                                   \
+    static constexpr char const* mLabel = _Label_;                            \
+    static constexpr char const mOrigin[4] = _Origin_;                        \
+    static constexpr char const mDescription[16] = _Description_;             \
+  };                                                                          \
+                                                                              \
+  template <>                                                                 \
+  struct MetadataTrait<_Name_> {                                              \
+    using metadata = _Name_##Metadata;                                        \
+  };                                                                          \
+                                                                              \
+  template <>                                                                 \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                         \
+    using metadata = _Name_##Metadata;                                        \
+  };
+
+#define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...) \
+  DECLARE_SOA_TABLE_FULL(_Name_, #_Name_, _Origin_, _Description_, __VA_ARGS__);
+
+#define DECLARE_SOA_EXTENDED_TABLE(_Name_, _Table_, _Description_, ...)   \
+  using _Name_ = o2::soa::JoinBase<_Table_, o2::soa::Table<__VA_ARGS__>>; \
+                                                                          \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {    \
+    using table_t = _Name_;                                               \
+    using base_table_t = _Table_;                                         \
+    using expression_pack_t = framework::pack<__VA_ARGS__>;               \
+    static constexpr char const* mLabel = #_Name_;                        \
+    static constexpr char const mOrigin[4] = "DYN";                       \
+    static constexpr char const mDescription[16] = _Description_;         \
+  };                                                                      \
+                                                                          \
+  template <>                                                             \
+  struct MetadataTrait<_Name_> {                                          \
+    using metadata = _Name_##Metadata;                                    \
+  };                                                                      \
+                                                                          \
+  template <>                                                             \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                     \
+    using metadata = _Name_##Metadata;                                    \
   };
 
 namespace o2::soa
 {
-
-template <typename... C1, typename... C2>
-constexpr auto join(o2::soa::Table<C1...> const& t1, o2::soa::Table<C2...> const& t2)
-{
-  return o2::soa::Table<C1..., C2...>(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
-}
-
-template <typename T1, typename T2, typename... Ts>
-constexpr auto join(T1 const& t1, T2 const& t2, Ts const&... ts)
-{
-  return join(t1, join(t2, ts...));
-}
-
-template <typename T1, typename T2>
-constexpr auto concat(T1&& t1, T2&& t2)
-{
-  using table_t = typename PackToTable<framework::intersected_pack_t<typename T1::columns, typename T2::columns>>::table;
-  return table_t(ArrowHelpers::concatTables({t1.asArrowTable(), t2.asArrowTable()}));
-}
-
-template <typename... Ts>
-using JoinBase = decltype(join(std::declval<Ts>()...));
-
-template <typename T1, typename T2>
-using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
-
 template <typename... Ts>
 struct Join : JoinBase<Ts...> {
   Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
@@ -1215,6 +1282,7 @@ struct Join : JoinBase<Ts...> {
   }
 
   using table_t = base;
+  using persistent_columns_t = typename table_t::persistent_columns_t;
   using iterator = typename table_t::template RowView<Join<Ts...>, Ts...>;
   using const_iterator = iterator;
   using filtered_iterator = typename table_t::template RowViewFiltered<Join<Ts...>, Ts...>;
@@ -1241,6 +1309,7 @@ struct Concat : ConcatBase<T1, T2> {
   using left_t = T1;
   using right_t = T2;
   using table_t = ConcatBase<T1, T2>;
+  using persistent_columns_t = typename table_t::persistent_columns_t;
 
   using iterator = typename table_t::template RowView<Concat<T1, T2>, T1, T2>;
   using filtered_iterator = typename table_t::template RowViewFiltered<Concat<T1, T2>, T1, T2>;
@@ -1258,6 +1327,7 @@ class Filtered : public T
  public:
   using originals = originals_pack_t<T>;
   using table_t = typename T::table_t;
+  using persistent_columns_t = typename T::persistent_columns_t;
 
   template <typename P, typename... Os>
   constexpr static auto make_it(framework::pack<Os...> const&)
@@ -1271,7 +1341,7 @@ class Filtered : public T
     : T{std::move(tables), offset},
       mSelectedRows{std::forward<SelectionVector>(selection)},
       mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
-      mFilteredEnd{table_t::filtered_end(mSelectedRows)}
+      mFilteredEnd{mSelectedRows.size()}
   {
   }
 
@@ -1279,7 +1349,7 @@ class Filtered : public T
     : T{std::move(tables), offset},
       mSelectedRows{copySelection(selection)},
       mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
-      mFilteredEnd{table_t::filtered_end(mSelectedRows)}
+      mFilteredEnd{mSelectedRows.size()}
   {
   }
 
@@ -1287,9 +1357,9 @@ class Filtered : public T
     : T{std::move(tables), offset},
       mSelectedRows{copySelection(framework::expressions::createSelection(this->asArrowTable(),
                                                                           framework::expressions::createFilter(this->asArrowTable()->schema(),
-                                                                                                               framework::expressions::createCondition(tree))))},
+                                                                                                               framework::expressions::makeCondition(tree))))},
       mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
-      mFilteredEnd{table_t::filtered_end(mSelectedRows)}
+      mFilteredEnd{mSelectedRows.size()}
   {
   }
 
@@ -1298,9 +1368,9 @@ class Filtered : public T
     return iterator(mFilteredBegin);
   }
 
-  iterator end()
+  RowViewSentinel end()
   {
-    return iterator{mFilteredEnd};
+    return RowViewSentinel{mFilteredEnd};
   }
 
   const_iterator begin() const
@@ -1308,9 +1378,14 @@ class Filtered : public T
     return const_iterator(mFilteredBegin);
   }
 
-  const_iterator end() const
+  RowViewSentinel end() const
   {
-    return const_iterator{mFilteredEnd};
+    return RowViewSentinel{mFilteredEnd};
+  }
+
+  iterator iteratorAt(uint64_t i)
+  {
+    return mFilteredBegin + i;
   }
 
   int64_t size() const
@@ -1344,13 +1419,12 @@ class Filtered : public T
   {
     table_t::bindExternalIndices(current...);
     mFilteredBegin.bindExternalIndices(current...);
-    mFilteredEnd.bindExternalIndices(current...);
   }
 
  private:
   SelectionVector mSelectedRows;
   iterator mFilteredBegin;
-  iterator mFilteredEnd;
+  RowViewSentinel mFilteredEnd;
 };
 
 template <typename T>
@@ -1360,26 +1434,6 @@ template <typename T>
 auto filter(T&& t, framework::expressions::Filter const& expr)
 {
   return Filtered<T>(t.asArrowTable(), expr);
-}
-
-template <typename T>
-std::vector<std::decay_t<T>> slice(T&& t, std::string const& columnName)
-{
-  arrow::compute::FunctionContext ctx;
-  std::vector<arrow::compute::Datum> splittedDatums;
-  std::vector<std::decay_t<T>> splittedTables;
-  std::vector<uint64_t> offsets;
-  auto status = framework::sliceByColumn(&ctx, columnName, arrow::compute::Datum(t.asArrowTable()), &splittedDatums, &offsets);
-  if (status.ok() == false) {
-    throw std::runtime_error("Unable to slice table");
-  }
-  splittedTables.reserve(splittedDatums.size());
-  for (size_t ti = 0; ti < splittedDatums.size(); ++ti) {
-    auto table = arrow::util::get<std::shared_ptr<arrow::Table>>(splittedDatums[ti].value);
-    auto offset = offsets[ti];
-    splittedTables.emplace_back(table, offset);
-  }
-  return splittedTables;
 }
 
 } // namespace o2::soa

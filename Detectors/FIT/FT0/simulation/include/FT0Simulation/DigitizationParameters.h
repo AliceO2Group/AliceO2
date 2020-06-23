@@ -27,15 +27,17 @@ struct DigitizationParameters {
   float mCFD_trsh = 3.;                                      // [mV]
   float mAmp_trsh = 100;                                     // [ph.e]
   float mAmpRecordLow = -4;                                  // integrate charge from
+
   float mAmpRecordUp = 15;                                   // to [ns]
-  int mTime_trg_gate = 153;                                  //4000/13;   #channels
+  int mTime_trg_gate = 189;                                  //2500/13; (+-2ns)  #channels
+  // int mTime_trg_gate = 2000;                                  //2000/13; (+-2ns)  #channels no limits
   float mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   float C_side_cable_cmps = 2.86;   //ns
   float A_side_cable_cmps = 11.110; //ns
-  int mSignalWidth = 378;           //5000.ps/13.2ps   #channels
-  int mtrg_central_trh = 200.;      // channels
-  int mtrg_semicentral_trh = 100.;  // channels
-  int mtrg_vertex = 230;            //3000./13.  #channels
+  int mSignalWidth = 189;           //+-2500.ps/13.2ps   #channels
+  int mtrg_central_trh = 600.;      // channels
+  int mtrg_semicentral_trh = 300.;  // channels
+
   float mMip_in_V = 7;              //MIP to mV
   float mPe_in_mip = 0.004;         // invserse Np.e. in MIP 1./250.
   float mCfdShift = 1.66;           //ns

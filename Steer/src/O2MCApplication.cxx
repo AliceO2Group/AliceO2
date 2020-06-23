@@ -13,7 +13,6 @@
 #include <FairMQMessage.h>
 #include <FairMQDevice.h>
 #include <FairMQParts.h>
-#include <TPCSimulation/Point.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <TMessage.h>
 #include <sstream>
@@ -221,6 +220,7 @@ void O2MCApplication::SendData()
   // fill these parts ... the receiver has to unpack similary
   // TODO: actually we could just loop over branches in FairRootManager at this moment?
   mSubEventInfo->npersistenttracks = static_cast<o2::data::Stack*>(GetStack())->getMCTracks()->size();
+  mSubEventInfo->nprimarytracks = static_cast<o2::data::Stack*>(GetStack())->GetNprimary();
   attachSubEventInfo(simdataparts, *mSubEventInfo);
   auto tracks = attachBranch<std::vector<o2::MCTrack>>("MCTrack", *mSimDataChannel, simdataparts);
   attachBranch<std::vector<o2::TrackReference>>("TrackRefs", *mSimDataChannel, simdataparts);

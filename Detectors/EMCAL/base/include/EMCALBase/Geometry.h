@@ -547,6 +547,14 @@ class Geometry
   /// \brief Init function of previous class EMCGeometry
   void DefineEMC(std::string_view mcname, std::string_view mctitle);
 
+  /// \brief Calculate cell SM, module numbers from absolute ID number
+  /// \param absId cell absolute id. number
+  /// \return tuple(supermodule ID, module number, index of cell in module in phi, index of cell in module in eta)
+  /// \throw InvalidCellIDException
+  ///
+  /// Used in order to fill the lookup table of cell indices
+  std::tuple<int, int, int, int> CalculateCellIndex(Int_t absId) const;
+
   std::string mGeoName;                     ///< Geometry name string
   Int_t mKey110DEG;                         ///< For calculation abs cell id; 19-oct-05
   Int_t mnSupModInDCAL;                     ///< For calculation abs cell id; 06-nov-12
@@ -626,7 +634,8 @@ class Geometry
 
   Float_t mSteelFrontThick; ///< Thickness of the front stell face of the support box - 9-sep-04; obsolete?
 
-  mutable const TGeoHMatrix* SMODULEMATRIX[EMCAL_MODULES]; ///< Orientations of EMCAL super modules
+  mutable const TGeoHMatrix* SMODULEMATRIX[EMCAL_MODULES];      ///< Orientations of EMCAL super modules
+  std::vector<std::tuple<int, int, int, int>> mCellIndexLookup; ///< Lookup table for cell indices
 
  private:
   static Geometry* sGeom; ///< Pointer to the unique instance of the singleton

@@ -13,6 +13,10 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#include "Rtypes.h"
+#endif
+
 #include "TPCFastTransform.h"
 
 #if !defined(GPUCA_GPUCODE)

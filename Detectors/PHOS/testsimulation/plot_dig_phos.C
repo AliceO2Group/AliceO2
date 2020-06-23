@@ -15,6 +15,8 @@
 #include "PHOSBase/Geometry.h"
 #endif
 
+using namespace std;
+
 void plot_dig_phos(int ievent = 0, TString inputfile = "o2dig.root")
 {
 

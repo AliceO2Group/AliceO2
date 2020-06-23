@@ -49,7 +49,7 @@ struct DeviceSpecHelpers {
     std::vector<DeviceSpec>& devices,
     ResourceManager& resourceManager,
     std::string const& uniqueWorkflowId,
-    bool resourcesMonitoring = false);
+    unsigned short resourcesMonitoringInterval = 0);
 
   static void dataProcessorSpecs2DeviceSpecs(
     const WorkflowSpec& workflow,
@@ -58,10 +58,11 @@ struct DeviceSpecHelpers {
     std::vector<DeviceSpec>& devices,
     ResourceManager& resourceManager,
     std::string const& uniqueWorkflowId,
-    bool resourcesMonitoring = false)
+    unsigned short resourcesMonitoringInterval = 0)
   {
     std::vector<DispatchPolicy> dispatchPolicies = DispatchPolicy::createDefaultPolicies();
-    dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, dispatchPolicies, devices, resourceManager, uniqueWorkflowId, resourcesMonitoring);
+    dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, 
+      dispatchPolicies, devices, resourceManager, uniqueWorkflowId, resourcesMonitoringInterval);
   }
 
   /// Helper to provide the channel configuration string for an input channel
@@ -70,6 +71,9 @@ struct DeviceSpecHelpers {
   /// Helper to provide the channel configuration string for an output channel
   static std::string outputChannel2String(const OutputChannelSpec& channel);
 
+  /// Rework the infos so that they have a consisten --shm-section-size
+  /// which is the maximum of the specified value.
+  static void reworkShmSegmentSize(std::vector<DataProcessorInfo>& infos);
   /// Helper to prepare the arguments which will be used to
   /// start the various devices.
   static void prepareArguments(

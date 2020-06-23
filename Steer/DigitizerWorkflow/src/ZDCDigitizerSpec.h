@@ -18,7 +18,7 @@ namespace o2
 namespace zdc
 {
 
-o2::framework::DataProcessorSpec getZDCDigitizerSpec(int channel);
+o2::framework::DataProcessorSpec getZDCDigitizerSpec(int channel, bool mctruth = true);
 
 } // end namespace zdc
 } // end namespace o2

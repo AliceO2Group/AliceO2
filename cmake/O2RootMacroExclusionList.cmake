@@ -17,7 +17,6 @@ include(O2GetListOfMacros)
 #
 
 list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
-            DataFormats/simulation/test/checkStack.C
             Detectors/ITSMFT/ITS/macros/EVE/rootlogon.C
             Detectors/ITSMFT/ITS/macros/test/rootlogon.C
             Detectors/MUON/MCH/Simulation/macros/rootlogon.C
@@ -26,6 +25,9 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             Detectors/TPC/reconstruction/macro/getTPCTransformationExample.C
             Detectors/TRD/base/macros/OCDB2CCDB.C
             Detectors/TRD/base/macros/OCDB2CCDBTrapConfig.C
+            Detectors/TRD/base/macros/Readocdb.C
+            Detectors/TRD/base/macros/PrintTrapConfig.C
+            Detectors/TRD/base/macros/ConvertRun2DigitsAndTracklets.C
             Detectors/EMCAL/calib/macros/ReadTestBadChannelMap_CCDBApi.C
             GPU/GPUTracking/Merger/macros/checkPropagation.C # Needs AliRoot AliExternalTrackParam
             GPU/GPUTracking/Merger/macros/fitPolynomialFieldIts.C # Needs AliRoot AliMagF

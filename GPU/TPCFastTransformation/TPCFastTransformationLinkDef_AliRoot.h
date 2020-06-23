@@ -16,7 +16,37 @@
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
+/*
+#pragma link C++ nestedclasses;
+#pragma link C++ nestedtypedef;
 
-//#pragma link C++ class AliGPU::gpu::IrregularSpline1D+;
+#pragma link C++ namespace AliGPU::gpu;
+
+#pragma link C++ class AliGPU::gpu::Spline1D < float> + ;
+#pragma link C++ class AliGPU::gpu::Spline1D < double> + ;
+#pragma link C++ class AliGPU::gpu::Spline2DBase < float, false> + ;
+#pragma link C++ class AliGPU::gpu::Spline2DBase < double, false> + ;
+#pragma link C++ class AliGPU::gpu::Spline2DBase < float, true> + ;
+#pragma link C++ class AliGPU::gpu::Spline2DBase < double, true> + ;
+
+#pragma link C++ class AliGPU::gpu::Spline2D < float, 1> - ;
+
+#pragma link C++ class AliGPU::gpu::SplineHelper1D < float>;
+#pragma link C++ class AliGPU::gpu::SplineHelper1D < double>;
+#pragma link C++ class AliGPU::gpu::SplineHelper2D < float>;
+#pragma link C++ class AliGPU::gpu::SplineHelper2D < double>;
+
+#pragma link C++ class AliGPU::gpu::RegularSpline1D + ;
+#pragma link C++ class AliGPU::gpu::IrregularSpline1D + ;
+#pragma link C++ class AliGPU::gpu::IrregularSpline2D3D + ;
+#pragma link C++ class AliGPU::gpu::SemiregularSpline2D3D + ;
+#pragma link C++ class AliGPU::gpu::IrregularSpline2D3DCalibrator + ;
+#pragma link C++ class AliGPU::gpu::TPCFastTransformGeo + ;
+#pragma link C++ class AliGPU::gpu::TPCFastTransformGeo::SliceInfo + ;
+#pragma link C++ class AliGPU::gpu::TPCFastTransformGeo::RowInfo + ;
+#pragma link C++ class AliGPU::gpu::TPCFastTransform + ;
+
+#pragma link C++ class AliGPU::gpu::TPCFastSpaceChargeCorrection + ;
+*/
 
 #endif

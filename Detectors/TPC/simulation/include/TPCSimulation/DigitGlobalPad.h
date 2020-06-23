@@ -25,7 +25,7 @@
 #include "SimulationDataFormat/LabelContainer.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/CRU.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCSimulation/DigitMCMetaData.h"

@@ -36,6 +36,7 @@ class TopologyFastSimulation
 
  private:
   TopologyDictionary mDictionary;
+  std::vector<double> mFreqArray;
   std::mt19937 mGenerator;
   std::uniform_real_distribution<double> mDistribution;
 

@@ -18,7 +18,9 @@ endif()
 
 set_target_properties(geant321
                       PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                 "${Geant3_INCLUDE_DIRS}")
+                                 "${Geant3_INCLUDE_DIRS}"
+                                 INTERFACE_LINK_DIRECTORIES
+                                 $<TARGET_FILE_DIR:geant321>)
 
 # Promote the imported target to global visibility
 # (so we can alias it)

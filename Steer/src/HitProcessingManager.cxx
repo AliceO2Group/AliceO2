@@ -15,6 +15,7 @@
 #include <iostream>
 #include <TFile.h>
 #include <TClass.h>
+#include <TRandom3.h>
 
 ClassImp(o2::steer::HitProcessingManager);
 
@@ -117,6 +118,102 @@ bool HitProcessingManager::setupRunFromExistingContext(const char* filename)
   }
   LOG(WARN) << "NO DIGITIZATIONCONTEXT FOUND";
   return false;
+}
+
+void HitProcessingManager::sampleCollisionTimes()
+{
+  mDigitizationContext.getEventRecords().resize(mDigitizationContext.getNCollisions());
+  mInteractionSampler.generateCollisionTimes(mDigitizationContext.getEventRecords());
+  mDigitizationContext.getBunchFilling() = mInteractionSampler.getBunchFilling();
+  mDigitizationContext.setMuPerBC(mInteractionSampler.getMuPerBC());
+}
+
+void HitProcessingManager::sampleCollisionConstituents()
+{
+  TRandom3 rnd(0); // we don't use the global to be in isolation
+  auto getBackgroundRoundRobin = [this]() {
+    static int bgcounter = 0;
+    int numbg = mSimChains[0]->GetEntries();
+    if (bgcounter == numbg) {
+      bgcounter = 0;
+    }
+    return EventPart(0, bgcounter++);
+  };
+
+  const int nsignalids = mSimChains.size() - 1;
+  auto getSignalRoundRobin = [this, nsignalids]() {
+    static int bgcounter = 0;
+    static int signalid = 0;
+    static std::vector<int> counter(nsignalids, 0);
+    if (signalid == nsignalids) {
+      signalid = 0;
+    }
+    const auto realsourceid = signalid + 1;
+    int numentries = mSimChains[realsourceid]->GetEntries();
+    if (counter[signalid] == numentries) {
+      counter[signalid] = 0;
+    }
+    EventPart e(realsourceid, counter[signalid]);
+    counter[signalid]++;
+    signalid++;
+    return e;
+  };
+
+  auto getRandomBackground = [this, &rnd]() {
+    int numbg = mSimChains[0]->GetEntries();
+    const auto eventID = (int)numbg * rnd.Rndm();
+    return EventPart(0, eventID);
+  };
+
+  auto getRandomSignal = [this, nsignalids, &rnd]() {
+    const auto sourceID = 1 + (int)(rnd.Rndm() * nsignalids);
+    const auto signalID = (int)(rnd.Rndm() * mSimChains[sourceID]->GetEntries());
+    return EventPart(sourceID, signalID);
+  };
+
+  // we fill mDigitizationContext.mEventParts
+  auto& eventparts = mDigitizationContext.getEventParts();
+  eventparts.clear();
+  eventparts.resize(mDigitizationContext.getEventRecords().size());
+  for (int i = 0; i < mDigitizationContext.getEventRecords().size(); ++i) {
+    eventparts[i].clear();
+    // NOTE: THIS PART WOULD BENEFIT FROM A MAJOR REDESIGN
+    // WISHFUL ITEMS WOULD BE:
+    // - ALLOW COLLISION ENGINEERING FROM OUTSIDE (give wanted sequence as file)
+    //    * the outside person can decide what kind of sampling and sequence to use
+    // - CHECK IF VERTEX IS CONSISTENT
+    if (mSampleCollisionsRandomly) {
+      eventparts[i].emplace_back(getRandomBackground());
+      if (mSimChains.size() > 1) {
+        eventparts[i].emplace_back(getRandomSignal());
+      }
+    } else {
+      // push any number of constituents?
+      // for the moment just 2 : one background and one signal
+      eventparts[i].emplace_back(getBackgroundRoundRobin());
+      if (mSimChains.size() > 1) {
+        eventparts[i].emplace_back(getSignalRoundRobin());
+      }
+    }
+  }
+
+  // push any number of constituents?
+  // for the moment just max 2 : one background and one signal
+  mDigitizationContext.setMaxNumberParts(1);
+  if (mSimChains.size() > 1) {
+    mDigitizationContext.setMaxNumberParts(2);
+  }
+
+  mDigitizationContext.printCollisionSummary();
+}
+
+void HitProcessingManager::run()
+{
+  setupRun();
+  // sample other stuff
+  for (auto& f : mRegisteredRunFunctions) {
+    f(mDigitizationContext);
+  }
 }
 
 } // end namespace steer

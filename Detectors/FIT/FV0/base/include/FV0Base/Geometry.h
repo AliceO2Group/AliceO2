@@ -18,10 +18,12 @@
 #define ALICEO2_FV0_GEOMETRY_H_
 
 #include <vector>
+#include <array>
 
 #include <TGeoMatrix.h>
 #include <TGeoVolume.h>
 #include <TVirtualMC.h>
+#include "MathUtils/Cartesian3D.h"
 
 namespace o2
 {
@@ -32,9 +34,13 @@ class Geometry
 {
  public:
   /// Geometry type options possible to be initialized. The type of the geometry will specify which components are
-  /// created.
+  /// created. Geometry types
+  ///  -> eUnitialized   => no parts
+  ///  -> eOnlySensitive => only sensitive detector parts
+  ///  -> eRough         => sensitive parts and rough structural elements
+  ///  -> eFull          => complete, detailed geometry (including screws, etc.)
   enum EGeoType {
-    eUninitilized,
+    eUninitialized,
     eOnlySensitive,
     eRough,
     eFull
@@ -53,21 +59,15 @@ class Geometry
   /// Default constructor.
   /// It must be kept public for root persistency purposes,
   /// but should never be called by the outside world
-  Geometry() : mGeometryType(eUninitilized), mLeftTransformation(nullptr), mRightTransformation(nullptr){};
-
-  /// Standard constructor
-  /// \param initType[in]  The type of geometry, that will be initialized
-  ///                       -> initType == eUnitialized   => no parts
-  ///                       -> initType == eOnlySensitive => only sensitive detector parts
-  ///                       -> initType == eRough         => sensitive parts and rough structural elements
-  ///                       -> initType == eFull          => complete, detailed geometry (including screws, etc.)
-  /// \return  -
-  explicit Geometry(EGeoType initType);
+  Geometry() : mGeometryType(eUninitialized), mLeftTransformation(nullptr), mRightTransformation(nullptr){};
 
   /// Copy constructor.
   Geometry(const Geometry& geometry);
 
-  /// Destructor
+  /// Access to geometry instance
+  /// \param  initType   The geometry type to be initialized - if the geometry already exists this parameter is ignored
+  static Geometry* instance(EGeoType initType = eUninitialized);
+
   ~Geometry();
 
   /// Get the unique ID of the current scintillator cell during simulation.
@@ -91,7 +91,24 @@ class Geometry
   /// Build the geometry.
   void buildGeometry() const;
 
+  /// Utility functions to be accessed externally
+
+  /// Sets the input parameters to the position of the geometrical center of sensitive detector
+  /// \param  x   x [cm].
+  /// \param  y   y [cm].
+  /// \param  z   z [cm].
+  void getGlobalPosition(float& x, float& y, float& z);
+  Point3D<float>& getCellCenter(UInt_t cellId);
+  Point3D<float>& getReadoutCenter(UInt_t cellId);
+
+  /// Helper function to check if the cellId belongs to ring 5.
+  /// \param  cellId  Id of the cell in range from 0 to 39.
+  /// \return True if cellId belongs to ring 5.
+  bool isRing5(UInt_t cellId);
+
  private:
+  explicit Geometry(EGeoType initType);
+
   inline static const std::string sDetectorName = "FV0";
 
   // General geometry constants
@@ -110,6 +127,13 @@ class Geometry
   /// Cell and scintillator constants
   static constexpr int sNumberOfCellSectors = 4; ///< Number of cell sectors for one half of the detector
   static constexpr int sNumberOfCellRings = 5;   ///< Number of cell rings
+  static constexpr int sNumberOfCells = sNumberOfCellRings * sNumberOfCellSectors * 2;       ///< Number of cells
+  static constexpr int sNumberOfReadoutChannels = sNumberOfCells + sNumberOfCellSectors * 2; ///< Number of ch (2 ch per cell in r5)
+
+  /// Look-up tables converting cellId to the ring and sector number
+  static constexpr int sCellToRing[sNumberOfCells] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4};
+  static constexpr int sCellToSector[sNumberOfCells] = {0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7};
+
   /// Average cell ring radii.
   static constexpr float sCellRingRadii[sNumberOfCellRings + 1]{4.01, 7.3, 12.9, 21.25, 38.7, 72.115};
   static constexpr char sCellTypes[sNumberOfCellSectors]{'a', 'b', 'b', 'a'}; ///< Ordered cell types per half a ring
@@ -386,6 +410,10 @@ class Geometry
   /// \return The volume name.
   const std::string createVolumeName(const std::string& volumeType, int number = -1) const;
 
+  /// Utility methods
+  void initializeCellCenters();    ///< To be called in constructor to initialize mCellCenter
+  void initializeReadoutCenters(); ///< To be called in constructor to initialize mReadoutCenter
+
   std::vector<std::string> mSensitiveVolumeNames; ///< The names of all the sensitive volumes
 
   /// Average ring radii
@@ -429,6 +457,12 @@ class Geometry
   std::map<EGeoComponent, bool> mEnabledComponents; ///< Map of the enabled state of all geometry components
   TGeoMatrix* mLeftTransformation;                  ///< Transformation for the left part of the detector
   TGeoMatrix* mRightTransformation;                 ///< Transformation for the right part of the detector
+
+  /// Utility arrays derived from constants
+  std::array<Point3D<float>, sNumberOfCells> mCellCenter;              ///< Center of each scintillator cell
+  std::array<Point3D<float>, sNumberOfReadoutChannels> mReadoutCenter; ///< Similar to mCellCenter, cells in r5 are additionally divided
+
+  static Geometry* sInstance; ///< \brief  Singleton instance
 
   ClassDefNV(Geometry, 1);
 };

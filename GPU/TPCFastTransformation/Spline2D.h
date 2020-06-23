@@ -25,190 +25,140 @@
 #include <Vc/SimdArray>
 #endif
 
+class TFile;
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 ///
-/// The Spline2D class represents spline interpolation on a two-dimensional nonunifom grid.
-/// The class is an extension of the Spline1D class. See Spline1D.h for more details.
+/// The Spline2D class performs a cubic spline interpolation on an two-dimensional nonunifom grid.
+/// The class is an extension of the Spline1D class.
+/// See Spline1D.h for more details.
 ///
-/// Spline knots and spline parameters are initialized separatelly.
-/// The knots are stored inside the Spline2D class, while the parameters must be stored outside
-/// and must be provided by the user at each call of the interpolation.
-/// This implementation allows one to use the same spline object for interpolation of different functions on the same knots.
-///
-/// --- Interpolation ---
-///
-/// The spline S(u,v) interpolates a function F:[u,v]->R^m,
-/// where u,v belong to [0,Umax]x[0,Vmax].
-///
-/// --- Knots ---
-///
-/// The spline knots belong to [0, Umax][0,Vmax] and have integer coordinates.
-///
-/// To interpolate a function on an interval other than [0,Umax]x[0,Vmax], one should scale the U/V coordinates and the S derivatives in the parameter array.
-///
-/// The minimal number of knots is 2, the minimal Umax & Vmax is 1
-///
-/// --- Function values at knots---
-///
-/// Nothing which depends on F is stored in the class,
-/// therefore one can use the same spline object for interpolation of different input functions.
-/// The spline parameters S_i and D_i must be provided by the user for each call.
-/// The format of the spline parameters:
-///   {
-///     { (Fx,Fy,Fz), (Fx,Fy,Fz)'_v, (Fx,Fy,Fz)'_u, (Fx,Fy,Fz)''_vu } at knot 0,
-///     {                      ...                      } at knot 1,
-///                            ...
-///   }
-///   The parameter array has to be provided by the user for each call of the interpolation.
-///   It can be created for a given input function using SplineHelper2D class.
-///
-/// ---- Flat Object implementation ----
-///
-/// The class inherits from the FlatObjects. Copy construction can be only done via the FlatObject interface.
+/// The spline S(x1,x2) approximates a function F(x1,x2):R^2->R^m,
+/// where x1,x2 belong to [x1Min,x1Max] x [x2Min,x2Max]. F value may be multi-dimensional.
 ///
 /// --- Example of creating a spline ---
 ///
-///  auto F = [&](float u, float v ) -> float {
-///   return ...; // F(u,v)
+///  auto F = [&](float x1, float x2, float f[] ) {
+///   f[0] = 1.f + x1 + x2*x2; // F(x1,x2)
 ///  };
 ///  const int nKnotsU=2;
 ///  const int nKnotsV=3;
-///  int knotsU[nKnotsU] = {0, 2};
-///  int knotsV[nKnotsV] = {0, 3, 6};
-///  Spline2D spline;
-///  spline.constructKnots(nKnotsU, knotsU, nKnotsV, knotsV );
-///  SplineHelper2D helper;
-///  helper.SetSpline( spline, 2, 2);
-///  std::unique_ptr<float[]> parameters = helper.constructParameters(1, F, 0.f, 1.f, 0.f, 1.f);
-///  float S;
-///  spline.interpolate<1>(parameters.get(), 0.0, 0.0, &S ); // S == F(0.,0.)
-///  spline.interpolate<1>(parameters.get(), 1.0, 1.1, &S ); // S == some interpolated value
-///  spline.interpolate<1>(parameters.get(), 2.0, 3.0, &S ); // S == F(1., 0.5 )
-///  spline.interpolate<1>(parameters.get(), 2.0, 6.0, &S ); // S == F(1., 1.)
+///  int knotsU[nKnotsU] = {0, 1};
+///  int knotsV[nKnotsV] = {0, 2, 5};
+///  Spline2D<float,1> spline(nKnotsU, knotsU, nKnotsV, knotsV ); // prepare memory for 1-dimensional F
+///  spline.approximateFunction(0., 1., 0.,1., F); //initialize spline to approximate F on area [0., 1.]x[0., 1.]
+///  float S = spline.interpolate(.1, .3 ); // interpolated value at (.1,.3)
 ///
 ///  --- See also Spline2D::test();
 ///
-class Spline2D : public FlatObject
+
+/// Base class to store data members and non-inline methods
+template <typename DataT, bool isConsistentT>
+class Spline2DBase : public FlatObject
 {
  public:
   /// _____________  Version control __________________________
 
-  /// Version number
+  /// Version control
   GPUhd() static constexpr int getVersion() { return 1; }
 
   /// _____________  Constructors / destructors __________________________
 
 #if !defined(GPUCA_GPUCODE)
-  /// Default constructor. Creates a spline with 2 knots.
-  Spline2D() : FlatObject(), mGridU(), mGridV() { constructKnotsRegular(2, 2); }
-
-  /// Constructor for an irregular spline.
-  Spline2D(int numberOfKnotsU, const int knotsU[], int numberOfKnotsV, const int knotsV[]) : FlatObject(), mGridU(), mGridV()
-  {
-    constructKnots(numberOfKnotsU, knotsU, numberOfKnotsV, knotsV);
-  }
-
-  /// Constructor for a regular spline.
-  Spline2D(int numberOfKnotsU, int numberOfKnotsV) : FlatObject()
-  {
-    constructKnotsRegular(numberOfKnotsU, numberOfKnotsV);
-  }
+  /// constructor && default constructor for the ROOT streamer
+  Spline2DBase(int nDim = 1);
 #else
-  /// Disable the constructor for the GPU implementation
-  Spline2D() CON_DELETE;
+  /// Disable constructors
+  Spline2DBase() CON_DELETE;
 #endif
-
-  /// Copy constructor: disabled to avoid ambiguity. Use cloneFromObject() instead
-  Spline2D(const Spline2D&) CON_DELETE;
-
-  /// Assignment operator: disabled to avoid ambiguity. Use cloneFromObject() instead
-  Spline2D& operator=(const Spline2D&) CON_DELETE;
+  /// Disable constructors
+  Spline2DBase(const Spline2DBase&) CON_DELETE;
+  Spline2DBase& operator=(const Spline2DBase&) CON_DELETE;
 
   /// Destructor
-  ~Spline2D() CON_DEFAULT;
+  ~Spline2DBase() CON_DEFAULT;
 
   /// _______________  Construction interface  ________________________
 
 #if !defined(GPUCA_GPUCODE)
-  /// Constructor
-  ///
-  /// Number of created knots may differ from the input values:
-  /// - Edge knots {0} and {Umax/Vmax} will be added if they are not present.
-  /// - Duplicated knots, knots with a negative coordinate will be deleted
-  /// - At least 2 knots for each axis will be created
-  ///
-  /// \param numberOfKnotsU     Number of knots in knotsU[] array
-  /// \param knotsU             Array of knot positions (integer values)
-  ///
-  /// \param numberOfKnotsV     Number of knots in knotsV[] array
-  /// \param knotsV             Array of knot positions (integer values)
-  ///
-  void constructKnots(int numberOfKnotsU, const int knotsU[], int numberOfKnotsV, const int knotsV[]);
+  /// Constructor for a regular spline.
+  void recreate(int numberOfKnotsU1, int numberOfKnotsU2);
 
-  /// Constructor for a regular spline. Knots will be placed at the positions i/(numberOfKnots-1)
-  void constructKnotsRegular(int numberOfKnotsU, int numberOfKnotsV);
+  /// Constructor for an irregular spline
+  void recreate(int numberOfKnotsU1, const int knotsU1[], int numberOfKnotsU2, const int knotsU2[]);
 #endif
 
-  /// _______________  Main functionality   ________________________
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+  /// approximate a function F with this spline.
+  void approximateFunction(DataT x1Min, DataT x1Max, DataT x2Min, DataT x2Max,
+                           std::function<void(DataT x1, DataT x2, DataT f[])> F,
+                           int nAxiliaryDataPointsU1 = 4, int nAxiliaryDataPointsU2 = 4);
+#endif
 
-  /// Get interpolated value for f(u,v)
-  template <int Ndim, typename T>
-  GPUhd() void interpolate(GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const;
+  /// _______________  IO   ________________________
 
-  /// Same as interpolate, but using vectorized calculation.
-  /// \param parameters should be at least 128-bit aligned
-  template <int Ndim, typename T>
-  GPUhd() void interpolateVec(GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const;
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+  /// write a class object to the file
+  int writeToFile(TFile& outf, const char* name);
+
+  /// read a class object from the file
+  static Spline2DBase* readFromFile(TFile& inpf, const char* name);
+#endif
 
   /// _______________  Getters   ________________________
 
+  /// Get number of F dimensions
+  GPUhd() int getFdimensions() const { return mFdim; }
+
+  ///
+  GPUhd() static constexpr bool isConsistent() { return isConsistentT; }
+
   /// Get minimal required alignment for the spline parameters
-
-  template <typename T>
-  static size_t getParameterAlignmentBytes(int Ndim)
-  {
-    size_t s = 4 * sizeof(T) * Ndim;
-    return (s < 16) ? s : 16;
-  }
-
-  /// Size of the parameter array in bytes
-  template <typename T>
-  GPUhd() size_t getSizeOfParameters(int Ndim) const
-  {
-    return sizeof(T) * (size_t)getNumberOfParameters(Ndim);
-  }
+  GPUhd() static constexpr size_t getParameterAlignmentBytes() { return 16; }
 
   /// Number of parameters
-  GPUhd() int getNumberOfParameters(int Ndim) const
-  {
-    return (4 * Ndim) * getNumberOfKnots();
-  }
+  GPUhd() int getNumberOfParameters() const { return (4 * mFdim) * getNumberOfKnots(); }
+
+  /// Size of the parameter array in bytes
+  GPUhd() size_t getSizeOfParameters() const { return sizeof(DataT) * getNumberOfParameters(); }
 
   /// Get number total of knots: UxV
-  GPUhd() int getNumberOfKnots() const { return mGridU.getNumberOfKnots() * mGridV.getNumberOfKnots(); }
+  GPUhd() int getNumberOfKnots() const { return mGridU1.getNumberOfKnots() * mGridU2.getNumberOfKnots(); }
 
-  /// Get 1-D grid for U coordinate
-  GPUhd() const Spline1D& getGridU() const { return mGridU; }
+  /// Get 1-D grid for U1 coordinate
+  GPUhd() const Spline1D<DataT>& getGridU1() const { return mGridU1; }
 
-  /// Get 1-D grid for V coordinate
-  GPUhd() const Spline1D& getGridV() const { return mGridV; }
+  /// Get 1-D grid for U2 coordinate
+  GPUhd() const Spline1D<DataT>& getGridU2() const { return mGridU2; }
 
-  /// Get 1-D grid for U or V coordinate
-  GPUhd() const Spline1D& getGrid(int uv) const { return (uv == 0) ? mGridU : mGridV; }
+  /// Get 1-D grid for U1 or U2 coordinate
+  GPUhd() const Spline1D<DataT>& getGrid(int iu) const { return (iu == 0) ? mGridU1 : mGridU2; }
 
-  /// Get u,v of i-th knot
-  GPUhd() void getKnotUV(int iKnot, float& u, float& v) const;
+  /// Get u1,u2 of i-th knot
+  GPUhd() void getKnotU(int iKnot, DataT& u1, DataT& u2) const;
+
+  /// Get index of a knot (iKnotU1,iKnotU2)
+  GPUhd() int getKnotIndex(int iKnotU1, int iKnotU2) const;
+
+  /// Get number of F parameters
+  GPUhd() DataT* getFparameters() { return mFparameters; }
+
+  /// Get number of F parameters
+  GPUhd() const DataT* getFparameters() const { return mFparameters; }
 
   /// _______________  Technical stuff  ________________________
 
   /// Get offset of GridU flat data in the flat buffer
-  size_t getGridUOffset() const { return mGridU.getFlatBufferPtr() - mFlatBufferPtr; }
+  GPUhd() size_t getGridU1Offset() const { return mGridU1.getFlatBufferPtr() - mFlatBufferPtr; }
 
-  /// Get offset of GridV flat data in the flat buffer
-  size_t getGridVOffset() const { return mGridV.getFlatBufferPtr() - mFlatBufferPtr; }
+  /// Get offset of GridU2 flat data in the flat buffer
+  GPUhd() size_t getGridU2Offset() const { return mGridU2.getFlatBufferPtr() - mFlatBufferPtr; }
+
+  /// Set X range
+  GPUhd() void setXrange(DataT x1Min, DataT x1Max, DataT x2Min, DataT x2Max);
 
   /// Print method
   void print() const;
@@ -220,118 +170,297 @@ class Spline2D : public FlatObject
 
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
-  /// Memory alignment
-
   using FlatObject::getBufferAlignmentBytes;
   using FlatObject::getClassAlignmentBytes;
 
-  /// Construction interface
-
 #if !defined(GPUCA_GPUCODE)
-  void cloneFromObject(const Spline2D& obj, char* newFlatBufferPtr);
-#endif
-  void destroy();
-
-  /// Making the parameter buffer external
-
-  using FlatObject::releaseInternalBuffer;
-
-#if !defined(GPUCA_GPUCODE)
+  void cloneFromObject(const Spline2DBase& obj, char* newFlatBufferPtr);
   void moveBufferTo(char* newBufferPtr);
 #endif
 
-  /// Moving the class with its external buffer to another location
+  using FlatObject::releaseInternalBuffer;
 
+  void destroy();
   void setActualBufferAddress(char* actualFlatBufferPtr);
   void setFutureBufferAddress(char* futureFlatBufferPtr);
 
  private:
-  ///
-  /// ====  Data members   ====
-  ///
+  int mFdim; ///< dimentionality of F
 
-  Spline1D mGridU; ///< grid for U axis
-  Spline1D mGridV; ///< grid for V axis
+ protected:                /// _____________  Data members  ____________
+  Spline1D<DataT> mGridU1; ///< grid for U axis
+  Spline1D<DataT> mGridU2; ///< grid for V axis
+  DataT* mFparameters;     //! (transient!!) F-dependent parameters of the spline
+#ifndef GPUCA_ALIROOT_LIB
+  ClassDefNV(Spline2DBase, 1);
+#endif
 };
 
-/// ====================================================
-///       Inline implementations of some methods
-/// ====================================================
-
-GPUhdi() void Spline2D::getKnotUV(int iKnot, float& u, float& v) const
+///
+/// The main Spline class. Contains constructors and interpolation.
+///
+/// F dimensions can be set as a template parameter (faster; the only option for the GPU)
+/// or as a constructor parameter (slower; the only option for the ROOT interpretator).
+/// In a compiled CPU code one can use both options.
+///
+template <typename DataT, int nFdimT = 0, bool isConsistentT = 1>
+class Spline2D : public Spline2DBase<DataT, isConsistentT>
 {
-  /// Get u,v of i-th knot
-  const Spline1D& gridU = getGridU();
-  const Spline1D& gridV = getGridV();
-  int nu = gridU.getNumberOfKnots();
-  int iv = iKnot / nu;
-  int iu = iKnot % nu;
-  u = gridU.getKnot(iu).u;
-  v = gridV.getKnot(iv).u;
+ public:
+  typedef Spline2DBase<DataT, isConsistentT> TBase;
+
+  /// _____________  Constructors / destructors __________________________
+
+#if !defined(GPUCA_GPUCODE)
+
+  /// Constructor for a regular spline && default constructor
+  Spline2D(int numberOfKnotsU1 = 2, int numberOfKnotsU2 = 2);
+
+  /// Constructor for an irregular spline
+  Spline2D(int numberOfKnotsU1, const int knotsU1[], int numberOfKnotsU2, const int knotsU2[]);
+
+  /// Copy constructor
+  Spline2D(const Spline2D&);
+
+  /// Assignment operator
+  Spline2D& operator=(const Spline2D&);
+#else
+  /// Disable constructors for the GPU implementation
+  Spline2D() CON_DELETE;
+  Spline2D(const Spline2D&) CON_DELETE;
+  Spline2D& operator=(const Spline2D&) CON_DELETE;
+#endif
+
+  /// Destructor
+  ~Spline2D() CON_DEFAULT;
+
+  /// _______________  Main functionality   ________________________
+
+  /// Get interpolated value for F(x1,x2)
+  GPUhd() void interpolate(DataT x1, DataT x2, GPUgeneric() DataT S[]) const;
+
+  /// Get interpolated value for the first dimension of F(x1,x2). (Simplified interface for 1D)
+  GPUhd() DataT interpolate(DataT x1, DataT x2) const;
+
+  /// Same as interpolate(), but using vectorized calculation.
+  GPUhd() void interpolateVec(DataT x1, DataT x2, GPUgeneric() DataT S[]) const;
+
+  /// ================ Expert tools   ================================
+
+  /// Get interpolated value for an nFdim-dimensional F(u) using spline parameters Fparameters.
+  /// Fparameters can be created via SplineHelper2D.
+  GPUhd() void interpolateU(GPUgeneric() const DataT Fparameters[],
+                            DataT u1, DataT u2, GPUgeneric() DataT Su[]) const;
+
+  /// Same as interpolateU(), but using vectorized calculation.
+  GPUhd() void interpolateUvec(GPUgeneric() const DataT Fparameters[],
+                               DataT u1, DataT u2, GPUgeneric() DataT Su[]) const;
+
+  /// _______________  IO   ________________________
+
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+  /// write a class object to the file
+  using TBase::writeToFile;
+
+  /// read a class object from the file
+  static Spline2D* readFromFile(TFile& inpf, const char* name)
+  {
+    return reinterpret_cast<Spline2D*>(TBase::readFromFile(inpf, name));
+  }
+#endif
+
+  /// _______________  Getters   ________________________
+
+  /// Get number of F dimensions.
+  GPUhd() static constexpr int getFdimensions() { return nFdimT; }
+
+  using TBase::mFparameters;
+  using TBase::mGridU1;
+  using TBase::mGridU2;
+};
+
+///
+/// ========================================================================================================
+///       Inline implementations of some methods
+/// ========================================================================================================
+///
+
+template <typename DataT, bool isConsistentT>
+GPUhdi() void Spline2DBase<DataT, isConsistentT>::getKnotU(int iKnot, DataT& u1, DataT& u2) const
+{
+  /// Get u1,u2 of i-th knot
+  int nu1 = mGridU1.getNumberOfKnots();
+  int iu2 = iKnot / nu1;
+  int iu1 = iKnot % nu1;
+  u1 = mGridU1.getKnot(iu1).u;
+  u2 = mGridU2.getKnot(iu2).u;
 }
 
-template <int Ndim, typename T>
-GPUhdi() void Spline2D::interpolate(GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const
+template <typename DataT, bool isConsistentT>
+GPUhdi() int Spline2DBase<DataT, isConsistentT>::getKnotIndex(int iKnotU1, int iKnotU2) const
 {
-  // Get interpolated value for f(u,v) using parameters[getNumberOfParameters()]
+  /// Get index of a knot (iKnotU1,iKnotU2)
+  int nu1 = mGridU1.getNumberOfKnots();
+  return nu1 * iKnotU2 + iKnotU1;
+}
 
-  const Spline1D& gridU = getGridU();
-  const Spline1D& gridV = getGridV();
-  int nu = gridU.getNumberOfKnots();
-  int iu = gridU.getKnotIndex(u);
-  int iv = gridV.getKnotIndex(v);
+template <typename DataT, bool isConsistentT>
+GPUhdi() void Spline2DBase<DataT, isConsistentT>::setXrange(
+  DataT x1Min, DataT x1Max, DataT x2Min, DataT x2Max)
+{
+  mGridU1.setXrange(x1Min, x1Max);
+  mGridU2.setXrange(x2Min, x2Max);
+}
 
-  const Spline1D::Knot& knotU = gridU.getKnot(iu);
-  const Spline1D::Knot& knotV = gridV.getKnot(iv);
+#if !defined(GPUCA_GPUCODE)
 
-  const int Ndim2 = Ndim * 2;
-  const int Ndim4 = Ndim * 4;
+template <typename DataT, int nFdimT, bool isConsistentT>
+GPUhdi() Spline2D<DataT, nFdimT, isConsistentT>::
+  Spline2D(int numberOfKnotsU1, int numberOfKnotsU2)
+  : Spline2DBase<DataT, isConsistentT>(nFdimT)
+{
+  this->recreate(numberOfKnotsU1, numberOfKnotsU2);
+}
+
+template <typename DataT, int nFdimT, bool isConsistentT>
+GPUhdi() Spline2D<DataT, nFdimT, isConsistentT>::
+  Spline2D(int numberOfKnotsU1, const int knotsU1[],
+           int numberOfKnotsU2, const int knotsU2[])
+  : Spline2DBase<DataT, isConsistentT>(nFdimT)
+{
+  this->recreate(numberOfKnotsU1, knotsU1, numberOfKnotsU2, knotsU2);
+}
+
+template <typename DataT, int nFdimT, bool isConsistentT>
+GPUhdi() Spline2D<DataT, nFdimT, isConsistentT>::
+  Spline2D(const Spline2D& spline)
+  : Spline2DBase<DataT, isConsistentT>(nFdimT)
+{
+  this->cloneFromObject(spline, nullptr);
+}
+
+template <typename DataT, int nFdimT, bool isConsistentT>
+GPUhd() Spline2D<DataT, nFdimT, isConsistentT>& Spline2D<DataT, nFdimT, isConsistentT>::
+  operator=(const Spline2D<DataT, nFdimT, isConsistentT>& spline)
+{
+  this->cloneFromObject(spline, nullptr);
+  return *this;
+}
+#endif
+
+template <typename DataT, int nFdimT, bool isConsistentT>
+GPUhdi() void Spline2D<DataT, nFdimT, isConsistentT>::
+  interpolate(DataT x1, DataT x2, GPUgeneric() DataT S[]) const
+{
+  /// Get interpolated value for F(x1,x2)
+  assert(isConsistentT);
+  if (isConsistentT) {
+    interpolateU(mFparameters, mGridU1.convXtoU(x1), mGridU2.convXtoU(x2), S);
+  } else {
+    for (int i = 0; i < nFdimT; i++) {
+      S[i] = -1.;
+    }
+  }
+}
+
+template <typename DataT, int nFdimT, bool isConsistentT>
+GPUhdi() DataT Spline2D<DataT, nFdimT, isConsistentT>::
+  interpolate(DataT x1, DataT x2) const
+{
+  /// Simplified interface for 1D: get interpolated value for the first dimension of F(x)
+
+#if defined(GPUCA_GPUCODE)
+  DataT S[nFdimT]; // constexpr array size for the GPU compiler
+#else
+  DataT S[getFdimensions()];
+#endif
+  interpolate(x1, x2, S);
+  return S[0];
+}
+
+template <typename DataT, int nFdimT, bool isConsistentT>
+GPUhdi() void Spline2D<DataT, nFdimT, isConsistentT>::interpolateVec(
+  DataT x1, DataT x2, GPUgeneric() DataT S[]) const
+{
+  /// Same as interpolate(), but using vectorized calculation
+  assert(isConsistentT);
+  if (isConsistentT) {
+    interpolateUvec(mFparameters, mGridU1.convXtoU(x1), mGridU2.convXtoU(x2), S);
+  } else {
+    for (int i = 0; i < getFdimensions(); i++) {
+      S[i] = 0.;
+    }
+  }
+}
+
+template <typename DataT, int nFdimT, bool isConsistentT>
+GPUhdi() void Spline2D<DataT, nFdimT, isConsistentT>::interpolateU(
+  GPUgeneric() const DataT Fparameters[],
+  DataT u, DataT v, GPUgeneric() DataT S[]) const
+{
+  /// Get interpolated value for an nFdim-dimensional F(u) using spline parameters Fparameters.
+  /// Fparameters can be created via SplineHelper2D.
+
+  int nu = mGridU1.getNumberOfKnots();
+  int iu = mGridU1.getKnotIndexU(u);
+  int iv = mGridU2.getKnotIndexU(v);
+
+  const typename Spline1D<DataT>::Knot& knotU = mGridU1.getKnot(iu);
+  const typename Spline1D<DataT>::Knot& knotV = mGridU2.getKnot(iv);
+
+#if defined(GPUCA_GPUCODE) // constexpr array size for the GPU compiler
+  const int nFdim = nFdimT;
+#else
+  const int nFdim = getFdimensions();
+#endif
+
+  const int nFdim2 = nFdimT * 2;
+  const int nFdim4 = nFdimT * 4;
 
   // X:=Sx, Y:=Sy, Z:=Sz
 
-  const T* par00 = parameters + (nu * iv + iu) * Ndim4; // values { {X,Y,Z}, {X,Y,Z}'v, {X,Y,Z}'u, {X,Y,Z}''vu } at {u0, v0}
-  const T* par10 = par00 + Ndim4;                       // values { ... } at {u1, v0}
-  const T* par01 = par00 + Ndim4 * nu;                  // values { ... } at {u0, v1}
-  const T* par11 = par01 + Ndim4;                       // values { ... } at {u1, v1}
+  const DataT* par00 = Fparameters + (nu * iv + iu) * nFdim4; // values { {X,Y,Z}, {X,Y,Z}'v, {X,Y,Z}'u, {X,Y,Z}''vu } at {u0, v0}
+  const DataT* par10 = par00 + nFdim4;                        // values { ... } at {u1, v0}
+  const DataT* par01 = par00 + nFdim4 * nu;                   // values { ... } at {u0, v1}
+  const DataT* par11 = par01 + nFdim4;                        // values { ... } at {u1, v1}
 
-  T Su0[Ndim4]; // values { {X,Y,Z,X'v,Y'v,Z'v}(v0), {X,Y,Z,X'v,Y'v,Z'v}(v1) }, at u0
-  T Du0[Ndim4]; // derivatives {}'_u  at u0
-  T Su1[Ndim4]; // values { {X,Y,Z,X'v,Y'v,Z'v}(v0), {X,Y,Z,X'v,Y'v,Z'v}(v1) }, at u1
-  T Du1[Ndim4]; // derivatives {}'_u  at u1
+  DataT Su0[nFdim4]; // values { {X,Y,Z,X'v,Y'v,Z'v}(v0), {X,Y,Z,X'v,Y'v,Z'v}(v1) }, at u0
+  DataT Du0[nFdim4]; // derivatives {}'_u  at u0
+  DataT Su1[nFdim4]; // values { {X,Y,Z,X'v,Y'v,Z'v}(v0), {X,Y,Z,X'v,Y'v,Z'v}(v1) }, at u1
+  DataT Du1[nFdim4]; // derivatives {}'_u  at u1
 
-  for (int i = 0; i < Ndim2; i++) {
+  for (int i = 0; i < nFdim2; i++) {
     Su0[i] = par00[i];
-    Su0[Ndim2 + i] = par01[i];
+    Su0[nFdim2 + i] = par01[i];
 
-    Du0[i] = par00[Ndim2 + i];
-    Du0[Ndim2 + i] = par01[Ndim2 + i];
+    Du0[i] = par00[nFdim2 + i];
+    Du0[nFdim2 + i] = par01[nFdim2 + i];
 
     Su1[i] = par10[i];
-    Su1[Ndim2 + i] = par11[i];
+    Su1[nFdim2 + i] = par11[i];
 
-    Du1[i] = par10[Ndim2 + i];
-    Du1[Ndim2 + i] = par11[Ndim2 + i];
+    Du1[i] = par10[nFdim2 + i];
+    Du1[nFdim2 + i] = par11[nFdim2 + i];
   }
 
-  T parU[Ndim4]; // interpolated values { {X,Y,Z,X'v,Y'v,Z'v}(v0), {X,Y,Z,X'v,Y'v,Z'v}(v1) } at u
-  gridU.interpolate<T>(Ndim4, knotU, Su0, Du0, Su1, Du1, u, parU);
+  DataT parU[nFdim4]; // interpolated values { {X,Y,Z,X'v,Y'v,Z'v}(v0), {X,Y,Z,X'v,Y'v,Z'v}(v1) } at u
+  mGridU1.interpolateU(nFdim4, knotU, Su0, Du0, Su1, Du1, u, parU);
 
-  const T* Sv0 = parU + 0;
-  const T* Dv0 = parU + Ndim;
-  const T* Sv1 = parU + Ndim2;
-  const T* Dv1 = parU + Ndim2 + Ndim;
+  const DataT* Sv0 = parU + 0;
+  const DataT* Dv0 = parU + nFdim;
+  const DataT* Sv1 = parU + nFdim2;
+  const DataT* Dv1 = parU + nFdim2 + nFdim;
 
-  gridV.interpolate<T>(Ndim, knotV, Sv0, Dv0, Sv1, Dv1, v, Suv);
+  mGridU2.interpolateU(nFdim, knotV, Sv0, Dv0, Sv1, Dv1, v, S);
 }
 
-template <int Ndim, typename T>
-GPUhdi() void Spline2D::interpolateVec(GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const
+template <typename DataT, int nFdimT, bool isConsistentT>
+GPUhdi() void Spline2D<DataT, nFdimT, isConsistentT>::interpolateUvec(
+  GPUgeneric() const DataT Fparameters[],
+  DataT u1, DataT u2, GPUgeneric() DataT S[]) const
 {
-  // Same as interpolate, but using vectorized calculation.
-  // \param parameters should be at least 128-bit aligned
-
-  /// TODO: vectorize
-  interpolate<Ndim, T>(parameters, u, v, Suv);
+  /// Same as interpolateU(), but using vectorized calculation
+  interpolateU(mFparameters, u1, u2, S);
 }
 
 } // namespace gpu

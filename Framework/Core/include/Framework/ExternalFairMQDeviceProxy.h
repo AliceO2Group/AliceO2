@@ -47,9 +47,6 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string cons
 /// and sends them to the downstream components.
 InjectorFunction incrementalConverter(OutputSpec const& spec, uint64_t startTime, uint64_t step);
 
-std::tuple<std::vector<size_t>, size_t> findSplitParts(FairMQParts& parts, size_t start, std::vector<bool>& indicesDone);
-FairMQMessagePtr mergePayloads(FairMQDevice& device, FairMQParts& parts, std::vector<size_t> const& indexList, size_t payloadSize, std::string const channel);
-
 /// This is to be used for sources which already have an O2 Data Model /
 /// (header, payload) structure for their output. At the moment what this /
 /// does is to add a DataProcessingHeader. In the future, it will hopefully

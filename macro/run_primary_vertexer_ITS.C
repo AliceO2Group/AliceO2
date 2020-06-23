@@ -11,6 +11,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsBase/GeometryManager.h"
 
 #include "ITSBase/GeometryTGeo.h"
 #include "ITStracking/IOUtils.h"
@@ -34,7 +35,6 @@ int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes
                              const std::string inputClustersITS = "o2clus_its.root",
                              const std::string inputGRP = "o2sim_grp.root",
                              const std::string simfilename = "o2sim_Kine.root",
-                             const std::string paramfilename = "o2sim_geometry.root",
                              const std::string path = "./")
 {
   std::string gpuName;
@@ -68,11 +68,9 @@ int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes
   TChain itsClusters("o2sim");
   itsClusters.AddFile((path + inputClustersITS).data());
 
-  // Setup Runtime DB
-  TFile paramFile((path + paramfilename).data());
-  paramFile.Get("FAIRGeom");
-  auto gman = o2::its::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
+  o2::base::GeometryManager::loadGeometry(path);
+  o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
+  geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G)); // request cached transforms
 
   // Get event header

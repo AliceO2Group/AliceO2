@@ -51,7 +51,7 @@ std::vector<TopoIndexInfo>
   using EdgeIndex = int;
   // Create the index which will be returned.
   std::vector<TopoIndexInfo> index(nodeCount);
-  for (int wi = 0; wi < nodeCount; ++wi) {
+  for (auto wi = 0; wi < nodeCount; ++wi) {
     index[wi] = {wi, 0};
   }
   std::vector<EdgeIndex> remainingEdgesIndex(edgesCount);
@@ -69,7 +69,7 @@ std::vector<TopoIndexInfo>
   // We start with all those which do not have any dependencies
   // They are layer 0.
   std::list<TopoIndexInfo> L;
-  for (int ii = 0; ii < index.size(); ++ii) {
+  for (auto ii = 0; ii < index.size(); ++ii) {
     if (nodeDeps[ii] == false) {
       L.push_back({ii, 0});
     }
@@ -144,6 +144,18 @@ void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
   }
 }
 
+void addMissingOutputsToSpawner(std::vector<InputSpec>&& requestedDYNs,
+                                std::vector<InputSpec>& requestedAODs,
+                                DataProcessorSpec& publisher)
+{
+  for (auto& input : requestedDYNs) {
+    publisher.inputs.emplace_back(InputSpec{input.binding, header::DataOrigin{"AOD"}, DataSpecUtils::asConcreteDataMatcher(input).description});
+    requestedAODs.emplace_back(InputSpec{input.binding, header::DataOrigin{"AOD"}, DataSpecUtils::asConcreteDataMatcher(input).description});
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
+  }
+}
+
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
 {
   auto fakeCallback = AlgorithmSpec{[](InitContext& ic) {
@@ -183,22 +195,24 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   //
   // FIXME: source branch is DataOrigin, for the moment. We should
   //        make it configurable via ConfigParamsOptions.
-  int separateEnumerations = 0;
   DataProcessorSpec aodReader{
     "internal-dpl-aod-reader",
     {InputSpec{"enumeration",
                "DPL",
                "ENUM",
-               static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration}},
+               static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-aod-reader")), Lifetime::Enumeration}},
     {},
     readers::AODReaderHelpers::rootFileReaderCallback(),
     {ConfigParamSpec{"aod-file", VariantType::String, "aod.root", {"Input AOD file"}},
+     ConfigParamSpec{"json-file", VariantType::String, {"json configuration file"}},
      ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
      ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
      ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}}};
 
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
+  std::vector<InputSpec> requestedDYNs;
+
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
   std::vector<OutputSpec> providedOutputObj;
@@ -214,7 +228,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
     std::string prefix = "internal-dpl-";
     if (processor.inputs.empty() && processor.name.compare(0, prefix.size(), prefix) != 0) {
-      processor.inputs.push_back(InputSpec{"enumeration", "DPL", "ENUM", static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration});
+      processor.inputs.push_back(InputSpec{"enumeration", "DPL", "ENUM", static_cast<DataAllocator::SubSpecificationType>(compile_time_hash(processor.name.c_str())), Lifetime::Enumeration});
       processor.options.push_back(ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}});
       processor.options.push_back(ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}});
       processor.options.push_back(ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}});
@@ -225,12 +239,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       switch (input.lifetime) {
         case Lifetime::Timer: {
           auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-          bool hasOption = false;
-          for (auto& option : processor.options) {
-            if (option.name == "period-" + input.binding) {
-              hasOption = true;
-            }
-          }
+          auto hasOption = std::any_of(processor.options.begin(), processor.options.end(), [&input](auto const& option) { return (option.name == "period-" + input.binding); });
           if (hasOption == false) {
             processor.options.push_back(ConfigParamSpec{"period-" + input.binding, VariantType::Int, 1000, {"period of the timer"}});
           }
@@ -256,13 +265,16 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AOD"})) {
         requestedAODs.emplace_back(input);
       }
+      if (DataSpecUtils::partialMatch(input, header::DataOrigin{"DYN"})) {
+        requestedDYNs.emplace_back(input);
+      }
     }
+    std::stable_sort(timer.outputs.begin(), timer.outputs.end(), [](OutputSpec const& a, OutputSpec const& b) { return *DataSpecUtils::getOptionalSubSpec(a) < *DataSpecUtils::getOptionalSubSpec(b); });
 
     for (size_t oi = 0; oi < processor.outputs.size(); ++oi) {
       auto& output = processor.outputs[oi];
       if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AOD"})) {
         providedAODs.emplace_back(output);
-
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
         providedOutputObj.emplace_back(output);
         auto it = std::find_if(outObjMap.begin(), outObjMap.end(), [&](auto&& x) { return x.first == hash; });
@@ -278,6 +290,17 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     }
   }
 
+  auto last = std::unique(requestedDYNs.begin(), requestedDYNs.end());
+  requestedDYNs.erase(last, requestedDYNs.end());
+
+  DataProcessorSpec aodSpawner{
+    "internal-dpl-aod-spawner",
+    {},
+    {},
+    readers::AODReaderHelpers::aodSpawnerCallback(requestedDYNs),
+    {}};
+
+  addMissingOutputsToSpawner(std::move(requestedDYNs), requestedAODs, aodSpawner);
   addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
   addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
 
@@ -292,6 +315,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   if (qaStore.outputs.empty() == false) {
     extraSpecs.push_back(qaStore);
   }
+
+  if (aodSpawner.outputs.empty() == false) {
+    extraSpecs.push_back(aodSpawner);
+  }
+
   if (aodReader.outputs.empty() == false) {
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
@@ -327,8 +355,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   std::vector<bool> isdangling;
   for (int ii = 0; ii < OutputsInputs.size(); ii++) {
     if ((outputtypes[ii] & 2) == 2) {
-      OutputsInputsAOD.emplace_back(OutputsInputs[ii]);
-      isdangling.emplace_back((outputtypes[ii] & 1) == 1);
+
+      // temporarily also request to be dangling
+      if ((outputtypes[ii] & 1) == 1) {
+        OutputsInputsAOD.emplace_back(OutputsInputs[ii]);
+        isdangling.emplace_back((outputtypes[ii] & 1) == 1);
+      }
     }
   }
 
@@ -666,8 +698,6 @@ struct DataMatcherId {
 
 std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::analyzeOutputs(WorkflowSpec const& workflow)
 {
-  LOG(DEBUG) << "Analyzing OutputSpecs";
-
   // compute total number of input/output
   size_t totalInputs = 0;
   size_t totalOutputs = 0;
@@ -705,51 +735,41 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
     unsigned char outputtype = 0;
 
     // is AOD?
-    if (DataSpecUtils::partialMatch(outputSpec, header::DataOrigin("AOD")))
+    if (DataSpecUtils::partialMatch(outputSpec, header::DataOrigin("AOD"))) {
       outputtype += 2;
+    }
 
     // is dangling output?
     bool matched = false;
     for (size_t ii = 0, ie = inputs.size(); ii != ie; ++ii) {
       auto& input = inputs[ii];
       // Inputs of the same workflow cannot match outputs
-      if (output.workflowId == input.workflowId)
+      if (output.workflowId == input.workflowId) {
         continue;
+      }
       auto& inputSpec = workflow[input.workflowId].inputs[input.id];
       if (DataSpecUtils::match(inputSpec, outputSpec)) {
         matched = true;
         break;
       }
     }
-    if (!matched)
+    if (!matched) {
       outputtype += 1;
+    }
 
     // update results and outputtypes
     auto input = DataSpecUtils::matchingInput(outputSpec);
     char buf[64];
     input.binding = (snprintf(buf, 63, "output_%zu_%zu", output.workflowId, output.id), buf);
-    results.emplace_back(input);
 
-    outputtypes.emplace_back(outputtype);
+    // make sure that entries are unique
+    if (std::find(results.begin(), results.end(), input) == results.end()) {
+      results.emplace_back(input);
+      outputtypes.emplace_back(outputtype);
+    }
   }
 
-  /* can be used for debuging
-  int ndang = 0;
-  int naod = 0;
-  int ndangother = 0;
-  for (auto ot : outputtypes) {
-    if ((ot & 1) == 1)
-      ndang++;
-    if ((ot & 2) == 2)
-      naod++;
-    if ((ot & 1) == 1 && (ot & 2) == 0)
-      ndangother++;
-  }
-  LOG(INFO) << "Number of outputs  " << results.size();
-  LOG(INFO) << " dangling          " << ndang;
-  LOG(INFO) << " AOD               " << naod;
-  LOG(INFO) << " dangling, not AOD " << ndangother;
-  */
+  // make sure that results is unique
 
   return std::make_tuple(results, outputtypes);
 }
@@ -761,8 +781,9 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
 
   std::vector<InputSpec> results;
   for (int ii = 0; ii < OutputsInputs.size(); ii++) {
-    if ((outputtypes[ii] & 1) == 1)
+    if ((outputtypes[ii] & 1) == 1) {
       results.emplace_back(OutputsInputs[ii]);
+    }
   }
 
   return results;

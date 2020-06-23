@@ -26,10 +26,12 @@ BOOST_AUTO_TEST_CASE(MoveBuffer)
   std::vector<uint64_t> b64;
   b64.emplace_back(0x0706050403020100);
   b64.emplace_back(0x0F0E0D0C0B0A0908);
-  std::vector<uint8_t> b8;
+  std::vector<std::byte> b8;
   impl::moveBuffer(b64, b8);
-  std::vector<uint8_t> expected = {0, 1, 2, 3, 4, 5, 6, 7,
-                                   8, 9, 10, 11, 12, 13, 14, 15};
+  std::vector<std::byte> expected;
+  for (uint8_t i = 0; i < 16; i++) {
+    expected.emplace_back(std::byte{i});
+  }
   BOOST_CHECK_EQUAL(b8.size(), expected.size());
   BOOST_CHECK(b8 == expected);
 }

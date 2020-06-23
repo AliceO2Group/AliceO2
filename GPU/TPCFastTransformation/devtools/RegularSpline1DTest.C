@@ -61,20 +61,20 @@ typedef double myfloat;
 int RegularSpline1DTest()
 {
 
-  cout << "Test roundf(): " << endl;
+  std::cout << "Test roundf(): " << std::endl;
   for (float x = 0.; x <= 1.; x += 0.1) {
-    cout << "roundf(" << x << ") = " << roundf(x) << " " << (int)roundf(x) << endl;
+    std::cout << "roundf(" << x << ") = " << roundf(x) << " " << (int)roundf(x) << std::endl;
   }
 
-  cout << "Test 5 knots for n bins:" << endl;
+  std::cout << "Test 5 knots for n bins:" << std::endl;
   for (int n = 4; n < 20; n++) {
     int bin1 = (int)roundf(.25 * n);
     int bin2 = (int)roundf(.50 * n);
     int bin3 = (int)roundf(.75 * n);
-    cout << n << ": 0 " << bin1 << " " << bin2 << " " << bin3 << " " << n << endl;
+    std::cout << n << ": 0 " << bin1 << " " << bin2 << " " << bin3 << " " << n << std::endl;
   }
 
-  cout << "Test interpolation.." << endl;
+  std::cout << "Test interpolation.." << std::endl;
 
   const int initNKnotsU = 10;
   int nAxisBinsU = 10;
@@ -95,9 +95,9 @@ int RegularSpline1DTest()
   spline.construct(initNKnotsU);
 
   int nKnotsTot = spline.getNumberOfKnots();
-  cout << "Knots: initial " << initNKnotsU << ", created " << nKnotsTot << endl;
+  std::cout << "Knots: initial " << initNKnotsU << ", created " << nKnotsTot << std::endl;
   for (int i = 0; i < nKnotsTot; i++) {
-    cout << "knot " << i << ": " << spline.knotIndexToU(i) << endl;
+    std::cout << "knot " << i << ": " << spline.knotIndexToU(i) << std::endl;
   }
 
   myfloat* data0 = new myfloat[nKnotsTot]; // original data
@@ -113,7 +113,7 @@ int RegularSpline1DTest()
   }
 
   for (int i = 1; i < nKnotsTot; i++) {
-    cout << "data[" << i << "]: " << data[i] << endl;
+    std::cout << "data[" << i << "]: " << data[i] << std::endl;
   }
 
   spline.correctEdges(data);
@@ -133,7 +133,7 @@ int RegularSpline1DTest()
     double fs = spline.getSpline(data, u);
     diff += (fs - f0) * (fs - f0);
   }
-  cout << "mean diff at knots: " << sqrt(diff) / nu << endl;
+  std::cout << "mean diff at knots: " << sqrt(diff) / nu << std::endl;
 
   knots->SetMarkerSize(1.);
   knots->SetMarkerStyle(8);
