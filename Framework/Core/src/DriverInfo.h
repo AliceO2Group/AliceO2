@@ -133,6 +133,8 @@ struct DriverInfo {
   float frameLatency;
   /// The unique id used for ipc communications
   std::string uniqueWorkflowId = "";
+  /// Metrics gathering interval
+  unsigned short resourcesMonitoringInterval;
 };
 
 } // namespace o2::framework
