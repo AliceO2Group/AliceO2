@@ -126,10 +126,11 @@ SignalContainer Digitizer::addSignalsFromPileup()
         const SignalArray& signalArray = signal.second;
         // check if the signal is from a previous event
         if (signalArray.firstTBtime < mCurrentTriggerTime) {
-          if ((mCurrentTriggerTime - signalArray.firstTBtime) < (READOUT_TIME + BUSY_TIME)) {
+          if ((mCurrentTriggerTime - signalArray.firstTBtime) < BUSY_TIME) {
             continue; // ignore the signal if it  is too old.
           }
           // add only what's leftover from this signal
+          // 0.01 = samplingRate/1000, 1/1000 to go from ns to micro-s, the sampling rate is in 1/micro-s
           int idx = (int)((mCurrentTriggerTime - signalArray.firstTBtime) * 0.01); // number of bins to add, from the tail
           auto it0 = signalArray.signals.begin() + idx;
           auto it1 = addedSignalsMap[key].signals.begin();
