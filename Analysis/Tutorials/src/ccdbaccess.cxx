@@ -34,11 +34,22 @@ struct TimestampUserTask {
 
   void init(o2::framework::InitContext&)
   {
+    // Set CCDB url
     ccdb->setURL(url.value);
+    // Set default timestamp
     ccdb->setTimestamp(timestamp.value);
+    // Enabling object caching
     ccdb->setCachingEnabled(true);
     // Not later than now objects
     ccdb->setCreatedNotAfter(nolaterthan.value);
+    // Testing the object retrieval with default timestamp
+    auto obj = ccdb->get<TH2F>(path.value);
+    if (obj) {
+      LOGF(info, "Found object!");
+      obj->Print("all");
+    } else {
+      LOGF(warning, "Object not found!");
+    }
   }
 
   void process(soa::Join<aod::BCs, aod::Timestamps> const& iter)
@@ -48,6 +59,8 @@ struct TimestampUserTask {
       if (obj) {
         LOGF(info, "Found object!");
         obj->Print("all");
+      } else {
+        LOGF(warning, "Object not found!");
       }
     }
   }
