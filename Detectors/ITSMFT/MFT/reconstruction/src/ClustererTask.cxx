@@ -8,18 +8,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file  ClustererTask.cxx
-/// \brief Implementation of the ITS cluster finder task
+/// \file ClustererTrack.h
+/// \brief Cluster finding from digits (MFT)
+/// \author bogdan.vulpescu@cern.ch
+/// \date 03/05/2017
 
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "ITSReconstruction/ClustererTask.h"
-#include "MathUtils/Cartesian3D.h"
-#include "MathUtils/Utils.h"
+#include "MFTReconstruction/ClustererTask.h"
+#include "MFTBase/Constants.h"
+#include "MFTBase/Geometry.h"
 #include "FairLogger.h"
 #include <TFile.h>
 #include <TTree.h>
 
-using namespace o2::its;
+using namespace o2::mft;
 using namespace o2::utils;
 
 //_____________________________________________________________________
@@ -29,7 +31,7 @@ ClustererTask::ClustererTask(bool useMC, bool raw) : mRawDataMode(raw),
   LOG(INFO) << Class()->GetName() << ": MC digits mode: " << (mRawDataMode ? "OFF" : "ON")
             << " | Use MCtruth: " << (mUseMCTruth ? "ON" : "OFF");
 
-  mClusterer.setNChips(o2::itsmft::ChipMappingITS::getNChips());
+  mClusterer.setNChips(o2::itsmft::ChipMappingMFT::getNChips());
 }
 
 //_____________________________________________________________________
@@ -50,7 +52,7 @@ void ClustererTask::Init()
 
   // create reader according to requested raw of MC mode
   if (mRawDataMode) {
-    mReaderRaw = std::make_unique<o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingITS>>();
+    mReaderRaw = std::make_unique<o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingMFT>>();
     mReader = mReaderRaw.get();
   } else { // clusterizer of digits
     mReaderMC = std::make_unique<o2::itsmft::DigitPixelReader>();
@@ -93,21 +95,26 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
     TTree outTree("o2sim", "ITS Clusters");
 
     auto compClusPtr = &mCompClus;
-    outTree.Branch("ITSClusterComp", &compClusPtr);
+    outTree.Branch("MFTClusterComp", &compClusPtr);
 
     auto rofRecVecPtr = &mROFRecVec;
-    outTree.Branch("ITSClustersROF", &rofRecVecPtr);
+    outTree.Branch("MFTClustersROF", &rofRecVecPtr);
 
     auto clsLabelsPtr = &mClsLabels;
     if (mUseMCTruth && mReaderMC->getDigitsMCTruth()) {
       // digit labels are provided directly to clusterer
-      outTree.Branch("ITSClusterMCTruth", &clsLabelsPtr);
+      outTree.Branch("MFTClusterMCTruth", &clsLabelsPtr);
     } else {
       mUseMCTruth = false;
     }
     LOG(INFO) << Class()->GetName() << " | MCTruth: " << (mUseMCTruth ? "ON" : "OFF");
 
-    outTree.Branch("ITSClusterPatt", &mPatterns);
+    // loop over entries of the input tree
+    while (mReaderMC->readNextEntry()) {
+      mClusterer.process(1, *mReaderMC.get(), &mCompClus, &mPatterns, &mROFRecVec, &mClsLabels);
+    }
+
+    outTree.Branch("MFTClusterPatt", &mPatterns);
 
     std::vector<o2::itsmft::MC2ROFRecord> mc2rof, *mc2rofPtr = &mc2rof;
     if (mUseMCTruth) {
@@ -116,12 +123,7 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
       for (const auto& m2r : mc2rofOrig) { // clone from the span
         mc2rof.push_back(m2r);
       }
-      outTree.Branch("ITSClustersMC2ROF", mc2rofPtr);
-    }
-
-    // loop over entries of the input tree
-    while (mReaderMC->readNextEntry()) {
-      mClusterer.process(1, *mReaderMC.get(), &mCompClus, &mPatterns, &mROFRecVec, &mClsLabels);
+      outTree.Branch("MFTClustersMC2ROF", mc2rofPtr);
     }
 
     outTree.Fill();
@@ -138,21 +140,21 @@ void ClustererTask::writeTree(std::string basename, int i)
   if (!outFile.IsOpen()) {
     LOG(FATAL) << "Failed to open output file " << name;
   }
-  TTree outTree("o2sim", "ITS Clusters");
+  TTree outTree("o2sim", "MFT Clusters");
 
   auto max = (i + 1) * maxROframe;
   auto lastf = (max < mROFRecVec.size()) ? mROFRecVec.begin() + max : mROFRecVec.end();
   std::vector<o2::itsmft::ROFRecord> rofRecBuffer(mROFRecVec.begin() + i * maxROframe, lastf);
   std::vector<o2::itsmft::ROFRecord>* rofRecPtr = &rofRecBuffer;
-  outTree.Branch("ITSClustersROF", rofRecPtr);
+  outTree.Branch("MFTClustersROF", rofRecPtr);
 
   auto first = rofRecBuffer[0].getFirstEntry();
   auto last = rofRecBuffer.back().getFirstEntry() + rofRecBuffer.back().getNEntries();
 
   std::vector<CompClusterExt> compClusBuffer, *compClusPtr = &compClusBuffer;
   compClusBuffer.assign(&mCompClus[first], &mCompClus[last]);
-  outTree.Branch("ITSClusterComp", &compClusPtr);
-  outTree.Branch("ITSClusterPatt", &mPatterns);
+  outTree.Branch("MFTClusterComp", &compClusPtr);
+  outTree.Branch("MFTClusterPatt", &mPatterns);
 
   for (auto& rof : rofRecBuffer) {
     rof.setFirstEntry(rof.getFirstEntry() - first);

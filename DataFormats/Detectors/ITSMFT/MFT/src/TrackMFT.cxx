@@ -15,9 +15,10 @@
 
 #include "DataFormatsMFT/TrackMFT.h"
 #include "CommonConstants/MathConstants.h"
-#include "DataFormatsITSMFT/Cluster.h"
+#include "Framework/Logger.h"
 #include "MathUtils/Utils.h"
 #include <TMath.h>
+#include "DataFormatsITSMFT/Cluster.h"
 
 using namespace o2::mft;
 using namespace o2::itsmft;

@@ -22,7 +22,6 @@
 #include <unordered_set>
 #include <utility>
 
-#include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSBase/GeometryTGeo.h"
@@ -143,37 +142,6 @@ std::vector<ROframe> ioutils::loadEventData(const std::string& fileName)
   return events;
 }
 
-void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::Cluster> clusters,
-                            const dataformats::MCTruthContainer<MCCompLabel>* clsLabels)
-{
-  if (clusters.empty()) {
-    std::cerr << "Missing clusters." << std::endl;
-    return;
-  }
-  event.clear();
-  GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache(utils::bit2Mask(TransformType::T2GRot));
-  int clusterId{0};
-
-  for (auto& c : clusters) {
-    int layer = geom->getLayer(c.getSensorID());
-
-    /// Clusters are stored in the tracking frame
-    auto xyz = c.getXYZGloRot(*geom);
-    event.addTrackingFrameInfoToLayer(layer, xyz.x(), xyz.y(), xyz.z(), c.getX(), geom->getSensorRefAlpha(c.getSensorID()),
-                                      std::array<float, 2>{c.getY(), c.getZ()},
-                                      std::array<float, 3>{c.getSigmaY2(), c.getSigmaYZ(), c.getSigmaZ2()});
-
-    /// Rotate to the global frame
-    event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
-    if (clsLabels) {
-      event.addClusterLabelToLayer(layer, *(clsLabels->getLabels(clusterId).begin()));
-    }
-    event.addClusterExternalIndexToLayer(layer, clusterId);
-    clusterId++;
-  }
-}
-
 void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters,
                             gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
                             const dataformats::MCTruthContainer<MCCompLabel>* clsLabels)
@@ -224,36 +192,6 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
     event.addClusterExternalIndexToLayer(layer, clusterId);
     clusterId++;
   }
-}
-
-int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::Cluster> clusters,
-                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
-{
-  event.clear();
-  GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache(utils::bit2Mask(TransformType::T2GRot));
-  int clusterId{0};
-
-  auto first = rof.getFirstEntry();
-  auto clusters_in_frame = rof.getROFData(clusters);
-  for (auto& c : clusters_in_frame) {
-    int layer = geom->getLayer(c.getSensorID());
-
-    /// Clusters are stored in the tracking frame
-    auto xyz = c.getXYZGloRot(*geom);
-    event.addTrackingFrameInfoToLayer(layer, xyz.x(), xyz.y(), xyz.z(), c.getX(), geom->getSensorRefAlpha(c.getSensorID()),
-                                      std::array<float, 2>{c.getY(), c.getZ()},
-                                      std::array<float, 3>{c.getSigmaY2(), c.getSigmaYZ(), c.getSigmaZ2()});
-
-    /// Rotate to the global frame
-    event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
-    if (mcLabels) {
-      event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
-    }
-    event.addClusterExternalIndexToLayer(layer, first + clusterId);
-    clusterId++;
-  }
-  return clusters_in_frame.size();
 }
 
 int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,

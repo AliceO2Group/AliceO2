@@ -24,14 +24,14 @@ namespace itsmft
 {
 ClusterPattern::ClusterPattern() : mBitmap{0} {}
 
-ClusterPattern::ClusterPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes])
+ClusterPattern::ClusterPattern(int nRow, int nCol, const unsigned char patt[MaxPatternBytes])
 {
   setPattern(nRow, nCol, patt);
 }
 
 unsigned char ClusterPattern::getByte(int n) const
 {
-  if (n < 0 || n > Cluster::kMaxPatternBytes + 1) {
+  if (n < 0 || n > MaxPatternBytes + 1) {
     LOG(ERROR) << "Invalid element of the pattern";
     return -1;
   } else {
@@ -48,7 +48,7 @@ int ClusterPattern::getUsedBytes() const
   return nBytes;
 }
 
-void ClusterPattern::setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes])
+void ClusterPattern::setPattern(int nRow, int nCol, const unsigned char patt[MaxPatternBytes])
 {
   mBitmap[0] = (unsigned char)nRow;
   mBitmap[1] = (unsigned char)nCol;
@@ -99,7 +99,7 @@ std::ostream& operator<<(std::ostream& os, const ClusterPattern& pattern)
   return os;
 }
 
-int ClusterPattern::getCOG(int rowSpan, int colSpan, const unsigned char patt[Cluster::kMaxPatternBytes], float& xCOG, float& zCOG)
+int ClusterPattern::getCOG(int rowSpan, int colSpan, const unsigned char patt[MaxPatternBytes], float& xCOG, float& zCOG)
 {
   int tempxCOG = 0, tempzCOG = 0, tempFiredPixels = 0, ic = 0, ir = 0;
   int nBits = rowSpan * colSpan;

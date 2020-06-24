@@ -48,8 +48,6 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
   // Clusters
   TFile* file1 = TFile::Open(clusfile.data());
   TTree* clusTree = (TTree*)gFile->Get("o2sim");
-  std::vector<Cluster>* clusArr = nullptr;
-  clusTree->SetBranchAddress("ITSCluster", &clusArr);
   std::vector<CompClusterExt>* compclusArr = nullptr;
   clusTree->SetBranchAddress("ITSClusterComp", &compclusArr);
   std::vector<unsigned char>* patternsPtr = nullptr;
@@ -86,11 +84,7 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
   cGroup->Divide(2, 1);
   for (ievC = 0; ievC < nevCl; ievC++) {
     clusTree->GetEvent(ievC);
-    int nc = clusArr->size();
-    int nc_comp = compclusArr->size();
-    if (nc != nc_comp) {
-      std::cout << "The branches has different entries" << std::endl;
-    }
+    int nc = compclusArr->size();
     printf("processing cluster event %d\n", ievC);
 
     std::vector<unsigned char>::const_iterator pattIdx;

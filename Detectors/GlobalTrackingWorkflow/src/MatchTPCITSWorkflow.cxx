@@ -40,7 +40,7 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC, bool disableRootInp, 
 
   if (!disableRootInp) {
     specs.emplace_back(o2::its::getITSTrackReaderSpec(useMC));
-    specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(useMC, passFullITSClusters, passCompITSClusters, passITSClusPatterns));
+    specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(useMC, passITSClusPatterns));
     specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
     specs.emplace_back(o2::tpc::getPublisherSpec(o2::tpc::PublisherConf{
                                                    "tpc-native-cluster-reader",

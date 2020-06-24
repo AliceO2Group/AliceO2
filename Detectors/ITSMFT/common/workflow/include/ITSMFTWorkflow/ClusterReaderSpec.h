@@ -20,10 +20,10 @@
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 using namespace o2::framework;
 
@@ -36,7 +36,7 @@ class ClusterReader : public Task
 {
  public:
   ClusterReader() = delete;
-  ClusterReader(o2::detectors::DetID id, bool useMC = true, bool useClFull = true, bool useClComp = true, bool usePatterns = true);
+  ClusterReader(o2::detectors::DetID id, bool useMC, bool usePatterns = true);
   ~ClusterReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -45,7 +45,6 @@ class ClusterReader : public Task
   void connectTree(const std::string& filename);
 
   std::vector<o2::itsmft::ROFRecord> mClusROFRec, *mClusROFRecPtr = &mClusROFRec;
-  std::vector<o2::itsmft::Cluster> mClusterArray, *mClusterArrayPtr = &mClusterArray;
   std::vector<o2::itsmft::CompClusterExt> mClusterCompArray, *mClusterCompArrayPtr = &mClusterCompArray;
   std::vector<unsigned char> mPatternsArray, *mPatternsArrayPtr = &mPatternsArray;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mClusterMCTruth, *mClusterMCTruthPtr = &mClusterMCTruth;
@@ -57,8 +56,6 @@ class ClusterReader : public Task
   std::unique_ptr<TTree> mTree;
 
   bool mUseMC = true;     // use MC truth
-  bool mUseClFull = true; // use full clusters
-  bool mUseClComp = true; // use compact clusters
   bool mUsePatterns = true; // send patterns
 
   std::string mDetName = "";
@@ -66,7 +63,6 @@ class ClusterReader : public Task
   std::string mFileName = "";
   std::string mClusTreeName = "o2sim";
   std::string mClusROFBranchName = "ClustersROF";
-  std::string mClusterBranchName = "Cluster";
   std::string mClusterPattBranchName = "ClusterPatt";
   std::string mClusterCompBranchName = "ClusterComp";
   std::string mClustMCTruthBranchName = "ClusterMCTruth";
@@ -76,8 +72,8 @@ class ClusterReader : public Task
 class ITSClusterReader : public ClusterReader
 {
  public:
-  ITSClusterReader(bool useMC = true, bool useClFull = true, bool useClComp = true)
-    : ClusterReader(o2::detectors::DetID::ITS, useMC, useClFull, useClComp)
+  ITSClusterReader(bool useMC = true, bool usePatterns = true)
+    : ClusterReader(o2::detectors::DetID::ITS, useMC, usePatterns)
   {
     mOrigin = o2::header::gDataOriginITS;
   }
@@ -86,8 +82,8 @@ class ITSClusterReader : public ClusterReader
 class MFTClusterReader : public ClusterReader
 {
  public:
-  MFTClusterReader(bool useMC = true, bool useClFull = true, bool useClComp = true)
-    : ClusterReader(o2::detectors::DetID::MFT, useMC, useClFull, useClComp)
+  MFTClusterReader(bool useMC = true, bool usePatterns = true)
+    : ClusterReader(o2::detectors::DetID::MFT, useMC, usePatterns)
   {
     mOrigin = o2::header::gDataOriginMFT;
   }
@@ -95,8 +91,8 @@ class MFTClusterReader : public ClusterReader
 
 /// create a processor spec
 /// read ITS/MFT cluster data from a root file
-framework::DataProcessorSpec getITSClusterReaderSpec(bool useMC = true, bool useClFull = true, bool useClComp = true, bool usePatterns = true);
-framework::DataProcessorSpec getMFTClusterReaderSpec(bool useMC = true, bool useClFull = true, bool useClComp = true, bool usePatterns = true);
+framework::DataProcessorSpec getITSClusterReaderSpec(bool useMC = true, bool usePatterns = true);
+framework::DataProcessorSpec getMFTClusterReaderSpec(bool useMC = true, bool usePatterns = true);
 
 } // namespace itsmft
 } // namespace o2

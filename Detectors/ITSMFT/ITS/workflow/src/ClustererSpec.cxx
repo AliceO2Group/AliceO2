@@ -19,14 +19,11 @@
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "ITSMFTReconstruction/DigitPixelReader.h"
-#include "DetectorsBase/GeometryManager.h"
-#include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
@@ -40,12 +37,7 @@ namespace its
 
 void ClustererDPL::init(InitContext& ic)
 {
-  o2::base::GeometryManager::loadGeometry(); // for generating full clusters
-  o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
-  geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
-
   mClusterer = std::make_unique<o2::itsmft::Clusterer>();
-  mClusterer->setGeometry(geom);
   mClusterer->setNChips(o2::itsmft::ChipMappingITS::getNChips());
 
   auto filenameGRP = ic.options().get<std::string>("grp-file");
@@ -59,7 +51,6 @@ void ClustererDPL::init(InitContext& ic)
     return;
   }
 
-  mFullClusters = ic.options().get<bool>("full-clusters");
   mPatterns = !ic.options().get<bool>("no-patterns");
   mNThreads = ic.options().get<int>("nthreads");
 
@@ -107,7 +98,6 @@ void ClustererDPL::run(ProcessingContext& pc)
   }
   reader.init();
   auto orig = o2::header::gDataOriginITS;
-  std::vector<o2::itsmft::Cluster> clusVec;
   std::vector<o2::itsmft::CompClusterExt> clusCompVec;
   std::vector<o2::itsmft::ROFRecord> clusROFVec;
   std::vector<unsigned char> clusPattVec;
@@ -116,10 +106,9 @@ void ClustererDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
   }
-  mClusterer->process(mNThreads, reader, mFullClusters ? &clusVec : nullptr, &clusCompVec, mPatterns ? &clusPattVec : nullptr, &clusROFVec, clusterLabels.get());
+  mClusterer->process(mNThreads, reader, &clusCompVec, mPatterns ? &clusPattVec : nullptr, &clusROFVec, clusterLabels.get());
   pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
   pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);
-  pc.outputs().snapshot(Output{orig, "CLUSTERS", 0, Lifetime::Timeframe}, clusVec);
   pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
 
   if (mUseMC) {
@@ -145,7 +134,6 @@ DataProcessorSpec getClustererSpec(bool useMC)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "PATTERNS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS", "CLUSTERS", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
 
   if (useMC) {
@@ -163,7 +151,6 @@ DataProcessorSpec getClustererSpec(bool useMC)
     Options{
       {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"full-clusters", o2::framework::VariantType::Bool, false, {"Produce full clusters"}},
       {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}},
       {"nthreads", VariantType::Int, 0, {"Number of clustering threads (<1: rely on openMP default)"}}}};
 }

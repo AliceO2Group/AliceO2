@@ -25,7 +25,7 @@
 using namespace o2::itsmft;
 
 //__________________________________________________
-void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClus, CompClusCont* compClus,
+void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClus,
                         PatternCont* patterns, ROFRecCont* vecROFRec, MCTruth* labelsCl)
 {
 #ifdef _PERFORM_TIMING_
@@ -108,10 +108,9 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
     for (int ith = 0; ith < nLoops; ith++) { // each loop is done by a separate thread
       auto chips = gsl::span(&mFiredChipsPtr[loopLim[ith]], loopLim[ith + 1] - loopLim[ith]);
       if (!ith) { // the 1st thread can write directly to the final destination
-        mThreads[ith]->process(chips, fullClus, compClus, patterns, labelsCl ? reader.getDigitsMCTruth() : nullptr, labelsCl, rof);
+        mThreads[ith]->process(chips, compClus, patterns, labelsCl ? reader.getDigitsMCTruth() : nullptr, labelsCl, rof);
       } else { // extra threads will store in their own containers
         mThreads[ith]->process(chips,
-                               fullClus ? &mThreads[ith]->fullClusters : nullptr,
                                &mThreads[ith]->compClusters,
                                patterns ? &mThreads[ith]->patterns : nullptr,
                                labelsCl ? reader.getDigitsMCTruth() : nullptr,
@@ -131,9 +130,6 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
         nPattTot += mThreads[ith]->patterns.size();
       }
       compClus->reserve(nClTot);
-      if (fullClus) {
-        fullClus->reserve(nClTot);
-      }
       if (patterns) {
         patterns->reserve(nPattTot);
       }
@@ -141,10 +137,6 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
         compClus->insert(compClus->end(), mThreads[ith]->compClusters.begin(), mThreads[ith]->compClusters.end());
         mThreads[ith]->compClusters.clear();
 
-        if (fullClus) {
-          fullClus->insert(fullClus->end(), mThreads[ith]->fullClusters.begin(), mThreads[ith]->fullClusters.end());
-          mThreads[ith]->fullClusters.clear();
-        }
         if (patterns) {
           patterns->insert(patterns->end(), mThreads[ith]->patterns.begin(), mThreads[ith]->patterns.end());
           mThreads[ith]->patterns.clear();
@@ -168,7 +160,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
 }
 
 //__________________________________________________
-void Clusterer::ClustererThread::process(gsl::span<ChipPixelData*> chipPtrs, FullClusCont* fullClusPtr, CompClusCont* compClusPtr, PatternCont* patternsPtr,
+void Clusterer::ClustererThread::process(gsl::span<ChipPixelData*> chipPtrs, CompClusCont* compClusPtr, PatternCont* patternsPtr,
                                          const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr)
 {
   int nch = chipPtrs.size();
@@ -185,7 +177,7 @@ void Clusterer::ClustererThread::process(gsl::span<ChipPixelData*> chipPtrs, Ful
     if (validPixID < npix) { // chip data may have all of its pixels masked!
       auto valp = validPixID++;
       if (validPixID == npix) { // special case of a single pixel fired on the chip
-        finishChipSingleHitFast(valp, curChipData, fullClusPtr, compClusPtr, patternsPtr, labelsDigPtr, labelsClPtr);
+        finishChipSingleHitFast(valp, curChipData, compClusPtr, patternsPtr, labelsDigPtr, labelsClPtr);
       } else {
         initChip(curChipData, valp);
         for (; validPixID < npix; validPixID++) {
@@ -193,7 +185,7 @@ void Clusterer::ClustererThread::process(gsl::span<ChipPixelData*> chipPtrs, Ful
             updateChip(curChipData, validPixID);
           }
         }
-        finishChip(curChipData, fullClusPtr, compClusPtr, patternsPtr, labelsDigPtr, labelsClPtr);
+        finishChip(curChipData, compClusPtr, patternsPtr, labelsDigPtr, labelsClPtr);
       }
     }
     if (parent->mMaxBCSeparationToMask > 0) { // current chip data will be used in the next ROF to mask overflow pixels
@@ -203,7 +195,7 @@ void Clusterer::ClustererThread::process(gsl::span<ChipPixelData*> chipPtrs, Ful
 }
 
 //__________________________________________________
-void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, FullClusCont* fullClusPtr, CompClusCont* compClusPtr,
+void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClusCont* compClusPtr,
                                             PatternCont* patternsPtr, const MCTruth* labelsDigPtr, MCTruth* labelsClusPTr)
 {
   auto clustersCount = compClusPtr->size();
@@ -250,50 +242,20 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, FullClus
       preClusterIndices[i2] = -1;
     }
     uint16_t rowSpan = rowMax - rowMin + 1, colSpan = colMax - colMin + 1;
-    Cluster clus;
-    clus.setSensorID(curChipData->getChipID());
-    clus.setNxNzN(rowSpan, colSpan, npix);
     uint16_t colSpanW = colSpan, rowSpanW = rowSpan;
-    if (colSpan * rowSpan > Cluster::kMaxPatternBits) { // need to store partial info
+    if (colSpan * rowSpan > ClusterPattern::MaxPatternBits) { // need to store partial info
       // will curtail largest dimension
       if (colSpan > rowSpan) {
-        if ((colSpanW = Cluster::kMaxPatternBits / rowSpan) == 0) {
+        if ((colSpanW = ClusterPattern::MaxPatternBits / rowSpan) == 0) {
           colSpanW = 1;
-          rowSpanW = Cluster::kMaxPatternBits;
+          rowSpanW = ClusterPattern::MaxPatternBits;
         }
       } else {
-        if ((rowSpanW = Cluster::kMaxPatternBits / colSpan) == 0) {
+        if ((rowSpanW = ClusterPattern::MaxPatternBits / colSpan) == 0) {
           rowSpanW = 1;
-          colSpanW = Cluster::kMaxPatternBits;
+          colSpanW = ClusterPattern::MaxPatternBits;
         }
       }
-    }
-#ifdef _ClusterTopology_
-    clus.setPatternRowSpan(rowSpanW, rowSpanW < rowSpan);
-    clus.setPatternColSpan(colSpanW, colSpanW < colSpan);
-    clus.setPatternRowMin(rowMin);
-    clus.setPatternColMin(colMin);
-    for (int i = 0; i < npix; i++) {
-      const auto pix = pixArrBuff[i];
-      unsigned short ir = pix.getRowDirect() - rowMin, ic = pix.getCol() - colMin;
-      if (ir < rowSpanW && ic < colSpanW) {
-        clus.setPixel(ir, ic);
-      }
-    }
-#endif                 //_ClusterTopology_
-    if (fullClusPtr) { // do we need conventional clusters with full topology and coordinates?
-      fullClusPtr->push_back(clus);
-      Cluster& c = fullClusPtr->back();
-      float x = 0., z = 0.;
-      for (int i = npix; i--;) {
-        x += pixArrBuff[i].getRowDirect();
-        z += pixArrBuff[i].getCol();
-      }
-      Point3D<float> xyzLoc;
-      SegmentationAlpide::detectorToLocalUnchecked(x / npix, z / npix, xyzLoc);
-      auto xyzTra = parent->mGeometry->getMatrixT2L(curChipData->getChipID()) ^ (xyzLoc); // inverse transform from Local to Tracking frame
-      c.setPos(xyzTra);
-      c.setErrors(SigmaX2, SigmaY2, 0.f);
     }
 
     if (labelsClusPTr) { // MC labels were requested
@@ -304,7 +266,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, FullClus
     }
 
     // add to compact clusters, which must be always filled
-    unsigned char patt[Cluster::kMaxPatternBytes] = {0}; // RSTODO FIX pattern filling
+    unsigned char patt[ClusterPattern::MaxPatternBytes] = {0}; // RSTODO FIX pattern filling
     for (int i = 0; i < npix; i++) {
       const auto pix = pixArrBuff[i];
       unsigned short ir = pix.getRowDirect() - rowMin, ic = pix.getCol() - colMin;
@@ -333,32 +295,12 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, FullClus
 }
 
 //__________________________________________________
-void Clusterer::ClustererThread::finishChipSingleHitFast(uint32_t hit, ChipPixelData* curChipData, FullClusCont* fullClusPtr,
-                                                         CompClusCont* compClusPtr, PatternCont* patternsPtr, const MCTruth* labelsDigPtr, MCTruth* labelsClusPTr)
+void Clusterer::ClustererThread::finishChipSingleHitFast(uint32_t hit, ChipPixelData* curChipData, CompClusCont* compClusPtr,
+                                                         PatternCont* patternsPtr, const MCTruth* labelsDigPtr, MCTruth* labelsClusPTr)
 {
   auto clustersCount = compClusPtr->size();
   auto pix = curChipData->getData()[hit];
   uint16_t row = pix.getRowDirect(), col = pix.getCol();
-
-  if (fullClusPtr) { // do we need conventional clusters with full topology and coordinates?
-    Cluster clus;
-    clus.setSensorID(curChipData->getChipID());
-    clus.setNxNzN(1, 1, 1);
-#ifdef _ClusterTopology_
-    clus.setPatternRowSpan(1, false);
-    clus.setPatternColSpan(1, false);
-    clus.setPatternRowMin(row);
-    clus.setPatternColMin(col);
-    clus.setPixel(0, 0);
-#endif //_ClusterTopology_
-    fullClusPtr->push_back(clus);
-    Cluster& c = fullClusPtr->back();
-    Point3D<float> xyzLoc;
-    SegmentationAlpide::detectorToLocalUnchecked(row, col, xyzLoc);                     // implicit conversion of row,col to floats!
-    auto xyzTra = parent->mGeometry->getMatrixT2L(curChipData->getChipID()) ^ (xyzLoc); // inverse transform from Local to Tracking frame
-    c.setPos(xyzTra);
-    c.setErrors(SigmaX2, SigmaY2, 0.f);
-  }
 
   if (labelsClusPTr) { // MC labels were requested
     int nlab = 0;
@@ -370,7 +312,7 @@ void Clusterer::ClustererThread::finishChipSingleHitFast(uint32_t hit, ChipPixel
   }
 
   // add to compact clusters, which must be always filled
-  unsigned char patt[Cluster::kMaxPatternBytes]{0x1 << (7 - (0 % 8))}; // unrolled 1 hit version of full loop in finishChip
+  unsigned char patt[ClusterPattern::MaxPatternBytes]{0x1 << (7 - (0 % 8))}; // unrolled 1 hit version of full loop in finishChip
   uint16_t pattID = (parent->mPattIdConverter.size() == 0) ? CompCluster::InvalidPatternID : parent->mPattIdConverter.findGroupID(1, 1, patt);
   if ((pattID == CompCluster::InvalidPatternID || parent->mPattIdConverter.isGroup(pattID)) && patternsPtr) {
     patternsPtr->emplace_back(1); // rowspan
@@ -383,12 +325,6 @@ void Clusterer::ClustererThread::finishChipSingleHitFast(uint32_t hit, ChipPixel
 //__________________________________________________
 Clusterer::Clusterer() : mPattIdConverter()
 {
-#ifdef _ClusterTopology_
-  LOG(INFO) << "*********************************************************************";
-  LOG(INFO) << "ATTENTION: YOU ARE RUNNING IN SPECIAL MODE OF STORING CLUSTER PATTERN";
-  LOG(INFO) << "*********************************************************************";
-#endif //_ClusterTopology_
-
 #ifdef _PERFORM_TIMING_
   mTimer.Stop();
   mTimer.Reset();
@@ -473,7 +409,7 @@ void Clusterer::ClustererThread::updateChip(const ChipPixelData* curChipData, ui
 void Clusterer::ClustererThread::fetchMCLabels(int digID, const MCTruth* labelsDig, int& nfilled)
 {
   // transfer MC labels to cluster
-  if (nfilled >= Cluster::maxLabels) {
+  if (nfilled >= MaxLabels) {
     return;
   }
   const auto& lbls = labelsDig->getLabels(digID);
@@ -485,7 +421,7 @@ void Clusterer::ClustererThread::fetchMCLabels(int digID, const MCTruth* labelsD
       }
     }
     labelsBuff[nfilled++] = lbls[i];
-    if (nfilled >= Cluster::maxLabels) {
+    if (nfilled >= MaxLabels) {
       break;
     }
   }

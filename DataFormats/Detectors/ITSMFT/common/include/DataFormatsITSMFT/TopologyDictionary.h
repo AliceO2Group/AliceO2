@@ -76,7 +76,7 @@ class TopologyDictionary
   static constexpr int RowClassSpan = 4;                                                 ///< Row span of the classes of rare topologies
   static constexpr int ColClassSpan = 4;                                                 ///< Column span of the classes of rare topologies
   static constexpr int MinimumClassArea = RowClassSpan * ColClassSpan;                   ///< Area of the smallest class of rare topologies (used as reference)
-  static constexpr int MaxNumberOfClasses = Cluster::kMaxPatternBits / MinimumClassArea; ///< Maximum number of row/column classes for the groups of rare topologies
+  static constexpr int MaxNumberOfClasses = ClusterPattern::MaxPatternBits / MinimumClassArea; ///< Maximum number of row/column classes for the groups of rare topologies
   static constexpr int NumberOfRareGroups = MaxNumberOfClasses * MaxNumberOfClasses;     ///< Number of entries corresponding to groups of rare topologies (those whos matrix exceed the max number of bytes are empty).
   /// Prints the dictionary
   friend std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dictionary);

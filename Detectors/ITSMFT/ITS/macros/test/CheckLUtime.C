@@ -71,7 +71,7 @@ void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile 
       int nBytes = (rowSpan * columnSpan) >> 3;
       if (((rowSpan * columnSpan) % 8) != 0)
         nBytes++;
-      unsigned char patt[Cluster::kMaxPatternBytes] = {0}, *p = &patt[0];
+      unsigned char patt[ClusterPattern::MaxPatternBytes] = {0}, *p = &patt[0];
       while (nBytes--) {
         *p++ = *pattIdx++;
       }

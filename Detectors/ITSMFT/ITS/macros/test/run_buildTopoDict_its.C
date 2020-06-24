@@ -30,7 +30,7 @@
 #include "DetectorsCommonDataFormats/NameConf.h"
 #endif
 
-/// Build dictionary of topologies from the root file with full clusters
+/// Build dictionary of topologies from the root file with compact clusters
 /// If the hitfile is non-empty, the mean bias between the cluster COG
 /// and mean MC hit position is calculated
 

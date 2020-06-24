@@ -27,13 +27,11 @@ namespace o2
 namespace itsmft
 {
 
-ClusterReader::ClusterReader(o2::detectors::DetID id, bool useMC, bool useClFull, bool useClComp, bool usePatterns)
+ClusterReader::ClusterReader(o2::detectors::DetID id, bool useMC, bool usePatterns)
 {
   assert(id == o2::detectors::DetID::ITS || id == o2::detectors::DetID::MFT);
   mDetNameLC = mDetName = id.getName();
   mUseMC = useMC;
-  mUseClFull = useClFull;
-  mUseClComp = useClComp;
   mUsePatterns = usePatterns;
   std::transform(mDetNameLC.begin(), mDetNameLC.end(), mDetNameLC.begin(), ::tolower);
 }
@@ -50,18 +48,12 @@ void ClusterReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(INFO) << mDetName << "ClusterReader pushes " << mClusROFRec.size() << " ROFRecords,"
-            << mClusterArray.size() << " full clusters, " << mClusterCompArray.size()
-            << " compact clusters at entry " << ent;
+            << mClusterCompArray.size() << " compact clusters at entry " << ent;
 
   // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
   // To be fixed once the names-definition class is ready
   pc.outputs().snapshot(Output{mOrigin, "CLUSTERSROF", 0, Lifetime::Timeframe}, mClusROFRec);
-  if (mUseClFull) {
-    pc.outputs().snapshot(Output{mOrigin, "CLUSTERS", 0, Lifetime::Timeframe}, mClusterArray);
-  }
-  if (mUseClComp) {
-    pc.outputs().snapshot(Output{mOrigin, "COMPCLUSTERS", 0, Lifetime::Timeframe}, mClusterCompArray);
-  }
+  pc.outputs().snapshot(Output{mOrigin, "COMPCLUSTERS", 0, Lifetime::Timeframe}, mClusterCompArray);
   if (mUsePatterns) {
     pc.outputs().snapshot(Output{mOrigin, "PATTERNS", 0, Lifetime::Timeframe}, mPatternsArray);
   }
@@ -85,12 +77,7 @@ void ClusterReader::connectTree(const std::string& filename)
   assert(mTree);
 
   mTree->SetBranchAddress((mDetName + mClusROFBranchName).c_str(), &mClusROFRecPtr);
-  if (mUseClFull) {
-    mTree->SetBranchAddress((mDetName + mClusterBranchName).c_str(), &mClusterArrayPtr); // being eliminated!!!
-  }
-  if (mUseClComp) {
-    mTree->SetBranchAddress((mDetName + mClusterCompBranchName).c_str(), &mClusterCompArrayPtr);
-  }
+  mTree->SetBranchAddress((mDetName + mClusterCompBranchName).c_str(), &mClusterCompArrayPtr);
   if (mUsePatterns) {
     mTree->SetBranchAddress((mDetName + mClusterPattBranchName).c_str(), &mPatternsArrayPtr);
   }
@@ -107,16 +94,11 @@ void ClusterReader::connectTree(const std::string& filename)
   LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useClComp, bool usePatterns)
+DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool usePatterns)
 {
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back("ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
-  if (useClFull) {
-    outputSpec.emplace_back("ITS", "CLUSTERS", 0, Lifetime::Timeframe);
-  }
-  if (useClComp) {
-    outputSpec.emplace_back("ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  }
+  outputSpec.emplace_back("ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   if (usePatterns) {
     outputSpec.emplace_back("ITS", "PATTERNS", 0, Lifetime::Timeframe);
   }
@@ -129,21 +111,16 @@ DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useCl
     "its-cluster-reader",
     Inputs{},
     outputSpec,
-    AlgorithmSpec{adaptFromTask<ITSClusterReader>(useMC, useClFull, useClComp)},
+    AlgorithmSpec{adaptFromTask<ITSClusterReader>(useMC, usePatterns)},
     Options{
       {"its-cluster-infile", VariantType::String, "o2clus_its.root", {"Name of the input cluster file"}}}};
 }
 
-DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool useClFull, bool useClComp, bool usePatterns)
+DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool usePatterns)
 {
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back("MFT", "CLUSTERSROF", 0, Lifetime::Timeframe);
-  if (useClFull) {
-    outputSpec.emplace_back("MFT", "CLUSTERS", 0, Lifetime::Timeframe);
-  }
-  if (useClComp) {
-    outputSpec.emplace_back("MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  }
+  outputSpec.emplace_back("MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   if (usePatterns) {
     outputSpec.emplace_back("MFT", "PATTERNS", 0, Lifetime::Timeframe);
   }
@@ -156,7 +133,7 @@ DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool useClFull, bool useCl
     "mft-cluster-reader",
     Inputs{},
     outputSpec,
-    AlgorithmSpec{adaptFromTask<MFTClusterReader>(useMC, useClFull, useClComp)},
+    AlgorithmSpec{adaptFromTask<MFTClusterReader>(useMC, usePatterns)},
     Options{
       {"mft-cluster-infile", VariantType::String, "o2clus_mft.root", {"Name of the input cluster file"}}}};
 }

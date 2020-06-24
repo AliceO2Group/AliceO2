@@ -20,7 +20,7 @@
 #include "FairLogger.h"
 
 #include "ITSReconstruction/TrivialVertexer.h"
-#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -64,7 +64,7 @@ Bool_t TrivialVertexer::openInputFile(const Char_t* fname)
   return kTRUE;
 }
 
-void TrivialVertexer::process(const std::vector<Cluster>& clusters, std::vector<std::array<Double_t, 3>>& vertices)
+void TrivialVertexer::process(const std::vector<CompCluster>& clusters, std::vector<std::array<Double_t, 3>>& vertices)
 {
   if (mClsLabels == nullptr) {
     LOG(INFO) << "TrivialVertexer::process() : "
