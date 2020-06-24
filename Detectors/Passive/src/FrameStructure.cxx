@@ -429,15 +429,19 @@ void FrameStructure::ConstructGeometry()
   //
   TGeoPgon* shB77A = new TGeoPgon(0., 360., 18, 2);
   shB77A->SetName("shB77A");
-  shB77A->DefineSection(0, -zE, 280., 423.7);
-  shB77A->DefineSection(1, zE, 280., 423.7);
+  shB77A->DefineSection(0, -zE, 280., 422.15);
+  shB77A->DefineSection(1, zE, 280., 422.15);
   TGeoBBox* shB77B = new TGeoBBox(3.42, 2., 375.5);
   shB77B->SetName("shB77B");
   TGeoTranslation* trB77A = new TGeoTranslation("trB77A", +283.32, 0., 0.);
   TGeoTranslation* trB77B = new TGeoTranslation("trB77B", -283.32, 0., 0.);
   trB77A->RegisterYourself();
   trB77B->RegisterYourself();
-  TGeoCompositeShape* shB77 = new TGeoCompositeShape("shB77", "shB77A+shB77B:trB77A+shB77B:trB77B");
+  TGeoPgon* shB77C = new TGeoPgon(60., 360., 18, 2);
+  shB77C->SetName("shB77C");
+  shB77C->DefineSection(0, -zE, 422.15, 423.70);
+  shB77C->DefineSection(1, zE, 422.15, 423.70);
+  TGeoCompositeShape* shB77 = new TGeoCompositeShape("shB77", "shB77A+shB77B:trB77A+shB77B:trB77B+shB77C");
   TGeoVolume* voB77 = new TGeoVolume("B077", shB77, gGeoManager->GetMedium("FRAME_Air"));
   voB77->SetName("B077"); // just to avoid a warning
   vmc->Gspos("B077", 1, TOPNAME, 0., 30., 0., 0, "ONLY");
@@ -1372,6 +1376,8 @@ void FrameStructure::ConstructGeometry()
   asTOFS01->SetVisibility(1);
 
   for (i = 0; i < 18; i++) {
+    if (i >= 4 && i <= 8)
+      continue;
     float phi1 = i * 20.;
     float phi2 = 270. + phi1;
     rot1 = new TGeoRotation(Form("TOFS_R1_%d", i), 90.0, phi1, 90., phi2, 0., 0.);
@@ -1561,8 +1567,8 @@ void FrameStructure::ConstructGeometry()
   vmc->Gspos("BRS2", 1, "BRS1", 0., -27.5 + 3.75, 0., 0, "ONLY");
   vmc->Gspos("BRS2", 2, "BRS1", 0., 27.5 - 3.75, 0., 0, "ONLY");
   vmc->Gspos("BRS3", 1, "BRS1", 0., 0., 0., 0, "ONLY");
-  vmc->Gspos("BRS1", 1, TOPNAME, -430. - 3. + 30., -190., 0., 0, "ONLY");
-  vmc->Gspos("BRS1", 2, TOPNAME, 430. + 3. + 30., -190., 0., 0, "ONLY");
+  vmc->Gspos("BRS1", 1, TOPNAME, -430. - 3.1 + 30., -190., 0., 0, "ONLY");
+  vmc->Gspos("BRS1", 2, TOPNAME, 430. + 3.1 + 30., -190., 0., 0, "ONLY");
 
   rbox[0] = 3.0;
   rbox[1] = 145. / 4.;

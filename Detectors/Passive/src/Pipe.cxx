@@ -16,6 +16,7 @@
 #include <TGeoPcon.h>
 #include <TGeoTorus.h>
 #include <TGeoTube.h>
+#include <TGeoEltu.h>
 #include <TVirtualMC.h>
 #include "TGeoManager.h"  // for TGeoManager, gGeoManager
 #include "TGeoMaterial.h" // for TGeoMaterial
@@ -629,14 +630,14 @@ void Pipe::ConstructGeometry()
   //
 
   // Copper Tube RB24/1
-  const Float_t kRB24CuTubeL = 393.5;
-  const Float_t kRB24cCuTubeL = 167.775;
-  const Float_t kRB24bCuTubeL = 393.5 - kRB24cCuTubeL;
+  const Float_t kRB24CuTubeL = 381.5;
+  const Float_t kRB24cCuTubeL = 155.775;
+  const Float_t kRB24bCuTubeL = kRB24CuTubeL - kRB24cCuTubeL;
   const Float_t kRB24CuTubeRi = 8.0 / 2.;
   const Float_t kRB24CuTubeRo = 8.4 / 2.;
   const Float_t kRB24CuTubeFRo = 7.6;
   const Float_t kRB24CuTubeFL = 1.86;
-  const Float_t kRB24CL = 2. * 598.74752;
+  const Float_t kRB24CL = 2. * 597.9;
   //
   // introduce cut at end of barrel 714.6m
   //
@@ -1466,28 +1467,63 @@ void Pipe::ConstructGeometry()
   //
   // Copper Tube RB24/2
   // mainly inside the compensator magnet
-  const Float_t kRB242CuTubeL = 330.0;
-
+  const Float_t kRB242CuTubeL = 350.0;
+  // 20 cm straight - 20 cm transition to final oval - 270 oval - 20 cm transition to final oval - 20 cm straight
+  //
+  // mother volume for transition region
+  TGeoVolume* voRB242CuOvTransMo = new TGeoVolume("voRB24CuOvTransMo", new TGeoTube(0., 4.75, 10.), kMedAir);
+  const Int_t nTrans = 10;
+  TGeoVolume* voRB242CuOvTransV[nTrans];
+  TGeoVolume* voRB242CuOvTransI[nTrans];
+  Float_t dovX = 4.;
+  Float_t dovY = 4.;
+  Float_t dovZ = -9.0;
+  for (Int_t i = 0; i < nTrans; i++) {
+    dovX -= 0.0625;
+    dovY += 0.075;
+    char vname[20];
+    sprintf(vname, "voRB242CuOvTransV%d", i);
+    voRB242CuOvTransV[i] = new TGeoVolume(vname, new TGeoEltu(dovX, dovY, 1.0), kMedCuHC);
+    sprintf(vname, "voRB242CuOvTransI%d", i);
+    voRB242CuOvTransI[i] = new TGeoVolume(vname, new TGeoEltu(dovX - 0.2, dovY - 0.2, 1.0), kMedVacHC);
+    voRB242CuOvTransV[i]->AddNode(voRB242CuOvTransI[i], 1, gGeoIdentity);
+    voRB242CuOvTransMo->AddNode(voRB242CuOvTransV[i], 1, new TGeoTranslation(0., 0., dovZ));
+    dovZ += 2.;
+  }
+  //
   TGeoVolume* voRB242CuTubeM =
-    new TGeoVolume("voRB242CuTubeM", new TGeoTube(0., kRB24CuTubeRo, kRB242CuTubeL / 2.), kMedVacHC);
-  voRB24CuTubeM->SetVisibility(0);
+    new TGeoVolume("voRB242CuTubeM", new TGeoTube(0., kRB24CuTubeRo, 10.), kMedVacHC);
   TGeoVolume* voRB242CuTube =
-    new TGeoVolume("voRB242CuTube", new TGeoTube(kRB24CuTubeRi, kRB24CuTubeRo, kRB242CuTubeL / 2.), kMedCuHC);
+    new TGeoVolume("voRB242CuTube", new TGeoTube(kRB24CuTubeRi, kRB24CuTubeRo, 10.), kMedCuHC);
   voRB242CuTubeM->AddNode(voRB242CuTube, 1, gGeoIdentity);
-
+  TGeoVolume* voRB242CuOvalM =
+    new TGeoVolume("voRB242CuOvalM", new TGeoEltu(3.375, 4.75, 135.), kMedCuHC);
+  TGeoVolume* voRB242CuOval =
+    new TGeoVolume("voRB242CuOval", new TGeoEltu(3.175, 4.55, 135.), kMedVacHC);
+  voRB242CuOvalM->AddNode(voRB242CuOval, 1, gGeoIdentity);
+  //
   TGeoVolumeAssembly* voRB242 = new TGeoVolumeAssembly("RB242");
-  voRB242->AddNode(voRB242CuTube, 1, gGeoIdentity);
+  voRB242->AddNode(voRB242CuOvalM, 1, gGeoIdentity);
   z = -kRB242CuTubeL / 2 + kRB24CuTubeFL / 2.;
   voRB242->AddNode(voRB24CuTubeF, 3, new TGeoTranslation(0., 0., z));
   z = +kRB242CuTubeL / 2 - kRB24CuTubeFL / 2.;
   voRB242->AddNode(voRB24CuTubeF, 4, new TGeoTranslation(0., 0., z));
-  z = -kRB24cCuTubeL / 2 - kRB24VMABCL - kRB242CuTubeL / 2.;
+  z = 135. + 10.;
+  voRB242->AddNode(voRB242CuOvTransMo, 1, new TGeoCombiTrans(0., 0., z, rot180));
+  z = -135. - 10.;
+  voRB242->AddNode(voRB242CuOvTransMo, 2, new TGeoTranslation(0., 0., z));
+  z = -135. - 30.;
+  voRB242->AddNode(voRB242CuTubeM, 1, new TGeoTranslation(0., 0., z));
+  z = 135. + 30.;
+  voRB242->AddNode(voRB242CuTubeM, 2, new TGeoTranslation(0., 0., z));
+  z = -kRB24cCuTubeL / 2 - kRB24VMABCL - kRB242CuTubeL / 2. - 1.2;
   voRB24C->AddNode(voRB242, 1, new TGeoTranslation(0., 0., z));
   //
   //   RB24/3
   //
   // Copper Tube RB24/3
-  const Float_t kRB243CuTubeL = 303.35;
+  // the lenth of the tube is 296.85 on the drawing but this is inconsistent with the total length tube + bellow
+  const Float_t kRB243CuTubeL = 297.85;
 
   TGeoVolume* voRB243CuTubeM =
     new TGeoVolume("voRB243CuTubeM", new TGeoTube(0., kRB24CuTubeRo, kRB243CuTubeL / 2.), kMedVacNF);
@@ -1515,7 +1551,7 @@ void Pipe::ConstructGeometry()
   z = -2. * (kRB243CuTubeL + kRB24B1L) - (kRB24VMABCL - kRB24VMABCRBT1L / 2) + 1.;
   voRB243->AddNode(voRB24VMABCRB, 3, new TGeoTranslation(0., 0., z));
 
-  z = -kRB24cCuTubeL / 2 - kRB24VMABCL - kRB242CuTubeL;
+  z = -kRB24cCuTubeL / 2 - kRB24VMABCL - kRB242CuTubeL - 1.2;
   voRB24C->AddNode(voRB243, 1, new TGeoTranslation(0., 0., z));
 
   //

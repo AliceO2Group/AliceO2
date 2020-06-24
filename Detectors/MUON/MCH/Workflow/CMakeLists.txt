@@ -9,11 +9,11 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MCHWorkflow
-               SOURCES src/DataDecoderSpec.cxx src/PreClusterFinderSpec.cxx
+               SOURCES src/DataDecoderSpec.cxx src/PreClusterFinderSpec.cxx src/ClusterFinderOriginalSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::MCHRawDecoder Boost::program_options
                                      O2::MCHRawImplHelpers RapidJSON::RapidJSON O2::MCHMappingInterface O2::MCHPreClustering
-                                     O2::MCHMappingImpl3 O2::MCHRawElecMap O2::MCHBase O2::MCHPreClustering)
+                                     O2::MCHMappingImpl3 O2::MCHRawElecMap O2::MCHBase O2::MCHClustering)
 
 o2_add_executable(
         file-to-digits-workflow
@@ -56,5 +56,17 @@ o2_add_executable(
 o2_add_executable(
         preclusters-sink-workflow
         SOURCES src/PreClusterSinkSpec.cxx src/preclusters-sink-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
+        preclusters-to-clusters-original-workflow
+        SOURCES src/preclusters-to-clusters-original-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
+        clusters-sink-workflow
+        SOURCES src/ClusterSinkSpec.cxx src/clusters-sink-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
