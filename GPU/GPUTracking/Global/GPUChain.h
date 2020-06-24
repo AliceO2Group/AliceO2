@@ -132,9 +132,9 @@ class GPUChain
     mRec->DumpData<T>(fp, entries, num, type);
   }
   template <class T, class S>
-  inline size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
+  inline size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type, T** nonConstPtrs = nullptr)
   {
-    return mRec->ReadData<T>(fp, entries, num, mem, type);
+    return mRec->ReadData<T>(fp, entries, num, mem, type, nonConstPtrs);
   }
   template <class T>
   inline void DumpFlatObjectToFile(const T* obj, const char* file)

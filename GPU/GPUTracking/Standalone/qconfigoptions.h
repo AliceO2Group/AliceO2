@@ -154,6 +154,7 @@ AddOption(forceMemorySize, unsigned long long int, 1, "memSize", 0, "Force size 
 AddOption(forceHostMemorySize, unsigned long long int, 0, "hostMemSize", 0, "Force size of allocated host page locked host memory (overriding memSize)", min(0ull))
 AddOption(memoryScalingFactor, float, 1.f, "memoryScalingFactor", 0, "Factor to apply to all memory scalers")
 AddOption(outputcontrolmem, unsigned long long int, 0, "outputMemory", 0, "Use predefined output buffer of this size", min(0ull), message("Using %lld bytes as output memory"))
+AddOption(inputcontrolmem, unsigned long long int, 0, "inputMemory", 0, "Use predefined input buffer of this size", min(0ull), message("Using %lld bytes as input memory"))
 AddOption(registerInputMemory, bool, false, "registerInputMemory", 0, "Automatically register input memory buffers for the GPU")
 AddOption(affinity, int, -1, "cpuAffinity", 0, "Pin CPU affinity to this CPU core", min(-1))
 AddOption(fifo, bool, false, "fifoScheduler", 0, "Use FIFO realtime scheduler", message("Setting FIFO scheduler: %s"))

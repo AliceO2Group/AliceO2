@@ -920,6 +920,11 @@ void GPUReconstruction::SetOutputControl(void* ptr, size_t size)
   SetOutputControl(outputControl);
 }
 
+void GPUReconstruction::SetInputControl(void* ptr, size_t size)
+{
+  mInputControl.set(ptr, size);
+}
+
 std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstruction::GetThreadContext() { return std::unique_ptr<GPUReconstruction::GPUThreadContext>(new GPUThreadContext); }
 
 GPUReconstruction* GPUReconstruction::CreateInstance(DeviceType type, bool forceType, GPUReconstruction* master)
