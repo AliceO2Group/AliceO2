@@ -29,6 +29,11 @@ o2_add_executable(stf-decoder-workflow
                   COMPONENT_NAME itsmft
                   PUBLIC_LINK_LIBRARIES O2::ITSMFTWorkflow)
 
+o2_add_executable(entropy-encoder-workflow
+                  SOURCES src/entropy-encoder-workflow.cxx
+                  COMPONENT_NAME itsmft
+                  PUBLIC_LINK_LIBRARIES O2::ITSMFTWorkflow)
+
 o2_add_executable(digit-writer-workflow
                   SOURCES src/digit-writer-workflow.cxx
                   COMPONENT_NAME itsmft
