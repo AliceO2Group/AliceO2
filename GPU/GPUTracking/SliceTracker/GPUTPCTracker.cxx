@@ -119,9 +119,9 @@ void GPUTPCTracker::RegisterMemoryAllocation()
   mMemoryResCommon = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersCommon, GPUMemoryResource::MEMORY_PERMANENT, "TPCTrackerCommon");
   mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataRows, GPUMemoryResource::MEMORY_PERMANENT, "TPCSliceRows");
 
-  auto type = GPUMemoryResource::MEMORY_OUTPUT;
+  unsigned int type = mRec->GetDeviceProcessingSettings().fullMergerOnGPU ? GPUMemoryResource::MEMORY_SCRATCH : GPUMemoryResource::MEMORY_OUTPUT;
   if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) { // For individual scheme, we allocate tracklets separately, and change the type for the following allocations to custom
-    type = GPUMemoryResource::MEMORY_CUSTOM;
+    type |= GPUMemoryResource::MEMORY_CUSTOM;
     mMemoryResTracklets = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersTracklets, type, "TPCTrackerTracklets");
   }
   mMemoryResOutput = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersOutput, type, "TPCTrackerTracks");
