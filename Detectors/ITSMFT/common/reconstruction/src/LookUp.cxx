@@ -54,7 +54,7 @@ int LookUp::groupFinder(int nRow, int nCol)
   }
 }
 
-int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes])
+int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes])
 {
   int nBits = nRow * nCol;
   // Small topology
