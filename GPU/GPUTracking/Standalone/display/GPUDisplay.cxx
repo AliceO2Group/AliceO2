@@ -951,11 +951,12 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         float alpha = param().Alpha(slice);
         if (iMC == 0) {
           trkParam.Set(track->GetParam());
-          auto cl = mMerger.Clusters()[track->FirstClusterRef() + lastCluster];
           if (mMerger.Param().earlyTpcTransform) {
+            auto cl = mMerger.ClustersXYZ()[track->FirstClusterRef() + lastCluster];
             x = cl.x;
             ZOffset = track->GetParam().GetTZOffset();
           } else {
+            auto cl = mMerger.Clusters()[track->FirstClusterRef() + lastCluster];
             const auto& cln = mMerger.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cl.num];
             float y, z;
             GPUTPCConvertImpl::convert(*mMerger.GetConstantMem(), cl.slice, cl.row, cln.getPad(), cln.getTime(), x, y, z);

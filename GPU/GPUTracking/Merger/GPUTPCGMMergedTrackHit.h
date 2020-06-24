@@ -24,9 +24,6 @@ struct GPUTPCGMMergedTrackHit {
   unsigned int num;
   unsigned char slice, row, leg, state;
 
-  float x, y, z;      // TODO: Move to separate struct
-  unsigned short amp; // also
-
   // NOTE: the lower states must match those from ClusterNative!
   enum hitState { flagSplitPad = 0x1,
                   flagSplitTime = 0x2,
@@ -39,13 +36,17 @@ struct GPUTPCGMMergedTrackHit {
                   flagRejectErr = 0x40,
                   flagReject = 0x60,
                   flagNotFit = 0x80 };
+};
 
+struct GPUTPCGMMergedTrackHitXYZ {
+  float x, y, z;
+  unsigned short amp;
 #ifdef GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME
- public:
   float pad;
   float time;
 #endif
 };
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

@@ -630,7 +630,7 @@ inline int GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
   r = fread(obj, 1, size, fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %lldd bytes from %s", (long long int)r, file);
+    GPUInfo("Read %lld bytes from %s", (long long int)r, file);
   }
   return 0;
 }
