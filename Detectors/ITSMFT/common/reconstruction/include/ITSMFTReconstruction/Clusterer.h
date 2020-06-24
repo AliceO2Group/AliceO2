@@ -21,7 +21,6 @@
 #include <memory>
 #include <gsl/span>
 #include "ITSMFTBase/SegmentationAlpide.h"
-#include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/PixelReader.h"
@@ -49,32 +48,27 @@ class MCTruthContainer;
 namespace itsmft
 {
 
-class GeometryTGeo;
-
-using FullClusCont = std::vector<Cluster>;
 using CompClusCont = std::vector<CompClusterExt>;
 using PatternCont = std::vector<unsigned char>;
 using ROFRecCont = std::vector<ROFRecord>;
 
-//template <class FullClusCont, class CompClusCont, class PatternCont, class ROFRecCont> // container types (PMR or std::vectors)
+//template <class CompClusCont, class PatternCont, class ROFRecCont> // container types (PMR or std::vectors)
 
 class Clusterer
 {
   using PixelReader = o2::itsmft::PixelReader;
   using PixelData = o2::itsmft::PixelData;
   using ChipPixelData = o2::itsmft::ChipPixelData;
-  using Cluster = o2::itsmft::Cluster;
   using CompCluster = o2::itsmft::CompCluster;
   using CompClusterExt = o2::itsmft::CompClusterExt;
   using Label = o2::MCCompLabel;
   using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
  public:
+  static constexpr int MaxLabels = 10;
   //=========================================================
   /// methods and transient data used within a thread
   struct ClustererThread {
-    static constexpr float SigmaX2 = SegmentationAlpide::PitchRow * SegmentationAlpide::PitchRow / 12.;
-    static constexpr float SigmaY2 = SegmentationAlpide::PitchCol * SegmentationAlpide::PitchCol / 12.;
 
     Clusterer* parent = nullptr; // parent clusterer
     // buffers for entries in preClusterIndices in 2 columns, to avoid boundary checks, we reserve
@@ -90,11 +84,10 @@ class Clusterer
     std::vector<int> preClusterIndices;
     uint16_t currCol = 0xffff;                                      ///< Column being processed
     bool noLeftCol = true;                                          ///< flag that there is no column on the left to check
-    std::array<Label, Cluster::maxLabels> labelsBuff;               //! temporary buffer for building cluster labels
-    std::array<PixelData, Cluster::kMaxPatternBits * 2> pixArrBuff; //! temporary buffer for pattern calc.
+    std::array<Label, MaxLabels> labelsBuff;                        //! temporary buffer for building cluster labels
+    std::array<PixelData, ClusterPattern::MaxPatternBits * 2> pixArrBuff; //! temporary buffer for pattern calc.
     //
     /// temporary storage for the thread output
-    FullClusCont fullClusters;
     CompClusCont compClusters;
     PatternCont patterns;
     MCTruth labels;
@@ -128,11 +121,11 @@ class Clusterer
     void fetchMCLabels(int digID, const MCTruth* labelsDig, int& nfilled);
     void initChip(const ChipPixelData* curChipData, uint32_t first);
     void updateChip(const ChipPixelData* curChipData, uint32_t ip);
-    void finishChip(ChipPixelData* curChipData, FullClusCont* fullClus, CompClusCont* compClus, PatternCont* patterns,
+    void finishChip(ChipPixelData* curChipData, CompClusCont* compClus, PatternCont* patterns,
                     const MCTruth* labelsDig, MCTruth* labelsClus);
-    void finishChipSingleHitFast(uint32_t hit, ChipPixelData* curChipData, FullClusCont* fullClusPtr, CompClusCont* compClusPtr,
+    void finishChipSingleHitFast(uint32_t hit, ChipPixelData* curChipData, CompClusCont* compClusPtr,
                                  PatternCont* patternsPtr, const MCTruth* labelsDigPtr, MCTruth* labelsClusPTr);
-    void process(gsl::span<ChipPixelData*> chipPtrs, FullClusCont* fullClusPtr, CompClusCont* compClusPtr, PatternCont* patternsPtr,
+    void process(gsl::span<ChipPixelData*> chipPtrs, CompClusCont* compClusPtr, PatternCont* patternsPtr,
                  const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr);
 
     ClustererThread(Clusterer* par = nullptr) : parent(par), curr(column2 + 1), prev(column1 + 1)
@@ -149,9 +142,7 @@ class Clusterer
   Clusterer(const Clusterer&) = delete;
   Clusterer& operator=(const Clusterer&) = delete;
 
-  void process(int nThreads, PixelReader& r, FullClusCont* fullClus, CompClusCont* compClus, PatternCont* patterns, ROFRecCont* vecROFRec, MCTruth* labelsCl = nullptr);
-
-  void setGeometry(const o2::itsmft::GeometryTGeo* gm) { mGeometry = gm; }
+  void process(int nThreads, PixelReader& r, CompClusCont* compClus, PatternCont* patterns, ROFRecCont* vecROFRec, MCTruth* labelsCl = nullptr);
 
   bool isContinuousReadOut() const { return mContinuousReadout; }
   void setContinuousReadOut(bool v) { mContinuousReadout = v; }
@@ -161,12 +152,6 @@ class Clusterer
 
   int getMaxRowColDiffToMask() const { return mMaxRowColDiffToMask; }
   void setMaxRowColDiffToMask(int v) { mMaxRowColDiffToMask = v; }
-
-  void setWantFullClusters(bool v) { mWantFullClusters = v; }
-  void setWantCompactClusters(bool v) { mWantCompactClusters = v; }
-
-  bool getWantFullClusters() const { return mWantFullClusters; }
-  bool getWantCompactClusters() const { return mWantCompactClusters; }
 
   void print() const;
   void clear();
@@ -202,12 +187,10 @@ class Clusterer
     }
   }
 
-  void flushClusters(FullClusCont* fullClus, CompClusCont* compClus, MCTruth* labels);
+  void flushClusters(CompClusCont* compClus, MCTruth* labels);
 
   // clusterization options
   bool mContinuousReadout = true;    ///< flag continuous readout
-  bool mWantFullClusters = true;     ///< request production of full clusters with pattern and coordinates
-  bool mWantCompactClusters = false; ///< request production of compact clusters with patternID and corner address
 
   ///< mask continuosly fired pixels in frames separated by less than this amount of BCs (fired from hit in prev. ROF)
   int mMaxBCSeparationToMask = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;
@@ -217,8 +200,6 @@ class Clusterer
   std::vector<ChipPixelData> mChips;                      // currently processed ROF's chips data
   std::vector<ChipPixelData> mChipsOld;                   // previously processed ROF's chips data (for masking)
   std::vector<ChipPixelData*> mFiredChipsPtr;             // pointers on the fired chips data in the decoder cache
-
-  const o2::itsmft::GeometryTGeo* mGeometry = nullptr; //! ITS OR MFT upgrade geometry
 
   LookUp mPattIdConverter; //! Convert the cluster topology to the corresponding entry in the dictionary.
 
