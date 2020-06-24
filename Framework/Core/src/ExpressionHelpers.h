@@ -93,15 +93,6 @@ struct ColumnOperationSpec {
 template <typename... C>
 std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...>, gandiva::SchemaPtr schema)
 {
-  auto findField = [&schema](const char* label) -> gandiva::FieldPtr const {
-    for (auto i = 0; i < schema->num_fields(); ++i) {
-      if (schema->field(i)->name() == label) {
-        return gandiva::FieldPtr{schema->field(i)};
-      }
-    }
-    throw std::runtime_error(fmt::format("Cannot find field \"{}\"", label));
-  };
-
   std::shared_ptr<gandiva::Projector> projector;
   auto s = gandiva::Projector::Make(
     schema,

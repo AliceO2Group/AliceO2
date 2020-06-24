@@ -70,9 +70,9 @@ struct CTask {
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      if (track.pt() < pTCut)
+      if (track.pt2() < pTCut * pTCut)
         continue;
-      ptH->Fill(track.pt());
+      ptH->Fill(std::sqrt(track.pt2()));
       trZ->Fill(track.z());
     }
   }
@@ -84,16 +84,16 @@ struct DTask {
   void init(InitContext const&)
   {
     list.setObject(new TList);
-    list->Add(new TH1F("ptHist", "", 100, 0, 10));
+    list->Add(new TH1F("pHist", "", 100, 0, 10));
     list->Add(new TH1F("etaHist", "", 102, -2.01, 2.01));
   }
 
   void process(aod::Track const& track)
   {
-    auto ptHist = dynamic_cast<TH1F*>(list->At(0));
+    auto pHist = dynamic_cast<TH1F*>(list->At(0));
     auto etaHist = dynamic_cast<TH1F*>(list->At(1));
 
-    ptHist->Fill(track.pt());
+    pHist->Fill(std::sqrt(track.p2()));
     etaHist->Fill(track.eta());
   }
 };
