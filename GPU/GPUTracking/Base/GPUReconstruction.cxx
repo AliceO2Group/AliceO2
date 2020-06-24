@@ -287,6 +287,9 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   } else if (mDeviceProcessingSettings.forceMemoryPoolSize > 2) {
     mDeviceMemorySize = mHostMemorySize = mDeviceProcessingSettings.forceMemoryPoolSize;
   }
+  if (mDeviceProcessingSettings.forceHostMemoryPoolSize) {
+    mHostMemorySize = mDeviceProcessingSettings.forceHostMemoryPoolSize;
+  }
 
   for (unsigned int i = 0; i < mProcessors.size(); i++) {
     (mProcessors[i].proc->*(mProcessors[i].RegisterMemoryAllocation))();
