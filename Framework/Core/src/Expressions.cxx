@@ -81,8 +81,9 @@ std::string upcastTo(atype::type f)
       return "castFLOAT4";
     case atype::DOUBLE:
       return "castFLOAT8";
+    default:
+      throw std::runtime_error(fmt::format("Do not know how to cast to {}", f));
   }
-  throw std::runtime_error(fmt::format("Do not know how to cast to {}", f));
 }
 
 bool operator==(DatumSpec const& lhs, DatumSpec const& rhs)
