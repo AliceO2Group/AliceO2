@@ -61,6 +61,7 @@ static constexpr int kMaxClusters = GPUCA_MERGER_MAX_TRACK_CLUSTERS;
 #ifndef GPUCA_GPUCODE
 
 #include "GPUQA.h"
+#include "GPUMemorySizeScalers.h"
 
 GPUTPCGMMerger::GPUTPCGMMerger()
   : mTrackLinks(nullptr), mNMaxSliceTracks(0), mNMaxTracks(0), mNMaxSingleSliceTracks(0), mNMaxOutputTrackClusters(0), mNMaxClusters(0), mMemoryResMemory(-1), mNClusters(0), mOutputTracks(nullptr), mSliceTrackInfos(nullptr), mSliceTrackInfoIndex(nullptr), mClusters(nullptr), mGlobalClusterIDs(nullptr), mClusterAttachment(nullptr), mTrackOrderAttach(nullptr), mTrackOrderProcess(nullptr), mTmpMem(nullptr), mBorderMemory(nullptr), mBorderRangeMemory(nullptr), mMemory(nullptr), mRetryRefitIds(nullptr), mLoopData(nullptr)
@@ -300,8 +301,8 @@ void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
       mNMaxSingleSliceTracks = ntrk;
     }
   }
-  mNMaxOutputTrackClusters = mNClusters * 1.1f + 1000;
-  mNMaxTracks = mNMaxSliceTracks;
+  mNMaxOutputTrackClusters = mRec->MemoryScalers()->NTPCMergedTrackHits(mNClusters);
+  mNMaxTracks = mRec->MemoryScalers()->NTPCMergedTracks(mNMaxSliceTracks);
   if (io.clustersNative) {
     mNMaxClusters = io.clustersNative->nClustersTotal;
   } else if (mRec->GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking) {
