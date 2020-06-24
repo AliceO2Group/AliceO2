@@ -12,9 +12,12 @@
 /// \author David Rohr
 
 #include "GPUChainTracking.h"
+#include "GPUTrackingInputProvider.h"
+#include <map>
+#include <memory>
+#include <string>
 #ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
 #include "bitmapfile.h"
-#include <memory>
 #endif
 #define PROFILE_MAX_SIZE (100 * 1024 * 1024)
 
@@ -103,43 +106,50 @@ int GPUChainTracking::DoProfile()
   return 0;
 }
 
+namespace
+{
+struct GPUChainTrackingMemUsage {
+  void add(unsigned long n, unsigned long bound)
+  {
+    nMax = std::max(nMax, n);
+    maxUse = std::max(n / std::max<double>(bound, 1.), maxUse);
+    nSum += n;
+    nBoundSum += bound;
+    count++;
+  }
+  unsigned long nMax;
+  unsigned long nSum = 0;
+  unsigned long nBoundSum = 0;
+  double maxUse = 0.;
+  unsigned int count = 0;
+};
+
+void addToMap(std::string name, std::map<std::string, GPUChainTrackingMemUsage>& map, unsigned long n, unsigned long bound)
+{
+  GPUChainTrackingMemUsage& obj = map.insert({name, {}}).first->second;
+  obj.add(n, bound);
+}
+} // namespace
+
 void GPUChainTracking::PrintMemoryStatistics()
 {
-  unsigned int nStartHits = 0, nMaxStartHits = 0;
-  unsigned int nTracklets = 0, nMaxTracklets = 0;
-  unsigned int nTrackletHits = 0, nMaxTrackletHits = 0;
-  unsigned int nSectorTracks = 0, nMaxSectorTracks = 0;
-  unsigned int nSectorTrackHits = 0, nMaxSectorTrackHits = 0;
-  float maxUsageHits = 0.f, maxUsageTracklets = 0.f, maxUsageTrackletHits = 0.f, maxUsageTracks = 0.f, maxUsageTrackHits = 0.f;
+  std::map<std::string, GPUChainTrackingMemUsage> usageMap;
   for (int i = 0; i < NSLICES; i++) {
-    nMaxStartHits += processors()->tpcTrackers[i].NMaxStartHits();
-    nStartHits += *processors()->tpcTrackers[i].NStartHits();
-    maxUsageHits = CAMath::Max(maxUsageHits, 100.f * *processors()->tpcTrackers[i].NStartHits() / std::max(1u, processors()->tpcTrackers[i].NMaxStartHits()));
-    nMaxTracklets += processors()->tpcTrackers[i].NMaxTracklets();
-    nTracklets += *processors()->tpcTrackers[i].NTracklets();
-    maxUsageTracklets = CAMath::Max(maxUsageTracklets, 100.f * *processors()->tpcTrackers[i].NTracklets() / std::max(1u, processors()->tpcTrackers[i].NMaxTracklets()));
-    nMaxTrackletHits += processors()->tpcTrackers[i].NMaxRowHits();
-    nTrackletHits += *processors()->tpcTrackers[i].NRowHits();
-    maxUsageTrackletHits = CAMath::Max(maxUsageTrackletHits, 100.f * *processors()->tpcTrackers[i].NRowHits() / std::max(1u, processors()->tpcTrackers[i].NMaxRowHits()));
-    nMaxSectorTracks += processors()->tpcTrackers[i].NMaxTracks();
-    nSectorTracks += *processors()->tpcTrackers[i].NTracks();
-    maxUsageTracks = CAMath::Max(maxUsageTracks, 100.f * *processors()->tpcTrackers[i].NTracks() / std::max(1u, processors()->tpcTrackers[i].NMaxTracks()));
-    nMaxSectorTrackHits += processors()->tpcTrackers[i].NMaxTrackHits();
-    nSectorTrackHits += *processors()->tpcTrackers[i].NTrackHits();
-    maxUsageTrackHits = CAMath::Max(maxUsageTrackHits, 100.f * *processors()->tpcTrackers[i].NTrackHits() / std::max(1u, processors()->tpcTrackers[i].NMaxTrackHits()));
+    addToMap("TPC Clusterer Sector Peaks", usageMap, processors()->tpcClusterer[i].mPmemory->counters.nPeaks, processors()->tpcClusterer[i].mNMaxPeaks);
+    addToMap("TPC Clusterer Sector Clusters", usageMap, processors()->tpcClusterer[i].mPmemory->counters.nClusters, processors()->tpcClusterer[i].mNMaxClusters);
+    addToMap("TPC Start Hits", usageMap, *processors()->tpcTrackers[i].NStartHits(), processors()->tpcTrackers[i].NMaxStartHits());
+    addToMap("TPC Tracklets", usageMap, *processors()->tpcTrackers[i].NTracklets(), processors()->tpcTrackers[i].NMaxTracklets());
+    addToMap("TPC TrackletHits", usageMap, *processors()->tpcTrackers[i].NRowHits(), processors()->tpcTrackers[i].NMaxRowHits());
+    addToMap("TPC Sector Tracks", usageMap, *processors()->tpcTrackers[i].NTracks(), processors()->tpcTrackers[i].NMaxTracks());
+    addToMap("TPC Sector TrackHits", usageMap, *processors()->tpcTrackers[i].NTrackHits(), processors()->tpcTrackers[i].NMaxTrackHits());
   }
-  unsigned int nTracks = processors()->tpcMerger.NOutputTracks();
-  unsigned int nMaxTracks = processors()->tpcMerger.NMaxTracks();
-  unsigned int nTrackHits = processors()->tpcMerger.NOutputTrackClusters();
-  unsigned int nMaxTrackHits = processors()->tpcMerger.NMaxOutputTrackClusters();
+  addToMap("TPC Clusters", usageMap, mIOPtrs.clustersNative->nClustersTotal, mInputsHost->mNClusterNative);
+  addToMap("TPC Tracks", usageMap, processors()->tpcMerger.NOutputTracks(), processors()->tpcMerger.NMaxTracks());
+  addToMap("TPC TrackHits", usageMap, processors()->tpcMerger.NOutputTrackClusters(), processors()->tpcMerger.NMaxOutputTrackClusters());
 
-  GPUInfo("Mem Usage Start Hits     : %8u / %8u (%3.0f%% / %3.0f%%)", nStartHits, nMaxStartHits, 100.f * nStartHits / std::max(1u, nMaxStartHits), maxUsageHits);
-  GPUInfo("Mem Usage Tracklets      : %8u / %8u (%3.0f%% / %3.0f%%)", nTracklets, nMaxTracklets, 100.f * nTracklets / std::max(1u, nMaxTracklets), maxUsageTracklets);
-  GPUInfo("Mem Usage TrackletHits   : %8u / %8u (%3.0f%% / %3.0f%%)", nTrackletHits, nMaxTrackletHits, 100.f * nTrackletHits / std::max(1u, nMaxTrackletHits), maxUsageTrackletHits);
-  GPUInfo("Mem Usage SectorTracks   : %8u / %8u (%3.0f%% / %3.0f%%)", nSectorTracks, nMaxSectorTracks, 100.f * nSectorTracks / std::max(1u, nMaxSectorTracks), maxUsageTracks);
-  GPUInfo("Mem Usage SectorTrackHits: %8u / %8u (%3.0f%% / %3.0f%%)", nSectorTrackHits, nMaxSectorTrackHits, 100.f * nSectorTrackHits / std::max(1u, nMaxSectorTrackHits), maxUsageTrackHits);
-  GPUInfo("Mem Usage Tracks         : %8u / %8u (%3.0f%%)", nTracks, nMaxTracks, 100.f * nTracks / nMaxTracks);
-  GPUInfo("Mem Usage TrackHits      : %8u / %8u (%3.0f%%)", nTrackHits, nMaxTrackHits, 100.f * nTrackHits / nMaxTrackHits);
+  for (auto& elem : usageMap) {
+    GPUInfo("Mem Usage %-30s : %9lu / %9lu (%3.0f%% / %3.0f%% / count %3u / max %9lu)", elem.first.c_str(), elem.second.nSum, elem.second.nBoundSum, 100. * elem.second.nSum / std::max(1lu, elem.second.nBoundSum), 100. * elem.second.maxUse, elem.second.count, elem.second.nMax);
+  }
 }
 
 void GPUChainTracking::PrintMemoryRelations()
