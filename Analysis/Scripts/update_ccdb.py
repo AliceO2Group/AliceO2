@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 
 
 def convert_timestamp(ts):
-        return datetime.utcfromtimestamp(ts/1000).strftime('%Y-%m-%d %H:%M:%S'))
+        return datetime.utcfromtimestamp(ts/1000).strftime('%Y-%m-%d %H:%M:%S')
 
 
 def get_ccdb_obj(path, timestamp, dest = "/tmp/"):
