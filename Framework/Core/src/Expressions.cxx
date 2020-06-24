@@ -401,7 +401,11 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
       if (lookup != fieldNodes.end()) {
         return lookup->second;
       }
-      auto node = gandiva::TreeExprBuilder::MakeField(Schema->GetFieldByName(name));
+      auto field = Schema->GetFieldByName(name);
+      if (field == nullptr) {
+        throw std::runtime_error(fmt::format("Cannot find field \"{}\"", name));
+      }
+      auto node = gandiva::TreeExprBuilder::MakeField(field);
       fieldNodes.insert({name, node});
       return node;
     }
