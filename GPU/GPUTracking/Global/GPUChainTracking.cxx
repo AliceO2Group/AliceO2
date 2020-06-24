@@ -1262,11 +1262,6 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
 int GPUChainTracking::RunTPCTrackingSlices()
 {
-  if (!(GetRecoStepsGPU() & RecoStep::TPCSliceTracking) && mRec->OutputControl().OutputType != GPUOutputControl::AllocateInternal && GetDeviceProcessingSettings().nThreads > 1) {
-    GPUError("mOutputPtr must not be used with multiple threads\n"); // Todo: fixme
-    return (1);
-  }
-
   if (mRec->GPUStuck()) {
     GPUWarning("This GPU is stuck, processing of tracking for this event is skipped!");
     return (1);
