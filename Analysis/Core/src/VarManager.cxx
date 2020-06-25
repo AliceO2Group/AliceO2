@@ -4,7 +4,7 @@ ClassImp(VarManager)
 
 TString VarManager::fgVariableNames[VarManager::kNVars] = {""};
 TString VarManager::fgVariableUnits[VarManager::kNVars] = {""};
-bool  VarManager::fgUsedVars[VarManager::kNVars] = {kFALSE};
+bool VarManager::fgUsedVars[VarManager::kNVars] = {kFALSE};
 float VarManager::fgValues[VarManager::kNVars] = {0.0};
 std::map<int, int> VarManager::fgRunMap;
 
@@ -33,35 +33,38 @@ void VarManager::SetVariableDependencies() {
 }
 
 //__________________________________________________________________
-void VarManager::ResetValues(int startValue, int endValue) {
+void VarManager::ResetValues(int startValue, int endValue)
+{
   //
   // reset all variables to an "innocent" value
   // NOTE: here we use -9999.0 as a neutral value, but depending on situation, this may not be the case
   for (Int_t i = startValue; i < endValue; ++i)
-      fgValues[i] = -9999.;
+    fgValues[i] = -9999.;
 }
 
 //__________________________________________________________________
-void VarManager::SetRunNumbers(int n, int* runs) {
+void VarManager::SetRunNumbers(int n, int* runs)
+{
   //
   // maps the list of runs such that one can plot the list of runs nicely in a histogram axis
   //
-  for(int i=0; i<n; ++i) 
-    fgRunMap[runs[i]] = i+1;
+  for (int i = 0; i < n; ++i)
+    fgRunMap[runs[i]] = i + 1;
 }
 
 //__________________________________________________________________
-void VarManager::FillEvent(vector<float> event, float* values) {
-  
+void VarManager::FillEvent(vector<float> event, float* values)
+{
+
   //TODO: the Fill function should take as argument an aod::ReducedEvent iterator, this is just a temporary fix
-  if(!values) 
+  if (!values)
     values = fgValues;
   values[kRunNo] = event[0];
-  values[kRunId] = (fgRunMap.size()>0 ? fgRunMap[int(values[kRunNo])] : 0);
+  values[kRunId] = (fgRunMap.size() > 0 ? fgRunMap[int(values[kRunNo])] : 0);
   values[kVtxX] = event[1];
   values[kVtxY] = event[2];
   values[kVtxZ] = event[3];
-  values[kVtxNcontrib] = event[4];  
+  values[kVtxNcontrib] = event[4];
   /*values[kRunNo] = event.runNumber();
   values[kVtxX] = event.posX();
   values[kVtxY] = event.posY();
@@ -79,11 +82,12 @@ void VarManager::FillEvent(vector<float> event, float* values) {
 }
 
 //__________________________________________________________________
-void VarManager::FillTrack(vector<float> track, float* values) {
-  
-  if(!values) 
+void VarManager::FillTrack(vector<float> track, float* values)
+{
+
+  if (!values)
     values = fgValues;
-  
+
   values[kPt] = track[0];
   values[kEta] = track[1];
   values[kPhi] = track[2];
@@ -107,7 +111,6 @@ void VarManager::FillTrack(vector<float> track, float* values) {
   //values[kTrackLength] = track.barrelLength();
 }
 
-
 //__________________________________________________________________
 void VarManager::SetDefaultVarNames() {
   //
@@ -118,7 +121,8 @@ void VarManager::SetDefaultVarNames() {
   }
   
   fgVariableNames[kRunNo] = "Run number";  fgVariableUnits[kRunNo] = "";
-  fgVariableNames[kRunId] = "Run number";  fgVariableUnits[kRunId] = "";
+  fgVariableNames[kRunId] = "Run number";
+  fgVariableUnits[kRunId] = "";
   fgVariableNames[kRunTimeStart] = "Run start time";  fgVariableUnits[kRunTimeStart] = "";
   fgVariableNames[kRunTimeStop] = "Run stop time";  fgVariableUnits[kRunTimeStop] = "";
   fgVariableNames[kLHCFillNumber] = "LHC fill number";  fgVariableUnits[kLHCFillNumber] = "";
