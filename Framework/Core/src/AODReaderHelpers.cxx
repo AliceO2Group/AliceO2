@@ -220,6 +220,8 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
 
         if (description == header::DataDescription{"TRACKPAR"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksMetadata{}));
+        } else if (description == header::DataDescription{"TRACKPARCOV"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovMetadata{}));
         } else {
           throw std::runtime_error("Not an extended table");
         }
@@ -286,7 +288,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       };
       tableMaker(o2::aod::CollisionsMetadata{}, AODTypeMask::Collision, "O2collision");
       tableMaker(o2::aod::StoredTracksMetadata{}, AODTypeMask::Track, "O2track");
-      tableMaker(o2::aod::TracksCovMetadata{}, AODTypeMask::TrackCov, "O2track");
+      tableMaker(o2::aod::StoredTracksCovMetadata{}, AODTypeMask::TrackCov, "O2track");
       tableMaker(o2::aod::TracksExtraMetadata{}, AODTypeMask::TrackExtra, "O2track");
       tableMaker(o2::aod::CalosMetadata{}, AODTypeMask::Calo, "O2calo");
       tableMaker(o2::aod::CaloTriggersMetadata{}, AODTypeMask::Calo, "O2calotrigger");
