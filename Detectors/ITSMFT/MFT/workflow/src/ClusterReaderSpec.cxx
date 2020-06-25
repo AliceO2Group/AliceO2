@@ -17,7 +17,6 @@
 #include "TTree.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -52,11 +51,9 @@ void ClusterReader::run(ProcessingContext& pc)
 
   if (tree) {
 
-    std::vector<o2::itsmft::Cluster> clusters, *pclusters = &clusters;
     std::vector<o2::itsmft::CompClusterExt> compClusters, *pcompClusters = &compClusters;
     std::vector<ROFRecord> rofs, *profs = &rofs;
 
-    tree->SetBranchAddress("MFTCluster", &pclusters);
     tree->SetBranchAddress("MFTClusterComp", &pcompClusters);
     tree->SetBranchAddress("MFTClusterROF", &profs);
 
@@ -68,11 +65,10 @@ void ClusterReader::run(ProcessingContext& pc)
     }
     tree->GetEntry(0);
 
-    LOG(INFO) << "MFTClusterReader pulled " << clusters.size() << " clusters, in "
+    LOG(INFO) << "MFTClusterReader pulled " << compClusters.size() << " compressed clusters, in "
               << rofs.size() << " RO frames";
 
     pc.outputs().snapshot(Output{"MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe}, compClusters);
-    pc.outputs().snapshot(Output{"MFT", "CLUSTERS", 0, Lifetime::Timeframe}, clusters);
     pc.outputs().snapshot(Output{"MFT", "CLUSTERSROF", 0, Lifetime::Timeframe}, rofs);
     if (mUseMC) {
       pc.outputs().snapshot(Output{"MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe}, labels);
@@ -90,7 +86,6 @@ DataProcessorSpec getClusterReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("MFT", "CLUSTERS", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "CLUSTERSROF", 0, Lifetime::Timeframe);
   if (useMC) {
     outputs.emplace_back("MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
