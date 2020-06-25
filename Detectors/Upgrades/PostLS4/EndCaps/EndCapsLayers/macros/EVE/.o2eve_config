@@ -1,0 +1,96 @@
+#===============================================================#
+#           This is Event Display config file.                  #
+#                                                               #
+# You can copy it to your home directory and set custom values. #
+#                                                               #
+#===============================================================#
+
+trigger.class.filter:                   none
+
+axes.show:                              0
+fullscreen.mode:                        0
+background.color:                       1
+
+camera.3D.rotation.horizontal:          -0.4
+camera.3D.rotation.vertical:            1.0
+camera.3D.zoom:                         1.0
+camera.R-Phi.zoom:                      4.0
+camera.Rho-Z.zoom:                      4.0
+
+simple.geom.default:                      R3 
+simple.geom.R3.path:                       ./
+simple.geom.R2.path:                       ./
+
+tracks.width:                           2
+
+tracks.byType.electron:                 600
+tracks.byType.muon:                     416
+tracks.byType.pion:                     632
+tracks.byType.kaon:                     400
+tracks.byType.proton:                   797
+tracks.byType.unknown:                  920
+
+PHS.draw:                               0
+TPC.draw:                               0
+HMP.draw:                               0
+TRD.draw:                               0
+MCH.draw:                               0
+EMC.draw:                               0
+ACO.draw:                               0
+ITS.draw:                               1
+TOF.draw:                               0
+MFT.draw:                               0
+T00.draw:                               0
+FIT.draw:                               0
+AD0.draw:                               0
+FMD.draw:                               0
+
+PHS.color:                              53
+TPC.color:                              3
+HMP.color:                              5
+TRD.color:                              921
+MCH.color:                              920
+EMC.color:                              53
+ACO.color:                              920
+ITS.color:                              634
+TOF.color:                              634
+MFT.color:                              920
+T00.color:                              2
+FIT.color:                              2
+AD0.color:                              5
+FMD.color:                              906
+
+PHS.trans:                              70
+TPC.trans:                              60
+HMP.trans:                              70
+TRD.trans:                              80
+MCH.trans:                              80
+EMC.trans:                              80
+ACO.trans:                              50
+ITS.trans:                              50
+TOF.trans:                              60
+MFT.trans:                              80
+T00.trans:                              70
+FIT.trans:                              40
+AD0.trans:                              40
+FMD.trans:                              50
+
+MCH.line.color:                         920
+TPC.line.color:                         1
+HMP.line.color:                         1
+PHS.line.color:                         1
+TRD.line.color:                         1
+TOF.line.color:                         1
+EMC.line.color:                         1
+ITS.line.color:                         1
+MFT.line.color:                         0
+T00.line.color:                         1
+FIT.line.color:                         1
+AD0.line.color:                         1
+FMD.line.color:                         907
+
+OCDB.default.path:                      local:///local/cdb/
+
+#
+# EOF
+#
