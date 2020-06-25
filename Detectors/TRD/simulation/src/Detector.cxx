@@ -126,12 +126,12 @@ bool Detector::ProcessHits(FairVolume* v)
   cIdSector[1] = cIdPath[5];
   cIdSector[2] = 0;
   sector = atoi(cIdSector);
-  if (sector < 0 || sector > 17) {
+  if (sector < 0 || sector >= kNsector) {
     LOG(FATAL) << "Sector out of bounds";
   }
   // The detector number (0 - 539)
   det = mGeom->getDetector(mGeom->getLayer(idChamber), mGeom->getStack(idChamber), sector);
-  if (det < 0 || det > 539) {
+  if (det < 0 || det >= kNdet) {
     LOG(FATAL) << "Detector number out of bounds";
   }
 
