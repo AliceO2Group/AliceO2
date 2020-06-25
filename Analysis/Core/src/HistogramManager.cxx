@@ -281,21 +281,19 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
       
     case 3:               // TH3F, TProfile2D or TProfile3D
       if(isProfile) {
-        if(varT>kNothing) {       // TProfile3D
-          h=new TProfile3D(hname,(arr->At(0) ? arr->At(0)->GetName() : ""),nXbins,xmin,xmax,nYbins,ymin,ymax,nZbins,zmin,zmax);
+        if (varT > kNothing) { // TProfile3D
+          h = new TProfile3D(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xmin, xmax, nYbins, ymin, ymax, nZbins, zmin, zmax);
           fBinsAllocated+=(nXbins+2)*(nYbins+2)*(nZbins+2);
           h->Sumw2();
           if(titleStr.Contains("--s--")) ((TProfile3D*)h)->BuildOptions(0.,0.,"s");
-        }
-        else {             // TProfile2D
-          h=new TProfile2D(hname,(arr->At(0) ? arr->At(0)->GetName() : ""),nXbins,xmin,xmax,nYbins,ymin,ymax);
+        } else { // TProfile2D
+          h = new TProfile2D(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xmin, xmax, nYbins, ymin, ymax);
           fBinsAllocated+=(nXbins+2)*(nYbins+2);
           h->Sumw2();
           if(titleStr.Contains("--s--")) ((TProfile2D*)h)->BuildOptions(0.,0.,"s");
         }
-      }
-      else {       // TH3F
-        h=new TH3F(hname,(arr->At(0) ? arr->At(0)->GetName() : ""),nXbins,xmin,xmax,nYbins,ymin,ymax,nZbins,zmin,zmax);
+      } else { // TH3F
+        h = new TH3F(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xmin, xmax, nYbins, ymin, ymax, nZbins, zmin, zmax);
         fBinsAllocated+=(nXbins+2)*(nYbins+2)*(nZbins+2);
         h->Sumw2();
       }
@@ -320,7 +318,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
       h->SetDirectory(0);
       hList->Add(h);
       break;
-  }  // end switch
+  } // end switch
 }
 
 //_________________________________________________________________

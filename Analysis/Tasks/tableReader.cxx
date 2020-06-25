@@ -57,11 +57,11 @@ struct TableReader {
     fHistMan->AddHistClass("Track");
     fHistMan->AddHistogram("Track", "Pt", "p_{T} distribution", kFALSE, 200, 0.0, 20.0, VarManager::kPt); // TH1F histogram
     //fHistMan.AddHistogram("Track", "TPCdedx_pIN", "TPC dE/dx vs pIN", kFALSE, 100, 0.0, 20.0, VarManager::kPin,
-      //                         200, 0.0, 200., VarManager::kTPCsignal);   // TH2F histogram
+    //                         200, 0.0, 200., VarManager::kTPCsignal);   // TH2F histogram
   }
-  
+
   void init(o2::framework::InitContext&)
-  {    
+  {
     VarManager::SetDefaultVarNames();
     fHistMan.setObject(new HistogramManager("analysisHistos", "aa", VarManager::kNVars));
 
