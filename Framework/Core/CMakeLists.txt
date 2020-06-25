@@ -31,6 +31,7 @@ o2_add_library(Framework
                        src/ChannelSpecHelpers.cxx
                        src/CommonDataProcessors.cxx
                        src/CommonServices.cxx
+                       src/CommonMessageBackends.cxx
                        src/CompletionPolicy.cxx
                        src/CompletionPolicyHelpers.cxx
                        src/ComputingResourceHelpers.cxx
@@ -149,7 +150,6 @@ foreach(t
         ComputingResourceHelpers
         ConfigParamStore
         ConfigParamRegistry
-        ContextRegistry
         DataDescriptorMatcher
         DataProcessorSpec
         DataRefUtils
@@ -243,7 +243,6 @@ o2_add_test(unittest_SimpleOptionsRetriever NAME
 # benchmarks
 
 foreach(b
-        ContextRegistry
         DataDescriptorMatcher
         DataRelayer
         DeviceMetricsInfo

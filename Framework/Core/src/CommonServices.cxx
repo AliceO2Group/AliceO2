@@ -16,6 +16,9 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/LocalRootFileService.h"
 #include "Framework/DataRelayer.h"
+#include "Framework/Signpost.h"
+#include "Framework/CommonMessageBackends.h"
+#include "../src/DataProcessingStatus.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
@@ -41,6 +44,10 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
                        return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
                      },
                      noConfiguration(),
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -49,6 +56,10 @@ o2::framework::ServiceSpec CommonServices::infologgerContextSpec()
   return ServiceSpec{"infologger-contex",
                      simpleServiceInit<InfoLoggerContext, InfoLoggerContext>(),
                      noConfiguration(),
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -125,6 +136,10 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                        return ServiceHandle{TypeIdHelpers::uniqueId<InfoLogger>(), infoLoggerService};
                      },
                      noConfiguration(),
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -141,6 +156,10 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
                            ConfigurationFactory::getConfiguration(backend).release()};
     },
     noConfiguration(),
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -153,6 +172,10 @@ o2::framework::ServiceSpec CommonServices::controlSpec()
                            new TextControlService(services, state)};
     },
     noConfiguration(),
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -162,6 +185,10 @@ o2::framework::ServiceSpec CommonServices::rootFileSpec()
     "localrootfile",
     simpleServiceInit<LocalRootFileService, LocalRootFileService>(),
     noConfiguration(),
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -175,6 +202,10 @@ o2::framework::ServiceSpec CommonServices::parallelSpec()
                            new ParallelContext(spec.rank, spec.nSlots)};
     },
     noConfiguration(),
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -184,6 +215,10 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
     "timesliceindex",
     simpleServiceInit<TimesliceIndex, TimesliceIndex>(),
     noConfiguration(),
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -193,6 +228,10 @@ o2::framework::ServiceSpec CommonServices::callbacksSpec()
     "callbacks",
     simpleServiceInit<CallbackService, CallbackService>(),
     noConfiguration(),
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -209,6 +248,37 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
                                            services.get<TimesliceIndex>())};
     },
     noConfiguration(),
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    ServiceKind::Serial};
+}
+
+struct TracingInfrastructure {
+  int processingCount;
+};
+
+o2::framework::ServiceSpec CommonServices::tracingSpec()
+{
+  return ServiceSpec{
+    "tracing",
+    [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      return ServiceHandle{TypeIdHelpers::uniqueId<TracingInfrastructure>(), new TracingInfrastructure()};
+    },
+    noConfiguration(),
+    [](ProcessingContext&, void* service) {
+      TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_USER_CALLBACK);
+      t->processingCount += 1;
+    },
+    [](ProcessingContext&, void* service) {
+      TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
+      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
+      t->processingCount += 1;
+    },
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -224,7 +294,11 @@ std::vector<ServiceSpec> CommonServices::defaultServices()
     rootFileSpec(),
     parallelSpec(),
     callbacksSpec(),
-    dataRelayer()};
+    dataRelayer(),
+    CommonMessageBackends::fairMQBackendSpec(),
+    CommonMessageBackends::arrowBackendSpec(),
+    CommonMessageBackends::stringBackendSpec(),
+    CommonMessageBackends::rawBufferBackendSpec()};
 }
 
 } // namespace o2::framework
