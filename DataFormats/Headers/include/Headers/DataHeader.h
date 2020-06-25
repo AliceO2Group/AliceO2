@@ -666,9 +666,10 @@ struct DataHeader : public BaseHeader {
   using SplitPayloadPartsType = uint32_t;
   using PayloadSizeType = uint64_t;
   using TForbitType = uint32_t;
+  using TFCounterType = uint32_t;
 
   //static data for this header type/version
-  static constexpr uint32_t sVersion{2};
+  static constexpr uint32_t sVersion{3};
   static constexpr o2::header::HeaderType sHeaderType{String2<uint64_t>("DataHead")};
   static constexpr o2::header::SerializationMethod sSerializationMethod{gSerializationMethodNone};
 
@@ -711,9 +712,14 @@ struct DataHeader : public BaseHeader {
   //___NEW STUFF GOES BELOW
 
   ///
-  /// first orbit of time frame as unique identifier within the run
+  /// first orbit of time frame as unique identifier within the run (unless the TF is replayed), since v2
   ///
   TForbitType firstTForbit;
+
+  ///
+  /// ever incrementing TF counter, allows to disentangle even TFs with same firstTForbit in case of replay, since v3
+  ///
+  TFCounterType tfCounter;
 
   //___the functions:
   //__________________________________________________________________________________________________
@@ -726,7 +732,8 @@ struct DataHeader : public BaseHeader {
       subSpecification(0),
       splitPayloadIndex(0),
       payloadSize(0),
-      firstTForbit{0}
+      firstTForbit{0},
+      tfCounter(0)
   {
   }
 
@@ -740,7 +747,8 @@ struct DataHeader : public BaseHeader {
       subSpecification(subspec),
       splitPayloadIndex(0),
       payloadSize(size),
-      firstTForbit{0}
+      firstTForbit{0},
+      tfCounter(0)
   {
   }
 
@@ -754,7 +762,8 @@ struct DataHeader : public BaseHeader {
       subSpecification(subspec),
       splitPayloadIndex(partIndex),
       payloadSize(size),
-      firstTForbit{0}
+      firstTForbit{0},
+      tfCounter(0)
   {
   }
 
