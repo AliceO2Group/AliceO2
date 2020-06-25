@@ -2,20 +2,25 @@
 #ifndef VarManager_H
 #define VarManager_H
 
-#include "Analysis/ReducedInfoTables.h"
+//#include "Analysis/ReducedInfoTables.h"
 #include <TObject.h>
 #include <TString.h>
 
-using namespace o2::aod;
+#include <vector>
+#include <map>
+//using namespace o2::aod;
+using std::vector;
 
 //_________________________________________________________________________
 class VarManager : public TObject {
 
 public:  
+ 
   enum Variables {
     kNothing = -1,
     // Run wise variables
     kRunNo = 0,
+    kRunId,
     kRunTimeStart,
     kRunTimeStop,
     kLHCFillNumber,
@@ -95,18 +100,25 @@ public:
     SetVariableDependencies();
   }
   static bool GetUsedVar(Variables var) {return fgUsedVars[var];}
+  
+  static void SetRunNumbers(int n, int* runs);
 
-  static void FillEvent(ReducedEvent event, float* values);
-  static void FillTrack(ReducedTrack track, float* values);
+  static void FillEvent(vector<float> event, float* values=0x0);
+  static void FillTrack(vector<float> track, float* values=0x0);
 
- public:   
+public:   
   VarManager();
   virtual ~VarManager();
+
+  static float fgValues[kNVars];              // array holding all variables computed during analysis
+  static void ResetValues(int startValue=0, int endValue=kNVars);
   
 private:
    
-  static Bool_t fgUsedVars[kNVars];            // holds flags for when the corresponding variable is needed (e.g., in the histogram manager, in cuts, mixing handler, etc.) 
-  static void SetVariableDependencies();       // toggle those variables on which other used variables might depend 
+  static bool fgUsedVars[kNVars];            // holds flags for when the corresponding variable is needed (e.g., in the histogram manager, in cuts, mixing handler, etc.) 
+  static void SetVariableDependencies();     // toggle those variables on which other used variables might depend 
+  
+  static std::map<int, int> fgRunMap;        // map of runs to be used in histogram axes
   
   VarManager& operator= (const VarManager &c);
   VarManager(const VarManager &c);

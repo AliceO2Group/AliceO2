@@ -2,86 +2,81 @@
 #define HistogramManager_H
 
 #include <TString.h>
-#include <TObject.h>
+#include <TNamed.h>
 #include <TList.h>
 #include <THashList.h>
+#include <TAxis.h>
+#include <TArrayD.h>
 
-class TAxis;
-class TArrayD;
-class TObjArray;
-class TFile;
+#include <string>
+#include <map>
+#include <vector>
+#include <list>
 
+using namespace std;
 
-class HistogramManager : public TObject {
+class HistogramManager : public TNamed {
 
  public:
-  HistogramManager(const char* name, const int maxNVars);
+  HistogramManager(); 
+  HistogramManager(const char* name, const char* title, const int maxNVars);
   virtual ~HistogramManager();
   
   enum Constants {
     kNothing = -1
   };
   
-  void AddHistClass(const Char_t* histClass);
-  void AddHistogram(const Char_t* histClass, const Char_t* name, const Char_t* title, Bool_t isProfile,
-                    Int_t nXbins, Double_t xmin, Double_t xmax, Int_t varX,
-                    Int_t nYbins=0, Double_t ymin=0, Double_t ymax=0, Int_t varY=-1,
-                    Int_t nZbins=0, Double_t zmin=0, Double_t zmax=0, Int_t varZ=-1,
-                    const Char_t* xLabels="", const Char_t* yLabels="", const Char_t* zLabels="",
-                    Int_t varT=-1, Int_t varW=-1);
-  void AddHistogram(const Char_t* histClass, const Char_t* name, const Char_t* title, Bool_t isProfile,
-                    Int_t nXbins, Double_t* xbins, Int_t varX,
-                    Int_t nYbins=0, Double_t* ybins=0x0, Int_t varY=-1,
-                    Int_t nZbins=0, Double_t* zbins=0x0, Int_t varZ=-1,
-                    const Char_t* xLabels="", const Char_t* yLabels="", const Char_t* zLabels="",
-                    Int_t varT=-1, Int_t varW=-1);
-  void AddHistogram(const Char_t* histClass, const Char_t* name, const Char_t* title,
-                    Int_t nDimensions, Int_t* vars, Int_t* nBins, Double_t* xmin, Double_t* xmax,
-                    TString* axLabels=0x0, Int_t varW=-1, Bool_t useSparse=kFALSE);
-  void AddHistogram(const Char_t* histClass, const Char_t* name, const Char_t* title,
-                    Int_t nDimensions, Int_t* vars, TArrayD* binLimits,
-                    TString* axLabels=0x0, Int_t varW=-1, Bool_t useSparse=kFALSE);
+  void SetMainHistogramList(THashList* list) {
+    if(fMainList) 
+      delete fMainList;
+    fMainList = list;
+  }
   
-  void FillHistClass(const Char_t* className, Float_t* values);
+  void AddHistClass(const char* histClass);
+  void AddHistogram(const char* histClass, const char* name, const char* title, bool isProfile,
+                    int nXbins, double xmin, double xmax, int varX,
+                    int nYbins=0, double ymin=0, double ymax=0, int varY=-1,
+                    int nZbins=0, double zmin=0, double zmax=0, int varZ=-1,
+                    const char* xLabels="", const char* yLabels="", const char* zLabels="",
+                    int varT=-1, int varW=-1);
+  void AddHistogram(const char* histClass, const char* name, const char* title, bool isProfile,
+                    int nXbins, double* xbins, int varX,
+                    int nYbins=0, double* ybins=0x0, int varY=-1,
+                    int nZbins=0, double* zbins=0x0, int varZ=-1,
+                    const char* xLabels="", const char* yLabels="", const char* zLabels="",
+                    int varT=-1, int varW=-1);
+  void AddHistogram(const char* histClass, const char* name, const char* title,
+                    int nDimensions, int* vars, int* nBins, double* xmin, double* xmax,
+                    TString* axLabels=0x0, int varW=-1, bool useSparse=kFALSE);
+  void AddHistogram(const char* histClass, const char* name, const char* title,
+                    int nDimensions, int* vars, TArrayD* binLimits,
+                    TString* axLabels=0x0, int varW=-1, bool useSparse=kFALSE);
   
-  void SetUseDefaultVariableNames(Bool_t flag) {fUseDefaultVariableNames = flag;};
+  void FillHistClass(const char* className, float* values);
+  
+  void SetUseDefaultVariableNames(bool flag) {fUseDefaultVariableNames = flag;};
   void SetDefaultVarNames(TString* vars, TString* units);
-  const Bool_t* GetUsedVars() const { return fUsedVars; }
+  const bool* GetUsedVars() const { return fUsedVars; }
 
-  void WriteOutput(TFile* saveFile);
-  void InitFile(const Char_t* filename, const Char_t* mainListName="");    // open an output file for reading
-  void AddToOutputList(TList* list) {fOutputList.Add(list);}
-  void CloseFile();
-
-  const THashList* GetMainHistogramList() const {return &fMainList;}    // get a histogram list
-  const THashList* GetMainDirectory() const {return fMainDirectory;}    // get the main histogram list from the loaded file
-
-  TList* AddHistogramsToOutputList(); // get all histograms on a TList              // NEWNEW
-
-  TList* GetHistogramOutputList() { return &fOutputList; }                   // NEWNEW
-  TList* GetHistogramList(const Char_t* listname) const;                     // get a histogram list      NEWNEW
-  TObject* GetHistogram(const Char_t* listname, const Char_t* hname) const;  // get a histogram from an old output
-
-  ULong_t GetAllocatedBins() const {return fBinsAllocated;}  
+  THashList* GetMainHistogramList() {return fMainList;}    // get a histogram list
+    
+  unsigned long int GetAllocatedBins() const {return fBinsAllocated;}  
   void Print(Option_t*) const;
   
  private: 
    
-  THashList fMainList;           // master histogram list
-  int fNVars;
-  THashList* fMainDirectory;     //! main directory with analysis output (this is used for loading output files and retrieving histograms offline)
-  TFile* fHistFile;              //! pointer to a TFile opened for reading
-  TList fOutputList;             // TList for output histograms
-
-  // Array of bool flags toggled when a variable is used (filled in a histogram)
-  bool* fUsedVars;           // map of used variables
+  THashList* fMainList;      // master histogram list
+  int fNVars;                // number of variables handled (tipically fromt he Variable Manager)
+  bool* fUsedVars;           //! flags of used variables
+  std::map<std::string, std::list<std::vector<int>>> fVariablesMap; //!  map holding identifiers for all variables needed by histograms
   
-  Bool_t fUseDefaultVariableNames;       // toggle the usage of default variable names and units
-  ULong_t fBinsAllocated;                // number of allocated bins
+  // various
+  bool fUseDefaultVariableNames;       //! toggle the usage of default variable names and units
+  unsigned long int fBinsAllocated;    //! number of allocated bins
   TString* fVariableNames;               //! variable names
   TString* fVariableUnits;               //! variable units
     
-  void MakeAxisLabels(TAxis* ax, const Char_t* labels);
+  void MakeAxisLabels(TAxis* ax, const char* labels);
   
   HistogramManager& operator= (const HistogramManager &c);
   HistogramManager(const HistogramManager &c);
