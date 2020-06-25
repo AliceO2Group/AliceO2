@@ -94,6 +94,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
       throw std::runtime_error(o2::utils::concat_string("failed to find output message header for ", label));
     }
     hd->firstTForbit = ctfHeader.firstTForbit;
+    hd->tfCounter = mTFCounter;
   };
 
   // send CTF Header
@@ -133,6 +134,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
     LOGF(INFO, "CTF reading total timing: Cpu: %.3e Real: %.3e s in %d slots",
          mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   }
+  mTFCounter++;
 }
 
 ///_______________________________________
