@@ -12,8 +12,7 @@
 # as we should be mindful of what we install. if we have lot of files here, it's
 # probably because most of them should be elsewhere in the first place ...
 
-install(FILES CheckClusters_mft.C
-              CheckDigits_mft.C
+install(FILES CheckDigits_mft.C
               SetIncludePath.C
               analyzeHits.C
 	      duplicateHits.C
@@ -37,7 +36,6 @@ install(FILES CheckClusters_mft.C
               run_CRUDataSkimming_its.C
               run_calib_tof.C
               run_clus_itsSA.C
-              run_clus_mftSA.C
               run_clus_tof.C
               run_clus_tpc.C
               run_clus_emcal.C
@@ -54,7 +52,6 @@ install(FILES CheckClusters_mft.C
               run_rawdecoding_mft.C
               run_trac_ca_its.C
               run_trac_its.C
-              run_trac_mft.C
 	      CreateBCPattern.C
         DESTINATION share/macro/)
 
@@ -62,14 +59,6 @@ install(FILES CheckClusters_mft.C
 # depends on a single subsystem should be located within that subsystem
 # directory instead of in this global location. and this global location should
 # be reserved for macros that use more than one subsystem ?
-
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(CheckClusters_mft.C
-                       PUBLIC_LINK_LIBRARIES O2::DataFormatsITSMFT
-                                             O2::ITSMFTSimulation O2::MFTBase
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                       LABELS mft)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(CheckDigits_mft.C
@@ -270,13 +259,6 @@ o2_add_test_root_macro(run_clus_itsSA.C
                        LABELS its)
 
 # FIXME: move to subsystem dir
-o2_add_test_root_macro(run_clus_mftSA.C
-                       PUBLIC_LINK_LIBRARIES O2::DetectorsBase
-                                             O2::MFTReconstruction
-                                             O2::ITSMFTReconstruction
-                       LABELS mft)
-
-# FIXME: move to subsystem dir
 o2_add_test_root_macro(run_clus_tof.C
                        PUBLIC_LINK_LIBRARIES O2::TOFReconstruction O2::Framework O2::TOFBase 
                                              O2::SimulationDataFormat O2::TOFCalibration O2::DataFormatsTOF
@@ -388,12 +370,6 @@ o2_add_test_root_macro(run_trac_its.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                         LABELS its)
-
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(run_trac_mft.C
-                       PUBLIC_LINK_LIBRARIES O2::Field O2::MFTReconstruction
-                                             O2::GPUCommon
-                       LABELS mft)
 
 #
 # NOTE: commented out until unit testing reenabled FIXME : re-enable or delete ?
