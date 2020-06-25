@@ -14,7 +14,6 @@
 /// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
 #include "MFTWorkflow/TrackFitterSpec.h"
-#include "DataFormatsITSMFT/Cluster.h"
 #include "Field/MagneticField.h"
 #include "TGeoGlobalMagField.h"
 #include "DetectorsBase/Propagator.h"
@@ -34,6 +33,7 @@
 #include "MFTTracking/FitterTrackMFT.h"
 #include "MFTTracking/TrackFitter.h"
 #include "MFTTracking/TrackExtrap.h"
+#include "MFTTracking/Cluster.h"
 
 using namespace std;
 using namespace o2::framework;
@@ -81,7 +81,7 @@ void TrackFitterTask::run(ProcessingContext& pc)
   int nTracksLTF = 0;
   int nFailedTracksLTF = 0;
   std::vector<o2::mft::FitterTrackMFT> fittertracks(tracksLTF.size() + tracksCA.size());
-  std::list<o2::itsmft::Cluster> clusters;
+  std::list<Cluster> clusters;
 
   // Fit LTF tracks
   for (const auto& track : tracksLTF) {
@@ -163,9 +163,9 @@ void convertTrack(const T& inTrack, O& outTrack, C& clusters)
   // Add clusters to Tracker's cluster vector & set fittedTrack cluster range.
   // TODO: get rid of this cluster vector
   for (auto cls = 0; cls < nClusters; cls++) {
-    o2::itsmft::Cluster& tempcluster = clusters.emplace_back(clusterIDs[cls], xpos[cls], ypos[cls], zpos[cls]);
-    tempcluster.setSigmaY2(5.43e-4); // FIXME:
-    tempcluster.setSigmaZ2(5.0e-4);  // FIXME: Use clusters errors once available
+    Cluster& tempcluster = clusters.emplace_back(xpos[cls], ypos[cls], zpos[cls], clusterIDs[cls]);
+    tempcluster.sigmaY2 = 5.43e-4; // FIXME: Use clusters errors once available
+    tempcluster.sigmaX2 = 5.0e-4;
     outTrack.createParamAtCluster(tempcluster);
   }
   outTrack.setMCCompLabels(inTrack.getMCCompLabels(), nClusters);

@@ -41,7 +41,7 @@ FitterTrackMFT::FitterTrackMFT(const FitterTrackMFT& track)
 }
 
 //__________________________________________________________________________
-TrackParamMFT& FitterTrackMFT::createParamAtCluster(const o2::itsmft::Cluster& cluster)
+TrackParamMFT& FitterTrackMFT::createParamAtCluster(const Cluster& cluster)
 {
   /// Create the object to hold the track parameters at the given cluster
   /// Only the z position of the track is set to the cluster z position
@@ -51,7 +51,7 @@ TrackParamMFT& FitterTrackMFT::createParamAtCluster(const o2::itsmft::Cluster& c
   // find the iterator before which the new element will be constructed
   auto itParam = mParamAtClusters.begin();
   for (; itParam != mParamAtClusters.end(); ++itParam) {
-    if (cluster.getZ() >= itParam->getZ()) {
+    if (cluster.zCoordinate >= itParam->getZ()) {
       break;
     }
   }
@@ -59,9 +59,9 @@ TrackParamMFT& FitterTrackMFT::createParamAtCluster(const o2::itsmft::Cluster& c
   // add the new track parameters
   mParamAtClusters.emplace(itParam);
   --itParam;
-  itParam->setZ(cluster.getZ());
-  itParam->setX(cluster.getX());
-  itParam->setY(cluster.getY());
+  itParam->setX(cluster.xCoordinate);
+  itParam->setY(cluster.yCoordinate);
+  itParam->setZ(cluster.zCoordinate);
   itParam->setClusterPtr(&cluster);
   mNPoints++;
   return *itParam;
@@ -74,7 +74,7 @@ void FitterTrackMFT::addParamAtCluster(const TrackParamMFT& param)
   /// The parameters must be associated with a cluster
   /// Keep the internal list of track parameters sorted in clusters z
 
-  const o2::itsmft::Cluster* cluster = param.getClusterPtr();
+  const Cluster* cluster = param.getClusterPtr();
   if (cluster == nullptr) {
     LOG(ERROR) << "The TrackParamMFT must be associated with a cluster --> not added";
     return;
@@ -83,7 +83,7 @@ void FitterTrackMFT::addParamAtCluster(const TrackParamMFT& param)
   // find the iterator before which the new element will be constructed
   auto itParam = mParamAtClusters.begin();
   for (; itParam != mParamAtClusters.end(); ++itParam) {
-    if (cluster->getZ() >= itParam->getZ()) {
+    if (cluster->zCoordinate >= itParam->getZ()) {
       break;
     }
   }
