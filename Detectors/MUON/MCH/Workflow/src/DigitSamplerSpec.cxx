@@ -20,6 +20,7 @@
 
 #include <string>
 #include <stdexcept>
+#include <vector>
 
 #include <gsl/span>
 
@@ -61,6 +62,7 @@ class DigitSamplerTask
     mUseRun2DigitUID = ic.options().get<bool>("useRun2DigitUID");
     mPrint = ic.options().get<bool>("print");
     mNevents = ic.options().get<int>("nevents");
+    mEvent = ic.options().get<int>("event");
 
     auto stop = [this]() {
       // close the input file
@@ -88,6 +90,19 @@ class DigitSamplerTask
     if (mInputFile.fail()) {
       pc.services().get<ControlService>().endOfStream();
       return; // probably reached eof
+    }
+
+    // send only the requested event, if any
+    if (mEvent >= 0) {
+      ++mCurrentEvent;
+      if (mCurrentEvent < mEvent) {
+        std::vector<Digit> digits(nDigits);
+        mInputFile.read(reinterpret_cast<char*>(digits.data()), nDigits * sizeof(Digit));
+        return;
+      } else if (mCurrentEvent > mEvent) {
+        pc.services().get<ControlService>().endOfStream();
+        return;
+      }
     }
 
     // create the output message
@@ -135,7 +150,9 @@ class DigitSamplerTask
   std::ifstream mInputFile{};    ///< input file
   bool mUseRun2DigitUID = false; ///< true if Digit.mPadID = digit UID in run2 format
   bool mPrint = false;           ///< print digits to terminal
-  int mNevents = 0;              ///< number of events to process
+  int mNevents = -1;             ///< number of events to process
+  int mEvent = -1;               ///< if mEvent >= 0, process only this event
+  int mCurrentEvent = -1;        ///< current event number
 };
 
 //_________________________________________________________________________________________________
@@ -149,7 +166,8 @@ o2::framework::DataProcessorSpec getDigitSamplerSpec()
     Options{{"infile", VariantType::String, "", {"input file name"}},
             {"useRun2DigitUID", VariantType::Bool, false, {"mPadID = digit UID in run2 format"}},
             {"print", VariantType::Bool, false, {"print digits"}},
-            {"nevents", VariantType::Int, -1, {"number of events to process (-1 = all events in the file)"}}}};
+            {"nevents", VariantType::Int, -1, {"number of events to process (-1 = all events in the file)"}},
+            {"event", VariantType::Int, -1, {"event to process"}}}};
 }
 
 } // end namespace mch

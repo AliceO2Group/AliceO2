@@ -11,9 +11,7 @@
 #ifndef O2_FRAMEWORK_DRIVERINFO_H_
 #define O2_FRAMEWORK_DRIVERINFO_H_
 
-#include <chrono>
 #include <cstddef>
-#include <map>
 #include <vector>
 
 #include <csignal>
@@ -104,7 +102,7 @@ struct DriverInfo {
   /// What we should do when one device in the workflow has an error
   enum TerminationPolicy errorPolicy;
   /// The offset at which the process was started.
-  std::chrono::time_point<std::chrono::steady_clock> startTime;
+  uint64_t startTime;
   /// The optional timeout after which the driver will request
   /// all the children to quit.
   double timeout;
