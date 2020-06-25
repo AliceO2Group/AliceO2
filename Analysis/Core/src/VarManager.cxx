@@ -64,15 +64,41 @@ void VarManager::SetRunNumbers(int n, int* runs)
     fgRunMap[runs[i]] = i + 1;
 }
 
+//__________________________________________________________________
+void VarManager::ResetValues(int startValue, int endValue) {
+  //
+  // reset all variables to an "innocent" value
+  // NOTE: here we use -9999.0 as a neutral value, but depending on situation, this may not be the case
+  for (Int_t i = startValue; i < endValue; ++i)
+      fgValues[i] = -9999.;
+}
 
 //__________________________________________________________________
-void VarManager::FillEvent(o2::aod::ReducedEvent event, float* values) {
+void VarManager::SetRunNumbers(int n, int* runs) {
+  //
+  // maps the list of runs such that one can plot the list of runs nicely in a histogram axis
+  //
+  for(int i=0; i<n; ++i) 
+    fgRunMap[runs[i]] = i+1;
+}
+
+//__________________________________________________________________
+void VarManager::FillEvent(vector<float> event, float* values) {
   
-  values[kRunNo] = event.runNumber();
+  //TODO: the Fill function should take as argument an aod::ReducedEvent iterator, this is just a temporary fix
+  if(!values) 
+    values = fgValues;
+  values[kRunNo] = event[0];
+  values[kRunId] = (fgRunMap.size()>0 ? fgRunMap[int(values[kRunNo])] : 0);
+  values[kVtxX] = event[1];
+  values[kVtxY] = event[2];
+  values[kVtxZ] = event[3];
+  values[kVtxNcontrib] = event[4];  
+  /*values[kRunNo] = event.runNumber();
   values[kVtxX] = event.posX();
   values[kVtxY] = event.posY();
   values[kVtxZ] = event.posZ();
-  values[kVtxNcontrib] = event.numContrib();
+  values[kVtxNcontrib] = event.numContrib();*/
   //values[kVtxChi2] = event.chi2();
   //values[kBC] = event.bc();
   //values[kCentVZERO] = event.centVZERO();
@@ -85,12 +111,19 @@ void VarManager::FillEvent(o2::aod::ReducedEvent event, float* values) {
 }
 
 //__________________________________________________________________
-void VarManager::FillTrack(o2::aod::ReducedTrack track, float* values) {
+void VarManager::FillTrack(vector<float> track, float* values) {
   
-  values[kPt] = track.pt();
+  if(!values) 
+    values = fgValues;
+  
+  values[kPt] = track[0];
+  values[kEta] = track[1];
+  values[kPhi] = track[2];
+  values[kCharge] = track[3];
+  /*values[kPt] = track.pt();
   values[kEta] = track.eta();
   values[kPhi] = track.phi();
-  values[kCharge] = track.charge();
+  values[kCharge] = track.charge();*/
   //values[kPin] = track.tpcInnerParam();
   //if(fgUsedVars[kITSncls]) {
   //  values[kITSncls] = 0.0;
