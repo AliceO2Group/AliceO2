@@ -114,8 +114,8 @@ bool Detector::ProcessHits(FairVolume* v)
   // The sector number (0 - 17), according to the standard coordinate system
   TString cIdPath = fMC->CurrentVolPath();
   char cIdSector[3];
-  cIdSector[0] = cIdPath[21];
-  cIdSector[1] = cIdPath[22];
+  cIdSector[0] = cIdPath[30];
+  cIdSector[1] = cIdPath[31];
   cIdSector[2] = 0;
   sector = atoi(cIdSector);
   // The detector number (0 – 539)
