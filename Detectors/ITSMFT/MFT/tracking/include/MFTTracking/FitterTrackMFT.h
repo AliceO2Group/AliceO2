@@ -19,7 +19,7 @@
 #include <list>
 #include <memory>
 
-#include "DataFormatsITSMFT/Cluster.h"
+#include "MFTTracking/Cluster.h"
 #include "MFTTracking/TrackParamMFT.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
@@ -72,7 +72,7 @@ class FitterTrackMFT
   auto rend() { return mParamAtClusters.rend(); }
   auto rend() const { return mParamAtClusters.rend(); }
 
-  TrackParamMFT& createParamAtCluster(const o2::itsmft::Cluster& cluster);
+  TrackParamMFT& createParamAtCluster(const Cluster& cluster);
   void addParamAtCluster(const TrackParamMFT& param);
   /// Remove the given track parameters from the internal list and return an iterator to the parameters that follow
   auto removeParamAtCluster(std::list<TrackParamMFT>::iterator& itParam) { return mParamAtClusters.erase(itParam); }

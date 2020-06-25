@@ -45,6 +45,8 @@ struct Cluster final {
   Float_t rCoordinate;
   Int_t clusterId;
   Int_t indexTableBin;
+  Float_t sigmaY2;
+  Float_t sigmaX2;
 };
 
 } // namespace mft
