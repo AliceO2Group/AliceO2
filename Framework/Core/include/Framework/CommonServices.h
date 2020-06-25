@@ -38,7 +38,7 @@ struct CommonServices {
     };
   }
 
-  static ServiceConfigure noConfiguration()
+  static ServiceConfigureCallback noConfiguration()
   {
     return [](InitContext&, void* service) -> void* { return service; };
   }
@@ -54,6 +54,7 @@ struct CommonServices {
   static ServiceSpec callbacksSpec();
   static ServiceSpec timesliceIndex();
   static ServiceSpec dataRelayer();
+  static ServiceSpec tracingSpec();
 
   static std::vector<ServiceSpec> defaultServices();
   static std::vector<ServiceSpec> requiredServices();

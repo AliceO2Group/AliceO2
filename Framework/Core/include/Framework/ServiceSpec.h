@@ -26,6 +26,8 @@ struct InitContext;
 struct DeviceSpec;
 struct ServiceRegistry;
 struct DeviceState;
+struct ProcessingContext;
+struct EndOfStreamContext;
 
 /// Handle to the service hash must be calculated
 /// using TypeIdHelper::uniqueId<BaseClass>() so that
@@ -41,7 +43,13 @@ using ServiceInit = std::function<ServiceHandle(ServiceRegistry&, DeviceState&, 
 /// A callback to configure a given Service. Notice that the
 /// service itself is type erased and it's responsibility of
 /// the configuration itself to cast it to the correct value
-using ServiceConfigure = std::function<void*(InitContext&, void*)>;
+using ServiceConfigureCallback = std::function<void*(InitContext&, void*)>;
+
+/// A callback which is executed before each processing loop.
+using ServiceProcessingCallback = std::function<void(ProcessingContext&, void*)>;
+
+/// A callback which is executed before the end of stream loop.
+using ServiceEOSCallback = std::function<void(EndOfStreamContext&, void*)>;
 
 /// The kind of service we are asking for
 enum struct ServiceKind {
@@ -53,12 +61,44 @@ enum struct ServiceKind {
   Stream
 };
 
-/// A declaration of a service to be used by the associated DataProcessor
+/// A specification for a Service.
+/// A Service is a utility class which does not perform
+/// data processing itself, but it can be used by the data processor
+/// to carry out common tasks (e.g. monitoring) or by the framework
+/// to perform data processing related ancillary work (e.g. send
+/// messages after a computation happended).
 struct ServiceSpec {
+  /// Name of the service
   std::string name;
+  /// Callback to initialise the service.
   ServiceInit init;
-  ServiceConfigure configure;
+  /// Callback to configure the service.
+  ServiceConfigureCallback configure;
+  /// Callback executed before actual processing happens.
+  ServiceProcessingCallback preProcessing = nullptr;
+  /// Callback executed once actual processing happened.
+  ServiceProcessingCallback postProcessing = nullptr;
+  /// Callback executed before the end of stream callback of the user happended
+  ServiceEOSCallback preEOS = nullptr;
+  /// Callback executed after the end of stream callback of the user happended
+  ServiceEOSCallback postEOS = nullptr;
+  /// Kind of service being specified.
   ServiceKind kind;
+};
+
+struct ServiceConfigureHandle {
+  ServiceConfigureCallback callback;
+  void* service;
+};
+
+struct ServiceProcessingHandle {
+  ServiceProcessingCallback callback;
+  void* service;
+};
+
+struct ServiceEOSHandle {
+  ServiceEOSCallback callback;
+  void* service;
 };
 
 } // namespace o2::framework
