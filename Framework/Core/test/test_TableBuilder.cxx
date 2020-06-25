@@ -345,10 +345,8 @@ BOOST_AUTO_TEST_CASE(TestSoAIntegration)
 
 BOOST_AUTO_TEST_CASE(TestDataAllocatorReturnType)
 {
-  TimingInfo* timingInfo = nullptr;
-  ContextRegistry* contextes = nullptr;
   std::vector<OutputRoute> routes;
-  DataAllocator allocator(timingInfo, contextes, routes);
+  DataAllocator allocator(nullptr, nullptr, routes);
   const Output output{"TST", "DUMMY", 0, Lifetime::Timeframe};
   // we require reference to object owned by allocator context
   static_assert(std::is_lvalue_reference<decltype(allocator.make<TableBuilder>(output))>::value);

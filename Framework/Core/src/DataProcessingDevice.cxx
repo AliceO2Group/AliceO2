@@ -82,31 +82,13 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mStatelessProcess{spec.algorithm.onProcess},
     mError{spec.algorithm.onError},
     mConfigRegistry{nullptr},
-    mFairMQContext{FairMQDeviceProxy{this}},
-    mStringContext{FairMQDeviceProxy{this}},
-    mDataFrameContext{FairMQDeviceProxy{this}},
-    mRawBufferContext{FairMQDeviceProxy{this}},
-    mContextRegistry{&mFairMQContext, &mStringContext, &mDataFrameContext, &mRawBufferContext},
-    mAllocator{&mTimingInfo, &mContextRegistry, spec.outputs},
+    mAllocator{&mTimingInfo, &registry, spec.outputs},
     mServiceRegistry{registry},
-    mErrorCount{0},
-    mProcessingCount{0}
+    mErrorCount{0}
 {
   StateMonitoring<DataProcessingStatus>::start();
-  auto dispatcher = [this](FairMQParts&& parts, std::string const& channel, unsigned int index) {
-    DataProcessor::doSend(*this, std::move(parts), channel.c_str(), index);
-  };
-  auto matcher = [policy = spec.dispatchPolicy](o2::header::DataHeader const& header) {
-    if (policy.triggerMatcher == nullptr) {
-      return true;
-    }
-    return policy.triggerMatcher(Output{header});
-  };
 
-  if (spec.dispatchPolicy.action == DispatchPolicy::DispatchOp::WhenReady) {
-    mFairMQContext.init(DispatchControl{dispatcher, matcher});
-  }
-
+  /// FIXME: move erro handling to a service?
   if (mError != nullptr) {
     mErrorHandling = [& errorCallback = mError,
                       &serviceRegistry = mServiceRegistry](std::exception& e, InputRecord& record) {
@@ -519,16 +501,14 @@ bool DataProcessingDevice::doRun()
     }
     sendRelayerMetrics();
     flushMetrics();
-    mContextRegistry.get<MessageContext>()->clear();
-    mContextRegistry.get<StringContext>()->clear();
-    mContextRegistry.get<ArrowContext>()->clear();
-    mContextRegistry.get<RawBufferContext>()->clear();
     EndOfStreamContext eosContext{mServiceRegistry, mAllocator};
+    for (auto& eosHandle : mPreEOSHandles) {
+      eosHandle.callback(eosContext, eosHandle.service);
+    }
     mServiceRegistry.get<CallbackService>()(CallbackService::Id::EndOfStream, eosContext);
-    DataProcessor::doSend(*this, *mContextRegistry.get<MessageContext>());
-    DataProcessor::doSend(*this, *mContextRegistry.get<StringContext>());
-    DataProcessor::doSend(*this, *mContextRegistry.get<ArrowContext>());
-    DataProcessor::doSend(*this, *mContextRegistry.get<RawBufferContext>());
+    for (auto& eosHandle : mPostEOSHandles) {
+      eosHandle.callback(eosContext, eosHandle.service);
+    }
     for (auto& channel : mSpec.outputChannels) {
       DataProcessingHelpers::sendEndOfStream(*this, channel);
     }
@@ -671,22 +651,17 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
   std::vector<MessageSet> currentSetOfInputs;
 
   auto& allocator = mAllocator;
-  auto& context = *mContextRegistry.get<MessageContext>();
   auto& device = *this;
   auto& errorCallback = mError;
   auto& errorCount = mErrorCount;
   auto& forwards = mSpec.forwards;
   auto& inputsSchema = mSpec.inputs;
-  auto& processingCount = mProcessingCount;
-  auto& rdfContext = *mContextRegistry.get<ArrowContext>();
   auto& relayer = *mRelayer;
   auto& serviceRegistry = mServiceRegistry;
   auto& statefulProcess = mStatefulProcess;
   auto& statelessProcess = mStatelessProcess;
-  auto& stringContext = *mContextRegistry.get<StringContext>();
   auto& timingInfo = mTimingInfo;
   auto& timesliceIndex = mServiceRegistry.get<TimesliceIndex>();
-  auto& rawContext = *mContextRegistry.get<RawBufferContext>();
 
   // These duplicate references are created so that each function
   // does not need to know about the whole class state, but I can
@@ -745,40 +720,34 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
   // why we do the stateful processing before the stateless one.
   // PROCESSING:{START,END} is done so that we can trigger on begin / end of processing
   // in the GUI.
-  auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
-                             &context, &stringContext, &rdfContext, &rawContext, &serviceRegistry, &device](TimesliceSlot slot, InputRecord& record) {
-    if (statefulProcess) {
-      ProcessingContext processContext{record, serviceRegistry, allocator};
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_USER_CALLBACK);
-      statefulProcess(processContext);
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-      processingCount++;
-    }
-    if (statelessProcess) {
-      ProcessingContext processContext{record, serviceRegistry, allocator};
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_USER_CALLBACK);
-      statelessProcess(processContext);
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-      processingCount++;
+  auto dispatchProcessing = [&allocator, &statefulProcess, &statelessProcess,
+                             &serviceRegistry, &device,
+                             &preHandles = mPreProcessingHandles,
+                             &postHandles = mPostProcessingHandles](TimesliceSlot slot, InputRecord& record) {
+    ProcessingContext processContext{record, serviceRegistry, allocator};
+    for (auto& handle : preHandles) {
+      handle.callback(processContext, handle.service);
     }
 
-    DataProcessor::doSend(device, context);
-    DataProcessor::doSend(device, stringContext);
-    DataProcessor::doSend(device, rdfContext);
-    DataProcessor::doSend(device, rawContext);
+    if (statefulProcess) {
+      statefulProcess(processContext);
+    }
+    if (statelessProcess) {
+      statelessProcess(processContext);
+    }
+
+    for (auto& handle : postHandles) {
+      handle.callback(processContext, handle.service);
+    }
   };
 
   // I need a preparation step which gets the current timeslice id and
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &stringContext, &rdfContext, &rawContext, &context, &relayer, &timesliceIndex](TimesliceSlot i) {
+  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &relayer, &timesliceIndex](TimesliceSlot i) {
     auto timeslice = timesliceIndex.getTimesliceForSlot(i);
     timingInfo.timeslice = timeslice.value;
-    context.clear();
-    stringContext.clear();
-    rdfContext.clear();
-    rawContext.clear();
   };
 
   // When processing them, timers will have to be cleaned up
@@ -918,6 +887,10 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
 
       prepareAllocatorForCurrentTimeSlice(TimesliceSlot{action.slot});
       InputRecord record = fillInputs(action.slot);
+      ProcessingContext processContext{record, mServiceRegistry, mAllocator};
+      for (auto& handle : mPreProcessingHandles) {
+        handle.callback(processContext, handle.service);
+      }
       if (action.op == CompletionPolicy::CompletionOp::Discard) {
         if (forwards.empty() == false) {
           forwardInputs(action.slot, record);
@@ -933,7 +906,17 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
       }
       try {
         if (mState.quitRequested == false) {
-          dispatchProcessing(action.slot, record);
+
+          if (statefulProcess) {
+            statefulProcess(processContext);
+          }
+          if (statelessProcess) {
+            statelessProcess(processContext);
+          }
+
+          for (auto& handle : mPostProcessingHandles) {
+            handle.callback(processContext, handle.service);
+          }
         }
       } catch (std::exception& e) {
         mErrorHandling(e, record);
@@ -974,6 +957,22 @@ void DataProcessingDevice::error(const char* msg)
   LOG(ERROR) << msg;
   mErrorCount++;
   mServiceRegistry.get<Monitoring>().send(Metric{mErrorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
+}
+
+void DataProcessingDevice::bindService(ServiceSpec const& spec, void* service)
+{
+  if (spec.preProcessing) {
+    mPreProcessingHandles.push_back(ServiceProcessingHandle{spec.preProcessing, service});
+  }
+  if (spec.postProcessing) {
+    mPostProcessingHandles.push_back(ServiceProcessingHandle{spec.postProcessing, service});
+  }
+  if (spec.preEOS) {
+    mPreEOSHandles.push_back(ServiceEOSHandle{spec.preEOS, service});
+  }
+  if (spec.postEOS) {
+    mPostEOSHandles.push_back(ServiceEOSHandle{spec.postEOS, service});
+  }
 }
 
 } // namespace o2::framework

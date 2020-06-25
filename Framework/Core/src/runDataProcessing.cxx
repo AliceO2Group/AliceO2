@@ -672,11 +672,13 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, Termin
       serviceRegistry.get<RawDeviceService>().setDevice(device.get());
       r.fDevice = std::move(device);
       fair::Logger::SetConsoleColor(false);
+
       /// Create all the requested services and initialise them
       for (auto& service : spec.services) {
         LOG(info) << "Initialising service " << service.name;
         auto handle = service.init(serviceRegistry, *deviceState.get(), r.fConfig);
         serviceRegistry.registerService(handle.hash, handle.instance);
+        dynamic_cast<DataProcessingDevice*>(r.fDevice.get())->bindService(service, handle.instance);
       }
     };
 

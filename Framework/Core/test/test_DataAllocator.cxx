@@ -42,7 +42,7 @@ using namespace o2::framework;
 void doTypeChecks()
 {
   TimingInfo* timingInfo = nullptr;
-  ContextRegistry* contextes = nullptr;
+  ServiceRegistry* contextes = nullptr;
   std::vector<OutputRoute> routes;
   DataAllocator allocator(timingInfo, contextes, routes);
   const Output output{"TST", "DUMMY", 0, Lifetime::Timeframe};

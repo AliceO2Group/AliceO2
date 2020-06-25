@@ -26,9 +26,7 @@
 
 #include <TClonesArray.h>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 using DataHeader = o2::header::DataHeader;
@@ -36,11 +34,11 @@ using DataDescription = o2::header::DataDescription;
 using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
 DataAllocator::DataAllocator(TimingInfo* timingInfo,
-                             ContextRegistry* contextRegistry,
+                             ServiceRegistry* contextRegistry,
                              const AllowedOutputRoutes& routes)
   : mAllowedOutputRoutes{routes},
     mTimingInfo{timingInfo},
-    mContextRegistry{contextRegistry}
+    mRegistry{contextRegistry}
 {
 }
 
@@ -63,13 +61,13 @@ std::string const& DataAllocator::matchDataHeader(const Output& spec, size_t tim
 DataChunk& DataAllocator::newChunk(const Output& spec, size_t size)
 {
   std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
-  auto context = mContextRegistry->get<MessageContext>();
+  auto& context = mRegistry->get<MessageContext>();
 
   FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
                                                            o2::header::gSerializationMethodNone, //
                                                            size                                  //
   );
-  auto& co = context->add<MessageContext::ContainerRefObject<DataChunk>>(std::move(headerMessage), channel, 0, size);
+  auto& co = context.add<MessageContext::ContainerRefObject<DataChunk>>(std::move(headerMessage), channel, 0, size);
   return co;
 }
 
@@ -85,8 +83,8 @@ void DataAllocator::adoptChunk(const Output& spec, char* buffer, size_t size, fa
   );
 
   // FIXME: how do we want to use subchannels? time based parallelism?
-  auto context = mContextRegistry->get<MessageContext>();
-  context->add<MessageContext::TrivialObject>(std::move(headerMessage), channel, 0, buffer, size, freefn, hint);
+  auto& context = mRegistry->get<MessageContext>();
+  context.add<MessageContext::TrivialObject>(std::move(headerMessage), channel, 0, buffer, size, freefn, hint);
 }
 
 FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,                     //
@@ -102,9 +100,9 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
   dh.payloadSerializationMethod = method;
 
   DataProcessingHeader dph{mTimingInfo->timeslice, 1};
-  auto context = mContextRegistry->get<MessageContext>();
+  auto& context = mRegistry->get<MessageContext>();
 
-  auto channelAlloc = o2::pmr::getTransportAllocator(context->proxy().getTransport(channel, 0));
+  auto channelAlloc = o2::pmr::getTransportAllocator(context.proxy().getTransport(channel, 0));
   return o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph, spec.metaHeader});
 }
 
@@ -119,11 +117,11 @@ void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Ou
   const DataHeader* cdh = o2::header::get<DataHeader*>(headerMessage->GetData());
   DataHeader* dh = const_cast<DataHeader*>(cdh);
   dh->payloadSize = payloadMessage->GetSize();
-  auto context = mContextRegistry->get<MessageContext>();
+  auto& context = mRegistry->get<MessageContext>();
   // make_scoped creates the context object inside of a scope handler, since it goes out of
   // scope immediately, the created object is scheduled and can be directly sent if the context
   // is configured with the dispatcher callback
-  context->make_scoped<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
+  context.make_scoped<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
 }
 
 void DataAllocator::adopt(const Output& spec, std::string* ptr)
@@ -133,7 +131,7 @@ void DataAllocator::adopt(const Output& spec, std::string* ptr)
   // the correct payload size is set later when sending the
   // StringContext, see DataProcessor::doSend
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, 0);
-  mContextRegistry->get<StringContext>()->addString(std::move(header), std::move(payload), channel);
+  mRegistry->get<StringContext>().addString(std::move(header), std::move(payload), channel);
   assert(payload.get() == nullptr);
 }
 
@@ -141,9 +139,9 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
 {
   std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
-  auto context = mContextRegistry->get<ArrowContext>();
+  auto& context = mRegistry->get<ArrowContext>();
 
-  auto creator = [device = context->proxy().getDevice()](size_t s) -> std::unique_ptr<FairMQMessage> { return device->NewMessage(s); };
+  auto creator = [device = context.proxy().getDevice()](size_t s) -> std::unique_ptr<FairMQMessage> { return device->NewMessage(s); };
   auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
 
   /// To finalise this we write the table to the buffer.
@@ -161,8 +159,7 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
     }
   };
 
-  assert(context);
-  context->addBuffer(std::move(header), buffer, std::move(finalizer), channel);
+  context.addBuffer(std::move(header), buffer, std::move(finalizer), channel);
 }
 
 void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
@@ -171,9 +168,9 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
   LOG(INFO) << "DataAllocator::adopt channel " << channel.c_str();
 
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
-  auto context = mContextRegistry->get<ArrowContext>();
+  auto& context = mRegistry->get<ArrowContext>();
 
-  auto creator = [device = context->proxy().getDevice()](size_t s) -> std::unique_ptr<FairMQMessage> {
+  auto creator = [device = context.proxy().getDevice()](size_t s) -> std::unique_ptr<FairMQMessage> {
     return device->NewMessage(s);
   };
   auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
@@ -197,17 +194,16 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
     }
   };
 
-  assert(context);
-  context->addBuffer(std::move(header), buffer, std::move(finalizer), channel);
+  context.addBuffer(std::move(header), buffer, std::move(finalizer), channel);
 }
 
 void DataAllocator::adopt(const Output& spec, std::shared_ptr<arrow::Table> ptr)
 {
   std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
-  auto context = mContextRegistry->get<ArrowContext>();
+  auto& context = mRegistry->get<ArrowContext>();
 
-  auto creator = [device = context->proxy().getDevice()](size_t s) -> std::unique_ptr<FairMQMessage> {
+  auto creator = [device = context.proxy().getDevice()](size_t s) -> std::unique_ptr<FairMQMessage> {
     return device->NewMessage(s);
   };
   auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
@@ -221,14 +217,13 @@ void DataAllocator::adopt(const Output& spec, std::shared_ptr<arrow::Table> ptr)
     }
   };
 
-  assert(context);
-  context->addBuffer(std::move(header), buffer, std::move(writer), channel);
+  context.addBuffer(std::move(header), buffer, std::move(writer), channel);
 }
 
 void DataAllocator::snapshot(const Output& spec, const char* payload, size_t payloadSize,
                              o2::header::SerializationMethod serializationMethod)
 {
-  auto proxy = mContextRegistry->get<MessageContext>()->proxy();
+  auto& proxy = mRegistry->get<MessageContext>().proxy();
   FairMQMessagePtr payloadMessage(proxy.createMessage(payloadSize));
   memcpy(payloadMessage->GetData(), payload, payloadSize);
 
@@ -261,5 +256,4 @@ bool DataAllocator::isAllowed(Output const& query)
   return false;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

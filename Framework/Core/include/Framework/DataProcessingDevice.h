@@ -12,16 +12,11 @@
 
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "Framework/ContextRegistry.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataProcessingStats.h"
 #include "Framework/ExpirationHandler.h"
-#include "Framework/MessageContext.h"
-#include "Framework/ArrowContext.h"
-#include "Framework/StringContext.h"
-#include "Framework/RawBufferContext.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/InputRoute.h"
 #include "Framework/ForwardRoute.h"
@@ -53,6 +48,7 @@ class DataProcessingDevice : public FairMQDevice
   void ResetTask() final;
   bool ConditionalRun() final;
   void SetErrorPolicy(enum TerminationPolicy policy) { mErrorPolicy = policy; }
+  void bindService(ServiceSpec const& spec, void* service);
 
  protected:
   bool doRun();
@@ -73,18 +69,20 @@ class DataProcessingDevice : public FairMQDevice
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
   TimingInfo mTimingInfo;
-  MessageContext mFairMQContext;
-  StringContext mStringContext;
-  ArrowContext mDataFrameContext;
-  RawBufferContext mRawBufferContext;
-  ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
   DataRelayer* mRelayer = nullptr;
   std::vector<ExpirationHandler> mExpirationHandlers;
   std::vector<DataRelayer::RecordAction> mCompleted;
+  /// Callbacks for services to be executed before every process method invokation
+  std::vector<ServiceProcessingHandle> mPreProcessingHandles;
+  /// Callbacks for services to be executed after every process method invokation
+  std::vector<ServiceProcessingHandle> mPostProcessingHandles;
+  /// Callbacks for services to be executed before every EOS user callback invokation
+  std::vector<ServiceEOSHandle> mPreEOSHandles;
+  /// Callbacks for services to be executed after every EOS user callback invokation
+  std::vector<ServiceEOSHandle> mPostEOSHandles;
 
   int mErrorCount;
-  int mProcessingCount;
   uint64_t mLastSlowMetricSentTimestamp = 0;         /// The timestamp of the last time we sent slow metrics
   uint64_t mLastMetricFlushedTimestamp = 0;          /// The timestamp of the last time we actually flushed metrics
   uint64_t mBeginIterationTimestamp = 0;             /// The timestamp of when the current ConditionalRun was started
