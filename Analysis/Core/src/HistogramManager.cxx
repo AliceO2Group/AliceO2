@@ -283,38 +283,46 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
       if(isProfile) {
         if (varT > kNothing) { // TProfile3D
           h = new TProfile3D(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xmin, xmax, nYbins, ymin, ymax, nZbins, zmin, zmax);
-          fBinsAllocated+=(nXbins+2)*(nYbins+2)*(nZbins+2);
+          fBinsAllocated += (nXbins + 2) * (nYbins + 2) * (nZbins + 2);
           h->Sumw2();
-          if(titleStr.Contains("--s--")) ((TProfile3D*)h)->BuildOptions(0.,0.,"s");
+          if (titleStr.Contains("--s--"))
+            ((TProfile3D*)h)->BuildOptions(0., 0., "s");
         } else { // TProfile2D
           h = new TProfile2D(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xmin, xmax, nYbins, ymin, ymax);
-          fBinsAllocated+=(nXbins+2)*(nYbins+2);
+          fBinsAllocated += (nXbins + 2) * (nYbins + 2);
           h->Sumw2();
-          if(titleStr.Contains("--s--")) ((TProfile2D*)h)->BuildOptions(0.,0.,"s");
+          if (titleStr.Contains("--s--"))
+            ((TProfile2D*)h)->BuildOptions(0., 0., "s");
         }
       } else { // TH3F
         h = new TH3F(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xmin, xmax, nYbins, ymin, ymax, nZbins, zmin, zmax);
-        fBinsAllocated+=(nXbins+2)*(nYbins+2)*(nZbins+2);
+        fBinsAllocated += (nXbins + 2) * (nYbins + 2) * (nZbins + 2);
         h->Sumw2();
       }
-      if(fVariableNames[varX][0]) 
-        h->GetXaxis()->SetTitle(Form("%s %s", fVariableNames[varX].Data(), 
-                              (fVariableUnits[varX][0] ? Form("(%s)", fVariableUnits[varX].Data()) : "")));
-      if(arr->At(1)) h->GetXaxis()->SetTitle(arr->At(1)->GetName());
-      if(xLabels[0]!='\0') MakeAxisLabels(h->GetXaxis(), xLabels);
-      if(fVariableNames[varY][0]) 
-        h->GetYaxis()->SetTitle(Form("%s %s", fVariableNames[varY].Data(), 
-                                (fVariableUnits[varY][0] ? Form("(%s)", fVariableUnits[varY].Data()) : "")));
-      if(arr->At(2)) h->GetYaxis()->SetTitle(arr->At(2)->GetName());
-      if(yLabels[0]!='\0') MakeAxisLabels(h->GetYaxis(), yLabels);
-      if(fVariableNames[varZ][0]) 
-        h->GetZaxis()->SetTitle(Form("%s %s", fVariableNames[varZ].Data(), 
-                              (fVariableUnits[varZ][0] ? Form("(%s)", fVariableUnits[varZ].Data()) : "")));
-      if(fVariableNames[varZ][0] && isProfile && varT<0)  // for TProfile2D 
-        h->GetZaxis()->SetTitle(Form("<%s> %s", fVariableNames[varZ].Data(), 
-                               (fVariableUnits[varZ][0] ? Form("(%s)", fVariableUnits[varZ].Data()) : "")));	
-      if(arr->At(3)) h->GetZaxis()->SetTitle(arr->At(3)->GetName());
-      if(zLabels[0]!='\0') MakeAxisLabels(h->GetZaxis(), zLabels);
+      if (fVariableNames[varX][0])
+        h->GetXaxis()->SetTitle(Form("%s %s", fVariableNames[varX].Data(),
+                                     (fVariableUnits[varX][0] ? Form("(%s)", fVariableUnits[varX].Data()) : "")));
+      if (arr->At(1))
+        h->GetXaxis()->SetTitle(arr->At(1)->GetName());
+      if (xLabels[0] != '\0')
+        MakeAxisLabels(h->GetXaxis(), xLabels);
+      if (fVariableNames[varY][0])
+        h->GetYaxis()->SetTitle(Form("%s %s", fVariableNames[varY].Data(),
+                                     (fVariableUnits[varY][0] ? Form("(%s)", fVariableUnits[varY].Data()) : "")));
+      if (arr->At(2))
+        h->GetYaxis()->SetTitle(arr->At(2)->GetName());
+      if (yLabels[0] != '\0')
+        MakeAxisLabels(h->GetYaxis(), yLabels);
+      if (fVariableNames[varZ][0])
+        h->GetZaxis()->SetTitle(Form("%s %s", fVariableNames[varZ].Data(),
+                                     (fVariableUnits[varZ][0] ? Form("(%s)", fVariableUnits[varZ].Data()) : "")));
+      if (fVariableNames[varZ][0] && isProfile && varT < 0) // for TProfile2D
+        h->GetZaxis()->SetTitle(Form("<%s> %s", fVariableNames[varZ].Data(),
+                                     (fVariableUnits[varZ][0] ? Form("(%s)", fVariableUnits[varZ].Data()) : "")));
+      if (arr->At(3))
+        h->GetZaxis()->SetTitle(arr->At(3)->GetName());
+      if (zLabels[0] != '\0')
+        MakeAxisLabels(h->GetZaxis(), zLabels);
       h->SetDirectory(0);
       hList->Add(h);
       break;
