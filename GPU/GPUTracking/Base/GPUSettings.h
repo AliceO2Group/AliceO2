@@ -173,7 +173,7 @@ struct GPUSettingsDeviceProcessing {
   char alternateBorderSort;           // Alternative scheduling for sorting of border tracks
   bool delayedOutput;                 // Delay output to be parallel to track fit
   bool tpccfGatherKernel;             // Use a kernel instead of the DMA engine to gather the clusters
-  bool prefetchTPCpageScan;           // Prefetch headers during TPC page scan
+  char prefetchTPCpageScan;           // Prefetch headers during TPC page scan
   bool doublePipeline;                // Use a double-pipeline driven by 2 threads
 };
 } // namespace gpu
