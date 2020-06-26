@@ -40,7 +40,7 @@ o2_target_root_dictionary(
 
 o2_add_test(AlpideSimResponse
             SOURCES test/testAlpideSimResponse.cxx
-            COMPONENT_NAME ITSMFT
+            COMPONENT_NAME EC0
             PUBLIC_LINK_LIBRARIES O2::EndCapsSimulation
             LABELS "its;mft"
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)

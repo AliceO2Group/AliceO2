@@ -31,7 +31,7 @@ o2_add_library(EC0tracking
                                      O2::CommonConstants
                                      O2::DataFormatsITSMFT
                                      O2::SimulationDataFormat
-                                     O2::EC0Base
+                                     O2::ECLayersBase
                                      O2::DataFormatsITS)
 
 o2_target_root_dictionary(EC0tracking

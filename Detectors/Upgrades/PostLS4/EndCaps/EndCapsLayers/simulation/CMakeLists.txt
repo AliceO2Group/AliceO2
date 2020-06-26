@@ -24,7 +24,7 @@ o2_target_root_dictionary(EC0Simulation
 o2_data_file(COPY data  DESTINATION Detectors/EC0/simulation)
 
 o2_add_executable(digi2raw
-                  COMPONENT_NAME its
+                  COMPONENT_NAME ec0
                   SOURCES src/digi2raw.cxx
                   PUBLIC_LINK_LIBRARIES O2::EndCapsReconstruction
                                         O2::DataFormatsITSMFT
