@@ -23,7 +23,6 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 
 using namespace o2::framework;
-using namespace o2::endcaps;
 
 namespace o2
 {
@@ -55,11 +54,11 @@ void DigitReader::run(ProcessingContext& pc)
     std::vector<o2::itsmft::Digit> digits, *pdigits = &digits;
     treeDig->SetBranchAddress("EC0Digit", &pdigits);
 
-    std::vector<ROFRecord> rofs, *profs = &rofs;
+    std::vector<o2::itsmft::ROFRecord> rofs, *profs = &rofs;
     treeDig->SetBranchAddress("EC0DigitROF", &profs);
 
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels, *plabels = &labels;
-    std::vector<MC2ROFRecord> mc2rofs, *pmc2rofs = &mc2rofs;
+    std::vector<o2::itsmft::MC2ROFRecord> mc2rofs, *pmc2rofs = &mc2rofs;
     if (mUseMC) {
       treeDig->SetBranchAddress("EC0DigitMCTruth", &plabels);
       treeDig->SetBranchAddress("EC0DigitMC2ROF", &pmc2rofs);

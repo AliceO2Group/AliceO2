@@ -134,32 +134,5 @@ DataProcessorSpec getEC0ClusterReaderSpec(bool useMC, bool useClFull, bool useCl
       {"ec0-cluster-infile", VariantType::String, "o2clus_ec0.root", {"Name of the input cluster file"}}}};
 }
 
-DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool useClFull, bool useClComp, bool usePatterns)
-{
-  std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("MFT", "CLUSTERSROF", 0, Lifetime::Timeframe);
-  if (useClFull) {
-    outputSpec.emplace_back("MFT", "CLUSTERS", 0, Lifetime::Timeframe);
-  }
-  if (useClComp) {
-    outputSpec.emplace_back("MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  }
-  if (usePatterns) {
-    outputSpec.emplace_back("MFT", "PATTERNS", 0, Lifetime::Timeframe);
-  }
-  if (useMC) {
-    outputSpec.emplace_back("MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back("MFT", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
-  }
-
-  return DataProcessorSpec{
-    "mft-cluster-reader",
-    Inputs{},
-    outputSpec,
-    AlgorithmSpec{adaptFromTask<MFTClusterReader>(useMC, useClFull, useClComp)},
-    Options{
-      {"mft-cluster-infile", VariantType::String, "o2clus_mft.root", {"Name of the input cluster file"}}}};
-}
-
 } // namespace endcaps
 } // namespace o2

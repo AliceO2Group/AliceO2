@@ -88,7 +88,7 @@ class DigitPixelReader : public PixelReader
   void clear();
 
  private:
-  void addPixel(ChipPixelData& chipData, const Digit* dig)
+  void addPixel(ChipPixelData& chipData, const o2::itsmft::Digit* dig)
   {
     // add new fired pixel
     chipData.getData().emplace_back(dig);

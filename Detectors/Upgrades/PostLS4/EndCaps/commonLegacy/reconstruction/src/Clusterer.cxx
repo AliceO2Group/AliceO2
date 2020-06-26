@@ -169,7 +169,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClu
 
 //__________________________________________________
 void Clusterer::ClustererThread::process(gsl::span<ChipPixelData*> chipPtrs, FullClusCont* fullClusPtr, CompClusCont* compClusPtr, PatternCont* patternsPtr,
-                                         const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr)
+                                         const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const o2::itsmft::ROFRecord& rofPtr)
 {
   int nch = chipPtrs.size();
   for (auto curChipData : chipPtrs) {

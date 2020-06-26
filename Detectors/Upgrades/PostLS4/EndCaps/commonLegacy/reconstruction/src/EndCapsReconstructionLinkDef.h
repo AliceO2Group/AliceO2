@@ -14,39 +14,37 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::itsmft::RawPixelDecoder < o2::itsmft::ChipMappingITS> + ;
-#pragma link C++ class o2::itsmft::RawPixelDecoder < o2::itsmft::ChipMappingMFT> + ;
+#pragma link C++ class o2::endcaps::RawPixelDecoder < o2::endcaps::ChipMappingITS> + ;
+#pragma link C++ class o2::endcaps::RawPixelDecoder < o2::endcaps::ChipMappingMFT> + ;
 
-#pragma link C++ class o2::itsmft::Clusterer + ;
-#pragma link C++ class o2::itsmft::PixelReader + ;
-#pragma link C++ class o2::itsmft::DigitPixelReader + ;
-#pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingITS> + ;
-#pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingMFT> + ;
+#pragma link C++ class o2::endcaps::Clusterer + ;
+#pragma link C++ class o2::endcaps::PixelReader + ;
+#pragma link C++ class o2::endcaps::DigitPixelReader + ;
+#pragma link C++ class o2::endcaps::RawPixelReader < o2::endcaps::ChipMappingITS> + ;
+#pragma link C++ class o2::endcaps::RawPixelReader < o2::endcaps::ChipMappingMFT> + ;
 
-#pragma link C++ class o2::itsmft::PixelData + ;
-#pragma link C++ class o2::itsmft::ChipPixelData + ;
-#pragma link C++ class o2::itsmft::BuildTopologyDictionary + ;
-#pragma link C++ class o2::itsmft::LookUp + ;
-#pragma link C++ class o2::itsmft::TopologyFastSimulation + ;
-#pragma link C++ class o2::itsmft::ChipMappingITS + ;
-#pragma link C++ class o2::itsmft::ChipMappingMFT + ;
-#pragma link C++ class o2::itsmft::AlpideCoder + ;
-#pragma link C++ class o2::itsmft::GBTWord + ;
-#pragma link C++ class o2::itsmft::GBTDataHeader + ;
-#pragma link C++ class o2::itsmft::GBTDataTrailer + ;
-#pragma link C++ class o2::itsmft::GBTData + ;
-#pragma link C++ class o2::itsmft::PayLoadCont + ;
-#pragma link C++ class o2::itsmft::PayLoadSG + ;
-#pragma link C++ class o2::itsmft::GBTLinkDecodingStat + ;
-#pragma link C++ class o2::itsmft::GBTLink + ;
-#pragma link C++ class o2::itsmft::RUDecodeData + ;
-#pragma link C++ class o2::itsmft::RawDecodingStat + ;
+#pragma link C++ class o2::endcaps::PixelData + ;
+#pragma link C++ class o2::endcaps::ChipPixelData + ;
+#pragma link C++ class o2::endcaps::BuildTopologyDictionary + ;
+#pragma link C++ class o2::endcaps::LookUp + ;
+#pragma link C++ class o2::endcaps::TopologyFastSimulation + ;
+#pragma link C++ class o2::endcaps::ChipMappingITS + ;
+#pragma link C++ class o2::endcaps::ChipMappingMFT + ;
+#pragma link C++ class o2::endcaps::AlpideCoder + ;
+#pragma link C++ class o2::endcaps::GBTWord + ;
+#pragma link C++ class o2::endcaps::GBTDataHeader + ;
+#pragma link C++ class o2::endcaps::GBTDataTrailer + ;
+#pragma link C++ class o2::endcaps::GBTData + ;
+#pragma link C++ class o2::endcaps::PayLoadCont + ;
+#pragma link C++ class o2::endcaps::PayLoadSG + ;
+#pragma link C++ class o2::endcaps::GBTLinkDecodingStat + ;
+#pragma link C++ class o2::endcaps::GBTLink + ;
+#pragma link C++ class o2::endcaps::RUDecodeData + ;
+#pragma link C++ class o2::endcaps::RawDecodingStat + ;
 
 #pragma link C++ class std::map < unsigned long, std::pair < o2::itsmft::ClusterTopology, unsigned long>> + ;
 
-#pragma link C++ class o2::itsmft::ClustererParam < o2::detectors::DetID::ITS> + ;
-#pragma link C++ class o2::itsmft::ClustererParam < o2::detectors::DetID::MFT> + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::itsmft::ClustererParam < o2::detectors::DetID::ITS>> + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::itsmft::ClustererParam < o2::detectors::DetID::MFT>> + ;
+#pragma link C++ class o2::endcaps::ClustererParam < o2::detectors::DetID::EC0> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::endcaps::ClustererParam < o2::detectors::DetID::EC0>> + ;
 
 #endif

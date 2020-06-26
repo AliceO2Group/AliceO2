@@ -87,7 +87,6 @@ class EC0ClusterReader : public ClusterReader
 /// read ITS/MFT cluster data from a root file
 framework::DataProcessorSpec getEC0ClusterReaderSpec(bool useMC = true, bool useClFull = true, bool useClComp = true, bool usePatterns = true);
 
-
 } // namespace endcaps
 } // namespace o2
 

@@ -77,7 +77,7 @@ void MC2RawEncoder<Mapping>::finalize()
 
 ///______________________________________________________________________
 template <class Mapping>
-void MC2RawEncoder<Mapping>::digits2raw(gsl::span<const Digit> digits, const o2::InteractionRecord& bcData)
+void MC2RawEncoder<Mapping>::digits2raw(gsl::span<const o2::itsmft::Digit> digits, const o2::InteractionRecord& bcData)
 {
   // Convert digits to raw data
   // The digits in the span/vector must be in increasing chipID order

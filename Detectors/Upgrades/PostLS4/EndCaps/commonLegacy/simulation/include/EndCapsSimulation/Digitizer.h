@@ -55,8 +55,8 @@ class Digitizer : public TObject
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mclb) { mMCLabels = mclb; }
   void setROFRecords(std::vector<o2::itsmft::ROFRecord>* rec) { mROFRecords = rec; }
 
-  o2::itsmft::DigiParams& getParams() { return (o2::itsmft::DigiParams&)mParams; }
-  const o2::itsmft::DigiParams& getParams() const { return mParams; }
+  DigiParams& getParams() { return (DigiParams&)mParams; }
+  const DigiParams& getParams() const { return mParams; }
 
   void init();
 
@@ -73,11 +73,11 @@ class Digitizer : public TObject
   bool isContinuous() const { return mParams.isContinuous(); }
   void fillOutputContainer(UInt_t maxFrame = 0xffffffff);
 
-  void setDigiParams(const o2::itsmft::DigiParams& par) { mParams = par; }
-  const o2::itsmft::DigiParams& getDigitParams() const { return mParams; }
+  void setDigiParams(const DigiParams& par) { mParams = par; }
+  const DigiParams& getDigitParams() const { return mParams; }
 
   // provide the common itsmft::GeometryTGeo to access matrices and segmentation
-  void setGeometry(const o2::itsmft::GeometryTGeo* gm) { mGeometry = gm; }
+  void setGeometry(const o2::endcaps::GeometryTGeo* gm) { mGeometry = gm; }
 
   UInt_t getEventROFrameMin() const { return mEventROFrameMin; }
   UInt_t getEventROFrameMax() const { return mEventROFrameMax; }
@@ -88,7 +88,7 @@ class Digitizer : public TObject
   }
 
  private:
-  void processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, int srcID);
+  void processHit(const Hit& hit, UInt_t& maxFr, int evID, int srcID);
   void registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, float tInROF, int nROF,
                       UShort_t row, UShort_t col, int nEle, o2::MCCompLabel& lbl);
 
@@ -106,7 +106,7 @@ class Digitizer : public TObject
 
   static constexpr float sec2ns = 1e9;
 
-  o2::itsmft::DigiParams mParams; ///< digitization parameters
+  DigiParams mParams; ///< digitization parameters
   o2::InteractionTimeRecord mEventTime; ///< global event time and interaction record
   double mCollisionTimeWrtROF;
   UInt_t mROFrameMin = 0;         ///< lowest RO frame of current digits
@@ -116,11 +116,11 @@ class Digitizer : public TObject
   UInt_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
   UInt_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
 
-  std::unique_ptr<o2::itsmft::AlpideSimResponse> mAlpSimResp; // simulated response
+  std::unique_ptr<AlpideSimResponse> mAlpSimResp; // simulated response
 
-  const o2::itsmft::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
+  const o2::endcaps::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
 
-  std::vector<o2::itsmft::ChipDigitsContainer> mChips; ///< Array of chips digits containers
+  std::vector<ChipDigitsContainer> mChips; ///< Array of chips digits containers
   std::deque<std::unique_ptr<ExtraDig>> mExtraBuff;    ///< burrer (per roFrame) for extra digits
 
   std::vector<o2::itsmft::Digit>* mDigits = nullptr;                       //! output digits

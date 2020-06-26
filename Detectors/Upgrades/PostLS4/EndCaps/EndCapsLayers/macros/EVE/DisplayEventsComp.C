@@ -34,7 +34,7 @@
 #include "DataFormatsITSMFT/Digit.h"
 #include "ECLayersBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsEndCaps/TopologyDictionary.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
@@ -108,7 +108,7 @@ class Data
   TEveElement* getEveTracks();
 } evdata;
 
-o2::itsmft::TopologyDictionary dict;
+TopologyDictionary dict;
 
 void Data::loadDigits()
 {

@@ -23,7 +23,7 @@
 #define ALICEO2_ENDCAPS_LOOKUP_H
 #include <array>
 #include "DataFormatsITSMFT/ClusterTopology.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsEndCaps/TopologyDictionary.h"
 
 namespace o2
 {
@@ -35,7 +35,7 @@ class LookUp
   LookUp();
   LookUp(std::string fileName);
   static int groupFinder(int nRow, int nCol);
-  int findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  int findGroupID(int nRow, int nCol, const unsigned char patt[o2::itsmft::Cluster::kMaxPatternBytes]);
   int getTopologiesOverThreshold() { return mTopologiesOverThreshold; }
   void loadDictionary(std::string fileName);
   bool isGroup(int id) const;

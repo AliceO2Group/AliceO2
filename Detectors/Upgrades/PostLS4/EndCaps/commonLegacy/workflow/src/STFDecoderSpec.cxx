@@ -67,10 +67,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     o2::base::GeometryManager::loadGeometry(); // for generating full clusters
     GeometryTGeo* geom = nullptr;
     if (detID == o2::detectors::DetID::EC0) {
-      geom = o2::ec0::GeometryTGeo::Instance();
-      geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
-    } else {
-      geom = o2::mft::GeometryTGeo::Instance();
+      geom = o2::ecl::GeometryTGeo::Instance();
       geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
     }
     mClusterer = std::make_unique<Clusterer>();
@@ -111,13 +108,13 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   mTimer.Start(false);
   mDecoder->startNewTF(pc.inputs());
   auto orig = Mapping::getOrigin();
-  using CLUSVECDUMMY = std::vector<Cluster>;
+  using CLUSVECDUMMY = std::vector<o2::itsmft::Cluster>;
   std::vector<o2::itsmft::Cluster> clusVec;
   std::vector<o2::itsmft::CompClusterExt> clusCompVec;
   std::vector<o2::itsmft::ROFRecord> clusROFVec;
   std::vector<unsigned char> clusPattVec;
-  std::vector<Digit> digVec;
-  std::vector<ROFRecord> digROFVec;
+  std::vector<o2::itsmft::Digit> digVec;
+  std::vector<o2::itsmft::ROFRecord> digROFVec;
   CLUSVECDUMMY* clusVecDUMMY = nullptr;
   mDecoder->setDecodeNextAuto(false);
   while (mDecoder->decodeNextTrigger()) {

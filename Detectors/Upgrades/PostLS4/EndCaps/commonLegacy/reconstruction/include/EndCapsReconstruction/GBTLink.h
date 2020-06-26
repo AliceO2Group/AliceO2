@@ -276,7 +276,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       lanesStop = 0;
       lanesWithData = 0;
     }
-    auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);
+    auto gbtD = reinterpret_cast<const o2::endcaps::GBTData*>(&currRawPiece->data[dataOffset]);
     while (!gbtD->isDataTrailer()) { // start reading real payload
       nw++;
       int cableHW = gbtD->getCableID(), cableSW = chmap.cableHW2SW(ruPtr->ruInfo->ruType, cableHW);
@@ -289,10 +289,10 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       ruPtr->cableLinkID[cableSW] = idInRU;
       ruPtr->cableLinkPtr[cableSW] = this;
       dataOffset += GBTPaddedWordLength;
-      gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);
+      gbtD = reinterpret_cast<const o2::endcaps::GBTData*>(&currRawPiece->data[dataOffset]);
     } // we are at the trailer, packet is over, check if there are more data on the next page
 
-    auto gbtT = reinterpret_cast<const o2::itsmft::GBTDataTrailer*>(&currRawPiece->data[dataOffset]); // process GBT trailer
+    auto gbtT = reinterpret_cast<const o2::endcaps::GBTDataTrailer*>(&currRawPiece->data[dataOffset]); // process GBT trailer
     dataOffset += GBTPaddedWordLength;
     if (verbosity >= VerboseHeaders) {
       printTrailer(gbtT);

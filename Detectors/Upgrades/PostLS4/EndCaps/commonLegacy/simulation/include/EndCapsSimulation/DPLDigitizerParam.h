@@ -22,11 +22,11 @@ namespace endcaps
 {
 template <int N>
 struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizerParam<N>> {
-  static_assert(N == o2::detectors::DetID::ITS || N == o2::detectors::DetID::MFT, "only DetID::ITS orDetID:: MFT are allowed");
+  static_assert(N == o2::detectors::DetID::EC0, "only DetID::EC0 is allowed");
 
   static constexpr std::string_view getParamName()
   {
-    return N == o2::detectors::DetID::ITS ? ParamName[0] : ParamName[1];
+    return ParamName;
   }
 
   bool continuous = true;          ///< flag for continuous simulation
@@ -45,7 +45,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   O2ParamDef(DPLDigitizerParam, getParamName().data());
 
  private:
-  static constexpr std::string_view ParamName[2] = {"ITSDigitizerParam", "MFTDigitizerParam"};
+  static constexpr std::string_view ParamName = "EC0DigitizerParam";
 };
 
 template <int N>

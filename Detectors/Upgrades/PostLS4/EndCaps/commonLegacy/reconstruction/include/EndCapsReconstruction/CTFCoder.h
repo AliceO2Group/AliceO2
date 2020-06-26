@@ -31,27 +31,33 @@ namespace o2
 namespace endcaps
 {
 
+  using o2::itsmft::CTF;
+  using o2::itsmft::ROFRecord;
+  using o2::itsmft::CompClusterExt;
+  using o2::itsmft::CompressedClusters;
+
+
 class CTFCoder
 {
  public:
   /// entropy-encode clusters to buffer with CTF
   template <typename VEC>
-  static void encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec);
+  static void encode(VEC& buff, const gsl::span<const o2::itsmft::ROFRecord>& rofRecVec, const gsl::span<const o2::itsmft::CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec);
 
   /// entropy decode clusters from buffer with CTF
   template <typename VROF, typename VCLUS, typename VPAT>
   static void decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec);
 
  private:
-  /// compres compact clusters to CompressedClusters
-  static void compress(CompressedClusters& cc, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec);
+  /// compres compact clusters to o2::itsmft::CompressedClusters
+  static void compress(o2::itsmft::CompressedClusters& cc, const gsl::span<const o2::itsmft::ROFRecord>& rofRecVec, const gsl::span<const o2::itsmft::CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec);
 
-  /// decompress CompressedClusters to compact clusters
+  /// decompress o2::itsmft::CompressedClusters to compact clusters
   template <typename VROF, typename VCLUS, typename VPAT>
-  static void decompress(const CompressedClusters& cc, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec);
+  static void decompress(const o2::itsmft::CompressedClusters& cc, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec);
 
   static void appendToTree(TTree& tree, o2::detectors::DetID id, CTF& ec);
-  static void readFromTree(TTree& tree, int entry, o2::detectors::DetID id, std::vector<ROFRecord>& rofRecVec, std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec);
+  static void readFromTree(TTree& tree, int entry, o2::detectors::DetID id, std::vector<o2::itsmft::ROFRecord>& rofRecVec, std::vector<o2::itsmft::CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec);
 
  protected:
   ClassDefNV(CTFCoder, 1);
@@ -59,7 +65,7 @@ class CTFCoder
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec)
+void CTFCoder::encode(VEC& buff, const gsl::span<const o2::itsmft::ROFRecord>& rofRecVec, const gsl::span<const o2::itsmft::CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -75,7 +81,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, co
     MD::EENCODE, //BLCpattID
     MD::EENCODE  //BLCpattMap
   };
-  CompressedClusters cc;
+  o2::itsmft::CompressedClusters cc;
   compress(cc, rofRecVec, cclusVec, pattVec);
   auto ec = CTF::create(buff);
   using ECB = CTF::base;
@@ -104,7 +110,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, co
 template <typename VROF, typename VCLUS, typename VPAT>
 void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec)
 {
-  CompressedClusters cc;
+  o2::itsmft::CompressedClusters cc;
   cc.header = ec.getHeader();
   // clang-format off
     ec.decode(cc.firstChipROF, CTF::BLCfirstChipROF);
@@ -125,7 +131,7 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPA
 
 /// decompress compressed clusters to standard compact clusters
 template <typename VROF, typename VCLUS, typename VPAT>
-void CTFCoder::decompress(const CompressedClusters& cc, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec)
+void CTFCoder::decompress(const o2::itsmft::CompressedClusters& cc, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec)
 {
   rofRecVec.resize(cc.header.nROFs);
   cclusVec.resize(cc.header.nClusters);
@@ -134,7 +140,7 @@ void CTFCoder::decompress(const CompressedClusters& cc, VROF& rofRecVec, VCLUS& 
   o2::InteractionRecord prevIR(cc.header.firstBC, cc.header.firstOrbit);
   uint32_t firstEntry = 0, clCount = 0, chipCount = 0;
   for (uint32_t irof = 0; irof < cc.header.nROFs; irof++) {
-    // restore ROFRecord
+    // restore o2::itsmft::ROFRecord
     auto& rofRec = rofRecVec[irof];
     if (cc.orbitIncROF[irof]) {      // new orbit
       prevIR.bc = cc.bcIncROF[irof]; // bcInc has absolute meaning

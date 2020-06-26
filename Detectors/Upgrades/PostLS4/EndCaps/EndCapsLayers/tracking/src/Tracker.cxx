@@ -215,7 +215,7 @@ void Tracker::findRoads(int& iteration)
 void Tracker::findTracks(const ROframe& event)
 {
   mTracks.reserve(mTracks.capacity() + mPrimaryVertexContext->getRoads().size());
-  std::vector<TrackITSExt> tracks;
+  std::vector<o2::its::TrackITSExt> tracks;
   tracks.reserve(mPrimaryVertexContext->getRoads().size());
 #ifdef CA_DEBUG
   std::array<int, 4> roadCounters{0, 0, 0, 0};
@@ -266,7 +266,7 @@ void Tracker::findTracks(const ROframe& event)
     const auto& cluster3_tf = event.getTrackingFrameInfoOnLayer(lastCellLevel).at(clusters[lastCellLevel]);
 
     /// FIXME!
-    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf)};
+    o2::its::TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf)};
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::ecl::UnusedIndex);
     }
@@ -292,7 +292,7 @@ void Tracker::findTracks(const ROframe& event)
   //mTraits->refitTracks(event.getTrackingFrameInfo(), tracks);
 
   std::sort(tracks.begin(), tracks.end(),
-            [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });
+            [](o2::its::TrackITSExt& track1, o2::its::TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });
 
 #ifdef CA_DEBUG
   std::array<int, 26> sharingMatrix{0};
@@ -385,7 +385,7 @@ void Tracker::findTracks(const ROframe& event)
 #endif
 }
 
-bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step)
+bool Tracker::fitTrack(const ROframe& event, o2::its::TrackITSExt& track, int start, int end, int step)
 {
   track.setChi2(0);
   for (int iLayer{start}; iLayer != end; iLayer += step) {
@@ -543,7 +543,7 @@ void Tracker::computeTracksMClabels(const ROframe& event)
     int count{0};
     bool isFakeTrack{false};
 
-    for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
+    for (int iCluster = 0; iCluster < o2::its::TrackITSExt::MaxClusters; ++iCluster) {
       const int index = track.getClusterIndex(iCluster);
       if (index == constants::ecl::UnusedIndex) {
         continue;
@@ -576,7 +576,7 @@ void Tracker::rectifyClusterIndices(const ROframe& event)
 {
   int tracksNum{static_cast<int>(mTracks.size())};
   for (auto& track : mTracks) {
-    for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
+    for (int iCluster = 0; iCluster < o2::its::TrackITSExt::MaxClusters; ++iCluster) {
       const int index = track.getClusterIndex(iCluster);
       if (index != constants::ecl::UnusedIndex) {
         track.setExternalClusterIndex(iCluster, event.getClusterExternalIndex(iCluster, index));

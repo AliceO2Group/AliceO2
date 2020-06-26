@@ -28,7 +28,7 @@ constexpr float BuildTopologyDictionary::IgnoreVal;
 
 BuildTopologyDictionary::BuildTopologyDictionary() : mTotClusters{0} {}
 
-void BuildTopologyDictionary::accountTopology(const ClusterTopology& cluster, float dX, float dZ)
+void BuildTopologyDictionary::accountTopology(const o2::itsmft::ClusterTopology& cluster, float dX, float dZ)
 {
   mTotClusters++;
   bool useDf = dX < IgnoreVal / 2; // we may need to account the frequency but to not update the centroid

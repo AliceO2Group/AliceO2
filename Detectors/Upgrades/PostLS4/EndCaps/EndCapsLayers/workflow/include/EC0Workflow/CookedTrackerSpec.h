@@ -16,7 +16,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "EC0Reconstruction/CookedTracker.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsEndCaps/TopologyDictionary.h"
 #include "Framework/Task.h"
 #include "TStopwatch.h"
 
@@ -39,7 +39,7 @@ class CookedTrackerDPL : public Task
  private:
   int mState = 0;
   bool mUseMC = true;
-  o2::itsmft::TopologyDictionary mDict;
+  o2::endcaps::TopologyDictionary mDict;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   o2::ecl::CookedTracker mTracker;
   TStopwatch mTimer;

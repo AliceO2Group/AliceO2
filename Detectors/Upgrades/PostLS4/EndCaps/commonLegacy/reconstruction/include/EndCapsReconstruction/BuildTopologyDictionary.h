@@ -25,7 +25,8 @@
 #include <map>
 #include "EndCapsBase/SegmentationAlpide.h"
 #include "DataFormatsITSMFT/ClusterTopology.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsEndCaps/TopologyDictionary.h"
+
 
 namespace o2
 {
@@ -47,7 +48,7 @@ struct TopologyInfo {
 
 // transient structure to accumulate topology statistics
 struct TopoStat {
-  ClusterTopology topology;
+  o2::itsmft::ClusterTopology topology;
   unsigned long countsTotal = 0;    // counts for this topology
   unsigned long countsWithBias = 0; // counts with assigned dX,dY provided
   TopoStat() = default;
@@ -58,7 +59,7 @@ class BuildTopologyDictionary
  public:
   BuildTopologyDictionary();
   static constexpr float IgnoreVal = 999.;
-  void accountTopology(const ClusterTopology& cluster, float dX = IgnoreVal, float dZ = IgnoreVal);
+  void accountTopology(const o2::itsmft::ClusterTopology& cluster, float dX = IgnoreVal, float dZ = IgnoreVal);
   void setNCommon(unsigned int nCommon); // set number of common topologies
   void setThreshold(double thr);
   void setThresholdCumulative(double cumulative); // Considering the integral

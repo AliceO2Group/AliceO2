@@ -29,7 +29,7 @@ class PixelData
 {
 
  public:
-  PixelData(const Digit* dig) : mRow(dig->getRow()), mCol(dig->getColumn()) {}
+  PixelData(const o2::itsmft::Digit* dig) : mRow(dig->getRow()), mCol(dig->getColumn()) {}
   PixelData(uint16_t r = 0, uint16_t c = 0) : mRow(r), mCol(c) {}
   uint16_t getRow() const { return mRow & RowMask; }
   uint16_t getCol() const { return mCol; }

@@ -135,7 +135,7 @@ Hit::Hit(int trackID, unsigned short detID, const TVector3& startPos, const TVec
 namespace std
 {
 template <>
-class allocator<o2::itsmft::Hit> : public o2::utils::ShmAllocator<o2::itsmft::Hit>
+class allocator<o2::endcaps::Hit> : public o2::utils::ShmAllocator<o2::endcaps::Hit>
 {
 };
 } // namespace std

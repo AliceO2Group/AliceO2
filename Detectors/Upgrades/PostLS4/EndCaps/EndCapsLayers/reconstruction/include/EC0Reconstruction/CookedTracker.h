@@ -25,6 +25,7 @@
 #include "ECLayersBase/GeometryTGeo.h"
 #include "MathUtils/Cartesian3D.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ReconstructionDataFormats/Vertex.h"
@@ -39,11 +40,13 @@ class MCTruthContainer;
 }
 namespace endcaps
 {
+
 class TopologyDictionary;
-class CompClusterExt;
 } // namespace endcaps
+
 namespace ecl
 {
+
 class CookedTracker
 {
   using Cluster = o2::itsmft::Cluster;
@@ -67,20 +70,20 @@ class CookedTracker
   Double_t getSigmaX() const { return mSigmaX; }
   Double_t getSigmaY() const { return mSigmaY; }
   Double_t getSigmaZ() const { return mSigmaZ; }
-  o2::MCCompLabel cookLabel(TrackITSExt& t, Float_t wrong) const;
-  void setExternalIndices(TrackITSExt& t) const;
+  o2::MCCompLabel cookLabel(o2::its::TrackITSExt& t, Float_t wrong) const;
+  void setExternalIndices(o2::its::TrackITSExt& t) const;
   Double_t getBz() const;
   void setBz(Double_t bz) { mBz = bz; }
 
   void setNumberOfThreads(Int_t n) { mNumOfThreads = n; }
   Int_t getNumberOfThreads() const { return mNumOfThreads; }
 
-  using TrackInserter = std::function<int(const TrackITSExt& t)>;
+  using TrackInserter = std::function<int(const o2::its::TrackITSExt& t)>;
   // These functions must be implemented
   template <typename U, typename V>
-  void process(gsl::span<const CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& it, const o2::itsmft::TopologyDictionary& dict, U& tracks, V& clusIdx, o2::itsmft::ROFRecord& rof)
+  void process(gsl::span<const CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& it, const o2::endcaps::TopologyDictionary& dict, U& tracks, V& clusIdx, o2::itsmft::ROFRecord& rof)
   {
-    TrackInserter inserter = [&tracks, &clusIdx, this](const TrackITSExt& t) -> int {
+    TrackInserter inserter = [&tracks, &clusIdx, this](const o2::its::TrackITSExt& t) -> int {
       // convert internal track to output format
       auto& trackNew = tracks.emplace_back(t);
       int noc = t.getNumberOfClusters();
@@ -95,10 +98,10 @@ class CookedTracker
     };
     process(clusters, it, dict, inserter, rof);
   }
-  void process(gsl::span<const CompClusterExt> const& clusters, gsl::span<const unsigned char>::iterator& it, const o2::itsmft::TopologyDictionary& dict, TrackInserter& inserter, o2::itsmft::ROFRecord& rof);
+  void process(gsl::span<const CompClusterExt> const& clusters, gsl::span<const unsigned char>::iterator& it, const o2::endcaps::TopologyDictionary& dict, TrackInserter& inserter, o2::itsmft::ROFRecord& rof);
   const Cluster* getCluster(Int_t index) const;
 
-  void setGeometry(o2::its::GeometryTGeo* geom);
+  void setGeometry(o2::ecl::GeometryTGeo* geom);
   void setMCTruthContainers(const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clsLabels,
                             o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkLabels)
   {
@@ -122,18 +125,18 @@ class CookedTracker
   void unloadClusters();
   std::tuple<int, int> processLoadedClusters(TrackInserter& inserter);
 
-  std::vector<TrackITSExt> trackInThread(Int_t first, Int_t last);
-  void makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_t last);
-  void trackSeeds(std::vector<TrackITSExt>& seeds);
+  std::vector<o2::its::TrackITSExt> trackInThread(Int_t first, Int_t last);
+  void makeSeeds(std::vector<o2::its::TrackITSExt>& seeds, Int_t first, Int_t last);
+  void trackSeeds(std::vector<o2::its::TrackITSExt>& seeds);
 
-  Bool_t attachCluster(Int_t& volID, Int_t nl, Int_t ci, TrackITSExt& t, const TrackITSExt& o) const;
+  Bool_t attachCluster(Int_t& volID, Int_t nl, Int_t ci, o2::its::TrackITSExt& t, const o2::its::TrackITSExt& o) const;
 
-  void makeBackPropParam(std::vector<TrackITSExt>& seeds) const;
-  bool makeBackPropParam(TrackITSExt& track) const;
+  void makeBackPropParam(std::vector<o2::its::TrackITSExt>& seeds) const;
+  bool makeBackPropParam(o2::its::TrackITSExt& track) const;
 
  private:
   bool mContinuousMode = true;                                                    ///< triggered or cont. mode
-  const o2::its::GeometryTGeo* mGeom = nullptr;                                   /// interface to geometry
+  const o2::ecl::GeometryTGeo* mGeom = nullptr;                                   /// interface to geometry
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; /// Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTrkLabels = nullptr;       /// Track MC labels
   std::uint32_t mFirstInFrame = 0;                                                ///< Index of the 1st cluster of a frame (within the loaded vector of clusters)
@@ -152,7 +155,7 @@ class CookedTracker
   Double_t mSigmaZ = 2.; ///< error of the primary vertex position in Z
 
   static Layer sLayers[kNLayers];  ///< Layers filled with clusters
-  std::vector<TrackITSExt> mSeeds; ///< Track seeds
+  std::vector<o2::its::TrackITSExt> mSeeds; ///< Track seeds
 
   std::vector<Cluster> mClusterCache;
 
@@ -179,13 +182,13 @@ class CookedTracker::Layer
   Float_t getAlphaRef(Int_t i) const { return mAlphaRef[i]; }
   Float_t getClusterPhi(Int_t i) const { return mPhi[i]; }
   Int_t getNumberOfClusters() const { return mClusters.size(); }
-  void setGeometry(o2::its::GeometryTGeo* geom) { mGeom = geom; }
+  void setGeometry(o2::ecl::GeometryTGeo* geom) { mGeom = geom; }
 
  protected:
   enum { kNSectors = 21 };
 
   Float_t mR;                                             ///< mean radius of this layer
-  const o2::its::GeometryTGeo* mGeom = nullptr;           ///< interface to geometry
+  const o2::ecl::GeometryTGeo* mGeom = nullptr;           ///< interface to geometry
   std::vector<const Cluster*> mClusters;                  ///< All clusters
   std::vector<Float_t> mAlphaRef;                         ///< alpha of the reference plane
   std::vector<Float_t> mPhi;                              ///< cluster phi

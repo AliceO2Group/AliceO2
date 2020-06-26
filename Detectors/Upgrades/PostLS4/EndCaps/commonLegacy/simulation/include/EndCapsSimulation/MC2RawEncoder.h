@@ -32,7 +32,7 @@ namespace endcaps
 template <class Mapping>
 class MC2RawEncoder
 {
-  using Coder = o2::itsmft::AlpideCoder;
+  using Coder = AlpideCoder;
 
  public:
   MC2RawEncoder()
@@ -45,7 +45,7 @@ class MC2RawEncoder
     mWriter.close();
   }
 
-  void digits2raw(gsl::span<const Digit> digits, const o2::InteractionRecord& bcData);
+  void digits2raw(gsl::span<const o2::itsmft::Digit> digits, const o2::InteractionRecord& bcData);
   void finalize();
   void init();
 

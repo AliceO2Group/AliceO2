@@ -22,7 +22,8 @@
 #ifndef ALICEO2_ENDCAPS_TOPOLOGYFASTSIMULATION_H
 #define ALICEO2_ENDCAPS_TOPOLOGYFASTSIMULATION_H
 #include <random>
-#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsEndCaps/TopologyDictionary.h"
+
 
 namespace o2
 {

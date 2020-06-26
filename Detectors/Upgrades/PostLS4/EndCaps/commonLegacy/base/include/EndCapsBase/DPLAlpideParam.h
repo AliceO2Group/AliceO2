@@ -32,7 +32,7 @@ struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<
 
   static constexpr std::string_view getParamName()
   {
-    return N == o2::detectors::DetID::EC0 ? ParamName[0] : ParamName[1];
+    return ParamName;
   }
   int roFrameLengthInBC = DEFROFLengthBC;             ///< ROF length in BC for continuos mode
   float roFrameLengthTrig = 6000.;                    ///< length of RO frame in ns for triggered mode

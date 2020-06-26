@@ -29,7 +29,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "Field/MagneticField.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsEndCaps/TopologyDictionary.h"
 #include "EC0Reconstruction/CookedTracker.h"
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -90,7 +90,7 @@ CookedTracker::CookedTracker(Int_t n) : mNumOfThreads(n), mBz(0.)
 }
 
 //__________________________________________________________________________
-Label CookedTracker::cookLabel(TrackITSExt& t, Float_t wrong) const
+Label CookedTracker::cookLabel(o2::its::TrackITSExt& t, Float_t wrong) const
 {
   //--------------------------------------------------------------------
   // This function "cooks" a track label.
@@ -240,7 +240,7 @@ static o2::its::TrackITSExt cookSeed(const Point3Df& r1, Point3Df& r2, const Poi
   return o2::its::TrackITSExt(x3, alpha, par, cov);
 }
 
-void CookedTracker::makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_t last)
+void CookedTracker::makeSeeds(std::vector<o2::its::TrackITSExt>& seeds, Int_t first, Int_t last)
 {
   //--------------------------------------------------------------------
   // This is the main pattern recongition function.
@@ -313,7 +313,7 @@ void CookedTracker::makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_
 
         const Point3Df& txyz2 = c2->getXYZ(); // tracking coordinates
 
-        TrackITSExt seed = cookSeed(xyz1, xyz3, txyz2, layer2.getR(), layer3.getR(), layer2.getAlphaRef(n2), getBz());
+        o2::its::TrackITSExt seed = cookSeed(xyz1, xyz3, txyz2, layer2.getR(), layer3.getR(), layer2.getAlphaRef(n2), getBz());
 
         float ip[2];
         seed.getImpactParams(getX(), getY(), getZ(), getBz(), ip);
@@ -351,7 +351,7 @@ void CookedTracker::makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_
   */
 }
 
-void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
+void CookedTracker::trackSeeds(std::vector<o2::its::TrackITSExt>& seeds)
 {
   //--------------------------------------------------------------------
   // Loop over a subset of track seeds
@@ -388,32 +388,32 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
       r1 = r2;
     }
 
-    TrackITSExt best(track);
+    o2::its::TrackITSExt best(track);
 
     Int_t volID = -1;
     Int_t ci = -1;
-    TrackITSExt t3(track);
+    o2::its::TrackITSExt t3(track);
     for (auto& ci3 : selec[3]) {
       if (used[3][ci3])
         continue;
       if (!attachCluster(volID, 3, ci3, t3, track))
         continue;
 
-      TrackITSExt t2(t3);
+      o2::its::TrackITSExt t2(t3);
       for (auto& ci2 : selec[2]) {
         if (used[2][ci2])
           continue;
         if (!attachCluster(volID, 2, ci2, t2, t3))
           continue;
 
-        TrackITSExt t1(t2);
+        o2::its::TrackITSExt t1(t2);
         for (auto& ci1 : selec[1]) {
           if (used[1][ci1])
             continue;
           if (!attachCluster(volID, 1, ci1, t1, t2))
             continue;
 
-          TrackITSExt t0(t1);
+          o2::its::TrackITSExt t0(t1);
           for (auto& ci0 : selec[0]) {
             if (used[0][ci0])
               continue;
@@ -440,12 +440,12 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
   }
 }
 
-std::vector<TrackITSExt> CookedTracker::trackInThread(Int_t first, Int_t last)
+std::vector<o2::its::TrackITSExt> CookedTracker::trackInThread(Int_t first, Int_t last)
 {
   //--------------------------------------------------------------------
   // This function is passed to a tracking thread
   //--------------------------------------------------------------------
-  std::vector<TrackITSExt> seeds;
+  std::vector<o2::its::TrackITSExt> seeds;
   seeds.reserve(last - first + 1);
 
   for (const auto& vtx : *mVertices) {
@@ -466,7 +466,7 @@ std::vector<TrackITSExt> CookedTracker::trackInThread(Int_t first, Int_t last)
 
 void CookedTracker::process(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
                             gsl::span<const unsigned char>::iterator& pattIt,
-                            const o2::itsmft::TopologyDictionary& dict,
+                            const TopologyDictionary& dict,
                             TrackInserter& inserter,
                             o2::itsmft::ROFRecord& rof)
 {
@@ -496,11 +496,11 @@ void CookedTracker::process(gsl::span<const o2::itsmft::CompClusterExt> const& c
       if (!dict.isGroup(pattID)) {
         locXYZ = dict.getClusterCoordinates(comp);
       } else {
-        o2::itsmft::ClusterPattern patt(pattIt);
+        ClusterPattern patt(pattIt);
         locXYZ = dict.getClusterCoordinates(comp, patt);
       }
     } else {
-      o2::itsmft::ClusterPattern patt(pattIt);
+      ClusterPattern patt(pattIt);
       locXYZ = dict.getClusterCoordinates(comp, patt);
     }
     auto sensorID = comp.getSensorID();
@@ -545,8 +545,8 @@ std::tuple<int, int> CookedTracker::processLoadedClusters(TrackInserter& inserte
     return {0, 0};
   }
 
-  std::vector<std::future<std::vector<TrackITSExt>>> futures(mNumOfThreads);
-  std::vector<std::vector<TrackITSExt>> seedArray(mNumOfThreads);
+  std::vector<std::future<std::vector<o2::its::TrackITSExt>>> futures(mNumOfThreads);
+  std::vector<std::vector<o2::its::TrackITSExt>> seedArray(mNumOfThreads);
 
   for (Int_t t = 0, first = 0; t < mNumOfThreads; t++) {
     Int_t rem = t < (numOfClusters % mNumOfThreads) ? 1 : 0;
@@ -586,7 +586,7 @@ std::tuple<int, int> CookedTracker::processLoadedClusters(TrackInserter& inserte
 }
 
 //____________________________________________________________
-void CookedTracker::makeBackPropParam(std::vector<TrackITSExt>& seeds) const
+void CookedTracker::makeBackPropParam(std::vector<o2::its::TrackITSExt>& seeds) const
 {
   // refit in backward direction
   for (auto& track : seeds) {
@@ -598,7 +598,7 @@ void CookedTracker::makeBackPropParam(std::vector<TrackITSExt>& seeds) const
 }
 
 //____________________________________________________________
-bool CookedTracker::makeBackPropParam(TrackITSExt& track) const
+bool CookedTracker::makeBackPropParam(o2::its::TrackITSExt& track) const
 {
   // refit in backward direction
   auto backProp = track.getParamOut();
@@ -665,7 +665,7 @@ void CookedTracker::unloadClusters()
     sLayers[i].unloadClusters();
 }
 
-const Cluster* CookedTracker::getCluster(Int_t index) const
+const o2::itsmft::Cluster* CookedTracker::getCluster(Int_t index) const
 {
   //--------------------------------------------------------------------
   //       Return pointer to a given cluster
@@ -779,7 +779,7 @@ void CookedTracker::Layer::selectClusters(std::vector<Int_t>& selec, Float_t phi
   }
 }
 
-Bool_t CookedTracker::attachCluster(Int_t& volID, Int_t nl, Int_t ci, TrackITSExt& t, const TrackITSExt& o) const
+Bool_t CookedTracker::attachCluster(Int_t& volID, Int_t nl, Int_t ci, o2::its::TrackITSExt& t, const o2::its::TrackITSExt& o) const
 {
   //--------------------------------------------------------------------
   // Try to attach a clusters with index ci to running track hypothesis

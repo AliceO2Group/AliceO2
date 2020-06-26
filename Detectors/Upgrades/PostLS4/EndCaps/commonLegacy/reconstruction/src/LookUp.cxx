@@ -14,6 +14,8 @@
 /// \author Luca Barioglio, University and INFN of Torino
 
 #include "EndCapsReconstruction/LookUp.h"
+#include "DataFormatsEndCaps/TopologyDictionary.h"
+
 
 ClassImp(o2::endcaps::LookUp);
 
@@ -54,7 +56,7 @@ int LookUp::groupFinder(int nRow, int nCol)
   }
 }
 
-int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes])
+int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[o2::itsmft::Cluster::kMaxPatternBytes])
 {
   int nBits = nRow * nCol;
   // Small topology
@@ -68,7 +70,7 @@ int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kM
     }
   }
   // Big topology
-  unsigned long hash = ClusterTopology::getCompleteHash(nRow, nCol, patt);
+  unsigned long hash = o2::itsmft::ClusterTopology::getCompleteHash(nRow, nCol, patt);
   auto ret = mDictionary.mCommonMap.find(hash);
   if (ret != mDictionary.mCommonMap.end())
     return ret->second;

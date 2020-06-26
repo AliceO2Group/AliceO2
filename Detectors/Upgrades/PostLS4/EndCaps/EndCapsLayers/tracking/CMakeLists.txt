@@ -30,6 +30,7 @@ o2_add_library(EC0tracking
                                      ms_gsl::ms_gsl
                                      O2::CommonConstants
                                      O2::DataFormatsITSMFT
+                                     O2::DataFormatsEndCaps
                                      O2::SimulationDataFormat
                                      O2::ECLayersBase
                                      O2::DataFormatsITS)

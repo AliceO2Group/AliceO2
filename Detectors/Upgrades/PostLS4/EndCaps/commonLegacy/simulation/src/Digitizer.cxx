@@ -24,7 +24,7 @@
 #include "FairLogger.h" // for LOG
 
 using o2::itsmft::Digit;
-using o2::itsmft::Hit;
+//using o2::itsmft::Hit;
 using Segmentation = o2::endcaps::SegmentationAlpide;
 
 using namespace o2::endcaps;
@@ -179,7 +179,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
 }
 
 //_______________________________________________________________________
-void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, int srcID)
+void Digitizer::processHit(const Hit& hit, UInt_t& maxFr, int evID, int srcID)
 {
   // convert single hit to digits
   float timeInROF = hit.GetTime() * sec2ns;

@@ -65,10 +65,10 @@ void TrackerDPL::init(InitContext& ic)
     geom->fillMatrixCache(utils::bit2Mask(TransformType::T2L, TransformType::T2GRot,
                                           TransformType::T2G));
 
-    auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
+    auto* chainEC0 = mRecChain->AddChain<o2::gpu::GPUChainEC0>();
     mRecChain->Init();
-    mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
-    mTracker = std::make_unique<Tracker>(chainITS->GetITSTrackerTraits());
+    mVertexer = std::make_unique<Vertexer>(chainEC0->GetEC0VertexerTraits());
+    mTracker = std::make_unique<Tracker>(chainEC0->GetEC0TrackerTraits());
     mVertexer->getGlobalConfiguration();
     // mVertexer->dumpTraits();
     double origD[3] = {0., 0., 0.};

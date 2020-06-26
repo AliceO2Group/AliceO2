@@ -252,7 +252,7 @@ class AlpideCoder
   static uint8_t bc2TimeStamp(int bc) { return (bc >> 3) & MaskTimeStamp; }
   static uint16_t timeStamp2BC(uint8_t ts) { return uint16_t(ts) << 3; }
 
-  int encodeChip(PayLoadCont& buffer, const o2::itsmft::ChipPixelData& chipData,
+  int encodeChip(PayLoadCont& buffer, const o2::endcaps::ChipPixelData& chipData,
                  uint16_t chipInModule, uint16_t bc, uint16_t roflags = 0);
 
   // Add empty record for the chip with chipID within its module for the bc

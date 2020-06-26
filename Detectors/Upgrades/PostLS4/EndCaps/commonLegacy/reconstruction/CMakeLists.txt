@@ -32,7 +32,8 @@ o2_add_library(EndCapsReconstruction
 	                             O2::DetectorsRaw
                                      O2::SimulationDataFormat
                                      O2::DataFormatsITSMFT
-				     O2::DPLUtils
+                                     O2::DataFormatsEndCaps
+				                             O2::DPLUtils
                                      O2::rANS
                                      O2::Headers)
 

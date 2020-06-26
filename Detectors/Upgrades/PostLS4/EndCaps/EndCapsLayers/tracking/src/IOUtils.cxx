@@ -24,7 +24,8 @@
 
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsEndCaps/TopologyDictionary.h"
+#include "DataFormatsEndCaps/ClusterPattern.h"
 #include "ECLayersBase/GeometryTGeo.h"
 #include "EC0tracking/Constants.h"
 #include "EC0tracking/json.h"
@@ -56,7 +57,7 @@ void from_json(const nlohmann::json& j, MemoryParameters& par);
 void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
                                      gsl::span<const unsigned char>::iterator& pattIt,
                                      std::vector<o2::BaseCluster<float>>& output,
-                                     const itsmft::TopologyDictionary& dict)
+                                     const o2::endcaps::TopologyDictionary& dict)
 {
   GeometryTGeo* geom = GeometryTGeo::Instance();
   for (auto& c : clusters) {
@@ -69,11 +70,11 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
       if (!dict.isGroup(pattID)) {
         locXYZ = dict.getClusterCoordinates(c);
       } else {
-        o2::itsmft::ClusterPattern patt(pattIt);
+        o2::endcaps::ClusterPattern patt(pattIt);
         locXYZ = dict.getClusterCoordinates(c, patt);
       }
     } else {
-      o2::itsmft::ClusterPattern patt(pattIt);
+        o2::endcaps::ClusterPattern patt(pattIt);
       locXYZ = dict.getClusterCoordinates(c, patt);
     }
     auto& cl3d = output.emplace_back(c.getSensorID(), geom->getMatrixT2L(c.getSensorID()) ^ locXYZ); // local --> tracking
@@ -175,7 +176,7 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::Cluster> clu
 }
 
 void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters,
-                            gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
+                            gsl::span<const unsigned char>::iterator& pattIt, const o2::endcaps::TopologyDictionary& dict,
                             const dataformats::MCTruthContainer<MCCompLabel>* clsLabels)
 {
   if (clusters.empty()) {
@@ -199,11 +200,11 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
       if (!dict.isGroup(pattID)) {
         locXYZ = dict.getClusterCoordinates(c);
       } else {
-        o2::itsmft::ClusterPattern patt(pattIt);
+        o2::endcaps::ClusterPattern patt(pattIt);
         locXYZ = dict.getClusterCoordinates(c, patt);
       }
     } else {
-      o2::itsmft::ClusterPattern patt(pattIt);
+      o2::endcaps::ClusterPattern patt(pattIt);
       locXYZ = dict.getClusterCoordinates(c, patt);
     }
     auto sensorID = c.getSensorID();
@@ -256,7 +257,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
   return clusters_in_frame.size();
 }
 
-int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
+int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const o2::endcaps::TopologyDictionary& dict,
                              const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   event.clear();
@@ -278,11 +279,11 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
       if (!dict.isGroup(pattID)) {
         locXYZ = dict.getClusterCoordinates(c);
       } else {
-        o2::itsmft::ClusterPattern patt(pattIt);
+        o2::endcaps::ClusterPattern patt(pattIt);
         locXYZ = dict.getClusterCoordinates(c, patt);
       }
     } else {
-      o2::itsmft::ClusterPattern patt(pattIt);
+      o2::endcaps::ClusterPattern patt(pattIt);
       locXYZ = dict.getClusterCoordinates(c, patt);
     }
     auto sensorID = c.getSensorID();

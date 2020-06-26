@@ -165,7 +165,7 @@ class VertexerTraits
 
   // Frame related quantities
   std::array<std::vector<unsigned char>, 2> mUsedClusters;
-  o2::its::ROframe* mEvent;
+  ROframe* mEvent;
   uint32_t mROframe;
 
   std::array<float, 3> mAverageClustersRadii;

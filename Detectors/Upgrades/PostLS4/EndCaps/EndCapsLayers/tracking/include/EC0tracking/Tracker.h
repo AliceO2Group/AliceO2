@@ -59,7 +59,7 @@ class Tracker
   void setBz(float bz);
   float getBz() const;
 
-  std::vector<TrackITSExt>& getTracks();
+  std::vector<o2::its::TrackITSExt>& getTracks();
   dataformats::MCTruthContainer<MCCompLabel>& getTrackLabels();
 
   void clustersToTracks(const ROframe&, std::ostream& = std::cout);
@@ -78,7 +78,7 @@ class Tracker
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
   void findTracks(const ROframe& ev);
-  bool fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step);
+  bool fitTrack(const ROframe& event, o2::its::TrackITSExt& track, int start, int end, int step);
   void traverseCellsTree(const int, const int);
   void computeRoadsMClabels(const ROframe&);
   void computeTracksMClabels(const ROframe&);
@@ -96,7 +96,7 @@ class Tracker
   bool mCUDA = false;
   float mBz = 5.f;
   std::uint32_t mROFrame = 0;
-  std::vector<TrackITSExt> mTracks;
+  std::vector<o2::its::TrackITSExt> mTracks;
   dataformats::MCTruthContainer<MCCompLabel> mTrackLabels;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 };
@@ -123,7 +123,7 @@ void Tracker::initialisePrimaryVertexContext(T&&... args)
   mPrimaryVertexContext->initialise(std::forward<T>(args)...);
 }
 
-inline std::vector<TrackITSExt>& Tracker::getTracks()
+inline std::vector<o2::its::TrackITSExt>& Tracker::getTracks()
 {
   return mTracks;
 }

@@ -51,9 +51,9 @@ class ChipMappingMFT
   ChipMappingMFT();
   ~ChipMappingMFT() = default;
 
-  static constexpr std::string_view getName() { return "MFT"; }
-  static constexpr o2::header::DataOrigin getOrigin() { return o2::header::gDataOriginMFT; }
-  static constexpr o2::detectors::DetID::ID getDetID() { return o2::detectors::DetID::MFT; }
+  static constexpr std::string_view getName() { return "EC0"; }
+  static constexpr o2::header::DataOrigin getOrigin() { return o2::header::gDataOriginEC0; }
+  static constexpr o2::detectors::DetID::ID getDetID() { return o2::detectors::DetID::EC0; }
 
   // RS placeholder for methods to implement ----------->
 

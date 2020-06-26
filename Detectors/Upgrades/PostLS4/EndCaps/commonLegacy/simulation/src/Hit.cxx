@@ -16,7 +16,7 @@
 #include <iostream>
 #include <iostream>
 
-ClassImp(o2::itsmft::Hit);
+ClassImp(o2::endcaps::Hit);
 
 using std::cout;
 using std::endl;

@@ -145,6 +145,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
     set(SRCS_NO_CINT
         ${SRCS_NO_CINT}
         Global/GPUChainITS.cxx
+        Global/GPUChainEC0.cxx
         ITS/GPUITSFitter.cxx
         ITS/GPUITSFitterKernels.cxx
         dEdx/GPUdEdx.cxx

@@ -14,7 +14,7 @@
 #define O2_EC0_TRACKERDPL
 
 #include "DataFormatsParameters/GRPObject.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsEndCaps/TopologyDictionary.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -26,7 +26,7 @@
 
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
-#include "GPUChainITS.h"
+#include "GPUChainEC0.h"
 #include "CommonUtils/StringUtils.h"
 #include "TStopwatch.h"
 
@@ -46,7 +46,7 @@ class TrackerDPL : public framework::Task
 
  private:
   bool mIsMC = false;
-  o2::itsmft::TopologyDictionary mDict;
+  o2::endcaps::TopologyDictionary mDict;
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;
   std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<Tracker> mTracker = nullptr;
@@ -55,7 +55,7 @@ class TrackerDPL : public framework::Task
 };
 
 /// create a processor spec
-/// run ITS CA tracker
+/// run EC0 CA tracker
 framework::DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType dType);
 
 } // namespace ecl

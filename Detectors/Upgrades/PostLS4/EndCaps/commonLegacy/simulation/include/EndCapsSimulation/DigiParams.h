@@ -15,7 +15,7 @@
 #define ALICEO2_ENDCAPS_DIGIPARAMS_H
 
 #include <Rtypes.h>
-#include <ITSMFTSimulation/AlpideSignalTrapezoid.h>
+#include <EndCapsSimulation/AlpideSignalTrapezoid.h>
 #include "EndCapsBase/DPLAlpideParam.h"
 
 ////////////////////////////////////////////////////////////
@@ -38,7 +38,7 @@ class AlpideSimResponse;
 class DigiParams
 {
 
-  using SignalShape = o2::itsmft::AlpideSignalTrapezoid;
+  using SignalShape = AlpideSignalTrapezoid;
 
  public:
   DigiParams();
@@ -78,8 +78,8 @@ class DigiParams
 
   bool isTimeOffsetSet() const { return mTimeOffset > -infTime; }
 
-  const o2::itsmft::AlpideSimResponse* getAlpSimResponse() const { return mAlpSimResponse; }
-  void setAlpSimResponse(const o2::itsmft::AlpideSimResponse* par) { mAlpSimResponse = par; }
+  const AlpideSimResponse* getAlpSimResponse() const { return mAlpSimResponse; }
+  void setAlpSimResponse(const AlpideSimResponse* par) { mAlpSimResponse = par; }
 
   const SignalShape& getSignalShape() const { return mSignalShape; }
   SignalShape& getSignalShape() { return (SignalShape&)mSignalShape; }
@@ -101,9 +101,9 @@ class DigiParams
   int mNSimSteps = 7;                      ///< number of steps in response simulation
   float mEnergyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
 
-  o2::itsmft::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
+  AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
 
-  const o2::itsmft::AlpideSimResponse* mAlpSimResponse = nullptr; //!< pointer on external response
+  const AlpideSimResponse* mAlpSimResponse = nullptr; //!< pointer on external response
 
   // auxiliary precalculated parameters
   float mROFrameLengthInv = 0; ///< inverse length of RO frame in ns

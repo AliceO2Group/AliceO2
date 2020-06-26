@@ -51,10 +51,10 @@ namespace endcaps
 
 class GeometryTGeo;
 
-using FullClusCont = std::vector<Cluster>;
-using CompClusCont = std::vector<CompClusterExt>;
+using FullClusCont = std::vector<o2::itsmft::Cluster>;
+using CompClusCont = std::vector<o2::itsmft::CompClusterExt>;
 using PatternCont = std::vector<unsigned char>;
-using ROFRecCont = std::vector<ROFRecord>;
+using ROFRecCont = std::vector<o2::itsmft::ROFRecord>;
 
 //template <class FullClusCont, class CompClusCont, class PatternCont, class ROFRecCont> // container types (PMR or std::vectors)
 
@@ -63,9 +63,9 @@ class Clusterer
   using PixelReader = o2::endcaps::PixelReader;
   using PixelData = o2::endcaps::PixelData;
   using ChipPixelData = o2::endcaps::ChipPixelData;
-  using Cluster = o2::endcaps::Cluster;
-  using CompCluster = o2::endcaps::CompCluster;
-  using CompClusterExt = o2::endcaps::CompClusterExt;
+  using Cluster = o2::itsmft::Cluster;
+  using CompCluster = o2::itsmft::CompCluster;
+  using CompClusterExt = o2::itsmft::CompClusterExt;
   using Label = o2::MCCompLabel;
   using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
@@ -133,7 +133,7 @@ class Clusterer
     void finishChipSingleHitFast(uint32_t hit, ChipPixelData* curChipData, FullClusCont* fullClusPtr, CompClusCont* compClusPtr,
                                  PatternCont* patternsPtr, const MCTruth* labelsDigPtr, MCTruth* labelsClusPTr);
     void process(gsl::span<ChipPixelData*> chipPtrs, FullClusCont* fullClusPtr, CompClusCont* compClusPtr, PatternCont* patternsPtr,
-                 const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr);
+                 const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const o2::itsmft::ROFRecord& rofPtr);
 
     ClustererThread(Clusterer* par = nullptr) : parent(par), curr(column2 + 1), prev(column1 + 1)
     {
