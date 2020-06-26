@@ -367,6 +367,7 @@ int SetupReconstruction()
   devProc.memoryScalingFactor = configStandalone.memoryScalingFactor;
   devProc.alternateBorderSort = configStandalone.alternateBorderSort;
   devProc.doublePipeline = configStandalone.configProc.doublePipeline;
+  devProc.prefetchTPCpageScan = configStandalone.configProc.prefetchTPCpageScan;
   if (configStandalone.eventDisplay) {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef _WIN32
