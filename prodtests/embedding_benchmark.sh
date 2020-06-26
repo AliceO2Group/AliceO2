@@ -24,7 +24,6 @@ childprocs() {
 RC_ACUM=0
 
 taskwrapper() {
-  return 0
   # A simple task wrapper launching a DPL workflow in the background 
   # and checking the output for exceptions. If exceptions are found,
   # all participating processes will be sent a termination signal.
