@@ -89,7 +89,8 @@ class SimTraits
       /*ACO*/ VS{ "ACOHit" }
 #ifdef ENABLE_UPGRADES
       ,
-      /*IT3*/ VS{ "ITS3Hit" }
+      /*IT3*/ VS{ "ITS3Hit" },
+      /*EC0*/ VS{ "EC0Hit" }
 #endif
     };
   // clang-format on

@@ -29,7 +29,7 @@ constexpr DetID::ID DetID::ITS, DetID::TPC, DetID::TRD, DetID::TOF, DetID::PHS, 
   DetID::HMP, DetID::MFT, DetID::MCH, DetID::MID, DetID::ZDC, DetID::FT0, DetID::FV0, DetID::FDD, DetID::ACO, DetID::First, DetID::Last;
 
 #ifdef ENABLE_UPGRADES
-constexpr DetID::ID DetID::IT3;
+constexpr DetID::ID DetID::IT3, DetID::EC0;
 #endif
 
 constexpr int DetID::nDetectors;
