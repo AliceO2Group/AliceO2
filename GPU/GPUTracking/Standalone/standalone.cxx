@@ -80,7 +80,7 @@ GPUChainTracking *chainTracking, *chainTrackingAsync, *chainTrackingPipeline;
 #ifdef HAVE_O2HEADERS
 GPUChainITS *chainITS, *chainITSAsync, *chainITSPipeline;
 #endif
-std::unique_ptr<char[]> outputmemory, outputmemoryPipeline;
+std::unique_ptr<char[]> outputmemory, outputmemoryPipeline, inputmemory;
 std::unique_ptr<GPUDisplayBackend> eventDisplay;
 std::unique_ptr<GPUReconstructionTimeframe> tf;
 int nEventsInDirectory = 0;
@@ -247,6 +247,9 @@ int ReadConfiguration(int argc, char** argv)
       }
     }
   }
+  if (configStandalone.inputcontrolmem) {
+    inputmemory.reset(new char[configStandalone.inputcontrolmem]);
+  }
 
 #if !(defined(CUDA_ENABLED) || defined(OPENCL1_ENABLED) || defined(HIP_ENABLED))
   if (configStandalone.runGPU) {
@@ -353,6 +356,7 @@ int SetupReconstruction()
   }
   devProc.deviceNum = configStandalone.cudaDevice;
   devProc.forceMemoryPoolSize = (configStandalone.forceMemorySize == 1 && configStandalone.eventDisplay) ? 2 : configStandalone.forceMemorySize;
+  devProc.forceHostMemoryPoolSize = configStandalone.forceHostMemorySize;
   devProc.debugLevel = configStandalone.DebugLevel;
   devProc.allocDebugLevel = configStandalone.allocDebugLevel;
   devProc.deviceTimers = configStandalone.DeviceTiming;
@@ -514,6 +518,12 @@ int SetupReconstruction()
       return 1;
     }
   }
+  if (configStandalone.inputcontrolmem && rec->IsGPU()) {
+    if (rec->registerMemoryForGPU(inputmemory.get(), configStandalone.inputcontrolmem)) {
+      printf("ERROR registering input memory for the GPU!!!\n");
+      return 1;
+    }
+  }
   if (configStandalone.DebugLevel >= 4) {
     rec->PrintKernelOccupancies();
   }
@@ -524,6 +534,9 @@ int ReadEvent(int n)
 {
   char filename[256];
   snprintf(filename, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, n);
+  if (configStandalone.inputcontrolmem) {
+    rec->SetInputControl(inputmemory.get(), configStandalone.inputcontrolmem);
+  }
   int r = chainTracking->ReadData(filename);
   if (r) {
     return r;

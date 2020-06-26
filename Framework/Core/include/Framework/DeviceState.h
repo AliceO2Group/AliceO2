@@ -17,6 +17,8 @@
 #include <utility>
 
 typedef struct uv_loop_s uv_loop_t;
+typedef struct uv_timer_s uv_timer_t;
+typedef struct uv_poll_s uv_poll_t;
 
 namespace o2::framework
 {
@@ -37,7 +39,14 @@ struct DeviceState {
   std::vector<InputChannelInfo> inputChannelInfos;
   StreamingState streaming = StreamingState::Streaming;
   bool quitRequested = false;
+  // The libuv event loop which serves this device.
   uv_loop_t* loop;
+  // The list of active timers which notify this device.
+  std::vector<uv_timer_t*> activeTimers;
+  // The list of pollers for active input channels
+  std::vector<uv_poll_t*> activeInputPollers;
+  // The list of pollers for active output channels
+  std::vector<uv_poll_t*> activeOutputPollers;
 };
 
 } // namespace o2::framework

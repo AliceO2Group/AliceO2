@@ -230,6 +230,7 @@ class GPUReconstruction
   void UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsDeviceProcessing* p = nullptr);
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
   void SetOutputControl(void* ptr, size_t size);
+  void SetInputControl(void* ptr, size_t size);
   GPUOutputControl& OutputControl() { return mOutputControl; }
   int GetMaxThreads() const { return mMaxThreads; }
   int NStreams() const { return mNStreams; }
@@ -286,9 +287,9 @@ class GPUReconstruction
   template <class T, class S>
   void DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type);
   template <class T, class S>
-  size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type);
+  size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type, T** nonConstPtrs = nullptr);
   template <class T>
-  void AllocateIOMemoryHelper(size_t n, const T*& ptr, std::unique_ptr<T[]>& u);
+  T* AllocateIOMemoryHelper(size_t n, const T*& ptr, std::unique_ptr<T[]>& u);
 
   // Private helper functions to dump / load flat objects
   template <class T>
@@ -318,6 +319,7 @@ class GPUReconstruction
   GPUSettingsProcessing mProcessingSettings;             // Processing Parameters (at constructor level)
   GPUSettingsDeviceProcessing mDeviceProcessingSettings; // Processing Parameters (at init level)
   GPUOutputControl mOutputControl;                       // Controls the output of the individual components
+  GPUOutputControl mInputControl;                        // Prefefined input memory location for reading standalone dumps
   std::unique_ptr<GPUMemorySizeScalers> mMemoryScalers;  // Scalers how much memory will be needed
 
   RecoStepField mRecoSteps = RecoStep::AllRecoSteps;
@@ -405,20 +407,31 @@ class GPUReconstruction
 };
 
 template <class T>
-inline void GPUReconstruction::AllocateIOMemoryHelper(size_t n, const T*& ptr, std::unique_ptr<T[]>& u)
+inline T* GPUReconstruction::AllocateIOMemoryHelper(size_t n, const T*& ptr, std::unique_ptr<T[]>& u)
 {
   if (n == 0) {
     u.reset(nullptr);
-    return;
+    return nullptr;
   }
-  u.reset(new T[n]);
-  ptr = u.get();
-  if (mDeviceProcessingSettings.registerStandaloneInputMemory) {
-    if (registerMemoryForGPU(u.get(), n * sizeof(T))) {
-      GPUError("Error registering memory for GPU: %p - %lld bytes\n", (void*)u.get(), (long long int)(n * sizeof(T)));
+  T* retVal;
+  if (mInputControl.OutputType == GPUOutputControl::UseExternalBuffer) {
+    u.reset(nullptr);
+    GPUProcessor::computePointerWithAlignment(mInputControl.OutputPtr, retVal, n);
+    if ((size_t)((char*)mInputControl.OutputPtr - (char*)mInputControl.OutputBase) > mInputControl.OutputMaxSize) {
       throw std::bad_alloc();
     }
+  } else {
+    u.reset(new T[n]);
+    retVal = u.get();
+    if (mDeviceProcessingSettings.registerStandaloneInputMemory) {
+      if (registerMemoryForGPU(u.get(), n * sizeof(T))) {
+        GPUError("Error registering memory for GPU: %p - %lld bytes\n", (void*)u.get(), (long long int)(n * sizeof(T)));
+        throw std::bad_alloc();
+      }
+    }
   }
+  ptr = retVal;
+  return retVal;
 }
 
 template <class T, typename... Args>
@@ -505,7 +518,7 @@ inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const
 }
 
 template <class T, class S>
-inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
+inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type, T** nonConstPtrs)
 {
   if (feof(fp)) {
     return 0;
@@ -522,9 +535,12 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, s
   size_t numTotal = 0;
   for (int i = 0; i < count; i++) {
     r = fread(&num[i], sizeof(num[i]), 1, fp);
-    AllocateIOMemoryHelper(num[i], entries[i], mem[i]);
+    T* m = AllocateIOMemoryHelper(num[i], entries[i], mem[i]);
+    if (nonConstPtrs) {
+      nonConstPtrs[i] = m;
+    }
     if (num[i]) {
-      r = fread(mem[i].get(), sizeof(*entries[i]), num[i], fp);
+      r = fread(m, sizeof(*entries[i]), num[i], fp);
     }
     numTotal += num[i];
   }
@@ -630,7 +646,7 @@ inline int GPUReconstruction::ReadStructFromFile(const char* file, T* obj)
   r = fread(obj, 1, size, fp);
   fclose(fp);
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Read %lldd bytes from %s", (long long int)r, file);
+    GPUInfo("Read %lld bytes from %s", (long long int)r, file);
   }
   return 0;
 }

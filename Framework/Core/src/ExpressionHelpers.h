@@ -41,12 +41,12 @@ static std::array<std::string, BasicOp::Abs + 1> binaryOperationsMap = {
 struct DatumSpec {
   /// datum spec either contains an index, a value of a literal or a binding label
   using datum_t = std::variant<std::monostate, size_t, LiteralNode::var_t, std::string>;
-  datum_t datum;
+  datum_t datum = std::monostate{};
   atype::type type = atype::NA;
   explicit DatumSpec(size_t index, atype::type type_) : datum{index}, type{type_} {}
   explicit DatumSpec(LiteralNode::var_t literal, atype::type type_) : datum{literal}, type{type_} {}
   explicit DatumSpec(std::string binding, atype::type type_) : datum{binding}, type{type_} {}
-  DatumSpec() : datum{std::monostate{}} {}
+  DatumSpec() = default;
   DatumSpec(DatumSpec const&) = default;
   DatumSpec(DatumSpec&&) = default;
   DatumSpec& operator=(DatumSpec const&) = default;
@@ -93,15 +93,6 @@ struct ColumnOperationSpec {
 template <typename... C>
 std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...>, gandiva::SchemaPtr schema)
 {
-  auto findField = [&schema](const char* label) -> gandiva::FieldPtr const {
-    for (auto i = 0; i < schema->num_fields(); ++i) {
-      if (schema->field(i)->name() == label) {
-        return gandiva::FieldPtr{schema->field(i)};
-      }
-    }
-    throw std::runtime_error(fmt::format("Cannot find field \"{}\"", label));
-  };
-
   std::shared_ptr<gandiva::Projector> projector;
   auto s = gandiva::Projector::Make(
     schema,

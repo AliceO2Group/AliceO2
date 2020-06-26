@@ -802,7 +802,7 @@ struct WorkflowInfo {
 };
 
 struct GuiCallbackContext {
-  decltype(std::chrono::high_resolution_clock::now()) frameLast;
+  uint64_t frameLast;
   float* frameLatency;
   float* frameCost;
   void* window;
@@ -813,12 +813,12 @@ struct GuiCallbackContext {
 void gui_callback(uv_timer_s* ctx)
 {
   GuiCallbackContext* gui = reinterpret_cast<GuiCallbackContext*>(ctx->data);
-  auto frameStart = std::chrono::high_resolution_clock::now();
-  auto frameLatency = frameStart - gui->frameLast;
+  uint64_t frameStart = uv_hrtime();
+  uint64_t frameLatency = frameStart - gui->frameLast;
   *(gui->guiQuitRequested) = (pollGUI(gui->window, gui->callback) == false);
-  auto frameEnd = std::chrono::high_resolution_clock::now();
-  *(gui->frameCost) = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count();
-  *(gui->frameLatency) = std::chrono::duration_cast<std::chrono::milliseconds>(frameLatency).count();
+  uint64_t frameEnd = uv_hrtime();
+  *(gui->frameCost) = (frameEnd - frameStart) / 1000000;
+  *(gui->frameLatency) = frameLatency / 1000000;
   gui->frameLast = frameStart;
 }
 
@@ -883,7 +883,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   }
 
   GuiCallbackContext guiContext;
-  guiContext.frameLast = std::chrono::high_resolution_clock::now();
+  guiContext.frameLast = uv_hrtime();
   guiContext.frameLatency = &driverInfo.frameLatency;
   guiContext.frameCost = &driverInfo.frameCost;
   guiContext.guiQuitRequested = &guiQuitRequested;
@@ -903,9 +903,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     // In case a timeout was requested, we check if we are running
     // for more than the timeout duration and exit in case that's the case.
     {
-      auto currentTime = std::chrono::steady_clock::now();
-      std::chrono::duration<double> diff = currentTime - driverInfo.startTime;
-      if ((graceful_exit == false) && (driverInfo.timeout > 0) && (diff.count() > driverInfo.timeout)) {
+      auto currentTime = uv_hrtime();
+      uint64_t diff = (currentTime - driverInfo.startTime) / 1000000000LL;
+      if ((graceful_exit == false) && (driverInfo.timeout > 0) && (diff > driverInfo.timeout)) {
         LOG(INFO) << "Timout ellapsed. Requesting to quit.";
         graceful_exit = true;
       }
@@ -1108,12 +1108,12 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::RUNNING);
         }
         {
-          auto inputProcessingStart = std::chrono::high_resolution_clock::now();
+          uint64_t inputProcessingStart = uv_hrtime();
           auto inputProcessingLatency = inputProcessingStart - inputProcessingLast;
           processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
-          auto inputProcessingEnd = std::chrono::high_resolution_clock::now();
-          driverInfo.inputProcessingCost = std::chrono::duration_cast<std::chrono::milliseconds>(inputProcessingEnd - inputProcessingStart).count();
-          driverInfo.inputProcessingLatency = std::chrono::duration_cast<std::chrono::milliseconds>(inputProcessingLatency).count();
+          auto inputProcessingEnd = uv_hrtime();
+          driverInfo.inputProcessingCost = (inputProcessingEnd - inputProcessingStart) / 1000000;
+          driverInfo.inputProcessingLatency = (inputProcessingLatency) / 1000000;
           inputProcessingLast = inputProcessingStart;
         }
         break;
@@ -1490,28 +1490,27 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   bpo::options_description executorOptions("Executor options");
   const char* helpDescription = "print help: short, full, executor, or processor name";
   executorOptions.add_options()                                                                                                                //
-    ("help,h", bpo::value<std::string>()->implicit_value("short"), helpDescription)                                                            //
-    ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                                                    //
-    ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")                                            //
-    ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")                                      //
-    ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(isatty(fileno(stdout)) == 0), "batch processing mode")                        //
-    ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")                                                  //
-    ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                        //
-    ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")                                             //
-    ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                                                     //
-    ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT),                                    //
-     "what to do when processing is finished: quit, wait")                                                                                     //
-    ("error-policy", bpo::value<TerminationPolicy>(&errorPolicy)->default_value(TerminationPolicy::QUIT),                                      //
-     "what to do when a device has an error: quit, wait")                                                                                      //
-    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")                                            //
-    ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                                                       //
-    ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                                             //
-    ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")                                   //
-    ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                                         //
-    ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far")                                             //
+    ("help,h", bpo::value<std::string>()->implicit_value("short"), helpDescription)                                                            //                                                                                                       //
+    ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                                                    //                                                                                                         //
+    ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")                                            //                                                                                                           //
+    ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")                                      //                                                                                                             //
+    ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(isatty(fileno(stdout)) == 0), "batch processing mode")                        //                                                                                                               //
+    ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")                                                  //                                                                                                                 //
+    ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                        //                                                                                                                   //
+    ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")                                             //                                                                                                                     //
+    ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                                                     //                                                                                                                       //
+    ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT),                                    //                                                                                                                       //
+     "what to do when processing is finished: quit, wait")                                                                                     //                                                                                                                      //
+    ("error-policy", bpo::value<TerminationPolicy>(&errorPolicy)->default_value(TerminationPolicy::QUIT),                                      //                                                                                                                          //
+     "what to do when a device has an error: quit, wait")                                                                                      //                                                                                                                            //
+    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")                                            //                                                                                                                              //
+    ("timeout,t", bpo::value<uint64_t>()->default_value(0), "forced exit timeout (in seconds)")                                                //                                                                                                                                //
+    ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                                             //                                                                                                                                  //
+    ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")                                   //                                                                                                                                    //
+    ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                                         //                                                                                                                                      //
+    ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far")                                             //                                                                                                                                        //
     ("o2-control,o2", bpo::value<bool>()->zero_tokens()->default_value(false), "create O2 Control configuration")                              //
     ("resources-monitoring", bpo::value<unsigned short>()->default_value(0), "enable cpu/memory monitoring for provided interval in seconds"); //
-
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
 
@@ -1714,8 +1713,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   } else {
     driverInfo.errorPolicy = varmap["error-policy"].as<TerminationPolicy>();
   }
-  driverInfo.startTime = std::chrono::steady_clock::now();
-  driverInfo.timeout = varmap["timeout"].as<double>();
+  driverInfo.startTime = uv_hrtime();
+  driverInfo.timeout = varmap["timeout"].as<uint64_t>();
   driverInfo.deployHostname = varmap["hostname"].as<std::string>();
   driverInfo.resources = varmap["resources"].as<std::string>();
   driverInfo.resourcesMonitoringInterval = varmap["resources-monitoring"].as<unsigned short>();
