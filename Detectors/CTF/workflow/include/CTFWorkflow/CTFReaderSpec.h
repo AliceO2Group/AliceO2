@@ -40,7 +40,6 @@ class CTFReaderSpec : public o2::framework::Task
  private:
   DetID::mask_t mDets;             // detectors
   std::vector<std::string> mInput; // input files
-  uint32_t mTFCounter = 0;
   size_t mNextToProcess = 0;
   TStopwatch mTimer;
 };
