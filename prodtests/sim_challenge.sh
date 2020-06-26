@@ -124,6 +124,11 @@ engine="TGeant3"
 # options to pass to every workflow
 gloOpt=" -b --run "
 
+# option to set the number of sim workers
+simWorker=""
+
+# option to set the number of tpc-lanes
+tpcLanes=""
 
 Usage() 
 {
@@ -139,6 +144,8 @@ while [ $# -gt 0 ] ; do
 	-r) intRate=$2; shift 2 ;;
 	-e) engine=$2; shift 2 ;;
 	-f) fromstage=$2; shift 2 ;;
+        -j) simWorker="-j $2"; shift 2 ;;
+        -l) tpcLanes="--tpc-lanes $2"; shift 2 ;;
 	-h) Usage ;;
 	*) echo "Wrong input"; Usage;
     esac
@@ -180,7 +187,7 @@ fi
 if [ "$dosim" == "1" ]; then
   #---------------------------------------------------
   echo "Running simulation for $nev $collSyst events with $gener generator and engine $engine"
-  taskwrapper sim.log o2-sim -n"$nev" --configKeyValue "Diamond.width[2]=6." -g "$gener" -e "$engine"
+  taskwrapper sim.log o2-sim -n"$nev" --configKeyValue "Diamond.width[2]=6." -g "$gener" -e "$engine" $simWorker
 
   ##------ extract number of hits
   root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C > hitstats.log
@@ -189,7 +196,7 @@ fi
 if [ "$dodigi" == "1" ]; then
   echo "Running digitization for $intRate kHz interaction rate"
   intRate=$((1000*(intRate)));
-  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate
+  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes
   echo "Return status of digitization: $?"
   # existing checks
   #root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckDigits.C+
