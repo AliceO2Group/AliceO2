@@ -12,96 +12,99 @@
 using std::vector;
 
 //_________________________________________________________________________
-class VarManager : public TObject {
+class VarManager : public TObject
+{
 
-public:
- enum Variables {
-   kNothing = -1,
-   // Run wise variables
-   kRunNo = 0,
-   kRunId,
-   kRunTimeStart,
-   kRunTimeStop,
-   kLHCFillNumber,
-   kDipolePolarity,
-   kL3Polarity,
-   kNRunWiseVariables,
+ public:
+  enum Variables {
+    kNothing = -1,
+    // Run wise variables
+    kRunNo = 0,
+    kRunId,
+    kRunTimeStart,
+    kRunTimeStop,
+    kLHCFillNumber,
+    kDipolePolarity,
+    kL3Polarity,
+    kNRunWiseVariables,
 
-   // Event wise variables
-   kTimeStamp,
-   kBC,
-   kInstLumi,
-   kEventType,
-   kIsPhysicsSelection,
-   kVtxX,
-   kVtxY,
-   kVtxZ,
-   kVtxNcontrib,
-   kVtxCovXX,
-   kVtxCovXY,
-   kVtxCovXZ,
-   kVtxCovYY,
-   kVtxCovYZ,
-   kVtxCovZZ,
-   kVtxChi2,
-   kCentVZERO,
-   kNEventWiseVariables,
+    // Event wise variables
+    kTimeStamp,
+    kBC,
+    kInstLumi,
+    kEventType,
+    kIsPhysicsSelection,
+    kVtxX,
+    kVtxY,
+    kVtxZ,
+    kVtxNcontrib,
+    kVtxCovXX,
+    kVtxCovXY,
+    kVtxCovXZ,
+    kVtxCovYY,
+    kVtxCovYZ,
+    kVtxCovZZ,
+    kVtxChi2,
+    kCentVZERO,
+    kNEventWiseVariables,
 
-   // Basic track(pair) wise variables
-   kPt,
-   kEta,
-   kPhi,
-   kRap,
-   kMass,
-   kCharge,
-   kNBasicTrackVariables,
+    // Basic track(pair) wise variables
+    kPt,
+    kEta,
+    kPhi,
+    kRap,
+    kMass,
+    kCharge,
+    kNBasicTrackVariables,
 
-   // Barrel track variables
-   kPin,
-   kITSncls,
-   kITSchi2,
-   kITSlayerHit,
-   kTPCncls,
-   kTPCchi2,
-   kTPCsignal,
-   kTRDsignal,
-   kTOFsignal,
-   kTrackLength,
-   kNBarrelTrackVariables,
+    // Barrel track variables
+    kPin,
+    kITSncls,
+    kITSchi2,
+    kITSlayerHit,
+    kTPCncls,
+    kTPCchi2,
+    kTPCsignal,
+    kTRDsignal,
+    kTOFsignal,
+    kTrackLength,
+    kNBarrelTrackVariables,
 
-   // Muon track variables
-   kNMuonTrackVariables,
+    // Muon track variables
+    kNMuonTrackVariables,
 
-   // Pair variables
-   kCandidateId,
-   kPairType,
-   kPairLxy,
-   kNPairVariables,
+    // Pair variables
+    kCandidateId,
+    kPairType,
+    kPairLxy,
+    kNPairVariables,
 
-   // Candidate-track correlation variables
-   kDeltaEta,
-   kDeltaPhi,
-   kNCorrelationVariables,
+    // Candidate-track correlation variables
+    kDeltaEta,
+    kDeltaPhi,
+    kNCorrelationVariables,
 
-   kNVars
- }; // end of Variables enumeration
+    kNVars
+  }; // end of Variables enumeration
 
- static TString fgVariableNames[kNVars]; // variable names
- static TString fgVariableUnits[kNVars]; // variable units
- static void SetDefaultVarNames();
+  static TString fgVariableNames[kNVars]; // variable names
+  static TString fgVariableUnits[kNVars]; // variable units
+  static void SetDefaultVarNames();
 
- static void SetUseVariable(Variables var)
- {
-   fgUsedVars[var] = kTRUE;
-   SetVariableDependencies();}
+  static void SetUseVariable(Variables var)
+  {
+    fgUsedVars[var] = kTRUE;
+    SetVariableDependencies();
+  }
   static void SetUseVars(const bool* usedVars)
   {
-    for(int i=0;i<kNVars;++i) {
-      if(usedVars[i]) fgUsedVars[i]=kTRUE;    // overwrite only the variables that are being used since there are more channels to modify the used variables array, independently
+    for (int i = 0; i < kNVars; ++i) {
+      if (usedVars[i])
+        fgUsedVars[i] = kTRUE; // overwrite only the variables that are being used since there are more channels to modify the used variables array, independently
     }
     SetVariableDependencies();
   }
-  static bool GetUsedVar(Variables var) {return fgUsedVars[var];}
+  static bool GetUsedVar(Variables var) { return fgUsedVars[var]; }
 
   static void SetRunNumbers(int n, int* runs);
 
@@ -121,9 +124,9 @@ public:
 
   static std::map<int, int> fgRunMap; // map of runs to be used in histogram axes
 
-  VarManager& operator= (const VarManager &c);
-  VarManager(const VarManager &c);
-  
+  VarManager& operator=(const VarManager& c);
+  VarManager(const VarManager& c);
+
   ClassDef(VarManager, 1)
 };
 #endif

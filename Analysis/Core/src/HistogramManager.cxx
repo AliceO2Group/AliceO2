@@ -69,17 +69,16 @@ HistogramManager::~HistogramManager()
 }
 
 //_______________________________________________________________________________
-void HistogramManager::SetDefaultVarNames(TString* vars, TString* units) 
+void HistogramManager::SetDefaultVarNames(TString* vars, TString* units)
 {
-   //
-   // Set default variable names
-   //
-   for (int i = 0; i < fNVars; ++i) {
-     fVariableNames[i] = vars[i]; 
-     fVariableUnits[i] = units[i];
-   }
+  //
+  // Set default variable names
+  //
+  for (int i = 0; i < fNVars; ++i) {
+    fVariableNames[i] = vars[i];
+    fVariableUnits[i] = units[i];
+  }
 };
-
 
 //__________________________________________________________________
 void HistogramManager::AddHistClass(const char* histClass)
@@ -117,7 +116,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
 
   // get the list to which the histogram should be added
   TList* hList = (TList*)fMainList->FindObject(histClass);
-  if(!hList) {
+  if (!hList) {
     cout << "Warning in HistogramManager::AddHistogram(): Histogram list " << histClass << " not found!" << endl;
     cout << "         Histogram not created" << endl;
     return;
@@ -131,12 +130,14 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
   // deduce the dimension of the histogram from parameters
   // NOTE: in case of profile histograms, one extra variable is needed
   int dimension = 1;
-  if(varY>kNothing) dimension = 2;
-  if(varZ>kNothing) dimension = 3;
+  if (varY > kNothing)
+    dimension = 2;
+  if (varZ > kNothing)
+    dimension = 3;
 
   // tokenize the title string; the user may include in it axis titles which will overwrite the defaults
   TString titleStr(title);
-  TObjArray* arr=titleStr.Tokenize(";");
+  TObjArray* arr = titleStr.Tokenize(";");
   // mark required variables as being used
   if (varX > kNothing)
     fUsedVars[varX] = kTRUE;
@@ -144,8 +145,10 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
     fUsedVars[varY] = kTRUE;
   if (varZ > kNothing)
     fUsedVars[varZ] = kTRUE;
-  if(varT>kNothing) fUsedVars[varT] = kTRUE;
-  if(varW>kNothing) fUsedVars[varW] = kTRUE;
+  if (varT > kNothing)
+    fUsedVars[varT] = kTRUE;
+  if (varW > kNothing)
+    fUsedVars[varW] = kTRUE;
 
   // encode needed variable identifiers in a vector and push it to the std::list corresponding to the current histogram list
   std::vector<int> varVector;
@@ -163,90 +166,104 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
   fVariablesMap[histClass] = varList;
 
   // create and configure histograms according to required options
-  TH1* h=0x0;
-  switch(dimension) {
+  TH1* h = 0x0;
+  switch (dimension) {
     case 1: // TH1F
       h = new TH1F(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xmin, xmax);
-      fBinsAllocated+=nXbins+2;
+      fBinsAllocated += nXbins + 2;
       // TODO: possibly make the call of Sumw2() optional for all histograms
       h->Sumw2();
-      if(fVariableNames[varX][0]) 
-        h->GetXaxis()->SetTitle(Form("%s %s", fVariableNames[varX].Data(), 
-                                (fVariableUnits[varX][0] ? Form("(%s)", fVariableUnits[varX].Data()) : "")));
-      if(arr->At(1)) h->GetXaxis()->SetTitle(arr->At(1)->GetName());
-      if(xLabels[0]!='\0') MakeAxisLabels(h->GetXaxis(), xLabels);
+      if (fVariableNames[varX][0])
+        h->GetXaxis()->SetTitle(Form("%s %s", fVariableNames[varX].Data(),
+                                     (fVariableUnits[varX][0] ? Form("(%s)", fVariableUnits[varX].Data()) : "")));
+      if (arr->At(1))
+        h->GetXaxis()->SetTitle(arr->At(1)->GetName());
+      if (xLabels[0] != '\0')
+        MakeAxisLabels(h->GetXaxis(), xLabels);
       hList->Add(h);
       h->SetDirectory(0);
       break;
 
     case 2: // either TH2F or TProfile
-      if(isProfile) {
+      if (isProfile) {
         h = new TProfile(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xmin, xmax);
-        fBinsAllocated+=nXbins+2;
+        fBinsAllocated += nXbins + 2;
         h->Sumw2();
         // if requested, build the profile using the profile widths instead of stat errors
         // TODO: make this option more transparent to the user ?
-        if(titleStr.Contains("--s--")) ((TProfile*)h)->BuildOptions(0.,0.,"s");
-      }
-      else {
+        if (titleStr.Contains("--s--"))
+          ((TProfile*)h)->BuildOptions(0., 0., "s");
+      } else {
         h = new TH2F(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xmin, xmax, nYbins, ymin, ymax);
-        fBinsAllocated+=(nXbins+2)*(nYbins+2);
+        fBinsAllocated += (nXbins + 2) * (nYbins + 2);
         h->Sumw2();
       }
-      if(fVariableNames[varX][0]) 
-        h->GetXaxis()->SetTitle(Form("%s %s", fVariableNames[varX].Data(), 
-                              (fVariableUnits[varX][0] ? Form("(%s)", fVariableUnits[varX].Data()) : "")));
-      if(arr->At(1)) h->GetXaxis()->SetTitle(arr->At(1)->GetName());
-      if(xLabels[0]!='\0') MakeAxisLabels(h->GetXaxis(), xLabels);
-      
-      if(fVariableNames[varY][0]) 
-        h->GetYaxis()->SetTitle(Form("%s %s", fVariableNames[varY].Data(), 
-                              (fVariableUnits[varY][0] ? Form("(%s)", fVariableUnits[varY].Data()) : "")));
-      if(fVariableNames[varY][0] && isProfile) 
-        h->GetYaxis()->SetTitle(Form("<%s> %s", fVariableNames[varY].Data(), 
-                              (fVariableUnits[varY][0] ? Form("(%s)", fVariableUnits[varY].Data()) : "")));	
-      if(arr->At(2)) h->GetYaxis()->SetTitle(arr->At(2)->GetName());
-      if(yLabels[0]!='\0') MakeAxisLabels(h->GetYaxis(), yLabels);
+      if (fVariableNames[varX][0])
+        h->GetXaxis()->SetTitle(Form("%s %s", fVariableNames[varX].Data(),
+                                     (fVariableUnits[varX][0] ? Form("(%s)", fVariableUnits[varX].Data()) : "")));
+      if (arr->At(1))
+        h->GetXaxis()->SetTitle(arr->At(1)->GetName());
+      if (xLabels[0] != '\0')
+        MakeAxisLabels(h->GetXaxis(), xLabels);
+
+      if (fVariableNames[varY][0])
+        h->GetYaxis()->SetTitle(Form("%s %s", fVariableNames[varY].Data(),
+                                     (fVariableUnits[varY][0] ? Form("(%s)", fVariableUnits[varY].Data()) : "")));
+      if (fVariableNames[varY][0] && isProfile)
+        h->GetYaxis()->SetTitle(Form("<%s> %s", fVariableNames[varY].Data(),
+                                     (fVariableUnits[varY][0] ? Form("(%s)", fVariableUnits[varY].Data()) : "")));
+      if (arr->At(2))
+        h->GetYaxis()->SetTitle(arr->At(2)->GetName());
+      if (yLabels[0] != '\0')
+        MakeAxisLabels(h->GetYaxis(), yLabels);
       hList->Add(h);
       h->SetDirectory(0);
       break;
 
     case 3: // TH3F, TProfile2D or TProfile3D
-      if(isProfile) {
+      if (isProfile) {
         if (varT > kNothing) { // TProfile3D
           h = new TProfile3D(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xmin, xmax, nYbins, ymin, ymax, nZbins, zmin, zmax);
-          fBinsAllocated+=(nXbins+2)*(nYbins+2)*(nZbins+2);
+          fBinsAllocated += (nXbins + 2) * (nYbins + 2) * (nZbins + 2);
           h->Sumw2();
-          if(titleStr.Contains("--s--")) ((TProfile3D*)h)->BuildOptions(0.,0.,"s");
+          if (titleStr.Contains("--s--"))
+            ((TProfile3D*)h)->BuildOptions(0., 0., "s");
         } else { // TProfile2D
           h = new TProfile2D(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xmin, xmax, nYbins, ymin, ymax);
-          fBinsAllocated+=(nXbins+2)*(nYbins+2);
+          fBinsAllocated += (nXbins + 2) * (nYbins + 2);
           h->Sumw2();
-          if(titleStr.Contains("--s--")) ((TProfile2D*)h)->BuildOptions(0.,0.,"s");
+          if (titleStr.Contains("--s--"))
+            ((TProfile2D*)h)->BuildOptions(0., 0., "s");
         }
       } else { // TH3F
         h = new TH3F(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xmin, xmax, nYbins, ymin, ymax, nZbins, zmin, zmax);
-        fBinsAllocated+=(nXbins+2)*(nYbins+2)*(nZbins+2);
+        fBinsAllocated += (nXbins + 2) * (nYbins + 2) * (nZbins + 2);
         h->Sumw2();
       }
-      if(fVariableNames[varX][0]) 
-        h->GetXaxis()->SetTitle(Form("%s %s", fVariableNames[varX].Data(), 
-                              (fVariableUnits[varX][0] ? Form("(%s)", fVariableUnits[varX].Data()) : "")));
-      if(arr->At(1)) h->GetXaxis()->SetTitle(arr->At(1)->GetName());
-      if(xLabels[0]!='\0') MakeAxisLabels(h->GetXaxis(), xLabels);
-      if(fVariableNames[varY][0]) 
-        h->GetYaxis()->SetTitle(Form("%s %s", fVariableNames[varY].Data(), 
-                                (fVariableUnits[varY][0] ? Form("(%s)", fVariableUnits[varY].Data()) : "")));
-      if(arr->At(2)) h->GetYaxis()->SetTitle(arr->At(2)->GetName());
-      if(yLabels[0]!='\0') MakeAxisLabels(h->GetYaxis(), yLabels);
-      if(fVariableNames[varZ][0]) 
-        h->GetZaxis()->SetTitle(Form("%s %s", fVariableNames[varZ].Data(), 
-                              (fVariableUnits[varZ][0] ? Form("(%s)", fVariableUnits[varZ].Data()) : "")));
-      if(fVariableNames[varZ][0] && isProfile && varT<0)  // for TProfile2D 
-        h->GetZaxis()->SetTitle(Form("<%s> %s", fVariableNames[varZ].Data(), 
-                               (fVariableUnits[varZ][0] ? Form("(%s)", fVariableUnits[varZ].Data()) : "")));	
-      if(arr->At(3)) h->GetZaxis()->SetTitle(arr->At(3)->GetName());
-      if(zLabels[0]!='\0') MakeAxisLabels(h->GetZaxis(), zLabels);
+      if (fVariableNames[varX][0])
+        h->GetXaxis()->SetTitle(Form("%s %s", fVariableNames[varX].Data(),
+                                     (fVariableUnits[varX][0] ? Form("(%s)", fVariableUnits[varX].Data()) : "")));
+      if (arr->At(1))
+        h->GetXaxis()->SetTitle(arr->At(1)->GetName());
+      if (xLabels[0] != '\0')
+        MakeAxisLabels(h->GetXaxis(), xLabels);
+      if (fVariableNames[varY][0])
+        h->GetYaxis()->SetTitle(Form("%s %s", fVariableNames[varY].Data(),
+                                     (fVariableUnits[varY][0] ? Form("(%s)", fVariableUnits[varY].Data()) : "")));
+      if (arr->At(2))
+        h->GetYaxis()->SetTitle(arr->At(2)->GetName());
+      if (yLabels[0] != '\0')
+        MakeAxisLabels(h->GetYaxis(), yLabels);
+      if (fVariableNames[varZ][0])
+        h->GetZaxis()->SetTitle(Form("%s %s", fVariableNames[varZ].Data(),
+                                     (fVariableUnits[varZ][0] ? Form("(%s)", fVariableUnits[varZ].Data()) : "")));
+      if (fVariableNames[varZ][0] && isProfile && varT < 0) // for TProfile2D
+        h->GetZaxis()->SetTitle(Form("<%s> %s", fVariableNames[varZ].Data(),
+                                     (fVariableUnits[varZ][0] ? Form("(%s)", fVariableUnits[varZ].Data()) : "")));
+      if (arr->At(3))
+        h->GetZaxis()->SetTitle(arr->At(3)->GetName());
+      if (zLabels[0] != '\0')
+        MakeAxisLabels(h->GetZaxis(), zLabels);
       h->SetDirectory(0);
       hList->Add(h);
       break;
@@ -267,7 +284,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
 
   // get the list to which the histogram should be added
   TList* hList = (TList*)fMainList->FindObject(histClass);
-  if(!hList) {
+  if (!hList) {
     cout << "Warning in HistogramManager::AddHistogram(): Histogram list " << histClass << " not found!" << endl;
     cout << "         Histogram not created" << endl;
     return;
@@ -281,8 +298,10 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
   // deduce the dimension of the histogram from parameters
   // NOTE: in case of profile histograms, one extra variable is needed
   int dimension = 1;
-  if(varY>kNothing) dimension = 2;
-  if(varZ>kNothing) dimension = 3;
+  if (varY > kNothing)
+    dimension = 2;
+  if (varZ > kNothing)
+    dimension = 3;
 
   // mark required variables as being used
   if (varX > kNothing)
@@ -291,12 +310,14 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
     fUsedVars[varY] = kTRUE;
   if (varZ > kNothing)
     fUsedVars[varZ] = kTRUE;
-  if(varT>kNothing) fUsedVars[varT] = kTRUE;
-  if(varW>kNothing) fUsedVars[varW] = kTRUE;
+  if (varT > kNothing)
+    fUsedVars[varT] = kTRUE;
+  if (varW > kNothing)
+    fUsedVars[varW] = kTRUE;
 
   // tokenize the title string; the user may include in it axis titles which will overwrite the defaults
   TString titleStr(title);
-  TObjArray* arr=titleStr.Tokenize(";");
+  TObjArray* arr = titleStr.Tokenize(";");
 
   // encode needed variable identifiers in a vector and push it to the std::list corresponding to the current histogram list
   std::vector<int> varVector;
@@ -313,90 +334,102 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
   cout << "size of array :: " << varList.size() << endl;
   fVariablesMap[histClass] = varList;
 
-  TH1* h=0x0;
-  switch(dimension) {
+  TH1* h = 0x0;
+  switch (dimension) {
     case 1:
       h = new TH1F(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xbins);
-      fBinsAllocated+=nXbins+2;
+      fBinsAllocated += nXbins + 2;
       h->Sumw2();
-      if(fVariableNames[varX][0]) 
-        h->GetXaxis()->SetTitle(Form("%s %s", fVariableNames[varX].Data(), 
-                               (fVariableUnits[varX][0] ? Form("(%s)", fVariableUnits[varX].Data()) : "")));
-      if(arr->At(1)) h->GetXaxis()->SetTitle(arr->At(1)->GetName());
-      if(xLabels[0]!='\0') MakeAxisLabels(h->GetXaxis(), xLabels);
+      if (fVariableNames[varX][0])
+        h->GetXaxis()->SetTitle(Form("%s %s", fVariableNames[varX].Data(),
+                                     (fVariableUnits[varX][0] ? Form("(%s)", fVariableUnits[varX].Data()) : "")));
+      if (arr->At(1))
+        h->GetXaxis()->SetTitle(arr->At(1)->GetName());
+      if (xLabels[0] != '\0')
+        MakeAxisLabels(h->GetXaxis(), xLabels);
       h->SetDirectory(0);
       hList->Add(h);
       break;
-      
-    case 2:
-      if(isProfile) {
-        h = new TProfile(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xbins);
-        fBinsAllocated+=nXbins+2;
-        h->Sumw2();
-        if(titleStr.Contains("--s--")) ((TProfile*)h)->BuildOptions(0.,0.,"s");
-      }
-      else {
-        h = new TH2F(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xbins, nYbins, ybins);
-        fBinsAllocated+=(nXbins+2)*(nYbins+2);
-        h->Sumw2();
-      }
-      if(fVariableNames[varX][0]) 
-        h->GetXaxis()->SetTitle(Form("%s (%s)", fVariableNames[varX].Data(), 
-                               (fVariableUnits[varX][0] ? Form("(%s)", fVariableUnits[varX].Data()) : "")));
-      if(arr->At(1)) h->GetXaxis()->SetTitle(arr->At(1)->GetName());
-      if(xLabels[0]!='\0') MakeAxisLabels(h->GetXaxis(), xLabels);
-      if(fVariableNames[varY][0]) 
-         h->GetYaxis()->SetTitle(Form("%s (%s)", fVariableNames[varY].Data(), 
-                                (fVariableUnits[varY][0] ? Form("(%s)", fVariableUnits[varY].Data()) : "")));
-      if(fVariableNames[varY][0] && isProfile) 
-         h->GetYaxis()->SetTitle(Form("<%s> (%s)", fVariableNames[varY].Data(), 
-                                (fVariableUnits[varY][0] ? Form("(%s)", fVariableUnits[varY].Data()) : "")));
 
-      if(arr->At(2)) h->GetYaxis()->SetTitle(arr->At(2)->GetName());
-      if(yLabels[0]!='\0') MakeAxisLabels(h->GetYaxis(), yLabels);
+    case 2:
+      if (isProfile) {
+        h = new TProfile(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xbins);
+        fBinsAllocated += nXbins + 2;
+        h->Sumw2();
+        if (titleStr.Contains("--s--"))
+          ((TProfile*)h)->BuildOptions(0., 0., "s");
+      } else {
+        h = new TH2F(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xbins, nYbins, ybins);
+        fBinsAllocated += (nXbins + 2) * (nYbins + 2);
+        h->Sumw2();
+      }
+      if (fVariableNames[varX][0])
+        h->GetXaxis()->SetTitle(Form("%s (%s)", fVariableNames[varX].Data(),
+                                     (fVariableUnits[varX][0] ? Form("(%s)", fVariableUnits[varX].Data()) : "")));
+      if (arr->At(1))
+        h->GetXaxis()->SetTitle(arr->At(1)->GetName());
+      if (xLabels[0] != '\0')
+        MakeAxisLabels(h->GetXaxis(), xLabels);
+      if (fVariableNames[varY][0])
+        h->GetYaxis()->SetTitle(Form("%s (%s)", fVariableNames[varY].Data(),
+                                     (fVariableUnits[varY][0] ? Form("(%s)", fVariableUnits[varY].Data()) : "")));
+      if (fVariableNames[varY][0] && isProfile)
+        h->GetYaxis()->SetTitle(Form("<%s> (%s)", fVariableNames[varY].Data(),
+                                     (fVariableUnits[varY][0] ? Form("(%s)", fVariableUnits[varY].Data()) : "")));
+
+      if (arr->At(2))
+        h->GetYaxis()->SetTitle(arr->At(2)->GetName());
+      if (yLabels[0] != '\0')
+        MakeAxisLabels(h->GetYaxis(), yLabels);
       h->SetDirectory(0);
       hList->Add(h);
       break;
-      
+
     case 3:
-      if(isProfile) {
-        if(varT>kNothing) {
+      if (isProfile) {
+        if (varT > kNothing) {
           h = new TProfile3D(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xbins, nYbins, ybins, nZbins, zbins);
-          fBinsAllocated+=(nXbins+2)*(nYbins+2)*(nZbins+2);
+          fBinsAllocated += (nXbins + 2) * (nYbins + 2) * (nZbins + 2);
           h->Sumw2();
-          if(titleStr.Contains("--s--")) ((TProfile3D*)h)->BuildOptions(0.,0.,"s");
-        }
-        else {
+          if (titleStr.Contains("--s--"))
+            ((TProfile3D*)h)->BuildOptions(0., 0., "s");
+        } else {
           h = new TProfile2D(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xbins, nYbins, ybins);
-          fBinsAllocated+=(nXbins+2)*(nYbins+2);
+          fBinsAllocated += (nXbins + 2) * (nYbins + 2);
           h->Sumw2();
-          if(titleStr.Contains("--s--")) ((TProfile2D*)h)->BuildOptions(0.,0.,"s");
+          if (titleStr.Contains("--s--"))
+            ((TProfile2D*)h)->BuildOptions(0., 0., "s");
         }
-      }
-      else {
+      } else {
         h = new TH3F(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xbins, nYbins, ybins, nZbins, zbins);
-        fBinsAllocated+=(nXbins+2)*(nYbins+2)*(nZbins+2);
+        fBinsAllocated += (nXbins + 2) * (nYbins + 2) * (nZbins + 2);
         h->Sumw2();
       }
-      if(fVariableNames[varX][0]) 
-        h->GetXaxis()->SetTitle(Form("%s %s", fVariableNames[varX].Data(), 
-                               (fVariableUnits[varX][0] ? Form("(%s)", fVariableUnits[varX].Data()) : "")));
-      if(arr->At(1)) h->GetXaxis()->SetTitle(arr->At(1)->GetName());
-      if(xLabels[0]!='\0') MakeAxisLabels(h->GetXaxis(), xLabels);
-      if(fVariableNames[varY][0]) 
-        h->GetYaxis()->SetTitle(Form("%s %s", fVariableNames[varY].Data(), 
-                               (fVariableUnits[varY][0] ? Form("(%s)", fVariableUnits[varY].Data()) : "")));
-      if(arr->At(2)) h->GetYaxis()->SetTitle(arr->At(2)->GetName());
-      if(yLabels[0]!='\0') MakeAxisLabels(h->GetYaxis(), yLabels);
-      if(fVariableNames[varZ][0]) 
-        h->GetZaxis()->SetTitle(Form("%s %s", fVariableNames[varZ].Data(), 
-                                (fVariableUnits[varZ][0] ? Form("(%s)", fVariableUnits[varZ].Data()) : "")));
-      if(fVariableNames[varZ][0] && isProfile && varT<0)  // TProfile2D 
-        h->GetZaxis()->SetTitle(Form("<%s> %s", fVariableNames[varZ].Data(), 
-                                (fVariableUnits[varZ][0] ? Form("(%s)", fVariableUnits[varZ].Data()) : "")));
-				     
-      if(arr->At(3)) h->GetZaxis()->SetTitle(arr->At(3)->GetName());
-      if(zLabels[0]!='\0') MakeAxisLabels(h->GetZaxis(), zLabels);
+      if (fVariableNames[varX][0])
+        h->GetXaxis()->SetTitle(Form("%s %s", fVariableNames[varX].Data(),
+                                     (fVariableUnits[varX][0] ? Form("(%s)", fVariableUnits[varX].Data()) : "")));
+      if (arr->At(1))
+        h->GetXaxis()->SetTitle(arr->At(1)->GetName());
+      if (xLabels[0] != '\0')
+        MakeAxisLabels(h->GetXaxis(), xLabels);
+      if (fVariableNames[varY][0])
+        h->GetYaxis()->SetTitle(Form("%s %s", fVariableNames[varY].Data(),
+                                     (fVariableUnits[varY][0] ? Form("(%s)", fVariableUnits[varY].Data()) : "")));
+      if (arr->At(2))
+        h->GetYaxis()->SetTitle(arr->At(2)->GetName());
+      if (yLabels[0] != '\0')
+        MakeAxisLabels(h->GetYaxis(), yLabels);
+      if (fVariableNames[varZ][0])
+        h->GetZaxis()->SetTitle(Form("%s %s", fVariableNames[varZ].Data(),
+                                     (fVariableUnits[varZ][0] ? Form("(%s)", fVariableUnits[varZ].Data()) : "")));
+      if (fVariableNames[varZ][0] && isProfile && varT < 0) // TProfile2D
+        h->GetZaxis()->SetTitle(Form("<%s> %s", fVariableNames[varZ].Data(),
+                                     (fVariableUnits[varZ][0] ? Form("(%s)", fVariableUnits[varZ].Data()) : "")));
+
+      if (arr->At(3))
+        h->GetZaxis()->SetTitle(arr->At(3)->GetName());
+      if (zLabels[0] != '\0')
+        MakeAxisLabels(h->GetZaxis(), zLabels);
       hList->Add(h);
       break;
   } // end switch(dimension)
@@ -413,7 +446,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
 
   // get the list to which the histogram should be added
   TList* hList = (TList*)fMainList->FindObject(histClass);
-  if(!hList) {
+  if (!hList) {
     cout << "Warning in HistogramManager::AddHistogram(): Histogram list " << histClass << " not found!" << endl;
     cout << "         Histogram not created" << endl;
     return;
@@ -426,9 +459,10 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
 
   // tokenize the title string; the user may include in it axis titles which will overwrite the defaults
   TString titleStr(title);
-  TObjArray* arr=titleStr.Tokenize(";");
-  
-  if(varW>kNothing) fUsedVars[varW] = kTRUE;
+  TObjArray* arr = titleStr.Tokenize(";");
+
+  if (varW > kNothing)
+    fUsedVars[varW] = kTRUE;
 
   // encode needed variable identifiers in a vector and push it to the std::list corresponding to the current histogram list
   std::vector<int> varVector;
@@ -443,7 +477,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
   cout << "size of array :: " << varList.size() << endl;
   fVariablesMap[histClass] = varList;
 
-  THnBase* h=0x0;
+  THnBase* h = 0x0;
   if (useSparse)
     h = new THnSparseF(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nDimensions, nBins, xmin, xmax);
   else
@@ -453,14 +487,15 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
   // configure the THn histogram and count the allocated bins
   unsigned long int bins = 1;
   for (int idim = 0; idim < nDimensions; ++idim) {
-    bins*=(nBins[idim]+2);
+    bins *= (nBins[idim] + 2);
     TAxis* axis = h->GetAxis(idim);
 
-    if(fVariableNames[vars[idim]][0]) 
-      axis->SetTitle(Form("%s %s", fVariableNames[vars[idim]].Data(), 
+    if (fVariableNames[vars[idim]][0])
+      axis->SetTitle(Form("%s %s", fVariableNames[vars[idim]].Data(),
                           (fVariableUnits[vars[idim]][0] ? Form("(%s)", fVariableUnits[vars[idim]].Data()) : "")));
-    if(arr->At(1+idim)) axis->SetTitle(arr->At(1+idim)->GetName());
-    if(axLabels && !axLabels[idim].IsNull()) 
+    if (arr->At(1 + idim))
+      axis->SetTitle(arr->At(1 + idim)->GetName());
+    if (axLabels && !axLabels[idim].IsNull())
       MakeAxisLabels(axis, axLabels[idim].Data());
     fUsedVars[vars[idim]] = kTRUE;
   }
@@ -468,7 +503,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
     hList->Add((THnSparseF*)h);
   else
     hList->Add((THnF*)h);
-  fBinsAllocated+=bins;
+  fBinsAllocated += bins;
 }
 
 //_________________________________________________________________
@@ -482,7 +517,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
 
   // get the list to which the histogram should be added
   TList* hList = (TList*)fMainList->FindObject(histClass);
-  if(!hList) {
+  if (!hList) {
     cout << "Warning in HistogramManager::AddHistogram(): Histogram list " << histClass << " not found!" << endl;
     cout << "         Histogram not created" << endl;
     return;
@@ -495,9 +530,10 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
 
   // tokenize the title string; the user may include in it axis titles which will overwrite the defaults
   TString titleStr(title);
-  TObjArray* arr=titleStr.Tokenize(";");
-  
-  if(varW>kNothing) fUsedVars[varW] = kTRUE;
+  TObjArray* arr = titleStr.Tokenize(";");
+
+  if (varW > kNothing)
+    fUsedVars[varW] = kTRUE;
 
   // encode needed variable identifiers in a vector and push it to the std::list corresponding to the current histogram list
   std::vector<int> varVector;
@@ -517,33 +553,34 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
   double* xmax = new double[nDimensions];
   int* nBins = new int[nDimensions];
   for (int idim = 0; idim < nDimensions; ++idim) {
-    nBins[idim] = binLimits[idim].GetSize()-1;
+    nBins[idim] = binLimits[idim].GetSize() - 1;
     xmin[idim] = binLimits[idim][0];
     xmax[idim] = binLimits[idim][nBins[idim]];
   }
 
   // initialize the THn with equal spaced bins
-  THnBase* h=0x0;
+  THnBase* h = 0x0;
   if (useSparse)
     h = new THnSparseF(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nDimensions, nBins, xmin, xmax);
   else
     h = new THnF(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nDimensions, nBins, xmin, xmax);
   // rebin the axes according to the user requested binning
   for (int idim = 0; idim < nDimensions; ++idim) {
-    TAxis* axis=h->GetAxis(idim);
+    TAxis* axis = h->GetAxis(idim);
     axis->Set(nBins[idim], binLimits[idim].GetArray());
   }
   h->Sumw2();
 
   unsigned long int bins = 1;
   for (int idim = 0; idim < nDimensions; ++idim) {
-    bins*=(nBins[idim]+2);
+    bins *= (nBins[idim] + 2);
     TAxis* axis = h->GetAxis(idim);
-    if(fVariableNames[vars[idim]][0]) 
-      axis->SetTitle(Form("%s %s", fVariableNames[vars[idim]].Data(), 
+    if (fVariableNames[vars[idim]][0])
+      axis->SetTitle(Form("%s %s", fVariableNames[vars[idim]].Data(),
                           (fVariableUnits[vars[idim]][0] ? Form("(%s)", fVariableUnits[vars[idim]].Data()) : "")));
-    if(arr->At(1+idim)) axis->SetTitle(arr->At(1+idim)->GetName());
-    if(axLabels && !axLabels[idim].IsNull()) 
+    if (arr->At(1 + idim))
+      axis->SetTitle(arr->At(1 + idim)->GetName());
+    if (axLabels && !axLabels[idim].IsNull())
       MakeAxisLabels(axis, axLabels[idim].Data());
     fUsedVars[vars[idim]] = kTRUE;
   }
@@ -551,7 +588,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
     hList->Add((THnSparseF*)h);
   else
     hList->Add((THnF*)h);
-  fBinsAllocated+=bins;
+  fBinsAllocated += bins;
 }
 
 //__________________________________________________________________
@@ -563,7 +600,7 @@ void HistogramManager::FillHistClass(const char* className, Float_t* values)
 
   // get the needed histogram list
   TList* hList = (TList*)fMainList->FindObject(className);
-  if(!hList) {
+  if (!hList) {
     // TODO: add some meaningfull error message
     /*cout << "Warning in HistogramManager::FillHistClass(): Histogram list " << className << " not found!" << endl;
     cout << "         Histogram list not filled" << endl; */
@@ -576,7 +613,7 @@ void HistogramManager::FillHistClass(const char* className, Float_t* values)
   TIter next(hList);
   auto varIter = varList.begin();
 
-  TObject* h=0x0;
+  TObject* h = 0x0;
   bool isProfile;
   bool isTHn;
   int dimension = 0;
@@ -612,7 +649,7 @@ void HistogramManager::FillHistClass(const char* className, Float_t* values)
 
     // TODO: check that all needed variables are marked for usage in fUsedVars, otherwise throw and error
 
-    if(!isTHn) {
+    if (!isTHn) {
       switch (dimension) {
         case 1:
           if (isProfile) {
@@ -657,7 +694,7 @@ void HistogramManager::FillHistClass(const char* className, Float_t* values)
         default:
           break;
       } // end switch
-    }  // end if(!isTHn)
+    }   // end if(!isTHn)
     else {
       if (varW > kNothing) {
         if (isSparse)
@@ -681,15 +718,17 @@ void HistogramManager::MakeAxisLabels(TAxis* ax, const char* labels)
   // add bin labels to an axis
   //
   TString labelsStr(labels);
-  TObjArray* arr=labelsStr.Tokenize(";");
+  TObjArray* arr = labelsStr.Tokenize(";");
   for (int ib = 1; ib <= ax->GetNbins(); ++ib) {
-    if(ib>=arr->GetEntries()+1) break;
-    ax->SetBinLabel(ib, arr->At(ib-1)->GetName());
+    if (ib >= arr->GetEntries() + 1)
+      break;
+    ax->SetBinLabel(ib, arr->At(ib - 1)->GetName());
   }
 }
 
 //____________________________________________________________________________________
-void HistogramManager::Print(Option_t*) const {
+void HistogramManager::Print(Option_t*) const
+{
   //
   // Print the defined histograms
   //

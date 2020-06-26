@@ -22,7 +22,7 @@ class HistogramManager : public TNamed
   HistogramManager();
   HistogramManager(const char* name, const char* title, const int maxNVars);
   virtual ~HistogramManager();
-  
+
   enum Constants {
     kNothing = -1
   };
@@ -64,7 +64,7 @@ class HistogramManager : public TNamed
 
   unsigned long int GetAllocatedBins() const { return fBinsAllocated; }
   void Print(Option_t*) const;
-  
+
  private:
   THashList* fMainList;                                             // master histogram list
   int fNVars;                                                       // number of variables handled (tipically fromt he Variable Manager)
@@ -72,16 +72,16 @@ class HistogramManager : public TNamed
   std::map<std::string, std::list<std::vector<int>>> fVariablesMap; //!  map holding identifiers for all variables needed by histograms
 
   // various
-  bool fUseDefaultVariableNames;         //! toggle the usage of default variable names and units
-  unsigned long int fBinsAllocated;      //! number of allocated bins
-  TString* fVariableNames;               //! variable names
-  TString* fVariableUnits;               //! variable units
+  bool fUseDefaultVariableNames;    //! toggle the usage of default variable names and units
+  unsigned long int fBinsAllocated; //! number of allocated bins
+  TString* fVariableNames;          //! variable names
+  TString* fVariableUnits;          //! variable units
 
   void MakeAxisLabels(TAxis* ax, const char* labels);
 
-  HistogramManager& operator= (const HistogramManager &c);
-  HistogramManager(const HistogramManager &c);
-  
+  HistogramManager& operator=(const HistogramManager& c);
+  HistogramManager(const HistogramManager& c);
+
   ClassDef(HistogramManager, 1)
 };
 

@@ -20,17 +20,18 @@ namespace o2
 namespace aod
 {
 
-namespace reducedevent {
-  
-  // basic event information
-  DECLARE_SOA_COLUMN(Tag, tag, uint64_t);
-  
-  // TODO: implement additional separate tables for other types of information, e.g. multiplicity estimators, VZERO-TZERO/FIT, ZDC, etc.
-  
-}  // namespace reducedevent
+namespace reducedevent
+{
+
+// basic event information
+DECLARE_SOA_COLUMN(Tag, tag, uint64_t);
+
+// TODO: implement additional separate tables for other types of information, e.g. multiplicity estimators, VZERO-TZERO/FIT, ZDC, etc.
+
+} // namespace reducedevent
 
 DECLARE_SOA_TABLE(ReducedEvents, "AOD", "REDUCEDEVENT", o2::soa::Index<>,
-                  reducedevent::Tag, bc::RunNumber, 
+                  reducedevent::Tag, bc::RunNumber,
                   collision::PosX, collision::PosY, collision::PosZ, collision::NumContrib);
 
 DECLARE_SOA_TABLE(ReducedEventsExtended, "AOD", "REEXTENDED",
@@ -44,33 +45,33 @@ using ReducedEvent = ReducedEvents::iterator;
 using ReducedEventExtended = ReducedEventsExtended::iterator;
 using ReducedEventVtxCov = ReducedEventsVtxCov::iterator;
 
+namespace reducedtrack
+{
+// basic track information
+DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent);
+DECLARE_SOA_COLUMN(Index, index, uint16_t);
+// ----  flags reserved for storing various information during filtering
+DECLARE_SOA_COLUMN(FilteringFlags, filteringFlags, uint64_t);
+// BIT 0: track is from MUON arm      (if not toggled then this is a barrel track)
+// -----------------------------------------------------
+DECLARE_SOA_COLUMN(Pt, pt, float);
+DECLARE_SOA_COLUMN(Eta, eta, float);
+DECLARE_SOA_COLUMN(Phi, phi, float);
+DECLARE_SOA_COLUMN(Charge, charge, short);
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return abs(pt) * cos(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float { return abs(pt) * sin(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return abs(pt) * sinh(eta); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, [](float pt, float eta) -> float { return abs(pt) * cosh(eta); });
 
-namespace reducedtrack {
-  // basic track information
-  DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent);
-  DECLARE_SOA_COLUMN(Index, index, uint16_t);
-  // ----  flags reserved for storing various information during filtering
-  DECLARE_SOA_COLUMN(FilteringFlags, filteringFlags, uint64_t);   
-  // BIT 0: track is from MUON arm      (if not toggled then this is a barrel track)
-  // -----------------------------------------------------
-  DECLARE_SOA_COLUMN(Pt, pt, float);
-  DECLARE_SOA_COLUMN(Eta, eta, float);
-  DECLARE_SOA_COLUMN(Phi, phi, float);
-  DECLARE_SOA_COLUMN(Charge, charge, short);
-  DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return abs(pt)*cos(phi); });
-  DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float { return abs(pt)*sin(phi); });
-  DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return abs(pt)*sinh(eta); });
-  DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, [](float pt, float eta) -> float { return abs(pt)*cosh(eta); });
-  
-  // MUON tracks extra information 
-  DECLARE_SOA_COLUMN(MuonChi2, muonChi2, float);
-  DECLARE_SOA_COLUMN(MuonChi2MatchTrigger, muonChi2MatchTrigger, float);
-  
-}  //namespace reducedtrack
+// MUON tracks extra information
+DECLARE_SOA_COLUMN(MuonChi2, muonChi2, float);
+DECLARE_SOA_COLUMN(MuonChi2MatchTrigger, muonChi2MatchTrigger, float);
+
+} //namespace reducedtrack
 
 // basic track information
 DECLARE_SOA_TABLE(ReducedTracks, "AOD", "REDUCEDTRACK",
-                  o2::soa::Index<>, reducedtrack::ReducedEventId, reducedtrack::Index, reducedtrack::FilteringFlags, 
+                  o2::soa::Index<>, reducedtrack::ReducedEventId, reducedtrack::Index, reducedtrack::FilteringFlags,
                   reducedtrack::Pt, reducedtrack::Eta, reducedtrack::Phi, reducedtrack::Charge,
                   reducedtrack::Px<reducedtrack::Pt, reducedtrack::Phi>,
                   reducedtrack::Py<reducedtrack::Pt, reducedtrack::Phi>,
@@ -91,7 +92,7 @@ DECLARE_SOA_TABLE(ReducedTracksBarrel, "AOD", "RTBARREL",
 // barrel covariance matrix
 DECLARE_SOA_TABLE(ReducedTracksBarrelCov, "AOD", "RTBARRELCOV",
                   track::CYY, track::CZZ, track::CSnpSnp,
-                  track::CTglTgl, track::C1Pt21Pt2);                 
+                  track::CTglTgl, track::C1Pt21Pt2);
 
 // TODO: change names of these columns in the AnalysisDataModel to identify the members as muon quantities
 DECLARE_SOA_TABLE(ReducedTracksMuon, "AOD", "RTMUON",
