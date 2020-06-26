@@ -114,7 +114,7 @@ class rawReaderSpecs : public o2f::Task
         tfID = 0;
         LOG(INFO) << "Starting new loop " << loopsDone << " from the beginning of data";
       } else {
-        LOGF(INFO, "Finished: payload of %zu bytes in %zu messages sent for %d TFs", sentSize, sentMessages, mTFCounter);
+        LOGF(INFO, "Finished: payload of %zu bytes in %zu messages sent for %d TFs", sentSize, sentMessages, mTFIDaccum);
         ctx.services().get<o2f::ControlService>().endOfStream();
         ctx.services().get<o2f::ControlService>().readyToQuit(o2f::QuitRequest::Me);
         mDone = true;
@@ -132,12 +132,12 @@ class rawReaderSpecs : public o2f::Task
 
     // read next time frame
     size_t tfNParts = 0, tfSize = 0;
-    LOG(INFO) << "Reading TF#" << mTFCounter << " (" << tfID << " at iteration " << loopsDone << ')';
+    LOG(INFO) << "Reading TF#" << mTFIDaccum << " (" << tfID << " at iteration " << loopsDone << ')';
 
     for (int il = 0; il < nlinks; il++) {
       auto& link = mReader->getLink(il);
 
-      if (!findOutputChannel(link, mTFCounter)) { // no output channel
+      if (!findOutputChannel(link, mTFIDaccum)) { // no output channel
         continue;
       }
 
@@ -149,7 +149,7 @@ class rawReaderSpecs : public o2f::Task
       while (hdrTmpl.splitPayloadIndex < hdrTmpl.splitPayloadParts) {
 
         tfSize += hdrTmpl.payloadSize = mHBFPerMessage ? link.getNextHBFSize() : link.getNextTFSize();
-        o2::header::Stack headerStack{hdrTmpl, o2::framework::DataProcessingHeader{mTFCounter}};
+        o2::header::Stack headerStack{hdrTmpl, o2::framework::DataProcessingHeader{mTFIDaccum}};
 
         auto hdMessage = device->NewMessage(headerStack.size());
         memcpy(hdMessage->GetData(), headerStack.data(), headerStack.size());
@@ -158,7 +158,7 @@ class rawReaderSpecs : public o2f::Task
         auto bread = mHBFPerMessage ? link.readNextHBF(reinterpret_cast<char*>(plMessage->GetData())) : link.readNextTF(reinterpret_cast<char*>(plMessage->GetData()));
         if (bread != hdrTmpl.payloadSize) {
           LOG(ERROR) << "Link " << il << " read " << bread << " bytes instead of " << hdrTmpl.payloadSize
-                     << " expected in TF=" << mTFCounter << " part=" << hdrTmpl.splitPayloadIndex;
+                     << " expected in TF=" << mTFIDaccum << " part=" << hdrTmpl.splitPayloadIndex;
         }
         // check if the RDH to send corresponds to expected orbit
         if (hdrTmpl.splitPayloadIndex == 0) {
@@ -171,10 +171,8 @@ class rawReaderSpecs : public o2f::Task
                    link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
             }
           }
-          hdrTmpl.firstTForbit = hbOrbRead;                                                          // will be picked for the
-          hdrTmpl.tfCounter = mTFCounter;                                                            // following parts
-          reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->firstTForbit = hbOrbRead; // but need to fix
-          reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->tfCounter = mTFCounter;   // for the 1st one
+          hdrTmpl.firstTForbit = hbOrbRead + loopsDone * nhbexp; // for next parts
+          reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->firstTForbit = hdrTmpl.firstTForbit;
         }
         FairMQParts* parts = nullptr;
         if (mOutPerRoute) {
@@ -195,11 +193,11 @@ class rawReaderSpecs : public o2f::Task
         hdrTmpl.splitPayloadIndex++; // prepare for next
         tfNParts++;
       }
-      LOGF(DEBUG, "Added %d parts for TF#%d(%d in iteration %d) of %s/%s/0x%u", hdrTmpl.splitPayloadParts, mTFCounter, tfID,
+      LOGF(DEBUG, "Added %d parts for TF#%d(%d in iteration %d) of %s/%s/0x%u", hdrTmpl.splitPayloadParts, mTFIDaccum, tfID,
            loopsDone, link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
     }
 
-    if (mTFCounter) { // delay sending
+    if (mTFIDaccum) { // delay sending
       usleep(mDelayUSec);
     }
 
@@ -220,12 +218,12 @@ class rawReaderSpecs : public o2f::Task
     }
 
     LOGF(INFO, "Sent payload of %zu bytes in %zu parts in %zu messages for TF %d", tfSize, tfNParts,
-         (mOutPerRoute ? messagesPerRoute.size() : messagesPerLink.size()), mTFCounter);
+         (mOutPerRoute ? messagesPerRoute.size() : messagesPerLink.size()), mTFIDaccum);
     sentSize += tfSize;
     sentMessages += tfNParts;
 
     mReader->setNextTFToRead(++tfID);
-    ++mTFCounter;
+    ++mTFIDaccum;
   }
 
   uint32_t getMinTFID() const { return mMinTFID; }
@@ -238,7 +236,7 @@ class rawReaderSpecs : public o2f::Task
 
  private:
   int mLoop = 0;                                   // once last TF reached, loop while mLoop>=0
-  uint32_t mTFCounter = 0;                         // TFId accumulator (accounts for looping)
+  size_t mTFIDaccum = 0;                           // TFId accumulator (accounts for looping)
   uint32_t mDelayUSec = 0;                         // Delay in microseconds between TFs
   uint32_t mMinTFID = 0;                           // 1st TF to extract
   uint32_t mMaxTFID = 0xffffffff;                  // last TF to extrct
