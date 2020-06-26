@@ -16,14 +16,13 @@
 #ifndef ALICEO2_MFT_TRACKFITTER_H_
 #define ALICEO2_MFT_TRACKFITTER_H_
 
-//#include "MFTTracking/Cluster.h"
+#include "MFTTracking/Cluster.h"
 #include "MFTTracking/TrackCA.h"
 #include "MFTTracking/FitterTrackMFT.h"
 #include "MFTTracking/TrackParamMFT.h"
 #include "MFTTracking/TrackExtrap.h"
 #include "MFTTracking/MFTTrackingParam.h"
 #include "DataFormatsMFT/TrackMFT.h"
-#include "DataFormatsITSMFT/Cluster.h"
 
 #include <TLinearFitter.h>
 #include <list>
@@ -32,8 +31,6 @@ namespace o2
 {
 namespace mft
 {
-//using Track = o2::mft::FitterTrackMFT;
-//using Cluster = o2::itsmft::Cluster;
 
 /// Class to fit a track to a set of clusters
 class TrackFitter
@@ -63,8 +60,8 @@ class TrackFitter
   static constexpr double getMaxChi2() { return SMaxChi2; }
 
  private:
-  void initTrack(const o2::itsmft::Cluster& cl, TrackParamMFT& param);
-  bool addCluster(const TrackParamMFT& startingParam, const o2::itsmft::Cluster& cl, TrackParamMFT& param);
+  void initTrack(const Cluster& cl, TrackParamMFT& param);
+  bool addCluster(const TrackParamMFT& startingParam, const Cluster& cl, TrackParamMFT& param);
   bool smoothTrack(FitterTrackMFT& track, bool finalize);
   bool runSmoother(const TrackParamMFT& previousParam, TrackParamMFT& param);
   Float_t mBZField;                         // kiloGauss.

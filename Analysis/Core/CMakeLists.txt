@@ -24,6 +24,7 @@ o2_target_root_dictionary(AnalysisCore
                       include/Analysis/VarManager.h
                       include/Analysis/HistogramManager.h
                       include/Analysis/RunToTimestamp.h
+                      include/Analysis/MC.h
               LINKDEF src/AnalysisCoreLinkDef.h)
 
 o2_add_executable(makerun2timestamp

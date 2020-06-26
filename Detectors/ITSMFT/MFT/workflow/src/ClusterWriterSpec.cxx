@@ -15,7 +15,6 @@
 #include "MFTWorkflow/ClusterWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -31,7 +30,6 @@ template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 using CompClusType = std::vector<o2::itsmft::CompClusterExt>;
 using PatternsType = std::vector<unsigned char>;
-using ClustersType = std::vector<o2::itsmft::Cluster>;
 using ROFrameRType = std::vector<o2::itsmft::ROFRecord>;
 using LabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 using ROFRecLblT = std::vector<o2::itsmft::MC2ROFRecord>;
@@ -41,25 +39,21 @@ DataProcessorSpec getClusterWriterSpec(bool useMC)
 {
   // Spectators for logging
   // this is only to restore the original behavior
-  auto clustersSize = std::make_shared<int>(0);
-  auto clustersSizeGetter = [clustersSize](ClustersType const& clusters) {
-    *clustersSize = clusters.size();
+  auto compClustersSize = std::make_shared<int>(0);
+  auto compClustersSizeGetter = [compClustersSize](CompClusType const& compClusters) {
+    *compClustersSize = compClusters.size();
   };
-  auto logger = [clustersSize](std::vector<o2::itsmft::ROFRecord> const& rofs) {
-    LOG(INFO) << "MFTClusterWriter pulled " << *clustersSize << " clusters, in " << rofs.size() << " RO frames";
+  auto logger = [compClustersSize](std::vector<o2::itsmft::ROFRecord> const& rofs) {
+    LOG(INFO) << "MFTClusterWriter pulled " << *compClustersSize << " clusters, in " << rofs.size() << " RO frames";
   };
   return MakeRootTreeWriterSpec("mft-cluster-writer",
                                 "mftclusters.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with MFT clusters"},
                                 BranchDefinition<CompClusType>{InputSpec{"compclus", "MFT", "COMPCLUSTERS", 0},
-                                                               "MFTClusterComp"},
+                                                               "MFTClusterComp",
+                                                               compClustersSizeGetter},
                                 BranchDefinition<PatternsType>{InputSpec{"patterns", "MFT", "PATTERNS", 0},
                                                                "MFTClusterPatt"},
-                                // this has been marked to be removed in the original implementation
-                                // RSTODO being eliminated
-                                BranchDefinition<ClustersType>{InputSpec{"clusters", "MFT", "CLUSTERS", 0},
-                                                               "MFTCluster",
-                                                               clustersSizeGetter},
                                 BranchDefinition<ROFrameRType>{InputSpec{"ROframes", "MFT", "CLUSTERSROF", 0},
                                                                "MFTClustersROF",
                                                                logger},

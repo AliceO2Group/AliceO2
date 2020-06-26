@@ -70,6 +70,22 @@ std::shared_ptr<arrow::DataType> concreteArrowType(atype::type type)
   }
 }
 
+std::string upcastTo(atype::type f)
+{
+  switch (f) {
+    case atype::INT32:
+      return "castINT";
+    case atype::INT64:
+      return "castBIGINT";
+    case atype::FLOAT:
+      return "castFLOAT4";
+    case atype::DOUBLE:
+      return "castFLOAT8";
+    default:
+      throw std::runtime_error(fmt::format("Do not know how to cast to {}", f));
+  }
+}
+
 bool operator==(DatumSpec const& lhs, DatumSpec const& rhs)
 {
   return (lhs.datum == rhs.datum) && (lhs.type == rhs.type);
@@ -385,7 +401,11 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
       if (lookup != fieldNodes.end()) {
         return lookup->second;
       }
-      auto node = gandiva::TreeExprBuilder::MakeField(Schema->GetFieldByName(name));
+      auto field = Schema->GetFieldByName(name);
+      if (field == nullptr) {
+        throw std::runtime_error(fmt::format("Cannot find field \"{}\"", name));
+      }
+      auto node = gandiva::TreeExprBuilder::MakeField(field);
       fieldNodes.insert({name, node});
       return node;
     }
@@ -396,6 +416,15 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
   for (auto it = opSpecs.rbegin(); it != opSpecs.rend(); ++it) {
     auto leftNode = datumNode(it->left);
     auto rightNode = datumNode(it->right);
+
+    auto insertUpcastNode = [&](gandiva::NodePtr node, atype::type t) {
+      if (t != it->type) {
+        auto upcast = gandiva::TreeExprBuilder::MakeFunction(upcastTo(it->type), {node}, concreteArrowType(it->type));
+        node = upcast;
+      }
+      return node;
+    };
+
     switch (it->op) {
       case BasicOp::LogicalOr:
         tree = gandiva::TreeExprBuilder::MakeOr({leftNode, rightNode});
@@ -405,8 +434,13 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
         break;
       default:
         if (it->op < BasicOp::Exp) {
+          if (it->type != atype::BOOL) {
+            leftNode = insertUpcastNode(leftNode, it->left.type);
+            rightNode = insertUpcastNode(rightNode, it->right.type);
+          }
           tree = gandiva::TreeExprBuilder::MakeFunction(binaryOperationsMap[it->op], {leftNode, rightNode}, concreteArrowType(it->type));
         } else {
+          leftNode = insertUpcastNode(leftNode, it->left.type);
           tree = gandiva::TreeExprBuilder::MakeFunction(binaryOperationsMap[it->op], {leftNode}, concreteArrowType(it->type));
         }
         break;

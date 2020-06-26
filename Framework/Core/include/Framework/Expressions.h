@@ -77,6 +77,7 @@ constexpr auto selectArrowType()
 }
 
 std::shared_ptr<arrow::DataType> concreteArrowType(atype::type type);
+std::string upcastTo(atype::type f);
 
 /// An expression tree node corresponding to a literal value
 struct LiteralNode {
@@ -295,9 +296,21 @@ inline Node operator+(Node left, T right)
 }
 
 template <typename T>
+inline Node operator+(T left, Node right)
+{
+  return Node{OpNode{BasicOp::Addition}, LiteralNode{left}, std::move(right)};
+}
+
+template <typename T>
 inline Node operator-(Node left, T right)
 {
   return Node{OpNode{BasicOp::Subtraction}, std::move(left), LiteralNode{right}};
+}
+
+template <typename T>
+inline Node operator-(T left, Node right)
+{
+  return Node{OpNode{BasicOp::Subtraction}, LiteralNode{left}, std::move(right)};
 }
 /// semi-binary
 template <typename T>
