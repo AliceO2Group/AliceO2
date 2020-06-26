@@ -37,13 +37,13 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
   trackParCovWriter(0, 7, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4);
   auto covs = trackParCovBuilder.finalize();
 
-  using Test = Join<StoredTracks, TracksCov>;
+  using Test = Join<StoredTracks, StoredTracksCov>;
 
   Test tests{0, tracks, covs};
   BOOST_REQUIRE(tests.asArrowTable()->num_columns() != 0);
   BOOST_REQUIRE_EQUAL(tests.asArrowTable()->num_columns(),
                       tracks->num_columns() + covs->num_columns());
-  auto tests2 = join(StoredTracks{tracks}, TracksCov{covs});
+  auto tests2 = join(StoredTracks{tracks}, StoredTracksCov{covs});
   static_assert(std::is_same_v<Test::table_t, decltype(tests2)>,
                 "Joined tables should have the same type, regardless how we construct them");
 }
