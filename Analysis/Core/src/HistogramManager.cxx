@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #include "Analysis/HistogramManager.h"
 
 #include <iostream>
@@ -18,18 +28,18 @@ using namespace std;
 #include <TIterator.h>
 #include <TClass.h>
 
-ClassImp(HistogramManager)
+ClassImp(HistogramManager);
 
-  //_______________________________________________________________________________
-  HistogramManager::HistogramManager() : TNamed("", ""),
-                                         fMainList(0x0),
-                                         fNVars(0),
-                                         fUsedVars(0x0),
-                                         fVariablesMap(),
-                                         fUseDefaultVariableNames(false),
-                                         fBinsAllocated(0),
-                                         fVariableNames(0x0),
-                                         fVariableUnits(0x0)
+//_______________________________________________________________________________
+HistogramManager::HistogramManager() : TNamed("", ""),
+                                       fMainList(nullptr),
+                                       fNVars(0),
+                                       fUsedVars(nullptr),
+                                       fVariablesMap(),
+                                       fUseDefaultVariableNames(false),
+                                       fBinsAllocated(0),
+                                       fVariableNames(nullptr),
+                                       fVariableUnits(nullptr)
 {
   //
   // Constructor
@@ -166,7 +176,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
   fVariablesMap[histClass] = varList;
 
   // create and configure histograms according to required options
-  TH1* h = 0x0;
+  TH1* h = nullptr;
   switch (dimension) {
     case 1: // TH1F
       h = new TH1F(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xmin, xmax);
@@ -181,7 +191,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
       if (xLabels[0] != '\0')
         MakeAxisLabels(h->GetXaxis(), xLabels);
       hList->Add(h);
-      h->SetDirectory(0);
+      h->SetDirectory(nullptr);
       break;
 
     case 2: // either TH2F or TProfile
@@ -217,7 +227,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
       if (yLabels[0] != '\0')
         MakeAxisLabels(h->GetYaxis(), yLabels);
       hList->Add(h);
-      h->SetDirectory(0);
+      h->SetDirectory(nullptr);
       break;
 
     case 3: // TH3F, TProfile2D or TProfile3D
@@ -264,7 +274,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
         h->GetZaxis()->SetTitle(arr->At(3)->GetName());
       if (zLabels[0] != '\0')
         MakeAxisLabels(h->GetZaxis(), zLabels);
-      h->SetDirectory(0);
+      h->SetDirectory(nullptr);
       hList->Add(h);
       break;
   } // end switch
@@ -334,7 +344,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
   cout << "size of array :: " << varList.size() << endl;
   fVariablesMap[histClass] = varList;
 
-  TH1* h = 0x0;
+  TH1* h = nullptr;
   switch (dimension) {
     case 1:
       h = new TH1F(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nXbins, xbins);
@@ -347,7 +357,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
         h->GetXaxis()->SetTitle(arr->At(1)->GetName());
       if (xLabels[0] != '\0')
         MakeAxisLabels(h->GetXaxis(), xLabels);
-      h->SetDirectory(0);
+      h->SetDirectory(nullptr);
       hList->Add(h);
       break;
 
@@ -381,7 +391,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
         h->GetYaxis()->SetTitle(arr->At(2)->GetName());
       if (yLabels[0] != '\0')
         MakeAxisLabels(h->GetYaxis(), yLabels);
-      h->SetDirectory(0);
+      h->SetDirectory(nullptr);
       hList->Add(h);
       break;
 
@@ -477,7 +487,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
   cout << "size of array :: " << varList.size() << endl;
   fVariablesMap[histClass] = varList;
 
-  THnBase* h = 0x0;
+  THnBase* h = nullptr;
   if (useSparse)
     h = new THnSparseF(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nDimensions, nBins, xmin, xmax);
   else
@@ -559,7 +569,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
   }
 
   // initialize the THn with equal spaced bins
-  THnBase* h = 0x0;
+  THnBase* h = nullptr;
   if (useSparse)
     h = new THnSparseF(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nDimensions, nBins, xmin, xmax);
   else
@@ -613,7 +623,7 @@ void HistogramManager::FillHistClass(const char* className, Float_t* values)
   TIter next(hList);
   auto varIter = varList.begin();
 
-  TObject* h = 0x0;
+  TObject* h = nullptr;
   bool isProfile;
   bool isTHn;
   int dimension = 0;

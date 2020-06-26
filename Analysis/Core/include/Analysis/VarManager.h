@@ -1,3 +1,15 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+//
+// Contact: iarsene@cern.ch, i.c.arsene@fys.uio.no
+//
 
 #ifndef VarManager_H
 #define VarManager_H
@@ -108,12 +120,12 @@ class VarManager : public TObject
 
   static void SetRunNumbers(int n, int* runs);
 
-  static void FillEvent(vector<float> event, float* values = 0x0);
-  static void FillTrack(vector<float> track, float* values = 0x0);
+  static void FillEvent(vector<float> event, float* values = nullptr);
+  static void FillTrack(vector<float> track, float* values = nullptr);
 
  public:
   VarManager();
-  virtual ~VarManager();
+  ~VarManager() override;
 
   static float fgValues[kNVars]; // array holding all variables computed during analysis
   static void ResetValues(int startValue = 0, int endValue = kNVars);

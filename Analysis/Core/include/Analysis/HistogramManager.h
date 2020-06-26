@@ -1,3 +1,16 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+//
+// Contact: iarsene@cern.ch, i.c.arsene@fys.uio.no
+//
+
 #ifndef HistogramManager_H
 #define HistogramManager_H
 
@@ -21,7 +34,7 @@ class HistogramManager : public TNamed
  public:
   HistogramManager();
   HistogramManager(const char* name, const char* title, const int maxNVars);
-  virtual ~HistogramManager();
+  ~HistogramManager() override;
 
   enum Constants {
     kNothing = -1
@@ -43,16 +56,16 @@ class HistogramManager : public TNamed
                     int varT = -1, int varW = -1);
   void AddHistogram(const char* histClass, const char* name, const char* title, bool isProfile,
                     int nXbins, double* xbins, int varX,
-                    int nYbins = 0, double* ybins = 0x0, int varY = -1,
-                    int nZbins = 0, double* zbins = 0x0, int varZ = -1,
+                    int nYbins = 0, double* ybins = nullptr, int varY = -1,
+                    int nZbins = 0, double* zbins = nullptr, int varZ = -1,
                     const char* xLabels = "", const char* yLabels = "", const char* zLabels = "",
                     int varT = -1, int varW = -1);
   void AddHistogram(const char* histClass, const char* name, const char* title,
                     int nDimensions, int* vars, int* nBins, double* xmin, double* xmax,
-                    TString* axLabels = 0x0, int varW = -1, bool useSparse = kFALSE);
+                    TString* axLabels = nullptr, int varW = -1, bool useSparse = kFALSE);
   void AddHistogram(const char* histClass, const char* name, const char* title,
                     int nDimensions, int* vars, TArrayD* binLimits,
-                    TString* axLabels = 0x0, int varW = -1, bool useSparse = kFALSE);
+                    TString* axLabels = nullptr, int varW = -1, bool useSparse = kFALSE);
 
   void FillHistClass(const char* className, float* values);
 
@@ -63,7 +76,7 @@ class HistogramManager : public TNamed
   THashList* GetMainHistogramList() { return fMainList; } // get a histogram list
 
   unsigned long int GetAllocatedBins() const { return fBinsAllocated; }
-  void Print(Option_t*) const;
+  void Print(Option_t*) const override;
 
  private:
   THashList* fMainList;                                             // master histogram list

@@ -7,6 +7,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+// Contact: iarsene@cern.ch, i.c.arsene@fys.uio.no
+//
+
 #ifndef O2_Analysis_ReducedInfoTables_H_
 #define O2_Analysis_ReducedInfoTables_H_
 
