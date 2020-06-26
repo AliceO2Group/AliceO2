@@ -18,27 +18,27 @@
 #include <assert.h>
 #include <cub/cub.cuh>
 
-#include "ITStracking/MathUtils.h"
-#include "ITStracking/Configuration.h"
-#include "ITStracking/ClusterLines.h"
-#include "ITStracking/Tracklet.h"
+#include "EC0tracking/MathUtils.h"
+#include "EC0tracking/Configuration.h"
+#include "EC0tracking/ClusterLines.h"
+#include "EC0tracking/Tracklet.h"
 
-#include "ITStrackingCUDA/Utils.h"
-#include "ITStrackingCUDA/ClusterLinesGPU.h"
-#include "ITStrackingCUDA/Context.h"
-#include "ITStrackingCUDA/Stream.h"
-#include "ITStrackingCUDA/VertexerTraitsGPU.h"
+#include "EC0trackingCUDA/Utils.h"
+#include "EC0trackingCUDA/ClusterLinesGPU.h"
+#include "EC0trackingCUDA/Context.h"
+#include "EC0trackingCUDA/Stream.h"
+#include "EC0trackingCUDA/VertexerTraitsGPU.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 using constants::index_table::PhiBins;
 using constants::index_table::ZBins;
-using constants::its::LayersRCoordinate;
-using constants::its::LayersZCoordinate;
-using constants::its::VertexerHistogramVolume;
+using constants::ecl::LayersRCoordinate;
+using constants::ecl::LayersZCoordinate;
+using constants::ecl::VertexerHistogramVolume;
 using constants::math::TwoPi;
 using index_table_utils::getPhiBinIndex;
 using index_table_utils::getZBinIndex;
@@ -59,8 +59,8 @@ GPUh() void gpuThrowOnError()
 VertexerTraitsGPU::VertexerTraitsGPU()
 {
   setIsGPU(true);
-  std::cout << "[DEBUG] Creating file: dbg_ITSVertexerGPU.root" << std::endl;
-  mDebugger = new StandaloneDebugger::StandaloneDebugger("dbg_ITSVertexerGPU.root");
+  std::cout << "[DEBUG] Creating file: dbg_EC0VertexerGPU.root" << std::endl;
+  mDebugger = new StandaloneDebugger::StandaloneDebugger("dbg_EC0VertexerGPU.root");
 }
 
 VertexerTraitsGPU::~VertexerTraitsGPU()
@@ -501,5 +501,5 @@ VertexerTraits* createVertexerTraitsGPU()
   return new VertexerTraitsGPU;
 }
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

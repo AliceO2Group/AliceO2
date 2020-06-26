@@ -16,20 +16,20 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "ITSMFTWorkflow/ClusterReaderSpec.h"
+#include "EndCapsWorkflow/ClusterReaderSpec.h"
 #include <cassert>
 
 using namespace o2::framework;
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 namespace o2
 {
-namespace itsmft
+namespace endcaps
 {
 
 ClusterReader::ClusterReader(o2::detectors::DetID id, bool useMC, bool useClFull, bool useClComp, bool usePatterns)
 {
-  assert(id == o2::detectors::DetID::ITS || id == o2::detectors::DetID::MFT);
+  assert(id == o2::detectors::DetID::EC0);
   mDetNameLC = mDetName = id.getName();
   mUseMC = useMC;
   mUseClFull = useClFull;
@@ -107,31 +107,31 @@ void ClusterReader::connectTree(const std::string& filename)
   LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useClComp, bool usePatterns)
+DataProcessorSpec getEC0ClusterReaderSpec(bool useMC, bool useClFull, bool useClComp, bool usePatterns)
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("EC0", "CLUSTERSROF", 0, Lifetime::Timeframe);
   if (useClFull) {
-    outputSpec.emplace_back("ITS", "CLUSTERS", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("EC0", "CLUSTERS", 0, Lifetime::Timeframe);
   }
   if (useClComp) {
-    outputSpec.emplace_back("ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("EC0", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   }
   if (usePatterns) {
-    outputSpec.emplace_back("ITS", "PATTERNS", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("EC0", "PATTERNS", 0, Lifetime::Timeframe);
   }
   if (useMC) {
-    outputSpec.emplace_back("ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back("ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("EC0", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("EC0", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
-    "its-cluster-reader",
+    "ec0-cluster-reader",
     Inputs{},
     outputSpec,
-    AlgorithmSpec{adaptFromTask<ITSClusterReader>(useMC, useClFull, useClComp)},
+    AlgorithmSpec{adaptFromTask<EC0ClusterReader>(useMC, useClFull, useClComp)},
     Options{
-      {"its-cluster-infile", VariantType::String, "o2clus_its.root", {"Name of the input cluster file"}}}};
+      {"ec0-cluster-infile", VariantType::String, "o2clus_ec0.root", {"Name of the input cluster file"}}}};
 }
 
 DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool useClFull, bool useClComp, bool usePatterns)
@@ -161,5 +161,5 @@ DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool useClFull, bool useCl
       {"mft-cluster-infile", VariantType::String, "o2clus_mft.root", {"Name of the input cluster file"}}}};
 }
 
-} // namespace itsmft
+} // namespace endcaps
 } // namespace o2

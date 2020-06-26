@@ -11,10 +11,10 @@
 // \file RUInfo.cxx
 // \brief Transient structures for ITS and MFT HW -> SW mapping
 
-#include "ITSMFTReconstruction/RUInfo.h"
+#include "EndCapsReconstruction/RUInfo.h"
 #include <bitset>
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 void ChipOnRUInfo::print() const
 {

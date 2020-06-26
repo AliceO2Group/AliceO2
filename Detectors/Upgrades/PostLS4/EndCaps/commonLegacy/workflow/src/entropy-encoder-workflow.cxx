@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSMFTWorkflow/EntropyEncoderSpec.h"
+#include "EndCapsWorkflow/EntropyEncoderSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
 
@@ -21,7 +21,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
-    ConfigParamSpec{"mft", VariantType::Bool, false, {"source detector is MFT (default ITS)"}},
+    ConfigParamSpec{"ec0", VariantType::Bool, false, {"source detector is EC0"}},
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -37,10 +37,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
-  if (cfgc.options().get<bool>("mft")) {
-    wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("MFT"));
-  } else {
-    wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("ITS"));
+  if (cfgc.options().get<bool>("ec0")) {
+    wf.emplace_back(o2::endcaps::getEntropyEncoderSpec("EC0"));
   }
   return wf;
 }

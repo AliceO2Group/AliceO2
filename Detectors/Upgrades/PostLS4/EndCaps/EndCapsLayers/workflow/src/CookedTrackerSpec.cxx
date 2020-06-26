@@ -16,7 +16,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "ITSWorkflow/CookedTrackerSpec.h"
+#include "EC0Workflow/CookedTrackerSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITS/TrackITS.h"
@@ -27,23 +27,23 @@
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
-#include "ITSBase/GeometryTGeo.h"
+#include "ECLayersBase/GeometryTGeo.h"
 
-#include "ITStracking/ROframe.h"
-#include "ITStracking/IOUtils.h"
-#include "ITStracking/Vertexer.h"
-#include "ITStracking/VertexerTraits.h"
+#include "EC0tracking/ROframe.h"
+#include "EC0tracking/IOUtils.h"
+#include "EC0tracking/Vertexer.h"
+#include "EC0tracking/VertexerTraits.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "CommonUtils/StringUtils.h"
 
-#include "ITSReconstruction/FastMultEstConfig.h"
-#include "ITSReconstruction/FastMultEst.h"
+#include "EC0Reconstruction/FastMultEstConfig.h"
+#include "EC0Reconstruction/FastMultEst.h"
 
 using namespace o2::framework;
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
@@ -62,7 +62,7 @@ void CookedTrackerDPL::init(InitContext& ic)
     auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
 
     o2::base::GeometryManager::loadGeometry();
-    o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
+    o2::ecl::GeometryTGeo* geom = o2::ecl::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                               o2::TransformType::T2G));
     mTracker.setGeometry(geom);
@@ -70,15 +70,15 @@ void CookedTrackerDPL::init(InitContext& ic)
     double origD[3] = {0., 0., 0.};
     mTracker.setBz(field->getBz(origD));
 
-    bool continuous = mGRP->isDetContinuousReadOut("ITS");
-    LOG(INFO) << "ITSCookedTracker RO: continuous=" << continuous;
+    bool continuous = mGRP->isDetContinuousReadOut("EC0");
+    LOG(INFO) << "EC0CookedTracker RO: continuous=" << continuous;
     mTracker.setContinuousMode(continuous);
   } else {
     throw std::runtime_error(o2::utils::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
-  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
-  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  std::string dictPath = ic.options().get<std::string>("ecl-dictionary-path");
+  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::EC0, dictPath, ".bin");
   if (o2::base::NameConf::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
     LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
@@ -99,7 +99,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   // the output vector however is created directly inside the message memory thus avoiding copy by
   // snapshot
   auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
-  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"EC0", "EC0TrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
   gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
@@ -111,21 +111,21 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
 
-  LOG(INFO) << "ITSCookedTracker pulled " << compClusters.size() << " clusters, in " << rofs.size() << " RO frames";
+  LOG(INFO) << "EC0CookedTracker pulled " << compClusters.size() << " clusters, in " << rofs.size() << " RO frames";
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
   if (mUseMC) {
     mTracker.setMCTruthContainers(labels.get(), &trackLabels);
   }
 
-  o2::its::VertexerTraits vertexerTraits;
-  o2::its::Vertexer vertexer(&vertexerTraits);
-  o2::its::ROframe event(0);
+  o2::ecl::VertexerTraits vertexerTraits;
+  o2::ecl::Vertexer vertexer(&vertexerTraits);
+  o2::ecl::ROframe event(0);
 
-  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
-  auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
-  auto& tracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe});
-  auto& clusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
+  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"EC0", "VERTICESROF", 0, Lifetime::Timeframe});
+  auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"EC0", "VERTICES", 0, Lifetime::Timeframe});
+  auto& tracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"EC0", "TRACKS", 0, Lifetime::Timeframe});
+  auto& clusIdx = pc.outputs().make<std::vector<int>>(Output{"EC0", "TRACKCLSID", 0, Lifetime::Timeframe});
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
   for (auto& rof : rofs) {
@@ -134,7 +134,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     vtxROF.setNEntries(0);
 
     auto it = pattIt;
-    o2::its::ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels.get());
+    o2::ecl::ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels.get());
 
     // fast cluster mult. cut if asked (e.g. sync. mode)
     if (rof.getNEntries() && (multEstConf.cutMultClusLow > 0 || multEstConf.cutMultClusHigh > 0)) { // cut was requested
@@ -181,53 +181,53 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     mTracker.process(compClusters, it, mDict, tracks, clusIdx, rof);
   }
 
-  LOG(INFO) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
+  LOG(INFO) << "EC0CookedTracker pushed " << tracks.size() << " tracks";
 
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, trackLabels);
-    pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
+    pc.outputs().snapshot(Output{"EC0", "TRACKSMCTR", 0, Lifetime::Timeframe}, trackLabels);
+    pc.outputs().snapshot(Output{"EC0", "EC0TrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
   mTimer.Stop();
 }
 
 void CookedTrackerDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "ITS Cooked-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(INFO, "EC0 Cooked-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getCookedTrackerSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("compClusters", "EC0", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("patterns", "EC0", "PATTERNS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("clusters", "EC0", "CLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "EC0", "CLUSTERSROF", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EC0", "TRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EC0", "TRACKCLSID", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EC0", "EC0TrackROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EC0", "VERTICES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EC0", "VERTICESROF", 0, Lifetime::Timeframe);
 
   if (useMC) {
-    inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
-    outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("labels", "EC0", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "EC0", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("EC0", "TRACKSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("EC0", "EC0TrackMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
-    "its-cooked-tracker",
+    "ecl-cooked-tracker",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(useMC)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
+      {"ecl-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
 }
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

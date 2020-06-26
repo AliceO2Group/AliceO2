@@ -29,18 +29,18 @@
 
 #include "EventVisualisationView/MultiView.h"
 
-#include "ITSMFTReconstruction/ChipMappingITS.h"
-#include "ITSMFTReconstruction/DigitPixelReader.h"
-#include "ITSMFTReconstruction/RawPixelReader.h"
-#include "ITSMFTBase/SegmentationAlpide.h"
+#include "EndCapsReconstruction/ChipMappingITS.h"
+#include "EndCapsReconstruction/DigitPixelReader.h"
+#include "EndCapsReconstruction/RawPixelReader.h"
+#include "EndCapsBase/SegmentationAlpide.h"
 #include "DataFormatsITSMFT/Digit.h"
-#include "ITSBase/GeometryTGeo.h"
+#include "ECLayersBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
 #endif
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 extern TEveManager* gEve;
 static TEveScene* chipScene;
@@ -66,7 +66,7 @@ class Data
   void setDigitPixelReader(std::string input)
   {
     auto reader = new DigitPixelReader();
-    reader->openInput(input, o2::detectors::DetID("ITS"));
+    reader->openInput(input, o2::detectors::DetID("EC0"));
     reader->init();
     reader->readNextEntry();
     mPixelReader = reader;
@@ -137,7 +137,7 @@ void Data::loadDigits()
   mHB = hb;
   mTr = tr;
 
-  //std::cout << "Number of ITSDigits: " << mDigits.size() << '\n';
+  //std::cout << "Number of EC0Digits: " << mDigits.size() << '\n';
 }
 
 void Data::loadDigits(int entry)
@@ -167,8 +167,8 @@ void Data::setClusTree(TTree* tree)
     std::cerr << "No tree for clusters !\n";
     return;
   }
-  tree->SetBranchAddress("ITSCluster", &mClusterBuffer);
-  tree->SetBranchAddress("ITSClustersROF", &mClustersROF);
+  tree->SetBranchAddress("EC0Cluster", &mClusterBuffer);
+  tree->SetBranchAddress("EC0ClustersROF", &mClustersROF);
   tree->GetEntry(0);
   mClusTree = tree;
 
@@ -187,7 +187,7 @@ void Data::loadClusters(int entry)
   }
   mClusters = gsl::make_span(&(*mClusterBuffer)[first], last - first);
 
-  //std::cout << "Number of ITSClusters: " << mClusters.size() << '\n';
+  //std::cout << "Number of EC0Clusters: " << mClusters.size() << '\n';
 }
 
 void Data::setTracTree(TTree* tree)
@@ -196,9 +196,9 @@ void Data::setTracTree(TTree* tree)
     std::cerr << "No tree for tracks !\n";
     return;
   }
-  tree->SetBranchAddress("ITSTrack", &mTrackBuffer);
-  tree->SetBranchAddress("ITSTrackClusIdx", &mClIdxBuffer);
-  tree->SetBranchAddress("ITSTracksROF", &mTracksROF);
+  tree->SetBranchAddress("EC0Track", &mTrackBuffer);
+  tree->SetBranchAddress("EC0TrackClusIdx", &mClIdxBuffer);
+  tree->SetBranchAddress("EC0TracksROF", &mTracksROF);
   tree->GetEntry(0);
   mTracTree = tree;
 
@@ -219,7 +219,7 @@ void Data::loadTracks(int entry)
   }
   mTracks = gsl::make_span(&(*mTrackBuffer)[first], last - first);
 
-  //std::cout << "Number of ITSTracks: " << mTracks.size() << '\n';
+  //std::cout << "Number of EC0Tracks: " << mTracks.size() << '\n';
 }
 
 void Data::loadData(int entry)
@@ -246,7 +246,7 @@ TEveElement* Data::getEveChipDigits(int chip)
   qdigi->SetOwnIds(kTRUE);
   qdigi->SetFrame(box);
   qdigi->Reset(TEveQuadSet::kQT_RectangleXY, kFALSE, 32);
-  auto gman = o2::its::GeometryTGeo::Instance();
+  auto gman = o2::ecl::GeometryTGeo::Instance();
   std::vector<int> occup(gman->getNumberOfChips());
   for (const auto& d : mDigits) {
     auto id = d.getChipIndex();
@@ -289,7 +289,7 @@ TEveElement* Data::getEveChipClusters(int chip)
   qclus->SetFrame(box);
   int ncl = 0;
   qclus->Reset(TEveQuadSet::kQT_LineXYFixedZ, kFALSE, 32);
-  auto gman = o2::its::GeometryTGeo::Instance();
+  auto gman = o2::ecl::GeometryTGeo::Instance();
   for (const auto& c : mClusters) {
     auto id = c.getSensorID();
     if (id != chip)
@@ -322,7 +322,7 @@ TEveElement* Data::getEveClusters()
   if (mClusters.empty())
     return nullptr;
 
-  auto gman = o2::its::GeometryTGeo::Instance();
+  auto gman = o2::ecl::GeometryTGeo::Instance();
   TEvePointSet* clusters = new TEvePointSet("clusters");
   clusters->SetMarkerColor(kBlue);
   for (const auto& c : mClusters) {
@@ -337,7 +337,7 @@ TEveElement* Data::getEveTracks()
   if (mTracks.empty())
     return nullptr;
 
-  auto gman = o2::its::GeometryTGeo::Instance();
+  auto gman = o2::ecl::GeometryTGeo::Instance();
   TEveTrackList* tracks = new TEveTrackList("tracks");
   auto prop = tracks->GetPropagator();
   prop->SetMagField(0.5);
@@ -447,7 +447,7 @@ void init(int entry = 0, int chip = 13,
 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom);
-  auto gman = o2::its::GeometryTGeo::Instance();
+  auto gman = o2::ecl::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G));
 
@@ -466,7 +466,7 @@ void init(int entry = 0, int chip = 13,
 
   // Event View
   auto multi = o2::event_visualisation::MultiView::getInstance();
-  multi->drawGeometryForDetector("ITS");
+  multi->drawGeometryForDetector("EC0");
 
   gEve->AddEvent(new TEveEventManager());
 

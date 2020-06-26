@@ -12,16 +12,16 @@
 /// \brief
 ///
 
-#include "ITStracking/PrimaryVertexContext.h"
+#include "EC0tracking/PrimaryVertexContext.h"
 
 #include <iostream>
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
-void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::its::LayersNumber>& cl,
+void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::ecl::LayersNumber>& cl,
                                       const std::array<float, 3>& pVtx, const int iteration)
 {
 
@@ -38,7 +38,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
 
     std::vector<ClusterHelper> cHelper;
 
-    for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+    for (int iLayer{0}; iLayer < constants::ecl::LayersNumber; ++iLayer) {
 
       const auto& currentLayer{cl[iLayer]};
       const int clustersNum{static_cast<int>(currentLayer.size())};
@@ -99,8 +99,8 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
 
   mRoads.clear();
 
-  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
-    if (iLayer < constants::its::CellsPerRoad) {
+  for (int iLayer{0}; iLayer < constants::ecl::LayersNumber; ++iLayer) {
+    if (iLayer < constants::ecl::CellsPerRoad) {
       mCells[iLayer].clear();
       float cellsMemorySize =
         memParam.MemoryOffset +
@@ -113,20 +113,20 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       }
     }
 
-    if (iLayer < constants::its::CellsPerRoad - 1) {
+    if (iLayer < constants::ecl::CellsPerRoad - 1) {
       mCellsLookupTable[iLayer].clear();
       mCellsLookupTable[iLayer].resize(
         std::max(cl[iLayer + 1].size(), cl[iLayer + 2].size()) +
           std::ceil((memParam.TrackletsMemoryCoefficients[iLayer + 1] *
                      cl[iLayer + 1].size()) *
                     cl[iLayer + 2].size()),
-        constants::its::UnusedIndex);
+        constants::ecl::UnusedIndex);
       mCellsNeighbours[iLayer].clear();
     }
   }
 
-  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
-    if (iLayer < constants::its::TrackletsPerRoad) {
+  for (int iLayer{0}; iLayer < constants::ecl::LayersNumber; ++iLayer) {
+    if (iLayer < constants::ecl::TrackletsPerRoad) {
       mTracklets[iLayer].clear();
       float trackletsMemorySize =
         std::max(cl[iLayer].size(), cl[iLayer + 1].size()) +
@@ -138,12 +138,12 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       }
     }
 
-    if (iLayer < constants::its::CellsPerRoad) {
+    if (iLayer < constants::ecl::CellsPerRoad) {
       mTrackletsLookupTable[iLayer].clear();
-      mTrackletsLookupTable[iLayer].resize(cl[iLayer + 1].size(), constants::its::UnusedIndex);
+      mTrackletsLookupTable[iLayer].resize(cl[iLayer + 1].size(), constants::ecl::UnusedIndex);
     }
   }
 }
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

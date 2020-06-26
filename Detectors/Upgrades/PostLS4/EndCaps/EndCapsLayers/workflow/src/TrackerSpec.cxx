@@ -16,7 +16,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "ITSWorkflow/TrackerSpec.h"
+#include "EC0Workflow/TrackerSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITS/TrackITS.h"
@@ -24,23 +24,23 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 
-#include "ITStracking/ROframe.h"
-#include "ITStracking/IOUtils.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "EC0tracking/ROframe.h"
+#include "EC0tracking/IOUtils.h"
+#include "EC0tracking/TrackingConfigParam.h"
 
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
-#include "ITSBase/GeometryTGeo.h"
+#include "ECLayersBase/GeometryTGeo.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 
-#include "ITSReconstruction/FastMultEstConfig.h"
-#include "ITSReconstruction/FastMultEst.h"
+#include "EC0Reconstruction/FastMultEstConfig.h"
+#include "EC0Reconstruction/FastMultEst.h"
 
 namespace o2
 {
 using namespace framework;
-namespace its
+namespace ecl
 {
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
@@ -77,8 +77,8 @@ void TrackerDPL::init(InitContext& ic)
     throw std::runtime_error(o2::utils::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
-  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
-  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  std::string dictPath = ic.options().get<std::string>("ecl-dictionary-path");
+  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::EC0, dictPath, ".bin");
   if (o2::base::NameConf::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
     LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
@@ -99,9 +99,9 @@ void TrackerDPL::run(ProcessingContext& pc)
   // the output vector however is created directly inside the message memory thus avoiding copy by
   // snapshot
   auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
-  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"EC0", "EC0TrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
-  LOG(INFO) << "ITSTracker pulled " << compClusters.size() << " clusters, " << rofs.size() << " RO frames";
+  LOG(INFO) << "EC0Tracker pulled " << compClusters.size() << " clusters, " << rofs.size() << " RO frames";
 
   const dataformats::MCTruthContainer<MCCompLabel>* labels = nullptr;
   gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
@@ -113,19 +113,19 @@ void TrackerDPL::run(ProcessingContext& pc)
   }
 
   std::vector<o2::its::TrackITSExt> tracks;
-  auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
+  auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"EC0", "TRACKCLSID", 0, Lifetime::Timeframe});
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
-  auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe});
+  auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"EC0", "TRACKS", 0, Lifetime::Timeframe});
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> allTrackLabels;
 
-  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
-  auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
+  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"EC0", "VERTICESROF", 0, Lifetime::Timeframe});
+  auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"EC0", "VERTICES", 0, Lifetime::Timeframe});
 
   std::uint32_t roFrame = 0;
   ROframe event(0);
 
-  bool continuous = mGRP->isDetContinuousReadOut("ITS");
-  LOG(INFO) << "ITSTracker RO: continuous=" << continuous;
+  bool continuous = mGRP->isDetContinuousReadOut("EC0");
+  LOG(INFO) << "EC0Tracker RO: continuous=" << continuous;
 
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
@@ -219,52 +219,52 @@ void TrackerDPL::run(ProcessingContext& pc)
     allTrackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
   }
 
-  LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
+  LOG(INFO) << "EC0Tracker pushed " << allTracks.size() << " tracks";
   if (mIsMC) {
-    pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
-    pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
+    pc.outputs().snapshot(Output{"EC0", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
+    pc.outputs().snapshot(Output{"EC0", "EC0TrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
   mTimer.Stop();
 }
 
 void TrackerDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "ITS CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(INFO, "EC0 CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType dType)
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("compClusters", "EC0", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("patterns", "EC0", "PATTERNS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("clusters", "EC0", "CLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "EC0", "CLUSTERSROF", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EC0", "TRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EC0", "TRACKCLSID", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EC0", "EC0TrackROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EC0", "VERTICES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EC0", "VERTICESROF", 0, Lifetime::Timeframe);
 
   if (useMC) {
-    inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
-    outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
-    outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
+    inputs.emplace_back("labels", "EC0", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "EC0", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("EC0", "TRACKSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("EC0", "EC0TrackMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("EC0", "VERTICES", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
-    "its-tracker",
+    "ecl-tracker",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC, dType)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}}}};
+      {"ecl-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}}}};
 }
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

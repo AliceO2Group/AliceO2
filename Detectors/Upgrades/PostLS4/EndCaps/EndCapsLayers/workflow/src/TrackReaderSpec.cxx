@@ -14,14 +14,14 @@
 #include <cassert>
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "ITSWorkflow/TrackReaderSpec.h"
+#include "EC0Workflow/TrackReaderSpec.h"
 
 using namespace o2::framework;
-using namespace o2::its;
+using namespace o2::ecl;
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 TrackReader::TrackReader(bool useMC)
@@ -31,7 +31,7 @@ TrackReader::TrackReader(bool useMC)
 
 void TrackReader::init(InitContext& ic)
 {
-  mInputFileName = ic.options().get<std::string>("its-tracks-infile");
+  mInputFileName = ic.options().get<std::string>("ecl-tracks-infile");
   connectTree(mInputFileName);
 }
 
@@ -41,11 +41,11 @@ void TrackReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(INFO) << "Pushing " << mTracks.size() << " track in " << mROFRec.size() << " ROFs at entry " << ent;
-  pc.outputs().snapshot(Output{mOrigin, "ITSTrackROF", 0, Lifetime::Timeframe}, mROFRec);
+  pc.outputs().snapshot(Output{mOrigin, "EC0TrackROF", 0, Lifetime::Timeframe}, mROFRec);
   pc.outputs().snapshot(Output{mOrigin, "TRACKS", 0, Lifetime::Timeframe}, mTracks);
   pc.outputs().snapshot(Output{mOrigin, "TRACKCLSID", 0, Lifetime::Timeframe}, mClusInd);
-  pc.outputs().snapshot(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe}, mVertices);
-  pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe}, mVerticesROFRec);
+  pc.outputs().snapshot(Output{"EC0", "VERTICES", 0, Lifetime::Timeframe}, mVertices);
+  pc.outputs().snapshot(Output{"EC0", "VERTICESROF", 0, Lifetime::Timeframe}, mVerticesROFRec);
   if (mUseMC) {
     pc.outputs().snapshot(Output{mOrigin, "TRACKSMCTR", 0, Lifetime::Timeframe}, mMCTruth);
   }
@@ -89,26 +89,26 @@ void TrackReader::connectTree(const std::string& filename)
   LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getITSTrackReaderSpec(bool useMC)
+DataProcessorSpec getEC0TrackReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
-  outputSpec.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
-  outputSpec.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
-  outputSpec.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
-  outputSpec.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("EC0", "EC0TrackROF", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("EC0", "TRACKS", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("EC0", "TRACKCLSID", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("EC0", "VERTICES", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("EC0", "VERTICESROF", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputSpec.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("EC0", "TRACKSMCTR", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
-    "its-track-reader",
+    "ecl-track-reader",
     Inputs{},
     outputSpec,
     AlgorithmSpec{adaptFromTask<TrackReader>(useMC)},
     Options{
-      {"its-tracks-infile", VariantType::String, "o2trac_its.root", {"Name of the input track file"}}}};
+      {"ecl-tracks-infile", VariantType::String, "o2trac_ecl.root", {"Name of the input track file"}}}};
 }
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

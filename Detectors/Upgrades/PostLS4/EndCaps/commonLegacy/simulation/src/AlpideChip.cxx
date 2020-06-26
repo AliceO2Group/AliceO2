@@ -12,8 +12,8 @@
 /// \brief Creates an ALPIDE chip in simulation
 /// \author Mario.Sitta@cern.ch - 24 oct 2017
 
-#include "ITSMFTSimulation/AlpideChip.h"
-#include "ITSMFTBase/SegmentationAlpide.h"
+#include "EndCapsSimulation/AlpideChip.h"
+#include "EndCapsBase/SegmentationAlpide.h"
 
 #include "DetectorsBase/MaterialManager.h"
 #include "DetectorsBase/Detector.h"
@@ -24,7 +24,7 @@
 #include "TGeoMatrix.h"  // for TGeoMatrix
 #include "FairLogger.h"  // for LOG
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 ClassImp(AlpideChip);
 

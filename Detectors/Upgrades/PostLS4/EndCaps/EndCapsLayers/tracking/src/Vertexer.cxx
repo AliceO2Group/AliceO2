@@ -12,19 +12,19 @@
 /// \brief
 ///
 
-#include "ITStracking/Vertexer.h"
-#include "ITStracking/Cluster.h"
-#include "ITStracking/ROframe.h"
-#include "ITStracking/ClusterLines.h"
-#include "ITStracking/IndexTableUtils.h"
-#include "ITStracking/VertexerTraits.h"
-#include "ITStracking/TrackingConfigParam.h"
+#include "EC0tracking/Vertexer.h"
+#include "EC0tracking/Cluster.h"
+#include "EC0tracking/ROframe.h"
+#include "EC0tracking/ClusterLines.h"
+#include "EC0tracking/IndexTableUtils.h"
+#include "EC0tracking/VertexerTraits.h"
+#include "EC0tracking/TrackingConfigParam.h"
 
 #include <array>
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 Vertexer::Vertexer(VertexerTraits* traits)
@@ -61,7 +61,7 @@ void Vertexer::findHistVertices()
 
 void Vertexer::getGlobalConfiguration()
 {
-  auto& vc = o2::its::VertexerParamConfig::Instance();
+  auto& vc = o2::ecl::VertexerParamConfig::Instance();
 
   VertexingParameters verPar;
   verPar.zCut = vc.zCut;
@@ -75,5 +75,5 @@ void Vertexer::getGlobalConfiguration()
 
   mTraits->updateVertexingParameters(verPar);
 }
-} // namespace its
+} // namespace ecl
 } // namespace o2

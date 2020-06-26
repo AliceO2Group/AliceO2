@@ -17,10 +17,10 @@
 #include <boost/histogram.hpp>
 #include <boost/format.hpp>
 
-#include "ITStracking/VertexerTraits.h"
-#include "ITStracking/ROframe.h"
-#include "ITStracking/ClusterLines.h"
-#include "ITStracking/Tracklet.h"
+#include "EC0tracking/VertexerTraits.h"
+#include "EC0tracking/ROframe.h"
+#include "EC0tracking/ClusterLines.h"
+#include "EC0tracking/Tracklet.h"
 
 // debug
 #ifdef _ALLOW_DEBUG_TREES_ITS_
@@ -34,13 +34,13 @@
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 using boost::histogram::indexed;
 using constants::index_table::PhiBins;
 using constants::index_table::ZBins;
-using constants::its::LayersRCoordinate;
-using constants::its::LayersZCoordinate;
+using constants::ecl::LayersRCoordinate;
+using constants::ecl::LayersZCoordinate;
 using constants::math::TwoPi;
 using index_table_utils::getZBinIndex;
 
@@ -143,8 +143,8 @@ VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.
   mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * constants::index_table::InverseZBinSize()[0]));
   setIsGPU(false);
 
-  std::cout << "[DEBUG] Creating file: dbg_ITSVertexerCPU.root" << std::endl;
-  mDebugger = new StandaloneDebugger("dbg_ITSVertexerCPU.root");
+  std::cout << "[DEBUG] Creating file: dbg_EC0VertexerCPU.root" << std::endl;
+  mDebugger = new StandaloneDebugger("dbg_EC0VertexerCPU.root");
 }
 #else
 VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
@@ -167,7 +167,7 @@ VertexerTraits::~VertexerTraits()
 
 void VertexerTraits::reset()
 {
-  for (int iLayer{0}; iLayer < constants::its::LayersNumberVertexer; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::ecl::LayersNumberVertexer; ++iLayer) {
     mClusters[iLayer].clear();
     mIndexTables[iLayer].fill(0);
   }
@@ -194,7 +194,7 @@ std::vector<int> VertexerTraits::getMClabelsLayer(const int layer) const
 void VertexerTraits::arrangeClusters(ROframe* event)
 {
   mEvent = event;
-  for (int iLayer{0}; iLayer < constants::its::LayersNumberVertexer; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::ecl::LayersNumberVertexer; ++iLayer) {
     const auto& currentLayer{event->getClustersOnLayer(iLayer)};
     const size_t clustersNum{currentLayer.size()};
     if (clustersNum > 0) {
@@ -487,7 +487,7 @@ void VertexerTraits::computeVertices()
 
 void VertexerTraits::computeHistVertices()
 {
-  o2::its::VertexerHistogramsConfiguration histConf;
+  o2::ecl::VertexerHistogramsConfiguration histConf;
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   std::array<std::vector<int>, 4001> indicesBookKeeper; // HARD_TO_CODE
   for (auto v : indicesBookKeeper) {
@@ -738,5 +738,5 @@ VertexerTraits* createVertexerTraits()
   return new VertexerTraits;
 }
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

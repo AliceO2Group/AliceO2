@@ -12,11 +12,11 @@
 /// \brief
 ///
 
-#include "ITStrackingCUDA/Stream.h"
+#include "EC0trackingCUDA/Stream.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 namespace GPU
 {
@@ -37,5 +37,5 @@ const GPUStream& Stream::get() const
 }
 
 } // namespace GPU
-} // namespace its
+} // namespace ecl
 } // namespace o2

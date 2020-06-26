@@ -12,7 +12,7 @@
 /// \brief
 ///
 
-#include "ITStrackingCUDA/Utils.h"
+#include "EC0trackingCUDA/Utils.h"
 
 #include <sstream>
 #include <stdexcept>
@@ -20,7 +20,7 @@
 #include <cuda_profiler_api.h>
 #include <cooperative_groups.h>
 
-#include "ITStrackingCUDA/Context.h"
+#include "EC0trackingCUDA/Context.h"
 
 #include <iostream>
 
@@ -66,7 +66,7 @@ int findNearestDivisor(const int numToRound, const int divisor)
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 namespace GPU
 {
@@ -189,5 +189,5 @@ GPUd() int Utils::Device::gpuAtomicAdd(int* p, const int incrementSize)
 }
 
 } // namespace GPU
-} // namespace its
+} // namespace ecl
 } // namespace o2

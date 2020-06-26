@@ -18,8 +18,8 @@
 #include <stdexcept>
 
 #include <hip/hip_runtime_api.h>
-#include "ITStrackingHIP/ContextHIP.h"
-#include "ITStrackingHIP/UtilsHIP.h"
+#include "EC0trackingHIP/ContextHIP.h"
+#include "EC0trackingHIP/UtilsHIP.h"
 
 namespace
 {
@@ -53,7 +53,7 @@ int findNearestDivisor(const int numToRound, const int divisor)
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 namespace GPU
 {
@@ -168,5 +168,5 @@ GPUd() int Utils::DeviceHIP::getLaneIndex()
 // }
 
 } // namespace GPU
-} // namespace its
+} // namespace ecl
 } // namespace o2

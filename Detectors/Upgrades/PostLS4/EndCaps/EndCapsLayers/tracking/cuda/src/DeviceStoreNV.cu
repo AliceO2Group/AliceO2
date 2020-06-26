@@ -12,16 +12,16 @@
 /// \brief
 ///
 
-#include "ITStrackingCUDA/DeviceStoreNV.h"
+#include "EC0trackingCUDA/DeviceStoreNV.h"
 
 #include <sstream>
 
-#include "ITStrackingCUDA/Stream.h"
+#include "EC0trackingCUDA/Stream.h"
 
 namespace
 {
 
-using namespace o2::its;
+using namespace o2::ecl;
 
 __device__ void fillIndexTables(GPU::DeviceStoreNV& primaryVertexContext, const int layerIndex)
 {
@@ -57,7 +57,7 @@ __device__ void fillIndexTables(GPU::DeviceStoreNV& primaryVertexContext, const 
 
     if (currentClusterIndex == nextLayerClustersNum - 1) {
 
-      for (int iBin{currentBinIndex + 1}; iBin <= o2::its::constants::index_table::ZBins * o2::its::constants::index_table::PhiBins;
+      for (int iBin{currentBinIndex + 1}; iBin <= o2::ecl::constants::index_table::ZBins * o2::ecl::constants::index_table::PhiBins;
            iBin++) {
 
         primaryVertexContext.getIndexTables()[layerIndex][iBin] = nextLayerClustersNum;
@@ -96,12 +96,12 @@ __global__ void fillDeviceStructures(GPU::DeviceStoreNV& primaryVertexContext, c
 {
   fillIndexTables(primaryVertexContext, layerIndex);
 
-  if (layerIndex < o2::its::constants::its::CellsPerRoad) {
+  if (layerIndex < o2::ecl::constants::ecl::CellsPerRoad) {
 
     fillTrackletsPerClusterTables(primaryVertexContext, layerIndex);
   }
 
-  if (layerIndex < o2::its::constants::its::CellsPerRoad - 1) {
+  if (layerIndex < o2::ecl::constants::ecl::CellsPerRoad - 1) {
 
     fillCellsPerClusterTables(primaryVertexContext, layerIndex);
   }
@@ -110,7 +110,7 @@ __global__ void fillDeviceStructures(GPU::DeviceStoreNV& primaryVertexContext, c
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 namespace GPU
 {
@@ -121,30 +121,30 @@ DeviceStoreNV::DeviceStoreNV()
 }
 
 UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3& primaryVertex,
-                                                       const std::array<std::vector<Cluster>, constants::its::LayersNumber>& clusters,
-                                                       const std::array<std::vector<Tracklet>, constants::its::TrackletsPerRoad>& tracklets,
-                                                       const std::array<std::vector<Cell>, constants::its::CellsPerRoad>& cells,
-                                                       const std::array<std::vector<int>, constants::its::CellsPerRoad - 1>& cellsLookupTable)
+                                                       const std::array<std::vector<Cluster>, constants::ecl::LayersNumber>& clusters,
+                                                       const std::array<std::vector<Tracklet>, constants::ecl::TrackletsPerRoad>& tracklets,
+                                                       const std::array<std::vector<Cell>, constants::ecl::CellsPerRoad>& cells,
+                                                       const std::array<std::vector<int>, constants::ecl::CellsPerRoad - 1>& cellsLookupTable)
 {
   mPrimaryVertex = UniquePointer<float3>{primaryVertex};
 
-  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::ecl::LayersNumber; ++iLayer) {
 
     this->mClusters[iLayer] =
       Vector<Cluster>{&clusters[iLayer][0], static_cast<int>(clusters[iLayer].size())};
 
-    if (iLayer < constants::its::TrackletsPerRoad) {
+    if (iLayer < constants::ecl::TrackletsPerRoad) {
       this->mTracklets[iLayer].reset(tracklets[iLayer].capacity());
     }
 
-    if (iLayer < constants::its::CellsPerRoad) {
+    if (iLayer < constants::ecl::CellsPerRoad) {
 
       this->mTrackletsLookupTable[iLayer].reset(static_cast<int>(clusters[iLayer + 1].size()));
       this->mTrackletsPerClusterTable[iLayer].reset(static_cast<int>(clusters[iLayer + 1].size()));
       this->mCells[iLayer].reset(static_cast<int>(cells[iLayer].capacity()));
     }
 
-    if (iLayer < constants::its::CellsPerRoad - 1) {
+    if (iLayer < constants::ecl::CellsPerRoad - 1) {
 
       this->mCellsLookupTable[iLayer].reset(static_cast<int>(cellsLookupTable[iLayer].size()));
       this->mCellsPerTrackletTable[iLayer].reset(static_cast<int>(cellsLookupTable[iLayer].size()));
@@ -153,9 +153,9 @@ UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3& primaryVert
 
   UniquePointer<DeviceStoreNV> gpuContextDevicePointer{*this};
 
-  std::array<Stream, constants::its::LayersNumber> streamArray;
+  std::array<Stream, constants::ecl::LayersNumber> streamArray;
 
-  for (int iLayer{0}; iLayer < constants::its::TrackletsPerRoad; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::ecl::TrackletsPerRoad; ++iLayer) {
 
     const int nextLayerClustersNum = static_cast<int>(clusters[iLayer + 1].size());
 
@@ -180,5 +180,5 @@ UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3& primaryVert
 }
 
 } // namespace GPU
-} // namespace its
+} // namespace ecl
 } // namespace o2

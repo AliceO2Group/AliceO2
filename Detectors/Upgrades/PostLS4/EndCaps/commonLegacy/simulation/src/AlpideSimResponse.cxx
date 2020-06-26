@@ -9,9 +9,9 @@
 // or submit itself to any jurisdiction.
 
 /// \file AlpideSimResponse.cxx
-/// \brief Implementation of the ITSMFT Alpide simulated response parametrization
+/// \brief Implementation of the PostLS4 EndCaps Alpide simulated response parametrization
 
-#include "ITSMFTSimulation/AlpideSimResponse.h"
+#include "EndCapsSimulation/AlpideSimResponse.h"
 #include <TSystem.h>
 #include <cstdio>
 #include <cstddef>
@@ -20,11 +20,11 @@
 #include <memory>
 #include "FairLogger.h"
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 using namespace std;
 
-ClassImp(o2::itsmft::AlpideSimResponse);
-ClassImp(o2::itsmft::AlpideRespSimMat);
+ClassImp(o2::endcaps::AlpideSimResponse);
+ClassImp(o2::endcaps::AlpideRespSimMat);
 
 constexpr float micron2cm = 1e-4;
 

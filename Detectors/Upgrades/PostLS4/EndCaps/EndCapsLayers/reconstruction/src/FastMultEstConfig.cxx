@@ -8,6 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSReconstruction/FastMultEstConfig.h"
+#include "EC0Reconstruction/FastMultEstConfig.h"
 
-O2ParamImpl(o2::its::FastMultEstConfig);
+O2ParamImpl(o2::ecl::FastMultEstConfig);

@@ -8,11 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITStrackingCUDA/ClusterLinesGPU.h"
+#include "EC0trackingCUDA/ClusterLinesGPU.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 namespace GPU
 {
@@ -130,5 +130,5 @@ GPUd() void ClusterLinesGPU::computeClusterCentroid()
                determinant;
 }
 } // namespace GPU
-} // namespace its
+} // namespace ecl
 } // namespace o2

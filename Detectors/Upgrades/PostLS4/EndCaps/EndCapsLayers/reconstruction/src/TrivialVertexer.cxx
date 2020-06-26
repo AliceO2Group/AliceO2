@@ -19,13 +19,13 @@
 #include "FairMCEventHeader.h"
 #include "FairLogger.h"
 
-#include "ITSReconstruction/TrivialVertexer.h"
+#include "EC0Reconstruction/TrivialVertexer.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-using namespace o2::itsmft;
-using namespace o2::its;
+using namespace o2::endcaps;
+using namespace o2::ecl;
 
 using Point3Df = Point3D<float>;
 

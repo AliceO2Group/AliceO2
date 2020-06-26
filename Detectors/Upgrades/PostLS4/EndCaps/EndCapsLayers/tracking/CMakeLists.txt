@@ -8,7 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(ITStracking
+o2_add_library(EC0tracking
                TARGETVARNAME targetName
                SOURCES src/ClusterLines.cxx
                        src/Cluster.cxx
@@ -31,14 +31,14 @@ o2_add_library(ITStracking
                                      O2::CommonConstants
                                      O2::DataFormatsITSMFT
                                      O2::SimulationDataFormat
-                                     O2::ITSBase
+                                     O2::EC0Base
                                      O2::DataFormatsITS)
 
-o2_target_root_dictionary(ITStracking
-                          HEADERS include/ITStracking/ClusterLines.h
-                                  include/ITStracking/Tracklet.h
-                                  include/ITStracking/DBScan.h
-                                  include/ITStracking/TrackingConfigParam.h
+o2_target_root_dictionary(EC0tracking
+                          HEADERS include/EC0tracking/ClusterLines.h
+                                  include/EC0tracking/Tracklet.h
+                                  include/EC0tracking/DBScan.h
+                                  include/EC0tracking/TrackingConfigParam.h
                           LINKDEF src/TrackingLinkDef.h)
 
 if(CUDA_ENABLED)

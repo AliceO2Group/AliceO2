@@ -12,11 +12,11 @@
 /// \brief
 ///
 
-#include "ITStrackingHIP/StreamHIP.h"
+#include "EC0trackingHIP/StreamHIP.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 namespace GPU
 {
@@ -37,5 +37,5 @@ const hipStream_t& StreamHIP::get() const
 }
 
 } // namespace GPU
-} // namespace its
+} // namespace ecl
 } // namespace o2

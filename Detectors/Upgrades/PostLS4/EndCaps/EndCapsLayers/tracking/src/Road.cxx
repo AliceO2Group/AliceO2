@@ -12,11 +12,11 @@
 /// \brief
 ///
 
-#include "ITStracking/Road.h"
+#include "EC0tracking/Road.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 Road::Road() : mCellIds{}, mRoadSize{}, mIsFakeRoad{} { resetRoad(); }
@@ -25,19 +25,19 @@ Road::Road(int cellLayer, int cellId) : Road() { addCell(cellLayer, cellId); }
 
 void Road::resetRoad()
 {
-  for (int i = 0; i < constants::its::CellsPerRoad; i++) {
-    mCellIds[i] = constants::its::UnusedIndex;
+  for (int i = 0; i < constants::ecl::CellsPerRoad; i++) {
+    mCellIds[i] = constants::ecl::UnusedIndex;
   }
   mRoadSize = 0;
 }
 
 void Road::addCell(int cellLayer, int cellId)
 {
-  if (mCellIds[cellLayer] == constants::its::UnusedIndex) {
+  if (mCellIds[cellLayer] == constants::ecl::UnusedIndex) {
     ++mRoadSize;
   }
 
   mCellIds[cellLayer] = cellId;
 }
-} // namespace its
+} // namespace ecl
 } // namespace o2

@@ -12,13 +12,13 @@
 /// \brief
 ///
 
-#include "ITStracking/TrackerTraitsCPU.h"
+#include "EC0tracking/TrackerTraitsCPU.h"
 
 #include "CommonConstants/MathConstants.h"
-#include "ITStracking/Cell.h"
-#include "ITStracking/Constants.h"
-#include "ITStracking/IndexTableUtils.h"
-#include "ITStracking/Tracklet.h"
+#include "EC0tracking/Cell.h"
+#include "EC0tracking/Constants.h"
+#include "EC0tracking/IndexTableUtils.h"
+#include "EC0tracking/Tracklet.h"
 
 #include "ReconstructionDataFormats/Track.h"
 #include <cassert>
@@ -28,13 +28,13 @@
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 void TrackerTraitsCPU::computeLayerTracklets()
 {
   PrimaryVertexContext* primaryVertexContext = mPrimaryVertexContext;
-  for (int iLayer{0}; iLayer < constants::its::TrackletsPerRoad; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::ecl::TrackletsPerRoad; ++iLayer) {
     if (primaryVertexContext->getClusters()[iLayer].empty() || primaryVertexContext->getClusters()[iLayer + 1].empty()) {
       return;
     }
@@ -50,7 +50,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
       }
 
       const float tanLambda{(currentCluster.zCoordinate - primaryVertex.z) / currentCluster.rCoordinate};
-      const float directionZIntersection{tanLambda * (constants::its::LayersRCoordinate()[iLayer + 1] -
+      const float directionZIntersection{tanLambda * (constants::ecl::LayersRCoordinate()[iLayer + 1] -
                                                       currentCluster.rCoordinate) +
                                          currentCluster.zCoordinate};
 
@@ -92,7 +92,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
                gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < mTrkParams.TrackletMaxDeltaPhi)) {
 
             if (iLayer > 0 &&
-                primaryVertexContext->getTrackletsLookupTable()[iLayer - 1][iCluster] == constants::its::UnusedIndex) {
+                primaryVertexContext->getTrackletsLookupTable()[iLayer - 1][iCluster] == constants::ecl::UnusedIndex) {
 
               primaryVertexContext->getTrackletsLookupTable()[iLayer - 1][iCluster] =
                 primaryVertexContext->getTracklets()[iLayer].size();
@@ -110,7 +110,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
 void TrackerTraitsCPU::computeLayerCells()
 {
   PrimaryVertexContext* primaryVertexContext = mPrimaryVertexContext;
-  for (int iLayer{0}; iLayer < constants::its::CellsPerRoad; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::ecl::CellsPerRoad; ++iLayer) {
 
     if (primaryVertexContext->getTracklets()[iLayer + 1].empty() ||
         primaryVertexContext->getTracklets()[iLayer].empty()) {
@@ -128,7 +128,7 @@ void TrackerTraitsCPU::computeLayerCells()
       const int nextLayerFirstTrackletIndex{
         primaryVertexContext->getTrackletsLookupTable()[iLayer][nextLayerClusterIndex]};
 
-      if (nextLayerFirstTrackletIndex == constants::its::UnusedIndex) {
+      if (nextLayerFirstTrackletIndex == constants::ecl::UnusedIndex) {
 
         continue;
       }
@@ -212,7 +212,7 @@ void TrackerTraitsCPU::computeLayerCells()
 
             const float cellTrajectoryCurvature{1.0f / cellTrajectoryRadius};
             if (iLayer > 0 &&
-                primaryVertexContext->getCellsLookupTable()[iLayer - 1][iTracklet] == constants::its::UnusedIndex) {
+                primaryVertexContext->getCellsLookupTable()[iLayer - 1][iTracklet] == constants::ecl::UnusedIndex) {
 
               primaryVertexContext->getCellsLookupTable()[iLayer - 1][iTracklet] =
                 primaryVertexContext->getCells()[iLayer].size();
@@ -241,5 +241,5 @@ void TrackerTraitsCPU::refitTracks(const std::array<std::vector<TrackingFrameInf
   mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
 }
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

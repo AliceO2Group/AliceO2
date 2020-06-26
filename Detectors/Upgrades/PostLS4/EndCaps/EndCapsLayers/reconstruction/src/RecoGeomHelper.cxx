@@ -12,11 +12,11 @@
 /// \brief Implementation of the Aux. container for clusters, optimized for tracking
 /// \author iouri.belikov@cern.ch
 
-#include "ITSReconstruction/RecoGeomHelper.h"
-#include "ITSMFTBase/SegmentationAlpide.h"
-#include "ITSBase/GeometryTGeo.h"
+#include "EC0Reconstruction/RecoGeomHelper.h"
+#include "EndCapsBase/SegmentationAlpide.h"
+#include "ECLayersBase/GeometryTGeo.h"
 
-using namespace o2::its;
+using namespace o2::ecl;
 
 //_____________________________________________________________________
 void RecoGeomHelper::RecoChip::updateLimits(const Point3D<float>& pntTra)
@@ -88,13 +88,13 @@ void RecoGeomHelper::RecoLadder::print() const
 //_____________________________________________________________________
 void RecoGeomHelper::RecoLayer::init()
 {
-  auto gm = o2::its::GeometryTGeo::Instance();
+  auto gm = o2::ecl::GeometryTGeo::Instance();
   gm->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot, o2::TransformType::T2L)); // more matrices ?
 
   int nHStaves = gm->getNumberOfHalfStaves(id);
   int nStaves = gm->getNumberOfStaves(id);
-  float dxH = o2::itsmft::SegmentationAlpide::SensorSizeRows / 2; // half width in rphi
-  float dzH = o2::itsmft::SegmentationAlpide::SensorSizeCols / 2; // half width in Z
+  float dxH = o2::endcaps::SegmentationAlpide::SensorSizeRows / 2; // half width in rphi
+  float dzH = o2::endcaps::SegmentationAlpide::SensorSizeCols / 2; // half width in Z
   int nCh = gm->getNumberOfChipsPerLayer(id), chip0 = gm->getFirstChipIndex(id);
   int nChMod = gm->getNumberOfChipsPerModule(id), nChModH = nChMod / 2;
   nLadders = nStaves * nHStaves * (id > 2 ? 2 : 1); // 2 ladders per h-stave for OB

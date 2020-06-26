@@ -11,10 +11,10 @@
 /// \file AlpideCoder.cxx
 /// \brief Implementation of the ALPIDE data decoding/encoding
 
-#include "ITSMFTReconstruction/AlpideCoder.h"
+#include "EndCapsReconstruction/AlpideCoder.h"
 #include <TClass.h>
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 //_____________________________________
 void AlpideCoder::print() const
@@ -39,7 +39,7 @@ void AlpideCoder::reset()
 }
 
 //_____________________________________
-int AlpideCoder::encodeChip(PayLoadCont& buffer, const o2::itsmft::ChipPixelData& chipData,
+int AlpideCoder::encodeChip(PayLoadCont& buffer, const o2::endcaps::ChipPixelData& chipData,
                             uint16_t chipInModule, uint16_t bc, uint16_t roflags)
 {
   // Encode chip data into provided buffer. Data must be provided sorted in row/col, no check is done

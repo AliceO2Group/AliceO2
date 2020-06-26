@@ -16,19 +16,19 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h" // RS DUMMY, being outphased, to remove
-#include "ITSMFTReconstruction/CTFCoder.h"
-#include "ITSMFTWorkflow/EntropyDecoderSpec.h"
+#include "EndCapsReconstruction/CTFCoder.h"
+#include "EndCapsWorkflow/EntropyDecoderSpec.h"
 
 using namespace o2::framework;
 
 namespace o2
 {
-namespace itsmft
+namespace endcaps
 {
 
 EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig) : mOrigin(orig)
 {
-  assert(orig == o2::header::gDataOriginITS || orig == o2::header::gDataOriginMFT);
+  assert(orig == o2::header::gDataOriginEC0);
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -69,12 +69,12 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig)
   };
 
   return DataProcessorSpec{
-    orig == o2::header::gDataOriginITS ? "its-entropy-decoder" : "mft-entropy-decoder",
+    "ec0-entropy-decoder",
     Inputs{InputSpec{"ctf", orig, "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(orig)},
     Options{}};
 }
 
-} // namespace itsmft
+} // namespace endcaps
 } // namespace o2

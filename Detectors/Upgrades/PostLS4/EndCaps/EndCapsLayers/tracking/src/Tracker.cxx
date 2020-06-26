@@ -12,15 +12,15 @@
 /// \brief
 ///
 
-#include "ITStracking/Tracker.h"
+#include "EC0tracking/Tracker.h"
 
 #include "CommonConstants/MathConstants.h"
-#include "ITStracking/Cell.h"
-#include "ITStracking/Constants.h"
-#include "ITStracking/IndexTableUtils.h"
-#include "ITStracking/Tracklet.h"
-#include "ITStracking/TrackerTraits.h"
-#include "ITStracking/TrackerTraitsCPU.h"
+#include "EC0tracking/Cell.h"
+#include "EC0tracking/Constants.h"
+#include "EC0tracking/IndexTableUtils.h"
+#include "EC0tracking/Tracklet.h"
+#include "EC0tracking/TrackerTraits.h"
+#include "EC0tracking/TrackerTraitsCPU.h"
 
 #include "ReconstructionDataFormats/Track.h"
 #include <cassert>
@@ -31,10 +31,10 @@
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
-Tracker::Tracker(o2::its::TrackerTraits* traits)
+Tracker::Tracker(o2::ecl::TrackerTraits* traits)
 {
   /// Initialise standard configuration with 1 iteration
   mTrkParams.resize(1);
@@ -93,7 +93,7 @@ void Tracker::computeCells()
 
 void Tracker::findCellsNeighbours(int& iteration)
 {
-  for (int iLayer{0}; iLayer < constants::its::CellsPerRoad - 1; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::ecl::CellsPerRoad - 1; ++iLayer) {
 
     if (mPrimaryVertexContext->getCells()[iLayer + 1].empty() ||
         mPrimaryVertexContext->getCellsLookupTable()[iLayer].empty()) {
@@ -107,7 +107,7 @@ void Tracker::findCellsNeighbours(int& iteration)
       const Cell& currentCell{mPrimaryVertexContext->getCells()[iLayer][iCell]};
       const int nextLayerTrackletIndex{currentCell.getSecondTrackletIndex()};
       const int nextLayerFirstCellIndex{mPrimaryVertexContext->getCellsLookupTable()[iLayer][nextLayerTrackletIndex]};
-      if (nextLayerFirstCellIndex != constants::its::UnusedIndex &&
+      if (nextLayerFirstCellIndex != constants::ecl::UnusedIndex &&
           mPrimaryVertexContext->getCells()[iLayer + 1][nextLayerFirstCellIndex].getFirstTrackletIndex() ==
             nextLayerTrackletIndex) {
 
@@ -152,11 +152,11 @@ void Tracker::findCellsNeighbours(int& iteration)
 
 void Tracker::findRoads(int& iteration)
 {
-  for (int iLevel{constants::its::CellsPerRoad}; iLevel >= mTrkParams[iteration].CellMinimumLevel(); --iLevel) {
+  for (int iLevel{constants::ecl::CellsPerRoad}; iLevel >= mTrkParams[iteration].CellMinimumLevel(); --iLevel) {
     CA_DEBUGGER(int nRoads = -mPrimaryVertexContext->getRoads().size());
     const int minimumLevel{iLevel - 1};
 
-    for (int iLayer{constants::its::CellsPerRoad - 1}; iLayer >= minimumLevel; --iLayer) {
+    for (int iLayer{constants::ecl::CellsPerRoad - 1}; iLayer >= minimumLevel; --iLayer) {
 
       const int levelCellsNum{static_cast<int>(mPrimaryVertexContext->getCells()[iLayer].size())};
 
@@ -226,21 +226,21 @@ void Tracker::findTracks(const ROframe& event)
 #endif
 
   for (auto& road : mPrimaryVertexContext->getRoads()) {
-    std::array<int, 7> clusters{constants::its::UnusedIndex, constants::its::UnusedIndex, constants::its::UnusedIndex, constants::its::UnusedIndex, constants::its::UnusedIndex, constants::its::UnusedIndex, constants::its::UnusedIndex};
-    int lastCellLevel = constants::its::UnusedIndex;
+    std::array<int, 7> clusters{constants::ecl::UnusedIndex, constants::ecl::UnusedIndex, constants::ecl::UnusedIndex, constants::ecl::UnusedIndex, constants::ecl::UnusedIndex, constants::ecl::UnusedIndex, constants::ecl::UnusedIndex};
+    int lastCellLevel = constants::ecl::UnusedIndex;
     CA_DEBUGGER(int nClusters = 2);
 
-    for (int iCell{0}; iCell < constants::its::CellsPerRoad; ++iCell) {
+    for (int iCell{0}; iCell < constants::ecl::CellsPerRoad; ++iCell) {
       const int cellIndex = road[iCell];
-      if (cellIndex == constants::its::UnusedIndex) {
+      if (cellIndex == constants::ecl::UnusedIndex) {
         continue;
       } else {
         clusters[iCell] = mPrimaryVertexContext->getCells()[iCell][cellIndex].getFirstClusterIndex();
         clusters[iCell + 1] = mPrimaryVertexContext->getCells()[iCell][cellIndex].getSecondClusterIndex();
         clusters[iCell + 2] = mPrimaryVertexContext->getCells()[iCell][cellIndex].getThirdClusterIndex();
-        assert(clusters[iCell] != constants::its::UnusedIndex &&
-               clusters[iCell + 1] != constants::its::UnusedIndex &&
-               clusters[iCell + 2] != constants::its::UnusedIndex);
+        assert(clusters[iCell] != constants::ecl::UnusedIndex &&
+               clusters[iCell + 1] != constants::ecl::UnusedIndex &&
+               clusters[iCell + 2] != constants::ecl::UnusedIndex);
         lastCellLevel = iCell;
         CA_DEBUGGER(nClusters++);
       }
@@ -249,12 +249,12 @@ void Tracker::findTracks(const ROframe& event)
     assert(nClusters >= mTrkParams[0].MinTrackLength);
     CA_DEBUGGER(roadCounters[nClusters - 4]++);
 
-    if (lastCellLevel == constants::its::UnusedIndex)
+    if (lastCellLevel == constants::ecl::UnusedIndex)
       continue;
 
     /// From primary vertex context index to event index (== the one used as input of the tracking code)
     for (int iC{0}; iC < clusters.size(); iC++) {
-      if (clusters[iC] != constants::its::UnusedIndex) {
+      if (clusters[iC] != constants::ecl::UnusedIndex) {
         clusters[iC] = mPrimaryVertexContext->getClusters()[iC][clusters[iC]].clusterId;
       }
     }
@@ -268,20 +268,20 @@ void Tracker::findTracks(const ROframe& event)
     /// FIXME!
     TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf)};
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
-      temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
+      temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::ecl::UnusedIndex);
     }
-    bool fitSuccess = fitTrack(event, temporaryTrack, constants::its::LayersNumber - 4, -1, -1);
+    bool fitSuccess = fitTrack(event, temporaryTrack, constants::ecl::LayersNumber - 4, -1, -1);
     if (!fitSuccess)
       continue;
     CA_DEBUGGER(fitCounters[nClusters - 4]++);
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(event, temporaryTrack, 0, constants::its::LayersNumber, 1);
+    fitSuccess = fitTrack(event, temporaryTrack, 0, constants::ecl::LayersNumber, 1);
     if (!fitSuccess)
       continue;
     CA_DEBUGGER(backpropagatedCounters[nClusters - 4]++);
     temporaryTrack.getParamOut() = temporaryTrack;
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(event, temporaryTrack, constants::its::LayersNumber - 1, -1, -1);
+    fitSuccess = fitTrack(event, temporaryTrack, constants::ecl::LayersNumber - 1, -1, -1);
     if (!fitSuccess)
       continue;
     CA_DEBUGGER(refitCounters[nClusters - 4]++);
@@ -307,8 +307,8 @@ void Tracker::findTracks(const ROframe& event)
   for (auto& track : tracks) {
     CA_DEBUGGER(int nClusters = 0);
     int nShared = 0;
-    for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
-      if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+    for (int iLayer{0}; iLayer < constants::ecl::LayersNumber; ++iLayer) {
+      if (track.getClusterIndex(iLayer) == constants::ecl::UnusedIndex) {
         continue;
       }
       nShared += int(mPrimaryVertexContext->isClusterUsed(iLayer, track.getClusterIndex(iLayer)));
@@ -332,8 +332,8 @@ void Tracker::findTracks(const ROframe& event)
     prevNclusters = nClusters;
 #endif
 
-    for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
-      if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+    for (int iLayer{0}; iLayer < constants::ecl::LayersNumber; ++iLayer) {
+      if (track.getClusterIndex(iLayer) == constants::ecl::UnusedIndex) {
         continue;
       }
       mPrimaryVertexContext->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
@@ -389,7 +389,7 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
 {
   track.setChi2(0);
   for (int iLayer{start}; iLayer != end; iLayer += step) {
-    if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+    if (track.getClusterIndex(iLayer) == constants::ecl::UnusedIndex) {
       continue;
     }
     const TrackingFrameInfo& trackingHit = event.getTrackingFrameInfoOnLayer(iLayer).at(track.getClusterIndex(iLayer));
@@ -465,16 +465,16 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
   for (int iRoad{0}; iRoad < roadsNum; ++iRoad) {
 
     Road& currentRoad{mPrimaryVertexContext->getRoads()[iRoad]};
-    MCCompLabel maxOccurrencesValue{constants::its::UnusedIndex, constants::its::UnusedIndex,
-                                    constants::its::UnusedIndex, false};
+    MCCompLabel maxOccurrencesValue{constants::ecl::UnusedIndex, constants::ecl::UnusedIndex,
+                                    constants::ecl::UnusedIndex, false};
     int count{0};
     bool isFakeRoad{false};
     bool isFirstRoadCell{true};
 
-    for (int iCell{0}; iCell < constants::its::CellsPerRoad; ++iCell) {
+    for (int iCell{0}; iCell < constants::ecl::CellsPerRoad; ++iCell) {
       const int currentCellIndex{currentRoad[iCell]};
 
-      if (currentCellIndex == constants::its::UnusedIndex) {
+      if (currentCellIndex == constants::ecl::UnusedIndex) {
         if (isFirstRoadCell) {
           continue;
         } else {
@@ -538,14 +538,14 @@ void Tracker::computeTracksMClabels(const ROframe& event)
 
   for (auto& track : mTracks) {
 
-    MCCompLabel maxOccurrencesValue{constants::its::UnusedIndex, constants::its::UnusedIndex,
-                                    constants::its::UnusedIndex, false};
+    MCCompLabel maxOccurrencesValue{constants::ecl::UnusedIndex, constants::ecl::UnusedIndex,
+                                    constants::ecl::UnusedIndex, false};
     int count{0};
     bool isFakeTrack{false};
 
     for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
       const int index = track.getClusterIndex(iCluster);
-      if (index == constants::its::UnusedIndex) {
+      if (index == constants::ecl::UnusedIndex) {
         continue;
       }
 
@@ -578,7 +578,7 @@ void Tracker::rectifyClusterIndices(const ROframe& event)
   for (auto& track : mTracks) {
     for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
       const int index = track.getClusterIndex(iCluster);
-      if (index != constants::its::UnusedIndex) {
+      if (index != constants::ecl::UnusedIndex) {
         track.setExternalClusterIndex(iCluster, event.getClusterExternalIndex(iCluster, index));
       }
     }
@@ -610,10 +610,10 @@ track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluste
 
   const float fy = 1. / (cluster2.rCoordinate - cluster3.rCoordinate);
   const float& tz = fy;
-  const float cy = (math_utils::computeCurvature(x1, y1, x2, y2 + constants::its::Resolution, x3, y3) - crv) /
-                   (constants::its::Resolution * getBz() * o2::constants::math::B2C) *
+  const float cy = (math_utils::computeCurvature(x1, y1, x2, y2 + constants::ecl::Resolution, x3, y3) - crv) /
+                   (constants::ecl::Resolution * getBz() * o2::constants::math::B2C) *
                    20.f; // FIXME: MS contribution to the cov[14] (*20 added)
-  constexpr float s2 = constants::its::Resolution * constants::its::Resolution;
+  constexpr float s2 = constants::ecl::Resolution * constants::ecl::Resolution;
 
   return track::TrackParCov(tf3.xTrackingFrame, tf3.alphaTrackingFrame,
                             {y3, z3, crv * (x3 - x0), 0.5f * (tgl12 + tgl23),
@@ -623,5 +623,5 @@ track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluste
                              s2 * fy * cy, 0.f, s2 * cy * cy});
 }
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

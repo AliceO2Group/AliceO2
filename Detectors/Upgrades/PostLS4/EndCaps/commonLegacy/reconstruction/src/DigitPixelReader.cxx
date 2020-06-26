@@ -11,12 +11,12 @@
 /// \file DigitPixelReader.cxx
 /// \brief Implementation of the Alpide pixel reader for MC digits processing
 
-#include "ITSMFTReconstruction/DigitPixelReader.h"
+#include "EndCapsReconstruction/DigitPixelReader.h"
 #include "CommonUtils/RootChain.h"
 #include <FairLogger.h>
 #include <cassert>
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 using o2::itsmft::Digit;
 
 //______________________________________________________________________________
@@ -89,7 +89,7 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
 void DigitPixelReader::openInput(const std::string inpName, o2::detectors::DetID det)
 {
   // open input file, load digits, MC labels
-  assert(det.getID() == o2::detectors::DetID::ITS || det.getID() == o2::detectors::DetID::MFT);
+  assert(det.getID() == o2::detectors::DetID::EC0);
 
   clear();
   std::string detName = det.getName();

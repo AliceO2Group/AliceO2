@@ -14,18 +14,18 @@
 
 #include <string>
 #include <iterator>
-#include "ITStracking/Cluster.h"
-#include "ITStracking/Tracklet.h"
-#include "ITStracking/ClusterLines.h"
+#include "EC0tracking/Cluster.h"
+#include "EC0tracking/Tracklet.h"
+#include "EC0tracking/ClusterLines.h"
 #include "CommonUtils/TreeStreamRedirector.h"
-#include "ITStracking/ROframe.h"
-#include "ITStracking/StandaloneDebugger.h"
+#include "EC0tracking/ROframe.h"
+#include "EC0tracking/StandaloneDebugger.h"
 #include "TH1I.h"
 #include "TMath.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 StandaloneDebugger::StandaloneDebugger(const std::string debugTreeFileName)
@@ -47,7 +47,7 @@ int StandaloneDebugger::getEventId(int firstClusterId, int secondClusterId, ROfr
   return lblClus0.compare(lblClus1) == 1 ? lblClus0.getEventID() : -1;
 }
 
-void StandaloneDebugger::fillCombinatoricsTree(std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters,
+void StandaloneDebugger::fillCombinatoricsTree(std::array<std::vector<Cluster>, constants::ecl::LayersNumberVertexer>& clusters,
                                                std::vector<Tracklet> comb01,
                                                std::vector<Tracklet> comb12,
                                                const ROframe* event)
@@ -92,7 +92,7 @@ void StandaloneDebugger::fillCombinatoricsTree(std::array<std::vector<Cluster>, 
   }
 }
 
-void StandaloneDebugger::fillTrackletSelectionTree(std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters,
+void StandaloneDebugger::fillTrackletSelectionTree(std::array<std::vector<Cluster>, constants::ecl::LayersNumberVertexer>& clusters,
                                                    std::vector<Tracklet> comb01,
                                                    std::vector<Tracklet> comb12,
                                                    std::vector<std::array<int, 2>> allowedTracklets,
@@ -134,7 +134,7 @@ void StandaloneDebugger::fillLinesSummaryTree(std::vector<Line> lines, const ROf
 {
   assert(event != nullptr);
   int id = event->getROFrameId();
-  const o2::its::Line zAxis{std::array<float, 3>{0.f, 0.f, -1.f}, std::array<float, 3>{0.f, 0.f, 1.f}};
+  const o2::ecl::Line zAxis{std::array<float, 3>{0.f, 0.f, -1.f}, std::array<float, 3>{0.f, 0.f, 1.f}};
   const std::array<float, 3> origin{0., 0., 0.};
   for (auto& tracklet : lines) {
     float dcaz = Line::getDCA(tracklet, zAxis);
@@ -257,5 +257,5 @@ int StandaloneDebugger::getBinIndex(const float value, const int size, const flo
   return std::distance(divisions.begin(), TMath::BinarySearch(divisions.begin(), divisions.end(), value));
 }
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

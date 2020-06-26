@@ -11,17 +11,17 @@
 /// \file PixelData.cxx
 /// \brief Implementation for transient data of single pixel and set of pixels from current chip
 
-#include "ITSMFTReconstruction/PixelData.h"
-#include "ITSMFTBase/SegmentationAlpide.h"
+#include "EndCapsReconstruction/PixelData.h"
+#include "EndCapsBase/SegmentationAlpide.h"
 #include <cassert>
 #include <bitset>
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 void PixelData::sanityCheck() const
 {
   // make sure the mask used in this class are compatible with Alpide segmenations
-  static_assert(RowMask + 1 >= o2::itsmft::SegmentationAlpide::NRows,
+  static_assert(RowMask + 1 >= o2::endcaps::SegmentationAlpide::NRows,
                 "incompatible mask, does not match Alpide segmentations");
 }
 

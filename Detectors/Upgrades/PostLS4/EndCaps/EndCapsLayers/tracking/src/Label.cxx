@@ -12,11 +12,11 @@
 /// \brief
 ///
 
-#include "ITStracking/Label.h"
+#include "EC0tracking/Label.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 Label::Label(const int mcId, const float pT, const float phi, const float eta, const int pdg, const int ncl)
@@ -37,5 +37,5 @@ std::ostream& operator<<(std::ostream& outputStream, const Label& label)
 
   return outputStream;
 }
-} // namespace its
+} // namespace ecl
 } // namespace o2

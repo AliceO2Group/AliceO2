@@ -12,8 +12,8 @@
 /// \brief Implementation of the ITS/MFT digitizer
 
 #include "DataFormatsITSMFT/Digit.h"
-#include "ITSMFTBase/SegmentationAlpide.h"
-#include "ITSMFTSimulation/Digitizer.h"
+#include "EndCapsBase/SegmentationAlpide.h"
+#include "EndCapsSimulation/Digitizer.h"
 #include "MathUtils/Cartesian3D.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -25,9 +25,9 @@
 
 using o2::itsmft::Digit;
 using o2::itsmft::Hit;
-using Segmentation = o2::itsmft::SegmentationAlpide;
+using Segmentation = o2::endcaps::SegmentationAlpide;
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 // using namespace o2::base;
 
 //_______________________________________________________________________
@@ -39,7 +39,7 @@ void Digitizer::init()
     mChips[i].setChipIndex(i);
   }
   if (!mParams.getAlpSimResponse()) {
-    mAlpSimResp = std::make_unique<o2::itsmft::AlpideSimResponse>();
+    mAlpSimResp = std::make_unique<o2::endcaps::AlpideSimResponse>();
     mAlpSimResp->initData();
     mParams.setAlpSimResponse(mAlpSimResp.get());
   }
@@ -277,7 +277,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, 
   int rowPrev = -1, colPrev = -1, row, col;
   float cRowPix = 0.f, cColPix = 0.f; // local coordinated of the current pixel center
 
-  const o2::itsmft::AlpideSimResponse* resp = mParams.getAlpSimResponse();
+  const o2::endcaps::AlpideSimResponse* resp = mParams.getAlpSimResponse();
 
   // take into account that the AlpideSimResponse depth defintion has different min/max boundaries
   // although the max should coincide with the surface of the epitaxial layer, which in the chip

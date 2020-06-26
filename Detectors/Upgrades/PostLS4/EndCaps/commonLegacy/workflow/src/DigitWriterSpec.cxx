@@ -8,9 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @brief  Processor spec for a ROOT file writer for ITSMFT digits
+/// @brief  Processor spec for a ROOT file writer for EC0 digits
 
-#include "ITSMFTWorkflow/DigitWriterSpec.h"
+#include "EndCapsWorkflow/DigitWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "Headers/DataHeader.h"
@@ -27,7 +27,7 @@ using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 namespace o2
 {
-namespace itsmft
+namespace endcaps
 {
 
 template <typename T>
@@ -60,15 +60,11 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, o2::header::DataOrigin detOri
                                                                                  (detStr + "DigitROF").c_str()})();
 }
 
-DataProcessorSpec getITSDigitWriterSpec(bool mctruth)
+DataProcessorSpec getEC0DigitWriterSpec(bool mctruth)
 {
-  return getDigitWriterSpec(mctruth, o2::header::gDataOriginITS, o2::detectors::DetID::ITS);
+  return getDigitWriterSpec(mctruth, o2::header::gDataOriginEC0, o2::detectors::DetID::EC0);
 }
 
-DataProcessorSpec getMFTDigitWriterSpec(bool mctruth)
-{
-  return getDigitWriterSpec(mctruth, o2::header::gDataOriginMFT, o2::detectors::DetID::MFT);
-}
 
-} // end namespace itsmft
+} // end namespace endcaps
 } // end namespace o2

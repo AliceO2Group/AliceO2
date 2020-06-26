@@ -12,11 +12,11 @@
 /// \author ruben.shahoyan@cern.ch
 /// \brief class for entropy encoding/decoding of ITS/MFT compressmed clusters data
 
-#include "ITSMFTReconstruction/CTFCoder.h"
+#include "EndCapsReconstruction/CTFCoder.h"
 #include "CommonUtils/StringUtils.h"
 #include <TTree.h>
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 ///___________________________________________________________________________________
 // Register encoded data in the tree (Fill is not called, will be done by caller)

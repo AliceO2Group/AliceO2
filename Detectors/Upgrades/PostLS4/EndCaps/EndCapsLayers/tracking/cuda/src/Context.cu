@@ -12,8 +12,8 @@
 /// \brief
 ///
 
-#include "ITStrackingCUDA/Context.h"
-#include "ITStrackingCUDA/Utils.h"
+#include "EC0trackingCUDA/Context.h"
+#include "EC0trackingCUDA/Utils.h"
 
 #include <sstream>
 #include <stdexcept>
@@ -75,7 +75,7 @@ inline int getMaxThreadsPerSM(const int major, const int minor)
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 namespace GPU
 {
@@ -170,5 +170,5 @@ const DeviceProperties& Context::getDeviceProperties(const int deviceIndex)
 }
 
 } // namespace GPU
-} // namespace its
+} // namespace ecl
 } // namespace o2

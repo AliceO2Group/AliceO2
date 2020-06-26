@@ -12,12 +12,12 @@
 // \brief Autimatically generated ITS chip <-> module mapping
 
 #include <FairLogger.h>
-#include "ITSMFTReconstruction/ChipMappingITS.h"
+#include "EndCapsReconstruction/ChipMappingITS.h"
 #include <cassert>
 #include <sstream>
 #include <iomanip>
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NModulesAlongStaveSB;
 
@@ -49,7 +49,7 @@ ChipMappingITS::ChipMappingITS()
     Each RU has 10-bit DIPSWITCH, use bits 9:2 as an 8bit ID field to be mapped to FEE ID field in RDH
 
     | Lr |Stave Count| Bin. pref | Range of Binary Addresses
-    |    |= RU Count | Stave addr| 
+    |    |= RU Count | Stave addr|
     |----------------------------------------------------------
     | L0 |   12      |b 0000xxxx | 0000_0000 : 0000_1011 (0 – 11)
     | L1 |   16      |b 0001xxxx | 0001_0000 : 0001_1111 (0 – 15)

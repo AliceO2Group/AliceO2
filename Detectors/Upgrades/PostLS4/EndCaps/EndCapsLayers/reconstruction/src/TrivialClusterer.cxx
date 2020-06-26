@@ -12,17 +12,17 @@
 /// \brief Implementation of the ITS cluster finder
 #include "MathUtils/Cartesian3D.h"
 #include "DataFormatsITSMFT/Digit.h"
-#include "ITSMFTBase/SegmentationAlpide.h"
-#include "ITSReconstruction/TrivialClusterer.h"
+#include "EndCapsBase/SegmentationAlpide.h"
+#include "EC0Reconstruction/TrivialClusterer.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "FairLogger.h" // for LOG
 
-using o2::itsmft::SegmentationAlpide;
-using namespace o2::its;
-using namespace o2::itsmft;
+using o2::endcaps::SegmentationAlpide;
+using namespace o2::ecl;
+using namespace o2::endcaps;
 
 using Point3Df = Point3D<float>;
 

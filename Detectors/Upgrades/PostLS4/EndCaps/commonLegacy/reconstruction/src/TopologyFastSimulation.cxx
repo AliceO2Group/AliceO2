@@ -13,14 +13,14 @@
 ///
 /// \author Luca Barioglio, University and INFN of Torino
 
-#include "ITSMFTReconstruction/TopologyFastSimulation.h"
+#include "EndCapsReconstruction/TopologyFastSimulation.h"
 #include <algorithm>
 
-ClassImp(o2::itsmft::TopologyFastSimulation);
+ClassImp(o2::endcaps::TopologyFastSimulation);
 
 namespace o2
 {
-namespace itsmft
+namespace endcaps
 {
 TopologyFastSimulation::TopologyFastSimulation(std::string fileName, unsigned seed)
 {
@@ -43,5 +43,5 @@ int TopologyFastSimulation::getRandom()
                               [](const double& comp1, const double& comp2) { return comp1 < comp2; });
   return std::distance(mFreqArray.begin(), ind);
 }
-} // namespace itsmft
+} // namespace endcaps
 } // namespace o2

@@ -12,11 +12,11 @@
 /// \brief
 ///
 
-#include "ITStracking/Graph.h"
+#include "EC0tracking/Graph.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 void Barrier::Wait()
@@ -29,5 +29,5 @@ void Barrier::Wait()
   }
 }
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

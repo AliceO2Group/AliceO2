@@ -11,12 +11,12 @@
 /// \file Detector.cxx
 /// \brief Implementation of the Detector class
 
-#include "ITSMFTBase/SegmentationAlpide.h"
-#include "ITSMFTSimulation/Hit.h"
-#include "ITSBase/GeometryTGeo.h"
-#include "ITSSimulation/Detector.h"
-#include "ITSSimulation/V3Layer.h"
-#include "ITSSimulation/V3Services.h"
+#include "EndCapsBase/SegmentationAlpide.h"
+#include "EndCapsSimulation/Hit.h"
+#include "ECLayersBase/GeometryTGeo.h"
+#include "EC0Simulation/Detector.h"
+#include "EC0Simulation/V3Layer.h"
+#include "EC0Simulation/V3Services.h"
 
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
@@ -50,11 +50,11 @@ using std::cout;
 using std::endl;
 
 using o2::itsmft::Hit;
-using Segmentation = o2::itsmft::SegmentationAlpide;
-using namespace o2::its;
+using Segmentation = o2::endcaps::SegmentationAlpide;
+using namespace o2::ecl;
 
 Detector::Detector()
-  : o2::base::DetImpl<Detector>("ITS", kTRUE),
+  : o2::base::DetImpl<Detector>("EC0", kTRUE),
     mTrackData(),
     /*
     mHitStarted(false),
@@ -77,9 +77,9 @@ static double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
   return TMath::ASin((rMax * rMax - rMin * rMin) / (2 * rMid * sensW)) * TMath::RadToDeg();
 }
 
-static void configITS(Detector* its)
+static void configEC0(Detector* ecl)
 {
-  // build ITS upgrade detector
+  // build EC0 upgrade detector
   const int kNLr = 7;
   const int kNLrInner = 3;
   const int kBuildLevel = 0;
@@ -112,8 +112,8 @@ static void configITS(Detector* its)
   double dzLr, rLr, phi0, turbo;
   int nStaveLr, nModPerStaveLr;
 
-  its->setStaveModelIB(o2::its::Detector::kIBModel4);
-  its->setStaveModelOB(o2::its::Detector::kOBModel2);
+  ecl->setStaveModelIB(o2::ecl::Detector::kIBModel4);
+  ecl->setStaveModelOB(o2::ecl::Detector::kOBModel2);
 
   const int kNWrapVol = 3;
   const double wrpRMin[kNWrapVol] = {2.1, 19.3, 33.32};
@@ -121,7 +121,7 @@ static void configITS(Detector* its)
   const double wrpZSpan[kNWrapVol] = {70., 93., 163.6};
 
   for (int iw = 0; iw < kNWrapVol; iw++) {
-    its->defineWrapperVolume(iw, wrpRMin[iw], wrpRMax[iw], wrpZSpan[iw]);
+    ecl->defineWrapperVolume(iw, wrpRMin[iw], wrpRMax[iw], wrpZSpan[iw]);
   }
 
   for (int idLr = 0; idLr < kNLr; idLr++) {
@@ -132,18 +132,18 @@ static void configITS(Detector* its)
     nModPerStaveLr = TMath::Nint(tdr5dat[idLr][kNModPerStave]);
     int nChipsPerStaveLr = nModPerStaveLr;
     if (idLr >= kNLrInner) {
-      its->defineLayer(idLr, phi0, rLr, nStaveLr, nModPerStaveLr, ChipThicknessOB, Segmentation::SensorLayerThickness,
+      ecl->defineLayer(idLr, phi0, rLr, nStaveLr, nModPerStaveLr, ChipThicknessOB, Segmentation::SensorLayerThickness,
                        kSensTypeID, kBuildLevel);
     } else {
       turbo = radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], Segmentation::SensorSizeRows);
-      its->defineLayerTurbo(idLr, phi0, rLr, nStaveLr, nChipsPerStaveLr, Segmentation::SensorSizeRows, turbo,
+      ecl->defineLayerTurbo(idLr, phi0, rLr, nStaveLr, nChipsPerStaveLr, Segmentation::SensorSizeRows, turbo,
                             ChipThicknessIB, Segmentation::SensorLayerThickness, kSensTypeID, kBuildLevel);
     }
   }
 }
 
 Detector::Detector(Bool_t active)
-  : o2::base::DetImpl<Detector>("ITS", active),
+  : o2::base::DetImpl<Detector>("EC0", active),
     mTrackData(),
     /*
     mHitStarted(false),
@@ -160,7 +160,7 @@ Detector::Detector(Bool_t active)
 {
 
   for (Int_t j = 0; j < sNumberLayers; j++) {
-    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
+    mLayerName[j].Form("%s%d", GeometryTGeo::getEC0SensorPattern(), j); // See V3Layer
   }
 
   if (sNumberLayers > 0) { // if not, we'll Fatal-ize in CreateGeometry
@@ -184,7 +184,7 @@ Detector::Detector(Bool_t active)
     mWrapperMinRadius[i] = mWrapperMaxRadius[i] = mWrapperZSpan[i] = -1;
   }
 
-  configITS(this);
+  configEC0(this);
 }
 
 Detector::Detector(const Detector& rhs)
@@ -207,7 +207,7 @@ Detector::Detector(const Detector& rhs)
 {
 
   for (Int_t j = 0; j < sNumberLayers; j++) {
-    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
+    mLayerName[j].Form("%s%d", GeometryTGeo::getEC0SensorPattern(), j); // See V3Layer
   }
 }
 
@@ -248,7 +248,7 @@ Detector& Detector::operator=(const Detector& rhs)
   mStaveModelOuterBarrel = rhs.mStaveModelOuterBarrel;
 
   for (Int_t j = 0; j < sNumberLayers; j++) {
-    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
+    mLayerName[j].Form("%s%d", GeometryTGeo::getEC0SensorPattern(), j); // See V3Layer
   }
 
   return *this;
@@ -285,7 +285,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   if (notSens)
     return kFALSE; // RS: can this happen? This method must be called for sensors only?
 
-  // Is it needed to keep a track reference when the outer ITS volume is encountered?
+  // Is it needed to keep a track reference when the outer EC0 volume is encountered?
   auto stack = (o2::data::Stack*)fMC->GetStack();
   if (fMC->IsTrackExiting() && (lay == 0 || lay == 6)) {
     // Keep the track refs for the innermost and outermost layers only
@@ -462,7 +462,7 @@ void Detector::createMaterials()
   o2::base::Detector::Mixture(7, "KAPTON(POLYCH2)$", aKapton, zKapton, dKapton, 4, wKapton);
   o2::base::Detector::Medium(7, "KAPTON(POLYCH2)$", 7, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
-  // values below modified as compared to source AliITSv11 !
+  // values below modified as compared to source AliEC0v11 !
 
   // BEOL (Metal interconnection stack in Si sensors)
   o2::base::Detector::Mixture(29, "METALSTACK$", aBEOL, zBEOL, dBEOL, 3, wBEOL);
@@ -750,10 +750,10 @@ TGeoVolume* Detector::createWrapperVolume(Int_t id)
       break;
   }
 
-  TGeoMedium* medAir = gGeoManager->GetMedium("ITS_AIR$");
+  TGeoMedium* medAir = gGeoManager->GetMedium("EC0_AIR$");
 
   char volnam[30];
-  snprintf(volnam, 29, "%s%d", GeometryTGeo::getITSWrapVolPattern(), id);
+  snprintf(volnam, 29, "%s%d", GeometryTGeo::getEC0WrapVolPattern(), id);
 
   auto* wrapper = new TGeoVolume(volnam, tube, medAir);
 
@@ -771,7 +771,7 @@ void Detector::ConstructGeometry()
 
 void Detector::constructDetectorGeometry()
 {
-  // Create the geometry and insert it in the mother volume ITSV
+  // Create the geometry and insert it in the mother volume EC0V
   TGeoManager* geoManager = gGeoManager;
 
   TGeoVolume* vALIC = geoManager->GetVolume("barrel");
@@ -780,13 +780,13 @@ void Detector::constructDetectorGeometry()
     LOG(FATAL) << "Could not find the top volume";
   }
 
-  new TGeoVolumeAssembly(GeometryTGeo::getITSVolPattern());
-  TGeoVolume* vITSV = geoManager->GetVolume(GeometryTGeo::getITSVolPattern());
-  vALIC->AddNode(vITSV, 2, new TGeoTranslation(0, 30., 0)); // Copy number is 2 to cheat AliGeoManager::CheckSymNamesLUT
+  new TGeoVolumeAssembly(GeometryTGeo::getEC0VolPattern());
+  TGeoVolume* vEC0V = geoManager->GetVolume(GeometryTGeo::getEC0VolPattern());
+  vALIC->AddNode(vEC0V, 2, new TGeoTranslation(0, 30., 0)); // Copy number is 2 to cheat AliGeoManager::CheckSymNamesLUT
 
   const Int_t kLength = 100;
   Char_t vstrng[kLength] = "xxxRS"; //?
-  vITSV->SetTitle(vstrng);
+  vEC0V->SetTitle(vstrng);
 
   // Check that we have all needed parameters
   for (Int_t j = 0; j < sNumberLayers; j++) {
@@ -828,13 +828,13 @@ void Detector::constructDetectorGeometry()
     wrapVols = new TGeoVolume*[sNumberOfWrapperVolumes];
     for (int id = 0; id < sNumberOfWrapperVolumes; id++) {
       wrapVols[id] = createWrapperVolume(id);
-      vITSV->AddNode(wrapVols[id], 1, nullptr);
+      vEC0V->AddNode(wrapVols[id], 1, nullptr);
     }
   }
 
   // Now create the actual geometry
   for (Int_t j = 0; j < sNumberLayers; j++) {
-    TGeoVolume* dest = vITSV;
+    TGeoVolume* dest = vEC0V;
     mWrapperLayerId[j] = -1;
 
     if (mTurboLayer[j]) {
@@ -885,7 +885,7 @@ void Detector::constructDetectorGeometry()
   createInnerBarrelServices(wrapVols[0]);
   createMiddlBarrelServices(wrapVols[1]);
   createOuterBarrelServices(wrapVols[2]);
-  createOuterBarrelSupports(vITSV);
+  createOuterBarrelSupports(vEC0V);
 
   // TEMPORARY - These routines will be obsoleted once the new services are completed - TEMPORARY
   //  createServiceBarrel(kTRUE, wrapVols[0]);
@@ -1012,7 +1012,7 @@ void Detector::createServiceBarrel(const Bool_t innerBarrel, TGeoVolume* dest, c
   //  Double_t phi1   =  180;
   //  Double_t phi2   =  360;
 
-  TGeoMedium* medCarbonFleece = mgr->GetMedium("ITS_CarbonFleece$");
+  TGeoMedium* medCarbonFleece = mgr->GetMedium("EC0_CarbonFleece$");
 
   if (innerBarrel) {
     zLenOB = ((TGeoTube*)(dest->GetShape()))->GetDz();
@@ -1039,15 +1039,15 @@ void Detector::addAlignableVolumes() const
   // Created:      06 Mar 2018  Mario Sitta First version (mainly ported from AliRoot)
   //
 
-  LOG(INFO) << "Add ITS alignable volumes";
+  LOG(INFO) << "Add EC0 alignable volumes";
 
   if (!gGeoManager) {
     LOG(FATAL) << "TGeoManager doesn't exist !";
     return;
   }
 
-  TString path = Form("/cave_1/barrel_1/%s_2", GeometryTGeo::getITSVolPattern());
-  TString sname = GeometryTGeo::composeSymNameITS();
+  TString path = Form("/cave_1/barrel_1/%s_2", GeometryTGeo::getEC0VolPattern());
+  TString sname = GeometryTGeo::composeSymNameEC0();
 
   LOG(DEBUG) << sname << " <-> " << path;
 
@@ -1072,8 +1072,8 @@ void Detector::addAlignableVolumesLayer(int lr, TString& parent, Int_t& lastUID)
   //
 
   TString wrpV =
-    mWrapperLayerId[lr] != -1 ? Form("%s%d_1", GeometryTGeo::getITSWrapVolPattern(), mWrapperLayerId[lr]) : "";
-  TString path = Form("%s/%s/%s%d_1", parent.Data(), wrpV.Data(), GeometryTGeo::getITSLayerPattern(), lr);
+    mWrapperLayerId[lr] != -1 ? Form("%s%d_1", GeometryTGeo::getEC0WrapVolPattern(), mWrapperLayerId[lr]) : "";
+  TString path = Form("%s/%s/%s%d_1", parent.Data(), wrpV.Data(), GeometryTGeo::getEC0LayerPattern(), lr);
   TString sname = GeometryTGeo::composeSymNameLayer(lr);
 
   LOG(DEBUG) << "Add " << sname << " <-> " << path;
@@ -1099,7 +1099,7 @@ void Detector::addAlignableVolumesStave(Int_t lr, Int_t st, TString& parent, Int
   // Created:      06 Mar 2018  Mario Sitta First version (mainly ported from AliRoot)
   //
 
-  TString path = Form("%s/%s%d_%d", parent.Data(), GeometryTGeo::getITSStavePattern(), lr, st);
+  TString path = Form("%s/%s%d_%d", parent.Data(), GeometryTGeo::getEC0StavePattern(), lr, st);
   TString sname = GeometryTGeo::composeSymNameStave(lr, st);
 
   LOG(DEBUG) << "Add " << sname << " <-> " << path;
@@ -1128,7 +1128,7 @@ void Detector::addAlignableVolumesHalfStave(Int_t lr, Int_t st, Int_t hst, TStri
 
   TString path = parent;
   if (hst >= 0) {
-    path = Form("%s/%s%d_%d", parent.Data(), GeometryTGeo::getITSHalfStavePattern(), lr, hst);
+    path = Form("%s/%s%d_%d", parent.Data(), GeometryTGeo::getEC0HalfStavePattern(), lr, hst);
     TString sname = GeometryTGeo::composeSymNameHalfStave(lr, st, hst);
 
     LOG(DEBUG) << "Add " << sname << " <-> " << path;
@@ -1158,7 +1158,7 @@ void Detector::addAlignableVolumesModule(Int_t lr, Int_t st, Int_t hst, Int_t md
 
   TString path = parent;
   if (md >= 0) {
-    path = Form("%s/%s%d_%d", parent.Data(), GeometryTGeo::getITSModulePattern(), lr, md);
+    path = Form("%s/%s%d_%d", parent.Data(), GeometryTGeo::getEC0ModulePattern(), lr, md);
     TString sname = GeometryTGeo::composeSymNameModule(lr, st, hst, md);
 
     LOG(DEBUG) << "Add " << sname << " <-> " << path;
@@ -1186,7 +1186,7 @@ void Detector::addAlignableVolumesChip(Int_t lr, Int_t st, Int_t hst, Int_t md, 
   // Created:      06 Mar 2018  Mario Sitta First version (mainly ported from AliRoot)
   //
 
-  TString path = Form("%s/%s%d_%d", parent.Data(), GeometryTGeo::getITSChipPattern(), lr, ch);
+  TString path = Form("%s/%s%d_%d", parent.Data(), GeometryTGeo::getEC0ChipPattern(), lr, ch);
   TString sname = GeometryTGeo::composeSymNameChip(lr, st, hst, md, ch);
   Int_t modUID = chipVolUID(lastUID++);
 
@@ -1206,9 +1206,9 @@ void Detector::defineSensitiveVolumes()
 
   TString volumeName;
 
-  // The names of the ITS sensitive volumes have the format: ITSUSensor(0...sNumberLayers-1)
+  // The names of the EC0 sensitive volumes have the format: EC0USensor(0...sNumberLayers-1)
   for (Int_t j = 0; j < sNumberLayers; j++) {
-    volumeName = GeometryTGeo::getITSSensorPattern() + TString::Itoa(j, 10);
+    volumeName = GeometryTGeo::getEC0SensorPattern() + TString::Itoa(j, 10);
     v = geoManager->GetVolume(volumeName.Data());
     AddSensitiveVolume(v);
   }
@@ -1301,4 +1301,4 @@ std::istream& operator>>(std::istream& is, Detector& r)
   return is;
 }
 
-ClassImp(o2::its::Detector);
+ClassImp(o2::ecl::Detector);

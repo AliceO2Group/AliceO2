@@ -11,7 +11,7 @@
 /// \file  TrivialClustererTask.cxx
 /// \brief Implementation of the ITS cluster finder task
 
-#include "ITSReconstruction/TrivialClustererTask.h"
+#include "EC0Reconstruction/TrivialClustererTask.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "MathUtils/Cartesian3D.h"
@@ -22,14 +22,14 @@
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
 
-ClassImp(o2::its::TrivialClustererTask);
+ClassImp(o2::ecl::TrivialClustererTask);
 
-using namespace o2::its;
+using namespace o2::ecl;
 using namespace o2::base;
 using namespace o2::utils;
 
 //_____________________________________________________________________
-TrivialClustererTask::TrivialClustererTask(Bool_t useMC) : FairTask("ITSTrivialClustererTask")
+TrivialClustererTask::TrivialClustererTask(Bool_t useMC) : FairTask("EC0TrivialClustererTask")
 {
   if (useMC)
     mClsLabels = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -59,18 +59,18 @@ InitStatus TrivialClustererTask::Init()
     return kERROR;
   }
 
-  mDigitsArray = mgr->InitObjectAs<const std::vector<o2::itsmft::Digit>*>("ITSDigit");
+  mDigitsArray = mgr->InitObjectAs<const std::vector<o2::itsmft::Digit>*>("EC0Digit");
   if (!mDigitsArray) {
-    LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ...";
+    LOG(ERROR) << "EC0 points not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
   // Register output container
-  mgr->RegisterAny("ITSCluster", mClustersArray, kTRUE);
+  mgr->RegisterAny("EC0Cluster", mClustersArray, kTRUE);
 
   // Register MC Truth container
   if (mClsLabels)
-    mgr->RegisterAny("ITSClusterMCTruth", mClsLabels, kTRUE);
+    mgr->RegisterAny("EC0ClusterMCTruth", mClsLabels, kTRUE);
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L)); // make sure T2L matrices are loaded

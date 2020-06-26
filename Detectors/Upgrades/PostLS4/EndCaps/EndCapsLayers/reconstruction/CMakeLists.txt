@@ -9,17 +9,17 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(
-  ITSReconstruction
+  EC0Reconstruction
   SOURCES src/ClustererTask.cxx src/CookedTracker.cxx src/RecoGeomHelper.cxx
           src/FastMultEstConfig.cxx src/FastMultEst.cxx
-  PUBLIC_LINK_LIBRARIES O2::ITSBase O2::ITSMFTReconstruction O2::DataFormatsITS
+  PUBLIC_LINK_LIBRARIES O2::ECLayersBase O2::EndCapsReconstruction O2::DataFormatsITS
                         O2::CommonUtils)
 
 o2_target_root_dictionary(
-  ITSReconstruction
-  HEADERS include/ITSReconstruction/ClustererTask.h
-          include/ITSReconstruction/CookedTracker.h
-          include/ITSReconstruction/RecoGeomHelper.h
-          include/ITSReconstruction/FastMultEst.h
-          include/ITSReconstruction/FastMultEstConfig.h
+  EC0Reconstruction
+  HEADERS include/EC0Reconstruction/ClustererTask.h
+          include/EC0Reconstruction/CookedTracker.h
+          include/EC0Reconstruction/RecoGeomHelper.h
+          include/EC0Reconstruction/FastMultEst.h
+          include/EC0Reconstruction/FastMultEstConfig.h
           )

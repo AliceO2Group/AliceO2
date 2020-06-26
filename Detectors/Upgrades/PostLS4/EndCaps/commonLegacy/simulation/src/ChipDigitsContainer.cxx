@@ -13,18 +13,18 @@
 //  ALICEO2
 //
 
-#include "ITSMFTSimulation/ChipDigitsContainer.h"
-#include "ITSMFTSimulation/DigiParams.h"
-#include "ITSMFTBase/SegmentationAlpide.h"
+#include "EndCapsSimulation/ChipDigitsContainer.h"
+#include "EndCapsSimulation/DigiParams.h"
+#include "EndCapsBase/SegmentationAlpide.h"
 #include <TRandom.h>
 
-using namespace o2::itsmft;
-using Segmentation = o2::itsmft::SegmentationAlpide;
+using namespace o2::endcaps;
+using Segmentation = o2::endcaps::SegmentationAlpide;
 
-ClassImp(o2::itsmft::ChipDigitsContainer);
+ClassImp(o2::endcaps::ChipDigitsContainer);
 
 //______________________________________________________________________
-void ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::itsmft::DigiParams* params)
+void ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::endcaps::DigiParams* params)
 {
   UInt_t row = 0;
   UInt_t col = 0;

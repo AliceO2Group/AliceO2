@@ -13,16 +13,16 @@
 ///
 /// \author Luca Barioglio, University and INFN of Torino
 
-#include "ITSMFTReconstruction/BuildTopologyDictionary.h"
-#include "ITSMFTReconstruction/LookUp.h"
+#include "EndCapsReconstruction/BuildTopologyDictionary.h"
+#include "EndCapsReconstruction/LookUp.h"
 #include <cmath>
 #include <TFile.h>
 
-ClassImp(o2::itsmft::BuildTopologyDictionary);
+ClassImp(o2::endcaps::BuildTopologyDictionary);
 
 namespace o2
 {
-namespace itsmft
+namespace endcaps
 {
 constexpr float BuildTopologyDictionary::IgnoreVal;
 
@@ -148,8 +148,8 @@ void BuildTopologyDictionary::groupRareTopologies()
     gr.mErrZ = std::sqrt(mMapInfo.find(gr.mHash)->second.mZsigma2);
     gr.mErr2X = gr.mErrX * gr.mErrX;
     gr.mErr2Z = gr.mErrZ * gr.mErrZ;
-    gr.mXCOG = -1 * mMapInfo.find(gr.mHash)->second.mCOGx * o2::itsmft::SegmentationAlpide::PitchRow;
-    gr.mZCOG = mMapInfo.find(gr.mHash)->second.mCOGz * o2::itsmft::SegmentationAlpide::PitchCol;
+    gr.mXCOG = -1 * mMapInfo.find(gr.mHash)->second.mCOGx * o2::endcaps::SegmentationAlpide::PitchRow;
+    gr.mZCOG = mMapInfo.find(gr.mHash)->second.mCOGz * o2::endcaps::SegmentationAlpide::PitchCol;
     gr.mNpixels = mMapInfo.find(gr.mHash)->second.mNpixels;
     gr.mPattern = mMapInfo.find(gr.mHash)->second.mPattern;
     gr.mIsGroup = false;
@@ -172,8 +172,8 @@ void BuildTopologyDictionary::groupRareTopologies()
         // Create a structure for a group of rare topologies
         GroupStruct gr;
         gr.mHash = (((unsigned long)(grNum)) << 32) & 0xffffffff00000000;
-        gr.mErrX = (rowBinEdge)*o2::itsmft::SegmentationAlpide::PitchRow / std::sqrt(12);
-        gr.mErrZ = (colBinEdge)*o2::itsmft::SegmentationAlpide::PitchCol / std::sqrt(12);
+        gr.mErrX = (rowBinEdge)*o2::endcaps::SegmentationAlpide::PitchRow / std::sqrt(12);
+        gr.mErrZ = (colBinEdge)*o2::endcaps::SegmentationAlpide::PitchCol / std::sqrt(12);
         gr.mXCOG = 0;
         gr.mZCOG = 0;
         gr.mNpixels = rowBinEdge * colBinEdge;
@@ -283,5 +283,5 @@ void BuildTopologyDictionary::saveDictionaryRoot(const std::string& fname)
   std::cout << "done!" << std::endl;
 }
 
-} // namespace itsmft
+} // namespace endcaps
 } // namespace o2

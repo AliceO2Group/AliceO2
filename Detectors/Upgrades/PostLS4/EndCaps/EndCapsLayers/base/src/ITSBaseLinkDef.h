@@ -14,8 +14,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::its::GeometryTGeo;
-#pragma link C++ class o2::its::ContainerFactory;
-#pragma link C++ class o2::its::MisalignmentParameter + ;
+#pragma link C++ class o2::ecl::GeometryTGeo;
+#pragma link C++ class o2::ecl::ContainerFactory;
+#pragma link C++ class o2::ecl::MisalignmentParameter + ;
 
 #endif

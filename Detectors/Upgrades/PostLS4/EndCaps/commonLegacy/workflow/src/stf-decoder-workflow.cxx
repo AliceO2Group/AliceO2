@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSMFTWorkflow/STFDecoderSpec.h"
+#include "EndCapsWorkflow/STFDecoderSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
 
@@ -21,7 +21,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
-    ConfigParamSpec{"mft", VariantType::Bool, false, {"source detector is MFT (default ITS)"}},
+    ConfigParamSpec{"ec0", VariantType::Bool, false, {"source detector is EC0"}},
     ConfigParamSpec{"no-clusters", VariantType::Bool, false, {"do not produce clusters (def: produce)"}},
     ConfigParamSpec{"no-cluster-patterns", VariantType::Bool, false, {"do not produce clusters patterns (def: produce)"}},
     ConfigParamSpec{"digits", VariantType::Bool, false, {"produce digits (def: skip)"}},
@@ -46,10 +46,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
-  if (cfgc.options().get<bool>("mft")) {
-    wf.emplace_back(o2::itsmft::getSTFDecoderMFTSpec(doClusters, doPatterns, doDigits, dict));
-  } else {
-    wf.emplace_back(o2::itsmft::getSTFDecoderITSSpec(doClusters, doPatterns, doDigits, dict));
+  if (cfgc.options().get<bool>("ec0")) {
+    wf.emplace_back(o2::endcaps::getSTFDecoderEC0Spec(doClusters, doPatterns, doDigits, dict));
   }
   return wf;
 }

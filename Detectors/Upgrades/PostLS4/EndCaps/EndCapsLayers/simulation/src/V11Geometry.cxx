@@ -11,7 +11,7 @@
 /// \file V11Geometry.cxx
 /// \brief Implementation of the V11Geometry class
 
-#include "ITSSimulation/V11Geometry.h"
+#include "EC0Simulation/V11Geometry.h"
 
 #include "FairLogger.h" // for LOG
 
@@ -38,9 +38,9 @@ using std::cin;
 using std::cout;
 using std::endl;
 
-using namespace o2::its;
+using namespace o2::ecl;
 
-ClassImp(o2::its::V11Geometry);
+ClassImp(o2::ecl::V11Geometry);
 
 const Double_t V11Geometry::sMicron = 1.0E-4;
 const Double_t V11Geometry::sMm = 0.10;
@@ -392,30 +392,30 @@ void V11Geometry::createDefaultMaterials()
   Double_t w;
 
   // Define some elements
-  auto* itsH = new TGeoElement("ITS_H", "Hydrogen", 1, 1.00794);
-  auto* itsHe = new TGeoElement("ITS_He", "Helium", 2, 4.002602);
-  auto* itsC = new TGeoElement("ITS_C", "Carbon", 6, 12.0107);
-  auto* itsN = new TGeoElement("ITS_N", "Nitrogen", 7, 14.0067);
-  auto* itsO = new TGeoElement("ITS_O", "Oxygen", 8, 15.994);
-  auto* itsF = new TGeoElement("ITS_F", "Florine", 9, 18.9984032);
-  auto* itsNe = new TGeoElement("ITS_Ne", "Neon", 10, 20.1797);
-  auto* itsMg = new TGeoElement("ITS_Mg", "Magnesium", 12, 24.3050);
-  auto* itsAl = new TGeoElement("ITS_Al", "Aluminum", 13, 26981538);
-  auto* itsSi = new TGeoElement("ITS_Si", "Silicon", 14, 28.0855);
-  auto* itsP = new TGeoElement("ITS_P", "Phosphorous", 15, 30.973761);
-  auto* itsS = new TGeoElement("ITS_S", "Sulfur", 16, 32.065);
-  auto* itsAr = new TGeoElement("ITS_Ar", "Argon", 18, 39.948);
-  auto* itsTi = new TGeoElement("ITS_Ti", "Titanium", 22, 47.867);
-  auto* itsCr = new TGeoElement("ITS_Cr", "Chromium", 24, 51.9961);
-  auto* itsMn = new TGeoElement("ITS_Mn", "Manganese", 25, 54.938049);
-  auto* itsFe = new TGeoElement("ITS_Fe", "Iron", 26, 55.845);
-  auto* itsCo = new TGeoElement("ITS_Co", "Cobalt", 27, 58.933200);
-  auto* itsNi = new TGeoElement("ITS_Ni", "Nickrl", 28, 56.6930);
-  auto* itsCu = new TGeoElement("ITS_Cu", "Copper", 29, 63.546);
-  auto* itsZn = new TGeoElement("ITS_Zn", "Zinc", 30, 65.39);
-  auto* itsKr = new TGeoElement("ITS_Kr", "Krypton", 36, 83.80);
-  auto* itsMo = new TGeoElement("ITS_Mo", "Molylibdium", 42, 95.94);
-  auto* itsXe = new TGeoElement("ITS_Xe", "Zeon", 54, 131.293);
+  auto* eclH = new TGeoElement("EC0_H", "Hydrogen", 1, 1.00794);
+  auto* eclHe = new TGeoElement("EC0_He", "Helium", 2, 4.002602);
+  auto* eclC = new TGeoElement("EC0_C", "Carbon", 6, 12.0107);
+  auto* eclN = new TGeoElement("EC0_N", "Nitrogen", 7, 14.0067);
+  auto* eclO = new TGeoElement("EC0_O", "Oxygen", 8, 15.994);
+  auto* eclF = new TGeoElement("EC0_F", "Florine", 9, 18.9984032);
+  auto* eclNe = new TGeoElement("EC0_Ne", "Neon", 10, 20.1797);
+  auto* eclMg = new TGeoElement("EC0_Mg", "Magnesium", 12, 24.3050);
+  auto* eclAl = new TGeoElement("EC0_Al", "Aluminum", 13, 26981538);
+  auto* eclSi = new TGeoElement("EC0_Si", "Silicon", 14, 28.0855);
+  auto* eclP = new TGeoElement("EC0_P", "Phosphorous", 15, 30.973761);
+  auto* eclS = new TGeoElement("EC0_S", "Sulfur", 16, 32.065);
+  auto* eclAr = new TGeoElement("EC0_Ar", "Argon", 18, 39.948);
+  auto* eclTi = new TGeoElement("EC0_Ti", "Titanium", 22, 47.867);
+  auto* eclCr = new TGeoElement("EC0_Cr", "Chromium", 24, 51.9961);
+  auto* eclMn = new TGeoElement("EC0_Mn", "Manganese", 25, 54.938049);
+  auto* eclFe = new TGeoElement("EC0_Fe", "Iron", 26, 55.845);
+  auto* eclCo = new TGeoElement("EC0_Co", "Cobalt", 27, 58.933200);
+  auto* eclNi = new TGeoElement("EC0_Ni", "Nickrl", 28, 56.6930);
+  auto* eclCu = new TGeoElement("EC0_Cu", "Copper", 29, 63.546);
+  auto* eclZn = new TGeoElement("EC0_Zn", "Zinc", 30, 65.39);
+  auto* eclKr = new TGeoElement("EC0_Kr", "Krypton", 36, 83.80);
+  auto* eclMo = new TGeoElement("EC0_Mo", "Molylibdium", 42, 95.94);
+  auto* eclXe = new TGeoElement("EC0_Xe", "Zeon", 54, 131.293);
 
   // Start with the Materials since for any one material there
   // can be defined more than one Medium.
@@ -426,45 +426,45 @@ void V11Geometry::createDefaultMaterials()
   // He 0.000524% (0.00007%), Kr 0.000114% (0.0003%), H2 0.00005% (3.5E-6%),
   // Xe 0.0000087% (0.00004 %), H2O 0.0% (dry) + trace amounts at the ppm
   // levels.
-  auto* itsAir = new TGeoMixture("ITS_Air", 9);
+  auto* eclAir = new TGeoMixture("EC0_Air", 9);
   w = 75.47E-2;
-  itsAir->AddElement(itsN, w);                         // Nitorgen, atomic
+  eclAir->AddElement(eclN, w);                         // Nitorgen, atomic
   w = 23.29E-2 +                                       // O2
       5.90E-4 * 2. * 15.994 / (12.0107 + 2. * 15.994); // CO2.
-  itsAir->AddElement(itsO, w);                         // Oxygen, atomic
+  eclAir->AddElement(eclO, w);                         // Oxygen, atomic
   w = 1.28E-2;
-  itsAir->AddElement(itsAr, w);                     // Argon, atomic
+  eclAir->AddElement(eclAr, w);                     // Argon, atomic
   w = 5.90E-4 * 12.0107 / (12.0107 + 2. * 15.994) + // CO2
       2.0E-5 * 12.0107 / (12.0107 + 4. * 1.00794);  // CH4
-  itsAir->AddElement(itsC, w);                      // Carbon, atomic
+  eclAir->AddElement(eclC, w);                      // Carbon, atomic
   w = 1.818E-5;
-  itsAir->AddElement(itsNe, w); // Ne, atomic
+  eclAir->AddElement(eclNe, w); // Ne, atomic
   w = 3.5E-8;
-  itsAir->AddElement(itsHe, w); // Helium, atomic
+  eclAir->AddElement(eclHe, w); // Helium, atomic
   w = 7.0E-7;
-  itsAir->AddElement(itsKr, w); // Krypton, atomic
+  eclAir->AddElement(eclKr, w); // Krypton, atomic
   w = 3.0E-6;
-  itsAir->AddElement(itsH, w); // Hydrogen, atomic
+  eclAir->AddElement(eclH, w); // Hydrogen, atomic
   w = 4.0E-7;
-  itsAir->AddElement(itsXe, w); // Xenon, atomic
-  itsAir->SetDensity(351.0 * sKgm3);
-  itsAir->SetPressure(101325 * sPascal);
-  itsAir->SetTemperature(15.0 * sCelsius);
-  itsAir->SetState(TGeoMaterial::kMatStateGas);
+  eclAir->AddElement(eclXe, w); // Xenon, atomic
+  eclAir->SetDensity(351.0 * sKgm3);
+  eclAir->SetPressure(101325 * sPascal);
+  eclAir->SetTemperature(15.0 * sCelsius);
+  eclAir->SetState(TGeoMaterial::kMatStateGas);
 
   // Silicone
-  auto* itsSiDet = new TGeoMaterial("ITS_Si", itsSi, 2.33 * sGCm3);
-  itsSiDet->SetTemperature(15.0 * sCelsius);
-  itsSiDet->SetState(TGeoMaterial::kMatStateSolid);
+  auto* eclSiDet = new TGeoMaterial("EC0_Si", eclSi, 2.33 * sGCm3);
+  eclSiDet->SetTemperature(15.0 * sCelsius);
+  eclSiDet->SetState(TGeoMaterial::kMatStateSolid);
 
   // Epoxy C18 H19 O3
-  auto* itsEpoxy = new TGeoMixture("ITS_Epoxy", 3);
-  itsEpoxy->AddElement(itsC, 18);
-  itsEpoxy->AddElement(itsH, 19);
-  itsEpoxy->AddElement(itsO, 3);
-  itsEpoxy->SetDensity(1.8 * sGCm3);
-  itsEpoxy->SetTemperature(15.0 * sCelsius);
-  itsEpoxy->SetState(TGeoMaterial::kMatStateSolid);
+  auto* eclEpoxy = new TGeoMixture("EC0_Epoxy", 3);
+  eclEpoxy->AddElement(eclC, 18);
+  eclEpoxy->AddElement(eclH, 19);
+  eclEpoxy->AddElement(eclO, 3);
+  eclEpoxy->SetDensity(1.8 * sGCm3);
+  eclEpoxy->SetTemperature(15.0 * sCelsius);
+  eclEpoxy->SetState(TGeoMaterial::kMatStateSolid);
 
   // Carbon Fiber, M55J, 60% fiber by volume. Fiber density
   // 1.91 g/cm^3. See ToryaCA M55J data sheet.
@@ -474,21 +474,21 @@ void V11Geometry::createDefaultMaterials()
      </A>
   */
   // End_Html
-  auto* itsCarbonFiber = new TGeoMixture("ITS_CarbonFiber-M55J", 4);
+  auto* eclCarbonFiber = new TGeoMixture("EC0_CarbonFiber-M55J", 4);
   // Assume that the epoxy fill in the space between the fibers and so
   // no change in the total volume. To compute w, assume 1cm^3 total
   // volume.
-  w = 1.91 / (1.91 + (1. - .60) * itsEpoxy->GetDensity());
-  itsCarbonFiber->AddElement(itsC, w);
-  w = (1. - .60) * itsEpoxy->GetDensity() / (1.91 + (1. - .06) * itsEpoxy->GetDensity());
+  w = 1.91 / (1.91 + (1. - .60) * eclEpoxy->GetDensity());
+  eclCarbonFiber->AddElement(eclC, w);
+  w = (1. - .60) * eclEpoxy->GetDensity() / (1.91 + (1. - .06) * eclEpoxy->GetDensity());
 
-  for (i = 0; i < itsEpoxy->GetNelements(); i++) {
-    itsCarbonFiber->AddElement(itsEpoxy->GetElement(i), itsEpoxy->GetWmixt()[i] * w);
+  for (i = 0; i < eclEpoxy->GetNelements(); i++) {
+    eclCarbonFiber->AddElement(eclEpoxy->GetElement(i), eclEpoxy->GetWmixt()[i] * w);
   }
 
-  itsCarbonFiber->SetDensity((1.91 + (1. - .60) * itsEpoxy->GetDensity()) * sGCm3);
-  itsCarbonFiber->SetTemperature(22.0 * sCelsius);
-  itsCarbonFiber->SetState(TGeoMaterial::kMatStateSolid);
+  eclCarbonFiber->SetDensity((1.91 + (1. - .60) * eclEpoxy->GetDensity()) * sGCm3);
+  eclCarbonFiber->SetTemperature(22.0 * sCelsius);
+  eclCarbonFiber->SetState(TGeoMaterial::kMatStateSolid);
 
   // Rohacell 51A  millable foam product.
   // C9 H13 N1 O2  52Kg/m^3
@@ -501,15 +501,15 @@ void V11Geometry::createDefaultMaterials()
      </A>
    */
   // End_Html
-  auto* itsFoam = new TGeoMixture("ITS_Foam", 4);
-  itsFoam->AddElement(itsC, 9);
-  itsFoam->AddElement(itsH, 13);
-  itsFoam->AddElement(itsN, 1);
-  itsFoam->AddElement(itsO, 2);
-  itsFoam->SetTitle("Rohacell 51 A");
-  itsFoam->SetDensity(52. * sKgm3);
-  itsFoam->SetTemperature(22.0 * sCelsius);
-  itsFoam->SetState(TGeoMaterial::kMatStateSolid);
+  auto* eclFoam = new TGeoMixture("EC0_Foam", 4);
+  eclFoam->AddElement(eclC, 9);
+  eclFoam->AddElement(eclH, 13);
+  eclFoam->AddElement(eclN, 1);
+  eclFoam->AddElement(eclO, 2);
+  eclFoam->SetTitle("Rohacell 51 A");
+  eclFoam->SetDensity(52. * sKgm3);
+  eclFoam->SetTemperature(22.0 * sCelsius);
+  eclFoam->SetState(TGeoMaterial::kMatStateSolid);
 
   // Kapton % by weight, H 2.6362, C69.1133, N 7.3270, O 20.0235
   // Density 1.42 g/cm^3
@@ -521,15 +521,15 @@ void V11Geometry::createDefaultMaterials()
       </A>
    */
   // End_Html
-  auto* itsKapton = new TGeoMixture("ITS_Kapton", 4);
-  itsKapton->AddElement(itsH, 0.026362);
-  itsKapton->AddElement(itsC, 0.691133);
-  itsKapton->AddElement(itsN, 0.073270);
-  itsKapton->AddElement(itsO, 0.200235);
-  itsKapton->SetTitle("Kapton ribon and cable base");
-  itsKapton->SetDensity(1.42 * sGCm3);
-  itsKapton->SetTemperature(22.0 * sCelsius);
-  itsKapton->SetState(TGeoMaterial::kMatStateSolid);
+  auto* eclKapton = new TGeoMixture("EC0_Kapton", 4);
+  eclKapton->AddElement(eclH, 0.026362);
+  eclKapton->AddElement(eclC, 0.691133);
+  eclKapton->AddElement(eclN, 0.073270);
+  eclKapton->AddElement(eclO, 0.200235);
+  eclKapton->SetTitle("Kapton ribon and cable base");
+  eclKapton->SetDensity(1.42 * sGCm3);
+  eclKapton->SetTemperature(22.0 * sCelsius);
+  eclKapton->SetState(TGeoMaterial::kMatStateSolid);
 
   // UPILEX-S C16 H6 O4 N2 polymer (a Kapton like material)
   // Density 1.47 g/cm^3
@@ -541,15 +541,15 @@ void V11Geometry::createDefaultMaterials()
       </A>
    */
   // End_Html
-  auto* itsUpilex = new TGeoMixture("ITS_Upilex", 4);
-  itsUpilex->AddElement(itsC, 16);
-  itsUpilex->AddElement(itsH, 6);
-  itsUpilex->AddElement(itsN, 2);
-  itsUpilex->AddElement(itsO, 4);
-  itsUpilex->SetTitle("Upilex ribon, cable, and pcb base");
-  itsUpilex->SetDensity(1.47 * sGCm3);
-  itsUpilex->SetTemperature(22.0 * sCelsius);
-  itsUpilex->SetState(TGeoMaterial::kMatStateSolid);
+  auto* eclUpilex = new TGeoMixture("EC0_Upilex", 4);
+  eclUpilex->AddElement(eclC, 16);
+  eclUpilex->AddElement(eclH, 6);
+  eclUpilex->AddElement(eclN, 2);
+  eclUpilex->AddElement(eclO, 4);
+  eclUpilex->SetTitle("Upilex ribon, cable, and pcb base");
+  eclUpilex->SetDensity(1.47 * sGCm3);
+  eclUpilex->SetTemperature(22.0 * sCelsius);
+  eclUpilex->SetState(TGeoMaterial::kMatStateSolid);
 
   // Aluminum 6061 (Al used by US groups)
   // % by weight, Cr 0.04-0.35 range [0.0375 nominal value used]
@@ -563,20 +563,20 @@ void V11Geometry::createDefaultMaterials()
     </A>
    */
   // End_Html
-  auto* itsAl6061 = new TGeoMixture("ITS_Al6061", 9);
-  itsAl6061->AddElement(itsCr, 0.000375);
-  itsAl6061->AddElement(itsCu, 0.00275);
-  itsAl6061->AddElement(itsFe, 0.0035);
-  itsAl6061->AddElement(itsMg, 0.01);
-  itsAl6061->AddElement(itsMn, 0.00075);
-  itsAl6061->AddElement(itsSi, 0.006);
-  itsAl6061->AddElement(itsTi, 0.00075);
-  itsAl6061->AddElement(itsZn, 0.00125);
-  itsAl6061->AddElement(itsAl, 0.974625);
-  itsAl6061->SetTitle("Aluminum Alloy 6061");
-  itsAl6061->SetDensity(2.7 * sGCm3);
-  itsAl6061->SetTemperature(22.0 * sCelsius);
-  itsAl6061->SetState(TGeoMaterial::kMatStateSolid);
+  auto* eclAl6061 = new TGeoMixture("EC0_Al6061", 9);
+  eclAl6061->AddElement(eclCr, 0.000375);
+  eclAl6061->AddElement(eclCu, 0.00275);
+  eclAl6061->AddElement(eclFe, 0.0035);
+  eclAl6061->AddElement(eclMg, 0.01);
+  eclAl6061->AddElement(eclMn, 0.00075);
+  eclAl6061->AddElement(eclSi, 0.006);
+  eclAl6061->AddElement(eclTi, 0.00075);
+  eclAl6061->AddElement(eclZn, 0.00125);
+  eclAl6061->AddElement(eclAl, 0.974625);
+  eclAl6061->SetTitle("Aluminum Alloy 6061");
+  eclAl6061->SetDensity(2.7 * sGCm3);
+  eclAl6061->SetTemperature(22.0 * sCelsius);
+  eclAl6061->SetState(TGeoMaterial::kMatStateSolid);
 
   // Aluminum 7075  (Al used by Italian groups)
   // % by weight, Cr 0.18-0.28 range [0.23 nominal value used]
@@ -590,20 +590,20 @@ void V11Geometry::createDefaultMaterials()
     </A>
    */
   // End_Html
-  auto* itsAl7075 = new TGeoMixture("ITS_Al7075", 9);
-  itsAl7075->AddElement(itsCr, 0.0023);
-  itsAl7075->AddElement(itsCu, 0.016);
-  itsAl7075->AddElement(itsFe, 0.0025);
-  itsAl7075->AddElement(itsMg, 0.025);
-  itsAl7075->AddElement(itsMn, 0.00125);
-  itsAl7075->AddElement(itsSi, 0.002);
-  itsAl7075->AddElement(itsTi, 0.001);
-  itsAl7075->AddElement(itsZn, 0.056);
-  itsAl7075->AddElement(itsAl, 0.89395);
-  itsAl7075->SetTitle("Aluminum Alloy 7075");
-  itsAl7075->SetDensity(2.81 * sGCm3);
-  itsAl7075->SetTemperature(22.0 * sCelsius);
-  itsAl7075->SetState(TGeoMaterial::kMatStateSolid);
+  auto* eclAl7075 = new TGeoMixture("EC0_Al7075", 9);
+  eclAl7075->AddElement(eclCr, 0.0023);
+  eclAl7075->AddElement(eclCu, 0.016);
+  eclAl7075->AddElement(eclFe, 0.0025);
+  eclAl7075->AddElement(eclMg, 0.025);
+  eclAl7075->AddElement(eclMn, 0.00125);
+  eclAl7075->AddElement(eclSi, 0.002);
+  eclAl7075->AddElement(eclTi, 0.001);
+  eclAl7075->AddElement(eclZn, 0.056);
+  eclAl7075->AddElement(eclAl, 0.89395);
+  eclAl7075->SetTitle("Aluminum Alloy 7075");
+  eclAl7075->SetDensity(2.81 * sGCm3);
+  eclAl7075->SetTemperature(22.0 * sCelsius);
+  eclAl7075->SetState(TGeoMaterial::kMatStateSolid);
 
   // "Ruby" spheres, Al2 O3
   // "Ruby" Sphere posts, Ryton R-4 04
@@ -614,13 +614,13 @@ void V11Geometry::createDefaultMaterials()
     </A>
    */
   // End_Html
-  auto* itsRuby = new TGeoMixture("ITS_RubySphere", 2);
-  itsRuby->AddElement(itsAl, 2);
-  itsRuby->AddElement(itsO, 3);
-  itsRuby->SetTitle("Ruby reference sphere");
-  itsRuby->SetDensity(2.81 * sGCm3);
-  itsRuby->SetTemperature(22.0 * sCelsius);
-  itsRuby->SetState(TGeoMaterial::kMatStateSolid);
+  auto* eclRuby = new TGeoMixture("EC0_RubySphere", 2);
+  eclRuby->AddElement(eclAl, 2);
+  eclRuby->AddElement(eclO, 3);
+  eclRuby->SetTitle("Ruby reference sphere");
+  eclRuby->SetDensity(2.81 * sGCm3);
+  eclRuby->SetTemperature(22.0 * sCelsius);
+  eclRuby->SetState(TGeoMaterial::kMatStateSolid);
 
   // Inox, AISI 304L, compoistion % by weight (assumed)
   // C Max 0.03 [0.015], Mn Max 2.00 [1.00], Si Max 1.00 [0.50]
@@ -633,20 +633,20 @@ void V11Geometry::createDefaultMaterials()
     </A>
    */
   // End_Html
-  auto* itsInox304L = new TGeoMixture("ITS_Inox304L", 9);
-  itsInox304L->AddElement(itsC, 0.00015);
-  itsInox304L->AddElement(itsMn, 0.010);
-  itsInox304L->AddElement(itsSi, 0.005);
-  itsInox304L->AddElement(itsP, 0.000225);
-  itsInox304L->AddElement(itsS, 0.00015);
-  itsInox304L->AddElement(itsNi, 0.0925);
-  itsInox304L->AddElement(itsCr, 0.1900);
-  itsInox304L->AddElement(itsMo, 0.0225);
-  itsInox304L->AddElement(itsFe, 0.679475); // Rest Fe
-  itsInox304L->SetTitle("ITS Stainless Steal (Inox) type AISI 304L");
-  itsInox304L->SetDensity(7.93 * sKgdm3);
-  itsInox304L->SetTemperature(22.0 * sCelsius);
-  itsInox304L->SetState(TGeoMaterial::kMatStateSolid);
+  auto* eclInox304L = new TGeoMixture("EC0_Inox304L", 9);
+  eclInox304L->AddElement(eclC, 0.00015);
+  eclInox304L->AddElement(eclMn, 0.010);
+  eclInox304L->AddElement(eclSi, 0.005);
+  eclInox304L->AddElement(eclP, 0.000225);
+  eclInox304L->AddElement(eclS, 0.00015);
+  eclInox304L->AddElement(eclNi, 0.0925);
+  eclInox304L->AddElement(eclCr, 0.1900);
+  eclInox304L->AddElement(eclMo, 0.0225);
+  eclInox304L->AddElement(eclFe, 0.679475); // Rest Fe
+  eclInox304L->SetTitle("EC0 Stainless Steal (Inox) type AISI 304L");
+  eclInox304L->SetDensity(7.93 * sKgdm3);
+  eclInox304L->SetTemperature(22.0 * sCelsius);
+  eclInox304L->SetState(TGeoMaterial::kMatStateSolid);
 
   // Inox, AISI 316L, composition % by weight (assumed)
   // C Max 0.03 [0.015], Mn Max 2.00 [1.00], Si Max 1.00 [0.50]
@@ -659,20 +659,20 @@ void V11Geometry::createDefaultMaterials()
     </A>
    */
   // End_Html
-  auto* itsInox316L = new TGeoMixture("ITS_Inox316L", 9);
-  itsInox316L->AddElement(itsC, 0.00015);
-  itsInox316L->AddElement(itsMn, 0.010);
-  itsInox316L->AddElement(itsSi, 0.005);
-  itsInox316L->AddElement(itsP, 0.000225);
-  itsInox316L->AddElement(itsS, 0.00015);
-  itsInox316L->AddElement(itsNi, 0.12);
-  itsInox316L->AddElement(itsCr, 0.17);
-  itsInox316L->AddElement(itsMo, 0.025);
-  itsInox316L->AddElement(itsFe, 0.66945); // Rest Fe
-  itsInox316L->SetTitle("ITS Stainless Steal (Inox) type AISI 316L");
-  itsInox316L->SetDensity(7.97 * sKgdm3);
-  itsInox316L->SetTemperature(22.0 * sCelsius);
-  itsInox316L->SetState(TGeoMaterial::kMatStateSolid);
+  auto* eclInox316L = new TGeoMixture("EC0_Inox316L", 9);
+  eclInox316L->AddElement(eclC, 0.00015);
+  eclInox316L->AddElement(eclMn, 0.010);
+  eclInox316L->AddElement(eclSi, 0.005);
+  eclInox316L->AddElement(eclP, 0.000225);
+  eclInox316L->AddElement(eclS, 0.00015);
+  eclInox316L->AddElement(eclNi, 0.12);
+  eclInox316L->AddElement(eclCr, 0.17);
+  eclInox316L->AddElement(eclMo, 0.025);
+  eclInox316L->AddElement(eclFe, 0.66945); // Rest Fe
+  eclInox316L->SetTitle("EC0 Stainless Steal (Inox) type AISI 316L");
+  eclInox316L->SetDensity(7.97 * sKgdm3);
+  eclInox316L->SetTemperature(22.0 * sCelsius);
+  eclInox316L->SetState(TGeoMaterial::kMatStateSolid);
 
   // Inox, Phynox or Elgiloy AMS 5833, composition % by weight
   // C Max 0.15 [0.15], Mn Max 2.00 [2.00], Be max 0.0001 [none]
@@ -688,29 +688,29 @@ void V11Geometry::createDefaultMaterials()
     </A>
    */
   // End_Html
-  auto* itsPhynox = new TGeoMixture("ITS_Phynox", 7);
-  itsPhynox->AddElement(itsC, 0.0015);
-  itsPhynox->AddElement(itsMn, 0.020);
-  itsPhynox->AddElement(itsNi, 0.18);
-  itsPhynox->AddElement(itsCr, 0.215);
-  itsPhynox->AddElement(itsMo, 0.075);
-  itsPhynox->AddElement(itsCo, 0.42);
-  itsPhynox->AddElement(itsFe, 0.885);
-  itsPhynox->SetTitle("ITS Cooling tube alloy");
-  itsPhynox->SetDensity(8.3 * sGCm3);
-  itsPhynox->SetTemperature(22.0 * sCelsius);
-  itsPhynox->SetState(TGeoMaterial::kMatStateSolid);
+  auto* eclPhynox = new TGeoMixture("EC0_Phynox", 7);
+  eclPhynox->AddElement(eclC, 0.0015);
+  eclPhynox->AddElement(eclMn, 0.020);
+  eclPhynox->AddElement(eclNi, 0.18);
+  eclPhynox->AddElement(eclCr, 0.215);
+  eclPhynox->AddElement(eclMo, 0.075);
+  eclPhynox->AddElement(eclCo, 0.42);
+  eclPhynox->AddElement(eclFe, 0.885);
+  eclPhynox->SetTitle("EC0 Cooling tube alloy");
+  eclPhynox->SetDensity(8.3 * sGCm3);
+  eclPhynox->SetTemperature(22.0 * sCelsius);
+  eclPhynox->SetState(TGeoMaterial::kMatStateSolid);
 
   // G10FR4
 
   // Demineralized Water H2O SDD & SSD Cooling liquid
-  auto* itsWater = new TGeoMixture("ITS_Water", 2);
-  itsWater->AddElement(itsH, 2);
-  itsWater->AddElement(itsO, 1);
-  itsWater->SetTitle("ITS Cooling Water");
-  itsWater->SetDensity(1.0 * sGCm3);
-  itsWater->SetTemperature(22.0 * sCelsius);
-  itsWater->SetState(TGeoMaterial::kMatStateLiquid);
+  auto* eclWater = new TGeoMixture("EC0_Water", 2);
+  eclWater->AddElement(eclH, 2);
+  eclWater->AddElement(eclO, 1);
+  eclWater->SetTitle("EC0 Cooling Water");
+  eclWater->SetDensity(1.0 * sGCm3);
+  eclWater->SetTemperature(22.0 * sCelsius);
+  eclWater->SetState(TGeoMaterial::kMatStateLiquid);
 
   // Freon SPD Cooling liquid PerFluorobuthane C4F10
   // Begin_Html
@@ -721,13 +721,13 @@ void V11Geometry::createDefaultMaterials()
     </A>
    */
   // End_Html
-  auto* itsFreon = new TGeoMixture("ITS_SPD_Freon", 2);
-  itsFreon->AddElement(itsC, 4);
-  itsFreon->AddElement(itsF, 10);
-  itsFreon->SetTitle("ITS SPD 2 phase Cooling freon");
-  itsFreon->SetDensity(1.52 * sGCm3);
-  itsFreon->SetTemperature(22.0 * sCelsius);
-  itsFreon->SetState(TGeoMaterial::kMatStateLiquid);
+  auto* eclFreon = new TGeoMixture("EC0_SPD_Freon", 2);
+  eclFreon->AddElement(eclC, 4);
+  eclFreon->AddElement(eclF, 10);
+  eclFreon->SetTitle("EC0 SPD 2 phase Cooling freon");
+  eclFreon->SetDensity(1.52 * sGCm3);
+  eclFreon->SetTemperature(22.0 * sCelsius);
+  eclFreon->SetState(TGeoMaterial::kMatStateLiquid);
 
   //    Int_t   ifield = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Integ();
   //    Float_t fieldm = ((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Max();

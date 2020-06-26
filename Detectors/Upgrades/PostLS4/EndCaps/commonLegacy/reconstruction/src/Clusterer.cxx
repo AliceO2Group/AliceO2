@@ -9,12 +9,12 @@
 // or submit itself to any jurisdiction.
 
 /// \file Clusterer.cxx
-/// \brief Implementation of the ITS cluster finder
+/// \brief Implementation of the EC0 cluster finder
 #include <algorithm>
 #include <TTree.h>
 #include "Framework/Logger.h"
-#include "ITSMFTBase/GeometryTGeo.h"
-#include "ITSMFTReconstruction/Clusterer.h"
+#include "EndCapsBase/GeometryTGeo.h"
+#include "EndCapsReconstruction/Clusterer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "CommonDataFormat/InteractionRecord.h"
 
@@ -22,7 +22,7 @@
 #include <omp.h>
 #endif
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 //__________________________________________________
 void Clusterer::process(int nThreads, PixelReader& reader, FullClusCont* fullClus, CompClusCont* compClus,

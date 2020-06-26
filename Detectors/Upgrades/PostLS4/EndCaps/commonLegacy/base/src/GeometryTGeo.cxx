@@ -8,13 +8,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GeometryTGeo.cxx : common base for ITS and MFT interface to TGeometry
+/// \file GeometryTGeo.cxx : common base for PostLS4 Endcaps interface to TGeometry
 /// \brief Implementation of the GeometryTGeo class
 /// \author cvetan.cheshkov@cern.ch - 15/02/2007
 /// \author ruben.shahoyan@cern.ch - adapted to ITSupg 18/07/2012
+/// \author rafael.pezzi@cern.ch - adapted to PostLS4EndCaps 25/06/2020
 
-#include "ITSMFTBase/GeometryTGeo.h"
 
-ClassImp(o2::itsmft::GeometryTGeo);
+#include "EndCapsBase/GeometryTGeo.h"
 
-using namespace o2::itsmft;
+ClassImp(o2::endcaps::GeometryTGeo);
+
+using namespace o2::endcaps;

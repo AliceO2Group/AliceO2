@@ -8,7 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(ITSMFTWorkflow
+o2_add_library(EndCapsWorkflow
                SOURCES src/ClusterReaderSpec.cxx
                        src/DigitWriterSpec.cxx
                        src/STFDecoderSpec.cxx
@@ -17,24 +17,23 @@ o2_add_library(ITSMFTWorkflow
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsITSMFT
                                      O2::SimulationDataFormat
-                                     O2::ITSMFTReconstruction
-                                     O2::ITSBase
-                                     O2::MFTBase
+                                     O2::EndCapsReconstruction
+                                     O2::ECLayersBase
                                      O2::DetectorsCommonDataFormats
                                      O2::DataFormatsParameters)
 
 
 o2_add_executable(stf-decoder-workflow
                   SOURCES src/stf-decoder-workflow.cxx
-                  COMPONENT_NAME itsmft
-                  PUBLIC_LINK_LIBRARIES O2::ITSMFTWorkflow)
+                  COMPONENT_NAME endcaps
+                  PUBLIC_LINK_LIBRARIES O2::EndCapsWorkflow)
 
 o2_add_executable(entropy-encoder-workflow
                   SOURCES src/entropy-encoder-workflow.cxx
-                  COMPONENT_NAME itsmft
-                  PUBLIC_LINK_LIBRARIES O2::ITSMFTWorkflow)
+                  COMPONENT_NAME endcaps
+                  PUBLIC_LINK_LIBRARIES O2::EndCapsWorkflow)
 
 o2_add_executable(digit-writer-workflow
                   SOURCES src/digit-writer-workflow.cxx
-                  COMPONENT_NAME itsmft
-                  PUBLIC_LINK_LIBRARIES O2::ITSMFTWorkflow)
+                  COMPONENT_NAME endcaps
+                  PUBLIC_LINK_LIBRARIES O2::EndCapsWorkflow)

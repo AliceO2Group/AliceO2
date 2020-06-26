@@ -8,28 +8,28 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(ITSSimulation
+o2_add_library(EC0Simulation
                SOURCES src/V11Geometry.cxx src/V1Layer.cxx src/V3Layer.cxx
                        src/Detector.cxx src/V3Services.cxx
-               PUBLIC_LINK_LIBRARIES O2::ITSBase O2::ITSMFTSimulation
+               PUBLIC_LINK_LIBRARIES O2::ECLayersBase O2::EndCapsSimulation
                                      ROOT::Physics)
 
-o2_target_root_dictionary(ITSSimulation
-                          HEADERS include/ITSSimulation/Detector.h
-                                  include/ITSSimulation/V1Layer.h
-                                  include/ITSSimulation/V3Layer.h
-                                  include/ITSSimulation/V11Geometry.h
-                                  include/ITSSimulation/V3Services.h)
+o2_target_root_dictionary(EC0Simulation
+                          HEADERS include/EC0Simulation/Detector.h
+                                  include/EC0Simulation/V1Layer.h
+                                  include/EC0Simulation/V3Layer.h
+                                  include/EC0Simulation/V11Geometry.h
+                                  include/EC0Simulation/V3Services.h)
 
-o2_data_file(COPY data  DESTINATION Detectors/ITS/simulation)
+o2_data_file(COPY data  DESTINATION Detectors/EC0/simulation)
 
 o2_add_executable(digi2raw
                   COMPONENT_NAME its
                   SOURCES src/digi2raw.cxx
-                  PUBLIC_LINK_LIBRARIES O2::ITSMFTReconstruction
+                  PUBLIC_LINK_LIBRARIES O2::EndCapsReconstruction
                                         O2::DataFormatsITSMFT
-                                        O2::ITSMFTBase
-                                        O2::ITSMFTSimulation
+                                        O2::EndCapsBase
+                                        O2::EndCapsSimulation
                                         O2::DetectorsRaw
                                         O2::DetectorsCommonDataFormats
                                         O2::CommonUtils

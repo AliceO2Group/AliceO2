@@ -30,13 +30,13 @@
 #include "Field/MagneticField.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
-#include "ITSReconstruction/CookedTracker.h"
+#include "EC0Reconstruction/CookedTracker.h"
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-using namespace o2::its;
-using namespace o2::itsmft;
+using namespace o2::ecl;
+using namespace o2::endcaps;
 using namespace o2::constants::math;
 using namespace o2::utils;
 using o2::field::MagneticField;
@@ -815,7 +815,7 @@ Bool_t CookedTracker::attachCluster(Int_t& volID, Int_t nl, Int_t ci, TrackITSEx
   return kTRUE;
 }
 
-void CookedTracker::setGeometry(o2::its::GeometryTGeo* geom)
+void CookedTracker::setGeometry(o2::ecl::GeometryTGeo* geom)
 {
   /// attach geometry interface
   mGeom = geom;

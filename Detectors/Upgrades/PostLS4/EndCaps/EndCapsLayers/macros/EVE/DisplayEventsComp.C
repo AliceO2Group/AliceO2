@@ -27,12 +27,12 @@
 
 #include "EventVisualisationView/MultiView.h"
 
-#include "ITSMFTReconstruction/ChipMappingITS.h"
-#include "ITSMFTReconstruction/DigitPixelReader.h"
-#include "ITSMFTReconstruction/RawPixelReader.h"
-#include "ITSMFTBase/SegmentationAlpide.h"
+#include "EndCapsReconstruction/ChipMappingITS.h"
+#include "EndCapsReconstruction/DigitPixelReader.h"
+#include "EndCapsReconstruction/RawPixelReader.h"
+#include "EndCapsBase/SegmentationAlpide.h"
 #include "DataFormatsITSMFT/Digit.h"
-#include "ITSBase/GeometryTGeo.h"
+#include "ECLayersBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -40,7 +40,7 @@
 #include "DetectorsCommonDataFormats/NameConf.h"
 #endif
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 extern TEveManager* gEve;
 static TEveScene* chipScene;
@@ -65,7 +65,7 @@ class Data
   void setDigitPixelReader(std::string input)
   {
     auto reader = new DigitPixelReader();
-    reader->openInput(input, o2::detectors::DetID("ITS"));
+    reader->openInput(input, o2::detectors::DetID("EC0"));
     reader->init();
     reader->readNextEntry();
     mPixelReader = reader;
@@ -235,7 +235,7 @@ TEveElement* Data::getEveChipDigits(int chip)
   qdigi->SetOwnIds(kTRUE);
   qdigi->SetFrame(box);
   qdigi->Reset(TEveQuadSet::kQT_RectangleXY, kFALSE, 32);
-  auto gman = o2::its::GeometryTGeo::Instance();
+  auto gman = o2::ecl::GeometryTGeo::Instance();
   std::vector<int> occup(gman->getNumberOfChips());
   for (const auto& d : mDigits) {
     auto id = d.getChipIndex();
@@ -312,7 +312,7 @@ TEveElement* Data::getEveClusters()
   if (mClusters.empty())
     return nullptr;
 
-  auto gman = o2::its::GeometryTGeo::Instance();
+  auto gman = o2::ecl::GeometryTGeo::Instance();
   TEvePointSet* clusters = new TEvePointSet("clusters");
   clusters->SetMarkerColor(kBlue);
   for (const auto& c : mClusters) {
@@ -329,7 +329,7 @@ TEveElement* Data::getEveTracks()
   if (mTracks.empty())
     return nullptr;
 
-  auto gman = o2::its::GeometryTGeo::Instance();
+  auto gman = o2::ecl::GeometryTGeo::Instance();
   TEveTrackList* tracks = new TEveTrackList("tracks");
   auto prop = tracks->GetPropagator();
   prop->SetMagField(0.5);
@@ -437,7 +437,7 @@ void init(int entry = 0, int chip = 13,
 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom);
-  auto gman = o2::its::GeometryTGeo::Instance();
+  auto gman = o2::ecl::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
                                             o2::TransformType::L2G));
 
@@ -456,7 +456,7 @@ void init(int entry = 0, int chip = 13,
 
   // Event View
   auto multi = o2::event_visualisation::MultiView::getInstance();
-  multi->drawGeometryForDetector("ITS");
+  multi->drawGeometryForDetector("EC0");
 
   gEve->AddEvent(new TEveEventManager());
 

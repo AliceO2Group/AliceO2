@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSMFTSimulation/MC2RawEncoder.h"
+#include "EndCapsSimulation/MC2RawEncoder.h"
 #include "CommonConstants/Triggers.h"
-#include "ITSMFTReconstruction/GBTLink.h"
+#include "EndCapsReconstruction/GBTLink.h"
 #include "Framework/Logger.h"
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 using namespace o2::raw;
 using RDHUtils = o2::raw::RDHUtils;
 
@@ -314,5 +314,5 @@ int MC2RawEncoder<Mapping>::carryOverMethod(const header::RDHAny* rdh, const gsl
   return actualSize;
 }
 
-template class o2::itsmft::MC2RawEncoder<o2::itsmft::ChipMappingITS>;
-template class o2::itsmft::MC2RawEncoder<o2::itsmft::ChipMappingMFT>;
+template class o2::endcaps::MC2RawEncoder<o2::endcaps::ChipMappingITS>;
+template class o2::endcaps::MC2RawEncoder<o2::endcaps::ChipMappingMFT>;

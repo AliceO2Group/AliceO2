@@ -12,13 +12,13 @@
 /// \brief
 ///
 
-#include "ITStracking/DBScan.h"
-#include "ITStracking/Definitions.h"
+#include "EC0tracking/DBScan.h"
+#include "EC0tracking/Definitions.h"
 #include "GPUCommonMath.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 Centroid::Centroid(int* indices, float* position)
@@ -37,5 +37,5 @@ float Centroid::ComputeDistance(const Centroid& c1, const Centroid& c2)
                                   (c1.mPosition[1] - c2.mPosition[1]) * (c1.mPosition[1] - c2.mPosition[1]) +
                                   (c1.mPosition[2] - c2.mPosition[2]) * (c1.mPosition[2] - c2.mPosition[2]));
 }
-} // namespace its
+} // namespace ecl
 } // namespace o2

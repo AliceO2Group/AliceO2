@@ -19,17 +19,16 @@
 #include "Framework/ControlService.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "ITSMFTReconstruction/RawPixelDecoder.h"
-#include "ITSMFTReconstruction/Clusterer.h"
-#include "ITSMFTReconstruction/ClustererParam.h"
-#include "ITSMFTReconstruction/GBTLink.h"
-#include "ITSMFTWorkflow/STFDecoderSpec.h"
+#include "EndCapsReconstruction/RawPixelDecoder.h"
+#include "EndCapsReconstruction/Clusterer.h"
+#include "EndCapsReconstruction/ClustererParam.h"
+#include "EndCapsReconstruction/GBTLink.h"
+#include "EndCapsWorkflow/STFDecoderSpec.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
-#include "ITSBase/GeometryTGeo.h"
-#include "MFTBase/GeometryTGeo.h"
-#include "ITSMFTBase/GeometryTGeo.h"
+#include "EndCapsBase/DPLAlpideParam.h"
+#include "ECLayersBase/GeometryTGeo.h"
+#include "EndCapsBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -37,7 +36,7 @@
 
 namespace o2
 {
-namespace itsmft
+namespace endcaps
 {
 
 using namespace o2::framework;
@@ -67,8 +66,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   if (mDoClusters) {
     o2::base::GeometryManager::loadGeometry(); // for generating full clusters
     GeometryTGeo* geom = nullptr;
-    if (detID == o2::detectors::DetID::ITS) {
-      geom = o2::its::GeometryTGeo::Instance();
+    if (detID == o2::detectors::DetID::EC0) {
+      geom = o2::ec0::GeometryTGeo::Instance();
       geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
     } else {
       geom = o2::mft::GeometryTGeo::Instance();
@@ -167,10 +166,10 @@ void STFDecoder<Mapping>::endOfStream(EndOfStreamContext& ec)
   }
 }
 
-DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict)
+DataProcessorSpec getSTFDecoderEC0Spec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict)
 {
   std::vector<OutputSpec> outputs;
-  auto orig = o2::header::gDataOriginITS;
+  auto orig = o2::header::gDataOriginEC0;
 
   if (doDigits) {
     outputs.emplace_back(orig, "DIGITS", 0, Lifetime::Timeframe);
@@ -188,7 +187,7 @@ DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool do
   }
 
   return DataProcessorSpec{
-    "its-stf-decoder",
+    "ec0-stf-decoder",
     Inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, dict)},
@@ -228,5 +227,5 @@ DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool do
       {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data)"}}}};
 }
 
-} // namespace itsmft
+} // namespace endcaps
 } // namespace o2

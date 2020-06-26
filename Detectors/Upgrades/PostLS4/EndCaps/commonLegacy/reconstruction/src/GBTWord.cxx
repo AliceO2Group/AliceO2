@@ -11,11 +11,11 @@
 // \file GBTWord.cxx
 // \brief Classes for creation/interpretation of ITS/MFT GBT data
 
-#include "ITSMFTReconstruction/GBTWord.h"
+#include "EndCapsReconstruction/GBTWord.h"
 #include "Framework/Logger.h"
 #include <sstream>
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 void GBTWord::printX(bool padded) const
 {

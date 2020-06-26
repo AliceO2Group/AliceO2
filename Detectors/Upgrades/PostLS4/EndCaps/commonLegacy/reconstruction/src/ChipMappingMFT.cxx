@@ -12,9 +12,9 @@
 // \brief Automatically generated MFT chip <-> module mapping
 
 #include <FairLogger.h>
-#include "ITSMFTReconstruction/ChipMappingMFT.h"
+#include "EndCapsReconstruction/ChipMappingMFT.h"
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 const std::array<MFTChipMappingData, ChipMappingMFT::NChips> ChipMappingMFT::ChipMappingData{{
 
   // { module, chipOnModule, cable, chipOnRU }

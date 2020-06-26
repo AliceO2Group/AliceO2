@@ -12,7 +12,7 @@
 /// \brief Alpide pixel reader for raw data processing
 
 #include "DetectorsRaw/RDHUtils.h"
-#include "ITSMFTReconstruction/RawPixelDecoder.h"
+#include "EndCapsReconstruction/RawPixelDecoder.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "CommonUtils/StringUtils.h"
 
@@ -20,7 +20,7 @@
 #include <omp.h>
 #endif
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 using namespace o2::framework;
 using RDHUtils = o2::raw::RDHUtils;
 
@@ -304,5 +304,5 @@ void RawPixelDecoder<Mapping>::setFormat(GBTLink::Format f)
   mFormat = f;
 }
 
-template class o2::itsmft::RawPixelDecoder<o2::itsmft::ChipMappingITS>;
-template class o2::itsmft::RawPixelDecoder<o2::itsmft::ChipMappingMFT>;
+template class o2::endcaps::RawPixelDecoder<o2::endcaps::ChipMappingITS>;
+template class o2::endcaps::RawPixelDecoder<o2::endcaps::ChipMappingMFT>;

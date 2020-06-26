@@ -11,7 +11,7 @@
 /// \file Hit.cxx
 /// \brief Implementation of the Hit class
 
-#include "ITSMFTSimulation/Hit.h"
+#include "EndCapsSimulation/Hit.h"
 
 #include <iostream>
 #include <iostream>
@@ -20,7 +20,7 @@ ClassImp(o2::itsmft::Hit);
 
 using std::cout;
 using std::endl;
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 using namespace o2; //::base;
 
 void Hit::Print(const Option_t* opt) const

@@ -16,15 +16,15 @@
 ///======================================================================
 
 #include "Framework/Logger.h"
-#include "ITSMFTReconstruction/GBTWord.h"
-#include "ITSMFTReconstruction/GBTLink.h"
-#include "ITSMFTReconstruction/RUDecodeData.h"
-#include "ITSMFTReconstruction/RUInfo.h"
-#include "ITSMFTReconstruction/RUDecodeData.h"
+#include "EndCapsReconstruction/GBTWord.h"
+#include "EndCapsReconstruction/GBTLink.h"
+#include "EndCapsReconstruction/RUDecodeData.h"
+#include "EndCapsReconstruction/RUInfo.h"
+#include "EndCapsReconstruction/RUDecodeData.h"
 
 namespace o2
 {
-namespace itsmft
+namespace endcaps
 {
 
 ///_________________________________________________________________
@@ -47,5 +47,5 @@ void RUDecodeData::setROFInfo(ChipPixelData* chipData, const GBTLink* lnk)
   chipData->setInteractionRecord(lnk->ir);
 }
 
-} // namespace itsmft
+} // namespace endcaps
 } // namespace o2

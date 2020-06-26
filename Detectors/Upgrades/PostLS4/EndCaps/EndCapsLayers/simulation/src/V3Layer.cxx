@@ -13,11 +13,11 @@
 /// \author Mario Sitta <sitta@to.infn.it>
 /// \author Chinorat Kobdaj (kobdaj@g.sut.ac.th)
 
-#include "ITSSimulation/V3Layer.h"
-#include "ITSBase/GeometryTGeo.h"
-#include "ITSSimulation/Detector.h"
-#include "ITSMFTSimulation/AlpideChip.h"
-#include "ITSMFTBase/SegmentationAlpide.h"
+#include "EC0Simulation/V3Layer.h"
+#include "ECLayersBase/GeometryTGeo.h"
+#include "EC0Simulation/Detector.h"
+#include "EndCapsSimulation/AlpideChip.h"
+#include "EndCapsBase/SegmentationAlpide.h"
 
 #include "FairLogger.h" // for LOG
 
@@ -40,9 +40,9 @@
 class TGeoMedium;
 
 using namespace TMath;
-using namespace o2::its;
-using namespace o2::itsmft;
-using AlpideChip = o2::itsmft::AlpideChip;
+using namespace o2::ecl;
+using namespace o2::endcaps;
+using AlpideChip = o2::endcaps::AlpideChip;
 
 // General Parameters
 const Int_t V3Layer::sNumberOfInnerLayers = 3;
@@ -355,7 +355,7 @@ void V3Layer::createLayer(TGeoVolume* motherVolume)
 
   //  mStaveWidth = mLayerRadius*Tan(alpha);
 
-  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSLayerPattern(), mLayerNumber);
+  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getEC0LayerPattern(), mLayerNumber);
   TGeoVolume* layerVolume = new TGeoVolumeAssembly(volumeName);
   layerVolume->SetUniqueID(mChipTypeID);
 
@@ -400,7 +400,7 @@ void V3Layer::createLayerTurbo(TGeoVolume* motherVolume)
     LOG(WARNING) << "Stave tilt angle (" << mStaveTilt << ") greater than 45deg";
   }
 
-  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSLayerPattern(), mLayerNumber);
+  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getEC0LayerPattern(), mLayerNumber);
   TGeoVolume* layerVolume = new TGeoVolumeAssembly(volumeName);
   layerVolume->SetUniqueID(mChipTypeID);
   layerVolume->SetVisibility(kTRUE);
@@ -459,7 +459,7 @@ TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
   alpha = (360. / (2 * mNumberOfStaves)) * DegToRad();
 
   // The stave
-  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSStavePattern(), mLayerNumber);
+  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getEC0StavePattern(), mLayerNumber);
   TGeoVolume* staveVol = new TGeoVolumeAssembly(volumeName);
   staveVol->SetVisibility(kTRUE);
   staveVol->SetLineColor(2);
@@ -525,9 +525,9 @@ TGeoVolume* V3Layer::createStaveInnerB(const TGeoManager* mgr)
 
   TGeoBBox* hstave = new TGeoBBox(xmod, ymod, zmod);
 
-  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
+  TGeoMedium* medAir = mgr->GetMedium("EC0_AIR$");
 
-  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
+  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getEC0HalfStavePattern(), mLayerNumber);
   TGeoVolume* hstaveVol = new TGeoVolume(volumeName, hstave, medAir);
 
   // Finally build it up
@@ -553,8 +553,8 @@ TGeoVolume* V3Layer::createModuleInnerB(const TGeoManager* mgr)
     dummyChip = kTRUE; // will be made of Air
 
   // First create the single chip
-  snprintf(chipName, nameLen, "%s%d", GeometryTGeo::getITSChipPattern(), mLayerNumber);
-  snprintf(sensName, nameLen, "%s%d", GeometryTGeo::getITSSensorPattern(), mLayerNumber);
+  snprintf(chipName, nameLen, "%s%d", GeometryTGeo::getEC0ChipPattern(), mLayerNumber);
+  snprintf(sensName, nameLen, "%s%d", GeometryTGeo::getEC0SensorPattern(), mLayerNumber);
 
   ymod = 0.5 * mChipThickness;
 
@@ -587,11 +587,11 @@ TGeoVolume* V3Layer::createModuleInnerB(const TGeoManager* mgr)
   TGeoBBox* module = new TGeoBBox(xtot, ytot, ztot);
 
   // Now the volumes
-  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
-  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
-  TGeoMedium* medGlue = mgr->GetMedium("ITS_GLUE_IBFPC$");
+  TGeoMedium* medAir = mgr->GetMedium("EC0_AIR$");
+  TGeoMedium* medKapton = mgr->GetMedium("EC0_KAPTON(POLYCH2)$");
+  TGeoMedium* medGlue = mgr->GetMedium("EC0_GLUE_IBFPC$");
 
-  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSModulePattern(), mLayerNumber);
+  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getEC0ModulePattern(), mLayerNumber);
   TGeoVolume* modVol = new TGeoVolume(volumeName, module, medAir);
 
   TGeoVolume* glueVol = new TGeoVolume("FPCGlue", glue, medGlue);
@@ -688,7 +688,7 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   if (!capacitor) {
     TGeoBBox* capsh = new TGeoBBox(sIBFlexCapacitorXWid / 2, sIBFlexCapacitorYHi / 2, sIBFlexCapacitorZLen / 2);
 
-    TGeoMedium* medCeramic = mgr->GetMedium("ITS_CERAMIC$");
+    TGeoMedium* medCeramic = mgr->GetMedium("EC0_CERAMIC$");
 
     capacitor = new TGeoVolume("IBFPCCapacitor", capsh, medCeramic);
     capacitor->SetLineColor(kBlack);
@@ -787,8 +787,8 @@ TGeoVolume* V3Layer::createIBFPCAlGnd(const Double_t xcable, const Double_t zcab
   TGeoBBox* aluminum = new TGeoBBox(xcable, sIBFlexCableAlThick / 2, zcable);
 
   // Then the volumes
-  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
-  TGeoMedium* medAluminum = mgr->GetMedium("ITS_ALUMINUM$");
+  TGeoMedium* medKapton = mgr->GetMedium("EC0_KAPTON(POLYCH2)$");
+  TGeoMedium* medAluminum = mgr->GetMedium("EC0_ALUMINUM$");
 
   TGeoVolume* coverlayVol = new TGeoVolume("FPCCoverlayGround", coverlay, medKapton);
   coverlayVol->SetLineColor(kBlue);
@@ -838,8 +838,8 @@ TGeoVolume* V3Layer::createIBFPCAlAnode(const Double_t xcable, const Double_t zc
   aluminum->DefineSection(1, sIBFlexCableAlThick / 2);
 
   // Then the volumes
-  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
-  TGeoMedium* medAluminum = mgr->GetMedium("ITS_ALUMINUM$");
+  TGeoMedium* medKapton = mgr->GetMedium("EC0_KAPTON(POLYCH2)$");
+  TGeoMedium* medAluminum = mgr->GetMedium("EC0_ALUMINUM$");
 
   TGeoVolume* coverlayVol = new TGeoVolume("FPCCoverlayAnode", coverlay, medKapton);
   coverlayVol->SetLineColor(kBlue);
@@ -924,7 +924,7 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const TGeoManager* mgr)
   // Updated:      30 Apr 2015  Mario Sitta  End-stave connectors added
   // Updated:      04 Apr 2017  Mario Sitta  O2 version
   // Updated:      25 Jan 2018  Mario Sitta  Stave width is now a constant
-  // Updated:      03 Feb 2018  Mario Sitta  To last drawings (ALIITSUP0051)
+  // Updated:      03 Feb 2018  Mario Sitta  To last drawings (ALIEC0UP0051)
   //
 
   // Local parameters
@@ -1066,19 +1066,19 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const TGeoManager* mgr)
 
   // We have all shapes: now create the real volumes
 
-  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
-  TGeoMedium* medWater = mgr->GetMedium("ITS_WATER$");
-  TGeoMedium* medM55J6K = mgr->GetMedium("ITS_M55J6K$");
-  TGeoMedium* medM60J3K = mgr->GetMedium("ITS_M60J3K$");
-  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
-  TGeoMedium* medGlue = mgr->GetMedium("ITS_GLUE$");
-  TGeoMedium* medK13D2U2k = mgr->GetMedium("ITS_K13D2U2k$");
-  TGeoMedium* medFGS003 = mgr->GetMedium("ITS_FGS003$");
-  TGeoMedium* medCarbonFleece = mgr->GetMedium("ITS_CarbonFleece$");
+  TGeoMedium* medAir = mgr->GetMedium("EC0_AIR$");
+  TGeoMedium* medWater = mgr->GetMedium("EC0_WATER$");
+  TGeoMedium* medM55J6K = mgr->GetMedium("EC0_M55J6K$");
+  TGeoMedium* medM60J3K = mgr->GetMedium("EC0_M60J3K$");
+  TGeoMedium* medKapton = mgr->GetMedium("EC0_KAPTON(POLYCH2)$");
+  TGeoMedium* medGlue = mgr->GetMedium("EC0_GLUE$");
+  TGeoMedium* medK13D2U2k = mgr->GetMedium("EC0_K13D2U2k$");
+  TGeoMedium* medFGS003 = mgr->GetMedium("EC0_FGS003$");
+  TGeoMedium* medCarbonFleece = mgr->GetMedium("EC0_CarbonFleece$");
 
   const Int_t nameLen = 30;
   char volname[nameLen];
-  snprintf(volname, nameLen, "%s%d_StaveStruct", GeometryTGeo::getITSStavePattern(), mLayerNumber);
+  snprintf(volname, nameLen, "%s%d_StaveStruct", GeometryTGeo::getEC0StavePattern(), mLayerNumber);
   TGeoVolume* mechStavVol = new TGeoVolume(volname, mechStavSh, medAir);
   mechStavVol->SetLineColor(12);
   mechStavVol->SetFillColor(12);
@@ -1303,7 +1303,7 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   //
   // Created:      22 Apr 2015  Mario Sitta
   // Updated:      04 Apr 2017  Mario Sitta  O2 version
-  // Updated:      28 Jan 2018  Mario Sitta  To last drawings (ALIITSUP0051)
+  // Updated:      28 Jan 2018  Mario Sitta  To last drawings (ALIEC0UP0051)
   // Updated:      19 Jun 2019  Mario Sitta  Avoid fake overlaps with EndWheels
   //
 
@@ -1314,12 +1314,12 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   Double_t xpos, ypos, zpos;
 
   // Gather all material pointers
-  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
-  TGeoMedium* medPEEK = mgr->GetMedium("ITS_PEEKCF30$");
-  TGeoMedium* medInox304 = mgr->GetMedium("ITS_INOX304$");
+  TGeoMedium* medAir = mgr->GetMedium("EC0_AIR$");
+  TGeoMedium* medPEEK = mgr->GetMedium("EC0_PEEKCF30$");
+  TGeoMedium* medInox304 = mgr->GetMedium("EC0_INOX304$");
 
   // First create all elements
-  // (All measures refer to the blueprint ALIITSUP0051)
+  // (All measures refer to the blueprint ALIEC0UP0051)
 
   // The connector block, two Composite Shapes:
   // the body...
@@ -1520,7 +1520,7 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   //
   // Created:      05 May 2015  Mario Sitta
   // Updated:      04 Apr 2017  Mario Sitta  O2 version
-  // Updated:      28 Jan 2018  Mario Sitta  To last drawings (ALIITSUP0051)
+  // Updated:      28 Jan 2018  Mario Sitta  To last drawings (ALIEC0UP0051)
   // Updated:      15 May 2019  Mario Sitta  Avoid fake overlaps with EndWheels
   //
 
@@ -1531,11 +1531,11 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   Double_t xpos, ypos, zpos;
 
   // Gather all material pointers
-  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
-  TGeoMedium* medPEEK = mgr->GetMedium("ITS_PEEKCF30$");
+  TGeoMedium* medAir = mgr->GetMedium("EC0_AIR$");
+  TGeoMedium* medPEEK = mgr->GetMedium("EC0_PEEKCF30$");
 
   // First create all elements
-  // (All measures refer to the blueprint ALIITSUP0051)
+  // (All measures refer to the blueprint ALIEC0UP0051)
 
   // The connector block, two Composite Shapes:
   // the body...
@@ -1944,14 +1944,14 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
 
   // We have all shapes: now create the real volumes
 
-  TGeoMedium* medAluminum = mgr->GetMedium("ITS_ALUMINUM$");
-  TGeoMedium* medK13D2U120 = mgr->GetMedium("ITS_K13D2U120$");
-  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
-  TGeoMedium* medWater = mgr->GetMedium("ITS_WATER$");
-  TGeoMedium* medCarbonFleece = mgr->GetMedium("ITS_CarbonFleece$");
-  TGeoMedium* medFGS003 = mgr->GetMedium("ITS_FGS003$"); // amec thermasol
-  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
-  TGeoMedium* medTungsten = mgr->GetMedium("ITS_TUNGSTEN$");
+  TGeoMedium* medAluminum = mgr->GetMedium("EC0_ALUMINUM$");
+  TGeoMedium* medK13D2U120 = mgr->GetMedium("EC0_K13D2U120$");
+  TGeoMedium* medKapton = mgr->GetMedium("EC0_KAPTON(POLYCH2)$");
+  TGeoMedium* medWater = mgr->GetMedium("EC0_WATER$");
+  TGeoMedium* medCarbonFleece = mgr->GetMedium("EC0_CarbonFleece$");
+  TGeoMedium* medFGS003 = mgr->GetMedium("EC0_FGS003$"); // amec thermasol
+  TGeoMedium* medAir = mgr->GetMedium("EC0_AIR$");
+  TGeoMedium* medTungsten = mgr->GetMedium("EC0_TUNGSTEN$");
 
   TGeoVolume* coldPlateVol = new TGeoVolume("ColdPlateVol", coldPlate, medK13D2U120);
   coldPlateVol->SetLineColor(kYellow - 3);
@@ -2022,7 +2022,7 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
     gammaConvRodVol->SetFillStyle(4000); // 0% transparent
   }
 
-  snprintf(volname, nameLen, "%s%d", GeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
+  snprintf(volname, nameLen, "%s%d", GeometryTGeo::getEC0HalfStavePattern(), mLayerNumber);
   TGeoVolume* halfStaveVol = new TGeoVolume(volname, halfStave, medAir);
   //   halfStaveVol->SetLineColor(12);
   //   halfStaveVol->SetFillColor(12);
@@ -2182,9 +2182,9 @@ TGeoVolume* V3Layer::createOBPowerBiasBuses(const Double_t zcable, const TGeoMan
   TGeoBBox* topBB = new TGeoBBox(xcable, sOBBiasBusAlThick / 2, zcable);
 
   // Then the volumes
-  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
-  TGeoMedium* medAluminum = mgr->GetMedium("ITS_ALUMINUM$");
-  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
+  TGeoMedium* medKapton = mgr->GetMedium("EC0_KAPTON(POLYCH2)$");
+  TGeoMedium* medAluminum = mgr->GetMedium("EC0_ALUMINUM$");
+  TGeoMedium* medAir = mgr->GetMedium("EC0_AIR$");
 
   TGeoVolume* gndPBVol = new TGeoVolume("PowerBusGround", gndPB, medAluminum);
   gndPBVol->SetLineColor(kCyan);
@@ -2325,9 +2325,9 @@ void V3Layer::createOBColdPlateConnectorsASide()
   Double_t xpos, ypos, zpos;
 
   // Gather all material pointers
-  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
-  TGeoMedium* medPEEK = mgr->GetMedium("ITS_PEEKCF30$");
-  TGeoMedium* medInox304 = mgr->GetMedium("ITS_INOX304$");
+  TGeoMedium* medAir = mgr->GetMedium("EC0_AIR$");
+  TGeoMedium* medPEEK = mgr->GetMedium("EC0_PEEKCF30$");
+  TGeoMedium* medInox304 = mgr->GetMedium("EC0_INOX304$");
 
   // First create all elements
 
@@ -2482,8 +2482,8 @@ void V3Layer::createOBColdPlateConnectorsCSide()
   Double_t xpos, ypos, zpos;
 
   // Gather all material pointers
-  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
-  TGeoMedium* medPEEK = mgr->GetMedium("ITS_PEEKCF30$");
+  TGeoMedium* medAir = mgr->GetMedium("EC0_AIR$");
+  TGeoMedium* medPEEK = mgr->GetMedium("EC0_PEEKCF30$");
 
   // First create all elements
 
@@ -2666,7 +2666,7 @@ TGeoVolume* V3Layer::createSpaceFrameOuterB2(const TGeoManager* mgr)
   // Updated:      20 Jul 2017  Mario Sitta  O2 version
   //
 
-  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
+  TGeoMedium* medAir = mgr->GetMedium("EC0_AIR$");
 
   TGeoVolume *unitVol[2], *next2EndVol[2], *endVol[2];
   Double_t *xtru, *ytru;
@@ -2789,10 +2789,10 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
   // Updated:      27 Sep 2019  Mario Sitta  New TopV for End Units
   //
 
-  // Materials defined in AliITSUv2
-  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$");
-  TGeoMedium* medF6151B05M = mgr->GetMedium("ITS_F6151B05M$");
-  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
+  // Materials defined in AliEC0Uv2
+  TGeoMedium* medCarbon = mgr->GetMedium("EC0_M55J6K$");
+  TGeoMedium* medF6151B05M = mgr->GetMedium("EC0_F6151B05M$");
+  TGeoMedium* medAir = mgr->GetMedium("EC0_AIR$");
 
   // Local parameters
   Double_t halfFrameWidth = sOBSpaceFrameWidth / 2;
@@ -3215,7 +3215,7 @@ void V3Layer::createOBSpaceFrameConnector(TGeoVolume* mother, const Double_t ymo
 {
   //
   // Creates the OB Space Frame Connectors
-  // (ALIITSUP0070+ALIITSUP0069)
+  // (ALIEC0UP0070+ALIEC0UP0069)
   //
   // Input:
   //         mother : the SF unit volume to contain the connector
@@ -3230,8 +3230,8 @@ void V3Layer::createOBSpaceFrameConnector(TGeoVolume* mother, const Double_t ymo
   //
   // Created:      09 Sep 2019  M. Sitta
 
-  // Materials defined in AliITSUv2
-  TGeoMedium* medPEEK = mgr->GetMedium("ITS_PEEKCF30$");
+  // Materials defined in AliEC0Uv2
+  TGeoMedium* medPEEK = mgr->GetMedium("EC0_PEEKCF30$");
 
   // Local parameters
   TString connName, compoShape;
@@ -3386,8 +3386,8 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
     dummyChip = kTRUE; // will be made of Air
 
   // The chip (the same as for IB)
-  snprintf(chipName, nameLen, "%s%d", GeometryTGeo::getITSChipPattern(), mLayerNumber);
-  snprintf(sensName, nameLen, "%s%d", GeometryTGeo::getITSSensorPattern(), mLayerNumber);
+  snprintf(chipName, nameLen, "%s%d", GeometryTGeo::getEC0ChipPattern(), mLayerNumber);
+  snprintf(sensName, nameLen, "%s%d", GeometryTGeo::getEC0SensorPattern(), mLayerNumber);
 
   ylen = 0.5 * sOBChipThickness;
 
@@ -3427,9 +3427,9 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
 
   // We have all shapes: now create the real volumes
 
-  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
-  TGeoMedium* medGlue = mgr->GetMedium("ITS_GLUE$");
-  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
+  TGeoMedium* medAir = mgr->GetMedium("EC0_AIR$");
+  TGeoMedium* medGlue = mgr->GetMedium("EC0_GLUE$");
+  TGeoMedium* medKapton = mgr->GetMedium("EC0_KAPTON(POLYCH2)$");
 
   TGeoVolume* glueFPCVol = new TGeoVolume("GlueFPCVol", glueFPC, medGlue);
   glueFPCVol->SetLineColor(kBlack);
@@ -3446,7 +3446,7 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
   flexKapVol->SetFillColor(flexKapVol->GetLineColor());
   flexKapVol->SetFillStyle(4000); // 0% transparent
 
-  snprintf(volName, nameLen, "%s%d", GeometryTGeo::getITSModulePattern(), mLayerNumber);
+  snprintf(volName, nameLen, "%s%d", GeometryTGeo::getEC0ModulePattern(), mLayerNumber);
   TGeoVolume* modVol = new TGeoVolume(volName, module, medAir);
   modVol->SetVisibility(kTRUE);
 
@@ -3524,8 +3524,8 @@ TGeoVolume* V3Layer::createOBFPCCuGnd(const Double_t zcable, const TGeoManager* 
   TGeoBBox* copper = new TGeoBBox(xcable, sOBFPCCopperThick / 2, zcable);
 
   // Then the volumes
-  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
-  TGeoMedium* medCopper = mgr->GetMedium("ITS_COPPER$");
+  TGeoMedium* medKapton = mgr->GetMedium("EC0_KAPTON(POLYCH2)$");
+  TGeoMedium* medCopper = mgr->GetMedium("EC0_COPPER$");
 
   TGeoVolume* soldmaskVol = new TGeoVolume("FPCGndSolderMask", soldmask, medKapton);
   soldmaskVol->SetLineColor(kBlue);
@@ -3569,8 +3569,8 @@ TGeoVolume* V3Layer::createOBFPCCuSig(const Double_t zcable, const TGeoManager* 
   TGeoBBox* copper = new TGeoBBox(xcable, sOBFPCCopperThick / 2, zcable);
 
   // Then the volumes
-  TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
-  TGeoMedium* medCopper = mgr->GetMedium("ITS_COPPER$");
+  TGeoMedium* medKapton = mgr->GetMedium("EC0_KAPTON(POLYCH2)$");
+  TGeoMedium* medCopper = mgr->GetMedium("EC0_COPPER$");
 
   TGeoVolume* soldmaskVol = new TGeoVolume("FPCSigSolderMask", soldmask, medKapton);
   soldmaskVol->SetLineColor(kBlue);
@@ -3688,7 +3688,7 @@ TGeoXtru* V3Layer::createStaveSide(const char* name, Double_t dz, Double_t alpha
   //
   // Creates the V-shaped sides of the OB space frame
   // (from a similar method with same name and function
-  // in AliITSv11GeometrySDD class by L.Gaudichet)
+  // in AliEC0v11GeometrySDD class by L.Gaudichet)
   //
   // Updated:      15 Dec 2014  Mario Sitta  Rewritten using Xtru
   // Updated:      09 Jan 2015  Mario Sitta  Rewritten again using different

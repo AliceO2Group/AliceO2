@@ -10,11 +10,11 @@
 
 #include <cmath>
 #include <algorithm>
-#include "ITStracking/ClusterLines.h"
+#include "EC0tracking/ClusterLines.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
@@ -371,5 +371,5 @@ void ClusterLines::vote(const Line& line)
 }
 #endif
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

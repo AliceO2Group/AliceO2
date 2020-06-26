@@ -14,13 +14,13 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::its::ClustererTask + ;
-#pragma link C++ class o2::its::CookedTracker + ;
+#pragma link C++ class o2::ecl::ClustererTask + ;
+#pragma link C++ class o2::ecl::CookedTracker + ;
 
-#pragma link C++ class o2::its::RecoGeomHelper + ;
+#pragma link C++ class o2::ecl::RecoGeomHelper + ;
 
-#pragma link C++ class o2::its::FastMultEst + ;
-#pragma link C++ class o2::its::FastMultEstConfig + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its::FastMultEstConfig> + ;
+#pragma link C++ class o2::ecl::FastMultEst + ;
+#pragma link C++ class o2::ecl::FastMultEstConfig + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::ecl::FastMultEstConfig> + ;
 
 #endif

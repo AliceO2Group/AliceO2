@@ -11,9 +11,9 @@
 /// \file PayLoadCont.cxx
 /// \brief Implementation of class for continuos buffer of ALPIDE data
 
-#include "ITSMFTReconstruction/PayLoadCont.h"
+#include "EndCapsReconstruction/PayLoadCont.h"
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 constexpr size_t PayLoadCont::MinCapacity;
 

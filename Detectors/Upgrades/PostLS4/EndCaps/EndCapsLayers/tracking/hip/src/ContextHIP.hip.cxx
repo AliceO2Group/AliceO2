@@ -12,8 +12,8 @@
 /// \brief
 ///
 
-#include "ITStrackingHIP/ContextHIP.h"
-#include "ITStrackingHIP/UtilsHIP.h"
+#include "EC0trackingHIP/ContextHIP.h"
+#include "EC0trackingHIP/UtilsHIP.h"
 
 #include <sstream>
 #include <stdexcept>
@@ -38,7 +38,7 @@ inline int getMaxThreadsPerComputingUnit(const int major, const int minor)
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 namespace GPU
 {
@@ -130,5 +130,5 @@ const DeviceProperties& ContextHIP::getDeviceProperties(const int deviceIndex)
 }
 
 } // namespace GPU
-} // namespace its
+} // namespace ecl
 } // namespace o2

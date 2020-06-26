@@ -12,11 +12,11 @@
 /// \brief
 /// \author matteo.concas@cern.ch
 
-#include "ITStrackingHIP/ClusterLinesHIP.h"
+#include "EC0trackingHIP/ClusterLinesHIP.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 namespace GPU
 {
@@ -134,5 +134,5 @@ GPUd() void ClusterLinesHIP::computeClusterCentroid()
                determinant;
 }
 } // namespace GPU
-} // namespace its
+} // namespace ecl
 } // namespace o2

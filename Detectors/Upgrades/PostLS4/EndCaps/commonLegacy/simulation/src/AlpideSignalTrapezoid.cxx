@@ -23,11 +23,11 @@
 
  */
 
-#include "ITSMFTSimulation/AlpideSignalTrapezoid.h"
+#include "EndCapsSimulation/AlpideSignalTrapezoid.h"
 #include <TClass.h>
 #include <cassert>
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 //_________________________________________________________________
 AlpideSignalTrapezoid::AlpideSignalTrapezoid(float duration, float rise, float qRise0)

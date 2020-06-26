@@ -8,15 +8,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITStracking/TrackingConfigParam.h"
-#include "ITStracking/Configuration.h"
+#include "EC0tracking/TrackingConfigParam.h"
+#include "EC0tracking/Configuration.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
-static auto& sVertexerParamITS = o2::its::VertexerParamConfig::Instance();
+static auto& sVertexerParamEC0 = o2::ecl::VertexerParamConfig::Instance();
 
-O2ParamImpl(o2::its::VertexerParamConfig)
-} // namespace its
+O2ParamImpl(o2::ecl::VertexerParamConfig)
+} // namespace ecl
 } // namespace o2

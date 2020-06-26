@@ -13,13 +13,13 @@
 
 #include <bitset>
 #include <iomanip>
-#include "ITSMFTReconstruction/GBTLink.h"
-#include "ITSMFTReconstruction/AlpideCoder.h"
+#include "EndCapsReconstruction/GBTLink.h"
+#include "EndCapsReconstruction/AlpideCoder.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "Framework/Logger.h"
 #include "CommonConstants/Triggers.h"
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 ///======================================================================
 ///             Decoding statistics for a single GBT link

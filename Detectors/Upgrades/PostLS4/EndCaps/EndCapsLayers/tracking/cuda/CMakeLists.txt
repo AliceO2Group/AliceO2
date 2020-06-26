@@ -8,9 +8,9 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-message(STATUS "Building ITS CUDA tracker")
+message(STATUS "Building EC0 CUDA tracker")
 
-o2_add_library(ITStrackingCUDA
+o2_add_library(EC0trackingCUDA
                SOURCES src/ClusterLinesGPU.cu
                        src/Context.cu
                        src/DeviceStoreNV.cu
@@ -19,7 +19,7 @@ o2_add_library(ITStrackingCUDA
                        src/TrackerTraitsNV.cu
                        src/VertexerTraitsGPU.cu
                        src/Utils.cu
-               PUBLIC_LINK_LIBRARIES O2::ITStracking
+               PUBLIC_LINK_LIBRARIES O2::EC0tracking
                                      O2::SimConfig
                                      cub::cub
                                      O2::SimulationDataFormat
@@ -28,4 +28,4 @@ o2_add_library(ITStrackingCUDA
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 target_compile_definitions(
-  ${targetName} PRIVATE $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)
+  ${targetName} PRIVATE $<TARGET_PROPERTY:O2::EC0tracking,COMPILE_DEFINITIONS>)

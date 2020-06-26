@@ -21,12 +21,12 @@
 #include <vector>
 #include <string>
 #include <iomanip>
-#include "ITSMFTReconstruction/ChipMappingITS.h"
-#include "ITSMFTReconstruction/GBTWord.h"
+#include "EndCapsReconstruction/ChipMappingITS.h"
+#include "EndCapsReconstruction/GBTWord.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/Digit.h"
-#include "ITSMFTSimulation/MC2RawEncoder.h"
+#include "EndCapsSimulation/MC2RawEncoder.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "CommonUtils/StringUtils.h"
@@ -34,12 +34,12 @@
 #include "DetectorsRaw/HBFUtils.h"
 
 /// MC->raw conversion with new (variable page size) format for ITS
-using MAP = o2::itsmft::ChipMappingITS;
+using MAP = o2::endcaps::ChipMappingITS;
 namespace bpo = boost::program_options;
 
 constexpr int DefRDHVersion = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
 
-void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, std::string_view fileFor);
+void setupLinks(o2::endcaps::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, std::string_view fileFor);
 void digi2raw(std::string_view inpName, std::string_view outDir, std::string_view fileFor, int verbosity,
               uint32_t rdhV = DefRDHVersion, bool noEmptyHBF = false,
               int superPageSizeInB = 1024 * 1024);
@@ -136,7 +136,7 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
   std::string inputGRP = o2::base::NameConf::getGRPFileName();
   const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
 
-  o2::itsmft::MC2RawEncoder<MAP> m2r;
+  o2::endcaps::MC2RawEncoder<MAP> m2r;
   m2r.setVerbosity(verbosity);
   m2r.setContinuousReadout(grp->isDetContinuousReadOut(MAP::getDetID())); // must be set explicitly
   m2r.setDefaultSinkName(o2::utils::concat_string(MAP::getName(), ".raw"));
@@ -177,7 +177,7 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
   swTot.Print();
 }
 
-void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, std::string_view fileFor)
+void setupLinks(o2::endcaps::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, std::string_view fileFor)
 {
   //------------------------------------------------------------------------------->>>>
   // just as an example, we require here that the staves are read via 3 links, with partitioning according to lnkXB below

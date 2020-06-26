@@ -11,12 +11,12 @@
 /// \file SegmentationAlpide.cxx
 /// \brief Implementation of the SegmentationAlpide class
 
-#include "ITSMFTBase/SegmentationAlpide.h"
+#include "EndCapsBase/SegmentationAlpide.h"
 #include <cstdio>
 
-ClassImp(o2::itsmft::SegmentationAlpide);
+ClassImp(o2::endcaps::SegmentationAlpide);
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 void SegmentationAlpide::print()
 {

@@ -12,12 +12,12 @@
 /// \brief Implementation of the ITS digitization steering params
 
 #include "FairLogger.h" // for LOG
-#include "ITSMFTSimulation/DigiParams.h"
+#include "EndCapsSimulation/DigiParams.h"
 #include <cassert>
 
-ClassImp(o2::itsmft::DigiParams);
+ClassImp(o2::endcaps::DigiParams);
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 DigiParams::DigiParams()
 {

@@ -18,27 +18,27 @@
 #include <cassert>
 #include <hipcub/hipcub.hpp>
 
-#include "ITStracking/MathUtils.h"
-#include "ITStracking/Configuration.h"
-#include "ITStracking/ClusterLines.h"
-#include "ITStracking/Tracklet.h"
+#include "EC0tracking/MathUtils.h"
+#include "EC0tracking/Configuration.h"
+#include "EC0tracking/ClusterLines.h"
+#include "EC0tracking/Tracklet.h"
 
-#include "ITStrackingHIP/UtilsHIP.h"
-#include "ITStrackingHIP/ClusterLinesHIP.h"
-#include "ITStrackingHIP/ContextHIP.h"
-#include "ITStrackingHIP/StreamHIP.h"
-#include "ITStrackingHIP/VertexerTraitsHIP.h"
+#include "EC0trackingHIP/UtilsHIP.h"
+#include "EC0trackingHIP/ClusterLinesHIP.h"
+#include "EC0trackingHIP/ContextHIP.h"
+#include "EC0trackingHIP/StreamHIP.h"
+#include "EC0trackingHIP/VertexerTraitsHIP.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 using constants::index_table::PhiBins;
 using constants::index_table::ZBins;
-using constants::its::LayersRCoordinate;
-using constants::its::LayersZCoordinate;
-using constants::its::VertexerHistogramVolume;
+using constants::ecl::LayersRCoordinate;
+using constants::ecl::LayersZCoordinate;
+using constants::ecl::VertexerHistogramVolume;
 using constants::math::TwoPi;
 using index_table_utils::getPhiBinIndex;
 using index_table_utils::getZBinIndex;
@@ -59,8 +59,8 @@ GPUh() void gpuThrowOnError()
 VertexerTraitsHIP::VertexerTraitsHIP()
 {
   setIsGPU(true);
-  std::cout << "[DEBUG] Creating file: dbg_ITSVertexerHIP.root" << std::endl;
-  mDebugger = new StandaloneDebugger("dbg_ITSVertexerHIP.root");
+  std::cout << "[DEBUG] Creating file: dbg_EC0VertexerHIP.root" << std::endl;
+  mDebugger = new StandaloneDebugger("dbg_EC0VertexerHIP.root");
 }
 
 VertexerTraitsHIP::~VertexerTraitsHIP()
@@ -506,5 +506,5 @@ VertexerTraits* createVertexerTraitsHIP()
   return new VertexerTraitsHIP;
 }
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

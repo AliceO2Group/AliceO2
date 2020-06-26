@@ -12,14 +12,14 @@
 /// \brief
 ///
 
-#include "ITStracking/Cluster.h"
+#include "EC0tracking/Cluster.h"
 
-#include "ITStracking/IndexTableUtils.h"
-#include "ITStracking/MathUtils.h"
+#include "EC0tracking/IndexTableUtils.h"
+#include "EC0tracking/MathUtils.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 using math_utils::calculatePhiCoordinate;
@@ -97,5 +97,5 @@ TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float
 }
 #endif
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

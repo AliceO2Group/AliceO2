@@ -13,10 +13,10 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include <iostream>
-#include "ITSMFTSimulation/AlpideSimResponse.h"
+#include "EndCapsSimulation/AlpideSimResponse.h"
 #include "FairLogger.h"
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 BOOST_AUTO_TEST_CASE(AlpideSimResponse_test)
 {

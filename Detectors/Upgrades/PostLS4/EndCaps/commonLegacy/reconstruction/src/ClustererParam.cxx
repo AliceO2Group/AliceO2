@@ -8,15 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSMFTReconstruction/ClustererParam.h"
+#include "EndCapsReconstruction/ClustererParam.h"
 
 namespace o2
 {
-namespace itsmft
+namespace endcaps
 {
 // this makes sure that the constructor of the parameters is statically called
 // so that these params are part of the parameter database
-static auto& sClustererParamITS = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance();
-static auto& sClustererParamMFT = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance();
-} // namespace itsmft
+static auto& sClustererParamEC0 = o2::endcaps::ClustererParam<o2::detectors::DetID::EC0>::Instance();
+} // namespace endcaps
 } // namespace o2

@@ -14,11 +14,11 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::its::ClusterLines + ;
-#pragma link C++ class o2::its::Tracklet + ;
-#pragma link C++ class o2::its::Centroid + ;
+#pragma link C++ class o2::ecl::ClusterLines + ;
+#pragma link C++ class o2::ecl::Tracklet + ;
+#pragma link C++ class o2::ecl::Centroid + ;
 
-#pragma link C++ class o2::its::VertexerParamConfig + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper <o2::its::VertexerParamConfig> + ;
+#pragma link C++ class o2::ecl::VertexerParamConfig + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper <o2::ecl::VertexerParamConfig> + ;
 
 #endif

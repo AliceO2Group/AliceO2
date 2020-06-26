@@ -8,15 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSMFTBase/DPLAlpideParam.h"
+#include "EndCapsBase/DPLAlpideParam.h"
 
 namespace o2
 {
-namespace itsmft
+namespace endcaps
 {
 // this makes sure that the constructor of the parameters is statically called
 // so that these params are part of the parameter database
-static auto& sAlpideParamITS = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-static auto& sAlpideParamMFT = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
-} // namespace itsmft
+static auto& sAlpideParamEC0 = o2::endcaps::DPLAlpideParam<o2::detectors::DetID::EC0>::Instance();
+} // namespace endcaps
 } // namespace o2

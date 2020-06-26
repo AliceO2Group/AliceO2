@@ -15,8 +15,8 @@ if(DEFINED HIP_AMDGPUTARGET)
   set(TMP_TARGET "(GPU Target ${HIP_AMDGPUTARGET})")
 endif()
 
-message(STATUS "Building ITS HIP vertexer")
-o2_add_library(ITStrackingHIP
+message(STATUS "Building EC0 HIP vertexer")
+o2_add_library(EC0trackingHIP
                SOURCES src/ClusterLinesHIP.hip.cxx
                        src/ContextHIP.hip.cxx
                        # src/DeviceStoreHIP.hip.cxx
@@ -24,15 +24,15 @@ o2_add_library(ITStrackingHIP
                        src/StreamHIP.hip.cxx
                        # src/TrackerTraitsHIP.hip.cxx
                        src/VertexerTraitsHIP.hip.cxx
-                       src/UtilsHIP.hip.cxx                   
-               PUBLIC_LINK_LIBRARIES O2::ITStracking
+                       src/UtilsHIP.hip.cxx
+               PUBLIC_LINK_LIBRARIES O2::EC0tracking
                                      hip::host
                                      hip::device
                                      hip::hipcub
                TARGETVARNAME targetName)
 
 target_compile_definitions(
-  ${targetName} PRIVATE $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)
+  ${targetName} PRIVATE $<TARGET_PROPERTY:O2::EC0tracking,COMPILE_DEFINITIONS>)
 
 if(HIP_AMDGPUTARGET)
   target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})

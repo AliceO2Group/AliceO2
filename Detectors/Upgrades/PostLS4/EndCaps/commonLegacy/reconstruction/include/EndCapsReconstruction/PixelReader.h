@@ -1,0 +1,81 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file PixelReader.h
+/// \brief Abstract class for Alpide data reader class
+
+#ifndef ALICEO2_ENDCAPS_PIXELREADER_H
+#define ALICEO2_ENDCAPS_PIXELREADER_H
+
+#include <Rtypes.h>
+#include "EndCapsReconstruction/PixelData.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "CommonDataFormat/InteractionRecord.h"
+#include <vector>
+
+namespace o2
+{
+
+namespace endcaps
+{
+/// \class PixelReader
+/// \brief PixelReader class for the PostLS4 EndCaps
+///
+class PixelReader
+{
+ public:
+  /// Transient data for single fired pixel
+
+  PixelReader() = default;
+  virtual ~PixelReader() = default;
+  PixelReader(const PixelReader& cluster) = delete;
+
+  PixelReader& operator=(const PixelReader& src) = delete;
+  virtual void init() = 0;
+  virtual bool getNextChipData(ChipPixelData& chipData) = 0;
+  virtual ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) = 0;
+
+  // prepare data of next trigger, return number of non-empty links or chips
+  virtual int decodeNextTrigger() = 0;
+  virtual const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* getDigitsMCTruth() const
+  {
+    return nullptr;
+  }
+  const o2::InteractionRecord& getInteractionRecordHB() const
+  {
+    return mInteractionRecordHB;
+  }
+  const o2::InteractionRecord& getInteractionRecord() const
+  {
+    return mInteractionRecord;
+  }
+  uint32_t getTrigger() const
+  {
+    return mTrigger;
+  }
+
+  bool getDecodeNextAuto() const { return mDecodeNextAuto; }
+  void setDecodeNextAuto(bool v) { mDecodeNextAuto = v; }
+  //
+ protected:
+  //
+  o2::InteractionRecord mInteractionRecordHB = {}; // interation record for the HB
+  o2::InteractionRecord mInteractionRecord = {};   // interation record for the trigger
+  uint32_t mTrigger = 0;
+  bool mDecodeNextAuto = true; // try to fetch/decode next trigger when getNextChipData does not see any decoded data
+
+  ClassDef(PixelReader, 1);
+};
+
+} // namespace endcaps
+} // namespace o2
+
+#endif /* ALICEO2_ENDCAPSLAYERS_PIXELREADER_H */

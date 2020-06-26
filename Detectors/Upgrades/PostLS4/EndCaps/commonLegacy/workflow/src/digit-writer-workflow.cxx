@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSMFTWorkflow/DigitWriterSpec.h"
+#include "EndCapsWorkflow/DigitWriterSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
 
@@ -40,10 +40,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
-  if (cfgc.options().get<bool>("mft")) {
-    wf.emplace_back(o2::itsmft::getMFTDigitWriterSpec(useMC));
-  } else {
-    wf.emplace_back(o2::itsmft::getITSDigitWriterSpec(useMC));
+  if (cfgc.options().get<bool>("ec0")) {
+    wf.emplace_back(o2::endcaps::getEC0DigitWriterSpec(useMC));
   }
   return wf;
 }

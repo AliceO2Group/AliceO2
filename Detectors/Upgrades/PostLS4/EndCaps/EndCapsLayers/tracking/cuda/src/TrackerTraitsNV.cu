@@ -12,7 +12,7 @@
 /// \brief
 ///
 
-#include "ITStrackingCUDA/TrackerTraitsNV.h"
+#include "EC0trackingCUDA/TrackerTraitsNV.h"
 
 #include <array>
 #include <sstream>
@@ -22,19 +22,19 @@
 
 #include "cub/cub.cuh"
 
-#include "ITStracking/Constants.h"
-#include "ITStracking/Configuration.h"
-#include "ITStracking/IndexTableUtils.h"
-#include "ITStracking/MathUtils.h"
-#include "ITStrackingCUDA/Context.h"
-#include "ITStrackingCUDA/DeviceStoreNV.h"
-#include "ITStrackingCUDA/PrimaryVertexContextNV.h"
-#include "ITStrackingCUDA/Stream.h"
-#include "ITStrackingCUDA/Vector.h"
+#include "EC0tracking/Constants.h"
+#include "EC0tracking/Configuration.h"
+#include "EC0tracking/IndexTableUtils.h"
+#include "EC0tracking/MathUtils.h"
+#include "EC0trackingCUDA/Context.h"
+#include "EC0trackingCUDA/DeviceStoreNV.h"
+#include "EC0trackingCUDA/PrimaryVertexContextNV.h"
+#include "EC0trackingCUDA/Stream.h"
+#include "EC0trackingCUDA/Vector.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 namespace GPU
 {
@@ -52,13 +52,13 @@ __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIn
     Vector<Cluster> nextLayerClusters{devStore.getClusters()[layerIndex + 1].getWeakCopy()};
     const Cluster currentCluster{devStore.getClusters()[layerIndex][currentClusterIndex]};
 
-    /*if (mUsedClustersTable[currentCluster.clusterId] != constants::its::UnusedIndex) {
+    /*if (mUsedClustersTable[currentCluster.clusterId] != constants::ecl::UnusedIndex) {
 
      continue;
      }*/
 
     const float tanLambda{(currentCluster.zCoordinate - devStore.getPrimaryVertex().z) / currentCluster.rCoordinate};
-    const float directionZIntersection{tanLambda * ((constants::its::LayersRCoordinate())[layerIndex + 1] - currentCluster.rCoordinate) + currentCluster.zCoordinate};
+    const float directionZIntersection{tanLambda * ((constants::ecl::LayersRCoordinate())[layerIndex + 1] - currentCluster.rCoordinate) + currentCluster.zCoordinate};
 
     const int4 selectedBinsRect{TrackerTraits::getBinsRect(currentCluster, layerIndex, directionZIntersection,
                                                            kTrkPar.TrackletMaxDeltaZ[layerIndex], kTrkPar.TrackletMaxDeltaPhi)};
@@ -281,11 +281,11 @@ void TrackerTraitsNV::computeLayerTracklets()
   PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
 
   cudaMemcpyToSymbol(GPU::kTrkPar, &mTrkParams, sizeof(TrackingParameters));
-  std::array<size_t, constants::its::CellsPerRoad> tempSize;
-  std::array<int, constants::its::CellsPerRoad> trackletsNum;
-  std::array<GPU::Stream, constants::its::TrackletsPerRoad> streamArray;
+  std::array<size_t, constants::ecl::CellsPerRoad> tempSize;
+  std::array<int, constants::ecl::CellsPerRoad> trackletsNum;
+  std::array<GPU::Stream, constants::ecl::TrackletsPerRoad> streamArray;
 
-  for (int iLayer{0}; iLayer < constants::its::CellsPerRoad; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::ecl::CellsPerRoad; ++iLayer) {
 
     tempSize[iLayer] = 0;
     primaryVertexContext->getTempTrackletArray()[iLayer].reset(
@@ -301,7 +301,7 @@ void TrackerTraitsNV::computeLayerTracklets()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer{0}; iLayer < constants::its::TrackletsPerRoad; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::ecl::TrackletsPerRoad; ++iLayer) {
 
     const GPU::DeviceProperties& deviceProperties = GPU::Context::getInstance().getDeviceProperties();
     const int clustersNum{static_cast<int>(primaryVertexContext->getClusters()[iLayer].size())};
@@ -333,7 +333,7 @@ void TrackerTraitsNV::computeLayerTracklets()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer{0}; iLayer < constants::its::CellsPerRoad; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::ecl::CellsPerRoad; ++iLayer) {
 
     trackletsNum[iLayer] = primaryVertexContext->getTempTrackletArray()[iLayer].getSizeFromDevice();
     if (trackletsNum[iLayer] == 0) {
@@ -369,12 +369,12 @@ void TrackerTraitsNV::computeLayerCells()
 {
 
   PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
-  std::array<size_t, constants::its::CellsPerRoad - 1> tempSize;
-  std::array<int, constants::its::CellsPerRoad - 1> trackletsNum;
-  std::array<int, constants::its::CellsPerRoad - 1> cellsNum;
-  std::array<GPU::Stream, constants::its::CellsPerRoad> streamArray;
+  std::array<size_t, constants::ecl::CellsPerRoad - 1> tempSize;
+  std::array<int, constants::ecl::CellsPerRoad - 1> trackletsNum;
+  std::array<int, constants::ecl::CellsPerRoad - 1> cellsNum;
+  std::array<GPU::Stream, constants::ecl::CellsPerRoad> streamArray;
 
-  for (int iLayer{0}; iLayer < constants::its::CellsPerRoad - 1; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::ecl::CellsPerRoad - 1; ++iLayer) {
 
     tempSize[iLayer] = 0;
     trackletsNum[iLayer] = primaryVertexContext->getDeviceTracklets()[iLayer + 1].getSizeFromDevice();
@@ -392,7 +392,7 @@ void TrackerTraitsNV::computeLayerCells()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer{0}; iLayer < constants::its::CellsPerRoad; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::ecl::CellsPerRoad; ++iLayer) {
     const GPU::DeviceProperties& deviceProperties = GPU::Context::getInstance().getDeviceProperties();
     const int trackletsSize = primaryVertexContext->getDeviceTracklets()[iLayer].getSizeFromDevice();
     if (trackletsSize == 0) {
@@ -426,7 +426,7 @@ void TrackerTraitsNV::computeLayerCells()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer{0}; iLayer < constants::its::CellsPerRoad - 1; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::ecl::CellsPerRoad - 1; ++iLayer) {
     cellsNum[iLayer] = primaryVertexContext->getTempCellArray()[iLayer].getSizeFromDevice();
     if (cellsNum[iLayer] == 0) {
       continue;
@@ -458,7 +458,7 @@ void TrackerTraitsNV::computeLayerCells()
 
   cudaDeviceSynchronize();
 
-  for (int iLayer{0}; iLayer < constants::its::CellsPerRoad; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::ecl::CellsPerRoad; ++iLayer) {
 
     int cellsSize = 0;
     if (iLayer == 0) {
@@ -493,5 +493,5 @@ void TrackerTraitsNV::refitTracks(const std::array<std::vector<TrackingFrameInfo
   }
   mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
 }
-} // namespace its
+} // namespace ecl
 } // namespace o2

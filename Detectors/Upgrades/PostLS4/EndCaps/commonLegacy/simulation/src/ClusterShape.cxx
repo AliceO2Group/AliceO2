@@ -16,11 +16,11 @@
 #include <TBits.h>
 #include <TRandom.h>
 
-#include "ITSMFTSimulation/ClusterShape.h"
+#include "EndCapsSimulation/ClusterShape.h"
 
-ClassImp(o2::itsmft::ClusterShape);
+ClassImp(o2::endcaps::ClusterShape);
 
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 //______________________________________________________________________
 ClusterShape::ClusterShape() : mNrows(0),

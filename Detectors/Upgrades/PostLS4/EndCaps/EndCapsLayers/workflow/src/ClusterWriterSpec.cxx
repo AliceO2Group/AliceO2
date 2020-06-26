@@ -12,7 +12,7 @@
 
 #include <vector>
 
-#include "ITSWorkflow/ClusterWriterSpec.h"
+#include "EC0Workflow/ClusterWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -24,7 +24,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 template <typename T>
@@ -46,32 +46,32 @@ DataProcessorSpec getClusterWriterSpec(bool useMC)
     *compClustersSize = compClusters.size();
   };
   auto logger = [compClustersSize](std::vector<o2::itsmft::ROFRecord> const& rofs) {
-    LOG(INFO) << "ITSClusterWriter pulled " << *compClustersSize << " clusters, in " << rofs.size() << " RO frames";
+    LOG(INFO) << "EC0ClusterWriter pulled " << *compClustersSize << " clusters, in " << rofs.size() << " RO frames";
   };
-  return MakeRootTreeWriterSpec("its-cluster-writer",
-                                "o2clus_its.root",
-                                MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with ITS clusters"},
-                                BranchDefinition<CompClusType>{InputSpec{"compclus", "ITS", "COMPCLUSTERS", 0},
-                                                               "ITSClusterComp",
+  return MakeRootTreeWriterSpec("ecl-cluster-writer",
+                                "o2clus_ecl.root",
+                                MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with EC0 clusters"},
+                                BranchDefinition<CompClusType>{InputSpec{"compclus", "EC0", "COMPCLUSTERS", 0},
+                                                               "EC0ClusterComp",
                                                                compClustersSizeGetter},
-                                BranchDefinition<PatternsType>{InputSpec{"patterns", "ITS", "PATTERNS", 0},
-                                                               "ITSClusterPatt"},
+                                BranchDefinition<PatternsType>{InputSpec{"patterns", "EC0", "PATTERNS", 0},
+                                                               "EC0ClusterPatt"},
                                 // this has been marked to be removed in the original implementation
                                 // RSTODO being eliminated
-                                BranchDefinition<ClustersType>{InputSpec{"clusters", "ITS", "CLUSTERS", 0},
-                                                               "ITSCluster"},
-                                BranchDefinition<ROFrameRType>{InputSpec{"ROframes", "ITS", "CLUSTERSROF", 0},
-                                                               "ITSClustersROF",
+                                BranchDefinition<ClustersType>{InputSpec{"clusters", "EC0", "CLUSTERS", 0},
+                                                               "EC0Cluster"},
+                                BranchDefinition<ROFrameRType>{InputSpec{"ROframes", "EC0", "CLUSTERSROF", 0},
+                                                               "EC0ClustersROF",
                                                                logger},
-                                BranchDefinition<LabelsType>{InputSpec{"labels", "ITS", "CLUSTERSMCTR", 0},
-                                                             "ITSClusterMCTruth",
+                                BranchDefinition<LabelsType>{InputSpec{"labels", "EC0", "CLUSTERSMCTR", 0},
+                                                             "EC0ClusterMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""},
-                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "ITS", "CLUSTERSMC2ROF", 0},
-                                                             "ITSClustersMC2ROF",
+                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "EC0", "CLUSTERSMC2ROF", 0},
+                                                             "EC0ClustersMC2ROF",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""})();
 }
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

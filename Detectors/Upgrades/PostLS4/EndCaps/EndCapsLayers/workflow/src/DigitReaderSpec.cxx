@@ -16,23 +16,23 @@
 
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
-#include "ITSWorkflow/DigitReaderSpec.h"
+#include "EC0Workflow/DigitReaderSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 
 using namespace o2::framework;
-using namespace o2::itsmft;
+using namespace o2::endcaps;
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 void DigitReader::init(InitContext& ic)
 {
-  auto filename = ic.options().get<std::string>("its-digit-infile");
+  auto filename = ic.options().get<std::string>("ecl-digit-infile");
   mFile = std::make_unique<TFile>(filename.c_str(), "OLD");
   if (!mFile->IsOpen()) {
     LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
@@ -53,30 +53,30 @@ void DigitReader::run(ProcessingContext& pc)
   if (treeDig) {
 
     std::vector<o2::itsmft::Digit> digits, *pdigits = &digits;
-    treeDig->SetBranchAddress("ITSDigit", &pdigits);
+    treeDig->SetBranchAddress("EC0Digit", &pdigits);
 
     std::vector<ROFRecord> rofs, *profs = &rofs;
-    treeDig->SetBranchAddress("ITSDigitROF", &profs);
+    treeDig->SetBranchAddress("EC0DigitROF", &profs);
 
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels, *plabels = &labels;
     std::vector<MC2ROFRecord> mc2rofs, *pmc2rofs = &mc2rofs;
     if (mUseMC) {
-      treeDig->SetBranchAddress("ITSDigitMCTruth", &plabels);
-      treeDig->SetBranchAddress("ITSDigitMC2ROF", &pmc2rofs);
+      treeDig->SetBranchAddress("EC0DigitMCTruth", &plabels);
+      treeDig->SetBranchAddress("EC0DigitMC2ROF", &pmc2rofs);
     }
     treeDig->GetEntry(0);
 
-    LOG(INFO) << "ITSDigitReader pushed " << digits.size() << " digits, in "
+    LOG(INFO) << "EC0DigitReader pushed " << digits.size() << " digits, in "
               << profs->size() << " RO frames";
 
-    pc.outputs().snapshot(Output{"ITS", "DIGITS", 0, Lifetime::Timeframe}, digits);
-    pc.outputs().snapshot(Output{"ITS", "DIGITSROF", 0, Lifetime::Timeframe}, *profs);
+    pc.outputs().snapshot(Output{"EC0", "DIGITS", 0, Lifetime::Timeframe}, digits);
+    pc.outputs().snapshot(Output{"EC0", "DIGITSROF", 0, Lifetime::Timeframe}, *profs);
     if (mUseMC) {
-      pc.outputs().snapshot(Output{"ITS", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
-      pc.outputs().snapshot(Output{"ITS", "DIGITSMC2ROF", 0, Lifetime::Timeframe}, *pmc2rofs);
+      pc.outputs().snapshot(Output{"EC0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
+      pc.outputs().snapshot(Output{"EC0", "DIGITSMC2ROF", 0, Lifetime::Timeframe}, *pmc2rofs);
     }
   } else {
-    LOG(ERROR) << "Cannot read the ITS digits !";
+    LOG(ERROR) << "Cannot read the EC0 digits !";
     return;
   }
   mState = 2;
@@ -87,21 +87,21 @@ void DigitReader::run(ProcessingContext& pc)
 DataProcessorSpec getDigitReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("ITS", "DIGITS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS", "DIGITSROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EC0", "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EC0", "DIGITSROF", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputs.emplace_back("ITS", "DIGITSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("ITS", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("EC0", "DIGITSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("EC0", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
-    "its-digit-reader",
+    "ecl-digit-reader",
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<DigitReader>(useMC)},
     Options{
-      {"its-digit-infile", VariantType::String, "itsdigits.root", {"Name of the input file"}}}};
+      {"ecl-digit-infile", VariantType::String, "ecldigits.root", {"Name of the input file"}}}};
 }
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

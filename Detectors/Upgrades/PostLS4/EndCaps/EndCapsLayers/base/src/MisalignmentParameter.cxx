@@ -11,13 +11,13 @@
 /// \file MisalignmentParameter.cxx
 /// \brief Implementation of the MisalignmentParameter class
 
-#include "ITSBase/MisalignmentParameter.h"
+#include "ECLayersBase/MisalignmentParameter.h"
 
 #include "FairParamList.h"
 
-using namespace o2::its;
+using namespace o2::ecl;
 
-ClassImp(o2::its::MisalignmentParameter);
+ClassImp(o2::ecl::MisalignmentParameter);
 
 MisalignmentParameter::MisalignmentParameter(const char* name, const char* title, const char* context)
   : FairParGenericSet(name, title, context),

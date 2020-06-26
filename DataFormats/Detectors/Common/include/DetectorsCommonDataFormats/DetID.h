@@ -70,7 +70,8 @@ class DetID
   static constexpr ID ACO = 15;
 #ifdef ENABLE_UPGRADES
   static constexpr ID IT3 = 16;
-  static constexpr ID Last = IT3;
+  static constexpr ID EC0 = 17;
+  static constexpr ID Last = EC0;
 #else
   static constexpr ID Last = ACO; ///< if extra detectors added, update this !!!
 #endif

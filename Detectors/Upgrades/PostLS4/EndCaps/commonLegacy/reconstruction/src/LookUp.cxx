@@ -13,15 +13,15 @@
 ///
 /// \author Luca Barioglio, University and INFN of Torino
 
-#include "ITSMFTReconstruction/LookUp.h"
+#include "EndCapsReconstruction/LookUp.h"
 
-ClassImp(o2::itsmft::LookUp);
+ClassImp(o2::endcaps::LookUp);
 
 using std::array;
 
 namespace o2
 {
-namespace itsmft
+namespace endcaps
 {
 
 LookUp::LookUp() : mDictionary{}, mTopologiesOverThreshold{0} {}
@@ -83,5 +83,5 @@ bool LookUp::isGroup(int id) const
   return mDictionary.isGroup(id);
 }
 
-} // namespace itsmft
+} // namespace endcaps
 } // namespace o2

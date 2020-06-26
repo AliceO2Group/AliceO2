@@ -12,11 +12,11 @@
 /// \brief
 ///
 
-#include "ITStracking/IndexTableUtils.h"
+#include "EC0tracking/IndexTableUtils.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 const std::vector<std::pair<int, int>> index_table_utils::selectClusters(
@@ -44,5 +44,5 @@ const std::vector<std::pair<int, int>> index_table_utils::selectClusters(
 
   return filteredBins;
 }
-} // namespace its
+} // namespace ecl
 } // namespace o2

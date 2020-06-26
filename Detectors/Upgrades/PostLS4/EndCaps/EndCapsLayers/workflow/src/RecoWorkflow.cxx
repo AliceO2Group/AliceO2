@@ -10,19 +10,19 @@
 
 /// @file   RecoWorkflow.cxx
 
-#include "ITSWorkflow/RecoWorkflow.h"
+#include "EC0Workflow/RecoWorkflow.h"
 
-#include "ITSWorkflow/DigitReaderSpec.h"
-#include "ITSWorkflow/ClustererSpec.h"
-#include "ITSWorkflow/ClusterWriterSpec.h"
-#include "ITSWorkflow/TrackerSpec.h"
-#include "ITSWorkflow/CookedTrackerSpec.h"
-#include "ITSWorkflow/TrackWriterSpec.h"
-#include "ITSMFTWorkflow/EntropyEncoderSpec.h"
+#include "EC0Workflow/DigitReaderSpec.h"
+#include "EC0Workflow/ClustererSpec.h"
+#include "EC0Workflow/ClusterWriterSpec.h"
+#include "EC0Workflow/TrackerSpec.h"
+#include "EC0Workflow/CookedTrackerSpec.h"
+#include "EC0Workflow/TrackWriterSpec.h"
+#include "EndCapsWorkflow/EntropyEncoderSpec.h"
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 namespace reco_workflow
@@ -35,30 +35,30 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, o2::gpu::GPUD
   framework::WorkflowSpec specs;
 
   if (!(upstreamDigits || upstreamClusters)) {
-    specs.emplace_back(o2::its::getDigitReaderSpec(useMC));
+    specs.emplace_back(o2::ecl::getDigitReaderSpec(useMC));
   }
 
   if (!upstreamClusters) {
-    specs.emplace_back(o2::its::getClustererSpec(useMC));
+    specs.emplace_back(o2::ecl::getClustererSpec(useMC));
   }
   if (!disableRootOutput) {
-    specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
+    specs.emplace_back(o2::ecl::getClusterWriterSpec(useMC));
   }
   if (useCAtracker) {
-    specs.emplace_back(o2::its::getTrackerSpec(useMC, dtype));
+    specs.emplace_back(o2::ecl::getTrackerSpec(useMC, dtype));
   } else {
-    specs.emplace_back(o2::its::getCookedTrackerSpec(useMC));
+    specs.emplace_back(o2::ecl::getCookedTrackerSpec(useMC));
   }
   if (!disableRootOutput) {
-    specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
+    specs.emplace_back(o2::ecl::getTrackWriterSpec(useMC));
   }
 
   if (eencode) {
-    specs.emplace_back(o2::itsmft::getEntropyEncoderSpec("ITS"));
+    specs.emplace_back(o2::endcaps::getEntropyEncoderSpec("EC0"));
   }
   return specs;
 }
 
 } // namespace reco_workflow
-} // namespace its
+} // namespace ecl
 } // namespace o2

@@ -14,19 +14,19 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "ITSWorkflow/VertexReaderSpec.h"
+#include "EC0Workflow/VertexReaderSpec.h"
 
 using namespace o2::framework;
-using namespace o2::its;
+using namespace o2::ecl;
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 void VertexReader::init(InitContext& ic)
 {
-  mFileName = ic.options().get<std::string>("its-vertex-infile");
+  mFileName = ic.options().get<std::string>("ecl-vertex-infile");
   connectTree(mFileName);
 }
 
@@ -37,8 +37,8 @@ void VertexReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
   LOG(INFO) << "Pushing " << mVerticesPtr->size() << " vertices in " << mVerticesROFRecPtr->size()
             << " ROFs at entry " << ent;
-  pc.outputs().snapshot(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe}, mVertices);
-  pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe}, mVerticesROFRec);
+  pc.outputs().snapshot(Output{"EC0", "VERTICES", 0, Lifetime::Timeframe}, mVertices);
+  pc.outputs().snapshot(Output{"EC0", "VERTICESROF", 0, Lifetime::Timeframe}, mVerticesROFRec);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
@@ -60,20 +60,20 @@ void VertexReader::connectTree(const std::string& filename)
   LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getITSVertexReaderSpec()
+DataProcessorSpec getEC0VertexReaderSpec()
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
-  outputSpec.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("EC0", "VERTICES", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("EC0", "VERTICESROF", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
-    "its-vertex-reader",
+    "ecl-vertex-reader",
     Inputs{},
     outputSpec,
     AlgorithmSpec{adaptFromTask<VertexReader>()},
     Options{
-      {"its-vertex-infile", VariantType::String, "o2trac_its.root", {"Name of the input ITS vertex file"}}}};
+      {"ecl-vertex-infile", VariantType::String, "o2trac_ecl.root", {"Name of the input EC0 vertex file"}}}};
 }
 
-} // namespace its
+} // namespace ecl
 } // namespace o2

@@ -12,13 +12,13 @@
 /// \brief
 ///
 
-#include "ITStracking/ROframe.h"
+#include "EC0tracking/ROframe.h"
 
 #include <iostream>
 
 namespace o2
 {
-namespace its
+namespace ecl
 {
 
 ROframe::ROframe(const int ROframeId) : mROframeId{ROframeId}
@@ -55,5 +55,5 @@ int ROframe::getTotalClusters() const
     totalClusters += clusters.size();
   return int(totalClusters);
 }
-} // namespace its
+} // namespace ecl
 } // namespace o2
