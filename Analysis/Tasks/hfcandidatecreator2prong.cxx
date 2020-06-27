@@ -28,6 +28,11 @@ using std::array;
 
 struct HFCandidateCreator2Prong {
   Produces<aod::HfCandProng2> hfcandprong2;
+  Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
+  OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hmass2{TH1F("hmass2", "2-track inv mass", 500, 0, 5.0)};
   Configurable<double> d_bz{"d_bz", 5.0, "bz field"};
   Configurable<bool> b_propdca{"b_propdca", true,
                                "create tracks version propagated to PCA"};
@@ -97,6 +102,14 @@ struct HFCandidateCreator2Prong {
                                      pvec1[2], masspion);
       LOGF(info, "mass x %f %f", mass_, masssw_);
       hfcandprong2(mass_, masssw_);
+      if (b_dovalplots == true) {
+        hvtx_x_out->Fill(vtx[0]);
+        hvtx_y_out->Fill(vtx[1]);
+        hvtx_z_out->Fill(vtx[2]);
+        hmass2->Fill(mass_);
+        hmass2->Fill(masssw_);
+
+      }
     }
   }
 };
