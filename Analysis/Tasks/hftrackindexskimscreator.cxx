@@ -76,14 +76,14 @@ struct SelectTracks {
                                        track_0.cTglSnp(), track_0.cTglTgl(),
                                        track_0.c1PtY(), track_0.c1PtZ(), track_0.c1PtSnp(),
                                        track_0.c1PtTgl(), track_0.c1Pt21Pt2()};
-      //o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
-      //trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca);
-      //if (dca[0] * dca[0] + dca[1] * dca[1] < dcatrackmin * dcatrackmin)
-      //  status = 0;
+      o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
+      trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca);
+      if (dca[0] * dca[0] + dca[1] * dca[1] < dcatrackmin * dcatrackmin)
+        status = 0;
       if (b_dovalplots == true) {
         if (status == 1) {
           hpt_cuts->Fill(track_0.pt());
-          //hdca_cuts->Fill(sqrt(dca[0] * dca[0] + dca[1] * dca[1]));
+          hdca_cuts->Fill(sqrt(dca[0] * dca[0] + dca[1] * dca[1]));
         }
       }
       seltrack(status, dca[0], dca[1]);
@@ -184,15 +184,14 @@ struct HFTrackIndexSkimsCreator {
         std::array<float, 3> pvec1;
         df.getTrack(0).getPxPyPzGlo(pvec0);
         df.getTrack(1).getPxPyPzGlo(pvec1);
-        float mass_ = invmass2prongs(pvec0[0], pvec0[1],
-                                     pvec0[2], masspion,
-                                     pvec1[0], pvec1[1],
-                                     pvec1[2], masskaon);
-        float masssw_ = invmass2prongs(pvec0[0], pvec0[1],
-                                       pvec0[2], masskaon,
-                                       pvec1[0], pvec1[1],
-                                       pvec1[2], masspion);
-        LOGF(info, "mass x %f %f", mass_, masssw_);
+        float mass_ = sqrt(invmass2prongs2(pvec0[0], pvec0[1],
+                                           pvec0[2], masspion,
+                                           pvec1[0], pvec1[1],
+                                           pvec1[2], masskaon));
+        float masssw_ = sqrt(invmass2prongs2(pvec0[0], pvec0[1],
+                                             pvec0[2], masskaon,
+                                             pvec1[0], pvec1[1],
+                                             pvec1[2], masspion));
         if (b_dovalplots == true) {
           hmass2pre->Fill(mass_);
           hmass2pre->Fill(masssw_);
@@ -229,6 +228,21 @@ struct HFTrackIndexSkimsCreator {
             if (nCand3 == 0)
               continue;
             const auto& vtx3 = df3.getPCACandidate();
+            std::array<float, 3> pvec0;
+            std::array<float, 3> pvec1;
+            std::array<float, 3> pvec2;
+            df.getTrack(0).getPxPyPzGlo(pvec0);
+            df.getTrack(1).getPxPyPzGlo(pvec1);
+            df.getTrack(2).getPxPyPzGlo(pvec2);
+            float mass_ = sqrt(invmass3prongs2(pvec0[0], pvec0[1],
+                                               pvec0[2], masspion,
+                                               pvec1[0], pvec1[1],
+                                               pvec1[2], masskaon,
+                                               pvec2[0], pvec2[1],
+                                               pvec2[2], masspion));
+            if (b_dovalplots == true) {
+              hmass3pre->Fill(mass_);
+            }
             hftrackindexprong3(track_p1.collisionId(),
                                track_p1.globalIndex(),
                                track_n1.globalIndex(),
@@ -261,12 +275,21 @@ struct HFTrackIndexSkimsCreator {
             if (nCand3 == 0)
               continue;
             const auto& vtx3 = df3.getPCACandidate();
-            //std::array<float, 3> pvec0_3p;
-            //std::array<float, 3> pvec1_3p;
-            //std::array<float, 3> pvec2_3p;
-            //df3.getTrack(0).getPxPyPzGlo(pvec0_3p);
-            //df3.getTrack(1).getPxPyPzGlo(pvec1_3p);
-            //df3.getTrack(2).getPxPyPzGlo(pvec2_3p);
+            std::array<float, 3> pvec0;
+            std::array<float, 3> pvec1;
+            std::array<float, 3> pvec2;
+            df.getTrack(0).getPxPyPzGlo(pvec0);
+            df.getTrack(1).getPxPyPzGlo(pvec1);
+            df.getTrack(2).getPxPyPzGlo(pvec2);
+            float mass_ = sqrt(invmass3prongs2(pvec0[0], pvec0[1],
+                                               pvec0[2], masspion,
+                                               pvec1[0], pvec1[1],
+                                               pvec1[2], masskaon,
+                                               pvec2[0], pvec2[1],
+                                               pvec2[2], masspion));
+            if (b_dovalplots == true) {
+              hmass3pre->Fill(mass_);
+            }
             hftrackindexprong3(track_n1.collisionId(),
                                track_n1.globalIndex(),
                                track_p1.globalIndex(),

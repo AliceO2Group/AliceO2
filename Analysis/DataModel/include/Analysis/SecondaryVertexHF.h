@@ -68,8 +68,8 @@ float energy(float px, float py, float pz, float mass)
   return en_;
 };
 
-float invmass2prongs(float px0, float py0, float pz0, float mass0,
-                     float px1, float py1, float pz1, float mass1)
+float invmass2prongs2(float px0, float py0, float pz0, float mass0,
+                      float px1, float py1, float pz1, float mass1)
 {
 
   float energy0_ = energy(px0, py0, pz0, mass0);
@@ -79,8 +79,7 @@ float invmass2prongs(float px0, float py0, float pz0, float mass0,
   float psum2 = (px0 + px1) * (px0 + px1) +
                 (py0 + py1) * (py0 + py1) +
                 (pz0 + pz1) * (pz0 + pz1);
-  float mass = sqrtf(energytot * energytot - psum2);
-  return mass;
+  return energytot * energytot - psum2;
 };
 
 float invmass3prongs2(float px0, float py0, float pz0, float mass0,

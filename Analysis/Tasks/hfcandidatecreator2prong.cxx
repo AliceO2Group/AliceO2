@@ -55,8 +55,6 @@ struct HFCandidateCreator2Prong {
     df.setMinRelChi2Change(d_minrelchi2change);
 
     for (auto& hfpr2 : hftrackindexprong2s) {
-      LOGF(INFO, "test %f", hfpr2.hfflag());
-
       float x_p1 = hfpr2.index0().x();
       float alpha_p1 = hfpr2.index0().alpha();
       std::array<float, 5> arraypar_p1 = {hfpr2.index0().y(), hfpr2.index0().z(), hfpr2.index0().snp(),
@@ -85,22 +83,20 @@ struct HFCandidateCreator2Prong {
       if (nCand == 0)
         continue;
       const auto& vtx = df.getPCACandidate();
-      LOGF(info, "vertex x %f", vtx[0]);
       std::array<float, 3> pvec0;
       std::array<float, 3> pvec1;
       df.getTrack(0).getPxPyPzGlo(pvec0);
       df.getTrack(1).getPxPyPzGlo(pvec1);
       float masspion = 0.140;
       float masskaon = 0.494;
-      float mass_ = invmass2prongs(pvec0[0], pvec0[1],
-                                   pvec0[2], masspion,
-                                   pvec1[0], pvec1[1],
-                                   pvec1[2], masskaon);
-      float masssw_ = invmass2prongs(pvec0[0], pvec0[1],
-                                     pvec0[2], masskaon,
-                                     pvec1[0], pvec1[1],
-                                     pvec1[2], masspion);
-      LOGF(info, "mass x %f %f", mass_, masssw_);
+      float mass_ = sqrt(invmass2prongs2(pvec0[0], pvec0[1],
+                                         pvec0[2], masspion,
+                                         pvec1[0], pvec1[1],
+                                         pvec1[2], masskaon));
+      float masssw_ = sqrt(invmass2prongs2(pvec0[0], pvec0[1],
+                                           pvec0[2], masskaon,
+                                           pvec1[0], pvec1[1],
+                                           pvec1[2], masspion));
       hfcandprong2(mass_, masssw_);
       if (b_dovalplots == true) {
         hvtx_x_out->Fill(vtx[0]);
