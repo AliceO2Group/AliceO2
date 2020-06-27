@@ -161,7 +161,7 @@ DECLARE_SOA_COLUMN(TPCNClsFindable, tpcNClsFindable, uint8_t);
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t);
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedRows, int8_t);
 DECLARE_SOA_COLUMN(TPCNClsShared, tpcNClsShared, uint8_t);
-DECLARE_SOA_COLUMN(TRDTOFPattern, trdTofPattern, uint8_t);
+DECLARE_SOA_COLUMN(TRDPattern, trdPattern, uint8_t);
 DECLARE_SOA_COLUMN(ITSChi2NCl, itsChi2NCl, float);
 DECLARE_SOA_COLUMN(TPCChi2NCl, tpcChi2NCl, float);
 DECLARE_SOA_COLUMN(TRDChi2, trdChi2, float);
@@ -170,6 +170,7 @@ DECLARE_SOA_COLUMN(TPCSignal, tpcSignal, float);
 DECLARE_SOA_COLUMN(TRDSignal, trdSignal, float);
 DECLARE_SOA_COLUMN(TOFSignal, tofSignal, float);
 DECLARE_SOA_COLUMN(Length, length, float);
+DECLARE_SOA_COLUMN(TOFExpMom, tofExpMom, float);
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, [](uint8_t tpcNClsFindable, uint8_t tpcNClsFindableMinusFound) -> int16_t { return tpcNClsFindable - tpcNClsFindableMinusFound; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, [](uint8_t tpcNClsFindable, uint8_t TPCNClsFindableMinusCrossedRows) -> int16_t { return tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, [](uint8_t itsClusterMap) -> uint8_t {
@@ -238,9 +239,9 @@ DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKPARCOV",
 DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCInnerParam, track::Flags, track::ITSClusterMap,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
-                  track::TPCNClsShared, track::TRDTOFPattern, track::ITSChi2NCl,
+                  track::TPCNClsShared, track::TRDPattern, track::ITSChi2NCl,
                   track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
-                  track::TPCSignal, track::TRDSignal, track::TOFSignal, track::Length,
+                  track::TPCSignal, track::TRDSignal, track::TOFSignal, track::Length, track::TOFExpMom,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                   track::ITSNCls<track::ITSClusterMap>,
