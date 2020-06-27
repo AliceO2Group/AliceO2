@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file VertexerTraitsHIP.h
+/// \file VertexerTraitsEC0HIP.h
 /// \brief
 /// \author matteo.concas@cern.ch
 
@@ -18,7 +18,7 @@
 #include <vector>
 #include <array>
 
-#include "EC0tracking/VertexerTraits.h"
+#include "EC0tracking/VertexerTraitsEC0.h"
 #include "EC0tracking/Cluster.h"
 #include "EC0tracking/Constants.h"
 // #include "EC0tracking/Definitions.h"
@@ -39,15 +39,15 @@ class ROframe;
 
 using constants::index_table::InversePhiBinSize;
 
-class VertexerTraitsHIP : public VertexerTraits
+class VertexerTraitsEC0HIP : public VertexerTraitsEC0
 {
  public:
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-  VertexerTraitsHIP();
-  ~VertexerTraitsHIP();
+  VertexerTraitsEC0HIP();
+  ~VertexerTraitsEC0HIP();
 #else
-  VertexerTraitsHIP();
-  ~VertexerTraitsHIP() = default;
+  VertexerTraitsEC0HIP();
+  ~VertexerTraitsEC0HIP() = default;
 #endif
   void initialise(ROframe*) override;
   void computeTracklets() override;
@@ -70,7 +70,7 @@ class VertexerTraitsHIP : public VertexerTraits
   GPU::UniquePointer<GPU::DeviceStoreVertexerHIP> mStoreVertexerGPUPtr;
 };
 
-GPUdi() const int2 VertexerTraitsHIP::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
+GPUdi() const int2 VertexerTraitsEC0HIP::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
 {
   // This function returns the lowest PhiBin and the number of phi bins to be spanned, In the form int2{phiBinLow, PhiBinSpan}
   const int phiBinMin{index_table_utils::getPhiBinIndex(
@@ -79,17 +79,17 @@ GPUdi() const int2 VertexerTraitsHIP::getBinsPhiRectWindow(const Cluster& curren
   return int2{phiBinMin, phiBinSpan};
 }
 
-GPUhdi() GPU::DeviceStoreVertexerHIP& VertexerTraitsHIP::getDeviceContext()
+GPUhdi() GPU::DeviceStoreVertexerHIP& VertexerTraitsEC0HIP::getDeviceContext()
 {
   return *mStoreVertexerGPUPtr;
 }
 
-GPUhdi() GPU::DeviceStoreVertexerHIP* VertexerTraitsHIP::getDeviceContextPtr()
+GPUhdi() GPU::DeviceStoreVertexerHIP* VertexerTraitsEC0HIP::getDeviceContextPtr()
 {
   return mStoreVertexerGPUPtr.get();
 }
 
-extern "C" VertexerTraits* createVertexerTraitsHIP();
+extern "C" VertexerTraitsEC0* createVertexerTraitsEC0HIP();
 
 } // namespace ecl
 } // namespace o2

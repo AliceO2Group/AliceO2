@@ -177,8 +177,8 @@ if(CONFIG_O2_EXTENSIONS)
         ../../..//Detectors/ITSMFT/ITS/tracking/src/ClusterLines.cxx
         ../../..//Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
         ../../..//Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
-        ../../..//Detectors/Upgrades/PostLS4/EndCaps/EndCapsLayers/tracking/src/TrackerTraitsCPU.cxx
-        ../../..//Detectors/Upgrades/PostLS4/EndCaps/EndCapsLayers/tracking/src/VertexerTraits.cxx
+        ../../..//Detectors/Upgrades/PostLS4/EndCaps/EndCapsLayers/tracking/src/TrackerTraitsEC0CPU.cxx
+        ../../..//Detectors/Upgrades/PostLS4/EndCaps/EndCapsLayers/tracking/src/VertexerTraitsEC0.cxx
         ../../..//Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx)
     target_link_libraries(standalone_support PUBLIC Boost::boost)
   endif()

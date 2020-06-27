@@ -117,6 +117,16 @@ void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* tr
   }
 }
 
+void GPUReconstruction::GetEC0Traits(std::unique_ptr<o2::ecl::TrackerTraitsEC0>* trackerTraits, std::unique_ptr<o2::ecl::VertexerTraitsEC0>* vertexerTraits)
+{
+  if (trackerTraits) {
+    trackerTraits->reset(new o2::ecl::TrackerTraitsEC0CPU);
+  }
+  if (vertexerTraits) {
+    vertexerTraits->reset(new o2::ecl::VertexerTraitsEC0);
+  }
+}
+
 int GPUReconstruction::Init()
 {
   if (mMaster) {

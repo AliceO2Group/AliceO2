@@ -15,7 +15,7 @@
 #define GPUCHAINEC0_H
 
 #include "GPUChain.h"
-#include "EC0tracking/TrackerTraits.h"
+#include "EC0tracking/TrackerTraitsEC0.h"
 
 namespace o2::its
 {
@@ -28,6 +28,8 @@ class Cluster;
 class Road;
 class Cell;
 class TrackingFrameInfo;
+class TrackerTraitsEC0;
+class VertexerTraitsEC0;
 } // namespace o2::ecl
 
 
@@ -53,13 +55,13 @@ class GPUChainEC0 : public GPUChain
   int PrepareAndRunEC0TrackFit(std::vector<o2::ecl::Road>& roads, std::array<const o2::ecl::Cluster*, 7> clusters, std::array<const o2::ecl::Cell*, 5> cells, const std::array<std::vector<o2::ecl::TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks);
   int RunEC0TrackFit(std::vector<o2::ecl::Road>& roads, std::array<const o2::ecl::Cluster*, 7> clusters, std::array<const o2::ecl::Cell*, 5> cells, const std::array<std::vector<o2::ecl::TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks);
 
-  o2::ecl::TrackerTraits* GetEC0TrackerTraits();
-  o2::ecl::VertexerTraits* GetEC0VertexerTraits();
+  o2::ecl::TrackerTraitsEC0* GetEC0TrackerTraits();
+  o2::ecl::VertexerTraitsEC0* GetEC0VertexerTraits();
 
  protected:
   GPUChainEC0(GPUReconstruction* rec, unsigned int maxTracks = GPUCA_MAX_ITS_FIT_TRACKS);
-  std::unique_ptr<o2::ecl::TrackerTraits> mEC0TrackerTraits;
-  std::unique_ptr<o2::ecl::VertexerTraits> mEC0VertexerTraits;
+  std::unique_ptr<o2::ecl::TrackerTraitsEC0> mEC0TrackerTraits;
+  std::unique_ptr<o2::ecl::VertexerTraitsEC0> mEC0VertexerTraits;
 
   unsigned int mMaxTracks;
 };

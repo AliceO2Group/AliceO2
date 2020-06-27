@@ -24,7 +24,7 @@
 #include "EC0tracking/ROframe.h"
 #include "EC0tracking/Constants.h"
 #include "EC0tracking/Configuration.h"
-#include "EC0tracking/VertexerTraits.h"
+#include "EC0tracking/VertexerTraitsEC0.h"
 #include "ReconstructionDataFormats/Vertex.h"
 
 #include "EC0tracking/ClusterLines.h"
@@ -43,7 +43,7 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 class Vertexer
 {
  public:
-  Vertexer(VertexerTraits* traits);
+  Vertexer(VertexerTraitsEC0* traits);
   virtual ~Vertexer() = default;
   Vertexer(const Vertexer&) = delete;
   Vertexer& operator=(const Vertexer&) = delete;
@@ -55,7 +55,7 @@ class Vertexer
 
   uint32_t getROFrame() const { return mROframe; }
   std::vector<Vertex> exportVertices();
-  VertexerTraits* getTraits() const { return mTraits; };
+  VertexerTraitsEC0* getTraits() const { return mTraits; };
 
   float clustersToVertices(ROframe&, const bool useMc = false, std::ostream& = std::cout);
   void filterMCTracklets();
@@ -86,7 +86,7 @@ class Vertexer
 
  private:
   std::uint32_t mROframe = 0;
-  VertexerTraits* mTraits = nullptr;
+  VertexerTraitsEC0* mTraits = nullptr;
 };
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
@@ -125,7 +125,7 @@ inline void Vertexer::setParameters(const VertexingParameters& verPar)
 
 inline void Vertexer::dumpTraits()
 {
-  mTraits->dumpVertexerTraits();
+  mTraits->dumpVertexerTraitsEC0();
 }
 
 inline void Vertexer::validateTracklets()

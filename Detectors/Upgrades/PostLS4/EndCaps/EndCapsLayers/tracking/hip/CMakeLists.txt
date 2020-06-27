@@ -22,8 +22,8 @@ o2_add_library(EC0trackingHIP
                        # src/DeviceStoreHIP.hip.cxx
                        src/DeviceStoreVertexerHIP.hip.cxx
                        src/StreamHIP.hip.cxx
-                       # src/TrackerTraitsHIP.hip.cxx
-                       src/VertexerTraitsHIP.hip.cxx
+                       # src/TrackerTraitsEC0HIP.hip.cxx
+                       src/VertexerTraitsEC0HIP.hip.cxx
                        src/UtilsHIP.hip.cxx
                PUBLIC_LINK_LIBRARIES O2::EC0tracking
                                      hip::host

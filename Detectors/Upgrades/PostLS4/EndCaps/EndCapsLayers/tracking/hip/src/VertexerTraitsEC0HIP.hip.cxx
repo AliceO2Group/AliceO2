@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file VertexerTraitsHIP.hip.cxx
+/// \file VertexerTraitsEC0HIP.hip.cxx
 /// \brief
 /// \author matteo.concas@cern.ch
 
@@ -27,7 +27,7 @@
 #include "EC0trackingHIP/ClusterLinesHIP.h"
 #include "EC0trackingHIP/ContextHIP.h"
 #include "EC0trackingHIP/StreamHIP.h"
-#include "EC0trackingHIP/VertexerTraitsHIP.h"
+#include "EC0trackingHIP/VertexerTraitsEC0HIP.h"
 
 namespace o2
 {
@@ -56,26 +56,26 @@ GPUh() void gpuThrowOnError()
 }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-VertexerTraitsHIP::VertexerTraitsHIP()
+VertexerTraitsEC0HIP::VertexerTraitsEC0HIP()
 {
   setIsGPU(true);
   std::cout << "[DEBUG] Creating file: dbg_EC0VertexerHIP.root" << std::endl;
   mDebugger = new StandaloneDebugger("dbg_EC0VertexerHIP.root");
 }
 
-VertexerTraitsHIP::~VertexerTraitsHIP()
+VertexerTraitsEC0HIP::~VertexerTraitsEC0HIP()
 {
   delete mDebugger;
 }
 #else
-VertexerTraitsHIP::VertexerTraitsHIP()
+VertexerTraitsEC0HIP::VertexerTraitsEC0HIP()
 {
   setIsGPU(true);
 }
 
 #endif
 
-void VertexerTraitsHIP::initialise(ROframe* event)
+void VertexerTraitsEC0HIP::initialise(ROframe* event)
 {
   reset();
   arrangeClusters(event);
@@ -144,7 +144,7 @@ GPUg() void trackleterKernel(
       const unsigned int stride{currentClusterIndex * store->getConfig().maxTrackletsPerCluster};
       const Cluster& currentCluster = store->getClusters()[1][currentClusterIndex]; // assign-constructor may be a problem, check
       const VertexerLayerName adjacentLayerIndex{layerOrder == TrackletingLayerOrder::fromInnermostToMiddleLayer ? VertexerLayerName::innermostLayer : VertexerLayerName::outerLayer};
-      const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, static_cast<int>(adjacentLayerIndex), 0.f, 50.f, phiCut / 2)};
+      const int4 selectedBinsRect{VertexerTraitsEC0::getBinsRect(currentCluster, static_cast<int>(adjacentLayerIndex), 0.f, 50.f, phiCut / 2)};
       if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
         int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
         if (phiBinsNum < 0) {
@@ -319,7 +319,7 @@ GPUg() void computeVertexKernel(DeviceStoreVertexerHIP* store, const int vertInd
 }
 } // namespace GPU
 
-void VertexerTraitsHIP::computeTracklets()
+void VertexerTraitsEC0HIP::computeTracklets()
 {
   if (!mClusters[1].size()) {
     std::cout << "\t\tno clusters on layer 1. Returning.\n";
@@ -350,7 +350,7 @@ void VertexerTraitsHIP::computeTracklets()
 #endif
 }
 
-void VertexerTraitsHIP::computeTrackletMatching()
+void VertexerTraitsEC0HIP::computeTrackletMatching()
 {
   if (!mClusters[1].size()) {
     std::cout << "\t\tno clusters on layer 1. Returning.\n";
@@ -398,7 +398,7 @@ void VertexerTraitsHIP::computeTrackletMatching()
 #endif
 }
 
-void VertexerTraitsHIP::computeVertices()
+void VertexerTraitsEC0HIP::computeVertices()
 {
   if (!mClusters[1].size()) {
     std::cout << "\t\tno clusters on layer 1. Returning.\n";
@@ -477,7 +477,7 @@ void VertexerTraitsHIP::computeVertices()
 }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-void VertexerTraitsHIP::computeMCFiltering()
+void VertexerTraitsEC0HIP::computeMCFiltering()
 {
   std::vector<Tracklet> tracklets01 = mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer);
   std::vector<Tracklet> tracklets12 = mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer);
@@ -501,9 +501,9 @@ void VertexerTraitsHIP::computeMCFiltering()
 }
 #endif
 
-VertexerTraits* createVertexerTraitsHIP()
+VertexerTraitsEC0* createVertexerTraitsEC0HIP()
 {
-  return new VertexerTraitsHIP;
+  return new VertexerTraitsEC0HIP;
 }
 
 } // namespace ecl

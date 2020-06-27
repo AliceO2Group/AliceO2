@@ -15,8 +15,8 @@
 #define GPURECONSTRUCTIONINCLDUESEC0_H
 
 #if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_EC0_TRAITS)
-#include "EC0tracking/TrackerTraitsCPU.h"
-#include "EC0tracking/VertexerTraits.h"
+#include "EC0tracking/TrackerTraitsEC0CPU.h"
+#include "EC0tracking/VertexerTraitsEC0.h"
 #else
 namespace o2
 {

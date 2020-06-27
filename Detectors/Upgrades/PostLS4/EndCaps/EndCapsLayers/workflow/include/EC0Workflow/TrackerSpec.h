@@ -20,9 +20,9 @@
 #include "Framework/Task.h"
 
 #include "EC0tracking/Tracker.h"
-#include "EC0tracking/TrackerTraitsCPU.h"
+#include "EC0tracking/TrackerTraitsEC0CPU.h"
 #include "EC0tracking/Vertexer.h"
-#include "EC0tracking/VertexerTraits.h"
+#include "EC0tracking/VertexerTraitsEC0.h"
 
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"

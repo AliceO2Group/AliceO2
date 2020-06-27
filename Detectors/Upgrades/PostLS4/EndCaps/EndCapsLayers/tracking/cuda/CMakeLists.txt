@@ -16,8 +16,8 @@ o2_add_library(EC0trackingCUDA
                        src/DeviceStoreNV.cu
                        src/DeviceStoreVertexerGPU.cu
                        src/Stream.cu
-                       src/TrackerTraitsNV.cu
-                       src/VertexerTraitsGPU.cu
+                       src/TrackerTraitsEC0NV.cu
+                       src/VertexerTraitsEC0GPU.cu
                        src/Utils.cu
                PUBLIC_LINK_LIBRARIES O2::EC0tracking
                                      O2::SimConfig

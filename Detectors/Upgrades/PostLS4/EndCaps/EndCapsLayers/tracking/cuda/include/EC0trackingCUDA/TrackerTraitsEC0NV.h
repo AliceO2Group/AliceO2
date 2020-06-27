@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file TrackerTraitsNV.h
+/// \file TrackerTraitsEC0NV.h
 /// \brief
 ///
 
@@ -17,7 +17,7 @@
 
 #include "EC0tracking/Configuration.h"
 #include "EC0tracking/Definitions.h"
-#include "EC0tracking/TrackerTraits.h"
+#include "EC0tracking/TrackerTraitsEC0.h"
 
 namespace o2
 {
@@ -26,18 +26,18 @@ namespace ecl
 
 class PrimaryVertexContext;
 
-class TrackerTraitsNV : public TrackerTraits
+class TrackerTraitsEC0NV : public TrackerTraitsEC0
 {
  public:
-  TrackerTraitsNV();
-  virtual ~TrackerTraitsNV();
+  TrackerTraitsEC0NV();
+  virtual ~TrackerTraitsEC0NV();
 
   void computeLayerCells() final;
   void computeLayerTracklets() final;
   void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks) final;
 };
 
-extern "C" TrackerTraits* createTrackerTraitsNV();
+extern "C" TrackerTraitsEC0* createTrackerTraitsEC0NV();
 } // namespace ecl
 } // namespace o2
 

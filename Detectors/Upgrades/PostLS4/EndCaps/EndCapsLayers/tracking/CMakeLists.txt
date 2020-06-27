@@ -21,11 +21,11 @@ o2_add_library(EC0tracking
                        src/Road.cxx
                        src/StandaloneDebugger.cxx
                        src/Tracker.cxx
-                       src/TrackerTraitsCPU.cxx
+                       src/TrackerTraitsEC0CPU.cxx
                        src/TrackingConfigParam.cxx
                        src/ClusterLines.cxx
                        src/Vertexer.cxx
-                       src/VertexerTraits.cxx
+                       src/VertexerTraitsEC0.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      ms_gsl::ms_gsl
                                      O2::CommonConstants

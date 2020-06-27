@@ -17,7 +17,7 @@
 #include "EC0tracking/ROframe.h"
 #include "EC0tracking/ClusterLines.h"
 #include "EC0tracking/IndexTableUtils.h"
-#include "EC0tracking/VertexerTraits.h"
+#include "EC0tracking/VertexerTraitsEC0.h"
 #include "EC0tracking/TrackingConfigParam.h"
 
 #include <array>
@@ -27,7 +27,7 @@ namespace o2
 namespace ecl
 {
 
-Vertexer::Vertexer(VertexerTraits* traits)
+Vertexer::Vertexer(VertexerTraitsEC0* traits)
 {
   mTraits = traits;
 }

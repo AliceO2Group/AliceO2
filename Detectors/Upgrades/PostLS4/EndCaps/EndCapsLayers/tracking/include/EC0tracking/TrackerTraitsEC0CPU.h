@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file TrackerTraits.h
+/// \file TrackerTraitsEC0.h
 /// \brief
 ///
 
@@ -24,7 +24,7 @@
 #include <memory>
 #include <utility>
 
-#include "EC0tracking/TrackerTraits.h"
+#include "EC0tracking/TrackerTraitsEC0.h"
 #include "EC0tracking/Configuration.h"
 #include "EC0tracking/Definitions.h"
 #include "EC0tracking/MathUtils.h"
@@ -36,11 +36,11 @@ namespace o2
 namespace ecl
 {
 
-class TrackerTraitsCPU : public TrackerTraits
+class TrackerTraitsEC0CPU : public TrackerTraitsEC0
 {
  public:
-  TrackerTraitsCPU() { mPrimaryVertexContext = new PrimaryVertexContext; }
-  ~TrackerTraitsCPU() override { delete mPrimaryVertexContext; }
+  TrackerTraitsEC0CPU() { mPrimaryVertexContext = new PrimaryVertexContext; }
+  ~TrackerTraitsEC0CPU() override { delete mPrimaryVertexContext; }
 
   void computeLayerCells() final;
   void computeLayerTracklets() final;

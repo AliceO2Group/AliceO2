@@ -47,7 +47,7 @@ void GPUChainEC0::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
 
 int GPUChainEC0::Init() { return 0; }
 
-o2::ecl::TrackerTraits* GPUChainEC0::GetEC0TrackerTraits()
+TrackerTraitsEC0* GPUChainEC0::GetEC0TrackerTraits()
 {
 #ifndef GPUCA_NO_ITS_TRAITS
   if (mEC0TrackerTraits == nullptr) {
@@ -57,7 +57,7 @@ o2::ecl::TrackerTraits* GPUChainEC0::GetEC0TrackerTraits()
 #endif
   return mEC0TrackerTraits.get();
 }
-o2::ecl::VertexerTraits* GPUChainEC0::GetEC0VertexerTraits()
+VertexerTraitsEC0* GPUChainEC0::GetEC0VertexerTraits()
 {
 #ifndef GPUCA_NO_ITS_TRAITS
   if (mEC0VertexerTraits == nullptr) {

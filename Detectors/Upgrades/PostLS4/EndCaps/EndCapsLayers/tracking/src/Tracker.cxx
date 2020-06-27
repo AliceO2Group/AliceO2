@@ -19,8 +19,8 @@
 #include "EC0tracking/Constants.h"
 #include "EC0tracking/IndexTableUtils.h"
 #include "EC0tracking/Tracklet.h"
-#include "EC0tracking/TrackerTraits.h"
-#include "EC0tracking/TrackerTraitsCPU.h"
+#include "EC0tracking/TrackerTraitsEC0.h"
+#include "EC0tracking/TrackerTraitsEC0CPU.h"
 
 #include "ReconstructionDataFormats/Track.h"
 #include <cassert>
@@ -34,7 +34,7 @@ namespace o2
 namespace ecl
 {
 
-Tracker::Tracker(o2::ecl::TrackerTraits* traits)
+Tracker::Tracker(o2::ecl::TrackerTraitsEC0* traits)
 {
   /// Initialise standard configuration with 1 iteration
   mTrkParams.resize(1);

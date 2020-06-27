@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file VertexerTraitsGPU.cu.cu
+/// \file VertexerTraitsEC0GPU.cu.cu
 /// \brief
 /// \author matteo.concas@cern.ch
 
@@ -27,7 +27,7 @@
 #include "EC0trackingCUDA/ClusterLinesGPU.h"
 #include "EC0trackingCUDA/Context.h"
 #include "EC0trackingCUDA/Stream.h"
-#include "EC0trackingCUDA/VertexerTraitsGPU.h"
+#include "EC0trackingCUDA/VertexerTraitsEC0GPU.h"
 
 namespace o2
 {
@@ -56,26 +56,26 @@ GPUh() void gpuThrowOnError()
 }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-VertexerTraitsGPU::VertexerTraitsGPU()
+VertexerTraitsEC0GPU::VertexerTraitsEC0GPU()
 {
   setIsGPU(true);
   std::cout << "[DEBUG] Creating file: dbg_EC0VertexerGPU.root" << std::endl;
   mDebugger = new StandaloneDebugger::StandaloneDebugger("dbg_EC0VertexerGPU.root");
 }
 
-VertexerTraitsGPU::~VertexerTraitsGPU()
+VertexerTraitsEC0GPU::~VertexerTraitsEC0GPU()
 {
   delete mDebugger;
 }
 #else
-VertexerTraitsGPU::VertexerTraitsGPU()
+VertexerTraitsEC0GPU::VertexerTraitsEC0GPU()
 {
   setIsGPU(true);
 }
 
 #endif
 
-void VertexerTraitsGPU::initialise(ROframe* event)
+void VertexerTraitsEC0GPU::initialise(ROframe* event)
 {
   reset();
   arrangeClusters(event);
@@ -144,7 +144,7 @@ GPUg() void trackleterKernel(
       const size_t stride{currentClusterIndex * store.getConfig().maxTrackletsPerCluster};
       const Cluster& currentCluster = store.getClusters()[1][currentClusterIndex]; // assign-constructor may be a problem, check
       const VertexerLayerName adjacentLayerIndex{layerOrder == TrackletingLayerOrder::fromInnermostToMiddleLayer ? VertexerLayerName::innermostLayer : VertexerLayerName::outerLayer};
-      const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, static_cast<int>(adjacentLayerIndex), 0.f, 50.f, phiCut / 2)};
+      const int4 selectedBinsRect{VertexerTraitsEC0::getBinsRect(currentCluster, static_cast<int>(adjacentLayerIndex), 0.f, 50.f, phiCut / 2)};
       if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
         int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
         if (phiBinsNum < 0) {
@@ -318,7 +318,7 @@ GPUg() void computeVertexKernel(DeviceStoreVertexerGPU& store, const int vertInd
 }
 } // namespace GPU
 
-void VertexerTraitsGPU::computeTracklets()
+void VertexerTraitsEC0GPU::computeTracklets()
 {
   if (!mClusters[1].size()) {
     std::cout << "\t\tno clusters on layer 1. Returning.\n";
@@ -349,7 +349,7 @@ void VertexerTraitsGPU::computeTracklets()
 #endif
 }
 
-void VertexerTraitsGPU::computeTrackletMatching()
+void VertexerTraitsEC0GPU::computeTrackletMatching()
 {
   if (!mClusters[1].size()) {
     std::cout << "\t\tno clusters on layer 1. Returning.\n";
@@ -397,7 +397,7 @@ void VertexerTraitsGPU::computeTrackletMatching()
 #endif
 }
 
-void VertexerTraitsGPU::computeVertices()
+void VertexerTraitsEC0GPU::computeVertices()
 {
   if (!mClusters[1].size()) {
     std::cout << "\t\tno clusters on layer 1. Returning.\n";
@@ -472,7 +472,7 @@ void VertexerTraitsGPU::computeVertices()
 }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-void VertexerTraitsGPU::computeMCFiltering()
+void VertexerTraitsEC0GPU::computeMCFiltering()
 {
   std::vector<Tracklet> tracklets01 = mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer);
   std::vector<Tracklet> tracklets12 = mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer);
@@ -496,9 +496,9 @@ void VertexerTraitsGPU::computeMCFiltering()
 }
 #endif
 
-VertexerTraits* createVertexerTraitsGPU()
+VertexerTraitsEC0* createVertexerTraitsEC0GPU()
 {
-  return new VertexerTraitsGPU;
+  return new VertexerTraitsEC0GPU;
 }
 
 } // namespace ecl

@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file VertexerTraits.h
+/// \file VertexerTraitsEC0.h
 /// \brief Class to compute the primary vertex in ITS from tracklets
 /// \author matteo.concas@cern.ch
 
@@ -91,15 +91,15 @@ inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> 
 }
 #endif
 
-class VertexerTraits
+class VertexerTraitsEC0
 {
  public:
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-  VertexerTraits();
-  virtual ~VertexerTraits();
+  VertexerTraitsEC0();
+  virtual ~VertexerTraitsEC0();
 #else
-  VertexerTraits();
-  virtual ~VertexerTraits() = default;
+  VertexerTraitsEC0();
+  virtual ~VertexerTraitsEC0() = default;
 #endif
 
   GPUhd() static constexpr int4 getEmptyBinsRect()
@@ -134,7 +134,7 @@ class VertexerTraits
 
   // utils
   void setIsGPU(const unsigned char);
-  void dumpVertexerTraits();
+  void dumpVertexerTraitsEC0();
   void arrangeClusters(ROframe*);
   std::vector<int> getMClabelsLayer(const int layer) const;
 
@@ -174,30 +174,30 @@ class VertexerTraits
   std::vector<ClusterLines> mTrackletClusters;
 };
 
-inline void VertexerTraits::initialise(ROframe* event)
+inline void VertexerTraitsEC0::initialise(ROframe* event)
 {
   reset();
   arrangeClusters(event);
   setIsGPU(false);
 }
 
-inline void VertexerTraits::setIsGPU(const unsigned char isgpu)
+inline void VertexerTraitsEC0::setIsGPU(const unsigned char isgpu)
 {
   mIsGPU = isgpu;
 }
 
-inline void VertexerTraits::updateVertexingParameters(const VertexingParameters& vrtPar)
+inline void VertexerTraitsEC0::updateVertexingParameters(const VertexingParameters& vrtPar)
 {
   mVrtParams = vrtPar;
 }
 
-GPUhdi() const int2 VertexerTraits::getPhiBins(float phi, float dPhi)
+GPUhdi() const int2 VertexerTraitsEC0::getPhiBins(float phi, float dPhi)
 {
   return int2{index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi - dPhi)),
               index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi + dPhi))};
 }
 
-GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
+GPUhdi() const int4 VertexerTraitsEC0::getBinsRect(const Cluster& currentCluster, const int layerIndex,
                                                 const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = directionZIntersection - 2 * maxdeltaz;
@@ -218,7 +218,7 @@ GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, c
 }
 
 // debug
-inline void VertexerTraits::setDebugFlag(VertexerDebug flag, const unsigned char on = true)
+inline void VertexerTraitsEC0::setDebugFlag(VertexerDebug flag, const unsigned char on = true)
 {
   if (on) {
     mDBGFlags |= static_cast<unsigned int>(flag);
@@ -227,12 +227,12 @@ inline void VertexerTraits::setDebugFlag(VertexerDebug flag, const unsigned char
   }
 }
 
-inline unsigned char VertexerTraits::isDebugFlag(const VertexerDebug& flags) const
+inline unsigned char VertexerTraitsEC0::isDebugFlag(const VertexerDebug& flags) const
 {
   return mDBGFlags & static_cast<unsigned int>(flags);
 }
 
-extern "C" VertexerTraits* createVertexerTraits();
+extern "C" VertexerTraitsEC0* createVertexerTraitsEC0();
 
 } // namespace ecl
 } // namespace o2

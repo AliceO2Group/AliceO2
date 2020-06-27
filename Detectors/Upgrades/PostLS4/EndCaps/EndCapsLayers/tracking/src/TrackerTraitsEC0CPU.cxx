@@ -8,11 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file TrackerTraitsCPU.cxx
+/// \file TrackerTraitsEC0CPU.cxx
 /// \brief
 ///
 
-#include "EC0tracking/TrackerTraitsCPU.h"
+#include "EC0tracking/TrackerTraitsEC0CPU.h"
 
 #include "CommonConstants/MathConstants.h"
 #include "EC0tracking/Cell.h"
@@ -31,7 +31,7 @@ namespace o2
 namespace ecl
 {
 
-void TrackerTraitsCPU::computeLayerTracklets()
+void TrackerTraitsEC0CPU::computeLayerTracklets()
 {
   PrimaryVertexContext* primaryVertexContext = mPrimaryVertexContext;
   for (int iLayer{0}; iLayer < constants::ecl::TrackletsPerRoad; ++iLayer) {
@@ -107,7 +107,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
   }
 }
 
-void TrackerTraitsCPU::computeLayerCells()
+void TrackerTraitsEC0CPU::computeLayerCells()
 {
   PrimaryVertexContext* primaryVertexContext = mPrimaryVertexContext;
   for (int iLayer{0}; iLayer < constants::ecl::CellsPerRoad; ++iLayer) {
@@ -228,7 +228,7 @@ void TrackerTraitsCPU::computeLayerCells()
   }
 }
 
-void TrackerTraitsCPU::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks)
+void TrackerTraitsEC0CPU::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks)
 {
   std::array<const Cell*, 5> cells;
   for (int iLayer = 0; iLayer < 5; iLayer++) {

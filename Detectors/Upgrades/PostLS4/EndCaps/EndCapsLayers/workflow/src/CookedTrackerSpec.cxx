@@ -32,7 +32,7 @@
 #include "EC0tracking/ROframe.h"
 #include "EC0tracking/IOUtils.h"
 #include "EC0tracking/Vertexer.h"
-#include "EC0tracking/VertexerTraits.h"
+#include "EC0tracking/VertexerTraitsEC0.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "CommonUtils/StringUtils.h"
 
@@ -118,7 +118,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     mTracker.setMCTruthContainers(labels.get(), &trackLabels);
   }
 
-  o2::ecl::VertexerTraits vertexerTraits;
+  o2::ecl::VertexerTraitsEC0 vertexerTraits;
   o2::ecl::Vertexer vertexer(&vertexerTraits);
   o2::ecl::ROframe event(0);
 

@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file VertexerTraits.cxx
+/// \file VertexerTraitsEC0.cxx
 /// \brief
 /// \author matteo.concas@cern.ch
 
@@ -17,7 +17,7 @@
 #include <boost/histogram.hpp>
 #include <boost/format.hpp>
 
-#include "EC0tracking/VertexerTraits.h"
+#include "EC0tracking/VertexerTraitsEC0.h"
 #include "EC0tracking/ROframe.h"
 #include "EC0tracking/ClusterLines.h"
 #include "EC0tracking/Tracklet.h"
@@ -61,7 +61,7 @@ void trackleterKernelSerial(
     int storedTracklets{0};
     const Cluster currentCluster{clustersCurrentLayer[iCurrentLayerClusterIndex]};
     const int layerIndex{pairOfLayers == LAYER0_TO_LAYER1 ? 0 : 2};
-    const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, layerIndex, 0.f, 50.f, phiCut / 2)};
+    const int4 selectedBinsRect{VertexerTraitsEC0::getBinsRect(currentCluster, layerIndex, 0.f, 50.f, phiCut / 2)};
     if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
       int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
       if (phiBinsNum < 0) {
@@ -135,7 +135,7 @@ void trackletSelectionKernelSerial(
 }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
+VertexerTraitsEC0::VertexerTraitsEC0() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
                                    mMaxDirectorCosine3{0.f}
 {
   mVrtParams.phiSpan = static_cast<int>(std::ceil(constants::index_table::PhiBins * mVrtParams.phiCut /
@@ -147,7 +147,7 @@ VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.
   mDebugger = new StandaloneDebugger("dbg_EC0VertexerCPU.root");
 }
 #else
-VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
+VertexerTraitsEC0::VertexerTraitsEC0() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
                                    mMaxDirectorCosine3{0.f}
 {
   mVrtParams.phiSpan = static_cast<int>(std::ceil(constants::index_table::PhiBins * mVrtParams.phiCut /
@@ -157,7 +157,7 @@ VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.
 #endif
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-VertexerTraits::~VertexerTraits()
+VertexerTraitsEC0::~VertexerTraitsEC0()
 {
   if (!mIsGPU) {
     delete mDebugger;
@@ -165,7 +165,7 @@ VertexerTraits::~VertexerTraits()
 }
 #endif
 
-void VertexerTraits::reset()
+void VertexerTraitsEC0::reset()
 {
   for (int iLayer{0}; iLayer < constants::ecl::LayersNumberVertexer; ++iLayer) {
     mClusters[iLayer].clear();
@@ -186,12 +186,12 @@ void VertexerTraits::reset()
   mMaxDirectorCosine3 = 0.f;
 }
 
-std::vector<int> VertexerTraits::getMClabelsLayer(const int layer) const
+std::vector<int> VertexerTraitsEC0::getMClabelsLayer(const int layer) const
 {
   return mEvent->getTracksId(layer, mClusters[layer]);
 }
 
-void VertexerTraits::arrangeClusters(ROframe* event)
+void VertexerTraitsEC0::arrangeClusters(ROframe* event)
 {
   mEvent = event;
   for (int iLayer{0}; iLayer < constants::ecl::LayersNumberVertexer; ++iLayer) {
@@ -233,7 +233,7 @@ void VertexerTraits::arrangeClusters(ROframe* event)
                                        (mDeltaRadii10 + mDeltaRadii21) * (mDeltaRadii10 + mDeltaRadii21));
 }
 
-const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const std::array<int, ZBins * PhiBins + 1>& indexTable,
+const std::vector<std::pair<int, int>> VertexerTraitsEC0::selectClusters(const std::array<int, ZBins * PhiBins + 1>& indexTable,
                                                                       const std::array<int, 4>& selectedBinsRect)
 {
   std::vector<std::pair<int, int>> filteredBins{};
@@ -251,7 +251,7 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const std:
   return filteredBins;
 }
 
-void VertexerTraits::computeTrackletsPureMontecarlo()
+void VertexerTraitsEC0::computeTrackletsPureMontecarlo()
 {
   assert(mEvent != nullptr);
 
@@ -306,7 +306,7 @@ void VertexerTraits::computeTrackletsPureMontecarlo()
 #endif
 }
 
-void VertexerTraits::computeTracklets()
+void VertexerTraitsEC0::computeTracklets()
 {
   trackleterKernelSerial(
     mClusters[0],
@@ -333,7 +333,7 @@ void VertexerTraits::computeTracklets()
 #endif
 }
 
-void VertexerTraits::computeTrackletMatching()
+void VertexerTraitsEC0::computeTrackletMatching()
 {
   trackletSelectionKernelSerial(
     mClusters[0],
@@ -364,7 +364,7 @@ void VertexerTraits::computeTrackletMatching()
 }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-void VertexerTraits::computeMCFiltering()
+void VertexerTraitsEC0::computeMCFiltering()
 {
   assert(mEvent != nullptr);
   for (size_t iTracklet{0}; iTracklet < mComb01.size(); ++iTracklet) {
@@ -390,7 +390,7 @@ void VertexerTraits::computeMCFiltering()
 }
 #endif
 
-void VertexerTraits::computeVertices()
+void VertexerTraitsEC0::computeVertices()
 {
   const int numTracklets{static_cast<int>(mTracklets.size())};
   std::vector<bool> usedTracklets{};
@@ -485,7 +485,7 @@ void VertexerTraits::computeVertices()
 #endif
 }
 
-void VertexerTraits::computeHistVertices()
+void VertexerTraitsEC0::computeHistVertices()
 {
   o2::ecl::VertexerHistogramsConfiguration histConf;
 #ifdef _ALLOW_DEBUG_TREES_ITS_
@@ -678,7 +678,7 @@ void VertexerTraits::computeHistVertices()
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 // Montecarlo validation for externally-provided tracklets (GPU-like cases)
-void VertexerTraits::filterTrackletsWithMC(std::vector<Tracklet>& tracklets01,
+void VertexerTraitsEC0::filterTrackletsWithMC(std::vector<Tracklet>& tracklets01,
                                            std::vector<Tracklet>& tracklets12,
                                            std::vector<int>& indices01,
                                            std::vector<int>& indices12,
@@ -723,7 +723,7 @@ void VertexerTraits::filterTrackletsWithMC(std::vector<Tracklet>& tracklets01,
 }
 #endif
 
-void VertexerTraits::dumpVertexerTraits()
+void VertexerTraitsEC0::dumpVertexerTraitsEC0()
 {
   std::cout << "\tDump traits:" << std::endl;
   std::cout << "\tTracklets found: " << mTracklets.size() << std::endl;
@@ -733,9 +733,9 @@ void VertexerTraits::dumpVertexerTraits()
   std::cout << "\tVertices found: " << mVertices.size() << std::endl;
 }
 
-VertexerTraits* createVertexerTraits()
+VertexerTraitsEC0* createVertexerTraitsEC0()
 {
-  return new VertexerTraits;
+  return new VertexerTraitsEC0;
 }
 
 } // namespace ecl

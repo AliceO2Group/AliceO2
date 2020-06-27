@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file VertexerTraitsGPU.h
+/// \file VertexerTraitsEC0GPU.h
 /// \brief
 /// \author matteo.concas@cern.ch
 
@@ -18,7 +18,7 @@
 #include <vector>
 #include <array>
 
-#include "EC0tracking/VertexerTraits.h"
+#include "EC0tracking/VertexerTraitsEC0.h"
 #include "EC0tracking/Cluster.h"
 #include "EC0tracking/Constants.h"
 #include "EC0tracking/Definitions.h"
@@ -39,15 +39,15 @@ class ROframe;
 
 using constants::index_table::InversePhiBinSize;
 
-class VertexerTraitsGPU : public VertexerTraits
+class VertexerTraitsEC0GPU : public VertexerTraitsEC0
 {
  public:
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-  VertexerTraitsGPU();
-  virtual ~VertexerTraitsGPU();
+  VertexerTraitsEC0GPU();
+  virtual ~VertexerTraitsEC0GPU();
 #else
-  VertexerTraitsGPU();
-  virtual ~VertexerTraitsGPU() = default;
+  VertexerTraitsEC0GPU();
+  virtual ~VertexerTraitsEC0GPU() = default;
 #endif
   void initialise(ROframe*) override;
   void computeTracklets() override;
@@ -66,7 +66,7 @@ class VertexerTraitsGPU : public VertexerTraits
   GPU::UniquePointer<GPU::DeviceStoreVertexerGPU> mStoreVertexerGPUPtr;
 };
 
-inline GPUd() const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
+inline GPUd() const int2 VertexerTraitsEC0GPU::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
 {
   // This function returns the lowest PhiBin and the number of phi bins to be spanned, In the form int2{phiBinLow, PhiBinSpan}
   const int phiBinMin{index_table_utils::getPhiBinIndex(
@@ -75,12 +75,12 @@ inline GPUd() const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& 
   return int2{phiBinMin, phiBinSpan};
 }
 
-inline GPU::DeviceStoreVertexerGPU& VertexerTraitsGPU::getDeviceContext()
+inline GPU::DeviceStoreVertexerGPU& VertexerTraitsEC0GPU::getDeviceContext()
 {
   return *mStoreVertexerGPUPtr;
 }
 
-extern "C" VertexerTraits* createVertexerTraitsGPU();
+extern "C" VertexerTraitsEC0* createVertexerTraitsEC0GPU();
 
 } // namespace ecl
 } // namespace o2

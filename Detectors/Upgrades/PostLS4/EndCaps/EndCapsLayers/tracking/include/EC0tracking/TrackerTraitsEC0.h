@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file TrackerTraits.h
+/// \file TrackerTraitsEC0.h
 /// \brief
 ///
 
@@ -52,10 +52,10 @@ typedef std::function<int(o2::gpu::GPUChainEC0&, std::vector<o2::ecl::Road>& roa
 
 
 
-class TrackerTraits
+class TrackerTraitsEC0
 {
  public:
-  virtual ~TrackerTraits() = default;
+  virtual ~TrackerTraitsEC0() = default;
 
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
   GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
@@ -81,12 +81,12 @@ class TrackerTraits
   FuncRunEC0TrackFit_t mChainRunEC0TrackFit;
 };
 
-inline void TrackerTraits::UpdateTrackingParameters(const TrackingParameters& trkPar)
+inline void TrackerTraitsEC0::UpdateTrackingParameters(const TrackingParameters& trkPar)
 {
   mTrkParams = trkPar;
 }
 
-inline GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
+inline GPU_DEVICE const int4 TrackerTraitsEC0::getBinsRect(const Cluster& currentCluster, const int layerIndex,
                                                         const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = directionZIntersection - 2 * maxdeltaz;
