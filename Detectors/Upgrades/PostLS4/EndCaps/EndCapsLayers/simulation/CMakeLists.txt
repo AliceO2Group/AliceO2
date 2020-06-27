@@ -9,9 +9,14 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(EC0Simulation
-               SOURCES src/V11Geometry.cxx src/V1Layer.cxx src/V3Layer.cxx
-                       src/Detector.cxx src/V3Services.cxx
-               PUBLIC_LINK_LIBRARIES O2::ECLayersBase O2::EndCapsSimulation
+               SOURCES src/V11Geometry.cxx
+                       src/V1Layer.cxx
+                       src/V3Layer.cxx
+                       src/Detector.cxx
+                       src/V3Services.cxx
+               PUBLIC_LINK_LIBRARIES O2::ECLayersBase
+                                     O2::EndCapsSimulation
+                                     O2::EndCapsBase
                                      ROOT::Physics)
 
 o2_target_root_dictionary(EC0Simulation

@@ -49,9 +49,9 @@ class TParticle;
 using std::cout;
 using std::endl;
 
-using o2::itsmft::Hit;
 using Segmentation = o2::endcaps::SegmentationAlpide;
 using namespace o2::ecl;
+using o2::endcaps::Hit;
 
 Detector::Detector()
   : o2::base::DetImpl<Detector>("EC0", kTRUE),
@@ -65,7 +65,7 @@ Detector::Detector()
     */
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
-    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
+    mHits(o2::utils::createSimVector<Hit>()),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
@@ -154,7 +154,7 @@ Detector::Detector(Bool_t active)
     */
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
-    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
+    mHits(o2::utils::createSimVector<Hit>()),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
@@ -201,7 +201,7 @@ Detector::Detector(const Detector& rhs)
     mModifyGeometry(rhs.mModifyGeometry),
 
     /// Container for data points
-    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
+    mHits(o2::utils::createSimVector<Hit>()),
     mStaveModelInnerBarrel(rhs.mStaveModelInnerBarrel),
     mStaveModelOuterBarrel(rhs.mStaveModelOuterBarrel)
 {

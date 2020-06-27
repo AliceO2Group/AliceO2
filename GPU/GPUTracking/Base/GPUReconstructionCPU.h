@@ -36,6 +36,7 @@
 #endif
 #ifdef HAVE_O2HEADERS
 #include "GPUITSFitterKernels.h"
+#include "GPUEC0FitterKernels.h"
 #include "GPUTPCConvertKernel.h"
 #include "GPUTPCCompressionKernels.h"
 #include "GPUTPCClusterFinderKernels.h"

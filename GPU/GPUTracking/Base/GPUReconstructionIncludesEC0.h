@@ -8,29 +8,35 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_EC0_RECOWORKFLOW_H
-#define O2_EC0_RECOWORKFLOW_H
+/// \file GPUReconstructionIncludesEC0.h
+/// \author David Rohr
 
-/// @file   RecoWorkflow.h
+#ifndef GPURECONSTRUCTIONINCLDUESEC0_H
+#define GPURECONSTRUCTIONINCLDUESEC0_H
 
-#include "Framework/WorkflowSpec.h"
-
-#include "GPUO2Interface.h"
-#include "GPUReconstruction.h"
-#include "GPUChainEC0.h"
-
+#if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_EC0_TRAITS)
+#include "EC0tracking/TrackerTraitsCPU.h"
+#include "EC0tracking/VertexerTraits.h"
+#else
 namespace o2
 {
 namespace ecl
 {
-
-namespace reco_workflow
+class TrackerTraits
 {
-
-framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU,
-                                    bool upstreamDigits = false, bool upstreamClusters = false, bool disableRootOutput = false, bool eencode = false);
-}
-
+};
+class TrackerTraitsCPU : public TrackerTraits
+{
+};
+class VertexerTraits
+{
+};
 } // namespace ecl
 } // namespace o2
+#if defined(HAVE_O2HEADERS)
+#include "EC0tracking/Road.h"
+#include "EC0tracking/Cluster.h"
+#endif
+#endif
+
 #endif

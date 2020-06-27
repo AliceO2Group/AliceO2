@@ -228,7 +228,7 @@ void TrackerTraitsCPU::computeLayerCells()
   }
 }
 
-void TrackerTraitsCPU::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks)
+void TrackerTraitsCPU::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks)
 {
   std::array<const Cell*, 5> cells;
   for (int iLayer = 0; iLayer < 5; iLayer++) {
@@ -238,7 +238,7 @@ void TrackerTraitsCPU::refitTracks(const std::array<std::vector<TrackingFrameInf
   for (int iLayer = 0; iLayer < 7; iLayer++) {
     clusters[iLayer] = mPrimaryVertexContext->getClusters()[iLayer].data();
   }
-  mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
+  mChainRunEC0TrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
 }
 
 } // namespace ecl

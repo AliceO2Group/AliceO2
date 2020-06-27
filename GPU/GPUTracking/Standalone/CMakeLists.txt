@@ -137,6 +137,11 @@ include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/cuda/src
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/hip/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/hip/src
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/Upgrades/PostLS4/EndCaps/EndCapsLayers/tracking/include
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/Upgrades/PostLS4/EndCaps/EndCapsLayers/tracking/cuda/include
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/Upgrades/PostLS4/EndCaps/EndCapsLayers/tracking/cuda/src
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/Upgrades/PostLS4/EndCaps/EndCapsLayers/tracking/hip/include
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/Upgrades/PostLS4/EndCaps/EndCapsLayers/tracking/hip/src
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/Raw/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TPC/base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/include
@@ -172,6 +177,8 @@ if(CONFIG_O2_EXTENSIONS)
         ../../..//Detectors/ITSMFT/ITS/tracking/src/ClusterLines.cxx
         ../../..//Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
         ../../..//Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
+        ../../..//Detectors/Upgrades/PostLS4/EndCaps/EndCapsLayers/tracking/src/TrackerTraitsCPU.cxx
+        ../../..//Detectors/Upgrades/PostLS4/EndCaps/EndCapsLayers/tracking/src/VertexerTraits.cxx
         ../../..//Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx)
     target_link_libraries(standalone_support PUBLIC Boost::boost)
   endif()

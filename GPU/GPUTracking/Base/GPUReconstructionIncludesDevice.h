@@ -88,6 +88,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTRDTrackletWord.cxx"
 #include "TRDGeometryBase.cxx"
 
+// Files for EC0 Track Fit
+#include "GPUEC0FitterKernels.cxx"
+
 // Files for ITS Track Fit
 #include "GPUITSFitterKernels.cxx"
 

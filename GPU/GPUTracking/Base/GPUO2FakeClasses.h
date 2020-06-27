@@ -88,6 +88,9 @@ class GPUFakeEmpty
 class GPUITSFitter
 {
 };
+class GPUEC0Fitter
+{
+};
 class GPUTPCConvert
 {
 };

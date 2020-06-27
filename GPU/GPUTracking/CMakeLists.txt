@@ -114,6 +114,7 @@ set(HDRS_INSTALL
     Base/GPUConstantMem.h
     Base/GPUReconstructionKernels.h
     Base/GPUReconstructionIncludesITS.h
+    Base/GPUReconstructionIncludesEC0.h
     Base/GPUReconstructionHelpers.h
     Base/GPUOutputControl.h
     Base/GPUOutputControl.h
@@ -148,6 +149,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         Global/GPUChainEC0.cxx
         ITS/GPUITSFitter.cxx
         ITS/GPUITSFitterKernels.cxx
+        EC0/GPUEC0Fitter.cxx
+        EC0/GPUEC0FitterKernels.cxx
         dEdx/GPUdEdx.cxx
         dEdx/TPCdEdxCalibrationSplines.cxx
         TPCConvert/GPUTPCConvert.cxx
@@ -177,6 +180,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
     set(HDRS_INSTALL ${HDRS_INSTALL}
                      Interface/GPUO2InterfaceConfiguration.h
                      ITS/GPUITSTrack.h
+                     EC0/GPUEC0Track.h
                      TPCClusterFinder/Array2D.h
                      TPCClusterFinder/CfConsts.h
                      TPCClusterFinder/CfFragment.h
@@ -254,6 +258,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                        O2::TPCBase
                                        O2::TRDBase
                                        O2::ITStracking
+                                       O2::EC0tracking
                                        O2::TPCFastTransformation
                                        O2::DetectorsRaw
                                        ${DEBUGGUI_TARGET}
@@ -262,6 +267,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                             TPCConvert
                                             dEdx
                                             ITS
+                                            EC0
                                             TRDTracking
                                             Standalone
                                             Standalone/qa

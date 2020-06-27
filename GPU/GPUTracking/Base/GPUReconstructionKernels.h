@@ -60,6 +60,7 @@ GPUCA_KRNL_LB((GPUTPCGMMergerFinalize, step2                ), (simple), (), ())
 #ifdef HAVE_O2HEADERS
 GPUCA_KRNL_LB((GPUTRDTrackerKernels                         ), (simple), (), ())
 GPUCA_KRNL_LB((GPUITSFitterKernel                           ), (simple), (), ())
+GPUCA_KRNL_LB((GPUEC0FitterKernel                           ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCConvertKernel                          ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCCompressionKernels,   step0attached    ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCCompressionKernels,   step1unattached  ), (simple), (), ())

@@ -36,7 +36,7 @@ namespace o2
 namespace ecl
 {
 /// GeometryTGeo is a simple interface class to TGeoManager. It is used in the simulation
-/// and reconstruction in order to query the TGeo ECL geometry.
+/// and reconstruction in order to query the TGeo EC0 geometry.
 /// RS: In order to preserve the static character of the class but make it dynamically access
 /// geometry, we need to check in every method if the structures are initialized. To be converted
 /// to singleton at later stage.
@@ -87,7 +87,7 @@ class GeometryTGeo : public o2::endcaps::GeometryTGeo
   // cache parameters of sensors tracking frames
   void fillTrackingFramesCache();
 
-  /// Exract ECL parameters from TGeo
+  /// Exract EC0 parameters from TGeo
   void Build(int loadTrans = 0) override;
 
   int getNumberOfChipRowsPerModule(int lay) const { return mNumberOfChipRowsPerModule[lay]; }
@@ -231,24 +231,24 @@ class GeometryTGeo : public o2::endcaps::GeometryTGeo
 
   void Print(Option_t* opt = "") const;
 
-  static const char* getECLVolPattern() { return sVolumeName.c_str(); }
-  static const char* getECLLayerPattern() { return sLayerName.c_str(); }
-  static const char* getECLWrapVolPattern() { return sWrapperVolumeName.c_str(); }
-  static const char* getECLStavePattern() { return sStaveName.c_str(); }
-  static const char* getECLHalfStavePattern() { return sHalfStaveName.c_str(); }
-  static const char* getECLModulePattern() { return sModuleName.c_str(); }
-  static const char* getECLChipPattern() { return sChipName.c_str(); }
-  static const char* getECLSensorPattern() { return sSensorName.c_str(); }
-  static void setECLVolPattern(const char* nm) { sVolumeName = nm; }
-  static void setECLLayerPattern(const char* nm) { sLayerName = nm; }
-  static void setECLWrapVolPattern(const char* nm) { sWrapperVolumeName = nm; }
-  static void setECLStavePattern(const char* nm) { sStaveName = nm; }
-  static void setECLHalfStavePattern(const char* nm) { sHalfStaveName = nm; }
-  static void setECLModulePattern(const char* nm) { sModuleName = nm; }
-  static void setECLChipPattern(const char* nm) { sChipName = nm; }
-  static void setECLSensorPattern(const char* nm) { sSensorName = nm; }
+  static const char* getEC0VolPattern() { return sVolumeName.c_str(); }
+  static const char* getEC0LayerPattern() { return sLayerName.c_str(); }
+  static const char* getEC0WrapVolPattern() { return sWrapperVolumeName.c_str(); }
+  static const char* getEC0StavePattern() { return sStaveName.c_str(); }
+  static const char* getEC0HalfStavePattern() { return sHalfStaveName.c_str(); }
+  static const char* getEC0ModulePattern() { return sModuleName.c_str(); }
+  static const char* getEC0ChipPattern() { return sChipName.c_str(); }
+  static const char* getEC0SensorPattern() { return sSensorName.c_str(); }
+  static void setEC0VolPattern(const char* nm) { sVolumeName = nm; }
+  static void setEC0LayerPattern(const char* nm) { sLayerName = nm; }
+  static void setEC0WrapVolPattern(const char* nm) { sWrapperVolumeName = nm; }
+  static void setEC0StavePattern(const char* nm) { sStaveName = nm; }
+  static void setEC0HalfStavePattern(const char* nm) { sHalfStaveName = nm; }
+  static void setEC0ModulePattern(const char* nm) { sModuleName = nm; }
+  static void setEC0ChipPattern(const char* nm) { sChipName = nm; }
+  static void setEC0SensorPattern(const char* nm) { sSensorName = nm; }
   /// sym name of the layer
-  static const char* composeSymNameECL() { return o2::detectors::DetID(o2::detectors::DetID::EC0).getName(); }
+  static const char* composeSymNameEC0() { return o2::detectors::DetID(o2::detectors::DetID::EC0).getName(); }
   /// sym name of the layer
   static const char* composeSymNameLayer(int lr);
 

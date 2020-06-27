@@ -46,6 +46,7 @@ class GPUTRDTracker_t
 #include "GPUTPCConvert.h"
 #include "GPUTPCCompression.h"
 #include "GPUITSFitter.h"
+#include "GPUEC0Fitter.h"
 #include "GPUTPCClusterFinder.h"
 #else
 #include "GPUO2FakeClasses.h"
@@ -71,6 +72,7 @@ struct GPUConstantMem {
   GPUTRDTrackerGPU trdTracker;
   GPUTPCClusterFinder tpcClusterer[GPUCA_NSLICES];
   GPUITSFitter itsFitter;
+  GPUEC0Fitter ec0Fitter;
   GPUTrackingInOutPointers ioPtrs;
   GPUCalibObjectsConst calibObjects;
   GPUErrors errorCodes;

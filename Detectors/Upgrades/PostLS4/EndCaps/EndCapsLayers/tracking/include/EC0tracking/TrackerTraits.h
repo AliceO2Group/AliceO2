@@ -31,17 +31,26 @@
 #include "EC0tracking/PrimaryVertexContext.h"
 #include "EC0tracking/Road.h"
 
+
+namespace o2::its
+{
+class TrackITSExt;
+} // namespace o2::its
+
+
 namespace o2
 {
 namespace gpu
 {
-class GPUChainITS;
+class GPUChainEC0;
 }
 namespace ecl
 {
 
 class TrackITSExt;
-typedef std::function<int(o2::gpu::GPUChainITS&, std::vector<Road>& roads, std::array<const Cluster*, 7>, std::array<const Cell*, 5>, const std::array<std::vector<TrackingFrameInfo>, 7>&, std::vector<TrackITSExt>&)> FuncRunITSTrackFit_t;
+typedef std::function<int(o2::gpu::GPUChainEC0&, std::vector<o2::ecl::Road>& roads, std::array<const o2::ecl::Cluster*, 7> clusters, std::array<const o2::ecl::Cell*, 5> cells, const std::array<std::vector<o2::ecl::TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks)> FuncRunEC0TrackFit_t;
+
+
 
 class TrackerTraits
 {
@@ -51,15 +60,15 @@ class TrackerTraits
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
   GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
 
-  void SetRecoChain(o2::gpu::GPUChainITS* chain, FuncRunITSTrackFit_t&& funcRunITSTrackFit)
+  void SetRecoChain(o2::gpu::GPUChainEC0* chain, FuncRunEC0TrackFit_t&& funcRunEC0TrackFit)
   {
-    mChainRunITSTrackFit = funcRunITSTrackFit;
+    mChainRunEC0TrackFit = funcRunEC0TrackFit;
     mChain = chain;
   }
 
   virtual void computeLayerTracklets(){};
   virtual void computeLayerCells(){};
-  virtual void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>&, std::vector<TrackITSExt>&){};
+  virtual void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>&, std::vector<o2::its::TrackITSExt>&){};
 
   void UpdateTrackingParameters(const TrackingParameters& trkPar);
   PrimaryVertexContext* getPrimaryVertexContext() { return mPrimaryVertexContext; }
@@ -68,8 +77,8 @@ class TrackerTraits
   PrimaryVertexContext* mPrimaryVertexContext;
   TrackingParameters mTrkParams;
 
-  o2::gpu::GPUChainITS* mChain = nullptr;
-  FuncRunITSTrackFit_t mChainRunITSTrackFit;
+  o2::gpu::GPUChainEC0* mChain = nullptr;
+  FuncRunEC0TrackFit_t mChainRunEC0TrackFit;
 };
 
 inline void TrackerTraits::UpdateTrackingParameters(const TrackingParameters& trkPar)

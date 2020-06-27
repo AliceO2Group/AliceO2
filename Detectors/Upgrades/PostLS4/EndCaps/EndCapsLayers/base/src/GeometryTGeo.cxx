@@ -52,14 +52,14 @@ ClassImp(o2::ecl::GeometryTGeo);
 
 std::unique_ptr<o2::ecl::GeometryTGeo> GeometryTGeo::sInstance;
 
-std::string GeometryTGeo::sVolumeName = "ECLV";               ///< Mother volume name
-std::string GeometryTGeo::sLayerName = "ECLULayer";           ///< Layer name
-std::string GeometryTGeo::sStaveName = "ECLUStave";           ///< Stave name
-std::string GeometryTGeo::sHalfStaveName = "ECLUHalfStave";   ///< HalfStave name
-std::string GeometryTGeo::sModuleName = "ECLUModule";         ///< Module name
-std::string GeometryTGeo::sChipName = "ECLUChip";             ///< Chip name
-std::string GeometryTGeo::sSensorName = "ECLUSensor";         ///< Sensor name
-std::string GeometryTGeo::sWrapperVolumeName = "ECLUWrapVol"; ///< Wrapper volume name
+std::string GeometryTGeo::sVolumeName = "EC0V";               ///< Mother volume name
+std::string GeometryTGeo::sLayerName = "EC0ULayer";           ///< Layer name
+std::string GeometryTGeo::sStaveName = "EC0UStave";           ///< Stave name
+std::string GeometryTGeo::sHalfStaveName = "EC0UHalfStave";   ///< HalfStave name
+std::string GeometryTGeo::sModuleName = "EC0UModule";         ///< Module name
+std::string GeometryTGeo::sChipName = "EC0UChip";             ///< Chip name
+std::string GeometryTGeo::sSensorName = "EC0USensor";         ///< Sensor name
+std::string GeometryTGeo::sWrapperVolumeName = "EC0UWrapVol"; ///< Wrapper volume name
 
 //__________________________________________________________________________
 GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::endcaps::GeometryTGeo(DetID::EC0)
@@ -242,33 +242,33 @@ bool GeometryTGeo::getChipId(int index, int& lay, int& sta, int& hsta, int& mod,
 //__________________________________________________________________________
 const char* GeometryTGeo::composeSymNameLayer(int lr)
 {
-  return Form("%s/%s%d", composeSymNameECL(), getECLLayerPattern(), lr);
+  return Form("%s/%s%d", composeSymNameEC0(), getEC0LayerPattern(), lr);
 }
 
 //__________________________________________________________________________
 const char* GeometryTGeo::composeSymNameStave(int lr, int stave)
 {
-  return Form("%s/%s%d", composeSymNameLayer(lr), getECLStavePattern(), stave);
+  return Form("%s/%s%d", composeSymNameLayer(lr), getEC0StavePattern(), stave);
 }
 
 //__________________________________________________________________________
 const char* GeometryTGeo::composeSymNameHalfStave(int lr, int stave, int substave)
 {
-  return substave >= 0 ? Form("%s/%s%d", composeSymNameStave(lr, stave), getECLHalfStavePattern(), substave)
+  return substave >= 0 ? Form("%s/%s%d", composeSymNameStave(lr, stave), getEC0HalfStavePattern(), substave)
                        : composeSymNameStave(lr, stave);
 }
 
 //__________________________________________________________________________
 const char* GeometryTGeo::composeSymNameModule(int lr, int stave, int substave, int mod)
 {
-  return mod >= 0 ? Form("%s/%s%d", composeSymNameHalfStave(lr, stave, substave), getECLModulePattern(), mod)
+  return mod >= 0 ? Form("%s/%s%d", composeSymNameHalfStave(lr, stave, substave), getEC0ModulePattern(), mod)
                   : composeSymNameHalfStave(lr, stave, substave);
 }
 
 //__________________________________________________________________________
 const char* GeometryTGeo::composeSymNameChip(int lr, int sta, int substave, int mod, int chip)
 {
-  return Form("%s/%s%d", composeSymNameModule(lr, sta, substave, mod), getECLChipPattern(), chip);
+  return Form("%s/%s%d", composeSymNameModule(lr, sta, substave, mod), getEC0ChipPattern(), chip);
 }
 
 //__________________________________________________________________________
@@ -286,23 +286,23 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
 
   int wrID = mLayerToWrapper[lay];
 
-  TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getECLVolPattern());
+  TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getEC0VolPattern());
 
   if (wrID >= 0) {
-    path += Form("%s%d_1/", getECLWrapVolPattern(), wrID);
+    path += Form("%s%d_1/", getEC0WrapVolPattern(), wrID);
   }
 
   path +=
-    Form("%s%d_1/%s%d_%d/", GeometryTGeo::getECLLayerPattern(), lay, GeometryTGeo::getECLStavePattern(), lay, stav);
+    Form("%s%d_1/%s%d_%d/", GeometryTGeo::getEC0LayerPattern(), lay, GeometryTGeo::getEC0StavePattern(), lay, stav);
 
   if (mNumberOfHalfStaves[lay] > 0) {
-    path += Form("%s%d_%d/", GeometryTGeo::getECLHalfStavePattern(), lay, sstav);
+    path += Form("%s%d_%d/", GeometryTGeo::getEC0HalfStavePattern(), lay, sstav);
   }
   if (mNumberOfModules[lay] > 0) {
-    path += Form("%s%d_%d/", GeometryTGeo::getECLModulePattern(), lay, mod);
+    path += Form("%s%d_%d/", GeometryTGeo::getEC0ModulePattern(), lay, mod);
   }
   path +=
-    Form("%s%d_%d/%s%d_1", GeometryTGeo::getECLChipPattern(), lay, chipInMod, GeometryTGeo::getECLSensorPattern(), lay);
+    Form("%s%d_%d/%s%d_1", GeometryTGeo::getEC0ChipPattern(), lay, chipInMod, GeometryTGeo::getEC0SensorPattern(), lay);
 
   static TGeoHMatrix matTmp;
   gGeoManager->PushPath();
@@ -388,7 +388,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
   // build matrices
   if ((mask & o2::utils::bit2Mask(o2::TransformType::L2G)) && !getCacheL2G().isFilled()) {
     // Matrices for Local (Sensor!!! rather than the full chip) to Global frame transformation
-    LOG(INFO) << "Loading ECL L2G matrices from TGeo";
+    LOG(INFO) << "Loading EC0 L2G matrices from TGeo";
     auto& cacheL2G = getCacheL2G();
     cacheL2G.setSize(mSize);
 
@@ -400,7 +400,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
 
   if ((mask & o2::utils::bit2Mask(o2::TransformType::T2L)) && !getCacheT2L().isFilled()) {
     // matrices for Tracking to Local (Sensor!!! rather than the full chip) frame transformation
-    LOG(INFO) << "Loading ECL T2L matrices from TGeo";
+    LOG(INFO) << "Loading EC0 T2L matrices from TGeo";
     auto& cacheT2L = getCacheT2L();
     cacheT2L.setSize(mSize);
     for (int i = 0; i < mSize; i++) {
@@ -412,7 +412,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
   if ((mask & o2::utils::bit2Mask(o2::TransformType::T2G)) && !getCacheT2G().isFilled()) {
     LOG(WARNING) << "It is faster to use 2D rotation for T2G instead of full Transform3D matrices";
     // matrices for Tracking to Global frame transformation
-    LOG(INFO) << "Loading ECL T2G matrices from TGeo";
+    LOG(INFO) << "Loading EC0 T2G matrices from TGeo";
     auto& cacheT2G = getCacheT2G();
     cacheT2G.setSize(mSize);
 
@@ -425,7 +425,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
 
   if ((mask & o2::utils::bit2Mask(o2::TransformType::T2GRot)) && !getCacheT2GRot().isFilled()) {
     // 2D rotation matrices for Tracking frame to Global rotations
-    LOG(INFO) << "Loading ECL T2G rotation 2D matrices";
+    LOG(INFO) << "Loading EC0 T2G rotation 2D matrices";
     auto& cacheT2Gr = getCacheT2GRot();
     cacheT2Gr.setSize(mSize);
     for (int i = 0; i < mSize; i++) {
@@ -453,12 +453,12 @@ int GeometryTGeo::extractNumberOfLayers()
 {
   int numberOfLayers = 0;
 
-  TGeoVolume* eclV = gGeoManager->GetVolume(getECLVolPattern());
+  TGeoVolume* eclV = gGeoManager->GetVolume(getEC0VolPattern());
   if (!eclV) {
-    LOG(FATAL) << "ECL volume " << getECLVolPattern() << " is not in the geometry";
+    LOG(FATAL) << "EC0 volume " << getEC0VolPattern() << " is not in the geometry";
   }
 
-  // Loop on all ECLV nodes, count Layer volumes by checking names
+  // Loop on all EC0V nodes, count Layer volumes by checking names
   // Build on the fly layer - wrapper correspondence
   TObjArray* nodes = eclV->GetNodes();
   int nNodes = nodes->GetEntriesFast();
@@ -468,17 +468,17 @@ int GeometryTGeo::extractNumberOfLayers()
     TGeoNode* nd = (TGeoNode*)nodes->At(j);
     const char* name = nd->GetName();
 
-    if (strstr(name, getECLLayerPattern())) {
+    if (strstr(name, getEC0LayerPattern())) {
       numberOfLayers++;
-      if ((lrID = extractVolumeCopy(name, GeometryTGeo::getECLLayerPattern())) < 0) {
+      if ((lrID = extractVolumeCopy(name, GeometryTGeo::getEC0LayerPattern())) < 0) {
         LOG(FATAL) << "Failed to extract layer ID from the " << name;
         exit(1);
       }
 
       mLayerToWrapper[lrID] = -1;                      // not wrapped
-    } else if (strstr(name, getECLWrapVolPattern())) { // this is a wrapper volume, may cointain layers
+    } else if (strstr(name, getEC0WrapVolPattern())) { // this is a wrapper volume, may cointain layers
       int wrID = -1;
-      if ((wrID = extractVolumeCopy(name, GeometryTGeo::getECLWrapVolPattern())) < 0) {
+      if ((wrID = extractVolumeCopy(name, GeometryTGeo::getEC0WrapVolPattern())) < 0) {
         LOG(FATAL) << "Failed to extract wrapper ID from the " << name;
         exit(1);
       }
@@ -488,8 +488,8 @@ int GeometryTGeo::extractNumberOfLayers()
 
       for (int jw = 0; jw < nNodesW; jw++) {
         TGeoNode* ndW = (TGeoNode*)nodesW->At(jw);
-        if (strstr(ndW->GetName(), getECLLayerPattern())) {
-          if ((lrID = extractVolumeCopy(ndW->GetName(), GeometryTGeo::getECLLayerPattern())) < 0) {
+        if (strstr(ndW->GetName(), getEC0LayerPattern())) {
+          if ((lrID = extractVolumeCopy(ndW->GetName(), GeometryTGeo::getEC0LayerPattern())) < 0) {
             LOG(FATAL) << "Failed to extract layer ID from the " << name;
             exit(1);
           }
@@ -507,7 +507,7 @@ int GeometryTGeo::extractNumberOfStaves(int lay) const
 {
   int numberOfStaves = 0;
   char laynam[30];
-  snprintf(laynam, 30, "%s%d", getECLLayerPattern(), lay);
+  snprintf(laynam, 30, "%s%d", getEC0LayerPattern(), lay);
   TGeoVolume* volLr = gGeoManager->GetVolume(laynam);
   if (!volLr) {
     LOG(FATAL) << "can't find " << laynam << " volume";
@@ -519,8 +519,8 @@ int GeometryTGeo::extractNumberOfStaves(int lay) const
   for (int j = 0; j < nNodes; j++) {
     // LOG(INFO) << "L" << lay << " " << j << " of " << nNodes << " "
     //           << volLr->GetNodes()->At(j)->GetName() << " "
-    //           << getECLStavePattern() << " -> " << numberOfStaves;
-    if (strstr(volLr->GetNodes()->At(j)->GetName(), getECLStavePattern())) {
+    //           << getEC0StavePattern() << " -> " << numberOfStaves;
+    if (strstr(volLr->GetNodes()->At(j)->GetName(), getEC0StavePattern())) {
       numberOfStaves++;
     }
   }
@@ -535,7 +535,7 @@ int GeometryTGeo::extractNumberOfHalfStaves(int lay) const
   }
   int nSS = 0;
   char stavnam[30];
-  snprintf(stavnam, 30, "%s%d", getECLStavePattern(), lay);
+  snprintf(stavnam, 30, "%s%d", getEC0StavePattern(), lay);
   TGeoVolume* volLd = gGeoManager->GetVolume(stavnam);
   if (!volLd) {
     LOG(FATAL) << "can't find volume " << stavnam;
@@ -543,7 +543,7 @@ int GeometryTGeo::extractNumberOfHalfStaves(int lay) const
   // Loop on all stave nodes, count Chip volumes by checking names
   int nNodes = volLd->GetNodes()->GetEntries();
   for (int j = 0; j < nNodes; j++) {
-    if (strstr(volLd->GetNodes()->At(j)->GetName(), getECLHalfStavePattern())) {
+    if (strstr(volLd->GetNodes()->At(j)->GetName(), getEC0HalfStavePattern())) {
       nSS++;
     }
   }
@@ -561,11 +561,11 @@ int GeometryTGeo::extractNumberOfModules(int lay) const
   TGeoVolume* volLd = nullptr;
 
   if (!sHalfStaveName.empty()) {
-    snprintf(stavnam, 30, "%s%d", getECLHalfStavePattern(), lay);
+    snprintf(stavnam, 30, "%s%d", getEC0HalfStavePattern(), lay);
     volLd = gGeoManager->GetVolume(stavnam);
   }
   if (!volLd) { // no substaves, check staves
-    snprintf(stavnam, 30, "%s%d", getECLStavePattern(), lay);
+    snprintf(stavnam, 30, "%s%d", getEC0StavePattern(), lay);
     volLd = gGeoManager->GetVolume(stavnam);
   }
   if (!volLd) {
@@ -578,7 +578,7 @@ int GeometryTGeo::extractNumberOfModules(int lay) const
   int nNodes = volLd->GetNodes()->GetEntries();
 
   for (int j = 0; j < nNodes; j++) {
-    if (strstr(volLd->GetNodes()->At(j)->GetName(), getECLModulePattern())) {
+    if (strstr(volLd->GetNodes()->At(j)->GetName(), getEC0ModulePattern())) {
       nMod++;
     }
   }
@@ -593,17 +593,17 @@ int GeometryTGeo::extractNumberOfChipsPerModule(int lay, int& nrow) const
   TGeoVolume* volLd = nullptr;
 
   if (!sModuleName.empty()) {
-    snprintf(stavnam, 30, "%s%d", getECLModulePattern(), lay);
+    snprintf(stavnam, 30, "%s%d", getEC0ModulePattern(), lay);
     volLd = gGeoManager->GetVolume(stavnam);
   }
   if (!volLd) { // no modules on this layer, check substaves
     if (!sHalfStaveName.empty()) {
-      snprintf(stavnam, 30, "%s%d", getECLHalfStavePattern(), lay);
+      snprintf(stavnam, 30, "%s%d", getEC0HalfStavePattern(), lay);
       volLd = gGeoManager->GetVolume(stavnam);
     }
   }
   if (!volLd) { // no substaves on this layer, check staves
-    snprintf(stavnam, 30, "%s%d", getECLStavePattern(), lay);
+    snprintf(stavnam, 30, "%s%d", getEC0StavePattern(), lay);
     volLd = gGeoManager->GetVolume(stavnam);
   }
   if (!volLd) {
@@ -619,9 +619,9 @@ int GeometryTGeo::extractNumberOfChipsPerModule(int lay, int& nrow) const
 
   for (int j = 0; j < nNodes; j++) {
     //    AliInfo(Form("L%d %d of %d %s %s ->
-    // %d",lay,j,nNodes,volLd->GetNodes()->At(j)->GetName(),GetECLChipPattern(),numberOfChips));
+    // %d",lay,j,nNodes,volLd->GetNodes()->At(j)->GetName(),GetEC0ChipPattern(),numberOfChips));
     TGeoNodeMatrix* node = (TGeoNodeMatrix*)volLd->GetNodes()->At(j);
-    if (!strstr(node->GetName(), getECLChipPattern())) {
+    if (!strstr(node->GetName(), getEC0ChipPattern())) {
       continue;
     }
     node->LocalToMaster(loc, lab);
@@ -668,7 +668,7 @@ int GeometryTGeo::extractNumberOfChipsPerModule(int lay, int& nrow) const
 int GeometryTGeo::extractLayerChipType(int lay) const
 {
   char stavnam[30];
-  snprintf(stavnam, 30, "%s%d", getECLLayerPattern(), lay);
+  snprintf(stavnam, 30, "%s%d", getEC0LayerPattern(), lay);
   TGeoVolume* volLd = gGeoManager->GetVolume(stavnam);
   if (!volLd) {
     LOG(FATAL) << "can't find volume " << stavnam;

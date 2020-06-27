@@ -15,7 +15,7 @@
 
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
-#include "GPUChainITS.h"
+#include "GPUChainEC0.h"
 
 using namespace o2::framework;
 

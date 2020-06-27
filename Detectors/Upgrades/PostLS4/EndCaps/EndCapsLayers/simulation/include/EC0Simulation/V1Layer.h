@@ -202,7 +202,7 @@ class V1Layer : public V11Geometry
     mBuildLevel = buildLevel;
   }
 
-  void setStaveModel(o2::its::Detector::Model model)
+  void setStaveModel(o2::ecl::Detector::Model model)
   {
     mStaveModel = model;
   }

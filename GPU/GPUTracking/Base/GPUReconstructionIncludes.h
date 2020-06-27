@@ -39,6 +39,8 @@
 #endif
 
 #include "GPUReconstructionIncludesITS.h"
+#include "GPUReconstructionIncludesEC0.h"
+
 
 #define RANDOM_ERROR
 //#define RANDOM_ERROR || rand() % 500 == 1

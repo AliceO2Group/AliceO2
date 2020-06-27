@@ -15,21 +15,30 @@
 #define GPUCHAINEC0_H
 
 #include "GPUChain.h"
-#include "DataFormatsITS/TrackITS.h"
+#include "EC0tracking/TrackerTraits.h"
+
+namespace o2::its
+{
+class TrackITSExt;
+} // namespace o2::its
+
 namespace o2::ecl
 {
 class Cluster;
 class Road;
 class Cell;
 class TrackingFrameInfo;
-//class o2::its::TrackITSExt;
 } // namespace o2::ecl
+
 
 namespace GPUCA_NAMESPACE::gpu
 {
 class GPUChainEC0 : public GPUChain
 {
   friend class GPUReconstruction;
+  //using TrackITSExt = o2::its::TrackITSExt;
+  //using TrackerTraits = o2::ecl::TrackerTraits;
+  //using VertexerTraits = o2::ecl::VertexerTraits;
 
  public:
   ~GPUChainEC0() override;

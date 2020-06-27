@@ -12,12 +12,15 @@
 /// \author David Rohr
 
 #include "GPUChainEC0.h"
-#include "GPUReconstructionIncludesITS.h"
+//#include "GPUReconstructionIncludesITS.h"
+#include "GPUReconstructionIncludesEC0.h"
 #include "DataFormatsITS/TrackITS.h"
 #include <algorithm>
 
 using namespace GPUCA_NAMESPACE::gpu;
+//using namespace o2::its;
 using namespace o2::ecl;
+
 
 GPUChainEC0::~GPUChainEC0()
 {
@@ -27,24 +30,24 @@ GPUChainEC0::~GPUChainEC0()
 
 GPUChainEC0::GPUChainEC0(GPUReconstruction* rec, unsigned int maxTracks) : GPUChain(rec), mMaxTracks(maxTracks) {}
 
-void GPUChainEC0::RegisterPermanentMemoryAndProcessors() { mRec->RegisterGPUProcessor(&processors()->itsFitter, GetRecoStepsGPU() & RecoStep::ITSTracking); }
+void GPUChainEC0::RegisterPermanentMemoryAndProcessors() { mRec->RegisterGPUProcessor(&processors()->ec0Fitter, GetRecoStepsGPU() & RecoStep::ITSTracking); }
 
 void GPUChainEC0::RegisterGPUProcessors()
 {
   if (GetRecoStepsGPU() & RecoStep::ITSTracking) {
-    mRec->RegisterGPUDeviceProcessor(&processorsShadow()->itsFitter, &processors()->itsFitter);
+    mRec->RegisterGPUDeviceProcessor(&processorsShadow()->ec0Fitter, &processors()->ec0Fitter);
   }
 }
 
 void GPUChainEC0::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
 {
-  gpuMem = mMaxTracks * sizeof(GPUITSTrack) + GPUCA_MEMALIGN;
+  gpuMem = mMaxTracks * sizeof(GPUEC0Track) + GPUCA_MEMALIGN;
   pageLockedHostMem = gpuMem;
 }
 
 int GPUChainEC0::Init() { return 0; }
 
-TrackerTraits* GPUChainEC0::GetEC0TrackerTraits()
+o2::ecl::TrackerTraits* GPUChainEC0::GetEC0TrackerTraits()
 {
 #ifndef GPUCA_NO_ITS_TRAITS
   if (mEC0TrackerTraits == nullptr) {
@@ -54,7 +57,7 @@ TrackerTraits* GPUChainEC0::GetEC0TrackerTraits()
 #endif
   return mEC0TrackerTraits.get();
 }
-VertexerTraits* GPUChainEC0::GetEC0VertexerTraits()
+o2::ecl::VertexerTraits* GPUChainEC0::GetEC0VertexerTraits()
 {
 #ifndef GPUCA_NO_ITS_TRAITS
   if (mEC0VertexerTraits == nullptr) {
@@ -70,18 +73,18 @@ int GPUChainEC0::Finalize() { return 0; }
 
 int GPUChainEC0::RunChain() { return 0; }
 
-int GPUChainEC0::PrepareAndRunEC0TrackFit(std::vector<Road>& roads, std::array<const Cluster*, 7> clusters, std::array<const Cell*, 5> cells, const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks)
+int GPUChainEC0::PrepareAndRunEC0TrackFit(std::vector<o2::ecl::Road>& roads, std::array<const o2::ecl::Cluster*, 7> clusters, std::array<const o2::ecl::Cell*, 5> cells, const std::array<std::vector<o2::ecl::TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks)
 {
   mRec->PrepareEvent();
   return RunEC0TrackFit(roads, clusters, cells, tf, tracks);
 }
 
-int GPUChainEC0::RunEC0TrackFit(std::vector<Road>& roads, std::array<const Cluster*, 7> clusters, std::array<const Cell*, 5> cells, const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks)
+int GPUChainEC0::RunEC0TrackFit(std::vector<o2::ecl::Road>& roads, std::array<const o2::ecl::Cluster*, 7> clusters, std::array<const o2::ecl::Cell*, 5> cells, const std::array<std::vector<o2::ecl::TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks)
 {
   auto threadContext = GetThreadContext();
   bool doGPU = GetRecoStepsGPU() & RecoStep::ITSTracking;
-  GPUITSFitter& Fitter = processors()->itsFitter;
-  GPUITSFitter& FitterShadow = doGPU ? processorsShadow()->itsFitter : Fitter;
+  GPUEC0Fitter& Fitter = processors()->ec0Fitter;
+  GPUEC0Fitter& FitterShadow = doGPU ? processorsShadow()->ec0Fitter : Fitter;
 
   Fitter.clearMemory();
   Fitter.SetNumberOfRoads(roads.size());
@@ -97,9 +100,9 @@ int GPUChainEC0::RunEC0TrackFit(std::vector<Road>& roads, std::array<const Clust
     std::copy(tf[i].begin(), tf[i].end(), Fitter.trackingFrame()[i]);
   }
 
-  WriteToConstantMemory(RecoStep::ITSTracking, (char*)&processors()->itsFitter - (char*)processors(), &FitterShadow, sizeof(FitterShadow), 0);
+  WriteToConstantMemory(RecoStep::ITSTracking, (char*)&processors()->ec0Fitter - (char*)processors(), &FitterShadow, sizeof(FitterShadow), 0);
   TransferMemoryResourcesToGPU(RecoStep::ITSTracking, &Fitter, 0);
-  runKernel<GPUITSFitterKernel>(GetGridBlk(BlockCount(), 0), krnlRunRangeNone, krnlEventNone);
+  runKernel<GPUEC0FitterKernel>(GetGridBlk(BlockCount(), 0), krnlRunRangeNone, krnlEventNone);
   TransferMemoryResourcesToHost(RecoStep::ITSTracking, &Fitter, 0);
 
   SynchronizeGPU();
@@ -107,7 +110,7 @@ int GPUChainEC0::RunEC0TrackFit(std::vector<Road>& roads, std::array<const Clust
   for (unsigned int i = 0; i < Fitter.NumberOfTracks(); i++) {
     auto& trkin = Fitter.tracks()[i];
 
-    tracks.emplace_back(TrackITSExt{{trkin.X(),
+    tracks.emplace_back(o2::its::TrackITSExt{{trkin.X(),
                                      trkin.mAlpha,
                                      {trkin.Par()[0], trkin.Par()[1], trkin.Par()[2], trkin.Par()[3], trkin.Par()[4]},
                                      {trkin.Cov()[0], trkin.Cov()[1], trkin.Cov()[2], trkin.Cov()[3], trkin.Cov()[4], trkin.Cov()[5], trkin.Cov()[6], trkin.Cov()[7], trkin.Cov()[8], trkin.Cov()[9], trkin.Cov()[10], trkin.Cov()[11], trkin.Cov()[12], trkin.Cov()[13], trkin.Cov()[14]}},

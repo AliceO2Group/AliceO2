@@ -95,8 +95,8 @@ template <typename T, size_t Size>
 using GPUArray = o2::ecl::GPU::Array<T, Size>;
 #endif
 
-typedef struct _dummyStream {
-} GPUStream;
+//typedef struct _dummyStream {
+//} GPUStream;
 
 #endif
 
