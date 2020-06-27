@@ -42,4 +42,3 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     adaptAnalysisTask<TaskDzero>("hf-taskdzero")};
 }
-

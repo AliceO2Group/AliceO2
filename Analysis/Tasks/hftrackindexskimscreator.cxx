@@ -60,7 +60,6 @@ struct SelectTracks {
         hpt_nocuts->Fill(track_0.pt());
       if (track_0.pt() < ptmintrack)
         status = 0;
-        LOGF(info, "pt %f flag %d", abs(track_0.signed1Pt()), status);
       UChar_t clustermap_0 = track_0.itsClusterMap();
       bool isselected_0 = track_0.tpcNClsFound() >= d_tpcnclsfound && track_0.flags() & 0x4;
       isselected_0 = isselected_0 && (TESTBIT(clustermap_0, 0) || TESTBIT(clustermap_0, 1));
@@ -82,9 +81,9 @@ struct SelectTracks {
       //if (dca[0] * dca[0] + dca[1] * dca[1] < dcatrackmin * dcatrackmin)
       //  status = 0;
       if (b_dovalplots == true) {
-        if (status == 1){
+        if (status == 1) {
           hpt_cuts->Fill(track_0.pt());
-	  //hdca_cuts->Fill(sqrt(dca[0] * dca[0] + dca[1] * dca[1]));
+          //hdca_cuts->Fill(sqrt(dca[0] * dca[0] + dca[1] * dca[1]));
         }
       }
       seltrack(status, dca[0], dca[1]);

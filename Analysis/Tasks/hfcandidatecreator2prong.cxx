@@ -92,12 +92,12 @@ struct HFCandidateCreator2Prong {
       df.getTrack(1).getPxPyPzGlo(pvec1);
       float masspion = 0.140;
       float masskaon = 0.494;
-      float mass_ = invmass2prongs(pvec0[0], pvec0[1],
-		                   pvec0[2], masspion,
+      float mass_ = invmass2prongs(pvec0[0], pvec0[1]
+                                   pvec0[2], masspion,
                                    pvec1[0], pvec1[1],
                                    pvec1[2], masskaon);
       float masssw_ = invmass2prongs(pvec0[0], pvec0[1],
-		                     pvec0[2], masskaon,
+                                     pvec0[2], masskaon,
                                      pvec1[0], pvec1[1],
                                      pvec1[2], masspion);
       LOGF(info, "mass x %f %f", mass_, masssw_);
@@ -108,7 +108,6 @@ struct HFCandidateCreator2Prong {
         hvtx_z_out->Fill(vtx[2]);
         hmass2->Fill(mass_);
         hmass2->Fill(masssw_);
-
       }
     }
   }
