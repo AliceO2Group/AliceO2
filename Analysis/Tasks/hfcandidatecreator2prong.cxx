@@ -92,7 +92,7 @@ struct HFCandidateCreator2Prong {
       df.getTrack(1).getPxPyPzGlo(pvec1);
       float masspion = 0.140;
       float masskaon = 0.494;
-      float mass_ = invmass2prongs(pvec0[0], pvec0[1]
+      float mass_ = invmass2prongs(pvec0[0], pvec0[1],
                                    pvec0[2], masspion,
                                    pvec1[0], pvec1[1],
                                    pvec1[2], masskaon);
