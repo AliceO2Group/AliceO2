@@ -15,7 +15,7 @@
 #ifndef ALICEO2_ENDCAPSLAYERS_FASTMULTEST_
 #define ALICEO2_ENDCAPSLAYERS_FASTMULTEST_
 
-#include "EndCapsReconstruction/ChipMappingITS.h"
+#include "EndCapsReconstruction/ChipMappingEC0.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "EC0Reconstruction/FastMultEstConfig.h"
 #include <gsl/span>
@@ -28,7 +28,7 @@ namespace ecl
 
 struct FastMultEst {
 
-  static constexpr int NLayers = o2::endcaps::ChipMappingITS::NLayers;
+  static constexpr int NLayers = o2::endcaps::ChipMappingEC0::NLayers;
 
   float mult = 0.;                         /// estimated signal clusters multipliciy at reference (1st?) layer
   float noisePerChip = 0.;                 /// estimated or imposed noise per chip

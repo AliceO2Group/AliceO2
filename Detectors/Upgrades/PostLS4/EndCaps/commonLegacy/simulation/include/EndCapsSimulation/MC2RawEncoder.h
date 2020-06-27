@@ -17,8 +17,8 @@
 #include <gsl/gsl>                               // for guideline support library; array_view
 #include "EndCapsReconstruction/RawPixelReader.h" // TODO : must be modified
 #include "EndCapsReconstruction/AlpideCoder.h"
-#include "EndCapsReconstruction/ChipMappingITS.h"
-#include "EndCapsReconstruction/ChipMappingMFT.h"
+#include "EndCapsReconstruction/ChipMappingEC0.h"
+
 #include "EndCapsReconstruction/RUDecodeData.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -125,8 +125,7 @@ class MC2RawEncoder
 };
 
 // template specifications
-using MC2RawEncoderITS = MC2RawEncoder<ChipMappingITS>;
-using MC2RawEncoderMFT = MC2RawEncoder<ChipMappingMFT>;
+using MC2RawEncoderITS = MC2RawEncoder<ChipMappingEC0>;
 
 } // namespace endcaps
 } // namespace o2

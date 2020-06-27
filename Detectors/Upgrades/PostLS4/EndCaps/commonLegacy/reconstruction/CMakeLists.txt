@@ -10,8 +10,7 @@
 
 o2_add_library(EndCapsReconstruction
                TARGETVARNAME targetName
-               SOURCES src/ChipMappingITS.cxx
-                       src/ChipMappingMFT.cxx
+               SOURCES src/ChipMappingEC0.cxx
                        src/DigitPixelReader.cxx
                        src/Clusterer.cxx
                        src/ClustererParam.cxx
@@ -51,8 +50,7 @@ o2_target_root_dictionary(
           include/EndCapsReconstruction/BuildTopologyDictionary.h
           include/EndCapsReconstruction/LookUp.h
           include/EndCapsReconstruction/TopologyFastSimulation.h
-          include/EndCapsReconstruction/ChipMappingITS.h
-          include/EndCapsReconstruction/ChipMappingMFT.h
+          include/EndCapsReconstruction/ChipMappingEC0.h
           include/EndCapsReconstruction/AlpideCoder.h
           include/EndCapsReconstruction/GBTWord.h
           include/EndCapsReconstruction/PayLoadCont.h

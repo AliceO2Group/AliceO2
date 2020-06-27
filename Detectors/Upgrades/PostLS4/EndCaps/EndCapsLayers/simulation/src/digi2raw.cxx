@@ -21,7 +21,7 @@
 #include <vector>
 #include <string>
 #include <iomanip>
-#include "EndCapsReconstruction/ChipMappingITS.h"
+#include "EndCapsReconstruction/ChipMappingEC0.h"
 #include "EndCapsReconstruction/GBTWord.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -34,7 +34,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 
 /// MC->raw conversion with new (variable page size) format for ITS
-using MAP = o2::endcaps::ChipMappingITS;
+using MAP = o2::endcaps::ChipMappingEC0;
 namespace bpo = boost::program_options;
 
 constexpr int DefRDHVersion = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();

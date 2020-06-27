@@ -31,7 +31,6 @@
 #pragma link C++ class o2::endcaps::DPLDigitizerParam < o2::detectors::DetID::EC0> + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::endcaps::DPLDigitizerParam < o2::detectors::DetID::EC0>> + ;
 
-#pragma link C++ class o2::endcaps::MC2RawEncoder < o2::endcaps::ChipMappingITS> + ;
-#pragma link C++ class o2::endcaps::MC2RawEncoder < o2::endcaps::ChipMappingMFT> + ;
+#pragma link C++ class o2::endcaps::MC2RawEncoder < o2::endcaps::ChipMappingEC0> + ;
 
 #endif

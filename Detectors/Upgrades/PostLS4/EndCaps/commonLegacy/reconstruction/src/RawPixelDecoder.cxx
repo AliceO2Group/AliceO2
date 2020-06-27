@@ -304,5 +304,4 @@ void RawPixelDecoder<Mapping>::setFormat(GBTLink::Format f)
   mFormat = f;
 }
 
-template class o2::endcaps::RawPixelDecoder<o2::endcaps::ChipMappingITS>;
-template class o2::endcaps::RawPixelDecoder<o2::endcaps::ChipMappingMFT>;
+template class o2::endcaps::RawPixelDecoder<o2::endcaps::ChipMappingEC0>;

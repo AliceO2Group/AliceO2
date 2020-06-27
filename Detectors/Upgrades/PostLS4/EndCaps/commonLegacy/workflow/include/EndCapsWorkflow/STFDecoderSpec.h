@@ -21,8 +21,8 @@
 #include <memory>
 #include <string>
 #include <string_view>
-#include "EndCapsReconstruction/ChipMappingITS.h"
-#include "EndCapsReconstruction/ChipMappingMFT.h"
+#include "EndCapsReconstruction/ChipMappingEC0.h"
+
 #include "EndCapsReconstruction/RawPixelDecoder.h"
 
 using namespace o2::framework;
@@ -57,8 +57,7 @@ class STFDecoder : public Task
   std::unique_ptr<Clusterer> mClusterer;
 };
 
-using STFDecoderEC0 = STFDecoder<ChipMappingITS>;
-using STFDecoderMFT = STFDecoder<ChipMappingMFT>;
+using STFDecoderEC0 = STFDecoder<ChipMappingEC0>;
 
 /// create a processor spec
 //o2::framework::DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict);

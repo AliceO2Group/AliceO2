@@ -21,12 +21,12 @@ using namespace o2::ecl;
 /// find multiplicity for given set of clusters
 void FastMultEst::fillNClPerLayer(const gsl::span<const o2::itsmft::CompClusterExt>& clusters)
 {
-  int lr = FastMultEst::NLayers - 1, nchAcc = o2::endcaps::ChipMappingITS::getNChips() - o2::endcaps::ChipMappingITS::getNChipsPerLr(lr);
+  int lr = FastMultEst::NLayers - 1, nchAcc = o2::endcaps::ChipMappingEC0::getNChips() - o2::endcaps::ChipMappingEC0::getNChipsPerLr(lr);
   std::memset(&nClPerLayer[0], 0, sizeof(int) * FastMultEst::NLayers);
   for (int i = clusters.size(); i--;) { // profit from clusters being ordered in chip increasing order
     while (clusters[i].getSensorID() < nchAcc) {
       assert(lr >= 0);
-      nchAcc -= o2::endcaps::ChipMappingITS::getNChipsPerLr(--lr);
+      nchAcc -= o2::endcaps::ChipMappingEC0::getNChipsPerLr(--lr);
     }
     nClPerLayer[lr]++;
   }
@@ -44,7 +44,7 @@ float FastMultEst::processNoiseFree(const std::array<int, NLayers> ncl)
   nLayersUsed = 0;
   for (int il = conf.firstLayer; il <= conf.lastLayer; il++) {
     if (ncl[il] > 0) {
-      int nch = o2::endcaps::ChipMappingITS::getNChipsPerLr(il);
+      int nch = o2::endcaps::ChipMappingEC0::getNChipsPerLr(il);
       float err2i = 1. / ncl[il];
       float m2n = nch * err2i;
       mat[0] += err2i * conf.accCorr[il] * conf.accCorr[il];
@@ -69,7 +69,7 @@ float FastMultEst::processNoiseFree(const std::array<int, NLayers> ncl)
   chi2 = 0.;
   for (int il = conf.firstLayer; il <= conf.lastLayer; il++) {
     if (ncl[il] > 0) {
-      int nch = o2::endcaps::ChipMappingITS::getNChipsPerLr(il);
+      int nch = o2::endcaps::ChipMappingEC0::getNChipsPerLr(il);
       float err2i = 1. / ncl[il];
       float diff = mult * conf.accCorr[il] + nch * noisePerChip - ncl[il];
       chi2 += diff * diff / ncl[il];
@@ -96,7 +96,7 @@ float FastMultEst::processNoiseImposed(const std::array<int, NLayers> ncl)
   nLayersUsed = 0;
   for (int il = conf.firstLayer; il <= conf.lastLayer; il++) {
     if (ncl[il] > 0) {
-      float nchInv = 1. / o2::endcaps::ChipMappingITS::getNChipsPerLr(il);
+      float nchInv = 1. / o2::endcaps::ChipMappingEC0::getNChipsPerLr(il);
       w2sum += conf.accCorr[il] * conf.accCorr[il] * nchInv;
       wnsum += ncl[il] * nchInv * conf.accCorr[il];
       wsum += conf.accCorr[il];
@@ -118,8 +118,8 @@ float FastMultEst::processNoiseImposed(const std::array<int, NLayers> ncl)
   chi2 = 0.;
   for (int il = conf.firstLayer; il <= conf.lastLayer; il++) {
     if (ncl[il] > 0) {
-      int nch = o2::endcaps::ChipMappingITS::getNChipsPerLr(il);
-      float noise = ncl[il] - mult * conf.accCorr[il], estNoise = o2::endcaps::ChipMappingITS::getNChipsPerLr(il) * noisePerChip;
+      int nch = o2::endcaps::ChipMappingEC0::getNChipsPerLr(il);
+      float noise = ncl[il] - mult * conf.accCorr[il], estNoise = o2::endcaps::ChipMappingEC0::getNChipsPerLr(il) * noisePerChip;
       float diff = noise - estNoise;
       chi2 += diff * diff / estNoise;
     }

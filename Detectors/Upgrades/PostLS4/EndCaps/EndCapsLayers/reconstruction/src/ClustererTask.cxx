@@ -30,7 +30,7 @@ ClustererTask::ClustererTask(bool useMC, bool raw) : mRawDataMode(raw),
   LOG(INFO) << Class()->GetName() << ": MC digits mode: " << (mRawDataMode ? "OFF" : "ON")
             << " | Use MCtruth: " << (mUseMCTruth ? "ON" : "OFF");
 
-  mClusterer.setNChips(o2::endcaps::ChipMappingITS::getNChips());
+  mClusterer.setNChips(o2::endcaps::ChipMappingEC0::getNChips());
 }
 
 //_____________________________________________________________________
@@ -52,7 +52,7 @@ void ClustererTask::Init()
 
   // create reader according to requested raw of MC mode
   if (mRawDataMode) {
-    mReaderRaw = std::make_unique<o2::endcaps::RawPixelReader<o2::endcaps::ChipMappingITS>>();
+    mReaderRaw = std::make_unique<o2::endcaps::RawPixelReader<o2::endcaps::ChipMappingEC0>>();
     mReader = mReaderRaw.get();
   } else { // clusterizer of digits
     mReaderMC = std::make_unique<o2::endcaps::DigitPixelReader>();

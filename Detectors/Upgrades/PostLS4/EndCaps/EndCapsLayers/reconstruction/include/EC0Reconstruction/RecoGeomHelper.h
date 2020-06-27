@@ -23,7 +23,7 @@
 #include "MathUtils/Primitive2D.h"
 #include "CommonConstants/MathConstants.h"
 #include "MathUtils/Bracket.h"
-#include "EndCapsReconstruction/ChipMappingITS.h"
+#include "EndCapsReconstruction/ChipMappingEC0.h"
 #include "EndCapsBase/SegmentationAlpide.h"
 
 namespace o2
@@ -95,9 +95,9 @@ struct RecoGeomHelper {
   };
   //---------------------------<< aux classes
 
-  std::array<RecoLayer, o2::endcaps::ChipMappingITS::NLayers> layers;
-  static constexpr int getNLayers() { return o2::endcaps::ChipMappingITS::NLayers; }
-  static constexpr int getNChips() { return o2::endcaps::ChipMappingITS::getNChips(); }
+  std::array<RecoLayer, o2::endcaps::ChipMappingEC0::NLayers> layers;
+  static constexpr int getNLayers() { return o2::endcaps::ChipMappingEC0::NLayers; }
+  static constexpr int getNChips() { return o2::endcaps::ChipMappingEC0::getNChips(); }
   static constexpr float ladderWidth() { return o2::endcaps::SegmentationAlpide::SensorSizeRows; }
   static constexpr float ladderWidthInv() { return 1. / ladderWidth(); }
 

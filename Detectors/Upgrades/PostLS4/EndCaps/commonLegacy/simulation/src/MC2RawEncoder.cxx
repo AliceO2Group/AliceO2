@@ -314,5 +314,4 @@ int MC2RawEncoder<Mapping>::carryOverMethod(const header::RDHAny* rdh, const gsl
   return actualSize;
 }
 
-template class o2::endcaps::MC2RawEncoder<o2::endcaps::ChipMappingITS>;
-template class o2::endcaps::MC2RawEncoder<o2::endcaps::ChipMappingMFT>;
+template class o2::endcaps::MC2RawEncoder<o2::endcaps::ChipMappingEC0>;

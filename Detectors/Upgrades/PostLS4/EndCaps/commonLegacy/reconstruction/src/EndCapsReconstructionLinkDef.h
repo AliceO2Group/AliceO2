@@ -14,22 +14,19 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::endcaps::RawPixelDecoder < o2::endcaps::ChipMappingITS> + ;
-#pragma link C++ class o2::endcaps::RawPixelDecoder < o2::endcaps::ChipMappingMFT> + ;
+#pragma link C++ class o2::endcaps::RawPixelDecoder < o2::endcaps::ChipMappingEC0> + ;
 
 #pragma link C++ class o2::endcaps::Clusterer + ;
 #pragma link C++ class o2::endcaps::PixelReader + ;
 #pragma link C++ class o2::endcaps::DigitPixelReader + ;
-#pragma link C++ class o2::endcaps::RawPixelReader < o2::endcaps::ChipMappingITS> + ;
-#pragma link C++ class o2::endcaps::RawPixelReader < o2::endcaps::ChipMappingMFT> + ;
+#pragma link C++ class o2::endcaps::RawPixelReader < o2::endcaps::ChipMappingEC0> + ;
 
 #pragma link C++ class o2::endcaps::PixelData + ;
 #pragma link C++ class o2::endcaps::ChipPixelData + ;
 #pragma link C++ class o2::endcaps::BuildTopologyDictionary + ;
 #pragma link C++ class o2::endcaps::LookUp + ;
 #pragma link C++ class o2::endcaps::TopologyFastSimulation + ;
-#pragma link C++ class o2::endcaps::ChipMappingITS + ;
-#pragma link C++ class o2::endcaps::ChipMappingMFT + ;
+#pragma link C++ class o2::endcaps::ChipMappingEC0 + ;
 #pragma link C++ class o2::endcaps::AlpideCoder + ;
 #pragma link C++ class o2::endcaps::GBTWord + ;
 #pragma link C++ class o2::endcaps::GBTDataHeader + ;

@@ -22,7 +22,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
     ConfigParamSpec{"disable-mc", VariantType::Bool, false, {"disable mc truth"}},
-    ConfigParamSpec{"mft", VariantType::Bool, false, {"expect MFT data"}},
+    ConfigParamSpec{"EC0", VariantType::Bool, false, {"expect EC0 data"}},
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -39,9 +39,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-
-  if (cfgc.options().get<bool>("ec0")) {
-    wf.emplace_back(o2::endcaps::getEC0DigitWriterSpec(useMC));
-  }
+  wf.emplace_back(o2::endcaps::getEC0DigitWriterSpec(useMC));
   return wf;
 }

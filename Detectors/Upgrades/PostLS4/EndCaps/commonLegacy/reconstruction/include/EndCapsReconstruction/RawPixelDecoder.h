@@ -16,8 +16,8 @@
 #include <array>
 #include <TStopwatch.h>
 #include "Framework/Logger.h"
-#include "EndCapsReconstruction/ChipMappingITS.h"
-#include "EndCapsReconstruction/ChipMappingMFT.h"
+#include "EndCapsReconstruction/ChipMappingEC0.h"
+
 #include "DetectorsRaw/HBFUtils.h"
 #include "Headers/RAWDataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -144,8 +144,7 @@ int RawPixelDecoder<Mapping>::fillDecodedDigits(DigitContainer& digits, ROFConta
   return nFilled;
 }
 
-using RawDecoderITS = RawPixelDecoder<ChipMappingITS>;
-using RawDecoderMFT = RawPixelDecoder<ChipMappingMFT>;
+using RawDecoderITS = RawPixelDecoder<ChipMappingEC0>;
 
 } // namespace endcaps
 } // namespace o2

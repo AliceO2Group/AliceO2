@@ -15,7 +15,7 @@
 #define ALICEO2_ENDCAPSLAYERS_CLUSTERERTASK
 
 #include "ECLayersBase/GeometryTGeo.h"
-#include "EndCapsReconstruction/ChipMappingITS.h"
+#include "EndCapsReconstruction/ChipMappingEC0.h"
 #include "EndCapsReconstruction/PixelReader.h"
 #include "EndCapsReconstruction/RawPixelReader.h"
 #include "EndCapsReconstruction/DigitPixelReader.h"
@@ -69,7 +69,7 @@ class ClustererTask
   bool mUseMCTruth = true;                                                            ///< flag to use MCtruth if available
   o2::endcaps::PixelReader* mReader = nullptr;                                         ///< Pointer on the relevant Pixel reader
   std::unique_ptr<o2::endcaps::DigitPixelReader> mReaderMC;                            ///< reader for MC data
-  std::unique_ptr<o2::endcaps::RawPixelReader<o2::endcaps::ChipMappingITS>> mReaderRaw; ///< reader for raw data
+  std::unique_ptr<o2::endcaps::RawPixelReader<o2::endcaps::ChipMappingEC0>> mReaderRaw; ///< reader for raw data
 
   const o2::endcaps::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
   Clusterer mClusterer;                                ///< Cluster finder

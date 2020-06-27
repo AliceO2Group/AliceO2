@@ -8,39 +8,39 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// \file ChipMappingITS.cxx
-// \brief Autimatically generated ITS chip <-> module mapping
+// \file ChipMappingEC0.cxx
+// \brief Autimatically generated EC0 chip <-> module mapping
 
 #include <FairLogger.h>
-#include "EndCapsReconstruction/ChipMappingITS.h"
+#include "EndCapsReconstruction/ChipMappingEC0.h"
 #include <cassert>
 #include <sstream>
 #include <iomanip>
 
 using namespace o2::endcaps;
 
-constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NModulesAlongStaveSB;
+constexpr std::array<int, ChipMappingEC0::NSubB> ChipMappingEC0::NModulesAlongStaveSB;
 
-constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NChipsPerModuleSB;
-constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NModulesPerStaveSB;
-constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NCablesPerStaveSB;
-constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::CablesOnStaveSB;
+constexpr std::array<int, ChipMappingEC0::NSubB> ChipMappingEC0::NChipsPerModuleSB;
+constexpr std::array<int, ChipMappingEC0::NSubB> ChipMappingEC0::NModulesPerStaveSB;
+constexpr std::array<int, ChipMappingEC0::NSubB> ChipMappingEC0::NCablesPerStaveSB;
+constexpr std::array<int, ChipMappingEC0::NSubB> ChipMappingEC0::CablesOnStaveSB;
 
-constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NStavesSB;
-constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NChipsPerStaveSB;
-constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NChipsPerCableSB;
-constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NChipsSB;
-constexpr std::array<int, ChipMappingITS::NLayers> ChipMappingITS::NStavesOnLr;
-constexpr std::array<int, ChipMappingITS::NLayers> ChipMappingITS::FirstStaveOnLr;
+constexpr std::array<int, ChipMappingEC0::NSubB> ChipMappingEC0::NStavesSB;
+constexpr std::array<int, ChipMappingEC0::NSubB> ChipMappingEC0::NChipsPerStaveSB;
+constexpr std::array<int, ChipMappingEC0::NSubB> ChipMappingEC0::NChipsPerCableSB;
+constexpr std::array<int, ChipMappingEC0::NSubB> ChipMappingEC0::NChipsSB;
+constexpr std::array<int, ChipMappingEC0::NLayers> ChipMappingEC0::NStavesOnLr;
+constexpr std::array<int, ChipMappingEC0::NLayers> ChipMappingEC0::FirstStaveOnLr;
 
-constexpr std::array<uint8_t, ChipMappingITS::NLayers> ChipMappingITS::RUTypeLr;
+constexpr std::array<uint8_t, ChipMappingEC0::NLayers> ChipMappingEC0::RUTypeLr;
 
-constexpr std::array<uint8_t, ChipMappingITS::NSubB> ChipMappingITS::GBTHeaderFlagSB;
-constexpr std::uint8_t ChipMappingITS::ChipOBModSW2HW[14];
-constexpr std::uint8_t ChipMappingITS::ChipOBModHW2SW[15];
+constexpr std::array<uint8_t, ChipMappingEC0::NSubB> ChipMappingEC0::GBTHeaderFlagSB;
+constexpr std::uint8_t ChipMappingEC0::ChipOBModSW2HW[14];
+constexpr std::uint8_t ChipMappingEC0::ChipOBModHW2SW[15];
 
 //______________________________________________
-ChipMappingITS::ChipMappingITS()
+ChipMappingEC0::ChipMappingEC0()
 {
   // init chips info
 
@@ -145,7 +145,7 @@ ChipMappingITS::ChipMappingITS()
 }
 
 //______________________________________________
-void ChipMappingITS::print() const
+void ChipMappingEC0::print() const
 {
   int ctrChip = 0;
   printf("\n\nSubBarrel IB\n");
@@ -163,7 +163,7 @@ void ChipMappingITS::print() const
 }
 
 //______________________________________________
-void ChipMappingITS::expandChipInfoSW(int idSW, int& lay, int& sta, int& ssta, int& mod, int& chipInMod) const
+void ChipMappingEC0::expandChipInfoSW(int idSW, int& lay, int& sta, int& ssta, int& mod, int& chipInMod) const
 {
   // convert SW chip ID to detailed info SW info
   ChipInfo chi;
@@ -177,7 +177,7 @@ void ChipMappingITS::expandChipInfoSW(int idSW, int& lay, int& sta, int& ssta, i
 }
 
 //______________________________________________
-void ChipMappingITS::expandChipInfoHW(int idSW, int& lay, int& sta, int& ssta, int& mod, int& chipInMod) const
+void ChipMappingEC0::expandChipInfoHW(int idSW, int& lay, int& sta, int& ssta, int& mod, int& chipInMod) const
 {
   // convert SW chip ID to detailed info HW info
   ChipInfo chi;
@@ -191,7 +191,7 @@ void ChipMappingITS::expandChipInfoHW(int idSW, int& lay, int& sta, int& ssta, i
 }
 
 //______________________________________________
-std::string ChipMappingITS::getChipNameHW(int idSW) const
+std::string ChipMappingEC0::getChipNameHW(int idSW) const
 {
   // convert global SW chip ID to name in HW conventions
   int lay, sta, ssta, mod, cinmod;
@@ -207,7 +207,7 @@ std::string ChipMappingITS::getChipNameHW(int idSW) const
 }
 
 ///< impose user defined FEEId -> ruSW (staveID) conversion, to be used only for forced decoding of corrupted data
-void ChipMappingITS::imposeFEEId2RUSW(uint16_t feeID, uint16_t ruSW)
+void ChipMappingEC0::imposeFEEId2RUSW(uint16_t feeID, uint16_t ruSW)
 {
   // test if it is legitimate
   uint16_t lr, ruOnLr, link;

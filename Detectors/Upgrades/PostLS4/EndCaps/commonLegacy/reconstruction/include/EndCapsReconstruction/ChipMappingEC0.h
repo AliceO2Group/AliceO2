@@ -11,8 +11,8 @@
 #ifndef ALICEO2_CHIPMAPPINGEC0_H
 #define ALICEO2_CHIPMAPPINGEC0_H
 
-// \file ChipMappingITS.h
-// \brief ITS chip <-> module mapping
+// \file ChipMappingEC0.h
+// \brief EC0 chip <-> module mapping
 
 #include <Rtypes.h>
 #include <array>
@@ -28,12 +28,12 @@ namespace o2
 namespace endcaps
 {
 
-class ChipMappingITS
+class ChipMappingEC0
 {
  public:
   ///< these public methods must be defined in the mapping class for raw data encoding/decoding
-  ChipMappingITS();
-  ~ChipMappingITS() = default;
+  ChipMappingEC0();
+  ~ChipMappingEC0() = default;
 
   static constexpr std::string_view getName() { return "EC0"; }
   static constexpr o2::header::DataOrigin getOrigin() { return o2::header::gDataOriginEC0; }
@@ -168,7 +168,7 @@ class ChipMappingITS
   ///< get pattern of lanes on the RU served by a given RU type
   int getCablesOnRUType(int ruType) const { return CablesOnStaveSB[ruType]; }
 
-  ///< get number of chips served by RU of given type (i.e. RU type for ITS)
+  ///< get number of chips served by RU of given type (i.e. RU type for EC0)
   int getNChipsOnRUType(int ruType) const { return NChipsPerStaveSB[ruType]; }
 
   ///< get RU type from the sequential ID of the RU
@@ -288,7 +288,7 @@ class ChipMappingITS
   std::vector<uint8_t> mCableHW2Pos[NSubB];      ///< table of cables positions in the ActiveLanes mask for each RU type
   std::vector<uint8_t> mCableHWFirstChip[NSubB]; ///< 1st chip of module (relative to the 1st chip of the stave) served by each cable
 
-  ClassDefNV(ChipMappingITS, 1);
+  ClassDefNV(ChipMappingEC0, 1);
 };
 } // namespace endcaps
 } // namespace o2

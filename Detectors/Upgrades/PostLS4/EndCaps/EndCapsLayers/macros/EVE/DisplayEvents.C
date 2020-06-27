@@ -29,7 +29,7 @@
 
 #include "EventVisualisationView/MultiView.h"
 
-#include "EndCapsReconstruction/ChipMappingITS.h"
+#include "EndCapsReconstruction/ChipMappingEC0.h"
 #include "EndCapsReconstruction/DigitPixelReader.h"
 #include "EndCapsReconstruction/RawPixelReader.h"
 #include "EndCapsBase/SegmentationAlpide.h"
@@ -56,7 +56,7 @@ class Data
   int getLastEvent() const { return mLastEvent; }
   void setRawPixelReader(std::string input)
   {
-    auto reader = new RawPixelReader<ChipMappingITS>();
+    auto reader = new RawPixelReader<ChipMappingEC0>();
     reader->openInput(input);
     mPixelReader = reader;
     mPixelReader->getNextChipData(mChipData);

@@ -16,7 +16,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "EC0Workflow/ClustererSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
-#include "EndCapsReconstruction/ChipMappingITS.h"
+#include "EndCapsReconstruction/ChipMappingEC0.h"
 #include "EndCapsReconstruction/ClustererParam.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -46,7 +46,7 @@ void ClustererDPL::init(InitContext& ic)
 
   mClusterer = std::make_unique<o2::endcaps::Clusterer>();
   mClusterer->setGeometry(geom);
-  mClusterer->setNChips(o2::endcaps::ChipMappingITS::getNChips());
+  mClusterer->setNChips(o2::endcaps::ChipMappingEC0::getNChips());
 
   auto filenameGRP = ic.options().get<std::string>("grp-file");
   const auto grp = o2::parameters::GRPObject::loadFrom(filenameGRP.c_str());

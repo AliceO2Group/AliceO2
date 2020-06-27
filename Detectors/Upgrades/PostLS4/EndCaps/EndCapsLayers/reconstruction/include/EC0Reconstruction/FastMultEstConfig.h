@@ -17,14 +17,14 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
-#include "EndCapsReconstruction/ChipMappingITS.h"
+#include "EndCapsReconstruction/ChipMappingEC0.h"
 
 namespace o2
 {
 namespace ecl
 {
 struct FastMultEstConfig : public o2::conf::ConfigurableParamHelper<FastMultEstConfig> {
-  static constexpr int NLayers = o2::endcaps::ChipMappingITS::NLayers;
+  static constexpr int NLayers = o2::endcaps::ChipMappingEC0::NLayers;
 
   /// acceptance correction per layer (relative to 1st one)
   float accCorr[NLayers] = {1.f, 0.895, 0.825, 0.803, 0.720, 0.962, 0.911};

@@ -17,7 +17,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "EndCapsReconstruction/PixelReader.h"
 #include "EndCapsReconstruction/PixelData.h"
-#include "EndCapsReconstruction/ChipMappingITS.h" // this will become template parameter
+#include "EndCapsReconstruction/ChipMappingEC0.h" // this will become template parameter
 #include "EndCapsReconstruction/AlpideCoder.h"
 #include "EndCapsReconstruction/GBTWord.h"
 #include "CommonConstants/Triggers.h"
@@ -113,10 +113,10 @@ struct RawDecodingStat {
 /// Used both for encoding to and decoding from the alpide raw data format
 /// Requires as a template parameter a helper class for detector-specific
 /// mapping between the software global chip ID and HW module ID and chip ID
-/// within the module, see for example ChipMappingITS class.
+/// within the module, see for example ChipMappingEC0 class.
 /// Similar helper class must be provided for the MFT
 
-template <class Mapping = o2::endcaps::ChipMappingITS>
+template <class Mapping = o2::endcaps::ChipMappingEC0>
 class RawPixelReader : public PixelReader
 {
   using Coder = o2::endcaps::AlpideCoder;

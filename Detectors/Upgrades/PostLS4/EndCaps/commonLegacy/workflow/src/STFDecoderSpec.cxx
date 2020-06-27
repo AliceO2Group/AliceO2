@@ -187,37 +187,7 @@ DataProcessorSpec getSTFDecoderEC0Spec(bool doClusters, bool doPatterns, bool do
     "ec0-stf-decoder",
     Inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, dict)},
-    Options{
-      {"nthreads", VariantType::Int, 0, {"Number of decoding/clustering threads (<1: rely on openMP default)"}},
-      {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
-      {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data)"}}}};
-}
-
-DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict)
-{
-  std::vector<OutputSpec> outputs;
-  auto orig = o2::header::gDataOriginMFT;
-  if (doDigits) {
-    outputs.emplace_back(orig, "DIGITS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "DIGITSROF", 0, Lifetime::Timeframe);
-  }
-  if (doClusters) {
-    outputs.emplace_back(orig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "CLUSTERSROF", 0, Lifetime::Timeframe);
-    // in principle, we don't need to open this input if we don't need to send real data,
-    // but other devices expecting it do not know about options of this device: problem?
-    // if (doClusters && doPatterns)
-    outputs.emplace_back(orig, "PATTERNS", 0, Lifetime::Timeframe);
-    //
-    outputs.emplace_back(orig, "CLUSTERS", 0, Lifetime::Timeframe); // RSTODO: DUMMY, FULL CLUSTERS ARE BEING ELIMINATED
-  }
-
-  return DataProcessorSpec{
-    "mft-stf-decoder",
-    Inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Timeframe}},
-    outputs,
-    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(doClusters, doPatterns, doDigits, dict)},
+    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingEC0>>(doClusters, doPatterns, doDigits, dict)},
     Options{
       {"nthreads", VariantType::Int, 0, {"Number of decoding/clustering threads (<1: rely on openMP default)"}},
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
