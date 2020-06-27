@@ -27,7 +27,7 @@ struct ATask {
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      phiH->Fill(track.phi());
+      phiH->Fill(track.nphi());
       etaH->Fill(track.eta());
     }
   }
@@ -43,8 +43,8 @@ struct BTask {
     for (auto& track : tracks) {
       // FIXME: this is until we have configurables which
       //        can be used in expressions.
-      if (track.phi() < phiCut) {
-        etaphiH->Fill(track.phi(), track.eta());
+      if (track.nphi() < phiCut) {
+        etaphiH->Fill(track.nphi(), track.eta());
       }
     }
   }
@@ -70,9 +70,9 @@ struct CTask {
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      if (track.pt2() < pTCut * pTCut)
+      if (track.pt() < pTCut)
         continue;
-      ptH->Fill(std::sqrt(track.pt2()));
+      ptH->Fill(track.pt());
       trZ->Fill(track.z());
     }
   }
@@ -93,7 +93,7 @@ struct DTask {
     auto pHist = dynamic_cast<TH1F*>(list->At(0));
     auto etaHist = dynamic_cast<TH1F*>(list->At(1));
 
-    pHist->Fill(std::sqrt(track.p2()));
+    pHist->Fill(track.p());
     etaHist->Fill(track.eta());
   }
 };
