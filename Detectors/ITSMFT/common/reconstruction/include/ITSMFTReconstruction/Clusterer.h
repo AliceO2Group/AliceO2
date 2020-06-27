@@ -68,6 +68,16 @@ class Clusterer
   static constexpr int MaxLabels = 10;
   //=========================================================
   /// methods and transient data used within a thread
+  struct ThreadStat {
+    uint16_t firstChip = 0;
+    uint16_t nChips = 0;
+    uint32_t firstClus = 0;
+    uint32_t firstPatt = 0;
+    uint32_t nClus = 0;
+    uint32_t nPatt = 0;
+    ThreadStat() = default;
+  };
+
   struct ClustererThread {
 
     Clusterer* parent = nullptr; // parent clusterer
@@ -91,6 +101,7 @@ class Clusterer
     CompClusCont compClusters;
     PatternCont patterns;
     MCTruth labels;
+    std::vector<ThreadStat> stats; // statistics for each thread results, used at merging
     ///
     ///< reset column buffer, for the performance reasons we use memset
     void resetColumn(int* buff) { std::memset(buff, -1, sizeof(int) * SegmentationAlpide::NRows); }
@@ -125,7 +136,7 @@ class Clusterer
                     const MCTruth* labelsDig, MCTruth* labelsClus);
     void finishChipSingleHitFast(uint32_t hit, ChipPixelData* curChipData, CompClusCont* compClusPtr,
                                  PatternCont* patternsPtr, const MCTruth* labelsDigPtr, MCTruth* labelsClusPTr);
-    void process(gsl::span<ChipPixelData*> chipPtrs, CompClusCont* compClusPtr, PatternCont* patternsPtr,
+    void process(uint16_t chip, uint16_t nChips, CompClusCont* compClusPtr, PatternCont* patternsPtr,
                  const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr);
 
     ClustererThread(Clusterer* par = nullptr) : parent(par), curr(column2 + 1), prev(column1 + 1)

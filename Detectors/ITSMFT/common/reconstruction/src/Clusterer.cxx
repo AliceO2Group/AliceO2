@@ -31,8 +31,9 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
 #ifdef _PERFORM_TIMING_
   mTimer.Start(kFALSE);
 #endif
-
-  constexpr int LoopPerThread = 4; // in MT mode run so many times more loops than the threads allowed
+  if (nThreads < 1) {
+    nThreads = 1;
+  }
   auto autoDecode = reader.getDecodeNextAuto();
   do {
     if (autoDecode) {
@@ -52,80 +53,57 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
 
     auto& rof = vecROFRec->emplace_back(reader.getInteractionRecord(), 0, compClus->size(), 0); // create new ROF
 
-    int nFired = mFiredChipsPtr.size();
+    uint16_t nFired = mFiredChipsPtr.size();
     if (!nFired) {
       if (autoDecode) {
         continue;
       }
       break; // just 1 ROF was asked to be processed
     }
-
     if (nFired < nThreads) {
       nThreads = nFired;
     }
-    int nLoops = nThreads;
 #ifdef WITH_OPENMP
-    if (nThreads > 0) {
-      omp_set_num_threads(nThreads);
-    } else {
-      nThreads = omp_get_num_threads(); // RSTODO I guess the system may decide to provide less threads than asked?
-    }
-    nLoops = nThreads == 1 ? 1 : std::min(nFired, LoopPerThread * nThreads);
-    std::vector<int> loopLim;
-    loopLim.reserve(nLoops + nLoops);
-    loopLim.push_back(0);
-    // decide actual workshare between the threads, trying to process the same number of pixels in each
-    size_t nAvPixPerLoop = nPix / nLoops, smt = 0;
-    for (int i = 0; i < nFired; i++) {
-      smt += mFiredChipsPtr[i]->getData().size();
-      if (smt >= nAvPixPerLoop) { // define threads boundary
-        loopLim.push_back(i);
-        smt = 0;
-      }
-    }
-    if (loopLim.back() != nFired) {
-      loopLim.push_back(nFired);
-    }
-    nLoops = loopLim.size() - 1;
-    if (nThreads > nLoops) { // this should not happen
-      omp_set_num_threads(nLoops);
-    }
+    omp_set_num_threads(nThreads);
 #else
-    nThreads = nLoops = 1;
-    std::vector<int> loopLim{0, nFired};
+    nThreads = 1;
 #endif
-    if (nLoops > mThreads.size()) {
+    uint16_t chipStep = nThreads > 1 ? (nThreads == 2 ? 20 : (nThreads < 5 ? 5 : 1)) : nFired;
+    int dynGrp = std::min(4, std::max(1, nThreads / 2));
+    if (nThreads > mThreads.size()) {
       int oldSz = mThreads.size();
-      mThreads.resize(nLoops);
-      for (int i = oldSz; i < nLoops; i++) {
+      mThreads.resize(nThreads);
+      for (int i = oldSz; i < nThreads; i++) {
         mThreads[i] = std::make_unique<ClustererThread>(this);
       }
     }
 #ifdef WITH_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic, dynGrp)
 #endif
     //>> start of MT region
-    for (int ith = 0; ith < nLoops; ith++) { // each loop is done by a separate thread
-      auto chips = gsl::span(&mFiredChipsPtr[loopLim[ith]], loopLim[ith + 1] - loopLim[ith]);
-      if (!ith) { // the 1st thread can write directly to the final destination
-        mThreads[ith]->process(chips, compClus, patterns, labelsCl ? reader.getDigitsMCTruth() : nullptr, labelsCl, rof);
-      } else { // extra threads will store in their own containers
-        mThreads[ith]->process(chips,
+    for (uint16_t ic = 0; ic < nFired; ic += chipStep) {
+      auto ith = omp_get_thread_num();
+      if (nThreads > 1) {
+        mThreads[ith]->process(ic, std::min(chipStep, uint16_t(nFired - ic)),
                                &mThreads[ith]->compClusters,
                                patterns ? &mThreads[ith]->patterns : nullptr,
                                labelsCl ? reader.getDigitsMCTruth() : nullptr,
                                labelsCl ? &mThreads[ith]->labels : nullptr, rof);
+      } else { // put directly to the destination
+        mThreads[ith]->process(0, nFired, compClus, patterns, labelsCl ? reader.getDigitsMCTruth() : nullptr, labelsCl, rof);
       }
     }
     //<< end of MT region
 
     // copy data of all threads but the 1st one to final destination
-    if (nLoops > 1) {
+    if (nThreads > 1) {
 #ifdef _PERFORM_TIMING_
       mTimerMerge.Start(false);
 #endif
-      size_t nClTot = compClus->size(), nPattTot = patterns ? patterns->size() : 0;
-      for (int ith = 1; ith < nLoops; ith++) {
+      size_t nClTot = 0, nPattTot = 0;
+      int chid = 0, thrStatIdx[nThreads];
+      for (int ith = 0; ith < nThreads; ith++) {
+        thrStatIdx[ith] = 0;
         nClTot += mThreads[ith]->compClusters.size();
         nPattTot += mThreads[ith]->patterns.size();
       }
@@ -133,26 +111,42 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
       if (patterns) {
         patterns->reserve(nPattTot);
       }
-      for (int ith = 1; ith < nLoops; ith++) {
-        compClus->insert(compClus->end(), mThreads[ith]->compClusters.begin(), mThreads[ith]->compClusters.end());
+      while (chid < nFired) {
+        for (int ith = 0; ith < nThreads; ith++) {
+          if (thrStatIdx[ith] >= mThreads[ith]->stats.size()) {
+            continue;
+          }
+          const auto& stat = mThreads[ith]->stats[thrStatIdx[ith]];
+          if (stat.firstChip == chid) {
+            thrStatIdx[ith]++;
+            chid += stat.nChips; // next chip to look
+            const auto clbeg = mThreads[ith]->compClusters.begin() + stat.firstClus;
+            auto szold = compClus->size();
+            compClus->insert(compClus->end(), clbeg, clbeg + stat.nClus);
+            if (patterns) {
+              const auto ptbeg = mThreads[ith]->patterns.begin() + stat.firstPatt;
+              patterns->insert(patterns->end(), ptbeg, ptbeg + stat.nPatt);
+            }
+            if (labelsCl) {
+              labelsCl->mergeAtBack(mThreads[ith]->labels, stat.firstClus, stat.nClus);
+            }
+          }
+        }
+      }
+      for (int ith = 0; ith < nThreads; ith++) {
+        mThreads[ith]->patterns.clear();
         mThreads[ith]->compClusters.clear();
-
-        if (patterns) {
-          patterns->insert(patterns->end(), mThreads[ith]->patterns.begin(), mThreads[ith]->patterns.end());
-          mThreads[ith]->patterns.clear();
-        }
-        if (labelsCl) {
-          labelsCl->mergeAtBack(mThreads[ith]->labels);
-          mThreads[ith]->labels.clear();
-        }
+        mThreads[ith]->labels.clear();
+        mThreads[ith]->stats.clear();
       }
 #ifdef _PERFORM_TIMING_
       mTimerMerge.Stop();
 #endif
+    } else {
+      mThreads[0]->stats.clear();
     }
     rof.setNEntries(compClus->size() - rof.getFirstEntry()); // update
   } while (autoDecode);
-
   reader.setDecodeNextAuto(autoDecode); // restore setting
 #ifdef _PERFORM_TIMING_
   mTimer.Stop();
@@ -160,11 +154,15 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
 }
 
 //__________________________________________________
-void Clusterer::ClustererThread::process(gsl::span<ChipPixelData*> chipPtrs, CompClusCont* compClusPtr, PatternCont* patternsPtr,
+void Clusterer::ClustererThread::process(uint16_t chip, uint16_t nChips, CompClusCont* compClusPtr, PatternCont* patternsPtr,
                                          const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr)
 {
-  int nch = chipPtrs.size();
-  for (auto curChipData : chipPtrs) {
+  if (stats.empty() || stats.back().firstChip + stats.back().nChips < chip) { // there is a jump, register new block
+    stats.emplace_back(ThreadStat{chip, 0, uint32_t(compClusPtr->size()), patternsPtr ? uint32_t(patternsPtr->size()) : 0, 0, 0});
+  }
+
+  for (int ic = 0; ic < nChips; ic++) {
+    auto* curChipData = parent->mFiredChipsPtr[chip + ic];
     auto chipID = curChipData->getChipID();
     if (parent->mMaxBCSeparationToMask > 0) { // mask pixels fired from the previous ROF
       const auto& chipInPrevROF = parent->mChipsOld[chipID];
@@ -192,6 +190,10 @@ void Clusterer::ClustererThread::process(gsl::span<ChipPixelData*> chipPtrs, Com
       parent->mChipsOld[chipID].swap(*curChipData);
     }
   }
+  auto& currStat = stats.back();
+  currStat.nChips += nChips;
+  currStat.nClus = compClusPtr->size() - currStat.firstClus;
+  currStat.nPatt = patternsPtr ? (patternsPtr->size() - currStat.firstPatt) : 0;
 }
 
 //__________________________________________________

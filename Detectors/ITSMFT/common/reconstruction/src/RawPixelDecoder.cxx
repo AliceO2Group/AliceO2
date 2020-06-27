@@ -70,12 +70,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
   mInteractionRecord.clear();
   int nLinksWithData = 0, nru = mRUDecodeVec.size();
 #ifdef WITH_OPENMP
-  if (mNThreads > 0) { // otherwhise, rely on default
-    omp_set_num_threads(mNThreads);
-  } else {
-    mNThreads = omp_get_num_threads();
-    LOG(INFO) << mSelfName << " will use " << mNThreads << " threads";
-  }
+  omp_set_num_threads(mNThreads);
 #pragma omp parallel for schedule(dynamic) reduction(+ \
                                                      : nLinksWithData, mNChipsFiredROF, mNPixelsFiredROF)
 #endif
@@ -289,7 +284,7 @@ template <class Mapping>
 void RawPixelDecoder<Mapping>::setNThreads(int n)
 {
 #ifdef WITH_OPENMP
-  mNThreads = n;
+  mNThreads = n > 0 ? n : 1;
 #else
   LOG(WARNING) << mSelfName << " Multithreading is not supported, imposing single thread";
   mNThreads = 1;
