@@ -283,6 +283,28 @@ class MCTruthContainer
     }
   }
 
+  // merge part of another container ("n" entries starting from "from") to the back of this one
+  void mergeAtBack(MCTruthContainer<TruthElement> const& other, size_t from, size_t n)
+  {
+    const auto oldtruthsize = mTruthArray.size();
+    const auto oldheadersize = mHeaderArray.size();
+    auto endIdx = from + n;
+    assert(endIdx <= other.mHeaderArray.size());
+    const auto* headBeg = &other.mHeaderArray[from];
+    const auto* headEnd = headBeg + n;
+    const auto* trtArrBeg = &other.mTruthArray[other.getMCTruthHeader(from).index];
+    const auto* trtArrEnd = (endIdx == other.mHeaderArray.size()) ? (&other.mTruthArray.back()) + 1 : &other.mTruthArray[other.getMCTruthHeader(endIdx).index];
+
+    // copy from other
+    std::copy(headBeg, headEnd, std::back_inserter(mHeaderArray));
+    std::copy(trtArrBeg, trtArrEnd, std::back_inserter(mTruthArray));
+    long offset = long(oldtruthsize) - other.getMCTruthHeader(from).index;
+    // adjust information of newly attached part
+    for (uint32_t i = oldheadersize; i < mHeaderArray.size(); ++i) {
+      mHeaderArray[i].index += offset;
+    }
+  }
+
   /// Flatten the internal arrays to the provided container
   /// Copies the content of the two vectors of PODs to a contiguous container.
   /// The flattened data starts with a specific header @ref FlatHeader describing

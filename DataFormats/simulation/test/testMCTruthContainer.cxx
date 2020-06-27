@@ -95,13 +95,22 @@ BOOST_AUTO_TEST_CASE(MCTruth)
     container2.addElement(1, TruthElement(1));
     container2.addElement(2, TruthElement(10));
 
+    dataformats::MCTruthContainer<TruthElement> containerA;
+
     container1.mergeAtBack(container2);
+
+    containerA.mergeAtBack(container1, 0, 2);
+    containerA.mergeAtBack(container1, 2, 2);
+
     auto lview = container1.getLabels(3); //
+    auto lviewA = containerA.getLabels(3);
     BOOST_CHECK(lview.size() == 2);
     BOOST_CHECK(lview[0] == 11);
     BOOST_CHECK(lview[1] == 12);
     BOOST_CHECK(container1.getIndexedSize() == 6);
     BOOST_CHECK(container1.getNElements() == 8);
+    BOOST_CHECK(lview.size() == lviewA.size());
+    BOOST_CHECK(lview[0] == lviewA[0] && lview[1] == lviewA[1]);
   }
 }
 
