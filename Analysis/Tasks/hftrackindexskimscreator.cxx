@@ -41,13 +41,13 @@ DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK", seltrack::IsSel, seltrack::DCAPri
 struct SelectTracks {
   Produces<aod::SelTrack> seltrack;
   Configurable<double> ptmintrack{"ptmintrack", -1, "ptmin single track"};
-  Configurable<double> dcatrackmin{"dcatrackmin", 0, "dca single track min"};
+  Configurable<double> dcatoprimxymin{"dcatoprimxymin", 0, "dca xy to prim vtx min"};
   Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, "min number of tpc cls >="};
   Configurable<double> d_bz{"d_bz", 5.0, "bz field"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
   OutputObj<TH1F> hpt_nocuts{TH1F("hpt_nocuts", "pt tracks (#GeV)", 100, 0., 10.)};
   OutputObj<TH1F> hpt_cuts{TH1F("hpt_cuts", "pt tracks (#GeV)", 100, 0., 10.)};
-  OutputObj<TH1F> hdca_cuts{TH1F("hdca_cuts", "dca to prim. vertex (cm)", 100, 0., 10.)};
+  OutputObj<TH1F> hdcatoprimxy_cuts{TH1F("hdcatoprimxy_cuts", "dca xy to prim. vertex (cm)", 100, -1.0, 1.0)};
 
   void process(aod::Collision const& collision,
                soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
@@ -78,12 +78,12 @@ struct SelectTracks {
                                        track_0.c1PtTgl(), track_0.c1Pt21Pt2()};
       o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
       trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca);
-      if (dca[0] * dca[0] + dca[1] * dca[1] < dcatrackmin * dcatrackmin)
+      if (abs(dca[0]) < dcatoprimxymin)
         status = 0;
       if (b_dovalplots == true) {
         if (status == 1) {
           hpt_cuts->Fill(track_0.pt());
-          hdca_cuts->Fill(sqrt(dca[0] * dca[0] + dca[1] * dca[1]));
+          hdcatoprimxy_cuts->Fill(dca[0]);
         }
       }
       seltrack(status, dca[0], dca[1]);
