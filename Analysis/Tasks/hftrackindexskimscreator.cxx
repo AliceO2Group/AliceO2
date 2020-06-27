@@ -47,7 +47,7 @@ struct SelectTracks {
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
   OutputObj<TH1F> hpt_nocuts{TH1F("hpt_nocuts", "pt tracks (#GeV)", 100, 0., 10.)};
   OutputObj<TH1F> hpt_cuts{TH1F("hpt_cuts", "pt tracks (#GeV)", 100, 0., 10.)};
-  OutputObj<TH1F> hdca_cuts{TH1F("hdca_cuts", "dca (cm)", 100, 0., 10.)};
+  OutputObj<TH1F> hdca_cuts{TH1F("hdca_cuts", "dca to prim. vertex (cm)", 100, 0., 10.)};
 
   void process(aod::Collision const& collision,
                soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
@@ -94,8 +94,8 @@ struct SelectTracks {
 struct HFTrackIndexSkimsCreator {
   float masspion = 0.140;
   float masskaon = 0.494;
-  OutputObj<TH1F> hmass2pre{TH1F("hmass2pre", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
-  OutputObj<TH1F> hmass3pre{TH1F("hmass3pre", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
+  OutputObj<TH1F> hmass2{TH1F("hmass2", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
+  OutputObj<TH1F> hmass3{TH1F("hmass3", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
   Produces<aod::HfTrackIndexProng2> hftrackindexprong2;
   Produces<aod::HfTrackIndexProng3> hftrackindexprong3;
   Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
@@ -193,12 +193,12 @@ struct HFTrackIndexSkimsCreator {
                                              pvec1[0], pvec1[1],
                                              pvec1[2], masspion));
         if (b_dovalplots == true) {
-          hmass2pre->Fill(mass_);
-          hmass2pre->Fill(masssw_);
+          hmass2->Fill(mass_);
+          hmass2->Fill(masssw_);
         }
         hftrackindexprong2(track_p1.collisionId(),
                            track_p1.globalIndex(),
-                           track_n1.globalIndex(), 1.);
+                           track_n1.globalIndex(), 1);
         if (do3prong == 1) {
           //second loop on positive tracks
           for (auto i_p2 = i_p1 + 1; i_p2 != tracks.end(); ++i_p2) {
@@ -213,7 +213,7 @@ struct HFTrackIndexSkimsCreator {
             if (mass3prong2 < d_minmassDp * d_minmassDp || mass3prong2 > d_maxmassDp * d_maxmassDp)
               continue;
             if (b_dovalplots == true)
-              hmass3pre->Fill(sqrt(mass3prong2));
+              hmass3->Fill(sqrt(mass3prong2));
             std::array<float, 5> arraypar_p2 = {track_p2.y(), track_p2.z(), track_p2.snp(),
                                                 track_p2.tgl(), track_p2.signed1Pt()};
             std::array<float, 15> covpar_p2 = {track_p2.cYY(), track_p2.cZY(), track_p2.cZZ(),
@@ -241,12 +241,12 @@ struct HFTrackIndexSkimsCreator {
                                                pvec2[0], pvec2[1],
                                                pvec2[2], masspion));
             if (b_dovalplots == true) {
-              hmass3pre->Fill(mass_);
+              hmass3->Fill(mass_);
             }
             hftrackindexprong3(track_p1.collisionId(),
                                track_p1.globalIndex(),
                                track_n1.globalIndex(),
-                               track_p1.globalIndex(), 2.);
+                               track_p1.globalIndex(), 2);
           }
           //second loop on negative tracks
           for (auto i_n2 = i_n1 + 1; i_n2 != tracks.end(); ++i_n2) {
@@ -260,7 +260,7 @@ struct HFTrackIndexSkimsCreator {
                                                  track_n2.px(), track_n2.py(), track_n2.pz(), masspion);
             if (mass3prong2 < d_minmassDp * d_minmassDp || mass3prong2 > d_maxmassDp * d_maxmassDp)
               continue;
-            hmass3pre->Fill(sqrt(mass3prong2));
+            hmass3->Fill(sqrt(mass3prong2));
             std::array<float, 5> arraypar_n2 = {track_n2.y(), track_n2.z(), track_n2.snp(),
                                                 track_n2.tgl(), track_n2.signed1Pt()};
             std::array<float, 15> covpar_n2 = {track_n2.cYY(), track_n2.cZY(), track_n2.cZZ(),
@@ -288,7 +288,7 @@ struct HFTrackIndexSkimsCreator {
                                                pvec2[0], pvec2[1],
                                                pvec2[2], masspion));
             if (b_dovalplots == true) {
-              hmass3pre->Fill(mass_);
+              hmass3->Fill(mass_);
             }
             hftrackindexprong3(track_n1.collisionId(),
                                track_n1.globalIndex(),

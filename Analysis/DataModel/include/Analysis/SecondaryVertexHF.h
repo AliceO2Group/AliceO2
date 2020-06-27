@@ -22,7 +22,7 @@ using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra>;
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, BigTracks, "fIndex0");
 DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, BigTracks, "fIndex1");
-DECLARE_SOA_COLUMN(HFflag, hfflag, float);
+DECLARE_SOA_COLUMN(HFflag, hfflag, int);
 } // namespace hftrackindexprong2
 
 namespace hftrackindexprong3
@@ -34,7 +34,7 @@ DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, BigTracks, "fIndex0");
 DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, BigTracks, "fIndex1");
 DECLARE_SOA_INDEX_COLUMN_FULL(Index2, index2, int, BigTracks, "fIndex2");
-DECLARE_SOA_COLUMN(HFflag, hfflag, float);
+DECLARE_SOA_COLUMN(HFflag, hfflag, int);
 } // namespace hftrackindexprong3
 
 namespace hfcandprong2
