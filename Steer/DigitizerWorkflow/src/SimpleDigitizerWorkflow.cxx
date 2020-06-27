@@ -85,6 +85,13 @@
 #include "ZDCDigitizerSpec.h"
 #include "ZDCDigitWriterSpec.h"
 
+
+#ifdef ENABLE_UPGRADES
+// for EC0
+#include "EC0DigitizerSpec.h"
+#include "EndCapsWorkflow/DigitWriterSpec.h"
+#endif
+
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
 #include "GRPUpdaterSpec.h"
@@ -581,6 +588,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // add PHOS writer
     specs.emplace_back(o2::cpv::getCPVDigitWriterSpec(mctruth));
   }
+
+  #ifdef ENABLE_UPGRADES
+  // the EC0 part
+  if (isEnabled(o2::detectors::DetID::EC0)) {
+    detList.emplace_back(o2::detectors::DetID::EC0);
+    // connect the EC0 digitization
+    specs.emplace_back(o2::endcaps::getEC0DigitizerSpec(fanoutsize++, mctruth));
+    // connect EC0 digit writer
+    specs.emplace_back(o2::endcaps::getEC0DigitWriterSpec(mctruth));
+  }
+  #endif
 
   // GRP updater: must come after all detectors since requires their list
   specs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));

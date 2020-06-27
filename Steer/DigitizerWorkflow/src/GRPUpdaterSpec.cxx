@@ -84,6 +84,19 @@ class GRPDPLUpdatedTask
 o2::framework::DataProcessorSpec getGRPUpdaterSpec(const std::string& grpfilename, const std::vector<o2::detectors::DetID>& detList)
 {
   sDetList = detList;
+
+  #ifdef ENABLE_UPGRADES
+
+  static constexpr std::array<o2::header::DataOrigin, o2::detectors::DetID::nDetectors> sOrigins = {
+    o2::header::gDataOriginITS, o2::header::gDataOriginTPC, o2::header::gDataOriginTRD,
+    o2::header::gDataOriginTOF, o2::header::gDataOriginPHS, o2::header::gDataOriginCPV,
+    o2::header::gDataOriginEMC, o2::header::gDataOriginHMP, o2::header::gDataOriginMFT,
+    o2::header::gDataOriginMCH, o2::header::gDataOriginMID, o2::header::gDataOriginZDC,
+    o2::header::gDataOriginFT0, o2::header::gDataOriginFV0, o2::header::gDataOriginFDD,
+    o2::header::gDataOriginACO, o2::header::gDataOriginEC0};
+
+  #else
+
   static constexpr std::array<o2::header::DataOrigin, o2::detectors::DetID::nDetectors> sOrigins = {
     o2::header::gDataOriginITS, o2::header::gDataOriginTPC, o2::header::gDataOriginTRD,
     o2::header::gDataOriginTOF, o2::header::gDataOriginPHS, o2::header::gDataOriginCPV,
@@ -91,6 +104,9 @@ o2::framework::DataProcessorSpec getGRPUpdaterSpec(const std::string& grpfilenam
     o2::header::gDataOriginMCH, o2::header::gDataOriginMID, o2::header::gDataOriginZDC,
     o2::header::gDataOriginFT0, o2::header::gDataOriginFV0, o2::header::gDataOriginFDD,
     o2::header::gDataOriginACO};
+
+  #endif
+
 
   // prepare specs
   std::vector<InputSpec> inputs;

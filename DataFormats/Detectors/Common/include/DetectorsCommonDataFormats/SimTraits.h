@@ -35,8 +35,8 @@ class SimTraits
   // initialization fragile since depends on correct order. Can we do better?
 
   // clang-format off
-  static inline const std::array<std::vector<std::string>, DetID::nDetectors> DETECTORBRANCHNAMES = 
-    { /*ITS*/ VS{ "ITSHit" }, 
+  static inline const std::array<std::vector<std::string>, DetID::nDetectors> DETECTORBRANCHNAMES =
+    { /*ITS*/ VS{ "ITSHit" },
       /*TPC*/ VS{ "TPCHitsShiftedSector0",
                   "TPCHitsShiftedSector1",
                   "TPCHitsShiftedSector2",
@@ -159,6 +159,13 @@ namespace tpc
 class HitGroup;
 }
 
+#ifdef ENABLE_UPGRADES
+namespace endcaps
+{
+class Hit;
+}
+#endif
+
 namespace detectors
 {
 
@@ -226,6 +233,10 @@ struct DetIDToHitTypes<o2::detectors::DetID::TPC> {
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::IT3> {
   using HitType = o2::itsmft::Hit;
+};
+template <>
+struct DetIDToHitTypes<o2::detectors::DetID::EC0> {
+  using HitType = o2::endcaps::Hit;
 };
 #endif
 

@@ -133,7 +133,7 @@ class DetID
 
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
 #ifdef ENABLE_UPGRADES
-    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "IT3", nullptr};
+    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "IT3", "EC0", nullptr};
 #else
     {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", nullptr};
 #endif
@@ -145,7 +145,7 @@ class DetID
      utils::bit2Mask(ACO)
 #ifdef ENABLE_UPGRADES
        ,
-     utils::bit2Mask(IT3)
+     utils::bit2Mask(IT3), utils::bit2Mask(EC0)
 #endif
   };
 
@@ -156,7 +156,7 @@ class DetID
      o2h::gDataOriginMID, o2h::gDataOriginZDC, o2h::gDataOriginFT0, o2h::gDataOriginFV0, o2h::gDataOriginFDD, o2h::gDataOriginACO
 #ifdef ENABLE_UPGRADES
      ,
-     o2h::gDataOriginIT3
+     o2h::gDataOriginIT3, o2h::gDataOriginEC0
 #endif
   };
 

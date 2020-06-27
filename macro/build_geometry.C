@@ -47,6 +47,7 @@
 
 #ifdef ENABLE_UPGRADES
 #include <ITS3Simulation/Detector.h>
+#include <EC0Simulation/Detector.h>
 #endif
 
 void finalize_geometry(FairRunSim* run);
@@ -193,6 +194,11 @@ void build_geometry(FairRunSim* run = nullptr)
     // ITS3
     auto its3 = new o2::its3::Detector(kTRUE);
     run->AddModule(its3);
+  }
+  if (isActivated("EC0")) {
+    // EC0
+    auto ec0 = new o2::ecl::Detector(kTRUE);
+    run->AddModule(ec0);
   }
 #endif
 

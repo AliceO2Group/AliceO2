@@ -26,6 +26,7 @@ target_link_libraries(allsim
                                 O2::HMPIDSimulation
                                 O2::ITSSimulation
                                 O2::ITS3Simulation
+                                O2::EC0Simulation
 				                        O2::MCHBase
                                 O2::MCHSimulation
                                 O2::MFTSimulation
@@ -125,9 +126,9 @@ set_tests_properties(o2sim_G4
                      PROPERTIES PASS_REGULAR_EXPRESSION
                                 "SIMULATION RETURNED SUCCESFULLY" FIXTURES_SETUP
                                 G4)
-set_property(TEST o2sim_G4 APPEND PROPERTY ENVIRONMENT 
+set_property(TEST o2sim_G4 APPEND PROPERTY ENVIRONMENT
                                            ALICE_O2SIM_DUMPLOG=ON
-                                           O2_ROOT=${CMAKE_BINARY_DIR}/stage 
+                                           O2_ROOT=${CMAKE_BINARY_DIR}/stage
                                            VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/share)
 set_property(TEST o2sim_G4 APPEND PROPERTY ENVIRONMENT ${G4ENV})
 
@@ -150,8 +151,8 @@ o2_add_test_wrapper(NAME o2sim_G4_mt
 set_tests_properties(o2sim_G4_mt
                      PROPERTIES PASS_REGULAR_EXPRESSION
                                 "Macro finished succesfully")
-set_property(TEST o2sim_G4_mt APPEND PROPERTY ENVIRONMENT 
-                                           O2_ROOT=${CMAKE_BINARY_DIR}/stage 
+set_property(TEST o2sim_G4_mt APPEND PROPERTY ENVIRONMENT
+                                           O2_ROOT=${CMAKE_BINARY_DIR}/stage
                                            VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/share)
 set_property(TEST o2sim_G4_mt APPEND PROPERTY ENVIRONMENT ${G4ENV})
 
