@@ -148,6 +148,8 @@ struct HFTrackIndexSkimsCreator {
 
     for (auto i_p1 = tracks.begin(); i_p1 != tracks.end(); ++i_p1) {
       auto& track_p1 = *i_p1;
+      if (track_p1.signed1Pt() < 0)
+        continue;
       float x_p1 = track_p1.x();
       float alpha_p1 = track_p1.alpha();
       std::array<float, 5> arraypar_p1 = {track_p1.y(), track_p1.z(), track_p1.snp(),
