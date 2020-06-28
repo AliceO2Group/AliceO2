@@ -145,7 +145,7 @@ void displayHistory(const DeviceInfo& info, DeviceControl& control)
       // stream, a second time at display time, to avoid
       // showing unrelevant messages from past.
       if (logLevel >= control.logLevel) {
-        if (line.find('%', 0) == std::string::npos) {
+        if (line.find('%', 0) != std::string::npos) {
           ImGui::TextUnformatted(line.c_str(), line.c_str() + line.size());
         } else {
           ImGui::TextColored(color, line.c_str(), line.c_str() + line.size());
