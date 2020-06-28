@@ -61,4 +61,24 @@ float invmass3prongs(float px0, float py0, float pz0, float mass0,
                               px2, py2, pz2, mass2));
 };
 
+float ptcand2prong(float px0, float py0, float px1, float py1)
+{
+  return sqrt((px0 + px1) * (px0 + px1) + (py0 + py1) * (py0 + py1));
+};
+
+float pttrack(float px, float py)
+{
+  return sqrt(px * px + py * py);
+};
+
+float declength(float xdecay, float ydecay, float zdecay, float xvtx, float yvtx, float zvtx)
+{
+  return sqrtf((xdecay - xvtx) * (xdecay - xvtx) + (ydecay - yvtx) * (ydecay - yvtx) + (zdecay - zvtx) * (zdecay - zvtx));
+};
+
+float declengthxy(float xdecay, float ydecay, float xvtx, float yvtx)
+{
+  return sqrtf((xdecay - xvtx) * (xdecay - xvtx) + (ydecay - yvtx) * (ydecay - yvtx));
+};
+
 #endif // O2_ANALYSIS_RECODECAY_H_

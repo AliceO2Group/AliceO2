@@ -24,8 +24,6 @@ DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, BigTracks, "fIndex0");
 DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, BigTracks, "fIndex1");
 DECLARE_SOA_COLUMN(HFflag, hfflag, int);
-DECLARE_SOA_DYNAMIC_COLUMN(Value, value,
-                           [](int val) { return val; });
 } // namespace hftrackindexprong2
 
 namespace hftrackindexprong3
@@ -43,16 +41,35 @@ DECLARE_SOA_COLUMN(HFflag, hfflag, int);
 namespace hfcandprong2
 {
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_COLUMN(PxProng0, pxprong0, float);
+DECLARE_SOA_COLUMN(PyProng0, pyprong0, float);
+DECLARE_SOA_COLUMN(PzProng0, pzprong0, float);
+DECLARE_SOA_COLUMN(PxProng1, pxprong1, float);
+DECLARE_SOA_COLUMN(PyProng1, pyprong1, float);
+DECLARE_SOA_COLUMN(PzProng1, pzprong1, float);
+DECLARE_SOA_COLUMN(DecayVtxX, decayvtxx, float);
+DECLARE_SOA_COLUMN(DecayVtxY, decayvtxy, float);
+DECLARE_SOA_COLUMN(DecayVtxZ, decayvtxz, float);
 DECLARE_SOA_COLUMN(MassD0, massD0, float);
 DECLARE_SOA_COLUMN(MassD0bar, massD0bar, float);
+DECLARE_SOA_DYNAMIC_COLUMN(PtProng0, ptprong0,
+                           [](float px0, float py0) { return pttrack(px0, py0); });
+DECLARE_SOA_DYNAMIC_COLUMN(PtProng1, ptprong1,
+                           [](float px1, float py1) { return pttrack(px1, py1); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt,
+                           [](float px0, float py0, float px1, float py1) { return ptcand2prong(px0, py0, px1, py1); });
+DECLARE_SOA_DYNAMIC_COLUMN(DecaylengthXY, decaylengthxy,
+                           [](float xvtxd, float yvtxd, float xvtxp, float yvtxp) { return declengthxy(xvtxd, yvtxd, xvtxp, yvtxp); });
+DECLARE_SOA_DYNAMIC_COLUMN(Decaylength, decaylength,
+                           [](float xvtxd, float yvtxd, float zvtxd, float xvtxp,
+                              float yvtxp, float zvtxp) { return declength(xvtxd, yvtxd, zvtxd, xvtxp, yvtxp, zvtxp); });
 } // namespace hfcandprong2
 
 DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2",
                   hftrackindexprong2::CollisionId,
                   hftrackindexprong2::Index0Id,
                   hftrackindexprong2::Index1Id,
-                  hftrackindexprong2::HFflag,
-                  hftrackindexprong2::Value<hftrackindexprong2::Index0Id>);
+                  hftrackindexprong2::HFflag);
 
 DECLARE_SOA_TABLE(HfTrackIndexProng3, "AOD", "HFTRACKIDXP3",
                   hftrackindexprong3::CollisionId,
@@ -62,8 +79,20 @@ DECLARE_SOA_TABLE(HfTrackIndexProng3, "AOD", "HFTRACKIDXP3",
                   hftrackindexprong3::HFflag);
 
 DECLARE_SOA_TABLE(HfCandProng2, "AOD", "HFCANDPRONG2",
-                  //hfcandprong2::CollisionId,
-                  hfcandprong2::MassD0, hfcandprong2::MassD0bar);
+                  collision::PosX, collision::PosY, collision::PosZ,
+                  hfcandprong2::PxProng0, hfcandprong2::PyProng0, hfcandprong2::PzProng0,
+                  hfcandprong2::PxProng1, hfcandprong2::PyProng1, hfcandprong2::PzProng1,
+                  hfcandprong2::DecayVtxX, hfcandprong2::DecayVtxY, hfcandprong2::DecayVtxZ,
+                  hfcandprong2::MassD0, hfcandprong2::MassD0bar,
+                  hfcandprong2::PtProng0<hfcandprong2::PxProng0, hfcandprong2::PyProng0>,
+                  hfcandprong2::PtProng1<hfcandprong2::PxProng1, hfcandprong2::PyProng1>,
+                  hfcandprong2::Pt<hfcandprong2::PxProng0, hfcandprong2::PyProng0,
+                                   hfcandprong2::PxProng1, hfcandprong2::PyProng1>,
+                  hfcandprong2::DecaylengthXY<hfcandprong2::DecayVtxX, hfcandprong2::DecayVtxY,
+                                              collision::PosX, collision::PosY>,
+                  hfcandprong2::Decaylength<hfcandprong2::DecayVtxX, hfcandprong2::DecayVtxY,
+                                            hfcandprong2::DecayVtxZ, collision::PosX,
+                                            collision::PosY, collision::PosZ>);
 } // namespace o2::aod
 
 

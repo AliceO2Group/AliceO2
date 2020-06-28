@@ -44,7 +44,8 @@ struct HFCandidateCreator2Prong {
                                         "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9,
                                           "stop iterations is chi2/chi2old > this"};
-  void process(aod::HfTrackIndexProng2 const& hftrackindexprong2s,
+  void process(aod::Collision const& collision,
+               aod::HfTrackIndexProng2 const& hftrackindexprong2s,
                soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
     o2::vertexing::DCAFitterN<2> df;
@@ -98,7 +99,9 @@ struct HFCandidateCreator2Prong {
                                            pvec0[2], masskaon,
                                            pvec1[0], pvec1[1],
                                            pvec1[2], masspion));
-      hfcandprong2(mass_, masssw_);
+      hfcandprong2(collision.posX(), collision.posY(), collision.posZ(),
+                   pvec0[0], pvec0[1], pvec0[2], pvec1[0], pvec1[1], pvec1[2],
+                   vtx[0], vtx[1], vtx[2], mass_, masssw_);
       if (b_dovalplots == true) {
         hvtx_x_out->Fill(vtx[0]);
         hvtx_y_out->Fill(vtx[1]);
