@@ -19,6 +19,10 @@ include(O2GetListOfMacros)
 list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             Detectors/ITSMFT/ITS/macros/EVE/rootlogon.C
             Detectors/ITSMFT/ITS/macros/test/rootlogon.C
+            Detectors/ITSMFT/ITS/macros/test/CheckCOG.C # temporary exclude until fix for full Clusters elimination
+            Detectors/ITSMFT/ITS/macros/test/CheckLUtime.C # temporary exclude until fix for full Clusters elimination
+            Detectors/ITSMFT/ITS/macros/test/DisplayTrack.C # temporary exclude until fix for full Clusters elimination
+            Detectors/ITSMFT/ITS/macros/test/dictionary_integrity_test.C     # temporary exclude until fix for full Clusters elimination       
             Detectors/MUON/MCH/Simulation/macros/rootlogon.C
             Detectors/Passive/macro/PutFrameInTop.C
             Detectors/TPC/reconstruction/macro/addInclude.C
