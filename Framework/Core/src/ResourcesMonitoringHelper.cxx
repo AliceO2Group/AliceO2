@@ -16,8 +16,11 @@
 
 using namespace o2::framework;
 
-bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetricsInfo>& metrics) noexcept
+bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetricsInfo>& metrics, const std::vector<DeviceSpec>& specs) noexcept
 {
+
+  assert(metrics.size() == specs.size());
+
   if (metrics.empty()) {
     return false;
   }
@@ -25,15 +28,15 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
   std::vector<std::string> performanceMetrics = monitoring::ProcessMonitor::getAvailableMetricsNames();
 
   boost::property_tree::ptree root;
-  for (const auto& deviceMetrics : metrics) {
+  for (unsigned int idx = 0; idx < metrics.size(); ++idx) {
 
+    const auto& deviceMetrics = metrics[idx];
     boost::property_tree::ptree deviceRoot;
 
     for (const auto& metricLabel : deviceMetrics.metricLabelsIdx) {
-      std::string labelStr(metricLabel.label);
 
       //check if we are interested
-      if (std::find(std::begin(performanceMetrics), std::end(performanceMetrics), labelStr) == std::end(performanceMetrics)) {
+      if (std::find(std::begin(performanceMetrics), std::end(performanceMetrics), metricLabel.label) == std::end(performanceMetrics)) {
         continue;
       }
 
@@ -65,10 +68,10 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
         default:
           continue;
       }
-      deviceRoot.add_child(labelStr, metricNode);
+      deviceRoot.add_child(metricLabel.label, metricNode);
     }
 
-    root.add_child(deviceMetrics.deviceName, deviceRoot);
+    root.add_child(specs[idx].name, deviceRoot);
   }
 
   std::ofstream file("performanceMetrics.json", std::ios::out);

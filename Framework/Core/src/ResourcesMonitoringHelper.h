@@ -15,6 +15,7 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Monitoring/ProcessMonitor.h"
 #include <boost/property_tree/ptree.hpp>
+#include "Framework/DeviceSpec.h"
 
 namespace o2
 {
@@ -24,7 +25,7 @@ namespace framework
 class ResourcesMonitoringHelper
 {
  public:
-  static bool dumpMetricsToJSON(const std::vector<DeviceMetricsInfo>& metrics) noexcept;
+  static bool dumpMetricsToJSON(const std::vector<DeviceMetricsInfo>& metrics, const std::vector<DeviceSpec>& specs) noexcept;
   static bool isResourcesMonitoringEnabled(unsigned short interval) noexcept { return interval > 0; }
 
  private:

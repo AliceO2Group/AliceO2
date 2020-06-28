@@ -321,7 +321,7 @@ void spawnRemoteDevice(std::string const& forwardedStdin,
 
   deviceInfos.emplace_back(info);
   // Let's add also metrics information for the given device
-  gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo(spec.name));
+  gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
 }
 
 struct DeviceLogContext {
@@ -418,7 +418,7 @@ void spawnDevice(std::string const& forwardedStdin,
 
   deviceInfos.emplace_back(info);
   // Let's add also metrics information for the given device
-  gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo(spec.name));
+  gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
 
   close(childstdin[0]);
   close(childstdout[1]);
@@ -1164,7 +1164,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       case DriverState::EXIT: {
         if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(driverInfo.resourcesMonitoringInterval)) {
           LOG(INFO) << "Dumping performance metrics to performanceMetrics.json file";
-          ResourcesMonitoringHelper::dumpMetricsToJSON(metricsInfos);
+          ResourcesMonitoringHelper::dumpMetricsToJSON(metricsInfos, deviceSpecs);
         }
         // This is a clean exit. Before we do so, if required,
         // we dump the configuration of all the devices so that

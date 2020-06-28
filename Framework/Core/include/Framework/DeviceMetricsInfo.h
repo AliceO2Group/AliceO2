@@ -71,8 +71,6 @@ struct ParsedMetricMatch {
 /// This struct hold information about device metrics when running
 /// in standalone mode
 struct DeviceMetricsInfo {
-
-  DeviceMetricsInfo(const std::string& pDeviceName = "Undefined") : deviceName(pDeviceName) {}
   // We keep the size of each metric to 4096 bytes. No need for more
   // for the debug GUI
   std::vector<std::array<int, 1024>> intMetrics;
@@ -86,7 +84,6 @@ struct DeviceMetricsInfo {
   std::vector<size_t> maxDomain;
   std::vector<MetricLabelIndex> metricLabelsIdx;
   std::vector<MetricInfo> metrics;
-  std::string deviceName;
 };
 
 struct DeviceMetricsHelper {
