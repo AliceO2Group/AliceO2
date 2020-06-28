@@ -14,6 +14,7 @@
 #include "Analysis/SecondaryVertexHF.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "ReconstructionDataFormats/Track.h"
+#include "Analysis/RecoDecay.h"
 
 #include <TFile.h>
 #include <TH1F.h>

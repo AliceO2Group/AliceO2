@@ -72,29 +72,4 @@ DECLARE_SOA_TABLE(Cand2Prong, "AOD", "CANDDZERO",
                   cand2prong::MassD0, cand2prong::MassD0bar);
 } // namespace o2::aod
 
-//FIXME: this functions will need to become dynamic columns
-//once we will be able to build dynamic columns starting from
-//columns that belongs to different tables
-
-float energy(float px, float py, float pz, float mass)
-{
-  float en_ = sqrtf(mass * mass + px * px + py * py + pz * pz);
-  return en_;
-};
-
-float invmass2prongs(float px0, float py0, float pz0, float mass0,
-                     float px1, float py1, float pz1, float mass1)
-{
-
-  float energy0_ = energy(px0, py0, pz0, mass0);
-  float energy1_ = energy(px1, py1, pz1, mass1);
-  float energytot = energy0_ + energy1_;
-
-  float psum2 = (px0 + px1) * (px0 + px1) +
-                (py0 + py1) * (py0 + py1) +
-                (pz0 + pz1) * (pz0 + pz1);
-  float mass = sqrtf(energytot * energytot - psum2);
-  return mass;
-};
-
 #endif // O2_ANALYSIS_SECONDARYVERTEX_H_

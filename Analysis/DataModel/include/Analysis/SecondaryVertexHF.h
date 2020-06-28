@@ -11,6 +11,7 @@
 #define O2_ANALYSIS_SECONDARYVERTEXHF_H_
 
 #include "Framework/AnalysisDataModel.h"
+#include "Analysis/RecoDecay.h"
 
 namespace o2::aod
 {
@@ -23,6 +24,8 @@ DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, BigTracks, "fIndex0");
 DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, BigTracks, "fIndex1");
 DECLARE_SOA_COLUMN(HFflag, hfflag, int);
+DECLARE_SOA_DYNAMIC_COLUMN(Value, value,
+                           [](int val) { return val; });
 } // namespace hftrackindexprong2
 
 namespace hftrackindexprong3
@@ -48,7 +51,8 @@ DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2",
                   hftrackindexprong2::CollisionId,
                   hftrackindexprong2::Index0Id,
                   hftrackindexprong2::Index1Id,
-                  hftrackindexprong2::HFflag);
+                  hftrackindexprong2::HFflag,
+                  hftrackindexprong2::Value<hftrackindexprong2::Index0Id>);
 
 DECLARE_SOA_TABLE(HfTrackIndexProng3, "AOD", "HFTRACKIDXP3",
                   hftrackindexprong3::CollisionId,
@@ -62,39 +66,5 @@ DECLARE_SOA_TABLE(HfCandProng2, "AOD", "HFCANDPRONG2",
                   hfcandprong2::MassD0, hfcandprong2::MassD0bar);
 } // namespace o2::aod
 
-float energy(float px, float py, float pz, float mass)
-{
-  float en_ = sqrtf(mass * mass + px * px + py * py + pz * pz);
-  return en_;
-};
-
-float invmass2prongs2(float px0, float py0, float pz0, float mass0,
-                      float px1, float py1, float pz1, float mass1)
-{
-
-  float energy0_ = energy(px0, py0, pz0, mass0);
-  float energy1_ = energy(px1, py1, pz1, mass1);
-  float energytot = energy0_ + energy1_;
-
-  float psum2 = (px0 + px1) * (px0 + px1) +
-                (py0 + py1) * (py0 + py1) +
-                (pz0 + pz1) * (pz0 + pz1);
-  return energytot * energytot - psum2;
-};
-
-float invmass3prongs2(float px0, float py0, float pz0, float mass0,
-                      float px1, float py1, float pz1, float mass1,
-                      float px2, float py2, float pz2, float mass2)
-{
-  float energy0_ = energy(px0, py0, pz0, mass0);
-  float energy1_ = energy(px1, py1, pz1, mass1);
-  float energy2_ = energy(px2, py2, pz2, mass2);
-  float energytot = energy0_ + energy1_ + energy2_;
-
-  float psum2 = (px0 + px1 + px2) * (px0 + px1 + px2) +
-                (py0 + py1 + py2) * (py0 + py1 + py2) +
-                (pz0 + pz1 + pz2) * (pz0 + pz1 + pz2);
-  return energytot * energytot - psum2;
-};
 
 #endif // O2_ANALYSIS_SECONDARYVERTEXHF_H_
