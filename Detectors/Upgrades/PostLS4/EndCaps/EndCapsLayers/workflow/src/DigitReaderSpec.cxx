@@ -99,7 +99,7 @@ DataProcessorSpec getDigitReaderSpec(bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<DigitReader>(useMC)},
     Options{
-      {"ecl-digit-infile", VariantType::String, "ecldigits.root", {"Name of the input file"}}}};
+      {"ecl-digit-infile", VariantType::String, "ec0digits.root", {"Name of the input file"}}}};
 }
 
 } // namespace ecl

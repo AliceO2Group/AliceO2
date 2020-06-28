@@ -103,7 +103,7 @@ class AlpideSimResponse
   float mStepInvDpt = 0;               /// inverse step of the Dpt grid
   std::vector<AlpideRespSimMat> mData; /// response data
   /// path to look for data file
-  std::string mDataPath = "$(O2_ROOT)/share/Detectors/Upgrades/PostLS4/EndCaps/commonLegacy/data/alpideResponseData";
+  std::string mDataPath = "$(O2_ROOT)/share/Detectors/EndCaps/data/alpideResponseData";
   std::string mGridColName = "grid_list_x.txt";             /// name of the file with grid in Col
   std::string mGridRowName = "grid_list_y.txt";             /// name of the file with grid in Row
   std::string mColRowDataFmt = "data_pixels_%.2f_%.2f.txt"; /// format to read the data for given Col,Row

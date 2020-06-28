@@ -46,7 +46,7 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
     LOG(INFO) << "EC0TrackWriter pulled " << *tracksSize << " tracks, in " << rofs.size() << " RO frames";
   };
   return MakeRootTreeWriterSpec("ecl-track-writer",
-                                "o2trac_ecl.root",
+                                "o2trac_ec0.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with EC0 tracks"},
                                 BranchDefinition<std::vector<o2::its::TrackITS>>{InputSpec{"tracks", "EC0", "TRACKS", 0},
                                                                                  "EC0Track",

@@ -107,7 +107,7 @@ DataProcessorSpec getEC0TrackReaderSpec(bool useMC)
     outputSpec,
     AlgorithmSpec{adaptFromTask<TrackReader>(useMC)},
     Options{
-      {"ecl-tracks-infile", VariantType::String, "o2trac_ecl.root", {"Name of the input track file"}}}};
+      {"ecl-tracks-infile", VariantType::String, "o2trac_ec0.root", {"Name of the input track file"}}}};
 }
 
 } // namespace ecl

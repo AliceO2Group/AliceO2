@@ -93,7 +93,7 @@ o2::framework::DataProcessorSpec getGRPUpdaterSpec(const std::string& grpfilenam
     o2::header::gDataOriginEMC, o2::header::gDataOriginHMP, o2::header::gDataOriginMFT,
     o2::header::gDataOriginMCH, o2::header::gDataOriginMID, o2::header::gDataOriginZDC,
     o2::header::gDataOriginFT0, o2::header::gDataOriginFV0, o2::header::gDataOriginFDD,
-    o2::header::gDataOriginACO, o2::header::gDataOriginEC0};
+    o2::header::gDataOriginACO, o2::header::gDataOriginIT3, o2::header::gDataOriginEC0};
 
   #else
 

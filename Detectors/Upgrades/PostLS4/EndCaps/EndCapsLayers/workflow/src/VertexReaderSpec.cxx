@@ -72,7 +72,7 @@ DataProcessorSpec getEC0VertexReaderSpec()
     outputSpec,
     AlgorithmSpec{adaptFromTask<VertexReader>()},
     Options{
-      {"ecl-vertex-infile", VariantType::String, "o2trac_ecl.root", {"Name of the input EC0 vertex file"}}}};
+      {"ecl-vertex-infile", VariantType::String, "o2trac_ec0.root", {"Name of the input EC0 vertex file"}}}};
 }
 
 } // namespace ecl
