@@ -81,6 +81,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   void* SetPointersOutput(void* mem);
   void* SetPointersScratch(void* mem);
   void* SetPointersMemory(void* mem);
+  void* SetPointersZS(void* mem);
   void* SetPointersZSOffset(void* mem);
 
   unsigned int getNSteps(size_t items) const;
@@ -122,6 +123,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   unsigned int mNBufs = 0;
 
   short mMemoryId = -1;
+  short mZSId = -1;
   short mZSOffsetId = -1;
   short mOutputId = -1;
 

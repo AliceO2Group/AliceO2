@@ -17,7 +17,9 @@
 #include "clusterFinderDefs.h"
 #include "GPUDataTypes.h"
 #include "GPUTPCClusterFinder.h"
+#include "CfFragment.h"
 #include <vector>
+#include <utility>
 
 namespace GPUCA_NAMESPACE
 {
@@ -32,6 +34,12 @@ struct GPUTPCCFChainContext {
     GPUTPCClusterFinder::MinMaxCN minMaxCN[GPUCA_NSLICES][GPUTrackingInOutZS::NENDPOINTS];
   };
 
+  struct PtrSave {
+    GPUTPCClusterFinder::ZSOffset* zsOffsetHost;
+    GPUTPCClusterFinder::ZSOffset* zsOffsetDevice;
+    unsigned char* zsDevice;
+  };
+
   std::vector<FragmentData> fragmentData;
   unsigned int nPagesTotal;
   unsigned int nPagesSectorMax;
@@ -40,6 +48,9 @@ struct GPUTPCCFChainContext {
   size_t nMaxDigitsFragment[GPUCA_NSLICES];
   unsigned int tpcMaxTimeBin;
   unsigned int nFragments;
+  CfFragment fragmentFirst;
+  std::pair<unsigned int, unsigned int> nextPos[GPUCA_NSLICES];
+  std::vector<PtrSave> ptrSave;
 
   void prepare(bool tpcZS, const CfFragment& fragmentMax)
   {
