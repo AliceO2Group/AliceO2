@@ -30,6 +30,7 @@ o2_add_library(Framework
                        src/ChannelConfigurationPolicyHelpers.cxx
                        src/ChannelSpecHelpers.cxx
                        src/CommonDataProcessors.cxx
+                       src/CommonServices.cxx
                        src/CompletionPolicy.cxx
                        src/CompletionPolicyHelpers.cxx
                        src/ComputingResourceHelpers.cxx

@@ -266,6 +266,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
       device.id = processor.name + "_t" + std::to_string(edge.producerTimeIndex);
     }
     device.algorithm = processor.algorithm;
+    device.services = processor.requiredServices;
     device.options = processor.options;
     device.rank = processor.rank;
     device.nSlots = processor.nSlots;
@@ -470,6 +471,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       device.id += "_t" + std::to_string(edge.timeIndex);
     }
     device.algorithm = processor.algorithm;
+    device.services = processor.requiredServices;
     device.options = processor.options;
     device.rank = processor.rank;
     device.nSlots = processor.nSlots;

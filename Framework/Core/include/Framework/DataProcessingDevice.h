@@ -79,7 +79,7 @@ class DataProcessingDevice : public FairMQDevice
   RawBufferContext mRawBufferContext;
   ContextRegistry mContextRegistry;
   DataAllocator mAllocator;
-  DataRelayer mRelayer;
+  DataRelayer* mRelayer = nullptr;
   std::vector<ExpirationHandler> mExpirationHandlers;
   std::vector<DataRelayer::RecordAction> mCompleted;
 

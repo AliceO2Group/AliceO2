@@ -37,11 +37,30 @@ class ServiceRegistry
   constexpr static int MAX_SERVICES_MASK = MAX_SERVICES - 1;
 
  public:
+  using hash_type = decltype(TypeIdHelpers::uniqueId<void>());
+
   ServiceRegistry()
   {
     mServicesKey.fill(0L);
     mServicesValue.fill(nullptr);
   }
+
+  /// Type erased service registration. @a typeHash is the
+  /// hash used to identify the service, @a service is
+  /// a type erased pointer to the service itself.
+  void registerService(hash_type typeHash, void* service)
+  {
+    hash_type id = typeHash & MAX_SERVICES_MASK;
+    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
+      if (mServicesValue[i + id] == nullptr) {
+        mServicesKey[i + id] = typeHash;
+        mServicesValue[i + id] = service;
+        return;
+      }
+    }
+    O2_BUILTIN_UNREACHABLE();
+  }
+
   // Register a service for the given interface T
   // with actual implementation C, i.e. C is derived from T.
   // Only one instance of type C can be registered per type T.
@@ -57,16 +76,8 @@ class ServiceRegistry
     // advance
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
-    constexpr auto typeHash = TypeIdHelpers::uniqueId<I>();
-    constexpr auto id = typeHash & MAX_SERVICES_MASK;
-    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
-      if (mServicesValue[i + id] == nullptr) {
-        mServicesKey[i + id] = typeHash;
-        mServicesValue[i + id] = reinterpret_cast<void*>(service);
-        return;
-      }
-    }
-    O2_BUILTIN_UNREACHABLE();
+    constexpr hash_type typeHash = TypeIdHelpers::uniqueId<I>();
+    registerService(typeHash, reinterpret_cast<void*>(service));
   }
 
   template <class I, class C>
