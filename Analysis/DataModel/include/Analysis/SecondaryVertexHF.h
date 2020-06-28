@@ -95,5 +95,4 @@ DECLARE_SOA_TABLE(HfCandProng2, "AOD", "HFCANDPRONG2",
                                             collision::PosY, collision::PosZ>);
 } // namespace o2::aod
 
-
 #endif // O2_ANALYSIS_SECONDARYVERTEXHF_H_
