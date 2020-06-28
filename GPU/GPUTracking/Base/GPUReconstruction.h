@@ -190,7 +190,9 @@ class GPUReconstruction
   short RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name = "", const GPUMemoryReuse& re = GPUMemoryReuse());
   size_t AllocateMemoryResources();
   size_t AllocateRegisteredMemory(GPUProcessor* proc);
+
   size_t AllocateRegisteredMemory(short res, GPUOutputControl* control = nullptr);
+  void AllocateRegisteredForeignMemory(short res, GPUReconstruction* rec, GPUOutputControl* control = nullptr);
   void* AllocateUnmanagedMemory(size_t size, int type);
   void* AllocateVolatileDeviceMemory(size_t size);
   void FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom = false, bool freePermanent = false);
@@ -257,6 +259,7 @@ class GPUReconstruction
   double GetStatWallTime() { return mStatWallTime; }
 
  protected:
+  void AllocateRegisteredMemoryInternal(GPUMemoryResource* res, GPUOutputControl* control = nullptr);
   GPUReconstruction(const GPUSettingsProcessing& cfg); // Constructor
   int InitPhaseBeforeDevice();
   virtual void UpdateSettings() {}

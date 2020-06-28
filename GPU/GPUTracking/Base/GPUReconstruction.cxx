@@ -474,12 +474,9 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
   return retVal;
 }
 
-size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl* control)
+void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res, GPUOutputControl* control)
 {
-  GPUMemoryResource* res = &mMemoryResources[ires];
-  if ((res->mType & GPUMemoryResource::MEMORY_PERMANENT) && res->mPtr != nullptr) {
-    ResetRegisteredMemoryPointers(ires);
-  } else if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && (control == nullptr || control->OutputType == GPUOutputControl::AllocateInternal)) {
+  if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && (control == nullptr || control->OutputType == GPUOutputControl::AllocateInternal)) {
     if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
       if (res->mPtrDevice && res->mReuse < 0) {
         operator delete(res->mPtrDevice GPUCA_OPERATOR_NEW_ALIGNMENT);
@@ -537,6 +534,21 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
       }
     }
     UpdateMaxMemoryUsed();
+  }
+}
+
+void GPUReconstruction::AllocateRegisteredForeignMemory(short ires, GPUReconstruction* rec, GPUOutputControl* control)
+{
+  AllocateRegisteredMemoryInternal(&rec->mMemoryResources[ires], control);
+}
+
+size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl* control)
+{
+  GPUMemoryResource* res = &mMemoryResources[ires];
+  if ((res->mType & GPUMemoryResource::MEMORY_PERMANENT) && res->mPtr != nullptr) {
+    ResetRegisteredMemoryPointers(ires);
+  } else {
+    AllocateRegisteredMemoryInternal(res, control);
   }
   return res->mReuse >= 0 ? 0 : res->mSize;
 }
