@@ -14,7 +14,6 @@
 /// \author ruben.shahoyan@cern.ch - adapted to ITSupg 18/07/2012
 /// \author rafael.pezzi@cern.ch - adapted to PostLS4EndCaps 25/06/2020
 
-
 #include "EndCapsBase/GeometryTGeo.h"
 
 ClassImp(o2::endcaps::GeometryTGeo);

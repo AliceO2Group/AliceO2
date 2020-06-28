@@ -79,8 +79,8 @@ void Cluster::Init(const int layerIndex, const float3& primaryVertex, const Clus
                                                       index_table_utils::getPhiBinIndex(phiCoordinate));
 }
 
-TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArray<float, 2>&& posTF,
-                                     GPUArray<float, 3>&& covTF)
+TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArrayEC0<float, 2>&& posTF,
+                                     GPUArrayEC0<float, 3>&& covTF)
   : xCoordinate{x}, yCoordinate{y}, zCoordinate{z}, xTrackingFrame{xTF}, alphaTrackingFrame{alpha},
 #ifndef __OPENCL__
     positionTrackingFrame{posTF},

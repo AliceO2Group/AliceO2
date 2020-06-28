@@ -248,7 +248,6 @@ class EC0DPLDigitizerTask : public ENDCAPSDPLDigitizerTask
 constexpr o2::detectors::DetID::ID EC0DPLDigitizerTask::DETID;
 constexpr o2::header::DataOrigin EC0DPLDigitizerTask::DETOR;
 
-
 std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mctruth)
 {
   std::vector<OutputSpec> outputs;
@@ -282,7 +281,6 @@ DataProcessorSpec getEC0DigitizerSpec(int channel, bool mctruth)
                              //  { "configKeyValues", VariantType::String, "", { parHelper.str().c_str() } }
                            }};
 }
-
 
 } // end namespace endcaps
 } // end namespace o2

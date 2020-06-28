@@ -49,7 +49,7 @@ class TrivialClustererTask : public FairTask
 
  private:
   const o2::endcaps::GeometryTGeo* mGeometry = nullptr; ///< ITS geometry
-  TrivialClusterer mTrivialClusterer;                  ///< Cluster finder
+  TrivialClusterer mTrivialClusterer;                   ///< Cluster finder
 
   const std::vector<Digit>* mDigitsArray = nullptr;                         ///< Array of digits
   std::vector<Cluster>* mClustersArray = nullptr;                           ///< Array of clusters

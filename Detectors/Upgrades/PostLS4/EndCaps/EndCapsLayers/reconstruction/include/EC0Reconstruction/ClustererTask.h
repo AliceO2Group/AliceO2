@@ -64,23 +64,23 @@ class ClustererTask
   int getMaxROframe() const { return maxROframe; }
 
  private:
-  int maxROframe = std::numeric_limits<int>::max();                                   ///< maximal number of RO frames per a file
-  bool mRawDataMode = false;                                                          ///< input from raw data or MC digits
-  bool mUseMCTruth = true;                                                            ///< flag to use MCtruth if available
-  o2::endcaps::PixelReader* mReader = nullptr;                                         ///< Pointer on the relevant Pixel reader
-  std::unique_ptr<o2::endcaps::DigitPixelReader> mReaderMC;                            ///< reader for MC data
+  int maxROframe = std::numeric_limits<int>::max();                                     ///< maximal number of RO frames per a file
+  bool mRawDataMode = false;                                                            ///< input from raw data or MC digits
+  bool mUseMCTruth = true;                                                              ///< flag to use MCtruth if available
+  o2::endcaps::PixelReader* mReader = nullptr;                                          ///< Pointer on the relevant Pixel reader
+  std::unique_ptr<o2::endcaps::DigitPixelReader> mReaderMC;                             ///< reader for MC data
   std::unique_ptr<o2::endcaps::RawPixelReader<o2::endcaps::ChipMappingEC0>> mReaderRaw; ///< reader for raw data
 
   const o2::endcaps::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
-  Clusterer mClusterer;                                ///< Cluster finder
+  Clusterer mClusterer;                                 ///< Cluster finder
 
-  std::vector<Cluster> mFullClus;               //!< vector of full clusters
+  std::vector<Cluster> mFullClus; //!< vector of full clusters
 
-  std::vector<CompClusterExt> mCompClus;               //!< vector of compact clusters
+  std::vector<CompClusterExt> mCompClus; //!< vector of compact clusters
 
-  std::vector<o2::itsmft::ROFRecord> mROFRecVec;               //!< vector of ROFRecord references
+  std::vector<o2::itsmft::ROFRecord> mROFRecVec; //!< vector of ROFRecord references
 
-  MCTruth mClsLabels;               //! MC labels
+  MCTruth mClsLabels; //! MC labels
 
   std::vector<unsigned char> mPatterns;
 

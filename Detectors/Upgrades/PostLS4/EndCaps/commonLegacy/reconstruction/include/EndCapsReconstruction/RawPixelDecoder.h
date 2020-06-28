@@ -104,7 +104,7 @@ class RawPixelDecoder : public PixelReader
   int mLastReadChipID = -1;                     // chip ID returned by previous getNextChipData call, used for ordering checks
   Mapping mMAP;                                 // chip mapping
   int mVerbosity = 0;
-  int mNThreads = 1; // number of decoding threads
+  int mNThreads = 1;                            // number of decoding threads
   GBTLink::Format mFormat = GBTLink::NewFormat; // ITS Data Format (old: 1 ROF per CRU page)
   // statistics
   o2::itsmft::ROFRecord::ROFtype mROFCounter = 0; // RSTODO is this needed? eliminate from ROFRecord ?

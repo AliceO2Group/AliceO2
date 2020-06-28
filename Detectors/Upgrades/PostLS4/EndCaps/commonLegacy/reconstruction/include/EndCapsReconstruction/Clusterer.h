@@ -180,11 +180,10 @@ class Clusterer
   ///< load the dictionary of cluster topologies
   void loadDictionary(const std::string& fileName) { mPattIdConverter.loadDictionary(fileName); }
 
-  TStopwatch& getTimer() { return mTimer; } // cannot be const
+  TStopwatch& getTimer() { return mTimer; }           // cannot be const
   TStopwatch& getTimerMerge() { return mTimerMerge; } // cannot be const
 
  private:
-
   ///< recalculate min max row and column of the cluster accounting for the position of pix
   static void adjustBoundingBox(uint16_t row, uint16_t col, uint16_t& rMin, uint16_t& rMax, uint16_t& cMin, uint16_t& cMax)
   {
@@ -225,7 +224,6 @@ class Clusterer
   TStopwatch mTimer;
   TStopwatch mTimerMerge;
 };
-
 
 } // namespace endcaps
 } // namespace o2

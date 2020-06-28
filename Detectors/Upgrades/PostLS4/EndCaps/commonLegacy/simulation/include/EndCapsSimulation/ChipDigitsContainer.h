@@ -62,7 +62,7 @@ class ChipDigitsContainer
   }
 
  protected:
-  UShort_t mChipIndex = 0;                           ///< chip index
+  UShort_t mChipIndex = 0;               ///< chip index
   std::map<ULong64_t, PreDigit> mDigits; ///< Map of fired pixels, possibly in multiple frames
 
   ClassDefNV(ChipDigitsContainer, 1);

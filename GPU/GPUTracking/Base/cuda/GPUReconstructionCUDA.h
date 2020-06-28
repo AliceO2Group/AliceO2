@@ -73,6 +73,10 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
 
   void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits) override;
 
+#ifdef ENABLE_UPGRADES
+  void GetEC0Traits(std::unique_ptr<o2::ecl::TrackerTraitsEC0>* trackerTraits, std::unique_ptr<o2::ecl::VertexerTraitsEC0>* vertexerTraits) override;
+#endif
+
   void PrintKernelOccupancies() override;
 
   template <class T, int I = 0, typename... Args>

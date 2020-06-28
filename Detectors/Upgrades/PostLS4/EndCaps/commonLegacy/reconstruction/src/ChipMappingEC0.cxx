@@ -82,13 +82,13 @@ ChipMappingEC0::ChipMappingEC0()
     cInfo.moduleSW = 0;
     cInfo.chipOnModuleSW = i;
     cInfo.chipOnModuleHW = i;
-    cInfo.cableHW = i;                              //1-to-1 mapping
-    cInfo.cableHWPos = i;                           //1-to-1 mapping
-    cInfo.cableSW = i;                              //1-to-1 mapping
-    cInfo.chipOnCable = 0;                          // every chip is master
+    cInfo.cableHW = i;     //1-to-1 mapping
+    cInfo.cableHWPos = i;  //1-to-1 mapping
+    cInfo.cableSW = i;     //1-to-1 mapping
+    cInfo.chipOnCable = 0; // every chip is master
     mCableHW2SW[IB][cInfo.cableHW] = cInfo.cableSW;
     mCableHW2Pos[IB][cInfo.cableHW] = cInfo.cableHWPos;
-    mCableHWFirstChip[IB][i] = 0;                   // stave and module are the same
+    mCableHWFirstChip[IB][i] = 0; // stave and module are the same
   }
 
   const int chipsOnCable = 7;

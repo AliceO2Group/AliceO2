@@ -171,7 +171,6 @@ void Data::setClusTree(TTree* tree)
   tree->SetBranchAddress("EC0ClustersROF", &mClustersROF);
   tree->GetEntry(0);
   mClusTree = tree;
-
 }
 
 void Data::loadClusters(int entry)
@@ -201,7 +200,6 @@ void Data::setTracTree(TTree* tree)
   tree->SetBranchAddress("EC0TracksROF", &mTracksROF);
   tree->GetEntry(0);
   mTracTree = tree;
-
 }
 
 void Data::loadTracks(int entry)

@@ -14,7 +14,7 @@
 #ifndef ALICEO2_ENDCAPS_MC2RAWENCODER_H_
 #define ALICEO2_ENDCAPS_MC2RAWENCODER_H_
 
-#include <gsl/gsl>                               // for guideline support library; array_view
+#include <gsl/gsl>                                // for guideline support library; array_view
 #include "EndCapsReconstruction/RawPixelReader.h" // TODO : must be modified
 #include "EndCapsReconstruction/AlpideCoder.h"
 #include "EndCapsReconstruction/ChipMappingEC0.h"
@@ -107,7 +107,7 @@ class MC2RawEncoder
   enum RoMode_t { NotSet,
                   Continuous,
                   Triggered };
-  o2::InteractionRecord mCurrIR;               // currently processed int record
+  o2::InteractionRecord mCurrIR;                        // currently processed int record
   o2::raw::RawFileWriter mWriter{Mapping::getOrigin()}; // set origin of data
   std::string mDefaultSinkName = "dataSink.raw";
   Mapping mMAP;

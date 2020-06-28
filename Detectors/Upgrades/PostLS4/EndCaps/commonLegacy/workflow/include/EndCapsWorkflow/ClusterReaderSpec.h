@@ -56,9 +56,9 @@ class ClusterReader : public Task
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
 
-  bool mUseMC = true;     // use MC truth
-  bool mUseClFull = true; // use full clusters
-  bool mUseClComp = true; // use compact clusters
+  bool mUseMC = true;       // use MC truth
+  bool mUseClFull = true;   // use full clusters
+  bool mUseClComp = true;   // use compact clusters
   bool mUsePatterns = true; // send patterns
 
   std::string mDetName = "";

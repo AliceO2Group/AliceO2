@@ -49,18 +49,18 @@ constexpr int ClustersPerCell{3};
 constexpr int UnusedIndex{-1};
 constexpr float Resolution{0.0005f};
 
-GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersZCoordinate()
+GPU_HOST_DEVICE constexpr GPUArrayEC0<float, LayersNumber> LayersZCoordinate()
 {
   constexpr double s = 1.; // safety margin
-  return GPUArray<float, LayersNumber>{{16.333f + s, 16.333f + s, 16.333f + s, 42.140f + s, 42.140f + s, 73.745f + s, 73.745f + s}};
+  return GPUArrayEC0<float, LayersNumber>{{16.333f + s, 16.333f + s, 16.333f + s, 42.140f + s, 42.140f + s, 73.745f + s, 73.745f + s}};
 }
-GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersRCoordinate()
+GPU_HOST_DEVICE constexpr GPUArrayEC0<float, LayersNumber> LayersRCoordinate()
 {
-  return GPUArray<float, LayersNumber>{{2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f}};
+  return GPUArrayEC0<float, LayersNumber>{{2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f}};
 }
-GPU_HOST_DEVICE constexpr GPUArray<float, 3> VertexerHistogramVolume()
+GPU_HOST_DEVICE constexpr GPUArrayEC0<float, 3> VertexerHistogramVolume()
 {
-  return GPUArray<float, 3>{{1.98, 1.98, 40.f}};
+  return GPUArrayEC0<float, 3>{{1.98, 1.98, 40.f}};
 }
 } // namespace ecl
 
@@ -69,12 +69,12 @@ namespace index_table
 constexpr int ZBins{20};
 constexpr int PhiBins{20};
 constexpr float InversePhiBinSize{constants::index_table::PhiBins / constants::math::TwoPi};
-GPU_HOST_DEVICE constexpr GPUArray<float, ecl::LayersNumber> InverseZBinSize()
+GPU_HOST_DEVICE constexpr GPUArrayEC0<float, ecl::LayersNumber> InverseZBinSize()
 {
   constexpr auto zSize = ecl::LayersZCoordinate();
-  return GPUArray<float, ecl::LayersNumber>{{0.5f * ZBins / (zSize[0]), 0.5f * ZBins / (zSize[1]), 0.5f * ZBins / (zSize[2]),
-                                             0.5f * ZBins / (zSize[3]), 0.5f * ZBins / (zSize[4]), 0.5f * ZBins / (zSize[5]),
-                                             0.5f * ZBins / (zSize[6])}};
+  return GPUArrayEC0<float, ecl::LayersNumber>{{0.5f * ZBins / (zSize[0]), 0.5f * ZBins / (zSize[1]), 0.5f * ZBins / (zSize[2]),
+                                                0.5f * ZBins / (zSize[3]), 0.5f * ZBins / (zSize[4]), 0.5f * ZBins / (zSize[5]),
+                                                0.5f * ZBins / (zSize[6])}};
 }
 } // namespace index_table
 

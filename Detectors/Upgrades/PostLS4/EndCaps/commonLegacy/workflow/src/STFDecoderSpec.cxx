@@ -118,8 +118,8 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   CLUSVECDUMMY* clusVecDUMMY = nullptr;
   mDecoder->setDecodeNextAuto(false);
   while (mDecoder->decodeNextTrigger()) {
-    if (mDoDigits) {                                    // call before clusterization, since the latter will hide the digits
-      mDecoder->fillDecodedDigits(digVec, digROFVec);   // lot of copying involved
+    if (mDoDigits) {                                  // call before clusterization, since the latter will hide the digits
+      mDecoder->fillDecodedDigits(digVec, digROFVec); // lot of copying involved
     }
     if (mDoClusters) { // !!! THREADS !!!
       mClusterer->process(mNThreads, *mDecoder.get(), (CLUSVECDUMMY*)nullptr, &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);

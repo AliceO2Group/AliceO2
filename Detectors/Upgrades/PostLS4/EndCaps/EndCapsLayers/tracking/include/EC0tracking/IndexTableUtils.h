@@ -38,7 +38,7 @@ GPUhdi() int getZBinIndex(const int, const float);
 GPUhdi() int getPhiBinIndex(const float);
 GPUhdi() int getBinIndex(const int, const int);
 GPUhdi() int countRowSelectedBins(
-  const GPUArray<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>&, const int, const int,
+  const GPUArrayEC0<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>&, const int, const int,
   const int);
 } // namespace index_table_utils
 
@@ -65,7 +65,7 @@ GPUhdi() int index_table_utils::getBinIndex(const int zIndex, const int phiIndex
 }
 
 GPUhdi() int index_table_utils::countRowSelectedBins(
-  const GPUArray<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>& indexTable,
+  const GPUArrayEC0<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>& indexTable,
   const int phiBinIndex, const int minZBinIndex, const int maxZBinIndex)
 {
   const int firstBinIndex{getBinIndex(minZBinIndex, phiBinIndex)};

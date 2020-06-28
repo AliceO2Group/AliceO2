@@ -18,7 +18,7 @@
 #include "DetectorsBase/GeometryManager.h"    // for getSensID
 #include "DetectorsBase/Detector.h"           // for Detector
 #include "DetectorsCommonDataFormats/DetID.h" // for Detector
-#include "EndCapsSimulation/Hit.h"             // for Hit
+#include "EndCapsSimulation/Hit.h"            // for Hit
 #include "Rtypes.h"                           // for Int_t, Double_t, Float_t, Bool_t, etc
 #include "TArrayD.h"                          // for TArrayD
 #include "TGeoManager.h"                      // for gGeoManager, TGeoManager (ptr only)
@@ -173,8 +173,8 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// This method is an example of how to add your own point of type Hit to the clones array
   o2::endcaps::Hit* addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
-                          const TVector3& startMom, double startE, double endTime, double eLoss,
-                          unsigned char startStatus, unsigned char endStatus);
+                           const TVector3& startMom, double startE, double endTime, double eLoss,
+                           unsigned char startStatus, unsigned char endStatus);
 
   /// Set per wrapper volume parameters
   void defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan) override;

@@ -52,9 +52,9 @@ namespace o2
 namespace endcaps
 {
 
-constexpr int MaxGBTPacketBytes = 8 * 1024; // Max size of GBT packet in bytes (8KB)
+constexpr int MaxGBTPacketBytes = 8 * 1024;                                   // Max size of GBT packet in bytes (8KB)
 constexpr int MaxGBTWordsPerPacket = MaxGBTPacketBytes / GBTPaddedWordLength; // Max N of GBT words per CRU page
-constexpr int NCRUPagesPerSuperpage = 256;  // Expected max number of CRU pages per superpage
+constexpr int NCRUPagesPerSuperpage = 256;                                    // Expected max number of CRU pages per superpage
 using RDHUtils = o2::raw::RDHUtils;
 
 struct RawDecodingStat {
@@ -330,7 +330,7 @@ class RawPixelReader : public PixelReader
   {
     // fill data of the RU to links buffer, return the number of pages in the link with smallest amount of pages
     constexpr uint8_t zero16[o2::endcaps::GBTPaddedWordLength] = {0}; // to speedup padding
-    const int dummyNPages = 0xffffff;                                // any large number
+    const int dummyNPages = 0xffffff;                                 // any large number
     int minPages = dummyNPages;
     auto& ruData = mRUDecodeVec[mCurRUDecodeID];
     ruData.nCables = ruData.ruInfo->nCables;
@@ -370,7 +370,7 @@ class RawPixelReader : public PixelReader
 
       link->data.ensureFreeCapacity(MaxGBTPacketBytes);
       link->data.addFast(reinterpret_cast<uint8_t*>(&rdh), RDHUtils::getHeaderSize(rdh)); // write RDH for current packet
-      link->nTriggers++;                                                    // acknowledge the page, note: here we count pages, not triggers
+      link->nTriggers++;                                                                  // acknowledge the page, note: here we count pages, not triggers
       o2::endcaps::GBTDataHeader gbtHeader(0, link->lanes);
       o2::endcaps::GBTDataTrailer gbtTrailer; // lanes will be set on closing the last page
 
@@ -424,7 +424,7 @@ class RawPixelReader : public PixelReader
           RDHUtils::setOffsetToNext(rdh, mImposeMaxPage ? MaxGBTPacketBytes : RDHUtils::getMemorySize(rdh));
           link->data.ensureFreeCapacity(MaxGBTPacketBytes);
           link->data.addFast(reinterpret_cast<uint8_t*>(&rdh), RDHUtils::getHeaderSize(rdh)); // write RDH for current packet
-          link->nTriggers++;                                                    // acknowledge the page, note: here we count pages, not triggers
+          link->nTriggers++;                                                                  // acknowledge the page, note: here we count pages, not triggers
           if (mVerbose) {
             RDHUtils::printRDH(rdh);
           }
@@ -508,15 +508,15 @@ class RawPixelReader : public PixelReader
     enum LinkFlag : int8_t { NotUpdated,
                              Updated,
                              HasEnoughTriggers };
-    LinkFlag linkFlags[Mapping::getNRUs()][3] = {NotUpdated};        // flag that enough triggeres were loaded for this link
-    int nLEnoughTriggers = 0;                                        // number of links for we which enough number of triggers were loaded
+    LinkFlag linkFlags[Mapping::getNRUs()][3] = {NotUpdated}; // flag that enough triggeres were loaded for this link
+    int nLEnoughTriggers = 0;                                 // number of links for we which enough number of triggers were loaded
     auto ptr = buffer.getPtr();
     o2::header::RAWDataHeader* rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
 
     do {
       if (!RDHUtils::checkRDH(rdh)) { // does it look like RDH?
-        if (!findNextRDH(buffer)) { // try to recover the pointer
-          break;                    // no data to continue
+        if (!findNextRDH(buffer)) {   // try to recover the pointer
+          break;                      // no data to continue
         }
         ptr = buffer.getPtr();
         rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
@@ -625,7 +625,7 @@ class RawPixelReader : public PixelReader
     int nlinks = 0;
     for (int ir = mNRUs; ir--;) {
       auto& ruDecode = mRUDecodeVec[ir];
-      if (!nlinks) {                        // on 1st occasion extract trigger data
+      if (!nlinks) {                         // on 1st occasion extract trigger data
         for (auto linkID : ruDecode.links) { // loop over links to fill cable buffers
           auto* link = getGBTLink(linkID);
           if (link && !link->data.isEmpty()) {
@@ -780,7 +780,7 @@ class RawPixelReader : public PixelReader
       mDecodingStat.nPagesProcessed++;
       raw += RDHUtils::getHeaderSize(rdh);
       int nGBTWords = (RDHUtils::getMemorySize(rdh) - RDHUtils::getHeaderSize(rdh)) / mGBTWordSize - 2; // number of GBT words excluding header/trailer
-      auto gbtH = reinterpret_cast<const o2::endcaps::GBTDataHeader*>(raw);    // process GBT header
+      auto gbtH = reinterpret_cast<const o2::endcaps::GBTDataHeader*>(raw);                             // process GBT header
 
 #ifdef _RAW_READER_ERROR_CHECKS_
       if (mVerbose) {
@@ -1443,11 +1443,11 @@ class RawPixelReader : public PixelReader
 
   PayLoadCont mRawBuffer; //! buffer for binary raw data file IO
 
-  std::array<RUDecodeData, Mapping::getNRUs()> mRUDecodeVec;        // decoding buffers for all active RUs
-  std::array<int, Mapping::getNRUs()> mRUEntry;                     //! entry of the RU with given SW ID in the mRUDecodeVec
+  std::array<RUDecodeData, Mapping::getNRUs()> mRUDecodeVec; // decoding buffers for all active RUs
+  std::array<int, Mapping::getNRUs()> mRUEntry;              //! entry of the RU with given SW ID in the mRUDecodeVec
   std::vector<GBTLink> mGBTLinks;
-  int mNRUs = 0;                                                    //! total number of RUs seen
-  int mNLinks = 0;                                                  //! total number of GBT links seen
+  int mNRUs = 0;   //! total number of RUs seen
+  int mNLinks = 0; //! total number of GBT links seen
 
   //! min number of triggers to cache per link (keep this > N pages per CRU superpage)
   int mMinTriggersToCache = NCRUPagesPerSuperpage + 10;
@@ -1456,7 +1456,7 @@ class RawPixelReader : public PixelReader
   // statistics
   RawDecodingStat mDecodingStat; //! global decoding statistics
 
-  TStopwatch mSWIO; //! timer for IO operations
+  TStopwatch mSWIO;    //! timer for IO operations
   TStopwatch mSWCache; //! timer for caching operations
 
   static constexpr int RawBufferMargin = 5000000;                      // keep uploaded at least this amount

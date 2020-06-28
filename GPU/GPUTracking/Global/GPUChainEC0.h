@@ -32,7 +32,6 @@ class TrackerTraitsEC0;
 class VertexerTraitsEC0;
 } // namespace o2::ecl
 
-
 namespace GPUCA_NAMESPACE::gpu
 {
 class GPUChainEC0 : public GPUChain

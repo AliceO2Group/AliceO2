@@ -60,7 +60,7 @@ class TrivialClusterer
   }
 
  protected:
-  const o2::endcaps::GeometryTGeo* mGeometry = nullptr;                      ///< ITS OR MFT upgrade geometry
+  const o2::endcaps::GeometryTGeo* mGeometry = nullptr;                     ///< ITS OR MFT upgrade geometry
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; // Cluster MC labels
 };
 } // namespace ecl

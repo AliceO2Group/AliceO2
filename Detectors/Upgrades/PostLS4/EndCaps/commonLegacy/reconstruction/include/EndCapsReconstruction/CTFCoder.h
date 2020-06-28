@@ -31,11 +31,10 @@ namespace o2
 namespace endcaps
 {
 
-  using o2::itsmft::CTF;
-  using o2::itsmft::ROFRecord;
-  using o2::itsmft::CompClusterExt;
-  using o2::itsmft::CompressedClusters;
-
+using o2::itsmft::CompClusterExt;
+using o2::itsmft::CompressedClusters;
+using o2::itsmft::CTF;
+using o2::itsmft::ROFRecord;
 
 class CTFCoder
 {

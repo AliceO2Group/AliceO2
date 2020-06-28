@@ -33,7 +33,7 @@ struct RUDecodeData {
   static constexpr int MaxLinksPerRU = 3;   // max number of GBT links per RU
 
   std::array<PayLoadCont, MaxCablesPerRU> cableData;       // cable data in compressed ALPIDE format
-  std::vector<o2::endcaps::ChipPixelData> chipsData;        // fully decoded data in 1st nChipsFired chips
+  std::vector<o2::endcaps::ChipPixelData> chipsData;       // fully decoded data in 1st nChipsFired chips
   std::array<int, MaxLinksPerRU> links;                    // link entry RSTODO: consider removing this and using pointer
   std::array<uint8_t, MaxCablesPerRU> cableHWID;           // HW ID of cable whose data is in the corresponding slot of cableData
   std::array<uint8_t, MaxCablesPerRU> cableLinkID;         // ID of the GBT link transmitting this cable data

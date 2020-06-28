@@ -269,6 +269,13 @@
   #ifndef GPUCA_LB_GPUITSFitterKernel
     #define GPUCA_LB_GPUITSFitterKernel 256
   #endif
+
+  #ifdef ENABLE_UPGRADES
+  #ifndef GPUCA_LB_GPUEC0FitterKernel
+    #define GPUCA_LB_GPUEC0FitterKernel 256
+  #endif
+  #endif
+
   #ifndef GPUCA_LB_GPUTPCStartHitsFinder
     #define GPUCA_LB_GPUTPCStartHitsFinder 256
   #endif

@@ -87,7 +87,7 @@ class Tracker
   template <typename... T>
   float evaluateTask(void (Tracker::*)(T...), const char*, std::ostream& ostream, T&&... args);
 
-  TrackerTraitsEC0* mTraits = nullptr;                      /// Observer pointer, not owned by this class
+  TrackerTraitsEC0* mTraits = nullptr;                   /// Observer pointer, not owned by this class
   PrimaryVertexContext* mPrimaryVertexContext = nullptr; /// Observer pointer, not owned by this class
 
   std::vector<MemoryParameters> mMemParams;

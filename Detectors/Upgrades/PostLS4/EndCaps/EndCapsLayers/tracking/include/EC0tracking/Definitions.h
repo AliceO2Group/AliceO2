@@ -63,7 +63,7 @@
 #include "EC0trackingCUDA/Array.h"
 
 template <typename T, std::size_t Size>
-using GPUArray = o2::ecl::GPU::Array<T, Size>;
+using GPUArrayEC0 = o2::ecl::GPU::Array<T, Size>;
 
 typedef cudaStream_t GPUStream;
 
@@ -87,12 +87,12 @@ typedef cudaStream_t GPUStream;
 #ifndef __OPENCL__
 #include <cstddef>
 template <typename T, size_t Size>
-using GPUArray = std::array<T, Size>;
+using GPUArrayEC0 = std::array<T, Size>;
 #else
 #include "EC0trackingCUDA/Array.h"
 
 template <typename T, size_t Size>
-using GPUArray = o2::ecl::GPU::Array<T, Size>;
+using GPUArrayEC0 = o2::ecl::GPU::Array<T, Size>;
 #endif
 
 //typedef struct _dummyStream {

@@ -34,7 +34,7 @@ class TrackerTraitsEC0NV : public TrackerTraitsEC0
 
   void computeLayerCells() final;
   void computeLayerTracklets() final;
-  void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks) final;
+  void refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks) final;
 };
 
 extern "C" TrackerTraitsEC0* createTrackerTraitsEC0NV();

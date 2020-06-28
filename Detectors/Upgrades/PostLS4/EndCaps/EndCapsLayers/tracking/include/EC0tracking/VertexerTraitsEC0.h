@@ -45,9 +45,9 @@ namespace ecl
 
 class ROframe;
 
+using constants::ecl::LayersNumberVertexer;
 using constants::index_table::PhiBins;
 using constants::index_table::ZBins;
-using constants::ecl::LayersNumberVertexer;
 
 struct lightVertex {
   lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp);
@@ -198,7 +198,7 @@ GPUhdi() const int2 VertexerTraitsEC0::getPhiBins(float phi, float dPhi)
 }
 
 GPUhdi() const int4 VertexerTraitsEC0::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                                const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
+                                                   const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = directionZIntersection - 2 * maxdeltaz;
   const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;

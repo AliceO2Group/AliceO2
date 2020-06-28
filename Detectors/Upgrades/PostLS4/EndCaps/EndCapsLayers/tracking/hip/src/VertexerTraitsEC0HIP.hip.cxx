@@ -34,11 +34,11 @@ namespace o2
 namespace ecl
 {
 
-using constants::index_table::PhiBins;
-using constants::index_table::ZBins;
 using constants::ecl::LayersRCoordinate;
 using constants::ecl::LayersZCoordinate;
 using constants::ecl::VertexerHistogramVolume;
+using constants::index_table::PhiBins;
+using constants::index_table::ZBins;
 using constants::math::TwoPi;
 using index_table_utils::getPhiBinIndex;
 using index_table_utils::getZBinIndex;

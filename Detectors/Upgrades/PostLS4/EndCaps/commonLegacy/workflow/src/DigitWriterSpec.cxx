@@ -65,6 +65,5 @@ DataProcessorSpec getEC0DigitWriterSpec(bool mctruth)
   return getDigitWriterSpec(mctruth, o2::header::gDataOriginEC0, o2::detectors::DetID::EC0);
 }
 
-
 } // end namespace endcaps
 } // end namespace o2

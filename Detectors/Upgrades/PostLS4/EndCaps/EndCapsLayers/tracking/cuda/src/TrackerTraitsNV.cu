@@ -61,7 +61,7 @@ __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIn
     const float directionZIntersection{tanLambda * ((constants::ecl::LayersRCoordinate())[layerIndex + 1] - currentCluster.rCoordinate) + currentCluster.zCoordinate};
 
     const int4 selectedBinsRect{TrackerTraitsEC0::getBinsRect(currentCluster, layerIndex, directionZIntersection,
-                                                           kTrkPar.TrackletMaxDeltaZ[layerIndex], kTrkPar.TrackletMaxDeltaPhi)};
+                                                              kTrkPar.TrackletMaxDeltaZ[layerIndex], kTrkPar.TrackletMaxDeltaPhi)};
 
     if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
 

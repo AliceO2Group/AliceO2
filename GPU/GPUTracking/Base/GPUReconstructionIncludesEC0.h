@@ -22,13 +22,13 @@ namespace o2
 {
 namespace ecl
 {
-class TrackerTraits
+class TrackerTraitsEC0
 {
 };
-class TrackerTraitsCPU : public TrackerTraits
+class TrackerTraitsEC0CPU : public TrackerTraitsEC0
 {
 };
-class VertexerTraits
+class VertexerTraitsEC0
 {
 };
 } // namespace ecl

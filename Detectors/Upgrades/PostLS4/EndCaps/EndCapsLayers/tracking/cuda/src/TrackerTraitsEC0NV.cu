@@ -61,7 +61,7 @@ __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIn
     const float directionZIntersection{tanLambda * ((constants::ecl::LayersRCoordinate())[layerIndex + 1] - currentCluster.rCoordinate) + currentCluster.zCoordinate};
 
     const int4 selectedBinsRect{TrackerTraitsEC0::getBinsRect(currentCluster, layerIndex, directionZIntersection,
-                                                           kTrkPar.TrackletMaxDeltaZ[layerIndex], kTrkPar.TrackletMaxDeltaPhi)};
+                                                              kTrkPar.TrackletMaxDeltaZ[layerIndex], kTrkPar.TrackletMaxDeltaPhi)};
 
     if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
 
@@ -479,7 +479,7 @@ void TrackerTraitsEC0NV::computeLayerCells()
   }
 }
 
-void TrackerTraitsEC0NV::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks)
+void TrackerTraitsEC0NV::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks)
 {
   PrimaryVertexContextNV* pvctx = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
 
@@ -491,7 +491,7 @@ void TrackerTraitsEC0NV::refitTracks(const std::array<std::vector<TrackingFrameI
   for (int iLayer = 0; iLayer < 7; iLayer++) {
     clusters[iLayer] = pvctx->getDeviceClusters()[iLayer].get();
   }
-  mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
+  mChainRunEC0TrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
 }
 } // namespace ecl
 } // namespace o2

@@ -287,8 +287,8 @@ int MC2RawEncoder<Mapping>::carryOverMethod(const header::RDHAny* rdh, const gsl
   // make sure ptr and end of the suggested block are within the payload
   assert(offs >= 0 && size_t(offs + maxSize) <= data.size());
 
-  if ((maxSize <= TotServiceSize)) {  // we cannot split trigger+header
-    return 0;                         // suggest moving the whole payload to the new CRU page
+  if ((maxSize <= TotServiceSize)) { // we cannot split trigger+header
+    return 0;                        // suggest moving the whole payload to the new CRU page
   }
 
   // this is where we would usually split: account for the trailer to add

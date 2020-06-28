@@ -198,9 +198,9 @@ void duplicateHits(const char* filebase = "o2sim", const char* newfilebase = "o2
   duplicateV<o2::mch::Hit>(grp, filebase, DetID::MCH, newfilebase, factor);
   duplicateV<o2::tpc::HitGroup>(grp, filebase, DetID::TPC, newfilebase, factor);
 
-  #ifdef ENABLE_UPGRADES
+#ifdef ENABLE_UPGRADES
   duplicateV<o2::endcaps::Hit>(grp, filebase, DetID::EC0, newfilebase, factor);
-  #endif
+#endif
 
   // duplicateACO(reftree);
   // outfile.Write();

@@ -109,7 +109,7 @@ class DigitPixelReader : public PixelReader
   Int_t mIdDig = 0; // Digits slot read within ROF
   Int_t mIdROF = 0; // ROFRecord being red
 
-  std::unique_ptr<TTree> mInputTree;       // input tree for digits
+  std::unique_ptr<TTree> mInputTree; // input tree for digits
 
   ClassDefOverride(DigitPixelReader, 1);
 };

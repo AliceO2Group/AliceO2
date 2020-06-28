@@ -16,7 +16,6 @@
 #include "EndCapsReconstruction/LookUp.h"
 #include "DataFormatsEndCaps/TopologyDictionary.h"
 
-
 ClassImp(o2::endcaps::LookUp);
 
 using std::array;

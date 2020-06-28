@@ -74,7 +74,7 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
         locXYZ = dict.getClusterCoordinates(c, patt);
       }
     } else {
-        o2::endcaps::ClusterPattern patt(pattIt);
+      o2::endcaps::ClusterPattern patt(pattIt);
       locXYZ = dict.getClusterCoordinates(c, patt);
     }
     auto& cl3d = output.emplace_back(c.getSensorID(), geom->getMatrixT2L(c.getSensorID()) ^ locXYZ); // local --> tracking

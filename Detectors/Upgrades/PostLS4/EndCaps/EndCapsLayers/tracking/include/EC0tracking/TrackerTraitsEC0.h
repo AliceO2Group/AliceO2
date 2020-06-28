@@ -31,12 +31,13 @@
 #include "EC0tracking/PrimaryVertexContext.h"
 #include "EC0tracking/Road.h"
 
-
-namespace o2::its
+namespace o2
+{
+namespace its
 {
 class TrackITSExt;
-} // namespace o2::its
-
+} // namespace its
+} // namespace o2
 
 namespace o2
 {
@@ -49,8 +50,6 @@ namespace ecl
 
 class TrackITSExt;
 typedef std::function<int(o2::gpu::GPUChainEC0&, std::vector<o2::ecl::Road>& roads, std::array<const o2::ecl::Cluster*, 7> clusters, std::array<const o2::ecl::Cell*, 5> cells, const std::array<std::vector<o2::ecl::TrackingFrameInfo>, 7>& tf, std::vector<o2::its::TrackITSExt>& tracks)> FuncRunEC0TrackFit_t;
-
-
 
 class TrackerTraitsEC0
 {
@@ -87,7 +86,7 @@ inline void TrackerTraitsEC0::UpdateTrackingParameters(const TrackingParameters&
 }
 
 inline GPU_DEVICE const int4 TrackerTraitsEC0::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                                        const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
+                                                           const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = directionZIntersection - 2 * maxdeltaz;
   const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;

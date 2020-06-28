@@ -61,6 +61,12 @@ __global__ void dummyInitKernel(void* foo)
 #if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStrackingCUDA/TrackerTraitsNV.h"
 #include "ITStrackingCUDA/VertexerTraitsGPU.h"
+
+#ifdef ENABLE_UPGRADES
+#include "EC0trackingCUDA/TrackerTraitsEC0NV.h"
+#include "EC0trackingCUDA/VertexerTraitsEC0GPU.h"
+#endif
+
 #else
 namespace o2
 {
@@ -74,6 +80,22 @@ class VertexerTraitsGPU : public VertexerTraits
 };
 } // namespace its
 } // namespace o2
+
+#ifdef ENABLE_UPGRADES
+namespace o2
+{
+namespace ecl
+{
+class TrackerTraitsEC0NV : public TrackerTraitsEC0
+{
+};
+class VertexerTraitsGPUEC0 : public VertexerTraitsEC0
+{
+};
+} // namespace ecl
+} // namespace o2
+#endif
+
 #endif
 
 class GPUDebugTiming
@@ -198,6 +220,18 @@ void GPUReconstructionCUDABackend::GetITSTraits(std::unique_ptr<o2::its::Tracker
     vertexerTraits->reset(new o2::its::VertexerTraitsGPU);
   }
 }
+
+#ifdef ENABLE_UPGRADES
+void GPUReconstructionCUDABackend::GetEC0Traits(std::unique_ptr<o2::ecl::TrackerTraitsEC0>* trackerTraits, std::unique_ptr<o2::ecl::VertexerTraitsEC0>* vertexerTraits)
+{
+  if (trackerTraits) {
+    trackerTraits->reset(new o2::ecl::TrackerTraitsEC0NV);
+  }
+  if (vertexerTraits) {
+    vertexerTraits->reset(new o2::ecl::VertexerTraitsEC0GPU);
+  }
+}
+#endif
 
 void GPUReconstructionCUDABackend::UpdateSettings()
 {

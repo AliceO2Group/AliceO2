@@ -50,14 +50,14 @@ void gpuMemcpyHostToDeviceAsync(void*, const void*, int, hipStream_t&);
 void gpuMemcpyDeviceToHost(void*, const void*, int);
 // void gpuStartProfiler();
 // void gpuStopProfiler();
-} // namespace Host
+} // namespace HostHIP
 //
 namespace DeviceHIP
 {
 GPUd() int getLaneIndex();
 GPUd() int shareToWarp(const int, const int);
 GPUd() int gpuAtomicAdd(int*, const int);
-} // namespace Device
+} // namespace DeviceHIP
 } // namespace Utils
 } // namespace GPU
 } // namespace ecl

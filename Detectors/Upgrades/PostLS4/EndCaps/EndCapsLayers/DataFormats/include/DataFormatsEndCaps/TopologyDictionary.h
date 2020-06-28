@@ -46,135 +46,135 @@ namespace o2
 namespace endcaps
 {
 
-  class BuildTopologyDictionary;
-  class LookUp;
-  class TopologyFastSimulation;
+class BuildTopologyDictionary;
+class LookUp;
+class TopologyFastSimulation;
 
-  /// Structure containing the most relevant pieces of information of a topology
-  struct GroupStruct {
-    unsigned long mHash;     ///< Hashcode
-    float mErrX;             ///< Error associated to the hit point in the x direction.
-    float mErrZ;             ///< Error associated to the hit point in the z direction.
-    float mErr2X;            ///< Squared Error associated to the hit point in the x direction.
-    float mErr2Z;            ///< Squared Error associated to the hit point in the z direction.
-    float mXCOG;             ///< x position of te COG wrt the boottom left corner of the bounding box
-    float mZCOG;             ///< z position of te COG wrt the boottom left corner of the bounding box
-    int mNpixels;            ///< Number of fired pixels
-    ClusterPattern mPattern; ///< Bitmask of pixels. For groups the biggest bounding box for the group is taken, with all
-                             ///the bits set to 1.
-    double mFrequency;       ///< Frequency of the topology
-    bool mIsGroup;           ///< false: common topology; true: group of rare topologies
-    ClassDefNV(GroupStruct, 3);
-  };
+/// Structure containing the most relevant pieces of information of a topology
+struct GroupStruct {
+  unsigned long mHash;     ///< Hashcode
+  float mErrX;             ///< Error associated to the hit point in the x direction.
+  float mErrZ;             ///< Error associated to the hit point in the z direction.
+  float mErr2X;            ///< Squared Error associated to the hit point in the x direction.
+  float mErr2Z;            ///< Squared Error associated to the hit point in the z direction.
+  float mXCOG;             ///< x position of te COG wrt the boottom left corner of the bounding box
+  float mZCOG;             ///< z position of te COG wrt the boottom left corner of the bounding box
+  int mNpixels;            ///< Number of fired pixels
+  ClusterPattern mPattern; ///< Bitmask of pixels. For groups the biggest bounding box for the group is taken, with all
+                           ///the bits set to 1.
+  double mFrequency;       ///< Frequency of the topology
+  bool mIsGroup;           ///< false: common topology; true: group of rare topologies
+  ClassDefNV(GroupStruct, 3);
+};
 
-  class TopologyDictionary
+class TopologyDictionary
+{
+ public:
+  /// Default constructor
+  TopologyDictionary();
+  /// Constructor
+  TopologyDictionary(std::string fileName);
+
+  /// constexpr for the definition of the groups of rare topologies.
+  /// The attritbution of the group ID is stringly dependent on the following parameters: it must be a power of 2.
+  static constexpr int RowClassSpan = 4;                                                             ///< Row span of the classes of rare topologies
+  static constexpr int ColClassSpan = 4;                                                             ///< Column span of the classes of rare topologies
+  static constexpr int MinimumClassArea = RowClassSpan * ColClassSpan;                               ///< Area of the smallest class of rare topologies (used as reference)
+  static constexpr int MaxNumberOfClasses = o2::itsmft::Cluster::kMaxPatternBits / MinimumClassArea; ///< Maximum number of row/column classes for the groups of rare topologies
+  static constexpr int NumberOfRareGroups = MaxNumberOfClasses * MaxNumberOfClasses;                 ///< Number of entries corresponding to groups of rare topologies (those whos matrix exceed the max number of bytes are empty).
+  /// Prints the dictionary
+  friend std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dictionary);
+  /// Prints the dictionary in a binary file
+  void writeBinaryFile(std::string outputFile);
+  /// Reads the dictionary from a binary file
+  int readBinaryFile(std::string fileName);
+  /// Returns the x position of the COG for the n_th element
+  inline float getXCOG(int n) const
   {
-   public:
-    /// Default constructor
-    TopologyDictionary();
-    /// Constructor
-    TopologyDictionary(std::string fileName);
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mXCOG;
+  }
+  /// Returns the error on the x position of the COG for the n_th element
+  inline float getErrX(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mErrX;
+  }
+  /// Returns the z position of the COG for the n_th element
+  inline float getZCOG(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mZCOG;
+  }
+  /// Returns the error on the z position of the COG for the n_th element
+  inline float getErrZ(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mErrZ;
+  }
+  /// Returns the error^2 on the x position of the COG for the n_th element
+  inline float getErr2X(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mErr2X;
+  }
+  /// Returns the error^2 on the z position of the COG for the n_th element
+  inline float getErr2Z(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mErr2Z;
+  }
+  /// Returns the hash of the n_th element
+  inline unsigned long getHash(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mHash;
+  }
+  /// Returns the number of fired pixels of the n_th element
+  inline int getNpixels(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mNpixels;
+  }
+  /// Returns the frequency of the n_th element;
+  inline double getFrequency(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mFrequency;
+  }
+  /// Returns true if the element corresponds to a group of rare topologies
+  inline bool isGroup(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mIsGroup;
+  }
+  /// Returns the pattern of the topology
+  inline ClusterPattern getPattern(int n) const
+  {
+    assert(n >= 0 || n < (int)mVectorOfIDs.size());
+    return mVectorOfIDs[n].mPattern;
+  }
+  /// Fills a hostogram with the distribution of the IDs
+  static void getTopologyDistribution(const TopologyDictionary& dict, TH1F*& histo, const char* histName);
+  /// Returns the number of elements in the dicionary;
+  int getSize() const { return (int)mVectorOfIDs.size(); }
+  ///Returns the local position of a compact cluster
+  Point3D<float> getClusterCoordinates(const o2::itsmft::CompCluster& cl) const;
+  ///Returns the local position of a compact cluster
+  static Point3D<float> getClusterCoordinates(const o2::itsmft::CompCluster& cl, const ClusterPattern& patt);
 
-    /// constexpr for the definition of the groups of rare topologies.
-    /// The attritbution of the group ID is stringly dependent on the following parameters: it must be a power of 2.
-    static constexpr int RowClassSpan = 4;                                                 ///< Row span of the classes of rare topologies
-    static constexpr int ColClassSpan = 4;                                                 ///< Column span of the classes of rare topologies
-    static constexpr int MinimumClassArea = RowClassSpan * ColClassSpan;                   ///< Area of the smallest class of rare topologies (used as reference)
-    static constexpr int MaxNumberOfClasses = o2::itsmft::Cluster::kMaxPatternBits / MinimumClassArea; ///< Maximum number of row/column classes for the groups of rare topologies
-    static constexpr int NumberOfRareGroups = MaxNumberOfClasses * MaxNumberOfClasses;     ///< Number of entries corresponding to groups of rare topologies (those whos matrix exceed the max number of bytes are empty).
-    /// Prints the dictionary
-    friend std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dictionary);
-    /// Prints the dictionary in a binary file
-    void writeBinaryFile(std::string outputFile);
-    /// Reads the dictionary from a binary file
-    int readBinaryFile(std::string fileName);
-    /// Returns the x position of the COG for the n_th element
-    inline float getXCOG(int n) const
-    {
-      assert(n >= 0 || n < (int)mVectorOfIDs.size());
-      return mVectorOfIDs[n].mXCOG;
-    }
-    /// Returns the error on the x position of the COG for the n_th element
-    inline float getErrX(int n) const
-    {
-      assert(n >= 0 || n < (int)mVectorOfIDs.size());
-      return mVectorOfIDs[n].mErrX;
-    }
-    /// Returns the z position of the COG for the n_th element
-    inline float getZCOG(int n) const
-    {
-      assert(n >= 0 || n < (int)mVectorOfIDs.size());
-      return mVectorOfIDs[n].mZCOG;
-    }
-    /// Returns the error on the z position of the COG for the n_th element
-    inline float getErrZ(int n) const
-    {
-      assert(n >= 0 || n < (int)mVectorOfIDs.size());
-      return mVectorOfIDs[n].mErrZ;
-    }
-    /// Returns the error^2 on the x position of the COG for the n_th element
-    inline float getErr2X(int n) const
-    {
-      assert(n >= 0 || n < (int)mVectorOfIDs.size());
-      return mVectorOfIDs[n].mErr2X;
-    }
-    /// Returns the error^2 on the z position of the COG for the n_th element
-    inline float getErr2Z(int n) const
-    {
-      assert(n >= 0 || n < (int)mVectorOfIDs.size());
-      return mVectorOfIDs[n].mErr2Z;
-    }
-    /// Returns the hash of the n_th element
-    inline unsigned long getHash(int n) const
-    {
-      assert(n >= 0 || n < (int)mVectorOfIDs.size());
-      return mVectorOfIDs[n].mHash;
-    }
-    /// Returns the number of fired pixels of the n_th element
-    inline int getNpixels(int n) const
-    {
-      assert(n >= 0 || n < (int)mVectorOfIDs.size());
-      return mVectorOfIDs[n].mNpixels;
-    }
-    /// Returns the frequency of the n_th element;
-    inline double getFrequency(int n) const
-    {
-      assert(n >= 0 || n < (int)mVectorOfIDs.size());
-      return mVectorOfIDs[n].mFrequency;
-    }
-    /// Returns true if the element corresponds to a group of rare topologies
-    inline bool isGroup(int n) const
-    {
-      assert(n >= 0 || n < (int)mVectorOfIDs.size());
-      return mVectorOfIDs[n].mIsGroup;
-    }
-    /// Returns the pattern of the topology
-    inline ClusterPattern getPattern(int n) const
-    {
-      assert(n >= 0 || n < (int)mVectorOfIDs.size());
-      return mVectorOfIDs[n].mPattern;
-    }
-    /// Fills a hostogram with the distribution of the IDs
-    static void getTopologyDistribution(const TopologyDictionary& dict, TH1F*& histo, const char* histName);
-    /// Returns the number of elements in the dicionary;
-    int getSize() const { return (int)mVectorOfIDs.size(); }
-    ///Returns the local position of a compact cluster
-    Point3D<float> getClusterCoordinates(const o2::itsmft::CompCluster& cl) const;
-    ///Returns the local position of a compact cluster
-    static Point3D<float> getClusterCoordinates(const o2::itsmft::CompCluster& cl, const ClusterPattern& patt);
+  friend BuildTopologyDictionary;
+  friend LookUp;
+  friend TopologyFastSimulation;
 
-    friend BuildTopologyDictionary;
-    friend LookUp;
-    friend TopologyFastSimulation;
+ private:
+  std::unordered_map<unsigned long, int> mCommonMap; ///< Map of pair <hash, position in mVectorOfIDs>
+  std::unordered_map<int, int> mGroupMap;            ///< Map of pair <groudID, position in mVectorOfIDs>
+  int mSmallTopologiesLUT[8 * 255 + 1];              ///< Look-Up Table for the topologies with 1-byte linearised matrix
+  std::vector<GroupStruct> mVectorOfIDs;             ///< Vector of topologies and groups
 
-   private:
-    std::unordered_map<unsigned long, int> mCommonMap; ///< Map of pair <hash, position in mVectorOfIDs>
-    std::unordered_map<int, int> mGroupMap;            ///< Map of pair <groudID, position in mVectorOfIDs>
-    int mSmallTopologiesLUT[8 * 255 + 1];              ///< Look-Up Table for the topologies with 1-byte linearised matrix
-    std::vector<GroupStruct> mVectorOfIDs;             ///< Vector of topologies and groups
-
-    ClassDefNV(TopologyDictionary, 3);
-  };
+  ClassDefNV(TopologyDictionary, 3);
+};
 } // namespace endcaps
 } // namespace o2
 

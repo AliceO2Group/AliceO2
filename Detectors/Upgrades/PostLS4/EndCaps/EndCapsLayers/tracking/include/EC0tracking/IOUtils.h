@@ -46,7 +46,7 @@ namespace endcaps
 //class o2::itsmft::Cluster;
 //class o2::itsmft::CompClusterExt;
 class TopologyDictionary;
-}
+} // namespace endcaps
 
 namespace ecl
 {

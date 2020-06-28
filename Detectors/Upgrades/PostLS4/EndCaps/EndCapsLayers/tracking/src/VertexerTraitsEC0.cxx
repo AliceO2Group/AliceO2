@@ -37,10 +37,10 @@ namespace o2
 namespace ecl
 {
 using boost::histogram::indexed;
-using constants::index_table::PhiBins;
-using constants::index_table::ZBins;
 using constants::ecl::LayersRCoordinate;
 using constants::ecl::LayersZCoordinate;
+using constants::index_table::PhiBins;
+using constants::index_table::ZBins;
 using constants::math::TwoPi;
 using index_table_utils::getZBinIndex;
 
@@ -136,7 +136,7 @@ void trackletSelectionKernelSerial(
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 VertexerTraitsEC0::VertexerTraitsEC0() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
-                                   mMaxDirectorCosine3{0.f}
+                                         mMaxDirectorCosine3{0.f}
 {
   mVrtParams.phiSpan = static_cast<int>(std::ceil(constants::index_table::PhiBins * mVrtParams.phiCut /
                                                   constants::math::TwoPi));
@@ -148,7 +148,7 @@ VertexerTraitsEC0::VertexerTraitsEC0() : mAverageClustersRadii{std::array<float,
 }
 #else
 VertexerTraitsEC0::VertexerTraitsEC0() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
-                                   mMaxDirectorCosine3{0.f}
+                                         mMaxDirectorCosine3{0.f}
 {
   mVrtParams.phiSpan = static_cast<int>(std::ceil(constants::index_table::PhiBins * mVrtParams.phiCut /
                                                   constants::math::TwoPi));
@@ -234,7 +234,7 @@ void VertexerTraitsEC0::arrangeClusters(ROframe* event)
 }
 
 const std::vector<std::pair<int, int>> VertexerTraitsEC0::selectClusters(const std::array<int, ZBins * PhiBins + 1>& indexTable,
-                                                                      const std::array<int, 4>& selectedBinsRect)
+                                                                         const std::array<int, 4>& selectedBinsRect)
 {
   std::vector<std::pair<int, int>> filteredBins{};
   int phiBinsNum{selectedBinsRect[3] - selectedBinsRect[1] + 1};
@@ -679,10 +679,10 @@ void VertexerTraitsEC0::computeHistVertices()
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 // Montecarlo validation for externally-provided tracklets (GPU-like cases)
 void VertexerTraitsEC0::filterTrackletsWithMC(std::vector<Tracklet>& tracklets01,
-                                           std::vector<Tracklet>& tracklets12,
-                                           std::vector<int>& indices01,
-                                           std::vector<int>& indices12,
-                                           const int stride)
+                                              std::vector<Tracklet>& tracklets12,
+                                              std::vector<int>& indices01,
+                                              std::vector<int>& indices12,
+                                              const int stride)
 {
   // Tracklets 01
   assert(mEvent != nullptr);

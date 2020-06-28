@@ -19,6 +19,6 @@
 #pragma link C++ class o2::ecl::Centroid + ;
 
 #pragma link C++ class o2::ecl::VertexerParamConfig + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper <o2::ecl::VertexerParamConfig> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::ecl::VertexerParamConfig> + ;
 
 #endif

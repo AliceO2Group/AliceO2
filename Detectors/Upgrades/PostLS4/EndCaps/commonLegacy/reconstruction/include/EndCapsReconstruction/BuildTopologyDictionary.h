@@ -27,7 +27,6 @@
 #include "DataFormatsITSMFT/ClusterTopology.h"
 #include "DataFormatsEndCaps/TopologyDictionary.h"
 
-
 namespace o2
 {
 namespace endcaps

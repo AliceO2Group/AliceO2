@@ -225,7 +225,7 @@ GBTLink::ErrorType GBTLink::checkErrorsHeaderWord(const GBTDataHeader* gbtH)
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTS::ErrRDHvsGBTHPageCnt] << ": diff in GBT header "
                  << gbtH->packetIdx << " and RDH page " << cnt << " counters";
     }
-    errorBits |= 0x1<<int(GBTS::ErrRDHvsGBTHPageCnt);
+    errorBits |= 0x1 << int(GBTS::ErrRDHvsGBTHPageCnt);
     return Warning;
   }
   // RSTODO CHECK

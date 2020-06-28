@@ -64,7 +64,6 @@ using STFDecoderEC0 = STFDecoder<ChipMappingEC0>;
 //o2::framework::DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict);
 o2::framework::DataProcessorSpec getSTFDecoderEC0Spec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict);
 
-
 } // namespace endcaps
 } // namespace o2
 

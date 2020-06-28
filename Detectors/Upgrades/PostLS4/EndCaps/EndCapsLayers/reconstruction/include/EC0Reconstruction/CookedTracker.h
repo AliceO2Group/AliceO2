@@ -154,7 +154,7 @@ class CookedTracker
   Double_t mSigmaY = 2.; ///< error of the primary vertex position in Y
   Double_t mSigmaZ = 2.; ///< error of the primary vertex position in Z
 
-  static Layer sLayers[kNLayers];  ///< Layers filled with clusters
+  static Layer sLayers[kNLayers];           ///< Layers filled with clusters
   std::vector<o2::its::TrackITSExt> mSeeds; ///< Track seeds
 
   std::vector<Cluster> mClusterCache;

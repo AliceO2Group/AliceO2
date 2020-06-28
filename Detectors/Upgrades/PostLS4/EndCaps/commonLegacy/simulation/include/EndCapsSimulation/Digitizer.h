@@ -106,12 +106,12 @@ class Digitizer : public TObject
 
   static constexpr float sec2ns = 1e9;
 
-  DigiParams mParams; ///< digitization parameters
+  DigiParams mParams;                   ///< digitization parameters
   o2::InteractionTimeRecord mEventTime; ///< global event time and interaction record
   double mCollisionTimeWrtROF;
-  UInt_t mROFrameMin = 0;         ///< lowest RO frame of current digits
-  UInt_t mROFrameMax = 0;         ///< highest RO frame of current digits
-  UInt_t mNewROFrame = 0;         ///< ROFrame corresponding to provided time
+  UInt_t mROFrameMin = 0; ///< lowest RO frame of current digits
+  UInt_t mROFrameMax = 0; ///< highest RO frame of current digits
+  UInt_t mNewROFrame = 0; ///< ROFrame corresponding to provided time
 
   UInt_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
   UInt_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
@@ -120,8 +120,8 @@ class Digitizer : public TObject
 
   const o2::endcaps::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
 
-  std::vector<ChipDigitsContainer> mChips; ///< Array of chips digits containers
-  std::deque<std::unique_ptr<ExtraDig>> mExtraBuff;    ///< burrer (per roFrame) for extra digits
+  std::vector<ChipDigitsContainer> mChips;          ///< Array of chips digits containers
+  std::deque<std::unique_ptr<ExtraDig>> mExtraBuff; ///< burrer (per roFrame) for extra digits
 
   std::vector<o2::itsmft::Digit>* mDigits = nullptr;                       //! output digits
   std::vector<o2::itsmft::ROFRecord>* mROFRecords = nullptr;               //! output ROF records

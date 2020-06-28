@@ -24,7 +24,6 @@
 #include <random>
 #include "DataFormatsEndCaps/TopologyDictionary.h"
 
-
 namespace o2
 {
 namespace endcaps

@@ -85,7 +85,7 @@ o2::framework::DataProcessorSpec getGRPUpdaterSpec(const std::string& grpfilenam
 {
   sDetList = detList;
 
-  #ifdef ENABLE_UPGRADES
+#ifdef ENABLE_UPGRADES
 
   static constexpr std::array<o2::header::DataOrigin, o2::detectors::DetID::nDetectors> sOrigins = {
     o2::header::gDataOriginITS, o2::header::gDataOriginTPC, o2::header::gDataOriginTRD,
@@ -95,7 +95,7 @@ o2::framework::DataProcessorSpec getGRPUpdaterSpec(const std::string& grpfilenam
     o2::header::gDataOriginFT0, o2::header::gDataOriginFV0, o2::header::gDataOriginFDD,
     o2::header::gDataOriginACO, o2::header::gDataOriginIT3, o2::header::gDataOriginEC0};
 
-  #else
+#else
 
   static constexpr std::array<o2::header::DataOrigin, o2::detectors::DetID::nDetectors> sOrigins = {
     o2::header::gDataOriginITS, o2::header::gDataOriginTPC, o2::header::gDataOriginTRD,
@@ -105,8 +105,7 @@ o2::framework::DataProcessorSpec getGRPUpdaterSpec(const std::string& grpfilenam
     o2::header::gDataOriginFT0, o2::header::gDataOriginFV0, o2::header::gDataOriginFDD,
     o2::header::gDataOriginACO};
 
-  #endif
-
+#endif
 
   // prepare specs
   std::vector<InputSpec> inputs;

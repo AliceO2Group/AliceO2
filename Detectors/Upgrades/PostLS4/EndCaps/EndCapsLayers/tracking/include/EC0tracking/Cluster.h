@@ -45,7 +45,7 @@ struct Cluster final {
 };
 
 struct TrackingFrameInfo {
-  TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArray<float, 2>&& posTF, GPUArray<float, 3>&& covTF);
+  TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArrayEC0<float, 2>&& posTF, GPUArrayEC0<float, 3>&& covTF);
   TrackingFrameInfo() = default;
 
   float xCoordinate;
@@ -53,8 +53,8 @@ struct TrackingFrameInfo {
   float zCoordinate;
   float xTrackingFrame;
   float alphaTrackingFrame;
-  GPUArray<float, 2> positionTrackingFrame = {-1., -1.};
-  GPUArray<float, 3> covarianceTrackingFrame = {999., 999., 999.};
+  GPUArrayEC0<float, 2> positionTrackingFrame = {-1., -1.};
+  GPUArrayEC0<float, 3> covarianceTrackingFrame = {999., 999., 999.};
 };
 } // namespace ecl
 } // namespace o2
