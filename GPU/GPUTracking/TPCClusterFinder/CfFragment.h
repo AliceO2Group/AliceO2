@@ -39,6 +39,8 @@ struct CfFragment {
 
   bool hasBacklog = false;
   bool hasFuture = false;
+  tpccf::TPCTime totalSliceLength = 0;
+  tpccf::TPCFragmentTime maxSubSliceLength = 0;
 
   GPUdDefault() CfFragment() CON_DEFAULT;
 
@@ -46,9 +48,9 @@ struct CfFragment {
 
   GPUdi() bool isEnd() const { return length == 0; }
 
-  GPUdi() CfFragment next(tpccf::TPCTime totalSliceLen, tpccf::TPCFragmentTime maxSubSliceLen) const
+  GPUdi() CfFragment next() const
   {
-    return CfFragment{index + 1, hasFuture, tpccf::TPCTime(start + length - (hasFuture ? 2 * OverlapTimebins : 0)), totalSliceLen, maxSubSliceLen};
+    return CfFragment{index + 1, hasFuture, tpccf::TPCTime(start + length - (hasFuture ? 2 * OverlapTimebins : 0)), totalSliceLength, maxSubSliceLength};
   }
 
   GPUdi() tpccf::TPCTime first() const
@@ -88,10 +90,11 @@ struct CfFragment {
     this->index = index_;
     this->hasBacklog = hasBacklog_;
     this->start = start_;
-
     tpccf::TPCTime remainder = totalSliceLen - start;
     this->hasFuture = remainder > tpccf::TPCTime(maxSubSliceLen);
     this->length = hasFuture ? maxSubSliceLen : remainder;
+    this->totalSliceLength = totalSliceLen;
+    this->maxSubSliceLength = maxSubSliceLen;
   }
 };
 

@@ -60,6 +60,7 @@ class TPCFastTransform;
 class TPCdEdxCalibrationSplines;
 class GPUTrackingInputProvider;
 class GPUChainTrackingFinalContext;
+struct GPUTPCCFChainContext;
 
 class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelegateBase
 {
@@ -238,11 +239,11 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   GPUOutputControl* mOutputClustersNative = nullptr;
   GPUOutputControl* mOutputTPCTracks = nullptr;
 
+  std::unique_ptr<GPUTPCCFChainContext> mCFContext;
+
   // Upper bounds for memory allocation
   unsigned int mMaxTPCHits = 0;
   unsigned int mMaxTRDTracklets = 0;
-
-  unsigned int mTPCMaxTimeBin = 0;
 
   // Debug
   std::unique_ptr<std::ofstream> mDebugFile;
@@ -257,9 +258,10 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
  private:
   int RunChainFinalize();
   int RunTPCTrackingSlices_internal();
-  std::pair<unsigned int, unsigned int> RunTPCClusterizer_transferZS(int iSlice, unsigned int start, unsigned int end, int lane);
+  std::pair<unsigned int, unsigned int> RunTPCClusterizer_transferZS(int iSlice, const CfFragment& fragment, int lane);
   void RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int stage, bool doGPU, int lane);
-  std::pair<unsigned int, unsigned int> TPCClusterizerDecodeZSCount(unsigned int iSlice, unsigned int minTime, unsigned int maxTime);
+  std::pair<unsigned int, unsigned int> TPCClusterizerDecodeZSCount(unsigned int iSlice, const CfFragment& fragment);
+  std::pair<unsigned int, unsigned int> TPCClusterizerDecodeZSCountUpdate(unsigned int iSlice, const CfFragment& fragment);
   void RunTPCTrackingMerger_MergeBorderTracks(char withinSlice, char mergeMode, GPUReconstruction::krnlDeviceType deviceType);
   void RunTPCTrackingMerger_Resolve(char useOrigTrackParam, char mergeAll, GPUReconstruction::krnlDeviceType deviceType);
 

@@ -183,7 +183,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      TPCClusterFinder/ChargePos.h
                      TPCClusterFinder/clusterFinderDefs.h
                      TPCClusterFinder/GPUTPCClusterFinderKernels.h
-                     TPCClusterFinder/PackedCharge.h)
+                     TPCClusterFinder/PackedCharge.h
+                     TPCClusterFinder/GPUTPCCFChainContext.h)
 endif()
 
 # Sources only for AliRoot
