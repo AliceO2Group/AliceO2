@@ -8,12 +8,33 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
+
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/Headers/TimeFrameMetadata.h
+  COMMAND $<TARGET_FILE:flatbuffers::flatc> --cpp --gen-mutable --scoped-enums --gen-name-strings
+        --reflect-types --reflect-names --force-defaults --gen-object-api
+        -o ${CMAKE_CURRENT_BINARY_DIR}
+        include/Headers/TimeFrameMetadata.fbs
+  COMMAND ${CMAKE_COMMAND} -E rename ${CMAKE_CURRENT_BINARY_DIR}/TimeFrameMetadata_generated.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/Headers/TimeFrameMetadata.h
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/Headers/TimeFrameMetadata.fbs
+)
+
+# Prefer the static library
+set(flatbuffers_lib flatbuffers::flatbuffers)
+if(NOT TARGET flatbuffers::flatbuffers AND TARGET flatbuffers::flatbuffers_shared)
+  set(flatbuffers_lib flatbuffers::flatbuffers_shared)
+endif()
+
 o2_add_library(Headers
                SOURCES src/DataHeader.cxx src/NameHeader.cxx
                        src/HeartbeatFrame.cxx src/TimeStamp.cxx
                        src/DAQID.cxx src/RDHAny.cxx
+                       include/Headers/TimeFrameMetadata.h include/Headers/TimeFrameMetadata.fbs
                PUBLIC_LINK_LIBRARIES O2::MemoryResources
-                                     O2::GPUCommon)
+                                     O2::GPUCommon
+                                     flatbuffers::flatbuffers)
 
 o2_add_test(DataHeader
             SOURCES test/testDataHeader.cxx
@@ -41,6 +62,12 @@ o2_add_test(RAWDataHeader
 
 o2_add_test(DAQID
             SOURCES test/testDAQID.cxx
+            PUBLIC_LINK_LIBRARIES O2::Headers
+            COMPONENT_NAME Headers
+            LABELS dataformats)
+
+o2_add_test(TimeFrameMetadata
+            SOURCES test/test_TimeFrameMetadata.cxx
             PUBLIC_LINK_LIBRARIES O2::Headers
             COMPONENT_NAME Headers
             LABELS dataformats)

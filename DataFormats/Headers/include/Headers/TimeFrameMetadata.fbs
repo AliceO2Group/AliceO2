@@ -1,0 +1,31 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// @brief O2 (Sub)TimeFrame metadata information
+
+namespace o2.header;
+
+enum TimeFrameSource : byte {
+    TF = 1,                     // Raw TimeFrame (input for synchronous reconstruction)
+    CTF,                        // CTF data (input for asynchronous reconstruction)
+    MC_DIGITS,
+    AOD
+}
+
+table TimeFrameMetadata {
+    /// General TimeFrame information
+    tfID : uint64 = 0;
+    firstTfOrbit : uint32 = 0;
+    firstTfBc : uint16 = 0;
+    runNumber : uint64 = 0;
+    tfSource : TimeFrameSource = TF;
+}
+
+root_type TimeFrameMetadata;
