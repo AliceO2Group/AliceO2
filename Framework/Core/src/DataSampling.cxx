@@ -36,12 +36,22 @@ std::string DataSampling::createDispatcherName()
 
 void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::string& policiesSource, size_t threads)
 {
-  LOG(DEBUG) << "Generating Data Sampling infrastructure...";
-  Dispatcher dispatcher(createDispatcherName(), policiesSource);
-  Options options;
-
   std::unique_ptr<ConfigurationInterface> cfg = ConfigurationFactory::getConfiguration(policiesSource);
   auto policiesTree = cfg->getRecursive("dataSamplingPolicies");
+  Dispatcher dispatcher(createDispatcherName(), policiesSource);
+  DataSampling::DoGenerateInfrastructure(dispatcher, workflow, policiesTree, threads);
+}
+
+void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const boost::property_tree::ptree& policiesTree, size_t threads)
+{
+  Dispatcher dispatcher(createDispatcherName(), "");
+  DataSampling::DoGenerateInfrastructure(dispatcher, workflow, policiesTree, threads);
+}
+
+void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec& workflow, const boost::property_tree::ptree& policiesTree, size_t threads)
+{
+  LOG(DEBUG) << "Generating Data Sampling infrastructure...";
+  Options options;
 
   for (auto&& policyConfig : policiesTree) {
 

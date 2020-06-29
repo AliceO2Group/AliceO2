@@ -20,6 +20,7 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/Logger.h"
+#include "Framework/ConfigParamRegistry.h"
 
 #include <Monitoring/Monitoring.h>
 #include <Configuration/ConfigurationInterface.h>
@@ -48,9 +49,16 @@ void Dispatcher::init(InitContext& ctx)
 {
   LOG(DEBUG) << "Reading Data Sampling Policies...";
 
-  std::unique_ptr<ConfigurationInterface> cfg = ConfigurationFactory::getConfiguration(mReconfigurationSource);
-  auto policiesTree = cfg->getRecursive("dataSamplingPolicies");
-  mPolicies.clear();
+  boost::property_tree::ptree policiesTree;
+
+  if (mReconfigurationSource.empty() == false) {
+    std::unique_ptr<ConfigurationInterface> cfg = ConfigurationFactory::getConfiguration(mReconfigurationSource);
+    policiesTree = cfg->getRecursive("dataSamplingPolicies");
+    mPolicies.clear();
+  } else {
+    policiesTree = ctx.options().get<boost::property_tree::ptree>("sampling-config-ptree");
+    mPolicies.clear();
+  }
 
   for (auto&& policyConfig : policiesTree) {
     // we don't want the Dispatcher to exit due to one faulty Policy
