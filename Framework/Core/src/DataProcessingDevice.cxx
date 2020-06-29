@@ -88,10 +88,6 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mRawBufferContext{FairMQDeviceProxy{this}},
     mContextRegistry{&mFairMQContext, &mStringContext, &mDataFrameContext, &mRawBufferContext},
     mAllocator{&mTimingInfo, &mContextRegistry, spec.outputs},
-    mRelayer{spec.completionPolicy,
-             spec.inputs,
-             registry.get<Monitoring>(),
-             registry.get<TimesliceIndex>()},
     mServiceRegistry{registry},
     mErrorCount{0},
     mProcessingCount{0}
@@ -112,21 +108,21 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
   }
 
   if (mError != nullptr) {
-    mErrorHandling = [& errorCallback = mError, &monitoringService = registry.get<Monitoring>(),
+    mErrorHandling = [& errorCallback = mError,
                       &serviceRegistry = mServiceRegistry](std::exception& e, InputRecord& record) {
       StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
       LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
-      monitoringService.send({1, "error"});
+      serviceRegistry.get<Monitoring>().send({1, "error"});
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
       StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
     };
   } else {
-    mErrorHandling = [& monitoringService = registry.get<Monitoring>(), &errorPolicy = mErrorPolicy,
+    mErrorHandling = [& errorPolicy = mErrorPolicy,
                       &serviceRegistry = mServiceRegistry](std::exception& e, InputRecord& record) {
       StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
       LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
-      monitoringService.send({1, "error"});
+      serviceRegistry.get<Monitoring>().send({1, "error"});
       switch (errorPolicy) {
         case TerminationPolicy::QUIT:
           throw e;
@@ -166,6 +162,7 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
 /// * Invoke the actual init callback, which returns the processing callback.
 void DataProcessingDevice::Init()
 {
+  mRelayer = &mServiceRegistry.get<DataRelayer>();
   // For some reason passing rateLogging does not work anymore.
   // This makes sure we never have more than one notification per minute.
   for (auto& x : fChannels) {
@@ -375,7 +372,7 @@ bool DataProcessingDevice::doRun()
 {
   /// This will send metrics for the relayer at regular intervals of
   /// 5 seconds, in order to avoid overloading the system.
-  auto sendRelayerMetrics = [relayerStats = mRelayer.getStats(),
+  auto sendRelayerMetrics = [relayerStats = mRelayer->getStats(),
                              &stats = mStats,
                              &lastSent = mLastSlowMetricSentTimestamp,
                              &currentTime = mBeginIterationTimestamp,
@@ -433,7 +430,7 @@ bool DataProcessingDevice::doRun()
       auto state = stats.relayerState[si];
       monitoring.send({state, "data_relayer/" + std::to_string(si)});
     }
-    relayer.sendContextState();
+    relayer->sendContextState();
     monitoring.flushBuffer();
     lastFlushed = currentTime;
     O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
@@ -495,7 +492,7 @@ bool DataProcessingDevice::doRun()
   if (mWasActive == false) {
     mServiceRegistry.get<CallbackService>()(CallbackService::Id::Idle);
   }
-  auto activity = mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
+  auto activity = mRelayer->processDanglingInputs(mExpirationHandlers, mServiceRegistry);
   mWasActive |= activity.expiredSlots > 0;
 
   mCompleted.clear();
@@ -518,7 +515,7 @@ bool DataProcessingDevice::doRun()
     // FIXME: not sure this is the correct way to drain the queues, but
     // I guess we will see.
     while (this->tryDispatchComputation(mCompleted)) {
-      mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
+      mRelayer->processDanglingInputs(mExpirationHandlers, mServiceRegistry);
     }
     sendRelayerMetrics();
     flushMetrics();
@@ -536,7 +533,7 @@ bool DataProcessingDevice::doRun()
       DataProcessingHelpers::sendEndOfStream(*this, channel);
     }
     // This is needed because the transport is deleted before the device.
-    mRelayer.clear();
+    mRelayer->clear();
     switchState(StreamingState::Idle);
     mWasActive = true;
     return true;
@@ -547,7 +544,7 @@ bool DataProcessingDevice::doRun()
 
 void DataProcessingDevice::ResetTask()
 {
-  mRelayer.clear();
+  mRelayer->clear();
 }
 
 /// This is the inner loop of our framework. The actual implementation
@@ -623,7 +620,7 @@ bool DataProcessingDevice::handleData(FairMQParts& parts, InputChannelInfo& info
     device.error(message);
   };
 
-  auto handleValidMessages = [&parts, &relayer = mRelayer, &reportError](std::vector<InputType> const& types) {
+  auto handleValidMessages = [&parts, &relayer = *mRelayer, &reportError](std::vector<InputType> const& types) {
     // We relay execution to make sure we have a complete set of parts
     // available.
     for (size_t pi = 0; pi < (parts.Size() / 2); ++pi) {
@@ -682,7 +679,7 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
   auto& inputsSchema = mSpec.inputs;
   auto& processingCount = mProcessingCount;
   auto& rdfContext = *mContextRegistry.get<ArrowContext>();
-  auto& relayer = mRelayer;
+  auto& relayer = *mRelayer;
   auto& serviceRegistry = mServiceRegistry;
   auto& statefulProcess = mStatefulProcess;
   auto& statelessProcess = mStatelessProcess;
