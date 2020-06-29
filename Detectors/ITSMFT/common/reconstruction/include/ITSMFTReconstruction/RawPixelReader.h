@@ -192,6 +192,38 @@ class RawPixelReader : public PixelReader
     return getNextChipData(chipDataVec); // is it ok to use recursion here?
   }
 
+  ChipPixelData* getNextChipDataFromBuffer(std::vector<ChipPixelData>& chipDataVec)
+  {
+    // decode new RU if no cached non-empty chips
+
+    if (mCurRUDecodeID >= 0) { // make sure current RU has fired chips to extract
+      for (; mCurRUDecodeID < mNRUs; mCurRUDecodeID++) {
+        auto& ru = mRUDecodeVec[mCurRUDecodeID];
+        if (ru.lastChipChecked < ru.nChipsFired) {
+          auto& chipData = ru.chipsData[ru.lastChipChecked++];
+          int id = chipData.getChipID();
+          chipDataVec[id].swap(chipData);
+          return &chipDataVec[id];
+        }
+      }
+      mCurRUDecodeID = 0; // no more decoded data if reached this place,
+    }
+    // will need to decode new trigger
+    if (!mDecodeNextAuto) { // no more data in the current ROF and no automatic decoding of next one was requested
+      return nullptr;
+    }
+
+    if (!mRawBuffer.isEmpty()) {
+      cacheLinksDataFromBuffer(mRawBuffer);
+    }
+
+    if (mMinTriggersCached < 1 || !decodeNextTrigger()) {
+      mCurRUDecodeID = -1;
+      return nullptr; // nothing left
+    }
+    return getNextChipDataFromBuffer(chipDataVec); // is it ok to use recursion here?
+  }
+
   ///______________________________________________________________________
   void init() override{};
 
@@ -612,7 +644,116 @@ class RawPixelReader : public PixelReader
     return nRead;
   }
 
-  //_____________________________________
+  size_t cacheLinksDataFromBuffer(PayLoadCont& buffer)
+  {
+    LOG(INFO) << "Caching links data, currently in cache: " << mMinTriggersCached << " triggers";
+    if (buffer.isEmpty()) {
+      return 0;//need to decide
+    }
+    mSWCache.Start(false);
+    enum LinkFlag : int8_t { NotUpdated,
+                             Updated,
+                             HasEnoughTriggers };
+    LinkFlag linkFlags[Mapping::getNRUs()][3] = {NotUpdated};
+    int nLEnoughTriggers = 0;                                        // number of links for we which enough number of triggers were loaded
+    auto ptr = buffer.getPtr();
+    o2::header::RAWDataHeader* rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
+
+    do {
+      if (!RDHUtils::checkRDH(rdh)) { // does it look like RDH?
+        if (!findNextRDH(buffer)) { // try to recover the pointer
+          break;                    // no data to continue
+        }
+        ptr = buffer.getPtr();
+        rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
+      }
+      if (mVerbose) {
+        RDHUtils::printRDH(rdh);
+      }
+
+      int ruIDSW = mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh));
+#ifdef _RAW_READER_ERROR_CHECKS_
+      if (ruIDSW >= mMAP.getNRUs()) {
+        mDecodingStat.errorCounts[RawDecodingStat::ErrInvalidFEEId]++;
+        LOG(ERROR) << mDecodingStat.ErrNames[RawDecodingStat::ErrInvalidFEEId]
+                   << " : FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << ", skipping CRU page";
+        RDHUtils::printRDH(rdh);
+        ptr += RDHUtils::getOffsetToNext(rdh);
+        buffer.setPtr(ptr);
+//        if (buffer.getUnusedSize() < MaxGBTPacketBytes) {
+//          nRead += loadInput(buffer); // update
+//          ptr = buffer.getPtr();      // pointer might have been changed
+//        }
+        continue;
+      }
+#endif
+      auto& ruDecode = getCreateRUDecode(ruIDSW);
+
+      bool newTrigger = true; // check if we see new trigger
+      uint16_t lr, ruOnLr, linkIDinRU;
+      mMAP.expandFEEId(RDHUtils::getFEEID(rdh), lr, ruOnLr, linkIDinRU);
+      auto link = getGBTLink(ruDecode.links[linkIDinRU]);
+      if (link) {                  // was there any data seen on this link before?
+        const auto rdhPrev = reinterpret_cast<o2::header::RAWDataHeader*>(link->data.getEnd() - link->lastPageSize); // last stored RDH
+        if (isSameRUandTrigger(rdhPrev, rdh)) {
+          newTrigger = false;
+        }
+      } else { // a new link was added
+        LOG(INFO) << "Adding new GBT LINK FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4);
+        ruDecode.links[linkIDinRU] = addGBTLink();
+        link = getGBTLink(ruDecode.links[linkIDinRU]);
+        link->statistics.ruLinkID = linkIDinRU;
+        mNLinks++;
+      }
+      if (linkFlags[ruIDSW][linkIDinRU] == NotUpdated) {
+        link->data.moveUnusedToHead(); // reuse space of already processed data
+        linkFlags[ruIDSW][linkIDinRU] = Updated;
+      }
+      // copy data to the buffer of the link and memorize its RDH pointer
+      link->data.add(ptr, RDHUtils::getMemorySize(rdh));
+      link->lastPageSize = RDHUtils::getMemorySize(rdh); // account new added size
+      auto rdhC = reinterpret_cast<o2::header::RAWDataHeader*>(link->data.getEnd() - link->lastPageSize);
+      RDHUtils::setOffsetToNext(rdhC, RDHUtils::getMemorySize(rdh)); // since we skip 0-s, we have to modify the offset
+
+      if (newTrigger) {
+        link->nTriggers++; // acknowledge 1st trigger
+        if (link->nTriggers >= mMinTriggersToCache && linkFlags[ruIDSW][linkIDinRU] != HasEnoughTriggers) {
+          nLEnoughTriggers++;
+          linkFlags[ruIDSW][linkIDinRU] = HasEnoughTriggers;
+        }
+      }
+      ptr += RDHUtils::getOffsetToNext(rdh);
+      buffer.setPtr(ptr);
+
+      rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
+
+      if (mNLinks == nLEnoughTriggers) {
+        break;
+      }
+
+    } while (!buffer.isEmpty());
+
+    if (mNLinks == nLEnoughTriggers) {
+      mMinTriggersCached = mMinTriggersToCache; // wanted number of triggers acquired
+    } else {
+      mMinTriggersCached = INT_MAX;
+      for (int ir = 0; ir < mNRUs; ir++) {
+        const auto& ruDecData = mRUDecodeVec[ir];
+        for (auto linkID : ruDecData.links) {
+          const auto* link = getGBTLink(linkID);
+          if (link && link->nTriggers < mMinTriggersCached) {
+            mMinTriggersCached = link->nTriggers;
+          }
+        }
+      }
+    }
+    mSWCache.Stop();
+    LOG(INFO) << "Cached at least " << mMinTriggersCached << " triggers on " << mNLinks << " links of " << mNRUs << " RUs";
+
+    return 0;
+  }
+
+  //___________________________________
   int decodeNextTrigger() final
   {
     // Decode next trigger from the cached links data and decrease cached triggers counter, return N links decoded
