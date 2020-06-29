@@ -79,7 +79,6 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
     }
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic, dynGrp)
-#endif
     //>> start of MT region
     for (uint16_t ic = 0; ic < nFired; ic += chipStep) {
       auto ith = omp_get_thread_num();
@@ -90,11 +89,13 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
                                labelsCl ? reader.getDigitsMCTruth() : nullptr,
                                labelsCl ? &mThreads[ith]->labels : nullptr, rof);
       } else { // put directly to the destination
-        mThreads[ith]->process(0, nFired, compClus, patterns, labelsCl ? reader.getDigitsMCTruth() : nullptr, labelsCl, rof);
+        mThreads[0]->process(0, nFired, compClus, patterns, labelsCl ? reader.getDigitsMCTruth() : nullptr, labelsCl, rof);
       }
     }
     //<< end of MT region
-
+#else
+    mThreads[0]->process(0, nFired, compClus, patterns, labelsCl ? reader.getDigitsMCTruth() : nullptr, labelsCl, rof);
+#endif
     // copy data of all threads but the 1st one to final destination
     if (nThreads > 1) {
 #ifdef _PERFORM_TIMING_
