@@ -16,8 +16,13 @@
 #ifndef O2_FRAMEWORK_PIDTOF_H_
 #define O2_FRAMEWORK_PIDTOF_H_
 
+// ROOT includes
 #include "Rtypes.h"
+#include "TMath.h"
 // #include "PIDParamBase.h"
+
+// O2 includes
+#include "ReconstructionDataFormats/PID.h"
 
 namespace o2::pid::tof
 {
@@ -27,22 +32,26 @@ class EventTime
   EventTime() = default;
   ~EventTime() = default;
 
-  void SetEvTime(Double_t evtime, Int_t i) { fT0event[i] = evtime; }
-  float GetEvTime(Int_t i) const { return fT0event[i]; }
-  float EvTimeReso(Int_t i) const { return fT0resolution[i]; }
-  // void SetEvTime(Double_t evtime) { mEvTime = evtime; }
-  // float GetEvTime(Float_t mom) const { return mEvTime; }
-  // float EvTimeReso(Float_t mom) const { return mEvTimeReso; }
+  void SetEvTime(float evtime, int i) { mEvTime[i] = evtime; }
+  void SetEvTimeReso(float evtimereso, int i) { fT0resolution[i] = evtimereso; }
+  float GetEvTime(int i) const { return mEvTime[i]; }
+  float GetEvTimeReso(int i) const { return fT0resolution[i]; }
+  float GetMomBin(float mom) const
+  {
+    for (int i = 0; i < fNmomBins; i++)
+      if (abs(mom) < fmomBins[i + 1])
+        return i;
+    return fNmomBins;
+  }
+  float GetEvTime(float mom) const { return mEvTime[GetMomBin(mom)]; }
+  float EvTimeReso(float mom) const { return mEvTimeReso[GetMomBin(mom)]; }
 
  private:
-  float mEvTime = 0;
-  float mEvTimeReso = 0;
-  static const Int_t fNmomBins = 10;      /// Number of momentum bin
-  static Float_t fmomBins[fNmomBins + 1]; /// Momentum bins
-  Float_t fT0event[fNmomBins];            /// Evtime (best, T0, T0-TOF, ...) of the event as a function of p
-  Float_t fT0resolution[fNmomBins];       /// Evtime (best, T0, T0-TOF, ...) resolution as a function of p
-  // Float_t fPCutMin[fNmomBins + 1];        /// Min values for p bins
-  Int_t fMaskT0[fNmomBins]; /// Mask withthe T0 used (0x1=T0-TOF,0x2=T0A,0x3=TOC) for p bins
+  static const int fNmomBins = 10;      /// Number of momentum bin
+  static float fmomBins[fNmomBins + 1]; /// Momentum bins
+  float mEvTime[fNmomBins];             /// Evtime (best, T0, T0-TOF, ...) of the event as a function of p
+  float fT0resolution[fNmomBins];       /// Evtime (best, T0, T0-TOF, ...) resolution as a function of p
+  int fMaskT0[fNmomBins];               /// Mask withthe T0 used (0x1=T0-TOF,0x2=T0A,0x3=TOC) for p bins
 };
 
 class Param
@@ -51,16 +60,16 @@ class Param
   Param() = default;
   ~Param() = default;
 
-  void SetTimeResolution(Float_t res) { mSigma = res; }
-  Float_t GetTimeResolution() const { return mSigma; }
+  void SetTimeResolution(float res) { mSigma = res; }
+  float GetTimeResolution() const { return mSigma; }
 
   // Tracking resolution for expected times
-  void SetTrackParameter(Int_t ip, Float_t value)
+  void SetTrackParameter(Int_t ip, float value)
   {
     if (ip >= 0 && ip < 4)
       mPar[ip] = value;
   };
-  Float_t GetTrackParameter(Int_t ip)
+  float GetTrackParameter(Int_t ip)
   {
     if (ip >= 0 && ip < 4)
       return mPar[ip];
@@ -68,13 +77,13 @@ class Param
       return -1.0;
   };
 
-  Double_t GetExpectedSigma(Float_t mom, Float_t tof, Float_t evtimereso, Float_t massZ) const;
-  Double_t GetNSigma(Float_t mom, Float_t time, Float_t exptime, Float_t evtime, Float_t evtimereso, Float_t mass) const;
+  double GetExpectedSigma(float mom, float tof, float evtimereso, float massZ) const;
+  // double GetNSigma(float mom, float time, float exptime, float evtime, float evtimereso, float mass) const;
 
  private:
-  Double_t mSigma; /// intrinsic TOF resolution
-                   // Float_t mPar[4]; /// parameter for expected time resolutions
-  Float_t mPar[4] = {0.008, 0.008, 0.002, 40.0};
+  double mSigma; /// intrinsic TOF resolution
+                 // float mPar[4]; /// parameter for expected time resolutions
+  float mPar[4] = {0.008, 0.008, 0.002, 40.0};
 };
 
 class Response
@@ -83,22 +92,51 @@ class Response
   Response() = default;
   ~Response() = default;
 
-  // void SetMaxMismatchProbability(Double_t p) { fPmax = p; }
-  // Double_t GetMaxMismatchProbability() const { return fPmax; }
+  // void SetMaxMismatchProbability(double p) { fPmax = p; }
+  // double GetMaxMismatchProbability() const { return fPmax; }
 
-  inline Double_t GetExpectedSigma(Float_t mom, Float_t tof, Float_t massZ) const { return mParam.GetExpectedSigma(mom, tof, mEventTime.EvTimeReso(mom), massZ); };
+  void InitResponse(float mom, float tofexpmom, float length, float tofsignal)
+  {
+    mMomentum = mom;
+    mTOFExpMomentum = tofexpmom;
+    mLength = length;
+    mTOFSignal = tofsignal;
+  };
+  inline double GetExpectedSigma(o2::track::PID::ID id) const { return mParam.GetExpectedSigma(mMomentum, mTOFSignal, mEventTime.EvTimeReso(mMomentum), o2::track::PID::getMass2Z(id)); };
 
-  // Double_t GetExpectedSigma(Float_t mom, Float_t tof, AliPID::EParticleType type) const;
-  // Double_t GetExpectedSignal(const AliVTrack* track, AliPID::EParticleType type) const;
+  // double GetExpectedSigma(float mom, float tof, AliPID::EParticleType type) const;
+  // double GetExpectedSignal(const AliVTrack* track, AliPID::EParticleType type) const;
+  // double GetMismatchProbability(double time, double eta) const;
 
-  // Double_t GetMismatchProbability(Double_t time, Double_t eta) const;
+  void SetEventTime(EventTime& evtime) { mEventTime = evtime; }; /// To set a particular event time object
+  EventTime& GetEventTime() const { return mEventTime; };        /// To get the event time object
 
-  void SetEventTime(EventTime& evtime) { mEventTime = evtime; }; // To set a particular event time object
-  EventTime& GetEventTime() { return mEventTime; };              // To get the event time object
+  void SetParam(Param& evtime) { mParam = evtime; }; /// To set a particular parametrization time object
+  Param& GetParam() const { return mParam; };        /// To get the parametrization time object
 
-  //  private:
+  // TOF beta
+  static float GetBeta(float length, float time, float evtime) const;
+  inline float GetBeta() const { return GetBeta(mLength, mTOFSignal, mEventTime.GetEvTime(mMomentum)); };
+  static float GetBetaExpectedSigma(float length, float time, float evtime, float sigmat = 80) const;
+  inline float GetBetaExpectedSigma(float sigmat = 80) const { return GetBetaExpectedSigma(mLength, mTOFSignal, mEventTime.GetEvTime(mMomentum), sigmat); };
+  static float GetExpectedBeta(float mom, float mass) const;
+  inline float GetExpectedBeta(o2::track::PID::ID id) const { return GetExpectedBeta(mMomentum, o2::track::PID::getMass2Z(id)); };
+
+  // TOF expected times
+  static float ComputeExpectedTime(float tofexpmom, float length, float massZ) const;
+  float GetExpectedSignal() const;
+
+ private:
+  Param mParam; /// Parametrization of the TOF signal
+  // Event of interest information
   EventTime mEventTime; /// Event time object
-  Param mParam;         /// Parametrization of the TOF signal
+  // Track of interest information
+  float mMomentum;       /// Momentum of the track of interest
+  float mTOFExpMomentum; /// TOF expected momentum of the track of interest
+  float mLength;         /// Track of interest integrated length
+  float mTOFSignal;      /// Track of interest integrated length
+
+  static const float kCSPEED = TMath::C() * 1.0e2f / 1.0e-12f; /// Speed of light in TOF units (cm/ps)
 
   // static TF1* fTOFtailResponse;   // function to generate a TOF tail
   // static TH1F* fHmismTOF;         // TOF mismatch distribution
@@ -107,16 +145,6 @@ class Response
 
   // ClassDef(TOF, 6) // TOF PID class
 };
-
-constexpr float kElectronMass = 5.10998909999999971e-04;
-constexpr float kPionMass = 1.39569997787475586e-01f;
-constexpr float kKaonMass = 4.93676990270614624e-01;
-constexpr float kProtonMass = 9.38271999359130859e-01f;
-
-float beta(float l, float t, float t0);
-float betaerror(float l, float t, float t0, float sigmat = 80);
-float expbeta(float p, float m);
-float p(float eta, float signed1Pt);
 
 } // namespace o2::pid::tof
 

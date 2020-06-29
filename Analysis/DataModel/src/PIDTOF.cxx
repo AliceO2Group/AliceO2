@@ -9,13 +9,12 @@
 // or submit itself to any jurisdiction.
 
 #include "PID/PIDTOF.h"
-#include "TMath.h"
 
 namespace o2::pid::tof
 {
 
 //_________________________________________________________________________
-Double_t Param::GetExpectedSigma(Float_t mom, Float_t time, Float_t evtimereso, Float_t mass) const
+double Param::GetExpectedSigma(float mom, float time, float evtimereso, float mass) const
 {
   //
   // Return the expected sigma of the PID signal for the specified
@@ -23,49 +22,57 @@ Double_t Param::GetExpectedSigma(Float_t mom, Float_t time, Float_t evtimereso, 
   // If the operation is not possible, return a negative value.
   //
 
-  Double_t dpp = mPar[0] + mPar[1] * mom + mPar[2] * mass / mom; //mean relative pt resolution;
-  Double_t sigma = dpp * time / (1. + mom * mom / (mass * mass));
+  double dpp = mPar[0] + mPar[1] * mom + mPar[2] * mass / mom; //mean relative pt resolution;
+  double sigma = dpp * time / (1. + mom * mom / (mass * mass));
 
   //   Int_t index = GetMomBin(mom);
-  //   Double_t t0res = fT0resolution[index];
+  //   double t0res = fT0resolution[index];
 
   return TMath::Sqrt(sigma * sigma + mPar[3] * mPar[3] / mom / mom + mSigma * mSigma + evtimereso * evtimereso);
 }
 
+// //_________________________________________________________________________
+// double Param::GetNSigma(float mom, float time, float exptime, float evtime, float evtimereso, float mass) const
+// {
+//   return (time - evtime - exptime) / GetExpectedSigma(mom, time, evtimereso, mass);
+// }
+
 //_________________________________________________________________________
-Double_t Param::GetNSigma(Float_t mom, Float_t time, Float_t exptime, Float_t evtime, Float_t evtimereso, Float_t mass) const
+// float Response::ComputeExpectedMomentum(float exptime, float length, float mass)
+// {
+//   float beta_exp = GetBeta(length, exptime, 0);
+//   return (mass * beta_exp / sqrt(1. - (beta_exp * beta_exp)));
+// }
+
+//_________________________________________________________________________
+float Response::ComputeExpectedTime(float tofexpmom, float length, float massZ) const
 {
-  return (time - evtime - exptime) / GetExpectedSigma(mom, time, evtimereso, mass);
+  const float energy = sqrt((mass * mass) + (expp * expp));
+  return length * energy / (kCSPEED * expp);
 }
 
 //_________________________________________________________________________
-float beta(float l, float t, float t0)
+float Response::GetBeta(float length, float time, float evtime) const
 {
-  if (t <= 0)
-    return -999;
-  return l / (t - t0) / 0.029979246;
+  if (time <= 0)
+    return -999f;
+  return length / (time - evtime) / kCSPEED;
 }
 
 //_________________________________________________________________________
-float betaerror(float l, float t, float t0, float sigmat)
+float Response::GetBetaExpectedSigma(float length, float time, float evtime, float sigmat) const
 {
-  if (t <= 0)
-    return -999;
-  return beta(l, t, t0) / (t - t0) * sigmat;
+  if (time <= 0)
+    return -999f;
+  return GetBeta(length, time, evtime) / (time - evtime) * sigmat;
 }
 
 //_________________________________________________________________________
-float expbeta(float p, float m)
+float GetExpectedBeta(float mom, float mass) const
 {
-  if (p > 0)
-    return p / TMath::Sqrt(p * p + m * m);
+  if (mom > 0)
+    return mom / TMath::Sqrt(mom * mom + mass * mass);
   return 0;
-}
-
-//_________________________________________________________________________
-float p(float eta, float signed1Pt)
-{
-  return cosh(eta) / fabs(signed1Pt);
 }
 
 } // namespace o2::pid::tof
