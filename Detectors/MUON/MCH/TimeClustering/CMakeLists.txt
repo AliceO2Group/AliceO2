@@ -8,13 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Base)
-add_subdirectory(Contour)
-add_subdirectory(Mapping)
-add_subdirectory(PreClustering)
-add_subdirectory(TimeClustering)
-add_subdirectory(Clustering)
-add_subdirectory(Simulation)
-add_subdirectory(Tracking)
-add_subdirectory(Raw)
-add_subdirectory(Workflow)
+o2_add_library(MCHTimeClustering
+        SOURCES src/TimeClusterFinder.cxx
+        PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl3 O2::MCHBase O2::Framework)
