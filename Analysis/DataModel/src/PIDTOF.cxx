@@ -45,30 +45,30 @@ double Param::GetExpectedSigma(float mom, float time, float evtimereso, float ma
 // }
 
 //_________________________________________________________________________
-float Response::ComputeExpectedTime(float tofexpmom, float length, float massZ) const
+float Response::ComputeExpectedTime(float tofexpmom, float length, float massZ)
 {
-  const float energy = sqrt((mass * mass) + (expp * expp));
-  return length * energy / (kCSPEED * expp);
+  const float energy = sqrt((massZ * massZ) + (tofexpmom * tofexpmom));
+  return length * energy / (kCSPEED * tofexpmom);
 }
 
 //_________________________________________________________________________
-float Response::GetBeta(float length, float time, float evtime) const
+float Response::GetBeta(float length, float time, float evtime)
 {
   if (time <= 0)
-    return -999f;
+    return -999.f;
   return length / (time - evtime) / kCSPEED;
 }
 
 //_________________________________________________________________________
-float Response::GetBetaExpectedSigma(float length, float time, float evtime, float sigmat) const
+float Response::GetBetaExpectedSigma(float length, float time, float evtime, float sigmat)
 {
   if (time <= 0)
-    return -999f;
+    return -999.f;
   return GetBeta(length, time, evtime) / (time - evtime) * sigmat;
 }
 
 //_________________________________________________________________________
-float GetExpectedBeta(float mom, float mass) const
+float GetExpectedBeta(float mom, float mass)
 {
   if (mom > 0)
     return mom / TMath::Sqrt(mom * mom + mass * mass);
