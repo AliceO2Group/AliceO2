@@ -644,7 +644,6 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
 // Construct the list of actual devices we want, given a workflow.
 //
 // FIXME: make start port configurable?
-
 void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workflow,
                                                        std::vector<ChannelConfigurationPolicy> const& channelPolicies,
                                                        std::vector<CompletionPolicy> const& completionPolicies,
