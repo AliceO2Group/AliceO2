@@ -432,6 +432,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
     ptr = (&ptr == &res->mPtrDevice) ? mMemoryResources[res->mReuse].mPtrDevice : mMemoryResources[res->mReuse].mPtr;
     size_t retVal = (char*)((res->*setPtr)(ptr)) - (char*)(ptr);
     if (retVal > mMemoryResources[res->mReuse].mSize) {
+      GPUError("Insufficient reuse memory %lu < %lu (%s)", mMemoryResources[res->mReuse].mSize, retVal, res->mName);
       throw std::bad_alloc();
     }
     if (mDeviceProcessingSettings.allocDebugLevel >= 2) {
