@@ -117,6 +117,7 @@ void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* tr
   }
 }
 
+#ifdef ENABLE_UPGRADES
 void GPUReconstruction::GetEC0Traits(std::unique_ptr<o2::ecl::TrackerTraitsEC0>* trackerTraits, std::unique_ptr<o2::ecl::VertexerTraitsEC0>* vertexerTraits)
 {
   if (trackerTraits) {
@@ -126,6 +127,7 @@ void GPUReconstruction::GetEC0Traits(std::unique_ptr<o2::ecl::TrackerTraitsEC0>*
     vertexerTraits->reset(new o2::ecl::VertexerTraitsEC0);
   }
 }
+#endif
 
 int GPUReconstruction::Init()
 {

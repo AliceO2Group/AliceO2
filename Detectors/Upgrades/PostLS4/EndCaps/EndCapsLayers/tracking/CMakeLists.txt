@@ -33,7 +33,6 @@ o2_add_library(EC0tracking
                                      O2::DataFormatsEndCaps
                                      O2::SimulationDataFormat
                                      O2::ECLayersBase
-                                     O2::ITStrackingCUDA
                                      O2::DataFormatsITS)
 
 o2_target_root_dictionary(EC0tracking

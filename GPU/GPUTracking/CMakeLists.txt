@@ -84,6 +84,9 @@ set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
               Global/GPUChainTrackingDebugAndProfiling.cxx
               Global/GPUChainTrackingIO.cxx)
 
+
+
+if(ENABLE_UPGRADES)
 set(HDRS_INSTALL
     SliceTracker/GPUTPCMCInfo.h
     SliceTracker/GPUTPCHit.h
@@ -131,6 +134,56 @@ set(HDRS_INSTALL
     Merger/GPUTPCGMMergerTypes.h
     Global/GPUErrorCodes.h
 )
+else()
+set(HDRS_INSTALL
+    SliceTracker/GPUTPCMCInfo.h
+    SliceTracker/GPUTPCHit.h
+    SliceTracker/GPUTPCHitId.h
+    SliceTracker/GPUTPCClusterData.h
+    SliceTracker/GPUTPCBaseTrackParam.h
+    SliceTracker/GPUTPCTracklet.h
+    SliceTracker/GPUTPCSliceOutCluster.h
+    SliceTracker/GPUTPCTrackLinearisation.h
+    Merger/GPUTPCGMBorderTrack.h
+    Merger/GPUTPCGMOfflineStatisticalErrors.h
+    Merger/GPUTPCGMMergedTrack.h
+    Merger/GPUTPCGMMergedTrackHit.h
+    TRDTracking/GPUTRDDef.h
+    TRDTracking/GPUTRDTrackPoint.h
+    TRDTracking/GPUTRDTrack.h
+    TRDTracking/GPUTRDTrackData.h
+    TRDTracking/GPUTRDTrackPoint.h
+    TRDTracking/GPUTRDTrackletLabels.h
+    Base/GPUReconstructionIncludes.h
+    SliceTracker/GPUTPCDef.h
+    SliceTracker/GPUTPCGeometry.h
+    TRDTracking/GPUTRDGeometry.h
+    TRDTracking/GPUTRDTrackerDebug.h
+    TRDTracking/GPUTRDInterfaces.h
+    Standalone/display/GPUDisplayConfig.h
+    Standalone/qa/GPUQAConfig.h
+    Base/GPUConstantMem.h
+    Base/GPUReconstructionKernels.h
+    Base/GPUReconstructionIncludesITS.h
+    Base/GPUReconstructionHelpers.h
+    Base/GPUOutputControl.h
+    Base/GPUOutputControl.h
+    Base/GPUO2DataTypes.h
+    Base/GPUHostDataTypes.h
+    Base/GPUMemorySizeScalers.h
+    Base/GPURawData.h
+    dEdx/GPUdEdxInfo.h
+    dEdx/TPCdEdxCalibrationSplines.h
+    TPCConvert/GPUTPCConvertImpl.h
+    Base/GPUReconstructionKernelMacros.h
+    Base/GPUO2FakeClasses.h
+    Base/GPUParam.inc
+    Merger/GPUTPCGMMergerTypes.h
+    Global/GPUErrorCodes.h
+)
+endif()
+
+
 
 # Sources only for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
@@ -142,6 +195,8 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/display/GPUDisplayBackend.cxx)
 endif()
+
+if(ENABLE_UPGRADES)
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
     set(SRCS_NO_CINT
         ${SRCS_NO_CINT}
@@ -190,6 +245,55 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      TPCClusterFinder/GPUTPCClusterFinderKernels.h
                      TPCClusterFinder/PackedCharge.h)
 endif()
+
+else()
+if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
+    set(SRCS_NO_CINT
+        ${SRCS_NO_CINT}
+        Global/GPUChainITS.cxx
+        ITS/GPUITSFitter.cxx
+        ITS/GPUITSFitterKernels.cxx
+        dEdx/GPUdEdx.cxx
+        dEdx/TPCdEdxCalibrationSplines.cxx
+        TPCConvert/GPUTPCConvert.cxx
+        TPCConvert/GPUTPCConvertKernel.cxx
+        DataCompression/GPUTPCCompression.cxx
+        DataCompression/GPUTPCCompressionTrackModel.cxx
+        DataCompression/GPUTPCCompressionKernels.cxx
+        DataCompression/TPCClusterDecompressor.cxx
+        DataCompression/GPUTPCClusterStatistics.cxx
+        TPCClusterFinder/GPUTPCClusterFinder.cxx
+        TPCClusterFinder/ClusterAccumulator.cxx
+        TPCClusterFinder/MCLabelAccumulator.cxx
+        TPCClusterFinder/GPUTPCCFStreamCompaction.cxx
+        TPCClusterFinder/GPUTPCCFChargeMapFiller.cxx
+        TPCClusterFinder/GPUTPCCFPeakFinder.cxx
+        TPCClusterFinder/GPUTPCCFNoiseSuppression.cxx
+        TPCClusterFinder/GPUTPCCFClusterizer.cxx
+        TPCClusterFinder/GPUTPCCFDeconvolution.cxx
+        TPCClusterFinder/GPUTPCCFMCLabelFlattener.cxx
+        TPCClusterFinder/GPUTPCCFDecodeZS.cxx
+        TPCClusterFinder/GPUTPCCFGather.cxx
+        dEdx/TPCdEdxCalibrationSplines.cxx)
+
+    set(SRCS_NO_H ${SRCS_NO_H}
+        TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
+
+    set(HDRS_INSTALL ${HDRS_INSTALL}
+                     Interface/GPUO2InterfaceConfiguration.h
+                     ITS/GPUITSTrack.h
+                     TPCClusterFinder/Array2D.h
+                     TPCClusterFinder/CfConsts.h
+                     TPCClusterFinder/CfFragment.h
+                     TPCClusterFinder/CfUtils.h
+                     TPCClusterFinder/ChargePos.h
+                     TPCClusterFinder/clusterFinderDefs.h
+                     TPCClusterFinder/GPUTPCClusterFinderKernels.h
+                     TPCClusterFinder/PackedCharge.h)
+endif()
+
+endif()
+
 
 # Sources only for AliRoot
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
@@ -248,7 +352,9 @@ unset(HDRS_TMP)
 if (TARGET AliceO2::DebugGUI)
   set(DEBUGGUI_TARGET AliceO2::DebugGUI)
 endif()
+
 # Main CMake part for O2
+if(ENABLE_UPGRADES)
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
                  TARGETVARNAME targetName
@@ -305,6 +411,69 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                          PUBLIC_LINK_LIBRARIES O2::GPUTracking
                          LABELS its COMPILE_ONLY)
 endif()
+else()
+if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+  o2_add_library(${MODULE}
+                 TARGETVARNAME targetName
+                 PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                                       O2::GPUUtils
+                                       O2::DataFormatsTPC
+                                       O2::TPCBase
+                                       O2::TRDBase
+                                       O2::ITStracking
+                                       O2::TPCFastTransformation
+                                       O2::DetectorsRaw
+                                       ${DEBUGGUI_TARGET}
+                 PUBLIC_INCLUDE_DIRECTORIES SliceTracker
+                                            Base
+                                            TPCConvert
+                                            dEdx
+                                            ITS
+                                            TRDTracking
+                                            Standalone
+                                            Standalone/qa
+                                            Standalone/display
+                                            Global
+                                            HLTHeaders
+                                            Interface
+                                            Merger
+                                            DataCompression
+                                            TPCClusterFinder
+                 TARGETVARNAME targetName
+                 SOURCES ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
+
+  target_include_directories(
+    ${targetName}
+    PRIVATE $<TARGET_PROPERTY:O2::Framework,INTERFACE_INCLUDE_DIRECTORIES>)
+
+  o2_target_root_dictionary(${MODULE}
+                            HEADERS ${HDRS_CINT_O2}
+                            LINKDEF GPUTrackingLinkDef_O2.h)
+
+  target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
+                             GPUCA_TPC_GEOMETRY_O2 HAVE_O2HEADERS)
+
+  install(FILES ${HDRS_CINT_ALIROOT} ${HDRS_CINT_O2} ${HDRS_INSTALL}
+          DESTINATION include/GPU)
+  install(DIRECTORY Standalone/utils
+          DESTINATION include/GPU
+          FILES_MATCHING PATTERN *.h)
+
+  o2_add_test_root_macro(Standalone/tools/createGeo.C
+                         PUBLIC_LINK_LIBRARIES O2::GPUTracking
+                         LABELS its COMPILE_ONLY)
+  o2_add_test_root_macro(Standalone/tools/createLUT.C
+                         PUBLIC_LINK_LIBRARIES O2::GPUTracking
+                         LABELS its COMPILE_ONLY)
+endif()
+endif()
+
+
+
+
+
+
+
 
 # Main CMake part for AliRoot
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
