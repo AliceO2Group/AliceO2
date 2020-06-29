@@ -121,12 +121,6 @@ Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float 
       is_positive = cfd_val > 0.0f;
     }
   }
-  if (!result.particle) {
-    LOG(DEBUG) << "CFD failed to find peak ";
-    for (auto t : times) {
-      LOG(DEBUG) << t << ", dead time " << deadTime;
-    }
-  }
   return result;
 }
 
@@ -160,7 +154,11 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
 {
   ;
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
-  flush(digitsBC, digitsCh, label);
+  LOG(DEBUG) << " process firstBCinDeque " << firstBCinDeque << " mIntRecord " << mIntRecord;
+  if (firstBCinDeque != mIntRecord) {
+    flush(digitsBC, digitsCh, label);
+  }
+
   Int_t parent = -10;
   for (auto const& hit : *hits) {
     if (hit.GetEnergyLoss() > 0)
@@ -170,17 +168,19 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
     Bool_t is_A_side = (hit_ch < 4 * mParameters.nCellsA);
     Float_t time_compensate = is_A_side ? mParameters.A_side_cable_cmps : mParameters.C_side_cable_cmps;
     Double_t hit_time = hit.GetTime() - time_compensate;
+    if (hit_time > 250)
+      continue; //not collect very slow particles
     auto relBC = o2::InteractionRecord{hit_time};
     if (mCache.size() <= relBC.bc) {
       mCache.resize(relBC.bc + 1);
     }
     mCache[relBC.bc].hits.emplace_back(BCCache::particle{hit_ch, hit_time - relBC.bc2ns()});
-
     //charge particles in MCLabel
     Int_t parentID = hit.GetTrackID();
-    if (parentID != parent)
+    if (parentID != parent) {
       mCache[relBC.bc].labels.emplace(parentID, mEventID, mSrcID, hit_ch);
-    parent = parentID;
+      parent = parentID;
+    }
   }
 }
 
@@ -209,7 +209,6 @@ void Digitizer::storeBC(BCCache& bc,
     channel_times.resize(channel_end - channel_begin);
     std::transform(channel_begin, channel_end, channel_times.begin(), [](BCCache::particle const& p) { return p.hit_time; });
     int chain = (std::rand() % 2) ? 1 : 0;
-
     auto cfd = get_time(channel_times, mDeadTimes[ipmt].intrec.bc2ns() -
                                          firstBCinDeque.bc2ns() +
                                          mDeadTimes[ipmt].deadTime);
@@ -224,7 +223,7 @@ void Digitizer::storeBC(BCCache& bc,
     float amp = is_time_in_signal_gate ? mParameters.mV_2_Nchannels * charge : 0;
     if (amp > 4095)
       amp = 4095;
-    LOG(DEBUG) << "bc " << firstBCinDeque.bc << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored;
+    LOG(INFO) << mEventID << " bc " << firstBCinDeque.bc << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored;
     digitsCh.emplace_back(ipmt, smeared_time, int(amp), chain);
     nStored++;
 
@@ -260,7 +259,7 @@ void Digitizer::storeBC(BCCache& bc,
   triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, int8_t(n_hit_A), int8_t(n_hit_C),
                        amplA, amplC, timeA, timeC);
 
-  digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers, mEventID);
+  digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers, mEventID - 1);
   size_t const nBC = digitsBC.size();
   for (auto const& lbl : bc.labels)
     labels.addElement(nBC - 1, lbl);
@@ -280,7 +279,7 @@ void Digitizer::flush(std::vector<o2::ft0::Digit>& digitsBC,
                       std::vector<o2::ft0::ChannelData>& digitsCh,
                       o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
 {
-  LOG(DEBUG) << "firstBCinDeque " << firstBCinDeque << " mIntRecord " << mIntRecord;
+
   assert(firstBCinDeque <= mIntRecord);
   while (firstBCinDeque < mIntRecord && !mCache.empty()) {
     storeBC(mCache.front(), digitsBC, digitsCh, labels);
@@ -294,8 +293,8 @@ void Digitizer::flush_all(std::vector<o2::ft0::Digit>& digitsBC,
                           std::vector<o2::ft0::ChannelData>& digitsCh,
                           o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
 {
-  LOG(INFO) << "firstBCinDeque " << firstBCinDeque << " mIntRecord " << mIntRecord;
-  assert(firstBCinDeque <= mIntRecord);
+  assert(firstBCinDeque < mIntRecord);
+  ++mEventID;
   while (!mCache.empty()) {
     storeBC(mCache.front(), digitsBC, digitsCh, labels);
     mCache.pop_front();
@@ -314,7 +313,7 @@ void Digitizer::initParameters()
   // set up tables with sinc function values (times noiseVar)
   for (size_t i = 0, n = mSincTable.size(); i < n; ++i) {
     float const time = i / float(n) * mParameters.mNoisePeriod; // [0 .. 1/mParameters.mNoisePeriod)
-    std::cout << "initParameters " << i << "/" << n << " " << time << std::endl;
+    LOG(DEBUG) << "initParameters " << i << "/" << n << " " << time;
     // we make a table of sinc values between -num_noise_samples and 2*num_noise_samples
     mSincTable[i].resize(3 * mNumNoiseSamples);
     for (int j = -mNumNoiseSamples; j < 2 * mNumNoiseSamples; ++j) {
