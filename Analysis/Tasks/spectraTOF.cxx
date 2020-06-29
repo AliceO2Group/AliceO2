@@ -43,7 +43,7 @@ struct TOFPIDQATask {
   // Beta
   DOTH2F(hp_beta, ";#it{p} (GeV/#it{c});TOF #beta;Tracks", 100, 0, 20, 100, 0, 2);
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF> const& tracks)
+  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracks)
   {
     for (auto i : tracks) {
       float Mom = p(i.eta(), i.signed1Pt());
@@ -64,80 +64,11 @@ struct TOFPIDQATask {
       hevtime_NoCut->Fill(collision.collisionTime() / 1000);
       // hevtime_NoCut->Fill(collision.collisionTime0() / 1000);
       //
-      hnsigmaPi_NoCut->Fill(i.p(), i.nsigmaPi());
-      hnsigmaKa_NoCut->Fill(i.p(), i.nsigmaKa());
-      hnsigmaPr_NoCut->Fill(i.p(), i.nsigmaPr());
+      hnsigmaPi_NoCut->Fill(i.p(), i.nSigmaPi());
+      hnsigmaKa_NoCut->Fill(i.p(), i.nSigmaKa());
+      hnsigmaPr_NoCut->Fill(i.p(), i.nSigmaPr());
       // Beta
       hp_beta->Fill(i.p(), i.beta());
-    }
-  }
-};
-
-struct ExpectedTOFQATask {
-// Diff between exp and computed exp time
-#define TITBINNING(pname) Form(";#it{p} (GeV/#it{c});t_{Exp. Comp. Pr}(%s) - t_{Exp. %s} (ps);Tracks", pname, pname), 100, 0, 20, 2000, -10, 10
-  DOTH2F(h_p_expdiff_El, TITBINNING("El"));
-  DOTH2F(h_p_expdiff_Mu, TITBINNING("Mu"));
-  DOTH2F(h_p_expdiff_Pi, TITBINNING("Pi"));
-  DOTH2F(h_p_expdiff_Ka, TITBINNING("Ka"));
-  DOTH2F(h_p_expdiff_Pr, TITBINNING("Pr"));
-  DOTH2F(h_p_expdiff_De, TITBINNING("De"));
-  DOTH2F(h_p_expdiff_Tr, TITBINNING("Tr"));
-  DOTH2F(h_p_expdiff_He, TITBINNING("He"));
-  DOTH2F(h_p_expdiff_Al, TITBINNING("Al"));
-#undef TITBINNING
-#define TITBINNING(pname) Form(";#it{p} (GeV/#it{c});#frac{t_{Exp. Comp. Pr}(%s) - t_{Exp. %s}}{t_{Exp. %s}};Tracks", pname, pname, pname), 100, 0, 20, 2000, -0.5, 0.5
-  // Diff between exp time and computed exp time
-  DOTH2F(h_p_expdiff_El_Rel, TITBINNING("El"));
-  DOTH2F(h_p_expdiff_Mu_Rel, TITBINNING("Mu"));
-  DOTH2F(h_p_expdiff_Pi_Rel, TITBINNING("Pi"));
-  DOTH2F(h_p_expdiff_Ka_Rel, TITBINNING("Ka"));
-  DOTH2F(h_p_expdiff_Pr_Rel, TITBINNING("Pr"));
-  DOTH2F(h_p_expdiff_De_Rel, TITBINNING("De"));
-  DOTH2F(h_p_expdiff_Tr_Rel, TITBINNING("Tr"));
-  DOTH2F(h_p_expdiff_He_Rel, TITBINNING("He"));
-  DOTH2F(h_p_expdiff_Al_Rel, TITBINNING("Al"));
-#undef TITBINNING
-
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF> const& tracks)
-  {
-    for (auto i : tracks) {
-      // Track selection
-      UChar_t clustermap = i.itsClusterMap();
-      bool issel = (i.tpcNClsFindable() > 70) && (i.flags() & 0x4) && (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1));
-      issel = issel && (i.flags() & 0x2000);     //kTOFout
-      issel = issel && (i.flags() & 0x80000000); //kTIME
-      if (!issel)
-        continue;
-      // Diff
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpEl(), i.length(), kMassEl);
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpMu(), i.length(), kMassMu);
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpPi(), i.length(), kMassPi);
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpKa(), i.length(), kMassKa);
-      const Float_t expp = ComputeExpectedMomentum(i.tofExpPr(), i.length(), kMassPr);
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpDe(), i.length(), kMassDe);
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpTr(), i.length(), kMassTr);
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpHe(), i.length(), kMassHe);
-      // const Float_t expp = ComputeExpectedMomentum(i.tofExpAl(), i.length(), kMassHe);
-      h_p_expdiff_El->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassEl) - i.tofExpEl());
-      h_p_expdiff_Mu->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassMu) - i.tofExpMu());
-      h_p_expdiff_Pi->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassPi) - i.tofExpPi());
-      h_p_expdiff_Ka->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassKa) - i.tofExpKa());
-      h_p_expdiff_Pr->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassPr) - i.tofExpPr());
-      h_p_expdiff_De->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassDe) - i.tofExpDe());
-      h_p_expdiff_Tr->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassTr) - i.tofExpTr());
-      // h_p_expdiff_He->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassHe) - i.tofExpHe());
-      // h_p_expdiff_Al->Fill(i.p(), ComputeTOFExpTime(expp, i.length(), kMassHe) - i.tofExpAl());
-      // Diff Rel
-      h_p_expdiff_El_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassEl) - i.tofExpEl()) / i.tofExpEl());
-      h_p_expdiff_Mu_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassMu) - i.tofExpMu()) / i.tofExpMu());
-      h_p_expdiff_Pi_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassPi) - i.tofExpPi()) / i.tofExpPi());
-      h_p_expdiff_Ka_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassKa) - i.tofExpKa()) / i.tofExpKa());
-      h_p_expdiff_Pr_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassPr) - i.tofExpPr()) / i.tofExpPr());
-      h_p_expdiff_De_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassDe) - i.tofExpDe()) / i.tofExpDe());
-      h_p_expdiff_Tr_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassTr) - i.tofExpTr()) / i.tofExpTr());
-      // h_p_expdiff_He_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassHe) - i.tofExpHe()) / i.tofExpHe());
-      // h_p_expdiff_Al_Rel->Fill(i.p(), (ComputeTOFExpTime(expp, i.length(), kMassHe) - i.tofExpAl()) / i.tofExpAl());
     }
   }
 };
@@ -164,7 +95,7 @@ struct SpectraTask {
   // Filter trk_filter = (aod::track::tpcNClsFindable > 70);
 
   // void process(soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF>> const& tracks)
-  void process(soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF> const& tracks)
+  void process(soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracks)
   {
     for (auto i : tracks) {
       UChar_t clustermap = i.itsClusterMap();
@@ -173,13 +104,13 @@ struct SpectraTask {
       issel = issel && (i.flags() & 0x80000000); //kTIME
       if (!issel)
         continue;
-      if (TMath::Abs(i.nsigmaPi()) < 3) {
+      if (TMath::Abs(i.nSigmaPi()) < 3) {
         hp_El->Fill(i.p());
         hpt_El->Fill(i.pt());
-      } else if (TMath::Abs(i.nsigmaKa()) < 3) {
+      } else if (TMath::Abs(i.nSigmaKa()) < 3) {
         hp_Ka->Fill(i.p());
         hpt_Ka->Fill(i.pt());
-      } else if (TMath::Abs(i.nsigmaPr()) < 3) {
+      } else if (TMath::Abs(i.nSigmaPr()) < 3) {
         hp_Pr->Fill(i.p());
         hpt_Pr->Fill(i.pt());
       }
@@ -203,6 +134,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     adaptAnalysisTask<pidTOFTask>("pidTOF-task"),
     adaptAnalysisTask<TOFPIDQATask>("tofpidqa-task"),
-    adaptAnalysisTask<ExpectedTOFQATask>("expectedtofqa-task"),
     adaptAnalysisTask<SpectraTask>("filterEl-task")};
 }
