@@ -17,18 +17,21 @@
 #include <TTree.h>
 
 #include "ITSBase/GeometryTGeo.h"
-#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSMFTSimulation/Hit.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "MathUtils/Cartesian3D.h"
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #endif
 
 using namespace std;
 
-void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "")
+void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "", std::string dictfile = "")
 {
   using namespace o2::base;
   using namespace o2::its;
@@ -47,21 +50,24 @@ void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2tr
     o2::base::GeometryManager::loadGeometry(inputGeom);
   }
 
-  gGeoManager->GetVolume("obSuppCyl")->SetInvisible();
-  gGeoManager->GetVolume("ibSuppCyl")->SetInvisible();
-  gGeoManager->GetVolume("ITSUStave0_StaveStruct")->SetInvisible();
-  gGeoManager->GetVolume("ITSUStave1_StaveStruct")->SetInvisible();
-  gGeoManager->GetVolume("ITSUStave2_StaveStruct")->SetInvisible();
+  gGeoManager->GetVolume("IBCYSSCylinderFoam")->SetInvisible();
 
   gGeoManager->GetVolume("ITSUHalfStave0")->SetTransparency(50);
+  gGeoManager->GetVolume("ITSUHalfStave0")->SetLineColor(2);
   gGeoManager->GetVolume("ITSUHalfStave1")->SetTransparency(50);
+  gGeoManager->GetVolume("ITSUHalfStave1")->SetLineColor(2);
   gGeoManager->GetVolume("ITSUHalfStave2")->SetTransparency(50);
+  gGeoManager->GetVolume("ITSUHalfStave2")->SetLineColor(2);
   gGeoManager->GetVolume("ITSUHalfStave3")->SetTransparency(50);
+  gGeoManager->GetVolume("ITSUHalfStave3")->SetLineColor(2);
   gGeoManager->GetVolume("ITSUHalfStave4")->SetTransparency(50);
+  gGeoManager->GetVolume("ITSUHalfStave4")->SetLineColor(2);
   gGeoManager->GetVolume("ITSUHalfStave5")->SetTransparency(50);
+  gGeoManager->GetVolume("ITSUHalfStave5")->SetLineColor(2);
   gGeoManager->GetVolume("ITSUHalfStave6")->SetTransparency(50);
+  gGeoManager->GetVolume("ITSUHalfStave6")->SetLineColor(2);
 
-  TGeoNode* tnode = gGeoManager->GetTopVolume()->FindNode("ITSV_2");
+  TGeoNode* tnode = gGeoManager->GetVolume("barrel")->FindNode("ITSV_2");
   TEveGeoTopNode* evenode = new TEveGeoTopNode(gGeoManager, tnode);
   evenode->SetVisLevel(4);
   gEve->AddGlobalElement(evenode);
@@ -98,11 +104,10 @@ void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2tr
 
   tree->GetEvent(event);
 
-  Int_t nc = hitArr->size(), n = 0;
-  while (nc--) {
-    Hit& c = (*hitArr)[nc];
-    if (c.GetTrackID() == track) {
-      points->SetNextPoint(c.GetX(), c.GetY(), c.GetZ());
+  Int_t n = 0;
+  for (const auto& h : *hitArr) {
+    if (h.GetTrackID() == track) {
+      points->SetNextPoint(h.GetX(), h.GetY(), h.GetZ());
       n++;
     }
   }
@@ -122,40 +127,59 @@ void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2tr
   points = new TEvePointSet(s.data());
   points->SetMarkerColor(kMagenta);
 
-  std::vector<Cluster>* clusArr = nullptr;
-  tree->SetBranchAddress("ITSCluster", &clusArr);
+  std::vector<o2::itsmft::CompClusterExt>* clusArr = nullptr;
+  tree->SetBranchAddress("ITSClusterComp", &clusArr);
+  if (dictfile.empty()) {
+    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+  }
+  o2::itsmft::TopologyDictionary dict;
+  std::ifstream file(dictfile.c_str());
+  if (file.good()) {
+    LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
+    dict.readBinaryFile(dictfile);
+  } else {
+    LOG(INFO) << "Cannot run without the dictionary !";
+    return;
+  }
+
+  // ROFrecords
+  std::vector<o2::itsmft::ROFRecord>* rofRecVecP = nullptr;
+  tree->SetBranchAddress("ITSClustersROF", &rofRecVecP);
+
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clsLabArr = nullptr;
   tree->SetBranchAddress("ITSClusterMCTruth", &clsLabArr);
 
-  int tf = 0;
-  int lastTF = tree->GetEntries();
-  for (; tf < lastTF; ++tf) {
-    tree->GetEvent(tf);
-    int nc = clusArr->size();
-    for (int i = 0; i < nc; i++) { // Find the TF containing this MC event
-      auto mclab = (clsLabArr->getLabels(i))[0];
+  tree->GetEvent(0);
+  int nc = clusArr->size();
+  int offset = 0;
+  for (auto& rof : *rofRecVecP) {
+    offset = rof.getFirstEntry();
+    for (int i = 0; i < rof.getNEntries(); i++) { // Find the TF containing this MC event
+      auto mclab = (clsLabArr->getLabels(offset + i))[0];
       auto id = mclab.getEventID();
       if (id == event)
         goto found;
     }
   }
-  std::cout << "Time Frame containing the MC event " << event << " was not found" << std::endl;
+  std::cout << "RO frame containing the MC event " << event << " was not found" << std::endl;
 
 found:
-  std::cout << "MC event " << event << " found in the Time Frame #" << tf << std::endl;
   o2::its::GeometryTGeo* gman = GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot)); // request cached transforms
+  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G)); // request cached transforms
 
   nc = clusArr->size();
   n = 0;
-  while (nc--) {
-    Cluster& c = (*clusArr)[nc];
-    auto lab = (clsLabArr->getLabels(nc))[0];
-    auto gloC = c.getXYZGloRot(*gman); // convert from tracking to global frame
+  for (int i = 0; i < nc; i++) {
+    const auto& c = (*clusArr)[i];
+    auto lab = (clsLabArr->getLabels(i))[0];
     if (lab.getEventID() != event)
       continue;
     if (lab.getTrackID() == track) {
+      auto pattID = c.getPatternID();
+      auto locC = dict.getClusterCoordinates(c);
+      auto chipID = c.getSensorID();
+      auto gloC = gman->getMatrixL2G(chipID) * locC;
       points->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());
       n++;
     }
@@ -184,7 +208,7 @@ found:
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkLabArr = nullptr;
   tree->SetBranchAddress("ITSTrackMCTruth", &trkLabArr);
 
-  tree->GetEvent(tf);
+  tree->GetEvent(0);
 
   Int_t nt = trkArr->size();
   n = 0;
@@ -198,9 +222,11 @@ found:
     Int_t nc = t.getNumberOfClusters();
     int idxRef = t.getFirstClusterEntry();
     while (n < nc) {
-      Int_t idx = (*clIdx)[idxRef++];
-      Cluster& c = (*clusArr)[idx];
-      auto gloC = c.getXYZGloRot(*gman); // convert from tracking to global frame
+      Int_t idx = (*clIdx)[idxRef + n];
+      auto& c = (*clusArr)[offset + idx];
+      auto locC = dict.getClusterCoordinates(c);
+      auto chipID = c.getSensorID();
+      auto gloC = gman->getMatrixL2G(chipID) * locC;
       points->SetNextPoint(gloC.X(), gloC.Y(), gloC.Z());
       n++;
     }
