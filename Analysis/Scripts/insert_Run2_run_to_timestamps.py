@@ -48,7 +48,7 @@ class run_timestamp:
         return self.run == other.run
 
 
-def main(input_file_name, extra_args):
+def main(input_file_name, extra_args, verbose=0):
     """
     Given an input file with line by line runs and start and stop timestamps it updates the dedicated CCDB object
     Extra arguments can be passed to the upload script.
@@ -75,18 +75,20 @@ def main(input_file_name, extra_args):
         cmd = "o2-analysiscore-makerun2timestamp"
         cmd += f" --run {i.run}"
         cmd += f" --timestamp {i.start}"
-        cmd += extra_args
-        # print(cmd)
+        cmd += f" {extra_args}"
+        if verbose:
+            print(cmd)
         subprocess.run(cmd.split())
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='Uploads run number to timestamp converter to CCDB from input file.')
+        description='Uploads run-number-to-timestamp converter to CCDB from input file.')
     parser.add_argument('input_file_name', metavar='input_file_name', type=str,
                         help='Name of the file with the run and corresponding timestamps')
     parser.add_argument('--extra_args', metavar='Extra_Arguments', type=str,
                         default="",
                         help='Extra arguments for the upload to CCDB')
+    parser.add_argument('--verbose', '-v', action='count', default=0)
     args = parser.parse_args()
-    main(args.input_file_name, args.extra_args)
+    main(args.input_file_name, args.extra_args, verbose=args.verbose)
