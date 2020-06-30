@@ -259,7 +259,7 @@ class GPUReconstruction
   double GetStatWallTime() { return mStatWallTime; }
 
  protected:
-  void AllocateRegisteredMemoryInternal(GPUMemoryResource* res, GPUOutputControl* control = nullptr);
+  void AllocateRegisteredMemoryInternal(GPUMemoryResource* res, GPUOutputControl* control, GPUReconstruction* recPool);
   GPUReconstruction(const GPUSettingsProcessing& cfg); // Constructor
   int InitPhaseBeforeDevice();
   virtual void UpdateSettings() {}
