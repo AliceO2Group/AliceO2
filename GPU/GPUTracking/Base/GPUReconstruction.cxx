@@ -609,7 +609,7 @@ void GPUReconstruction::ResetRegisteredMemoryPointers(GPUProcessor* proc)
 void GPUReconstruction::ResetRegisteredMemoryPointers(short ires)
 {
   GPUMemoryResource* res = &mMemoryResources[ires];
-  if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
+  if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL) && (res->mType & GPUMemoryResource::MEMORY_HOST)) {
     if (res->mReuse >= 0) {
       res->SetPointers(mMemoryResources[res->mReuse].mPtr);
     } else {
