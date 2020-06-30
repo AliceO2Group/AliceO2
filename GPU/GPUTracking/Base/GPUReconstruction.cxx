@@ -610,10 +610,18 @@ void GPUReconstruction::ResetRegisteredMemoryPointers(short ires)
 {
   GPUMemoryResource* res = &mMemoryResources[ires];
   if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
-    res->SetPointers(res->mPtr);
+    if (res->mReuse >= 0) {
+      res->SetPointers(mMemoryResources[res->mReuse].mPtr);
+    } else {
+      res->SetPointers(res->mPtr);
+    }
   }
   if (IsGPU() && (res->mType & GPUMemoryResource::MEMORY_GPU)) {
-    res->SetDevicePointers(res->mPtrDevice);
+    if (res->mReuse >= 0) {
+      res->SetDevicePointers(mMemoryResources[res->mReuse].mPtrDevice);
+    } else {
+      res->SetDevicePointers(res->mPtrDevice);
+    }
   }
 }
 
