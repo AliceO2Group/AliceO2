@@ -390,15 +390,19 @@ void GPUReconstruction::ComputeReuseMax(GPUProcessor* proc)
   }
 }
 
-size_t GPUReconstruction::AllocateRegisteredMemory(GPUProcessor* proc)
+size_t GPUReconstruction::AllocateRegisteredMemory(GPUProcessor* proc, bool resetCustom)
 {
   if (mDeviceProcessingSettings.debugLevel >= 5) {
     GPUInfo("Allocating memory %p", (void*)proc);
   }
   size_t total = 0;
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
-    if ((proc == nullptr ? !mMemoryResources[i].mProcessor->mAllocateAndInitializeLate : mMemoryResources[i].mProcessor == proc) && !(mMemoryResources[i].mType & GPUMemoryResource::MEMORY_CUSTOM)) {
-      total += AllocateRegisteredMemory(i);
+    if (proc == nullptr ? !mMemoryResources[i].mProcessor->mAllocateAndInitializeLate : mMemoryResources[i].mProcessor == proc) {
+      if (!(mMemoryResources[i].mType & GPUMemoryResource::MEMORY_CUSTOM)) {
+        total += AllocateRegisteredMemory(i);
+      } else if (resetCustom) {
+        ResetRegisteredMemoryPointers(i);
+      }
     }
   }
   if (mDeviceProcessingSettings.debugLevel >= 5) {
