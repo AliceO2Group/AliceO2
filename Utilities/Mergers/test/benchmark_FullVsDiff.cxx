@@ -150,7 +150,7 @@ static void BM_MergingTHnSparse(benchmark::State& state)
       auto* h = new THnSparseI(("test" + std::to_string(i)).c_str(), "test", dim, binsDims, mins, maxs);
       for (size_t entry = 0; entry < entries; entry++) {
         gen.RndmArray(dim, randomArray);
-        for (double r : randomArray) {
+        for (double& r : randomArray) {
           r *= max;
         }
         h->Fill(randomArray);
