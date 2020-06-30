@@ -813,6 +813,7 @@ void GPUReconstruction::TerminatePipelineWorker()
 
 int GPUReconstruction::EnqueuePipeline(bool terminate)
 {
+  ClearAllocatedMemory(true);
   GPUReconstruction* rec = mMaster ? mMaster : this;
   std::unique_ptr<GPUReconstructionPipelineQueue> qu(new GPUReconstructionPipelineQueue);
   GPUReconstructionPipelineQueue* q = qu.get();
@@ -842,7 +843,7 @@ GPUChain* GPUReconstruction::GetNextChainInQueue()
   return rec->mPipelineContext->queue.size() && rec->mPipelineContext->queue.front()->op == 0 ? rec->mPipelineContext->queue.front()->chain : nullptr;
 }
 
-void GPUReconstruction::PrepareEvent()
+void GPUReconstruction::PrepareEvent() // TODO: Clean this up, this should not be called from chainTracking but before
 {
   ClearAllocatedMemory(true);
   for (unsigned int i = 0; i < mChains.size(); i++) {
