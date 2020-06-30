@@ -189,7 +189,7 @@ class GPUReconstruction
   template <class T>
   short RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name = "", const GPUMemoryReuse& re = GPUMemoryReuse());
   size_t AllocateMemoryResources();
-  size_t AllocateRegisteredMemory(GPUProcessor* proc);
+  size_t AllocateRegisteredMemory(GPUProcessor* proc, bool resetCustom = false);
 
   size_t AllocateRegisteredMemory(short res, GPUOutputControl* control = nullptr);
   void AllocateRegisteredForeignMemory(short res, GPUReconstruction* rec, GPUOutputControl* control = nullptr);
@@ -494,7 +494,7 @@ inline void GPUReconstruction::SetupGPUProcessor(T* proc, bool allocate)
     proc->mDeviceProcessor->InitGPUProcessor((GPUReconstruction*)this, GPUProcessor::PROCESSOR_TYPE_DEVICE);
   }
   if (allocate) {
-    AllocateRegisteredMemory(proc);
+    AllocateRegisteredMemory(proc, true);
   } else {
     ResetRegisteredMemoryPointers(proc);
   }
