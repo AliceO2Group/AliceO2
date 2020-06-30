@@ -46,7 +46,7 @@ struct TOFPIDQATask {
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracks)
   {
     for (auto i : tracks) {
-      float Mom = p(i.eta(), i.signed1Pt());
+      float Mom = i.p();
       hp_NoCut->Fill(Mom);
       // Track selection
       UChar_t clustermap = i.itsClusterMap();
