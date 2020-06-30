@@ -5,14 +5,12 @@
 #include <TFile.h>
 #include <string>
 #include <fstream>
-#include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ClusterPattern.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSMFTReconstruction/LookUp.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #endif
 
-using o2::itsmft::Cluster;
 using o2::itsmft::ClusterPattern;
 using o2::itsmft::LookUp;
 using o2::itsmft::TopologyDictionary;
