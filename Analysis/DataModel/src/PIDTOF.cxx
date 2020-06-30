@@ -14,35 +14,24 @@ namespace o2::pid::tof
 {
 
 //_________________________________________________________________________
-double Param::GetExpectedSigma(float mom, float time, float evtimereso, float mass) const
+uint EventTime::GetMomBin(float mom) const
 {
-  //
-  // Return the expected sigma of the PID signal for the specified
-  // particle mass/Z.
-  // If the operation is not possible, return a negative value.
-  //
-
-  double dpp = mPar[0] + mPar[1] * mom + mPar[2] * mass / mom; //mean relative pt resolution;
-  double sigma = dpp * time / (1. + mom * mom / (mass * mass));
-
-  //   Int_t index = GetMomBin(mom);
-  //   double t0res = fT0resolution[index];
-
-  return TMath::Sqrt(sigma * sigma + mPar[3] * mPar[3] / mom / mom + mSigma * mSigma + evtimereso * evtimereso);
+  for (int i = 0; i < mNmomBins; i++)
+    if (abs(mom) < mMomBins[i + 1])
+      return i;
+  return mNmomBins - 1;
 }
 
-// //_________________________________________________________________________
-// double Param::GetNSigma(float mom, float time, float exptime, float evtime, float evtimereso, float mass) const
-// {
-//   return (time - evtime - exptime) / GetExpectedSigma(mom, time, evtimereso, mass);
-// }
-
 //_________________________________________________________________________
-// float Response::ComputeExpectedMomentum(float exptime, float length, float mass)
-// {
-//   float beta_exp = GetBeta(length, exptime, 0);
-//   return (mass * beta_exp / sqrt(1. - (beta_exp * beta_exp)));
-// }
+double Param::GetExpectedSigma(float mom, float time, float evtimereso, float mass) const
+{
+  mom = abs(mom);
+  if (mom <= 0 || mass <= 0)
+    return -999;
+  double dpp = mPar[0] + mPar[1] * mom + mPar[2] * mass / mom; //mean relative pt resolution;
+  double sigma = dpp * time / (1. + mom * mom / (mass * mass));
+  return TMath::Sqrt(sigma * sigma + mPar[3] * mPar[3] / mom / mom + mSigma * mSigma + evtimereso * evtimereso);
+}
 
 //_________________________________________________________________________
 float Response::ComputeExpectedTime(float tofexpmom, float length, float massZ)
@@ -68,7 +57,7 @@ float Response::GetBetaExpectedSigma(float length, float time, float evtime, flo
 }
 
 //_________________________________________________________________________
-float GetExpectedBeta(float mom, float mass)
+float Response::GetExpectedBeta(float mom, float mass)
 {
   if (mom > 0)
     return mom / TMath::Sqrt(mom * mom + mass * mass);

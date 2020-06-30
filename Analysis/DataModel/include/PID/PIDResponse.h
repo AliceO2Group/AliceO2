@@ -91,7 +91,7 @@ DECLARE_SOA_TABLE(pidRespTOF, "AOD", "pidRespTOF",
 
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::pid::tof;
+using namespace o2::pid;
 using namespace o2::framework::expressions;
 using namespace o2::track;
 
@@ -102,46 +102,47 @@ struct pidTOFTask {
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra> const& tracks)
   {
     LOGF(info, "Tracks for collision: %d", tracks.size());
-    Response resp = pid::tof::Response();
+    tof::EventTime evt = tof::EventTime();
+    evt.SetEvTime(0, collision.collisionTime());
+    evt.SetEvTimeReso(0, collision.collisionTimeRes());
+    evt.SetEvTimeMask(0, collision.collisionTimeMask());
+    tof::Response resp = tof::Response();
+    resp.SetEventTime(evt);
     for (auto i : tracks) {
-      resp.InitResponse(i.p(), i.tofExpMom(), i.length(), i.tofSignal());
-      // float EVTIME = collision.collisionTime0();
-      float EVTIME = collision.collisionTime();
-      float EXPBETAEL = expbeta(p(i.eta(), i.signed1Pt()), PID::getMass(PID::Electron));
-      float EXPBETAELERROR = 0;
+      resp.UpdateTrack(i.p(), i.tofExpMom(), i.length(), i.tofSignal());
       tofpidbeta(resp.GetBeta(),
                  resp.GetBetaExpectedSigma(),
-                 EXPBETAEL,
-                 EXPBETAELERROR,
-                 resp.GetBeta() > 0 ? (resp.GetBeta() - EXPBETAEL) / sqrt(resp.GetBetaExpectedSigma() * resp.GetBetaExpectedSigma() + EXPBETAELERROR * EXPBETAELERROR) : -999);
+                 resp.GetExpectedBeta(PID::Electron),
+                 resp.GetBetaExpectedSigma(),
+                 resp.GetBetaNumberOfSigmas(PID::Electron));
       tofpid(
-        ComputeTOFExpTime(i.tofExpMom(), i.length(), PID::getMass(PID::Electron)),
-        ComputeTOFExpTime(i.tofExpMom(), i.length(), PID::getMass(PID::Muon)),
-        ComputeTOFExpTime(i.tofExpMom(), i.length(), PID::getMass(PID::Pion)),
-        ComputeTOFExpTime(i.tofExpMom(), i.length(), PID::getMass(PID::Kaon)),
-        ComputeTOFExpTime(i.tofExpMom(), i.length(), PID::getMass(PID::Proton)),
-        ComputeTOFExpTime(i.tofExpMom(), i.length(), PID::getMass(PID::Deuteron)),
-        ComputeTOFExpTime(i.tofExpMom(), i.length(), PID::getMass(PID::Triton)),
-        ComputeTOFExpTime(i.tofExpMom(), i.length(), PID::getMass(PID::Helium3)),
-        ComputeTOFExpTime(i.tofExpMom(), i.length(), PID::getMass(PID::Alpha)),
-        resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), PID::getMass(PID::Electron)),
-        resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), PID::getMass(PID::Muon)),
-        resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), PID::getMass(PID::Pion)),
-        resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), PID::getMass(PID::Kaon)),
-        resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), PID::getMass(PID::Proton)),
-        resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), PID::getMass(PID::Deuteron)),
-        resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), PID::getMass(PID::Triton)),
-        resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), PID::getMass(PID::Helium3)),
-        resp.mParam.GetExpectedSigma(i.p(), i.tofSignal(), collision.collisionTimeRes(), PID::getMass(PID::Alpha)),
-        resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPi(), collision.collisionTime(), collision.collisionTimeRes(), PID::getMass(PID::Electron)),
-        resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPi(), collision.collisionTime(), collision.collisionTimeRes(), PID::getMass(PID::Muon)),
-        resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPi(), collision.collisionTime(), collision.collisionTimeRes(), PID::getMass(PID::Pion)),
-        resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpKa(), collision.collisionTime(), collision.collisionTimeRes(), PID::getMass(PID::Kaon)),
-        resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPr(), collision.collisionTime(), collision.collisionTimeRes(), PID::getMass(PID::Proton)),
-        resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPi(), collision.collisionTime(), collision.collisionTimeRes(), PID::getMass(PID::Deuteron)),
-        resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPi(), collision.collisionTime(), collision.collisionTimeRes(), PID::getMass(PID::Triton)),
-        resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPi(), collision.collisionTime(), collision.collisionTimeRes(), PID::getMass(PID::Helium3)),
-        resp.mParam.GetNSigma(i.p(), i.tofSignal(), i.tofExpPi(), collision.collisionTime(), collision.collisionTimeRes(), PID::getMass(PID::Alpha)));
+        resp.GetExpectedSignal(PID::Electron),
+        resp.GetExpectedSignal(PID::Muon),
+        resp.GetExpectedSignal(PID::Pion),
+        resp.GetExpectedSignal(PID::Kaon),
+        resp.GetExpectedSignal(PID::Proton),
+        resp.GetExpectedSignal(PID::Deuteron),
+        resp.GetExpectedSignal(PID::Triton),
+        resp.GetExpectedSignal(PID::Helium3),
+        resp.GetExpectedSignal(PID::Alpha),
+        resp.GetExpectedSigma(PID::Electron),
+        resp.GetExpectedSigma(PID::Muon),
+        resp.GetExpectedSigma(PID::Pion),
+        resp.GetExpectedSigma(PID::Kaon),
+        resp.GetExpectedSigma(PID::Proton),
+        resp.GetExpectedSigma(PID::Deuteron),
+        resp.GetExpectedSigma(PID::Triton),
+        resp.GetExpectedSigma(PID::Helium3),
+        resp.GetExpectedSigma(PID::Alpha),
+        resp.GetNumberOfSigmas(PID::Electron),
+        resp.GetNumberOfSigmas(PID::Muon),
+        resp.GetNumberOfSigmas(PID::Pion),
+        resp.GetNumberOfSigmas(PID::Kaon),
+        resp.GetNumberOfSigmas(PID::Proton),
+        resp.GetNumberOfSigmas(PID::Deuteron),
+        resp.GetNumberOfSigmas(PID::Triton),
+        resp.GetNumberOfSigmas(PID::Helium3),
+        resp.GetNumberOfSigmas(PID::Alpha));
     }
   }
 };

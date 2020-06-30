@@ -19,13 +19,14 @@
 // ROOT includes
 #include "Rtypes.h"
 #include "TMath.h"
-// #include "PIDParamBase.h"
 
 // O2 includes
 #include "ReconstructionDataFormats/PID.h"
 
 namespace o2::pid::tof
 {
+
+/// \brief Class to handle the event times available for PID
 class EventTime
 {
  public:
@@ -37,95 +38,104 @@ class EventTime
   void SetEvTimeMask(int mask, int i) { mEvTimeMask[i] = mask; }
   float GetEvTime(int i) const { return mEvTime[i]; }
   float GetEvTimeReso(int i) const { return mEvTimeReso[i]; }
-  int GetMomBin(float mom) const
-  {
-    for (int i = 0; i < fNmomBins; i++)
-      if (abs(mom) < fmomBins[i + 1])
-        return i;
-    return fNmomBins;
-  }
+  uint GetMomBin(float mom) const;
   float GetEvTime(float mom) const { return mEvTime[GetMomBin(mom)]; }
-  float EvTimeReso(float mom) const { return mEvTimeReso[GetMomBin(mom)]; }
+  float GetEvTimeReso(float mom) const { return mEvTimeReso[GetMomBin(mom)]; }
 
  private:
-  static const int fNmomBins = 10;      /// Number of momentum bin
-  static float fmomBins[fNmomBins + 1]; /// Momentum bins
-  float mEvTime[fNmomBins];             /// Evtime (best, T0, T0-TOF, ...) of the event as a function of p
-  float mEvTimeReso[fNmomBins];         /// Evtime (best, T0, T0-TOF, ...) resolution as a function of p
-  int mEvTimeMask[fNmomBins];           /// Mask withthe T0 used (0x1=T0-TOF,0x2=T0A,0x3=TOC) for p bins
+  static const uint mNmomBins = 1;                           /// Number of momentum bin
+  static constexpr float mMomBins[mNmomBins + 1] = {0, 100}; /// Momentum bins
+  float mEvTime[mNmomBins];                                  /// Evtime (best, T0, T0-TOF, ...) of the event as a function of p
+  float mEvTimeReso[mNmomBins];                              /// Evtime (best, T0, T0-TOF, ...) resolution as a function of p
+  int mEvTimeMask[mNmomBins];                                /// Mask withthe T0 used (0x1=T0-TOF,0x2=T0A,0x3=TOC) for p bins
 };
 
+/// \brief Class to handle the parametrization of the detector response
 class Param
 {
  public:
   Param() = default;
   ~Param() = default;
 
+  /// Setter for expected time resolution
   void SetTimeResolution(float res) { mSigma = res; }
+  /// Getter for expected time resolution
   float GetTimeResolution() const { return mSigma; }
 
   // Tracking resolution for expected times
-  void SetTrackParameter(Int_t ip, float value)
-  {
-    if (ip >= 0 && ip < 4)
-      mPar[ip] = value;
-  };
-  float GetTrackParameter(Int_t ip)
-  {
-    if (ip >= 0 && ip < 4)
-      return mPar[ip];
-    else
-      return -1.0;
-  };
+  /// Setter for resolution parametrization
+  void SetTrackParameter(uint ip, float value) { ip < mParDim ? mPar[ip] = value : 0.f; };
+  /// Getter for resolution parametrization
+  float GetTrackParameter(uint ip) { return ip < mParDim ? mPar[ip] : -999.f; };
 
+  /// Getter for the expected resolution.
+  /// Returns the expected sigma of the PID signal for the specified
+  /// particle mass/Z.
+  /// If the operation is not possible, return a negative value.
   double GetExpectedSigma(float mom, float tof, float evtimereso, float massZ) const;
-  // double GetNSigma(float mom, float time, float exptime, float evtime, float evtimereso, float mass) const;
 
  private:
   double mSigma; /// intrinsic TOF resolution
-                 // float mPar[4]; /// parameter for expected time resolutions
-  float mPar[4] = {0.008, 0.008, 0.002, 40.0};
+  static constexpr uint mParDim = 4;
+  float mPar[mParDim] = {0.008, 0.008, 0.002, 40.0}; /// parameter for expected time resolutions
 };
 
+/// \brief Class to handle the the TOF detector response
 class Response
 {
  public:
   Response() = default;
   ~Response() = default;
 
-  // void SetMaxMismatchProbability(double p) { fPmax = p; }
-  // double GetMaxMismatchProbability() const { return fPmax; }
-
-  void InitResponse(float mom, float tofexpmom, float length, float tofsignal)
+  /// Updater for the TOF response to setup the track parameters
+  /// i.e. sets the track of interest
+  void UpdateTrack(float mom, float tofexpmom, float length, float tofsignal)
   {
     mMomentum = mom;
     mTOFExpMomentum = tofexpmom;
     mLength = length;
     mTOFSignal = tofsignal;
   };
-  inline double GetExpectedSigma(o2::track::PID::ID id) const { return mParam.GetExpectedSigma(mMomentum, mTOFSignal, mEventTime.EvTimeReso(mMomentum), o2::track::PID::getMass2Z(id)); };
 
-  // double GetExpectedSigma(float mom, float tof, AliPID::EParticleType type) const;
-  // double GetExpectedSignal(const AliVTrack* track, AliPID::EParticleType type) const;
-  // double GetMismatchProbability(double time, double eta) const;
-
-  void SetEventTime(EventTime& evtime) { mEventTime = evtime; }; /// To set a particular event time object
-  EventTime GetEventTime() const { return mEventTime; };         /// To get the event time object
-
-  void SetParam(Param& evtime) { mParam = evtime; }; /// To set a particular parametrization time object
-  Param GetParam() const { return mParam; };         /// To get the parametrization time object
+  /// Setter for the event time information in the parametrization
+  void SetEventTime(EventTime& evtime) { mEventTime = evtime; };
+  /// Getter for the event time information in the parametrization
+  EventTime GetEventTime() const { return mEventTime; };
+  /// Setter for the resolution parametrization
+  void SetParam(Param& evtime) { mParam = evtime; };
+  /// Getter for the resolution parametrization
+  Param GetParam() const { return mParam; };
 
   // TOF beta
+  /// Computes the beta of a track given a length, a time measurement and an event time
   static float GetBeta(float length, float time, float evtime);
-  inline float GetBeta() const { return GetBeta(mLength, mTOFSignal, mEventTime.GetEvTime(mMomentum)); };
+  /// Gets the beta for the track of interest
+  float GetBeta() const { return GetBeta(mLength, mTOFSignal, mEventTime.GetEvTime(mMomentum)); }
+  /// Computes the expected uncertainty on the beta measurement
   static float GetBetaExpectedSigma(float length, float time, float evtime, float sigmat = 80);
-  inline float GetBetaExpectedSigma(float sigmat = 80) const { return GetBetaExpectedSigma(mLength, mTOFSignal, mEventTime.GetEvTime(mMomentum), sigmat); };
+  /// Gets the expected uncertainty on the beta measurement of the track of interest
+  float GetBetaExpectedSigma(float sigmat = 80) const { return GetBetaExpectedSigma(mLength, mTOFSignal, mEventTime.GetEvTime(mMomentum), sigmat); }
+  /// Gets the expected beta for a given mass hypothesis (no energy loss taken into account)
   static float GetExpectedBeta(float mom, float mass);
-  inline float GetExpectedBeta(o2::track::PID::ID id) const { return GetExpectedBeta(mMomentum, o2::track::PID::getMass2Z(id)); };
+  /// Gets the expected beta given the particle index (no energy loss taken into account)
+  float GetExpectedBeta(o2::track::PID::ID id) const { return GetExpectedBeta(mMomentum, o2::track::PID::getMass2Z(id)); }
+  /// Gets the number of sigmas with respect the approximate beta (no energy loss taken into account)
+  float GetBetaNumberOfSigmas(o2::track::PID::ID id, float sigmat = 80) { return (GetBeta() - GetExpectedBeta(id)) / GetBetaExpectedSigma(sigmat); }
 
   // TOF expected times
+  /// Computes the expected time of a track, given it TOF expected momentum
   static float ComputeExpectedTime(float tofexpmom, float length, float massZ);
-  float GetExpectedSignal() const;
+  /// Gets the expected signal of the track of interest under the PID assumption
+  float GetExpectedSignal(o2::track::PID::ID id) const { return ComputeExpectedTime(mTOFExpMomentum, mLength, o2::track::PID::getMass2Z(id)); }
+
+  // Expected resolution
+  /// Gets the expected resolution of the measurement
+  float GetExpectedSigma(o2::track::PID::ID id) const { return mParam.GetExpectedSigma(mMomentum, mTOFSignal, mEventTime.GetEvTimeReso(mMomentum), o2::track::PID::getMass2Z(id)); }
+
+  // Nsigma
+  float GetNumberOfSigmas(o2::track::PID::ID id) const { return (mTOFSignal - mEventTime.GetEvTime(mMomentum)) / GetExpectedSigma(id); }
+
+  // double GetMismatchProbability(double time, double eta) const;
 
  private:
   Param mParam; /// Parametrization of the TOF signal
@@ -138,13 +148,6 @@ class Response
   float mTOFSignal;      /// Track of interest integrated length
 
   static constexpr float kCSPEED = TMath::C() * 1.0e2f / 1.0e-12f; /// Speed of light in TOF units (cm/ps)
-
-  // static TF1* fTOFtailResponse;   // function to generate a TOF tail
-  // static TH1F* fHmismTOF;         // TOF mismatch distribution
-  // static TH1D* fHchannelTOFdistr; // TOF channel distance distribution
-  // static TH1D* fHTOFtailResponse; // histogram to generate a TOF tail
-
-  // ClassDef(TOF, 6) // TOF PID class
 };
 
 } // namespace o2::pid::tof
