@@ -951,8 +951,7 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
 {
 #ifdef GPUCA_TPC_GEOMETRY_O2
   if (restorePointers) {
-    for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && lane < NSLICES; lane++) {
-      unsigned int iSlice = lane;
+    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       processors()->tpcClusterer[iSlice].mPzsOffsets = mCFContext->ptrSave[iSlice].zsOffsetHost;
       processorsShadow()->tpcClusterer[iSlice].mPzsOffsets = mCFContext->ptrSave[iSlice].zsOffsetDevice;
       processorsShadow()->tpcClusterer[iSlice].mPzs = mCFContext->ptrSave[iSlice].zsDevice;
@@ -1003,8 +1002,10 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
       }
       if (mPipelineNotifyCtx) {
         mPipelineNotifyCtx->rec->AllocateRegisteredForeignMemory(processors()->tpcClusterer[iSlice].mZSOffsetId, mRec);
+        mPipelineNotifyCtx->rec->AllocateRegisteredForeignMemory(processors()->tpcClusterer[iSlice].mZSId, mRec);
       } else {
         AllocateRegisteredMemory(processors()->tpcClusterer[iSlice].mZSOffsetId);
+        AllocateRegisteredMemory(processors()->tpcClusterer[iSlice].mZSId);
       }
     }
   } else {
@@ -1023,19 +1024,12 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
   for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && lane < NSLICES; lane++) {
     unsigned int iSlice = lane;
     if (mIOPtrs.tpcZS && mCFContext->nPagesSector[iSlice]) {
-      if (mPipelineNotifyCtx) {
-        mPipelineNotifyCtx->rec->AllocateRegisteredForeignMemory(processors()->tpcClusterer[iSlice].mZSId, mRec);
-      } else {
-        AllocateRegisteredMemory(processors()->tpcClusterer[iSlice].mZSId);
-      }
       mCFContext->nextPos[iSlice] = RunTPCClusterizer_transferZS(iSlice, mCFContext->fragmentFirst, GetDeviceProcessingSettings().nTPCClustererLanes + lane);
     }
   }
 
   if (mPipelineNotifyCtx) {
-    mCFContext->ptrSave.resize(GetDeviceProcessingSettings().nTPCClustererLanes);
-    for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && lane < NSLICES; lane++) {
-      unsigned int iSlice = lane;
+    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       mCFContext->ptrSave[iSlice].zsOffsetHost = processors()->tpcClusterer[iSlice].mPzsOffsets;
       mCFContext->ptrSave[iSlice].zsOffsetDevice = processorsShadow()->tpcClusterer[iSlice].mPzsOffsets;
       mCFContext->ptrSave[iSlice].zsDevice = processorsShadow()->tpcClusterer[iSlice].mPzs;
@@ -1066,7 +1060,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     SetupGPUProcessor(&processors()->tpcClusterer[iSlice], true); // Now we allocate
   }
   if (mPipelineNotifyCtx) {
-    RunTPCClusterizer_prepare(true); // Restore some pointers, allocated by the other pipeline
+    RunTPCClusterizer_prepare(true); // Restore some pointers, allocated by the other pipeline, and set to 0 by SetupGPUProcessor (since not allocated in this pipeline)
   }
 
   if (doGPU && mIOPtrs.tpcZS) {
@@ -1189,7 +1183,6 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
             f = mCFContext->fragmentFirst;
           }
           if (nextSlice < NSLICES && mIOPtrs.tpcZS && mCFContext->nPagesSector[iSlice]) {
-            AllocateRegisteredMemory(processors()->tpcClusterer[nextSlice].mZSId);
             mCFContext->nextPos[nextSlice] = RunTPCClusterizer_transferZS(nextSlice, f, GetDeviceProcessingSettings().nTPCClustererLanes + lane);
           }
         }

@@ -50,7 +50,7 @@ struct GPUTPCCFChainContext {
   unsigned int nFragments;
   CfFragment fragmentFirst;
   std::pair<unsigned int, unsigned int> nextPos[GPUCA_NSLICES];
-  std::vector<PtrSave> ptrSave;
+  PtrSave ptrSave[GPUCA_NSLICES];
 
   void prepare(bool tpcZS, const CfFragment& fragmentMax)
   {
