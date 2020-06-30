@@ -27,86 +27,126 @@ namespace bh = boost::histogram;
 
 #include <ctime>
 
+#define MAX_SIZE_COLLECTION (1 << 10)
+#define BENCHMARK_RANGE_COLLECTIONS Arg(1)->Arg(1 << 2)->Arg(1 << 4)->Arg(1 << 6)->Arg(1 << 8)->Arg(1 << 10)
+
 static void BM_mergingCollectionsTH1I(benchmark::State& state)
 {
-  size_t collectionSize = state.range(0);
-  size_t bins = 62500; // makes 250kB
+  const size_t collectionSize = state.range(0);
+  const size_t numberOfCollections = MAX_SIZE_COLLECTION / collectionSize;
+  const size_t bins = 62500; // makes 250kB
 
   TCollection* collection = new TObjArray();
   collection->SetOwner(true);
   TF1* uni = new TF1("uni", "1", 0, 1000000);
-  for (size_t i = 0; i < collectionSize; i++) {
-    TH1I* h = new TH1I(("test" + std::to_string(i)).c_str(), "test", bins, 0, 1000000);
-    h->FillRandom("uni", 50000);
-    collection->Add(h);
-  }
-
-  TH1I* m = new TH1I("merged", "merged", bins, 0, 1000000);
 
   for (auto _ : state) {
-    m->Merge(collection, "-NOCHECK");
+    state.PauseTiming();
+    std::vector<std::unique_ptr<TCollection>> collections;
+
+    for (size_t ci = 0; ci < numberOfCollections; ci++) {
+      std::unique_ptr<TCollection> collection = std::make_unique<TObjArray>();
+      collection->SetOwner(true);
+      for (size_t i = 0; i < collectionSize; i++) {
+        TH1I* h = new TH1I(("test" + std::to_string(ci) + "-" + std::to_string(i)).c_str(), "test", bins, 0, 1000000);
+        h->FillRandom("uni", 50000);
+        collection->Add(h);
+      }
+      collections.push_back(std::move(collection));
+    }
+
+    auto m = std::make_unique<TH1I>("merged", "merged", bins, 0, 1000000);
+    state.ResumeTiming();
+    for (const auto& collection : collections) {
+      m->Merge(collection.get(), "-NOCHECK");
+    }
+    state.PauseTiming();
   }
 
-  delete collection;
-  delete m;
   delete uni;
 }
 
 static void BM_mergingCollectionsTH2I(benchmark::State& state)
 {
+  const size_t collectionSize = state.range(0);
+  // We should always merge the same amount of objects (histograms) in one benchmark cycle.
+  const size_t numberOfCollections = MAX_SIZE_COLLECTION / collectionSize;
+  const size_t bins = 250; // 250 bins * 250 bins * 4B makes 250kB
 
-  size_t collectionSize = state.range(0);
-  size_t bins = 250; // 250 bins * 250 bins * 4B makes 250kB
-
-  TCollection* collection = new TObjArray();
-  collection->SetOwner(true);
   TF2* uni = new TF2("uni", "1", 0, 1000000, 0, 1000000);
-  for (size_t i = 0; i < collectionSize; i++) {
-    TH2I* h = new TH2I(("test" + std::to_string(i)).c_str(), "test", bins, 0, 1000000, bins, 0, 1000000);
-    h->FillRandom("uni", 50000);
-    collection->Add(h);
-  }
-
-  TH2I* m = new TH2I("merged", "merged", bins, 0, 1000000, bins, 0, 1000000);
 
   for (auto _ : state) {
-    m->Merge(collection, "-NOCHECK");
-  }
 
-  delete collection;
-  delete m;
+    state.PauseTiming();
+    std::vector<std::unique_ptr<TCollection>> collections;
+
+    for (size_t ci = 0; ci < numberOfCollections; ci++) {
+      std::unique_ptr<TCollection> collection = std::make_unique<TObjArray>();
+      collection->SetOwner(true);
+      for (size_t i = 0; i < collectionSize; i++) {
+        TH2I* h = new TH2I(("test" + std::to_string(ci) + "-" + std::to_string(i)).c_str(), "test",
+                           bins, 0, 1000000,
+                           bins, 0, 1000000);
+        h->FillRandom("uni", 50000);
+        collection->Add(h);
+      }
+      collections.push_back(std::move(collection));
+    }
+    auto m = std::make_unique<TH2I>("merged", "merged", bins, 0, 1000000, bins, 0, 1000000);
+
+    state.ResumeTiming();
+    for (const auto& collection : collections) {
+      m->Merge(collection.get(), "-NOCHECK");
+    }
+    state.PauseTiming();
+  }
+  delete uni;
 }
 
 static void BM_mergingCollectionsTH3I(benchmark::State& state)
 {
-  size_t collectionSize = state.range(0);
-  size_t bins = 40; // 40 bins * 40 bins * 40 bins * 4B makes 256kB
+  const size_t collectionSize = state.range(0);
+  // We should always merge the same amount of objects (histograms) in one benchmark cycle.
+  const size_t numberOfCollections = MAX_SIZE_COLLECTION / collectionSize;
+  const size_t bins = 40; // 40 bins * 40 bins * 40 bins * 4B makes 256kB
 
-  TCollection* collection = new TObjArray();
-  collection->SetOwner(true);
   TF3* uni = new TF3("uni", "1", 0, 1000000, 0, 1000000, 0, 1000000);
-  for (size_t i = 0; i < collectionSize; i++) {
-    TH3I* h = new TH3I(("test" + std::to_string(i)).c_str(), "test",
-                       bins, 0, 1000000,
-                       bins, 0, 1000000,
-                       bins, 0, 1000000);
-    h->FillRandom("uni", 50000);
-    collection->Add(h);
-  }
-
-  TH3I* m = new TH3I("merged", "merged", bins, 0, 1000000, bins, 0, 1000000, bins, 0, 1000000);
 
   for (auto _ : state) {
-    m->Merge(collection, "-NOCHECK");
+
+    state.PauseTiming();
+    std::vector<std::unique_ptr<TCollection>> collections;
+
+    for (size_t ci = 0; ci < numberOfCollections; ci++) {
+      std::unique_ptr<TCollection> collection = std::make_unique<TObjArray>();
+      collection->SetOwner(true);
+      for (size_t i = 0; i < collectionSize; i++) {
+        TH3I* h = new TH3I(("test" + std::to_string(ci) + "-" + std::to_string(i)).c_str(), "test",
+                           bins, 0, 1000000,
+                           bins, 0, 1000000,
+                           bins, 0, 1000000);
+        h->FillRandom("uni", 50000);
+        collection->Add(h);
+      }
+      collections.push_back(std::move(collection));
+    }
+    auto m = std::make_unique<TH3I>("merged", "merged", bins, 0, 1000000, bins, 0, 1000000, bins, 0, 1000000);
+
+    state.ResumeTiming();
+    for (const auto& collection : collections) {
+      m->Merge(collection.get(), "-NOCHECK");
+    }
+    state.PauseTiming();
   }
 
-  delete collection;
-  delete m;
+  delete uni;
 }
 
 static void BM_mergingCollectionsTHNSparse(benchmark::State& state)
 {
-  size_t collectionSize = state.range(0);
+  const size_t collectionSize = state.range(0);
+  // We should always merge the same amount of objects (histograms) in one benchmark cycle.
+  const size_t numberOfCollections = MAX_SIZE_COLLECTION / collectionSize;
 
   const Double_t min = 0.0;
   const Double_t max = 1000000.0;
@@ -123,35 +163,39 @@ static void BM_mergingCollectionsTHNSparse(benchmark::State& state)
   for (auto _ : state) {
 
     state.PauseTiming();
-    TCollection* collection = new TObjArray();
-    collection->SetOwner(true);
-    for (size_t i = 0; i < collectionSize; i++) {
+    std::vector<std::unique_ptr<TCollection>> collections;
 
-      auto* h = new THnSparseI(("test" + std::to_string(i)).c_str(), "test", dim, binsDims, mins, maxs);
-      for (size_t entry = 0; entry < 50000; entry++) {
-        gen.RndmArray(dim, randomArray);
-        for (double& r : randomArray) {
-          r *= max;
+    for (size_t ci = 0; ci < numberOfCollections; ci++) {
+      std::unique_ptr<TCollection> collection = std::make_unique<TObjArray>();
+      collection->SetOwner(true);
+      for (size_t i = 0; i < collectionSize; i++) {
+        auto* h = new THnSparseI(("test" + std::to_string(ci) + "-" + std::to_string(i)).c_str(), "test", dim, binsDims, mins, maxs);
+        for (size_t entry = 0; entry < 50000; entry++) {
+          gen.RndmArray(dim, randomArray);
+          for (double& r : randomArray) {
+            r *= max;
+          }
+          h->Fill(randomArray);
         }
-        h->Fill(randomArray);
+        collection->Add(h);
       }
-      collection->Add(h);
+      collections.push_back(std::move(collection));
     }
-    auto* m = new THnSparseI("merged", "merged", dim, binsDims, mins, maxs);
+    auto m = std::make_unique<THnSparseI>("merged", "merged", dim, binsDims, mins, maxs);
 
     state.ResumeTiming();
-    m->Merge(collection);
-
+    for (const auto& collection : collections) {
+      m->Merge(collection.get());
+    }
     state.PauseTiming();
-
-    delete collection;
-    delete m;
   }
 }
 
 static void BM_mergingCollectionsTTree(benchmark::State& state)
 {
-  size_t collectionSize = state.range(0);
+  const size_t collectionSize = state.range(0);
+  // We should always merge the same amount of objects (histograms) in one benchmark cycle.
+  const size_t numberOfCollections = MAX_SIZE_COLLECTION / collectionSize;
 
   struct format1 {
     Int_t a;
@@ -175,36 +219,44 @@ static void BM_mergingCollectionsTTree(benchmark::State& state)
 
   for (auto _ : state) {
     state.PauseTiming();
-    TCollection* collection = new TObjArray();
-    collection->SetOwner(true);
-    for (size_t i = 0; i < collectionSize; i++) {
-      TTree* t = createTree(std::to_string(i));
-      for (size_t entry = 0; entry < 6250; entry++) {
-        gen.RndmArray(5, randomArray);
-        branch1 = {static_cast<Int_t>(randomArray[0]), static_cast<Long64_t>(randomArray[1]), static_cast<Float_t>(randomArray[2]), randomArray[3]};
-        branch2 = randomArray[4];
-        t->Fill();
+    std::vector<std::unique_ptr<TCollection>> collections;
+
+    for (size_t ci = 0; ci < numberOfCollections; ci++) {
+      std::unique_ptr<TCollection> collection = std::make_unique<TObjArray>();
+      collection->SetOwner(true);
+      for (size_t i = 0; i < collectionSize; i++) {
+        TTree* t = createTree(std::to_string(ci) + "-" + std::to_string(i));
+        for (size_t entry = 0; entry < 6250; entry++) {
+          gen.RndmArray(5, randomArray);
+          branch1 = {static_cast<Int_t>(randomArray[0]), static_cast<Long64_t>(randomArray[1]), static_cast<Float_t>(randomArray[2]), randomArray[3]};
+          branch2 = randomArray[4];
+          t->Fill();
+        }
+        collection->Add(t);
       }
-      collection->Add(t);
+      collections.emplace_back(std::move(collection));
     }
     TTree* merged = createTree("merged");
 
     state.ResumeTiming();
-    merged->Merge(collection);
-
+    for (const auto& collection : collections) {
+      merged->Merge(collection.get());
+    }
     state.PauseTiming();
 
-    delete collection;
     delete merged;
   }
 }
 
 static void BM_mergingPODCollections(benchmark::State& state)
 {
-  size_t collectionSize = state.range(0);
-  size_t bins = 62500; // makes 250kB
+  const size_t collectionSize = state.range(0);
+  // We should always merge the same amount of objects (histograms) in one benchmark cycle.
+  const size_t numberOfCollections = MAX_SIZE_COLLECTION / collectionSize;
+  const size_t bins = 62500; // makes 250kB
 
-  std::vector<std::vector<float>*> collection;
+  using PODHistoType = std::vector<float>;
+  using PODHistoTypePtr = std::unique_ptr<PODHistoType>;
   TF1* uni = new TF1("uni", "1", 0, 1000000);
 
   const size_t randoms = 50000;
@@ -212,37 +264,42 @@ static void BM_mergingPODCollections(benchmark::State& state)
   gen.SetSeed(std::random_device()());
   Double_t randomArray[randoms];
 
-  for (size_t i = 0; i < collectionSize; i++) {
-    auto* v = new std::vector<float>(bins, 0);
-    gen.RndmArray(randoms, randomArray);
-    for (double r : randomArray) {
-      size_t idx = r * bins;
-      if (idx != bins) {
-        (*v)[idx] += 1;
+  for (auto _ : state) {
+    state.PauseTiming();
+    std::vector<std::unique_ptr<std::vector<PODHistoTypePtr>>> collections;
+
+    for (size_t ci = 0; ci < numberOfCollections; ci++) {
+      auto collection = std::make_unique<std::vector<PODHistoTypePtr>>();
+      for (size_t i = 0; i < collectionSize; i++) {
+        auto h = PODHistoTypePtr(new PODHistoType(bins, 0));
+        gen.RndmArray(randoms, randomArray);
+        for (double r : randomArray) {
+          size_t idx = r * bins;
+          if (idx != bins) {
+            (*h)[idx] += 1;
+          }
+        }
+        collection->emplace_back(std::move(h));
+      }
+      collections.emplace_back(std::move(collection));
+    }
+    auto m = PODHistoTypePtr(new PODHistoType(bins, 0));
+
+    auto merge = [&](const std::vector<PODHistoTypePtr>& collection, size_t i) {
+      auto h = collection[i].get();
+      for (size_t b = 0; b < bins; b++) {
+        (*m)[b] += (*h)[b];
+      }
+    };
+
+    state.ResumeTiming();
+    for (const auto& collection : collections) {
+      for (size_t i = 0; i < collectionSize; i++) {
+        merge(*collection, i);
       }
     }
-    collection.push_back(v);
+    state.PauseTiming();
   }
-
-  auto* m = new std::vector<float>(bins, 0);
-
-  auto merge = [&](size_t i) {
-    auto* v = collection[i];
-    for (size_t b = 0; b < bins; b++) {
-      (*m)[b] += (*v)[b];
-    }
-  };
-
-  for (auto _ : state) {
-    for (size_t i = 0; i < collectionSize; i++) {
-      merge(i);
-    }
-  }
-
-  for (size_t i = 0; i < collectionSize; i++) {
-    delete collection[i];
-  }
-  delete m;
   delete uni;
 }
 
@@ -251,11 +308,14 @@ static void BM_mergingBoostRegular1DCollections(benchmark::State& state)
   const double min = 0.0;
   const double max = 1000000.0;
   const size_t collectionSize = state.range(0);
+  // We should always merge the same amount of objects (histograms) in one benchmark cycle.
+  const size_t numberOfCollections = MAX_SIZE_COLLECTION / collectionSize;
   const size_t bins = 62500; // makes 250kB
 
   auto merged = bh::make_histogram(bh::axis::regular<>(bins, min, max, "x"));
+  using HistoType = decltype(merged);
+  using CollectionHistoType = std::vector<HistoType>;
 
-  std::vector<decltype(merged)> collection;
   TF1* uni = new TF1("uni", "1", 0, 1000000);
 
   const size_t randoms = 50000;
@@ -263,26 +323,39 @@ static void BM_mergingBoostRegular1DCollections(benchmark::State& state)
   gen.SetSeed(std::random_device()());
   Double_t randomArray[randoms];
 
-  for (size_t i = 0; i < collectionSize; i++) {
-    collection.emplace_back(std::move(bh::make_histogram(bh::axis::regular<>(bins, min, max, "x"))));
-
-    auto& h = collection.back();
-    static_assert(std::is_reference<decltype(h)>::value);
-
-    gen.RndmArray(randoms, randomArray);
-    for (double r : randomArray) {
-      h(r * max);
-    }
-  }
-
-  auto merge = [&](size_t i) {
-    merged += collection[i];
-  };
-
   for (auto _ : state) {
-    for (size_t i = 0; i < collectionSize; i++) {
-      merge(i);
+
+    state.PauseTiming();
+    std::vector<CollectionHistoType> collections;
+
+    for (size_t ci = 0; ci < numberOfCollections; ci++) {
+      CollectionHistoType collection;
+      for (size_t i = 0; i < collectionSize; i++) {
+        collection.emplace_back(std::move(bh::make_histogram(bh::axis::regular<>(bins, min, max, "x"))));
+
+        auto& h = collection.back();
+        static_assert(std::is_reference<decltype(h)>::value);
+
+        gen.RndmArray(randoms, randomArray);
+        for (double r : randomArray) {
+          h(r * max);
+        }
+      }
+      collections.emplace_back(std::move(collection));
     }
+
+    auto merge = [&](const CollectionHistoType& collection) {
+      for (size_t i = 0; i < collectionSize; i++) {
+        merged += collection[i];
+      }
+    };
+
+    state.ResumeTiming();
+    for (size_t ci = 0; ci < numberOfCollections; ci++) {
+      merge(collections[ci]);
+    }
+
+    state.PauseTiming();
   }
 
   delete uni;
@@ -293,11 +366,14 @@ static void BM_mergingBoostRegular2DCollections(benchmark::State& state)
   const double min = 0.0;
   const double max = 1000000.0;
   const size_t collectionSize = state.range(0);
+  // We should always merge the same amount of objects (histograms) in one benchmark cycle.
+  const size_t numberOfCollections = MAX_SIZE_COLLECTION / collectionSize;
   const size_t bins = 250; // 250 bins * 250 bins * 4B makes 250kB
 
   auto merged = bh::make_histogram(bh::axis::regular<>(bins, min, max, "x"), bh::axis::regular<>(bins, min, max, "y"));
+  using HistoType = decltype(merged);
+  using CollectionHistoType = std::vector<HistoType>;
 
-  std::vector<decltype(merged)> collection;
   TF1* uni = new TF1("uni", "1", 0, 1000000);
 
   const size_t randoms = 50000;
@@ -306,27 +382,40 @@ static void BM_mergingBoostRegular2DCollections(benchmark::State& state)
   Double_t randomArrayX[randoms];
   Double_t randomArrayY[randoms];
 
-  for (size_t i = 0; i < collectionSize; i++) {
-    collection.emplace_back(std::move(bh::make_histogram(bh::axis::regular<>(bins, min, max, "x"), bh::axis::regular<>(bins, min, max, "y"))));
-
-    auto& h = collection.back();
-    static_assert(std::is_reference<decltype(h)>::value);
-
-    gen.RndmArray(randoms, randomArrayX);
-    gen.RndmArray(randoms, randomArrayY);
-    for (size_t r = 0; r < randoms; r++) {
-      h(randomArrayX[r] * max, randomArrayY[r] * max);
-    }
-  }
-
-  auto merge = [&](size_t i) {
-    merged += collection[i];
-  };
-
   for (auto _ : state) {
-    for (size_t i = 0; i < collectionSize; i++) {
-      merge(i);
+
+    state.PauseTiming();
+    std::vector<CollectionHistoType> collections;
+
+    for (size_t ci = 0; ci < numberOfCollections; ci++) {
+      CollectionHistoType collection;
+      for (size_t i = 0; i < collectionSize; i++) {
+        collection.emplace_back(std::move(bh::make_histogram(bh::axis::regular<>(bins, min, max, "x"), bh::axis::regular<>(bins, min, max, "y"))));
+
+        auto& h = collection.back();
+        static_assert(std::is_reference<decltype(h)>::value);
+
+        gen.RndmArray(randoms, randomArrayX);
+        gen.RndmArray(randoms, randomArrayY);
+        for (size_t r = 0; r < randoms; r++) {
+          h(randomArrayX[r] * max, randomArrayY[r] * max);
+        }
+      }
+      collections.emplace_back(std::move(collection));
     }
+
+    auto merge = [&](const CollectionHistoType& collection) {
+      for (size_t i = 0; i < collectionSize; i++) {
+        merged += collection[i];
+      }
+    };
+
+    state.ResumeTiming();
+    for (size_t ci = 0; ci < numberOfCollections; ci++) {
+      merge(collections[ci]);
+    }
+
+    state.PauseTiming();
   }
 
   delete uni;
@@ -343,7 +432,6 @@ BENCHMARK(BM_mergingBoostRegular2DCollections)->Arg(1);
 BENCHMARK(BM_mergingCollectionsTTree)->Arg(1);
 
 // collections
-#define BENCHMARK_RANGE_COLLECTIONS Arg(1)->Arg(1 << 2)->Arg(1 << 4)->Arg(1 << 6)->Arg(1 << 8)->Arg(1 << 10)
 
 BENCHMARK(BM_mergingCollectionsTH1I)->BENCHMARK_RANGE_COLLECTIONS;
 BENCHMARK(BM_mergingCollectionsTH2I)->BENCHMARK_RANGE_COLLECTIONS;
