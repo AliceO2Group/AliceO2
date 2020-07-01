@@ -22,7 +22,7 @@ namespace readers
 {
 
 struct RuntimeWatchdog {
-  int numberOfCycles;
+  int numberTimeFrames;
   clock_t startTime;
   clock_t lastTime;
   double runTime;
@@ -30,7 +30,7 @@ struct RuntimeWatchdog {
 
   RuntimeWatchdog(Long64_t limit)
   {
-    numberOfCycles = -1;
+    numberTimeFrames = -1;
     startTime = clock();
     lastTime = startTime;
     runTime = 0.;
@@ -39,7 +39,7 @@ struct RuntimeWatchdog {
 
   bool update()
   {
-    numberOfCycles++;
+    numberTimeFrames++;
     if (runTimeLimit <= 0) {
       return true;
     }
@@ -47,19 +47,20 @@ struct RuntimeWatchdog {
     auto nowTime = clock();
 
     // time spent to process the time frame
-    double time_spent = ((numberOfCycles > 1) ? 1. : 0.) * (double)(nowTime - lastTime) / CLOCKS_PER_SEC;
+    double time_spent = numberTimeFrames < 1 ? (double)(nowTime - lastTime) / CLOCKS_PER_SEC : 0.;
     runTime += time_spent;
     lastTime = nowTime;
 
-    return ((lastTime - startTime) / CLOCKS_PER_SEC + runTime / (numberOfCycles + 1)) < runTimeLimit;
+    return ((double)(lastTime - startTime) / CLOCKS_PER_SEC + runTime / (numberTimeFrames + 1)) < runTimeLimit;
   }
 
   void printOut()
   {
     LOGP(INFO, "RuntimeWatchdog");
     LOGP(INFO, "  run time limit: {}", runTimeLimit);
-    LOGP(INFO, "  number of Cycles: {}", numberOfCycles);
-    LOGP(INFO, "  total runTime: {}", (lastTime - startTime) / CLOCKS_PER_SEC + ((numberOfCycles >= 0) ? runTime / (numberOfCycles + 1) : 0.));
+    LOGP(INFO, "  number of time frames: {}", numberTimeFrames);
+    LOGP(INFO, "  estimated run time per time frame: {}", (numberTimeFrames >= 0) ? runTime / (numberTimeFrames + 1) : 0.);
+    LOGP(INFO, "  estimated total run time: {}", (double)(lastTime - startTime) / CLOCKS_PER_SEC + ((numberTimeFrames >= 0) ? runTime / (numberTimeFrames + 1) : 0.));
   }
 };
 

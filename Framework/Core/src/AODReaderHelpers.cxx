@@ -246,7 +246,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       }
     }
 
-    // get the run time limit
+    // get the run time watchdog
     auto* watchdog = new RuntimeWatchdog(options.get<int64_t>("time-limit"));
 
     // analyze type of requested tables
@@ -263,7 +263,8 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                            didir](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
       // check if RuntimeLimit is reached
       if (!watchdog->update()) {
-        LOGP(INFO, "Run time exceeded!");
+        LOGP(INFO, "Run time exceeds run time limit of {} seconds!", watchdog->runTimeLimit);
+        LOGP(INFO, "Stopping after time frame {}.", watchdog->numberTimeFrames - 1);
         didir->closeInputFiles();
         control.endOfStream();
         control.readyToQuit(QuitRequest::All);
@@ -273,7 +274,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       // Each parallel reader reads the files whose index is associated to
       // their inputTimesliceId
       assert(device.inputTimesliceId < device.maxInputTimeslices);
-      size_t fi = (watchdog->numberOfCycles * device.maxInputTimeslices) + device.inputTimesliceId;
+      size_t fi = (watchdog->numberTimeFrames * device.maxInputTimeslices) + device.inputTimesliceId;
 
       // check if EoF is reached
       if (didir->atEnd(fi)) {
