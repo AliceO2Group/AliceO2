@@ -109,7 +109,7 @@ struct pidTOFTask {
     tof::Response resp = tof::Response();
     resp.SetEventTime(evt);
     for (auto i : tracks) {
-      resp.UpdateTrack(i.p(), i.tofExpMom(), i.length(), i.tofSignal());
+      resp.UpdateTrack(i.p(), i.tofExpMom() / tof::Response::kCSPEED, i.length(), i.tofSignal());
       tofpidbeta(resp.GetBeta(),
                  resp.GetBetaExpectedSigma(),
                  resp.GetExpectedBeta(PID::Electron),

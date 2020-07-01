@@ -26,7 +26,7 @@ uint EventTime::GetMomBin(float mom) const
 double Param::GetExpectedSigma(float mom, float time, float evtimereso, float mass) const
 {
   mom = abs(mom);
-  if (mom <= 0 || mass <= 0)
+  if (mom <= 0)
     return -999;
   double dpp = mPar[0] + mPar[1] * mom + mPar[2] * mass / mom; //mean relative pt resolution;
   double sigma = dpp * time / (1. + mom * mom / (mass * mass));

@@ -21,6 +21,7 @@
 #include "TMath.h"
 
 // O2 includes
+#include "Framework/Logger.h"
 #include "ReconstructionDataFormats/PID.h"
 
 namespace o2::pid::tof
@@ -33,13 +34,21 @@ class EventTime
   EventTime() = default;
   ~EventTime() = default;
 
-  void SetEvTime(float evtime, int i) { mEvTime[i] = evtime; }
-  void SetEvTimeReso(float evtimereso, int i) { mEvTimeReso[i] = evtimereso; }
-  void SetEvTimeMask(int mask, int i) { mEvTimeMask[i] = mask; }
+  /// Setter for the event time in momentum bin i
+  void SetEvTime(int i, float evtime) { mEvTime[i] = evtime; }
+  /// Setter for the event time resolution in momentum bin i
+  void SetEvTimeReso(int i, float evtimereso) { mEvTimeReso[i] = evtimereso; }
+  /// Setter for the event time mask in momentum bin i
+  void SetEvTimeMask(int i, int mask) { mEvTimeMask[i] = mask; }
+  /// Getter for the event time in momentum bin i
   float GetEvTime(int i) const { return mEvTime[i]; }
+  /// Getter for the event time resolution in momentum bin i
   float GetEvTimeReso(int i) const { return mEvTimeReso[i]; }
+  /// Getter for the momentum bin index
   uint GetMomBin(float mom) const;
+  /// Getter for the event time for the momentum requested
   float GetEvTime(float mom) const { return mEvTime[GetMomBin(mom)]; }
+  /// Getter for the event time resolution for the momentum requested
   float GetEvTimeReso(float mom) const { return mEvTimeReso[GetMomBin(mom)]; }
 
  private:
@@ -133,10 +142,11 @@ class Response
   float GetExpectedSigma(o2::track::PID::ID id) const { return mParam.GetExpectedSigma(mMomentum, mTOFSignal, mEventTime.GetEvTimeReso(mMomentum), o2::track::PID::getMass2Z(id)); }
 
   // Nsigma
-  float GetNumberOfSigmas(o2::track::PID::ID id) const { return (mTOFSignal - mEventTime.GetEvTime(mMomentum)) / GetExpectedSigma(id); }
+  float GetNumberOfSigmas(o2::track::PID::ID id) const { return (mTOFSignal - mEventTime.GetEvTime(mMomentum) - GetExpectedSignal(id)) / GetExpectedSigma(id); }
 
   // double GetMismatchProbability(double time, double eta) const;
-
+  // Utility values
+  static constexpr float kCSPEED = TMath::C() * 1.0e2f * 1.0e-12f; /// Speed of light in TOF units (cm/ps)
  private:
   Param mParam; /// Parametrization of the TOF signal
   // Event of interest information
@@ -146,8 +156,6 @@ class Response
   float mTOFExpMomentum; /// TOF expected momentum of the track of interest
   float mLength;         /// Track of interest integrated length
   float mTOFSignal;      /// Track of interest integrated length
-
-  static constexpr float kCSPEED = TMath::C() * 1.0e2f / 1.0e-12f; /// Speed of light in TOF units (cm/ps)
 };
 
 } // namespace o2::pid::tof
