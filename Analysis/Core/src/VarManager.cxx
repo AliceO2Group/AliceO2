@@ -14,7 +14,7 @@
 
 ClassImp(VarManager);
 
-  TString VarManager::fgVariableNames[VarManager::kNVars] = {""};
+TString VarManager::fgVariableNames[VarManager::kNVars] = {""};
 TString VarManager::fgVariableUnits[VarManager::kNVars] = {""};
 bool VarManager::fgUsedVars[VarManager::kNVars] = {kFALSE};
 float VarManager::fgValues[VarManager::kNVars] = {0.0};
