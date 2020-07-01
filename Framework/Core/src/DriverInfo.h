@@ -74,8 +74,6 @@ enum struct DriverState {
 struct DriverInfo {
   /// Stack with the states to be processed next.
   std::vector<DriverState> states;
-  /// The first unused file descriptor
-  int maxFd;
 
   // Signal handler for children
   struct sigaction sa_handle_child;

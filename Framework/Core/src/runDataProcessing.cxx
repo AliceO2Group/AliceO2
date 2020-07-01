@@ -241,11 +241,9 @@ int calculateExitCode(std::vector<DeviceInfo>& infos)
   return exitCode;
 }
 
-int createPipes(int maxFd, int* pipes)
+void createPipes(int* pipes)
 {
   auto p = pipe(pipes);
-  maxFd = maxFd > pipes[0] ? maxFd : pipes[0];
-  maxFd = maxFd > pipes[1] ? maxFd : pipes[1];
 
   if (p == -1) {
     std::cerr << "Unable to create PIPE: ";
@@ -265,7 +263,6 @@ int createPipes(int maxFd, int* pipes)
     // Kill immediately both the parent and all the children
     kill(-1 * getpid(), SIGKILL);
   }
-  return maxFd;
 }
 
 // We don't do anything in the signal handler but
@@ -302,8 +299,7 @@ void spawnRemoteDevice(std::string const& forwardedStdin,
                        DeviceSpec const& spec,
                        DeviceControl& control,
                        DeviceExecution& execution,
-                       std::vector<DeviceInfo>& deviceInfos,
-                       int& maxFd)
+                       std::vector<DeviceInfo>& deviceInfos)
 {
   LOG(INFO) << "Starting " << spec.id << " as remote device";
   DeviceInfo info;
@@ -353,16 +349,16 @@ void spawnDevice(std::string const& forwardedStdin,
                  DeviceControl& control,
                  DeviceExecution& execution,
                  std::vector<DeviceInfo>& deviceInfos,
-                 int& maxFd, uv_loop_t* loop,
+                 uv_loop_t* loop,
                  std::vector<uv_poll_t*> handles)
 {
   int childstdin[2];
   int childstdout[2];
   int childstderr[2];
 
-  maxFd = createPipes(maxFd, childstdin);
-  maxFd = createPipes(maxFd, childstdout);
-  maxFd = createPipes(maxFd, childstderr);
+  createPipes(childstdin);
+  createPipes(childstdout);
+  createPipes(childstderr);
 
   // If we have a framework id, it means we have already been respawned
   // and that we are in a child. If not, we need to fork and re-exec, adding
@@ -966,15 +962,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         for (size_t di = 0; di < deviceSpecs.size(); ++di) {
           if (deviceSpecs[di].resource.hostname != driverInfo.deployHostname) {
             spawnRemoteDevice(forwardedStdin.str(),
-                              deviceSpecs[di], controls[di], deviceExecutions[di], infos,
-                              driverInfo.maxFd);
+                              deviceSpecs[di], controls[di], deviceExecutions[di], infos);
           } else {
             spawnDevice(forwardedStdin.str(),
                         deviceSpecs[di], controls[di], deviceExecutions[di], infos,
-                        driverInfo.maxFd, loop, pollHandles);
+                        loop, pollHandles);
           }
         }
-        driverInfo.maxFd += 1;
         assert(infos.empty() == false);
         LOG(INFO) << "Redeployment of configuration done.";
       } break;
@@ -1593,7 +1587,6 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   initialiseDriverControl(varmap, driverControl);
 
   DriverInfo driverInfo;
-  driverInfo.maxFd = 0;
   driverInfo.states.reserve(10);
   driverInfo.sigintRequested = false;
   driverInfo.sigchldRequested = false;
