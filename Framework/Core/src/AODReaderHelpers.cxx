@@ -29,6 +29,7 @@
 
 #include <FairMQDevice.h>
 #include <ROOT/RDataFrame.hxx>
+#include <TGrid.h>
 #include <TFile.h>
 
 #include <arrow/ipc/reader.h>
@@ -230,11 +231,35 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
   }};
 }
 
+namespace
+{
+void checkAndEnableAlien(std::string const& filename)
+{
+  // Check if filename is an alien file or if it contains alien files,
+  // TGrid::Connect if that is the case.
+  if (filename.rfind("alien://", 0) == 0) {
+    LOG(debug) << "AliEn file requested. Enabling support.";
+    TGrid::Connect("alien://");
+  }
+  if (filename.rfind("@", 0) == 0) {
+    std::ifstream filenames(filename);
+    for (std::string line; std::getline(filenames, line);) {
+      if (line.rfind("alien://", 0) == 0) {
+        LOG(debug) << "AliEn file requested. Enabling support.";
+        TGrid::Connect("alien://");
+        break;
+      }
+    }
+  }
+}
+} // namespace
+
 AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 {
   auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
                                                  DeviceSpec const& spec) {
     auto filename = options.get<std::string>("aod-file");
+    checkAndEnableAlien(filename);
 
     // create a DataInputDirector
     auto didir = std::make_shared<DataInputDirector>(filename);
