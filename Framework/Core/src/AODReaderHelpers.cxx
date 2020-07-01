@@ -38,6 +38,7 @@
 #include <arrow/util/key_value_metadata.h>
 
 #include <thread>
+#include <time.h>
 
 namespace o2::framework::readers
 {
@@ -245,6 +246,9 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       }
     }
 
+    // get the run time limit
+    auto* watchdog = new RuntimeWatchdog(options.get<int64_t>("time-limit"));
+
     // analyze type of requested tables
     uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{"AOD"});
     std::vector<OutputRoute> unknowns;
@@ -255,14 +259,23 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
     auto counter = std::make_shared<int>(0);
     return adaptStateless([readMask,
                            unknowns,
-                           counter,
+                           watchdog,
                            didir](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
+      // check if RuntimeLimit is reached
+      if (!watchdog->update()) {
+        LOGP(INFO, "Run time exceeded!");
+        didir->closeInputFiles();
+        control.endOfStream();
+        control.readyToQuit(QuitRequest::All);
+        return;
+      }
+
       // Each parallel reader reads the files whose index is associated to
       // their inputTimesliceId
       assert(device.inputTimesliceId < device.maxInputTimeslices);
-      size_t fi = (*counter * device.maxInputTimeslices) + device.inputTimesliceId;
-      *counter += 1;
+      size_t fi = (watchdog->numberOfCycles * device.maxInputTimeslices) + device.inputTimesliceId;
 
+      // check if EoF is reached
       if (didir->atEnd(fi)) {
         LOGP(INFO, "All input files processed");
         didir->closeInputFiles();
