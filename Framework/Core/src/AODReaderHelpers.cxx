@@ -38,7 +38,6 @@
 #include <arrow/util/key_value_metadata.h>
 
 #include <thread>
-#include <time.h>
 
 namespace o2::framework::readers
 {
