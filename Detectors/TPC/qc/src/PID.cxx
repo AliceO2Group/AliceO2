@@ -33,20 +33,20 @@ void PID::initializeHistograms()
   mHist1D.emplace_back("hNClusters", "; # of clusters; counts", 160, 0, 1600); //| mHist1D[0]
   mHist1D.emplace_back("hdEdxTot", "; dEdxTot (a.u.); counts", 200, 0, 200);   //| mHist1D[1]
   mHist1D.emplace_back("hdEdxMax", "; dEdxMax (a.u.); counts", 200, 0, 200);   //| mHist1D[2]
-  mHist1D.emplace_back("hPhi", "; #phi (rad); counts", 180, -M_PI, M_PI);      //| mHist1D[3]
+  mHist1D.emplace_back("hPhi", "; #phi (rad); counts", 180, 0., 2 * M_PI);     //| mHist1D[3]
   mHist1D.emplace_back("hTgl", "; tan#lambda; counts", 60, -2, 2);             //| mHist1D[4]
   mHist1D.emplace_back("hSnp", "; sin p; counts", 60, -2, 2);                  //| mHist1D[5]
 
-  mHist2D.emplace_back("hdEdxVsPhi", "dEdx (a.u.) vs #phi (rad); #phi (rad); dEdx (a.u.)", 180, -M_PI, M_PI, 300, 0, 300); //| mHist2D[0]
-  mHist2D.emplace_back("hdEdxVsTgl", "dEdx (a.u.) vs tan#lambda; tan#lambda; dEdx (a.u.)", 60, -2, 2, 300, 0, 300);        //| mHist2D[1]
-  mHist2D.emplace_back("hdEdxVsncls", "dEdx (a.u.) vs ncls; ncls; dEdx (a.u.)", 80, 0, 160, 300, 0, 300);                  //| mHist2D[2]
+  mHist2D.emplace_back("hdEdxVsPhi", "dEdx (a.u.) vs #phi (rad); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 300, 0, 300); //| mHist2D[0]
+  mHist2D.emplace_back("hdEdxVsTgl", "dEdx (a.u.) vs tan#lambda; tan#lambda; dEdx (a.u.)", 60, -2, 2, 300, 0, 300);         //| mHist2D[1]
+  mHist2D.emplace_back("hdEdxVsncls", "dEdx (a.u.) vs ncls; ncls; dEdx (a.u.)", 80, 0, 160, 300, 0, 300);                   //| mHist2D[2]
 
   const auto logPtBinning = helpers::makeLogBinning(30, 0.1, 10);
   if (logPtBinning.size() > 0) {
     mHist2D.emplace_back("hdEdxVsp", "dEdx (a.u.) vs p (G#it{e}V/#it{c}); p (G#it{e}V/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 300, 0, 300); //| mHist2D[3]
   }
-  //mHist2D.emplace_back("hdedxVsphiMIPA","; #phi (rad); dedx (a.u.)", 180,-M_PI,M_PI,25,35,60);  //| mHist2D[4]
-  //mHist2D.emplace_back("hdedxVsphiMIPC","; #phi (rad); dedx (a.u.)", 180,-M_PI,M_PI,25,35,60);  //| mHist2D[5]
+  //mHist2D.emplace_back("hdedxVsphiMIPA","; #phi (rad); dedx (a.u.)", 180,0.,2*M_PI,25,35,60);  //| mHist2D[4]
+  //mHist2D.emplace_back("hdedxVsphiMIPC","; #phi (rad); dedx (a.u.)", 180,0.,2*M_PI,25,35,60);  //| mHist2D[5]
 }
 
 //______________________________________________________________________________
