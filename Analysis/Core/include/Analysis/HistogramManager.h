@@ -10,6 +10,8 @@
 //
 // Contact: iarsene@cern.ch, i.c.arsene@fys.uio.no
 //
+// Class to define and fill histograms 
+//
 
 #ifndef HistogramManager_H
 #define HistogramManager_H
@@ -80,7 +82,7 @@ class HistogramManager : public TNamed
 
  private:
   THashList* fMainList;                                             // master histogram list
-  int fNVars;                                                       // number of variables handled (tipically fromt he Variable Manager)
+  int fNVars;                                                       // number of variables handled (tipically from the Variable Manager)
   bool* fUsedVars;                                                  //! flags of used variables
   std::map<std::string, std::list<std::vector<int>>> fVariablesMap; //!  map holding identifiers for all variables needed by histograms
 

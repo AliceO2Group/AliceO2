@@ -10,9 +10,9 @@
 
 #include "Analysis/VarManager.h"
 
-ClassImp(VarManager)
+ClassImp(VarManager);
 
-  TString VarManager::fgVariableNames[VarManager::kNVars] = {""};
+TString VarManager::fgVariableNames[VarManager::kNVars] = {""};
 TString VarManager::fgVariableUnits[VarManager::kNVars] = {""};
 bool VarManager::fgUsedVars[VarManager::kNVars] = {kFALSE};
 float VarManager::fgValues[VarManager::kNVars] = {0.0};
@@ -115,6 +115,18 @@ void VarManager::FillTrack(vector<float> track, float* values)
   //values[kTRDsignal] = track.trdSignal();
   //values[kTOFsignal] = track.tofSignal();
   //values[kTrackLength] = track.barrelLength();
+}
+
+//__________________________________________________________________
+void VarManager::FillTrack(ReducedTrack track, float* values)
+{
+  if (!values)
+    values = fgValues;
+
+  values[kPt] = track.pt();
+  values[kEta] = track.eta();
+  values[kPhi] = track.phi();
+  values[kCharge] = track.charge();
 }
 
 //__________________________________________________________________
