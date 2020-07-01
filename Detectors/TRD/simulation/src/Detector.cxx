@@ -94,43 +94,35 @@ bool Detector::ProcessHits(FairVolume* v)
   // Inside sensitive volume ?
   bool drRegion = false;
   bool amRegion = false;
-  const TString cIdSensDr = "J";
-  const TString cIdSensAm = "K";
-  const TString cIdCurrent = fMC->CurrentVolName();
-  if (cIdCurrent[1] == cIdSensDr) {
+  char idRegion;
+  int cIdChamber;
+  int r1 = std::sscanf(fMC->CurrentVolName(), "U%1s%d", &idRegion, &cIdChamber);
+  if (r1 != 2) {
+    LOG(FATAL) << "Something went wrong with the geometry volume name " << fMC->CurrentVolName();
+  }
+  if (idRegion == 'J') {
     drRegion = true;
-  }
-  if (cIdCurrent[1] == cIdSensAm) {
+  } else if (idRegion == 'K') {
     amRegion = true;
-  }
-  if (!drRegion && !amRegion) {
+  } else {
     return false;
   }
 
-  // Determine the detector number
-  int sector, det;
-  // The plane number and chamber number
-  char cIdChamber[3];
-  cIdChamber[0] = cIdCurrent[2];
-  cIdChamber[1] = cIdCurrent[3];
-  cIdChamber[2] = 0;
-  // The det-sec number (0 - 29)
-  const int idChamber = mGeom->getDetectorSec(atoi(cIdChamber));
+  const int idChamber = mGeom->getDetectorSec(cIdChamber);
   if (idChamber < 0 || idChamber > 29) {
     LOG(FATAL) << "Chamber ID out of bounds";
   }
-  // The sector number (0 - 17), according to the standard coordinate system
-  TString cIdPath = fMC->CurrentVolOffName(7); // will return BTRD0....BTRD17
-  char cIdSector[3];
-  cIdSector[0] = cIdPath[4];
-  cIdSector[1] = cIdPath[5];
-  cIdSector[2] = 0;
-  sector = atoi(cIdSector);
+
+  int sector;
+  int r2 = std::sscanf(fMC->CurrentVolOffName(7), "BTRD%d", &sector);
+  if (r2 != 1) {
+    LOG(FATAL) << "Something went wrong with the geometry volume name " << fMC->CurrentVolOffName(7);
+  }
   if (sector < 0 || sector >= kNsector) {
     LOG(FATAL) << "Sector out of bounds";
   }
   // The detector number (0 - 539)
-  det = mGeom->getDetector(mGeom->getLayer(idChamber), mGeom->getStack(idChamber), sector);
+  int det = mGeom->getDetector(mGeom->getLayer(idChamber), mGeom->getStack(idChamber), sector);
   if (det < 0 || det >= kNdet) {
     LOG(FATAL) << "Detector number out of bounds";
   }
