@@ -52,6 +52,20 @@ struct TableReader {
     DefineCuts();
   }
 
+  void DefineCuts() 
+  {
+    fEventCut = new AnalysisVarCut(VarManager::kNVars);
+    fEventCut->AddCut(VarManager::kVtxZ, -10.0, 10.0);
+    
+    fTrackCut = new AnalysisVarCut(VarManager::kNVars);
+    fTrackCut->AddCut(VarManager::kPt, 0.0, 2.0);
+    
+    for(int i=0; i<VarManager::kNVars;++i)
+      cout << AnalysisVarCut::fgUsedVars[i] << "  ";
+    cout << endl;
+    VarManager::SetUseVars(AnalysisVarCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
+  }
+  
   //void process(soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov>::iterator event,
   //             soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel> tracks)
   void process(aod::ReducedEvents::iterator event, aod::ReducedTracks tracks)
@@ -136,20 +150,6 @@ struct TableReader {
         //                         200, 0.0, 200., VarManager::kTPCsignal);   // TH2F histogram
       }
     }   // end loop over histogram classes
-  }
-  
-  void DefineCuts() 
-  {
-    fEventCut = new AnalysisVarCut(VarManager::kNVars);
-    fEventCut->AddCut(VarManager::kVtxZ, -10.0, 10.0);
-    
-    fTrackCut = new AnalysisVarCut(VarManager::kNVars);
-    fTrackCut->AddCut(VarManager::kPt, 0.0, 2.0);
-    
-    for(int i=0; i<VarManager::kNVars;++i)
-      cout << AnalysisVarCut::fgUsedVars[i] << "  ";
-    cout << endl;
-    VarManager::SetUseVars(AnalysisVarCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 };
 

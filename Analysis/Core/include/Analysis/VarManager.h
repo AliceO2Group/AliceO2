@@ -16,14 +16,14 @@
 #ifndef VarManager_H
 #define VarManager_H
 
-#include "Analysis/ReducedInfoTables.h"
+//#include "Analysis/ReducedInfoTables.h"
 #include <TObject.h>
 #include <TString.h>
 
 #include <vector>
 #include <map>
 
-using namespace o2::aod;
+//using namespace o2::aod;
 using std::vector;
 
 //_________________________________________________________________________
@@ -125,7 +125,7 @@ class VarManager : public TObject
 
   static void FillEvent(vector<float> event, float* values = nullptr);
   static void FillTrack(vector<float> track, float* values = nullptr);
-  static void FillTrack(ReducedTrack track, float* values = nullptr);
+  //static void FillTrack(ReducedTrack track, float* values = nullptr);
   
  public:
   VarManager();

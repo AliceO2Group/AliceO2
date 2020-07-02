@@ -117,6 +117,7 @@ void VarManager::FillTrack(vector<float> track, float* values)
   //values[kTrackLength] = track.barrelLength();
 }
 
+/*
 //__________________________________________________________________
 void VarManager::FillTrack(ReducedTrack track, float* values)
 {
@@ -127,7 +128,7 @@ void VarManager::FillTrack(ReducedTrack track, float* values)
   values[kEta] = track.eta();
   values[kPhi] = track.phi();
   values[kCharge] = track.charge();
-}
+}*/
 
 //__________________________________________________________________
 void VarManager::SetDefaultVarNames()
