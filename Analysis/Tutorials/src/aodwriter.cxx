@@ -139,7 +139,7 @@ struct ATask {
       table_uno(phi, eta, mom);
       table_due(ok, phi, eta, mom, pt);
       table_tre(phi, eta, mom, id);
-      LOGF(INFO, "Values (%i): (%i %f, %f, %f, %f, %i)", cnt, ok, eta, phi, mom, pt, id);
+      //LOGF(INFO, "Values (%i): (%i %f, %f, %f, %f, %i)", cnt, ok, eta, phi, mom, pt, id);
       cnt++;
     }
 
