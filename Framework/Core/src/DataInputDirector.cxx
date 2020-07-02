@@ -48,10 +48,10 @@ TFile* DataInputDescriptor::getInputFile(int counter)
     if (mcurrentFile) {
       if (mcurrentFile->GetName() != mfilenames[counter]) {
         closeInputFile();
-        mcurrentFile = new TFile(mfilenames[counter].c_str());
+        mcurrentFile = TFile::Open(mfilenames[counter].c_str());
       }
     } else {
-      mcurrentFile = new TFile(mfilenames[counter].c_str());
+      mcurrentFile = TFile::Open(mfilenames[counter].c_str());
     }
   } else {
     closeInputFile();
