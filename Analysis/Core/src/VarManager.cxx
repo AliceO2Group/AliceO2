@@ -143,6 +143,7 @@ void VarManager::FillTrack(vector<float> track, float* values)
   //values[kTrackLength] = track.barrelLength();
 }
 
+/*
 //__________________________________________________________________
 void VarManager::FillEventDerived(float* values)
 {
