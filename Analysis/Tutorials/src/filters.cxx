@@ -41,7 +41,7 @@ struct ATask {
 };
 
 struct BTask {
-  float fPI = M_PIf32;
+  float fPI = static_cast<float>(M_PI);
   float ptlow = 0.5f;
   float ptup = 2.0f;
   Filter ptFilter_a = aod::track::pt > ptlow;
