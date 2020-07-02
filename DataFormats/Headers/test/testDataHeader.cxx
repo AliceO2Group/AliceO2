@@ -236,9 +236,9 @@ BOOST_AUTO_TEST_CASE(DataHeader_test)
               << "size " << std::setw(2) << sizeof(dh.payloadSize) << " at " << (char*)(&dh.payloadSize) - (char*)(&dh) << std::endl;
   }
 
-  // DataHeader must have size 88
-  static_assert(sizeof(DataHeader) == 88,
-                "DataHeader struct must be of size 88");
+  // DataHeader must have size 96
+  static_assert(sizeof(DataHeader) == 96,
+                "DataHeader struct must be of size 96");
   DataHeader dh2;
   BOOST_CHECK(dh == dh2);
   DataHeader dh3{gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{0}, 0};
