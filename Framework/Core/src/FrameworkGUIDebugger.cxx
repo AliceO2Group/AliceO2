@@ -334,7 +334,7 @@ void metricsTableRow(std::vector<ColumnInfo> columnInfos,
         ImGui::NextColumn();
       } break;
       case MetricType::Uint64: {
-        ImGui::Text("%llu (%i)", metricsInfo.uint64Metrics[info.index][row], info.index);
+        ImGui::Text("%" PRIu64 " (%i)", metricsInfo.uint64Metrics[info.index][row], info.index);
         ImGui::NextColumn();
       } break;
       case MetricType::Float: {
