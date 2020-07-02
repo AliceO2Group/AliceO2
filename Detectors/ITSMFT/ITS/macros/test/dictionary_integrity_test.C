@@ -1,4 +1,4 @@
-/// \file CheckLookUp.C
+/// \file dictionary_integrity_test.C
 /// Macro to check the integrity of the dictionary of cluster-topology. The ID of each entry is checked.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
@@ -37,8 +37,8 @@ void dictionary_integrity_test(std::string dictfile = "", std::string output_nam
     //***************** input **************************
 
     ClusterPattern cp_input = dict.getPattern(ID_input);
-    unsigned char patt_input[Cluster::kMaxPatternBytes];
-    memcpy(&patt_input[0], &cp_input.getPattern()[2], Cluster::kMaxPatternBytes);
+    unsigned char patt_input[ClusterPattern::MaxPatternBytes];
+    memcpy(&patt_input[0], &cp_input.getPattern()[2], ClusterPattern::MaxPatternBytes);
     int nRow_input = cp_input.getRowSpan();
     int nCol_input = cp_input.getColumnSpan();
     unsigned long input_hash = dict.getHash(ID_input);

@@ -37,7 +37,7 @@ struct TableReader {
   OutputObj<HistogramManager> fHistMan{"output"};
   AnalysisVarCut* fEventCut;
   AnalysisVarCut* fTrackCut;
-  
+
   void init(o2::framework::InitContext&)
   {
     VarManager::SetDefaultVarNames();
@@ -77,6 +77,7 @@ struct TableReader {
 
     std::vector<float> eventInfo = {(float)event.runNumber(), event.posX(), event.posY(), event.posZ(), (float)event.numContrib()};
     VarManager::FillEvent(eventInfo);                       // extract event information and place it in the fgValues array
+
     fHistMan->FillHistClass("Event_BeforeCuts", VarManager::fgValues); // automatically fill all the histograms in the class Event
     if(!fEventCut->IsSelected(VarManager::fgValues)) return;
     fHistMan->FillHistClass("Event_AfterCuts", VarManager::fgValues);

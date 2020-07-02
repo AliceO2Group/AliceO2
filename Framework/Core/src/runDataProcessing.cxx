@@ -241,11 +241,9 @@ int calculateExitCode(std::vector<DeviceInfo>& infos)
   return exitCode;
 }
 
-int createPipes(int maxFd, int* pipes)
+void createPipes(int* pipes)
 {
   auto p = pipe(pipes);
-  maxFd = maxFd > pipes[0] ? maxFd : pipes[0];
-  maxFd = maxFd > pipes[1] ? maxFd : pipes[1];
 
   if (p == -1) {
     std::cerr << "Unable to create PIPE: ";
@@ -265,7 +263,6 @@ int createPipes(int maxFd, int* pipes)
     // Kill immediately both the parent and all the children
     kill(-1 * getpid(), SIGKILL);
   }
-  return maxFd;
 }
 
 // We don't do anything in the signal handler but
@@ -302,8 +299,7 @@ void spawnRemoteDevice(std::string const& forwardedStdin,
                        DeviceSpec const& spec,
                        DeviceControl& control,
                        DeviceExecution& execution,
-                       std::vector<DeviceInfo>& deviceInfos,
-                       int& maxFd)
+                       std::vector<DeviceInfo>& deviceInfos)
 {
   LOG(INFO) << "Starting " << spec.id << " as remote device";
   DeviceInfo info;
@@ -353,16 +349,16 @@ void spawnDevice(std::string const& forwardedStdin,
                  DeviceControl& control,
                  DeviceExecution& execution,
                  std::vector<DeviceInfo>& deviceInfos,
-                 int& maxFd, uv_loop_t* loop,
+                 uv_loop_t* loop,
                  std::vector<uv_poll_t*> handles)
 {
   int childstdin[2];
   int childstdout[2];
   int childstderr[2];
 
-  maxFd = createPipes(maxFd, childstdin);
-  maxFd = createPipes(maxFd, childstdout);
-  maxFd = createPipes(maxFd, childstderr);
+  createPipes(childstdin);
+  createPipes(childstdout);
+  createPipes(childstderr);
 
   // If we have a framework id, it means we have already been respawned
   // and that we are in a child. If not, we need to fork and re-exec, adding
@@ -618,60 +614,6 @@ bool processSigChild(DeviceInfos& infos)
   return hasError;
 }
 
-// Creates the sink for FairLogger / InfoLogger integration
-auto createInfoLoggerSinkHelper(std::unique_ptr<InfoLogger>& logger, std::unique_ptr<InfoLoggerContext>& ctx)
-{
-  return [&logger,
-          &ctx](const std::string& content, const fair::LogMetaData& metadata) {
-    // translate FMQ metadata
-    InfoLogger::InfoLogger::Severity severity = InfoLogger::Severity::Undefined;
-    int level = InfoLogger::undefinedMessageOption.level;
-
-    if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::nolog)) {
-      // discard
-      return;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::fatal)) {
-      severity = InfoLogger::Severity::Fatal;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::error)) {
-      severity = InfoLogger::Severity::Error;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::warn)) {
-      severity = InfoLogger::Severity::Warning;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::state)) {
-      severity = InfoLogger::Severity::Info;
-      level = 10;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::info)) {
-      severity = InfoLogger::Severity::Info;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug)) {
-      severity = InfoLogger::Severity::Debug;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug1)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 10;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug2)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 20;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug3)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 30;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug4)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 40;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::trace)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 50;
-    }
-
-    InfoLogger::InfoLoggerMessageOption opt = {
-      severity,
-      level,
-      InfoLogger::undefinedMessageOption.errorCode,
-      metadata.file.c_str(),
-      atoi(metadata.line.c_str())};
-
-    if (logger) {
-      logger->log(opt, *ctx, "DPL: %s", content.c_str());
-    }
-  };
-};
 
 int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, TerminationPolicy errorPolicy,
             uv_loop_t* loop)
@@ -700,67 +642,21 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, Termin
 
     // This is to control lifetime. All these services get destroyed
     // when the runner is done.
-    std::unique_ptr<LocalRootFileService> localRootFileService;
-    std::unique_ptr<TextControlService> textControlService;
-    std::unique_ptr<ParallelContext> parallelContext;
     std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
-    std::unique_ptr<CallbackService> callbackService;
-    std::unique_ptr<ConfigurationInterface> configurationService;
-    std::unique_ptr<Monitoring> monitoringService;
-    std::unique_ptr<InfoLogger> infoLoggerService;
-    std::unique_ptr<InfoLoggerContext> infoLoggerContext;
-    std::unique_ptr<TimesliceIndex> timesliceIndex;
     std::unique_ptr<DeviceState> deviceState;
 
-    auto afterConfigParsingCallback = [&localRootFileService,
-                                       &textControlService,
-                                       &parallelContext,
-                                       &simpleRawDeviceService,
-                                       &callbackService,
-                                       &configurationService,
-                                       &monitoringService,
-                                       &infoLoggerService,
+    auto afterConfigParsingCallback = [&simpleRawDeviceService,
                                        &spec,
                                        &serviceRegistry,
-                                       &infoLoggerContext,
                                        &deviceState,
-                                       &timesliceIndex,
                                        &errorPolicy,
                                        &loop](fair::mq::DeviceRunner& r) {
-      localRootFileService = std::make_unique<LocalRootFileService>();
       deviceState = std::make_unique<DeviceState>();
       deviceState->loop = loop;
 
-      textControlService = std::make_unique<TextControlService>(serviceRegistry, *deviceState.get());
-      parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
       simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
-      callbackService = std::make_unique<CallbackService>();
-      monitoringService = MonitoringFactory::Get(r.fConfig.GetStringValue("monitoring-backend"));
-      if (r.fConfig.GetStringValue("configuration") != "command-line") {
-        configurationService = ConfigurationFactory::getConfiguration(r.fConfig.GetStringValue("configuration"));
-      }
-      auto infoLoggerMode = r.fConfig.GetStringValue("infologger-mode");
-      if (infoLoggerMode != "") {
-        setenv("INFOLOGGER_MODE", r.fConfig.GetStringValue("infologger-mode").c_str(), 1);
-      }
-      infoLoggerService = std::make_unique<InfoLogger>();
-      infoLoggerContext = std::make_unique<InfoLoggerContext>();
 
-      auto infoLoggerSeverity = r.fConfig.GetStringValue("infologger-severity");
-      if (infoLoggerSeverity != "") {
-        fair::Logger::AddCustomSink("infologger", infoLoggerSeverity, createInfoLoggerSinkHelper(infoLoggerService, infoLoggerContext));
-      }
-      timesliceIndex = std::make_unique<TimesliceIndex>();
-
-      serviceRegistry.registerService<Monitoring>(monitoringService.get());
-      serviceRegistry.registerService<ConfigurationInterface>(configurationService.get());
-      serviceRegistry.registerService<InfoLogger>(infoLoggerService.get());
-      serviceRegistry.registerService<RootFileService>(localRootFileService.get());
-      serviceRegistry.registerService<ControlService>(textControlService.get());
-      serviceRegistry.registerService<ParallelContext>(parallelContext.get());
       serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
-      serviceRegistry.registerService<CallbackService>(callbackService.get());
-      serviceRegistry.registerService<TimesliceIndex>(timesliceIndex.get());
       serviceRegistry.registerService<DeviceSpec>(&spec);
 
       // The decltype stuff is to be able to compile with both new and old
@@ -772,6 +668,14 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, Termin
       serviceRegistry.get<RawDeviceService>().setDevice(device.get());
       r.fDevice = std::move(device);
       fair::Logger::SetConsoleColor(false);
+
+      /// Create all the requested services and initialise them
+      for (auto& service : spec.services) {
+        LOG(info) << "Initialising service " << service.name;
+        auto handle = service.init(serviceRegistry, *deviceState.get(), r.fConfig);
+        serviceRegistry.registerService(handle.hash, handle.instance);
+        dynamic_cast<DataProcessingDevice*>(r.fDevice.get())->bindService(service, handle.instance);
+      }
     };
 
     runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
@@ -1058,15 +962,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         for (size_t di = 0; di < deviceSpecs.size(); ++di) {
           if (deviceSpecs[di].resource.hostname != driverInfo.deployHostname) {
             spawnRemoteDevice(forwardedStdin.str(),
-                              deviceSpecs[di], controls[di], deviceExecutions[di], infos,
-                              driverInfo.maxFd);
+                              deviceSpecs[di], controls[di], deviceExecutions[di], infos);
           } else {
             spawnDevice(forwardedStdin.str(),
                         deviceSpecs[di], controls[di], deviceExecutions[di], infos,
-                        driverInfo.maxFd, loop, pollHandles);
+                        loop, pollHandles);
           }
         }
-        driverInfo.maxFd += 1;
         assert(infos.empty() == false);
         LOG(INFO) << "Redeployment of configuration done.";
       } break;
@@ -1685,7 +1587,6 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   initialiseDriverControl(varmap, driverControl);
 
   DriverInfo driverInfo;
-  driverInfo.maxFd = 0;
   driverInfo.states.reserve(10);
   driverInfo.sigintRequested = false;
   driverInfo.sigchldRequested = false;

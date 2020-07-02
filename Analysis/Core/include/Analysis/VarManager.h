@@ -126,7 +126,7 @@ class VarManager : public TObject
   static void FillEvent(vector<float> event, float* values = nullptr);
   static void FillTrack(vector<float> track, float* values = nullptr);
   //static void FillTrack(ReducedTrack track, float* values = nullptr);
-  
+
  public:
   VarManager();
   ~VarManager() override;

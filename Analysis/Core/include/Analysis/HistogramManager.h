@@ -83,6 +83,7 @@ class HistogramManager : public TNamed
  private:
   THashList* fMainList;                                             // master histogram list
   int fNVars;                                                       // number of variables handled (tipically from the Variable Manager)
+
   bool* fUsedVars;                                                  //! flags of used variables
   std::map<std::string, std::list<std::vector<int>>> fVariablesMap; //!  map holding identifiers for all variables needed by histograms
 

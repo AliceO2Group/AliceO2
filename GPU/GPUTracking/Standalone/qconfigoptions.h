@@ -100,6 +100,7 @@ AddOption(tpcCompressionGatherMode, int, -1, "tpcCompressionGatherMode", 0, "TPC
 AddOption(runMC, bool, false, "runMC", 0, "Process MC labels")
 AddOption(ompKernels, bool, false, "ompKernels", 0, "Parallelize with OMP inside kernels instead of over slices")
 AddOption(doublePipeline, bool, false, "doublePipeline", 0, "Double pipeline mode")
+AddOption(prefetchTPCpageScan, int, 0, "prefetchTPCpageScan", 0, "Prefetch Data for TPC page scan in CPU cache")
 AddHelp("help", 'h')
 EndConfig()
 

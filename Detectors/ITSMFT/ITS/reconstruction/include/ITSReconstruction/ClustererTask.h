@@ -14,14 +14,12 @@
 #ifndef ALICEO2_ITS_CLUSTERERTASK
 #define ALICEO2_ITS_CLUSTERERTASK
 
-#include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "ITSMFTReconstruction/RawPixelReader.h"
 #include "ITSMFTReconstruction/DigitPixelReader.h"
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -43,7 +41,6 @@ namespace its
 class ClustererTask
 {
   using Clusterer = o2::itsmft::Clusterer;
-  using Cluster = o2::itsmft::Cluster;
   using CompCluster = o2::itsmft::CompCluster;
   using CompClusterExt = o2::itsmft::CompClusterExt;
   using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -71,10 +68,7 @@ class ClustererTask
   std::unique_ptr<o2::itsmft::DigitPixelReader> mReaderMC;                            ///< reader for MC data
   std::unique_ptr<o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingITS>> mReaderRaw; ///< reader for raw data
 
-  const o2::itsmft::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
   Clusterer mClusterer;                                ///< Cluster finder
-
-  std::vector<Cluster> mFullClus;               //!< vector of full clusters
 
   std::vector<CompClusterExt> mCompClus;               //!< vector of compact clusters
 

@@ -29,6 +29,7 @@
 
 #include <FairMQDevice.h>
 #include <ROOT/RDataFrame.hxx>
+#include <TGrid.h>
 #include <TFile.h>
 
 #include <arrow/ipc/reader.h>
@@ -230,11 +231,35 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
   }};
 }
 
+namespace
+{
+void checkAndEnableAlien(std::string const& filename)
+{
+  // Check if filename is an alien file or if it contains alien files,
+  // TGrid::Connect if that is the case.
+  if (filename.rfind("alien://", 0) == 0) {
+    LOG(debug) << "AliEn file requested. Enabling support.";
+    TGrid::Connect("alien://");
+  }
+  if (filename.rfind("@", 0) == 0) {
+    std::ifstream filenames(filename);
+    for (std::string line; std::getline(filenames, line);) {
+      if (line.rfind("alien://", 0) == 0) {
+        LOG(debug) << "AliEn file requested. Enabling support.";
+        TGrid::Connect("alien://");
+        break;
+      }
+    }
+  }
+}
+} // namespace
+
 AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 {
   auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
                                                  DeviceSpec const& spec) {
     auto filename = options.get<std::string>("aod-file");
+    checkAndEnableAlien(filename);
 
     // create a DataInputDirector
     auto didir = std::make_shared<DataInputDirector>(filename);
@@ -244,6 +269,9 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         LOGP(ERROR, "Check the JSON document! Can not be properly parsed!");
       }
     }
+
+    // get the run time watchdog
+    auto* watchdog = new RuntimeWatchdog(options.get<int64_t>("time-limit"));
 
     // analyze type of requested tables
     uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{"AOD"});
@@ -255,14 +283,24 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
     auto counter = std::make_shared<int>(0);
     return adaptStateless([readMask,
                            unknowns,
-                           counter,
+                           watchdog,
                            didir](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
+      // check if RuntimeLimit is reached
+      if (!watchdog->update()) {
+        LOGP(INFO, "Run time exceeds run time limit of {} seconds!", watchdog->runTimeLimit);
+        LOGP(INFO, "Stopping after time frame {}.", watchdog->numberTimeFrames - 1);
+        didir->closeInputFiles();
+        control.endOfStream();
+        control.readyToQuit(QuitRequest::All);
+        return;
+      }
+
       // Each parallel reader reads the files whose index is associated to
       // their inputTimesliceId
       assert(device.inputTimesliceId < device.maxInputTimeslices);
-      size_t fi = (*counter * device.maxInputTimeslices) + device.inputTimesliceId;
-      *counter += 1;
+      size_t fi = (watchdog->numberTimeFrames * device.maxInputTimeslices) + device.inputTimesliceId;
 
+      // check if EoF is reached
       if (didir->atEnd(fi)) {
         LOGP(INFO, "All input files processed");
         didir->closeInputFiles();

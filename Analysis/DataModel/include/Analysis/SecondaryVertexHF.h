@@ -11,6 +11,7 @@
 #define O2_ANALYSIS_SECONDARYVERTEXHF_H_
 
 #include "Framework/AnalysisDataModel.h"
+#include "Analysis/RecoDecay.h"
 
 namespace o2::aod
 {
@@ -22,7 +23,7 @@ using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra>;
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, BigTracks, "fIndex0");
 DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, BigTracks, "fIndex1");
-DECLARE_SOA_COLUMN(HFflag, hfflag, float);
+DECLARE_SOA_COLUMN(HFflag, hfflag, int);
 } // namespace hftrackindexprong2
 
 namespace hftrackindexprong3
@@ -34,8 +35,35 @@ DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, BigTracks, "fIndex0");
 DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, BigTracks, "fIndex1");
 DECLARE_SOA_INDEX_COLUMN_FULL(Index2, index2, int, BigTracks, "fIndex2");
-DECLARE_SOA_COLUMN(HFflag, hfflag, float);
+DECLARE_SOA_COLUMN(HFflag, hfflag, int);
 } // namespace hftrackindexprong3
+
+namespace hfcandprong2
+{
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_COLUMN(PxProng0, pxprong0, float);
+DECLARE_SOA_COLUMN(PyProng0, pyprong0, float);
+DECLARE_SOA_COLUMN(PzProng0, pzprong0, float);
+DECLARE_SOA_COLUMN(PxProng1, pxprong1, float);
+DECLARE_SOA_COLUMN(PyProng1, pyprong1, float);
+DECLARE_SOA_COLUMN(PzProng1, pzprong1, float);
+DECLARE_SOA_COLUMN(DecayVtxX, decayvtxx, float);
+DECLARE_SOA_COLUMN(DecayVtxY, decayvtxy, float);
+DECLARE_SOA_COLUMN(DecayVtxZ, decayvtxz, float);
+DECLARE_SOA_COLUMN(MassD0, massD0, float);
+DECLARE_SOA_COLUMN(MassD0bar, massD0bar, float);
+DECLARE_SOA_DYNAMIC_COLUMN(PtProng0, ptprong0,
+                           [](float px0, float py0) { return pttrack(px0, py0); });
+DECLARE_SOA_DYNAMIC_COLUMN(PtProng1, ptprong1,
+                           [](float px1, float py1) { return pttrack(px1, py1); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt,
+                           [](float px0, float py0, float px1, float py1) { return ptcand2prong(px0, py0, px1, py1); });
+DECLARE_SOA_DYNAMIC_COLUMN(DecaylengthXY, decaylengthxy,
+                           [](float xvtxd, float yvtxd, float xvtxp, float yvtxp) { return declengthxy(xvtxd, yvtxd, xvtxp, yvtxp); });
+DECLARE_SOA_DYNAMIC_COLUMN(Decaylength, decaylength,
+                           [](float xvtxd, float yvtxd, float zvtxd, float xvtxp,
+                              float yvtxp, float zvtxp) { return declength(xvtxd, yvtxd, zvtxd, xvtxp, yvtxp, zvtxp); });
+} // namespace hfcandprong2
 
 DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2",
                   hftrackindexprong2::CollisionId,
@@ -49,42 +77,22 @@ DECLARE_SOA_TABLE(HfTrackIndexProng3, "AOD", "HFTRACKIDXP3",
                   hftrackindexprong3::Index1Id,
                   hftrackindexprong3::Index2Id,
                   hftrackindexprong3::HFflag);
+
+DECLARE_SOA_TABLE(HfCandProng2, "AOD", "HFCANDPRONG2",
+                  collision::PosX, collision::PosY, collision::PosZ,
+                  hfcandprong2::PxProng0, hfcandprong2::PyProng0, hfcandprong2::PzProng0,
+                  hfcandprong2::PxProng1, hfcandprong2::PyProng1, hfcandprong2::PzProng1,
+                  hfcandprong2::DecayVtxX, hfcandprong2::DecayVtxY, hfcandprong2::DecayVtxZ,
+                  hfcandprong2::MassD0, hfcandprong2::MassD0bar,
+                  hfcandprong2::PtProng0<hfcandprong2::PxProng0, hfcandprong2::PyProng0>,
+                  hfcandprong2::PtProng1<hfcandprong2::PxProng1, hfcandprong2::PyProng1>,
+                  hfcandprong2::Pt<hfcandprong2::PxProng0, hfcandprong2::PyProng0,
+                                   hfcandprong2::PxProng1, hfcandprong2::PyProng1>,
+                  hfcandprong2::DecaylengthXY<hfcandprong2::DecayVtxX, hfcandprong2::DecayVtxY,
+                                              collision::PosX, collision::PosY>,
+                  hfcandprong2::Decaylength<hfcandprong2::DecayVtxX, hfcandprong2::DecayVtxY,
+                                            hfcandprong2::DecayVtxZ, collision::PosX,
+                                            collision::PosY, collision::PosZ>);
 } // namespace o2::aod
-
-float energy(float px, float py, float pz, float mass)
-{
-  float en_ = sqrtf(mass * mass + px * px + py * py + pz * pz);
-  return en_;
-};
-
-float invmass2prongs(float px0, float py0, float pz0, float mass0,
-                     float px1, float py1, float pz1, float mass1)
-{
-
-  float energy0_ = energy(px0, py0, pz0, mass0);
-  float energy1_ = energy(px1, py1, pz1, mass1);
-  float energytot = energy0_ + energy1_;
-
-  float psum2 = (px0 + px1) * (px0 + px1) +
-                (py0 + py1) * (py0 + py1) +
-                (pz0 + pz1) * (pz0 + pz1);
-  float mass = sqrtf(energytot * energytot - psum2);
-  return mass;
-};
-
-float invmass3prongs2(float px0, float py0, float pz0, float mass0,
-                      float px1, float py1, float pz1, float mass1,
-                      float px2, float py2, float pz2, float mass2)
-{
-  float energy0_ = energy(px0, py0, pz0, mass0);
-  float energy1_ = energy(px1, py1, pz1, mass1);
-  float energy2_ = energy(px2, py2, pz2, mass2);
-  float energytot = energy0_ + energy1_ + energy2_;
-
-  float psum2 = (px0 + px1 + px2) * (px0 + px1 + px2) +
-                (py0 + py1 + py2) * (py0 + py1 + py2) +
-                (pz0 + pz1 + pz2) * (pz0 + pz1 + pz2);
-  return energytot * energytot - psum2;
-};
 
 #endif // O2_ANALYSIS_SECONDARYVERTEXHF_H_

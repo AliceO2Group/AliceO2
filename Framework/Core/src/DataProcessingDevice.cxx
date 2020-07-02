@@ -82,51 +82,29 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mStatelessProcess{spec.algorithm.onProcess},
     mError{spec.algorithm.onError},
     mConfigRegistry{nullptr},
-    mFairMQContext{FairMQDeviceProxy{this}},
-    mStringContext{FairMQDeviceProxy{this}},
-    mDataFrameContext{FairMQDeviceProxy{this}},
-    mRawBufferContext{FairMQDeviceProxy{this}},
-    mContextRegistry{&mFairMQContext, &mStringContext, &mDataFrameContext, &mRawBufferContext},
-    mAllocator{&mTimingInfo, &mContextRegistry, spec.outputs},
-    mRelayer{spec.completionPolicy,
-             spec.inputs,
-             registry.get<Monitoring>(),
-             registry.get<TimesliceIndex>()},
+    mAllocator{&mTimingInfo, &registry, spec.outputs},
     mServiceRegistry{registry},
-    mErrorCount{0},
-    mProcessingCount{0}
+    mErrorCount{0}
 {
   StateMonitoring<DataProcessingStatus>::start();
-  auto dispatcher = [this](FairMQParts&& parts, std::string const& channel, unsigned int index) {
-    DataProcessor::doSend(*this, std::move(parts), channel.c_str(), index);
-  };
-  auto matcher = [policy = spec.dispatchPolicy](o2::header::DataHeader const& header) {
-    if (policy.triggerMatcher == nullptr) {
-      return true;
-    }
-    return policy.triggerMatcher(Output{header});
-  };
 
-  if (spec.dispatchPolicy.action == DispatchPolicy::DispatchOp::WhenReady) {
-    mFairMQContext.init(DispatchControl{dispatcher, matcher});
-  }
-
+  /// FIXME: move erro handling to a service?
   if (mError != nullptr) {
-    mErrorHandling = [& errorCallback = mError, &monitoringService = registry.get<Monitoring>(),
+    mErrorHandling = [& errorCallback = mError,
                       &serviceRegistry = mServiceRegistry](std::exception& e, InputRecord& record) {
       StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
       LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
-      monitoringService.send({1, "error"});
+      serviceRegistry.get<Monitoring>().send({1, "error"});
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
       StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
     };
   } else {
-    mErrorHandling = [& monitoringService = registry.get<Monitoring>(), &errorPolicy = mErrorPolicy,
+    mErrorHandling = [& errorPolicy = mErrorPolicy,
                       &serviceRegistry = mServiceRegistry](std::exception& e, InputRecord& record) {
       StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
       LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
-      monitoringService.send({1, "error"});
+      serviceRegistry.get<Monitoring>().send({1, "error"});
       switch (errorPolicy) {
         case TerminationPolicy::QUIT:
           throw e;
@@ -166,6 +144,7 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
 /// * Invoke the actual init callback, which returns the processing callback.
 void DataProcessingDevice::Init()
 {
+  mRelayer = &mServiceRegistry.get<DataRelayer>();
   // For some reason passing rateLogging does not work anymore.
   // This makes sure we never have more than one notification per minute.
   for (auto& x : fChannels) {
@@ -375,7 +354,7 @@ bool DataProcessingDevice::doRun()
 {
   /// This will send metrics for the relayer at regular intervals of
   /// 5 seconds, in order to avoid overloading the system.
-  auto sendRelayerMetrics = [relayerStats = mRelayer.getStats(),
+  auto sendRelayerMetrics = [relayerStats = mRelayer->getStats(),
                              &stats = mStats,
                              &lastSent = mLastSlowMetricSentTimestamp,
                              &currentTime = mBeginIterationTimestamp,
@@ -433,7 +412,7 @@ bool DataProcessingDevice::doRun()
       auto state = stats.relayerState[si];
       monitoring.send({state, "data_relayer/" + std::to_string(si)});
     }
-    relayer.sendContextState();
+    relayer->sendContextState();
     monitoring.flushBuffer();
     lastFlushed = currentTime;
     O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
@@ -495,7 +474,7 @@ bool DataProcessingDevice::doRun()
   if (mWasActive == false) {
     mServiceRegistry.get<CallbackService>()(CallbackService::Id::Idle);
   }
-  auto activity = mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
+  auto activity = mRelayer->processDanglingInputs(mExpirationHandlers, mServiceRegistry);
   mWasActive |= activity.expiredSlots > 0;
 
   mCompleted.clear();
@@ -518,25 +497,23 @@ bool DataProcessingDevice::doRun()
     // FIXME: not sure this is the correct way to drain the queues, but
     // I guess we will see.
     while (this->tryDispatchComputation(mCompleted)) {
-      mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
+      mRelayer->processDanglingInputs(mExpirationHandlers, mServiceRegistry);
     }
     sendRelayerMetrics();
     flushMetrics();
-    mContextRegistry.get<MessageContext>()->clear();
-    mContextRegistry.get<StringContext>()->clear();
-    mContextRegistry.get<ArrowContext>()->clear();
-    mContextRegistry.get<RawBufferContext>()->clear();
     EndOfStreamContext eosContext{mServiceRegistry, mAllocator};
+    for (auto& eosHandle : mPreEOSHandles) {
+      eosHandle.callback(eosContext, eosHandle.service);
+    }
     mServiceRegistry.get<CallbackService>()(CallbackService::Id::EndOfStream, eosContext);
-    DataProcessor::doSend(*this, *mContextRegistry.get<MessageContext>());
-    DataProcessor::doSend(*this, *mContextRegistry.get<StringContext>());
-    DataProcessor::doSend(*this, *mContextRegistry.get<ArrowContext>());
-    DataProcessor::doSend(*this, *mContextRegistry.get<RawBufferContext>());
+    for (auto& eosHandle : mPostEOSHandles) {
+      eosHandle.callback(eosContext, eosHandle.service);
+    }
     for (auto& channel : mSpec.outputChannels) {
       DataProcessingHelpers::sendEndOfStream(*this, channel);
     }
     // This is needed because the transport is deleted before the device.
-    mRelayer.clear();
+    mRelayer->clear();
     switchState(StreamingState::Idle);
     mWasActive = true;
     return true;
@@ -547,7 +524,7 @@ bool DataProcessingDevice::doRun()
 
 void DataProcessingDevice::ResetTask()
 {
-  mRelayer.clear();
+  mRelayer->clear();
 }
 
 /// This is the inner loop of our framework. The actual implementation
@@ -623,7 +600,7 @@ bool DataProcessingDevice::handleData(FairMQParts& parts, InputChannelInfo& info
     device.error(message);
   };
 
-  auto handleValidMessages = [&parts, &relayer = mRelayer, &reportError](std::vector<InputType> const& types) {
+  auto handleValidMessages = [&parts, &relayer = *mRelayer, &reportError](std::vector<InputType> const& types) {
     // We relay execution to make sure we have a complete set of parts
     // available.
     for (size_t pi = 0; pi < (parts.Size() / 2); ++pi) {
@@ -674,22 +651,17 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
   std::vector<MessageSet> currentSetOfInputs;
 
   auto& allocator = mAllocator;
-  auto& context = *mContextRegistry.get<MessageContext>();
   auto& device = *this;
   auto& errorCallback = mError;
   auto& errorCount = mErrorCount;
   auto& forwards = mSpec.forwards;
   auto& inputsSchema = mSpec.inputs;
-  auto& processingCount = mProcessingCount;
-  auto& rdfContext = *mContextRegistry.get<ArrowContext>();
-  auto& relayer = mRelayer;
+  auto& relayer = *mRelayer;
   auto& serviceRegistry = mServiceRegistry;
   auto& statefulProcess = mStatefulProcess;
   auto& statelessProcess = mStatelessProcess;
-  auto& stringContext = *mContextRegistry.get<StringContext>();
   auto& timingInfo = mTimingInfo;
   auto& timesliceIndex = mServiceRegistry.get<TimesliceIndex>();
-  auto& rawContext = *mContextRegistry.get<RawBufferContext>();
 
   // These duplicate references are created so that each function
   // does not need to know about the whole class state, but I can
@@ -748,40 +720,34 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
   // why we do the stateful processing before the stateless one.
   // PROCESSING:{START,END} is done so that we can trigger on begin / end of processing
   // in the GUI.
-  auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
-                             &context, &stringContext, &rdfContext, &rawContext, &serviceRegistry, &device](TimesliceSlot slot, InputRecord& record) {
-    if (statefulProcess) {
-      ProcessingContext processContext{record, serviceRegistry, allocator};
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_USER_CALLBACK);
-      statefulProcess(processContext);
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-      processingCount++;
-    }
-    if (statelessProcess) {
-      ProcessingContext processContext{record, serviceRegistry, allocator};
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_USER_CALLBACK);
-      statelessProcess(processContext);
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-      processingCount++;
+  auto dispatchProcessing = [&allocator, &statefulProcess, &statelessProcess,
+                             &serviceRegistry, &device,
+                             &preHandles = mPreProcessingHandles,
+                             &postHandles = mPostProcessingHandles](TimesliceSlot slot, InputRecord& record) {
+    ProcessingContext processContext{record, serviceRegistry, allocator};
+    for (auto& handle : preHandles) {
+      handle.callback(processContext, handle.service);
     }
 
-    DataProcessor::doSend(device, context);
-    DataProcessor::doSend(device, stringContext);
-    DataProcessor::doSend(device, rdfContext);
-    DataProcessor::doSend(device, rawContext);
+    if (statefulProcess) {
+      statefulProcess(processContext);
+    }
+    if (statelessProcess) {
+      statelessProcess(processContext);
+    }
+
+    for (auto& handle : postHandles) {
+      handle.callback(processContext, handle.service);
+    }
   };
 
   // I need a preparation step which gets the current timeslice id and
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &stringContext, &rdfContext, &rawContext, &context, &relayer, &timesliceIndex](TimesliceSlot i) {
+  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &relayer, &timesliceIndex](TimesliceSlot i) {
     auto timeslice = timesliceIndex.getTimesliceForSlot(i);
     timingInfo.timeslice = timeslice.value;
-    context.clear();
-    stringContext.clear();
-    rdfContext.clear();
-    rawContext.clear();
   };
 
   // When processing them, timers will have to be cleaned up
@@ -921,6 +887,10 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
 
       prepareAllocatorForCurrentTimeSlice(TimesliceSlot{action.slot});
       InputRecord record = fillInputs(action.slot);
+      ProcessingContext processContext{record, mServiceRegistry, mAllocator};
+      for (auto& handle : mPreProcessingHandles) {
+        handle.callback(processContext, handle.service);
+      }
       if (action.op == CompletionPolicy::CompletionOp::Discard) {
         if (forwards.empty() == false) {
           forwardInputs(action.slot, record);
@@ -936,7 +906,17 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
       }
       try {
         if (mState.quitRequested == false) {
-          dispatchProcessing(action.slot, record);
+
+          if (statefulProcess) {
+            statefulProcess(processContext);
+          }
+          if (statelessProcess) {
+            statelessProcess(processContext);
+          }
+
+          for (auto& handle : mPostProcessingHandles) {
+            handle.callback(processContext, handle.service);
+          }
         }
       } catch (std::exception& e) {
         mErrorHandling(e, record);
@@ -977,6 +957,22 @@ void DataProcessingDevice::error(const char* msg)
   LOG(ERROR) << msg;
   mErrorCount++;
   mServiceRegistry.get<Monitoring>().send(Metric{mErrorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
+}
+
+void DataProcessingDevice::bindService(ServiceSpec const& spec, void* service)
+{
+  if (spec.preProcessing) {
+    mPreProcessingHandles.push_back(ServiceProcessingHandle{spec.preProcessing, service});
+  }
+  if (spec.postProcessing) {
+    mPostProcessingHandles.push_back(ServiceProcessingHandle{spec.postProcessing, service});
+  }
+  if (spec.preEOS) {
+    mPreEOSHandles.push_back(ServiceEOSHandle{spec.preEOS, service});
+  }
+  if (spec.postEOS) {
+    mPostEOSHandles.push_back(ServiceEOSHandle{spec.postEOS, service});
+  }
 }
 
 } // namespace o2::framework
