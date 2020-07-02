@@ -89,13 +89,16 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     InOutMemory(InOutMemory&&);
     InOutMemory& operator=(InOutMemory&&);
 
-    std::unique_ptr<char[]> tpcZSpages;
+    std::unique_ptr<unsigned long long int[]> tpcZSpages;
+    std::unique_ptr<char[]> tpcZSpagesChar; // Same as above, but as char (needed for reading dumps, but deprecated, since alignment can be wrong)
     std::unique_ptr<GPUTrackingInOutZS> tpcZSmeta;
     std::unique_ptr<GPUTrackingInOutZS::GPUTrackingInOutZSMeta> tpcZSmeta2;
     std::unique_ptr<o2::tpc::Digit[]> tpcDigits[NSLICES];
+    std::unique_ptr<GPUTrackingInOutDigits> digitMap;
     std::unique_ptr<GPUTPCClusterData[]> clusterData[NSLICES];
     std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
     std::unique_ptr<o2::tpc::ClusterNative[]> clustersNative;
+    std::unique_ptr<o2::tpc::ClusterNativeAccess> clusterNativeAccess;
     std::unique_ptr<GPUTPCTrack[]> sliceTracks[NSLICES];
     std::unique_ptr<GPUTPCHitId[]> sliceClusters[NSLICES];
     std::unique_ptr<AliHLTTPCClusterMCLabel[]> mcLabelsTPC;
@@ -227,13 +230,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;                 // Material Lookup Table
   std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometryU;            // TRD Geometry
 
-  // Ptr to internal reconstruction data objects
-  std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess; // Internal memory for clusterNativeAccess
-  std::unique_ptr<GPUTrackingInOutDigits> mDigitMap;                  // Internal memory for digit-map, if needed
-  std::unique_ptr<unsigned long long int[]> mTPCZSBuffer;             // Memory to store TPC ZS pages
-  std::unique_ptr<unsigned int[]> mTPCZSSizes;                        // Array with TPC ZS numbers of pages
-  std::unique_ptr<void*[]> mTPCZSPtrs;                                // Array with pointers to TPC ZS pages
-  std::unique_ptr<GPUTrackingInOutZS> mTPCZS;                         // TPC ZS Data Structure
+  std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess;
 
   GPUOutputControl* mOutputCompressedClusters = nullptr;
   GPUOutputControl* mOutputClustersNative = nullptr;
