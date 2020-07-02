@@ -71,11 +71,6 @@ void DataSamplingPolicy::configure(const ptree& config)
 
       mPaths.push_back({inputSpec, outputSpec});
     }
-
-    if (outputId > 9) {
-      LOG(ERROR) << "Maximum 10 inputs in DataSamplingPolicy are supported. Call the developers if you really need more.";
-      break;
-    }
   }
 
   mConditions.clear();
@@ -155,6 +150,10 @@ header::DataOrigin DataSamplingPolicy::createPolicyDataOrigin()
 
 header::DataDescription DataSamplingPolicy::createPolicyDataDescription(std::string policyName, size_t id)
 {
+  if (id > 99) {
+    throw std::runtime_error("Maximum 100 inputs in DataSamplingPolicy are supported. Call the developers if you really need more.");
+  }
+
   if (policyName.size() > 14) {
     LOG(WARNING) << "DataSamplingPolicy name '" << policyName << "' is longer than 14 characters, we have to trim it. "
                  << "Use a shorter policy name to avoid potential output name conflicts.";
@@ -162,7 +161,7 @@ header::DataDescription DataSamplingPolicy::createPolicyDataDescription(std::str
   }
 
   header::DataDescription outputDescription;
-  outputDescription.runtimeInit(std::string(policyName + "-" + std::to_string(id)).c_str());
+  outputDescription.runtimeInit((policyName + std::to_string(id)).c_str());
   return outputDescription;
 }
 

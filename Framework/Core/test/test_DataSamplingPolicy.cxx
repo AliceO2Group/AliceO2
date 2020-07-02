@@ -72,11 +72,11 @@ BOOST_AUTO_TEST_CASE(DataSamplingPolicyConfiguration)
   policy.configure(config);
 
   BOOST_CHECK_EQUAL(policy.getName(), "my_policy");
-  BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{"TST", "CHLEB", 33})) == (Output{"DS", "my_policy-0", 33}));
-  BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{"TST", "MLEKO", 33})) == (Output{"DS", "my_policy-1", 33}));
+  BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{"TST", "CHLEB", 33})) == (Output{"DS", "my_policy0", 33}));
+  BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{"TST", "MLEKO", 33})) == (Output{"DS", "my_policy1", 33}));
   const auto& map = policy.getPathMap();
-  BOOST_CHECK((*map.find(ConcreteDataMatcher{"TST", "CHLEB", 33})).second == (OutputSpec{"DS", "my_policy-0", 33}));
-  BOOST_CHECK((*map.find(ConcreteDataMatcher{"TST", "MLEKO", 33})).second == (OutputSpec{"DS", "my_policy-1", 33}));
+  BOOST_CHECK((*map.find(ConcreteDataMatcher{"TST", "CHLEB", 33})).second == (OutputSpec{"DS", "my_policy0", 33}));
+  BOOST_CHECK((*map.find(ConcreteDataMatcher{"TST", "MLEKO", 33})).second == (OutputSpec{"DS", "my_policy1", 33}));
   BOOST_CHECK_EQUAL(map.size(), 2);
 
   BOOST_CHECK(policy.match(ConcreteDataMatcher{"TST", "CHLEB", 33}));
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingPolicyConfiguration)
   config.put("id", "too-long-policy-name");
   policy.configure(config);
   BOOST_CHECK_EQUAL(policy.getName(), "too-long-polic");
-  BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{"TST", "CHLEB", 33})) == (Output{"DS", "too-long-polic-0", 33}));
-  BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{"TST", "MLEKO", 33})) == (Output{"DS", "too-long-polic-1", 33}));
+  BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{"TST", "CHLEB", 33})) == (Output{"DS", "too-long-polic0", 33}));
+  BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{"TST", "MLEKO", 33})) == (Output{"DS", "too-long-polic1", 33}));
   BOOST_CHECK_EQUAL(policy.getPathMap().size(), 2); // previous paths should be cleared
 }

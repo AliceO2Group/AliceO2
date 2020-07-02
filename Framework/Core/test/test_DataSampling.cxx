@@ -65,13 +65,13 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
 
   auto output = std::find_if(disp->outputs.begin(), disp->outputs.end(),
                              [](const OutputSpec& out) {
-                               return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters-0", 0}) && out.lifetime == Lifetime::Timeframe;
+                               return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters0", 0}) && out.lifetime == Lifetime::Timeframe;
                              });
   BOOST_CHECK(output != disp->outputs.end());
 
   output = std::find_if(disp->outputs.begin(), disp->outputs.end(),
                         [](const OutputSpec& out) {
-                          return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters-1", 0}) && out.lifetime == Lifetime::Timeframe;
+                          return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters1", 0}) && out.lifetime == Lifetime::Timeframe;
                         });
   BOOST_CHECK(output != disp->outputs.end());
 
@@ -124,13 +124,13 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
 
     auto output = std::find_if(disp->outputs.begin(), disp->outputs.end(),
                                [](const OutputSpec& out) {
-                                 return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters-0", 0}) && out.lifetime == Lifetime::Timeframe;
+                                 return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters0", 0}) && out.lifetime == Lifetime::Timeframe;
                                });
     BOOST_CHECK(output != disp->outputs.end());
 
     output = std::find_if(disp->outputs.begin(), disp->outputs.end(),
                           [](const OutputSpec& out) {
-                            return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters-1", 0}) && out.lifetime == Lifetime::Timeframe;
+                            return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters1", 0}) && out.lifetime == Lifetime::Timeframe;
                           });
     BOOST_CHECK(output != disp->outputs.end());
 
@@ -205,9 +205,9 @@ BOOST_AUTO_TEST_CASE(InputSpecsForPolicy)
   std::vector<InputSpec> inputs = DataSampling::InputSpecsForPolicy(configFilePath, "tpcclusters");
 
   BOOST_CHECK_EQUAL(inputs.size(), 2);
-  BOOST_CHECK(DataSpecUtils::match(inputs[0], ConcreteDataTypeMatcher{"DS", "tpcclusters-0"}));
+  BOOST_CHECK(DataSpecUtils::match(inputs[0], ConcreteDataTypeMatcher{"DS", "tpcclusters0"}));
   BOOST_CHECK_EQUAL(inputs[0].binding, "clusters");
-  BOOST_CHECK(DataSpecUtils::match(inputs[1], ConcreteDataTypeMatcher{"DS", "tpcclusters-1"}));
+  BOOST_CHECK(DataSpecUtils::match(inputs[1], ConcreteDataTypeMatcher{"DS", "tpcclusters1"}));
   BOOST_CHECK_EQUAL(inputs[1].binding, "clusters_p");
 
   std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(configFilePath);
