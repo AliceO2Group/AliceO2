@@ -75,6 +75,7 @@ struct DataInputDirector {
 
   DataInputDirector();
   DataInputDirector(std::string inputFile);
+  DataInputDirector(std::vector<std::string> inputFiles);
 
   void reset();
   void createDefaultDataInputDescriptor();
