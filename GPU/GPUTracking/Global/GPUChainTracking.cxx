@@ -1000,7 +1000,7 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
       if (mRec->IsGPU()) {
         processorsShadow()->tpcClusterer[iSlice].SetNMaxDigits(processors()->tpcClusterer[iSlice].mPmemory->counters.nDigits, mCFContext->nPagesFragmentMax, nDigitsFragment[iSlice]);
       }
-      if (mPipelineNotifyCtx) {
+      if (mPipelineNotifyCtx && GetDeviceProcessingSettings().doublePipelineClusterizer) {
         mPipelineNotifyCtx->rec->AllocateRegisteredForeignMemory(processors()->tpcClusterer[iSlice].mZSOffsetId, mRec);
         mPipelineNotifyCtx->rec->AllocateRegisteredForeignMemory(processors()->tpcClusterer[iSlice].mZSId, mRec);
       } else {
@@ -1028,7 +1028,7 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
     }
   }
 
-  if (mPipelineNotifyCtx) {
+  if (mPipelineNotifyCtx && GetDeviceProcessingSettings().doublePipelineClusterizer) {
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       mCFContext->ptrSave[iSlice].zsOffsetHost = processors()->tpcClusterer[iSlice].mPzsOffsets;
       mCFContext->ptrSave[iSlice].zsOffsetDevice = processorsShadow()->tpcClusterer[iSlice].mPzsOffsets;
@@ -1048,7 +1048,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   mRec->PushNonPersistentMemory();
   const auto& threadContext = GetThreadContext();
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCClusterFinding;
-  if (RunTPCClusterizer_prepare(mPipelineNotifyCtx)) {
+  if (RunTPCClusterizer_prepare(mPipelineNotifyCtx && GetDeviceProcessingSettings().doublePipelineClusterizer)) {
     return 1;
   }
 
@@ -1059,7 +1059,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
     SetupGPUProcessor(&processors()->tpcClusterer[iSlice], true); // Now we allocate
   }
-  if (mPipelineNotifyCtx) {
+  if (mPipelineNotifyCtx && GetDeviceProcessingSettings().doublePipelineClusterizer) {
     RunTPCClusterizer_prepare(true); // Restore some pointers, allocated by the other pipeline, and set to 0 by SetupGPUProcessor (since not allocated in this pipeline)
   }
 
@@ -2031,7 +2031,7 @@ int GPUChainTracking::RunTPCCompression()
   GPUTPCCompression& Compressor = processors()->tpcCompressor;
   GPUTPCCompression& CompressorShadow = doGPU ? processorsShadow()->tpcCompressor : Compressor;
   const auto& threadContext = GetThreadContext();
-  if (mPipelineFinalizationCtx) {
+  if (mPipelineFinalizationCtx && GetDeviceProcessingSettings().doublePipelineClusterizer) {
     RecordMarker(&mEvents->single, 0);
   }
   Compressor.mNMaxClusterSliceRow = 0;
@@ -2051,7 +2051,7 @@ int GPUChainTracking::RunTPCCompression()
   runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step0attached>(GetGridAuto(0), krnlRunRangeNone, krnlEventNone);
   runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step1unattached>(GetGridAuto(0), krnlRunRangeNone, krnlEventNone);
   TransferMemoryResourcesToHost(myStep, &Compressor, 0);
-  if (mPipelineFinalizationCtx) {
+  if (mPipelineFinalizationCtx && GetDeviceProcessingSettings().doublePipelineClusterizer) {
     SynchronizeEvents(&mEvents->single);
     ReleaseEvent(&mEvents->single);
     ((GPUChainTracking*)GetNextChainInQueue())->RunTPCClusterizer_prepare(false);
