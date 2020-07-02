@@ -29,6 +29,7 @@ void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile 
 {
   using o2::itsmft::ClusterPattern;
   using o2::itsmft::CompClusterExt;
+  using o2::itsmft::CompCluster;
   using o2::itsmft::LookUp;
   using ROFRec = o2::itsmft::ROFRecord;
 
@@ -54,6 +55,8 @@ void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile 
   // Clusters
   TFile* fileCl = TFile::Open(clusfile.data());
   TTree* clusTree = (TTree*)fileCl->Get("o2sim");
+  std::vector<CompClusterExt>* clusArr = nullptr;
+  clusTree->SetBranchAddress("ITSClusterComp", &clusArr);
   std::vector<unsigned char>* patternsPtr = nullptr;
   auto pattBranch = clusTree->GetBranch("ITSClusterPatt");
   if (pattBranch) {
@@ -79,6 +82,14 @@ void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile 
       nClusters++;
       int clEntry = rofRec.getFirstEntry() + icl; // entry of icl-th cluster of this ROF in the vector of clusters
       // do we read MC data?
+
+      const auto& cluster = (*clusArr)[clEntry];
+
+      if (cluster.getPatternID() != CompCluster::InvalidPatternID) {
+        LOG(WARNING) << "Clusters have already been generated with a dictionary! Quitting";
+        return;
+      }
+
       auto rowSpan = *pattIdx++;
       auto columnSpan = *pattIdx++;
       int nBytes = (rowSpan * columnSpan) >> 3;

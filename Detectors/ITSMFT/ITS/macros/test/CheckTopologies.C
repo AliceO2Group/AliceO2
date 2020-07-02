@@ -27,6 +27,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "Framework/Logger.h"
 #include <unordered_map>
 #endif
 
@@ -42,6 +43,7 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root",
   using o2::itsmft::BuildTopologyDictionary;
   using o2::itsmft::ClusterTopology;
   using o2::itsmft::CompClusterExt;
+  using o2::itsmft::CompCluster;
   using o2::itsmft::Hit;
   using ROFRec = o2::itsmft::ROFRecord;
   using MC2ROF = o2::itsmft::MC2ROFRecord;
@@ -149,6 +151,11 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root",
 
       const auto& cluster = (*clusArr)[clEntry];
 
+      if (cluster.getPatternID() != CompCluster::InvalidPatternID) {
+        LOG(WARNING) << "Clusters have already been generated with a dictionary! Quitting";
+        return;
+      }
+
       ClusterTopology topology;
       o2::itsmft::ClusterPattern pattern(pattIdx);
       topology.setPattern(pattern);
@@ -218,34 +225,36 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root",
   TH1F* hNoise = nullptr;
   TH1F* hSignal = nullptr;
 
-  noiseDictionary.setThreshold(0.0001);
-  noiseDictionary.groupRareTopologies();
-  noiseDictionary.printDictionaryBinary(o2::base::NameConf::getDictionaryFileName(dID, "noise", ".bin"));
-  noiseDictionary.printDictionary(o2::base::NameConf::getDictionaryFileName(dID, "noise", ".txt"));
-  noiseDictionary.saveDictionaryRoot(o2::base::NameConf::getDictionaryFileName(dID, "noise", ".root"));
-  signalDictionary.setThreshold(0.0001);
-  signalDictionary.groupRareTopologies();
-  signalDictionary.printDictionaryBinary(o2::base::NameConf::getDictionaryFileName(dID, "signal", ".bin"));
-  signalDictionary.printDictionary(o2::base::NameConf::getDictionaryFileName(dID, "signal", ".txt"));
-  signalDictionary.saveDictionaryRoot(o2::base::NameConf::getDictionaryFileName(dID, "signal", ".root"));
-  cNoise = new TCanvas("cNoise", "Distribution of noise topologies");
-  cNoise->cd();
-  cNoise->SetLogy();
-  o2::itsmft::TopologyDictionary::getTopologyDistribution(noiseDictionary.getDictionary(), hNoise, "hNoise");
-  hNoise->SetDirectory(0);
-  hNoise->Draw("hist");
-  histogramOutput.cd();
-  hNoise->Write();
-  cNoise->Write();
-  cSignal = new TCanvas("cSignal", "cSignal");
-  cSignal->cd();
-  cSignal->SetLogy();
-  o2::itsmft::TopologyDictionary::getTopologyDistribution(signalDictionary.getDictionary(), hSignal, "hSignal");
-  hSignal->SetDirectory(0);
-  hSignal->Draw("hist");
-  histogramOutput.cd();
-  hSignal->Write();
-  cSignal->Write();
-  sw.Stop();
-  sw.Print();
+  if (clusLabArr) {
+    noiseDictionary.setThreshold(0.0001);
+    noiseDictionary.groupRareTopologies();
+    noiseDictionary.printDictionaryBinary(o2::base::NameConf::getDictionaryFileName(dID, "noise", ".bin"));
+    noiseDictionary.printDictionary(o2::base::NameConf::getDictionaryFileName(dID, "noise", ".txt"));
+    noiseDictionary.saveDictionaryRoot(o2::base::NameConf::getDictionaryFileName(dID, "noise", ".root"));
+    signalDictionary.setThreshold(0.0001);
+    signalDictionary.groupRareTopologies();
+    signalDictionary.printDictionaryBinary(o2::base::NameConf::getDictionaryFileName(dID, "signal", ".bin"));
+    signalDictionary.printDictionary(o2::base::NameConf::getDictionaryFileName(dID, "signal", ".txt"));
+    signalDictionary.saveDictionaryRoot(o2::base::NameConf::getDictionaryFileName(dID, "signal", ".root"));
+    cNoise = new TCanvas("cNoise", "Distribution of noise topologies");
+    cNoise->cd();
+    cNoise->SetLogy();
+    o2::itsmft::TopologyDictionary::getTopologyDistribution(noiseDictionary.getDictionary(), hNoise, "hNoise");
+    hNoise->SetDirectory(0);
+    hNoise->Draw("hist");
+    histogramOutput.cd();
+    hNoise->Write();
+    cNoise->Write();
+    cSignal = new TCanvas("cSignal", "cSignal");
+    cSignal->cd();
+    cSignal->SetLogy();
+    o2::itsmft::TopologyDictionary::getTopologyDistribution(signalDictionary.getDictionary(), hSignal, "hSignal");
+    hSignal->SetDirectory(0);
+    hSignal->Draw("hist");
+    histogramOutput.cd();
+    hSignal->Write();
+    cSignal->Write();
+    sw.Stop();
+    sw.Print();
+  }
 }
