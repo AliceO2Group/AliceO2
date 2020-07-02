@@ -86,6 +86,9 @@ std::unique_ptr<GPUReconstructionTimeframe> tf;
 int nEventsInDirectory = 0;
 std::atomic<unsigned int> nIteration, nIterationEnd;
 
+std::vector<GPUTrackingInOutPointers> ioPtrEvents;
+std::vector<GPUChainTracking::InOutMemory> ioMemEvents;
+
 void SetCPUAndOSSettings()
 {
 #ifdef FE_DFL_DISABLE_SSE_DENORMS_ENV // Flush and load denormals to zero in any case
@@ -188,7 +191,7 @@ int ReadConfiguration(int argc, char** argv)
     printf("Cannot run asynchronous processing with double pipeline\n");
     return 1;
   }
-  if (configStandalone.configProc.doublePipeline && (configStandalone.runs < 3 || !configStandalone.outputcontrolmem)) {
+  if (configStandalone.configProc.doublePipeline && (configStandalone.runs < 4 || !configStandalone.outputcontrolmem)) {
     printf("Double pipeline mode needs at least 3 runs per event and external output\n");
     return 1;
   }
@@ -535,7 +538,7 @@ int ReadEvent(int n)
 {
   char filename[256];
   snprintf(filename, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, n);
-  if (configStandalone.inputcontrolmem) {
+  if (configStandalone.inputcontrolmem && !configStandalone.preloadEvents) {
     rec->SetInputControl(inputmemory.get(), configStandalone.inputcontrolmem);
   }
   int r = chainTracking->ReadData(filename);
@@ -548,6 +551,65 @@ int ReadEvent(int n)
     }
     chainTracking->ConvertNativeToClusterDataLegacy();
   }
+  return 0;
+}
+
+int LoadEvent(int iEvent, int x)
+{
+  if (configStandalone.configTF.bunchSim) {
+    if (tf->LoadCreateTimeFrame(iEvent)) {
+      return 1;
+    }
+  } else if (configStandalone.configTF.nMerge) {
+    if (tf->LoadMergedEvents(iEvent)) {
+      return 1;
+    }
+  } else {
+    if (ReadEvent(iEvent)) {
+      return 1;
+    }
+  }
+  bool encodeZS = configStandalone.encodeZS == -1 ? (chainTracking->mIOPtrs.tpcPackedDigits && !chainTracking->mIOPtrs.tpcZS) : (bool)configStandalone.encodeZS;
+  bool zsFilter = configStandalone.zsFilter == -1 ? (!encodeZS && chainTracking->mIOPtrs.tpcPackedDigits) : (bool)configStandalone.zsFilter;
+  if (encodeZS || zsFilter) {
+    if (!chainTracking->mIOPtrs.tpcPackedDigits) {
+      printf("Need digit input to run ZS\n");
+      return 1;
+    }
+    if (zsFilter) {
+      chainTracking->ConvertZSFilter(configStandalone.zs12bit);
+    }
+    if (encodeZS) {
+      chainTracking->ConvertZSEncoder(configStandalone.zs12bit);
+    }
+  }
+  if (!configStandalone.configRec.runTransformation) {
+    chainTracking->mIOPtrs.clustersNative = nullptr;
+  } else {
+    for (int i = 0; i < chainTracking->NSLICES; i++) {
+      if (chainTracking->mIOPtrs.rawClusters[i]) {
+        if (configStandalone.DebugLevel >= 2) {
+          printf("Converting Legacy Raw Cluster to Native\n");
+        }
+        chainTracking->ConvertRun2RawToNative();
+        break;
+      }
+    }
+  }
+
+  if (configStandalone.stripDumpedEvents) {
+    if (chainTracking->mIOPtrs.tpcZS) {
+      chainTracking->mIOPtrs.tpcPackedDigits = nullptr;
+    }
+  }
+
+  if (!rec->GetParam().earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr && chainTracking->mIOPtrs.tpcZS == nullptr) {
+    printf("Need cluster native data for on-the-fly TPC transform\n");
+    return 1;
+  }
+
+  ioPtrEvents[x] = chainTracking->mIOPtrs;
+  ioMemEvents[x] = std::move(chainTracking->mIOMem);
   return 0;
 }
 
@@ -586,7 +648,7 @@ void OutputStat(GPUChainTracking* t, long long int* nTracksTotal = nullptr, long
   printf("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total))%s\n", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, nCls, trdText);
 }
 
-int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, int runs, const GPUTrackingInOutPointers& ioPtrs, long long int* nTracksTotal, long long int* nClustersTotal, int threadId = 0, HighResTimer* timerPipeline = nullptr)
+int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, int runs, int iEvent, long long int* nTracksTotal, long long int* nClustersTotal, int threadId = 0, HighResTimer* timerPipeline = nullptr)
 {
   int iRun = 0, iteration = 0;
   while ((iteration = nIteration.fetch_add(1)) < runs) {
@@ -601,8 +663,9 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
     if (configStandalone.testSyncAsync) {
       printf("Running synchronous phase\n");
     }
+    const GPUTrackingInOutPointers& ioPtrs = ioPtrEvents[!configStandalone.preloadEvents ? 0 : configStandalone.configProc.doublePipeline ? (iteration % ioPtrEvents.size()) : (iEvent - configStandalone.StartEvent)];
     chainTrackingUse->mIOPtrs = ioPtrs;
-    if (iteration == (configStandalone.configProc.doublePipeline ? 1 : (configStandalone.runs - 1))) {
+    if (iteration == (configStandalone.configProc.doublePipeline ? 2 : (configStandalone.runs - 1))) {
       if (configStandalone.configProc.doublePipeline) {
         timerPipeline->Start();
       }
@@ -684,6 +747,7 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
   if (configStandalone.configProc.doublePipeline) {
     recUse->ClearAllocatedMemory();
   }
+  nIteration.store(runs);
   return 0;
 }
 
@@ -770,86 +834,58 @@ int main(int argc, char** argv)
 
   if (configStandalone.eventGenerator) {
     genEvents::RunEventGenerator(chainTracking);
-    return 1;
+    return 0;
+  }
+
+  int nEvents = configStandalone.NEvents;
+  if (configStandalone.configTF.bunchSim) {
+    nEvents = configStandalone.NEvents > 0 ? configStandalone.NEvents : 1;
   } else {
-    int nEvents = configStandalone.NEvents;
-    if (configStandalone.configTF.bunchSim) {
-      nEvents = configStandalone.NEvents > 0 ? configStandalone.NEvents : 1;
-    } else {
-      if (nEvents == -1 || nEvents > nEventsInDirectory) {
-        if (nEvents >= 0) {
-          printf("Only %d events available in directors %s (%d events requested)\n", nEventsInDirectory, configStandalone.EventsDir, nEvents);
-        }
-        nEvents = nEventsInDirectory;
+    if (nEvents == -1 || nEvents > nEventsInDirectory) {
+      if (nEvents >= 0) {
+        printf("Only %d events available in directors %s (%d events requested)\n", nEventsInDirectory, configStandalone.EventsDir, nEvents);
       }
-      if (configStandalone.configTF.nMerge > 1) {
-        nEvents /= configStandalone.configTF.nMerge;
-      }
+      nEvents = nEventsInDirectory;
     }
+    if (configStandalone.configTF.nMerge > 1) {
+      nEvents /= configStandalone.configTF.nMerge;
+    }
+  }
 
-    for (int iRun = 0; iRun < configStandalone.runs2; iRun++) {
-      if (configStandalone.configQA.inputHistogramsOnly) {
-        chainTracking->ForceInitQA();
-        break;
-      }
-      if (configStandalone.runs2 > 1) {
-        printf("RUN2: %d\n", iRun);
-      }
-      long long int nTracksTotal = 0;
-      long long int nClustersTotal = 0;
-      int nEventsProcessed = 0;
+  ioPtrEvents.resize(configStandalone.preloadEvents ? (nEvents - configStandalone.StartEvent) : 1);
+  ioMemEvents.resize(configStandalone.preloadEvents ? (nEvents - configStandalone.StartEvent) : 1);
+  if (configStandalone.preloadEvents) {
+    printf("Preloading events");
+    fflush(stdout);
+    for (int i = 0; i < nEvents - configStandalone.StartEvent; i++) {
+      LoadEvent(configStandalone.StartEvent + i, i);
+      printf(" %d", i);
+      fflush(stdout);
+    }
+    printf("\n");
+  }
 
-      for (int iEvent = configStandalone.StartEvent; iEvent < nEvents; iEvent++) {
-        if (iEvent != configStandalone.StartEvent) {
-          printf("\n");
-        }
+  for (int iRunOuter = 0; iRunOuter < configStandalone.runs2; iRunOuter++) {
+    if (configStandalone.configQA.inputHistogramsOnly) {
+      chainTracking->ForceInitQA();
+      break;
+    }
+    if (configStandalone.runs2 > 1) {
+      printf("RUN2: %d\n", iRunOuter);
+    }
+    long long int nTracksTotal = 0;
+    long long int nClustersTotal = 0;
+    int nEventsProcessed = 0;
+
+    for (int iEvent = configStandalone.StartEvent; iEvent < nEvents; iEvent++) {
+      if (iEvent != configStandalone.StartEvent) {
+        printf("\n");
+      }
+      if (!configStandalone.preloadEvents) {
         HighResTimer timerLoad;
         timerLoad.Start();
-        if (configStandalone.configTF.bunchSim) {
-          if (tf->LoadCreateTimeFrame(iEvent)) {
-            break;
-          }
-        } else if (configStandalone.configTF.nMerge) {
-          if (tf->LoadMergedEvents(iEvent)) {
-            break;
-          }
-        } else {
-          if (ReadEvent(iEvent)) {
-            break;
-          }
-        }
-        bool encodeZS = configStandalone.encodeZS == -1 ? (chainTracking->mIOPtrs.tpcPackedDigits && !chainTracking->mIOPtrs.tpcZS) : (bool)configStandalone.encodeZS;
-        bool zsFilter = configStandalone.zsFilter == -1 ? (!encodeZS && chainTracking->mIOPtrs.tpcPackedDigits) : (bool)configStandalone.zsFilter;
-        if (encodeZS || zsFilter) {
-          if (!chainTracking->mIOPtrs.tpcPackedDigits) {
-            printf("Need digit input to run ZS\n");
-            goto breakrun;
-          }
-          if (zsFilter) {
-            chainTracking->ConvertZSFilter(configStandalone.zs12bit);
-          }
-          if (encodeZS) {
-            chainTracking->ConvertZSEncoder(configStandalone.zs12bit);
-          }
-        }
-        if (!configStandalone.configRec.runTransformation) {
-          chainTracking->mIOPtrs.clustersNative = nullptr;
-        } else {
-          for (int i = 0; i < chainTracking->NSLICES; i++) {
-            if (chainTracking->mIOPtrs.rawClusters[i]) {
-              if (configStandalone.DebugLevel >= 2) {
-                printf("Converting Legacy Raw Cluster to Native\n");
-              }
-              chainTracking->ConvertRun2RawToNative();
-              break;
-            }
-          }
-        }
-
-        if (configStandalone.stripDumpedEvents) {
-          if (chainTracking->mIOPtrs.tpcZS) {
-            chainTracking->mIOPtrs.tpcPackedDigits = nullptr;
-          }
+        if (LoadEvent(iEvent, 0)) {
+          goto breakrun;
         }
         if (configStandalone.dumpEvents) {
           char fname[1024];
@@ -868,65 +904,66 @@ int main(int argc, char** argv)
             ev.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
             printf("Max time bin set to %d\n", (int)ev.continuousMaxTimeBin);
             rec->UpdateEventSettings(&ev);
+            if (recAsync) {
+              recAsync->UpdateEventSettings(&ev);
+            }
+            if (recPipeline) {
+              recPipeline->UpdateEventSettings(&ev);
+            }
           }
         }
-        if (!rec->GetParam().earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr && chainTracking->mIOPtrs.tpcZS == nullptr) {
-          printf("Need cluster native data for on-the-fly TPC transform\n");
+        printf("Loading time: %'d us\n", (int)(1000000 * timerLoad.GetCurrentElapsedTime()));
+      }
+      printf("Processing Event %d\n", iEvent);
+
+      nIteration.store(0);
+      nIterationEnd.store(0);
+      double pipelineWalltime = 1.;
+      if (configStandalone.configProc.doublePipeline) {
+        HighResTimer timerPipeline;
+        if (RunBenchmark(rec, chainTracking, 1, iEvent, &nTracksTotal, &nClustersTotal) || RunBenchmark(recPipeline, chainTrackingPipeline, 2, iEvent, &nTracksTotal, &nClustersTotal)) {
           goto breakrun;
         }
-
-        printf("Loading time: %'d us\n", (int)(1000000 * timerLoad.GetCurrentElapsedTime()));
-
-        printf("Processing Event %d\n", iEvent);
-        GPUTrackingInOutPointers ioPtrSave = chainTracking->mIOPtrs;
-
-        nIteration.store(0);
-        nIterationEnd.store(0);
-        double pipelineWalltime = 1.;
-        if (configStandalone.configProc.doublePipeline) {
-          HighResTimer timerPipeline;
-          if (RunBenchmark(rec, chainTracking, 1, ioPtrSave, &nTracksTotal, &nClustersTotal)) {
-            goto breakrun;
-          }
-          nIteration.store(1);
-          nIterationEnd.store(1);
-          auto pipeline1 = std::async(std::launch::async, RunBenchmark, rec, chainTracking, configStandalone.runs, ioPtrSave, &nTracksTotal, &nClustersTotal, 0, &timerPipeline);
-          auto pipeline2 = std::async(std::launch::async, RunBenchmark, recPipeline, chainTrackingPipeline, configStandalone.runs, ioPtrSave, &nTracksTotal, &nClustersTotal, 1, &timerPipeline);
-          if (pipeline1.get() || pipeline2.get()) {
-            goto breakrun;
-          }
-          pipelineWalltime = timerPipeline.GetElapsedTime() / (configStandalone.runs - 1);
-          printf("Pipeline wall time: %f, %d iterations, %f per event\n", timerPipeline.GetElapsedTime(), configStandalone.runs - 1, pipelineWalltime);
-        } else {
-          if (RunBenchmark(rec, chainTracking, configStandalone.runs, ioPtrSave, &nTracksTotal, &nClustersTotal)) {
-            goto breakrun;
-          }
+        auto pipeline1 = std::async(std::launch::async, RunBenchmark, rec, chainTracking, configStandalone.runs, iEvent, &nTracksTotal, &nClustersTotal, 0, &timerPipeline);
+        auto pipeline2 = std::async(std::launch::async, RunBenchmark, recPipeline, chainTrackingPipeline, configStandalone.runs, iEvent, &nTracksTotal, &nClustersTotal, 1, &timerPipeline);
+        if (pipeline1.get() || pipeline2.get()) {
+          goto breakrun;
         }
-        nEventsProcessed++;
-
-        if (configStandalone.timeFrameTime) {
-          double nClusters = chainTracking->GetTPCMerger().NMaxClusters();
-          if (nClusters > 0) {
-            double nClsPerTF = 550000. * 1138.3;
-            double timePerTF = (configStandalone.configProc.doublePipeline ? pipelineWalltime : ((configStandalone.DebugLevel ? rec->GetStatKernelTime() : rec->GetStatWallTime()) / 1000000.)) * nClsPerTF / nClusters;
-            double nGPUsReq = timePerTF / 0.02277;
-            char stat[1024];
-            snprintf(stat, 1024, "Sync phase: %.2f sec per 256 orbit TF, %.1f GPUs required", timePerTF, nGPUsReq);
-            if (configStandalone.testSyncAsync) {
-              timePerTF = (configStandalone.DebugLevel ? recAsync->GetStatKernelTime() : recAsync->GetStatWallTime()) / 1000000. * nClsPerTF / nClusters;
-              snprintf(stat + strlen(stat), 1024 - strlen(stat), " - Async phase: %f sec per TF", timePerTF);
-            }
-            printf("%s (Measured %s time - Extrapolated from %d clusters to %d)\n", stat, configStandalone.DebugLevel ? "kernel" : "wall", (int)nClusters, (int)nClsPerTF);
-          }
+        pipelineWalltime = timerPipeline.GetElapsedTime() / (configStandalone.runs - 2);
+        printf("Pipeline wall time: %f, %d iterations, %f per event\n", timerPipeline.GetElapsedTime(), configStandalone.runs - 2, pipelineWalltime);
+      } else {
+        if (RunBenchmark(rec, chainTracking, configStandalone.runs, iEvent, &nTracksTotal, &nClustersTotal)) {
+          goto breakrun;
         }
       }
-      if (nEventsProcessed > 1) {
-        printf("Total: %lld clusters, %lld tracks\n", nClustersTotal, nTracksTotal);
+      nEventsProcessed++;
+
+      if (configStandalone.timeFrameTime) {
+        double nClusters = chainTracking->GetTPCMerger().NMaxClusters();
+        if (nClusters > 0) {
+          double nClsPerTF = 550000. * 1138.3;
+          double timePerTF = (configStandalone.configProc.doublePipeline ? pipelineWalltime : ((configStandalone.DebugLevel ? rec->GetStatKernelTime() : rec->GetStatWallTime()) / 1000000.)) * nClsPerTF / nClusters;
+          double nGPUsReq = timePerTF / 0.02277;
+          char stat[1024];
+          snprintf(stat, 1024, "Sync phase: %.2f sec per 256 orbit TF, %.1f GPUs required", timePerTF, nGPUsReq);
+          if (configStandalone.testSyncAsync) {
+            timePerTF = (configStandalone.DebugLevel ? recAsync->GetStatKernelTime() : recAsync->GetStatWallTime()) / 1000000. * nClsPerTF / nClusters;
+            snprintf(stat + strlen(stat), 1024 - strlen(stat), " - Async phase: %f sec per TF", timePerTF);
+          }
+          printf("%s (Measured %s time - Extrapolated from %d clusters to %d)\n", stat, configStandalone.DebugLevel ? "kernel" : "wall", (int)nClusters, (int)nClsPerTF);
+        }
+      }
+
+      if (configStandalone.preloadEvents && configStandalone.configProc.doublePipeline) {
+        break;
       }
     }
+    if (nEventsProcessed > 1) {
+      printf("Total: %lld clusters, %lld tracks\n", nClustersTotal, nTracksTotal);
+    }
   }
-breakrun:
 
+breakrun:
   if (rec->GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
     rec->PrintMemoryMax();
   }
