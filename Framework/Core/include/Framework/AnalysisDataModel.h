@@ -84,9 +84,9 @@ DECLARE_SOA_COLUMN(Snp, snp, float);
 DECLARE_SOA_COLUMN(Tgl, tgl, float);
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);
 // FIXME: find a way to clean up node templates so '1.f *' workaround is not needed
-DECLARE_SOA_EXPRESSION_COLUMN(Phi, phi, float, nasin(aod::track::snp) + aod::track::alpha);
+DECLARE_SOA_EXPRESSION_COLUMN(RawPhi, phiraw, float, nasin(aod::track::snp) + aod::track::alpha);
 // FIXME: dynamic column pending inclusion of conditional nodes
-DECLARE_SOA_DYNAMIC_COLUMN(NormalizedPhi, nphi, [](float phi) -> float {
+DECLARE_SOA_DYNAMIC_COLUMN(NormalizedPhi, phi, [](float phi) -> float {
   constexpr float twopi = 2.0f * static_cast<float>(M_PI);
   if (phi < 0)
     phi += twopi;
@@ -201,7 +201,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACKPAR",
                        track::X, track::Alpha,
                        track::Y, track::Z, track::Snp, track::Tgl,
                        track::Signed1Pt,
-                       track::NormalizedPhi<track::Phi>,
+                       track::NormalizedPhi<track::RawPhi>,
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
@@ -211,7 +211,7 @@ DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACKPAR",
                            aod::track::Pt,
                            aod::track::P,
                            aod::track::Eta,
-                           aod::track::Phi);
+                           aod::track::RawPhi);
 
 DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKPARCOV",
                        track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
