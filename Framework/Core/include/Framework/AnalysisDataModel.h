@@ -83,7 +83,6 @@ DECLARE_SOA_COLUMN(Z, z, float);
 DECLARE_SOA_COLUMN(Snp, snp, float);
 DECLARE_SOA_COLUMN(Tgl, tgl, float);
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);
-// FIXME: find a way to clean up node templates so '1.f *' workaround is not needed
 DECLARE_SOA_EXPRESSION_COLUMN(RawPhi, phiraw, float, nasin(aod::track::snp) + aod::track::alpha);
 // FIXME: dynamic column pending inclusion of conditional nodes
 DECLARE_SOA_DYNAMIC_COLUMN(NormalizedPhi, phi, [](float phi) -> float {
@@ -97,6 +96,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(NormalizedPhi, phi, [](float phi) -> float {
 // FIXME: have float constants like pi defined somewhere
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, nlog(ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::track::tgl))));
 DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, nabs(1.f / aod::track::signed1Pt));
+
 DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float signed1Pt, float snp, float alpha) -> float {
   auto pt = 1.f / std::abs(signed1Pt);
