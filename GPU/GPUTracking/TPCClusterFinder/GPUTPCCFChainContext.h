@@ -51,6 +51,7 @@ struct GPUTPCCFChainContext {
   CfFragment fragmentFirst;
   std::pair<unsigned int, unsigned int> nextPos[GPUCA_NSLICES];
   PtrSave ptrSave[GPUCA_NSLICES];
+  const o2::tpc::ClusterNativeAccess* ptrClusterNativeSave;
 
   void prepare(bool tpcZS, const CfFragment& fragmentMax)
   {

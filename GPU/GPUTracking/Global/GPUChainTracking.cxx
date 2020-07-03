@@ -956,6 +956,7 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
       processorsShadow()->tpcClusterer[iSlice].mPzsOffsets = mCFContext->ptrSave[iSlice].zsOffsetDevice;
       processorsShadow()->tpcClusterer[iSlice].mPzs = mCFContext->ptrSave[iSlice].zsDevice;
     }
+    processorsShadow()->ioPtrs.clustersNative = mCFContext->ptrClusterNativeSave;
     return 0;
   }
   const auto& threadContext = GetThreadContext();
@@ -1021,10 +1022,9 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
     GPUInfo("Event has %lld TPC Digits", (long long int)mRec->MemoryScalers()->nTPCdigits);
   }
   mCFContext->fragmentFirst = CfFragment{std::max<int>(mCFContext->tpcMaxTimeBin + 1, TPC_MAX_FRAGMENT_LEN), TPC_MAX_FRAGMENT_LEN};
-  for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && lane < NSLICES; lane++) {
-    unsigned int iSlice = lane;
+  for (int iSlice = 0; iSlice < GetDeviceProcessingSettings().nTPCClustererLanes && iSlice < NSLICES; iSlice++) {
     if (mIOPtrs.tpcZS && mCFContext->nPagesSector[iSlice]) {
-      mCFContext->nextPos[iSlice] = RunTPCClusterizer_transferZS(iSlice, mCFContext->fragmentFirst, GetDeviceProcessingSettings().nTPCClustererLanes + lane);
+      mCFContext->nextPos[iSlice] = RunTPCClusterizer_transferZS(iSlice, mCFContext->fragmentFirst, GetDeviceProcessingSettings().nTPCClustererLanes + iSlice);
     }
   }
 
@@ -1334,6 +1334,14 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     tmpNative->setOffsetPtrs();
     mIOPtrs.clustersNative = tmpNative;
   }
+
+  if (mPipelineNotifyCtx) {
+    SynchronizeStream(mRec->NStreams() - 2); // Must finish before updating ioPtrs in (global) constant memory
+    std::lock_guard<std::mutex> lock(mPipelineNotifyCtx->mutex);
+    mPipelineNotifyCtx->ready = true;
+    mPipelineNotifyCtx->cond.notify_one();
+  }
+
   if (buildNativeGPU) {
     processorsShadow()->ioPtrs.clustersNative = mInputsShadow->mPclusterNativeAccess;
     WriteToConstantMemory(RecoStep::TPCClusterFinding, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
@@ -1354,13 +1362,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   }
   mRec->MemoryScalers()->nTPCHits = nClsTotal;
   mRec->PopNonPersistentMemory(RecoStep::TPCClusterFinding);
-
   if (mPipelineNotifyCtx) {
-    SynchronizeStream(mRec->NStreams() - 2);
     mRec->UnblockStackedMemory();
-    std::lock_guard<std::mutex> lock(mPipelineNotifyCtx->mutex);
-    mPipelineNotifyCtx->ready = true;
-    mPipelineNotifyCtx->cond.notify_one();
+    mPipelineNotifyCtx = nullptr;
   }
 
 #endif
@@ -2055,6 +2059,7 @@ int GPUChainTracking::RunTPCCompression()
     SynchronizeEvents(&mEvents->single);
     ReleaseEvent(&mEvents->single);
     ((GPUChainTracking*)GetNextChainInQueue())->RunTPCClusterizer_prepare(false);
+    ((GPUChainTracking*)GetNextChainInQueue())->mCFContext->ptrClusterNativeSave = processorsShadow()->ioPtrs.clustersNative;
   }
   SynchronizeStream(0);
   o2::tpc::CompressedClusters* O = Compressor.mOutput;
