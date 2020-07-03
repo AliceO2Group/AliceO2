@@ -33,7 +33,7 @@ Notice that the executable also generate a configuration file that is needed to 
 ### Reconstruction from raw data
 To reconstruct the raw data (either from converted MC digits or real data), run:
 ```bash
-o2-raw-file-reader-workflow --conf mid_raw.cfg --message-per-tf | o2-mid-reco-workflow
+o2-raw-file-reader-workflow --conf mid_raw.cfg | o2-mid-reco-workflow
 ```
 
 ## Timing

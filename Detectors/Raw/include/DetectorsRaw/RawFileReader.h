@@ -92,7 +92,7 @@ class RawFileReader
   //================================================================================
 
   using RDHAny = header::RDHAny;
-  using RDH = o2::header::RAWDataHeaderV4;
+  using RDH = o2::header::RAWDataHeader;
   using OrigDescCard = std::tuple<o2::header::DataOrigin, o2::header::DataDescription, ReadoutCardType>;
   using InputsMap = std::map<OrigDescCard, std::vector<std::string>>;
 
