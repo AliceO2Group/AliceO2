@@ -29,6 +29,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"loop", VariantType::Int, 1, {"loop N times (infinite for N<0)"}});
   options.push_back(ConfigParamSpec{"delay", VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
   options.push_back(ConfigParamSpec{"buffer-size", VariantType::Int64, 1024L * 1024L, {"buffer size for files preprocessing"}});
+  options.push_back(ConfigParamSpec{"raw-channel-config", VariantType::String, "", {"optional raw FMQ channel for non-DPL output"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}});
   // options for error-check suppression
 
@@ -50,7 +51,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   uint32_t maxTF = uint32_t(configcontext.options().get<int64_t>("max-tf"));
   uint32_t minTF = uint32_t(configcontext.options().get<int64_t>("min-tf"));
   uint64_t buffSize = uint64_t(configcontext.options().get<int64_t>("buffer-size"));
-
+  std::string rawChannelConfig = configcontext.options().get<std::string>("raw-channel-config");
   uint32_t errmap = 0;
   for (int i = RawFileReader::NErrorsDefined; i--;) {
     auto ei = RawFileReader::ErrTypes(i);
@@ -62,5 +63,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   uint32_t delay_us = uint32_t(1e6 * configcontext.options().get<float>("delay")); // delay in microseconds
 
-  return std::move(o2::raw::getRawFileReaderWorkflow(inifile, loop, delay_us, errmap, minTF, maxTF, buffSize));
+  return std::move(o2::raw::getRawFileReaderWorkflow(inifile, loop, delay_us, errmap, minTF, maxTF, buffSize, rawChannelConfig));
 }

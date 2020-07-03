@@ -46,8 +46,8 @@ class RawReaderSpecs : public o2f::Task
 {
  public:
   explicit RawReaderSpecs(const std::string& config, int loop = 1, uint32_t delay_us = 0,
-                          uint32_t errmap = 0xffffffff, uint32_t minTF = 0, uint32_t maxTF = 0xffffffff, size_t buffSize = 1024L * 1024L)
-    : mLoop(loop < 0 ? INT_MAX : (loop < 1 ? 1 : loop)), mDelayUSec(delay_us), mMinTFID(minTF), mMaxTFID(maxTF), mReader(std::make_unique<o2::raw::RawFileReader>(config))
+                          uint32_t errmap = 0xffffffff, uint32_t minTF = 0, uint32_t maxTF = 0xffffffff, size_t buffSize = 1024L * 1024L, const std::string& rawChannelName = "")
+    : mLoop(loop < 0 ? INT_MAX : (loop < 1 ? 1 : loop)), mDelayUSec(delay_us), mMinTFID(minTF), mMaxTFID(maxTF), mReader(std::make_unique<o2::raw::RawFileReader>(config)), mRawChannelName(rawChannelName)
   {
     mReader->setCheckErrors(errmap);
     mReader->setMaxTFToRead(maxTF);
@@ -76,7 +76,11 @@ class RawReaderSpecs : public o2f::Task
     auto device = ctx.services().get<o2f::RawDeviceService>().device();
     assert(device);
 
-    auto findOutputChannel = [&ctx](RawFileReader::LinkData& link, size_t timeslice) {
+    auto findOutputChannel = [&ctx, this](RawFileReader::LinkData& link, size_t timeslice) {
+      if (!this->mRawChannelName.empty()) {
+        link.fairMQChannel = this->mRawChannelName;
+        return true;
+      }
       auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
       for (auto& oroute : outputRoutes) {
         LOG(DEBUG) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
@@ -211,33 +215,51 @@ class RawReaderSpecs : public o2f::Task
   uint32_t mMinTFID = 0;                           // 1st TF to extract
   uint32_t mMaxTFID = 0xffffffff;                  // last TF to extrct
   bool mDone = false;                              // processing is over or not
+  std::string mRawChannelName = "";                // name of optional non-DPL channel
   std::unique_ptr<o2::raw::RawFileReader> mReader; // matching engine
 };
 
 o2f::DataProcessorSpec getReaderSpec(std::string config, int loop, uint32_t delay_us, uint32_t errmap,
-                                     uint32_t minTF, uint32_t maxTF, size_t buffSize)
+                                     uint32_t minTF, uint32_t maxTF, size_t buffSize, const std::string& rawChannelConfig)
 {
   // check which inputs are present in files to read
   o2f::DataProcessorSpec spec;
   spec.name = "raw-file-reader";
-
-  if (!config.empty()) {
-    auto conf = o2::raw::RawFileReader::parseInput(config);
-    for (const auto& entry : conf) {
-      const auto& ordescard = entry.first;
-      if (!entry.second.empty()) { // origin and decription for files to process
-        spec.outputs.emplace_back(o2f::OutputSpec(o2f::ConcreteDataTypeMatcher{std::get<0>(ordescard), std::get<1>(ordescard)}));
+  std::string rawChannelName = "";
+  if (rawChannelConfig.empty()) {
+    if (!config.empty()) {
+      auto conf = o2::raw::RawFileReader::parseInput(config);
+      for (const auto& entry : conf) {
+        const auto& ordescard = entry.first;
+        if (!entry.second.empty()) { // origin and decription for files to process
+          spec.outputs.emplace_back(o2f::OutputSpec(o2f::ConcreteDataTypeMatcher{std::get<0>(ordescard), std::get<1>(ordescard)}));
+        }
       }
     }
+  } else {
+    auto nameStart = rawChannelConfig.find("name=");
+    if (nameStart == std::string::npos) {
+      throw std::runtime_error("raw channel name is not provided");
+    }
+    nameStart += strlen("name=");
+    auto nameEnd = rawChannelConfig.find(",", nameStart + 1);
+    if (nameEnd == std::string::npos) {
+      nameEnd = rawChannelConfig.size();
+    }
+    rawChannelName = rawChannelConfig.substr(nameStart, nameEnd - nameStart);
+    spec.options = {o2f::ConfigParamSpec{"channel-config", o2f::VariantType::String, rawChannelConfig, {"Out-of-band channel config"}}};
+    LOG(INFO) << "Will send output to non-DPL channel " << rawChannelConfig;
   }
-  spec.algorithm = o2f::adaptFromTask<RawReaderSpecs>(config, loop, delay_us, errmap, minTF, maxTF, buffSize);
+
+  spec.algorithm = o2f::adaptFromTask<RawReaderSpecs>(config, loop, delay_us, errmap, minTF, maxTF, buffSize, rawChannelName);
 
   return spec;
 }
 
-o2f::WorkflowSpec o2::raw::getRawFileReaderWorkflow(std::string inifile, int loop, uint32_t delay_us, uint32_t errmap, uint32_t minTF, uint32_t maxTF, size_t buffSize)
+o2f::WorkflowSpec o2::raw::getRawFileReaderWorkflow(std::string inifile, int loop, uint32_t delay_us, uint32_t errmap, uint32_t minTF, uint32_t maxTF,
+                                                    size_t buffSize, const std::string& rawChannelConfig)
 {
   o2f::WorkflowSpec specs;
-  specs.emplace_back(getReaderSpec(inifile, loop, delay_us, errmap, minTF, maxTF, buffSize));
+  specs.emplace_back(getReaderSpec(inifile, loop, delay_us, errmap, minTF, maxTF, buffSize, rawChannelConfig));
   return specs;
 }
