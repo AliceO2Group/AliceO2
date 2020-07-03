@@ -66,7 +66,7 @@ struct JetFinderTask {
 
   // TODO: use values from configurables
   // TODO: add eta cuts
-  Filter trackCuts = nabs(aod::track::pt) > 0.1f;
+  Filter trackCuts = aod::track::pt > 0.1f;
 
   std::unique_ptr<fastjet::BackgroundEstimatorBase> bge;
   std::unique_ptr<fastjet::Subtractor> sub;
