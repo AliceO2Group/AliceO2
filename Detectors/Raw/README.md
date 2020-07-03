@@ -301,6 +301,8 @@ o2-raw-file-reader-workflow
   --min-tf arg (=0)                     min TF ID to process
   --max-tf arg (=4294967295)            max TF ID to process
   --delay arg (=0)                      delay in seconds between consecutive TFs sending
+  --buffer-size arg (=1048576)          buffer size for files preprocessing
+  --raw-channel-config arg              optional raw FMQ channel for non-DPL output
   --configKeyValues arg                 semicolon separated key=value strings
 
   # to suppress various error checks / reporting
@@ -327,6 +329,16 @@ relayed by the `FairMQ` channel.
 The standard use case of this workflow is to provide the input for other worfklows using the piping, e.g.
 ```cpp
 o2-raw-file-reader-workflow --input-conf myConf.cfg | o2-dpl-raw-parser
+```
+Option `--raw-channel-config <confstring> forces the reader to send all data (single FairMQParts containing the whole TF) to raw FairMQ channel, emulating the messages from the DataDistribution.
+To inject such a data to DPL one should use a parallel process starting with `o2-dpl-raw-proxy`. An example (note `--session default` added to every executable):
+
+```bash
+[Terminal 1]> o2-dpl-raw-proxy --session default -b --dataspec "A:TOF/RAWDATA;B:ITS/RAWDATA;C:MFT/RAWDATA;D:TPC/RAWDATA;E:FT0/RAWDATA" --channel-config "name=readout-proxy,type=pull,method=connect,address=ipc://@rr-to-dpl,transport=shmem,rateLogging=1" | o2-dpl-raw-parser --session default  --input-spec "A:TOF/RAWDATA;B:ITS/RAWDATA;C:MFT/RAWDATA;D:TPC/RAWDATA;E:FT0/RAWDATA"
+```
+
+```bash
+[Terminal 2]> o2-raw-file-reader-workflow  --session default --loop 1000 --delay 3 --input-conf raw/rawAll.cfg --raw-channel-config "name=raw-reader,type=push,method=bind,address=ipc://@rr-to-dpl,transport=shmem,rateLogging=1" --shm-segment-size 16000000000
 ```
 
 ## Raw data file checker (standalone executable)
