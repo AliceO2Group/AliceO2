@@ -27,7 +27,7 @@ struct ATask {
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      phiH->Fill(track.nphi());
+      phiH->Fill(track.phi());
       etaH->Fill(track.eta());
     }
   }
@@ -43,8 +43,8 @@ struct BTask {
     for (auto& track : tracks) {
       // FIXME: this is until we have configurables which
       //        can be used in expressions.
-      if (track.nphi() < phiCut) {
-        etaphiH->Fill(track.nphi(), track.eta());
+      if (track.phi() < phiCut) {
+        etaphiH->Fill(track.phi(), track.eta());
       }
     }
   }
