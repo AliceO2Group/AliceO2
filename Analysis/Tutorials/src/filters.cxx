@@ -15,7 +15,7 @@ namespace o2::aod
 {
 namespace etaphi
 {
-DECLARE_SOA_COLUMN(NPhi, nphi2, float);
+DECLARE_SOA_COLUMN(NPhi, nphi, float);
 } // namespace etaphi
 DECLARE_SOA_TABLE(TPhi, "AOD", "ETAPHI",
                   etaphi::NPhi);
@@ -35,7 +35,7 @@ struct ATask {
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      etaphi(track.nphi());
+      etaphi(track.phi());
     }
   }
 };
@@ -53,13 +53,13 @@ struct BTask {
 
   float philow = 1.0f;
   float phiup = 2.0f;
-  Filter phifilter = (aod::etaphi::nphi2 < phiup) && (aod::etaphi::nphi2 > philow);
+  Filter phifilter = (aod::etaphi::nphi < phiup) && (aod::etaphi::nphi > philow);
 
   void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TPhi>> const& tracks)
   {
     LOGF(INFO, "Collision: %d [N = %d]", collision.globalIndex(), tracks.size());
     for (auto& track : tracks) {
-      LOGF(INFO, "id = %d; eta:  %.3f < %.3f < %.3f; phi: %.3f < %.3f < %.3f; pt: %.3f < %.3f < %.3f", track.collisionId(), etalow, track.eta(), etaup, philow, track.nphi2(), phiup, ptlow, track.pt(), ptup);
+      LOGF(INFO, "id = %d; eta:  %.3f < %.3f < %.3f; phi: %.3f < %.3f < %.3f; pt: %.3f < %.3f < %.3f", track.collisionId(), etalow, track.eta(), etaup, philow, track.nphi(), phiup, ptlow, track.pt(), ptup);
     }
   }
 };
