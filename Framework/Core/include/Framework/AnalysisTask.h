@@ -263,7 +263,7 @@ struct Configurable {
   }
 };
 
-template<typename T>
+template <typename T>
 struct Partition {
   Partition(expressions::Node&& node_)
   {
@@ -288,13 +288,13 @@ struct Partition {
 
 template <typename ANY>
 struct PartitionManager {
-  template<typename... T2s>
+  template <typename... T2s>
   static bool setPartition(ANY&, T2s&... tables)
   {
     return false;
   }
 
-  template<typename... Ts>
+  template <typename... Ts>
   static void setPartitions(ANY&, std::tuple<Ts...> tables)
   {
   }
@@ -312,18 +312,19 @@ struct PartitionManager<Partition<T>> {
     return false;
   }
 
-  template<typename... T2s>
+  template <typename... T2s>
   static bool setPartition(Partition<T>& partition, T2s&... tables)
   {
     return (doSetPartition(partition, tables) || ...);
   }
 
-  template<typename... Ts>
+  template <typename... Ts>
   static void setPartitions(Partition<T>& partition, std::tuple<Ts...> tables)
   {
     std::apply([&partition](auto&... table) {
       return setPartition(partition, table...);
-    }, tables);
+    },
+               tables);
   }
 };
 
@@ -661,7 +662,8 @@ struct AnalysisDataProcessorBuilder {
     // set filtered tables for partitions with grouping
     std::apply([&groupingTable](auto&... x) {
       return (PartitionManager<std::decay_t<decltype(x)>>::setPartition(x, groupingTable), ...);
-    }, tupledTask);
+    },
+               tupledTask);
 
     if constexpr (sizeof...(Associated) == 0) {
       // single argument to process
@@ -733,13 +735,11 @@ struct AnalysisDataProcessorBuilder {
 
 template <typename ANY>
 struct FilterManager {
-  //template <typename ANY>
   static bool createExpressionTrees(ANY&, std::vector<ExpressionInfo>&)
   {
     return false;
   }
 };
-
 
 template <>
 struct FilterManager<expressions::Filter> {

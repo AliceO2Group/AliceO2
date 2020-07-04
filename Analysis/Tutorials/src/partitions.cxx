@@ -64,29 +64,39 @@ struct ETask {
   float etalim = 0.0f;
   float philow = 1.0f;
   float phiup = 2.0f;
-  Partition<soa::Join<aod::Tracks, aod::EtaPhi>> negEtaLeftPhiP = aod::etaphi::eta2 < etalim && aod::etaphi::phi2 < philow && aod::track::pt2 > (ptlow * ptlow) && aod::track::pt2 < (ptup * ptup);
-  Partition<soa::Join<aod::Tracks, aod::EtaPhi>> negEtaMidPhiP = aod::etaphi::eta2 < etalim && aod::etaphi::phi2 >= philow && aod::etaphi::phi2 < phiup && aod::track::pt2 > (ptlow * ptlow) && aod::track::pt2 < (ptup * ptup);
-  Partition<soa::Join<aod::Tracks, aod::EtaPhi>> negEtaRightPhiP = aod::etaphi::eta2 < etalim && aod::etaphi::phi2 >= phiup && aod::track::pt2 > (ptlow * ptlow) && aod::track::pt2 < (ptup * ptup);
+  Partition<soa::Join<aod::Tracks, aod::EtaPhi>> negEtaLeftPhiP =
+    aod::etaphi::eta2 < etalim && aod::etaphi::phi2 < philow &&
+    aod::track::pt2 > (ptlow * ptlow) && aod::track::pt2 < (ptup * ptup);
+  Partition<soa::Join<aod::Tracks, aod::EtaPhi>> negEtaMidPhiP =
+    aod::etaphi::eta2 < etalim && aod::etaphi::phi2 >= philow && aod::etaphi::phi2 < phiup &&
+    aod::track::pt2 > (ptlow * ptlow) && aod::track::pt2 < (ptup * ptup);
+  Partition<soa::Join<aod::Tracks, aod::EtaPhi>> negEtaRightPhiP =
+    aod::etaphi::eta2 < etalim && aod::etaphi::phi2 >= phiup &&
+    aod::track::pt2 > (ptlow * ptlow) && aod::track::pt2 < (ptup * ptup);
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::EtaPhi> const& tracks)
   {
     auto& leftPhi = *(negEtaLeftPhiP.mFiltered);
     auto& midPhi = *(negEtaMidPhiP.mFiltered);
     auto& rightPhi = *(negEtaRightPhiP.mFiltered);
-    LOGF(INFO, "Collision: %d [N = %d] [left phis = %d] [mid phis = %d] [right phis = %d]", collision.globalIndex(), tracks.size(), leftPhi.size(), midPhi.size(), rightPhi.size());
-    
+    LOGF(INFO, "Collision: %d [N = %d] [left phis = %d] [mid phis = %d] [right phis = %d]",
+         collision.globalIndex(), tracks.size(), leftPhi.size(), midPhi.size(), rightPhi.size());
+
     for (auto& track : tracks) {
       LOGF(INFO, "id = %d; pt: %.3f < %.3f < %.3f", track.collisionId(), ptlow, track.pt(), ptup);
     }
 
     for (auto& track : leftPhi) {
-      LOGF(INFO, "id = %d; eta: %.3f < %.3f; phi: %.3f < %.3f; pt: %.3f < %.3f < %.3f", track.collisionId(), track.eta2(), etalim, track.phi2(), philow, ptlow, track.pt(), ptup);
-    } 
+      LOGF(INFO, "id = %d; eta: %.3f < %.3f; phi: %.3f < %.3f; pt: %.3f < %.3f < %.3f",
+           track.collisionId(), track.eta2(), etalim, track.phi2(), philow, ptlow, track.pt(), ptup);
+    }
     for (auto& track : midPhi) {
-      LOGF(INFO, "id = %d; eta: %.3f < %.3f; phi: %.3f <= %.3f < %.3f; pt: %.3f < %.3f < %.3f", track.collisionId(), track.eta2(), etalim, philow, track.phi2(), phiup, ptlow, track.pt(), ptup);
+      LOGF(INFO, "id = %d; eta: %.3f < %.3f; phi: %.3f <= %.3f < %.3f; pt: %.3f < %.3f < %.3f",
+           track.collisionId(), track.eta2(), etalim, philow, track.phi2(), phiup, ptlow, track.pt(), ptup);
     }
     for (auto& track : rightPhi) {
-      LOGF(INFO, "id = %d; eta: %.3f < %.3f; phi: %.3f < %.3f; pt: %.3f < %.3f < %.3f", track.collisionId(), track.eta2(), etalim, phiup, track.phi2(), ptlow, track.pt(), ptup);
+      LOGF(INFO, "id = %d; eta: %.3f < %.3f; phi: %.3f < %.3f; pt: %.3f < %.3f < %.3f",
+           track.collisionId(), track.eta2(), etalim, phiup, track.phi2(), ptlow, track.pt(), ptup);
     }
   }
 };
