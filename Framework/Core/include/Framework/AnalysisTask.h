@@ -20,6 +20,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Expressions.h"
+#include "../src/ExpressionHelpers.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Logger.h"
 #include "Framework/HistogramRegistry.h"
@@ -285,20 +286,44 @@ struct Partition {
   std::shared_ptr<o2::soa::Filtered<T>> mFiltered;
 };
 
-template <typename ANY, typename T>
+template <typename ANY>
 struct PartitionManager {
-  static bool setPartition(ANY&, T const& table)
+  template<typename... T2s>
+  static bool setPartition(ANY&, T2s&... tables)
   {
     return false;
+  }
+
+  template<typename... Ts>
+  static void setPartitions(ANY&, std::tuple<Ts...> tables)
+  {
   }
 };
 
 template <typename T>
-struct PartitionManager<Partition<T>, T> {
-  static bool setPartition(Partition<T> & partition, T const& table)
+struct PartitionManager<Partition<T>> {
+  template <typename T2>
+  static bool doSetPartition(Partition<T>& partition, T2& table)
   {
-    partition.setTable(table);
-    return true;
+    if constexpr (std::is_same_v<T, T2>) {
+      partition.setTable(table);
+      return true;
+    }
+    return false;
+  }
+
+  template<typename... T2s>
+  static bool setPartition(Partition<T>& partition, T2s&... tables)
+  {
+    return (doSetPartition(partition, tables) || ...);
+  }
+
+  template<typename... Ts>
+  static void setPartitions(Partition<T>& partition, std::tuple<Ts...> tables)
+  {
+    std::apply([&partition](auto&... table) {
+      return setPartition(partition, table...);
+    }, tables);
   }
 };
 
@@ -630,13 +655,14 @@ struct AnalysisDataProcessorBuilder {
   static void invokeProcess(Task& task, InputRecord& inputs, R (C::*)(Grouping, Associated...), std::vector<ExpressionInfo> const& infos)
   {
     auto tupledTask = o2::framework::to_tuple_refs(task);
-    // set filtered tables for partitions with grouping
     using G = std::decay_t<Grouping>;
     auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, &C::process, infos);
+
+    // set filtered tables for partitions with grouping
     std::apply([&groupingTable](auto&... x) {
-      return (PartitionManager<std::decay_t<decltype(x)>, G>::setPartition(x, groupingTable), ...);
-    },
-               tupledTask);
+      return (PartitionManager<std::decay_t<decltype(x)>>::setPartition(x, groupingTable), ...);
+    }, tupledTask);
+
     if constexpr (sizeof...(Associated) == 0) {
       // single argument to process
       if constexpr (soa::is_soa_iterator_t<G>::value) {
@@ -653,15 +679,6 @@ struct AnalysisDataProcessorBuilder {
       static_assert(((soa::is_soa_iterator_t<std::decay_t<Associated>>::value == false) && ...),
                     "Associated arguments of process() should not be iterators");
       auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, &C::process, infos);
-      // set filtered tables for partitions with associated tables
-      // TODO: Make partitions for grouped with associated working.
-      std::apply([&associatedTables](auto&... x) {
-        std::apply([&x...](auto& associatedTable) {
-          return (PartitionManager<std::decay_t<decltype(x)>, std::decay_t<decltype(associatedTable)>>::setPartition(x, associatedTable), ...);
-        },
-        associatedTables);
-      },
-                 tupledTask);
       auto binder = [&](auto&& x) {
         x.bindExternalIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
       };
@@ -672,6 +689,13 @@ struct AnalysisDataProcessorBuilder {
         auto slicer = GroupSlicer(groupingTable, associatedTables);
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
+
+          // set filtered tables for partitions with associated tables
+          std::apply([&associatedSlices](auto&... x) {
+            (PartitionManager<std::decay_t<decltype(x)>>::setPartitions(x, associatedSlices), ...);
+          },
+                     tupledTask);
+
           std::apply(
             [&](auto&&... x) {
               (binder(x), ...);
@@ -682,6 +706,13 @@ struct AnalysisDataProcessorBuilder {
         }
       } else {
         // non-grouping case
+
+        // set filtered tables for partitions with associated tables
+        std::apply([&associatedTables](auto&... x) {
+          (PartitionManager<std::decay_t<decltype(x)>>::setPartitions(x, associatedTables), ...);
+        },
+                   tupledTask);
+
         std::apply(
           [&](auto&&... x) {
             (binder(x), ...);
