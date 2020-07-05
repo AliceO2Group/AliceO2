@@ -53,6 +53,10 @@ if (DPL_TESTS_BATCH_MODE)
   set(DPL_WORKFLOW_TESTS_EXTRA_OPTIONS -b)
 endif()
 
+if (DPL_ENABLE_TRACING)
+  add_definitions(-DDPL_ENABLE_TRACING)
+endif()
+
 # include macros and functions that are used in the following subdirectories'
 # CMakeLists.txt
 include(O2AddExecutable)
