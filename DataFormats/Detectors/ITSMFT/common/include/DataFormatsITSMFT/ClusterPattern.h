@@ -38,7 +38,9 @@ class BuildTopologyDictionary;
 class ClusterPattern
 {
  public:
-  static constexpr int MaxPatternBits = 32 * 16;
+  static constexpr uint8_t MaxRowSpan = 128;
+  static constexpr uint8_t MaxColSpan = 128;
+  static constexpr int MaxPatternBits = MaxRowSpan * MaxColSpan;
   static constexpr int MaxPatternBytes = MaxPatternBits / 8;
   static constexpr int SpanMask = 0x7fff;
   static constexpr int TruncateMask = 0x8000;
