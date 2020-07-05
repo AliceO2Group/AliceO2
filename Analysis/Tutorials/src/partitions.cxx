@@ -45,8 +45,8 @@ struct TTask {
       etaphi(track.eta(), track.phi());
     }
 
-    auto& negativeTracks = *(negativeTracksP.mFiltered);
-    auto& positiveTracks = *(positiveTracksP.mFiltered);
+    auto& negativeTracks = negativeTracksP.getPartition();
+    auto& positiveTracks = positiveTracksP.getPartition();
     LOGF(INFO, "[negative tracks: %d] [positive tracks: %d]", negativeTracks.size(), positiveTracks.size());
     for (auto& track : negativeTracks) {
       LOGF(INFO, "negative track id: %d pt: %.3f < 1.0", track.collisionId(), track.pt2());
@@ -76,9 +76,9 @@ struct ETask {
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::EtaPhi> const& tracks)
   {
-    auto& leftPhi = *(negEtaLeftPhiP.mFiltered);
-    auto& midPhi = *(negEtaMidPhiP.mFiltered);
-    auto& rightPhi = *(negEtaRightPhiP.mFiltered);
+    auto& leftPhi = negEtaLeftPhiP.getPartition();
+    auto& midPhi = negEtaMidPhiP.getPartition();
+    auto& rightPhi = negEtaRightPhiP.getPartition();
     LOGF(INFO, "Collision: %d [N = %d] [left phis = %d] [mid phis = %d] [right phis = %d]",
          collision.globalIndex(), tracks.size(), leftPhi.size(), midPhi.size(), rightPhi.size());
 

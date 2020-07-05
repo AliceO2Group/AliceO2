@@ -265,9 +265,9 @@ struct Configurable {
 
 template <typename T>
 struct Partition {
-  Partition(expressions::Node&& node_)
+  Partition(expressions::Node&& node)
   {
-    auto filter = expressions::Filter(std::move(node_));
+    auto filter = expressions::Filter(std::move(node));
     auto schema = o2::soa::createSchemaFromColumns(typename T::table_t::persistent_columns_t{});
     expressions::Operations ops = createOperations(filter);
     if (isSchemaCompatible(schema, ops)) {
@@ -282,8 +282,13 @@ struct Partition {
     mFiltered.reset(new o2::soa::Filtered<T>{{table.asArrowTable()}, mTree});
   }
 
+  o2::soa::Filtered<T>& getPartition()
+  {
+    return *mFiltered;
+  }
+
   gandiva::NodePtr mTree;
-  std::shared_ptr<o2::soa::Filtered<T>> mFiltered;
+  std::unique_ptr<o2::soa::Filtered<T>> mFiltered;
 };
 
 template <typename ANY>
