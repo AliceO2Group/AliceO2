@@ -12,6 +12,7 @@
 #include <iostream>
 #include <set>
 #include <string>
+#include <inttypes.h>
 #include "Framework/ConfigContext.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DebugGUI/imgui.h"
