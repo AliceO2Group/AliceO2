@@ -18,7 +18,7 @@ namespace o2
 namespace hmpid
 {
 
-o2::framework::DataProcessorSpec getHMPIDDigitizerSpec(int channel);
+o2::framework::DataProcessorSpec getHMPIDDigitizerSpec(int channel, bool mctruth = true);
 
 } // end namespace hmpid
 } // end namespace o2

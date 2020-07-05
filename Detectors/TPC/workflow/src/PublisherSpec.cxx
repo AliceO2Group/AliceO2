@@ -24,6 +24,9 @@
 #include <vector>
 #include <utility>   // std::move
 #include <stdexcept> //std::invalid_argument
+#include <TFile.h>
+#include <TTree.h>
+#include <TBranch.h>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -43,13 +46,19 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
     throw std::invalid_argument("need TPC sector and output id configuration");
   }
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
+  enum struct SectorMode {
+    Sector, // stored in sector branches
+    Full,   // full TPC stored in one branch
+  };
   struct ProcessAttributes {
     std::vector<int> sectors;
     std::vector<int> outputIds;
+    std::vector<o2::header::DataHeader::SubSpecificationType> zeroLengthOutputs;
     uint64_t activeSectors = 0;
     std::array<std::shared_ptr<RootTreeReader>, NSectors> readers;
     bool terminateOnEod = false;
     bool finished = false;
+    SectorMode sectorMode = SectorMode::Sector;
   };
 
   auto initFunction = [config, propagateMC, creator](InitContext& ic) {
@@ -61,13 +70,35 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
     auto nofEvents = ic.options().get<int>("nevents");
     auto publishingMode = nofEvents == -1 ? RootTreeReader::PublishingMode::Single : RootTreeReader::PublishingMode::Loop;
 
+    // do a runtime check if the branch name without sector number suffix is found in the file
+    // if found the publisher will publish the single data set at one output route and empty
+    // messages at all the others
+    auto checkSectorMode = [&filename, &treename, &clbrName]() -> SectorMode {
+      std::unique_ptr<TFile> file(TFile::Open(filename.c_str()));
+      if (file) {
+        TTree* tree = reinterpret_cast<TTree*>(file->GetObjectChecked(treename.c_str(), "TTree"));
+        if (tree) {
+          const auto brlist = tree->GetListOfBranches();
+          for (TObject const* entry : *brlist) {
+            if (clbrName == entry->GetName()) {
+              return SectorMode::Full;
+            }
+          }
+        }
+        file->Close();
+      }
+      return SectorMode::Sector;
+    };
+
     auto processAttributes = std::make_shared<ProcessAttributes>();
     {
       processAttributes->terminateOnEod = ic.options().get<bool>("terminate-on-eod");
+      processAttributes->sectorMode = checkSectorMode();
       auto& sectors = processAttributes->sectors;
       auto& activeSectors = processAttributes->activeSectors;
       auto& readers = processAttributes->readers;
       auto& outputIds = processAttributes->outputIds;
+      auto& sectorMode = processAttributes->sectorMode;
 
       sectors = config.tpcSectors;
       outputIds = config.outputIds;
@@ -87,10 +118,7 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
       // TODO: parallelism on sectors needs to be implemented as selector in the reader
       // the data is now in parallel branches, as first attempt use an array of readers
       auto outputId = outputIds.begin();
-      for (size_t sector = 0; sector < NSectors; ++sector) {
-        if ((activeSectors & ((uint64_t)0x1 << sector)) == 0) {
-          continue;
-        }
+      for (auto const& sector : sectors) {
         o2::header::DataHeader::SubSpecificationType subSpec = *outputId;
         std::string sectorfile = filename;
         if (filename.find('%') != std::string::npos) {
@@ -98,8 +126,12 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
           snprintf(formattedname.data(), formattedname.size() - 1, filename.c_str(), sector);
           sectorfile = formattedname.data();
         }
-        std::string clusterbranchname = clbrName + "_" + std::to_string(sector);
-        std::string mcbranchname = mcbrName + "_" + std::to_string(sector);
+        std::string clusterbranchname = clbrName;
+        std::string mcbranchname = mcbrName;
+        if (sectorMode == SectorMode::Sector) {
+          clusterbranchname += "_" + std::to_string(sector);
+          mcbranchname += "_" + std::to_string(sector);
+        }
         readers[sector] = creator(treename.c_str(),   // tree name
                                   sectorfile.c_str(), // input file name
                                   nofEvents,          // number of entries to publish
@@ -108,9 +140,18 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
                                   clusterbranchname.c_str(), // name of data branch
                                   mcbranchname.c_str()       // name of mc label branch
         );
+        if (sectorMode == SectorMode::Full) {
+          break;
+        }
         if (++outputId == outputIds.end()) {
           outputId = outputIds.begin();
         }
+      }
+      if (sectorMode == SectorMode::Full) {
+        // the slot of the first configured sector is used to publish the full set, all others removed
+        sectors.resize(1);
+        // the data will be published at first configured output id, zero-length data on all other output ids
+        processAttributes->zeroLengthOutputs.assign(++outputId, outputIds.end());
       }
     }
 
@@ -120,7 +161,7 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
     // function gets out of scope
     // FIXME: wanted to use it = sectors.begin() in the variable capture but the iterator
     // is const and can not be incremented
-    auto processingFct = [processAttributes, propagateMC](ProcessingContext& pc) {
+    auto processingFct = [processAttributes, config](ProcessingContext& pc) {
       if (processAttributes->finished) {
         return;
       }
@@ -131,6 +172,9 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
         auto& activeSectors = processAttributes->activeSectors;
         auto& readers = processAttributes->readers;
         o2::tpc::TPCSectorHeader header{sector};
+        if (processAttributes->sectorMode == SectorMode::Full) {
+          header.sectorBits = activeSectors;
+        }
         header.activeSectors = activeSectors;
         auto& r = *(readers[sector].get());
 
@@ -149,6 +193,19 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
         processAttributes->finished = true;
         pc.services().get<ControlService>().endOfStream();
         pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+      } else {
+        // publish empty events
+        auto dto = DataSpecUtils::asConcreteDataTypeMatcher(config.dataoutput);
+        auto mco = DataSpecUtils::asConcreteDataTypeMatcher(config.mcoutput);
+        o2::tpc::TPCSectorHeader header{0};
+        header.sectorBits = 0;
+        header.activeSectors = processAttributes->activeSectors;
+        for (auto const& subSpec : processAttributes->zeroLengthOutputs) {
+          pc.outputs().make<char>({dto.origin, dto.description, subSpec, Lifetime::Timeframe, {header}});
+          if (pc.outputs().isAllowed({mco.origin, mco.description, subSpec})) {
+            pc.outputs().make<char>({mco.origin, mco.description, subSpec, Lifetime::Timeframe, {header}});
+          }
+        }
       }
     };
 

@@ -21,7 +21,6 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "SimulationDataFormat/MCEventStats.h"
-
 #include "Rtypes.h"
 #include "TParticle.h"
 
@@ -56,6 +55,11 @@ namespace data
 /// The storage of secondaries can be switched off.
 /// The storage of all mothers can be switched off.
 /// By default, the minimal number of hits is 1 and the energy cut is 0.
+enum ParticleStatus { kKeep = BIT(14),
+                      kDaughters = BIT(15),
+                      kToBeDone = BIT(16),
+                      kPrimary = BIT(17),
+                      kTransport = BIT(18) };
 class Stack : public FairGenericStack
 {
  public:
@@ -89,7 +93,7 @@ class Stack : public FairGenericStack
                  TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondParentId) override;
 
   // similar function taking a particle
-  void PushTrack(Int_t toBeDone, TParticle const&);
+  void PushTrack(Int_t toBeDone, TParticle&);
 
   /// Get next particle for tracking from the stack.
   /// Declared in TVirtualMCStack
@@ -121,7 +125,6 @@ class Stack : public FairGenericStack
     // the const cast is necessary ... the interface should have been `const TParticle* GetCurrentParticle() const`
     return const_cast<TParticle*>(&mCurrentParticle);
   }
-
   /// Get the number of the current track
   /// Declared in TVirtualMCStack
   Int_t GetCurrentTrackNumber() const override { return mIndexOfCurrentTrack; }
@@ -156,6 +159,7 @@ class Stack : public FairGenericStack
   /// \param option: 0=events summary, non0=track info
   void Print(Option_t* option = nullptr) const override;
 
+  void ReorderKine(std::vector<MCTrack>& particles, std::vector<int>& reOrderedIndices);
   /// Modifiers
   void StoreSecondaries(Bool_t choice = kTRUE) { mStoreSecondaries = choice; }
   void pruneKinematics(bool choice = true) { mPruneKinematics = choice; }
@@ -173,8 +177,6 @@ class Stack : public FairGenericStack
   /// Clone for worker (used in MT mode only)
   FairGenericStack* CloneStack() const override;
 
-  // receive notification that primary is finished
-  void notifyFinishPrimary();
 
   // methods concerning track references
   void addTrackReference(const o2::TrackReference& p);
@@ -183,11 +185,15 @@ class Stack : public FairGenericStack
   const std::vector<TParticle>& getPrimaries() const { return mPrimaryParticles; }
 
   // initialize Stack from external vector containing primaries
-  void initFromPrimaries(std::vector<TParticle> const& primaries)
+
+  void initFromPrimaries(std::vector<TParticle>& primaries)
   {
     Reset();
     for (auto p : primaries) {
-      PushTrack(1, p);
+      Int_t doTrack = 0;
+      if (p.TestBit(ParticleStatus::kToBeDone))
+        doTrack = 1;
+      PushTrack(doTrack, p);
     }
     mNumberOfPrimaryParticles = primaries.size();
     mNumberOfEntriesInParticles = mNumberOfPrimaryParticles;
@@ -229,12 +235,10 @@ class Stack : public FairGenericStack
   std::vector<o2::MCTrack> mParticles; //!
   std::vector<int> mTransportedIDs;    //! prim + sec trackIDs transported for "current" primary
   std::vector<int> mIndexOfPrimaries;  //! index of primaries in mParticles
-
   std::vector<int> mTrackIDtoParticlesEntry; //! an O(1) mapping of trackID to the entry of mParticles
-                                             //! where this track is stored
-
-  /// the current TParticle object
+  // the current TParticle object
   TParticle mCurrentParticle;
+  TParticle mCurrentParticle0;
 
   // keep primary particles in its original form
   // (mainly for the PopPrimaryParticleInterface
@@ -250,11 +254,14 @@ class Stack : public FairGenericStack
   std::vector<o2::base::Detector*> mActiveDetectors; //!
 
   /// Some indices and counters
-  Int_t mIndexOfCurrentTrack;        //! Global index of current track
-  Int_t mNumberOfPrimaryParticles;   //! Number of primary particles
-  Int_t mNumberOfEntriesInParticles; //! Number of entries in mParticles
-  Int_t mNumberOfEntriesInTracks;    //! Number of entries in mTracks
-  Int_t mIndex;                      //! Used for merging
+  Int_t mIndexOfCurrentTrack;          //! Global index of current track
+  Int_t mIndexOfCurrentPrimary;        //! Global index of current primry
+  Int_t mNumberOfPrimaryParticles;     //! Number of primary particles
+  Int_t mNumberOfEntriesInParticles;   //! Number of entries in mParticles
+  Int_t mNumberOfEntriesInTracks;      //! Number of entries in mTracks
+  Int_t mNumberOfPrimariesforTracking; //! Number of primaries for tracking (ie without shirtlived particles and partons)
+  Int_t mNumberOfPrimariesPopped;      //! Number of primaries popped from stack
+  Int_t mIndex;                        //! Used for merging
 
   /// Variables defining the criteria for output selection
   Bool_t mStoreMothers;
@@ -287,15 +294,15 @@ class Stack : public FairGenericStack
   /// returns false if some tracks are discarded
   bool selectTracks();
 
+  bool isPrimary(const MCTrack& part);
+  bool isFromPrimaryDecayChain(const MCTrack& part);
+  bool isFromPrimaryPairProduction(const MCTrack& part);
+
+  bool keepPhysics(const MCTrack& part);
+
   Stack(const Stack&);
 
   Stack& operator=(const Stack&);
-
-  /// function called after each primary
-  /// and all its secondaries where transported
-  /// this allows applying selection criteria at a much finer granularity
-  /// than done with FillTrackArray which is only called once per event
-  void finishCurrentPrimary();
 
   /// Increment number of hits for an arbitrary track in a given detector
   /// \param iDet    Detector unique identifier
@@ -305,7 +312,15 @@ class Stack : public FairGenericStack
   ClassDefOverride(Stack, 1);
 };
 
-inline void Stack::addTrackReference(const o2::TrackReference& ref) { mTrackRefs->push_back(ref); }
+inline void Stack::addTrackReference(const o2::TrackReference& ref)
+{
+  if (mIndexOfCurrentTrack >= mNumberOfPrimaryParticles) {
+    Int_t iTrack = mTrackIDtoParticlesEntry[mIndexOfCurrentTrack];
+    auto& part = mParticles[iTrack];
+    part.setStore(true);
+  }
+  mTrackRefs->push_back(ref);
+}
 
 inline int Stack::getCurrentPrimaryIndex() const { return mPrimaryParticles.size() - 1 - mPrimariesDone; }
 

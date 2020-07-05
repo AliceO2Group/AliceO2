@@ -31,9 +31,7 @@ class GPUTPCTrackParam;
  * This class is used for transfer between tracker and merger and does not contain the covariance matrice
  */
 MEM_CLASS_PRE()
-class GPUTPCBaseTrackParam
-{
- public:
+struct GPUTPCBaseTrackParam {
   GPUd() float X() const { return mX; }
   GPUd() float Y() const { return mP[0]; }
   GPUd() float Z() const { return mP[1]; }
@@ -41,6 +39,15 @@ class GPUTPCBaseTrackParam
   GPUd() float DzDs() const { return mP[3]; }
   GPUd() float QPt() const { return mP[4]; }
   GPUd() float ZOffset() const { return mZOffset; }
+
+  GPUd() float Err2Y() const { return mC[0]; }
+  GPUd() float Err2Z() const { return mC[2]; }
+  GPUd() float Err2SinPhi() const { return mC[5]; }
+  GPUd() float Err2DzDs() const { return mC[9]; }
+  GPUd() float Err2QPt() const { return mC[14]; }
+  GPUhd() const float* Cov() const { return mC; }
+  GPUd() float GetCov(int i) const { return mC[i]; }
+  GPUhd() void SetCov(int i, float v) { mC[i] = v; }
 
   GPUhd() float GetX() const { return mX; }
   GPUhd() float GetY() const { return mP[0]; }
@@ -66,13 +73,13 @@ class GPUTPCBaseTrackParam
   GPUd() void SetQPt(float v) { mP[4] = v; }
   GPUd() void SetZOffset(float v) { mZOffset = v; }
 
- private:
   // WARNING, Track Param Data is copied in the GPU Tracklet Constructor element by element instead of using copy constructor!!!
   // This is neccessary for performance reasons!!!
   // Changes to Elements of this class therefore must also be applied to TrackletConstructor!!!
-  float mX; // x position
-  float mZOffset;
-  float mP[5]; // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
+  float mX;       // x position
+  float mC[15];   // the covariance matrix for Y,Z,SinPhi,..
+  float mZOffset; // z offset
+  float mP[5];    // 'active' track parameters: Y, Z, SinPhi, DzDs, q/Pt
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

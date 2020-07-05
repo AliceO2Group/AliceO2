@@ -774,7 +774,7 @@ void Detector::constructDetectorGeometry()
   // Create the geometry and insert it in the mother volume ITSV
   TGeoManager* geoManager = gGeoManager;
 
-  TGeoVolume* vALIC = geoManager->GetVolume("cave");
+  TGeoVolume* vALIC = geoManager->GetVolume("barrel");
 
   if (!vALIC) {
     LOG(FATAL) << "Could not find the top volume";
@@ -782,7 +782,7 @@ void Detector::constructDetectorGeometry()
 
   new TGeoVolumeAssembly(GeometryTGeo::getITSVolPattern());
   TGeoVolume* vITSV = geoManager->GetVolume(GeometryTGeo::getITSVolPattern());
-  vALIC->AddNode(vITSV, 2, nullptr); // Copy number is 2 to cheat AliGeoManager::CheckSymNamesLUT
+  vALIC->AddNode(vITSV, 2, new TGeoTranslation(0, 30., 0)); // Copy number is 2 to cheat AliGeoManager::CheckSymNamesLUT
 
   const Int_t kLength = 100;
   Char_t vstrng[kLength] = "xxxRS"; //?
@@ -1046,17 +1046,19 @@ void Detector::addAlignableVolumes() const
     return;
   }
 
-  TString path = Form("/cave_1/%s_2", GeometryTGeo::getITSVolPattern());
+  TString path = Form("/cave_1/barrel_1/%s_2", GeometryTGeo::getITSVolPattern());
   TString sname = GeometryTGeo::composeSymNameITS();
 
   LOG(DEBUG) << sname << " <-> " << path;
 
-  if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data()))
+  if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
     LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+  }
 
   Int_t lastUID = 0;
-  for (Int_t lr = 0; lr < sNumberLayers; lr++)
+  for (Int_t lr = 0; lr < sNumberLayers; lr++) {
     addAlignableVolumesLayer(lr, path, lastUID);
+  }
 
   return;
 }
@@ -1076,13 +1078,15 @@ void Detector::addAlignableVolumesLayer(int lr, TString& parent, Int_t& lastUID)
 
   LOG(DEBUG) << "Add " << sname << " <-> " << path;
 
-  if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data()))
+  if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
     LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+  }
 
   const V3Layer* lrobj = mGeometry[lr];
   Int_t nstaves = lrobj->getNumberOfStavesPerParent();
-  for (int st = 0; st < nstaves; st++)
+  for (int st = 0; st < nstaves; st++) {
     addAlignableVolumesStave(lr, st, path, lastUID);
+  }
 
   return;
 }
@@ -1100,14 +1104,16 @@ void Detector::addAlignableVolumesStave(Int_t lr, Int_t st, TString& parent, Int
 
   LOG(DEBUG) << "Add " << sname << " <-> " << path;
 
-  if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data()))
+  if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
     LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+  }
 
   const V3Layer* lrobj = mGeometry[lr];
   Int_t nhstave = lrobj->getNumberOfHalfStavesPerParent();
   Int_t start = nhstave > 0 ? 0 : -1;
-  for (Int_t sst = start; sst < nhstave; sst++)
+  for (Int_t sst = start; sst < nhstave; sst++) {
     addAlignableVolumesHalfStave(lr, st, sst, path, lastUID);
+  }
 
   return;
 }
@@ -1127,15 +1133,17 @@ void Detector::addAlignableVolumesHalfStave(Int_t lr, Int_t st, Int_t hst, TStri
 
     LOG(DEBUG) << "Add " << sname << " <-> " << path;
 
-    if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data()))
+    if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
       LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+    }
   }
 
   const V3Layer* lrobj = mGeometry[lr];
   Int_t nmodules = lrobj->getNumberOfModulesPerParent();
   Int_t start = nmodules > 0 ? 0 : -1;
-  for (Int_t md = start; md < nmodules; md++)
+  for (Int_t md = start; md < nmodules; md++) {
     addAlignableVolumesModule(lr, st, hst, md, path, lastUID);
+  }
 
   return;
 }
@@ -1155,14 +1163,16 @@ void Detector::addAlignableVolumesModule(Int_t lr, Int_t st, Int_t hst, Int_t md
 
     LOG(DEBUG) << "Add " << sname << " <-> " << path;
 
-    if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data()))
+    if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
       LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+    }
   }
 
   const V3Layer* lrobj = mGeometry[lr];
   Int_t nchips = lrobj->getNumberOfChipsPerParent();
-  for (Int_t ic = 0; ic < nchips; ic++)
+  for (Int_t ic = 0; ic < nchips; ic++) {
     addAlignableVolumesChip(lr, st, hst, md, ic, path, lastUID);
+  }
 
   return;
 }
@@ -1182,8 +1192,9 @@ void Detector::addAlignableVolumesChip(Int_t lr, Int_t st, Int_t hst, Int_t md, 
 
   LOG(DEBUG) << "Add " << sname << " <-> " << path;
 
-  if (!gGeoManager->SetAlignableEntry(sname, path.Data(), modUID))
+  if (!gGeoManager->SetAlignableEntry(sname, path.Data(), modUID)) {
     LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+  }
 
   return;
 }

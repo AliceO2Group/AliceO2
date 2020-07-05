@@ -12,6 +12,7 @@
 # convenient bag for all the deps needed in the executables below
 add_library(allsim INTERFACE)
 
+if(ENABLE_UPGRADES)
 target_link_libraries(allsim
                       INTERFACE O2::SimConfig
                                 O2::Steer
@@ -24,7 +25,8 @@ target_link_libraries(allsim
                                 O2::Field
                                 O2::HMPIDSimulation
                                 O2::ITSSimulation
-				O2::MCHBase
+                                O2::ITS3Simulation
+				                        O2::MCHBase
                                 O2::MCHSimulation
                                 O2::MFTSimulation
                                 O2::MIDSimulation
@@ -36,6 +38,32 @@ target_link_libraries(allsim
                                 O2::FV0Simulation
                                 O2::ZDCSimulation
                                 O2::Generators)
+else()
+target_link_libraries(allsim
+                      INTERFACE O2::SimConfig
+                                O2::Steer
+                                O2::SimSetup
+                                FairMQ::FairMQ
+                                O2::CPVSimulation
+                                O2::DetectorsPassive
+                                O2::EMCALSimulation
+                                O2::FDDSimulation
+                                O2::Field
+                                O2::HMPIDSimulation
+                                O2::ITSSimulation
+				                        O2::MCHBase
+                                O2::MCHSimulation
+                                O2::MFTSimulation
+                                O2::MIDSimulation
+                                O2::PHOSSimulation
+                                O2::FT0Simulation
+                                O2::TOFSimulation
+                                O2::TPCSimulation
+                                O2::TRDSimulation
+                                O2::FV0Simulation
+                                O2::ZDCSimulation
+                                O2::Generators)
+endif()
 
 
 add_library(internal::allsim ALIAS allsim)
@@ -57,7 +85,11 @@ o2_add_executable(sim
 o2_add_executable(primary-server-device-runner
                   COMPONENT_NAME sim
                   SOURCES O2PrimaryServerDeviceRunner.cxx
-                  PUBLIC_LINK_LIBRARIES internal::allsim)
+                  PUBLIC_LINK_LIBRARIES internal::allsim
+                  TARGETVARNAME simexe)
+if(NOT APPLE)
+  set_property(TARGET ${simexe} PROPERTY LINK_WHAT_YOU_USE ON)
+endif()
 
 o2_add_executable(hit-merger-runner
                   COMPONENT_NAME sim
@@ -87,14 +119,17 @@ o2_add_test_wrapper(NAME o2sim_G4
                                       TGeant4
                                       -o
                                       o2simG4
-                    LABELS long sim g4
-                    ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+                    LABELS "g4;sim;long")
 
 set_tests_properties(o2sim_G4
                      PROPERTIES PASS_REGULAR_EXPRESSION
                                 "SIMULATION RETURNED SUCCESFULLY" FIXTURES_SETUP
                                 G4)
-set_property(TEST o2sim_G4 APPEND PROPERTY ENVIRONMENT "ALICE_O2SIM_DUMPLOG=ON")
+set_property(TEST o2sim_G4 APPEND PROPERTY ENVIRONMENT 
+                                           ALICE_O2SIM_DUMPLOG=ON
+                                           O2_ROOT=${CMAKE_BINARY_DIR}/stage 
+                                           VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/share)
+set_property(TEST o2sim_G4 APPEND PROPERTY ENVIRONMENT ${G4ENV})
 
 # # note that the MT is currently only supported in the non FairMQ version
 o2_add_test_wrapper(NAME o2sim_G4_mt
@@ -111,19 +146,24 @@ o2_add_test_wrapper(NAME o2sim_G4_mt
                                       on
                                       -o
                                       o2simG4MT
-                    ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+                   LABELS "g4;sim;long")
 set_tests_properties(o2sim_G4_mt
                      PROPERTIES PASS_REGULAR_EXPRESSION
                                 "Macro finished succesfully")
+set_property(TEST o2sim_G4_mt APPEND PROPERTY ENVIRONMENT 
+                                           O2_ROOT=${CMAKE_BINARY_DIR}/stage 
+                                           VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/share)
+set_property(TEST o2sim_G4_mt APPEND PROPERTY ENVIRONMENT ${G4ENV})
 
-o2_add_test_wrapper(
+
+o2_add_test(CheckStackG4
+  SOURCES checkStack.cxx
   NAME o2sim_checksimkinematics_G4
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  COMMAND ${ROOT_root_CMD}
-  COMMAND_LINE_ARGS
-    -n -b -l -q
-    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C\(\"o2simG4\"\)
-  LABELS g4 sim)
+  COMMAND_LINE_ARGS o2simG4
+  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+  NO_BOOST_TEST
+  LABELS "g4;sim;long")
 
 set_tests_properties(o2sim_checksimkinematics_G4
                      PROPERTIES FIXTURES_REQUIRED G4)
@@ -142,7 +182,7 @@ o2_add_test_wrapper(NAME o2sim_G3
                                       -o
                                       o2simG3
                     LABELS g3 sim long
-                    ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+                    ENVIRONMENT "O2_ROOT=${CMAKE_BINARY_DIR}/stage;VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/share")
 
 # set properties for G3 ... we use fixtures to force execution after G4 (since
 # they require multiple CPUs)
@@ -155,16 +195,15 @@ set_tests_properties(o2sim_G3
                                 G3)
 set_property(TEST o2sim_G3 APPEND PROPERTY ENVIRONMENT "ALICE_O2SIM_DUMPLOG=ON")
 
-o2_add_test_wrapper(
+o2_add_test(CheckStackG3
+  SOURCES checkStack.cxx
   NAME o2sim_checksimkinematics_G3
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  DONT_FAIL_ON_TIMEOUT
-  MAX_ATTEMPTS 3
-  COMMAND ${ROOT_root_CMD}
-  COMMAND_LINE_ARGS
-    -n -b -l -q
-    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C\(\"o2simG3\"\)
-  LABELS g3 sim)
+  COMMAND_LINE_ARGS o2simG3
+  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+  NO_BOOST_TEST
+  LABELS "g3;sim;long")
+
 
 set_tests_properties(o2sim_checksimkinematics_G3
                      PROPERTIES FIXTURES_REQUIRED G3)
@@ -186,7 +225,7 @@ o2_add_test_wrapper(NAME o2sim_hepmc
                                       -o
                                       o2simhepmc
                     LABELS long sim hepmc3
-                    ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+                    ENVIRONMENT "O2_ROOT=${CMAKE_BINARY_DIR}/stage;VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/share")
 
 set_tests_properties(o2sim_hepmc
                      PROPERTIES PASS_REGULAR_EXPRESSION

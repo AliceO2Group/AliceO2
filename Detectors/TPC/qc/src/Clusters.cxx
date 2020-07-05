@@ -88,11 +88,11 @@ void Clusters::dumpToFile(std::string filename)
 
   std::string calPadFile = filename + ".root";
   auto g = std::unique_ptr<TFile>(TFile::Open(calPadFile.c_str(), "recreate"));
-  g->WriteObject(&mNClusters.getData(), mNClusters.getName().data());
-  g->WriteObject(&mQMax.getData(), mQMax.getName().data());
-  g->WriteObject(&mQTot.getData(), mQTot.getName().data());
-  g->WriteObject(&mSigmaTime.getData(), mSigmaTime.getName().data());
-  g->WriteObject(&mSigmaPad.getData(), mSigmaPad.getName().data());
-  g->WriteObject(&mTimeBin.getData(), mTimeBin.getName().data());
+  g->WriteObject(&mNClusters, mNClusters.getName().data());
+  g->WriteObject(&mQMax, mQMax.getName().data());
+  g->WriteObject(&mQTot, mQTot.getName().data());
+  g->WriteObject(&mSigmaTime, mSigmaTime.getName().data());
+  g->WriteObject(&mSigmaPad, mSigmaPad.getName().data());
+  g->WriteObject(&mTimeBin, mTimeBin.getName().data());
   g->Close();
 }

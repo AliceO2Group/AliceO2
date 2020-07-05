@@ -44,5 +44,11 @@
 #define GPUCA_UNROLL(...)
 #endif
 
+#if !defined(WITH_OPENMP) || defined(GPUCA_GPUCODE_DEVICE)
+#define GPUCA_OPENMP(...)
+#else
+#define GPUCA_OPENMP(...) _Pragma(GPUCA_M_STR(omp __VA_ARGS__))
+#endif
+
 #endif
 // clang-format on

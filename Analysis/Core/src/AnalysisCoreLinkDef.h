@@ -18,5 +18,9 @@
 #pragma link C++ typedef StepTHnF;
 #pragma link C++ typedef StepTHnD;
 
+#pragma link C++ class RunToTimestamp+;
 #pragma link C++ class CorrelationContainer+;
 #pragma link C++ class TrackSelection+;
+
+#pragma link C++ class VarManager + ;
+#pragma link C++ class HistogramManager + ;

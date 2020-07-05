@@ -31,18 +31,11 @@ namespace gpu
 class GPUTPCGMBorderTrack
 {
  public:
-  struct Range {
-    int fId;
-    float fMin, fMax;
-    static bool CompMin(const Range& a, const Range& b) { return a.fMin < b.fMin; }
-    static bool CompMax(const Range& a, const Range& b) { return a.fMax < b.fMax; }
-  };
-
   GPUd() int TrackID() const { return mTrackID; }
   GPUd() short NClusters() const { return mNClusters; }
   GPUd() short Row() const { return mRow; }
   GPUd() const float* Par() const { return mP; }
-  GPUd() float ZOffset() const { return mZOffset; }
+  GPUd() float ZOffsetLinear() const { return mZOffsetLinear; }
   GPUd() const float* Cov() const { return mC; }
   GPUd() const float* CovD() const { return mD; }
 
@@ -50,7 +43,7 @@ class GPUTPCGMBorderTrack
   GPUd() void SetNClusters(short v) { mNClusters = v; }
   GPUd() void SetRow(short v) { mRow = v; }
   GPUd() void SetPar(int i, float x) { mP[i] = x; }
-  GPUd() void SetZOffset(float v) { mZOffset = v; }
+  GPUd() void SetZOffsetLinear(float v) { mZOffsetLinear = v; }
   GPUd() void SetCov(int i, float x) { mC[i] = x; }
   GPUd() void SetCovD(int i, float x) { mD[i] = x; }
 
@@ -75,7 +68,7 @@ class GPUTPCGMBorderTrack
 
   GPUd() bool CheckChi2Z(const GPUTPCGMBorderTrack& t, float chi2cut) const
   {
-    float d = mP[1] - t.mP[1] + (mZOffset - t.mZOffset);
+    float d = mP[1] - t.mP[1] + (mZOffsetLinear - t.mZOffsetLinear);
     return (d * d < chi2cut * (mC[1] + t.mC[1]));
   }
 
@@ -90,7 +83,7 @@ class GPUTPCGMBorderTrack
 
   GPUd() bool CheckChi2YS(const GPUTPCGMBorderTrack& t, float chi2cut) const { return CheckChi2(mP[0], mP[2], mC[0], mD[0], mC[2], t.mP[0], t.mP[2], t.mC[0], t.mD[0], t.mC[2], chi2cut); }
 
-  GPUd() bool CheckChi2ZT(const GPUTPCGMBorderTrack& t, float chi2cut) const { return CheckChi2(mP[1], mP[3], mC[1], mD[1], mC[3], t.mP[1] + (t.mZOffset - mZOffset), t.mP[3], t.mC[1], t.mD[1], t.mC[3], chi2cut); }
+  GPUd() bool CheckChi2ZT(const GPUTPCGMBorderTrack& t, float chi2cut) const { return CheckChi2(mP[1], mP[3], mC[1], mD[1], mC[3], t.mP[1] + (t.mZOffsetLinear - mZOffsetLinear), t.mP[3], t.mC[1], t.mD[1], t.mC[3], chi2cut); }
 
   GPUd() void LimitCov()
   {
@@ -127,7 +120,7 @@ class GPUTPCGMBorderTrack
   short mNClusters; // n clusters
   short mRow;
   float mP[5];
-  float mZOffset;
+  float mZOffsetLinear; // Z Offset, in case of T offset scaled linearly to Z with nominal vDrift. Used only for matching / merging
   float mC[5];
   float mD[2];
 };

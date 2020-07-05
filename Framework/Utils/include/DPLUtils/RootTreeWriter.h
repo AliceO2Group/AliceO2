@@ -15,6 +15,7 @@
 /// @since  2018-05-15
 /// @brief  A generic writer for ROOT TTrees
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/InputRecord.h"
 #include "Framework/DataRef.h"
 #include <TFile.h>
@@ -31,6 +32,7 @@
 #include <functional> // std::function
 #include <utility>    // std::forward
 #include <algorithm>  // std::generate
+#include <variant>
 
 namespace o2
 {
@@ -90,6 +92,10 @@ class RootTreeWriter
   using IndexExtractor = std::function<size_t(o2::framework::DataRef const&)>;
   // mapper between branch name and base/index
   using BranchNameMapper = std::function<std::string(std::string, size_t)>;
+  // a custom callback to close the writer
+  // writing of tree and closing of file need to be implemented, but the pointers
+  // remain owned by the tool
+  using CustomClose = std::function<void(TFile* file, TTree* tree)>;
 
   /// DefaultKeyExtractor maps a data type used as key in the branch definition
   /// to the default internal key type std::string
@@ -99,6 +105,12 @@ class RootTreeWriter
     {
       return arg;
     }
+  };
+
+  enum struct BranchVerbosity {
+    Quiet,
+    Medium,
+    High,
   };
 
   /// @struct BranchDef Definition of branch specification for the RootTreeWriter
@@ -145,26 +157,86 @@ class RootTreeWriter
     /// get name of branch from base name and index
     BranchNameMapper getName = [](std::string base, size_t i) { return base + "_" + std::to_string(i); };
 
+    using Fill = std::function<void(TBranch& branch, T const&)>;
+    using FillExt = std::function<void(TBranch& branch, T const&, DataRef const&)>;
+    using Spectator = std::function<void(T const&)>;
+    using SpectatorExt = std::function<void(T const&, DataRef const&)>;
+    using BranchCallback = std::variant<std::monostate, Fill, FillExt, Spectator, SpectatorExt>;
+    BranchCallback callback;
+
     /// simple constructor for single input and one branch
+    /// the definition is ignored if number of branches is zero
     /// @param key          input key
     /// @param _branchName  name of the target branch
-    BranchDef(key_type key, std::string _branchName) : keys({key}), branchName(_branchName) {}
+    /// @param _nofBranches number of branches
+    BranchDef(key_type key, std::string _branchName, size_t _nofBranches = 1) : keys({key}), branchName(_branchName), nofBranches(_nofBranches) {}
 
     /// constructor for single input and multiple output branches
+    /// the definition is ignored if number of branches is zero
     /// @param key          input key
     /// @param _branchName  name of the target branch
     /// @param _nofBranches the number of target branches
-    /// @param _getIndex    index callback
-    /// @param _getName     branch name callback
-    BranchDef(key_type key, std::string _branchName, size_t _nofBranches, IndexExtractor _getIndex, BranchNameMapper _getName) : keys({key}), branchName(_branchName), nofBranches(_nofBranches), getIndex(_getIndex), getName(_getName) {}
+    /// @param args         parameter pack can contain the following argument types:
+    ///                     IndexExtractor: index callback
+    ///                     BranchNameMapper: branch name callback
+    ///                     Fill: fill handler
+    ///                     Spectator: spectator handler
+    template <typename... Args>
+    BranchDef(key_type key, std::string _branchName, Args&&... args) : keys({key}), branchName(_branchName), nofBranches(1)
+    {
+      init(std::forward<Args>(args)...);
+    }
 
     /// constructor for multiple inputs and multiple output branches
+    /// the definition is ignored if number of branches is zero
     /// @param key          vector of input keys
     /// @param _branchName  name of the target branch
     /// @param _nofBranches the number of target branches
-    /// @param _getIndex    index callback
-    /// @param _getName     branch name callback
-    BranchDef(std::vector<key_type> vec, std::string _branchName, size_t _nofBranches, IndexExtractor _getIndex, BranchNameMapper _getName) : keys(vec), branchName(_branchName), nofBranches(_nofBranches), getIndex(_getIndex), getName(_getName) {}
+    /// @param args         parameter pack can contain the following argument types:
+    ///                     IndexExtractor: index callback
+    ///                     BranchNameMapper: branch name callback
+    ///                     Fill: fill handler
+    ///                     Spectator: spectator handler
+    template <typename... Args>
+    BranchDef(std::vector<key_type> vec, std::string _branchName, Args&&... args) : keys(vec), branchName(_branchName), nofBranches(1)
+    {
+      init(std::forward<Args>(args)...);
+    }
+
+    /// recursively init member variables from parameter pack
+    template <typename Arg, typename... Args>
+    void init(Arg&& arg, Args&&... args)
+    {
+      using Type = std::decay_t<Arg>;
+      if constexpr (can_assign<Type, IndexExtractor>::value) {
+        getIndex = arg;
+      } else if constexpr (can_assign<Type, BranchNameMapper>::value) {
+        getName = arg;
+      } else if constexpr (can_assign<Type, Fill>::value) {
+        callback = arg;
+      } else if constexpr (can_assign<Type, FillExt>::value) {
+        callback = arg;
+      } else if constexpr (can_assign<Type, Spectator>::value) {
+        callback = arg;
+      } else if constexpr (can_assign<Type, SpectatorExt>::value) {
+        callback = arg;
+      } else if constexpr (std::is_integral<Type>::value) {
+        nofBranches = arg;
+      } else {
+        assertNoMatchingType(std::forward<Arg>(arg));
+      }
+      if constexpr (sizeof...(args) > 0) {
+        init(std::forward<Args>(args)...);
+      }
+    }
+
+    // wrap the non matching type assert into a function to better see type of argument
+    // in the compiler error
+    template <typename Arg>
+    void assertNoMatchingType(Arg&& arg)
+    {
+      static_assert(always_static_assert_v<Arg>, "no matching function signature for passed object. Please check:\n- Is it a callable object?\n- Does it have correct parameters and return type?\n- Are all type correctly qualified");
+    }
   };
 
   /// default constructor forbidden
@@ -179,7 +251,10 @@ class RootTreeWriter
                  const char* treename, // name of the tree to write to
                  Args&&... args)       // followed by branch definition
   {
-    mTreeStructure = createTreeStructure<TreeStructureInterface>(std::forward<Args>(args)...);
+    parseConstructorArgs(std::forward<Args>(args)...);
+    if (!mTreeStructure) {
+      std::runtime_error("Failed to create the branch configuration");
+    }
     if (filename && treename) {
       init(filename, treename);
     }
@@ -191,10 +266,10 @@ class RootTreeWriter
   ///
   /// After setting up the tree, the branches will be created according to the
   /// branch definition provided to the constructor.
-  void init(const char* filename, const char* treename)
+  void init(const char* filename, const char* treename, const char* treetitle = nullptr)
   {
     mFile = std::make_unique<TFile>(filename, "RECREATE");
-    mTree = std::make_unique<TTree>(treename, treename);
+    mTree = std::make_unique<TTree>(treename, treetitle != nullptr ? treetitle : treename);
     mTreeStructure->setup(mBranchSpecs, mTree.get());
   }
 
@@ -207,7 +282,7 @@ class RootTreeWriter
   void setBranchName(size_t index, const char* branchName)
   {
     auto& spec = mBranchSpecs.at(index);
-    if (spec.getName) {
+    if (spec.names.size() > 1 && spec.getName) {
       // set the branch names for this group
       size_t idx = 0;
       std::generate(spec.names.begin(), spec.names.end(), [&]() { return spec.getName(branchName, idx++); });
@@ -240,10 +315,14 @@ class RootTreeWriter
     if (!mFile) {
       return;
     }
-    // set the number of elements according to branch content and write tree
-    mTree->SetEntries();
-    mTree->Write();
-    mFile->Close();
+    if (mCustomClose) {
+      mCustomClose(mFile.get(), mTree.get());
+    } else {
+      // set the number of elements according to branch content and write tree
+      mTree->SetEntries();
+      mTree->Write();
+      mFile->Close();
+    }
     // this is a feature of ROOT, the tree belongs to the file and will be deleted
     // automatically
     mTree.release();
@@ -328,6 +407,7 @@ class RootTreeWriter
   // can write a simple array of chars and use a pointer
   template <typename T>
   struct StructureElementTypeTrait<T, std::enable_if_t<std::is_same<T, const char*>::value>> {
+    using value_type = T;
     using store_type = BinaryBranchStoreType<char>;
     using specialization_id = BinaryBranchSpecialization;
   };
@@ -336,7 +416,8 @@ class RootTreeWriter
   // using an internal variable of the given type, involves a copy
   template <typename T>
   struct StructureElementTypeTrait<T, std::enable_if_t<is_messageable<T>::value>> {
-    using store_type = T;
+    using value_type = T;
+    using store_type = value_type;
     using specialization_id = MessageableTypeSpecialization;
   };
 
@@ -344,7 +425,8 @@ class RootTreeWriter
   template <typename T>
   struct StructureElementTypeTrait<T, std::enable_if_t<has_messageable_value_type<T>::value &&
                                                        is_specialization<T, std::vector>::value>> {
-    using store_type = T*;
+    using value_type = T;
+    using store_type = value_type*;
     using specialization_id = MessageableVectorSpecialization;
   };
 
@@ -353,7 +435,16 @@ class RootTreeWriter
   struct StructureElementTypeTrait<T, std::enable_if_t<has_root_dictionary<T>::value &&
                                                        is_messageable<T>::value == false &&
                                                        has_messageable_value_type<T>::value == false>> {
-    using store_type = T*;
+    using value_type = T;
+    using store_type = value_type*;
+    using specialization_id = ROOTTypeSpecialization;
+  };
+
+  // types marked as ROOT serialized
+  template <typename T>
+  struct StructureElementTypeTrait<T, std::enable_if_t<is_specialization<T, ROOTSerialized>::value == true>> {
+    using value_type = typename T::wrapped_type;
+    using store_type = value_type*;
     using specialization_id = ROOTTypeSpecialization;
   };
 
@@ -364,7 +455,7 @@ class RootTreeWriter
   {
    public:
     using PrevT = BASE;
-    using value_type = DataT;
+    using value_type = typename StructureElementTypeTrait<DataT>::value_type;
     using store_type = typename StructureElementTypeTrait<DataT>::store_type;
     using specialization_id = typename StructureElementTypeTrait<DataT>::specialization_id;
     static const size_t STAGE = BASE::STAGE + 1;
@@ -417,6 +508,10 @@ class RootTreeWriter
       // i.e. the base class method.
       PrevT::setupInstance(specs, tree);
       constexpr size_t SpecIndex = STAGE - 1;
+      if (specs[SpecIndex].branches.size() == 0) {
+        // this definition is disabled
+        return;
+      }
       specs[SpecIndex].classinfo = TClass::GetClass(typeid(value_type));
       if (std::is_same<value_type, const char*>::value == false && std::is_fundamental<value_type>::value == false &&
           specs[SpecIndex].classinfo == nullptr) {
@@ -440,14 +535,38 @@ class RootTreeWriter
       }
     }
 
+    /// check the alternatives for the callback and run if there are any
+    /// @return true if branch has been filled, false if still to be filled
+    template <typename DataType>
+    bool runCallback(TBranch* branch, DataType const& data, DataRef const& ref)
+    {
+      if (std::holds_alternative<typename BranchDef<value_type>::Spectator>(mCallback)) {
+        std::get<typename BranchDef<value_type>::Spectator>(mCallback)(data);
+      }
+      if (std::holds_alternative<typename BranchDef<value_type>::SpectatorExt>(mCallback)) {
+        std::get<typename BranchDef<value_type>::SpectatorExt>(mCallback)(data, ref);
+      }
+      if (std::holds_alternative<typename BranchDef<value_type>::Fill>(mCallback)) {
+        std::get<typename BranchDef<value_type>::Fill>(mCallback)(*branch, data);
+        return true;
+      }
+      if (std::holds_alternative<typename BranchDef<value_type>::FillExt>(mCallback)) {
+        std::get<typename BranchDef<value_type>::FillExt>(mCallback)(*branch, data, ref);
+        return true;
+      }
+      return false;
+    }
+
     // specialization for trivial structs or serialized objects without a TClass interface
     // the extracted object is copied to store variable
     template <typename S, typename std::enable_if_t<std::is_same<S, MessageableTypeSpecialization>::value, int> = 0>
-    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, size_t branchIdx)
     {
-      auto data = context.get<value_type>(key);
-      mStore[branchIdx] = data;
-      branch->Fill();
+      auto data = context.get<value_type>(ref);
+      if (!runCallback(branch, data, ref)) {
+        mStore[branchIdx] = data;
+        branch->Fill();
+      }
     }
 
     // specialization for non-messageable types with ROOT dictionary
@@ -455,21 +574,23 @@ class RootTreeWriter
     // in order to directly use the pointer to extracted object
     // store is a pointer to object
     template <typename S, typename std::enable_if_t<std::is_same<S, ROOTTypeSpecialization>::value, int> = 0>
-    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, size_t branchIdx)
     {
-      auto data = context.get<typename std::add_pointer<value_type>::type>(key);
-      // this is ugly but necessary because of the TTree API does not allow a const
-      // object as input. Have to rely on that ROOT treats the object as const
-      mStore[branchIdx] = const_cast<value_type*>(data.get());
-      branch->Fill();
+      auto data = context.get<typename std::add_pointer<value_type>::type>(ref);
+      if (!runCallback(branch, *data, ref)) {
+        // this is ugly but necessary because of the TTree API does not allow a const
+        // object as input. Have to rely on that ROOT treats the object as const
+        mStore[branchIdx] = const_cast<value_type*>(data.get());
+        branch->Fill();
+      }
     }
 
     // specialization for binary buffers using const char*
     // this writes both the data branch and a size branch
     template <typename S, typename std::enable_if_t<std::is_same<S, BinaryBranchSpecialization>::value, int> = 0>
-    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, size_t branchIdx)
     {
-      auto data = context.get<gsl::span<char>>(key);
+      auto data = context.get<gsl::span<char>>(ref);
       std::get<2>(mStore.at(branchIdx)) = data.size();
       std::get<1>(mStore.at(branchIdx))->Fill();
       std::get<0>(mStore.at(branchIdx)).resize(data.size());
@@ -479,7 +600,7 @@ class RootTreeWriter
 
     // specialization for vectors of messageable types
     template <typename S, typename std::enable_if_t<std::is_same<S, MessageableVectorSpecialization>::value, int> = 0>
-    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    void fillData(InputContext& context, DataRef const& ref, TBranch* branch, size_t branchIdx)
     {
       using ValueType = typename value_type::value_type;
       static_assert(is_messageable<ValueType>::value, "logical error: should be correctly selected by StructureElementTypeTrait");
@@ -488,16 +609,20 @@ class RootTreeWriter
       try {
         // try extracting from message with serialization method NONE, throw runtime error
         // if message is serialized
-        auto data = context.get<gsl::span<ValueType>>(key);
+        auto data = context.get<gsl::span<ValueType>>(ref);
         value_type clone(data.begin(), data.end());
-        mStore[branchIdx] = &clone;
-        branch->Fill();
+        if (!runCallback(branch, clone, ref)) {
+          mStore[branchIdx] = &clone;
+          branch->Fill();
+        }
       } catch (const std::runtime_error& e) {
         if constexpr (has_root_dictionary<value_type>::value == true) {
           // try extracting from message with serialization method ROOT
-          auto data = context.get<typename std::add_pointer<value_type>::type>(key);
-          mStore[branchIdx] = const_cast<value_type*>(data.get());
-          branch->Fill();
+          auto data = context.get<typename std::add_pointer<value_type>::type>(ref);
+          if (!runCallback(branch, *data, ref)) {
+            mStore[branchIdx] = const_cast<value_type*>(data.get());
+            branch->Fill();
+          }
         } else {
           // the type has no ROOT dictionary, re-throw exception
           throw e;
@@ -513,31 +638,89 @@ class RootTreeWriter
       PrevT::process(context, specs);
       constexpr size_t SpecIndex = STAGE - 1;
       BranchSpec const& spec = specs[SpecIndex];
+      if (spec.branches.size() == 0) {
+        // this definition is disabled
+        return;
+      }
       // loop over all defined inputs
       for (auto const& key : spec.keys) {
-        auto dataref = context.get(key.c_str());
-        size_t branchIdx = 0;
-        if (spec.getIndex) {
-          branchIdx = spec.getIndex(dataref);
-          if (branchIdx == ~(size_t)0) {
-            // this indicates skipping
-            continue;
+        auto keypos = context.getPos(key.c_str());
+        auto parts = context.getNofParts(keypos);
+        for (decltype(parts) part = 0; part < parts; part++) {
+          auto dataref = context.get(key.c_str(), part);
+          size_t branchIdx = 0;
+          if (spec.getIndex) {
+            branchIdx = spec.getIndex(dataref);
+            if (branchIdx == ~(size_t)0) {
+              // this indicates skipping
+              continue;
+            }
           }
+          fillData<specialization_id>(context, dataref, spec.branches.at(branchIdx), branchIdx);
         }
-        fillData<specialization_id>(context, key.c_str(), spec.branches.at(branchIdx), branchIdx);
+      }
+    }
+
+    // helper function to get Nth argument from the argument pack
+    template <size_t N, typename Arg, typename... Args>
+    auto getArg(Arg&& arg, Args&&... args)
+    {
+      if constexpr (N == 0) {
+        return arg;
+      } else if constexpr (sizeof...(Args) > 0) {
+        return getArg<N - 1>(std::forward<Args>(args)...);
+      }
+    }
+
+    // recursively set optional callback from argument pack and recurse to all folded types
+    template <typename... Args>
+    void setCallback(Args&&... args)
+    {
+      // recursing through the tree structure by simply using method of the previous type,
+      // i.e. the base class method.
+      if constexpr (STAGE > 1) {
+        PrevT::setCallback(std::forward<Args>(args)...);
+      }
+
+      // now set this instance, the argument position is determined by the STAGE counter
+      auto arg = getArg<STAGE - 1>(std::forward<Args>(args)...);
+      if constexpr (std::is_same<value_type, typename decltype(arg)::type>::value) {
+        if (not std::holds_alternative<std::monostate>(arg.callback)) {
+          mCallback = std::move(arg.callback);
+        }
       }
     }
 
    private:
     /// internal store variable of the type wrapped by this instance
     std::vector<store_type> mStore;
+    /// an optional callback to either customize the filling or just spectate on the data
+    typename BranchDef<value_type>::BranchCallback mCallback;
   };
 
-  /// recursively step through all members of the store and set up corresponding branch
-  template <typename BASE, typename T, typename... Args>
-  std::enable_if_t<std::is_base_of<BranchDef<typename T::type, typename T::key_type, typename T::key_extractor>, T>::value, std::unique_ptr<TreeStructureInterface>>
-    createTreeStructure(T def, Args&&... args)
+  /// recursive parsing of constructor arguments, all branch definitions come at the end of the pack
+  template <typename Arg, typename... Args>
+  void parseConstructorArgs(Arg&& arg, Args&&... args)
   {
+    using Type = std::decay_t<Arg>;
+    if constexpr (can_assign<Type, CustomClose>::value) {
+      mCustomClose = arg;
+    } else {
+      mTreeStructure = createTreeStructure<0, TreeStructureInterface>(std::forward<Arg>(arg), std::forward<Args>(args)...);
+      return;
+    }
+    if constexpr (sizeof...(Args) > 0) {
+      parseConstructorArgs(std::forward<Args>(args)...);
+    }
+  }
+
+  /// recursively step through all members of the store and set up corresponding branch
+  template <size_t N, typename BASE, typename T, typename... Args>
+  auto createTreeStructure(T&& def, Args&&... args)
+  {
+    // Note: a branch definition can be disabled by setting nofBranches to zero
+    // an entry of the definition is kept in the registry, but the branches vector
+    // is of size zero, which will make the writer to always skip this definition
     mBranchSpecs.push_back({{}, {def.branchName}});
     auto& spec = mBranchSpecs.back();
 
@@ -546,12 +729,13 @@ class RootTreeWriter
     spec.keys.resize(def.keys.size());
     std::generate(spec.keys.begin(), spec.keys.end(), [&def, &idx] { return T::key_extractor::asString(def.keys[idx++]); });
     mBranchSpecs.back().branches.resize(def.nofBranches, nullptr);
+    // a branch definition might be disabled by setting number of branches to 0; if enabled,
     // the number of branches has to match the number of inputs but can be larger depending
     // on the exact functionality provided with the getIndex callback. In any case, the
     // callbacks only need to be propagated if multiple branches are defined
-    assert(def.nofBranches >= spec.keys.size());
+    assert(def.nofBranches == 0 || def.nofBranches >= spec.keys.size());
     // a getIndex function makes only sense if there are multiple branches
-    assert(def.nofBranches == 1 || def.getIndex);
+    assert(def.nofBranches <= 1 || def.getIndex);
     if (def.nofBranches > 1) {
       assert(def.getIndex && def.getName);
       mBranchSpecs.back().getIndex = def.getIndex;
@@ -564,14 +748,26 @@ class RootTreeWriter
                     [&def, &idx]() { return def.getName(def.branchName, idx++); });
     }
     using type = TreeStructureElement<typename T::type, BASE>;
-    return std::move(createTreeStructure<type>(std::forward<Args>(args)...));
+    if constexpr (N == 0) {
+      // in the upper most call we have the concrete type of the mixin object
+      // and call its method to set the callbacks from the argument pack, it
+      // recurses to all folded types
+      auto instance = createTreeStructure<N + 1, type>(std::forward<Args>(args)...);
+      instance->setCallback(std::move(def), std::forward<Args>(args)...);
+      // the upper most call returns the unique pointer of the virtual interface
+      std::unique_ptr<TreeStructureInterface> ret(instance.release());
+      return ret;
+    } else {
+      return std::move(createTreeStructure<N + 1, type>(std::forward<Args>(args)...));
+    }
   }
 
-  template <typename T>
-  std::unique_ptr<TreeStructureInterface> createTreeStructure()
+  // last iteration, returning unique pointer of the concrete mixin
+  template <size_t N, typename T>
+  std::unique_ptr<T> createTreeStructure()
   {
-    std::unique_ptr<TreeStructureInterface> ret(new T);
-    return std::move(ret);
+    static_assert(N > 0, "The writer does not make sense without branch definitions");
+    return std::make_unique<T>();
   }
 
   /// the output file
@@ -584,6 +780,8 @@ class RootTreeWriter
   std::unique_ptr<TreeStructureInterface> mTreeStructure;
   /// indicate that the writer has been closed
   bool mIsClosed = false;
+  /// custom close handler, optional
+  CustomClose mCustomClose;
 };
 
 } // namespace framework

@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TOFSimulation/Digitizer.h"
+#include "DetectorsBase/GeometryManager.h"
 
 #include "TCanvas.h"
 #include "TFile.h"
@@ -99,9 +100,6 @@ int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* dig
       checkIfReuseFutureDigits();
     } // close loop readout window
   }   // close if continuous
-
-  // if (mReadoutWindowCurrent >= Geo::ORBIT_IN_TF * Geo::NWINDOW_IN_ORBIT) // new TF
-  //   return 1;
 
   for (auto& hit : *hits) {
     //TODO: put readout window counting/selection
@@ -313,7 +311,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
 
     if (isnext < 0) {
       LOG(ERROR) << "error: isnext =" << isnext << "(current window = " << mReadoutWindowCurrent << ")"
-                 << " nbc = " << nbc << " -- event time = " << mEventTime << " -- TF = " << mTF << "\n";
+                 << " nbc = " << nbc << " -- event time = " << mEventTime << "\n";
 
       return;
     }
@@ -363,10 +361,13 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
     fillDigitsInStrip(strips, mcTruthContainer, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
 
   if (isIfOverlap > -1 && isIfOverlap < MAXWINDOWS) { // fill also a second readout window because of the overlap
-    if (!isIfOverlap)
+    if (!isIfOverlap) {
       strips = mStripsCurrent;
-    else
+      mcTruthContainer = mMCTruthContainerCurrent;
+    } else {
       strips = mStripsNext[isIfOverlap - 1];
+      mcTruthContainer = mMCTruthContainerNext[isIfOverlap - 1];
+    }
 
     int eventcounter = mReadoutWindowCurrent + isIfOverlap;
     int hittimeTDC = (nbc - eventcounter * Geo::BC_IN_WINDOW) * 1024 + tdc; // time in TDC bin within the TOF WINDOW
@@ -564,8 +565,7 @@ void Digitizer::test(const char* geo)
 {
   Int_t nhit = 1000000;
 
-  TFile* fgeo = new TFile(geo);
-  fgeo->Get("FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(geo);
 
   o2::tof::HitType* hit = new o2::tof::HitType();
 
@@ -732,8 +732,7 @@ void Digitizer::test(const char* geo)
 //______________________________________________________________________
 void Digitizer::testFromHits(const char* geo, const char* hits)
 {
-  TFile* fgeo = new TFile(geo);
-  fgeo->Get("FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(geo);
 
   TFile* fHit = new TFile(hits);
   fHit->ls();
@@ -789,8 +788,9 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
   // filling the digit container doing a loop on all strips
   for (auto& strip : *mStripsCurrent) {
     strip.fillOutputContainer(digits);
-    if (strip.getNumberOfDigits())
+    if (strip.getNumberOfDigits()) {
       LOG(INFO) << "strip size = " << strip.getNumberOfDigits() << " - digit size = " << digits.size() << "\n";
+    }
   }
 
   if (mContinuous) {

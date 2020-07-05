@@ -56,6 +56,7 @@ struct CTask {
   // *reset* to OutputObj label - needed for correct placement in the output file
   OutputObj<TH1F> ptH{TH1F("pt", "pt", 100, -0.01, 10.01)};
   OutputObj<TH1F> trZ{"trZ", OutputObjHandlingPolicy::QAObject};
+  Configurable<float> pTCut{"pTCut", 0.5f, "Lower pT limit"};
 
   void init(InitContext const&)
   {
@@ -69,9 +70,31 @@ struct CTask {
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      ptH->Fill(abs(1.f / track.signed1Pt()));
+      if (track.pt() < pTCut)
+        continue;
+      ptH->Fill(track.pt());
       trZ->Fill(track.z());
     }
+  }
+};
+
+struct DTask {
+  OutputObj<TList> list{"list"};
+
+  void init(InitContext const&)
+  {
+    list.setObject(new TList);
+    list->Add(new TH1F("pHist", "", 100, 0, 10));
+    list->Add(new TH1F("etaHist", "", 102, -2.01, 2.01));
+  }
+
+  void process(aod::Track const& track)
+  {
+    auto pHist = dynamic_cast<TH1F*>(list->At(0));
+    auto etaHist = dynamic_cast<TH1F*>(list->At(1));
+
+    pHist->Fill(track.p());
+    etaHist->Fill(track.eta());
   }
 };
 
@@ -81,5 +104,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     adaptAnalysisTask<ATask>("eta-and-phi-histograms"),
     adaptAnalysisTask<BTask>("etaphi-histogram"),
     adaptAnalysisTask<CTask>("pt-histogram"),
+    adaptAnalysisTask<DTask>("output-wrapper"),
   };
 }

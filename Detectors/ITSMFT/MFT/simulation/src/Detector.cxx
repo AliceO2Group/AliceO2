@@ -308,6 +308,27 @@ void Detector::createMaterials()
   Float_t dX7Rweld = 8.52358;
   //==========================================================================
 
+  //Barrel CarbonFiber M46J
+  const Int_t nCM46J = 4;
+  Float_t aCM46J[4] = {12.0107, 14.0067, 15.9994, 1.00794};
+  Float_t zCM46J[4] = {6., 7., 8., 1.};
+  Float_t wCM46J[4] = {0.908508078, 0.010387573, 0.055957585, 0.025146765};
+  Float_t dCM46J = 1.84; // only changes density
+
+  //Polypropylene[C3H6]n
+  const Int_t nPolyppln = 2;
+  Float_t aPolyppln[2] = {12.0107, 1.00794};
+  Float_t zPolyppln[2] = {6.0, 1.0};
+  Float_t wPolyppln[2] = {0.856307, 0.143693};
+  Float_t dPolyppln = 1.19;
+
+  //Polyurethane [HN-CO-O]
+  const Int_t nPolyurthn = 4;
+  Float_t aPolyurthn[4] = {1.00794, 14.010, 12.0107, 15.9994};
+  Float_t zPolyurthn[4] = {1.0, 7.0, 6.0, 8.0};
+  Float_t wPolyurthn[4] = {0.017077588, 0.237314387, 0.203327619, 0.542280405};
+  Float_t dPolyurthn = 1.25;
+
   Int_t matId = 0;            // tmp material id number
   Int_t unsens = 0, sens = 1; // sensitive or unsensitive medium
   Int_t itgfld =
@@ -426,6 +447,17 @@ void Detector::createMaterials()
   o2::base::Detector::Material(++matId, "CarbonFleece$", 12.0107, 6, 0.4, radCarb, absCarb); // 999,999);  why 999???
   o2::base::Detector::Medium(CarbonFleece, "CarbonFleece$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax,
                              epsil, stmin);
+
+  //Barrel Materials
+
+  o2::base::Detector::Mixture(++matId, "CarbonFiberM46J", aCM46J, zCM46J, dCM46J, nCM46J, wCM46J);
+  o2::base::Detector::Medium(CarbonFiberM46J, "CarbonFiberM46J", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+
+  o2::base::Detector::Mixture(++matId, "Polypropylene", aPolyppln, zPolyppln, dPolyppln, nPolyppln, wPolyppln);
+  o2::base::Detector::Medium(Polypropylene, "Polypropylene", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+
+  o2::base::Detector::Mixture(++matId, "Polyurethane", aPolyurthn, zPolyurthn, dPolyurthn, nPolyurthn, wPolyurthn);
+  o2::base::Detector::Medium(Polyurethane, "Polyurethane", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 
   LOG(DEBUG) << "Detector::createMaterials -----> matId = " << matId;
 }

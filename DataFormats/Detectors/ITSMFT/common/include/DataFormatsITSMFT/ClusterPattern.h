@@ -24,7 +24,8 @@
 #include <Rtypes.h>
 #include <array>
 #include <iosfwd>
-#include "DataFormatsITSMFT/Cluster.h"
+#include <gsl/gsl>
+#include "DataFormatsITSMFT/CompCluster.h"
 
 namespace o2
 {
@@ -37,14 +38,30 @@ class BuildTopologyDictionary;
 class ClusterPattern
 {
  public:
+  static constexpr int MaxPatternBits = 32 * 16;
+  static constexpr int MaxPatternBytes = MaxPatternBits / 8;
+  static constexpr int SpanMask = 0x7fff;
+  static constexpr int TruncateMask = 0x8000;
+
   /// Default constructor
   ClusterPattern();
   /// Standard constructor
-  ClusterPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
-  /// Constructor from a vector with cluster patterns
-  ClusterPattern(std::vector<unsigned char>::iterator& patternIter);
+  ClusterPattern(int nRow, int nCol, const unsigned char patt[MaxPatternBytes]);
+  /// Constructor from cluster patterns
+  template <class iterator>
+  ClusterPattern(iterator& pattIt)
+  {
+    mBitmap[0] = *pattIt++;
+    mBitmap[1] = *pattIt++;
+    int nbits = mBitmap[0] * mBitmap[1];
+    int nBytes = nbits / 8;
+    if (((nbits) % 8) != 0)
+      nBytes++;
+    memcpy(&mBitmap[2], &(*pattIt), nBytes);
+    pattIt += nBytes;
+  }
   /// Maximum number of bytes for the cluster puttern + 2 bytes respectively for the number of rows and columns of the bounding box
-  static constexpr int kExtendedPatternBytes = Cluster::kMaxPatternBytes + 2;
+  static constexpr int kExtendedPatternBytes = MaxPatternBytes + 2;
   /// Returns the pattern
   std::array<unsigned char, kExtendedPatternBytes> getPattern() const { return mBitmap; }
   /// Returns a specific byte of the pattern
@@ -58,11 +75,11 @@ class ClusterPattern
   /// Prints the pattern
   friend std::ostream& operator<<(std::ostream& os, const ClusterPattern& top);
   /// Sets the pattern
-  void setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  void setPattern(int nRow, int nCol, const unsigned char patt[MaxPatternBytes]);
   /// Sets the whole bitmask: the number of rows, the number of columns and the pattern
   void setPattern(const unsigned char bitmask[kExtendedPatternBytes]);
   /// Static: Compute pattern's COG position. Returns the number of fired pixels
-  static int getCOG(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], float& xCOG, float& zCOG);
+  static int getCOG(int nRow, int nCol, const unsigned char patt[MaxPatternBytes], float& xCOG, float& zCOG);
   /// Compute pattern's COG position. Returns the number of fired pixels
   int getCOG(float& xCOG, float& zCOG) const;
 

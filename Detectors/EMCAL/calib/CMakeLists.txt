@@ -46,31 +46,36 @@ o2_add_test(TimeCalibrationParams
             SOURCES test/testTimeCalibration.cxx
             PUBLIC_LINK_LIBRARIES O2::EMCALCalib
             COMPONENT_NAME emcal
-            LABELS emcal)
+            LABELS emcal
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
 o2_add_test(TimeCalibParamL1Phase
             SOURCES test/testTimeL1PhaseCalib.cxx
             PUBLIC_LINK_LIBRARIES O2::EMCALCalib
             COMPONENT_NAME emcal
-            LABELS emcal)
+            LABELS emcal
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
 o2_add_test(TempCalibrationParams
             SOURCES test/testTempCalibration.cxx
             PUBLIC_LINK_LIBRARIES O2::EMCALCalib
             COMPONENT_NAME emcal
-            LABELS emcal)
+            LABELS emcal
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
 o2_add_test(TempCalibParamSM
             SOURCES test/testTempCalibrationSM.cxx
             PUBLIC_LINK_LIBRARIES O2::EMCALCalib
             COMPONENT_NAME emcal
-            LABELS emcal)
+            LABELS emcal
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
 o2_add_test(GainCalibrationFactors
             SOURCES test/testGainCalibration.cxx
             PUBLIC_LINK_LIBRARIES O2::EMCALCalib
             COMPONENT_NAME emcal
-            LABELS emcal)
+            LABELS emcal
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
 o2_add_test(TriggerTRUDCS
             SOURCES test/testTriggerTRUDCS.cxx

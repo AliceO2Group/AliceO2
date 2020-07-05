@@ -78,16 +78,6 @@ void WindowFiller::initObj()
   }
 }
 //______________________________________________________________________
-void WindowFiller::newTF()
-{
-  reset();
-
-  //  mMCTruthOutputContainerPerTimeFrame.clear();
-
-  mTF++;
-  //  printf("New TF = %d\n", mTF);
-}
-//______________________________________________________________________
 void WindowFiller::reset()
 {
   mIcurrentReadoutWindow = 0;
@@ -112,7 +102,7 @@ void WindowFiller::reset()
 //______________________________________________________________________
 void WindowFiller::fillDigitsInStrip(std::vector<Strip>* strips, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t triggerorbit, Int_t triggerbunch)
 {
-  (*strips)[istrip].addDigit(channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc, 0, triggerorbit, triggerbunch);
+  (*strips)[istrip].addDigit(channel, tdc, tot, nbc, 0, triggerorbit, triggerbunch);
 }
 //______________________________________________________________________
 void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)

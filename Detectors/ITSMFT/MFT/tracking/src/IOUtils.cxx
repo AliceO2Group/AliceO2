@@ -22,8 +22,8 @@
 #include <utility>
 
 #include "MFTBase/GeometryTGeo.h"
-
-#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "MathUtils/Utils.h"
 #include "MathUtils/Cartesian2D.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -34,59 +34,54 @@ namespace o2
 namespace mft
 {
 
-Int_t ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<itsmft::Cluster const> const& clusters,
-                               const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
+int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
+                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache(utils::bit2Mask(TransformType::T2G));
-  Int_t clusterId{0};
-
+  geom->fillMatrixCache(utils::bit2Mask(TransformType::T2L, TransformType::L2G));
+  int clusterId{0};
   auto first = rof.getFirstEntry();
-  auto number = rof.getNEntries();
-  auto clusters_in_frame = gsl::make_span(&(clusters)[first], number);
+  auto clusters_in_frame = rof.getROFData(clusters);
   for (auto& c : clusters_in_frame) {
-    Int_t layer = geom->getLayer(c.getSensorID());
+    int layer = geom->getLayer(c.getSensorID());
 
-    /// Rotate to the global frame
-    auto xyz = c.getXYZGlo(*geom);
-    auto clsPoint2D = Point2D<Float_t>(xyz.x(), xyz.y());
+    auto pattID = c.getPatternID();
+    Point3D<float> locXYZ;
+    float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
+    if (pattID != itsmft::CompCluster::InvalidPatternID) {
+      sigmaY2 = dict.getErr2X(pattID);
+      sigmaZ2 = dict.getErr2Z(pattID);
+      if (!dict.isGroup(pattID)) {
+        locXYZ = dict.getClusterCoordinates(c);
+      } else {
+        o2::itsmft::ClusterPattern patt(pattIt);
+        locXYZ = dict.getClusterCoordinates(c, patt);
+      }
+    } else {
+      o2::itsmft::ClusterPattern patt(pattIt);
+      locXYZ = dict.getClusterCoordinates(c, patt);
+    }
+    auto sensorID = c.getSensorID();
+    // Transformation to the local --> global
+    auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
+
+    auto clsPoint2D = Point2D<Float_t>(gloXYZ.x(), gloXYZ.y());
     Float_t rCoord = clsPoint2D.R();
     Float_t phiCoord = clsPoint2D.Phi();
     o2::utils::BringTo02PiGen(phiCoord);
-    Int_t rBinIndex = constants::index_table::getRBinIndex(rCoord);
-    Int_t phiBinIndex = constants::index_table::getPhiBinIndex(phiCoord);
-    Int_t binIndex = constants::index_table::getBinIndex(rBinIndex, phiBinIndex);
-    event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), phiCoord, rCoord, event.getClustersInLayer(layer).size(), binIndex);
-    event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
+    int rBinIndex = constants::index_table::getRBinIndex(rCoord);
+    int phiBinIndex = constants::index_table::getPhiBinIndex(phiCoord);
+    int binIndex = constants::index_table::getBinIndex(rBinIndex, phiBinIndex);
+
+    event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), phiCoord, rCoord, event.getClustersInLayer(layer).size(), binIndex);
+    if (mcLabels) {
+      event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
+    }
     event.addClusterExternalIndexToLayer(layer, first + clusterId);
     clusterId++;
   }
-  return number;
-}
-
-void ioutils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,
-                            const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
-{
-  if (!clusters) {
-    std::cerr << "Missing clusters." << std::endl;
-    return;
-  }
-  event.clear();
-  GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache(utils::bit2Mask(TransformType::T2G));
-  Int_t clusterId{0};
-
-  for (auto& c : *clusters) {
-    Int_t layer = geom->getLayer(c.getSensorID());
-
-    /// Rotate to the global frame
-    auto xyz = c.getXYZGlo(*geom);
-    event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersInLayer(layer).size());
-    event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
-    event.addClusterExternalIndexToLayer(layer, clusterId);
-    clusterId++;
-  }
+  return clusters_in_frame.size();
 }
 
 } // namespace mft

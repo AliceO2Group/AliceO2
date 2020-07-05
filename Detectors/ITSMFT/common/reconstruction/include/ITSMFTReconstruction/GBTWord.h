@@ -77,8 +77,8 @@ struct GBTWord {
       //  uint8_t  id : 8;                /// = 0xc0; Trigger Status Word (TSW) identifier
     }; // TRIGGER
 
-    uint8_t mData8[16]; // 80 bits GBT word + optional padding to 128 bits
-    uint64_t mData64[2] = {0};
+    uint8_t data8[16]; // 80 bits GBT word + optional padding to 128 bits
+    uint64_t data64[2] = {0};
   };
 
   GBTWord() = default;
@@ -98,8 +98,8 @@ struct GBTWord {
   /// check if the GBT Header corresponds to ITS OB data (header is combined with lanes/connector info)
   bool isDataOB() const { return (id & 0xe0) == GBTFlagDataOB; }
 
-  const uint64_t* getW64() const { return mData64; }
-  const uint8_t* getW8() const { return mData8; }
+  const uint64_t* getW64() const { return data64; }
+  const uint8_t* getW8() const { return data8; }
 
   uint8_t getHeader() const { return id; }
 
@@ -165,7 +165,7 @@ struct GBTDataTrailer : public GBTWord {
     id = GBTFlagDataTrailer;
   }
 
-  uint8_t getPacketState() const { return mData8[8]; }
+  uint8_t getPacketState() const { return data8[8]; }
 
   void setByte(uint8_t v, int which) = delete;
 

@@ -18,6 +18,7 @@
 # for installation only
 
 add_subdirectory(Common)
+add_subdirectory(Utils)
 add_subdirectory(TPCFastTransformation)
 add_subdirectory(GPUTracking)
 if(NOT ALIGPU_BUILD_TYPE STREQUAL "Standalone")

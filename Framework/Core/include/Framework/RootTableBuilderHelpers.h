@@ -148,7 +148,7 @@ template <typename C>
 struct ColumnReaderTrait {
   static auto createReader(TTreeReader& reader)
   {
-    return std::move(HolderMaker<Remap64Bit_t<typename C::type>>::make(reader, C::base::label()));
+    return std::move(HolderMaker<Remap64Bit_t<typename C::type>>::make(reader, C::base::columnLabel()));
   }
 };
 
@@ -159,6 +159,7 @@ struct RootTableBuilderHelpers {
                            ReaderHolder<TTREEREADERVALUE>... holders)
   {
     std::vector<std::string> branchNames = {holders.reader->GetBranchName()...};
+
     auto filler = builder.preallocatedPersist<typename std::decay_t<decltype(holders)>::Type...>(branchNames, reader.GetEntries(true));
     reader.Restart();
     while (reader.Next()) {

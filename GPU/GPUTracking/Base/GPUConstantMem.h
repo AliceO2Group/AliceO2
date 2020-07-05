@@ -17,12 +17,14 @@
 #include "GPUTPCTracker.h"
 #include "GPUParam.h"
 #include "GPUDataTypes.h"
+#include "GPUErrors.h"
 
 // Dummies for stuff not supported in legacy code (ROOT 5 / OPENCL1.2)
 #if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB))
 #include "GPUTPCGMMerger.h"
 #include "GPUTRDTracker.h"
 #else
+#include "GPUTRDDef.h"
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -30,24 +32,11 @@ namespace gpu
 class GPUTPCGMMerger
 {
 };
-class TRDBaseTrackGPU;
-class TRDBasePropagatorGPU;
-template <class T>
-class trackInterface;
-template <class T>
-class propagatorInterface;
-template <class T>
-class GPUTRDTrack_t;
-// clang-format off
-typedef GPUTRDTrack_t<trackInterface<TRDBaseTrackGPU> > GPUTRDTrackGPU;
-// clang-format on
-typedef propagatorInterface<TRDBasePropagatorGPU> GPUTRDPropagatorGPU;
 template <class T, class P>
 class GPUTRDTracker_t
 {
   void SetMaxData(const GPUTrackingInOutPointers& io) {}
 };
-typedef GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU> GPUTRDTrackerGPU;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 #endif
@@ -84,6 +73,7 @@ struct GPUConstantMem {
   GPUITSFitter itsFitter;
   GPUTrackingInOutPointers ioPtrs;
   GPUCalibObjectsConst calibObjects;
+  GPUErrors errorCodes;
 #ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
   GPUKernelDebugOutput debugOutput;
 #endif
@@ -103,8 +93,45 @@ union GPUConstantMemCopyable {
 };
 #endif
 
+#if defined(GPUCA_GPUCODE) && defined(GPUCA_NOCOMPAT)
+static constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
+#if defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
+GPUconstant() GPUCA_NAMESPACE::gpu::GPUConstantMemCopyable gGPUConstantMemBuffer; // HIP constant memory symbol address cannot be obtained when in namespace
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+#endif
+#ifdef GPUCA_CONSTANT_AS_ARGUMENT
+static GPUConstantMemCopyable gGPUConstantMemBufferHost;
+#endif
+#endif
+
 // Must be placed here, to avoid circular header dependency
-GPUdi() GPUconstantref() const MEM_CONSTANT(GPUParam) & GPUProcessor::Param() const { return mConstantMem->param; }
+GPUdi() GPUconstantref() const MEM_CONSTANT(GPUParam) & GPUProcessor::Param() const
+{
+#if defined(GPUCA_GPUCODE_DEVICE) && defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)
+  return GPUCA_CONSMEM.param;
+#else
+  return mConstantMem->param;
+#endif
+}
+
+GPUdi() GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GPUProcessor::GetConstantMem() const
+{
+#if defined(GPUCA_GPUCODE_DEVICE) && defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)
+  return &GPUCA_CONSMEM;
+#else
+  return mConstantMem;
+#endif
+}
+
+GPUdi() void GPUProcessor::raiseError(unsigned int code, unsigned int param1, unsigned int param2, unsigned int param3) const
+{
+  GetConstantMem()->errorCodes.raiseError(code, param1, param2, param3);
+}
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

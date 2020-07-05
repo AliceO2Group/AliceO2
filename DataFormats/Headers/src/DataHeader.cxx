@@ -32,6 +32,26 @@ const o2::header::SerializationMethod o2::header::BaseHeader::sSerializationMeth
 using namespace o2::header;
 
 //__________________________________________________________________________________________________
+bool o2::header::BaseHeader::sanityCheck(uint32_t expectedVersion) const
+{
+  if (this->headerVersion != expectedVersion) {
+    std::string errmsg = "header of type " + this->description.as<std::string>() + " with invalid ";
+    errmsg += "version: " + std::to_string(this->headerVersion) + " (expected " + std::to_string(expectedVersion) + ")";
+    // for the moment we throw, there is no support for multiple versions of a particular header
+    // so we better spot non matching header stacks early, we migh change this later
+    throw std::runtime_error(errmsg);
+    return false;
+  }
+  return true;
+}
+
+//__________________________________________________________________________________________________
+void o2::header::BaseHeader::throwInconsistentStackError() const
+{
+  throw std::runtime_error("inconsistent header stack, no O2 header at expected offset " + std::to_string(this->headerSize) + "for header of type " + this->description.as<std::string>());
+}
+
+//__________________________________________________________________________________________________
 void o2::header::DataHeader::print() const
 {
   printf("Data header version %i, flags: %i\n", headerVersion, flags);

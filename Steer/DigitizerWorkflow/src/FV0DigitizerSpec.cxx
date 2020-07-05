@@ -27,6 +27,7 @@
 #include "FV0Simulation/DigitizationConstant.h"
 #include "FV0Simulation/MCLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include <TFile.h>
 
 using namespace o2::framework;
@@ -37,16 +38,15 @@ namespace o2
 namespace fv0
 {
 
-class FV0DPLDigitizerTask
+class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
   using GRP = o2::parameters::GRPObject;
 
  public:
-  FV0DPLDigitizerTask()
-    : mDigitizer(), mSimChains(), mDigitsCh(), mDigitsBC(), mLabels() {}
-  ~FV0DPLDigitizerTask() = default;
+  FV0DPLDigitizerTask() : o2::base::BaseDPLDigitizer(), mDigitizer(), mSimChains(), mDigitsCh(), mDigitsBC(), mLabels() {}
+  ~FV0DPLDigitizerTask() override = default;
 
-  void init(framework::InitContext& ic)
+  void initDigitizerTask(framework::InitContext& ic) override
   {
     LOG(INFO) << "FV0DPLDigitizerTask:init";
     mDigitizer.init();
@@ -97,8 +97,9 @@ class FV0DPLDigitizerTask
     // send out to next stage
     pc.outputs().snapshot(Output{"FV0", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"FV0", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"FV0", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
-
+    if (pc.outputs().isAllowed({"FV0", "DIGITLBL", 0})) {
+      pc.outputs().snapshot(Output{"FV0", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
+    }
     LOG(INFO) << "FV0: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"FV0", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
@@ -119,21 +120,26 @@ class FV0DPLDigitizerTask
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 };
 
-o2::framework::DataProcessorSpec getFV0DigitizerSpec(int channel)
+o2::framework::DataProcessorSpec getFV0DigitizerSpec(int channel, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("FV0", "DIGITSBC", 0, Lifetime::Timeframe);
+  outputs.emplace_back("FV0", "DIGITSCH", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("FV0", "DIGITLBL", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("FV0", "ROMode", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "FV0Digitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{OutputSpec{"FV0", "DIGITSBC", 0, Lifetime::Timeframe},
-            OutputSpec{"FV0", "DIGITSCH", 0, Lifetime::Timeframe},
-            OutputSpec{"FV0", "DIGITLBL", 0, Lifetime::Timeframe},
-            OutputSpec{"FV0", "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
 
     AlgorithmSpec{adaptFromTask<FV0DPLDigitizerTask>()},
 

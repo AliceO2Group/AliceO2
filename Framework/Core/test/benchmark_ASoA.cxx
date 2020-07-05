@@ -21,9 +21,9 @@ using namespace o2::soa;
 
 namespace test
 {
-DECLARE_SOA_COLUMN(X, x, float, "x");
-DECLARE_SOA_COLUMN(Y, y, float, "y");
-DECLARE_SOA_COLUMN(Z, z, float, "z");
+DECLARE_SOA_COLUMN_FULL(X, x, float, "x");
+DECLARE_SOA_COLUMN_FULL(Y, y, float, "y");
+DECLARE_SOA_COLUMN_FULL(Z, z, float, "z");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
 } // namespace test
 
@@ -318,11 +318,11 @@ static void BM_ASoAGettersPhi(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1));
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
 
@@ -350,11 +350,11 @@ static void BM_ASoAWholeTrackForLoop(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1));
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
 
@@ -378,11 +378,11 @@ static void BM_ASoADynamicColumnPhi(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::Tracks>();
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1));
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
 

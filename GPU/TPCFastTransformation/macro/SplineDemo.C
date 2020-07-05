@@ -28,7 +28,6 @@ int nKnots = 4;
 
 static double Fcoeff[2 * (Fdegree + 1)];
 
-
 void F(float u, float f[])
 {
   double uu = u * TMath::Pi() / (nKnots - 1);
@@ -78,13 +77,13 @@ bool drawConstruction = 1;
 bool ask()
 {
   canv->Update();
-  cout << "type: 'q'-exit";
-  cout << ", 's'-individual steps";
-  cout << ", 'l'-local splines";
-  cout << ", 'c'-chebychev";
-  cout << ", 'p'-construction points";
+  std::cout << "type: 'q'-exit";
+  std::cout << ", 's'-individual steps";
+  std::cout << ", 'l'-local splines";
+  std::cout << ", 'c'-chebychev";
+  std::cout << ", 'p'-construction points";
 
-  cout << endl;
+  std::cout << std::endl;
 
   std::string str;
   std::getline(std::cin, str);
@@ -113,7 +112,7 @@ int SplineDemo()
 
   using namespace o2::gpu;
 
-  cout << "Test interpolation.." << endl;
+  std::cout << "Test interpolation.." << std::endl;
 
   //TCanvas* canv = new TCanvas("cQA", "Spline1D  QA", 2000, 1000);
 
@@ -129,23 +128,18 @@ int SplineDemo()
     //seed = gRandom->Integer(100000); // 605
 
     gRandom->SetSeed(seed);
-    cout << "Random seed: " << seed << " " << gRandom->GetSeed() << endl;
+    std::cout << "Random seed: " << seed << " " << gRandom->GetSeed() << std::endl;
 
     for (int i = 0; i < 2 * (Fdegree + 1); i++) {
       Fcoeff[i] = gRandom->Uniform(-1, 1);
     }
 
-    o2::gpu::Spline1D spline(nKnots);
+    o2::gpu::Spline1D<float> spline(nKnots, 1);
+    spline.approximateFunction(0, nKnots - 1, F, nAxiliaryPoints);
 
-    o2::gpu::SplineHelper1D helper;
-    helper.setSpline(spline, nAxiliaryPoints);
-
-    std::unique_ptr<float[]> parameters = helper.constructParameters(1, F, 0., spline.getUmax());
-
-    o2::gpu::Spline1D splineClassic(nKnots);
-    helper.setSpline(splineClassic, nAxiliaryPoints);
-
-    std::unique_ptr<float[]> parametersClassic = helper.constructParametersClassic(1, F, 0., splineClassic.getUmax());
+    o2::gpu::Spline1D<float> splineClassic(nKnots, 1);
+    o2::gpu::SplineHelper1D<float> helper;
+    helper.approximateFunctionClassic(splineClassic, 0, nKnots - 1, F);
 
     IrregularSpline1D splineLocal;
     int nKnotsLocal = 2 * nKnots - 1;
@@ -169,15 +163,16 @@ int SplineDemo()
 
     for (int i = 0; i < nKnots; i++) {
       double u = splineClassic.getKnot(i).u;
-      double fs = splineClassic.interpolate1D(parametersClassic.get(), u);
+      double fs = splineClassic.interpolate(splineClassic.convUtoX(u));
       knots->Fill(1, u, fs);
     }
 
+    helper.setSpline(spline, 1, nAxiliaryPoints);
     for (int j = 0; j < helper.getNumberOfDataPoints(); j++) {
-      const SplineHelper1D::DataPoint& p = helper.getDataPoint(j);
+      const typename SplineHelper1D<float>::DataPoint& p = helper.getDataPoint(j);
       float f0;
       F(p.u, &f0);
-      double fs = spline.interpolate1D(parameters.get(), p.u);
+      double fs = spline.interpolate(spline.convUtoX(p.u));
       if (p.isKnot) {
         knots->Fill(2, p.u, fs);
       }
@@ -217,8 +212,8 @@ int SplineDemo()
       double u = s * (nKnots - 1);
       float f0;
       F(u, &f0);
-      double fBestFit = spline.interpolate1D(parameters.get(), u);
-      double fClass = splineClassic.interpolate1D(parametersClassic.get(), u);
+      double fBestFit = spline.interpolate(spline.convUtoX(u));
+      double fClass = splineClassic.interpolate(splineClassic.convUtoX(u));
       double fLocal = splineLocal.getSpline(parametersLocal.get(), s);
       double fCheb = cheb(u, 2 * nKnots - 1);
       nt->Fill(u, f0, fBestFit, fClass, fLocal, fCheb);
@@ -245,13 +240,13 @@ int SplineDemo()
     histMinMaxBestFit->Fill(statMinMaxBestFit);
     histMinMaxCheb->Fill(statMinMaxCheb);
 
-    cout << "\n"
-         << std::endl;
-    cout << "\nRandom seed: " << seed << " " << gRandom->GetSeed() << endl;
-    cout << "Classical : std dev " << sqrt(statDfClass / statN) << " minmax " << statMinMaxClass << std::endl;
-    cout << "Local     : std dev " << sqrt(statDfLocal / statN) << " minmax " << statMinMaxLocal << std::endl;
-    cout << "Best-fit  : std dev " << sqrt(statDfBestFit / statN) << " minmax " << statMinMaxBestFit << std::endl;
-    cout << "Chebyshev : std dev " << sqrt(statDfCheb / statN) << " minmax " << statMinMaxCheb << std::endl;
+    std::cout << "\n"
+              << std::endl;
+    std::cout << "\nRandom seed: " << seed << " " << gRandom->GetSeed() << std::endl;
+    std::cout << "Classical : std dev " << sqrt(statDfClass / statN) << " minmax " << statMinMaxClass << std::endl;
+    std::cout << "Local     : std dev " << sqrt(statDfLocal / statN) << " minmax " << statMinMaxLocal << std::endl;
+    std::cout << "Best-fit  : std dev " << sqrt(statDfBestFit / statN) << " minmax " << statMinMaxBestFit << std::endl;
+    std::cout << "Chebyshev : std dev " << sqrt(statDfCheb / statN) << " minmax " << statMinMaxCheb << std::endl;
 
     /*
       canv->cd(1);

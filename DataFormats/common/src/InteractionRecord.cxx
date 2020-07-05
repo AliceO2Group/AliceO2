@@ -23,7 +23,7 @@ std::ostream& operator<<(std::ostream& stream, o2::InteractionRecord const& ir)
 
 std::ostream& operator<<(std::ostream& stream, o2::InteractionTimeRecord const& ir)
 {
-  stream << "BCid: " << ir.bc << " Orbit: " << ir.orbit << " T(ns): " << ir.timeNS;
+  stream << "BCid: " << ir.bc << " Orbit: " << ir.orbit << " T in BC(ns): " << ir.timeInBCNS;
   return stream;
 }
 

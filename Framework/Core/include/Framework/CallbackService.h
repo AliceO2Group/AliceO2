@@ -13,6 +13,8 @@
 #include "CallbackRegistry.h"
 #include <tuple>
 
+class FairMQRegionInfo;
+
 namespace o2
 {
 namespace framework
@@ -35,7 +37,23 @@ class CallbackService
     /// Invoked when we are notified that no further data will arrive.
     /// Notice that one could have more "EndOfData" notifications. Because
     /// we could be signaled by control that the data flow restarted.
-    EndOfStream
+    EndOfStream,
+
+    /// Invoked whenever FairMQ notifies us of a new region
+    ///
+    /// return AlgorithmSpec::InitCallback{[=](InitContext& ic) {
+    ///    auto& callbacks = ic.services().get<CallbackService>();
+    ///    callbacks.set(CallbackService::Id::RegionInfoCallback, [](FairMQRegionInfo const& info) {
+    ///    ... do GPU init ...
+    ///    });
+    ///  }
+    ///  ...
+    ///  return [task](ProcessingContext& pc) {
+    ///    // your processing loop. Guaranteed to be called synchronously
+    ///    // with the callback
+    ///  };
+    /// }};
+    RegionInfoCallback
   };
 
   template <typename T, T... v>
@@ -51,15 +69,17 @@ class CallbackService
   using IdleCallback = std::function<void()>;
   using ClockTickCallback = std::function<void()>;
   using EndOfStreamCallback = std::function<void(EndOfStreamContext&)>;
+  using RegionInfoCallback = std::function<void(FairMQRegionInfo const&)>;
 
-  using Callbacks = CallbackRegistry<Id,                                                    //
-                                     RegistryPair<Id, Id::Start, StartCallback>,            //
-                                     RegistryPair<Id, Id::Stop, StopCallback>,              //
-                                     RegistryPair<Id, Id::Reset, ResetCallback>,            //
-                                     RegistryPair<Id, Id::Idle, IdleCallback>,              //
-                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,    //
-                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback> //
-                                     >;                                                     //
+  using Callbacks = CallbackRegistry<Id,                                                          //
+                                     RegistryPair<Id, Id::Start, StartCallback>,                  //
+                                     RegistryPair<Id, Id::Stop, StopCallback>,                    //
+                                     RegistryPair<Id, Id::Reset, ResetCallback>,                  //
+                                     RegistryPair<Id, Id::Idle, IdleCallback>,                    //
+                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,          //
+                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,      //
+                                     RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback> //
+                                     >;                                                           //
 
   // set callback for specified processing step
   template <typename U>

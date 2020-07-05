@@ -13,14 +13,17 @@
 #include <TMath.h>
 #include <TString.h>
 
+#include "ITSBase/GeometryTGeo.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
 
 #endif
+
+using namespace std;
 
 struct DataFrames {
   void update(int frame, long index)
@@ -65,6 +68,10 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
                             "mcPt:recPt:"
                             "ipD:ipZ:label");
 
+  // Geometry
+  o2::base::GeometryManager::loadGeometry();
+  auto gman = o2::its::GeometryTGeo::Instance();
+
   // MC tracks
   TFile* file0 = TFile::Open(kinefile.data());
   TTree* mcTree = (TTree*)gFile->Get("o2sim");
@@ -83,8 +90,8 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
   // Clusters
   TFile::Open(clusfile.data());
   TTree* clusTree = (TTree*)gFile->Get("o2sim");
-  std::vector<Cluster>* clusArr = nullptr;
-  clusTree->SetBranchAddress("ITSCluster", &clusArr);
+  std::vector<CompClusterExt>* clusArr = nullptr;
+  clusTree->SetBranchAddress("ITSClusterComp", &clusArr);
 
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
@@ -252,7 +259,7 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
         if (!lab.isCorrect())
           continue;
 
-        const Cluster& c = (*clusArr)[i];
+        const CompClusterExt& c = (*clusArr)[i];
 
         /* FIXME
         if (clusRofMap[mcid] < 0) {
@@ -264,20 +271,21 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
         nClusters++;
 
         int& ok = clusMap[mcid];
-        auto r = c.getX();
-        if (TMath::Abs(r - 2.2) < 0.5)
+        auto layer = gman->getLayer(c.getSensorID());
+        float r = 0.f;
+        if (layer == 0)
           ok |= 0b1;
-        if (TMath::Abs(r - 3.0) < 0.5)
+        if (layer == 1)
           ok |= 0b10;
-        if (TMath::Abs(r - 3.8) < 0.5)
+        if (layer == 2)
           ok |= 0b100;
-        if (TMath::Abs(r - 19.5) < 0.5)
+        if (layer == 3)
           ok |= 0b1000;
-        if (TMath::Abs(r - 24.5) < 0.5)
+        if (layer == 4)
           ok |= 0b10000;
-        if (TMath::Abs(r - 34.5) < 0.5)
+        if (layer == 5)
           ok |= 0b100000;
-        if (TMath::Abs(r - 39.5) < 0.5)
+        if (layer == 6)
           ok |= 0b1000000;
       }
     } // cluster frames
@@ -297,8 +305,12 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
       }
 
       Int_t mID = mcTrack.getMotherTrackId();
-      if (mID >= 0)
-        continue; // Select primary particles
+      if (mID >= 0) {
+        const auto& mom = (*mcArr)[mID];
+        int pdg = std::abs(mom.GetPdgCode());
+        if (pdg > 100 || (pdg < 20 && pdg > 10))
+          continue; // Select primary particles
+      }
       Int_t pdg = mcTrack.GetPdgCode();
       if (TMath::Abs(pdg) != 211)
         continue; // Select pions
@@ -358,17 +370,20 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
     statFak += nFak;
     statClone += nClone;
 
+    std::cout << "Good found tracks: " << nGoo;
     if (nGen > 0) {
       Float_t eff = nGoo / Float_t(nGen);
       Float_t rat = nFak / Float_t(nGen);
       Float_t clonerat = nClone / Float_t(nGen);
-      std::cout << "Good found tracks: " << nGoo << ",  efficiency: " << eff << ",  fake-track rate: " << rat << " clone rate " << clonerat << std::endl;
+      cout << ",  efficiency: " << eff << ",  fake-track rate: " << rat << " clone rate " << clonerat;
     }
+    std::cout << std::endl;
 
   } // mc events
 
-  cout << "\nOverall efficiency: " << endl;
+  cout << "\nNumber of generated particles: " << statGen << endl;
   if (statGen > 0) {
+    cout << "\nOverall efficiency: " << endl;
     Float_t eff = statGoo / Float_t(statGen);
     Float_t rat = statFak / Float_t(statGen);
     Float_t clonerat = statClone / Float_t(statGen);

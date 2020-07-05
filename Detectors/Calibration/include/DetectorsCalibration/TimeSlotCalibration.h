@@ -26,7 +26,6 @@ template <typename Input, typename Container>
 class TimeSlotCalibration
 {
   using Slot = TimeSlot<Container>;
-  using TFType = uint64_t;
 
  public:
   TimeSlotCalibration() = default;
@@ -36,6 +35,11 @@ class TimeSlotCalibration
 
   uint32_t getSlotLength() const { return mSlotLength; }
   void setSlotLength(uint32_t v) { mSlotLength = v < 1 ? 1 : v; }
+
+  TFType getFirstTF() const { return mFirstTF; }
+  void setFirstTF(TFType v) { mFirstTF = v; }
+
+  void setUpdateAtTheEndOfRunOnly() { mUpdateAtTheEndOfRunOnly = kTRUE; }
 
   int getNSlots() const { return mSlots.size(); }
   Slot& getSlotForTF(TFType tf);
@@ -64,14 +68,15 @@ class TimeSlotCalibration
   auto& getSlots() { return mSlots; }
 
  private:
-  size_t tf2SlotMin(TFType tf) const;
+  TFType tf2SlotMin(TFType tf) const;
 
   std::deque<Slot> mSlots;
 
   TFType mLastClosedTF = 0;
-  TFType mTFStart = 0;
+  TFType mFirstTF = 0;
   uint32_t mSlotLength = 1;
   uint32_t mMaxSlotsDelay = 3;
+  bool mUpdateAtTheEndOfRunOnly = false;
 
   ClassDef(TimeSlotCalibration, 1);
 };
@@ -80,15 +85,17 @@ class TimeSlotCalibration
 template <typename Input, typename Container>
 bool TimeSlotCalibration<Input, Container>::process(TFType tf, const gsl::span<const Input> data)
 {
-  int maxDelay = mMaxSlotsDelay * mSlotLength;
-  //  if (tf<mLastClosedTF || (!mSlots.empty() && getSlot(0).getTFStart() > tf + maxDelay)) { // ignore TF
-  if (tf < mLastClosedTF || (!mSlots.empty() && getLastSlot().getTFStart() > tf + maxDelay)) { // ignore TF
-    LOG(INFO) << "Ignoring TF " << tf;
-    return false;
-  }
+  if (!mUpdateAtTheEndOfRunOnly) {
+    int maxDelay = mMaxSlotsDelay * mSlotLength;
+    //  if (tf<mLastClosedTF || (!mSlots.empty() && getSlot(0).getTFStart() > tf + maxDelay)) { // ignore TF
+    if (tf < mLastClosedTF || (!mSlots.empty() && getLastSlot().getTFStart() > tf + maxDelay)) { // ignore TF
+      LOG(INFO) << "Ignoring TF " << tf;
+      return false;
+    }
 
-  // check if some slots are done
-  checkSlotsToFinalize(tf, maxDelay);
+    // check if some slots are done
+    checkSlotsToFinalize(tf, maxDelay);
+  }
 
   // process current TF
   auto& slotTF = getSlotForTF(tf);
@@ -129,21 +136,34 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
 
 //________________________________________
 template <typename Input, typename Container>
-inline size_t TimeSlotCalibration<Input, Container>::tf2SlotMin(TFType tf) const
+inline TFType TimeSlotCalibration<Input, Container>::tf2SlotMin(TFType tf) const
 {
-  if (tf < mTFStart) {
+  if (tf < mFirstTF) {
     throw std::runtime_error("invalide TF");
   }
-  return int((tf - mTFStart) / mSlotLength) * mSlotLength + mTFStart;
+  if (mUpdateAtTheEndOfRunOnly)
+    return mFirstTF;
+  return TFType((tf - mFirstTF) / mSlotLength) * mSlotLength + mFirstTF;
 }
 
 //_________________________________________________
 template <typename Input, typename Container>
 TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType tf)
 {
-  if (!mSlots.empty() && mSlots.front().getTFStart() > tf) {
+
+  if (mUpdateAtTheEndOfRunOnly) {
+    if (!mSlots.empty() && mSlots.back().getTFEnd() < tf)
+      mSlots.back().setTFEnd(tf);
+    else if (mSlots.empty()) {
+      emplaceNewSlot(true, mFirstTF, tf);
+    }
+    return mSlots.back();
+  }
+
+  if (!mSlots.empty() && mSlots.front().getTFStart() > tf) { // we need to add a slot to the beginning
     auto tfmn = tf2SlotMin(mSlots.front().getTFStart() - 1);
-    while (tfmn >= tf) {
+    auto tftgt = tf2SlotMin(tf);
+    while (tfmn >= tftgt) {
       LOG(INFO) << "Adding new slot for " << tfmn << " <= TF <= " << tfmn + mSlotLength - 1;
       emplaceNewSlot(true, tfmn, tfmn + mSlotLength - 1);
       if (!tfmn) {

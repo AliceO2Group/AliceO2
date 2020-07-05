@@ -4,7 +4,28 @@
 
 # Raw data tools
 
-## HBFUtil
+## RDHUtils
+
+This is a static utilities class with the setters and getters of the various fields of the `o2::headers::RAWDataHeaderVXXX` classes of different versions. They allow uniform set/get access either via RDH reference of its pointer irrespective of the header version (starting from V3).
+Additionally, it uses a generic `o2::header::RDHAny` which can be morphed to any real RDH version (and vice versa).
+The sample of the code which can access the RDH in a version-idependent way is:
+```cpp
+using namespace o2::raw;
+
+void process(InputRecord& inputs) {
+  // ...
+  DPLRawParser parser(inputs);
+  for (auto it = parser.begin(); it != parser.end(); ++it) {
+    const auto& rdh = *reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+    RDHUtils::printRDH(rdh);
+    auto feeID = RDHUtils::getFEEID(rdh);
+    // ...
+  }
+  // ...
+}
+```
+
+## HBFUtils
 
 Utility class for interaction record -> HBF conversion and sampling of IRs for which the HBF RDH should be added to the raw data from the CRU.
 Should be used for MC->raw conversion to ensure that:
@@ -34,18 +55,25 @@ or an RDH containing similar infomation. It also can provide a file name to writ
 write their data to the same file:
 ```cpp
 using namespace o2::raw;
-RawFileWriter writer;
+RawFileWriter writer { origin };  // origin is o2::header::DataOrigin, will be converted to DAQID and added to RDH.sourceID with RDH version >=6.
 auto& lnkA = writer.registerLink(fee_0, cru_0, link_0, endpoint_0, "outfile_0.raw");
 auto& lnkB = writer.registerLink(fee_1, cru_0, link_1, endpoint_0, "outfile_0.raw");
 ..
 // or
 o2::header::RawDataHeader rdh; // by default, v4 is used currently.
+// also o2::header::RDHAny rdh(4);  can be used with the same effect 
 rdh.feeId = feeX;
 rdh.cruID = cruY;
 rdh.linkID = linkZ;
 rdh.endPointID = endpointQ;
 auto& lnkC = writer.registerLink( rdh, "outfile_f.raw");
 ```
+
+By default the writer will be created for CRU detector (full constructor is `RawFileWriter(o2::header::DataOrigin origin = o2::header::gDataOriginInvalid, bool cru=true)`).
+In order to create it for RORC detector use e.g. `RawFileWriter writer { "EMC", false }`. It will automatically impose triggered readout mode and (i) every trigger will be written with its own RDH; (ii) no RDH.stop will be added in the end of the trigger;
+(iii) the start of the N-th TimeFrame will be assumed implicitly at the first `trigger_orbit >= SOX_orbit + N*HBFUtils.orbitFirst`, where the `SOX_orbit` is the orbit where SOX flag was set
+(`start of continuous` or `start of triggered` mode is set in the beginning with the orbit/bc corresponding to HBFUtils::getFirstIR()).
+
 If needed, user may set manually the non-mutable (for given link) fields of the link RAWDataHeader via direct access to `lnkC.rdhCopy`. This fields will be cloned to all RDHs written for this link.
 
 *   add raw data payload to the `RawFileWriter`, providing the link information and the `o2::InteractionRecord` corresponding to payload.
@@ -57,6 +85,8 @@ writer.addData(cru_0, link_0, endpoint_0, {bc, orbit}, gsl::span( (char*)payload
 o2::InteractionRecord ir{bc, orbit};
 writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ));
 ```
+
+By default the data will be written using o2::header::RAWDataHeader. User can request particular RDH version via `writer.useRDHVersion(v)`.
 
 The `RawFileWriter` will take care of writing created CRU data to file in `super-pages` whose size can be set using
 `writer.setSuperPageSize(size_in_bytes)` (default in 1 MB).
@@ -74,7 +104,7 @@ need to be repeated (possibly, with some modifications).
 In orger to customize payload splitting, detector code may provide implement and provide to the `RawFileWriter` a
 callback function with the signature:
 ```cpp
-int carryOverMethod(const RDH& rdh, const gsl::span<char> data, const char* ptr, int maxSize, int splitID, std::vector<char>& trailer, std::vector<char>& header) const
+int carryOverMethod(const o2::header::RDHAny* rdh, const gsl::span<char> data, const char* ptr, int maxSize, int splitID, std::vector<char>& trailer, std::vector<char>& header) const
 ```
 
 The role of this method is to suggest to the writer how to split the payload: if it was provided to the RawFileWriter using
@@ -82,7 +112,7 @@ The role of this method is to suggest to the writer how to split the payload: if
 
 It provides to the converter carryOverMethod method the following info:
 ```cpp
-rdh     : RDH of the CRU page being written
+rdh     : RDH of the CRU page being written (pointer to o2::header::RDHAny)
 data    : original payload received by the RawFileWriter
 ptr     : pointer on the data in the payload which was not yet added to the link CRU pages
 maxSize : maximum size (multiple of 16 bytes) of the bloc starting at ptr which it can 
@@ -105,7 +135,7 @@ Additionally, in case detector wants to add some information between `empty` HBF
 closing RDHs (they will be added automatically using the HBFUtils functionality for all HBFs w/o data
 between the orbit 0 and last orbit of the TF seen in the simulations), it may implement a callback method
 ```cpp
-void emptyHBFMethod(const RDH& rdh, std::vector<char>& toAdd) const
+void emptyHBFMethod(const o2::header::RDHAny* rdh, std::vector<char>& toAdd) const
 ```
 If such method was registered using `writer.setEmptyPageCallBack(pointer_on_the_converter_class)`, then for every
 empty HBF the writer will call it with
@@ -114,9 +144,11 @@ rdh     : RDH of the CRU page opening empty RDH
 toAdd   : a vector (supplied empty) to be filled to a size multipe of 16 bytes
 ```
 
+Adding empty HBF pages for HB's w/o data can be avoided by setting `writer.setDontFillEmptyHBF(true)` before starting conversion. Note that the empty HBFs still will be added for HBs which are supposed to open a new TF.
+
 The data `toAdd` will be inserted between the star/stop RDHs of the empty HBF.
 
-The behaviour descibed above can be modified by providing an extra argument in the `addData` method
+The behaviour described above can be modified by providing an extra argument in the `addData` method
 ```cpp
 bool preformatted = true;
 writer.addData(cru_0, link_0, endpoint_0, {bc, orbit}, gsl::span( (char*)payload_0, payload_0_size ), preformatted );
@@ -128,16 +160,20 @@ writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ), preformat
 In this case provided span is interpretted as a fully formatted CRU page payload (i.e. it lacks the RDH which will be added by the writer) of the maximum size `8192-sizeof(RDH) = 8128` bytes.
 The writer will create a new CRU page with provided payload equipping it with the proper RDH: copying already stored RDH of the current HBF, if the interaction record `ir` belongs to the same HBF or generating new RDH for new HBF otherwise (and filling all missing HBFs in-between). In case the payload size exceeds maximum, an exception will be thrown w/o any attempt to split the page.
 
+Some detectors signal the end of the HBF by adding an empty CRU page containing just a header with ``RDH.stop=1`` while others may simply set the ``RDH.stop=1`` in the last CRU page of the HBF (it may appear to be also the 1st and the only page of the HBF and may or may not contain the payload).
+This behaviour is steered by ``writer.setAddSeparateHBFStopPage(bool v)`` switch. By default end of the HBF is signaled on separate page.
+
 For further details see  ``ITSMFT/common/simulation/MC2RawEncoder`` class and the macro
 `Detectors/ITSMFT/ITS/macros/test/run_digi2rawVarPage_its.C` to steer the MC to raw data conversion.
 
 ## RawFileReader
 
 A class for parsing raw data file(s) with "variable-size" CRU format.
-For very encountered link the DPL `SubSpecification` is assigned according to the formula used by DataDistribution:
+For every encountered link the DPL `SubSpecification` is assigned according to the formula used by DataDistribution:
 ```cpp
 SubSpec = (RDH.cruID<<16) | ((RDH.linkID + 1)<<(RDH.endPointID == 1 ? 8 : 0)); 
 ```
+
 This `SubSpecification` is used to define the DPL InputSpecs (and match the OutputSpecs).
 An `exception` will be thrown if 2 different link (i.e. with different RDH.feeId) of the same detector will be found to have the same SubSpec (i.e. the same cruID, linkID and PCIe EndPoint).
 Also, an `exception` is thrown if the block expected to be a RDH fails to be recognized as RDH.
@@ -194,6 +230,8 @@ dataOrigin = ITS
 #optional, if missing then default is used
 dataDescription = RAWDATA     
 filePath = path_and_name_of_the_data_file0
+# for CRU detectors the "readoutCard" record below is optional
+# readoutCard = CRU
 
 [input-1]
 dataOrigin = TPC              
@@ -201,6 +239,14 @@ filePath = path_and_name_of_the_data_file1
 
 [input-2]
 filePath = path_and_name_of_the_data_file2
+
+[input-1-RORC]
+dataOrigin = EMC
+filePath = path_and_name_of_the_data_fileX
+# for RORC detectors the record below is obligatory
+readoutCard = RORC 
+
+
 
 #...
 # [input-XXX] blocks w/o filePath will be ignoder, XXX is irrelevant
@@ -251,25 +297,48 @@ Data from the same detector may be split to multiple files link-wise and/or time
 ```cpp
 o2-raw-file-reader-workflow
   ...
-  --conf arg                            configuration file to init from (obligatory)
-  --loop arg (=0)                       loop N times (infinite for N<0)
-  --message-per-tf                      send TF of each link as a single FMQ 
+  --loop arg (=1)                       loop N times (infinite for N<0)
+  --min-tf arg (=0)                     min TF ID to process
+  --max-tf arg (=4294967295)            max TF ID to process
+  --delay arg (=0)                      delay in seconds between consecutive TFs sending
+  --buffer-size arg (=1048576)          buffer size for files preprocessing
+  --raw-channel-config arg              optional raw FMQ channel for non-DPL output
+  --configKeyValues arg                 semicolon separated key=value strings
 
+  # to suppress various error checks / reporting
+  --nocheck-packet-increment            ignore /Wrong RDH.packetCounter increment/
+  --nocheck-page-increment              ignore /Wrong RDH.pageCnt increment/
+  --check-stop-on-page0                 check  /RDH.stop set of 1st HBF page/
+  --nocheck-missing-stop                ignore /New HBF starts w/o closing old one/
+  --nocheck-starts-with-tf              ignore /Data does not start with TF/HBF/
+  --nocheck-hbf-per-tf                  ignore /Number of HBFs per TF not as expected/
+  --nocheck-tf-per-link                 ignore /Number of TFs is less than expected/
+  --nocheck-hbf-jump                    ignore /Wrong HBF orbit increment/
+  --nocheck-no-spage-for-tf             ignore /TF does not start by new superpage/
 ```
 
 The workflow takes an input from the configuration file (as described in `RawFileReader` section), reads the data and sends them as DPL messages
 with the `OutputSpec`s indicated in the configuration file (or defaults). Each link data gets `SubSpecification` according to DataDistribution
 scheme.
 
-If `--loop` argument is provided, data will be re-played in loop.
+If `--loop` argument is provided, data will be re-played in loop. The delay (in seconds) can be added between sensding of consecutive TFs to avoid pile-up of TFs.
 
-At every invocation of the device `processing` callback a full TimeFrame for every link will be messaged as a multipart of N-HBFs messages (one for each HBF in the TF)
-in a single `FairMQPart` per link (as the StfBuilder ships the data).
-In case the `--message-per-tf` option is asked, the whole TF is sent as the only part of the `FairMQPart`.
+At every invocation of the device `processing` callback a full TimeFrame for every link will be added as N-HBFs parts (one for each HBF in the TF) to the multipart
+relayed by the `FairMQ` channel.
 
 The standard use case of this workflow is to provide the input for other worfklows using the piping, e.g.
 ```cpp
-o2-raw-file-reader-workflow --conf myConf.cfg | o2-dpl-raw-parser
+o2-raw-file-reader-workflow --input-conf myConf.cfg | o2-dpl-raw-parser
+```
+Option `--raw-channel-config <confstring> forces the reader to send all data (single FairMQParts containing the whole TF) to raw FairMQ channel, emulating the messages from the DataDistribution.
+To inject such a data to DPL one should use a parallel process starting with `o2-dpl-raw-proxy`. An example (note `--session default` added to every executable):
+
+```bash
+[Terminal 1]> o2-dpl-raw-proxy --session default -b --dataspec "A:TOF/RAWDATA;B:ITS/RAWDATA;C:MFT/RAWDATA;D:TPC/RAWDATA;E:FT0/RAWDATA" --channel-config "name=readout-proxy,type=pull,method=connect,address=ipc://@rr-to-dpl,transport=shmem,rateLogging=1" | o2-dpl-raw-parser --session default  --input-spec "A:TOF/RAWDATA;B:ITS/RAWDATA;C:MFT/RAWDATA;D:TPC/RAWDATA;E:FT0/RAWDATA"
+```
+
+```bash
+[Terminal 2]> o2-raw-file-reader-workflow  --session default --loop 1000 --delay 3 --input-conf raw/rawAll.cfg --raw-channel-config "name=raw-reader,type=push,method=bind,address=ipc://@rr-to-dpl,transport=shmem,rateLogging=1" --shm-segment-size 16000000000
 ```
 
 ## Raw data file checker (standalone executable)
@@ -278,13 +347,14 @@ o2-raw-file-reader-workflow --conf myConf.cfg | o2-dpl-raw-parser
 Usage:   o2-raw-file-check [options] file0 [... fileN]
 Options:
   -h [ --help ]                     print this help message.
-  -c [ --conf ] arg                 read input from configuration file
+  -c [ --input-conf ] arg           read input from configuration file
+  -m [ --max-tf] arg (=0xffffffff)  max. TF ID to read (counts from 0)
   -v [ --verbosity ] arg (=0)    1: long report, 2 or 3: print or dump all RDH
   -s [ --spsize ]    arg (=1048576) nominal super-page size in bytes
   -t [ --hbfpertf ]  arg (=256)     nominal number of HBFs per TF
   --nocheck-packet-increment        ignore /Wrong RDH.packetCounter increment/
   --nocheck-page-increment          ignore /Wrong RDH.pageCnt increment/
-  --nocheck-stop-on-page0           ignore /RDH.stop set of 1st HBF page/
+  --check-stop-on-page0             check  /RDH.stop set of 1st HBF page/
   --nocheck-missing-stop            ignore /New HBF starts w/o closing old one/
   --nocheck-starts-with-tf          ignore /Data does not start with TF/HBF/
   --nocheck-hbf-per-tf              ignore /Number of HBFs per TF not as expected/
@@ -335,3 +405,7 @@ L11  | Spec:0x3211267  FEE:0x3201 CRU:  49 Lnk:  2 EP:0 | SPages:  31 Pages:  76
 Largest super-page: 1047008 B, largest TF: 4070048 B
 Real time 0:00:00, CP time 0.120
 ```
+
+## Miscellaneous macros
+
+*   `rawStat.C`: writes into the tree the size per HBF contained in the raw data provided in the RawFileReader config file. No check for synchronization between different links is done.

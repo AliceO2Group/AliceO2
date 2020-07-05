@@ -1,3 +1,20 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <TTree.h>
+#include <DetectorsCommonDataFormats/NameConf.h>
+#include <DetectorsCommonDataFormats/DetID.h>
+#include <DetectorsCommonDataFormats/SimTraits.h>
+#endif
+
 // A macro with the purpose to produce
 // simulation files in the new layout, where detector hits
 // are stored in individual files.

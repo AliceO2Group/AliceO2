@@ -146,6 +146,9 @@ TVectorF* nMatchingTracklets = 0x0;
 TVectorF* trackletX = 0x0;
 TVectorF* trackletY = 0x0;
 TVectorF* trackletZ = 0x0;
+TVectorF* trackletYerr = 0x0;
+TVectorF* trackletYZerr = 0x0;
+TVectorF* trackletZerr = 0x0;
 TVectorF* trackletYRaw = 0x0;
 TVectorF* trackletZRaw = 0x0;
 TVectorF* trackletDy = 0x0;
@@ -171,6 +174,8 @@ static const Int_t chi2PenaltySweep = 1;
 static const Int_t nCandidates[nCandidatesSweep] = {1, 2, 3};
 static const Int_t maxMissingLayers[maxMissingLayersSweep] = {4};
 static const Int_t chi2Penalty[chi2PenaltySweep] = {16};
+
+static const Bool_t isInteractive = kTRUE;
 
 // functions
 Bool_t InitAnalysis(const char* filename = "TRDhlt.root", Bool_t isMC = kTRUE);
@@ -239,6 +244,9 @@ void InitBranches()
   tree->SetBranchAddress("trackletY.", &trackletY);
   tree->SetBranchAddress("trackletDy.", &trackletDy);
   tree->SetBranchAddress("trackletZ.", &trackletZ);
+  tree->SetBranchAddress("trackletYerr.", &trackletYerr);
+  tree->SetBranchAddress("trackletZerr.", &trackletZerr);
+  tree->SetBranchAddress("trackletYZerr.", &trackletYZerr);
   tree->SetBranchAddress("trackletYRaw.", &trackletYRaw);
   tree->SetBranchAddress("trackletZRaw.", &trackletZRaw);
   tree->SetBranchAddress("trackletDet.", &trackletDet);
@@ -273,7 +281,7 @@ void InitCalib()
 {
   fitTrackletDy->SetParameters(0.14, 2.35, -0.635);
   fitRMSAngle->SetParameters(0.0473, 0.163, 0.427);
-  fitRMSDelta012->SetParameters(0.08, 0.08, 0.34);
+  fitRMSDelta012->SetParameters(0.04, 0.125, 0.31);
 }
 
 void SetAlias(TTree* tree, Bool_t isMC)
@@ -283,6 +291,9 @@ void SetAlias(TTree* tree, Bool_t isMC)
   }
 
   tree->SetAlias("layer", "Iteration$");
+  tree->SetAlias("det", "trackletDet.fElements");
+  tree->SetAlias("sec", "TMath::FloorNint(trackletDet.fElements/30)");
+  tree->SetAlias("stack", "TMath::FloorNint((trackletDet.fElements%30)/6)");
   tree->SetAlias("isPresent", "update.fElements>0");
   tree->SetAlias("matchAvail", "nMatchingTracklets.fElements>0");
   tree->SetAlias("geoFindable", "findable.fElements>0");
@@ -308,10 +319,10 @@ void SetAlias(TTree* tree, Bool_t isMC)
   tree->SetAlias("inZroad", "(abs(GetDeltaZmatch(layer))-roadZ)<0");
   tree->SetAlias("trkPhi", "trackPhi.fElements");
   tree->SetAlias("trkltDy", "trackletDy.fElements");
-  tree->SetAlias("resY", "(trackY.fElements-trackletY.fElements)");
-  tree->SetAlias("resZ", "(trackZ.fElements-trackletZ.fElements)");
-  tree->SetAlias("pullY", "resY/sqrt(trackYerr.fElements+trackletYerr.fElements)");
-  tree->SetAlias("pullZ", "resZ/sqrt(trackZerr.fElements+trackletZerr.fElements)");
+  tree->SetAlias("resY", "(trackNoUpY.fElements-trackletY.fElements)");
+  tree->SetAlias("resZ", "(trackNoUpZ.fElements-trackletZ.fElements)");
+  tree->SetAlias("pullY", "resY/sqrt(trackNoUpYerr.fElements+trackletYerr.fElements)");
+  tree->SetAlias("pullZ", "resZ/sqrt(trackNoUpZerr.fElements+trackletZerr.fElements)");
   tree->SetAlias("isIdealAngle", "abs(trackPhi.fElements-0.12)<0.05");
 }
 
@@ -433,7 +444,9 @@ void FitAngularResolution()
   if (!tree) {
     return;
   }
-  fOut = new TFile("results.root", "update");
+  if (!isInteractive) {
+    fOut = new TFile("results.root", "update");
+  }
   TGraph* gr = TStatToolkit::MakeGraphErrors(tree, "trackletDy.fElements:trackPhi.fElements", "isGold&&LoadBranches(Entry$)", 25, 1, 1, 0, 100000);
   gr->Fit("pol2", "rob=0.9", "", -0.3, 0.3);
   tree->SetAlias("trackletDyFit", TString::Format("(%f)+(%f)*trackPhi.fElements+(%f)*trackPhi.fElements^2", gr->GetFunction("pol2")->GetParameter(0), gr->GetFunction("pol2")->GetParameter(1), gr->GetFunction("pol2")->GetParameter(2)));
@@ -451,12 +464,14 @@ void FitAngularResolution()
   gStyle->SetOptStat(0);
   hAngularResolution->Draw();
   fitRMSAngle->Draw("same");
-  hAngularResolution->Write();
-  delete hAngularResolution;
-  fitRMSAngle->Write();
-  delete fitRMSAngle;
-  fOut->Close();
-  delete fOut;
+  if (!isInteractive) {
+    hAngularResolution->Write();
+    delete hAngularResolution;
+    fitRMSAngle->Write();
+    delete fitRMSAngle;
+    fOut->Close();
+    delete fOut;
+  }
 }
 
 void FitPositionResolution()
@@ -464,19 +479,23 @@ void FitPositionResolution()
   if (!tree) {
     return;
   }
-  fOut = new TFile("results.root", "update");
+  if (!isInteractive) {
+    fOut = new TFile("results.root", "update");
+  }
   tree->Draw("GetDeltaRPhi(layer, 1, 0):trackNoUpPhi.fElements>>hisDeltaRPhi(15, -0.4, 0.4, 50, -0.3, 0.3)", "isGold&&lowMult&&LoadBranches(Entry$)", "colz");
   ((TH2*)tree->GetHistogram())->FitSlicesY();
   ((TH1*)gROOT->FindObject("hisDeltaRPhi_2"))->Fit(fitRMSDelta012);
   gPad->SaveAs("FitPositionResolution.png");
   TH1* hPositionResolution = (TH1*)gROOT->FindObject("hisDeltaRPhi_2");
   hPositionResolution->Draw();
-  hPositionResolution->Write();
-  delete hPositionResolution;
-  fitRMSDelta012->Write();
-  delete fitRMSDelta012;
-  fOut->Close();
-  delete fOut;
+  if (!isInteractive) {
+    hPositionResolution->Write();
+    delete hPositionResolution;
+    fitRMSDelta012->Write();
+    delete fitRMSDelta012;
+    fOut->Close();
+    delete fOut;
+  }
 }
 
 void FitRPhiVsChamber(Bool_t rawTrkltPosition = kTRUE)
@@ -497,27 +516,41 @@ void FitRPhiVsChamber(Bool_t rawTrkltPosition = kTRUE)
 
 void CheckRadialOffset()
 {
-  TH2F* hRadialOffset = new TH2F("radialOffset", "", 540, 0, 540, 100, -3, 3);
+  fOut = new TFile("results.root", "update");
+  TH2F* hRadialOffset = new TH2F("radialOffset", "", 540, -0.5, 539.5, 100, -3, 3);
   for (Int_t i = 0; i < tree->GetEntriesFast(); ++i) {
     tree->GetEntry(i);
     if (trackID < 0) {
       continue;
     }
-    if (nMatching != 6) {
-      continue;
-    }
+    //if (nMatching != 6) {
+    //  continue;
+    //}
     //if ((*trackPhi)[0] < 0.15) {
     //  continue;
     //}
+    if (nTracklets < 1 || nTPCtracks > 300) {
+      continue;
+    }
     for (Int_t iLy = 0; iLy < 6; iLy++) {
+      if ((*update)[iLy] < 1) {
+        // not tracklet in this layer
+        continue;
+      }
       Double_t phi = (*trackPhi)[iLy];
       Double_t deltaRPhi = (*trackletY)[iLy] - (*trackNoUpY)[iLy];
+      if (TMath::Abs(deltaRPhi / TMath::Sqrt((*trackletYerr)[iLy] + (*trackNoUpYerr)[iLy])) > 3) {
+        continue;
+      }
       Int_t det = (*trackletDet)[iLy];
       Double_t deltaR = deltaRPhi / TMath::Tan(TMath::ASin(phi));
       hRadialOffset->Fill(det, deltaR);
     }
   }
-  hRadialOffset->Draw("colz");
+  hRadialOffset->Write();
+  delete hRadialOffset;
+  fOut->Close();
+  delete fOut;
 }
 
 void FitRadialSpreadTrklts()
@@ -1408,11 +1441,12 @@ void chi2Distribution(Int_t nEntries = -1)
 {
   // compare chi2 for matching tracklets with chi2 for fake tracklets
   // scaled w.r.t. total number of updates
-  TH1F* hChi2Match = new TH1F("chi2Match", ";#chi^{2};normalized counts", 50, 0, 15);
-  TH1F* hChi2Fake = new TH1F("chi2Fake", ";#chi^{2};normalized counts", 50, 0, 15);
+  TFile* fOut = new TFile("results.root", "update");
+  TH1F* hChi2Match = new TH1F("chi2Match", ";#chi^{2};normalized counts", 50, 0, 30);
+  TH1F* hChi2Fake = new TH1F("chi2Fake", ";#chi^{2};normalized counts", 50, 0, 30);
 
-  MakeLogScale(hChi2Match, 0.05, 25);
-  MakeLogScale(hChi2Fake, 0.05, 25);
+  MakeLogScale(hChi2Match, 0.05, 35);
+  MakeLogScale(hChi2Fake, 0.05, 35);
 
   Double_t nUpdates = 0;
 
@@ -1437,6 +1471,7 @@ void chi2Distribution(Int_t nEntries = -1)
       }
     }
   }
+  /*
   TCanvas* c1 = new TCanvas("c1", "c1");
   c1->SetLogx();
   hChi2Match->SetLineWidth(2);
@@ -1450,6 +1485,47 @@ void chi2Distribution(Int_t nEntries = -1)
   hChi2Match->Draw();
   hChi2Fake->Draw("same");
   leg->Draw();
+  */
+  hChi2Match->Write();
+  delete hChi2Match;
+  hChi2Fake->Write();
+  delete hChi2Fake;
+  fOut->Close();
+  delete fOut;
+}
+
+void RecreateDyPlotJochen()
+{
+  const Int_t nBinsPerDim = 100;
+  const Int_t nBins = (nBinsPerDim + 2) * (nBinsPerDim + 2);
+  TH2F* hDy = new TH2F("dy", ";#it{y} (cm);#it{q}/#it{p}_{T} (#it{c}/GeV)", nBinsPerDim, -60, 60, nBinsPerDim, -2, 2);
+  TAxis* axX = hDy->GetXaxis();
+  TAxis* axY = hDy->GetYaxis();
+  std::vector<int> nEntries(nBins); // number of entries for given bin
+  std::vector<float> dYacc(nBins);  // accumulated values for dy for specific bin
+  for (Int_t i = 0; i < tree->GetEntries(); i++) {
+    // loop over all tracks
+    tree->GetEntry(i);
+    for (Int_t iLy = 0; iLy < 6; ++iLy) {
+      Double_t trkQpt = (*trackQPt)[iLy];
+      Double_t trkY = (*trackY)[iLy];
+      Int_t binX = axX->FindBin(trkY);
+      Int_t binY = axY->FindBin(trkQpt);
+      Int_t binToFill = binY * (nBinsPerDim + 2) + binX;
+      nEntries[binToFill] += 1;
+      dYacc[binToFill] += (*trackletDy)[iLy];
+    }
+  }
+  for (Int_t i = 0; i < nBins; ++i) {
+    if (nEntries[i] != 0) {
+      dYacc[i] = dYacc[i] / nEntries[i];
+      hDy->SetBinContent(i, dYacc[i]);
+    } else {
+      hDy->SetBinContent(i, -99);
+    }
+  }
+  hDy->GetZaxis()->SetRangeUser(-1, 1);
+  hDy->Draw("colz");
 }
 
 void OnlineTrackletEfficiency(Int_t nEntries = -1)
@@ -1580,6 +1656,119 @@ void OnlineTrackletEfficiency(Int_t nEntries = -1)
   hEfficiencyQptY->GetXaxis()->SetRangeUser(-45.0, 45.);
   hEfficiencyQptY->GetZaxis()->SetRangeUser(0.0, 1);
   hEfficiencyQptY->Draw("colz");
+}
+
+void zResolution()
+{
+  TFile* fOut = new TFile("results.root", "update");
+  TH1F* histInner = new TH1F("inner", ";#Delta z(cm);normalized counts", 50, -8, 8);
+  TH1F* histOuter = new TH1F("outer", ";#Delta z(cm);normalized counts", 50, -8, 8);
+  Int_t nEntries = tree->GetEntries();
+  for (Int_t i = 0; i < nEntries; i++) {
+    tree->GetEntry(i);
+    if (trackID < 0) {
+      continue;
+    }
+    for (Int_t iLy = 0; iLy < 6; ++iLy) {
+      if ((*update)[iLy] < 1 || (*update)[iLy] > 3) {
+        // not matching tracklet in this layer
+        continue;
+      }
+      if (iLy < 2 && TMath::Abs((*trackLambda)[iLy]) > 0.2) {
+        histInner->Fill((*trackletZ)[iLy] - (*trackNoUpZ)[iLy]);
+      }
+      if (iLy >= 4) {
+        histOuter->Fill((*trackletZ)[iLy] - (*trackNoUpZ)[iLy]);
+      }
+    }
+  }
+  histInner->Write();
+  delete histInner;
+  histOuter->Write();
+  delete histOuter;
+  fOut->Close();
+  delete fOut;
+}
+
+void plotDyResiduals()
+{
+  TFile* fOut = new TFile("results.root", "update");
+  TH2F* hist = new TH2F("dYresiduals", ";sin (#varphi_{Trk});#it{d_{y}} (cm)", 50, -0.3, 0.3, 50, -0.9, 0.9);
+  Int_t nEntries = tree->GetEntries();
+  for (Int_t i = 0; i < nEntries; i++) {
+    // loop over all tracks
+    tree->GetEntry(i);
+    if (trackID < 0) {
+      continue;
+    }
+    for (Int_t iLy = 0; iLy < 6; ++iLy) {
+      if ((*update)[iLy] < 1) {
+        // not tracklet in this layer
+        continue;
+      }
+      hist->Fill((*trackPhi)[iLy], (*trackletDy)[iLy]);
+    }
+  }
+  hist->Write();
+  delete hist;
+  fOut->Close();
+  delete fOut;
+}
+
+void CheckPulls()
+{
+  TFile* fOut = new TFile("results.root", "update");
+  TH1F* histPullY = new TH1F("pullY", ";#it{P_{y}};counts", 100, -3, 3);
+  TH1F* histPullZ = new TH1F("pullZ", ";#it{P_{z}};counts", 100, -3, 3);
+  Int_t nEntries = tree->GetEntries();
+  for (Int_t i = 0; i < nEntries; i++) {
+    // loop over all tracks
+    tree->GetEntry(i);
+    if (trackID < 0) {
+      continue;
+    }
+    for (Int_t iLy = 0; iLy < 6; ++iLy) {
+      if ((*update)[iLy] < 1 || (*update)[iLy] > 3) {
+        // not matching tracklet in this layer
+        continue;
+      }
+      float sy = fitRMSDelta012->Eval((*trackPhi)[iLy]);
+      float sz2 = (*trackletZerr)[iLy];
+      histPullY->Fill(((*trackNoUpY)[iLy] - (*trackletY)[iLy]) / sy);
+      histPullZ->Fill(((*trackNoUpZ)[iLy] - (*trackletZ)[iLy]) / TMath::Sqrt(sz2));
+    }
+  }
+  histPullY->Write();
+  delete histPullY;
+  histPullZ->Write();
+  delete histPullZ;
+  fOut->Close();
+  delete fOut;
+}
+
+void CheckZcorrection()
+{
+  TFile* fOut = new TFile("results.root", "update");
+  TH2F* histZ = new TH2F("zcorr", ";tan (#lambda_{Trk});#Delta z (cm)", 50, -1, 1, 100, -5, 5);
+  Int_t nEntries = tree->GetEntries();
+  for (Int_t i = 0; i < nEntries; i++) {
+    // loop over all tracks
+    tree->GetEntry(i);
+    if (trackID < 0) {
+      continue;
+    }
+    for (Int_t iLy = 0; iLy < 6; ++iLy) {
+      if ((*update)[iLy] < 1 || (*update)[iLy] > 3) {
+        // not matching tracklet in this layer
+        continue;
+      }
+      histZ->Fill((*trackLambda)[iLy], (*trackZ)[iLy] - (*trackletZ)[iLy]);
+    }
+  }
+  histZ->Write();
+  delete histZ;
+  fOut->Close();
+  delete fOut;
 }
 
 Bool_t InitAnalysis(const char* filename, Bool_t isMC)

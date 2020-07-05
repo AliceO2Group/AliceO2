@@ -37,7 +37,6 @@ class Compensator : public PassiveBase
   void createMaterials();
   void createCompensator();
   TGeoVolume* createMagnetYoke();
-  void SetSpecialPhysicsCuts() override;
 
   ClassDefOverride(o2::passive::Compensator, 1);
 };

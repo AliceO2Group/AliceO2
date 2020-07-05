@@ -29,7 +29,7 @@ class MyFineTimeSlewing : public AliTOFCalibFineSlewing
     if (ich == 157247)
       n = fSize - fStart[ich];
     for (Int_t i = 0; i < n; i++) {
-      x[i] = fX[fStart[ich] + i] * 0.001; // in the OCDB, we saves the tot in ps
+      x[i] = fX[fStart[ich] + i] * 0.001; // in the OCDB, we save the tot in ps
       y[i] = fY[fStart[ich] + i] * 1.;    // make it float
     }
   }
@@ -37,7 +37,7 @@ class MyFineTimeSlewing : public AliTOFCalibFineSlewing
   ClassDef(MyFineTimeSlewing, 1);
 };
 
-void ConvertRun2CalibrationToO2()
+void ConvertRun2CalibrationToO2(int channelToCheck = 0)
 {
 
   // Remember: Use AliRoot!!
@@ -60,6 +60,7 @@ void ConvertRun2CalibrationToO2()
   //   from the prompt
 
   o2::dataformats::CalibTimeSlewingParamTOF* mTimeSlewingObj = new o2::dataformats::CalibTimeSlewingParamTOF();
+  Printf("At the beginning: time slewing object has size = %d", mTimeSlewingObj->size());
 
   TFile* ffineSlewing = new TFile("TOF/Calib/FineSlewing/Run0_999999999_v2_s0.root");
   AliCDBEntry* efineSlewing = (AliCDBEntry*)ffineSlewing->Get("AliCDBEntry");
@@ -76,12 +77,17 @@ void ConvertRun2CalibrationToO2()
 
   Float_t x[10000];
   Float_t y[10000];
+  Float_t xChannelToCheck[10000];
+  Float_t yChannelToCheck[10000];
 
   Int_t n;
-
-  for (Int_t i = 0; i < 157248; i++) {
+  Int_t nChannelToCheck = 0;
+  int forced = 0;
+  int sizeRecalc = 0;
+  for (Int_t i = 0; i < AliTOFGeometry::NSectors() * (2 * (AliTOFGeometry::NStripC() + AliTOFGeometry::NStripB()) + AliTOFGeometry::NStripA()) * AliTOFGeometry::NpadZ() * AliTOFGeometry::NpadX(); i++) {
     mfs->GetChannelArrays(i, x, y, n);
-    //Printf("channel %d has %d entries", i, n);
+    sizeRecalc += n;
+    //    Printf("channel %d has %d entries", i, n);
     AliTOFChannelOffline* parOffline = (AliTOFChannelOffline*)foff->At(i);
     //Printf("channel %d has offset = %f", parOffline->GetSlewPar(0));
     float corr0 = 0;
@@ -97,13 +103,26 @@ void ConvertRun2CalibrationToO2()
       Float_t corr = 0;
       for (Int_t islew = 0; islew < 6; islew++)
         corr += parOffline->GetSlewPar(islew) * TMath::Power(toteff, islew) * 1.e3;
-      if (j == 0 && x[j] > 0.03)
-        mTimeSlewingObj->addTimeSlewingInfo(i, 0.025, y[j] + corr0); // force to have an entry for ToT=0
+      if (j == 0 && x[j] > 0.03) {
+        forced++;
+        mTimeSlewingObj->addTimeSlewingInfo(i, 0, y[j] + corr0); // force to have an entry for ToT=0
+      }
       mTimeSlewingObj->addTimeSlewingInfo(i, x[j], y[j] + corr);
+      if (i == channelToCheck) {
+        xChannelToCheck[j] = x[j];
+        yChannelToCheck[j] = y[j] + corr;
+      }
     }
-    if (n == 0) // force to have at least one entry
-      mTimeSlewingObj->addTimeSlewingInfo(i, 0.025, corr0);
-
+    if (n == 0) {
+      // force to have at least one entry
+      //Printf("channel %d: Forcing to add tot = 0 with corr0 = %f", i, corr0);
+      mTimeSlewingObj->addTimeSlewingInfo(i, 0, corr0);
+      forced++;
+      n++;
+    }
+    if (i == channelToCheck) {
+      nChannelToCheck = n;
+    }
     // set problematics
     int sector = i / 8736;
     int localchannel = i % 8736;
@@ -112,17 +131,15 @@ void ConvertRun2CalibrationToO2()
     mTimeSlewingObj->setSigmaPeak(sector, localchannel, 100.);
   }
 
-  TGraph* g = new TGraph(n, x, y);
+  TGraph* g = new TGraph(nChannelToCheck, xChannelToCheck, yChannelToCheck);
 
   new TCanvas();
   g->Draw("A*");
 
   Printf("time slewing object has size = %d", mTimeSlewingObj->size());
-
+  Printf("number of channels for which we forced the entry at tot = 0 = %d", forced);
+  Printf("sizeRecalc = %d", sizeRecalc);
   TFile* fout = new TFile("outputCCDBfromOCDB.root", "RECREATE");
-  TTree* t = new TTree("tree", "tree");
-  t->Branch("CalibTimeSlewingParamTOF", &mTimeSlewingObj);
-  t->Fill();
-  t->Write();
+  fout->WriteObjectAny(mTimeSlewingObj, mTimeSlewingObj->Class(), "TimeSlewing");
   fout->Close();
 }

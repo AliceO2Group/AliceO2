@@ -14,6 +14,7 @@
 #define O2_ITS_TRACKERDPL
 
 #include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -26,6 +27,8 @@
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
 #include "GPUChainITS.h"
+#include "CommonUtils/StringUtils.h"
+#include "TStopwatch.h"
 
 namespace o2
 {
@@ -39,14 +42,16 @@ class TrackerDPL : public framework::Task
   ~TrackerDPL() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
+  void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
-  int mState = 0;
   bool mIsMC = false;
+  o2::itsmft::TopologyDictionary mDict;
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;
   std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<Tracker> mTracker = nullptr;
   std::unique_ptr<Vertexer> mVertexer = nullptr;
+  TStopwatch mTimer;
 };
 
 /// create a processor spec

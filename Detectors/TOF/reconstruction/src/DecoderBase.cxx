@@ -43,7 +43,10 @@ namespace tof
 namespace compressed
 {
 
-bool DecoderBase::processHBF()
+using RDHUtils = o2::raw::RDHUtils;
+
+template <typename RDH>
+bool DecoderBaseT<RDH>::processHBF()
 {
 
 #ifdef DECODER_VERBOSE
@@ -55,11 +58,11 @@ bool DecoderBase::processHBF()
   }
 #endif
 
-  mDecoderRDH = reinterpret_cast<const o2::header::RAWDataHeader*>(mDecoderPointer);
+  mDecoderRDH = reinterpret_cast<const RDH*>(mDecoderPointer);
   auto rdh = mDecoderRDH;
 
   /** loop until RDH close **/
-  while (!rdh->stop) {
+  while (!RDHUtils::getStop(*rdh)) {
 
 #ifdef DECODER_VERBOSE
     if (mDecoderVerbose) {
@@ -74,9 +77,9 @@ bool DecoderBase::processHBF()
     /** rdh handler **/
     rdhHandler(rdh);
 
-    auto headerSize = rdh->headerSize;
-    auto memorySize = rdh->memorySize;
-    auto offsetToNext = rdh->offsetToNext;
+    auto headerSize = RDHUtils::getHeaderSize(*rdh);
+    auto memorySize = RDHUtils::getMemorySize(*rdh);
+    auto offsetToNext = RDHUtils::getOffsetToNext(*rdh);
     auto drmPayload = memorySize - headerSize;
 
     /** copy DRM payload to save buffer **/
@@ -84,7 +87,7 @@ bool DecoderBase::processHBF()
     mDecoderSaveBufferDataSize += drmPayload;
 
     /** move to next RDH **/
-    rdh = reinterpret_cast<const o2::header::RAWDataHeader*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
+    rdh = reinterpret_cast<const RDH*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
 
     /** check next RDH is within buffer **/
     if (reinterpret_cast<const char*>(rdh) < mDecoderBuffer + mDecoderBufferSize)
@@ -126,7 +129,7 @@ bool DecoderBase::processHBF()
 #endif
 
   /** move to next RDH **/
-  mDecoderPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + rdh->offsetToNext);
+  mDecoderPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + RDHUtils::getOffsetToNext(*rdh));
 
   /** check next RDH is within buffer **/
   if (reinterpret_cast<const char*>(mDecoderPointer) < mDecoderBuffer + mDecoderBufferSize)
@@ -136,7 +139,8 @@ bool DecoderBase::processHBF()
   return true;
 }
 
-bool DecoderBase::processDRM()
+template <typename RDH>
+bool DecoderBaseT<RDH>::processDRM()
 {
 
 #ifdef DECODER_VERBOSE
@@ -184,7 +188,7 @@ bool DecoderBase::processDRM()
       auto crateTrailer = reinterpret_cast<const CrateTrailer_t*>(mDecoderPointer);
 #ifdef DECODER_VERBOSE
       if (mDecoderVerbose) {
-        printf(" %08x CrateTrailer         (numberOfDiagnostics=%d) \n ", *mDecoderPointer, crateTrailer->numberOfDiagnostics);
+        printf(" %08x CrateTrailer         (numberOfDiagnostics=%d, numberOfErrors=%d) \n ", *mDecoderPointer, crateTrailer->numberOfDiagnostics, numberOfErrors);
       }
 #endif
       mDecoderPointer++;
@@ -198,9 +202,19 @@ bool DecoderBase::processDRM()
       }
 #endif
       mDecoderPointer += crateTrailer->numberOfDiagnostics;
+      auto errors = reinterpret_cast<const Error_t*>(mDecoderPointer);
+#ifdef DECODER_VERBOSE
+      if (mDecoderVerbose) {
+        for (int i = 0; i < crateTrailer->numberOfErrors; ++i) {
+          auto error = reinterpret_cast<const Error_t*>(mDecoderPointer + i);
+          printf(" %08x Error                (slotId=%d) \n ", *(mDecoderPointer + i), error->slotID);
+        }
+      }
+#endif
+      mDecoderPointer += crateTrailer->numberOfErrors;
 
       /** trailer handler **/
-      trailerHandler(crateHeader, crateOrbit, crateTrailer, diagnostics);
+      trailerHandler(crateHeader, crateOrbit, crateTrailer, diagnostics, errors);
 
       return false;
     }
@@ -232,6 +246,9 @@ bool DecoderBase::processDRM()
   /** should never reach here **/
   return false;
 }
+
+template class DecoderBaseT<o2::header::RAWDataHeaderV4>;
+template class DecoderBaseT<o2::header::RAWDataHeaderV6>;
 
 } // namespace compressed
 } // namespace tof

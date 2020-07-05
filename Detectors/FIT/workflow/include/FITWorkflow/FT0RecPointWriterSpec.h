@@ -13,10 +13,8 @@
 #ifndef O2_FT0RECPOINTWRITER_H
 #define O2_FT0RECPOINTWRITER_H
 
-#include "TFile.h"
 
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
 
 using namespace o2::framework;
 
@@ -25,27 +23,7 @@ namespace o2
 namespace ft0
 {
 
-class FT0RecPointWriter : public Task
-{
- public:
-  FT0RecPointWriter(bool useMC = true) : mUseMC(useMC) {}
-  ~FT0RecPointWriter() override = default;
-  void init(InitContext& ic) final;
-  void run(ProcessingContext& pc) final;
-
- private:
-  bool mFinished = false;
-  bool mUseMC = true;
-
-  std::string mOutputFileName = "o2reco_ft0.root";
-  std::string mOutputTreeName = "o2sim";
-  std::string mRPOutputBranchName = "FT0Cluster";
-  std::string mRPOutputChBranchName = "FT0RecChData";
-  o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
-};
-
 /// create a processor spec
-/// write ITS clusters a root file
 framework::DataProcessorSpec getFT0RecPointWriterSpec(bool useMC);
 
 } // namespace ft0

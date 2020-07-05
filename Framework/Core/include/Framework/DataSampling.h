@@ -19,6 +19,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/InputSpec.h"
 #include <string>
+#include <boost/property_tree/ptree_fwd.hpp>
 
 namespace o2::configuration
 {
@@ -30,6 +31,7 @@ namespace o2::framework
 
 class CompletionPolicy;
 class ChannelConfigurationPolicy;
+class Dispatcher;
 
 /// A class responsible for providing data from main processing flow to QC tasks.
 ///
@@ -74,6 +76,13 @@ class DataSampling
   /// \param policiesSource        Path to configuration file.
   /// \param threads               Number of dispatcher threads, that will handle the data
   static void GenerateInfrastructure(WorkflowSpec& workflow, const std::string& policiesSource, size_t threads = 1);
+
+  /// \brief Generates data sampling infrastructure.
+  /// \param workflow              DPL workflow with already declared data processors which provide data desired by
+  ///                              QC tasks.
+  /// \param policiesSource        boost::property_tree::ptree with the configuration
+  /// \param threads               Number of dispatcher threads, that will handle the data
+  static void GenerateInfrastructure(WorkflowSpec& workflow, boost::property_tree::ptree const& policies, size_t threads = 1);
   /// \brief Configures dispatcher to consume any data immediately.
   static void CustomizeInfrastructure(std::vector<CompletionPolicy>&);
   /// \brief Applies blocking/nonblocking data sampling configuration to the workflow.
@@ -82,8 +91,21 @@ class DataSampling
   static std::vector<InputSpec> InputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName);
   /// \brief Provides InputSpecs to receive data for given DataSamplingPolicy
   static std::vector<InputSpec> InputSpecsForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
+  /// \brief Provides OutputSpecs of given DataSamplingPolicy
+  static std::vector<OutputSpec> OutputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName);
+  /// \brief Provides OutputSpecs of given DataSamplingPolicy
+  static std::vector<OutputSpec> OutputSpecsForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
+  /// \brief Provides the port to be used for a proxy of given DataSamplingPolicy
+  static uint16_t PortForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
+  /// \brief Provides the port to be used for a proxy of given DataSamplingPolicy
+  static uint16_t PortForPolicy(const std::string& policiesSource, const std::string& policyName);
+  /// \brief Provides the machines where given DataSamplingPolicy is enabled
+  static std::vector<std::string> MachinesForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
+  /// \brief Provides the port to be used for a proxy of given DataSamplingPolicy
+  static std::vector<std::string> MachinesForPolicy(const std::string& policiesSource, const std::string& policyName);
 
  private:
+  static void DoGenerateInfrastructure(Dispatcher&, WorkflowSpec& workflow, boost::property_tree::ptree const& policies, size_t threads = 1);
   // Internal functions, used by GenerateInfrastructure()
   static std::string createDispatcherName();
 };

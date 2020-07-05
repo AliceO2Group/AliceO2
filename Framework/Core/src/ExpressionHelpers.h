@@ -13,6 +13,7 @@
 
 #include <vector>
 #include <iosfwd>
+#include <fmt/format.h>
 
 namespace o2::framework::expressions
 {
@@ -31,20 +32,28 @@ static std::array<std::string, BasicOp::Abs + 1> binaryOperationsMap = {
   "greater_than_or_equal_to",
   "equal",
   "not_equal",
-  "exp",
-  "log",
-  "log10",
-  "abs"};
+  "powerf",
+  "sqrtf",
+  "expf",
+  "logf",
+  "log10f",
+  "sinf",
+  "cosf",
+  "tanf",
+  "asinf",
+  "acosf",
+  "atanf",
+  "absf"};
 
 struct DatumSpec {
   /// datum spec either contains an index, a value of a literal or a binding label
   using datum_t = std::variant<std::monostate, size_t, LiteralNode::var_t, std::string>;
-  datum_t datum;
+  datum_t datum = std::monostate{};
   atype::type type = atype::NA;
   explicit DatumSpec(size_t index, atype::type type_) : datum{index}, type{type_} {}
   explicit DatumSpec(LiteralNode::var_t literal, atype::type type_) : datum{literal}, type{type_} {}
   explicit DatumSpec(std::string binding, atype::type type_) : datum{binding}, type{type_} {}
-  DatumSpec() : datum{std::monostate{}} {}
+  DatumSpec() = default;
   DatumSpec(DatumSpec const&) = default;
   DatumSpec(DatumSpec&&) = default;
   DatumSpec& operator=(DatumSpec const&) = default;
@@ -79,12 +88,33 @@ struct ColumnOperationSpec {
       case BasicOp::NotEqual:
         type = atype::BOOL;
         break;
+      case BasicOp::Division:
+        type = atype::FLOAT;
       default:
         type = atype::NA;
     }
     result.type = type;
   }
 };
+
+template <typename... C>
+std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...>, gandiva::SchemaPtr schema)
+{
+  std::shared_ptr<gandiva::Projector> projector;
+  auto s = gandiva::Projector::Make(
+    schema,
+    {makeExpression(
+      framework::expressions::createExpressionTree(
+        framework::expressions::createOperations(C::Projector()),
+        schema),
+      C::asArrowField())...},
+    &projector);
+  if (s.ok()) {
+    return projector;
+  } else {
+    throw std::runtime_error(fmt::format("Failed to create projector: {}", s.ToString()));
+  }
+}
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_HELPERS_H_

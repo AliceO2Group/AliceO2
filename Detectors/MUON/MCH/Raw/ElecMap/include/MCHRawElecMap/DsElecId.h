@@ -68,12 +68,12 @@ class DsElecId
   uint8_t mElinkIndexInGroup; // 0..4
 };
 
-uint16_t encode(const DsElecId& id);
+uint32_t encode(const DsElecId& id);
 
 /// Creates (if possible) a DsElecId object from a code.
 /// If the code does not correspond to a valid DsElectId
 /// std::nullopt is returned
-std::optional<DsElecId> decodeDsElecId(uint16_t code);
+std::optional<DsElecId> decodeDsElecId(uint32_t code);
 
 /// Creates (if possible) a DsElecId object from a string representation
 /// If the string does not correspond to a valid DsElectId

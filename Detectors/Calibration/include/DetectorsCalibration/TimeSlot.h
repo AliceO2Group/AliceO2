@@ -11,6 +11,7 @@
 #ifndef DETECTOR_CALIB_TIMESLOT_H_
 #define DETECTOR_CALIB_TIMESLOT_H_
 
+#include <memory>
 #include <Rtypes.h>
 #include "Framework/Logger.h"
 
@@ -21,11 +22,11 @@ namespace o2
 namespace calibration
 {
 
+using TFType = uint64_t;
+
 template <typename Container>
 class TimeSlot
 {
-  using TFType = uint64_t;
-
  public:
   TimeSlot() = default;
   TimeSlot(TFType tfS, TFType tfE) : mTFStart(tfS), mTFEnd(tfE) {}

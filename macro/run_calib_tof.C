@@ -74,13 +74,13 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
         perror("fork");
         abort();
       } else if (pids[i] == 0) {
-        cout << "child " << i << endl;
+        std::cout << "child " << i << std::endl;
         TFile outFile((path + namefile.Data() + Form("_fork%i.root", i)).data(), "recreate");
         TTree outTree("calibrationTOF", "Calibration TOF params");
         calib.setOutputTree(&outTree);
         calib.init();
-        cout << i << ") Child process: My process id = " << getpid() << endl;
-        cout << "Child process: Value returned by fork() = " << pids[i] << endl;
+        std::cout << i << ") Child process: My process id = " << getpid() << std::endl;
+        std::cout << "Child process: Value returned by fork() = " << pids[i] << std::endl;
 
         // only for the first child
 

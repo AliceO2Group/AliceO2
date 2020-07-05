@@ -180,6 +180,10 @@ class ConfigurableParam
   template <typename T>
   static void setValue(std::string const& mainkey, std::string const& subkey, T x)
   {
+    if (!sIsFullyInitialized) {
+      initialize();
+    }
+    assert(sPtree);
     try {
       auto key = mainkey + "." + subkey;
       if (sPtree->get_optional<std::string>(key).is_initialized()) {
@@ -198,6 +202,10 @@ class ConfigurableParam
   // which means that the type will be converted internally
   static void setValue(std::string const& key, std::string const& valuestring)
   {
+    if (!sIsFullyInitialized) {
+      initialize();
+    }
+    assert(sPtree);
     try {
       if (sPtree->get_optional<std::string>(key).is_initialized()) {
         sPtree->put(key, valuestring);
@@ -266,6 +274,7 @@ class ConfigurableParam
   static EnumRegistry* sEnumRegistry;
 
   void setRegisterMode(bool b) { sRegisterMode = b; }
+  bool isInitialized() const { return sIsFullyInitialized; }
 
  private:
   // static registry for implementations of this type

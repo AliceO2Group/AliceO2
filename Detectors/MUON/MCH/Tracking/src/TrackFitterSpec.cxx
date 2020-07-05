@@ -27,9 +27,9 @@
 
 #include "MCHBase/ClusterBlock.h"
 #include "MCHBase/TrackBlock.h"
-#include "TrackParam.h"
-#include "Cluster.h"
-#include "Track.h"
+#include "MCHTracking/TrackParam.h"
+#include "MCHTracking/Cluster.h"
+#include "MCHTracking/Track.h"
 #include "TrackFitter.h"
 
 namespace o2

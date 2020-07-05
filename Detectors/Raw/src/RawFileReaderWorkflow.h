@@ -14,13 +14,16 @@
 /// @file   RawFileReaderWorkflow.h
 
 #include "Framework/WorkflowSpec.h"
+class string;
 
 namespace o2
 {
 namespace raw
 {
 
-framework::WorkflowSpec getRawFileReaderWorkflow(std::string inifile, bool tfAsMessage = false, int loop = 0);
+framework::WorkflowSpec getRawFileReaderWorkflow(std::string inifile, int loop = 1, uint32_t delay_us = 0, uint32_t errMap = 0xffffffff,
+                                                 uint32_t minTF = 0, uint32_t maxTF = 0xffffffff, size_t bufferSize = 1024L * 1024L,
+                                                 const std::string& rawChannelConfig = "");
 
 } // namespace raw
 } // namespace o2

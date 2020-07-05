@@ -27,7 +27,7 @@ namespace cpv
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getCPVDigitWriterSpec()
+o2::framework::DataProcessorSpec getCPVDigitWriterSpec(bool mctruth = true)
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
@@ -37,7 +37,7 @@ o2::framework::DataProcessorSpec getCPVDigitWriterSpec()
                                 1,
                                 BranchDefinition<std::vector<o2::cpv::Digit>>{InputSpec{"cpvdigits", "CPV", "DIGITS"}, "CPVDigit"},
                                 BranchDefinition<std::vector<o2::cpv::TriggerRecord>>{InputSpec{"cpvdigitstrigrec", "CPV", "DIGITTRIGREC"}, "CPVDigitTrigRecords"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"cpvdigitsmc", "CPV", "DIGITSMCTR"}, "CPVDigitMCTruth"})();
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"cpvdigitsmc", "CPV", "DIGITSMCTR"}, "CPVDigitMCTruth", mctruth ? 1 : 0})();
 }
 
 } // namespace cpv

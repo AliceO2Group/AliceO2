@@ -269,10 +269,11 @@ const TMatrixD& TrackParamMFT::getSmoothParameters() const
 void TrackParamMFT::setSmoothParameters(const TMatrixD& smoothParameters)
 {
   /// Set the smoothed parameters
-  if (mSmoothParameters)
+  if (mSmoothParameters) {
     *mSmoothParameters = smoothParameters;
-  else
+  } else {
     mSmoothParameters = std::make_unique<TMatrixD>(smoothParameters);
+  }
 }
 
 //__________________________________________________________________________
@@ -290,10 +291,11 @@ const TMatrixD& TrackParamMFT::getSmoothCovariances() const
 void TrackParamMFT::setSmoothCovariances(const TMatrixD& smoothCovariances)
 {
   /// Set the smoothed covariance matrix
-  if (mSmoothCovariances)
+  if (mSmoothCovariances) {
     *mSmoothCovariances = smoothCovariances;
-  else
+  } else {
     mSmoothCovariances = std::make_unique<TMatrixD>(smoothCovariances);
+  }
 }
 
 //__________________________________________________________________________
@@ -316,19 +318,22 @@ Bool_t TrackParamMFT::isCompatibleTrackParamMFT(const TrackParamMFT& TrackParamM
   Double_t maxChi2 = 5. * sigma2Cut * sigma2Cut; // 5 degrees of freedom
 
   // check Z parameters
-  if (mZ != TrackParamMFT.mZ)
+  if (mZ != TrackParamMFT.mZ) {
     LOG(WARN) << "Parameters are given at different Z position (" << mZ << " : " << TrackParamMFT.mZ
               << "): results are meaningless";
+  }
 
   // compute the parameter residuals
   TMatrixD deltaParam(mParameters, TMatrixD::kMinus, TrackParamMFT.mParameters);
 
   // build the error matrix
   TMatrixD weight(5, 5);
-  if (mCovariances)
+  if (mCovariances) {
     weight += *mCovariances;
-  if (TrackParamMFT.mCovariances)
+  }
+  if (TrackParamMFT.mCovariances) {
     weight += *(TrackParamMFT.mCovariances);
+  }
 
   // invert the error matrix to get the parameter weights if possible
   if (weight.Determinant() == 0) {
@@ -345,8 +350,9 @@ Bool_t TrackParamMFT::isCompatibleTrackParamMFT(const TrackParamMFT& TrackParamM
   chi2 = mChi2(0, 0);
 
   // check compatibility
-  if (chi2 > maxChi2)
+  if (chi2 > maxChi2) {
     return kFALSE;
+  }
 
   return kTRUE;
 }
@@ -355,13 +361,13 @@ Bool_t TrackParamMFT::isCompatibleTrackParamMFT(const TrackParamMFT& TrackParamM
 void TrackParamMFT::print() const
 {
   /// Printing TrackParamMFT informations
-  cout << "<TrackParamMFT> Bending P=" << setw(5) << setprecision(3) << 1. / mParameters(4, 0)
-       << ", NonBendSlope=" << setw(5) << setprecision(3) << mParameters(1, 0) * 180. / TMath::Pi()
-       << ", BendSlope=" << setw(5) << setprecision(3) << mParameters(3, 0) * 180. / TMath::Pi() << ", (x,y,z)_IP=("
-       << setw(5) << setprecision(3) << mParameters(0, 0) << "," << setw(5) << setprecision(3) << mParameters(2, 0)
-       << "," << setw(5) << setprecision(3) << mZ << ") cm, (px,py,pz)=(" << setw(5) << setprecision(3) << getPx() << ","
-       << setw(5) << setprecision(3) << getPy() << "," << setw(5) << setprecision(3) << getP() << ") GeV/c, "
-       << "local chi2=" << getLocalChi2() << endl;
+  LOG(INFO) << "TrackParamMFT: p =" << setw(5) << setprecision(3) << getP()
+            << " Tanl = " << setw(5) << setprecision(3) << getTanl()
+            << " phi = " << setw(5) << setprecision(3) << getPhi()
+            << " pz = " << setw(5) << setprecision(3) << getPz()
+            << " pt = " << setw(5) << setprecision(3) << getPt()
+            << " charge = " << setw(5) << setprecision(3) << getCharge()
+            << " chi2 = " << setw(5) << setprecision(3) << getTrackChi2() << endl;
 }
 
 } // namespace mft

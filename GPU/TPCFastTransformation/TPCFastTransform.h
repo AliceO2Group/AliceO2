@@ -25,10 +25,6 @@
 #include <string>
 #endif // !GPUCA_GPUCODE
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-//#include "Rtypes.h"
-#endif
-
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -122,7 +118,7 @@ class TPCFastTransform : public FlatObject
   GPUd() const TPCFastSpaceChargeCorrection& getCorrection() const { return mCorrection; }
 
   /// Gives a reference for external initialization of TPC corrections
-  TPCFastSpaceChargeCorrection& getCorrectionNonConst() { return mCorrection; }
+  TPCFastSpaceChargeCorrection& getCorrection() { return mCorrection; }
 
   /// Finishes initialization: puts everything to the flat buffer, releases temporary memory
   void finishConstruction();
@@ -136,7 +132,15 @@ class TPCFastTransform : public FlatObject
 
   /// Transformation in the time frame
   GPUd() void TransformInTimeFrame(int slice, int row, float pad, float time, float& x, float& y, float& z, float maxTimeBin) const;
+
+  /// Inverse transformation
   GPUd() void InverseTransformInTimeFrame(int slice, int row, float /*x*/, float y, float z, float& pad, float& time, float maxTimeBin) const;
+
+  /// Inverse transformation: Transformed Y and Z -> transformed X
+  GPUd() void InverseTransformYZtoX(int slice, int row, float y, float z, float& x) const;
+
+  /// Inverse transformation: Transformed Y and Z -> Y and Z, transformed w/o space charge correction
+  GPUd() void InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz) const;
 
   /// Ideal transformation with Vdrift only - without calibration
   GPUd() void TransformIdeal(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime) const;
@@ -146,11 +150,14 @@ class TPCFastTransform : public FlatObject
 
   GPUd() void convUVtoPadTime(int slice, int row, float u, float v, float& pad, float& time, float vertexTime) const;
   GPUd() void convUVtoPadTimeInTimeFrame(int slice, int row, float u, float v, float& pad, float& time, float maxTimeBin) const;
+  GPUd() void convVtoTime(float v, float& time, float vertexTime) const;
 
   GPUd() float convTimeToZinTimeFrame(int slice, float time, float maxTimeBin) const;
-  GPUd() float convZtoTimeInTimeFrame(float z, float maxTimeBin) const;
+  GPUd() float convZtoTimeInTimeFrame(int slice, float z, float maxTimeBin) const;
   GPUd() float convDeltaTimeToDeltaZinTimeFrame(int slice, float deltaTime) const;
   GPUd() float convDeltaZtoDeltaTimeInTimeFrame(int slice, float deltaZ) const;
+  GPUd() float convZOffsetToVertexTime(int slice, float zOffset, float maxTimeBin) const;
+  GPUd() float convVertexTimeToZOffset(int slice, float vertexTime, float maxTimeBin) const;
 
   GPUd() void getTOFcorrection(int slice, int row, float x, float y, float z, float& dz) const;
 
@@ -181,10 +188,16 @@ class TPCFastTransform : public FlatObject
   /// Return TOF correction (vdrift / C)
   GPUd() float getTOFCorr() const { return mLdriftCorr; }
 
-  /// Return a value of the last timebin where correction map is valid
-  GPUd() float getLastCalibratedTimeBin(int slice) const;
+  /// maximal possible drift timre of the active area
+  GPUd() float getMaxDriftTime(int slice, int row, float pad) const;
 
-#if !defined(GPUCA_GPUCODE)
+  /// maximal possible drift time of the active area
+  GPUd() float getMaxDriftTime(int slice, int row) const;
+
+  /// maximal possible drift time of the active area
+  GPUd() float getMaxDriftTime(int slice) const;
+
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
   int writeToFile(std::string outFName = "", std::string name = "");
 
@@ -239,8 +252,9 @@ class TPCFastTransform : public FlatObject
   float mTOFcorr;
 
   float mPrimVtxZ; ///< Z of the primary vertex, needed for the Time-Of-Flight correction
-
+#ifndef GPUCA_ALIROOT_LIB
   ClassDefNV(TPCFastTransform, 1);
+#endif
 };
 
 // =======================================================================
@@ -275,6 +289,24 @@ GPUdi() void TPCFastTransform::convPadTimeToUVinTimeFrame(int slice, int row, fl
   }
 }
 
+GPUdi() float TPCFastTransform::convZOffsetToVertexTime(int slice, float zOffset, float maxTimeBin) const
+{
+  if (slice < getGeometry().getNumberOfSlicesA()) {
+    return maxTimeBin - (getGeometry().getTPCzLengthA() + zOffset) / mVdrift;
+  } else {
+    return maxTimeBin - (getGeometry().getTPCzLengthC() - zOffset) / mVdrift;
+  }
+}
+
+GPUdi() float TPCFastTransform::convVertexTimeToZOffset(int slice, float vertexTime, float maxTimeBin) const
+{
+  if (slice < getGeometry().getNumberOfSlicesA()) {
+    return (maxTimeBin - vertexTime) * mVdrift - getGeometry().getTPCzLengthA();
+  } else {
+    return -((maxTimeBin - vertexTime) * mVdrift - getGeometry().getTPCzLengthC());
+  }
+}
+
 GPUdi() void TPCFastTransform::convUVtoPadTime(int slice, int row, float u, float v, float& pad, float& time, float vertexTime) const
 {
   bool sideC = (slice >= getGeometry().getNumberOfSlicesA());
@@ -287,6 +319,12 @@ GPUdi() void TPCFastTransform::convUVtoPadTime(int slice, int row, float u, floa
   float x = rowInfo.x;
   float y = sideC ? -u : u; // pads are mirrorred on C-side
   float yLab = y * sliceInfo.cosAlpha + x * sliceInfo.sinAlpha;
+  time = mT0 + vertexTime + (v - mLdriftCorr) / (mVdrift + mVdriftCorrY * yLab);
+}
+
+GPUdi() void TPCFastTransform::convVtoTime(float v, float& time, float vertexTime) const
+{
+  float yLab = 0.f;
   time = mT0 + vertexTime + (v - mLdriftCorr) / (mVdrift + mVdriftCorrY * yLab);
 }
 
@@ -404,11 +442,15 @@ GPUdi() float TPCFastTransform::convTimeToZinTimeFrame(int slice, float time, fl
   return z;
 }
 
-GPUdi() float TPCFastTransform::convZtoTimeInTimeFrame(float z, float maxTimeBin) const
+GPUdi() float TPCFastTransform::convZtoTimeInTimeFrame(int slice, float z, float maxTimeBin) const
 {
   /// Inverse transformation of convTimeToZinTimeFrame()
-  z = z - getGeometry().getTPCalignmentZ(); // global TPC alignment
-  float v = fabs(z);
+  float v;
+  if (slice < getGeometry().getNumberOfSlicesA()) {
+    v = getGeometry().getTPCalignmentZ() - z;
+  } else {
+    v = z - getGeometry().getTPCalignmentZ();
+  }
   return mT0 + maxTimeBin + (v - mLdriftCorr) / mVdrift;
 }
 
@@ -424,6 +466,7 @@ GPUdi() float TPCFastTransform::convDeltaZtoDeltaTimeInTimeFrame(int slice, floa
   return slice < getGeometry().getNumberOfSlicesA() ? -deltaT : deltaT;
 }
 
+/*
 GPUdi() float TPCFastTransform::getLastCalibratedTimeBin(int slice) const
 {
   /// Return a value of the last timebin where correction map is valid
@@ -431,6 +474,59 @@ GPUdi() float TPCFastTransform::getLastCalibratedTimeBin(int slice) const
   getGeometry().convScaledUVtoUV(slice, 0, 0.f, 1.f, u, v);
   convUVtoPadTime(slice, 0, u, v, pad, time, 0);
   return time;
+}
+*/
+
+GPUdi() float TPCFastTransform::getMaxDriftTime(int slice, int row, float pad) const
+{
+  /// maximal possible drift time of the active area
+  float maxL = mCorrection.getMaxDriftLength(slice, row, pad);
+
+  bool sideC = (slice >= getGeometry().getNumberOfSlicesA());
+  const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
+  const TPCFastTransformGeo::SliceInfo& sliceInfo = getGeometry().getSliceInfo(slice);
+
+  float x = rowInfo.x;
+  float u = (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
+
+  float y = sideC ? -u : u; // pads are mirrorred on C-side
+  float yLab = y * sliceInfo.cosAlpha + x * sliceInfo.sinAlpha;
+  return mT0 + (maxL - mLdriftCorr) / (mVdrift + mVdriftCorrY * yLab);
+}
+
+GPUdi() float TPCFastTransform::getMaxDriftTime(int slice, int row) const
+{
+  /// maximal possible drift time of the active area
+  float maxL = mCorrection.getMaxDriftLength(slice, row);
+  float maxTime = 0.f;
+  convVtoTime(maxL, maxTime, 0.f);
+  return maxTime;
+}
+
+GPUdi() float TPCFastTransform::getMaxDriftTime(int slice) const
+{
+  /// maximal possible drift time of the active area
+  float maxL = mCorrection.getMaxDriftLength(slice);
+  float maxTime = 0.f;
+  convVtoTime(maxL, maxTime, 0.f);
+  return maxTime;
+}
+
+GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y, float z, float& x) const
+{
+  /// Transformation y,z -> x
+  float u = 0, v = 0;
+  getGeometry().convLocalToUV(slice, y, z, u, v);
+  mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, x);
+}
+
+GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz) const
+{
+  /// Transformation y,z -> x
+  float u = 0, v = 0;
+  getGeometry().convLocalToUV(slice, y, z, u, v);
+  mCorrection.getCorrectionInvUV(slice, row, u, v, u, v);
+  getGeometry().convUVtoLocal(slice, u, v, ny, nz);
 }
 
 } // namespace gpu

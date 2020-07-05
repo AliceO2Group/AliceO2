@@ -22,9 +22,9 @@ using namespace o2::soa;
 
 namespace test
 {
-DECLARE_SOA_COLUMN(X, x, float, "x");
-DECLARE_SOA_COLUMN(Y, y, float, "y");
-DECLARE_SOA_COLUMN(Z, z, float, "z");
+DECLARE_SOA_COLUMN(X, x, float);
+DECLARE_SOA_COLUMN(Y, y, float);
+DECLARE_SOA_COLUMN(Z, z, float);
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
 } // namespace test
 
@@ -61,8 +61,9 @@ static void BM_TableToTree(benchmark::State& state)
 
     // benchmark TableToTree
     TableToTree ta2tr(table, &fout, "table2tree");
-    if (ta2tr.AddAllBranches())
-      ta2tr.Process();
+    if (ta2tr.addAllBranches()) {
+      ta2tr.process();
+    }
 
     // clean up
     fout.Close();

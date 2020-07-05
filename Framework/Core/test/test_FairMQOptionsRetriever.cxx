@@ -14,7 +14,9 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/program_options.hpp>
 #include "Framework/FairOptionsRetriever.h"
+#include "Framework/ConfigParamStore.h"
 #include <fairmq/options/FairMQProgOptions.h>
+#include <boost/property_tree/ptree.hpp>
 
 namespace bpo = boost::program_options;
 using namespace o2::framework;
@@ -42,7 +44,7 @@ BOOST_AUTO_TEST_CASE(TestOptionsRetriever)
                      "--aString", "somethingelse",
                      "--aNested.int", "1",
                      "--aNested.float", "2"},
-                    false);
+                    true);
   std::vector<ConfigParamSpec> specs{
     ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}},
     ConfigParamSpec{"anInt64", VariantType::Int64, 1ll, {"an int64_t option"}},
@@ -53,17 +55,24 @@ BOOST_AUTO_TEST_CASE(TestOptionsRetriever)
     ConfigParamSpec{"aNested.int", VariantType::Int, 2, {"an int option, nested in an object"}},
     ConfigParamSpec{"aNested.float", VariantType::Float, 3.f, {"a float option, nested in an object"}},
   };
-  FairOptionsRetriever retriever(specs, options);
-  BOOST_CHECK_EQUAL(retriever.getFloat("aFloat"), 1.0);
-  BOOST_CHECK_EQUAL(retriever.getDouble("aDouble"), 2.0);
-  BOOST_CHECK_EQUAL(retriever.getInt("anInt"), 10);
-  BOOST_CHECK_EQUAL(retriever.getInt64("anInt64"), 50000000000000ll);
-  BOOST_CHECK_EQUAL(retriever.getBool("aBoolean"), true);
-  BOOST_CHECK_EQUAL(retriever.getString("aString"), "somethingelse");
-  BOOST_CHECK_EQUAL(retriever.getInt("aNested.int"), 1);
-  BOOST_CHECK_EQUAL(retriever.getInt("aNested.float"), 2.f);
+  std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+  std::unique_ptr<ParamRetriever> fairmqRetriver{new FairOptionsRetriever(options)};
+  retrievers.emplace_back(std::move(fairmqRetriver));
+
+  ConfigParamStore store{specs, std::move(retrievers)};
+  store.preload();
+  store.activate();
+
+  BOOST_CHECK_EQUAL(store.store().get<float>("aFloat"), 1.0);
+  BOOST_CHECK_EQUAL(store.store().get<double>("aDouble"), 2.0);
+  BOOST_CHECK_EQUAL(store.store().get<int>("anInt"), 10);
+  BOOST_CHECK_EQUAL(store.store().get<int64_t>("anInt64"), 50000000000000ll);
+  BOOST_CHECK_EQUAL(store.store().get<bool>("aBoolean"), true);
+  BOOST_CHECK_EQUAL(store.store().get<std::string>("aString"), "somethingelse");
+  BOOST_CHECK_EQUAL(store.store().get<int>("aNested.int"), 1);
+  BOOST_CHECK_EQUAL(store.store().get<float>("aNested.float"), 2.f);
   // We can get nested objects also via their top-level ptree.
-  auto pt = retriever.getPTree("aNested");
+  auto pt = store.store().get_child("aNested");
   BOOST_CHECK_EQUAL(pt.get<int>("int"), 1);
   BOOST_CHECK_EQUAL(pt.get<float>("float"), 2.f);
 }
@@ -83,7 +92,7 @@ BOOST_AUTO_TEST_CASE(TestOptionsDefaults)
 
   FairMQProgOptions* options = new FairMQProgOptions();
   options->AddToCmdLineOptions(testOptions);
-  options->ParseAll({"cmd"}, false);
+  options->ParseAll({"cmd"}, true);
   std::vector<ConfigParamSpec> specs{
     ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}},
     ConfigParamSpec{"anInt64", VariantType::Int64, -50000000000000ll, {"an int64_t option"}},
@@ -93,14 +102,33 @@ BOOST_AUTO_TEST_CASE(TestOptionsDefaults)
     ConfigParamSpec{"aBoolean", VariantType::Bool, true, {"a boolean option"}},
     ConfigParamSpec{"aNested.int", VariantType::Int, 2, {"an int option, nested in an object"}},
     ConfigParamSpec{"aNested.float", VariantType::Float, 3.f, {"a float option, nested in an object"}},
+    ConfigParamSpec{"aNested.double", VariantType::Double, 4., {"a float option, nested in an object"}},
   };
-  FairOptionsRetriever retriever(specs, options);
-  BOOST_CHECK_EQUAL(retriever.getFloat("aFloat"), 10.f);
-  BOOST_CHECK_EQUAL(retriever.getDouble("aDouble"), 20.);
-  BOOST_CHECK_EQUAL(retriever.getInt("anInt"), 1);
-  BOOST_CHECK_EQUAL(retriever.getInt64("anInt64"), -50000000000000ll);
-  BOOST_CHECK_EQUAL(retriever.getBool("aBoolean"), false);
-  BOOST_CHECK_EQUAL(retriever.getString("aString"), "something");
-  BOOST_CHECK_EQUAL(retriever.getInt("aNested.int"), 2);
-  BOOST_CHECK_EQUAL(retriever.getInt("aNested.float"), 3.f);
+  std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+  std::unique_ptr<ParamRetriever> fairmqRetriver{new FairOptionsRetriever(options)};
+  retrievers.emplace_back(std::move(fairmqRetriver));
+
+  ConfigParamStore store{specs, std::move(retrievers)};
+  store.preload();
+  store.activate();
+
+  BOOST_CHECK_EQUAL(store.store().get<float>("aFloat"), 10.f);
+  BOOST_CHECK_EQUAL(store.store().get<double>("aDouble"), 20.);
+  BOOST_CHECK_EQUAL(store.store().get<int>("anInt"), 1);
+  BOOST_CHECK_EQUAL(store.store().get<int64_t>("anInt64"), -50000000000000ll);
+  BOOST_CHECK_EQUAL(store.store().get<bool>("aBoolean"), false);
+  BOOST_CHECK_EQUAL(store.store().get<std::string>("aString"), "something");
+  BOOST_CHECK_EQUAL(store.store().get<int>("aNested.int"), 2);
+  BOOST_CHECK_EQUAL(store.store().get<float>("aNested.float"), 3.f);
+
+  /// They come from FairMQ, not default in any case...
+  BOOST_CHECK_EQUAL(store.provenance("aFloat"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("aDouble"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("anInt"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("anInt64"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("aBoolean"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("aString"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("aNested.int"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("aNested.float"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("aNested.double"), "default");
 }

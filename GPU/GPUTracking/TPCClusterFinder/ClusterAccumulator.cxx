@@ -14,8 +14,8 @@
 #include "ClusterAccumulator.h"
 #include "CfUtils.h"
 
-
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 GPUd() void ClusterAccumulator::toNative(const ChargePos& pos, Charge q, tpc::ClusterNative& cn) const
 {
@@ -73,7 +73,7 @@ GPUd() Charge ClusterAccumulator::updateOuter(PackedCharge charge, Delta2 d)
   return q;
 }
 
-GPUd() void ClusterAccumulator::finalize(const ChargePos& pos, Charge q)
+GPUd() void ClusterAccumulator::finalize(const ChargePos& pos, Charge q, TPCTime timeOffset)
 {
   mQtot += q;
 
@@ -85,14 +85,13 @@ GPUd() void ClusterAccumulator::finalize(const ChargePos& pos, Charge q)
   mPadSigma = CAMath::Sqrt(mPadSigma - mPadMean * mPadMean);
   mTimeSigma = CAMath::Sqrt(mTimeSigma - mTimeMean * mTimeMean);
 
-  mPadMean += pos.pad();
-  mTimeMean += pos.time();
+  Pad pad = pos.pad();
+  mPadMean += pad;
+  mTimeMean += timeOffset + pos.time();
 
-#if defined(CORRECT_EDGE_CLUSTERS)
   if (CfUtils::isAtEdge(pos)) {
-    float s = (pos.pad() < 2) ? 1.f : -1.f;
-    bool c = s * (mPadMean - pos.pad()) > 0.f;
-    mPadMean = (c) ? pos.pad() : mPadMean;
+    bool leftEdge = (pad < 2);
+    bool correct = (leftEdge) ? (pad < mPadMean) : (pad > mPadMean);
+    mPadMean = (correct) ? pad : mPadMean;
   }
-#endif
 }

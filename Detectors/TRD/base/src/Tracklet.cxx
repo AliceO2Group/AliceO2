@@ -23,77 +23,73 @@
 #include "TRDBase/Tracklet.h"
 #include <fairlogger/Logger.h>
 #include "TRDBase/TRDGeometry.h"
-
+#include <SimulationDataFormat/MCCompLabel.h>
+#include <SimulationDataFormat/MCTruthContainer.h>
 //_____________________________________________________________________________
 
-using namespace std;
 using namespace o2::trd;
 
-Tracklet::Tracklet(unsigned int trackletWord) : mTrackletWord(trackletWord)
+Tracklet::Tracklet()
 {
   // constructor
-
   mGeo = TRDGeometry::instance();
-  mLabel[0] = -1;
-  mLabel[1] = -1;
-  mLabel[2] = -1;
 }
 
-Tracklet::Tracklet(unsigned int trackletWord, int hcid) : mHCId(hcid), mTrackletWord(trackletWord)
+Tracklet::Tracklet(int hcid) : mHCId(hcid)
 {
   // constructor
-
   mGeo = TRDGeometry::instance();
-  mLabel[0] = -1;
-  mLabel[1] = -1;
-  mLabel[2] = -1;
 }
 
-Tracklet::Tracklet(unsigned int trackletWord, int hcid, int rob, int mcm) : mHCId(hcid), mTrackletWord(trackletWord), mMCM(mcm), mROB(rob)
+Tracklet::Tracklet(int hcid, int rob, int mcm, float pid, float rawslope, float rawoffset, float rawslope4trackletword, float rawoffset4trackletword) : mHCId(hcid), mMCM(mcm), mROB(rob), mPID(pid), mdY(rawslope), mY(rawoffset), mdY4tw(rawslope4trackletword), mY4tw(rawoffset4trackletword)
 {
   // constructor
-
   mGeo = TRDGeometry::instance();
-  mLabel[0] = -1;
-  mLabel[1] = -1;
-  mLabel[2] = -1;
 }
 
-Tracklet::Tracklet(const Tracklet& rhs) : mHCId(rhs.mHCId), mTrackletWord(rhs.mTrackletWord), mMCM(rhs.mMCM), mROB(rhs.mROB), mQ0(rhs.mQ0), mQ1(rhs.mQ1), mNHits(rhs.mNHits), mNHits0(rhs.mNHits0), mNHits1(rhs.mNHits1), mSlope(rhs.mSlope), mOffset(rhs.mOffset), mError(rhs.mError), mNClusters(rhs.mNClusters)
+Tracklet::Tracklet(const Tracklet& rhs) : mHCId(rhs.mHCId), mMCM(rhs.mMCM), mROB(rhs.mROB), mQ0(rhs.mQ0), mQ1(rhs.mQ1), mPID(rhs.mPID), mdY(rhs.mdY), mY(rhs.mY), mdY4tw(rhs.mdY4tw), mY4tw(rhs.mY4tw), mNHits(rhs.mNHits), mNHits0(rhs.mNHits0), mNHits1(rhs.mNHits1), mSlope(rhs.mSlope), mOffset(rhs.mOffset), mError(rhs.mError), mNClusters(rhs.mNClusters)
 {
   // copy constructor
-
   mGeo = TRDGeometry::instance();
+
   mResiduals = rhs.mResiduals;
   mClsCharges = rhs.mClsCharges;
-  mLabel = rhs.mLabel;
+}
+
+unsigned int Tracklet::getTrackletWord() const
+{
+
+  int rndAdd = 0;
+  int decPlaces = 5; // must be larger than 1 or change the following code
+                     // if (decPlaces >  1)
+  rndAdd = (1 << (decPlaces - 1)) + 1;
+  uint32_t trackletWord;
+  unsigned int pid, padrow, slope, offset;
+
+  pid = ((int)mPID) & 0xff;     //8bits
+  padrow = ((int)getZ()) & 0xf; //4bits
+  slope = ((int)mdY) & 0x7ff;   //7bits
+  offset = ((int)mY) & 0x1fff;  //13bits
+                                //mMCMT[cpu] = (pid << 24) | (padrow << 20) | (slope << 13) | offset;
+  trackletWord = (pid << 24) | (padrow << 20) | (slope << 13) | offset;
+
+  return trackletWord;
 }
 
 int Tracklet::getYbin() const
 {
-  // returns (signed) value of Y
-  if (mTrackletWord & 0x1000) {
-    return -((~(mTrackletWord - 1)) & 0x1fff);
-  } else {
-    return (mTrackletWord & 0x1fff);
-  }
+  return mY;
 }
 
 int Tracklet::getdY() const
 {
-  // returns (signed) value of the deflection length
-  if (mTrackletWord & (1 << 19)) {
-    return -((~((mTrackletWord >> 13) - 1)) & 0x7f);
-  } else {
-    return ((mTrackletWord >> 13) & 0x7f);
-  }
+  return mdY;
 }
 
-void Tracklet::setLabel(std::array<int, 3>& label)
+void Tracklet::setLabel(std::vector<MCCompLabel>& label)
 {
-  // set the labels (up to 3)
-
-  mLabel = label;
+  // set the labels
+  LOG(info) << "Tracklet set label is disabled labels are stored externally in a MCTruthContainer";
 }
 
 void Tracklet::setClusters(std::vector<float>& res, std::vector<float>& q, int n)

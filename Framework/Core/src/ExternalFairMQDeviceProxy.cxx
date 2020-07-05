@@ -83,6 +83,15 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string cons
         timeout += 1;
       }
     }
+    if (device.NewStatePending()) {
+      LOG(ERROR) << "device state change is requested, dropping " << messages.Size() << " pending message(s)\n"
+                 << "on channel " << channel << "\n"
+                 << "ATTENTION: DATA IS LOST! Could not dispatch data to downstream consumer(s), check if\n"
+                 << "consumers have been terminated too early";
+      // make sure we disable the warning below
+      timeout = maxTimeout + 1;
+      break;
+    }
   }
   if (timeout > 0 && timeout <= maxTimeout) {
     LOG(WARNING) << "dispatching on channel " << channel << " was delayed by " << timeout << " ms";
@@ -95,13 +104,13 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string cons
   messages.fParts.clear();
 }
 
-void sendOnChannel(FairMQDevice& device, FairMQParts& messages, OutputSpec const& spec, ChannelRetriever& channelRetriever)
+void sendOnChannel(FairMQDevice& device, FairMQParts& messages, OutputSpec const& spec, DataProcessingHeader::StartTime tslice, ChannelRetriever& channelRetriever)
 {
   // Note: DPL is only setting up one instance of a channel while FairMQ allows to have an
   // array of channels, the index is 0 in the call
-  auto channel = channelRetriever(spec);
+  auto channel = channelRetriever(spec, tslice);
   if (channel.empty()) {
-    LOG(WARNING) << "can not find matching channel for " << DataSpecUtils::describe(spec);
+    LOG(WARNING) << "can not find matching channel for " << DataSpecUtils::describe(spec) << " timeslice " << tslice;
     return;
   }
   sendOnChannel(device, messages, channel);
@@ -109,7 +118,12 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, OutputSpec const
 
 void sendOnChannel(FairMQDevice& device, o2::header::Stack&& headerStack, FairMQMessagePtr&& payloadMessage, OutputSpec const& spec, ChannelRetriever& channelRetriever)
 {
-  auto channelName = channelRetriever(spec);
+  const auto* dph = o2::header::get<DataProcessingHeader*>(headerStack.data());
+  if (!dph) {
+    LOG(ERROR) << "Header Stack does not follow the O2 data model, DataProcessingHeader missing";
+    return;
+  }
+  auto channelName = channelRetriever(spec, dph->startTime);
   constexpr auto index = 0;
   if (channelName.empty()) {
     LOG(WARNING) << "can not find matching channel for " << DataSpecUtils::describe(spec);
@@ -135,10 +149,17 @@ void sendOnChannel(FairMQDevice& device, o2::header::Stack&& headerStack, FairMQ
 
 void sendOnChannel(FairMQDevice& device, FairMQMessagePtr&& headerMessage, FairMQMessagePtr&& payloadMessage, OutputSpec const& spec, ChannelRetriever& channelRetriever)
 {
+  //  const auto* dph = o2::header::get<DataProcessingHeader*>( *reinterpret_cast<o2::header::Stack*>(headerMessage->GetData()) );
+  const auto* dph = o2::header::get<DataProcessingHeader*>(headerMessage->GetData());
+  if (!dph) {
+    LOG(ERROR) << "Header does not follow the O2 data model, DataProcessingHeader missing";
+    return;
+  }
+  auto tslice = dph->startTime;
   FairMQParts out;
   out.AddPart(std::move(headerMessage));
   out.AddPart(std::move(payloadMessage));
-  sendOnChannel(device, out, spec, channelRetriever);
+  sendOnChannel(device, out, spec, tslice, channelRetriever);
 }
 
 InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, uint64_t step)
@@ -155,70 +176,6 @@ InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, 
       *timesliceId += 1;
     }
   };
-}
-
-std::tuple<std::vector<size_t>, size_t> findSplitParts(FairMQParts& parts, size_t start, std::vector<bool>& indicesDone)
-{
-  std::optional<ConcreteDataMatcher> matcher = std::nullopt;
-  size_t nofParts = 0;
-  bool isGood = true;
-  std::vector<size_t> indexList;
-  size_t payloadSize = 0;
-  size_t index = start;
-  do {
-    auto dh = o2::header::get<DataHeader*>(parts.At(index * 2)->GetData());
-    if (!dh) {
-      LOG(ERROR) << "data on input " << index << " does not follow the O2 data model, DataHeader missing";
-      break;
-    }
-
-    if (matcher == std::nullopt) {
-      matcher = ConcreteDataMatcher{dh->dataOrigin, dh->dataDescription, dh->subSpecification};
-      nofParts = dh->splitPayloadParts;
-    } else if (*matcher != ConcreteDataMatcher{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) {
-      continue;
-    }
-    LOG(DEBUG) << "matched " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts;
-    indicesDone[index] = true;
-
-    if (isGood && (dh->splitPayloadIndex != indexList.size())) {
-      LOG(ERROR) << "invalid sequence of split payload parts, expecting index " << indexList.size() << " but got " << dh->splitPayloadIndex;
-      isGood = false;
-    } else if (isGood && (dh->payloadSize != parts.At(index * 2 + 1)->GetSize())) {
-      LOG(ERROR) << "Mismatch of payload size in DataHeader and size of payload message: " << dh->payloadSize << "/"
-                 << parts.At(index * 2 + 1)->GetSize();
-      isGood = false;
-    }
-    if (!isGood) {
-      continue;
-    }
-    indexList.emplace_back(index);
-    payloadSize += dh->payloadSize;
-    LOG(DEBUG) << "processed index " << index << ", cached " << indexList.size() << ", total payload size " << payloadSize;
-  } while ((++index) < parts.Size() / 2);
-
-  if (indexList.size() != nofParts || !isGood) {
-    payloadSize = 0;
-    indexList.clear();
-  }
-  return std::make_tuple(std::move(indexList), payloadSize);
-}
-
-FairMQMessagePtr mergePayloads(FairMQDevice& device, FairMQParts& parts, std::vector<size_t> const& indexList, size_t payloadSize, std::string const channel)
-{
-  auto message = device.NewMessageFor(channel, 0, payloadSize);
-  if (!message) {
-    return message;
-  }
-  size_t copied = 0;
-  char* data = reinterpret_cast<char*>(message->GetData());
-  for (auto const& index : indexList) {
-    size_t partSize = parts.At(index * 2 + 1)->GetSize();
-    memcpy(data, parts.At(index * 2 + 1)->GetData(), partSize);
-    data += partSize;
-    copied += partSize;
-  }
-  return message;
 }
 
 InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, bool throwOnUnmatchedInputs)
@@ -259,59 +216,61 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
     std::unordered_map<std::string, FairMQParts> outputs;
     std::vector<bool> indicesDone(parts.Size() / 2, false);
     std::vector<std::string> unmatchedDescriptions;
+    int lastSplitPartIndex = -1;
+    std::string channelNameForSplitParts;
     for (size_t msgidx = 0; msgidx < parts.Size() / 2; ++msgidx) {
       if (indicesDone[msgidx]) {
         continue;
       }
 
-      auto dh = o2::header::get<DataHeader*>(parts.At(msgidx * 2)->GetData());
+      const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx * 2)->GetData());
       if (!dh) {
         LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
+        continue;
+      }
+      const auto dph = o2::header::get<DataProcessingHeader*>(parts.At(msgidx * 2)->GetData());
+      if (!dph) {
+        LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
         continue;
       }
       LOG(DEBUG) << msgidx << ": " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts << "  payload " << parts.At(msgidx * 2 + 1)->GetSize();
 
       OutputSpec query{dh->dataOrigin, dh->dataDescription, dh->subSpecification};
-      LOG(DEBUG) << "processing " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts;
+      LOG(DEBUG) << "processing " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " time slice " << dph->startTime << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts;
       for (auto const& spec : filterSpecs) {
         // filter on the specified OutputSpecs, the default value is a ConcreteDataTypeMatcher with origin and description 'any'
         if (DataSpecUtils::match(spec, OutputSpec{{header::gDataOriginAny, header::gDataDescriptionAny}}) ||
             DataSpecUtils::match(spec, query)) {
-          auto channelName = channelRetriever(query);
+          auto channelName = channelRetriever(query, dph->startTime);
           if (channelName.empty()) {
             LOG(WARNING) << "can not find matching channel, not able to adopt " << DataSpecUtils::describe(query);
             break;
           }
+          // the checks for consistency of split payload parts are of informative nature
+          // forwarding happens independently
           if (dh->splitPayloadParts > 1 && dh->splitPayloadParts != std::numeric_limits<decltype(dh->splitPayloadParts)>::max()) {
-            auto [indexList, payloadSize] = findSplitParts(parts, msgidx, indicesDone);
-            for (auto const& partidx : indexList) {
-              if (partidx == msgidx) {
-                continue;
-              }
-              auto dh = o2::header::get<DataHeader*>(parts.At(partidx * 2)->GetData());
-              if (dh) {
-                LOG(DEBUG) << partidx << ": " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts << "  payload " << parts.At(partidx * 2 + 1)->GetSize();
-              }
+            if (lastSplitPartIndex == -1 && dh->splitPayloadIndex != 0) {
+              LOG(WARNING) << "wrong split part index, expecting the first of " << dh->splitPayloadParts << " part(s)";
+            } else if (dh->splitPayloadIndex != lastSplitPartIndex + 1) {
+              LOG(WARNING) << "unordered split parts, expecting part " << lastSplitPartIndex + 1 << ", got " << dh->splitPayloadIndex
+                           << " of " << dh->splitPayloadParts;
+            } else if (channelNameForSplitParts.empty() == false && channelName != channelNameForSplitParts) {
+              LOG(ERROR) << "inconsistent channel for split part " << dh->splitPayloadIndex
+                         << ", matching " << channelName << ", expecting " << channelNameForSplitParts;
             }
-            if (payloadSize > 0) {
-              size_t headerSize = parts.At(msgidx * 2)->GetSize();
-              auto headerMessage = device.NewMessageFor(channelName, 0, headerSize);
-              memcpy(headerMessage->GetData(), parts.At(msgidx * 2)->GetData(), headerSize);
-              auto clonedh = const_cast<DataHeader*>(o2::header::get<DataHeader*>(headerMessage->GetData()));
-              clonedh->splitPayloadParts = 0;
-              clonedh->splitPayloadIndex = 0;
-              clonedh->payloadSize = payloadSize;
-              outputs[channelName].AddPart(std::move(headerMessage));
-              outputs[channelName].AddPart(std::move(mergePayloads(device, parts, indexList, payloadSize, channelName)));
-              LOG(DEBUG) << "merged " << indexList.size() << " split payload parts in new message of size " << payloadSize << " on channel " << channelName << " (" << outputs[channelName].Size() << " parts)";
+            lastSplitPartIndex = dh->splitPayloadIndex;
+            channelNameForSplitParts = channelName;
+            if (lastSplitPartIndex + 1 == dh->splitPayloadParts) {
+              lastSplitPartIndex = -1;
+              channelNameForSplitParts = "";
             }
-          } else {
-            outputs[channelName].AddPart(std::move(parts.At(msgidx * 2)));
-            outputs[channelName].AddPart(std::move(parts.At(msgidx * 2 + 1)));
-            LOG(DEBUG) << "associating part with index " << msgidx << " to channel " << channelName << " (" << outputs[channelName].Size() << ")";
+          } else if (lastSplitPartIndex != -1) {
+            LOG(WARNING) << "found incomplete or unordered split parts, expecting part " << lastSplitPartIndex + 1
+                         << " but got a new data block";
           }
-          // TODO: implement configurable dispatch policy preferably via the workflow spec config
-          sendOnChannel(device, outputs[channelName], channelName);
+          outputs[channelName].AddPart(std::move(parts.At(msgidx * 2)));
+          outputs[channelName].AddPart(std::move(parts.At(msgidx * 2 + 1)));
+          LOG(DEBUG) << "associating part with index " << msgidx << " to channel " << channelName << " (" << outputs[channelName].Size() << ")";
           indicesDone[msgidx] = true;
           break;
         }
@@ -383,7 +342,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
                                                    char const* defaultChannelConfig,
                                                    std::function<void(FairMQDevice&,
                                                                       FairMQParts&,
-                                                                      std::function<std::string(OutputSpec const&)>)>
+                                                                      ChannelRetriever)>
                                                      converter)
 {
   DataProcessorSpec spec;
@@ -414,10 +373,10 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
 
     // Converter should pump messages
     auto handler = [device, converter, outputRoutes = std::move(outputRoutes)](FairMQParts& inputs, int) {
-      auto channelRetriever = [outputRoutes = std::move(outputRoutes)](OutputSpec const& query) -> std::string {
+      auto channelRetriever = [outputRoutes = std::move(outputRoutes)](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
         for (auto& route : outputRoutes) {
           LOG(DEBUG) << "matching: " << DataSpecUtils::describe(query) << " to route " << DataSpecUtils::describe(route.matcher);
-          if (DataSpecUtils::match(route.matcher, query)) {
+          if (DataSpecUtils::match(route.matcher, query) && ((timeslice % route.maxTimeslices) == route.timeslice)) {
             return route.channel;
           }
         }

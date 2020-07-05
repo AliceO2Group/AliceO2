@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
                      "-s", "somethingelse",
                      "--aNested.x", "1",
                      "--aNested.y", "2"},
-                    false);
+                    true);
   std::vector<ConfigParamSpec> specs{
     ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}},
     ConfigParamSpec{"anInt64", VariantType::Int64, 1ll, {"an int64_t option"}},
@@ -66,10 +66,17 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
     ConfigParamSpec{"aBoolean", VariantType::Bool, true, {"a boolean option"}},
     ConfigParamSpec{"aNested.x", VariantType::Int, 2, {"an int option, nested in an object"}},
     ConfigParamSpec{"aNested.y", VariantType::Float, 3.f, {"a float option, nested in an object"}},
+    ConfigParamSpec{"aNested.z", VariantType::Float, 4.f, {"a float option, nested in an object"}},
   };
 
-  auto retriever = std::make_unique<FairOptionsRetriever>(specs, options);
-  ConfigParamRegistry registry(std::move(retriever));
+  std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+  std::unique_ptr<ParamRetriever> fairmqRetriver{new FairOptionsRetriever(options)};
+  retrievers.emplace_back(std::move(fairmqRetriver));
+
+  auto store = std::make_unique<ConfigParamStore>(specs, std::move(retrievers));
+  store->preload();
+  store->activate();
+  ConfigParamRegistry registry(std::move(store));
 
   BOOST_CHECK_EQUAL(registry.get<float>("aFloat"), 1.0);
   BOOST_CHECK_EQUAL(registry.get<double>("aDouble"), 2.0);
@@ -78,7 +85,8 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
   BOOST_CHECK_EQUAL(registry.get<bool>("aBoolean"), true);
   BOOST_CHECK_EQUAL(registry.get<std::string>("aString"), "somethingelse");
   BOOST_CHECK_EQUAL(registry.get<int>("aNested.x"), 1);
-  BOOST_CHECK_EQUAL(registry.get<int>("aNested.y"), 2.f);
+  BOOST_CHECK_EQUAL(registry.get<float>("aNested.y"), 2.f);
+  BOOST_CHECK_EQUAL(registry.get<float>("aNested.z"), 4.f);
   // We can get nested objects also via their top-level ptree.
   auto pt = registry.get<boost::property_tree::ptree>("aNested");
   BOOST_CHECK_EQUAL(pt.get<int>("x"), 1);

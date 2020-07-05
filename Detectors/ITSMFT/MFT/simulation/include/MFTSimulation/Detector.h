@@ -116,7 +116,11 @@ class Detector : public o2::base::DetImpl<Detector>
     X7R,
     X7Rw,
     CarbonFleece,
-    SE4445
+    SE4445,
+    CarbonFiberM46J,
+    Polypropylene,
+    Polyurethane
+
   }; // media IDs used in CreateMaterials
 
   void setDensitySupportOverSi(Double_t density)

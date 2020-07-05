@@ -17,12 +17,15 @@ o2_add_library(DetectorsBase
                        src/MatLayerCylSet.cxx
                        src/Ray.cxx
 		       src/DCAFitter.cxx
+                       src/BaseDPLDigitizer.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
                                      O2::GPUCommon
+                                     O2::GPUUtils
                                      O2::ReconstructionDataFormats
                                      O2::Field
+                                     O2::Framework
                                      FairMQ::FairMQ
                                      O2::DataFormatsParameters
 				     O2::SimConfig

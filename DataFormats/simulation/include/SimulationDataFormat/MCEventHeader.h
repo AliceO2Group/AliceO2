@@ -38,8 +38,9 @@ class MCEventHeader : public FairMCEventHeader
   ~MCEventHeader() override = default;
 
   /** setters **/
-  void setEmbeddingFileName(std::string value) { mEmbeddingFileName = value; };
+  void setEmbeddingFileName(std::string const& value) { mEmbeddingFileName = value; };
   void setEmbeddingEventIndex(Int_t value) { mEmbeddingEventIndex = value; };
+  int getEmbeddedIndex() const { return mEmbeddingEventIndex; }
 
   /** methods **/
   virtual void Reset();

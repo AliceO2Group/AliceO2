@@ -145,7 +145,11 @@ void displayHistory(const DeviceInfo& info, DeviceControl& control)
       // stream, a second time at display time, to avoid
       // showing unrelevant messages from past.
       if (logLevel >= control.logLevel) {
-        ImGui::TextColored(color, line.c_str(), line.c_str() + line.size());
+        if (line.find('%', 0) != std::string::npos) {
+          ImGui::TextUnformatted(line.c_str(), line.c_str() + line.size());
+        } else {
+          ImGui::TextColored(color, line.c_str(), line.c_str() + line.size());
+        }
       }
     }
     ji = (ji + 1) % historySize;
@@ -642,7 +646,6 @@ struct DriverHelper {
 void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverControl)
 {
   ImGui::Begin("Driver information");
-  ImGui::Text("Numer of running devices: %lu", driverInfo.socket2DeviceInfo.size() / 2);
 
   if (driverControl.state == DriverControlState::STEP) {
     driverControl.state = DriverControlState::PAUSE;
@@ -653,10 +656,6 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
   ImGui::RadioButton("Pause", state, static_cast<int>(DriverControlState::PAUSE));
   ImGui::SameLine();
   ImGui::RadioButton("Step", state, static_cast<int>(DriverControlState::STEP));
-
-  if (driverControl.state == DriverControlState::PAUSE) {
-    driverControl.forcedTransitions.push_back(DriverState::GUI);
-  }
 
   auto& registry = driverInfo.configContext->options();
   ImGui::Columns();

@@ -16,6 +16,7 @@ o2_add_library(SimSetup
                                      MC::Geant4
                                      O2::SimulationDataFormat
                                      O2::DetectorsPassive
+				     O2::Generators
                                      MC::Pythia6 # this is needed by Geant3 and
                                                  # EGPythia6
                                      ROOT::EGPythia6 # this is needed by Geant4

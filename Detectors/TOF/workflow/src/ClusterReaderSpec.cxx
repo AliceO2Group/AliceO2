@@ -12,8 +12,6 @@
 
 #include <vector>
 
-#include "TTree.h"
-
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "TOFWorkflow/ClusterReaderSpec.h"
@@ -30,49 +28,40 @@ namespace tof
 void ClusterReader::init(InitContext& ic)
 {
   LOG(INFO) << "Init Cluster reader!";
-  auto filename = ic.options().get<std::string>("tof-cluster-infile");
-  mFile = std::make_unique<TFile>(filename.c_str(), "OLD");
-  if (!mFile->IsOpen()) {
-    LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
-    mState = 0;
-    return;
-  }
-  mState = 1;
+  mFileName = ic.options().get<std::string>("tof-cluster-infile");
+  connectTree(mFileName);
 }
 
 void ClusterReader::run(ProcessingContext& pc)
 {
-  if (mState != 1) {
-    return;
+  auto ent = mTree->GetReadEntry() + 1;
+  assert(ent < mTree->GetEntries()); // this should not happen
+  mTree->GetEntry(ent);
+  LOG(INFO) << "Pushing " << mClustersPtr->size() << " TOF clusters at entry " << ent;
+
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe}, mClusters);
+  if (mUseMC) {
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mLabels);
   }
 
-  std::unique_ptr<TTree> treeClu((TTree*)mFile->Get("o2sim"));
-
-  if (treeClu) {
-    treeClu->SetBranchAddress("TOFCluster", &mPclusters);
-
-    if (mUseMC) {
-      treeClu->SetBranchAddress("TOFClusterMCTruth", &mPlabels);
-    }
-
-    treeClu->GetEntry(0);
-
-    // add clusters loaded in the output snapshot
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe}, mClusters);
-    if (mUseMC)
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mLabels);
-
-    static o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
-
-    LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
-  } else {
-    LOG(ERROR) << "Cannot read the TOF clusters !";
-    return;
+  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
+}
 
-  mState = 2;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+void ClusterReader::connectTree(const std::string& filename)
+{
+  mTree.reset(nullptr); // in case it was already loaded
+  mFile.reset(TFile::Open(filename.c_str()));
+  assert(mFile && !mFile->IsZombie());
+  mTree.reset((TTree*)mFile->Get("o2sim"));
+  assert(mTree);
+  mTree->SetBranchAddress("TOFCluster", &mClustersPtr);
+  if (mUseMC) {
+    mTree->SetBranchAddress("TOFClusterMCTruth", &mLabelsPtr);
+  }
+  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getClusterReaderSpec(bool useMC)
@@ -82,7 +71,6 @@ DataProcessorSpec getClusterReaderSpec(bool useMC)
   if (useMC) {
     outputs.emplace_back(o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe);
   }
-  outputs.emplace_back(o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "tof-cluster-reader",

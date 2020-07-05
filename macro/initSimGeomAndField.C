@@ -5,17 +5,17 @@
 #include <string>
 #include "DataFormatsParameters/GRPObject.h"
 #include "Field/MagneticField.h"
+#include "DetectorsBase/GeometryManager.h"
 #endif
 
 int initFieldFromGRP(const o2::parameters::GRPObject* grp);
 int initFieldFromGRP(const std::string grpFileName = "o2sim_grp.root", std::string grpName = "GRP");
-int initSimGeom(std::string geomFileName = "o2sim_geometry.root", std::string geomName = "FAIRGeom");
+int initSimGeom(std::string geom = "");
 
-int initSimGeomAndField(std::string geomFileName = "o2sim_geometry.root", std::string grpFileName = "o2sim_grp.root",
-                        std::string geomName = "FAIRGeom", std::string grpName = "GRP")
+int initSimGeomAndField(std::string geom = "", std::string grpFileName = "o2sim_grp.root", std::string grpName = "GRP")
 {
   int res = 0;
-  res = initSimGeom(geomFileName, geomName);
+  res = initSimGeom(geom);
   if (res) {
     return res;
   }
@@ -23,19 +23,10 @@ int initSimGeomAndField(std::string geomFileName = "o2sim_geometry.root", std::s
   return res;
 }
 
-int initSimGeom(std::string geomFileName, std::string geomName)
+int initSimGeom(std::string geom)
 {
   /// load geometry from the file
-  std::cout << "Loading geometry from " << geomFileName << std::endl;
-  TFile flGeom(geomFileName.data());
-  if (flGeom.IsZombie()) {
-    std::cout << "Failed to open " << geomFileName << std::endl;
-    return -1;
-  }
-  if (!flGeom.Get(geomName.data())) {
-    std::cout << "Did not find geometry named " << geomName << std::endl;
-    return -2;
-  }
+  o2::base::GeometryManager::loadGeometry(geom);
   return 0;
 }
 

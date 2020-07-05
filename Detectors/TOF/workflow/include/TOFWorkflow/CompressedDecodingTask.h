@@ -22,6 +22,7 @@
 #include "TOFReconstruction/DecoderBase.h"
 #include "TOFReconstruction/Decoder.h"
 #include "TOFBase/Digit.h"
+#include "TStopwatch.h"
 
 using namespace o2::framework;
 
@@ -39,7 +40,7 @@ class CompressedDecodingTask : public DecoderBase, public Task
   ~CompressedDecodingTask() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
-
+  void endOfStream(EndOfStreamContext& ec) final;
   void postData(ProcessingContext& pc);
 
  private:
@@ -48,7 +49,6 @@ class CompressedDecodingTask : public DecoderBase, public Task
   void frameHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
                     const FrameHeader_t* frameHeader, const PackedHit_t* packedHits) override;
 
-  bool mStatus = false;
   o2::tof::compressed::Decoder mDecoder;
   std::vector<std::vector<o2::tof::Digit>> mDigits;
   int mNTF = 0;
@@ -56,6 +56,7 @@ class CompressedDecodingTask : public DecoderBase, public Task
   int mNCrateCloseTF = 0;
   bool mHasToBePosted = false;
   int mInitOrbit = 0;
+  TStopwatch mTimer;
 };
 
 framework::DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc);

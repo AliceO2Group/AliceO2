@@ -35,11 +35,11 @@ class LookUp
   LookUp();
   LookUp(std::string fileName);
   static int groupFinder(int nRow, int nCol);
-  int findGroupID(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  int findGroupID(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes]);
   int getTopologiesOverThreshold() { return mTopologiesOverThreshold; }
   void loadDictionary(std::string fileName);
-  bool IsGroup(int id) const;
-  int size() const { return mDictionary.GetSize(); }
+  bool isGroup(int id) const;
+  int size() const { return mDictionary.getSize(); }
 
  private:
   TopologyDictionary mDictionary;

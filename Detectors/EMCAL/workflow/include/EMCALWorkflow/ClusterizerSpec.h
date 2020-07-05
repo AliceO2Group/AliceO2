@@ -16,6 +16,7 @@
 #include "EMCALReconstruction/Clusterizer.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "TStopwatch.h"
 
 namespace o2
 {
@@ -60,6 +61,7 @@ class ClusterizerSpec : public framework::Task
   /// Output clusters: {"clusters", "CLUSTERS", 0, Lifetime::Timeframe}
   /// Output indices: {"clusterDigitIndices", "CLUSTERDIGITINDICES", 0, Lifetime::Timeframe}
   void run(framework::ProcessingContext& ctx) final;
+  void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
   o2::emcal::Clusterizer<InputType> mClusterizer;                               ///< Clusterizer object
@@ -68,6 +70,7 @@ class ClusterizerSpec : public framework::Task
   std::vector<o2::emcal::ClusterIndex>* mOutputCellDigitIndices = nullptr;      ///< Container with indices of cluster digits (pointer)
   std::vector<o2::emcal::TriggerRecord>* mOutputTriggerRecord = nullptr;        ///< Container with Trigger records for clusters
   std::vector<o2::emcal::TriggerRecord>* mOutputTriggerRecordIndices = nullptr; ///< Container with Trigger records for indices
+  TStopwatch mTimer;
 };
 
 /// \brief Creating DataProcessorSpec for the EMCAL Clusterizer Spec

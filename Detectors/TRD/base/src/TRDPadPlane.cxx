@@ -145,14 +145,16 @@ int TRDPadPlane::getPadColNumber(double rphi) const
 
 void TRDPadPlane::setNcols(int n)
 {
-  if (n > MAXCOLS)
+  if (n > MAXCOLS) {
     LOG(FATAL) << "MAXCOLS exceeded " << n << " > " << MAXCOLS;
+  }
   mNcols = n;
 };
 
 void TRDPadPlane::setNrows(int n)
 {
-  if (n > MAXROWS)
+  if (n > MAXROWS) {
     LOG(FATAL) << "MAXROWS exceeded " << n << " > " << MAXROWS;
+  }
   mNrows = n;
 };

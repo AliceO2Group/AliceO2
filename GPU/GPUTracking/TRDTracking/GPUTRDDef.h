@@ -28,10 +28,10 @@ class AliTrackerBase;
 #else
 namespace o2
 {
-namespace track
+namespace dataformats
 {
-class TrackParCov;
-} // namespace track
+class TrackTPCITS;
+} // namespace dataformats
 namespace base
 {
 class Propagator;
@@ -56,7 +56,7 @@ typedef AliExternalTrackParam TRDBaseTrackGPU;
 // class GPUTPCGMTrackParam;
 // typedef GPUTPCGMTrackParam TRDBaseTrack;
 #elif defined(TRD_TRACK_TYPE_O2)
-typedef o2::track::TrackParCov TRDBaseTrack;
+typedef o2::dataformats::TrackTPCITS TRDBaseTrack;
 class GPUTPCGMTrackParam;
 typedef GPUTPCGMTrackParam TRDBaseTrackGPU;
 #endif
@@ -78,8 +78,10 @@ template <class T>
 class propagatorInterface;
 template <class T>
 class GPUTRDTrack_t;
-typedef GPUTRDTrack_t<trackInterface<TRDBaseTrack>> GPUTRDTrack;
-typedef GPUTRDTrack_t<trackInterface<TRDBaseTrackGPU>> GPUTRDTrackGPU;
+// clang-format off
+typedef GPUTRDTrack_t<trackInterface<TRDBaseTrack> > GPUTRDTrack; // Need pre-c++11 compliant formatting
+typedef GPUTRDTrack_t<trackInterface<TRDBaseTrackGPU> > GPUTRDTrackGPU;
+// clang-foramt on
 typedef propagatorInterface<TRDBasePropagator> GPUTRDPropagator;
 typedef propagatorInterface<TRDBasePropagatorGPU> GPUTRDPropagatorGPU;
 

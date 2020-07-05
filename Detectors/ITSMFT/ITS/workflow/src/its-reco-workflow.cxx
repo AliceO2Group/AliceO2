@@ -26,8 +26,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
+    {"digits-from-upstream", o2::framework::VariantType::Bool, false, {"digits will be provided from upstream, skip digits reader"}},
+    {"clusters-from-upstream", o2::framework::VariantType::Bool, false, {"clusters will be provided from upstream, skip clusterizer"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"trackerCA", o2::framework::VariantType::Bool, false, {"use trackerCA (default: trackerCM)"}},
+    {"entropy-encoding", o2::framework::VariantType::Bool, false, {"produce entropy encoded data"}},
     {"gpuDevice", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
 
   std::swap(workflowOptions, options);
@@ -50,6 +54,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto useCAtracker = configcontext.options().get<bool>("trackerCA");
   auto gpuDevice = static_cast<o2::gpu::GPUDataTypes::DeviceType>(configcontext.options().get<int>("gpuDevice"));
-
-  return std::move(o2::its::reco_workflow::getWorkflow(useMC, useCAtracker, gpuDevice));
+  auto extDigits = configcontext.options().get<bool>("digits-from-upstream");
+  auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
+  auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
+  auto eencode = configcontext.options().get<bool>("entropy-encoding");
+  return std::move(o2::its::reco_workflow::getWorkflow(useMC, useCAtracker, gpuDevice, extDigits, extClusters, disableRootOutput, eencode));
 }

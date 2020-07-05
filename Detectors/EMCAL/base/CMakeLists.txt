@@ -34,4 +34,5 @@ o2_add_test(Mapper
             SOURCES test/testMapper.cxx
             PUBLIC_LINK_LIBRARIES O2::EMCALBase
             COMPONENT_NAME emcal
-            LABELS emcal)
+            LABELS emcal
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)

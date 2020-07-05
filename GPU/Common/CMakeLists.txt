@@ -10,8 +10,6 @@
 
 set(MODULE GPUCommon)
 
-set(HDRS_CINT FlatObject.h)
-
 set(HDRS_INSTALL
     GPUCommonAlgorithm.h
     GPUCommonDef.h
@@ -30,15 +28,12 @@ set(HDRS_INSTALL
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
+                 SOURCES GPUCommon.cxx
                  TARGETVARNAME targetName
-                 PUBLIC_LINK_LIBRARIES O2::FrameworkLogger ROOT::RIO)
+                 PUBLIC_LINK_LIBRARIES O2::FrameworkLogger)
   target_include_directories(${targetName}
                              PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
                                     $<INSTALL_INTERFACE:include/GPU>)
-
-  o2_target_root_dictionary(${MODULE}
-                            HEADERS ${HDRS_CINT}
-                            LINKDEF GPUCommonLinkDef.h)
 
   target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
                              GPUCA_TPC_GEOMETRY_O2 HAVE_O2HEADERS)
@@ -52,7 +47,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                 LABELS gpu)
   endif()
 
-  install(FILES ${HDRS_CINT} ${HDRS_INSTALL} DESTINATION include/GPU)
+  install(FILES ${HDRS_INSTALL} DESTINATION include/GPU)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
@@ -75,7 +70,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   # Installation
   install(TARGETS Ali${MODULE} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
 
-  install(FILES ${HDRS_CINT} ${HDRS_INSTALL} DESTINATION include)
+  install(FILES ${HDRS_INSTALL} DESTINATION include)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")

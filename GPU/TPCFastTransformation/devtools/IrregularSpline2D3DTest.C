@@ -71,7 +71,7 @@ int IrregularSpline2D3DTest()
   gRandom->SetSeed(0);
   UInt_t seed = gRandom->Integer(100000); // 605
   gRandom->SetSeed(seed);
-  cout << "Random seed: " << seed << " " << gRandom->GetSeed() << endl;
+  std::cout << "Random seed: " << seed << " " << gRandom->GetSeed() << std::endl;
 
   IrregularSpline2D3D spline;
 
@@ -160,7 +160,7 @@ int IrregularSpline2D3DTest()
       gknots->SetPoint(gknotsN++, u, v, fx0);
     }
   }
-  cout << "mean diff at knots: " << sqrt(diff) / gknotsN << endl;
+  std::cout << "mean diff at knots: " << sqrt(diff) / gknotsN << std::endl;
 
   knots->SetMarkerSize(1.);
   knots->SetMarkerStyle(8);

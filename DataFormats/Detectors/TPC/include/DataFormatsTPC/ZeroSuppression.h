@@ -44,6 +44,15 @@ struct TPCZSTBHDR {
   GPUd() const unsigned short* rowAddr1() const { return (unsigned short*)((unsigned char*)this + sizeof(*this)); }
 };
 
+struct ZeroSuppressedContainer { // Struct for the TPC zero suppressed data format
+                                 // RDH 64 byte
+                                 // 6 byte header for the zero suppressed format ; 8 bit version, 8 bit number of timebins, 16 bit CRU ID, 16 bit time offset
+                                 // Time bin information
+  unsigned long int rdh[8] = {}; //< 8 * 64 bit RDH (raw data header)
+  TPCZSHDR hdr;                  // ZS header
+  TPCZSTBHDR tbhdr;              // ZS timebin header
+};
+
 } // namespace tpc
 } // namespace o2
 #endif

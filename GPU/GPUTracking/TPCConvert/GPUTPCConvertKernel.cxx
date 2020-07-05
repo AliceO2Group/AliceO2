@@ -26,7 +26,7 @@ GPUdii() void GPUTPCConvertKernel::Thread<0>(int nBlocks, int nThreads, int iBlo
   const int iSlice = iBlock / GPUCA_ROW_COUNT;
   const int iRow = iBlock % GPUCA_ROW_COUNT;
   GPUTPCConvert& GPUrestrict() convert = processors.tpcConverter;
-  const o2::tpc::ClusterNativeAccess* GPUrestrict() native = convert.mClustersNative;
+  const o2::tpc::ClusterNativeAccess* GPUrestrict() native = processors.ioPtrs.clustersNative;
   GPUTPCClusterData* GPUrestrict() clusters = convert.mMemory->clusters[iSlice];
   const int idOffset = native->clusterOffset[iSlice][iRow];
   const int indexOffset = native->clusterOffset[iSlice][iRow] - native->clusterOffset[iSlice][0];

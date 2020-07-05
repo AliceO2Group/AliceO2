@@ -17,7 +17,7 @@
 #include <vector>
 #include "TFile.h"
 #include "TTree.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <iostream>

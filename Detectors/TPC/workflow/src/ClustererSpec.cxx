@@ -17,7 +17,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/InputRecordWalker.h"
 #include "Headers/DataHeader.h"
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCReconstruction/HwClusterer.h"
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
@@ -26,6 +26,7 @@
 #include <FairMQLogger.h>
 #include <memory> // for make_shared
 #include <vector>
+#include <map>
 #include <numeric>   // std::accumulate
 #include <algorithm> // std::copy
 
@@ -75,7 +76,7 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(dataref);
       o2::header::DataHeader::SubSpecificationType fanSpec = dataHeader->subSpecification;
 
-      const auto sector = sectorHeader->sector;
+      const auto sector = sectorHeader->sector();
       if (sector < 0) {
         // forward the control information
         // FIXME define and use flags in TPCSectorHeader
@@ -106,7 +107,7 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       auto& clusterer = clusterers[sector];
 
       if (verbosity > 0) {
-        LOG(INFO) << "processing " << inDigits.size() << " digit object(s) of sector " << sectorHeader->sector
+        LOG(INFO) << "processing " << inDigits.size() << " digit object(s) of sector " << sectorHeader->sector()
                   << " input size " << DataRefUtils::getPayloadSize(dataref);
       }
       // process the digits and MC labels, the bool parameter controls whether to clear all
@@ -121,10 +122,10 @@ DataProcessorSpec getClustererSpec(bool sendMC)
         LOG(INFO) << "clusterer produced "
                   << std::accumulate(clusterArray.begin(), clusterArray.end(), size_t(0), [](size_t l, auto const& r) { return l + r.getContainer()->numberOfClusters; })
                   << " cluster(s)"
-                  << " for sector " << sectorHeader->sector
+                  << " for sector " << sectorHeader->sector()
                   << " total size " << sizeof(ClusterHardwareContainer8kb) * clusterArray.size();
         if (DataRefUtils::isValid(mclabelref)) {
-          LOG(INFO) << "clusterer produced " << mctruthArray.getIndexedSize() << " MC label object(s) for sector " << sectorHeader->sector;
+          LOG(INFO) << "clusterer produced " << mctruthArray.getIndexedSize() << " MC label object(s) for sector " << sectorHeader->sector();
         }
       }
       // FIXME: that should be a case for pmr, want to send the content of the vector as a binary
@@ -143,15 +144,23 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       };
       // loop over all inputs and their parts and associate data with corresponding mc truth data
       // by the subspecification
-      std::map<o2::header::DataHeader::SubSpecificationType, SectorInputDesc> inputs;
+      std::map<int, SectorInputDesc> inputs;
+      std::vector<InputSpec> filter = {
+        {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}, Lifetime::Timeframe},
+        {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITSMCTR"}, Lifetime::Timeframe},
+      };
       for (auto const& inputRef : InputRecordWalker(pc.inputs())) {
-        auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
-        assert(dataHeader);
+        auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(inputRef);
+        if (sectorHeader == nullptr) {
+          LOG(ERROR) << "sector header missing on header stack for input on " << inputRef.spec->binding;
+          continue;
+        }
+        const int sector = sectorHeader->sector();
         if (DataRefUtils::match(inputRef, {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}})) {
-          inputs[dataHeader->subSpecification].dataref = inputRef;
+          inputs[sector].dataref = inputRef;
         }
         if (DataRefUtils::match(inputRef, {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITSMCTR"}})) {
-          inputs[dataHeader->subSpecification].mclabelref = inputRef;
+          inputs[sector].mclabelref = inputRef;
         }
       }
       for (auto const& input : inputs) {

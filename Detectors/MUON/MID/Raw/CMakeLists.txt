@@ -10,18 +10,30 @@
 
 o2_add_library(
   MIDRaw
-  SOURCES src/CrateMapper.cxx
+  SOURCES src/ColumnDataToLocalBoard.cxx
+          src/CrateMapper.cxx
+          src/CrateMasks.cxx
           src/CRUBareDecoder.cxx
-          src/CRUUserLogicDecoder.cxx
-          src/CRUUserLogicEncoder.cxx
           src/Decoder.cxx
           src/ELinkDecoder.cxx
           src/Encoder.cxx
+          src/FEEIdConfig.cxx
+          src/GBTBareDecoder.cxx
+          src/GBTOutputHandler.cxx
+          src/GBTUserLogicDecoder.cxx
+          src/GBTUserLogicEncoder.cxx
           src/LocalBoardRO.cxx
           src/RawBuffer.cxx
+          src/DecodedDataAggregator.cxx
           src/RawFileReader.cxx
-  PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl O2::DataFormatsMID O2::Headers
-                        O2::CommonConstants O2::DetectorsRaw O2::MIDBase)
+  PUBLIC_LINK_LIBRARIES
+    ms_gsl::ms_gsl
+    O2::DataFormatsMID
+    O2::Headers
+    O2::DPLUtils
+    O2::CommonConstants
+    O2::DetectorsRaw
+    O2::MIDBase)
 
 add_subdirectory(exe)
 

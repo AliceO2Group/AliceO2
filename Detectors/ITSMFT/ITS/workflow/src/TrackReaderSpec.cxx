@@ -11,9 +11,7 @@
 /// @file   TrackReaderSpec.cxx
 
 #include <vector>
-
-#include "TTree.h"
-
+#include <cassert>
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
@@ -34,18 +32,15 @@ TrackReader::TrackReader(bool useMC)
 void TrackReader::init(InitContext& ic)
 {
   mInputFileName = ic.options().get<std::string>("its-tracks-infile");
+  connectTree(mInputFileName);
 }
 
 void TrackReader::run(ProcessingContext& pc)
 {
-
-  if (mFinished) {
-    return;
-  }
-  accumulate();
-
-  LOG(INFO) << "ITSTrackReader pushes " << mROFRec.size() << " ROFRecords,"
-            << mTracks.size() << " tracks";
+  auto ent = mTree->GetReadEntry() + 1;
+  assert(ent < mTree->GetEntries()); // this should not happen
+  mTree->GetEntry(ent);
+  LOG(INFO) << "Pushing " << mTracks.size() << " track in " << mROFRec.size() << " ROFs at entry " << ent;
   pc.outputs().snapshot(Output{mOrigin, "ITSTrackROF", 0, Lifetime::Timeframe}, mROFRec);
   pc.outputs().snapshot(Output{mOrigin, "TRACKS", 0, Lifetime::Timeframe}, mTracks);
   pc.outputs().snapshot(Output{mOrigin, "TRACKCLSID", 0, Lifetime::Timeframe}, mClusInd);
@@ -55,54 +50,43 @@ void TrackReader::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{mOrigin, "TRACKSMCTR", 0, Lifetime::Timeframe}, mMCTruth);
   }
 
-  mFinished = true;
-
-  pc.services().get<ControlService>().endOfStream();
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  }
 }
 
-void TrackReader::accumulate()
+void TrackReader::connectTree(const std::string& filename)
 {
-  // load data from files
-  TFile trFile(mInputFileName.c_str(), "read");
-  if (trFile.IsZombie()) {
-    LOG(FATAL) << "Failed to open tracks file " << mInputFileName;
-  }
-  TTree* trTree = (TTree*)trFile.Get(mTrackTreeName.c_str());
-  if (!trTree) {
-    LOG(FATAL) << "Failed to load tracks tree " << mTrackTreeName << " from " << mInputFileName;
-  }
-  if (!trTree->GetBranch(mROFBranchName.c_str())) {
-    LOG(FATAL) << "Failed to load tracks ROF branch " << mROFBranchName << " from tree " << mTrackTreeName;
-  }
+  mTree.reset(nullptr); // in case it was already loaded
+  mFile.reset(TFile::Open(filename.c_str()));
+  assert(mFile && !mFile->IsZombie());
+  mTree.reset((TTree*)mFile->Get(mTrackTreeName.c_str()));
+  assert(mTree);
+  assert(mTree->GetBranch(mROFBranchName.c_str()));
 
-  trTree->SetBranchAddress(mROFBranchName.c_str(), &mROFRecInp);
-  trTree->SetBranchAddress(mTrackBranchName.c_str(), &mTracksInp);
-  trTree->SetBranchAddress(mClusIdxBranchName.c_str(), &mClusIndInp);
-  if (!trTree->GetBranch(mVertexBranchName.c_str())) {
+  mTree->SetBranchAddress(mROFBranchName.c_str(), &mROFRecInp);
+  mTree->SetBranchAddress(mTrackBranchName.c_str(), &mTracksInp);
+  mTree->SetBranchAddress(mClusIdxBranchName.c_str(), &mClusIndInp);
+  if (!mTree->GetBranch(mVertexBranchName.c_str())) {
     LOG(WARNING) << "No " << mVertexBranchName << " branch in " << mTrackTreeName << " -> vertices will be empty";
   } else {
-    trTree->SetBranchAddress(mVertexBranchName.c_str(), &mVerticesInp);
+    mTree->SetBranchAddress(mVertexBranchName.c_str(), &mVerticesInp);
   }
-  if (!trTree->GetBranch(mVertexROFBranchName.c_str())) {
+  if (!mTree->GetBranch(mVertexROFBranchName.c_str())) {
     LOG(WARNING) << "No " << mVertexROFBranchName << " branch in " << mTrackTreeName
                  << " -> vertices ROFrecords will be empty";
   } else {
-    trTree->SetBranchAddress(mVertexROFBranchName.c_str(), &mVerticesROFRecInp);
+    mTree->SetBranchAddress(mVertexROFBranchName.c_str(), &mVerticesROFRecInp);
   }
-
   if (mUseMC) {
-    if (trTree->GetBranch(mTrackMCTruthBranchName.c_str())) {
-      trTree->SetBranchAddress(mTrackMCTruthBranchName.c_str(), &mMCTruthInp);
-      LOG(INFO) << "Will use MC-truth from " << mTrackMCTruthBranchName;
+    if (mTree->GetBranch(mTrackMCTruthBranchName.c_str())) {
+      mTree->SetBranchAddress(mTrackMCTruthBranchName.c_str(), &mMCTruthInp);
     } else {
-      LOG(INFO) << "MC-truth is missing";
-      mUseMC = false;
+      LOG(WARNING) << "MC-truth is missing, message will be empty";
     }
   }
-  trTree->GetEntry(0);
-  delete trTree;
-  trFile.Close();
+  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getITSTrackReaderSpec(bool useMC)

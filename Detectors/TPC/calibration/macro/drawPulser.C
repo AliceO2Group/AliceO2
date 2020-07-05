@@ -15,38 +15,64 @@
 #include "TFile.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Painter.h"
+#include "TPCBase/Utils.h"
 #include "TPad.h"
 #include "TCanvas.h"
 #include "TH1F.h"
 #include "TString.h"
 #endif
 
-TH1* GetBinInfoXY(int& binx, int& biny, float& bincx, float& bincy);
-
-/// Add fec information to the active histogram title
-void addFECInfo();
-
 /// Open pedestalFile and retrieve noise and pedestal values
 /// Draw then in separate canvases and add an executable to be able to add
 /// FEC information to the title
-void drawPulser(TString pulserFile)
+TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir = "")
 {
+  if ((mode != 0) && (mode != 1)) {
+    return 0x0;
+  }
+
+  TObjArray* arrCanvases = new TObjArray;
+  arrCanvases->SetName("Pulser");
+
   using namespace o2::tpc;
   TFile f(pulserFile);
   gROOT->cd();
 
   // ===| load pulser from file |===
   CalDet<float> dummy;
-  CalDet<float>*t0 = nullptr, *width = nullptr, *qtot = nullptr;
-  f.GetObject("T0", t0);
-  f.GetObject("Width", width);
-  f.GetObject("Qtot", qtot);
+  CalDet<float>*calT0 = nullptr, *calWidth = nullptr, *calQtot = nullptr;
+  f.GetObject("T0", calT0);
+  f.GetObject("Width", calWidth);
+  f.GetObject("Qtot", calQtot);
+
+  // mode 1 handling
+  if (mode == 1) {
+    auto arrT0 = painter::makeSummaryCanvases(*calT0, 100, 238.f, 240.f);
+    auto arrWidth = painter::makeSummaryCanvases(*calWidth, 100, 0.38f, 0.57f);
+    auto arrQtot = painter::makeSummaryCanvases(*calQtot, 100, 20.f, 280.f);
+
+    for (auto c : arrT0) {
+      arrCanvases->Add(c);
+    }
+    for (auto c : arrWidth) {
+      arrCanvases->Add(c);
+    }
+    for (auto c : arrQtot) {
+      arrCanvases->Add(c);
+    }
+
+    if (outDir.size()) {
+      utils::saveCanvases(*arrCanvases, outDir, "png,pdf", "PulserCanvases.root");
+    }
+
+    return arrCanvases;
+  }
 
   // ===| loop over all ROCs |==================================================
-  for (int iroc = 0; iroc < int(t0->getData().size()); ++iroc) {
-    const auto& rocT0 = t0->getCalArray(iroc);
-    const auto& rocWidth = width->getCalArray(iroc);
-    const auto& rocQtot = qtot->getCalArray(iroc);
+  for (int iroc = 0; iroc < int(calT0->getData().size()); ++iroc) {
+    const auto& rocT0 = calT0->getCalArray(iroc);
+    const auto& rocWidth = calWidth->getCalArray(iroc);
+    const auto& rocQtot = calQtot->getCalArray(iroc);
 
     // only draw if valid data
     if (!(std::abs(rocT0.getSum() + rocWidth.getSum() + rocQtot.getSum()) > 0)) {
@@ -70,7 +96,7 @@ void drawPulser(TString pulserFile)
     const float minQtot = medianQtot - 50;
     const float maxQtot = medianQtot + rangeQtot;
 
-    // ===| histograms for t0, width and qtot |===
+    // ===| histograms for calT0, calWidth and calQtot |===
     auto hT0 = new TH1F(Form("hT0%02d", iroc), Form("T0 distribution ROC %02d;time bins (0.2 #mus)", iroc), 100, minT0, maxT0);
     auto hWidth = new TH1F(Form("hWidth%02d", iroc), Form("Width distribution ROC %02d;time bins (0.2 #mus)", iroc), 100, minWidth, maxWidth);
     auto hQtot = new TH1F(Form("hQtot%02d", iroc), Form("Qtot distribution ROC %02d;ADC counts", iroc), 100, minQtot, maxQtot);
@@ -115,17 +141,17 @@ void drawPulser(TString pulserFile)
     cPulser->Divide(3, 2);
 
     cPulser->cd(1);
-    gPad->AddExec(Form("addFECInfoT0%02d", iroc), "addFECInfo()");
+    gPad->AddExec(Form("addFECInfoT0%02d", iroc), "o2::tpc::utils::addFECInfo()");
     hT02D->Draw("colz");
     hT02D->SetUniqueID(iroc);
 
     cPulser->cd(2);
-    gPad->AddExec(Form("addFECInfoWidth%02d", iroc), "addFECInfo()");
+    gPad->AddExec(Form("addFECInfoWidth%02d", iroc), "o2::tpc::utils::addFECInfo()");
     hWidth2D->Draw("colz");
     hWidth2D->SetUniqueID(iroc);
 
     cPulser->cd(3);
-    gPad->AddExec(Form("addFECInfoQtot%02d", iroc), "addFECInfo()");
+    gPad->AddExec(Form("addFECInfoQtot%02d", iroc), "o2::tpc::utils::addFECInfo()");
     hQtot2D->Draw("colz");
     hQtot2D->SetUniqueID(iroc);
 
@@ -138,9 +164,14 @@ void drawPulser(TString pulserFile)
     cPulser->cd(6);
     hQtot->Draw();
 
-    cPulser->SaveAs(Form("%s.png", cPulser->GetName()));
-    cPulser->SaveAs(Form("%s.pdf", cPulser->GetName()));
+    arrCanvases->Add(cPulser);
   }
+
+  if (outDir.size()) {
+    utils::saveCanvases(*arrCanvases, outDir, "png,pdf", "PulserCanvases.root");
+  }
+
+  return arrCanvases;
 }
 
 TH1* GetBinInfoXY(int& binx, int& biny, float& bincx, float& bincy)

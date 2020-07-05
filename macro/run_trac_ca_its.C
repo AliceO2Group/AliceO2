@@ -12,11 +12,13 @@
 #include <FairEventHeader.h>
 #include <FairGeoParSet.h>
 #include <FairLogger.h>
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #include "SimulationDataFormat/MCEventHeader.h"
 
+#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
@@ -53,13 +55,14 @@ using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 void run_trac_ca_its(std::string path = "./",
                      std::string outputfile = "o2trac_its.root",
-                     std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "o2sim_geometry.root",
+                     std::string inputClustersITS = "o2clus_its.root",
+                     std::string dictfile = "",
                      std::string inputGRP = "o2sim_grp.root")
 {
 
   gSystem->Load("libO2ITStracking.so");
 
-  // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
+  //std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
   std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance("CUDA", true)); // for GPU with CUDA
   auto* chainITS = rec->AddChain<GPUChainITS>();
   rec->Init();
@@ -77,7 +80,7 @@ void run_trac_ca_its(std::string path = "./",
   if (!grp) {
     LOG(FATAL) << "Cannot run w/o GRP object";
   }
-  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(path);
   o2::base::Propagator::initFieldFromGRP(grp);
   auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!field) {
@@ -103,24 +106,55 @@ void run_trac_ca_its(std::string path = "./",
   TChain itsClusters("o2sim");
   itsClusters.AddFile((path + inputClustersITS).data());
 
-  //<<<---------- attach input data ---------------<<<
-  if (!itsClusters.GetBranch("ITSCluster")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSCluster in the input tree";
+  if (!itsClusters.GetBranch("ITSClusterComp")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClusterComp in the input tree";
   }
-  std::vector<o2::itsmft::Cluster>* clusters = nullptr;
-  itsClusters.SetBranchAddress("ITSCluster", &clusters);
+  std::vector<o2::itsmft::CompClusterExt>* cclusters = nullptr;
+  itsClusters.SetBranchAddress("ITSClusterComp", &cclusters);
 
-  if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree";
+  if (!itsClusters.GetBranch("ITSClusterPatt")) {
+    LOG(FATAL) << "Did not find ITS cluster patterns branch ITSClusterPatt in the input tree";
   }
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
-  itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
+  std::vector<unsigned char>* patterns = nullptr;
+  itsClusters.SetBranchAddress("ITSClusterPatt", &patterns);
+
+  MCLabCont* labels = nullptr;
+  if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
+    LOG(WARNING) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree";
+  } else {
+    itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
+  }
+
+  if (!itsClusters.GetBranch("ITSClustersROF")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
+  }
 
   std::vector<o2::itsmft::MC2ROFRecord>* mc2rofs = nullptr;
   if (!itsClusters.GetBranch("ITSClustersMC2ROF")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
   itsClusters.SetBranchAddress("ITSClustersMC2ROF", &mc2rofs);
+
+  std::vector<o2::itsmft::ROFRecord>* rofs = nullptr;
+  itsClusters.SetBranchAddress("ITSClustersROF", &rofs);
+
+  itsClusters.GetEntry(0);
+
+  //-------------------------------------------------
+
+  o2::itsmft::TopologyDictionary dict;
+  if (dictfile.empty()) {
+    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+  }
+  std::ifstream file(dictfile.c_str());
+  if (file.good()) {
+    LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
+    dict.readBinaryFile(dictfile);
+  } else {
+    LOG(INFO) << "Running without dictionary !";
+  }
+
+  //-------------------------------------------------
 
   std::vector<o2::its::TrackITSExt> tracks;
   // create/attach output tree
@@ -141,9 +175,6 @@ void run_trac_ca_its(std::string path = "./",
   if (!itsClusters.GetBranch("ITSClustersROF")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
-  std::vector<o2::itsmft::ROFRecord>* rofs = nullptr;
-  itsClusters.SetBranchAddress("ITSClustersROF", &rofs);
-  itsClusters.GetEntry(0);
 
   o2::its::VertexerTraits* traits = o2::its::createVertexerTraits();
   o2::its::Vertexer vertexer(traits);
@@ -164,11 +195,15 @@ void run_trac_ca_its(std::string path = "./",
   tracker.setParameters(memParams, trackParams);
 
   int currentEvent = -1;
+  gsl::span<const unsigned char> patt(patterns->data(), patterns->size());
+  auto pattIt = patt.begin();
+  auto clSpan = gsl::span(cclusters->data(), cclusters->size());
+
   for (auto& rof : *rofs) {
 
     auto start = std::chrono::high_resolution_clock::now();
-
-    o2::its::ioutils::loadROFrameData(rof, event, gsl::span(clusters->data(), clusters->size()), labels);
+    auto it = pattIt;
+    o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, dict, labels);
 
     vertexer.initialiseVertexer(&event);
     vertexer.findTracklets();
@@ -185,10 +220,10 @@ void run_trac_ca_its(std::string path = "./",
 
     if (!vertITS.empty()) {
       // Using only the first vertex in the list
-      cout << " - Reconstructed vertexer: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
+      std::cout << " - Reconstructed vertexer: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
       event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
     } else {
-      cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
+      std::cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
     }
     trackClIdx.clear();
     tracksITS.clear();

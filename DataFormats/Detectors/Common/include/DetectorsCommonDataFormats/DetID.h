@@ -32,13 +32,19 @@
 #include <bitset>
 #include <cassert>
 #include <cstdint>
+#include <string_view>
+#include <string>
 #include <type_traits>
 #include "MathUtils/Utils.h"
+#include "Headers/DataHeader.h"
 
 namespace o2
 {
 namespace detectors
 {
+
+namespace o2h = o2::header;
+
 /// Static class with identifiers, bitmasks and names for ALICE detectors
 class DetID
 {
@@ -62,10 +68,17 @@ class DetID
   static constexpr ID FV0 = 13;
   static constexpr ID FDD = 14;
   static constexpr ID ACO = 15;
-  static constexpr ID First = ITS;
+#ifdef ENABLE_UPGRADES
+  static constexpr ID IT3 = 16;
+  static constexpr ID Last = IT3;
+#else
   static constexpr ID Last = ACO; ///< if extra detectors added, update this !!!
+#endif
+  static constexpr ID First = ITS;
 
   static constexpr int nDetectors = Last + 1; ///< number of defined detectors
+
+  static constexpr std::string_view NONE{"none"}; ///< keywork for no-detector
 
   typedef std::bitset<nDetectors> mask_t;
 
@@ -78,6 +91,8 @@ class DetID
   ID getID() const { return mID; }
   /// get detector mask
   mask_t getMask() const { return getMask(mID); }
+  /// get detector mask
+  o2h::DataOrigin getDataOrigin() const { return getDataOrigin(mID); }
   /// get detector name
   const char* getName() const { return getName(mID); }
   /// conversion operator to int
@@ -90,6 +105,14 @@ class DetID
   static constexpr const char* getName(ID id) { return sDetNames[id]; }
   // detector ID to mask conversion
   static constexpr mask_t getMask(ID id) { return sMasks[id]; }
+  // detector ID to DataOrigin conversions
+  static constexpr o2h::DataOrigin getDataOrigin(ID id) { return sOrigins[id]; }
+
+  // detector masks from any non-alpha-num delimiter-separated list (empty if NONE is supplied)
+  static mask_t getMask(const std::string_view detList);
+
+  static std::string getNames(mask_t mask);
+
   // we need default c-tor only for root persistency, code must use c-tor with argument
   DetID() : mID(First) {}
 
@@ -108,14 +131,33 @@ class DetID
   ID mID = First; ///< detector ID
 
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
-
+#ifdef ENABLE_UPGRADES
+    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "IT3", nullptr};
+#else
     {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", nullptr};
-
+#endif
   // detector names, will be defined in DataSources
   static constexpr std::array<mask_t, nDetectors> sMasks = ///< detectot masks
     {utils::bit2Mask(ITS), utils::bit2Mask(TPC), utils::bit2Mask(TRD), utils::bit2Mask(TOF), utils::bit2Mask(PHS),
      utils::bit2Mask(CPV), utils::bit2Mask(EMC), utils::bit2Mask(HMP), utils::bit2Mask(MFT), utils::bit2Mask(MCH),
-     utils::bit2Mask(MID), utils::bit2Mask(ZDC), utils::bit2Mask(FT0), utils::bit2Mask(FV0), utils::bit2Mask(FDD), utils::bit2Mask(ACO)};
+     utils::bit2Mask(MID), utils::bit2Mask(ZDC), utils::bit2Mask(FT0), utils::bit2Mask(FV0), utils::bit2Mask(FDD),
+     utils::bit2Mask(ACO)
+#ifdef ENABLE_UPGRADES
+       ,
+     utils::bit2Mask(IT3)
+#endif
+  };
+
+  static constexpr std::array<o2h::DataOrigin, nDetectors>
+    sOrigins = ///< detector data origins
+    {o2h::gDataOriginITS, o2h::gDataOriginTPC, o2h::gDataOriginTRD, o2h::gDataOriginTOF, o2h::gDataOriginPHS,
+     o2h::gDataOriginCPV, o2h::gDataOriginEMC, o2h::gDataOriginHMP, o2h::gDataOriginMFT, o2h::gDataOriginMCH,
+     o2h::gDataOriginMID, o2h::gDataOriginZDC, o2h::gDataOriginFT0, o2h::gDataOriginFV0, o2h::gDataOriginFDD, o2h::gDataOriginACO
+#ifdef ENABLE_UPGRADES
+     ,
+     o2h::gDataOriginIT3
+#endif
+  };
 
   ClassDefNV(DetID, 1);
 };

@@ -302,7 +302,9 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
   }
   rec.NWays = fNWays;
   rec.NWaysOuter = fNWaysOuter;
+  rec.mergerInterpolateErrors = false;
   rec.NonConsecutiveIDs = true;
+  rec.mergerReadFromTrackerDirectly = false;
 
   GPURecoStepConfiguration steps;
   steps.steps.set(GPUDataTypes::RecoStep::TPCMerging);
@@ -311,8 +313,9 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
 
   fRec->SetSettings(&ev, &rec, &devProc, &steps);
   fChain->LoadClusterErrors();
-  fRec->Init();
-  fChain->GetTPCMerger().OverrideSliceTracker(nullptr);
+  if (fRec->Init()) {
+    return -EINVAL;
+  }
 
   return 0;
 }
@@ -372,6 +375,7 @@ int GPUTPCGlobalMergerComponent::DoEvent(const AliHLTComponentEventData& evtData
 
   fChain->GetTPCMerger().Clear();
 
+  int nSlicesSet = 0;
   const AliHLTComponentBlockData* const blocksEnd = blocks + evtData.fBlockCnt;
   for (const AliHLTComponentBlockData* block = blocks; block < blocksEnd; ++block) {
     if (block->fDataType != GPUTPCDefinitions::fgkTrackletsDataType) {
@@ -394,9 +398,20 @@ int GPUTPCGlobalMergerComponent::DoEvent(const AliHLTComponentEventData& evtData
     }
     GPUTPCSliceOutput* sliceOut = reinterpret_cast<GPUTPCSliceOutput*>(block->fPtr);
     fChain->GetTPCMerger().SetSliceData(slice, sliceOut);
+    nSlicesSet++;
+  }
+  if (nSlicesSet != 36) {
+    if (nSlicesSet != 0) {
+      HLTError("Incomplete input data");
+      return (-EINVAL);
+    }
+    return 0;
   }
   fBenchmark.Start(1);
   fChain->RunTPCTrackingMerger();
+  if (fChain->CheckErrorCodes()) {
+    return (-EINVAL);
+  }
   fBenchmark.Stop(1);
 
   // Fill output

@@ -12,13 +12,17 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
 #include "Analysis/SecondaryVertex.h"
-#include "DetectorsBase/DCAFitter.h"
+#include "Analysis/RecoDecay.h"
+#include "DetectorsVertexing/DCAFitterN.h"
 #include "ReconstructionDataFormats/Track.h"
 
 #include <TFile.h>
 #include <TH1F.h>
 #include <cmath>
 #include <array>
+
+using namespace o2;
+using namespace o2::framework;
 
 struct DecayVertexBuilder2Prong {
   // primary vertex position
@@ -40,12 +44,37 @@ struct DecayVertexBuilder2Prong {
   OutputObj<TH1F> hchi2dca{TH1F("hchi2dca", "chi2 DCA decay", 1000, 0., 0.0002)};
 
   Produces<aod::SecVtx2Prong> secvtx2prong;
+  //Configurable<std::string> triggersel{"triggersel", "test", "A string configurable"};
+  Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks,
-                                                          aod::TracksCov, aod::TracksExtra> const& tracks)
+  void process(aod::Collision const& collision,
+               aod::BCs const& bcs,
+               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
-    LOGF(info, "Tracks for collision: %d", tracks.size());
-    o2::base::DCAFitter df(5.0, 10.);
+    //LOGP(error, "Trigger selection {}", std::string{triggersel});
+    int trigindex = int{triggerindex};
+    if (trigindex != -1) {
+      LOGF(info, "Selecting on trigger bit %d", trigindex);
+      uint64_t triggerMask = collision.bc().triggerMask();
+      bool isTriggerClassFired = triggerMask & 1ul << (trigindex - 1);
+      if (!isTriggerClassFired)
+        return;
+    }
+
+    LOGF(info, "N. of Tracks for collision: %d", tracks.size());
+    o2::vertexing::DCAFitterN<2> df;
+    df.setBz(5.0);
+    // After finding the vertex, propagate tracks to the DCA. This is default anyway
+    df.setPropagateToPCA(true);
+    // do not consider V0 seeds with 2D circles crossing above this R. This is default anyway
+    df.setMaxR(200);
+    // do not consider V0 seeds with tracks Z-distance exceeding this. This is default anyway
+    df.setMaxDZIni(4);
+    // stop iterations if max correction is below this value. This is default anyway
+    df.setMinParamChange(1e-3);
+    // stop iterations if chi2 improves by less that this factor
+    df.setMinRelChi2Change(0.9);
+
     hvtxp_x_out->Fill(collision.posX());
     hvtxp_y_out->Fill(collision.posY());
     hvtxp_z_out->Fill(collision.posZ());
@@ -99,33 +128,32 @@ struct DecayVertexBuilder2Prong {
         o2::track::TrackParCov trackparvar1(x1_, alpha1_, arraypar1, covpar1);
         df.setUseAbsDCA(true);
         int nCand = df.process(trackparvar0, trackparvar1);
-        //FIXME: currently filling the table for all dca candidates.
-        for (int ic = 0; ic < nCand; ic++) {
-          const o2::base::DCAFitter::Triplet& vtx = df.getPCACandidate(ic);
-          LOGF(info, "vertex x %f", vtx.x);
-          hvtx_x_out->Fill(vtx.x);
-          hvtx_y_out->Fill(vtx.y);
-          hvtx_z_out->Fill(vtx.z);
-          o2::track::TrackParCov trackdec0 = df.getTrack0(ic);
-          o2::track::TrackParCov trackdec1 = df.getTrack1(ic);
-          std::array<float, 3> pvec0;
-          std::array<float, 3> pvec1;
-          trackdec0.getPxPyPzGlo(pvec0);
-          trackdec1.getPxPyPzGlo(pvec1);
-          float masspion = 0.140;
-          float masskaon = 0.494;
-          float mass_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masspion,
-                                       pvec1[0], pvec1[1], pvec1[2], masskaon);
-          float masssw_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masskaon,
-                                         pvec1[0], pvec1[1], pvec1[2], masspion);
-          secvtx2prong(track_0.collisionId(),
-                       collision.posX(), collision.posY(), collision.posZ(),
-                       vtx.x, vtx.y, vtx.z, track_0.globalIndex(),
-                       pvec0[0], pvec0[1], pvec0[2], track_0.y(),
-                       track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], track_1.y(),
-                       ic, mass_, masssw_);
-          hchi2dca->Fill(df.getChi2AtPCACandidate(ic));
-        }
+        if (nCand == 0)
+          continue;
+        const auto& vtx = df.getPCACandidate();
+        LOGF(info, "vertex x %f", vtx[0]);
+        hvtx_x_out->Fill(vtx[0]);
+        hvtx_y_out->Fill(vtx[1]);
+        hvtx_z_out->Fill(vtx[2]);
+        o2::track::TrackParCov trackdec0 = df.getTrack(0);
+        o2::track::TrackParCov trackdec1 = df.getTrack(1);
+        std::array<float, 3> pvec0;
+        std::array<float, 3> pvec1;
+        trackdec0.getPxPyPzGlo(pvec0);
+        trackdec1.getPxPyPzGlo(pvec1);
+        float masspion = 0.140;
+        float masskaon = 0.494;
+        float mass_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masspion,
+                                     pvec1[0], pvec1[1], pvec1[2], masskaon);
+        float masssw_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masskaon,
+                                       pvec1[0], pvec1[1], pvec1[2], masspion);
+        secvtx2prong(track_0.collisionId(),
+                     collision.posX(), collision.posY(), collision.posZ(),
+                     vtx[0], vtx[1], vtx[2], track_0.globalIndex(),
+                     pvec0[0], pvec0[1], pvec0[2], track_0.y(),
+                     track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], track_1.y(),
+                     mass_, masssw_);
+        hchi2dca->Fill(df.getChi2AtPCACandidate());
       }
     }
   }
@@ -136,9 +164,20 @@ struct CandidateBuildingDzero {
   void process(aod::SecVtx2Prong const& secVtx2Prongs,
                soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
-    LOGF(info, "NEW EVENT");
+    LOGF(info, "NEW EVENT CANDIDATE");
 
-    o2::base::DCAFitter df(5.0, 10.);
+    o2::vertexing::DCAFitterN<2> df;
+    df.setBz(5.0);
+    // After finding the vertex, propagate tracks to the DCA. This is default anyway
+    df.setPropagateToPCA(true);
+    // do not consider V0 seeds with 2D circles crossing above this R. This is default anyway
+    df.setMaxR(200);
+    // do not consider V0 seeds with tracks Z-distance exceeding this. This is default anyway
+    df.setMaxDZIni(4);
+    // stop iterations if max correction is below this value. This is default anyway
+    df.setMinParamChange(1e-3);
+    // stop iterations if chi2 improves by less that this factor
+    df.setMinRelChi2Change(0.9);
 
     for (auto& secVtx2prong : secVtx2Prongs) {
       LOGF(INFO, " ------- new event ---------");
@@ -182,7 +221,10 @@ struct CandidateBuildingDzero {
       //select the candidate via its index. It is redundant cause the secondary
       //vertex recostruction is performed more than once for each dca candidate
       int nCand = df.process(trackparvar0, trackparvar1);
-      const o2::base::DCAFitter::Triplet& secvtx = df.getPCACandidate(secVtx2prong.indexDCApair());
+      if (nCand == 0) {
+        LOGF(error, " DCAFitter failing in the candidate building: it should not happen");
+      }
+      const auto& secvtx = df.getPCACandidate();
       float masspion = 0.140;
       float masskaon = 0.494;
       float mass_ = invmass2prongs(secVtx2prong.px0(), secVtx2prong.py0(),
@@ -194,15 +236,16 @@ struct CandidateBuildingDzero {
                                      secVtx2prong.px1(), secVtx2prong.py1(),
                                      secVtx2prong.pz1(), masspion);
       cand2prong(mass_, masssw_);
-      o2::track::TrackParCov trackdec0 = df.getTrack0(secVtx2prong.indexDCApair());
-      o2::track::TrackParCov trackdec1 = df.getTrack1(secVtx2prong.indexDCApair());
+      o2::track::TrackParCov trackdec0 = df.getTrack(0);
+      o2::track::TrackParCov trackdec1 = df.getTrack(1);
       std::array<float, 3> pvec0;
       std::array<float, 3> pvec1;
       trackdec0.getPxPyPzGlo(pvec0);
       trackdec1.getPxPyPzGlo(pvec1);
       LOGF(info, "Pt track 0 from table %f and from calc %f", secVtx2prong.px0(), pvec0[0]);
-      if (abs(secVtx2prong.px0() - pvec0[0]) > 0.000000001)
+      if (abs(secVtx2prong.px0() - pvec0[0]) > 0.000000001) {
         LOGF(info, "BIG ERRROR");
+      }
     }
   }
 };

@@ -27,6 +27,8 @@ char const* ChannelSpecHelpers::typeAsString(enum ChannelType type)
       return "push";
     case ChannelType::Pull:
       return "pull";
+    case ChannelType::Pair:
+      return "pair";
   }
   throw std::runtime_error("Unknown ChannelType");
 }
@@ -46,7 +48,7 @@ std::string ChannelSpecHelpers::channelUrl(OutputChannelSpec const& channel)
 {
   switch (channel.protocol) {
     case ChannelProtocol::IPC:
-      return fmt::format("ipc://{}_{}", channel.hostname, channel.port);
+      return fmt::format("ipc://{}_{},transport=shmem", channel.hostname, channel.port);
     default:
       return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
                                                    : fmt::format("tcp://{}:{}", channel.hostname, channel.port);
@@ -57,7 +59,7 @@ std::string ChannelSpecHelpers::channelUrl(InputChannelSpec const& channel)
 {
   switch (channel.protocol) {
     case ChannelProtocol::IPC:
-      return fmt::format("ipc://{}_{}", channel.hostname, channel.port);
+      return fmt::format("ipc://{}_{},transport=shmem", channel.hostname, channel.port);
     default:
       return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
                                                    : fmt::format("tcp://{}:{}", channel.hostname, channel.port);

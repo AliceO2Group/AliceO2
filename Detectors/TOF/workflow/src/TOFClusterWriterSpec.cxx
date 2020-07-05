@@ -11,13 +11,9 @@
 /// @file   TODClusterWriterSpec.cxx
 
 #include "TOFWorkflow/TOFClusterWriterSpec.h"
-#include "Framework/ControlService.h"
-#include "Framework/ConfigParamRegistry.h"
-#include <SimulationDataFormat/MCCompLabel.h>
-#include <SimulationDataFormat/MCTruthContainer.h>
-#include "TTree.h"
-#include "TBranch.h"
-#include "TFile.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsTOF/Cluster.h"
 
 using namespace o2::framework;
@@ -27,72 +23,33 @@ namespace o2
 namespace tof
 {
 template <typename T>
-TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
-{
-  if (auto br = tree.GetBranch(brname.c_str())) {
-    br->SetAddress(static_cast<void*>(&ptr));
-    return br;
-  }
-  // otherwise make it
-  return tree.Branch(brname.c_str(), ptr);
-}
-
-void ClusterWriter::init(InitContext& ic)
-{
-  // get the option from the init context
-  mOutFileName = ic.options().get<std::string>("tof-cluster-outfile");
-  mOutTreeName = ic.options().get<std::string>("treename");
-}
-
-void ClusterWriter::run(ProcessingContext& pc)
-{
-  if (mFinished) {
-    return;
-  }
-
-  TFile outf(mOutFileName.c_str(), "recreate");
-  if (outf.IsZombie()) {
-    LOG(FATAL) << "Failed to open output file " << mOutFileName;
-  }
-  TTree tree(mOutTreeName.c_str(), "Tree of TOF clusters");
-  auto indata = pc.inputs().get<std::vector<o2::tof::Cluster>>("tofclusters");
-  LOG(INFO) << "RECEIVED CLUSTERS SIZE " << indata.size();
-
-  auto br = getOrMakeBranch(tree, "TOFCluster", &indata);
-  br->Fill();
-
-  if (mUseMC) {
-    auto labeldata = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("tofclusterlabels");
-    LOG(INFO) << "TOF GOT " << labeldata->getNElements() << " LABELS ";
-    auto labeldataraw = labeldata.get();
-    // connect this to a particular branch
-
-    auto labelbr = getOrMakeBranch(tree, "TOFClusterMCTruth", &labeldataraw);
-    labelbr->Fill();
-  }
-
-  tree.SetEntries(1);
-  tree.Write();
-  mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-}
+using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
+using OutputType = std::vector<o2::tof::Cluster>;
+using LabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using namespace o2::header;
 
 DataProcessorSpec getTOFClusterWriterSpec(bool useMC)
 {
-  std::vector<InputSpec> inputs;
-  inputs.emplace_back("tofclusters", o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe);
-  if (useMC)
-    inputs.emplace_back("tofclusterlabels", o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-
-  return DataProcessorSpec{
-    "TOFClusterWriter",
-    inputs,
-    {}, // no output
-    AlgorithmSpec{adaptFromTask<ClusterWriter>(useMC)},
-    Options{
-      {"tof-cluster-outfile", VariantType::String, "tofclusters.root", {"Name of the input file"}},
-      {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
-    }};
+  // Spectators for logging
+  auto logger = [](OutputType const& indata) {
+    LOG(INFO) << "RECEIVED CLUSTERS SIZE " << indata.size();
+  };
+  auto loggerMCLabels = [](LabelsType const& labeldata) {
+    LOG(INFO) << "TOF GOT " << labeldata.getNElements() << " LABELS ";
+  };
+  return MakeRootTreeWriterSpec("TOFClusterWriter",
+                                "tofclusters.root",
+                                "o2sim",
+                                BranchDefinition<OutputType>{InputSpec{"clusters", gDataOriginTOF, "CLUSTERS", 0},
+                                                             "TOFCluster",
+                                                             "tofclusters-branch-name",
+                                                             1,
+                                                             logger},
+                                BranchDefinition<LabelsType>{InputSpec{"labels", gDataOriginTOF, "CLUSTERSMCTR", 0},
+                                                             "TOFClusterMCTruth",
+                                                             "clusterlabels-branch-name",
+                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                             loggerMCLabels})();
 }
 } // namespace tof
 } // namespace o2

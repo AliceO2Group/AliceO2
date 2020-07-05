@@ -11,6 +11,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "TestClasses.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 
@@ -23,12 +24,12 @@ namespace o2::aod
 {
 namespace test
 {
-DECLARE_SOA_COLUMN(X, x, float, "fX");
-DECLARE_SOA_COLUMN(Y, y, float, "fY");
-DECLARE_SOA_COLUMN(Z, z, float, "fZ");
-DECLARE_SOA_COLUMN(Foo, foo, float, "fBar");
-DECLARE_SOA_COLUMN(Bar, bar, float, "fFoo");
-DECLARE_SOA_COLUMN(EventProperty, eventProperty, float, "fEventProperty");
+DECLARE_SOA_COLUMN(X, x, float);
+DECLARE_SOA_COLUMN(Y, y, float);
+DECLARE_SOA_COLUMN(Z, z, float);
+DECLARE_SOA_COLUMN(Foo, foo, float);
+DECLARE_SOA_COLUMN(Bar, bar, float);
+DECLARE_SOA_COLUMN(EventProperty, eventProperty, float);
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
 } // namespace test
 DECLARE_SOA_TABLE(Foos, "AOD", "FOO",
@@ -58,7 +59,7 @@ struct ATask {
 // FIXME: for the moment we do not derive from AnalysisTask as
 // we need GCC 7.4+ to fix a bug.
 struct BTask {
-  void process(o2::aod::Collision const&, o2::aod::Track const&)
+  void process(o2::aod::Collision const&, o2::soa::Join<o2::aod::Tracks, o2::aod::TracksExtra, o2::aod::TracksCov> const&, o2::aod::UnassignedTracks const&, o2::soa::Join<o2::aod::Calos, o2::aod::CaloTriggers> const&)
   {
   }
 };
@@ -134,6 +135,14 @@ struct ITask {
   }
 };
 
+struct JTask {
+  Configurable<o2::test::SimplePODClass> cfg{"someConfigurable", {}, "Some Configurable Object"};
+  void process(o2::aod::Collision const&)
+  {
+    BOOST_CHECK_EQUAL(cfg->x, 1);
+  }
+};
+
 BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 {
   auto task1 = adaptAnalysisTask<ATask>("test1");
@@ -143,9 +152,14 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   BOOST_CHECK_EQUAL(task1.outputs[0].binding.value, std::string("FooBars"));
 
   auto task2 = adaptAnalysisTask<BTask>("test2");
-  BOOST_CHECK_EQUAL(task2.inputs.size(), 2);
+  BOOST_CHECK_EQUAL(task2.inputs.size(), 7);
   BOOST_CHECK_EQUAL(task2.inputs[0].binding, "Collisions");
   BOOST_CHECK_EQUAL(task2.inputs[1].binding, "Tracks");
+  BOOST_CHECK_EQUAL(task2.inputs[2].binding, "TracksExtra");
+  BOOST_CHECK_EQUAL(task2.inputs[3].binding, "TracksCov");
+  BOOST_CHECK_EQUAL(task2.inputs[4].binding, "UnassignedTracks");
+  BOOST_CHECK_EQUAL(task2.inputs[5].binding, "Calos");
+  BOOST_CHECK_EQUAL(task2.inputs[6].binding, "CaloTriggers");
 
   auto task3 = adaptAnalysisTask<CTask>("test3");
   BOOST_CHECK_EQUAL(task3.inputs.size(), 2);
@@ -172,4 +186,6 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 
   auto task9 = adaptAnalysisTask<ITask>("test9");
   BOOST_CHECK_EQUAL(task9.inputs.size(), 4);
+
+  auto task10 = adaptAnalysisTask<JTask>("test10");
 }

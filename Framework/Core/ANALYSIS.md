@@ -333,7 +333,12 @@ struct MyTask : AnalysisTask {
 ```
 
 ### Getting combinations (pairs, triplets, ...)
-To get combinations of distinct tracks, helper functions from `ASoAHelpers.h` can be used. Presently, there are 3 combinations policies available: strictly upper, upper and full.
+To get combinations of distinct tracks, helper functions from `ASoAHelpers.h` can be used. Presently, there are 3 combinations policies available: strictly upper, upper and full. `CombinationsStrictlyUpperPolicy` is applied by default if all tables are of the same type, otherwise `FullIndexPolicy` is applied.
+
+```cpp
+combinations(tracks, tracks); // equivalent to combinations(CombinationsStrictlyUpperIndexPolicy(tracks, tracks));
+combinations(filter, tracks, covs); // equivalent to combinations(CombinationsUpperIndexPolicy(tracks, covs), filter, tracks, covs);
+```
 
 The number of elements in a combination is deduced from the number of arguments passed to `combinations()` call. For example, to get pairs of tracks from the same source, one must specify `tracks` table twice:
 
@@ -362,6 +367,24 @@ struct MyTask : AnalysisTask {
 };
 ```
 
+One can get combinations of elements with the same value in a given column. Input tables do not need to be the same but each table must contain the column used for categorizing. Additionally, you can specify a value to be skipped for grouping as well as the number of elements to be matched with first element in a combination. Again, full, strictly upper and upper policies are available:
+
+```cpp
+for (auto& [c0, c1] : combinations(CombinationsBlockStrictlyUpperIndexPolicy("fRunNumber", 3, -1, collisions, collisions))) {
+  // Pairs of collisions with same fRunNumber, max 3 pairs for each element in a given "fRunNumber" bin. Entries with fRunNumber == -1 are skipped.
+}
+for (auto& [c0, t1] : combinations(CombinationsBlockFullIndexPolicy("fX", 200, -1, collisions, tracks)));
+```
+
+For better performance, if the same table is used, `Block{Full,StrictlyUpper,Upper}SameIndex` policies should be preferred. `selfCombinations()` are a shortuct to apply StrictlyUpperSameIndex policy:
+
+```cpp
+for (auto& [c0, c1] : combinations(CombinationsBlockFullSameIndexPolicy("fRunNumber", 3, -1, collisions, collisions)));
+for (auto& [c0, c1] : selfCombinations("fRunNumber", 3, -1, collisions, collisions)) {
+  // same as: combinations(CombinationsBlockStrictlyUpperSameIndexPolicy("fRunNumber", 3, -1, collisions, collisions));
+}
+```
+
 It will be possible to specify a filter for a combination as a whole, and only matching combinations will be then output. Currently, the filter is applied to each element separately. Note that for filter version the input tables are mentioned twice, both in policy constructor and in `combinations()` call itself.
 
 ```cpp
@@ -377,35 +400,40 @@ struct MyTask : AnalysisTask {
 };
 ```
 
-Additionally, `CombinationsStrictlyUpperPolicy` is applied by default if all tables are of the same type, otherwise `FullIndexPolicy` is applied.
-
-```cpp
-combinations(tracks, tracks); // equivalent to combinations(CombinationsStrictlyUpperIndexPolicy(tracks, tracks));
-combinations(filter, tracks, covs); // equivalent to combinations(CombinationsFullIndexPolicy(tracks, covs), filter, tracks, covs);
-```
-
 ### Saving tables to file
 
-Produced tables can be saved to file as TTrees. This process is customized by the command line option `--keep` (of the internal-dpl-AOD-writer). **Please be aware, that the format of the `keep` option as described here is preliminary and might be changed in future.**
+Produced tables can be saved to file as TTrees. This process is customized by various command line options of the internal-dpl-aod-writer. The options allow to specify which columns of which table are saved to which tree in which file.
 
-`keep` is a comma-separated list of `DataOuputDescriptions`.
+**Please be aware, that the functionality of these options is preliminary and might be changed in future.**
+
+The options to consider are:
+
+* --keep
+* --res-file
+* --ntfmerge
+* --json-file
+
+
+#### --keep
+
+`keep` is a comma-separated list of `DataOuputDescriptors`.
 
 `keep`
 ```csh
-DataOuputDescription1,DataOuputDescription2, ...
+DataOuputDescriptor1,DataOuputDescriptor2, ...
 ```
 
-Each `DataOuputDescription` is a semicolon-separated list of 4 items
+Each `DataOuputDescriptor` is a colon-separated list of 4 items
 
-`DataOuputDescription`
+`DataOuputDescriptor`
 ```csh
 table:tree:columns:file
 ```
-and instructs the internal-dpl-AOD-writer, to save the columns `columns` of table `table` as TTree `tree` into files `file_x.root`, where `x` is an incremental number. The selected columns are saved as separate TBranches of TTree `tree`.
+and instructs the internal-dpl-aod-writer, to save the columns `columns` of table `table` as TTree `tree` into files `file_x.root`, where `x` is an incremental number. The selected columns are saved as separate TBranches of TTree `tree`.
 
 By default `x` is incremented with every time frame. This behavior can be modified with the command line option `--ntfmerge`. The value of `ntfmerge` specifies the number of time frames to merge into one file. 
 
-The first item of a `DataOuputDescription` is mandatory and needs to be specified, otherwise the `DataOuputDescription` is ignored. The other three items are optional and are filled by default values if missing.
+The first item of a `DataOuputDescriptor` (`table`) is mandatory and needs to be specified, otherwise the `DataOuputDescriptor` is ignored. The other three items are optional and are filled by default values if missing.
 
 The format of `table` is
 
@@ -415,7 +443,7 @@ AOD/tablename/0
 ```
 `tablename` is the name of the table as defined in the workflow definition.
 
-The format of `tree` is a simple string which names the TTree the table will be saved to. If `tree` is not specified then `tablename` will be used as TTree name.
+The format of `tree` is a simple string which names the TTree the table is saved to. If `tree` is not specified then `tablename` is used as TTree name.
 
 `columns` is a slash(/)-separated list of column names., e.g.
 
@@ -423,9 +451,87 @@ The format of `tree` is a simple string which names the TTree the table will be 
 ```csh
 col1/col2/col3
 ```
-The column names are expected to match column names of table `tablename` as defined in the respective workflow. Non-matching columns are ignored. The selected table columns are saved as separate TBranches with the same names as the corresponding table columns. If `columns` is not specified then all table columns will be saved.
+The column names are expected to match column names of table `tablename` as defined in the respective workflow. Non-matching columns are ignored. The selected table columns are saved as separate TBranches with the same names as the corresponding table columns. If `columns` is not specified then all table columns are saved.
 
-`file` finally specifies the base name of the files the tables are saved to. The actual file names are composed as `file`_`x`.root, where 'x' is an incremental number. If `file` is not specified the default file name is used. The default file name can be set with the command line option `--res-file`. However, if `res-file` is missing then the default file name is set to `AnalysisResults`.
+`file` finally specifies the base name of the files the tables are saved to. The actual file names are composed as `file`_`x`.root, where `x` is an incremental number. If `file` is not specified the default file name is used. The default file name can be set with the command line option `--res-file`. However, if `res-file` is missing then the default file name is set to `AnalysisResults`.
+
+##### Dangling outputs
+The `keep` option also accepts the string "dangling" (or any leading sub-string of it). In
+this case all dangling output tables are saved. For the parameters `tree`, `columns`, and
+`file` the default values ([see table below](#priorities)) are used.
+
+#### --ntfmerge
+
+`ntfmerge` specifies the number of time frames which are merged into a given root file. By default this value is set to 1. The actual file names are composed as `file`_`x`.root, where `x` is an incremental number. `x` is incremented by 1 at every `ntfmerge` time frame.
+
+#### --res-file
+
+`res-file` specifies the default base name of the results files to which tables are saved. If in any of the `DataOutputDescriptors` the `file` value is missing it will be set to this default value.
+
+#### --json-file
+
+`json-file` specifies the name of a json-file which contains the full information needed to customize the behavior of the internal-dpl-aod-writer. It can replace the other three options completely. Nevertheless, currently all options are supported ([see also discussion below](#redundancy)).
+
+An example file is shown in the highlighted field below. The relevant
+information is contained in a json object `OutputDirector`. The
+`OutputDirector` can include three different items:
+
+  1. `resfile` is a string and corresponds to the `res-file` command line option  
+  2.`ntfmerge` is an integer and corresponds to the `ntfmerge` command line option  
+  3.`OutputDescriptors` is an array of objects and corresponds to the `keep` command line option. The objects are equivalent to the `DataOuputDescriptors` of the `keep` option and are composed of 4 items which correspond to the 4 items of a `DataOuputDescriptor`.
+  
+     a. `table` is a string  
+     b. `treename` is a string  
+     c. `columns` is an array of strings  
+     d. `filename` is a string  
+  
+  
+`Example json file for the internal-dpl-aod-writer`
+```csh
+{
+  "OutputDirector": {
+      "resfile": "defresults",
+      "ntfmerge": 10,
+      "OutputDescriptors": [
+          {
+            "table": "AOD/UNO/0",
+            "columns": [
+              "col1",
+              "col2"
+            ],
+            "treename": "uno",
+            "filename": "unoresults"
+          },
+          {
+            "table": "AOD/DUE/0",
+            "columns": [
+              "col3"
+            ],
+            "treename": "due",
+            "filename": "dueresults"
+          }
+      ]
+  }
+}
+```
+<a name="redundancy"></a>
+The information provided with the json file and the information which can be provided with
+the other command line options is obviously redundant. Anyway, currently all options can
+be used together. Practically the json-file - if provided - is read first. Then parameters are reset with values specified by other command line options. If any parameter value is still unset then its default value is used.
+
+This hierarchy of the options is summarized in the following table. The columns represent the command line options and the rows the parameters which can be set. The table elements specify the priority a given command line option has to set the value of a given parameter. The last column in the table is the default, which always has the lowest priority. The actual default value is the value shown between brackets.
+
+<a name="priorities"></a>
+
+| parameter\option | keep | res-file | ntfmerge | json-file | default |
+|--------------|:----:|:--------:|:--------:|----------:|:-------:|
+| `default file name` | - | 1.    | -        | 2.        | 3. (AnalysisResults)|
+| `ntfmerge`   | -    | -        |  1.      | 2.        | 3. (1)  |
+| `tablename`  | 1.   | -        | -        | 2.        | -       |
+| `tree`       | 1.   | -        | -        | 2.        | 3. (`tablename`) |
+| `columns`    | 1.   | -        | -        | 2.        | 3. (all columns)     |
+| `file`       | 1.   | 2.       | -        | 3.        | 4. (`default file name`)|
+
 
 #### Valid example command line options
 
@@ -440,12 +546,153 @@ The column names are expected to match column names of table `tablename` as defi
  # save columns 'c1' and 'c2' of table 'UNO' to TTree 'trsel1' in files 'myskim'_x.root and
  # save columns 'c6', 'c7' and 'c8' of table 'DUE' to TTree 'trsel2' in files 'myskim'_x.root.
  # Merge 50 time frames in each file.
-  
+
+--json-file myconfig.json
+ # according to the contents of myconfig.json
 ```
 
 #### Limitations
 
-If the provided `--keep` option contains two `DataOuputDescriptions` with equal combination of `tree` and `file` then the processing will be stopped! It is not pssible to save two trees with equal name to a given file.
+If in any case two `DataOuputDescriptors` are provided which have equal combinations of
+the `tree` and `file` parameters then the processing is stopped! It is not possible to save
+two trees with equal name to a given file.
+
+
+### Reading tables from files
+
+The internal-dpl-aod-reader reads trees from root files and provides them as arrow tables to the requesting workflows. Its behavior is customized with the following command line options:
+
+* --aod-file
+* --json-file
+
+#### --aod-file
+
+`aod-file` takes a string as option value, which either is the name of the input root file or, if starting with an `@`-character, is an ASCII-file which contains a list of input files. 
+
+```csh
+--aod-file AnalysisResults_0.root
+ # uses AnalysisResults_0.root as input file
+
+--aod-file @AnalysisResults.txt
+ # uses files listed in AnalysisResults.txt as input files
+
+```
+
+#### --json-file
+
+'json-file' is a string and specifies a json file, which contains the
+customization information for the internal-dpl-aod-reader. An example file is
+shown in the highlighted field below. The relevant information is contained in
+a json object `InputDirector`. The `InputDirector` can include the following
+three items:
+
+  1. `resfiles` is a string or an array of strings and corresponds to the `aod-file` command line option. As the `aod-file` option it can specify a single input file or, when the option value starts with a `@`-character, an ASCII file with a list of input files. In addition `resfiles` can be an array of strings, which contains a list of input files.
+  2.`fileregex` is a regex string which is used to select the input files from the file list specified by `resfiles`.
+  3.`InputDescriptors` is an array of objects, the so called `DataInputDescriptors`, which are composed of 4 items.
+  
+     a. `table` is a string and specifies the table to fill. The `table` needs to be provided in the format `AOD/tablename/0`, where `tablename` is the name of the table as defined in the workflow definition.  
+     b. `treename` is a string and specifies the tree which is to be used to fill `table`  
+     c. `resfiles` is either a string or an array of strings. It specifies a list of possible input files (see discussion of `resfiles` above).  
+     d. `fileregex` is a regular expression string which is used to select the input files from the file list specified by `resfiles`  
+
+The information contained in a `DataInputDescriptor` instructs the internal-dpl-aod-reader to fill table `table` with the values from the tree `treename` in the files which are defined by `resfiles` and which names match the regex `fileregex`.
+
+Of the four items of a `DataInputDescriptor`, `table` is the only required information. If one of the other items is missing its value will be set as follows:
+
+  1. `treename` is set to `tablename` of the respective `table` item.  
+  2. `resfiles` is set to `resfiles` of the `InputDirector` (1. item of the `InputDirector`). If that is missing, then the value of the `aod-file` option is used. If that is missing, then `AnalysisResults.root` is used.  
+  3. `fileregex` is set to `fileregex` of the `InputDirector` (2. item of the `InputDirector`). If that is missing, then `.*` is used.
+
+
+`Example json file for the internal-dpl-aod-reader`
+```csh
+{
+  "InputDirector": {
+    "resfiles": "@resfiles.txt",
+    "fileregex": ".*",
+    "InputDescriptors": [
+      {
+        "table": "AOD/COLLISION/0",
+        "treename": "uno",
+        "resfiles": [
+          "unoresults_1.root",
+          "unoresults_2.root",
+          "unoresults_3.root",
+          "unoresults_4.root"
+        ]
+      },
+      {
+        "table": "AOD/DUE/0",
+        "treename": "due",
+        "resfiles": "@dueresults.txt",
+        "fileregex": "(dueresults)(.*)"
+      },
+      {
+        "table": "AOD/TRE/0",
+        "treename": "tre"
+      }
+    ]
+  }
+```
+
+When the internal-dpl-aod-reader receives the request to fill a given table `tablename` it searches in the provided `InputDirector` for the corresponding `InputDescriptor` and proceeds as defined there. However, if there is no corresponding `InputDescriptor` it falls back to the information provided by the `resfiles` and `fileregex` options of the `InputDirector` and uses the `tablename` as `treename`.
+
+#### Some practical comments
+
+The `json-file` option allows to setup the reading of tables in a rather
+flexible way. Here a few presumably practical cases are discussed:
+
+  1. Let's assume a case where data from tables `tableA` and `tableB` need to
+be processed together. Table `tableA` was previously saved as tree `tableA` to
+files `tableAResults_x.root`, where `x` is a number and `tableB` was saved as
+tree `tableB` to `tableBResults_x.root`. The following json-file could be used
+to read these tables:
+
+```csh
+{
+  # file resfiles.txt lists all tableAResults_x.root and tableBResults_x.root files.
+
+  "InputDirector": {
+    "resfiles": "@resfiles.txt",
+    "InputDescriptors": [
+      {
+        "table": "AOD/tableA/0",
+        "fileregex": "(tableAResult)(.*)"
+      },
+      {
+        "table": "AOD/tableB/0",
+        "fileregex": "(tableBResult)(.*)"
+      }
+    ]
+  }
+```
+
+  2. In this case several tables need to be provided. All tables can be read from files `tableResult_x.root`, except for one table, namely `tableA`, which is saved as tree `treeA` in files `tableAResult_x.root`.
+  
+```csh
+  # file resfiles.txt lists all tableResults_x.root and tableAResults_x.root files.
+
+  "InputDirector": {
+    "resfiles": "@resfiles.txt",
+    "fileregex": "(tableResult)(.*)"
+    "InputDescriptors": [
+      {
+        "table": "AOD/tableA/0",
+        "treename": "treeA",
+        "fileregex": "(tableAResult)(.*)"
+      }
+    ]
+  }
+```
+  
+
+#### Limitations
+
+  1. It is required that all `InputDescriptors` have the same number of selected input files. This is internally checked and the processing is stopped if it turns out that this is not the case.
+  2. The internal-dpl-aod-reader loops over the selected input files in the order as they are listed. It is the duty of the user to make sure that the order is correct and that the order in the file lists
+of the various `InputDescriptors` are corresponding to each other.
+  3. The regular expression `fileregex` is evaluated with the c++ Regular expressions library. Thus check there for the proper syntax of regexes.
+  
 
 ### Possible ideas
 

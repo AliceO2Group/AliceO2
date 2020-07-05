@@ -20,7 +20,7 @@
 
 #endif
 
-bool compareTOFDigits(std::string inpName1 = "tofdigits.root", std::string inpName2 = "tofdigitsFromRaw.root")
+bool compareTOFDigits(std::string inpName1 = "tofdigitsOr.root", std::string inpName2 = "tofdigits.root")
 {
   bool status = true;
   int ngood = 0;
@@ -84,6 +84,26 @@ bool compareTOFDigits(std::string inpName1 = "tofdigits.root", std::string inpNa
 
       if (digitsRO1[j].getBC() != digitsRO2[j].getBC()) {
         printf("RO %d - Digit %d/%d) Different BCs %d != %d \n", i, j, row1[i].size(), digitsRO1[j].getBC(), digitsRO2[j].getBC());
+        digitstatus = false;
+      }
+
+      if (digitsRO1[j].getTOT() != digitsRO2[j].getTOT()) {
+        printf("RO %d - Digit %d/%d) Different TOTs %d != %d \n", i, j, row1[i].size(), digitsRO1[j].getTOT(), digitsRO2[j].getTOT());
+        digitstatus = false;
+      }
+
+      if (digitsRO1[j].getTriggerBunch() != digitsRO2[j].getTriggerBunch()) {
+        printf("RO %d - Digit %d/%d) Different Trigger bunches %d != %d \n", i, j, row1[i].size(), digitsRO1[j].getTriggerBunch(), digitsRO2[j].getTriggerBunch());
+        digitstatus = false;
+      }
+
+      if (digitsRO1[j].getTriggerOrbit() != digitsRO2[j].getTriggerOrbit()) {
+        printf("RO %d - Digit %d/%d) Different Trigger orbits %d != %d \n", i, j, row1[i].size(), digitsRO1[j].getTriggerOrbit(), digitsRO2[j].getTriggerOrbit());
+        digitstatus = false;
+      }
+
+      if (digitsRO1[j].isProblematic() != digitsRO2[j].isProblematic()) {
+        printf("RO %d - Digit %d/%d) Different Problematic status %d != %d \n", i, j, row1[i].size(), digitsRO1[j].isProblematic(), digitsRO2[j].isProblematic());
         digitstatus = false;
       }
 

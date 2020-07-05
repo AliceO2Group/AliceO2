@@ -13,10 +13,9 @@
 #include <fairmq/FairMQDevice.h>
 #include <fairmq/FairMQMessage.h>
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
+
 FairMQTransportFactory* FairMQDeviceProxy::getTransport()
 {
   return mDevice->Transport();
@@ -29,13 +28,12 @@ FairMQTransportFactory* FairMQDeviceProxy::getTransport(const std::string& chann
 
 std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createMessage() const
 {
-  return mDevice->Transport()->CreateMessage();
+  return mDevice->Transport()->CreateMessage(fair::mq::Alignment{64});
 }
 
 std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createMessage(const size_t size) const
 {
-  return mDevice->Transport()->CreateMessage(size);
+  return mDevice->Transport()->CreateMessage(size, fair::mq::Alignment{64});
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

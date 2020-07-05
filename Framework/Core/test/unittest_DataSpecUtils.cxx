@@ -21,7 +21,7 @@
 using namespace o2;
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(CocreteData)
+BOOST_AUTO_TEST_CASE(ConcreteData)
 {
   OutputSpec spec{
     "TEST",
@@ -256,4 +256,31 @@ BOOST_AUTO_TEST_CASE(FindInputSpec)
   auto spec = DataSpecUtils::find(specs, {"TST"}, {"DATA1"}, 0);
   BOOST_CHECK(spec == specs[0]);
   BOOST_CHECK(DataSpecUtils::find(specs, {"TST"}, {"DATA3"}, 0) == std::nullopt);
+}
+
+BOOST_AUTO_TEST_CASE(GettingConcreteMembers)
+{
+  InputSpec fullySpecifiedInput{
+    "binding",
+    "TSET",
+    "FOOO",
+    1,
+    Lifetime::Timeframe};
+
+  InputSpec wildcardInputSpec{
+    "binding",
+    {"TSET", "FOOO"},
+    Lifetime::Timeframe};
+
+  auto justOriginInputSpec = DataDescriptorQueryBuilder::parse("x:TST");
+
+  BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteOrigin(fullySpecifiedInput).as<std::string>(), "TSET");
+  BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteDataDescription(fullySpecifiedInput).as<std::string>(), "FOOO");
+
+  BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteOrigin(wildcardInputSpec).as<std::string>(), "TSET");
+  BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteDataDescription(wildcardInputSpec).as<std::string>(), "FOOO");
+
+  BOOST_REQUIRE_EQUAL(justOriginInputSpec.size(), 1);
+  BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteOrigin(justOriginInputSpec.at(0)).as<std::string>(), "TST");
+  BOOST_CHECK_THROW(DataSpecUtils::asConcreteDataDescription(justOriginInputSpec.at(0)).as<std::string>(), std::runtime_error);
 }

@@ -38,7 +38,7 @@
 
 #include <fairlogger/Logger.h>
 
-#define TPC_RUN2 // if defined, use run 2 geometry for TPC
+//#define TPC_RUN2 // if defined, use run 2 geometry for TPC
 
 #define LOCAL_RESIDUAL_FORMAT_OLD // if defined, data in compact trees is stored as Double32_t, otherwise as short
 #ifdef LOCAL_RESIDUAL_FORMAT_OLD
@@ -356,6 +356,7 @@ void TrackResiduals::buildLocalResidualTreesFromRun2Data()
   std::array<int, 3> counterTrkValidation{0};
   int nRejCl = 0, nRejHelix = 0, nRejQpt = 0, nRejValidation = 0;
   LOG(info) << "Building local residual trees from " << nTracks << " tracks.";
+  std::vector<DebugOutliers> debugOutliers;
   for (int iTrk = 0; iTrk < nTracks; ++iTrk) {
     /*
     printf("Checking track %i\n", iTrk);
@@ -363,6 +364,7 @@ void TrackResiduals::buildLocalResidualTreesFromRun2Data()
       break;
     }
     */
+    DebugOutliers debug;
     brTRDOK->GetEntry(iTrk);
     brITSOK->GetEntry(iTrk);
     if (!mDeltaStruct.trdOK || !mDeltaStruct.itsOK) {
@@ -413,20 +415,33 @@ void TrackResiduals::buildLocalResidualTreesFromRun2Data()
     ++nTracksSelectedWithOutliers;
     //printf("Checking track %i\n", iTrk);
     bool resHelix = compareToHelix(residHelixY, residHelixZ);
+    debug.idx = iTrk;
+    debug.x = mArrR;
+    debug.dY = mArrDY;
+    debug.dZ = mArrDZ;
+    debug.residHelixY = residHelixY;
+    debug.residHelixZ = residHelixZ;
+
     /*
     printf("Printing helix residuals for track %i\n", iTrk);
     for (int i = 0; i < param::NPadRows; ++i) {
       printf("residHelixY[%03i]=% .4f \t \t residHelixZ[%03i]=% .4f\n", i, residHelixY[i], i, residHelixZ[i]);
     }
     */
+
     if (mFilterOutliers && !resHelix) {
       // too strong deviation to helix -> discard track
+      //printf("Track %i deviates strongly from helix\n", iTrk);
       ++nRejHelix;
+      debug.flags = 1 << 0; // rejected by helix fit
+      debugOutliers.push_back(debug);
       continue;
     }
     if (fabsf(mQpt) > param::MaxQ2Pt) {
       // discard low pt tracks now that a more precise q/pt estimate is available
       ++nRejQpt;
+      debug.flags = 1 << 1; // rejected by qpt cut
+      debugOutliers.push_back(debug);
       continue;
     }
 
@@ -479,10 +494,18 @@ void TrackResiduals::buildLocalResidualTreesFromRun2Data()
       // done converting everything to sector frame
       ++mNCl;
     }
+    debug.x = mArrX;
+    debug.dY = mArrDY;
+    debug.dZ = mArrDZ;
     if (mFilterOutliers && !validateTrack(counterTrkValidation)) {
       ++nRejValidation;
+      debug.flags = 1 << 2;
+      debugOutliers.push_back(debug);
       continue;
     }
+    debug.xFlagged = mArrX;
+    debug.flags = 1 << 3; // good track
+    debugOutliers.push_back(debug);
     ++nTracksSelected;
 
     fillLocalResidualsTrees();
@@ -490,6 +513,7 @@ void TrackResiduals::buildLocalResidualTreesFromRun2Data()
   printf("Rejected due to Nclusters(%i), HelixFit(%i), qpt(%i), validation(%i)\n", nRejCl, nRejHelix, nRejQpt, nRejValidation);
   printf("validation failed %i times because of fraction of rej. cls and %i times because of rms and %i rest\n", counterTrkValidation[1], counterTrkValidation[2], counterTrkValidation[0]);
   LOG(info) << "Accepted " << nTracksSelected << " tracks. With outliers it would be " << nTracksSelectedWithOutliers;
+  dumpTracks(debugOutliers);
   writeLocalResidualTreesToFile();
 }
 
@@ -622,7 +646,6 @@ int TrackResiduals::checkResiduals(std::bitset<param::NPadRows>& rejCl, float& r
     float average = 0.f;
     float rms = 0.f;
     for (int i = 0; i < nAcc; ++i) {
-      // what about points without enough neighbours?? don't they distort the average?
       average += yDiffLong[i];
       rms += yDiffLong[i] * yDiffLong[i];
     }
@@ -920,8 +943,8 @@ void TrackResiduals::processSectorResiduals(int iSec)
   } else {
     smooth(iSec);
   }
-  dumpResults(iSec);
-  return;
+  //dumpResults(iSec);
+  //return;
 
   // process dispersions
   dyVec.clear();
@@ -1609,6 +1632,7 @@ void TrackResiduals::diffToMA(int np, const std::array<float, param::NPadRows>& 
     }
     int nPoints = iRight - iLeft;
     if (nPoints < mNMALong) {
+      // this cannot happen, since at least mNMALong points are required as neighbours for this function to be called
       continue;
     }
     float movingAverage = (sum[iRight] - sum[iLeft - 1] - (sum[i] - sum[i - 1])) / nPoints;
@@ -1646,8 +1670,8 @@ void TrackResiduals::diffToLocLine(int np, int idxOffset, const std::array<float
   }
 
   for (int iCl = 0; iCl < np; ++iCl) {
-    int iClLeft = iCl - mNMALong;
-    int iClRight = iCl + mNMALong;
+    int iClLeft = iCl - mNMAShort;
+    int iClRight = iCl + mNMAShort;
     if (iClLeft < 0) {
       iClLeft = 0;
     }
@@ -1655,7 +1679,7 @@ void TrackResiduals::diffToLocLine(int np, int idxOffset, const std::array<float
       iClRight = np - 1;
     }
     int nPoints = iClRight - iClLeft;
-    if (nPoints < mNMALong) {
+    if (nPoints < mNMAShort) {
       continue;
     }
     float nPointsInv = 1.f / nPoints;
@@ -2066,6 +2090,8 @@ bool TrackResiduals::compareToHelix(std::array<float, param::NPadRows>& residHel
 
 void TrackResiduals::fitCircle(int nCl, std::array<float, param::NPadRows>& x, std::array<float, param::NPadRows>& y, float& xc, float& yc, float& r, std::array<float, param::NPadRows>& residHelixY)
 {
+  // this fast algebraic circle fit is described here:
+  // https://dtcenter.org/met/users/docs/write_ups/circle_fit.pdf
   float xMean = 0.f;
   float yMean = 0.f;
 
@@ -2145,6 +2171,17 @@ bool TrackResiduals::fitPoly1(int nCl, std::array<float, param::NPadRows>& x, st
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
+void TrackResiduals::dumpArrayToFile(const std::array<float, param::NPadRows>& arr, const std::string fName) const
+{
+  std::ofstream fOut(fName.data());
+  if (fOut.is_open()) {
+    for (const auto& elem : arr) {
+      fOut << std::fixed << std::setprecision(6) << elem << std::endl;
+    }
+    fOut.close();
+  }
+}
+
 void TrackResiduals::dumpToFile(const std::vector<float>& vec, const std::string fName = "output.txt") const
 {
   std::ofstream fOut(fName.data());
@@ -2158,10 +2195,10 @@ void TrackResiduals::dumpToFile(const std::vector<float>& vec, const std::string
 
 void TrackResiduals::createOutputFile()
 {
-  mFileOut = std::make_unique<TFile>("voxelResultsO2.root", "recreate");
-  mTreeOut = std::make_unique<TTree>("debugTree", "voxel results");
-  mTreeOut->Branch("voxRes", &mVoxelResultsOutPtr);
-  //mTreeOut->Branch("debug", &mOutVectorPtr);
+  mFileOut = std::make_unique<TFile>("debugOutliers.root", "recreate");
+  mTreeOut = std::make_unique<TTree>("debugTree", "outliers");
+  //mTreeOut->Branch("voxRes", &mVoxelResultsOutPtr);
+  mTreeOut->Branch("debug", &mOutVectorPtr);
 }
 
 void TrackResiduals::closeOutputFile()
@@ -2173,7 +2210,7 @@ void TrackResiduals::closeOutputFile()
   mFileOut.reset();
 }
 
-void TrackResiduals::dumpVector(const std::vector<float>& vec)
+void TrackResiduals::dumpTracks(const std::vector<DebugOutliers>& vec)
 {
   if (mTreeOut) {
     mOutVector = vec;

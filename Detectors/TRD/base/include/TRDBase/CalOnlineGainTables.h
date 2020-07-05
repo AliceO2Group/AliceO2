@@ -16,6 +16,15 @@
 //  TRD calibration class for online gain tables.                            //
 //  2019 - Ported from various bits of AliRoot (SHTM)                        //
 //  Most things were stored in AliTRDOnlineGainTable{,ROC,MCM}.h             //
+//
+//  For my own sanity ... What happened in Run2 is not relevant for the new class.
+//  What is relevant is how the data was transfered across....
+//  OCDB2CCDB takes the old AliTRDOnlineGainTable* and produces a single
+//  array of 540x128. So Det*128+ROB, and each of those has 21 values 1 for each adc.
+//
+//  Notes:
+//  sector, stack, layer === via Geometry Class === Detector. [0,539]
+//  rob (read out board) *16 + MCM  == [0,127]   max number of MCM is 16.
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <array>

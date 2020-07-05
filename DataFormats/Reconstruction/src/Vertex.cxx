@@ -11,4 +11,28 @@
 #include "ReconstructionDataFormats/Vertex.h"
 #include <iostream>
 
-using namespace o2::dataformats;
+namespace o2
+{
+namespace dataformats
+{
+
+#ifndef ALIGPU_GPUCODE
+std::ostream& operator<<(std::ostream& os, const o2::dataformats::VertexBase& v)
+{
+  // stream itself
+  os << std::scientific << "Vertex X: " << v.getX() << " Y: " << v.getY() << " Z: " << v.getZ()
+     << " Cov.mat:\n"
+     << v.getSigmaX2() << '\n'
+     << v.getSigmaXY() << ' ' << v.getSigmaY2() << '\n'
+     << v.getSigmaXZ() << ' ' << v.getSigmaYZ() << ' ' << v.getSigmaZ2() << '\n';
+  return os;
+}
+
+void VertexBase::print() const
+{
+  std::cout << *this << std::endl;
+}
+#endif
+
+} // namespace dataformats
+} // namespace o2

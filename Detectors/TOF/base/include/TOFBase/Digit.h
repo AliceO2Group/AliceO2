@@ -58,7 +58,7 @@ class Digit
 
   void merge(Int_t tdc, Int_t tot);
 
-  void getPhiAndEtaIndex(int& phi, int& eta);
+  void getPhiAndEtaIndex(int& phi, int& eta) const;
 
   Bool_t isUsedInCluster() const { return mIsUsedInCluster; }
 
@@ -110,9 +110,7 @@ struct ReadoutWindowData {
   gsl::span<const Digit> getBunchChannelData(const gsl::span<const Digit> tfdata) const
   {
     // extract the span of channel data for this readout window from the whole TF data
-    if (!ref.getEntries())
-      return gsl::span<const Digit>(nullptr, ref.getEntries());
-    return gsl::span<const Digit>(&tfdata[ref.getFirstEntry()], ref.getEntries());
+    return ref.getEntries() ? gsl::span<const Digit>(&tfdata[ref.getFirstEntry()], ref.getEntries()) : gsl::span<const Digit>();
   }
 
   ReadoutWindowData() = default;

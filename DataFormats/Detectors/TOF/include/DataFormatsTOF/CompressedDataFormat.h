@@ -32,10 +32,11 @@ struct Word_t {
 
 struct CrateHeader_t {
   uint32_t bunchID : 12;
-  uint32_t slotEnableMask : 11;
+  uint32_t slotPartMask : 11;
   uint32_t undefined : 1;
   uint32_t drmID : 7;
   uint32_t mustBeOne : 1;
+  static const uint32_t slotEnableMask = 0x0; // deprecated
 };
 
 struct CrateOrbit_t {
@@ -61,6 +62,7 @@ struct PackedHit_t {
 struct CrateTrailer_t {
   uint32_t numberOfDiagnostics : 4;
   uint32_t eventCounter : 12;
+  uint32_t numberOfErrors : 9;
   uint32_t undefined : 15;
   uint32_t mustBeOne : 1;
 };
@@ -68,6 +70,15 @@ struct CrateTrailer_t {
 struct Diagnostic_t {
   uint32_t slotID : 4;
   uint32_t faultBits : 28;
+};
+
+struct Error_t {
+  uint32_t errorFlags : 15;
+  uint32_t undefined : 4;
+  uint32_t slotID : 4;
+  uint32_t chain : 1;
+  uint32_t tdcID : 4;
+  uint32_t mustBeSix : 4;
 };
 
 /** union **/
@@ -83,30 +94,66 @@ union Union_t {
 };
 
 } // namespace compressed
+
+namespace diagnostic
+{
+
+/** DRM diagnostic bits, 12 bits [4-15] **/
+enum EDRMDiagnostic_t {
+  DRM_HEADER_MISSING = 1 << 4, // start from BIT(4)
+  DRM_TRAILER_MISSING = 1 << 5,
+  DRM_FEEID_MISMATCH = 1 << 6,
+  DRM_ORBIT_MISMATCH = 1 << 7,
+  DRM_CRC_MISMATCH = 1 << 8,
+  DRM_ENAPARTMASK_DIFFER = 1 << 9,
+  DRM_CLOCKSTATUS_WRONG = 1 << 10,
+  DRM_FAULTSLOTMASK_NOTZERO = 1 << 11,
+  DRM_READOUTTIMEOUT_NOTZERO = 1 << 12,
+  DRM_EVENTWORDS_MISMATCH = 1 << 13,
+  DRM_MAXDIAGNOSTIC_BIT = 1 << 16 // end before BIT(16)
+};
+
+/** LTM diagnostic bits **/
+enum ELTMDiagnostic_t {
+  LTM_HEADER_MISSING = 1 << 4, // start from BIT(4)
+  LTM_TRAILER_MISSING = 1 << 5,
+  LTM_HEADER_UNEXPECTED = 1 << 7,
+  LTM_MAXDIAGNOSTIC_BIT = 1 << 16 // end before BIT(16)
+};
+
+/** TRM diagnostic bits, 12 bits [4-15] **/
+enum ETRMDiagnostic_t {
+  TRM_HEADER_MISSING = 1 << 4, // start from BIT(4)
+  TRM_TRAILER_MISSING = 1 << 5,
+  TRM_CRC_MISMATCH = 1 << 6,
+  TRM_HEADER_UNEXPECTED = 1 << 7,
+  TRM_EVENTCNT_MISMATCH = 1 << 8,
+  TRM_EMPTYBIT_NOTZERO = 1 << 9,
+  TRM_LBIT_NOTZERO = 1 << 10,
+  TRM_FAULTSLOTBIT_NOTZERO = 1 << 11,
+  TRM_EVENTWORDS_MISMATCH = 1 << 12,
+  TRM_DIAGNOSTIC_SPARE1 = 1 << 13,
+  TRM_DIAGNOSTIC_SPARE2 = 1 << 14,
+  TRM_DIAGNOSTIC_SPARE3 = 1 << 15,
+  TRM_MAXDIAGNOSTIC_BIT = 1 << 16 // end before BIT(16)
+};
+
+/** TRM Chain diagnostic bits, 8 bits [16-23] chainA [24-31] chainB **/
+enum ETRMChainDiagnostic_t {
+  TRMCHAIN_HEADER_MISSING = 1 << 16, // start from BIT(14), BIT(24)
+  TRMCHAIN_TRAILER_MISSING = 1 << 17,
+  TRMCHAIN_STATUS_NOTZERO = 1 << 18,
+  TRMCHAIN_EVENTCNT_MISMATCH = 1 << 19,
+  TRMCHAIN_TDCERROR_DETECTED = 1 << 20,
+  TRMCHAIN_BUNCHCNT_MISMATCH = 1 << 21,
+  TRMCHAIN_DIAGNOSTIC_SPARE1 = 1 << 22,
+  TRMCHAIN_DIAGNOSTIC_SPARE2 = 1 << 23,
+  TRMCHAIN_MAXDIAGNOSTIC_BIT = 1 << 24 // end before BIT(23), BIT(32)
+};
+
+} // namespace diagnostic
+
 } // namespace tof
 } // namespace o2
-
-#define DIAGNOSTIC_DRM_HEADER_MISSING 0x80000000
-#define DIAGNOSTIC_DRM_TRAILER_MISSING 0x40000000
-#define DIAGNOSTIC_DRM_CRC 0x20000000
-#define DIAGNOSTIC_DRM_ENAPARTMASK_DIFFER 0x08000000
-#define DIAGNOSTIC_DRM_CLOCKSTATUS_WRONG 0x04000000
-#define DIAGNOSTIC_DRM_FAULTSLOTMASK_NOTZERO 0x02000000
-#define DIAGNOSTIC_DRM_READOUTTIMEOUT_NOTZERO 0x01000000
-
-#define DIAGNOSTIC_TRM_HEADER_MISSING 0x80000000
-#define DIAGNOSTIC_TRM_TRAILER_MISSING 0x40000000
-#define DIAGNOSTIC_TRM_CRC 0x20000000
-#define DIAGNOSTIC_TRM_HEADER_UNEXPECTED 0x20000000
-#define DIAGNOSTIC_TRM_EVENTCNT_MISMATCH 0x08000000
-#define DIAGNOSTIC_TRM_EMPTYBIT_NOTZERO 0x06000000
-#define DIAGNOSTIC_TRM_LBIT 0x02000000
-
-#define DIAGNOSTIC_TRMCHAIN_HEADER_MISSING(x) (0x00080000 << (8 * x))
-#define DIAGNOSTIC_TRMCHAIN_TRAILER_MISSING(x) (0x00040000 << (8 * x))
-#define DIAGNOSTIC_TRMCHAIN_STATUS_NOTZERO(x) (0x00020000 << (8 * x))
-#define DIAGNOSTIC_TRMCHAIN_EVENTCNT_MISMATCH(x) (0x00008000 << (8 * x))
-#define DIAGNOSTIC_TRMCHAIN_TDCERROR_DETECTED(x) (0x00004000 << (8 * x))
-#define DIAGNOSTIC_TRMCHAIN_BUNCHCNT_MISMATCH(x) (0x00002000 << (8 * x))
 
 #endif /** O2_TOF_CMPDATAFORMAT **/

@@ -16,6 +16,7 @@
 
 #include <Rtypes.h>
 #include <ITSMFTSimulation/AlpideSignalTrapezoid.h>
+#include "ITSMFTBase/DPLAlpideParam.h"
 
 ////////////////////////////////////////////////////////////
 //                                                        //
@@ -48,6 +49,9 @@ class DigiParams
 
   void setContinuous(bool v) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
+
+  int getROFrameLengthInBC() const { return mROFrameLengthInBC; }
+  void setROFrameLengthInBC(int n) { mROFrameLengthInBC = n; }
 
   void setROFrameLength(float ns);
   float getROFrameLength() const { return mROFrameLength; }
@@ -86,9 +90,10 @@ class DigiParams
   static constexpr double infTime = 1e99;
   bool mIsContinuous = false;        ///< flag for continuous simulation
   float mNoisePerPixel = 1.e-7;      ///< ALPIDE Noise per chip
-  float mROFrameLength = 6000.;      ///< length of RO frame in ns
-  float mStrobeDelay = 6000.;        ///< strobe start (in ns) wrt ROF start
-  float mStrobeLength = 100.;        ///< length of the strobe in ns (sig. over threshold checked in this window only)
+  int mROFrameLengthInBC = 0;        ///< ROF length in BC for continuos mode
+  float mROFrameLength = 0;          ///< length of RO frame in ns
+  float mStrobeDelay = 0.;           ///< strobe start (in ns) wrt ROF start
+  float mStrobeLength = 0;           ///< length of the strobe in ns (sig. over threshold checked in this window only)
   double mTimeOffset = -2 * infTime; ///< time offset (in seconds!) to calculate ROFrame from hit time
 
   int mChargeThreshold = 150;              ///< charge threshold in Nelectrons
@@ -104,7 +109,7 @@ class DigiParams
   float mROFrameLengthInv = 0; ///< inverse length of RO frame in ns
   float mNSimStepsInv = 0;     ///< its inverse
 
-  ClassDefNV(DigiParams, 1);
+  ClassDefNV(DigiParams, 2);
 };
 } // namespace itsmft
 } // namespace o2

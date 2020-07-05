@@ -33,8 +33,8 @@ BOOST_AUTO_TEST_CASE(InteractionSampler)
   defSampler.generateCollisionTimes(records);
   double t = -1.;
   for (const auto& rec : records) {
-    BOOST_CHECK(rec.timeNS >= t); // make sure time is non-decreasing
-    t = rec.timeNS;
+    BOOST_CHECK(rec.getTimeNS() >= t); // make sure time is non-decreasing
+    t = rec.getTimeNS();
   }
 
   printf("\nTesting sampler with custom bunch filling and low mu\n");
@@ -55,14 +55,14 @@ BOOST_AUTO_TEST_CASE(InteractionSampler)
   sampler1.generateCollisionTimes(records);
   t = -1.;
   for (const auto& rec : records) {
-    BOOST_CHECK(rec.timeNS >= t); // make sure time is non-decreasing
-    t = rec.timeNS;
+    BOOST_CHECK(rec.getTimeNS() >= t); // make sure time is non-decreasing
+    t = rec.getTimeNS();
   }
 
   // make sure the IR corresponds to declared one
   records.reserve((int)sampler1.getInteractionRate());
   sampler1.generateCollisionTimes(records);
-  double dt = (records.back().timeNS - records.front().timeNS) * 1.e-9;
+  double dt = (records.back().getTimeNS() - records.front().getTimeNS()) * 1.e-9;
   printf("\nGenerated %d collisions with time span %.3fs at IR=%e\n",
          (int)records.size(), dt, sampler1.getInteractionRate());
   BOOST_CHECK(std::abs(dt - 1.) < 0.1);
@@ -78,8 +78,8 @@ BOOST_AUTO_TEST_CASE(InteractionSampler)
     auto rec = sampler1.generateCollisionTime();
     rec.print();
     // make sure time is non-decreasing and the BC is interacting
-    BOOST_CHECK(rec.timeNS >= t && sampler1.getBunchFilling().testBC(rec.bc));
-    t = rec.timeNS;
+    BOOST_CHECK(rec.getTimeNS() >= t && sampler1.getBunchFilling().testBC(rec.bc));
+    t = rec.getTimeNS();
   }
   sampler1.print();
   sampler1.getBunchFilling().print();

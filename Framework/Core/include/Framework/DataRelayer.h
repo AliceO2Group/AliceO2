@@ -10,6 +10,7 @@
 #ifndef FRAMEWORK_DATARELAYER_H
 #define FRAMEWORK_DATARELAYER_H
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/InputRoute.h"
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/ForwardRoute.h"
@@ -47,6 +48,11 @@ class DataRelayer
     WillNotRelay
   };
 
+  struct ActivityStats {
+    int newSlots = 0;
+    int expiredSlots = 0;
+  };
+
   struct RecordAction {
     TimesliceSlot slot;
     CompletionPolicy::CompletionOp op;
@@ -61,8 +67,8 @@ class DataRelayer
   /// entry in the cache and if it returns true, it creates a new
   /// cache entry by invoking the associated `InputRoute::expirationHandler`.
   /// @return true if there were expirations, false if not.
-  bool processDanglingInputs(std::vector<ExpirationHandler> const&,
-                             ServiceRegistry& context);
+  ActivityStats processDanglingInputs(std::vector<ExpirationHandler> const&,
+                                      ServiceRegistry& context);
 
   /// This is used to ask for relaying a given (header,payload) pair.
   /// Notice that we expect that the header is an O2 Header Stack
@@ -71,7 +77,7 @@ class DataRelayer
                     std::unique_ptr<FairMQMessage>&& payload);
 
   /// @returns the actions ready to be performed.
-  std::vector<RecordAction> getReadyToProcess();
+  void getReadyToProcess(std::vector<RecordAction>& completed);
 
   /// Returns an input registry associated to the given timeslice and gives
   /// ownership to the caller. This is because once the inputs are out of the

@@ -42,7 +42,7 @@ namespace event_visualisation
 DataInterpreterITS::DataInterpreterITS()
 {
   //Prepare coordinate translator
-  base::GeometryManager::loadGeometry("O2geometry.root", "FAIRGeom");
+  base::GeometryManager::loadGeometry();
   its::GeometryTGeo* gman = its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot));
 }

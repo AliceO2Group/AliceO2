@@ -32,6 +32,8 @@ struct DataProcessorInfo {
   std::vector<std::string> cmdLineArgs;
   /// The workflow options which are available for the associated DataProcessorSpec
   std::vector<ConfigParamSpec> workflowOptions;
+  /// The channels for a given dataprocessor
+  std::vector<std::string> channels;
 };
 
 } // namespace framework

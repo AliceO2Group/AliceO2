@@ -18,7 +18,7 @@ namespace o2
 namespace fv0
 {
 
-o2::framework::DataProcessorSpec getFV0DigitizerSpec(int channel);
+o2::framework::DataProcessorSpec getFV0DigitizerSpec(int channel, bool mctruth = true);
 
 } // namespace fv0
 } // end namespace o2

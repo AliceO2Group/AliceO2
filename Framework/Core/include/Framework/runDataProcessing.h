@@ -19,6 +19,7 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/BoostOptionsRetriever.h"
 #include "Framework/CustomWorkflowTerminationHook.h"
+#include "Framework/CommonServices.h"
 
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
@@ -28,16 +29,17 @@
 #include <cstring>
 #include <exception>
 
-namespace o2
+namespace boost
 {
-namespace framework
+class exception;
+}
+
+namespace o2::framework
 {
 using Inputs = std::vector<InputSpec>;
 using Outputs = std::vector<OutputSpec>;
 using Options = std::vector<ConfigParamSpec>;
-
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 /// To be implemented by the user to specify one or more DataProcessorSpec.
 ///
@@ -70,6 +72,11 @@ void defaultConfiguration(std::vector<o2::framework::ChannelConfigurationPolicy>
 void defaultConfiguration(std::vector<o2::framework::ConfigParamSpec>& globalWorkflowOptions) {}
 void defaultConfiguration(std::vector<o2::framework::CompletionPolicy>& completionPolicies) {}
 void defaultConfiguration(std::vector<o2::framework::DispatchPolicy>& dispatchPolicies) {}
+void defaultConfiguration(std::vector<o2::framework::ServiceSpec>& services)
+{
+  services = o2::framework::CommonServices::defaultServices();
+}
+
 void defaultConfiguration(o2::framework::OnWorkflowTerminationHook& hook)
 {
   hook = [](const char*) {};
@@ -105,6 +112,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
            std::vector<o2::framework::ConfigParamSpec> const& workflowOptions,
            o2::framework::ConfigContext& configContext);
 
+void doBoostException(boost::exception& e);
+
 int main(int argc, char** argv)
 {
   using namespace o2::framework;
@@ -135,12 +144,22 @@ int main(int argc, char** argv)
     auto defaultDispatchPolicies = DispatchPolicy::createDefaultPolicies();
     dispatchPolicies.insert(std::end(dispatchPolicies), std::begin(defaultDispatchPolicies), std::end(defaultDispatchPolicies));
 
-    std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(workflowOptions, true, argc, argv)};
-    ConfigParamRegistry workflowOptionsRegistry(std::move(retriever));
+    std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+    std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(true, argc, argv)};
+    retrievers.emplace_back(std::move(retriever));
+    auto workflowOptionsStore = std::make_unique<ConfigParamStore>(workflowOptions, std::move(retrievers));
+    workflowOptionsStore->preload();
+    workflowOptionsStore->activate();
+    ConfigParamRegistry workflowOptionsRegistry(std::move(workflowOptionsStore));
     ConfigContext configContext(workflowOptionsRegistry, argc, argv);
     o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
     overridePipeline(configContext, specs);
+    for (auto& spec : specs) {
+      UserCustomizationsHelper::userDefinedCustomization(spec.requiredServices, 0);
+    }
     result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, workflowOptions, configContext);
+  } catch (boost::exception& e) {
+    doBoostException(e);
   } catch (std::exception const& error) {
     LOG(ERROR) << "error while setting up workflow: " << error.what();
   } catch (...) {

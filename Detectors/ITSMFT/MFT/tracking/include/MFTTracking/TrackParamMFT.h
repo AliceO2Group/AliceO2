@@ -19,16 +19,14 @@
 #include <TMatrixD.h>
 #include <TMath.h>
 
-#include "DataFormatsITSMFT/Cluster.h"
 #include "MFTBase/Constants.h"
+#include "MFTTracking/Cluster.h"
 
 namespace o2
 {
 namespace mft
 {
 
-//class Cluster;
-//using o2::itsmft::Cluster;
 
 /// track parameters for internal use
 class TrackParamMFT
@@ -117,9 +115,9 @@ class TrackParamMFT
   void setSmoothCovariances(const TMatrixD& covariances);
 
   /// get pointer to associated cluster
-  const o2::itsmft::Cluster* getClusterPtr() const { return mClusterPtr; }
+  const Cluster* getClusterPtr() const { return mClusterPtr; }
   /// set pointer to associated cluster
-  void setClusterPtr(const o2::itsmft::Cluster* cluster) { mClusterPtr = cluster; }
+  void setClusterPtr(const Cluster* cluster) { mClusterPtr = cluster; }
 
   /// return true if the associated cluster can be removed from the track it belongs to
   Bool_t isRemovable() const { return mRemovable; }
@@ -170,7 +168,7 @@ class TrackParamMFT
   mutable std::unique_ptr<TMatrixD> mSmoothParameters{};  ///< Track parameters obtained using smoother
   mutable std::unique_ptr<TMatrixD> mSmoothCovariances{}; ///< Covariance matrix obtained using smoother
 
-  const o2::itsmft::Cluster* mClusterPtr = nullptr; ///< Pointer to the associated cluster if any
+  const Cluster* mClusterPtr = nullptr; ///< Pointer to the associated cluster if any
 
   Bool_t mRemovable = false; ///< kTRUE if the associated cluster can be removed from the track it belongs to
 

@@ -12,10 +12,15 @@
 /// \brief Laser track parameters
 /// \author Jens Wiechula, jens.wiechula@ikf.uni-frankfurt.de
 
+#include <memory>
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <vector>
 #include <FairMQLogger.h>
+
+#include "TFile.h"
+#include "TTree.h"
 
 #include "DataFormatsTPC/LaserTrack.h"
 
@@ -44,4 +49,23 @@ void LaserTrackContainer::loadTracksFromFile()
     //printf("%3d: %f %f %f %f %f %f %f \n", id, x, alpha, p0, p1, p2, p3, p4);
     mLaserTracks[id] = LaserTrack(id, x, alpha, {p0, p1, p2, p3, p4});
   }
+}
+
+void LaserTrackContainer::dumpToTree(const std::string_view fileName)
+{
+  LaserTrackContainer c;
+  c.loadTracksFromFile();
+  const auto& tracks = c.getLaserTracks();
+  std::vector<LaserTrack> vtracks;
+
+  for (const auto& track : tracks) {
+    vtracks.emplace_back(track);
+  }
+
+  std::unique_ptr<TFile> fout(TFile::Open(fileName.data(), "recreate"));
+  TTree t("laserTracks", "Laser Tracks");
+  t.Branch("tracks", &vtracks);
+  t.Fill();
+  fout->Write();
+  fout->Close();
 }

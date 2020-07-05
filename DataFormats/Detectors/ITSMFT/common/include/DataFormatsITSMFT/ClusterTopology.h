@@ -23,6 +23,8 @@
 #ifndef ALICEO2_ITSMFT_CLUSTERTOPOLOGY_H
 #define ALICEO2_ITSMFT_CLUSTERTOPOLOGY_H
 #include "DataFormatsITSMFT/ClusterPattern.h"
+#include <map>
+#include <iosfwd>
 
 namespace o2
 {
@@ -34,7 +36,9 @@ class ClusterTopology
   /// Default constructor
   ClusterTopology();
   /// Standard constructor
-  ClusterTopology(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  ClusterTopology(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes]);
+  /// Constructor
+  ClusterTopology(const ClusterPattern& patt);
 
   /// Returns a specific byte of the pattern
   unsigned char getByte(int n) const { return mPattern.getByte(n); }
@@ -52,14 +56,16 @@ class ClusterTopology
   /// Prints the topology
   friend std::ostream& operator<<(std::ostream& os, const ClusterTopology& top);
   /// Prints to the stdout
-  void print() const { std::cout << (*this) << "\n"; }
+  void print() const;
   /// MurMur2 hash fucntion
   static unsigned int hashFunction(const void* key, int len);
   /// Compute the complete hash as defined for mHash
-  static unsigned long getCompleteHash(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  static unsigned long getCompleteHash(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes]);
   static unsigned long getCompleteHash(const ClusterTopology& topology);
   /// Sets the pattern
-  void setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  void setPattern(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes]);
+  /// Sets the pattern
+  void setPattern(const ClusterPattern& patt);
 
   ///Helper function useful for analyses with topologies stored on a separate branch
   static void makeRareTopologyMap(const std::vector<ClusterTopology>& vec, std::map<int, ClusterPattern>& map)
@@ -69,8 +75,6 @@ class ClusterTopology
       map[key] = topo.getClusterPattern();
     }
   }
-
-  friend class Clusterer;
 
  private:
   void setHash(unsigned long hash) { mHash = hash; }

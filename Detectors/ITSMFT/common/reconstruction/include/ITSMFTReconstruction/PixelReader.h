@@ -42,6 +42,9 @@ class PixelReader
   virtual void init() = 0;
   virtual bool getNextChipData(ChipPixelData& chipData) = 0;
   virtual ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) = 0;
+
+  // prepare data of next trigger, return number of non-empty links or chips
+  virtual int decodeNextTrigger() = 0;
   virtual const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* getDigitsMCTruth() const
   {
     return nullptr;
@@ -58,12 +61,16 @@ class PixelReader
   {
     return mTrigger;
   }
+
+  bool getDecodeNextAuto() const { return mDecodeNextAuto; }
+  void setDecodeNextAuto(bool v) { mDecodeNextAuto = v; }
   //
  protected:
   //
   o2::InteractionRecord mInteractionRecordHB = {}; // interation record for the HB
   o2::InteractionRecord mInteractionRecord = {};   // interation record for the trigger
   uint32_t mTrigger = 0;
+  bool mDecodeNextAuto = true; // try to fetch/decode next trigger when getNextChipData does not see any decoded data
 
   ClassDef(PixelReader, 1);
 };

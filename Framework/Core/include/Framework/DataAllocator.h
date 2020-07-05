@@ -10,12 +10,9 @@
 #ifndef FRAMEWORK_DATAALLOCATOR_H
 #define FRAMEWORK_DATAALLOCATOR_H
 
-#include "Framework/ContextRegistry.h"
 #include "Framework/MessageContext.h"
 #include "Framework/StringContext.h"
-#include "Framework/ArrowContext.h"
 #include "Framework/RawBufferContext.h"
-#include "CommonUtils/BoostSerializer.h"
 #include "Framework/Output.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputRoute.h"
@@ -27,7 +24,7 @@
 #include "Framework/Traits.h"
 #include "Framework/SerializationMethods.h"
 #include "Framework/CheckTypes.h"
-#include "Framework/TableTreeHelpers.h"
+#include "Framework/ServiceRegistry.h"
 
 #include "Headers/DataHeader.h"
 #include <TClass.h>
@@ -48,6 +45,7 @@ class FairMQMessage;
 namespace arrow
 {
 class Schema;
+class Table;
 
 namespace ipc
 {
@@ -59,14 +57,7 @@ namespace o2
 {
 namespace framework
 {
-class ContextRegistry;
-
-namespace
-{
-template <typename T>
-struct type_dependent : std::false_type {
-};
-} // namespace
+class ServiceRegistry;
 
 #define ERROR_STRING                                          \
   "data type T not supported by API, "                        \
@@ -90,7 +81,7 @@ class DataAllocator
   using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
   DataAllocator(TimingInfo* timingInfo,
-                ContextRegistry* contextes,
+                ServiceRegistry* contextes,
                 const AllowedOutputRoutes& routes);
 
   DataChunk& newChunk(const Output&, size_t);
@@ -113,20 +104,20 @@ class DataAllocator
       // has a root dictionary, so non-serialized transmission is preferred
       using ValueType = typename T::value_type;
       std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
-      auto context = mContextRegistry->get<MessageContext>();
+      auto& context = mRegistry->get<MessageContext>();
 
       // Note: initial payload size is 0 and will be set by the context before sending
       FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, 0);
-      return context->add<MessageContext::VectorObject<ValueType>>(std::move(headerMessage), channel, 0, std::forward<Args>(args)...).get();
+      return context.add<MessageContext::VectorObject<ValueType>>(std::move(headerMessage), channel, 0, std::forward<Args>(args)...).get();
     } else if constexpr (has_root_dictionary<T>::value == true && is_messageable<T>::value == false) {
       // Extended support for types implementing the Root ClassDef interface, both TObject
       // derived types and others
       std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
-      auto context = mContextRegistry->get<MessageContext>();
+      auto& context = mRegistry->get<MessageContext>();
 
       // Note: initial payload size is 0 and will be set by the context before sending
       FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodROOT, 0);
-      return context->add<MessageContext::RootSerializedObject<T>>(std::move(headerMessage), channel, std::forward<Args>(args)...).get();
+      return context.add<MessageContext::RootSerializedObject<T>>(std::move(headerMessage), channel, std::forward<Args>(args)...).get();
     } else if constexpr (std::is_base_of_v<std::string, T>) {
       std::string* s = new std::string(args...);
       adopt(spec, s);
@@ -139,13 +130,14 @@ class DataAllocator
       });
       return *tb;
     } else if constexpr (std::is_base_of_v<struct TreeToTable, T>) {
-      TreeToTable* t2t = nullptr;
+      void* t2tr = nullptr;
       call_if_defined<struct TreeToTable>([&](auto* p) {
-        t2t = new std::decay_t<decltype(*p)>(args...);
-        t2t->AddAllColumns();
+        auto t2t = new std::decay_t<decltype(*p)>(args...);
+        t2t->addAllColumns();
         adopt(spec, t2t);
+        t2tr = t2t;
       });
-      return *t2t;
+      return *reinterpret_cast<TreeToTable*>(t2tr);
     } else if constexpr (sizeof...(Args) == 0) {
       if constexpr (is_messageable<T>::value == true) {
         return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
@@ -163,10 +155,10 @@ class DataAllocator
           auto [nElements] = std::make_tuple(args...);
           auto size = nElements * sizeof(T);
           std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
-          auto context = mContextRegistry->get<MessageContext>();
+          auto& context = mRegistry->get<MessageContext>();
 
           FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, size);
-          return context->add<MessageContext::SpanObject<T>>(std::move(headerMessage), channel, 0, nElements).get();
+          return context.add<MessageContext::SpanObject<T>>(std::move(headerMessage), channel, 0, nElements).get();
         }
       } else if constexpr (std::is_same_v<FirstArg, std::shared_ptr<arrow::Schema>>) {
         if constexpr (std::is_base_of_v<arrow::ipc::RecordBatchWriter, T>) {
@@ -208,6 +200,10 @@ class DataAllocator
   void
     adopt(const Output& spec, struct TreeToTable*);
 
+  /// Adopt an Arrow table and send it to all consumers of @a spec
+  void
+    adopt(const Output& spec, std::shared_ptr<class arrow::Table>);
+
   /// Adopt a raw buffer in the framework and serialize / send
   /// it to the consumers of @a spec once done.
   template <typename T>
@@ -238,7 +234,7 @@ class DataAllocator
       delete tmpPtr;
     };
 
-    mContextRegistry->get<RawBufferContext>()->addRawBuffer(std::move(header), std::move(payload), std::move(channel), std::move(lambdaSerialize), std::move(lambdaDestructor));
+    mRegistry->get<RawBufferContext>().addRawBuffer(std::move(header), std::move(payload), std::move(channel), std::move(lambdaSerialize), std::move(lambdaDestructor));
   }
 
   /// Send a snapshot of an object, depending on the object type it is serialized before.
@@ -263,7 +259,7 @@ class DataAllocator
   template <typename T>
   void snapshot(const Output& spec, T const& object)
   {
-    auto proxy = mContextRegistry->get<MessageContext>()->proxy();
+    auto proxy = mRegistry->get<MessageContext>().proxy();
     FairMQMessagePtr payloadMessage;
     auto serializationType = o2::header::gSerializationMethodNone;
     if constexpr (is_messageable<T>::value == true) {
@@ -386,8 +382,8 @@ class DataAllocator
   o2::pmr::FairMQMemoryResource* getMemoryResource(const Output& spec)
   {
     std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
-    auto context = mContextRegistry->get<MessageContext>();
-    return *context->proxy().getTransport(channel);
+    auto& context = mRegistry->get<MessageContext>();
+    return *context.proxy().getTransport(channel);
   }
 
   //make a stl (pmr) vector
@@ -408,15 +404,15 @@ class DataAllocator
     // and put it in the queue to be sent at the end of the processing
     std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
 
-    auto context = mContextRegistry->get<MessageContext>();
-    FairMQMessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), *context->proxy().getTransport(channel));
+    auto& context = mRegistry->get<MessageContext>();
+    FairMQMessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), *context.proxy().getTransport(channel));
 
     FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
                                                              o2::header::gSerializationMethodNone, //
                                                              payloadMessage->GetSize()             //
     );
 
-    context->add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
+    context.add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
   }
 
   /// snapshot object and route to output specified by OutputRef
@@ -430,10 +426,23 @@ class DataAllocator
     return snapshot(getOutputByBind(std::move(ref)), std::forward<Args>(args)...);
   }
 
+  /// check if a certain output is allowed
+  bool isAllowed(Output const& query);
+
+  o2::header::DataHeader* findMessageHeader(const Output& spec)
+  {
+    return mRegistry->get<MessageContext>().findMessageHeader(spec);
+  }
+
+  o2::header::DataHeader* findMessageHeader(OutputRef&& ref)
+  {
+    return mRegistry->get<MessageContext>().findMessageHeader(getOutputByBind(std::move(ref)));
+  }
+
  private:
   AllowedOutputRoutes mAllowedOutputRoutes;
   TimingInfo* mTimingInfo;
-  ContextRegistry* mContextRegistry;
+  ServiceRegistry* mRegistry;
 
   std::string const& matchDataHeader(const Output& spec, size_t timeframeId);
   FairMQMessagePtr headerMessageFromOutput(Output const& spec,                                  //
@@ -445,11 +454,6 @@ class DataAllocator
   void addPartToContext(FairMQMessagePtr&& payload,
                         const Output& spec,
                         o2::header::SerializationMethod serializationMethod);
-
-  /// Fills the passed arrow::ipc::BatchRecordWriter in the framework and
-  /// have it serialise / send data as RecordBatches to all consumers
-  /// of @a spec once done.
-  void create(const Output& spec, std::shared_ptr<arrow::ipc::RecordBatchWriter>*, std::shared_ptr<arrow::Schema>);
 };
 
 } // namespace framework

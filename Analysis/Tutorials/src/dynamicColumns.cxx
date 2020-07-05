@@ -15,9 +15,9 @@ namespace o2::aod
 {
 namespace etaphi
 {
-DECLARE_SOA_COLUMN(Tgl, tgl, float, "fTgl");
-DECLARE_SOA_COLUMN(Snp, snp, float, "fSnp");
-DECLARE_SOA_COLUMN(Alpha, alpha, float, "fAlpha");
+DECLARE_SOA_COLUMN(Tgl, tgl, float);
+DECLARE_SOA_COLUMN(Snp, snp, float);
+DECLARE_SOA_COLUMN(Alpha, alpha, float);
 DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float tgl) { return log(tan(0.25 * M_PI - 0.5 * atan(tgl))); });
 DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) { return asin(snp) + alpha + M_PI; });
 } // namespace etaphi

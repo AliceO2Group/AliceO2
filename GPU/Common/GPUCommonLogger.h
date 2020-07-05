@@ -14,7 +14,10 @@
 #ifndef GPUCOMMONFAIRLOGGER_H
 #define GPUCOMMONFAIRLOGGER_H
 
-#if defined(GPUCA_STANDALONE) ||                      \
+#if defined(__OPENCL__)
+#define LOG(...)
+#define LOGF(...)
+#elif defined(GPUCA_STANDALONE) ||                    \
   defined(GPUCA_ALIROOT_LIB) ||                       \
   defined(GPUCA_GPUCODE_DEVICE) ||                    \
   (!defined(__cplusplus) || __cplusplus < 201703L) || \

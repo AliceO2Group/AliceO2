@@ -43,7 +43,7 @@ void GeometryBuilder::buildGeometry()
 
   LOG(INFO) << "GeometryBuilder::buildGeometry volume name = " << GeometryTGeo::getMFTVolPattern();
 
-  TGeoVolume* vALIC = gGeoManager->GetVolume("cave");
+  TGeoVolume* vALIC = gGeoManager->GetVolume("barrel");
   if (!vALIC) {
     LOG(FATAL) << "Could not find the top volume";
   }
@@ -100,5 +100,5 @@ void GeometryBuilder::buildGeometry()
     volMFT->AddNode(halfpatchpanel1, 1, p_patchpanel1);
   }
 
-  vALIC->AddNode(volMFT, 0);
+  vALIC->AddNode(volMFT, 0, new TGeoTranslation(0., 30., 0.));
 }

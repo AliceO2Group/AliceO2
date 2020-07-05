@@ -14,6 +14,7 @@
 #define O2_FDD_RECPOINTREADER
 
 #include "TFile.h"
+#include "TTree.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -35,7 +36,11 @@ class RecPointReader : public Task
   void run(ProcessingContext& pc) final;
 
  private:
-  bool mFinished = false;
+  void connectTree(const std::string& filename);
+
+  std::unique_ptr<TFile> mFile;
+  std::unique_ptr<TTree> mTree;
+
   bool mUseMC = true; // use MC truth
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFDD;
 

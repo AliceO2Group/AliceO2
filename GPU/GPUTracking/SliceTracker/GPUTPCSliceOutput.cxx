@@ -14,13 +14,14 @@
 #include "GPUOutputControl.h"
 #include "GPUTPCSliceOutput.h"
 #include "GPUCommonMath.h"
+#include <atomic>
 
 using namespace GPUCA_NAMESPACE::gpu;
 
 unsigned int GPUTPCSliceOutput::EstimateSize(unsigned int nOfTracks, unsigned int nOfTrackClusters)
 {
   // calculate the amount of memory [bytes] needed for the event
-  return sizeof(GPUTPCSliceOutput) + sizeof(GPUTPCSliceOutTrack) * nOfTracks + sizeof(GPUTPCSliceOutCluster) * nOfTrackClusters;
+  return sizeof(GPUTPCSliceOutput) + sizeof(GPUTPCTrack) * nOfTracks + sizeof(GPUTPCSliceOutCluster) * nOfTrackClusters;
 }
 
 #ifndef GPUCA_GPUCODE
@@ -30,13 +31,18 @@ void GPUTPCSliceOutput::Allocate(GPUTPCSliceOutput*& ptrOutput, int nTracks, int
   const size_t memsize = EstimateSize(nTracks, nTrackHits);
 
   if (outputControl && outputControl->OutputType != GPUOutputControl::AllocateInternal) {
+    static std::atomic_flag lock = ATOMIC_FLAG_INIT;
+    while (lock.test_and_set(std::memory_order_acquire)) {
+    }
     if (outputControl->OutputMaxSize - ((char*)outputControl->OutputPtr - (char*)outputControl->OutputBase) < memsize) {
       outputControl->EndOfSpace = 1;
       ptrOutput = nullptr;
+      lock.clear(std::memory_order_release);
       return;
     }
     ptrOutput = reinterpret_cast<GPUTPCSliceOutput*>(outputControl->OutputPtr);
     outputControl->OutputPtr = (char*)outputControl->OutputPtr + memsize;
+    lock.clear(std::memory_order_release);
   } else {
     if (internalMemory) {
       free(internalMemory);

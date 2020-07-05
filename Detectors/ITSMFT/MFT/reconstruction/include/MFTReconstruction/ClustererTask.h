@@ -16,7 +16,6 @@
 #ifndef ALICEO2_MFT_CLUSTERERTASK_H_
 #define ALICEO2_MFT_CLUSTERERTASK_H_
 
-#include "MFTBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "ITSMFTReconstruction/RawPixelReader.h"
@@ -56,35 +55,32 @@ class ClustererTask
   void Init();
   Clusterer& getClusterer() { return mClusterer; }
   void run(const std::string inpName, const std::string outName);
-  void setSelfManagedMode(bool v) { mSelfManagedMode = v; }
-  bool isSelfManagedMode() const { return mSelfManagedMode; }
   o2::itsmft::PixelReader* getReader() const { return (o2::itsmft::PixelReader*)mReader; }
   void loadDictionary(std::string fileName) { mClusterer.loadDictionary(fileName); }
 
+  void writeTree(std::string basename, int i);
+  void setMaxROframe(int max) { maxROframe = max; }
+  int getMaxROframe() const { return maxROframe; }
+
  private:
-  bool mSelfManagedMode = false;                                                      ///< manages itself input output
+  int maxROframe = std::numeric_limits<int>::max();                                   ///< maximal number of RO frames per a file
   bool mRawDataMode = false;                                                          ///< input from raw data or MC digits
   bool mUseMCTruth = true;                                                            ///< flag to use MCtruth if available
   o2::itsmft::PixelReader* mReader = nullptr;                                         ///< Pointer on the relevant Pixel reader
   std::unique_ptr<o2::itsmft::DigitPixelReader> mReaderMC;                            ///< reader for MC data
   std::unique_ptr<o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingMFT>> mReaderRaw; ///< reader for raw data
 
-  const o2::itsmft::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
-  Clusterer mClusterer;                                ///< Cluster finder
+  Clusterer mClusterer; ///< Cluster finder
 
-  std::vector<Cluster> mFullClus;               //!< vector of full clusters
-  std::vector<Cluster>* mFullClusPtr = nullptr; //!< vector of full clusters pointer
+  std::vector<CompClusterExt> mCompClus; //!< vector of compact clusters
 
-  std::vector<CompClusterExt> mCompClus;               //!< vector of compact clusters
-  std::vector<CompClusterExt>* mCompClusPtr = nullptr; //!< vector of compact clusters pointer
+  std::vector<o2::itsmft::ROFRecord> mROFRecVec; //!< vector of ROFRecord references
 
-  std::vector<o2::itsmft::ROFRecord> mROFRecVec;               //!< vector of ROFRecord references
-  std::vector<o2::itsmft::ROFRecord>* mROFRecVecPtr = nullptr; //!< vector of ROFRecord references pointer
+  MCTruth mClsLabels; //! MC labels
 
-  MCTruth mClsLabels;               //! MC labels
-  MCTruth* mClsLabelsPtr = nullptr; //! MC labels pointer (optional)
+  std::vector<unsigned char> mPatterns;
 
-  ClassDefNV(ClustererTask, 1);
+  ClassDefNV(ClustererTask, 2);
 };
 } // namespace mft
 } // namespace o2

@@ -19,8 +19,9 @@
 #include <list>
 #include <memory>
 
-#include "DataFormatsITSMFT/Cluster.h"
+#include "MFTTracking/Cluster.h"
 #include "MFTTracking/TrackParamMFT.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
 {
@@ -45,6 +46,14 @@ class FitterTrackMFT
   /// Return the number of attached clusters
   const int getNClusters() const { return mParamAtClusters.size(); }
 
+  // Set and Get MCCompLabels
+  const std::array<MCCompLabel, 10>& getMCCompLabels() const { return mMCCompLabels; } // constants::mft::LayersNumber = 10
+  void setMCCompLabels(const std::array<MCCompLabel, 10>& labels, int nPoints)
+  {
+    mMCCompLabels = labels;
+    mNPoints = nPoints;
+  }
+
   /// Return a reference to the track parameters at first cluster
   const TrackParamMFT& first() const { return mParamAtClusters.front(); }
   /// Return a reference to the track parameters at last cluster
@@ -63,12 +72,10 @@ class FitterTrackMFT
   auto rend() { return mParamAtClusters.rend(); }
   auto rend() const { return mParamAtClusters.rend(); }
 
-  TrackParamMFT& createParamAtCluster(const o2::itsmft::Cluster& cluster);
+  TrackParamMFT& createParamAtCluster(const Cluster& cluster);
   void addParamAtCluster(const TrackParamMFT& param);
   /// Remove the given track parameters from the internal list and return an iterator to the parameters that follow
   auto removeParamAtCluster(std::list<TrackParamMFT>::iterator& itParam) { return mParamAtClusters.erase(itParam); }
-
-  const int getNClustersInCommon(const FitterTrackMFT& track, int stMin = 0, int stMax = 4) const;
 
   bool isBetter(const FitterTrackMFT& track) const;
 
@@ -95,7 +102,15 @@ class FitterTrackMFT
   /// return the flag telling if this track should be deleted
   bool isRemovable() const { return mRemovable; }
 
-  void print() const;
+  const Int_t getNPoints() const { return mNPoints; }
+
+  // Charge and momentum from quadratic regression of clusters X,Y positions
+  void setInvQPtQuadtratic(Double_t invqpt) { mInvQPtQuadtratic = invqpt; }
+  const Double_t getInvQPtQuadtratic() const { return mInvQPtQuadtratic; } // Inverse charged pt
+  const Double_t getPtQuadtratic() const { return TMath::Abs(1.f / getInvQPtQuadtratic()); }
+  const Double_t getChargeQuadratic() const { return TMath::Sign(1., getInvQPtQuadtratic()); }
+  void setChi2QPtQuadtratic(Double_t chi2) { mQuadraticFitChi2 = chi2; }
+  const Double_t getChi2QPtQuadtratic() const { return mQuadraticFitChi2; }
 
  private:
   TrackParamMFT mParamAtVertex{};                 ///< track parameters at vertex
@@ -104,6 +119,14 @@ class FitterTrackMFT
   int mCurrentLayer = -1;                         ///< current chamber on which the current parameters are given
   bool mConnected = false;                        ///< flag telling if this track shares cluster(s) with another
   bool mRemovable = false;                        ///< flag telling if this track should be deleted
+  Int_t mNPoints{0};                              // Number of clusters
+  std::array<MCCompLabel, 10> mMCCompLabels;      // constants::mft::LayersNumber = 10
+
+  // Results from quadratic regression of clusters X,Y positions
+  // Chi2 of the quadratic regression used to estimate track pT and charge
+  Double_t mQuadraticFitChi2 = 0.;
+  // inversed charged momentum from quadratic regression
+  Double_t mInvQPtQuadtratic;
 };
 
 } // namespace mft

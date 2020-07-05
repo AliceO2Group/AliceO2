@@ -20,6 +20,7 @@
 #include <memory>
 
 using namespace o2::trd;
+class TRootIOCtor;
 
 namespace o2
 {
@@ -30,6 +31,8 @@ class TRDGeometry : public TRDGeometryBase, public o2::detectors::DetMatrixCache
 {
  public:
   ~TRDGeometry() override = default;
+  // A ROOT IO constructor (to silence warnings about missing default constructor)
+  TRDGeometry(TRootIOCtor*) {}
 
   static TRDGeometry* instance()
   {
