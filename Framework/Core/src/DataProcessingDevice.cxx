@@ -78,6 +78,7 @@ namespace o2::framework
 /// Watching stdin for commands probably a better approach.
 void idle_timer(uv_timer_t* handle)
 {
+  ZoneScopedN("Idle timer");
 }
 
 DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry& registry, DeviceState& state)
@@ -154,7 +155,7 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
 /// * Invoke the actual init callback, which returns the processing callback.
 void DataProcessingDevice::Init()
 {
-  TracyAppInfo("foo", 3);
+  TracyAppInfo(mSpec.name.data(), mSpec.name.size());
   ZoneScopedN("DataProcessingDevice::Init");
   mRelayer = &mServiceRegistry.get<DataRelayer>();
   // For some reason passing rateLogging does not work anymore.
@@ -454,7 +455,10 @@ bool DataProcessingDevice::doRun()
     }
   }
   mWasActive = false;
-  mServiceRegistry.get<CallbackService>()(CallbackService::Id::ClockTick);
+  {
+    ZoneScopedN("CallbackService::Id::ClockTick");
+    mServiceRegistry.get<CallbackService>()(CallbackService::Id::ClockTick);
+  }
   // Whether or not we had something to do.
 
   // Notice that fake input channels (InputChannelState::Pull) cannot possibly
@@ -552,6 +556,7 @@ void DataProcessingDevice::ResetTask()
 /// boilerplate which the user does not need to care about at top level.
 bool DataProcessingDevice::handleData(FairMQParts& parts, InputChannelInfo& info)
 {
+  ZoneScopedN("DataProcessingDevice::handleData");
   assert(mSpec.inputChannels.empty() == false);
   assert(parts.Size() > 0);
 
@@ -666,6 +671,7 @@ bool DataProcessingDevice::handleData(FairMQParts& parts, InputChannelInfo& info
 
 bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::RecordAction>& completed)
 {
+  ZoneScopedN("DataProcessingDevice::tryDispatchComputation");
   // This is the actual hidden state for the outer loop. In case we decide we
   // want to support multithreaded dispatching of operations, I can simply
   // move these to some thread local store and the rest of the lambdas
