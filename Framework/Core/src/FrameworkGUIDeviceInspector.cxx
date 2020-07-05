@@ -194,6 +194,15 @@ void displayDeviceInspector(DeviceSpec const& spec,
     (void)retVal;
   }
 
+  ImGui::SameLine();
+#if DPL_ENABLE_TRACING
+  if (ImGui::Button("Tracy")) {
+    setenv("O2DPLTRACING", "tracy-profiler &", 0);
+    int retVal = system(getenv("O2DPLTRACING"));
+    (void)retVal;
+  }
+#endif
+
   deviceInfoTable(info, metrics);
   for (auto& option : info.currentConfig) {
     ImGui::Text("%s: %s", option.first.c_str(), option.second.data().c_str());

@@ -32,6 +32,12 @@
 
 #include "ScopedExit.h"
 
+#ifdef DPL_ENABLE_TRACING
+#define TRACY_ENABLE
+#include <tracy/TracyClient.cpp>
+#endif
+#include <Framework/Tracing.h>
+
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQSocket.h>
 #include <options/FairMQProgOptions.h>
@@ -119,18 +125,22 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
 void on_socket_polled(uv_poll_t* poller, int status, int events)
 {
   switch (events) {
-    case UV_READABLE:
+    case UV_READABLE: {
+      ZoneScopedN("socket readable event");
       LOG(debug) << "socket polled UV_READABLE: " << (char*)poller->data;
-      break;
-    case UV_WRITABLE:
+    } break;
+    case UV_WRITABLE: {
+      ZoneScopedN("socket writeable");
       LOG(debug) << "socket polled UV_WRITEABLE";
-      break;
-    case UV_DISCONNECT:
+    } break;
+    case UV_DISCONNECT: {
+      ZoneScopedN("socket disconnect");
       LOG(debug) << "socket polled UV_DISCONNECT";
-      break;
-    case UV_PRIORITIZED:
+    } break;
+    case UV_PRIORITIZED: {
+      ZoneScopedN("socket prioritized");
       LOG(debug) << "socket polled UV_PRIORITIZED";
-      break;
+    } break;
   }
   // We do nothing, all the logic for now stays in DataProcessingDevice::doRun()
 }
@@ -144,6 +154,8 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
 /// * Invoke the actual init callback, which returns the processing callback.
 void DataProcessingDevice::Init()
 {
+  TracyAppInfo("foo", 3);
+  ZoneScopedN("DataProcessingDevice::Init");
   mRelayer = &mServiceRegistry.get<DataRelayer>();
   // For some reason passing rateLogging does not work anymore.
   // This makes sure we never have more than one notification per minute.
@@ -231,6 +243,7 @@ void DataProcessingDevice::Init()
 
 void on_signal_callback(uv_signal_t* handle, int signum)
 {
+  ZoneScopedN("Signal callaback");
   LOG(debug) << "Signal " << signum << "received." << std::endl;
 }
 
@@ -343,15 +356,19 @@ bool DataProcessingDevice::ConditionalRun()
   // so that devices which do not have a timer can still start an
   // enumeration.
   if (mState.loop) {
+    ZoneScopedN("uv idle");
     uv_run(mState.loop, mWasActive ? UV_RUN_NOWAIT : UV_RUN_ONCE);
   }
-  return DataProcessingDevice::doRun();
+  auto result = DataProcessingDevice::doRun();
+  FrameMark;
+  return result;
 }
 
 /// We drive the state loop ourself so that we will be able to support
 /// non-data triggers like those which are time based.
 bool DataProcessingDevice::doRun()
 {
+  ZoneScopedN("doRun");
   /// This will send metrics for the relayer at regular intervals of
   /// 5 seconds, in order to avoid overloading the system.
   auto sendRelayerMetrics = [relayerStats = mRelayer->getStats(),
@@ -363,6 +380,7 @@ bool DataProcessingDevice::doRun()
     if (currentTime - lastSent < 5000) {
       return;
     }
+    ZoneScopedN("send metrics");
     auto& monitoring = registry.get<Monitoring>();
 
     O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
@@ -402,6 +420,7 @@ bool DataProcessingDevice::doRun()
     if (currentTime - lastFlushed < 1000) {
       return;
     }
+    ZoneScopedN("flush metrics");
     auto& monitoring = registry.get<Monitoring>();
 
     O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
@@ -561,6 +580,7 @@ bool DataProcessingDevice::handleData(FairMQParts& parts, InputChannelInfo& info
   auto getInputTypes = [& stats = mStats, &parts, &info]() -> std::optional<std::vector<InputType>> {
     stats.inputParts = parts.Size();
 
+    TracyPlot("messages received", (int64_t)parts.Size());
     if (parts.Size() % 2) {
       return std::nullopt;
     }
@@ -585,7 +605,9 @@ bool DataProcessingDevice::handleData(FairMQParts& parts, InputChannelInfo& info
         LOGP(error, "DataHeader payloadSize mismatch");
         continue;
       }
+      TracyPlot("payload size", (int64_t)dh->payloadSize);
       auto dph = o2::header::get<DataProcessingHeader*>(parts.At(pi)->GetData());
+      TracyAlloc(parts.At(pi + 1)->GetData(), parts.At(pi + 1)->GetSize());
       if (!dph) {
         results[hi] = InputType::Invalid;
         LOGP(error, "Header stack does not contain DataProcessingHeader");
@@ -744,11 +766,34 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
     }
   };
 
+  // Function to cleanup record. For the moment we
+  // simply use it to keep track of input messages
+  // which are not needed, to display them in the GUI.
+  auto cleanupRecord = [](InputRecord& record) {
+    for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
+      DataRef input = record.getByPos(ii);
+      if (input.header == nullptr) {
+        continue;
+      }
+      auto sih = o2::header::get<SourceInfoHeader*>(input.header);
+      if (sih) {
+        continue;
+      }
+
+      auto dh = o2::header::get<DataHeader*>(input.header);
+      if (!dh) {
+        continue;
+      }
+      TracyFree(input.payload);
+    }
+  };
+
   // This is how we do the forwarding, i.e. we push
   // the inputs which are shared between this device and others
   // to the next one in the daisy chain.
   // FIXME: do it in a smarter way than O(N^2)
   auto forwardInputs = [&reportError, &forwards, &device, &currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
+    ZoneScopedN("forward inputs");
     assert(record.size() == currentSetOfInputs.size());
     // we collect all messages per forward in a map and send them together
     std::unordered_map<std::string, FairMQParts> forwardedParts;
@@ -864,8 +909,11 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
       prepareAllocatorForCurrentTimeSlice(TimesliceSlot{action.slot});
       InputRecord record = fillInputs(action.slot);
       ProcessingContext processContext{record, mServiceRegistry, mAllocator};
-      for (auto& handle : mPreProcessingHandles) {
-        handle.callback(processContext, handle.service);
+      {
+        ZoneScopedN("service pre processing");
+        for (auto& handle : mPreProcessingHandles) {
+          handle.callback(processContext, handle.service);
+        }
       }
       if (action.op == CompletionPolicy::CompletionOp::Discard) {
         if (forwards.empty() == false) {
@@ -884,17 +932,23 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
         if (mState.quitRequested == false) {
 
           if (statefulProcess) {
+            ZoneScopedN("statefull process");
             statefulProcess(processContext);
           }
           if (statelessProcess) {
+            ZoneScopedN("stateless process");
             statelessProcess(processContext);
           }
 
-          for (auto& handle : mPostProcessingHandles) {
-            handle.callback(processContext, handle.service);
+          {
+            ZoneScopedN("service post processing");
+            for (auto& handle : mPostProcessingHandles) {
+              handle.callback(processContext, handle.service);
+            }
           }
         }
       } catch (std::exception& e) {
+        ZoneScopedN("error handling");
         mErrorHandling(e, record);
       }
       for (size_t ai = 0; ai != record.size(); ai++) {
@@ -913,6 +967,9 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
         if (forwards.empty() == false) {
           forwardInputs(action.slot, record);
         }
+#ifdef TRACY_ENABLE
+        cleanupRecord(record);
+#endif
       } else if (action.op == CompletionPolicy::CompletionOp::Process) {
         cleanTimers(action.slot, record);
       }
