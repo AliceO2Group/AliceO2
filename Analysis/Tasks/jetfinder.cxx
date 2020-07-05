@@ -64,11 +64,9 @@ struct JetFinderTask {
   fastjet::AreaDefinition areaDefBkg{areaType, ghostSpec};
   fastjet::Selector selBkg = fastjet::SelectorAbsRapMax(rapBkg);
 
-  // TODO: use abs, eventually use pt
   // TODO: use values from configurables
   // TODO: add eta cuts
-  Filter trackCuts = (aod::track::signed1Pt < 10.f) &&
-                     (aod::track::signed1Pt > -10.f);
+  Filter trackCuts = aod::track::pt > 0.1f;
 
   std::unique_ptr<fastjet::BackgroundEstimatorBase> bge;
   std::unique_ptr<fastjet::Subtractor> sub;
@@ -96,7 +94,7 @@ struct JetFinderTask {
 
     std::vector<fastjet::PseudoJet> inputParticles;
     for (auto& track : fullTracks) {
-      auto energy = std::sqrt(track.p2() + mPionSquared);
+      auto energy = std::sqrt(track.p() * track.p() + mPionSquared);
       inputParticles.emplace_back(track.px(), track.py(), track.pz(), energy);
       inputParticles.back().set_user_index(track.globalIndex());
     }

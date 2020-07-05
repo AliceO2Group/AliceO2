@@ -32,11 +32,18 @@ static std::array<std::string, BasicOp::Abs + 1> binaryOperationsMap = {
   "greater_than_or_equal_to",
   "equal",
   "not_equal",
-  "power",
-  "exp",
-  "log",
-  "log10",
-  "abs"};
+  "powerf",
+  "sqrtf",
+  "expf",
+  "logf",
+  "log10f",
+  "sinf",
+  "cosf",
+  "tanf",
+  "asinf",
+  "acosf",
+  "atanf",
+  "absf"};
 
 struct DatumSpec {
   /// datum spec either contains an index, a value of a literal or a binding label

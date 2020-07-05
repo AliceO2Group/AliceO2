@@ -433,7 +433,7 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
         tree = gandiva::TreeExprBuilder::MakeAnd({leftNode, rightNode});
         break;
       default:
-        if (it->op < BasicOp::Exp) {
+        if (it->op < BasicOp::Sqrt) {
           if (it->type != atype::BOOL) {
             leftNode = insertUpcastNode(leftNode, it->left.type);
             rightNode = insertUpcastNode(rightNode, it->right.type);
