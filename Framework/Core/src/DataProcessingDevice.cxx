@@ -716,31 +716,6 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
     return InputRecord{inputsSchema, std::move(span)};
   };
 
-  // This is the thing which does the actual computation. No particular reason
-  // why we do the stateful processing before the stateless one.
-  // PROCESSING:{START,END} is done so that we can trigger on begin / end of processing
-  // in the GUI.
-  auto dispatchProcessing = [&allocator, &statefulProcess, &statelessProcess,
-                             &serviceRegistry, &device,
-                             &preHandles = mPreProcessingHandles,
-                             &postHandles = mPostProcessingHandles](TimesliceSlot slot, InputRecord& record) {
-    ProcessingContext processContext{record, serviceRegistry, allocator};
-    for (auto& handle : preHandles) {
-      handle.callback(processContext, handle.service);
-    }
-
-    if (statefulProcess) {
-      statefulProcess(processContext);
-    }
-    if (statelessProcess) {
-      statelessProcess(processContext);
-    }
-
-    for (auto& handle : postHandles) {
-      handle.callback(processContext, handle.service);
-    }
-  };
-
   // I need a preparation step which gets the current timeslice id and
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
@@ -827,6 +802,7 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
             LOG(ERROR) << "Forwarded data does not have a DataHeader";
             continue;
           }
+     
           forwardedParts[forward.channel].AddPart(std::move(header));
           forwardedParts[forward.channel].AddPart(std::move(payload));
         }
