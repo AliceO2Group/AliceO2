@@ -129,6 +129,11 @@ class Clusterer
       curr[row] = lastIndex; // store index of the new precluster in the current column buffer
     }
 
+    void streamCluster(uint16_t rowMin, uint16_t rowSpanW, uint16_t colMin, uint16_t colSpanW,
+                       int npix, uint16_t chipID,
+                       CompClusCont* compClusPtr, PatternCont* patternsPtr,
+                       MCTruth* labelsClusPtr, int nlab);
+
     void fetchMCLabels(int digID, const MCTruth* labelsDig, int& nfilled);
     void initChip(const ChipPixelData* curChipData, uint32_t first);
     void updateChip(const ChipPixelData* curChipData, uint32_t ip);
