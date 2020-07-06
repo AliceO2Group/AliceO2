@@ -10,6 +10,8 @@
 
 /// \author R+Preghenella - August 2017
 
+#ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
+
 #include "Generators/GeneratorHepMC.h"
 #include "HepMC/ReaderAscii.h"
 #include "HepMC/ReaderAsciiHepMC2.h"
@@ -25,6 +27,19 @@
 **/
 #ifdef DEBUG
 #undef DEBUG
+#endif
+
+#else
+
+#include "Generators/GeneratorHepMC.h"
+#include "HepMC3/ReaderAscii.h"
+#include "HepMC3/ReaderAsciiHepMC2.h"
+#include "HepMC3/GenEvent.h"
+#include "HepMC3/GenParticle.h"
+#include "HepMC3/GenVertex.h"
+#include "HepMC3/FourVector.h"
+#include "TParticle.h"
+
 #endif
 
 #include "FairLogger.h"
@@ -44,7 +59,11 @@ GeneratorHepMC::GeneratorHepMC()
 {
   /** default constructor **/
 
+#ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
   mEvent = new HepMC::GenEvent();
+#else
+  mEvent = new HepMC3::GenEvent();
+#endif
   mInterface = reinterpret_cast<void*>(mEvent);
   mInterfaceName = "hepmc";
 }
@@ -56,7 +75,11 @@ GeneratorHepMC::GeneratorHepMC(const Char_t* name, const Char_t* title)
 {
   /** constructor **/
 
+#ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
   mEvent = new HepMC::GenEvent();
+#else
+  mEvent = new HepMC3::GenEvent();
+#endif
   mInterface = reinterpret_cast<void*>(mEvent);
   mInterfaceName = "hepmc";
 }
@@ -89,7 +112,11 @@ Bool_t GeneratorHepMC::generateEvent()
   if (mReader->failed())
     return kFALSE;
   /** set units to desired output **/
+#ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
   mEvent->set_units(HepMC::Units::GEV, HepMC::Units::MM);
+#else
+  mEvent->set_units(HepMC3::Units::GEV, HepMC3::Units::MM);
+#endif
 
   /** success **/
   return kTRUE;
@@ -163,10 +190,18 @@ Bool_t GeneratorHepMC::Init()
   switch (mVersion) {
     case 2:
       mStream.close();
+#ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
       mReader = new HepMC::ReaderAsciiHepMC2(mFileName);
+#else
+      mReader = new HepMC3::ReaderAsciiHepMC2(mFileName);
+#endif
       break;
     case 3:
+#ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
       mReader = new HepMC::ReaderAscii(mStream);
+#else
+      mReader = new HepMC3::ReaderAscii(mStream);
+#endif
       break;
     default:
       LOG(FATAL) << "Unsupported HepMC version: " << mVersion << std::endl;
