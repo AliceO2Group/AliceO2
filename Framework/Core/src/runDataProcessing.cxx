@@ -63,6 +63,9 @@
 
 #include "FairMQDevice.h"
 #include <fairmq/DeviceRunner.h>
+#if __has_include(<fairmq/shmem/Monitor.h>)
+#include <fairmq/shmem/Monitor.h>
+#endif
 #include "options/FairMQProgOptions.h"
 
 #include <boost/program_options.hpp>
@@ -284,6 +287,11 @@ static void handle_sigint(int)
 /// Helper to invoke shared memory cleanup
 void cleanupSHM(std::string const& uniqueWorkflowId)
 {
+#if __has_include(<fairmq/shmem/Monitor.h>)
+  using namespace fair::mq::shmem;
+  Monitor::Cleanup(SessionId{"dpl_" + uniqueWorkflowId});
+#else
+  // Old code, invoking external fairmq-shmmonitor
   auto shmCleanup = fmt::format("fairmq-shmmonitor --cleanup -s dpl_{} 2>&1 >/dev/null", uniqueWorkflowId);
   LOG(debug)
     << "Cleaning up shm memory session with " << shmCleanup;
@@ -291,6 +299,7 @@ void cleanupSHM(std::string const& uniqueWorkflowId)
   if (result != 0) {
     LOG(error) << "Unable to cleanup shared memory, run " << shmCleanup << "by hand to fix";
   }
+#endif
 }
 
 static void handle_sigchld(int) { sigchld_requested = true; }
