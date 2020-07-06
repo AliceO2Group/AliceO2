@@ -15,6 +15,7 @@
 #include "TOFBase/Digit.h"
 #include "TOFBase/Strip.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "CommonDataFormat/InteractionRecord.h"
 
 namespace o2
 {
@@ -34,7 +35,7 @@ class WindowFiller
 
   Int_t getCurrentReadoutWindow() const { return mReadoutWindowCurrent; }
   void setCurrentReadoutWindow(Double_t value) { mReadoutWindowCurrent = value; }
-  void setEventTime(double value)
+  void setEventTime(InteractionTimeRecord value)
   {
     mEventTime = value;
   }
@@ -54,7 +55,7 @@ class WindowFiller
   Int_t mReadoutWindowCurrent = 0;
   Int_t mFirstOrbit = 0;
   Int_t mFirstBunch = 0;
-  Double_t mEventTime;
+  InteractionTimeRecord mEventTime;
 
   bool mContinuous = true;
   bool mFutureToBeSorted = false;

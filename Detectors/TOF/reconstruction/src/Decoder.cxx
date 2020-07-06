@@ -233,7 +233,6 @@ bool Decoder::decode() // return a vector of digits in a TOF readout window
   auto start = std::chrono::high_resolution_clock::now();
 
   // start from the beginning of the timeframe
-  mEventTime = 0;
 
   // loop over CRUs
   for (int icru = 0; icru < NCRU; icru++) {
