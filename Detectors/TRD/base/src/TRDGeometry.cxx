@@ -2561,6 +2561,8 @@ void TRDGeometry::fillMatrixCache(int mask)
   }
 
   std::string volPath;
+  // keep in mind that changing this path can affect behaviour in Detector.cxx
+  // see: https://github.com/AliceO2Group/AliceO2/pull/3890
   const std::string vpStr{"ALIC_1/barrel_1/B077_1/BSEGMO"};
   const std::string vpApp1{"_1/BTRD"};
   const std::string vpApp2{"_1"};

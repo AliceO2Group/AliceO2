@@ -8,18 +8,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <TGeoManager.h>
-#include <TVirtualMC.h>
-#include <vector>
-#include <stdexcept>
-#include "FairVolume.h"
-#include "FairRootManager.h"
-#include "SimulationDataFormat/Stack.h"
-#include "CommonUtils/ShmAllocator.h"
+#include "TRDSimulation/Detector.h"
+
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/TRDGeometry.h"
-#include "TRDSimulation/Detector.h"
 #include "TRDSimulation/TRsim.h"
+
+#include "CommonUtils/ShmAllocator.h"
+#include "SimulationDataFormat/Stack.h"
+#include "FairVolume.h"
+#include "FairRootManager.h"
+
+#include <TGeoManager.h>
+#include <TVirtualMC.h>
+
+#include <vector>
+#include <stdexcept>
+#include <string>
 
 using namespace o2::trd;
 
@@ -89,37 +94,38 @@ bool Detector::ProcessHits(FairVolume* v)
   // Inside sensitive volume ?
   bool drRegion = false;
   bool amRegion = false;
-  const TString cIdSensDr = "J";
-  const TString cIdSensAm = "K";
-  const TString cIdCurrent = fMC->CurrentVolName();
-  if (cIdCurrent[1] == cIdSensDr) {
+  char idRegion;
+  int cIdChamber;
+  int r1 = std::sscanf(fMC->CurrentVolName(), "U%1s%d", &idRegion, &cIdChamber);
+  if (r1 != 2) {
+    LOG(FATAL) << "Something went wrong with the geometry volume name " << fMC->CurrentVolName();
+  }
+  if (idRegion == 'J') {
     drRegion = true;
-  }
-  if (cIdCurrent[1] == cIdSensAm) {
+  } else if (idRegion == 'K') {
     amRegion = true;
-  }
-  if (!drRegion && !amRegion) {
+  } else {
     return false;
   }
 
-  // Determine the dectector number
-  int sector, det;
-  // The plane number and chamber number
-  char cIdChamber[3];
-  cIdChamber[0] = cIdCurrent[2];
-  cIdChamber[1] = cIdCurrent[3];
-  cIdChamber[2] = 0;
-  // The det-sec number (0 – 29)
-  const int idChamber = mGeom->getDetectorSec(atoi(cIdChamber));
-  // The sector number (0 - 17), according to the standard coordinate system
-  TString cIdPath = fMC->CurrentVolPath();
-  char cIdSector[3];
-  cIdSector[0] = cIdPath[21];
-  cIdSector[1] = cIdPath[22];
-  cIdSector[2] = 0;
-  sector = atoi(cIdSector);
-  // The detector number (0 – 539)
-  det = mGeom->getDetector(mGeom->getLayer(idChamber), mGeom->getStack(idChamber), sector);
+  const int idChamber = mGeom->getDetectorSec(cIdChamber);
+  if (idChamber < 0 || idChamber > 29) {
+    LOG(FATAL) << "Chamber ID out of bounds";
+  }
+
+  int sector;
+  int r2 = std::sscanf(fMC->CurrentVolOffName(7), "BTRD%d", &sector);
+  if (r2 != 1) {
+    LOG(FATAL) << "Something went wrong with the geometry volume name " << fMC->CurrentVolOffName(7);
+  }
+  if (sector < 0 || sector >= kNsector) {
+    LOG(FATAL) << "Sector out of bounds";
+  }
+  // The detector number (0 - 539)
+  int det = mGeom->getDetector(mGeom->getLayer(idChamber), mGeom->getStack(idChamber), sector);
+  if (det < 0 || det >= kNdet) {
+    LOG(FATAL) << "Detector number out of bounds";
+  }
 
   // 0: InFlight 1: Entering 2: Exiting
   int trkStat = 0;
