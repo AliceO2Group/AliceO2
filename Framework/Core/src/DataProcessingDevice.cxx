@@ -276,7 +276,7 @@ void DataProcessingDevice::InitTask()
         continue;
       }
       // We only watch receiving sockets.
-      if (x.first.rfind("from_" + mSpec.name + "_to", 0) == 0) {
+      if (x.first.rfind("from_" + mSpec.name + "_", 0) == 0) {
         LOG(debug) << x.first << " is to send data. Not polling." << std::endl;
         continue;
       }
@@ -306,7 +306,7 @@ void DataProcessingDevice::InitTask()
           LOG(debug) << x.first << " is an internal channel. Not polling." << std::endl;
           continue;
         }
-        assert(x.first.rfind("from_" + mSpec.name + "_to", 0) == 0);
+        assert(x.first.rfind("from_" + mSpec.name + "_", 0) == 0);
         // We assume there is always a ZeroMQ socket behind.
         int zmq_fd = 0;
         size_t zmq_fd_len = sizeof(zmq_fd);
