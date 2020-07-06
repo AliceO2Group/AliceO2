@@ -271,16 +271,19 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
   // Decalibrate
   time -= mCalibApi->getTimeDecalibration(channel, tot); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
 
+  // let's move from time to bc, tdc
+
   Int_t nbc = Int_t(time * Geo::BC_TIME_INPS_INV); // time elapsed in number of bunch crossing
   //Digit newdigit(time, channel, (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS, tot * Geo::NTOTBIN_PER_NS, nbc);
 
   int tdc = int((time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS);
 
   // additional check to avoid very rare truncation
-  if (tdc < 0) {
+  while (tdc < 0) {
     nbc--;
     tdc += 1024;
-  } else if (tdc >= 1024) {
+  }
+  while (tdc >= 1024) {
     nbc++;
     tdc -= 1024;
   }
@@ -353,12 +356,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
     mcTruthContainer = mMCTruthContainerNext[isnext - 1];
   }
 
-  int eventcounter = mReadoutWindowCurrent + isnext;
-  int hittimeTDC = (nbc - eventcounter * Geo::BC_IN_WINDOW) * 1024 + tdc; // time in TDC bin within the TOF WINDOW
-  if (hittimeTDC < 0)
-    LOG(ERROR) << "1) Negative hit " << hittimeTDC << ", something went wrong in filling readout window: isnext=" << isnext << ", isIfOverlap=" << isIfOverlap;
-  else
-    fillDigitsInStrip(strips, mcTruthContainer, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
+  fillDigitsInStrip(strips, mcTruthContainer, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
 
   if (isIfOverlap > -1 && isIfOverlap < MAXWINDOWS) { // fill also a second readout window because of the overlap
     if (!isIfOverlap) {
@@ -369,12 +367,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
       mcTruthContainer = mMCTruthContainerNext[isIfOverlap - 1];
     }
 
-    int eventcounter = mReadoutWindowCurrent + isIfOverlap;
-    int hittimeTDC = (nbc - eventcounter * Geo::BC_IN_WINDOW) * 1024 + tdc; // time in TDC bin within the TOF WINDOW
-    if (hittimeTDC < 0)
-      LOG(ERROR) << "2) Negative hit " << hittimeTDC << ", something went wrong in filling readout window: isnext=" << isnext << ", isIfOverlap=" << isIfOverlap;
-    else
-      fillDigitsInStrip(strips, mcTruthContainer, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
+    fillDigitsInStrip(strips, mcTruthContainer, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
   }
 }
 //______________________________________________________________________
