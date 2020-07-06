@@ -279,16 +279,16 @@ struct Partition {
 
   void setTable(const T& table)
   {
-    mFiltered.reset(new o2::soa::Filtered<T>{{table.asArrowTable()}, mTree});
+    mFiltered.reset(new o2::soa::Filtered<typename T::table_t>{{table.asArrowTable()}, mTree});
   }
 
-  o2::soa::Filtered<T>& getPartition()
+  o2::soa::Filtered<typename T::table_t>& getPartition()
   {
     return *mFiltered;
   }
 
   gandiva::NodePtr mTree;
-  std::unique_ptr<o2::soa::Filtered<T>> mFiltered;
+  std::unique_ptr<o2::soa::Filtered<typename T::table_t>> mFiltered;
 };
 
 template <typename ANY>
