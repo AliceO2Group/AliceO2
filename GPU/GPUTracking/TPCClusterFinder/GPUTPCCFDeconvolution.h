@@ -55,8 +55,8 @@ class GPUTPCCFDeconvolution : public GPUKernelTemplate
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
-  static GPUd() char countPeaksScratchpadInner(ushort, const uchar*, uchar*);
-  static GPUd() char countPeaksScratchpadOuter(ushort, uchar, const uchar*);
+  static GPUdi() char countPeaksScratchpadInner(ushort, const uchar*, uchar*);
+  static GPUdi() char countPeaksScratchpadOuter(ushort, uchar, const uchar*);
 };
 
 } // namespace gpu
