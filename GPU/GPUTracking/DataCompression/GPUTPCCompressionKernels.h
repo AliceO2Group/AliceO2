@@ -62,7 +62,7 @@ class GPUTPCCompressionKernels : public GPUKernelTemplate
 
   using Vec16 = unsigned short;
   using Vec32 = unsigned int;
-  using Vec64 = unsigned long long int;
+  using Vec64 = unsigned long int;
   using Vec128 = uint4;
 
   template <typename Scalar, typename BaseVector>
