@@ -96,7 +96,7 @@ bool Detector::ProcessHits(FairVolume* v)
   bool amRegion = false;
   char idRegion;
   int cIdChamber;
-  int r1 = std::sscanf(fMC->CurrentVolName(), "U%1s%d", &idRegion, &cIdChamber);
+  int r1 = std::sscanf(fMC->CurrentVolName(), "U%c%d", &idRegion, &cIdChamber);
   if (r1 != 2) {
     LOG(FATAL) << "Something went wrong with the geometry volume name " << fMC->CurrentVolName();
   }
