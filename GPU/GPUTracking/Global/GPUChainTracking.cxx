@@ -1474,7 +1474,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   int streamMap[NSLICES];
 
   bool error = false;
-  GPUCA_OPENMP(parallel for num_threads(doGPU || GetDeviceProcessingSettings().ompKernels ? 1 : GetDeviceProcessingSettings().nThreads))
+  GPUCA_OPENMP(parallel for if(!(doGPU || GetDeviceProcessingSettings().ompKernels)) num_threads(GetDeviceProcessingSettings().nThreads))
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
     GPUTPCTracker& trk = processors()->tpcTrackers[iSlice];
     GPUTPCTracker& trkShadow = doGPU ? processorsShadow()->tpcTrackers[iSlice] : trk;
@@ -1731,7 +1731,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     }
   } else {
     mSliceSelectorReady = NSLICES;
-    GPUCA_OPENMP(parallel for num_threads(doGPU || GetDeviceProcessingSettings().ompKernels ? 1 : GetDeviceProcessingSettings().nThreads))
+    GPUCA_OPENMP(parallel for if(!(doGPU || GetDeviceProcessingSettings().ompKernels)) num_threads(GetDeviceProcessingSettings().nThreads))
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       if (param().rec.GlobalTracking) {
         GlobalTracking(iSlice, 0);
