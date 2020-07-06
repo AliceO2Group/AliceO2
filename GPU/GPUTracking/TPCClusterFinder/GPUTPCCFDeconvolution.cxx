@@ -114,7 +114,7 @@ GPUdii() void GPUTPCCFDeconvolution::countPeaksImpl(int nBlocks, int nThreads, i
   chargeMap[pos] = p;
 }
 
-GPUd() char GPUTPCCFDeconvolution::countPeaksScratchpadInner(
+GPUdi() char GPUTPCCFDeconvolution::countPeaksScratchpadInner(
   ushort ll,
   const uchar* isPeak,
   uchar* aboveThreshold)
@@ -130,7 +130,7 @@ GPUd() char GPUTPCCFDeconvolution::countPeaksScratchpadInner(
   return peaks;
 }
 
-GPUd() char GPUTPCCFDeconvolution::countPeaksScratchpadOuter(
+GPUdi() char GPUTPCCFDeconvolution::countPeaksScratchpadOuter(
   ushort ll,
   uchar aboveThreshold,
   const uchar* isPeak)
