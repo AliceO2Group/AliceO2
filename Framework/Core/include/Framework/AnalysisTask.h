@@ -282,6 +282,22 @@ struct Partition {
     mFiltered.reset(new o2::soa::Filtered<typename T::table_t>{{table.asArrowTable()}, mTree});
   }
 
+  template <typename... Ts>
+  void bindExternalIndices(Ts*... tables)
+  {
+    if (mFiltered != nullptr) {
+      mFiltered->bindExternalIndices(tables...);
+    }
+  }
+
+  template <typename T2>
+  void getBoundToExternalIndices(T2& table)
+  {
+    if (mFiltered != nullptr) {
+      table.bindExternalIndices(mFiltered.get());
+    }
+  }
+
   o2::soa::Filtered<typename T::table_t>& getPartition()
   {
     return *mFiltered;
@@ -301,6 +317,15 @@ struct PartitionManager {
 
   template <typename... Ts>
   static void setPartitions(ANY&, std::tuple<Ts...> tables)
+  {
+  }
+
+  template <typename... Ts>
+  static void bindExternalIndices(ANY&, Ts*... tables)
+  {
+  }
+  template <typename T2>
+  static void getBoundToExternalIndices(ANY& partition, T2& table)
   {
   }
 };
@@ -330,6 +355,18 @@ struct PartitionManager<Partition<T>> {
       return setPartition(partition, table...);
     },
                tables);
+  }
+
+  template <typename... Ts>
+  static void bindExternalIndices(Partition<T>& partition, Ts*... tables)
+  {
+    partition.bindExternalIndices(tables...);
+  }
+
+  template <typename T2>
+  static void getBoundToExternalIndices(Partition<T>& partition, T2& table)
+  {
+    partition.getBoundToExternalIndices(table);
   }
 };
 
@@ -688,8 +725,20 @@ struct AnalysisDataProcessorBuilder {
       auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, &C::process, infos);
       auto binder = [&](auto&& x) {
         x.bindExternalIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
+        std::apply([&x](auto&... t) {
+          (PartitionManager<std::decay_t<decltype(t)>>::getBoundToExternalIndices(t, x), ...);
+        },
+                   tupledTask);
       };
       groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedTables)...);
+      std::apply([&groupingTable, &associatedTables](auto&... x) {
+        (PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...), ...);
+      },
+                 tupledTask);
+      std::apply([&groupingTable](auto&... x) {
+        (PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable), ...);
+      },
+                 tupledTask);
 
       if constexpr (soa::is_soa_iterator_t<std::decay_t<G>>::value) {
         // grouping case
