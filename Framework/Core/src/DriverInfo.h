@@ -129,6 +129,8 @@ struct DriverInfo {
   float frameLatency;
   /// The unique id used for ipc communications
   std::string uniqueWorkflowId = "";
+  /// Last port used for tracy
+  short tracyPort = 8086;
 };
 
 } // namespace o2::framework

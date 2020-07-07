@@ -355,6 +355,7 @@ void log_callback(uv_poll_t* handle, int status, int events)
 /// new child
 void spawnDevice(std::string const& forwardedStdin,
                  DeviceSpec const& spec,
+                 DriverInfo& driverInfo,
                  DeviceControl& control,
                  DeviceExecution& execution,
                  std::vector<DeviceInfo>& deviceInfos,
@@ -368,6 +369,11 @@ void spawnDevice(std::string const& forwardedStdin,
   createPipes(childstdin);
   createPipes(childstdout);
   createPipes(childstderr);
+
+  // FIXME: this might not work when more than one DPL driver on the same
+  // machine. Hopefully we do not care.
+  // Not how the first port is actually used to broadcast clients.
+  driverInfo.tracyPort++;
 
   // If we have a framework id, it means we have already been respawned
   // and that we are in a child. If not, we need to fork and re-exec, adding
@@ -393,6 +399,8 @@ void spawnDevice(std::string const& forwardedStdin,
     dup2(childstdin[0], STDIN_FILENO);
     dup2(childstdout[1], STDOUT_FILENO);
     dup2(childstderr[1], STDERR_FILENO);
+    auto portS = std::to_string(driverInfo.tracyPort);
+    setenv("TRACY_PORT", portS.c_str(), 1);
     execvp(execution.args[0], execution.args.data());
   }
 
@@ -419,6 +427,7 @@ void spawnDevice(std::string const& forwardedStdin,
   info.dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}};
   info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
   info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
+  info.tracyPort = driverInfo.tracyPort;
 
   deviceInfos.emplace_back(info);
   // Let's add also metrics information for the given device
@@ -974,7 +983,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                               deviceSpecs[di], controls[di], deviceExecutions[di], infos);
           } else {
             spawnDevice(forwardedStdin.str(),
-                        deviceSpecs[di], controls[di], deviceExecutions[di], infos,
+                        deviceSpecs[di], driverInfo,
+                        controls[di], deviceExecutions[di], infos,
                         loop, pollHandles);
           }
         }
