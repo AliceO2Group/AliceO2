@@ -695,7 +695,6 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
   // does not need to know about the whole class state, but I can
   // fine grain control what is exposed at each state.
   // FIXME: I should use a different id for this state.
-  auto& monitoringService = mServiceRegistry.get<Monitoring>();
   StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
   auto metricFlusher = make_scope_guard([]() noexcept -> void {
     StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
