@@ -889,11 +889,6 @@ class Table
     return RowViewSentinel{mEnd};
   }
 
-  unfiltered_iterator iteratorAt(uint64_t i)
-  {
-    return mBegin + (i - mOffset);
-  }
-
   filtered_iterator filtered_begin(SelectionVector selection)
   {
     // Note that the FilteredIndexPolicy will never outlive the selection which
@@ -903,9 +898,9 @@ class Table
     return filtered_iterator(mColumnChunks, {selection, mOffset});
   }
 
-  RowViewSentinel filtered_end(SelectionVector selection)
+  unfiltered_iterator iteratorAt(uint64_t i)
   {
-    return RowViewSentinel{selection.size()};
+    return mBegin + (i - mOffset);
   }
 
   unfiltered_const_iterator begin() const
@@ -1340,17 +1335,25 @@ class Filtered : public T
   Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
       mSelectedRows{std::forward<SelectionVector>(selection)},
-      mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
       mFilteredEnd{mSelectedRows.size()}
   {
+    if (tableSize() == 0) {
+      mFilteredBegin = mFilteredEnd;
+    } else {
+      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
+    }
   }
 
   Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::expressions::Selection selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
       mSelectedRows{copySelection(selection)},
-      mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
       mFilteredEnd{mSelectedRows.size()}
   {
+    if (tableSize() == 0) {
+      mFilteredBegin = mFilteredEnd;
+    } else {
+      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
+    }
   }
 
   Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::NodePtr const& tree, uint64_t offset = 0)
@@ -1358,9 +1361,13 @@ class Filtered : public T
       mSelectedRows{copySelection(framework::expressions::createSelection(this->asArrowTable(),
                                                                           framework::expressions::createFilter(this->asArrowTable()->schema(),
                                                                                                                framework::expressions::makeCondition(tree))))},
-      mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
       mFilteredEnd{mSelectedRows.size()}
   {
+    if (tableSize() == 0) {
+      mFilteredBegin = mFilteredEnd;
+    } else {
+      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
+    }
   }
 
   iterator begin()
