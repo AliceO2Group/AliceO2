@@ -19,7 +19,7 @@ using namespace o2::framework::expressions;
 // and create a new collection for them.
 // FIXME: this should really inherit from AnalysisTask but
 //        we need GCC 7.4+ for that
-struct ETask {
+struct ATask {
   float fPI = static_cast<float>(M_PI);
   float ptlow = 0.5f;
   float ptup = 2.0f;
@@ -45,16 +45,16 @@ struct ETask {
          collision.globalIndex(), tracks.size(), leftPhi.size(), midPhi.size(), rightPhi.size());
 
     for (auto& track : leftPhi) {
-      LOGF(INFO, "id = %d; eta:  %.3f < %.3f < %.3f; phi: %.3f < %.3f; pt: %.3f < %.3f < %.3f",
-           track.collisionId(), etalow, track.eta(), etaup, track.phiraw(), philow, ptlow, track.pt(), ptup);
+      LOGF(INFO, "id = %d, from collision: %d, collision: %d; eta:  %.3f < %.3f < %.3f; phi: %.3f < %.3f; pt: %.3f < %.3f < %.3f",
+           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), etalow, track.eta(), etaup, track.phiraw(), philow, ptlow, track.pt(), ptup);
     }
     for (auto& track : midPhi) {
-      LOGF(INFO, "id = %d; eta: %.3f < %.3f < %.3f; phi: %.3f <= %.3f < %.3f; pt: %.3f < %.3f < %.3f",
-           track.collisionId(), etalow, track.eta(), etaup, philow, track.phiraw(), phiup, ptlow, track.pt(), ptup);
+      LOGF(INFO, "id = %d, from collision: %d, collision: %d; eta: %.3f < %.3f < %.3f; phi: %.3f <= %.3f < %.3f; pt: %.3f < %.3f < %.3f",
+           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), etalow, track.eta(), etaup, philow, track.phiraw(), phiup, ptlow, track.pt(), ptup);
     }
     for (auto& track : rightPhi) {
-      LOGF(INFO, "id = %d; eta: %.3f < %.3f < %.3f; phi: %.3f < %.3f; pt: %.3f < %.3f < %.3f",
-           track.collisionId(), etalow, track.eta(), etaup, phiup, track.phiraw(), ptlow, track.pt(), ptup);
+      LOGF(INFO, "id = %d, from collision: %d, collision: %d; eta: %.3f < %.3f < %.3f; phi: %.3f < %.3f; pt: %.3f < %.3f < %.3f",
+           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), etalow, track.eta(), etaup, phiup, track.phiraw(), ptlow, track.pt(), ptup);
     }
   }
 };
@@ -62,5 +62,5 @@ struct ETask {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ETask>("consume-etaphi")};
+    adaptAnalysisTask<ATask>("consume-tracks")};
 }

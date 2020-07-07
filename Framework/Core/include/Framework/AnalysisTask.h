@@ -310,13 +310,7 @@ struct Partition {
 template <typename ANY>
 struct PartitionManager {
   template <typename... T2s>
-  static bool setPartition(ANY&, T2s&... tables)
-  {
-    return false;
-  }
-
-  template <typename... Ts>
-  static void setPartitions(ANY&, std::tuple<Ts...> tables)
+  static void setPartition(ANY&, T2s&... tables)
   {
   }
 
@@ -324,8 +318,9 @@ struct PartitionManager {
   static void bindExternalIndices(ANY&, Ts*... tables)
   {
   }
-  template <typename T2>
-  static void getBoundToExternalIndices(ANY& partition, T2& table)
+
+  template <typename... Ts>
+  static void getBoundToExternalIndices(ANY& partition, Ts&... tables)
   {
   }
 };
@@ -333,28 +328,17 @@ struct PartitionManager {
 template <typename T>
 struct PartitionManager<Partition<T>> {
   template <typename T2>
-  static bool doSetPartition(Partition<T>& partition, T2& table)
+  static void doSetPartition(Partition<T>& partition, T2& table)
   {
     if constexpr (std::is_same_v<T, T2>) {
       partition.setTable(table);
-      return true;
     }
-    return false;
   }
 
   template <typename... T2s>
-  static bool setPartition(Partition<T>& partition, T2s&... tables)
+  static void setPartition(Partition<T>& partition, T2s&... tables)
   {
-    return (doSetPartition(partition, tables) || ...);
-  }
-
-  template <typename... Ts>
-  static void setPartitions(Partition<T>& partition, std::tuple<Ts...> tables)
-  {
-    std::apply([&partition](auto&... table) {
-      return setPartition(partition, table...);
-    },
-               tables);
+    (doSetPartition(partition, tables), ...);
   }
 
   template <typename... Ts>
@@ -363,10 +347,10 @@ struct PartitionManager<Partition<T>> {
     partition.bindExternalIndices(tables...);
   }
 
-  template <typename T2>
-  static void getBoundToExternalIndices(Partition<T>& partition, T2& table)
+  template <typename... Ts>
+  static void getBoundToExternalIndices(Partition<T>& partition, Ts&... tables)
   {
-    partition.getBoundToExternalIndices(table);
+    partition.getBoundToExternalIndices(tables...);
   }
 };
 
@@ -703,12 +687,17 @@ struct AnalysisDataProcessorBuilder {
 
     // set filtered tables for partitions with grouping
     std::apply([&groupingTable](auto&... x) {
-      return (PartitionManager<std::decay_t<decltype(x)>>::setPartition(x, groupingTable), ...);
+      (PartitionManager<std::decay_t<decltype(x)>>::setPartition(x, groupingTable), ...);
     },
                tupledTask);
 
     if constexpr (sizeof...(Associated) == 0) {
       // single argument to process
+      std::apply([&groupingTable](auto&... x) {
+        (PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable), ...);
+        (PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable), ...);
+      },
+                 tupledTask);
       if constexpr (soa::is_soa_iterator_t<G>::value) {
         for (auto& element : groupingTable) {
           task.process(*element);
@@ -726,19 +715,13 @@ struct AnalysisDataProcessorBuilder {
       auto binder = [&](auto&& x) {
         x.bindExternalIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
         std::apply([&x](auto&... t) {
+          (PartitionManager<std::decay_t<decltype(t)>>::setPartition(t, x), ...);
+          (PartitionManager<std::decay_t<decltype(t)>>::bindExternalIndices(t, &x), ...);
           (PartitionManager<std::decay_t<decltype(t)>>::getBoundToExternalIndices(t, x), ...);
         },
                    tupledTask);
       };
       groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedTables)...);
-      std::apply([&groupingTable, &associatedTables](auto&... x) {
-        (PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...), ...);
-      },
-                 tupledTask);
-      std::apply([&groupingTable](auto&... x) {
-        (PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable), ...);
-      },
-                 tupledTask);
 
       if constexpr (soa::is_soa_iterator_t<std::decay_t<G>>::value) {
         // grouping case
@@ -746,34 +729,36 @@ struct AnalysisDataProcessorBuilder {
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
 
-          // set filtered tables for partitions with associated tables
-          std::apply([&associatedSlices](auto&... x) {
-            (PartitionManager<std::decay_t<decltype(x)>>::setPartitions(x, associatedSlices), ...);
-          },
-                     tupledTask);
-
           std::apply(
             [&](auto&&... x) {
               (binder(x), ...);
             },
             associatedSlices);
 
+          // bind partitions and grouping table
+          std::apply([&groupingTable](auto&... x) {
+            (PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable), ...);
+            (PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable), ...);
+          },
+                     tupledTask);
+
           invokeProcessWithArgs(task, slice.groupingElement(), associatedSlices);
         }
       } else {
         // non-grouping case
-
-        // set filtered tables for partitions with associated tables
-        std::apply([&associatedTables](auto&... x) {
-          (PartitionManager<std::decay_t<decltype(x)>>::setPartitions(x, associatedTables), ...);
-        },
-                   tupledTask);
 
         std::apply(
           [&](auto&&... x) {
             (binder(x), ...);
           },
           associatedTables);
+
+        // bind partitions and grouping table
+        std::apply([&groupingTable](auto&... x) {
+          (PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable), ...);
+          (PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable), ...);
+        },
+                   tupledTask);
 
         invokeProcessWithArgs(task, groupingTable, associatedTables);
       }
