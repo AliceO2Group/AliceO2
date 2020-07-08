@@ -433,6 +433,25 @@ void updateExpressionInfos(expressions::Filter const& filter, std::vector<Expres
 gandiva::ConditionPtr makeCondition(gandiva::NodePtr node);
 /// Function to create gandiva projecting expression from generic gandiva expression tree
 gandiva::ExpressionPtr makeExpression(gandiva::NodePtr node, gandiva::FieldPtr result);
+
+template <typename... C>
+std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...>, gandiva::SchemaPtr schema)
+{
+  std::shared_ptr<gandiva::Projector> projector;
+  auto s = gandiva::Projector::Make(
+    schema,
+    {makeExpression(
+      framework::expressions::createExpressionTree(
+        framework::expressions::createOperations(C::Projector()),
+        schema),
+      C::asArrowField())...},
+    &projector);
+  if (s.ok()) {
+    return projector;
+  } else {
+    throw std::runtime_error(fmt::format("Failed to create projector: {}", s.ToString()));
+  }
+}
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_H_
