@@ -83,17 +83,20 @@ DECLARE_SOA_COLUMN(Z, z, float);
 DECLARE_SOA_COLUMN(Snp, snp, float);
 DECLARE_SOA_COLUMN(Tgl, tgl, float);
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);
-DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) -> float {
-  float phi = std::asin(snp) + alpha;
-  constexpr float twopi = 2.0 * M_PI;
+DECLARE_SOA_EXPRESSION_COLUMN(RawPhi, phiraw, float, nasin(aod::track::snp) + aod::track::alpha);
+// FIXME: dynamic column pending inclusion of conditional nodes
+DECLARE_SOA_DYNAMIC_COLUMN(NormalizedPhi, phi, [](float phi) -> float {
+  constexpr float twopi = 2.0f * static_cast<float>(M_PI);
   if (phi < 0)
     phi += twopi;
   if (phi > twopi)
     phi -= twopi;
   return phi;
 });
-DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float tgl) -> float { return std::log(std::tan(0.25f * static_cast<float>(M_PI) - 0.5f * std::atan(tgl))); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float signed1Pt) -> float { return std::abs(1.0f / signed1Pt); });
+// FIXME: have float constants like pi defined somewhere
+DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, nlog(ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::track::tgl))));
+DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, nabs(1.f / aod::track::signed1Pt));
+
 DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float signed1Pt, float snp, float alpha) -> float {
   auto pt = 1.f / std::abs(signed1Pt);
@@ -113,12 +116,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float signed1Pt, float tgl) -> float {
   auto pt = 1.f / std::abs(signed1Pt);
   return pt * tgl;
 });
-DECLARE_SOA_DYNAMIC_COLUMN(P, p, [](float signed1Pt, float tgl) -> float {
-  return std::sqrt(1.f + tgl * tgl) / std::abs(signed1Pt);
-});
 
-DECLARE_SOA_EXPRESSION_COLUMN(P2, p2, float, (1.f + aod::track::tgl * aod::track::tgl) / (aod::track::signed1Pt * aod::track::signed1Pt));
-DECLARE_SOA_EXPRESSION_COLUMN(Pt2, pt2, float, (1.f / aod::track::signed1Pt) * (1.f / aod::track::signed1Pt));
+DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, nsqrt((1.f + aod::track::tgl * aod::track::tgl) / nabs(aod::track::signed1Pt)));
 
 // TRACKPARCOV TABLE definition
 DECLARE_SOA_COLUMN(SigmaY, sigmaY, float);
@@ -161,7 +160,7 @@ DECLARE_SOA_COLUMN(TPCNClsFindable, tpcNClsFindable, uint8_t);
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t);
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedRows, int8_t);
 DECLARE_SOA_COLUMN(TPCNClsShared, tpcNClsShared, uint8_t);
-DECLARE_SOA_COLUMN(TRDTOFPattern, trdTofPattern, uint8_t);
+DECLARE_SOA_COLUMN(TRDPattern, trdPattern, uint8_t);
 DECLARE_SOA_COLUMN(ITSChi2NCl, itsChi2NCl, float);
 DECLARE_SOA_COLUMN(TPCChi2NCl, tpcChi2NCl, float);
 DECLARE_SOA_COLUMN(TRDChi2, trdChi2, float);
@@ -170,6 +169,7 @@ DECLARE_SOA_COLUMN(TPCSignal, tpcSignal, float);
 DECLARE_SOA_COLUMN(TRDSignal, trdSignal, float);
 DECLARE_SOA_COLUMN(TOFSignal, tofSignal, float);
 DECLARE_SOA_COLUMN(Length, length, float);
+DECLARE_SOA_COLUMN(TOFExpMom, tofExpMom, float);
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, [](uint8_t tpcNClsFindable, uint8_t tpcNClsFindableMinusFound) -> int16_t { return tpcNClsFindable - tpcNClsFindableMinusFound; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, [](uint8_t tpcNClsFindable, uint8_t TPCNClsFindableMinusCrossedRows) -> int16_t { return tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, [](uint8_t itsClusterMap) -> uint8_t {
@@ -201,17 +201,17 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACKPAR",
                        track::X, track::Alpha,
                        track::Y, track::Z, track::Snp, track::Tgl,
                        track::Signed1Pt,
-                       track::Phi<track::Snp, track::Alpha>,
-                       track::Eta<track::Tgl>,
-                       track::Pt<track::Signed1Pt>,
+                       track::NormalizedPhi<track::RawPhi>,
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
-                       track::P<track::Signed1Pt, track::Tgl>,
                        track::Charge<track::Signed1Pt>);
 
-DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACKPAR", aod::track::Pt2,
-                           aod::track::P2);
+DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACKPAR",
+                           aod::track::Pt,
+                           aod::track::P,
+                           aod::track::Eta,
+                           aod::track::RawPhi);
 
 DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKPARCOV",
                        track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
@@ -238,9 +238,9 @@ DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKPARCOV",
 DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCInnerParam, track::Flags, track::ITSClusterMap,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
-                  track::TPCNClsShared, track::TRDTOFPattern, track::ITSChi2NCl,
+                  track::TPCNClsShared, track::TRDPattern, track::ITSChi2NCl,
                   track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
-                  track::TPCSignal, track::TRDSignal, track::TOFSignal, track::Length,
+                  track::TPCSignal, track::TRDSignal, track::TOFSignal, track::Length, track::TOFExpMom,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                   track::ITSNCls<track::ITSClusterMap>,

@@ -144,29 +144,25 @@ BOOST_AUTO_TEST_CASE(TestGandivaTreeCreation)
   BOOST_CHECK_EQUAL(gandiva_expression->ToString(), "float multiply((float) fTgl, float divide((const float) 1 raw(3f800000), (float) fSigned1Pt))");
   auto projector = createProjector(schema, pzspecs, resfield);
 
-  Projector pte = o2::aod::track::Pt2::Projector();
+  Projector pte = o2::aod::track::Pt::Projector();
   auto ptespecs = createOperations(std::move(pte));
   BOOST_REQUIRE_EQUAL(ptespecs[0].left, (DatumSpec{1u, atype::FLOAT}));
-  BOOST_REQUIRE_EQUAL(ptespecs[0].right, (DatumSpec{2u, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(ptespecs[0].right, (DatumSpec{}));
   BOOST_REQUIRE_EQUAL(ptespecs[0].result, (DatumSpec{0u, atype::FLOAT}));
 
   BOOST_REQUIRE_EQUAL(ptespecs[1].left, (DatumSpec{LiteralNode::var_t{1.f}, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(ptespecs[1].right, (DatumSpec{std::string{"fSigned1Pt"}, atype::FLOAT}));
-  BOOST_REQUIRE_EQUAL(ptespecs[1].result, (DatumSpec{2u, atype::FLOAT}));
-
-  BOOST_REQUIRE_EQUAL(ptespecs[2].left, (DatumSpec{LiteralNode::var_t{1.f}, atype::FLOAT}));
-  BOOST_REQUIRE_EQUAL(ptespecs[2].right, (DatumSpec{std::string{"fSigned1Pt"}, atype::FLOAT}));
-  BOOST_REQUIRE_EQUAL(ptespecs[2].result, (DatumSpec{1u, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(ptespecs[1].result, (DatumSpec{1u, atype::FLOAT}));
 
   auto infield3 = o2::aod::track::Signed1Pt::asArrowField();
-  auto resfield2 = o2::aod::track::Pt2::asArrowField();
+  auto resfield2 = o2::aod::track::Pt::asArrowField();
   auto schema2 = std::make_shared<arrow::Schema>(std::vector{infield3, resfield2});
   auto gandiva_tree2 = createExpressionTree(ptespecs, schema2);
 
   auto gandiva_expression2 = makeExpression(gandiva_tree2, resfield2);
-  BOOST_CHECK_EQUAL(gandiva_expression2->ToString(), "float multiply(float divide((const float) 1 raw(3f800000), (float) fSigned1Pt), float divide((const float) 1 raw(3f800000), (float) fSigned1Pt))");
+  BOOST_CHECK_EQUAL(gandiva_expression2->ToString(), "float absf(float divide((const float) 1 raw(3f800000), (float) fSigned1Pt))");
 
   auto projector_b = createProjector(schema2, ptespecs, resfield2);
   auto schema_p = o2::soa::createSchemaFromColumns(o2::aod::Tracks::persistent_columns_t{});
-  auto projector_alt = o2::framework::expressions::createProjectors(o2::framework::pack<o2::aod::track::Pt2>{}, schema_p);
+  auto projector_alt = o2::framework::expressions::createProjectors(o2::framework::pack<o2::aod::track::Pt>{}, schema_p);
 }

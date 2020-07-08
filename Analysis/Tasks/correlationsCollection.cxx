@@ -166,7 +166,7 @@ struct CorrelationTask {
       //LOGF(info, "TRACK %f %f | %f %f | %f %f", track1.eta(), track1.eta2(), track1.phi(), track1.phi2(), track1.pt(), track1.pt2());
 
       double eventValues[3];
-      eventValues[0] = track1.pt2();
+      eventValues[0] = track1.pt();
       eventValues[1] = collision.centV0M();
       eventValues[2] = collision.posZ();
 
@@ -195,8 +195,8 @@ struct CorrelationTask {
         double values[6] = {0};
 
         values[0] = track1.etam() - track2.etam();
-        values[1] = track1.pt2();
-        values[2] = track2.pt2();
+        values[1] = track1.pt();
+        values[2] = track2.pt();
         values[3] = collision.centV0M();
 
         values[4] = track1.phim() - track2.phim();
@@ -228,7 +228,7 @@ struct CorrelationTask {
       //       LOGF(info, "TRACK %f %f | %f %f | %f %f", track1.eta(), track1.eta2(), track1.phi(), track1.phi2(), track1.pt(), track1.pt2());
 
       double eventValues[3];
-      eventValues[0] = track1.pt2();
+      eventValues[0] = track1.pt();
       eventValues[1] = 0; // collision.v0mult();
       eventValues[2] = collision.posZ();
 
@@ -255,8 +255,8 @@ struct CorrelationTask {
       double values[6] = {0};
 
       values[0] = track1.etam() - track2.etam();
-      values[1] = track1.pt2();
-      values[2] = track2.pt2();
+      values[1] = track1.pt();
+      values[2] = track2.pt();
       values[3] = 0; // collision.v0mult();
 
       values[4] = track1.phim() - track2.phim();
@@ -372,8 +372,8 @@ struct CorrelationTask {
       tantheta2 = 2.0 * expTmp / (1.0 - expTmp * expTmp);
     }
 
-    float e1squ = m0_1 * m0_1 + track1.pt2() * track1.pt2() * (1.0 + 1.0 / tantheta1 / tantheta1);
-    float e2squ = m0_2 * m0_2 + track2.pt2() * track2.pt2() * (1.0 + 1.0 / tantheta2 / tantheta2);
+    float e1squ = m0_1 * m0_1 + track1.pt() * track1.pt() * (1.0 + 1.0 / tantheta1 / tantheta1);
+    float e2squ = m0_2 * m0_2 + track2.pt() * track2.pt() * (1.0 + 1.0 / tantheta2 / tantheta2);
 
     float mass2 = m0_1 * m0_1 + m0_2 * m0_2 + 2 * (TMath::Sqrt(e1squ * e2squ) - (track1.ptm() * track2.ptm() * (TMath::Cos(track1.phim() - track2.phim()) + 1.0 / tantheta1 / tantheta2)));
 
@@ -462,14 +462,14 @@ struct CorrelationTask {
           }
         }
 
-        qa.mTwoTrackDistancePt[0]->Fill(deta, dphistarmin, TMath::Abs(track1.pt2() - track2.pt2()));
+        qa.mTwoTrackDistancePt[0]->Fill(deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
 
         if (dphistarminabs < cfgTwoTrackCut && TMath::Abs(deta) < cfgTwoTrackCut) {
           //Printf("Removed track pair %ld %ld with %f %f %f %f %d %f %f %d %d", track1.index(), track2.index(), deta, dphistarminabs, track1.phi2(), track1.pt2(), track1.charge(), track2.phi2(), track2.pt2(), track2.charge(), bSign);
           return true;
         }
 
-        qa.mTwoTrackDistancePt[1]->Fill(deta, dphistarmin, TMath::Abs(track1.pt2() - track2.pt2()));
+        qa.mTwoTrackDistancePt[1]->Fill(deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
       }
     }
 

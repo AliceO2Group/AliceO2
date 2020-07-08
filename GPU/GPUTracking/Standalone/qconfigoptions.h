@@ -100,6 +100,7 @@ AddOption(tpcCompressionGatherMode, int, -1, "tpcCompressionGatherMode", 0, "TPC
 AddOption(runMC, bool, false, "runMC", 0, "Process MC labels")
 AddOption(ompKernels, bool, false, "ompKernels", 0, "Parallelize with OMP inside kernels instead of over slices")
 AddOption(doublePipeline, bool, false, "doublePipeline", 0, "Double pipeline mode")
+AddOption(prefetchTPCpageScan, int, 0, "prefetchTPCpageScan", 0, "Prefetch Data for TPC page scan in CPU cache")
 AddHelp("help", 'h')
 EndConfig()
 
@@ -180,6 +181,7 @@ AddOption(testSync, bool, false, "sync", 0, "Test settings for synchronous phase
 AddOption(timeFrameTime, bool, false, "tfTime", 0, "Print some debug information about time frame processing time")
 AddOption(controlProfiler, bool, false, "controlProfiler", 0, "Issues GPU profiler stop and start commands to profile only the relevant processing part")
 AddOption(alternateBorderSort, int, -1, "alternateBorderSort", 0, "Alternative implementation for sorting of border tracks")
+AddOption(preloadEvents, bool, false, "preloadEvents", 0, "Preload events into host memory before start processing")
 AddHelp("help", 'h')
 AddHelpAll("helpall", 'H')
 AddSubConfig(structConfigTF, configTF)

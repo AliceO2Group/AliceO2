@@ -74,8 +74,6 @@ enum struct DriverState {
 struct DriverInfo {
   /// Stack with the states to be processed next.
   std::vector<DriverState> states;
-  /// The first unused file descriptor
-  int maxFd;
 
   // Signal handler for children
   struct sigaction sa_handle_child;
@@ -133,6 +131,8 @@ struct DriverInfo {
   std::string uniqueWorkflowId = "";
   /// Metrics gathering interval
   unsigned short resourcesMonitoringInterval;
+  /// Last port used for tracy
+  short tracyPort = 8086;
 };
 
 } // namespace o2::framework

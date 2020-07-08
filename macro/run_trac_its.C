@@ -15,7 +15,6 @@
 #include <FairMCEventHeader.h>
 
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -84,12 +83,6 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   //>>>---------- attach input data --------------->>>
   TChain itsClusters("o2sim");
   itsClusters.AddFile((path + inputClustersITS).data());
-
-  if (!itsClusters.GetBranch("ITSCluster")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSCluster in the input tree";
-  }
-  std::vector<o2::itsmft::Cluster>* clusters = nullptr;
-  itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
   if (!itsClusters.GetBranch("ITSClusterComp")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSClusterComp in the input tree";

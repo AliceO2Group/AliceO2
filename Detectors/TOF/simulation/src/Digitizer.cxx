@@ -88,9 +88,9 @@ int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* dig
   // hits array of TOF hits for a given simulated event
   // digits passed from external to be filled, in continuous readout mode we will push it on mDigitsPerTimeFrame vector of vectors of digits
 
-  //  printf("process event time = %f with %ld hits\n",mEventTime,hits->size());
+  //  printf("process event time = %f with %ld hits\n",mEventTime.getTimeNS(),hits->size());
 
-  Int_t readoutwindow = Int_t((mEventTime - Geo::BC_TIME * (Geo::OVERLAP_IN_BC + 2)) * Geo::READOUTWINDOW_INV); // event time shifted by 2 BC as safe margin before to change current readout window to account for decalibration
+  Int_t readoutwindow = Int_t((mEventTime.getTimeNS() - Geo::BC_TIME * (Geo::OVERLAP_IN_BC + 2)) * Geo::READOUTWINDOW_INV); // event time shifted by 2 BC as safe margin before to change current readout window to account for decalibration
 
   if (mContinuous && readoutwindow > mReadoutWindowCurrent) { // if we are moving in future readout windows flush previous ones (only for continuous readout mode)
     digits->clear();
@@ -104,7 +104,7 @@ int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* dig
   for (auto& hit : *hits) {
     //TODO: put readout window counting/selection
 
-    processHit(hit, mEventTime);
+    processHit(hit, mEventTime.getTimeOffsetWrtBC());
   } // end loop over hits
 
   if (!mContinuous) { // fill output container per event
@@ -271,19 +271,17 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
   // Decalibrate
   time -= mCalibApi->getTimeDecalibration(channel, tot); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
 
+  // let's move from time to bc, tdc
+
   Int_t nbc = Int_t(time * Geo::BC_TIME_INPS_INV); // time elapsed in number of bunch crossing
   //Digit newdigit(time, channel, (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS, tot * Geo::NTOTBIN_PER_NS, nbc);
 
   int tdc = int((time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS);
 
-  // additional check to avoid very rare truncation
-  if (tdc < 0) {
-    nbc--;
-    tdc += 1024;
-  } else if (tdc >= 1024) {
-    nbc++;
-    tdc -= 1024;
-  }
+  // add orbit and bc
+  nbc += mEventTime.toLong();
+
+  //  printf("orbit = %d -- bc = %d -- nbc = (%d) %d\n",mEventTime.orbit,mEventTime.bc, mEventTime.toLong(),nbc);
 
   //  printf("tdc = %d\n",tdc);
 
@@ -295,9 +293,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
 
   if (mContinuous) {
     isnext = nbc / Geo::BC_IN_WINDOW - mReadoutWindowCurrent;
-    //    isnext = Int_t(time * 1E-3 * Geo::READOUTWINDOW_INV) - mReadoutWindowCurrent; // to be replaced with uncalibrated time
     isIfOverlap = (nbc - Geo::OVERLAP_IN_BC) / Geo::BC_IN_WINDOW - mReadoutWindowCurrent;
-    //    isIfOverlap = Int_t((time - Geo::BC_TIME_INPS * Geo::OVERLAP_IN_BC) * 1E-3 * Geo::READOUTWINDOW_INV) - mReadoutWindowCurrent; // to be replaced with uncalibrated time;
 
     if (isnext == isIfOverlap)
       isIfOverlap = -1;
@@ -311,7 +307,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
 
     if (isnext < 0) {
       LOG(ERROR) << "error: isnext =" << isnext << "(current window = " << mReadoutWindowCurrent << ")"
-                 << " nbc = " << nbc << " -- event time = " << mEventTime << "\n";
+                 << " nbc = " << nbc << " -- event time = " << mEventTime.getTimeNS() << "\n";
 
       return;
     }
@@ -353,12 +349,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
     mcTruthContainer = mMCTruthContainerNext[isnext - 1];
   }
 
-  int eventcounter = mReadoutWindowCurrent + isnext;
-  int hittimeTDC = (nbc - eventcounter * Geo::BC_IN_WINDOW) * 1024 + tdc; // time in TDC bin within the TOF WINDOW
-  if (hittimeTDC < 0)
-    LOG(ERROR) << "1) Negative hit " << hittimeTDC << ", something went wrong in filling readout window: isnext=" << isnext << ", isIfOverlap=" << isIfOverlap;
-  else
-    fillDigitsInStrip(strips, mcTruthContainer, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
+  fillDigitsInStrip(strips, mcTruthContainer, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
 
   if (isIfOverlap > -1 && isIfOverlap < MAXWINDOWS) { // fill also a second readout window because of the overlap
     if (!isIfOverlap) {
@@ -369,12 +360,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
       mcTruthContainer = mMCTruthContainerNext[isIfOverlap - 1];
     }
 
-    int eventcounter = mReadoutWindowCurrent + isIfOverlap;
-    int hittimeTDC = (nbc - eventcounter * Geo::BC_IN_WINDOW) * 1024 + tdc; // time in TDC bin within the TOF WINDOW
-    if (hittimeTDC < 0)
-      LOG(ERROR) << "2) Negative hit " << hittimeTDC << ", something went wrong in filling readout window: isnext=" << isnext << ", isIfOverlap=" << isIfOverlap;
-    else
-      fillDigitsInStrip(strips, mcTruthContainer, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
+    fillDigitsInStrip(strips, mcTruthContainer, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
   }
 }
 //______________________________________________________________________
@@ -665,7 +651,7 @@ void Digitizer::test(const char* geo)
 
     hit->SetEnergyLoss(0.0001);
 
-    Int_t ndigits = processHit(*hit, mEventTime);
+    Int_t ndigits = processHit(*hit, mEventTime.getTimeOffsetWrtBC());
 
     h3->Fill(ndigits);
     hpadAll->Fill(xlocal, zlocal);
@@ -760,7 +746,7 @@ void Digitizer::testFromHits(const char* geo, const char* hits)
 
       hit->SetEnergyLoss(t->GetLeaf("o2root.TOF.TOFHit.mELoss")->GetValue(j));
 
-      Int_t ndigits = processHit(*hit, mEventTime);
+      Int_t ndigits = processHit(*hit, mEventTime.getTimeOffsetWrtBC());
 
       h3->Fill(ndigits);
       for (Int_t k = 0; k < ndigits; k++) {

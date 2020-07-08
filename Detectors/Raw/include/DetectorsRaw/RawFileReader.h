@@ -92,7 +92,7 @@ class RawFileReader
   //================================================================================
 
   using RDHAny = header::RDHAny;
-  using RDH = o2::header::RAWDataHeaderV4;
+  using RDH = o2::header::RAWDataHeader;
   using OrigDescCard = std::tuple<o2::header::DataOrigin, o2::header::DataDescription, ReadoutCardType>;
   using InputsMap = std::map<OrigDescCard, std::vector<std::string>>;
 
@@ -155,10 +155,12 @@ class RawFileReader
     size_t getLargestTF() const;
     size_t getNextHBFSize() const;
     size_t getNextTFSize() const;
+    size_t getNextTFSuperPagesStat(std::vector<size_t>& parts) const;
     int getNHBFinTF() const;
 
     size_t readNextHBF(char* buff);
     size_t readNextTF(char* buff);
+    size_t readNextSuperPage(char* buff);
     size_t skipNextHBF();
     size_t skipNextTF();
 

@@ -230,6 +230,8 @@ dataOrigin = ITS
 #optional, if missing then default is used
 dataDescription = RAWDATA     
 filePath = path_and_name_of_the_data_file0
+# for CRU detectors the "readoutCard" record below is optional
+# readoutCard = CRU
 
 [input-1]
 dataOrigin = TPC              
@@ -237,6 +239,14 @@ filePath = path_and_name_of_the_data_file1
 
 [input-2]
 filePath = path_and_name_of_the_data_file2
+
+[input-1-RORC]
+dataOrigin = EMC
+filePath = path_and_name_of_the_data_fileX
+# for RORC detectors the record below is obligatory
+readoutCard = RORC 
+
+
 
 #...
 # [input-XXX] blocks w/o filePath will be ignoder, XXX is irrelevant
@@ -290,9 +300,11 @@ o2-raw-file-reader-workflow
   --loop arg (=1)                       loop N times (infinite for N<0)
   --min-tf arg (=0)                     min TF ID to process
   --max-tf arg (=4294967295)            max TF ID to process
-  --message-per-tf                      send TF of each link as a single FMQ message rather than multipart with message per HB
-  --output-per-link                     send message per Link rather than per FMQ output route
   --delay arg (=0)                      delay in seconds between consecutive TFs sending
+  --buffer-size arg (=1048576)          buffer size for files preprocessing
+  --super-page-size arg (=1048576)      super-page size for FMQ parts definition
+  --part-per-hbf                        FMQ parts per superpage (default) of HBF
+  --raw-channel-config arg              optional raw FMQ channel for non-DPL output
   --configKeyValues arg                 semicolon separated key=value strings
 
   # to suppress various error checks / reporting
@@ -313,16 +325,22 @@ scheme.
 
 If `--loop` argument is provided, data will be re-played in loop. The delay (in seconds) can be added between sensding of consecutive TFs to avoid pile-up of TFs.
 
-At every invocation of the device `processing` callback a full TimeFrame for every link will be added as N-HBFs parts (one for each HBF in the TF) to the multipart
-relayed by the `FairMQ` channel.
-In case the `--message-per-tf` option is asked, the whole TF is sent as the only part of the `FairMQPart`.
-
-Instead of sending a single output (for multiple links) per output route (which means their data will be received together) one can request sending an output per link
-by using option `--output-per-link`.
+At every invocation of the device `processing` callback a full TimeFrame for every link will be added as a multi-part `FairMQ` message and relayed by the relevant channel.
+By default each part will be a single CRU super-page of the link. This behaviour can be changed by providing `part-per-hbf` option, in which case each HBF will be added as a separate HBF.
 
 The standard use case of this workflow is to provide the input for other worfklows using the piping, e.g.
 ```cpp
 o2-raw-file-reader-workflow --input-conf myConf.cfg | o2-dpl-raw-parser
+```
+Option `--raw-channel-config <confstring> forces the reader to send all data (single FairMQParts containing the whole TF) to raw FairMQ channel, emulating the messages from the DataDistribution.
+To inject such a data to DPL one should use a parallel process starting with `o2-dpl-raw-proxy`. An example (note `--session default` added to every executable):
+
+```bash
+[Terminal 1]> o2-dpl-raw-proxy --session default -b --dataspec "A:TOF/RAWDATA;B:ITS/RAWDATA;C:MFT/RAWDATA;D:TPC/RAWDATA;E:FT0/RAWDATA" --channel-config "name=readout-proxy,type=pull,method=connect,address=ipc://@rr-to-dpl,transport=shmem,rateLogging=1" | o2-dpl-raw-parser --session default  --input-spec "A:TOF/RAWDATA;B:ITS/RAWDATA;C:MFT/RAWDATA;D:TPC/RAWDATA;E:FT0/RAWDATA"
+```
+
+```bash
+[Terminal 2]> o2-raw-file-reader-workflow  --session default --loop 1000 --delay 3 --input-conf raw/rawAll.cfg --raw-channel-config "name=raw-reader,type=push,method=bind,address=ipc://@rr-to-dpl,transport=shmem,rateLogging=1" --shm-segment-size 16000000000
 ```
 
 ## Raw data file checker (standalone executable)

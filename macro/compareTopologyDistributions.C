@@ -6,7 +6,6 @@
 #include <TTreeReader.h>
 #include <TTreeReaderValue.h>
 
-#include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DetectorsCommonDataFormats/NameConf.h"

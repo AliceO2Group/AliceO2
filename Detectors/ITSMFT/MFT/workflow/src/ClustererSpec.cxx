@@ -39,12 +39,8 @@ namespace mft
 
 void ClustererDPL::init(InitContext& ic)
 {
-  o2::base::GeometryManager::loadGeometry(); // for generating full clusters
-  o2::mft::GeometryTGeo* geom = o2::mft::GeometryTGeo::Instance();
-  geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L));
 
   mClusterer = std::make_unique<o2::itsmft::Clusterer>();
-  mClusterer->setGeometry(geom);
   mClusterer->setNChips(o2::itsmft::ChipMappingMFT::getNChips());
   LOG(INFO) << "MFT ClustererDPL::init total number of sensors " << o2::itsmft::ChipMappingMFT::getNChips() << "\n";
 
@@ -62,7 +58,7 @@ void ClustererDPL::init(InitContext& ic)
   }
 
   mPatterns = !ic.options().get<bool>("no-patterns");
-  mNThreads = ic.options().get<int>("nthreads");
+  mNThreads = std::max(1, ic.options().get<int>("nthreads"));
 
   // settings for the fired pixel overflow masking
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
@@ -116,7 +112,7 @@ void ClustererDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
   }
-  mClusterer->process(mNThreads, reader, nullptr, &clusCompVec, mPatterns ? &clusPattVec : nullptr, &clusROFVec, clusterLabels.get());
+  mClusterer->process(mNThreads, reader, &clusCompVec, mPatterns ? &clusPattVec : nullptr, &clusROFVec, clusterLabels.get());
   pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
   pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);
   pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
@@ -162,7 +158,7 @@ DataProcessorSpec getClustererSpec(bool useMC)
       {"mft-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
       {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}},
-      {"nthreads", VariantType::Int, 0, {"Number of clustering threads (<1: rely on openMP default)"}}}};
+      {"nthreads", VariantType::Int, 1, {"Number of clustering threads"}}}};
 }
 
 } // namespace mft
