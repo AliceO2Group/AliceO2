@@ -56,7 +56,7 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
   ClusterAccumulator pc;
   CPU_ONLY(labelAcc->collect(pos, charge));
 
-  buildClusterScratchPad(
+  buildCluster(
     chargeMap,
     pos,
     smem.posBcast,
@@ -94,7 +94,7 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
   CPU_ONLY(labelAcc->commit(pos.row(), rowIndex, maxClusterPerRow));
 }
 
-GPUdii() void GPUTPCCFClusterizer::updateClusterScratchpadInner(
+GPUdii() void GPUTPCCFClusterizer::updateClusterInner(
   ushort lid,
   ushort N,
   const PackedCharge* buf,
@@ -124,7 +124,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterScratchpadInner(
   GPUbarrier();
 }
 
-GPUdii() void GPUTPCCFClusterizer::updateClusterScratchpadOuter(
+GPUdii() void GPUTPCCFClusterizer::updateClusterOuter(
   ushort lid,
   ushort N,
   ushort M,
@@ -148,7 +148,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterScratchpadOuter(
   }
 }
 
-GPUdii() void GPUTPCCFClusterizer::buildClusterScratchPad(
+GPUdii() void GPUTPCCFClusterizer::buildCluster(
   const Array2D<PackedCharge>& chargeMap,
   ChargePos pos,
   ChargePos* posBcast,
@@ -172,7 +172,7 @@ GPUdii() void GPUTPCCFClusterizer::buildClusterScratchPad(
     CfConsts::InnerNeighbors,
     posBcast,
     buf);
-  updateClusterScratchpadInner(
+  updateClusterInner(
     ll,
     8,
     buf,
@@ -200,7 +200,7 @@ GPUdii() void GPUTPCCFClusterizer::buildClusterScratchPad(
     buf);
 
   if (inGroup1) {
-    updateClusterScratchpadOuter(
+    updateClusterOuter(
       llhalf,
       16,
       16,
@@ -224,7 +224,7 @@ GPUdii() void GPUTPCCFClusterizer::buildClusterScratchPad(
     innerAboveThreshold + wgSizeHalf,
     buf);
   if (!inGroup1) {
-    updateClusterScratchpadOuter(
+    updateClusterOuter(
       llhalf,
       16,
       16,

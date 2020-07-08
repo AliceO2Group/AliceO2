@@ -65,13 +65,13 @@ class GPUTPCCFNoiseSuppression : public GPUKernelTemplate
 
   static GPUdi() void checkForMinima(float, float, PackedCharge, int, ulong*, ulong*);
 
-  static GPUdi() void findMinimaScratchPad(const PackedCharge*, const ushort, const int, int, const float, const float, ulong*, ulong*);
+  static GPUdi() void findMinima(const PackedCharge*, const ushort, const int, int, const float, const float, ulong*, ulong*);
 
-  static GPUdi() void findPeaksScratchPad(const uchar*, const ushort, const int, int, ulong*);
+  static GPUdi() void findPeaks(const uchar*, const ushort, const int, int, ulong*);
 
   static GPUdi() bool keepPeak(ulong, ulong);
 
-  static GPUd() void findMinimaAndPeaksScratchpad(const Array2D<PackedCharge>&, const Array2D<uchar>&, float, const ChargePos&, ChargePos*, PackedCharge*, ulong*, ulong*, ulong*);
+  static GPUd() void findMinimaAndPeaks(const Array2D<PackedCharge>&, const Array2D<uchar>&, float, const ChargePos&, ChargePos*, PackedCharge*, ulong*, ulong*, ulong*);
 };
 
 } // namespace gpu
