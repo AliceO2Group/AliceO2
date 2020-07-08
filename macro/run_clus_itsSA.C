@@ -26,7 +26,6 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
                     std::string outputfile = "clr.root",  // output file name (root or raw)
                     bool raw = true,                      // flag if this is raw data
                     int strobeBC = -1,                    // strobe length in BC for masking, if <0, get automatically (assume cont. readout)
-                    bool withFullClusters = true,
                     std::string dictionaryfile = "",
                     bool withPatterns = true)
 {
@@ -36,7 +35,6 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
   logger->SetLogScreenLevel("INFO");
 
   TStopwatch timer;
-  o2::base::GeometryManager::loadGeometry(); // needed provisionary, only to write full clusters
 
   // Setup clusterizer
   Bool_t useMCTruth = kTRUE;  // kFALSE if no comparison with MC needed
@@ -61,7 +59,6 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
     strobeBC = dgParams.roFrameLengthInBC;
   }
   clus->getClusterer().setMaxBCSeparationToMask(strobeBC + 10);
-  clus->getClusterer().setWantFullClusters(withFullClusters);
 
   clus->getClusterer().print();
   clus->run(inputfile, outputfile);

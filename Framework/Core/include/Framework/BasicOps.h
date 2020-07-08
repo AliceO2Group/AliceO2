@@ -26,9 +26,16 @@ enum BasicOp : unsigned int {
   Equal,
   NotEqual,
   Power,
+  Sqrt,
   Exp,
   Log,
   Log10,
+  Sin,
+  Cos,
+  Tan,
+  Asin,
+  Acos,
+  Atan,
   Abs
 };
 } // namespace o2::framework

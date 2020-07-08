@@ -13,6 +13,7 @@
 
 #include "Framework/TableBuilder.h"
 #include "Framework/AlgorithmSpec.h"
+#include <uv.h>
 
 namespace o2
 {
@@ -20,6 +21,49 @@ namespace framework
 {
 namespace readers
 {
+
+struct RuntimeWatchdog {
+  int numberTimeFrames;
+  uint64_t startTime;
+  uint64_t lastTime;
+  double runTime;
+  uint64_t runTimeLimit;
+
+  RuntimeWatchdog(Long64_t limit)
+  {
+    numberTimeFrames = -1;
+    startTime = uv_hrtime();
+    lastTime = startTime;
+    runTime = 0.;
+    runTimeLimit = limit;
+  }
+
+  bool update()
+  {
+    numberTimeFrames++;
+    if (runTimeLimit <= 0) {
+      return true;
+    }
+
+    auto nowTime = uv_hrtime();
+
+    // time spent to process the time frame
+    double time_spent = numberTimeFrames < 1 ? (double)(nowTime - lastTime) / 1.E9 : 0.;
+    runTime += time_spent;
+    lastTime = nowTime;
+
+    return ((double)(lastTime - startTime) / 1.E9 + runTime / (numberTimeFrames + 1)) < runTimeLimit;
+  }
+
+  void printOut()
+  {
+    LOGP(INFO, "RuntimeWatchdog");
+    LOGP(INFO, "  run time limit: {}", runTimeLimit);
+    LOGP(INFO, "  number of time frames: {}", numberTimeFrames);
+    LOGP(INFO, "  estimated run time per time frame: {}", (numberTimeFrames >= 0) ? runTime / (numberTimeFrames + 1) : 0.);
+    LOGP(INFO, "  estimated total run time: {}", (double)(lastTime - startTime) / 1.E9 + ((numberTimeFrames >= 0) ? runTime / (numberTimeFrames + 1) : 0.));
+  }
+};
 
 struct AODReaderHelpers {
   static AlgorithmSpec rootFileReaderCallback();

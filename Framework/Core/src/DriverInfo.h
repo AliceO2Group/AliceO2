@@ -11,9 +11,7 @@
 #ifndef O2_FRAMEWORK_DRIVERINFO_H_
 #define O2_FRAMEWORK_DRIVERINFO_H_
 
-#include <chrono>
 #include <cstddef>
-#include <map>
 #include <vector>
 
 #include <csignal>
@@ -76,8 +74,6 @@ enum struct DriverState {
 struct DriverInfo {
   /// Stack with the states to be processed next.
   std::vector<DriverState> states;
-  /// The first unused file descriptor
-  int maxFd;
 
   // Signal handler for children
   struct sigaction sa_handle_child;
@@ -104,7 +100,7 @@ struct DriverInfo {
   /// What we should do when one device in the workflow has an error
   enum TerminationPolicy errorPolicy;
   /// The offset at which the process was started.
-  std::chrono::time_point<std::chrono::steady_clock> startTime;
+  uint64_t startTime;
   /// The optional timeout after which the driver will request
   /// all the children to quit.
   double timeout;
@@ -133,6 +129,8 @@ struct DriverInfo {
   float frameLatency;
   /// The unique id used for ipc communications
   std::string uniqueWorkflowId = "";
+  /// Last port used for tracy
+  short tracyPort = 8086;
 };
 
 } // namespace o2::framework

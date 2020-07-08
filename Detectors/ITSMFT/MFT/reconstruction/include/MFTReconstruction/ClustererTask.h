@@ -16,7 +16,6 @@
 #ifndef ALICEO2_MFT_CLUSTERERTASK_H_
 #define ALICEO2_MFT_CLUSTERERTASK_H_
 
-#include "MFTBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "ITSMFTReconstruction/RawPixelReader.h"
@@ -71,16 +70,13 @@ class ClustererTask
   std::unique_ptr<o2::itsmft::DigitPixelReader> mReaderMC;                            ///< reader for MC data
   std::unique_ptr<o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingMFT>> mReaderRaw; ///< reader for raw data
 
-  const o2::itsmft::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
-  Clusterer mClusterer;                                ///< Cluster finder
+  Clusterer mClusterer; ///< Cluster finder
 
-  std::vector<Cluster> mFullClus;               //!< vector of full clusters
+  std::vector<CompClusterExt> mCompClus; //!< vector of compact clusters
 
-  std::vector<CompClusterExt> mCompClus;               //!< vector of compact clusters
+  std::vector<o2::itsmft::ROFRecord> mROFRecVec; //!< vector of ROFRecord references
 
-  std::vector<o2::itsmft::ROFRecord> mROFRecVec;               //!< vector of ROFRecord references
-
-  MCTruth mClsLabels;               //! MC labels
+  MCTruth mClsLabels; //! MC labels
 
   std::vector<unsigned char> mPatterns;
 

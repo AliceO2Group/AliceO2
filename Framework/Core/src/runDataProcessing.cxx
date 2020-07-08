@@ -63,6 +63,9 @@
 
 #include "FairMQDevice.h"
 #include <fairmq/DeviceRunner.h>
+#if __has_include(<fairmq/shmem/Monitor.h>)
+#include <fairmq/shmem/Monitor.h>
+#endif
 #include "options/FairMQProgOptions.h"
 
 #include <boost/program_options.hpp>
@@ -241,11 +244,9 @@ int calculateExitCode(std::vector<DeviceInfo>& infos)
   return exitCode;
 }
 
-int createPipes(int maxFd, int* pipes)
+void createPipes(int* pipes)
 {
   auto p = pipe(pipes);
-  maxFd = maxFd > pipes[0] ? maxFd : pipes[0];
-  maxFd = maxFd > pipes[1] ? maxFd : pipes[1];
 
   if (p == -1) {
     std::cerr << "Unable to create PIPE: ";
@@ -265,7 +266,6 @@ int createPipes(int maxFd, int* pipes)
     // Kill immediately both the parent and all the children
     kill(-1 * getpid(), SIGKILL);
   }
-  return maxFd;
 }
 
 // We don't do anything in the signal handler but
@@ -287,6 +287,11 @@ static void handle_sigint(int)
 /// Helper to invoke shared memory cleanup
 void cleanupSHM(std::string const& uniqueWorkflowId)
 {
+#if __has_include(<fairmq/shmem/Monitor.h>)
+  using namespace fair::mq::shmem;
+  Monitor::Cleanup(SessionId{"dpl_" + uniqueWorkflowId});
+#else
+  // Old code, invoking external fairmq-shmmonitor
   auto shmCleanup = fmt::format("fairmq-shmmonitor --cleanup -s dpl_{} 2>&1 >/dev/null", uniqueWorkflowId);
   LOG(debug)
     << "Cleaning up shm memory session with " << shmCleanup;
@@ -294,6 +299,7 @@ void cleanupSHM(std::string const& uniqueWorkflowId)
   if (result != 0) {
     LOG(error) << "Unable to cleanup shared memory, run " << shmCleanup << "by hand to fix";
   }
+#endif
 }
 
 static void handle_sigchld(int) { sigchld_requested = true; }
@@ -302,8 +308,7 @@ void spawnRemoteDevice(std::string const& forwardedStdin,
                        DeviceSpec const& spec,
                        DeviceControl& control,
                        DeviceExecution& execution,
-                       std::vector<DeviceInfo>& deviceInfos,
-                       int& maxFd)
+                       std::vector<DeviceInfo>& deviceInfos)
 {
   LOG(INFO) << "Starting " << spec.id << " as remote device";
   DeviceInfo info;
@@ -350,19 +355,25 @@ void log_callback(uv_poll_t* handle, int status, int events)
 /// new child
 void spawnDevice(std::string const& forwardedStdin,
                  DeviceSpec const& spec,
+                 DriverInfo& driverInfo,
                  DeviceControl& control,
                  DeviceExecution& execution,
                  std::vector<DeviceInfo>& deviceInfos,
-                 int& maxFd, uv_loop_t* loop,
+                 uv_loop_t* loop,
                  std::vector<uv_poll_t*> handles)
 {
   int childstdin[2];
   int childstdout[2];
   int childstderr[2];
 
-  maxFd = createPipes(maxFd, childstdin);
-  maxFd = createPipes(maxFd, childstdout);
-  maxFd = createPipes(maxFd, childstderr);
+  createPipes(childstdin);
+  createPipes(childstdout);
+  createPipes(childstderr);
+
+  // FIXME: this might not work when more than one DPL driver on the same
+  // machine. Hopefully we do not care.
+  // Not how the first port is actually used to broadcast clients.
+  driverInfo.tracyPort++;
 
   // If we have a framework id, it means we have already been respawned
   // and that we are in a child. If not, we need to fork and re-exec, adding
@@ -388,6 +399,8 @@ void spawnDevice(std::string const& forwardedStdin,
     dup2(childstdin[0], STDIN_FILENO);
     dup2(childstdout[1], STDOUT_FILENO);
     dup2(childstderr[1], STDERR_FILENO);
+    auto portS = std::to_string(driverInfo.tracyPort);
+    setenv("TRACY_PORT", portS.c_str(), 1);
     execvp(execution.args[0], execution.args.data());
   }
 
@@ -414,6 +427,7 @@ void spawnDevice(std::string const& forwardedStdin,
   info.dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}};
   info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
   info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
+  info.tracyPort = driverInfo.tracyPort;
 
   deviceInfos.emplace_back(info);
   // Let's add also metrics information for the given device
@@ -618,60 +632,6 @@ bool processSigChild(DeviceInfos& infos)
   return hasError;
 }
 
-// Creates the sink for FairLogger / InfoLogger integration
-auto createInfoLoggerSinkHelper(std::unique_ptr<InfoLogger>& logger, std::unique_ptr<InfoLoggerContext>& ctx)
-{
-  return [&logger,
-          &ctx](const std::string& content, const fair::LogMetaData& metadata) {
-    // translate FMQ metadata
-    InfoLogger::InfoLogger::Severity severity = InfoLogger::Severity::Undefined;
-    int level = InfoLogger::undefinedMessageOption.level;
-
-    if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::nolog)) {
-      // discard
-      return;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::fatal)) {
-      severity = InfoLogger::Severity::Fatal;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::error)) {
-      severity = InfoLogger::Severity::Error;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::warn)) {
-      severity = InfoLogger::Severity::Warning;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::state)) {
-      severity = InfoLogger::Severity::Info;
-      level = 10;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::info)) {
-      severity = InfoLogger::Severity::Info;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug)) {
-      severity = InfoLogger::Severity::Debug;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug1)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 10;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug2)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 20;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug3)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 30;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug4)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 40;
-    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::trace)) {
-      severity = InfoLogger::Severity::Debug;
-      level = 50;
-    }
-
-    InfoLogger::InfoLoggerMessageOption opt = {
-      severity,
-      level,
-      InfoLogger::undefinedMessageOption.errorCode,
-      metadata.file.c_str(),
-      atoi(metadata.line.c_str())};
-
-    if (logger) {
-      logger->log(opt, *ctx, "DPL: %s", content.c_str());
-    }
-  };
-};
 
 int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, TerminationPolicy errorPolicy,
             uv_loop_t* loop)
@@ -700,67 +660,21 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, Termin
 
     // This is to control lifetime. All these services get destroyed
     // when the runner is done.
-    std::unique_ptr<LocalRootFileService> localRootFileService;
-    std::unique_ptr<TextControlService> textControlService;
-    std::unique_ptr<ParallelContext> parallelContext;
     std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
-    std::unique_ptr<CallbackService> callbackService;
-    std::unique_ptr<ConfigurationInterface> configurationService;
-    std::unique_ptr<Monitoring> monitoringService;
-    std::unique_ptr<InfoLogger> infoLoggerService;
-    std::unique_ptr<InfoLoggerContext> infoLoggerContext;
-    std::unique_ptr<TimesliceIndex> timesliceIndex;
     std::unique_ptr<DeviceState> deviceState;
 
-    auto afterConfigParsingCallback = [&localRootFileService,
-                                       &textControlService,
-                                       &parallelContext,
-                                       &simpleRawDeviceService,
-                                       &callbackService,
-                                       &configurationService,
-                                       &monitoringService,
-                                       &infoLoggerService,
+    auto afterConfigParsingCallback = [&simpleRawDeviceService,
                                        &spec,
                                        &serviceRegistry,
-                                       &infoLoggerContext,
                                        &deviceState,
-                                       &timesliceIndex,
                                        &errorPolicy,
                                        &loop](fair::mq::DeviceRunner& r) {
-      localRootFileService = std::make_unique<LocalRootFileService>();
       deviceState = std::make_unique<DeviceState>();
       deviceState->loop = loop;
 
-      textControlService = std::make_unique<TextControlService>(serviceRegistry, *deviceState.get());
-      parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
       simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
-      callbackService = std::make_unique<CallbackService>();
-      monitoringService = MonitoringFactory::Get(r.fConfig.GetStringValue("monitoring-backend"));
-      if (r.fConfig.GetStringValue("configuration") != "command-line") {
-        configurationService = ConfigurationFactory::getConfiguration(r.fConfig.GetStringValue("configuration"));
-      }
-      auto infoLoggerMode = r.fConfig.GetStringValue("infologger-mode");
-      if (infoLoggerMode != "") {
-        setenv("INFOLOGGER_MODE", r.fConfig.GetStringValue("infologger-mode").c_str(), 1);
-      }
-      infoLoggerService = std::make_unique<InfoLogger>();
-      infoLoggerContext = std::make_unique<InfoLoggerContext>();
 
-      auto infoLoggerSeverity = r.fConfig.GetStringValue("infologger-severity");
-      if (infoLoggerSeverity != "") {
-        fair::Logger::AddCustomSink("infologger", infoLoggerSeverity, createInfoLoggerSinkHelper(infoLoggerService, infoLoggerContext));
-      }
-      timesliceIndex = std::make_unique<TimesliceIndex>();
-
-      serviceRegistry.registerService<Monitoring>(monitoringService.get());
-      serviceRegistry.registerService<ConfigurationInterface>(configurationService.get());
-      serviceRegistry.registerService<InfoLogger>(infoLoggerService.get());
-      serviceRegistry.registerService<RootFileService>(localRootFileService.get());
-      serviceRegistry.registerService<ControlService>(textControlService.get());
-      serviceRegistry.registerService<ParallelContext>(parallelContext.get());
       serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
-      serviceRegistry.registerService<CallbackService>(callbackService.get());
-      serviceRegistry.registerService<TimesliceIndex>(timesliceIndex.get());
       serviceRegistry.registerService<DeviceSpec>(&spec);
 
       // The decltype stuff is to be able to compile with both new and old
@@ -772,6 +686,14 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, Termin
       serviceRegistry.get<RawDeviceService>().setDevice(device.get());
       r.fDevice = std::move(device);
       fair::Logger::SetConsoleColor(false);
+
+      /// Create all the requested services and initialise them
+      for (auto& service : spec.services) {
+        LOG(info) << "Initialising service " << service.name;
+        auto handle = service.init(serviceRegistry, *deviceState.get(), r.fConfig);
+        serviceRegistry.registerService(handle.hash, handle.instance);
+        dynamic_cast<DataProcessingDevice*>(r.fDevice.get())->bindService(service, handle.instance);
+      }
     };
 
     runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
@@ -797,7 +719,7 @@ struct WorkflowInfo {
 };
 
 struct GuiCallbackContext {
-  decltype(std::chrono::high_resolution_clock::now()) frameLast;
+  uint64_t frameLast;
   float* frameLatency;
   float* frameCost;
   void* window;
@@ -808,12 +730,12 @@ struct GuiCallbackContext {
 void gui_callback(uv_timer_s* ctx)
 {
   GuiCallbackContext* gui = reinterpret_cast<GuiCallbackContext*>(ctx->data);
-  auto frameStart = std::chrono::high_resolution_clock::now();
-  auto frameLatency = frameStart - gui->frameLast;
+  uint64_t frameStart = uv_hrtime();
+  uint64_t frameLatency = frameStart - gui->frameLast;
   *(gui->guiQuitRequested) = (pollGUI(gui->window, gui->callback) == false);
-  auto frameEnd = std::chrono::high_resolution_clock::now();
-  *(gui->frameCost) = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count();
-  *(gui->frameLatency) = std::chrono::duration_cast<std::chrono::milliseconds>(frameLatency).count();
+  uint64_t frameEnd = uv_hrtime();
+  *(gui->frameCost) = (frameEnd - frameStart) / 1000000;
+  *(gui->frameLatency) = frameLatency / 1000000;
   gui->frameLast = frameStart;
 }
 
@@ -878,7 +800,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   }
 
   GuiCallbackContext guiContext;
-  guiContext.frameLast = std::chrono::high_resolution_clock::now();
+  guiContext.frameLast = uv_hrtime();
   guiContext.frameLatency = &driverInfo.frameLatency;
   guiContext.frameCost = &driverInfo.frameCost;
   guiContext.guiQuitRequested = &guiQuitRequested;
@@ -898,9 +820,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     // In case a timeout was requested, we check if we are running
     // for more than the timeout duration and exit in case that's the case.
     {
-      auto currentTime = std::chrono::steady_clock::now();
-      std::chrono::duration<double> diff = currentTime - driverInfo.startTime;
-      if ((graceful_exit == false) && (driverInfo.timeout > 0) && (diff.count() > driverInfo.timeout)) {
+      auto currentTime = uv_hrtime();
+      uint64_t diff = (currentTime - driverInfo.startTime) / 1000000000LL;
+      if ((graceful_exit == false) && (driverInfo.timeout > 0) && (diff > driverInfo.timeout)) {
         LOG(INFO) << "Timout ellapsed. Requesting to quit.";
         graceful_exit = true;
       }
@@ -1058,15 +980,14 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         for (size_t di = 0; di < deviceSpecs.size(); ++di) {
           if (deviceSpecs[di].resource.hostname != driverInfo.deployHostname) {
             spawnRemoteDevice(forwardedStdin.str(),
-                              deviceSpecs[di], controls[di], deviceExecutions[di], infos,
-                              driverInfo.maxFd);
+                              deviceSpecs[di], controls[di], deviceExecutions[di], infos);
           } else {
             spawnDevice(forwardedStdin.str(),
-                        deviceSpecs[di], controls[di], deviceExecutions[di], infos,
-                        driverInfo.maxFd, loop, pollHandles);
+                        deviceSpecs[di], driverInfo,
+                        controls[di], deviceExecutions[di], infos,
+                        loop, pollHandles);
           }
         }
-        driverInfo.maxFd += 1;
         assert(infos.empty() == false);
         LOG(INFO) << "Redeployment of configuration done.";
       } break;
@@ -1101,12 +1022,12 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::RUNNING);
         }
         {
-          auto inputProcessingStart = std::chrono::high_resolution_clock::now();
+          uint64_t inputProcessingStart = uv_hrtime();
           auto inputProcessingLatency = inputProcessingStart - inputProcessingLast;
           processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
-          auto inputProcessingEnd = std::chrono::high_resolution_clock::now();
-          driverInfo.inputProcessingCost = std::chrono::duration_cast<std::chrono::milliseconds>(inputProcessingEnd - inputProcessingStart).count();
-          driverInfo.inputProcessingLatency = std::chrono::duration_cast<std::chrono::milliseconds>(inputProcessingLatency).count();
+          auto inputProcessingEnd = uv_hrtime();
+          driverInfo.inputProcessingCost = (inputProcessingEnd - inputProcessingStart) / 1000000;
+          driverInfo.inputProcessingLatency = (inputProcessingLatency) / 1000000;
           inputProcessingLast = inputProcessingStart;
         }
         break;
@@ -1493,7 +1414,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("error-policy", bpo::value<TerminationPolicy>(&errorPolicy)->default_value(TerminationPolicy::QUIT),               //
      "what to do when a device has an error: quit, wait")                                                               //
     ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")                     //
-    ("timeout,t", bpo::value<double>()->default_value(0), "timeout after which to exit")                                //
+    ("timeout,t", bpo::value<uint64_t>()->default_value(0), "forced exit timeout (in seconds)")                         //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                      //
     ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")            //
     ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                  //
@@ -1685,7 +1606,6 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   initialiseDriverControl(varmap, driverControl);
 
   DriverInfo driverInfo;
-  driverInfo.maxFd = 0;
   driverInfo.states.reserve(10);
   driverInfo.sigintRequested = false;
   driverInfo.sigchldRequested = false;
@@ -1701,8 +1621,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   } else {
     driverInfo.errorPolicy = varmap["error-policy"].as<TerminationPolicy>();
   }
-  driverInfo.startTime = std::chrono::steady_clock::now();
-  driverInfo.timeout = varmap["timeout"].as<double>();
+  driverInfo.startTime = uv_hrtime();
+  driverInfo.timeout = varmap["timeout"].as<uint64_t>();
   driverInfo.deployHostname = varmap["hostname"].as<std::string>();
   driverInfo.resources = varmap["resources"].as<std::string>();
 

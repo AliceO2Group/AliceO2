@@ -100,6 +100,7 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   trackletSelectorInPipeline = -1;
   trackletSelectorSlices = -1;
   forceMemoryPoolSize = 0;
+  forceHostMemoryPoolSize = 0;
   nTPCClustererLanes = 3;
   registerStandaloneInputMemory = false;
   tpcCompressionGatherMode = -1;
@@ -113,4 +114,5 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   tpccfGatherKernel = true;
   prefetchTPCpageScan = false;
   doublePipeline = false;
+  doublePipelineClusterizer = true;
 }

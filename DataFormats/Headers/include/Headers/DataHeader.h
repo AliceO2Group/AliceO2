@@ -666,9 +666,11 @@ struct DataHeader : public BaseHeader {
   using SplitPayloadPartsType = uint32_t;
   using PayloadSizeType = uint64_t;
   using TForbitType = uint32_t;
+  using TFCounterType = uint32_t;
+  using RunNumberType = uint32_t;
 
   //static data for this header type/version
-  static constexpr uint32_t sVersion{2};
+  static constexpr uint32_t sVersion{3};
   static constexpr o2::header::HeaderType sHeaderType{String2<uint64_t>("DataHead")};
   static constexpr o2::header::SerializationMethod sSerializationMethod{gSerializationMethodNone};
 
@@ -711,9 +713,19 @@ struct DataHeader : public BaseHeader {
   //___NEW STUFF GOES BELOW
 
   ///
-  /// first orbit of time frame as unique identifier within the run
+  /// first orbit of time frame, since v2
   ///
   TForbitType firstTForbit;
+
+  ///
+  /// ever incrementing TF counter, allows to disentangle even TFs with same firstTForbit in case of replay, since v3
+  ///
+  TFCounterType tfCounter;
+
+  ///
+  /// run number TF belongs to, since v3
+  ///
+  RunNumberType runNumber;
 
   //___the functions:
   //__________________________________________________________________________________________________
@@ -726,7 +738,9 @@ struct DataHeader : public BaseHeader {
       subSpecification(0),
       splitPayloadIndex(0),
       payloadSize(0),
-      firstTForbit{0}
+      firstTForbit{0},
+      tfCounter(0),
+      runNumber(0)
   {
   }
 
@@ -740,7 +754,9 @@ struct DataHeader : public BaseHeader {
       subSpecification(subspec),
       splitPayloadIndex(0),
       payloadSize(size),
-      firstTForbit{0}
+      firstTForbit{0},
+      tfCounter(0),
+      runNumber(0)
   {
   }
 
@@ -754,7 +770,9 @@ struct DataHeader : public BaseHeader {
       subSpecification(subspec),
       splitPayloadIndex(partIndex),
       payloadSize(size),
-      firstTForbit{0}
+      firstTForbit{0},
+      tfCounter(0),
+      runNumber(0)
   {
   }
 
@@ -808,8 +826,8 @@ static_assert(sizeof(BaseHeader) == 32,
               "BaseHeader struct must be of size 32");
 static_assert(sizeof(DataOrigin) == 4,
               "DataOrigin struct must be of size 4");
-static_assert(sizeof(DataHeader) == 88,
-              "DataHeader struct must be of size 88");
+static_assert(sizeof(DataHeader) == 96,
+              "DataHeader struct must be of size 96");
 static_assert(gSizeMagicString == sizeof(BaseHeader::magicStringInt),
               "Size mismatch in magic string union");
 static_assert(sizeof(BaseHeader::sMagicString) == sizeof(BaseHeader::magicStringInt),

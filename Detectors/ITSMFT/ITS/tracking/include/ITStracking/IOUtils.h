@@ -41,7 +41,6 @@ class MCTruthContainer;
 
 namespace itsmft
 {
-class Cluster;
 class CompClusterExt;
 class TopologyDictionary;
 }
@@ -58,13 +57,9 @@ constexpr float DefClusError2Col = DefClusErrorCol * DefClusErrorCol;
 
 void loadConfigurations(const std::string&);
 std::vector<ROframe> loadEventData(const std::string&);
-void loadEventData(ROframe& events, gsl::span<const itsmft::Cluster> clusters,
-                   const dataformats::MCTruthContainer<MCCompLabel>* clsLabels = nullptr);
 void loadEventData(ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
                    gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
                    const dataformats::MCTruthContainer<MCCompLabel>* clsLabels = nullptr);
-int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span<const itsmft::Cluster> clusters,
-                    const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
 int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
                     gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
                     const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);

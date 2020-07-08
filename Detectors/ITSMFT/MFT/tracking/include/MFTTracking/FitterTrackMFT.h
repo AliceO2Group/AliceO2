@@ -19,7 +19,7 @@
 #include <list>
 #include <memory>
 
-#include "DataFormatsITSMFT/Cluster.h"
+#include "MFTTracking/Cluster.h"
 #include "MFTTracking/TrackParamMFT.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
@@ -72,12 +72,10 @@ class FitterTrackMFT
   auto rend() { return mParamAtClusters.rend(); }
   auto rend() const { return mParamAtClusters.rend(); }
 
-  TrackParamMFT& createParamAtCluster(const o2::itsmft::Cluster& cluster);
+  TrackParamMFT& createParamAtCluster(const Cluster& cluster);
   void addParamAtCluster(const TrackParamMFT& param);
   /// Remove the given track parameters from the internal list and return an iterator to the parameters that follow
   auto removeParamAtCluster(std::list<TrackParamMFT>::iterator& itParam) { return mParamAtClusters.erase(itParam); }
-
-  const int getNClustersInCommon(const FitterTrackMFT& track, int stMin = 0, int stMax = 4) const;
 
   bool isBetter(const FitterTrackMFT& track) const;
 
@@ -103,8 +101,6 @@ class FitterTrackMFT
   void removable(bool removable = true) { mRemovable = removable; }
   /// return the flag telling if this track should be deleted
   bool isRemovable() const { return mRemovable; }
-
-  void printMCCompLabels() const;
 
   const Int_t getNPoints() const { return mNPoints; }
 

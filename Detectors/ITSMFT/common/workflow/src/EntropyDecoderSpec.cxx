@@ -15,7 +15,6 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/Cluster.h" // RS DUMMY, being outphased, to remove
 #include "ITSMFTReconstruction/CTFCoder.h"
 #include "ITSMFTWorkflow/EntropyDecoderSpec.h"
 
@@ -43,7 +42,6 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(OutputRef{"ROframes"});
   auto& compcl = pc.outputs().make<std::vector<o2::itsmft::CompClusterExt>>(OutputRef{"compClusters"});
   auto& patterns = pc.outputs().make<std::vector<unsigned char>>(OutputRef{"patterns"});
-  auto& fullDummy = pc.outputs().make<std::vector<o2::itsmft::Cluster>>(OutputRef{"fullclusters"}); // RS DUMMY, being outphased
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   const auto ctfImage = o2::itsmft::CTF::getImage(buff.data());
@@ -64,9 +62,7 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig)
   std::vector<OutputSpec> outputs{
     OutputSpec{{"compClusters"}, orig, "COMPCLUSTERS", 0, Lifetime::Timeframe},
     OutputSpec{{"patterns"}, orig, "PATTERNS", 0, Lifetime::Timeframe},
-    OutputSpec{{"ROframes"}, orig, "CLUSTERSROF", 0, Lifetime::Timeframe},
-    OutputSpec{{"fullclusters"}, orig, "CLUSTERS", 0, Lifetime::Timeframe} // RS DUMMY, being outphased
-  };
+    OutputSpec{{"ROframes"}, orig, "CLUSTERSROF", 0, Lifetime::Timeframe}};
 
   return DataProcessorSpec{
     orig == o2::header::gDataOriginITS ? "its-entropy-decoder" : "mft-entropy-decoder",

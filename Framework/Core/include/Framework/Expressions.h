@@ -77,6 +77,7 @@ constexpr auto selectArrowType()
 }
 
 std::shared_ptr<arrow::DataType> concreteArrowType(atype::type type);
+std::string upcastTo(atype::type f);
 
 /// An expression tree node corresponding to a literal value
 struct LiteralNode {
@@ -295,9 +296,33 @@ inline Node operator+(Node left, T right)
 }
 
 template <typename T>
+inline Node operator+(T left, Node right)
+{
+  return Node{OpNode{BasicOp::Addition}, LiteralNode{left}, std::move(right)};
+}
+
+template <>
+inline Node operator+(Node left, BindingNode right)
+{
+  return Node{OpNode{BasicOp::Addition}, std::move(left), right};
+}
+
+template <>
+inline Node operator+(BindingNode left, Node right)
+{
+  return Node{OpNode{BasicOp::Addition}, left, std::move(right)};
+}
+
+template <typename T>
 inline Node operator-(Node left, T right)
 {
   return Node{OpNode{BasicOp::Subtraction}, std::move(left), LiteralNode{right}};
+}
+
+template <typename T>
+inline Node operator-(T left, Node right)
+{
+  return Node{OpNode{BasicOp::Subtraction}, LiteralNode{left}, std::move(right)};
 }
 /// semi-binary
 template <typename T>
@@ -307,6 +332,11 @@ inline Node npow(Node left, T right)
 }
 
 /// unary operations on nodes
+inline Node nsqrt(Node left)
+{
+  return Node{OpNode{BasicOp::Sqrt}, std::move(left)};
+}
+
 inline Node nexp(Node left)
 {
   return Node{OpNode{BasicOp::Exp}, std::move(left)};
@@ -325,6 +355,36 @@ inline Node nlog10(Node left)
 inline Node nabs(Node left)
 {
   return Node{OpNode{BasicOp::Abs}, std::move(left)};
+}
+
+inline Node nsin(Node left)
+{
+  return Node{OpNode{BasicOp::Sin}, std::move(left)};
+}
+
+inline Node ncos(Node left)
+{
+  return Node{OpNode{BasicOp::Cos}, std::move(left)};
+}
+
+inline Node ntan(Node left)
+{
+  return Node{OpNode{BasicOp::Tan}, std::move(left)};
+}
+
+inline Node nasin(Node left)
+{
+  return Node{OpNode{BasicOp::Asin}, std::move(left)};
+}
+
+inline Node nacos(Node left)
+{
+  return Node{OpNode{BasicOp::Acos}, std::move(left)};
+}
+
+inline Node natan(Node left)
+{
+  return Node{OpNode{BasicOp::Atan}, std::move(left)};
 }
 
 /// A struct, containing the root of the expression tree
