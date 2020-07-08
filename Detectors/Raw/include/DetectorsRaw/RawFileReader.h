@@ -103,12 +103,12 @@ class RawFileReader
            StartHB = 0x1 << 1,
            StartSP = 0x1 << 2,
            EndHB = 0x1 << 3 };
-    size_t offset = 0;    // where data of the block starts
-    uint32_t size = 0;    // block size
-    uint32_t tfID = 0;    // tf counter (from 0)
-    IR ir = 0;            // ir starting the block
-    uint16_t fileID = 0;  // file id where the block is located
-    uint8_t flags = 0;    // different flags
+    size_t offset = 0;   //! where data of the block starts
+    uint32_t size = 0;   //! block size
+    uint32_t tfID = 0;   //! tf counter (from 0)
+    IR ir = 0;           //! ir starting the block
+    uint16_t fileID = 0; //! file id where the block is located
+    uint8_t flags = 0;   //! different flags
     LinkBlock() = default;
     LinkBlock(int fid, size_t offs) : offset(offs), fileID(fid) {}
     void setFlag(uint8_t fl, bool v = true)
@@ -124,26 +124,26 @@ class RawFileReader
 
   //=====================================================================================
   struct LinkData {
-    RDHAny rdhl;               // RDH with the running info of the last RDH seen
-    LinkSpec_t spec = 0;       // Link subspec augmented by its origin
-    LinkSubSpec_t subspec = 0; // subspec according to DataDistribution
-    uint32_t nTimeFrames = 0;
-    uint32_t nHBFrames = 0;
-    uint32_t nSPages = 0;
-    uint64_t nCRUPages = 0;
-    bool cruDetector = true; // CRU vs RORC detector
-    bool continuousRO = true;
+    RDHAny rdhl;               //! RDH with the running info of the last RDH seen
+    LinkSpec_t spec = 0;       //! Link subspec augmented by its origin
+    LinkSubSpec_t subspec = 0; //! subspec according to DataDistribution
+    uint32_t nTimeFrames = 0;  //!
+    uint32_t nHBFrames = 0;    //!
+    uint32_t nSPages = 0;      //!
+    uint64_t nCRUPages = 0;    //!
+    bool cruDetector = true;   //! CRU vs RORC detector
+    bool continuousRO = true;  //!
 
-    o2::header::DataOrigin origin = o2::header::gDataOriginInvalid;
-    o2::header::DataDescription description = o2::header::gDataDescriptionInvalid;
-    std::string fairMQChannel{}; // name of the fairMQ channel for the output
-    int nErrors = 0;
-    std::vector<LinkBlock> blocks;
+    o2::header::DataOrigin origin = o2::header::gDataOriginInvalid;                //!
+    o2::header::DataDescription description = o2::header::gDataDescriptionInvalid; //!
+    std::string fairMQChannel{};                                                   //! name of the fairMQ channel for the output
+    int nErrors = 0;                                                               //!
+    std::vector<LinkBlock> blocks;                                                 //!
     //
     // transient info during processing
-    bool openHB = false;
-    int nHBFinTF = 0;
-    int nextBlock2Read = 0; // next block which should be read
+    bool openHB = false;    //!
+    int nHBFinTF = 0;       //!
+    int nextBlock2Read = 0; //! next block which should be read
 
     LinkData() = default;
     template <typename H>
@@ -170,12 +170,12 @@ class RawFileReader
     std::string describe() const;
 
    private:
-    const RawFileReader* reader = nullptr;
+    const RawFileReader* reader = nullptr; //!
   };
 
   //=====================================================================================
 
-  RawFileReader(const std::string& config = "", int verbosity = 0);
+  RawFileReader(const std::string& config = "", int verbosity = 0, size_t buffsize = 50 * 1024UL);
   ~RawFileReader() { clear(); }
 
   void loadFromInputsMap(const InputsMap& inp);
@@ -239,28 +239,29 @@ class RawFileReader
   static constexpr o2::header::DataDescription DEFDataDescription = o2::header::gDataDescriptionRawData;
   static constexpr ReadoutCardType DEFCardType = CRU;
 
-  o2::header::DataOrigin mDefDataOrigin = DEFDataOrigin;
-  o2::header::DataDescription mDefDataDescription = DEFDataDescription;
-  ReadoutCardType mDefCardType = CRU;
+  o2::header::DataOrigin mDefDataOrigin = DEFDataOrigin;                //!
+  o2::header::DataDescription mDefDataDescription = DEFDataDescription; //!
+  ReadoutCardType mDefCardType = CRU;                                   //!
 
-  std::vector<std::string> mFileNames; // input file names
-  std::vector<FILE*> mFiles;           // input file handlers
-  std::vector<OrigDescCard> mDataSpecs; // data origin and description for every input file + readout card type
+  std::vector<std::string> mFileNames;               //! input file names
+  std::vector<FILE*> mFiles;                         //! input file handlers
+  std::vector<std::unique_ptr<char[]>> mFileBuffers; //! buffers for input files
+  std::vector<OrigDescCard> mDataSpecs;              //! data origin and description for every input file + readout card type
   bool mInitDone = false;
-  std::unordered_map<LinkSpec_t, int> mLinkEntries; // mapping between RDH specs and link entry in the mLinksData
-  std::vector<LinkData> mLinksData;                 // info on links data in the files
-  std::vector<int> mOrderedIDs;                     // links entries ordered in Specs
-  uint32_t mMaxTFToRead = 0xffffffff;               // max TFs to process
-  uint32_t mNTimeFrames = 0;                        // total number of time frames
-  uint32_t mNextTF2Read = 0;                        // next TF to read
-  uint32_t mOrbitMin = 0xffffffff;                  // lowest orbit seen by any link
-  uint32_t mOrbitMax = 0;                           // highest orbit seen by any link
-  size_t mBufferSize = 1024 * 1024;                 // size of the buffer for files preprocessing
-  int mNominalSPageSize = 0x1 << 20;                // expected super-page size in B
-  int mCurrentFileID = 0;                           // current file being processed
-  long int mPosInFile = 0;                          // current position in the file
-  bool mMultiLinkFile = false;                      // was > than 1 link seen in the file?
-  uint32_t mCheckErrors = 0;                        // mask for errors to check
+  std::unordered_map<LinkSpec_t, int> mLinkEntries; //! mapping between RDH specs and link entry in the mLinksData
+  std::vector<LinkData> mLinksData;                 //! info on links data in the files
+  std::vector<int> mOrderedIDs;                     //! links entries ordered in Specs
+  uint32_t mMaxTFToRead = 0xffffffff;               //! max TFs to process
+  uint32_t mNTimeFrames = 0;                        //! total number of time frames
+  uint32_t mNextTF2Read = 0;                        //! next TF to read
+  uint32_t mOrbitMin = 0xffffffff;                  //! lowest orbit seen by any link
+  uint32_t mOrbitMax = 0;                           //! highest orbit seen by any link
+  size_t mBufferSize = 5 * 1024UL;                  //! size of the buffer for files reading
+  int mNominalSPageSize = 0x1 << 20;                //! expected super-page size in B
+  int mCurrentFileID = 0;                           //! current file being processed
+  long int mPosInFile = 0;                          //! current position in the file
+  bool mMultiLinkFile = false;                      //! was > than 1 link seen in the file?
+  uint32_t mCheckErrors = 0;                        //! mask for errors to check
   int mVerbosity = 0;
 
   ClassDefNV(RawFileReader, 1);

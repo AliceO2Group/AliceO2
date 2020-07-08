@@ -28,7 +28,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"max-tf", VariantType::Int64, 0xffffffffL, {"max TF ID to process"}});
   options.push_back(ConfigParamSpec{"loop", VariantType::Int, 1, {"loop N times (infinite for N<0)"}});
   options.push_back(ConfigParamSpec{"delay", VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
-  options.push_back(ConfigParamSpec{"buffer-size", VariantType::Int64, 1024L * 1024L, {"buffer size for files preprocessing"}});
+  options.push_back(ConfigParamSpec{"buffer-size", VariantType::Int64, 5 * 1024L, {"buffer size for files preprocessing"}});
   options.push_back(ConfigParamSpec{"super-page-size", VariantType::Int64, 1024L * 1024L, {"super-page size for FMQ parts definition"}});
   options.push_back(ConfigParamSpec{"part-per-hbf", VariantType::Bool, false, {"FMQ parts per superpage (default) of HBF"}});
   options.push_back(ConfigParamSpec{"raw-channel-config", VariantType::String, "", {"optional raw FMQ channel for non-DPL output"}});

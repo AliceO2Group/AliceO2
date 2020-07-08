@@ -243,13 +243,15 @@ size_t RawFileReader::LinkData::readNextSuperPage(char* buff)
       break;
     }
     ibl++;
-    auto fl = reader->mFiles[blc.fileID];
-    if (fseek(fl, blc.offset, SEEK_SET) || fread(buff + sz, 1, blc.size, fl) != blc.size) {
+    sz += blc.size;
+  }
+  if (sz) {
+    auto fl = reader->mFiles[blocks[nextBlock2Read].fileID];
+    if (fseek(fl, blocks[nextBlock2Read].offset, SEEK_SET) || fread(buff, 1, sz, fl) != sz) {
       LOGF(ERROR, "Failed to read for the %s a bloc:", describe());
-      blc.print();
+      blocks[nextBlock2Read].print();
       error = true;
     }
-    sz += blc.size;
   }
   nextBlock2Read = ibl;
   return error ? 0 : sz; // in case of the error we ignore the data
@@ -446,7 +448,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
 //====================== methods of RawFileReader ========================
 
 //_____________________________________________________________________
-RawFileReader::RawFileReader(const std::string& config, int verbosity) : mVerbosity(verbosity)
+RawFileReader::RawFileReader(const std::string& config, int verbosity, size_t buffSize) : mVerbosity(verbosity), mBufferSize(buffSize)
 {
   if (!config.empty()) {
     auto inp = parseInput(config);
@@ -573,7 +575,10 @@ bool RawFileReader::addFile(const std::string& sname, o2::header::DataOrigin ori
     LOG(ERROR) << "Cannot add new files after initialization";
     return false;
   }
+  mFileBuffers.push_back(std::make_unique<char[]>(mBufferSize));
   auto inFile = fopen(sname.c_str(), "rb");
+  setvbuf(inFile, mFileBuffers.back().get(), _IOFBF, mBufferSize);
+
   bool ok = true;
   if (!inFile) {
     LOG(ERROR) << "Failed to open input file " << sname;
