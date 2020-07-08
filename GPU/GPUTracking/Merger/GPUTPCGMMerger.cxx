@@ -461,7 +461,7 @@ GPUd() void GPUTPCGMMerger::UnpackSliceGlobal(int nBlocks, int nThreads, int iBl
     } else if (itr > nLocalTracks) {
       sliceTr = sliceTr->GetNextTrack();
     }
-    int localId = TrackIds[(sliceTr->LocalTrackId() >> 24) * mNMaxSingleSliceTracks + (sliceTr->LocalTrackId() & 0xFFFFFF)];
+    int localId = TrackIds[(sliceTr->LocalTrackId() >> 24) * mNMaxSingleSliceTracks | (sliceTr->LocalTrackId() & 0xFFFFFF)];
     if (localId == -1) {
       continue;
     }
@@ -481,11 +481,10 @@ GPUd() void GPUTPCGMMerger::UnpackSliceGlobal(int nBlocks, int nThreads, int iBl
 GPUd() void GPUTPCGMMerger::UnpackResetIds(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice)
 {
   int* TrackIds = (int*)mTmpMem;
-
   const GPUTPCTracker& trk = GetConstantMem()->tpcTrackers[iSlice];
   unsigned int nLocalTracks = Param().rec.mergerReadFromTrackerDirectly ? trk.CommonMemory()->nLocalTracks : mkSlices[iSlice]->NLocalTracks();
   for (unsigned int i = iBlock * nThreads + iThread; i < nLocalTracks; i += nBlocks * nThreads) {
-    TrackIds[iSlice * mNMaxSingleSliceTracks + i] = -1;
+    TrackIds[iSlice * mNMaxSingleSliceTracks | i] = -1;
   }
 }
 
@@ -531,11 +530,20 @@ GPUd() void GPUTPCGMMerger::RefitSliceTracks(int nBlocks, int nThreads, int iBlo
     track.SetGlobalTrackId(0, -1);
     track.SetGlobalTrackId(1, -1);
     unsigned int myTrack = CAMath::AtomicAdd(&mMemory->nUnpackedTracks, 1u);
-    TrackIds[iSlice * mNMaxSingleSliceTracks + sliceTr->LocalTrackId()] = myTrack;
+    TrackIds[iSlice * mNMaxSingleSliceTracks | sliceTr->LocalTrackId()] = myTrack;
     mSliceTrackInfos[myTrack] = track;
   }
   if (!Param().rec.mergerReadFromTrackerDirectly) {
     mMemory->firstGlobalTracks[iSlice] = nLocalTracks ? sliceTr->GetNextTrack() : mkSlices[iSlice]->GetFirstTrack();
+  }
+}
+
+GPUd() void GPUTPCGMMerger::LinkGlobalTracks(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  for (int itr = SliceTrackInfoGlobalFirst(0) + iBlock * nThreads + iThread; itr < SliceTrackInfoGlobalLast(NSLICES - 1); itr += nThreads * nBlocks) {
+    GPUTPCGMSliceTrack& globalTrack = mSliceTrackInfos[itr];
+    GPUTPCGMSliceTrack& localTrack = mSliceTrackInfos[globalTrack.LocalTrackId()];
+    localTrack.SetGlobalTrackId(localTrack.GlobalTrackId(0) != -1, itr); // Todo: broken in parallel
   }
 }
 
@@ -1396,15 +1404,6 @@ struct GPUTPCGMMerger_CompareClusterIds {
     return (a.id > b.id);
   }
 };
-
-GPUd() void GPUTPCGMMerger::LinkGlobalTracks(int nBlocks, int nThreads, int iBlock, int iThread)
-{
-  for (int itr = SliceTrackInfoGlobalFirst(0) + iBlock * nThreads + iThread; itr < SliceTrackInfoGlobalLast(NSLICES - 1); itr += nThreads * nBlocks) {
-    GPUTPCGMSliceTrack& globalTrack = mSliceTrackInfos[itr];
-    GPUTPCGMSliceTrack& localTrack = mSliceTrackInfos[globalTrack.LocalTrackId()];
-    localTrack.SetGlobalTrackId(localTrack.GlobalTrackId(0) != -1, itr);
-  }
-}
 
 GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int iBlock, int iThread)
 {
