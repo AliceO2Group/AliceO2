@@ -216,10 +216,13 @@ int ReadConfiguration(int argc, char** argv)
     printf("Can only produce QA pdf output when input files are specified!\n");
     return 1;
   }
+  if (configStandalone.configQA.inputHistogramsOnly) {
+    configStandalone.configRec.rundEdx = false;
+  }
   if (configStandalone.eventDisplay) {
     configStandalone.noprompt = 1;
   }
-  if (configStandalone.DebugLevel >= 4) {
+  if (configStandalone.DebugLevel >= 4 && !configStandalone.configProc.ompKernels) {
     configStandalone.OMPThreads = 1;
   }
 
@@ -350,9 +353,6 @@ int SetupReconstruction()
   }
   recSet.loopInterpolationInExtraPass = configStandalone.configRec.loopInterpolationInExtraPass;
   recSet.mergerReadFromTrackerDirectly = configStandalone.configRec.mergerReadFromTrackerDirectly;
-  if (!recSet.mergerReadFromTrackerDirectly) {
-    devProc.fullMergerOnGPU = false;
-  }
 
   if (configStandalone.OMPThreads != -1) {
     devProc.nThreads = configStandalone.OMPThreads;

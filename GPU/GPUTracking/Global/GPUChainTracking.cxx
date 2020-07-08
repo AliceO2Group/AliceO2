@@ -270,6 +270,10 @@ bool GPUChainTracking::ValidateSettings()
     GPUError("incompatible settings for non consecutive ids");
     return false;
   }
+  if (!param().rec.mergerReadFromTrackerDirectly && GetDeviceProcessingSettings().ompKernels) {
+    GPUError("OMP Kernels require mergerReadFromTrackerDirectly");
+    return false;
+  }
   if (param().continuousMaxTimeBin > (int)GPUSettings::TPC_MAX_TF_TIME_BIN) {
     GPUError("configure max time bin exceeds 256 orbits");
     return false;
