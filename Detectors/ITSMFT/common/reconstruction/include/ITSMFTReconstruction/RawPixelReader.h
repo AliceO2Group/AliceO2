@@ -52,9 +52,9 @@ namespace o2
 namespace itsmft
 {
 
-constexpr int MaxGBTPacketBytes = 8 * 1024; // Max size of GBT packet in bytes (8KB)
+constexpr int MaxGBTPacketBytes = 8 * 1024;                                   // Max size of GBT packet in bytes (8KB)
 constexpr int MaxGBTWordsPerPacket = MaxGBTPacketBytes / GBTPaddedWordLength; // Max N of GBT words per CRU page
-constexpr int NCRUPagesPerSuperpage = 256;  // Expected max number of CRU pages per superpage
+constexpr int NCRUPagesPerSuperpage = 256;                                    // Expected max number of CRU pages per superpage
 using RDHUtils = o2::raw::RDHUtils;
 
 struct RawDecodingStat {
@@ -190,6 +190,38 @@ class RawPixelReader : public PixelReader
       return nullptr; // nothing left
     }
     return getNextChipData(chipDataVec); // is it ok to use recursion here?
+  }
+
+  ChipPixelData* getNextChipDataFromBuffer(std::vector<ChipPixelData>& chipDataVec)
+  {
+    // decode new RU if no cached non-empty chips
+
+    if (mCurRUDecodeID >= 0) { // make sure current RU has fired chips to extract
+      for (; mCurRUDecodeID < mNRUs; mCurRUDecodeID++) {
+        auto& ru = mRUDecodeVec[mCurRUDecodeID];
+        if (ru.lastChipChecked < ru.nChipsFired) {
+          auto& chipData = ru.chipsData[ru.lastChipChecked++];
+          int id = chipData.getChipID();
+          chipDataVec[id].swap(chipData);
+          return &chipDataVec[id];
+        }
+      }
+      mCurRUDecodeID = 0; // no more decoded data if reached this place,
+    }
+    // will need to decode new trigger
+    if (!mDecodeNextAuto) { // no more data in the current ROF and no automatic decoding of next one was requested
+      return nullptr;
+    }
+
+    if (!mRawBuffer.isEmpty()) {
+      cacheLinksDataFromBuffer(mRawBuffer);
+    }
+
+    if (mMinTriggersCached < 1 || !decodeNextTrigger()) {
+      mCurRUDecodeID = -1;
+      return nullptr; // nothing left
+    }
+    return getNextChipDataFromBuffer(chipDataVec); // is it ok to use recursion here?
   }
 
   ///______________________________________________________________________
@@ -370,7 +402,7 @@ class RawPixelReader : public PixelReader
 
       link->data.ensureFreeCapacity(MaxGBTPacketBytes);
       link->data.addFast(reinterpret_cast<uint8_t*>(&rdh), RDHUtils::getHeaderSize(rdh)); // write RDH for current packet
-      link->nTriggers++;                                                    // acknowledge the page, note: here we count pages, not triggers
+      link->nTriggers++;                                                                  // acknowledge the page, note: here we count pages, not triggers
       o2::itsmft::GBTDataHeader gbtHeader(0, link->lanes);
       o2::itsmft::GBTDataTrailer gbtTrailer; // lanes will be set on closing the last page
 
@@ -424,7 +456,7 @@ class RawPixelReader : public PixelReader
           RDHUtils::setOffsetToNext(rdh, mImposeMaxPage ? MaxGBTPacketBytes : RDHUtils::getMemorySize(rdh));
           link->data.ensureFreeCapacity(MaxGBTPacketBytes);
           link->data.addFast(reinterpret_cast<uint8_t*>(&rdh), RDHUtils::getHeaderSize(rdh)); // write RDH for current packet
-          link->nTriggers++;                                                    // acknowledge the page, note: here we count pages, not triggers
+          link->nTriggers++;                                                                  // acknowledge the page, note: here we count pages, not triggers
           if (mVerbose) {
             RDHUtils::printRDH(rdh);
           }
@@ -508,15 +540,15 @@ class RawPixelReader : public PixelReader
     enum LinkFlag : int8_t { NotUpdated,
                              Updated,
                              HasEnoughTriggers };
-    LinkFlag linkFlags[Mapping::getNRUs()][3] = {NotUpdated};        // flag that enough triggeres were loaded for this link
-    int nLEnoughTriggers = 0;                                        // number of links for we which enough number of triggers were loaded
+    LinkFlag linkFlags[Mapping::getNRUs()][3] = {NotUpdated}; // flag that enough triggeres were loaded for this link
+    int nLEnoughTriggers = 0;                                 // number of links for we which enough number of triggers were loaded
     auto ptr = buffer.getPtr();
     o2::header::RAWDataHeader* rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
 
     do {
       if (!RDHUtils::checkRDH(rdh)) { // does it look like RDH?
-        if (!findNextRDH(buffer)) { // try to recover the pointer
-          break;                    // no data to continue
+        if (!findNextRDH(buffer)) {   // try to recover the pointer
+          break;                      // no data to continue
         }
         ptr = buffer.getPtr();
         rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
@@ -612,7 +644,117 @@ class RawPixelReader : public PixelReader
     return nRead;
   }
 
-  //_____________________________________
+  size_t cacheLinksDataFromBuffer(PayLoadCont& buffer)
+  {
+    LOG(INFO) << "Caching links data, currently in cache: " << mMinTriggersCached << " triggers";
+    if (buffer.isEmpty()) {
+      return 0; //need to decide
+    }
+    mSWCache.Start(false);
+    enum LinkFlag : int8_t { NotUpdated,
+                             Updated,
+                             HasEnoughTriggers };
+    LinkFlag linkFlags[Mapping::getNRUs()][3] = {NotUpdated};
+    int nLEnoughTriggers = 0; // number of links for we which enough number of triggers were loaded
+    auto ptr = buffer.getPtr();
+    o2::header::RAWDataHeader* rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
+
+    do {
+      if (!RDHUtils::checkRDH(rdh)) { // does it look like RDH?
+        if (!findNextRDH(buffer)) {   // try to recover the pointer
+          break;                      // no data to continue
+        }
+        ptr = buffer.getPtr();
+        rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
+      }
+      decodeTrgType(rdh, mTriggersCount);
+      if (mVerbose) {
+        RDHUtils::printRDH(rdh);
+      }
+
+      int ruIDSW = mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh));
+#ifdef _RAW_READER_ERROR_CHECKS_
+      if (ruIDSW >= mMAP.getNRUs()) {
+        mDecodingStat.errorCounts[RawDecodingStat::ErrInvalidFEEId]++;
+        LOG(ERROR) << mDecodingStat.ErrNames[RawDecodingStat::ErrInvalidFEEId]
+                   << " : FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << ", skipping CRU page";
+        RDHUtils::printRDH(rdh);
+        ptr += RDHUtils::getOffsetToNext(rdh);
+        buffer.setPtr(ptr);
+        //        if (buffer.getUnusedSize() < MaxGBTPacketBytes) {
+        //          nRead += loadInput(buffer); // update
+        //          ptr = buffer.getPtr();      // pointer might have been changed
+        //        }
+        continue;
+      }
+#endif
+      auto& ruDecode = getCreateRUDecode(ruIDSW);
+
+      bool newTrigger = true; // check if we see new trigger
+      uint16_t lr, ruOnLr, linkIDinRU;
+      mMAP.expandFEEId(RDHUtils::getFEEID(rdh), lr, ruOnLr, linkIDinRU);
+      auto link = getGBTLink(ruDecode.links[linkIDinRU]);
+      if (link) {                                                                                                    // was there any data seen on this link before?
+        const auto rdhPrev = reinterpret_cast<o2::header::RAWDataHeader*>(link->data.getEnd() - link->lastPageSize); // last stored RDH
+        if (isSameRUandTrigger(rdhPrev, rdh)) {
+          newTrigger = false;
+        }
+      } else { // a new link was added
+        LOG(INFO) << "Adding new GBT LINK FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4);
+        ruDecode.links[linkIDinRU] = addGBTLink();
+        link = getGBTLink(ruDecode.links[linkIDinRU]);
+        link->statistics.ruLinkID = linkIDinRU;
+        mNLinks++;
+      }
+      if (linkFlags[ruIDSW][linkIDinRU] == NotUpdated) {
+        link->data.moveUnusedToHead(); // reuse space of already processed data
+        linkFlags[ruIDSW][linkIDinRU] = Updated;
+      }
+      // copy data to the buffer of the link and memorize its RDH pointer
+      link->data.add(ptr, RDHUtils::getMemorySize(rdh));
+      link->lastPageSize = RDHUtils::getMemorySize(rdh); // account new added size
+      auto rdhC = reinterpret_cast<o2::header::RAWDataHeader*>(link->data.getEnd() - link->lastPageSize);
+      RDHUtils::setOffsetToNext(rdhC, RDHUtils::getMemorySize(rdh)); // since we skip 0-s, we have to modify the offset
+
+      if (newTrigger) {
+        link->nTriggers++; // acknowledge 1st trigger
+        if (link->nTriggers >= mMinTriggersToCache && linkFlags[ruIDSW][linkIDinRU] != HasEnoughTriggers) {
+          nLEnoughTriggers++;
+          linkFlags[ruIDSW][linkIDinRU] = HasEnoughTriggers;
+        }
+      }
+      ptr += RDHUtils::getOffsetToNext(rdh);
+      buffer.setPtr(ptr);
+
+      rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
+
+      if (mNLinks == nLEnoughTriggers) {
+        break;
+      }
+
+    } while (!buffer.isEmpty());
+
+    if (mNLinks == nLEnoughTriggers) {
+      mMinTriggersCached = mMinTriggersToCache; // wanted number of triggers acquired
+    } else {
+      mMinTriggersCached = INT_MAX;
+      for (int ir = 0; ir < mNRUs; ir++) {
+        const auto& ruDecData = mRUDecodeVec[ir];
+        for (auto linkID : ruDecData.links) {
+          const auto* link = getGBTLink(linkID);
+          if (link && link->nTriggers < mMinTriggersCached) {
+            mMinTriggersCached = link->nTriggers;
+          }
+        }
+      }
+    }
+    mSWCache.Stop();
+    LOG(INFO) << "Cached at least " << mMinTriggersCached << " triggers on " << mNLinks << " links of " << mNRUs << " RUs";
+
+    return 0;
+  }
+
+  //___________________________________
   int decodeNextTrigger() final
   {
     // Decode next trigger from the cached links data and decrease cached triggers counter, return N links decoded
@@ -625,7 +767,7 @@ class RawPixelReader : public PixelReader
     int nlinks = 0;
     for (int ir = mNRUs; ir--;) {
       auto& ruDecode = mRUDecodeVec[ir];
-      if (!nlinks) {                        // on 1st occasion extract trigger data
+      if (!nlinks) {                         // on 1st occasion extract trigger data
         for (auto linkID : ruDecode.links) { // loop over links to fill cable buffers
           auto* link = getGBTLink(linkID);
           if (link && !link->data.isEmpty()) {
@@ -780,7 +922,7 @@ class RawPixelReader : public PixelReader
       mDecodingStat.nPagesProcessed++;
       raw += RDHUtils::getHeaderSize(rdh);
       int nGBTWords = (RDHUtils::getMemorySize(rdh) - RDHUtils::getHeaderSize(rdh)) / mGBTWordSize - 2; // number of GBT words excluding header/trailer
-      auto gbtH = reinterpret_cast<const o2::itsmft::GBTDataHeader*>(raw);    // process GBT header
+      auto gbtH = reinterpret_cast<const o2::itsmft::GBTDataHeader*>(raw);                              // process GBT header
 
 #ifdef _RAW_READER_ERROR_CHECKS_
       if (mVerbose) {
@@ -1434,7 +1576,25 @@ class RawPixelReader : public PixelReader
   GBTLink* getGBTLink(int i) { return i < 0 ? nullptr : &mGBTLinks[i]; }
   const GBTLink* getGBTLink(int i) const { return i < 0 ? nullptr : &mGBTLinks[i]; }
 
+  // decode Trigger type
+  void decodeTrgType(const o2::header::RAWDataHeader* h, uint32_t triggers[13])
+  {
+    for (uint32_t i = 0; i < 13; i++) {
+      o2::header::RDHLowest* rdh = reinterpret_cast<o2::header::RDHLowest*>((uint8_t*)h);
+      if ((uint32_t(rdh->triggerType) >> i & 1) == 1) {
+        mTriggersCount[i]++;
+      }
+    }
+  }
+
+  // get Trigger type counter
+  uint32_t* getTriggersCount()
+  {
+    return mTriggersCount;
+  }
+
  private:
+  uint32_t mTriggersCount[13] = {0}; //! Trigger type counter
   std::ifstream mIOFile;
   Coder mCoder;
   Mapping mMAP;
@@ -1443,11 +1603,11 @@ class RawPixelReader : public PixelReader
 
   PayLoadCont mRawBuffer; //! buffer for binary raw data file IO
 
-  std::array<RUDecodeData, Mapping::getNRUs()> mRUDecodeVec;        // decoding buffers for all active RUs
-  std::array<int, Mapping::getNRUs()> mRUEntry;                     //! entry of the RU with given SW ID in the mRUDecodeVec
+  std::array<RUDecodeData, Mapping::getNRUs()> mRUDecodeVec; // decoding buffers for all active RUs
+  std::array<int, Mapping::getNRUs()> mRUEntry;              //! entry of the RU with given SW ID in the mRUDecodeVec
   std::vector<GBTLink> mGBTLinks;
-  int mNRUs = 0;                                                    //! total number of RUs seen
-  int mNLinks = 0;                                                  //! total number of GBT links seen
+  int mNRUs = 0;   //! total number of RUs seen
+  int mNLinks = 0; //! total number of GBT links seen
 
   //! min number of triggers to cache per link (keep this > N pages per CRU superpage)
   int mMinTriggersToCache = NCRUPagesPerSuperpage + 10;
@@ -1456,7 +1616,7 @@ class RawPixelReader : public PixelReader
   // statistics
   RawDecodingStat mDecodingStat; //! global decoding statistics
 
-  TStopwatch mSWIO; //! timer for IO operations
+  TStopwatch mSWIO;    //! timer for IO operations
   TStopwatch mSWCache; //! timer for caching operations
 
   static constexpr int RawBufferMargin = 5000000;                      // keep uploaded at least this amount
