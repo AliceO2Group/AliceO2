@@ -49,11 +49,6 @@
 
 using namespace o2::framework;
 
-struct DigitEvent {
-  o2::itsmft::Digit Digits;
-  unsigned int NEvent;
-};
-
 namespace o2
 {
 namespace its
@@ -85,9 +80,7 @@ class TestDataReader : public Task
   //  std::unique_ptr<TTree> outTreeROF; // output tree with ROF records
   std::vector<ChipPixelData> mChips;
   std::vector<o2::itsmft::Digit> mDigits;
-  std::vector<DigitEvent> mEvents;
   std::vector<o2::itsmft::Digit> mMultiDigits;
-  std::vector<DigitEvent> mMultiEvents;
 
   ChipPixelData* mChipData = nullptr;
   std::string mInputName = "Split9.bin";
@@ -117,10 +110,9 @@ class TestDataReader : public Task
   std::vector<std::array<unsigned int, sNError>> mErrorsVec;
   std::vector<std::array<unsigned int, sNError>> mErrorsVecTest;
   //  int pos;
-  int j;
+  //  int j;
   int mFileDone;
   int mFileID;
-  int mEpNumber;
   int mRunNumber;
   int mTrackError;
   int mIndexPushEx;
@@ -132,7 +124,6 @@ class TestDataReader : public Task
   //  int mNewFileInjAction;
   std::vector<o2::itsmft::Digit> mDigitsTest;
   std::vector<o2::itsmft::Digit> mMultiDigitsTest;
-  std::vector<unsigned int> mEventsTest;
   int mMaxPixelSize;
 
   static const std::string sRunTypeFileName;
