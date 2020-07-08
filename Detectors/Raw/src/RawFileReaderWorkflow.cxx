@@ -46,12 +46,15 @@ class RawReaderSpecs : public o2f::Task
 {
  public:
   explicit RawReaderSpecs(const std::string& config, int loop = 1, uint32_t delay_us = 0,
-                          uint32_t errmap = 0xffffffff, uint32_t minTF = 0, uint32_t maxTF = 0xffffffff, size_t buffSize = 1024L * 1024L, const std::string& rawChannelName = "")
-    : mLoop(loop < 0 ? INT_MAX : (loop < 1 ? 1 : loop)), mDelayUSec(delay_us), mMinTFID(minTF), mMaxTFID(maxTF), mReader(std::make_unique<o2::raw::RawFileReader>(config)), mRawChannelName(rawChannelName)
+                          uint32_t errmap = 0xffffffff, uint32_t minTF = 0, uint32_t maxTF = 0xffffffff, bool partPerSP = true,
+                          size_t spSize = 1024L * 1024L, size_t buffSize = 1024L * 1024L,
+                          const std::string& rawChannelName = "")
+    : mLoop(loop < 0 ? INT_MAX : (loop < 1 ? 1 : loop)), mDelayUSec(delay_us), mMinTFID(minTF), mMaxTFID(maxTF), mPartPerSP(partPerSP), mReader(std::make_unique<o2::raw::RawFileReader>(config)), mRawChannelName(rawChannelName)
   {
     mReader->setCheckErrors(errmap);
     mReader->setMaxTFToRead(maxTF);
     mReader->setBufferSize(buffSize);
+    mReader->setNominalSPageSize(spSize);
     LOG(INFO) << "Will preprocess files with buffer size of " << buffSize << " bytes";
     LOG(INFO) << "Number of loops over whole data requested: " << mLoop;
   }
@@ -72,7 +75,6 @@ class RawReaderSpecs : public o2f::Task
     if (mDone) {
       return;
     }
-    int nhbexp = HBFUtils::Instance().getNOrbitsPerTF();
     auto device = ctx.services().get<o2f::RawDeviceService>().device();
     assert(device);
 
@@ -122,10 +124,14 @@ class RawReaderSpecs : public o2f::Task
     for (int il = 0; il < nlinks; il++) {
       mReader->getLink(il).rewindToTF(tfID);
     }
+    std::vector<size_t> partsSP;
+    const auto& hbfU = HBFUtils::Instance();
 
     // read next time frame
     size_t tfNParts = 0, tfSize = 0;
     LOG(INFO) << "Reading TF#" << mTFCounter << " (" << tfID << " at iteration " << loopsDone << ')';
+    o2::header::Stack dummyStack{o2h::DataHeader{}, o2::framework::DataProcessingHeader{0}}; // dummy stack to just to get stack size
+    auto hstackSize = dummyStack.size();
 
     for (int il = 0; il < nlinks; il++) {
       auto& link = mReader->getLink(il);
@@ -135,40 +141,33 @@ class RawReaderSpecs : public o2f::Task
       }
 
       o2h::DataHeader hdrTmpl(link.description, link.origin, link.subspec); // template with 0 size
-      int nhb = link.getNHBFinTF();
+      int nParts = mPartPerSP ? link.getNextTFSuperPagesStat(partsSP) : link.getNHBFinTF();
       hdrTmpl.payloadSerializationMethod = o2h::gSerializationMethodNone;
-      hdrTmpl.splitPayloadParts = nhb;
+      hdrTmpl.splitPayloadParts = nParts;
 
       while (hdrTmpl.splitPayloadIndex < hdrTmpl.splitPayloadParts) {
 
-        tfSize += hdrTmpl.payloadSize = link.getNextHBFSize();
-        o2::header::Stack headerStack{hdrTmpl, o2::framework::DataProcessingHeader{mTFCounter}};
+        tfSize += hdrTmpl.payloadSize = mPartPerSP ? partsSP[hdrTmpl.splitPayloadIndex] : link.getNextHBFSize();
 
-        auto hdMessage = device->NewMessage(headerStack.size());
-        memcpy(hdMessage->GetData(), headerStack.data(), headerStack.size());
-
+        auto hdMessage = device->NewMessage(hstackSize);
         auto plMessage = device->NewMessage(hdrTmpl.payloadSize);
-        auto bread = link.readNextHBF(reinterpret_cast<char*>(plMessage->GetData()));
+        auto bread = mPartPerSP ? link.readNextSuperPage(reinterpret_cast<char*>(plMessage->GetData())) : link.readNextHBF(reinterpret_cast<char*>(plMessage->GetData()));
         if (bread != hdrTmpl.payloadSize) {
           LOG(ERROR) << "Link " << il << " read " << bread << " bytes instead of " << hdrTmpl.payloadSize
                      << " expected in TF=" << mTFCounter << " part=" << hdrTmpl.splitPayloadIndex;
         }
         // check if the RDH to send corresponds to expected orbit
         if (hdrTmpl.splitPayloadIndex == 0) {
-          uint32_t hbOrbRead = o2::raw::RDHUtils::getHeartBeatOrbit(plMessage->GetData());
-          if (link.cruDetector) {
-            uint32_t hbOrbExpected = mReader->getOrbitMin() + tfID * nhbexp;
-            if (hbOrbExpected != hbOrbRead) {
-              LOGF(ERROR, "Expected orbit=%u but got %u for %d-th HBF in TF#%d of %s/%s/0x%u",
-                   hbOrbExpected, hbOrbRead, hdrTmpl.splitPayloadIndex, tfID,
-                   link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
-            }
-          }
-          hdrTmpl.firstTForbit = hbOrbRead;                                                          // will be picked for the
+          auto ir = o2::raw::RDHUtils::getHeartBeatIR(plMessage->GetData());
+          auto tfid = hbfU.getTF(ir);
+          hdrTmpl.firstTForbit = hbfU.getIRTF(tfid).orbit;                                           // will be picked for the
           hdrTmpl.tfCounter = mTFCounter;                                                            // following parts
-          reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->firstTForbit = hbOrbRead; // but need to fix
-          reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->tfCounter = mTFCounter;   // for the 1st one
+          // reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->firstTForbit = hdrTmpl.firstTForbit;     // hack to fix already filled headers
+          // reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->tfCounter = mTFCounter;   // at the moment don't use it
         }
+        o2::header::Stack headerStack{hdrTmpl, o2::framework::DataProcessingHeader{mTFCounter}};
+        memcpy(hdMessage->GetData(), headerStack.data(), headerStack.size());
+
         FairMQParts* parts = nullptr;
         parts = messagesPerRoute[link.fairMQChannel].get(); // FairMQParts*
         if (!parts) {
@@ -216,13 +215,14 @@ class RawReaderSpecs : public o2f::Task
   uint32_t mDelayUSec = 0;                         // Delay in microseconds between TFs
   uint32_t mMinTFID = 0;                           // 1st TF to extract
   uint32_t mMaxTFID = 0xffffffff;                  // last TF to extrct
+  bool mPartPerSP = true;                          // fill part per superpage
   bool mDone = false;                              // processing is over or not
   std::string mRawChannelName = "";                // name of optional non-DPL channel
   std::unique_ptr<o2::raw::RawFileReader> mReader; // matching engine
 };
 
 o2f::DataProcessorSpec getReaderSpec(std::string config, int loop, uint32_t delay_us, uint32_t errmap,
-                                     uint32_t minTF, uint32_t maxTF, size_t buffSize, const std::string& rawChannelConfig)
+                                     uint32_t minTF, uint32_t maxTF, bool partPerSP, size_t spSize, size_t buffSize, const std::string& rawChannelConfig)
 {
   // check which inputs are present in files to read
   o2f::DataProcessorSpec spec;
@@ -253,15 +253,15 @@ o2f::DataProcessorSpec getReaderSpec(std::string config, int loop, uint32_t dela
     LOG(INFO) << "Will send output to non-DPL channel " << rawChannelConfig;
   }
 
-  spec.algorithm = o2f::adaptFromTask<RawReaderSpecs>(config, loop, delay_us, errmap, minTF, maxTF, buffSize, rawChannelName);
+  spec.algorithm = o2f::adaptFromTask<RawReaderSpecs>(config, loop, delay_us, errmap, minTF, maxTF, partPerSP, spSize, buffSize, rawChannelName);
 
   return spec;
 }
 
 o2f::WorkflowSpec o2::raw::getRawFileReaderWorkflow(std::string inifile, int loop, uint32_t delay_us, uint32_t errmap, uint32_t minTF, uint32_t maxTF,
-                                                    size_t buffSize, const std::string& rawChannelConfig)
+                                                    bool partPerSP, size_t spSize, size_t buffSize, const std::string& rawChannelConfig)
 {
   o2f::WorkflowSpec specs;
-  specs.emplace_back(getReaderSpec(inifile, loop, delay_us, errmap, minTF, maxTF, buffSize, rawChannelConfig));
+  specs.emplace_back(getReaderSpec(inifile, loop, delay_us, errmap, minTF, maxTF, partPerSP, spSize, buffSize, rawChannelConfig));
   return specs;
 }
