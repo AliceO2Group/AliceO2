@@ -302,6 +302,8 @@ o2-raw-file-reader-workflow
   --max-tf arg (=4294967295)            max TF ID to process
   --delay arg (=0)                      delay in seconds between consecutive TFs sending
   --buffer-size arg (=1048576)          buffer size for files preprocessing
+  --super-page-size arg (=1048576)      super-page size for FMQ parts definition
+  --part-per-hbf                        FMQ parts per superpage (default) of HBF
   --raw-channel-config arg              optional raw FMQ channel for non-DPL output
   --configKeyValues arg                 semicolon separated key=value strings
 
@@ -323,8 +325,8 @@ scheme.
 
 If `--loop` argument is provided, data will be re-played in loop. The delay (in seconds) can be added between sensding of consecutive TFs to avoid pile-up of TFs.
 
-At every invocation of the device `processing` callback a full TimeFrame for every link will be added as N-HBFs parts (one for each HBF in the TF) to the multipart
-relayed by the `FairMQ` channel.
+At every invocation of the device `processing` callback a full TimeFrame for every link will be added as a multi-part `FairMQ` message and relayed by the relevant channel.
+By default each part will be a single CRU super-page of the link. This behaviour can be changed by providing `part-per-hbf` option, in which case each HBF will be added as a separate HBF.
 
 The standard use case of this workflow is to provide the input for other worfklows using the piping, e.g.
 ```cpp
