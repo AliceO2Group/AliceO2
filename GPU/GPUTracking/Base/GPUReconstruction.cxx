@@ -236,7 +236,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (param().rec.NonConsecutiveIDs) {
     param().rec.DisableRefitAttachment = 0xFF;
   }
-  if (!(mRecoStepsGPU & RecoStep::TPCMerging)) {
+  if (!(mRecoStepsGPU & RecoStep::TPCMerging) || !param().rec.mergerReadFromTrackerDirectly) {
     mDeviceProcessingSettings.fullMergerOnGPU = false;
   }
   if (mDeviceProcessingSettings.debugLevel || !mDeviceProcessingSettings.fullMergerOnGPU) {
