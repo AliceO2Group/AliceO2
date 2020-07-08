@@ -129,7 +129,7 @@ class Clusterer
       curr[row] = lastIndex; // store index of the new precluster in the current column buffer
     }
 
-    void streamCluster(uint16_t rowMin, uint16_t rowSpanW, uint16_t colMin, uint16_t colSpanW,
+    void streamCluster(const std::vector<PixelData>& pixbuf, uint16_t rowMin, uint16_t rowSpanW, uint16_t colMin, uint16_t colSpanW,
                        uint16_t chipID,
                        CompClusCont* compClusPtr, PatternCont* patternsPtr,
                        MCTruth* labelsClusPtr, int nlab);
