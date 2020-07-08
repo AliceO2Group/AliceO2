@@ -95,7 +95,7 @@ class Clusterer
     uint16_t currCol = 0xffff;                                      ///< Column being processed
     bool noLeftCol = true;                                          ///< flag that there is no column on the left to check
     std::array<Label, MaxLabels> labelsBuff;                        //! temporary buffer for building cluster labels
-    std::array<PixelData, ClusterPattern::MaxPatternBits * 2> pixArrBuff; //! temporary buffer for pattern calc.
+    std::vector<PixelData> pixArrBuff;                              //! temporary buffer for pattern calc.
     //
     /// temporary storage for the thread output
     CompClusCont compClusters;
@@ -130,7 +130,7 @@ class Clusterer
     }
 
     void streamCluster(uint16_t rowMin, uint16_t rowSpanW, uint16_t colMin, uint16_t colSpanW,
-                       int npix, uint16_t chipID,
+                       uint16_t chipID,
                        CompClusCont* compClusPtr, PatternCont* patternsPtr,
                        MCTruth* labelsClusPtr, int nlab);
 
