@@ -266,13 +266,10 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
         do {
           // Select a subset of pixels fitting the reduced bounding box
           std::vector<PixelData> pixbuf;
+          auto colMax = colMin + colSpan, rowMax = r + rsp;
           for (const auto& pix : pixArrBuff) {
-            unsigned short ir = pix.getRowDirect() - rowMin, ic = pix.getCol() - colMin;
-            if (ir < 0)
-              continue;
-            if (ic < 0)
-              continue;
-            if (ir < rsp && ic < colSpan) {
+            if (pix.getRowDirect() >= r && pix.getRowDirect() < rowMax &&
+                pix.getCol() >= colMin && pix.getCol() < colMax) {
               pixbuf.push_back(pix);
             }
           }
