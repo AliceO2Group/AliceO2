@@ -60,6 +60,7 @@
 #include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/MonitoringFactory.h>
 #include <InfoLogger/InfoLogger.hxx>
+#include "ResourcesMonitoringHelper.h"
 
 #include "FairMQDevice.h"
 #include <fairmq/DeviceRunner.h>
@@ -677,6 +678,9 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, Termin
       serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
       serviceRegistry.registerService<DeviceSpec>(&spec);
 
+      if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(spec.resourceMonitoringInterval)) {
+        serviceRegistry.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval);
+      }
       // The decltype stuff is to be able to compile with both new and old
       // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
       decltype(r.fDevice) device;
@@ -908,7 +912,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             driverInfo.dispatchPolicies,
                                                             deviceSpecs,
                                                             *resourceManager,
-                                                            driverInfo.uniqueWorkflowId);
+                                                            driverInfo.uniqueWorkflowId,
+                                                            driverInfo.resourcesMonitoringInterval);
+
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
@@ -1076,6 +1082,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         break;
       case DriverState::EXIT: {
+        if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(driverInfo.resourcesMonitoringInterval)) {
+          LOG(INFO) << "Dumping performance metrics to performanceMetrics.json file";
+          ResourcesMonitoringHelper::dumpMetricsToJSON(metricsInfos, deviceSpecs);
+        }
         // This is a clean exit. Before we do so, if required,
         // we dump the configuration of all the devices so that
         // we can reuse it
@@ -1399,27 +1409,28 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   enum TerminationPolicy errorPolicy;
   bpo::options_description executorOptions("Executor options");
   const char* helpDescription = "print help: short, full, executor, or processor name";
-  executorOptions.add_options()                                                                                         //
-    ("help,h", bpo::value<std::string>()->implicit_value("short"), helpDescription)                                     //
-    ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                             //
-    ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")                     //
-    ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")               //
-    ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(isatty(fileno(stdout)) == 0), "batch processing mode") //
-    ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")                           //
-    ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                 //
-    ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")                      //
-    ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                              //
-    ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT),             //
-     "what to do when processing is finished: quit, wait")                                                              //
-    ("error-policy", bpo::value<TerminationPolicy>(&errorPolicy)->default_value(TerminationPolicy::QUIT),               //
-     "what to do when a device has an error: quit, wait")                                                               //
-    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")                     //
-    ("timeout,t", bpo::value<uint64_t>()->default_value(0), "forced exit timeout (in seconds)")                         //
-    ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                      //
-    ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")            //
-    ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                  //
-    ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far")                      //
-    ("o2-control,o2", bpo::value<bool>()->zero_tokens()->default_value(false), "create O2 Control configuration");
+  executorOptions.add_options()                                                                                                                //
+    ("help,h", bpo::value<std::string>()->implicit_value("short"), helpDescription)                                                            //                                                                                                       //
+    ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                                                    //                                                                                                         //
+    ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")                                            //                                                                                                           //
+    ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")                                      //                                                                                                             //
+    ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(isatty(fileno(stdout)) == 0), "batch processing mode")                        //                                                                                                               //
+    ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")                                                  //                                                                                                                 //
+    ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                        //                                                                                                                   //
+    ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")                                             //                                                                                                                     //
+    ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                                                     //                                                                                                                       //
+    ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT),                                    //                                                                                                                       //
+     "what to do when processing is finished: quit, wait")                                                                                     //                                                                                                                      //
+    ("error-policy", bpo::value<TerminationPolicy>(&errorPolicy)->default_value(TerminationPolicy::QUIT),                                      //                                                                                                                          //
+     "what to do when a device has an error: quit, wait")                                                                                      //                                                                                                                            //
+    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")                                            //                                                                                                                              //
+    ("timeout,t", bpo::value<uint64_t>()->default_value(0), "forced exit timeout (in seconds)")                                                //                                                                                                                                //
+    ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                                             //                                                                                                                                  //
+    ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")                                   //                                                                                                                                    //
+    ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                                         //                                                                                                                                      //
+    ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far")                                             //                                                                                                                                        //
+    ("o2-control,o2", bpo::value<bool>()->zero_tokens()->default_value(false), "create O2 Control configuration")                              //
+    ("resources-monitoring", bpo::value<unsigned short>()->default_value(0), "enable cpu/memory monitoring for provided interval in seconds"); //
   // some of the options must be forwarded by default to the device
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
 
@@ -1625,6 +1636,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.timeout = varmap["timeout"].as<uint64_t>();
   driverInfo.deployHostname = varmap["hostname"].as<std::string>();
   driverInfo.resources = varmap["resources"].as<std::string>();
+  driverInfo.resourcesMonitoringInterval = varmap["resources-monitoring"].as<unsigned short>();
 
   // FIXME: should use the whole dataProcessorInfos, actually...
   driverInfo.processorInfo = dataProcessorInfos;
