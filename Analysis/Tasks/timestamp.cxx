@@ -48,7 +48,7 @@ struct TimestampTask {
     long timestamp = converter->getTimestamp(bc.runNumber());
     InteractionRecord current(bc.globalBC(), 0);
     InteractionRecord initial = o2::raw::HBFUtils::Instance().getFirstIR();
-    timestamp += 1000 * (current - initial).bc2ns();
+    timestamp += 1000000 * (current - initial).bc2ns();
     ts_table(timestamp);
   }
 };
