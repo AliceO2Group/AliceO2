@@ -16,9 +16,11 @@ namespace o2::aod
 namespace etaphi
 {
 DECLARE_SOA_COLUMN(NPhi, nphi, float);
+DECLARE_SOA_EXPRESSION_COLUMN(CosPhi, cosphi, float, ncos(aod::etaphi::nphi));
 } // namespace etaphi
-DECLARE_SOA_TABLE(TPhi, "AOD", "ETAPHI",
+DECLARE_SOA_TABLE(TPhi, "AOD", "TPHI",
                   etaphi::NPhi);
+DECLARE_SOA_EXTENDED_TABLE_USER(EPhi, TPhi, "EPHI", aod::etaphi::CosPhi);
 } // namespace o2::aod
 
 using namespace o2;
@@ -30,17 +32,18 @@ using namespace o2::framework::expressions;
 // FIXME: this should really inherit from AnalysisTask but
 //        we need GCC 7.4+ for that
 struct ATask {
-  Produces<aod::TPhi> etaphi;
-
+  Produces<aod::TPhi> tphi;
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      etaphi(track.phi());
+      tphi(track.phi());
     }
   }
 };
 
 struct BTask {
+  Spawns<aod::EPhi> ephi;
+
   float fPI = static_cast<float>(M_PI);
   float ptlow = 0.5f;
   float ptup = 2.0f;
@@ -64,9 +67,19 @@ struct BTask {
   }
 };
 
+struct CTask {
+  void process(aod::Collision const&, soa::Join<aod::Tracks, aod::EPhi> const& tracks)
+  {
+    for (auto& track : tracks) {
+      LOGF(INFO, "%.3f == %.3f", track.cosphi(), std::cos(track.phi()));
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     adaptAnalysisTask<ATask>("produce-normalizedphi"),
-    adaptAnalysisTask<BTask>("consume-normalizedphi")};
+    adaptAnalysisTask<BTask>("consume-normalizedphi"),
+    adaptAnalysisTask<CTask>("consume-spawned")};
 }
