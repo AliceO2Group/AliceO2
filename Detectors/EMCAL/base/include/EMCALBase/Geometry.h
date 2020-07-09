@@ -348,6 +348,24 @@ class Geometry
   /// \return Row number in global numbering scheme
   int GlobalRow(int cellID) const;
 
+  /// \brief Get the absolute cell ID from global position in the EMCAL
+  /// \param row Global row ID
+  /// \param col Global col ID
+  /// \return absolute cell ID
+  int GetCellAbsIDFromGlobalRowCol(int row, int col) const;
+
+  /// \brief Get the posision (row, col) of a global row-col position
+  /// \param row Global row ID
+  /// \param col Global col ID
+  /// \return Position in supermodule: [0 - supermodule ID, 1 - row in supermodule - col in supermodule]
+  std::tuple<int, int, int> GetPositionInSupermoduleFromGlobalRowCol(int col, int row) const;
+
+  /// \brief Get the cell indices from global position in the EMCAL
+  /// \param row Global row ID
+  /// \param col Global col ID
+  /// \return Cell indices [0 - supermodule, 1 - module, 2 - phi in module, 3 - eta in module]
+  std::tuple<int, int, int, int> GetCellIndexFromGlobalRowCol(int row, int col) const;
+
   /// \brief Given a global eta/phi point check if it belongs to a supermodule covered region.
   /// \param eta pseudorapidity location
   /// \param phi azimutal location
