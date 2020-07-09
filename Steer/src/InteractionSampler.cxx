@@ -74,7 +74,8 @@ void InteractionSampler::init()
   while (mCurrBCIdx < mInteractingBCs.size() && mInteractingBCs[mCurrBCIdx] < mIR.bc) {
     mCurrBCIdx++;
   }
-  mCurrBCIdx = mCurrBCIdx == 0 ? mInteractingBCs.size() : mCurrBCIdx--;
+  // set the "current BC" right in front of the 1st BC to generate. There will be a jump by at least 1 during generation
+  mCurrBCIdx--;
 }
 
 //_________________________________________________
