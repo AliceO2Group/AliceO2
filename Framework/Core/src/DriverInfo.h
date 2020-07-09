@@ -129,6 +129,8 @@ struct DriverInfo {
   float frameLatency;
   /// The unique id used for ipc communications
   std::string uniqueWorkflowId = "";
+  /// Metrics gathering interval
+  unsigned short resourcesMonitoringInterval;
   /// Last port used for tracy
   short tracyPort = 8086;
 };

@@ -646,13 +646,14 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
 // Construct the list of actual devices we want, given a workflow.
 //
 // FIXME: make start port configurable?
-void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workflow,
+void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workflow,
                                                        std::vector<ChannelConfigurationPolicy> const& channelPolicies,
                                                        std::vector<CompletionPolicy> const& completionPolicies,
                                                        std::vector<DispatchPolicy> const& dispatchPolicies,
                                                        std::vector<DeviceSpec>& devices,
                                                        ResourceManager& resourceManager,
-                                                       std::string const& uniqueWorkflowId)
+                                                       std::string const& uniqueWorkflowId,
+                                                       unsigned short resourcesMonitoringInterval)
 {
 
   std::vector<LogicalForwardInfo> availableForwardsInfo;
@@ -727,6 +728,10 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
         break;
       }
     }
+  }
+
+  for (auto& device : devices) {
+    device.resourceMonitoringInterval = resourcesMonitoringInterval;
   }
 
   auto findDeviceIndex = [&deviceIndex](size_t processorIndex, size_t timeslice) {
@@ -966,6 +971,11 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     if (!haveSessionArg) {
       tmpArgs.emplace_back(std::string("--session"));
       tmpArgs.emplace_back("dpl_" + uniqueWorkflowId);
+    }
+
+    if (spec.resourceMonitoringInterval > 0) {
+      tmpArgs.emplace_back(std::string("--resources-monitoring"));
+      tmpArgs.emplace_back(std::to_string(spec.resourceMonitoringInterval));
     }
 
     // We create the final option list, depending on the channels

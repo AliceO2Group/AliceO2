@@ -93,6 +93,13 @@ bool DeviceMetricsHelper::parseMetric(std::string_view const s, ParsedMetricMatc
       match.beginStringValue = spaces[1] + 1;
       match.endStringValue = *(space - 2);
       break;
+    case MetricType::Uint64:
+      match.uint64Value = strtoul(spaces[1] + 1, &ep, 10);
+      if (ep != *(space - 2)) {
+        return false;
+      }
+      break;
+
     default:
       return false;
   }
@@ -115,6 +122,7 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
   switch (match.type) {
     case MetricType::Float:
     case MetricType::Int:
+    case MetricType::Uint64:
       break;
     case MetricType::String: {
       auto lastChar = std::min(match.endStringValue - match.beginStringValue, StringMetric::MAX_SIZE - 1);
@@ -143,6 +151,7 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
     MetricInfo metricInfo;
     metricInfo.pos = 0;
     metricInfo.type = match.type;
+    metricInfo.filledMetrics = 0;
     // Add a new empty buffer for it of the correct kind
     switch (match.type) {
       case MetricType::Int:
@@ -157,6 +166,11 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
         metricInfo.storeIdx = info.floatMetrics.size();
         info.floatMetrics.emplace_back(std::array<float, 1024>{});
         break;
+      case MetricType::Uint64:
+        metricInfo.storeIdx = info.uint64Metrics.size();
+        info.uint64Metrics.emplace_back(std::array<uint64_t, 1024>{});
+        break;
+
       default:
         return false;
     };
@@ -206,6 +220,7 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
       info.timestamps[metricIndex][metricInfo.pos] = match.timestamp;
       // Update the position where to write the next metric
       metricInfo.pos = (metricInfo.pos + 1) % info.intMetrics[metricInfo.storeIdx].size();
+      ++metricInfo.filledMetrics;
     } break;
     case MetricType::String: {
       info.stringMetrics[metricInfo.storeIdx][metricInfo.pos] = stringValue;
@@ -213,6 +228,7 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
       // so that we do not update timestamps for broken metrics
       info.timestamps[metricIndex][metricInfo.pos] = match.timestamp;
       metricInfo.pos = (metricInfo.pos + 1) % info.stringMetrics[metricInfo.storeIdx].size();
+      ++metricInfo.filledMetrics;
     } break;
     case MetricType::Float: {
       info.floatMetrics[metricInfo.storeIdx][metricInfo.pos] = match.floatValue;
@@ -222,7 +238,20 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
       // so that we do not update timestamps for broken metrics
       info.timestamps[metricIndex][metricInfo.pos] = match.timestamp;
       metricInfo.pos = (metricInfo.pos + 1) % info.floatMetrics[metricInfo.storeIdx].size();
+      ++metricInfo.filledMetrics;
     } break;
+    case MetricType::Uint64: {
+      info.uint64Metrics[metricInfo.storeIdx][metricInfo.pos] = match.uint64Value;
+      info.max[metricIndex] = std::max(info.max[metricIndex], (float)match.uint64Value);
+      info.min[metricIndex] = std::min(info.min[metricIndex], (float)match.uint64Value);
+      // Save the timestamp for the current metric we do it here
+      // so that we do not update timestamps for broken metrics
+      info.timestamps[metricIndex][metricInfo.pos] = match.timestamp;
+      // Update the position where to write the next metric
+      metricInfo.pos = (metricInfo.pos + 1) % info.uint64Metrics[metricInfo.storeIdx].size();
+      ++metricInfo.filledMetrics;
+    } break;
+
     default:
       return false;
       break;
@@ -256,6 +285,7 @@ std::ostream& operator<<(std::ostream& oss, MetricType const& val)
       oss << "string";
       break;
     case MetricType::Int:
+    case MetricType::Uint64:
       oss << "float";
       break;
     case MetricType::Unknown:
