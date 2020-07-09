@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
     LOG(INFO) << "Did not retrieve run number to timestamp converter, creating a new one!";
     converter = new RunToTimestamp();
   } else {
-    LOG(INFO) << "Retrieved run number to timestamp converter from ccdb url" << url;
+    LOG(INFO) << "Retrieved run number to timestamp converter from ccdb url " << url;
   }
 
   if (vm["update"].as<int>())

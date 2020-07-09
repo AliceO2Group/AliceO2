@@ -51,7 +51,9 @@ long RunToTimestamp::getTimestamp(uint runNumber) const
 void RunToTimestamp::print() const
 {
   LOG(INFO) << "Printing run number -> timestamp conversion";
+  int counter = 0;
   for (auto e : mMap) {
-    LOG(INFO) << "Run number: " << e.first << " timestamp: " << e.second << "\n";
+    LOG(INFO) << "Entry #" << counter++ << " has run number: " << e.first << " and timestamp: " << e.second;
   }
+  LOG(INFO) << "Total number of runs in converter: " << mMap.size();
 }
