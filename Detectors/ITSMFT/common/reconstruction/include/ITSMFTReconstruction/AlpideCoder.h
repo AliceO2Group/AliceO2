@@ -347,7 +347,7 @@ class AlpideCoder
   // =====================================================================
   //
   // cluster map used for the ENCODING only
-  std::vector<short> mFirstInRow;   //! entry of 1st pixel of each non-empty row in the mPix2Encode
+  std::vector<int> mFirstInRow;     //! entry of 1st pixel of each non-empty row in the mPix2Encode
   std::vector<PixLink> mPix2Encode; //! pool of links: fired pixel + index of the next one in the row
   //
   ClassDefNV(AlpideCoder, 1);
