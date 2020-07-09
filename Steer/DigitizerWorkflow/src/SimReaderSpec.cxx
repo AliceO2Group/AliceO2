@@ -160,10 +160,10 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
         std::vector<o2::InteractionTimeRecord> qedinteractionrecords;
         o2::InteractionTimeRecord t;
         LOG(INFO) << "GENERATING COL TIMES";
-        do {
-          t = qedInteractionSampler.generateCollisionTime();
+        t = qedInteractionSampler.generateCollisionTime();
+        while ((t = qedInteractionSampler.generateCollisionTime()) < last) {
           qedinteractionrecords.push_back(t);
-        } while (t < last);
+        }
         LOG(INFO) << "DONE GENERATING COL TIMES";
 
         // get digitization context and add QED stuff
