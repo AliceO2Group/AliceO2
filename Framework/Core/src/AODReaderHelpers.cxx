@@ -141,39 +141,6 @@ std::vector<OutputRoute> getListOfUnknown(std::vector<OutputRoute> const& routes
   return unknows;
 }
 
-/// Expression-based column generator to materialize columns
-template <typename... C>
-auto spawner(framework::pack<C...> columns, arrow::Table* atable)
-{
-  arrow::TableBatchReader reader(*atable);
-  std::shared_ptr<arrow::RecordBatch> batch;
-  arrow::ArrayVector v;
-  std::vector<arrow::ArrayVector> chunks(sizeof...(C));
-
-  auto projectors = framework::expressions::createProjectors(columns, atable->schema());
-  while (true) {
-    auto s = reader.ReadNext(&batch);
-    if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot read batches from table {}", s.ToString()));
-    }
-    if (batch == nullptr) {
-      break;
-    }
-    s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
-    if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot apply projector {}", s.ToString()));
-    }
-    for (auto i = 0u; i < sizeof...(C); ++i) {
-      chunks[i].emplace_back(v.at(i));
-    }
-  }
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> results(sizeof...(C));
-  for (auto i = 0u; i < sizeof...(C); ++i) {
-    results[i] = std::make_shared<arrow::ChunkedArray>(chunks[i]);
-  }
-  return results;
-}
-
 AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
@@ -204,19 +171,8 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
         auto maker = [&](auto metadata) {
           using metadata_t = decltype(metadata);
           using expressions = typename metadata_t::expression_pack_t;
-          auto extra_schema = o2::soa::createSchemaFromColumns(expressions{});
           auto original_table = pc.inputs().get<TableConsumer>(input.binding)->asArrowTable();
-          auto original_fields = original_table->schema()->fields();
-          std::vector<std::shared_ptr<arrow::Field>> fields;
-          auto arrays = spawner(expressions{}, original_table.get());
-          std::vector<std::shared_ptr<arrow::ChunkedArray>> columns = original_table->columns();
-          std::copy(original_fields.begin(), original_fields.end(), std::back_inserter(fields));
-          for (auto i = 0u; i < framework::pack_size(expressions{}); ++i) {
-            columns.push_back(arrays[i]);
-            fields.emplace_back(extra_schema->field(i));
-          }
-          auto new_schema = std::make_shared<arrow::Schema>(fields);
-          return arrow::Table::Make(new_schema, columns);
+          return o2::soa::spawner(expressions{}, original_table.get());
         };
 
         if (description == header::DataDescription{"TRACKPAR"}) {
