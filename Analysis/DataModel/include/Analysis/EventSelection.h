@@ -11,28 +11,14 @@
 #define O2_ANALYSIS_EVENTSELECTION_H_
 
 #include "Framework/AnalysisDataModel.h"
-
-// TODO read nAliases from the alias map?
-#define nAliases 10
-enum triggerAliases {
-  kINT7 = 0,
-  kEMC7,
-  kINT7inMUON,
-  kMuonSingleLowPt7,
-  kMuonUnlikeLowPt7,
-  kMuonLikeLowPt7,
-  kCUP8,
-  kCUP9,
-  kMUP10,
-  kMUP11
-};
+#include "Analysis/TriggerAliases.h"
 
 namespace o2::aod
 {
 namespace evsel
 {
 // TODO bool arrays are not supported? Storing in int32 for the moment
-DECLARE_SOA_COLUMN(Alias, alias, int32_t[nAliases]);
+DECLARE_SOA_COLUMN(Alias, alias, int32_t[kNaliases]);
 DECLARE_SOA_COLUMN(BBV0A, bbV0A, bool); // beam-beam time in V0A
 DECLARE_SOA_COLUMN(BBV0C, bbV0C, bool); // beam-beam time in V0C
 DECLARE_SOA_COLUMN(BGV0A, bgV0A, bool); // beam-gas time in V0A

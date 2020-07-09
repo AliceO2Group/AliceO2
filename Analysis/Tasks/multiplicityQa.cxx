@@ -18,9 +18,9 @@ using namespace o2;
 using namespace o2::framework;
 
 struct MultiplicityQaTask {
-  OutputObj<TH1F> hMultV0M{TH1F("hMultV0M", "", 40000, 0., 40000.)};
-  OutputObj<TH1F> hMultZNA{TH1F("hMultZNA", "", 500, 0., 200000.)};
-  OutputObj<TH1F> hMultZNC{TH1F("hMultZNC", "", 500, 0., 200000.)};
+  OutputObj<TH1F> hMultV0M{TH1F("hMultV0M", "", 50000, 0., 50000.)};
+  OutputObj<TH1F> hMultZNA{TH1F("hMultZNA", "", 600, 0., 240000.)};
+  OutputObj<TH1F> hMultZNC{TH1F("hMultZNC", "", 600, 0., 240000.)};
 
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Mults>::iterator const& col)
   {
