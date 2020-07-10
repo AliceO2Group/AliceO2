@@ -405,14 +405,14 @@ void MaterialManager::loadCutsAndProcessesFromFile(const char* modname, const ch
     // apply cuts via material manager interface
     for (int i = 0; i < NCUTS; ++i) {
       if (cut[i] >= 0.) {
-        SpecialCut(modname, itmed, cutnames[i], cut[i]);
+        SpecialCut(detName, itmed, cutnames[i], cut[i]);
       }
     }
 
     // apply process flags
     for (int i = 0; i < NFLAGS - 1; ++i) {
       if (flag[i] >= 0) {
-        SpecialProcess(modname, itmed, procnames[i], flag[i]);
+        SpecialProcess(detName, itmed, procnames[i], flag[i]);
       }
     }
   } // end loop over lines
