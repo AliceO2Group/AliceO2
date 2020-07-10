@@ -32,7 +32,7 @@ class AnalysisCompositeCut : public AnalysisCut
   bool GetUseAND() const { return fOptionUseAND; }
   int GetNCuts() const { return fCutList.size(); }
 
-  virtual bool IsSelected(float* values);
+  virtual bool IsSelected(float* values) override;
 
  protected:
   bool fOptionUseAND;                // true (default): apply AND on all cuts; false: use OR
