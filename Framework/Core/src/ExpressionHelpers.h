@@ -32,11 +32,18 @@ static std::array<std::string, BasicOp::Abs + 1> binaryOperationsMap = {
   "greater_than_or_equal_to",
   "equal",
   "not_equal",
-  "power",
-  "exp",
-  "log",
-  "log10",
-  "abs"};
+  "powerf",
+  "sqrtf",
+  "expf",
+  "logf",
+  "log10f",
+  "sinf",
+  "cosf",
+  "tanf",
+  "asinf",
+  "acosf",
+  "atanf",
+  "absf"};
 
 struct DatumSpec {
   /// datum spec either contains an index, a value of a literal or a binding label
@@ -89,25 +96,6 @@ struct ColumnOperationSpec {
     result.type = type;
   }
 };
-
-template <typename... C>
-std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...>, gandiva::SchemaPtr schema)
-{
-  std::shared_ptr<gandiva::Projector> projector;
-  auto s = gandiva::Projector::Make(
-    schema,
-    {makeExpression(
-      framework::expressions::createExpressionTree(
-        framework::expressions::createOperations(C::Projector()),
-        schema),
-      C::asArrowField())...},
-    &projector);
-  if (s.ok()) {
-    return projector;
-  } else {
-    throw std::runtime_error(fmt::format("Failed to create projector: {}", s.ToString()));
-  }
-}
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_HELPERS_H_

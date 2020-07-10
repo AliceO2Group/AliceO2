@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+#include <boost/program_options/variables_map.hpp>
+
 namespace fair::mq
 {
 struct ProgOptions;
@@ -51,6 +53,19 @@ using ServiceProcessingCallback = std::function<void(ProcessingContext&, void*)>
 /// A callback which is executed before the end of stream loop.
 using ServiceEOSCallback = std::function<void(EndOfStreamContext&, void*)>;
 
+/// Callback executed before the forking of a given device in the driver
+/// Notice the forking can happen multiple times. It's responsibility of
+/// the service to track how many times it happens and act accordingly.
+using ServicePreFork = std::function<void(ServiceRegistry&, boost::program_options::variables_map const&)>;
+
+/// Callback executed after forking a given device in the driver,
+/// but before doing exec / starting the device.
+using ServicePostForkChild = std::function<void(ServiceRegistry&)>;
+
+/// Callback executed after forking a given device in the driver,
+/// but before doing exec / starting the device.
+using ServicePostForkParent = std::function<void(ServiceRegistry&)>;
+
 /// The kind of service we are asking for
 enum struct ServiceKind {
   /// A Service which is not thread safe, therefore all accesses to it must be mutexed.
@@ -82,6 +97,17 @@ struct ServiceSpec {
   ServiceEOSCallback preEOS = nullptr;
   /// Callback executed after the end of stream callback of the user happended
   ServiceEOSCallback postEOS = nullptr;
+  /// Callback executed before the forking of a given device in the driver
+  /// Notice the forking can happen multiple times. It's responsibility of
+  /// the service to track how many times it happens and act accordingly.
+  ServicePreFork preFork = nullptr;
+  /// Callback executed after forking a given device in the driver,
+  /// but before doing exec / starting the device.
+  ServicePostForkChild postForkChild = nullptr;
+  /// Callback executed after forking a given device in the driver,
+  /// but before doing exec / starting the device.
+  ServicePostForkParent postForkParent = nullptr;
+
   /// Kind of service being specified.
   ServiceKind kind;
 };

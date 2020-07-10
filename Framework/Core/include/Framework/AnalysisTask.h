@@ -20,6 +20,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Expressions.h"
+#include "../src/ExpressionHelpers.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Logger.h"
 #include "Framework/HistogramRegistry.h"
@@ -120,8 +121,8 @@ struct WritingCursor<soa::Table<PC...>> {
   int64_t mCount = -1;
 };
 
-/// This helper class allow you to declare things which will be crated by a
-/// give analysis task. Notice how the actual cursor is implemented by the
+/// This helper class allows you to declare things which will be created by a
+/// given analysis task. Notice how the actual cursor is implemented by the
 /// means of the WritingCursor helper class, from which produces actually
 /// derives.
 template <typename... C>
@@ -139,6 +140,58 @@ struct Produces<soa::Table<C...>> : WritingCursor<typename soa::FilterPersistent
   {
     return OutputRef{metadata::tableLabel(), 0};
   }
+};
+
+/// This helper class allows you to declare extended tables which should be
+/// created by the task (as opposed to those pre-defined by data model)
+template <typename T>
+struct Spawns {
+  using metadata = typename aod::MetadataTrait<T>::metadata;
+  using base_table_t = typename metadata::base_table_t;
+  using expression_pack_t = typename metadata::expression_pack_t;
+  using base_metadata = typename aod::MetadataTrait<base_table_t>::metadata;
+
+  constexpr expression_pack_t pack()
+  {
+    return expression_pack_t{};
+  }
+
+  InputSpec const base_spec()
+  {
+    return InputSpec{
+      base_metadata::tableLabel(),
+      header::DataOrigin{base_metadata::origin()},
+      header::DataDescription{base_metadata::description()}};
+  }
+
+  constexpr const char* base_label()
+  {
+    return base_metadata::tableLabel();
+  }
+
+  OutputSpec const spec() const
+  {
+    return OutputSpec{OutputLabel{metadata::tableLabel()}, metadata::origin(), metadata::description()};
+  }
+
+  OutputRef ref() const
+  {
+    return OutputRef{metadata::tableLabel(), 0};
+  }
+  T* operator->()
+  {
+    return table.get();
+  }
+  T& operator*()
+  {
+    return *table.get();
+  }
+
+  auto asArrowTable()
+  {
+    return table->asArrowTable();
+  }
+  std::shared_ptr<T> table = nullptr;
 };
 
 /// This helper class allows you to declare things which will be created by a
@@ -262,6 +315,97 @@ struct Configurable {
   }
 };
 
+template <typename T>
+struct Partition {
+  Partition(expressions::Node&& node)
+  {
+    auto filter = expressions::Filter(std::move(node));
+    auto schema = o2::soa::createSchemaFromColumns(typename T::table_t::persistent_columns_t{});
+    expressions::Operations ops = createOperations(filter);
+    if (isSchemaCompatible(schema, ops)) {
+      mTree = createExpressionTree(ops, schema);
+    } else {
+      throw std::runtime_error("Partition filter does not match declared table type");
+    }
+  }
+
+  void setTable(const T& table)
+  {
+    mFiltered.reset(new o2::soa::Filtered<typename T::table_t>{{table.asArrowTable()}, mTree});
+  }
+
+  template <typename... Ts>
+  void bindExternalIndices(Ts*... tables)
+  {
+    if (mFiltered != nullptr) {
+      mFiltered->bindExternalIndices(tables...);
+    }
+  }
+
+  template <typename T2>
+  void getBoundToExternalIndices(T2& table)
+  {
+    if (mFiltered != nullptr) {
+      table.bindExternalIndices(mFiltered.get());
+    }
+  }
+
+  o2::soa::Filtered<typename T::table_t>& getPartition()
+  {
+    return *mFiltered;
+  }
+
+  gandiva::NodePtr mTree;
+  std::unique_ptr<o2::soa::Filtered<typename T::table_t>> mFiltered;
+};
+
+template <typename ANY>
+struct PartitionManager {
+  template <typename... T2s>
+  static void setPartition(ANY&, T2s&... tables)
+  {
+  }
+
+  template <typename... Ts>
+  static void bindExternalIndices(ANY&, Ts*... tables)
+  {
+  }
+
+  template <typename... Ts>
+  static void getBoundToExternalIndices(ANY& partition, Ts&... tables)
+  {
+  }
+};
+
+template <typename T>
+struct PartitionManager<Partition<T>> {
+  template <typename T2>
+  static void doSetPartition(Partition<T>& partition, T2& table)
+  {
+    if constexpr (std::is_same_v<T, T2>) {
+      partition.setTable(table);
+    }
+  }
+
+  template <typename... T2s>
+  static void setPartition(Partition<T>& partition, T2s&... tables)
+  {
+    (doSetPartition(partition, tables), ...);
+  }
+
+  template <typename... Ts>
+  static void bindExternalIndices(Partition<T>& partition, Ts*... tables)
+  {
+    partition.bindExternalIndices(tables...);
+  }
+
+  template <typename... Ts>
+  static void getBoundToExternalIndices(Partition<T>& partition, Ts&... tables)
+  {
+    partition.getBoundToExternalIndices(tables...);
+  }
+};
+
 struct AnalysisTask {
 };
 
@@ -291,7 +435,7 @@ struct AnalysisDataProcessorBuilder {
     if constexpr (framework::is_specialization<dT, soa::Filtered>::value) {
       eInfos.push_back({At, o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
     } else if constexpr (soa::is_soa_iterator_t<dT>::value) {
-      if (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
+      if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
         eInfos.push_back({At, o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
       }
     }
@@ -589,10 +733,23 @@ struct AnalysisDataProcessorBuilder {
   template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
   static void invokeProcess(Task& task, InputRecord& inputs, R (C::*)(Grouping, Associated...), std::vector<ExpressionInfo> const& infos)
   {
+    auto tupledTask = o2::framework::to_tuple_refs(task);
     using G = std::decay_t<Grouping>;
     auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, &C::process, infos);
+
+    // set filtered tables for partitions with grouping
+    std::apply([&groupingTable](auto&... x) {
+      (PartitionManager<std::decay_t<decltype(x)>>::setPartition(x, groupingTable), ...);
+    },
+               tupledTask);
+
     if constexpr (sizeof...(Associated) == 0) {
       // single argument to process
+      std::apply([&groupingTable](auto&... x) {
+        (PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable), ...);
+        (PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable), ...);
+      },
+                 tupledTask);
       if constexpr (soa::is_soa_iterator_t<G>::value) {
         for (auto& element : groupingTable) {
           task.process(*element);
@@ -609,6 +766,12 @@ struct AnalysisDataProcessorBuilder {
       auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, &C::process, infos);
       auto binder = [&](auto&& x) {
         x.bindExternalIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
+        std::apply([&x](auto&... t) {
+          (PartitionManager<std::decay_t<decltype(t)>>::setPartition(t, x), ...);
+          (PartitionManager<std::decay_t<decltype(t)>>::bindExternalIndices(t, &x), ...);
+          (PartitionManager<std::decay_t<decltype(t)>>::getBoundToExternalIndices(t, x), ...);
+        },
+                   tupledTask);
       };
       groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedTables)...);
 
@@ -617,21 +780,37 @@ struct AnalysisDataProcessorBuilder {
         auto slicer = GroupSlicer(groupingTable, associatedTables);
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
+
           std::apply(
             [&](auto&&... x) {
               (binder(x), ...);
             },
             associatedSlices);
 
+          // bind partitions and grouping table
+          std::apply([&groupingTable](auto&... x) {
+            (PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable), ...);
+            (PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable), ...);
+          },
+                     tupledTask);
+
           invokeProcessWithArgs(task, slice.groupingElement(), associatedSlices);
         }
       } else {
         // non-grouping case
+
         std::apply(
           [&](auto&&... x) {
             (binder(x), ...);
           },
           associatedTables);
+
+        // bind partitions and grouping table
+        std::apply([&groupingTable](auto&... x) {
+          (PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable), ...);
+          (PartitionManager<std::decay_t<decltype(x)>>::getBoundToExternalIndices(x, groupingTable), ...);
+        },
+                   tupledTask);
 
         invokeProcessWithArgs(task, groupingTable, associatedTables);
       }
@@ -645,9 +824,8 @@ struct AnalysisDataProcessorBuilder {
   }
 };
 
-template <typename T>
+template <typename ANY>
 struct FilterManager {
-  template <typename ANY>
   static bool createExpressionTrees(ANY&, std::vector<ExpressionInfo>&)
   {
     return false;
@@ -658,7 +836,6 @@ template <>
 struct FilterManager<expressions::Filter> {
   static bool createExpressionTrees(expressions::Filter const& filter, std::vector<ExpressionInfo>& expressionInfos)
   {
-
     updateExpressionInfos(filter, expressionInfos);
     return true;
   }
@@ -762,6 +939,34 @@ struct OutputManager<OutputObj<T>> {
 };
 
 template <typename T>
+struct OutputManager<Spawns<T>> {
+  static bool appendOutput(std::vector<OutputSpec>& outputs, Spawns<T>& what, uint32_t)
+  {
+    outputs.emplace_back(what.spec());
+    return true;
+  }
+
+  static bool prepare(ProcessingContext& pc, Spawns<T>& what)
+  {
+    auto original_table = pc.inputs().get<TableConsumer>(what.base_label())->asArrowTable();
+    what.table = std::make_shared<T>(o2::soa::spawner(what.pack(), original_table.get()));
+    return true;
+  }
+
+  static bool finalize(ProcessingContext&, Spawns<T>&)
+  {
+    return true;
+  }
+
+  static bool postRun(EndOfStreamContext& eosc, Spawns<T>& what)
+  {
+    using metadata = typename std::decay_t<decltype(what)>::metadata;
+    eosc.outputs().adopt(Output{metadata::origin(), metadata::description()}, what.asArrowTable());
+    return true;
+  }
+};
+
+template <typename T>
 class has_instance
 {
   typedef char one;
@@ -837,6 +1042,24 @@ struct OptionManager<Configurable<T>> {
     } else {
       auto pt = context.options().get<boost::property_tree::ptree>(what.name.c_str());
       what.value = RootConfigParamHelpers::as<T>(pt);
+    }
+    return true;
+  }
+};
+
+/// Manager template to facilitate extended tables spawning
+template <typename T>
+struct SpawnManager {
+  static bool requestInputs(std::vector<InputSpec>&, T const&) { return false; }
+};
+
+template <typename TABLE>
+struct SpawnManager<Spawns<TABLE>> {
+  static bool requestInputs(std::vector<InputSpec>& inputs, Spawns<TABLE>& spawns)
+  {
+    auto base_spec = spawns.base_spec();
+    if (std::find_if(inputs.begin(), inputs.end(), [&](InputSpec const& spec) { return base_spec.binding == spec.binding; }) == inputs.end()) {
+      inputs.emplace_back(base_spec);
     }
     return true;
   }
@@ -922,6 +1145,11 @@ DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
     },
                tupledTask);
   }
+  //request base tables for spawnable extended tables
+  std::apply([&inputs](auto&... x) {
+    return (SpawnManager<std::decay_t<decltype(x)>>::requestInputs(inputs, x), ...);
+  },
+             tupledTask);
 
   std::apply([&outputs, &hash](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x, hash), ...); }, tupledTask);
   std::apply([&options, &hash](auto&... x) { return (OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x), ...); }, tupledTask);

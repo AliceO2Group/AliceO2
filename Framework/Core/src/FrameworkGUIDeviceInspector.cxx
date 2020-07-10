@@ -20,6 +20,7 @@
 #include "DebugGUI/imgui.h"
 #include <csignal>
 #include <cstdlib>
+#include <iostream>
 
 namespace o2
 {
@@ -156,6 +157,9 @@ void displayDeviceInspector(DeviceSpec const& spec,
   } else {
     ImGui::Text("Pid: %d (exit status: %d)", info.pid, info.exitStatus);
   }
+#ifdef DPL_ENABLE_TRACING
+  ImGui::Text("Tracy Port: %d", info.tracyPort);
+#endif
   ImGui::Text("Rank: %zu/%zu%%%zu/%zu", spec.rank, spec.nSlots, spec.inputTimesliceId, spec.maxInputTimeslices);
 
   if (ImGui::Button("Attach debugger")) {
@@ -193,6 +197,17 @@ void displayDeviceInspector(DeviceSpec const& spec,
     int retVal = system(getenv("O2DPLPROFILE"));
     (void)retVal;
   }
+
+  ImGui::SameLine();
+#if DPL_ENABLE_TRACING
+  if (ImGui::Button("Tracy")) {
+    std::string tracyPort = std::to_string(info.tracyPort);
+    auto cmd = fmt::format("tracy-profiler -p {} -a 127.0.0.1 &", info.tracyPort);
+    LOG(debug) << cmd;
+    int retVal = system(cmd.c_str());
+    (void)retVal;
+  }
+#endif
 
   deviceInfoTable(info, metrics);
   for (auto& option : info.currentConfig) {

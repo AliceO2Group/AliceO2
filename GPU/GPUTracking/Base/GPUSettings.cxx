@@ -114,4 +114,5 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   tpccfGatherKernel = true;
   prefetchTPCpageScan = false;
   doublePipeline = false;
+  doublePipelineClusterizer = true;
 }

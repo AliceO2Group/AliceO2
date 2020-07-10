@@ -78,7 +78,7 @@ class InteractionSampler
   o2::BunchFilling mBCFilling;  ///< patter of active BCs
   std::vector<float> mTimeInBC; ///< interaction times within single BC
   std::vector<uint16_t> mInteractingBCs; // vector of interacting BCs
-  size_t mCurrBCIdx = 0;                 ///< counter for current interacting bunch
+  int mCurrBCIdx = 0;                    ///< counter for current interacting bunch
 
   static constexpr float DefIntRate = 50e3; ///< default interaction rate
 
