@@ -12,11 +12,10 @@
 
 ClassImp(AnalysisCompositeCut)
 
-//____________________________________________________________________________
-AnalysisCompositeCut::AnalysisCompositeCut(bool useAND) :
-  AnalysisCut(),
-  fOptionUseAND(useAND),
-  fCutList()
+  //____________________________________________________________________________
+  AnalysisCompositeCut::AnalysisCompositeCut(bool useAND) : AnalysisCut(),
+                                                            fOptionUseAND(useAND),
+                                                            fCutList()
 {
   //
   // default constructor
@@ -24,10 +23,9 @@ AnalysisCompositeCut::AnalysisCompositeCut(bool useAND) :
 }
 
 //____________________________________________________________________________
-AnalysisCompositeCut::AnalysisCompositeCut(const char* name, const char* title, bool useAND) :
-  AnalysisCut(name, title),
-  fOptionUseAND(useAND),
-  fCutList()
+AnalysisCompositeCut::AnalysisCompositeCut(const char* name, const char* title, bool useAND) : AnalysisCut(name, title),
+                                                                                               fOptionUseAND(useAND),
+                                                                                               fCutList()
 {
   //
   // named constructor
@@ -43,7 +41,7 @@ bool AnalysisCompositeCut::IsSelected(float* values) {
   // apply cuts
   //
   std::vector<AnalysisCut>::iterator it = fCutList.begin();
-  for(std::vector<AnalysisCut>::iterator it = fCutList.begin(); it<fCutList.end(); ++it) {
+  for (std::vector<AnalysisCut>::iterator it = fCutList.begin(); it < fCutList.end(); ++it) {
     if (fOptionUseAND && !(*it).IsSelected(values))
       return kFALSE;
     if (!fOptionUseAND && (*it).IsSelected(values))

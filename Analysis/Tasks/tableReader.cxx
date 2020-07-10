@@ -61,7 +61,7 @@ struct TableReader {
     AnalysisCut* varCut = new AnalysisCut();
     varCut->AddCut(VarManager::kVtxZ, -10.0, 10.0);
 
-    TF1* cutLow=new TF1("cutLow","pol1",0.,0.1);
+    TF1* cutLow = new TF1("cutLow", "pol1", 0., 0.1);
     cutLow->SetParameters(0.2635, 1.0);
     varCut->AddCut(VarManager::kVtxY, cutLow, 0.335, false, VarManager::kVtxX, 0.067, 0.070);
 
@@ -87,13 +87,13 @@ struct TableReader {
     // TODO: reseting will have to be done selectively, for example run-wise variables don't need to be reset every event, but just updated if the run changes
     //       The reset can be done selectively, using arguments in the ResetValues() function
     VarManager::ResetValues();
-    
+
     std::vector<float> eventInfo = {(float)event.runNumber(), event.posX(), event.posY(), event.posZ(), (float)event.numContrib()};
     VarManager::FillEvent(eventInfo);                       // extract event information and place it in the fgValues array
 
     fHistMan->FillHistClass("Event_BeforeCuts", VarManager::fgValues); // automatically fill all the histograms in the class Event
     if(!fEventCut->IsSelected(VarManager::fgValues)) return;
-    
+
     fHistMan->FillHistClass("Event_AfterCuts", VarManager::fgValues);
     
     for (auto& track : tracks) {
@@ -149,7 +149,7 @@ struct TableReader {
         binLimits[2] = TArrayD(13, vtxZbinLims);
         binLimits[3] = TArrayD(9, nContribbinLims);
         fHistMan->AddHistogram(classStr.Data(), "vtxHisto", "n contrib vs (x,y,z)", 4, vars, binLimits);
-        
+
         continue;
       }    // end if(Event)
       

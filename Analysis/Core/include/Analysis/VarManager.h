@@ -109,7 +109,7 @@ class VarManager : public TObject
 
   static void SetUseVariable(int var)
   {
-    if(var>=0 && var<kNVars) 
+    if (var >= 0 && var < kNVars)
       fgUsedVars[var] = kTRUE;
     SetVariableDependencies();
   }
@@ -121,14 +121,15 @@ class VarManager : public TObject
     }
     SetVariableDependencies();
   }
-  static void SetUseVars(const std::vector<int> usedVars) 
+  static void SetUseVars(const std::vector<int> usedVars)
   {
-    for(auto& var : usedVars)
+    for (auto& var : usedVars)
       fgUsedVars[var] = true;
   }
-  static bool GetUsedVar(int var) { 
-    if(var>=0 && var<kNVars)
-      return fgUsedVars[var]; 
+  static bool GetUsedVar(int var)
+  {
+    if (var >= 0 && var < kNVars)
+      return fgUsedVars[var];
   }
 
   static void SetRunNumbers(int n, int* runs);
