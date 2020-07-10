@@ -27,7 +27,7 @@
 
 #include <options/FairMQProgOptions.h>
 
-#include <stdlib.h>
+#include <cstdlib>
 
 using AliceO2::InfoLogger::InfoLogger;
 using AliceO2::InfoLogger::InfoLoggerContext;
