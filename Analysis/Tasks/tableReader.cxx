@@ -17,6 +17,7 @@
 #include "Analysis/VarManager.h"
 #include "Analysis/HistogramManager.h"
 #include "Analysis/AnalysisCut.h"
+#include "Analysis/AnalysisCompositeCut.h"
 #include <TH1F.h>
 #include <TMath.h>
 #include <THashList.h>
@@ -36,8 +37,8 @@ using namespace o2::aod;
 struct TableReader {
 
   OutputObj<HistogramManager> fHistMan{"output"};
-  AnalysisCut* fEventCut;
-  AnalysisCut* fTrackCut;
+  AnalysisCompositeCut* fEventCut;
+  AnalysisCompositeCut* fTrackCut;
 
   void init(o2::framework::InitContext&)
   {
@@ -55,18 +56,25 @@ struct TableReader {
 
   void DefineCuts() 
   {
-    fEventCut = new AnalysisCut();
+    fEventCut = new AnalysisCompositeCut(true);
     
-    fEventCut->AddCut(VarManager::kVtxZ, -10.0, 10.0);
+    AnalysisCut* varCut = new AnalysisCut();
+    varCut->AddCut(VarManager::kVtxZ, -10.0, 10.0);
     
     TF1* cutLow=new TF1("cutLow","pol1",0.,0.1);
     cutLow->SetParameters(0.2635, 1.0);
-    fEventCut->AddCut(VarManager::kVtxY, cutLow, 0.335, false, VarManager::kVtxX, 0.067, 0.070);
+    varCut->AddCut(VarManager::kVtxY, cutLow, 0.335, false, VarManager::kVtxX, 0.067, 0.070);
     
-    fEventCut->AddCut(VarManager::kVtxY, 0.0, 0.335);
+    varCut->AddCut(VarManager::kVtxY, 0.0, 0.335);
+    fEventCut->AddCut(varCut);
     
-    fTrackCut = new AnalysisCut();
-    fTrackCut->AddCut(VarManager::kPt, 0.0, 2.0);
+    fTrackCut = new AnalysisCompositeCut(true);   // true: use AND
+    AnalysisCut* cut1 = new AnalysisCut();
+    cut1->AddCut(VarManager::kPt, 2.0, 4.0);
+    AnalysisCut* cut2 = new AnalysisCut();
+    cut2->AddCut(VarManager::kPt, 0.5, 3.0);
+    fTrackCut->AddCut(cut1);
+    fTrackCut->AddCut(cut2);
     
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
@@ -149,7 +157,7 @@ struct TableReader {
         fHistMan->AddHistClass(classStr.Data());
         fHistMan->AddHistogram(classStr.Data(), "Pt", "p_{T} distribution", false, 200, 0.0, 20.0, VarManager::kPt); // TH1F histogram
         fHistMan->AddHistogram(classStr.Data(), "Eta", "#eta distribution", false, 100, -1.0, 1.0, VarManager::kEta); // TH1F histogram
-        fHistMan->AddHistogram(classStr.Data(), "Pt_Eta", "p_{T} vs #eta distribution", false, 40, -1.0, 1.0, VarManager::kEta, 200, 0.0, 20.0, VarManager::kPt); // TH2F histogram
+        fHistMan->AddHistogram(classStr.Data(), "Phi_Eta", "#phi vs #eta distribution", false, 40, -1.0, 1.0, VarManager::kEta, 200, -6.3, 6.3, VarManager::kPhi); // TH2F histogram
         //fHistMan.AddHistogram("Track", "TPCdedx_pIN", "TPC dE/dx vs pIN", false, 100, 0.0, 20.0, VarManager::kPin,
         //                         200, 0.0, 200., VarManager::kTPCsignal);   // TH2F histogram
       }
