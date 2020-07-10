@@ -56,7 +56,7 @@ struct EventSelectionTask {
   Produces<aod::EvSels> evsel;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   EvSelParameters par;
-  
+
   aod::Run2V0 getVZero(aod::BC const& bc, aod::Run2V0s const& vzeros)
   {
     for (auto& vzero : vzeros)
@@ -91,14 +91,14 @@ struct EventSelectionTask {
     ccdb->setValidityCheckingEnabled();
   }
 
-  void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Timestamps & timestamps, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::FDDs const& fdds)
+  void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Timestamps& timestamps, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::FDDs const& fdds)
   {
     auto ts = timestamps.iteratorAt(collision.bcId());
     LOGF(debug, "timestamp=%llu", ts.timestamp());
-    TriggerAliases* aliases = ccdb->getForTimeStamp<TriggerAliases>("Trigger/TriggerAliases",ts.timestamp());
-    if (!aliases) 
-      LOGF(fatal,"Trigger aliases are not available in CCDB for run=%i at timestamp=%llu",collision.bc().runNumber(),ts.timestamp());
-    
+    TriggerAliases* aliases = ccdb->getForTimeStamp<TriggerAliases>("Trigger/TriggerAliases", ts.timestamp());
+    if (!aliases)
+      LOGF(fatal, "Trigger aliases are not available in CCDB for run=%i at timestamp=%llu", collision.bc().runNumber(), ts.timestamp());
+
     uint64_t triggerMask = collision.bc().triggerMask();
     LOGF(debug, "triggerMask=%llu", triggerMask);
 

@@ -46,9 +46,9 @@ struct TimestampTask {
   void process(aod::BC const& bc)
   {
     long timestamp = converter->getTimestamp(bc.runNumber());
-    InteractionRecord current(bc.globalBC()%4096,bc.globalBC()/4096);
+    InteractionRecord current(bc.globalBC() % 4096, bc.globalBC() / 4096);
     InteractionRecord initial = o2::raw::HBFUtils::Instance().getFirstIR();
-    timestamp += (current - initial).bc2ns()/1000000;
+    timestamp += (current - initial).bc2ns() / 1000000;
     ts_table(timestamp);
   }
 };

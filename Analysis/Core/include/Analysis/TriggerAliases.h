@@ -35,19 +35,20 @@ class TriggerAliases : public TNamed
  public:
   TriggerAliases() = default;
   ~TriggerAliases() final = default;
-  void AddAlias(int aliasId, std::string classNames) { mAliases[aliasId]=classNames; }
+  void AddAlias(int aliasId, std::string classNames) { mAliases[aliasId] = classNames; }
   void AddClassIdToAlias(int aliasId, int classId) { mAliasToClassIds[aliasId].push_back(classId); }
   const std::map<int, std::vector<int>>& GetAliasToClassIdsMap() const { return mAliasToClassIds; }
-  void Print() {
+  void Print()
+  {
     for (auto& al : GetAliasToClassIdsMap()) {
-      printf("%d",al.first);
+      printf("%d", al.first);
       for (auto& classIndex : al.second) {
-        printf(" %d",classIndex);
+        printf(" %d", classIndex);
       }
       printf("\n");
     }
   }
-  
+
  private:
   std::map<int, std::string> mAliases;
   std::map<int, std::vector<int>> mAliasToClassIds;
