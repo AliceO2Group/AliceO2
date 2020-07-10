@@ -39,9 +39,8 @@ AnalysisCut::AnalysisCut(const char* name, const char* title) :
 }
 
 //____________________________________________________________________________
-AnalysisCut::AnalysisCut(const AnalysisCut &c) : 
-TNamed(c),
-fCuts(c.fCuts)
+AnalysisCut::AnalysisCut(const AnalysisCut& c) : TNamed(c),
+                                                 fCuts(c.fCuts)
 {
   //
   // copy constructor
@@ -49,7 +48,7 @@ fCuts(c.fCuts)
 }
 
 //____________________________________________________________________________
-AnalysisCut& AnalysisCut::operator= (const AnalysisCut &c)
+AnalysisCut& AnalysisCut::operator=(const AnalysisCut& c)
 {
   //
   // assignment
@@ -57,7 +56,7 @@ AnalysisCut& AnalysisCut::operator= (const AnalysisCut &c)
   if (this != &c) {
     TNamed::operator=(c);
     fCuts = c.fCuts;
-  }  
+  }
   return (*this);
 }
 

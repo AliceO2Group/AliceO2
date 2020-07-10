@@ -27,8 +27,8 @@ class AnalysisCut : public TNamed
  public:
   AnalysisCut(); 
   AnalysisCut(const char* name, const char* title);
-  AnalysisCut(const AnalysisCut &c);
-  AnalysisCut& operator= (const AnalysisCut &c);
+  AnalysisCut(const AnalysisCut& c);
+  AnalysisCut& operator=(const AnalysisCut& c);
   ~AnalysisCut() override;
 
   // NOTE: Apply a selection on variable "var" to be in the range [cutLow,cutHigh] or outside this range if "exclude" is set to true

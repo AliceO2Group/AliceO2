@@ -57,25 +57,25 @@ struct TableReader {
   void DefineCuts() 
   {
     fEventCut = new AnalysisCompositeCut(true);
-    
+
     AnalysisCut* varCut = new AnalysisCut();
     varCut->AddCut(VarManager::kVtxZ, -10.0, 10.0);
-    
+
     TF1* cutLow=new TF1("cutLow","pol1",0.,0.1);
     cutLow->SetParameters(0.2635, 1.0);
     varCut->AddCut(VarManager::kVtxY, cutLow, 0.335, false, VarManager::kVtxX, 0.067, 0.070);
-    
+
     varCut->AddCut(VarManager::kVtxY, 0.0, 0.335);
     fEventCut->AddCut(varCut);
-    
-    fTrackCut = new AnalysisCompositeCut(true);   // true: use AND
+
+    fTrackCut = new AnalysisCompositeCut(true); // true: use AND
     AnalysisCut* cut1 = new AnalysisCut();
     cut1->AddCut(VarManager::kPt, 2.0, 4.0);
     AnalysisCut* cut2 = new AnalysisCut();
     cut2->AddCut(VarManager::kPt, 0.5, 3.0);
     fTrackCut->AddCut(cut1);
     fTrackCut->AddCut(cut2);
-    
+
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
   

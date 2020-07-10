@@ -27,8 +27,8 @@ class AnalysisCompositeCut : public AnalysisCut
    AnalysisCompositeCut(const char* name, const char* title, bool useAND=kTRUE);
    ~AnalysisCompositeCut() override;
 
-   void AddCut(AnalysisCut* cut) {fCutList.push_back(*cut);};
-   
+   void AddCut(AnalysisCut* cut) { fCutList.push_back(*cut); };
+
    bool GetUseAND() const {return fOptionUseAND;}
    int  GetNCuts() const {return fCutList.size();}
    
