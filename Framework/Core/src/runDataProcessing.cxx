@@ -360,6 +360,8 @@ void spawnDevice(std::string const& forwardedStdin,
                  DeviceControl& control,
                  DeviceExecution& execution,
                  std::vector<DeviceInfo>& deviceInfos,
+                 ServiceRegistry& serviceRegistry,
+                 boost::program_options::variables_map& varmap,
                  uv_loop_t* loop,
                  std::vector<uv_poll_t*> handles)
 {
@@ -376,6 +378,11 @@ void spawnDevice(std::string const& forwardedStdin,
   // Not how the first port is actually used to broadcast clients.
   driverInfo.tracyPort++;
 
+  for (auto& service : spec.services) {
+    if (service.preFork != nullptr) {
+      service.preFork(serviceRegistry, varmap);
+    }
+  }
   // If we have a framework id, it means we have already been respawned
   // and that we are in a child. If not, we need to fork and re-exec, adding
   // the framework-id as one of the options.
@@ -402,12 +409,22 @@ void spawnDevice(std::string const& forwardedStdin,
     dup2(childstderr[1], STDERR_FILENO);
     auto portS = std::to_string(driverInfo.tracyPort);
     setenv("TRACY_PORT", portS.c_str(), 1);
+    for (auto& service : spec.services) {
+      if (service.postForkChild != nullptr) {
+        service.postForkChild(serviceRegistry);
+      }
+    }
     execvp(execution.args[0], execution.args.data());
   }
-
   // This is the parent. We close the write end of
   // the child pipe and and keep track of the fd so
   // that we can later select on it.
+  for (auto& service : spec.services) {
+    if (service.postForkParent != nullptr) {
+      service.postForkParent(serviceRegistry);
+    }
+  }
+
   struct sigaction sa_handle_int;
   sa_handle_int.sa_handler = handle_sigint;
   sigemptyset(&sa_handle_int.sa_mask);
@@ -633,8 +650,7 @@ bool processSigChild(DeviceInfos& infos)
   return hasError;
 }
 
-
-int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, TerminationPolicy errorPolicy,
+int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::framework::DeviceSpec& spec, TerminationPolicy errorPolicy,
             uv_loop_t* loop)
 {
   fair::Logger::SetConsoleColor(false);
@@ -654,10 +670,6 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec, Termin
         ("infologger-mode", bpo::value<std::string>()->default_value(""), "INFOLOGGER_MODE override");
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
-
-    // We initialise this in the driver, because different drivers might have
-    // different versions of the service
-    ServiceRegistry serviceRegistry;
 
     // This is to control lifetime. All these services get destroyed
     // when the runner is done.
@@ -757,6 +769,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                     DriverControl& driverControl,
                     DriverInfo& driverInfo,
                     std::vector<DeviceMetricsInfo>& metricsInfos,
+                    boost::program_options::variables_map& varmap,
                     std::string frameworkId)
 {
   DeviceSpecs deviceSpecs;
@@ -812,6 +825,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   uv_timer_t force_step_timer;
   uv_timer_init(loop, &force_step_timer);
+
+  // We initialise this in the driver, because different drivers might have
+  // different versions of the service
+  ServiceRegistry serviceRegistry;
 
   while (true) {
     // If control forced some transition on us, we push it to the queue.
@@ -931,7 +948,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         for (auto& spec : deviceSpecs) {
           if (spec.id == frameworkId) {
-            return doChild(driverInfo.argc, driverInfo.argv, spec, driverInfo.errorPolicy, loop);
+            return doChild(driverInfo.argc, driverInfo.argv,
+                           serviceRegistry, spec,
+                           driverInfo.errorPolicy, loop);
           }
         }
         {
@@ -991,7 +1010,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             spawnDevice(forwardedStdin.str(),
                         deviceSpecs[di], driverInfo,
                         controls[di], deviceExecutions[di], infos,
-                        loop, pollHandles);
+                        serviceRegistry, varmap, loop, pollHandles);
           }
         }
         assert(infos.empty() == false);
@@ -1657,6 +1676,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
                          driverControl,
                          driverInfo,
                          gDeviceMetricsInfos,
+                         varmap,
                          frameworkId);
 }
 

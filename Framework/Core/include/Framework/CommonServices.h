@@ -16,6 +16,10 @@
 namespace o2::framework
 {
 
+struct ThreadPool {
+  int poolSize;
+};
+
 /// A few ServiceSpecs for services we know about and that / are needed by
 /// everyone.
 struct CommonServices {
@@ -55,8 +59,9 @@ struct CommonServices {
   static ServiceSpec timesliceIndex();
   static ServiceSpec dataRelayer();
   static ServiceSpec tracingSpec();
+  static ServiceSpec threadPool(int numWorkers);
 
-  static std::vector<ServiceSpec> defaultServices();
+  static std::vector<ServiceSpec> defaultServices(int numWorkers = 0);
   static std::vector<ServiceSpec> requiredServices();
 };
 
