@@ -38,13 +38,13 @@ TGeoVolumeAssembly* Barrel::createBarrel()
   //
   TGeoMedium* kMeAl = gGeoManager->GetMedium("MFT_Alu$");
   TGeoMedium* mCu = gGeoManager->GetMedium("MFT_Cu$");
-  TGeoMedium* mCarbon = gGeoManager->GetMedium("MFT_CarbonFiberM46J");
-  TGeoMedium* mRohacell = gGeoManager->GetMedium("MFT_Rohacell");
+  TGeoMedium* mCarbon = gGeoManager->GetMedium("MFT_CarbonFiberM46J$");
+  TGeoMedium* mRohacell = gGeoManager->GetMedium("MFT_Rohacell$");
   TGeoMedium* mKapton = gGeoManager->GetMedium("MFT_Kapton$");
   TGeoMedium* mWater = gGeoManager->GetMedium("MFT_Water$");
   TGeoMedium* mAir = gGeoManager->GetMedium("MFT_Air$");
-  TGeoMedium* mPolypropylene = gGeoManager->GetMedium("MFT_Polypropylene");
-  TGeoMedium* mPolyurethane = gGeoManager->GetMedium("MFT_Polyurethane");
+  TGeoMedium* mPolypropylene = gGeoManager->GetMedium("MFT_Polypropylene$");
+  TGeoMedium* mPolyurethane = gGeoManager->GetMedium("MFT_Polyurethane$");
   // define shape of joints
   TGeoVolume* BarrelJoint0 = gGeoManager->MakeTubs(
     "Barrel_joint0", kMeAl, 49.600, 49.85, 1.05, 207.2660445, 332.7339555);
