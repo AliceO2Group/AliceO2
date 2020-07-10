@@ -533,7 +533,7 @@ class MatchTPCITS
   bool mFieldON = true;   ///< flag for field ON/OFF
   bool mMCTruthON = false;        ///< flag availability of MC truth
 
-  o2::InteractionRecord mStartIR; ///< IR corresponding to the start of the TF
+  o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
   const Params* mParams = nullptr;
