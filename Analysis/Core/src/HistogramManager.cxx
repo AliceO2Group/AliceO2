@@ -487,19 +487,18 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
   cout << "size of array :: " << varList.size() << endl;
   fVariablesMap[histClass] = varList;
 
+  unsigned long int nbins = 1;
   THnBase* h = nullptr;
   if (useSparse)
     h = new THnSparseF(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nDimensions, nBins, xmin, xmax);
   else
     h = new THnF(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nDimensions, nBins, xmin, xmax);
   h->Sumw2();
-
+    
   // configure the THn histogram and count the allocated bins
-  unsigned long int bins = 1;
   for (int idim = 0; idim < nDimensions; ++idim) {
-    bins *= (nBins[idim] + 2);
+    nbins *= (nBins[idim] + 2);
     TAxis* axis = h->GetAxis(idim);
-
     if (fVariableNames[vars[idim]][0])
       axis->SetTitle(Form("%s %s", fVariableNames[vars[idim]].Data(),
                           (fVariableUnits[vars[idim]][0] ? Form("(%s)", fVariableUnits[vars[idim]].Data()) : "")));
@@ -507,13 +506,15 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
       axis->SetTitle(arr->At(1 + idim)->GetName());
     if (axLabels && !axLabels[idim].IsNull())
       MakeAxisLabels(axis, axLabels[idim].Data());
+     
     fUsedVars[vars[idim]] = kTRUE;
   }
   if (useSparse)
     hList->Add((THnSparseF*)h);
   else
     hList->Add((THnF*)h);
-  fBinsAllocated += bins;
+    
+  fBinsAllocated += nbins;
 }
 
 //_________________________________________________________________
@@ -640,7 +641,7 @@ void HistogramManager::FillHistClass(const char* className, Float_t* values)
     // decode information from the vector of indices
     isProfile = (varIter->at(0) == 1 ? true : false);
     isTHn = (varIter->at(1) > 0 ? true : false);
-    if (isTHn)
+    if (isTHn) 
       dimension = varIter->at(1);
     else
       dimension = ((TH1*)h)->GetDimension();
@@ -656,8 +657,6 @@ void HistogramManager::FillHistClass(const char* className, Float_t* values)
       varZ = varIter->at(5);
       varT = varIter->at(6);
     }
-
-    // TODO: check that all needed variables are marked for usage in fUsedVars, otherwise throw and error
 
     if (!isTHn) {
       switch (dimension) {

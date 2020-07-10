@@ -10,30 +10,28 @@
 
 #include "Analysis/AnalysisCompositeCut.h"
 
-#include <TIterator.h>
-
 ClassImp(AnalysisCompositeCut)
 
 //____________________________________________________________________________
 AnalysisCompositeCut::AnalysisCompositeCut(bool useAND) :
   AnalysisCut(),
-  fOptionUseAND(useAND)
+  fOptionUseAND(useAND),
+  fCutList()
 {
   //
   // default constructor
   //
-  fCuts.SetOwner(kTRUE);
 }
 
 //____________________________________________________________________________
 AnalysisCompositeCut::AnalysisCompositeCut(const char* name, const char* title, bool useAND) :
   AnalysisCut(name, title),
-  fOptionUseAND(useAND)
+  fOptionUseAND(useAND),
+  fCutList()
 {
   //
   // named constructor
   //
-  fCuts.SetOwner(kTRUE);
 }
 
 //____________________________________________________________________________
@@ -44,11 +42,10 @@ bool AnalysisCompositeCut::IsSelected(float* values) {
   //
   // apply cuts
   //
-  TIter next(&fCuts);
-  for(int iCut=0; iCut<fCuts.GetEntries(); ++iCut) {
-     AnalysisCut* cut = (AnalysisCut*)next();
-     if(fOptionUseAND && !cut->IsSelected(values)) return kFALSE;
-     if(!fOptionUseAND && cut->IsSelected(values)) return kTRUE;
+  std::vector<AnalysisCut>::iterator it = fCutList.begin();
+  for(std::vector<AnalysisCut>::iterator it = fCutList.begin(); it<fCutList.end(); ++it) {
+     if(fOptionUseAND && !(*it)->IsSelected(values)) return kFALSE;
+     if(!fOptionUseAND && (*it)->IsSelected(values)) return kTRUE;
   }
   if(fOptionUseAND) 
     return kTRUE;

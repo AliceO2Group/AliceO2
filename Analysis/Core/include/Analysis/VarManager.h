@@ -24,7 +24,7 @@
 #include <map>
 
 //using namespace o2::aod;
-using std::vector;
+//using std::vector;
 
 //_________________________________________________________________________
 class VarManager : public TObject
@@ -43,7 +43,7 @@ class VarManager : public TObject
     kL3Polarity,
     kNRunWiseVariables,
 
-    // Event wise variables
+    // Event wise variables   // Daria: imedjat ai ziua mja
     kTimeStamp,
     kBC,
     kInstLumi,
@@ -67,6 +67,7 @@ class VarManager : public TObject
     kPt,
     kEta,
     kPhi,
+    kP,
     kRap,
     kMass,
     kCharge,
@@ -106,25 +107,34 @@ class VarManager : public TObject
   static TString fgVariableUnits[kNVars]; // variable units
   static void SetDefaultVarNames();
 
-  static void SetUseVariable(Variables var)
+  static void SetUseVariable(int var)
   {
-    fgUsedVars[var] = kTRUE;
+    if(var>=0 && var<kNVars) 
+      fgUsedVars[var] = kTRUE;
     SetVariableDependencies();
   }
   static void SetUseVars(const bool* usedVars)
   {
     for (int i = 0; i < kNVars; ++i) {
       if (usedVars[i])
-        fgUsedVars[i] = kTRUE; // overwrite only the variables that are being used since there are more channels to modify the used variables array, independently
+        fgUsedVars[i] = true; // overwrite only the variables that are being used since there are more channels to modify the used variables array, independently
     }
     SetVariableDependencies();
   }
-  static bool GetUsedVar(Variables var) { return fgUsedVars[var]; }
+  static void SetUseVars(const std::vector<int> usedVars) 
+  {
+    for(auto& var : usedVars)
+      fgUsedVars[var] = true;
+  }
+  static bool GetUsedVar(int var) { 
+    if(var>=0 && var<kNVars)
+      return fgUsedVars[var]; 
+  }
 
   static void SetRunNumbers(int n, int* runs);
 
-  static void FillEvent(vector<float> event, float* values = nullptr);
-  static void FillTrack(vector<float> track, float* values = nullptr);
+  static void FillEvent(std::vector<float> event, float* values = nullptr);
+  static void FillTrack(std::vector<float> track, float* values = nullptr);
   //static void FillTrack(ReducedTrack track, float* values = nullptr);
 
  public:
@@ -145,4 +155,5 @@ class VarManager : public TObject
 
   ClassDef(VarManager, 1)
 };
+
 #endif

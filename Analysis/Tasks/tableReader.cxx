@@ -16,7 +16,7 @@
 #include "Analysis/ReducedInfoTables.h"
 #include "Analysis/VarManager.h"
 #include "Analysis/HistogramManager.h"
-#include "Analysis/AnalysisVarCut.h"
+#include "Analysis/AnalysisCut.h"
 #include <TH1F.h>
 #include <TMath.h>
 #include <THashList.h>
@@ -30,13 +30,14 @@ using std::vector;
 
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::framework::expressions;
+//using namespace o2::framework::expressions;
+using namespace o2::aod;
 
 struct TableReader {
 
   OutputObj<HistogramManager> fHistMan{"output"};
-  AnalysisVarCut* fEventCut;
-  AnalysisVarCut* fTrackCut;
+  AnalysisCut* fEventCut;
+  AnalysisCut* fTrackCut;
 
   void init(o2::framework::InitContext&)
   {
@@ -54,16 +55,20 @@ struct TableReader {
 
   void DefineCuts() 
   {
-    fEventCut = new AnalysisVarCut(VarManager::kNVars);
+    fEventCut = new AnalysisCut();
+    
     fEventCut->AddCut(VarManager::kVtxZ, -10.0, 10.0);
     
-    fTrackCut = new AnalysisVarCut(VarManager::kNVars);
+    TF1* cutLow=new TF1("cutLow","pol1",0.,0.1);
+    cutLow->SetParameters(0.2635, 1.0);
+    fEventCut->AddCut(VarManager::kVtxY, cutLow, 0.335, false, VarManager::kVtxX, 0.067, 0.070);
+    
+    fEventCut->AddCut(VarManager::kVtxY, 0.0, 0.335);
+    
+    fTrackCut = new AnalysisCut();
     fTrackCut->AddCut(VarManager::kPt, 0.0, 2.0);
     
-    for(int i=0; i<VarManager::kNVars;++i)
-      cout << AnalysisVarCut::fgUsedVars[i] << "  ";
-    cout << endl;
-    VarManager::SetUseVars(AnalysisVarCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
+    VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
   
   //void process(soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov>::iterator event,
@@ -74,12 +79,13 @@ struct TableReader {
     // TODO: reseting will have to be done selectively, for example run-wise variables don't need to be reset every event, but just updated if the run changes
     //       The reset can be done selectively, using arguments in the ResetValues() function
     VarManager::ResetValues();
-
+    
     std::vector<float> eventInfo = {(float)event.runNumber(), event.posX(), event.posY(), event.posZ(), (float)event.numContrib()};
     VarManager::FillEvent(eventInfo);                       // extract event information and place it in the fgValues array
 
     fHistMan->FillHistClass("Event_BeforeCuts", VarManager::fgValues); // automatically fill all the histograms in the class Event
     if(!fEventCut->IsSelected(VarManager::fgValues)) return;
+    
     fHistMan->FillHistClass("Event_AfterCuts", VarManager::fgValues);
     
     for (auto& track : tracks) {
@@ -122,7 +128,7 @@ struct TableReader {
         double vtxZbinLims[13] = {-15.0, -10.0, -8.0, -6.0, -4.0, -2.0, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 15.0};
         double nContribbinLims[9] = {0.0, 100.0, 200.0, 400.0, 600.0, 1000.0, 1500.0, 2000.0, 4000.0};
 
-        fHistMan->AddHistogram(classStr.Data(), "VtxX_VtxY_nonEqualBinning", "Vtx X vs Vtx Y", false, 9, vtxXbinLims, VarManager::kVtxX, 6, vtxYbinLims, VarManager::kVtxY); // TH2F histogram with custom non-equal binning
+        fHistMan->AddHistogram(classStr.Data(), "VtxX_VtxY_nonEqualBinning", "Vtx X vs Vtx Y", false, 9, vtxXbinLims, VarManager::kVtxX, 6, vtxYbinLims, VarManager::kVtxY); // THnF histogram with custom non-equal binning
 
         fHistMan->AddHistogram(classStr.Data(), "VtxZ_weights", "Vtx Z", false,
                               60, -15.0, 15.0, VarManager::kVtxZ, 10, 0., 0., VarManager::kNothing, 10, 0., 0., VarManager::kNothing,
@@ -135,10 +141,7 @@ struct TableReader {
         binLimits[2] = TArrayD(13, vtxZbinLims);
         binLimits[3] = TArrayD(9, nContribbinLims);
         fHistMan->AddHistogram(classStr.Data(), "vtxHisto", "n contrib vs (x,y,z)", 4, vars, binLimits);
-
-        //fHistMan.AddHistogram(classStr.Data(), "CentVZERO", "CentVZERO", false, 100, 0.0, 100.0, VarManager::kCentVZERO);   // TH1F histogram
-        //fHistMan.AddHistogram(classStr.Data(), "CentVZERO_VtxZ_prof", "CentVZERO vs vtxZ", true, 60, -15.0, 15.0, VarManager::kVtxZ,
-        //                             10, 0.0, 0.0, VarManager::kCentVZERO);   // TProfile with <CentVZERO> vs vtxZ
+        
         continue;
       }    // end if(Event)
       

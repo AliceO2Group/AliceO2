@@ -17,7 +17,7 @@
 #define AnalysisCompositeCut_H
 
 #include "Analysis/AnalysisCut.h"
-#include "TList.h"
+#include <vector>
 
 //_________________________________________________________________________
 class AnalysisCompositeCut : public AnalysisCut 
@@ -27,16 +27,16 @@ class AnalysisCompositeCut : public AnalysisCut
    AnalysisCompositeCut(const char* name, const char* title, bool useAND=kTRUE);
    ~AnalysisCompositeCut() override;
 
-   void AddCut(AnalysisCut* cut) {fCuts.Add(cut);};
+   void AddCut(AnalysisCut* cut) {fCutList.push_back(cut);};
    
    bool GetUseAND() const {return fOptionUseAND;}
-   int  GetNCuts() const {return fCuts.GetEntries();}
+   int  GetNCuts() const {return fCutList.size();}
    
    virtual bool IsSelected(float* values);
   
  protected:
-   bool  fOptionUseAND;   // true (default): apply AND on all cuts; false: use OR
-   TList fCuts;           // list of cuts
+   bool  fOptionUseAND;               // true (default): apply AND on all cuts; false: use OR
+   std::vector<AnalysisCut> fCutList; // list of cuts
     
    AnalysisCompositeCut(const AnalysisCompositeCut &c);
    AnalysisCompositeCut& operator= (const AnalysisCompositeCut &c);

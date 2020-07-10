@@ -10,6 +10,8 @@
 
 #include "Analysis/VarManager.h"
 
+#include <TMath.h>
+
 ClassImp(VarManager);
 
 TString VarManager::fgVariableNames[VarManager::kNVars] = {""};
@@ -34,8 +36,12 @@ VarManager::~VarManager() = default;
 void VarManager::SetVariableDependencies()
 {
   //
-  // Set as used those variables on which other variables calculation depends
+  // Set as used variables on which other variables calculation depends
   //
+  if(fgUsedVars[kP]) {
+    fgUsedVars[kPt] = kTRUE;
+    fgUsedVars[kEta] = kTRUE;
+  }
 }
 
 //__________________________________________________________________
@@ -59,14 +65,16 @@ void VarManager::SetRunNumbers(int n, int* runs)
 }
 
 //__________________________________________________________________
-void VarManager::FillEvent(vector<float> event, float* values)
+void VarManager::FillEvent(std::vector<float> event, float* values)
 {
 
   //TODO: the Fill function should take as argument an aod::ReducedEvent iterator, this is just a temporary fix
   if (!values)
     values = fgValues;
+  
   values[kRunNo] = event[0];
-  values[kRunId] = (fgRunMap.size() > 0 ? fgRunMap[int(values[kRunNo])] : 0);
+  if(fgUsedVars[kRunId])
+    values[kRunId] = (fgRunMap.size() > 0 ? fgRunMap[int(values[kRunNo])] : 0);
   values[kVtxX] = event[1];
   values[kVtxY] = event[2];
   values[kVtxZ] = event[3];
@@ -88,7 +96,7 @@ void VarManager::FillEvent(vector<float> event, float* values)
 }
 
 //__________________________________________________________________
-void VarManager::FillTrack(vector<float> track, float* values)
+void VarManager::FillTrack(std::vector<float> track, float* values)
 {
 
   if (!values)
@@ -98,6 +106,8 @@ void VarManager::FillTrack(vector<float> track, float* values)
   values[kEta] = track[1];
   values[kPhi] = track[2];
   values[kCharge] = track[3];
+  if(fgUsedVars[kP]) 
+    values[kP] = values[kPt] * TMath::CosH(values[kEta]);
   /*values[kPt] = track.pt();
   values[kEta] = track.eta();
   values[kPhi] = track.phi();
@@ -191,6 +201,8 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kCentVZERO] = "%";
   fgVariableNames[kPt] = "p_{T}";
   fgVariableUnits[kPt] = "GeV/c";
+  fgVariableNames[kP] = "p";
+  fgVariableUnits[kP] = "GeV/c";
   fgVariableNames[kEta] = "#eta";
   fgVariableUnits[kEta] = "";
   fgVariableNames[kPhi] = "#varphi";
