@@ -130,6 +130,7 @@ class VarManager : public TObject
   {
     if (var >= 0 && var < kNVars)
       return fgUsedVars[var];
+    return false;
   }
 
   static void SetRunNumbers(int n, int* runs);
