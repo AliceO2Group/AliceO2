@@ -43,16 +43,16 @@ void TrackExtrap::linearExtrapToZ(TrackParamMFT* trackParam, double zEnd)
   }
 
   // Compute track parameters
-  double dZ = (zEnd - trackParam->getZ());
-  double x0 = trackParam->getX();
-  double y0 = trackParam->getY();
-  double phi0 = trackParam->getPhi();
+  auto dZ = (zEnd - trackParam->getZ());
+  auto x0 = trackParam->getX();
+  auto y0 = trackParam->getY();
+  auto phi0 = trackParam->getPhi();
   double cosphi0, sinphi0;
   o2::utils::sincos(phi0, sinphi0, cosphi0);
-  double invtanl0 = 1.0 / trackParam->getTanl();
-  double n = dZ * invtanl0;
-  double x = x0 + n * cosphi0;
-  double y = y0 + n * sinphi0;
+  auto invtanl0 = 1.0 / trackParam->getTanl();
+  auto n = dZ * invtanl0;
+  auto x = x0 + n * cosphi0;
+  auto y = y0 + n * sinphi0;
   trackParam->setX(x);
   trackParam->setY(y);
   trackParam->setZ(zEnd);
@@ -65,20 +65,23 @@ void TrackExtrap::linearExtrapToZCov(TrackParamMFT* trackParam, double zEnd, boo
   /// On return, results from the extrapolation are updated in trackParam.
 
   // Calculate the jacobian related to the track parameters extrapolated to "zEnd"
-  double dZ = (zEnd - trackParam->getZ());
-  double phi0 = trackParam->getPhi();
-  double tanl0 = trackParam->getTanl();
-  double invtanl0 = 1.0 / tanl0;
-  //  double invqpt0 = trackParam->getInvQPt();
+  auto dZ = (zEnd - trackParam->getZ());
+  auto x0 = trackParam->getX();
+  auto y0 = trackParam->getY();
+  auto phi0 = trackParam->getPhi();
+  auto tanl0 = trackParam->getTanl();
+  auto invtanl0 = 1.0 / tanl0;
   double cosphi0, sinphi0;
   o2::utils::sincos(phi0, sinphi0, cosphi0);
-  // double k = TMath::Abs(o2::constants::math::B2C * getBz());
-  double n = dZ * invtanl0;
-  double m = n * invtanl0;
-  //  double theta = -invqpt0 * dZ * k * invtanl0;
-  //  auto Hz = getSignBz();
+  auto n = dZ * invtanl0;
+  auto m = n * invtanl0;
 
-  linearExtrapToZ(trackParam, zEnd);
+  // Extrapolate track parameters to "zEnd"
+  auto x = x0 + n * cosphi0;
+  auto y = y0 + n * sinphi0;
+  trackParam->setX(x);
+  trackParam->setY(y);
+  trackParam->setZ(zEnd);
 
   // Calculate Jacobian
   TMatrixD jacob(5, 5);
@@ -110,62 +113,21 @@ void TrackExtrap::quadraticExtrapToZ(TrackParamMFT* trackParam, double zEnd)
   }
 
   // Compute track parameters
-  double dZ = (zEnd - trackParam->getZ());
-  double x0 = trackParam->getX();
-  double y0 = trackParam->getY();
-  double phi0 = trackParam->getPhi();
+  auto dZ = (zEnd - trackParam->getZ());
+  auto x0 = trackParam->getX();
+  auto y0 = trackParam->getY();
+  auto phi0 = trackParam->getPhi();
   double cosphi0, sinphi0;
   o2::utils::sincos(phi0, sinphi0, cosphi0);
-  double invtanl0 = 1.0 / trackParam->getTanl();
-  double invqpt0 = trackParam->getInvQPt();
+  auto invtanl0 = 1.0 / trackParam->getTanl();
+  auto invqpt0 = trackParam->getInvQPt();
   auto Hz = getSignBz();
-  double k = TMath::Abs(o2::constants::math::B2C * getBz());
-  double n = dZ * invtanl0;
-  double theta = -invqpt0 * dZ * k * invtanl0;
-  double deltax = n * cosphi0 - 0.5 * n * theta * Hz * sinphi0;
-  double deltay = n * sinphi0 + 0.5 * n * theta * Hz * cosphi0;
-
-  double x = x0 + deltax;
-  double y = y0 + deltay;
-  double phi = phi0 + Hz * theta;
-
-  trackParam->setX(x);
-  trackParam->setY(y);
-  trackParam->setZ(zEnd);
-  trackParam->setPhi(phi);
-}
-
-//__________________________________________________________________________
-void TrackExtrap::helixExtrapToZ(TrackParamMFT* trackParam, double zEnd)
-{
-  /// Track parameters extrapolated to the plane at "zEnd" considering a helix
-  /// On return, results from the extrapolation are updated in trackParam.
-
-  if (trackParam->getZ() == zEnd) {
-    return; // nothing to be done if same z
-  }
-
-  // Compute track parameters
-  double dZ = (zEnd - trackParam->getZ());
-  double x0 = trackParam->getX();
-  double y0 = trackParam->getY();
-  double px0 = trackParam->getPx();
-  double py0 = trackParam->getPy();
-  double invtanl0 = 1.0 / trackParam->getTanl();
-  double invqpt0 = trackParam->getInvQPt();
-  auto q = trackParam->getCharge();
-  auto Hz = getSignBz();
-  double k = TMath::Abs(o2::constants::math::B2C * getBz());
-  auto invk = 1.0 / k;
-  double theta = -invqpt0 * dZ * k * invtanl0;
-  double costheta, sintheta;
-  o2::utils::sincos(theta, sintheta, costheta);
-  double deltax = Hz * py0 * invk * (1.0 - costheta) - px0 * q * invk * sintheta;
-  double deltay = -Hz * px0 * invk * (1.0 - costheta) - py0 * q * invk * sintheta;
-
-  double x = x0 + deltax;
-  double y = y0 + deltay;
-  double phi = trackParam->getPhi() + Hz * theta;
+  auto k = TMath::Abs(o2::constants::math::B2C * getBz());
+  auto n = dZ * invtanl0;
+  auto theta = -invqpt0 * dZ * k * invtanl0;
+  auto x = x0 + n * cosphi0 - 0.5 * n * theta * Hz * sinphi0;
+  auto y = y0 + n * sinphi0 + 0.5 * n * theta * Hz * cosphi0;
+  auto phi = phi0 + Hz * theta;
 
   trackParam->setX(x);
   trackParam->setY(y);
@@ -177,21 +139,34 @@ void TrackExtrap::helixExtrapToZ(TrackParamMFT* trackParam, double zEnd)
 void TrackExtrap::quadraticExtrapToZCov(TrackParamMFT* trackParam, double zEnd, bool updatePropagator)
 {
 
-  // Calculate the jacobian related to the track parameters extrapolated to "zEnd"
-  double dZ = (zEnd - trackParam->getZ());
-  double phi0 = trackParam->getPhi();
-  double tanl0 = trackParam->getTanl();
-  double invtanl0 = 1.0 / tanl0;
-  double invqpt0 = trackParam->getInvQPt();
+  // Extrapolate track parameters and covariances matrix to "zEnd"
+  if (trackParam->getZ() == zEnd) {
+    return; // nothing to be done if same z
+  }
+
+  // Compute track parameters
+  auto dZ = (zEnd - trackParam->getZ());
+  auto x0 = trackParam->getX();
+  auto y0 = trackParam->getY();
+  auto phi0 = trackParam->getPhi();
   double cosphi0, sinphi0;
   o2::utils::sincos(phi0, sinphi0, cosphi0);
-  double k = TMath::Abs(o2::constants::math::B2C * getBz());
-  double n = dZ * invtanl0;
-  double m = n * invtanl0;
-  double theta = -invqpt0 * dZ * k * invtanl0;
+  auto invtanl0 = 1.0 / trackParam->getTanl();
+  auto invqpt0 = trackParam->getInvQPt();
   auto Hz = getSignBz();
+  auto k = TMath::Abs(o2::constants::math::B2C * getBz());
+  auto n = dZ * invtanl0;
+  auto m = n * invtanl0;
+  auto theta = -invqpt0 * dZ * k * invtanl0;
 
-  quadraticExtrapToZ(trackParam, zEnd);
+  // Extrapolate track parameters to "zEnd"
+  auto x = x0 + n * cosphi0 - 0.5 * n * theta * Hz * sinphi0;
+  auto y = y0 + n * sinphi0 + 0.5 * n * theta * Hz * cosphi0;
+  auto phi = phi0 + Hz * theta;
+  trackParam->setX(x);
+  trackParam->setY(y);
+  trackParam->setZ(zEnd);
+  trackParam->setPhi(phi);
 
   // Calculate Jacobian
   TMatrixD jacob(5, 5);
@@ -217,21 +192,67 @@ void TrackExtrap::quadraticExtrapToZCov(TrackParamMFT* trackParam, double zEnd, 
 }
 
 //__________________________________________________________________________
-void TrackExtrap::helixExtrapToZCov(TrackParamMFT* trackParam, double zEnd, bool updatePropagator)
+void TrackExtrap::helixExtrapToZ(TrackParamMFT* trackParam, double zEnd)
 {
+  /// Track parameters extrapolated to the plane at "zEnd" considering a helix
+  /// On return, results from the extrapolation are updated in trackParam.
 
-  // Calculate the jacobian related to the track parameters extrapolated to "zEnd"
-  double dZ = (zEnd - trackParam->getZ());
-  double phi0 = trackParam->getPhi();
-  double tanl0 = trackParam->getTanl();
-  double invtanl0 = 1.0 / tanl0;
-  double invqpt0 = trackParam->getInvQPt();
+  if (trackParam->getZ() == zEnd) {
+    return; // nothing to be done if same z
+  }
+
+  // Compute track parameters
+  auto dZ = (zEnd - trackParam->getZ());
+  auto x0 = trackParam->getX();
+  auto y0 = trackParam->getY();
+  auto phi0 = trackParam->getPhi();
+  auto tanl0 = trackParam->getTanl();
+  auto invtanl0 = 1.0 / tanl0;
+  auto invqpt0 = trackParam->getInvQPt();
   auto qpt0 = 1.0 / invqpt0;
   double cosphi0, sinphi0;
   o2::utils::sincos(phi0, sinphi0, cosphi0);
-  double k = TMath::Abs(o2::constants::math::B2C * getBz());
-  double invk = 1.0 / k;
-  double theta = -invqpt0 * dZ * k * invtanl0;
+  auto k = TMath::Abs(o2::constants::math::B2C * getBz());
+  auto invk = 1.0 / k;
+  auto theta = -invqpt0 * dZ * k * invtanl0;
+  double costheta, sintheta;
+  o2::utils::sincos(theta, sintheta, costheta);
+  auto Hz = getSignBz();
+  auto Y = sinphi0 * qpt0 * invk;
+  auto X = cosphi0 * qpt0 * invk;
+  auto YC = Y * costheta;
+  auto YS = Y * sintheta;
+  auto XC = X * costheta;
+  auto XS = X * sintheta;
+
+  // Extrapolate track parameters to "zEnd"
+  auto x = x0 + Hz * (Y - YC) - XS;
+  auto y = y0 + Hz * (-X + XC) - YS;
+  auto phi = phi0 + Hz * theta;
+  trackParam->setX(x);
+  trackParam->setY(y);
+  trackParam->setZ(zEnd);
+  trackParam->setPhi(phi);
+}
+
+//__________________________________________________________________________
+void TrackExtrap::helixExtrapToZCov(TrackParamMFT* trackParam, double zEnd, bool updatePropagator)
+{
+
+  // Extrapolate track parameters and covariances matrix to "zEnd"
+  auto dZ = (zEnd - trackParam->getZ());
+  auto x0 = trackParam->getX();
+  auto y0 = trackParam->getY();
+  auto phi0 = trackParam->getPhi();
+  auto tanl0 = trackParam->getTanl();
+  auto invtanl0 = 1.0 / tanl0;
+  auto invqpt0 = trackParam->getInvQPt();
+  auto qpt0 = 1.0 / invqpt0;
+  double cosphi0, sinphi0;
+  o2::utils::sincos(phi0, sinphi0, cosphi0);
+  auto k = TMath::Abs(o2::constants::math::B2C * getBz());
+  auto invk = 1.0 / k;
+  auto theta = -invqpt0 * dZ * k * invtanl0;
   double costheta, sintheta;
   o2::utils::sincos(theta, sintheta, costheta);
   auto Hz = getSignBz();
@@ -250,11 +271,17 @@ void TrackExtrap::helixExtrapToZCov(TrackParamMFT* trackParam, double zEnd, bool
   auto T = qpt0 * costheta;
   auto U = qpt0 * sintheta;
   auto V = qpt0;
-  double n = dZ * invtanl0;
-  double m = n * invtanl0;
+  auto n = dZ * invtanl0;
+  auto m = n * invtanl0;
 
   // Extrapolate track parameters to "zEnd"
-  helixExtrapToZ(trackParam, zEnd);
+  auto x = x0 + Hz * (Y - YC) - XS;
+  auto y = y0 + Hz * (-X + XC) - YS;
+  auto phi = phi0 + Hz * theta;
+  trackParam->setX(x);
+  trackParam->setY(y);
+  trackParam->setZ(zEnd);
+  trackParam->setPhi(phi);
 
   // Calculate Jacobian
   TMatrixD jacob(5, 5);
@@ -334,20 +361,20 @@ void TrackExtrap::addMCSEffect(TrackParamMFT* trackParam, double dZ, double x0)
   /// All scattering evaluated happens at the position of the first cluster
 
   bool debug = false;
-  double phi0 = trackParam->getPhi();
-  double tanl0 = trackParam->getTanl();
-  double invtanl0 = 1.0 / tanl0;
-  double invqpt0 = trackParam->getInvQPt();
-  double p = trackParam->getP();
+  auto phi0 = trackParam->getPhi();
+  auto tanl0 = trackParam->getTanl();
+  auto invtanl0 = 1.0 / tanl0;
+  auto invqpt0 = trackParam->getInvQPt();
+  auto p = trackParam->getP();
 
   double cosphi0, sinphi0;
   o2::utils::sincos(phi0, sinphi0, cosphi0);
 
-  double csclambda = TMath::Abs(TMath::Sqrt(1 + tanl0 * tanl0) * invtanl0);
-  double pathLengthOverX0 = x0 * csclambda;
+  auto csclambda = TMath::Abs(TMath::Sqrt(1 + tanl0 * tanl0) * invtanl0);
+  auto pathLengthOverX0 = x0 * csclambda;
 
   // Angular dispersion square of the track (variance) in a plane perpendicular to the trajectory
-  double sigmathetasq = 0.0136 * invqpt0 * (1 + 0.038 * TMath::Log(pathLengthOverX0));
+  auto sigmathetasq = 0.0136 * invqpt0 * (1 + 0.038 * TMath::Log(pathLengthOverX0));
   sigmathetasq *= sigmathetasq * pathLengthOverX0;
 
   // Get covariance matrix
@@ -358,14 +385,14 @@ void TrackExtrap::addMCSEffect(TrackParamMFT* trackParam, double dZ, double x0)
   }
 
   if (dZ > 0) {
-    double A = tanl0 * tanl0 + 1;
-    double B = dZ * cosphi0 * invtanl0;
-    double C = dZ * sinphi0 * invtanl0;
-    double D = A * B * invtanl0;
-    double E = -A * C * invtanl0;
-    double F = -C - D;
-    double G = B + E;
-    double H = -invqpt0 * tanl0;
+    auto A = tanl0 * tanl0 + 1;
+    auto B = dZ * cosphi0 * invtanl0;
+    auto C = dZ * sinphi0 * invtanl0;
+    auto D = A * B * invtanl0;
+    auto E = -A * C * invtanl0;
+    auto F = -C - D;
+    auto G = B + E;
+    auto H = -invqpt0 * tanl0;
 
     newParamCov(0, 0) += sigmathetasq * F * F;
 
@@ -408,8 +435,8 @@ void TrackExtrap::addMCSEffect(TrackParamMFT* trackParam, double dZ, double x0)
     newParamCov(4, 4) += sigmathetasq * tanl0 * tanl0 * invqpt0 * invqpt0;
   } else {
 
-    double A = tanl0 * tanl0 + 1;
-    double H = -invqpt0 * tanl0;
+    auto A = tanl0 * tanl0 + 1;
+    auto H = -invqpt0 * tanl0;
 
     newParamCov(2, 2) += sigmathetasq;
 
