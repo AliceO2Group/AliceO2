@@ -183,24 +183,22 @@ void TrackFitter::initTrack(const Cluster& cl, TrackParamMFT& param)
         std::cout << " Init track with Seed D.\n";
       break;
   }
-
   if (mftTrackingParam.verbose) {
     auto model = (mftTrackingParam.trackmodel == Helix) ? "Helix" : (mftTrackingParam.trackmodel == Quadratic) ? "Quadratic" : "Linear";
     std::cout << "Track Model: " << model << std::endl;
-    std::cout << "initTrack Cluster    X =  " << x0 << "   Y = " << y0 << "   Z = " << z0 << std::endl;
-    std::cout << "  seed Phi, Tanl, InvQpt = " << param.getPhi() << " " << param.getTanl() << " " << param.getInvQPt() << std::endl;
+    std::cout << "  initTrack: X = " << cl.getX() << " Y = " << cl.getY() << " Z = " << cl.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << " pz = " << param.getPz() << " qpt = " << 1.0 / param.getInvQPt() << std::endl;
   }
 
   // compute the track parameter covariances at the last cluster (as if the other clusters did not exist)
   TMatrixD lastParamCov(5, 5);
   lastParamCov.Zero();
-  lastParamCov(0, 0) = sigmaboost * sigmax0sq;      // <X,X>
+  lastParamCov(0, 0) = sigmax0sq;                   // <X,X>
   lastParamCov(0, 1) = 0;                           // <Y,X>
   lastParamCov(0, 2) = sigmaboost * -sigmax0sq * y0 * invr0sq;      // <PHI,X>
   lastParamCov(0, 3) = sigmaboost * -z0 * sigmax0sq * x0 * invr0cu; // <TANL,X>
   lastParamCov(0, 4) = sigmaboost * -x0 * sigmax0sq * invr0cu;      // <INVQPT,X>
 
-  lastParamCov(1, 1) = sigmaboost * sigmay0sq;                      // <Y,Y>
+  lastParamCov(1, 1) = sigmay0sq;                                   // <Y,Y>
   lastParamCov(1, 2) = sigmaboost * sigmay0sq * x0 * invr0sq;       // <PHI,Y>
   lastParamCov(1, 3) = sigmaboost * -z0 * sigmay0sq * y0 * invr0cu; // <TANL,Y>
   lastParamCov(1, 4) = sigmaboost * y0 * sigmay0sq * invr0cu;       //1e-2; // <INVQPT,Y>
