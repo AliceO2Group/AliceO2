@@ -893,8 +893,8 @@ void HeatExchanger::createHalfDisk0(Int_t half)
 
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
   mWater = gGeoManager->GetMedium("MFT_Water$");
-  mRohacell = gGeoManager->GetMedium("MFT_Rohacell");
-  mPipe = gGeoManager->GetMedium("MFT_Polyimide");
+  mRohacell = gGeoManager->GetMedium("MFT_Rohacell$");
+  mPipe = gGeoManager->GetMedium("MFT_Polyimide$");
   mPeek = gGeoManager->GetMedium("MFT_PEEK$");
 
   auto* cooling = new TGeoVolumeAssembly(Form("cooling_D0_H%d", half));
@@ -1426,8 +1426,8 @@ void HeatExchanger::createHalfDisk1(Int_t half)
 
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
   mWater = gGeoManager->GetMedium("MFT_Water$");
-  mRohacell = gGeoManager->GetMedium("MFT_Rohacell");
-  mPipe = gGeoManager->GetMedium("MFT_Polyimide");
+  mRohacell = gGeoManager->GetMedium("MFT_Rohacell$");
+  mPipe = gGeoManager->GetMedium("MFT_Polyimide$");
   mPeek = gGeoManager->GetMedium("MFT_PEEK$");
 
   auto* cooling = new TGeoVolumeAssembly(Form("cooling_D1_H%d", half));
@@ -1969,8 +1969,8 @@ void HeatExchanger::createHalfDisk2(Int_t half)
 
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
   mWater = gGeoManager->GetMedium("MFT_Water$");
-  mRohacell = gGeoManager->GetMedium("MFT_Rohacell");
-  mPipe = gGeoManager->GetMedium("MFT_Polyimide");
+  mRohacell = gGeoManager->GetMedium("MFT_Rohacell$");
+  mPipe = gGeoManager->GetMedium("MFT_Polyimide$");
   mPeek = gGeoManager->GetMedium("MFT_PEEK$");
 
   auto* cooling = new TGeoVolumeAssembly(Form("cooling_D2_H%d", half));
@@ -2618,8 +2618,8 @@ void HeatExchanger::createHalfDisk3(Int_t half)
 
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
   mWater = gGeoManager->GetMedium("MFT_Water$");
-  mRohacell = gGeoManager->GetMedium("MFT_Rohacell");
-  mPipe = gGeoManager->GetMedium("MFT_Polyimide");
+  mRohacell = gGeoManager->GetMedium("MFT_Rohacell$");
+  mPipe = gGeoManager->GetMedium("MFT_Polyimide$");
   mPeek = gGeoManager->GetMedium("MFT_PEEK$");
 
   auto* cooling = new TGeoVolumeAssembly(Form("cooling_D3_H%d", half));
@@ -3160,8 +3160,8 @@ void HeatExchanger::createHalfDisk4(Int_t half)
 
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
   mWater = gGeoManager->GetMedium("MFT_Water$");
-  mRohacell = gGeoManager->GetMedium("MFT_Rohacell");
-  mPipe = gGeoManager->GetMedium("MFT_Polyimide");
+  mRohacell = gGeoManager->GetMedium("MFT_Rohacell$");
+  mPipe = gGeoManager->GetMedium("MFT_Polyimide$");
   mPeek = gGeoManager->GetMedium("MFT_PEEK$");
 
   auto* cooling = new TGeoVolumeAssembly(Form("cooling_D4_H%d", half));
