@@ -690,9 +690,6 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::f
       serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
       serviceRegistry.registerService<DeviceSpec>(&spec);
 
-      if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(spec.resourceMonitoringInterval)) {
-        serviceRegistry.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval);
-      }
       // The decltype stuff is to be able to compile with both new and old
       // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
       decltype(r.fDevice) device;
@@ -709,6 +706,9 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::f
         auto handle = service.init(serviceRegistry, *deviceState.get(), r.fConfig);
         serviceRegistry.registerService(handle.hash, handle.instance);
         dynamic_cast<DataProcessingDevice*>(r.fDevice.get())->bindService(service, handle.instance);
+      }
+      if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(spec.resourceMonitoringInterval)) {
+        serviceRegistry.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval);
       }
     };
 
