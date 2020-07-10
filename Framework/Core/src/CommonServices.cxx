@@ -27,6 +27,8 @@
 
 #include <options/FairMQProgOptions.h>
 
+#include <cstdlib>
+
 using AliceO2::InfoLogger::InfoLogger;
 using AliceO2::InfoLogger::InfoLoggerContext;
 using o2::configuration::ConfigurationFactory;
@@ -48,6 +50,9 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -56,6 +61,9 @@ o2::framework::ServiceSpec CommonServices::infologgerContextSpec()
   return ServiceSpec{"infologger-contex",
                      simpleServiceInit<InfoLoggerContext, InfoLoggerContext>(),
                      noConfiguration(),
+                     nullptr,
+                     nullptr,
+                     nullptr,
                      nullptr,
                      nullptr,
                      nullptr,
@@ -140,6 +148,9 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -160,6 +171,9 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -176,6 +190,9 @@ o2::framework::ServiceSpec CommonServices::controlSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -185,6 +202,9 @@ o2::framework::ServiceSpec CommonServices::rootFileSpec()
     "localrootfile",
     simpleServiceInit<LocalRootFileService, LocalRootFileService>(),
     noConfiguration(),
+    nullptr,
+    nullptr,
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -206,6 +226,9 @@ o2::framework::ServiceSpec CommonServices::parallelSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -219,6 +242,9 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -228,6 +254,9 @@ o2::framework::ServiceSpec CommonServices::callbacksSpec()
     "callbacks",
     simpleServiceInit<CallbackService, CallbackService>(),
     noConfiguration(),
+    nullptr,
+    nullptr,
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -248,6 +277,9 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
                                            services.get<TimesliceIndex>())};
     },
     noConfiguration(),
+    nullptr,
+    nullptr,
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -279,12 +311,44 @@ o2::framework::ServiceSpec CommonServices::tracingSpec()
     },
     nullptr,
     nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
-std::vector<ServiceSpec> CommonServices::defaultServices()
+// FIXME: allow configuring the default number of threads per device
+//        This should probably be done by overriding the preFork
+//        callback and using the boost program options there to
+//        get the default number of threads.
+o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
 {
-  return {
+  return ServiceSpec{
+    "threadpool",
+    [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      return ServiceHandle{TypeIdHelpers::uniqueId<ThreadPool>(), new ThreadPool()};
+    },
+    [numWorkers](InitContext&, void* service) -> void* {
+      ThreadPool* t = reinterpret_cast<ThreadPool*>(service);
+      t->poolSize = numWorkers;
+      return service;
+    },
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    [numWorkers](ServiceRegistry& service) -> void {
+      auto numWorkersS = std::to_string(numWorkers);
+      setenv("UV_THREADPOOL_SIZE", numWorkersS.c_str(), 0);
+    },
+    nullptr,
+    ServiceKind::Serial};
+}
+
+std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
+{
+  std::vector<ServiceSpec> specs{
     timesliceIndex(),
     monitoringSpec(),
     infologgerContextSpec(),
@@ -299,6 +363,10 @@ std::vector<ServiceSpec> CommonServices::defaultServices()
     CommonMessageBackends::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),
     CommonMessageBackends::rawBufferBackendSpec()};
+  if (numThreads) {
+    specs.push_back(threadPool(numThreads));
+  }
+  return specs;
 }
 
 } // namespace o2::framework

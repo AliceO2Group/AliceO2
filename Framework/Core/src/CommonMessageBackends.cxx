@@ -83,6 +83,9 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                      CommonMessageBackendsHelpers<ArrowContext>::sendCallback(),
                      CommonMessageBackendsHelpers<ArrowContext>::clearContextEOS(),
                      CommonMessageBackendsHelpers<ArrowContext>::sendCallbackEOS(),
+                     nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -115,6 +118,9 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
                      CommonMessageBackendsHelpers<MessageContext>::sendCallback(),
                      CommonMessageBackendsHelpers<MessageContext>::clearContextEOS(),
                      CommonMessageBackendsHelpers<MessageContext>::sendCallbackEOS(),
+                     nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -127,6 +133,9 @@ o2::framework::ServiceSpec CommonMessageBackends::stringBackendSpec()
                      CommonMessageBackendsHelpers<StringContext>::sendCallback(),
                      CommonMessageBackendsHelpers<StringContext>::clearContextEOS(),
                      CommonMessageBackendsHelpers<StringContext>::sendCallbackEOS(),
+                     nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -139,6 +148,9 @@ o2::framework::ServiceSpec CommonMessageBackends::rawBufferBackendSpec()
                      CommonMessageBackendsHelpers<RawBufferContext>::sendCallback(),
                      CommonMessageBackendsHelpers<RawBufferContext>::clearContextEOS(),
                      CommonMessageBackendsHelpers<RawBufferContext>::sendCallbackEOS(),
+                     nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
