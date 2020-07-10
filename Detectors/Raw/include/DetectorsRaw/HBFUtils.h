@@ -54,10 +54,10 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   IR getIRTF(uint32_t tf) const { return getIRHBF(tf * nHBFPerTF); }
 
   ///< get HBF ID corresponding to this IR
-  int64_t getHBF(const IR& rec) const;
+  uint32_t getHBF(const IR& rec) const;
 
   ///< get TF ID corresponding to this IR
-  int64_t getTF(const IR& rec) const { return getHBF(rec) / nHBFPerTF; }
+  uint32_t getTF(const IR& rec) const { return getHBF(rec) / nHBFPerTF; }
 
   ///< get TF and HB (within TF) for this IR
   std::pair<int, int> getTFandHBinTF(const IR& rec) const
@@ -65,6 +65,9 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
     auto hbf = getHBF(rec);
     return std::pair<int, int>(hbf / nHBFPerTF, hbf % nHBFPerTF);
   }
+
+  ///< get 1st IR of the TF corresponding to provided interaction record
+  IR getFirstIRofTF(const IR& rec) const { return getIRTF(getTF(rec)); }
 
   ///< get TF and HB (abs) for this IR
   std::pair<int, int> getTFandHB(const IR& rec) const
