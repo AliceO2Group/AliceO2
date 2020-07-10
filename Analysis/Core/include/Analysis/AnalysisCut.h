@@ -25,7 +25,7 @@ using std::vector;
 class AnalysisCut : public TNamed
 {
  public:
-  AnalysisCut();
+  AnalysisCut(); 
   AnalysisCut(const char* name, const char* title);
   AnalysisCut(const AnalysisCut& c);
   AnalysisCut& operator=(const AnalysisCut& c);

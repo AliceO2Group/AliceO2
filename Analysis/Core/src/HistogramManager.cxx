@@ -543,7 +543,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
   else
     h = new THnF(hname, (arr->At(0) ? arr->At(0)->GetName() : ""), nDimensions, nBins, xmin, xmax);
   h->Sumw2();
-
+    
   // configure the THn histogram and count the allocated bins
   for (int idim = 0; idim < nDimensions; ++idim) {
     nbins *= (nBins[idim] + 2);
@@ -690,7 +690,7 @@ void HistogramManager::FillHistClass(const char* className, Float_t* values)
     // decode information from the vector of indices
     isProfile = (varIter->at(0) == 1 ? true : false);
     isTHn = (varIter->at(1) > 0 ? true : false);
-    if (isTHn)
+    if (isTHn) 
       dimension = varIter->at(1);
     else
       dimension = ((TH1*)h)->GetDimension();
