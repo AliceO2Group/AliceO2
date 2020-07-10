@@ -20,20 +20,20 @@
 #include <vector>
 
 //_________________________________________________________________________
-class AnalysisCompositeCut : public AnalysisCut 
+class AnalysisCompositeCut : public AnalysisCut
 {
  public:
-   AnalysisCompositeCut(bool useAND=kTRUE);
-   AnalysisCompositeCut(const char* name, const char* title, bool useAND=kTRUE);
-   ~AnalysisCompositeCut() override;
+  AnalysisCompositeCut(bool useAND = kTRUE);
+  AnalysisCompositeCut(const char* name, const char* title, bool useAND = kTRUE);
+  ~AnalysisCompositeCut() override;
 
-   void AddCut(AnalysisCut* cut) { fCutList.push_back(*cut); };
+  void AddCut(AnalysisCut* cut) { fCutList.push_back(*cut); };
 
-   bool GetUseAND() const {return fOptionUseAND;}
-   int GetNCuts() const { return fCutList.size(); }
+  bool GetUseAND() const { return fOptionUseAND; }
+  int GetNCuts() const { return fCutList.size(); }
 
-   virtual bool IsSelected(float* values);
-  
+  virtual bool IsSelected(float* values);
+
  protected:
   bool fOptionUseAND;                // true (default): apply AND on all cuts; false: use OR
   std::vector<AnalysisCut> fCutList; // list of cuts

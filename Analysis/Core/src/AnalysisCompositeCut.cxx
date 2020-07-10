@@ -36,7 +36,8 @@ AnalysisCompositeCut::AnalysisCompositeCut(const char* name, const char* title, 
 AnalysisCompositeCut::~AnalysisCompositeCut() = default;
 
 //____________________________________________________________________________
-bool AnalysisCompositeCut::IsSelected(float* values) {
+bool AnalysisCompositeCut::IsSelected(float* values)
+{
   //
   // apply cuts
   //
@@ -48,8 +49,8 @@ bool AnalysisCompositeCut::IsSelected(float* values) {
       return kTRUE;
   }
 
-  if(fOptionUseAND) 
+  if (fOptionUseAND)
     return kTRUE;
-  else 
+  else
     return kFALSE;
 }

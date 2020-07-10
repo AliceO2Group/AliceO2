@@ -10,7 +10,7 @@
 //
 // Contact: iarsene@cern.ch, i.c.arsene@fys.uio.no
 //
-// Class to define and fill histograms 
+// Class to define and fill histograms
 //
 
 #ifndef HistogramManager_H
