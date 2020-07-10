@@ -71,12 +71,16 @@ class run_timestamp:
         return self.run == other.run
 
 
-def main(input_file_name, extra_args, input_in_seconds=0, verbose=0):
+def main(input_file_name, extra_args,
+         input_in_seconds=False, delete_previous=True, verbose=False,
+         url="http://ccdb-test.cern.ch:8080", path="Analysis/Core/RunToTimestamp"):
     """
     Given an input file with line by line runs and start and stop timestamps it updates the dedicated CCDB object.
     Extra arguments can be passed to the upload script.
     input_in_seconds set to True converts the input from seconds ti milliseconds.
+    delete_previous deletes previous uploads in the same path so as to avoid proliferation on CCDB
     verbose flag can be set to 1, 2 to increase the debug level
+    URL of ccdb and PATH of objects are passed as default arguments
     """
     infile = open(input_file_name)
     if verbose:
@@ -84,7 +88,9 @@ def main(input_file_name, extra_args, input_in_seconds=0, verbose=0):
     run_list = []
     for line_no, i in enumerate(infile):
         i = i.strip()
-        if verbose == 2:
+        if len(i) <= 1:
+            continue
+        if verbose >= 2:
             print(f"Line number {line_no}: {i}")
         i = i.split()
         run = i[1]
@@ -105,19 +111,43 @@ def main(input_file_name, extra_args, input_in_seconds=0, verbose=0):
         entry = run_timestamp(int(run), int(start), int(stop))
         if entry not in run_list:
             run_list.append(entry)
+    print("Will set converter for", len(run_list), "runs")
+    successfull = []
+    failed = []
     for i in run_list:
         print("Setting run", i)
         cmd = "o2-analysiscore-makerun2timestamp"
         cmd += f" --run {i.run}"
         cmd += f" --timestamp {i.start}"
+        cmd += f" --url {url}"
+        cmd += f" --path {path}"
+        if delete_previous:
+            cmd += f" --delete_previous 1"
         cmd += f" {extra_args}"
-        cmd += " -p Analysis/Core/RunToTimestamp"
         if i == run_list[-1]:
             # Printing the status of the converter as a last step
             cmd += " -v 1"
         if verbose:
             print(cmd)
-        subprocess.run(cmd.split())
+        process = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE)
+        output, error = process.communicate()
+        output = output.decode("utf-8")
+        if verbose:
+            print(output)
+        if "[FATAL] " in output:
+            failed.append(i.run)
+        else:
+            successfull.append(i.run)
+
+    def print_status(counter, msg):
+        if len(counter) > 0:
+            print(len(counter), msg)
+            if verbose >= 3:
+                print("Runs:", counter)
+
+    print_status(successfull, "successfully uploaded new runs")
+    print_status(
+        failed, "failed uploads, retry with option '-vvv' for mor info")
 
 
 if __name__ == "__main__":
@@ -130,6 +160,8 @@ if __name__ == "__main__":
                         help='Extra arguments for the upload to CCDB. E.g. for the update of the object --extra_args " --update 1"')
     parser.add_argument('--input_in_seconds', '-s', action='count', default=0,
                         help="Use if timestamps taken from input are in seconds")
+    parser.add_argument('--delete_previous', '-d', action='count',
+                        default=0, help="Deletes previous uploads in the same path so as to avoid proliferation on CCDB")
     parser.add_argument('--verbose', '-v', action='count',
                         default=0, help="Verbose mode 0, 1, 2")
     args = parser.parse_args()
