@@ -12,15 +12,8 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/EventSelection.h"
 #include "Analysis/TriggerAliases.h"
-//#include "CCDB/CcdbApi.h"
 #include <CCDB/BasicCCDBManager.h>
-#include "TFile.h"
-#include "TTree.h"
 #include <map>
-
-
-using std::map;
-using std::string;
 
 using namespace o2;
 using namespace o2::framework;
@@ -63,8 +56,6 @@ struct EventSelectionTask {
   Produces<aod::EvSels> evsel;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   EvSelParameters par;
-  TriggerAliases* aliases = nullptr;
-  int runPrevious=-1;
   
   aod::Run2V0 getVZero(aod::BC const& bc, aod::Run2V0s const& vzeros)
   {
@@ -103,10 +94,11 @@ struct EventSelectionTask {
   void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Timestamps & timestamps, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::FDDs const& fdds)
   {
     auto ts = timestamps.iteratorAt(collision.bcId());
-    if (!aliases) {
-      LOGF(debug, "Reading aliases from CCDB");
-      aliases = ccdb->getForTimeStamp<TriggerAliases>("Trigger/TriggerAliases",ts.timestamp());
-    }
+    LOGF(debug, "timestamp=%llu", ts.timestamp());
+    TriggerAliases* aliases = ccdb->getForTimeStamp<TriggerAliases>("Trigger/TriggerAliases",ts.timestamp());
+    if (!aliases) 
+      LOGF(fatal,"Trigger aliases are not available in CCDB for run=%i at timestamp=%llu",collision.bc().runNumber(),ts.timestamp());
+    
     uint64_t triggerMask = collision.bc().triggerMask();
     LOGF(debug, "triggerMask=%llu", triggerMask);
 
