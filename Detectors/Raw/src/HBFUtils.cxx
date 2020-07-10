@@ -20,7 +20,7 @@ using namespace o2::raw;
 O2ParamImpl(o2::raw::HBFUtils);
 
 //_________________________________________________
-int64_t HBFUtils::getHBF(const IR& rec) const
+uint32_t HBFUtils::getHBF(const IR& rec) const
 {
   ///< get HBF ID corresponding to this IR
   auto diff = rec.differenceInBC(getFirstIR());
