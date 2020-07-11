@@ -67,8 +67,8 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
 
   static o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
 
-  LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
+  setFirstTFOrbit(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, mInitOrbit);
+  setFirstTFOrbit(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, mInitOrbit);
 
   mDecoder.clear();
 
@@ -150,7 +150,6 @@ DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
-  outputs.emplace_back(o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "tof-compressed-decoder",
