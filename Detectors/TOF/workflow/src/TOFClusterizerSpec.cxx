@@ -28,6 +28,9 @@
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
 
+// RSTODO to remove once the framework will start propagating the header.firstTForbit
+#include "DetectorsRaw/HBFUtils.h"
+
 using namespace o2::framework;
 
 namespace o2
@@ -58,6 +61,17 @@ class TOFDPLClustererTask
     // get digit data
     auto digits = pc.inputs().get<gsl::span<o2::tof::Digit>>("tofdigits");
     auto row = pc.inputs().get<std::vector<o2::tof::ReadoutWindowData>*>("readoutwin");
+
+    auto header = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("tofdigits").header);
+    mClusterer.setFirstOrbit(header->firstTForbit);
+
+    //RSTODO: below is a hack, to remove once the framework will start propagating the header.firstTForbit
+    //Here I extract the orbit/BC from the abs.BC, since the triggerer orbit/bunch are not set. Then why they are needed?
+    if (digits.size()) {
+      auto bcabs = digits[0].getBC();
+      auto ir0 = o2::raw::HBFUtils::Instance().getFirstIRofTF({uint16_t(bcabs % Geo::BC_IN_ORBIT), uint32_t(bcabs / Geo::BC_IN_ORBIT)});
+      mClusterer.setFirstOrbit(ir0.orbit);
+    }
 
     auto labelvector = std::make_shared<std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>>();
     if (mUseMC) {
@@ -101,7 +115,7 @@ class TOFDPLClustererTask
     mClustersArray.clear();
 
     for (int i = 0; i < row->size(); i++) {
-      printf("# TOF readout window for clusterization = %d/%lu (N digits = %d)\n", i, row->size(), row->at(i).size());
+      //printf("# TOF readout window for clusterization = %d/%lu (N digits = %d)\n", i, row->size(), row->at(i).size());
       auto digitsRO = row->at(i).getBunchChannelData(digits);
 
       mReader.setDigitArray(&digitsRO);

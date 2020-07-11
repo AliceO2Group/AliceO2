@@ -139,9 +139,9 @@ void Decoder::InsertDigit(int icrate, int itrm, int itdc, int ichain, int channe
 void Decoder::readTRM(int icru, int icrate, uint32_t orbit, uint16_t bunchid)
 {
 
-  if (orbit < mFirstOrbit || (orbit == mFirstOrbit && bunchid < mFirstBunch)) {
-    mFirstOrbit = orbit;
-    mFirstBunch = bunchid;
+  if (orbit < mFirstIR.orbit || (orbit == mFirstIR.orbit && bunchid < mFirstIR.bc)) {
+    mFirstIR.orbit = orbit;
+    mFirstIR.bc = bunchid;
   }
 
   if (mVerbose) {
@@ -213,8 +213,8 @@ char* Decoder::nextPage(void* current, int shift)
 bool Decoder::decode() // return a vector of digits in a TOF readout window
 {
   mReadoutWindowCurrent = 0;
-  mFirstOrbit = 0;
-  mFirstBunch = 0;
+  mFirstIR.orbit = 0;
+  mFirstIR.bc = 0;
 
 #ifdef VERBOSE
   if (mVerbose)
