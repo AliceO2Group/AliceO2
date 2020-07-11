@@ -32,6 +32,7 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
     "start,s", bpo::value<long>()->default_value(0), "Start timestamp of object validity")(
     "stop,S", bpo::value<long>()->default_value(4108971600000), "Stop timestamp of object validity")(
     "update,u", bpo::value<int>()->default_value(0), "Flag to update the object instead of inserting the new timestamp")(
+    "delete_previous,d", bpo::value<int>()->default_value(0), "Flag to delete previous versions of converter objects in the CCDB before uploading the new one so as to avoid proliferation on CCDB")(
     "verbose,v", bpo::value<int>()->default_value(0), "Verbose level 0, 1")(
     "help,h", "Produce help message.");
 
@@ -83,6 +84,9 @@ int main(int argc, char* argv[])
     converter = new RunToTimestamp();
   } else {
     LOG(INFO) << "Retrieved run number to timestamp converter from ccdb url " << url;
+  }
+  if (vm["delete_previous"].as<int>()) {
+    api.truncate(path);
   }
 
   if (vm["update"].as<int>())
