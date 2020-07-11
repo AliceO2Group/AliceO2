@@ -96,9 +96,10 @@ void WindowFiller::reset()
   mDigitsPerTimeFrame.clear();
   mReadoutWindowData.clear();
 
-  mFirstOrbit = 0;
-  mFirstBunch = 0;
+  mFirstIR.bc = 0;
+  mFirstIR.orbit = 0;
 }
+
 //______________________________________________________________________
 void WindowFiller::fillDigitsInStrip(std::vector<Strip>* strips, int channel, int tdc, int tot, uint64_t nbc, UInt_t istrip, uint32_t triggerorbit, uint16_t triggerbunch)
 {
@@ -258,7 +259,7 @@ void WindowFiller::checkIfReuseFutureDigitsRO() // the same but using readout in
 
   for (std::vector<Digit>::reverse_iterator digit = mFutureDigits.rbegin(); digit != mFutureDigits.rend(); ++digit) {
 
-    int row = (digit->getTriggerOrbit() - mFirstOrbit) * Geo::BC_IN_ORBIT + (digit->getTriggerBunch() - mFirstBunch) + 100; // N bunch id of the trigger from timeframe start + 100 bunches
+    int row = (digit->getTriggerOrbit() - mFirstIR.orbit) * Geo::BC_IN_ORBIT + (digit->getTriggerBunch() - mFirstIR.bc) + 100; // N bunch id of the trigger from timeframe start + 100 bunches
 
     row *= Geo::BC_IN_WINDOW_INV;
 

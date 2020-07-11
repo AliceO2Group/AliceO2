@@ -17,6 +17,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 
+#include "CommonUtils/StringUtils.h"
 #include "Headers/RAWDataHeader.h"
 #include "DataFormatsTOF/CompressedDataFormat.h"
 #include "DetectorsRaw/HBFUtils.h"
@@ -65,7 +66,14 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *alldigits);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *row);
 
-  static o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
+  // RS this is a hack to be removed once we have correct propagation of the firstTForbit by the framework
+  auto setFirstTFOrbit = [&](const Output& spec, uint32_t orb) {
+    auto* hd = pc.outputs().findMessageHeader(spec);
+    if (!hd) {
+      throw std::runtime_error(o2::utils::concat_string("failed to find output message header for ", spec.origin.str, "/", spec.description.str, "/", std::to_string(spec.subSpec)));
+    }
+    hd->firstTForbit = orb;
+  };
 
   setFirstTFOrbit(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, mInitOrbit);
   setFirstTFOrbit(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, mInitOrbit);
@@ -83,6 +91,14 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
 {
   LOG(INFO) << "CompressedDecoding run";
   mTimer.Start(false);
+
+  if (pc.inputs().getNofParts(0)) {
+    //RS set the 1st orbit of the TF from the O2 header, relying on rdhHandler is not good (in fact, the RDH might be eliminated in the derived data)
+    const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
+    mInitOrbit = dh->firstTForbit;
+  }
+
+  mDecoder.setFirstIR({0, mInitOrbit});
 
   /** loop over inputs routes **/
   for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
@@ -131,7 +147,7 @@ void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
   // rdh open
   if ((RDHUtils::getPageCounter(rdhr) == 0) && (RDHUtils::getTriggerType(rdhr) & o2::trigger::TF)) {
     mNCrateOpenTF++;
-    mInitOrbit = RDHUtils::getHeartBeatOrbit(rdhr);
+    mInitOrbit = RDHUtils::getHeartBeatOrbit(rdhr); // RSTODO this may be eliminated once the framework will start to propagated the dh.firstTForbit
     //    printf("New TF open RDH %d\n", int(rdh->feeId));
   }
 };

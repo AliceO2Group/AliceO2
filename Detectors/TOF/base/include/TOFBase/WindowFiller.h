@@ -50,11 +50,12 @@ class WindowFiller
 
   void resizeVectorFutureDigit(int size) { mFutureDigits.resize(size); }
 
+  void setFirstIR(const o2::InteractionRecord& ir) { mFirstIR = ir; }
+
  protected:
   // info TOF timewindow
   Int_t mReadoutWindowCurrent = 0;
-  Int_t mFirstOrbit = 0;
-  Int_t mFirstBunch = 0;
+  InteractionRecord mFirstIR{0, 0}; // reference IR (1st IR of the timeframe)
   InteractionTimeRecord mEventTime;
 
   bool mContinuous = true;
