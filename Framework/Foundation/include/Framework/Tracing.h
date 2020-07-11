@@ -38,6 +38,8 @@
 #define TracyAppInfo(...) \
   while (false) {         \
   }
+#define TracyLockableN(T, V, N) T V
+#define LockableBase(T) T
 #endif
 
 #endif // O2_FRAMEWORK_TRACING_H_
