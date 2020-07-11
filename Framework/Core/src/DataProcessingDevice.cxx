@@ -669,6 +669,38 @@ bool DataProcessingDevice::handleData(FairMQParts& parts, InputChannelInfo& info
   return true;
 }
 
+namespace
+{
+auto calculateInputRecordLatency(InputRecord const& record, uint64_t currentTime) -> DataProcessingStats::InputLatency
+{
+  DataProcessingStats::InputLatency result{static_cast<int>(-1), 0};
+
+  for (auto& item : record) {
+    auto* header = o2::header::get<DataProcessingHeader*>(item.header);
+    if (header == nullptr) {
+      continue;
+    }
+    int partLatency = currentTime - header->creation;
+    result.minLatency = std::min(result.minLatency, partLatency);
+    result.maxLatency = std::max(result.maxLatency, partLatency);
+  }
+  return result;
+};
+
+auto calculateTotalInputRecordSize(InputRecord const& record) -> int
+{
+  size_t totalInputSize = 0;
+  for (auto& item : record) {
+    auto* header = o2::header::get<DataHeader*>(item.header);
+    if (header == nullptr) {
+      continue;
+    }
+    totalInputSize += header->payloadSize;
+  }
+  return totalInputSize;
+};
+} // namespace
+
 bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::RecordAction>& completed)
 {
   ZoneScopedN("DataProcessingDevice::tryDispatchComputation");
@@ -869,32 +901,6 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
     }
   };
 
-  auto calculateInputRecordLatency = [](InputRecord const& record, uint64_t currentTime) -> DataProcessingStats::InputLatency {
-    DataProcessingStats::InputLatency result{static_cast<int>(-1), 0};
-
-    for (auto& item : record) {
-      auto* header = o2::header::get<DataProcessingHeader*>(item.header);
-      if (header == nullptr) {
-        continue;
-      }
-      int partLatency = currentTime - header->creation;
-      result.minLatency = std::min(result.minLatency, partLatency);
-      result.maxLatency = std::max(result.maxLatency, partLatency);
-    }
-    return result;
-  };
-
-  auto calculateTotalInputRecordSize = [](InputRecord const& record) -> int {
-    size_t totalInputSize = 0;
-    for (auto& item : record) {
-      auto* header = o2::header::get<DataHeader*>(item.header);
-      if (header == nullptr) {
-        continue;
-      }
-      totalInputSize += header->payloadSize;
-    }
-    return totalInputSize;
-  };
 
   auto switchState = [& control = mServiceRegistry.get<ControlService>(),
                       &state = mState.streaming](StreamingState newState) {
