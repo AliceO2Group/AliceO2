@@ -38,7 +38,7 @@
 #define TracyAppInfo(...) \
   while (false) {         \
   }
-#define TracyLockableN(T,V,N) T V
+#define TracyLockableN(T, V, N) T V
 #define LockableBase(T) T
 #endif
 
