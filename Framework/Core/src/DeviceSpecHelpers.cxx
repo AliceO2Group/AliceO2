@@ -653,6 +653,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        std::vector<DeviceSpec>& devices,
                                                        ResourceManager& resourceManager,
                                                        std::string const& uniqueWorkflowId,
+                                                       bool optimizeTopology,
                                                        unsigned short resourcesMonitoringInterval)
 {
 
@@ -749,23 +750,28 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
 
   // Optimize the topology when two devices are
   // running on the same node.
-  for (auto& connection : connections) {
-    auto& device1 = devices[findDeviceIndex(connection.consumer, connection.timeIndex)];
-    auto& device2 = devices[findDeviceIndex(connection.producer, connection.producerTimeIndex)];
-    // No need to do anything if they are not on the same host
-    if (device1.resource.hostname != device2.resource.hostname) {
-      continue;
-    }
-    for (auto& input : device1.inputChannels) {
-      for (auto& output : device2.outputChannels) {
-        if (input.hostname == output.hostname && input.port == output.port) {
-          input.protocol = ChannelProtocol::IPC;
-          output.protocol = ChannelProtocol::IPC;
-          input.hostname += uniqueWorkflowId;
-          output.hostname += uniqueWorkflowId;
+  if (optimizeTopology) {
+    LOG(INFO) << "Optimizing topology for IPC communication";
+    for (auto& connection : connections) {
+      auto& device1 = devices[findDeviceIndex(connection.consumer, connection.timeIndex)];
+      auto& device2 = devices[findDeviceIndex(connection.producer, connection.producerTimeIndex)];
+      // No need to do anything if they are not on the same host
+      if (device1.resource.hostname != device2.resource.hostname) {
+        continue;
+      }
+      for (auto& input : device1.inputChannels) {
+        for (auto& output : device2.outputChannels) {
+          if (input.hostname == output.hostname && input.port == output.port) {
+            input.protocol = ChannelProtocol::IPC;
+            output.protocol = ChannelProtocol::IPC;
+            input.hostname += uniqueWorkflowId;
+            output.hostname += uniqueWorkflowId;
+          }
         }
       }
     }
+  } else {
+    LOG(INFO) << "Not optimizing topology for IPC communication";
   }
 }
 
