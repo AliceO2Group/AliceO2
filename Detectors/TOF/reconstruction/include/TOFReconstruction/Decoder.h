@@ -44,8 +44,8 @@ class Decoder : public WindowFiller
   bool open(std::string name);
 
   bool decode();
-  void readTRM(int icru, int icrate, int orbit, int bunchid);
-  void InsertDigit(int icrate, int itrm, int itdc, int ichain, int channel, int orbit, int bunchid, int time_ext, int tdc, int tot);
+  void readTRM(int icru, int icrate, uint32_t orbit, uint16_t bunchid);
+  void InsertDigit(int icrate, int itrm, int itdc, int ichain, int channel, uint32_t orbit, uint16_t bunchid, int time_ext, int tdc, int tot);
   void FillWindows();
   void clear();
 
@@ -58,7 +58,16 @@ class Decoder : public WindowFiller
   void printCrateTrailerInfo(int icru) const;
   void printHitInfo(int icru) const;
 
-  static void fromRawHit2Digit(int icrate, int itrm, int itdc, int ichain, int channel, int orbit, int bunchid, int tdc, int tot, std::array<int, 6>& digitInfo); // convert raw info in digit info (channel, tdc, tot, bc), tdc = packetHit.time + (frameHeader.frameID << 13)
+  struct DigitInfo {
+    uint64_t bcAbs;
+    int channel;
+    int tdc;
+    int tot;
+    uint32_t orbit;
+    uint16_t bc;
+  };
+
+  static void fromRawHit2Digit(int icrate, int itrm, int itdc, int ichain, int channel, uint32_t orbit, uint16_t bunchid, int tdc, int tot, DigitInfo& dinfo); // convert raw info in digit info (channel, tdc, tot, bc), tdc = packetHit.time + (frameHeader.frameID << 13)
 
   char* nextPage(void* current, int shift = 8192);
 

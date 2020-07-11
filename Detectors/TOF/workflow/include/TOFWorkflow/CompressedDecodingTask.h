@@ -55,7 +55,7 @@ class CompressedDecodingTask : public DecoderBase, public Task
   int mNCrateOpenTF = 0;
   int mNCrateCloseTF = 0;
   bool mHasToBePosted = false;
-  int mInitOrbit = 0;
+  uint32_t mInitOrbit = 0;
   TStopwatch mTimer;
 };
 

@@ -30,11 +30,11 @@ class Digit
  public:
   Digit() = default;
 
-  Digit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t label = -1, Int_t triggerorbit = 0, Int_t triggerbunch = 0);
+  Digit(Int_t channel, Int_t tdc, Int_t tot, uint64_t bc, Int_t label = -1, uint32_t triggerorbit = 0, uint16_t triggerbunch = 0);
   ~Digit() = default;
 
   /// Get global ordering key made of
-  static ULong64_t getOrderingKey(Int_t channel, Int_t bc, Int_t /*tdc*/)
+  static ULong64_t getOrderingKey(Int_t channel, uint64_t bc, Int_t /*tdc*/)
   {
     return ((static_cast<ULong64_t>(bc) << 18) + channel); // channel in the least significant bits; then shift by 18 bits (which cover the total number of channels) to write the BC number
   }
@@ -48,8 +48,8 @@ class Digit
   uint16_t getTOT() const { return mTOT; }
   void setTOT(uint16_t tot) { mTOT = tot; }
 
-  Int_t getBC() const { return mBC; }
-  void setBC(Int_t bc) { mBC = bc; }
+  uint64_t getBC() const { return mBC; }
+  void setBC(uint64_t bc) { mBC = bc; }
 
   Int_t getLabel() const { return mLabel; }
   void setLabel(Int_t label) { mLabel = label; }
@@ -78,10 +78,10 @@ class Digit
   void setIsProblematic(bool flag) { mIsProblematic = flag; }
   bool isProblematic() const { return mIsProblematic; }
 
-  void setTriggerOrbit(int value) { mTriggerOrbit = value; }
-  int getTriggerOrbit() const { return mTriggerOrbit; }
-  void setTriggerBunch(int value) { mTriggerBunch = value; }
-  int getTriggerBunch() const { return mTriggerBunch; }
+  void setTriggerOrbit(uint32_t value) { mTriggerOrbit = value; }
+  uint32_t getTriggerOrbit() const { return mTriggerOrbit; }
+  void setTriggerBunch(uint16_t value) { mTriggerBunch = value; }
+  uint16_t getTriggerBunch() const { return mTriggerBunch; }
 
  private:
   friend class boost::serialization::access;
@@ -90,15 +90,15 @@ class Digit
   Int_t mChannel;          ///< TOF channel index
   uint16_t mTDC;           ///< TDC bin number
   uint16_t mTOT;           ///< TOT bin number
-  Int_t mBC;               ///< Bunch Crossing
+  uint64_t mBC;            ///< Bunch Crossing // RS: since it is used as absolute bunch counter from orbit 0, it has to be 64 bits
   Int_t mLabel;            ///< Index of the corresponding entry in the MC label array
   Int_t mElectronIndex;    //!/< index in electronic format
-  uint16_t mTriggerOrbit = 0;    //!< orbit id of trigger event
+  uint32_t mTriggerOrbit = 0;    //!< orbit id of trigger event // RS: orbit must be 32bits long
   uint16_t mTriggerBunch = 0;    //!< bunch id of trigger event
   Bool_t mIsUsedInCluster;       //!/< flag to declare that the digit was used to build a cluster
   Bool_t mIsProblematic = false; //!< flag to tell whether the channel of the digit was problemati; not persistent; default = ok
 
-  ClassDefNV(Digit, 2);
+  ClassDefNV(Digit, 3);
 };
 
 std::ostream& operator<<(std::ostream& stream, const Digit& dig);
