@@ -51,7 +51,7 @@ boost::property_tree::ptree ResourcesMonitoringHelper::fillNodeWithValue(const D
                                                                          const T& metricsStorage, size_t labelIndex, size_t storageIndex)
 {
 
-  unsigned int loopRange = std::min(deviceMetrics.metrics[labelIndex].filledMetrics, metricsStorage.size());
+  unsigned int loopRange = std::min(deviceMetrics.metrics[labelIndex].filledMetrics, metricsStorage[storageIndex].size());
   boost::property_tree::ptree metricNode;
 
   for (unsigned int idx = 0; idx < loopRange; ++idx) {
