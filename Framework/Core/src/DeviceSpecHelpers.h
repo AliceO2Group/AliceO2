@@ -49,6 +49,7 @@ struct DeviceSpecHelpers {
     std::vector<DeviceSpec>& devices,
     ResourceManager& resourceManager,
     std::string const& uniqueWorkflowId,
+    bool optimizeTopology = false,
     unsigned short resourcesMonitoringInterval = 0);
 
   static void dataProcessorSpecs2DeviceSpecs(
@@ -58,11 +59,12 @@ struct DeviceSpecHelpers {
     std::vector<DeviceSpec>& devices,
     ResourceManager& resourceManager,
     std::string const& uniqueWorkflowId,
+    bool optimizeTopology = false,
     unsigned short resourcesMonitoringInterval = 0)
   {
     std::vector<DispatchPolicy> dispatchPolicies = DispatchPolicy::createDefaultPolicies();
     dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies,
-                                   dispatchPolicies, devices, resourceManager, uniqueWorkflowId, resourcesMonitoringInterval);
+                                   dispatchPolicies, devices, resourceManager, uniqueWorkflowId, optimizeTopology, resourcesMonitoringInterval);
   }
 
   /// Helper to provide the channel configuration string for an input channel
