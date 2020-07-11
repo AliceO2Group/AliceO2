@@ -106,6 +106,7 @@ class TrackMFT
 
   /// return track parameters
   const SMatrix5& getParameters() const { return mParameters; }
+
   /// set track parameters
   void setParameters(const SMatrix5& parameters) { mParameters = parameters; }
 
@@ -159,6 +160,24 @@ class TrackMFT
   // Extrapolate this track to
   void extrapHelixToZ(double zEnd, double Field);
 
+  // Parameters and Covariances on last track clusters
+  const SMatrix5& getParametersLast() const { return mParametersLast; }
+  void setParametersLast(const SMatrix5& parameters) { mParametersLast = parameters; } // Last cluster
+  const SMatrix55& getCovariancesLast() const;
+  void setCovariancesLast(const SMatrix55& covariances);
+
+  Double_t getZLast() const { return mZLast; }
+  void setZLast(Double_t z) { mZLast = z; }
+  Double_t getXLast() const { return mParametersLast(0); }
+  Double_t getYLast() const { return mParametersLast(1); }
+  Double_t getPhiLast() const { return mParametersLast(2); }
+  Double_t getTanlLast() const { return mParametersLast(3); }
+  Double_t getInvQPtLast() const { return mParametersLast(4); }
+  Double_t getPtLast() const { return TMath::Abs(1.f / mParametersLast(4)); }
+  Double_t getInvPtLast() const { return TMath::Abs(mParametersLast(4)); }
+  Double_t getPLast() const { return getPtLast() * TMath::Sqrt(1. + getTanlLast() * getTanlLast()); }                  // return total momentum last cluster
+  Double_t getEtaLast() const { return -TMath::Log(TMath::Tan((TMath::PiOver2() - TMath::ATan(getTanlLast())) / 2)); } // return total momentum
+
  private:
   std::uint32_t mROFrame = 0;                ///< RO Frame
   Int_t mNPoints{0};                         // Number of clusters
@@ -167,6 +186,7 @@ class TrackMFT
   ClusRefs mClusRef; ///< references on clusters
 
   Double_t mZ = 0.; ///< Z coordinate (cm)
+  Double_t mZLast = 0.; ///< Z coordinate (cm) of Last cluster
 
   /// Track parameters ordered as follow:      <pre>
   /// X       = X coordinate   (cm)
@@ -175,6 +195,7 @@ class TrackMFT
   /// TANL    = tangent of \lambda (dip angle)
   /// INVQPT    = Inverse transverse momentum (GeV/c ** -1) times charge (assumed forward motion)  </pre>
   SMatrix5 mParameters; ///< \brief Track parameters
+  SMatrix5 mParametersLast; ///< \brief Track parameters at last cluster
 
   /// Covariance matrix of track parameters, ordered as follows:    <pre>
   ///  <X,X>         <Y,X>           <PHI,X>       <TANL,X>        <INVQPT,X>
@@ -183,6 +204,8 @@ class TrackMFT
   /// <X,TANL>      <Y,TANL>       <PHI,TANL>     <TANL,TANL>     <INVQPT,TANL>
   /// <X,INVQPT>   <Y,INVQPT>     <PHI,INVQPT>   <TANL,INVQPT>   <INVQPT,INVQPT>  </pre>
   SMatrix55 mCovariances;   ///< \brief Covariance matrix of track parameters
+  SMatrix55 mCovariancesLast; ///< \brief Covariance matrix of track parameters at last cluster
+
   Double_t mTrackChi2 = 0.; ///< Chi2 of the track when the associated cluster was attached
 
   // Results from quadratic regression of clusters X,Y positions
