@@ -54,6 +54,19 @@ void TrackMFT::setCovariances(const SMatrix55& covariances)
   mCovariances = covariances;
 }
 
+//__________________________________________________________________________
+const SMatrix55& TrackMFT::getCovariancesLast() const
+{
+  /// Return the covariance matrix for last cluster
+  return mCovariancesLast;
+}
+
+//__________________________________________________________________________
+void TrackMFT::setCovariancesLast(const SMatrix55& covariances)
+{
+  mCovariancesLast = covariances;
+}
+
 //_________________________________________________________________________________________________
 void TrackMFT::extrapHelixToZ(double zEnd, double Field)
 {

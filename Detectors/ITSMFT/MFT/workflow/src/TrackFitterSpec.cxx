@@ -48,6 +48,7 @@ void TrackFitterTask::init(InitContext& ic)
   /// Prepare the track extrapolation tools
   LOG(INFO) << "initializing track fitter";
   mTrackFitter = std::make_unique<o2::mft::TrackFitter>();
+  mTrackFitter->smoothTracks(true);
 
   auto filename = ic.options().get<std::string>("grp-file");
   const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
@@ -87,14 +88,14 @@ void TrackFitterTask::run(ProcessingContext& pc)
   for (const auto& track : tracksLTF) {
     auto& temptrack = fittertracks.at(nTracksLTF + nFailedTracksLTF);
     convertTrack(track, temptrack, clusters);
-    mTrackFitter->fit(temptrack, false) ? nTracksLTF++ : nFailedTracksLTF++;
+    mTrackFitter->fit(temptrack, true, true) ? nTracksLTF++ : nFailedTracksLTF++;
   } // end fit LTF tracks
 
   // Fit CA tracks
   for (const auto& track : tracksCA) {
     auto& temptrack = fittertracks.at(nTracksLTF + nFailedTracksLTF + nTracksCA + nFailedTracksCA);
     convertTrack(track, temptrack, clusters);
-    mTrackFitter->fit(temptrack, false) ? nTracksCA++ : nFailedTracksCA++;
+    mTrackFitter->fit(temptrack, true, true) ? nTracksCA++ : nFailedTracksCA++;
   } // end fit CA tracks
 
   auto& finalMFTtracks = pc.outputs().make<std::vector<o2::mft::TrackMFT>>(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe});
@@ -106,8 +107,11 @@ void TrackFitterTask::run(ProcessingContext& pc)
     if (!track.isRemovable()) {
       auto& temptrack = finalMFTtracks.at(nTotalTracks);
       temptrack.setZ(track.first().getZ());
+      temptrack.setZLast(track.rbegin()->getZ());
       temptrack.setParameters(TtoSMatrix5(track.first().getParameters()));
+      temptrack.setParametersLast(TtoSMatrix5(track.rbegin()->getParameters()));
       temptrack.setCovariances(TtoSMatrixSym55(track.first().getCovariances()));
+      temptrack.setCovariancesLast(TtoSMatrixSym55(track.rbegin()->getCovariances()));
       temptrack.setTrackChi2(track.first().getTrackChi2());
       temptrack.setMCCompLabels(track.getMCCompLabels(), track.getNPoints());
       temptrack.setInvQPtQuadtratic(track.getInvQPtQuadtratic());
