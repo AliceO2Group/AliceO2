@@ -87,7 +87,6 @@ class DataProcessingDevice : public FairMQDevice
   uint64_t mLastMetricFlushedTimestamp = 0;          /// The timestamp of the last time we actually flushed metrics
   uint64_t mBeginIterationTimestamp = 0;             /// The timestamp of when the current ConditionalRun was started
   DataProcessingStats mStats;                        /// Stats about the actual data processing.
-  int mCurrentBackoff = 0;                           /// The current exponential backoff value.
   std::vector<FairMQRegionInfo> mPendingRegionInfos; /// A list of the region infos not yet notified.
   enum TerminationPolicy mErrorPolicy = TerminationPolicy::WAIT; /// What to do when an error arises
   bool mWasActive = false;                                       /// Whether or not the device was active at last iteration.
