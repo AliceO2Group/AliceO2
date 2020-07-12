@@ -123,12 +123,21 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
   }
 }
 
+// Context for polling
+struct PollerContext {
+  char const* name;
+  uv_loop_t* loop;
+  DataProcessingDevice* device;
+  int fd;
+};
+
 void on_socket_polled(uv_poll_t* poller, int status, int events)
 {
+  PollerContext* context = (PollerContext*)poller->data;
   switch (events) {
     case UV_READABLE: {
       ZoneScopedN("socket readable event");
-      LOG(debug) << "socket polled UV_READABLE: " << (char*)poller->data;
+      LOG(debug) << "socket polled UV_READABLE: " << context->name;
     } break;
     case UV_WRITABLE: {
       ZoneScopedN("socket writeable");
@@ -293,7 +302,12 @@ void DataProcessingDevice::InitTask()
       }
       LOG(debug) << "Polling socket for " << x.second[0].GetName();
       // FIXME: leak
-      poller->data = strdup(x.first.c_str());
+      PollerContext* pCtx = (PollerContext*)malloc(sizeof(PollerContext));
+      pCtx->name = strdup(x.first.c_str());
+      pCtx->loop = mState.loop;
+      pCtx->device = this;
+      pCtx->fd = zmq_fd;
+      poller->data = pCtx;
       uv_poll_init(mState.loop, poller, zmq_fd);
       uv_poll_start(poller, UV_READABLE | UV_DISCONNECT, &on_socket_polled);
       mState.activeInputPollers.push_back(poller);
@@ -320,7 +334,12 @@ void DataProcessingDevice::InitTask()
         }
         LOG(debug) << "Polling socket for " << x.second[0].GetName();
         // FIXME: leak
-        poller->data = strdup(x.first.c_str());
+        PollerContext* pCtx = (PollerContext*)malloc(sizeof(PollerContext));
+        pCtx->name = strdup(x.first.c_str());
+        pCtx->loop = mState.loop;
+        pCtx->device = this;
+        pCtx->fd = zmq_fd;
+        poller->data = pCtx;
         uv_poll_init(mState.loop, poller, zmq_fd);
         uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
         mState.activeOutputPollers.push_back(poller);
