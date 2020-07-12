@@ -34,9 +34,9 @@ struct CentralityTableTask {
     auto ts = timestamps.iteratorAt(collision.bcId());
     LOGF(debug, "timestamp=%llu", ts.timestamp());
     TH1F* hCumMultV0M = ccdb->getForTimeStamp<TH1F>("Multiplicity/CumMultV0M", ts.timestamp());
-    if (!hCumMultV0M)
-      LOGF(fatal, "V0M centrality calibration is not available in CCDB for run=%i at timestamp=%llu", collision.bc().runNumber(), ts.timestamp());
-
+    if (!hCumMultV0M) {
+      LOGF(fatal, "V0M centrality calibration is not available in CCDB for run=%d at timestamp=%llu", collision.bc().runNumber(), ts.timestamp());
+    }
     float centV0M = hCumMultV0M->GetBinContent(hCumMultV0M->FindFixBin(collision.multV0M()));
 
     LOGF(debug, "centV0M=%.0f", centV0M);

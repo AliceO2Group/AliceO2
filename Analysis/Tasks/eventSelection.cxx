@@ -96,9 +96,9 @@ struct EventSelectionTask {
     auto ts = timestamps.iteratorAt(collision.bcId());
     LOGF(debug, "timestamp=%llu", ts.timestamp());
     TriggerAliases* aliases = ccdb->getForTimeStamp<TriggerAliases>("Trigger/TriggerAliases", ts.timestamp());
-    if (!aliases)
-      LOGF(fatal, "Trigger aliases are not available in CCDB for run=%i at timestamp=%llu", collision.bc().runNumber(), ts.timestamp());
-
+    if (!aliases) {
+      LOGF(fatal, "Trigger aliases are not available in CCDB for run=%d at timestamp=%llu", collision.bc().runNumber(), ts.timestamp());
+    }
     uint64_t triggerMask = collision.bc().triggerMask();
     LOGF(debug, "triggerMask=%llu", triggerMask);
 
