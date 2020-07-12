@@ -30,7 +30,7 @@ enum triggerAliases {
   kNaliases
 };
 
-class TriggerAliases : public TNamed
+class TriggerAliases : public TObject
 {
  public:
   TriggerAliases() = default;
