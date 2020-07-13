@@ -8,18 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   FT0DigitReaderSpec.h
+/// @file   RecPointReaderSpec.h
 
-#ifndef O2_FT0_DIGITREADER
-#define O2_FT0_DIGITREADER
+#ifndef O2_FT0_RECPOINTREADER
+#define O2_FT0_RECPOINTREADER
 
 #include "TFile.h"
+#include "TTree.h"
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "DataFormatsFT0/Digit.h"
-#include "DataFormatsFT0/MCLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsFT0/RecPoints.h"
 
 using namespace o2::framework;
 
@@ -28,35 +28,35 @@ namespace o2
 namespace ft0
 {
 
-class DigitReader : public Task
+class RecPointReader : public Task
 {
  public:
-  DigitReader(bool useMC = true);
-  ~DigitReader() override = default;
+  RecPointReader(bool useMC = true);
+  ~RecPointReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
  private:
-  bool mFinished = false;
+  void connectTree(const std::string& filename);
+
+  std::unique_ptr<TFile> mFile;
+  std::unique_ptr<TTree> mTree;
+
   bool mUseMC = true; // use MC truth
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
 
-  std::vector<o2::ft0::Digit>* mDigitsBC = nullptr;
-  std::vector<o2::ft0::ChannelData>* mDigitsCH = nullptr;
-  o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCTruth = nullptr;
+  std::vector<o2::ft0::RecPoints>* mRecPoints = nullptr;
 
-  std::string mInputFileName = "";
-  std::string mDigitTreeName = "o2sim";
-  std::string mDigitBranchName = "FT0DigitBC";
-  std::string mDigitChBranchName = "FT0DigitCH";
-  std::string mDigitMCTruthBranchName = "FT0DIGITSMCTR";
+  std::string mInputFileName = "o2reco_ft0.root";
+  std::string mRecPointTreeName = "o2sim";
+  std::string mRecPointBranchName = "FT0Cluster";
 };
 
 /// create a processor spec
 /// read simulated ITS digits from a root file
-framework::DataProcessorSpec getFT0DigitReaderSpec(bool useMC);
+framework::DataProcessorSpec getRecPointReaderSpec(bool useMC);
 
 } // namespace ft0
 } // namespace o2
 
-#endif /* O2_FT0_DIGITREADER */
+#endif /* O2_FT0_RECPOINTREADER */

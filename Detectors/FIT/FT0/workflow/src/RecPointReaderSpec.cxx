@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   FT0RecPointReaderSpec.cxx
+/// @file   RecPointReaderSpec.cxx
 
 #include <vector>
 
@@ -16,7 +16,7 @@
 
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
-#include "FITWorkflow/FT0RecPointReaderSpec.h"
+#include "FT0Workflow/RecPointReaderSpec.h"
 
 using namespace o2::framework;
 using namespace o2::ft0;
@@ -72,7 +72,7 @@ void RecPointReader::connectTree(const std::string& filename)
   LOG(INFO) << "Loaded FT0 RecPoints tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getFT0RecPointReaderSpec(bool useMC)
+DataProcessorSpec getRecPointReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);

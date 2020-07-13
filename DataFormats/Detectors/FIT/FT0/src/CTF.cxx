@@ -8,14 +8,27 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include <stdexcept>
+#include <cstring>
+#include "Framework/Logger.h"
+#include "DataFormatsFT0/CTF.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::ft0;
 
-#pragma link C++ class o2::ft0::CollisionTimeRecoTask + ;
-#pragma link C++ class o2::ft0::ReadRaw + ;
-#pragma link C++ class o2::ft0::CTFCoder + ;
+///________________________________
+void CompressedDigits::clear()
+{
+  trigger.clear();
+  bcInc.clear();
+  orbitInc.clear();
+  nChan.clear();
 
-#endif
+  idChan.clear();
+  qtc.clear();
+  cfdTime.clear();
+  qtcAmpl.clear();
+
+  header.nTriggers = 0;
+  header.firstOrbit = 0;
+  header.firstBC = 0;
+}
