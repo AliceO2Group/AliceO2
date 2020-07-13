@@ -325,8 +325,10 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
 {
   return ServiceSpec{
     "threadpool",
-    [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      return ServiceHandle{TypeIdHelpers::uniqueId<ThreadPool>(), new ThreadPool()};
+    [numWorkers](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      ThreadPool* pool = new ThreadPool();
+      pool->poolSize = numWorkers;
+      return ServiceHandle{TypeIdHelpers::uniqueId<ThreadPool>(), pool};
     },
     [numWorkers](InitContext&, void* service) -> void* {
       ThreadPool* t = reinterpret_cast<ThreadPool*>(service);
