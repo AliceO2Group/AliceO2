@@ -575,15 +575,16 @@ bool RawFileReader::addFile(const std::string& sname, o2::header::DataOrigin ori
     LOG(ERROR) << "Cannot add new files after initialization";
     return false;
   }
+  bool ok = true;
+
   mFileBuffers.push_back(std::make_unique<char[]>(mBufferSize));
   auto inFile = fopen(sname.c_str(), "rb");
-  setvbuf(inFile, mFileBuffers.back().get(), _IOFBF, mBufferSize);
-
-  bool ok = true;
   if (!inFile) {
     LOG(ERROR) << "Failed to open input file " << sname;
-    ok = false;
+    return false;
   }
+  setvbuf(inFile, mFileBuffers.back().get(), _IOFBF, mBufferSize);
+
   if (origin == o2h::gDataOriginInvalid) {
     LOG(ERROR) << "Invalid data origin " << origin.as<std::string>() << " for file " << sname;
     ok = false;
@@ -594,8 +595,8 @@ bool RawFileReader::addFile(const std::string& sname, o2::header::DataOrigin ori
   }
   if (!ok) {
     fclose(inFile);
+    return false;
   }
-
   mFileNames.push_back(sname);
   mFiles.push_back(inFile);
   mDataSpecs.emplace_back(origin, desc, t);
@@ -722,7 +723,9 @@ void RawFileReader::loadFromInputsMap(const RawFileReader::InputsMap& inp)
       continue;
     }
     for (const auto& fnm : files) { // specific file names
-      addFile(fnm, std::get<0>(ordesc), std::get<1>(ordesc), std::get<2>(ordesc));
+      if (!addFile(fnm, std::get<0>(ordesc), std::get<1>(ordesc), std::get<2>(ordesc))) {
+        throw std::runtime_error("wrong raw data file path or origin/description");
+      }
     }
   }
 }
