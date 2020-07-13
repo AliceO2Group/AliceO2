@@ -30,6 +30,7 @@ struct ServiceRegistry;
 struct DeviceState;
 struct ProcessingContext;
 struct EndOfStreamContext;
+class DanglingContext;
 
 /// Handle to the service hash must be calculated
 /// using TypeIdHelper::uniqueId<BaseClass>() so that
@@ -49,6 +50,9 @@ using ServiceConfigureCallback = std::function<void*(InitContext&, void*)>;
 
 /// A callback which is executed before each processing loop.
 using ServiceProcessingCallback = std::function<void(ProcessingContext&, void*)>;
+
+/// A callback which is executed before each dangling input loop
+using ServiceDanglingCallback = std::function<void(DanglingContext&, void*)>;
 
 /// A callback which is executed before the end of stream loop.
 using ServiceEOSCallback = std::function<void(EndOfStreamContext&, void*)>;
@@ -93,6 +97,10 @@ struct ServiceSpec {
   ServiceProcessingCallback preProcessing = nullptr;
   /// Callback executed once actual processing happened.
   ServiceProcessingCallback postProcessing = nullptr;
+  /// Callback executed before the dangling inputs loop
+  ServiceDanglingCallback preDangling = nullptr;
+  /// Callback executed after the dangling inputs loop
+  ServiceDanglingCallback postDangling = nullptr;
   /// Callback executed before the end of stream callback of the user happended
   ServiceEOSCallback preEOS = nullptr;
   /// Callback executed after the end of stream callback of the user happended
@@ -119,6 +127,11 @@ struct ServiceConfigureHandle {
 
 struct ServiceProcessingHandle {
   ServiceProcessingCallback callback;
+  void* service;
+};
+
+struct ServiceDanglingHandle {
+  ServiceDanglingCallback callback;
   void* service;
 };
 
