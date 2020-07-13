@@ -30,6 +30,10 @@ struct DataProcessingStats {
   int inputParts = 0;
   int lastElapsedTimeMs = 0;
   int lastTotalProcessedSize = 0;
+
+  uint64_t lastSlowMetricSentTimestamp = 0; /// The timestamp of the last time we sent slow metrics
+  uint64_t lastMetricFlushedTimestamp = 0;  /// The timestamp of the last time we actually flushed metrics
+  uint64_t beginIterationTimestamp = 0;     /// The timestamp of when the current ConditionalRun was started
   InputLatency lastLatency = {};
   std::vector<int> relayerState;
 };

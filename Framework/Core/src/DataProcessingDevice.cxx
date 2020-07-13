@@ -20,6 +20,7 @@
 #include "Framework/DeviceState.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DispatchControl.h"
+#include "Framework/DanglingContext.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/FairOptionsRetriever.h"
 #include "ConfigurationOptionsRetriever.h"
@@ -394,11 +395,7 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context)
   context.state = &mState;
 
   context.relayer = mRelayer;
-  context.stats = &mStats;
   context.registry = &mServiceRegistry;
-  context.lastSlowMetricSentTimestamp = &mLastSlowMetricSentTimestamp; /// The timestamp of the last time we sent slow metrics
-  context.lastMetricFlushedTimestamp = &mLastMetricFlushedTimestamp;   /// The timestamp of the last time we actually flushed metrics
-  context.beginIterationTimestamp = &mBeginIterationTimestamp;         /// The timestamp of when the current ConditionalRun was started
   context.completed = &mCompleted;
   context.expirationHandlers = &mExpirationHandlers;
   context.timingInfo = &mTimingInfo;
@@ -410,6 +407,10 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context)
   context.preProcessingHandles = &mPreProcessingHandles;
   /// Callbacks for services to be executed after every process method invokation
   context.postProcessingHandles = &mPostProcessingHandles;
+  /// Callbacks for services to be executed before every process method invokation
+  context.preDanglingHandles = &mPreDanglingHandles;
+  /// Callbacks for services to be executed after every process method invokation
+  context.postDanglingHandles = &mPostDanglingHandles;
   /// Callbacks for services to be executed before every EOS user callback invokation
   context.preEOSHandles = &mPreEOSHandles;
   /// Callbacks for services to be executed after every EOS user callback invokation
@@ -464,82 +465,13 @@ bool DataProcessingDevice::ConditionalRun()
 void DataProcessingDevice::doRun(DataProcessorContext& context)
 {
   ZoneScopedN("doRun");
-  /// This will send metrics for the relayer at regular intervals of
-  /// 5 seconds, in order to avoid overloading the system.
-  auto sendRelayerMetrics = [relayerStats = context.relayer->getStats(),
-                             &stats = context.stats,
-                             &lastSent = context.lastSlowMetricSentTimestamp,
-                             &currentTime = context.beginIterationTimestamp,
-                             &registry = context.registry]()
-    -> void {
-    if (currentTime - lastSent < 5000) {
-      return;
-    }
-    ZoneScopedN("send metrics");
-    auto& monitoring = registry->get<Monitoring>();
-
-    O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
-
-    monitoring.send(Metric{(int)relayerStats.malformedInputs, "malformed_inputs"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{(int)relayerStats.droppedComputations, "dropped_computations"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{(int)relayerStats.droppedIncomingMessages, "dropped_incoming_messages"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{(int)relayerStats.relayedMessages, "relayed_messages"}.addTag(Key::Subsystem, Value::DPL));
-
-    monitoring.send(Metric{(int)stats->pendingInputs, "inputs/relayed/pending"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{(int)stats->incomplete, "inputs/relayed/incomplete"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{(int)stats->inputParts, "inputs/relayed/total"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{stats->lastElapsedTimeMs, "elapsed_time_ms"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{stats->lastTotalProcessedSize, "processed_input_size_byte"}
-                      .addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{(stats->lastTotalProcessedSize / (stats->lastElapsedTimeMs ? stats->lastElapsedTimeMs : 1) / 1000),
-                           "processing_rate_mb_s"}
-                      .addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{stats->lastLatency.minLatency, "min_input_latency_ms"}
-                      .addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{stats->lastLatency.maxLatency, "max_input_latency_ms"}
-                      .addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{(stats->lastTotalProcessedSize / (stats->lastLatency.maxLatency ? stats->lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
-                      .addTag(Key::Subsystem, Value::DPL));
-
-    lastSent = currentTime;
-    O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
-  };
-
-  /// This will flush metrics only once every second.
-  auto flushMetrics = [& stats = context.stats,
-                       &relayer = context.relayer,
-                       &lastFlushed = *context.lastMetricFlushedTimestamp,
-                       &currentTime = *context.beginIterationTimestamp,
-                       &registry = context.registry]()
-    -> void {
-    if (currentTime - lastFlushed < 1000) {
-      return;
-    }
-    ZoneScopedN("flush metrics");
-    auto& monitoring = registry->get<Monitoring>();
-
-    O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
-    // Send all the relevant metrics for the relayer to update the GUI
-    // FIXME: do a delta with the previous version if too many metrics are still
-    // sent...
-    for (size_t si = 0; si < stats->relayerState.size(); ++si) {
-      auto state = stats->relayerState[si];
-      monitoring.send({state, "data_relayer/" + std::to_string(si)});
-    }
-    relayer->sendContextState();
-    monitoring.flushBuffer();
-    lastFlushed = currentTime;
-    O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
-  };
-
   auto switchState = [& registry = context.registry,
                       &state = context.state->streaming](StreamingState newState) {
     LOG(debug) << "New state " << (int)newState << " old state " << (int)state;
     state = newState;
     registry->get<ControlService>().notifyStreamingState(state);
   };
-
-  *context.beginIterationTimestamp = uv_hrtime() / 1000000;
+  context.registry->get<DataProcessingStats>().beginIterationTimestamp = uv_hrtime() / 1000000;
 
   *context.wasActive = false;
   {
@@ -579,8 +511,10 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
       *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, *context.completed);
     }
   }
-  sendRelayerMetrics();
-  flushMetrics();
+  DanglingContext danglingContext{*context.registry};
+  for (auto preDanglingHandle : *context.preDanglingHandles) {
+    preDanglingHandle.callback(danglingContext, preDanglingHandle.service);
+  }
   if (*context.wasActive == false) {
     context.registry->get<CallbackService>()(CallbackService::Id::Idle);
   }
@@ -590,8 +524,9 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
   context.completed->clear();
   *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, *context.completed);
 
-  sendRelayerMetrics();
-  flushMetrics();
+  for (auto postDanglingHandle : *context.postDanglingHandles) {
+    postDanglingHandle.callback(danglingContext, postDanglingHandle.service);
+  }
 
   // If we got notified that all the sources are done, we call the EndOfStream
   // callback and return false. Notice that what happens next is actually
@@ -609,8 +544,6 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     while (DataProcessingDevice::tryDispatchComputation(context, *context.completed)) {
       context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry);
     }
-    sendRelayerMetrics();
-    flushMetrics();
     EndOfStreamContext eosContext{*context.registry, *context.allocator};
     for (auto& eosHandle : *context.preEOSHandles) {
       eosHandle.callback(eosContext, eosHandle.service);
@@ -669,8 +602,9 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, FairMQParts
   // and we do a few stats. We bind parts as a lambda captured variable, rather
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
-  auto getInputTypes = [& stats = context.stats, &parts, &info]() -> std::optional<std::vector<InputType>> {
-    stats->inputParts = parts.Size();
+  auto getInputTypes = [& stats = context.registry->get<DataProcessingStats>(),
+                        &parts, &info]() -> std::optional<std::vector<InputType>> {
+    stats.inputParts = parts.Size();
 
     TracyPlot("messages received", (int64_t)parts.Size());
     if (parts.Size() % 2) {
@@ -828,9 +762,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // on.
   auto getReadyActions = [& relayer = context.relayer,
                           &completed,
-                          &stats = context.stats]() -> std::vector<DataRelayer::RecordAction> {
-    stats->pendingInputs = (int)relayer->getParallelTimeslices() - completed.size();
-    stats->incomplete = completed.empty() ? 1 : 0;
+                          &stats = context.registry->get<DataProcessingStats>()]() -> std::vector<DataRelayer::RecordAction> {
+    stats.pendingInputs = (int)relayer->getParallelTimeslices() - completed.size();
+    stats.incomplete = completed.empty() ? 1 : 0;
     return completed;
   };
 
@@ -995,25 +929,25 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     return false;
   }
 
-  auto postUpdateStats = [& stats = context.stats](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
+  auto postUpdateStats = [& stats = context.registry->get<DataProcessingStats>()](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
     for (size_t ai = 0; ai != record.size(); ai++) {
       auto cacheId = action.slot.index * record.size() + ai;
       auto state = record.isValid(ai) ? 3 : 0;
-      stats->relayerState.resize(std::max(cacheId + 1, stats->relayerState.size()), 0);
-      stats->relayerState[cacheId] = state;
+      stats.relayerState.resize(std::max(cacheId + 1, stats.relayerState.size()), 0);
+      stats.relayerState[cacheId] = state;
     }
     uint64_t tEnd = uv_hrtime();
-    stats->lastElapsedTimeMs = tEnd - tStart;
-    stats->lastTotalProcessedSize = calculateTotalInputRecordSize(record);
-    stats->lastLatency = calculateInputRecordLatency(record, tStart);
+    stats.lastElapsedTimeMs = tEnd - tStart;
+    stats.lastTotalProcessedSize = calculateTotalInputRecordSize(record);
+    stats.lastLatency = calculateInputRecordLatency(record, tStart);
   };
 
-  auto preUpdateStats = [& stats = context.stats](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
+  auto preUpdateStats = [& stats = context.registry->get<DataProcessingStats>()](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
     for (size_t ai = 0; ai != record.size(); ai++) {
       auto cacheId = action.slot.index * record.size() + ai;
       auto state = record.isValid(ai) ? 2 : 0;
-      stats->relayerState.resize(std::max(cacheId + 1, stats->relayerState.size()), 0);
-      stats->relayerState[cacheId] = state;
+      stats.relayerState.resize(std::max(cacheId + 1, stats.relayerState.size()), 0);
+      stats.relayerState[cacheId] = state;
     }
   };
 
@@ -1103,6 +1037,12 @@ void DataProcessingDevice::bindService(ServiceSpec const& spec, void* service)
   }
   if (spec.postProcessing) {
     mPostProcessingHandles.push_back(ServiceProcessingHandle{spec.postProcessing, service});
+  }
+  if (spec.preDangling) {
+    mPreDanglingHandles.push_back(ServiceDanglingHandle{spec.preDangling, service});
+  }
+  if (spec.postDangling) {
+    mPostDanglingHandles.push_back(ServiceDanglingHandle{spec.postDangling, service});
   }
   if (spec.preEOS) {
     mPreEOSHandles.push_back(ServiceEOSHandle{spec.preEOS, service});
