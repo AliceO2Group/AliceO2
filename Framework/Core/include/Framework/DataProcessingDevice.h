@@ -62,11 +62,7 @@ struct DataProcessorContext {
   DeviceState* state = nullptr;
 
   DataRelayer* relayer = nullptr;
-  DataProcessingStats* stats = nullptr;
   ServiceRegistry* registry = nullptr;
-  uint64_t* lastSlowMetricSentTimestamp = nullptr; /// The timestamp of the last time we sent slow metrics
-  uint64_t* lastMetricFlushedTimestamp = nullptr;  /// The timestamp of the last time we actually flushed metrics
-  uint64_t* beginIterationTimestamp = nullptr;     /// The timestamp of when the current ConditionalRun was started
   std::vector<DataRelayer::RecordAction>* completed = nullptr;
   std::vector<ExpirationHandler>* expirationHandlers = nullptr;
   TimingInfo* timingInfo = nullptr;
@@ -78,6 +74,10 @@ struct DataProcessorContext {
   std::vector<ServiceProcessingHandle>* preProcessingHandles = nullptr;
   /// Callbacks for services to be executed after every process method invokation
   std::vector<ServiceProcessingHandle>* postProcessingHandles = nullptr;
+  /// Callbacks for services to be executed before every dangling check
+  std::vector<ServiceDanglingHandle>* preDanglingHandles = nullptr;
+  /// Callbacks for services to be executed after every dangling check
+  std::vector<ServiceDanglingHandle>* postDanglingHandles = nullptr;
   /// Callbacks for services to be executed before every EOS user callback invokation
   std::vector<ServiceEOSHandle>* preEOSHandles = nullptr;
   /// Callbacks for services to be executed after every EOS user callback invokation
@@ -137,6 +137,10 @@ class DataProcessingDevice : public FairMQDevice
   std::vector<ServiceProcessingHandle> mPreProcessingHandles;
   /// Callbacks for services to be executed after every process method invokation
   std::vector<ServiceProcessingHandle> mPostProcessingHandles;
+  /// Callbacks for services to be executed before every dangling check
+  std::vector<ServiceDanglingHandle> mPreDanglingHandles;
+  /// Callbacks for services to be executed after every dangling check
+  std::vector<ServiceDanglingHandle> mPostDanglingHandles;
   /// Callbacks for services to be executed before every EOS user callback invokation
   std::vector<ServiceEOSHandle> mPreEOSHandles;
   /// Callbacks for services to be executed after every EOS user callback invokation

@@ -17,12 +17,17 @@
 #include "Framework/LocalRootFileService.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/Signpost.h"
+#include "Framework/DataProcessingStats.h"
 #include "Framework/CommonMessageBackends.h"
+#include "Framework/DanglingContext.h"
+#include "Framework/EndOfStreamContext.h"
+#include "Framework/Tracing.h"
 #include "../src/DataProcessingStatus.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/MonitoringFactory.h>
+#include <Monitoring/Monitoring.h>
 #include <InfoLogger/InfoLogger.hxx>
 
 #include <options/FairMQProgOptions.h>
@@ -35,6 +40,9 @@ using o2::configuration::ConfigurationFactory;
 using o2::configuration::ConfigurationInterface;
 using o2::monitoring::Monitoring;
 using o2::monitoring::MonitoringFactory;
+using Metric = o2::monitoring::Metric;
+using Key = o2::monitoring::tags::Key;
+using Value = o2::monitoring::tags::Value;
 
 namespace o2::framework
 {
@@ -53,6 +61,8 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -61,6 +71,8 @@ o2::framework::ServiceSpec CommonServices::infologgerContextSpec()
   return ServiceSpec{"infologger-contex",
                      simpleServiceInit<InfoLoggerContext, InfoLoggerContext>(),
                      noConfiguration(),
+                     nullptr,
+                     nullptr,
                      nullptr,
                      nullptr,
                      nullptr,
@@ -151,6 +163,8 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -167,6 +181,8 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
                            ConfigurationFactory::getConfiguration(backend).release()};
     },
     noConfiguration(),
+    nullptr,
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -193,6 +209,8 @@ o2::framework::ServiceSpec CommonServices::controlSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -202,6 +220,8 @@ o2::framework::ServiceSpec CommonServices::rootFileSpec()
     "localrootfile",
     simpleServiceInit<LocalRootFileService, LocalRootFileService>(),
     noConfiguration(),
+    nullptr,
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -229,6 +249,8 @@ o2::framework::ServiceSpec CommonServices::parallelSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -238,6 +260,8 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
     "timesliceindex",
     simpleServiceInit<TimesliceIndex, TimesliceIndex>(),
     noConfiguration(),
+    nullptr,
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -261,6 +285,8 @@ o2::framework::ServiceSpec CommonServices::callbacksSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -277,6 +303,8 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
                                            services.get<TimesliceIndex>())};
     },
     noConfiguration(),
+    nullptr,
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -314,6 +342,8 @@ o2::framework::ServiceSpec CommonServices::tracingSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -340,10 +370,110 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
+    nullptr,
     [numWorkers](ServiceRegistry& service) -> void {
       auto numWorkersS = std::to_string(numWorkers);
       setenv("UV_THREADPOOL_SIZE", numWorkersS.c_str(), 0);
     },
+    nullptr,
+    ServiceKind::Serial};
+}
+
+namespace
+{
+/// This will send metrics for the relayer at regular intervals of
+/// 5 seconds, in order to avoid overloading the system.
+auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
+{
+  if (stats.beginIterationTimestamp - stats.lastSlowMetricSentTimestamp < 5000) {
+    return;
+  }
+  ZoneScopedN("send metrics");
+  auto& relayerStats = registry.get<DataRelayer>().getStats();
+  auto& monitoring = registry.get<Monitoring>();
+
+  O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
+
+  monitoring.send(Metric{(int)relayerStats.malformedInputs, "malformed_inputs"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(int)relayerStats.droppedComputations, "dropped_computations"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(int)relayerStats.droppedIncomingMessages, "dropped_incoming_messages"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(int)relayerStats.relayedMessages, "relayed_messages"}.addTag(Key::Subsystem, Value::DPL));
+
+  monitoring.send(Metric{(int)stats.pendingInputs, "inputs/relayed/pending"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(int)stats.incomplete, "inputs/relayed/incomplete"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(int)stats.inputParts, "inputs/relayed/total"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{stats.lastElapsedTimeMs, "elapsed_time_ms"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{stats.lastTotalProcessedSize, "processed_input_size_byte"}
+                    .addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(stats.lastTotalProcessedSize / (stats.lastElapsedTimeMs ? stats.lastElapsedTimeMs : 1) / 1000),
+                         "processing_rate_mb_s"}
+                    .addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{stats.lastLatency.minLatency, "min_input_latency_ms"}
+                    .addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{stats.lastLatency.maxLatency, "max_input_latency_ms"}
+                    .addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
+                    .addTag(Key::Subsystem, Value::DPL));
+
+  stats.lastSlowMetricSentTimestamp = stats.beginIterationTimestamp;
+  O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
+};
+
+/// This will flush metrics only once every second.
+auto flushMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
+{
+  if (stats.beginIterationTimestamp - stats.lastMetricFlushedTimestamp < 1000) {
+    return;
+  }
+  ZoneScopedN("flush metrics");
+  auto& monitoring = registry.get<Monitoring>();
+  auto& relayer = registry.get<DataRelayer>();
+
+  O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
+  // Send all the relevant metrics for the relayer to update the GUI
+  // FIXME: do a delta with the previous version if too many metrics are still
+  // sent...
+  for (size_t si = 0; si < stats.relayerState.size(); ++si) {
+    auto state = stats.relayerState[si];
+    monitoring.send({state, "data_relayer/" + std::to_string(si)});
+  }
+  relayer.sendContextState();
+  monitoring.flushBuffer();
+  stats.lastMetricFlushedTimestamp = stats.beginIterationTimestamp;
+  O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
+};
+} // namespace
+
+o2::framework::ServiceSpec CommonServices::dataProcessingStats()
+{
+  return ServiceSpec{
+    "data-processing-stats",
+    [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      DataProcessingStats* stats = new DataProcessingStats();
+      return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStats>(), stats};
+    },
+    noConfiguration(),
+    nullptr,
+    nullptr,
+    [](DanglingContext& context, void* service) {
+      DataProcessingStats* stats = (DataProcessingStats*)service;
+      sendRelayerMetrics(context.services(), *stats);
+      flushMetrics(context.services(), *stats);
+    },
+    [](DanglingContext& context, void* service) {
+      DataProcessingStats* stats = (DataProcessingStats*)service;
+      sendRelayerMetrics(context.services(), *stats);
+      flushMetrics(context.services(), *stats);
+    },
+    [](EndOfStreamContext& context, void* service) {
+      DataProcessingStats* stats = (DataProcessingStats*)service;
+      sendRelayerMetrics(context.services(), *stats);
+      flushMetrics(context.services(), *stats);
+    },
+    nullptr,
+    nullptr,
+    nullptr,
     nullptr,
     ServiceKind::Serial};
 }
@@ -361,6 +491,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     parallelSpec(),
     callbacksSpec(),
     dataRelayer(),
+    dataProcessingStats(),
     CommonMessageBackends::fairMQBackendSpec(),
     CommonMessageBackends::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),
