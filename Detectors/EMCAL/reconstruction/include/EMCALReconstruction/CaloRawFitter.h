@@ -54,7 +54,6 @@ class CaloRawFitter
   /// \return pedestal,
   /// \return first time bin,
   /// \return last time bin,
-  /// \return ampitude cut
   std::tuple<int, int, float, short, short, float, int, int> preFitEvaluateSamples(const std::vector<Bunch>& bunchvector,
                                                                                    std::optional<unsigned int> altrocfg1, std::optional<unsigned int> altrocfg2, int acut);
 

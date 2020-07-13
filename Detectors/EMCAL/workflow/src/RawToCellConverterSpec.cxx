@@ -20,6 +20,7 @@
 #include "EMCALReconstruction/CaloFitResults.h"
 #include "EMCALReconstruction/Bunch.h"
 #include "EMCALReconstruction/CaloRawFitterStandard.h"
+#include "EMCALReconstruction/CaloRawFitterGamma2.h"
 #include "EMCALReconstruction/AltroDecoder.h"
 #include "CommonDataFormat/InteractionRecord.h"
 
