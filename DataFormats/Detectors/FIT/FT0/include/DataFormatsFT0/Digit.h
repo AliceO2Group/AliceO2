@@ -36,13 +36,13 @@ struct Triggers {
          bitVertex,
          bitCen,
          bitSCen };
-  uint8_t triggersignals; // T0 trigger signals
-  int8_t nChanA;          // number of faired channels A side
-  int8_t nChanC;          // number of faired channels A side
-  int32_t amplA;          // sum amplitude A side
-  int32_t amplC;          // sum amplitude C side
-  int16_t timeA;          // average time A side
-  int16_t timeC;          // average time C side
+  uint8_t triggersignals = 0; // T0 trigger signals
+  int8_t nChanA = 0;          // number of fired channels A side
+  int8_t nChanC = 0;          // number of fired channels A side
+  int32_t amplA = -1000;      // sum amplitude A side
+  int32_t amplC = -1000;      // sum amplitude C side
+  int16_t timeA = -1000;      // average time A side
+  int16_t timeC = -1000;      // average time C side
   Triggers() = default;
   Triggers(uint8_t signals, int8_t chanA, int8_t chanC, int32_t aamplA, int32_t aamplC, int16_t atimeA, int16_t atimeC)
   {
@@ -54,11 +54,11 @@ struct Triggers {
     timeA = atimeA;
     timeC = atimeC;
   }
-  bool getOrA() { return (triggersignals & (1 << bitA)) != 0; }
-  bool getOrC() { return (triggersignals & (1 << bitC)) != 0; }
-  bool getVertex() { return (triggersignals & (1 << bitVertex)) != 0; }
-  bool getCen() { return (triggersignals & (1 << bitCen)) != 0; }
-  bool getSCen() { return (triggersignals & (1 << bitSCen)) != 0; }
+  bool getOrA() const { return (triggersignals & (1 << bitA)) != 0; }
+  bool getOrC() const { return (triggersignals & (1 << bitC)) != 0; }
+  bool getVertex() const { return (triggersignals & (1 << bitVertex)) != 0; }
+  bool getCen() const { return (triggersignals & (1 << bitCen)) != 0; }
+  bool getSCen() const { return (triggersignals & (1 << bitSCen)) != 0; }
 
   void setTriggers(Bool_t isA, Bool_t isC, Bool_t isVrtx, Bool_t isCnt, Bool_t isSCnt, int8_t chanA, int8_t chanC, int32_t aamplA,
                    int32_t aamplC, int16_t atimeA, int16_t atimeC)
@@ -74,12 +74,10 @@ struct Triggers {
   void cleanTriggers()
   {
     triggersignals = 0;
-    nChanA = nChanC = -1;
+    nChanA = nChanC = 0;
     amplA = amplC = -1000;
     timeA = timeC = -1000;
   }
-
-  Triggers getTriggers();
 
   ClassDefNV(Triggers, 1);
 };
@@ -90,7 +88,7 @@ struct Digit {
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
   int mEventID;
   Digit() = default;
-  Digit(int first, int ne, o2::InteractionRecord iRec, Triggers chTrig, int event)
+  Digit(int first, int ne, const o2::InteractionRecord& iRec, const Triggers& chTrig, int event)
   {
     ref.setFirstEntry(first);
     ref.setEntries(ne);
@@ -100,7 +98,7 @@ struct Digit {
   }
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
-  Triggers getTriggers() { return mTriggers; }
+  Triggers getTriggers() const { return mTriggers; }
   int getEventID() const { return mEventID; }
   o2::InteractionRecord getIntRecord() { return mIntRecord; };
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;

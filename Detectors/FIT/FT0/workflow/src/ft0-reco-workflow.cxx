@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FITWorkflow/RecoWorkflow.h"
+#include "FT0Workflow/RecoWorkflow.h"
 #include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;

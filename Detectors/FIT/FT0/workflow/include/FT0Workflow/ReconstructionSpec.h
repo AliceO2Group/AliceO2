@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   FT0ReconstructorSpec.h
+/// @file   ReconstructionSpec.h
 
 #ifndef O2_FT0RECONSTRUCTORDPL_H
 #define O2_FT0RECONSTRUCTORDPL_H
@@ -25,11 +25,11 @@ namespace o2
 namespace ft0
 {
 
-class FT0ReconstructorDPL : public Task
+class ReconstructionDPL : public Task
 {
  public:
-  FT0ReconstructorDPL(bool useMC) : mUseMC(useMC) {}
-  ~FT0ReconstructorDPL() override = default;
+  ReconstructionDPL(bool useMC) : mUseMC(useMC) {}
+  ~ReconstructionDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
@@ -43,7 +43,7 @@ class FT0ReconstructorDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getFT0ReconstructorSpec(bool useMC = true);
+framework::DataProcessorSpec getReconstructionSpec(bool useMC = true);
 
 } // namespace ft0
 } // namespace o2

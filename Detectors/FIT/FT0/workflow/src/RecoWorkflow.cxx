@@ -10,11 +10,11 @@
 
 /// @file   RecoWorkflow.cxx
 
-#include "FITWorkflow/RecoWorkflow.h"
+#include "FT0Workflow/RecoWorkflow.h"
 
-#include "FITWorkflow/FT0DigitReaderSpec.h"
-#include "FITWorkflow/FT0RecPointWriterSpec.h"
-#include "FITWorkflow/FT0ReconstructorSpec.h"
+#include "FT0Workflow/DigitReaderSpec.h"
+#include "FT0Workflow/RecPointWriterSpec.h"
+#include "FT0Workflow/ReconstructionSpec.h"
 
 namespace o2
 {
@@ -25,11 +25,11 @@ framework::WorkflowSpec getRecoWorkflow(bool useMC, bool disableRootInp, bool di
 {
   framework::WorkflowSpec specs;
   if (!disableRootInp) {
-    specs.emplace_back(o2::ft0::getFT0DigitReaderSpec(useMC));
+    specs.emplace_back(o2::ft0::getDigitReaderSpec(useMC));
   }
-  specs.emplace_back(o2::ft0::getFT0ReconstructorSpec(useMC));
+  specs.emplace_back(o2::ft0::getReconstructionSpec(useMC));
   if (!disableRootOut) {
-    specs.emplace_back(o2::ft0::getFT0RecPointWriterSpec(useMC));
+    specs.emplace_back(o2::ft0::getRecPointWriterSpec(useMC));
   }
   return specs;
 }

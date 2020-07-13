@@ -8,14 +8,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// @file   RecPointWriterSpec.h
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#ifndef O2_FT0RECPOINTWRITER_H
+#define O2_FT0RECPOINTWRITER_H
 
-#pragma link C++ class o2::ft0::CollisionTimeRecoTask + ;
-#pragma link C++ class o2::ft0::ReadRaw + ;
-#pragma link C++ class o2::ft0::CTFCoder + ;
+#include "Framework/DataProcessorSpec.h"
 
-#endif
+using namespace o2::framework;
+
+namespace o2
+{
+namespace ft0
+{
+
+/// create a processor spec
+framework::DataProcessorSpec getRecPointWriterSpec(bool useMC);
+
+} // namespace ft0
+} // namespace o2
+
+#endif /* O2_FT0RECPOINTWRITER_H */

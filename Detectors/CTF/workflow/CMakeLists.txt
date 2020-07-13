@@ -18,6 +18,7 @@ o2_add_library(CTFWorkflow
                                      O2::DataFormatsParameters
                                      O2::ITSMFTWorkflow
                                      O2::TPCWorkflow
+                                     O2::FT0Workflow
                                      O2::Algorithm
                                      O2::CommonUtils)
 

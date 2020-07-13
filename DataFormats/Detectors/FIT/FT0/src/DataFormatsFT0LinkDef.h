@@ -39,4 +39,9 @@
 #pragma link C++ class o2::ft0::EventData + ;
 #pragma link C++ class o2::ft0::Topo + ;
 
+#pragma link C++ class o2::ft0::CTFHeader + ;
+#pragma link C++ class o2::ft0::CompressedDigits + ;
+#pragma link C++ class o2::ft0::CTF + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::ft0::CTFHeader, 8, uint32_t> + ;
+
 #endif

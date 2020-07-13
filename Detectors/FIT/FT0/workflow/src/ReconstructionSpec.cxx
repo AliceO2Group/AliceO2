@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   FT0ReconstructorSpec.cxx
+/// @file   ReconstructionSpec.cxx
 
 #include <vector>
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/ControlService.h"
-#include "FITWorkflow/FT0ReconstructorSpec.h"
+#include "FT0Workflow/ReconstructionSpec.h"
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/MCLabel.h"
@@ -25,12 +25,12 @@ namespace o2
 namespace ft0
 {
 
-void FT0ReconstructorDPL::init(InitContext& ic)
+void ReconstructionDPL::init(InitContext& ic)
 {
-  LOG(INFO) << "FT0ReconstructorDPL::init";
+  LOG(INFO) << "ReconstructionDPL::init";
 }
 
-void FT0ReconstructorDPL::run(ProcessingContext& pc)
+void ReconstructionDPL::run(ProcessingContext& pc)
 {
   if (mFinished) {
     return;
@@ -67,14 +67,14 @@ void FT0ReconstructorDPL::run(ProcessingContext& pc)
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
-DataProcessorSpec getFT0ReconstructorSpec(bool useMC)
+DataProcessorSpec getReconstructionSpec(bool useMC)
 {
   std::vector<InputSpec> inputSpec;
   std::vector<OutputSpec> outputSpec;
   inputSpec.emplace_back("digits", o2::header::gDataOriginFT0, "DIGITSBC", 0, Lifetime::Timeframe);
   inputSpec.emplace_back("digch", o2::header::gDataOriginFT0, "DIGITSCH", 0, Lifetime::Timeframe);
   if (useMC) {
-    LOG(INFO) << "Currently FT0Reconstructor does not consume and provide MC truth";
+    LOG(INFO) << "Currently Reconstruction does not consume and provide MC truth";
     inputSpec.emplace_back("labels", o2::header::gDataOriginFT0, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
@@ -84,7 +84,7 @@ DataProcessorSpec getFT0ReconstructorSpec(bool useMC)
     "ft0-reconstructor",
     inputSpec,
     outputSpec,
-    AlgorithmSpec{adaptFromTask<FT0ReconstructorDPL>(useMC)},
+    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC)},
     Options{}};
 }
 

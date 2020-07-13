@@ -25,6 +25,7 @@
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsITSMFT/CTF.h"
 #include "DataFormatsTPC/CTF.h"
+#include "DataFormatsFT0/CTF.h"
 
 using namespace o2::framework;
 
@@ -89,6 +90,16 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   if (isPresent(det) && pc.inputs().isValid(det.getName())) {
     auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName());
     const auto ctfImage = o2::tpc::CTF::getImage(ctfBuffer.data());
+    LOG(INFO) << "CTF for " << det.getName();
+    ctfImage.print();
+    ctfImage.appendToTree(ctfTree, det.getName());
+    header.detectors.set(det);
+  }
+
+  det = DetID::FT0;
+  if (isPresent(det) && pc.inputs().isValid(det.getName())) {
+    auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName());
+    const auto ctfImage = o2::ft0::CTF::getImage(ctfBuffer.data());
     LOG(INFO) << "CTF for " << det.getName();
     ctfImage.print();
     ctfImage.appendToTree(ctfTree, det.getName());
