@@ -104,6 +104,11 @@ class FitterTrackMFT
 
   const Int_t getNPoints() const { return mNPoints; }
 
+  // Track finding method
+  void setCA(Bool_t method) { mIsCA = method; }
+  const Bool_t isCA() const { return mIsCA; }
+  const Bool_t isLTF() const { return !mIsCA; }
+
   // Charge and momentum from quadratic regression of clusters X,Y positions
   void setInvQPtQuadtratic(Double_t invqpt) { mInvQPtQuadtratic = invqpt; }
   const Double_t getInvQPtQuadtratic() const { return mInvQPtQuadtratic; } // Inverse charged pt
@@ -121,6 +126,7 @@ class FitterTrackMFT
   bool mRemovable = false;                        ///< flag telling if this track should be deleted
   Int_t mNPoints{0};                              // Number of clusters
   std::array<MCCompLabel, 10> mMCCompLabels;      // constants::mft::LayersNumber = 10
+  Bool_t mIsCA = false;                           // Track finding method CA vs. LTF
 
   // Results from quadratic regression of clusters X,Y positions
   // Chi2 of the quadratic regression used to estimate track pT and charge

@@ -186,7 +186,7 @@ void TrackFitter::initTrack(const Cluster& cl, TrackParamMFT& param)
   if (mftTrackingParam.verbose) {
     auto model = (mftTrackingParam.trackmodel == Helix) ? "Helix" : (mftTrackingParam.trackmodel == Quadratic) ? "Quadratic" : "Linear";
     std::cout << "Track Model: " << model << std::endl;
-    std::cout << "  initTrack: X = " << cl.getX() << " Y = " << cl.getY() << " Z = " << cl.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << " pz = " << param.getPz() << " qpt = " << 1.0 / param.getInvQPt() << std::endl;
+    std::cout << "  initTrack: X = " << x0 << " Y = " << y0 << " Z = " << z0 << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << " pz = " << param.getPz() << " qpt = " << 1.0 / param.getInvQPt() << std::endl;
   }
 
   // compute the track parameter covariances at the last cluster (as if the other clusters did not exist)
