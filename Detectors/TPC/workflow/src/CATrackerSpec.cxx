@@ -518,6 +518,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
                 continue;
               }
               ptr = current;
+            } else if (ptr == nullptr) {
+              ptr = current;
             }
             count++;
           }
