@@ -127,7 +127,7 @@ size_t SymbolStatistics::getMessageLength() const
   return mMessageLength;
 }
 
-std::pair<uint32_t, uint32_t> SymbolStatistics::operator[](size_t index) const
+std::pair<uint32_t, uint32_t> SymbolStatistics::operator[](int64_t index) const
 {
   assert(index - mMin < mFrequencyTable.size());
 
@@ -161,7 +161,7 @@ SymbolStatistics::Iterator SymbolStatistics::end() const
   }
 }
 
-SymbolStatistics::Iterator::Iterator(size_t index,
+SymbolStatistics::Iterator::Iterator(int64_t index,
                                      const SymbolStatistics& stats)
   : mIndex(index), mStats(stats) {}
 

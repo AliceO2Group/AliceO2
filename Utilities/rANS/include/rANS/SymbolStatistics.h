@@ -39,7 +39,7 @@ class SymbolStatistics
   class Iterator
   {
    public:
-    Iterator(size_t index, const SymbolStatistics& stats);
+    Iterator(int64_t index, const SymbolStatistics& stats);
 
     using difference_type = int64_t;
     using value_type = std::pair<uint32_t, uint32_t>;
@@ -54,7 +54,7 @@ class SymbolStatistics
     bool operator!=(const Iterator& other) const;
 
    private:
-    size_t mIndex;
+    int64_t mIndex;
     const SymbolStatistics& mStats;
   };
 
@@ -63,7 +63,7 @@ class SymbolStatistics
   SymbolStatistics(const IT begin, const IT end, size_t range = 0);
 
   template <typename IT>
-  SymbolStatistics(const IT begin, const IT end, size_t min, size_t max, size_t messageLength);
+  SymbolStatistics(const IT begin, const IT end, int64_t min, int64_t max, size_t messageLength);
 
   void rescaleToNBits(size_t bits);
 
@@ -75,7 +75,7 @@ class SymbolStatistics
 
   size_t getMessageLength() const;
 
-  std::pair<uint32_t, uint32_t> operator[](size_t index) const;
+  std::pair<uint32_t, uint32_t> operator[](int64_t index) const;
 
   SymbolStatistics::Iterator begin() const;
   SymbolStatistics::Iterator end() const;
@@ -88,8 +88,8 @@ class SymbolStatistics
   template <typename IT>
   void buildFrequencyTable(const IT begin, const IT end, size_t range);
 
-  int mMin;
-  int mMax;
+  int64_t mMin;
+  int64_t mMax;
   size_t mNUsedAlphabetSymbols;
   size_t mMessageLength;
 
@@ -171,7 +171,7 @@ SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t range) :
 }
 
 template <typename IT>
-SymbolStatistics::SymbolStatistics(const IT begin, const IT end, size_t min, size_t max, size_t messageLength) : mMin(min), mMax(max), mNUsedAlphabetSymbols(0), mMessageLength(messageLength), mFrequencyTable(begin, end), mCumulativeFrequencyTable()
+SymbolStatistics::SymbolStatistics(const IT begin, const IT end, int64_t min, int64_t max, size_t messageLength) : mMin(min), mMax(max), mNUsedAlphabetSymbols(0), mMessageLength(messageLength), mFrequencyTable(begin, end), mCumulativeFrequencyTable()
 {
   LOG(trace) << "start loading external symbol statistics";
   for (auto i : mFrequencyTable) {
@@ -193,7 +193,7 @@ void SymbolStatistics::buildFrequencyTable(const IT begin, const IT end,
   // find min_ and max_
   const auto minmax = std::minmax_element(begin, end);
 
-  if (range > 0) {
+  if (range > 0) { // FIXME: providing the range will work only for data [0 : (1 << range) - 1]
     mMin = 0;
     mMax = (1 << range) - 1;
 
