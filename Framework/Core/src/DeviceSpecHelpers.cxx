@@ -751,7 +751,6 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
   // Optimize the topology when two devices are
   // running on the same node.
   if (optimizeTopology) {
-    LOG(INFO) << "Optimizing topology for IPC communication";
     for (auto& connection : connections) {
       auto& device1 = devices[findDeviceIndex(connection.consumer, connection.timeIndex)];
       auto& device2 = devices[findDeviceIndex(connection.producer, connection.producerTimeIndex)];
@@ -770,8 +769,6 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
         }
       }
     }
-  } else {
-    LOG(INFO) << "Not optimizing topology for IPC communication";
   }
 }
 
