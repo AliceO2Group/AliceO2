@@ -17,6 +17,7 @@
 #include "EMCALBase/Mapper.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "EMCALReconstruction/CaloRawFitterStandard.h"
+#include "EMCALReconstruction/CaloRawFitterGamma2.h"
 
 namespace o2
 {
@@ -62,7 +63,7 @@ class RawToCellConverterSpec : public framework::Task
   int mNoiseThreshold = 0;
   o2::emcal::Geometry* mGeometry = nullptr;                     ///!<! Geometry pointer
   std::unique_ptr<o2::emcal::MappingHandler> mMapper = nullptr; ///!<! Mapper
-  o2::emcal::CaloRawFitterStandard mRawFitter;                  ///!<! Raw fitter
+  o2::emcal::CaloRawFitterGamma2 mRawFitter;                    ///!<! Raw fitter
   std::vector<o2::emcal::Cell> mOutputCells;                    ///< Container with output cells
   std::vector<o2::emcal::TriggerRecord> mOutputTriggerRecords;  ///< Container with output cells
 };
