@@ -29,7 +29,7 @@ struct TimestampTask {
   Produces<aod::Timestamps> ts_table;
   RunToTimestamp* converter = nullptr;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
-  Configurable<std::string> path{"ccdb-path", "Test/RunToTimestamp", "path to the ccdb object"};
+  Configurable<std::string> path{"ccdb-path", "Analysis/Core/RunToTimestamp", "path to the ccdb object"};
   Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
 
   void init(o2::framework::InitContext&)
