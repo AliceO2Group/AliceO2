@@ -47,6 +47,11 @@ class TrackMFT
 
   ~TrackMFT() = default;
 
+  // Track finding method
+  void setCA(Bool_t method) { mIsCA = method; }
+  const Bool_t isCA() const { return mIsCA; }
+  const Bool_t isLTF() const { return !mIsCA; }
+
   /// return Z coordinate (cm)
   Double_t getZ() const { return mZ; }
   /// set Z coordinate (cm)
@@ -182,6 +187,7 @@ class TrackMFT
   std::uint32_t mROFrame = 0;                ///< RO Frame
   Int_t mNPoints{0};                         // Number of clusters
   std::array<MCCompLabel, 10> mMCCompLabels; // constants::mft::LayersNumber = 10
+  Bool_t mIsCA = false;                      // Track finding method CA vs. LTF
 
   ClusRefs mClusRef; ///< references on clusters
 
