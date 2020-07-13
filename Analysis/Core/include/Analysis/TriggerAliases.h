@@ -14,7 +14,7 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "TNamed.h"
+#include <Rtypes.h>
 
 enum triggerAliases {
   kINT7 = 0,
@@ -30,29 +30,20 @@ enum triggerAliases {
   kNaliases
 };
 
-class TriggerAliases : public TObject
+class TriggerAliases
 {
  public:
   TriggerAliases() = default;
-  ~TriggerAliases() final = default;
+  ~TriggerAliases() = default;
   void AddAlias(int aliasId, std::string classNames) { mAliases[aliasId] = classNames; }
   void AddClassIdToAlias(int aliasId, int classId) { mAliasToClassIds[aliasId].push_back(classId); }
   const std::map<int, std::vector<int>>& GetAliasToClassIdsMap() const { return mAliasToClassIds; }
-  void Print()
-  {
-    for (auto& al : GetAliasToClassIdsMap()) {
-      printf("%d", al.first);
-      for (auto& classIndex : al.second) {
-        printf(" %d", classIndex);
-      }
-      printf("\n");
-    }
-  }
+  void Print();
 
  private:
   std::map<int, std::string> mAliases;
   std::map<int, std::vector<int>> mAliasToClassIds;
-  ClassDef(TriggerAliases, 1)
+  ClassDefNV(TriggerAliases, 1)
 };
 
 #endif

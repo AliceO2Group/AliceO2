@@ -10,4 +10,13 @@
 
 #include "Analysis/TriggerAliases.h"
 
-ClassImp(TriggerAliases);
+void TriggerAliases::Print()
+{
+  for (auto& al : GetAliasToClassIdsMap()) {
+    printf("%d", al.first);
+    for (auto& classIndex : al.second) {
+      printf(" %d", classIndex);
+    }
+    printf("\n");
+  }
+}
