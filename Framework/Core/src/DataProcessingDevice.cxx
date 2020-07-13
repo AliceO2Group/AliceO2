@@ -931,6 +931,28 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
     return false;
   }
 
+  auto postUpdateStats = [stats = &mStats](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
+    for (size_t ai = 0; ai != record.size(); ai++) {
+      auto cacheId = action.slot.index * record.size() + ai;
+      auto state = record.isValid(ai) ? 3 : 0;
+      stats->relayerState.resize(std::max(cacheId + 1, stats->relayerState.size()), 0);
+      stats->relayerState[cacheId] = state;
+    }
+    uint64_t tEnd = uv_hrtime();
+    stats->lastElapsedTimeMs = tEnd - tStart;
+    stats->lastTotalProcessedSize = calculateTotalInputRecordSize(record);
+    stats->lastLatency = calculateInputRecordLatency(record, tStart);
+  };
+
+  auto preUpdateStats = [stats = &mStats](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
+    for (size_t ai = 0; ai != record.size(); ai++) {
+      auto cacheId = action.slot.index * record.size() + ai;
+      auto state = record.isValid(ai) ? 2 : 0;
+      stats->relayerState.resize(std::max(cacheId + 1, stats->relayerState.size()), 0);
+      stats->relayerState[cacheId] = state;
+    }
+  };
+
   for (auto action : getReadyActions()) {
     if (action.op == CompletionPolicy::CompletionOp::Wait) {
       continue;
@@ -951,13 +973,9 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
         continue;
       }
     }
+
     uint64_t tStart = uv_hrtime();
-    for (size_t ai = 0; ai != record.size(); ai++) {
-      auto cacheId = action.slot.index * record.size() + ai;
-      auto state = record.isValid(ai) ? 2 : 0;
-      mStats.relayerState.resize(std::max(cacheId + 1, mStats.relayerState.size()), 0);
-      mStats.relayerState[cacheId] = state;
-    }
+    preUpdateStats(action, record, tStart);
     try {
       if (mState.quitRequested == false) {
 
@@ -981,16 +999,7 @@ bool DataProcessingDevice::tryDispatchComputation(std::vector<DataRelayer::Recor
       ZoneScopedN("error handling");
       mErrorHandling(e, record);
     }
-    for (size_t ai = 0; ai != record.size(); ai++) {
-      auto cacheId = action.slot.index * record.size() + ai;
-      auto state = record.isValid(ai) ? 3 : 0;
-      mStats.relayerState.resize(std::max(cacheId + 1, mStats.relayerState.size()), 0);
-      mStats.relayerState[cacheId] = state;
-    }
-    uint64_t tEnd = uv_hrtime();
-    mStats.lastElapsedTimeMs = tEnd - tStart;
-    mStats.lastTotalProcessedSize = calculateTotalInputRecordSize(record);
-    mStats.lastLatency = calculateInputRecordLatency(record, tStart);
+    postUpdateStats(action, record, tStart);
     // We forward inputs only when we consume them. If we simply Process them,
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
