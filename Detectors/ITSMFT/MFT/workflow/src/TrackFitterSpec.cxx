@@ -95,6 +95,7 @@ void TrackFitterTask::run(ProcessingContext& pc)
   for (const auto& track : tracksCA) {
     auto& temptrack = fittertracks.at(nTracksLTF + nFailedTracksLTF + nTracksCA + nFailedTracksCA);
     convertTrack(track, temptrack, clusters);
+    temptrack.setCA(true);
     mTrackFitter->fit(temptrack, true, true) ? nTracksCA++ : nFailedTracksCA++;
   } // end fit CA tracks
 
@@ -116,7 +117,7 @@ void TrackFitterTask::run(ProcessingContext& pc)
       temptrack.setMCCompLabels(track.getMCCompLabels(), track.getNPoints());
       temptrack.setInvQPtQuadtratic(track.getInvQPtQuadtratic());
       temptrack.setChi2QPtQuadtratic(track.getChi2QPtQuadtratic());
-      //finalMFTtracks.back().printMCCompLabels();
+      temptrack.setCA(track.isCA());
       nTotalTracks++;
     }
   }
