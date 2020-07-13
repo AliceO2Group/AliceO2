@@ -19,9 +19,6 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 
-// Specific detectors specs
-#include "ITSMFTWorkflow/EntropyEncoderSpec.h"
-
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
 

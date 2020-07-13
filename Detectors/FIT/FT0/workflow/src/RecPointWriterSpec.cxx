@@ -8,11 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   FT0RecPointWriterSpec.cxx
+/// @file   RecPointWriterSpec.cxx
 
 #include <vector>
 
-#include "FITWorkflow/FT0RecPointWriterSpec.h"
+#include "FT0Workflow/RecPointWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsFT0/RecPoints.h"
 
@@ -25,7 +25,7 @@ namespace ft0
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
-DataProcessorSpec getFT0RecPointWriterSpec(bool useMC)
+DataProcessorSpec getRecPointWriterSpec(bool useMC)
 {
   using RecPointsType = std::vector<o2::ft0::RecPoints>;
   using ChanDataType = std::vector<o2::ft0::ChannelDataFloat>;

@@ -36,7 +36,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 
 // FIT
-#include "FITWorkflow/FT0RecPointReaderSpec.h"
+#include "FT0Workflow/RecPointReaderSpec.h"
 
 #include <string>
 #include <stdexcept>
@@ -181,7 +181,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
 
   if (useFIT) {
-    specs.emplace_back(o2::ft0::getFT0RecPointReaderSpec(useMC));
+    specs.emplace_back(o2::ft0::getRecPointReaderSpec(useMC));
   }
 
   if (writematching || writecalib) {

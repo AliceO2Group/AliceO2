@@ -13,7 +13,7 @@ o2_add_library(GlobalTrackingWorkflow
                SOURCES src/TrackWriterTPCITSSpec.cxx src/TPCITSMatchingSpec.cxx
                        src/MatchTPCITSWorkflow.cxx src/TrackTPCITSReaderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking O2::ITStracking O2::ITSWorkflow
-                                     O2::TPCWorkflow O2::FITWorkflow
+                                     O2::TPCWorkflow O2::FT0Workflow
                                      O2::ITSMFTWorkflow)
 
 o2_add_executable(match-workflow

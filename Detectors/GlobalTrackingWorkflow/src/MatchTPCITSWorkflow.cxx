@@ -14,7 +14,7 @@
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "TPCWorkflow/TrackReaderSpec.h"
 #include "TPCWorkflow/PublisherSpec.h"
-#include "FITWorkflow/FT0RecPointReaderSpec.h"
+#include "FT0Workflow/RecPointReaderSpec.h"
 #include "GlobalTrackingWorkflow/TPCITSMatchingSpec.h"
 #include "GlobalTrackingWorkflow/MatchTPCITSWorkflow.h"
 #include "GlobalTrackingWorkflow/TrackWriterTPCITSSpec.h"
@@ -54,7 +54,7 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC, bool disableRootInp, 
                                                  useMC));
 
     if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
-      specs.emplace_back(o2::ft0::getFT0RecPointReaderSpec(useMC));
+      specs.emplace_back(o2::ft0::getRecPointReaderSpec(useMC));
     }
   }
   specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(useMC, tpcClusLanes));
