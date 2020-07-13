@@ -48,6 +48,7 @@ struct DataProcessorContext {
   // These are specific of a given context and therefore
   // not shared by threads.
   bool* wasActive = nullptr;
+  bool allDone = false;
 
   // These are pointers to the one owned by the DataProcessingDevice
   // but they are fully reentrant / thread safe and therefore can
@@ -105,6 +106,7 @@ class DataProcessingDevice : public FairMQDevice
 
   // Processing functions are now renetrant
   static void doRun(DataProcessorContext& context);
+  static void doPrepare(DataProcessorContext& context);
   static void handleData(DataProcessorContext& context, FairMQParts&, InputChannelInfo&);
   static bool tryDispatchComputation(DataProcessorContext& context, std::vector<DataRelayer::RecordAction>& completed);
   std::vector<DataProcessorContext> mDataProcessorContexes;
