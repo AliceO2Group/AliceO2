@@ -147,26 +147,33 @@ struct Produces<soa::Table<C...>> : WritingCursor<typename soa::FilterPersistent
 template <typename T>
 struct Spawns {
   using metadata = typename aod::MetadataTrait<T>::metadata;
-  using base_table_t = typename metadata::base_table_t;
   using expression_pack_t = typename metadata::expression_pack_t;
-  using base_metadata = typename aod::MetadataTrait<base_table_t>::metadata;
+  using originals = typename metadata::originals;
 
   constexpr expression_pack_t pack()
   {
     return expression_pack_t{};
   }
 
+  template <typename O>
   InputSpec const base_spec()
   {
+    using o_metadata = typename aod::MetadataTrait<O>::metadata;
     return InputSpec{
-      base_metadata::tableLabel(),
-      header::DataOrigin{base_metadata::origin()},
-      header::DataDescription{base_metadata::description()}};
+      o_metadata::tableLabel(),
+      header::DataOrigin{o_metadata::origin()},
+      header::DataDescription{o_metadata::description()}};
   }
 
-  constexpr const char* base_label()
+  template <typename... Os>
+  std::vector<InputSpec> const base_specs_impl(framework::pack<Os...>)
   {
-    return base_metadata::tableLabel();
+    return {base_spec<Os>()...};
+  }
+
+  std::vector<InputSpec> const base_specs()
+  {
+    return base_specs_impl(originals{});
   }
 
   OutputSpec const spec() const
@@ -948,7 +955,8 @@ struct OutputManager<Spawns<T>> {
 
   static bool prepare(ProcessingContext& pc, Spawns<T>& what)
   {
-    auto original_table = pc.inputs().get<TableConsumer>(what.base_label())->asArrowTable();
+    using metadata = typename std::decay_t<decltype(what)>::metadata;
+    auto original_table = soa::ArrowHelpers::joinTables(extractOriginals(typename metadata::originals{}, pc));
     what.table = std::make_shared<T>(o2::soa::spawner(what.pack(), original_table.get()));
     return true;
   }
@@ -963,6 +971,18 @@ struct OutputManager<Spawns<T>> {
     using metadata = typename std::decay_t<decltype(what)>::metadata;
     eosc.outputs().adopt(Output{metadata::origin(), metadata::description()}, what.asArrowTable());
     return true;
+  }
+
+  template <typename... Os>
+  static std::vector<std::shared_ptr<arrow::Table>> extractOriginals(framework::pack<Os...>, ProcessingContext& pc)
+  {
+    return {extractOriginal<Os>(pc)...};
+  }
+
+  template <typename O>
+  static auto extractOriginal(ProcessingContext& pc)
+  {
+    return pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable();
   }
 };
 
@@ -1057,9 +1077,11 @@ template <typename TABLE>
 struct SpawnManager<Spawns<TABLE>> {
   static bool requestInputs(std::vector<InputSpec>& inputs, Spawns<TABLE>& spawns)
   {
-    auto base_spec = spawns.base_spec();
-    if (std::find_if(inputs.begin(), inputs.end(), [&](InputSpec const& spec) { return base_spec.binding == spec.binding; }) == inputs.end()) {
-      inputs.emplace_back(base_spec);
+    auto base_specs = spawns.base_specs();
+    for (auto& base_spec : base_specs) {
+      if (std::find_if(inputs.begin(), inputs.end(), [&](InputSpec const& spec) { return base_spec.binding == spec.binding; }) == inputs.end()) {
+        inputs.emplace_back(base_spec);
+      }
     }
     return true;
   }
