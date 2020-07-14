@@ -1232,26 +1232,27 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 #define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...) \
   DECLARE_SOA_TABLE_FULL(_Name_, #_Name_, _Origin_, _Description_, __VA_ARGS__);
 
-#define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...) \
-  using _Name_ = o2::soa::JoinBase<_Table_, o2::soa::Table<__VA_ARGS__>>;              \
-                                                                                       \
-  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                 \
-    using table_t = _Name_;                                                            \
-    using base_table_t = _Table_;                                                      \
-    using expression_pack_t = framework::pack<__VA_ARGS__>;                            \
-    static constexpr char const* mLabel = #_Name_;                                     \
-    static constexpr char const mOrigin[4] = _Origin_;                                 \
-    static constexpr char const mDescription[16] = _Description_;                      \
-  };                                                                                   \
-                                                                                       \
-  template <>                                                                          \
-  struct MetadataTrait<_Name_> {                                                       \
-    using metadata = _Name_##Metadata;                                                 \
-  };                                                                                   \
-                                                                                       \
-  template <>                                                                          \
-  struct MetadataTrait<_Name_::unfiltered_iterator> {                                  \
-    using metadata = _Name_##Metadata;                                                 \
+#define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)      \
+  using _Name_ = o2::soa::JoinBase<typename _Table_::table_t, o2::soa::Table<__VA_ARGS__>>; \
+                                                                                            \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                      \
+    using table_t = _Name_;                                                                 \
+    using base_table_t = _Table_;                                                           \
+    using expression_pack_t = framework::pack<__VA_ARGS__>;                                 \
+    using originals = soa::originals_pack_t<_Table_>;                                       \
+    static constexpr char const* mLabel = #_Name_;                                          \
+    static constexpr char const mOrigin[4] = _Origin_;                                      \
+    static constexpr char const mDescription[16] = _Description_;                           \
+  };                                                                                        \
+                                                                                            \
+  template <>                                                                               \
+  struct MetadataTrait<_Name_> {                                                            \
+    using metadata = _Name_##Metadata;                                                      \
+  };                                                                                        \
+                                                                                            \
+  template <>                                                                               \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                                       \
+    using metadata = _Name_##Metadata;                                                      \
   };
 
 #define DECLARE_SOA_EXTENDED_TABLE(_Name_, _Table_, _Description_, ...) \
