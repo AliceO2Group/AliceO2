@@ -27,4 +27,4 @@ BMIN=0
 BMAX=20.
 o2-sim -j 20 -n ${NEV} -g extgen -m PIPE ITS TPC -o sim \
        --extGenFile "aliroot_hijing.macro" --extGenFunc "hijing(${ENERGY}, ${BMIN}, ${BMAX})" \
-       --configKeyValue "Diamond.position[2]=0.1;Diamond.width[2]=0.05"
+       --configKeyValues "Diamond.position[2]=0.1;Diamond.width[2]=0.05"
