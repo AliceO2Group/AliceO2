@@ -19,18 +19,13 @@
 #include "MathUtils/Utils.h"
 #include <cmath>
 
-namespace o2
+namespace o2::aod
 {
-namespace aod
-{
-
 namespace reducedevent
 {
 
 // basic event information
 DECLARE_SOA_COLUMN(Tag, tag, uint64_t);
-
-// TODO: implement additional separate tables for other types of information, e.g. multiplicity estimators, VZERO-TZERO/FIT, ZDC, etc.
 
 } // namespace reducedevent
 
@@ -108,8 +103,6 @@ using ReducedTrackBarrel = ReducedTracksBarrel::iterator;
 using ReducedTrackBarrelCov = ReducedTracksBarrelCov::iterator;
 using ReducedTrackMuon = ReducedTracksMuon::iterator;
 
-} // namespace aod
-
-} // namespace o2
+} // namespace o2::aod
 
 #endif // O2_Analysis_ReducedInfoTables_H_

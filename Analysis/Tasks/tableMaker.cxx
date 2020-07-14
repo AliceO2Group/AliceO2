@@ -27,17 +27,18 @@ using std::endl;
 
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::framework::expressions;
+//using namespace o2::framework::expressions;
+using namespace o2::aod;
 
 struct TableMaker {
 
-  Produces<aod::ReducedEvents> event;
-  Produces<aod::ReducedEventsExtended> eventExtended;
-  Produces<aod::ReducedEventsVtxCov> eventVtxCov;
-  Produces<aod::ReducedTracks> trackBasic;
-  Produces<aod::ReducedTracksBarrel> trackBarrel;
-  Produces<aod::ReducedTracksBarrelCov> trackBarrelCov;
-  //Produces<aod::ReducedTracksMuon> trackMuon;
+  Produces<ReducedEvents> event;
+  Produces<ReducedEventsExtended> eventExtended;
+  Produces<ReducedEventsVtxCov> eventVtxCov;
+  Produces<ReducedTracks> trackBasic;
+  Produces<ReducedTracksBarrel> trackBarrel;
+  Produces<ReducedTracksBarrelCov> trackBarrelCov;
+  //Produces<dq::ReducedTracksMuon> trackMuon;
 
   OutputObj<TH1F> vtxZ{TH1F("vtxZ", "vtx Z", 200, -20.0, 20.0)};
   OutputObj<TH1F> vtxX{TH1F("vtxX", "vtx X", 2000, -1.0, 1.0)};
@@ -84,7 +85,7 @@ struct TableMaker {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const&)
 {
   return WorkflowSpec{
     adaptAnalysisTask<TableMaker>("table-maker")};
