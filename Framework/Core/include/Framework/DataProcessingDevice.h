@@ -116,6 +116,7 @@ class DataProcessingDevice : public FairMQDevice
   void fillContext(DataProcessorContext& context);
 
  private:
+  std::vector<void*> mTaskHandles;
   /// The specification used to create the initial state of this device
   DeviceSpec const& mSpec;
   /// The current internal state of this device.
@@ -156,6 +157,11 @@ class DataProcessingDevice : public FairMQDevice
   std::vector<FairMQRegionInfo> mPendingRegionInfos; /// A list of the region infos not yet notified.
   enum TerminationPolicy mErrorPolicy = TerminationPolicy::WAIT; /// What to do when an error arises
   bool mWasActive = false;                                       /// Whether or not the device was active at last iteration.
+  bool mProcessingRequired = false;
+  TracyLockableN(std::mutex, mGlobalMutex, "global mutex");
+
+ public:
+  decltype(mGlobalMutex)& globalMutex() { return mGlobalMutex; }
 };
 
 } // namespace o2::framework

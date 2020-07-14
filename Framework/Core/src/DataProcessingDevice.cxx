@@ -120,23 +120,34 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
   }
 }
 
+struct TaskHandle {
+  bool busy;
+  size_t taskId;
+  std::vector<DataProcessorContext>* contexes;
+  uv_work_t handle;
+};
+
 // Callback to execute the processing. Notice how the data is
 // is a vector of DataProcessorContext so that we can index the correct
 // one with the thread id. For the moment we simply use the first one.
 void run_callback(uv_work_t* handle)
 {
   ZoneScopedN("run_callback");
-  std::vector<DataProcessorContext>* contexes = (std::vector<DataProcessorContext>*)handle->data;
+  TaskHandle* task = (TaskHandle*)(handle->data);
+  std::vector<DataProcessorContext>* contexes = task->contexes;
   DataProcessorContext& context = contexes->at(0);
-  DataProcessingDevice::doPrepare(context);
+  std::lock_guard<LockableBase(std::mutex)> globalLock(context.device->globalMutex());
   DataProcessingDevice::doRun(context);
   //  FrameMark;
 }
 
 // Once the processing in a thread is done, this is executed on the main thread.
+// This will free a slot and launch an new iteration.
 void run_completion(uv_work_t* handle, int status)
 {
   ZoneScopedN("run_completion");
+  TaskHandle* task = (TaskHandle*)(handle->data);
+  task->busy = false;
 }
 
 // Context for polling
@@ -144,7 +155,8 @@ struct PollerContext {
   char const* name;
   uv_loop_t* loop;
   DataProcessingDevice* device;
-  int fd;
+  FairMQSocket* fsocket;
+  bool* processingRequired;
 };
 
 void on_socket_polled(uv_poll_t* poller, int status, int events)
@@ -154,6 +166,18 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
     case UV_READABLE: {
       ZoneScopedN("socket readable event");
       LOG(debug) << "socket polled UV_READABLE: " << context->name;
+      uint32_t fevents;
+      context->fsocket->Events(&fevents);
+      do {
+        if (fevents != 0) {
+          TracyPlot("events", (int64_t)fevents);
+          *context->processingRequired = true;
+          break;
+        } else {
+          break;
+        }
+        context->fsocket->Events(&fevents);
+      } while (fevents);
     } break;
     case UV_WRITABLE: {
       ZoneScopedN("socket writeable");
@@ -322,7 +346,8 @@ void DataProcessingDevice::InitTask()
       pCtx->name = strdup(x.first.c_str());
       pCtx->loop = mState.loop;
       pCtx->device = this;
-      pCtx->fd = zmq_fd;
+      pCtx->fsocket = &x.second[0].GetSocket();
+      pCtx->processingRequired = &mProcessingRequired;
       poller->data = pCtx;
       uv_poll_init(mState.loop, poller, zmq_fd);
       uv_poll_start(poller, UV_READABLE | UV_DISCONNECT, &on_socket_polled);
@@ -354,10 +379,11 @@ void DataProcessingDevice::InitTask()
         pCtx->name = strdup(x.first.c_str());
         pCtx->loop = mState.loop;
         pCtx->device = this;
-        pCtx->fd = zmq_fd;
+        pCtx->fsocket = &x.second[0].GetSocket();
+        pCtx->processingRequired = &mProcessingRequired;
         poller->data = pCtx;
         uv_poll_init(mState.loop, poller, zmq_fd);
-        uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
+        uv_poll_start(poller, UV_READABLE, &on_socket_polled);
         mState.activeOutputPollers.push_back(poller);
       }
     }
@@ -380,6 +406,10 @@ void DataProcessingDevice::InitTask()
   // required parts in the DataProcessorContext. Eventually we should
   // do so on a per thread basis, with fine grained locks.
   mDataProcessorContexes.resize(1);
+  mTaskHandles.resize(2);
+  for (size_t i = 0; i < mTaskHandles.size(); ++i) {
+    mTaskHandles[i] = malloc(sizeof(TaskHandle));
+  }
   this->fillContext(mDataProcessorContexes.at(0));
 }
 
@@ -449,10 +479,33 @@ bool DataProcessingDevice::ConditionalRun()
   }
   // Synchronous execution of the callbacks. This will be moved in the
   // moved in the on_socket_polled once we have threading in place.
-  uv_work_t handle;
-  handle.data = &mDataProcessorContexes;
-  run_callback(&handle);
-  run_completion(&handle, 0);
+  auto& context = mDataProcessorContexes.at(0);
+  {
+    // No processing while we prepare the slots, and viceversa.
+    std::lock_guard<LockableBase(std::mutex)> globalLock(context.device->globalMutex());
+    DataProcessingDevice::doPrepare(context);
+  }
+  /// Find an empty slot and schedule some work.
+  for (size_t ti = 0; ti < mTaskHandles.size(); ++ti) {
+    auto& task = *(TaskHandle*)mTaskHandles[ti];
+    if (task.busy) {
+      continue;
+    }
+    task.busy = true;
+    task.taskId = ti;
+    task.contexes = &mDataProcessorContexes;
+    task.handle.data = &task;
+    // If the queue has only one entry, we run it without
+    // threading, otherwise we schedule it as a task.
+    if (mTaskHandles.size() == 1) {
+      run_callback(&task.handle);
+      run_completion(&task.handle, 0);
+    } else {
+      uv_queue_work(mState.loop, &task.handle, run_callback, run_completion);
+    }
+    break;
+  }
+
   FrameMark;
   return true;
 }
