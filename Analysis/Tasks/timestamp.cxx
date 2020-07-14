@@ -29,7 +29,7 @@ struct TimestampTask {
   Produces<aod::Timestamps> ts_table;
   RunToTimestamp* converter = nullptr;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
-  Configurable<std::string> path{"ccdb-path", "Test/RunToTimestamp", "path to the ccdb object"};
+  Configurable<std::string> path{"ccdb-path", "Analysis/Core/RunToTimestamp", "path to the ccdb object"};
   Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
 
   void init(o2::framework::InitContext&)
@@ -46,9 +46,11 @@ struct TimestampTask {
   void process(aod::BC const& bc)
   {
     long timestamp = converter->getTimestamp(bc.runNumber());
-    InteractionRecord current(bc.globalBC(), 0);
+    uint16_t currentBC = bc.globalBC() % o2::constants::lhc::LHCMaxBunches;
+    uint32_t currentOrbit = bc.globalBC() / o2::constants::lhc::LHCMaxBunches;
+    InteractionRecord current(currentBC, currentOrbit);
     InteractionRecord initial = o2::raw::HBFUtils::Instance().getFirstIR();
-    timestamp += 1000000 * (current - initial).bc2ns();
+    timestamp += (current - initial).bc2ns() / 1000000;
     ts_table(timestamp);
   }
 };

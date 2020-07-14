@@ -15,6 +15,7 @@ o2_add_library(AnalysisCore
                         src/VarManager.cxx
                         src/HistogramManager.cxx
                         src/RunToTimestamp.cxx
+                        src/TriggerAliases.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel)
 
 o2_target_root_dictionary(AnalysisCore
@@ -24,6 +25,7 @@ o2_target_root_dictionary(AnalysisCore
                       include/Analysis/VarManager.h
                       include/Analysis/HistogramManager.h
                       include/Analysis/RunToTimestamp.h
+                      include/Analysis/TriggerAliases.h
                       include/Analysis/MC.h
               LINKDEF src/AnalysisCoreLinkDef.h)
 

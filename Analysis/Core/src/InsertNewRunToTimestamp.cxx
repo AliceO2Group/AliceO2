@@ -27,7 +27,7 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
   options.add_options()(
     "run,r", bpo::value<uint>()->required(), "Run number to use")(
     "timestamp,t", bpo::value<long>()->required(), "Timestamp to use equivalent to the run number")(
-    "path,p", bpo::value<std::string>()->default_value("Test/RunToTimestamp"), "Path to the object in the CCDB repository")(
+    "path,p", bpo::value<std::string>()->default_value("Analysis/Core/RunToTimestamp"), "Path to the object in the CCDB repository")(
     "url,u", bpo::value<std::string>()->default_value("http://ccdb-test.cern.ch:8080"), "URL of the CCDB database")(
     "start,s", bpo::value<long>()->default_value(0), "Start timestamp of object validity")(
     "stop,S", bpo::value<long>()->default_value(4108971600000), "Stop timestamp of object validity")(
