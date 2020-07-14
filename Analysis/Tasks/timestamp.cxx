@@ -48,7 +48,7 @@ struct TimestampTask {
     long timestamp = converter->getTimestamp(bc.runNumber());
     uint16_t currentBC = bc.globalBC() % o2::constants::lhc::LHCMaxBunches;
     uint32_t currentOrbit = bc.globalBC() / o2::constants::lhc::LHCMaxBunches;
-    InteractionRecord current(currentBC,currentOrbit);
+    InteractionRecord current(currentBC, currentOrbit);
     InteractionRecord initial = o2::raw::HBFUtils::Instance().getFirstIR();
     timestamp += (current - initial).bc2ns() / 1000000;
     ts_table(timestamp);
