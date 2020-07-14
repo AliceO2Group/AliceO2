@@ -17,6 +17,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/EndOfStreamContext.h"
+#include "Framework/Tracing.h"
 
 #include <options/FairMQProgOptions.h>
 
@@ -41,6 +42,7 @@ struct CommonMessageBackendsHelpers {
   static ServiceProcessingCallback sendCallback()
   {
     return [](ProcessingContext& ctx, void* service) {
+      ZoneScopedN("send message callback");
       T* context = reinterpret_cast<T*>(service);
       auto& device = ctx.services().get<RawDeviceService>();
       DataProcessor::doSend(*device.device(), *context);
