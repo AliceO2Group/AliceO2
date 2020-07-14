@@ -1,0 +1,103 @@
+// configures a AliGenAmpt class from AliRoot
+//   usage: o2sim -g extgen --extGenFile aliroot_ampt.macro
+// options:                 --extGenFunc aliroot_ampt(5020., 0., 20.)
+
+/// \author R+Preghenella - October 2018
+
+R__LOAD_LIBRARY(libAMPT)
+R__LOAD_LIBRARY(libTAmpt)
+
+class AliRoot_AMPT : public o2::eventgen::GeneratorTGenerator
+{
+
+public:
+
+  AliRoot_AMPT() {
+
+    // instance and configure AMPT
+    AliGenAmpt *genHi = new AliGenAmpt(-1);
+    genHi->SetEnergyCMS(5020.);
+    genHi->SetReferenceFrame("CMS");
+    genHi->SetProjectile("A", 208, 82);
+    genHi->SetTarget("A", 208, 82);
+    genHi->SetIsoft(1);  //1: defaul - 4: string melting
+    genHi->SetStringFrag(0.5, 0.9); //Lund string frgmentation parameters
+    genHi->SetPtHardMin(3);
+    genHi->SetImpactParameterRange(0., 20.);
+    
+    // Xmu = 3.2 fm^-1 and as = 0.33 ==> sigma_{partonic} = 1.5mb
+    // Ntmax = 150
+    // v_2{2} = 0.102105 +/- 0.000266894
+    // v_2{4} = 0.0829477 +/- 0.00106158
+    
+    genHi->SetNtMax(150);         // NTMAX: number of timesteps (D=150)
+    genHi->SetXmu(3.2264);        // parton screening mass in fm^(-1) (D=3.2264d0)
+    
+    genHi->SetJetQuenching(0);  // enable jet quenching
+    genHi->SetShadowing(1);     // enable shadowing
+    //  genHi->SetDecaysOff(1);     // neutral pion and heavy particle decays switched off
+    genHi->SetSpectators(0);    // track spectators
+    //Boost into LHC lab frame
+    genHi->SetBoostLHC(1);
+    //  genHi->Init();
+    genHi->SetRandomReactionPlane(kTRUE);
+
+
+    // save pointers to objects
+    mGenAMPT = genHi;
+  };
+
+  ~AliRoot_AMPT() {
+    delete mGenAMPT;
+  }
+
+  bool Init() {
+
+    // initialize AMPT
+    mGenAMPT->Init();
+    
+    // configure TGenerator interface
+    setMomentumUnit(1.);        // [GeV/c]
+    setEnergyUnit(1.);          // [GeV/c]
+    setPositionUnit(0.1);       // [cm]
+    setTimeUnit(3.3356410e-12); // [s]
+    setTGenerator(mGenAMPT->GetMC());
+
+    // initialise TGenerator interface
+    return o2::eventgen::GeneratorTGenerator::Init();
+  }
+
+  bool generateEvent() {
+    // set a random event plane
+    auto theAMPT = (TAmpt *)mGenAMPT->GetMC();
+    TRandom *r = AliAmptRndm::GetAmptRandom();
+    theAMPT->SetReactionPlaneAngle(TMath::TwoPi()*r->Rndm());
+
+    // generate the event
+    return o2::eventgen::GeneratorTGenerator::generateEvent();
+  }
+
+  void updateHeader(FairMCEventHeader* eventHeader) {
+    auto theAMPT = (TAmpt *)mGenAMPT->GetMC();
+    auto impactB = theAMPT->GetHINT1(19);
+    auto evPlane = theAMPT->GetReactionPlaneAngle();    
+    eventHeader->SetB(impactB);
+    eventHeader->SetRotX(0.);
+    eventHeader->SetRotY(0.);
+    eventHeader->SetRotZ(evPlane);
+    std::cout << " Updated the event header: impactB = " << impactB << ", evPlane = " << evPlane << std::endl;
+  };
+  
+  AliGenAmpt *mGenAMPT = nullptr;
+};
+
+
+FairGenerator*
+ampt(double energy = 5020., double bMin = 0., double bMax = 20., int isoft = 1)
+{
+  auto gen = new AliRoot_AMPT();
+  gen->mGenAMPT->SetEnergyCMS(energy);
+  gen->mGenAMPT->SetImpactParameterRange(bMin, bMax);
+  gen->mGenAMPT->SetIsoft(isoft);
+  return gen;
+}
