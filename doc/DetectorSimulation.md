@@ -92,6 +92,7 @@ Important parameters influencing the transport simulation are:
 | Diamond | Parameter allowing to set the interaction vertex location and the spread/width. Is used in all event generators. |
 | Pythia6 | Parameters that influence the pythia6 generator. |
 | Pythia8 | Parameters that influence the pythia8 generator. |
+| HepMC | Parameters that influence the HepMC generator. |
 | TriggerParticle | Parameters influencing the trigger mechanism in particle generators. |
 
 Detectors may also have parameters influencing various pieces such geometry layout, material composition etc.
@@ -258,7 +259,7 @@ This functionality might be of use for users who want to be able to steer the ev
 An example of a configuration macro is this one
 
 ```
-//   usage: o2sim -g pythia8 --configKeyValue "Pythia8.hooksFileName=pythia8_userhooks_charm.C"
+//   usage: o2sim -g pythia8 --configKeyValues "Pythia8.hooksFileName=pythia8_userhooks_charm.C"
 
 #include "Generators/Trigger.h"
 #include "Pythia8/Pythia.h"

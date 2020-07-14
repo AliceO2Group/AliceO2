@@ -16,10 +16,6 @@ if(pythia_FOUND)
   set(pythiaTarget MC::Pythia)
 endif()
 
-if(HepMC_FOUND)
-  set(hepmcTarget MC::HepMC)
-endif()
-
 if(HepMC3_FOUND)
   set(hepmcTarget MC::HepMC3)
 endif()
@@ -43,8 +39,8 @@ o2_add_library(Generators
                        $<$<BOOL:${pythia_FOUND}>:src/DecayerPythia8.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8Param.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/DecayerPythia8Param.cxx>
-                       $<$<BOOL:${HepMC_FOUND}>:src/GeneratorHepMC.cxx>
                        $<$<BOOL:${HepMC3_FOUND}>:src/GeneratorHepMC.cxx>
+                       $<$<BOOL:${HepMC3_FOUND}>:src/GeneratorHepMCParam.cxx>
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig O2::CommonUtils
                                      O2::SimulationDataFormat ${pythia6Target} ${pythiaTarget} ${hepmcTarget}
                                      FairRoot::Gen
@@ -56,11 +52,6 @@ endif()
 
 if(pythia_FOUND)
   target_compile_definitions(${targetName} PUBLIC GENERATORS_WITH_PYTHIA8)
-endif()
-
-if(HepMC_FOUND)
-  target_compile_definitions(${targetName} PUBLIC GENERATORS_WITH_HEPMC3)
-  target_compile_definitions(${targetName} PUBLIC GENERATORS_WITH_HEPMC3_DEPRECATED)
 endif()
 
 if(HepMC3_FOUND)
@@ -95,12 +86,9 @@ if(pythia_FOUND)
               include/Generators/GeneratorFactory.h)
 endif()
 
-if(HepMC_FOUND)
-  list(APPEND headers include/Generators/GeneratorHepMC.h)
-endif()
-
 if(HepMC3_FOUND)
   list(APPEND headers include/Generators/GeneratorHepMC.h)
+  list(APPEND headers include/Generators/GeneratorHepMCParam.h)
 endif()
 
 o2_target_root_dictionary(Generators HEADERS ${headers})

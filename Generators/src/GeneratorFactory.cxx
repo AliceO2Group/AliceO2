@@ -28,6 +28,7 @@
 #include <Generators/GeneratorTGenerator.h>
 #ifdef GENERATORS_WITH_HEPMC3
 #include <Generators/GeneratorHepMC.h>
+#include <Generators/GeneratorHepMCParam.h>
 #endif
 #include <Generators/BoxGunParam.h>
 #include <Generators/TriggerParticle.h>
@@ -136,9 +137,12 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 #ifdef GENERATORS_WITH_HEPMC3
   } else if (genconfig.compare("hepmc") == 0) {
     // external HepMC file
+    auto& param = GeneratorHepMCParam::Instance();
+    LOG(INFO) << "Init \'GeneratorHepMC\' with following parameters";
+    LOG(INFO) << param;
     auto hepmcGen = new o2::eventgen::GeneratorHepMC();
-    hepmcGen->setFileName(conf.getHepMCFileName());
-    hepmcGen->setVersion(2);
+    hepmcGen->setFileName(param.fileName);
+    hepmcGen->setVersion(param.version);
     primGen->AddGenerator(hepmcGen);
 #endif
 #ifdef GENERATORS_WITH_PYTHIA6

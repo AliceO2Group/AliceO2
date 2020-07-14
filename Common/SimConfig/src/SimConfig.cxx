@@ -31,8 +31,6 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")(
     "extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"),
     "name of kinematics file for event generator from file (when applicable)")(
-    "HepMCFile", bpo::value<std::string>()->default_value("kinematics.hepmc"),
-    "name of HepMC file for event generator from file (when applicable)")(
     "extGenFile", bpo::value<std::string>()->default_value("extgen.C"),
     "name of .C file with definition of external event generator")(
     "extGenFunc", bpo::value<std::string>()->default_value(""),
@@ -94,7 +92,6 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mTrigger = vm["trigger"].as<std::string>();
   mConfigData.mNEvents = vm["nEvents"].as<unsigned int>();
   mConfigData.mExtKinFileName = vm["extKinFile"].as<std::string>();
-  mConfigData.mHepMCFileName = vm["HepMCFile"].as<std::string>();
   mConfigData.mExtGenFileName = vm["extGenFile"].as<std::string>();
   mConfigData.mExtGenFuncName = vm["extGenFunc"].as<std::string>();
   mConfigData.mExtTrgFileName = vm["extTrgFile"].as<std::string>();

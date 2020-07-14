@@ -10,28 +10,8 @@
 
 /// \author R+Preghenella - August 2017
 
-#ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
-
 #include "Generators/GeneratorHepMC.h"
-#include "HepMC/ReaderAscii.h"
-#include "HepMC/ReaderAsciiHepMC2.h"
-#include "HepMC/GenEvent.h"
-#include "HepMC/GenParticle.h"
-#include "HepMC/GenVertex.h"
-#include "HepMC/FourVector.h"
-#include "TParticle.h"
-
-/** 
-    HepMC/Errors.h of HepMC3 defines DEBUG as a logging macro, and this interferes with FairLogger.
-    Undefining it for the time being, while thinking about a possible solution for this issue.
-**/
-#ifdef DEBUG
-#undef DEBUG
-#endif
-
-#else
-
-#include "Generators/GeneratorHepMC.h"
+#include "Generators/GeneratorHepMCParam.h"
 #include "HepMC3/ReaderAscii.h"
 #include "HepMC3/ReaderAsciiHepMC2.h"
 #include "HepMC3/GenEvent.h"
@@ -39,8 +19,7 @@
 #include "HepMC3/GenVertex.h"
 #include "HepMC3/FourVector.h"
 #include "TParticle.h"
-
-#endif
+#include "TSystem.h"
 
 #include "FairLogger.h"
 #include "FairPrimaryGenerator.h"
@@ -59,11 +38,7 @@ GeneratorHepMC::GeneratorHepMC()
 {
   /** default constructor **/
 
-#ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
-  mEvent = new HepMC::GenEvent();
-#else
   mEvent = new HepMC3::GenEvent();
-#endif
   mInterface = reinterpret_cast<void*>(mEvent);
   mInterfaceName = "hepmc";
 }
@@ -75,11 +50,7 @@ GeneratorHepMC::GeneratorHepMC(const Char_t* name, const Char_t* title)
 {
   /** constructor **/
 
-#ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
-  mEvent = new HepMC::GenEvent();
-#else
   mEvent = new HepMC3::GenEvent();
-#endif
   mInterface = reinterpret_cast<void*>(mEvent);
   mInterfaceName = "hepmc";
 }
@@ -112,11 +83,7 @@ Bool_t GeneratorHepMC::generateEvent()
   if (mReader->failed())
     return kFALSE;
   /** set units to desired output **/
-#ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
-  mEvent->set_units(HepMC::Units::GEV, HepMC::Units::MM);
-#else
   mEvent->set_units(HepMC3::Units::GEV, HepMC3::Units::MM);
-#endif
 
   /** success **/
   return kTRUE;
@@ -180,9 +147,10 @@ Bool_t GeneratorHepMC::Init()
   Generator::Init();
 
   /** open file **/
-  mStream.open(mFileName);
+  std::string filename = gSystem->ExpandPathName(mFileName.c_str());
+  mStream.open(filename);
   if (!mStream.is_open()) {
-    LOG(FATAL) << "Cannot open input file: " << mFileName << std::endl;
+    LOG(FATAL) << "Cannot open input file: " << filename << std::endl;
     return kFALSE;
   }
 
@@ -190,18 +158,10 @@ Bool_t GeneratorHepMC::Init()
   switch (mVersion) {
     case 2:
       mStream.close();
-#ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
-      mReader = new HepMC::ReaderAsciiHepMC2(mFileName);
-#else
-      mReader = new HepMC3::ReaderAsciiHepMC2(mFileName);
-#endif
+      mReader = new HepMC3::ReaderAsciiHepMC2(filename);
       break;
     case 3:
-#ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
-      mReader = new HepMC::ReaderAscii(mStream);
-#else
       mReader = new HepMC3::ReaderAscii(mStream);
-#endif
       break;
     default:
       LOG(FATAL) << "Unsupported HepMC version: " << mVersion << std::endl;

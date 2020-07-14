@@ -15,5 +15,4 @@ env -i HOME="$HOME" USER="$USER" PATH="/bin:/usr/bin:/usr/local/bin" \
 # PART b)
 NEV=1000
 o2-sim -j 20 -n ${NEV} -g hepmc -m PIPE ITS -o sim \
-       --HepMCFile starlight.hepmc \
-       --configKeyValue "Diamond.position[2]=0.1;Diamond.width[2]=0.05"
+       --configKeyValues "HepMC.fileName=starlight.hepmc;HepMC.version=2;Diamond.position[2]=0.1;Diamond.width[2]=0.05"
