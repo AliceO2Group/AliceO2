@@ -1232,26 +1232,27 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 #define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...) \
   DECLARE_SOA_TABLE_FULL(_Name_, #_Name_, _Origin_, _Description_, __VA_ARGS__);
 
-#define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...) \
-  using _Name_ = o2::soa::JoinBase<_Table_, o2::soa::Table<__VA_ARGS__>>;              \
-                                                                                       \
-  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                 \
-    using table_t = _Name_;                                                            \
-    using base_table_t = _Table_;                                                      \
-    using expression_pack_t = framework::pack<__VA_ARGS__>;                            \
-    static constexpr char const* mLabel = #_Name_;                                     \
-    static constexpr char const mOrigin[4] = _Origin_;                                 \
-    static constexpr char const mDescription[16] = _Description_;                      \
-  };                                                                                   \
-                                                                                       \
-  template <>                                                                          \
-  struct MetadataTrait<_Name_> {                                                       \
-    using metadata = _Name_##Metadata;                                                 \
-  };                                                                                   \
-                                                                                       \
-  template <>                                                                          \
-  struct MetadataTrait<_Name_::unfiltered_iterator> {                                  \
-    using metadata = _Name_##Metadata;                                                 \
+#define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)      \
+  using _Name_ = o2::soa::JoinBase<typename _Table_::table_t, o2::soa::Table<__VA_ARGS__>>; \
+                                                                                            \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                      \
+    using table_t = _Name_;                                                                 \
+    using base_table_t = _Table_;                                                           \
+    using expression_pack_t = framework::pack<__VA_ARGS__>;                                 \
+    using originals = soa::originals_pack_t<_Table_>;                                       \
+    static constexpr char const* mLabel = #_Name_;                                          \
+    static constexpr char const mOrigin[4] = _Origin_;                                      \
+    static constexpr char const mDescription[16] = _Description_;                           \
+  };                                                                                        \
+                                                                                            \
+  template <>                                                                               \
+  struct MetadataTrait<_Name_> {                                                            \
+    using metadata = _Name_##Metadata;                                                      \
+  };                                                                                        \
+                                                                                            \
+  template <>                                                                               \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                                       \
+    using metadata = _Name_##Metadata;                                                      \
   };
 
 #define DECLARE_SOA_EXTENDED_TABLE(_Name_, _Table_, _Description_, ...) \
@@ -1456,43 +1457,40 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
   arrow::TableBatchReader reader(*atable);
   std::shared_ptr<arrow::RecordBatch> batch;
   arrow::ArrayVector v;
-  std::vector<arrow::ArrayVector> chunks(sizeof...(C));
+  std::array<arrow::ArrayVector, sizeof...(C)> chunks;
 
   auto projectors = framework::expressions::createProjectors(columns, atable->schema());
   while (true) {
     auto s = reader.ReadNext(&batch);
     if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot read batches from table {}", s.ToString()));
+      throw std::runtime_error(fmt::format("Cannot read batches from table: {}", s.ToString()));
     }
     if (batch == nullptr) {
       break;
     }
     s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
     if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot apply projector {}", s.ToString()));
+      throw std::runtime_error(fmt::format("Cannot apply projector: {}", s.ToString()));
     }
     for (auto i = 0u; i < sizeof...(C); ++i) {
       chunks[i].emplace_back(v.at(i));
     }
   }
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays(sizeof...(C));
+  std::array<std::shared_ptr<arrow::ChunkedArray>, sizeof...(C)> arrays;
   for (auto i = 0u; i < sizeof...(C); ++i) {
     arrays[i] = std::make_shared<arrow::ChunkedArray>(chunks[i]);
   }
 
   auto extra_schema = o2::soa::createSchemaFromColumns(columns);
-  std::vector<std::shared_ptr<arrow::Field>> new_fields;
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> new_columns;
-  auto original_columns = atable->columns();
   auto original_fields = atable->schema()->fields();
-  std::copy(original_fields.begin(), original_fields.end(), std::back_inserter(new_fields));
-  std::copy(original_columns.begin(), original_columns.end(), std::back_inserter(new_columns));
-  for (auto i = 0u; i < framework::pack_size(columns); ++i) {
-    new_columns.push_back(arrays[i]);
+  auto original_columns = atable->columns();
+  std::vector<std::shared_ptr<arrow::Field>> new_fields(original_fields);
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> new_columns(original_columns);
+  for (auto i = 0u; i < sizeof...(C); ++i) {
     new_fields.emplace_back(extra_schema->field(i));
+    new_columns.push_back(arrays[i]);
   }
-  auto new_schema = std::make_shared<arrow::Schema>(new_fields);
-  return arrow::Table::Make(new_schema, new_columns);
+  return arrow::Table::Make(std::make_shared<arrow::Schema>(new_fields), new_columns);
 }
 
 } // namespace o2::soa
