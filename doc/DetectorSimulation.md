@@ -451,6 +451,7 @@ Other helpful resources are the scripts used for regression testing in [prodtest
 | Example               | Short Description                                                                      |
 | --------------------- | -------------------------------------------------------------------------------------- |
 | [AliRoot_Hijing](../run/SimExamples/AliRoot_Hijing) | Example showing how to use Hijing from AliRoot for event generation |
+| [AliRoot_AMPT](../run/SimExamples/AliRoot_AMPT) | Example showing how to use AMPT from AliRoot for event generation |
 | [Adaptive_Pythia8](../run/SimExamples/Adaptive_Pythia8) | Complex example showing **generator configuration for embedding** that cat adapt the response based on the background event |
 | [Signal_ImpactB](../run/SimExamples/Signal_ImpactB) | Example showing **generator configuration for embedding** that cat adapt to the impact parameter of the background event |
 | [HepMC_STARlight](../run/SimExamples/HepMC_STARlight) | Simple example showing **generator configuration** that runs a standalone `STARlight` generation that couples to the `o2` via a `HepMC` file |
