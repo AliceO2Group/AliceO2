@@ -14,6 +14,7 @@
 // Author: Nicolo' Jacazio on 2020-06-22
 
 #include "Analysis/RunToTimestamp.h"
+#include <FairLogger.h>
 
 ClassImp(RunToTimestamp);
 

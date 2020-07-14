@@ -17,14 +17,13 @@
 #define RunToTimestamp_H
 
 #include <map>
-#include <FairLogger.h>
-#include "TNamed.h"
+#include <Rtypes.h>
 
-class RunToTimestamp : public TNamed
+class RunToTimestamp
 {
  public:
   RunToTimestamp() = default;
-  ~RunToTimestamp() final = default;
+  ~RunToTimestamp() = default;
 
   /// Checks if the converter has a particular run
   bool Has(uint runNumber) const { return mMap.count(runNumber); }
@@ -43,7 +42,7 @@ class RunToTimestamp : public TNamed
 
  private:
   std::map<uint, long> mMap;
-  ClassDef(RunToTimestamp, 1) // converter class between run number and timestamp
+  ClassDefNV(RunToTimestamp, 1) // converter class between run number and timestamp
 };
 
 #endif
