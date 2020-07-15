@@ -120,18 +120,18 @@ int ReadConfiguration(int argc, char** argv)
 #ifndef _WIN32
   setlocale(LC_ALL, "");
   setlocale(LC_NUMERIC, "");
-  if (configStandalone.affinity != -1) {
+  if (configStandalone.cpuAffinity != -1) {
     cpu_set_t mask;
     CPU_ZERO(&mask);
-    CPU_SET(configStandalone.affinity, &mask);
+    CPU_SET(configStandalone.cpuAffinity, &mask);
 
-    printf("Setting affinitiy to restrict on CPU core %d\n", configStandalone.affinity);
+    printf("Setting affinitiy to restrict on CPU core %d\n", configStandalone.cpuAffinity);
     if (0 != sched_setaffinity(0, sizeof(mask), &mask)) {
       printf("Error setting CPU affinity\n");
       return 1;
     }
   }
-  if (configStandalone.fifo) {
+  if (configStandalone.fifoScheduler) {
     printf("Setting FIFO scheduler\n");
     sched_param param;
     sched_getparam(0, &param);
@@ -149,11 +149,11 @@ int ReadConfiguration(int argc, char** argv)
   }
 
 #else
-  if (configStandalone.affinity != -1) {
+  if (configStandalone.cpuAffinity != -1) {
     printf("Affinity setting not supported on Windows\n");
     return 1;
   }
-  if (configStandalone.fifo) {
+  if (configStandalone.fifoScheduler) {
     printf("FIFO Scheduler setting not supported on Windows\n");
     return 1;
   }
@@ -357,7 +357,7 @@ int SetupReconstruction()
   if (configStandalone.OMPThreads != -1) {
     devProc.nThreads = configStandalone.OMPThreads;
   }
-  devProc.deviceNum = configStandalone.cudaDevice;
+  devProc.deviceNum = configStandalone.deviceNum;
   devProc.forceMemoryPoolSize = (configStandalone.forceMemorySize == 1 && configStandalone.eventDisplay) ? 2 : configStandalone.forceMemorySize;
   devProc.forceHostMemoryPoolSize = configStandalone.forceHostMemorySize;
   devProc.debugLevel = configStandalone.DebugLevel;

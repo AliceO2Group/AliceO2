@@ -20,12 +20,13 @@
 
 #ifdef QCONFIG_PARSE
 
-#define QCONFIG_COMPARE(optname, optnameshort)                                                                                                                                                    \
-  (thisoption[0] == '-' && ((preoptshort == 0 && thisoption[1] == optnameshort && thisoption[2] == 0) || (thisoption[1] == '-' && strlen(preopt) == 0 && strcmp(&thisoption[2], optname) == 0) || \
-                            (preoptshort != 0 && thisoption[1] == preoptshort && thisoption[2] == optnameshort && thisoption[3] == 0) || (thisoption[1] == '-' && strlen(preopt) && strncmp(&thisoption[2], preopt, strlen(preopt)) == 0 && strcmp(&thisoption[2 + strlen(preopt)], optname) == 0)))
+#define QCONFIG_COMPARE(name, optname, optnameshort)                                                                                                                                           \
+  (thisoption[0] == '-' && ((thisoption[1] == '-' && optname[0] != 0 && strcmp(&thisoption[2], optname) == 0) ||                                                                               \
+                            (preoptshort == 0 && thisoption[1] == optnameshort && thisoption[2] == 0) || (thisoption[1] == '-' && strlen(preopt) == 0 && strcmp(&thisoption[2], name) == 0) || \
+                            (preoptshort != 0 && thisoption[1] == preoptshort && thisoption[2] == optnameshort && thisoption[3] == 0) || (thisoption[1] == '-' && strlen(preopt) && strncmp(&thisoption[2], preopt, strlen(preopt)) == 0 && strcmp(&thisoption[2 + strlen(preopt)], name) == 0)))
 
 #define AddOption(name, type, default, optname, optnameshort, ...)                             \
-  else if (QCONFIG_COMPARE(optname, optnameshort))                                             \
+  else if (QCONFIG_COMPARE(#name, optname, optnameshort))                                      \
   {                                                                                            \
     int retVal = qConfigType<type>::qAddOption(tmp.name, i, argv, argc, default, __VA_ARGS__); \
     if (retVal) {                                                                              \
@@ -34,7 +35,7 @@
   }
 
 #define AddOptionSet(name, type, value, optname, optnameshort, ...)                                      \
-  else if (QCONFIG_COMPARE(optname, optnameshort))                                                       \
+  else if (QCONFIG_COMPARE(optname, "", optnameshort))                                                   \
   {                                                                                                      \
     int retVal = qConfigType<type>::qAddOption(tmp.name, i, nullptr, 0, value, __VA_ARGS__, set(value)); \
     if (retVal) {                                                                                        \
@@ -43,7 +44,7 @@
   }
 
 #define AddOptionVec(name, type, optname, optnameshort, ...)                             \
-  else if (QCONFIG_COMPARE(optname, optnameshort))                                       \
+  else if (QCONFIG_COMPARE(#name, optname, optnameshort))                                \
   {                                                                                      \
     int retVal = qConfigType<type>::qAddOptionVec(tmp.name, i, argv, argc, __VA_ARGS__); \
     if (retVal) {                                                                        \
@@ -52,7 +53,7 @@
   }
 
 #define AddOptionArray(name, type, count, default, optname, optnameshort, ...)                    \
-  else if (QCONFIG_COMPARE(optname, optnameshort))                                                \
+  else if (QCONFIG_COMPARE(#name, optname, optnameshort))                                         \
   {                                                                                               \
     int retVal = qConfigType<type>::qAddOptionArray(tmp.name, count, i, argv, argc, __VA_ARGS__); \
     if (retVal) {                                                                                 \
@@ -89,24 +90,24 @@
   }                          \
   }
 
-#define AddHelp(cmd, cmdshort)               \
-  else if (QCONFIG_COMPARE(cmd, cmdshort))   \
-  {                                          \
-    const char* arg = getArg(i, argv, argc); \
-    qConfigHelp(arg ? arg : preopt);         \
-    return (qcrHelp);                        \
+#define AddHelp(cmd, cmdshort)                 \
+  else if (QCONFIG_COMPARE(cmd, "", cmdshort)) \
+  {                                            \
+    const char* arg = getArg(i, argv, argc);   \
+    qConfigHelp(arg ? arg : preopt);           \
+    return (qcrHelp);                          \
   }
 
-#define AddHelpAll(cmd, cmdshort)            \
-  else if (QCONFIG_COMPARE(cmd, cmdshort))   \
-  {                                          \
-    const char* arg = getArg(i, argv, argc); \
-    qConfigHelp(arg ? arg : "", true);       \
-    return (qcrHelp);                        \
+#define AddHelpAll(cmd, cmdshort)              \
+  else if (QCONFIG_COMPARE(cmd, "", cmdshort)) \
+  {                                            \
+    const char* arg = getArg(i, argv, argc);   \
+    qConfigHelp(arg ? arg : "", true);         \
+    return (qcrHelp);                          \
   }
 
 #define AddCommand(cmd, cmdshort, command, help) \
-  else if (QCONFIG_COMPARE(cmd, cmdshort))       \
+  else if (QCONFIG_COMPARE(cmd, "", cmdshort))   \
   {                                              \
     if (command) {                               \
       return (qcrCmd);                           \
@@ -114,7 +115,7 @@
   }
 
 #define AddShortcut(cmd, cmdshort, forward, help, ...)             \
-  else if (QCONFIG_COMPARE(cmd, cmdshort))                         \
+  else if (QCONFIG_COMPARE(cmd, "", cmdshort))                     \
   {                                                                \
     const char* options[] = {"", __VA_ARGS__, nullptr};            \
     const int nOptions = sizeof(options) / sizeof(options[0]) - 1; \
