@@ -329,12 +329,10 @@ o2::framework::ServiceSpec CommonServices::tracingSpec()
     noConfiguration(),
     [](ProcessingContext&, void* service) {
       TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_USER_CALLBACK);
       t->processingCount += 1;
     },
     [](ProcessingContext&, void* service) {
       TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
       t->processingCount += 1;
     },
     nullptr,

@@ -94,23 +94,20 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mServiceRegistry{registry},
     mErrorCount{0}
 {
-  StateMonitoring<DataProcessingStatus>::start();
-
   /// FIXME: move erro handling to a service?
   if (mError != nullptr) {
     mErrorHandling = [& errorCallback = mError,
                       &serviceRegistry = mServiceRegistry](std::exception& e, InputRecord& record) {
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
+      ZoneScopedN("Error handling");
       LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
       serviceRegistry.get<Monitoring>().send({1, "error"});
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
     };
   } else {
     mErrorHandling = [& errorPolicy = mErrorPolicy,
                       &serviceRegistry = mServiceRegistry](std::exception& e, InputRecord& record) {
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_ERROR_CALLBACK);
+      ZoneScopedN("Error handling");
       LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
       serviceRegistry.get<Monitoring>().send({1, "error"});
       switch (errorPolicy) {
@@ -119,7 +116,6 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
         default:
           break;
       }
-      StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
     };
   }
 }
@@ -584,14 +580,6 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, FairMQParts
   // simple lambdas for each of the steps I am planning to have.
   assert(!context.spec->inputs.empty());
 
-  // These duplicate references are created so that each function
-  // does not need to know about the whole class state, but I can
-  // fine grain control what is exposed at each state.
-  StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-  auto metricFlusher = make_scope_guard([]() noexcept {
-    StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-  });
-
   enum struct InputType {
     Invalid,
     Data,
@@ -731,15 +719,6 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // move these to some thread local store and the rest of the lambdas
   // should work just fine.
   std::vector<MessageSet> currentSetOfInputs;
-
-  // These duplicate references are created so that each function
-  // does not need to know about the whole class state, but I can
-  // fine grain control what is exposed at each state.
-  // FIXME: I should use a different id for this state.
-  StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-  auto metricFlusher = make_scope_guard([]() noexcept -> void {
-    StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_OVERHEAD);
-  });
 
   auto reportError = [& registry = *context.registry, &context](const char* message) {
     context.errorCount++;
