@@ -183,8 +183,7 @@ void Digitizer::generateNoiseDigits()
 
   o2::mch::mapping::forEachDetectionElement([& digits = this->mDigits, &normProbNoise = this->mNormProbNoise,
                                              &eventTime = this->mEventTime, &eventID = this->mEventID,
-                                             &srcID = this->mSrcID, &mcTruthOutputContainer = this->mMCTruthOutputContainer,
-                                             &gRandom](int detID) {
+                                             &srcID = this->mSrcID, &mcTruthOutputContainer = this->mMCTruthOutputContainer](int detID) {
     auto& seg = segmentation(detID);
     auto nPads = seg.nofPads();
     auto nNoisyPadsAv = (float)nPads * normProbNoise;
