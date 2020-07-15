@@ -212,7 +212,7 @@ void DigitizationContext::fillQED(std::string_view QEDprefix, std::vector<o2::In
   auto t = (TTree*)f.Get("o2sim");
   if (!t) {
     LOG(ERROR) << "No QED kinematics found";
-    return;
+    throw std::runtime_error("No QED kinematics found");
   }
   auto numberQEDevents = t->GetEntries();
   int eventID = 0;
