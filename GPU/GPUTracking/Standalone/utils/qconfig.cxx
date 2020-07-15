@@ -258,7 +258,13 @@ struct qConfigType {
       argBuffer[argBufferPos++] = preoptshort == 0 ? '-' : preoptshort;
       argBuffer[argBufferPos++] = optnameshort;
     }
-    std::cout << "\t" << name << ": " << argBuffer << (optnameshort == 0 ? "" : arguments) << "--" << preopt << optname << (optnameshort == 0 ? arguments : ", ") << "type: " << type;
+    std::cout << "\t" << name << ": " << argBuffer << (optnameshort == 0 ? "" : arguments) << "--";
+    if (optname[0] == 0) {
+      std::cout << preopt << name;
+    } else {
+      std::cout << optname;
+    }
+    std::cout << (optnameshort == 0 ? arguments : ", ") << "type: " << type;
     if (optionType == 0) {
       std::cout << ", default: " << def;
     }
