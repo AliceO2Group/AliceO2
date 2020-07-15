@@ -204,8 +204,9 @@ void Digitizer::storeBC(BCCache& bc,
     auto channel_begin = channel_end;
     channel_end = std::find_if(channel_begin, particles.end(),
                                [ipmt](BCCache::particle const& p) { return p.hit_ch != ipmt; });
-    if (channel_end - channel_begin < mParameters.mAmp_trsh)
+    if (channel_end - channel_begin < mParameters.mAmp_trsh) {
       continue;
+    }
     channel_times.resize(channel_end - channel_begin);
     std::transform(channel_begin, channel_end, channel_times.begin(), [](BCCache::particle const& p) { return p.hit_time; });
     int chain = (std::rand() % 2) ? 1 : 0;
@@ -223,15 +224,16 @@ void Digitizer::storeBC(BCCache& bc,
     float amp = is_time_in_signal_gate ? mParameters.mV_2_Nchannels * charge : 0;
     if (amp > 4095)
       amp = 4095;
-    LOG(INFO) << mEventID << " bc " << firstBCinDeque.bc << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored;
+    LOG(DEBUG) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored;
     digitsCh.emplace_back(ipmt, smeared_time, int(amp), chain);
     nStored++;
 
     // fill triggers
 
     Bool_t is_A_side = (ipmt <= 4 * mParameters.nCellsA);
-    if (smeared_time > mParameters.mTime_trg_gate || smeared_time < -mParameters.mTime_trg_gate)
+    if (!is_time_in_signal_gate) {
       continue;
+    }
 
     if (is_A_side) {
       n_hit_A++;
@@ -256,20 +258,21 @@ void Digitizer::storeBC(BCCache& bc,
   uint16_t timeC = is_C ? mean_time_C / n_hit_C : 0; // average time C side
 
   Triggers triggers;
-  triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, int8_t(n_hit_A), int8_t(n_hit_C),
-                       amplA, amplC, timeA, timeC);
+  if (nStored > 0) {
+    triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, int8_t(n_hit_A), int8_t(n_hit_C),
+                         amplA, amplC, timeA, timeC);
 
-  digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers, mEventID - 1);
-  size_t const nBC = digitsBC.size();
-  for (auto const& lbl : bc.labels)
-    labels.addElement(nBC - 1, lbl);
-
+    digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers, mEventID - 1);
+    size_t const nBC = digitsBC.size();
+    for (auto const& lbl : bc.labels)
+      labels.addElement(nBC - 1, lbl);
+  }
   // Debug output -------------------------------------------------------------
 
   LOG(INFO) << "Event ID: " << mEventID << ", bc " << firstBCinDeque.bc << ", N hit " << bc.hits.size();
   LOG(INFO) << "N hit A: " << int(triggers.nChanA) << " N hit C: " << int(triggers.nChanC) << " summ ampl A: " << int(triggers.amplA)
             << " summ ampl C: " << int(triggers.amplC) << " mean time A: " << triggers.timeA
-            << " mean time C: " << triggers.timeC;
+            << " mean time C: " << triggers.timeC << " nStored " << nStored;
 
   LOG(INFO) << "IS A " << triggers.getOrA() << " IsC " << triggers.getOrC() << " vertex " << triggers.getVertex() << " is Central " << triggers.getCen() << " is SemiCentral " << triggers.getSCen();
 }
