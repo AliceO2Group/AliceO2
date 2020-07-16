@@ -157,6 +157,8 @@ void WindowFiller::flushOutputContainer(std::vector<Digit>& digits)
 
   printf("Future digits = %lu\n", mFutureDigits.size());
 
+  checkIfReuseFutureDigitsRO();
+
   if (!mContinuous)
     fillOutputContainer(digits);
   else {
