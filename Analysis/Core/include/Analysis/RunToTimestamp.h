@@ -26,22 +26,22 @@ class RunToTimestamp
   ~RunToTimestamp() = default;
 
   /// Checks if the converter has a particular run
-  bool Has(uint runNumber) const { return mMap.count(runNumber); }
+  bool Has(unsigned int runNumber) const { return mMap.count(runNumber); }
 
   /// Inserts a new run with a timestamp in the converter database
-  bool insert(uint runNumber, long timestamp);
+  bool insert(unsigned int runNumber, long timestamp);
 
   /// Updates an already present run number with a new timestamp
-  bool update(uint runNumber, long timestamp);
+  bool update(unsigned int runNumber, long timestamp);
 
   /// Gets the timestamp of a run
-  long getTimestamp(uint runNumber) const;
+  long getTimestamp(unsigned int runNumber) const;
 
   /// Prints the content of the converter
   void print() const;
 
  private:
-  std::map<uint, long> mMap;
+  std::map<unsigned int, long> mMap;
   ClassDefNV(RunToTimestamp, 1) // converter class between run number and timestamp
 };
 
