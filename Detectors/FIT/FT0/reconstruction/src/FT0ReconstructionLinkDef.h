@@ -16,5 +16,6 @@
 
 #pragma link C++ class o2::ft0::CollisionTimeRecoTask + ;
 #pragma link C++ class o2::ft0::ReadRaw + ;
+#pragma link C++ class o2::ft0::CTFCoder + ;
 
 #endif

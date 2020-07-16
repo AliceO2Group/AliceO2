@@ -101,8 +101,8 @@ constexpr Int_t EMCAL_MAXTIMEBINS = 15;      ///< Maximum number of time bins fo
 
 enum FitAlgorithm {
   Standard = 0,  ///< Standard raw fitter
-  NeuralNet = 1, ///< Neural net raw fitter
-  FastFit = 2,   ///< Fast raw fitter (Martin)
+  Gamma2 = 1,    ///< Gamma2 raw fitter
+  NeuralNet = 2, ///< Neural net raw fitter
   NONE = 3
 };
 

@@ -116,8 +116,6 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
         c.timeResA[cidx] = (orgCl.getTimePacked() - orgCl.packTime(time)) & 0xFFFFFF;
         lastLeg = hit.leg;
       }
-      lastRow = hit.row;
-      lastSlice = hit.slice;
       unsigned short qtot = orgCl.qTot, qmax = orgCl.qMax;
       unsigned char sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;
       if (param.rec.tpcCompressionModes & GPUSettings::CompressionTruncate) {
@@ -134,6 +132,8 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       if (k && track.Filter(y, z, hit.row)) {
         break;
       }
+      lastRow = hit.row;
+      lastSlice = hit.slice;
     }
     if (nClustersStored) {
       CAMath::AtomicAdd(&compressor.mMemory->nStoredAttachedClusters, nClustersStored);

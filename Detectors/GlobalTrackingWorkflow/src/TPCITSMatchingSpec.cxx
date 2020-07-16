@@ -33,6 +33,10 @@
 #include "ITStracking/IOUtils.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "Headers/DataHeader.h"
+
+// RSTODO to remove once the framework will start propagating the header.firstTForbit
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -239,6 +243,14 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     // worker and the underlying memory is valid throughout the whole computation
     auto fitInfo = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("fitInfo");
     mMatching.setFITInfoInp(fitInfo);
+  }
+
+  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("trackITSROF").header);
+  mMatching.setStartIR({0, dh->firstTForbit});
+
+  //RSTODO: below is a hack, to remove once the framework will start propagating the header.firstTForbit
+  if (tracksITSROF.size()) {
+    mMatching.setStartIR(o2::raw::HBFUtils::Instance().getFirstIRofTF(tracksITSROF[0].getBCData()));
   }
 
   mMatching.run();

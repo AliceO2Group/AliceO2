@@ -25,3 +25,11 @@ o2_add_test(tpc
             SOURCES test/test_ctf_io_tpc.cxx
             COMPONENT_NAME ctf
             LABELS ctf)
+          
+o2_add_test(ft0
+            PUBLIC_LINK_LIBRARIES O2::CTFWorkflow
+                                  O2::FT0Reconstruction
+	                          O2::DataFormatsFT0
+            SOURCES test/test_ctf_io_ft0.cxx
+            COMPONENT_NAME ctf
+            LABELS ctf)

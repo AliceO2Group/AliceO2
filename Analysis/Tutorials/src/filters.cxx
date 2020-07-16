@@ -18,9 +18,15 @@ namespace etaphi
 DECLARE_SOA_COLUMN(NPhi, nphi, float);
 DECLARE_SOA_EXPRESSION_COLUMN(CosPhi, cosphi, float, ncos(aod::etaphi::nphi));
 } // namespace etaphi
+namespace track
+{
+DECLARE_SOA_EXPRESSION_COLUMN(SPt, spt, float, nabs(aod::track::sigma1Pt / aod::track::signed1Pt));
+}
 DECLARE_SOA_TABLE(TPhi, "AOD", "TPHI",
                   etaphi::NPhi);
 DECLARE_SOA_EXTENDED_TABLE_USER(EPhi, TPhi, "EPHI", aod::etaphi::CosPhi);
+using etracks = soa::Join<aod::Tracks, aod::TracksCov>;
+DECLARE_SOA_EXTENDED_TABLE_USER(MTracks, etracks, "MTRACK", aod::track::SPt);
 } // namespace o2::aod
 
 using namespace o2;
@@ -43,6 +49,7 @@ struct ATask {
 
 struct BTask {
   Spawns<aod::EPhi> ephi;
+  Spawns<aod::MTracks> mtrk;
 
   float fPI = static_cast<float>(M_PI);
   float ptlow = 0.5f;
@@ -76,10 +83,20 @@ struct CTask {
   }
 };
 
+struct DTask {
+  void process(aod::Collision const&, aod::MTracks const& tracks)
+  {
+    for (auto& track : tracks) {
+      LOGF(INFO, "%.3f == %.3f", track.spt(), std::abs(track.sigma1Pt() / track.signed1Pt()));
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     adaptAnalysisTask<ATask>("produce-normalizedphi"),
     adaptAnalysisTask<BTask>("consume-normalizedphi"),
-    adaptAnalysisTask<CTask>("consume-spawned")};
+    adaptAnalysisTask<CTask>("consume-spawned-ephi"),
+    adaptAnalysisTask<DTask>("consume-spawned-mtracks")};
 }

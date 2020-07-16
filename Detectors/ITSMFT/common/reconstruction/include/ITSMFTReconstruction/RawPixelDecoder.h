@@ -20,6 +20,7 @@
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "Headers/RAWDataHeader.h"
+#include "Headers/DataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "ITSMFTReconstruction/GBTLink.h"
 #include "ITSMFTReconstruction/RUDecodeData.h"
@@ -64,6 +65,9 @@ class RawPixelDecoder : public PixelReader
 
   const RUDecodeData* getRUDecode(int ruSW) const { return mRUEntry[ruSW] < 0 ? nullptr : &mRUDecodeVec[mRUEntry[ruSW]]; }
 
+  auto getUserDataOrigin() const { return mUserDataOrigin; }
+  void setUserDataOrigin(header::DataOrigin orig) { mUserDataOrigin = orig; }
+
   void setNThreads(int n);
   int getNThreads() const { return mNThreads; }
 
@@ -100,6 +104,7 @@ class RawPixelDecoder : public PixelReader
   std::vector<RUDecodeData> mRUDecodeVec;       // set of active RUs
   std::array<int, Mapping::getNRUs()> mRUEntry; // entry of the RU with given SW ID in the mRUDecodeVec
   std::string mSelfName;                        // self name
+  header::DataOrigin mUserDataOrigin = o2::header::gDataOriginInvalid; // alternative user-provided data origin to pick
   uint16_t mCurRUDecodeID = NORUDECODED;        // index of currently processed RUDecode container
   int mLastReadChipID = -1;                     // chip ID returned by previous getNextChipData call, used for ordering checks
   Mapping mMAP;                                 // chip mapping

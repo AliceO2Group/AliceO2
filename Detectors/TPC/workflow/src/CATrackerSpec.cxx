@@ -193,7 +193,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
             int len = std::min(optLen - 11, 1023);
             memcpy(matBudFileName, optPtr + 11, len);
             matBudFileName[len] = 0;
-          } else if (optLen > 8 && strncmp(optPtr, "gpuNum=", 7) == 0) {
+          } else if (optLen > 7 && strncmp(optPtr, "gpuNum=", 7) == 0) {
             sscanf(optPtr + 7, "%d", &gpuDevice);
             printf("Using GPU device %d\n", gpuDevice);
           } else if (optLen > 8 && strncmp(optPtr, "gpuMemorySize=", 14) == 0) {
@@ -517,6 +517,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
                 ptr = nullptr;
                 continue;
               }
+              ptr = current;
+            } else if (ptr == nullptr) {
               ptr = current;
             }
             count++;

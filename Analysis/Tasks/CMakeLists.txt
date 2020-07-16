@@ -35,12 +35,12 @@ o2_add_dpl_workflow(vertexing-hf
 
 o2_add_dpl_workflow(hftrackindexskimscreator
                   SOURCES hftrackindexskimscreator.cxx
-		  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsVertexing
+		  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
 	          COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(hfcandidatecreator2prong
                   SOURCES hfcandidatecreator2prong.cxx
-		  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsVertexing
+		  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
 	          COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(taskdzero
@@ -73,37 +73,37 @@ o2_add_dpl_workflow(upc-an
 
 o2_add_dpl_workflow(event-selection
                   SOURCES eventSelection.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::CCDB
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase O2::CCDB
                   COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(event-selection-qa
                   SOURCES eventSelectionQa.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
                   COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(multiplicity-table
                   SOURCES multiplicityTable.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
                   COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(multiplicity-qa
                   SOURCES multiplicityQa.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
                   COMPONENT_NAME Analysis)
                   
 o2_add_dpl_workflow(centrality-table
                   SOURCES centralityTable.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::CCDB
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase O2::CCDB
                   COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(centrality-qa
                   SOURCES centralityQa.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
                   COMPONENT_NAME Analysis)
                   
 o2_add_dpl_workflow(invmass-an
                   SOURCES invMassAnalysis.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
                   COMPONENT_NAME Analysis)
                   
 o2_add_dpl_workflow(table-maker

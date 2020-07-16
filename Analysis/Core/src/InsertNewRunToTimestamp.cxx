@@ -25,13 +25,14 @@ namespace bpo = boost::program_options;
 bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv[], bpo::variables_map& vm)
 {
   options.add_options()(
-    "run,r", bpo::value<uint>()->required(), "Run number to use")(
+    "run,r", bpo::value<unsigned int>()->required(), "Run number to use")(
     "timestamp,t", bpo::value<long>()->required(), "Timestamp to use equivalent to the run number")(
-    "path,p", bpo::value<std::string>()->default_value("Test/RunToTimestamp"), "Path to the object in the CCDB repository")(
+    "path,p", bpo::value<std::string>()->default_value("Analysis/Core/RunToTimestamp"), "Path to the object in the CCDB repository")(
     "url,u", bpo::value<std::string>()->default_value("http://ccdb-test.cern.ch:8080"), "URL of the CCDB database")(
     "start,s", bpo::value<long>()->default_value(0), "Start timestamp of object validity")(
     "stop,S", bpo::value<long>()->default_value(4108971600000), "Stop timestamp of object validity")(
     "update,u", bpo::value<int>()->default_value(0), "Flag to update the object instead of inserting the new timestamp")(
+    "delete_previous,d", bpo::value<int>()->default_value(0), "Flag to delete previous versions of converter objects in the CCDB before uploading the new one so as to avoid proliferation on CCDB")(
     "verbose,v", bpo::value<int>()->default_value(0), "Verbose level 0, 1")(
     "help,h", "Produce help message.");
 
@@ -84,11 +85,14 @@ int main(int argc, char* argv[])
   } else {
     LOG(INFO) << "Retrieved run number to timestamp converter from ccdb url " << url;
   }
+  if (vm["delete_previous"].as<int>()) {
+    api.truncate(path);
+  }
 
   if (vm["update"].as<int>())
-    converter->update(vm["run"].as<uint>(), vm["timestamp"].as<long>());
+    converter->update(vm["run"].as<unsigned int>(), vm["timestamp"].as<long>());
   else
-    converter->insert(vm["run"].as<uint>(), vm["timestamp"].as<long>());
+    converter->insert(vm["run"].as<unsigned int>(), vm["timestamp"].as<long>());
 
   if (vm["verbose"].as<int>())
     converter->print();

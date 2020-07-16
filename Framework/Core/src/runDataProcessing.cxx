@@ -930,6 +930,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             deviceSpecs,
                                                             *resourceManager,
                                                             driverInfo.uniqueWorkflowId,
+                                                            !varmap["no-IPC"].as<bool>(),
                                                             driverInfo.resourcesMonitoringInterval);
 
           // This should expand nodes so that we can build a consistent DAG.
@@ -1448,6 +1449,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")                                   //                                                                                                                                    //
     ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                                         //                                                                                                                                      //
     ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far")                                             //                                                                                                                                        //
+    ("no-IPC", bpo::value<bool>()->zero_tokens()->default_value(false), "disable IPC topology optimization")                                   //                                                                                                                                        //
     ("o2-control,o2", bpo::value<bool>()->zero_tokens()->default_value(false), "create O2 Control configuration")                              //
     ("resources-monitoring", bpo::value<unsigned short>()->default_value(0), "enable cpu/memory monitoring for provided interval in seconds"); //
   // some of the options must be forwarded by default to the device

@@ -461,7 +461,7 @@ GPUd() void GPUTPCGMMerger::UnpackSliceGlobal(int nBlocks, int nThreads, int iBl
     } else if (itr > nLocalTracks) {
       sliceTr = sliceTr->GetNextTrack();
     }
-    int localId = TrackIds[(sliceTr->LocalTrackId() >> 24) * mNMaxSingleSliceTracks | (sliceTr->LocalTrackId() & 0xFFFFFF)];
+    int localId = TrackIds[(sliceTr->LocalTrackId() >> 24) * mNMaxSingleSliceTracks + (sliceTr->LocalTrackId() & 0xFFFFFF)];
     if (localId == -1) {
       continue;
     }
@@ -484,7 +484,7 @@ GPUd() void GPUTPCGMMerger::UnpackResetIds(int nBlocks, int nThreads, int iBlock
   const GPUTPCTracker& trk = GetConstantMem()->tpcTrackers[iSlice];
   unsigned int nLocalTracks = Param().rec.mergerReadFromTrackerDirectly ? trk.CommonMemory()->nLocalTracks : mkSlices[iSlice]->NLocalTracks();
   for (unsigned int i = iBlock * nThreads + iThread; i < nLocalTracks; i += nBlocks * nThreads) {
-    TrackIds[iSlice * mNMaxSingleSliceTracks | i] = -1;
+    TrackIds[iSlice * mNMaxSingleSliceTracks + i] = -1;
   }
 }
 
@@ -530,7 +530,7 @@ GPUd() void GPUTPCGMMerger::RefitSliceTracks(int nBlocks, int nThreads, int iBlo
     track.SetGlobalTrackId(0, -1);
     track.SetGlobalTrackId(1, -1);
     unsigned int myTrack = CAMath::AtomicAdd(&mMemory->nUnpackedTracks, 1u);
-    TrackIds[iSlice * mNMaxSingleSliceTracks | sliceTr->LocalTrackId()] = myTrack;
+    TrackIds[iSlice * mNMaxSingleSliceTracks + sliceTr->LocalTrackId()] = myTrack;
     mSliceTrackInfos[myTrack] = track;
   }
   if (!Param().rec.mergerReadFromTrackerDirectly) {
@@ -1200,7 +1200,7 @@ GPUd() void GPUTPCGMMerger::ResolveMergeSlices(GPUResolveSharedMemory& smem, int
   }
 }
 
-GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGMMergedTrackHit& cls, const GPUTPCGMMergedTrackHitXYZ& clsXYZ, int itr)
+GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const GPUTPCGMMergedTrackHit& cls, const GPUTPCGMMergedTrackHitXYZ* clsXYZ, int itr)
 {
   if (Param().rec.NonConsecutiveIDs) {
     return;
@@ -1214,7 +1214,7 @@ GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const G
 
   float z = 0;
   if (Param().earlyTpcTransform) {
-    z = clsXYZ.z;
+    z = clsXYZ->z;
   } else {
     float x, y;
     auto& cln = mConstantMem->ioPtrs.clustersNative->clustersLinear[cls.num];
@@ -1699,7 +1699,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
         auto& cls = mConstantMem->ioPtrs.clustersNative->clustersLinear;
         CEside = cls[cl[0].num].getTime() < cls[cl[nHits - 1].num].getTime();
       }
-      MergeCEFill(trackParts[CEside ? lastTrackIndex : firstTrackIndex], cl[CEside ? (nHits - 1) : 0], clXYZ[CEside ? (nHits - 1) : 0], iOutputTrack);
+      MergeCEFill(trackParts[CEside ? lastTrackIndex : firstTrackIndex], cl[CEside ? (nHits - 1) : 0], &clXYZ[CEside ? (nHits - 1) : 0], iOutputTrack);
     }
   } // itr
 }

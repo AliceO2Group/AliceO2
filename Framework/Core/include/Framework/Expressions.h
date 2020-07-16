@@ -249,6 +249,11 @@ inline Node operator/(Node left, BindingNode right)
   return Node{OpNode{BasicOp::Division}, std::move(left), right};
 }
 
+inline Node operator/(BindingNode left, BindingNode right)
+{
+  return Node{OpNode{BasicOp::Division}, left, right};
+}
+
 inline Node operator+(Node left, Node right)
 {
   return Node{OpNode{BasicOp::Addition}, std::move(left), std::move(right)};
