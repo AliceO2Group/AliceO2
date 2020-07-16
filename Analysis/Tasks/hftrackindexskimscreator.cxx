@@ -15,9 +15,11 @@
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "Analysis/RecoDecay.h"
+#include "Analysis/trackUtilities.h"
 
 #include <TFile.h>
 #include <TH1F.h>
+#include <Math/Vector4D.h>
 #include <cmath>
 #include <array>
 #include <cstdlib>
@@ -26,6 +28,7 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 using std::array;
+using namespace ROOT::Math;
 
 namespace o2::aod
 {
@@ -67,17 +70,7 @@ struct SelectTracks {
       if (!isselected_0)
         status = 0;
       array<float, 2> dca;
-      float x0_ = track_0.x();
-      float alpha0_ = track_0.alpha();
-      std::array<float, 5> arraypar0 = {track_0.y(), track_0.z(), track_0.snp(),
-                                        track_0.tgl(), track_0.signed1Pt()};
-      std::array<float, 15> covpar0 = {track_0.cYY(), track_0.cZY(), track_0.cZZ(),
-                                       track_0.cSnpY(), track_0.cSnpZ(),
-                                       track_0.cSnpSnp(), track_0.cTglY(), track_0.cTglZ(),
-                                       track_0.cTglSnp(), track_0.cTglTgl(),
-                                       track_0.c1PtY(), track_0.c1PtZ(), track_0.c1PtSnp(),
-                                       track_0.c1PtTgl(), track_0.c1Pt21Pt2()};
-      o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
+      auto trackparvar0 = getTrackParCov(track_0);
       trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca);
       if (abs(dca[0]) < dcatoprimxymin)
         status = 0;
@@ -93,8 +86,9 @@ struct SelectTracks {
 };
 
 struct HFTrackIndexSkimsCreator {
-  float masspion = 0.140;
-  float masskaon = 0.494;
+  std::vector<PxPyPzMVector> listTracks;
+  double masspion = 0.140;
+  double masskaon = 0.494;
   OutputObj<TH1F> hmass2{TH1F("hmass2", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
   OutputObj<TH1F> hmass3{TH1F("hmass3", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
   Produces<aod::HfTrackIndexProng2> hftrackindexprong2;
@@ -150,32 +144,12 @@ struct HFTrackIndexSkimsCreator {
       auto& track_p1 = *i_p1;
       if (track_p1.signed1Pt() < 0)
         continue;
-      float x_p1 = track_p1.x();
-      float alpha_p1 = track_p1.alpha();
-      std::array<float, 5> arraypar_p1 = {track_p1.y(), track_p1.z(), track_p1.snp(),
-                                          track_p1.tgl(), track_p1.signed1Pt()};
-      std::array<float, 15> covpar_p1 = {track_p1.cYY(), track_p1.cZY(), track_p1.cZZ(),
-                                         track_p1.cSnpY(), track_p1.cSnpZ(),
-                                         track_p1.cSnpSnp(), track_p1.cTglY(), track_p1.cTglZ(),
-                                         track_p1.cTglSnp(), track_p1.cTglTgl(),
-                                         track_p1.c1PtY(), track_p1.c1PtZ(), track_p1.c1PtSnp(),
-                                         track_p1.c1PtTgl(), track_p1.c1Pt21Pt2()};
-      o2::track::TrackParCov trackparvar_p1(x_p1, alpha_p1, arraypar_p1, covpar_p1);
+      auto trackparvar_p1 = getTrackParCov(track_p1);
       for (auto i_n1 = tracks.begin(); i_n1 != tracks.end(); ++i_n1) {
         auto& track_n1 = *i_n1;
         if (track_n1.signed1Pt() > 0)
           continue;
-        float x_n1 = track_n1.x();
-        float alpha_n1 = track_n1.alpha();
-        std::array<float, 5> arraypar_n1 = {track_n1.y(), track_n1.z(), track_n1.snp(),
-                                            track_n1.tgl(), track_n1.signed1Pt()};
-        std::array<float, 15> covpar_n1 = {track_n1.cYY(), track_n1.cZY(), track_n1.cZZ(),
-                                           track_n1.cSnpY(), track_n1.cSnpZ(),
-                                           track_n1.cSnpSnp(), track_n1.cTglY(), track_n1.cTglZ(),
-                                           track_n1.cTglSnp(), track_n1.cTglTgl(),
-                                           track_n1.c1PtY(), track_n1.c1PtZ(), track_n1.c1PtSnp(),
-                                           track_n1.c1PtTgl(), track_n1.c1Pt21Pt2()};
-        o2::track::TrackParCov trackparvar_n1(x_n1, alpha_n1, arraypar_n1, covpar_n1);
+        auto trackparvar_n1 = getTrackParCov(track_n1);
         df.setUseAbsDCA(true);
         int nCand = df.process(trackparvar_p1, trackparvar_n1);
         if (nCand == 0)
@@ -185,14 +159,15 @@ struct HFTrackIndexSkimsCreator {
         std::array<float, 3> pvec1;
         df.getTrack(0).getPxPyPzGlo(pvec0);
         df.getTrack(1).getPxPyPzGlo(pvec1);
-        float mass_ = sqrt(invmass2prongs2(pvec0[0], pvec0[1],
-                                           pvec0[2], masspion,
-                                           pvec1[0], pvec1[1],
-                                           pvec1[2], masskaon));
-        float masssw_ = sqrt(invmass2prongs2(pvec0[0], pvec0[1],
-                                             pvec0[2], masskaon,
-                                             pvec1[0], pvec1[1],
-                                             pvec1[2], masspion));
+
+        addTrack(listTracks, pvec0, masspion);
+        addTrack(listTracks, pvec1, masskaon);
+        double mass_ = (sumOfTracks(listTracks)).M();
+        listTracks[0].SetM(masskaon);
+        listTracks[1].SetM(masspion);
+        double masssw_ = (sumOfTracks(listTracks)).M();
+        listTracks.clear();
+
         if (b_dovalplots == true) {
           hmass2->Fill(mass_);
           hmass2->Fill(masssw_);
@@ -206,24 +181,18 @@ struct HFTrackIndexSkimsCreator {
             auto& track_p2 = *i_p2;
             if (track_p2.signed1Pt() < 0)
               continue;
-            float x_p2 = track_p2.x();
-            float alpha_p2 = track_p2.alpha();
-            double mass3prong2 = invmass3prongs2(track_p1.px(), track_p1.py(), track_p1.pz(), masspion,
-                                                 track_n1.px(), track_n1.py(), track_n1.pz(), masskaon,
-                                                 track_p2.px(), track_p2.py(), track_p2.pz(), masspion);
-            if (mass3prong2 < d_minmassDp * d_minmassDp || mass3prong2 > d_maxmassDp * d_maxmassDp)
+
+            addTrack(listTracks, track_p1.px(), track_p1.py(), track_p1.pz(), masspion);
+            addTrack(listTracks, track_n1.px(), track_n1.py(), track_n1.pz(), masskaon);
+            addTrack(listTracks, track_p2.px(), track_p2.py(), track_p2.pz(), masspion);
+            double mass3prong = (sumOfTracks(listTracks)).M();
+            listTracks.clear();
+
+            if (mass3prong < d_minmassDp || mass3prong > d_maxmassDp)
               continue;
             if (b_dovalplots == true)
-              hmass3->Fill(sqrt(mass3prong2));
-            std::array<float, 5> arraypar_p2 = {track_p2.y(), track_p2.z(), track_p2.snp(),
-                                                track_p2.tgl(), track_p2.signed1Pt()};
-            std::array<float, 15> covpar_p2 = {track_p2.cYY(), track_p2.cZY(), track_p2.cZZ(),
-                                               track_p2.cSnpY(), track_p2.cSnpZ(),
-                                               track_p2.cSnpSnp(), track_p2.cTglY(), track_p2.cTglZ(),
-                                               track_p2.cTglSnp(), track_p2.cTglTgl(),
-                                               track_p2.c1PtY(), track_p2.c1PtZ(), track_p2.c1PtSnp(),
-                                               track_p2.c1PtTgl(), track_p2.c1Pt21Pt2()};
-            o2::track::TrackParCov trackparvar_p2(x_p2, alpha_p2, arraypar_p2, covpar_p2);
+              hmass3->Fill(mass3prong);
+            auto trackparvar_p2 = getTrackParCov(track_p2);
             df3.setUseAbsDCA(true);
             int nCand3 = df3.process(trackparvar_p1, trackparvar_n1, trackparvar_p2);
             if (nCand3 == 0)
@@ -235,12 +204,13 @@ struct HFTrackIndexSkimsCreator {
             df.getTrack(0).getPxPyPzGlo(pvec0);
             df.getTrack(1).getPxPyPzGlo(pvec1);
             df.getTrack(2).getPxPyPzGlo(pvec2);
-            float mass_ = sqrt(invmass3prongs2(pvec0[0], pvec0[1],
-                                               pvec0[2], masspion,
-                                               pvec1[0], pvec1[1],
-                                               pvec1[2], masskaon,
-                                               pvec2[0], pvec2[1],
-                                               pvec2[2], masspion));
+
+            addTrack(listTracks, pvec0, masspion);
+            addTrack(listTracks, pvec1, masskaon);
+            addTrack(listTracks, pvec2, masspion);
+            double mass_ = (sumOfTracks(listTracks)).M();
+            listTracks.clear();
+
             if (b_dovalplots == true) {
               hmass3->Fill(mass_);
             }
@@ -254,23 +224,17 @@ struct HFTrackIndexSkimsCreator {
             auto& track_n2 = *i_n2;
             if (track_n2.signed1Pt() > 0)
               continue;
-            float x_n2 = track_n2.x();
-            float alpha_n2 = track_n2.alpha();
-            double mass3prong2 = invmass3prongs2(track_n1.px(), track_n1.py(), track_n1.pz(), masspion,
-                                                 track_p1.px(), track_p1.py(), track_p1.pz(), masskaon,
-                                                 track_n2.px(), track_n2.py(), track_n2.pz(), masspion);
-            if (mass3prong2 < d_minmassDp * d_minmassDp || mass3prong2 > d_maxmassDp * d_maxmassDp)
+
+            addTrack(listTracks, track_n1.px(), track_n1.py(), track_n1.pz(), masspion);
+            addTrack(listTracks, track_p1.px(), track_p1.py(), track_p1.pz(), masskaon);
+            addTrack(listTracks, track_n2.px(), track_n2.py(), track_n2.pz(), masspion);
+            double mass3prong = (sumOfTracks(listTracks)).M();
+            listTracks.clear();
+
+            if (mass3prong < d_minmassDp || mass3prong > d_maxmassDp)
               continue;
-            hmass3->Fill(sqrt(mass3prong2));
-            std::array<float, 5> arraypar_n2 = {track_n2.y(), track_n2.z(), track_n2.snp(),
-                                                track_n2.tgl(), track_n2.signed1Pt()};
-            std::array<float, 15> covpar_n2 = {track_n2.cYY(), track_n2.cZY(), track_n2.cZZ(),
-                                               track_n2.cSnpY(), track_n2.cSnpZ(),
-                                               track_n2.cSnpSnp(), track_n2.cTglY(), track_n2.cTglZ(),
-                                               track_n2.cTglSnp(), track_n2.cTglTgl(),
-                                               track_n2.c1PtY(), track_n2.c1PtZ(), track_n2.c1PtSnp(),
-                                               track_n2.c1PtTgl(), track_n2.c1Pt21Pt2()};
-            o2::track::TrackParCov trackparvar_n2(x_n2, alpha_n2, arraypar_n2, covpar_n2);
+            hmass3->Fill(mass3prong);
+            auto trackparvar_n2 = getTrackParCov(track_n2);
             df3.setUseAbsDCA(true);
             int nCand3 = df3.process(trackparvar_n1, trackparvar_p1, trackparvar_n2);
             if (nCand3 == 0)
@@ -282,12 +246,13 @@ struct HFTrackIndexSkimsCreator {
             df.getTrack(0).getPxPyPzGlo(pvec0);
             df.getTrack(1).getPxPyPzGlo(pvec1);
             df.getTrack(2).getPxPyPzGlo(pvec2);
-            float mass_ = sqrt(invmass3prongs2(pvec0[0], pvec0[1],
-                                               pvec0[2], masspion,
-                                               pvec1[0], pvec1[1],
-                                               pvec1[2], masskaon,
-                                               pvec2[0], pvec2[1],
-                                               pvec2[2], masspion));
+
+            addTrack(listTracks, pvec0, masspion);
+            addTrack(listTracks, pvec1, masskaon);
+            addTrack(listTracks, pvec2, masspion);
+            double mass_ = (sumOfTracks(listTracks)).M();
+            listTracks.clear();
+
             if (b_dovalplots == true) {
               hmass3->Fill(mass_);
             }

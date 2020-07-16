@@ -15,9 +15,11 @@
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "Analysis/RecoDecay.h"
+#include "Analysis/trackUtilities.h"
 
 #include <TFile.h>
 #include <TH1F.h>
+#include <Math/Vector4D.h>
 #include <cmath>
 #include <array>
 #include <cstdlib>
@@ -26,6 +28,7 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 using std::array;
+using namespace ROOT::Math;
 
 struct HFCandidateCreator2Prong {
   Produces<aod::HfCandProng2> hfcandprong2;
@@ -56,30 +59,13 @@ struct HFCandidateCreator2Prong {
     df.setMinParamChange(d_minparamchange);
     df.setMinRelChi2Change(d_minrelchi2change);
 
-    for (auto& hfpr2 : hftrackindexprong2s) {
-      float x_p1 = hfpr2.index0().x();
-      float alpha_p1 = hfpr2.index0().alpha();
-      std::array<float, 5> arraypar_p1 = {hfpr2.index0().y(), hfpr2.index0().z(), hfpr2.index0().snp(),
-                                          hfpr2.index0().tgl(), hfpr2.index0().signed1Pt()};
-      std::array<float, 15> covpar_p1 = {hfpr2.index0().cYY(), hfpr2.index0().cZY(), hfpr2.index0().cZZ(),
-                                         hfpr2.index0().cSnpY(), hfpr2.index0().cSnpZ(),
-                                         hfpr2.index0().cSnpSnp(), hfpr2.index0().cTglY(), hfpr2.index0().cTglZ(),
-                                         hfpr2.index0().cTglSnp(), hfpr2.index0().cTglTgl(),
-                                         hfpr2.index0().c1PtY(), hfpr2.index0().c1PtZ(), hfpr2.index0().c1PtSnp(),
-                                         hfpr2.index0().c1PtTgl(), hfpr2.index0().c1Pt21Pt2()};
-      o2::track::TrackParCov trackparvar_p1(x_p1, alpha_p1, arraypar_p1, covpar_p1);
+    std::vector<PxPyPzMVector> listTracks;
+    double masspion = 0.140;
+    double masskaon = 0.494;
 
-      float x_n1 = hfpr2.index1().x();
-      float alpha_n1 = hfpr2.index1().alpha();
-      std::array<float, 5> arraypar_n1 = {hfpr2.index1().y(), hfpr2.index1().z(), hfpr2.index1().snp(),
-                                          hfpr2.index1().tgl(), hfpr2.index1().signed1Pt()};
-      std::array<float, 15> covpar_n1 = {hfpr2.index1().cYY(), hfpr2.index1().cZY(), hfpr2.index1().cZZ(),
-                                         hfpr2.index1().cSnpY(), hfpr2.index1().cSnpZ(),
-                                         hfpr2.index1().cSnpSnp(), hfpr2.index1().cTglY(), hfpr2.index1().cTglZ(),
-                                         hfpr2.index1().cTglSnp(), hfpr2.index1().cTglTgl(),
-                                         hfpr2.index1().c1PtY(), hfpr2.index1().c1PtZ(), hfpr2.index1().c1PtSnp(),
-                                         hfpr2.index1().c1PtTgl(), hfpr2.index1().c1Pt21Pt2()};
-      o2::track::TrackParCov trackparvar_n1(x_n1, alpha_n1, arraypar_n1, covpar_n1);
+    for (auto& hfpr2 : hftrackindexprong2s) {
+      auto trackparvar_p1 = getTrackParCov(hfpr2.index0());
+      auto trackparvar_n1 = getTrackParCov(hfpr2.index1());
       df.setUseAbsDCA(true);
       int nCand = df.process(trackparvar_p1, trackparvar_n1);
       if (nCand == 0)
@@ -89,16 +75,15 @@ struct HFCandidateCreator2Prong {
       std::array<float, 3> pvec1;
       df.getTrack(0).getPxPyPzGlo(pvec0);
       df.getTrack(1).getPxPyPzGlo(pvec1);
-      float masspion = 0.140;
-      float masskaon = 0.494;
-      float mass_ = sqrt(invmass2prongs2(pvec0[0], pvec0[1],
-                                         pvec0[2], masspion,
-                                         pvec1[0], pvec1[1],
-                                         pvec1[2], masskaon));
-      float masssw_ = sqrt(invmass2prongs2(pvec0[0], pvec0[1],
-                                           pvec0[2], masskaon,
-                                           pvec1[0], pvec1[1],
-                                           pvec1[2], masspion));
+
+      addTrack(listTracks, pvec0, masspion);
+      addTrack(listTracks, pvec1, masskaon);
+      double mass_ = (sumOfTracks(listTracks)).M();
+      listTracks[0].SetM(masskaon);
+      listTracks[1].SetM(masspion);
+      double masssw_ = (sumOfTracks(listTracks)).M();
+      listTracks.clear();
+
       hfcandprong2(collision.posX(), collision.posY(), collision.posZ(),
                    pvec0[0], pvec0[1], pvec0[2], pvec1[0], pvec1[1], pvec1[2],
                    vtx[0], vtx[1], vtx[2], mass_, masssw_);
