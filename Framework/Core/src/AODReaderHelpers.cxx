@@ -198,7 +198,9 @@ void checkAndEnableAlien(std::string const& filename)
     TGrid::Connect("alien://");
   }
   if (filename.rfind("@", 0) == 0) {
-    std::ifstream filenames(filename);
+    std::string strippedFilename = filename;
+    strippedFilename.erase(0, 1);
+    std::ifstream filenames(strippedFilename);
     for (std::string line; std::getline(filenames, line);) {
       if (line.rfind("alien://", 0) == 0) {
         LOG(debug) << "AliEn file requested. Enabling support.";
