@@ -41,7 +41,7 @@ class GPUQA
   GPUQA(GPUChainTracking* rec) {}
   ~GPUQA() = default;
 
-  typedef structConfigQA configQA;
+  typedef GPUQAConfig configQA;
 
   int InitQA() { return 1; }
   void RunQA(bool matchOnly = false) {}

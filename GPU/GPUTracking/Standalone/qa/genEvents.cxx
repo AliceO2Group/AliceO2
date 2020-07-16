@@ -41,6 +41,10 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace std;
+namespace GPUCA_NAMESPACE::gpu
+{
+extern GPUSettingsStandalone configStandalone;
+}
 
 int genEvents::GetSlice(double GlobalPhi)
 {
