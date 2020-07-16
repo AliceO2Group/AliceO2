@@ -25,7 +25,8 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-typedef structConfigGL GPUDisplayConfig;
+typedef GPUSettingsDisplay GPUDisplayConfig;
+extern GPUSettingsStandalone configStandalone;
 }
 } // namespace GPUCA_NAMESPACE
 

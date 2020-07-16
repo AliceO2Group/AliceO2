@@ -11,7 +11,7 @@
 /// \file qconfig.h
 /// \author David Rohr
 
-#include <vector>
+#ifndef QCONFIG_HEADER_GUARD_NO_INCLUDE
 
 #define AddArrayDefaults(...) \
   {                           \
@@ -124,6 +124,7 @@
     goto repeat;                                                   \
   }
 
+// End QCONFIG_PARSE
 #elif defined(QCONFIG_HELP)
 #define AddOption(name, type, default, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), qon_mxstr(default), optname, optnameshort, preopt, preoptshort, 0, __VA_ARGS__);
 #define AddOptionSet(name, type, value, optname, optnameshort, ...) qConfigType<type>::qConfigHelpOption(qon_mxstr(name), qon_mxstr(type), qon_mxstr(value), optname, optnameshort, preopt, preoptshort, 1, __VA_ARGS__);
@@ -153,6 +154,7 @@
 #define AddShortcut(cmd, cmdshort, forward, help, ...) qConfigType<void*>::qConfigHelpOption("shortcut", "shortcut", nullptr, cmd, cmdshort, preopt, preoptshort, 4, help);
 #define AddHelpText(text) printf("\n    " text ":\n");
 
+// End QCONFIG_HELP
 #elif defined(QCONFIG_PRINT)
 #define AddOption(name, type, default, optname, optnameshort, ...) std::cout << "\t" << qon_mxstr(name) << ": " << tmp.name << "\n";
 #define AddVariable(name, type, default) std::cout << "\t" << qon_mxstr(name) << ": " << tmp.name << "\n";
@@ -204,16 +206,16 @@
 #define EndConfig() \
   _qConfigDummy() {}
 
-#elif defined(QCONFIG_EXTERNS)
-#define AddOption(name, type, default, optname, optnameshort, help, ...)
-#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
-#define AddOptionVec(name, type, optname, optnameshort, help, ...)
-#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...)
-#define AddSubConfig(name, instance)
-#define BeginConfig(name, instance) extern "C" name instance;
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr)
-#define EndConfig()
+// End QCONFIG_INSTANCE
+#else // Define structures
+#ifdef QCONFIG_HEADER_GUARD
+#define QCONFIG_HEADER_GUARD_NO_INCLUDE
+#ifdef QCONFIG_EXTERNS
 #undef QCONFIG_EXTERNS
+#endif
+#else
+#define QCONFIG_HEADER_GUARD
+
 extern int qConfigParse(int argc, const char** argv, const char* filename = nullptr);
 extern void qConfigPrint();
 namespace qConfig
@@ -244,7 +246,13 @@ enum qConfigRetVal { qcrOK = 0,
 #define EndConfig()
 #undef QCONFIG_EXTERNS
 
-#if defined(QCONFIG_CPP11_INIT) && !defined(QCONFIG_GPU)
+// End QCONFIG_EXTERNS
+#elif defined(QCONFIG_CPP11_INIT) && !defined(QCONFIG_GPU)
+#define BeginNamespace(name) \
+  namespace name             \
+  {
+#define EndNamespace() }
+#define AddCustomCPP(...) __VA_ARGS__
 #define AddOption(name, type, default, optname, optnameshort, help, ...) type name = default;
 #define AddVariable(name, type, default) type name = default;
 #define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
@@ -321,10 +329,18 @@ struct qConfigDummy {
 #ifndef AddHelpText
 #define AddHelpText(text)
 #endif
+#ifndef BeginNamespace
+#define BeginNamespace(name)
+#endif
+#ifndef EndNamespace
+#define EndNamespace()
+#endif
+#ifndef AddCustomCPP
+#define AddCustomCPP(...)
+#endif
 
 #ifndef QCONFIG_HEADER_GUARD_NO_INCLUDE
 #include "qconfigoptions.h"
-#endif
 
 #undef AddOption
 #undef AddVariable
@@ -351,3 +367,8 @@ struct qConfigDummy {
 #ifdef QCONFIG_EXTERNS
 #include "qconfig.h"
 #endif
+#else
+#undef QCONFIG_HEADER_GUARD_NO_INCLUDE
+#endif
+
+#endif // QCONFIG_HEADER_GUARD_NO_INCLUDE

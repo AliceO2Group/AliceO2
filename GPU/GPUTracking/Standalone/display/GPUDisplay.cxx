@@ -630,7 +630,7 @@ int GPUDisplay::InitGL_internal()
   setQuality();
   ReSizeGLScene(GPUDisplayBackend::INIT_WIDTH, GPUDisplayBackend::INIT_HEIGHT, true);
 #ifdef WITH_OPENMP
-  int maxThreads = mChain->GetDeviceProcessingSettings().nThreads > 1 ? mChain->GetDeviceProcessingSettings().nThreads : 1;
+  int maxThreads = mChain->GetDeviceProcessingSettings().ompThreads > 1 ? mChain->GetDeviceProcessingSettings().ompThreads : 1;
   omp_set_num_threads(maxThreads);
 #else
   int maxThreads = 1;
@@ -1164,7 +1164,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 
     mMaxClusterZ = 0;
     bool error = false;
-    GPUCA_OPENMP(parallel for num_threads(mChain->GetDeviceProcessingSettings().nThreads) reduction(max : mMaxClusterZ))
+    GPUCA_OPENMP(parallel for num_threads(mChain->GetDeviceProcessingSettings().ompThreads) reduction(max : mMaxClusterZ))
     for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
       if (error) {
         continue;
@@ -1219,7 +1219,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       return (1);
     }
 
-    GPUCA_OPENMP(parallel for num_threads(mChain->GetDeviceProcessingSettings().nThreads) reduction(max : mMaxClusterZ))
+    GPUCA_OPENMP(parallel for num_threads(mChain->GetDeviceProcessingSettings().ompThreads) reduction(max : mMaxClusterZ))
     for (int i = 0; i < mCurrentSpacePointsTRD; i++) {
       const auto& sp = trdTracker().SpacePoints()[i];
       int iSec = mChain->GetTRDGeometry()->GetSector(trdTracker().Tracklets()[i].GetDetector());
@@ -1551,7 +1551,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         mGlDLFinal[iSlice].resize(mNCollissions);
       }
     }
-    GPUCA_OPENMP(parallel num_threads(mChain->GetDeviceProcessingSettings().nThreads))
+    GPUCA_OPENMP(parallel num_threads(mChain->GetDeviceProcessingSettings().ompThreads))
     {
 #ifdef WITH_OPENMP
       int numThread = omp_get_thread_num();

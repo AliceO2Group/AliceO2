@@ -19,9 +19,7 @@
 
 // clang-format off
 
-#ifndef GPUDEF_H
-  #error Please include GPUDef.h
-#endif
+#include "GPUCommonDef.h"
 
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_O2_LIB) && !defined(GPUCA_O2_INTERFACE)
   #error You are using the CA GPU tracking without defining the build type (O2/AliRoot/Standalone). If you are running an O2 ROOT macro, please include GPUO2Interface.h first!
