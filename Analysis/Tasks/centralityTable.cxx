@@ -25,8 +25,8 @@ struct CentralityTableTask {
   void init(InitContext&)
   {
     ccdb->setURL("http://ccdb-test.cern.ch:8080");
-    ccdb->setCachingEnabled(true);
-    ccdb->setValidityCheckingEnabled();
+    ccdb->setCaching(true);
+    ccdb->setLocalObjectValidityChecking();
   }
 
   void process(soa::Join<aod::Collisions, aod::Mults>::iterator const& collision, aod::Timestamps& timestamps, aod::BCs const& bcs)

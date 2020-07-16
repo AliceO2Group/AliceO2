@@ -72,8 +72,7 @@ class run_timestamp:
 
 
 def main(input_file_name, extra_args,
-         input_in_seconds=False, delete_previous=True, verbose=False,
-         url="http://ccdb-test.cern.ch:8080", path="Analysis/Core/RunToTimestamp"):
+         input_in_seconds=False, delete_previous=True, verbose=False):
     """
     Given an input file with line by line runs and start and stop timestamps it updates the dedicated CCDB object.
     Extra arguments can be passed to the upload script.
@@ -119,8 +118,6 @@ def main(input_file_name, extra_args,
         cmd = "o2-analysiscore-makerun2timestamp"
         cmd += f" --run {i.run}"
         cmd += f" --timestamp {i.start}"
-        cmd += f" --url {url}"
-        cmd += f" --path {path}"
         if delete_previous:
             cmd += f" --delete_previous 1"
         cmd += f" {extra_args}"

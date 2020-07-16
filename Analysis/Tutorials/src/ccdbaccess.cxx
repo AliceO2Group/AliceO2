@@ -36,7 +36,7 @@ struct TimestampUserTask {
     // Set CCDB url
     ccdb->setURL(url.value);
     // Enabling object caching
-    ccdb->setCachingEnabled(true);
+    ccdb->setCaching(true);
     // Not later than now objects
     ccdb->setCreatedNotAfter(nolaterthan.value);
   }

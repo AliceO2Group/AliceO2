@@ -92,8 +92,13 @@ unless the validity range of the cached object does not match to requested times
 In case user wants to enforce a fresh copy loading, the cache for particular CCDB path can be cleaned by invoking `mgr.clear(<path>)`.
 One can also reset whole cache using `mgr.clear()`.
 
-Uncached mode can be imposed by invoking `mgr.setCachingEnabled(false)`, in which case every query will retrieve a new copy of object from the server and
+Uncached mode can be imposed by invoking `mgr.setCaching(false)`, in which case every query will retrieve a new copy of object from the server and
 the user should take care himself of deleting retrieved objects to avoid memory leaks.
+
+Upper and lower limits on the object creation time can be set by `mgr.setCreatedNotAfter(upper_limit_timestamp)` and `mgr.setCreatedNotBefore(lower_limit_timestamp)`, it specifies the fields "If-Not-After" and "If-Not-Before" when retrieving an object from CCDB.
+This feature is useful to avoid using newer objects if the CCDB is updated in parallel to the task execution.
+
+In cached mode, the manager can check that local objects are still valid by requiring `mgr.setLocalObjectValidityChecking(true)`, in this case a CCDB query is performed only if the cached object is no longer valid.
 
 ## Future ideas / todo:
 

@@ -87,8 +87,8 @@ struct EventSelectionTask {
   void init(InitContext&)
   {
     ccdb->setURL("http://ccdb-test.cern.ch:8080");
-    ccdb->setCachingEnabled(true);
-    ccdb->setValidityCheckingEnabled();
+    ccdb->setCaching(true);
+    ccdb->setLocalObjectValidityChecking();
   }
 
   void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Timestamps& timestamps, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::FDDs const& fdds)
