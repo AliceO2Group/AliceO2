@@ -29,7 +29,7 @@ struct CommonServices {
   static ServiceInit simpleServiceInit()
   {
     return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      return ServiceHandle{TypeIdHelpers::uniqueId<I>(), new T};
+      return ServiceHandle{TypeIdHelpers::uniqueId<I>(), new T, ServiceKind::Serial, typeid(T).name()};
     };
   }
 
@@ -38,7 +38,7 @@ struct CommonServices {
   static ServiceInit singletonServiceInit()
   {
     return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      return ServiceHandle{TypeIdHelpers::uniqueId<I>(), T::instance()};
+      return ServiceHandle{TypeIdHelpers::uniqueId<I>(), T::instance(), ServiceKind::Serial, typeid(T).name()};
     };
   }
 
