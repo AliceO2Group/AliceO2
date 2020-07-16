@@ -327,7 +327,7 @@ struct Partition {
   Partition(expressions::Node&& node)
   {
     auto filter = expressions::Filter(std::move(node));
-    auto schema = o2::soa::createSchemaFromColumns(typename T::table_t::persistent_columns_t{});
+    auto schema = o2::soa::createSchemaFromColumns(typename T::persistent_columns_t{});
     expressions::Operations ops = createOperations(filter);
     if (isSchemaCompatible(schema, ops)) {
       mTree = createExpressionTree(ops, schema);
@@ -338,7 +338,7 @@ struct Partition {
 
   void setTable(const T& table)
   {
-    mFiltered.reset(new o2::soa::Filtered<typename T::table_t>{{table.asArrowTable()}, mTree});
+    mFiltered.reset(new o2::soa::Filtered<T>{{table}, mTree});
   }
 
   template <typename... Ts>
@@ -357,13 +357,13 @@ struct Partition {
     }
   }
 
-  o2::soa::Filtered<typename T::table_t>& getPartition()
+  o2::soa::Filtered<T>& getPartition()
   {
     return *mFiltered;
   }
 
   gandiva::NodePtr mTree;
-  std::unique_ptr<o2::soa::Filtered<typename T::table_t>> mFiltered;
+  std::unique_ptr<o2::soa::Filtered<T>> mFiltered;
 };
 
 template <typename ANY>

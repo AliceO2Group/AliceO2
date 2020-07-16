@@ -1324,7 +1324,7 @@ template <typename T>
 using is_soa_concat_t = typename framework::is_specialization<T, soa::Concat>;
 
 template <typename T>
-class Filtered : public T
+class FilteredPolicy : public T
 {
  public:
   using originals = originals_pack_t<T>;
@@ -1336,45 +1336,30 @@ class Filtered : public T
   {
     return typename table_t::template RowViewFiltered<P, Os...>{};
   }
-  using iterator = decltype(make_it<Filtered<T>>(originals{}));
+  using iterator = decltype(make_it<FilteredPolicy<T>>(originals{}));
   using const_iterator = iterator;
 
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
+  FilteredPolicy(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
-      mSelectedRows{std::forward<SelectionVector>(selection)},
-      mFilteredEnd{mSelectedRows.size()}
+      mSelectedRows{std::forward<SelectionVector>(selection)}
   {
-    if (tableSize() == 0) {
-      mFilteredBegin = mFilteredEnd;
-    } else {
-      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
-    }
+    resetRanges();
   }
 
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::expressions::Selection selection, uint64_t offset = 0)
+  FilteredPolicy(std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::expressions::Selection selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
-      mSelectedRows{copySelection(selection)},
-      mFilteredEnd{mSelectedRows.size()}
+      mSelectedRows{copySelection(selection)}
   {
-    if (tableSize() == 0) {
-      mFilteredBegin = mFilteredEnd;
-    } else {
-      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
-    }
+    resetRanges();
   }
 
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::NodePtr const& tree, uint64_t offset = 0)
+  FilteredPolicy(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::NodePtr const& tree, uint64_t offset = 0)
     : T{std::move(tables), offset},
       mSelectedRows{copySelection(framework::expressions::createSelection(this->asArrowTable(),
                                                                           framework::expressions::createFilter(this->asArrowTable()->schema(),
-                                                                                                               framework::expressions::makeCondition(tree))))},
-      mFilteredEnd{mSelectedRows.size()}
+                                                                                                               framework::expressions::makeCondition(tree))))}
   {
-    if (tableSize() == 0) {
-      mFilteredBegin = mFilteredEnd;
-    } else {
-      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
-    }
+    resetRanges();
   }
 
   iterator begin()
@@ -1384,7 +1369,7 @@ class Filtered : public T
 
   RowViewSentinel end()
   {
-    return RowViewSentinel{mFilteredEnd};
+    return RowViewSentinel{*mFilteredEnd};
   }
 
   const_iterator begin() const
@@ -1394,7 +1379,7 @@ class Filtered : public T
 
   RowViewSentinel end() const
   {
-    return RowViewSentinel{mFilteredEnd};
+    return RowViewSentinel{*mFilteredEnd};
   }
 
   iterator iteratorAt(uint64_t i)
@@ -1435,10 +1420,184 @@ class Filtered : public T
     mFilteredBegin.bindExternalIndices(current...);
   }
 
+ protected:
+  void sumWithSelection(SelectionVector const& selection)
+  {
+    SelectionVector rowsUnion;
+    std::set_union(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(rowsUnion));
+    mSelectedRows = rowsUnion;
+    resetRanges();
+  }
+
+  void intersectWithSelection(SelectionVector const& selection)
+  {
+    SelectionVector intersection;
+    std::set_intersection(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(intersection));
+    mSelectedRows = intersection;
+    resetRanges();
+  }
+
  private:
+  void resetRanges()
+  {
+    mFilteredEnd.reset(new RowViewSentinel{mSelectedRows.size()});
+    if (tableSize() == 0) {
+      mFilteredBegin = *mFilteredEnd;
+    } else {
+      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
+    }
+  }
+
   SelectionVector mSelectedRows;
   iterator mFilteredBegin;
-  RowViewSentinel mFilteredEnd;
+  std::shared_ptr<RowViewSentinel> mFilteredEnd;
+};
+
+template <typename T>
+class Filtered : public FilteredPolicy<T>
+{
+ public:
+  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
+    : FilteredPolicy<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
+
+  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::expressions::Selection selection, uint64_t offset = 0)
+    : FilteredPolicy<T>(std::move(tables), selection, offset) {}
+
+  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::NodePtr const& tree, uint64_t offset = 0)
+    : FilteredPolicy<T>(std::move(tables), tree, offset) {}
+
+  Filtered<T> operator+(SelectionVector const& selection)
+  {
+    Filtered<T> copy(*this);
+    copy.sumWithSelection(selection);
+    return copy;
+  }
+
+  Filtered<T> operator+(Filtered<T> const& other)
+  {
+    return operator+(other.getSelectedRows());
+  }
+
+  Filtered<T> operator+=(SelectionVector const& selection)
+  {
+    this->sumWithSelection(selection);
+    return *this;
+  }
+
+  Filtered<T> operator+=(Filtered<T> const& other)
+  {
+    return operator+=(other.getSelectedRows());
+  }
+
+  Filtered<T> operator*(SelectionVector const& selection)
+  {
+    Filtered<T> copy(*this);
+    copy.intersectWithSelection(selection);
+    return copy;
+  }
+
+  Filtered<T> operator*(Filtered<T> const& other)
+  {
+    return operator*(other.getSelectedRows());
+  }
+
+  Filtered<T> operator*=(SelectionVector const& selection)
+  {
+    this->intersectWithSelection(selection);
+    return *this;
+  }
+
+  Filtered<T> operator*=(Filtered<T> const& other)
+  {
+    return operator*=(other.getSelectedRows());
+  }
+};
+
+template <typename T>
+class Filtered<Filtered<T>> : public FilteredPolicy<typename T::table_t>
+{
+ public:
+  using table_t = typename FilteredPolicy<typename T::table_t>::table_t;
+
+  Filtered(std::vector<Filtered<T>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
+    : FilteredPolicy<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), std::forward<SelectionVector>(selection), offset)
+  {
+    for (auto& table : tables) {
+      *this *= table;
+    }
+  }
+
+  Filtered(std::vector<Filtered<T>>&& tables, framework::expressions::Selection selection, uint64_t offset = 0)
+    : FilteredPolicy<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), selection, offset)
+  {
+    for (auto& table : tables) {
+      *this *= table;
+    }
+  }
+
+  Filtered(std::vector<Filtered<T>>&& tables, gandiva::NodePtr const& tree, uint64_t offset = 0)
+    : FilteredPolicy<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), tree, offset)
+  {
+    for (auto& table : tables) {
+      *this *= table;
+    }
+  }
+
+  Filtered<Filtered<T>> operator+(SelectionVector const& selection)
+  {
+    Filtered<Filtered<T>> copy(*this);
+    copy.sumWithSelection(selection);
+    return copy;
+  }
+
+  Filtered<Filtered<T>> operator+(Filtered<T> const& other)
+  {
+    return operator+(other.getSelectedRows());
+  }
+
+  Filtered<Filtered<T>> operator+=(SelectionVector const& selection)
+  {
+    this->sumWithSelection(selection);
+    return *this;
+  }
+
+  Filtered<Filtered<T>> operator+=(Filtered<T> const& other)
+  {
+    return operator+=(other.getSelectedRows());
+  }
+
+  Filtered<Filtered<T>> operator*(SelectionVector const& selection)
+  {
+    Filtered<Filtered<T>> copy(*this);
+    copy.intersectionWithSelection(selection);
+    return copy;
+  }
+
+  Filtered<Filtered<T>> operator*(Filtered<T> const& other)
+  {
+    return operator*(other.getSelectedRows());
+  }
+
+  Filtered<Filtered<T>> operator*=(SelectionVector const& selection)
+  {
+    this->intersectWithSelection(selection);
+    return *this;
+  }
+
+  Filtered<Filtered<T>> operator*=(Filtered<T> const& other)
+  {
+    return operator*=(other.getSelectedRows());
+  }
+
+ private:
+  std::vector<std::shared_ptr<arrow::Table>> extractTablesFromFiltered(std::vector<Filtered<T>>&& tables)
+  {
+    std::vector<std::shared_ptr<arrow::Table>> outTables;
+    for (auto& table : tables) {
+      outTables.push_back(table.asArrowTable());
+    }
+    return outTables;
+  }
 };
 
 template <typename T>
