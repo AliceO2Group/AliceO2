@@ -186,9 +186,19 @@ class Geometry
   Float_t GetDCALStandardPhiMax() const { return mDCALStandardPhiMax; }
   Int_t GetNECLayers() const { return mNECLayers; }
   Float_t GetDCALInnerExtandedEta() const { return mDCALInnerExtandedEta; }
+
+  /// \brief Get the number of modules in supermodule in z- (beam) direction
+  /// \return Number of modules
   Int_t GetNZ() const { return mNZ; }
+
+  /// \brief Get the number of modules in supermodule in #eta direction
+  /// \return Number of modules
   Int_t GetNEta() const { return mNZ; }
+
+  /// \brief Get the number of modules in supermodule in #phi direction
+  /// \return Number of modules
   Int_t GetNPhi() const { return mNPhi; }
+
   Float_t GetECPbRadThick() const { return mECPbRadThickness; }
   Float_t GetECScintThick() const { return mECScintThick; }
   Float_t GetSampling() const { return mSampling; }
@@ -336,34 +346,40 @@ class Geometry
   /// \brief get (Column,Row) pair of cell in global numbering scheme
   /// \param cellID Absolute cell ID
   /// \return tuple with position in global numbering scheme (0 - row, 1 - column)
+  /// \throw InvalidCellIDException
   std::tuple<int, int> GlobalRowColFromIndex(int cellID) const;
 
   /// \brief Get column number of cell in global numbering scheme
   /// \param cellID Absolute cell ID
   /// \return Column number in global numbering scheme
+  /// \throw InvalidCellIDException
   int GlobalCol(int cellID) const;
 
   /// \brief Get row number of cell in global numbering scheme
   /// \param cellID Absolute cell ID
   /// \return Row number in global numbering scheme
+  /// \throw InvalidCellIDException
   int GlobalRow(int cellID) const;
 
   /// \brief Get the absolute cell ID from global position in the EMCAL
   /// \param row Global row ID
   /// \param col Global col ID
   /// \return absolute cell ID
+  /// \throw RowColException
   int GetCellAbsIDFromGlobalRowCol(int row, int col) const;
 
   /// \brief Get the posision (row, col) of a global row-col position
   /// \param row Global row ID
   /// \param col Global col ID
   /// \return Position in supermodule: [0 - supermodule ID, 1 - row in supermodule - col in supermodule]
+  /// \throw RowColException
   std::tuple<int, int, int> GetPositionInSupermoduleFromGlobalRowCol(int col, int row) const;
 
   /// \brief Get the cell indices from global position in the EMCAL
   /// \param row Global row ID
   /// \param col Global col ID
   /// \return Cell indices [0 - supermodule, 1 - module, 2 - phi in module, 3 - eta in module]
+  /// \throw RowColException
   std::tuple<int, int, int, int> GetCellIndexFromGlobalRowCol(int row, int col) const;
 
   /// \brief Given a global eta/phi point check if it belongs to a supermodule covered region.
