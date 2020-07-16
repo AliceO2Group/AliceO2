@@ -185,7 +185,12 @@
     name& tmp = parent.instance;
 #define EndConfig() }
 
+// End QCONFIG_PRINT
 #elif defined(QCONFIG_INSTANCE)
+#define BeginNamespace(name) \
+  namespace name             \
+  {
+#define EndNamespace() }
 #define AddOption(name, type, default, optname, optnameshort, help, ...) name(default),
 #define AddVariable(name, type, default) name(default),
 #define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
@@ -224,11 +229,20 @@ enum qConfigRetVal { qcrOK = 0,
                      qcrArrayOverflow = 8 };
 }
 
-#else
-#ifdef QCONFIG_HEADER_GUARD
-#define QCONFIG_HEADER_GUARD_NO_INCLUDE
-#else
-#define QCONFIG_HEADER_GUARD
+#if defined(QCONFIG_EXTERNS)
+#define BeginNamespace(name) \
+  namespace name             \
+  {
+#define EndNamespace() }
+#define AddOption(name, type, default, optname, optnameshort, help, ...)
+#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
+#define AddOptionVec(name, type, optname, optnameshort, help, ...)
+#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...)
+#define AddSubConfig(name, instance)
+#define BeginConfig(name, instance) extern "C" name instance;
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr)
+#define EndConfig()
+#undef QCONFIG_EXTERNS
 
 #if defined(QCONFIG_CPP11_INIT) && !defined(QCONFIG_GPU)
 #define AddOption(name, type, default, optname, optnameshort, help, ...) type name = default;
@@ -245,6 +259,11 @@ enum qConfigRetVal { qcrOK = 0,
   }                 \
   ;
 #else
+#define BeginNamespace(name) \
+  namespace name             \
+  {
+#define EndNamespace() }
+#define AddCustomCPP(...) __VA_ARGS__
 #define AddOption(name, type, default, optname, optnameshort, help, ...) type name;
 #define AddVariable(name, type, default) type name;
 #define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
@@ -322,6 +341,9 @@ struct qConfigDummy {
 #undef AddHelpText
 #undef AddCommand
 #undef AddShortcut
+#undef BeginNamespace
+#undef EndNamespace
+#undef AddCustomCPP
 #ifdef QCONFIG_COMPARE
 #undef QCONFIG_COMPARE
 #endif

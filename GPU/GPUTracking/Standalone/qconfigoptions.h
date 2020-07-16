@@ -12,7 +12,15 @@
 /// \author David Rohr
 
 // clang-format off
-BeginSubConfig(structConfigGL, configGL, configStandalone, "GL", 'g', "OpenGL display settings")
+
+#ifdef QCONFIG_INSTANCE
+using namespace GPUCA_NAMESPACE::gpu;
+#endif
+BeginNamespace(GPUCA_NAMESPACE)
+BeginNamespace(gpu)
+
+// Settings concerning the event display
+BeginSubConfig(GPUSettingsDisplay, configGL, configStandalone, "GL", 'g', "OpenGL display settings")
 AddOption(clustersOnly, bool, false, "", 0, "Visualize clusters only")
 AddHelp("help", 'h')
 EndConfig()
@@ -192,4 +200,7 @@ AddSubConfig(structConfigGL, configGL)
 AddSubConfig(structConfigRec, configRec)
 AddSubConfig(structConfigProc, configProc)
 EndConfig()
+
+EndNamespace() // gpu
+EndNamespace() // GPUCA_NAMESPACE
   // clang-format on
