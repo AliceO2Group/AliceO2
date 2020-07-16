@@ -98,6 +98,7 @@ o2_add_library(Framework
                        src/RCombinedDS.cxx
                        src/ReadoutAdapter.cxx
                        src/ResourcesMonitoringHelper.cxx
+                       src/ServiceRegistry.cxx
                        src/SimpleResourceManager.cxx
                        src/StreamOperators.cxx
                        src/TMessageSerializer.cxx

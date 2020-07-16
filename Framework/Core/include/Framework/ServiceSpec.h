@@ -10,6 +10,7 @@
 #ifndef O2_FRAMEWORK_SERVICESPEC_H_
 #define O2_FRAMEWORK_SERVICESPEC_H_
 
+#include "Framework/ServiceHandle.h"
 #include <functional>
 #include <string>
 #include <vector>
@@ -31,14 +32,6 @@ struct DeviceState;
 struct ProcessingContext;
 struct EndOfStreamContext;
 class DanglingContext;
-
-/// Handle to the service hash must be calculated
-/// using TypeIdHelper::uniqueId<BaseClass>() so that
-/// we can retrieve the service by its baseclass.
-struct ServiceHandle {
-  uint32_t hash;
-  void* instance;
-};
 
 /// A callback to create a given Service.
 using ServiceInit = std::function<ServiceHandle(ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&)>;
@@ -69,16 +62,6 @@ using ServicePostForkChild = std::function<void(ServiceRegistry&)>;
 /// Callback executed after forking a given device in the driver,
 /// but before doing exec / starting the device.
 using ServicePostForkParent = std::function<void(ServiceRegistry&)>;
-
-/// The kind of service we are asking for
-enum struct ServiceKind {
-  /// A Service which is not thread safe, therefore all accesses to it must be mutexed.
-  Serial,
-  /// A Service which is thread safe and therefore can be used by many threads the same time without risk
-  Global,
-  /// A Service which is specific to a given thread in a thread pool
-  Stream
-};
 
 /// A specification for a Service.
 /// A Service is a utility class which does not perform

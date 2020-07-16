@@ -11,6 +11,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Framework/ServiceHandle.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/CallbackService.h"
 #include <boost/test/unit_test.hpp>
@@ -76,4 +77,87 @@ BOOST_AUTO_TEST_CASE(TestCallbackService)
   // execute and check
   registry.get<CallbackService>()(CallbackService::Id::Stop);
   BOOST_CHECK(cbCalled);
+}
+
+struct DummyService {
+  int threadId;
+};
+
+BOOST_AUTO_TEST_CASE(TestSerialServices)
+{
+  using namespace o2::framework;
+  ServiceRegistryBase registry;
+
+  DummyService t0{0};
+  /// We register it pretending to be on thread 0
+  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t0, ServiceKind::Serial, 0);
+
+  auto tt0 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 0, ServiceKind::Serial));
+  auto tt1 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 1, ServiceKind::Serial));
+  auto tt2 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 2, ServiceKind::Serial));
+  BOOST_CHECK_EQUAL(tt0->threadId, 0);
+  BOOST_CHECK_EQUAL(tt1->threadId, 0);
+  BOOST_CHECK_EQUAL(tt2->threadId, 0);
+}
+
+BOOST_AUTO_TEST_CASE(TestGlobalServices)
+{
+  using namespace o2::framework;
+  ServiceRegistryBase registry;
+
+  DummyService t0{0};
+  /// We register it pretending to be on thread 0
+  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t0, ServiceKind::Global, 0);
+
+  auto tt0 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 0, ServiceKind::Serial));
+  auto tt1 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 1, ServiceKind::Serial));
+  auto tt2 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 2, ServiceKind::Serial));
+  BOOST_CHECK_EQUAL(tt0->threadId, 0);
+  BOOST_CHECK_EQUAL(tt1->threadId, 0);
+  BOOST_CHECK_EQUAL(tt2->threadId, 0);
+}
+
+BOOST_AUTO_TEST_CASE(TestGlobalServices02)
+{
+  using namespace o2::framework;
+  ServiceRegistryBase registry;
+
+  DummyService t0{1};
+  /// We register it pretending to be on thread 0
+  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t0, ServiceKind::Global, 1);
+
+  auto tt0 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 0, ServiceKind::Global));
+  auto tt1 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 1, ServiceKind::Global));
+  auto tt2 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 2, ServiceKind::Global));
+  BOOST_CHECK_EQUAL(tt0->threadId, 1);
+  BOOST_CHECK_EQUAL(tt1->threadId, 1);
+  BOOST_CHECK_EQUAL(tt2->threadId, 1);
+}
+
+BOOST_AUTO_TEST_CASE(TestStreamServices)
+{
+  using namespace o2::framework;
+  ServiceRegistryBase registry;
+
+  DummyService t0{0};
+  DummyService t1{1};
+  DummyService t2{2};
+  /// We register it pretending to be on thread 0
+  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t0, ServiceKind::Stream, 0);
+  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t1, ServiceKind::Stream, 1);
+  registry.registerService(TypeIdHelpers::uniqueId<DummyService>(), &t2, ServiceKind::Stream, 2);
+
+  auto tt0 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 0, ServiceKind::Stream));
+  auto tt1 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 1, ServiceKind::Stream));
+  auto tt2 = reinterpret_cast<DummyService*>(registry.get(TypeIdHelpers::uniqueId<DummyService>(), 2, ServiceKind::Stream));
+  BOOST_CHECK_EQUAL(tt0->threadId, 0);
+  BOOST_CHECK_EQUAL(tt1->threadId, 1);
+  BOOST_CHECK_EQUAL(tt2->threadId, 2);
+}
+
+BOOST_AUTO_TEST_CASE(TestServiceRegistryCtor)
+{
+  using namespace o2::framework;
+  ServiceRegistry registry;
+  registry = ServiceRegistry();
 }
