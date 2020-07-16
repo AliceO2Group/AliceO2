@@ -57,6 +57,7 @@ add_custom_command(
           -I${GPUDIR}/Global
           -I${GPUDIR}/SliceTracker
           -I${GPUDIR}/TRDTracking
+          -I${GPUDIR}/Standalone
           -DGPUCA_GPULIBRARY=OCL1
           -x clc++
   MAIN_DEPENDENCY ${CL_SRC}

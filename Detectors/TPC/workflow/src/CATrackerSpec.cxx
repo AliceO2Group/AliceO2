@@ -238,7 +238,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         LOG(INFO) << "GPU device number selected from pipeline id: " << myId << " / " << idMax;
       }
       config.configDeviceProcessing.deviceNum = gpuDevice;
-      config.configDeviceProcessing.nThreads = nThreads;
+      config.configDeviceProcessing.ompThreads = nThreads;
       config.configDeviceProcessing.runQA = qa;                                   // Run QA after tracking
       config.configDeviceProcessing.runMC = specconfig.processMC;                 // Propagate MC labels
       config.configDeviceProcessing.eventDisplay = display;                       // Ptr to event display backend, for running standalone OpenGL event display
@@ -262,7 +262,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       config.configReconstruction.tpcRejectionMode = tpcRejectionMode;                // Implement TPC Strategy A
       config.configReconstruction.tpcRejectQPt = 1.f / 0.05f;                         // Reject clusters of tracks < 50 MeV
       config.configReconstruction.tpcCompressionModes = GPUSettings::CompressionFull; // Activate all compression steps
-      config.configReconstruction.tpcCompressionSortOrder = GPUSettings::SortPad;     // Sort order for differences compression
+      config.configReconstruction.tpcCompressionSortOrder = GPUSettings::SortTime;    // Sort order for differences compression
       config.configReconstruction.tpcSigBitsCharge = 4;                               // Number of significant bits in TPC cluster chargs
       config.configReconstruction.tpcSigBitsWidth = 3;                                // Number of significant bits in TPC cluster width
 

@@ -57,7 +57,7 @@ class GPUDisplay
   ~GPUDisplay() = default;
   GPUDisplay(const GPUDisplay&) = delete;
 
-  typedef structConfigGL configDisplay;
+  typedef GPUDisplayConfig configDisplay;
 
   int StartDisplay() { return 1; }
   void ShowNextEvent() {}

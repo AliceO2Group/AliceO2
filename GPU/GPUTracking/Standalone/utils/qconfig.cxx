@@ -19,6 +19,7 @@
 #include <functional>
 #include <iostream>
 #include <tuple>
+#include <vector>
 #include "qconfig.h"
 
 // Create config instances
@@ -345,6 +346,15 @@ inline int qAddOptionType<char>(qConfigSettings<char>& settings, char& ref, int&
     settings.doDefault);
 }
 template <>
+inline int qAddOptionType<unsigned char>(qConfigSettings<unsigned char>& settings, unsigned char& ref, int& i, const char** argv, const int argc, unsigned char /*def*/)
+{
+  return qAddOptionGeneric<unsigned char>(
+    settings, ref, i, argv, argc, settings.set, [](const char* a) -> unsigned char {
+      return atoi(a);
+    },
+    settings.doDefault);
+}
+template <>
 inline int qAddOptionType<int>(qConfigSettings<int>& settings, int& ref, int& i, const char** argv, const int argc, int /*def*/)
 {
   return qAddOptionGeneric<int>(
@@ -363,19 +373,19 @@ inline int qAddOptionType<unsigned int>(qConfigSettings<unsigned int>& settings,
     settings.doDefault);
 }
 template <>
-inline int qAddOptionType<long long int>(qConfigSettings<long long int>& settings, long long int& ref, int& i, const char** argv, const int argc, long long int /*def*/)
+inline int qAddOptionType<long>(qConfigSettings<long>& settings, long& ref, int& i, const char** argv, const int argc, long /*def*/)
 {
-  return qAddOptionGeneric<long long int>(
-    settings, ref, i, argv, argc, settings.set, [](const char* a) -> long long int {
+  return qAddOptionGeneric<long>(
+    settings, ref, i, argv, argc, settings.set, [](const char* a) -> long {
       return strtoll(a, nullptr, 0);
     },
     settings.doDefault);
 }
 template <>
-inline int qAddOptionType<unsigned long long int>(qConfigSettings<unsigned long long int>& settings, unsigned long long int& ref, int& i, const char** argv, const int argc, unsigned long long int /*def*/)
+inline int qAddOptionType<unsigned long>(qConfigSettings<unsigned long>& settings, unsigned long& ref, int& i, const char** argv, const int argc, unsigned long /*def*/)
 {
-  return qAddOptionGeneric<unsigned long long int>(
-    settings, ref, i, argv, argc, settings.set, [](const char* a) -> unsigned long long int {
+  return qAddOptionGeneric<unsigned long>(
+    settings, ref, i, argv, argc, settings.set, [](const char* a) -> unsigned long {
       return strtoull(a, nullptr, 0);
     },
     settings.doDefault);

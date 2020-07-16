@@ -566,7 +566,7 @@ void GPUReconstructionConvert::RunZSEncoderCreateMeta(const unsigned long long i
   }
 }
 
-void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<o2::tpc::Digit[]>* buffers, const o2::tpc::Digit* const* ptrs, size_t* nsb, const size_t* ns, const GPUParam& param, bool zs12bit)
+void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<o2::tpc::Digit[]>* buffers, const o2::tpc::Digit* const* ptrs, size_t* nsb, const size_t* ns, const GPUParam& param, bool zs12bit, float threshold)
 {
 #ifdef HAVE_O2HEADERS
   for (unsigned int i = 0; i < NSLICES; i++) {
@@ -577,7 +577,7 @@ void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<o2::tpc::Digit[]>* bu
     const unsigned int decodeBits = zs12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
     const float decodeBitsFactor = (1 << (decodeBits - 10));
     for (unsigned int k = 0; k < ns[i]; k++) {
-      if (buffers[i][k].getChargeFloat() >= param.rec.tpcZSthreshold) {
+      if (buffers[i][k].getChargeFloat() >= threshold) {
         if (k > j) {
           buffers[i][j] = buffers[i][k];
         }

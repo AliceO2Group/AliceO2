@@ -116,7 +116,9 @@ int ReadConfiguration(int argc, char** argv)
   if (configStandalone.printSettings) {
     qConfigPrint();
   }
-
+  if (configStandalone.configProc.debugLevel < 0) {
+    configStandalone.configProc.debugLevel = 0;
+  }
 #ifndef _WIN32
   setlocale(LC_ALL, "");
   setlocale(LC_NUMERIC, "");
@@ -163,19 +165,19 @@ int ReadConfiguration(int argc, char** argv)
   }
 #endif
 #ifndef HAVE_O2HEADERS
-  configStandalone.configRec.runTRD = configStandalone.configRec.rundEdx = configStandalone.configRec.runCompression = configStandalone.configRec.runTransformation = configStandalone.testSyncAsync = configStandalone.testSync = 0;
+  configStandalone.configRec.runTRD = configStandalone.rundEdx = configStandalone.configRec.runCompression = configStandalone.runTransformation = configStandalone.testSyncAsync = configStandalone.testSync = 0;
   configStandalone.configRec.ForceEarlyTPCTransform = 1;
 #endif
 #ifndef GPUCA_TPC_GEOMETRY_O2
   configStandalone.configRec.mergerReadFromTrackerDirectly = 0;
 #endif
 #ifndef GPUCA_BUILD_QA
-  if (configStandalone.qa || configStandalone.eventGenerator) {
+  if (configStandalone.configProc.runQA || configStandalone.eventGenerator) {
     printf("QA not enabled in build\n");
     return 1;
   }
 #endif
-  if (configStandalone.qa) {
+  if (configStandalone.configProc.runQA) {
     if (getenv("LC_NUMERIC")) {
       printf("Please unset the LC_NUMERIC env variable, otherwise ROOT will not be able to fit correctly\n"); // BUG: ROOT Problem
       return 1;
@@ -217,27 +219,27 @@ int ReadConfiguration(int argc, char** argv)
     return 1;
   }
   if (configStandalone.configQA.inputHistogramsOnly) {
-    configStandalone.configRec.rundEdx = false;
+    configStandalone.rundEdx = false;
   }
   if (configStandalone.eventDisplay) {
     configStandalone.noprompt = 1;
   }
-  if (configStandalone.DebugLevel >= 4 && !configStandalone.configProc.ompKernels) {
-    configStandalone.OMPThreads = 1;
+  if (configStandalone.configProc.debugLevel >= 4 && !configStandalone.configProc.ompKernels) {
+    configStandalone.configProc.ompThreads = 1;
   }
 
 #ifdef WITH_OPENMP
-  if (configStandalone.OMPThreads != -1) {
-    omp_set_num_threads(configStandalone.OMPThreads);
+  if (configStandalone.configProc.ompThreads != -1) {
+    omp_set_num_threads(configStandalone.configProc.ompThreads);
   } else {
-    configStandalone.OMPThreads = omp_get_max_threads();
+    configStandalone.configProc.ompThreads = omp_get_max_threads();
   }
-  if (configStandalone.OMPThreads != omp_get_max_threads()) {
+  if (configStandalone.configProc.ompThreads != omp_get_max_threads()) {
     printf("Cannot set number of OMP threads!\n");
     return 1;
   }
 #else
-  configStandalone.OMPThreads = 1;
+  configStandalone.configProc.ompThreads = 1;
 #endif
   if (configStandalone.outputcontrolmem) {
     bool forceEmptyMemory = getenv("LD_PRELOAD") && strstr(getenv("LD_PRELOAD"), "valgrind") != nullptr;
@@ -289,6 +291,8 @@ int SetupReconstruction()
   GPUSettingsEvent ev = rec->GetEventSettings();
   GPUSettingsRec recSet;
   GPUSettingsDeviceProcessing devProc;
+  memcpy((void*)&recSet, (void*)&configStandalone.configRec, sizeof(GPUSettingsRec));
+  memcpy((void*)&devProc, (void*)&configStandalone.configProc, sizeof(GPUSettingsDeviceProcessing));
   GPURecoStepConfiguration steps;
 
   if (configStandalone.eventGenerator) {
@@ -322,55 +326,7 @@ int SetupReconstruction()
     printf("Standalone Test Framework for CA Tracker - Using GPU\n");
   }
 
-  recSet.SetMinTrackPt(GPUCA_MIN_TRACK_PT_DEFAULT);
-  recSet.NWays = configStandalone.nways;
-  recSet.NWaysOuter = configStandalone.nwaysouter;
-  recSet.RejectMode = configStandalone.rejectMode;
-  recSet.SearchWindowDZDR = configStandalone.dzdr;
-  recSet.GlobalTracking = configStandalone.configRec.globalTracking;
-  recSet.DisableRefitAttachment = configStandalone.configRec.disableRefitAttachment;
-  recSet.ForceEarlyTPCTransform = configStandalone.configRec.ForceEarlyTPCTransform;
-  recSet.fwdTPCDigitsAsClusters = configStandalone.configRec.fwdTPCDigitsAsClusters;
-  recSet.dropLoopers = configStandalone.configRec.dropLoopers;
-  if (configStandalone.configRec.mergerCovSource != -1) {
-    recSet.mergerCovSource = configStandalone.configRec.mergerCovSource;
-  }
-  if (configStandalone.configRec.mergerInterpolateErrors != -1) {
-    recSet.mergerInterpolateErrors = configStandalone.configRec.mergerInterpolateErrors;
-  }
-  if (configStandalone.referenceX < 500.) {
-    recSet.TrackReferenceX = configStandalone.referenceX;
-  }
-  recSet.tpcZSthreshold = configStandalone.zsThreshold;
-  if (configStandalone.configRec.fitInProjections != -1) {
-    recSet.fitInProjections = configStandalone.configRec.fitInProjections;
-  }
-  if (configStandalone.configRec.fitPropagateBzOnly != -1) {
-    recSet.fitPropagateBzOnly = configStandalone.configRec.fitPropagateBzOnly;
-  }
-  if (configStandalone.configRec.retryRefit != -1) {
-    recSet.retryRefit = configStandalone.configRec.retryRefit;
-  }
-  recSet.loopInterpolationInExtraPass = configStandalone.configRec.loopInterpolationInExtraPass;
-  recSet.mergerReadFromTrackerDirectly = configStandalone.configRec.mergerReadFromTrackerDirectly;
-
-  if (configStandalone.OMPThreads != -1) {
-    devProc.nThreads = configStandalone.OMPThreads;
-  }
-  devProc.deviceNum = configStandalone.deviceNum;
-  devProc.forceMemoryPoolSize = (configStandalone.forceMemorySize == 1 && configStandalone.eventDisplay) ? 2 : configStandalone.forceMemorySize;
-  devProc.forceHostMemoryPoolSize = configStandalone.forceHostMemorySize;
-  devProc.debugLevel = configStandalone.DebugLevel;
-  devProc.allocDebugLevel = configStandalone.allocDebugLevel;
-  devProc.deviceTimers = configStandalone.DeviceTiming;
-  devProc.runQA = configStandalone.qa;
-  devProc.runMC = configStandalone.configProc.runMC;
-  devProc.ompKernels = configStandalone.configProc.ompKernels;
-  devProc.runCompressionStatistics = configStandalone.compressionStat;
-  devProc.memoryScalingFactor = configStandalone.memoryScalingFactor;
-  devProc.alternateBorderSort = configStandalone.alternateBorderSort;
-  devProc.doublePipeline = configStandalone.configProc.doublePipeline;
-  devProc.prefetchTPCpageScan = configStandalone.configProc.prefetchTPCpageScan;
+  configStandalone.configProc.forceMemoryPoolSize = (configStandalone.configProc.forceMemoryPoolSize == 1 && configStandalone.eventDisplay) ? 2 : configStandalone.configProc.forceMemoryPoolSize;
   if (configStandalone.eventDisplay) {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef _WIN32
@@ -398,49 +354,23 @@ int SetupReconstruction()
 #endif
     devProc.eventDisplay = eventDisplay.get();
   }
-  devProc.nDeviceHelperThreads = configStandalone.helperThreads;
-  devProc.globalInitMutex = configStandalone.gpuInitMutex;
-  devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
-  devProc.memoryAllocationStrategy = configStandalone.allocationStrategy;
-  devProc.registerStandaloneInputMemory = configStandalone.registerInputMemory;
-  if (configStandalone.configRec.tpcReject != -1) {
-    recSet.tpcRejectionMode = configStandalone.configRec.tpcReject;
-  }
-  if (configStandalone.configRec.tpcRejectThreshold != 0.f) {
-    recSet.tpcRejectQPt = 1.f / configStandalone.configRec.tpcRejectThreshold;
-  }
-  recSet.tpcCompressionModes = configStandalone.configRec.tpcCompression;
-  recSet.tpcCompressionSortOrder = configStandalone.configRec.tpcCompressionSort;
-
-  if (configStandalone.configProc.nStreams >= 0) {
-    devProc.nStreams = configStandalone.configProc.nStreams;
-  }
-  if (configStandalone.configProc.constructorPipeline >= 0) {
-    devProc.trackletConstructorInPipeline = configStandalone.configProc.constructorPipeline;
-  }
-  if (configStandalone.configProc.selectorPipeline >= 0) {
-    devProc.trackletSelectorInPipeline = configStandalone.configProc.selectorPipeline;
-  }
-  devProc.mergerSortTracks = configStandalone.configProc.mergerSortTracks;
-  devProc.tpcCompressionGatherMode = configStandalone.configProc.tpcCompressionGatherMode;
-  devProc.tpcCompressionGatherModeKernel = configStandalone.configProc.tpcCompressionGatherModeKernel;
 
   steps.steps = GPUDataTypes::RecoStep::AllRecoSteps;
-  if (configStandalone.configRec.runTRD != -1) {
-    steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, configStandalone.configRec.runTRD > 0);
+  if (configStandalone.runTRD != -1) {
+    steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, configStandalone.runTRD > 0);
   } else if (chainTracking->GetTRDGeometry() == nullptr) {
     steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, false);
   }
-  if (configStandalone.configRec.rundEdx != -1) {
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, configStandalone.configRec.rundEdx > 0);
+  if (configStandalone.rundEdx != -1) {
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, configStandalone.rundEdx > 0);
   }
-  if (configStandalone.configRec.runCompression != -1) {
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, configStandalone.configRec.runCompression > 0);
+  if (configStandalone.runCompression != -1) {
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, configStandalone.runCompression > 0);
   }
-  if (configStandalone.configRec.runTransformation != -1) {
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCConversion, configStandalone.configRec.runTransformation > 0);
+  if (configStandalone.runTransformation != -1) {
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCConversion, configStandalone.runTransformation > 0);
   }
-  if (!configStandalone.merger) {
+  if (!configStandalone.runMerger) {
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCMerging, false);
     steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, false);
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, false);
@@ -457,11 +387,11 @@ int SetupReconstruction()
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCClusterFinding, false);
   }
 
-  if (configStandalone.configProc.recoSteps >= 0) {
-    steps.steps &= configStandalone.configProc.recoSteps;
+  if (configStandalone.recoSteps >= 0) {
+    steps.steps &= configStandalone.recoSteps;
   }
-  if (configStandalone.configProc.recoStepsGPU >= 0) {
-    steps.stepsGPUMask &= configStandalone.configProc.recoStepsGPU;
+  if (configStandalone.recoStepsGPU >= 0) {
+    steps.stepsGPUMask &= configStandalone.recoStepsGPU;
   }
 
   steps.outputs.clear();
@@ -529,7 +459,7 @@ int SetupReconstruction()
       return 1;
     }
   }
-  if (configStandalone.DebugLevel >= 4) {
+  if (configStandalone.configProc.debugLevel >= 4) {
     rec->PrintKernelOccupancies();
   }
   return (0);
@@ -546,8 +476,8 @@ int ReadEvent(int n)
   if (r) {
     return r;
   }
-  if (chainTracking->mIOPtrs.clustersNative && (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge || !configStandalone.configRec.runTransformation)) {
-    if (configStandalone.DebugLevel >= 2) {
+  if (chainTracking->mIOPtrs.clustersNative && (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge || !configStandalone.runTransformation)) {
+    if (configStandalone.configProc.debugLevel >= 2) {
       printf("Converting Native to Legacy ClusterData for overlaying - WARNING: No raw clusters produced - Compression etc will not run!!!\n");
     }
     chainTracking->ConvertNativeToClusterDataLegacy();
@@ -584,12 +514,12 @@ int LoadEvent(int iEvent, int x)
       chainTracking->ConvertZSEncoder(configStandalone.zs12bit);
     }
   }
-  if (!configStandalone.configRec.runTransformation) {
+  if (!configStandalone.runTransformation) {
     chainTracking->mIOPtrs.clustersNative = nullptr;
   } else {
     for (int i = 0; i < chainTracking->NSLICES; i++) {
       if (chainTracking->mIOPtrs.rawClusters[i]) {
-        if (configStandalone.DebugLevel >= 2) {
+        if (configStandalone.configProc.debugLevel >= 2) {
           printf("Converting Legacy Raw Cluster to Native\n");
         }
         chainTracking->ConvertRun2RawToNative();
@@ -689,7 +619,7 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
       OutputStat(chainTrackingUse, iRun == 0 ? nTracksTotal : nullptr, iRun == 0 ? nClustersTotal : nullptr);
       if (configStandalone.memoryStat) {
         recUse->PrintMemoryStatistics();
-      } else if (configStandalone.DebugLevel >= 2) {
+      } else if (configStandalone.configProc.debugLevel >= 2) {
         recUse->PrintMemoryOverview();
       }
     }
@@ -776,17 +706,17 @@ int main(int argc, char** argv)
     printf("Error initializing GPUReconstruction\n");
     return 1;
   }
-  rec->SetDebugLevelTmp(configStandalone.DebugLevel);
+  rec->SetDebugLevelTmp(configStandalone.configProc.debugLevel);
   chainTracking = rec->AddChain<GPUChainTracking>();
   if (configStandalone.testSyncAsync) {
-    if (configStandalone.DebugLevel >= 3) {
-      recAsync->SetDebugLevelTmp(configStandalone.DebugLevel);
+    if (configStandalone.configProc.debugLevel >= 3) {
+      recAsync->SetDebugLevelTmp(configStandalone.configProc.debugLevel);
     }
     chainTrackingAsync = recAsync->AddChain<GPUChainTracking>();
   }
   if (configStandalone.configProc.doublePipeline) {
-    if (configStandalone.DebugLevel >= 3) {
-      recPipeline->SetDebugLevelTmp(configStandalone.DebugLevel);
+    if (configStandalone.configProc.debugLevel >= 3) {
+      recPipeline->SetDebugLevelTmp(configStandalone.configProc.debugLevel);
     }
     chainTrackingPipeline = recPipeline->AddChain<GPUChainTracking>();
   }
@@ -943,15 +873,15 @@ int main(int argc, char** argv)
         double nClusters = chainTracking->GetTPCMerger().NMaxClusters();
         if (nClusters > 0) {
           double nClsPerTF = 550000. * 1138.3;
-          double timePerTF = (configStandalone.configProc.doublePipeline ? pipelineWalltime : ((configStandalone.DebugLevel ? rec->GetStatKernelTime() : rec->GetStatWallTime()) / 1000000.)) * nClsPerTF / nClusters;
+          double timePerTF = (configStandalone.configProc.doublePipeline ? pipelineWalltime : ((configStandalone.configProc.debugLevel ? rec->GetStatKernelTime() : rec->GetStatWallTime()) / 1000000.)) * nClsPerTF / nClusters;
           double nGPUsReq = timePerTF / 0.02277;
           char stat[1024];
           snprintf(stat, 1024, "Sync phase: %.2f sec per 256 orbit TF, %.1f GPUs required", timePerTF, nGPUsReq);
           if (configStandalone.testSyncAsync) {
-            timePerTF = (configStandalone.DebugLevel ? recAsync->GetStatKernelTime() : recAsync->GetStatWallTime()) / 1000000. * nClsPerTF / nClusters;
+            timePerTF = (configStandalone.configProc.debugLevel ? recAsync->GetStatKernelTime() : recAsync->GetStatWallTime()) / 1000000. * nClsPerTF / nClusters;
             snprintf(stat + strlen(stat), 1024 - strlen(stat), " - Async phase: %f sec per TF", timePerTF);
           }
-          printf("%s (Measured %s time - Extrapolated from %d clusters to %d)\n", stat, configStandalone.DebugLevel ? "kernel" : "wall", (int)nClusters, (int)nClsPerTF);
+          printf("%s (Measured %s time - Extrapolated from %d clusters to %d)\n", stat, configStandalone.configProc.debugLevel ? "kernel" : "wall", (int)nClusters, (int)nClsPerTF);
         }
       }
 
@@ -970,7 +900,7 @@ breakrun:
   }
 
 #ifndef _WIN32
-  if (configStandalone.qa && configStandalone.fpe) {
+  if (configStandalone.configProc.runQA && configStandalone.fpe) {
     fedisableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
   }
 #endif

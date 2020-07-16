@@ -32,7 +32,7 @@ void GPUParam::SetDefaults(float solenoidBz)
 {
   memset((void*)this, 0, sizeof(*this));
   new (&tpcGeometry) GPUTPCGeometry;
-  rec.SetDefaults();
+  new (&rec) GPUSettingsRec;
 
   // clang-format off
   float const kParamS0Par[2][3][6] =

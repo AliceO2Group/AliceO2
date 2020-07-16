@@ -88,8 +88,8 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostCo
     mMaster = cfg.master;
     cfg.master->mSlaves.emplace_back(this);
   }
-  mDeviceProcessingSettings.SetDefaults();
-  mEventSettings.SetDefaults();
+  new (&mDeviceProcessingSettings) GPUSettingsDeviceProcessing;
+  new (&mEventSettings) GPUSettingsEvent;
   param().SetDefaults(&mEventSettings);
   mMemoryScalers.reset(new GPUMemorySizeScalers);
   for (unsigned int i = 0; i < NSLICES; i++) {
@@ -252,15 +252,15 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   mMemoryScalers->factor = mDeviceProcessingSettings.memoryScalingFactor;
 
 #ifdef WITH_OPENMP
-  if (mDeviceProcessingSettings.nThreads <= 0) {
-    mDeviceProcessingSettings.nThreads = omp_get_max_threads();
+  if (mDeviceProcessingSettings.ompThreads <= 0) {
+    mDeviceProcessingSettings.ompThreads = omp_get_max_threads();
   } else {
-    omp_set_num_threads(mDeviceProcessingSettings.nThreads);
+    omp_set_num_threads(mDeviceProcessingSettings.ompThreads);
   }
 #else
-  mDeviceProcessingSettings.nThreads = 1;
+  mDeviceProcessingSettings.ompThreads = 1;
 #endif
-  mMaxThreads = std::max(mMaxThreads, mDeviceProcessingSettings.nThreads);
+  mMaxThreads = std::max(mMaxThreads, mDeviceProcessingSettings.ompThreads);
   if (IsGPU()) {
     mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
   }
@@ -905,7 +905,7 @@ int GPUReconstruction::ReadSettings(const char* dir)
   std::string f;
   f = dir;
   f += "settings.dump";
-  mEventSettings.SetDefaults();
+  new (&mEventSettings) GPUSettingsEvent;
   if (ReadStructFromFile(f.c_str(), &mEventSettings)) {
     return 1;
   }
@@ -919,7 +919,7 @@ int GPUReconstruction::ReadSettings(const char* dir)
 void GPUReconstruction::SetSettings(float solenoidBz)
 {
   GPUSettingsEvent ev;
-  ev.SetDefaults();
+  new (&ev) GPUSettingsEvent;
   ev.solenoidBz = solenoidBz;
   SetSettings(&ev, nullptr, nullptr);
 }
@@ -960,7 +960,7 @@ std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstruction::GetThrea
 GPUReconstruction* GPUReconstruction::CreateInstance(DeviceType type, bool forceType, GPUReconstruction* master)
 {
   GPUSettingsProcessing cfg;
-  cfg.SetDefaults();
+  new (&cfg) GPUSettingsProcessing;
   cfg.deviceType = type;
   cfg.forceDeviceType = forceType;
   cfg.master = master;
