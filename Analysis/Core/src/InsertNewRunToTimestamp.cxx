@@ -25,7 +25,7 @@ namespace bpo = boost::program_options;
 bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv[], bpo::variables_map& vm)
 {
   options.add_options()(
-    "run,r", bpo::value<uint>()->required(), "Run number to use")(
+    "run,r", bpo::value<unsigned int>()->required(), "Run number to use")(
     "timestamp,t", bpo::value<long>()->required(), "Timestamp to use equivalent to the run number")(
     "path,p", bpo::value<std::string>()->default_value("Analysis/Core/RunToTimestamp"), "Path to the object in the CCDB repository")(
     "url,u", bpo::value<std::string>()->default_value("http://ccdb-test.cern.ch:8080"), "URL of the CCDB database")(
@@ -90,9 +90,9 @@ int main(int argc, char* argv[])
   }
 
   if (vm["update"].as<int>())
-    converter->update(vm["run"].as<uint>(), vm["timestamp"].as<long>());
+    converter->update(vm["run"].as<unsigned int>(), vm["timestamp"].as<long>());
   else
-    converter->insert(vm["run"].as<uint>(), vm["timestamp"].as<long>());
+    converter->insert(vm["run"].as<unsigned int>(), vm["timestamp"].as<long>());
 
   if (vm["verbose"].as<int>())
     converter->print();
