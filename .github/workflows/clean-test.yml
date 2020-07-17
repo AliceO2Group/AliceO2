@@ -56,7 +56,8 @@ jobs:
           cat <<\EOF > results.json
           ${{ steps.get_last_commit_for_pr.outputs.data }}
           EOF
-          COMMIT=`jq -r '.data.repository.pullRequest.commits.nodes[].commit.oid' -- results.json`
+          cat results.json
+          COMMIT=$(jq -r '.data.repository.pullRequest.commits.nodes[].commit.oid' -- results.json)
           echo $COMMIT
           for check in `tr , \\n`; do
             set-github-status -c ${{ github.event.inputs.owner }}/${{ github.event.inputs.repo }}@$COMMIT -s $check/pending
