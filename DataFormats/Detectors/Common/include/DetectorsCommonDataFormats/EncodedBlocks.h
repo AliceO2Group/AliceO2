@@ -68,6 +68,7 @@ struct Metadata {
     NODATA                        // no data was provided
   };
   size_t messageLength = 0;
+  size_t nLiterals = 0;
   uint8_t coderType = 0;
   uint8_t streamSize = 0;
   uint8_t probabilityBits = 0;
@@ -76,15 +77,19 @@ struct Metadata {
   int32_t max = 0;
   int nDictWords = 0;
   int nDataWords = 0;
+  int nLiteralWords = 0;
 
   void clear()
   {
     min = max = 0;
     messageLength = 0;
+    nLiterals = 0;
     coderType = 0;
     streamSize = 0;
     probabilityBits = 0;
-    nDataWords = nDictWords = 0;
+    nDictWords = 0;
+    nDataWords = 0;
+    nLiteralWords = 0;
   }
   ClassDefNV(Metadata, 1);
 };
@@ -125,15 +130,51 @@ struct Block {
 
   Registry* registry = nullptr; //! non-persistent info for in-memory ops
   int nDict = 0;                // dictionary length (if any)
-  int nStored = 0;              // total payload: data + dictionary length
+  int nData = 0;                // length of data
+  int nLiterals = 0;            // length of literals vector (if any)
+  int nStored = 0;              // total length
   W* payload = nullptr;         //[nStored];
 
-  W* getData() { return payload ? (payload + nDict) : (registry ? (payload = reinterpret_cast<W*>(registry->getFreeBlockStart())) : nullptr); }
-  W* getDict() { return nDict ? payload : nullptr; }
-  const W* getData() const { return payload ? (payload + nDict) : nullptr; }
-  const W* getDict() const { return nDict ? payload : nullptr; }
-  int getNData() const { return nStored - nDict; }
-  int getNDict() const { return nDict; }
+  inline W* getDict() { return payload ? payload : (payload = reinterpret_cast<W*>(registry->getFreeBlockStart())); };
+  inline W* getData() { return payload ? (payload + nDict) : (registry ? (payload = reinterpret_cast<W*>(registry->getFreeBlockStart())) : nullptr); };
+  W* getLiterals()
+  {
+    if (payload) {
+      return payload + nDict + nData;
+    }
+    if (registry) {
+      payload = reinterpret_cast<W*>(registry->getFreeBlockStart());
+      return payload + nDict + nData;
+    }
+    return nullptr;
+  };
+
+  inline const W* getDict() const { return nDict ? payload : nullptr; };
+  inline const W* getData() const { return payload ? (payload + nDict) : nullptr; };
+  inline const W* getLiterals() const { return nLiterals ? payload + nDict + nData : nullptr; };
+
+  inline void setNDict(int _ndict)
+  {
+    nDict = _ndict;
+    nStored += nDict;
+  }
+
+  inline void setNData(int _ndata)
+  {
+    nData = _ndata;
+    nStored += nData;
+  }
+
+  inline void setNLiterals(int _nliterals)
+  {
+    nLiterals = _nliterals;
+    nStored += nLiterals;
+  }
+
+  inline int getNDict() const { return nDict; }
+  inline int getNData() const { return nData; }
+  inline int getNLiterals() const { return nLiterals; }
+  inline int getNStored() const { return nStored; }
 
   ~Block()
   {
@@ -145,78 +186,98 @@ struct Block {
   /// clear itself
   void clear()
   {
-    nDict = nStored = 0;
+    nDict = 0;
+    nData = 0;
+    nLiterals = 0;
+    nStored = 0;
     payload = nullptr;
   }
 
   /// estimate free size needed to add new block
-  static size_t estimateSize(int _ndict, int _ndata)
+  static size_t estimateSize(int _ndict, int _ndata, int _nliterals)
   {
-    return alignSize((_ndict + _ndata) * sizeof(W));
+    return alignSize((_ndict + _ndata + _nliterals) * sizeof(W));
   }
 
   // store a dictionary in an empty block
   void storeDict(int _ndict, const W* _dict)
   {
-    if (nDict || nStored) {
+    if (getNStored() > 0) {
       throw std::runtime_error("trying to write in occupied block");
     }
-    size_t sz = estimateSize(_ndict, 0);
+    size_t sz = estimateSize(_ndict, 0, 0);
     assert(registry); // this method is valid only for flat version, which has a registry
     assert(sz <= registry->getFreeSize());
     assert((_ndict > 0) == (_dict != nullptr));
-    nDict = nStored = _ndict;
+    setNDict(_ndict);
     if (nDict) {
-      auto ptr = payload = reinterpret_cast<W*>(registry->getFreeBlockStart());
-      memcpy(ptr, _dict, _ndict * sizeof(W));
-      ptr += _ndict;
+      memcpy(getDict(), _dict, _ndict * sizeof(W));
     }
   };
 
   // store a dictionary to a block which can either be empty or contain a dict.
   void storeData(int _ndata, const W* _data)
   {
-    if (nStored > nDict) {
+    if (getNStored() > getNDict()) {
       throw std::runtime_error("trying to write in occupied block");
     }
 
-    size_t sz = estimateSize(0, _ndata);
+    size_t sz = estimateSize(0, _ndata, 0);
     assert(registry); // this method is valid only for flat version, which has a registry
     assert(sz <= registry->getFreeSize());
     assert((_ndata > 0) == (_data != nullptr));
-    nStored = nDict + _ndata;
-    if (_ndata) {
-      auto ptr = payload = reinterpret_cast<W*>(registry->getFreeBlockStart());
-      ptr += nDict;
-      memcpy(ptr, _data, _ndata * sizeof(W));
+    setNData(_ndata);
+    if (nData) {
+      memcpy(getData(), _data, _ndata * sizeof(W));
+    }
+  }
+
+  // store a dictionary to a block which can either be empty or contain a dict.
+  void storeLiterals(int _nliterals, const W* _literals)
+  {
+    if (getNStored() > getNDict() + getNData()) {
+      throw std::runtime_error("trying to write in occupied block");
+    }
+
+    size_t sz = estimateSize(0, 0, _nliterals);
+    assert(registry); // this method is valid only for flat version, which has a registry
+    assert(sz <= registry->getFreeSize());
+    //    assert((_nliterals > 0) == (_literals != nullptr));
+    setNLiterals(_nliterals);
+    if (nLiterals) {
+      memcpy(getLiterals(), _literals, _nliterals * sizeof(W));
     }
   }
 
   // resize block and free up unused buffer space.
   void endBlock()
   {
-    size_t sz = estimateSize(nStored, 0);
+    size_t sz = estimateSize(getNStored(), 0, 0);
     registry->shrinkFreeBlock(sz);
   }
 
   /// store binary blob data (buffer filled from head to tail)
-  void store(int _ndict, int _ndata, const W* _dict, const W* _data)
+  void store(int _ndict, int _ndata, int _nliterals, const W* _dict, const W* _data, const W* _literals)
   {
-    size_t sz = estimateSize(_ndict, _ndata);
+    size_t sz = estimateSize(_ndict, _ndata, _nliterals);
     assert(registry); // this method is valid only for flat version, which has a registry
     assert(sz <= registry->getFreeSize());
     assert((_ndict > 0) == (_dict != nullptr));
     assert((_ndata > 0) == (_data != nullptr));
-    nStored = _ndict + _ndata;
-    nDict = _ndict;
-    if (nStored) {
-      auto ptr = payload = reinterpret_cast<W*>(registry->getFreeBlockStart());
-      if (_dict) {
-        memcpy(ptr, _dict, _ndict * sizeof(W));
-        ptr += _ndict;
+    //    assert(_literals == _data + _nliterals);
+    setNDict(_ndict);
+    setNData(_ndata);
+    setNLiterals(_nliterals);
+    if (getNStored()) {
+      payload = reinterpret_cast<W*>(registry->getFreeBlockStart());
+      if (getNDict()) {
+        memcpy(getDict(), _dict, _ndict * sizeof(W));
       }
-      if (_data) {
-        memcpy(ptr, _data, _ndata * sizeof(W));
+      if (getNData()) {
+        memcpy(getData(), _data, _ndata * sizeof(W));
+      }
+      if (getNLiterals()) {
+        memcpy(getLiterals(), _literals, _nliterals * sizeof(W));
       }
     }
     registry->shrinkFreeBlock(sz);
@@ -269,7 +330,7 @@ class EncodedBlocks
   static auto create(VD& v);
 
   /// estimate free size needed to add new block
-  static size_t estimateBlockSize(int _ndict, int _ndata) { return Block<W>::estimateSize(_ndict, _ndata); }
+  static size_t estimateBlockSize(int _ndict, int _ndata, int _nliterals) { return Block<W>::estimateSize(_ndict, _ndata, _nliterals); }
 
   /// check if empty and valid
   bool empty() const { return (mRegistry.offsFreeStart == alignSize(sizeof(*this))) && (mRegistry.size >= mRegistry.offsFreeStart); }
@@ -394,7 +455,7 @@ void EncodedBlocks<H, N, W>::readFromTree(VD& vec, TTree& tree, const std::strin
   for (int i = 0; i < N; i++) {
     Block<W> bl;
     readTreeBranch(tree, o2::utils::concat_string(name, "_block.", std::to_string(i), "."), bl);
-    tmp->mBlocks[i].store(bl.getNDict(), bl.getNData(), bl.getDict(), bl.getData());
+    tmp->mBlocks[i].store(bl.getNDict(), bl.getNData(), bl.getNLiterals(), bl.getDict(), bl.getData(), bl.getLiterals());
   }
 }
 
@@ -482,7 +543,7 @@ size_t EncodedBlocks<H, N, W>::estimateSizeFromMetadata() const
 {
   size_t sz = alignSize(sizeof(*this));
   for (int i = 0; i < N; i++) {
-    sz += alignSize((mMetadata[i].nDictWords + mMetadata[i].nDataWords) * sizeof(W));
+    sz += alignSize((mMetadata[i].nDictWords + mMetadata[i].nDataWords + mMetadata[i].nLiteralWords) * sizeof(W));
   }
   return sz;
 }
@@ -622,8 +683,14 @@ void EncodedBlocks<H, N, W>::decode(D* dest,        // destination pointer
     if (md.opt == Metadata::OptStore::EENCODE) {
       assert(block.getNDict()); // at the moment we expect to have dictionary
       o2::rans::SymbolStatistics<D> stats(block.getDict(), block.getDict() + block.getNDict(), md.min, md.max, md.messageLength);
-      o2::rans::Decoder64<D> decoder(stats, md.probabilityBits);
-      decoder.process(dest, block.getData() + block.getNData(), md.messageLength);
+
+      // load incompressible symbols if they existed
+      std::vector<D> literals;
+      if (md.nLiterals) {
+        literals = std::vector<D>{reinterpret_cast<const D*>(block.getLiterals()), reinterpret_cast<const D*>(block.getLiterals()) + md.nLiterals};
+      }
+      o2::rans::LiteralDecoder64<D> decoder(stats, md.probabilityBits);
+      decoder.process(dest, block.getData() + block.getNData(), md.messageLength, literals);
     } else { // data was stored as is
       std::memcpy(dest, block.payload, md.messageLength * sizeof(D));
     }
@@ -652,7 +719,7 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
 
   // case 1: empty source message
   if (srcBegin == srcEnd) {
-    mMetadata[slot] = Metadata{0, sizeof(uint64_t), sizeof(stream_t), probabilityBits, Metadata::OptStore::NODATA, 0, 0, 0, 0};
+    mMetadata[slot] = Metadata{0, 0, sizeof(uint64_t), sizeof(stream_t), probabilityBits, Metadata::OptStore::NODATA, 0, 0, 0, 0, 0};
     return;
   }
   static_assert(std::is_same<W, stream_t>());
@@ -664,7 +731,7 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
 
   // resize underlying buffer of block if necessary and update all pointers.
   auto expandStorage = [&](int dictElems, int encodeBufferElems) {
-    auto szNeed = estimateBlockSize(dictElems, encodeBufferElems); // size in bytes!!!
+    auto szNeed = estimateBlockSize(dictElems, encodeBufferElems, 0); // size in bytes!!!
     if (szNeed >= getFreeSize()) {
       LOG(INFO) << "Slot " << slot << ": free size: " << getFreeSize() << ", need " << szNeed;
       if (buffer) {
@@ -682,7 +749,7 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
     // build symbol statistics
     stats = std::make_unique<rans::SymbolStatistics<S>>(srcBegin, srcEnd);
     stats->rescaleToNBits(probabilityBits);
-    const o2::rans::Encoder64<S> encoder{*stats, probabilityBits};
+    const o2::rans::LiteralEncoder64<S> encoder{*stats, probabilityBits};
     const int dictSize = stats->getFrequencyTable().size();
 
     // estimate size of encode buffer
@@ -693,13 +760,22 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
     expandStorage(dictSize, dataSize);
     //store dictionary first
     bl->storeDict(dictSize, stats->getFrequencyTable().data());
+    // vector of incompressible literal symbols
+    std::vector<S> literals;
     // directly encode source message into block buffer.
-    const auto encodedMessageEnd = encoder.process(bl->getData(), bl->getData() + dataSize, srcBegin, srcEnd);
+    const auto encodedMessageEnd = encoder.process(bl->getData(), bl->getData() + dataSize, srcBegin, srcEnd, literals);
     dataSize = encodedMessageEnd - bl->getData();
     // update the size claimed by encode message directly inside the block
-    bl->nStored = bl->nDict + dataSize;
-    *meta = Metadata{stats->getMessageLength(), sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt,
-                     stats->getMinSymbol(), stats->getMaxSymbol(), dictSize, dataSize};
+    bl->setNData(dataSize);
+    // store incompressible symbols if any
+
+    int literalSize = 0;
+    if (literals.size()) {
+      literalSize = (literals.size() * sizeof(S)) / sizeof(stream_t) + (sizeof(S) < sizeof(stream_t));
+      bl->storeLiterals(literalSize, reinterpret_cast<const stream_t*>(literals.data()));
+    }
+    *meta = Metadata{stats->getMessageLength(), literals.size(), sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt,
+                     stats->getMinSymbol(), stats->getMaxSymbol(), dictSize, dataSize, literalSize};
 
   } else { // store original data w/o EEncoding
     const size_t messageLength = (srcEnd - srcBegin);
@@ -707,8 +783,8 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
     const int dataSize = szb / sizeof(stream_t) + (sizeof(S) < sizeof(stream_t));
     // no dictionary needed
     expandStorage(0, dataSize);
-    *meta = Metadata{messageLength, sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt,
-                     0, 0, 0, dataSize};
+    *meta = Metadata{messageLength, 0, sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt,
+                     0, 0, 0, dataSize, 0};
     bl->storeData(meta->nDataWords, reinterpret_cast<const W*>(srcBegin));
   }
   // resize block if necessary
