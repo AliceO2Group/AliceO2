@@ -57,7 +57,7 @@ jobs:
           ${{ steps.get_last_commit_for_pr.outputs.data }}
           EOF
           cat results.json
-          jq results.json
+          jq . results.json
           jq .data.repository.pullRequest results.json 
           COMMIT=$(jq -r '.data.repository.pullRequest.commits.nodes[].commit.oid' results.json)
           echo $COMMIT
