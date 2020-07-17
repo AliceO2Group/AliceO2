@@ -11,7 +11,7 @@ on:
         default: 'build/O2/o2'
 
 jobs:
-  build:
+  cleanup_pr_checks:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Python 3.7
